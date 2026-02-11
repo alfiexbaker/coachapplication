@@ -60,7 +60,6 @@ const MOCK_TRANSACTIONS: EarningTransaction[] = [
     status: 'COMPLETED',
     description: '1:1 Coaching - Finishing',
     bookingId: 'booking_101',
-    athleteName: 'Tom Baker',
     sessionDate: '2026-01-08',
     createdAt: '2026-01-08T18:00:00Z',
     completedAt: '2026-01-08T18:05:00Z',
@@ -74,7 +73,6 @@ const MOCK_TRANSACTIONS: EarningTransaction[] = [
     status: 'COMPLETED',
     description: '1:1 Coaching - Dribbling',
     bookingId: 'booking_102',
-    athleteName: 'James Wilson',
     sessionDate: '2026-01-07',
     createdAt: '2026-01-07T17:00:00Z',
     completedAt: '2026-01-07T17:05:00Z',
@@ -88,7 +86,6 @@ const MOCK_TRANSACTIONS: EarningTransaction[] = [
     status: 'COMPLETED',
     description: 'Group Training - U12',
     bookingId: 'booking_103',
-    athleteName: 'Group (5 players)',
     sessionDate: '2026-01-06',
     createdAt: '2026-01-06T12:00:00Z',
     completedAt: '2026-01-06T12:05:00Z',
@@ -113,7 +110,6 @@ const MOCK_TRANSACTIONS: EarningTransaction[] = [
     status: 'COMPLETED',
     description: '1:1 Coaching - Passing',
     bookingId: 'booking_104',
-    athleteName: 'Sarah Johnson',
     sessionDate: '2026-01-03',
     createdAt: '2026-01-03T15:00:00Z',
     completedAt: '2026-01-03T15:05:00Z',
@@ -127,7 +123,6 @@ const MOCK_TRANSACTIONS: EarningTransaction[] = [
     status: 'COMPLETED',
     description: 'Refund - Session cancelled by parent',
     bookingId: 'booking_105',
-    athleteName: 'Mike Davis',
     createdAt: '2026-01-02T11:00:00Z',
     completedAt: '2026-01-02T11:30:00Z',
   },
@@ -140,7 +135,6 @@ const MOCK_TRANSACTIONS: EarningTransaction[] = [
     status: 'COMPLETED',
     description: '1:1 Coaching - Defending',
     bookingId: 'booking_106',
-    athleteName: 'Lucy Williams',
     sessionDate: '2025-12-28',
     createdAt: '2025-12-28T14:00:00Z',
     completedAt: '2025-12-28T14:05:00Z',
@@ -155,7 +149,6 @@ const MOCK_TRANSACTIONS: EarningTransaction[] = [
     status: 'COMPLETED',
     description: '1:1 Coaching - Goalkeeping',
     bookingId: 'booking_201',
-    athleteName: 'Lucy Williams',
     sessionDate: '2026-01-09',
     createdAt: '2026-01-09T16:00:00Z',
     completedAt: '2026-01-09T16:05:00Z',
@@ -169,7 +162,6 @@ const MOCK_TRANSACTIONS: EarningTransaction[] = [
     status: 'COMPLETED',
     description: '1:1 Coaching - Goalkeeping',
     bookingId: 'booking_202',
-    athleteName: 'Emma Thompson',
     sessionDate: '2026-01-08',
     createdAt: '2026-01-08T14:00:00Z',
     completedAt: '2026-01-08T14:05:00Z',
@@ -183,7 +175,6 @@ const MOCK_TRANSACTIONS: EarningTransaction[] = [
     status: 'PENDING',
     description: '1:1 Coaching - Defending',
     bookingId: 'booking_203',
-    athleteName: 'Jack Brown',
     sessionDate: '2026-01-11',
     createdAt: '2026-01-11T10:00:00Z',
   },
@@ -207,7 +198,6 @@ const MOCK_TRANSACTIONS: EarningTransaction[] = [
     status: 'COMPLETED',
     description: 'Group Training - Beginners',
     bookingId: 'booking_204',
-    athleteName: 'Group (4 players)',
     sessionDate: '2026-01-05',
     createdAt: '2026-01-05T11:00:00Z',
     completedAt: '2026-01-05T11:05:00Z',
@@ -222,7 +212,6 @@ const MOCK_TRANSACTIONS: EarningTransaction[] = [
     status: 'COMPLETED',
     description: '1:1 Coaching - Conditioning',
     bookingId: 'booking_301',
-    athleteName: 'Oliver Smith',
     sessionDate: '2026-01-10',
     createdAt: '2026-01-10T11:00:00Z',
     completedAt: '2026-01-10T11:05:00Z',
@@ -236,7 +225,6 @@ const MOCK_TRANSACTIONS: EarningTransaction[] = [
     status: 'COMPLETED',
     description: '1:1 Coaching - Conditioning',
     bookingId: 'booking_302',
-    athleteName: 'Sophie Taylor',
     sessionDate: '2026-01-09',
     createdAt: '2026-01-09T10:00:00Z',
     completedAt: '2026-01-09T10:05:00Z',
@@ -250,7 +238,6 @@ const MOCK_TRANSACTIONS: EarningTransaction[] = [
     status: 'COMPLETED',
     description: '1:1 Coaching - Passing',
     bookingId: 'booking_303',
-    athleteName: 'Harry Jones',
     sessionDate: '2026-01-07',
     createdAt: '2026-01-07T09:00:00Z',
     completedAt: '2026-01-07T09:05:00Z',
@@ -264,7 +251,6 @@ const MOCK_TRANSACTIONS: EarningTransaction[] = [
     status: 'COMPLETED',
     description: 'Refund - Weather cancellation',
     bookingId: 'booking_304',
-    athleteName: 'Ella Davis',
     createdAt: '2026-01-04T08:00:00Z',
     completedAt: '2026-01-04T08:30:00Z',
   },
@@ -273,7 +259,6 @@ const MOCK_TRANSACTIONS: EarningTransaction[] = [
 const MOCK_EARNINGS: Record<string, CoachEarnings> = {
   coach1: {
     coachId: 'coach1',
-    coachName: 'Marcus Thompson',
     availableBalance: 252,
     pendingBalance: 0,
     totalEarned: 1893,
@@ -293,7 +278,6 @@ const MOCK_EARNINGS: Record<string, CoachEarnings> = {
   },
   coach2: {
     coachId: 'coach2',
-    coachName: 'Sarah Mitchell',
     availableBalance: 288,
     pendingBalance: 63,
     totalEarned: 2456,
@@ -313,7 +297,6 @@ const MOCK_EARNINGS: Record<string, CoachEarnings> = {
   },
   coach3: {
     coachId: 'coach3',
-    coachName: 'Emma Williams',
     availableBalance: 108,
     pendingBalance: 0,
     totalEarned: 956,
@@ -432,7 +415,6 @@ export const earningsReportService = {
           logger.debug('Creating default earnings for new coach', { coachId });
           return ok({
             coachId,
-            coachName: 'Coach',
             availableBalance: 0,
             pendingBalance: 0,
             totalEarned: 0,
@@ -500,7 +482,6 @@ export const earningsReportService = {
     coachId: string,
     bookingId: string,
     amount: number,
-    athleteName: string,
     sessionDate?: string
   ): Promise<Result<EarningTransaction, ServiceError>> {
     logger.debug('Recording session payment', { coachId, bookingId, amount });
@@ -515,9 +496,8 @@ export const earningsReportService = {
       amount: netAmount,
       currency: 'GBP',
       status: 'COMPLETED',
-      description: `Session payment - ${athleteName}`,
+      description: 'Session payment',
       bookingId,
-      athleteName,
       sessionDate: sessionDate || toDateStr(new Date()),
       createdAt: new Date().toISOString(),
       completedAt: new Date().toISOString(),
@@ -545,7 +525,6 @@ export const earningsReportService = {
           // Create new earnings record for coach
           earningsCache[coachId] = {
             coachId,
-            coachName: 'Coach',
             availableBalance: netAmount,
             pendingBalance: 0,
             totalEarned: netAmount,
@@ -576,7 +555,7 @@ export const earningsReportService = {
       const response = await fetch('/api/transactions/session-payment', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ coachId, bookingId, amount, athleteName, sessionDate }),
+        body: JSON.stringify({ coachId, bookingId, amount, sessionDate }),
       });
 
       if (!response.ok) {

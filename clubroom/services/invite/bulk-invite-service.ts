@@ -21,6 +21,7 @@ import type {
 } from '@/constants/types';
 import { notificationService } from '../notification-service';
 import { squadService } from '../squad-service';
+import { userService } from '../user-service';
 import { createLogger } from '@/utils/logger';
 
 import {
@@ -43,6 +44,18 @@ import {
 const logger = createLogger('BulkInviteService');
 
 const USE_MOCK = api.useMock;
+
+async function resolveUserName(userId: string, fallback: string): Promise<string> {
+  const userResult = await userService.getUserById(userId);
+  if (!userResult.success) return fallback;
+  return userResult.data.name || fallback;
+}
+
+async function resolveAthleteNames(athleteIds: string[]): Promise<string[]> {
+  return Promise.all(
+    athleteIds.map((athleteId, index) => resolveUserName(athleteId, `Athlete ${index + 1}`))
+  );
+}
 
 // ============================================================================
 // TYPE DEFINITIONS
@@ -129,13 +142,9 @@ export const bulkInviteService = {
           const newInvite: SessionInvite = {
             id: `inv_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
             coachId: input.coachId,
-            coachName: input.coachName,
-            coachPhotoUrl: input.coachPhotoUrl,
             clubName: input.clubName,
             athleteIds: input.athleteIds,
-            athleteNames: input.athleteNames,
             parentId: input.parentId,
-            parentName: input.parentName,
             proposedSlots: input.proposedSlots,
             sessionType: input.sessionType,
             focus: input.focus,
@@ -255,15 +264,21 @@ export const bulkInviteService = {
     // Create invite for each parent
     for (const [parentId, athletes] of parentMap.entries()) {
       try {
+        const athleteIds = athletes.map((a) => a.athleteId);
+        const [athleteNames, parentName] = await Promise.all([
+          resolveAthleteNames(athleteIds),
+          resolveUserName(parentId, 'Parent'),
+        ]);
+
         await sessionInviteService._createSingleInvite({
           coachId: input.coachId,
           coachName: input.coachName,
           coachPhotoUrl: input.coachPhotoUrl,
           clubName: input.clubName || squad?.name,
-          athleteIds: athletes.map((a) => a.athleteId),
-          athleteNames: athletes.map((a) => a.athleteName),
+          athleteIds,
+          athleteNames,
           parentId,
-          parentName: athletes[0].parentName,
+          parentName,
           proposedSlots: input.proposedSlots,
           sessionType: input.sessionType,
           focus: input.focus,
@@ -278,7 +293,6 @@ export const bulkInviteService = {
         failed++;
         errors.push({
           memberId: athletes[0].athleteId,
-          athleteName: athletes[0].athleteName,
           error: error instanceof Error ? error.message : 'Unknown error',
         });
       }
@@ -288,12 +302,9 @@ export const bulkInviteService = {
     const squadInvite: SquadInvite = {
       id: groupId,
       squadId: input.squadId,
-      squadName: squad?.name || 'Unknown Squad',
       targetType: 'SESSION',
       targetId: input.sessionId,
-      targetTitle: input.sessionTitle,
       invitedBy: input.coachId,
-      invitedByName: input.coachName,
       invitedAt: new Date().toISOString(),
       memberCount: eligibleMembers.length,
       excludedMemberIds: input.excludeMemberIds,
@@ -350,15 +361,21 @@ export const bulkInviteService = {
       // Create invites for each parent
       for (const [parentId, athletes] of parentMap.entries()) {
         try {
+          const athleteIds = athletes.map((a) => a.athleteId);
+          const [athleteNames, parentName] = await Promise.all([
+            resolveAthleteNames(athleteIds),
+            resolveUserName(parentId, 'Parent'),
+          ]);
+
           const invite = await sessionInviteService._createSingleInvite({
             coachId: input.coachId,
             coachName: input.coachName,
             coachPhotoUrl: input.coachPhotoUrl,
             clubName: input.clubName || squad.name,
-            athleteIds: athletes.map((a) => a.athleteId),
-            athleteNames: athletes.map((a) => a.athleteName),
+            athleteIds,
+            athleteNames,
             parentId,
-            parentName: athletes[0].parentName,
+            parentName,
             proposedSlots: input.proposedSlots,
             sessionType: input.sessionType,
             focus: input.focus,
@@ -375,9 +392,7 @@ export const bulkInviteService = {
             invitedMembers.push({
               memberId: athlete.id,
               athleteId: athlete.athleteId,
-              athleteName: athlete.athleteName,
               parentId: athlete.parentId,
-              parentName: athlete.parentName,
               inviteId: invite.id,
               status: 'SENT',
             });
@@ -389,15 +404,12 @@ export const bulkInviteService = {
             invitedMembers.push({
               memberId: athlete.id,
               athleteId: athlete.athleteId,
-              athleteName: athlete.athleteName,
               parentId: athlete.parentId,
-              parentName: athlete.parentName,
               status: 'FAILED',
               failureReason: error instanceof Error ? error.message : 'Unknown error',
             });
             errors.push({
               memberId: athlete.id,
-              athleteName: athlete.athleteName,
               error: error instanceof Error ? error.message : 'Unknown error',
               code: 'UNKNOWN',
             });
@@ -420,13 +432,10 @@ export const bulkInviteService = {
     const squadInvite: SquadSessionInvite = {
       id: groupId,
       squadId: input.squadId,
-      squadName: squad.name,
       sessionId: input.sessionId,
-      sessionTitle: input.sessionTitle,
       invitedMembers,
       sentAt: new Date().toISOString(),
       sentBy: input.coachId,
-      sentByName: input.coachName,
       status: failed === 0 ? 'SENT' : failed === members.length ? 'FAILED' : 'PARTIAL',
       result,
     };
@@ -440,14 +449,11 @@ export const bulkInviteService = {
     await squadInviteService.addToInviteHistory({
       id: groupId,
       squadId: input.squadId,
-      squadName: squad.name,
       sessionId: input.sessionId,
-      sessionTitle: input.sessionTitle,
       sessionType: input.sessionType,
       focus: input.focus,
       sentAt: new Date().toISOString(),
       sentBy: input.coachId,
-      sentByName: input.coachName,
       inviteCount: sent,
       acceptedCount: 0,
       declinedCount: 0,
@@ -513,15 +519,21 @@ export const bulkInviteService = {
     if (USE_MOCK) {
       for (const [parentId, athletes] of parentMap.entries()) {
         try {
+          const athleteIds = athletes.map((a) => a.athleteId);
+          const [athleteNames, parentName] = await Promise.all([
+            resolveAthleteNames(athleteIds),
+            resolveUserName(parentId, 'Parent'),
+          ]);
+
           const invite = await sessionInviteService._createSingleInvite({
             coachId: input.coachId,
             coachName: input.coachName,
             coachPhotoUrl: input.coachPhotoUrl,
             clubName: input.clubName,
-            athleteIds: athletes.map((a) => a.athleteId),
-            athleteNames: athletes.map((a) => a.athleteName),
+            athleteIds,
+            athleteNames,
             parentId,
-            parentName: athletes[0].parentName,
+            parentName,
             proposedSlots: input.proposedSlots,
             sessionType: input.sessionType,
             focus: input.focus,
@@ -535,9 +547,7 @@ export const bulkInviteService = {
             invitedMembers.push({
               memberId: athlete.id,
               athleteId: athlete.athleteId,
-              athleteName: athlete.athleteName,
               parentId: athlete.parentId,
-              parentName: athlete.parentName,
               inviteId: invite.id,
               status: 'SENT',
             });
@@ -548,15 +558,12 @@ export const bulkInviteService = {
             invitedMembers.push({
               memberId: athlete.id,
               athleteId: athlete.athleteId,
-              athleteName: athlete.athleteName,
               parentId: athlete.parentId,
-              parentName: athlete.parentName,
               status: 'FAILED',
               failureReason: error instanceof Error ? error.message : 'Unknown error',
             });
             errors.push({
               memberId: athlete.id,
-              athleteName: athlete.athleteName,
               error: error instanceof Error ? error.message : 'Unknown error',
               code: 'UNKNOWN',
             });

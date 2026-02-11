@@ -150,7 +150,7 @@ export default function EarningsScreen() {
             e.transactions.map((txn) => {
               const date = new Date(txn.createdAt);
               const subtitle = txn.sessionDate
-                ? `${txn.athleteName || 'Session'} - ${new Date(txn.sessionDate).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}`
+                ? `${txn.bookingId || 'Session'} - ${new Date(txn.sessionDate).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}`
                 : date.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
               return <TransactionListItem key={txn.id} title={txn.description} subtitle={subtitle} amount={e.formatCurrency(txn.amount)} status={txn.status === 'COMPLETED' ? 'Paid' : txn.status === 'PENDING' ? 'Pending' : txn.status} />;
             })

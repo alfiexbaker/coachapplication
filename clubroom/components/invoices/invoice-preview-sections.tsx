@@ -131,7 +131,7 @@ export const InvoicePartiesRow = memo(function InvoicePartiesRow({
       <SurfaceCard style={[styles.card, styles.partyCard]}>
         <ThemedText style={[styles.partyLabel, { color: palette.muted }]}>FROM</ThemedText>
         <ThemedText type="defaultSemiBold" style={styles.partyName}>
-          {invoice.coachBusinessName || invoice.coachName}
+          {invoice.coachBusinessName || invoice.coachId}
         </ThemedText>
         {invoice.coachBusinessEmail && (
           <ThemedText style={[styles.partyDetail, { color: palette.muted }]}>
@@ -148,7 +148,7 @@ export const InvoicePartiesRow = memo(function InvoicePartiesRow({
       <SurfaceCard style={[styles.card, styles.partyCard]}>
         <ThemedText style={[styles.partyLabel, { color: palette.muted }]}>BILL TO</ThemedText>
         <ThemedText type="defaultSemiBold" style={styles.partyName}>
-          {invoice.userName}
+          {invoice.userId}
         </ThemedText>
         {invoice.billingAddress && (
           <ThemedText style={[styles.partyDetail, { color: palette.muted }]}>
@@ -190,7 +190,7 @@ export const InvoiceSessionDetails = memo(function InvoiceSessionDetails({
           <Ionicons name="person-outline" size={18} color={palette.muted} />
           <View style={styles.detailContent}>
             <ThemedText style={[styles.detailLabel, { color: palette.muted }]}>Athlete</ThemedText>
-            <ThemedText type="defaultSemiBold">{invoice.athleteName}</ThemedText>
+            <ThemedText type="defaultSemiBold">{invoice.athleteId || 'Athlete'}</ThemedText>
           </View>
         </Row>
 

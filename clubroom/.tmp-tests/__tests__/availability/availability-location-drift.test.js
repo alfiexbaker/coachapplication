@@ -120,13 +120,11 @@ function futureDate(dayOfWeek, weeksAhead, time = '10:00') {
                 id: 'b1',
                 scheduledAt: futureDate(DOW, 0),
                 location: 'Hyde Park',
-                athleteName: 'Alice',
             }),
             makeBooking({
                 id: 'b2',
                 scheduledAt: futureDate(DOW, 1),
                 location: 'Hyde Park',
-                athleteName: 'Bob',
             }),
         ];
         await api_client_1.apiClient.set(storage_keys_1.STORAGE_KEYS.BOOKINGS, bookings);
@@ -226,7 +224,6 @@ function futureDate(dayOfWeek, weeksAhead, time = '10:00') {
                 id: 'conflict_b1',
                 scheduledAt: `${targetDate}T09:00:00`,
                 location: 'Battersea Park',
-                athleteName: 'Charlie',
             }),
         ];
         await api_client_1.apiClient.set(storage_keys_1.STORAGE_KEYS.BOOKINGS, bookings);
@@ -238,6 +235,5 @@ function futureDate(dayOfWeek, weeksAhead, time = '10:00') {
         node_assert_1.default.strictEqual(b.location, 'Battersea Park', 'Should include the booking location');
         node_assert_1.default.strictEqual(b.date, targetDate, 'Should include the date');
         node_assert_1.default.strictEqual(b.time, '09:00', 'Should include the time');
-        node_assert_1.default.strictEqual(b.athleteName, 'Charlie', 'Should include athleteName');
     });
 });

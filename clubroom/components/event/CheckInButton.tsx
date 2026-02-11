@@ -75,11 +75,8 @@ export function CheckInButton({
       const checkInInput: CheckInInput = {
         eventId: event.id,
         userId,
-        userName,
-        userPhotoUrl,
         userRole,
         checkedInBy: userId,
-        checkedInByName: userName,
         checkInMethod: 'SELF',
         location: currentLocation
           ? {
@@ -97,7 +94,7 @@ export function CheckInButton({
     } finally {
       setLoading(false);
     }
-  }, [loading, disabled, requireLocation, currentLocation, event.id, userId, userName, userPhotoUrl, userRole, onCheckIn]);
+  }, [loading, disabled, requireLocation, currentLocation, event.id, userId, userRole, onCheckIn]);
 
   const handleUndoCheckIn = useCallback(async () => {
     if (!onUndoCheckIn || loading) return;

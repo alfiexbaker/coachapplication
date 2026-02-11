@@ -116,9 +116,9 @@ export function useSubscribeForm({ coach, userId, userName, athletes, onSubmit, 
       startDate.setDate(startDate.getDate() + 1);
     }
     const params: CreateRecurringBookingParams = {
-      userId, userName,
-      coachId: coach.id, coachName: coach.name, coachPhotoUrl: coach.photoUrl,
-      athleteId: selectedAthleteId, athleteName: selectedAthlete?.name,
+      userId,
+      coachId: coach.id,
+      athleteId: selectedAthleteId,
       dayOfWeek, time, duration, location, sessionType, frequency,
       startDate: startDate.toISOString(),
       endDate: hasEndDate && endDate ? endDate.toISOString() : undefined,
@@ -126,7 +126,7 @@ export function useSubscribeForm({ coach, userId, userName, athletes, onSubmit, 
       notes: notes.trim() || undefined,
     };
     await onSubmit(params);
-  }, [userId, userName, coach, selectedAthleteId, selectedAthlete, dayOfWeek, time, duration, location, sessionType, frequency, hasEndDate, endDate, notes, onSubmit]);
+  }, [userId, coach, selectedAthleteId, dayOfWeek, time, duration, location, sessionType, frequency, hasEndDate, endDate, notes, onSubmit]);
 
   const toggleEndDate = useCallback(() => setHasEndDate((v) => !v), []);
   const isValid = location.trim().length > 0;

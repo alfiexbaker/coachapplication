@@ -99,8 +99,11 @@ function bookingToCalendarEvent(booking) {
     if (booking.notes) {
         description += `Notes: ${booking.notes}\n`;
     }
-    if (booking.athleteName) {
-        description += `Athlete: ${booking.athleteName}\n`;
+    if (booking.athleteIds && booking.athleteIds.length > 0) {
+        description += `Athletes: ${booking.athleteIds.length}\n`;
+    }
+    else if (booking.athleteId) {
+        description += `Athlete ID: ${booking.athleteId}\n`;
     }
     return {
         id: booking.id,
@@ -110,8 +113,6 @@ function bookingToCalendarEvent(booking) {
         location: booking.location || '',
         description: description.trim(),
         bookingId: booking.id,
-        coachName: booking.coachName || undefined,
-        athleteName: booking.athleteName || undefined,
     };
 }
 /**

@@ -75,7 +75,7 @@ export default function EventDetailScreen() {
           </Row>
 
           <ThemedText type="title" style={styles.title}>{event.title}</ThemedText>
-          <ThemedText style={[styles.clubName, { color: palette.muted }]}>{event.clubName} - Posted by {event.createdByName}</ThemedText>
+          <ThemedText style={[styles.clubName, { color: palette.muted }]}>{event.clubId} - Posted by {event.createdBy}</ThemedText>
 
           {/* Detail cards */}
           <View style={styles.detailsSection}>

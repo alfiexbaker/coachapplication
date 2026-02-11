@@ -214,7 +214,7 @@ export default function DrillDetailScreen() {
         {/* Coach Notes */}
         {assignment.notes && (
           <Animated.View entering={FadeInDown.delay(200).springify()}>
-            <DrillCoachNotes notes={assignment.notes} coachName={assignment.assignedByName} />
+            <DrillCoachNotes notes={assignment.notes} coachName={assignment.assignedBy} />
           </Animated.View>
         )}
 

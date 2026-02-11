@@ -82,8 +82,8 @@ function ProgressBadgesTabInner({ awards }: ProgressBadgesTabProps) {
                   <ThemedText style={[styles.badgeReason, { color: palette.muted }]}>{award.reason}</ThemedText>
                   <Row style={styles.badgeMeta}>
                     <ThemedText style={[styles.badgeDate, { color: palette.muted }]}>{formatShortDateWithYear(award.awardedAt)}</ThemedText>
-                    {award.coachName && (
-                      <ThemedText style={[styles.badgeCoach, { color: palette.muted }]}>from {award.coachName}</ThemedText>
+                    {award.coachId && (
+                      <ThemedText style={[styles.badgeCoach, { color: palette.muted }]}>from {award.coachId}</ThemedText>
                     )}
                   </Row>
                 </View>

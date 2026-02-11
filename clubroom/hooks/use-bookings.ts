@@ -18,6 +18,8 @@ import { STORAGE_KEYS } from '@/constants/storage-keys';
 import { useAuth } from '@/hooks/use-auth';
 import { hasChildren } from '@/utils/user-helpers';
 import { createLogger } from '@/utils/logger';
+import { getSessionInviteCoachName } from '@/utils/session-invite-display';
+import { getBookingAthleteName } from '@/utils/booking-display';
 import type { BookingSummary, SessionOffering, SessionInvite } from '@/constants/types';
 import type { TimeFilter } from '@/components/bookings/BookingsList';
 
@@ -78,8 +80,6 @@ export function useBookings(): UseBookingsResult {
       if (bookings.length > 0) {
         const summaries: BookingSummary[] = bookings.map((booking) => ({
           id: booking.id,
-          coachName: booking.coachName,
-          childName: booking.athleteName ?? 'Athlete',
           service: booking.service ?? 'Session',
           start: booking.scheduledAt,
           status: booking.status === 'CONFIRMED' ? 'Confirmed' : booking.status === 'PENDING' ? 'Pending' : 'Completed',
@@ -89,11 +89,11 @@ export function useBookings(): UseBookingsResult {
             photoUrl: 'https://i.pravatar.cc/100?u=' + booking.coachId,
           },
           client: {
-            name: booking.athleteName ?? 'Athlete',
+            name: getBookingAthleteName(booking),
             photoUrl: 'https://i.pravatar.cc/100?u=' + booking.athleteId,
           },
           coachId: booking.coachId,
-          clientId: booking.athleteId ?? '',
+          clientId: booking.athleteId ?? booking.athleteIds?.[0] ?? '',
         }));
         setSessionBookings(summaries);
         logger.debug('Loaded session bookings', { count: summaries.length });
@@ -241,9 +241,10 @@ export function useBookings(): UseBookingsResult {
   }, [loadData]);
 
   const handleDeclineInvite = useCallback((invite: SessionInvite) => {
+    const coachName = getSessionInviteCoachName(invite);
     Alert.alert(
       'Decline Invite?',
-      `Decline the session invite from ${invite.coachName}?`,
+      `Decline the session invite from ${coachName}?`,
       [
         { text: 'Cancel', style: 'cancel' },
         {

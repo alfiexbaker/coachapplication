@@ -24,22 +24,22 @@ const storage_keys_1 = require("@/constants/storage-keys");
 const result_1 = require("@/types/result");
 const base_service_1 = require("./base-service");
 const logger_1 = require("@/utils/logger");
+const user_service_1 = require("./user-service");
 const logger = (0, logger_1.createLogger)('RosterService');
 const USE_MOCK = config_1.api.useMock;
+async function resolveUserName(userId, fallback) {
+    const userResult = await user_service_1.userService.getUserById(userId);
+    if (!userResult.success)
+        return fallback;
+    return userResult.data.name || fallback;
+}
 // Mock roster data
 const MOCK_ROSTER = [
     {
         id: 'roster_1',
         coachId: 'coach1',
         athleteId: 'athlete_1',
-        athleteName: 'Tom Baker',
-        athleteAge: 11,
-        athletePhotoUrl: 'https://randomuser.me/api/portraits/boys/1.jpg',
-        athleteSkillLevel: 'INTERMEDIATE',
         parentId: 'parent_1',
-        parentName: 'Sarah Baker',
-        parentEmail: 'sarah.baker@email.com',
-        parentPhone: '+44 7700 900001',
         status: 'ACTIVE',
         startDate: '2025-06-15',
         lastSessionDate: '2026-01-08',
@@ -67,14 +67,7 @@ const MOCK_ROSTER = [
         id: 'roster_2',
         coachId: 'coach1',
         athleteId: 'athlete_2',
-        athleteName: 'Lucy Baker',
-        athleteAge: 9,
-        athletePhotoUrl: 'https://randomuser.me/api/portraits/girls/1.jpg',
-        athleteSkillLevel: 'BEGINNER',
         parentId: 'parent_1',
-        parentName: 'Sarah Baker',
-        parentEmail: 'sarah.baker@email.com',
-        parentPhone: '+44 7700 900001',
         status: 'ACTIVE',
         startDate: '2025-09-01',
         lastSessionDate: '2026-01-05',
@@ -103,14 +96,7 @@ const MOCK_ROSTER = [
         id: 'roster_3',
         coachId: 'coach1',
         athleteId: 'athlete_3',
-        athleteName: 'James Wilson',
-        athleteAge: 12,
-        athletePhotoUrl: 'https://randomuser.me/api/portraits/boys/2.jpg',
-        athleteSkillLevel: 'ADVANCED',
         parentId: 'parent_2',
-        parentName: 'Mike Wilson',
-        parentEmail: 'mike.wilson@email.com',
-        parentPhone: '+44 7700 900002',
         status: 'ACTIVE',
         startDate: '2024-03-10',
         lastSessionDate: '2026-01-10',
@@ -144,13 +130,7 @@ const MOCK_ROSTER = [
         id: 'roster_4',
         coachId: 'coach1',
         athleteId: 'athlete_4',
-        athleteName: 'Emma Thompson',
-        athleteAge: 10,
-        athletePhotoUrl: 'https://randomuser.me/api/portraits/girls/2.jpg',
-        athleteSkillLevel: 'INTERMEDIATE',
         parentId: 'parent_3',
-        parentName: 'David Thompson',
-        parentEmail: 'david.thompson@email.com',
         status: 'PAUSED',
         startDate: '2025-04-01',
         lastSessionDate: '2025-11-20',
@@ -172,13 +152,7 @@ const MOCK_ROSTER = [
         id: 'roster_5',
         coachId: 'coach1',
         athleteId: 'athlete_5',
-        athleteName: 'Oliver Chen',
-        athleteAge: 14,
-        athletePhotoUrl: 'https://randomuser.me/api/portraits/boys/3.jpg',
-        athleteSkillLevel: 'ADVANCED',
         parentId: 'parent_4',
-        parentName: 'Wei Chen',
-        parentEmail: 'wei.chen@email.com',
         status: 'GRADUATED',
         startDate: '2023-01-15',
         lastSessionDate: '2025-08-30',
@@ -248,15 +222,31 @@ class RosterServiceImpl extends base_service_1.BaseService {
             filtered = filtered.filter((r) => r.status === filters.status);
         }
         if (filters?.skillLevel) {
-            filtered = filtered.filter((r) => r.athleteSkillLevel === filters.skillLevel);
+            filtered = filtered.filter((r) => {
+                const skillLevel = r.athleteSkillLevel;
+                return skillLevel === filters.skillLevel;
+            });
         }
         if (filters?.tags?.length) {
             filtered = filtered.filter((r) => filters.tags.some((tag) => r.tags.includes(tag)));
         }
+        const entryNames = new Map();
+        await Promise.all(filtered.map(async (entry) => {
+            const [athleteName, parentName] = await Promise.all([
+                resolveUserName(entry.athleteId, 'Athlete'),
+                resolveUserName(entry.parentId, 'Parent'),
+            ]);
+            entryNames.set(entry.id, { athleteName, parentName });
+        }));
         if (filters?.search) {
             const search = filters.search.toLowerCase();
-            filtered = filtered.filter((r) => r.athleteName.toLowerCase().includes(search) ||
-                r.parentName.toLowerCase().includes(search));
+            filtered = filtered.filter((entry) => {
+                const names = entryNames.get(entry.id);
+                if (!names)
+                    return false;
+                return (names.athleteName.toLowerCase().includes(search) ||
+                    names.parentName.toLowerCase().includes(search));
+            });
         }
         return filtered.sort((a, b) => {
             // Active first, then by name
@@ -264,7 +254,7 @@ class RosterServiceImpl extends base_service_1.BaseService {
                 return -1;
             if (a.status !== 'ACTIVE' && b.status === 'ACTIVE')
                 return 1;
-            return a.athleteName.localeCompare(b.athleteName);
+            return (entryNames.get(a.id)?.athleteName || '').localeCompare(entryNames.get(b.id)?.athleteName || '');
         });
     }
     /**
@@ -461,7 +451,6 @@ class RosterServiceImpl extends base_service_1.BaseService {
             id: api_client_1.apiClient.generateId('removal'),
             coachId,
             athleteId,
-            athleteName: entry.athleteName,
             reason,
             customReason: options?.customReason,
             archived: archive,

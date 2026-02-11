@@ -24,6 +24,7 @@ import type { SessionRsvp } from '@/constants/types';
 import { notificationTriggers } from './notification-trigger';
 import { createLogger } from '@/utils/logger';
 import { type Result, type ServiceError, ok, err, notFound } from '@/types/result';
+import { userService } from './user-service';
 
 import { STORAGE_KEYS } from '@/constants/storage-keys';
 
@@ -39,6 +40,15 @@ async function loadRsvps(): Promise<SessionRsvp[]> {
 
 async function saveRsvps(rsvps: SessionRsvp[]): Promise<void> {
   await apiClient.set(STORAGE_KEYS.SESSION_RSVPS, rsvps);
+}
+
+async function resolveRsvpDisplayName(rsvp: SessionRsvp): Promise<string> {
+  const preferredUserId = rsvp.childId || rsvp.userId;
+  const userResult = await userService.getUserById(preferredUserId);
+  if (!userResult.success) return 'A parent';
+
+  const displayName = userResult.data.name?.trim();
+  return displayName || 'A parent';
 }
 
 // ---------------------------------------------------------------------------
@@ -70,7 +80,6 @@ export const rsvpService = {
         sessionId,
         userId: member.userId,
         childId: member.childId,
-        childName: member.childName,
         status: 'pending',
         createdAt: now,
       };
@@ -115,7 +124,7 @@ export const rsvpService = {
     await saveRsvps(rsvps);
 
     const rsvp = rsvps[index];
-    const displayName = rsvp.childName || 'A parent';
+    const displayName = await resolveRsvpDisplayName(rsvp);
     const statusLabel = status === 'going' ? 'going' : status === 'not_going' ? 'not going' : 'maybe';
 
     // Notify coach of response

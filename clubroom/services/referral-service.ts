@@ -73,7 +73,6 @@ const MOCK_REFERRALS: Referral[] = [
     id: 'ref_1',
     referrerId: 'parent1',
     refereeId: 'user_new1',
-    refereeName: 'Alice Johnson',
     code: 'JOHN-ABC123',
     creditAwarded: 10.0,
     status: 'COMPLETED',
@@ -85,7 +84,6 @@ const MOCK_REFERRALS: Referral[] = [
     id: 'ref_2',
     referrerId: 'parent1',
     refereeId: 'user_new2',
-    refereeName: 'Bob Smith',
     code: 'JOHN-ABC123',
     creditAwarded: 10.0,
     status: 'COMPLETED',
@@ -97,7 +95,6 @@ const MOCK_REFERRALS: Referral[] = [
     id: 'ref_3',
     referrerId: 'parent1',
     refereeId: 'user_new3',
-    refereeName: 'Carol Davis',
     code: 'JOHN-ABC123',
     creditAwarded: 0,
     status: 'PENDING',
@@ -107,7 +104,6 @@ const MOCK_REFERRALS: Referral[] = [
     id: 'ref_4',
     referrerId: 'parent2',
     refereeId: 'user_new4',
-    refereeName: 'David Wilson',
     code: 'LISA-XYZ789',
     creditAwarded: 10.0,
     status: 'COMPLETED',
@@ -119,7 +115,6 @@ const MOCK_REFERRALS: Referral[] = [
     id: 'ref_5',
     referrerId: 'coach1',
     refereeId: 'user_new5',
-    refereeName: 'Eve Martinez',
     code: 'SARAH-PRO456',
     creditAwarded: 15.0,
     status: 'COMPLETED',
@@ -338,7 +333,7 @@ async function validateCode(
  */
 async function applyReferralCode(
   newUserId: string,
-  newUserName: string,
+  _newUserName: string,
   code: string
 ): Promise<{ success: boolean; referral?: Referral; error?: string }> {
   const validation = await validateCode(code, newUserId);
@@ -356,7 +351,6 @@ async function applyReferralCode(
     id: `ref_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
     referrerId: referralCode.userId,
     refereeId: newUserId,
-    refereeName: newUserName,
     code: referralCode.code,
     creditAwarded: 0, // Will be set when completed
     status: 'PENDING',

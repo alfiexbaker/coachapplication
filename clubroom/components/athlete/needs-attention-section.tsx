@@ -20,6 +20,7 @@ import { Column } from '@/components/primitives/column';
 import { Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
 import type { RosterEntry } from '@/constants/types';
+import { getRosterAthleteName } from '@/utils/roster-display';
 
 // ============================================================================
 // TYPES
@@ -60,7 +61,7 @@ const AttentionItemCard = React.memo(function AttentionItemCard({
         </View>
         <Column gap="micro" style={styles.flex1}>
           <ThemedText type="defaultSemiBold" numberOfLines={1}>
-            {item.athlete.athleteName}
+            {getRosterAthleteName(item.athlete)}
           </ThemedText>
           <ThemedText style={[styles.reason, { color: colors.muted }]} numberOfLines={1}>
             {item.reason}

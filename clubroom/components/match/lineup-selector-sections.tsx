@@ -18,6 +18,7 @@ import { Radii, Spacing, Typography, withAlpha } from '@/constants/theme';
 import type { ThemeColors } from '@/hooks/useTheme';
 import type { MatchPlayer } from '@/constants/types';
 import { matchService } from '@/services/match-service';
+import { getMatchPlayerAthleteName } from '@/utils/match-display';
 
 // ─── LineupSummaryRow ────────────────────────────────────────────────────────
 
@@ -77,6 +78,7 @@ export const SelectablePlayerRow = memo(function SelectablePlayerRow({
   onPress,
   palette,
 }: SelectablePlayerRowProps) {
+  const athleteName = getMatchPlayerAthleteName(player);
   const isSelected = selectionStatus === 'selected';
   const isReserve = selectionStatus === 'reserve';
   const statusColor = matchService.getPlayerStatusColor(player.status);
@@ -95,11 +97,11 @@ export const SelectablePlayerRow = memo(function SelectablePlayerRow({
         <Row align="center" gap="sm" flex>
           <View style={[styles.playerAvatar, { backgroundColor: withAlpha(statusColor, 0.09) }]}>
             <ThemedText style={[styles.avatarText, { color: statusColor }]}>
-              {player.athleteName.slice(0, 2).toUpperCase()}
+              {athleteName.slice(0, 2).toUpperCase()}
             </ThemedText>
           </View>
           <View style={styles.playerDetails}>
-            <ThemedText type="defaultSemiBold">{player.athleteName}</ThemedText>
+            <ThemedText type="defaultSemiBold">{athleteName}</ThemedText>
             {player.position && (
               <ThemedText style={[styles.positionText, { color: palette.muted }]}>
                 {player.position}
@@ -141,6 +143,7 @@ export const DisabledPlayerRow = memo(function DisabledPlayerRow({
   variant,
   palette,
 }: DisabledPlayerRowProps) {
+  const athleteName = getMatchPlayerAthleteName(player);
   const color = variant === 'pending' ? palette.warning : palette.error;
   const icon = variant === 'pending' ? 'hourglass-outline' : 'close-circle';
   const subtitle = variant === 'pending' ? 'Waiting for response' : player.parentNote;
@@ -150,11 +153,11 @@ export const DisabledPlayerRow = memo(function DisabledPlayerRow({
       <Row align="center" gap="sm" flex>
         <View style={[styles.playerAvatar, { backgroundColor: withAlpha(color, 0.09) }]}>
           <ThemedText style={[styles.avatarText, { color }]}>
-            {player.athleteName.slice(0, 2).toUpperCase()}
+            {athleteName.slice(0, 2).toUpperCase()}
           </ThemedText>
         </View>
         <View style={styles.playerDetails}>
-          <ThemedText style={{ opacity: 0.6 }}>{player.athleteName}</ThemedText>
+          <ThemedText style={{ opacity: 0.6 }}>{athleteName}</ThemedText>
           {subtitle && (
             <ThemedText style={[styles.positionText, { color: palette.muted }]} numberOfLines={1}>
               {variant === 'unavailable' ? `"${subtitle}"` : subtitle}

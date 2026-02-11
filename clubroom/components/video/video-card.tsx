@@ -40,7 +40,7 @@ export const VideoCard = memo(function VideoCard({ video, index, onPress, colors
             <ThemedText type="defaultSemiBold" style={styles.title} numberOfLines={2}>{video.title}</ThemedText>
             <Ionicons name={visibilityIcon} size={16} color={colors.muted} />
           </Row>
-          <ThemedText style={[styles.athletes, { color: colors.muted }]} numberOfLines={1}>{video.athleteNames.join(', ')}</ThemedText>
+          <ThemedText style={[styles.athletes, { color: colors.muted }]} numberOfLines={1}>{video.athleteIds.join(', ')}</ThemedText>
           <Row align="center" gap="md">
             <Row align="center" gap="xxs">
               <Ionicons name="eye-outline" size={14} color={colors.muted} />

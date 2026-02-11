@@ -31,7 +31,7 @@ export const ConversationRow = memo(function ConversationRow({
 }: ConversationRowProps) {
   const { colors: palette } = useTheme();
   const hasUnread = thread.unreadCount > 0;
-  const displayName = thread.title || thread.coachName;
+  const displayName = thread.title || thread.serviceName || 'Conversation';
   const subtitle = thread.serviceName || thread.subtitle || '1:1 coaching';
 
   return (
@@ -48,7 +48,7 @@ export const ConversationRow = memo(function ConversationRow({
           <ThemedText style={[styles.avatarText, { color: palette.text }]}>
             {displayName
               .split(' ')
-              .map((n) => n[0])
+              .map((n: string) => n[0])
               .join('')}
           </ThemedText>
         </View>

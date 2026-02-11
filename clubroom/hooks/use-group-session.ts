@@ -60,7 +60,7 @@ export function useGroupSession() {
 
     setRegistering(true);
     try {
-      await groupSessionService.register(session.id, `athlete_${currentUser.id}`, `${currentUser.name}'s Child`, currentUser.id, currentUser.name || 'Parent');
+      await groupSessionService.register(session.id, `athlete_${currentUser.id}`, currentUser.id);
       await loadData();
       Alert.alert('Success', session.currentParticipants >= session.maxParticipants ? 'You have been added to the waitlist!' : 'Registration successful!');
     } catch (error) {

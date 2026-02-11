@@ -17,6 +17,7 @@ import { Row } from '@/components/primitives/row';
 import { Radii, Spacing, Typography, withAlpha } from '@/constants/theme';
 import type { ThemeColors } from '@/hooks/useTheme';
 import type { Match, MatchPlayer } from '@/constants/types';
+import { getMatchPlayerAthleteName } from '@/utils/match-display';
 
 // ─── MatchInfoCard ──────────────────────────────────────────────────────────
 
@@ -81,6 +82,7 @@ interface SelectedCardProps {
 }
 
 export const SelectedCard = memo(function SelectedCard({ match, player, palette }: SelectedCardProps) {
+  const athleteName = getMatchPlayerAthleteName(player);
   const isReserve = player.status === 'RESERVE';
 
   return (
@@ -103,8 +105,8 @@ export const SelectedCard = memo(function SelectedCard({ match, player, palette 
 
       <ThemedText style={[styles.selectionMessage, { color: palette.text }]}>
         {isReserve
-          ? `${player.athleteName} has been selected as a reserve for the match against ${match.opponent}.`
-          : `${player.athleteName} has been selected to play against ${match.opponent}!`}
+          ? `${athleteName} has been selected as a reserve for the match against ${match.opponent}.`
+          : `${athleteName} has been selected to play against ${match.opponent}!`}
       </ThemedText>
 
       <MatchInfoCard match={match} player={player} palette={palette} />

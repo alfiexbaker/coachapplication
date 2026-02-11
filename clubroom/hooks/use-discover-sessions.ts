@@ -8,6 +8,7 @@ import { apiClient } from '@/services/api-client';
 import { useAuth } from '@/hooks/use-auth';
 import type { SessionOffering, FootballObjective } from '@/constants/types';
 import { createLogger } from '@/utils/logger';
+import { getSessionOfferingCoachName } from '@/utils/session-display';
 
 const logger = createLogger('DiscoverSessions');
 
@@ -64,7 +65,7 @@ export function useDiscoverSessions() {
       const query = searchQuery.toLowerCase();
       filtered = filtered.filter(o =>
         o.title.toLowerCase().includes(query) ||
-        o.coachName.toLowerCase().includes(query) ||
+        getSessionOfferingCoachName(o).toLowerCase().includes(query) ||
         o.location.toLowerCase().includes(query) ||
         (o.description?.toLowerCase().includes(query))
       );

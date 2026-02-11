@@ -3,7 +3,7 @@
  */
 
 import React, { memo } from 'react';
-import { View, StyleSheet, Image } from 'react-native';
+import { View, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 
@@ -48,15 +48,11 @@ export const AcademyStaffCard = memo(function AcademyStaffCard({
     <Animated.View entering={FadeInDown.delay(index * 50).springify()}>
       <SurfaceCard style={styles.staffCard}>
         <Row style={styles.staffMain}>
-          {member.userPhotoUrl ? (
-            <Image source={{ uri: member.userPhotoUrl }} style={styles.staffPhoto} />
-          ) : (
-            <View style={[styles.staffPhotoPlaceholder, { backgroundColor: palette.border }]}>
-              <Ionicons name="person" size={20} color={palette.muted} />
-            </View>
-          )}
+          <View style={[styles.staffPhotoPlaceholder, { backgroundColor: palette.border }]}>
+            <Ionicons name="person" size={20} color={palette.muted} />
+          </View>
           <View style={styles.staffInfo}>
-            <ThemedText type="defaultSemiBold">{member.userName}</ThemedText>
+            <ThemedText type="defaultSemiBold">{member.userId}</ThemedText>
             <View
               style={[styles.roleBadge, { backgroundColor: withAlpha(roleColors[member.role], 0.09) }]}
             >
@@ -87,11 +83,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: Spacing.md,
     flex: 1,
-  },
-  staffPhoto: {
-    width: 44,
-    height: 44,
-    borderRadius: Radii.xl,
   },
   staffPhotoPlaceholder: {
     width: 44,

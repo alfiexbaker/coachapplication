@@ -11,6 +11,7 @@ import { createLogger } from '@/utils/logger';
 import { useAuth } from '@/hooks/use-auth';
 import { safetyService, AthleteEmergencyQuickView } from '@/services/safety-service';
 import { rosterService } from '@/services/roster-service';
+import { getRosterAthleteName } from '@/utils/roster-display';
 
 const logger = createLogger('EmergencyQuickAccessScreen');
 
@@ -29,7 +30,7 @@ export function useEmergencyAccess() {
     try {
       setError(null);
       const entry = await rosterService.getRosterEntry(coachId, athleteId);
-      const dataResult = await safetyService.getAthleteEmergency(athleteId, entry?.athleteName);
+      const dataResult = await safetyService.getAthleteEmergency(athleteId, entry ? getRosterAthleteName(entry) : undefined);
       if (!dataResult.success) {
         setError(dataResult.error.message);
         setEmergencyData(null);

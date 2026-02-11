@@ -34,13 +34,6 @@ const MOCK_FAVOURITES: FavouriteCoach[] = [
     id: 'fav_1',
     userId: 'parent1',
     coachId: 'coach1',
-    coachName: 'Sarah Mitchell',
-    coachAvatar: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=400',
-    coachSport: 'Football',
-    coachRating: 4.9,
-    coachPriceMin: 45,
-    coachPriceMax: 75,
-    coachCity: 'London',
     isFavourite: true,
     createdAt: '2025-12-01T10:00:00Z',
   },
@@ -48,13 +41,6 @@ const MOCK_FAVOURITES: FavouriteCoach[] = [
     id: 'fav_2',
     userId: 'parent1',
     coachId: 'coach3',
-    coachName: 'James Rodriguez',
-    coachAvatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=400',
-    coachSport: 'Football',
-    coachRating: 4.7,
-    coachPriceMin: 40,
-    coachPriceMax: 60,
-    coachCity: 'Manchester',
     isFavourite: true,
     createdAt: '2025-12-05T14:30:00Z',
   },
@@ -62,13 +48,6 @@ const MOCK_FAVOURITES: FavouriteCoach[] = [
     id: 'fav_3',
     userId: 'user1',
     coachId: 'coach2',
-    coachName: 'Mike Thompson',
-    coachAvatar: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=400',
-    coachSport: 'Football',
-    coachRating: 4.8,
-    coachPriceMin: 50,
-    coachPriceMax: 80,
-    coachCity: 'Birmingham',
     isFavourite: true,
     createdAt: '2025-12-10T09:00:00Z',
   },
@@ -135,13 +114,6 @@ export const favouriteService = {
       if (softDeleted) {
         softDeleted.isFavourite = true;
         softDeleted.updatedAt = new Date().toISOString();
-        softDeleted.coachName = input.coachName;
-        softDeleted.coachAvatar = input.coachAvatar;
-        softDeleted.coachSport = input.coachSport;
-        softDeleted.coachRating = input.coachRating;
-        softDeleted.coachPriceMin = input.coachPriceMin;
-        softDeleted.coachPriceMax = input.coachPriceMax;
-        softDeleted.coachCity = input.coachCity;
         if (input.note) {
           softDeleted.note = input.note;
         }
@@ -160,13 +132,6 @@ export const favouriteService = {
         id: `fav_${Date.now()}`,
         userId: input.userId,
         coachId: input.coachId,
-        coachName: input.coachName,
-        coachAvatar: input.coachAvatar,
-        coachSport: input.coachSport,
-        coachRating: input.coachRating,
-        coachPriceMin: input.coachPriceMin,
-        coachPriceMax: input.coachPriceMax,
-        coachCity: input.coachCity,
         isFavourite: true,
         createdAt: new Date().toISOString(),
         note: input.note,

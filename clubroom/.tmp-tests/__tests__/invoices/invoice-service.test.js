@@ -403,9 +403,8 @@ const node_test_1 = __importStar(require("node:test"));
             invoiceNumber: 'INV-2025-001',
             userId: 'user-id',
             bookingId: 'booking-id',
-            coachName: 'Test Coach',
             coachId: 'coach-id',
-            athleteName: 'Test Athlete',
+            athleteId: 'athlete-id',
             sessionDate: '2025-01-10',
             amount: 41.67,
             tax: 8.33,
@@ -419,8 +418,8 @@ const node_test_1 = __importStar(require("node:test"));
         node_assert_1.default.ok(invoice.invoiceNumber);
         node_assert_1.default.ok(invoice.userId);
         node_assert_1.default.ok(invoice.bookingId);
-        node_assert_1.default.ok(invoice.coachName);
-        node_assert_1.default.ok(invoice.athleteName);
+        node_assert_1.default.ok(invoice.coachId);
+        node_assert_1.default.ok(invoice.athleteId);
         node_assert_1.default.strictEqual(invoice.total, invoice.amount + invoice.tax);
     });
 });

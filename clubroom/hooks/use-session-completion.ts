@@ -61,6 +61,7 @@ function mapAttendanceStatus(status: StepAttendanceStatus): 'ATTENDED' | 'NO_SHO
 
 export function useSessionCompletion(sessionId: string | undefined) {
   const { currentUser } = useAuth();
+  const getRegistrationName = useCallback((registration: SessionRegistration) => registration.userId || 'Athlete', []);
 
   // Data state
   const [session, setSession] = useState<SessionOffering | null>(null);
@@ -132,7 +133,6 @@ export function useSessionCompletion(sessionId: string | undefined) {
         const syntheticSession = {
           id: booking.id,
           coachId: booking.coachId,
-          coachName: booking.coachName || '',
           title: booking.service || 'Session',
           description: booking.notes || '',
           sessionType: '1on1' as const,
@@ -146,8 +146,6 @@ export function useSessionCompletion(sessionId: string | undefined) {
           registrations: [{
             id: `reg-${booking.id}`,
             userId: booking.athleteId || booking.athleteIds?.[0] || '',
-            userName: booking.athleteName || 'Athlete',
-            userPhotoUrl: undefined,
             bookedAt: booking.scheduledAt,
             status: 'confirmed' as const,
           }],
@@ -270,7 +268,7 @@ export function useSessionCompletion(sessionId: string | undefined) {
             if (badge) {
               await badgeService.awardBadge({
                 athleteId: athleteData.registration.userId,
-                athleteName: athleteData.registration.userName,
+                athleteName: getRegistrationName(athleteData.registration),
                 badgeId: badge.id,
                 coachId: currentUser.id,
                 coachName: currentUser.fullName || 'Coach',
@@ -292,7 +290,6 @@ export function useSessionCompletion(sessionId: string | undefined) {
       // 4. Create and persist attendance records
       const attendanceRecords: AttendanceRecord[] = attendanceValues.map(ad => ({
         athleteId: ad.registration.userId,
-        athleteName: ad.registration.userName,
         status: mapAttendanceStatus(ad.status),
         notes: ad.note || undefined,
         effortRating: ad.effort,
@@ -334,7 +331,7 @@ export function useSessionCompletion(sessionId: string | undefined) {
 
       const athleteNamesList = attendanceValues
         .filter(a => a.status === 'present')
-        .map(a => a.registration.userName);
+        .map(a => getRegistrationName(a.registration));
 
       emitTyped(ServiceEvents.SESSION_COMPLETED, {
         sessionId: session.id,
@@ -345,7 +342,7 @@ export function useSessionCompletion(sessionId: string | undefined) {
       });
 
       // 7. Trigger parent notification
-      const coachName = session.coachName || currentUser.fullName || 'Coach';
+      const coachName = currentUser.fullName || session.coachId || 'Coach';
       const athleteNamesDisplay = athleteNamesList.join(', ') || 'Athlete';
 
       void notificationTriggers.sessionCompleted(coachName, athleteNamesDisplay);
@@ -392,11 +389,11 @@ export function useSessionCompletion(sessionId: string | undefined) {
   const attendanceStepData = useMemo(
     () => attendanceList.map(a => ({
       registrationId: a.registration.id,
-      userName: a.registration.userName,
+      userName: getRegistrationName(a.registration),
       status: a.status,
       badges: a.badges,
     })),
-    [attendanceList],
+    [attendanceList, getRegistrationName],
   );
 
   const presentAthletes = useMemo(
@@ -404,10 +401,10 @@ export function useSessionCompletion(sessionId: string | undefined) {
       .filter(a => a.status === 'present')
       .map(a => ({
         registrationId: a.registration.id,
-        userName: a.registration.userName,
+        userName: getRegistrationName(a.registration),
         badges: a.badges,
       })),
-    [attendanceList],
+    [attendanceList, getRegistrationName],
   );
 
   const presentCount = useMemo(

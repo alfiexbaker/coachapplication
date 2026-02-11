@@ -8,6 +8,7 @@ import { Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
 import { matchService } from '@/services/match-service';
 import type { Match } from '@/constants/types';
+import { getMatchPlayerAthleteName } from '@/utils/match-display';
 
 interface MatchPlayerListProps {
   match: Match;
@@ -25,16 +26,17 @@ export const MatchPlayerList = memo(function MatchPlayerList({ match }: MatchPla
       </ThemedText>
       <View>
         {match.selectedPlayers.map((player) => {
+          const athleteName = getMatchPlayerAthleteName(player);
           const statusCol = matchService.getPlayerStatusColor(player.status);
           return (
             <Row key={player.athleteId} align="center" gap="sm" style={[styles.row, { borderBottomColor: colors.border }]}>
               <View style={[styles.avatar, { backgroundColor: withAlpha(statusCol, 0.09) }]}>
                 <ThemedText style={[Typography.bodySmallSemiBold, { color: statusCol }]}>
-                  {player.athleteName.slice(0, 2).toUpperCase()}
+                  {athleteName.slice(0, 2).toUpperCase()}
                 </ThemedText>
               </View>
               <View style={{ flex: 1 }}>
-                <ThemedText type="defaultSemiBold">{player.athleteName}</ThemedText>
+                <ThemedText type="defaultSemiBold">{athleteName}</ThemedText>
                 {player.position && (
                   <ThemedText style={[Typography.caption, { color: colors.muted }]}>
                     {player.position}{player.jerseyNumber && ` #${player.jerseyNumber}`}

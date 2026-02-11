@@ -1,7 +1,6 @@
 import React, { memo } from 'react';
 import { View, StyleSheet, Pressable } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { Image } from 'expo-image';
 import { ThemedText } from '@/components/themed-text';
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { RsvpButtonGroup } from '@/components/invite/rsvp-button-group';
@@ -10,6 +9,7 @@ import { useTheme } from '@/hooks/useTheme';
 import type { SessionInvite } from '@/constants/types';
 import { formatExpiresIn } from '@/hooks/use-invites';
 import { Row } from '@/components/primitives';
+import { getSessionInviteAthleteNames, getSessionInviteCoachName } from '@/utils/session-invite-display';
 
 interface InviteCardProps {
   invite: SessionInvite;
@@ -36,21 +36,19 @@ export const InviteCard = memo(function InviteCard({ invite, respondingTo, onAcc
   const isExpired = new Date(invite.expiresAt) <= new Date();
   const isResponding = respondingTo === invite.id;
   const statusBadge = getStatusBadge(isExpired && isPending ? 'EXPIRED' : invite.status, palette);
+  const coachName = getSessionInviteCoachName(invite);
+  const athleteNames = getSessionInviteAthleteNames(invite);
 
   return (
     <SurfaceCard style={styles.card}>
       {/* Header */}
       <Row style={styles.header}>
         <Row style={styles.coachInfo}>
-          {invite.coachPhotoUrl ? (
-            <Image source={{ uri: invite.coachPhotoUrl }} style={styles.coachPhoto} contentFit="cover" />
-          ) : (
-            <View style={[styles.coachPhoto, styles.placeholder, { backgroundColor: withAlpha(palette.tint, 0.12) }]}>
-              <ThemedText style={[styles.initial, { color: palette.tint }]}>{invite.coachName.charAt(0)}</ThemedText>
-            </View>
-          )}
+          <View style={[styles.coachPhoto, styles.placeholder, { backgroundColor: withAlpha(palette.tint, 0.12) }]}>
+            <ThemedText style={[styles.initial, { color: palette.tint }]}>{coachName.charAt(0)}</ThemedText>
+          </View>
           <View style={styles.coachDetails}>
-            <ThemedText type="defaultSemiBold">{invite.coachName}</ThemedText>
+            <ThemedText type="defaultSemiBold">{coachName}</ThemedText>
             {invite.clubName && <ThemedText style={[styles.clubName, { color: palette.muted }]}>{invite.clubName}</ThemedText>}
           </View>
         </Row>
@@ -62,7 +60,7 @@ export const InviteCard = memo(function InviteCard({ invite, respondingTo, onAcc
       {/* Athletes */}
       <Row style={styles.athleteRow}>
         <Ionicons name="person-outline" size={16} color={palette.icon} />
-        <ThemedText style={[styles.athleteNames, { color: palette.muted }]}>For: {invite.athleteNames.join(', ')}</ThemedText>
+        <ThemedText style={[styles.athleteNames, { color: palette.muted }]}>For: {athleteNames.join(', ')}</ThemedText>
       </Row>
 
       {/* Session Info */}

@@ -27,6 +27,7 @@ import { apiClient } from './api-client';
 import { api } from '@/constants/config';
 import type { SessionVideo, VideoAnnotation, VideoAnnotationType, AnnotatedVideo, AnnotationExport } from '@/constants/types';
 import { type Result, type ServiceError, ok, err, notFound, storageError } from '@/types/result';
+import { userService } from './user-service';
 import { createLogger } from '@/utils/logger';
 
 import { STORAGE_KEYS } from '@/constants/storage-keys';
@@ -34,6 +35,30 @@ import { STORAGE_KEYS } from '@/constants/storage-keys';
 const logger = createLogger('VideoService');
 
 const USE_MOCK = api.useMock;
+
+async function resolveUserName(userId: string, fallback: string): Promise<string> {
+  const userResult = await userService.getUserById(userId);
+  if (!userResult.success) {
+    return fallback;
+  }
+
+  return userResult.data.name?.trim() || fallback;
+}
+
+async function resolveUserNames(userIds: string[], fallbackPrefix: string): Promise<string[]> {
+  const uniqueUserIds = Array.from(new Set(userIds.filter(Boolean)));
+  if (uniqueUserIds.length === 0) {
+    return [];
+  }
+
+  const usersResult = await userService.getUsersByIds(uniqueUserIds);
+  if (!usersResult.success) {
+    return userIds.map((_, index) => `${fallbackPrefix} ${index + 1}`);
+  }
+
+  const usersById = new Map(usersResult.data.map((user) => [user.id, user.name?.trim() || '']));
+  return userIds.map((userId, index) => usersById.get(userId) || `${fallbackPrefix} ${index + 1}`);
+}
 
 /**
  * Annotation type configuration with colors and labels
@@ -75,9 +100,7 @@ const MOCK_VIDEOS: SessionVideo[] = [
     sessionId: 'session_1',
     bookingId: 'booking_1',
     coachId: 'coach1',
-    coachName: 'Marcus Thompson',
     athleteIds: ['athlete_1'],
-    athleteNames: ['Tom Baker'],
     title: 'Finishing Drills - Weak Foot Practice',
     description: 'Great progress on weak foot finishing. Focus on body position at point of contact.',
     videoUrl: 'https://example.com/videos/session_1.mp4',
@@ -100,9 +123,7 @@ const MOCK_VIDEOS: SessionVideo[] = [
     id: 'vid_2',
     bookingId: 'booking_2',
     coachId: 'coach1',
-    coachName: 'Marcus Thompson',
     athleteIds: ['athlete_1'],
-    athleteNames: ['Tom Baker'],
     title: 'Dribbling Session Highlights',
     description: 'Key moments from dribbling practice',
     videoUrl: 'https://example.com/videos/session_2.mp4',
@@ -123,9 +144,7 @@ const MOCK_VIDEOS: SessionVideo[] = [
   {
     id: 'vid_3',
     coachId: 'coach1',
-    coachName: 'Marcus Thompson',
     athleteIds: ['athlete_2', 'athlete_3'],
-    athleteNames: ['Lucy Baker', 'James Wilson'],
     title: 'Group Session - Passing Combinations',
     description: 'Team passing drill progression',
     videoUrl: 'https://example.com/videos/session_3.mp4',
@@ -278,9 +297,7 @@ export const videoService = {
     const newVideo: SessionVideo = {
       id: apiClient.generateId('vid'),
       coachId: input.coachId,
-      coachName: input.coachName,
       athleteIds: input.athleteIds,
-      athleteNames: input.athleteNames,
       sessionId: input.sessionId,
       bookingId: input.bookingId,
       title: input.title,
@@ -493,9 +510,7 @@ export const videoService = {
       title: video.title,
       description: video.description,
       coachId: video.coachId,
-      coachName: video.coachName,
       athleteIds: video.athleteIds,
-      athleteNames: video.athleteNames,
       annotations: video.annotations.sort((a, b) => a.timestamp - b.timestamp),
       createdAt: video.createdAt,
       visibility: video.visibility,
@@ -537,7 +552,6 @@ export const videoService = {
       return {
         ...annotation,
         createdBy,
-        createdByName,
         createdAt: new Date().toISOString(),
       };
     }
@@ -612,6 +626,11 @@ export const videoService = {
     const video = await this.getVideo(videoId);
     if (!video) return null;
 
+    const [coachName, athleteNames] = await Promise.all([
+      resolveUserName(video.coachId, 'Coach'),
+      resolveUserNames(video.athleteIds, 'Athlete'),
+    ]);
+
     const formatTimestamp = (seconds: number): string => {
       const mins = Math.floor(seconds / 60);
       const secs = Math.floor(seconds % 60);
@@ -625,8 +644,8 @@ export const videoService = {
     return {
       videoTitle: video.title,
       videoDuration: video.duration,
-      coachName: video.coachName,
-      athleteNames: video.athleteNames,
+      coachName,
+      athleteNames,
       exportedAt: new Date().toISOString(),
       annotations: video.annotations
         .sort((a, b) => a.timestamp - b.timestamp)

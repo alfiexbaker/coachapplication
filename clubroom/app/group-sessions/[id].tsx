@@ -23,6 +23,7 @@ import { Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
 import { useGroupSession } from '@/hooks/use-group-session';
 import { groupSessionService } from '@/services/group-session-service';
+import { getGroupSessionClubLabel } from '@/utils/group-display';
 
 export default function GroupSessionDetailScreen() {
   const { colors } = useTheme();
@@ -54,6 +55,7 @@ export default function GroupSessionDetailScreen() {
   }
 
   const capacityColor = isFull ? colors.error : spotsLeft <= 3 ? colors.warning : colors.success;
+  const clubLabel = getGroupSessionClubLabel(session);
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
@@ -65,8 +67,8 @@ export default function GroupSessionDetailScreen() {
           <Row justify="between" align="start" style={styles.titleSection}>
             <View style={{ flex: 1 }}>
               <ThemedText type="title">{session.title}</ThemedText>
-              {session.clubName && (
-                <ThemedText style={[Typography.small, { color: colors.muted, marginTop: Spacing.xxs }]}>by {session.clubName}</ThemedText>
+              {clubLabel && (
+                <ThemedText style={[Typography.small, { color: colors.muted, marginTop: Spacing.xxs }]}>by {clubLabel}</ThemedText>
               )}
             </View>
             <View style={styles.priceSection}>

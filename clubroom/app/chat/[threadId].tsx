@@ -88,7 +88,7 @@ export default function ChatScreen() {
   }
 
   const isGroup = thread.kind === 'group';
-  const headerTitle = thread.title || thread.coachName;
+  const headerTitle = thread.title || thread.serviceName || 'Conversation';
   const headerSubtitle =
     thread.subtitle ||
     (isGroup

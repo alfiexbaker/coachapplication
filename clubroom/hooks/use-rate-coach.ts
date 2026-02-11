@@ -11,6 +11,7 @@ import { useAuth } from '@/hooks/use-auth';
 import type { Booking } from '@/constants/app-types';
 import type { SessionOffering } from '@/constants/session-types';
 import { createLogger } from '@/utils/logger';
+import { getSessionOfferingCoachName } from '@/utils/session-display';
 
 const logger = createLogger('RateCoachScreen');
 
@@ -92,7 +93,7 @@ export function useRateCoach() {
           if (existing) { existing.sessionCount++; }
           else {
             coachMap.set(offering.coachId, {
-              id: offering.coachId, name: offering.coachName,
+              id: offering.coachId, name: getSessionOfferingCoachName(offering),
               photoUrl: `https://i.pravatar.cc/100?u=${offering.coachId}`,
               sessionCount: 1, lastSession: offering.scheduledAt,
               hasReview: reviewedCoachIds.has(offering.coachId),

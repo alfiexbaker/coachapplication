@@ -15,12 +15,25 @@ import { api } from '@/constants/config';
 import type { ClubSquad, SquadMember } from '@/constants/types';
 import { createLogger } from '@/utils/logger';
 import { emitTyped, ServiceEvents } from './event-bus';
+import { userService } from './user-service';
 
 import { STORAGE_KEYS } from '@/constants/storage-keys';
 
 const logger = createLogger('SquadService');
 
 const USE_MOCK = api.useMock;
+
+async function resolveUserName(userId: string, fallback: string): Promise<string> {
+  const userResult = await userService.getUserById(userId);
+  if (!userResult.success) return fallback;
+  return userResult.data.name || fallback;
+}
+
+async function resolveUserEmail(userId: string): Promise<string | undefined> {
+  const userResult = await userService.getUserById(userId);
+  if (!userResult.success) return undefined;
+  return userResult.data.email;
+}
 
 const BASE_CLUB_SQUADS: ClubSquad[] = [
   {
@@ -159,11 +172,7 @@ const MOCK_SQUAD_MEMBERS: SquadMember[] = [
     id: 'sm_1',
     squadId: 'squad_u15',
     athleteId: 'athlete_tom',
-    athleteName: 'Tom Baker',
-    athleteAge: 14,
     parentId: 'parent1',
-    parentName: 'Sarah Baker',
-    parentEmail: 'sarah.baker@email.com',
     status: 'ACTIVE',
     joinedAt: '2024-09-01',
     position: 'Midfielder',
@@ -173,11 +182,7 @@ const MOCK_SQUAD_MEMBERS: SquadMember[] = [
     id: 'sm_2',
     squadId: 'squad_u15',
     athleteId: 'athlete_james',
-    athleteName: 'James Wilson',
-    athleteAge: 14,
     parentId: 'parent2',
-    parentName: 'Mike Wilson',
-    parentEmail: 'mike.wilson@email.com',
     status: 'ACTIVE',
     joinedAt: '2024-09-01',
     position: 'Forward',
@@ -187,11 +192,7 @@ const MOCK_SQUAD_MEMBERS: SquadMember[] = [
     id: 'sm_3',
     squadId: 'squad_u15',
     athleteId: 'athlete_maya',
-    athleteName: 'Maya Chen',
-    athleteAge: 14,
     parentId: 'parent3',
-    parentName: 'Lucy Chen',
-    parentEmail: 'lucy.chen@email.com',
     status: 'ACTIVE',
     joinedAt: '2024-09-15',
     position: 'Defender',
@@ -201,11 +202,7 @@ const MOCK_SQUAD_MEMBERS: SquadMember[] = [
     id: 'sm_4',
     squadId: 'squad_u15',
     athleteId: 'athlete_ethan',
-    athleteName: 'Ethan Brown',
-    athleteAge: 15,
     parentId: 'parent4',
-    parentName: 'David Brown',
-    parentEmail: 'david.brown@email.com',
     status: 'ACTIVE',
     joinedAt: '2024-09-01',
     position: 'Goalkeeper',
@@ -215,11 +212,7 @@ const MOCK_SQUAD_MEMBERS: SquadMember[] = [
     id: 'sm_5',
     squadId: 'squad_u15',
     athleteId: 'athlete_sophie',
-    athleteName: 'Sophie Taylor',
-    athleteAge: 14,
     parentId: 'parent5',
-    parentName: 'Emma Taylor',
-    parentEmail: 'emma.taylor@email.com',
     status: 'ACTIVE',
     joinedAt: '2024-10-01',
     position: 'Midfielder',
@@ -230,11 +223,7 @@ const MOCK_SQUAD_MEMBERS: SquadMember[] = [
     id: 'sm_6',
     squadId: 'squad_juniors',
     athleteId: 'athlete_lucy',
-    athleteName: 'Lucy Baker',
-    athleteAge: 10,
     parentId: 'parent1',
-    parentName: 'Sarah Baker',
-    parentEmail: 'sarah.baker@email.com',
     status: 'ACTIVE',
     joinedAt: '2024-09-01',
     position: 'Forward',
@@ -244,11 +233,7 @@ const MOCK_SQUAD_MEMBERS: SquadMember[] = [
     id: 'sm_7',
     squadId: 'squad_juniors',
     athleteId: 'athlete_jack',
-    athleteName: 'Jack Martinez',
-    athleteAge: 10,
     parentId: 'parent6',
-    parentName: 'Maria Martinez',
-    parentEmail: 'maria.martinez@email.com',
     status: 'ACTIVE',
     joinedAt: '2024-09-01',
     position: 'Midfielder',
@@ -258,11 +243,7 @@ const MOCK_SQUAD_MEMBERS: SquadMember[] = [
     id: 'sm_8',
     squadId: 'squad_juniors',
     athleteId: 'athlete_olivia',
-    athleteName: 'Olivia Johnson',
-    athleteAge: 11,
     parentId: 'parent7',
-    parentName: 'Rachel Johnson',
-    parentEmail: 'rachel.johnson@email.com',
     status: 'ACTIVE',
     joinedAt: '2024-09-15',
     position: 'Defender',
@@ -272,11 +253,7 @@ const MOCK_SQUAD_MEMBERS: SquadMember[] = [
     id: 'sm_9',
     squadId: 'squad_juniors',
     athleteId: 'athlete_noah',
-    athleteName: 'Noah Williams',
-    athleteAge: 10,
     parentId: 'parent8',
-    parentName: 'Jennifer Williams',
-    parentEmail: 'jennifer.williams@email.com',
     status: 'ACTIVE',
     joinedAt: '2024-10-01',
     position: 'Goalkeeper',
@@ -286,11 +263,7 @@ const MOCK_SQUAD_MEMBERS: SquadMember[] = [
     id: 'sm_10',
     squadId: 'squad_juniors',
     athleteId: 'athlete_ava',
-    athleteName: 'Ava Thompson',
-    athleteAge: 11,
     parentId: 'parent9',
-    parentName: 'Lisa Thompson',
-    parentEmail: 'lisa.thompson@email.com',
     status: 'ACTIVE',
     joinedAt: '2024-09-01',
     position: 'Forward',
@@ -300,11 +273,7 @@ const MOCK_SQUAD_MEMBERS: SquadMember[] = [
     id: 'sm_11',
     squadId: 'squad_juniors',
     athleteId: 'athlete_liam',
-    athleteName: 'Liam Davis',
-    athleteAge: 10,
     parentId: 'parent10',
-    parentName: 'Karen Davis',
-    parentEmail: 'karen.davis@email.com',
     status: 'ACTIVE',
     joinedAt: '2024-10-15',
     position: 'Midfielder',
@@ -459,19 +428,25 @@ export const squadService = {
       { parentId: string; parentName: string; parentEmail?: string; athletes: string[] }
     >();
 
-    members.forEach((m) => {
+    for (const m of members) {
+      const [athleteName, parentName, parentEmail] = await Promise.all([
+        resolveUserName(m.athleteId, 'Athlete'),
+        resolveUserName(m.parentId, 'Parent'),
+        resolveUserEmail(m.parentId),
+      ]);
+
       const existing = parentMap.get(m.parentId);
       if (existing) {
-        existing.athletes.push(m.athleteName);
+        existing.athletes.push(athleteName);
       } else {
         parentMap.set(m.parentId, {
           parentId: m.parentId,
-          parentName: m.parentName,
-          parentEmail: m.parentEmail,
-          athletes: [m.athleteName],
+          parentName,
+          parentEmail,
+          athletes: [athleteName],
         });
       }
-    });
+    }
 
     return Array.from(parentMap.values());
   },

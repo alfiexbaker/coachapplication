@@ -18,6 +18,7 @@ import { notificationService } from '../notification-service';
 import { squadService } from '../squad-service';
 import { eventService } from '../event-service';
 import { createLogger } from '@/utils/logger';
+import { userService } from '../user-service';
 
 import {
   loadSquadInvites,
@@ -25,6 +26,12 @@ import {
 } from './squad-invite-service';
 
 const logger = createLogger('EventInviteService');
+
+async function resolveAthleteName(athleteId: string, fallback: string): Promise<string> {
+  const athleteResult = await userService.getUserById(athleteId);
+  if (!athleteResult.success) return fallback;
+  return athleteResult.data.name || fallback;
+}
 
 // ============================================================================
 // TYPE DEFINITIONS
@@ -95,18 +102,14 @@ export const eventInviteService = {
     let squadInvitesCache = await loadSquadInvites();
 
     for (const squadId of input.squadIds) {
-      const squad = await squadService.getSquad(squadId);
       const squadMembers = eligibleMembers.filter((m) => m.squadId === squadId);
 
       const squadInvite: SquadInvite = {
         id: `${groupId}_${squadId}`,
         squadId,
-        squadName: squad?.name || 'Unknown Squad',
         targetType: 'EVENT',
         targetId: event.id,
-        targetTitle: input.title,
         invitedBy: input.createdBy,
-        invitedByName: input.createdByName,
         invitedAt: new Date().toISOString(),
         memberCount: squadMembers.length,
         excludedMemberIds: input.excludeMemberIds,
@@ -134,7 +137,13 @@ export const eventInviteService = {
 
     for (const [parentId, athletes] of parentMap.entries()) {
       try {
-        const athleteNames = athletes.map((a) => a.athleteName).join(', ');
+        const athleteNames = (
+          await Promise.all(
+            athletes.map((athlete, index) =>
+              resolveAthleteName(athlete.athleteId, `Athlete ${index + 1}`)
+            )
+          )
+        ).join(', ');
         await notificationService.create({
           id: `notif_event_${Date.now()}_${parentId}`,
           type: 'booking',
@@ -154,7 +163,6 @@ export const eventInviteService = {
         failed++;
         errors.push({
           memberId: athletes[0].athleteId,
-          athleteName: athletes[0].athleteName,
           error: error instanceof Error ? error.message : 'Unknown error',
         });
       }

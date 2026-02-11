@@ -133,7 +133,7 @@ export const ChildBreakdownCard = memo(function ChildBreakdownCard({
                 <View
                   style={[styles.childColorDot, { backgroundColor: child.colorCode }]}
                 />
-                <ThemedText style={styles.childName}>{child.childName}</ThemedText>
+                <ThemedText style={styles.childName}>{child.childId}</ThemedText>
               </Row>
               <Row style={styles.childStats}>
                 {trend && (

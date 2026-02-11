@@ -206,7 +206,7 @@ export const InviteErrorDetails = memo(function InviteErrorDetails({
               style={[styles.errorItem, { backgroundColor: withAlpha(palette.error, 0.03) }]}
             >
               <ThemedText type="defaultSemiBold" style={{ ...Typography.small }}>
-                {error.athleteName}
+                {error.memberId}
               </ThemedText>
               <ThemedText style={[styles.errorMessage, { color: palette.muted }]}>
                 {error.error}

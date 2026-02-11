@@ -182,7 +182,7 @@ export function useSchedule() {
             title: b.service || 'Session',
             time: startDate.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' }),
             endTime: endDate.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' }),
-            athleteName: b.athleteName,
+            athleteName: b.athleteId || b.athleteIds?.[0] || 'Athlete',
             location: b.location,
             status: b.status === 'CONFIRMED' ? 'confirmed' : 'pending',
             type: 'booking',

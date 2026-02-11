@@ -184,7 +184,6 @@ export interface SessionRecap {
 export interface AthleteHighlight {
   athleteId?: string;
   guestId?: string;
-  athleteName: string; // TODO(T3.4): Remove when connecting to real API — resolve from athleteId/guestId instead
   strengths: string[];
   areasToImprove: string[];
   performanceRating: number; // 1-5
@@ -244,8 +243,6 @@ export interface WeekAcceptance {
 
 export interface BookingSummary {
   id: string;
-  coachName: string; // TODO(T3.4): Remove when connecting to real API — resolve from coachId instead
-  childName: string; // TODO(T3.4): Remove when connecting to real API — resolve from clientId instead
   service: string;
   start: string;
   status: 'Confirmed' | 'Pending' | 'Completed' | 'Cancelled';
@@ -280,8 +277,6 @@ export interface BookingSummary {
 export interface SessionRegistration {
   id: string;
   userId: string;
-  userName: string; // TODO(T3.4): Remove when connecting to real API — resolve from userId instead
-  userPhotoUrl?: string; // TODO(T3.4): Remove when connecting to real API — resolve from userId instead
   bookedAt: string;
   status: 'confirmed' | 'cancelled' | 'completed';
 }
@@ -289,8 +284,6 @@ export interface SessionRegistration {
 export interface SessionOffering {
   id: string;
   coachId: string;
-  coachName: string; // TODO(T3.4): Remove when connecting to real API — resolve from coachId instead
-  coachPhotoUrl?: string; // TODO(T3.4): Remove when connecting to real API — resolve from coachId instead
   clubId?: string;
   clubScope?: 'club' | 'squad' | 'public';
   squadId?: string;
@@ -325,7 +318,6 @@ export interface AthleteObjective {
   status: 'active' | 'upcoming' | 'completed';
   updatedAt: string;
   note?: string;
-  coachName: string; // TODO(T3.4): Remove when connecting to real API — resolve from a coachId field instead
   progress: number; // 0-100
   sessionsCompleted: number;
   startDate: string;
@@ -335,7 +327,6 @@ export interface AthleteObjective {
 export interface SessionHistoryEntry {
   id: string;
   date: string;
-  coachName: string; // TODO(T3.4): Remove when connecting to real API — resolve from a coachId field instead
   focus: FootballObjective;
   location: string;
   highlight: string;
@@ -388,15 +379,11 @@ export interface TimeSlot {
 export interface SessionInvite {
   id: string;
   coachId: string;
-  coachName: string; // TODO(T3.4): Remove when connecting to real API — resolve from coachId instead
-  coachPhotoUrl?: string; // TODO(T3.4): Remove when connecting to real API — resolve from coachId instead
   clubName?: string; // Club or Academy name (e.g., "Bradwell Boys")
   inviteType?: SessionInviteType; // OPEN = browsable, CLOSED = invite-only, SQUAD_ONLY = squad members
   squadIds?: string[]; // Relevant squad IDs when inviteType is SQUAD_ONLY
   athleteIds: string[];
-  athleteNames: string[]; // TODO(T3.4): Remove when connecting to real API — resolve from athleteIds instead
   parentId: string;
-  parentName: string; // TODO(T3.4): Remove when connecting to real API — resolve from parentId instead
   proposedSlots: TimeSlot[];
   sessionType: string;
   sessionTemplateId?: string; // Links to SessionTemplate for auto-fill
@@ -454,7 +441,6 @@ export interface CounterOffer {
   bookingId: string;
   proposedBy: CounterOfferProposerRole;
   proposerId: string;
-  proposerName: string; // TODO(T3.4): Remove when connecting to real API — resolve from proposerId instead
   originalTime: TimeSlot;
   proposedTime: TimeSlot;
   status: CounterOfferStatus;
@@ -493,11 +479,8 @@ export interface NegotiationHistory {
   id: string;
   bookingId: string;
   coachId: string;
-  coachName: string; // TODO(T3.4): Remove when connecting to real API — resolve from coachId instead
   parentId: string;
-  parentName: string; // TODO(T3.4): Remove when connecting to real API — resolve from parentId instead
   athleteId: string;
-  athleteName: string; // TODO(T3.4): Remove when connecting to real API — resolve from athleteId instead
   offers: CounterOffer[];
   originalTime: TimeSlot;
   finalTime?: TimeSlot;
@@ -510,7 +493,6 @@ export interface CounterOfferNotification {
   type: 'COUNTER_OFFER_RECEIVED' | 'COUNTER_OFFER_ACCEPTED' | 'COUNTER_OFFER_REJECTED' | 'COUNTER_OFFER_EXPIRED';
   counterOfferId: string;
   bookingId: string;
-  proposerName: string; // TODO(T3.4): Remove when connecting to real API — resolve from a proposerId field instead
   proposedTime: TimeSlot;
 }
 
@@ -612,10 +594,7 @@ export interface RecurringPattern {
 export interface GroupSession {
   id: string;
   coachId: string;
-  coachName: string; // TODO(T3.4): Remove when connecting to real API — resolve from coachId instead
-  coachPhotoUrl?: string; // TODO(T3.4): Remove when connecting to real API — resolve from coachId instead
   clubId?: string;
-  clubName?: string; // TODO(T3.4): Remove when connecting to real API — resolve from clubId instead
   title: string;
   description: string;
   sessionType: 'CAMP' | 'CLINIC' | 'TEAM_TRAINING' | 'OPEN_SESSION' | 'TRIAL' | 'TRAINING';
@@ -640,7 +619,6 @@ export interface GroupSession {
   isRecurring?: boolean;
   recurringPattern?: RecurringPattern;
   squadId?: string;      // Link to specific squad
-  squadName?: string; // TODO(T3.4): Remove when connecting to real API — resolve from squadId instead
   parentSessionId?: string; // For recurring instances, links to the template
   isFree?: boolean;         // Quick flag for free sessions
   inviteType?: SessionInviteType; // OPEN = browsable, CLOSED = invite-only, SQUAD_ONLY = squad members
@@ -650,9 +628,7 @@ export interface GroupRegistration {
   id: string;
   sessionId: string;
   athleteId: string;
-  athleteName: string; // TODO(T3.4): Remove when connecting to real API — resolve from athleteId instead
   parentId: string;
-  parentName: string; // TODO(T3.4): Remove when connecting to real API — resolve from parentId instead
   status: 'REGISTERED' | 'WAITLISTED' | 'CANCELLED' | 'ATTENDED' | 'NO_SHOW';
   registeredAt: string;
   paidAt?: string;
@@ -683,17 +659,13 @@ export interface RecurringBooking {
   /** ID of the user who created the subscription */
   userId: string;
   /** Name of the user for display purposes */
-  userName: string; // TODO(T3.4): Remove when connecting to real API — resolve from userId instead
   /** ID of the coach being booked */
   coachId: string;
   /** Name of the coach for display purposes */
-  coachName: string; // TODO(T3.4): Remove when connecting to real API — resolve from coachId instead
   /** Avatar URL of the coach */
-  coachPhotoUrl?: string; // TODO(T3.4): Remove when connecting to real API — resolve from coachId instead
   /** Athlete ID if booking for a child/athlete */
   athleteId?: string;
   /** Athlete name for display purposes */
-  athleteName?: string; // TODO(T3.4): Remove when connecting to real API — resolve from athleteId instead
   /** Day of the week (0-6, Sunday-Saturday) */
   dayOfWeek: 0 | 1 | 2 | 3 | 4 | 5 | 6;
   /** Time of the session in HH:mm format */
@@ -741,12 +713,8 @@ export interface RecurringBooking {
  */
 export interface CreateRecurringBookingParams {
   userId: string;
-  userName: string; // TODO(T3.4): Remove when connecting to real API — resolve from userId instead
   coachId: string;
-  coachName: string; // TODO(T3.4): Remove when connecting to real API — resolve from coachId instead
-  coachPhotoUrl?: string; // TODO(T3.4): Remove when connecting to real API — resolve from coachId instead
   athleteId?: string;
-  athleteName?: string; // TODO(T3.4): Remove when connecting to real API — resolve from athleteId instead
   dayOfWeek: 0 | 1 | 2 | 3 | 4 | 5 | 6;
   time: string;
   duration: number;
@@ -787,19 +755,14 @@ export interface WaitlistEntry {
   /** ID of the user on the waitlist */
   userId: string;
   /** Display name of the user */
-  userName: string; // TODO(T3.4): Remove when connecting to real API — resolve from userId instead
   /** Optional user avatar URL */
-  userPhotoUrl?: string; // TODO(T3.4): Remove when connecting to real API — resolve from userId instead
   /** ID of the session they're waiting for */
   sessionId: string;
   /** Title of the session for display purposes */
-  sessionTitle?: string; // TODO(T3.4): Remove when connecting to real API — resolve from sessionId instead
   /** Scheduled date/time of the session */
-  sessionScheduledAt?: string; // TODO(T3.4): Remove when connecting to real API — resolve from sessionId instead
   /** Coach ID for the session */
   coachId?: string;
   /** Coach name for display purposes */
-  coachName?: string; // TODO(T3.4): Remove when connecting to real API — resolve from coachId instead
   /** Position in the waitlist (1 = first in line) */
   position: number;
   /** When the user joined the waitlist */
@@ -827,13 +790,8 @@ export interface WaitlistEntry {
  */
 export interface JoinWaitlistParams {
   userId: string;
-  userName: string; // TODO(T3.4): Remove when connecting to real API — resolve from userId instead
-  userPhotoUrl?: string; // TODO(T3.4): Remove when connecting to real API — resolve from userId instead
   sessionId: string;
-  sessionTitle?: string; // TODO(T3.4): Remove when connecting to real API — resolve from sessionId instead
-  sessionScheduledAt?: string; // TODO(T3.4): Remove when connecting to real API — resolve from sessionId instead
   coachId?: string;
-  coachName?: string; // TODO(T3.4): Remove when connecting to real API — resolve from coachId instead
   autoBook?: boolean;
   notes?: string;
 }
@@ -869,7 +827,6 @@ export interface SessionAttendance {
 /** Individual athlete attendance record */
 export interface AttendanceRecord {
   athleteId: string;
-  athleteName: string; // TODO(T3.4): Remove when connecting to real API — resolve from athleteId instead
   status: 'ATTENDED' | 'NO_SHOW' | 'LATE';
   notes?: string;
   effortRating?: number;
@@ -900,7 +857,6 @@ export interface SessionRsvp {
   sessionId: string;
   userId: string;
   childId?: string;
-  childName?: string; // TODO(T3.4): Remove when connecting to real API — resolve from childId instead
   status: 'going' | 'not_going' | 'maybe' | 'pending';
   respondedAt?: string;
   createdAt: string;
@@ -946,9 +902,7 @@ export interface CalendarEvent {
   /** Optional booking ID if linked to a booking */
   bookingId?: string;
   /** Optional coach name */
-  coachName?: string; // TODO(T3.4): Remove when connecting to real API — resolve from bookingId -> coachId instead
   /** Optional athlete name */
-  athleteName?: string; // TODO(T3.4): Remove when connecting to real API — resolve from bookingId -> athleteId instead
 }
 
 export interface CalendarSyncSettings {

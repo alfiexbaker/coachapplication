@@ -46,7 +46,6 @@ export interface WalletTransaction {
 export interface Wallet {
   id: string;
   userId: string;
-  userName: string; // TODO(T3.4): Remove when connecting to real API — resolve from userId instead
   balance: number;
   currency: string;
   pendingBalance: number; // Funds on hold (e.g., pending refunds)
@@ -89,7 +88,6 @@ export type WithdrawalStatus =
 export interface Withdrawal {
   id: string;
   coachId: string;
-  coachName: string; // TODO(T3.4): Remove when connecting to real API — resolve from coachId instead
   amount: number;
   currency: string;
   fee: number; // Platform fee for withdrawal
@@ -106,7 +104,6 @@ export interface Withdrawal {
 
 export interface CoachEarnings {
   coachId: string;
-  coachName: string; // TODO(T3.4): Remove when connecting to real API — resolve from coachId instead
   // Balances
   availableBalance: number; // Can withdraw now
   pendingBalance: number; // Awaiting session completion
@@ -140,7 +137,6 @@ export interface EarningTransaction {
   status: TransactionStatus;
   description: string;
   bookingId?: string;
-  athleteName?: string; // TODO(T3.4): Remove when connecting to real API — resolve from bookingId -> athleteId instead
   sessionDate?: string;
   createdAt: string;
   completedAt?: string;
@@ -216,7 +212,6 @@ export interface SessionPackage {
   /** ID of the coach who created this package */
   coachId: string;
   /** Coach name for display purposes */
-  coachName?: string; // TODO(T3.4): Remove when connecting to real API — resolve from coachId instead
   /** Package display name (e.g., "5 Session Starter Bundle") */
   name: string;
   /** Optional description of what's included */
@@ -255,15 +250,12 @@ export interface PackagePurchase {
   /** ID of the user who purchased the package */
   userId: string;
   /** Name of the user who purchased */
-  userName?: string; // TODO(T3.4): Remove when connecting to real API — resolve from userId instead
   /** ID of the package that was purchased */
   packageId: string;
   /** Package name at time of purchase */
-  packageName: string; // TODO(T3.4): Remove when connecting to real API — resolve from packageId instead
   /** ID of the coach who created the package */
   coachId: string;
   /** Coach name for display */
-  coachName?: string; // TODO(T3.4): Remove when connecting to real API — resolve from coachId instead
   /** Total sessions in the package */
   sessionsTotal: number;
   /** Number of sessions used */
@@ -320,15 +312,12 @@ export interface Invoice {
   /** ID of the user this invoice belongs to */
   userId: string;
   /** Name of the user for display */
-  userName?: string; // TODO(T3.4): Remove when connecting to real API — resolve from userId instead
   /** ID of the associated booking */
   bookingId: string;
   /** Name of the coach */
-  coachName: string; // TODO(T3.4): Remove when connecting to real API — resolve from coachId instead
   /** ID of the coach */
   coachId: string;
   /** Name of the athlete */
-  athleteName: string; // TODO(T3.4): Remove when connecting to real API — resolve from athleteId instead
   /** ID of the athlete */
   athleteId?: string;
   /** Date of the session (ISO string) */
@@ -485,7 +474,6 @@ export interface PromoCodeUsage {
   /** ID of the user who redeemed the code */
   userId: string;
   /** Display name of the user who redeemed */
-  userName?: string; // TODO(T3.4): Remove when connecting to real API — resolve from userId instead
   /** Credit amount that was awarded */
   creditAmount: number;
   /** When the code was redeemed */
@@ -604,7 +592,6 @@ export interface Referral {
   /** User ID of the person who was referred */
   refereeId: string;
   /** Display name of the referee */
-  refereeName: string; // TODO(T3.4): Remove when connecting to real API — resolve from refereeId instead
   /** The referral code used */
   code: string;
   /** Amount of credit awarded (0 if pending/expired) */
@@ -716,18 +703,11 @@ export interface FavouriteCoach {
   /** ID of the favourited coach */
   coachId: string;
   /** Display name of the coach (denormalized for quick display) */
-  coachName: string; // TODO(T3.4): Remove when connecting to real API — resolve from coachId instead
   /** Coach's avatar URL (denormalized for quick display) */
-  coachAvatar?: string; // TODO(T3.4): Remove when connecting to real API — resolve from coachId instead
   /** Coach's primary sport */
-  coachSport?: SportCategory; // TODO(T3.4): Remove when connecting to real API — resolve from coachId instead
   /** Coach's rating (denormalized snapshot) */
-  coachRating?: number; // TODO(T3.4): Remove when connecting to real API — resolve from coachId instead
   /** Coach's price range (denormalized snapshot) */
-  coachPriceMin?: number; // TODO(T3.4): Remove when connecting to real API — resolve from coachId instead
-  coachPriceMax?: number; // TODO(T3.4): Remove when connecting to real API — resolve from coachId instead
   /** Coach's location */
-  coachCity?: string; // TODO(T3.4): Remove when connecting to real API — resolve from coachId instead
   /** Whether this favourite is currently active */
   isFavourite: boolean;
   /** When the coach was favourited */

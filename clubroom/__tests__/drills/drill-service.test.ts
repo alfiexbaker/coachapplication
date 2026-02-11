@@ -86,7 +86,6 @@ describe('Drill Service', () => {
       assert.strictEqual(drill.duration, 15);
       assert.strictEqual(drill.difficulty, 'BEGINNER');
       assert.strictEqual(drill.coachId, 'test_coach');
-      assert.strictEqual(drill.coachName, 'Test Coach');
       assert.strictEqual(drill.assignmentCount, 0);
       assert.ok(drill.createdAt);
       assert.ok(drill.updatedAt);
@@ -202,9 +201,7 @@ describe('Drill Service', () => {
       assert.ok(assignment.id.startsWith('assign_'));
       assert.strictEqual(assignment.drillId, 'drill_1');
       assert.strictEqual(assignment.athleteId, 'athlete_1');
-      assert.strictEqual(assignment.athleteName, 'Test Athlete');
       assert.strictEqual(assignment.assignedBy, 'coach1');
-      assert.strictEqual(assignment.assignedByName, 'Coach Mike');
       assert.strictEqual(assignment.isCompleted, false);
       assert.strictEqual(assignment.notes, 'Practice daily');
       assert.strictEqual(assignment.repetitions, 3);

@@ -107,7 +107,7 @@ export default function VideoDetailScreen() {
         <Animated.View entering={FadeInDown.delay(250).springify()}>
           <VideoDetailsCard
             colors={colors}
-            coachName={video.coachName}
+            coachName={video.coachId}
             createdAt={video.createdAt}
             fileSize={video.fileSize}
             sessionId={video.sessionId}

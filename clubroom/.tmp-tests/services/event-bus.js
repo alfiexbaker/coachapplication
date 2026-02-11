@@ -121,6 +121,7 @@ exports.ServiceEvents = {
     // User events
     USER_CREATED: 'user:created',
     USER_UPDATED: 'user:updated',
+    USER_PROFILE_CHANGED: 'user:profile_changed',
     USER_DELETED: 'user:deleted',
     USER_LOGGED_IN: 'user:logged_in',
     USER_LOGGED_OUT: 'user:logged_out',

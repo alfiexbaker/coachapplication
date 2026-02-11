@@ -27,6 +27,7 @@ import { inviteService as sessionInviteService } from '@/services/invite';
 import { ServiceEvents } from '@/services/event-bus';
 import { hasChildren, isCoach } from '@/utils/user-helpers';
 import type { SessionInvite } from '@/constants/types';
+import { getSessionInviteAthleteNames, getSessionInviteCoachName } from '@/utils/session-invite-display';
 
 const logger = createLogger('SessionInvitesScreen');
 
@@ -75,9 +76,10 @@ export default function SessionInvitesScreen() {
 
   // === Handlers ===
   const handleQuickDecline = useCallback(async (invite: SessionInvite) => {
+    const coachName = getSessionInviteCoachName(invite);
     Alert.alert(
       'Decline Invite',
-      `Are you sure you want to decline the session invite from Coach ${invite.coachName}?`,
+      `Are you sure you want to decline the session invite from Coach ${coachName}?`,
       [
         { text: 'Cancel', style: 'cancel' },
         { text: 'Decline', style: 'destructive', onPress: async () => {
@@ -92,9 +94,10 @@ export default function SessionInvitesScreen() {
   }, [onRefresh]);
 
   const handleCancelInvite = useCallback(async (invite: SessionInvite) => {
+    const athleteNames = getSessionInviteAthleteNames(invite);
     Alert.alert(
       'Cancel Invite',
-      `Are you sure you want to cancel this invite to ${invite.athleteNames.join(', ')}?`,
+      `Are you sure you want to cancel this invite to ${athleteNames.join(', ')}?`,
       [
         { text: 'Keep', style: 'cancel' },
         { text: 'Cancel Invite', style: 'destructive', onPress: async () => {

@@ -35,9 +35,7 @@ const MOCK_EVENTS: ClubEvent[] = [
   {
     id: 'event_1',
     clubId: 'club_lions',
-    clubName: 'Lions FC Academy',
     createdBy: 'coach1',
-    createdByName: 'Director Kelly',
     title: 'End of Season Presentation',
     description:
       'Join us to celebrate an amazing season! Awards ceremony, refreshments, and a chance to thank our coaches and volunteers. All players will receive participation certificates.',
@@ -56,7 +54,6 @@ const MOCK_EVENTS: ClubEvent[] = [
     attendees: [
       {
         userId: 'parent_1',
-        userName: 'Sarah Baker',
         userRole: 'PARENT',
         status: 'GOING',
         guestCount: 2,
@@ -64,7 +61,6 @@ const MOCK_EVENTS: ClubEvent[] = [
       },
       {
         userId: 'parent_2',
-        userName: 'Mike Wilson',
         userRole: 'PARENT',
         status: 'GOING',
         guestCount: 1,
@@ -78,9 +74,7 @@ const MOCK_EVENTS: ClubEvent[] = [
   {
     id: 'event_2',
     clubId: 'club_lions',
-    clubName: 'Lions FC Academy',
     createdBy: 'coach1',
-    createdByName: 'Director Kelly',
     title: 'Summer Tournament',
     description:
       'Annual summer 7-a-side tournament with teams from across the region. Entry fee includes lunch, snacks, and a medal for all participants. Limited spots available!',
@@ -100,7 +94,6 @@ const MOCK_EVENTS: ClubEvent[] = [
     attendees: [
       {
         userId: 'parent_1',
-        userName: 'Sarah Baker',
         userRole: 'PARENT',
         status: 'GOING',
         guestCount: 0,
@@ -114,9 +107,7 @@ const MOCK_EVENTS: ClubEvent[] = [
   {
     id: 'event_3',
     clubId: 'club_lions',
-    clubName: 'Lions FC Academy',
     createdBy: 'coach1',
-    createdByName: 'Director Kelly',
     title: 'Parents Meeting',
     description:
       'Monthly parents meeting to discuss upcoming fixtures, training schedules, and club updates. This meeting will be held virtually via Zoom.',
@@ -135,7 +126,6 @@ const MOCK_EVENTS: ClubEvent[] = [
     attendees: [
       {
         userId: 'parent_1',
-        userName: 'Sarah Baker',
         userRole: 'PARENT',
         status: 'GOING',
         guestCount: 0,
@@ -143,7 +133,6 @@ const MOCK_EVENTS: ClubEvent[] = [
       },
       {
         userId: 'parent_2',
-        userName: 'Mike Wilson',
         userRole: 'PARENT',
         status: 'MAYBE',
         guestCount: 0,
@@ -156,9 +145,7 @@ const MOCK_EVENTS: ClubEvent[] = [
   {
     id: 'event_4',
     clubId: 'club_lions',
-    clubName: 'Lions FC Academy',
     createdBy: 'coach_2',
-    createdByName: 'Sarah Mitchell',
     title: 'Club BBQ Social',
     description:
       'End of summer BBQ for all club members and families. Bring a dish to share! Games and activities for the kids.',
@@ -255,9 +242,7 @@ export const eventCrudService = {
     const newEvent: ClubEvent = {
       id: `event_${Date.now()}`,
       clubId: input.clubId,
-      clubName: input.clubName,
       createdBy: input.createdBy,
-      createdByName: input.createdByName,
       title: input.title,
       description: input.description,
       eventType: input.eventType,

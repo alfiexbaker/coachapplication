@@ -63,7 +63,7 @@ export default function MatchDetailScreen() {
     <>
       <Stack.Screen options={{ headerShown: false }} />
       <PageContainer
-        header={<PageHeader title="Match Details" subtitle={match.clubName} showBack onBackPress={() => router.back()} />}
+        header={<PageHeader title="Match Details" subtitle={match.clubId} showBack onBackPress={() => router.back()} />}
         gap={0} horizontalSpacing={0}
       >
         <ScrollView style={{ flex: 1 }} contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}

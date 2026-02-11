@@ -11,6 +11,7 @@ import { useTheme } from '@/hooks/useTheme';
 import { groupSessionService } from '@/services/group-session-service';
 import { SESSION_TYPE_COLORS } from '@/hooks/use-group-sessions';
 import type { GroupSession } from '@/constants/types';
+import { getGroupSessionClubLabel, getGroupSessionCoachName } from '@/utils/group-display';
 
 interface GroupSessionCardProps {
   session: GroupSession;
@@ -20,6 +21,8 @@ interface GroupSessionCardProps {
 
 export const GroupSessionCard = memo(function GroupSessionCard({ session, index, onPress }: GroupSessionCardProps) {
   const { colors } = useTheme();
+  const clubLabel = getGroupSessionClubLabel(session);
+  const coachName = getGroupSessionCoachName(session);
 
   const firstDate = session.schedule[0];
   const isFree = session.pricePerParticipant === 0;
@@ -50,7 +53,7 @@ export const GroupSessionCard = memo(function GroupSessionCard({ session, index,
           <Row align="flex-start" justify="space-between">
             <View style={{ flex: 1, marginRight: Spacing.sm }}>
               <ThemedText type="defaultSemiBold" style={Typography.subheading} numberOfLines={2}>{session.title}</ThemedText>
-              {session.clubName && <ThemedText style={[Typography.caption, { color: colors.muted, marginTop: Spacing.micro }]}>{session.clubName}</ThemedText>}
+              {clubLabel && <ThemedText style={[Typography.caption, { color: colors.muted, marginTop: Spacing.micro }]}>{clubLabel}</ThemedText>}
             </View>
             {!isFree && (
               <ThemedText type="heading" style={[Typography.heading, { color: colors.tint }]}>
@@ -83,14 +86,10 @@ export const GroupSessionCard = memo(function GroupSessionCard({ session, index,
 
           <Row align="center" justify="space-between" style={{ marginTop: Spacing.xxs }}>
             <Row gap="xxs" align="center">
-              {session.coachPhotoUrl ? (
-                <Image source={{ uri: session.coachPhotoUrl }} style={styles.coachPhoto} />
-              ) : (
-                <View style={[styles.coachPhotoPlaceholder, { backgroundColor: colors.border }]}>
-                  <Ionicons name="person" size={12} color={colors.muted} />
-                </View>
-              )}
-              <ThemedText style={[Typography.caption, { color: colors.muted }]}>{session.coachName}</ThemedText>
+              <View style={[styles.coachPhotoPlaceholder, { backgroundColor: colors.border }]}>
+                <Ionicons name="person" size={12} color={colors.muted} />
+              </View>
+              <ThemedText style={[Typography.caption, { color: colors.muted }]}>{coachName}</ThemedText>
             </Row>
             <View style={[styles.spotsBadge, { backgroundColor: withAlpha(spotsColor, 0.09) }]}>
               <ThemedText style={[Typography.caption, { color: spotsColor }]}>

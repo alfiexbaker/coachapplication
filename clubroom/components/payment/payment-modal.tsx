@@ -10,6 +10,7 @@ import { ThemedText } from '@/components/themed-text';
 import { Spacing, Radii, Typography, Components } from '@/constants/theme';
 import type { SessionInvite, TimeSlot } from '@/constants/types';
 import { useTheme } from '@/hooks/useTheme';
+import { getSessionInviteAthleteNames, getSessionInviteCoachName } from '@/utils/session-invite-display';
 import {
   PaymentProcessingView,
   PaymentSuccessView,
@@ -44,6 +45,8 @@ export function PaymentModal({
   if (!invite || !selectedSlot) return null;
 
   const price = invite.priceUsd || 0;
+  const coachName = getSessionInviteCoachName(invite);
+  const athleteNames = getSessionInviteAthleteNames(invite);
   const serviceFee = Math.round(price * 0.05 * 100) / 100;
   const total = price + serviceFee;
 
@@ -108,14 +111,14 @@ export function PaymentModal({
           <>
             <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
               <SessionSummaryCard
-                coachName={invite.coachName}
+                coachName={coachName}
                 sessionType={invite.sessionType}
                 focus={invite.focus}
                 formattedDate={formattedDate}
                 startTime={selectedSlot.startTime}
                 endTime={selectedSlot.endTime}
                 location={selectedSlot.location}
-                athleteNames={invite.athleteNames}
+                athleteNames={athleteNames}
                 palette={palette}
               />
 

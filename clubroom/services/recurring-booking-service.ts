@@ -10,6 +10,7 @@ import type { Booking } from '@/constants/app-types';
 import { apiClient } from './api-client';
 import { notificationService } from './notification-service';
 import { bookingService } from './booking-service';
+import { userService } from './user-service';
 import { createLogger } from '@/utils/logger';
 import { emitTyped, ServiceEvents } from './event-bus';
 import { type Result, type ServiceError, ok, err, notFound, validationError, storageError } from '@/types/result';
@@ -20,6 +21,12 @@ export { getDayName };
 import { STORAGE_KEYS } from '@/constants/storage-keys';
 
 const logger = createLogger('RecurringBookingService');
+
+async function resolveUserName(userId: string, fallback: string): Promise<string> {
+  const userResult = await userService.getUserById(userId);
+  if (!userResult.success) return fallback;
+  return userResult.data.name || fallback;
+}
 
 /**
  * Get display label for frequency
@@ -102,12 +109,8 @@ class RecurringBookingService {
       const newRecurring: RecurringBooking = {
         id: `recurring_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`,
         userId: params.userId,
-        userName: params.userName,
         coachId: params.coachId,
-        coachName: params.coachName,
-        coachPhotoUrl: params.coachPhotoUrl,
         athleteId: params.athleteId,
-        athleteName: params.athleteName,
         dayOfWeek: params.dayOfWeek,
         time: params.time,
         duration: params.duration,
@@ -153,11 +156,12 @@ class RecurringBookingService {
       });
 
       // Send notification to coach
+      const requesterName = await resolveUserName(params.userId, 'A user');
       const notifyResult = await notificationService.create({
         id: `notif_recurring_${Date.now()}`,
         type: 'booking',
         title: 'New Recurring Booking',
-        body: `${params.userName} subscribed to ${getFrequencyLabel(params.frequency).toLowerCase()} sessions`,
+        body: `${requesterName} subscribed to ${getFrequencyLabel(params.frequency).toLowerCase()} sessions`,
         recipientId: params.coachId,
         recipientRole: 'coach',
         timeLabel: 'Just now',
@@ -275,11 +279,12 @@ class RecurringBookingService {
       });
 
       // Notify coach of cancellation
+      const userName = await resolveUserName(booking.userId, 'A user');
       const notifyResult = await notificationService.create({
         id: `notif_recurring_cancel_${Date.now()}`,
         type: 'booking',
         title: 'Recurring Booking Cancelled',
-        body: `${booking.userName} cancelled their ${getFrequencyLabel(booking.frequency).toLowerCase()} subscription`,
+        body: `${userName} cancelled their ${getFrequencyLabel(booking.frequency).toLowerCase()} subscription`,
         recipientId: booking.coachId,
         recipientRole: 'coach',
         timeLabel: 'Just now',
@@ -339,11 +344,12 @@ class RecurringBookingService {
       });
 
       // Notify coach of pause
+      const userName = await resolveUserName(booking.userId, 'A user');
       const notifyResult = await notificationService.create({
         id: `notif_recurring_pause_${Date.now()}`,
         type: 'booking',
         title: 'Recurring Booking Paused',
-        body: `${booking.userName} paused their ${getFrequencyLabel(booking.frequency).toLowerCase()} subscription`,
+        body: `${userName} paused their ${getFrequencyLabel(booking.frequency).toLowerCase()} subscription`,
         recipientId: booking.coachId,
         recipientRole: 'coach',
         timeLabel: 'Just now',
@@ -398,11 +404,12 @@ class RecurringBookingService {
       });
 
       // Notify coach of resume
+      const userName = await resolveUserName(booking.userId, 'A user');
       const notifyResult = await notificationService.create({
         id: `notif_recurring_resume_${Date.now()}`,
         type: 'booking',
         title: 'Recurring Booking Resumed',
-        body: `${booking.userName} resumed their ${getFrequencyLabel(booking.frequency).toLowerCase()} subscription`,
+        body: `${userName} resumed their ${getFrequencyLabel(booking.frequency).toLowerCase()} subscription`,
         recipientId: booking.coachId,
         recipientRole: 'coach',
         timeLabel: 'Just now',
@@ -472,16 +479,21 @@ class RecurringBookingService {
         scheduledAt.setHours(hours, minutes, 0, 0);
 
         const bookingId = `booking_gen_${Date.now()}_${i}_${Math.random().toString(36).substring(2, 7)}`;
+        const [coachName, athleteName, bookedByName] = await Promise.all([
+          resolveUserName(recurring.coachId, 'Coach'),
+          resolveUserName(recurring.athleteId || recurring.userId, 'Athlete'),
+          resolveUserName(recurring.userId, 'Parent'),
+        ]);
 
         const booking = {
           id: bookingId,
           recurringBookingId: recurringId,
           coachId: recurring.coachId,
-          coachName: recurring.coachName,
+          coachName,
           athleteId: recurring.athleteId || recurring.userId,
-          athleteName: recurring.athleteName || recurring.userName,
+          athleteName,
           bookedById: recurring.userId,
-          bookedByName: recurring.userName,
+          bookedByName,
           scheduledAt: scheduledAt.toISOString(),
           duration: recurring.duration,
           location: recurring.location,
@@ -760,12 +772,8 @@ class RecurringBookingService {
       {
         id: 'recurring_demo_1',
         userId: 'user_1',
-        userName: 'Tom Baker',
         coachId: 'coach1',
-        coachName: 'Sarah Mitchell',
-        coachPhotoUrl: 'https://i.pravatar.cc/100?u=sarah',
         athleteId: 'athlete_1',
-        athleteName: 'Tom Baker Jr.',
         dayOfWeek: 2, // Tuesday
         time: '16:00',
         duration: 60,
@@ -783,10 +791,7 @@ class RecurringBookingService {
       {
         id: 'recurring_demo_2',
         userId: 'user_1',
-        userName: 'Tom Baker',
         coachId: 'coach_2',
-        coachName: 'Marcus Thompson',
-        coachPhotoUrl: 'https://i.pravatar.cc/100?u=marcus',
         dayOfWeek: 5, // Friday
         time: '10:00',
         duration: 90,
@@ -807,12 +812,8 @@ class RecurringBookingService {
       {
         id: 'recurring_demo_3',
         userId: 'user_2',
-        userName: 'Jane Wilson',
         coachId: 'coach1',
-        coachName: 'Sarah Mitchell',
-        coachPhotoUrl: 'https://i.pravatar.cc/100?u=sarah',
         athleteId: 'athlete_2',
-        athleteName: 'Emma Wilson',
         dayOfWeek: 4, // Thursday
         time: '15:30',
         duration: 60,

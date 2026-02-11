@@ -41,7 +41,7 @@ export const NextSessionCard = memo(function NextSessionCard({
         <Row gap="md" style={{ flexWrap: 'wrap' }}>
           <Row gap="xxs" align="center">
             <Ionicons name="person" size={14} color={palette.muted} />
-            <ThemedText style={[Typography.small, { color: palette.muted }]}>{session.childName}</ThemedText>
+            <ThemedText style={[Typography.small, { color: palette.muted }]}>{session.childId}</ThemedText>
           </Row>
           <Row gap="xxs" align="center">
             <Ionicons name="calendar" size={14} color={palette.muted} />

@@ -24,7 +24,6 @@ const mockMessages = {
             id: 'msg_1',
             groupId: 'group_1',
             senderId: 'parent1',
-            senderName: 'John Henderson',
             body: 'Hi everyone! Looking forward to the new season.',
             createdAt: '2024-01-19T10:00:00Z',
             status: 'seen',
@@ -34,7 +33,6 @@ const mockMessages = {
             id: 'msg_2',
             groupId: 'group_1',
             senderId: 'parent2',
-            senderName: 'Lisa Wilson',
             body: 'Same here! Has anyone got the training schedule?',
             createdAt: '2024-01-19T10:05:00Z',
             status: 'seen',
@@ -44,7 +42,6 @@ const mockMessages = {
             id: 'msg_3',
             groupId: 'group_1',
             senderId: 'parent1',
-            senderName: 'John Henderson',
             body: 'See you all at training!',
             createdAt: '2024-01-20T14:30:00Z',
             status: 'delivered',
@@ -73,15 +70,13 @@ class CommunityMessagingService {
     /**
      * Send a message to a group
      */
-    async sendGroupMessage(groupId, senderId, senderName, body, senderAvatar, attachments) {
+    async sendGroupMessage(groupId, senderId, _senderName, body, _senderAvatar, attachments) {
         try {
             const timestamp = new Date().toISOString();
             const newMessage = {
                 id: `gmsg_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`,
                 groupId,
                 senderId,
-                senderName,
-                senderAvatar,
                 body,
                 createdAt: timestamp,
                 status: 'sent',

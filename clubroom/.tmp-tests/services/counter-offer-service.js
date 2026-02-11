@@ -26,6 +26,7 @@ const config_1 = require("@/constants/config");
 const storage_keys_1 = require("@/constants/storage-keys");
 const booking_service_1 = require("./booking-service");
 const notification_service_1 = require("./notification-service");
+const user_service_1 = require("./user-service");
 const logger_1 = require("@/utils/logger");
 const result_1 = require("@/types/result");
 const event_bus_1 = require("./event-bus");
@@ -34,6 +35,13 @@ const logger = (0, logger_1.createLogger)('CounterOfferService');
 const USE_MOCK = config_1.api.useMock;
 // Default expiry for counter-offers (48 hours)
 const DEFAULT_EXPIRY_HOURS = 48;
+async function resolveUserName(userId, fallback) {
+    const userResult = await user_service_1.userService.getUserById(userId);
+    if (!userResult.success) {
+        return fallback;
+    }
+    return userResult.data.name?.trim() || fallback;
+}
 // Mock data for development
 const MOCK_COUNTER_OFFERS = [
     {
@@ -41,7 +49,6 @@ const MOCK_COUNTER_OFFERS = [
         bookingId: 'booking_1',
         proposedBy: 'PARENT',
         proposerId: 'parent_1',
-        proposerName: 'Sarah Baker',
         originalTime: {
             date: '2026-01-15',
             startTime: '16:00',
@@ -65,11 +72,8 @@ const MOCK_NEGOTIATIONS = [
         id: 'neg_1',
         bookingId: 'booking_1',
         coachId: 'coach1',
-        coachName: 'Marcus Thompson',
         parentId: 'parent_1',
-        parentName: 'Sarah Baker',
         athleteId: 'athlete_1',
-        athleteName: 'Tom Baker',
         offers: MOCK_COUNTER_OFFERS,
         originalTime: {
             date: '2026-01-15',
@@ -144,7 +148,6 @@ exports.counterOfferService = {
                 bookingId: input.bookingId,
                 proposedBy: input.proposedBy,
                 proposerId: input.proposerId,
-                proposerName: input.proposerName,
                 originalTime: input.originalTime,
                 proposedTime: input.proposedTime,
                 status: 'PENDING',
@@ -169,11 +172,8 @@ exports.counterOfferService = {
                         id: `neg_${Date.now()}`,
                         bookingId: input.bookingId,
                         coachId: input.proposedBy === 'COACH' ? input.proposerId : 'coach1',
-                        coachName: input.proposedBy === 'COACH' ? input.proposerName : 'Coach',
                         parentId: input.proposedBy === 'PARENT' ? input.proposerId : 'parent_1',
-                        parentName: input.proposedBy === 'PARENT' ? input.proposerName : 'Parent',
                         athleteId: 'athlete_1',
-                        athleteName: 'Athlete',
                         offers: [newOffer],
                         originalTime: input.originalTime,
                         status: 'IN_PROGRESS',
@@ -201,7 +201,7 @@ exports.counterOfferService = {
                     bookingId: newOffer.bookingId,
                     proposedBy: newOffer.proposedBy,
                     proposerId: newOffer.proposerId,
-                    proposerName: newOffer.proposerName,
+                    proposerName: input.proposerName,
                     expiresAt: newOffer.expiresAt,
                 });
                 return (0, result_1.ok)(newOffer);
@@ -218,7 +218,7 @@ exports.counterOfferService = {
                 bookingId: createdOffer.bookingId ?? newOffer.bookingId,
                 proposedBy: createdOffer.proposedBy ?? newOffer.proposedBy,
                 proposerId: createdOffer.proposerId ?? newOffer.proposerId,
-                proposerName: createdOffer.proposerName ?? newOffer.proposerName,
+                proposerName: createdOffer.proposerName ?? input.proposerName,
                 expiresAt: createdOffer.expiresAt ?? newOffer.expiresAt,
             });
             return (0, result_1.ok)(createdOffer);
@@ -279,13 +279,18 @@ exports.counterOfferService = {
                     const [startH, startM] = offer.proposedTime.startTime.split(':').map(Number);
                     const [endH, endM] = offer.proposedTime.endTime.split(':').map(Number);
                     const durationMinutes = (endH * 60 + endM) - (startH * 60 + startM);
+                    const [coachName, athleteName, parentName] = await Promise.all([
+                        resolveUserName(negotiation.coachId, 'Coach'),
+                        resolveUserName(negotiation.athleteId, 'Athlete'),
+                        resolveUserName(negotiation.parentId, 'Parent'),
+                    ]);
                     const bookingResult = await booking_service_1.bookingService.createBooking({
                         coachId: negotiation.coachId,
-                        coachName: negotiation.coachName,
+                        coachName,
                         athleteIds: [negotiation.athleteId],
-                        athleteNames: [negotiation.athleteName],
+                        athleteNames: [athleteName],
                         bookedById: negotiation.parentId,
-                        bookedByName: negotiation.parentName,
+                        bookedByName: parentName,
                         scheduledAt,
                         duration: durationMinutes > 0 ? durationMinutes : 60,
                         location: offer.proposedTime.location || 'Coach preferred location',

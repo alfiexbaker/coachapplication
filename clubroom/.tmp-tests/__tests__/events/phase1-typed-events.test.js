@@ -100,12 +100,8 @@ async function resetStorage() {
     });
     const entryResult = await waitlist_service_1.waitlistService.joinWaitlist({
         userId: 'user_wait_1',
-        userName: 'Wait User',
         sessionId: 'session_wait_1',
-        sessionTitle: 'Waitlist Session',
-        sessionScheduledAt: new Date(Date.now() + 3600000).toISOString(),
         coachId: 'coach_wait_1',
-        coachName: 'Coach Wait',
         autoBook: true,
     });
     const result = await waitlist_service_1.waitlistService.promoteFromWaitlist('session_wait_1');
@@ -152,9 +148,7 @@ async function resetStorage() {
     });
     const createResult = await recurring_booking_service_1.recurringBookingService.createRecurring({
         userId: 'rec_user_1',
-        userName: 'Recurring User',
         coachId: 'rec_coach_1',
-        coachName: 'Recurring Coach',
         dayOfWeek: 2,
         time: '10:00',
         duration: 60,

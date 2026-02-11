@@ -23,10 +23,17 @@ import type { RosterNote, FootballObjective, RosterEntry } from '@/constants/typ
 import { type Result, type ServiceError, ok, err, notFound, validationError, storageError } from '@/types/result';
 import { BaseService } from './base-service';
 import { createLogger } from '@/utils/logger';
+import { userService } from './user-service';
 
 const logger = createLogger('RosterService');
 
 const USE_MOCK = api.useMock;
+
+async function resolveUserName(userId: string, fallback: string): Promise<string> {
+  const userResult = await userService.getUserById(userId);
+  if (!userResult.success) return fallback;
+  return userResult.data.name || fallback;
+}
 
 export type RemovalReason = 'GRADUATED' | 'MOVED' | 'INACTIVE' | 'OTHER';
 
@@ -34,7 +41,6 @@ export interface AthleteRemovalRecord {
   id: string;
   coachId: string;
   athleteId: string;
-  athleteName: string;
   reason: RemovalReason;
   customReason?: string;
   archived: boolean; // true = archived (keep history), false = deleted
@@ -52,14 +58,7 @@ const MOCK_ROSTER: RosterEntry[] = [
     id: 'roster_1',
     coachId: 'coach1',
     athleteId: 'athlete_1',
-    athleteName: 'Tom Baker',
-    athleteAge: 11,
-    athletePhotoUrl: 'https://randomuser.me/api/portraits/boys/1.jpg',
-    athleteSkillLevel: 'INTERMEDIATE',
     parentId: 'parent_1',
-    parentName: 'Sarah Baker',
-    parentEmail: 'sarah.baker@email.com',
-    parentPhone: '+44 7700 900001',
     status: 'ACTIVE',
     startDate: '2025-06-15',
     lastSessionDate: '2026-01-08',
@@ -87,14 +86,7 @@ const MOCK_ROSTER: RosterEntry[] = [
     id: 'roster_2',
     coachId: 'coach1',
     athleteId: 'athlete_2',
-    athleteName: 'Lucy Baker',
-    athleteAge: 9,
-    athletePhotoUrl: 'https://randomuser.me/api/portraits/girls/1.jpg',
-    athleteSkillLevel: 'BEGINNER',
     parentId: 'parent_1',
-    parentName: 'Sarah Baker',
-    parentEmail: 'sarah.baker@email.com',
-    parentPhone: '+44 7700 900001',
     status: 'ACTIVE',
     startDate: '2025-09-01',
     lastSessionDate: '2026-01-05',
@@ -123,14 +115,7 @@ const MOCK_ROSTER: RosterEntry[] = [
     id: 'roster_3',
     coachId: 'coach1',
     athleteId: 'athlete_3',
-    athleteName: 'James Wilson',
-    athleteAge: 12,
-    athletePhotoUrl: 'https://randomuser.me/api/portraits/boys/2.jpg',
-    athleteSkillLevel: 'ADVANCED',
     parentId: 'parent_2',
-    parentName: 'Mike Wilson',
-    parentEmail: 'mike.wilson@email.com',
-    parentPhone: '+44 7700 900002',
     status: 'ACTIVE',
     startDate: '2024-03-10',
     lastSessionDate: '2026-01-10',
@@ -164,13 +149,7 @@ const MOCK_ROSTER: RosterEntry[] = [
     id: 'roster_4',
     coachId: 'coach1',
     athleteId: 'athlete_4',
-    athleteName: 'Emma Thompson',
-    athleteAge: 10,
-    athletePhotoUrl: 'https://randomuser.me/api/portraits/girls/2.jpg',
-    athleteSkillLevel: 'INTERMEDIATE',
     parentId: 'parent_3',
-    parentName: 'David Thompson',
-    parentEmail: 'david.thompson@email.com',
     status: 'PAUSED',
     startDate: '2025-04-01',
     lastSessionDate: '2025-11-20',
@@ -192,13 +171,7 @@ const MOCK_ROSTER: RosterEntry[] = [
     id: 'roster_5',
     coachId: 'coach1',
     athleteId: 'athlete_5',
-    athleteName: 'Oliver Chen',
-    athleteAge: 14,
-    athletePhotoUrl: 'https://randomuser.me/api/portraits/boys/3.jpg',
-    athleteSkillLevel: 'ADVANCED',
     parentId: 'parent_4',
-    parentName: 'Wei Chen',
-    parentEmail: 'wei.chen@email.com',
     status: 'GRADUATED',
     startDate: '2023-01-15',
     lastSessionDate: '2025-08-30',
@@ -220,7 +193,7 @@ const MOCK_ROSTER: RosterEntry[] = [
 
 export interface RosterFilters {
   status?: RosterEntry['status'];
-  skillLevel?: RosterEntry['athleteSkillLevel'];
+  skillLevel?: 'BEGINNER' | 'INTERMEDIATE' | 'ADVANCED';
   tags?: string[];
   search?: string;
 }
@@ -294,27 +267,44 @@ class RosterServiceImpl extends BaseService<RosterEntry> {
       filtered = filtered.filter((r) => r.status === filters.status);
     }
     if (filters?.skillLevel) {
-      filtered = filtered.filter((r) => r.athleteSkillLevel === filters.skillLevel);
+      filtered = filtered.filter((r) => {
+        const skillLevel = (r as unknown as { athleteSkillLevel?: RosterFilters['skillLevel'] }).athleteSkillLevel;
+        return skillLevel === filters.skillLevel;
+      });
     }
     if (filters?.tags?.length) {
       filtered = filtered.filter((r) =>
         filters.tags!.some((tag) => r.tags.includes(tag))
       );
     }
+    const entryNames = new Map<string, { athleteName: string; parentName: string }>();
+    await Promise.all(
+      filtered.map(async (entry) => {
+        const [athleteName, parentName] = await Promise.all([
+          resolveUserName(entry.athleteId, 'Athlete'),
+          resolveUserName(entry.parentId, 'Parent'),
+        ]);
+        entryNames.set(entry.id, { athleteName, parentName });
+      }),
+    );
+
     if (filters?.search) {
       const search = filters.search.toLowerCase();
-      filtered = filtered.filter(
-        (r) =>
-          r.athleteName.toLowerCase().includes(search) ||
-          r.parentName.toLowerCase().includes(search)
-      );
+      filtered = filtered.filter((entry) => {
+        const names = entryNames.get(entry.id);
+        if (!names) return false;
+        return (
+          names.athleteName.toLowerCase().includes(search) ||
+          names.parentName.toLowerCase().includes(search)
+        );
+      });
     }
 
     return filtered.sort((a, b) => {
       // Active first, then by name
       if (a.status === 'ACTIVE' && b.status !== 'ACTIVE') return -1;
       if (a.status !== 'ACTIVE' && b.status === 'ACTIVE') return 1;
-      return a.athleteName.localeCompare(b.athleteName);
+      return (entryNames.get(a.id)?.athleteName || '').localeCompare(entryNames.get(b.id)?.athleteName || '');
     });
   }
 
@@ -567,7 +557,6 @@ class RosterServiceImpl extends BaseService<RosterEntry> {
       id: apiClient.generateId('removal'),
       coachId,
       athleteId,
-      athleteName: entry.athleteName,
       reason,
       customReason: options?.customReason,
       archived: archive,

@@ -128,7 +128,6 @@ describe('Family Service', () => {
       bookings.forEach((booking) => {
         assert.ok(booking.id);
         assert.ok(booking.childId);
-        assert.ok(booking.childName);
         assert.ok(booking.colorCode);
         assert.ok(booking.title);
         assert.ok(booking.start);
@@ -242,7 +241,6 @@ describe('Family Service', () => {
       assert.ok(spending.length > 0);
       spending.forEach((childSpending) => {
         assert.ok(childSpending.childId);
-        assert.ok(childSpending.childName);
         assert.ok(childSpending.colorCode);
         assert.ok(typeof childSpending.totalSpent === 'number');
         assert.ok(typeof childSpending.sessionCount === 'number');
@@ -313,7 +311,6 @@ describe('Family Service', () => {
 
       assert.ok(progress);
       assert.strictEqual(progress.childId, 'child_tom');
-      assert.strictEqual(progress.childName, 'Tom Henderson');
       assert.ok(typeof progress.sessionsCompleted === 'number');
       assert.ok(typeof progress.badgesEarned === 'number');
       assert.ok(typeof progress.activeGoals === 'number');
@@ -360,7 +357,7 @@ describe('Family Service', () => {
         assert.ok(overview.nextSession.id);
         assert.ok(overview.nextSession.title);
         assert.ok(overview.nextSession.start);
-        assert.ok(overview.nextSession.childName);
+        assert.ok(overview.nextSession.childId);
       }
     });
   });

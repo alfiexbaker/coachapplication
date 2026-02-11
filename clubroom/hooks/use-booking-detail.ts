@@ -16,6 +16,7 @@ import { useAuth } from '@/hooks/use-auth';
 import { useSessionNote } from '@/hooks/use-session-note';
 import type { BookingSummary, Booking } from '@/constants/types';
 import { createLogger } from '@/utils/logger';
+import { getBookingAthleteName } from '@/utils/booking-display';
 
 const logger = createLogger('useBookingDetail');
 
@@ -58,8 +59,6 @@ export function useBookingDetail(id: string): BookingDetailResult {
 
     const toBookingSummary = (booking: Booking): BookingSummary => ({
       id: booking.id,
-      coachName: booking.coachName,
-      childName: booking.athleteName ?? 'Athlete',
       service: booking.service ?? 'Session',
       start: booking.scheduledAt,
       status: mapBookingStatus(booking.status),
@@ -69,11 +68,11 @@ export function useBookingDetail(id: string): BookingDetailResult {
         photoUrl: `https://i.pravatar.cc/100?u=${booking.coachId}`,
       },
       client: {
-        name: booking.athleteName ?? 'Athlete',
+        name: getBookingAthleteName(booking),
         photoUrl: `https://i.pravatar.cc/100?u=${booking.athleteId ?? 'athlete'}`,
       },
       coachId: booking.coachId,
-      clientId: booking.athleteId ?? '',
+      clientId: booking.athleteId ?? booking.athleteIds?.[0] ?? '',
     });
 
     const loadBooking = async () => {

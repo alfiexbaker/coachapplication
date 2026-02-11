@@ -16,6 +16,7 @@ import { useTheme } from '@/hooks/useTheme';
 import { formatNextSession } from '@/hooks/use-discover-sessions';
 import type { SessionOffering } from '@/constants/types';
 import { Row } from '@/components/primitives';
+import { getSessionOfferingCoachName } from '@/utils/session-display';
 
 interface SessionOfferingCardProps {
   offering: SessionOffering;
@@ -24,6 +25,7 @@ interface SessionOfferingCardProps {
 
 export const SessionOfferingCard = memo(function SessionOfferingCard({ offering, onPress }: SessionOfferingCardProps) {
   const { colors: palette } = useTheme();
+  const coachName = getSessionOfferingCoachName(offering);
   const registeredCount = offering.registrations.filter(r => r.status === 'confirmed').length;
   const spotsLeft = offering.maxParticipants - registeredCount;
   const isFull = spotsLeft <= 0;
@@ -34,11 +36,11 @@ export const SessionOfferingCard = memo(function SessionOfferingCard({ offering,
         <Row style={styles.coachInfo}>
           <View style={[styles.avatar, { backgroundColor: withAlpha(palette.tint, 0.12) }]}>
             <ThemedText style={[styles.avatarText, { color: palette.tint }]}>
-              {offering.coachName.charAt(0)}
+              {coachName.charAt(0)}
             </ThemedText>
           </View>
           <View>
-            <ThemedText type="defaultSemiBold" style={styles.coachName}>{offering.coachName}</ThemedText>
+            <ThemedText type="defaultSemiBold" style={styles.coachName}>{coachName}</ThemedText>
             <ThemedText style={[styles.location, { color: palette.muted }]}>{offering.location}</ThemedText>
           </View>
         </Row>

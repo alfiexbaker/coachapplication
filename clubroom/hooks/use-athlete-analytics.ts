@@ -55,10 +55,11 @@ export function useAthleteAnalytics() {
 
   const handleShare = useCallback(async () => {
     if (!analytics) return;
+    const athleteLabel = analytics.athleteId || 'Athlete';
     try {
       await Share.share({
-        message: `Check out ${analytics.athleteName}'s progress! ${analytics.totalSessions} sessions completed with an average rating of ${analytics.averageSessionRating.toFixed(1)}/5.`,
-        title: `${analytics.athleteName} Progress Report`,
+        message: `Check out ${athleteLabel}'s progress! ${analytics.totalSessions} sessions completed with an average rating of ${analytics.averageSessionRating.toFixed(1)}/5.`,
+        title: `${athleteLabel} Progress Report`,
       });
     } catch {
       Alert.alert('Error', 'Failed to share progress report.');

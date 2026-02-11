@@ -131,11 +131,11 @@ export default function AcademyStaffScreen() {
                   <Row gap="md" align="center">
                     <View style={[styles.avatar, { backgroundColor: withAlpha(roleColors[member.role], 0.12) }]}>
                       <ThemedText style={[styles.avatarText, { color: roleColors[member.role] }]}>
-                        {member.userName.slice(0, 2).toUpperCase()}
+                        {(member.userId || 'U').slice(0, 2).toUpperCase()}
                       </ThemedText>
                     </View>
                     <View style={{ flex: 1 }}>
-                      <ThemedText type="defaultSemiBold">{member.userName}</ThemedText>
+                      <ThemedText type="defaultSemiBold">{member.userId}</ThemedText>
                       <View style={[styles.roleBadge, { backgroundColor: withAlpha(roleColors[member.role], 0.09) }]}>
                         <ThemedText style={[styles.roleText, { color: roleColors[member.role] }]}>
                           {academyService.formatRole(member.role)}

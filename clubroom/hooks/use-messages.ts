@@ -62,7 +62,7 @@ export function useMessages(): UseMessagesResult {
     const term = search.trim().toLowerCase();
     if (!term) return threads;
     return threads.filter((thread) => {
-      const haystack = [thread.coachName, thread.title, thread.subtitle, thread.serviceName]
+      const haystack = [thread.title, thread.subtitle, thread.serviceName]
         .filter(Boolean)
         .join(' ')
         .toLowerCase();

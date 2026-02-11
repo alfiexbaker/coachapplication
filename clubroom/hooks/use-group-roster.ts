@@ -9,6 +9,7 @@ import { createLogger } from '@/utils/logger';
 import { groupSessionService } from '@/services/group-session-service';
 import { injuryService } from '@/services/injury-service';
 import type { GroupSession, GroupRegistration, BodyPart, InjurySeverity } from '@/constants/types';
+import { getGroupRegistrationAthleteName } from '@/utils/group-display';
 
 const logger = createLogger('SessionRosterScreen');
 
@@ -100,7 +101,7 @@ export function useGroupRoster(sessionId: string | undefined) {
   }, [session, loadData]);
 
   const handleCancelRegistration = useCallback(async (registration: GroupRegistration) => {
-    Alert.alert('Cancel Registration', `Remove ${registration.athleteName} from this session?`, [
+    Alert.alert('Cancel Registration', `Remove ${getGroupRegistrationAthleteName(registration)} from this session?`, [
       { text: 'No', style: 'cancel' },
       { text: 'Yes, Remove', style: 'destructive', onPress: async () => {
         try { await groupSessionService.cancelRegistration(registration.id); await loadData(); }
@@ -172,10 +173,10 @@ export function useGroupRoster(sessionId: string | undefined) {
       await injuryService.logInjury(selectedParticipant.athleteId, {
         bodyPart: injuryBodyPart, severity: injurySeverity,
         description: injuryDescription.trim() + ctx, occurredAt: new Date().toISOString(), sharedWithCoach: true,
-      }, selectedParticipant.athleteName);
+      }, getGroupRegistrationAthleteName(selectedParticipant));
       void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       setShowInjuryReport(false);
-      Alert.alert('Injury Reported', `Injury logged for ${selectedParticipant.athleteName}. The athlete can track their recovery in the Health section.`);
+      Alert.alert('Injury Reported', `Injury logged for ${getGroupRegistrationAthleteName(selectedParticipant)}. The athlete can track their recovery in the Health section.`);
     } catch (error) {
       logger.error('Failed to report injury:', error);
       Alert.alert('Error', 'Failed to report injury. Please try again.');

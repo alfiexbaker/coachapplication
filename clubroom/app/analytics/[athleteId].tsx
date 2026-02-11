@@ -39,7 +39,7 @@ export default function AthleteAnalyticsScreen() {
           <Ionicons name="arrow-back" size={24} color={colors.text} />
         </Clickable>
         <View style={{ flex: 1 }}>
-          <ThemedText type="title">{analytics.athleteName}</ThemedText>
+          <ThemedText type="title">{analytics.athleteId}</ThemedText>
           <ThemedText style={[Typography.small, { color: colors.muted, marginTop: Spacing.micro }]}>Progress Analytics</ThemedText>
         </View>
         <Clickable accessibilityLabel="Share analytics" onPress={handleShare} hitSlop={8}>

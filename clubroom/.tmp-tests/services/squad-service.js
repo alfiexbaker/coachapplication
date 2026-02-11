@@ -14,12 +14,128 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.squadService = void 0;
 const api_client_1 = require("./api-client");
 const config_1 = require("@/constants/config");
-const mock_data_1 = require("@/constants/mock-data");
 const logger_1 = require("@/utils/logger");
 const event_bus_1 = require("./event-bus");
+const user_service_1 = require("./user-service");
 const storage_keys_1 = require("@/constants/storage-keys");
 const logger = (0, logger_1.createLogger)('SquadService');
 const USE_MOCK = config_1.api.useMock;
+async function resolveUserName(userId, fallback) {
+    const userResult = await user_service_1.userService.getUserById(userId);
+    if (!userResult.success)
+        return fallback;
+    return userResult.data.name || fallback;
+}
+async function resolveUserEmail(userId) {
+    const userResult = await user_service_1.userService.getUserById(userId);
+    if (!userResult.success)
+        return undefined;
+    return userResult.data.email;
+}
+const BASE_CLUB_SQUADS = [
+    {
+        id: 'squad_u15',
+        clubId: 'club_lions',
+        name: 'U15 Performance',
+        level: 'U15 · Competitive',
+        memberCount: 18,
+        primaryCoach: 'coach1',
+        meetLocation: 'Pitch 2',
+        tags: ['Pressing', 'Finishing'],
+    },
+    {
+        id: 'squad_juniors',
+        clubId: 'club_lions',
+        name: 'Junior Skills',
+        level: 'U11 · Development',
+        memberCount: 22,
+        primaryCoach: 'coach2',
+        meetLocation: 'Sports Hall',
+        tags: ['Ball Mastery', 'Confidence'],
+    },
+    {
+        id: 'squad_staff',
+        clubId: 'club_lions',
+        name: 'Staff Room',
+        level: 'Coaches & Admins',
+        memberCount: 8,
+        primaryCoach: 'coach1',
+        meetLocation: 'Clubhouse',
+        tags: ['Approvals', 'Safeguarding'],
+    },
+    {
+        id: 'squad_warriors_u12',
+        clubId: 'club_warriors',
+        name: 'U12 Development',
+        level: 'U12 · Grassroots',
+        memberCount: 16,
+        primaryCoach: 'coach3',
+        meetLocation: 'Southbank Fields',
+    },
+    {
+        id: 'squad_warriors_u14',
+        clubId: 'club_warriors',
+        name: 'U14 Competitive',
+        level: 'U14 · League',
+        memberCount: 20,
+        primaryCoach: 'coach4',
+        meetLocation: 'Southbank Stadium',
+    },
+    {
+        id: 'squad_warriors_girls',
+        clubId: 'club_warriors',
+        name: 'Girls Team',
+        level: 'U16 · Development',
+        memberCount: 14,
+        primaryCoach: 'coach4',
+        meetLocation: 'Southbank Fields',
+    },
+    {
+        id: 'squad_phoenix_elite',
+        clubId: 'club_phoenix',
+        name: 'Elite Academy',
+        level: 'U15 · Performance',
+        memberCount: 18,
+        primaryCoach: 'coach5',
+        meetLocation: 'Phoenix Training Ground',
+    },
+    {
+        id: 'squad_phoenix_dev',
+        clubId: 'club_phoenix',
+        name: 'Development Squad',
+        level: 'U13 · Foundation',
+        memberCount: 22,
+        primaryCoach: 'coach7',
+        meetLocation: 'Phoenix Training Ground',
+    },
+    {
+        id: 'squad_nlu_elite',
+        clubId: 'club_united',
+        name: 'Elite First Team',
+        level: 'U16 · Competitive',
+        memberCount: 18,
+        primaryCoach: 'coach6',
+        meetLocation: 'United Stadium',
+    },
+    {
+        id: 'squad_nlu_academy',
+        clubId: 'club_united',
+        name: 'Academy Pathway',
+        level: 'U14 · Development',
+        memberCount: 24,
+        primaryCoach: 'coach1',
+        meetLocation: 'United Training Pitch',
+    },
+    {
+        id: 'squad_nlu_tots',
+        clubId: 'club_united',
+        name: 'Mini Kickers',
+        level: 'U8 · Fun Football',
+        memberCount: 30,
+        primaryCoach: 'coach2',
+        meetLocation: 'Community Centre',
+    },
+];
 // Cache for custom squads (created by users)
 let customSquadsCache = [];
 async function loadCustomSquads() {
@@ -51,11 +167,7 @@ const MOCK_SQUAD_MEMBERS = [
         id: 'sm_1',
         squadId: 'squad_u15',
         athleteId: 'athlete_tom',
-        athleteName: 'Tom Baker',
-        athleteAge: 14,
         parentId: 'parent1',
-        parentName: 'Sarah Baker',
-        parentEmail: 'sarah.baker@email.com',
         status: 'ACTIVE',
         joinedAt: '2024-09-01',
         position: 'Midfielder',
@@ -65,11 +177,7 @@ const MOCK_SQUAD_MEMBERS = [
         id: 'sm_2',
         squadId: 'squad_u15',
         athleteId: 'athlete_james',
-        athleteName: 'James Wilson',
-        athleteAge: 14,
         parentId: 'parent2',
-        parentName: 'Mike Wilson',
-        parentEmail: 'mike.wilson@email.com',
         status: 'ACTIVE',
         joinedAt: '2024-09-01',
         position: 'Forward',
@@ -79,11 +187,7 @@ const MOCK_SQUAD_MEMBERS = [
         id: 'sm_3',
         squadId: 'squad_u15',
         athleteId: 'athlete_maya',
-        athleteName: 'Maya Chen',
-        athleteAge: 14,
         parentId: 'parent3',
-        parentName: 'Lucy Chen',
-        parentEmail: 'lucy.chen@email.com',
         status: 'ACTIVE',
         joinedAt: '2024-09-15',
         position: 'Defender',
@@ -93,11 +197,7 @@ const MOCK_SQUAD_MEMBERS = [
         id: 'sm_4',
         squadId: 'squad_u15',
         athleteId: 'athlete_ethan',
-        athleteName: 'Ethan Brown',
-        athleteAge: 15,
         parentId: 'parent4',
-        parentName: 'David Brown',
-        parentEmail: 'david.brown@email.com',
         status: 'ACTIVE',
         joinedAt: '2024-09-01',
         position: 'Goalkeeper',
@@ -107,11 +207,7 @@ const MOCK_SQUAD_MEMBERS = [
         id: 'sm_5',
         squadId: 'squad_u15',
         athleteId: 'athlete_sophie',
-        athleteName: 'Sophie Taylor',
-        athleteAge: 14,
         parentId: 'parent5',
-        parentName: 'Emma Taylor',
-        parentEmail: 'emma.taylor@email.com',
         status: 'ACTIVE',
         joinedAt: '2024-10-01',
         position: 'Midfielder',
@@ -122,11 +218,7 @@ const MOCK_SQUAD_MEMBERS = [
         id: 'sm_6',
         squadId: 'squad_juniors',
         athleteId: 'athlete_lucy',
-        athleteName: 'Lucy Baker',
-        athleteAge: 10,
         parentId: 'parent1',
-        parentName: 'Sarah Baker',
-        parentEmail: 'sarah.baker@email.com',
         status: 'ACTIVE',
         joinedAt: '2024-09-01',
         position: 'Forward',
@@ -136,11 +228,7 @@ const MOCK_SQUAD_MEMBERS = [
         id: 'sm_7',
         squadId: 'squad_juniors',
         athleteId: 'athlete_jack',
-        athleteName: 'Jack Martinez',
-        athleteAge: 10,
         parentId: 'parent6',
-        parentName: 'Maria Martinez',
-        parentEmail: 'maria.martinez@email.com',
         status: 'ACTIVE',
         joinedAt: '2024-09-01',
         position: 'Midfielder',
@@ -150,11 +238,7 @@ const MOCK_SQUAD_MEMBERS = [
         id: 'sm_8',
         squadId: 'squad_juniors',
         athleteId: 'athlete_olivia',
-        athleteName: 'Olivia Johnson',
-        athleteAge: 11,
         parentId: 'parent7',
-        parentName: 'Rachel Johnson',
-        parentEmail: 'rachel.johnson@email.com',
         status: 'ACTIVE',
         joinedAt: '2024-09-15',
         position: 'Defender',
@@ -164,11 +248,7 @@ const MOCK_SQUAD_MEMBERS = [
         id: 'sm_9',
         squadId: 'squad_juniors',
         athleteId: 'athlete_noah',
-        athleteName: 'Noah Williams',
-        athleteAge: 10,
         parentId: 'parent8',
-        parentName: 'Jennifer Williams',
-        parentEmail: 'jennifer.williams@email.com',
         status: 'ACTIVE',
         joinedAt: '2024-10-01',
         position: 'Goalkeeper',
@@ -178,11 +258,7 @@ const MOCK_SQUAD_MEMBERS = [
         id: 'sm_10',
         squadId: 'squad_juniors',
         athleteId: 'athlete_ava',
-        athleteName: 'Ava Thompson',
-        athleteAge: 11,
         parentId: 'parent9',
-        parentName: 'Lisa Thompson',
-        parentEmail: 'lisa.thompson@email.com',
         status: 'ACTIVE',
         joinedAt: '2024-09-01',
         position: 'Forward',
@@ -192,11 +268,7 @@ const MOCK_SQUAD_MEMBERS = [
         id: 'sm_11',
         squadId: 'squad_juniors',
         athleteId: 'athlete_liam',
-        athleteName: 'Liam Davis',
-        athleteAge: 10,
         parentId: 'parent10',
-        parentName: 'Karen Davis',
-        parentEmail: 'karen.davis@email.com',
         status: 'ACTIVE',
         joinedAt: '2024-10-15',
         position: 'Midfielder',
@@ -222,7 +294,7 @@ exports.squadService = {
     async getSquads(clubId) {
         if (USE_MOCK) {
             const custom = await loadCustomSquads();
-            const mockSquads = mock_data_1.clubSquads.filter((s) => s.clubId === clubId);
+            const mockSquads = BASE_CLUB_SQUADS.filter((s) => s.clubId === clubId);
             const customForClub = custom.filter((s) => s.clubId === clubId);
             return [...mockSquads, ...customForClub];
         }
@@ -234,7 +306,7 @@ exports.squadService = {
      */
     async getSquad(squadId) {
         if (USE_MOCK) {
-            const fromMock = mock_data_1.clubSquads.find((s) => s.id === squadId);
+            const fromMock = BASE_CLUB_SQUADS.find((s) => s.id === squadId);
             if (fromMock)
                 return fromMock;
             const custom = await loadCustomSquads();
@@ -314,20 +386,25 @@ exports.squadService = {
     async getSquadParents(squadId) {
         const members = await this.getSquadMembers(squadId);
         const parentMap = new Map();
-        members.forEach((m) => {
+        for (const m of members) {
+            const [athleteName, parentName, parentEmail] = await Promise.all([
+                resolveUserName(m.athleteId, 'Athlete'),
+                resolveUserName(m.parentId, 'Parent'),
+                resolveUserEmail(m.parentId),
+            ]);
             const existing = parentMap.get(m.parentId);
             if (existing) {
-                existing.athletes.push(m.athleteName);
+                existing.athletes.push(athleteName);
             }
             else {
                 parentMap.set(m.parentId, {
                     parentId: m.parentId,
-                    parentName: m.parentName,
-                    parentEmail: m.parentEmail,
-                    athletes: [m.athleteName],
+                    parentName,
+                    parentEmail,
+                    athletes: [athleteName],
                 });
             }
-        });
+        }
         return Array.from(parentMap.values());
     },
     /**

@@ -26,7 +26,6 @@ const MOCK_INJURIES = [
     {
         id: 'injury_1',
         userId: 'user1',
-        userName: 'Tom Henderson',
         bodyPart: 'LEFT_ANKLE',
         description: 'Rolled ankle during practice match. Some swelling and mild pain when walking.',
         severity: 'MODERATE',
@@ -42,7 +41,6 @@ const MOCK_INJURIES = [
                 note: 'Started RICE protocol. Swelling has reduced significantly.',
                 createdAt: '2026-01-06T10:00:00Z',
                 createdBy: 'user1',
-                createdByName: 'Tom Henderson',
                 recoveryPercent: 25,
             },
             {
@@ -51,7 +49,6 @@ const MOCK_INJURIES = [
                 note: 'Began light stretching exercises. Can walk without limp now.',
                 createdAt: '2026-01-09T15:00:00Z',
                 createdBy: 'user1',
-                createdByName: 'Tom Henderson',
                 recoveryPercent: 50,
             },
             {
@@ -60,7 +57,6 @@ const MOCK_INJURIES = [
                 note: 'Light jogging today, feeling much better. Still some stiffness.',
                 createdAt: '2026-01-11T09:00:00Z',
                 createdBy: 'user1',
-                createdByName: 'Tom Henderson',
                 recoveryPercent: 65,
             },
         ],
@@ -70,7 +66,6 @@ const MOCK_INJURIES = [
     {
         id: 'injury_2',
         userId: 'user1',
-        userName: 'Tom Henderson',
         bodyPart: 'RIGHT_THIGH',
         description: 'Minor muscle strain during sprint drills. Slight tightness but no sharp pain.',
         severity: 'MINOR',
@@ -86,7 +81,6 @@ const MOCK_INJURIES = [
                 note: 'Resting and applying heat treatment.',
                 createdAt: '2025-12-16T10:00:00Z',
                 createdBy: 'user1',
-                createdByName: 'Tom Henderson',
                 recoveryPercent: 30,
             },
             {
@@ -95,7 +89,6 @@ const MOCK_INJURIES = [
                 note: 'Muscle feels normal now. Cleared to resume training.',
                 createdAt: '2025-12-21T14:00:00Z',
                 createdBy: 'user1',
-                createdByName: 'Tom Henderson',
                 recoveryPercent: 100,
             },
         ],
@@ -106,7 +99,6 @@ const MOCK_INJURIES = [
     {
         id: 'injury_3',
         userId: 'user2',
-        userName: 'Emma Henderson',
         bodyPart: 'LEFT_KNEE',
         description: 'Knee pain after landing awkwardly from a header.',
         severity: 'MODERATE',
@@ -122,7 +114,6 @@ const MOCK_INJURIES = [
                 note: 'Visited physio. Advised rest and ice for a week.',
                 createdAt: '2026-01-09T11:00:00Z',
                 createdBy: 'user2',
-                createdByName: 'Emma Henderson',
                 recoveryPercent: 10,
             },
         ],
@@ -133,7 +124,6 @@ const MOCK_INJURIES = [
     {
         id: 'injury_4',
         userId: 'user3',
-        userName: 'James Wilson',
         bodyPart: 'RIGHT_ANKLE',
         description: 'Twisted ankle during training session. Some swelling present.',
         severity: 'MINOR',
@@ -149,7 +139,6 @@ const MOCK_INJURIES = [
                 note: 'Applying ice and keeping elevated. Pain manageable.',
                 createdAt: '2026-01-11T09:00:00Z',
                 createdBy: 'user3',
-                createdByName: 'James Wilson',
                 recoveryPercent: 40,
             },
         ],
@@ -159,7 +148,6 @@ const MOCK_INJURIES = [
     {
         id: 'injury_5',
         userId: 'user4a',
-        userName: 'Sophie Taylor',
         bodyPart: 'LEFT_CALF',
         description: 'Calf strain during sprints. Tightness and discomfort when running.',
         severity: 'MINOR',
@@ -175,7 +163,6 @@ const MOCK_INJURIES = [
                 note: 'Stretching daily and doing light exercises.',
                 createdAt: '2025-12-22T10:00:00Z',
                 createdBy: 'user4a',
-                createdByName: 'Sophie Taylor',
                 recoveryPercent: 50,
             },
             {
@@ -184,7 +171,6 @@ const MOCK_INJURIES = [
                 note: 'Fully recovered. Back to full training.',
                 createdAt: '2025-12-29T14:00:00Z',
                 createdBy: 'user4a',
-                createdByName: 'Sophie Taylor',
                 recoveryPercent: 100,
             },
         ],
@@ -195,7 +181,6 @@ const MOCK_INJURIES = [
     {
         id: 'injury_6',
         userId: 'user5',
-        userName: 'Liam Davies',
         bodyPart: 'RIGHT_KNEE',
         description: 'Knee pain after collision during match. No visible swelling but painful to bend.',
         severity: 'MODERATE',
@@ -349,16 +334,15 @@ async function saveInjuries(injuries) {
  * Log a new injury for a user
  * @param userId - The user ID of the athlete
  * @param params - Injury details
- * @param userName - Optional user name for display
+ * @param _userName - Reserved for compatibility with existing call sites
  * @returns The created injury
  */
-async function logInjury(userId, params, userName) {
+async function logInjury(userId, params, _userName) {
     const injuries = await getAllInjuries();
     const now = new Date().toISOString();
     const newInjury = {
         id: `injury_${Date.now()}`,
         userId,
-        userName,
         bodyPart: params.bodyPart,
         description: params.description,
         severity: params.severity,
@@ -448,11 +432,11 @@ async function updateInjury(id, updates) {
  * @param injuryId - The injury ID
  * @param note - The note content
  * @param createdBy - User ID of the note creator
- * @param createdByName - Name of the note creator
+ * @param _createdByName - Reserved for compatibility with existing call sites
  * @param recoveryPercent - Optional recovery percentage update
  * @returns The updated injury or null if not found
  */
-async function addRecoveryNote(injuryId, note, createdBy, createdByName, recoveryPercent) {
+async function addRecoveryNote(injuryId, note, createdBy, _createdByName, recoveryPercent) {
     const injuries = await getAllInjuries();
     const injuryIndex = injuries.findIndex(i => i.id === injuryId);
     if (injuryIndex === -1) {
@@ -467,7 +451,6 @@ async function addRecoveryNote(injuryId, note, createdBy, createdByName, recover
         note,
         createdAt: now,
         createdBy,
-        createdByName,
         recoveryPercent: recoveryPercent ?? injury.recoveryPercent,
     };
     injury.notes.push(newNote);

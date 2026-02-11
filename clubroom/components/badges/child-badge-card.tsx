@@ -97,7 +97,7 @@ export const ChildBadgeCard = memo(function ChildBadgeCard({ award, highlighted,
       <Row align="center" justify="space-between" style={[styles.footer, { borderTopColor: colors.border }]}>
         <Row gap="xs" align="center">
           <Ionicons name="person" size={14} color={colors.icon} />
-          <ThemedText style={[Typography.small, { color: colors.muted }]}>Awarded by Coach {award.coachName}</ThemedText>
+          <ThemedText style={[Typography.small, { color: colors.muted }]}>Awarded by Coach {award.coachId || 'Coach'}</ThemedText>
         </Row>
         <ThemedText style={[Typography.caption, { color: colors.muted }]}>{formatDate(award.awardedAt)}</ThemedText>
       </Row>

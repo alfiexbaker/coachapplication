@@ -23,7 +23,6 @@ function createMockAnnotation(overrides: Partial<VideoAnnotation> = {}): VideoAn
     note: 'This is a test note',
     type: 'TECHNIQUE',
     createdBy: 'coach_1',
-    createdByName: 'Coach Smith',
     createdAt: '2026-01-10T10:00:00Z',
     ...overrides,
   };
@@ -482,12 +481,10 @@ describe('Annotation Data Display', () => {
     const withOptional = createMockAnnotation({
       note: 'Optional note',
       createdBy: 'user_1',
-      createdByName: 'User Name',
     });
 
     assert.strictEqual(withOptional.note, 'Optional note');
     assert.strictEqual(withOptional.createdBy, 'user_1');
-    assert.strictEqual(withOptional.createdByName, 'User Name');
   });
 
   test('annotation without optional fields', () => {

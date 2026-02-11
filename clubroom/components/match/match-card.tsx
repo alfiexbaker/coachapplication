@@ -10,6 +10,7 @@ import { Radii, Spacing, Typography , withAlpha } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
 import type { Match } from '@/constants/types';
 import { matchService } from '@/services/match-service';
+import { getMatchClubLabel } from '@/utils/match-display';
 
 import { MatchAvailabilityRow, MatchPlayerStatusRow } from './match-card-sections';
 
@@ -22,6 +23,7 @@ interface MatchCardProps {
 
 export function MatchCard({ match, isCoach = false, showClub = false, onPress }: MatchCardProps) {
   const { colors: palette } = useTheme();
+  const clubLabel = getMatchClubLabel(match);
 
   const matchDate = new Date(match.date);
   const dateLabel = matchDate.toLocaleDateString('en-GB', {
@@ -129,7 +131,7 @@ export function MatchCard({ match, isCoach = false, showClub = false, onPress }:
         <Row align="center" gap="xs">
           <Ionicons name="shield-outline" size={14} color={palette.muted} />
           <ThemedText style={[styles.clubText, { color: palette.muted }]}>
-            {match.clubName}
+            {clubLabel}
           </ThemedText>
         </Row>
       )}

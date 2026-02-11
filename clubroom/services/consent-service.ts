@@ -19,10 +19,20 @@ import type {
 } from '@/constants/types';
 import { safetyService } from './safety-service';
 import { rosterService } from './roster-service';
+import { userService } from './user-service';
 import { createLogger } from '@/utils/logger';
 import { type Result, type ServiceError, ok, err, storageError } from '@/types/result';
 
 const logger = createLogger('ConsentService');
+
+async function resolveUserName(userId: string, fallback = ''): Promise<string> {
+  const userResult = await userService.getUserById(userId);
+  if (!userResult.success) {
+    return fallback;
+  }
+
+  return userResult.data.name?.trim() || fallback;
+}
 
 const CONSENT_TYPES: ConsentType[] = ['PHOTO', 'VIDEO', 'SOCIAL_MEDIA', 'EMERGENCY_TREATMENT'];
 
@@ -76,27 +86,12 @@ class ConsentService {
         return err(emergencyInfoResult.error);
       }
       const emergencyInfo = emergencyInfoResult.data;
-
-      // Get athlete name from roster if coachId provided
-      let athleteName = 'Unknown';
-      let parentName = 'Unknown';
-      let athletePhotoUrl: string | undefined;
-
       if (coachId) {
-        const roster = await rosterService.getRoster(coachId);
-        const entry = roster.find((r) => r.athleteId === athleteId);
-        if (entry) {
-          athleteName = entry.athleteName;
-          parentName = entry.parentName;
-          athletePhotoUrl = entry.athletePhotoUrl;
-        }
+        await rosterService.getRoster(coachId);
       }
 
       return ok({
         athleteId,
-        athleteName,
-        athletePhotoUrl,
-        parentName,
         consents: emergencyInfo.consents,
         lastUpdated: emergencyInfo.updatedAt,
       });
@@ -124,9 +119,6 @@ class ConsentService {
           const emergencyInfo = emergencyInfoResult.data;
           return {
             athleteId: entry.athleteId,
-            athleteName: entry.athleteName,
-            athletePhotoUrl: entry.athletePhotoUrl,
-            parentName: entry.parentName,
             consents: emergencyInfo.consents,
             lastUpdated: emergencyInfo.updatedAt,
           };
@@ -134,9 +126,6 @@ class ConsentService {
         // Return default consents if no emergency info exists
         return {
           athleteId: entry.athleteId,
-          athleteName: entry.athleteName,
-          athletePhotoUrl: entry.athletePhotoUrl,
-          parentName: entry.parentName,
           consents: CONSENT_TYPES.map((type) => ({
             type,
             granted: false,
@@ -151,10 +140,28 @@ class ConsentService {
       // Apply filters
       if (filters?.search) {
         const search = filters.search.toLowerCase();
+        const matchingAthleteIds = new Set<string>();
+
+        await Promise.all(
+          roster.map(async (entry) => {
+            const [athleteName, parentName] = await Promise.all([
+              resolveUserName(entry.athleteId),
+              resolveUserName(entry.parentId),
+            ]);
+
+            const matches =
+              entry.athleteId.toLowerCase().includes(search) ||
+              athleteName.toLowerCase().includes(search) ||
+              parentName.toLowerCase().includes(search);
+
+            if (matches) {
+              matchingAthleteIds.add(entry.athleteId);
+            }
+          }),
+        );
+
         athleteConsents = athleteConsents.filter(
-          (ac) =>
-            ac.athleteName.toLowerCase().includes(search) ||
-            ac.parentName.toLowerCase().includes(search),
+          (ac) => matchingAthleteIds.has(ac.athleteId),
         );
       }
 

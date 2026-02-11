@@ -57,7 +57,6 @@ function createMockAnnotation(overrides = {}) {
         note: 'This is a test note',
         type: 'TECHNIQUE',
         createdBy: 'coach_1',
-        createdByName: 'Coach Smith',
         createdAt: '2026-01-10T10:00:00Z',
         ...overrides,
     };
@@ -413,11 +412,9 @@ function createMockAnnotation(overrides = {}) {
         const withOptional = createMockAnnotation({
             note: 'Optional note',
             createdBy: 'user_1',
-            createdByName: 'User Name',
         });
         node_assert_1.default.strictEqual(withOptional.note, 'Optional note');
         node_assert_1.default.strictEqual(withOptional.createdBy, 'user_1');
-        node_assert_1.default.strictEqual(withOptional.createdByName, 'User Name');
     });
     (0, node_test_1.default)('annotation without optional fields', () => {
         const minimal = {

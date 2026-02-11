@@ -134,18 +134,13 @@ export const MemberCard = memo(function MemberCard({
       <Row align="center" gap="md">
         <View style={[styles.avatar, { backgroundColor: withAlpha(palette.tint, 0.09) }]}>
           <ThemedText style={[styles.avatarText, { color: palette.tint }]}>
-            {member.athleteName.charAt(0)}
+            {(member.athleteId || 'A').charAt(0)}
           </ThemedText>
         </View>
 
         <View style={styles.memberInfo}>
-          <ThemedText type="defaultSemiBold">{member.athleteName}</ThemedText>
+          <ThemedText type="defaultSemiBold">{member.athleteId}</ThemedText>
           <Row align="center">
-            {member.athleteAge && (
-              <ThemedText style={[styles.metaText, { color: palette.muted }]}>
-                Age {member.athleteAge}
-              </ThemedText>
-            )}
             {member.position && (
               <>
                 <ThemedText style={[styles.metaDot, { color: palette.muted }]}>
@@ -168,7 +163,7 @@ export const MemberCard = memo(function MemberCard({
             )}
           </Row>
           <ThemedText style={[styles.parentText, { color: palette.muted }]}>
-            Parent: {member.parentName}
+            Parent: {member.parentId}
           </ThemedText>
         </View>
 

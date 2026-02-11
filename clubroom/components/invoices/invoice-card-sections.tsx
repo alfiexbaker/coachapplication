@@ -71,7 +71,7 @@ export const CompactInvoiceRow = memo(function CompactInvoiceRow({
         </Row>
         <Row justify="space-between" align="center">
           <ThemedText style={[styles.compactSubtext, { color: palette.muted }]} numberOfLines={1}>
-            {invoice.athleteName} - {invoice.sessionType || 'Training'}
+            {invoice.athleteId || 'Athlete'} - {invoice.sessionType || 'Training'}
           </ThemedText>
           <ThemedText style={[styles.compactDate, { color: palette.muted }]}>
             {formatShortDate(invoice.sessionDate)}

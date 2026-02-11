@@ -6,7 +6,74 @@ exports.getDayAbbrev = getDayAbbrev;
 exports.buildAvailability = buildAvailability;
 exports.formatServicePrice = formatServicePrice;
 exports.resolveCoachAndProfile = resolveCoachAndProfile;
-const mock_data_1 = require("./mock-data");
+const format_1 = require("@/utils/format");
+const BOOKING_COACH_USERS = [
+    {
+        id: 'coach1',
+        email: 'sarah.mitchell@coach.com',
+        role: 'COACH',
+        name: 'Sarah Mitchell',
+        avatar: 'SM',
+        postcode: 'SW1A 1AA',
+        dateOfBirth: '1988-03-15',
+    },
+    {
+        id: 'coach2',
+        email: 'mike.thompson@coach.com',
+        role: 'COACH',
+        name: 'Mike Thompson',
+        avatar: 'MT',
+        postcode: 'SW1A 2AA',
+        dateOfBirth: '1985-07-22',
+    },
+    {
+        id: 'coach3',
+        email: 'david.roberts@coach.com',
+        role: 'COACH',
+        name: 'David Roberts',
+        avatar: 'DR',
+        postcode: 'SW2A 1BB',
+        dateOfBirth: '1990-11-08',
+    },
+];
+const BOOKING_COACH_PROFILES = [
+    {
+        userId: 'coach1',
+        bio: 'UEFA-qualified coach focused on technical development and confidence building.',
+        qualifications: ['UEFA B Licence', 'FA Safeguarding'],
+        specialties: ['Finishing', 'First Touch', 'Game Intelligence'],
+        yearsExperience: 10,
+        sessionRate: 50,
+        availability: [],
+        rating: 4.8,
+        totalReviews: 44,
+        totalSessions: 320,
+    },
+    {
+        userId: 'coach2',
+        bio: 'Former academy coach with structured progression plans for youth players.',
+        qualifications: ['UEFA B Licence'],
+        specialties: ['Passing', 'Decision Making', 'Shooting'],
+        yearsExperience: 8,
+        sessionRate: 45,
+        availability: [],
+        rating: 4.7,
+        totalReviews: 36,
+        totalSessions: 270,
+    },
+    {
+        userId: 'coach3',
+        bio: 'Detail-oriented technical coach with a strong goalkeeper development track.',
+        qualifications: ['FA Level 3', 'Goalkeeper Specialist'],
+        specialties: ['Goalkeeping', 'Distribution', 'Positioning'],
+        yearsExperience: 7,
+        sessionRate: 48,
+        availability: [],
+        rating: 4.6,
+        totalReviews: 29,
+        totalSessions: 210,
+    },
+];
 exports.FOOTBALL_OBJECTIVES = [
     'Dribbling',
     'Passing',
@@ -147,11 +214,13 @@ function buildAvailability() {
     });
 }
 function formatServicePrice(service) {
-    const rate = (0, mock_data_1.formatGBP)(service.price);
+    const rate = (0, format_1.formatGBP)(service.price);
     return service.id !== 'team' ? `${rate}/hr` : rate;
 }
 function resolveCoachAndProfile(coachId) {
-    const coach = (0, mock_data_1.getUserById)(coachId);
-    const coachProfile = coach ? (0, mock_data_1.getCoachProfile)(coach.id) : null;
+    const coach = BOOKING_COACH_USERS.find((candidate) => candidate.id === coachId);
+    const coachProfile = coach
+        ? BOOKING_COACH_PROFILES.find((candidate) => candidate.userId === coach.id) ?? null
+        : null;
     return { coach, coachProfile };
 }

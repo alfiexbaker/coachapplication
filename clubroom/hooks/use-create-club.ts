@@ -59,7 +59,6 @@ export function useCreateClub() {
         coachCount: 1,
         squadCount: 0,
         ownerId: currentUser.id,
-        ownerName: currentUser.fullName || currentUser.username || 'Coach',
         inviteCode,
       };
 

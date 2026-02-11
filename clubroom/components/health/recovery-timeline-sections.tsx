@@ -175,9 +175,9 @@ export const TimelineItem = memo(function TimelineItem({
           )}
         </Row>
         <ThemedText style={styles.noteContent}>{note.note}</ThemedText>
-        {note.createdByName && (
+        {note.createdBy && (
           <ThemedText style={[styles.noteAuthor, { color: palette.muted }]}>
-            - {note.createdByName}
+            - {note.createdBy}
           </ThemedText>
         )}
       </View>

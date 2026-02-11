@@ -37,7 +37,7 @@ export const StaffEditModal = memo(function StaffEditModal({
 
           {member && (
             <>
-              <ThemedText style={[styles.memberName, { color: colors.muted }]}>{member.userName}</ThemedText>
+              <ThemedText style={[styles.memberName, { color: colors.muted }]}>{member.userId}</ThemedText>
               <ThemedText style={styles.label}>Change Role</ThemedText>
               <StaffRolePicker selectedRole={editRole} onSelectRole={onRoleChange} />
               <View style={styles.actions}>

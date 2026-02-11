@@ -19,11 +19,24 @@ import type {
   SquadInviteHistoryEntry,
 } from '@/constants/types';
 import { squadService } from '../squad-service';
+import { userService } from '../user-service';
 import { createLogger } from '@/utils/logger';
 
 const logger = createLogger('SquadInviteService');
 
 const USE_MOCK = api.useMock;
+
+async function resolveUserName(userId: string, fallback: string): Promise<string> {
+  const userResult = await userService.getUserById(userId);
+  if (!userResult.success) return fallback;
+  return userResult.data.name || fallback;
+}
+
+async function resolveUserEmail(userId: string): Promise<string | undefined> {
+  const userResult = await userService.getUserById(userId);
+  if (!userResult.success) return undefined;
+  return userResult.data.email || undefined;
+}
 
 // ============================================================================
 // TYPE DEFINITIONS
@@ -161,17 +174,20 @@ export const squadInviteService = {
 
     const uniqueParents = new Set(eligibleMembers.map((m) => m.parentId));
 
+    const previewMembers = await Promise.all(
+      eligibleMembers.map(async (member, index) => ({
+        athleteId: member.athleteId,
+        athleteName: await resolveUserName(member.athleteId, `Athlete ${index + 1}`),
+        parentId: member.parentId,
+        parentName: await resolveUserName(member.parentId, 'Parent'),
+      }))
+    );
+
     return {
       squadId,
       squadName: squad?.name || 'Unknown Squad',
       memberCount: eligibleMembers.length,
-      members: eligibleMembers.map((m) => ({
-        athleteId: m.athleteId,
-        athleteName: m.athleteName,
-        athleteAge: m.athleteAge,
-        parentId: m.parentId,
-        parentName: m.parentName,
-      })),
+      members: previewMembers,
       uniqueParentCount: uniqueParents.size,
     };
   },
@@ -283,21 +299,26 @@ export const squadInviteService = {
     const members = await squadService.getSquadMembers(squadId);
     const parentMap = new Map<string, { parent: { id: string; name: string; email?: string }; athletes: SquadMember[] }>();
 
-    members.forEach((member) => {
+    for (const member of members) {
       const existing = parentMap.get(member.parentId);
       if (existing) {
         existing.athletes.push(member);
       } else {
+        const [parentName, parentEmail] = await Promise.all([
+          resolveUserName(member.parentId, 'Parent'),
+          resolveUserEmail(member.parentId),
+        ]);
+
         parentMap.set(member.parentId, {
           parent: {
             id: member.parentId,
-            name: member.parentName,
-            email: member.parentEmail,
+            name: parentName,
+            email: parentEmail,
           },
           athletes: [member],
         });
       }
-    });
+    }
 
     return parentMap;
   },

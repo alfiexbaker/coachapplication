@@ -73,10 +73,10 @@ export default function PackageDetailScreen() {
             )}
             <View style={styles.mainContent}>
               <ThemedText type="title" style={styles.packageName}>{pkg.name}</ThemedText>
-              {pkg.coachName && (
+              {pkg.coachId && (
                 <Row align="center" gap="xxs">
                   <Ionicons name="person-circle-outline" size={16} color={palette.muted} />
-                  <ThemedText style={[styles.coachName, { color: palette.muted }]}>by {pkg.coachName}</ThemedText>
+                  <ThemedText style={[styles.coachName, { color: palette.muted }]}>by {pkg.coachId}</ThemedText>
                 </Row>
               )}
               <View style={styles.priceSection}>

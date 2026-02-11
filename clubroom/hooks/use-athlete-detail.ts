@@ -17,6 +17,7 @@ import { ServiceEvents } from '@/services/event-bus';
 import { ok, err, storageError, type Result, type ServiceError } from '@/types/result';
 import type { RosterEntry, FootballObjective } from '@/constants/types';
 import { createLogger } from '@/utils/logger';
+import { getRosterAthleteName } from '@/utils/roster-display';
 
 const logger = createLogger('AthleteProfile');
 
@@ -45,8 +46,9 @@ export function useAthleteDetail(athleteId: string) {
           if (!entry) {
             return err({ code: 'NOT_FOUND', message: 'Athlete not found' });
           }
+          const athleteName = getRosterAthleteName(entry);
           const [emergencyResult, childData] = await Promise.all([
-            safetyService.getAthleteEmergency(athleteId, entry.athleteName),
+            safetyService.getAthleteEmergency(athleteId, athleteName),
             childService.getChild(athleteId),
           ]);
           if (!emergencyResult.success) {
@@ -143,9 +145,10 @@ export function useAthleteDetail(athleteId: string) {
 
   const handleRemove = useCallback(() => {
     if (!data?.entry) return;
+    const athleteName = getRosterAthleteName(data.entry);
     Alert.alert(
       'Remove Athlete',
-      `Are you sure you want to remove ${data.entry.athleteName} from your roster?`,
+      `Are you sure you want to remove ${athleteName} from your roster?`,
       [
         { text: 'Cancel', style: 'cancel' },
         {

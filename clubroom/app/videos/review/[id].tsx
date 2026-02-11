@@ -61,7 +61,7 @@ export default function AthleteReviewScreen() {
         <Clickable onPress={() => router.back()} hitSlop={8}><Ionicons name="arrow-back" size={24} color={palette.text} /></Clickable>
         <View style={styles.headerCenter}>
           <ThemedText type="defaultSemiBold" numberOfLines={1}>{video.title}</ThemedText>
-          <ThemedText style={[styles.headerSubtitle, { color: palette.muted }]}>by {video.coachName}</ThemedText>
+          <ThemedText style={[styles.headerSubtitle, { color: palette.muted }]}>by {video.coachId}</ThemedText>
         </View>
         <View style={{ width: 24 }} />
       </Row>
@@ -102,10 +102,10 @@ export default function AthleteReviewScreen() {
               </Row>
               <ThemedText type="defaultSemiBold">{activeAnnotation.label}</ThemedText>
               {activeAnnotation.note && <ThemedText style={{ color: palette.muted, ...Typography.bodySmall }}>{activeAnnotation.note}</ThemedText>}
-              {activeAnnotation.createdByName && (
+              {activeAnnotation.createdBy && (
                 <Row align="center" gap="xxs" style={styles.activeFooter}>
                   <Ionicons name="person-outline" size={12} color={palette.muted} />
-                  <ThemedText style={[styles.activeCreator, { color: palette.muted }]}>{activeAnnotation.createdByName}</ThemedText>
+                  <ThemedText style={[styles.activeCreator, { color: palette.muted }]}>{activeAnnotation.createdBy}</ThemedText>
                 </Row>
               )}
             </SurfaceCard>
@@ -135,7 +135,7 @@ export default function AthleteReviewScreen() {
         {/* Video Info */}
         <SurfaceCard style={styles.infoCard}>
           <ThemedText type="defaultSemiBold">Video Details</ThemedText>
-          <Row justify="space-between" align="center"><ThemedText style={{ color: palette.muted }}>Coach</ThemedText><ThemedText>{video.coachName}</ThemedText></Row>
+          <Row justify="space-between" align="center"><ThemedText style={{ color: palette.muted }}>Coach</ThemedText><ThemedText>{video.coachId}</ThemedText></Row>
           <Row justify="space-between" align="center"><ThemedText style={{ color: palette.muted }}>Duration</ThemedText><ThemedText>{videoService.formatDuration(video.duration)}</ThemedText></Row>
           <Row justify="space-between" align="center"><ThemedText style={{ color: palette.muted }}>Uploaded</ThemedText><ThemedText>{new Date(video.createdAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}</ThemedText></Row>
           {video.description && <View style={styles.descSection}><ThemedText style={{ color: palette.muted }}>Description</ThemedText><ThemedText style={styles.descText}>{video.description}</ThemedText></View>}

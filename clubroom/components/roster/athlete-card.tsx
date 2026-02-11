@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, StyleSheet, Image } from 'react-native';
+import { View, StyleSheet } from 'react-native';
 import { Row } from '@/components/primitives/row';
 import { router } from 'expo-router';
 import { Routes } from '@/navigation/routes';
@@ -12,6 +12,7 @@ import { Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
 import type { RosterEntry } from '@/constants/types';
 import type { Booking } from '@/constants/app-types';
 import { useTheme } from '@/hooks/useTheme';
+import { getRosterAthleteName } from '@/utils/roster-display';
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -58,6 +59,7 @@ interface AthleteCardProps {
 
 function AthleteCardInner({ athlete, upcomingSession }: AthleteCardProps) {
   const { colors: palette } = useTheme();
+  const athleteName = getRosterAthleteName(athlete);
 
   const needsAttention =
     !athlete.lastSessionDate ||
@@ -75,13 +77,9 @@ function AthleteCardInner({ athlete, upcomingSession }: AthleteCardProps) {
         <Row align="center" gap="md">
           {/* Avatar */}
           <View style={[styles.avatar, { backgroundColor: withAlpha(palette.tint, 0.09) }]}>
-            {athlete.athletePhotoUrl ? (
-              <Image source={{ uri: athlete.athletePhotoUrl }} style={styles.avatarImage} />
-            ) : (
-              <ThemedText style={[styles.avatarText, { color: palette.tint }]}>
-                {getInitials(athlete.athleteName)}
-              </ThemedText>
-            )}
+            <ThemedText style={[styles.avatarText, { color: palette.tint }]}>
+              {getInitials(athleteName)}
+            </ThemedText>
             {needsAttention && (
               <View style={[styles.attentionDot, { backgroundColor: palette.warning, borderColor: palette.surface }]} />
             )}
@@ -91,7 +89,7 @@ function AthleteCardInner({ athlete, upcomingSession }: AthleteCardProps) {
           <View style={styles.athleteInfo}>
             <Row align="center" gap="sm">
               <ThemedText type="defaultSemiBold" style={styles.athleteName}>
-                {athlete.athleteName}
+                {athleteName}
               </ThemedText>
               {athlete.status !== 'ACTIVE' && (
                 <View style={[styles.statusBadge, { backgroundColor: withAlpha(palette.muted, 0.12) }]}>
@@ -166,11 +164,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     position: 'relative',
-  },
-  avatarImage: {
-    width: 52,
-    height: 52,
-    borderRadius: Radii['2xl'],
   },
   avatarText: {
     ...Typography.heading,

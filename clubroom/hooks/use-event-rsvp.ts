@@ -73,8 +73,6 @@ export function useEventRSVP(id: string | undefined) {
       await eventService.submitRSVP({
         eventId: event.id,
         userId: currentUser.id,
-        userName: currentUser.name || 'Unknown',
-        userPhotoUrl: currentUser.avatar,
         userRole: isCoach ? 'COACH' : 'PARENT',
         status: selectedStatus,
         guestCount: selectedStatus === 'GOING' ? guestCount : 0,

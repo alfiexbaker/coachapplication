@@ -18,9 +18,10 @@ export interface FeedPostProps {
 
 export function FeedPost({ post, canPin, onPinToggle }: FeedPostProps) {
   const { colors: palette } = useTheme();
+  const authorLabel = post.postAs === 'club' ? (post.clubId || 'Club') : (post.authorId || 'Coach');
   const initials = post.postAs === 'club'
     ? 'CL'
-    : (post.authorName?.slice(0, 2).toUpperCase() || 'ME');
+    : (authorLabel.slice(0, 2).toUpperCase() || 'ME');
 
   const formatDate = (dateStr: string) => {
     const date = new Date(dateStr);
@@ -52,7 +53,7 @@ export function FeedPost({ post, canPin, onPinToggle }: FeedPostProps) {
         </View>
         <View style={{ flex: 1 }}>
           <Row style={styles.authorRow}>
-            <ThemedText type="defaultSemiBold">{post.authorName}</ThemedText>
+            <ThemedText type="defaultSemiBold">{authorLabel}</ThemedText>
             {post.postAs === 'club' && (
               <View style={[styles.clubBadge, { backgroundColor: withAlpha(palette.tint, 0.09) }]}>
                 <ThemedText style={[styles.clubBadgeText, { color: palette.tint }]}>Club</ThemedText>

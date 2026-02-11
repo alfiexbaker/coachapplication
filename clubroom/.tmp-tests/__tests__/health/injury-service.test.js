@@ -66,7 +66,6 @@ const injury_service_1 = require("../../services/injury-service");
             node_assert_1.default.strictEqual(injury.status, 'ACTIVE');
             node_assert_1.default.strictEqual(injury.recoveryPercent, 0);
             node_assert_1.default.strictEqual(injury.userId, 'test_user');
-            node_assert_1.default.strictEqual(injury.userName, 'Test User');
             node_assert_1.default.strictEqual(injury.sharedWithCoach, true);
             node_assert_1.default.deepStrictEqual(injury.notes, []);
             node_assert_1.default.ok(injury.createdAt);
@@ -183,7 +182,6 @@ const injury_service_1 = require("../../services/injury-service");
             node_assert_1.default.strictEqual(newNote.injuryId, 'injury_1');
             node_assert_1.default.strictEqual(newNote.note, 'Feeling better today');
             node_assert_1.default.strictEqual(newNote.createdBy, 'user1');
-            node_assert_1.default.strictEqual(newNote.createdByName, 'Tom Henderson');
             node_assert_1.default.strictEqual(newNote.recoveryPercent, 70);
         });
         (0, node_test_1.default)('should update recovery percent when adding note with progress', async () => {

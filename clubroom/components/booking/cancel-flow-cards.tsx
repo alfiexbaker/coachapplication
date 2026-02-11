@@ -12,6 +12,7 @@ import { formatSessionDate, type ReasonOption } from '@/hooks/use-cancel-flow';
 import type { Booking } from '@/constants/app-types';
 import type { RefundCalculation } from '@/constants/types';
 import { Row } from '@/components/primitives';
+import { getBookingAthleteName } from '@/utils/booking-display';
 
 interface SessionInfoCardProps { booking: Booking; colors: Record<string, string>; scheme: 'light' | 'dark'; }
 
@@ -29,7 +30,7 @@ function SessionInfoCardInner({ booking, colors, scheme }: SessionInfoCardProps)
       </Row>
       <Row style={[styles.sessionCardDetails, { borderTopColor: colors.border }]}>
         <Row style={styles.sessionDetailItem}><Ionicons name="person-outline" size={14} color={colors.muted} /><ThemedText style={[styles.sessionDetailText, { color: colors.muted }]} numberOfLines={1}>{booking.coachName || 'Coach'}</ThemedText></Row>
-        <Row style={styles.sessionDetailItem}><Ionicons name="people-outline" size={14} color={colors.muted} /><ThemedText style={[styles.sessionDetailText, { color: colors.muted }]} numberOfLines={1}>{booking.athleteName || 'Athlete'}</ThemedText></Row>
+        <Row style={styles.sessionDetailItem}><Ionicons name="people-outline" size={14} color={colors.muted} /><ThemedText style={[styles.sessionDetailText, { color: colors.muted }]} numberOfLines={1}>{getBookingAthleteName(booking)}</ThemedText></Row>
         {booking.duration ? <Row style={styles.sessionDetailItem}><Ionicons name="time-outline" size={14} color={colors.muted} /><ThemedText style={[styles.sessionDetailText, { color: colors.muted }]}>{booking.duration} mins</ThemedText></Row> : null}
       </Row>
     </View>

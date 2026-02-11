@@ -66,7 +66,6 @@ export const walletService = {
     return {
       id: `wallet_${args[0]}`,
       userId: args[0],
-      userName: `User ${args[0]}`,
       balance: 0,
       currency: 'GBP',
       pendingBalance: 0,

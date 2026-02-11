@@ -30,7 +30,7 @@ export default function AddToSessionScreen() {
   const [sessions, setSessions] = useState<GroupSession[]>([]);
   const [loading, setLoading] = useState(true);
   const [adding, setAdding] = useState<string | null>(null);
-  const [athleteInfo, setAthleteInfo] = useState<{ parentId?: string; parentName?: string }>({});
+  const [athleteInfo, setAthleteInfo] = useState<{ parentId?: string }>({});
 
   const loadData = useCallback(async () => {
     if (!currentUser?.id) return;
@@ -48,7 +48,7 @@ export default function AddToSessionScreen() {
         const roster = await rosterService.getRoster(currentUser.id);
         const athlete = roster.find((r) => r.athleteId === athleteId);
         if (athlete) {
-          setAthleteInfo({ parentId: athlete.parentId, parentName: athlete.parentName });
+          setAthleteInfo({ parentId: athlete.parentId });
         }
       }
     } catch (error) {
@@ -70,9 +70,7 @@ export default function AddToSessionScreen() {
       await groupSessionService.register(
         session.id,
         athleteId,
-        athleteName as string,
-        athleteInfo.parentId || 'parent_unknown',
-        athleteInfo.parentName || 'Parent'
+        athleteInfo.parentId || 'parent_unknown'
       );
 
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);

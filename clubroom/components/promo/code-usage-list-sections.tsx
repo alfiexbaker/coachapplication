@@ -54,7 +54,7 @@ export const UsageItem = memo(function UsageItem({
         <View style={styles.usageRow}>
           {showUser && (
             <ThemedText style={styles.userName} numberOfLines={1}>
-              {item.userName || 'Unknown User'}
+              {item.userId || 'Unknown User'}
             </ThemedText>
           )}
           {showCode && (

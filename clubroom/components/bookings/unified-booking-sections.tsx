@@ -19,6 +19,7 @@ import type { ThemeColors } from '@/hooks/useTheme';
 import type { BookingSummary } from '@/constants/types';
 import { formatPrice } from '@/constants/styles';
 import { Row } from '@/components/primitives';
+import { getBookingSummaryClientName, getBookingSummaryCoachName } from '@/utils/booking-display';
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -68,6 +69,7 @@ export const CompactBookingCard = memo(function CompactBookingCard({
   onPress,
   palette,
 }: CompactBookingCardProps) {
+  const coachName = getBookingSummaryCoachName(booking);
   return (
     <Clickable onPress={onPress}>
       <SurfaceCard style={styles.compactCard}>
@@ -78,7 +80,7 @@ export const CompactBookingCard = memo(function CompactBookingCard({
               {booking.service}
             </ThemedText>
             <ThemedText style={[styles.compactMeta, { color: palette.muted }]} numberOfLines={1}>
-              {booking.coachName} · {day}
+              {coachName} · {day}
             </ThemedText>
             {booking.locationLabel ? (
               <Row style={styles.locationRow}>
@@ -127,6 +129,8 @@ export const DetailedBookingCard = memo(function DetailedBookingCard({
   onRatePress,
   palette,
 }: DetailedBookingCardProps) {
+  const coachName = getBookingSummaryCoachName(booking);
+  const childName = getBookingSummaryClientName(booking);
   return (
     <Clickable onPress={onPress}>
       <SurfaceCard style={styles.detailedCard}>
@@ -136,7 +140,7 @@ export const DetailedBookingCard = memo(function DetailedBookingCard({
           <View style={styles.detailedHeaderContent}>
             <ThemedText style={styles.detailedTitle}>{booking.service}</ThemedText>
             <ThemedText style={[styles.detailedSubtitle, { color: palette.muted }]}>
-              with {booking.coachName}
+              with {coachName}
             </ThemedText>
           </View>
           <View style={[styles.statusBadge, { backgroundColor: withAlpha(statusColor, 0.09) }]}>
@@ -166,7 +170,7 @@ export const DetailedBookingCard = memo(function DetailedBookingCard({
               </ThemedText>
             </Row>
           )}
-          {booking.childName && (
+          {childName && (
             <Clickable
               style={styles.metaRow}
               onPress={isCoach ? onAthletePress : undefined}
@@ -174,7 +178,7 @@ export const DetailedBookingCard = memo(function DetailedBookingCard({
             >
               <Ionicons name="person-outline" size={16} color={palette.tint} />
               <ThemedText style={[styles.metaText, { color: palette.tint }]}>
-                {booking.childName}
+                {childName}
               </ThemedText>
               {isCoach && <Ionicons name="chevron-forward" size={14} color={palette.tint} />}
             </Clickable>

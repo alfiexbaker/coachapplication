@@ -35,6 +35,7 @@ import { ServiceEvents } from '@/services/event-bus';
 import { ok, err, storageError, type Result, type ServiceError } from '@/types/result';
 import type { RosterEntry } from '@/constants/types';
 import type { Booking } from '@/constants/app-types';
+import { getRosterAthleteName, getRosterParentName } from '@/utils/roster-display';
 
 // ============================================================================
 // TYPES
@@ -112,8 +113,8 @@ export default function AthletesScreen() {
       const q = searchQuery.toLowerCase();
       filtered = filtered.filter(
         (a) =>
-          a.athleteName.toLowerCase().includes(q) ||
-          a.parentName.toLowerCase().includes(q)
+          getRosterAthleteName(a).toLowerCase().includes(q) ||
+          getRosterParentName(a).toLowerCase().includes(q)
       );
     }
 

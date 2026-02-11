@@ -28,7 +28,7 @@ export type SessionAthlete = {
 };
 
 function fallbackAthleteFromSession(session: SessionRecord): SessionAthlete {
-  const athleteName = session.athleteName?.trim() || 'Athlete';
+  const athleteName = session.athleteId?.trim() || 'Athlete';
   return {
     id: session.athleteId,
     name: athleteName,

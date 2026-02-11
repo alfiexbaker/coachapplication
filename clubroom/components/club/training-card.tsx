@@ -1,5 +1,5 @@
 import { memo } from 'react';
-import { View, StyleSheet, Image } from 'react-native';
+import { View, StyleSheet } from 'react-native';
 import { Clickable } from '@/components/primitives/clickable';
 import { router } from 'expo-router';
 import { Routes } from '@/navigation/routes';
@@ -13,6 +13,7 @@ import { Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
 import { groupSessionService } from '@/services/group-session-service';
 import type { GroupSession } from '@/constants/types';
+import { getGroupSessionCoachName, getGroupSessionSquadLabel } from '@/utils/group-display';
 
 interface TrainingCardProps {
   session: GroupSession;
@@ -22,6 +23,8 @@ interface TrainingCardProps {
 
 export const TrainingCard = memo(function TrainingCard({ session, index, userHasChildrenView }: TrainingCardProps) {
   const { colors } = useTheme();
+  const squadLabel = getGroupSessionSquadLabel(session);
+  const coachName = getGroupSessionCoachName(session);
 
   const nextDate = groupSessionService.getNextTrainingDate(session);
   const dayName = session.recurringPattern
@@ -35,9 +38,9 @@ export const TrainingCard = memo(function TrainingCard({ session, index, userHas
         <Row justify="space-between" align="flex-start">
           <View style={styles.titleSection}>
             <ThemedText type="defaultSemiBold" style={Typography.subheading}>{session.title}</ThemedText>
-            {session.squadName && (
+            {squadLabel && (
               <View style={[styles.squadBadge, { backgroundColor: withAlpha(colors.tint, 0.09) }]}>
-                <ThemedText style={[Typography.caption, { color: colors.tint }]}>{session.squadName}</ThemedText>
+                <ThemedText style={[Typography.caption, { color: colors.tint }]}>{squadLabel}</ThemedText>
               </View>
             )}
           </View>
@@ -84,15 +87,11 @@ export const TrainingCard = memo(function TrainingCard({ session, index, userHas
 
         {/* Coach */}
         <Row style={[styles.coachSection, { borderTopColor: colors.border }]}>
-          {session.coachPhotoUrl ? (
-            <Image source={{ uri: session.coachPhotoUrl }} style={styles.coachPhoto} />
-          ) : (
-            <View style={[styles.coachPhoto, { backgroundColor: colors.border, alignItems: 'center', justifyContent: 'center' }]}>
-              <Ionicons name="person" size={14} color={colors.muted} />
-            </View>
-          )}
+          <View style={[styles.coachPhoto, { backgroundColor: colors.border, alignItems: 'center', justifyContent: 'center' }]}>
+            <Ionicons name="person" size={14} color={colors.muted} />
+          </View>
           <ThemedText style={[Typography.small, { color: colors.muted, flex: 1 }]}>
-            Coach {session.coachName}
+            Coach {coachName}
           </ThemedText>
           {userHasChildrenView && (
             <Clickable style={[styles.rsvpButton, { backgroundColor: colors.tint }]}>

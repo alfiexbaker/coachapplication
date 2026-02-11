@@ -159,7 +159,6 @@ const legacyCommunityService = {
                 node_assert_1.default.strictEqual(group.name, 'Test Group');
                 node_assert_1.default.strictEqual(group.type, 'GENERAL');
                 node_assert_1.default.strictEqual(group.createdById, 'test_parent');
-                node_assert_1.default.strictEqual(group.createdByName, 'Test Parent');
                 node_assert_1.default.strictEqual(group.isPublic, false);
                 node_assert_1.default.ok(group.createdAt);
                 node_assert_1.default.ok(group.updatedAt);
@@ -338,7 +337,6 @@ const legacyCommunityService = {
                 node_assert_1.default.ok(message.id.startsWith('gmsg_'));
                 node_assert_1.default.strictEqual(message.groupId, group.id);
                 node_assert_1.default.strictEqual(message.senderId, 'parent1');
-                node_assert_1.default.strictEqual(message.senderName, 'John Henderson');
                 node_assert_1.default.strictEqual(message.body, 'Hello, world!');
                 node_assert_1.default.strictEqual(message.status, 'sent');
                 node_assert_1.default.ok(message.createdAt);
@@ -412,8 +410,6 @@ const legacyCommunityService = {
                 const offer = await legacyCommunityService.createCarpoolOffer(params);
                 node_assert_1.default.ok(offer.id.startsWith('carpool_'));
                 node_assert_1.default.strictEqual(offer.parentId, 'test_parent');
-                node_assert_1.default.strictEqual(offer.parentName, 'Test Parent');
-                node_assert_1.default.strictEqual(offer.sessionName, 'Test Training');
                 node_assert_1.default.strictEqual(offer.sessionDate, '2026-02-15');
                 node_assert_1.default.strictEqual(offer.seatsAvailable, 3);
                 node_assert_1.default.strictEqual(offer.seatsTaken, 0);
@@ -474,7 +470,6 @@ const legacyCommunityService = {
                 node_assert_1.default.ok(request.id.startsWith('req_'));
                 node_assert_1.default.strictEqual(request.offerId, offer.id);
                 node_assert_1.default.strictEqual(request.parentId, 'requester_parent');
-                node_assert_1.default.strictEqual(request.parentName, 'Requester Parent');
                 node_assert_1.default.strictEqual(request.seatsRequested, 1);
                 node_assert_1.default.strictEqual(request.message, 'Would like to join!');
                 node_assert_1.default.strictEqual(request.status, 'PENDING');

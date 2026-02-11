@@ -22,12 +22,8 @@ import type {
 // Test data
 const mockCreateParams: CreateRecurringBookingParams = {
   userId: 'test_user_1',
-  userName: 'Test User',
   coachId: 'test_coach_1',
-  coachName: 'Test Coach',
-  coachPhotoUrl: 'https://example.com/photo.jpg',
   athleteId: 'test_athlete_1',
-  athleteName: 'Test Athlete',
   dayOfWeek: 2, // Tuesday
   time: '14:00',
   duration: 60,
@@ -96,7 +92,6 @@ test('list returns all recurring bookings', async () => {
   await recurringBookingService.createRecurring({
     ...mockCreateParams,
     userId: 'test_user_2',
-    userName: 'Test User 2',
   });
 
   const bookings = await recurringBookingService.list();
@@ -132,7 +127,6 @@ test('getUserRecurringBookings returns bookings for specific user', async () => 
   await recurringBookingService.createRecurring({
     ...mockCreateParams,
     userId: 'test_user_2',
-    userName: 'Test User 2',
   });
 
   const userBookings = await recurringBookingService.getUserRecurringBookings('test_user_1');
@@ -150,7 +144,6 @@ test('getCoachRecurringBookings returns bookings for specific coach', async () =
     ...mockCreateParams,
     userId: 'test_user_2',
     coachId: 'test_coach_2',
-    coachName: 'Test Coach 2',
   });
 
   const coachBookings = await recurringBookingService.getCoachRecurringBookings('test_coach_1');

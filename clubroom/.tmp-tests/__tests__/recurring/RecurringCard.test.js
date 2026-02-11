@@ -24,12 +24,8 @@ function createMockRecurring(overrides) {
     return {
         id: 'recurring_test_1',
         userId: 'user_1',
-        userName: 'Test User',
         coachId: 'coach_1',
-        coachName: 'Test Coach',
-        coachPhotoUrl: 'https://example.com/photo.jpg',
         athleteId: 'athlete_1',
-        athleteName: 'Test Athlete',
         dayOfWeek: 2,
         time: '14:00',
         duration: 60,
@@ -103,9 +99,9 @@ function createMockRecurring(overrides) {
 // ============================================================================
 // Data Display Tests
 // ============================================================================
-(0, node_test_1.default)('RecurringCard - displays coach name correctly', () => {
-    const recurring = createMockRecurring({ coachName: 'Sarah Mitchell' });
-    node_assert_1.default.strictEqual(recurring.coachName, 'Sarah Mitchell');
+(0, node_test_1.default)('RecurringCard - displays coach id correctly', () => {
+    const recurring = createMockRecurring({ coachId: 'coach_sarah' });
+    node_assert_1.default.strictEqual(recurring.coachId, 'coach_sarah');
 });
 (0, node_test_1.default)('RecurringCard - displays frequency label correctly', () => {
     const frequencies = ['WEEKLY', 'BIWEEKLY', 'MONTHLY'];
@@ -130,21 +126,21 @@ function createMockRecurring(overrides) {
         node_assert_1.default.strictEqual((0, recurring_booking_service_1.getStatusLabel)(recurring.status), expectedLabels[index]);
     });
 });
-(0, node_test_1.default)('RecurringCard - shows athlete name when different from user', () => {
+(0, node_test_1.default)('RecurringCard - shows athlete badge when athlete differs from user', () => {
     const recurring = createMockRecurring({
-        userName: 'Parent User',
-        athleteName: 'Child Athlete',
+        userId: 'parent_user',
+        athleteId: 'child_athlete',
     });
-    // The component should show the athlete badge when athleteName differs from userName
-    const shouldShowAthleteBadge = recurring.athleteName && recurring.athleteName !== recurring.userName;
+    // The component should show the athlete badge when athleteId differs from userId
+    const shouldShowAthleteBadge = recurring.athleteId && recurring.athleteId !== recurring.userId;
     node_assert_1.default.strictEqual(shouldShowAthleteBadge, true);
 });
-(0, node_test_1.default)('RecurringCard - hides athlete badge when names are the same', () => {
+(0, node_test_1.default)('RecurringCard - hides athlete badge when IDs are the same', () => {
     const recurring = createMockRecurring({
-        userName: 'Same User',
-        athleteName: 'Same User',
+        userId: 'same_user',
+        athleteId: 'same_user',
     });
-    const shouldShowAthleteBadge = recurring.athleteName && recurring.athleteName !== recurring.userName;
+    const shouldShowAthleteBadge = recurring.athleteId && recurring.athleteId !== recurring.userId;
     node_assert_1.default.strictEqual(shouldShowAthleteBadge, false);
 });
 // ============================================================================
@@ -235,9 +231,7 @@ function createMockRecurring(overrides) {
 // ============================================================================
 (0, node_test_1.default)('RecurringCard - handles missing optional fields', () => {
     const recurring = createMockRecurring({
-        coachPhotoUrl: undefined,
         athleteId: undefined,
-        athleteName: undefined,
         pricePerSession: undefined,
         notes: undefined,
         sessionsRemaining: undefined,
@@ -247,7 +241,6 @@ function createMockRecurring(overrides) {
         cancellationReason: undefined,
     });
     // Component should not crash with missing optional fields
-    node_assert_1.default.strictEqual(recurring.coachPhotoUrl, undefined);
     node_assert_1.default.strictEqual(recurring.athleteId, undefined);
     node_assert_1.default.strictEqual(recurring.pricePerSession, undefined);
 });

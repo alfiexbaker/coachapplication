@@ -122,7 +122,6 @@ const MOCK_PROMO_USAGE: PromoCodeUsage[] = [
     codeId: 'promo_welcome25',
     code: 'WELCOME25',
     userId: 'parent1',
-    userName: 'John Henderson',
     creditAmount: 25.0,
     usedAt: '2024-06-15T10:10:00.000Z',
     transactionId: 'txn_p1_8',
@@ -132,7 +131,6 @@ const MOCK_PROMO_USAGE: PromoCodeUsage[] = [
     codeId: 'promo_summer50',
     code: 'SUMMER50',
     userId: 'parent2',
-    userName: 'Lisa Wilson',
     creditAmount: 50.0,
     usedAt: '2024-07-01T14:30:00.000Z',
     transactionId: 'txn_p2_promo1',
@@ -142,7 +140,6 @@ const MOCK_PROMO_USAGE: PromoCodeUsage[] = [
     codeId: 'promo_vip10',
     code: 'VIP10',
     userId: 'parent1',
-    userName: 'John Henderson',
     creditAmount: 10.0,
     usedAt: '2024-09-10T09:00:00.000Z',
     transactionId: 'txn_p1_promo2',
@@ -374,7 +371,7 @@ async function validateCode(
 async function redeemCode(
   userId: string,
   code: string,
-  userName?: string
+  _userName?: string
 ): Promise<PromoCodeRedemptionResult> {
   // Validate the code first
   const validation = await validateCode(code, userId);
@@ -406,7 +403,6 @@ async function redeemCode(
       codeId: promoCode.id,
       code: promoCode.code,
       userId,
-      userName,
       creditAmount: promoCode.creditAmount,
       usedAt: now,
       transactionId: walletResult.transaction?.id,

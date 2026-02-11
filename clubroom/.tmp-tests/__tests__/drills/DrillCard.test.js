@@ -48,7 +48,6 @@ function createMockDrill(overrides) {
     return {
         id: 'test_drill',
         coachId: 'coach1',
-        coachName: 'Coach Mike',
         title: 'Test Drill',
         description: 'Test description for the drill',
         category: 'TECHNIQUE',
@@ -129,9 +128,9 @@ function createMockDrill(overrides) {
         });
     });
     (0, node_test_1.describe)('Display Properties', () => {
-        (0, node_test_1.default)('should have coach name for display', () => {
-            const drill = createMockDrill({ coachName: 'Coach Sarah' });
-            node_assert_1.default.strictEqual(drill.coachName, 'Coach Sarah');
+        (0, node_test_1.default)('should have coach ID for display fallback', () => {
+            const drill = createMockDrill({ coachId: 'coach_sarah' });
+            node_assert_1.default.strictEqual(drill.coachId, 'coach_sarah');
         });
         (0, node_test_1.default)('should truncate long descriptions appropriately', () => {
             const longDescription = 'A'.repeat(500);

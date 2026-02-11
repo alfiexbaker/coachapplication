@@ -78,7 +78,7 @@ export function useFamilySpending() {
   const recentTransactions = spending
     .flatMap((s) =>
       (s.monthlyBreakdown || []).slice(0, 1).map((mb) => ({
-        childName: s.childName,
+        childName: s.childId,
         colorCode: s.colorCode,
         month: mb.month,
         amount: mb.amount,

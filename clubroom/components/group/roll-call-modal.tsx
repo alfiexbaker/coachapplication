@@ -10,6 +10,7 @@ import { Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
 import type { ThemeColors } from '@/hooks/useTheme';
 import type { GroupRegistration } from '@/constants/types';
 import type { AttendanceStatus } from '@/hooks/use-group-roster';
+import { getGroupRegistrationAthleteName, getGroupRegistrationParentName } from '@/utils/group-display';
 
 export interface RollCallModalProps {
   visible: boolean;
@@ -66,17 +67,19 @@ export const RollCallModal = memo(function RollCallModal({
         <ScrollView style={{ flex: 1, paddingHorizontal: Spacing.lg }} showsVerticalScrollIndicator={false}>
           {participants.map((reg, i) => {
             const status = attendance[reg.id] || 'unmarked';
+            const athleteName = getGroupRegistrationAthleteName(reg);
+            const parentName = getGroupRegistrationParentName(reg);
             return (
               <Animated.View key={reg.id} entering={FadeInDown.delay(i * 30).springify()} style={[styles.item, { backgroundColor: colors.surface }]}>
                 <Row gap="md" align="center" style={{ marginBottom: Spacing.sm }}>
                   <View style={[styles.avatar, { backgroundColor: withAlpha(colors.tint, 0.12) }]}>
                     <ThemedText style={[Typography.bodySmallSemiBold, { color: colors.tint }]}>
-                      {reg.athleteName.split(' ').map(n => n[0]).join('')}
+                      {athleteName.split(' ').map((n: string) => n[0]).join('')}
                     </ThemedText>
                   </View>
                   <View style={{ flex: 1 }}>
-                    <ThemedText type="defaultSemiBold">{reg.athleteName}</ThemedText>
-                    {reg.parentName && <ThemedText style={[Typography.caption, { color: colors.muted }]}>Parent: {reg.parentName}</ThemedText>}
+                    <ThemedText type="defaultSemiBold">{athleteName}</ThemedText>
+                    {parentName && <ThemedText style={[Typography.caption, { color: colors.muted }]}>Parent: {parentName}</ThemedText>}
                   </View>
                 </Row>
                 <Row gap="sm" justify="flex-end">

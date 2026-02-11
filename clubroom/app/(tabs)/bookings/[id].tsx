@@ -23,11 +23,14 @@ import { Row } from '@/components/primitives/row';
 import { Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
 import { useBookingDetail } from '@/hooks/use-booking-detail';
+import { getBookingSummaryClientName, getBookingSummaryCoachName } from '@/utils/booking-display';
 
 export default function SessionDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const { colors: palette } = useTheme();
   const { booking, status, isCoach, sessionNote, handlers, formatted } = useBookingDetail(id);
+  const coachName = booking ? getBookingSummaryCoachName(booking) : 'Coach';
+  const childName = booking ? getBookingSummaryClientName(booking) : 'Athlete';
 
   const handleGoBack = useCallback(() => router.back(), []);
 
@@ -68,12 +71,12 @@ export default function SessionDetailScreen() {
         <DateTimeCard weekday={formatted.weekday} dateStr={formatted.dateStr} time={formatted.time} />
         <LocationCard locationLabel={booking.locationLabel} />
         <PaymentCard />
-        <BookingCoachCard coachName={booking.coachName} coachPhotoUrl={formatted.coachPhotoUrl} />
+        <BookingCoachCard coachName={coachName} coachPhotoUrl={formatted.coachPhotoUrl} />
 
         {/* Athlete Card (coach view, 1-on-1 sessions) */}
-        {!booking.isGroupSession && booking.childName && booking.clientId && isCoach && (
+        {!booking.isGroupSession && booking.clientId && isCoach && (
           <BookingAthleteCard
-            childName={booking.childName}
+            childName={childName}
             clientId={booking.clientId}
             clientPhotoUrl={booking.client?.photoUrl || 'https://i.pravatar.cc/100'}
           />

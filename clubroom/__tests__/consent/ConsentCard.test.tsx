@@ -16,9 +16,6 @@ const createMockConsent = (
   overrides: Partial<AthleteConsent> = {}
 ): AthleteConsent => ({
   athleteId: 'test_athlete',
-  athleteName: 'Test Athlete',
-  athletePhotoUrl: 'https://example.com/photo.jpg',
-  parentName: 'Test Parent',
   consents: [
     { type: 'PHOTO', granted: true, grantedBy: 'Test Parent', grantedAt: '2024-01-15T10:00:00Z' },
     { type: 'VIDEO', granted: true, grantedBy: 'Test Parent', grantedAt: '2024-01-15T10:00:00Z' },
@@ -224,24 +221,19 @@ describe('ConsentCard', () => {
   });
 
   describe('Athlete Data Display', () => {
-    test('should have athlete name available', () => {
+    test('should have athlete id available', () => {
       const athleteConsent = createMockConsent();
-      assert.strictEqual(athleteConsent.athleteName, 'Test Athlete');
+      assert.strictEqual(athleteConsent.athleteId, 'test_athlete');
     });
 
-    test('should have parent name available', () => {
+    test('should have last updated timestamp', () => {
       const athleteConsent = createMockConsent();
-      assert.strictEqual(athleteConsent.parentName, 'Test Parent');
+      assert.ok(athleteConsent.lastUpdated);
     });
 
-    test('should handle missing photo URL', () => {
-      const athleteConsent = createMockConsent({ athletePhotoUrl: undefined });
-      assert.strictEqual(athleteConsent.athletePhotoUrl, undefined);
-    });
-
-    test('should generate initials from name', () => {
+    test('should generate initials from athlete id', () => {
       const athleteConsent = createMockConsent();
-      const initials = athleteConsent.athleteName.slice(0, 2).toUpperCase();
+      const initials = athleteConsent.athleteId.slice(0, 2).toUpperCase();
       assert.strictEqual(initials, 'TE');
     });
   });

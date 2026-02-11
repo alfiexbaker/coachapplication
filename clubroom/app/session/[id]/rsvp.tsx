@@ -24,6 +24,7 @@ import { useTheme } from '@/hooks/useTheme';
 import { RSVPFlow } from '@/components/session/rsvp-flow';
 import { rsvpService } from '@/services/rsvp-service';
 import type { SessionRsvp } from '@/constants/types';
+import { getSessionRsvpChildName } from '@/utils/session-rsvp-display';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -117,7 +118,7 @@ export default function RSVPScreen() {
 
       Alert.alert(
         'Response Recorded',
-        `You've confirmed ${rsvp.childName || 'your child'} is ${statusLabels[status]}.`,
+        `You've confirmed ${getSessionRsvpChildName(rsvp)} is ${statusLabels[status]}.`,
         [
           {
             text: 'Done',
@@ -165,19 +166,19 @@ export default function RSVPScreen() {
         icon: 'checkmark-circle' as const,
         color: colors.success,
         label: 'Going',
-        message: `${rsvp.childName || 'Your child'} is confirmed for this session.`,
+        message: `${getSessionRsvpChildName(rsvp)} is confirmed for this session.`,
       },
       not_going: {
         icon: 'close-circle' as const,
         color: colors.error,
         label: 'Not Going',
-        message: `${rsvp.childName || 'Your child'} will not attend this session.`,
+        message: `${getSessionRsvpChildName(rsvp)} will not attend this session.`,
       },
       maybe: {
         icon: 'help-circle' as const,
         color: colors.warning,
         label: 'Maybe',
-        message: `You've marked ${rsvp.childName || 'your child'} as maybe for this session.`,
+        message: `You've marked ${getSessionRsvpChildName(rsvp)} as maybe for this session.`,
       },
     };
 
@@ -212,7 +213,7 @@ export default function RSVPScreen() {
           sessionTitle={sessionInfo.title}
           sessionDate={sessionInfo.scheduledAt}
           location={sessionInfo.location}
-          childName={rsvp.childName || 'Your Child'}
+          childName={getSessionRsvpChildName(rsvp)}
           rsvpId={rsvp.id}
           onRespond={handleRespond}
         />

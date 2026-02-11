@@ -24,6 +24,7 @@ import { apiClient } from './api-client';
 import type { Follow, FollowRequest, NotificationItem } from '@/constants/types';
 import { notificationService } from './notification-service';
 import { coachService, type Coach } from './coach-service';
+import { userService } from './user-service';
 import { createLogger } from '@/utils/logger';
 import type { Result, ServiceError } from '@/types/result';
 import { ok, err, storageError } from '@/types/result';
@@ -37,10 +38,8 @@ const MOCK_FOLLOWS: Follow[] = [
   {
     id: 'follow_1',
     followerId: 'parent1',
-    followerName: 'John Henderson',
     followerType: 'USER',
     followingId: 'coach1',
-    followingName: 'Sarah Mitchell',
     followingType: 'COACH',
     createdAt: '2025-12-01T10:00:00Z',
     notifyOnPost: true,
@@ -49,10 +48,8 @@ const MOCK_FOLLOWS: Follow[] = [
   {
     id: 'follow_2',
     followerId: 'parent1',
-    followerName: 'John Henderson',
     followerType: 'USER',
     followingId: 'coach2',
-    followingName: 'Mike Thompson',
     followingType: 'COACH',
     createdAt: '2025-12-05T14:30:00Z',
     notifyOnPost: true,
@@ -61,10 +58,8 @@ const MOCK_FOLLOWS: Follow[] = [
   {
     id: 'follow_3',
     followerId: 'user1',
-    followerName: 'Tom Henderson',
     followerType: 'USER',
     followingId: 'coach1',
-    followingName: 'Sarah Mitchell',
     followingType: 'COACH',
     createdAt: '2025-12-10T09:00:00Z',
     notifyOnPost: true,
@@ -74,6 +69,15 @@ const MOCK_FOLLOWS: Follow[] = [
 
 let followsCache: Follow[] = [...MOCK_FOLLOWS];
 let requestsCache: FollowRequest[] = [];
+
+async function resolveUserName(userId: string, fallback: string): Promise<string> {
+  const userResult = await userService.getUserById(userId);
+  if (!userResult.success) {
+    return fallback;
+  }
+
+  return userResult.data.name?.trim() || fallback;
+}
 
 async function loadFollows(): Promise<Follow[]> {
   try {
@@ -121,13 +125,11 @@ async function saveRequests(requests: FollowRequest[]): Promise<Result<void, Ser
 
 export interface FollowInput {
   followerId: string;
-  followerName: string;
+  followerName?: string;
   followerType: 'USER' | 'COACH';
-  followerAvatar?: string;
   followingId: string;
-  followingName: string;
+  followingName?: string;
   followingType: 'USER' | 'COACH';
-  followingAvatar?: string;
   notifyOnPost?: boolean;
   notifyOnSession?: boolean;
 }
@@ -153,13 +155,9 @@ export const followService = {
     const newFollow: Follow = {
       id: apiClient.generateId('follow'),
       followerId: input.followerId,
-      followerName: input.followerName,
       followerType: input.followerType,
-      followerAvatar: input.followerAvatar,
       followingId: input.followingId,
-      followingName: input.followingName,
       followingType: input.followingType,
-      followingAvatar: input.followingAvatar,
       createdAt: new Date().toISOString(),
       notifyOnPost: input.notifyOnPost ?? true,
       notifyOnSession: input.notifyOnSession ?? true,
@@ -173,7 +171,7 @@ export const followService = {
       id: apiClient.generateId('notif_follow'),
       type: 'badge', // Using badge type for follow notifications
       title: 'New Follower',
-      body: `${input.followerName} started following you`,
+      body: `${input.followerName || 'Someone'} started following you`,
       timeLabel: 'Just now',
       read: false,
     };
@@ -322,7 +320,6 @@ export const followService = {
   async sendFollowRequest(input: {
     requesterId: string;
     requesterName: string;
-    requesterAvatar?: string;
     targetId: string;
     targetName: string;
     message?: string;
@@ -341,10 +338,7 @@ export const followService = {
     const request: FollowRequest = {
       id: apiClient.generateId('request'),
       requesterId: input.requesterId,
-      requesterName: input.requesterName,
-      requesterAvatar: input.requesterAvatar,
       targetId: input.targetId,
-      targetName: input.targetName,
       message: input.message,
       status: 'PENDING',
       createdAt: new Date().toISOString(),
@@ -397,13 +391,17 @@ export const followService = {
 
     // If accepted, create the follow relationship
     if (response === 'ACCEPTED') {
+      const [requesterName, targetName] = await Promise.all([
+        resolveUserName(request.requesterId, 'User'),
+        resolveUserName(request.targetId, 'Coach'),
+      ]);
+
       await this.follow({
         followerId: request.requesterId,
-        followerName: request.requesterName,
+        followerName: requesterName,
         followerType: 'USER',
-        followerAvatar: request.requesterAvatar,
         followingId: request.targetId,
-        followingName: request.targetName,
+        followingName: targetName,
         followingType: 'COACH',
       });
 
@@ -412,7 +410,7 @@ export const followService = {
         id: apiClient.generateId('notif_accepted'),
         type: 'badge',
         title: 'Follow Request Accepted',
-        body: `${request.targetName} accepted your follow request`,
+        body: `${targetName} accepted your follow request`,
         timeLabel: 'Just now',
         read: false,
       });

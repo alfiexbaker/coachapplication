@@ -13,6 +13,7 @@ import { ThemedText } from '@/components/themed-text';
 import { Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
 import type { SessionInvite, TimeSlot } from '@/constants/types';
+import { getSessionInviteAthleteNames, getSessionInviteCoachName } from '@/utils/session-invite-display';
 import { DeclineReasonSheet, type DeclineReasonResult } from './decline-reason-sheet';
 import { MultiWeekInviteCard } from './multi-week-invite-card';
 import { getStatusColors } from './session-invite-helpers';
@@ -47,18 +48,20 @@ function SessionInviteCardComponent({
   const status = isExpired && invite.status === 'PENDING' ? 'EXPIRED' : invite.status;
   const statusConfig = statusColors[status] || statusColors.PENDING;
   const canRespond = status === 'PENDING';
+  const coachName = getSessionInviteCoachName(invite);
+  const athleteNames = getSessionInviteAthleteNames(invite);
 
   const firstSlot = invite.proposedSlots[0];
   const slotDate = firstSlot ? new Date(firstSlot.date).toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' }) : '';
-  const initials = invite.coachName.split(' ').map((n) => n[0]).join('');
+  const initials = coachName.split(' ').map((n) => n[0]).join('');
 
   // Delegate to MultiWeekInviteCard for recurring
   if (invite.isRecurring && invite.weekSlots && invite.weekSlots.length > 0 && canRespond) {
     return <MultiWeekInviteCard invite={invite} onResponded={() => onAccept?.()} />;
   }
 
-  const coachFirstName = invite.coachName.split(' ')[0];
-  const athleteDisplay = invite.athleteNames.length === 1 ? invite.athleteNames[0] : `${invite.athleteNames.length} athletes`;
+  const coachFirstName = coachName.split(' ')[0];
+  const athleteDisplay = athleteNames.length === 1 ? athleteNames[0] : `${athleteNames.length} athletes`;
   const invitationMessage = invite.clubName
     ? `Coach ${coachFirstName} has invited ${athleteDisplay} to ${invite.clubName}`
     : `Coach ${coachFirstName} has invited ${athleteDisplay} to a ${invite.sessionType.toLowerCase()}`;
@@ -70,7 +73,7 @@ function SessionInviteCardComponent({
 
   if (compact) {
     return (
-      <SurfaceCard style={styles.compactCard} onPress={onPress} accessibilityLabel={`Session invite from ${invite.coachName}`}>
+      <SurfaceCard style={styles.compactCard} onPress={onPress} accessibilityLabel={`Session invite from ${coachName}`}>
         <Row align="center" gap="md">
           <Row align="center" justify="center" style={[styles.compactAvatar, { backgroundColor: withAlpha(palette.tint, 0.06) }]}>
             <ThemedText style={[styles.compactAvatarText, { color: palette.tint }]}>{initials}</ThemedText>
@@ -88,7 +91,7 @@ function SessionInviteCardComponent({
   }
 
   return (
-    <SurfaceCard style={styles.card} onPress={onPress} accessibilityLabel={`Session invite from ${invite.coachName}`}>
+    <SurfaceCard style={styles.card} onPress={onPress} accessibilityLabel={`Session invite from ${coachName}`}>
       {invite.coverImageUrl && <CoverImageHero imageUrl={invite.coverImageUrl} sessionType={invite.sessionType} height={140} />}
       <InvitationBanner message={invitationMessage} />
 
@@ -98,7 +101,7 @@ function SessionInviteCardComponent({
           <ThemedText style={[styles.avatarText, { color: palette.tint }]}>{initials}</ThemedText>
         </Row>
         <View style={styles.headerContent}>
-          <ThemedText type="defaultSemiBold" style={styles.coachName}>Coach {invite.coachName}</ThemedText>
+          <ThemedText type="defaultSemiBold" style={styles.coachName}>Coach {coachName}</ThemedText>
           {invite.clubName && <ThemedText style={[styles.clubName, { color: palette.tint }]}>{invite.clubName}</ThemedText>}
           <ThemedText style={[styles.sessionType, { color: palette.muted }]}>{invite.sessionType} - {invite.focus}</ThemedText>
         </View>
@@ -111,7 +114,7 @@ function SessionInviteCardComponent({
 
       <Row align="center" gap="xs">
         <Ionicons name="person-outline" size={16} color={palette.muted} />
-        <ThemedText style={[styles.athletes, { color: palette.text }]}>For: {invite.athleteNames.join(', ')}</ThemedText>
+        <ThemedText style={[styles.athletes, { color: palette.text }]}>For: {athleteNames.join(', ')}</ThemedText>
       </Row>
 
       {invite.rsvpCounts && invite.rsvpCounts.going > 0 && (
@@ -138,7 +141,7 @@ function SessionInviteCardComponent({
       {canRespond && <ExpiryWarning expiresAt={invite.expiresAt} />}
 
       <DeclineReasonSheet visible={showDeclineSheet} onClose={() => setShowDeclineSheet(false)}
-        onSubmit={(result) => { setShowDeclineSheet(false); onDecline?.(result); }} athleteName={invite.athleteNames[0]} />
+        onSubmit={(result) => { setShowDeclineSheet(false); onDecline?.(result); }} athleteName={athleteNames[0]} />
     </SurfaceCard>
   );
 }

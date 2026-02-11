@@ -11,6 +11,7 @@ import { useTheme } from '@/hooks/useTheme';
 import type { CarpoolOffer } from '@/constants/types';
 import { scaleFont } from '@/utils/scale';
 import { Row } from '@/components/primitives';
+import { getCarpoolSessionLabel } from '@/utils/carpool-display';
 
 interface CarpoolRequestModalProps {
   visible: boolean;
@@ -40,7 +41,7 @@ export const CarpoolRequestModal = memo(function CarpoolRequestModal({
           <ScrollView contentContainerStyle={styles.formContent} showsVerticalScrollIndicator={false}>
             {offer && (
               <SurfaceCard style={styles.offerSummary}>
-                <ThemedText type="defaultSemiBold">{offer.sessionName}</ThemedText>
+                <ThemedText type="defaultSemiBold">{getCarpoolSessionLabel(offer)}</ThemedText>
                 <ThemedText style={{ color: palette.muted }}>{offer.sessionDate} at {offer.pickupTime}</ThemedText>
                 <ThemedText style={{ color: palette.muted }}>From: {offer.pickupLocation}</ThemedText>
               </SurfaceCard>

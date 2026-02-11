@@ -9,6 +9,7 @@ import { Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
 import { matchService } from '@/services/match-service';
 import type { Match } from '@/constants/types';
+import { getMatchSquadLabel } from '@/utils/match-display';
 
 interface MatchHeaderCardProps {
   match: Match;
@@ -17,6 +18,7 @@ interface MatchHeaderCardProps {
 
 export const MatchHeaderCard = memo(function MatchHeaderCard({ match, isUpcoming }: MatchHeaderCardProps) {
   const { colors } = useTheme();
+  const squadLabel = getMatchSquadLabel(match);
   const typeColor = matchService.getMatchTypeColor(match.matchType);
   const statusColor = matchService.getStatusColor(match.status);
   const matchDate = new Date(match.date);
@@ -73,10 +75,10 @@ export const MatchHeaderCard = memo(function MatchHeaderCard({ match, isUpcoming
             {match.address && <ThemedText style={[Typography.small, { color: colors.muted, marginTop: Spacing.micro }]}>{match.address}</ThemedText>}
           </View>
         </Row>
-        {match.squadName && (
+        {squadLabel && (
           <Row gap="sm" align="flex-start">
             <Ionicons name="people" size={20} color={colors.tint} />
-            <ThemedText style={[Typography.bodySmall, { flex: 1 }]}>{match.squadName}</ThemedText>
+            <ThemedText style={[Typography.bodySmall, { flex: 1 }]}>{squadLabel}</ThemedText>
           </Row>
         )}
       </View>

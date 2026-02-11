@@ -36,10 +36,11 @@ export const ReferralHistoryItemInner = memo(function ReferralHistoryItemInner({
 }: ReferralHistoryItemInnerProps) {
   const { label: statusLabel, color: statusColor } = referralService.getStatusInfo(referral.status);
   const formattedDate = referralService.formatDate(referral.createdAt);
+  const refereeLabel = referral.refereeId || 'User';
 
-  const initials = referral.refereeName
+  const initials = refereeLabel
     .split(' ')
-    .map((n) => n[0])
+    .map((n: string) => n[0])
     .join('')
     .toUpperCase()
     .slice(0, 2);
@@ -60,7 +61,7 @@ export const ReferralHistoryItemInner = memo(function ReferralHistoryItemInner({
         <View style={styles.itemDetails}>
           <Row align="center" justify="space-between" gap="xs">
             <ThemedText type="defaultSemiBold" style={styles.itemName} numberOfLines={1}>
-              {referral.refereeName}
+              {refereeLabel}
             </ThemedText>
             <View style={[styles.statusBadge, { backgroundColor: withAlpha(statusColor, 0.12) }]}>
               <ThemedText style={[styles.statusText, { color: statusColor }]}>

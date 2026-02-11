@@ -155,7 +155,6 @@ describe('Community Service', () => {
         assert.strictEqual(group.name, 'Test Group');
         assert.strictEqual(group.type, 'GENERAL');
         assert.strictEqual(group.createdById, 'test_parent');
-        assert.strictEqual(group.createdByName, 'Test Parent');
         assert.strictEqual(group.isPublic, false);
         assert.ok(group.createdAt);
         assert.ok(group.updatedAt);
@@ -378,7 +377,6 @@ describe('Community Service', () => {
         assert.ok(message.id.startsWith('gmsg_'));
         assert.strictEqual(message.groupId, group.id);
         assert.strictEqual(message.senderId, 'parent1');
-        assert.strictEqual(message.senderName, 'John Henderson');
         assert.strictEqual(message.body, 'Hello, world!');
         assert.strictEqual(message.status, 'sent');
         assert.ok(message.createdAt);
@@ -473,8 +471,6 @@ describe('Community Service', () => {
 
         assert.ok(offer.id.startsWith('carpool_'));
         assert.strictEqual(offer.parentId, 'test_parent');
-        assert.strictEqual(offer.parentName, 'Test Parent');
-        assert.strictEqual(offer.sessionName, 'Test Training');
         assert.strictEqual(offer.sessionDate, '2026-02-15');
         assert.strictEqual(offer.seatsAvailable, 3);
         assert.strictEqual(offer.seatsTaken, 0);
@@ -543,7 +539,6 @@ describe('Community Service', () => {
         assert.ok(request.id.startsWith('req_'));
         assert.strictEqual(request.offerId, offer.id);
         assert.strictEqual(request.parentId, 'requester_parent');
-        assert.strictEqual(request.parentName, 'Requester Parent');
         assert.strictEqual(request.seatsRequested, 1);
         assert.strictEqual(request.message, 'Would like to join!');
         assert.strictEqual(request.status, 'PENDING');

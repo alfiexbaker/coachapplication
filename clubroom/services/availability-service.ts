@@ -23,6 +23,7 @@ import { createLogger } from '@/utils/logger';
 import { toDateStr } from '@/utils/format';
 import type { Result, ServiceError } from '@/types/result';
 import { ok, err, storageError } from '@/types/result';
+import { userService } from './user-service';
 
 const logger = createLogger('AvailabilityService');
 const USE_MOCK = api.useMock;
@@ -45,6 +46,20 @@ async function loadSessionOfferings(): Promise<SessionOffering[]> {
     logger.error('Failed to load session offerings', error);
   }
   return [];
+}
+
+async function resolveUserName(userId: string, fallback: string): Promise<string> {
+  const userResult = await userService.getUserById(userId);
+  if (!userResult.success) return fallback;
+
+  const name = userResult.data.name?.trim();
+  return name || fallback;
+}
+
+async function resolveBookingAthleteName(booking: Booking): Promise<string | undefined> {
+  const athleteId = booking.athleteIds?.[0] ?? booking.athleteId;
+  if (!athleteId) return undefined;
+  return resolveUserName(athleteId, 'Athlete');
 }
 
 // Mock templates for development - coach availability
@@ -603,16 +618,16 @@ export const availabilityService = {
     });
 
     // Get registrations from offerings
-    const coachOfferingBookings = offerings
+    const coachOfferingBookings = await Promise.all(offerings
       .filter((offering) => offering.coachId === coachId)
       .filter((offering) => {
         const offeringDate = offering.scheduledAt?.split('T')[0];
         return offeringDate >= startDate && offeringDate <= endDate;
       })
-      .map((offering) => ({
+      .map(async (offering) => ({
         id: offering.id,
         coachId: offering.coachId,
-        coachName: offering.coachName,
+        coachName: await resolveUserName(offering.coachId, 'Coach'),
         scheduledAt: offering.scheduledAt,
         service: offering.title,
         location: offering.location,
@@ -621,7 +636,7 @@ export const availabilityService = {
         maxParticipants: offering.maxParticipants,
         currentParticipants: offering.registrations?.filter(r => r.status === 'confirmed').length || 0,
         registrations: offering.registrations,
-      }));
+      })));
 
     return [...coachBookings, ...coachOfferingBookings];
   },
@@ -902,20 +917,20 @@ export const availabilityService = {
     const dateSet = new Set(dates);
     const allBookings = await loadBookings();
 
-    const affected = allBookings
+    const affected = await Promise.all(allBookings
       .filter((b) => {
         if (b.coachId !== coachId || b.status === 'CANCELLED') return false;
         const bookingDate = b.scheduledAt?.split('T')[0];
         if (!bookingDate || !dateSet.has(bookingDate)) return false;
         return b.location !== undefined && b.location !== newLocation;
       })
-      .map((b) => ({
+      .map(async (b) => ({
         id: b.id,
         date: b.scheduledAt?.split('T')[0] || '',
         time: b.scheduledAt?.split('T')[1]?.substring(0, 5) || '',
         location: b.location || '',
-        athleteName: b.athleteName,
-      }));
+        athleteName: await resolveBookingAthleteName(b),
+      })));
 
     return { affectedBookings: affected, affectedCount: affected.length };
   },

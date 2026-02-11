@@ -43,7 +43,7 @@ export function NegotiationTimeline({ negotiation, currentUserId }: NegotiationT
       id: offer.id,
       type,
       timestamp: offer.createdAt,
-      proposerName: offer.proposerName,
+      proposerName: offer.proposerId,
       proposerRole: offer.proposedBy,
       isCurrentUser: offer.proposerId === currentUserId,
       time: offer.proposedTime,
@@ -86,14 +86,14 @@ export function NegotiationTimeline({ negotiation, currentUserId }: NegotiationT
       <Row align="center" justify="center" gap="sm" style={[styles.participantsRow, { backgroundColor: palette.background }]}>
         <Row align="center" gap="xxs">
           <Ionicons name="person" size={14} color={palette.muted} />
-          <ThemedText style={[styles.participantText, { color: palette.muted }]}>{negotiation.parentName}</ThemedText>
+          <ThemedText style={[styles.participantText, { color: palette.muted }]}>{negotiation.parentId}</ThemedText>
         </Row>
         <View style={styles.participantDivider}>
           <Ionicons name="swap-horizontal" size={14} color={palette.border} />
         </View>
         <Row align="center" gap="xxs">
           <Ionicons name="school" size={14} color={palette.muted} />
-          <ThemedText style={[styles.participantText, { color: palette.muted }]}>{negotiation.coachName}</ThemedText>
+          <ThemedText style={[styles.participantText, { color: palette.muted }]}>{negotiation.coachId}</ThemedText>
         </Row>
       </Row>
 

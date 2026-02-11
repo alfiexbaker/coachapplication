@@ -78,7 +78,7 @@ function GroupRolePickerInner({
           </ThemedText>
           {selectedMember && (
             <ThemedText style={[styles.rolePickerSubtitle, { color: palette.muted }]}>
-              {selectedMember.parentName} - currently {ROLE_LABELS[selectedMember.role]}
+              {selectedMember.parentId} - currently {ROLE_LABELS[selectedMember.role]}
             </ThemedText>
           )}
           <View style={styles.rolePickerOptions}>

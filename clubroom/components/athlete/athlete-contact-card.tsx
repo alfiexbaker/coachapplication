@@ -10,10 +10,11 @@ import { SurfaceCard } from '@/components/primitives/surface-card';
 import { Clickable } from '@/components/primitives/clickable';
 import { ThemedText } from '@/components/themed-text';
 import { Row } from '@/components/primitives/row';
-import { Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
+import { Spacing, Radii, Typography } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
 import { callPhone, sendEmail, openMessage } from '@/utils/contact-actions';
 import type { RosterEntry } from '@/constants/types';
+import { getRosterParentName } from '@/utils/roster-display';
 
 interface AthleteContactCardProps {
   athlete: RosterEntry;
@@ -21,16 +22,19 @@ interface AthleteContactCardProps {
 
 function AthleteContactCardInner({ athlete }: AthleteContactCardProps) {
   const { colors } = useTheme();
+  const parentName = getRosterParentName(athlete);
+  const parentEmail: string | undefined = undefined;
+  const parentPhone: string | undefined = undefined;
 
   const handleCall = useCallback(() => {
-    if (athlete.parentPhone) {
-      void callPhone(athlete.parentPhone, athlete.parentName);
+    if (parentPhone) {
+      void callPhone(parentPhone, parentName);
     }
-  }, [athlete.parentPhone, athlete.parentName]);
+  }, [parentName, parentPhone]);
 
   const handleEmail = useCallback(() => {
-    if (athlete.parentEmail) void sendEmail(athlete.parentEmail);
-  }, [athlete.parentEmail]);
+    if (parentEmail) void sendEmail(parentEmail);
+  }, [parentEmail]);
 
   const handleMessage = useCallback(() => {
     openMessage(athlete.athleteId);
@@ -42,13 +46,13 @@ function AthleteContactCardInner({ athlete }: AthleteContactCardProps) {
 
       <Row style={styles.contactRow}>
         <View style={styles.contactInfo}>
-          <ThemedText type="defaultSemiBold">{athlete.parentName}</ThemedText>
+          <ThemedText type="defaultSemiBold">{parentName}</ThemedText>
           <ThemedText style={[styles.detail, { color: colors.muted }]}>
-            {athlete.parentEmail}
+            {parentEmail || 'No email on file'}
           </ThemedText>
-          {athlete.parentPhone && (
+          {parentPhone && (
             <ThemedText style={[styles.detail, { color: colors.muted }]}>
-              {athlete.parentPhone}
+              {parentPhone}
             </ThemedText>
           )}
         </View>
@@ -61,7 +65,7 @@ function AthleteContactCardInner({ athlete }: AthleteContactCardProps) {
           >
             <Ionicons name="chatbubble-outline" size={18} color={colors.tint} />
           </Clickable>
-          {athlete.parentPhone && (
+          {parentPhone && (
             <Clickable
               style={[styles.iconButton, { borderColor: colors.border }]}
               onPress={handleCall}

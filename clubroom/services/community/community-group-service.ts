@@ -24,8 +24,15 @@ import { type Result, type ServiceError, ok, err, notFound, validationError, con
 import { STORAGE_KEYS } from '@/constants/storage-keys';
 import { createLogger } from '@/utils/logger';
 import { emitTyped, ServiceEvents } from '../event-bus';
+import { userService } from '../user-service';
 
 const logger = createLogger('CommunityGroupService');
+
+async function resolveMemberName(parentId: string, fallback = 'Member'): Promise<string> {
+  const userResult = await userService.getUserById(parentId);
+  if (!userResult.success) return fallback;
+  return userResult.data.name || fallback;
+}
 
 // ============================================================================
 // ROLE HIERARCHY
@@ -110,11 +117,10 @@ const mockGroups: ParentGroup[] = [
     description: 'Group for parents of U12 squad members',
     type: 'CLUB',
     members: [
-      { parentId: 'parent1', parentName: 'John Henderson', role: 'OWNER', joinedAt: '2024-01-15' },
-      { parentId: 'parent2', parentName: 'Lisa Wilson', role: 'MEMBER', joinedAt: '2024-01-16' },
+      { parentId: 'parent1', role: 'OWNER', joinedAt: '2024-01-15' },
+      { parentId: 'parent2', role: 'MEMBER', joinedAt: '2024-01-16' },
     ],
     createdById: 'parent1',
-    createdByName: 'John Henderson',
     createdAt: '2024-01-15',
     updatedAt: '2024-01-20',
     lastMessageAt: '2024-01-20T14:30:00Z',
@@ -129,11 +135,10 @@ const mockGroups: ParentGroup[] = [
     description: 'Coordinate rides to Saturday training sessions',
     type: 'CARPOOL',
     members: [
-      { parentId: 'parent1', parentName: 'John Henderson', role: 'OWNER', joinedAt: '2024-01-10' },
-      { parentId: 'parent2', parentName: 'Lisa Wilson', role: 'MEMBER', joinedAt: '2024-01-10' },
+      { parentId: 'parent1', role: 'OWNER', joinedAt: '2024-01-10' },
+      { parentId: 'parent2', role: 'MEMBER', joinedAt: '2024-01-10' },
     ],
     createdById: 'parent1',
-    createdByName: 'John Henderson',
     createdAt: '2024-01-10',
     updatedAt: '2024-01-18',
     lastMessageAt: '2024-01-18T09:00:00Z',
@@ -147,11 +152,10 @@ const mockGroups: ParentGroup[] = [
     description: 'General chat for all football parents',
     type: 'GENERAL',
     members: [
-      { parentId: 'parent1', parentName: 'John Henderson', role: 'MEMBER', joinedAt: '2024-01-05' },
-      { parentId: 'parent2', parentName: 'Lisa Wilson', role: 'OWNER', joinedAt: '2024-01-05' },
+      { parentId: 'parent1', role: 'MEMBER', joinedAt: '2024-01-05' },
+      { parentId: 'parent2', role: 'OWNER', joinedAt: '2024-01-05' },
     ],
     createdById: 'parent2',
-    createdByName: 'Lisa Wilson',
     createdAt: '2024-01-05',
     updatedAt: '2024-01-19',
     lastMessageAt: '2024-01-19T16:45:00Z',
@@ -264,13 +268,11 @@ class CommunityGroupService {
       const members: GroupMember[] = [
         {
           parentId: params.creatorId,
-          parentName: params.creatorName,
           role: 'OWNER',
           joinedAt: timestamp,
         },
         ...params.memberIds.map((id, index) => ({
           parentId: id,
-          parentName: params.memberNames[index] || 'Unknown',
           role: 'MEMBER' as const,
           joinedAt: timestamp,
         })),
@@ -283,7 +285,6 @@ class CommunityGroupService {
         type: params.type,
         members,
         createdById: params.creatorId,
-        createdByName: params.creatorName,
         createdAt: timestamp,
         updatedAt: timestamp,
         isPublic: params.isPublic ?? false,
@@ -348,7 +349,6 @@ class CommunityGroupService {
 
     const newMember: GroupMember = {
       parentId,
-      parentName,
       role: assignedRole,
       joinedAt: new Date().toISOString(),
     };
@@ -364,7 +364,7 @@ class CommunityGroupService {
       groupId,
       groupName: group.name,
       memberId: parentId,
-      memberName: parentName,
+      memberName: parentName || (await resolveMemberName(parentId)),
       role: assignedRole,
       isCoach,
     });
@@ -457,7 +457,7 @@ class CommunityGroupService {
       groupId,
       groupName: group.name,
       inviterId,
-      inviterName: inviter.parentName,
+      inviterName: await resolveMemberName(inviter.parentId),
       inviteeId,
       inviteeName,
       status: 'PENDING',
@@ -474,7 +474,7 @@ class CommunityGroupService {
       id: `notif_group_invite_${Date.now()}`,
       type: 'community',
       title: 'Group Invite',
-      body: `${inviter.parentName} invited you to join ${group.name}`,
+      body: `${await resolveMemberName(inviter.parentId)} invited you to join ${group.name}`,
       timeLabel: 'Just now',
       read: false,
       actionLabel: 'View Invite',
@@ -544,7 +544,6 @@ class CommunityGroupService {
       const group = groupResult.data;
       const newMember: GroupMember = {
         parentId: invite.inviteeId,
-        parentName: invite.inviteeName,
         role: 'MEMBER',
         joinedAt: new Date().toISOString(),
       };
@@ -682,7 +681,7 @@ class CommunityGroupService {
       groupId,
       groupName: group.name,
       memberId,
-      memberName: member.parentName,
+      memberName: await resolveMemberName(member.parentId),
       previousRole,
       newRole,
       changedById: requesterId,
@@ -772,7 +771,6 @@ class CommunityGroupService {
 
     const newMember: GroupMember = {
       parentId,
-      parentName,
       role,
       joinedAt: new Date().toISOString(),
     };

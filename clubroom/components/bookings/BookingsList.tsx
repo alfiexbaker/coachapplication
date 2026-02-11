@@ -12,6 +12,7 @@ import { Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
 import { BookingSummary, SessionOffering } from '@/constants/types';
 import { useTheme } from '@/hooks/useTheme';
 import { Row } from '@/components/primitives';
+import { getBookingSummaryCoachName } from '@/utils/booking-display';
 
 export type TimeFilter = 'upcoming' | 'past';
 
@@ -75,7 +76,7 @@ export function BookingsList({
           type: 'series',
           seriesId,
           bookings,
-          coachName: bookings[0]?.coachName ?? 'Coach',
+          coachName: bookings[0] ? getBookingSummaryCoachName(bookings[0]) : 'Coach',
         });
       }
     }

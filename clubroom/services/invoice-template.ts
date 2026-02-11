@@ -99,7 +99,7 @@ export function generateInvoiceHtml(invoice: Invoice): string {
     <div class="party">
       <h3>From</h3>
       <p>
-        <strong>${invoice.coachBusinessName ?? invoice.coachName}</strong><br/>
+        <strong>${invoice.coachBusinessName ?? invoice.coachId}</strong><br/>
         ${invoice.coachBusinessEmail ?? ''}<br/>
         ${invoice.coachBusinessAddress ? `${invoice.coachBusinessAddress}<br/>` : ''}
         ${invoice.coachBusinessPhone ?? ''}
@@ -108,10 +108,10 @@ export function generateInvoiceHtml(invoice: Invoice): string {
     <div class="party">
       <h3>To</h3>
       <p>
-        <strong>${invoice.userName ?? invoice.athleteName}</strong><br/>
+        <strong>${invoice.sentTo ?? invoice.userId}</strong><br/>
         ${invoice.sentTo ?? ''}<br/>
         ${invoice.billingAddress ? `${invoice.billingAddress}<br/>` : ''}
-        ${invoice.athleteName}
+        ${invoice.athleteId ?? ''}
       </p>
     </div>
   </div>

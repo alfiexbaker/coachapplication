@@ -33,6 +33,7 @@ import { Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
 import { inviteService as sessionInviteService, inviteRsvpService, inviteShareService } from '@/services/invite';
 import { ServiceEvents } from '@/services/event-bus';
 import type { TimeSlot, InviteRsvpResponse } from '@/constants/types';
+import { getSessionInviteAthleteNames, getSessionInviteCoachName } from '@/utils/session-invite-display';
 
 const logger = createLogger('SessionInviteDetailScreen');
 
@@ -61,6 +62,8 @@ export default function SessionInviteDetailScreen() {
   const isCoach = currentUser?.role === 'COACH';
   const isOwner = invite?.coachId === currentUser?.id;
   const isRecipient = invite?.parentId === currentUser?.id;
+  const coachName = useMemo(() => (invite ? getSessionInviteCoachName(invite) : 'Coach'), [invite]);
+  const athleteNames = useMemo(() => (invite ? getSessionInviteAthleteNames(invite) : []), [invite]);
   const derivedStatus = useMemo(() => {
     if (!invite) return 'PENDING';
     return new Date(invite.expiresAt) < new Date() && invite.status === 'PENDING' ? 'EXPIRED' : invite.status;
@@ -69,10 +72,10 @@ export default function SessionInviteDetailScreen() {
 
   const invitationMessage = useMemo(() => {
     if (!invite) return '';
-    const first = invite.coachName.split(' ')[0];
-    const ath = invite.athleteNames.length === 1 ? invite.athleteNames[0] : `${invite.athleteNames.length} athletes`;
+    const first = coachName.split(' ')[0];
+    const ath = athleteNames.length === 1 ? athleteNames[0] : `${athleteNames.length} athletes`;
     return invite.clubName ? `Coach ${first} has invited ${ath} to ${invite.clubName}` : `Coach ${first} has invited ${ath} to a ${invite.sessionType.toLowerCase()}`;
-  }, [invite]);
+  }, [athleteNames, coachName, invite]);
 
   const confirmAcceptance = useCallback(async () => {
     if (!invite || selectedSlot === null) return;
@@ -135,8 +138,8 @@ export default function SessionInviteDetailScreen() {
     if (!invite) return;
     const s = invite.proposedSlots[0];
     const d = s ? new Date(s.date + 'T00:00:00').toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' }) : '';
-    await inviteShareService.shareInvite(invite.id, invite.coachName, invite.sessionType, d);
-  }, [invite]);
+    await inviteShareService.shareInvite(invite.id, coachName, invite.sessionType, d);
+  }, [coachName, invite]);
 
   const handleRsvp = useCallback(async (rs: 'going' | 'maybe' | 'cant_go') => {
     if (!invite || !currentUser) return;

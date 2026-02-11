@@ -20,6 +20,7 @@ import { createLogger } from '@/utils/logger';
 import { type Result, type ServiceError, ok, err, notFound } from '@/types/result';
 import { emitTyped, ServiceEvents } from '../event-bus';
 import { bookingCrudService } from '../booking';
+import { userService } from '../user-service';
 import type { GroupSession, GroupRegistration } from '@/constants/types';
 import { loadSessions, saveSessions } from './session-crud-service';
 
@@ -36,9 +37,7 @@ const MOCK_REGISTRATIONS: GroupRegistration[] = [
     id: 'reg_1',
     sessionId: 'gs_1',
     athleteId: 'user1',
-    athleteName: 'Tom Henderson',
     parentId: 'user_parent_01',
-    parentName: 'Sarah Johnson',
     status: 'REGISTERED',
     registeredAt: '2026-01-06T09:00:00Z',
     paidAt: '2026-01-06T09:05:00Z',
@@ -48,9 +47,7 @@ const MOCK_REGISTRATIONS: GroupRegistration[] = [
     id: 'reg_2',
     sessionId: 'gs_1',
     athleteId: 'user2',
-    athleteName: 'Emma Henderson',
     parentId: 'user_parent_01',
-    parentName: 'Sarah Johnson',
     status: 'REGISTERED',
     registeredAt: '2026-01-06T09:30:00Z',
     paidAt: '2026-01-06T09:35:00Z',
@@ -60,9 +57,7 @@ const MOCK_REGISTRATIONS: GroupRegistration[] = [
     id: 'reg_3',
     sessionId: 'gs_1',
     athleteId: 'user3',
-    athleteName: 'James Wilson',
     parentId: 'user_parent_01',
-    parentName: 'Sarah Johnson',
     status: 'REGISTERED',
     registeredAt: '2026-01-07T10:00:00Z',
     paidAt: '2026-01-07T10:05:00Z',
@@ -72,9 +67,7 @@ const MOCK_REGISTRATIONS: GroupRegistration[] = [
     id: 'reg_4',
     sessionId: 'gs_1',
     athleteId: 'user4a',
-    athleteName: 'Sophie Taylor',
     parentId: 'user_parent_01',
-    parentName: 'Sarah Johnson',
     status: 'REGISTERED',
     registeredAt: '2026-01-07T14:00:00Z',
     paidAt: '2026-01-07T14:02:00Z',
@@ -84,9 +77,7 @@ const MOCK_REGISTRATIONS: GroupRegistration[] = [
     id: 'reg_5',
     sessionId: 'gs_1',
     athleteId: 'user5',
-    athleteName: 'Liam Davies',
     parentId: 'user_parent_01',
-    parentName: 'Sarah Johnson',
     status: 'WAITLISTED',
     registeredAt: '2026-01-08T11:00:00Z',
     attendedDates: [],
@@ -96,9 +87,7 @@ const MOCK_REGISTRATIONS: GroupRegistration[] = [
     id: 'reg_6',
     sessionId: 'gs_2',
     athleteId: 'user1',
-    athleteName: 'Tom Henderson',
     parentId: 'user_parent_01',
-    parentName: 'Sarah Johnson',
     status: 'REGISTERED',
     registeredAt: '2026-01-09T10:00:00Z',
     paidAt: '2026-01-09T10:02:00Z',
@@ -108,9 +97,7 @@ const MOCK_REGISTRATIONS: GroupRegistration[] = [
     id: 'reg_7',
     sessionId: 'gs_2',
     athleteId: 'user3',
-    athleteName: 'James Wilson',
     parentId: 'user_parent_01',
-    parentName: 'Sarah Johnson',
     status: 'REGISTERED',
     registeredAt: '2026-01-09T11:00:00Z',
     paidAt: '2026-01-09T11:05:00Z',
@@ -120,9 +107,7 @@ const MOCK_REGISTRATIONS: GroupRegistration[] = [
     id: 'reg_8',
     sessionId: 'gs_2',
     athleteId: 'user6',
-    athleteName: 'Ella Martinez',
     parentId: 'user_parent_01',
-    parentName: 'Sarah Johnson',
     status: 'REGISTERED',
     registeredAt: '2026-01-10T09:00:00Z',
     paidAt: '2026-01-10T09:10:00Z',
@@ -133,9 +118,7 @@ const MOCK_REGISTRATIONS: GroupRegistration[] = [
     id: 'reg_9',
     sessionId: 'gs_3',
     athleteId: 'user2',
-    athleteName: 'Emma Henderson',
     parentId: 'user_parent_01',
-    parentName: 'Sarah Johnson',
     status: 'REGISTERED',
     registeredAt: '2026-01-11T15:00:00Z',
     paidAt: '2026-01-11T15:05:00Z',
@@ -145,9 +128,7 @@ const MOCK_REGISTRATIONS: GroupRegistration[] = [
     id: 'reg_10',
     sessionId: 'gs_3',
     athleteId: 'user5',
-    athleteName: 'Liam Davies',
     parentId: 'user_parent_01',
-    parentName: 'Sarah Johnson',
     status: 'REGISTERED',
     registeredAt: '2026-01-11T16:00:00Z',
     paidAt: '2026-01-11T16:02:00Z',
@@ -158,9 +139,7 @@ const MOCK_REGISTRATIONS: GroupRegistration[] = [
     id: 'reg_11',
     sessionId: 'gs_4',
     athleteId: 'user4a',
-    athleteName: 'Sophie Taylor',
     parentId: 'user_parent_01',
-    parentName: 'Sarah Johnson',
     status: 'REGISTERED',
     registeredAt: '2026-01-12T10:00:00Z',
     attendedDates: [],
@@ -169,9 +148,7 @@ const MOCK_REGISTRATIONS: GroupRegistration[] = [
     id: 'reg_12',
     sessionId: 'gs_4',
     athleteId: 'user6',
-    athleteName: 'Ella Martinez',
     parentId: 'user_parent_01',
-    parentName: 'Sarah Johnson',
     status: 'REGISTERED',
     registeredAt: '2026-01-12T11:00:00Z',
     attendedDates: [],
@@ -181,9 +158,7 @@ const MOCK_REGISTRATIONS: GroupRegistration[] = [
     id: 'reg_13',
     sessionId: 'gs_training_1',
     athleteId: 'user1',
-    athleteName: 'Tom Henderson',
     parentId: 'user_parent_01',
-    parentName: 'Sarah Johnson',
     status: 'REGISTERED',
     registeredAt: '2026-01-01T09:00:00Z',
     attendedDates: ['2026-01-14', '2026-01-21'],
@@ -192,9 +167,7 @@ const MOCK_REGISTRATIONS: GroupRegistration[] = [
     id: 'reg_14',
     sessionId: 'gs_training_1',
     athleteId: 'user2',
-    athleteName: 'Emma Henderson',
     parentId: 'user_parent_01',
-    parentName: 'Sarah Johnson',
     status: 'REGISTERED',
     registeredAt: '2026-01-01T09:00:00Z',
     attendedDates: ['2026-01-14'],
@@ -203,9 +176,7 @@ const MOCK_REGISTRATIONS: GroupRegistration[] = [
     id: 'reg_15',
     sessionId: 'gs_training_1',
     athleteId: 'user3',
-    athleteName: 'James Wilson',
     parentId: 'user_parent_01',
-    parentName: 'Sarah Johnson',
     status: 'REGISTERED',
     registeredAt: '2026-01-02T10:00:00Z',
     attendedDates: ['2026-01-14', '2026-01-21'],
@@ -214,9 +185,7 @@ const MOCK_REGISTRATIONS: GroupRegistration[] = [
     id: 'reg_16',
     sessionId: 'gs_training_1',
     athleteId: 'user4a',
-    athleteName: 'Sophie Taylor',
     parentId: 'user_parent_01',
-    parentName: 'Sarah Johnson',
     status: 'REGISTERED',
     registeredAt: '2026-01-02T10:30:00Z',
     attendedDates: ['2026-01-14'],
@@ -225,9 +194,7 @@ const MOCK_REGISTRATIONS: GroupRegistration[] = [
     id: 'reg_17',
     sessionId: 'gs_training_1',
     athleteId: 'user5',
-    athleteName: 'Liam Davies',
     parentId: 'user_parent_01',
-    parentName: 'Sarah Johnson',
     status: 'REGISTERED',
     registeredAt: '2026-01-03T11:00:00Z',
     attendedDates: [],
@@ -236,9 +203,7 @@ const MOCK_REGISTRATIONS: GroupRegistration[] = [
     id: 'reg_18',
     sessionId: 'gs_training_1',
     athleteId: 'user6',
-    athleteName: 'Ella Martinez',
     parentId: 'user_parent_01',
-    parentName: 'Sarah Johnson',
     status: 'REGISTERED',
     registeredAt: '2026-01-03T12:00:00Z',
     attendedDates: ['2026-01-14', '2026-01-21'],
@@ -248,9 +213,7 @@ const MOCK_REGISTRATIONS: GroupRegistration[] = [
     id: 'reg_19',
     sessionId: 'gs_training_3',
     athleteId: 'user1',
-    athleteName: 'Tom Henderson',
     parentId: 'user_parent_01',
-    parentName: 'Sarah Johnson',
     status: 'REGISTERED',
     registeredAt: '2026-01-01T08:00:00Z',
     attendedDates: ['2026-01-15'],
@@ -259,9 +222,7 @@ const MOCK_REGISTRATIONS: GroupRegistration[] = [
     id: 'reg_20',
     sessionId: 'gs_training_3',
     athleteId: 'user3',
-    athleteName: 'James Wilson',
     parentId: 'user_parent_01',
-    parentName: 'Sarah Johnson',
     status: 'ATTENDED',
     registeredAt: '2026-01-01T08:30:00Z',
     attendedDates: ['2026-01-15'],
@@ -269,6 +230,14 @@ const MOCK_REGISTRATIONS: GroupRegistration[] = [
 ];
 
 let registrationsCache: GroupRegistration[] = [...MOCK_REGISTRATIONS];
+
+async function resolveUserName(userId: string, fallback: string): Promise<string> {
+  const userResult = await userService.getUserById(userId);
+  if (!userResult.success) return fallback;
+
+  const resolved = userResult.data.name?.trim();
+  return resolved && resolved.length > 0 ? resolved : fallback;
+}
 
 // ============================================================================
 // PERSISTENCE HELPERS
@@ -304,9 +273,7 @@ export const sessionRegistrationService = {
   async register(
     sessionId: string,
     athleteId: string,
-    athleteName: string,
     parentId: string,
-    parentName: string
   ): Promise<Result<GroupRegistration, ServiceError>> {
     if (USE_MOCK) {
       let sessionsCache = await loadSessions();
@@ -322,9 +289,7 @@ export const sessionRegistrationService = {
         id: `reg_${Date.now()}`,
         sessionId,
         athleteId,
-        athleteName,
         parentId,
-        parentName,
         status: isFull ? 'WAITLISTED' : 'REGISTERED',
         registeredAt: new Date().toISOString(),
         paidAt: isFull ? undefined : new Date().toISOString(),
@@ -336,7 +301,8 @@ export const sessionRegistrationService = {
 
       // Trigger notification to coach for new registration
       if (!isFull) {
-        await notificationTriggers.groupRegistered(athleteName, session.title, session.coachId);
+        const athleteDisplayName = await resolveUserName(athleteId, 'Athlete');
+        await notificationTriggers.groupRegistered(athleteDisplayName, session.title, session.coachId);
       }
 
       // Update session counts
@@ -353,16 +319,21 @@ export const sessionRegistrationService = {
       // Create a linked booking so group sessions appear in the bookings list
       if (!isFull) {
         try {
+          const [coachDisplayName, athleteDisplayName, parentDisplayName] = await Promise.all([
+            resolveUserName(session.coachId, 'Coach'),
+            resolveUserName(athleteId, 'Athlete'),
+            resolveUserName(parentId, 'Parent'),
+          ]);
           const nextDate = session.schedule[0]?.date
             ? `${session.schedule[0].date}T${session.schedule[0].startTime || '09:00'}:00`
             : new Date().toISOString();
           const bookingResult = await bookingCrudService.createBooking({
             coachId: session.coachId,
-            coachName: session.coachName,
+            coachName: coachDisplayName,
             athleteIds: [athleteId],
-            athleteNames: [athleteName],
+            athleteNames: [athleteDisplayName],
             bookedById: parentId,
-            bookedByName: parentName,
+            bookedByName: parentDisplayName,
             scheduledAt: nextDate,
             duration: 60,
             location: session.location,
@@ -395,7 +366,7 @@ export const sessionRegistrationService = {
     const response = await fetch(`/api/group-sessions/${sessionId}/register`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ athleteId, athleteName, parentId, parentName }),
+      body: JSON.stringify({ athleteId, parentId }),
     });
     return ok(await response.json());
   },
@@ -418,7 +389,8 @@ export const sessionRegistrationService = {
       // Trigger notification to coach for cancelled registration
       const sessionForNotif = sessionsCache.find((s) => s.id === registration.sessionId);
       if (sessionForNotif && wasRegistered) {
-        await notificationTriggers.groupCancelledRegistration(registration.athleteName, sessionForNotif.title, sessionForNotif.coachId);
+        const athleteDisplayName = await resolveUserName(registration.athleteId, 'Athlete');
+        await notificationTriggers.groupCancelledRegistration(athleteDisplayName, sessionForNotif.title, sessionForNotif.coachId);
       }
 
       // Update session counts

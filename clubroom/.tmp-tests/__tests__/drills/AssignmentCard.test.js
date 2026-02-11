@@ -49,7 +49,6 @@ function createMockDrill() {
     return {
         id: 'drill_1',
         coachId: 'coach1',
-        coachName: 'Coach Mike',
         title: 'Ball Juggling Challenge',
         description: 'Practice juggling the ball',
         category: 'TECHNIQUE',
@@ -66,9 +65,7 @@ function createMockAssignment(overrides) {
         drillId: 'drill_1',
         drill: createMockDrill(),
         athleteId: 'user1',
-        athleteName: 'Alex Thompson',
         assignedBy: 'coach1',
-        assignedByName: 'Coach Mike',
         assignedAt: '2026-01-08T09:00:00Z',
         dueDate: '2026-01-15T23:59:59Z',
         isCompleted: false,
@@ -170,13 +167,13 @@ function createMockAssignment(overrides) {
         });
     });
     (0, node_test_1.describe)('Display Properties', () => {
-        (0, node_test_1.default)('should have athlete name for display', () => {
-            const assignment = createMockAssignment({ athleteName: 'Jordan Smith' });
-            node_assert_1.default.strictEqual(assignment.athleteName, 'Jordan Smith');
+        (0, node_test_1.default)('should retain athlete ID for display fallback', () => {
+            const assignment = createMockAssignment({ athleteId: 'athlete_42' });
+            node_assert_1.default.strictEqual(assignment.athleteId, 'athlete_42');
         });
-        (0, node_test_1.default)('should have coach name for display', () => {
-            const assignment = createMockAssignment({ assignedByName: 'Coach Sarah' });
-            node_assert_1.default.strictEqual(assignment.assignedByName, 'Coach Sarah');
+        (0, node_test_1.default)('should retain assignedBy ID for display fallback', () => {
+            const assignment = createMockAssignment({ assignedBy: 'coach_42' });
+            node_assert_1.default.strictEqual(assignment.assignedBy, 'coach_42');
         });
         (0, node_test_1.default)('should format due date for display', () => {
             const formatted = drill_service_1.drillService.formatDueDate('2026-06-15T23:59:59Z');

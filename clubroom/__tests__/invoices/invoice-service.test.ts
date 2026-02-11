@@ -436,9 +436,8 @@ describe('Invoice Types', () => {
       invoiceNumber: 'INV-2025-001',
       userId: 'user-id',
       bookingId: 'booking-id',
-      coachName: 'Test Coach',
       coachId: 'coach-id',
-      athleteName: 'Test Athlete',
+      athleteId: 'athlete-id',
       sessionDate: '2025-01-10',
       amount: 41.67,
       tax: 8.33,
@@ -453,8 +452,8 @@ describe('Invoice Types', () => {
     assert.ok(invoice.invoiceNumber);
     assert.ok(invoice.userId);
     assert.ok(invoice.bookingId);
-    assert.ok(invoice.coachName);
-    assert.ok(invoice.athleteName);
+    assert.ok(invoice.coachId);
+    assert.ok(invoice.athleteId);
     assert.strictEqual(invoice.total, invoice.amount + invoice.tax);
   });
 });

@@ -54,7 +54,7 @@ export function InvoiceCard({ invoice, compact = false, onPress }: InvoiceCardPr
       <View style={styles.details}>
         <Row align="center" gap="xs">
           <Ionicons name="person-outline" size={16} color={palette.muted} />
-          <ThemedText style={styles.detailText}>{invoice.athleteName}</ThemedText>
+          <ThemedText style={styles.detailText}>{invoice.athleteId || 'Athlete'}</ThemedText>
         </Row>
         <Row align="center" gap="xs">
           <Ionicons name="fitness-outline" size={16} color={palette.muted} />
@@ -68,7 +68,7 @@ export function InvoiceCard({ invoice, compact = false, onPress }: InvoiceCardPr
 
       <Row justify="space-between" align="center" style={[styles.coachRow, { borderTopColor: palette.border }]}>
         <ThemedText style={[styles.coachLabel, { color: palette.muted }]}>Coach</ThemedText>
-        <ThemedText type="defaultSemiBold">{invoice.coachName}</ThemedText>
+        <ThemedText type="defaultSemiBold">{invoice.coachId || 'Coach'}</ThemedText>
       </Row>
 
       {invoice.status === 'SENT' && invoice.dueDate && (

@@ -9,6 +9,7 @@ import { Row } from '@/components/primitives/row';
 import { Radii, Spacing, Typography, withAlpha } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
 import type { Session } from '@/constants/app-types';
+import { getSessionAthleteName } from '@/utils/session-display';
 
 interface BadgeSessionSelectorProps {
   sessionQuery: string;
@@ -72,7 +73,7 @@ export const BadgeSessionSelector = memo(function BadgeSessionSelector({
         <ScrollView style={styles.sessionList} contentContainerStyle={{ gap: Spacing.xs }}>
           {filteredSessions.map((session) => {
             const isSelected = session.id === selectedSessionId;
-            const athleteName = session.athleteName ?? 'Athlete';
+            const athleteName = getSessionAthleteName(session);
             return (
               <Clickable
                 key={session.id}

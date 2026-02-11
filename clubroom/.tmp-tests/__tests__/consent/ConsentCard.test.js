@@ -48,9 +48,6 @@ const consent_service_1 = require("../../services/consent-service");
 // Mock athlete consent data for tests
 const createMockConsent = (overrides = {}) => ({
     athleteId: 'test_athlete',
-    athleteName: 'Test Athlete',
-    athletePhotoUrl: 'https://example.com/photo.jpg',
-    parentName: 'Test Parent',
     consents: [
         { type: 'PHOTO', granted: true, grantedBy: 'Test Parent', grantedAt: '2024-01-15T10:00:00Z' },
         { type: 'VIDEO', granted: true, grantedBy: 'Test Parent', grantedAt: '2024-01-15T10:00:00Z' },
@@ -227,21 +224,17 @@ const createMockConsent = (overrides = {}) => ({
         });
     });
     (0, node_test_1.describe)('Athlete Data Display', () => {
-        (0, node_test_1.default)('should have athlete name available', () => {
+        (0, node_test_1.default)('should have athlete id available', () => {
             const athleteConsent = createMockConsent();
-            node_assert_1.default.strictEqual(athleteConsent.athleteName, 'Test Athlete');
+            node_assert_1.default.strictEqual(athleteConsent.athleteId, 'test_athlete');
         });
-        (0, node_test_1.default)('should have parent name available', () => {
+        (0, node_test_1.default)('should have last updated timestamp', () => {
             const athleteConsent = createMockConsent();
-            node_assert_1.default.strictEqual(athleteConsent.parentName, 'Test Parent');
+            node_assert_1.default.ok(athleteConsent.lastUpdated);
         });
-        (0, node_test_1.default)('should handle missing photo URL', () => {
-            const athleteConsent = createMockConsent({ athletePhotoUrl: undefined });
-            node_assert_1.default.strictEqual(athleteConsent.athletePhotoUrl, undefined);
-        });
-        (0, node_test_1.default)('should generate initials from name', () => {
+        (0, node_test_1.default)('should generate initials from athlete id', () => {
             const athleteConsent = createMockConsent();
-            const initials = athleteConsent.athleteName.slice(0, 2).toUpperCase();
+            const initials = athleteConsent.athleteId.slice(0, 2).toUpperCase();
             node_assert_1.default.strictEqual(initials, 'TE');
         });
     });

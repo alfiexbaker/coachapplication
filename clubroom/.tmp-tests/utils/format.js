@@ -1,9 +1,10 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.formatTimeRange = exports.formatTime = exports.formatFullDate = exports.formatMonthDay = exports.formatWeekday = exports.formatGBP = exports.formatNextAvailability = exports.formatDistance = exports.formatPriceRange = void 0;
+exports.formatTimeRange = exports.formatTime = exports.formatFullDate = exports.formatShortDateWithYear = exports.formatMonthDay = exports.formatWeekday = exports.formatGBP = exports.formatNextAvailability = exports.formatDistance = exports.formatPriceRange = void 0;
 exports.toDateStr = toDateStr;
 const shortWeekdayFormatter = new Intl.DateTimeFormat('en-GB', { weekday: 'short' });
 const shortMonthDayFormatter = new Intl.DateTimeFormat('en-GB', { month: 'short', day: 'numeric' });
+const shortDateWithYearFormatter = new Intl.DateTimeFormat('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
 const longDateFormatter = new Intl.DateTimeFormat('en-GB', {
     weekday: 'long',
     month: 'long',
@@ -47,6 +48,14 @@ const formatWeekday = (value) => shortWeekdayFormatter.format(toDate(value));
 exports.formatWeekday = formatWeekday;
 const formatMonthDay = (value) => shortMonthDayFormatter.format(toDate(value));
 exports.formatMonthDay = formatMonthDay;
+const formatShortDateWithYear = (value, fallback = 'Unknown date') => {
+    const date = toDate(value);
+    if (Number.isNaN(date.getTime())) {
+        return fallback;
+    }
+    return shortDateWithYearFormatter.format(date);
+};
+exports.formatShortDateWithYear = formatShortDateWithYear;
 const formatFullDate = (value) => longDateFormatter.format(toDate(value));
 exports.formatFullDate = formatFullDate;
 const formatTime = (value) => timeFormatter.format(toDate(value));

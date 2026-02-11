@@ -61,10 +61,10 @@ export const EventAttendanceSection = memo(function EventAttendanceSection({
           {event.attendees.filter((a) => a.status === 'GOING').map((attendee) => (
             <Row key={attendee.userId} style={styles.attendeeRow}>
               <View style={[styles.avatar, { backgroundColor: palette.border }]}>
-                <ThemedText style={styles.avatarInitial}>{attendee.userName.charAt(0)}</ThemedText>
+                <ThemedText style={styles.avatarInitial}>{attendee.userId.charAt(0)}</ThemedText>
               </View>
               <View style={styles.attendeeInfo}>
-                <ThemedText>{attendee.userName}</ThemedText>
+                <ThemedText>{attendee.userId}</ThemedText>
                 {attendee.guestCount > 0 && (
                   <ThemedText style={[styles.guestCount, { color: palette.muted }]}>
                     +{attendee.guestCount} guest{attendee.guestCount > 1 ? 's' : ''}

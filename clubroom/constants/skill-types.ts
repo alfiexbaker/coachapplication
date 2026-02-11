@@ -22,9 +22,7 @@ export interface BadgeAward {
   badgeLabel: string;
   badgeTone?: 'success' | 'warning' | 'default';
   athleteId: string;
-  athleteName?: string; // TODO(T3.4): Remove when connecting to real API — resolve from athleteId instead
   coachId: string;
-  coachName?: string; // TODO(T3.4): Remove when connecting to real API — resolve from coachId instead
   sessionId?: string;
   reason: string;
   note?: string;
@@ -34,7 +32,6 @@ export interface BadgeAward {
   context?: 'session' | 'athlete_profile';
   overrideNote?: string;
   awardedBy: string;
-  awardedByName?: string; // TODO(T3.4): Remove when connecting to real API — resolve from awardedBy instead
   awardedAt: string;
   visibility: BadgeVisibility;
   shared?: boolean;
@@ -295,7 +292,6 @@ export interface UpdateGoalInput {
 
 export interface AthleteAnalytics {
   athleteId: string;
-  athleteName: string; // TODO(T3.4): Remove when connecting to real API — resolve from athleteId instead
   period: 'WEEK' | 'MONTH' | 'QUARTER' | 'YEAR' | 'ALL';
   totalSessions: number;
   sessionsThisPeriod: number;
@@ -334,7 +330,6 @@ export interface Drill {
   /** ID of the coach who created this drill */
   coachId: string;
   /** Name of the coach for display purposes */
-  coachName?: string; // TODO(T3.4): Remove when connecting to real API — resolve from coachId instead
   /** Title of the drill (e.g., "Ball Juggling", "Sprint Intervals") */
   title: string;
   /** Detailed description of how to perform the drill */
@@ -374,11 +369,9 @@ export interface AssignedDrill {
   /** ID of the athlete this drill is assigned to */
   athleteId: string;
   /** Name of the athlete for display */
-  athleteName?: string; // TODO(T3.4): Remove when connecting to real API — resolve from athleteId instead
   /** ID of the coach who assigned the drill */
   assignedBy: string;
   /** Name of the assigning coach for display */
-  assignedByName?: string; // TODO(T3.4): Remove when connecting to real API — resolve from assignedBy instead
   /** When the drill was assigned (ISO string) */
   assignedAt: string;
   /** Due date for completion (ISO string) */

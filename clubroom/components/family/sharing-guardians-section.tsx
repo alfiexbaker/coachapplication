@@ -30,10 +30,10 @@ export const SharingGuardiansSection = memo(function SharingGuardiansSection({ g
         <View key={guardian.id} style={[styles.card, { borderColor: colors.border }]}>
           <Row gap="sm" align="center">
             <View style={[styles.avatar, { backgroundColor: withAlpha(colors.tint, 0.09) }]}>
-              <ThemedText style={[Typography.heading, { color: colors.tint }]}>{guardian.userName.charAt(0)}</ThemedText>
+              <ThemedText style={[Typography.heading, { color: colors.tint }]}>{(guardian.userId || 'U').charAt(0)}</ThemedText>
             </View>
             <View style={{ flex: 1 }}>
-              <ThemedText type="defaultSemiBold">{guardian.userName}</ThemedText>
+              <ThemedText type="defaultSemiBold">{guardian.userId}</ThemedText>
               <ThemedText style={[Typography.small, { color: colors.muted, marginTop: Spacing.micro }]}>
                 {guardian.relationship} • {ROLE_INFO[guardian.role].label}
               </ThemedText>

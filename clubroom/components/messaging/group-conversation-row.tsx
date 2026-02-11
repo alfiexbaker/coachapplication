@@ -34,7 +34,7 @@ export const GroupConversationRow = memo(function GroupConversationRow({
 }: GroupConversationRowProps) {
   const { colors: palette } = useTheme();
   const unreadMentions = thread.unreadMentions || 0;
-  const displayName = thread.title || thread.coachName;
+  const displayName = thread.title || thread.serviceName || 'Group';
 
   return (
     <Animated.View entering={FadeInDown.delay(index * 40).springify()}>
@@ -44,7 +44,7 @@ export const GroupConversationRow = memo(function GroupConversationRow({
             <ThemedText style={[styles.avatarText, { color: palette.text }]}>
               {displayName
                 .split(' ')
-                .map((n) => n[0])
+                .map((n: string) => n[0])
                 .join('')}
             </ThemedText>
           </View>

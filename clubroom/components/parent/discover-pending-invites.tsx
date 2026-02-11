@@ -15,6 +15,7 @@ import { Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
 import { Routes } from '@/navigation/routes';
 import type { SessionInvite } from '@/constants/types';
+import { getSessionInviteAthleteNames, getSessionInviteCoachName } from '@/utils/session-invite-display';
 
 interface DiscoverPendingInvitesProps {
   invites: SessionInvite[];
@@ -40,10 +41,12 @@ function DiscoverPendingInvitesInner({ invites }: DiscoverPendingInvitesProps) {
       </Row>
 
       {invites.map((invite, index) => {
-        const coachFirstName = invite.coachName.split(' ')[0];
-        const athleteDisplay = invite.athleteNames.length === 1
-          ? invite.athleteNames[0]
-          : `${invite.athleteNames.length} athletes`;
+        const coachName = getSessionInviteCoachName(invite);
+        const athleteNames = getSessionInviteAthleteNames(invite);
+        const coachFirstName = coachName.split(' ')[0];
+        const athleteDisplay = athleteNames.length === 1
+          ? athleteNames[0]
+          : `${athleteNames.length} athletes`;
         const message = invite.clubName
           ? `Coach ${coachFirstName} invited ${athleteDisplay} to ${invite.clubName}`
           : `Coach ${coachFirstName} invited ${athleteDisplay} to ${invite.sessionType.toLowerCase()}`;
@@ -59,7 +62,7 @@ function DiscoverPendingInvitesInner({ invites }: DiscoverPendingInvitesProps) {
                 <Row align="center" gap="md">
                   <Row align="center" justify="center" style={[styles.avatar, { backgroundColor: withAlpha(palette.tint, 0.06) }]}>
                     <ThemedText style={[styles.avatarText, { color: palette.tint }]}>
-                      {invite.coachName.split(' ').map((n) => n[0]).join('')}
+                      {coachName.split(' ').map((n) => n[0]).join('')}
                     </ThemedText>
                   </Row>
                   <View style={styles.inviteInfo}>

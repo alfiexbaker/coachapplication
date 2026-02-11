@@ -16,6 +16,7 @@ import { ThemedText } from '@/components/themed-text';
 import { Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
 import type { ThemeColors } from '@/hooks/useTheme';
 import type { SessionInvite } from '@/constants/types';
+import { getSessionInviteAthleteNames } from '@/utils/session-invite-display';
 
 export interface SentInvitesBannerProps {
   invites: SessionInvite[];
@@ -42,6 +43,7 @@ interface SentInviteRowProps {
 }
 
 const SentInviteRow = memo(function SentInviteRow({ invite, statusConfig, colors }: SentInviteRowProps) {
+  const athleteNames = getSessionInviteAthleteNames(invite);
   const handlePress = useCallback(() => {
     router.push(Routes.sessionInvite(invite.id));
   }, [invite.id]);
@@ -50,11 +52,11 @@ const SentInviteRow = memo(function SentInviteRow({ invite, statusConfig, colors
     <Clickable
       onPress={handlePress}
       style={[styles.sentItem, { backgroundColor: colors.surface, borderColor: colors.border }]}
-      accessibilityLabel={`Invite to ${invite.athleteNames.join(', ')}, status ${invite.status}`}
+      accessibilityLabel={`Invite to ${athleteNames.join(', ')}, status ${invite.status}`}
     >
       <Column gap="micro" style={styles.sentInfo}>
         <ThemedText type="defaultSemiBold" numberOfLines={1}>
-          {invite.athleteNames.join(', ')}
+          {athleteNames.join(', ')}
         </ThemedText>
         <ThemedText style={[styles.sentMeta, { color: colors.muted }]}>
           {invite.sessionType} - {invite.focus}

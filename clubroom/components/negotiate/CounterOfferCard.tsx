@@ -45,7 +45,7 @@ export function CounterOfferCard({
       }
     >
       <OfferHeader
-        proposerName={offer.proposerName}
+        proposerName={offer.proposerId}
         proposedBy={offer.proposedBy}
         status={offer.status}
         palette={palette}

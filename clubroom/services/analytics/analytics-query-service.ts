@@ -42,7 +42,6 @@ export type AnalyticsPeriod = 'WEEK' | 'MONTH' | 'QUARTER' | 'YEAR' | 'ALL';
 const MOCK_ANALYTICS: AthleteAnalytics[] = [
   {
     athleteId: 'athlete_1',
-    athleteName: 'Tom Baker',
     period: 'MONTH',
     totalSessions: 24,
     sessionsThisPeriod: 8,

@@ -17,6 +17,7 @@ import type { Athlete, Squad } from '@/components/coach/invite-athlete-modal';
 import type { TargetType } from '@/components/invite/group-target-step';
 import type { TimeSlot, RosterEntry } from '@/constants/types';
 import type { SimplifiedUser } from '@/constants/types';
+import { getRosterAthleteName, getRosterParentName } from '@/utils/roster-display';
 
 const logger = createLogger('GroupInviteScreen');
 
@@ -77,8 +78,13 @@ export function useGroupInvite(currentUser: Pick<SimplifiedUser, 'id' | 'name'> 
   // ─── Derived ──────────────────────────────────────────────────────────────
 
   const rosterAsAthletes: Athlete[] = roster.map((r) => ({
-    id: r.athleteId, name: r.athleteName, parentId: r.parentId, parentName: r.parentName,
-    age: r.athleteAge, skillLevel: r.athleteSkillLevel, photoUrl: r.athletePhotoUrl,
+    id: r.athleteId,
+    name: getRosterAthleteName(r),
+    parentId: r.parentId,
+    parentName: getRosterParentName(r),
+    age: undefined,
+    skillLevel: undefined,
+    photoUrl: undefined,
     squadId: r.tags.find((t) => t.startsWith('squad:'))?.replace('squad:', '') || undefined,
     squadName: r.tags.find((t) => t.startsWith('squad:'))?.replace('squad:', '') || undefined,
     tags: r.tags,

@@ -18,6 +18,7 @@ import { notificationService } from '../notification-service';
 import { squadService } from '../squad-service';
 import { matchService } from '../match-service';
 import { createLogger } from '@/utils/logger';
+import { userService } from '../user-service';
 
 import {
   loadSquadInvites,
@@ -25,6 +26,12 @@ import {
 } from './squad-invite-service';
 
 const logger = createLogger('MatchInviteService');
+
+async function resolveUserName(userId: string, fallback: string): Promise<string> {
+  const userResult = await userService.getUserById(userId);
+  if (!userResult.success) return fallback;
+  return userResult.data.name || fallback;
+}
 
 // ============================================================================
 // TYPE DEFINITIONS
@@ -88,14 +95,17 @@ export const matchInviteService = {
 
     // Invite all squad members
     if (match) {
+      const players = await Promise.all(
+        eligibleMembers.map(async (member, index) => ({
+          athleteId: member.athleteId,
+          athleteName: await resolveUserName(member.athleteId, `Athlete ${index + 1}`),
+          parentId: member.parentId,
+          parentName: await resolveUserName(member.parentId, 'Parent'),
+        }))
+      );
       await matchService.invitePlayers({
         matchId: match.id,
-        players: eligibleMembers.map((m) => ({
-          athleteId: m.athleteId,
-          athleteName: m.athleteName,
-          parentId: m.parentId,
-          parentName: m.parentName,
-        })),
+        players,
       });
     }
 
@@ -104,12 +114,9 @@ export const matchInviteService = {
     const squadInvite: SquadInvite = {
       id: groupId,
       squadId: input.squadId,
-      squadName: input.squadName,
       targetType: 'MATCH',
       targetId: match.id,
-      targetTitle: `${input.isHome ? 'vs' : '@'} ${input.opponent}`,
       invitedBy: input.coachId,
-      invitedByName: input.coachName,
       invitedAt: new Date().toISOString(),
       memberCount: eligibleMembers.length,
       excludedMemberIds: input.excludeMemberIds,
@@ -137,7 +144,13 @@ export const matchInviteService = {
 
     for (const [parentId, athletes] of parentMap.entries()) {
       try {
-        const athleteNames = athletes.map((a) => a.athleteName).join(', ');
+        const athleteNames = (
+          await Promise.all(
+            athletes.map((athlete, index) =>
+              resolveUserName(athlete.athleteId, `Athlete ${index + 1}`)
+            )
+          )
+        ).join(', ');
         await notificationService.create({
           id: `notif_match_${Date.now()}_${parentId}`,
           type: 'booking',
@@ -157,7 +170,6 @@ export const matchInviteService = {
         failed++;
         errors.push({
           memberId: athletes[0].athleteId,
-          athleteName: athletes[0].athleteName,
           error: error instanceof Error ? error.message : 'Unknown error',
         });
       }

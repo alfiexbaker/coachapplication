@@ -3,10 +3,10 @@ import { useLocalSearchParams } from 'expo-router';
 
 import { useAuth } from '@/hooks/use-auth';
 import { apiClient } from '@/services/api-client';
-import { userService } from '@/services/user-service';
 import { createLogger } from '@/utils/logger';
 import type { Session } from '@/constants/app-types';
 import { BADGE_REASONS } from '@/components/badges/badge-award-modal';
+import { getSessionAthleteName } from '@/utils/session-display';
 
 const logger = createLogger('useDevBadges');
 
@@ -76,30 +76,12 @@ export function useDevBadges() {
       try {
         const storedSessions = await apiClient.get<Session[]>('coach_sessions', []);
         const coachSessions = storedSessions.filter((session) => session.coachId === currentUser.id);
-        const athleteIds = [...new Set(coachSessions.map((session) => session.athleteId).filter(Boolean))];
-        const athleteResult = await userService.getUsersByIds(athleteIds);
-        const athleteMap = new Map<string, { name: string }>();
-
-        if (athleteResult.success) {
-          athleteResult.data.forEach((athlete) => {
-            athleteMap.set(athlete.id, { name: athlete.name });
-          });
-        } else {
-          logger.error('Failed to resolve athletes for badges session picker', {
-            coachId: currentUser.id,
-            error: athleteResult.error,
-          });
-        }
 
         if (!isMounted) {
           return;
         }
 
-        const normalizedSessions = coachSessions.map((session) => ({
-          ...session,
-          athleteName: session.athleteName || athleteMap.get(session.athleteId)?.name || 'Athlete',
-        }));
-        setSessions(normalizedSessions);
+        setSessions(coachSessions);
       } catch (error) {
         logger.error('Failed to load coach sessions for badges', { coachId: currentUser.id, error });
         if (isMounted) {
@@ -118,7 +100,7 @@ export function useDevBadges() {
   const filteredSessions = useMemo(() => {
     const q = sessionQuery.toLowerCase();
     return sessions
-      .filter((s) => (s.athleteName?.toLowerCase() ?? '').includes(q) || getSessionLabel(s).toLowerCase().includes(q))
+      .filter((s) => getSessionAthleteName(s).toLowerCase().includes(q) || getSessionLabel(s).toLowerCase().includes(q))
       .slice(0, 6);
   }, [sessions, sessionQuery]);
 
@@ -127,7 +109,7 @@ export function useDevBadges() {
     [sessions, selectedSessionId]
   );
 
-  const linkedAthlete = selectedSession?.athleteName ?? 'Session';
+  const linkedAthlete = selectedSession ? getSessionAthleteName(selectedSession) : 'Session';
 
   const sessionLabelFn = useCallback((session: Session | null) => {
     if (!session) return undefined;

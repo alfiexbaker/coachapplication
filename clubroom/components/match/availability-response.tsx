@@ -10,6 +10,7 @@ import { Radii, Spacing, Typography, withAlpha } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
 import type { Match, MatchPlayer } from '@/constants/types';
 import { SelectedCard, RespondedCard, MatchInfoCard } from './availability-response-sections';
+import { getMatchPlayerAthleteName } from '@/utils/match-display';
 
 interface AvailabilityResponseProps {
   match: Match;
@@ -25,6 +26,7 @@ export function AvailabilityResponse({
   isLoading,
 }: AvailabilityResponseProps) {
   const { colors: palette } = useTheme();
+  const athleteName = getMatchPlayerAthleteName(player);
 
   const [note, setNote] = useState('');
   const [showNoteInput, setShowNoteInput] = useState(false);
@@ -69,7 +71,7 @@ export function AvailabilityResponse({
       </View>
 
       <ThemedText style={[styles.inviteMessage, { color: palette.text }]}>
-        {player.athleteName} has been invited to play in the match against{' '}
+        {athleteName} has been invited to play in the match against{' '}
         <ThemedText type="defaultSemiBold">{match.opponent}</ThemedText>.
       </ThemedText>
 

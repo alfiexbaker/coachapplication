@@ -124,7 +124,7 @@ const TimelineItem = memo(function TimelineItem({
           <Row gap="xxs" align="center" style={[styles.metaPill, { backgroundColor: withAlpha(palette.tint, 0.07) }]}>
             <Ionicons name="person" size={12} color={palette.tint} />
             <ThemedText style={[styles.metaText, { color: palette.tint }]}>
-              {award.coachName}
+              {award.coachId || 'Coach'}
             </ThemedText>
           </Row>
           {award.sessionId ? (

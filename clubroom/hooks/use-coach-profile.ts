@@ -252,7 +252,6 @@ export function useCoachProfile(): UseCoachProfileResult {
           followingId: resolvedCoach.id,
           followingName: resolvedCoach.fullName,
           followingType: 'COACH',
-          followingAvatar: resolvedCoach.profilePhotoUrl,
         });
         setIsFollowing(true);
         setFollowerCount((prev) => prev + 1);

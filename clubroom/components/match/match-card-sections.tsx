@@ -14,6 +14,7 @@ import { Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
 import { matchService } from '@/services/match-service';
 import type { Match } from '@/constants/types';
+import { getMatchPlayerAthleteName } from '@/utils/match-display';
 
 // ============================================================================
 // AVAILABILITY ROW (Coach view)
@@ -84,7 +85,7 @@ export const MatchPlayerStatusRow = React.memo(function MatchPlayerStatusRow({
               { color: matchService.getPlayerStatusColor(player.status) },
             ]}
           >
-            {player.athleteName}: {matchService.formatPlayerStatus(player.status)}
+            {getMatchPlayerAthleteName(player)}: {matchService.formatPlayerStatus(player.status)}
           </ThemedText>
         </View>
       ))}

@@ -16,6 +16,7 @@ import { useTheme } from '@/hooks/useTheme';
 import { getStatusColor } from './recurring-card-helpers';
 import { RecurringConfirmModal } from './recurring-card-modals';
 import { HeaderRow, ScheduleRow, StatsRow, ActionsRow } from './recurring-card-content';
+import { getRecurringAthleteName, getRecurringCoachName, getRecurringUserName } from '@/utils/recurring-display';
 
 interface RecurringCardProps {
   recurring: RecurringBooking;
@@ -29,6 +30,9 @@ interface RecurringCardProps {
 export function RecurringCard({ recurring, onPause, onResume, onCancel, onPress, loading = false }: RecurringCardProps) {
   const { colors: palette } = useTheme();
   const statusColor = getStatusColor(recurring.status, palette);
+  const coachName = getRecurringCoachName(recurring);
+  const athleteName = getRecurringAthleteName(recurring);
+  const bookingUserName = getRecurringUserName(recurring);
 
   const [showPauseModal, setShowPauseModal] = useState(false);
   const [showCancelModal, setShowCancelModal] = useState(false);
@@ -52,11 +56,11 @@ export function RecurringCard({ recurring, onPause, onResume, onCancel, onPress,
 
   const handleResume = useCallback(() => {
     if (!onResume) return;
-    Alert.alert('Resume Subscription', `Are you sure you want to resume your ${getFrequencyLabel(recurring.frequency).toLowerCase()} sessions with ${recurring.coachName}?`, [
+    Alert.alert('Resume Subscription', `Are you sure you want to resume your ${getFrequencyLabel(recurring.frequency).toLowerCase()} sessions with ${coachName}?`, [
       { text: 'Cancel', style: 'cancel' },
       { text: 'Resume', onPress: async () => { setActionLoading(true); try { await onResume(recurring.id); } finally { setActionLoading(false); } } },
     ]);
-  }, [onResume, recurring]);
+  }, [onResume, recurring, coachName]);
 
   const handleCardPress = useCallback(() => onPress?.(recurring), [onPress, recurring]);
 
@@ -77,10 +81,10 @@ export function RecurringCard({ recurring, onPause, onResume, onCancel, onPress,
         </Row>
 
         {/* Athlete Badge */}
-        {recurring.athleteName && recurring.athleteName !== recurring.userName && (
+        {athleteName && athleteName !== bookingUserName && (
           <Row align="center" gap="xxs" style={[styles.athleteBadge, { backgroundColor: withAlpha(palette.tint, 0.1) }]}>
             <Ionicons name="person" size={14} color={palette.tint} />
-            <ThemedText style={[styles.athleteText, { color: palette.tint }]}>For: {recurring.athleteName}</ThemedText>
+            <ThemedText style={[styles.athleteText, { color: palette.tint }]}>For: {athleteName}</ThemedText>
           </Row>
         )}
 
@@ -99,13 +103,13 @@ export function RecurringCard({ recurring, onPause, onResume, onCancel, onPress,
       </SurfaceCard>
 
       <RecurringConfirmModal visible={showPauseModal} title="Pause Subscription"
-        description={`Your ${freqLabel} sessions with ${recurring.coachName} will be paused. You can resume anytime.`}
+        description={`Your ${freqLabel} sessions with ${coachName} will be paused. You can resume anytime.`}
         reason={pauseReason} onReasonChange={setPauseReason} placeholder="Reason for pausing (optional)"
         confirmLabel="Pause Subscription" loadingLabel="Pausing..." loading={actionLoading}
         onConfirm={handlePauseConfirm} onCancel={() => setShowPauseModal(false)} />
 
       <RecurringConfirmModal visible={showCancelModal} title="Cancel Subscription"
-        description={`Are you sure you want to cancel your ${freqLabel} sessions with ${recurring.coachName}? This cannot be undone.`}
+        description={`Are you sure you want to cancel your ${freqLabel} sessions with ${coachName}? This cannot be undone.`}
         reason={cancelReason} onReasonChange={setCancelReason} placeholder="Reason for cancelling (optional)"
         confirmLabel="Cancel Subscription" loadingLabel="Cancelling..." loading={actionLoading}
         onConfirm={handleCancelConfirm} onCancel={() => setShowCancelModal(false)} destructive />

@@ -15,7 +15,7 @@ interface ThreadSummaryProps {
 
 export function ThreadSummary({ thread }: ThreadSummaryProps) {
   const { colors: palette } = useTheme();
-  const displayName = thread.title || thread.coachName;
+  const displayName = thread.title || thread.serviceName || 'Conversation';
   const subtitle = thread.subtitle || thread.serviceName;
   const isGroup = thread.kind === 'group';
 

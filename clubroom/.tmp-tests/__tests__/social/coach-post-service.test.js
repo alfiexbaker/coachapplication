@@ -82,7 +82,6 @@ function testId(prefix) {
             strict_1.default.ok(post.id, 'Post should have an id');
             strict_1.default.ok(post.createdAt, 'Post should have a createdAt timestamp');
             strict_1.default.equal(post.authorId, coachId);
-            strict_1.default.equal(post.authorName, coachName);
             strict_1.default.equal(post.title, 'My Training Tips');
             strict_1.default.equal(post.body, 'Here are some tips for improving your footwork.');
             strict_1.default.equal(post.feedType, 'PERSONAL');

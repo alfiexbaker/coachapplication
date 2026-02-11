@@ -12,6 +12,7 @@ import { Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
 import { scaleFont } from '@/utils/scale';
 import type { SessionOffering } from '@/constants/types';
+import { getSessionRegistrationUserName } from '@/utils/session-display';
 
 interface SessionRegistrationsProps {
   offering: SessionOffering;
@@ -32,7 +33,7 @@ function SessionRegistrationsInner({ offering, registeredCount }: SessionRegistr
           .map(reg => (
             <Row key={reg.id} align="center" gap={12} style={[styles.registration, { borderBottomColor: palette.border }]}>
               <Ionicons name="person" size={20} color={palette.icon} />
-              <ThemedText style={styles.regName}>{reg.userName}</ThemedText>
+              <ThemedText style={styles.regName}>{getSessionRegistrationUserName(reg)}</ThemedText>
               <ThemedText style={styles.regDate}>{new Date(reg.bookedAt).toLocaleDateString()}</ThemedText>
             </Row>
           ))

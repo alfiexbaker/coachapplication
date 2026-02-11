@@ -36,7 +36,6 @@ const MOCK_PACKAGES: SessionPackage[] = [
   {
     id: 'pkg_1',
     coachId: 'coach1',
-    coachName: 'Sarah Mitchell',
     name: '5 Session Starter Pack',
     description: 'Perfect for beginners. Get 5 one-on-one sessions at a discounted rate.',
     sessionCount: 5,
@@ -52,7 +51,6 @@ const MOCK_PACKAGES: SessionPackage[] = [
   {
     id: 'pkg_2',
     coachId: 'coach1',
-    coachName: 'Sarah Mitchell',
     name: '10 Session Pro Bundle',
     description: 'Our most popular package. Serious training for serious players with 10 sessions.',
     sessionCount: 10,
@@ -68,7 +66,6 @@ const MOCK_PACKAGES: SessionPackage[] = [
   {
     id: 'pkg_3',
     coachId: 'coach2',
-    coachName: 'Mike Thompson',
     name: '5 Session Group Training',
     description: 'Small group training sessions focusing on teamwork and tactics.',
     sessionCount: 5,
@@ -85,7 +82,6 @@ const MOCK_PACKAGES: SessionPackage[] = [
   {
     id: 'pkg_4',
     coachId: 'coach2',
-    coachName: 'Mike Thompson',
     name: '10 Session Elite Bundle',
     description: 'Premium coaching package with personalized training plans and video analysis.',
     sessionCount: 10,
@@ -101,7 +97,6 @@ const MOCK_PACKAGES: SessionPackage[] = [
   {
     id: 'pkg_5',
     coachId: 'coach1',
-    coachName: 'Sarah Mitchell',
     name: '3 Session Trial Pack',
     description: 'Try before you commit with 3 introductory sessions.',
     sessionCount: 3,
@@ -119,11 +114,8 @@ const MOCK_PURCHASES: PackagePurchase[] = [
   {
     id: 'purchase_1',
     userId: 'parent1',
-    userName: 'John Henderson',
     packageId: 'pkg_1',
-    packageName: '5 Session Starter Pack',
     coachId: 'coach1',
-    coachName: 'Sarah Mitchell',
     sessionsTotal: 5,
     sessionsUsed: 2,
     sessionsRemaining: 3,
@@ -138,11 +130,8 @@ const MOCK_PURCHASES: PackagePurchase[] = [
   {
     id: 'purchase_2',
     userId: 'parent2',
-    userName: 'Lisa Wilson',
     packageId: 'pkg_2',
-    packageName: '10 Session Pro Bundle',
     coachId: 'coach1',
-    coachName: 'Sarah Mitchell',
     sessionsTotal: 10,
     sessionsUsed: 10,
     sessionsRemaining: 0,
@@ -323,7 +312,6 @@ class PackageService {
       const newPackage: SessionPackage = {
         id: `pkg_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
         coachId: params.coachId,
-        coachName: params.coachName,
         name: params.name,
         description: params.description,
         sessionCount: params.sessionCount,
@@ -463,13 +451,13 @@ class PackageService {
   /**
    * Purchase a package using wallet balance
    * @param userId - The user making the purchase
-   * @param userName - User's display name
+   * @param _userName - User's display name (legacy parameter)
    * @param packageId - The package to purchase
    * @returns Purchase result with success status
    */
   async purchasePackage(
     userId: string,
-    userName: string,
+    _userName: string,
     packageId: string
   ): Promise<Result<{ purchase: PackagePurchase; newWalletBalance?: number }, ServiceError>> {
     try {
@@ -507,7 +495,6 @@ class PackageService {
           description: `Package: ${pkg.name}`,
           packageId,
           coachId: pkg.coachId,
-          ...(pkg.coachName != null && { coachName: pkg.coachName }),
           sessionCount: pkg.sessionCount,
         }
       );
@@ -523,11 +510,8 @@ class PackageService {
       const purchase: PackagePurchase = {
         id: `purchase_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
         userId,
-        userName,
         packageId: pkg.id,
-        packageName: pkg.name,
         coachId: pkg.coachId,
-        coachName: pkg.coachName,
         sessionsTotal: pkg.sessionCount,
         sessionsUsed: 0,
         sessionsRemaining: pkg.sessionCount,

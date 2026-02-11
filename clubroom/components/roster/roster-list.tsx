@@ -18,6 +18,7 @@ import { AthleteRow } from '@/components/roster/athlete-row';
 import { Spacing, Radii, Components } from '@/constants/theme';
 import type { RosterEntry } from '@/constants/types';
 import { useTheme } from '@/hooks/useTheme';
+import { getRosterAthleteName } from '@/utils/roster-display';
 
 interface RosterListProps {
   roster: RosterEntry[];
@@ -49,6 +50,7 @@ const RosterListItem = memo(function RosterListItem({
   onLongPress: () => void;
 }) {
   const { colors } = useTheme();
+  const athleteName = getRosterAthleteName(entry);
 
   return (
     <Animated.View entering={FadeInDown.delay(index * 40).springify()}>
@@ -57,7 +59,7 @@ const RosterListItem = memo(function RosterListItem({
           <Clickable
             onPress={onToggleSelection}
             style={styles.checkboxContainer}
-            accessibilityLabel={`${isSelected ? 'Deselect' : 'Select'} ${entry.athleteName}`}
+            accessibilityLabel={`${isSelected ? 'Deselect' : 'Select'} ${athleteName}`}
             accessibilityRole="checkbox"
           >
             <View

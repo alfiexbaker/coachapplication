@@ -6,6 +6,7 @@ import type {
 } from '@/constants/types';
 import { apiClient } from './api-client';
 import { notificationService } from './notification-service';
+import { userService } from './user-service';
 import { createLogger } from '@/utils/logger';
 import { STORAGE_KEYS } from '@/constants/storage-keys';
 import { emitTyped, ServiceEvents } from './event-bus';
@@ -13,6 +14,19 @@ import { type Result, type ServiceError, ok, err, storageError, notFound } from 
 const NOTIFICATION_EXPIRY_HOURS = 24; // Hours before notification expires
 
 const logger = createLogger('WaitlistService');
+
+async function resolveUserName(userId: string, fallback: string): Promise<string> {
+  const userResult = await userService.getUserById(userId);
+  if (!userResult.success) {
+    return fallback;
+  }
+
+  return userResult.data.name?.trim() || fallback;
+}
+
+function sessionLabel(sessionId: string): string {
+  return `session ${sessionId}`;
+}
 
 /**
  * Service for managing session waitlists.
@@ -82,13 +96,8 @@ class WaitlistService {
     const newEntry: WaitlistEntry = {
       id: `waitlist_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
       userId: params.userId,
-      userName: params.userName,
-      userPhotoUrl: params.userPhotoUrl,
       sessionId: params.sessionId,
-      sessionTitle: params.sessionTitle,
-      sessionScheduledAt: params.sessionScheduledAt,
       coachId: params.coachId,
-      coachName: params.coachName,
       position,
       joinedAt: new Date().toISOString(),
       autoBook: params.autoBook ?? false,
@@ -287,6 +296,9 @@ class WaitlistService {
     const waitlist = await this.getSessionWaitlistRaw(sessionId);
     const autoBookCount = waitlist.filter((e) => e.autoBook).length;
     const nextInLine = waitlist[0];
+    const nextUserName = nextInLine
+      ? await resolveUserName(nextInLine.userId, 'User')
+      : undefined;
 
     return {
       sessionId,
@@ -296,7 +308,7 @@ class WaitlistService {
       nextInLine: nextInLine
         ? {
             userId: nextInLine.userId,
-            userName: nextInLine.userName,
+            userName: nextUserName || 'User',
             position: nextInLine.position,
             autoBook: nextInLine.autoBook,
           }
@@ -343,7 +355,7 @@ class WaitlistService {
       type: 'booking',
       notificationType: 'WAITLIST_AVAILABLE',
       title: 'Spot Available!',
-      body: `A spot has opened up for ${nextInLine.sessionTitle || 'a session'}. Book now before it's gone!`,
+      body: `A spot has opened up for ${sessionLabel(nextInLine.sessionId)}. Book now before it's gone!`,
       recipientId: nextInLine.userId,
       deepLink: `/waitlist`,
       data: {
@@ -414,7 +426,7 @@ class WaitlistService {
       type: 'booking',
       notificationType: 'BOOKING_CONFIRMED',
       title: 'You\'re In!',
-      body: `You've been booked for ${nextInLine.sessionTitle || 'the session'} from the waitlist.`,
+      body: `You've been booked for ${sessionLabel(nextInLine.sessionId)} from the waitlist.`,
       recipientId: nextInLine.userId,
       deepLink: `/bookings`,
       data: {
@@ -484,7 +496,7 @@ class WaitlistService {
       id: `notif_waitlist_removed_${Date.now()}`,
       type: 'booking',
       title: 'Waitlist Update',
-      body: `You've been removed from the waitlist for ${entry.sessionTitle || 'a session'}.`,
+      body: `You've been removed from the waitlist for ${sessionLabel(entry.sessionId)}.`,
       recipientId: entry.userId,
       deepLink: `/waitlist`,
       timeLabel: 'Just now',
@@ -542,23 +554,24 @@ class WaitlistService {
     });
 
     const summaries: WaitlistSummary[] = [];
-    sessionMap.forEach((sessionEntries, sessionId) => {
+    for (const [sessionId, sessionEntries] of sessionMap.entries()) {
       const firstEntry = sessionEntries[0];
       const autoBookCount = sessionEntries.filter((e) => e.autoBook).length;
+      const nextUserName = await resolveUserName(firstEntry.userId, 'User');
 
       summaries.push({
         sessionId,
-        sessionTitle: firstEntry.sessionTitle || 'Session',
+        sessionTitle: `Session ${sessionId}`,
         totalWaiting: sessionEntries.length,
         autoBookCount,
         nextInLine: {
           userId: firstEntry.userId,
-          userName: firstEntry.userName,
+          userName: nextUserName,
           position: firstEntry.position,
           autoBook: firstEntry.autoBook,
         },
       });
-    });
+    }
 
       return ok(summaries);
     } catch (error) {
@@ -721,12 +734,8 @@ class WaitlistService {
       {
         id: 'waitlist_demo_1',
         userId: 'parent1',
-        userName: 'John Henderson',
         sessionId: 'session_full_1',
-        sessionTitle: 'Advanced Dribbling Workshop',
-        sessionScheduledAt: new Date(Date.now() + 3 * 24 * 60 * 60 * 1000).toISOString(),
         coachId: 'coach1',
-        coachName: 'Sarah Mitchell',
         position: 1,
         joinedAt: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(),
         autoBook: true,
@@ -735,12 +744,8 @@ class WaitlistService {
       {
         id: 'waitlist_demo_2',
         userId: 'parent2',
-        userName: 'Lisa Wilson',
         sessionId: 'session_full_1',
-        sessionTitle: 'Advanced Dribbling Workshop',
-        sessionScheduledAt: new Date(Date.now() + 3 * 24 * 60 * 60 * 1000).toISOString(),
         coachId: 'coach1',
-        coachName: 'Sarah Mitchell',
         position: 2,
         joinedAt: new Date(Date.now() - 1 * 60 * 60 * 1000).toISOString(),
         autoBook: false,
@@ -749,12 +754,8 @@ class WaitlistService {
       {
         id: 'waitlist_demo_3',
         userId: 'parent1',
-        userName: 'John Henderson',
         sessionId: 'session_full_2',
-        sessionTitle: 'Saturday Morning Training',
-        sessionScheduledAt: new Date(Date.now() + 5 * 24 * 60 * 60 * 1000).toISOString(),
         coachId: 'coach2',
-        coachName: 'Mike Thompson',
         position: 1,
         joinedAt: new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString(),
         autoBook: false,

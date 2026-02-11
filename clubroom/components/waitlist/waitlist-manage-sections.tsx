@@ -8,7 +8,7 @@
  */
 
 import React, { memo } from 'react';
-import { View, StyleSheet, ActivityIndicator, Image } from 'react-native';
+import { View, StyleSheet, ActivityIndicator } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Row } from '@/components/primitives/row';
 
@@ -163,16 +163,12 @@ export const WaitlistEntryRow = memo(function WaitlistEntryRow({
         </View>
 
         <Row align="center" gap="sm" flex>
-          {entry.userPhotoUrl ? (
-            <Image source={{ uri: entry.userPhotoUrl }} style={styles.userPhoto} />
-          ) : (
-            <View style={[styles.userPhotoPlaceholder, { backgroundColor: palette.border }]}>
-              <Ionicons name="person" size={14} color={palette.muted} />
-            </View>
-          )}
+          <View style={[styles.userPhotoPlaceholder, { backgroundColor: palette.border }]}>
+            <Ionicons name="person" size={14} color={palette.muted} />
+          </View>
           <View style={styles.userDetails}>
             <ThemedText type="defaultSemiBold" style={styles.userName}>
-              {entry.userName}
+              {entry.userId}
             </ThemedText>
             <Row align="center" gap="xxs">
               <ThemedText style={[styles.joinedTime, { color: palette.muted }]}>
@@ -201,7 +197,7 @@ export const WaitlistEntryRow = memo(function WaitlistEntryRow({
 
       <Clickable
         accessibilityLabel="Remove from waitlist"
-        onPress={() => onRemoveEntry(entry.id, entry.userName)}
+        onPress={() => onRemoveEntry(entry.id, entry.userId)}
         hitSlop={8}
         style={styles.removeButton}
       >
@@ -295,11 +291,6 @@ export const styles = StyleSheet.create({
   },
   positionNumber: { ...Typography.caption },
   userInfo: { /* layout moved to Row */ },
-  userPhoto: {
-    width: 32,
-    height: 32,
-    borderRadius: Radii.lg,
-  },
   userPhotoPlaceholder: {
     width: 32,
     height: 32,

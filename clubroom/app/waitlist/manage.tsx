@@ -96,7 +96,7 @@ export default function ManageWaitlistScreen() {
       if (result.data) {
         Alert.alert(
           'Notification Sent',
-          `${result.data.userName} has been notified that a spot is available.`
+          `${result.data.userId} has been notified that a spot is available.`
         );
         await loadWaitlists();
       } else {
@@ -130,7 +130,7 @@ export default function ManageWaitlistScreen() {
               if (result.data.success && result.data.entry) {
                 Alert.alert(
                   'Success',
-                  `${result.data.entry.userName} has been booked for the session.`
+                  `${result.data.entry.userId} has been booked for the session.`
                 );
                 await loadWaitlists();
               } else {

@@ -1,5 +1,5 @@
 import { memo } from 'react';
-import { View, StyleSheet, Image } from 'react-native';
+import { View, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 
@@ -10,6 +10,7 @@ import { Row } from '@/components/primitives/row';
 import { Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
 import type { GroupSession } from '@/constants/types';
+import { getGroupSessionCoachName } from '@/utils/group-display';
 
 interface GroupSessionDetailsProps {
   session: GroupSession;
@@ -17,6 +18,7 @@ interface GroupSessionDetailsProps {
 
 export const GroupSessionDetails = memo(function GroupSessionDetails({ session }: GroupSessionDetailsProps) {
   const { colors } = useTheme();
+  const coachName = getGroupSessionCoachName(session);
 
   return (
     <>
@@ -67,15 +69,11 @@ export const GroupSessionDetails = memo(function GroupSessionDetails({ session }
       <Animated.View entering={FadeInDown.delay(250).springify()}>
         <SurfaceCard style={styles.card}>
           <Row gap="md" align="center">
-            {session.coachPhotoUrl ? (
-              <Image source={{ uri: session.coachPhotoUrl }} style={styles.coachPhoto} />
-            ) : (
-              <View style={[styles.coachPhoto, { backgroundColor: colors.border, alignItems: 'center', justifyContent: 'center' }]}>
-                <Ionicons name="person" size={20} color={colors.muted} />
-              </View>
-            )}
+            <View style={[styles.coachPhoto, { backgroundColor: colors.border, alignItems: 'center', justifyContent: 'center' }]}>
+              <Ionicons name="person" size={20} color={colors.muted} />
+            </View>
             <View style={{ flex: 1 }}>
-              <ThemedText type="defaultSemiBold">{session.coachName}</ThemedText>
+              <ThemedText type="defaultSemiBold">{coachName}</ThemedText>
               <ThemedText style={{ color: colors.muted }}>Coach</ThemedText>
             </View>
             <Clickable style={[styles.messageButton, { backgroundColor: colors.surface, borderColor: colors.border }]}>

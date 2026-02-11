@@ -14,6 +14,7 @@ import { apiClient } from '../api-client';
 import { api } from '@/constants/config';
 import { STORAGE_KEYS } from '@/constants/storage-keys';
 import { notificationTriggers } from '../notification-trigger';
+import { userService } from '../user-service';
 import { createLogger } from '@/utils/logger';
 import { toDateStr } from '@/utils/format';
 import { type Result, type ServiceError, ok, err, notFound } from '@/types/result';
@@ -30,6 +31,15 @@ import { loadEvents, saveEvents } from './event-crud-service';
 const USE_MOCK = api.useMock;
 const logger = createLogger('EventRsvpService');
 
+async function resolveUserName(userId: string, fallback: string): Promise<string> {
+  const userResult = await userService.getUserById(userId);
+  if (!userResult.success) {
+    return fallback;
+  }
+
+  return userResult.data.name?.trim() || fallback;
+}
+
 // ============================================================================
 // MOCK RSVP DATA
 // ============================================================================
@@ -39,7 +49,6 @@ const MOCK_RSVPS: EventRSVP[] = [
     id: 'rsvp_1',
     eventId: 'event_1',
     userId: 'parent_1',
-    userName: 'Sarah Baker',
     userRole: 'PARENT',
     status: 'GOING',
     guestCount: 2,
@@ -50,7 +59,6 @@ const MOCK_RSVPS: EventRSVP[] = [
     id: 'rsvp_2',
     eventId: 'event_1',
     userId: 'parent_2',
-    userName: 'Mike Wilson',
     userRole: 'PARENT',
     status: 'GOING',
     guestCount: 1,
@@ -60,7 +68,6 @@ const MOCK_RSVPS: EventRSVP[] = [
     id: 'rsvp_3',
     eventId: 'event_2',
     userId: 'parent_1',
-    userName: 'Sarah Baker',
     userRole: 'PARENT',
     status: 'GOING',
     guestCount: 0,
@@ -116,12 +123,10 @@ export const eventRsvpService = {
     userRole: EventAttendee['userRole'],
     status: RSVPStatus,
     guestCount: number = 0,
-    userPhotoUrl?: string
+    _userPhotoUrl?: string
   ): Promise<Result<EventAttendee, ServiceError>> {
     const attendee: EventAttendee = {
       userId,
-      userName,
-      userPhotoUrl,
       userRole,
       status,
       guestCount,
@@ -144,7 +149,8 @@ export const eventRsvpService = {
       await saveEvents(eventsCache);
 
       // Trigger RSVP notification to event creator (coach)
-      await notificationTriggers.eventRsvp(userName, event.title, status, event.createdBy);
+      const displayName = userName?.trim() || await resolveUserName(userId, 'A parent');
+      await notificationTriggers.eventRsvp(displayName, event.title, status, event.createdBy);
 
       return ok(attendee);
     }
@@ -236,8 +242,6 @@ export const eventRsvpService = {
       id: `rsvp_${Date.now()}`,
       eventId: input.eventId,
       userId: input.userId,
-      userName: input.userName,
-      userPhotoUrl: input.userPhotoUrl,
       userRole: input.userRole,
       status: input.status,
       guestCount: input.guestCount ?? 0,
@@ -269,8 +273,6 @@ export const eventRsvpService = {
       if (event) {
         const attendee: EventAttendee = {
           userId: input.userId,
-          userName: input.userName,
-          userPhotoUrl: input.userPhotoUrl,
           userRole: input.userRole,
           status: input.status,
           guestCount: input.guestCount ?? 0,

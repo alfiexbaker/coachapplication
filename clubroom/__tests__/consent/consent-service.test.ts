@@ -52,14 +52,14 @@ describe('Consent Service', () => {
 
       assert.ok(Array.isArray(consents));
       assert.ok(consents.length > 0);
-      assert.ok(consents.every((c) => c.athleteId && c.athleteName));
+      assert.ok(consents.every((c) => c.athleteId));
     });
 
-    test('should include athlete photo URL when available', async () => {
+    test('should include consent records for each roster athlete', async () => {
       const consents = expectOk(await consentService.getRosterConsents('coach1'));
 
-      const athleteWithPhoto = consents.find((c) => c.athletePhotoUrl);
-      assert.ok(athleteWithPhoto);
+      const athleteWithConsents = consents.find((c) => c.consents.length > 0);
+      assert.ok(athleteWithConsents);
     });
 
     test('should filter by consent type granted', async () => {
@@ -95,15 +95,13 @@ describe('Consent Service', () => {
     test('should filter by search query', async () => {
       const consents = expectOk(
         await consentService.getRosterConsents('coach1', {
-          search: 'Baker',
+          search: 'athlete1',
         }),
       );
 
-      // All returned athletes should match the search
+      // All returned athletes should match the athleteId query
       for (const c of consents) {
-        const matchesAthlete = c.athleteName.toLowerCase().includes('baker');
-        const matchesParent = c.parentName.toLowerCase().includes('baker');
-        assert.ok(matchesAthlete || matchesParent);
+        assert.ok(c.athleteId.toLowerCase().includes('athlete1'));
       }
     });
   });
@@ -204,8 +202,6 @@ describe('Consent Service', () => {
     test('should return consent for specified type', () => {
       const athleteConsent: AthleteConsent = {
         athleteId: 'test',
-        athleteName: 'Test Athlete',
-        parentName: 'Test Parent',
         consents: [
           { type: 'PHOTO', granted: true, grantedBy: 'Parent' },
           { type: 'VIDEO', granted: false, grantedBy: '' },
@@ -227,8 +223,6 @@ describe('Consent Service', () => {
     test('should return undefined for missing consent type', () => {
       const athleteConsent: AthleteConsent = {
         athleteId: 'test',
-        athleteName: 'Test Athlete',
-        parentName: 'Test Parent',
         consents: [],
         lastUpdated: new Date().toISOString(),
       };
@@ -243,8 +237,6 @@ describe('Consent Service', () => {
     test('should return true when photo and social media consents are granted', () => {
       const athleteConsent: AthleteConsent = {
         athleteId: 'test',
-        athleteName: 'Test Athlete',
-        parentName: 'Test Parent',
         consents: [
           { type: 'PHOTO', granted: true, grantedBy: 'Parent' },
           { type: 'VIDEO', granted: false, grantedBy: '' },
@@ -262,8 +254,6 @@ describe('Consent Service', () => {
     test('should return true when video and social media consents are granted', () => {
       const athleteConsent: AthleteConsent = {
         athleteId: 'test',
-        athleteName: 'Test Athlete',
-        parentName: 'Test Parent',
         consents: [
           { type: 'PHOTO', granted: false, grantedBy: '' },
           { type: 'VIDEO', granted: true, grantedBy: 'Parent' },
@@ -281,8 +271,6 @@ describe('Consent Service', () => {
     test('should return false when social media consent is not granted', () => {
       const athleteConsent: AthleteConsent = {
         athleteId: 'test',
-        athleteName: 'Test Athlete',
-        parentName: 'Test Parent',
         consents: [
           { type: 'PHOTO', granted: true, grantedBy: 'Parent' },
           { type: 'VIDEO', granted: true, grantedBy: 'Parent' },
@@ -300,8 +288,6 @@ describe('Consent Service', () => {
     test('should return false when neither photo nor video consent is granted', () => {
       const athleteConsent: AthleteConsent = {
         athleteId: 'test',
-        athleteName: 'Test Athlete',
-        parentName: 'Test Parent',
         consents: [
           { type: 'PHOTO', granted: false, grantedBy: '' },
           { type: 'VIDEO', granted: false, grantedBy: '' },
@@ -394,8 +380,6 @@ describe('Consent Service', () => {
     test('should return correct count of granted consents', () => {
       const athleteConsent: AthleteConsent = {
         athleteId: 'test',
-        athleteName: 'Test Athlete',
-        parentName: 'Test Parent',
         consents: [
           { type: 'PHOTO', granted: true, grantedBy: 'Parent' },
           { type: 'VIDEO', granted: true, grantedBy: 'Parent' },
@@ -414,8 +398,6 @@ describe('Consent Service', () => {
     test('should return zero for no consents', () => {
       const athleteConsent: AthleteConsent = {
         athleteId: 'test',
-        athleteName: 'Test Athlete',
-        parentName: 'Test Parent',
         consents: [],
         lastUpdated: new Date().toISOString(),
       };
@@ -431,8 +413,6 @@ describe('Consent Service', () => {
     test('should return correct percentage', () => {
       const athleteConsent: AthleteConsent = {
         athleteId: 'test',
-        athleteName: 'Test Athlete',
-        parentName: 'Test Parent',
         consents: [
           { type: 'PHOTO', granted: true, grantedBy: 'Parent' },
           { type: 'VIDEO', granted: true, grantedBy: 'Parent' },
@@ -450,8 +430,6 @@ describe('Consent Service', () => {
     test('should return 100 for all granted', () => {
       const athleteConsent: AthleteConsent = {
         athleteId: 'test',
-        athleteName: 'Test Athlete',
-        parentName: 'Test Parent',
         consents: [
           { type: 'PHOTO', granted: true, grantedBy: 'Parent' },
           { type: 'VIDEO', granted: true, grantedBy: 'Parent' },
@@ -469,8 +447,6 @@ describe('Consent Service', () => {
     test('should return 0 for none granted', () => {
       const athleteConsent: AthleteConsent = {
         athleteId: 'test',
-        athleteName: 'Test Athlete',
-        parentName: 'Test Parent',
         consents: [
           { type: 'PHOTO', granted: false, grantedBy: '' },
           { type: 'VIDEO', granted: false, grantedBy: '' },
@@ -488,8 +464,6 @@ describe('Consent Service', () => {
     test('should return 0 for empty consents array', () => {
       const athleteConsent: AthleteConsent = {
         athleteId: 'test',
-        athleteName: 'Test Athlete',
-        parentName: 'Test Parent',
         consents: [],
         lastUpdated: new Date().toISOString(),
       };

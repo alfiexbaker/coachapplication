@@ -107,7 +107,6 @@ const video_service_1 = require("../../services/video-service");
             const annotation = await video_service_1.videoService.createAnnotation('vid_1', input, 'coach_1', 'Coach Smith');
             node_assert_1.default.ok(annotation);
             node_assert_1.default.strictEqual(annotation.createdBy, 'coach_1');
-            node_assert_1.default.strictEqual(annotation.createdByName, 'Coach Smith');
         });
     });
     (0, node_test_1.describe)('deleteAnnotation', () => {

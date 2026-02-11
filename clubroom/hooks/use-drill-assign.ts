@@ -10,6 +10,7 @@ import { drillService } from '@/services/drill-service';
 import { rosterService } from '@/services/roster-service';
 import { createLogger } from '@/utils/logger';
 import type { Drill, RosterEntry } from '@/constants/types';
+import { getRosterAthleteName } from '@/utils/roster-display';
 
 const logger = createLogger('AssignDrillScreen');
 
@@ -44,7 +45,7 @@ export function useDrillAssign() {
         if (drillId) setDrill(await drillService.getDrillById(drillId));
         if (coachId) {
           const roster = await rosterService.getRoster(coachId, { status: 'ACTIVE' });
-          setAthletes(roster.map((e: RosterEntry) => ({ id: e.athleteId, name: e.athleteName, age: e.athleteAge })));
+          setAthletes(roster.map((e: RosterEntry) => ({ id: e.athleteId, name: getRosterAthleteName(e) })));
         }
       } catch (error) {
         logger.error('Failed to load data', error);

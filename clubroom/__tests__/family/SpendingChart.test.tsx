@@ -13,7 +13,6 @@ import type { FamilySpending } from '../../constants/types';
 const mockSpending: FamilySpending[] = [
   {
     childId: 'child_1',
-    childName: 'Tom Henderson',
     colorCode: '#3B82F6',
     totalSpent: 250,
     sessionCount: 5,
@@ -28,7 +27,6 @@ const mockSpending: FamilySpending[] = [
   },
   {
     childId: 'child_2',
-    childName: 'Emma Henderson',
     colorCode: '#10B981',
     totalSpent: 175,
     sessionCount: 3,
@@ -48,7 +46,6 @@ describe('SpendingChart', () => {
     test('should have valid spending data structure', () => {
       mockSpending.forEach((spending) => {
         assert.ok(spending.childId);
-        assert.ok(spending.childName);
         assert.ok(spending.colorCode);
         assert.ok(typeof spending.totalSpent === 'number');
         assert.ok(typeof spending.sessionCount === 'number');
@@ -235,7 +232,6 @@ describe('SpendingChart', () => {
     test('should handle spending with no sessions', () => {
       const noSessionsSpending: FamilySpending = {
         childId: 'child_new',
-        childName: 'New Child',
         colorCode: '#F59E0B',
         totalSpent: 0,
         sessionCount: 0,

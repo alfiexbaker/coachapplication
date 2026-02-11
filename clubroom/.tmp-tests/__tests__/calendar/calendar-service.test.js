@@ -57,7 +57,6 @@ const mockBooking = {
     location: 'Hackney Marshes',
     notes: 'Focus on dribbling',
     coachName: 'Coach Sarah',
-    athleteName: 'Tom Henderson',
     service: '1-on-1 Training',
 };
 const mockBookingNoOptionals = {
@@ -65,7 +64,6 @@ const mockBookingNoOptionals = {
     coachId: 'coach_2',
     coachName: '',
     athleteId: 'athlete_2',
-    athleteName: '',
     bookedById: 'parent_2',
     status: 'PENDING',
     scheduledAt: '2026-03-01T10:00:00.000Z',
@@ -82,9 +80,7 @@ const mockBookingNoOptionals = {
             node_assert_1.default.strictEqual(event.location, 'Hackney Marshes');
             node_assert_1.default.ok(event.description.includes('1-on-1 Training'));
             node_assert_1.default.ok(event.description.includes('Focus on dribbling'));
-            node_assert_1.default.ok(event.description.includes('Tom Henderson'));
-            node_assert_1.default.strictEqual(event.coachName, 'Coach Sarah');
-            node_assert_1.default.strictEqual(event.athleteName, 'Tom Henderson');
+            node_assert_1.default.ok(event.description.includes('Athlete ID: athlete_1'));
             node_assert_1.default.strictEqual(event.bookingId, 'booking_123');
         });
         (0, node_test_1.default)('should calculate end time based on duration', () => {
@@ -99,8 +95,6 @@ const mockBookingNoOptionals = {
             node_assert_1.default.strictEqual(event.id, 'booking_456');
             node_assert_1.default.strictEqual(event.title, 'Training Session');
             node_assert_1.default.strictEqual(event.location, '');
-            node_assert_1.default.strictEqual(event.coachName, undefined);
-            node_assert_1.default.strictEqual(event.athleteName, undefined);
         });
         (0, node_test_1.default)('should handle different durations', () => {
             const shortBooking = { ...mockBooking, duration: 30 };

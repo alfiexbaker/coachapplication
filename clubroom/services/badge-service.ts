@@ -3,6 +3,7 @@ import { apiClient } from './api-client';
 import { socialFeedService } from './social-feed-service';
 import { notificationService } from './notification-service';
 import { bookingService } from './booking-service';
+import { userService } from './user-service';
 import { createLogger } from '@/utils/logger';
 import { emitTyped, ServiceEvents } from '@/services/event-bus';
 import { type Result, type ServiceError, ok, err, validationError } from '@/types/result';
@@ -58,14 +59,11 @@ const SEED_BADGE_AWARDS: BadgeAward[] = [
     badgeLabel: 'Best Training Session',
     badgeTone: 'success',
     athleteId: 'user1',
-    athleteName: 'Tom Henderson',
     coachId: 'coach1',
-    coachName: 'Sarah Mitchell',
     sessionId: 'sess1',
     reason: 'Led transitions and stayed switched on across drills.',
     note: 'Kept energy up for younger players in the pod.',
     awardedBy: 'coach1',
-    awardedByName: 'Sarah Mitchell',
     awardedAt: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(),
     visibility: 'supporters',
     badgeCategory: 'consistency',
@@ -78,14 +76,11 @@ const SEED_BADGE_AWARDS: BadgeAward[] = [
     badgeLabel: 'Master Passer',
     badgeTone: 'default',
     athleteId: 'user2',
-    athleteName: 'Emma Henderson',
     coachId: 'coach3',
-    coachName: 'David Roberts',
     sessionId: 'sess4',
     reason: 'Threaded creative passes under pressure.',
     note: 'Great first-time balls during rondos.',
     awardedBy: 'coach3',
-    awardedByName: 'David Roberts',
     awardedAt: new Date(Date.now() - 4 * 24 * 60 * 60 * 1000).toISOString(),
     visibility: 'athlete',
     badgeCategory: 'technique',
@@ -98,14 +93,11 @@ const SEED_BADGE_AWARDS: BadgeAward[] = [
     badgeLabel: 'Sharp Shooter Pro',
     badgeTone: 'warning',
     athleteId: 'user3',
-    athleteName: 'James Wilson',
     coachId: 'coach2',
-    coachName: 'Mike Thompson',
     sessionId: 'club_session_1',
     reason: 'Finished five consecutive reps with both feet.',
     note: 'Stayed composed with a defender closing.',
     awardedBy: 'coach2',
-    awardedByName: 'Mike Thompson',
     awardedAt: new Date(Date.now() - 12 * 60 * 60 * 1000).toISOString(),
     visibility: 'supporters',
     badgeCategory: 'technique',
@@ -119,6 +111,15 @@ const ATHLETE_PARENT_MAP: Record<string, { id: string }> = {
   user2: { id: 'user4' },
   user3: { id: 'user5' },
 };
+
+async function resolveUserName(userId: string, fallback: string): Promise<string> {
+  const userResult = await userService.getUserById(userId);
+  if (!userResult.success) {
+    return fallback;
+  }
+
+  return userResult.data.name?.trim() || fallback;
+}
 
 class BadgeService {
   private logger = createLogger('BadgeService');
@@ -189,9 +190,7 @@ class BadgeService {
       badgeLabel: definition?.label || input.reason,
       badgeTone: definition?.tone,
       athleteId: input.athleteId,
-      athleteName: input.athleteName,
       coachId: input.coachId,
-      coachName: input.coachName,
       sessionId: input.sessionId,
       reason: input.reason,
       note: input.note,
@@ -201,7 +200,6 @@ class BadgeService {
       context: input.context ?? (input.sessionId ? 'session' : 'athlete_profile'),
       overrideNote: input.overrideNote,
       awardedBy: input.coachId,
-      awardedByName: input.coachName,
       awardedAt: new Date().toISOString(),
       visibility: input.visibility || 'athlete',
       seenByParent: false,
@@ -256,18 +254,23 @@ class BadgeService {
       return;
     }
 
+    const [athleteName, coachName] = await Promise.all([
+      resolveUserName(award.athleteId, 'Athlete'),
+      resolveUserName(award.coachId, 'Coach'),
+    ]);
+
     for (const club of clubs) {
       try {
         socialFeedService.createAchievementPost({
           clubId: club.id,
           clubName: club.name,
           athleteId: award.athleteId,
-          athleteName: award.athleteName || 'Athlete',
+          athleteName,
           badgeId: award.badgeId,
           badgeLabel: award.badgeLabel || 'Badge',
           badgeAwardId: award.id,
           coachId: award.coachId,
-          coachName: award.coachName || 'Coach',
+          coachName,
           reason: award.reason,
         });
         this.logger.info('achievement_post_created', {
@@ -295,15 +298,20 @@ class BadgeService {
       return;
     }
 
+    const [athleteName, coachName] = await Promise.all([
+      resolveUserName(award.athleteId, 'Athlete'),
+      resolveUserName(award.coachId, 'Coach'),
+    ]);
+
     const notification = {
       id: `notif_badge_${award.id}`,
       type: 'badge' as const,
-      title: `${award.athleteName} earned a badge!`,
-      body: `${award.athleteName} earned the ${award.badgeLabel} badge from Coach ${award.coachName}`,
+      title: `${athleteName} earned a badge!`,
+      body: `${athleteName} earned the ${award.badgeLabel} badge from Coach ${coachName}`,
       timeLabel: 'Just now',
       read: false,
       badgeTitle: award.badgeLabel,
-      athleteName: award.athleteName,
+      athleteName,
       badgeAwardId: award.id,
       actionLabel: 'View Badge',
       handled: false,
@@ -333,11 +341,12 @@ class BadgeService {
       target.sessionId ? 'Linked to a recent session' : undefined,
     ].filter(Boolean);
 
+    const athleteName = await resolveUserName(target.athleteId, 'Athlete');
     const feedPost = alreadySentToFeed
       ? undefined
       : socialFeedService.addPost({
           authorId: target.athleteId,
-          authorName: target.athleteName || 'Athlete',
+          authorName: athleteName,
           authorAvatar: undefined,
           content: shareContentParts.join('\n'),
           context: 'badge_share',
@@ -643,6 +652,12 @@ class BadgeService {
       this.listAwardsForAthlete(athleteId),
     ]);
 
+    const coachIds = Array.from(new Set(awards.map((award) => award.coachId)));
+    const coachNameEntries = await Promise.all(
+      coachIds.map(async (coachId) => [coachId, await resolveUserName(coachId, 'Coach')] as const),
+    );
+    const coachNameById = new Map<string, string>(coachNameEntries);
+
     // Create a map of awarded badges for quick lookup
     const awardedBadgeIds = new Set(awards.map((a) => a.badgeId));
     const awardsByBadgeId = new Map<string, BadgeAward>();
@@ -676,7 +691,7 @@ class BadgeService {
         badgeType: 'skill',
         isUnlocked,
         earnedAt: award?.awardedAt,
-        awardedBy: award?.coachName,
+        awardedBy: award ? coachNameById.get(award.coachId) ?? 'Coach' : undefined,
         progress: isUnlocked ? 100 : 0,
         progressLabel: isUnlocked ? 'Earned' : 'Locked',
       });

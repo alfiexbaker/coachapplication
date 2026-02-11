@@ -15,8 +15,20 @@ import { createLogger } from '@/utils/logger';
 import { emitTyped, ServiceEvents } from '@/services/event-bus';
 import { type Result, type ServiceError, ok, err, notFound } from '@/types/result';
 import { bookingCrudService } from './booking-crud-service';
+import { userService } from '../user-service';
 
 const logger = createLogger('BookingStatusService');
+
+async function resolveAthleteName(booking: Booking, fallback = 'Athlete'): Promise<string> {
+  const athleteId = booking.athleteIds?.[0] ?? booking.athleteId;
+  if (!athleteId) return fallback;
+
+  const athleteResult = await userService.getUserById(athleteId);
+  if (!athleteResult.success) return fallback;
+
+  const name = athleteResult.data.name?.trim();
+  return name || fallback;
+}
 
 export const bookingStatusService = {
   /**
@@ -33,11 +45,12 @@ export const bookingStatusService = {
 
       // Create confirmation notification
       const booking = result.data;
+      const athleteName = await resolveAthleteName(booking);
       await notificationService.create({
         id: `notif-confirmed-${Date.now()}`,
         type: 'booking',
         title: 'Booking Confirmed',
-        body: `Coach ${booking.coachName} has confirmed your session for ${booking.athleteName}.`,
+        body: `Coach ${booking.coachName} has confirmed your session for ${athleteName}.`,
         timeLabel: 'Just now',
         read: false,
       });
@@ -48,7 +61,7 @@ export const bookingStatusService = {
         userId: booking.bookedById ?? booking.athleteId ?? '',
         coachId: booking.coachId,
         coachName: booking.coachName,
-        athleteName: booking.athleteName,
+        athleteName,
         scheduledAt: booking.scheduledAt,
       });
 
@@ -92,11 +105,13 @@ export const bookingStatusService = {
     });
 
     for (const session of upcomingSessions) {
+      const athleteName = await resolveAthleteName(session);
+
       // Notify coach if we have a valid coachId
       if (session.coachId) {
         await notificationService.notifyCoachSessionReminder({
           coachId: session.coachId,
-          athleteName: session.athleteName || 'Athlete',
+          athleteName,
           bookingId: session.id,
         });
       }
@@ -105,7 +120,7 @@ export const bookingStatusService = {
       if (session.bookedById) {
         await notificationService.notifyParentSessionReminder({
           parentId: session.bookedById,
-          childName: session.athleteName || 'Athlete',
+          childName: athleteName,
           coachName: session.coachName || 'Coach',
           bookingId: session.id,
         });

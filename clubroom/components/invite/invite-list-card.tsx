@@ -11,6 +11,7 @@ import { Row, Column } from '@/components/primitives';
 import { Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
 import type { ThemeColors } from '@/hooks/useTheme';
 import type { SessionInvite, SessionInviteType } from '@/constants/types';
+import { getSessionInviteAthleteNames, getSessionInviteCoachName } from '@/utils/session-invite-display';
 
 type ViewMode = 'sent' | 'received';
 
@@ -57,10 +58,12 @@ export const InviteListCard = memo(function InviteListCard({ invite, index, mode
   const expired = new Date(invite.expiresAt) < new Date();
   const status = expired && invite.status === 'PENDING' ? 'EXPIRED' : invite.status;
   const sc = statusCfg(status, colors);
-  const initials = mode === 'sent' ? (invite.athleteNames[0]?.charAt(0) || 'A') : invite.coachName.split(' ').map((n) => n[0]).join('');
-  const name = mode === 'sent' ? invite.athleteNames.join(', ') : invite.coachName;
-  const first = invite.coachName.split(' ')[0];
-  const ath = invite.athleteNames.length === 1 ? invite.athleteNames[0] : `${invite.athleteNames.length} athletes`;
+  const coachName = getSessionInviteCoachName(invite);
+  const athleteNames = getSessionInviteAthleteNames(invite);
+  const initials = mode === 'sent' ? (athleteNames[0]?.charAt(0) || 'A') : coachName.split(' ').map((n) => n[0]).join('');
+  const name = mode === 'sent' ? athleteNames.join(', ') : coachName;
+  const first = coachName.split(' ')[0];
+  const ath = athleteNames.length === 1 ? athleteNames[0] : `${athleteNames.length} athletes`;
   const msg = mode === 'received'
     ? (invite.clubName ? `Coach ${first} has invited ${ath} to ${invite.clubName}` : `Coach ${first} has invited ${ath} to a ${invite.sessionType.toLowerCase()}`)
     : (invite.clubName ? `Invite to ${invite.clubName}` : `${invite.sessionType} invite`);

@@ -167,7 +167,6 @@ class FamilyRelationshipService {
           {
             id: `guardian_${Date.now()}`,
             userId,
-            userName,
             email: '',
             role: 'PRIMARY',
             permissions: DEFAULT_ROLE_PERMISSIONS.PRIMARY,
@@ -319,7 +318,6 @@ class FamilyRelationshipService {
       childAccess,
       status: 'PENDING',
       invitedBy: inviterId,
-      inviterName,
       createdAt: now.toISOString(),
       expiresAt: expires.toISOString(),
       message,
@@ -402,7 +400,6 @@ class FamilyRelationshipService {
     const newGuardian: FamilyGuardian = {
       id: `guardian_${Date.now()}`,
       userId,
-      userName,
       email: userEmail,
       role: invite.role,
       permissions: invite.permissions,

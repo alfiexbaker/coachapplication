@@ -10,6 +10,7 @@ import { useAuth } from '@/hooks/use-auth';
 import { communityService, CreateCarpoolOfferParams, RequestCarpoolSeatParams } from '@/services/community-service';
 import type { CarpoolOffer } from '@/constants/types';
 import { createLogger } from '@/utils/logger';
+import { getCarpoolRequestParentLabel } from '@/utils/carpool-display';
 
 const logger = createLogger('CarpoolScreen');
 
@@ -188,8 +189,8 @@ export function useCarpool() {
       `You have ${pendingRequests.length} pending request(s).`,
       [
         ...pendingRequests.slice(0, 3).map((req) => ({
-          text: `${req.parentName} (${req.seatsRequested} seat${req.seatsRequested > 1 ? 's' : ''})`,
-          onPress: () => handleRespondToRequest(offer.id, req.id, req.parentName),
+          text: `${getCarpoolRequestParentLabel(req)} (${req.seatsRequested} seat${req.seatsRequested > 1 ? 's' : ''})`,
+          onPress: () => handleRespondToRequest(offer.id, req.id, getCarpoolRequestParentLabel(req)),
         })),
         { text: 'Cancel', style: 'cancel' as const },
       ],

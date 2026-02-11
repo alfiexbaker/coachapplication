@@ -14,9 +14,17 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.consentService = exports.CONSENT_TYPE_DESCRIPTIONS = exports.CONSENT_TYPE_ICONS = exports.CONSENT_TYPE_LABELS = void 0;
 const safety_service_1 = require("./safety-service");
 const roster_service_1 = require("./roster-service");
+const user_service_1 = require("./user-service");
 const logger_1 = require("@/utils/logger");
 const result_1 = require("@/types/result");
 const logger = (0, logger_1.createLogger)('ConsentService');
+async function resolveUserName(userId, fallback = '') {
+    const userResult = await user_service_1.userService.getUserById(userId);
+    if (!userResult.success) {
+        return fallback;
+    }
+    return userResult.data.name?.trim() || fallback;
+}
 const CONSENT_TYPES = ['PHOTO', 'VIDEO', 'SOCIAL_MEDIA', 'EMERGENCY_TREATMENT'];
 /**
  * Labels for consent types
@@ -56,24 +64,11 @@ class ConsentService {
                 return (0, result_1.err)(emergencyInfoResult.error);
             }
             const emergencyInfo = emergencyInfoResult.data;
-            // Get athlete name from roster if coachId provided
-            let athleteName = 'Unknown';
-            let parentName = 'Unknown';
-            let athletePhotoUrl;
             if (coachId) {
-                const roster = await roster_service_1.rosterService.getRoster(coachId);
-                const entry = roster.find((r) => r.athleteId === athleteId);
-                if (entry) {
-                    athleteName = entry.athleteName;
-                    parentName = entry.parentName;
-                    athletePhotoUrl = entry.athletePhotoUrl;
-                }
+                await roster_service_1.rosterService.getRoster(coachId);
             }
             return (0, result_1.ok)({
                 athleteId,
-                athleteName,
-                athletePhotoUrl,
-                parentName,
                 consents: emergencyInfo.consents,
                 lastUpdated: emergencyInfo.updatedAt,
             });
@@ -97,9 +92,6 @@ class ConsentService {
                     const emergencyInfo = emergencyInfoResult.data;
                     return {
                         athleteId: entry.athleteId,
-                        athleteName: entry.athleteName,
-                        athletePhotoUrl: entry.athletePhotoUrl,
-                        parentName: entry.parentName,
                         consents: emergencyInfo.consents,
                         lastUpdated: emergencyInfo.updatedAt,
                     };
@@ -107,9 +99,6 @@ class ConsentService {
                 // Return default consents if no emergency info exists
                 return {
                     athleteId: entry.athleteId,
-                    athleteName: entry.athleteName,
-                    athletePhotoUrl: entry.athletePhotoUrl,
-                    parentName: entry.parentName,
                     consents: CONSENT_TYPES.map((type) => ({
                         type,
                         granted: false,
@@ -122,8 +111,20 @@ class ConsentService {
             // Apply filters
             if (filters?.search) {
                 const search = filters.search.toLowerCase();
-                athleteConsents = athleteConsents.filter((ac) => ac.athleteName.toLowerCase().includes(search) ||
-                    ac.parentName.toLowerCase().includes(search));
+                const matchingAthleteIds = new Set();
+                await Promise.all(roster.map(async (entry) => {
+                    const [athleteName, parentName] = await Promise.all([
+                        resolveUserName(entry.athleteId),
+                        resolveUserName(entry.parentId),
+                    ]);
+                    const matches = entry.athleteId.toLowerCase().includes(search) ||
+                        athleteName.toLowerCase().includes(search) ||
+                        parentName.toLowerCase().includes(search);
+                    if (matches) {
+                        matchingAthleteIds.add(entry.athleteId);
+                    }
+                }));
+                athleteConsents = athleteConsents.filter((ac) => matchingAthleteIds.has(ac.athleteId));
             }
             if (filters?.type && filters?.status && filters.status !== 'all') {
                 const isGranted = filters.status === 'granted';

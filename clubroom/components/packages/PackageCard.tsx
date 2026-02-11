@@ -61,9 +61,9 @@ export function PackageCard({
               <ThemedText type="defaultSemiBold" style={styles.title} numberOfLines={2}>
                 {pkg.name}
               </ThemedText>
-              {showCoach && pkg.coachName && (
+              {showCoach && pkg.coachId && (
                 <ThemedText style={[styles.coachName, { color: palette.muted }]}>
-                  {pkg.coachName}
+                  {pkg.coachId}
                 </ThemedText>
               )}
             </View>

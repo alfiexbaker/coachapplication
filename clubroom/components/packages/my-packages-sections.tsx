@@ -69,10 +69,10 @@ export const PurchaseListItem = memo(function PurchaseListItem({
         <Row justify="space-between" align="center">
           <View style={styles.purchaseInfo}>
             <ThemedText type="defaultSemiBold" style={styles.purchaseName} numberOfLines={1}>
-              {purchase.packageName}
+              {purchase.packageId}
             </ThemedText>
             <ThemedText style={[styles.coachName, { color: palette.muted }]}>
-              {purchase.coachName}
+              {purchase.coachId}
             </ThemedText>
 
             <Row align="center" gap="sm" style={styles.progressRow}>

@@ -21,7 +21,7 @@ export const SquadInviteHistory = memo(function SquadInviteHistory({ history }: 
       <ScrollView horizontal showsHorizontalScrollIndicator={false}>
         {history.slice(0, 3).map((entry) => (
           <View key={entry.id} style={[styles.card, { backgroundColor: palette.surface, borderColor: palette.border }]}>
-            <ThemedText type="defaultSemiBold" numberOfLines={1} style={{ ...Typography.small }}>{entry.sessionTitle}</ThemedText>
+            <ThemedText type="defaultSemiBold" numberOfLines={1} style={{ ...Typography.small }}>{entry.sessionType || entry.sessionId}</ThemedText>
             <ThemedText style={[styles.meta, { color: palette.muted }]}>
               {entry.inviteCount} sent {'\u2022'} {entry.acceptedCount} accepted
             </ThemedText>

@@ -141,7 +141,6 @@ const family_1 = require("../../services/family");
             bookings.forEach((booking) => {
                 node_assert_1.default.ok(booking.id);
                 node_assert_1.default.ok(booking.childId);
-                node_assert_1.default.ok(booking.childName);
                 node_assert_1.default.ok(booking.colorCode);
                 node_assert_1.default.ok(booking.title);
                 node_assert_1.default.ok(booking.start);
@@ -232,7 +231,6 @@ const family_1 = require("../../services/family");
             node_assert_1.default.ok(spending.length > 0);
             spending.forEach((childSpending) => {
                 node_assert_1.default.ok(childSpending.childId);
-                node_assert_1.default.ok(childSpending.childName);
                 node_assert_1.default.ok(childSpending.colorCode);
                 node_assert_1.default.ok(typeof childSpending.totalSpent === 'number');
                 node_assert_1.default.ok(typeof childSpending.sessionCount === 'number');
@@ -291,7 +289,6 @@ const family_1 = require("../../services/family");
             const progress = await family_1.familyService.getChildProgress('child_tom');
             node_assert_1.default.ok(progress);
             node_assert_1.default.strictEqual(progress.childId, 'child_tom');
-            node_assert_1.default.strictEqual(progress.childName, 'Tom Henderson');
             node_assert_1.default.ok(typeof progress.sessionsCompleted === 'number');
             node_assert_1.default.ok(typeof progress.badgesEarned === 'number');
             node_assert_1.default.ok(typeof progress.activeGoals === 'number');
@@ -330,7 +327,7 @@ const family_1 = require("../../services/family");
                 node_assert_1.default.ok(overview.nextSession.id);
                 node_assert_1.default.ok(overview.nextSession.title);
                 node_assert_1.default.ok(overview.nextSession.start);
-                node_assert_1.default.ok(overview.nextSession.childName);
+                node_assert_1.default.ok(overview.nextSession.childId);
             }
         });
     });

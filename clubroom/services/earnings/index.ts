@@ -196,14 +196,13 @@ export const earningsService = {
     coachId: string,
     bookingId: string,
     amount: number,
-    athleteName: string,
+    _athleteName: string,
     sessionDate?: string
   ) {
     return earningsReportService.recordSessionPayment(
       coachId,
       bookingId,
       amount,
-      athleteName,
       sessionDate
     );
   },

@@ -98,7 +98,6 @@ describe('Annotation Service', () => {
 
       assert.ok(annotation);
       assert.strictEqual(annotation.createdBy, 'coach_1');
-      assert.strictEqual(annotation.createdByName, 'Coach Smith');
     });
   });
 

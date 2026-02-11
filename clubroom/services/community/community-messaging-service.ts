@@ -29,7 +29,6 @@ const mockMessages: Record<string, GroupMessage[]> = {
       id: 'msg_1',
       groupId: 'group_1',
       senderId: 'parent1',
-      senderName: 'John Henderson',
       body: 'Hi everyone! Looking forward to the new season.',
       createdAt: '2024-01-19T10:00:00Z',
       status: 'seen',
@@ -39,7 +38,6 @@ const mockMessages: Record<string, GroupMessage[]> = {
       id: 'msg_2',
       groupId: 'group_1',
       senderId: 'parent2',
-      senderName: 'Lisa Wilson',
       body: 'Same here! Has anyone got the training schedule?',
       createdAt: '2024-01-19T10:05:00Z',
       status: 'seen',
@@ -49,7 +47,6 @@ const mockMessages: Record<string, GroupMessage[]> = {
       id: 'msg_3',
       groupId: 'group_1',
       senderId: 'parent1',
-      senderName: 'John Henderson',
       body: 'See you all at training!',
       createdAt: '2024-01-20T14:30:00Z',
       status: 'delivered',
@@ -89,9 +86,9 @@ class CommunityMessagingService {
   async sendGroupMessage(
     groupId: string,
     senderId: string,
-    senderName: string,
+    _senderName: string,
     body: string,
-    senderAvatar?: string,
+    _senderAvatar?: string,
     attachments?: ChatAttachment[]
   ): Promise<Result<GroupMessage, ServiceError>> {
     try {
@@ -101,8 +98,6 @@ class CommunityMessagingService {
         id: `gmsg_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`,
         groupId,
         senderId,
-        senderName,
-        senderAvatar,
         body,
         createdAt: timestamp,
         status: 'sent',

@@ -24,7 +24,6 @@ export interface Club {
   coachCount: number;
   squadCount: number;
   ownerId: string;
-  ownerName: string; // TODO(T3.4): Remove when connecting to real API — resolve from ownerId instead
   inviteCode: string;
 }
 
@@ -61,13 +60,7 @@ export interface SquadMember {
   id: string;
   squadId: string;
   athleteId: string;
-  athleteName: string; // TODO(T3.4): Remove when connecting to real API — resolve from athleteId instead
-  athleteAge?: number; // TODO(T3.4): Remove when connecting to real API — resolve from athleteId instead
-  athletePhotoUrl?: string; // TODO(T3.4): Remove when connecting to real API — resolve from athleteId instead
   parentId: string;
-  parentName: string; // TODO(T3.4): Remove when connecting to real API — resolve from parentId instead
-  parentEmail?: string; // TODO(T3.4): Remove when connecting to real API — resolve from parentId instead
-  parentPhone?: string; // TODO(T3.4): Remove when connecting to real API — resolve from parentId instead
   status: 'ACTIVE' | 'INACTIVE' | 'PENDING';
   joinedAt: string;
   position?: string;
@@ -78,12 +71,9 @@ export interface SquadMember {
 export interface SquadInvite {
   id: string;
   squadId: string;
-  squadName: string; // TODO(T3.4): Remove when connecting to real API — resolve from squadId instead
   targetType: 'SESSION' | 'MATCH' | 'EVENT';
   targetId: string;
-  targetTitle: string; // TODO(T3.4): Remove when connecting to real API — resolve from targetId instead
   invitedBy: string;
-  invitedByName: string; // TODO(T3.4): Remove when connecting to real API — resolve from invitedBy instead
   invitedAt: string;
   memberCount: number;
   excludedMemberIds?: string[];
@@ -98,13 +88,10 @@ export interface SquadInvite {
 export interface SquadSessionInvite {
   id: string;
   squadId: string;
-  squadName: string; // TODO(T3.4): Remove when connecting to real API — resolve from squadId instead
   sessionId: string;
-  sessionTitle: string; // TODO(T3.4): Remove when connecting to real API — resolve from sessionId instead
   invitedMembers: SquadInvitedMember[];
   sentAt: string;
   sentBy: string;
-  sentByName: string; // TODO(T3.4): Remove when connecting to real API — resolve from sentBy instead
   status: 'SENT' | 'PARTIAL' | 'FAILED';
   result: BulkInviteResult;
 }
@@ -113,9 +100,7 @@ export interface SquadSessionInvite {
 export interface SquadInvitedMember {
   memberId: string;
   athleteId: string;
-  athleteName: string; // TODO(T3.4): Remove when connecting to real API — resolve from athleteId instead
   parentId: string;
-  parentName: string; // TODO(T3.4): Remove when connecting to real API — resolve from parentId instead
   inviteId?: string; // Reference to the individual SessionInvite created
   status: 'SENT' | 'FAILED' | 'SKIPPED';
   failureReason?: string;
@@ -136,7 +121,6 @@ export interface BulkInviteResult {
 // Error details for failed bulk invites
 export interface BulkInviteError {
   memberId: string;
-  athleteName: string; // TODO(T3.4): Remove when connecting to real API — resolve from memberId instead
   error: string;
   code?: 'DUPLICATE' | 'INVALID_PARENT' | 'RATE_LIMITED' | 'UNKNOWN';
 }
@@ -145,14 +129,11 @@ export interface BulkInviteError {
 export interface SquadInviteHistoryEntry {
   id: string;
   squadId: string;
-  squadName: string; // TODO(T3.4): Remove when connecting to real API — resolve from squadId instead
   sessionId: string;
-  sessionTitle: string; // TODO(T3.4): Remove when connecting to real API — resolve from sessionId instead
   sessionType: string;
   focus: string;
   sentAt: string;
   sentBy: string;
-  sentByName: string; // TODO(T3.4): Remove when connecting to real API — resolve from sentBy instead
   inviteCount: number;
   acceptedCount: number;
   declinedCount: number;
@@ -163,9 +144,7 @@ export interface SquadInviteHistoryEntry {
 export interface ClubInvite {
   code: string;
   clubId: string;
-  clubName: string; // TODO(T3.4): Remove when connecting to real API — resolve from clubId instead
   createdBy: string;
-  createdByName: string; // TODO(T3.4): Remove when connecting to real API — resolve from createdBy instead
   role: ClubRole;
   expiresAt: string;
   remainingUses: number;
@@ -187,9 +166,7 @@ export interface ClubFeedPost {
   createdAt: string;
   audience: 'club' | 'squad' | 'staff';
   audienceLabel?: string;
-  authorName: string; // TODO(T3.4): Remove when connecting to real API — resolve from authorId instead
   authorId?: string;
-  authorAvatar?: string; // TODO(T3.4): Remove when connecting to real API — resolve from authorId instead
   postAs?: 'club' | 'self';
   postType?: ClubPostType;
   /** Where this post is published: personal coach feed, club feed, or both. Defaults to 'CLUB'. */
@@ -206,7 +183,6 @@ export interface ClubFeedPost {
   eventLocation?: string;
   // Achievement post fields
   athleteId?: string;
-  athleteName?: string; // TODO(T3.4): Remove when connecting to real API — resolve from athleteId instead
   badgeId?: string;
   badgeAwardId?: string;
   // Session/Match post fields
@@ -219,7 +195,6 @@ export interface ClubFeedPost {
   sessionType?: string;
   // Parent who shared this (for achievement shares)
   sharedByParentId?: string;
-  sharedByParentName?: string; // TODO(T3.4): Remove when connecting to real API — resolve from sharedByParentId instead
 }
 
 // ============================================================================
@@ -258,7 +233,6 @@ export interface Academy {
   isPublic: boolean;
   requiresApproval: boolean;
   ownerId: string;
-  ownerName: string; // TODO(T3.4): Remove when connecting to real API — resolve from ownerId instead
   createdAt: string;
   rating?: {
     average: number;
@@ -272,8 +246,6 @@ export interface AcademyMembership {
   id: string;
   academyId: string;
   userId: string;
-  userName: string; // TODO(T3.4): Remove when connecting to real API — resolve from userId instead
-  userPhotoUrl?: string; // TODO(T3.4): Remove when connecting to real API — resolve from userId instead
   role: 'OWNER' | 'ADMIN' | 'HEAD_COACH' | 'COACH' | 'ASSISTANT' | 'MEMBER';
   permissions: AcademyPermission[];
   status: 'ACTIVE' | 'PENDING' | 'SUSPENDED';
@@ -284,12 +256,10 @@ export interface AcademyMembership {
 export interface AcademyInvite {
   id: string;
   academyId: string;
-  academyName: string; // TODO(T3.4): Remove when connecting to real API — resolve from academyId instead
   code: string;
   role: AcademyMembership['role'];
   permissions: AcademyPermission[];
   createdBy: string;
-  createdByName: string; // TODO(T3.4): Remove when connecting to real API — resolve from createdBy instead
   expiresAt: string;
   maxUses: number;
   currentUses: number;
@@ -310,14 +280,7 @@ export interface RosterEntry {
   id: string;
   coachId: string;
   athleteId: string;
-  athleteName: string; // TODO(T3.4): Remove when connecting to real API — resolve from athleteId instead
-  athleteAge?: number; // TODO(T3.4): Remove when connecting to real API — resolve from athleteId instead
-  athletePhotoUrl?: string; // TODO(T3.4): Remove when connecting to real API — resolve from athleteId instead
-  athleteSkillLevel?: 'BEGINNER' | 'INTERMEDIATE' | 'ADVANCED'; // TODO(T3.4): Remove when connecting to real API — resolve from athleteId instead
   parentId: string;
-  parentName: string; // TODO(T3.4): Remove when connecting to real API — resolve from parentId instead
-  parentEmail?: string; // TODO(T3.4): Remove when connecting to real API — resolve from parentId instead
-  parentPhone?: string; // TODO(T3.4): Remove when connecting to real API — resolve from parentId instead
   status: 'ACTIVE' | 'PAUSED' | 'GRADUATED' | 'INACTIVE';
   startDate: string;
   lastSessionDate?: string;

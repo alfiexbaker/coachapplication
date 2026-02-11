@@ -12,7 +12,7 @@ import type { SessionRsvp } from '@/constants/types';
 // --- Helpers ----------------------------------------------------------------
 
 export function computeRSVPNames(rsvps: SessionRsvp[]) {
-  const getName = (r: SessionRsvp) => r.childName || `User ${r.userId.slice(-4)}`;
+  const getName = (r: SessionRsvp) => r.childId || `User ${r.userId.slice(-4)}`;
   return {
     goingNames: rsvps.filter((r) => r.status === 'going').map(getName),
     cantNames: rsvps.filter((r) => r.status === 'not_going').map(getName),

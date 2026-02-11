@@ -5,7 +5,6 @@ import { memo } from 'react';
 import { View, StyleSheet } from 'react-native';
 import { Clickable } from '@/components/primitives/clickable';
 import { Ionicons } from '@expo/vector-icons';
-import { Image } from 'expo-image';
 
 import { Divider } from '@/components/ui/primitives/Divider';
 import { Row } from '@/components/primitives/row';
@@ -15,22 +14,20 @@ import type { RecurringBooking } from '@/constants/types';
 import { getDayName, getFrequencyLabel, getStatusLabel } from '@/services/recurring-booking-service';
 import { useTheme } from '@/hooks/useTheme';
 import { getStatusColor, getStatusIcon, formatRecurringTime } from './recurring-card-helpers';
+import { getRecurringCoachName } from '@/utils/recurring-display';
 
 export const HeaderRow = memo(function HeaderRow({ recurring }: { recurring: RecurringBooking }) {
   const { colors: palette } = useTheme();
   const statusColor = getStatusColor(recurring.status, palette);
   const statusIcon = getStatusIcon(recurring.status);
+  const coachName = getRecurringCoachName(recurring);
   return (
     <Row align="center" gap="sm">
-      {recurring.coachPhotoUrl ? (
-        <Image source={{ uri: recurring.coachPhotoUrl }} style={styles.avatar} contentFit="cover" />
-      ) : (
-        <View style={[styles.avatarPlaceholder, { backgroundColor: palette.border }]}>
-          <Ionicons name="person" size={20} color={palette.muted} />
-        </View>
-      )}
+      <View style={[styles.avatarPlaceholder, { backgroundColor: palette.border }]}>
+        <Ionicons name="person" size={20} color={palette.muted} />
+      </View>
       <View style={styles.headerInfo}>
-        <ThemedText type="defaultSemiBold" numberOfLines={1}>{recurring.coachName}</ThemedText>
+        <ThemedText type="defaultSemiBold" numberOfLines={1}>{coachName}</ThemedText>
         <ThemedText style={[styles.sessionType, { color: palette.muted }]}>{recurring.sessionType}</ThemedText>
       </View>
       <Row align="center" gap="xxs" style={[styles.statusBadge, { backgroundColor: withAlpha(statusColor, 0.12) }]}>

@@ -42,7 +42,7 @@ export interface SessionDisplayItem {
 const mapSessionToDisplay = (session: Session): SessionDisplayItem => ({
   id: session.id,
   coachName: session.coachName ?? 'Unknown Coach',
-  athleteName: session.athleteName ?? 'Unknown Athlete',
+  athleteName: session.athleteId ?? 'Unknown Athlete',
   focus: session.skillsWorkedOn[0] || 'General Training',
   durationMinutes: 60,
   rating: session.performanceRating,

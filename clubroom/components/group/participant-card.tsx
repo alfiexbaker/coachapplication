@@ -8,6 +8,7 @@ import { Spacing, Radii , Typography , withAlpha } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
 import type { GroupRegistration } from '@/constants/types';
 import { Row } from '@/components/primitives';
+import { getGroupRegistrationAthleteName, getGroupRegistrationParentName } from '@/utils/group-display';
 
 interface ParticipantCardProps {
   registration: GroupRegistration;
@@ -23,6 +24,8 @@ export function ParticipantCard({
   onMessage,
 }: ParticipantCardProps) {
   const { colors: palette } = useTheme();
+  const athleteName = getGroupRegistrationAthleteName(registration);
+  const parentName = getGroupRegistrationParentName(registration);
 
   const statusColors: Record<GroupRegistration['status'], { bg: string; text: string }> = {
     REGISTERED: { bg: withAlpha(palette.success, 0.09), text: palette.success },
@@ -49,14 +52,14 @@ export function ParticipantCard({
       <Row style={styles.main}>
         <View style={[styles.avatar, { backgroundColor: palette.border }]}>
           <ThemedText style={styles.avatarText}>
-            {registration.athleteName.slice(0, 2).toUpperCase()}
+            {athleteName.slice(0, 2).toUpperCase()}
           </ThemedText>
         </View>
 
         <View style={styles.info}>
-          <ThemedText type="defaultSemiBold">{registration.athleteName}</ThemedText>
+          <ThemedText type="defaultSemiBold">{athleteName}</ThemedText>
           <ThemedText style={[styles.parentName, { color: palette.muted }]}>
-            Parent: {registration.parentName}
+            Parent: {parentName}
           </ThemedText>
           <View style={[styles.statusBadge, { backgroundColor: colors.bg }]}>
             <ThemedText style={[styles.statusText, { color: colors.text }]}>

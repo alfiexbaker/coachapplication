@@ -31,8 +31,8 @@ export interface NormalizedPost {
 function normalizePost(post: Post | ClubFeedPost): NormalizedPost {
   if ('body' in post) {
     return {
-      authorName: post.authorName ?? 'Unknown',
-      authorAvatar: 'authorAvatar' in post ? post.authorAvatar : undefined,
+      authorName: post.authorId ?? 'Unknown',
+      authorAvatar: undefined,
       content: post.body,
       title: post.title,
       createdAt: post.createdAt,
@@ -41,8 +41,8 @@ function normalizePost(post: Post | ClubFeedPost): NormalizedPost {
     };
   }
   return {
-    authorName: 'authorName' in post ? (post.authorName ?? 'Unknown') : 'Unknown',
-    authorAvatar: 'authorAvatar' in post ? post.authorAvatar : undefined,
+    authorName: post.authorId || 'Unknown',
+    authorAvatar: undefined,
     content: post.content,
     title: undefined,
     createdAt: post.createdAt,

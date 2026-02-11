@@ -33,11 +33,12 @@ export interface FeedPostCardProps {
 
 function FeedPostCardInner({ post, onLike, onComment, onShare }: FeedPostCardProps) {
   const { colors: palette } = useTheme();
+  const authorName = post.authorId || 'Coach';
 
   const initials =
     post.postAs === 'club'
       ? post.clubBadge?.slice(0, 2) || 'CL'
-      : post.authorName?.slice(0, 2).toUpperCase() || 'ME';
+      : authorName.slice(0, 2).toUpperCase() || 'ME';
 
   const handlePostPress = () => {
     router.push(Routes.modalPostDetail(post.id));
@@ -54,7 +55,7 @@ function FeedPostCardInner({ post, onLike, onComment, onShare }: FeedPostCardPro
 
       <PostHeader
         initials={initials}
-        authorName={post.authorName}
+        authorName={authorName}
         postAs={post.postAs}
         createdAt={post.createdAt}
         audienceLabel={post.audienceLabel}

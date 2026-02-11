@@ -22,6 +22,7 @@ const session_template_service_1 = require("./session-template-service");
 const logger_1 = require("@/utils/logger");
 const format_1 = require("@/utils/format");
 const result_1 = require("@/types/result");
+const user_service_1 = require("./user-service");
 const logger = (0, logger_1.createLogger)('AvailabilityService');
 const USE_MOCK = config_1.api.useMock;
 // Helper to load existing bookings from storage
@@ -43,6 +44,19 @@ async function loadSessionOfferings() {
         logger.error('Failed to load session offerings', error);
     }
     return [];
+}
+async function resolveUserName(userId, fallback) {
+    const userResult = await user_service_1.userService.getUserById(userId);
+    if (!userResult.success)
+        return fallback;
+    const name = userResult.data.name?.trim();
+    return name || fallback;
+}
+async function resolveBookingAthleteName(booking) {
+    const athleteId = booking.athleteIds?.[0] ?? booking.athleteId;
+    if (!athleteId)
+        return undefined;
+    return resolveUserName(athleteId, 'Athlete');
 }
 // Mock templates for development - coach availability
 const MOCK_TEMPLATES = [
@@ -528,16 +542,16 @@ exports.availabilityService = {
             return bookingDate >= startDate && bookingDate <= endDate;
         });
         // Get registrations from offerings
-        const coachOfferingBookings = offerings
+        const coachOfferingBookings = await Promise.all(offerings
             .filter((offering) => offering.coachId === coachId)
             .filter((offering) => {
             const offeringDate = offering.scheduledAt?.split('T')[0];
             return offeringDate >= startDate && offeringDate <= endDate;
         })
-            .map((offering) => ({
+            .map(async (offering) => ({
             id: offering.id,
             coachId: offering.coachId,
-            coachName: offering.coachName,
+            coachName: await resolveUserName(offering.coachId, 'Coach'),
             scheduledAt: offering.scheduledAt,
             service: offering.title,
             location: offering.location,
@@ -546,7 +560,7 @@ exports.availabilityService = {
             maxParticipants: offering.maxParticipants,
             currentParticipants: offering.registrations?.filter(r => r.status === 'confirmed').length || 0,
             registrations: offering.registrations,
-        }));
+        })));
         return [...coachBookings, ...coachOfferingBookings];
     },
     /**
@@ -762,7 +776,7 @@ exports.availabilityService = {
             return { affectedBookings: [], affectedCount: 0 };
         const dateSet = new Set(dates);
         const allBookings = await loadBookings();
-        const affected = allBookings
+        const affected = await Promise.all(allBookings
             .filter((b) => {
             if (b.coachId !== coachId || b.status === 'CANCELLED')
                 return false;
@@ -771,13 +785,13 @@ exports.availabilityService = {
                 return false;
             return b.location !== undefined && b.location !== newLocation;
         })
-            .map((b) => ({
+            .map(async (b) => ({
             id: b.id,
             date: b.scheduledAt?.split('T')[0] || '',
             time: b.scheduledAt?.split('T')[1]?.substring(0, 5) || '',
             location: b.location || '',
-            athleteName: b.athleteName,
-        }));
+            athleteName: await resolveBookingAthleteName(b),
+        })));
         return { affectedBookings: affected, affectedCount: affected.length };
     },
 };

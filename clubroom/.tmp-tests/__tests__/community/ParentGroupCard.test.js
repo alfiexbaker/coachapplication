@@ -53,11 +53,10 @@ function createMockGroup(overrides = {}) {
         description: 'A test group description',
         type: 'GENERAL',
         members: [
-            { parentId: 'parent1', parentName: 'John Henderson', role: 'ADMIN', joinedAt: '2024-01-15' },
-            { parentId: 'parent2', parentName: 'Lisa Wilson', role: 'MEMBER', joinedAt: '2024-01-16' },
+            { parentId: 'parent1', role: 'ADMIN', joinedAt: '2024-01-15' },
+            { parentId: 'parent2', role: 'MEMBER', joinedAt: '2024-01-16' },
         ],
         createdById: 'parent1',
-        createdByName: 'John Henderson',
         createdAt: '2024-01-15',
         updatedAt: '2024-01-20',
         isPublic: true,
@@ -133,7 +132,7 @@ function formatTimeAgo(dateString) {
             const group = createMockGroup();
             const admins = group.members.filter((m) => m.role === 'ADMIN');
             node_assert_1.default.strictEqual(admins.length, 1);
-            node_assert_1.default.strictEqual(admins[0].parentName, 'John Henderson');
+            node_assert_1.default.strictEqual(admins[0].parentId, 'parent1');
         });
     });
     (0, node_test_1.describe)('Group Type Display', () => {

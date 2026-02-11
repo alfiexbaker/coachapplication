@@ -32,11 +32,13 @@ const BadgeItem = memo(function BadgeItem({
   onPress: () => void;
 }) {
   const { colors: palette } = useTheme();
+  const athleteLabel = badge.athleteId || 'Athlete';
+  const coachLabel = (badge.coachId || 'Coach').split(' ')[0];
 
   return (
     <Clickable
       onPress={onPress}
-      accessibilityLabel={`Badge: ${badge.badgeLabel} for ${badge.athleteName}`}
+      accessibilityLabel={`Badge: ${badge.badgeLabel} for ${athleteLabel}`}
       accessibilityRole="button"
     >
       <Column
@@ -62,12 +64,12 @@ const BadgeItem = memo(function BadgeItem({
           {badge.badgeLabel}
         </ThemedText>
         <ThemedText style={[styles.badgeAthlete, { color: palette.muted }]} numberOfLines={1}>
-          {badge.athleteName}
+          {athleteLabel}
         </ThemedText>
         <Row gap="micro" align="center">
           <Ionicons name="person" size={10} color={palette.icon} />
           <ThemedText style={[styles.badgeCoach, { color: palette.muted }]} numberOfLines={1}>
-            Coach {badge.coachName?.split(' ')[0]}
+            Coach {coachLabel}
           </ThemedText>
         </Row>
       </Column>

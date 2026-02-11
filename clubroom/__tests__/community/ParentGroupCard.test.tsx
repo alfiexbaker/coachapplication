@@ -19,11 +19,10 @@ function createMockGroup(overrides: Partial<ParentGroup> = {}): ParentGroup {
     description: 'A test group description',
     type: 'GENERAL',
     members: [
-      { parentId: 'parent1', parentName: 'John Henderson', role: 'ADMIN', joinedAt: '2024-01-15' },
-      { parentId: 'parent2', parentName: 'Lisa Wilson', role: 'MEMBER', joinedAt: '2024-01-16' },
+      { parentId: 'parent1', role: 'ADMIN', joinedAt: '2024-01-15' },
+      { parentId: 'parent2', role: 'MEMBER', joinedAt: '2024-01-16' },
     ],
     createdById: 'parent1',
-    createdByName: 'John Henderson',
     createdAt: '2024-01-15',
     updatedAt: '2024-01-20',
     isPublic: true,
@@ -105,7 +104,7 @@ describe('ParentGroupCard Component Logic', () => {
       const admins = group.members.filter((m) => m.role === 'ADMIN');
 
       assert.strictEqual(admins.length, 1);
-      assert.strictEqual(admins[0].parentName, 'John Henderson');
+      assert.strictEqual(admins[0].parentId, 'parent1');
     });
   });
 

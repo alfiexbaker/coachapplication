@@ -56,7 +56,7 @@ export const MemberRowItem = memo(function MemberRowItem({
       <View style={styles.memberInfo}>
         <Row style={styles.memberNameRow}>
           <ThemedText style={[styles.memberName, { color: palette.text }]} numberOfLines={1}>
-            {item.parentName}{isSelf ? ' (You)' : ''}
+            {item.parentId}{isSelf ? ' (You)' : ''}
           </ThemedText>
           <View style={[styles.roleBadge, { backgroundColor: colors.bg }]}>
             <ThemedText style={[styles.roleBadgeText, { color: colors.text }]}>

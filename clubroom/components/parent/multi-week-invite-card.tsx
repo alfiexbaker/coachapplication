@@ -21,6 +21,7 @@ import { useTheme } from '@/hooks/useTheme';
 import type { SessionInvite, WeekAcceptance } from '@/constants/types';
 import { sessionInviteService } from '@/services/invite/session-invite-service';
 import { createLogger } from '@/utils/logger';
+import { getSessionInviteAthleteNames, getSessionInviteCoachName } from '@/utils/session-invite-display';
 
 import {
   WeekSeparator,
@@ -43,6 +44,8 @@ export function MultiWeekInviteCard({
   onResponded,
 }: MultiWeekInviteCardProps) {
   const { colors: palette } = useTheme();
+  const coachName = getSessionInviteCoachName(invite);
+  const athleteNames = getSessionInviteAthleteNames(invite);
 
   const initialWeekSlots = invite.weekSlots ?? [];
   const [weekAcceptances, setWeekAcceptances] = useState<WeekAcceptance[]>(initialWeekSlots);
@@ -107,7 +110,7 @@ export function MultiWeekInviteCard({
   return (
     <SurfaceCard style={styles.card}>
       <InviteHeader
-        coachName={invite.coachName}
+        coachName={coachName}
         sessionType={invite.sessionType}
         focus={invite.focus}
         totalWeeks={totalCount}
@@ -117,7 +120,7 @@ export function MultiWeekInviteCard({
       <Row align="center" gap="xs">
         <Ionicons name="person-outline" size={16} color={palette.muted} />
         <ThemedText style={[Typography.small, { color: palette.text }]}>
-          For: {invite.athleteNames.join(', ')}
+          For: {athleteNames.join(', ')}
         </ThemedText>
       </Row>
 

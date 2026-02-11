@@ -16,6 +16,7 @@ import { Radii, Typography, Spacing, withAlpha } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
 import { scaleFont } from '@/utils/scale';
 import type { SessionOffering, BadgeAward } from '@/constants/types';
+import { getSessionOfferingCoachName } from '@/utils/session-display';
 
 interface SessionInfoSectionProps {
   offering: SessionOffering;
@@ -29,6 +30,7 @@ function SessionInfoSectionInner({
   offering, isMyOffering, registeredCount, sessionAwards, formatSchedule,
 }: SessionInfoSectionProps) {
   const { colors: palette } = useTheme();
+  const coachName = getSessionOfferingCoachName(offering);
 
   return (
     <SurfaceCard style={styles.card}>
@@ -37,7 +39,7 @@ function SessionInfoSectionInner({
       {!isMyOffering && (
         <Row align="center" gap={10} style={styles.detailRow}>
           <Ionicons name="person-circle-outline" size={20} color={palette.icon} />
-          <ThemedText>Coach: {offering.coachName}</ThemedText>
+          <ThemedText>Coach: {coachName}</ThemedText>
         </Row>
       )}
 
@@ -92,7 +94,7 @@ function SessionInfoSectionInner({
                   Awarded {new Date(award.awardedAt).toLocaleString(undefined, {
                     month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit',
                   })}
-                  {' '}by {award.awardedByName || award.coachName || 'Coach'}
+                  {' '}by {award.awardedBy || award.coachId || 'Coach'}
                 </ThemedText>
               </View>
             ))}

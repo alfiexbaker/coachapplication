@@ -40,7 +40,6 @@ describe('Injury Service', () => {
       assert.strictEqual(injury.status, 'ACTIVE');
       assert.strictEqual(injury.recoveryPercent, 0);
       assert.strictEqual(injury.userId, 'test_user');
-      assert.strictEqual(injury.userName, 'Test User');
       assert.strictEqual(injury.sharedWithCoach, true);
       assert.deepStrictEqual(injury.notes, []);
       assert.ok(injury.createdAt);
@@ -193,7 +192,6 @@ describe('Injury Service', () => {
       assert.strictEqual(newNote.injuryId, 'injury_1');
       assert.strictEqual(newNote.note, 'Feeling better today');
       assert.strictEqual(newNote.createdBy, 'user1');
-      assert.strictEqual(newNote.createdByName, 'Tom Henderson');
       assert.strictEqual(newNote.recoveryPercent, 70);
     });
 

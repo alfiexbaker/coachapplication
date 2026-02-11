@@ -171,12 +171,12 @@ export const EventListSection = memo(function EventListSection({
               <Row style={styles.eventMeta}>
                 <Row style={styles.eventMetaItem}>
                   <Ionicons name="person" size={12} color={palette.muted} />
-                  <ThemedText style={[styles.eventMetaText, { color: palette.muted }]}>{event.childName}</ThemedText>
+                  <ThemedText style={[styles.eventMetaText, { color: palette.muted }]}>{event.childId}</ThemedText>
                 </Row>
-                {event.coachName && (
+                {event.coachId && (
                   <Row style={styles.eventMetaItem}>
                     <Ionicons name="school" size={12} color={palette.muted} />
-                    <ThemedText style={[styles.eventMetaText, { color: palette.muted }]}>{event.coachName}</ThemedText>
+                    <ThemedText style={[styles.eventMetaText, { color: palette.muted }]}>{event.coachId}</ThemedText>
                   </Row>
                 )}
                 {event.location && (

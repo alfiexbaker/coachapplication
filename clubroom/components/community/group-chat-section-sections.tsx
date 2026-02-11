@@ -92,7 +92,7 @@ export const MessageBubble = memo(function MessageBubble({
       >
         {!isOwnMessage && (
           <ThemedText style={[styles.senderName, { color: palette.tint }]}>
-            {message.senderName}
+            {message.senderId || 'Member'}
           </ThemedText>
         )}
         <View

@@ -19,7 +19,6 @@ export interface VideoAnnotation {
   /** ID of the user who created the annotation */
   createdBy?: string;
   /** Name of the user who created the annotation */
-  createdByName?: string; // TODO(T3.4): Remove when connecting to real API — resolve from createdBy instead
   /** When the annotation was created */
   createdAt?: string;
   /** When the annotation was last updated */
@@ -31,9 +30,7 @@ export interface SessionVideo {
   sessionId?: string;
   bookingId?: string;
   coachId: string;
-  coachName: string; // TODO(T3.4): Remove when connecting to real API — resolve from coachId instead
   athleteIds: string[];
-  athleteNames: string[]; // TODO(T3.4): Remove when connecting to real API — resolve from athleteIds instead
   title: string;
   description?: string;
   videoUrl: string;
@@ -95,11 +92,9 @@ export interface AnnotatedVideo {
   /** Coach who uploaded the video */
   coachId: string;
   /** Coach name */
-  coachName: string; // TODO(T3.4): Remove when connecting to real API — resolve from coachId instead
   /** Athletes featured in the video */
   athleteIds: string[];
   /** Athlete names */
-  athleteNames: string[]; // TODO(T3.4): Remove when connecting to real API — resolve from athleteIds instead
   /** All annotations on this video, sorted by timestamp */
   annotations: VideoAnnotation[];
   /** When the video was created */

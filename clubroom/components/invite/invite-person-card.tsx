@@ -15,6 +15,11 @@ import { Row, Column } from '@/components/primitives';
 import { Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
 import type { ThemeColors } from '@/hooks/useTheme';
 import type { SessionInvite } from '@/constants/types';
+import {
+  getSessionInviteAthleteNames,
+  getSessionInviteCoachName,
+  getSessionInviteParentName,
+} from '@/utils/session-invite-display';
 
 interface InvitePersonCardProps {
   invite: SessionInvite;
@@ -29,9 +34,12 @@ export const InvitePersonCard = memo(function InvitePersonCard({
   colors,
   delay = 100,
 }: InvitePersonCardProps) {
+  const athleteNames = getSessionInviteAthleteNames(invite);
+  const coachName = getSessionInviteCoachName(invite);
+  const parentName = getSessionInviteParentName(invite);
   const initials = isCoach
-    ? invite.athleteNames[0]?.charAt(0) || 'A'
-    : invite.coachName
+    ? athleteNames[0]?.charAt(0) || 'A'
+    : coachName
         .split(' ')
         .map((n) => n[0])
         .join('');
@@ -50,7 +58,7 @@ export const InvitePersonCard = memo(function InvitePersonCard({
               {isCoach ? 'Athletes' : 'Coach'}
             </ThemedText>
             <ThemedText type="subtitle">
-              {isCoach ? invite.athleteNames.join(', ') : `Coach ${invite.coachName}`}
+              {isCoach ? athleteNames.join(', ') : `Coach ${coachName}`}
             </ThemedText>
             {invite.clubName && !isCoach && (
               <ThemedText style={[styles.clubName, { color: colors.tint }]}>
@@ -59,7 +67,7 @@ export const InvitePersonCard = memo(function InvitePersonCard({
             )}
             {isCoach && (
               <ThemedText style={[styles.roleLabel, { color: colors.muted }]}>
-                Parent: {invite.parentName}
+                Parent: {parentName}
               </ThemedText>
             )}
           </Column>

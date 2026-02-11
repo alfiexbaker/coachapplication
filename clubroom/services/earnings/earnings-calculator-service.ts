@@ -229,20 +229,10 @@ export const earningsCalculatorService = {
               ? 100
               : 0;
 
-        // Find top athlete
-        const athleteStats: Record<string, { name: string; sessions: number; revenue: number }> =
-          {};
-        for (const txn of currentPeriodTxns) {
-          if (txn.athleteName) {
-            if (!athleteStats[txn.athleteName]) {
-              athleteStats[txn.athleteName] = { name: txn.athleteName, sessions: 0, revenue: 0 };
-            }
-            athleteStats[txn.athleteName].sessions += 1;
-            athleteStats[txn.athleteName].revenue += txn.amount;
-          }
-        }
-
-        const topAthlete = Object.values(athleteStats).sort((a, b) => b.revenue - a.revenue)[0];
+        // Denormalized athlete names are removed from transactions.
+        // Top-athlete ranking requires joining booking/athlete IDs, which this
+        // lightweight calculator does not perform yet.
+        const topAthlete = undefined;
 
         logger.debug('Calculated earnings summary', { coachId, period, totalEarned });
 

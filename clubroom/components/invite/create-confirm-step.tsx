@@ -141,10 +141,10 @@ export const CreateConfirmStep = memo(function CreateConfirmStep({ state, handle
           <SummaryRow icon="people-outline" color={colors.muted}>
             <ThemedText>{state.selectedAthletes.map((a) => a.name).join(', ')}</ThemedText>
           </SummaryRow>
-          {(state.selectedClub || (isExisting && existingSession?.clubName)) && (
+          {(state.selectedClub || (isExisting && existingSession?.clubId)) && (
             <SummaryRow icon="business-outline" color={colors.tint}>
               <ThemedText style={{ color: colors.tint }}>
-                Invite to {state.selectedClub?.name || existingSession?.clubName}
+                Invite to {state.selectedClub?.name || existingSession?.clubId}
               </ThemedText>
             </SummaryRow>
           )}

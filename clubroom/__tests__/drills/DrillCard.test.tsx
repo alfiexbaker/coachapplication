@@ -14,7 +14,6 @@ function createMockDrill(overrides?: Partial<Drill>): Drill {
   return {
     id: 'test_drill',
     coachId: 'coach1',
-    coachName: 'Coach Mike',
     title: 'Test Drill',
     description: 'Test description for the drill',
     category: 'TECHNIQUE' as DrillCategory,
@@ -112,10 +111,9 @@ describe('DrillCard Component', () => {
   });
 
   describe('Display Properties', () => {
-    test('should have coach name for display', () => {
-      const drill = createMockDrill({ coachName: 'Coach Sarah' });
-
-      assert.strictEqual(drill.coachName, 'Coach Sarah');
+    test('should have coach ID for display fallback', () => {
+      const drill = createMockDrill({ coachId: 'coach_sarah' });
+      assert.strictEqual(drill.coachId, 'coach_sarah');
     });
 
     test('should truncate long descriptions appropriately', () => {

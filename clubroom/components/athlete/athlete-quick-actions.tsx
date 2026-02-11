@@ -16,6 +16,7 @@ import { Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
 import { callPhone, sendEmail, openMessage } from '@/utils/contact-actions';
 import type { RosterEntry } from '@/constants/types';
+import { getRosterAthleteName, getRosterParentName } from '@/utils/roster-display';
 
 interface AthleteQuickActionsProps {
   athlete: RosterEntry;
@@ -29,6 +30,10 @@ function AthleteQuickActionsInner({
   onRemove,
 }: AthleteQuickActionsProps) {
   const { colors } = useTheme();
+  const athleteName = getRosterAthleteName(athlete);
+  const parentName = getRosterParentName(athlete);
+  const parentEmail: string | undefined = undefined;
+  const parentPhone: string | undefined = undefined;
 
   const handleBook = useCallback(() => {
     if (Platform.OS !== 'web') {
@@ -42,19 +47,19 @@ function AthleteQuickActionsInner({
   }, [athlete.athleteId]);
 
   const handleCall = useCallback(() => {
-    if (athlete.parentPhone) {
-      void callPhone(athlete.parentPhone, athlete.parentName);
+    if (parentPhone) {
+      void callPhone(parentPhone, parentName);
     } else {
       Alert.alert('No Phone Number', 'No phone number is on file for this parent.');
     }
-  }, [athlete.parentPhone, athlete.parentName]);
+  }, [parentName, parentPhone]);
 
   const handleMore = useCallback(() => {
     if (Platform.OS !== 'web') {
       void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     }
     Alert.alert(
-      athlete.athleteName,
+      athleteName,
       undefined,
       [
         { text: 'Cancel', style: 'cancel' },
@@ -68,7 +73,7 @@ function AthleteQuickActionsInner({
         },
         {
           text: 'Email Parent',
-          onPress: () => { if (athlete.parentEmail) void sendEmail(athlete.parentEmail); },
+          onPress: () => { if (parentEmail) void sendEmail(parentEmail); },
         },
         {
           text: 'Remove from Roster',
@@ -77,7 +82,7 @@ function AthleteQuickActionsInner({
         },
       ]
     );
-  }, [athlete, onRaiseConcern, onRemove]);
+  }, [athlete.athleteId, athleteName, onRaiseConcern, onRemove, parentEmail]);
 
   const actions = [
     { icon: 'add-circle-outline' as const, label: 'Book', onPress: handleBook, primary: true },

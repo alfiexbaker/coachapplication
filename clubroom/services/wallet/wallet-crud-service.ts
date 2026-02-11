@@ -26,7 +26,6 @@ const MOCK_WALLETS: Wallet[] = [
   {
     id: 'wallet_parent1',
     userId: 'parent1',
-    userName: 'John Henderson',
     balance: 150.0,
     currency: 'GBP',
     pendingBalance: 0,
@@ -39,7 +38,6 @@ const MOCK_WALLETS: Wallet[] = [
   {
     id: 'wallet_parent2',
     userId: 'parent2',
-    userName: 'Lisa Wilson',
     balance: 75.5,
     currency: 'GBP',
     pendingBalance: 25.0,
@@ -127,7 +125,7 @@ class WalletCrudService {
   /**
    * Create a new wallet for a user
    */
-  async createWallet(userId: string, userName?: string): Promise<Result<Wallet, ServiceError>> {
+  async createWallet(userId: string, _userName?: string): Promise<Result<Wallet, ServiceError>> {
     try {
       const walletsResult = await this.getAllWallets();
       if (!walletsResult.success) {
@@ -137,7 +135,6 @@ class WalletCrudService {
       const newWallet: Wallet = {
         id: `wallet_${userId}`,
         userId,
-        userName: userName || `User ${userId}`,
         balance: 0,
         currency: 'GBP',
         pendingBalance: 0,

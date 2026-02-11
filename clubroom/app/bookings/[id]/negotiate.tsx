@@ -95,8 +95,8 @@ export default function NegotiateScreen() {
           <Row style={styles.summaryRow}>
             <Ionicons name="calendar-outline" size={20} color={palette.tint} />
             <View style={styles.summaryInfo}>
-              <ThemedText type="defaultSemiBold">Session with {n.negotiation.coachName}</ThemedText>
-              <ThemedText style={{ color: palette.muted }}>For {n.negotiation.athleteName}</ThemedText>
+              <ThemedText type="defaultSemiBold">Session with {n.negotiation.coachId}</ThemedText>
+              <ThemedText style={{ color: palette.muted }}>For {n.negotiation.athleteId}</ThemedText>
             </View>
           </Row>
         </View>

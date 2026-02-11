@@ -27,8 +27,8 @@ export function AttendeeCard({
 }: AttendeeCardProps) {
   const { colors: palette } = useTheme();
 
-  const userName = attendance?.userName || rsvp?.userName || 'Unknown';
-  const userPhotoUrl = attendance?.userPhotoUrl || rsvp?.userPhotoUrl;
+  const userName = attendance?.userId || rsvp?.userId || 'Unknown';
+  const userPhotoUrl = undefined;
   const userRole = attendance?.userRole || rsvp?.userRole || 'PARENT';
   const guestCount = attendance?.guestsCheckedIn ?? rsvp?.guestCount ?? 0;
   const isCheckedIn = !!attendance;

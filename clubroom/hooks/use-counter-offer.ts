@@ -44,7 +44,7 @@ export function useCounterOffer() {
       if (bookingData) {
         setBooking({
           id: bookingData.id, coachName: bookingData.coachName || 'Coach',
-          athleteName: bookingData.athleteName || 'Athlete',
+          athleteName: bookingData.athleteId || bookingData.athleteIds?.[0] || 'Athlete',
           scheduledAt: bookingData.scheduledAt || new Date().toISOString(),
           location: bookingData.location || bookingData.locationLabel || 'Location TBD',
           service: bookingData.service || 'Session',

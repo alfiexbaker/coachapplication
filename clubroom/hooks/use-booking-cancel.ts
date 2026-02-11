@@ -14,6 +14,7 @@ import type { CancellationPolicy, RefundCalculation, RefundTier, Booking } from 
 import type { ThemeColors } from '@/hooks/useTheme';
 import { createLogger } from '@/utils/logger';
 import type { Ionicons } from '@expo/vector-icons';
+import { getBookingAthleteName } from '@/utils/booking-display';
 
 const logger = createLogger('CancelBookingScreen');
 
@@ -107,7 +108,7 @@ export function useBookingCancel(id: string, mode?: string) {
         setBookingAmount(bookingPrice);
         setSessionTime(new Date(booking.scheduledAt));
         setCoachName(booking.coachName || 'Coach');
-        setAthleteName(booking.athleteName || 'Athlete');
+        setAthleteName(getBookingAthleteName(booking));
         setSessionTitle((bookingExt.sessionTitle as string) || booking.service || 'Session');
 
         const coachPolicyResult = await schedulingRulesService.getCancellationPolicy(booking.coachId);

@@ -26,6 +26,7 @@ import { rosterService, type RemovalReason, type AthleteRemovalRecord } from '@/
 import { ServiceEvents } from '@/services/event-bus';
 import type { RosterEntry } from '@/constants/types';
 import { ok, err } from '@/types/result';
+import { getRosterAthleteName, getRosterParentName } from '@/utils/roster-display';
 
 export default function RosterScreen() {
   const { currentUser } = useAuth();
@@ -72,8 +73,8 @@ export default function RosterScreen() {
     if (search) {
       const q = search.toLowerCase();
       filtered = filtered.filter((r) =>
-        r.athleteName.toLowerCase().includes(q) ||
-        r.parentName.toLowerCase().includes(q) ||
+        getRosterAthleteName(r).toLowerCase().includes(q) ||
+        getRosterParentName(r).toLowerCase().includes(q) ||
         r.tags.some((t) => t.toLowerCase().includes(q))
       );
     }
@@ -128,7 +129,7 @@ export default function RosterScreen() {
   }, []);
 
   const handleLongPress = useCallback((entry: RosterEntry) => {
-    const title = entry.athleteName;
+    const title = getRosterAthleteName(entry);
     const msg = `${entry.totalSessions} sessions | ${rosterService.formatStatus(entry.status)}`;
     if (Platform.OS === 'ios') {
       ActionSheetIOS.showActionSheetWithOptions(
@@ -146,6 +147,7 @@ export default function RosterScreen() {
 
   const handleConfirmRemoval = useCallback(async (reason: RemovalReason, customReason?: string, archive?: boolean) => {
     if (!selectedAthleteForRemoval) return;
+    const removedAthleteName = getRosterAthleteName(selectedAthleteForRemoval);
     setIsRemoving(true);
     try {
       const result = await rosterService.removeAthlete(coachId, selectedAthleteForRemoval.athleteId, reason, { customReason, archive });
@@ -155,7 +157,7 @@ export default function RosterScreen() {
       setShowRemovalModal(false);
       setSelectedAthleteForRemoval(null);
       retry();
-      showUndoToast(`${record.athleteName} removed from roster`, async () => {
+      showUndoToast(`${removedAthleteName} removed from roster`, async () => {
         try { await rosterService.undoRemoval(coachId, record.id); retry(); showToast('Athlete restored', 'success'); }
         catch { showToast('Failed to restore athlete', 'error'); }
       });
@@ -234,7 +236,7 @@ export default function RosterScreen() {
         onClose={handleCloseModal}
         onConfirm={handleModalConfirm}
         type="athlete"
-        name={selectedAthleteForRemoval?.athleteName || ''}
+        name={selectedAthleteForRemoval ? getRosterAthleteName(selectedAthleteForRemoval) : ''}
         isLoading={isRemoving}
       />
     </PageContainer>

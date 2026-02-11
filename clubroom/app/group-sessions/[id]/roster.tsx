@@ -14,6 +14,7 @@ import { InjuryReportModal } from '@/components/group/injury-report-modal';
 import { Spacing, Radii, Typography } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
 import { useGroupRoster } from '@/hooks/use-group-roster';
+import { getGroupRegistrationAthleteName } from '@/utils/group-display';
 
 export default function SessionRosterScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -121,7 +122,7 @@ export default function SessionRosterScreen() {
 
       <InjuryReportModal
         visible={showInjuryReport}
-        athleteName={selectedParticipant?.athleteName}
+        athleteName={selectedParticipant ? getGroupRegistrationAthleteName(selectedParticipant) : undefined}
         bodyPart={injuryBodyPart}
         severity={injurySeverity}
         description={injuryDescription}

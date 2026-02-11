@@ -1,7 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.messagingService = exports.MessagingService = void 0;
-const mock_data_1 = require("@/constants/mock-data");
 const api_client_1 = require("./api-client");
 const storage_keys_1 = require("@/constants/storage-keys");
 const notification_service_1 = require("./notification-service");
@@ -9,12 +8,70 @@ const logger_1 = require("@/utils/logger");
 const event_bus_1 = require("./event-bus");
 const result_1 = require("@/types/result");
 const logger = (0, logger_1.createLogger)('MessagingService');
+const DEFAULT_THREADS = [
+    {
+        id: 'thread_tom_coach1',
+        kind: 'direct',
+        bookingId: 'book1',
+        title: 'Sarah Mitchell',
+        subtitle: 'Tom Henderson',
+        serviceName: '1-to-1 Training',
+        location: 'Hyde Park',
+        scheduledFor: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
+        unreadCount: 1,
+        safetyCopy: 'All conversations are monitored for safety',
+        pinnedObjectives: ['Finishing', 'Passing'],
+        lastMessageSnippet: 'See you tomorrow at 5pm.',
+        lastMessageSender: 'Sarah Mitchell',
+    },
+    {
+        id: 'thread_emma_coach2',
+        kind: 'direct',
+        bookingId: 'book2',
+        title: 'Mike Thompson',
+        subtitle: 'Emma Henderson',
+        serviceName: 'Small Group Session',
+        location: 'Hackney Marshes',
+        scheduledFor: new Date(Date.now() + 2 * 24 * 60 * 60 * 1000).toISOString(),
+        unreadCount: 0,
+        safetyCopy: 'All conversations are monitored for safety',
+        pinnedObjectives: ['Dribbling'],
+        lastMessageSnippet: 'Brilliant energy today.',
+        lastMessageSender: 'Mike Thompson',
+    },
+];
+const DEFAULT_MESSAGES = [
+    {
+        id: 'msg_thread_tom_1',
+        threadId: 'thread_tom_coach1',
+        sender: 'coach',
+        body: 'Great effort today. Keep practicing your first touch.',
+        createdAt: new Date(Date.now() - 5 * 60 * 60 * 1000).toISOString(),
+        status: 'seen',
+    },
+    {
+        id: 'msg_thread_tom_2',
+        threadId: 'thread_tom_coach1',
+        sender: 'parent',
+        body: 'Thanks coach, we will work on that this evening.',
+        createdAt: new Date(Date.now() - 4 * 60 * 60 * 1000).toISOString(),
+        status: 'seen',
+    },
+    {
+        id: 'msg_thread_emma_1',
+        threadId: 'thread_emma_coach2',
+        sender: 'coach',
+        body: 'Brilliant energy today. Emma is improving each week.',
+        createdAt: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(),
+        status: 'delivered',
+    },
+];
 class MessagingService {
     constructor() {
-        this.inMemoryThreads = mock_data_1.chatThreads;
+        this.inMemoryThreads = DEFAULT_THREADS.map((thread) => ({ ...thread }));
         this.inMemoryMessages = {};
-        mock_data_1.chatThreads.forEach((thread) => {
-            this.inMemoryMessages[thread.id] = mock_data_1.chatMessages.filter((m) => m.threadId === thread.id);
+        this.inMemoryThreads.forEach((thread) => {
+            this.inMemoryMessages[thread.id] = DEFAULT_MESSAGES.filter((message) => message.threadId === thread.id);
         });
     }
     async listThreads() {
@@ -57,7 +114,6 @@ class MessagingService {
                 id: `msg_${Date.now()}`,
                 threadId,
                 sender,
-                senderName,
                 body,
                 createdAt: timestamp,
                 status: 'pending',
@@ -68,7 +124,7 @@ class MessagingService {
                 threadId,
                 messageId: newMessage.id,
                 sender: newMessage.sender,
-                senderName: newMessage.senderName,
+                senderName,
                 attachmentsCount: attachments.length,
                 createdAt: newMessage.createdAt,
             });
@@ -78,14 +134,14 @@ class MessagingService {
                 if (sender === 'parent') {
                     await notification_service_1.notificationService.notifyCoachNewMessage({
                         coachId: 'coach1',
-                        parentName: senderName || threadResult.data.coachName || 'Parent',
+                        parentName: senderName || 'Parent',
                         threadId,
                     });
                 }
                 else {
                     await notification_service_1.notificationService.notifyParentNewMessage({
                         parentId: 'parent_1',
-                        coachName: senderName || threadResult.data.coachName || 'Coach',
+                        coachName: senderName || threadResult.data.title || 'Coach',
                         threadId,
                     });
                 }
@@ -107,7 +163,6 @@ class MessagingService {
                 id: `msg_${Date.now()}_coach`,
                 threadId,
                 sender: 'coach',
-                senderName,
                 body,
                 createdAt: timestamp,
                 status: 'delivered',
@@ -117,14 +172,14 @@ class MessagingService {
                 threadId,
                 messageId: incoming.id,
                 sender: incoming.sender,
-                senderName: incoming.senderName,
+                senderName,
                 attachmentsCount: 0,
                 createdAt: incoming.createdAt,
             });
             const threadResult = await this.getThread(threadId);
             await notification_service_1.notificationService.notifyParentNewMessage({
                 parentId: 'parent_1',
-                coachName: senderName || (threadResult.success ? threadResult.data.coachName : undefined) || 'Coach',
+                coachName: senderName || (threadResult.success ? threadResult.data.title : undefined) || 'Coach',
                 threadId,
             });
             return (0, result_1.ok)(incoming);

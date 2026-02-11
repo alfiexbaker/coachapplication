@@ -29,7 +29,6 @@ const USE_MOCK = config_1.api.useMock;
 const MOCK_ANALYTICS = [
     {
         athleteId: 'athlete_1',
-        athleteName: 'Tom Baker',
         period: 'MONTH',
         totalSessions: 24,
         sessionsThisPeriod: 8,
@@ -225,7 +224,6 @@ exports.analyticsTrackingService = {
                     // Create new analytics record
                     analytics = {
                         athleteId,
-                        athleteName: 'Athlete',
                         period: 'MONTH',
                         totalSessions: 0,
                         sessionsThisPeriod: 0,

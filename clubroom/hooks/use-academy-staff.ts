@@ -138,7 +138,7 @@ export function useAcademyStaff(id: string | undefined) {
   }, [editingMember, editRole, loadData]);
 
   const handleRemoveMember = useCallback((member: AcademyMembership) => {
-    Alert.alert('Remove Member', `Are you sure you want to remove ${member.userName} from this academy?`, [
+    Alert.alert('Remove Member', `Are you sure you want to remove ${member.userId} from this academy?`, [
       { text: 'Cancel', style: 'cancel' },
       {
         text: 'Remove', style: 'destructive',

@@ -44,7 +44,7 @@ function DiscoverReviewPromptInner({ sessions, onDismiss }: DiscoverReviewPrompt
               <View style={styles.cardContent}>
                 <View style={styles.info}>
                   <ThemedText type="defaultSemiBold" style={styles.title} numberOfLines={1}>
-                    How was {session.athleteName ? `${session.athleteName}'s` : 'the'} session?
+                    How was {session.athleteId ? `${session.athleteId}'s` : 'the'} session?
                   </ThemedText>
                   <ThemedText style={[styles.meta, { color: palette.muted }]} numberOfLines={1}>
                     with Coach {session.coachName || 'Coach'} -- {dateStr}

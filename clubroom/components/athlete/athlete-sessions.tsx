@@ -20,6 +20,7 @@ import { bookingService } from '@/services/booking-service';
 import { createLogger } from '@/utils/logger';
 import type { RosterEntry } from '@/constants/types';
 import type { Booking } from '@/constants/app-types';
+import { getRosterAthleteName } from '@/utils/roster-display';
 
 import { SessionItem } from './athlete-sessions-sections';
 
@@ -40,6 +41,7 @@ interface AthleteSessionsProps {
 
 function AthleteSessionsInner({ athlete, coachId }: AthleteSessionsProps) {
   const { colors } = useTheme();
+  const athleteName = getRosterAthleteName(athlete);
   const [sessions, setSessions] = useState<Booking[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -97,7 +99,7 @@ function AthleteSessionsInner({ athlete, coachId }: AthleteSessionsProps) {
       <EmptyState
         icon="calendar-outline"
         title="No sessions yet"
-        message={`Book ${athlete.athleteName}'s first session to start tracking progress`}
+        message={`Book ${athleteName}'s first session to start tracking progress`}
         actionLabel="Book Session"
         onPressAction={() =>
           router.push(Routes.rosterAthleteAddToSession(athlete.athleteId))

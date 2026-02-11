@@ -34,6 +34,7 @@ import type {
 } from '@/constants/types';
 import { notificationService } from './notification-service';
 import { socialFeedService } from './social-feed-service';
+import { userService } from './user-service';
 import { createLogger } from '@/utils/logger';
 import { toDateStr } from '@/utils/format';
 import { type Result, type ServiceError, ok, err, notFound, storageError } from '@/types/result';
@@ -44,16 +45,19 @@ const logger = createLogger('MatchService');
 
 const USE_MOCK = api.useMock;
 
+async function resolveUserName(userId: string, fallback: string): Promise<string> {
+  const userResult = await userService.getUserById(userId);
+  if (!userResult.success) return fallback;
+  return userResult.data.name || fallback;
+}
+
 // Mock data for development
 const MOCK_MATCHES: Match[] = [
   {
     id: 'match_1',
     clubId: 'club_1',
-    clubName: 'Bradwell Boys Academy',
     squadId: 'squad_u11',
-    squadName: 'Under 11s',
     coachId: 'coach1',
-    coachName: 'Marcus Thompson',
     title: "Under 11's vs Hackney FC",
     matchType: 'LEAGUE',
     opponent: 'Hackney FC',
@@ -67,32 +71,24 @@ const MOCK_MATCHES: Match[] = [
     selectedPlayers: [
       {
         athleteId: 'athlete_1',
-        athleteName: 'Tom Baker',
         parentId: 'parent_1',
-        parentName: 'Sarah Baker',
         status: 'AVAILABLE',
         responseAt: '2026-01-12T10:00:00Z',
       },
       {
         athleteId: 'athlete_2',
-        athleteName: 'James Wilson',
         parentId: 'parent_2',
-        parentName: 'Mike Wilson',
         status: 'AVAILABLE',
         responseAt: '2026-01-12T11:30:00Z',
       },
       {
         athleteId: 'athlete_3',
-        athleteName: 'Oliver Smith',
         parentId: 'parent_3',
-        parentName: 'Emma Smith',
         status: 'INVITED',
       },
       {
         athleteId: 'athlete_4',
-        athleteName: 'Harry Jones',
         parentId: 'parent_4',
-        parentName: 'David Jones',
         status: 'UNAVAILABLE',
         responseAt: '2026-01-12T09:00:00Z',
         parentNote: 'Family commitment, sorry!',
@@ -105,11 +101,8 @@ const MOCK_MATCHES: Match[] = [
   {
     id: 'match_2',
     clubId: 'club_1',
-    clubName: 'Bradwell Boys Academy',
     squadId: 'squad_u11',
-    squadName: 'Under 11s',
     coachId: 'coach1',
-    coachName: 'Marcus Thompson',
     title: "Under 11's vs Victoria Park",
     matchType: 'FRIENDLY',
     opponent: 'Victoria Park FC',
@@ -127,11 +120,8 @@ const MOCK_MATCHES: Match[] = [
   {
     id: 'match_3',
     clubId: 'club_1',
-    clubName: 'Bradwell Boys Academy',
     squadId: 'squad_u11',
-    squadName: 'Under 11s',
     coachId: 'coach1',
-    coachName: 'Marcus Thompson',
     title: "Under 11's vs Stratford Youth",
     matchType: 'CUP',
     opponent: 'Stratford Youth',
@@ -143,7 +133,6 @@ const MOCK_MATCHES: Match[] = [
     selectedPlayers: [
       {
         athleteId: 'athlete_1',
-        athleteName: 'Tom Baker',
         parentId: 'parent_1',
         status: 'SELECTED',
         responseAt: '2026-01-02T10:00:00Z',
@@ -152,7 +141,6 @@ const MOCK_MATCHES: Match[] = [
       },
       {
         athleteId: 'athlete_2',
-        athleteName: 'James Wilson',
         parentId: 'parent_2',
         status: 'SELECTED',
         responseAt: '2026-01-02T11:30:00Z',
@@ -309,11 +297,8 @@ export const matchService = {
     const newMatch: Match = {
       id: apiClient.generateId('match'),
       clubId: input.clubId,
-      clubName: input.clubName,
       squadId: input.squadId,
-      squadName: input.squadName,
       coachId: input.coachId,
-      coachName: input.coachName,
       title: input.title,
       matchType: input.matchType,
       opponent: input.opponent,
@@ -336,9 +321,10 @@ export const matchService = {
       await saveToStorage(matchesCache);
 
       // Create social feed post for the match
+      const coachName = await resolveUserName(newMatch.coachId, 'Coach');
       socialFeedService.createMatchPost({
         clubId: newMatch.clubId,
-        clubName: newMatch.clubName,
+        clubName: input.clubName,
         matchId: newMatch.id,
         matchTitle: newMatch.title,
         opponent: newMatch.opponent,
@@ -347,8 +333,8 @@ export const matchService = {
         venue: newMatch.venue,
         isHome: newMatch.isHome,
         coachId: newMatch.coachId,
-        coachName: newMatch.coachName || 'Coach',
-        squadName: newMatch.squadName,
+        coachName,
+        squadName: input.squadName,
       });
 
       return newMatch;
@@ -401,18 +387,17 @@ export const matchService = {
         if (existingIndex === -1) {
           match.selectedPlayers.push({
             athleteId: player.athleteId,
-            athleteName: player.athleteName,
             parentId: player.parentId,
-            parentName: player.parentName,
             status: 'INVITED',
           });
 
           // Create notification for parent
+          const athleteName = await resolveUserName(player.athleteId, 'Athlete');
           const notification: NotificationItem = {
             id: apiClient.generateId(`notif_match_${player.athleteId}`),
             type: 'booking',
             title: 'Match Invite',
-            body: `${player.athleteName} has been invited to play: ${match.title} on ${formatMatchDate(match.date)} at ${match.kickoffTime}`,
+            body: `${athleteName} has been invited to play: ${match.title} on ${formatMatchDate(match.date)} at ${match.kickoffTime}`,
             timeLabel: 'Just now',
             read: false,
             actionLabel: 'Respond',
@@ -469,11 +454,12 @@ export const matchService = {
 
       // Create notification for coach
       const player = match.selectedPlayers[playerIndex];
+      const athleteName = await resolveUserName(player.athleteId, 'Athlete');
       const notification: NotificationItem = {
         id: apiClient.generateId('notif'),
         type: 'booking',
         title: input.status === 'AVAILABLE' ? 'Player Available' : 'Player Unavailable',
-        body: `${player.athleteName} is ${input.status.toLowerCase()} for ${match.title}${input.note ? `: "${input.note}"` : ''}`,
+        body: `${athleteName} is ${input.status.toLowerCase()} for ${match.title}${input.note ? `: "${input.note}"` : ''}`,
         timeLabel: 'Just now',
         read: false,
       };
@@ -523,13 +509,14 @@ export const matchService = {
           };
 
           // Send notification to parent
+          const athleteName = await resolveUserName(player.athleteId, 'Athlete');
           const notification: NotificationItem = {
             id: apiClient.generateId(`notif_lineup_${player.athleteId}`),
             type: 'booking',
             title: lineupPlayer.isReserve ? 'Reserve Selection' : 'Match Selection',
             body: lineupPlayer.isReserve
-              ? `${player.athleteName} is on the bench for ${match.title}`
-              : `${player.athleteName} has been selected to play in ${match.title}!`,
+              ? `${athleteName} is on the bench for ${match.title}`
+              : `${athleteName} has been selected to play in ${match.title}!`,
             timeLabel: 'Just now',
             read: false,
           };

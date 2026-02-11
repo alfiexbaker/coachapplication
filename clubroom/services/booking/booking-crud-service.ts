@@ -321,7 +321,6 @@ class BookingCrudService {
       coachName,
       athleteIds,
       athleteId: athleteIds[0], // Backwards compatibility: first athlete
-      athleteName: athleteNames.join(', '), // Combined names for display
       bookedById,
       scheduledAt,
       status: 'CONFIRMED',
@@ -344,7 +343,7 @@ class BookingCrudService {
       await this.saveToStorage(bookings);
 
       // Create notifications for coach and parent
-      await this.createBookingNotifications(newBooking as Booking, bookedByName);
+      await this.createBookingNotifications(newBooking as Booking, bookedByName, athleteNames.join(', '));
 
       // Trigger notification for coach
       const formattedDateTime = new Date(scheduledAt).toLocaleDateString('en-GB', {
@@ -375,7 +374,11 @@ class BookingCrudService {
   /**
    * Create notifications for a new booking
    */
-  async createBookingNotifications(booking: Booking, bookedByName: string): Promise<void> {
+  async createBookingNotifications(
+    booking: Booking,
+    bookedByName: string,
+    athleteDisplayName = 'Athlete'
+  ): Promise<void> {
     const scheduledDate = new Date(booking.scheduledAt);
     const formattedDate = scheduledDate.toLocaleDateString('en-GB', {
       weekday: 'short',
@@ -393,7 +396,7 @@ class BookingCrudService {
       id: apiClient.generateId('notif-coach'),
       type: 'booking',
       title: 'New Booking Request',
-      body: `${bookedByName} has booked a ${booking.service} session for ${booking.athleteName} on ${formattedDate} at ${formattedTime}.`,
+      body: `${bookedByName} has booked a ${booking.service} session for ${athleteDisplayName} on ${formattedDate} at ${formattedTime}.`,
       timeLabel: 'Just now',
       read: false,
     });
@@ -403,7 +406,7 @@ class BookingCrudService {
       id: apiClient.generateId('notif-parent'),
       type: 'booking',
       title: 'Booking Confirmed',
-      body: `Your session with Coach ${booking.coachName} for ${booking.athleteName} is confirmed for ${formattedDate} at ${formattedTime}.`,
+      body: `Your session with Coach ${booking.coachName} for ${athleteDisplayName} is confirmed for ${formattedDate} at ${formattedTime}.`,
       timeLabel: 'Just now',
       read: false,
     });
@@ -435,7 +438,6 @@ class BookingCrudService {
       coachName: draft.coachName,
       athleteIds: draft.childIds || [draft.athleteId!],
       athleteId: draft.athleteId!, // Backwards compatibility
-      athleteName: draft.athleteName!,
       bookedById: draft.athleteId!, // Use athleteId as bookedById (parent booking for their child)
       scheduledAt,
       status: 'PENDING' as const,
@@ -465,7 +467,7 @@ class BookingCrudService {
     await notificationService.notifyCoachNewBooking({
       coachId: booking.coachId,
       parentName: 'Parent',
-      childName: booking.athleteName,
+      childName: draft.athleteName || 'Athlete',
       date: formattedDate,
       bookingId: booking.id,
     });
@@ -495,7 +497,11 @@ class BookingCrudService {
           coachId: booking.coachId,
           coachName: booking.coachName,
           athleteIds: booking.athleteIds,
-          athleteName: booking.athleteName,
+          athleteName: booking.athleteIds?.length
+            ? booking.athleteIds.length === 1
+              ? booking.athleteIds[0]
+              : `${booking.athleteIds.length} athletes`
+            : undefined,
           scheduledAt: booking.scheduledAt,
           service: booking.service,
           price: booking.price,

@@ -11,6 +11,7 @@ import { Spacing, Radii, Typography, Components, withAlpha } from '@/constants/t
 import { waitlistService } from '@/services/waitlist-service';
 import type { WaitlistEntry } from '@/constants/types';
 import { useTheme } from '@/hooks/useTheme';
+import { getWaitlistCoachName, getWaitlistScheduledAt, getWaitlistSessionTitle } from '@/utils/waitlist-display';
 
 interface WaitlistCardProps {
   /** The waitlist entry to display */
@@ -23,11 +24,14 @@ interface WaitlistCardProps {
 
 export function WaitlistCard({ entry, onLeave, onToggleAutoBook }: WaitlistCardProps) {
   const { colors: palette } = useTheme();
+  const sessionTitle = getWaitlistSessionTitle(entry);
+  const coachName = getWaitlistCoachName(entry);
+  const sessionScheduledAt = getWaitlistScheduledAt(entry);
 
   const handleLeave = () => {
     Alert.alert(
       'Leave Waitlist',
-      `Are you sure you want to leave the waitlist for ${entry.sessionTitle || 'this session'}?`,
+      `Are you sure you want to leave the waitlist for ${sessionTitle || 'this session'}?`,
       [
         { text: 'Cancel', style: 'cancel' },
         { text: 'Leave', style: 'destructive', onPress: onLeave },
@@ -69,13 +73,13 @@ export function WaitlistCard({ entry, onLeave, onToggleAutoBook }: WaitlistCardP
       <Row justify="space-between" align="flex-start" style={styles.header}>
         <View style={styles.sessionInfo}>
           <ThemedText type="defaultSemiBold" style={styles.sessionTitle} numberOfLines={2}>
-            {entry.sessionTitle || 'Session'}
+            {sessionTitle || 'Session'}
           </ThemedText>
-          {entry.coachName && (
+          {coachName && (
             <Row align="center" gap="xxs">
               <Ionicons name="person-outline" size={12} color={palette.muted} />
               <ThemedText style={[styles.coachName, { color: palette.muted }]}>
-                {entry.coachName}
+                {coachName}
               </ThemedText>
             </Row>
           )}
@@ -88,7 +92,7 @@ export function WaitlistCard({ entry, onLeave, onToggleAutoBook }: WaitlistCardP
         <Row align="center" gap="xxs">
           <Ionicons name="calendar-outline" size={14} color={palette.muted} />
           <ThemedText style={[styles.detailText, { color: palette.muted }]}>
-            {formatSessionDate(entry.sessionScheduledAt)}
+            {formatSessionDate(sessionScheduledAt)}
           </ThemedText>
         </Row>
 

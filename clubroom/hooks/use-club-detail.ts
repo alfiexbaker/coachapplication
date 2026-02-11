@@ -42,9 +42,7 @@ function buildClubInvites(club: Club | undefined): ClubInvite[] {
   return [{
     code: club.inviteCode,
     clubId: club.id,
-    clubName: club.name,
     createdBy: club.ownerId,
-    createdByName: club.ownerName,
     role: 'MEMBER',
     expiresAt: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString(),
     remainingUses: 999,

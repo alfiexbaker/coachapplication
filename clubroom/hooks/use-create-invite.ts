@@ -18,6 +18,7 @@ import { academyService } from '@/services/academy-service';
 import { rosterService } from '@/services/roster-service';
 import { groupSessionService } from '@/services/group-session';
 import { sessionTemplateService } from '@/services/session-template-service';
+import { getRosterAthleteName, getRosterParentName } from '@/utils/roster-display';
 import type {
   TimeSlot,
   Academy,
@@ -154,9 +155,9 @@ export function useCreateInvite(): UseCreateInviteReturn {
       const roster = await rosterService.getRoster(currentUser.id);
       const athleteOptions = roster.map((entry: RosterEntry) => ({
         id: entry.athleteId,
-        name: entry.athleteName,
+        name: getRosterAthleteName(entry),
         parentId: entry.parentId,
-        parentName: entry.parentName,
+        parentName: getRosterParentName(entry),
       }));
       setAthletes(athleteOptions);
     } catch (error) {
@@ -347,7 +348,7 @@ export function useCreateInvite(): UseCreateInviteReturn {
           {
             coachId: currentUser.id,
             coachName: currentUser.name || 'Coach',
-            clubName: selectedClub?.name || session.clubName,
+            clubName: selectedClub?.name || session.clubId,
             inviteType: sessionInviteType,
             athleteNames: selectedAthletes.map((a) => a.name),
             parentId,

@@ -18,7 +18,6 @@ function createMockInjury(overrides: Partial<Injury> = {}): Injury {
   return {
     id: 'injury_test_1',
     userId: 'user1',
-    userName: 'Test User',
     bodyPart: 'LEFT_KNEE',
     description: 'Test injury description',
     severity: 'MODERATE',
@@ -32,7 +31,6 @@ function createMockInjury(overrides: Partial<Injury> = {}): Injury {
         note: 'Started treatment',
         createdAt: '2026-01-06T10:00:00Z',
         createdBy: 'user1',
-        createdByName: 'Test User',
         recoveryPercent: 25,
       },
     ],
@@ -377,7 +375,6 @@ describe('InjuryCard Edge Cases', () => {
       note: `Note ${i}`,
       createdAt: new Date().toISOString(),
       createdBy: 'user1',
-      createdByName: 'User',
       recoveryPercent: i * 2,
     }));
 

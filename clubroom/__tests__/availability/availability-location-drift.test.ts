@@ -140,13 +140,11 @@ describe('checkLocationDrift', () => {
         id: 'b1',
         scheduledAt: futureDate(DOW, 0),
         location: 'Hyde Park',
-        athleteName: 'Alice',
       }),
       makeBooking({
         id: 'b2',
         scheduledAt: futureDate(DOW, 1),
         location: 'Hyde Park',
-        athleteName: 'Bob',
       }),
     ];
     await apiClient.set(STORAGE_KEYS.BOOKINGS, bookings);
@@ -263,7 +261,6 @@ describe('checkConflicts – id and location in bookings', () => {
         id: 'conflict_b1',
         scheduledAt: `${targetDate}T09:00:00`,
         location: 'Battersea Park',
-        athleteName: 'Charlie',
       }),
     ];
     await apiClient.set(STORAGE_KEYS.BOOKINGS, bookings);
@@ -278,6 +275,5 @@ describe('checkConflicts – id and location in bookings', () => {
     assert.strictEqual(b.location, 'Battersea Park', 'Should include the booking location');
     assert.strictEqual(b.date, targetDate, 'Should include the date');
     assert.strictEqual(b.time, '09:00', 'Should include the time');
-    assert.strictEqual(b.athleteName, 'Charlie', 'Should include athleteName');
   });
 });

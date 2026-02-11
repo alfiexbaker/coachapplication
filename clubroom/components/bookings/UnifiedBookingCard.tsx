@@ -31,6 +31,7 @@ import {
   DetailedBookingCard,
 } from './unified-booking-sections';
 import { Row } from '@/components/primitives';
+import { getBookingSummaryClientName, getBookingSummaryCoachName } from '@/utils/booking-display';
 
 const logger = createLogger('UnifiedBookingCard');
 
@@ -57,6 +58,8 @@ export function UnifiedBookingCard({
   const statusColor = getBookingStatusColor(booking.status, palette);
   const { day, time, full } = formatBookingDateTime(booking.start);
   const coachPhotoUrl = extendedBooking.coach?.photoUrl || `https://i.pravatar.cc/100?u=${booking.coachId || 'default'}`;
+  const coachName = getBookingSummaryCoachName(booking);
+  const childName = getBookingSummaryClientName(booking);
 
   const handlePress = () => {
     if (onPress) {
@@ -123,14 +126,14 @@ export function UnifiedBookingCard({
               {booking.service}
             </ThemedText>
             <ThemedText style={[styles.standardSubtitle, { color: palette.muted }]} numberOfLines={1}>
-              with {booking.coachName}
+              with {coachName}
             </ThemedText>
 
-            {booking.childName && (
+            {childName && (
               <Row style={styles.childRow}>
                 <Ionicons name="person" size={14} color={palette.tint} />
                 <ThemedText style={[styles.childText, { color: palette.tint }]}>
-                  {booking.childName}
+                  {childName}
                 </ThemedText>
               </Row>
             )}

@@ -21,6 +21,7 @@ import { scaleFont } from '@/utils/scale';
 import type { ThemeColors } from '@/hooks/useTheme';
 import type { CarpoolOffer } from '@/constants/types';
 import { Row } from '@/components/primitives';
+import { getCarpoolOfferParentLabel, getCarpoolSessionLabel } from '@/utils/carpool-display';
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
 
@@ -72,7 +73,7 @@ export const CompactCarpoolCard = memo(function CompactCarpoolCard({
       <View style={styles.compactContent}>
         <Row style={styles.compactHeader}>
           <ThemedText type="defaultSemiBold" style={styles.compactTitle} numberOfLines={1}>
-            {offer.sessionName}
+            {getCarpoolSessionLabel(offer)}
           </ThemedText>
           <View style={[styles.statusPill, { backgroundColor: withAlpha(statusColor, 0.09) }]}>
             <ThemedText style={[styles.statusText, { color: statusColor }]}>
@@ -122,10 +123,10 @@ export const CarpoolHeader = memo(function CarpoolHeader({
       </View>
       <View style={styles.headerInfo}>
         <ThemedText type="defaultSemiBold" style={styles.title}>
-          {offer.sessionName}
+          {getCarpoolSessionLabel(offer)}
         </ThemedText>
         <ThemedText style={[styles.driverName, { color: palette.muted }]}>
-          Offered by {isOwnOffer ? 'you' : offer.parentName}
+          Offered by {isOwnOffer ? 'you' : getCarpoolOfferParentLabel(offer)}
         </ThemedText>
       </View>
       <View style={[styles.statusBadge, { backgroundColor: withAlpha(statusColor, 0.09) }]}>

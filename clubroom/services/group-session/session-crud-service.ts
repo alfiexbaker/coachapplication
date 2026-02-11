@@ -17,6 +17,7 @@ import { STORAGE_KEYS } from '@/constants/storage-keys';
 import { notificationTriggers } from '../notification-trigger';
 import { socialFeedService } from '../social-feed-service';
 import { emitTyped, ServiceEvents } from '../event-bus';
+import { userService } from '../user-service';
 import { createLogger } from '@/utils/logger';
 import { toDateStr } from '@/utils/format';
 import { type Result, type ServiceError, ok, err, notFound } from '@/types/result';
@@ -31,6 +32,12 @@ import type {
 const USE_MOCK = api.useMock;
 const logger = createLogger('SessionCrudService');
 
+async function resolveUserName(userId: string, fallback: string): Promise<string> {
+  const userResult = await userService.getUserById(userId);
+  if (!userResult.success) return fallback;
+  return userResult.data.name || fallback;
+}
+
 // ============================================================================
 // MOCK DATA (shared across session sub-services via load/save helpers)
 // ============================================================================
@@ -39,8 +46,6 @@ const MOCK_SESSIONS: GroupSession[] = [
   {
     id: 'gs_1',
     coachId: 'coach1',
-    coachName: 'Sarah Mitchell',
-    coachPhotoUrl: 'https://randomuser.me/api/portraits/women/32.jpg',
     title: 'Half-Term Football Camp',
     description: 'Intensive 3-day camp focusing on technical skills and game play. Includes lunch and snacks.',
     sessionType: 'CAMP',
@@ -69,10 +74,7 @@ const MOCK_SESSIONS: GroupSession[] = [
   {
     id: 'gs_2',
     coachId: 'coach1',
-    coachName: 'Sarah Mitchell',
-    coachPhotoUrl: 'https://randomuser.me/api/portraits/women/32.jpg',
     clubId: 'club_lions',
-    clubName: 'Lions FC Academy',
     title: 'Striker Masterclass',
     description: 'Advanced finishing clinic for aspiring strikers. Learn professional techniques and movement.',
     sessionType: 'CLINIC',
@@ -99,8 +101,6 @@ const MOCK_SESSIONS: GroupSession[] = [
   {
     id: 'gs_3',
     coachId: 'coach2',
-    coachName: 'Mike Thompson',
-    coachPhotoUrl: 'https://randomuser.me/api/portraits/men/44.jpg',
     title: 'Goalkeeper Training Session',
     description: 'Specialized goalkeeper training covering shot stopping, positioning, and distribution.',
     sessionType: 'OPEN_SESSION',
@@ -125,7 +125,6 @@ const MOCK_SESSIONS: GroupSession[] = [
   {
     id: 'gs_4',
     coachId: 'coach1',
-    coachName: 'Sarah Mitchell',
     title: 'Free Trial Session',
     description: 'Come try a session with no commitment. See if we\'re the right fit for your child.',
     sessionType: 'TRIAL',
@@ -152,12 +151,8 @@ const MOCK_SESSIONS: GroupSession[] = [
   {
     id: 'gs_training_1',
     coachId: 'coach1',
-    coachName: 'Sarah Mitchell',
-    coachPhotoUrl: 'https://randomuser.me/api/portraits/women/32.jpg',
     clubId: 'club_lions',
-    clubName: 'Lions FC Academy',
     squadId: 'squad_juniors',
-    squadName: 'Under 11s',
     title: "Under 11's Training",
     description: 'Weekly training session for U11 squad. Focus on technical development, team tactics, and match preparation.',
     sessionType: 'TRAINING',
@@ -194,12 +189,8 @@ const MOCK_SESSIONS: GroupSession[] = [
   {
     id: 'gs_training_2',
     coachId: 'coach2',
-    coachName: 'Mike Thompson',
-    coachPhotoUrl: 'https://randomuser.me/api/portraits/men/44.jpg',
     clubId: 'club_lions',
-    clubName: 'Lions FC Academy',
     squadId: 'squad_juniors',
-    squadName: 'Junior Skills',
     title: "Junior Skills Development",
     description: 'Saturday morning development sessions for our youngest squad members. Fun-focused with skill building.',
     sessionType: 'TRAINING',
@@ -236,12 +227,8 @@ const MOCK_SESSIONS: GroupSession[] = [
   {
     id: 'gs_training_3',
     coachId: 'coach1',
-    coachName: 'Sarah Mitchell',
-    coachPhotoUrl: 'https://randomuser.me/api/portraits/women/32.jpg',
     clubId: 'club_lions',
-    clubName: 'Lions FC Academy',
     squadId: 'squad_u15',
-    squadName: 'U15 Performance',
     title: "U15 Performance Training",
     description: 'Advanced training for our U15 performance squad. Focus on tactical understanding and match intensity.',
     sessionType: 'TRAINING',
@@ -471,10 +458,7 @@ export const sessionCrudService = {
     const newSession: GroupSession = {
       id: `gs_${Date.now()}`,
       coachId: input.coachId,
-      coachName: input.coachName,
-      coachPhotoUrl: input.coachPhotoUrl,
       clubId: input.clubId,
-      clubName: input.clubName,
       title: input.title,
       description: input.description,
       sessionType: input.sessionType,
@@ -499,7 +483,6 @@ export const sessionCrudService = {
       isRecurring: input.isRecurring,
       recurringPattern: input.recurringPattern,
       squadId: input.squadId,
-      squadName: input.squadName,
       isFree: input.isFree ?? (input.pricePerParticipant === 0),
       inviteType: input.inviteType,
     };
@@ -539,27 +522,28 @@ export const sessionCrudService = {
       // Create social feed post for club sessions
       if (session.clubId && session.schedule.length > 0) {
         const firstSchedule = session.schedule[0];
+        const coachName = await resolveUserName(session.coachId, 'Coach');
         socialFeedService.createSessionPost({
           clubId: session.clubId,
-          clubName: session.clubName || 'Club',
+          clubName: 'Club',
           sessionId: session.id,
           sessionTitle: session.title,
           sessionDate: firstSchedule.date,
           sessionTime: firstSchedule.startTime,
           location: session.location,
           coachId: session.coachId,
-          coachName: session.coachName,
-          squadName: session.squadName,
+          coachName,
         });
       }
 
       // Emit event for open sessions so service-subscribers can auto-create a feed post
       if (isOpenSessionType(session.sessionType) && session.schedule.length > 0) {
         const firstSchedule = session.schedule[0];
+        const coachName = await resolveUserName(session.coachId, 'Coach');
         emitTyped(ServiceEvents.OPEN_SESSION_PUBLISHED, {
           sessionId: session.id,
           coachId: session.coachId,
-          coachName: session.coachName,
+          coachName,
           title: session.title,
           description: session.description,
           sessionType: session.sessionType,
@@ -571,7 +555,6 @@ export const sessionCrudService = {
           endTime: firstSchedule.endTime,
           maxParticipants: session.maxParticipants,
           clubId: session.clubId,
-          clubName: session.clubName,
           imageUrl: session.imageUrl,
         });
       }

@@ -13,8 +13,8 @@ const DEFAULT_THREADS: ChatThreadSummary[] = [
     id: 'thread_tom_coach1',
     kind: 'direct',
     bookingId: 'book1',
-    coachName: 'Sarah Mitchell',
-    childName: 'Tom Henderson',
+    title: 'Sarah Mitchell',
+    subtitle: 'Tom Henderson',
     serviceName: '1-to-1 Training',
     location: 'Hyde Park',
     scheduledFor: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
@@ -28,8 +28,8 @@ const DEFAULT_THREADS: ChatThreadSummary[] = [
     id: 'thread_emma_coach2',
     kind: 'direct',
     bookingId: 'book2',
-    coachName: 'Mike Thompson',
-    childName: 'Emma Henderson',
+    title: 'Mike Thompson',
+    subtitle: 'Emma Henderson',
     serviceName: 'Small Group Session',
     location: 'Hackney Marshes',
     scheduledFor: new Date(Date.now() + 2 * 24 * 60 * 60 * 1000).toISOString(),
@@ -46,7 +46,6 @@ const DEFAULT_MESSAGES: ChatMessage[] = [
     id: 'msg_thread_tom_1',
     threadId: 'thread_tom_coach1',
     sender: 'coach',
-    senderName: 'Sarah Mitchell',
     body: 'Great effort today. Keep practicing your first touch.',
     createdAt: new Date(Date.now() - 5 * 60 * 60 * 1000).toISOString(),
     status: 'seen',
@@ -55,7 +54,6 @@ const DEFAULT_MESSAGES: ChatMessage[] = [
     id: 'msg_thread_tom_2',
     threadId: 'thread_tom_coach1',
     sender: 'parent',
-    senderName: 'John Henderson',
     body: 'Thanks coach, we will work on that this evening.',
     createdAt: new Date(Date.now() - 4 * 60 * 60 * 1000).toISOString(),
     status: 'seen',
@@ -64,7 +62,6 @@ const DEFAULT_MESSAGES: ChatMessage[] = [
     id: 'msg_thread_emma_1',
     threadId: 'thread_emma_coach2',
     sender: 'coach',
-    senderName: 'Mike Thompson',
     body: 'Brilliant energy today. Emma is improving each week.',
     createdAt: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(),
     status: 'delivered',
@@ -131,7 +128,6 @@ export class MessagingService {
         id: `msg_${Date.now()}`,
         threadId,
         sender,
-        senderName,
         body,
         createdAt: timestamp,
         status: 'pending',
@@ -143,7 +139,7 @@ export class MessagingService {
         threadId,
         messageId: newMessage.id,
         sender: newMessage.sender,
-        senderName: newMessage.senderName,
+        senderName,
         attachmentsCount: attachments.length,
         createdAt: newMessage.createdAt,
       });
@@ -154,13 +150,13 @@ export class MessagingService {
         if (sender === 'parent') {
           await notificationService.notifyCoachNewMessage({
             coachId: 'coach1',
-            parentName: senderName || threadResult.data.coachName || 'Parent',
+            parentName: senderName || 'Parent',
             threadId,
           });
         } else {
           await notificationService.notifyParentNewMessage({
             parentId: 'parent_1',
-            coachName: senderName || threadResult.data.coachName || 'Coach',
+            coachName: senderName || threadResult.data.title || 'Coach',
             threadId,
           });
         }
@@ -187,7 +183,6 @@ export class MessagingService {
         id: `msg_${Date.now()}_coach`,
         threadId,
         sender: 'coach',
-        senderName,
         body,
         createdAt: timestamp,
         status: 'delivered',
@@ -197,7 +192,7 @@ export class MessagingService {
         threadId,
         messageId: incoming.id,
         sender: incoming.sender,
-        senderName: incoming.senderName,
+        senderName,
         attachmentsCount: 0,
         createdAt: incoming.createdAt,
       });
@@ -205,7 +200,7 @@ export class MessagingService {
       const threadResult = await this.getThread(threadId);
       await notificationService.notifyParentNewMessage({
         parentId: 'parent_1',
-        coachName: senderName || (threadResult.success ? threadResult.data.coachName : undefined) || 'Coach',
+        coachName: senderName || (threadResult.success ? threadResult.data.title : undefined) || 'Coach',
         threadId,
       });
 

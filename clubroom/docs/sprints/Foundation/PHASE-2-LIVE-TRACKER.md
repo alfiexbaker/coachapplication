@@ -2,6 +2,7 @@
 
 > **Date Opened:** 2026-02-10
 > **Scope:** Phase 2 data-access migration (mock-data imports and denormalized fields)
+> **Last Updated:** 2026-02-11
 
 ---
 
@@ -10,6 +11,15 @@
 - Mock-data imports in runtime code: **70 files**
 - Layer split: **36 hooks**, **21 components**, **7 app screens**, **6 services**, **0 constants**
 - Denormalized markers: **192 TODO(T3.4)** across **9 files**
+
+## Current Snapshot
+
+- Checklist completion: **70/70 files** (`DONE`)
+- Denormalized markers remaining: **0 TODO(T3.4)**
+- Runtime `mock-data` imports remaining: **0** (code search verified)
+- Typecheck (Wave 6): **0 TypeScript errors** (`NODE_OPTIONS=--max-old-space-size=8192 npx tsc -p tsconfig.typecheck.json`)
+- Test-typecheck gate (Wave 6): **0 TypeScript errors** (`NODE_OPTIONS=--max-old-space-size=8192 npx tsc -p tsconfig.test.json`)
+- Core smoke pass (Wave 6): **bookings/invites/family/community all passing** (`npm run test:compile` + `node --require ./scripts/test-register.js --test <bookings|invite|family|community>`, 275 pass / 0 fail)
 
 ## Progress States
 
@@ -27,8 +37,8 @@
 | Wave 2 - Hook Migration | DONE | 36/36 hook files migrated and validated. |
 | Wave 3 - Component Prop Hoist | DONE | 21/21 component files migrated. |
 | Wave 4 - App/Service/Constants Cleanup | DONE | 13/13 files migrated (app + services fully off `mock-data` imports). |
-| Wave 5 - Denormalized Field Removal | NOT_STARTED | Remove 192 TODO(T3.4) markers. |
-| Wave 6 - mock-data Function Retirement | NOT_STARTED | Remove helper exports after migration. |
+| Wave 5 - Denormalized Field Removal | DONE | Removed denormalized fields and read sites; `TODO(T3.4)` markers reduced from 192 to 0 and typecheck is clean. |
+| Wave 6 - mock-data Function Retirement | DONE | Removed `constants/mock-data.ts`, retired stale denormalized test expectations, and revalidated typecheck + targeted core-flow smoke suite. |
 
 ## Wave 1 Deliverables
 

@@ -48,7 +48,6 @@ const node_test_1 = __importStar(require("node:test"));
 const mockSpending = [
     {
         childId: 'child_1',
-        childName: 'Tom Henderson',
         colorCode: '#3B82F6',
         totalSpent: 250,
         sessionCount: 5,
@@ -63,7 +62,6 @@ const mockSpending = [
     },
     {
         childId: 'child_2',
-        childName: 'Emma Henderson',
         colorCode: '#10B981',
         totalSpent: 175,
         sessionCount: 3,
@@ -82,7 +80,6 @@ const mockSpending = [
         (0, node_test_1.default)('should have valid spending data structure', () => {
             mockSpending.forEach((spending) => {
                 node_assert_1.default.ok(spending.childId);
-                node_assert_1.default.ok(spending.childName);
                 node_assert_1.default.ok(spending.colorCode);
                 node_assert_1.default.ok(typeof spending.totalSpent === 'number');
                 node_assert_1.default.ok(typeof spending.sessionCount === 'number');
@@ -239,7 +236,6 @@ const mockSpending = [
         (0, node_test_1.default)('should handle spending with no sessions', () => {
             const noSessionsSpending = {
                 childId: 'child_new',
-                childName: 'New Child',
                 colorCode: '#F59E0B',
                 totalSpent: 0,
                 sessionCount: 0,

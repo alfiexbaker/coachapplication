@@ -33,6 +33,7 @@ import { bookingService } from '../booking-service';
 import { inviteHoldService } from '../invite-hold-service';
 import { availabilityService } from '../availability-service';
 import { multiWeekBookingService } from '../multi-week-booking-service';
+import { userService } from '../user-service';
 import { createLogger } from '@/utils/logger';
 import { toDateStr } from '@/utils/format';
 import type { Result, ServiceError } from '@/types/result';
@@ -90,13 +91,9 @@ const MOCK_INVITES: SessionInvite[] = [
   {
     id: 'inv_1',
     coachId: 'coach1',
-    coachName: 'Marcus Thompson',
-    coachPhotoUrl: 'https://randomuser.me/api/portraits/men/32.jpg',
     clubName: 'Bradwell Boys Academy',
     athleteIds: ['athlete_1'],
-    athleteNames: ['Tom Baker'],
     parentId: 'parent_1',
-    parentName: 'Sarah Baker',
     proposedSlots: [
       { date: '2026-02-16', startTime: '16:00', endTime: '17:00', location: 'Hackney Marshes' },
       { date: '2026-02-20', startTime: '15:00', endTime: '16:00', location: 'Hackney Marshes' },
@@ -112,13 +109,9 @@ const MOCK_INVITES: SessionInvite[] = [
   {
     id: 'inv_2',
     coachId: 'coach2',
-    coachName: 'Emma Williams',
-    coachPhotoUrl: 'https://randomuser.me/api/portraits/women/44.jpg',
     clubName: 'Victoria Park FC',
     athleteIds: ['athlete_2'],
-    athleteNames: ['Lucy Baker'],
     parentId: 'parent_1',
-    parentName: 'Sarah Baker',
     proposedSlots: [
       { date: '2026-02-17', startTime: '17:00', endTime: '18:00', location: 'Victoria Park' },
     ],
@@ -133,12 +126,9 @@ const MOCK_INVITES: SessionInvite[] = [
   {
     id: 'inv_3',
     coachId: 'coach1',
-    coachName: 'Marcus Thompson',
     clubName: 'Bradwell Boys Academy',
     athleteIds: ['athlete_3'],
-    athleteNames: ['James Wilson'],
     parentId: 'parent_2',
-    parentName: 'Mike Wilson',
     proposedSlots: [
       { date: '2026-02-21', startTime: '09:00', endTime: '10:00', location: 'Hackney Marshes' },
     ],
@@ -157,6 +147,30 @@ const MOCK_INVITES: SessionInvite[] = [
 // ============================================================================
 
 let invitesCache: SessionInvite[] = [...MOCK_INVITES];
+
+async function resolveUserName(userId: string, fallback: string): Promise<string> {
+  const userResult = await userService.getUserById(userId);
+  if (!userResult.success) {
+    return fallback;
+  }
+
+  return userResult.data.name?.trim() || fallback;
+}
+
+async function resolveAthleteNames(athleteIds: string[], fallbackNames: string[] = []): Promise<string[]> {
+  const uniqueAthleteIds = Array.from(new Set(athleteIds.filter(Boolean)));
+  if (uniqueAthleteIds.length === 0) {
+    return fallbackNames;
+  }
+
+  const usersResult = await userService.getUsersByIds(uniqueAthleteIds);
+  if (!usersResult.success) {
+    return athleteIds.map((_, index) => fallbackNames[index] || `Athlete ${index + 1}`);
+  }
+
+  const usersById = new Map(usersResult.data.map((user) => [user.id, user.name?.trim() || '']));
+  return athleteIds.map((athleteId, index) => usersById.get(athleteId) || fallbackNames[index] || `Athlete ${index + 1}`);
+}
 
 export async function loadFromStorage(): Promise<SessionInvite[]> {
   try {
@@ -296,15 +310,11 @@ export const sessionInviteService = {
     const newInvite: SessionInvite = {
       id: apiClient.generateId('inv'),
       coachId: input.coachId,
-      coachName: input.coachName,
-      coachPhotoUrl: input.coachPhotoUrl,
       clubName: input.clubName,
       inviteType: input.inviteType || 'OPEN',
       squadIds: input.squadIds,
       athleteIds: input.athleteIds,
-      athleteNames: input.athleteNames,
       parentId: input.parentId,
-      parentName: input.parentName,
       proposedSlots: input.proposedSlots,
       sessionType: input.sessionType,
       sessionTemplateId: input.sessionTemplateId,
@@ -437,7 +447,12 @@ export const sessionInviteService = {
       const invite = invitesCache[index];
 
       // Create notification for coach based on response
-      const athleteNames = invite.athleteNames.join(', ');
+      const [coachName, parentName, athleteNames] = await Promise.all([
+        resolveUserName(invite.coachId, 'Coach'),
+        resolveUserName(invite.parentId, 'Parent'),
+        resolveAthleteNames(invite.athleteIds),
+      ]);
+      const athleteDisplay = athleteNames.join(', ');
       const notification: NotificationItem = {
         id: apiClient.generateId('notif'),
         type: 'booking',
@@ -465,11 +480,11 @@ export const sessionInviteService = {
 
         const bookingResult = await bookingService.createBooking({
           coachId: invite.coachId,
-          coachName: invite.coachName,
+          coachName,
           athleteIds: [invite.athleteIds[0]], // Primary athlete
-          athleteNames: [invite.athleteNames[0]],
+          athleteNames: [athleteNames[0] || 'Athlete'],
           bookedById: invite.parentId,
-          bookedByName: invite.parentName,
+          bookedByName: parentName,
           scheduledAt,
           duration: durationMinutes > 0 ? durationMinutes : 60,
           location: input.selectedSlot.location || 'Coach preferred location',
@@ -524,7 +539,7 @@ export const sessionInviteService = {
         });
 
         notification.title = 'Invite Accepted!';
-        notification.body = `${invite.parentName} accepted your invite for ${athleteNames}. Session confirmed for ${
+        notification.body = `${parentName} accepted your invite for ${athleteDisplay}. Session confirmed for ${
           new Date(input.selectedSlot.date).toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' }) +
             ` at ${input.selectedSlot.startTime}`
         }.`;
@@ -551,12 +566,12 @@ export const sessionInviteService = {
 
       if (input.response === 'DECLINED') {
         notification.title = 'Invite Declined';
-        notification.body = `${invite.parentName} declined your session invite for ${athleteNames}.`;
+        notification.body = `${parentName} declined your session invite for ${athleteDisplay}.`;
         // Release all holds
         await inviteHoldService.releaseHoldsForInvite(invite.id);
       } else if (input.response === 'COUNTERED') {
         notification.title = 'Counter Proposal Received';
-        notification.body = `${invite.parentName} proposed alternative times for ${athleteNames}. ${input.counterNote || ''}`;
+        notification.body = `${parentName} proposed alternative times for ${athleteDisplay}. ${input.counterNote || ''}`;
         // Release original holds (counter slots aren't held until coach accepts)
         await inviteHoldService.releaseHoldsForInvite(invite.id);
       }
@@ -716,6 +731,11 @@ export const sessionInviteService = {
       }
 
       const invite = invitesCache[index];
+      const [coachName, parentName, athleteNames] = await Promise.all([
+        resolveUserName(invite.coachId, 'Coach'),
+        resolveUserName(invite.parentId, 'Parent'),
+        resolveAthleteNames(invite.athleteIds),
+      ]);
 
       // CRITICAL FIX: Create booking FIRST, before changing invite status.
       const scheduledAt = `${selectedSlot.date}T${selectedSlot.startTime}:00`;
@@ -729,11 +749,11 @@ export const sessionInviteService = {
 
       const bookingResult = await bookingService.createBooking({
         coachId: invite.coachId,
-        coachName: invite.coachName,
+        coachName,
         athleteIds: [invite.athleteIds[0]], // Primary athlete
-        athleteNames: [invite.athleteNames[0]],
+        athleteNames: [athleteNames[0] || 'Athlete'],
         bookedById: invite.parentId,
-        bookedByName: invite.parentName,
+        bookedByName: parentName,
         scheduledAt,
         duration: durationMinutes > 0 ? durationMinutes : 60,
         location: selectedSlot.location || 'Coach preferred location',
@@ -793,7 +813,7 @@ export const sessionInviteService = {
         id: apiClient.generateId('notif'),
         type: 'booking',
         title: 'Counter Proposal Accepted!',
-        body: `Coach ${invite.coachName.split(' ')[0]} accepted your proposed time. Session confirmed!`,
+        body: `Coach ${coachName.split(' ')[0]} accepted your proposed time. Session confirmed!`,
         timeLabel: 'Just now',
         read: false,
       };
@@ -966,6 +986,11 @@ export const sessionInviteService = {
     }
 
     const invite = invitesCache[index];
+    const [coachName, parentName, athleteNames] = await Promise.all([
+      resolveUserName(invite.coachId, 'Coach'),
+      resolveUserName(invite.parentId, 'Parent'),
+      resolveAthleteNames(invite.athleteIds),
+    ]);
     const acceptedWeeks = weekAcceptances.filter((w) => w.accepted);
     const declinedWeeks = weekAcceptances.filter((w) => !w.accepted);
 
@@ -980,11 +1005,11 @@ export const sessionInviteService = {
     // Create a multi-week booking series for accepted weeks
     const seriesResult = await multiWeekBookingService.createSeries({
       createdById: invite.parentId,
-      createdByName: invite.parentName,
+      createdByName: parentName,
       coachId: invite.coachId,
-      coachName: invite.coachName,
+      coachName,
       athleteIds: invite.athleteIds,
-      athleteNames: invite.athleteNames,
+      athleteNames,
       sessionType: invite.sessionType,
       focus: invite.focus,
       pricePerSession: invite.priceUsd,
@@ -1017,12 +1042,12 @@ export const sessionInviteService = {
     await saveToStorage(invitesCache);
 
     // Notify coach
-    const athleteNames = invite.athleteNames.join(', ');
+    const athleteDisplay = athleteNames.join(', ');
     const notification: NotificationItem = {
       id: apiClient.generateId('notif'),
       type: 'booking',
       title: 'Recurring Invite Accepted!',
-      body: `${invite.parentName} accepted ${acceptedWeeks.length} of ${weekAcceptances.length} weeks for ${athleteNames}.`,
+      body: `${parentName} accepted ${acceptedWeeks.length} of ${weekAcceptances.length} weeks for ${athleteDisplay}.`,
       timeLabel: 'Just now',
       read: false,
     };

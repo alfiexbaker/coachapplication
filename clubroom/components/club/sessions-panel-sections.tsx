@@ -11,6 +11,7 @@ import { groupSessionService } from '@/services/group-session-service';
 import type { GroupSession } from '@/constants/types';
 import type { useTheme } from '@/hooks/useTheme';
 import { Row } from '@/components/primitives';
+import { getGroupSessionSquadLabel } from '@/utils/group-display';
 
 type ThemeColors = ReturnType<typeof useTheme>['colors'];
 
@@ -26,6 +27,7 @@ export const TrainingSessionRow = memo(function TrainingSessionRow({
   palette,
 }: TrainingSessionRowProps) {
   const nextDate = groupSessionService.getNextTrainingDate(session);
+  const squadLabel = getGroupSessionSquadLabel(session);
   const dayName = session.recurringPattern
     ? groupSessionService.formatDayOfWeek(session.recurringPattern.dayOfWeek)
     : '';
@@ -60,10 +62,10 @@ export const TrainingSessionRow = memo(function TrainingSessionRow({
         </Row>
       </View>
       <View style={styles.trainingItemRight}>
-        {session.squadName && (
+        {squadLabel && (
           <View style={[styles.squadTag, { backgroundColor: withAlpha(palette.tint, 0.06) }]}>
             <ThemedText style={{ color: palette.tint, ...Typography.micro }}>
-              {session.squadName}
+              {squadLabel}
             </ThemedText>
           </View>
         )}

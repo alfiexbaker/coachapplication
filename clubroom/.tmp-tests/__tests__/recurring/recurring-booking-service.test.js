@@ -15,12 +15,8 @@ const recurring_booking_service_1 = require("../../services/recurring-booking-se
 // Test data
 const mockCreateParams = {
     userId: 'test_user_1',
-    userName: 'Test User',
     coachId: 'test_coach_1',
-    coachName: 'Test Coach',
-    coachPhotoUrl: 'https://example.com/photo.jpg',
     athleteId: 'test_athlete_1',
-    athleteName: 'Test Athlete',
     dayOfWeek: 2, // Tuesday
     time: '14:00',
     duration: 60,
@@ -80,7 +76,6 @@ const mockCreateParams = {
     await recurring_booking_service_1.recurringBookingService.createRecurring({
         ...mockCreateParams,
         userId: 'test_user_2',
-        userName: 'Test User 2',
     });
     const bookings = await recurring_booking_service_1.recurringBookingService.list();
     node_assert_1.default.strictEqual(bookings.success ? bookings.data.length : 0, 2, 'Should return 2 bookings');
@@ -106,7 +101,6 @@ const mockCreateParams = {
     await recurring_booking_service_1.recurringBookingService.createRecurring({
         ...mockCreateParams,
         userId: 'test_user_2',
-        userName: 'Test User 2',
     });
     const userBookings = await recurring_booking_service_1.recurringBookingService.getUserRecurringBookings('test_user_1');
     node_assert_1.default.strictEqual(userBookings.success ? userBookings.data.length : 0, 1);
@@ -120,7 +114,6 @@ const mockCreateParams = {
         ...mockCreateParams,
         userId: 'test_user_2',
         coachId: 'test_coach_2',
-        coachName: 'Test Coach 2',
     });
     const coachBookings = await recurring_booking_service_1.recurringBookingService.getCoachRecurringBookings('test_coach_1');
     node_assert_1.default.strictEqual(coachBookings.success ? coachBookings.data.length : 0, 1);

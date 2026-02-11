@@ -15,6 +15,7 @@ import { STORAGE_KEYS } from '@/constants/storage-keys';
 import { rosterService } from '@/services/roster-service';
 import { useAuth } from '@/hooks/use-auth';
 import { createLogger } from '@/utils/logger';
+import { getRosterAthleteName } from '@/utils/roster-display';
 import type { SessionOffering, FootballObjective, SessionInviteType } from '@/constants/types';
 import {
   type SessionType,
@@ -141,7 +142,7 @@ export function useCreateSession(): CreateSessionState & CreateSessionActions {
         const roster = await rosterService.getRoster(currentUser.id);
         const athletes = roster.map((entry) => ({
           id: entry.athleteId,
-          name: entry.athleteName,
+          name: getRosterAthleteName(entry),
         }));
         setPastAthletes(athletes);
       } catch (error) {
@@ -239,8 +240,6 @@ export function useCreateSession(): CreateSessionState & CreateSessionActions {
       const newOffering: SessionOffering = {
         id: `session_${Date.now()}`,
         coachId: currentUser.id,
-        coachName: currentUser.name || currentUser.fullName || 'Coach',
-        coachPhotoUrl: currentUser.avatar,
         title,
         description: description || undefined,
         sessionType: sessionType === '1on1' ? '1on1' : 'group',

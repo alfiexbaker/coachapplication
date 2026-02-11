@@ -29,7 +29,7 @@ export const VideoInfoSection = memo(function VideoInfoSection({ video, colors }
         <Row gap={4} align="center">
           <Ionicons name="person-outline" size={16} color={colors.muted} />
           <ThemedText style={[styles.metaText, { color: colors.muted }]}>
-            {video.athleteNames.join(', ')}
+            {video.athleteIds.join(', ')}
           </ThemedText>
         </Row>
         <Row gap={4} align="center">

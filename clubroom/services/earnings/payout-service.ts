@@ -131,7 +131,6 @@ const MOCK_WITHDRAWALS: Withdrawal[] = [
   {
     id: 'wd_1',
     coachId: 'coach1',
-    coachName: 'Marcus Thompson',
     amount: 150,
     currency: 'GBP',
     fee: 0,
@@ -147,7 +146,6 @@ const MOCK_WITHDRAWALS: Withdrawal[] = [
   {
     id: 'wd_2',
     coachId: 'coach1',
-    coachName: 'Marcus Thompson',
     amount: 100,
     currency: 'GBP',
     fee: 0,
@@ -162,7 +160,6 @@ const MOCK_WITHDRAWALS: Withdrawal[] = [
   {
     id: 'wd_3',
     coachId: 'coach2',
-    coachName: 'Sarah Mitchell',
     amount: 200,
     currency: 'GBP',
     fee: 0,
@@ -178,7 +175,6 @@ const MOCK_WITHDRAWALS: Withdrawal[] = [
   {
     id: 'wd_4',
     coachId: 'coach2',
-    coachName: 'Sarah Mitchell',
     amount: 150,
     currency: 'GBP',
     fee: 0,
@@ -192,7 +188,6 @@ const MOCK_WITHDRAWALS: Withdrawal[] = [
   {
     id: 'wd_5',
     coachId: 'coach3',
-    coachName: 'Emma Williams',
     amount: 100,
     currency: 'GBP',
     fee: 0,
@@ -568,7 +563,6 @@ export const payoutService = {
         const withdrawal: Withdrawal = {
           id: `wd_${Date.now()}`,
           coachId,
-          coachName: earnings.coachName,
           amount,
           currency: earnings.currency,
           fee: 0, // No withdrawal fees in this version

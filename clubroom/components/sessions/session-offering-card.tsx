@@ -8,6 +8,7 @@ import { Radii, Spacing, withAlpha } from '@/constants/theme';
 import { SessionOffering } from '@/constants/types';
 import { scaleFont } from '@/utils/scale';
 import { useTheme } from '@/hooks/useTheme';
+import { getSessionOfferingCoachName } from '@/utils/session-display';
 
 // Re-export extracted components for backward compat
 export { SessionTypeBadge, SessionFooterBadges } from './session-offering-card-sections';
@@ -24,6 +25,7 @@ interface SessionOfferingCardProps {
 
 export function SessionOfferingCard({ offering, onPress, showCoach = false, showCapacity = true }: SessionOfferingCardProps) {
   const { colors: palette } = useTheme();
+  const coachName = getSessionOfferingCoachName(offering);
 
   const registeredCount = offering.registrations.filter(r => r.status === 'confirmed').length;
   const isFull = registeredCount >= offering.maxParticipants;
@@ -45,7 +47,7 @@ export function SessionOfferingCard({ offering, onPress, showCoach = false, show
           <ThemedText type="defaultSemiBold" style={styles.title}>{offering.title}</ThemedText>
           <SessionTypeBadge sessionType={offering.sessionType} palette={palette} />
         </Row>
-        {showCoach && <ThemedText style={styles.coachName}>with {offering.coachName}</ThemedText>}
+        {showCoach && <ThemedText style={styles.coachName}>with {coachName}</ThemedText>}
       </View>
 
       {offering.description && (

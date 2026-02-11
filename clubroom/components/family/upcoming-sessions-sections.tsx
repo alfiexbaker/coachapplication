@@ -138,14 +138,14 @@ export const SessionCard = memo(function SessionCard({
             <Row style={styles.metaItem}>
               <View style={[styles.childDot, { backgroundColor: session.colorCode }]} />
               <ThemedText style={[styles.metaText, { color: palette.muted }]}>
-                {session.childName}
+                {session.childId}
               </ThemedText>
             </Row>
-            {session.coachName && (
+            {session.coachId && (
               <Row style={styles.metaItem}>
                 <Ionicons name="person" size={12} color={palette.muted} />
                 <ThemedText style={[styles.metaText, { color: palette.muted }]}>
-                  {session.coachName}
+                  {session.coachId}
                 </ThemedText>
               </Row>
             )}

@@ -156,7 +156,7 @@ export default function ChildProgressScreen() {
                     <ThemedText style={[Typography.small, { color: colors.muted }]}>{badge.reason}</ThemedText>
                     <Row gap="sm">
                       <ThemedText style={[Typography.caption, { color: colors.muted }]}>{formatShortDateWithYear(badge.awardedAt)}</ThemedText>
-                      {badge.coachName && <ThemedText style={[Typography.caption, { color: colors.muted }]}>by {badge.coachName}</ThemedText>}
+                      {badge.coachId && <ThemedText style={[Typography.caption, { color: colors.muted }]}>by {badge.coachId}</ThemedText>}
                     </Row>
                   </SurfaceCard>
                 ))}

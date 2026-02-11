@@ -1,4 +1,4 @@
-import { View, StyleSheet, Image } from 'react-native';
+import { View, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
 import { SurfaceCard } from '@/components/primitives/surface-card';
@@ -22,6 +22,7 @@ export function ConsentCard({
   showDetails = false,
 }: ConsentCardProps) {
   const { colors: palette } = useTheme();
+  const athleteName = athleteConsent.athleteId || 'Athlete';
 
   const { granted, total } = consentService.getConsentCount(athleteConsent);
   const percentage = consentService.getConsentPercentage(athleteConsent);
@@ -44,26 +45,19 @@ export function ConsentCard({
     <SurfaceCard style={styles.card} onPress={onPress}>
       <Row style={styles.header}>
         {/* Avatar */}
-        {athleteConsent.athletePhotoUrl ? (
-          <Image
-            source={{ uri: athleteConsent.athletePhotoUrl }}
-            style={styles.avatar}
-          />
-        ) : (
-          <View style={[styles.avatarPlaceholder, { backgroundColor: palette.border }]}>
-            <ThemedText style={styles.avatarText}>
-              {athleteConsent.athleteName.slice(0, 2).toUpperCase()}
-            </ThemedText>
-          </View>
-        )}
+        <View style={[styles.avatarPlaceholder, { backgroundColor: palette.border }]}>
+          <ThemedText style={styles.avatarText}>
+            {athleteName.slice(0, 2).toUpperCase()}
+          </ThemedText>
+        </View>
 
         {/* Info */}
         <View style={styles.info}>
           <ThemedText type="defaultSemiBold" numberOfLines={1}>
-            {athleteConsent.athleteName}
+            {athleteName}
           </ThemedText>
           <ThemedText style={[styles.parentName, { color: palette.muted }]}>
-            {athleteConsent.parentName}
+            Parent
           </ThemedText>
         </View>
 
@@ -161,11 +155,6 @@ const styles = StyleSheet.create({
   header: {
     alignItems: 'center',
     gap: Spacing.md,
-  },
-  avatar: {
-    width: 44,
-    height: 44,
-    borderRadius: Radii.xl,
   },
   avatarPlaceholder: {
     width: 44,

@@ -11,6 +11,7 @@ import { userService } from '@/services/user-service';
 import type { Session, Booking } from '@/constants/app-types';
 import type { User } from '@/constants/types';
 import { createLogger } from '@/utils/logger';
+import { getSessionAthleteName } from '@/utils/session-display';
 
 const logger = createLogger('CoachDevelopmentScreen');
 
@@ -154,6 +155,7 @@ export function useCoachDevelopment() {
     athleteMap.forEach((athleteSessions, athleteId) => {
       const sortedSessions = [...athleteSessions].sort((a, b) => new Date(b.completedAt).getTime() - new Date(a.completedAt).getTime());
       const latestSession = sortedSessions[0];
+      const fallbackAthleteName = latestSession ? getSessionAthleteName(latestSession) : 'Athlete';
       const storedAthlete = athleteDirectory[athleteId];
       const athlete: AthleteSummary = storedAthlete
         ? {
@@ -163,8 +165,8 @@ export function useCoachDevelopment() {
           }
         : {
             id: athleteId,
-            name: formatAthleteName(latestSession?.athleteName),
-            avatar: formatAthleteName(latestSession?.athleteName).charAt(0),
+            name: formatAthleteName(fallbackAthleteName),
+            avatar: formatAthleteName(fallbackAthleteName).charAt(0),
           };
 
       const avgRating = athleteSessions.reduce((sum, session) => sum + session.performanceRating, 0) / athleteSessions.length;

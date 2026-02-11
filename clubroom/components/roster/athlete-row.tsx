@@ -1,5 +1,5 @@
 import { useRef } from 'react';
-import { View, StyleSheet, Image, Pressable, Animated } from 'react-native';
+import { View, StyleSheet, Pressable, Animated } from 'react-native';
 import { Row } from '@/components/primitives/row';
 import { Ionicons } from '@expo/vector-icons';
 import { Swipeable } from 'react-native-gesture-handler';
@@ -10,6 +10,7 @@ import { Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
 import { rosterService } from '@/services/roster-service';
 import type { RosterEntry } from '@/constants/types';
 import { useTheme } from '@/hooks/useTheme';
+import { getRosterAthleteName, getRosterParentName } from '@/utils/roster-display';
 
 interface AthleteRowProps {
   entry: RosterEntry;
@@ -28,6 +29,8 @@ export function AthleteRow({
 }: AthleteRowProps) {
   const { colors: palette } = useTheme();
   const swipeableRef = useRef<Swipeable>(null);
+  const athleteName = getRosterAthleteName(entry);
+  const parentName = getRosterParentName(entry);
 
   const statusColor = rosterService.getStatusColor(entry.status);
 
@@ -76,21 +79,17 @@ export function AthleteRow({
     >
       <Row align="center" gap="md">
         {/* Avatar */}
-        {entry.athletePhotoUrl ? (
-          <Image source={{ uri: entry.athletePhotoUrl }} style={styles.avatar} />
-        ) : (
-          <View style={[styles.avatarPlaceholder, { backgroundColor: palette.border }]}>
-            <ThemedText style={styles.avatarText}>
-              {entry.athleteName.slice(0, 2).toUpperCase()}
-            </ThemedText>
-          </View>
-        )}
+        <View style={[styles.avatarPlaceholder, { backgroundColor: palette.border }]}>
+          <ThemedText style={styles.avatarText}>
+            {athleteName.slice(0, 2).toUpperCase()}
+          </ThemedText>
+        </View>
 
         {/* Info */}
         <View style={styles.info}>
           <Row align="center" gap="xs">
             <ThemedText type="defaultSemiBold" numberOfLines={1} style={styles.name}>
-              {entry.athleteName}
+              {athleteName}
             </ThemedText>
             {entry.senInfo?.hasSen && (
               <Ionicons name="accessibility-outline" size={14} color={palette.tint} />
@@ -98,7 +97,7 @@ export function AthleteRow({
             <View style={[styles.statusDot, { backgroundColor: statusColor }]} />
           </Row>
           <ThemedText style={[styles.parentName, { color: palette.muted }]}>
-            {entry.parentName} | {entry.athleteAge} yrs
+            {parentName}
           </ThemedText>
           <Row align="center" gap="sm" style={styles.metaRow}>
             <Row align="center" gap="micro">

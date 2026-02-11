@@ -78,12 +78,12 @@ const expectOk = (result) => {
             const consents = expectOk(await consent_service_1.consentService.getRosterConsents('coach1'));
             node_assert_1.default.ok(Array.isArray(consents));
             node_assert_1.default.ok(consents.length > 0);
-            node_assert_1.default.ok(consents.every((c) => c.athleteId && c.athleteName));
+            node_assert_1.default.ok(consents.every((c) => c.athleteId));
         });
-        (0, node_test_1.default)('should include athlete photo URL when available', async () => {
+        (0, node_test_1.default)('should include consent records for each roster athlete', async () => {
             const consents = expectOk(await consent_service_1.consentService.getRosterConsents('coach1'));
-            const athleteWithPhoto = consents.find((c) => c.athletePhotoUrl);
-            node_assert_1.default.ok(athleteWithPhoto);
+            const athleteWithConsents = consents.find((c) => c.consents.length > 0);
+            node_assert_1.default.ok(athleteWithConsents);
         });
         (0, node_test_1.default)('should filter by consent type granted', async () => {
             const consents = expectOk(await consent_service_1.consentService.getRosterConsents('coach1', {
@@ -109,13 +109,11 @@ const expectOk = (result) => {
         });
         (0, node_test_1.default)('should filter by search query', async () => {
             const consents = expectOk(await consent_service_1.consentService.getRosterConsents('coach1', {
-                search: 'Baker',
+                search: 'athlete1',
             }));
-            // All returned athletes should match the search
+            // All returned athletes should match the athleteId query
             for (const c of consents) {
-                const matchesAthlete = c.athleteName.toLowerCase().includes('baker');
-                const matchesParent = c.parentName.toLowerCase().includes('baker');
-                node_assert_1.default.ok(matchesAthlete || matchesParent);
+                node_assert_1.default.ok(c.athleteId.toLowerCase().includes('athlete1'));
             }
         });
     });
@@ -191,8 +189,6 @@ const expectOk = (result) => {
         (0, node_test_1.default)('should return consent for specified type', () => {
             const athleteConsent = {
                 athleteId: 'test',
-                athleteName: 'Test Athlete',
-                parentName: 'Test Parent',
                 consents: [
                     { type: 'PHOTO', granted: true, grantedBy: 'Parent' },
                     { type: 'VIDEO', granted: false, grantedBy: '' },
@@ -211,8 +207,6 @@ const expectOk = (result) => {
         (0, node_test_1.default)('should return undefined for missing consent type', () => {
             const athleteConsent = {
                 athleteId: 'test',
-                athleteName: 'Test Athlete',
-                parentName: 'Test Parent',
                 consents: [],
                 lastUpdated: new Date().toISOString(),
             };
@@ -224,8 +218,6 @@ const expectOk = (result) => {
         (0, node_test_1.default)('should return true when photo and social media consents are granted', () => {
             const athleteConsent = {
                 athleteId: 'test',
-                athleteName: 'Test Athlete',
-                parentName: 'Test Parent',
                 consents: [
                     { type: 'PHOTO', granted: true, grantedBy: 'Parent' },
                     { type: 'VIDEO', granted: false, grantedBy: '' },
@@ -240,8 +232,6 @@ const expectOk = (result) => {
         (0, node_test_1.default)('should return true when video and social media consents are granted', () => {
             const athleteConsent = {
                 athleteId: 'test',
-                athleteName: 'Test Athlete',
-                parentName: 'Test Parent',
                 consents: [
                     { type: 'PHOTO', granted: false, grantedBy: '' },
                     { type: 'VIDEO', granted: true, grantedBy: 'Parent' },
@@ -256,8 +246,6 @@ const expectOk = (result) => {
         (0, node_test_1.default)('should return false when social media consent is not granted', () => {
             const athleteConsent = {
                 athleteId: 'test',
-                athleteName: 'Test Athlete',
-                parentName: 'Test Parent',
                 consents: [
                     { type: 'PHOTO', granted: true, grantedBy: 'Parent' },
                     { type: 'VIDEO', granted: true, grantedBy: 'Parent' },
@@ -272,8 +260,6 @@ const expectOk = (result) => {
         (0, node_test_1.default)('should return false when neither photo nor video consent is granted', () => {
             const athleteConsent = {
                 athleteId: 'test',
-                athleteName: 'Test Athlete',
-                parentName: 'Test Parent',
                 consents: [
                     { type: 'PHOTO', granted: false, grantedBy: '' },
                     { type: 'VIDEO', granted: false, grantedBy: '' },
@@ -351,8 +337,6 @@ const expectOk = (result) => {
         (0, node_test_1.default)('should return correct count of granted consents', () => {
             const athleteConsent = {
                 athleteId: 'test',
-                athleteName: 'Test Athlete',
-                parentName: 'Test Parent',
                 consents: [
                     { type: 'PHOTO', granted: true, grantedBy: 'Parent' },
                     { type: 'VIDEO', granted: true, grantedBy: 'Parent' },
@@ -368,8 +352,6 @@ const expectOk = (result) => {
         (0, node_test_1.default)('should return zero for no consents', () => {
             const athleteConsent = {
                 athleteId: 'test',
-                athleteName: 'Test Athlete',
-                parentName: 'Test Parent',
                 consents: [],
                 lastUpdated: new Date().toISOString(),
             };
@@ -382,8 +364,6 @@ const expectOk = (result) => {
         (0, node_test_1.default)('should return correct percentage', () => {
             const athleteConsent = {
                 athleteId: 'test',
-                athleteName: 'Test Athlete',
-                parentName: 'Test Parent',
                 consents: [
                     { type: 'PHOTO', granted: true, grantedBy: 'Parent' },
                     { type: 'VIDEO', granted: true, grantedBy: 'Parent' },
@@ -398,8 +378,6 @@ const expectOk = (result) => {
         (0, node_test_1.default)('should return 100 for all granted', () => {
             const athleteConsent = {
                 athleteId: 'test',
-                athleteName: 'Test Athlete',
-                parentName: 'Test Parent',
                 consents: [
                     { type: 'PHOTO', granted: true, grantedBy: 'Parent' },
                     { type: 'VIDEO', granted: true, grantedBy: 'Parent' },
@@ -414,8 +392,6 @@ const expectOk = (result) => {
         (0, node_test_1.default)('should return 0 for none granted', () => {
             const athleteConsent = {
                 athleteId: 'test',
-                athleteName: 'Test Athlete',
-                parentName: 'Test Parent',
                 consents: [
                     { type: 'PHOTO', granted: false, grantedBy: '' },
                     { type: 'VIDEO', granted: false, grantedBy: '' },
@@ -430,8 +406,6 @@ const expectOk = (result) => {
         (0, node_test_1.default)('should return 0 for empty consents array', () => {
             const athleteConsent = {
                 athleteId: 'test',
-                athleteName: 'Test Athlete',
-                parentName: 'Test Parent',
                 consents: [],
                 lastUpdated: new Date().toISOString(),
             };

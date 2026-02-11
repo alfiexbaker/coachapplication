@@ -15,6 +15,7 @@ import { AvatarStack } from '@/components/invite/avatar-stack';
 import { Spacing, Radii, Typography, Shadows } from '@/constants/theme';
 import type { SessionInvite } from '@/constants/types';
 import { useTheme } from '@/hooks/useTheme';
+import { getSessionInviteCoachName } from '@/utils/session-invite-display';
 
 interface UpcomingEventsCarouselProps {
   invites: SessionInvite[];
@@ -53,11 +54,12 @@ const EventCard = memo(function EventCardComponent({
     }));
 
   const handlePress = useCallback(() => onPress(invite.id), [onPress, invite.id]);
+  const coachName = getSessionInviteCoachName(invite);
 
   return (
     <Clickable
       onPress={handlePress}
-      accessibilityLabel={`${invite.sessionType} invite from ${invite.coachName}`}
+      accessibilityLabel={`${invite.sessionType} invite from ${coachName}`}
       style={[
         styles.card,
         {

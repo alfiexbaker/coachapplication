@@ -87,14 +87,15 @@ export function useFamilySharing() {
 
   const handleRemoveGuardian = useCallback((guardian: FamilyGuardian) => {
     if (!family || !currentUser) return;
+    const guardianLabel = guardian.userId || 'Guardian';
     Alert.alert('Remove Guardian',
-      `Are you sure you want to remove ${guardian.userName} from your family account? They will no longer be able to access your children's information.`,
+      `Are you sure you want to remove ${guardianLabel} from your family account? They will no longer be able to access your children's information.`,
       [
         { text: 'Cancel', style: 'cancel' },
         { text: 'Remove', style: 'destructive', onPress: async () => {
           try {
             await familyService.removeGuardian(family.id, currentUser.id, guardian.id);
-            Alert.alert('Removed', `${guardian.userName} has been removed from your family account.`);
+            Alert.alert('Removed', `${guardianLabel} has been removed from your family account.`);
             loadFamilyData();
           } catch (error: unknown) { Alert.alert('Error', error instanceof Error ? error.message : 'Failed to remove guardian'); }
         }},

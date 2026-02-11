@@ -15,7 +15,6 @@ function createMockDrill(): Drill {
   return {
     id: 'drill_1',
     coachId: 'coach1',
-    coachName: 'Coach Mike',
     title: 'Ball Juggling Challenge',
     description: 'Practice juggling the ball',
     category: 'TECHNIQUE' as DrillCategory,
@@ -33,9 +32,7 @@ function createMockAssignment(overrides?: Partial<AssignedDrill>): AssignedDrill
     drillId: 'drill_1',
     drill: createMockDrill(),
     athleteId: 'user1',
-    athleteName: 'Alex Thompson',
     assignedBy: 'coach1',
-    assignedByName: 'Coach Mike',
     assignedAt: '2026-01-08T09:00:00Z',
     dueDate: '2026-01-15T23:59:59Z',
     isCompleted: false,
@@ -163,16 +160,14 @@ describe('AssignmentCard Component', () => {
   });
 
   describe('Display Properties', () => {
-    test('should have athlete name for display', () => {
-      const assignment = createMockAssignment({ athleteName: 'Jordan Smith' });
-
-      assert.strictEqual(assignment.athleteName, 'Jordan Smith');
+    test('should retain athlete ID for display fallback', () => {
+      const assignment = createMockAssignment({ athleteId: 'athlete_42' });
+      assert.strictEqual(assignment.athleteId, 'athlete_42');
     });
 
-    test('should have coach name for display', () => {
-      const assignment = createMockAssignment({ assignedByName: 'Coach Sarah' });
-
-      assert.strictEqual(assignment.assignedByName, 'Coach Sarah');
+    test('should retain assignedBy ID for display fallback', () => {
+      const assignment = createMockAssignment({ assignedBy: 'coach_42' });
+      assert.strictEqual(assignment.assignedBy, 'coach_42');
     });
 
     test('should format due date for display', () => {

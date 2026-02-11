@@ -38,6 +38,7 @@ function AttachmentCard({ title, subtitle }: { title: string; subtitle?: string 
 
 function MessageBubbleComponent({ message, isOwnMessage, onLongPress, showSenderLabel }: MessageBubbleProps) {
   const { colors: palette, scheme } = useTheme();
+  const senderLabel = message.sender === 'coach' ? 'Coach' : message.sender === 'parent' ? 'Parent' : 'System';
   const bubbleColor = isOwnMessage
     ? scheme === 'dark'
       ? palette.secondary
@@ -60,8 +61,8 @@ function MessageBubbleComponent({ message, isOwnMessage, onLongPress, showSender
         }
       }}
     >
-      {showSenderLabel && message.senderName ? (
-        <ThemedText style={[styles.senderLabel, { color: palette.muted }]}>{message.senderName}</ThemedText>
+      {showSenderLabel && senderLabel ? (
+        <ThemedText style={[styles.senderLabel, { color: palette.muted }]}>{senderLabel}</ThemedText>
       ) : null}
       <View style={[styles.bubble, { backgroundColor: bubbleColor }]}>
         <ThemedText style={[styles.body, { color: textColor }]}>{message.body}</ThemedText>

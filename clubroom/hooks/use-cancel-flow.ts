@@ -9,6 +9,7 @@ import { apiClient } from '@/services/api-client';
 import { STORAGE_KEYS } from '@/constants/storage-keys';
 import type { Booking } from '@/constants/app-types';
 import type { RefundCalculation } from '@/constants/types';
+import { getBookingAthleteName } from '@/utils/booking-display';
 
 export type CancellationReason = 'child_ill' | 'schedule_change' | 'weather' | 'venue' | 'emergency' | 'other';
 
@@ -104,7 +105,7 @@ export function useCancelFlow({ visible, bookingId, booking, userRole, onCancell
       try {
         const notifications = await apiClient.get<Record<string, unknown>[]>(STORAGE_KEYS.NOTIFICATIONS, []);
         const recipientId = isCoachCancelling ? (booking.bookedById || '') : booking.coachId;
-        const senderName = isCoachCancelling ? (booking.coachName || 'Coach') : (booking.athleteName || 'Parent');
+        const senderName = isCoachCancelling ? (booking.coachName || 'Coach') : getBookingAthleteName(booking);
         notifications.push({
           id: `notif_cancel_${Date.now()}`, userId: recipientId, type: 'booking_cancelled',
           title: 'Session cancelled', body: `${senderName} has cancelled the ${booking.service || 'session'} on ${formatSessionDate(booking.scheduledAt || booking.start || '')}.`,

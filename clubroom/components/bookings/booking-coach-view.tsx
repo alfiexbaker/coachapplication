@@ -10,6 +10,7 @@ import { Spacing, Radii, Typography , withAlpha } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
 import type { BookingSummary } from '@/constants/types';
 import { Row } from '@/components/primitives';
+import { getBookingSummaryClientName } from '@/utils/booking-display';
 
 interface BookingCoachViewProps {
   booking: BookingSummary;
@@ -38,7 +39,7 @@ function BookingCoachViewInner({
             router.push(Routes.sessionFeedback({
               bookingId: booking.id,
               athleteId: booking.clientId,
-              athleteName: booking.childName,
+              athleteName: getBookingSummaryClientName(booking),
               athleteObjectives: JSON.stringify(objectives),
             }));
           }}

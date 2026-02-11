@@ -65,7 +65,7 @@ export function useAttendees() {
 
   const handleExportAttendees = useCallback(() => {
     logger.press('ExportAttendees', { eventId: id });
-    const attendeeNames = attendance.map((a) => a.userName).join('\n');
+    const attendeeNames = attendance.map((a) => a.userId).join('\n');
     Alert.alert('Attendee List', `${attendance.length} checked in:\n\n${attendeeNames || 'No attendees yet'}`, [{ text: 'OK' }]);
   }, [id, attendance]);
 

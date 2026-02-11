@@ -14,6 +14,8 @@ import { Spacing, Radii, Components, Typography, withAlpha } from '@/constants/t
 import { Routes } from '@/navigation/routes';
 import type { Booking, Session } from '@/constants/app-types';
 import { useTheme } from '@/hooks/useTheme';
+import { getBookingAthleteName } from '@/utils/booking-display';
+import { getSessionAthleteName } from '@/utils/session-display';
 
 import type { AthleteRosterEntry } from '@/hooks/use-coach-development';
 import { formatDate } from '@/hooks/use-coach-development';
@@ -72,12 +74,13 @@ function CompletionCardInner({ bookings }: { bookings: Booking[] }) {
         const isToday = sessionDate.toDateString() === new Date().toDateString();
         const timeStr = sessionDate.toLocaleTimeString('en-GB', { hour: 'numeric', minute: '2-digit', hour12: true });
         const dateStr = isToday ? `Today ${timeStr}` : `${sessionDate.toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' })} ${timeStr}`;
+        const athleteName = getBookingAthleteName(booking);
         return (
           <Clickable key={booking.id} style={[styles.completionRow, { borderColor: palette.border }]}
             onPress={() => router.push(Routes.sessionComplete(booking.id))}>
             <View style={styles.completionRowContent}>
               <ThemedText type="defaultSemiBold" style={styles.completionRowTitle} numberOfLines={1}>
-                {booking.service || 'Session'} {booking.athleteName ? `with ${booking.athleteName}` : ''}
+                {booking.service || 'Session'} {athleteName ? `with ${athleteName}` : ''}
               </ThemedText>
               <ThemedText style={[styles.completionRowMeta, { color: palette.muted }]}>{dateStr}</ThemedText>
             </View>
@@ -169,7 +172,7 @@ function RecentSessionsSectionInner({
       <View style={{ gap: Spacing.xs }}>
         {sessions.map((session) => {
           const athlete = athleteDirectory[session.athleteId];
-          const athleteName = athlete?.name || session.athleteName || 'Athlete';
+          const athleteName = athlete?.name || getSessionAthleteName(session);
           const athleteAvatar = athlete?.avatar || athleteName.charAt(0).toUpperCase();
           return (
             <Row key={session.id} style={[styles.recentRow, { borderColor: palette.border }]}>

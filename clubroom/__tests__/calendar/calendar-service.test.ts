@@ -24,7 +24,6 @@ const mockBooking: Booking = {
   location: 'Hackney Marshes',
   notes: 'Focus on dribbling',
   coachName: 'Coach Sarah',
-  athleteName: 'Tom Henderson',
   service: '1-on-1 Training',
 };
 
@@ -33,7 +32,6 @@ const mockBookingNoOptionals: Booking = {
   coachId: 'coach_2',
   coachName: '',
   athleteId: 'athlete_2',
-  athleteName: '',
   bookedById: 'parent_2',
   status: 'PENDING',
   scheduledAt: '2026-03-01T10:00:00.000Z',
@@ -52,9 +50,7 @@ describe('Calendar Service', () => {
       assert.strictEqual(event.location, 'Hackney Marshes');
       assert.ok(event.description.includes('1-on-1 Training'));
       assert.ok(event.description.includes('Focus on dribbling'));
-      assert.ok(event.description.includes('Tom Henderson'));
-      assert.strictEqual(event.coachName, 'Coach Sarah');
-      assert.strictEqual(event.athleteName, 'Tom Henderson');
+      assert.ok(event.description.includes('Athlete ID: athlete_1'));
       assert.strictEqual(event.bookingId, 'booking_123');
     });
 
@@ -74,8 +70,6 @@ describe('Calendar Service', () => {
       assert.strictEqual(event.id, 'booking_456');
       assert.strictEqual(event.title, 'Training Session');
       assert.strictEqual(event.location, '');
-      assert.strictEqual(event.coachName, undefined);
-      assert.strictEqual(event.athleteName, undefined);
     });
 
     test('should handle different durations', () => {

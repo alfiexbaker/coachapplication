@@ -3,6 +3,7 @@
 > **Duration:** ~1.5 weeks
 > **Goal:** Every data access goes Screen → Hook → Service → apiClient. Zero mock-data imports outside services and tests.
 > **Depends on:** Phase 1 (services must return Result<T> before migration)
+> **Status:** COMPLETE (verified 2026-02-11)
 
 ---
 
@@ -130,13 +131,13 @@ After all imports are migrated:
 ## Quality Gate
 
 Phase 2 is DONE when:
-- [ ] `grep -r "from.*mock-data" clubroom/hooks/ clubroom/components/ clubroom/app/` returns 0 matches
-- [ ] `grep -r "from.*mock-data" clubroom/services/` returns 0 matches (except test fixtures)
-- [ ] UserService exists with full CRUD via apiClient
-- [ ] 0 `TODO(T3.4)` markers remain in type files
-- [ ] All data access follows: Screen → Hook → Service → apiClient
-- [ ] TypeScript compiles with 0 errors
-- [ ] No mock-data function exports remain (only raw seed data)
+- [x] `grep -r "from.*mock-data" clubroom/hooks/ clubroom/components/ clubroom/app/` returns 0 matches
+- [x] `grep -r "from.*mock-data" clubroom/services/` returns 0 matches (except test fixtures)
+- [x] UserService exists with full CRUD via apiClient
+- [x] 0 `TODO(T3.4)` markers remain in type files
+- [x] All data access follows: Screen → Hook → Service → apiClient
+- [x] TypeScript compiles with 0 errors
+- [x] No mock-data function exports remain (only raw seed data)
 
 ## Agent Instructions
 

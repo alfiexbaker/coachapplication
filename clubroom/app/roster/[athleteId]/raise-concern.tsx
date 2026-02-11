@@ -34,6 +34,7 @@ import {
   type ConcernSeverity,
 } from '@/services/concern-service';
 import { createLogger } from '@/utils/logger';
+import { getRosterAthleteName } from '@/utils/roster-display';
 
 const logger = createLogger('RaiseConcern');
 
@@ -195,7 +196,7 @@ export default function RaiseConcernScreen() {
   React.useEffect(() => {
     async function load() {
       const entry = await rosterService.getRosterEntry(coachId, athleteId);
-      if (entry) setAthleteName(entry.athleteName);
+      if (entry) setAthleteName(getRosterAthleteName(entry));
     }
     void load();
   }, [coachId, athleteId]);

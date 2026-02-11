@@ -55,7 +55,6 @@ describe('ClubFeedService.createCoachPost', () => {
       assert.ok(post.id, 'Post should have an id');
       assert.ok(post.createdAt, 'Post should have a createdAt timestamp');
       assert.equal(post.authorId, coachId);
-      assert.equal(post.authorName, coachName);
       assert.equal(post.title, 'My Training Tips');
       assert.equal(post.body, 'Here are some tips for improving your footwork.');
       assert.equal(post.feedType, 'PERSONAL');

@@ -25,7 +25,9 @@ const STATUS_OPTIONS: { key: RosterEntry['status']; label: string; color: string
   { key: 'INACTIVE', label: 'Inactive', color: '#6B7280' },  // Decorative: inactive status
 ];
 
-const SKILL_LEVELS: { key: RosterEntry['athleteSkillLevel']; label: string }[] = [
+type SkillLevelFilter = NonNullable<RosterFilters['skillLevel']>;
+
+const SKILL_LEVELS: { key: SkillLevelFilter; label: string }[] = [
   { key: 'BEGINNER', label: 'Beginner' },
   { key: 'INTERMEDIATE', label: 'Intermediate' },
   { key: 'ADVANCED', label: 'Advanced' },
@@ -46,7 +48,7 @@ export function AthleteFilters({
     });
   };
 
-  const toggleSkillLevel = (level: RosterEntry['athleteSkillLevel']) => {
+  const toggleSkillLevel = (level: SkillLevelFilter) => {
     onFilterChange({
       ...filters,
       skillLevel: filters.skillLevel === level ? undefined : level,

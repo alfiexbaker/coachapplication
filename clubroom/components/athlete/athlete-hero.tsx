@@ -4,7 +4,6 @@
 
 import React, { useCallback } from 'react';
 import { View, StyleSheet } from 'react-native';
-import { Image } from 'expo-image';
 import { Ionicons } from '@expo/vector-icons';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 import * as Haptics from 'expo-haptics';
@@ -17,6 +16,7 @@ import { Spacing, Radii, Typography, Components, withAlpha } from '@/constants/t
 import { useTheme } from '@/hooks/useTheme';
 import { rosterService } from '@/services/roster-service';
 import type { RosterEntry } from '@/constants/types';
+import { getRosterAthleteName } from '@/utils/roster-display';
 
 interface AthleteHeroProps {
   athlete: RosterEntry;
@@ -26,6 +26,7 @@ interface AthleteHeroProps {
 function AthleteHeroInner({ athlete, onStatusPress }: AthleteHeroProps) {
   const { colors } = useTheme();
   const statusColor = rosterService.getStatusColor(athlete.status);
+  const athleteName = getRosterAthleteName(athlete);
 
   const tenure = React.useMemo(() => {
     const start = new Date(athlete.startDate);
@@ -50,26 +51,17 @@ function AthleteHeroInner({ athlete, onStatusPress }: AthleteHeroProps) {
       <SurfaceCard style={styles.card}>
         <Row gap="lg" align="center">
           {/* Avatar */}
-          {athlete.athletePhotoUrl ? (
-            <Image
-              source={{ uri: athlete.athletePhotoUrl }}
-              style={styles.avatar}
-              contentFit="cover"
-              transition={200}
-            />
-          ) : (
-            <View style={[styles.avatarPlaceholder, { backgroundColor: withAlpha(colors.tint, 0.09) }]}>
-              <ThemedText style={[styles.avatarText, { color: colors.tint }]}>
-                {athlete.athleteName.split(' ').map((n) => n[0]).join('').toUpperCase()}
-              </ThemedText>
-            </View>
-          )}
+          <View style={[styles.avatarPlaceholder, { backgroundColor: withAlpha(colors.tint, 0.09) }]}>
+            <ThemedText style={[styles.avatarText, { color: colors.tint }]}>
+              {athleteName.split(' ').map((n: string) => n[0]).join('').toUpperCase()}
+            </ThemedText>
+          </View>
 
           {/* Info */}
           <View style={styles.info}>
-            <ThemedText type="title">{athlete.athleteName}</ThemedText>
+            <ThemedText type="title">{athleteName}</ThemedText>
             <ThemedText style={[styles.subtitle, { color: colors.muted }]}>
-              {athlete.athleteAge} years old · Since {tenure}
+              Since {tenure}
             </ThemedText>
 
             <Row gap="xs" style={styles.badges}>
@@ -87,7 +79,7 @@ function AthleteHeroInner({ athlete, onStatusPress }: AthleteHeroProps) {
 
               <View style={[styles.levelBadge, { backgroundColor: colors.surfaceSecondary }]}>
                 <ThemedText style={[styles.badgeText, { color: colors.muted }]}>
-                  {athlete.athleteSkillLevel}
+                  {athlete.primaryFocus || 'Focus'}
                 </ThemedText>
               </View>
             </Row>

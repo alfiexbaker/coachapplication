@@ -22,17 +22,24 @@ exports.drillService = void 0;
 const api_client_1 = require("./api-client");
 const storage_keys_1 = require("@/constants/storage-keys");
 const notification_trigger_1 = require("./notification-trigger");
+const user_service_1 = require("./user-service");
 const logger_1 = require("../utils/logger");
 const format_1 = require("@/utils/format");
 const result_1 = require("@/types/result");
 const logger = (0, logger_1.createLogger)('DrillService');
+async function resolveUserName(userId, fallback) {
+    const userResult = await user_service_1.userService.getUserById(userId);
+    if (!userResult.success) {
+        return fallback;
+    }
+    return userResult.data.name?.trim() || fallback;
+}
 // Using centralized storage keys
 // Mock data for demonstration
 const MOCK_DRILLS = [
     {
         id: 'drill_1',
         coachId: 'coach1',
-        coachName: 'Coach Mike',
         title: 'Ball Juggling Challenge',
         description: 'Practice juggling the ball with both feet, thighs, and head. Start with 10 touches and work up to 50 consecutive touches without the ball touching the ground.',
         category: 'TECHNIQUE',
@@ -49,7 +56,6 @@ const MOCK_DRILLS = [
     {
         id: 'drill_2',
         coachId: 'coach1',
-        coachName: 'Coach Mike',
         title: 'Sprint Intervals',
         description: 'Perform 10 x 30m sprints with 30 seconds rest between each. Focus on explosive starts and proper running form.',
         category: 'FITNESS',
@@ -64,7 +70,6 @@ const MOCK_DRILLS = [
     {
         id: 'drill_3',
         coachId: 'coach1',
-        coachName: 'Coach Mike',
         title: 'Dynamic Warm-up Routine',
         description: 'Complete warm-up sequence: high knees, butt kicks, leg swings, lunges with twist, and arm circles. 2 sets of each exercise.',
         category: 'WARMUP',
@@ -80,7 +85,6 @@ const MOCK_DRILLS = [
     {
         id: 'drill_4',
         coachId: 'coach1',
-        coachName: 'Coach Mike',
         title: 'Wall Pass Technique',
         description: 'Using a wall, practice one-touch passing with both feet. Complete 50 passes with each foot, focusing on proper technique and receiving the ball cleanly.',
         category: 'TECHNIQUE',
@@ -97,7 +101,6 @@ const MOCK_DRILLS = [
     {
         id: 'drill_5',
         coachId: 'coach1',
-        coachName: 'Coach Mike',
         title: 'Cone Dribbling Course',
         description: 'Set up 8 cones in a zig-zag pattern. Dribble through the course using inside and outside of both feet. Time yourself and try to improve each run.',
         category: 'TECHNIQUE',
@@ -114,7 +117,6 @@ const MOCK_DRILLS = [
     {
         id: 'drill_6',
         coachId: 'coach1',
-        coachName: 'Coach Mike',
         title: 'Tactical Positioning Awareness',
         description: 'Watch the provided match analysis video and identify 5 instances of good defensive positioning and 5 instances where positioning could be improved. Write brief notes on each.',
         category: 'TACTICAL',
@@ -130,7 +132,6 @@ const MOCK_DRILLS = [
     {
         id: 'drill_7',
         coachId: 'coach1',
-        coachName: 'Coach Mike',
         title: 'Cool-down Stretching',
         description: 'Post-training stretching routine: hold each stretch for 30 seconds. Include quadriceps, hamstrings, hip flexors, calves, and upper body stretches.',
         category: 'COOLDOWN',
@@ -147,9 +148,7 @@ const MOCK_ASSIGNMENTS = [
         id: 'assign_1',
         drillId: 'drill_1',
         athleteId: 'user1',
-        athleteName: 'Alex Thompson',
         assignedBy: 'coach1',
-        assignedByName: 'Coach Mike',
         assignedAt: '2026-01-08T09:00:00Z',
         dueDate: '2026-01-15T23:59:59Z',
         isCompleted: false,
@@ -161,9 +160,7 @@ const MOCK_ASSIGNMENTS = [
         id: 'assign_2',
         drillId: 'drill_3',
         athleteId: 'user1',
-        athleteName: 'Alex Thompson',
         assignedBy: 'coach1',
-        assignedByName: 'Coach Mike',
         assignedAt: '2026-01-08T09:00:00Z',
         dueDate: '2026-01-12T23:59:59Z',
         isCompleted: true,
@@ -175,9 +172,7 @@ const MOCK_ASSIGNMENTS = [
         id: 'assign_3',
         drillId: 'drill_4',
         athleteId: 'user1',
-        athleteName: 'Alex Thompson',
         assignedBy: 'coach1',
-        assignedByName: 'Coach Mike',
         assignedAt: '2026-01-09T10:00:00Z',
         dueDate: '2026-01-16T23:59:59Z',
         isCompleted: false,
@@ -189,9 +184,7 @@ const MOCK_ASSIGNMENTS = [
         id: 'assign_4',
         drillId: 'drill_2',
         athleteId: 'user1',
-        athleteName: 'Alex Thompson',
         assignedBy: 'coach1',
-        assignedByName: 'Coach Mike',
         assignedAt: '2026-01-07T08:00:00Z',
         dueDate: '2026-01-10T23:59:59Z',
         isCompleted: false,
@@ -202,9 +195,7 @@ const MOCK_ASSIGNMENTS = [
         id: 'assign_5',
         drillId: 'drill_5',
         athleteId: 'user2',
-        athleteName: 'Jordan Smith',
         assignedBy: 'coach1',
-        assignedByName: 'Coach Mike',
         assignedAt: '2026-01-08T11:00:00Z',
         dueDate: '2026-01-14T23:59:59Z',
         isCompleted: false,
@@ -268,17 +259,16 @@ async function getDrillById(drillId) {
 /**
  * Create a new drill in the coach's library
  * @param coachId - The coach's user ID
- * @param coachName - The coach's name for display
+ * @param _coachName - Reserved for compatibility with existing call sites
  * @param params - Drill creation parameters
  * @returns The created drill
  */
-async function createDrill(coachId, coachName, params) {
+async function createDrill(coachId, _coachName, params) {
     const drills = await getAllDrills();
     const now = new Date().toISOString();
     const newDrill = {
         id: `drill_${Date.now()}`,
         coachId,
-        coachName,
         title: params.title,
         description: params.description,
         category: params.category,
@@ -369,9 +359,7 @@ async function assignDrill(drillId, athleteId, athleteName, assignedBy, assigned
         drillId,
         drill,
         athleteId,
-        athleteName,
         assignedBy,
-        assignedByName,
         assignedAt: new Date().toISOString(),
         dueDate: params.dueDate,
         isCompleted: false,
@@ -394,7 +382,15 @@ async function assignDrill(drillId, athleteId, athleteName, assignedBy, assigned
         dueDate: params.dueDate,
     });
     // Notify parent that a drill has been assigned to their athlete
-    await notification_trigger_1.notificationTriggers.drillAssigned(assignedByName, drill.title, athleteName);
+    const [coachDisplayName, athleteDisplayName] = await Promise.all([
+        assignedByName?.trim()
+            ? Promise.resolve(assignedByName)
+            : resolveUserName(assignedBy, 'Coach'),
+        athleteName?.trim()
+            ? Promise.resolve(athleteName)
+            : resolveUserName(athleteId, 'Athlete'),
+    ]);
+    await notification_trigger_1.notificationTriggers.drillAssigned(coachDisplayName, drill.title, athleteDisplayName);
     return (0, result_1.ok)(newAssignment);
 }
 /**
@@ -480,7 +476,8 @@ async function completeDrill(assignmentId, athleteFeedback) {
     // Notify coach that the athlete completed the drill
     const drills = await getAllDrills();
     const completedDrill = drills.find((d) => d.id === assignment.drillId);
-    await notification_trigger_1.notificationTriggers.drillCompleted(assignment.athleteName || 'Athlete', completedDrill?.title || 'Drill', assignment.assignedBy);
+    const athleteName = await resolveUserName(assignment.athleteId, 'Athlete');
+    await notification_trigger_1.notificationTriggers.drillCompleted(athleteName, completedDrill?.title || 'Drill', assignment.assignedBy);
     return updatedAssignment;
 }
 /**
