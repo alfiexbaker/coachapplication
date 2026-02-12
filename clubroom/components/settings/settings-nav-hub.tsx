@@ -33,12 +33,6 @@ const NAV_LINKS: Record<string, NavLink[]> = {
       route: '/(tabs)/bookings',
     },
     {
-      title: 'Scheduling Rules',
-      subtitle: 'Booking notice & cancellation policy',
-      icon: 'time-outline',
-      route: '/availability/scheduling-rules',
-    },
-    {
       title: 'Coach Profile',
       subtitle: 'Services, rates, identity',
       icon: 'person-circle-outline',

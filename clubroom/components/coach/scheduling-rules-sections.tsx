@@ -233,9 +233,6 @@ function CancellationSectionInner({
         </View>
         <View style={styles.sectionTitleWrap}>
           <ThemedText type="defaultSemiBold">Cancellation Policy</ThemedText>
-          <ThemedText style={[styles.sectionHint, { color: palette.muted }]}>
-            Refund rules when athletes cancel
-          </ThemedText>
         </View>
       </Row>
       <Row style={styles.chipRow}>
@@ -261,15 +258,6 @@ function CancellationSectionInner({
                 ]}
               >
                 {tmpl.name}
-              </ThemedText>
-              <ThemedText
-                style={[
-                  styles.policyChipDesc,
-                  { color: isSelected ? withAlpha(palette.onPrimary, 0.7) : palette.muted },
-                ]}
-                numberOfLines={2}
-              >
-                {tmpl.description}
               </ThemedText>
             </Clickable>
           );

@@ -30,6 +30,7 @@ export const Routes = {
   CLUB_HUB: '/(tabs)/club-hub' as Href,
   EARNINGS: '/(tabs)/earnings' as Href,
   MESSAGES: '/(tabs)/messages' as Href,
+  MANAGE: '/manage' as Href,
   MORE: '/(tabs)/more' as Href,
   NOTIFICATIONS: '/(tabs)/notifications' as Href,
   ROSTER: '/(tabs)/roster' as Href,
@@ -447,9 +448,9 @@ export const Routes = {
     pathname: '/roster/[athleteId]/emergency',
     params: { athleteId },
   }) as Href,
-  rosterAthleteAddToSession: (athleteId: string) => ({
+  rosterAthleteAddToSession: (athleteId: string, athleteName?: string) => ({
     pathname: '/roster/[athleteId]/add-to-session',
-    params: { athleteId },
+    params: athleteName ? { athleteId, athleteName } : { athleteId },
   }) as Href,
   rosterAthleteConcern: (athleteId: string) => ({
     pathname: '/roster/[athleteId]/raise-concern',
@@ -458,9 +459,45 @@ export const Routes = {
 
   // ─── Sessions ──────────────────────────────────────────────────
   SESSIONS_CREATE: '/sessions/create' as Href,
-  sessionsCreateWith: (params: { athleteIds: string; athleteNames: string }) => ({
+  sessionsCreateWith: (params: {
+    athleteIds: string;
+    athleteNames: string;
+    preset?: '1on1' | 'group';
+    inviteType?: 'OPEN' | 'CLOSED' | 'SQUAD_ONLY';
+  }) => ({
     pathname: '/sessions/create',
     params,
+  }) as Href,
+  sessionsCreateIntent: (params: {
+    intent: 'new' | 'existing' | 'invite';
+    source?: 'schedule' | 'roster' | 'group_manage' | 'club_manage' | 'session_detail' | 'manual';
+    athleteIds?: string;
+    athleteNames?: string;
+    offeringId?: string;
+    date?: string;
+    preset?: '1on1' | 'group';
+    inviteType?: 'OPEN' | 'CLOSED' | 'SQUAD_ONLY';
+  }) => ({
+    pathname: '/sessions/create',
+    params,
+  }) as Href,
+  sessionsCreateOneToOneForAthlete: (athleteId: string, athleteName: string) => ({
+    pathname: '/sessions/create',
+    params: {
+      athleteIds: athleteId,
+      athleteNames: athleteName,
+      preset: '1on1',
+      inviteType: 'CLOSED',
+    },
+  }) as Href,
+  sessionsCreateGroupForAthlete: (athleteId: string, athleteName: string) => ({
+    pathname: '/sessions/create',
+    params: {
+      athleteIds: athleteId,
+      athleteNames: athleteName,
+      preset: 'group',
+      inviteType: 'CLOSED',
+    },
   }) as Href,
   sessionComplete: (id: string) => ({
     pathname: '/session/[id]/complete',
@@ -474,6 +511,10 @@ export const Routes = {
   // ─── Session Invites ───────────────────────────────────────────
   SESSION_INVITES: '/session-invites' as Href,
   SESSION_INVITES_CREATE: '/session-invites/create' as Href,
+  sessionInvitesCreateForOffering: (offeringId: string) => ({
+    pathname: '/session-invites/create',
+    params: { offeringId },
+  }) as Href,
   SESSION_INVITES_GROUP: '/session-invites/group' as Href,
   SESSION_INVITES_SQUAD: '/session-invites/squad' as Href,
   sessionInvite: (id: string) => ({

@@ -89,7 +89,7 @@ export const DevAthleteHero = memo(function DevAthleteHero({
             </Row>
           </View>
         </Row>
-        <Row gap="xs">
+        <Row gap="xs" style={styles.heroActions}>
           <Clickable
             style={[styles.ctaButton, { backgroundColor: colors.tint }]}
             onPress={onLogSession}
@@ -110,7 +110,7 @@ export const DevAthleteHero = memo(function DevAthleteHero({
             accessibilityLabel="Award badge"
           >
             <Ionicons name="ribbon" size={14} color={colors.warning} />
-            <ThemedText style={[Typography.caption, { color: colors.warning }]}>
+            <ThemedText style={[styles.awardButtonText, { color: colors.warning }]}>
               Award Badge
             </ThemedText>
           </Clickable>
@@ -171,6 +171,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   awardButton: {
+    flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.xs,
     paddingVertical: Components.pill.paddingVertical,
@@ -179,6 +180,13 @@ const styles = StyleSheet.create({
     height: Components.buttonCompact.height,
     justifyContent: 'center',
     borderWidth: 1,
+  },
+  heroActions: {
+    flexShrink: 0,
+  },
+  awardButtonText: {
+    ...Typography.smallSemiBold,
+    letterSpacing: 0,
   },
   divider: {
     height: 1,

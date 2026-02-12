@@ -2,12 +2,13 @@
  * VideoPlayer Component
  *
  * A simple video player component for displaying drill demonstration videos.
- * Uses expo-av for video playback with basic controls.
+ * Uses expo-video for playback with basic controls.
  */
 
-import { useState, useRef, useCallback } from 'react';
+import { useMemo, useState, useCallback } from 'react';
 import { View, Image } from 'react-native';
-import { Video, ResizeMode, AVPlaybackStatus } from 'expo-av';
+import { useEventListener } from 'expo';
+import { VideoView, useVideoPlayer } from 'expo-video';
 
 import { Clickable } from '@/components/primitives/clickable';
 import { useTheme } from '@/hooks/useTheme';
@@ -43,7 +44,15 @@ export function VideoPlayer({
 }: VideoPlayerProps) {
   const { colors: palette } = useTheme();
 
-  const videoRef = useRef<Video>(null);
+  const source = useMemo(() => ({ uri: videoUrl }), [videoUrl]);
+  const player = useVideoPlayer(source, (instance) => {
+    instance.loop = false;
+    instance.timeUpdateEventInterval = 0.25;
+    if (autoPlay) {
+      instance.play();
+    }
+  });
+
   const [isPlaying, setIsPlaying] = useState(autoPlay);
   const [isLoading, setIsLoading] = useState(false);
   const [showControls, setShowControls] = useState(true);
@@ -53,52 +62,51 @@ export function VideoPlayer({
   const [hasStarted, setHasStarted] = useState(autoPlay);
   const [error, setError] = useState<string | null>(null);
 
-  const handlePlaybackStatusUpdate = useCallback(
-    (status: AVPlaybackStatus) => {
-      if (!status.isLoaded) {
-        if (status.error) {
-          setError('Failed to load video');
-          setIsLoading(false);
-        }
-        return;
-      }
+  useEventListener(player, 'playingChange', ({ isPlaying: playing }) => {
+    setIsPlaying(playing);
+  });
 
-      setIsLoading(status.isBuffering);
-      setIsPlaying(status.isPlaying);
+  useEventListener(player, 'statusChange', ({ status, error: playerError }) => {
+    setIsLoading(status === 'loading');
+    if (status === 'error') {
+      setError(playerError?.message || 'Failed to load video');
+      setIsLoading(false);
+    }
+  });
 
-      if (status.durationMillis) {
-        setTotalDuration(status.durationMillis);
-        setCurrentTime(status.positionMillis);
-        setProgress(status.positionMillis / status.durationMillis);
-      }
+  useEventListener(player, 'sourceLoad', ({ duration: loadedDuration }) => {
+    const durationMs = loadedDuration > 0 ? loadedDuration * 1000 : 0;
+    setTotalDuration(durationMs);
+  });
 
-      if (status.didJustFinish) {
-        setIsPlaying(false);
-        setShowControls(true);
-        onComplete?.();
-      }
-    },
-    [onComplete],
-  );
+  useEventListener(player, 'timeUpdate', ({ currentTime: timeSeconds }) => {
+    const timeMs = timeSeconds * 1000;
+    setCurrentTime(timeMs);
+    setProgress(totalDuration > 0 ? timeMs / totalDuration : 0);
+  });
 
-  const handlePlayPause = useCallback(async () => {
-    if (!videoRef.current) return;
+  useEventListener(player, 'playToEnd', () => {
+    setIsPlaying(false);
+    setShowControls(true);
+    onComplete?.();
+  });
 
+  const handlePlayPause = useCallback(() => {
     if (!hasStarted) {
       setHasStarted(true);
       setIsLoading(true);
     }
 
-    if (isPlaying) {
-      await videoRef.current.pauseAsync();
+    if (player.playing) {
+      player.pause();
     } else {
-      await videoRef.current.playAsync();
+      player.play();
     }
 
-    if (!isPlaying) {
+    if (!player.playing) {
       setTimeout(() => setShowControls(false), 3000);
     }
-  }, [isPlaying, hasStarted]);
+  }, [hasStarted, player]);
 
   const handleToggleControls = useCallback(() => {
     setShowControls((prev) => !prev);
@@ -114,15 +122,13 @@ export function VideoPlayer({
   return (
     <View style={[styles.container, { height }]}>
       {hasStarted ? (
-        <Video
-          ref={videoRef}
-          source={{ uri: videoUrl }}
+        <VideoView
+          player={player}
           style={styles.video}
-          resizeMode={ResizeMode.CONTAIN}
-          shouldPlay={autoPlay}
-          isLooping={false}
-          onPlaybackStatusUpdate={handlePlaybackStatusUpdate}
-          useNativeControls={false}
+          contentFit="contain"
+          nativeControls={false}
+          allowsFullscreen={false}
+          allowsPictureInPicture={false}
         />
       ) : thumbnailUrl ? (
         <Image source={{ uri: thumbnailUrl }} style={styles.thumbnail} />

@@ -341,7 +341,7 @@ const MOCK_MEMBERS: ClubMember[] = [
   {
     userId: 'coach1',
     userName: 'Director Kelly',
-    role: 'HEAD_COACH',
+    role: 'OWNER',
     status: 'active',
     joinedAt: '2024-01-15',
     squadIds: ['squad_u15', 'squad_juniors'],

@@ -8,11 +8,12 @@
 import { StyleSheet, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
-import { Spacing, Radii, Components, Typography } from '@/constants/theme';
-import { ThemedText } from '@/components/themed-text';
+import { Radii, Components } from '@/constants/theme';
 import { Clickable } from '@/components/primitives/clickable';
-import { Button } from '@/components/primitives/button';
 import { useTheme } from '@/hooks/useTheme';
+import { BookButton } from './coach-card-book-button';
+export { BookButton } from './coach-card-book-button';
+export type { BookButtonProps } from './coach-card-book-button';
 
 // Re-export extracted components for backward compat
 export { InlineFavouriteIcon, ActionRow } from './coach-card-cta-sections';
@@ -35,13 +36,6 @@ export interface FavouriteButtonProps {
   onPress: () => void;
   loading?: boolean;
   size?: 'sm' | 'md' | 'lg';
-}
-
-export interface BookButtonProps {
-  coachName: string;
-  onPress: () => void;
-  label?: string;
-  variant?: 'primary' | 'compact';
 }
 
 // ============================================================================
@@ -79,44 +73,6 @@ export function FavouriteButton({
 }
 
 // ============================================================================
-// BookButton
-// ============================================================================
-
-export function BookButton({
-  coachName,
-  onPress,
-  label = 'Book Now',
-  variant = 'primary',
-}: BookButtonProps) {
-  const { colors: palette } = useTheme();
-
-  if (variant === 'compact') {
-    return (
-      <Clickable
-        accessibilityLabel={`Book ${coachName}`}
-        onPress={onPress}
-        style={[styles.bookButtonCompact, { backgroundColor: palette.tint }]}
-      >
-        <ThemedText style={[styles.bookButtonText, { color: palette.onPrimary }]}>
-          {label}
-        </ThemedText>
-      </Clickable>
-    );
-  }
-
-  return (
-    <Button
-      onPress={onPress}
-      variant="primary"
-      style={styles.bookButtonPrimary}
-      accessibilityLabel={`Book ${coachName}`}
-    >
-      {label}
-    </Button>
-  );
-}
-
-// ============================================================================
 // CoachCardCTA
 // ============================================================================
 
@@ -150,20 +106,6 @@ const styles = StyleSheet.create({
     borderRadius: Radii.pill,
     alignItems: 'center',
     justifyContent: 'center',
-  },
-  bookButtonCompact: {
-    height: Components.buttonCompact.height,
-    paddingHorizontal: Spacing.sm,
-    borderRadius: Radii.button,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  bookButtonPrimary: {
-    paddingVertical: Spacing.xs,
-    paddingHorizontal: Spacing.md,
-  },
-  bookButtonText: {
-    ...Typography.bodySemiBold,
   },
 });
 

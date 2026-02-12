@@ -1,8 +1,16 @@
 import { Redirect, useLocalSearchParams } from 'expo-router';
+import { Routes } from '@/navigation/routes';
 
 export default function CoachInviteAliasScreen() {
   const { athleteId } = useLocalSearchParams<{ athleteId: string }>();
-  const query = athleteId ? `?athleteId=${encodeURIComponent(athleteId)}` : '';
 
-  return <Redirect href={`/session-invites/create${query}`} />;
+  return (
+    <Redirect
+      href={Routes.sessionsCreateIntent({
+        intent: 'existing',
+        source: 'manual',
+        athleteIds: athleteId,
+      })}
+    />
+  );
 }

@@ -65,101 +65,74 @@ function AthleteCardInner({ athlete, upcomingSession }: AthleteCardProps) {
   const { colors: palette } = useTheme();
   const athleteName = getRosterAthleteName(athlete);
 
-  const needsAttention =
-    !athlete.lastSessionDate ||
-    Math.floor((Date.now() - new Date(athlete.lastSessionDate).getTime()) / (1000 * 60 * 60 * 24)) >
-      14;
-
   return (
-    <Clickable onPress={() => router.push(Routes.rosterAthlete(athlete.athleteId))}>
-      <SurfaceCard style={styles.athleteCard}>
-        <Row align="center" gap="md">
-          {/* Avatar */}
-          <View style={[styles.avatar, { backgroundColor: withAlpha(palette.tint, 0.09) }]}>
-            <ThemedText style={[styles.avatarText, { color: palette.tint }]}>
-              {getInitials(athleteName)}
-            </ThemedText>
-            {needsAttention && (
-              <View
-                style={[
-                  styles.attentionDot,
-                  { backgroundColor: palette.warning, borderColor: palette.surface },
-                ]}
-              />
-            )}
-          </View>
+    <SurfaceCard
+      style={styles.athleteCard}
+      tactile
+      onPress={() => router.push(Routes.rosterAthlete(athlete.athleteId))}
+    >
+      <Row align="center" gap="md">
+        {/* Avatar */}
+        <View style={[styles.avatar, { backgroundColor: withAlpha(palette.tint, 0.09) }]}>
+          <ThemedText style={[styles.avatarText, { color: palette.tint }]}>
+            {getInitials(athleteName)}
+          </ThemedText>
+        </View>
 
-          {/* Info */}
-          <View style={styles.athleteInfo}>
-            <Row align="center" gap="sm">
-              <ThemedText type="defaultSemiBold" style={styles.athleteName}>
-                {athleteName}
-              </ThemedText>
-              {athlete.status !== 'ACTIVE' && (
-                <View
-                  style={[styles.statusBadge, { backgroundColor: withAlpha(palette.muted, 0.12) }]}
-                >
-                  <ThemedText style={[styles.statusText, { color: palette.muted }]}>
-                    {athlete.status.toLowerCase()}
-                  </ThemedText>
-                </View>
-              )}
-            </Row>
-
-            <Row align="center" gap="xxs">
-              <ThemedText style={[styles.metaText, { color: palette.muted }]}>
-                {athlete.totalSessions} sessions
-              </ThemedText>
-              <ThemedText style={[styles.metaDot, { color: palette.muted }]}>•</ThemedText>
-              <ThemedText style={[styles.metaText, { color: palette.muted }]}>
-                Last: {formatRelativeDate(athlete.lastSessionDate)}
-              </ThemedText>
-            </Row>
-
-            {upcomingSession ? (
-              <Row
-                align="center"
-                gap="xxs"
-                style={[
-                  styles.upcomingBadge,
-                  { backgroundColor: withAlpha(palette.success, 0.09) },
-                ]}
-              >
-                <Ionicons name="calendar" size={12} color={palette.success} />
-                <ThemedText style={[styles.upcomingText, { color: palette.success }]}>
-                  Next: {formatUpcomingDate(upcomingSession.scheduledAt)}
-                </ThemedText>
-              </Row>
-            ) : needsAttention ? (
-              <Row
-                align="center"
-                gap="xxs"
-                style={[
-                  styles.upcomingBadge,
-                  { backgroundColor: withAlpha(palette.warning, 0.09) },
-                ]}
-              >
-                <Ionicons name="alert-circle" size={12} color={palette.warning} />
-                <ThemedText style={[styles.upcomingText, { color: palette.warning }]}>
-                  No upcoming session
-                </ThemedText>
-              </Row>
-            ) : null}
-          </View>
-
-          {/* Actions */}
+        {/* Info */}
+        <View style={styles.athleteInfo}>
           <Row align="center" gap="sm">
-            <Clickable
-              style={[styles.actionButton, { backgroundColor: palette.tint }]}
-              onPress={() => router.push(Routes.rosterAthleteAddToSession(athlete.athleteId))}
-            >
-              <Ionicons name="add" size={18} color={palette.onPrimary} />
-            </Clickable>
-            <Ionicons name="chevron-forward" size={20} color={palette.muted} />
+            <ThemedText type="defaultSemiBold" style={styles.athleteName}>
+              {athleteName}
+            </ThemedText>
+            {athlete.status !== 'ACTIVE' && (
+              <View style={[styles.statusBadge, { backgroundColor: withAlpha(palette.muted, 0.12) }]}>
+                <ThemedText style={[styles.statusText, { color: palette.muted }]}>
+                  {athlete.status.toLowerCase()}
+                </ThemedText>
+              </View>
+            )}
           </Row>
+
+          <Row align="center" gap="xxs">
+            <ThemedText style={[styles.metaText, { color: palette.muted }]}>
+              {athlete.totalSessions} sessions
+            </ThemedText>
+            <ThemedText style={[styles.metaDot, { color: palette.muted }]}>•</ThemedText>
+            <ThemedText style={[styles.metaText, { color: palette.muted }]}>
+              Last: {formatRelativeDate(athlete.lastSessionDate)}
+            </ThemedText>
+          </Row>
+
+          {upcomingSession ? (
+            <Row align="center" gap="xxs" style={[styles.upcomingBadge, { backgroundColor: withAlpha(palette.success, 0.09) }]}>
+              <Ionicons name="calendar" size={12} color={palette.success} />
+              <ThemedText style={[styles.upcomingText, { color: palette.success }]}>
+                Next: {formatUpcomingDate(upcomingSession.scheduledAt)}
+              </ThemedText>
+            </Row>
+          ) : (
+            <ThemedText style={[styles.noUpcomingText, { color: palette.muted }]}>
+              No upcoming session
+            </ThemedText>
+          )}
+        </View>
+
+        {/* Actions */}
+        <Row align="center" gap="sm">
+          <Clickable
+            style={[styles.actionButton, { backgroundColor: palette.tint }]}
+            onPress={(event) => {
+              event.stopPropagation();
+              router.push(Routes.rosterAthleteAddToSession(athlete.athleteId, athleteName));
+            }}
+          >
+            <Ionicons name="add" size={18} color={palette.onPrimary} />
+          </Clickable>
+          <Ionicons name="chevron-forward" size={20} color={palette.muted} />
         </Row>
-      </SurfaceCard>
-    </Clickable>
+      </Row>
+    </SurfaceCard>
   );
 }
 
@@ -185,15 +158,6 @@ const styles = StyleSheet.create({
   },
   avatarText: {
     ...Typography.heading,
-  },
-  attentionDot: {
-    position: 'absolute',
-    top: 0,
-    right: 0,
-    width: 12,
-    height: 12,
-    borderRadius: Radii.sm,
-    borderWidth: 2,
   },
   athleteInfo: {
     flex: 1,
@@ -226,6 +190,10 @@ const styles = StyleSheet.create({
   },
   upcomingText: {
     ...Typography.caption,
+  },
+  noUpcomingText: {
+    ...Typography.caption,
+    marginTop: Spacing.xxs,
   },
   actionButton: {
     width: 32,

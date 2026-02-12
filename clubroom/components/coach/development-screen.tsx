@@ -5,6 +5,7 @@
 import { ThemedText } from '@/components/themed-text';
 import { PageContainer } from '@/components/primitives/page-container';
 import { PageHeader } from '@/components/primitives/page-header';
+import { NotificationBell } from '@/components/ui/notification-bell';
 import { Spacing } from '@/constants/theme';
 
 import { useCoachDevelopment } from '@/hooks/use-coach-development';
@@ -40,7 +41,13 @@ export function CoachDevelopmentScreen() {
   return (
     <PageContainer
       gap={Spacing.md}
-      header={<PageHeader title="Development" subtitle="Track your athletes' progress" />}
+      header={
+        <PageHeader
+          title="Development"
+          subtitle="Track your athletes' progress"
+          rightAction={<NotificationBell size={20} />}
+        />
+      }
     >
       <QuickActions />
       <CompletionCard bookings={awaitingCompletion} />

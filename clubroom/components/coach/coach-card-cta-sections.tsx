@@ -13,7 +13,7 @@ import { ThemedText } from '@/components/themed-text';
 import { Clickable } from '@/components/primitives/clickable';
 import { Spacing, Components, Typography } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
-import { BookButton } from './coach-card-cta';
+import { BookButton } from './coach-card-book-button';
 import { Row } from '@/components/primitives';
 
 // ============================================================================

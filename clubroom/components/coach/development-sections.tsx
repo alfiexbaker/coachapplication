@@ -49,9 +49,9 @@ function QuickActionsInner() {
     },
     { icon: 'people' as const, label: 'Athletes', route: Routes.ATHLETES, color: palette.icon },
     {
-      icon: 'paper-plane' as const,
-      label: 'Send Invite',
-      route: Routes.SESSION_INVITES_CREATE,
+      icon: 'construct-outline' as const,
+      label: 'Manage',
+      route: Routes.MANAGE,
       color: palette.warning,
     },
   ];

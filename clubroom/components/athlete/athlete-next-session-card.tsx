@@ -13,6 +13,7 @@ import { Column } from '@/components/primitives/column';
 import { Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
 import type { RosterEntry } from '@/constants/types';
+import { getRosterAthleteName } from '@/utils/roster-display';
 
 export const NextSessionCard = React.memo(function NextSessionCard({
   athlete,
@@ -20,11 +21,12 @@ export const NextSessionCard = React.memo(function NextSessionCard({
   athlete: RosterEntry;
 }) {
   const { colors } = useTheme();
+  const athleteName = getRosterAthleteName(athlete);
 
   const handleBook = useCallback(() => {
     void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    router.push(Routes.rosterAthleteAddToSession(athlete.athleteId));
-  }, [athlete.athleteId]);
+    router.push(Routes.rosterAthleteAddToSession(athlete.athleteId, athleteName));
+  }, [athlete.athleteId, athleteName]);
 
   if (athlete.nextSessionDate) {
     const date = new Date(athlete.nextSessionDate);

@@ -4,11 +4,16 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useLocalSearchParams, router } from 'expo-router';
 
 import { GroupChatSection } from '@/components/community/group-chat-section';
+import { GroupManageTab } from '@/components/community/group-manage-tab';
 import { GroupMembersModal } from '@/components/community/group-members-modal';
 import { GroupRolePicker } from '@/components/community/group-role-picker';
 import { GroupChatHeader } from '@/components/community/group-chat-header-sections';
 import { LoadingState, ErrorState, EmptyState } from '@/components/ui/screen-states';
 import type { ParentGroup, GroupMessage, GroupMember, GroupMemberRole } from '@/constants/types';
+import { Clickable } from '@/components/primitives/clickable';
+import { Row } from '@/components/primitives/row';
+import { ThemedText } from '@/components/themed-text';
+import { Spacing, Radii, Typography } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
 import { useScreen } from '@/hooks/use-screen';
 import { err, ok, serviceError } from '@/types/result';
@@ -17,6 +22,7 @@ import { communityService } from '@/services/community-service';
 import { communityGroupService } from '@/services/community/community-group-service';
 import { ServiceEvents } from '@/services/event-bus';
 import { createLogger } from '@/utils/logger';
+import { Routes } from '@/navigation/routes';
 
 const logger = createLogger('GroupChatScreen');
 
@@ -37,6 +43,7 @@ export default function GroupChatScreen() {
   const [showMembersModal, setShowMembersModal] = useState(false);
   const [selectedMember, setSelectedMember] = useState<GroupMember | null>(null);
   const [showRolePickerModal, setShowRolePickerModal] = useState(false);
+  const [activeTab, setActiveTab] = useState<'chat' | 'manage'>('chat');
 
   const loadData = useCallback(async () => {
     if (!groupId) return ok<GroupChatData>({ group: null, messages: [] });
@@ -129,6 +136,10 @@ export default function GroupChatScreen() {
   const currentMember = group?.members.find((member) => member.parentId === parentId);
   const currentRole = currentMember?.role ?? 'MEMBER';
   const isAdmin = currentRole === 'OWNER' || currentRole === 'ADMIN';
+  const isCoachPrivileged =
+    currentUser?.role === 'COACH' &&
+    (currentRole === 'OWNER' || currentRole === 'ADMIN' || currentRole === 'MODERATOR');
+  const canAccessManage = isAdmin || isCoachPrivileged;
   const assignableRoles = communityGroupService.getAssignableRoles(currentRole);
   const roleBreakdown = group ? communityGroupService.getRoleBreakdown(group.members) : null;
 
@@ -164,6 +175,27 @@ export default function GroupChatScreen() {
     },
     [selectedMember, groupId, parentId, onRefresh],
   );
+
+  const handleOpenSessionInvite = useCallback(() => {
+    router.push(Routes.SESSION_INVITES_GROUP);
+  }, []);
+
+  const handleOpenClubInvite = useCallback(() => {
+    router.push(Routes.CLUB_INVITE_MEMBERS);
+  }, []);
+
+  const handleOpenClubHub = useCallback(() => {
+    if (!group?.clubId) return;
+    router.push(Routes.club(group.clubId));
+  }, [group?.clubId]);
+
+  const handleOpenClubSettings = useCallback(() => {
+    router.push(Routes.CLUB_SETTINGS);
+  }, []);
+
+  const handleOpenManageHub = useCallback(() => {
+    router.push(Routes.MANAGE);
+  }, []);
 
   if (status === 'loading') {
     return (
@@ -209,14 +241,74 @@ export default function GroupChatScreen() {
         onLeavePress={handleLeaveGroup}
       />
 
-      <GroupChatSection
-        messages={messages}
-        parentId={parentId}
-        inputValue={inputValue}
-        sending={sending}
-        onInputChange={setInputValue}
-        onSend={handleSend}
-      />
+      {canAccessManage ? (
+        <Row style={[styles.tabBar, { borderBottomColor: palette.border }]}>
+          <Clickable
+            onPress={() => setActiveTab('chat')}
+            style={[
+              styles.tabButton,
+              activeTab === 'chat'
+                ? { backgroundColor: palette.tint, borderColor: palette.tint }
+                : { borderColor: palette.border, backgroundColor: palette.surface },
+            ]}
+            accessibilityRole="button"
+            accessibilityLabel="Open chat tab"
+          >
+            <ThemedText
+              style={[
+                styles.tabLabel,
+                { color: activeTab === 'chat' ? palette.onPrimary : palette.text },
+              ]}
+            >
+              Chat
+            </ThemedText>
+          </Clickable>
+          <Clickable
+            onPress={() => setActiveTab('manage')}
+            style={[
+              styles.tabButton,
+              activeTab === 'manage'
+                ? { backgroundColor: palette.tint, borderColor: palette.tint }
+                : { borderColor: palette.border, backgroundColor: palette.surface },
+            ]}
+            accessibilityRole="button"
+            accessibilityLabel="Open manage tab"
+          >
+            <ThemedText
+              style={[
+                styles.tabLabel,
+                { color: activeTab === 'manage' ? palette.onPrimary : palette.text },
+              ]}
+            >
+              Manage
+            </ThemedText>
+          </Clickable>
+        </Row>
+      ) : null}
+
+      {activeTab === 'manage' && canAccessManage ? (
+        <GroupManageTab
+          group={group}
+          currentRole={currentRole}
+          isCoach={currentUser?.role === 'COACH'}
+          isAdmin={isAdmin}
+          onOpenManageHub={handleOpenManageHub}
+          onManageMembers={() => setShowMembersModal(true)}
+          onInviteToSession={handleOpenSessionInvite}
+          onInviteMembers={handleOpenClubInvite}
+          onOpenClub={handleOpenClubHub}
+          onOpenClubSettings={handleOpenClubSettings}
+        />
+      ) : (
+        <GroupChatSection
+          messages={messages}
+          parentId={parentId}
+          inputValue={inputValue}
+          sending={sending}
+          onInputChange={setInputValue}
+          onSend={handleSend}
+        />
+      )}
 
       <GroupMembersModal
         visible={showMembersModal}
@@ -245,5 +337,24 @@ export default function GroupChatScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+  },
+  tabBar: {
+    alignItems: 'center',
+    gap: Spacing.sm,
+    paddingHorizontal: Spacing.lg,
+    paddingTop: Spacing.sm,
+    paddingBottom: Spacing.sm,
+    borderBottomWidth: 1,
+  },
+  tabButton: {
+    flex: 1,
+    borderRadius: Radii.md,
+    borderWidth: 1,
+    paddingVertical: Spacing.sm,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  tabLabel: {
+    ...Typography.smallSemiBold,
   },
 });

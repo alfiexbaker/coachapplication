@@ -98,7 +98,12 @@ export function ClubHeader({
   const handleManageClub = () => {
     setShowMenu(false);
     if (onManage) onManage();
-    else router.push(Routes.CLUB_SETTINGS);
+    else router.push(Routes.MANAGE);
+  };
+
+  const handleOpenClubSettings = () => {
+    setShowMenu(false);
+    router.push(Routes.CLUB_SETTINGS);
   };
 
   const handleLeaveClub = () => {
@@ -136,9 +141,22 @@ export function ClubHeader({
     ...(canManage
       ? [
           {
+            icon: 'construct-outline' as const,
+            label: 'Manage',
+            onPress: () => {
+              setShowMenu(false);
+              router.push(Routes.MANAGE);
+            },
+            color: palette.warning,
+          },
+        ]
+      : []),
+    ...(canManage
+      ? [
+          {
             icon: 'settings-outline' as const,
-            label: 'Manage Club',
-            onPress: handleManageClub,
+            label: 'Club Settings',
+            onPress: handleOpenClubSettings,
             color: palette.text,
           },
         ]

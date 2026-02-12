@@ -33,7 +33,6 @@ export default function AthletesScreen() {
     setFilter,
     roster,
     upcomingSessions,
-    needsAttentionCount,
     filteredAthletes,
   } = useAthletesScreen();
 
@@ -50,19 +49,9 @@ export default function AthletesScreen() {
         onClearSearch={() => setSearchQuery('')}
         filter={filter}
         onFilterChange={setFilter}
-        needsAttentionCount={needsAttentionCount}
       />
     ),
-    [
-      colors,
-      roster,
-      upcomingSessions,
-      searchQuery,
-      setSearchQuery,
-      filter,
-      setFilter,
-      needsAttentionCount,
-    ],
+    [colors, roster, upcomingSessions, searchQuery, setSearchQuery, filter, setFilter],
   );
 
   if (status === 'loading') {
@@ -101,7 +90,8 @@ export default function AthletesScreen() {
           action={{
             icon: 'add',
             label: 'Invite',
-            onPress: () => router.push(Routes.SESSION_INVITES_CREATE),
+            onPress: () =>
+              router.push(Routes.sessionsCreateIntent({ intent: 'existing', source: 'manual' })),
           }}
           bordered
         />
@@ -110,7 +100,9 @@ export default function AthletesScreen() {
           title="No athletes yet"
           message="Athletes will appear here once they book sessions with you. Invite an athlete to get started."
           actionLabel="Invite Athlete"
-          onPressAction={() => router.push(Routes.SESSION_INVITES_CREATE)}
+          onPressAction={() =>
+            router.push(Routes.sessionsCreateIntent({ intent: 'existing', source: 'manual' }))
+          }
         />
       </SafeAreaView>
     );
@@ -127,7 +119,8 @@ export default function AthletesScreen() {
         action={{
           icon: 'add',
           label: 'Invite',
-          onPress: () => router.push(Routes.SESSION_INVITES_CREATE),
+          onPress: () =>
+            router.push(Routes.sessionsCreateIntent({ intent: 'existing', source: 'manual' })),
         }}
         bordered
       />

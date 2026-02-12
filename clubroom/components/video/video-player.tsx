@@ -1,8 +1,9 @@
-import { useState, useRef, useCallback } from 'react';
+import { useMemo, useState } from 'react';
 import { View, StyleSheet } from 'react-native';
-import { Video, ResizeMode, AVPlaybackStatus } from 'expo-av';
+import { useEventListener } from 'expo';
+import { useVideoPlayer, VideoView } from 'expo-video';
 import { Ionicons } from '@expo/vector-icons';
-import Animated, { FadeIn, FadeOut, useSharedValue, withTiming } from 'react-native-reanimated';
+import Animated, { FadeIn, FadeOut } from 'react-native-reanimated';
 import Slider from '@react-native-community/slider';
 
 import { Clickable } from '@/components/primitives/clickable';
@@ -29,7 +30,7 @@ interface VideoPlayerProps {
 
 export function VideoPlayer({
   videoUrl,
-  thumbnailUrl,
+  thumbnailUrl: _thumbnailUrl,
   duration = 0,
   annotations = [],
   onAnnotationPress,
@@ -38,7 +39,17 @@ export function VideoPlayer({
   autoPlay = false,
 }: VideoPlayerProps) {
   const { colors: palette } = useTheme();
-  const videoRef = useRef<Video>(null);
+  const source = useMemo(() => ({ uri: videoUrl }), [videoUrl]);
+  const player = useVideoPlayer(source, (instance) => {
+    instance.loop = false;
+    instance.timeUpdateEventInterval = 0.25;
+    if (initialPosition > 0) {
+      instance.currentTime = initialPosition;
+    }
+    if (autoPlay) {
+      instance.play();
+    }
+  });
 
   const [isPlaying, setIsPlaying] = useState(autoPlay);
   const [currentTime, setCurrentTime] = useState(initialPosition);
@@ -46,51 +57,53 @@ export function VideoPlayer({
   const [isBuffering, setIsBuffering] = useState(false);
   const [showControls, setShowControls] = useState(true);
 
-  const controlsOpacity = useSharedValue(1);
+  useEventListener(player, 'playingChange', ({ isPlaying: playing }) => {
+    setIsPlaying(playing);
+  });
 
-  const handlePlaybackStatusUpdate = useCallback(
-    (status: AVPlaybackStatus) => {
-      if (!status.isLoaded) {
-        setIsBuffering(true);
-        return;
-      }
+  useEventListener(player, 'timeUpdate', ({ currentTime: time }) => {
+    setCurrentTime(time);
+    onTimeUpdate?.(time);
+  });
 
-      setIsBuffering(false);
-      setIsPlaying(status.isPlaying);
-      setCurrentTime(status.positionMillis / 1000);
-      if (status.durationMillis) {
-        setVideoDuration(status.durationMillis / 1000);
-      }
-      onTimeUpdate?.(status.positionMillis / 1000);
-    },
-    [onTimeUpdate],
-  );
-
-  const togglePlayPause = async () => {
-    if (!videoRef.current) return;
-    if (isPlaying) {
-      await videoRef.current.pauseAsync();
-    } else {
-      await videoRef.current.playAsync();
+  useEventListener(player, 'sourceLoad', ({ duration: loadedDuration }) => {
+    if (loadedDuration > 0) {
+      setVideoDuration(loadedDuration);
     }
+  });
+
+  useEventListener(player, 'statusChange', ({ status }) => {
+    setIsBuffering(status === 'loading');
+  });
+
+  useEventListener(player, 'playToEnd', () => {
+    setIsPlaying(false);
+  });
+
+  const togglePlayPause = () => {
+    if (player.playing) {
+      player.pause();
+      return;
+    }
+    player.play();
   };
 
-  const seekTo = async (seconds: number) => {
-    if (!videoRef.current) return;
-    await videoRef.current.setPositionAsync(seconds * 1000);
+  const seekTo = (seconds: number) => {
+    player.currentTime = seconds;
+    setCurrentTime(seconds);
+    onTimeUpdate?.(seconds);
   };
 
-  const skipForward = async () => {
-    await seekTo(Math.min(currentTime + 10, videoDuration));
+  const skipForward = () => {
+    seekTo(Math.min(currentTime + 10, videoDuration));
   };
 
-  const skipBackward = async () => {
-    await seekTo(Math.max(currentTime - 10, 0));
+  const skipBackward = () => {
+    seekTo(Math.max(currentTime - 10, 0));
   };
 
   const toggleControls = () => {
     setShowControls((prev) => !prev);
-    controlsOpacity.value = withTiming(showControls ? 0 : 1, { duration: 200 });
   };
 
   const handleSliderChange = (value: number) => {
@@ -110,16 +123,13 @@ export function VideoPlayer({
         accessibilityRole="button"
         accessibilityLabel="Toggle video controls"
       >
-        <Video
-          ref={videoRef}
-          source={{ uri: videoUrl }}
+        <VideoView
+          player={player}
           style={styles.video}
-          resizeMode={ResizeMode.CONTAIN}
-          shouldPlay={autoPlay}
-          isLooping={false}
-          posterSource={thumbnailUrl ? { uri: thumbnailUrl } : undefined}
-          usePoster={!!thumbnailUrl}
-          onPlaybackStatusUpdate={handlePlaybackStatusUpdate}
+          contentFit="contain"
+          nativeControls={false}
+          allowsFullscreen={false}
+          allowsPictureInPicture={false}
         />
 
         {isBuffering && (

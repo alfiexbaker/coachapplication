@@ -15,25 +15,27 @@ const logger = createLogger('PushNotificationService');
 let Notifications: typeof import('expo-notifications') | null = null;
 let Device: { isDevice: boolean } | null = null;
 
-try {
-  // eslint-disable-next-line @typescript-eslint/no-require-imports
-  Notifications = require('expo-notifications');
-} catch {
-  logger.warn('expo-notifications not installed. Push notifications disabled.');
-}
+if (Platform.OS !== 'web') {
+  try {
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    Notifications = require('expo-notifications');
+  } catch {
+    logger.warn('expo-notifications not installed. Push notifications disabled.');
+  }
 
-try {
-  // eslint-disable-next-line @typescript-eslint/no-require-imports
-  Device = require('expo-device');
-} catch {
-  logger.warn('expo-device not installed. Device checks disabled.');
+  try {
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    Device = require('expo-device');
+  } catch {
+    logger.warn('expo-device not installed. Device checks disabled.');
+  }
 }
 
 // ============================================================================
 // CONFIGURATION
 // ============================================================================
 
-if (Notifications) {
+if (Notifications && Platform.OS !== 'web') {
   Notifications.setNotificationHandler({
     handleNotification: async () => ({
       shouldShowAlert: true,
@@ -57,6 +59,11 @@ export const pushNotificationService = {
   async registerForPushNotifications(): Promise<string | null> {
     if (!Notifications) {
       logger.warn('expo-notifications not available');
+      return null;
+    }
+
+    if (Platform.OS === 'web') {
+      logger.info('Push notifications are disabled on web');
       return null;
     }
 
@@ -119,6 +126,11 @@ export const pushNotificationService = {
   }): Promise<string> {
     if (!Notifications) {
       logger.warn('expo-notifications not available, skipping local notification');
+      return '';
+    }
+
+    if (Platform.OS === 'web') {
+      logger.info('Local notifications are disabled on web');
       return '';
     }
 

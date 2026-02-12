@@ -11,7 +11,7 @@ import { router } from 'expo-router';
 import { Routes } from '@/navigation/routes';
 
 import { ThemedText } from '@/components/themed-text';
-import { Radii, Shadows } from '@/constants/theme';
+import { Radii, Shadows, Spacing, withAlpha } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
 import { scaleFont } from '@/utils/scale';
 import type { SessionOffering } from '@/constants/types';
@@ -60,6 +60,9 @@ export function SessionDetailModal({
 
   if (!offering) return null;
 
+  const isInviteOnlyOffering = isMyOffering && offering.inviteType === 'CLOSED';
+  const invitedAthleteCount = offering.invitedAthleteIds?.length ?? 0;
+
   return (
     <Modal
       visible={visible}
@@ -94,6 +97,39 @@ export function SessionDetailModal({
 
           {isMyOffering && (
             <SessionRegistrations offering={offering} registeredCount={registeredCount} />
+          )}
+
+          {isInviteOnlyOffering && (
+            <View
+              style={[
+                styles.inviteManageCard,
+                { borderColor: palette.border, backgroundColor: withAlpha(palette.tint, 0.04) },
+              ]}
+            >
+              <Row align="center" justify="between">
+                <View style={styles.inviteManageInfo}>
+                  <ThemedText type="defaultSemiBold">Invite-Only Access</ThemedText>
+                  <ThemedText style={[styles.inviteManageMeta, { color: palette.muted }]}>
+                    {invitedAthleteCount} invited
+                  </ThemedText>
+                </View>
+                <Clickable
+                  onPress={() => {
+                    onClose();
+                    router.push(Routes.sessionInvitesCreateForOffering(offering.id));
+                  }}
+                  style={[styles.inviteManageButton, { backgroundColor: palette.tint }]}
+                  accessibilityLabel="Invite athletes to this session"
+                >
+                  <Row align="center" gap="xxs">
+                    <Ionicons name="person-add-outline" size={16} color={palette.onPrimary} />
+                    <ThemedText style={[styles.inviteManageButtonText, { color: palette.onPrimary }]}>
+                      Invite Athletes
+                    </ThemedText>
+                  </Row>
+                </Clickable>
+              </Row>
+            </View>
           )}
 
           {isMyOffering && offering.isRecurring && (
@@ -182,6 +218,28 @@ const styles = StyleSheet.create({
     letterSpacing: -0.4,
   },
   content: { flex: 1, padding: 20 },
+  inviteManageCard: {
+    borderWidth: 1,
+    borderRadius: Radii.md,
+    padding: Spacing.sm,
+    marginBottom: Spacing.sm,
+  },
+  inviteManageInfo: {
+    flex: 1,
+    gap: Spacing.micro,
+  },
+  inviteManageMeta: {
+    fontSize: scaleFont(13),
+  },
+  inviteManageButton: {
+    borderRadius: Radii.md,
+    paddingHorizontal: Spacing.sm,
+    paddingVertical: Spacing.xs,
+  },
+  inviteManageButtonText: {
+    fontSize: scaleFont(13),
+    fontWeight: '700',
+  },
   footer: { padding: 20, borderTopWidth: 0 },
   bookButton: { paddingVertical: 18, borderRadius: Radii.md, alignItems: 'center' },
   bookButtonText: { fontSize: scaleFont(18), fontWeight: '700', letterSpacing: -0.4 },

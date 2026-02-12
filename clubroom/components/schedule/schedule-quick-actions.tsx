@@ -1,5 +1,8 @@
 /**
- * ScheduleQuickActions — Three quick action buttons: Send Invite, Bookings, New Session.
+ * ScheduleQuickActions — Coach quick action buttons:
+ * - Create/Invite Session (canonical launcher)
+ * - Bookings
+ * - Manage
  */
 
 import React, { memo, useCallback } from 'react';
@@ -19,23 +22,26 @@ import { useTheme } from '@/hooks/useTheme';
 export const ScheduleQuickActions = memo(function ScheduleQuickActions() {
   const { colors } = useTheme();
 
-  const goInvite = useCallback(() => router.push(Routes.SESSION_INVITES_CREATE), []);
+  const goLaunch = useCallback(
+    () => router.push(Routes.sessionsCreateIntent({ intent: 'new', source: 'schedule' })),
+    [],
+  );
   const goBookings = useCallback(() => router.push(Routes.BOOKINGS), []);
-  const goCreate = useCallback(() => router.push(Routes.SESSIONS_CREATE), []);
+  const goManage = useCallback(() => router.push(Routes.MANAGE), []);
 
   return (
     <Animated.View entering={FadeInDown.delay(400).springify()}>
       <Row gap="sm">
         <Clickable
-          onPress={goInvite}
-          accessibilityLabel="Send session invite"
+          onPress={goLaunch}
+          accessibilityLabel="Create or invite session"
           style={[styles.action, { backgroundColor: colors.surface }]}
         >
           <View style={[styles.icon, { backgroundColor: withAlpha(colors.success, 0.09) }]}>
-            <Ionicons name="paper-plane-outline" size={22} color={colors.success} />
+            <Ionicons name="flash-outline" size={22} color={colors.success} />
           </View>
           <ThemedText type="defaultSemiBold" style={styles.label}>
-            Send Invite
+            Create / Invite
           </ThemedText>
         </Clickable>
 
@@ -53,15 +59,15 @@ export const ScheduleQuickActions = memo(function ScheduleQuickActions() {
         </Clickable>
 
         <Clickable
-          onPress={goCreate}
-          accessibilityLabel="Create new session"
+          onPress={goManage}
+          accessibilityLabel="Open manage tools"
           style={[styles.action, { backgroundColor: colors.surface }]}
         >
           <View style={[styles.icon, { backgroundColor: withAlpha(colors.tint, 0.09) }]}>
-            <Ionicons name="add-circle-outline" size={22} color={colors.tint} />
+            <Ionicons name="construct-outline" size={22} color={colors.tint} />
           </View>
           <ThemedText type="defaultSemiBold" style={styles.label}>
-            New Session
+            Manage
           </ThemedText>
         </Clickable>
       </Row>

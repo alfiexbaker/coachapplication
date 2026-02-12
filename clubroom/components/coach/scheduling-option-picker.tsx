@@ -3,7 +3,7 @@
  */
 
 import React, { memo } from 'react';
-import { View, StyleSheet } from 'react-native';
+import { View, StyleSheet, Platform } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 
@@ -25,6 +25,7 @@ function OptionPickerInner<T extends number>({
   onSelect,
 }: OptionPickerProps<T>) {
   const { colors: palette } = useTheme();
+  const twoColumnLayout = options.length > 4;
 
   return (
     <Row style={styles.optionsGrid}>
@@ -34,11 +35,14 @@ function OptionPickerInner<T extends number>({
           <Clickable
             key={option.value}
             onPress={() => {
-              void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+              if (Platform.OS !== 'web') {
+                void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+              }
               onSelect(option.value as T);
             }}
             style={[
               styles.optionCard,
+              twoColumnLayout ? styles.optionCardTwoColumn : styles.optionCardThreeColumn,
               {
                 backgroundColor: isSelected ? withAlpha(palette.tint, 0.07) : palette.background,
                 borderColor: isSelected ? palette.tint : palette.border,
@@ -72,23 +76,30 @@ export const SchedulingOptionPicker = memo(OptionPickerInner) as typeof OptionPi
 const styles = StyleSheet.create({
   optionsGrid: {
     flexWrap: 'wrap',
-    gap: Spacing.sm,
+    gap: Spacing.xs,
   },
   optionCard: {
-    width: '31%',
-    paddingVertical: Spacing.md,
+    minHeight: 72,
+    paddingVertical: Spacing.sm,
     paddingHorizontal: Spacing.sm,
     borderRadius: Radii.md,
     position: 'relative',
-    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  optionCardTwoColumn: {
+    width: '48.5%',
+  },
+  optionCardThreeColumn: {
+    width: '31.5%',
   },
   optionLabel: {
     ...Typography.bodySmallSemiBold,
-    textAlign: 'center',
+    textAlign: 'left',
+    paddingRight: Spacing.md,
   },
   optionDesc: {
     ...Typography.caption,
-    textAlign: 'center',
+    textAlign: 'left',
     marginTop: Spacing.micro,
   },
   checkCircle: {

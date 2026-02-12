@@ -45,6 +45,26 @@ export const CreateInviteStep = memo(function CreateInviteStep({
   onInviteTypeChange,
   onToggleAthlete,
 }: CreateInviteStepProps) {
+  const allSelected =
+    pastAthletes.length > 0 && pastAthletes.every((athlete) => selectedAthletes.includes(athlete.id));
+
+  const handleToggleSelectAll = () => {
+    if (allSelected) {
+      pastAthletes.forEach((athlete) => {
+        if (selectedAthletes.includes(athlete.id)) {
+          onToggleAthlete(athlete.id);
+        }
+      });
+      return;
+    }
+
+    pastAthletes.forEach((athlete) => {
+      if (!selectedAthletes.includes(athlete.id)) {
+        onToggleAthlete(athlete.id);
+      }
+    });
+  };
+
   return (
     <Animated.View entering={FadeInRight.springify()}>
       <Column gap="lg">
@@ -98,55 +118,74 @@ export const CreateInviteStep = memo(function CreateInviteStep({
         {/* Closed: Athlete selection list */}
         {inviteType === 'CLOSED' && (
           <SurfaceCard style={styles.athleteList}>
-            <ThemedText type="defaultSemiBold" style={styles.athleteListTitle}>
-              Select Athletes to Invite
-            </ThemedText>
-            {pastAthletes.map((athlete) => (
+            <Row align="center" justify="space-between">
+              <ThemedText type="defaultSemiBold" style={styles.athleteListTitle}>
+                Select Athletes to Invite
+              </ThemedText>
               <Clickable
-                key={athlete.id}
-                onPress={() => onToggleAthlete(athlete.id)}
-                accessibilityLabel={`${selectedAthletes.includes(athlete.id) ? 'Remove' : 'Invite'} ${athlete.name}`}
-                style={[
-                  styles.athleteRow,
-                  {
-                    backgroundColor: selectedAthletes.includes(athlete.id)
-                      ? withAlpha(colors.tint, 0.03)
-                      : 'transparent',
-                  },
-                ]}
+                onPress={handleToggleSelectAll}
+                accessibilityLabel={allSelected ? 'Clear selected athletes' : 'Select all athletes'}
               >
-                <Row align="center" gap="sm">
-                  <Center
-                    style={[
-                      styles.athleteAvatar,
-                      { backgroundColor: withAlpha(colors.tint, 0.12) },
-                    ]}
-                  >
-                    <ThemedText style={{ color: colors.tint, ...Typography.bodySemiBold }}>
-                      {athlete.name.charAt(0)}
-                    </ThemedText>
-                  </Center>
-                  <ThemedText style={styles.athleteName}>{athlete.name}</ThemedText>
-                  <Center
-                    style={[
-                      styles.checkbox,
-                      {
-                        borderColor: selectedAthletes.includes(athlete.id)
-                          ? colors.tint
-                          : colors.border,
-                        backgroundColor: selectedAthletes.includes(athlete.id)
-                          ? colors.tint
-                          : 'transparent',
-                      },
-                    ]}
-                  >
-                    {selectedAthletes.includes(athlete.id) && (
-                      <Ionicons name="checkmark" size={14} color={colors.onPrimary} />
-                    )}
-                  </Center>
-                </Row>
+                <ThemedText style={[styles.selectionAction, { color: colors.tint }]}>
+                  {allSelected ? 'Clear' : 'Select all'}
+                </ThemedText>
               </Clickable>
-            ))}
+            </Row>
+            <ThemedText style={[styles.selectionHelp, { color: colors.muted }]}>
+              {selectedAthletes.length} selected now. You can invite more later from Bookings.
+            </ThemedText>
+            {pastAthletes.length === 0 ? (
+              <ThemedText style={[styles.selectionHelp, { color: colors.muted }]}>
+                No athletes in your roster yet. Invite from Athletes, then return here.
+              </ThemedText>
+            ) : (
+              pastAthletes.map((athlete) => (
+                <Clickable
+                  key={athlete.id}
+                  onPress={() => onToggleAthlete(athlete.id)}
+                  accessibilityLabel={`${selectedAthletes.includes(athlete.id) ? 'Remove' : 'Invite'} ${athlete.name}`}
+                  style={[
+                    styles.athleteRow,
+                    {
+                      backgroundColor: selectedAthletes.includes(athlete.id)
+                        ? withAlpha(colors.tint, 0.03)
+                        : 'transparent',
+                    },
+                  ]}
+                >
+                  <Row align="center" gap="sm">
+                    <Center
+                      style={[
+                        styles.athleteAvatar,
+                        { backgroundColor: withAlpha(colors.tint, 0.12) },
+                      ]}
+                    >
+                      <ThemedText style={{ color: colors.tint, ...Typography.bodySemiBold }}>
+                        {athlete.name.charAt(0)}
+                      </ThemedText>
+                    </Center>
+                    <ThemedText style={styles.athleteName}>{athlete.name}</ThemedText>
+                    <Center
+                      style={[
+                        styles.checkbox,
+                        {
+                          borderColor: selectedAthletes.includes(athlete.id)
+                            ? colors.tint
+                            : colors.border,
+                          backgroundColor: selectedAthletes.includes(athlete.id)
+                            ? colors.tint
+                            : 'transparent',
+                        },
+                      ]}
+                    >
+                      {selectedAthletes.includes(athlete.id) && (
+                        <Ionicons name="checkmark" size={14} color={colors.onPrimary} />
+                      )}
+                    </Center>
+                  </Row>
+                </Clickable>
+              ))
+            )}
           </SurfaceCard>
         )}
 
@@ -194,7 +233,14 @@ const styles = StyleSheet.create({
     gap: Spacing.sm,
   },
   athleteListTitle: {
+    marginBottom: Spacing.xxs,
+  },
+  selectionHelp: {
+    ...Typography.caption,
     marginBottom: Spacing.xs,
+  },
+  selectionAction: {
+    ...Typography.smallSemiBold,
   },
   athleteRow: {
     padding: Spacing.sm,

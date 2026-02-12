@@ -358,14 +358,14 @@ export function useSchedule() {
 
   const handleInviteFromSchedule = useCallback((dateStr: string) => {
     router.push({
-      pathname: Routes.SESSION_INVITES_CREATE,
-      params: { date: dateStr },
+      pathname: Routes.SESSIONS_CREATE,
+      params: { intent: 'existing', source: 'schedule', date: dateStr },
     } as Href);
   }, []);
 
   const handleOpenSettings = useCallback(() => {
     haptic();
-    router.push(Routes.AVAILABILITY_SCHEDULING_RULES);
+    setShowRulesModal(true);
   }, [haptic]);
 
   const handleTimeOffPress = useCallback(

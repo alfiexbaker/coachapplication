@@ -20,7 +20,8 @@ import { ok } from '@/types/result';
 import { useDevSession } from '@/hooks/use-dev-session';
 
 export default function SessionDetailScreen() {
-  const { sessionId } = useLocalSearchParams<{ sessionId: string }>();
+  const { sessionId } = useLocalSearchParams<{ sessionId?: string | string[] }>();
+  const resolvedSessionId = Array.isArray(sessionId) ? sessionId[0] : sessionId;
   const { colors } = useScreen<null>({ load: async () => ok(null), isEmpty: () => false });
   const {
     session,
@@ -59,7 +60,19 @@ export default function SessionDetailScreen() {
     handleOpenBadgeModal,
     handleCloseBadgeModal,
     formatDate,
-  } = useDevSession(sessionId);
+  } = useDevSession(resolvedSessionId);
+
+  if (!resolvedSessionId) {
+    return (
+      <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
+        <EmptyState
+          icon="alert-circle-outline"
+          title="Session link is invalid"
+          message="Open this session again from Development."
+        />
+      </SafeAreaView>
+    );
+  }
 
   if (loading) {
     return (
@@ -185,7 +198,7 @@ export default function SessionDetailScreen() {
         athleteName={athlete.name}
         coachId={currentUser.id}
         coachName={currentUser.name || 'Coach'}
-        sessionId={sessionId}
+        sessionId={resolvedSessionId}
         sessionLabel={formatDate(session.completedAt)}
         onClose={handleCloseBadgeModal}
         onAwarded={handleBadgeAwarded}

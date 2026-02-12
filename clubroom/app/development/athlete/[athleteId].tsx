@@ -20,7 +20,8 @@ import { Routes } from '@/navigation/routes';
 import { Clickable } from '@/components/primitives/clickable';
 
 export default function AthleteDetailScreen() {
-  const { athleteId } = useLocalSearchParams<{ athleteId: string }>();
+  const { athleteId } = useLocalSearchParams<{ athleteId?: string | string[] }>();
+  const resolvedAthleteId = Array.isArray(athleteId) ? athleteId[0] : athleteId;
   const { colors } = useScreen<null>({ load: async () => ok(null), isEmpty: () => false });
   const {
     athlete,
@@ -41,7 +42,19 @@ export default function AthleteDetailScreen() {
     handleSelectSession,
     handleCloseModal,
     handleOnAwarded,
-  } = useAthleteDevelopment(athleteId!);
+  } = useAthleteDevelopment(resolvedAthleteId ?? '');
+
+  if (!resolvedAthleteId) {
+    return (
+      <PageContainer>
+        <EmptyState
+          icon="alert-circle-outline"
+          title="Athlete link is invalid"
+          message="Open this athlete again from the roster."
+        />
+      </PageContainer>
+    );
+  }
 
   if (loading) {
     return (
@@ -100,7 +113,7 @@ export default function AthleteDetailScreen() {
         <DevSpecialNeedsCard
           childProfile={childProfile}
           colors={colors}
-          onPress={() => router.push(Routes.developmentAthleteSpecialNeeds(athleteId!))}
+          onPress={() => router.push(Routes.developmentAthleteSpecialNeeds(resolvedAthleteId))}
         />
 
         {progressionSummary && <DevProgressionCard summary={progressionSummary} colors={colors} />}
@@ -108,7 +121,7 @@ export default function AthleteDetailScreen() {
         <Column gap="xs" style={{ marginTop: Spacing.xs }}>
           <ThemedText type="heading">Session History</ThemedText>
           <ThemedText style={{ color: colors.muted }}>
-            {sortedSessions.length} sessions completed
+            {sortedSessions.length} sessions completed. Tap any card to open feedback.
           </ThemedText>
         </Column>
 

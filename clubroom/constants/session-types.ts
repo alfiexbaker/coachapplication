@@ -309,6 +309,8 @@ export interface SessionOffering {
   ageMin?: number; // Minimum age (e.g., 10 for U12)
   ageMax?: number; // Maximum age (e.g., 12 for U12)
   footballSkill?: FootballObjective; // Primary skill focus
+  invitedAthleteIds?: string[]; // Coach-selected invite list for CLOSED sessions
+  invitedAthleteNames?: string[]; // Display labels for invited athletes
 }
 
 export interface AthleteObjective {

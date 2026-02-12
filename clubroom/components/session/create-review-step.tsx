@@ -80,7 +80,7 @@ export const CreateReviewStep = memo(function CreateReviewStep({
       case 'OPEN':
         return 'Your session will be visible to all athletes once published.';
       case 'CLOSED':
-        return 'Only invited athletes will be able to see this session.';
+        return 'Only invited athletes can see this session. You can add more later from Bookings.';
       case 'SQUAD_ONLY':
         return 'Only squad members will be able to see this session.';
     }

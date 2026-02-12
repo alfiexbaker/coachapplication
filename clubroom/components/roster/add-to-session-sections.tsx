@@ -138,6 +138,42 @@ export const AddToSessionCard = React.memo(function AddToSessionCard({
   );
 });
 
+type AddToSessionActionCardProps = {
+  colors: ThemeColors;
+  title: string;
+  description: string;
+  icon: keyof typeof Ionicons.glyphMap;
+  onPress: () => void;
+  ctaLabel: string;
+};
+
+export const AddToSessionActionCard = React.memo(function AddToSessionActionCard({
+  colors,
+  title,
+  description,
+  icon,
+  onPress,
+  ctaLabel,
+}: AddToSessionActionCardProps) {
+  return (
+    <SurfaceCard tactile onPress={onPress} style={styles.actionCard}>
+      <Row gap="md" align="center">
+        <View style={[styles.typeIcon, { backgroundColor: withAlpha(colors.tint, 0.09) }]}>
+          <Ionicons name={icon} size={20} color={colors.tint} />
+        </View>
+        <View style={styles.sessionInfo}>
+          <ThemedText type="defaultSemiBold">{title}</ThemedText>
+          <ThemedText style={[styles.metaText, { color: colors.muted }]}>{description}</ThemedText>
+        </View>
+        <Row align="center" gap="xxs">
+          <ThemedText style={[styles.actionText, { color: colors.tint }]}>{ctaLabel}</ThemedText>
+          <Ionicons name="chevron-forward" size={16} color={colors.tint} />
+        </Row>
+      </Row>
+    </SurfaceCard>
+  );
+});
+
 const styles = StyleSheet.create({
   header: {
     paddingHorizontal: Spacing.lg,
@@ -188,5 +224,11 @@ const styles = StyleSheet.create({
   },
   addButtonText: {
     ...Typography.bodySmallSemiBold,
+  },
+  actionCard: {
+    padding: Spacing.md,
+  },
+  actionText: {
+    ...Typography.smallSemiBold,
   },
 });

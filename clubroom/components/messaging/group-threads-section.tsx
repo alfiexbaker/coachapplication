@@ -10,12 +10,9 @@ import { StyleSheet } from 'react-native';
 import { router } from 'expo-router';
 import { Routes } from '@/navigation/routes';
 
-import { ThemedText } from '@/components/themed-text';
-import { SurfaceCard } from '@/components/primitives/surface-card';
 import { Chip } from '@/components/primitives/chip';
 import { Row } from '@/components/primitives/row';
 import { Spacing } from '@/constants/theme';
-import { useTheme } from '@/hooks/useTheme';
 import { ChatThreadSummary } from '@/constants/types';
 import { EmptyState } from '@/components/ui/empty-state';
 import { GroupConversationRow } from './group-conversation-row';
@@ -43,21 +40,12 @@ export const GroupThreadsSection = memo(function GroupThreadsSection({
   isCoach,
   onThreadPress,
 }: GroupThreadsSectionProps) {
-  const { colors: palette } = useTheme();
-
   const handleEmptyAction = useCallback(() => {
     router.push(Routes.CLUB_HUB);
   }, []);
 
   return (
     <>
-      <SurfaceCard style={styles.infoCard}>
-        <ThemedText type="defaultSemiBold">Clubs, squads, badge hub</ThemedText>
-        <ThemedText style={{ color: palette.muted }}>
-          Keep club-wide announcements and class chatter tidy. Post as yourself or on behalf of the
-          school without leaving this inbox.
-        </ThemedText>
-      </SurfaceCard>
       <Row gap="xs" wrap paddingH="lg" style={styles.filterRow}>
         {GROUP_FILTER_OPTIONS.map((option) => (
           <Chip
@@ -96,11 +84,6 @@ export const GroupThreadsSection = memo(function GroupThreadsSection({
 });
 
 const styles = StyleSheet.create({
-  infoCard: {
-    marginHorizontal: Spacing.lg,
-    marginBottom: Spacing.sm,
-    gap: Spacing.xs,
-  },
   filterRow: {
     marginBottom: Spacing.sm,
   },

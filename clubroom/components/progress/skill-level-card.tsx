@@ -18,7 +18,6 @@ import {
 // ─── Re-exports ─────────────────────────────────────────────────────────────
 
 export { SKILL_CATEGORIES } from './skill-level-helpers';
-export { SkillLevelGrid } from './skill-level-grid';
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 

@@ -26,6 +26,7 @@ type CreateClubPostInput = {
   feedType?: FeedType;
   imageUrl?: string;
   attachments?: string[];
+  eventId?: string;
   eventDate?: string;
   eventLocation?: string;
   badgeAwarded?: string;
@@ -40,6 +41,7 @@ type CreateCoachPostInput = {
   postType?: ClubPostType;
   feedType?: FeedType;
   imageUrl?: string;
+  eventId?: string;
   eventDate?: string;
   eventLocation?: string;
   clubId?: string;
@@ -135,9 +137,9 @@ const SEED_MEMBERSHIPS: ClubMembership[] = [
   {
     clubId: 'club_lions',
     userId: 'coach1',
-    role: 'HEAD_COACH',
+    role: 'OWNER',
     status: 'active',
-    joinSource: 'invite',
+    joinSource: 'created',
     inviteCode: 'LIONS-CLUB',
     canPostAsClub: true,
   },
@@ -584,6 +586,7 @@ class ClubFeedService {
       feedType,
       imageUrl: input.imageUrl,
       attachments: input.attachments,
+      eventId: input.eventId,
       eventDate: input.eventDate,
       eventLocation: input.eventLocation,
       badgeAwarded: input.badgeAwarded,
@@ -1004,6 +1007,7 @@ class ClubFeedService {
       postType: input.postType || 'general',
       feedType,
       imageUrl: input.imageUrl,
+      eventId: input.eventId,
       eventDate: input.eventDate,
       eventLocation: input.eventLocation,
     });

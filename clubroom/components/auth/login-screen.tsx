@@ -14,7 +14,8 @@ import {
   useWindowDimensions,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { Video, ResizeMode } from 'expo-av';
+import { useEventListener } from 'expo';
+import { VideoView, useVideoPlayer } from 'expo-video';
 import { Clickable } from '@/components/primitives/clickable';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -71,6 +72,17 @@ export default function LoginScreen() {
     () => (isDesktop ? 'JUST TRAIN.\nWE HANDLE THE REST.' : 'JUST TRAIN.'),
     [isDesktop],
   );
+  const backgroundPlayer = useVideoPlayer(LOGIN_VIDEO_URI, (player) => {
+    player.loop = true;
+    player.muted = true;
+    player.play();
+  });
+
+  useEventListener(backgroundPlayer, 'statusChange', ({ status }) => {
+    if (status === 'error') {
+      setVideoFailed(true);
+    }
+  });
 
   const form = useForm<LoginFormValues>({
     initialValues: {
@@ -154,27 +166,33 @@ export default function LoginScreen() {
     >
       <View style={styles.root}>
         {!videoFailed && (
-          <Video
-            source={{ uri: LOGIN_VIDEO_URI }}
+          <VideoView
+            player={backgroundPlayer}
             style={styles.backgroundVideo}
-            resizeMode={ResizeMode.COVER}
-            shouldPlay
-            isLooping
-            isMuted
-            onError={() => setVideoFailed(true)}
+            contentFit="cover"
+            nativeControls={false}
+            allowsFullscreen={false}
+            allowsPictureInPicture={false}
           />
         )}
 
         <View
-          pointerEvents="none"
           style={[
             styles.backdrop,
-            { backgroundColor: withAlpha(palette.text, videoFailed ? 0.9 : 0.62) },
+            {
+              backgroundColor: withAlpha(palette.text, videoFailed ? 0.9 : 0.62),
+              pointerEvents: 'none',
+            },
           ]}
         />
         <View
-          pointerEvents="none"
-          style={[styles.edgeGlow, { backgroundColor: withAlpha(palette.tint, 0.26) }]}
+          style={[
+            styles.edgeGlow,
+            {
+              backgroundColor: withAlpha(palette.tint, 0.26),
+              pointerEvents: 'none',
+            },
+          ]}
         />
 
         <KeyboardAvoidingView

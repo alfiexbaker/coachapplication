@@ -17,7 +17,6 @@
 
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { createLogger } from '@/utils/logger';
-import { authService } from '@/services/auth-service';
 import { ApiError, UnauthorizedError, NetworkError } from '@/constants/error-types';
 import { api, rateLimits } from '@/constants/config';
 import type { Result, ServiceError, ServiceErrorCode } from '@/types/result';
@@ -77,6 +76,31 @@ export { ApiError };
 let _isRefreshing = false;
 let _refreshPromise: Promise<void> | null = null;
 
+type AuthServiceLike = {
+  getTokens: () => Promise<{ accessToken?: string; refreshToken?: string } | null>;
+  refreshToken: () => Promise<Result<unknown, ServiceError>>;
+  logout: () => Promise<void>;
+};
+
+let authServiceRef: AuthServiceLike | null | undefined;
+
+function getAuthService(): AuthServiceLike | null {
+  if (authServiceRef !== undefined) {
+    return authServiceRef;
+  }
+
+  try {
+    // Lazy import to avoid static require-cycle with auth-service.
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    const mod = require('@/services/auth-service') as { authService?: AuthServiceLike };
+    authServiceRef = mod.authService ?? null;
+  } catch {
+    authServiceRef = null;
+  }
+
+  return authServiceRef;
+}
+
 /**
  * Internal fetch that throws errors (for backward compat).
  * Use apiFetch() instead which returns Result<T, ServiceError>.
@@ -88,9 +112,10 @@ async function _apiFetchUnsafe<T>(path: string, options?: RequestInit): Promise<
 
   // Get auth token from authService
   let authHeaders: Record<string, string> = {};
+  const authService = getAuthService();
   if (!USE_MOCK) {
     try {
-      const tokens = await authService.getTokens();
+      const tokens = authService ? await authService.getTokens() : null;
       if (tokens?.accessToken) {
         authHeaders = { Authorization: `Bearer ${tokens.accessToken}` };
       }
@@ -124,6 +149,10 @@ async function _apiFetchUnsafe<T>(path: string, options?: RequestInit): Promise<
   }
 
   if (response.status === 401) {
+    if (!authService) {
+      throw new UnauthorizedError('Session expired. Please log in again.');
+    }
+
     // Try refresh token via authService
     logger.info('Received 401, attempting token refresh');
     try {

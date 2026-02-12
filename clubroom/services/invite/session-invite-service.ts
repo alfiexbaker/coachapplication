@@ -141,6 +141,31 @@ const MOCK_INVITES: SessionInvite[] = [
     createdAt: '2026-02-08T09:00:00Z',
     respondedAt: '2026-02-08T12:00:00Z',
   },
+  {
+    id: 'inv_group_rsvp_1',
+    coachId: 'coach1',
+    clubName: 'Lions FC Academy',
+    inviteType: 'SQUAD_ONLY',
+    squadIds: ['squad_u14'],
+    athleteIds: ['athlete_1', 'athlete_3', 'athlete_4'],
+    parentId: 'user4',
+    proposedSlots: [
+      {
+        date: '2026-02-18',
+        startTime: '18:00',
+        endTime: '19:00',
+        location: 'Lions Indoor Dome',
+      },
+    ],
+    sessionType: 'Small Group Session',
+    focus: 'Decision making under pressure',
+    notes: 'Invite-only development block for U14 core group.',
+    priceUsd: 25,
+    status: 'PENDING',
+    expiresAt: '2026-03-01T23:59:59Z',
+    createdAt: '2026-02-10T08:45:00Z',
+    rsvpCounts: { going: 1, maybe: 1, cantGo: 1 },
+  },
 ];
 
 // ============================================================================

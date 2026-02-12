@@ -27,6 +27,7 @@ import {
   PostTypeSelector,
   PostAsSelector,
   AudienceSelector,
+  EventAttachSelector,
 } from '@/components/social/club-post-selectors';
 import { ClubPostEventFields } from '@/components/social/club-post-event-fields';
 import { Row } from '@/components/primitives/row';
@@ -102,15 +103,17 @@ export default function CreateClubPostScreen() {
             </Row>
           )}
 
-          {p.isCoach && (
+          {p.canPostAsClub && <PostAsSelector postAs={p.postAs} onSelect={p.setPostAs} />}
+
+          {p.isCoach && p.postAs === 'self' && (
             <FeedTypeSelector
               feedType={p.feedType}
               clubName={p.club?.name}
               onSelect={p.setFeedType}
             />
           )}
+
           <PostTypeSelector postType={p.postType} onSelect={p.setPostType} />
-          {p.canPostAsClub && <PostAsSelector postAs={p.postAs} onSelect={p.setPostAs} />}
           <AudienceSelector
             audienceType={p.audienceType}
             selectedSquadId={p.selectedSquadId}
@@ -167,15 +170,23 @@ export default function CreateClubPostScreen() {
           )}
 
           {p.postType === 'event' && (
-            <ClubPostEventFields
-              eventDate={p.eventDate}
-              eventLocation={p.eventLocation}
-              showDatePicker={p.showDatePicker}
-              onOpenDatePicker={p.openDatePicker}
-              onCloseDatePicker={p.closeDatePicker}
-              onSetDate={p.setEventDate}
-              onChangeLocation={p.setEventLocation}
-            />
+            <>
+              <EventAttachSelector
+                events={p.availableEvents}
+                selectedEventId={p.selectedEventId}
+                onSelectEvent={p.handleSelectEvent}
+                onClear={p.clearSelectedEvent}
+              />
+              <ClubPostEventFields
+                eventDate={p.eventDate}
+                eventLocation={p.eventLocation}
+                showDatePicker={p.showDatePicker}
+                onOpenDatePicker={p.openDatePicker}
+                onCloseDatePicker={p.closeDatePicker}
+                onSetDate={p.setEventDate}
+                onChangeLocation={p.setEventLocation}
+              />
+            </>
           )}
 
           {p.body.length > 0 && (

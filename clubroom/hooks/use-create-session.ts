@@ -7,15 +7,16 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { Alert } from 'react-native';
-import { router } from 'expo-router';
+import { router, useLocalSearchParams } from 'expo-router';
 import { Routes } from '@/navigation/routes';
 
 import { apiClient } from '@/services/api-client';
 import { STORAGE_KEYS } from '@/constants/storage-keys';
 import { rosterService } from '@/services/roster-service';
+import { inviteService as sessionInviteService } from '@/services/invite';
 import { useAuth } from '@/hooks/use-auth';
 import { createLogger } from '@/utils/logger';
-import { getRosterAthleteName } from '@/utils/roster-display';
+import { getRosterAthleteName, getRosterParentName } from '@/utils/roster-display';
 import type { SessionOffering, FootballObjective, SessionInviteType } from '@/constants/types';
 import {
   type SessionType,
@@ -34,6 +35,8 @@ const logger = createLogger('CreateSession');
 export interface PastAthlete {
   id: string;
   name: string;
+  parentId: string;
+  parentName: string;
 }
 
 export interface CreateSessionState {
@@ -91,6 +94,11 @@ export interface CreateSessionActions {
 
 export function useCreateSession(): CreateSessionState & CreateSessionActions {
   const { currentUser } = useAuth();
+  const params = useLocalSearchParams<{
+    athleteIds?: string;
+    preset?: '1on1' | 'group';
+    inviteType?: SessionInviteType;
+  }>();
 
   // Wizard state
   const [step, setStep] = useState<WizardStep>('details');
@@ -143,6 +151,8 @@ export function useCreateSession(): CreateSessionState & CreateSessionActions {
         const athletes = roster.map((entry) => ({
           id: entry.athleteId,
           name: getRosterAthleteName(entry),
+          parentId: entry.parentId,
+          parentName: getRosterParentName(entry),
         }));
         setPastAthletes(athletes);
       } catch (error) {
@@ -151,6 +161,36 @@ export function useCreateSession(): CreateSessionState & CreateSessionActions {
     };
     loadPastAthletes();
   }, [currentUser]);
+
+  useEffect(() => {
+    const presetAthleteIds = params.athleteIds
+      ? params.athleteIds
+          .split(',')
+          .map((id) => id.trim())
+          .filter((id) => id.length > 0)
+      : [];
+
+    if (presetAthleteIds.length > 0) {
+      setSelectedAthletes((prev) => {
+        const merged = new Set([...prev, ...presetAthleteIds]);
+        return Array.from(merged);
+      });
+    }
+
+    if (params.inviteType) {
+      setInviteType(params.inviteType);
+    } else if (presetAthleteIds.length > 0) {
+      setInviteType('CLOSED');
+    }
+
+    if (params.preset === '1on1') {
+      setSessionType('1on1');
+      setMaxParticipants('1');
+    } else if (params.preset === 'group') {
+      setSessionType('small_group');
+      setMaxParticipants('4');
+    }
+  }, [params.athleteIds, params.inviteType, params.preset]);
 
   // --------------------------------------------------------------------------
   // HELPERS
@@ -237,6 +277,10 @@ export function useCreateSession(): CreateSessionState & CreateSessionActions {
       const participants = maxParticipants
         ? parseInt(maxParticipants, 10)
         : getDefaultMaxParticipants();
+      const parsedPrice = price ? parseFloat(price) : undefined;
+      const selectedAthleteRecords = pastAthletes.filter((athlete) =>
+        selectedAthletes.includes(athlete.id),
+      );
 
       const scheduledAt = `${selectedDate}T${selectedTime}:00`;
 
@@ -257,19 +301,88 @@ export function useCreateSession(): CreateSessionState & CreateSessionActions {
         status: 'active',
         registrations: [],
         createdAt: new Date().toISOString(),
-        priceUsd: price ? parseFloat(price) : undefined,
+        duration,
+        priceUsd: parsedPrice,
         footballSkill: focusAreas[0] || undefined,
+        invitedAthleteIds: inviteType === 'CLOSED' ? selectedAthletes : undefined,
+        invitedAthleteNames:
+          inviteType === 'CLOSED' ? selectedAthleteRecords.map((athlete) => athlete.name) : undefined,
       };
 
       const offerings = await apiClient.get<SessionOffering[]>('session_offerings', []);
       offerings.push(newOffering);
       await apiClient.set('session_offerings', offerings);
 
+      let invitesSent = 0;
+      let inviteFailures = 0;
+
       if (inviteType === 'CLOSED' && selectedAthletes.length > 0) {
-        logger.info('Sending invites to athletes', { athleteIds: selectedAthletes, inviteType });
+        const slotStart = new Date(`${selectedDate}T${selectedTime}:00`);
+        const slotEnd = new Date(slotStart);
+        slotEnd.setMinutes(slotEnd.getMinutes() + duration);
+        const endTime = `${String(slotEnd.getHours()).padStart(2, '0')}:${String(
+          slotEnd.getMinutes(),
+        ).padStart(2, '0')}`;
+
+        const athletesByParent = selectedAthleteRecords.reduce<Record<string, PastAthlete[]>>(
+          (acc, athlete) => {
+            const key = athlete.parentId || 'unknown_parent';
+            if (!acc[key]) acc[key] = [];
+            acc[key].push(athlete);
+            return acc;
+          },
+          {},
+        );
+
+        for (const [parentId, athletesForParent] of Object.entries(athletesByParent)) {
+          if (parentId === 'unknown_parent' || athletesForParent.length === 0) {
+            inviteFailures += athletesForParent.length;
+            continue;
+          }
+
+          const inviteResult = await sessionInviteService.createInvite(
+            athletesForParent.map((athlete) => athlete.id),
+            {
+              coachId: currentUser.id,
+              coachName: currentUser.name || currentUser.fullName || 'Coach',
+              inviteType: 'CLOSED',
+              athleteNames: athletesForParent.map((athlete) => athlete.name),
+              parentId,
+              parentName: athletesForParent[0]?.parentName || 'Parent',
+              proposedSlots: [
+                {
+                  date: selectedDate,
+                  startTime: selectedTime,
+                  endTime,
+                  location,
+                },
+              ],
+              sessionType: sessionType === '1on1' ? '1-on-1' : 'Group',
+              focus: focusAreas[0] || 'General',
+              notes: description || undefined,
+              priceUsd: parsedPrice,
+              expiresInDays: 7,
+            },
+          );
+
+          if (inviteResult.success) {
+            invitesSent += athletesForParent.length;
+          } else {
+            inviteFailures += athletesForParent.length;
+            logger.error('Failed to send closed-session invites', {
+              parentId,
+              error: inviteResult.error,
+            });
+          }
+        }
       }
 
-      Alert.alert('Session Created!', `"${title}" has been created successfully.`, [
+      const inviteSummary =
+        inviteType === 'CLOSED' && selectedAthletes.length > 0
+          ? ` ${invitesSent} invite${invitesSent === 1 ? '' : 's'} sent${inviteFailures > 0 ? `, ${inviteFailures} failed.` : '.'}`
+          : '';
+
+      Alert.alert('Session Created!', `"${title}" has been created successfully.${inviteSummary}`, [
         {
           text: 'View Schedule',
           onPress: () => router.replace(Routes.SCHEDULE),
@@ -304,11 +417,13 @@ export function useCreateSession(): CreateSessionState & CreateSessionActions {
     title,
     description,
     sessionType,
+    duration,
     inviteType,
     recurrence,
     price,
     focusAreas,
     selectedAthletes,
+    pastAthletes,
     saveLocation,
   ]);
 

@@ -6,7 +6,7 @@ import { Row } from '@/components/primitives/row';
 import { ThemedText } from '@/components/themed-text';
 import { Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
-import type { ClubPostType, FeedType } from '@/constants/types';
+import type { ClubPostType, FeedType, ClubEvent } from '@/constants/types';
 import { POST_TYPES } from '@/hooks/use-create-club-post';
 
 interface FeedTypeSelectorProps {
@@ -37,7 +37,7 @@ export const FeedTypeSelector = memo(function FeedTypeSelector({
   ];
   return (
     <View style={styles.section}>
-      <ThemedText style={[styles.sectionLabel, { color: palette.muted }]}>Post To</ThemedText>
+      <ThemedText style={[styles.sectionLabel, { color: palette.muted }]}>Distribution</ThemedText>
       <Row wrap gap="xs">
         {opts.map((o) => (
           <Clickable
@@ -180,7 +180,7 @@ export const AudienceSelector = memo(function AudienceSelector({
   if (squads.length === 0) return null;
   return (
     <View style={styles.section}>
-      <ThemedText style={[styles.sectionLabel, { color: palette.muted }]}>Post To</ThemedText>
+      <ThemedText style={[styles.sectionLabel, { color: palette.muted }]}>Audience</ThemedText>
       <Row gap="sm">
         <Clickable
           style={[
@@ -271,8 +271,80 @@ export const AudienceSelector = memo(function AudienceSelector({
   );
 });
 
+interface EventAttachSelectorProps {
+  events: ClubEvent[];
+  selectedEventId: string | null;
+  onSelectEvent: (id: string) => void;
+  onClear: () => void;
+}
+
+export const EventAttachSelector = memo(function EventAttachSelector({
+  events,
+  selectedEventId,
+  onSelectEvent,
+  onClear,
+}: EventAttachSelectorProps) {
+  const { colors: palette } = useTheme();
+
+  if (events.length === 0) return null;
+
+  return (
+    <View style={styles.section}>
+      <Row align="center" justify="space-between" style={styles.eventHeader}>
+        <ThemedText style={[styles.sectionLabel, { color: palette.muted }]}>
+          Attach Existing Event
+        </ThemedText>
+        {selectedEventId ? (
+          <Clickable onPress={onClear} accessibilityLabel="Clear attached event">
+            <ThemedText style={[styles.clearText, { color: palette.tint }]}>Clear</ThemedText>
+          </Clickable>
+        ) : null}
+      </Row>
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        contentContainerStyle={styles.row}
+      >
+        {events.map((event) => {
+          const isSelected = selectedEventId === event.id;
+          return (
+            <Clickable
+              key={event.id}
+              style={[
+                styles.eventOption,
+                {
+                  borderColor: isSelected ? palette.tint : palette.border,
+                  backgroundColor: isSelected ? withAlpha(palette.tint, 0.06) : palette.surface,
+                },
+              ]}
+              onPress={() => onSelectEvent(event.id)}
+            >
+              <ThemedText
+                style={[styles.eventTitle, { color: isSelected ? palette.tint : palette.text }]}
+                numberOfLines={1}
+              >
+                {event.title}
+              </ThemedText>
+              <ThemedText style={[styles.eventMeta, { color: palette.muted }]} numberOfLines={1}>
+                {new Date(`${event.date}T00:00:00`).toLocaleDateString('en-GB', {
+                  day: 'numeric',
+                  month: 'short',
+                })}{' '}
+                · {event.venue}
+              </ThemedText>
+            </Clickable>
+          );
+        })}
+      </ScrollView>
+    </View>
+  );
+});
+
 const styles = StyleSheet.create({
   section: { paddingHorizontal: Spacing.md, paddingTop: Spacing.md },
+  eventHeader: {
+    marginBottom: Spacing.xs,
+  },
   sectionLabel: {
     ...Typography.caption,
     marginBottom: Spacing.xs,
@@ -317,5 +389,22 @@ const styles = StyleSheet.create({
     borderRadius: Radii.lg,
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  eventOption: {
+    minWidth: 220,
+    borderWidth: 1,
+    borderRadius: Radii.md,
+    paddingVertical: Spacing.sm,
+    paddingHorizontal: Spacing.md,
+    gap: Spacing.xxs,
+  },
+  eventTitle: {
+    ...Typography.smallSemiBold,
+  },
+  eventMeta: {
+    ...Typography.caption,
+  },
+  clearText: {
+    ...Typography.smallSemiBold,
   },
 });

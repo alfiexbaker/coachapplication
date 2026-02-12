@@ -96,7 +96,7 @@ function AthleteSessionsInner({ athlete, coachId }: AthleteSessionsProps) {
         title="No sessions yet"
         message={`Book ${athleteName}'s first session to start tracking progress`}
         actionLabel="Book Session"
-        onPressAction={() => router.push(Routes.rosterAthleteAddToSession(athlete.athleteId))}
+        onPressAction={() => router.push(Routes.rosterAthleteAddToSession(athlete.athleteId, athleteName))}
       />
     );
   }

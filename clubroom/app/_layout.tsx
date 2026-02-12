@@ -23,11 +23,13 @@ import { navigateToDeepLink } from '@/utils/deep-link';
 
 // Lazy-load expo-notifications for deep linking
 let Notifications: typeof import('expo-notifications') | null = null;
-try {
-  // eslint-disable-next-line @typescript-eslint/no-require-imports
-  Notifications = require('expo-notifications');
-} catch {
-  // expo-notifications not installed
+if (Platform.OS !== 'web') {
+  try {
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    Notifications = require('expo-notifications');
+  } catch {
+    // expo-notifications not installed
+  }
 }
 
 const logger = createLogger('RootLayout');
@@ -99,7 +101,6 @@ function RootNavigation() {
 
     return () => {
       if (notificationResponseSubscription.current) {
-        handleResponse(response);
         notificationResponseSubscription.current.remove();
       }
     };
@@ -148,6 +149,76 @@ function RootNavigation() {
                 options={{
                   presentation: 'modal',
                   headerShown: false,
+                }}
+              />
+              <Stack.Screen
+                name="development/athlete/[athleteId]"
+                options={{
+                  headerShown: false,
+                  animation: 'slide_from_right',
+                }}
+              />
+              <Stack.Screen
+                name="development/athlete/[athleteId]/special-needs"
+                options={{
+                  headerShown: false,
+                  animation: 'slide_from_right',
+                }}
+              />
+              <Stack.Screen
+                name="development/session/[sessionId]"
+                options={{
+                  headerShown: false,
+                  animation: 'slide_from_right',
+                }}
+              />
+              <Stack.Screen
+                name="development/athlete-session/[sessionId]"
+                options={{
+                  headerShown: false,
+                  animation: 'slide_from_right',
+                }}
+              />
+              <Stack.Screen
+                name="availability/scheduling-rules"
+                options={{
+                  headerShown: false,
+                  animation: 'slide_from_right',
+                }}
+              />
+              <Stack.Screen
+                name="availability/add-template"
+                options={{
+                  headerShown: false,
+                  animation: 'slide_from_right',
+                }}
+              />
+              <Stack.Screen
+                name="availability/edit-template"
+                options={{
+                  headerShown: false,
+                  animation: 'slide_from_right',
+                }}
+              />
+              <Stack.Screen
+                name="availability/calendar"
+                options={{
+                  headerShown: false,
+                  animation: 'slide_from_right',
+                }}
+              />
+              <Stack.Screen
+                name="availability/block-date"
+                options={{
+                  headerShown: false,
+                  animation: 'slide_from_right',
+                }}
+              />
+              <Stack.Screen
+                name="manage"
+                options={{
+                  headerShown: false,
+                  animation: 'slide_from_right',
                 }}
               />
               <Stack.Screen

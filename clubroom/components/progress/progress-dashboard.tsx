@@ -10,7 +10,7 @@ import { ThemedText } from '@/components/themed-text';
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { Chip } from '@/components/primitives/chip';
 import { Spacing, Typography } from '@/constants/theme';
-import { SkillLevelGrid } from './skill-level-card';
+import { SkillLevelGrid } from './skill-level-grid';
 import { FeedbackList } from './session-feedback-card';
 import type { AthleteProgress } from '@/services/progress-service';
 import type { Goal } from '@/constants/types';

@@ -7,13 +7,12 @@ import { ThemedText } from '@/components/themed-text';
 import { Row } from '@/components/primitives/row';
 import { AthleteCard } from '@/components/roster/athlete-card';
 import { AthletesStatsBar } from '@/components/athlete/athletes-stats-bar';
-import { NeedsAttentionSection } from '@/components/athlete/needs-attention-section';
 import { Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
 import type { ThemeColors } from '@/hooks/useTheme';
 import type { RosterEntry } from '@/constants/types';
 import type { Booking } from '@/constants/app-types';
 
-export type FilterType = 'all' | 'active' | 'needs_attention';
+export type FilterType = 'all' | 'active';
 
 type HeaderProps = {
   colors: ThemeColors;
@@ -24,7 +23,6 @@ type HeaderProps = {
   onClearSearch: () => void;
   filter: FilterType;
   onFilterChange: (value: FilterType) => void;
-  needsAttentionCount: number;
 };
 
 export const AthletesListHeader = React.memo(function AthletesListHeader({
@@ -36,7 +34,6 @@ export const AthletesListHeader = React.memo(function AthletesListHeader({
   onClearSearch,
   filter,
   onFilterChange,
-  needsAttentionCount,
 }: HeaderProps) {
   const filterChips = [
     { id: 'all' as FilterType, label: 'All', count: roster.length },
@@ -45,13 +42,11 @@ export const AthletesListHeader = React.memo(function AthletesListHeader({
       label: 'Active',
       count: roster.filter((a) => a.status === 'ACTIVE').length,
     },
-    { id: 'needs_attention' as FilterType, label: 'Needs Attention', count: needsAttentionCount },
   ];
 
   return (
     <View style={styles.headerContent}>
       <AthletesStatsBar roster={roster} upcomingSessions={upcomingSessions} />
-      <NeedsAttentionSection roster={roster} />
 
       <Row
         style={[

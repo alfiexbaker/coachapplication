@@ -9,6 +9,7 @@
 import React from 'react';
 import { RefreshControl, ScrollView, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { router } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { ScreenHeader } from '@/components/primitives/screen-header';
@@ -31,6 +32,7 @@ import { DayEditorSheet } from '@/components/coach/day-editor-sheet';
 import { TimeOffSheet } from '@/components/coach/time-off-sheet';
 import { SchedulingRulesModal } from '@/components/coach/scheduling-rules-modal';
 import { SessionTypeModal } from '@/components/coach/session-type-modal';
+import { Routes } from '@/navigation/routes';
 
 export default function ScheduleScreen() {
   const { colors } = useTheme();
@@ -74,7 +76,7 @@ export default function ScheduleScreen() {
           <ScreenHeader title="Schedule" subtitle="Your upcoming sessions" />
           <Clickable
             onPress={schedule.handleOpenSettings}
-            accessibilityLabel="Scheduling settings"
+            accessibilityLabel="Booking rules"
             style={[styles.settingsBtn, { backgroundColor: colors.surface }]}
           >
             <Ionicons name="settings-outline" size={22} color={colors.muted} />
@@ -90,8 +92,10 @@ export default function ScheduleScreen() {
           icon="calendar-outline"
           title="No sessions scheduled"
           message="Your upcoming sessions will appear here. Set availability or create sessions to get started."
-          actionLabel="Open settings"
-          onPressAction={schedule.handleOpenSettings}
+          actionLabel="Create session"
+          onPressAction={() =>
+            router.push(Routes.sessionsCreateIntent({ intent: 'new', source: 'schedule' }))
+          }
         />
       </SafeAreaView>
     );
@@ -112,7 +116,7 @@ export default function ScheduleScreen() {
         />
         <Clickable
           onPress={schedule.handleOpenSettings}
-          accessibilityLabel="Scheduling settings"
+          accessibilityLabel="Booking rules"
           style={[styles.settingsBtn, { backgroundColor: colors.surface }]}
         >
           <Ionicons name="settings-outline" size={22} color={colors.muted} />

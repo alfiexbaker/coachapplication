@@ -16,18 +16,6 @@ interface AthletesData {
   upcomingSessions: Record<string, Booking>;
 }
 
-const DAYS_BEFORE_NEEDS_ATTENTION = 14;
-
-const isNeedsAttention = (athlete: RosterEntry) => {
-  if (athlete.status !== 'ACTIVE') return false;
-  if (!athlete.lastSessionDate) return true;
-
-  const daysSinceSession = Math.floor(
-    (Date.now() - new Date(athlete.lastSessionDate).getTime()) / (1000 * 60 * 60 * 24),
-  );
-  return daysSinceSession > DAYS_BEFORE_NEEDS_ATTENTION;
-};
-
 export function useAthletesScreen() {
   const { currentUser } = useAuth();
   const coachId = currentUser?.id || 'coach_1';
@@ -67,11 +55,6 @@ export function useAthletesScreen() {
   const roster = screen.data?.roster || [];
   const upcomingSessions = screen.data?.upcomingSessions || {};
 
-  const needsAttentionCount = useMemo(
-    () => roster.filter((athlete) => isNeedsAttention(athlete)).length,
-    [roster],
-  );
-
   const filteredAthletes = useMemo(() => {
     let filtered = roster;
 
@@ -86,8 +69,6 @@ export function useAthletesScreen() {
 
     if (filter === 'active') {
       filtered = filtered.filter((athlete) => athlete.status === 'ACTIVE');
-    } else if (filter === 'needs_attention') {
-      filtered = filtered.filter((athlete) => isNeedsAttention(athlete));
     }
 
     return [...filtered].sort((a, b) => {
@@ -109,7 +90,6 @@ export function useAthletesScreen() {
     setFilter,
     roster,
     upcomingSessions,
-    needsAttentionCount,
     filteredAthletes,
     ...screen,
   };

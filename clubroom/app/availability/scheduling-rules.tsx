@@ -37,8 +37,7 @@ export default function SchedulingRulesScreen() {
     return (
       <SafeAreaView style={{ flex: 1, backgroundColor: palette.background }} edges={['top']}>
         <PageHeader
-          title="Scheduling Rules"
-          subtitle="Control how athletes can book with you"
+          title="Booking Rules"
           showBack
           onBack={handleBack}
         />
@@ -51,8 +50,7 @@ export default function SchedulingRulesScreen() {
     return (
       <SafeAreaView style={{ flex: 1, backgroundColor: palette.background }} edges={['top']}>
         <PageHeader
-          title="Scheduling Rules"
-          subtitle="Control how athletes can book with you"
+          title="Booking Rules"
           showBack
           onBack={handleBack}
         />
@@ -68,8 +66,7 @@ export default function SchedulingRulesScreen() {
     return (
       <SafeAreaView style={{ flex: 1, backgroundColor: palette.background }} edges={['top']}>
         <PageHeader
-          title="Scheduling Rules"
-          subtitle="Control how athletes can book with you"
+          title="Booking Rules"
           showBack
           onBack={handleBack}
         />
@@ -87,8 +84,7 @@ export default function SchedulingRulesScreen() {
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: palette.background }} edges={['top']}>
       <PageHeader
-        title="Scheduling Rules"
-        subtitle="Control how athletes can book with you"
+        title="Booking Rules"
         showBack
         onBack={handleBack}
       />

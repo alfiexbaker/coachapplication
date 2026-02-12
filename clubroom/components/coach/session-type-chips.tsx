@@ -65,16 +65,6 @@ export function SessionTypeChips({ templates, onPress, onAdd, selectedId }: Sess
         <ThemedText type="defaultSemiBold" style={styles.sectionTitle}>
           Session Types
         </ThemedText>
-        <Clickable
-          onPress={() => {
-            hapticTap();
-            onAdd();
-          }}
-          style={[styles.headerAddBtn, { backgroundColor: withAlpha(palette.tint, 0.1) }]}
-        >
-          <Ionicons name="add" size={16} color={palette.tint} />
-          <ThemedText style={[styles.headerAddBtnText, { color: palette.tint }]}>New</ThemedText>
-        </Clickable>
       </Row>
 
       <ScrollView
@@ -151,16 +141,6 @@ const styles = StyleSheet.create({
   },
   sectionTitle: {
     ...Typography.bodySmallSemiBold,
-  },
-  headerAddBtn: {
-    alignItems: 'center',
-    gap: Spacing.micro,
-    paddingHorizontal: Spacing.sm,
-    paddingVertical: Spacing.xs,
-    borderRadius: Radii.pill,
-  },
-  headerAddBtnText: {
-    ...Typography.smallSemiBold,
   },
   chipRow: {
     gap: Spacing.sm,

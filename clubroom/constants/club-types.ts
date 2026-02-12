@@ -179,6 +179,7 @@ export interface ClubFeedPost {
   isPinned?: boolean;
   pinnedBy?: string;
   pinnedAt?: string;
+  eventId?: string;
   eventDate?: string;
   eventLocation?: string;
   // Achievement post fields

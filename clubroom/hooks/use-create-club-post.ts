@@ -11,7 +11,8 @@ import { router } from 'expo-router';
 import { useAuth } from '@/hooks/use-auth';
 import { clubFeedService } from '@/services/social-feed-service';
 import { squadService } from '@/services/squad-service';
-import type { ClubPostType, FeedType, ClubMembership, ClubSquad } from '@/constants/types';
+import { eventService } from '@/services/event';
+import type { ClubPostType, FeedType, ClubMembership, ClubSquad, ClubEvent } from '@/constants/types';
 
 export type PostTypeOption = {
   key: ClubPostType;
@@ -86,8 +87,10 @@ export function useCreateClubPost(clubId: string | undefined) {
   const [feedType, setFeedType] = useState<FeedType>(isCoach ? 'PERSONAL' : 'CLUB');
   const [audienceType, setAudienceType] = useState<'club' | 'squad'>('club');
   const [selectedSquadId, setSelectedSquadId] = useState<string | null>(null);
+  const [selectedEventId, setSelectedEventId] = useState<string | null>(null);
   const [isPosting, setIsPosting] = useState(false);
   const [availableSquads, setAvailableSquads] = useState<ClubSquad[]>([]);
+  const [availableEvents, setAvailableEvents] = useState<ClubEvent[]>([]);
 
   useEffect(() => {
     let active = true;
@@ -119,9 +122,72 @@ export function useCreateClubPost(clubId: string | undefined) {
     };
   }, [clubId]);
 
+  useEffect(() => {
+    let active = true;
+
+    const loadEvents = async () => {
+      if (!clubId) {
+        if (active) {
+          setAvailableEvents([]);
+        }
+        return;
+      }
+
+      try {
+        const clubEvents = await eventService.getAllClubEvents(clubId);
+        if (active) {
+          const upcoming = clubEvents
+            .filter((event) => event.status !== 'CANCELLED')
+            .sort((a, b) => a.date.localeCompare(b.date));
+          setAvailableEvents(upcoming);
+        }
+      } catch {
+        if (active) {
+          setAvailableEvents([]);
+        }
+      }
+    };
+
+    void loadEvents();
+
+    return () => {
+      active = false;
+    };
+  }, [clubId]);
+
   const selectedSquad = availableSquads.find((s) => s.id === selectedSquadId);
+  const selectedEvent = availableEvents.find((event) => event.id === selectedEventId) ?? null;
   const audienceLabel =
     audienceType === 'club' ? 'Club-wide' : selectedSquad?.name || 'Select a group';
+
+  useEffect(() => {
+    if (postAs === 'club' && feedType !== 'CLUB') {
+      setFeedType('CLUB');
+    }
+  }, [postAs, feedType]);
+
+  const handleSelectEvent = useCallback(
+    (eventId: string) => {
+      const event = availableEvents.find((candidate) => candidate.id === eventId);
+      if (!event) return;
+
+      setSelectedEventId(event.id);
+      setPostType('event');
+      setEventDate(new Date(`${event.date}T12:00:00`));
+      setEventLocation(event.venue || event.location || '');
+      if (!title.trim()) {
+        setTitle(event.title);
+      }
+      if (!body.trim()) {
+        setBody(event.description);
+      }
+    },
+    [availableEvents, body, title],
+  );
+
+  const clearSelectedEvent = useCallback(() => {
+    setSelectedEventId(null);
+  }, []);
 
   const pickImage = useCallback(async () => {
     const result = await ImagePicker.launchImageLibraryAsync({
@@ -137,6 +203,33 @@ export function useCreateClubPost(clubId: string | undefined) {
   }, []);
 
   const removeImage = useCallback(() => setImageUri(null), []);
+
+  const handleSetPostAs = useCallback(
+    (value: 'self' | 'club') => {
+      if (value === 'club' && !canPostAsClub) {
+        setPostAs('self');
+        return;
+      }
+      setPostAs(value);
+      if (value === 'club') {
+        setFeedType('CLUB');
+      }
+    },
+    [canPostAsClub],
+  );
+
+  const handleSetFeedType = useCallback(
+    (value: FeedType) => {
+      if (postAs === 'club') {
+        setFeedType('CLUB');
+        return;
+      }
+      if (value === 'BOTH' || value === 'PERSONAL' || value === 'CLUB') {
+        setFeedType(value);
+      }
+    },
+    [postAs],
+  );
 
   const handlePost = useCallback(async () => {
     if (!body.trim() && !imageUri) return;
@@ -154,6 +247,7 @@ export function useCreateClubPost(clubId: string | undefined) {
           postType,
           feedType,
           imageUrl: imageUri || undefined,
+          eventId: postType === 'event' ? selectedEventId || undefined : undefined,
           eventDate: eventDate?.toISOString(),
           eventLocation: eventLocation.trim() || undefined,
           clubId,
@@ -181,6 +275,7 @@ export function useCreateClubPost(clubId: string | undefined) {
           audienceLabel: finalAudienceLabel,
           squadId: audienceType === 'squad' ? selectedSquadId || undefined : undefined,
           imageUrl: imageUri || undefined,
+          eventId: postType === 'event' ? selectedEventId || undefined : undefined,
           eventDate: eventDate?.toISOString(),
           eventLocation: eventLocation.trim() || undefined,
         });
@@ -200,6 +295,7 @@ export function useCreateClubPost(clubId: string | undefined) {
     feedType,
     title,
     postType,
+    selectedEventId,
     eventDate,
     eventLocation,
     club,
@@ -209,7 +305,10 @@ export function useCreateClubPost(clubId: string | undefined) {
     postAs,
   ]);
 
-  const canPost = (body.trim().length > 0 || imageUri !== null) && !!clubId && !isPosting;
+  const canPost =
+    (body.trim().length > 0 || imageUri !== null) &&
+    !!clubId &&
+    !isPosting;
 
   const handleSelectAudienceClub = useCallback(() => {
     setAudienceType('club');
@@ -230,7 +329,7 @@ export function useCreateClubPost(clubId: string | undefined) {
     postType,
     setPostType,
     postAs,
-    setPostAs,
+    setPostAs: handleSetPostAs,
     imageUri,
     pickImage,
     removeImage,
@@ -242,7 +341,7 @@ export function useCreateClubPost(clubId: string | undefined) {
     openDatePicker,
     closeDatePicker,
     feedType,
-    setFeedType,
+    setFeedType: handleSetFeedType,
     audienceType,
     handleSelectAudienceClub,
     handleSelectAudienceSquad,
@@ -250,6 +349,11 @@ export function useCreateClubPost(clubId: string | undefined) {
     setSelectedSquadId,
     availableSquads,
     selectedSquad,
+    availableEvents,
+    selectedEventId,
+    selectedEvent,
+    handleSelectEvent,
+    clearSelectedEvent,
     audienceLabel,
     isPosting,
     canPost,

@@ -4,12 +4,11 @@
  */
 import { useState, useEffect, useCallback } from 'react';
 import { View, StyleSheet, Modal, ScrollView, Alert } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 
 import { Clickable } from '@/components/primitives/clickable';
 import { ThemedText } from '@/components/themed-text';
-import { Spacing, withAlpha } from '@/constants/theme';
+import { Spacing } from '@/constants/theme';
 import { schedulingRulesService, POLICY_TEMPLATES } from '@/services/scheduling-rules-service';
 
 import { createLogger } from '@/utils/logger';
@@ -180,7 +179,7 @@ export function SchedulingRulesModal({
           <Clickable onPress={onClose} disabled={saving}>
             <ThemedText style={{ color: palette.muted }}>Cancel</ThemedText>
           </Clickable>
-          <ThemedText type="subtitle">Scheduling Rules</ThemedText>
+          <ThemedText type="subtitle">Booking Rules</ThemedText>
           <Clickable onPress={handleSave} disabled={saving || loading}>
             <ThemedText style={{ color: palette.tint, fontWeight: '600' }}>
               {saving ? 'Saving...' : 'Save'}
@@ -189,13 +188,6 @@ export function SchedulingRulesModal({
         </Row>
 
         <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
-          <Row style={[styles.summaryBanner, { backgroundColor: withAlpha(palette.tint, 0.03) }]}>
-            <Ionicons name="information-circle" size={20} color={palette.tint} />
-            <ThemedText style={[styles.summaryText, { color: palette.muted }]}>
-              These rules control how athletes can book sessions with you
-            </ThemedText>
-          </Row>
-
           <ChipSection
             icon="time-outline"
             iconColor={palette.warning}
@@ -260,6 +252,4 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
   },
   content: { padding: Spacing.lg, gap: Spacing.lg, paddingBottom: Spacing['2xl'] },
-  summaryBanner: { alignItems: 'center', gap: Spacing.sm, padding: Spacing.md, borderRadius: 12 },
-  summaryText: { fontSize: 13, lineHeight: 20, flex: 1 },
 });

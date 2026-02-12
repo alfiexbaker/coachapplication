@@ -35,8 +35,8 @@ function AthleteQuickActionsInner({ athlete, onRaiseConcern, onRemove }: Athlete
     if (Platform.OS !== 'web') {
       void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     }
-    router.push(Routes.rosterAthleteAddToSession(athlete.athleteId));
-  }, [athlete.athleteId]);
+    router.push(Routes.rosterAthleteAddToSession(athlete.athleteId, athleteName));
+  }, [athlete.athleteId, athleteName]);
 
   const handleMessage = useCallback(() => {
     openMessage(athlete.athleteId);

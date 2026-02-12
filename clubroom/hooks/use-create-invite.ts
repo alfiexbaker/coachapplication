@@ -7,7 +7,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { Alert } from 'react-native';
-import { router } from 'expo-router';
+import { router, useLocalSearchParams } from 'expo-router';
 import * as ImagePicker from 'expo-image-picker';
 
 import { createLogger } from '@/utils/logger';
@@ -18,6 +18,8 @@ import { academyService } from '@/services/academy-service';
 import { rosterService } from '@/services/roster-service';
 import { groupSessionService } from '@/services/group-session';
 import { sessionTemplateService } from '@/services/session-template-service';
+import { apiClient } from '@/services/api-client';
+import { STORAGE_KEYS } from '@/constants/storage-keys';
 import { getRosterAthleteName, getRosterParentName } from '@/utils/roster-display';
 import type {
   TimeSlot,
@@ -28,11 +30,65 @@ import type {
   GroupSession,
   SessionTemplate,
   AvailabilitySlot,
+  SessionOffering,
 } from '@/constants/types';
 import type { ThemeColors } from '@/hooks/useTheme';
 import type { ThemeName } from '@/constants/theme';
 
 const logger = createLogger('useCreateInvite');
+
+function mapOfferingToExistingSession(offering: SessionOffering): GroupSession {
+  const start = new Date(offering.scheduledAt);
+  const safeStart = Number.isNaN(start.getTime()) ? new Date() : start;
+  const duration = offering.duration ?? 60;
+  const end = new Date(safeStart);
+  end.setMinutes(end.getMinutes() + duration);
+  const registrations = offering.registrations.filter((reg) => reg.status === 'confirmed').length;
+  const dateLabel = safeStart.toISOString().slice(0, 10);
+
+  return {
+    id: offering.id,
+    coachId: offering.coachId,
+    clubId: offering.clubId,
+    title: offering.title,
+    description: offering.description || '',
+    sessionType: 'TRAINING',
+    schedule: [
+      {
+        date: dateLabel,
+        startTime: `${String(safeStart.getHours()).padStart(2, '0')}:${String(
+          safeStart.getMinutes(),
+        ).padStart(2, '0')}`,
+        endTime: `${String(end.getHours()).padStart(2, '0')}:${String(end.getMinutes()).padStart(
+          2,
+          '0',
+        )}`,
+      },
+    ],
+    maxParticipants: offering.maxParticipants,
+    currentParticipants: registrations,
+    waitlistEnabled: false,
+    waitlistCount: 0,
+    pricePerParticipant: offering.priceUsd || 0,
+    currency: 'GBP',
+    ageMin: offering.ageMin,
+    ageMax: offering.ageMax,
+    location: offering.location,
+    isVirtual: false,
+    status:
+      offering.status === 'full'
+        ? 'FULL'
+        : offering.status === 'cancelled'
+          ? 'CANCELLED'
+          : offering.status === 'completed'
+            ? 'COMPLETED'
+            : 'PUBLISHED',
+    createdAt: offering.createdAt,
+    focus: offering.footballSkill ? [offering.footballSkill] : undefined,
+    isRecurring: offering.isRecurring,
+    inviteType: offering.inviteType,
+  };
+}
 
 // ============================================================================
 // TYPES
@@ -125,6 +181,9 @@ export interface UseCreateInviteReturn {
 export function useCreateInvite(): UseCreateInviteReturn {
   const { colors, scheme } = useTheme();
   const { currentUser } = useAuth();
+  const params = useLocalSearchParams<{ offeringId?: string }>();
+  const preselectedOfferingId =
+    typeof params.offeringId === 'string' ? params.offeringId : undefined;
 
   // Wizard step
   const [step, setStep] = useState<Step>('athlete');
@@ -215,16 +274,49 @@ export function useCreateInvite(): UseCreateInviteReturn {
   const loadExistingSessions = useCallback(async () => {
     if (!currentUser?.id) return;
     try {
-      const sessions = await groupSessionService.getCoachSessions(currentUser.id);
+      const [sessions, offerings] = await Promise.all([
+        groupSessionService.getCoachSessions(currentUser.id),
+        apiClient.get<SessionOffering[]>(STORAGE_KEYS.SESSION_OFFERINGS, []),
+      ]);
       const now = new Date();
       const upcoming = sessions.filter(
         (s) => s.status === 'PUBLISHED' && s.schedule.some((sched) => new Date(sched.date) >= now),
       );
-      setExistingSessions(upcoming);
+      const upcomingOfferings = offerings
+        .filter(
+          (offering) =>
+            offering.coachId === currentUser.id &&
+            offering.status !== 'cancelled' &&
+            (offering.isRecurring || new Date(offering.scheduledAt) >= now),
+        )
+        .map(mapOfferingToExistingSession);
+
+      const mergedSessions = [...upcoming];
+      upcomingOfferings.forEach((offeringSession) => {
+        if (!mergedSessions.some((session) => session.id === offeringSession.id)) {
+          mergedSessions.push(offeringSession);
+        }
+      });
+
+      mergedSessions.sort((a, b) => {
+        const aTime = new Date(a.schedule[0]?.date || 0).getTime();
+        const bTime = new Date(b.schedule[0]?.date || 0).getTime();
+        return aTime - bTime;
+      });
+
+      setExistingSessions(mergedSessions);
+
+      if (preselectedOfferingId) {
+        const preset = mergedSessions.find((session) => session.id === preselectedOfferingId);
+        if (preset) {
+          setInviteMode('existing');
+          setSelectedExistingSession(preset);
+        }
+      }
     } catch (error) {
       logger.error('Failed to load existing sessions', error);
     }
-  }, [currentUser?.id]);
+  }, [currentUser?.id, preselectedOfferingId]);
 
   useEffect(() => {
     if (currentUser?.id) {
@@ -294,7 +386,16 @@ export function useCreateInvite(): UseCreateInviteReturn {
   ]);
 
   const nextStep = useCallback(() => {
+    if (step === 'club' && inviteMode === 'existing' && selectedExistingSession) {
+      setStep('confirm');
+      return;
+    }
+
     if (step === 'mode') {
+      if (inviteMode === 'existing' && selectedExistingSession) {
+        setStep('confirm');
+        return;
+      }
       setStep(inviteMode === 'existing' ? 'existing' : 'type');
       return;
     }
@@ -312,7 +413,7 @@ export function useCreateInvite(): UseCreateInviteReturn {
         setStep(steps[currentIndex + 1]);
       }
     }
-  }, [step, inviteMode, myAcademies.length]);
+  }, [step, inviteMode, selectedExistingSession, myAcademies.length]);
 
   const prevStep = useCallback(() => {
     if (step === 'existing') {
@@ -351,75 +452,130 @@ export function useCreateInvite(): UseCreateInviteReturn {
 
   const submitInvite = useCallback(async () => {
     if (!currentUser) return;
+    if (selectedAthletes.length === 0) return;
+
     setLoading(true);
     try {
-      const parentId = selectedAthletes[0].parentId;
-      const parentName = selectedAthletes[0].parentName;
+      const groupedByParent = selectedAthletes.reduce<Record<string, AthleteOption[]>>(
+        (acc, athlete) => {
+          if (!acc[athlete.parentId]) acc[athlete.parentId] = [];
+          acc[athlete.parentId].push(athlete);
+          return acc;
+        },
+        {},
+      );
 
-      if (inviteMode === 'existing' && selectedExistingSession) {
-        const session = selectedExistingSession;
-        const slots: TimeSlot[] = session.schedule.map((sched) => ({
-          date: sched.date,
-          startTime: sched.startTime,
-          endTime: sched.endTime,
-          location: session.location,
-        }));
+      const slotsFromExistingSession: TimeSlot[] =
+        inviteMode === 'existing' && selectedExistingSession
+          ? selectedExistingSession.schedule.map((sched) => ({
+              date: sched.date,
+              startTime: sched.startTime,
+              endTime: sched.endTime,
+              location: selectedExistingSession.location,
+            }))
+          : [];
 
-        await sessionInviteService.createInvite(
-          selectedAthletes.map((a) => a.id),
+      const slotsFromPicker: TimeSlot[] = selectedAvailabilitySlots.map((slot) => ({
+        date: slot.date,
+        startTime: slot.startTime,
+        endTime: slot.endTime,
+        location: slot.location || undefined,
+      }));
+
+      let sentCount = 0;
+      let failedCount = 0;
+
+      for (const athletesForParent of Object.values(groupedByParent)) {
+        if (athletesForParent.length === 0) continue;
+
+        const parentId = athletesForParent[0]?.parentId;
+        if (!parentId) {
+          failedCount += athletesForParent.length;
+          continue;
+        }
+
+        const commonInviteDetails =
+          inviteMode === 'existing' && selectedExistingSession
+            ? {
+                coachId: currentUser.id,
+                coachName: currentUser.name || 'Coach',
+                clubName: selectedClub?.name || selectedExistingSession.clubId,
+                inviteType: sessionInviteType,
+                proposedSlots: slotsFromExistingSession,
+                sessionType: selectedExistingSession.sessionType,
+                focus: selectedExistingSession.focus?.[0] || 'General',
+                notes: notes || `You're invited to join "${selectedExistingSession.title}"`,
+                priceUsd: selectedExistingSession.pricePerParticipant,
+                expiresInDays: 7,
+                existingSessionId: selectedExistingSession.id,
+              }
+            : {
+                coachId: currentUser.id,
+                coachName: currentUser.name || 'Coach',
+                clubName: selectedClub?.name,
+                inviteType: sessionInviteType,
+                proposedSlots: slotsFromPicker,
+                sessionType: selectedTemplate?.name || sessionType,
+                sessionTemplateId: selectedTemplate?.id,
+                duration: selectedTemplate?.duration,
+                focus,
+                notes: notes || undefined,
+                priceUsd: price ? parseFloat(price) : selectedTemplate?.defaultPrice,
+                expiresInDays: 7,
+                isRecurring: isRecurring || undefined,
+                recurrenceWeeks: isRecurring ? recurrenceWeeks : undefined,
+                coverImageUrl: coverImageUri || undefined,
+              };
+
+        const inviteResult = await sessionInviteService.createInvite(
+          athletesForParent.map((athlete) => athlete.id),
           {
-            coachId: currentUser.id,
-            coachName: currentUser.name || 'Coach',
-            clubName: selectedClub?.name || session.clubId,
-            inviteType: sessionInviteType,
-            athleteNames: selectedAthletes.map((a) => a.name),
+            ...commonInviteDetails,
+            athleteNames: athletesForParent.map((athlete) => athlete.name),
             parentId,
-            parentName,
-            proposedSlots: slots,
-            sessionType: session.sessionType,
-            focus: session.focus?.[0] || 'General',
-            notes: notes || `You're invited to join "${session.title}"`,
-            priceUsd: session.pricePerParticipant,
-            expiresInDays: 7,
-            existingSessionId: session.id,
+            parentName: athletesForParent[0]?.parentName || 'Parent',
           },
         );
-      } else {
-        const slotsFromPicker: TimeSlot[] = selectedAvailabilitySlots.map((slot) => ({
-          date: slot.date,
-          startTime: slot.startTime,
-          endTime: slot.endTime,
-          location: slot.location || undefined,
-        }));
 
-        await sessionInviteService.createInvite(
-          selectedAthletes.map((a) => a.id),
-          {
-            coachId: currentUser.id,
-            coachName: currentUser.name || 'Coach',
-            clubName: selectedClub?.name,
-            inviteType: sessionInviteType,
-            athleteNames: selectedAthletes.map((a) => a.name),
+        if (inviteResult.success) {
+          sentCount += athletesForParent.length;
+        } else {
+          failedCount += athletesForParent.length;
+          logger.error('Failed to create invite for parent group', {
             parentId,
-            parentName,
-            proposedSlots: slotsFromPicker,
-            sessionType: selectedTemplate?.name || sessionType,
-            sessionTemplateId: selectedTemplate?.id,
-            duration: selectedTemplate?.duration,
-            focus,
-            notes: notes || undefined,
-            priceUsd: price ? parseFloat(price) : selectedTemplate?.defaultPrice,
-            expiresInDays: 7,
-            isRecurring: isRecurring || undefined,
-            recurrenceWeeks: isRecurring ? recurrenceWeeks : undefined,
-            coverImageUrl: coverImageUri || undefined,
-          },
-        );
+            error: inviteResult.error,
+          });
+        }
       }
 
-      Alert.alert('Invite Sent', 'Your session invite has been sent to the parent.', [
-        { text: 'OK', onPress: () => router.back() },
-      ]);
+      if (inviteMode === 'existing' && selectedExistingSession && sentCount > 0) {
+        const offerings = await apiClient.get<SessionOffering[]>(STORAGE_KEYS.SESSION_OFFERINGS, []);
+        const updatedOfferings = offerings.map((offering) => {
+          if (offering.id !== selectedExistingSession.id) return offering;
+
+          const existingIds = new Set(offering.invitedAthleteIds || []);
+          selectedAthletes.forEach((athlete) => existingIds.add(athlete.id));
+          const existingNames = new Set(offering.invitedAthleteNames || []);
+          selectedAthletes.forEach((athlete) => existingNames.add(athlete.name));
+
+          return {
+            ...offering,
+            invitedAthleteIds: Array.from(existingIds),
+            invitedAthleteNames: Array.from(existingNames),
+          };
+        });
+        await apiClient.set(STORAGE_KEYS.SESSION_OFFERINGS, updatedOfferings);
+      }
+
+      Alert.alert(
+        failedCount === 0 ? 'Invite Sent' : 'Invite Partially Sent',
+        failedCount === 0
+          ? `Invites sent to ${sentCount} athlete${sentCount === 1 ? '' : 's'}.`
+          : `${sentCount} sent, ${failedCount} failed. Try sending the failed invites again.`,
+        [
+          { text: 'OK', onPress: () => router.back() },
+        ],
+      );
     } catch (error) {
       logger.error('Failed to create invite', error);
       Alert.alert('Error', 'Failed to send invite. Please try again.');

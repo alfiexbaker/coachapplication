@@ -1,6 +1,7 @@
 import { PropsWithChildren, useEffect, useMemo, useState } from 'react';
 import {
   LayoutChangeEvent,
+  Platform,
   Pressable,
   StyleSheet,
   View,
@@ -93,8 +94,8 @@ export function SurfaceCard({
     if (interactive) {
       pressed.value = withTiming(1, { duration: 120 });
       scale.value = withSpring(0.97, { damping: 18, stiffness: 320 });
-      if (haptics) {
-        void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+      if (haptics && Platform.OS !== 'web') {
+        void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => undefined);
       }
     }
     onPressIn?.(event);

@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, ScrollView, StyleSheet, Switch, RefreshControl } from 'react-native';
+import { View, ScrollView, StyleSheet, Switch, RefreshControl, Platform } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import { Row } from '@/components/primitives/row';
@@ -33,7 +33,7 @@ function SectionHead({
   return (
     <Row style={styles.sectionHeader}>
       <View style={[styles.sectionIcon, { backgroundColor: withAlpha(color, 0.09) }]}>
-        <Ionicons name={icon as keyof typeof Ionicons.glyphMap} size={22} color={color} />
+        <Ionicons name={icon as keyof typeof Ionicons.glyphMap} size={18} color={color} />
       </View>
       <View style={styles.sectionTitleContainer}>
         <ThemedText type="subtitle">{title}</ThemedText>
@@ -100,7 +100,7 @@ export const SchedulingRulesForm = React.memo(function SchedulingRulesForm({
             icon="time-outline"
             color={palette.warning}
             title="Minimum Notice"
-            sub="How much notice do you need before a session?"
+            sub="How early athletes can book."
             palette={palette}
           />
           <SchedulingOptionPicker
@@ -114,7 +114,7 @@ export const SchedulingRulesForm = React.memo(function SchedulingRulesForm({
             >
               <Ionicons name="warning-outline" size={18} color={palette.warning} />
               <ThemedText style={[styles.warningText, { color: palette.warning }]}>
-                Athletes can book at any time, even last minute
+                Athletes can book up to kickoff time.
               </ThemedText>
             </Row>
           ) : null}
@@ -125,7 +125,7 @@ export const SchedulingRulesForm = React.memo(function SchedulingRulesForm({
             icon="pause-outline"
             color={palette.tint}
             title="Buffer Between Sessions"
-            sub="Time gap automatically added between bookings"
+            sub="Automatic gap between sessions."
             palette={palette}
           />
           <SchedulingOptionPicker
@@ -136,7 +136,7 @@ export const SchedulingRulesForm = React.memo(function SchedulingRulesForm({
           <Row style={[styles.tipBanner, { backgroundColor: withAlpha(palette.success, 0.03) }]}>
             <Ionicons name="bulb-outline" size={18} color={palette.success} />
             <ThemedText style={[styles.tipText, { color: palette.muted }]}>
-              Use buffer time to travel between locations, rest, or prepare equipment
+              Build in travel, prep, and recovery time.
             </ThemedText>
           </Row>
         </SurfaceCard>
@@ -146,7 +146,7 @@ export const SchedulingRulesForm = React.memo(function SchedulingRulesForm({
             icon="calendar-outline"
             color={palette.accent}
             title="Booking Window"
-            sub="How far in advance can athletes book?"
+            sub="How far ahead athletes can book."
             palette={palette}
           />
           <SchedulingOptionPicker
@@ -174,7 +174,9 @@ export const SchedulingRulesForm = React.memo(function SchedulingRulesForm({
             <Switch
               value={allowSameDayBookings}
               onValueChange={(value) => {
-                void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                if (Platform.OS !== 'web') {
+                  void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                }
                 updateField(setAllowSameDayBookings)(value);
               }}
               trackColor={{ false: palette.border, true: palette.success }}
@@ -183,7 +185,7 @@ export const SchedulingRulesForm = React.memo(function SchedulingRulesForm({
           </Row>
           {!allowSameDayBookings ? (
             <ThemedText style={[styles.toggleNote, { color: palette.muted }]}>
-              Bookings for today won&apos;t be allowed, regardless of minimum notice
+              Today bookings are blocked.
             </ThemedText>
           ) : null}
         </SurfaceCard>
@@ -197,14 +199,16 @@ export const SchedulingRulesForm = React.memo(function SchedulingRulesForm({
               <View style={styles.toggleTextContainer}>
                 <ThemedText type="defaultSemiBold">Allow Rescheduling</ThemedText>
                 <ThemedText style={[styles.toggleSubtext, { color: palette.muted }]}>
-                  Let athletes move their booking to a new time
+                  Let athletes move bookings to a new slot.
                 </ThemedText>
               </View>
             </Row>
             <Switch
               value={allowRescheduling}
               onValueChange={(value) => {
-                void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                if (Platform.OS !== 'web') {
+                  void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                }
                 updateField(setAllowRescheduling)(value);
               }}
               trackColor={{ false: palette.border, true: palette.tint }}
@@ -223,7 +227,7 @@ export const SchedulingRulesForm = React.memo(function SchedulingRulesForm({
               <ThemedText
                 style={[styles.toggleSubtext, { color: palette.muted, marginBottom: Spacing.md }]}
               >
-                Cutoff for when rescheduling is allowed
+                Latest time a change is allowed.
               </ThemedText>
               <SchedulingOptionPicker
                 options={RESCHEDULE_OPTIONS}
@@ -277,12 +281,12 @@ export const SchedulingRulesForm = React.memo(function SchedulingRulesForm({
 });
 
 const styles = StyleSheet.create({
-  content: { padding: Spacing.lg, paddingBottom: 120, gap: Spacing.lg },
-  section: { padding: Spacing.lg, borderRadius: Radii.lg },
-  sectionHeader: { alignItems: 'center', gap: Spacing.md, marginBottom: Spacing.lg },
+  content: { padding: Spacing.md, paddingBottom: 120, gap: Spacing.md },
+  section: { padding: Spacing.md, borderRadius: Radii.lg },
+  sectionHeader: { alignItems: 'center', gap: Spacing.sm, marginBottom: Spacing.md },
   sectionIcon: {
-    width: 40,
-    height: 40,
+    width: 34,
+    height: 34,
     borderRadius: Radii.xl,
     alignItems: 'center',
     justifyContent: 'center',
@@ -291,21 +295,21 @@ const styles = StyleSheet.create({
   sectionSubtitle: { ...Typography.small },
   warningBanner: {
     alignItems: 'center',
-    gap: Spacing.sm,
-    padding: Spacing.md,
+    gap: Spacing.xs,
+    padding: Spacing.sm,
     borderRadius: Radii.md,
     marginTop: Spacing.md,
   },
   warningText: { flex: 1, ...Typography.small },
   tipBanner: {
     alignItems: 'flex-start',
-    gap: Spacing.sm,
-    padding: Spacing.md,
+    gap: Spacing.xs,
+    padding: Spacing.sm,
     borderRadius: Radii.md,
     marginTop: Spacing.md,
   },
   tipText: { flex: 1, ...Typography.small },
-  toggleSection: { padding: Spacing.lg, borderRadius: Radii.lg },
+  toggleSection: { padding: Spacing.md, borderRadius: Radii.lg },
   toggleRow: { alignItems: 'center', justifyContent: 'space-between' },
   toggleInfo: { alignItems: 'center', gap: Spacing.md, flex: 1 },
   toggleIcon: {
@@ -317,7 +321,7 @@ const styles = StyleSheet.create({
   },
   toggleTextContainer: { flex: 1 },
   toggleSubtext: { ...Typography.small, marginTop: Spacing.micro },
-  toggleNote: { ...Typography.caption, marginTop: Spacing.sm, fontStyle: 'italic' },
+  toggleNote: { ...Typography.caption, marginTop: Spacing.sm },
   divider: { height: 1, marginVertical: Spacing.md },
   footer: {
     position: 'absolute',

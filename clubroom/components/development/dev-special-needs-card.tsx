@@ -22,6 +22,11 @@ export const DevSpecialNeedsCard = memo(function DevSpecialNeedsCard({
   const hasNeeds = childProfile?.hasSpecialNeeds ?? false;
   const disabilityCount = childProfile?.disabilities.length ?? 0;
   const allergyCount = childProfile?.allergies.length ?? 0;
+  const totalItems = disabilityCount + allergyCount;
+  const previewItems = [
+    ...(childProfile?.disabilities.map((d) => d.type) ?? []),
+    ...(childProfile?.allergies ?? []),
+  ].slice(0, 3);
 
   return (
     <SurfaceCard tactile onPress={onPress} style={styles.card}>
@@ -30,79 +35,44 @@ export const DevSpecialNeedsCard = memo(function DevSpecialNeedsCard({
           style={[
             styles.iconContainer,
             {
-              backgroundColor: hasNeeds
-                ? withAlpha(colors.warning, 0.09)
-                : withAlpha(colors.muted, 0.06),
+              backgroundColor: hasNeeds ? withAlpha(colors.tint, 0.09) : withAlpha(colors.muted, 0.06),
             },
           ]}
         >
           <Ionicons
             name="accessibility"
             size={Components.icon.md}
-            color={hasNeeds ? colors.warning : colors.muted}
+            color={hasNeeds ? colors.tint : colors.muted}
           />
         </View>
         <View style={styles.info}>
-          <ThemedText type="defaultSemiBold">Special Needs & Notes</ThemedText>
+          <ThemedText type="defaultSemiBold">Needs & Notes</ThemedText>
           <ThemedText style={[Typography.caption, { color: colors.muted }]}>
             {hasNeeds
-              ? `${disabilityCount} disabilities, ${allergyCount} allergies`
-              : 'No accommodations documented'}
+              ? `${totalItems} item${totalItems === 1 ? '' : 's'} recorded`
+              : 'No accommodations recorded'}
           </ThemedText>
         </View>
-        <Row gap="xs">
-          <View
-            style={[
-              styles.counter,
-              {
-                backgroundColor:
-                  disabilityCount > 0 ? colors.warning : withAlpha(colors.muted, 0.12),
-              },
-            ]}
-          >
-            <ThemedText
-              style={[
-                styles.counterText,
-                { color: disabilityCount > 0 ? colors.onPrimary : colors.muted },
-              ]}
-            >
-              {disabilityCount}
-            </ThemedText>
-          </View>
-          <View
-            style={[
-              styles.counter,
-              { backgroundColor: allergyCount > 0 ? colors.error : withAlpha(colors.muted, 0.12) },
-            ]}
-          >
-            <ThemedText
-              style={[
-                styles.counterText,
-                { color: allergyCount > 0 ? colors.onPrimary : colors.muted },
-              ]}
-            >
-              {allergyCount}
-            </ThemedText>
-          </View>
-        </Row>
+        <View style={[styles.counter, { backgroundColor: withAlpha(colors.muted, 0.12) }]}>
+          <ThemedText style={[styles.counterText, { color: colors.text }]}>{totalItems}</ThemedText>
+        </View>
         <Ionicons name="chevron-forward" size={Components.icon.md} color={colors.icon} />
       </Row>
 
-      {hasNeeds && disabilityCount > 0 && (
+      {hasNeeds && previewItems.length > 0 && (
         <Row style={[styles.preview, { borderTopColor: withAlpha(colors.border, 0.3) }]}>
-          {childProfile!.disabilities.slice(0, 2).map((d) => (
-            <View
-              key={d.id}
-              style={[styles.tag, { backgroundColor: withAlpha(colors.warning, 0.07) }]}
-            >
-              <ThemedText style={[styles.tagText, { color: colors.warning }]}>{d.type}</ThemedText>
+          {previewItems.map((item) => (
+            <View key={item} style={[styles.tag, { backgroundColor: withAlpha(colors.muted, 0.08) }]}>
+              <ThemedText style={[styles.tagText, { color: colors.text }]}>{item}</ThemedText>
             </View>
           ))}
-          {childProfile!.allergies.slice(0, 2).map((a, i) => (
-            <View key={i} style={[styles.tag, { backgroundColor: withAlpha(colors.error, 0.07) }]}>
-              <ThemedText style={[styles.tagText, { color: colors.error }]}>{a}</ThemedText>
+          {totalItems > previewItems.length && (
+            <View style={[styles.tag, { backgroundColor: withAlpha(colors.muted, 0.08) }]}>
+              <ThemedText style={[styles.tagText, { color: colors.muted }]}>
+                +{totalItems - previewItems.length} more
+              </ThemedText>
             </View>
-          ))}
+          )}
         </Row>
       )}
     </SurfaceCard>
@@ -134,7 +104,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing.xs,
   },
   counterText: {
-    ...Typography.caption,
+    ...Typography.smallSemiBold,
   },
   preview: {
     flexWrap: 'wrap',
