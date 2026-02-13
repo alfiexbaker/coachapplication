@@ -65,7 +65,7 @@ export const InviteDetailsCard = memo(function InviteDetailsCard({
           <DetailRow
             icon="pricetag-outline"
             label="Price"
-            value={`$${invite.priceUsd}`}
+            value={`£${invite.priceUsd}`}
             colors={colors}
           />
         )}

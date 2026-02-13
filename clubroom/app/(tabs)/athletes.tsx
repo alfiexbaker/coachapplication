@@ -37,6 +37,9 @@ export default function AthletesScreen() {
   } = useAthletesScreen();
 
   const keyExtractor = useCallback((item: RosterEntry) => item.id, []);
+  const handleInviteAthlete = useCallback(() => {
+    router.push(Routes.sessionsCreateIntent({ intent: 'existing', source: 'manual' }));
+  }, []);
 
   const listHeader = useCallback(
     () => (
@@ -87,12 +90,6 @@ export default function AthletesScreen() {
         <ScreenHeader
           title="Athletes"
           subtitle="Manage your roster"
-          action={{
-            icon: 'add',
-            label: 'Invite',
-            onPress: () =>
-              router.push(Routes.sessionsCreateIntent({ intent: 'existing', source: 'manual' })),
-          }}
           bordered
         />
         <EmptyState
@@ -100,9 +97,7 @@ export default function AthletesScreen() {
           title="No athletes yet"
           message="Athletes will appear here once they book sessions with you. Invite an athlete to get started."
           actionLabel="Invite Athlete"
-          onPressAction={() =>
-            router.push(Routes.sessionsCreateIntent({ intent: 'existing', source: 'manual' }))
-          }
+          onPressAction={handleInviteAthlete}
         />
       </SafeAreaView>
     );
@@ -119,8 +114,7 @@ export default function AthletesScreen() {
         action={{
           icon: 'add',
           label: 'Invite',
-          onPress: () =>
-            router.push(Routes.sessionsCreateIntent({ intent: 'existing', source: 'manual' })),
+          onPress: handleInviteAthlete,
         }}
         bordered
       />

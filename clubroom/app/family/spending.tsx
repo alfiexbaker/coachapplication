@@ -40,6 +40,9 @@ export default function FamilySpendingScreen() {
     getMonthsToShow,
     recentTransactions,
   } = useFamilySpending();
+  const handleOpenCalendar = () => router.push(Routes.FAMILY_CALENDAR);
+  const handleOpenPackages = () => router.push(Routes.PACKAGES);
+  const handleOpenWallet = () => router.push(Routes.WALLET);
 
   if (status === 'loading') {
     return (
@@ -77,7 +80,7 @@ export default function FamilySpendingScreen() {
           title="No spending data yet"
           message="Spending insights will appear once sessions are booked and paid."
           actionLabel="View Calendar"
-          onPressAction={() => router.push(Routes.FAMILY_CALENDAR)}
+          onPressAction={handleOpenCalendar}
         />
       </PageContainer>
     );
@@ -167,7 +170,7 @@ export default function FamilySpendingScreen() {
             available from most coaches.
           </ThemedText>
           <Clickable
-            onPress={() => router.push(Routes.PACKAGES)}
+            onPress={handleOpenPackages}
             style={[styles.tipsButton, { borderColor: colors.tint }]}
           >
             <ThemedText style={[Typography.smallSemiBold, { color: colors.tint }]}>
@@ -181,7 +184,7 @@ export default function FamilySpendingScreen() {
       <Animated.View entering={FadeInDown.delay(300).springify()}>
         <Row gap="sm">
           <Clickable
-            onPress={() => router.push(Routes.WALLET)}
+            onPress={handleOpenWallet}
             style={[styles.actionButton, { backgroundColor: colors.tint }]}
           >
             <Row align="center" justify="center" gap="xs">
@@ -192,7 +195,7 @@ export default function FamilySpendingScreen() {
             </Row>
           </Clickable>
           <Clickable
-            onPress={() => router.push(Routes.FAMILY_CALENDAR)}
+            onPress={handleOpenCalendar}
             style={[styles.actionButtonSecondary, { borderColor: colors.border }]}
           >
             <Row align="center" justify="center" gap="xs">

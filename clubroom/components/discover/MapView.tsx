@@ -35,11 +35,14 @@ const MIN_CLUSTER_DISTANCE = 0.01;
 interface MapViewProps {
   coaches: CoachSearchResult[];
   selectedCoachId?: string;
-  onCoachSelect?: (coachId: string) => void;
+  onCoachSelect: (coachId: string) => void;
   onCoachPress?: (coach: CoachProfile) => void;
   userLocation?: { lat: number; lng: number };
   showUserLocation?: boolean;
   zoomLevel?: number;
+  onSearchAreaPress?: () => void;
+  onZoomInPress?: () => void;
+  onZoomOutPress?: () => void;
 }
 
 interface MapBounds {
@@ -59,6 +62,9 @@ export function MapView({
   userLocation,
   showUserLocation = true,
   zoomLevel = 1,
+  onSearchAreaPress,
+  onZoomInPress,
+  onZoomOutPress,
 }: MapViewProps) {
   const { colors: palette } = useTheme();
   const [mapSize, setMapSize] = useState({ width: 0, height: 0 });
@@ -128,7 +134,7 @@ export function MapView({
 
   const handleClusterPress = (cluster: Cluster) => {
     if (cluster.coaches.length === 1) {
-      onCoachSelect?.(cluster.coaches[0].id);
+      onCoachSelect(cluster.coaches[0].id);
     } else {
       setExpandedCluster(cluster);
     }
@@ -204,7 +210,7 @@ export function MapView({
                 <CoachMarker
                   coach={coach}
                   isSelected={coach.id === selectedCoachId}
-                  onPress={() => onCoachSelect?.(coach.id)}
+                  onPress={() => onCoachSelect(coach.id)}
                   size="medium"
                   showRating
                 />
@@ -213,33 +219,42 @@ export function MapView({
           })}
 
         {/* Search This Area */}
-        <Clickable
-          style={[
-            styles.searchAreaButton,
-            { backgroundColor: palette.tint, shadowColor: palette.text },
-          ]}
-        >
-          <ThemedText style={[styles.searchAreaText, { color: palette.onPrimary }]}>
-            Search this area
-          </ThemedText>
-        </Clickable>
+        {onSearchAreaPress ? (
+          <Clickable
+            onPress={onSearchAreaPress}
+            accessibilityRole="button"
+            accessibilityLabel="Search in current map area"
+            style={[
+              styles.searchAreaButton,
+              { backgroundColor: palette.tint, shadowColor: palette.text },
+            ]}
+          >
+            <ThemedText style={[styles.searchAreaText, { color: palette.onPrimary }]}>
+              Search this area
+            </ThemedText>
+          </Clickable>
+        ) : null}
 
         {/* Zoom Controls */}
-        <View style={[styles.zoomControls, { shadowColor: palette.text }]}>
-          <Clickable
-            accessibilityLabel="Zoom in"
-            style={[styles.zoomButton, { backgroundColor: palette.surface }]}
-          >
-            <Ionicons name="add" size={20} color={palette.text} />
-          </Clickable>
-          <View style={[styles.zoomDivider, { backgroundColor: palette.border }]} />
-          <Clickable
-            accessibilityLabel="Zoom out"
-            style={[styles.zoomButton, { backgroundColor: palette.surface }]}
-          >
-            <Ionicons name="remove" size={20} color={palette.text} />
-          </Clickable>
-        </View>
+        {onZoomInPress && onZoomOutPress ? (
+          <View style={[styles.zoomControls, { shadowColor: palette.text }]}>
+            <Clickable
+              accessibilityLabel="Zoom in"
+              onPress={onZoomInPress}
+              style={[styles.zoomButton, { backgroundColor: palette.surface }]}
+            >
+              <Ionicons name="add" size={20} color={palette.text} />
+            </Clickable>
+            <View style={[styles.zoomDivider, { backgroundColor: palette.border }]} />
+            <Clickable
+              accessibilityLabel="Zoom out"
+              onPress={onZoomOutPress}
+              style={[styles.zoomButton, { backgroundColor: palette.surface }]}
+            >
+              <Ionicons name="remove" size={20} color={palette.text} />
+            </Clickable>
+          </View>
+        ) : null}
       </View>
 
       {/* Selected Coach Card */}

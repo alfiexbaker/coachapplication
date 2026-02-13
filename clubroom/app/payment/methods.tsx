@@ -19,6 +19,7 @@ const MOCK_CARDS = [
 
 export default function PaymentMethodsScreen() {
   const { colors: palette } = useTheme();
+  const handleAddCard = () => router.push(Routes.PAYMENT_ADD_CARD);
   const { data, status, error, refreshing, onRefresh, retry } = useScreen<{
     cards: typeof MOCK_CARDS;
   }>({
@@ -51,7 +52,7 @@ export default function PaymentMethodsScreen() {
           title="No payment methods"
           message="Add a card to pay for bookings quickly."
           actionLabel="Add Card"
-          onPressAction={() => router.push(Routes.PAYMENT_ADD_CARD)}
+          onPressAction={handleAddCard}
         />
       </SafeAreaView>
     );
@@ -73,7 +74,7 @@ export default function PaymentMethodsScreen() {
         </View>
 
         <Clickable
-          onPress={() => router.push(Routes.PAYMENT_ADD_CARD)}
+          onPress={handleAddCard}
           style={[styles.addButton, { borderColor: palette.border }]}
         >
           <ThemedText style={{ color: palette.tint, fontWeight: '700' }}>Add new card</ThemedText>

@@ -686,7 +686,7 @@ export interface RecurringBooking {
   endDate?: string;
   /** Current status of the subscription */
   status: RecurringBookingStatus;
-  /** Price per session in USD */
+  /** Price per session in GBP */
   pricePerSession?: number;
   /** Additional notes for the booking */
   notes?: string;

@@ -8,7 +8,7 @@ import SettingsScreen from './settings';
 
 export default function ProfileScreen() {
   const { colors } = useTheme();
-  const { currentUser, isLoading, error } = useAuth();
+  const { currentUser, isLoading, error, logout } = useAuth();
 
   if (isLoading) {
     return (
@@ -21,7 +21,7 @@ export default function ProfileScreen() {
   if (error) {
     return (
       <SafeAreaView style={{ flex: 1, backgroundColor: colors.background }} edges={['top']}>
-        <ErrorState message={error} onRetry={() => {}} />
+        <ErrorState message={error} onRetry={() => void logout()} />
       </SafeAreaView>
     );
   }

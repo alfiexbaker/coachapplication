@@ -14,7 +14,7 @@ import type { Invoice, InvoiceStatus, InvoiceSummary, InvoiceFilter } from '../.
 describe('Invoice Service Utility Functions', () => {
   describe('formatAmount', () => {
     const formatAmount = (amount: number, currency: string = 'GBP'): string => {
-      const symbol = currency === 'GBP' ? '\u00A3' : '$';
+      const symbol = '\u00A3';
       return `${symbol}${amount.toFixed(2)}`;
     };
 
@@ -33,9 +33,9 @@ describe('Invoice Service Utility Functions', () => {
       assert.ok(formatted.includes('0.00'));
     });
 
-    test('should handle USD currency', () => {
-      const formatted = formatAmount(50.00, 'USD');
-      assert.ok(formatted.includes('$'));
+    test('should keep GBP formatting even when another currency is passed', () => {
+      const formatted = formatAmount(50.00, 'EUR');
+      assert.ok(formatted.includes('\u00A3'));
       assert.ok(formatted.includes('50.00'));
     });
 

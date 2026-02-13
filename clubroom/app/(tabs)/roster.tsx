@@ -75,6 +75,9 @@ export default function RosterScreen() {
   const [isRemoving, setIsRemoving] = useState(false);
   const lastRemovalRef = useRef<AthleteRemovalRecord | null>(null);
   const rosterData = useMemo(() => roster ?? [], [roster]);
+  const openGroupInviteFlow = useCallback(() => {
+    router.push(Routes.SESSION_INVITES_GROUP);
+  }, []);
 
   const stats = useMemo(
     () => ({
@@ -131,10 +134,10 @@ export default function RosterScreen() {
       showToast('Please select at least one athlete', 'error');
       return;
     }
-    router.push(Routes.SESSION_INVITES_GROUP);
+    openGroupInviteFlow();
     setSelectionMode('none');
     setSelectedAthletes(new Set());
-  }, [selectedAthletes.size, showToast]);
+  }, [selectedAthletes.size, showToast, openGroupInviteFlow]);
 
   const handleQuickInviteAll = useCallback(() => {
     const active = rosterData.filter((r) => r.status === 'ACTIVE');
@@ -147,10 +150,10 @@ export default function RosterScreen() {
       `Send session invites to all ${active.length} active athletes?`,
       [
         { text: 'Cancel', style: 'cancel' },
-        { text: 'Continue', onPress: () => router.push(Routes.SESSION_INVITES_GROUP) },
+        { text: 'Continue', onPress: openGroupInviteFlow },
       ],
     );
-  }, [rosterData, showToast]);
+  }, [rosterData, showToast, openGroupInviteFlow]);
 
   const handleAthletePress = useCallback((entry: RosterEntry) => {
     router.push(Routes.rosterAthlete(entry.athleteId));
@@ -175,7 +178,7 @@ export default function RosterScreen() {
             message: msg,
           },
           (i) => {
-            if (i === 1) router.push(Routes.rosterAthlete(entry.athleteId));
+            if (i === 1) handleAthletePress(entry);
             else if (i === 2) handleRemoveAthlete(entry);
           },
         );
@@ -184,7 +187,7 @@ export default function RosterScreen() {
           { text: 'Cancel', style: 'cancel' },
           {
             text: 'View Details',
-            onPress: () => router.push(Routes.rosterAthlete(entry.athleteId)),
+            onPress: () => handleAthletePress(entry),
           },
           {
             text: 'Remove from Roster',
@@ -194,7 +197,7 @@ export default function RosterScreen() {
         ]);
       }
     },
-    [handleRemoveAthlete],
+    [handleAthletePress, handleRemoveAthlete],
   );
 
   const handleConfirmRemoval = useCallback(
@@ -274,14 +277,6 @@ export default function RosterScreen() {
                   size={Components.icon.lg}
                   color={isSelecting ? colors.error : colors.text}
                 />
-              </Clickable>
-              <Clickable
-                onPress={() => router.push(Routes.SESSION_INVITES_GROUP)}
-                hitSlop={8}
-                accessibilityLabel="Send invites"
-                accessibilityRole="button"
-              >
-                <Ionicons name="mail-outline" size={Components.icon.lg} color={colors.text} />
               </Clickable>
             </Row>
           }

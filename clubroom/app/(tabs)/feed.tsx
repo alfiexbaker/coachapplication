@@ -5,8 +5,10 @@
  * Sub-components: FeedPostCard, FeedFilters, ClubHubCard, EmptyFeedState.
  */
 
-import { useState } from 'react';
-import { RefreshControl, ScrollView, StyleSheet, View } from 'react-native';
+import { useCallback, useMemo, useState } from 'react';
+import { Alert, RefreshControl, ScrollView, Share, StyleSheet, View } from 'react-native';
+import { router } from 'expo-router';
+import { Routes } from '@/navigation/routes';
 
 import { PageContainer } from '@/components/primitives/page-container';
 import { ScreenHeader } from '@/components/primitives/screen-header';
@@ -58,8 +60,38 @@ export default function FeedScreen() {
     isEmpty: (d) => d.feed.length === 0 && d.clubs.length === 0,
   });
 
-  const feed = data?.feed ?? [];
-  const clubs = data?.clubs ?? [];
+  const feed = useMemo(() => data?.feed ?? [], [data?.feed]);
+  const clubs = useMemo(() => data?.clubs ?? [], [data?.clubs]);
+
+  const handleLikePost = useCallback(
+    (postId: string) => {
+      if (!currentUser?.id) return;
+      socialFeedService.toggleReaction(postId, currentUser.id);
+      void onRefresh();
+    },
+    [currentUser?.id, onRefresh],
+  );
+
+  const handleCommentPost = useCallback((postId: string) => {
+    router.push(Routes.modalPostDetail(postId));
+  }, []);
+
+  const handleSharePost = useCallback(
+    async (postId: string) => {
+      const post = feed.find((candidate) => candidate.id === postId);
+      if (!post) return;
+
+      try {
+        await Share.share({
+          message: `${post.title}\n\n${post.body}`,
+          title: post.title,
+        });
+      } catch {
+        Alert.alert('Unable to share', 'Try again in a moment.');
+      }
+    },
+    [feed],
+  );
 
   // ─── Loading ───────────────────────────────────────────────────
   if (status === 'loading') {
@@ -136,7 +168,15 @@ export default function FeedScreen() {
 
         <View style={styles.feedSection}>
           {feed.length > 0 ? (
-            feed.map((post) => <FeedPostCard key={post.id} post={post} />)
+            feed.map((post) => (
+              <FeedPostCard
+                key={post.id}
+                post={post}
+                onLike={handleLikePost}
+                onComment={handleCommentPost}
+                onShare={handleSharePost}
+              />
+            ))
           ) : (
             <EmptyFeedState hasClubs={clubs.length > 0} filter={feedFilter} isCoach={isCoach} />
           )}

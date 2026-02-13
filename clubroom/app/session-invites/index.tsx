@@ -73,6 +73,12 @@ export default function SessionInvitesScreen() {
   const showModeToggle = userIsCoach && userHasChildren;
   const showFilterChips =
     (mode === 'received' || (!userIsCoach && userHasChildren)) && (invites?.length ?? 0) > 0;
+  const handleCreateInvite = useCallback(() => {
+    router.push(Routes.SESSION_INVITES_CREATE);
+  }, []);
+  const handleOpenInvite = useCallback((inviteId: string) => {
+    router.push(Routes.sessionInvite(inviteId));
+  }, []);
   const handleQuickDecline = useCallback(
     async (invite: SessionInvite) => {
       const coachName = getSessionInviteCoachName(invite);
@@ -189,7 +195,7 @@ export default function SessionInvitesScreen() {
           </Row>
           {userIsCoach && (
             <Clickable
-              onPress={() => router.push(Routes.SESSION_INVITES_CREATE)}
+              onPress={handleCreateInvite}
               accessibilityLabel="Create new invite"
               style={[styles.createButton, { backgroundColor: colors.tint }]}
             >
@@ -231,7 +237,7 @@ export default function SessionInvitesScreen() {
         </Row>
         {userIsCoach && (
           <Clickable
-            onPress={() => router.push(Routes.SESSION_INVITES_CREATE)}
+            onPress={handleCreateInvite}
             accessibilityLabel="Create new invite"
             style={[styles.createButton, { backgroundColor: colors.tint }]}
           >
@@ -297,7 +303,7 @@ export default function SessionInvitesScreen() {
                 index={index}
                 mode={mode}
                 colors={colors}
-                onPress={() => router.push(Routes.sessionInvite(invite.id))}
+                onPress={() => handleOpenInvite(invite.id)}
                 onQuickDecline={() => handleQuickDecline(invite)}
                 onCancel={() => handleCancelInvite(invite)}
                 onDismiss={() => handleDismissInvite(invite)}

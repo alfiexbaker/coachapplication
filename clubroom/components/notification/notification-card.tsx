@@ -41,8 +41,8 @@ const getTypeColors = (
 export function NotificationCard({
   item,
   onPress,
-  onShare,
-  onAddToFeed,
+  onShare: _onShare,
+  onAddToFeed: _onAddToFeed,
   showTypeIndicator = true,
 }: {
   item: ExtendedNotificationItem;
@@ -56,6 +56,8 @@ export function NotificationCard({
   const icon = ICONS[item.type] || 'notifications';
   const TYPE_COLORS = getTypeColors(palette);
   const typeColor = TYPE_COLORS[item.type] || TYPE_COLORS.booking;
+  void _onShare;
+  void _onAddToFeed;
 
   const handlePress = () => {
     if (onPress) {
@@ -136,43 +138,6 @@ export function NotificationCard({
             </Row>
           ) : null}
 
-          {/* Action buttons for badge */}
-          {item.type === 'badge' && !item.handled ? (
-            <Row gap="xs" style={styles.actionRow}>
-              {onAddToFeed && (
-                <Clickable onPress={onAddToFeed}>
-                  <Row
-                    align="center"
-                    gap="xs"
-                    style={[
-                      styles.actionChip,
-                      { backgroundColor: palette.tint, borderColor: palette.tint },
-                    ]}
-                  >
-                    <Ionicons name="add-circle-outline" size={14} color={palette.onPrimary} />
-                    <ThemedText style={[styles.actionText, { color: palette.onPrimary }]}>
-                      Add to Feed
-                    </ThemedText>
-                  </Row>
-                </Clickable>
-              )}
-              {onShare && (
-                <Clickable onPress={onShare}>
-                  <Row
-                    align="center"
-                    gap="xs"
-                    style={[styles.actionChip, { borderColor: palette.border }]}
-                  >
-                    <Ionicons name="eye-outline" size={14} color={palette.text} />
-                    <ThemedText style={[styles.actionText, { color: palette.text }]}>
-                      View
-                    </ThemedText>
-                  </Row>
-                </Clickable>
-              )}
-            </Row>
-          ) : null}
-
           {/* Time label */}
           <Row align="center" justify="between" style={styles.footer}>
             <ThemedText style={{ ...Typography.caption, color: palette.muted }}>
@@ -228,16 +193,6 @@ const styles = StyleSheet.create({
   badgeInfo: {
     marginTop: Spacing.xxs,
   },
-  actionRow: {
-    marginTop: Spacing.xs,
-  },
-  actionChip: {
-    paddingHorizontal: Spacing.sm,
-    paddingVertical: Spacing.xs,
-    borderRadius: Radii.pill,
-    borderWidth: 1,
-  },
-  actionText: { ...Typography.caption },
   footer: {
     marginTop: Spacing.xxs,
   },

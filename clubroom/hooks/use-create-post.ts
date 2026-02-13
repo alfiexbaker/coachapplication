@@ -60,7 +60,7 @@ export function useCreatePost() {
 
   useEffect(() => {
     if (membership?.clubId) {
-      router.replace(Routes.MODAL_CREATE_CLUB_POST);
+      router.replace(Routes.modalCreateClubPost({ clubId: membership.clubId, audience: 'club' }));
     }
   }, [membership?.clubId]);
 

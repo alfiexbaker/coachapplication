@@ -9,7 +9,7 @@ import { EmptyState, ErrorState, LoadingState } from '@/components/ui/screen-sta
 import { useTheme } from '@/hooks/useTheme';
 
 export default function IndexScreen() {
-  const { currentUser, isLoading, error } = useAuth();
+  const { currentUser, isLoading, error, logout } = useAuth();
   const { colors: palette } = useTheme();
 
   if (isLoading) {
@@ -23,7 +23,7 @@ export default function IndexScreen() {
   if (error) {
     return (
       <SafeAreaView style={[styles.container, { backgroundColor: palette.background }]}>
-        <ErrorState message={error} onRetry={() => {}} />
+        <ErrorState message={error} onRetry={() => void logout()} />
       </SafeAreaView>
     );
   }

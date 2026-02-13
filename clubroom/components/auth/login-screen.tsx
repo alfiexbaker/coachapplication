@@ -48,7 +48,7 @@ interface LoginFormValues {
   password: string;
 }
 
-const LOGIN_VIDEO_URI = 'https://storage.googleapis.com/gtv-videos-bucket/sample/ForBiggerEscapes.mp4';
+const LOGIN_VIDEO_URI = 'https://interactive-examples.mdn.mozilla.net/media/cc0-videos/flower.mp4';
 
 export default function LoginScreen() {
   const { colors: palette } = useTheme();
@@ -99,14 +99,16 @@ export default function LoginScreen() {
   });
 
   useEffect(() => {
+    const useNativeDriver = Platform.OS !== 'web';
+
     Animated.stagger(110, [
       Animated.parallel([
-        Animated.timing(heroOpacity, { toValue: 1, duration: 420, useNativeDriver: true }),
-        Animated.timing(heroTranslate, { toValue: 0, duration: 420, useNativeDriver: true }),
+        Animated.timing(heroOpacity, { toValue: 1, duration: 420, useNativeDriver }),
+        Animated.timing(heroTranslate, { toValue: 0, duration: 420, useNativeDriver }),
       ]),
       Animated.parallel([
-        Animated.timing(authOpacity, { toValue: 1, duration: 480, useNativeDriver: true }),
-        Animated.timing(authTranslate, { toValue: 0, duration: 480, useNativeDriver: true }),
+        Animated.timing(authOpacity, { toValue: 1, duration: 480, useNativeDriver }),
+        Animated.timing(authTranslate, { toValue: 0, duration: 480, useNativeDriver }),
       ]),
     ]).start();
   }, [authOpacity, authTranslate, heroOpacity, heroTranslate]);
@@ -210,154 +212,171 @@ export default function LoginScreen() {
             bounces={false}
           >
             <View style={[styles.layout, isDesktop ? styles.layoutDesktop : styles.layoutMobile]}>
-            <Animated.View
-              style={[
-                styles.hero,
-                isDesktop ? styles.heroDesktop : styles.heroMobile,
-                { opacity: heroOpacity, transform: [{ translateY: heroTranslate }] },
-              ]}
-            >
-              <View style={[styles.badge, { backgroundColor: withAlpha(palette.onPrimary, 0.14) }]}>
-                <ThemedText style={[styles.badgeText, { color: palette.onPrimary }]}>Clubroom</ThemedText>
-              </View>
-
-              <ThemedText
+              <Animated.View
                 style={[
-                  styles.heroTitle,
-                  { color: palette.onPrimary, fontSize: isDesktop ? 54 : 40, lineHeight: isDesktop ? 62 : 46 },
+                  styles.hero,
+                  isDesktop ? styles.heroDesktop : styles.heroMobile,
+                  { opacity: heroOpacity, transform: [{ translateY: heroTranslate }] },
                 ]}
               >
-                {heroTitle}
-              </ThemedText>
-              <ThemedText style={[styles.heroSubtitle, { color: withAlpha(palette.onPrimary, 0.84) }]}>
-                Find coaches. Book sessions. Track every rep.
-              </ThemedText>
+                <View
+                  style={[styles.badge, { backgroundColor: withAlpha(palette.onPrimary, 0.14) }]}
+                >
+                  <ThemedText style={[styles.badgeText, { color: palette.onPrimary }]}>
+                    Clubroom
+                  </ThemedText>
+                </View>
 
-              <View style={styles.statementRow}>
-                {['BOOK', 'TRACK', 'IMPROVE'].map((item) => (
-                  <View
-                    key={item}
-                    style={[
-                      styles.statementPill,
-                      { backgroundColor: withAlpha(palette.onPrimary, 0.14) },
-                    ]}
-                  >
-                    <ThemedText style={[styles.statementText, { color: palette.onPrimary }]}>
-                      {item}
-                    </ThemedText>
-                  </View>
-                ))}
-              </View>
-            </Animated.View>
+                <ThemedText
+                  style={[
+                    styles.heroTitle,
+                    {
+                      color: palette.onPrimary,
+                      fontSize: isDesktop ? 54 : 40,
+                      lineHeight: isDesktop ? 62 : 46,
+                    },
+                  ]}
+                >
+                  {heroTitle}
+                </ThemedText>
+                <ThemedText
+                  style={[styles.heroSubtitle, { color: withAlpha(palette.onPrimary, 0.84) }]}
+                >
+                  Find coaches. Book sessions. Track every rep.
+                </ThemedText>
 
-            <Animated.View
-              style={[
-                styles.authDock,
-                isDesktop ? styles.authDockDesktop : styles.authDockMobile,
-                {
-                  opacity: authOpacity,
-                  transform: [{ translateY: authTranslate }],
-                },
-              ]}
-            >
-              <SurfaceCard
+                <View style={styles.statementRow}>
+                  {['BOOK', 'TRACK', 'IMPROVE'].map((item) => (
+                    <View
+                      key={item}
+                      style={[
+                        styles.statementPill,
+                        { backgroundColor: withAlpha(palette.onPrimary, 0.14) },
+                      ]}
+                    >
+                      <ThemedText style={[styles.statementText, { color: palette.onPrimary }]}>
+                        {item}
+                      </ThemedText>
+                    </View>
+                  ))}
+                </View>
+              </Animated.View>
+
+              <Animated.View
                 style={[
-                  styles.authCard,
+                  styles.authDock,
+                  isDesktop ? styles.authDockDesktop : styles.authDockMobile,
                   {
-                    backgroundColor: withAlpha(palette.surface, isDesktop ? 0.93 : 0.97),
-                    borderColor: withAlpha(palette.text, 0.1),
-                    maxHeight: cardMaxHeight,
+                    opacity: authOpacity,
+                    transform: [{ translateY: authTranslate }],
                   },
                 ]}
-                animateElevation={false}
               >
-                <View style={styles.authContent}>
-                  <View>
-                    <ThemedText style={styles.authTitle}>Welcome back</ThemedText>
-                    <ThemedText style={[styles.authSubtitle, { color: palette.muted }]}>
-                      Sign in or create your account.
-                    </ThemedText>
-                  </View>
+                <SurfaceCard
+                  style={[
+                    styles.authCard,
+                    {
+                      backgroundColor: withAlpha(palette.surface, isDesktop ? 0.93 : 0.97),
+                      borderColor: withAlpha(palette.text, 0.1),
+                      maxHeight: cardMaxHeight,
+                    },
+                  ]}
+                  animateElevation={false}
+                >
+                  <View style={styles.authContent}>
+                    <View>
+                      <ThemedText style={styles.authTitle}>Welcome back</ThemedText>
+                      <ThemedText style={[styles.authSubtitle, { color: palette.muted }]}>
+                        Sign in or create your account.
+                      </ThemedText>
+                    </View>
 
-                  <FormInput
-                    label="Username"
-                    placeholder="e.g. coach"
-                    autoCapitalize="none"
-                    autoCorrect={false}
-                    returnKeyType="next"
-                    {...form.getFieldProps('username')}
-                  />
-
-                  <View style={styles.fieldGroup}>
-                    <Row style={styles.labelRow}>
-                      <View />
-                      <Clickable onPress={() => void handleForgotPassword()}>
-                        <ThemedText style={[styles.forgotLink, { color: palette.tint }]}>
-                          Forgot password?
-                        </ThemedText>
-                      </Clickable>
-                    </Row>
                     <FormInput
-                      label="Password"
-                      placeholder="••••••••"
-                      type="password"
-                      returnKeyType="go"
-                      {...form.getFieldProps('password')}
+                      label="Username"
+                      placeholder="e.g. coach"
+                      autoCapitalize="none"
+                      autoCorrect={false}
+                      returnKeyType="next"
+                      {...form.getFieldProps('username')}
                     />
+
+                    <View style={styles.fieldGroup}>
+                      <Row style={styles.labelRow}>
+                        <View />
+                        <Clickable onPress={() => void handleForgotPassword()}>
+                          <ThemedText style={[styles.forgotLink, { color: palette.tint }]}>
+                            Forgot password?
+                          </ThemedText>
+                        </Clickable>
+                      </Row>
+                      <FormInput
+                        label="Password"
+                        placeholder="••••••••"
+                        type="password"
+                        returnKeyType="go"
+                        {...form.getFieldProps('password')}
+                      />
+                    </View>
+
+                    {error ? (
+                      <ThemedText style={[styles.helper, { color: palette.error }]}>
+                        {error}
+                      </ThemedText>
+                    ) : (
+                      <ThemedText style={[styles.helper, { color: palette.muted }]}>
+                        Credentials are case-insensitive.
+                      </ThemedText>
+                    )}
+
+                    <FormButton
+                      label="Log in"
+                      onPress={form.handleSubmit}
+                      disabled={!form.isDirty}
+                      loading={form.isSubmitting}
+                      size="lg"
+                    />
+
+                    <View
+                      style={[styles.separator, { backgroundColor: withAlpha(palette.text, 0.1) }]}
+                    />
+
+                    <View style={styles.actionsStack}>
+                      <SignupCard onPress={() => setScreenMode('signup')} palette={palette} />
+                      <InviteCodeCard
+                        onPress={() => setScreenMode('coach-signup')}
+                        palette={palette}
+                      />
+                    </View>
+
+                    <Clickable
+                      style={[
+                        styles.demoToggle,
+                        {
+                          backgroundColor: withAlpha(palette.text, 0.03),
+                          borderColor: withAlpha(palette.text, 0.1),
+                        },
+                      ]}
+                      onPress={() => setShowDemoAccounts((prev) => !prev)}
+                    >
+                      <ThemedText style={styles.demoToggleLabel}>Demo credentials</ThemedText>
+                      <Ionicons
+                        name={showDemoAccounts ? 'chevron-up' : 'chevron-down'}
+                        size={16}
+                        color={palette.muted}
+                      />
+                    </Clickable>
+
+                    {showDemoAccounts ? (
+                      <DemoAccountsCard
+                        users={availableUsers}
+                        palette={palette}
+                        onSelectUser={handleUseDemoUser}
+                      />
+                    ) : null}
                   </View>
-
-                  {error ? (
-                    <ThemedText style={[styles.helper, { color: palette.error }]}>{error}</ThemedText>
-                  ) : (
-                    <ThemedText style={[styles.helper, { color: palette.muted }]}>
-                      Credentials are case-insensitive.
-                    </ThemedText>
-                  )}
-
-                  <FormButton
-                    label="Log in"
-                    onPress={form.handleSubmit}
-                    disabled={!form.isDirty}
-                    loading={form.isSubmitting}
-                    size="lg"
-                  />
-
-                  <View style={[styles.separator, { backgroundColor: withAlpha(palette.text, 0.1) }]} />
-
-                  <View style={styles.actionsStack}>
-                    <SignupCard onPress={() => setScreenMode('signup')} palette={palette} />
-                    <InviteCodeCard onPress={() => setScreenMode('coach-signup')} palette={palette} />
-                  </View>
-
-                  <Clickable
-                    style={[
-                      styles.demoToggle,
-                      {
-                        backgroundColor: withAlpha(palette.text, 0.03),
-                        borderColor: withAlpha(palette.text, 0.1),
-                      },
-                    ]}
-                    onPress={() => setShowDemoAccounts((prev) => !prev)}
-                  >
-                    <ThemedText style={styles.demoToggleLabel}>Demo credentials</ThemedText>
-                    <Ionicons
-                      name={showDemoAccounts ? 'chevron-up' : 'chevron-down'}
-                      size={16}
-                      color={palette.muted}
-                    />
-                  </Clickable>
-
-                  {showDemoAccounts ? (
-                    <DemoAccountsCard
-                      users={availableUsers}
-                      palette={palette}
-                      onSelectUser={handleUseDemoUser}
-                    />
-                  ) : null}
-                </View>
-              </SurfaceCard>
-            </Animated.View>
-          </View>
+                </SurfaceCard>
+              </Animated.View>
+            </View>
           </ScrollView>
         </KeyboardAvoidingView>
       </View>

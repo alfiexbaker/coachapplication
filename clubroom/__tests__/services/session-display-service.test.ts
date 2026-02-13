@@ -20,8 +20,8 @@ describe('sessionDisplayService', () => {
       assert.ok(result.includes('15'));
     });
 
-    test('formats with custom currency', () => {
-      const result = sessionDisplayService.formatPrice(20, 'USD');
+    test('formats with explicit GBP currency', () => {
+      const result = sessionDisplayService.formatPrice(20, 'GBP');
       assert.ok(result.includes('20'));
     });
   });

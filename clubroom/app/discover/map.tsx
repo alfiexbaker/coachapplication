@@ -47,6 +47,7 @@ export default function MapScreen() {
   });
   const [selectedCoachId, setSelectedCoachId] = useState<string>();
   const [showFilterModal, setShowFilterModal] = useState(false);
+  const [zoomLevel, setZoomLevel] = useState(1);
 
   const loadMapData = useCallback(async () => {
     const result = await discoverService.searchCoaches(filters);
@@ -204,6 +205,10 @@ export default function MapScreen() {
         onCoachPress={handleCoachPress}
         userLocation={DEFAULT_LOCATION}
         showUserLocation
+        zoomLevel={zoomLevel}
+        onSearchAreaPress={onRefresh}
+        onZoomInPress={() => setZoomLevel((prev) => Math.min(prev + 0.5, 4))}
+        onZoomOutPress={() => setZoomLevel((prev) => Math.max(prev - 0.5, 0.5))}
       />
 
       {filterOptions ? (

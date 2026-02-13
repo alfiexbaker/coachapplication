@@ -5,6 +5,7 @@ import { Routes } from '@/navigation/routes';
 
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { Chip } from '@/components/primitives/chip';
+import { Clickable } from '@/components/primitives/clickable';
 import { ThemedText } from '@/components/themed-text';
 import { Radii, Spacing, Typography } from '@/constants/theme';
 import type { AggregatedFeedPost } from '@/services/social-feed-service';
@@ -33,9 +34,9 @@ export type {
 
 export interface FeedPostCardProps {
   post: AggregatedFeedPost;
-  onLike?: (postId: string) => void;
-  onComment?: (postId: string) => void;
-  onShare?: (postId: string) => void;
+  onLike: (postId: string) => void;
+  onComment: (postId: string) => void;
+  onShare: (postId: string) => void;
 }
 
 // ─── Component ──────────────────────────────────────────────────────────────
@@ -54,56 +55,62 @@ function FeedPostCardInner({ post, onLike, onComment, onShare }: FeedPostCardPro
   };
 
   return (
-    <SurfaceCard style={styles.feedCard} onPress={handlePostPress}>
-      <OriginBadge
-        clubName={post.clubName}
-        clubBadge={post.clubBadge}
-        clubId={post.clubId}
-        feedType={post.feedType}
-      />
+    <SurfaceCard style={styles.feedCard}>
+      <Clickable
+        onPress={handlePostPress}
+        style={styles.contentPressArea}
+        accessibilityLabel="Open post details"
+      >
+        <OriginBadge
+          clubName={post.clubName}
+          clubBadge={post.clubBadge}
+          clubId={post.clubId}
+          feedType={post.feedType}
+        />
 
-      <PostHeader
-        initials={initials}
-        authorName={authorName}
-        postAs={post.postAs}
-        createdAt={post.createdAt}
-        audienceLabel={post.audienceLabel}
-        audience={post.audience}
-        palette={palette}
-      />
-
-      {/* Content */}
-      <View style={styles.postContent}>
-        <ThemedText type="defaultSemiBold" style={styles.postTitle}>
-          {post.title}
-        </ThemedText>
-        <ThemedText style={[styles.postBody, { color: palette.text }]}>{post.body}</ThemedText>
-      </View>
-
-      {/* Image */}
-      {post.imageUrl && (
-        <Image source={{ uri: post.imageUrl }} style={styles.postImage} resizeMode="cover" />
-      )}
-
-      {/* Event details */}
-      {post.postType === 'event' && post.eventDate && (
-        <EventDetailsCard
-          eventDate={post.eventDate}
-          eventLocation={post.eventLocation}
+        <PostHeader
+          initials={initials}
+          authorName={authorName}
+          postAs={post.postAs}
+          createdAt={post.createdAt}
+          audienceLabel={post.audienceLabel}
+          audience={post.audience}
           palette={palette}
         />
-      )}
 
-      {/* Session announcement */}
-      {post.postType === 'session_announcement' && <SessionAnnouncementCard post={post} />}
+        {/* Content */}
+        <View style={styles.postContent}>
+          <ThemedText type="defaultSemiBold" style={styles.postTitle}>
+            {post.title}
+          </ThemedText>
+          <ThemedText style={[styles.postBody, { color: palette.text }]}>{post.body}</ThemedText>
+        </View>
 
-      {/* Badge awarded */}
-      {post.badgeAwarded && <Chip active>{post.badgeAwarded}</Chip>}
+        {/* Image */}
+        {post.imageUrl && (
+          <Image source={{ uri: post.imageUrl }} style={styles.postImage} resizeMode="cover" />
+        )}
 
-      {/* Attachments */}
-      {post.attachments && post.attachments.length > 0 && (
-        <AttachmentChips attachments={post.attachments} palette={palette} />
-      )}
+        {/* Event details */}
+        {post.postType === 'event' && post.eventDate && (
+          <EventDetailsCard
+            eventDate={post.eventDate}
+            eventLocation={post.eventLocation}
+            palette={palette}
+          />
+        )}
+
+        {/* Session announcement */}
+        {post.postType === 'session_announcement' && <SessionAnnouncementCard post={post} />}
+
+        {/* Badge awarded */}
+        {post.badgeAwarded && <Chip active>{post.badgeAwarded}</Chip>}
+
+        {/* Attachments */}
+        {post.attachments && post.attachments.length > 0 && (
+          <AttachmentChips attachments={post.attachments} palette={palette} />
+        )}
+      </Clickable>
 
       {/* Actions */}
       <FeedPostActions
@@ -131,6 +138,9 @@ function FeedPostCardInner({ post, onLike, onComment, onShare }: FeedPostCardPro
 
 const styles = StyleSheet.create({
   feedCard: {
+    gap: Spacing.sm,
+  },
+  contentPressArea: {
     gap: Spacing.sm,
   },
   postContent: {

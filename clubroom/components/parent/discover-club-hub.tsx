@@ -23,10 +23,19 @@ interface DiscoverClubHubProps {
 function DiscoverClubHubInner({ userClubs }: DiscoverClubHubProps) {
   const { colors: palette } = useTheme();
   const [clubInviteCode, setClubInviteCode] = useState('');
-
-  const handleJoinClub = useCallback(() => {
+  const openClubHub = useCallback(() => {
     router.push(Routes.CLUB_HUB);
   }, []);
+  const openClub = useCallback((clubId: string) => {
+    router.push(Routes.club(clubId));
+  }, []);
+
+  const handleJoinClub = useCallback(() => {
+    const trimmedCode = clubInviteCode.trim().toUpperCase();
+    if (!trimmedCode) return;
+    router.push(Routes.clubHub({ inviteCode: trimmedCode }));
+    setClubInviteCode('');
+  }, [clubInviteCode]);
 
   return (
     <Animated.View entering={FadeInDown.springify()} style={styles.section}>
@@ -51,7 +60,7 @@ function DiscoverClubHubInner({ userClubs }: DiscoverClubHubProps) {
             </ThemedText>
           </View>
           <Clickable
-            onPress={() => router.push(Routes.CLUB_HUB)}
+            onPress={openClubHub}
             accessibilityLabel={userClubs.length > 0 ? 'View all clubs' : 'Browse clubs'}
             accessibilityRole="button"
             style={({ pressed }) => [
@@ -71,7 +80,7 @@ function DiscoverClubHubInner({ userClubs }: DiscoverClubHubProps) {
             {userClubs.slice(0, 2).map((club) => (
               <Clickable
                 key={club.id}
-                onPress={() => router.push(Routes.club(club.id))}
+                onPress={() => openClub(club.id)}
                 accessibilityLabel={`View ${club.name}`}
                 accessibilityRole="button"
                 style={({ pressed }) => [

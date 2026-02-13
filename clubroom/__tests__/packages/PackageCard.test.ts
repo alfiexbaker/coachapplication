@@ -219,25 +219,25 @@ test('PackageCard displays valid days correctly', () => {
 test('PackageCard formats GBP price correctly', () => {
   const pkg = createMockPackage({ price: 200, currency: 'GBP' });
 
-  const symbol = pkg.currency === 'GBP' ? '\u00A3' : '$';
+  const symbol = '\u00A3';
   const formattedPrice = `${symbol}${pkg.price.toFixed(2)}`;
 
   assert.strictEqual(formattedPrice, '\u00A3200.00');
 });
 
-test('PackageCard formats USD price correctly', () => {
-  const pkg = createMockPackage({ price: 150, currency: 'USD' });
+test('PackageCard keeps GBP symbol for non-GBP currency values', () => {
+  const pkg = createMockPackage({ price: 150, currency: 'EUR' });
 
-  const symbol = pkg.currency === 'GBP' ? '\u00A3' : '$';
+  const symbol = '\u00A3';
   const formattedPrice = `${symbol}${pkg.price.toFixed(2)}`;
 
-  assert.strictEqual(formattedPrice, '$150.00');
+  assert.strictEqual(formattedPrice, '\u00A3150.00');
 });
 
 test('PackageCard formats per-session price correctly', () => {
   const pkg = createMockPackage({ pricePerSession: 40, currency: 'GBP' });
 
-  const symbol = pkg.currency === 'GBP' ? '\u00A3' : '$';
+  const symbol = '\u00A3';
   const formattedPerSession = `${symbol}${pkg.pricePerSession.toFixed(2)}/session`;
 
   assert.strictEqual(formattedPerSession, '\u00A340.00/session');
@@ -305,7 +305,7 @@ test('PackageCard handles very long description', () => {
 test('PackageCard handles zero price', () => {
   const pkg = createMockPackage({ price: 0, discountPercent: 0 });
 
-  const symbol = pkg.currency === 'GBP' ? '\u00A3' : '$';
+  const symbol = '\u00A3';
   const formattedPrice = `${symbol}${pkg.price.toFixed(2)}`;
 
   assert.strictEqual(formattedPrice, '\u00A30.00');

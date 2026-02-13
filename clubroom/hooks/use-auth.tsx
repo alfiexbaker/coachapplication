@@ -1,6 +1,14 @@
 import { router } from 'expo-router';
 import { Routes } from '@/navigation/routes';
-import { createContext, useContext, useCallback, useEffect, useMemo, useState, type ReactNode } from 'react';
+import {
+  createContext,
+  useContext,
+  useCallback,
+  useEffect,
+  useMemo,
+  useState,
+  type ReactNode,
+} from 'react';
 import type { CoachSignupData } from '@/components/auth/coach-signup-screen';
 import type { User } from '@/constants/app-types';
 import type { ChildReference, StaffMember } from '@/constants/types';
@@ -108,7 +116,13 @@ const DEMO_USERS: DemoUser[] = [
         userId: 'coach1',
         userName: 'Sarah Mitchell',
         role: 'HEAD_COACH',
-        permissions: ['MANAGE_BOOKINGS', 'MANAGE_ROSTER', 'AWARD_BADGES', 'VIEW_EARNINGS', 'POST_AS_COACH'],
+        permissions: [
+          'MANAGE_BOOKINGS',
+          'MANAGE_ROSTER',
+          'AWARD_BADGES',
+          'VIEW_EARNINGS',
+          'POST_AS_COACH',
+        ],
         joinedAt: '2020-03-15',
         isActive: true,
       },
@@ -178,8 +192,18 @@ const DEMO_USERS: DemoUser[] = [
     name: 'John Henderson',
     dateOfBirth: '1980-02-11',
     children: [
-      { childId: 'user1', childName: 'Tom Henderson', relationshipType: 'PARENT_CHILD', addedAt: '2020-01-01' },
-      { childId: 'user2', childName: 'Emma Henderson', relationshipType: 'PARENT_CHILD', addedAt: '2020-01-01' },
+      {
+        childId: 'user1',
+        childName: 'Tom Henderson',
+        relationshipType: 'PARENT_CHILD',
+        addedAt: '2020-01-01',
+      },
+      {
+        childId: 'user2',
+        childName: 'Emma Henderson',
+        relationshipType: 'PARENT_CHILD',
+        addedAt: '2020-01-01',
+      },
     ],
   },
   {
@@ -194,7 +218,12 @@ const DEMO_USERS: DemoUser[] = [
     name: 'Lisa Wilson',
     dateOfBirth: '1983-09-07',
     children: [
-      { childId: 'user3', childName: 'James Wilson', relationshipType: 'PARENT_CHILD', addedAt: '2020-01-01' },
+      {
+        childId: 'user3',
+        childName: 'James Wilson',
+        relationshipType: 'PARENT_CHILD',
+        addedAt: '2020-01-01',
+      },
     ],
   },
   // User who is both an athlete AND has children
@@ -212,7 +241,12 @@ const DEMO_USERS: DemoUser[] = [
     skillLevel: 'BEGINNER', // Also an athlete
     position: 'Defender',
     children: [
-      { childId: 'user3', childName: 'James Wilson', relationshipType: 'PARENT_CHILD', addedAt: '2020-01-01' },
+      {
+        childId: 'user3',
+        childName: 'James Wilson',
+        relationshipType: 'PARENT_CHILD',
+        addedAt: '2020-01-01',
+      },
     ],
   },
   // Admin (System flag on a USER)
@@ -272,7 +306,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       try {
         const storedUsers = await apiClient.get<User[]>(STORAGE_KEYS.USERS, []);
         const storedOnlyUsers = storedUsers.filter(
-          (storedUser) => !registeredUsers.some((registeredUser) => registeredUser.id === storedUser.id)
+          (storedUser) =>
+            !registeredUsers.some((registeredUser) => registeredUser.id === storedUser.id),
         );
         const nextUsers = [...registeredUsers.map(mapDemoUserToUserRecord), ...storedOnlyUsers];
 
@@ -303,7 +338,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         if (mounted && authState.isAuthenticated && authState.user) {
           // Try to find matching demo user for backwards compatibility
           const demoMatch = registeredUsers.find(
-            u => u.email?.toLowerCase() === authState.user!.email.toLowerCase()
+            (u) => u.email?.toLowerCase() === authState.user!.email.toLowerCase(),
           );
           if (demoMatch) {
             setCurrentUser(demoMatch);
@@ -326,135 +361,169 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     };
   }, [registeredUsers]);
 
-  const login = useCallback((username: string, password: string) => {
-    const normalizedUsername = username.trim().toLowerCase();
-    logger.info('Login attempt', { username: normalizedUsername });
+  const login = useCallback(
+    (username: string, password: string) => {
+      const normalizedUsername = username.trim().toLowerCase();
+      logger.info('Login attempt', { username: normalizedUsername });
 
-    const match = registeredUsers.find(
-      (user) => user.username.toLowerCase() === normalizedUsername && user.password === password.trim()
-    );
+      const match = registeredUsers.find(
+        (user) =>
+          user.username.toLowerCase() === normalizedUsername && user.password === password.trim(),
+      );
 
-    if (match) {
-      logger.success('Login successful', {
-        username: match.username,
-        role: match.role,
-        userId: match.id
+      if (match) {
+        logger.success('Login successful', {
+          username: match.username,
+          role: match.role,
+          userId: match.id,
+        });
+        setCurrentUser(match);
+        setError(null);
+
+        const now = Date.now();
+        const sessionUser = {
+          id: match.id,
+          fullName: match.fullName || match.name || match.username,
+          email: match.email || `${match.username}@demo.clubroom.app`,
+          role: match.role,
+          joinedDate: new Date().toISOString(),
+        };
+        const sessionTokens = {
+          accessToken: `demo_access_${match.id}_${now}`,
+          refreshToken: `demo_refresh_${match.id}_${now}`,
+          expiresAt: now + 7 * 24 * 60 * 60 * 1000,
+        };
+
+        // Persist demo sessions without calling authService.login to avoid duplicate credential warnings.
+        void Promise.all([
+          apiClient.set(STORAGE_KEYS.AUTH_USER, sessionUser),
+          apiClient.set(STORAGE_KEYS.AUTH_TOKENS, sessionTokens),
+          apiClient.set(STORAGE_KEYS.AUTH_TOKEN, sessionTokens.accessToken),
+        ]).catch((persistError) => {
+          logger.error('Failed to persist demo auth session', persistError);
+        });
+
+        return true;
+      }
+
+      logger.warn('Login failed: Invalid credentials', { username: normalizedUsername });
+      setError('Invalid username or password.');
+      return false;
+    },
+    [registeredUsers],
+  );
+
+  const registerCoach = useCallback(
+    (data: CoachSignupData) => {
+      // Generate username from email
+      const username = data.email.split('@')[0].toLowerCase();
+      logger.info('Coach registration attempt', { username, email: data.email });
+
+      // Check if username already exists
+      if (registeredUsers.find((user) => user.username === username)) {
+        logger.warn('Registration failed: Account already exists', { username });
+        setError('An account with this email already exists.');
+        return false;
+      }
+
+      const newUser: DemoUser = {
+        id: username,
+        username,
+        password: data.password,
+        role: 'COACH',
+        fullName: data.fullName,
+        email: data.email,
+        schoolId: data.schoolId,
+        schoolName: data.schoolName,
+        name: data.fullName,
+        postcode: 'SW1A 1AA',
+        dateOfBirth: '1990-01-01',
+      };
+
+      logger.success('Coach registered successfully', {
+        username,
+        schoolName: data.schoolName,
+        role: newUser.role,
       });
-      setCurrentUser(match);
+      setRegisteredUsers((prev) => [...prev, newUser]);
+      setCurrentUser(newUser);
       setError(null);
-
-      // Store tokens for session persistence (fire and forget)
-      authService.login(match.email || `${match.username}@demo.clubroom.app`, match.password).catch(() => {});
-
       return true;
-    }
+    },
+    [registeredUsers],
+  );
 
-    logger.warn('Login failed: Invalid credentials', { username: normalizedUsername });
-    setError('Invalid username or password.');
-    return false;
-  }, [registeredUsers]);
+  const registerFromOnboarding = useCallback(
+    (data: OnboardingData) => {
+      // Generate username from email
+      const username = data.email.split('@')[0].toLowerCase();
+      logger.info('Onboarding registration attempt', {
+        username,
+        email: data.email,
+        accountType: data.accountType,
+      });
 
-  const registerCoach = useCallback((data: CoachSignupData) => {
-    // Generate username from email
-    const username = data.email.split('@')[0].toLowerCase();
-    logger.info('Coach registration attempt', { username, email: data.email });
+      // Check if email already exists
+      if (registeredUsers.find((user) => user.email?.toLowerCase() === data.email.toLowerCase())) {
+        logger.warn('Registration failed: Account already exists', { email: data.email });
+        setError('An account with this email already exists.');
+        return false;
+      }
 
-    // Check if username already exists
-    if (registeredUsers.find((user) => user.username === username)) {
-      logger.warn('Registration failed: Account already exists', { username });
-      setError('An account with this email already exists.');
-      return false;
-    }
+      // Map AccountType to UserRole
+      const roleMap: Record<AccountType, UserRole> = {
+        COACH: 'COACH',
+        PARENT: 'USER',
+        ATHLETE: 'USER',
+      };
 
-    const newUser: DemoUser = {
-      id: username,
-      username,
-      password: data.password,
-      role: 'COACH',
-      fullName: data.fullName,
-      email: data.email,
-      schoolId: data.schoolId,
-      schoolName: data.schoolName,
-      name: data.fullName,
-      postcode: 'SW1A 1AA',
-      dateOfBirth: '1990-01-01',
-    };
+      const userId = `user_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+      const fullName = `${data.firstName} ${data.lastName}`;
 
-    logger.success('Coach registered successfully', {
-      username,
-      schoolName: data.schoolName,
-      role: newUser.role
-    });
-    setRegisteredUsers((prev) => [...prev, newUser]);
-    setCurrentUser(newUser);
-    setError(null);
-    return true;
-  }, [registeredUsers]);
+      const newUser: DemoUser = {
+        id: userId,
+        username,
+        password: data.password,
+        role: roleMap[data.accountType],
+        type: data.accountType === 'COACH' ? 'COACH' : 'USER',
+        fullName,
+        name: fullName,
+        email: data.email,
+        postcode: data.postcode || 'SW1A 1AA',
+        dateOfBirth: data.dateOfBirth || '1990-01-01',
+        // Athlete fields
+        skillLevel: data.skillLevel,
+        position: data.position,
+        hasChildren: data.hasChildren,
+        // Coach fields
+        isOrganization: data.isOrganization,
+        organizationName: data.organizationName,
+        isLive: data.accountType === 'COACH' ? false : undefined,
+        // Children array if hasChildren flag is set
+        children: data.hasChildren ? [] : undefined,
+      };
 
-  const registerFromOnboarding = useCallback((data: OnboardingData) => {
-    // Generate username from email
-    const username = data.email.split('@')[0].toLowerCase();
-    logger.info('Onboarding registration attempt', { username, email: data.email, accountType: data.accountType });
+      logger.success('User registered via onboarding', {
+        userId,
+        username,
+        accountType: data.accountType,
+        role: newUser.role,
+      });
 
-    // Check if email already exists
-    if (registeredUsers.find((user) => user.email?.toLowerCase() === data.email.toLowerCase())) {
-      logger.warn('Registration failed: Account already exists', { email: data.email });
-      setError('An account with this email already exists.');
-      return false;
-    }
-
-    // Map AccountType to UserRole
-    const roleMap: Record<AccountType, UserRole> = {
-      'COACH': 'COACH',
-      'PARENT': 'USER',
-      'ATHLETE': 'USER',
-    };
-
-    const userId = `user_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-    const fullName = `${data.firstName} ${data.lastName}`;
-
-    const newUser: DemoUser = {
-      id: userId,
-      username,
-      password: data.password,
-      role: roleMap[data.accountType],
-      type: data.accountType === 'COACH' ? 'COACH' : 'USER',
-      fullName,
-      name: fullName,
-      email: data.email,
-      postcode: data.postcode || 'SW1A 1AA',
-      dateOfBirth: data.dateOfBirth || '1990-01-01',
-      // Athlete fields
-      skillLevel: data.skillLevel,
-      position: data.position,
-      hasChildren: data.hasChildren,
-      // Coach fields
-      isOrganization: data.isOrganization,
-      organizationName: data.organizationName,
-      isLive: data.accountType === 'COACH' ? false : undefined,
-      // Children array if hasChildren flag is set
-      children: data.hasChildren ? [] : undefined,
-    };
-
-    logger.success('User registered via onboarding', {
-      userId,
-      username,
-      accountType: data.accountType,
-      role: newUser.role
-    });
-
-    setRegisteredUsers((prev) => [...prev, newUser]);
-    setCurrentUser(newUser);
-    setError(null);
-    return true;
-  }, [registeredUsers]);
+      setRegisteredUsers((prev) => [...prev, newUser]);
+      setCurrentUser(newUser);
+      setError(null);
+      return true;
+    },
+    [registeredUsers],
+  );
 
   const logout = useCallback(async () => {
     if (currentUser) {
       logger.info('User logged out', {
         username: currentUser.username,
         role: currentUser.role,
-        userId: currentUser.id
+        userId: currentUser.id,
       });
     } else {
       logger.warn('Logout called but no user was logged in');
@@ -501,7 +570,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       error,
       availableUsers: registeredUsers,
     }),
-    [currentUser, error, isLoading, registeredUsers, login, logout, registerCoach, registerFromOnboarding]
+    [
+      currentUser,
+      error,
+      isLoading,
+      registeredUsers,
+      login,
+      logout,
+      registerCoach,
+      registerFromOnboarding,
+    ],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

@@ -7,7 +7,7 @@
 import React, { memo } from 'react';
 import { View, StyleSheet } from 'react-native';
 
-import { Button } from '@/components/primitives/button';
+import { Button } from '@/components/ui/primitives';
 import { Spacing } from '@/constants/theme';
 import type { ThemeColors } from '@/hooks/useTheme';
 import type { WizardStep } from './create-session-types';
@@ -41,16 +41,22 @@ export const CreateFooterBar = memo(function CreateFooterBar({
     <View style={[styles.footer, { borderTopColor: colors.border }]}>
       {step === 'invite' ? (
         <Button
+          title={loading ? 'Creating...' : 'Create Session'}
           onPress={onCreate}
           disabled={loading}
+          size="lg"
+          fullWidth
           accessibilityLabel={loading ? 'Creating session' : 'Create session'}
-        >
-          {loading ? 'Creating...' : 'Create Session'}
-        </Button>
+        />
       ) : (
-        <Button onPress={onNext} disabled={!canProceed} accessibilityLabel="Continue to next step">
-          Continue
-        </Button>
+        <Button
+          title="Continue"
+          onPress={onNext}
+          disabled={!canProceed}
+          size="lg"
+          fullWidth
+          accessibilityLabel="Continue to next step"
+        />
       )}
     </View>
   );

@@ -19,6 +19,7 @@ interface BookingFlowSummaryProps {
   coach?: CoachProfile;
   selectedDay?: DayAvailability;
   selectedSlot?: SlotInstance;
+  onContinue?: () => void;
 }
 
 function SummaryRow({ label, value }: { label: string; value: string }) {
@@ -30,7 +31,12 @@ function SummaryRow({ label, value }: { label: string; value: string }) {
   );
 }
 
-function BookingFlowSummaryInner({ coach, selectedDay, selectedSlot }: BookingFlowSummaryProps) {
+function BookingFlowSummaryInner({
+  coach,
+  selectedDay,
+  selectedSlot,
+  onContinue,
+}: BookingFlowSummaryProps) {
   const { colors: palette } = useTheme();
 
   const sessionValue =
@@ -59,14 +65,25 @@ function BookingFlowSummaryInner({ coach, selectedDay, selectedSlot }: BookingFl
           value={coach ? `\u00A3${coach.priceRange.minUsd}+ / session` : '\u00A3120 / session'}
         />
       </View>
-      <Clickable
-        style={[styles.cta, { backgroundColor: selectedSlot ? palette.tint : palette.border }]}
-        disabled={!selectedSlot}
-      >
-        <ThemedText style={[styles.ctaLabel, { color: palette.onPrimary }]}>
-          {selectedSlot ? 'Continue to payment' : 'Pick a slot to continue'}
-        </ThemedText>
-      </Clickable>
+      {onContinue ? (
+        <Clickable
+          onPress={onContinue}
+          style={[styles.cta, { backgroundColor: selectedSlot ? palette.tint : palette.border }]}
+          disabled={!selectedSlot}
+          accessibilityRole="button"
+          accessibilityLabel="Continue to payment"
+        >
+          <ThemedText style={[styles.ctaLabel, { color: palette.onPrimary }]}>
+            {selectedSlot ? 'Continue to payment' : 'Pick a slot to continue'}
+          </ThemedText>
+        </Clickable>
+      ) : (
+        <View style={[styles.cta, { backgroundColor: selectedSlot ? palette.tint : palette.border }]}>
+          <ThemedText style={[styles.ctaLabel, { color: palette.onPrimary }]}>
+            {selectedSlot ? 'Ready for payment' : 'Pick a slot to continue'}
+          </ThemedText>
+        </View>
+      )}
     </SurfaceCard>
   );
 }

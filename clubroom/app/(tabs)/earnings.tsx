@@ -7,7 +7,7 @@ import { useTheme } from '@/hooks/useTheme';
 import { EmptyState, ErrorState, LoadingState } from '@/components/ui/screen-states';
 
 export default function TabEarningsScreen() {
-  const { currentUser, isLoading, error } = useAuth();
+  const { currentUser, isLoading, error, logout } = useAuth();
   const { colors } = useTheme();
 
   if (isLoading) {
@@ -27,7 +27,7 @@ export default function TabEarningsScreen() {
         style={[styles.container, { backgroundColor: colors.background }]}
         edges={['top']}
       >
-        <ErrorState message={error} onRetry={() => {}} />
+        <ErrorState message={error} onRetry={() => void logout()} />
       </SafeAreaView>
     );
   }

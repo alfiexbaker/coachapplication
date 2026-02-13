@@ -472,9 +472,9 @@ export interface CoachLocation {
  * Comprehensive filters for coach search
  */
 export interface CoachSearchFilters {
-  /** Minimum price per session in USD */
+  /** Minimum price per session in GBP */
   priceMin?: number;
-  /** Maximum price per session in USD */
+  /** Maximum price per session in GBP */
   priceMax?: number;
   /** Minimum average rating (1-5) */
   rating?: number;

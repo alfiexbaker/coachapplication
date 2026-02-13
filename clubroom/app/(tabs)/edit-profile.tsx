@@ -21,7 +21,7 @@ import { useEditProfile } from '@/hooks/use-edit-profile';
 
 export default function EditProfileScreen() {
   const { colors } = useTheme();
-  const { currentUser, isLoading: authLoading, error: authError } = useAuth();
+  const { currentUser, isLoading: authLoading, error: authError, logout } = useAuth();
   const profile = useEditProfile();
 
   const coverPhotoUrl = profile.userIsCoach ? profile.coach?.coverPhotoUrl : undefined;
@@ -48,7 +48,7 @@ export default function EditProfileScreen() {
         edges={['top']}
       >
         <PageHeader title="Edit Profile" showBack />
-        <ErrorState message={authError} onRetry={() => {}} />
+        <ErrorState message={authError} onRetry={() => void logout()} />
       </SafeAreaView>
     );
   }

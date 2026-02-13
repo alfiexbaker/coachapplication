@@ -19,33 +19,31 @@ export default function AddToSessionScreen() {
   }>();
 
   const selectedAthleteName = athleteName || 'Athlete';
-
-  const handleBookNewSession = () => {
+  const openSessionBuilder = (intent: 'new' | 'existing') => {
     if (!athleteId) return;
     router.push(
       Routes.sessionsCreateIntent({
-        intent: 'new',
+        intent,
         source: 'roster',
         athleteIds: athleteId,
         athleteNames: selectedAthleteName,
       }),
     );
+  };
+
+  const handleBookNewSession = () => {
+    openSessionBuilder('new');
   };
 
   const handleAddToExisting = () => {
-    if (!athleteId) return;
-    router.push(
-      Routes.sessionsCreateIntent({
-        intent: 'existing',
-        source: 'roster',
-        athleteIds: athleteId,
-        athleteNames: selectedAthleteName,
-      }),
-    );
+    openSessionBuilder('existing');
   };
 
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: palette.background }]} edges={['top']}>
+    <SafeAreaView
+      style={[styles.container, { backgroundColor: palette.background }]}
+      edges={['top']}
+    >
       <AddToSessionHeader
         colors={palette}
         athleteName={selectedAthleteName}
@@ -55,23 +53,28 @@ export default function AddToSessionScreen() {
       <View style={styles.content}>
         <AddToSessionActionCard
           colors={palette}
-          title="Book New Session"
-          description="Create a fresh session and invite this athlete from the same flow."
-          icon="add-circle-outline"
-          ctaLabel="Create"
+          variant="new"
+          accentKey="tint"
+          title="Create New Session"
+          description="Build a new session (time, focus, price) and invite this athlete in the same flow."
+          icon="sparkles-outline"
+          ctaLabel="Start Builder"
           onPress={handleBookNewSession}
         />
         <AddToSessionActionCard
           colors={palette}
-          title="Add to Existing Session"
-          description="Choose one of your upcoming sessions and send invite(s)."
-          icon="calendar-outline"
-          ctaLabel="Select"
+          variant="existing"
+          accentKey="success"
+          title="Invite to Existing Session"
+          description="Choose an already published session and send a quick invite immediately."
+          icon="calendar-clear-outline"
+          ctaLabel="Pick Session"
           onPress={handleAddToExisting}
         />
 
         <ThemedText style={[styles.helperText, { color: palette.muted }]}>
-          One flow, context-aware. Start here, then choose new or existing.
+          Create New is best for custom coaching. Existing is fastest when you already have a live
+          session.
         </ThemedText>
       </View>
     </SafeAreaView>

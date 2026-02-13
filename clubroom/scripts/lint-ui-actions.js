@@ -1,0 +1,72 @@
+#!/usr/bin/env node
+
+const { execSync } = require('node:child_process');
+const { readFileSync } = require('node:fs');
+const { resolve } = require('node:path');
+
+const TARGETS = ['app', 'components'];
+const FILE_GLOBS = ["'**/*.tsx'"];
+
+const CHECKS = [
+  {
+    name: 'empty onPress handler',
+    regex: /onPress\s*=\s*\{\s*\([^)]*\)\s*=>\s*\{\s*\}\s*\}/g,
+  },
+  {
+    name: 'undefined onPress handler',
+    regex: /onPress\s*=\s*\{\s*\([^)]*\)\s*=>\s*undefined\s*\}/g,
+  },
+  {
+    name: 'empty onRetry handler',
+    regex: /onRetry\s*=\s*\{\s*\([^)]*\)\s*=>\s*\{\s*\}\s*\}/g,
+  },
+];
+
+function listFiles() {
+  const cmd = `rg --files ${TARGETS.join(' ')} ${FILE_GLOBS.map((glob) => `-g ${glob}`).join(' ')}`;
+  const output = execSync(cmd, { encoding: 'utf8' }).trim();
+  return output ? output.split('\n') : [];
+}
+
+function getLineNumber(source, index) {
+  let line = 1;
+  for (let i = 0; i < index; i += 1) {
+    if (source.charCodeAt(i) === 10) line += 1;
+  }
+  return line;
+}
+
+function run() {
+  const files = listFiles();
+  const failures = [];
+
+  for (const file of files) {
+    const fullPath = resolve(file);
+    const source = readFileSync(fullPath, 'utf8');
+
+    for (const check of CHECKS) {
+      check.regex.lastIndex = 0;
+      let match = check.regex.exec(source);
+      while (match) {
+        failures.push({
+          file,
+          line: getLineNumber(source, match.index),
+          rule: check.name,
+        });
+        match = check.regex.exec(source);
+      }
+    }
+  }
+
+  if (failures.length > 0) {
+    console.error('UI action lint failed. Remove dead action handlers:');
+    for (const failure of failures) {
+      console.error(`- ${failure.file}:${failure.line} (${failure.rule})`);
+    }
+    process.exit(1);
+  }
+
+  console.log('UI action lint passed.');
+}
+
+run();

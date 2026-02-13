@@ -66,18 +66,25 @@ export function ChallengeCard({
   const { colors: palette } = useTheme();
   const expired = isExpired(challenge.deadline);
   const completedCount = submissions.length;
+  const demoContent = (
+    <View style={[styles.videoPlaceholder, { backgroundColor: palette.surfaceSecondary }]}>
+      <View style={[styles.playCircle, { backgroundColor: palette.overlay }]}>
+        <Ionicons name="play" size={Components.icon.xl} color={palette.foreground} />
+      </View>
+      <ThemedText style={[styles.videoLabel, { color: palette.muted }]}>Demo Video</ThemedText>
+    </View>
+  );
 
   return (
     <SurfaceCard style={styles.card}>
       {/* Video demo placeholder */}
-      <Clickable onPress={onPlayDemo} accessibilityLabel="Play demo video">
-        <View style={[styles.videoPlaceholder, { backgroundColor: palette.surfaceSecondary }]}>
-          <View style={[styles.playCircle, { backgroundColor: palette.overlay }]}>
-            <Ionicons name="play" size={Components.icon.xl} color={palette.foreground} />
-          </View>
-          <ThemedText style={[styles.videoLabel, { color: palette.muted }]}>Demo Video</ThemedText>
-        </View>
-      </Clickable>
+      {onPlayDemo ? (
+        <Clickable onPress={onPlayDemo} accessibilityLabel="Play demo video">
+          {demoContent}
+        </Clickable>
+      ) : (
+        demoContent
+      )}
 
       {/* Title + description */}
       <ThemedText style={[styles.title, { color: palette.foreground }]}>
@@ -105,7 +112,7 @@ export function ChallengeCard({
       </Row>
 
       {/* Submit CTA */}
-      {!expired && (
+      {!expired && onSubmitAttempt && (
         <Clickable onPress={onSubmitAttempt} accessibilityLabel="Submit My Attempt">
           <Row style={[styles.ctaButton, { backgroundColor: palette.tint }]}>
             <Ionicons name="videocam-outline" size={Components.icon.md} color={palette.surface} />

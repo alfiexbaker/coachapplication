@@ -63,3 +63,7 @@ export type { DateTimeFieldProps } from './DateTimeField';
 // LoadingScreen
 export { LoadingScreen } from './LoadingScreen';
 export type { LoadingScreenProps } from './LoadingScreen';
+
+// ProgressStepper
+export { ProgressStepper } from './ProgressStepper';
+export type { ProgressStepperProps } from './ProgressStepper';

@@ -73,7 +73,7 @@ export const ExistingSummary = memo(function ExistingSummary({
         <ThemedText>
           {session.pricePerParticipant === 0
             ? 'Free'
-            : `${session.currency === 'GBP' ? '\u00A3' : '$'}${session.pricePerParticipant}`}
+            : `\u00A3${session.pricePerParticipant}`}
         </ThemedText>
       </SummaryRow>
     </>

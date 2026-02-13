@@ -37,13 +37,7 @@ export const DevSessionCard = memo(function DevSessionCard({
   }, [onSelectForBadge, session]);
 
   return (
-    <SurfaceCard
-      tactile
-      onPress={handlePress}
-      accessibilityRole="button"
-      accessibilityLabel={`Session on ${formatShortDateWithYear(session.completedAt)}`}
-      style={styles.card}
-    >
+    <SurfaceCard style={styles.card}>
       <Row justify="space-between" align="center" style={{ marginBottom: Spacing.xs }}>
         <Row gap="sm" align="center" style={{ flex: 1 }}>
           <ThemedText type="defaultSemiBold">
@@ -62,6 +56,7 @@ export const DevSessionCard = memo(function DevSessionCard({
             onPress={handleBadgePress}
             accessibilityLabel="Open badges workspace for this session"
             hitSlop={10}
+            accessibilityRole="button"
           >
             <Row
               style={[
@@ -120,7 +115,15 @@ export const DevSessionCard = memo(function DevSessionCard({
         </Row>
       )}
 
-      <Ionicons name="chevron-forward" size={20} color={colors.icon} style={styles.chevron} />
+      <Clickable
+        onPress={handlePress}
+        accessibilityRole="button"
+        accessibilityLabel={`Open session feedback from ${formatShortDateWithYear(session.completedAt)}`}
+        style={[styles.openFeedbackButton, { borderColor: colors.border }]}
+      >
+        <ThemedText style={[Typography.smallSemiBold, { color: colors.tint }]}>Open feedback</ThemedText>
+        <Ionicons name="chevron-forward" size={18} color={colors.tint} />
+      </Clickable>
     </SurfaceCard>
   );
 });
@@ -174,9 +177,15 @@ const styles = StyleSheet.create({
     ...Typography.micro,
     textTransform: 'none',
   },
-  chevron: {
-    position: 'absolute',
-    right: Spacing.sm,
-    top: Spacing.sm,
+  openFeedbackButton: {
+    marginTop: Spacing.xs,
+    alignSelf: 'flex-start',
+    borderWidth: 1,
+    borderRadius: Radii.card,
+    paddingHorizontal: Spacing.sm,
+    paddingVertical: Spacing.xs,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.xs,
   },
 });

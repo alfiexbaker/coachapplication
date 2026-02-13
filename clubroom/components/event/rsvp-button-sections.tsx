@@ -1,5 +1,5 @@
 import { memo } from 'react';
-import { StyleSheet, TextInput, Modal } from 'react-native';
+import { StyleSheet, TextInput, Modal, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
 import { Button } from '@/components/primitives/button';
@@ -156,10 +156,9 @@ export const GuestCountModal = memo(function GuestCountModal({
         accessibilityRole="button"
         accessibilityLabel="Close guest count modal"
       >
-        <Clickable
+        <View
           style={[styles.modalContent, { backgroundColor: palette.surface }]}
-          onPress={() => {}}
-          accessibilityRole="none"
+          onStartShouldSetResponder={() => true}
         >
           <ThemedText type="subtitle" style={styles.modalTitle}>
             How many guests?
@@ -208,7 +207,7 @@ export const GuestCountModal = memo(function GuestCountModal({
               Confirm
             </Button>
           </Row>
-        </Clickable>
+        </View>
       </Clickable>
     </Modal>
   );

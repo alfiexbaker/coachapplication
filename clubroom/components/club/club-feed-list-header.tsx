@@ -31,10 +31,15 @@ export const ClubFeedListHeader = memo(function ClubFeedListHeader({
   return (
     <>
       <View style={styles.section}>
-        <ClubHeader club={hub.club!} membership={hub.membership!} onLeave={hub.handleLeaveClub} />
+        <ClubHeader
+          club={hub.club!}
+          membership={hub.membership!}
+          onLeave={hub.handleLeaveClub}
+          includeManagementActions={false}
+        />
       </View>
 
-      {hub.isCoach && <ClubAdminActions clubId={hub.membership!.clubId} />}
+      {hub.canRemoveMembers && <ClubAdminActions clubId={hub.membership!.clubId} />}
 
       <ClubStatsRow
         memberCount={hub.members.length || hub.club!.memberCount}
@@ -56,7 +61,7 @@ export const ClubFeedListHeader = memo(function ClubFeedListHeader({
         </View>
       )}
 
-      {(hub.showMembersSection || hub.isCoach) && hub.canRemoveMembers && (
+      {hub.showMembersSection && hub.canRemoveMembers && (
         <MembersPanel
           members={hub.members}
           canRemoveMembers={hub.canRemoveMembers}

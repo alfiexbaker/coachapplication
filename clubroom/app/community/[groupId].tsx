@@ -186,12 +186,8 @@ export default function GroupChatScreen() {
 
   const handleOpenClubHub = useCallback(() => {
     if (!group?.clubId) return;
-    router.push(Routes.club(group.clubId));
+    router.push(Routes.clubHub({ clubId: group.clubId }));
   }, [group?.clubId]);
-
-  const handleOpenClubSettings = useCallback(() => {
-    router.push(Routes.CLUB_SETTINGS);
-  }, []);
 
   const handleOpenManageHub = useCallback(() => {
     router.push(Routes.MANAGE);
@@ -297,7 +293,6 @@ export default function GroupChatScreen() {
           onInviteToSession={handleOpenSessionInvite}
           onInviteMembers={handleOpenClubInvite}
           onOpenClub={handleOpenClubHub}
-          onOpenClubSettings={handleOpenClubSettings}
         />
       ) : (
         <GroupChatSection

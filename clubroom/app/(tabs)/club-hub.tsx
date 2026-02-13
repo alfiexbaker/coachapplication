@@ -39,13 +39,29 @@ export default function ClubHubScreen() {
   const renderFeedPost = useCallback(
     ({ item }: { item: ClubFeedPost }) => (
       <View style={styles.feedPostItem}>
-        <FeedPost post={item} canPin={hub.canManagePosts} onPinToggle={hub.handlePinToggle} />
+        <FeedPost
+          post={item}
+          canPin={hub.canManagePosts}
+          onPinToggle={hub.handlePinToggle}
+          onLike={hub.handleLikePost}
+          onComment={hub.handleCommentPost}
+          onShare={hub.handleSharePost}
+        />
       </View>
     ),
-    [hub.canManagePosts, hub.handlePinToggle],
+    [
+      hub.canManagePosts,
+      hub.handlePinToggle,
+      hub.handleLikePost,
+      hub.handleCommentPost,
+      hub.handleSharePost,
+    ],
   );
 
-  const handleCreatePost = useCallback(() => router.push(Routes.MODAL_CREATE_CLUB_POST), []);
+  const handleCreatePost = useCallback(() => {
+    if (!hub.membership?.clubId) return;
+    router.push(Routes.modalCreateClubPost({ clubId: hub.membership.clubId, audience: 'club' }));
+  }, [hub.membership?.clubId]);
 
   const toggleMembers = useCallback(() => {
     setShowMembersSection(!showMembersSection);

@@ -4,6 +4,8 @@
 import React from 'react';
 import { View, Linking, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { router } from 'expo-router';
+import { Routes } from '@/navigation/routes';
 
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { Clickable } from '@/components/primitives/clickable';
@@ -50,6 +52,9 @@ interface ProfileTabAboutProps {
 
 function ProfileTabAboutInner({ coach, userRole }: ProfileTabAboutProps) {
   const { colors: palette } = useTheme();
+  const handleEditProfile = () => {
+    router.push(Routes.EDIT_PROFILE);
+  };
 
   return (
     <View style={styles.aboutContent}>
@@ -107,7 +112,7 @@ function ProfileTabAboutInner({ coach, userRole }: ProfileTabAboutProps) {
         <Row style={styles.sectionHeader}>
           <ThemedText type="subtitle">Experience</ThemedText>
           {userRole === 'COACH' && (
-            <Clickable onPress={() => {}} style={styles.addButton}>
+            <Clickable onPress={handleEditProfile} style={styles.addButton}>
               <Ionicons name="add-circle" size={20} color={palette.tint} />
               <ThemedText style={[styles.addButtonText, { color: palette.tint }]}>Add</ThemedText>
             </Clickable>
@@ -132,7 +137,7 @@ function ProfileTabAboutInner({ coach, userRole }: ProfileTabAboutProps) {
                 )}
               </View>
               {userRole === 'COACH' && (
-                <Clickable onPress={() => {}} style={styles.editButton}>
+                <Clickable onPress={handleEditProfile} style={styles.editButton}>
                   <Ionicons name="pencil" size={16} color={palette.muted} />
                 </Clickable>
               )}
@@ -150,7 +155,7 @@ function ProfileTabAboutInner({ coach, userRole }: ProfileTabAboutProps) {
         <Row style={styles.sectionHeader}>
           <ThemedText type="subtitle">Certifications &amp; Licences</ThemedText>
           {userRole === 'COACH' && (
-            <Clickable onPress={() => {}} style={styles.addButton}>
+            <Clickable onPress={handleEditProfile} style={styles.addButton}>
               <Ionicons name="add-circle" size={20} color={palette.tint} />
               <ThemedText style={[styles.addButtonText, { color: palette.tint }]}>Add</ThemedText>
             </Clickable>
@@ -189,7 +194,7 @@ function ProfileTabAboutInner({ coach, userRole }: ProfileTabAboutProps) {
                   )}
                 </View>
                 {userRole === 'COACH' && (
-                  <Clickable onPress={() => {}} style={styles.editButton}>
+                  <Clickable onPress={handleEditProfile} style={styles.editButton}>
                     <Ionicons name="pencil" size={16} color={palette.muted} />
                   </Clickable>
                 )}

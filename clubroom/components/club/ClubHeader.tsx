@@ -23,8 +23,8 @@ export interface ClubHeaderProps {
   club: Club;
   membership: ClubMembership;
   onLeave: () => void;
-  onManage?: () => void;
   onUpdatePhotos?: (updates: { profilePhotoUrl?: string; coverPhotoUrl?: string }) => void;
+  includeManagementActions?: boolean;
 }
 
 // ─── Component ──────────────────────────────────────────────────────────────
@@ -33,8 +33,8 @@ export function ClubHeader({
   club,
   membership,
   onLeave,
-  onManage,
   onUpdatePhotos,
+  includeManagementActions = true,
 }: ClubHeaderProps) {
   const { colors: palette } = useTheme();
   const [showMenu, setShowMenu] = useState(false);
@@ -95,15 +95,9 @@ export function ClubHeader({
     }
   };
 
-  const handleManageClub = () => {
-    setShowMenu(false);
-    if (onManage) onManage();
-    else router.push(Routes.MANAGE);
-  };
-
   const handleOpenClubSettings = () => {
     setShowMenu(false);
-    router.push(Routes.CLUB_SETTINGS);
+    router.push(Routes.clubSettings({ clubId: club.id, section: 'details' }));
   };
 
   const handleLeaveClub = () => {
@@ -138,30 +132,17 @@ export function ClubHeader({
           },
         ]
       : []),
-    ...(canManage
+    ...(canManage && includeManagementActions
       ? [
           {
-            icon: 'construct-outline' as const,
-            label: 'Manage',
-            onPress: () => {
-              setShowMenu(false);
-              router.push(Routes.MANAGE);
-            },
+            icon: 'settings-outline' as const,
+            label: 'Manage Club',
+            onPress: handleOpenClubSettings,
             color: palette.warning,
           },
         ]
       : []),
-    ...(canManage
-      ? [
-          {
-            icon: 'settings-outline' as const,
-            label: 'Club Settings',
-            onPress: handleOpenClubSettings,
-            color: palette.text,
-          },
-        ]
-      : []),
-    ...(canManage
+    ...(canManage && includeManagementActions
       ? [
           {
             icon: 'people-outline' as const,

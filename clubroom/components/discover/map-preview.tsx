@@ -41,16 +41,17 @@ export function MapPreview({ coaches, selectedCoachId, onCoachFocus }: MapPrevie
   const lngRange = Math.max(bounds.maxLng - bounds.minLng, 0.001);
 
   const selectedCoach = coaches.find((coach) => coach.id === selectedCoachId);
+  const canFocusCoach = Boolean(onCoachFocus);
 
   return (
     <SurfaceCard style={styles.wrapper}>
       <Row style={styles.mapHeader}>
         <ThemedText type="defaultSemiBold">Live map preview</ThemedText>
-        <Clickable style={[styles.searchPill, { backgroundColor: palette.tint }]}>
+        <View style={[styles.searchPill, { backgroundColor: palette.tint }]}>
           <ThemedText style={[Typography.sm, styles.searchLabel, { color: palette.onPrimary }]}>
-            Search this area
+            Current area
           </ThemedText>
-        </Clickable>
+        </View>
       </Row>
       <View style={styles.mapContainer}>
         <View
@@ -63,29 +64,36 @@ export function MapPreview({ coaches, selectedCoachId, onCoachFocus }: MapPrevie
             }
             const normalizedLat = 1 - (coach.location.lat - bounds.minLat) / latRange;
             const normalizedLng = (coach.location.lng - bounds.minLng) / lngRange;
-            return (
+            const pinStyle = [
+              styles.pin,
+              {
+                left: normalizedLng * size.width,
+                top: normalizedLat * size.height,
+                backgroundColor:
+                  coach.id === selectedCoachId ? palette.tint : withAlpha(palette.surface, 0.95),
+              },
+            ];
+            const icon = (
+              <Ionicons
+                name={coach.id === selectedCoachId ? 'person' : 'location'}
+                size={coach.id === selectedCoachId ? 16 : 14}
+                color={coach.id === selectedCoachId ? palette.onPrimary : palette.tint}
+              />
+            );
+
+            return canFocusCoach ? (
               <Clickable
                 key={coach.id}
                 accessibilityHint="Center map on coach"
-                style={[
-                  styles.pin,
-                  {
-                    left: normalizedLng * size.width,
-                    top: normalizedLat * size.height,
-                    backgroundColor:
-                      coach.id === selectedCoachId
-                        ? palette.tint
-                        : withAlpha(palette.surface, 0.95),
-                  },
-                ]}
+                style={pinStyle}
                 onPress={() => onCoachFocus?.(coach.id)}
               >
-                <Ionicons
-                  name={coach.id === selectedCoachId ? 'person' : 'location'}
-                  size={coach.id === selectedCoachId ? 16 : 14}
-                  color={coach.id === selectedCoachId ? palette.onPrimary : palette.tint}
-                />
+                {icon}
               </Clickable>
+            ) : (
+              <View key={coach.id} style={pinStyle}>
+                {icon}
+              </View>
             );
           })}
         </View>

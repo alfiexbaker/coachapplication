@@ -54,8 +54,8 @@ describe('eventDisplayService', () => {
       assert.ok(result.includes('25'));
     });
 
-    test('formats with custom currency', () => {
-      const result = eventDisplayService.formatPrice(10, 'USD');
+    test('formats with explicit GBP currency', () => {
+      const result = eventDisplayService.formatPrice(10, 'GBP');
       assert.ok(result.includes('10'));
     });
   });

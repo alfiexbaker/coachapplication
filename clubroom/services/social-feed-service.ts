@@ -683,6 +683,14 @@ class ClubFeedService {
     return getUserClubsInternal(userId);
   }
 
+  getUserMemberships(userId: string): ClubMembership[] {
+    return getAllClubMembershipsForUser(userId);
+  }
+
+  getMembership(userId: string, clubId: string): ClubMembership | undefined {
+    return getAllClubMembershipsForUser(userId).find((membership) => membership.clubId === clubId);
+  }
+
   addPost(input: {
     authorId: string;
     authorName: string;

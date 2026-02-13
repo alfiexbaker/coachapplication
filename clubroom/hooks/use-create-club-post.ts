@@ -55,23 +55,24 @@ export function useCreateClubPost(clubId: string | undefined) {
     () => (currentUser?.id ? clubFeedService.getUserClubs(currentUser.id) : []),
     [currentUser?.id],
   );
+  const resolvedClubId = clubId || userClubs[0]?.id;
   const club = useMemo(
-    () => userClubs.find((candidate) => candidate.id === clubId),
-    [userClubs, clubId],
+    () => userClubs.find((candidate) => candidate.id === resolvedClubId),
+    [userClubs, resolvedClubId],
   );
   const membership = useMemo<ClubMembership | undefined>(() => {
-    if (!currentUser || !clubId) return undefined;
+    if (!currentUser || !resolvedClubId) return undefined;
     const role =
       currentUser.role === 'ADMIN' ? 'ADMIN' : currentUser.role === 'COACH' ? 'COACH' : 'MEMBER';
     return {
-      clubId,
+      clubId: resolvedClubId,
       userId: currentUser.id,
       role,
       status: 'active',
       joinSource: 'invite',
       canPostAsClub: role === 'ADMIN' || role === 'COACH',
     };
-  }, [clubId, currentUser]);
+  }, [resolvedClubId, currentUser]);
   const canPostAsClub =
     membership?.canPostAsClub || membership?.role === 'ADMIN' || membership?.role === 'COACH';
   const isCoach = currentUser?.role === 'COACH' || currentUser?.role === 'ADMIN';
@@ -84,7 +85,7 @@ export function useCreateClubPost(clubId: string | undefined) {
   const [eventDate, setEventDate] = useState<Date | null>(null);
   const [eventLocation, setEventLocation] = useState('');
   const [showDatePicker, setShowDatePicker] = useState(false);
-  const [feedType, setFeedType] = useState<FeedType>(isCoach ? 'PERSONAL' : 'CLUB');
+  const [feedType, setFeedType] = useState<FeedType>('CLUB');
   const [audienceType, setAudienceType] = useState<'club' | 'squad'>('club');
   const [selectedSquadId, setSelectedSquadId] = useState<string | null>(null);
   const [selectedEventId, setSelectedEventId] = useState<string | null>(null);
@@ -96,7 +97,7 @@ export function useCreateClubPost(clubId: string | undefined) {
     let active = true;
 
     const loadSquads = async () => {
-      if (!clubId) {
+      if (!resolvedClubId) {
         if (active) {
           setAvailableSquads([]);
         }
@@ -104,7 +105,7 @@ export function useCreateClubPost(clubId: string | undefined) {
       }
 
       try {
-        const squads = await squadService.getSquads(clubId);
+        const squads = await squadService.getSquads(resolvedClubId);
         if (active) {
           setAvailableSquads(squads);
         }
@@ -120,13 +121,13 @@ export function useCreateClubPost(clubId: string | undefined) {
     return () => {
       active = false;
     };
-  }, [clubId]);
+  }, [resolvedClubId]);
 
   useEffect(() => {
     let active = true;
 
     const loadEvents = async () => {
-      if (!clubId) {
+      if (!resolvedClubId) {
         if (active) {
           setAvailableEvents([]);
         }
@@ -134,7 +135,7 @@ export function useCreateClubPost(clubId: string | undefined) {
       }
 
       try {
-        const clubEvents = await eventService.getAllClubEvents(clubId);
+        const clubEvents = await eventService.getAllClubEvents(resolvedClubId);
         if (active) {
           const upcoming = clubEvents
             .filter((event) => event.status !== 'CANCELLED')
@@ -153,7 +154,7 @@ export function useCreateClubPost(clubId: string | undefined) {
     return () => {
       active = false;
     };
-  }, [clubId]);
+  }, [resolvedClubId]);
 
   const selectedSquad = availableSquads.find((s) => s.id === selectedSquadId);
   const selectedEvent = availableEvents.find((event) => event.id === selectedEventId) ?? null;
@@ -165,6 +166,12 @@ export function useCreateClubPost(clubId: string | undefined) {
       setFeedType('CLUB');
     }
   }, [postAs, feedType]);
+  useEffect(() => {
+    if (feedType !== 'CLUB' && audienceType !== 'club') {
+      setAudienceType('club');
+      setSelectedSquadId(null);
+    }
+  }, [feedType, audienceType]);
 
   const handleSelectEvent = useCallback(
     (eventId: string) => {
@@ -233,7 +240,8 @@ export function useCreateClubPost(clubId: string | undefined) {
 
   const handlePost = useCallback(async () => {
     if (!body.trim() && !imageUri) return;
-    if (!currentUser || !clubId) return;
+    if (!currentUser || !resolvedClubId) return;
+    if (feedType === 'CLUB' && audienceType === 'squad' && !selectedSquadId) return;
     if (Platform.OS !== 'web') Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
 
     setIsPosting(true);
@@ -250,7 +258,7 @@ export function useCreateClubPost(clubId: string | undefined) {
           eventId: postType === 'event' ? selectedEventId || undefined : undefined,
           eventDate: eventDate?.toISOString(),
           eventLocation: eventLocation.trim() || undefined,
-          clubId,
+          clubId: resolvedClubId,
           clubName: club?.name,
         });
         if (result.success && Platform.OS !== 'web')
@@ -260,7 +268,7 @@ export function useCreateClubPost(clubId: string | undefined) {
         const finalAudienceLabel =
           audienceType === 'squad' && selectedSquad ? selectedSquad.name : 'Club-wide';
         await clubFeedService.createPost({
-          clubId,
+          clubId: resolvedClubId,
           authorId: currentUser.id,
           authorName:
             postAs === 'club' && club
@@ -290,7 +298,7 @@ export function useCreateClubPost(clubId: string | undefined) {
     body,
     imageUri,
     currentUser,
-    clubId,
+    resolvedClubId,
     isCoach,
     feedType,
     title,
@@ -305,16 +313,19 @@ export function useCreateClubPost(clubId: string | undefined) {
     postAs,
   ]);
 
+  const hasAudienceTarget =
+    feedType !== 'CLUB' || audienceType !== 'squad' || Boolean(selectedSquadId);
   const canPost =
-    (body.trim().length > 0 || imageUri !== null) &&
-    !!clubId &&
-    !isPosting;
+    (body.trim().length > 0 || imageUri !== null) && !!resolvedClubId && hasAudienceTarget && !isPosting;
 
   const handleSelectAudienceClub = useCallback(() => {
     setAudienceType('club');
     setSelectedSquadId(null);
   }, []);
-  const handleSelectAudienceSquad = useCallback(() => setAudienceType('squad'), []);
+  const handleSelectAudienceSquad = useCallback(() => {
+    if (availableSquads.length === 0) return;
+    setAudienceType('squad');
+  }, [availableSquads.length]);
   const openDatePicker = useCallback(() => setShowDatePicker(true), []);
   const closeDatePicker = useCallback(() => setShowDatePicker(false), []);
 

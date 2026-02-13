@@ -16,6 +16,7 @@ interface VideoDetailsCardProps {
   createdAt: string;
   fileSize: number;
   sessionId?: string;
+  onViewSession?: (sessionId: string) => void;
 }
 
 export const VideoDetailsCard = memo(function VideoDetailsCard({
@@ -24,6 +25,7 @@ export const VideoDetailsCard = memo(function VideoDetailsCard({
   createdAt,
   fileSize,
   sessionId,
+  onViewSession,
 }: VideoDetailsCardProps) {
   return (
     <SurfaceCard style={styles.card}>
@@ -52,9 +54,17 @@ export const VideoDetailsCard = memo(function VideoDetailsCard({
         {sessionId && (
           <Row justify="space-between" align="center">
             <ThemedText style={{ color: colors.muted }}>Session</ThemedText>
-            <Clickable>
-              <ThemedText style={{ color: colors.tint }}>View Session</ThemedText>
-            </Clickable>
+            {onViewSession ? (
+              <Clickable
+                onPress={() => onViewSession(sessionId)}
+                accessibilityRole="button"
+                accessibilityLabel="View linked session"
+              >
+                <ThemedText style={{ color: colors.tint }}>View Session</ThemedText>
+              </Clickable>
+            ) : (
+              <ThemedText style={{ color: colors.muted }}>Linked</ThemedText>
+            )}
           </Row>
         )}
       </Column>

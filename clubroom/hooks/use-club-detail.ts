@@ -3,8 +3,9 @@
  * Manages club data, feed, members, events, squads, invites, and member removal flow.
  */
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { Alert } from 'react-native';
+import { Alert, Share } from 'react-native';
 import { router } from 'expo-router';
+import { Routes } from '@/navigation/routes';
 import { useAuth } from '@/hooks/use-auth';
 import { useToast } from '@/components/ui/toast';
 import { createLogger } from '@/utils/logger';
@@ -209,6 +210,32 @@ export function useClubDetail(clubId: string | undefined) {
     [currentUser, loadFeed],
   );
 
+  const handleLikePost = useCallback(
+    (postId: string) => {
+      if (!currentUser) return;
+      socialFeedService.toggleReaction(postId, currentUser.id);
+      loadFeed();
+    },
+    [currentUser, loadFeed],
+  );
+
+  const handleCommentPost = useCallback((postId: string) => {
+    router.push(Routes.modalPostDetail(postId));
+  }, []);
+
+  const handleSharePost = useCallback(
+    (postId: string) => {
+      const post = feed.find((candidate) => candidate.id === postId);
+      if (!post) return;
+
+      void Share.share({
+        title: post.title,
+        message: `${post.title}\n\n${post.body}`,
+      });
+    },
+    [feed],
+  );
+
   const handleRemoveMember = useCallback((member: ClubMember) => {
     if (!clubService.canBeRemoved(member.role)) {
       Alert.alert('Cannot remove owner', 'The club owner cannot be removed.');
@@ -325,6 +352,9 @@ export function useClubDetail(clubId: string | undefined) {
     filterCounts,
     onRefresh,
     handlePinToggle,
+    handleLikePost,
+    handleCommentPost,
+    handleSharePost,
     handleRemoveMember,
     handleConfirmMemberRemoval,
     handleLeaveClub,

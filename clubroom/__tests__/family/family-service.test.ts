@@ -396,12 +396,12 @@ describe('Family Service', () => {
 
     test('formatAmount should format currency correctly', () => {
       const gbpAmount = familyService.formatAmount(100.50, 'GBP');
-      const usdAmount = familyService.formatAmount(50, 'USD');
+      const euroAmount = familyService.formatAmount(50, 'EUR');
 
       assert.ok(gbpAmount.includes('\u00A3'));
       assert.ok(gbpAmount.includes('100.50'));
-      assert.ok(usdAmount.includes('$'));
-      assert.ok(usdAmount.includes('50.00'));
+      assert.ok(euroAmount.includes('\u00A3'));
+      assert.ok(euroAmount.includes('50.00'));
     });
 
     test('formatAmount should handle negative amounts', () => {

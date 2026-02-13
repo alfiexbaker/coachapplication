@@ -159,7 +159,7 @@ describe('InvoiceCard Utility Functions', () => {
 
   describe('Amount Formatting', () => {
     const formatAmount = (amount: number, currency: string = 'GBP'): string => {
-      const symbol = currency === 'GBP' ? '\u00A3' : '$';
+      const symbol = '\u00A3';
       return `${symbol}${amount.toFixed(2)}`;
     };
 

@@ -16,6 +16,7 @@ import { BookingStepper } from '@/components/ui/booking/booking-stepper';
 import { CoachSummaryCard } from '@/components/ui/booking/coach-summary-card';
 import { ObjectiveSelector } from '@/components/ui/booking/objective-selector';
 import { ServiceSelectionList } from '@/components/ui/booking/service-selection-list';
+import { Button } from '@/components/ui/primitives';
 import { Row } from '@/components/primitives/row';
 import { Clickable } from '@/components/primitives/clickable';
 import { ThemedText } from '@/components/themed-text';
@@ -58,7 +59,9 @@ export default function BookCoachScreen() {
         <Clickable onPress={c.handleBack} hitSlop={8}>
           <Ionicons name="arrow-back" size={24} color={palette.text} />
         </Clickable>
-        <ThemedText type="subtitle">{c.stepTitle}</ThemedText>
+        <ThemedText type="subtitle" style={styles.headerTitle}>
+          {c.stepTitle}
+        </ThemedText>
         <View style={{ width: 24 }} />
       </Row>
 
@@ -143,21 +146,14 @@ export default function BookCoachScreen() {
           { backgroundColor: palette.background, borderTopColor: palette.border },
         ]}
       >
-        <Clickable
+        <Button
+          title={c.step === 3 ? 'Review Booking' : 'Continue'}
           onPress={c.handleContinue}
           disabled={c.continueDisabled}
-          style={({ pressed }) => [
-            styles.continueButton,
-            {
-              backgroundColor: c.continueDisabled ? palette.border : palette.tint,
-              opacity: pressed ? 0.8 : 1,
-            },
-          ]}
-        >
-          <ThemedText style={[styles.continueButtonText, { color: palette.onPrimary }]}>
-            {c.step === 3 ? 'Review Booking' : 'Continue'}
-          </ThemedText>
-        </Clickable>
+          size="lg"
+          fullWidth
+          accessibilityLabel={c.step === 3 ? 'Review booking details' : 'Continue booking'}
+        />
       </View>
     </SafeAreaView>
   );
@@ -166,8 +162,14 @@ export default function BookCoachScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1 },
   content: { flexGrow: 1, paddingBottom: Spacing['2xl'] },
-  header: { paddingHorizontal: Spacing.lg, paddingVertical: Spacing.md },
+  header: {
+    paddingHorizontal: Spacing.lg,
+    paddingVertical: Spacing.md,
+    borderBottomWidth: 1,
+    borderBottomColor: 'transparent',
+  },
+  headerTitle: {
+    ...Typography.subheading,
+  },
   footer: { padding: Spacing.lg, borderTopWidth: 1 },
-  continueButton: { paddingVertical: Spacing.md, borderRadius: Spacing.md, alignItems: 'center' },
-  continueButtonText: { ...Typography.subheading },
 });

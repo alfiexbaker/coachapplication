@@ -25,7 +25,7 @@ const logger = createLogger('SettingsScreen');
 
 export default function SettingsScreen() {
   const { colors: palette } = useTheme();
-  const { currentUser, isLoading, error } = useAuth();
+  const { currentUser, isLoading, error, logout } = useAuth();
   const role = currentUser?.role;
 
   useEffect(() => {
@@ -51,7 +51,7 @@ export default function SettingsScreen() {
         edges={['top']}
       >
         <ScreenHeader title="Profile" subtitle="Your account" />
-        <ErrorState message={error} onRetry={() => {}} />
+        <ErrorState message={error} onRetry={() => void logout()} />
       </SafeAreaView>
     );
   }

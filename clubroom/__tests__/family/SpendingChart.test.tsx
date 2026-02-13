@@ -184,7 +184,7 @@ describe('SpendingChart', () => {
   describe('Currency Formatting', () => {
     test('should format GBP correctly', () => {
       const formatAmount = (amount: number, currency: string = 'GBP'): string => {
-        const symbol = currency === 'GBP' ? '\u00A3' : '$';
+        const symbol = '\u00A3';
         return `${symbol}${amount.toFixed(2)}`;
       };
 
@@ -193,13 +193,13 @@ describe('SpendingChart', () => {
       assert.strictEqual(formatAmount(0), '\u00A30.00');
     });
 
-    test('should format USD correctly', () => {
+    test('should keep GBP formatting for all inputs', () => {
       const formatAmount = (amount: number, currency: string = 'GBP'): string => {
-        const symbol = currency === 'GBP' ? '\u00A3' : '$';
+        const symbol = '\u00A3';
         return `${symbol}${amount.toFixed(2)}`;
       };
 
-      assert.strictEqual(formatAmount(100, 'USD'), '$100.00');
+      assert.strictEqual(formatAmount(100, 'EUR'), '\u00A3100.00');
     });
   });
 

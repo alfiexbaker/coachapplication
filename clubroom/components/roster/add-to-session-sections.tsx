@@ -145,6 +145,8 @@ type AddToSessionActionCardProps = {
   icon: keyof typeof Ionicons.glyphMap;
   onPress: () => void;
   ctaLabel: string;
+  variant: 'new' | 'existing';
+  accentKey?: 'tint' | 'success' | 'warning' | 'info';
 };
 
 export const AddToSessionActionCard = React.memo(function AddToSessionActionCard({
@@ -154,22 +156,49 @@ export const AddToSessionActionCard = React.memo(function AddToSessionActionCard
   icon,
   onPress,
   ctaLabel,
+  variant,
+  accentKey,
 }: AddToSessionActionCardProps) {
+  const accent = accentKey ? colors[accentKey] : variant === 'new' ? colors.tint : colors.success;
+  const modeLabel = variant === 'new' ? 'New Flow' : 'Existing Flow';
+
   return (
-    <SurfaceCard tactile onPress={onPress} style={styles.actionCard}>
-      <Row gap="md" align="center">
-        <View style={[styles.typeIcon, { backgroundColor: withAlpha(colors.tint, 0.09) }]}>
-          <Ionicons name={icon} size={20} color={colors.tint} />
-        </View>
-        <View style={styles.sessionInfo}>
-          <ThemedText type="defaultSemiBold">{title}</ThemedText>
-          <ThemedText style={[styles.metaText, { color: colors.muted }]}>{description}</ThemedText>
-        </View>
-        <Row align="center" gap="xxs">
-          <ThemedText style={[styles.actionText, { color: colors.tint }]}>{ctaLabel}</ThemedText>
-          <Ionicons name="chevron-forward" size={16} color={colors.tint} />
+    <SurfaceCard
+      tactile
+      onPress={onPress}
+      style={[
+        styles.actionCard,
+        {
+          borderWidth: 1,
+          borderColor: withAlpha(accent, 0.28),
+          backgroundColor: withAlpha(accent, 0.03),
+        },
+      ]}
+    >
+      <Row align="center" justify="space-between" style={styles.actionTopRow}>
+        <Row align="center" gap="sm">
+          <View style={[styles.typeIcon, { backgroundColor: withAlpha(accent, 0.12) }]}>
+            <Ionicons name={icon} size={20} color={accent} />
+          </View>
+          <View style={[styles.modeBadge, { backgroundColor: withAlpha(accent, 0.12) }]}>
+            <ThemedText style={[styles.modeBadgeText, { color: accent }]}>{modeLabel}</ThemedText>
+          </View>
         </Row>
+        <View style={[styles.actionPill, { backgroundColor: withAlpha(accent, 0.1) }]}>
+          <Row align="center" gap="xxs">
+            <ThemedText style={[styles.actionText, { color: accent }]}>{ctaLabel}</ThemedText>
+            <Ionicons name="chevron-forward" size={16} color={accent} />
+          </Row>
+        </View>
       </Row>
+      <View style={styles.actionBody}>
+        <ThemedText type="defaultSemiBold" numberOfLines={1}>
+          {title}
+        </ThemedText>
+        <ThemedText style={[styles.metaText, { color: colors.muted }]} numberOfLines={2}>
+          {description}
+        </ThemedText>
+      </View>
     </SurfaceCard>
   );
 });
@@ -227,6 +256,27 @@ const styles = StyleSheet.create({
   },
   actionCard: {
     padding: Spacing.md,
+    gap: Spacing.sm,
+  },
+  actionTopRow: {
+    minHeight: 44,
+  },
+  actionBody: {
+    gap: Spacing.xxs,
+  },
+  modeBadge: {
+    paddingHorizontal: Spacing.xs,
+    paddingVertical: Spacing.micro,
+    borderRadius: Radii.pill,
+  },
+  modeBadgeText: {
+    ...Typography.caption,
+  },
+  actionPill: {
+    minHeight: 40,
+    paddingHorizontal: Spacing.sm,
+    borderRadius: Radii.pill,
+    justifyContent: 'center',
   },
   actionText: {
     ...Typography.smallSemiBold,

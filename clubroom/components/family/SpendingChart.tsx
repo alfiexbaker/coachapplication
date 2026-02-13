@@ -21,12 +21,12 @@ interface SpendingChartProps {
 
 export function SpendingChart({
   spending,
-  currency = 'GBP',
+  currency: _currency = 'GBP',
   showMonthly = true,
   monthsToShow = 6,
 }: SpendingChartProps) {
   const { colors: palette } = useTheme();
-  const currencySymbol = currency === 'GBP' ? '\u00A3' : '$';
+  const currencySymbol = '\u00A3';
 
   const totals = useMemo(() => {
     const totalSpent = spending.reduce((sum, s) => sum + s.totalSpent, 0);

@@ -14,12 +14,16 @@ export interface FeedPostProps {
   post: ClubFeedPost;
   canPin?: boolean;
   onPinToggle?: (postId: string) => void;
+  onLike?: (postId: string) => void;
+  onComment?: (postId: string) => void;
+  onShare?: (postId: string) => void;
 }
 
-export function FeedPost({ post, canPin, onPinToggle }: FeedPostProps) {
+export function FeedPost({ post, canPin, onPinToggle, onLike, onComment, onShare }: FeedPostProps) {
   const { colors: palette } = useTheme();
   const authorLabel = post.postAs === 'club' ? post.clubId || 'Club' : post.authorId || 'Coach';
   const initials = post.postAs === 'club' ? 'CL' : authorLabel.slice(0, 2).toUpperCase() || 'ME';
+  const showActions = !!(onLike || onComment || onShare);
 
   const formatDate = (dateStr: string) => {
     const date = new Date(dateStr);
@@ -65,7 +69,9 @@ export function FeedPost({ post, canPin, onPinToggle }: FeedPostProps) {
         </View>
         <View style={{ flex: 1 }}>
           <Row style={styles.authorRow}>
-            <ThemedText type="defaultSemiBold">{authorLabel}</ThemedText>
+            <ThemedText type="defaultSemiBold" numberOfLines={1}>
+              {authorLabel}
+            </ThemedText>
             {post.postAs === 'club' && (
               <View style={[styles.clubBadge, { backgroundColor: withAlpha(palette.tint, 0.09) }]}>
                 <ThemedText style={[styles.clubBadgeText, { color: palette.tint }]}>
@@ -91,10 +97,10 @@ export function FeedPost({ post, canPin, onPinToggle }: FeedPostProps) {
 
       {/* Post content */}
       <View style={styles.postContent}>
-        <ThemedText type="defaultSemiBold" style={{ ...Typography.body }}>
+        <ThemedText type="defaultSemiBold" style={styles.postTitle}>
           {post.title}
         </ThemedText>
-        <ThemedText style={{ lineHeight: 20, color: palette.text }}>{post.body}</ThemedText>
+        <ThemedText style={[styles.postBody, { color: palette.text }]}>{post.body}</ThemedText>
       </View>
 
       {/* Image if present */}
@@ -153,23 +159,43 @@ export function FeedPost({ post, canPin, onPinToggle }: FeedPostProps) {
       )}
 
       {/* Post actions */}
-      <Row style={styles.feedFooter}>
-        <Clickable style={styles.actionButton}>
-          <Ionicons name="heart-outline" size={18} color={palette.muted} />
-          <ThemedText style={{ ...Typography.small, color: palette.muted }}>
-            {post.reactionCount ?? 0}
-          </ThemedText>
-        </Clickable>
-        <Clickable style={styles.actionButton}>
-          <Ionicons name="chatbubble-outline" size={18} color={palette.muted} />
-          <ThemedText style={{ ...Typography.small, color: palette.muted }}>
-            {post.commentCount ?? 0}
-          </ThemedText>
-        </Clickable>
-        <Clickable accessibilityLabel="Share post" style={styles.actionButton}>
-          <Ionicons name="share-outline" size={18} color={palette.muted} />
-        </Clickable>
-      </Row>
+      {showActions && (
+        <Row style={styles.feedFooter}>
+          {onLike && (
+            <Clickable
+              style={styles.actionButton}
+              accessibilityLabel="Like post"
+              onPress={() => onLike(post.id)}
+            >
+              <Ionicons name="heart-outline" size={18} color={palette.muted} />
+              <ThemedText style={{ ...Typography.small, color: palette.muted }}>
+                {post.reactionCount ?? 0}
+              </ThemedText>
+            </Clickable>
+          )}
+          {onComment && (
+            <Clickable
+              style={styles.actionButton}
+              accessibilityLabel="Comment on post"
+              onPress={() => onComment(post.id)}
+            >
+              <Ionicons name="chatbubble-outline" size={18} color={palette.muted} />
+              <ThemedText style={{ ...Typography.small, color: palette.muted }}>
+                {post.commentCount ?? 0}
+              </ThemedText>
+            </Clickable>
+          )}
+          {onShare && (
+            <Clickable
+              accessibilityLabel="Share post"
+              style={styles.actionButton}
+              onPress={() => onShare(post.id)}
+            >
+              <Ionicons name="share-outline" size={18} color={palette.muted} />
+            </Clickable>
+          )}
+        </Row>
+      )}
     </SurfaceCard>
   );
 }
@@ -213,6 +239,13 @@ const styles = StyleSheet.create({
   postContent: {
     gap: Spacing.xxs,
   },
+  postTitle: {
+    ...Typography.bodySemiBold,
+  },
+  postBody: {
+    ...Typography.body,
+    lineHeight: 22,
+  },
   postImage: {
     width: '100%',
     height: 200,
@@ -241,11 +274,14 @@ const styles = StyleSheet.create({
     borderWidth: 1,
   },
   feedFooter: {
-    gap: Spacing.lg,
+    gap: Spacing.sm,
     paddingTop: Spacing.xs,
   },
   actionButton: {
     alignItems: 'center',
     gap: Spacing.xxs,
+    minHeight: 44,
+    paddingHorizontal: Spacing.xs,
+    justifyContent: 'center',
   },
 });

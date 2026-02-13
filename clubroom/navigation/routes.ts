@@ -28,6 +28,10 @@ export const Routes = {
   BADGES: '/(tabs)/badges' as Href,
   CHILDREN: '/(tabs)/children' as Href,
   CLUB_HUB: '/(tabs)/club-hub' as Href,
+  clubHub: (params?: { clubId?: string; inviteCode?: string }) => ({
+    pathname: '/(tabs)/club-hub',
+    params: params ?? {},
+  }) as Href,
   EARNINGS: '/(tabs)/earnings' as Href,
   MESSAGES: '/(tabs)/messages' as Href,
   MANAGE: '/manage' as Href,
@@ -51,6 +55,15 @@ export const Routes = {
   MODAL_ADD_CHILD: '/(modal)/add-child' as Href,
   MODAL_CREATE_POST: '/(modal)/create-post' as Href,
   MODAL_CREATE_CLUB_POST: '/(modal)/create-club-post' as Href,
+  modalCreateClubPost: (params?: {
+    clubId?: string;
+    audience?: 'club' | 'squad';
+    squadId?: string;
+  }) =>
+    ({
+      pathname: '/(modal)/create-club-post',
+      params: params ?? {},
+    }) as Href,
   MODAL_CREATE_SQUAD: '/(modal)/create-squad' as Href,
   modalPostDetail: (postId: string) => ({
     pathname: '/(modal)/post-detail',
@@ -219,6 +232,10 @@ export const Routes = {
   CLUB_CREATE: '/club/create' as Href,
   CLUB_INVITE_MEMBERS: '/club/invite-members' as Href,
   CLUB_SETTINGS: '/club/settings' as Href,
+  clubSettings: (params?: { clubId?: string; section?: string }) => ({
+    pathname: '/club/settings',
+    params: params ?? {},
+  }) as Href,
   CLUB_TRAINING_SCHEDULE: '/club/training-schedule' as Href,
   club: (id: string) => ({
     pathname: '/club/[id]',

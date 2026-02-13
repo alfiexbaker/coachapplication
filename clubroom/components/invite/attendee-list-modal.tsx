@@ -107,10 +107,9 @@ function AttendeeListModalComponent({
         accessibilityRole="button"
         accessibilityLabel="Close attendee list"
       >
-        <Clickable
+        <View
           style={[styles.sheet, { backgroundColor: palette.surface }]}
-          onPress={() => {}}
-          accessibilityRole="none"
+          onStartShouldSetResponder={() => true}
         >
           <View style={[styles.handleBar, { backgroundColor: palette.border }]} />
           <Row style={styles.header}>
@@ -135,7 +134,7 @@ function AttendeeListModalComponent({
               contentContainerStyle={styles.listContent}
             />
           )}
-        </Clickable>
+        </View>
       </Clickable>
     </Modal>
   );

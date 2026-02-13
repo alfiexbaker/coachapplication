@@ -42,12 +42,13 @@ export const ClubHeaderMenu = memo(function ClubHeaderMenu({
 
   return (
     <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
-      <Clickable
-        style={[styles.modalOverlay, { backgroundColor: withAlpha(palette.text, 0.5) }]}
-        onPress={onClose}
-        accessibilityRole="button"
-        accessibilityLabel="Close club menu"
-      >
+      <View style={styles.modalRoot}>
+        <Clickable
+          style={[styles.modalOverlay, { backgroundColor: withAlpha(palette.text, 0.5) }]}
+          onPress={onClose}
+          accessibilityRole="button"
+          accessibilityLabel="Close club menu"
+        />
         <View
           onStartShouldSetResponder={() => true}
           style={[styles.menuContainer, { backgroundColor: palette.surface }]}
@@ -104,7 +105,7 @@ export const ClubHeaderMenu = memo(function ClubHeaderMenu({
             ))}
           </View>
         </View>
-      </Clickable>
+      </View>
     </Modal>
   );
 });
@@ -112,7 +113,8 @@ export const ClubHeaderMenu = memo(function ClubHeaderMenu({
 // ─── Styles ─────────────────────────────────────────────────────────────────
 
 const styles = StyleSheet.create({
-  modalOverlay: { flex: 1, justifyContent: 'flex-end' },
+  modalRoot: { flex: 1, justifyContent: 'flex-end' },
+  modalOverlay: { ...StyleSheet.absoluteFillObject },
   menuContainer: {
     borderTopLeftRadius: Components.modal.borderRadius,
     borderTopRightRadius: Components.modal.borderRadius,

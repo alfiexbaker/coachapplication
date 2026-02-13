@@ -1,7 +1,7 @@
 /**
  * ClubAdminActions — Admin quick-action grid for club coaches.
  *
- * Shows Settings, Dashboard, Calendar, and Branding shortcuts.
+ * Shows Settings, Dashboard, Calendar, and invite shortcuts.
  * Only rendered when the user is a coach.
  */
 
@@ -31,16 +31,22 @@ export interface ClubAdminActionsProps {
 export const ClubAdminActions = memo(function ClubAdminActions({ clubId }: ClubAdminActionsProps) {
   const { colors } = useTheme();
 
-  const goSettings = useCallback(() => router.push(Routes.CLUB_SETTINGS), []);
+  const goSettings = useCallback(
+    () => router.push(Routes.clubSettings({ clubId, section: 'details' })),
+    [clubId],
+  );
+  const goInvites = useCallback(
+    () => router.push(Routes.clubSettings({ clubId, section: 'invites' })),
+    [clubId],
+  );
   const goDashboard = useCallback(() => router.push(Routes.clubDashboard(clubId)), [clubId]);
   const goCalendar = useCallback(() => router.push(Routes.clubCalendar(clubId)), [clubId]);
-  const goBranding = useCallback(() => router.push(Routes.clubBranding(clubId)), [clubId]);
 
   const actions: AdminAction[] = [
     { key: 'settings', icon: 'settings-outline', label: 'Settings', route: goSettings },
     { key: 'dashboard', icon: 'bar-chart-outline', label: 'Dashboard', route: goDashboard },
     { key: 'calendar', icon: 'calendar-outline', label: 'Calendar', route: goCalendar },
-    { key: 'branding', icon: 'color-palette-outline', label: 'Branding', route: goBranding },
+    { key: 'invites', icon: 'mail-outline', label: 'Invites', route: goInvites },
   ];
 
   return (

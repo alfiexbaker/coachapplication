@@ -178,10 +178,10 @@ export const CreateScheduleStep = memo(function CreateScheduleStep({
         {/* Price */}
         <Column gap="sm">
           <ThemedText type="defaultSemiBold" style={styles.label}>
-            Price per Session (USD)
+            Price per Session (GBP)
           </ThemedText>
           <Row align="center" gap="sm">
-            <ThemedText style={[styles.currency, { color: colors.muted }]}>$</ThemedText>
+            <ThemedText style={[styles.currency, { color: colors.muted }]}>£</ThemedText>
             <TextInput
               style={[styles.input, styles.priceInput, inputColors]}
               placeholder="0 for free"

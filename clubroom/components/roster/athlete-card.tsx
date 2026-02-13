@@ -26,6 +26,14 @@ function getInitials(name: string): string {
     .toUpperCase();
 }
 
+function formatStatusLabel(status: RosterEntry['status']): string {
+  return status
+    .toLowerCase()
+    .split('_')
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+    .join(' ');
+}
+
 function formatRelativeDate(dateStr: string | undefined): string {
   if (!dateStr) return 'Never';
   const date = new Date(dateStr);
@@ -81,20 +89,22 @@ function AthleteCardInner({ athlete, upcomingSession }: AthleteCardProps) {
 
         {/* Info */}
         <View style={styles.athleteInfo}>
-          <Row align="center" gap="sm">
-            <ThemedText type="defaultSemiBold" style={styles.athleteName}>
+          <Row align="center" gap="xs" style={styles.nameRow}>
+            <ThemedText type="defaultSemiBold" style={styles.athleteName} numberOfLines={1}>
               {athleteName}
             </ThemedText>
             {athlete.status !== 'ACTIVE' && (
-              <View style={[styles.statusBadge, { backgroundColor: withAlpha(palette.muted, 0.12) }]}>
+              <View
+                style={[styles.statusBadge, { backgroundColor: withAlpha(palette.muted, 0.12) }]}
+              >
                 <ThemedText style={[styles.statusText, { color: palette.muted }]}>
-                  {athlete.status.toLowerCase()}
+                  {formatStatusLabel(athlete.status)}
                 </ThemedText>
               </View>
             )}
           </Row>
 
-          <Row align="center" gap="xxs">
+          <Row align="center" gap="xxs" style={styles.metaRow}>
             <ThemedText style={[styles.metaText, { color: palette.muted }]}>
               {athlete.totalSessions} sessions
             </ThemedText>
@@ -105,9 +115,16 @@ function AthleteCardInner({ athlete, upcomingSession }: AthleteCardProps) {
           </Row>
 
           {upcomingSession ? (
-            <Row align="center" gap="xxs" style={[styles.upcomingBadge, { backgroundColor: withAlpha(palette.success, 0.09) }]}>
+            <Row
+              align="center"
+              gap="xxs"
+              style={[styles.upcomingBadge, { backgroundColor: withAlpha(palette.success, 0.09) }]}
+            >
               <Ionicons name="calendar" size={12} color={palette.success} />
-              <ThemedText style={[styles.upcomingText, { color: palette.success }]}>
+              <ThemedText
+                style={[styles.upcomingText, { color: palette.success }]}
+                numberOfLines={1}
+              >
                 Next: {formatUpcomingDate(upcomingSession.scheduledAt)}
               </ThemedText>
             </Row>
@@ -122,6 +139,7 @@ function AthleteCardInner({ athlete, upcomingSession }: AthleteCardProps) {
         <Row align="center" gap="sm">
           <Clickable
             style={[styles.actionButton, { backgroundColor: palette.tint }]}
+            accessibilityLabel={`Add ${athleteName} to session`}
             onPress={(event) => {
               event.stopPropagation();
               router.push(Routes.rosterAthleteAddToSession(athlete.athleteId, athleteName));
@@ -149,31 +167,38 @@ const styles = StyleSheet.create({
     padding: Spacing.md,
   },
   avatar: {
-    width: 52,
-    height: 52,
-    borderRadius: Radii['2xl'],
+    width: 44,
+    height: 44,
+    borderRadius: Radii.xl,
     alignItems: 'center',
     justifyContent: 'center',
-    position: 'relative',
   },
   avatarText: {
-    ...Typography.heading,
+    ...Typography.bodySmallSemiBold,
   },
   athleteInfo: {
     flex: 1,
+    minWidth: 0,
     gap: Spacing.xxs,
+  },
+  nameRow: {
+    minHeight: 24,
   },
   athleteName: {
     ...Typography.subheading,
+    flexShrink: 1,
   },
   statusBadge: {
-    paddingHorizontal: Spacing.xxs,
+    paddingHorizontal: Spacing.xs,
     paddingVertical: Spacing.micro,
-    borderRadius: Radii.xs,
+    borderRadius: Radii.pill,
+    flexShrink: 0,
   },
   statusText: {
-    ...Typography.micro,
-    textTransform: 'capitalize',
+    ...Typography.caption,
+  },
+  metaRow: {
+    minHeight: 20,
   },
   metaText: {
     ...Typography.small,
@@ -196,8 +221,8 @@ const styles = StyleSheet.create({
     marginTop: Spacing.xxs,
   },
   actionButton: {
-    width: 32,
-    height: 32,
+    width: 40,
+    height: 40,
     borderRadius: Radii.lg,
     alignItems: 'center',
     justifyContent: 'center',

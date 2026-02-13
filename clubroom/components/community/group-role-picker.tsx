@@ -66,13 +66,17 @@ function GroupRolePickerInner({
 
   return (
     <Modal visible={visible} animationType="fade" transparent onRequestClose={onClose}>
-      <Clickable
-        style={[styles.rolePickerOverlay, { backgroundColor: withAlpha(palette.text, 0.4) }]}
-        onPress={onClose}
-        accessibilityRole="button"
-        accessibilityLabel="Close role picker"
-      >
-        <View style={[styles.rolePickerCard, { backgroundColor: palette.surface }]}>
+      <View style={styles.rolePickerOverlay}>
+        <Clickable
+          style={[styles.rolePickerBackdrop, { backgroundColor: withAlpha(palette.text, 0.4) }]}
+          onPress={onClose}
+          accessibilityRole="button"
+          accessibilityLabel="Close role picker"
+        />
+        <View
+          style={[styles.rolePickerCard, { backgroundColor: palette.surface }]}
+          onStartShouldSetResponder={() => true}
+        >
           <ThemedText type="subtitle" style={styles.rolePickerTitle}>
             Change Role
           </ThemedText>
@@ -131,7 +135,7 @@ function GroupRolePickerInner({
             </ThemedText>
           </Clickable>
         </View>
-      </Clickable>
+      </View>
     </Modal>
   );
 }
@@ -148,6 +152,9 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     paddingHorizontal: Spacing.lg,
+  },
+  rolePickerBackdrop: {
+    ...StyleSheet.absoluteFillObject,
   },
   rolePickerCard: {
     width: '100%',

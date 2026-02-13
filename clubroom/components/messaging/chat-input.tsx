@@ -17,6 +17,7 @@ export function ChatInput({ onAttach, onSend, disabled }: ChatInputProps) {
   const { colors: palette, scheme } = useTheme();
   const [value, setValue] = useState('');
   const placeholderColor = palette.muted;
+  const canAttach = Boolean(onAttach) && !disabled;
 
   return (
     <Row
@@ -28,8 +29,10 @@ export function ChatInput({ onAttach, onSend, disabled }: ChatInputProps) {
       <Clickable
         accessibilityRole="button"
         accessibilityLabel="Attach media or file"
-        style={styles.iconButton}
-        onPress={onAttach}
+        accessibilityState={{ disabled: !canAttach }}
+        style={[styles.iconButton, !canAttach && { opacity: 0.45 }]}
+        onPress={canAttach ? onAttach : undefined}
+        disabled={!canAttach}
       >
         <IconSymbol name="paperclip" size={22} color={palette.icon} />
       </Clickable>

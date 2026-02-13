@@ -1,5 +1,6 @@
 import { memo } from 'react';
 import { View, StyleSheet } from 'react-native';
+import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 
@@ -11,6 +12,7 @@ import { Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
 import type { GroupSession } from '@/constants/types';
 import { getGroupSessionCoachName } from '@/utils/group-display';
+import { Routes } from '@/navigation/routes';
 
 interface GroupSessionDetailsProps {
   session: GroupSession;
@@ -94,10 +96,13 @@ export const GroupSessionDetails = memo(function GroupSessionDetails({
               <ThemedText style={{ color: colors.muted }}>Coach</ThemedText>
             </View>
             <Clickable
+              onPress={() => router.push(Routes.messagesWith({ coachId: session.coachId }))}
               style={[
                 styles.messageButton,
                 { backgroundColor: colors.surface, borderColor: colors.border },
               ]}
+              accessibilityRole="button"
+              accessibilityLabel={`Message coach ${coachName}`}
             >
               <Ionicons name="chatbubble-outline" size={18} color={colors.tint} />
             </Clickable>

@@ -1,9 +1,7 @@
-import { View, StyleSheet } from 'react-native';
+import { StyleSheet } from 'react-native';
 
-import { Row } from '@/components/primitives/row';
-import { ThemedText } from '@/components/themed-text';
-import { Spacing, Radii, Typography } from '@/constants/theme';
-import { useTheme } from '@/hooks/useTheme';
+import { ProgressStepper } from '@/components/ui/primitives';
+import { Spacing } from '@/constants/theme';
 
 export function BookingStepper({
   step,
@@ -14,27 +12,10 @@ export function BookingStepper({
   totalSteps: number;
   isParent: boolean;
 }) {
-  const { colors: palette } = useTheme();
+  const normalizedStep = isParent ? step : Math.max(step - 1, 0);
 
   return (
-    <View style={styles.wrapper}>
-      <Row gap="sm">
-        {(isParent ? [0, 1, 2, 3] : [1, 2, 3]).map((num) => (
-          <View
-            key={num}
-            style={[
-              styles.dot,
-              {
-                backgroundColor: num <= step ? palette.tint : palette.border,
-              },
-            ]}
-          />
-        ))}
-      </Row>
-      <ThemedText style={[styles.caption, { color: palette.muted }]}>
-        Step {isParent ? step + 1 : step} of {totalSteps}
-      </ThemedText>
-    </View>
+    <ProgressStepper currentStep={normalizedStep} totalSteps={totalSteps} style={styles.wrapper} />
   );
 }
 
@@ -42,13 +23,5 @@ const styles = StyleSheet.create({
   wrapper: {
     paddingHorizontal: Spacing.lg,
     paddingBottom: Spacing.md,
-    gap: Spacing.sm,
   },
-  // track replaced by Row primitive
-  dot: {
-    flex: 1,
-    height: 4,
-    borderRadius: Radii.xs,
-  },
-  caption: { ...Typography.caption, textAlign: 'center' },
 });

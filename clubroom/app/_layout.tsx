@@ -111,7 +111,7 @@ function RootNavigation() {
       {isAuthenticated ? (
         <ToastProvider>
           <NotificationToastProvider>
-            <Stack>
+            <Stack screenOptions={{ headerShown: false }}>
               <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
               <Stack.Screen
                 name="(modal)/post-detail"
@@ -215,7 +215,7 @@ function RootNavigation() {
                 }}
               />
               <Stack.Screen
-                name="manage"
+                name="manage/index"
                 options={{
                   headerShown: false,
                   animation: 'slide_from_right',

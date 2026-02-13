@@ -9,7 +9,7 @@ import { ScreenHeader } from '@/components/primitives/screen-header';
 import { EmptyState, ErrorState, LoadingState } from '@/components/ui/screen-states';
 
 export default function MoreScreen() {
-  const { currentUser, isLoading, error } = useAuth();
+  const { currentUser, isLoading, error, logout } = useAuth();
   const { colors: palette } = useTheme();
 
   if (isLoading) {
@@ -25,7 +25,7 @@ export default function MoreScreen() {
     return (
       <SafeAreaView style={[styles.container, { backgroundColor: palette.background }]}>
         <ScreenHeader title="More" subtitle="Settings and options" />
-        <ErrorState message={error} onRetry={() => {}} />
+        <ErrorState message={error} onRetry={() => void logout()} />
       </SafeAreaView>
     );
   }

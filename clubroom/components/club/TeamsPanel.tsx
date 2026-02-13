@@ -50,43 +50,52 @@ export function TeamsPanel({ squads, isCoach, clubId }: TeamsPanelProps) {
           contentContainerStyle={styles.scrollContent}
         >
           {squads.map((squad) => (
-            <Clickable key={squad.id} onPress={() => router.push(Routes.clubSquad(squad.id))}>
-              <SurfaceCard style={styles.teamCard}>
-                <View style={[styles.teamIcon, { backgroundColor: withAlpha(palette.tint, 0.09) }]}>
-                  <Ionicons name="people" size={24} color={palette.tint} />
-                </View>
-                <ThemedText type="defaultSemiBold" numberOfLines={1} style={styles.teamName}>
-                  {squad.name}
-                </ThemedText>
-                <ThemedText style={[styles.teamMeta, { color: palette.muted }]}>
-                  {squad.memberCount} athletes
-                </ThemedText>
-                {squad.primaryCoach && (
-                  <Row style={styles.coachRow}>
-                    <Ionicons name="person-circle-outline" size={12} color={palette.muted} />
-                    <ThemedText
-                      style={[styles.coachName, { color: palette.muted }]}
-                      numberOfLines={1}
-                    >
-                      {squad.primaryCoach}
-                    </ThemedText>
-                  </Row>
-                )}
-                {squad.nextSession && (
-                  <Row
-                    style={[
-                      styles.nextSessionBadge,
-                      { backgroundColor: withAlpha(palette.success, 0.09) },
-                    ]}
+            <SurfaceCard
+              key={squad.id}
+              style={styles.teamCard}
+              onPress={() => router.push(Routes.clubSquad(squad.id))}
+              accessibilityLabel={`Manage ${squad.name}`}
+            >
+              <View style={[styles.teamIcon, { backgroundColor: withAlpha(palette.tint, 0.09) }]}>
+                <Ionicons name="people" size={24} color={palette.tint} />
+              </View>
+              <ThemedText type="defaultSemiBold" numberOfLines={1} style={styles.teamName}>
+                {squad.name}
+              </ThemedText>
+              <ThemedText style={[styles.teamMeta, { color: palette.muted }]}>
+                {squad.memberCount} athletes
+              </ThemedText>
+              {squad.primaryCoach && (
+                <Row style={styles.coachRow}>
+                  <Ionicons name="person-circle-outline" size={12} color={palette.muted} />
+                  <ThemedText
+                    style={[styles.coachName, { color: palette.muted }]}
+                    numberOfLines={1}
                   >
-                    <Ionicons name="calendar" size={10} color={palette.success} />
-                    <ThemedText style={[styles.nextSessionText, { color: palette.success }]}>
-                      {formatNextSession(squad.nextSession)}
-                    </ThemedText>
-                  </Row>
-                )}
-              </SurfaceCard>
-            </Clickable>
+                    {squad.primaryCoach}
+                  </ThemedText>
+                </Row>
+              )}
+              {squad.nextSession && (
+                <Row
+                  style={[
+                    styles.nextSessionBadge,
+                    { backgroundColor: withAlpha(palette.success, 0.09) },
+                  ]}
+                >
+                  <Ionicons name="calendar" size={10} color={palette.success} />
+                  <ThemedText style={[styles.nextSessionText, { color: palette.success }]}>
+                    {formatNextSession(squad.nextSession)}
+                  </ThemedText>
+                </Row>
+              )}
+              <Row style={styles.manageRow}>
+                <ThemedText style={[styles.manageText, { color: palette.tint }]}>
+                  Manage squad
+                </ThemedText>
+                <Ionicons name="chevron-forward" size={14} color={palette.tint} />
+              </Row>
+            </SurfaceCard>
           ))}
         </ScrollView>
       ) : (
@@ -165,6 +174,12 @@ const styles = StyleSheet.create({
     marginTop: Spacing.xxs,
   },
   nextSessionText: { ...Typography.micro },
+  manageRow: {
+    alignItems: 'center',
+    gap: Spacing.xxs,
+    marginTop: Spacing.xxs,
+  },
+  manageText: { ...Typography.micro },
   emptyCard: {
     marginHorizontal: Spacing.lg,
     padding: Spacing.lg,

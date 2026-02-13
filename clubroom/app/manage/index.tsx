@@ -31,33 +31,25 @@ export default function ManageScreen() {
 
   const actions: ManageAction[] = [
     {
-      id: 'session-launcher',
-      title: 'Create or Invite Session',
-      description: 'One place to book new sessions or add athletes to existing ones.',
-      icon: 'flash-outline',
+      id: 'new',
+      title: 'Create New Session',
+      description: 'Build a fresh session flow with schedule, pricing, and invite steps.',
+      icon: 'sparkles-outline',
       colorKey: 'tint',
-      route: Routes.SESSIONS_CREATE,
+      route: Routes.sessionsCreateIntent({ intent: 'new', source: 'club_manage' }),
     },
     {
       id: 'existing',
       title: 'Invite to Existing Session',
-      description: 'Add athletes into upcoming published sessions.',
+      description: 'Quick-add athletes into already published upcoming sessions.',
       icon: 'paper-plane-outline',
       colorKey: 'success',
       route: Routes.sessionsCreateIntent({ intent: 'existing', source: 'club_manage' }),
     },
     {
-      id: 'club-settings',
-      title: 'Club Settings',
-      description: 'Manage club details, invites, squads, and member operations.',
-      icon: 'settings-outline',
-      colorKey: 'icon',
-      route: Routes.CLUB_SETTINGS,
-    },
-    {
       id: 'club-hub',
-      title: 'Club Hub',
-      description: 'Jump into the full club feed and operations center.',
+      title: 'Club Hub & Admin',
+      description: 'Single club surface for feed, settings, branding, invites, and member ops.',
       icon: 'shield-outline',
       colorKey: 'accent',
       route: Routes.CLUB_HUB,
@@ -92,11 +84,7 @@ export default function ManageScreen() {
   return (
     <PageContainer
       header={
-        <PageHeader
-          title="Manage"
-          subtitle="Club operations and session controls"
-          showBack
-        />
+        <PageHeader title="Manage" subtitle="Club operations and session controls" showBack />
       }
     >
       {actions.map((action) => {
@@ -105,7 +93,10 @@ export default function ManageScreen() {
           <Clickable
             key={action.id}
             onPress={() => router.push(action.route)}
-            style={[styles.actionCard, { borderColor: colors.border, backgroundColor: colors.surface }]}
+            style={[
+              styles.actionCard,
+              { borderColor: colors.border, backgroundColor: colors.surface },
+            ]}
             accessibilityRole="button"
             accessibilityLabel={action.title}
           >

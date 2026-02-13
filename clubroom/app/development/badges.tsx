@@ -54,7 +54,7 @@ export default function BadgesScreen() {
         header={
           <PageHeader
             title="Badges"
-            subtitle="Recognise achievements without leaving development"
+            subtitle="Review and share badges from completed sessions"
           />
         }
       >
@@ -70,7 +70,7 @@ export default function BadgesScreen() {
         header={
           <PageHeader
             title="Badges"
-            subtitle="Recognise achievements without leaving development"
+            subtitle="Review and share badges from completed sessions"
           />
         }
       >
@@ -89,7 +89,7 @@ export default function BadgesScreen() {
         header={
           <PageHeader
             title="Badges"
-            subtitle="Recognise achievements without leaving development"
+            subtitle="Review and share badges from completed sessions"
           />
         }
       >

@@ -33,6 +33,11 @@ export default function ConfirmationScreen() {
   const [error, setError] = useState<string | null>(null);
   const [cancellationSummary, setCancellationSummary] = useState('Standard cancellation policy');
   const celebrationRef = useRef<CelebrationOverlayRef>(null);
+  const handleOpenBooking = (id: string) => {
+    reset();
+    router.replace(Routes.bookingCancel(id));
+  };
+  const handleMessageCoach = () => router.push(Routes.chat(coachId || 'new'));
 
   useEffect(() => {
     const resolvedCoachId = coachId || draft.coachId;
@@ -56,8 +61,7 @@ export default function ConfirmationScreen() {
   const handleViewBooking = async () => {
     if (bookingId) {
       // Booking already created, just navigate
-      reset();
-      router.replace(Routes.bookingCancel(bookingId));
+      handleOpenBooking(bookingId);
       return;
     }
 
@@ -99,8 +103,7 @@ export default function ConfirmationScreen() {
 
         // Navigate after celebration
         setTimeout(() => {
-          reset();
-          router.replace(Routes.bookingCancel(result.data!.id));
+          handleOpenBooking(result.data!.id);
         }, 2600);
       } else {
         setError(
@@ -203,7 +206,7 @@ export default function ConfirmationScreen() {
           )}
         </Clickable>
         <Clickable
-          onPress={() => router.push(Routes.chat(coachId || 'new'))}
+          onPress={handleMessageCoach}
           style={[styles.secondary, { borderColor: palette.tint }]}
           disabled={isCreating}
         >

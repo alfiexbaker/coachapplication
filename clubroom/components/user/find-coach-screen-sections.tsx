@@ -123,87 +123,70 @@ export const CoachResultCard = memo(function CoachResultCard({
   palette,
 }: CoachResultCardProps) {
   return (
-    <Clickable
+    <SurfaceCard
       onPress={() => {
-        logger.press('CoachCard', { coachId: coach.id });
-        router.push(Routes.BOOK_COACH);
+        logger.press('OpenCoachProfile', { coachId: coach.id });
+        router.push(Routes.coachPublic(coach.id));
       }}
-      style={({ pressed }) => [styles.coachCard, { opacity: pressed ? 0.7 : 1 }]}
+      style={[styles.coachCard, styles.cardContent]}
     >
-      <SurfaceCard style={styles.cardContent} tactile={false}>
-        <Row align="center" gap="md">
-          <View style={[styles.avatar, { backgroundColor: withAlpha(palette.tint, 0.12) }]}>
-            <ThemedText style={[styles.avatarText, { color: palette.tint }]}>
-              {coach.avatar || coach.name.charAt(0)}
-            </ThemedText>
-          </View>
-          <View style={styles.coachInfo}>
-            <ThemedText type="defaultSemiBold" style={styles.coachName}>
-              {coach.name}
-            </ThemedText>
-            <Row gap="md">
-              <Row align="center" gap={4}>
-                <Ionicons name="location" size={14} color={palette.muted} />
-                <ThemedText style={[styles.metaText, { color: palette.muted }]}>
-                  {coach.distance.toFixed(1)} miles
-                </ThemedText>
-              </Row>
-              <Row align="center" gap={4}>
-                <Ionicons name="star" size={14} color={palette.rating} />
-                <ThemedText style={[styles.metaText, { color: palette.muted }]}>
-                  {coach.profile.rating.toFixed(1)} ({coach.profile.totalReviews})
-                </ThemedText>
-              </Row>
-            </Row>
-          </View>
-          <ThemedText type="defaultSemiBold" style={[styles.price, { color: palette.tint }]}>
-            {formatGBP(coach.profile.sessionRate)}
+      <Row align="center" gap="md">
+        <View style={[styles.avatar, { backgroundColor: withAlpha(palette.tint, 0.12) }]}>
+          <ThemedText style={[styles.avatarText, { color: palette.tint }]}>
+            {coach.avatar || coach.name.charAt(0)}
           </ThemedText>
-        </Row>
-
-        <ThemedText style={[styles.bio, { color: palette.muted }]} numberOfLines={2}>
-          {coach.profile.bio}
-        </ThemedText>
-
-        <Row wrap gap="sm" align="center">
-          {coach.profile.specialties.slice(0, 3).map((specialty) => (
-            <View
-              key={specialty}
-              style={[styles.specialtyBadge, { backgroundColor: withAlpha(palette.tint, 0.09) }]}
-            >
-              <ThemedText style={[styles.specialtyText, { color: palette.tint }]}>
-                {specialty}
+        </View>
+        <View style={styles.coachInfo}>
+          <ThemedText type="defaultSemiBold" style={styles.coachName}>
+            {coach.name}
+          </ThemedText>
+          <Row gap="md">
+            <Row align="center" gap={4}>
+              <Ionicons name="location" size={14} color={palette.muted} />
+              <ThemedText style={[styles.metaText, { color: palette.muted }]}>
+                {coach.distance.toFixed(1)} miles
               </ThemedText>
-            </View>
-          ))}
-          {coach.profile.specialties.length > 3 && (
-            <ThemedText style={[styles.moreText, { color: palette.muted }]}>
-              +{coach.profile.specialties.length - 3} more
-            </ThemedText>
-          )}
-        </Row>
+            </Row>
+            <Row align="center" gap={4}>
+              <Ionicons name="star" size={14} color={palette.rating} />
+              <ThemedText style={[styles.metaText, { color: palette.muted }]}>
+                {coach.profile.rating.toFixed(1)} ({coach.profile.totalReviews})
+              </ThemedText>
+            </Row>
+          </Row>
+        </View>
+        <ThemedText type="defaultSemiBold" style={[styles.price, { color: palette.tint }]}>
+          {formatGBP(coach.profile.sessionRate)}
+        </ThemedText>
+      </Row>
 
-        <Row justify="flex-end">
-          <Clickable
-            onPress={() => {
-              logger.press('BookCoach', { coachId: coach.id });
-              router.push(Routes.BOOK_COACH);
-            }}
-            style={({ pressed }) => [
-              styles.bookButton,
-              {
-                backgroundColor: palette.tint,
-                opacity: pressed ? 0.8 : 1,
-              },
-            ]}
+      <ThemedText style={[styles.bio, { color: palette.muted }]} numberOfLines={2}>
+        {coach.profile.bio}
+      </ThemedText>
+
+      <Row wrap gap="sm" align="center">
+        {coach.profile.specialties.slice(0, 3).map((specialty) => (
+          <View
+            key={specialty}
+            style={[styles.specialtyBadge, { backgroundColor: withAlpha(palette.tint, 0.09) }]}
           >
-            <ThemedText style={[styles.bookButtonText, { color: palette.onPrimary }]}>
-              Book coach
+            <ThemedText style={[styles.specialtyText, { color: palette.tint }]}>
+              {specialty}
             </ThemedText>
-          </Clickable>
-        </Row>
-      </SurfaceCard>
-    </Clickable>
+          </View>
+        ))}
+        {coach.profile.specialties.length > 3 && (
+          <ThemedText style={[styles.moreText, { color: palette.muted }]}>
+            +{coach.profile.specialties.length - 3} more
+          </ThemedText>
+        )}
+      </Row>
+
+      <Row justify="flex-end" align="center" gap="xs">
+        <ThemedText style={[styles.moreText, { color: palette.tint }]}>View profile</ThemedText>
+        <Ionicons name="chevron-forward" size={16} color={palette.tint} />
+      </Row>
+    </SurfaceCard>
   );
 });
 

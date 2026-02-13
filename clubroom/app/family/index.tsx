@@ -43,6 +43,7 @@ export default function FamilyDashboardScreen() {
     navigateToCalendar,
     navigateToSpending,
   } = useFamilyDashboard();
+  const handleBookSession = () => router.push(Routes.BOOK_COACH);
 
   if (status === 'loading') {
     return (
@@ -76,8 +77,8 @@ export default function FamilyDashboardScreen() {
           icon="people-outline"
           title="No family data yet"
           message="Add children to your account to track sessions, spending, and development."
-          actionLabel="Go to More"
-          onPressAction={() => router.push(Routes.MORE)}
+          actionLabel="Find Coaches"
+          onPressAction={handleBookSession}
         />
       </PageContainer>
     );
@@ -182,7 +183,7 @@ export default function FamilyDashboardScreen() {
       {/* Book Session CTA */}
       <Animated.View entering={FadeInDown.delay(350).springify()}>
         <Clickable
-          onPress={() => router.push(Routes.MORE)}
+          onPress={handleBookSession}
           style={[styles.ctaButton, { backgroundColor: palette.tint }]}
         >
           <Row align="center" justify="center" gap="xs">

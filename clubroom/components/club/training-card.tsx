@@ -27,6 +27,7 @@ export const TrainingCard = memo(function TrainingCard({
   userHasChildrenView,
 }: TrainingCardProps) {
   const { colors } = useTheme();
+  const handleOpenSession = () => router.push(Routes.groupSession(session.id));
   const squadLabel = getGroupSessionSquadLabel(session);
   const coachName = getGroupSessionCoachName(session);
 
@@ -37,7 +38,7 @@ export const TrainingCard = memo(function TrainingCard({
 
   return (
     <Animated.View entering={FadeInDown.delay(index * 50).springify()}>
-      <SurfaceCard style={styles.card} onPress={() => router.push(Routes.groupSession(session.id))}>
+      <SurfaceCard style={styles.card} onPress={userHasChildrenView ? undefined : handleOpenSession}>
         {/* Header: Title + Price */}
         <Row justify="space-between" align="flex-start">
           <View style={styles.titleSection}>
@@ -118,7 +119,12 @@ export const TrainingCard = memo(function TrainingCard({
             Coach {coachName}
           </ThemedText>
           {userHasChildrenView && (
-            <Clickable style={[styles.rsvpButton, { backgroundColor: colors.tint }]}>
+            <Clickable
+              onPress={handleOpenSession}
+              style={[styles.rsvpButton, { backgroundColor: colors.tint }]}
+              accessibilityRole="button"
+              accessibilityLabel={`View ${session.title} and RSVP`}
+            >
               <ThemedText style={[Typography.caption, { color: colors.onPrimary }]}>
                 RSVP
               </ThemedText>

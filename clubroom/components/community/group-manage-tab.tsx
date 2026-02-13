@@ -19,7 +19,6 @@ interface GroupManageTabProps {
   onInviteToSession: () => void;
   onInviteMembers: () => void;
   onOpenClub: () => void;
-  onOpenClubSettings: () => void;
 }
 
 interface ManageAction {
@@ -41,7 +40,6 @@ function GroupManageTabInner({
   onInviteToSession,
   onInviteMembers,
   onOpenClub,
-  onOpenClubSettings,
 }: GroupManageTabProps) {
   const { colors: palette } = useTheme();
 
@@ -92,18 +90,10 @@ function GroupManageTabInner({
     actions.push({
       id: 'open-club',
       title: 'Open Club Hub',
-      description: 'Jump into club dashboard and settings.',
+      description: 'Jump into one place for club feed, settings, branding, and members.',
       icon: 'shield-outline',
       color: palette.icon,
       onPress: onOpenClub,
-    });
-    actions.push({
-      id: 'club-settings',
-      title: 'Club Settings',
-      description: 'Manage structure, access rules, and operations.',
-      icon: 'settings-outline',
-      color: palette.muted,
-      onPress: onOpenClubSettings,
     });
   }
 
@@ -121,7 +111,10 @@ function GroupManageTabInner({
           <Clickable
             key={action.id}
             onPress={action.onPress}
-            style={[styles.actionRow, { borderColor: palette.border, backgroundColor: palette.surface }]}
+            style={[
+              styles.actionRow,
+              { borderColor: palette.border, backgroundColor: palette.surface },
+            ]}
             accessibilityRole="button"
             accessibilityLabel={action.title}
           >
@@ -130,7 +123,7 @@ function GroupManageTabInner({
             </View>
             <View style={styles.textWrap}>
               <ThemedText style={styles.actionTitle}>{action.title}</ThemedText>
-              <ThemedText style={[styles.actionDescription, { color: palette.muted }]}> 
+              <ThemedText style={[styles.actionDescription, { color: palette.muted }]}>
                 {action.description}
               </ThemedText>
             </View>

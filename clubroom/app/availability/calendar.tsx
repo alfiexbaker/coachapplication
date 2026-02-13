@@ -31,6 +31,8 @@ export default function AvailabilityCalendarScreen() {
     onRefresh,
     retry,
   } = useAvailabilityCalendar();
+  const handleAddTemplate = () => router.push(Routes.AVAILABILITY_ADD_TEMPLATE);
+  const handleBlockDate = () => router.push(Routes.AVAILABILITY_BLOCK_DATE);
 
   if (status === 'loading') {
     return (
@@ -71,7 +73,7 @@ export default function AvailabilityCalendarScreen() {
           title="No availability yet"
           message="Add your first recurring availability template to start accepting bookings."
           actionLabel="Add Template"
-          onPressAction={() => router.push(Routes.AVAILABILITY_ADD_TEMPLATE)}
+          onPressAction={handleAddTemplate}
         />
       </SafeAreaView>
     );
@@ -133,8 +135,8 @@ export default function AvailabilityCalendarScreen() {
             selectedDate={selectedDate}
             selectedSlots={selectedSlots}
             formatTime={formatTime}
-            onBlockDate={() => router.push(Routes.AVAILABILITY_BLOCK_DATE)}
-            onAddTemplate={() => router.push(Routes.AVAILABILITY_ADD_TEMPLATE)}
+            onBlockDate={handleBlockDate}
+            onAddTemplate={handleAddTemplate}
           />
         )}
 

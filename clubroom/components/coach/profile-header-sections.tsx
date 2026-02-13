@@ -57,12 +57,14 @@ interface AvatarSectionProps {
   profilePhotoUrl?: string;
   userRole?: string;
   palette: ThemeColors;
+  onEditAvatar?: () => void;
 }
 
 export const AvatarSection = memo(function AvatarSection({
   profilePhotoUrl,
   userRole,
   palette,
+  onEditAvatar,
 }: AvatarSectionProps) {
   return (
     <View style={styles.avatarContainer}>
@@ -70,12 +72,15 @@ export const AvatarSection = memo(function AvatarSection({
         source={{ uri: profilePhotoUrl }}
         style={[styles.avatar, { borderColor: palette.surface }]}
       />
-      {userRole === 'Coach' && (
+      {userRole === 'COACH' && onEditAvatar && (
         <Clickable
+          onPress={onEditAvatar}
           style={[
             styles.editAvatarButton,
             { backgroundColor: palette.tint, borderColor: palette.surface },
           ]}
+          accessibilityRole="button"
+          accessibilityLabel="Edit profile photo"
         >
           <Ionicons name="camera" size={16} color={palette.surface} />
         </Clickable>

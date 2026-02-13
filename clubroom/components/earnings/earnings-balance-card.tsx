@@ -73,8 +73,10 @@ export const EarningsBalanceCard = memo(function EarningsBalanceCard({
       </View>
       <Clickable onPress={onWithdraw}>
         <Row style={[styles.withdrawBtn, { backgroundColor: palette.tint }]}>
-          <Ionicons name="cash-outline" size={18} color={palette.background} />
-          <ThemedText style={{ color: palette.background, fontWeight: '700' }}>Withdraw</ThemedText>
+          <Ionicons name="cash-outline" size={18} color={palette.onPrimary} />
+          <ThemedText style={{ color: palette.onPrimary, ...Typography.bodySemiBold }}>
+            Withdraw
+          </ThemedText>
         </Row>
       </Clickable>
     </SurfaceCard>
@@ -101,8 +103,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     gap: Spacing.xs,
-    paddingVertical: Spacing.sm,
-    borderRadius: Radii.md,
+    minHeight: 52,
+    paddingHorizontal: Spacing.md,
+    borderRadius: Radii.lg,
     marginTop: Spacing.xs,
   },
 });

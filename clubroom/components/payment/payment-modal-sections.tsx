@@ -183,8 +183,10 @@ export const PaymentBreakdownCard = memo(function PaymentBreakdownCard({
 
 export const PaymentMethodCard = memo(function PaymentMethodCard({
   palette,
+  onChangeMethod,
 }: {
   palette: ThemeColors;
+  onChangeMethod?: () => void;
 }) {
   return (
     <View style={styles.section}>
@@ -200,11 +202,24 @@ export const PaymentMethodCard = memo(function PaymentMethodCard({
               Expires 12/26
             </ThemedText>
           </View>
-          <Clickable style={[styles.changeButton, { borderColor: palette.border }]}>
-            <ThemedText style={{ color: palette.tint, ...Typography.smallSemiBold }}>
-              Change
-            </ThemedText>
-          </Clickable>
+          {onChangeMethod ? (
+            <Clickable
+              onPress={onChangeMethod}
+              style={[styles.changeButton, { borderColor: palette.border }]}
+              accessibilityRole="button"
+              accessibilityLabel="Change payment method"
+            >
+              <ThemedText style={{ color: palette.tint, ...Typography.smallSemiBold }}>
+                Change
+              </ThemedText>
+            </Clickable>
+          ) : (
+            <View style={[styles.changeButton, { borderColor: palette.border }]}>
+              <ThemedText style={{ color: palette.muted, ...Typography.smallSemiBold }}>
+                Default
+              </ThemedText>
+            </View>
+          )}
         </Row>
       </SurfaceCard>
     </View>

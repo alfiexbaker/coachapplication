@@ -41,6 +41,8 @@ export default function FamilyCalendarScreen() {
     handleEventPress,
     handleChildFilterChange,
   } = useFamilyCalendar();
+  const handleBookSession = () => router.push(Routes.BOOK_COACH);
+  const handleViewSpending = () => router.push(Routes.FAMILY_SPENDING);
 
   if (status === 'loading') {
     return (
@@ -71,8 +73,8 @@ export default function FamilyCalendarScreen() {
           icon="calendar-outline"
           title="No sessions scheduled"
           message="Your family calendar will appear here once sessions or events are booked."
-          actionLabel="Book Session"
-          onPressAction={() => router.push(Routes.MORE)}
+          actionLabel="Find Coaches"
+          onPressAction={handleBookSession}
         />
       </PageContainer>
     );
@@ -157,7 +159,7 @@ export default function FamilyCalendarScreen() {
       <Animated.View entering={FadeInDown.delay(200).springify()}>
         <Row gap="sm">
           <Clickable
-            onPress={() => router.push(Routes.MORE)}
+            onPress={handleBookSession}
             style={[styles.actionButton, { backgroundColor: palette.tint }]}
           >
             <Row align="center" justify="center" gap="xs">
@@ -168,7 +170,7 @@ export default function FamilyCalendarScreen() {
             </Row>
           </Clickable>
           <Clickable
-            onPress={() => router.push(Routes.FAMILY_SPENDING)}
+            onPress={handleViewSpending}
             style={[styles.actionButtonSecondary, { borderColor: palette.border }]}
           >
             <Row align="center" justify="center" gap="xs">

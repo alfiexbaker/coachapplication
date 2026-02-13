@@ -1,5 +1,5 @@
 import React, { memo } from 'react';
-import { StyleSheet, TextInput, Modal } from 'react-native';
+import { StyleSheet, TextInput, Modal, View } from 'react-native';
 import { Row } from '@/components/primitives/row';
 import { Clickable } from '@/components/primitives/clickable';
 import { ThemedText } from '@/components/themed-text';
@@ -31,10 +31,9 @@ export const RejectModal = memo(function RejectModal({
         accessibilityRole="button"
         accessibilityLabel="Close reject modal"
       >
-        <Clickable
+        <View
           style={[styles.content, { backgroundColor: palette.surface }]}
-          onPress={() => {}}
-          accessibilityRole="none"
+          onStartShouldSetResponder={() => true}
         >
           <ThemedText type="defaultSemiBold" style={styles.title}>
             Decline Proposal
@@ -75,7 +74,7 @@ export const RejectModal = memo(function RejectModal({
               </ThemedText>
             </Clickable>
           </Row>
-        </Clickable>
+        </View>
       </Clickable>
     </Modal>
   );

@@ -100,12 +100,4 @@ export const styles = StyleSheet.create({
   specialtyText: { ...Typography.caption },
   moreText: { ...Typography.caption },
   actionsRow: {},
-  bookButton: {
-    paddingVertical: Spacing.sm,
-    paddingHorizontal: Spacing.lg,
-    borderRadius: Radii.lg,
-  },
-  bookButtonText: {
-    fontWeight: '700',
-  },
 });

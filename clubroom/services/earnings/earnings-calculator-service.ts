@@ -72,9 +72,8 @@ export const earningsCalculatorService = {
   /**
    * Format currency for display
    */
-  formatCurrency(amount: number, currency: string = 'GBP'): string {
-    const symbol =
-      currency === 'GBP' ? '\u00A3' : currency === 'USD' ? '$' : currency === 'EUR' ? '\u20AC' : '';
+  formatCurrency(amount: number, _currency: string = 'GBP'): string {
+    const symbol = '\u00A3';
     const formatted = Math.abs(amount).toFixed(2);
     const prefix = amount < 0 ? '-' : amount > 0 ? '+' : '';
     return `${prefix}${symbol}${formatted}`;

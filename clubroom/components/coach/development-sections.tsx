@@ -160,9 +160,6 @@ function AttentionSectionInner({
         <ThemedText type="defaultSemiBold" style={styles.sectionTitle}>
           Needs attention
         </ThemedText>
-        <ThemedText style={[styles.sectionHint, { color: palette.muted }]}>
-          Prioritised by recency and missing notes
-        </ThemedText>
       </Row>
       {athletes.length === 0 ? (
         <View style={styles.emptyState}>
@@ -208,7 +205,7 @@ function AttentionSectionInner({
                     <ThemedText type="defaultSemiBold" style={styles.athleteName} numberOfLines={1}>
                       {entry.athlete.name}
                     </ThemedText>
-                    <ThemedText style={[styles.subtleMeta, { color: palette.muted }]}>
+                    <ThemedText style={[styles.subtleMeta, { color: palette.muted }]} numberOfLines={1}>
                       {entry.sessionCount} sessions · Last {formatDate(entry.lastSession)}
                     </ThemedText>
                   </View>
@@ -271,9 +268,6 @@ function RecentSessionsSectionInner({
         <ThemedText type="defaultSemiBold" style={styles.sectionTitle}>
           Recent sessions
         </ThemedText>
-        <ThemedText style={[styles.sectionHint, { color: palette.muted }]}>
-          Open feedback to share notes or badges
-        </ThemedText>
       </Row>
       <View style={{ gap: Spacing.xs }}>
         {sessions.map((session) => {
@@ -281,7 +275,18 @@ function RecentSessionsSectionInner({
           const athleteName = athlete?.name || getSessionAthleteName(session);
           const athleteAvatar = athlete?.avatar || athleteName.charAt(0).toUpperCase();
           return (
-            <Row key={session.id} style={[styles.recentRow, { borderColor: palette.border }]}>
+            <Clickable
+              key={session.id}
+              style={[styles.recentRow, { borderColor: palette.border }]}
+              onPress={() => {
+                logger.press('SessionFeedbackOpen', {
+                  sessionId: session.id,
+                  athleteId: session.athleteId,
+                  source: 'RecentSessions',
+                });
+                router.push(Routes.developmentSession(session.id));
+              }}
+            >
               <Row style={styles.rowLeft}>
                 <View style={[styles.avatar, { backgroundColor: withAlpha(palette.tint, 0.12) }]}>
                   <ThemedText style={[styles.avatarText, { color: palette.tint }]}>
@@ -289,32 +294,19 @@ function RecentSessionsSectionInner({
                   </ThemedText>
                 </View>
                 <View style={styles.rowContent}>
-                  <ThemedText type="defaultSemiBold" style={styles.athleteName}>
+                  <ThemedText type="defaultSemiBold" style={styles.athleteName} numberOfLines={1}>
                     {athleteName}
                   </ThemedText>
-                  <ThemedText style={[styles.athleteMetadata, { color: palette.muted }]}>
+                  <ThemedText
+                    style={[styles.athleteMetadata, { color: palette.muted }]}
+                    numberOfLines={1}
+                  >
                     {formatDate(session.completedAt)} · Rated {session.performanceRating}
                   </ThemedText>
                 </View>
               </Row>
-              <Clickable
-                onPress={() => {
-                  logger.press('SessionFeedbackOpen', {
-                    sessionId: session.id,
-                    athleteId: session.athleteId,
-                    source: 'RecentSessions',
-                  });
-                  router.push(Routes.developmentSession(session.id));
-                }}
-              >
-                <Row style={[styles.actionPill, { borderColor: palette.tint }]}>
-                  <Ionicons name="create-outline" size={14} color={palette.tint} />
-                  <ThemedText style={[styles.pillLabel, { color: palette.tint }]}>
-                    Open feedback
-                  </ThemedText>
-                </Row>
-              </Clickable>
-            </Row>
+              <Ionicons name="chevron-forward" size={16} color={palette.muted} />
+            </Clickable>
           );
         })}
       </View>

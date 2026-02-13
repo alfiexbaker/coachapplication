@@ -106,7 +106,7 @@ function ProfileHeaderInner({
             <BadgesRow badges={coach.badges} palette={palette} />
           )}
 
-          {userRole === 'Coach' && <EditProfileButton palette={palette} />}
+          {userRole === 'COACH' && <EditProfileButton palette={palette} />}
         </View>
       </View>
     </>

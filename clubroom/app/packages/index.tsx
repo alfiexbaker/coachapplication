@@ -52,9 +52,18 @@ export default function PackagesScreen() {
 
   const packages = data ?? [];
 
-  const handlePackagePress = (pkg: SessionPackage) => {
-    router.push(Routes.package(pkg.id));
-  };
+  const handleOpenPackage = useCallback((packageId: string) => {
+    router.push(Routes.package(packageId));
+  }, []);
+  const handleOpenManagePackages = useCallback(() => {
+    router.push(Routes.PACKAGES_MANAGE);
+  }, []);
+  const handlePackagePress = useCallback(
+    (pkg: SessionPackage) => {
+      handleOpenPackage(pkg.id);
+    },
+    [handleOpenPackage],
+  );
 
   return (
     <SafeAreaView
@@ -75,7 +84,7 @@ export default function PackagesScreen() {
         {isCoach && (
           <Clickable
             accessibilityLabel="Manage packages"
-            onPress={() => router.push(Routes.PACKAGES_MANAGE)}
+            onPress={handleOpenManagePackages}
             style={[styles.manageButton, { backgroundColor: palette.tint }]}
           >
             <Ionicons name="settings-outline" size={18} color={palette.onPrimary} />
@@ -202,10 +211,7 @@ export default function PackagesScreen() {
           /* My Packages Tab */
           <MyPackages
             showHeader={false}
-            onPackagePress={(purchase) => {
-              // Could navigate to a purchase detail screen
-              router.push(Routes.package(purchase.packageId));
-            }}
+            onPackagePress={(purchase) => handleOpenPackage(purchase.packageId)}
           />
         )}
       </ScrollView>

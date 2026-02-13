@@ -1,7 +1,7 @@
 import { BottomTabBarButtonProps } from '@react-navigation/bottom-tabs';
 import * as Haptics from 'expo-haptics';
 import { forwardRef } from 'react';
-import { Platform, Pressable, type PressableProps, type View } from 'react-native';
+import { Pressable, type PressableProps, type View } from 'react-native';
 
 type TabButtonProps = BottomTabBarButtonProps &
   Pick<PressableProps, 'accessibilityLabel' | 'accessibilityState' | 'onPress'> & {
@@ -34,14 +34,6 @@ export const HapticTab = forwardRef<View, TabButtonProps>(function HapticTab(
       {children}
     </Pressable>
   );
-
-  if (__DEV__ && Platform.OS === 'web') {
-    console.debug('[HapticTab] render', {
-      label: accessibilityLabel,
-      hasChildren: Boolean(children),
-      hadHref: Boolean(href ?? to),
-    });
-  }
 
   // Expo Router already wires up tab presses to navigation; avoid extra
   // Link wrappers on web to prevent DOM render errors while keeping the

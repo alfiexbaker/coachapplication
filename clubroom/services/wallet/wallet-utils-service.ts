@@ -85,8 +85,8 @@ class WalletUtilsService {
   /**
    * Format amount as currency string
    */
-  formatAmount(amount: number, currency: string = 'GBP'): string {
-    const symbol = currency === 'GBP' ? '\u00A3' : '$';
+  formatAmount(amount: number, _currency: string = 'GBP'): string {
+    const symbol = '\u00A3';
     const absAmount = Math.abs(amount).toFixed(2);
     const prefix = amount < 0 ? '-' : '';
     return `${prefix}${symbol}${absAmount}`;

@@ -1,4 +1,4 @@
-import { View, StyleSheet, ScrollView, Image, RefreshControl } from 'react-native';
+import { View, StyleSheet, ScrollView, Image, RefreshControl, Alert, Linking } from 'react-native';
 import { Row } from '@/components/primitives/row';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router, useLocalSearchParams } from 'expo-router';
@@ -39,6 +39,20 @@ export default function EventDetailScreen() {
     handleCancel,
     toggleAttendees,
   } = useEventDetail(id);
+
+  const handleJoinMeeting = async () => {
+    if (!event?.meetingLink) return;
+    try {
+      const supported = await Linking.canOpenURL(event.meetingLink);
+      if (!supported) {
+        Alert.alert('Cannot open link', 'This meeting link is not supported on this device.');
+        return;
+      }
+      await Linking.openURL(event.meetingLink);
+    } catch {
+      Alert.alert('Unable to join', 'Try opening the meeting link again.');
+    }
+  };
 
   if (status === 'loading') {
     return (
@@ -206,7 +220,11 @@ export default function EventDetailScreen() {
                 </View>
               </Row>
               {event.isVirtual && event.meetingLink && (
-                <Clickable style={[styles.linkButton, { borderColor: palette.tint }]}>
+                <Clickable
+                  style={[styles.linkButton, { borderColor: palette.tint }]}
+                  onPress={handleJoinMeeting}
+                  accessibilityLabel="Join virtual meeting"
+                >
                   <Row align="center" justify="center" gap="xxs">
                     <Ionicons name="videocam" size={16} color={palette.tint} />
                     <ThemedText style={[styles.linkText, { color: palette.tint }]}>

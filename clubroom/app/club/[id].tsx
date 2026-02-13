@@ -44,6 +44,9 @@ export default function ClubDetailScreen() {
     filterCounts,
     onRefresh,
     handlePinToggle,
+    handleLikePost,
+    handleCommentPost,
+    handleSharePost,
     handleRemoveMember,
     handleConfirmMemberRemoval,
     handleLeaveClub,
@@ -157,7 +160,7 @@ export default function ClubDetailScreen() {
             <Row gap="sm" style={{ paddingHorizontal: Spacing.md, paddingTop: Spacing.md }}>
               <Clickable
                 style={[styles.actionBtn, { backgroundColor: colors.tint, flex: 1 }]}
-                onPress={() => router.push(Routes.MODAL_CREATE_CLUB_POST)}
+                onPress={() => router.push(Routes.modalCreateClubPost({ clubId: id }))}
               >
                 <Row align="center" justify="center" gap="xs">
                   <Ionicons name="create-outline" size={18} color={colors.onPrimary} />
@@ -239,6 +242,9 @@ export default function ClubDetailScreen() {
                   post={post}
                   canPin={canManagePosts}
                   onPinToggle={handlePinToggle}
+                  onLike={handleLikePost}
+                  onComment={handleCommentPost}
+                  onShare={handleSharePost}
                 />
               ))
             ) : (

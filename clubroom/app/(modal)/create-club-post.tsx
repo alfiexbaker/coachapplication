@@ -108,20 +108,31 @@ export default function CreateClubPostScreen() {
           {p.isCoach && p.postAs === 'self' && (
             <FeedTypeSelector
               feedType={p.feedType}
-              clubName={p.club?.name}
+              canTargetClub={Boolean(p.club)}
               onSelect={p.setFeedType}
             />
           )}
 
           <PostTypeSelector postType={p.postType} onSelect={p.setPostType} />
-          <AudienceSelector
-            audienceType={p.audienceType}
-            selectedSquadId={p.selectedSquadId}
-            squads={p.availableSquads}
-            onSelectClub={p.handleSelectAudienceClub}
-            onSelectSquad={p.handleSelectAudienceSquad}
-            onSelectSquadId={p.setSelectedSquadId}
-          />
+          {p.feedType === 'CLUB' && (
+            <>
+              <AudienceSelector
+                audienceType={p.audienceType}
+                selectedSquadId={p.selectedSquadId}
+                squads={p.availableSquads}
+                onSelectClub={p.handleSelectAudienceClub}
+                onSelectSquad={p.handleSelectAudienceSquad}
+                onSelectSquadId={p.setSelectedSquadId}
+              />
+              {p.audienceType === 'squad' && !p.selectedSquadId && (
+                <View style={styles.inlineHint}>
+                  <ThemedText style={[styles.inlineHintText, { color: palette.warning }]}>
+                    Select a team before posting.
+                  </ThemedText>
+                </View>
+              )}
+            </>
+          )}
 
           {/* Title */}
           <View style={styles.section}>
@@ -272,6 +283,8 @@ const styles = StyleSheet.create({
   },
   clubBadgeText: { ...Typography.bodySmallSemiBold },
   section: { paddingHorizontal: Spacing.md, paddingTop: Spacing.md },
+  inlineHint: { paddingHorizontal: Spacing.md, paddingTop: Spacing.xs },
+  inlineHintText: { ...Typography.caption },
   titleInput: { ...Typography.heading, paddingVertical: Spacing.sm, borderBottomWidth: 1 },
   bodyInput: { ...Typography.subheading, minHeight: 120, textAlignVertical: 'top' },
   imageSection: { position: 'relative', marginHorizontal: Spacing.md, marginTop: Spacing.md },

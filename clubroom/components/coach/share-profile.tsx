@@ -1,5 +1,5 @@
 import React, { useState, useCallback } from 'react';
-import { StyleSheet, Modal, Share } from 'react-native';
+import { StyleSheet, Modal, Share, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import * as Clipboard from 'expo-clipboard';
 
@@ -75,10 +75,9 @@ export function ShareProfile({ coachId, coachName, profileUrl, onClose }: ShareP
         accessibilityRole="button"
         accessibilityLabel="Close share profile modal"
       >
-        <Clickable
+        <View
           style={[styles.sheet, { backgroundColor: palette.surface }]}
-          onPress={() => {}}
-          accessibilityRole="none"
+          onStartShouldSetResponder={() => true}
         >
           <Row style={styles.sheetHeader}>
             <ThemedText style={[Typography.title, { color: palette.text }]}>
@@ -123,7 +122,7 @@ export function ShareProfile({ coachId, coachName, profileUrl, onClose }: ShareP
             onCancel={handleSlugCancel}
             palette={palette}
           />
-        </Clickable>
+        </View>
       </Clickable>
     </Modal>
   );

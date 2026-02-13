@@ -75,6 +75,13 @@ export default function ChallengesScreen() {
     Platform.OS !== 'web' && void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     setActiveTab(tab);
   }, []);
+  const handleCreateChallenge = useCallback(() => {
+    Platform.OS !== 'web' && void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    router.push(Routes.DRILLS_CREATE_CHALLENGE);
+  }, []);
+  const handleSubmitAttempt = useCallback((challengeId: string) => {
+    router.push(Routes.drill(challengeId));
+  }, []);
 
   const filtered = useMemo(() => {
     const now = Date.now();
@@ -130,12 +137,9 @@ export default function ChallengesScreen() {
         <ThemedText type="title" style={styles.headerTitle}>
           Challenges
         </ThemedText>
-        {isCoach ? (
+        {isCoach && status !== 'empty' ? (
           <Clickable
-            onPress={() => {
-              Platform.OS !== 'web' && void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-              router.push(Routes.DRILLS_CREATE_CHALLENGE);
-            }}
+            onPress={handleCreateChallenge}
             hitSlop={8}
             accessibilityLabel="Create challenge"
           >
@@ -221,7 +225,7 @@ export default function ChallengesScreen() {
                 : 'Challenges from your coach will appear here.'
             }
             actionLabel={isCoach ? 'Create challenge' : undefined}
-            onPressAction={isCoach ? () => router.push(Routes.DRILLS_CREATE_CHALLENGE) : undefined}
+            onPressAction={isCoach ? handleCreateChallenge : undefined}
           />
         ) : filtered.length === 0 ? (
           <EmptyState
@@ -246,8 +250,7 @@ export default function ChallengesScreen() {
                   challenge={challenge}
                   submissions={getSubmissionsFor(challenge.id)}
                   totalAthletes={challenge.totalParticipants}
-                  onSubmitAttempt={() => router.push(Routes.drill(challenge.id))}
-                  onPlayDemo={() => {}}
+                  onSubmitAttempt={() => handleSubmitAttempt(challenge.id)}
                 />
               </Animated.View>
             ))}

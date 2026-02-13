@@ -14,7 +14,6 @@ import {
   CompletionCard,
   AttentionSection,
   RecentSessionsSection,
-  BadgesShortcut,
 } from './development-sections';
 
 export function CoachDevelopmentScreen() {
@@ -57,7 +56,6 @@ export function CoachDevelopmentScreen() {
         athleteDirectory={athleteDirectory}
         logger={logger}
       />
-      <BadgesShortcut logger={logger} />
     </PageContainer>
   );
 }

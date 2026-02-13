@@ -19,6 +19,7 @@ interface SettingsInvitesSectionProps {
   onCopy: (code: string) => void;
   onShare: (code: string, role: string) => void;
   onGenerate: (role: ClubRole) => void;
+  onDelete: (code: string) => void;
 }
 
 export const SettingsInvitesSection = memo(function SettingsInvitesSection({
@@ -27,6 +28,7 @@ export const SettingsInvitesSection = memo(function SettingsInvitesSection({
   onCopy,
   onShare,
   onGenerate,
+  onDelete,
 }: SettingsInvitesSectionProps) {
   return (
     <Animated.View entering={FadeInDown.springify()}>
@@ -63,10 +65,20 @@ export const SettingsInvitesSection = memo(function SettingsInvitesSection({
                 <ThemedText style={[Typography.caption, { color: colors.muted }]}>
                   {invite.remainingUses} uses left
                 </ThemedText>
+                {invite.isPrimary && (
+                  <View
+                    style={[styles.primaryBadge, { backgroundColor: withAlpha(colors.tint, 0.12) }]}
+                  >
+                    <ThemedText style={[Typography.micro, { color: colors.tint }]}>
+                      Primary
+                    </ThemedText>
+                  </View>
+                )}
               </Row>
             </View>
             <Row gap="xs">
               <Clickable
+                accessibilityLabel={`Copy ${invite.code}`}
                 style={[styles.iconBtn, { backgroundColor: withAlpha(colors.tint, 0.06) }]}
                 onPress={() => onCopy(invite.code)}
               >
@@ -78,6 +90,13 @@ export const SettingsInvitesSection = memo(function SettingsInvitesSection({
                 onPress={() => onShare(invite.code, invite.role)}
               >
                 <Ionicons name="share-outline" size={18} color={colors.tint} />
+              </Clickable>
+              <Clickable
+                accessibilityLabel={`Delete ${invite.code}`}
+                style={[styles.iconBtn, { backgroundColor: withAlpha(colors.error, 0.08) }]}
+                onPress={() => onDelete(invite.code)}
+              >
+                <Ionicons name="trash-outline" size={18} color={colors.error} />
               </Clickable>
             </Row>
           </Row>
@@ -113,6 +132,11 @@ const styles = StyleSheet.create({
   },
   roleBadge: {
     paddingHorizontal: Spacing.sm,
+    paddingVertical: Spacing.micro,
+    borderRadius: Radii.sm,
+  },
+  primaryBadge: {
+    paddingHorizontal: Spacing.xs,
     paddingVertical: Spacing.micro,
     borderRadius: Radii.sm,
   },

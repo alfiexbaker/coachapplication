@@ -27,7 +27,7 @@ const logger = createLogger('EventsListScreen');
 export default function EventsListScreen() {
   const { colors: palette } = useTheme();
   const { currentUser } = useAuth();
-  const isCoach = currentUser?.role === 'COACH';
+  const isCoach = currentUser?.role === 'COACH' || currentUser?.role === 'ADMIN';
   const [filter, setFilter] = useState<EventFilter>('upcoming');
 
   const clubId = 'club_lions';
@@ -110,7 +110,7 @@ export default function EventsListScreen() {
         <EmptyState
           icon="calendar-outline"
           title="No events yet"
-          message="Create your first club event to publish fixtures, socials, or meetings."
+          message="No events created yet."
           actionLabel={isCoach ? 'Create Event' : undefined}
           onPressAction={isCoach ? onCreate : undefined}
         />

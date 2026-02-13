@@ -72,10 +72,9 @@ export function FilterPanel({ visible, initialFilters, onClose, onApply }: Props
         accessibilityRole="button"
         accessibilityLabel="Close filter panel"
       >
-        <Clickable
+        <View
           style={[styles.sheet, { backgroundColor: palette.surface, borderColor: palette.border }]}
-          onPress={() => {}}
-          accessibilityRole="none"
+          onStartShouldSetResponder={() => true}
         >
           <Row style={styles.header}>
             <ThemedText type="subtitle">Filters</ThemedText>
@@ -167,7 +166,7 @@ export function FilterPanel({ visible, initialFilters, onClose, onApply }: Props
               <ThemedText style={{ color: palette.muted }}>Close</ThemedText>
             </Clickable>
           </View>
-        </Clickable>
+        </View>
       </Clickable>
     </Modal>
   );

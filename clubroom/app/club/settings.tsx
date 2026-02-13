@@ -13,6 +13,7 @@ import { SettingsDetailsSection } from '@/components/club/settings-details-secti
 import { SettingsInvitesSection } from '@/components/club/settings-invites-section';
 import { SettingsSquadsSection } from '@/components/club/settings-squads-section';
 import { SettingsMembersSection } from '@/components/club/settings-members-section';
+import { SettingsBrandingSection } from '@/components/club/settings-branding-section';
 import { Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
 import { useClubSettings, SETTINGS_SECTIONS } from '@/hooks/use-club-settings';
@@ -25,6 +26,7 @@ export default function ClubSettingsScreen() {
     squads,
     members,
     inviteCodes,
+    canManageClub,
     loading,
     activeSection,
     setActiveSection,
@@ -34,13 +36,24 @@ export default function ClubSettingsScreen() {
     setEditTagline,
     editCity,
     setEditCity,
+    brandingDraft,
+    isSavingBranding,
     handleCopyCode,
     handleShareCode,
     handleGenerateCode,
+    handleDeleteCode,
     handleSaveDetails,
+    handleBrandingChange,
+    handleSaveBranding,
     handleCreateSquad,
     handleDeleteClub,
   } = useClubSettings();
+
+  const visibleSections = canManageClub
+    ? SETTINGS_SECTIONS
+    : SETTINGS_SECTIONS.filter(
+        (section) => section.key === 'details' || section.key === 'branding',
+      );
 
   if (loading) {
     return (
@@ -94,7 +107,7 @@ export default function ClubSettingsScreen() {
         style={{ flexGrow: 0 }}
         contentContainerStyle={styles.tabsContent}
       >
-        {SETTINGS_SECTIONS.map((section) => (
+        {visibleSections.map((section) => (
           <Clickable
             key={section.key}
             style={
@@ -126,6 +139,14 @@ export default function ClubSettingsScreen() {
       </ScrollView>
 
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
+        {!canManageClub && (
+          <SurfaceCard style={[styles.readOnlyCard, { borderColor: colors.border }]}>
+            <ThemedText style={Typography.smallSemiBold}>Read-only access</ThemedText>
+            <ThemedText style={[Typography.small, { color: colors.muted }]}>
+              Club leaders (Owner/Admin/Head Coach) can edit settings, invites, and member controls.
+            </ThemedText>
+          </SurfaceCard>
+        )}
         {activeSection === 'details' && (
           <SettingsDetailsSection
             editName={editName}
@@ -138,6 +159,16 @@ export default function ClubSettingsScreen() {
             onSave={handleSaveDetails}
           />
         )}
+        {activeSection === 'branding' && brandingDraft && (
+          <SettingsBrandingSection
+            branding={brandingDraft}
+            colors={colors}
+            canManageClub={canManageClub}
+            isSaving={isSavingBranding}
+            onChange={handleBrandingChange}
+            onSave={handleSaveBranding}
+          />
+        )}
         {activeSection === 'invites' && (
           <SettingsInvitesSection
             inviteCodes={inviteCodes}
@@ -145,6 +176,7 @@ export default function ClubSettingsScreen() {
             onCopy={handleCopyCode}
             onShare={handleShareCode}
             onGenerate={handleGenerateCode}
+            onDelete={handleDeleteCode}
           />
         )}
         {activeSection === 'squads' && (
@@ -202,6 +234,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
   },
   content: { padding: Spacing.lg, paddingTop: 0, gap: Spacing.md },
+  readOnlyCard: { gap: Spacing.xs, borderWidth: 1 },
   dangerCard: { gap: Spacing.md },
   dangerBtn: { paddingVertical: Spacing.md, borderRadius: Radii.md, borderWidth: 1.5 },
 });

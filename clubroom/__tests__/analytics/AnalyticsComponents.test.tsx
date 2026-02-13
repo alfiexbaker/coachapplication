@@ -282,7 +282,7 @@ describe('Analytics Components Data Contracts', () => {
       };
 
       assert.strictEqual(formatCurrency(1000), '\u00A31,000');
-      assert.strictEqual(formatCurrency(500, '$'), '$500');
+      assert.strictEqual(formatCurrency(500, '\u00A3'), '\u00A3500');
       assert.strictEqual(formatCurrency(2340), '\u00A32,340');
     });
 

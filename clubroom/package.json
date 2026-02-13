@@ -30,7 +30,8 @@
     "test:messaging": "npm run test:compile && node --require ./scripts/test-register.js --test .tmp-tests/__tests__/messaging/messaging-service.test.js",
     "test:family": "npm run test:compile && node --require ./scripts/test-register.js --test .tmp-tests/__tests__/family/*.test.js",
     "test": "npm run test:snapshots",
-    "format:check": "prettier --check 'app/**/*.tsx' 'components/**/*.tsx' 'services/**/*.ts' 'hooks/**/*.ts'"
+    "format:check": "prettier --check 'app/**/*.tsx' 'components/**/*.tsx' 'services/**/*.ts' 'hooks/**/*.ts'",
+    "lint:ui-actions": "node ./scripts/lint-ui-actions.js"
   },
   "dependencies": {
     "@expo/vector-icons": "^15.0.3",

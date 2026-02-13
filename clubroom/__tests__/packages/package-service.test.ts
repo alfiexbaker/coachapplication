@@ -61,7 +61,7 @@ test('formatPrice formats GBP correctly', () => {
   // Test the format logic directly
   const amount = 200;
   const currency = 'GBP';
-  const symbol = currency === 'GBP' ? '\u00A3' : '$';
+  const symbol = '\u00A3';
   const formatted = `${symbol}${amount.toFixed(2)}`;
 
   assert.strictEqual(formatted, '\u00A3200.00');
@@ -70,7 +70,7 @@ test('formatPrice formats GBP correctly', () => {
 test('formatPrice formats decimal amounts', () => {
   const amount = 35.5;
   const currency = 'GBP';
-  const symbol = currency === 'GBP' ? '\u00A3' : '$';
+  const symbol = '\u00A3';
   const formatted = `${symbol}${amount.toFixed(2)}`;
 
   assert.strictEqual(formatted, '\u00A335.50');
@@ -79,7 +79,7 @@ test('formatPrice formats decimal amounts', () => {
 test('formatPrice defaults to GBP', () => {
   const amount = 100;
   const currency = undefined;
-  const symbol = (currency ?? 'GBP') === 'GBP' ? '\u00A3' : '$';
+  const symbol = '\u00A3';
   const formatted = `${symbol}${amount.toFixed(2)}`;
 
   assert.strictEqual(formatted, '\u00A3100.00');

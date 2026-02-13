@@ -15,9 +15,9 @@ interface FeedPostActionsProps {
   postId: string;
   reactionCount: number;
   commentCount: number;
-  onLike?: (postId: string) => void;
-  onComment?: (postId: string) => void;
-  onShare?: (postId: string) => void;
+  onLike: (postId: string) => void;
+  onComment: (postId: string) => void;
+  onShare: (postId: string) => void;
 }
 
 // ─── Component ──────────────────────────────────────────────────────────────
@@ -36,21 +36,21 @@ export const FeedPostActions = memo(function FeedPostActions({
     if (Platform.OS !== 'web') {
       void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     }
-    onLike?.(postId);
+    onLike(postId);
   }, [onLike, postId]);
 
   const handleComment = useCallback(() => {
     if (Platform.OS !== 'web') {
       void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     }
-    onComment?.(postId);
+    onComment(postId);
   }, [onComment, postId]);
 
   const handleShare = useCallback(() => {
     if (Platform.OS !== 'web') {
       void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     }
-    onShare?.(postId);
+    onShare(postId);
   }, [onShare, postId]);
 
   return (

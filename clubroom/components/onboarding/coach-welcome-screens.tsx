@@ -2,7 +2,7 @@
  * CoachWelcome — Individual onboarding screens.
  */
 import { memo } from 'react';
-import { View, TextInput, StyleSheet, ScrollView } from 'react-native';
+import { Alert, Share, View, TextInput, StyleSheet, ScrollView } from 'react-native';
 import { Row } from '@/components/primitives/row';
 import { Ionicons } from '@expo/vector-icons';
 
@@ -278,6 +278,19 @@ export const AvailabilityScreen = memo(function AvailabilityScreen({
 /* ─── Screen 5: Ready ─── */
 export const ReadyScreen = memo(function ReadyScreen() {
   const { colors: palette } = useTheme();
+  const profileUrl = 'https://clubroom.app/coach/you';
+
+  const handleShareProfile = async () => {
+    try {
+      await Share.share({
+        title: 'My Clubroom coaching profile',
+        message: `Book sessions with me on Clubroom: ${profileUrl}`,
+      });
+    } catch {
+      Alert.alert('Unable to share', 'Try again in a moment.');
+    }
+  };
+
   return (
     <View style={[styles.page, { width: SCREEN_WIDTH }]}>
       <View style={styles.pageContent}>
@@ -301,7 +314,8 @@ export const ReadyScreen = memo(function ReadyScreen() {
             </View>
           </Row>
           <Clickable
-            onPress={() => {}}
+            onPress={handleShareProfile}
+            accessibilityLabel="Share coach profile link"
             style={[styles.shareButton, { backgroundColor: palette.tint }]}
           >
             <Ionicons name="share-outline" size={Components.icon.md} color={palette.onPrimary} />

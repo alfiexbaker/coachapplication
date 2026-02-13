@@ -91,7 +91,7 @@ export const StreakCard = memo(function StreakCard({ streakInfo }: { streakInfo:
           borderColor: withAlpha(palette.warning, 0.25),
         },
       ]}
-      onPress={() => router.push(Routes.BADGES_INDEX)}
+      onPress={() => router.push(Routes.DEVELOPMENT_MY_PROGRESS)}
     >
       <Row align="center" gap="md">
         <View
@@ -290,13 +290,6 @@ export const RecentBadgesSection = memo(function RecentBadgesSection({
             )}
           </View>
         ))}
-        <Clickable
-          style={[styles.viewAllBadges, { borderColor: palette.border }]}
-          onPress={() => router.push(Routes.BADGES_INDEX)}
-        >
-          <Ionicons name="arrow-forward" size={18} color={palette.tint} />
-          <ThemedText style={{ color: palette.tint, ...Typography.caption }}>See All</ThemedText>
-        </Clickable>
       </ScrollView>
     </View>
   );
@@ -452,16 +445,6 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   badgeLabel: { ...Typography.caption, textAlign: 'center', maxWidth: 80 },
-  viewAllBadges: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    padding: Spacing.md,
-    borderRadius: Radii.md,
-    borderWidth: 1,
-    borderStyle: 'dashed',
-    minWidth: 70,
-    gap: Spacing.xs,
-  },
   clubCard: { flexDirection: 'row', alignItems: 'center', padding: Spacing.md, gap: Spacing.md },
   clubBadge: {
     width: 44,

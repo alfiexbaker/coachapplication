@@ -3,7 +3,7 @@
  * Also includes the "Add time block" sub-row.
  */
 import { memo, useCallback } from 'react';
-import { View, StyleSheet, Platform, type ViewStyle } from 'react-native';
+import { View, StyleSheet, Platform, type ViewStyle, useWindowDimensions } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 
@@ -32,6 +32,8 @@ interface WeekPatternSlotRowProps extends SlotRowData {
 
 function SlotRowInner(props: WeekPatternSlotRowProps) {
   const { colors: palette } = useTheme();
+  const { width } = useWindowDimensions();
+  const isCompact = width < 430;
   const {
     dayLabel,
     showDayLabel,
@@ -91,21 +93,32 @@ function SlotRowInner(props: WeekPatternSlotRowProps) {
             {timeDisplay}
           </ThemedText>
         )}
-      </View>
 
-      <View style={styles.dayLocationCol}>
-        {!isBlocked && locationDisplay ? (
+        {!isBlocked && locationDisplay && isCompact ? (
           <Row style={[styles.locationPill, { backgroundColor: withAlpha(palette.tint, 0.07) }]}>
             <Ionicons name="location-outline" size={10} color={palette.tint} />
-            <ThemedText
-              style={[styles.locationPillText, { color: palette.tint }]}
-              numberOfLines={1}
-            >
+            <ThemedText style={[styles.locationPillText, { color: palette.tint }]} numberOfLines={1}>
               {locationDisplay}
             </ThemedText>
           </Row>
         ) : null}
       </View>
+
+      {!isCompact ? (
+        <View style={styles.dayLocationCol}>
+          {!isBlocked && locationDisplay ? (
+            <Row style={[styles.locationPill, { backgroundColor: withAlpha(palette.tint, 0.07) }]}>
+              <Ionicons name="location-outline" size={10} color={palette.tint} />
+              <ThemedText
+                style={[styles.locationPillText, { color: palette.tint }]}
+                numberOfLines={1}
+              >
+                {locationDisplay}
+              </ThemedText>
+            </Row>
+          ) : null}
+        </View>
+      ) : null}
 
       <Row style={styles.dayIndicators}>
         {hasOverride && !isBlocked && (
@@ -145,9 +158,7 @@ function AddBlockRowInner({ dayIndex, showSeparator, onPress }: AddBlockRowProps
       <View style={styles.dayLabelCol} />
       <Row style={styles.addBlockContent}>
         <Ionicons name="add" size={14} color={palette.muted} />
-        <ThemedText style={[styles.addBlockText, { color: palette.muted }]}>
-          Add time block
-        </ThemedText>
+        <ThemedText style={[styles.addBlockText, { color: palette.muted }]}>Add time block</ThemedText>
       </Row>
     </Clickable>
   );
@@ -162,9 +173,9 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing.md,
     paddingVertical: Spacing.sm,
   },
-  dayLabelCol: { width: 44 },
+  dayLabelCol: { width: 52 },
   dayLabel: { ...Typography.smallSemiBold },
-  dayTimeCol: { flex: 1, paddingHorizontal: Spacing.xs },
+  dayTimeCol: { flex: 1, paddingHorizontal: Spacing.xs, gap: Spacing.xxs },
   dayTime: { ...Typography.bodySmall },
   timeOffRow: { alignItems: 'center', gap: Spacing.xxs },
   dayLocationCol: { flex: 1, alignItems: 'flex-end', paddingRight: Spacing.xs },
@@ -174,7 +185,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing.xs,
     paddingVertical: Spacing.micro,
     borderRadius: Radii.pill,
-    maxWidth: 120,
+    maxWidth: 130,
   },
   locationPillText: { ...Typography.micro, textTransform: 'none', letterSpacing: 0 },
   dayIndicators: { alignItems: 'center', gap: Spacing.xxs, width: 36, justifyContent: 'flex-end' },

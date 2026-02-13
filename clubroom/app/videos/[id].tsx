@@ -17,6 +17,7 @@ import { LoadingState, ErrorState, EmptyState } from '@/components/ui/screen-sta
 import { Spacing } from '@/constants/theme';
 import { useScreen } from '@/hooks/use-screen';
 import { useVideoDetail } from '@/hooks/use-video-detail';
+import { Routes } from '@/navigation/routes';
 import { ok } from '@/types/result';
 
 export default function VideoDetailScreen() {
@@ -165,6 +166,7 @@ export default function VideoDetailScreen() {
             createdAt={video.createdAt}
             fileSize={video.fileSize}
             sessionId={video.sessionId}
+            onViewSession={(sessionId) => router.push(Routes.developmentSession(sessionId))}
           />
         </Animated.View>
 

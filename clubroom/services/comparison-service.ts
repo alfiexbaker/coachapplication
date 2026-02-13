@@ -51,7 +51,7 @@ function transformToComparison(coach: CoachProfile): CoachComparison {
     price: {
       min: coach.priceRange.minUsd,
       max: coach.priceRange.maxUsd,
-      currency: 'USD',
+      currency: 'GBP',
     },
     specialties: coach.footballFocuses,
     sessionTypes: coach.sessionFormats as TrainingFormat[],

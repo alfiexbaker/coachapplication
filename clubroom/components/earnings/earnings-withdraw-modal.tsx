@@ -74,7 +74,7 @@ export const EarningsWithdrawModal = memo(function EarningsWithdrawModal({
               <ThemedText type="defaultSemiBold">Amount</ThemedText>
               <Row style={[styles.amountContainer, { borderColor: palette.border }]}>
                 <ThemedText style={styles.currencySymbol}>
-                  {earnings?.currency === 'GBP' ? '£' : earnings?.currency === 'USD' ? '$' : '€'}
+                  £
                 </ThemedText>
                 <TextInput
                   style={[styles.amountInput, { color: palette.text }]}
@@ -99,7 +99,11 @@ export const EarningsWithdrawModal = memo(function EarningsWithdrawModal({
                   {payoutMethods
                     .filter((m) => m.isVerified)
                     .map((method) => (
-                      <Clickable key={method.id} onPress={() => onSelectMethod(method.id)}>
+                      <Clickable
+                        key={method.id}
+                        onPress={() => onSelectMethod(method.id)}
+                        accessibilityLabel={`Select payout method ${method.nickname || method.type}`}
+                      >
                         <Row
                           style={[
                             styles.methodOption,
@@ -195,6 +199,7 @@ export const EarningsWithdrawModal = memo(function EarningsWithdrawModal({
             <Clickable
               onPress={onConfirm}
               disabled={withdrawing || !selectedPayoutMethod || !withdrawAmount}
+              accessibilityLabel="Confirm withdrawal"
             >
               <Row
                 style={[
@@ -208,11 +213,11 @@ export const EarningsWithdrawModal = memo(function EarningsWithdrawModal({
                 ]}
               >
                 {withdrawing ? (
-                  <ActivityIndicator size="small" color={palette.background} />
+                  <ActivityIndicator size="small" color={palette.onPrimary} />
                 ) : (
                   <>
-                    <Ionicons name="checkmark-circle" size={18} color={palette.background} />
-                    <ThemedText style={{ color: palette.background, fontWeight: '700' }}>
+                    <Ionicons name="checkmark-circle" size={18} color={palette.onPrimary} />
+                    <ThemedText style={{ color: palette.onPrimary, ...Typography.bodySemiBold }}>
                       Confirm Withdrawal
                     </ThemedText>
                   </>
@@ -250,7 +255,7 @@ const styles = StyleSheet.create({
     borderWidth: 1.5,
     borderRadius: Radii.md,
     paddingHorizontal: Spacing.md,
-    height: 52,
+    minHeight: 56,
   },
   currencySymbol: { ...Typography.title, marginRight: Spacing.xs },
   amountInput: { flex: 1, ...Typography.display, height: '100%' },
@@ -281,8 +286,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     gap: Spacing.xs,
-    paddingVertical: Spacing.md,
-    borderRadius: Radii.md,
+    minHeight: 52,
+    paddingHorizontal: Spacing.md,
+    borderRadius: Radii.lg,
     marginTop: Spacing.xs,
   },
 });

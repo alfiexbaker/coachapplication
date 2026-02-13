@@ -11,13 +11,13 @@ import { POST_TYPES } from '@/hooks/use-create-club-post';
 
 interface FeedTypeSelectorProps {
   feedType: FeedType;
-  clubName?: string;
+  canTargetClub?: boolean;
   onSelect: (ft: FeedType) => void;
 }
 
 export const FeedTypeSelector = memo(function FeedTypeSelector({
   feedType,
-  clubName,
+  canTargetClub = false,
   onSelect,
 }: FeedTypeSelectorProps) {
   const { colors: palette } = useTheme();
@@ -28,10 +28,20 @@ export const FeedTypeSelector = memo(function FeedTypeSelector({
       icon: 'person-circle-outline',
       color: palette.success,
     },
-    ...(clubName
+    ...(canTargetClub
       ? [
-          { key: 'CLUB' as FeedType, label: clubName, icon: 'shield-outline', color: palette.tint },
-          { key: 'BOTH' as FeedType, label: 'Both', icon: 'globe-outline', color: palette.warning },
+          {
+            key: 'CLUB' as FeedType,
+            label: 'Club Feed',
+            icon: 'shield-outline',
+            color: palette.tint,
+          },
+          {
+            key: 'BOTH' as FeedType,
+            label: 'Personal + Club',
+            icon: 'globe-outline',
+            color: palette.warning,
+          },
         ]
       : []),
   ];
@@ -45,8 +55,12 @@ export const FeedTypeSelector = memo(function FeedTypeSelector({
             style={[
               styles.chip,
               { borderColor: feedType === o.key ? o.color : palette.border },
+              (o.key === 'CLUB' || o.key === 'BOTH') && !canTargetClub
+                ? { opacity: 0.45 }
+                : undefined,
               feedType === o.key ? { backgroundColor: withAlpha(o.color, 0.06) } : undefined,
             ]}
+            disabled={(o.key === 'CLUB' || o.key === 'BOTH') && !canTargetClub}
             onPress={() => onSelect(o.key)}
           >
             <Ionicons
@@ -177,10 +191,10 @@ export const AudienceSelector = memo(function AudienceSelector({
   onSelectSquadId,
 }: AudienceSelectorProps) {
   const { colors: palette } = useTheme();
-  if (squads.length === 0) return null;
+  const hasSquads = squads.length > 0;
   return (
     <View style={styles.section}>
-      <ThemedText style={[styles.sectionLabel, { color: palette.muted }]}>Audience</ThemedText>
+      <ThemedText style={[styles.sectionLabel, { color: palette.muted }]}>Post To</ThemedText>
       <Row gap="sm">
         <Clickable
           style={[
@@ -204,11 +218,13 @@ export const AudienceSelector = memo(function AudienceSelector({
         <Clickable
           style={[
             styles.twoColOption,
+            !hasSquads ? { opacity: 0.45 } : undefined,
             { borderColor: audienceType === 'squad' ? palette.tint : palette.border },
             audienceType === 'squad'
               ? { backgroundColor: withAlpha(palette.tint, 0.06) }
               : undefined,
           ]}
+          disabled={!hasSquads}
           onPress={onSelectSquad}
         >
           <Ionicons
@@ -221,7 +237,7 @@ export const AudienceSelector = memo(function AudienceSelector({
           </ThemedText>
         </Clickable>
       </Row>
-      {audienceType === 'squad' && (
+      {audienceType === 'squad' && hasSquads && (
         <ScrollView
           horizontal
           showsHorizontalScrollIndicator={false}
@@ -266,6 +282,11 @@ export const AudienceSelector = memo(function AudienceSelector({
             </Clickable>
           ))}
         </ScrollView>
+      )}
+      {audienceType === 'squad' && !hasSquads && (
+        <ThemedText style={[styles.noSquadsHint, { color: palette.muted }]}>
+          No teams yet. Create a squad to target a team post.
+        </ThemedText>
       )}
     </View>
   );
@@ -406,5 +427,9 @@ const styles = StyleSheet.create({
   },
   clearText: {
     ...Typography.smallSemiBold,
+  },
+  noSquadsHint: {
+    ...Typography.caption,
+    marginTop: Spacing.sm,
   },
 });

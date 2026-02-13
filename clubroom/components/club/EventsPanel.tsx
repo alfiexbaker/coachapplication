@@ -79,7 +79,7 @@ export function EventsPanel({ events, isCoach, clubId, onCreateEvent }: EventsPa
     if (onCreateEvent) {
       onCreateEvent();
     } else {
-      router.push(Routes.MODAL_CREATE_CLUB_POST);
+      router.push(Routes.modalCreateClubPost({ clubId, audience: 'club' }));
     }
   };
 

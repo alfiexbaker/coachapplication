@@ -754,8 +754,8 @@ class PackageService {
    * @param currency - Currency code (default: GBP)
    * @returns Formatted currency string
    */
-  formatPrice(amount: number, currency: string = 'GBP'): string {
-    const symbol = currency === 'GBP' ? '\u00A3' : '$';
+  formatPrice(amount: number, _currency: string = 'GBP'): string {
+    const symbol = '\u00A3';
     return `${symbol}${amount.toFixed(2)}`;
   }
 

@@ -25,11 +25,21 @@ export interface ProfilePostCardProps {
   coachName: string;
   /** Coach avatar URL */
   coachAvatar?: string;
+  onLikePress?: (postId: string) => void;
+  onCommentPress?: (postId: string) => void;
+  onSharePress?: (postId: string) => void;
 }
 
 // ─── Component ──────────────────────────────────────────────────
 
-function ProfilePostCardInner({ post, coachName, coachAvatar }: ProfilePostCardProps) {
+function ProfilePostCardInner({
+  post,
+  coachName,
+  coachAvatar,
+  onLikePress,
+  onCommentPress,
+  onSharePress,
+}: ProfilePostCardProps) {
   const { colors: palette } = useTheme();
 
   return (
@@ -60,17 +70,52 @@ function ProfilePostCardInner({ post, coachName, coachAvatar }: ProfilePostCardP
       )}
 
       <Row style={styles.postActions}>
-        <Clickable style={styles.actionButton}>
-          <Ionicons name="heart-outline" size={20} color={palette.foreground} />
-          <ThemedText style={styles.actionText}>{post.likes}</ThemedText>
-        </Clickable>
-        <Clickable style={styles.actionButton}>
-          <Ionicons name="chatbubble-outline" size={20} color={palette.foreground} />
-          <ThemedText style={styles.actionText}>{post.comments}</ThemedText>
-        </Clickable>
-        <Clickable accessibilityLabel="Share post" style={styles.actionButton}>
-          <Ionicons name="share-outline" size={20} color={palette.foreground} />
-        </Clickable>
+        {onLikePress ? (
+          <Clickable
+            onPress={() => onLikePress(post.id)}
+            accessibilityRole="button"
+            accessibilityLabel="Like post"
+            style={styles.actionButton}
+          >
+            <Ionicons name="heart-outline" size={20} color={palette.foreground} />
+            <ThemedText style={styles.actionText}>{post.likes}</ThemedText>
+          </Clickable>
+        ) : (
+          <View style={styles.actionStat}>
+            <Ionicons name="heart-outline" size={20} color={palette.foreground} />
+            <ThemedText style={styles.actionText}>{post.likes}</ThemedText>
+          </View>
+        )}
+        {onCommentPress ? (
+          <Clickable
+            onPress={() => onCommentPress(post.id)}
+            accessibilityRole="button"
+            accessibilityLabel="Open comments"
+            style={styles.actionButton}
+          >
+            <Ionicons name="chatbubble-outline" size={20} color={palette.foreground} />
+            <ThemedText style={styles.actionText}>{post.comments}</ThemedText>
+          </Clickable>
+        ) : (
+          <View style={styles.actionStat}>
+            <Ionicons name="chatbubble-outline" size={20} color={palette.foreground} />
+            <ThemedText style={styles.actionText}>{post.comments}</ThemedText>
+          </View>
+        )}
+        {onSharePress ? (
+          <Clickable
+            onPress={() => onSharePress(post.id)}
+            accessibilityLabel="Share post"
+            accessibilityRole="button"
+            style={styles.actionButton}
+          >
+            <Ionicons name="share-outline" size={20} color={palette.foreground} />
+          </Clickable>
+        ) : (
+          <View style={styles.actionStat}>
+            <Ionicons name="share-outline" size={20} color={palette.foreground} />
+          </View>
+        )}
       </Row>
     </SurfaceCard>
   );
@@ -115,6 +160,10 @@ const styles = StyleSheet.create({
     paddingTop: Spacing.xs,
   },
   actionButton: {
+    alignItems: 'center',
+    gap: Spacing.xs,
+  },
+  actionStat: {
     alignItems: 'center',
     gap: Spacing.xs,
   },

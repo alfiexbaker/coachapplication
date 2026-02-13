@@ -7,8 +7,8 @@
  */
 
 import { useEffect, useMemo, useState, useCallback, useRef } from 'react';
-import { Alert } from 'react-native';
-import { router } from 'expo-router';
+import { Alert, Share } from 'react-native';
+import { router, useLocalSearchParams } from 'expo-router';
 import { Routes } from '@/navigation/routes';
 
 import { useAuth } from '@/hooks/use-auth';
@@ -111,6 +111,9 @@ export interface ClubHubState {
   loadAllData: () => Promise<void>;
   onRefresh: () => void;
   handlePinToggle: (postId: string) => void;
+  handleLikePost: (postId: string) => void;
+  handleCommentPost: (postId: string) => void;
+  handleSharePost: (postId: string) => void;
   handleJoinWithCode: (code: string) => void;
   handleLeaveClub: () => void;
   handleRemoveMember: (member: ClubMember) => void;
@@ -122,6 +125,10 @@ export interface ClubHubState {
 export function useClubHub(): ClubHubState {
   const { currentUser, availableUsers } = useAuth();
   const { showUndoToast, showToast } = useToast();
+  const { clubId: routeClubId, inviteCode: routeInviteCode } = useLocalSearchParams<{
+    clubId?: string;
+    inviteCode?: string;
+  }>();
 
   const userClubs = useMemo(
     () => (currentUser?.id ? socialFeedService.getUserClubs(currentUser.id) : []),
@@ -164,6 +171,7 @@ export function useClubHub(): ClubHubState {
   const [showMemberRemovalModal, setShowMemberRemovalModal] = useState(false);
   const [isRemovingMember, setIsRemovingMember] = useState(false);
   const lastMemberRemovalRef = useRef<ClubMemberRemovalRecord | null>(null);
+  const handledRouteInviteCodeRef = useRef<string | null>(null);
 
   // ─── Derived permissions ───────────────────────────────────────
   const canManagePosts = !!(
@@ -171,7 +179,9 @@ export function useClubHub(): ClubHubState {
   );
   const canCreatePosts = !!membership;
   const canRemoveMembers = !!(membership && clubService.canRemoveMembers(membership.role));
-  const isCoach = currentUser?.role === 'COACH' || currentUser?.role === 'ADMIN';
+  const isCoach = !!(
+    membership && ['OWNER', 'HEAD_COACH', 'ADMIN', 'COACH'].includes(membership.role)
+  );
 
   // ─── Data loaders ──────────────────────────────────────────────
   const loadClubMeta = useCallback(async () => {
@@ -309,26 +319,18 @@ export function useClubHub(): ClubHubState {
       return;
     }
 
-    setMembership((previous) => {
-      if (previous && previous.userId === currentUser.id) {
-        return previous;
-      }
+    const memberships = socialFeedService.getUserMemberships(currentUser.id);
+    if (memberships.length === 0) {
+      setMembership(undefined);
+      return;
+    }
 
-      const firstClub = userClubs[0];
-      if (!firstClub) return undefined;
+    const selectedMembership = routeClubId
+      ? memberships.find((membership) => membership.clubId === routeClubId)
+      : undefined;
 
-      const role = mapUserRoleToClubRole(currentUser.role);
-      return {
-        clubId: firstClub.id,
-        userId: currentUser.id,
-        role,
-        status: 'active',
-        joinSource: 'invite',
-        inviteCode: firstClub.inviteCode,
-        canPostAsClub: canPostAsClub(role),
-      };
-    });
-  }, [currentUser?.id, currentUser?.role, userClubs]);
+    setMembership(selectedMembership ?? memberships[0]);
+  }, [currentUser?.id, routeClubId]);
 
   useEffect(() => {
     void loadAllData('initial');
@@ -374,6 +376,32 @@ export function useClubHub(): ClubHubState {
       loadFeed();
     },
     [currentUser, loadFeed],
+  );
+
+  const handleLikePost = useCallback(
+    (postId: string) => {
+      if (!currentUser) return;
+      socialFeedService.toggleReaction(postId, currentUser.id);
+      loadFeed();
+    },
+    [currentUser, loadFeed],
+  );
+
+  const handleCommentPost = useCallback((postId: string) => {
+    router.push(Routes.modalPostDetail(postId));
+  }, []);
+
+  const handleSharePost = useCallback(
+    (postId: string) => {
+      const post = feed.find((candidate) => candidate.id === postId);
+      if (!post) return;
+
+      void Share.share({
+        title: post.title,
+        message: `${post.title}\n\n${post.body}`,
+      });
+    },
+    [feed],
   );
 
   const handleInvitePress = useCallback((inviteId: string) => {
@@ -424,6 +452,14 @@ export function useClubHub(): ClubHubState {
     },
     [currentUser, knownClubs],
   );
+
+  useEffect(() => {
+    if (!routeInviteCode || membership || !currentUser?.id || knownClubs.length === 0) return;
+    const normalizedCode = routeInviteCode.trim().toUpperCase();
+    if (!normalizedCode || handledRouteInviteCodeRef.current === normalizedCode) return;
+    handledRouteInviteCodeRef.current = normalizedCode;
+    handleJoinWithCode(normalizedCode);
+  }, [routeInviteCode, membership, currentUser?.id, knownClubs.length, handleJoinWithCode]);
 
   const handleLeaveClub = useCallback(() => {
     Alert.alert('Club options', 'What would you like to do?', [
@@ -539,6 +575,9 @@ export function useClubHub(): ClubHubState {
     loadAllData: () => loadAllData('initial'),
     onRefresh,
     handlePinToggle,
+    handleLikePost,
+    handleCommentPost,
+    handleSharePost,
     handleJoinWithCode,
     handleLeaveClub,
     handleRemoveMember,
