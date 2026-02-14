@@ -1,7 +1,5 @@
 /**
- * NotificationsActionsBar — Header actions for the Notifications screen.
- *
- * Shows unread badge count + "Mark all read" and "Clear all" action buttons.
+ * NotificationsActionsBar — Compact top actions for notifications.
  */
 
 import React, { memo } from 'react';
@@ -13,6 +11,7 @@ import { Clickable } from '@/components/primitives/clickable';
 import { Row } from '@/components/primitives/row';
 import { Radii, Spacing, Typography } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
+import { NotificationDesign } from './notification-design';
 
 interface NotificationsActionsBarProps {
   unreadCount: number;
@@ -28,34 +27,34 @@ export const NotificationsActionsBar = memo(function NotificationsActionsBar({
   const { colors: palette } = useTheme();
 
   return (
-    <Row justify="between" align="center" paddingH="lg" style={styles.actionsBar}>
-      <Row align="center">
-        {unreadCount > 0 && (
-          <View style={[styles.badge, { backgroundColor: palette.tint }]}>
-            <ThemedText style={[styles.badgeText, { color: palette.onPrimary }]}>
-              {unreadCount}
-            </ThemedText>
-          </View>
+    <Row justify="between" align="center" style={styles.actionsBar}>
+      <View>
+        {unreadCount > 0 ? (
+          <ThemedText style={[styles.unreadText, { color: palette.muted }]}>
+            {unreadCount} unread
+          </ThemedText>
+        ) : (
+          <ThemedText style={[styles.caughtUpText, { color: palette.muted }]}>All caught up</ThemedText>
         )}
-      </Row>
-      <Row align="center" gap="md">
+      </View>
+
+      <Row align="center" gap="sm">
         {unreadCount > 0 && (
-          <Clickable onPress={onMarkAllRead} accessibilityLabel="Mark all notifications as read">
-            <Row align="center" gap="xxs">
-              <Ionicons name="checkmark-done" size={18} color={palette.tint} />
-              <ThemedText style={{ color: palette.tint, ...Typography.smallSemiBold }}>
-                Mark all read
-              </ThemedText>
-            </Row>
+          <Clickable
+            onPress={onMarkAllRead}
+            accessibilityLabel="Mark all notifications as read"
+            style={[styles.iconAction, { borderColor: palette.border, backgroundColor: palette.surface }]}
+          >
+            <Ionicons name="checkmark-done" size={18} color={palette.tint} />
           </Clickable>
         )}
-        <Clickable onPress={onClearAll} accessibilityLabel="Clear all notifications">
-          <Row align="center" gap="xxs">
-            <Ionicons name="trash-outline" size={18} color={palette.muted} />
-            <ThemedText style={{ color: palette.muted, ...Typography.smallSemiBold }}>
-              Clear all
-            </ThemedText>
-          </Row>
+
+        <Clickable
+          onPress={onClearAll}
+          accessibilityLabel="Clear all notifications"
+          style={[styles.iconAction, { borderColor: palette.border, backgroundColor: palette.surface }]}
+        >
+          <Ionicons name="trash-outline" size={18} color={palette.muted} />
         </Clickable>
       </Row>
     </Row>
@@ -64,16 +63,22 @@ export const NotificationsActionsBar = memo(function NotificationsActionsBar({
 
 const styles = StyleSheet.create({
   actionsBar: {
-    paddingBottom: Spacing.md,
+    paddingHorizontal: NotificationDesign.list.horizontalPadding,
+    paddingBottom: Spacing.sm,
   },
-  badge: {
-    paddingHorizontal: Spacing.xs,
-    paddingVertical: Spacing.micro,
-    borderRadius: Radii.md,
-    minWidth: 20,
-    alignItems: 'center',
-  },
-  badgeText: {
+  unreadText: {
     ...Typography.caption,
+    fontWeight: '600',
+  },
+  caughtUpText: {
+    ...Typography.caption,
+  },
+  iconAction: {
+    width: NotificationDesign.actions.iconButton,
+    height: NotificationDesign.actions.iconButton,
+    borderRadius: Radii.pill,
+    borderWidth: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
 });

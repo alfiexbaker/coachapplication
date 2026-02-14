@@ -5,9 +5,11 @@
  */
 
 import React, { memo } from 'react';
-import { ScrollView, StyleSheet } from 'react-native';
+import { ScrollView, StyleSheet, View } from 'react-native';
 
-import { Spacing } from '@/constants/theme';
+import { Spacing, withAlpha } from '@/constants/theme';
+import { useTheme } from '@/hooks/useTheme';
+import { NotificationDesign } from './notification-design';
 import { NotificationFilterChip } from './notification-filter-chip';
 import type { NotificationFilter } from '@/hooks/use-notifications';
 
@@ -29,29 +31,48 @@ export const NotificationFilterBar = memo(function NotificationFilterBar({
   currentFilter,
   onFilterChange,
 }: NotificationFilterBarProps) {
+  const { colors: palette } = useTheme();
+
   return (
     <ScrollView
       horizontal
       showsHorizontalScrollIndicator={false}
       contentContainerStyle={styles.filterBar}
     >
-      {FILTERS.map((filter) => (
-        <NotificationFilterChip
-          key={filter.key}
-          label={filter.label}
-          icon={filter.icon}
-          isActive={currentFilter === filter.key}
-          onPress={() => onFilterChange(filter.key)}
-        />
-      ))}
+      <View
+        style={[
+          styles.segmentGroup,
+          {
+            backgroundColor: withAlpha(palette.surface, 0.9),
+            borderColor: withAlpha(palette.border, 0.95),
+          },
+        ]}
+      >
+        {FILTERS.map((filter) => (
+          <NotificationFilterChip
+            key={filter.key}
+            label={filter.label}
+            icon={filter.icon}
+            isActive={currentFilter === filter.key}
+            onPress={() => onFilterChange(filter.key)}
+          />
+        ))}
+      </View>
     </ScrollView>
   );
 });
 
 const styles = StyleSheet.create({
   filterBar: {
-    paddingHorizontal: Spacing.lg,
-    paddingBottom: Spacing.sm,
-    gap: Spacing.sm,
+    paddingHorizontal: NotificationDesign.list.horizontalPadding,
+    paddingBottom: Spacing.xs,
+  },
+  segmentGroup: {
+    gap: Spacing.xxs,
+    padding: NotificationDesign.filter.groupInset,
+    borderRadius: 999,
+    borderWidth: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
   },
 });

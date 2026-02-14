@@ -21,6 +21,13 @@ import type { MemberRemovalReason } from '@/services/club-service';
 export default function ClubDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const { colors } = useTheme();
+  const handleBackPress = () => {
+    if (router.canGoBack()) {
+      router.back();
+      return;
+    }
+    router.replace(Routes.CLUB_HUB);
+  };
   const {
     loading,
     club,
@@ -58,8 +65,21 @@ export default function ClubDetailScreen() {
   if (loading) {
     return (
       <>
-        <Stack.Screen options={{ title: 'Club' }} />
+        <Stack.Screen options={{ title: 'Club', headerShown: false }} />
         <View style={[styles.container, { backgroundColor: colors.background }]}>
+          <View style={[styles.topBar, { borderBottomColor: colors.border }]}>
+            <Clickable onPress={handleBackPress} hitSlop={10} accessibilityLabel="Go back">
+              <Ionicons name="arrow-back" size={22} color={colors.foreground} />
+            </Clickable>
+            <ThemedText
+              type="defaultSemiBold"
+              numberOfLines={1}
+              style={[styles.topBarTitle, { color: colors.foreground }]}
+            >
+              Club
+            </ThemedText>
+            <View style={styles.topBarSpacer} />
+          </View>
           <LoadingState variant="list" />
         </View>
       </>
@@ -69,14 +89,27 @@ export default function ClubDetailScreen() {
   if (!club) {
     return (
       <>
-        <Stack.Screen options={{ title: 'Club' }} />
+        <Stack.Screen options={{ title: 'Club', headerShown: false }} />
         <View style={[styles.container, { backgroundColor: colors.background }]}>
+          <View style={[styles.topBar, { borderBottomColor: colors.border }]}>
+            <Clickable onPress={handleBackPress} hitSlop={10} accessibilityLabel="Go back">
+              <Ionicons name="arrow-back" size={22} color={colors.foreground} />
+            </Clickable>
+            <ThemedText
+              type="defaultSemiBold"
+              numberOfLines={1}
+              style={[styles.topBarTitle, { color: colors.foreground }]}
+            >
+              Club
+            </ThemedText>
+            <View style={styles.topBarSpacer} />
+          </View>
           <EmptyState
             icon="business-outline"
             title="Club not found"
             message="This club could not be loaded."
             actionLabel="Go Back"
-            onPressAction={() => router.back()}
+            onPressAction={handleBackPress}
           />
         </View>
       </>
@@ -85,8 +118,21 @@ export default function ClubDetailScreen() {
 
   return (
     <>
-      <Stack.Screen options={{ title: club.name, headerBackTitle: 'Feed' }} />
+      <Stack.Screen options={{ title: club.name, headerShown: false }} />
       <View style={[styles.container, { backgroundColor: colors.background }]}>
+        <View style={[styles.topBar, { borderBottomColor: colors.border }]}>
+          <Clickable onPress={handleBackPress} hitSlop={10} accessibilityLabel="Go back">
+            <Ionicons name="arrow-back" size={22} color={colors.foreground} />
+          </Clickable>
+          <ThemedText
+            type="defaultSemiBold"
+            numberOfLines={1}
+            style={[styles.topBarTitle, { color: colors.foreground }]}
+          >
+            {club.name}
+          </ThemedText>
+          <View style={styles.topBarSpacer} />
+        </View>
         <ScrollView
           showsVerticalScrollIndicator={false}
           contentContainerStyle={{ paddingBottom: Spacing.xl * 2 }}
@@ -277,6 +323,20 @@ export default function ClubDetailScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
+  topBar: {
+    minHeight: 56,
+    paddingHorizontal: Spacing.md,
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderBottomWidth: 1,
+  },
+  topBarTitle: {
+    flex: 1,
+    marginLeft: Spacing.sm,
+  },
+  topBarSpacer: {
+    width: 22,
+  },
   eventsSection: { paddingHorizontal: Spacing.md, paddingTop: Spacing.md, gap: Spacing.sm },
   actionBtn: { paddingVertical: Spacing.sm, borderRadius: Radii.md },
   filterTab: {

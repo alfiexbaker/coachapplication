@@ -1,0 +1,137 @@
+#!/usr/bin/env node
+
+const { execSync } = require('node:child_process');
+const { readFileSync } = require('node:fs');
+const { resolve } = require('node:path');
+
+const TARGETS = ['app', 'components'];
+const FILE_GLOBS = ["'**/*.tsx'"];
+
+function listFiles() {
+  const cmd = `rg --files ${TARGETS.join(' ')} ${FILE_GLOBS.map((glob) => `-g ${glob}`).join(' ')}`;
+  const output = execSync(cmd, { encoding: 'utf8' }).trim();
+  return output ? output.split('\n') : [];
+}
+
+function lineForIndex(source, index) {
+  let line = 1;
+  for (let i = 0; i < index; i += 1) {
+    if (source.charCodeAt(i) === 10) line += 1;
+  }
+  return line;
+}
+
+function matchAllWithLine(source, regex) {
+  const matches = [];
+  regex.lastIndex = 0;
+  let match = regex.exec(source);
+  while (match) {
+    matches.push({ match, line: lineForIndex(source, match.index) });
+    match = regex.exec(source);
+  }
+  return matches;
+}
+
+function isLikelyScreenFile(file) {
+  return file.startsWith('app/') && !file.includes('/_layout');
+}
+
+function run() {
+  const files = listFiles();
+
+  const findings = {
+    critical: [],
+    high: [],
+    medium: [],
+  };
+
+  for (const file of files) {
+    const fullPath = resolve(file);
+    const source = readFileSync(fullPath, 'utf8');
+
+    if (isLikelyScreenFile(file)) {
+      const hasSafeArea = source.includes('SafeAreaView');
+      const hasCustomScreen = source.includes('<Screen') || source.includes('PageScaffold');
+      if (!hasSafeArea && !hasCustomScreen) {
+        findings.high.push({
+          file,
+          line: 1,
+          rule: 'screen-without-safe-area-shell',
+          detail: 'Screen may render under notch/home indicator on some devices.',
+        });
+      }
+    }
+
+    const largeFixedWidths = matchAllWithLine(source, /width:\s*(\d{3,})/g).filter(({ match }) => {
+      const width = Number(match[1]);
+      return Number.isFinite(width) && width >= 280;
+    });
+    for (const hit of largeFixedWidths) {
+      findings.high.push({
+        file,
+        line: hit.line,
+        rule: 'large-fixed-width',
+        detail: `Fixed width ${hit.match[1]} may overflow on smaller phones.`,
+      });
+    }
+
+    const spacerViews = matchAllWithLine(source, /<View\s+style=\{\{\s*width:\s*\d+\s*\}\}\s*\/>/g);
+    for (const hit of spacerViews) {
+      findings.medium.push({
+        file,
+        line: hit.line,
+        rule: 'spacer-view-hack',
+        detail: 'Spacer View for header alignment is brittle across device widths.',
+      });
+    }
+
+    const absoluteBlocks = matchAllWithLine(source, /position:\s*'absolute'/g);
+    for (const hit of absoluteBlocks) {
+      findings.medium.push({
+        file,
+        line: hit.line,
+        rule: 'absolute-layout-risk',
+        detail: 'Absolute positioning often causes overlap/cutoff on small screens.',
+      });
+    }
+
+    const twoColumnPercent = matchAllWithLine(source, /width:\s*'48%'/g);
+    for (const hit of twoColumnPercent) {
+      findings.medium.push({
+        file,
+        line: hit.line,
+        rule: 'percent-tile-layout-risk',
+        detail: "48% tile patterns can wrap badly with larger text/accessibility settings.",
+      });
+    }
+  }
+
+  const total =
+    findings.critical.length + findings.high.length + findings.medium.length;
+
+  if (total === 0) {
+    console.log('UI audit passed: no static layout risks detected.');
+    return;
+  }
+
+  console.log('UI audit report');
+  console.log(`- Critical: ${findings.critical.length}`);
+  console.log(`- High: ${findings.high.length}`);
+  console.log(`- Medium: ${findings.medium.length}`);
+
+  const printTop = (label, list, limit) => {
+    if (list.length === 0) return;
+    console.log(`\n${label} findings (showing ${Math.min(limit, list.length)} of ${list.length}):`);
+    for (const finding of list.slice(0, limit)) {
+      console.log(`- ${finding.file}:${finding.line} [${finding.rule}] ${finding.detail}`);
+    }
+  };
+
+  printTop('Critical', findings.critical, 20);
+  printTop('High', findings.high, 40);
+  printTop('Medium', findings.medium, 40);
+
+  if (findings.critical.length > 0) process.exit(2);
+}
+
+run();

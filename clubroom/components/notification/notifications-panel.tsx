@@ -23,6 +23,7 @@ import { notificationService, ExtendedNotificationItem } from '@/services/notifi
 import { badgeService } from '@/services/badge-service';
 import { createLogger } from '@/utils/logger';
 import { useNotifications } from '@/hooks/use-notifications';
+import { NotificationDesign } from './notification-design';
 import { NotificationFilterBar } from './notification-filter-bar';
 import { NotificationDayGroups } from './notification-day-groups';
 
@@ -50,6 +51,8 @@ export function NotificationsPanel({
     refresh,
     retry,
     markAsRead,
+    dismissNotification,
+    muteNotificationType,
     currentFilter,
     setFilter,
   } = useNotifications();
@@ -108,6 +111,20 @@ export function NotificationsPanel({
     [markAsRead],
   );
 
+  const handleNotificationDismiss = useCallback(
+    async (id: string) => {
+      await dismissNotification(id);
+    },
+    [dismissNotification],
+  );
+
+  const handleNotificationMute = useCallback(
+    async (item: ExtendedNotificationItem) => {
+      await muteNotificationType(item);
+    },
+    [muteNotificationType],
+  );
+
   const visibleItems = limit > 0 ? notifications.slice(0, limit) : notifications;
 
   // Compact mode for embedding in other screens
@@ -131,6 +148,9 @@ export function NotificationsPanel({
               key={item.id}
               item={item}
               onPress={() => handleNotificationPress(item.id)}
+              onMarkRead={() => handleNotificationPress(item.id)}
+              onMute={() => handleNotificationMute(item)}
+              onDelete={() => handleNotificationDismiss(item.id)}
               onShare={item.type === 'badge' ? () => handleShare(item) : undefined}
               onAddToFeed={
                 item.type === 'badge' && !item.handled ? () => handleAddToFeed(item) : undefined
@@ -166,8 +186,8 @@ export function NotificationsPanel({
               </ThemedText>
               <ThemedText style={{ color: palette.muted, textAlign: 'center' }}>
                 {currentFilter === 'all'
-                  ? "You're all caught up! New notifications will appear here."
-                  : `No ${currentFilter} notifications to show.`}
+                  ? 'You are all caught up.'
+                  : `No ${currentFilter} notifications.`}
               </ThemedText>
             </View>
           ) : (
@@ -175,6 +195,9 @@ export function NotificationsPanel({
               items={visibleItems}
               unreadCount={unreadCount}
               onPress={handleNotificationPress}
+              onMarkRead={handleNotificationPress}
+              onMute={handleNotificationMute}
+              onDelete={handleNotificationDismiss}
               onShare={handleShare}
               onAddToFeed={handleAddToFeed}
             />
@@ -190,8 +213,9 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   content: {
-    padding: Spacing.lg,
-    gap: Spacing.md,
+    paddingHorizontal: NotificationDesign.list.horizontalPadding,
+    paddingVertical: Spacing.md,
+    gap: NotificationDesign.list.cardGap,
   },
   emptyState: {
     paddingTop: 60,

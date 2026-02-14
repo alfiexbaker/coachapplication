@@ -4,6 +4,7 @@ import { notificationService, ExtendedNotificationItem } from '@/services/notifi
 import { ServiceEvents } from '@/services/event-bus';
 import { err, ok, serviceError } from '@/types/result';
 import { createLogger } from '@/utils/logger';
+import type { NotificationType } from '@/constants/types';
 
 export type NotificationFilter =
   | 'all'
@@ -32,6 +33,8 @@ interface UseNotificationsResult {
   markAsRead: (id: string) => Promise<void>;
   markAllAsRead: () => Promise<void>;
   clearAll: () => Promise<void>;
+  dismissNotification: (id: string) => Promise<void>;
+  muteNotificationType: (item: ExtendedNotificationItem) => Promise<void>;
   setFilter: (filter: NotificationFilter) => void;
   currentFilter: NotificationFilter;
 }
@@ -166,6 +169,47 @@ export function useNotifications(options: UseNotificationsOptions = {}): UseNoti
     await refresh();
   }, [refresh]);
 
+  const dismissNotification = useCallback(
+    async (id: string) => {
+      const result = await notificationService.dismiss(id);
+      if (!result.success) {
+        const dismissError = new Error(result.error.message);
+        setActionError(dismissError);
+        logger.error('Failed to dismiss notification', { id, error: result.error });
+        return;
+      }
+
+      setActionError(null);
+      await refresh();
+    },
+    [refresh],
+  );
+
+  const muteNotificationType = useCallback(
+    async (item: ExtendedNotificationItem) => {
+      if (item.recipientId && item.notificationType) {
+        const muteResult = await notificationService.toggleNotificationType(
+          item.recipientId,
+          item.notificationType as NotificationType,
+          false,
+        );
+        if (!muteResult.success) {
+          const muteError = new Error(muteResult.error.message);
+          setActionError(muteError);
+          logger.error('Failed to mute notification type', {
+            notificationId: item.id,
+            type: item.notificationType,
+            error: muteResult.error,
+          });
+          return;
+        }
+      }
+
+      await dismissNotification(item.id);
+    },
+    [dismissNotification],
+  );
+
   return {
     notifications,
     unreadCount,
@@ -178,6 +222,8 @@ export function useNotifications(options: UseNotificationsOptions = {}): UseNoti
     markAsRead,
     markAllAsRead,
     clearAll,
+    dismissNotification,
+    muteNotificationType,
     setFilter,
     currentFilter,
   };

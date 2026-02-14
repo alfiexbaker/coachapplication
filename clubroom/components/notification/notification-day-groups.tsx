@@ -7,14 +7,14 @@
 
 import React, { memo } from 'react';
 import { StyleSheet, View } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
 
 import { NotificationCard } from '@/components/notification/notification-card';
 import { ThemedText } from '@/components/themed-text';
 import { Row } from '@/components/primitives/row';
-import { Radii, Spacing, Typography, withAlpha } from '@/constants/theme';
+import { Spacing, Typography } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
 import type { ExtendedNotificationItem } from '@/services/notification-service';
+import { NotificationDesign } from './notification-design';
 
 // ============================================================================
 // DAY GROUPING HELPER
@@ -71,6 +71,9 @@ interface NotificationDayGroupsProps {
   items: ExtendedNotificationItem[];
   unreadCount: number;
   onPress: (id: string) => void;
+  onMarkRead: (id: string) => void;
+  onMute: (item: ExtendedNotificationItem) => void;
+  onDelete: (id: string) => void;
   onShare: (item: ExtendedNotificationItem) => void;
   onAddToFeed: (item: ExtendedNotificationItem) => void;
 }
@@ -79,6 +82,9 @@ export const NotificationDayGroups = memo(function NotificationDayGroups({
   items,
   unreadCount,
   onPress,
+  onMarkRead,
+  onMute,
+  onDelete,
   onShare,
   onAddToFeed,
 }: NotificationDayGroupsProps) {
@@ -86,31 +92,24 @@ export const NotificationDayGroups = memo(function NotificationDayGroups({
 
   return (
     <>
-      {unreadCount > 0 && (
-        <Row
-          align="center"
-          style={[styles.unreadBanner, { backgroundColor: withAlpha(palette.tint, 0.06) }]}
-        >
-          <Ionicons name="notifications" size={16} color={palette.tint} />
-          <ThemedText
-            style={{
-              color: palette.tint,
-              ...Typography.bodySemiBold,
-              marginLeft: Spacing.xxs,
-            }}
-          >
-            {unreadCount} unread notification{unreadCount !== 1 ? 's' : ''}
-          </ThemedText>
-        </Row>
-      )}
       {groupByDay(items).map((group) => (
         <View key={group.label} style={styles.dayGroup}>
-          <ThemedText style={[styles.dayLabel, { color: palette.muted }]}>{group.label}</ThemedText>
+          <Row align="center" justify="between">
+            <ThemedText style={[styles.dayLabel, { color: palette.muted }]}>{group.label}</ThemedText>
+            {group.label === 'Today' && unreadCount > 0 ? (
+              <ThemedText style={[styles.inlineUnread, { color: palette.muted }]}>
+                {unreadCount} unread
+              </ThemedText>
+            ) : null}
+          </Row>
           {group.items.map((item) => (
             <NotificationCard
               key={item.id}
               item={item}
               onPress={() => onPress(item.id)}
+              onMarkRead={() => onMarkRead(item.id)}
+              onMute={() => onMute(item)}
+              onDelete={() => onDelete(item.id)}
               onShare={item.type === 'badge' ? () => onShare(item) : undefined}
               onAddToFeed={
                 item.type === 'badge' && !item.handled ? () => onAddToFeed(item) : undefined
@@ -124,19 +123,17 @@ export const NotificationDayGroups = memo(function NotificationDayGroups({
 });
 
 const styles = StyleSheet.create({
-  unreadBanner: {
-    paddingHorizontal: Spacing.md,
-    paddingVertical: Spacing.sm,
-    borderRadius: Radii.md,
-    marginBottom: Spacing.xs,
-  },
   dayGroup: {
-    gap: Spacing.sm,
+    gap: NotificationDesign.list.cardGap,
+    marginBottom: NotificationDesign.list.sectionGap,
   },
   dayLabel: {
     ...Typography.smallSemiBold,
     letterSpacing: 0.3,
     textTransform: 'uppercase',
-    paddingBottom: Spacing.xs,
+    paddingBottom: Spacing.xxs,
+  },
+  inlineUnread: {
+    ...Typography.caption,
   },
 });

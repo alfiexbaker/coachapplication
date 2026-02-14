@@ -1,6 +1,13 @@
 import { View, StyleSheet } from 'react-native';
+import Animated, {
+  Extrapolate,
+  interpolate,
+  type SharedValue,
+  useAnimatedStyle,
+} from 'react-native-reanimated';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
+import ReanimatedSwipeable from 'react-native-gesture-handler/ReanimatedSwipeable';
 import { ThemedText } from '@/components/themed-text';
 import { Row } from '@/components/primitives/row';
 import { Radii, Spacing, Typography, withAlpha } from '@/constants/theme';
@@ -10,6 +17,7 @@ import { NotificationItem } from '@/constants/types';
 import { Clickable } from '@/components/primitives/clickable';
 import { ExtendedNotificationItem } from '@/services/notification-service';
 import { navigateToDeepLink } from '@/utils/deep-link';
+import { NotificationDesign } from './notification-design';
 
 const logger = createLogger('NotificationCard');
 
@@ -41,12 +49,18 @@ const getTypeColors = (
 export function NotificationCard({
   item,
   onPress,
+  onMarkRead,
+  onMute,
+  onDelete,
   onShare: _onShare,
   onAddToFeed: _onAddToFeed,
   showTypeIndicator = true,
 }: {
   item: ExtendedNotificationItem;
   onPress?: () => void;
+  onMarkRead?: () => void;
+  onMute?: () => void;
+  onDelete?: () => void;
   onShare?: () => void;
   onAddToFeed?: () => void;
   showTypeIndicator?: boolean;
@@ -56,6 +70,8 @@ export function NotificationCard({
   const icon = ICONS[item.type] || 'notifications';
   const TYPE_COLORS = getTypeColors(palette);
   const typeColor = TYPE_COLORS[item.type] || TYPE_COLORS.booking;
+  const typeLabel = `${item.type.slice(0, 1).toUpperCase()}${item.type.slice(1)}`;
+  const swipeEnabled = Boolean(onMarkRead || onMute || onDelete);
   void _onShare;
   void _onAddToFeed;
 
@@ -77,7 +93,7 @@ export function NotificationCard({
     }
   };
 
-  return (
+  const content = (
     <Clickable onPress={handlePress}>
       <Row
         align="start"
@@ -85,14 +101,11 @@ export function NotificationCard({
         style={[
           styles.card,
           {
-            borderColor: item.read ? palette.border : palette.tint,
-            backgroundColor: item.read ? palette.surface : withAlpha(palette.tint, 0.03),
-            borderLeftWidth: item.read ? 1.5 : 3,
-            borderLeftColor: item.read ? palette.border : palette.tint,
+            borderColor: withAlpha(palette.border, 0.8),
+            backgroundColor: item.read ? palette.surface : withAlpha(palette.tint, 0.035),
           },
         ]}
       >
-        {/* Icon container with type-specific background */}
         <View
           style={[
             styles.iconContainer,
@@ -103,12 +116,11 @@ export function NotificationCard({
         >
           <Ionicons
             name={icon as keyof typeof Ionicons.glyphMap}
-            size={20}
+            size={NotificationDesign.card.iconSize}
             color={typeColor.icon}
           />
         </View>
 
-        {/* Content */}
         <View style={styles.content}>
           <Row align="center" gap="xs">
             <ThemedText type="defaultSemiBold" style={styles.title}>
@@ -121,7 +133,6 @@ export function NotificationCard({
             {item.body}
           </ThemedText>
 
-          {/* Badge-specific content */}
           {item.type === 'badge' && item.badgeTitle ? (
             <Row align="center" style={styles.badgeInfo}>
               <Ionicons name="ribbon" size={14} color={palette.tint} />
@@ -131,6 +142,7 @@ export function NotificationCard({
                   color: palette.tint,
                   marginLeft: Spacing.xxs,
                 }}
+                numberOfLines={1}
               >
                 {item.badgeTitle}
                 {item.athleteName ? ` - ${item.athleteName}` : ''}
@@ -138,43 +150,154 @@ export function NotificationCard({
             </Row>
           ) : null}
 
-          {/* Time label */}
           <Row align="center" justify="between" style={styles.footer}>
-            <ThemedText style={{ ...Typography.caption, color: palette.muted }}>
+            <ThemedText style={{ ...Typography.caption, color: palette.muted }} numberOfLines={1}>
               {item.timeLabel || 'Just now'}
+              {showTypeIndicator ? ` · ${typeLabel}` : ''}
             </ThemedText>
-
-            {/* Type indicator */}
-            {showTypeIndicator && (
-              <View style={[styles.typeTag, { backgroundColor: withAlpha(palette.muted, 0.09) }]}>
-                <ThemedText
-                  style={{ ...Typography.micro, color: palette.muted, textTransform: 'capitalize' }}
-                >
-                  {item.type}
-                </ThemedText>
-              </View>
-            )}
           </Row>
         </View>
 
-        {/* Chevron for navigation hint */}
         {item.deepLink && (
           <Ionicons name="chevron-forward" size={16} color={palette.muted} style={styles.chevron} />
         )}
       </Row>
     </Clickable>
   );
+
+  if (!swipeEnabled) {
+    return content;
+  }
+
+  return (
+    <ReanimatedSwipeable
+      renderRightActions={(progress, translation, swipeableMethods) => (
+        <SwipeActions
+          progress={progress}
+          translation={translation}
+          palette={palette}
+          onMarkRead={
+            onMarkRead
+              ? () => {
+                  swipeableMethods.close();
+                  onMarkRead();
+                }
+              : undefined
+          }
+          onMute={
+            onMute
+              ? () => {
+                  swipeableMethods.close();
+                  onMute();
+                }
+              : undefined
+          }
+          onDelete={
+            onDelete
+              ? () => {
+                  swipeableMethods.close();
+                  onDelete();
+                }
+              : undefined
+          }
+        />
+      )}
+      rightThreshold={NotificationDesign.swipe.rightThreshold}
+      friction={2}
+      overshootRight={false}
+    >
+      {content}
+    </ReanimatedSwipeable>
+  );
+}
+
+function SwipeActions({
+  progress: _progress,
+  translation,
+  palette,
+  onMarkRead,
+  onMute,
+  onDelete,
+}: {
+  progress: SharedValue<number>;
+  translation: SharedValue<number>;
+  palette: ReturnType<typeof useTheme>['colors'];
+  onMarkRead?: () => void;
+  onMute?: () => void;
+  onDelete?: () => void;
+}) {
+  void _progress;
+  const actionsCount = [onMarkRead, onMute, onDelete].filter(Boolean).length;
+  const totalWidth = actionsCount * NotificationDesign.swipe.actionWidth;
+
+  const actionAnim = useAnimatedStyle(() => ({
+    opacity: interpolate(
+      translation.value,
+      [-Math.max(totalWidth, 1), -Math.max(totalWidth, 1) * 0.5, 0],
+      [1, 0.8, 0],
+      Extrapolate.CLAMP,
+    ),
+    transform: [
+      {
+        translateX: interpolate(
+          translation.value,
+          [-Math.max(totalWidth, 1), 0],
+          [0, totalWidth * 0.35],
+          Extrapolate.CLAMP,
+        ),
+      },
+    ],
+  }));
+
+  return (
+    <Animated.View style={[styles.swipeActionsRow, actionAnim]}>
+      {onMarkRead ? (
+        <Clickable
+          onPress={onMarkRead}
+          accessibilityRole="button"
+          accessibilityLabel="Mark notification as read"
+          style={[styles.swipeAction, { backgroundColor: withAlpha(palette.tint, 0.95) }]}
+        >
+          <Ionicons name="checkmark" size={16} color={palette.onPrimary} />
+          <ThemedText style={[styles.swipeLabel, { color: palette.onPrimary }]}>Read</ThemedText>
+        </Clickable>
+      ) : null}
+      {onMute ? (
+        <Clickable
+          onPress={onMute}
+          accessibilityRole="button"
+          accessibilityLabel="Mute this notification type"
+          style={[styles.swipeAction, { backgroundColor: withAlpha(palette.warning, 0.95) }]}
+        >
+          <Ionicons name="volume-mute" size={16} color={palette.onPrimary} />
+          <ThemedText style={[styles.swipeLabel, { color: palette.onPrimary }]}>Mute</ThemedText>
+        </Clickable>
+      ) : null}
+      {onDelete ? (
+        <Clickable
+          onPress={onDelete}
+          accessibilityRole="button"
+          accessibilityLabel="Delete notification"
+          style={[styles.swipeAction, { backgroundColor: withAlpha(palette.error, 0.95) }]}
+        >
+          <Ionicons name="trash-outline" size={16} color={palette.onPrimary} />
+          <ThemedText style={[styles.swipeLabel, { color: palette.onPrimary }]}>Delete</ThemedText>
+        </Clickable>
+      ) : null}
+    </Animated.View>
+  );
 }
 
 const styles = StyleSheet.create({
   card: {
-    padding: Spacing.md,
-    borderRadius: Radii.lg,
-    borderWidth: 1.5,
+    paddingHorizontal: NotificationDesign.card.paddingX,
+    paddingVertical: NotificationDesign.card.paddingY,
+    borderRadius: NotificationDesign.card.radius,
+    borderWidth: 1,
   },
   iconContainer: {
-    width: 40,
-    height: 40,
+    width: NotificationDesign.card.iconBox,
+    height: NotificationDesign.card.iconBox,
     borderRadius: Radii.md,
     justifyContent: 'center',
     alignItems: 'center',
@@ -183,25 +306,36 @@ const styles = StyleSheet.create({
     flex: 1,
     gap: Spacing.xxs,
   },
-  title: { ...Typography.body },
+  title: { ...Typography.bodySmallSemiBold },
   unreadDot: {
-    width: 8,
-    height: 8,
+    width: NotificationDesign.card.unreadDot,
+    height: NotificationDesign.card.unreadDot,
     borderRadius: Radii.xs,
   },
-  body: { ...Typography.bodySmall, lineHeight: 20 },
+  body: { ...Typography.bodySmall, lineHeight: 18 },
   badgeInfo: {
     marginTop: Spacing.xxs,
   },
   footer: {
     marginTop: Spacing.xxs,
   },
-  typeTag: {
-    paddingHorizontal: Spacing.xxs,
-    paddingVertical: Spacing.micro,
-    borderRadius: Radii.xs,
-  },
   chevron: {
-    marginTop: Spacing.xs + Spacing.xxs,
+    marginTop: Spacing.sm,
+  },
+  swipeActionsRow: {
+    flexDirection: 'row',
+    alignItems: 'stretch',
+    justifyContent: 'flex-end',
+    paddingLeft: Spacing.xs,
+  },
+  swipeAction: {
+    width: NotificationDesign.swipe.actionWidth,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderRadius: Radii.button,
+    gap: Spacing.micro,
+  },
+  swipeLabel: {
+    ...Typography.micro,
   },
 });

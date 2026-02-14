@@ -9,7 +9,7 @@ import { StyleSheet, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { Routes } from '@/navigation/routes';
-import { Radii, Typography, Spacing } from '@/constants/theme';
+import { Radii, Spacing } from '@/constants/theme';
 import { useNotificationCount } from '@/hooks/use-notifications';
 import { Clickable } from '@/components/primitives/clickable';
 import { ThemedText } from '@/components/themed-text';
@@ -61,13 +61,13 @@ const styles = StyleSheet.create({
     position: 'absolute',
     top: 4,
     right: 2,
-    minWidth: 18,
-    height: 18,
+    minWidth: 16,
+    height: 16,
     borderRadius: Radii.pill,
     alignItems: 'center',
     justifyContent: 'center',
-    paddingHorizontal: Spacing.xxs,
-    borderWidth: 2,
+    paddingHorizontal: Spacing.micro + 1,
+    borderWidth: 1,
   },
-  badgeText: { ...Typography.micro, lineHeight: 12 },
+  badgeText: { fontSize: 10, fontWeight: '700', lineHeight: 11, letterSpacing: -0.1 },
 });

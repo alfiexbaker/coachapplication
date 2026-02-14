@@ -53,6 +53,10 @@ class NotificationService {
     return notificationStore.clearAll();
   }
 
+  async dismiss(id: string): Promise<Result<ExtendedNotificationItem[], ServiceError>> {
+    return notificationStore.dismiss(id);
+  }
+
   async getUnreadCount(recipientId?: string): Promise<Result<number, ServiceError>> {
     return notificationStore.getUnreadCount(recipientId);
   }

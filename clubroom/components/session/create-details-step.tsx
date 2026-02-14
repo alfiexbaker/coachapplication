@@ -6,7 +6,7 @@
  */
 
 import React, { memo } from 'react';
-import { StyleSheet, TextInput, ScrollView, View } from 'react-native';
+import { StyleSheet, TextInput, ScrollView, View, useWindowDimensions } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import Animated, { FadeInRight } from 'react-native-reanimated';
 
@@ -56,6 +56,9 @@ export const CreateDetailsStep = memo(function CreateDetailsStep({
   onToggleFocusArea,
   onMaxParticipantsChange,
 }: CreateDetailsStepProps) {
+  const { width } = useWindowDimensions();
+  const useSingleColumnTypeCards = width < 360;
+
   const inputColors = {
     backgroundColor: colors.surface,
     color: colors.text,
@@ -70,7 +73,7 @@ export const CreateDetailsStep = memo(function CreateDetailsStep({
           <ThemedText type="defaultSemiBold" style={styles.label}>
             Session Type
           </ThemedText>
-          <Row wrap gap="sm">
+          <View style={styles.typeGrid}>
             {SESSION_TYPES.map((type) => {
               const selected = sessionType === type.key;
               return (
@@ -80,6 +83,7 @@ export const CreateDetailsStep = memo(function CreateDetailsStep({
                   accessibilityLabel={`Select ${type.label} session type`}
                   style={[
                     styles.typeCard,
+                    useSingleColumnTypeCards ? styles.typeCardFull : styles.typeCardHalf,
                     {
                       backgroundColor: selected ? withAlpha(colors.tint, 0.07) : colors.surface,
                       borderColor: selected ? colors.tint : colors.border,
@@ -111,7 +115,7 @@ export const CreateDetailsStep = memo(function CreateDetailsStep({
                 </Clickable>
               );
             })}
-          </Row>
+          </View>
         </Column>
 
         {/* Title */}
@@ -249,12 +253,23 @@ const styles = StyleSheet.create({
   smallInput: { width: 140 },
   textArea: { height: 100, paddingTop: Spacing.sm, textAlignVertical: 'top' },
   typeCard: {
-    width: '48%',
     padding: Spacing.md,
     borderRadius: Radii.md,
     borderWidth: 1.5,
     alignItems: 'center',
     gap: Spacing.xs,
+  },
+  typeGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'space-between',
+    rowGap: Spacing.sm,
+  },
+  typeCardHalf: {
+    width: '48.6%',
+  },
+  typeCardFull: {
+    width: '100%',
   },
   typeIcon: {
     width: 44,

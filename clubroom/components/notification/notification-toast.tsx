@@ -20,6 +20,7 @@ import { createLogger } from '@/utils/logger';
 import { ExtendedNotificationItem } from '@/services/notification-service';
 import { useNotificationToast } from '@/hooks/use-notifications';
 import { navigateToDeepLink } from '@/utils/deep-link';
+import { NotificationDesign } from './notification-design';
 
 const logger = createLogger('NotificationToast');
 
@@ -49,8 +50,8 @@ export function NotificationToastProvider({ children }: { children: React.ReactN
   const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const hideToast = useCallback(() => {
-    slideAnim.value = withTiming(-100, { duration: 200 });
-    opacityAnim.value = withTiming(0, { duration: 200 }, (finished) => {
+    slideAnim.value = withTiming(-100, { duration: NotificationDesign.motion.fast });
+    opacityAnim.value = withTiming(0, { duration: NotificationDesign.motion.fast }, (finished) => {
       if (finished) runOnJS(setToast)({ notification: null, visible: false });
     });
   }, [slideAnim, opacityAnim]);
@@ -65,8 +66,8 @@ export function NotificationToastProvider({ children }: { children: React.ReactN
       setToast({ notification, visible: true });
 
       // Animate in
-      slideAnim.value = withSpring(0, { stiffness: 80, damping: 12 });
-      opacityAnim.value = withTiming(1, { duration: 200 });
+      slideAnim.value = withSpring(0, NotificationDesign.motion.spring);
+      opacityAnim.value = withTiming(1, { duration: NotificationDesign.motion.standard });
 
       // Auto-hide after 6 seconds (extended for better user visibility)
       timeoutRef.current = setTimeout(() => {

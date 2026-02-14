@@ -97,9 +97,21 @@ export const ClubHeaderMenu = memo(function ClubHeaderMenu({
           {/* Menu Items */}
           <View style={styles.menuItems}>
             {menuItems.map((item, index) => (
-              <Clickable key={index} style={styles.menuItem} onPress={item.onPress}>
+              <Clickable
+                key={index}
+                style={[
+                  styles.menuItem,
+                  {
+                    backgroundColor: withAlpha(palette.muted, 0.04),
+                    borderColor: withAlpha(palette.border, 0.9),
+                  },
+                ]}
+                onPress={item.onPress}
+              >
                 <Ionicons name={item.icon} size={20} color={item.color} />
-                <ThemedText style={{ color: item.color, flex: 1 }}>{item.label}</ThemedText>
+                <ThemedText style={{ color: item.color, flex: 1 }} numberOfLines={1}>
+                  {item.label}
+                </ThemedText>
                 <Ionicons name="chevron-forward" size={16} color={palette.muted} />
               </Clickable>
             ))}
@@ -119,18 +131,19 @@ const styles = StyleSheet.create({
     borderTopLeftRadius: Components.modal.borderRadius,
     borderTopRightRadius: Components.modal.borderRadius,
     padding: Components.modal.padding,
-    paddingBottom: Spacing.xl + 20,
+    paddingBottom: Spacing.lg,
+    gap: Spacing.md,
   },
-  menuHeader: { justifyContent: 'space-between', alignItems: 'center', marginBottom: Spacing.md },
+  menuHeader: { justifyContent: 'space-between', alignItems: 'center' },
   inviteCodeSection: {
     justifyContent: 'space-between',
     alignItems: 'center',
     padding: Components.modal.padding,
     borderRadius: Radii.md,
     borderWidth: 1,
-    marginBottom: Spacing.md,
   },
   copyButton: {
+    flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.xs,
     paddingHorizontal: Spacing.md,
@@ -139,9 +152,13 @@ const styles = StyleSheet.create({
   },
   menuItems: { gap: Spacing.xs },
   menuItem: {
+    flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'space-between',
     gap: Spacing.md,
-    paddingVertical: Spacing.md,
+    paddingVertical: Spacing.sm + Spacing.xxs,
     paddingHorizontal: Spacing.sm,
+    borderRadius: Radii.md,
+    borderWidth: 1,
   },
 });

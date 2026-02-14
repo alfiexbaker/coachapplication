@@ -32,6 +32,8 @@
     "test": "npm run test:snapshots",
     "format:check": "prettier --check 'app/**/*.tsx' 'components/**/*.tsx' 'services/**/*.ts' 'hooks/**/*.ts'",
     "lint:ui-actions": "node ./scripts/lint-ui-actions.js"
+    ,
+    "audit:ui": "node ./scripts/audit-ui.js"
   },
   "dependencies": {
     "@expo/vector-icons": "^15.0.3",

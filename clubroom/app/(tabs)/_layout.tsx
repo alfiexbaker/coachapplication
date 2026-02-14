@@ -187,11 +187,11 @@ export default function TabLayout() {
   const roleConfig = ROLE_TAB_CONFIG[userRole] ?? ROLE_TAB_CONFIG.DEFAULT;
   const hiddenRoutes = roleConfig.hidden ?? [];
 
-  const getBadgeCount = (badgeType?: BadgeType): number | undefined => {
+  const getBadgeCount = (badgeType?: BadgeType): number | string | undefined => {
     if (!badgeType) return undefined;
-    if (badgeType === 'messages') return messageCount > 0 ? messageCount : undefined;
-    if (badgeType === 'notifications') return notificationCount > 0 ? notificationCount : undefined;
-    return undefined;
+    const count = badgeType === 'messages' ? messageCount : notificationCount;
+    if (count <= 0) return undefined;
+    return count > 99 ? '99+' : count;
   };
 
   const tabBarOptions = {
@@ -210,12 +210,28 @@ export default function TabLayout() {
       ...Shadows[scheme].card,
     },
     tabBarLabelStyle: {
-      ...Typography.caption,
+      ...Typography.micro,
+      textTransform: 'none' as const,
+      fontWeight: '600' as const,
+      lineHeight: 12,
       letterSpacing: 0.3,
       marginTop: Spacing.micro,
     },
     tabBarIconStyle: {
       marginTop: 0,
+    },
+    tabBarBadgeStyle: {
+      backgroundColor: palette.error,
+      color: palette.onError,
+      minWidth: 16,
+      height: 16,
+      borderRadius: 8,
+      fontSize: 10,
+      fontWeight: '700' as const,
+      lineHeight: 12,
+      borderWidth: 1,
+      borderColor: palette.surface,
+      top: -2,
     },
   };
 
@@ -228,7 +244,7 @@ export default function TabLayout() {
             name={name}
             options={{
               title,
-              tabBarIcon: ({ color }) => <IconSymbol size={24} name={icon} color={color} />,
+              tabBarIcon: ({ color }) => <IconSymbol size={22} name={icon} color={color} />,
               tabBarBadge: getBadgeCount(badge),
             }}
           />

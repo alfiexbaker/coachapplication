@@ -14,6 +14,7 @@ import { Clickable } from '@/components/primitives/clickable';
 import { Row } from '@/components/primitives/row';
 import { Radii, Spacing, Typography } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
+import { NotificationDesign } from './notification-design';
 
 interface NotificationFilterChipProps {
   label: string;
@@ -39,13 +40,13 @@ export const NotificationFilterChip = memo(function NotificationFilterChip({
           styles.filterChip,
           {
             backgroundColor: isActive ? palette.tint : palette.surface,
-            borderColor: isActive ? palette.tint : palette.border,
+            borderColor: isActive ? palette.tint : 'transparent',
           },
         ]}
       >
         <Ionicons
           name={icon as keyof typeof Ionicons.glyphMap}
-          size={14}
+          size={NotificationDesign.filter.chipIcon}
           color={isActive ? palette.onPrimary : palette.muted}
         />
         <ThemedText
@@ -60,10 +61,11 @@ export const NotificationFilterChip = memo(function NotificationFilterChip({
 
 const styles = StyleSheet.create({
   filterChip: {
-    paddingHorizontal: Spacing.sm,
-    paddingVertical: Spacing.xxs,
+    paddingHorizontal: Spacing.sm + Spacing.xxs,
+    minHeight: NotificationDesign.filter.chipHeight,
     borderRadius: Radii.pill,
     borderWidth: 1,
+    alignItems: 'center',
   },
   filterLabel: {
     ...Typography.smallSemiBold,

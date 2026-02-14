@@ -33,7 +33,7 @@ export default function NotificationsScreen() {
       style={[styles.safeArea, { backgroundColor: palette.background }]}
       edges={['top']}
     >
-      <ScreenHeader title="Notifications" subtitle="Stay updated" />
+      <ScreenHeader title="Notifications" />
       <NotificationsActionsBar
         unreadCount={unreadCount}
         onMarkAllRead={handleMarkAllRead}
