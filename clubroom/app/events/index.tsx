@@ -77,7 +77,7 @@ export default function EventsListScreen() {
     return (
       <SafeAreaView
         style={[styles.container, { backgroundColor: palette.background }]}
-        edges={['top']}
+        edges={['top', 'bottom']}
       >
         {header}
         {tabs}
@@ -90,7 +90,7 @@ export default function EventsListScreen() {
     return (
       <SafeAreaView
         style={[styles.container, { backgroundColor: palette.background }]}
-        edges={['top']}
+        edges={['top', 'bottom']}
       >
         {header}
         {tabs}
@@ -103,7 +103,7 @@ export default function EventsListScreen() {
     return (
       <SafeAreaView
         style={[styles.container, { backgroundColor: palette.background }]}
-        edges={['top']}
+        edges={['top', 'bottom']}
       >
         {header}
         {tabs}
@@ -121,7 +121,7 @@ export default function EventsListScreen() {
   return (
     <SafeAreaView
       style={[styles.container, { backgroundColor: palette.background }]}
-      edges={['top']}
+      edges={['top', 'bottom']}
     >
       {header}
       {tabs}

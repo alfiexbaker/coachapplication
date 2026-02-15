@@ -226,7 +226,7 @@ export default function GroupChatScreen() {
   return (
     <SafeAreaView
       style={[styles.container, { backgroundColor: palette.background }]}
-      edges={['top']}
+      edges={['top', 'bottom']}
     >
       <GroupChatHeader
         colors={palette}

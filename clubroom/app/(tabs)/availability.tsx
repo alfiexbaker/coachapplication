@@ -26,7 +26,7 @@ export default function AvailabilityScreen() {
   }, []);
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: colors.background }} edges={['top']}>
+    <SafeAreaView style={{ flex: 1, backgroundColor: colors.background }} edges={['top', 'bottom']}>
       <LoadingState variant="detail" />
     </SafeAreaView>
   );

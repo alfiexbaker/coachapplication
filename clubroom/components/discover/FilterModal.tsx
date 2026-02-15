@@ -106,7 +106,7 @@ export function FilterModal({
     >
       <SafeAreaView
         style={[styles.container, { backgroundColor: palette.background }]}
-        edges={['top']}
+        edges={['top', 'bottom']}
       >
         <FilterModalHeader
           onClose={onClose}

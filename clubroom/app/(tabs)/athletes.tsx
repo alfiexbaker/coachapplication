@@ -61,7 +61,7 @@ export default function AthletesScreen() {
     return (
       <SafeAreaView
         style={[styles.container, { backgroundColor: colors.background }]}
-        edges={['top']}
+        edges={['top', 'bottom']}
       >
         <ScreenHeader title="Athletes" subtitle="Manage your roster" bordered />
         <LoadingState variant="list" />
@@ -73,7 +73,7 @@ export default function AthletesScreen() {
     return (
       <SafeAreaView
         style={[styles.container, { backgroundColor: colors.background }]}
-        edges={['top']}
+        edges={['top', 'bottom']}
       >
         <ScreenHeader title="Athletes" subtitle="Manage your roster" bordered />
         <ErrorState message={error?.message || 'Failed to load athletes'} onRetry={retry} />
@@ -85,7 +85,7 @@ export default function AthletesScreen() {
     return (
       <SafeAreaView
         style={[styles.container, { backgroundColor: colors.background }]}
-        edges={['top']}
+        edges={['top', 'bottom']}
       >
         <ScreenHeader
           title="Athletes"
@@ -106,7 +106,7 @@ export default function AthletesScreen() {
   return (
     <SafeAreaView
       style={[styles.container, { backgroundColor: colors.background }]}
-      edges={['top']}
+      edges={['top', 'bottom']}
     >
       <ScreenHeader
         title="Athletes"

@@ -9,12 +9,14 @@ import { useState, useEffect, useCallback, useMemo } from 'react';
 import { Alert, Platform } from 'react-native';
 import { router } from 'expo-router';
 import * as Haptics from 'expo-haptics';
+import * as ImagePicker from 'expo-image-picker';
 
 import { apiClient } from '@/services/api-client';
 import { STORAGE_KEYS } from '@/constants/storage-keys';
 import { progressService } from '@/services/progress-service';
 import { badgeService } from '@/services/badge-service';
 import { bookingService } from '@/services/booking-service';
+import { userService } from '@/services/user-service';
 import { emitTyped, ServiceEvents } from '@/services/event-bus';
 import { notificationTriggers } from '@/services/notification-trigger';
 import { useAuth } from '@/hooks/use-auth';
@@ -25,7 +27,7 @@ import type {
   SessionAttendance,
   SessionRegistration,
 } from '@/constants/session-types';
-import type { BadgeDefinition } from '@/constants/types';
+import type { BadgeDefinition, ChatMessage, RosterEntry } from '@/constants/types';
 import type { AttendanceStatus as StepAttendanceStatus } from '@/components/session/attendance-step';
 
 const logger = createLogger('SessionComplete');
@@ -49,14 +51,12 @@ export const COMPLETION_STEPS: CompletionStep[] = ['attendance', 'notes', 'badge
 // HELPERS
 // ============================================================================
 
-function mapAttendanceStatus(status: StepAttendanceStatus): 'ATTENDED' | 'NO_SHOW' | 'LATE' {
+function mapAttendanceStatus(status: StepAttendanceStatus): 'ATTENDED' | 'NO_SHOW' {
   switch (status) {
     case 'present':
       return 'ATTENDED';
     case 'absent':
       return 'NO_SHOW';
-    case 'late':
-      return 'LATE';
   }
 }
 
@@ -84,6 +84,8 @@ export function useSessionCompletion(sessionId: string | undefined) {
   const [overallEffort, setOverallEffort] = useState(3);
   const [homework, setHomework] = useState('');
   const [availableBadges, setAvailableBadges] = useState<BadgeDefinition[]>([]);
+  const [videoUrls, setVideoUrls] = useState<string[]>([]);
+  const [imageUrls, setImageUrls] = useState<string[]>([]);
 
   // Step navigation
   const [currentStep, setCurrentStep] = useState<CompletionStep>('attendance');
@@ -94,6 +96,58 @@ export function useSessionCompletion(sessionId: string | undefined) {
 
   // Source type
   const [sourceType, setSourceType] = useState<'offering' | 'booking'>('offering');
+  const [participantNames, setParticipantNames] = useState<Record<string, string>>({});
+  const [parentByAthleteId, setParentByAthleteId] = useState<
+    Record<string, { parentId: string; parentName: string }>
+  >({});
+
+  const loadParticipantContext = useCallback(
+    async (registrations: SessionRegistration[], coachId: string) => {
+      const athleteIds = registrations.map((registration) => registration.userId).filter(Boolean);
+      if (athleteIds.length === 0) {
+        setParticipantNames({});
+        setParentByAthleteId({});
+        return;
+      }
+
+      const [usersResult, rosterEntries] = await Promise.all([
+        userService.getUsersByIds(athleteIds),
+        apiClient.get<RosterEntry[]>(STORAGE_KEYS.ROSTER, []),
+      ]);
+
+      const nextParticipantNames: Record<string, string> = {};
+      const nextParentByAthleteId: Record<string, { parentId: string; parentName: string }> = {};
+
+      if (usersResult.success) {
+        for (const user of usersResult.data) {
+          nextParticipantNames[user.id] = user.name;
+        }
+      }
+
+      for (const athleteId of athleteIds) {
+        if (!nextParticipantNames[athleteId]) {
+          nextParticipantNames[athleteId] = athleteId || 'Athlete';
+        }
+      }
+
+      for (const entry of rosterEntries) {
+        if (entry.coachId !== coachId) {
+          continue;
+        }
+        if (!athleteIds.includes(entry.athleteId)) {
+          continue;
+        }
+        nextParentByAthleteId[entry.athleteId] = {
+          parentId: entry.parentId,
+          parentName: entry.parentName || entry.parentId,
+        };
+      }
+
+      setParticipantNames(nextParticipantNames);
+      setParentByAthleteId(nextParentByAthleteId);
+    },
+    [],
+  );
 
   // ============================================================================
   // DATA LOADING
@@ -130,6 +184,7 @@ export function useSessionCompletion(sessionId: string | undefined) {
           if (found.footballSkill) {
             setSkillsFocused([found.footballSkill]);
           }
+          await loadParticipantContext(found.registrations, found.coachId);
           setLoading(false);
           return;
         }
@@ -174,6 +229,7 @@ export function useSessionCompletion(sessionId: string | undefined) {
           };
         });
         setAttendance(initialAttendance);
+        await loadParticipantContext(syntheticSession.registrations, syntheticSession.coachId);
       } else {
         setError('Session not found');
       }
@@ -183,7 +239,7 @@ export function useSessionCompletion(sessionId: string | undefined) {
     } finally {
       setLoading(false);
     }
-  }, [sessionId]);
+  }, [sessionId, loadParticipantContext]);
 
   const loadBadges = useCallback(async () => {
     try {
@@ -211,6 +267,100 @@ export function useSessionCompletion(sessionId: string | undefined) {
     }));
   }, []);
 
+  const setAllAttendanceStatus = useCallback((status: StepAttendanceStatus) => {
+    if (Platform.OS !== 'web') void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    setAttendance((prev) => {
+      const next: Record<string, AthleteAttendance> = {};
+      for (const [registrationId, athleteAttendance] of Object.entries(prev)) {
+        next[registrationId] = { ...athleteAttendance, status };
+      }
+      return next;
+    });
+  }, []);
+
+  const appendThreadMessage = useCallback(
+    async (threadId: string, body: string) => {
+      if (!session || !currentUser) {
+        return;
+      }
+      const messagesByThread = await apiClient.get<Record<string, ChatMessage[]>>(
+        STORAGE_KEYS.MESSAGES,
+        {},
+      );
+      const nextMessage: ChatMessage = {
+        id: `msg_${session.id}_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
+        threadId,
+        sender: 'coach',
+        body,
+        createdAt: new Date().toISOString(),
+        status: 'sent',
+      };
+      const existingThread = messagesByThread[threadId] ?? [];
+      messagesByThread[threadId] = [...existingThread, nextMessage];
+      await apiClient.set(STORAGE_KEYS.MESSAGES, messagesByThread);
+    },
+    [currentUser, session],
+  );
+
+  const sendGroupBroadcast = useCallback(
+    async (message: string): Promise<boolean> => {
+      const trimmed = message.trim();
+      if (!session || !trimmed) {
+        return false;
+      }
+      await appendThreadMessage(`thread_group_${session.id}`, trimmed);
+      return true;
+    },
+    [appendThreadMessage, session],
+  );
+
+  const sendPersonalUpdate = useCallback(
+    async (registrationId: string) => {
+      const athleteAttendance = attendance[registrationId];
+      if (!athleteAttendance || !session) {
+        return { ok: false, reason: 'Athlete row not found' };
+      }
+
+      const athleteId = athleteAttendance.registration.userId;
+      const athleteName = participantNames[athleteId] || getRegistrationName(athleteAttendance.registration);
+      const statusLabel = athleteAttendance.status === 'present' ? 'present' : 'absent';
+
+      const note = athleteAttendance.note?.trim();
+      const body = note
+        ? `Personal update for ${athleteName}: ${note}`
+        : `Personal update for ${athleteName}: marked ${statusLabel} in ${session.title}.`;
+
+      await appendThreadMessage(`thread_athlete_${athleteId}_${session.id}`, body);
+      return { ok: true, athleteName };
+    },
+    [appendThreadMessage, attendance, getRegistrationName, participantNames, session],
+  );
+
+  const sendMessageParent = useCallback(
+    async (registrationId: string) => {
+      const athleteAttendance = attendance[registrationId];
+      if (!athleteAttendance || !session) {
+        return { ok: false, reason: 'Athlete row not found' };
+      }
+
+      const athleteId = athleteAttendance.registration.userId;
+      const athleteName = participantNames[athleteId] || getRegistrationName(athleteAttendance.registration);
+      const parentLink = parentByAthleteId[athleteId];
+      const targetName = parentLink?.parentName ?? athleteName;
+      const targetType = parentLink ? 'parent' : 'athlete';
+      const threadId = parentLink
+        ? `thread_parent_${parentLink.parentId}_${session.id}`
+        : `thread_athlete_${athleteId}_${session.id}`;
+      const body = parentLink
+        ? `${athleteName} update from ${session.title}: attendance marked ${athleteAttendance.status}. Reply if you want a full personal recap.`
+        : `Session update for ${athleteName}: attendance marked ${athleteAttendance.status}.`;
+      await appendThreadMessage(threadId, body);
+
+      return { ok: true as const, athleteName, targetName, targetType };
+    },
+    [appendThreadMessage, attendance, getRegistrationName, parentByAthleteId, participantNames, session],
+  );
+
   const toggleBadge = useCallback((regId: string, badgeId: string) => {
     if (Platform.OS !== 'web') void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     setAttendance((prev) => {
@@ -226,6 +376,60 @@ export function useSessionCompletion(sessionId: string | undefined) {
         },
       };
     });
+  }, []);
+
+  const addImage = useCallback(async () => {
+    try {
+      const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      if (status !== 'granted') {
+        Alert.alert('Permission needed', 'Please allow photo library access.');
+        return;
+      }
+
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        allowsMultipleSelection: false,
+        quality: 0.8,
+      });
+
+      if (!result.canceled && result.assets[0]?.uri) {
+        setImageUrls((prev) => [...prev, result.assets[0].uri]);
+      }
+    } catch (error) {
+      logger.error('Failed to add image', error);
+      Alert.alert('Error', 'Unable to add photo right now.');
+    }
+  }, []);
+
+  const addVideo = useCallback(async () => {
+    try {
+      const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      if (status !== 'granted') {
+        Alert.alert('Permission needed', 'Please allow video library access.');
+        return;
+      }
+
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Videos,
+        allowsMultipleSelection: false,
+        quality: 0.8,
+      });
+
+      if (!result.canceled && result.assets[0]?.uri) {
+        setVideoUrls((prev) => [...prev, result.assets[0].uri]);
+      }
+    } catch (error) {
+      logger.error('Failed to add video', error);
+      Alert.alert('Error', 'Unable to add video right now.');
+    }
+  }, []);
+
+  const removeImage = useCallback((index: number) => {
+    setImageUrls((prev) => prev.filter((_, i) => i !== index));
+  }, []);
+
+  const removeVideo = useCallback((index: number) => {
+    setVideoUrls((prev) => prev.filter((_, i) => i !== index));
   }, []);
 
   const goToNextStep = useCallback(() => {
@@ -268,6 +472,8 @@ export function useSessionCompletion(sessionId: string | undefined) {
         homework,
         effort: overallEffort,
         attendance: `${present} present, ${absent} absent`,
+        videoUrls,
+        imageUrls,
       });
 
       // 2. Award badges
@@ -319,12 +525,15 @@ export function useSessionCompletion(sessionId: string | undefined) {
       );
 
       // 5. Update session/booking status to completed
+      let completedBookingId: string | undefined;
       if (sourceType === 'booking') {
         const updateResult = await bookingService.updateBooking(session.id, {
           status: 'COMPLETED' as const,
         });
         if (!updateResult.success) {
           logger.error('Failed to update booking status', updateResult.error.message);
+        } else {
+          completedBookingId = session.id;
         }
       } else {
         const offerings = await apiClient.get<SessionOffering[]>('session_offerings', []);
@@ -336,6 +545,27 @@ export function useSessionCompletion(sessionId: string | undefined) {
             return o;
           });
           await apiClient.set('session_offerings', updated);
+        }
+
+        // Complete linked group bookings so coach completion queue clears properly.
+        const coachBookings = await bookingService.getBookingsForUser(session.coachId, 'coach');
+        const linkedBookings = coachBookings.filter(
+          (booking) =>
+            booking.groupSessionId === session.id &&
+            (booking.status === 'AWAITING_COMPLETION' || booking.status === 'CONFIRMED'),
+        );
+        completedBookingId = linkedBookings[0]?.id;
+        for (const booking of linkedBookings) {
+          const bookingUpdate = await bookingService.updateBooking(booking.id, {
+            status: 'COMPLETED' as const,
+          });
+          if (!bookingUpdate.success) {
+            logger.error('Failed to complete linked group booking', {
+              bookingId: booking.id,
+              groupSessionId: session.id,
+              error: bookingUpdate.error.message,
+            });
+          }
         }
       }
 
@@ -350,7 +580,7 @@ export function useSessionCompletion(sessionId: string | undefined) {
 
       emitTyped(ServiceEvents.SESSION_COMPLETED, {
         sessionId: session.id,
-        bookingId: sourceType === 'booking' ? session.id : undefined,
+        bookingId: completedBookingId,
         coachId: session.coachId,
         athleteIds,
         athleteName: athleteNamesList.join(', '),
@@ -401,7 +631,10 @@ export function useSessionCompletion(sessionId: string | undefined) {
     availableBadges,
     shareNotesWithParents,
     shareAttendance,
+    videoUrls,
+    imageUrls,
     sourceType,
+    getRegistrationName,
   ]);
 
   // ============================================================================
@@ -414,11 +647,11 @@ export function useSessionCompletion(sessionId: string | undefined) {
     () =>
       attendanceList.map((a) => ({
         registrationId: a.registration.id,
-        userName: getRegistrationName(a.registration),
+        userName: participantNames[a.registration.userId] || getRegistrationName(a.registration),
         status: a.status,
         badges: a.badges,
       })),
-    [attendanceList, getRegistrationName],
+    [attendanceList, getRegistrationName, participantNames],
   );
 
   const presentAthletes = useMemo(
@@ -427,11 +660,23 @@ export function useSessionCompletion(sessionId: string | undefined) {
         .filter((a) => a.status === 'present')
         .map((a) => ({
           registrationId: a.registration.id,
-          userName: getRegistrationName(a.registration),
+          userName: participantNames[a.registration.userId] || getRegistrationName(a.registration),
           badges: a.badges,
         })),
-    [attendanceList, getRegistrationName],
+    [attendanceList, getRegistrationName, participantNames],
   );
+
+  const parentNameByRegistration = useMemo(() => {
+    const map: Record<string, string> = {};
+    for (const athleteAttendance of attendanceList) {
+      const athleteId = athleteAttendance.registration.userId;
+      const parent = parentByAthleteId[athleteId];
+      if (parent?.parentName) {
+        map[athleteAttendance.registration.id] = parent.parentName;
+      }
+    }
+    return map;
+  }, [attendanceList, parentByAthleteId]);
 
   const presentCount = useMemo(
     () => attendanceList.filter((a) => a.status === 'present').length,
@@ -447,6 +692,9 @@ export function useSessionCompletion(sessionId: string | undefined) {
     () => attendanceList.reduce((sum, a) => sum + a.badges.length, 0),
     [attendanceList],
   );
+
+  const isGroupCompletion =
+    sourceType === 'offering' && session?.sessionType === 'group' && attendanceList.length > 0;
 
   const currentStepIndex = COMPLETION_STEPS.indexOf(currentStep);
 
@@ -467,6 +715,8 @@ export function useSessionCompletion(sessionId: string | undefined) {
     setOverallEffort,
     homework,
     setHomework,
+    videoUrls,
+    imageUrls,
     shareNotesWithParents,
     setShareNotesWithParents,
     shareAttendance,
@@ -475,9 +725,11 @@ export function useSessionCompletion(sessionId: string | undefined) {
     // Step navigation
     currentStep,
     currentStepIndex,
+    isGroupCompletion,
 
     // Derived
     attendanceStepData,
+    parentNameByRegistration,
     presentAthletes,
     presentCount,
     absentCount,
@@ -486,6 +738,14 @@ export function useSessionCompletion(sessionId: string | undefined) {
     // Actions
     loadSession,
     updateAttendanceStatus,
+    setAllAttendanceStatus,
+    sendGroupBroadcast,
+    sendPersonalUpdate,
+    sendMessageParent,
+    addImage,
+    addVideo,
+    removeImage,
+    removeVideo,
     toggleBadge,
     goToNextStep,
     goToPrevStep,

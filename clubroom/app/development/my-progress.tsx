@@ -8,6 +8,7 @@ import { ThemedText } from '@/components/themed-text';
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { Clickable } from '@/components/primitives/clickable';
 import { Row } from '@/components/primitives/row';
+import { PageHeader } from '@/components/primitives/page-header';
 import { ProgressDashboard, SkillLevelGrid, FeedbackList } from '@/components/progress';
 import { ProgressLevelBanner } from '@/components/progress/progress-level-banner';
 import { ProgressGoalsTab } from '@/components/progress/progress-goals-tab';
@@ -53,6 +54,9 @@ export default function MyProgressScreen() {
   // Load journal entries
   useEffect(() => {
     const loadJournal = async () => {
+      if (status === 'loading') {
+        return;
+      }
       const stored = await apiClient.get<JournalEntry[]>(STORAGE_KEYS.SESSION_JOURNAL, []);
       const userId = currentUser?.id ?? 'user2';
       const data =
@@ -62,7 +66,7 @@ export default function MyProgressScreen() {
       setJournalEntries(data);
     };
     loadJournal();
-  }, [currentUser?.id]);
+  }, [currentUser?.id, status]);
 
   const handleSaveJournal = useCallback(
     async (entry: { personalNotes: string; mood: number; energyLevel: number }) => {
@@ -87,7 +91,10 @@ export default function MyProgressScreen() {
 
   if (loading) {
     return (
-      <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
+      <SafeAreaView
+        style={[styles.container, { backgroundColor: colors.background }]}
+        edges={['top', 'bottom']}
+      >
         <LoadingState variant="form" />
       </SafeAreaView>
     );
@@ -95,7 +102,10 @@ export default function MyProgressScreen() {
 
   if (status === 'error') {
     return (
-      <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
+      <SafeAreaView
+        style={[styles.container, { backgroundColor: colors.background }]}
+        edges={['top', 'bottom']}
+      >
         <ErrorState message={error?.message ?? 'Unable to load progress.'} onRetry={retry} />
       </SafeAreaView>
     );
@@ -103,7 +113,10 @@ export default function MyProgressScreen() {
 
   if (!currentUser || status === 'empty' || !progress) {
     return (
-      <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
+      <SafeAreaView
+        style={[styles.container, { backgroundColor: colors.background }]}
+        edges={['top', 'bottom']}
+      >
         <EmptyState
           icon="analytics-outline"
           title="No progress yet"
@@ -118,35 +131,28 @@ export default function MyProgressScreen() {
   return (
     <SafeAreaView
       style={[styles.container, { backgroundColor: colors.background }]}
-      edges={['top']}
+      edges={['top', 'bottom']}
     >
-      <Row align="center" justify="space-between" style={styles.header}>
-        <Clickable onPress={() => router.back()} style={{ padding: Spacing.xs }}>
-          <Ionicons name="arrow-back" size={24} color={colors.foreground} />
-        </Clickable>
-        <View style={styles.headerCenter}>
-          <ThemedText type="title" style={Typography.heading}>
-            My Progress
-          </ThemedText>
-          {trendInfo && (
-            <Row
-              align="center"
-              gap="xxs"
-              style={[styles.trendBadge, { backgroundColor: withAlpha(trendColor, 0.09) }]}
-            >
-              <Ionicons
-                name={trendInfo.icon as keyof typeof Ionicons.glyphMap}
-                size={12}
-                color={trendColor}
-              />
-              <ThemedText style={[Typography.caption, { color: trendColor }]}>
-                {trendInfo.label}
-              </ThemedText>
-            </Row>
-          )}
+      <PageHeader title="My Progress" showBack centerTitle onBackPress={() => router.back()} />
+
+      {trendInfo && (
+        <View style={styles.trendWrap}>
+          <Row
+            align="center"
+            gap="xxs"
+            style={[styles.trendBadge, { backgroundColor: withAlpha(trendColor, 0.09) }]}
+          >
+            <Ionicons
+              name={trendInfo.icon as keyof typeof Ionicons.glyphMap}
+              size={12}
+              color={trendColor}
+            />
+            <ThemedText style={[Typography.caption, { color: trendColor }]}>
+              {trendInfo.label}
+            </ThemedText>
+          </Row>
         </View>
-        <View style={{ width: 24 }} />
-      </Row>
+      )}
 
       <ProgressLevelBanner progress={progress} colors={colors} />
 
@@ -299,8 +305,11 @@ export default function MyProgressScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
-  header: { paddingHorizontal: Spacing.md, paddingVertical: Spacing.sm },
-  headerCenter: { alignItems: 'center', gap: Spacing.xxs },
+  trendWrap: {
+    alignItems: 'center',
+    paddingTop: Spacing.xxs,
+    paddingBottom: Spacing.xs,
+  },
   trendBadge: {
     paddingHorizontal: Spacing.xs,
     paddingVertical: Spacing.micro,

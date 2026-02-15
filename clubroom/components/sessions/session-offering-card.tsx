@@ -4,9 +4,8 @@ import { Row } from '@/components/primitives/row';
 
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { ThemedText } from '@/components/themed-text';
-import { Radii, Spacing, withAlpha } from '@/constants/theme';
+import { Radii, Spacing, Typography, withAlpha } from '@/constants/theme';
 import { SessionOffering } from '@/constants/types';
-import { scaleFont } from '@/utils/scale';
 import { useTheme } from '@/hooks/useTheme';
 import { getSessionOfferingCoachName } from '@/utils/session-display';
 
@@ -42,7 +41,7 @@ export function SessionOfferingCard({
   const formatSchedule = () => {
     if (offering.isRecurring && offering.dayOfWeek !== undefined && offering.timeOfDay) {
       const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
-      return `Every ${days[offering.dayOfWeek]} at ${offering.timeOfDay}`;
+      return `Every ${days[offering.dayOfWeek]} · ${offering.timeOfDay}`;
     }
     const date = new Date(offering.scheduledAt);
     return date.toLocaleDateString(undefined, {
@@ -56,103 +55,122 @@ export function SessionOfferingCard({
 
   return (
     <SurfaceCard style={styles.card} onPress={onPress}>
-      <View style={styles.header}>
-        <Row wrap align="center" gap={10}>
-          <ThemedText type="defaultSemiBold" style={styles.title}>
-            {offering.title}
-          </ThemedText>
-          <SessionTypeBadge sessionType={offering.sessionType} palette={palette} />
-        </Row>
-        {showCoach && <ThemedText style={styles.coachName}>with {coachName}</ThemedText>}
-      </View>
-
-      {offering.description && (
-        <ThemedText style={styles.description} numberOfLines={2}>
-          {offering.description}
-        </ThemedText>
-      )}
-
-      <Row align="center" gap={14} style={styles.detailsRow}>
-        <Row align="center" gap={8} flex>
-          <Ionicons name="calendar-outline" size={16} color={palette.icon} />
-          <ThemedText style={styles.detailText}>{formatSchedule()}</ThemedText>
-        </Row>
-      </Row>
-      <Row align="center" gap={14} style={styles.detailsRow}>
-        <Row align="center" gap={8} flex>
-          <Ionicons name="location-outline" size={16} color={palette.icon} />
-          <ThemedText style={styles.detailText}>{offering.location}</ThemedText>
-        </Row>
-      </Row>
-      {offering.footballSkill && (
-        <Row align="center" gap={14} style={styles.detailsRow}>
-          <Row align="center" gap={8} flex>
-            <Ionicons name="football-outline" size={16} color={palette.icon} />
-            <ThemedText style={styles.detailText}>Focus: {offering.footballSkill}</ThemedText>
-          </Row>
-        </Row>
-      )}
-
-      <SessionFooterBadges
-        ageMin={offering.ageMin}
-        ageMax={offering.ageMax}
-        sessionType={offering.sessionType}
-        isFull={isFull}
-        showCapacity={showCapacity}
-        showCoach={showCoach}
-        capacityText={capacityText}
-        registeredCount={registeredCount}
-        maxParticipants={offering.maxParticipants}
-        priceUsd={offering.priceUsd}
-        palette={palette}
-      />
-
-      {isFull && offering.status === 'active' && (
-        <View style={[styles.fullOverlay, { backgroundColor: withAlpha(palette.error, 0.06) }]}>
-          <ThemedText style={[styles.fullText, { color: palette.error }]}>Session Full</ThemedText>
+      <Row align="center" gap="sm" style={styles.row}>
+        <View style={[styles.avatar, { backgroundColor: withAlpha(palette.tint, 0.12) }]}>
+          <Ionicons
+            name={offering.sessionType === 'group' ? 'people' : 'person'}
+            size={18}
+            color={palette.tint}
+          />
         </View>
-      )}
+
+        <View style={styles.content}>
+          <Row align="center" gap="xs" style={styles.titleRow}>
+            <ThemedText style={styles.title} numberOfLines={1}>
+              {offering.title}
+            </ThemedText>
+            <SessionTypeBadge sessionType={offering.sessionType} palette={palette} />
+          </Row>
+
+          {showCoach && (
+            <ThemedText style={[styles.subtitle, { color: palette.muted }]} numberOfLines={1}>
+              with {coachName}
+            </ThemedText>
+          )}
+
+          <Row align="center" gap="xxs" style={styles.metaRow}>
+            <Ionicons name="calendar-outline" size={14} color={palette.muted} />
+            <ThemedText style={[styles.metaText, { color: palette.muted }]} numberOfLines={1}>
+              {formatSchedule()}
+            </ThemedText>
+          </Row>
+
+          <Row align="center" gap="xxs" style={styles.metaRow}>
+            <Ionicons name="location-outline" size={14} color={palette.tint} />
+            <ThemedText style={[styles.metaText, { color: palette.tint }]} numberOfLines={1}>
+              {offering.location}
+            </ThemedText>
+          </Row>
+
+          {offering.footballSkill && (
+            <Row align="center" gap="xxs" style={styles.metaRow}>
+              <Ionicons name="football-outline" size={14} color={palette.muted} />
+              <ThemedText style={[styles.metaText, { color: palette.muted }]} numberOfLines={1}>
+                Focus: {offering.footballSkill}
+              </ThemedText>
+            </Row>
+          )}
+
+          <SessionFooterBadges
+            ageMin={offering.ageMin}
+            ageMax={offering.ageMax}
+            sessionType={offering.sessionType}
+            isFull={isFull}
+            showCapacity={showCapacity}
+            showCoach={showCoach}
+            capacityText={capacityText}
+            registeredCount={registeredCount}
+            maxParticipants={offering.maxParticipants}
+            priceUsd={undefined}
+            palette={palette}
+          />
+        </View>
+
+        <View style={styles.trailing}>
+          {offering.priceUsd !== undefined && offering.priceUsd > 0 ? (
+            <ThemedText style={styles.price}>£{offering.priceUsd}</ThemedText>
+          ) : null}
+          <Ionicons name="chevron-forward" size={18} color={palette.muted} />
+        </View>
+      </Row>
     </SurfaceCard>
   );
 }
 
 const styles = StyleSheet.create({
-  card: { marginBottom: Spacing.sm, padding: Spacing.lg, gap: Spacing.sm },
-  header: { gap: 10 },
-  title: {
+  card: {
+    padding: Spacing.sm,
+  },
+  row: {
+    alignItems: 'flex-start',
+  },
+  avatar: {
+    width: 40,
+    height: 40,
+    borderRadius: Radii.xl,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  content: {
     flex: 1,
-    fontSize: scaleFont(18),
-    fontWeight: '700',
-    letterSpacing: -0.4,
-    lineHeight: scaleFont(25),
+    gap: Spacing.micro,
+    minWidth: 0,
   },
-  coachName: {
-    fontSize: scaleFont(15),
-    opacity: 0.6,
-    fontWeight: '500',
-    lineHeight: scaleFont(21),
-    marginTop: Spacing.micro,
+  titleRow: {
+    minWidth: 0,
   },
-  description: {
-    fontSize: scaleFont(15),
-    opacity: 0.7,
-    lineHeight: scaleFont(22),
-    marginTop: Spacing.xxs,
+  title: {
+    ...Typography.subheading,
+    flexShrink: 1,
   },
-  detailsRow: { marginTop: Spacing.xxs },
-  detailText: { fontSize: scaleFont(14), flex: 1, opacity: 0.8, lineHeight: scaleFont(20) },
-  fullOverlay: {
-    position: 'absolute',
-    top: Spacing.sm,
-    right: Spacing.sm,
-    paddingHorizontal: Spacing.sm - 4,
-    paddingVertical: Spacing.xs - 2,
-    borderRadius: Radii.sm,
+  subtitle: {
+    ...Typography.bodySmall,
   },
-  fullText: {
-    fontSize: scaleFont(12),
-    fontWeight: '700',
-    textTransform: 'uppercase',
-    letterSpacing: 0.6,
+  metaRow: {
+    minWidth: 0,
+  },
+  metaText: {
+    ...Typography.caption,
+    flex: 1,
+  },
+  trailing: {
+    alignItems: 'flex-end',
+    justifyContent: 'space-between',
+    minHeight: 56,
+    gap: Spacing.xxs,
+  },
+  price: {
+    ...Typography.heading,
+    lineHeight: Typography.heading.fontSize,
   },
 });

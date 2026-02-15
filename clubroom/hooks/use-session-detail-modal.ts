@@ -3,13 +3,18 @@
  */
 import { useEffect, useState, useMemo, useCallback } from 'react';
 import { Alert } from 'react-native';
+import { router } from 'expo-router';
 
 import { apiClient } from '@/services/api-client';
 import { toDateStr } from '@/utils/format';
 import { useAuth } from '@/hooks/use-auth';
 import { hasChildren } from '@/utils/user-helpers';
 import { badgeService } from '@/services/badge-service';
+import { bookingService } from '@/services/booking-service';
+import { STORAGE_KEYS } from '@/constants/storage-keys';
+import type { User } from '@/constants/app-types';
 import type { SessionOffering, BadgeAward } from '@/constants/types';
+import { Routes } from '@/navigation/routes';
 
 /** Generate upcoming instances for a recurring session. */
 function getUpcomingInstances(offering: SessionOffering, count: number = 8): Date[] {
@@ -66,13 +71,41 @@ export function useSessionDetailModal(
   const [selectedChildId, setSelectedChildId] = useState('');
   const [weeksToBook, setWeeksToBook] = useState(1);
   const [sessionAwards, setSessionAwards] = useState<BadgeAward[]>([]);
+  const [userNameMap, setUserNameMap] = useState<Record<string, string>>({});
   const [showInstanceManagement, setShowInstanceManagement] = useState(false);
 
   useEffect(() => {
-    if (visible && offering) {
-      badgeService.listAwardsForSession(offering.id).then(setSessionAwards);
-      setShowInstanceManagement(false);
-    }
+    if (!visible || !offering) return;
+
+    let cancelled = false;
+    setShowInstanceManagement(false);
+    setSelectedChildId('');
+
+    badgeService.listAwardsForSession(offering.id).then((awards) => {
+      if (!cancelled) setSessionAwards(awards);
+    });
+
+    apiClient
+      .get<User[]>(STORAGE_KEYS.USERS, [])
+      .then((users) => {
+        if (cancelled) return;
+        const nextMap = users.reduce<Record<string, string>>((acc, user) => {
+          const candidate = user as User & { fullName?: string; username?: string };
+          const resolvedName = candidate.fullName || candidate.name || candidate.username;
+          if (resolvedName) {
+            acc[user.id] = resolvedName;
+          }
+          return acc;
+        }, {});
+        setUserNameMap(nextMap);
+      })
+      .catch(() => {
+        if (!cancelled) setUserNameMap({});
+      });
+
+    return () => {
+      cancelled = true;
+    };
   }, [offering, visible]);
 
   const upcomingInstances = useMemo(() => {
@@ -85,9 +118,6 @@ export function useSessionDetailModal(
   const registeredCount =
     offering?.registrations.filter((r) => r.status === 'confirmed').length ?? 0;
   const isFull = registeredCount >= (offering?.maxParticipants ?? 0);
-  const isRegistered =
-    offering?.registrations.some((r) => r.userId === currentUser?.id && r.status === 'confirmed') ??
-    false;
 
   const children = useMemo(
     () =>
@@ -99,6 +129,21 @@ export function useSessionDetailModal(
         : [],
     [currentUser],
   );
+  const actorIds = useMemo(() => {
+    const ids = new Set<string>();
+    if (currentUser?.id) {
+      ids.add(currentUser.id);
+    }
+    for (const child of children) {
+      ids.add(child.id);
+    }
+    return Array.from(ids);
+  }, [children, currentUser?.id]);
+  const isRegistered =
+    offering?.registrations.some(
+      (registration) =>
+        registration.status === 'confirmed' && actorIds.includes(registration.userId),
+    ) ?? false;
   const hasMultipleKids = children.length > 1;
 
   const handleCancelInstance = useCallback(
@@ -144,10 +189,53 @@ export function useSessionDetailModal(
 
   const handleCancelBooking = useCallback(async () => {
     if (!offering || !currentUser) return;
-    const myRegistration = offering.registrations.find(
-      (r) => r.userId === currentUser.id && r.status === 'confirmed',
+    const offeringStartTime = new Date(offering.scheduledAt).getTime();
+    if (!Number.isFinite(offeringStartTime) || offeringStartTime <= Date.now()) {
+      Alert.alert(
+        'Cancellation unavailable',
+        'Only upcoming bookings can be cancelled. This session has already started or finished.',
+      );
+      return;
+    }
+
+    const confirmedActorRegistrations = offering.registrations.filter(
+      (registration) =>
+        registration.status === 'confirmed' && actorIds.includes(registration.userId),
     );
-    if (!myRegistration) return;
+
+    if (confirmedActorRegistrations.length === 0) {
+      Alert.alert('No active booking', 'We could not find a confirmed booking to cancel.');
+      return;
+    }
+
+    const myRegistration =
+      (selectedChildId
+        ? confirmedActorRegistrations.find((registration) => registration.userId === selectedChildId)
+        : undefined) ?? confirmedActorRegistrations[0];
+
+    try {
+      const bookings = await bookingService.list();
+      const linkedBooking = bookings.find((booking) => {
+        if (booking.status === 'CANCELLED') return false;
+        if (booking.groupSessionId !== offering.id) return false;
+        if (booking.groupRegistrationId && booking.groupRegistrationId === myRegistration.id) return true;
+
+        const athleteIds = new Set<string>();
+        if (booking.athleteId) athleteIds.add(booking.athleteId);
+        for (const athleteId of booking.athleteIds ?? []) {
+          athleteIds.add(athleteId);
+        }
+        return athleteIds.has(myRegistration.userId);
+      });
+
+      if (linkedBooking) {
+        onClose();
+        router.push(Routes.bookingCancel(linkedBooking.id, 'parent'));
+        return;
+      }
+    } catch {
+      // Fall through to registration-level cancellation when booking lookup is unavailable.
+    }
 
     Alert.alert(
       'Cancel Booking',
@@ -187,7 +275,7 @@ export function useSessionDetailModal(
         },
       ],
     );
-  }, [offering, currentUser, onUpdate, onClose]);
+  }, [offering, currentUser, selectedChildId, actorIds, onUpdate, onClose]);
 
   const handleEndSeries = useCallback(async () => {
     if (!offering) return;
@@ -307,6 +395,7 @@ export function useSessionDetailModal(
     weeksToBook,
     setWeeksToBook,
     sessionAwards,
+    userNameMap,
     showInstanceManagement,
     setShowInstanceManagement,
     upcomingInstances,

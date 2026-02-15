@@ -15,6 +15,7 @@ import { router } from 'expo-router';
 import { Routes } from '@/navigation/routes';
 
 import { Clickable } from '@/components/primitives/clickable';
+import { PageHeader } from '@/components/primitives/page-header';
 import { ThemedText } from '@/components/themed-text';
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { CreatePostForm } from '@/components/social/create-post-form';
@@ -74,18 +75,14 @@ export default function CreatePostScreen() {
         style={[styles.container, { backgroundColor: palette.background }]}
         edges={['top', 'bottom']}
       >
-        <Row style={[styles.header, { borderBottomColor: palette.border }]}>
-          <Clickable
-            accessibilityLabel="Close"
-            onPress={handleClose}
-            hitSlop={10}
-            style={styles.closeButton}
-          >
-            <Ionicons name="close" size={24} color={palette.foreground} />
-          </Clickable>
-          <ThemedText type="defaultSemiBold">New Post</ThemedText>
-          <View style={{ width: 24 }} />
-        </Row>
+        <PageHeader
+          title="New Post"
+          showBack
+          backIcon="close"
+          onBackPress={handleClose}
+          centerTitle
+          containerStyle={[styles.header, { borderBottomColor: palette.border }]}
+        />
         <View style={styles.content}>
           <SurfaceCard style={styles.card}>
             <View

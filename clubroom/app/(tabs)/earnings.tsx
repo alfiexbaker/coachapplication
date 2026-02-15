@@ -14,7 +14,7 @@ export default function TabEarningsScreen() {
     return (
       <SafeAreaView
         style={[styles.container, { backgroundColor: colors.background }]}
-        edges={['top']}
+        edges={['top', 'bottom']}
       >
         <LoadingState variant="detail" />
       </SafeAreaView>
@@ -25,7 +25,7 @@ export default function TabEarningsScreen() {
     return (
       <SafeAreaView
         style={[styles.container, { backgroundColor: colors.background }]}
-        edges={['top']}
+        edges={['top', 'bottom']}
       >
         <ErrorState message={error} onRetry={() => void logout()} />
       </SafeAreaView>
@@ -36,7 +36,7 @@ export default function TabEarningsScreen() {
     return (
       <SafeAreaView
         style={[styles.container, { backgroundColor: colors.background }]}
-        edges={['top']}
+        edges={['top', 'bottom']}
       >
         <EmptyState
           icon="person-outline"

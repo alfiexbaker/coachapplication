@@ -5,7 +5,7 @@ import { useEffect, useMemo, useState, useCallback } from 'react';
 import { Platform } from 'react-native';
 import * as Haptics from 'expo-haptics';
 import { useAuth } from '@/hooks/use-auth';
-import { apiClient } from '@/services/api-client';
+import { ensureCoachSessionsSeeded } from '@/services/coach-session-seed-service';
 import { createLogger } from '@/utils/logger';
 import type { BadgeAward, SkillProgress, Goal, Session } from '@/constants/types';
 import { badgeService } from '@/services/badge-service';
@@ -53,7 +53,7 @@ export function useParentDevelopment() {
     let active = true;
 
     const loadSessions = async () => {
-      const sessions = await apiClient.get<Session[]>('coach_sessions', []);
+      const sessions = await ensureCoachSessionsSeeded();
       if (active) {
         setAllSessions(sessions);
       }

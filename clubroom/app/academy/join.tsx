@@ -82,7 +82,7 @@ export default function JoinTeamScreen() {
     return (
       <SafeAreaView
         style={[styles.container, { backgroundColor: palette.background }]}
-        edges={['top']}
+        edges={['top', 'bottom']}
       >
         <LoadingState variant="form" />
       </SafeAreaView>
@@ -93,7 +93,7 @@ export default function JoinTeamScreen() {
     return (
       <SafeAreaView
         style={[styles.container, { backgroundColor: palette.background }]}
-        edges={['top']}
+        edges={['top', 'bottom']}
       >
         <ErrorState message={error?.message || 'Failed to open join-team flow.'} onRetry={retry} />
       </SafeAreaView>
@@ -104,7 +104,7 @@ export default function JoinTeamScreen() {
     return (
       <SafeAreaView
         style={[styles.container, { backgroundColor: palette.background }]}
-        edges={['top']}
+        edges={['top', 'bottom']}
       >
         <EmptyState
           icon="people-outline"
@@ -120,7 +120,7 @@ export default function JoinTeamScreen() {
   return (
     <SafeAreaView
       style={[styles.container, { backgroundColor: palette.background }]}
-      edges={['top']}
+      edges={['top', 'bottom']}
     >
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}

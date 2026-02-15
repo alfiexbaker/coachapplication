@@ -1,5 +1,6 @@
 import { useEffect } from 'react';
 import { router } from 'expo-router';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { LoadingState } from '@/components/ui/screen-states';
 import { Routes } from '@/navigation/routes';
@@ -14,5 +15,9 @@ export default function SquadInviteRedirect() {
     );
   }, []);
 
-  return <LoadingState variant="detail" />;
+  return (
+    <SafeAreaView style={{ flex: 1 }} edges={['top', 'bottom']}>
+      <LoadingState variant="detail" />
+    </SafeAreaView>
+  );
 }

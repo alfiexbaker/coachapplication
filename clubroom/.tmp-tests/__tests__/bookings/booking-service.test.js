@@ -79,6 +79,16 @@ function createParams(id, overrides = {}) {
         strict_1.default.equal(cancelled?.status, 'CANCELLED');
         strict_1.default.equal(cancelled?.cancellationReason, 'COACH');
     });
+    (0, node_test_1.it)('does not cancel past bookings', async () => {
+        const created = await booking_service_1.bookingService.createBooking(createParams('03-past', { scheduledAt: '2025-01-10T10:00:00.000Z' }));
+        strict_1.default.equal(created.success, true);
+        if (!created.success)
+            return;
+        const cancelled = await booking_service_1.bookingService.cancel(created.data.id, 'PARENT', 'parent');
+        strict_1.default.equal(cancelled, undefined);
+        const stillActive = await booking_service_1.bookingService.getBooking(created.data.id);
+        strict_1.default.equal(stillActive?.status, 'CONFIRMED');
+    });
     (0, node_test_1.it)('filters bookings by role through getBookingsForUser', async () => {
         const one = await booking_service_1.bookingService.createBooking(createParams('04'));
         const two = await booking_service_1.bookingService.createBooking(createParams('05', {

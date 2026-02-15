@@ -69,7 +69,7 @@ export default function PublicCoachProfileScreen() {
   return (
     <SafeAreaView
       style={[styles.container, { backgroundColor: palette.background }]}
-      edges={['top']}
+      edges={['top', 'bottom']}
     >
       <ScrollView
         showsVerticalScrollIndicator={false}

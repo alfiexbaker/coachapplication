@@ -15,6 +15,7 @@ import { ThemedText } from '@/components/themed-text';
 import { Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
 import { formatDate } from '@/hooks/use-home-screen';
+import { formatTime } from '@/utils/format';
 import type { BadgeAward, Club } from '@/constants/types';
 
 // --- StatsRow ---
@@ -37,12 +38,10 @@ export const StatsRow = memo(function StatsRow({
       value: String(stats.badges),
       label: 'Badges',
     },
-    { icon: 'trophy' as const, color: palette.success, value: `Lv.${stats.level}`, label: 'Level' },
+    { icon: 'trophy' as const, color: palette.success, value: String(stats.level), label: 'Level' },
   ];
   return (
-    <Row
-      align="center"
-      justify="space-around"
+    <View
       style={[
         styles.statsRow,
         {
@@ -52,24 +51,26 @@ export const StatsRow = memo(function StatsRow({
       ]}
     >
       {items.map((item, i) => (
-        <Row key={item.label} align="center">
-          {i > 0 && <View style={[styles.statDivider, { backgroundColor: palette.border }]} />}
-          <Row align="center" gap="sm">
+        <View key={item.label} style={styles.statItem}>
+          <Row align="center" gap="xs" style={styles.statItemContent}>
             <View style={[styles.statIcon, { backgroundColor: withAlpha(item.color, 0.09) }]}>
               <Ionicons name={item.icon} size={18} color={item.color} />
             </View>
-            <View>
-              <ThemedText type="defaultSemiBold" style={styles.statValue}>
+            <View style={styles.statText}>
+              <ThemedText type="defaultSemiBold" style={styles.statValue} numberOfLines={1}>
                 {item.value}
               </ThemedText>
-              <ThemedText style={[styles.statLabel, { color: palette.muted }]}>
+              <ThemedText style={[styles.statLabel, { color: palette.muted }]} numberOfLines={1}>
                 {item.label}
               </ThemedText>
             </View>
           </Row>
-        </Row>
+          {i < items.length - 1 && (
+            <View style={[styles.statDivider, { backgroundColor: palette.border }]} />
+          )}
+        </View>
       ))}
-    </Row>
+    </View>
   );
 });
 
@@ -93,7 +94,7 @@ export const StreakCard = memo(function StreakCard({ streakInfo }: { streakInfo:
       ]}
       onPress={() => router.push(Routes.DEVELOPMENT_MY_PROGRESS)}
     >
-      <Row align="center" gap="md">
+      <Row align="center" gap="sm" style={styles.streakBody}>
         <View
           style={[
             styles.streakIconContainer,
@@ -111,17 +112,17 @@ export const StreakCard = memo(function StreakCard({ streakInfo }: { streakInfo:
               week streak
             </ThemedText>
           </Row>
-          <ThemedText style={[styles.streakLabel, { color: palette.text }]}>
+          <ThemedText style={[styles.streakLabel, { color: palette.text }]} numberOfLines={2}>
             {streakInfo.streakLabel}
           </ThemedText>
         </View>
-        <Row align="center" gap={4}>
+        <Row align="center" gap={4} style={styles.streakMeta}>
           <ThemedText
             style={[styles.streakProgressText, { color: palette.muted }]}
             numberOfLines={1}
           >
             {streakInfo.daysToNextMilestone > 0
-              ? `${streakInfo.daysToNextMilestone} to next badge`
+              ? `${streakInfo.daysToNextMilestone} to badge`
               : 'Max streak!'}
           </ThemedText>
           <Ionicons name="chevron-forward" size={18} color={palette.muted} />
@@ -135,15 +136,15 @@ export const StreakCard = memo(function StreakCard({ streakInfo }: { streakInfo:
 export const QuickActionsGrid = memo(function QuickActionsGrid() {
   const { colors: palette } = useTheme();
   const actions = [
-    { icon: 'search', label: 'Find Coach', route: '/(tabs)/more', color: palette.tint },
+    { icon: 'search', label: 'Find Coach', route: '/(tabs)/more', primary: true },
     {
       icon: 'analytics',
       label: 'My Progress',
       route: '/development/my-progress',
-      color: palette.success,
+      primary: false,
     },
-    { icon: 'chatbubbles', label: 'Messages', route: '/(tabs)/messages', color: palette.accent },
-    { icon: 'calendar', label: 'Bookings', route: '/(tabs)/bookings', color: palette.tint },
+    { icon: 'chatbubbles', label: 'Messages', route: '/(tabs)/messages', primary: false },
+    { icon: 'calendar', label: 'Bookings', route: '/(tabs)/bookings', primary: false },
   ];
   return (
     <Row wrap gap="sm">
@@ -153,22 +154,32 @@ export const QuickActionsGrid = memo(function QuickActionsGrid() {
           style={[
             styles.quickAction,
             {
-              backgroundColor: withAlpha(action.color, 0.06),
-              borderColor: withAlpha(action.color, 0.15),
+              backgroundColor: action.primary ? palette.tint : palette.surface,
+              borderColor: action.primary ? palette.tint : palette.border,
             },
           ]}
           onPress={() => router.push(action.route as Href)}
         >
           <View
-            style={[styles.quickActionIcon, { backgroundColor: withAlpha(action.color, 0.12) }]}
+            style={[
+              styles.quickActionIcon,
+              {
+                backgroundColor: action.primary
+                  ? withAlpha(palette.onPrimary, 0.2)
+                  : withAlpha(palette.tint, 0.09),
+              },
+            ]}
           >
             <Ionicons
               name={action.icon as keyof typeof Ionicons.glyphMap}
               size={20}
-              color={action.color}
+              color={action.primary ? palette.onPrimary : palette.tint}
             />
           </View>
-          <ThemedText style={[styles.quickActionLabel, { color: action.color }]} numberOfLines={1}>
+          <ThemedText
+            style={[styles.quickActionLabel, { color: action.primary ? palette.onPrimary : palette.text }]}
+            numberOfLines={2}
+          >
             {action.label}
           </ThemedText>
         </Clickable>
@@ -184,7 +195,19 @@ interface Booking {
   scheduledAt: string;
   location: string;
   status: string;
+  isGroupSession?: boolean;
+  serviceType?: string;
+  service?: string;
+  maxParticipants?: number;
 }
+
+function getSessionTypeLabel(booking: Booking): string {
+  if (booking.serviceType?.trim()) return booking.serviceType;
+  if (booking.service?.trim()) return booking.service;
+  if (booking.isGroupSession || (booking.maxParticipants ?? 1) > 1) return 'Group session';
+  return '1-to-1 session';
+}
+
 export const NextSessionCard = memo(function NextSessionCard({ booking }: { booking?: Booking }) {
   const { colors: palette } = useTheme();
   if (!booking) {
@@ -236,6 +259,22 @@ export const NextSessionCard = memo(function NextSessionCard({ booking }: { book
           <Ionicons name="calendar-outline" size={16} color={palette.muted} />
           <ThemedText style={{ color: palette.muted }} numberOfLines={1}>
             {formatDate(booking.scheduledAt)}
+          </ThemedText>
+        </Row>
+        <Row align="center" gap="sm">
+          <Ionicons name="time-outline" size={16} color={palette.muted} />
+          <ThemedText style={{ color: palette.muted }} numberOfLines={1}>
+            {formatTime(booking.scheduledAt)}
+          </ThemedText>
+        </Row>
+        <Row align="center" gap="sm">
+          <Ionicons
+            name={booking.isGroupSession ? 'people-outline' : 'person-outline'}
+            size={16}
+            color={palette.muted}
+          />
+          <ThemedText style={{ color: palette.muted }} numberOfLines={1}>
+            {getSessionTypeLabel(booking)}
           </ThemedText>
         </Row>
         <Row align="center" gap="sm">
@@ -334,21 +373,44 @@ export const MyClubsSection = memo(function MyClubsSection({ clubs }: { clubs: C
 });
 
 const styles = StyleSheet.create({
-  statsRow: { padding: Spacing.md, borderRadius: Radii.lg, borderWidth: 1 },
+  statsRow: {
+    flexDirection: 'row',
+    paddingVertical: Spacing.sm,
+    borderRadius: Radii.lg,
+    borderWidth: 1,
+  },
   statItem: {
-    /* layout moved to Row */
+    flex: 1,
+    minWidth: 0,
+    position: 'relative',
+    paddingHorizontal: Spacing.xs,
+  },
+  statItemContent: {
+    justifyContent: 'center',
+  },
+  statText: {
+    minWidth: 0,
   },
   statIcon: {
-    width: 36,
-    height: 36,
+    width: 34,
+    height: 34,
     borderRadius: Radii.xl,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  statValue: { ...Typography.subheading },
+  statValue: { ...Typography.bodySemiBold },
   statLabel: { ...Typography.caption },
-  statDivider: { width: 1, height: 32, marginHorizontal: Spacing.sm },
+  statDivider: {
+    position: 'absolute',
+    right: 0,
+    top: Spacing.xs,
+    bottom: Spacing.xs,
+    width: 1,
+  },
   streakCard: { padding: Spacing.md, borderRadius: Radii.lg, borderWidth: 1 },
+  streakBody: {
+    alignItems: 'center',
+  },
   streakContent: {
     /* layout moved to Row */
   },
@@ -365,11 +427,15 @@ const styles = StyleSheet.create({
   },
   streakNumber: { ...Typography.display },
   streakWeeks: { ...Typography.bodySmallSemiBold },
-  streakLabel: { ...Typography.smallSemiBold },
+  streakLabel: { ...Typography.smallSemiBold, lineHeight: 18 },
   streakProgress: {
     /* layout moved to Row */
   },
-  streakProgressText: { ...Typography.caption },
+  streakMeta: {
+    minWidth: 88,
+    justifyContent: 'flex-end',
+  },
+  streakProgressText: { ...Typography.caption, textAlign: 'right', flexShrink: 1 },
   quickActionsGrid: {
     /* layout moved to Row */
   },
@@ -377,19 +443,20 @@ const styles = StyleSheet.create({
     width: '47%',
     flexDirection: 'row',
     alignItems: 'center',
-    gap: Spacing.sm,
-    padding: Spacing.sm,
+    gap: Spacing.xs,
+    paddingHorizontal: Spacing.xs,
+    paddingVertical: Spacing.sm,
     borderRadius: Radii.md,
     borderWidth: 1,
   },
   quickActionIcon: {
-    width: 36,
-    height: 36,
+    width: 32,
+    height: 32,
     borderRadius: Radii.xl,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  quickActionLabel: { ...Typography.smallSemiBold },
+  quickActionLabel: { ...Typography.smallSemiBold, flexShrink: 1 },
   nextSession: { padding: Spacing.md, gap: Spacing.md },
   sessionHeader: {
     /* layout moved to Row */

@@ -14,6 +14,7 @@ import { SurfaceCard } from '@/components/primitives/surface-card';
 import { Clickable } from '@/components/primitives/clickable';
 import { ThemedText } from '@/components/themed-text';
 import { Row } from '@/components/primitives/row';
+import { PageHeader } from '@/components/primitives/page-header';
 import { ProgressDashboard, SkillLevelGrid, FeedbackList } from '@/components/progress';
 import { SkillRadar } from '@/components/analytics/skill-radar';
 import { ChildProgressStats } from '@/components/development/child-progress-stats';
@@ -44,7 +45,10 @@ export default function ChildProgressScreen() {
 
   if (loading) {
     return (
-      <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
+      <SafeAreaView
+        style={[styles.container, { backgroundColor: colors.background }]}
+        edges={['top', 'bottom']}
+      >
         <LoadingState variant="detail" />
       </SafeAreaView>
     );
@@ -52,7 +56,10 @@ export default function ChildProgressScreen() {
 
   if (status === 'error') {
     return (
-      <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
+      <SafeAreaView
+        style={[styles.container, { backgroundColor: colors.background }]}
+        edges={['top', 'bottom']}
+      >
         <ErrorState message={error?.message ?? 'Failed to load child progress.'} onRetry={retry} />
       </SafeAreaView>
     );
@@ -60,7 +67,10 @@ export default function ChildProgressScreen() {
 
   if (status === 'empty' || !child || !progress) {
     return (
-      <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
+      <SafeAreaView
+        style={[styles.container, { backgroundColor: colors.background }]}
+        edges={['top', 'bottom']}
+      >
         <EmptyState
           icon="person-outline"
           title="Child not found"
@@ -75,34 +85,23 @@ export default function ChildProgressScreen() {
   return (
     <SafeAreaView
       style={[styles.container, { backgroundColor: colors.background }]}
-      edges={['top']}
+      edges={['top', 'bottom']}
     >
-      {/* Header */}
-      <Row align="center" justify="space-between" style={styles.header}>
-        <Clickable onPress={() => router.back()} style={styles.backButton}>
-          <Ionicons name="arrow-back" size={24} color={colors.foreground} />
-        </Clickable>
-        <View style={styles.headerCenter}>
-          <ThemedText type="title" style={Typography.heading}>
-            {child.name}
-          </ThemedText>
-          <Row
-            align="center"
-            gap="xxs"
-            style={[styles.trendBadge, { backgroundColor: withAlpha(trend.color, 0.09) }]}
-          >
-            <Ionicons
-              name={trend.icon as keyof typeof Ionicons.glyphMap}
-              size={12}
-              color={trend.color}
-            />
-            <ThemedText style={[Typography.caption, { color: trend.color }]}>
-              {trend.label}
-            </ThemedText>
-          </Row>
-        </View>
-        <View style={{ width: 24 }} />
-      </Row>
+      <PageHeader title={child.name} showBack centerTitle onBackPress={() => router.back()} />
+      <View style={styles.trendWrap}>
+        <Row
+          align="center"
+          gap="xxs"
+          style={[styles.trendBadge, { backgroundColor: withAlpha(trend.color, 0.09) }]}
+        >
+          <Ionicons
+            name={trend.icon as keyof typeof Ionicons.glyphMap}
+            size={12}
+            color={trend.color}
+          />
+          <ThemedText style={[Typography.caption, { color: trend.color }]}>{trend.label}</ThemedText>
+        </Row>
+      </View>
 
       {/* Tab Bar */}
       <View style={[styles.tabBar, { borderBottomColor: colors.border }]}>
@@ -299,9 +298,11 @@ export default function ChildProgressScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
-  header: { paddingHorizontal: Spacing.md, paddingVertical: Spacing.sm },
-  backButton: { padding: Spacing.xs },
-  headerCenter: { alignItems: 'center', gap: Spacing.xxs },
+  trendWrap: {
+    alignItems: 'center',
+    paddingTop: Spacing.xxs,
+    paddingBottom: Spacing.xs,
+  },
   trendBadge: {
     paddingHorizontal: Spacing.xs,
     paddingVertical: Spacing.micro,

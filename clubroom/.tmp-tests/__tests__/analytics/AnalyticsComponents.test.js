@@ -262,7 +262,7 @@ const node_test_1 = __importStar(require("node:test"));
                 return `${symbol}${amount.toLocaleString()}`;
             };
             node_assert_1.default.strictEqual(formatCurrency(1000), '\u00A31,000');
-            node_assert_1.default.strictEqual(formatCurrency(500, '$'), '$500');
+            node_assert_1.default.strictEqual(formatCurrency(500, '\u00A3'), '\u00A3500');
             node_assert_1.default.strictEqual(formatCurrency(2340), '\u00A32,340');
         });
         (0, node_test_1.default)('should format date correctly', () => {

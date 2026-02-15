@@ -127,7 +127,7 @@ export default function ScheduleScreen() {
     return (
       <SafeAreaView
         style={[styles.safeArea, { backgroundColor: palette.background }]}
-        edges={['top']}
+        edges={['top', 'bottom']}
       >
         <LoadingState variant="calendar" />
       </SafeAreaView>
@@ -138,7 +138,7 @@ export default function ScheduleScreen() {
     return (
       <SafeAreaView
         style={[styles.safeArea, { backgroundColor: palette.background }]}
-        edges={['top']}
+        edges={['top', 'bottom']}
       >
         <ErrorState
           message={error?.message ?? 'Unable to load available times. Please try again.'}
@@ -152,7 +152,7 @@ export default function ScheduleScreen() {
     return (
       <SafeAreaView
         style={[styles.safeArea, { backgroundColor: palette.background }]}
-        edges={['top']}
+        edges={['top', 'bottom']}
       >
         <BookingWizardHeader
           title="Choose date & time"
@@ -173,7 +173,7 @@ export default function ScheduleScreen() {
   return (
     <SafeAreaView
       style={[styles.safeArea, { backgroundColor: palette.background }]}
-      edges={['top']}
+      edges={['top', 'bottom']}
     >
       <ScrollView
         contentContainerStyle={styles.content}

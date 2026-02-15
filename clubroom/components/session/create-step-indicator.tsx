@@ -40,7 +40,7 @@ export const CreateStepIndicator = memo(function CreateStepIndicator({
 
 const styles = StyleSheet.create({
   wrapper: {
-    paddingHorizontal: Spacing.lg,
-    paddingBottom: Spacing.md,
+    paddingHorizontal: Spacing.md,
+    paddingBottom: Spacing.sm,
   },
 });

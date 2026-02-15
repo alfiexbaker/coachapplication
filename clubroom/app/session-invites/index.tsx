@@ -164,7 +164,7 @@ export default function SessionInvitesScreen() {
     return (
       <SafeAreaView
         style={[styles.container, { backgroundColor: colors.background }]}
-        edges={['top']}
+        edges={['top', 'bottom']}
       >
         <LoadingState variant="list" />
       </SafeAreaView>
@@ -174,7 +174,7 @@ export default function SessionInvitesScreen() {
     return (
       <SafeAreaView
         style={[styles.container, { backgroundColor: colors.background }]}
-        edges={['top']}
+        edges={['top', 'bottom']}
       >
         <ErrorState message={error?.message ?? 'Failed to load invites'} onRetry={retry} />
       </SafeAreaView>
@@ -184,7 +184,7 @@ export default function SessionInvitesScreen() {
     return (
       <SafeAreaView
         style={[styles.container, { backgroundColor: colors.background }]}
-        edges={['top']}
+        edges={['top', 'bottom']}
       >
         <Row gap="md" align="center" paddingH="lg" paddingV="md">
           <Clickable onPress={() => router.back()} hitSlop={8} accessibilityLabel="Go back">
@@ -219,7 +219,7 @@ export default function SessionInvitesScreen() {
   return (
     <SafeAreaView
       style={[styles.container, { backgroundColor: colors.background }]}
-      edges={['top']}
+      edges={['top', 'bottom']}
     >
       <Row gap="md" align="center" paddingH="lg" paddingV="md">
         <Clickable onPress={() => router.back()} hitSlop={8} accessibilityLabel="Go back">

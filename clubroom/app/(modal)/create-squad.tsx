@@ -11,6 +11,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 
 import { Clickable } from '@/components/primitives/clickable';
+import { PageHeader } from '@/components/primitives/page-header';
 import { ThemedText } from '@/components/themed-text';
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { Row } from '@/components/primitives/row';
@@ -28,13 +29,14 @@ export default function CreateSquadScreen() {
         style={[styles.container, { backgroundColor: palette.background }]}
         edges={['top', 'bottom']}
       >
-        <Row align="center" style={[styles.header, { borderBottomColor: palette.border }]}>
-          <Clickable onPress={() => router.back()} hitSlop={10}>
-            <Ionicons name="close" size={24} color={palette.foreground} />
-          </Clickable>
-          <ThemedText type="defaultSemiBold">Create Group</ThemedText>
-          <View style={{ width: 24 }} />
-        </Row>
+        <PageHeader
+          title="Create Group"
+          showBack
+          backIcon="close"
+          onBackPress={() => router.back()}
+          centerTitle
+          containerStyle={[styles.header, { borderBottomColor: palette.border }]}
+        />
         <View style={styles.errorContent}>
           <ThemedText style={{ color: palette.error }}>Club not found</ThemedText>
         </View>
@@ -47,34 +49,34 @@ export default function CreateSquadScreen() {
       style={[styles.container, { backgroundColor: palette.background }]}
       edges={['top', 'bottom']}
     >
-      <Row align="center" style={[styles.header, { borderBottomColor: palette.border }]}>
-        <Clickable onPress={() => router.back()} hitSlop={10}>
-          <Ionicons name="close" size={24} color={palette.foreground} />
-        </Clickable>
-        <View style={{ flex: 1, alignItems: 'center' }}>
-          <ThemedText type="defaultSemiBold">Create Group</ThemedText>
-          <ThemedText style={{ color: palette.muted, ...Typography.caption }}>
-            {c.club.name}
-          </ThemedText>
-        </View>
-        <Clickable
-          onPress={c.handleCreate}
-          disabled={c.isSubmitting || !c.isValid}
-          style={[
-            styles.createButton,
-            { backgroundColor: c.isValid ? palette.tint : palette.border },
-          ]}
-        >
-          <ThemedText
-            style={{
-              color: c.isValid ? palette.onPrimary : palette.muted,
-              ...Typography.bodySmallSemiBold,
-            }}
+      <PageHeader
+        title="Create Group"
+        subtitle={c.club.name}
+        showBack
+        backIcon="close"
+        onBackPress={() => router.back()}
+        centerTitle
+        containerStyle={[styles.header, { borderBottomColor: palette.border }]}
+        right={
+          <Clickable
+            onPress={c.handleCreate}
+            disabled={c.isSubmitting || !c.isValid}
+            style={[
+              styles.createButton,
+              { backgroundColor: c.isValid ? palette.tint : palette.border },
+            ]}
           >
-            {c.isSubmitting ? 'Creating...' : 'Create'}
-          </ThemedText>
-        </Clickable>
-      </Row>
+            <ThemedText
+              style={{
+                color: c.isValid ? palette.onPrimary : palette.muted,
+                ...Typography.bodySmallSemiBold,
+              }}
+            >
+              {c.isSubmitting ? 'Creating...' : 'Create'}
+            </ThemedText>
+          </Clickable>
+        }
+      />
 
       <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
         <View style={styles.section}>

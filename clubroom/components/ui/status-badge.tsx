@@ -13,11 +13,12 @@ import React from 'react';
 
 import { Badge, type BadgeTone } from '@/components/primitives/badge';
 
-export type BookingStatus = 'Pending' | 'Confirmed' | 'Completed' | 'Cancelled';
+export type BookingStatus = 'Pending' | 'Confirmed' | 'Needs Completion' | 'Completed' | 'Cancelled';
 
 const STATUS_TONE_MAP: Record<BookingStatus, BadgeTone> = {
   Pending: 'warning',
   Confirmed: 'success',
+  'Needs Completion': 'warning',
   Completed: 'info',
   Cancelled: 'error',
 };

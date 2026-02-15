@@ -6,8 +6,8 @@ import { Ionicons } from '@expo/vector-icons';
 import { SettingsSection, SettingsToggleRow } from '@/components/settings';
 import { CalendarProviderSelect } from '@/components/calendar/CalendarProviderSelect';
 import { SyncSettingsCard } from '@/components/calendar/SyncSettingsCard';
-import { Clickable } from '@/components/primitives/clickable';
 import { Button } from '@/components/primitives/button';
+import { PageHeader } from '@/components/primitives/page-header';
 import { ThemedText } from '@/components/themed-text';
 import { Row } from '@/components/primitives/row';
 import { LoadingState, ErrorState } from '@/components/ui/screen-states';
@@ -39,17 +39,15 @@ export default function CalendarSyncScreen() {
     return (
       <SafeAreaView
         style={[styles.container, { backgroundColor: palette.background }]}
-        edges={['top']}
+        edges={['top', 'bottom']}
       >
-        <Row align="center" justify="space-between" style={styles.header}>
-          <Clickable onPress={() => router.back()} hitSlop={8} accessibilityLabel="Go back">
-            <Ionicons name="arrow-back" size={24} color={palette.text} />
-          </Clickable>
-          <ThemedText type="title" style={styles.headerTitle}>
-            Calendar Sync
-          </ThemedText>
-          <View style={{ width: 24 }} />
-        </Row>
+        <PageHeader
+          title="Calendar Sync"
+          showBack
+          backIcon="arrow-back"
+          onBackPress={() => router.back()}
+          centerTitle
+        />
         <LoadingState variant="form" />
       </SafeAreaView>
     );
@@ -59,17 +57,15 @@ export default function CalendarSyncScreen() {
     return (
       <SafeAreaView
         style={[styles.container, { backgroundColor: palette.background }]}
-        edges={['top']}
+        edges={['top', 'bottom']}
       >
-        <Row align="center" justify="space-between" style={styles.header}>
-          <Clickable onPress={() => router.back()} hitSlop={8} accessibilityLabel="Go back">
-            <Ionicons name="arrow-back" size={24} color={palette.text} />
-          </Clickable>
-          <ThemedText type="title" style={styles.headerTitle}>
-            Calendar Sync
-          </ThemedText>
-          <View style={{ width: 24 }} />
-        </Row>
+        <PageHeader
+          title="Calendar Sync"
+          showBack
+          backIcon="arrow-back"
+          onBackPress={() => router.back()}
+          centerTitle
+        />
         <ErrorState message={error ?? 'Failed to load calendar settings.'} onRetry={retry} />
       </SafeAreaView>
     );
@@ -78,21 +74,16 @@ export default function CalendarSyncScreen() {
   return (
     <SafeAreaView
       style={[styles.container, { backgroundColor: palette.background }]}
-      edges={['top']}
+      edges={['top', 'bottom']}
     >
-      <Row align="center" justify="space-between" style={styles.header}>
-        <Clickable onPress={() => router.back()} hitSlop={8} accessibilityLabel="Go back">
-          <Ionicons name="arrow-back" size={24} color={palette.text} />
-        </Clickable>
-        <ThemedText type="title" style={styles.headerTitle}>
-          Calendar Sync
-        </ThemedText>
-        {isSaving ? (
-          <ActivityIndicator size="small" color={palette.accent} />
-        ) : (
-          <View style={{ width: 24 }} />
-        )}
-      </Row>
+      <PageHeader
+        title="Calendar Sync"
+        showBack
+        backIcon="arrow-back"
+        onBackPress={() => router.back()}
+        centerTitle
+        right={isSaving ? <ActivityIndicator size="small" color={palette.accent} /> : undefined}
+      />
 
       <ScrollView
         contentContainerStyle={styles.content}

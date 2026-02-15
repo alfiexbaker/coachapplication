@@ -245,7 +245,7 @@ export interface BookingSummary {
   id: string;
   service: string;
   start: string;
-  status: 'Confirmed' | 'Pending' | 'Completed' | 'Cancelled';
+  status: 'Confirmed' | 'Pending' | 'Needs Completion' | 'Completed' | 'Cancelled';
   locationLabel: string;
   coach?: {
     name: string;
@@ -277,6 +277,7 @@ export interface BookingSummary {
 export interface SessionRegistration {
   id: string;
   userId: string;
+  userName?: string;
   bookedAt: string;
   status: 'confirmed' | 'cancelled' | 'completed';
 }
@@ -400,6 +401,7 @@ export interface SessionInvite {
   selectedSlot?: TimeSlot; // The slot chosen when accepting
   counterProposal?: TimeSlot[];
   counterNote?: string;
+  existingSessionId?: string; // Links invite to an already published session offering
   groupId?: string; // Links invites that were sent as part of a group/bulk send
   bookingId?: string; // Link to created booking (bidirectional)
   dismissed?: boolean; // When parent removes/hides the invite from their view

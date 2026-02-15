@@ -64,10 +64,7 @@ export default function LoginScreen() {
   const authTranslate = useRef(new Animated.Value(24)).current;
 
   const isDesktop = screenWidth >= 980;
-  const cardMaxHeight = Math.max(
-    420,
-    Math.min(isDesktop ? 760 : 640, screenHeight - (isDesktop ? 72 : 160)),
-  );
+  const cardMaxHeight = Math.max(500, Math.min(760, screenHeight - 72));
   const heroTitle = useMemo(
     () => (isDesktop ? 'JUST TRAIN.\nWE HANDLE THE REST.' : 'JUST TRAIN.'),
     [isDesktop],
@@ -205,7 +202,7 @@ export default function LoginScreen() {
             style={styles.pageScroll}
             contentContainerStyle={[
               styles.pageScrollContent,
-              { minHeight: screenHeight - Spacing.md },
+              isDesktop ? { minHeight: screenHeight - Spacing.md } : null,
             ]}
             keyboardShouldPersistTaps="handled"
             showsVerticalScrollIndicator={false}
@@ -278,7 +275,7 @@ export default function LoginScreen() {
                     {
                       backgroundColor: withAlpha(palette.surface, isDesktop ? 0.93 : 0.97),
                       borderColor: withAlpha(palette.text, 0.1),
-                      maxHeight: cardMaxHeight,
+                      maxHeight: isDesktop ? cardMaxHeight : undefined,
                     },
                   ]}
                   animateElevation={false}
@@ -401,8 +398,9 @@ const styles = StyleSheet.create({
     position: 'absolute',
     top: -120,
     right: -120,
-    width: 360,
-    height: 360,
+    width: '72%',
+    maxWidth: 360,
+    aspectRatio: 1,
     borderRadius: Radii.full,
     opacity: 0.45,
   },
@@ -414,9 +412,11 @@ const styles = StyleSheet.create({
   },
   pageScrollContent: {
     flexGrow: 1,
+    width: '100%',
   },
   layout: {
     flexGrow: 1,
+    width: '100%',
     gap: Spacing.lg,
   },
   layoutDesktop: {
@@ -429,7 +429,7 @@ const styles = StyleSheet.create({
   layoutMobile: {
     paddingHorizontal: Spacing.lg,
     paddingVertical: Spacing.lg,
-    justifyContent: 'space-between',
+    justifyContent: 'flex-start',
   },
   hero: {
     gap: Spacing.md,
@@ -482,11 +482,13 @@ const styles = StyleSheet.create({
     width: '100%',
   },
   authDockDesktop: {
-    width: 470,
+    width: '100%',
+    maxWidth: 470,
     justifyContent: 'center',
   },
   authDockMobile: {
     width: '100%',
+    marginTop: Spacing.md,
   },
   authCard: {
     borderWidth: 1,

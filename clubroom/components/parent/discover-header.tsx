@@ -8,6 +8,7 @@ import { Ionicons } from '@expo/vector-icons';
 
 import { ThemedText } from '@/components/themed-text';
 import { Clickable } from '@/components/primitives/clickable';
+import { NotificationBell } from '@/components/ui/notification-bell';
 import { Spacing, Radii, Typography } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
 import { createLogger } from '@/utils/logger';
@@ -55,9 +56,12 @@ function DiscoverHeaderInner({
   return (
     <View style={[styles.stickyHeader, { backgroundColor: palette.background }]}>
       <View style={styles.header}>
-        <ThemedText type="title" style={styles.title}>
-          Discover Coaches
-        </ThemedText>
+        <Row align="start" justify="space-between" gap="sm">
+          <ThemedText type="title" style={styles.title}>
+            Discover Coaches
+          </ThemedText>
+          <NotificationBell size={20} />
+        </Row>
         {childOptions.length === 0 ? (
           <ThemedText style={[styles.subtitle, { color: palette.muted }]}>
             Add children to your account to book sessions

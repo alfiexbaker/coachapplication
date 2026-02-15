@@ -54,7 +54,7 @@ export const RollCallModal = memo(function RollCallModal({
     >
       <SafeAreaView
         style={[styles.container, { backgroundColor: colors.background }]}
-        edges={['top']}
+        edges={['top', 'bottom']}
       >
         <Row style={[styles.header, { borderBottomColor: colors.border }]}>
           <Clickable

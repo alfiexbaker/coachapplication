@@ -85,7 +85,7 @@ export default function RosterScreen() {
     return (
       <SafeAreaView
         style={[styles.container, { backgroundColor: palette.background }]}
-        edges={['top']}
+        edges={['top', 'bottom']}
       >
         <LoadingState variant="list" />
       </SafeAreaView>
@@ -96,7 +96,7 @@ export default function RosterScreen() {
     return (
       <SafeAreaView
         style={[styles.container, { backgroundColor: palette.background }]}
-        edges={['top']}
+        edges={['top', 'bottom']}
       >
         <ErrorState message={error?.message || 'Failed to load athlete roster.'} onRetry={retry} />
       </SafeAreaView>
@@ -106,7 +106,7 @@ export default function RosterScreen() {
   return (
     <SafeAreaView
       style={[styles.container, { backgroundColor: palette.background }]}
-      edges={['top']}
+      edges={['top', 'bottom']}
     >
       <RosterHeader colors={palette} total={stats?.total || 0} onBack={() => router.back()} />
       <RosterStatsRow colors={palette} stats={stats} />

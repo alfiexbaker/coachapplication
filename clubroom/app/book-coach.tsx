@@ -1,51 +1,369 @@
-/**
- * Book Coach Screen
- *
- * Multi-step booking: athletes → service → time → objectives → confirm.
- * All state/logic in useBookCoach hook.
- */
-
-import { View, StyleSheet, ScrollView, RefreshControl } from 'react-native';
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import { RefreshControl, ScrollView, StyleSheet, TextInput, View } from 'react-native';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 
-import { AthletePicker } from '@/components/ui/booking/AthletePicker';
-import { AvailabilityPicker } from '@/components/ui/booking/availability-picker';
-import { BookingStepper } from '@/components/ui/booking/booking-stepper';
-import { CoachSummaryCard } from '@/components/ui/booking/coach-summary-card';
-import { ObjectiveSelector } from '@/components/ui/booking/objective-selector';
-import { ServiceSelectionList } from '@/components/ui/booking/service-selection-list';
-import { Button } from '@/components/ui/primitives';
-import { Row } from '@/components/primitives/row';
+import { CoachCard, type CoachCardData } from '@/components/coach';
+import { FilterBar } from '@/components/discover/FilterBar';
+import { FilterModal } from '@/components/discover/FilterModal';
 import { Clickable } from '@/components/primitives/clickable';
+import { Row } from '@/components/primitives/row';
+import { SurfaceCard } from '@/components/primitives/surface-card';
 import { ThemedText } from '@/components/themed-text';
-import { Spacing, Typography } from '@/constants/theme';
-import { LoadingState, ErrorState, EmptyState } from '@/components/ui/screen-states';
-import { useBookCoach, TOTAL_STEPS } from '@/hooks/use-book-coach';
+import { EmptyState, ErrorState, LoadingState } from '@/components/ui/screen-states';
+import { Radii, Spacing, Typography, withAlpha } from '@/constants/theme';
+import { useScreen } from '@/hooks/use-screen';
+import { useTheme } from '@/hooks/useTheme';
+import { Routes } from '@/navigation/routes';
+import { discoverService } from '@/services/discover-service';
+import { ok } from '@/types/result';
+import type {
+  CoachProfile,
+  CoachSearchFilters,
+  CoachSearchResult,
+  FilterOptions,
+} from '@/constants/types';
+
+const DEFAULT_LOCATION = { lat: 51.5074, lng: -0.1278, radiusKm: 25 };
+const ASSUMED_LOCATION_LABEL = 'Shoreditch, London';
+
+interface FindCoachData {
+  results: CoachSearchResult[];
+  filterOptions: FilterOptions;
+  totalCount: number;
+}
+
+function formatNextAvailability(isoDate: string): string {
+  const date = new Date(isoDate);
+  if (Number.isNaN(date.getTime())) return 'Check next availability';
+  const now = new Date();
+  const tomorrow = new Date(now);
+  tomorrow.setDate(now.getDate() + 1);
+  if (date.toDateString() === now.toDateString()) {
+    return `Next: Today ${date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
+  }
+  if (date.toDateString() === tomorrow.toDateString()) {
+    return `Next: Tomorrow ${date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
+  }
+  return `Next: ${date.toLocaleDateString([], { weekday: 'short', day: 'numeric', month: 'short' })}`;
+}
+
+function toCoachCardData(coach: CoachProfile): CoachCardData {
+  return {
+    id: coach.id,
+    fullName: coach.fullName,
+    profilePhotoUrl: coach.profilePhotoUrl,
+    verified: coach.badges.some((badge) => badge.label.toLowerCase().includes('verified')),
+    rating: coach.rating.average,
+    reviewCount: coach.rating.reviewCount,
+    distanceMiles: coach.distanceMiles,
+    pricePerHour: coach.sessionRate ?? coach.priceRange.minUsd,
+    city: coach.city,
+    footballFocuses: coach.footballFocuses,
+    reviewQuote: coach.shortBio,
+    nextAvailable: formatNextAvailability(coach.nextAvailability),
+  };
+}
 
 export default function BookCoachScreen() {
-  const c = useBookCoach();
-  const palette = c.colors;
+  const { colors: palette } = useTheme();
+  const router = useRouter();
+  const params = useLocalSearchParams<{ coachId?: string; filters?: string }>();
 
-  if (!c.coach || !c.coachProfile) {
+  const [searchQuery, setSearchQuery] = useState('');
+  const [filters, setFilters] = useState<CoachSearchFilters>({
+    location: DEFAULT_LOCATION,
+  });
+  const [showFilterModal, setShowFilterModal] = useState(false);
+
+  useEffect(() => {
+    if (!params.coachId) return;
+    router.replace(Routes.bookSessionType(params.coachId));
+  }, [params.coachId, router]);
+
+  useEffect(() => {
+    if (!params.filters) return;
+    try {
+      const parsed = JSON.parse(params.filters) as CoachSearchFilters;
+      setFilters((prev) => ({
+        ...prev,
+        ...parsed,
+        location: parsed.location ?? prev.location ?? DEFAULT_LOCATION,
+      }));
+      setSearchQuery(parsed.query ?? '');
+    } catch {
+      // Ignore malformed route params and keep defaults.
+    }
+  }, [params.filters]);
+
+  const loadResults = useCallback(async () => {
+    const result = await discoverService.searchCoaches(filters, 1, 40);
+    if (!result.success) return result;
+    return ok<FindCoachData>({
+      results: result.data.results,
+      filterOptions: result.data.filterOptions,
+      totalCount: result.data.totalCount,
+    });
+  }, [filters]);
+
+  const { data, status, error, retry, refreshing, onRefresh } = useScreen<FindCoachData>({
+    load: loadResults,
+    deps: [loadResults],
+    isEmpty: (value) => value.totalCount === 0,
+    refetchOnFocus: true,
+  });
+
+  const filterOptions = data?.filterOptions ?? null;
+  const activeFilterCount = discoverService.getActiveFilterCount(filters);
+
+  const cards = useMemo(
+    () => (data?.results ?? []).map((result) => toCoachCardData(result.coach)),
+    [data?.results],
+  );
+  const minSessionPrice = useMemo(
+    () =>
+      cards.reduce((lowest, coach) => {
+        const price = coach.pricePerHour ?? 0;
+        if (price <= 0) return lowest;
+        return lowest === 0 ? price : Math.min(lowest, price);
+      }, 0),
+    [cards],
+  );
+  const averageRating = useMemo(() => {
+    const rated = cards.filter((coach) => typeof coach.rating === 'number' && coach.rating > 0);
+    if (rated.length === 0) return 0;
+    const total = rated.reduce((sum, coach) => sum + (coach.rating ?? 0), 0);
+    return Number((total / rated.length).toFixed(1));
+  }, [cards]);
+
+  const handleSearch = useCallback(() => {
+    setFilters((prev) => ({
+      ...prev,
+      query: searchQuery.trim().length > 0 ? searchQuery.trim() : undefined,
+    }));
+  }, [searchQuery]);
+
+  const handleClearSearch = useCallback(() => {
+    setSearchQuery('');
+    setFilters((prev) => ({ ...prev, query: undefined }));
+  }, []);
+
+  const handleFilterChange = useCallback((next: CoachSearchFilters) => {
+    setFilters({
+      ...next,
+      location: next.location ?? DEFAULT_LOCATION,
+    });
+  }, []);
+
+  const handleOpenMap = useCallback(() => {
+    router.push({
+      pathname: '/discover/map',
+      params: { filters: JSON.stringify(filters) },
+    });
+  }, [filters, router]);
+
+  if (params.coachId) {
     return (
       <SafeAreaView
         style={[styles.container, { backgroundColor: palette.background }]}
-        edges={['top']}
+        edges={['top', 'bottom']}
       >
-        <Row align="center" justify="between" style={styles.header}>
-          <Clickable onPress={() => router.back()} hitSlop={8}>
-            <Ionicons name="arrow-back" size={24} color={palette.text} />
+        <LoadingState variant="detail" />
+      </SafeAreaView>
+    );
+  }
+
+  if (status === 'loading') {
+    return (
+      <SafeAreaView
+        style={[styles.container, { backgroundColor: palette.background }]}
+        edges={['top', 'bottom']}
+      >
+        <LoadingState variant="list" />
+      </SafeAreaView>
+    );
+  }
+
+  if (status === 'error') {
+    return (
+      <SafeAreaView
+        style={[styles.container, { backgroundColor: palette.background }]}
+        edges={['top', 'bottom']}
+      >
+        <View style={styles.headerContent}>
+          <ThemedText type="title" style={styles.title}>
+            Find a Coach
+          </ThemedText>
+          <ThemedText style={[styles.subtitle, { color: palette.muted }]}>
+            Search trusted coaches and book in minutes.
+          </ThemedText>
+        </View>
+        <ErrorState message={error?.message ?? 'Failed to load coaches.'} onRetry={retry} />
+      </SafeAreaView>
+    );
+  }
+
+  const header = (
+    <View style={styles.headerWrap}>
+      <View style={styles.headerContent}>
+        <Row align="center" justify="between" style={styles.headerTop}>
+          <Clickable
+            onPress={() => router.back()}
+            style={[styles.backButton, { backgroundColor: palette.surface }]}
+            accessibilityLabel="Go back"
+          >
+            <Ionicons name="arrow-back" size={20} color={palette.text} />
+          </Clickable>
+          <View
+            style={[
+              styles.locationPill,
+              {
+                backgroundColor: withAlpha(palette.tint, 0.08),
+                borderColor: withAlpha(palette.tint, 0.18),
+              },
+            ]}
+          >
+            <Ionicons name="location" size={14} color={palette.tint} />
+            <ThemedText style={[styles.locationText, { color: palette.tint }]}>
+              {ASSUMED_LOCATION_LABEL}
+            </ThemedText>
+          </View>
+          <Clickable
+            onPress={handleOpenMap}
+            style={[styles.mapIconButton, { backgroundColor: palette.surface, borderColor: palette.border }]}
+            accessibilityLabel="Open map view"
+          >
+            <Ionicons name="map-outline" size={18} color={palette.text} />
           </Clickable>
         </Row>
-        <EmptyState
-          icon="person-outline"
-          title="Coach not found"
-          message="We could not load this coach profile. Please go back and choose another coach."
-          actionLabel="Go back"
-          onPressAction={() => router.back()}
+        <SurfaceCard
+          style={[
+            styles.heroCard,
+            {
+              backgroundColor: palette.surface,
+              borderColor: withAlpha(palette.border, 0.9),
+            },
+          ]}
+          tactile={false}
+        >
+          <ThemedText style={[styles.eyebrow, { color: palette.muted }]}>Discovery</ThemedText>
+          <ThemedText type="title" style={styles.title}>
+            Find a Coach
+          </ThemedText>
+          <ThemedText style={[styles.subtitle, { color: palette.muted }]}>
+            High-trust coach matches around {ASSUMED_LOCATION_LABEL}.
+          </ThemedText>
+
+          <Row
+            align="center"
+            gap="sm"
+            style={[
+              styles.searchBar,
+              {
+                borderColor: palette.border,
+                backgroundColor: palette.background,
+              },
+            ]}
+          >
+            <Ionicons name="search" size={18} color={palette.muted} />
+            <TextInput
+              value={searchQuery}
+              onChangeText={setSearchQuery}
+              onSubmitEditing={handleSearch}
+              placeholder="Search coach, focus, city..."
+              placeholderTextColor={palette.muted}
+              returnKeyType="search"
+              style={[styles.searchInput, { color: palette.text }]}
+              accessibilityLabel="Search coaches"
+            />
+            {searchQuery.length > 0 ? (
+              <Clickable accessibilityLabel="Clear search" onPress={handleClearSearch}>
+                <Ionicons name="close-circle" size={18} color={palette.muted} />
+              </Clickable>
+            ) : null}
+          </Row>
+
+          <Row gap="sm">
+            <View
+              style={[
+                styles.metricChip,
+                {
+                  backgroundColor: withAlpha(palette.tint, 0.09),
+                },
+              ]}
+            >
+              <ThemedText style={[styles.metricValue, { color: palette.tint }]}>
+                {data?.totalCount ?? 0}
+              </ThemedText>
+              <ThemedText style={[styles.metricLabel, { color: palette.muted }]}>Available</ThemedText>
+            </View>
+            <View
+              style={[
+                styles.metricChip,
+                {
+                  backgroundColor: withAlpha(palette.success, 0.1),
+                },
+              ]}
+            >
+              <ThemedText style={[styles.metricValue, { color: palette.success }]}>
+                {minSessionPrice > 0 ? `£${minSessionPrice}` : '£--'}
+              </ThemedText>
+              <ThemedText style={[styles.metricLabel, { color: palette.muted }]}>Starting price</ThemedText>
+            </View>
+            <View
+              style={[
+                styles.metricChip,
+                {
+                  backgroundColor: withAlpha(palette.rating, 0.12),
+                },
+              ]}
+            >
+              <ThemedText style={[styles.metricValue, { color: palette.rating }]}>
+                {averageRating > 0 ? `${averageRating}★` : '--'}
+              </ThemedText>
+              <ThemedText style={[styles.metricLabel, { color: palette.muted }]}>Avg rating</ThemedText>
+            </View>
+          </Row>
+        </SurfaceCard>
+      </View>
+
+      {filterOptions ? (
+        <FilterBar
+          filters={filters}
+          onFilterChange={handleFilterChange}
+          onOpenFilters={() => setShowFilterModal(true)}
+          totalResults={cards.length}
+          activeFilterCount={activeFilterCount}
         />
+      ) : null}
+    </View>
+  );
+
+  if (status === 'empty') {
+    return (
+      <SafeAreaView
+        style={[styles.container, { backgroundColor: palette.background }]}
+        edges={['top', 'bottom']}
+      >
+        {header}
+        <EmptyState
+          icon="search-outline"
+          title="No coaches found"
+          message="Try adjusting filters or searching a different focus area."
+          actionLabel={activeFilterCount > 0 ? 'Adjust filters' : 'Refresh'}
+          onPressAction={activeFilterCount > 0 ? () => setShowFilterModal(true) : onRefresh}
+        />
+        {filterOptions ? (
+          <FilterModal
+            visible={showFilterModal}
+            onClose={() => setShowFilterModal(false)}
+            filters={filters}
+            filterOptions={filterOptions}
+            onApply={handleFilterChange}
+            resultCount={0}
+          />
+        ) : null}
       </SafeAreaView>
     );
   }
@@ -53,123 +371,136 @@ export default function BookCoachScreen() {
   return (
     <SafeAreaView
       style={[styles.container, { backgroundColor: palette.background }]}
-      edges={['top']}
+      edges={['top', 'bottom']}
     >
-      <Row align="center" justify="between" style={styles.header}>
-        <Clickable onPress={c.handleBack} hitSlop={8}>
-          <Ionicons name="arrow-back" size={24} color={palette.text} />
-        </Clickable>
-        <ThemedText type="subtitle" style={styles.headerTitle}>
-          {c.stepTitle}
-        </ThemedText>
-        <View style={{ width: 24 }} />
-      </Row>
-
-      <BookingStepper
-        step={c.step}
-        totalSteps={TOTAL_STEPS[c.userHasChildren ? 'parent' : 'athlete']}
-        isParent={c.userHasChildren}
-      />
-
       <ScrollView
         contentContainerStyle={styles.content}
         refreshControl={
-          <RefreshControl
-            refreshing={c.refreshing}
-            onRefresh={c.onRefresh}
-            tintColor={palette.tint}
-          />
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={palette.tint} />
         }
       >
-        <CoachSummaryCard coach={c.coach} coachProfile={c.coachProfile} />
-
-        {c.step === 0 && c.userHasChildren && (
-          <View style={{ paddingHorizontal: Spacing.lg }}>
-            <AthletePicker
-              athletes={(c.currentUser?.children ?? []).map((child) => ({
-                id: child.childId,
-                name: child.childName,
-              }))}
-              selectedIds={c.selectedAthleteIds}
-              onSelectionChange={c.setSelectedAthleteIds}
-              includeSelf={c.userIsAthlete}
-              selfId={c.currentUser?.id}
-              selfName="Myself"
-            />
-          </View>
-        )}
-
-        {c.step === 1 && (
-          <ServiceSelectionList
-            services={c.serviceList}
-            selectedServiceId={c.selectedServiceId}
-            onSelect={c.setSelectedServiceId}
-          />
-        )}
-
-        {c.step === 2 &&
-          (c.loadingAvailability ? (
-            <LoadingState variant="list" />
-          ) : c.availabilityError ? (
-            <ErrorState message={c.availabilityError} onRetry={c.retry} />
-          ) : c.filteredAvailability.length === 0 ? (
-            <EmptyState
-              icon="calendar-outline"
-              title="No available slots"
-              message="This coach has no available times in the next 2 weeks. Pull to refresh, try another service type, or check back later."
-              actionLabel="Refresh availability"
-              onPressAction={c.onRefresh}
-            />
-          ) : (
-            <AvailabilityPicker
-              availability={c.filteredAvailability}
-              selectedDayId={c.selectedDayId}
-              selectedSlotId={c.selectedSlotId}
-              selectedService={c.selectedService}
-              onSelectDay={c.setSelectedDayId as (dayId: string) => void}
-              onSelectSlot={c.setSelectedSlotId as (slotId: string) => void}
+        {header}
+        <View style={styles.results}>
+          {cards.map((coach, index) => (
+            <CoachCard
+              key={coach.id}
+              coach={coach}
+              variant="discovery"
+              index={index}
+              onBookNow={() => router.push(Routes.bookSessionType(coach.id))}
             />
           ))}
-
-        {c.step === 3 && (
-          <ObjectiveSelector
-            objectives={c.footballObjectives}
-            selectedObjectives={c.selectedObjectives}
-            onToggle={c.toggleObjective}
-          />
-        )}
+        </View>
       </ScrollView>
 
-      <View
-        style={[
-          styles.footer,
-          { backgroundColor: palette.background, borderTopColor: palette.border },
-        ]}
-      >
-        <Button
-          title={c.step === 3 ? 'Review Booking' : 'Continue'}
-          onPress={c.handleContinue}
-          disabled={c.continueDisabled}
-          size="lg"
-          fullWidth
-          accessibilityLabel={c.step === 3 ? 'Review booking details' : 'Continue booking'}
+      {filterOptions ? (
+        <FilterModal
+          visible={showFilterModal}
+          onClose={() => setShowFilterModal(false)}
+          filters={filters}
+          filterOptions={filterOptions}
+          onApply={handleFilterChange}
+          resultCount={cards.length}
         />
-      </View>
+      ) : null}
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1 },
-  content: { flexGrow: 1, paddingBottom: Spacing['2xl'] },
-  header: {
-    paddingHorizontal: Spacing.lg,
-    paddingVertical: Spacing.md,
-    borderBottomWidth: 1,
-    borderBottomColor: 'transparent',
+  container: {
+    flex: 1,
   },
-  headerTitle: {
-    ...Typography.subheading,
+  content: {
+    paddingHorizontal: Spacing.md,
+    paddingTop: Spacing.xs,
+    paddingBottom: Spacing.xl,
+    gap: Spacing.sm,
   },
-  footer: { padding: Spacing.lg, borderTopWidth: 1 },
+  headerWrap: {
+    gap: Spacing.sm,
+  },
+  headerContent: {
+    gap: Spacing.sm,
+  },
+  headerTop: {
+    minHeight: 44,
+    gap: Spacing.sm,
+  },
+  backButton: {
+    width: 40,
+    height: 40,
+    borderRadius: Radii.pill,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: 'transparent',
+  },
+  locationPill: {
+    flex: 1,
+    minHeight: 44,
+    borderRadius: Radii.pill,
+    borderWidth: 1,
+    paddingHorizontal: Spacing.sm,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: Spacing.xs,
+  },
+  locationText: {
+    ...Typography.smallSemiBold,
+  },
+  mapIconButton: {
+    width: 40,
+    height: 40,
+    borderRadius: Radii.pill,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+  },
+  heroCard: {
+    padding: Spacing.sm,
+    borderRadius: Radii.lg,
+    borderWidth: 1,
+    gap: Spacing.sm,
+  },
+  eyebrow: {
+    ...Typography.micro,
+    letterSpacing: 0.8,
+  },
+  title: {
+    ...Typography.display,
+    letterSpacing: -0.8,
+  },
+  subtitle: {
+    ...Typography.body,
+  },
+  searchBar: {
+    borderWidth: 1,
+    borderRadius: Radii.pill,
+    paddingHorizontal: Spacing.md,
+    minHeight: 50,
+  },
+  searchInput: {
+    flex: 1,
+    ...Typography.body,
+    paddingVertical: 0,
+  },
+  metricChip: {
+    flex: 1,
+    borderRadius: Radii.md,
+    paddingVertical: Spacing.xs,
+    paddingHorizontal: Spacing.xs,
+    gap: Spacing.micro,
+  },
+  metricValue: {
+    ...Typography.heading,
+  },
+  metricLabel: {
+    ...Typography.small,
+  },
+  results: {
+    gap: Spacing.xs,
+    paddingBottom: Spacing.md,
+  },
 });

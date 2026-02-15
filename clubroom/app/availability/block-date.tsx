@@ -84,7 +84,7 @@ export default function BlockDateScreen() {
 
   if (status === 'loading') {
     return (
-      <SafeAreaView style={{ flex: 1, backgroundColor: palette.background }} edges={['top']}>
+      <SafeAreaView style={{ flex: 1, backgroundColor: palette.background }} edges={['top', 'bottom']}>
         <PageHeader title="Block Date" showBack onBackPress={() => router.back()} />
         <LoadingState variant="form" />
       </SafeAreaView>
@@ -93,7 +93,7 @@ export default function BlockDateScreen() {
 
   if (status === 'error') {
     return (
-      <SafeAreaView style={{ flex: 1, backgroundColor: palette.background }} edges={['top']}>
+      <SafeAreaView style={{ flex: 1, backgroundColor: palette.background }} edges={['top', 'bottom']}>
         <PageHeader title="Block Date" showBack onBackPress={() => router.back()} />
         <ErrorState message={error?.message || 'Failed to open block-date flow.'} onRetry={retry} />
       </SafeAreaView>
@@ -102,7 +102,7 @@ export default function BlockDateScreen() {
 
   if (status === 'empty') {
     return (
-      <SafeAreaView style={{ flex: 1, backgroundColor: palette.background }} edges={['top']}>
+      <SafeAreaView style={{ flex: 1, backgroundColor: palette.background }} edges={['top', 'bottom']}>
         <PageHeader title="Block Date" showBack onBackPress={() => router.back()} />
         <EmptyState
           icon="close-circle-outline"
@@ -116,7 +116,7 @@ export default function BlockDateScreen() {
   }
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: palette.background }} edges={['top']}>
+    <SafeAreaView style={{ flex: 1, backgroundColor: palette.background }} edges={['top', 'bottom']}>
       <PageHeader title="Block Date" showBack onBackPress={() => router.back()} />
       <BlockDateForm
         colors={palette}

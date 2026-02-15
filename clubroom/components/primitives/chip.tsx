@@ -3,8 +3,10 @@ import {
   Pressable,
   StyleSheet,
   Text,
+  View,
   type PressableProps,
   type StyleProp,
+  type TextStyle,
   type ViewStyle,
 } from 'react-native';
 
@@ -31,33 +33,45 @@ export function Chip({
   // Support both 'active' and 'selected' props
   const isActive = active ?? selected ?? false;
   const { colors: baseColor } = useTheme();
+  const isInteractive = Boolean(props.onPress || props.onLongPress || props.onPressIn || props.onPressOut);
+
+  const containerStyles = [
+    styles.base,
+    dense ? styles.dense : undefined,
+    {
+      backgroundColor: isActive ? withAlpha(baseColor.tint, 0.09) : baseColor.surface,
+      borderColor: isActive ? baseColor.tint : baseColor.border,
+    },
+    style,
+  ];
+
+  const fontWeight: TextStyle['fontWeight'] = isActive ? '600' : '500';
+  const labelStyles = [
+    dense ? Typography.xs : Typography.sm,
+    {
+      color: isActive ? baseColor.tint : baseColor.muted,
+      fontWeight,
+    },
+  ];
+
+  if (!isInteractive) {
+    return (
+      <View style={containerStyles}>
+        <Text style={labelStyles}>{label ?? children}</Text>
+      </View>
+    );
+  }
 
   return (
     <Pressable
       accessibilityRole="button"
       style={({ pressed }) => [
-        styles.base,
-        dense ? styles.dense : undefined,
-        {
-          backgroundColor: isActive ? withAlpha(baseColor.tint, 0.09) : baseColor.surface,
-          borderColor: isActive ? baseColor.tint : baseColor.border,
-          opacity: pressed ? 0.8 : 1,
-        },
-        style,
+        containerStyles,
+        { opacity: pressed ? 0.8 : 1 },
       ]}
       {...props}
     >
-      <Text
-        style={[
-          dense ? Typography.xs : Typography.sm,
-          {
-            color: isActive ? baseColor.tint : baseColor.muted,
-            fontWeight: isActive ? '600' : '500',
-          },
-        ]}
-      >
-        {label ?? children}
-      </Text>
+      <Text style={labelStyles}>{label ?? children}</Text>
     </Pressable>
   );
 }

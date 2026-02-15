@@ -36,7 +36,7 @@ export default function CancelBookingScreen() {
     return (
       <SafeAreaView
         style={[styles.container, { backgroundColor: palette.background }]}
-        edges={['top']}
+        edges={['top', 'bottom']}
       >
         <PageHeader title="Cancel Booking" showBack onBackPress={() => router.back()} />
         <LoadingState variant="detail" />
@@ -48,7 +48,7 @@ export default function CancelBookingScreen() {
     return (
       <SafeAreaView
         style={[styles.container, { backgroundColor: palette.background }]}
-        edges={['top']}
+        edges={['top', 'bottom']}
       >
         <PageHeader title="Cancel Booking" showBack onBackPress={() => router.back()} />
         <ErrorState
@@ -63,7 +63,7 @@ export default function CancelBookingScreen() {
     return (
       <SafeAreaView
         style={[styles.container, { backgroundColor: palette.background }]}
-        edges={['top']}
+        edges={['top', 'bottom']}
       >
         <PageHeader title="Cancel Booking" showBack onBackPress={() => router.back()} />
         <EmptyState
@@ -82,7 +82,7 @@ export default function CancelBookingScreen() {
     return (
       <SafeAreaView
         style={[styles.container, { backgroundColor: palette.background }]}
-        edges={['top']}
+        edges={['top', 'bottom']}
       >
         <PageHeader title="Reschedule Instead?" showBack onBackPress={cancel.handleGoBack} />
         <CancelRescheduleStep
@@ -100,7 +100,7 @@ export default function CancelBookingScreen() {
   return (
     <SafeAreaView
       style={[styles.container, { backgroundColor: palette.background }]}
-      edges={['top']}
+      edges={['top', 'bottom']}
     >
       <PageHeader
         title={cancel.isCoach ? 'Cancel Session' : 'Cancel Booking'}
@@ -109,6 +109,7 @@ export default function CancelBookingScreen() {
       />
 
       <ScrollView
+        style={styles.scroll}
         contentContainerStyle={styles.content}
         showsVerticalScrollIndicator={false}
         refreshControl={
@@ -295,7 +296,8 @@ export default function CancelBookingScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
-  content: { padding: Spacing.md, paddingBottom: 140, gap: Spacing.md },
+  scroll: { flex: 1 },
+  content: { padding: Spacing.md, paddingBottom: Spacing.lg, gap: Spacing.md },
   coachBanner: {
     alignItems: 'flex-start',
     gap: Spacing.sm,
@@ -338,10 +340,6 @@ const styles = StyleSheet.create({
   rescheduleText: { flex: 1 },
   rescheduleDesc: { ...Typography.caption, marginTop: 1 },
   footer: {
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
     padding: Spacing.md,
     borderTopWidth: 1,
   },

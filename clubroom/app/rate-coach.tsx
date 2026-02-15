@@ -5,14 +5,11 @@
  * All state/logic in useRateCoach hook. Views extracted to components.
  */
 
-import { View, StyleSheet } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Ionicons } from '@expo/vector-icons';
 
-import { Row } from '@/components/primitives/row';
-import { ThemedView } from '@/components/themed-view';
+import { PageHeader } from '@/components/primitives/page-header';
 import { ThemedText } from '@/components/themed-text';
-import { Clickable } from '@/components/primitives/clickable';
 import { CoachSelectList } from '@/components/review/coach-select-list';
 import { RatingForm } from '@/components/review/rating-form';
 import { LoadingState, ErrorState, EmptyState } from '@/components/ui/screen-states';
@@ -29,15 +26,9 @@ export default function RateCoachScreen() {
       return (
         <SafeAreaView
           style={[styles.container, { backgroundColor: palette.background }]}
-          edges={['top']}
+          edges={['top', 'bottom']}
         >
-          <Row align="center" justify="space-between" style={styles.header}>
-            <Clickable accessibilityLabel="Go back" onPress={c.goBack} style={styles.backButton}>
-              <Ionicons name="arrow-back" size={24} color={palette.foreground} />
-            </Clickable>
-            <ThemedText type="title">Rate a Coach</ThemedText>
-            <View style={{ width: 24 }} />
-          </Row>
+          <PageHeader title="Rate a Coach" showBack onBackPress={c.goBack} backIcon="arrow-back" centerTitle />
           <LoadingState variant="list" />
         </SafeAreaView>
       );
@@ -47,15 +38,9 @@ export default function RateCoachScreen() {
       return (
         <SafeAreaView
           style={[styles.container, { backgroundColor: palette.background }]}
-          edges={['top']}
+          edges={['top', 'bottom']}
         >
-          <Row align="center" justify="space-between" style={styles.header}>
-            <Clickable accessibilityLabel="Go back" onPress={c.goBack} style={styles.backButton}>
-              <Ionicons name="arrow-back" size={24} color={palette.foreground} />
-            </Clickable>
-            <ThemedText type="title">Rate a Coach</ThemedText>
-            <View style={{ width: 24 }} />
-          </Row>
+          <PageHeader title="Rate a Coach" showBack onBackPress={c.goBack} backIcon="arrow-back" centerTitle />
           <ErrorState
             message={c.error?.message || 'Failed to load coaches to rate.'}
             onRetry={c.retry}
@@ -68,22 +53,16 @@ export default function RateCoachScreen() {
       return (
         <SafeAreaView
           style={[styles.container, { backgroundColor: palette.background }]}
-          edges={['top']}
+          edges={['top', 'bottom']}
         >
-          <Row align="center" justify="space-between" style={styles.header}>
-            <Clickable accessibilityLabel="Go back" onPress={c.goBack} style={styles.backButton}>
-              <Ionicons name="arrow-back" size={24} color={palette.foreground} />
-            </Clickable>
-            <ThemedText type="title">Rate a Coach</ThemedText>
-            <View style={{ width: 24 }} />
-          </Row>
-          <EmptyState
-            icon="star-outline"
-            title="No coaches to rate yet"
-            message="Complete at least one session to leave your first coach review."
-            actionLabel="Refresh"
-            onPressAction={c.onRefresh}
-          />
+          <PageHeader title="Rate a Coach" showBack onBackPress={c.goBack} backIcon="arrow-back" centerTitle />
+          <View style={styles.centerState}>
+            <EmptyState
+              icon="star-outline"
+              title="No coaches to rate yet"
+              message="Complete at least one session to leave your first coach review."
+            />
+          </View>
         </SafeAreaView>
       );
     }
@@ -91,15 +70,9 @@ export default function RateCoachScreen() {
     return (
       <SafeAreaView
         style={[styles.container, { backgroundColor: palette.background }]}
-        edges={['top']}
+        edges={['top', 'bottom']}
       >
-        <Row align="center" justify="space-between" style={styles.header}>
-          <Clickable accessibilityLabel="Go back" onPress={c.goBack} style={styles.backButton}>
-            <Ionicons name="arrow-back" size={24} color={palette.foreground} />
-          </Clickable>
-          <ThemedText type="title">Rate a Coach</ThemedText>
-          <View style={{ width: 24 }} />
-        </Row>
+        <PageHeader title="Rate a Coach" showBack onBackPress={c.goBack} backIcon="arrow-back" centerTitle />
         <ThemedText style={[styles.subtitle, { color: palette.muted }]}>
           Select a coach you&apos;ve worked with
         </ThemedText>
@@ -116,15 +89,15 @@ export default function RateCoachScreen() {
   return (
     <SafeAreaView
       style={[styles.container, { backgroundColor: palette.background }]}
-      edges={['top']}
+      edges={['top', 'bottom']}
     >
-      <ThemedView style={styles.header}>
-        <Clickable accessibilityLabel="Go back" onPress={c.goBack} style={styles.backButton}>
-          <Ionicons name="arrow-back" size={24} color={palette.foreground} />
-        </Clickable>
-        <ThemedText type="title">Rate {c.selectedCoach.name}</ThemedText>
-        <View style={{ width: 24 }} />
-      </ThemedView>
+      <PageHeader
+        title={`Rate ${c.selectedCoach.name}`}
+        showBack
+        onBackPress={c.goBack}
+        backIcon="arrow-back"
+        centerTitle
+      />
       <RatingForm
         coach={c.selectedCoach}
         rating={c.rating}
@@ -140,7 +113,11 @@ export default function RateCoachScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
-  header: { paddingHorizontal: Spacing.md, paddingVertical: Spacing.md },
-  backButton: { padding: Spacing.xs },
+  centerState: {
+    flex: 1,
+    justifyContent: 'center',
+    paddingHorizontal: Spacing.lg,
+    paddingBottom: Spacing['2xl'],
+  },
   subtitle: { paddingHorizontal: Spacing.lg, paddingBottom: Spacing.md, ...Typography.bodySmall },
 });

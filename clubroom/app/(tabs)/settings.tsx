@@ -36,7 +36,7 @@ export default function SettingsScreen() {
     return (
       <SafeAreaView
         style={[styles.container, { backgroundColor: palette.background }]}
-        edges={['top']}
+        edges={['top', 'bottom']}
       >
         <ScreenHeader title="Profile" subtitle="Your account" />
         <LoadingState variant="form" />
@@ -48,7 +48,7 @@ export default function SettingsScreen() {
     return (
       <SafeAreaView
         style={[styles.container, { backgroundColor: palette.background }]}
-        edges={['top']}
+        edges={['top', 'bottom']}
       >
         <ScreenHeader title="Profile" subtitle="Your account" />
         <ErrorState message={error} onRetry={() => void logout()} />
@@ -60,7 +60,7 @@ export default function SettingsScreen() {
     return (
       <SafeAreaView
         style={[styles.container, { backgroundColor: palette.background }]}
-        edges={['top']}
+        edges={['top', 'bottom']}
       >
         <ScreenHeader title="Profile" subtitle="Your account" />
         <EmptyState
@@ -75,7 +75,7 @@ export default function SettingsScreen() {
   return (
     <SafeAreaView
       style={[styles.container, { backgroundColor: palette.background }]}
-      edges={['top']}
+      edges={['top', 'bottom']}
     >
       <ScrollView contentContainerStyle={styles.content}>
         <ScreenHeader title="Profile" subtitle="Your account" />

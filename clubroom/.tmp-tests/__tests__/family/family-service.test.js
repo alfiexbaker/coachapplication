@@ -360,11 +360,11 @@ const family_1 = require("../../services/family");
         });
         (0, node_test_1.default)('formatAmount should format currency correctly', () => {
             const gbpAmount = family_1.familyService.formatAmount(100.50, 'GBP');
-            const usdAmount = family_1.familyService.formatAmount(50, 'USD');
+            const euroAmount = family_1.familyService.formatAmount(50, 'EUR');
             node_assert_1.default.ok(gbpAmount.includes('\u00A3'));
             node_assert_1.default.ok(gbpAmount.includes('100.50'));
-            node_assert_1.default.ok(usdAmount.includes('$'));
-            node_assert_1.default.ok(usdAmount.includes('50.00'));
+            node_assert_1.default.ok(euroAmount.includes('\u00A3'));
+            node_assert_1.default.ok(euroAmount.includes('50.00'));
         });
         (0, node_test_1.default)('formatAmount should handle negative amounts', () => {
             const negative = family_1.familyService.formatAmount(-25.00, 'GBP');

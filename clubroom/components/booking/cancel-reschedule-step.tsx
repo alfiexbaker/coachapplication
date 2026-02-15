@@ -60,10 +60,12 @@ export const CancelRescheduleStep = memo(function CancelRescheduleStep({
         onPress={onPropose}
         style={[styles.primaryButton, { backgroundColor: palette.tint }]}
       >
-        <Ionicons name="calendar" size={20} color={palette.onPrimary} />
-        <ThemedText style={[styles.primaryText, { color: palette.onPrimary }]}>
-          Propose a New Time
-        </ThemedText>
+        <Row align="center" justify="center" gap="xs">
+          <Ionicons name="calendar" size={18} color={palette.onPrimary} />
+          <ThemedText style={[styles.primaryText, { color: palette.onPrimary }]}>
+            Propose a New Time
+          </ThemedText>
+        </Row>
       </Clickable>
 
       <Clickable
@@ -101,8 +103,8 @@ const styles = StyleSheet.create({
   primaryButton: {
     alignItems: 'center',
     justifyContent: 'center',
-    gap: Spacing.xs,
-    height: 44,
+    minHeight: 48,
+    paddingHorizontal: Spacing.md,
     borderRadius: Radii.card,
   },
   primaryText: { ...Typography.subheading },

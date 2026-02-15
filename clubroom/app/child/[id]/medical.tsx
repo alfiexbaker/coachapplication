@@ -64,7 +64,7 @@ export default function MedicalInfoScreen() {
     return (
       <SafeAreaView
         style={[styles.container, { backgroundColor: colors.background }]}
-        edges={['top']}
+        edges={['top', 'bottom']}
       >
         <LoadingState variant="form" />
       </SafeAreaView>
@@ -75,7 +75,7 @@ export default function MedicalInfoScreen() {
     return (
       <SafeAreaView
         style={[styles.container, { backgroundColor: colors.background }]}
-        edges={['top']}
+        edges={['top', 'bottom']}
       >
         <ErrorState
           message={error?.message ?? 'Failed to load medical information.'}
@@ -90,7 +90,7 @@ export default function MedicalInfoScreen() {
   return (
     <SafeAreaView
       style={[styles.container, { backgroundColor: colors.background }]}
-      edges={['top']}
+      edges={['top', 'bottom']}
     >
       <ScrollView
         contentContainerStyle={styles.content}

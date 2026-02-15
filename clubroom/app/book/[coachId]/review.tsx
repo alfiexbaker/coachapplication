@@ -155,7 +155,7 @@ export default function ReviewScreen() {
     return (
       <SafeAreaView
         style={[styles.safeArea, { backgroundColor: palette.background }]}
-        edges={['top']}
+        edges={['top', 'bottom']}
       >
         <LoadingState variant="detail" />
       </SafeAreaView>
@@ -166,7 +166,7 @@ export default function ReviewScreen() {
     return (
       <SafeAreaView
         style={[styles.safeArea, { backgroundColor: palette.background }]}
-        edges={['top']}
+        edges={['top', 'bottom']}
       >
         <ErrorState
           message={error?.message ?? 'Failed to load booking review details.'}
@@ -180,7 +180,7 @@ export default function ReviewScreen() {
     return (
       <SafeAreaView
         style={[styles.safeArea, { backgroundColor: palette.background }]}
-        edges={['top']}
+        edges={['top', 'bottom']}
       >
         <EmptyState
           icon="person-outline"
@@ -196,7 +196,7 @@ export default function ReviewScreen() {
   return (
     <SafeAreaView
       style={[styles.safeArea, { backgroundColor: palette.background }]}
-      edges={['top']}
+      edges={['top', 'bottom']}
     >
       <ScrollView
         contentContainerStyle={styles.content}

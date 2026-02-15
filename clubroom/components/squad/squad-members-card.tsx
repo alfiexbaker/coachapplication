@@ -65,33 +65,40 @@ export const SquadMembersCard = memo(function SquadMembersCard({
             const roleColor = clubService.getRoleColor(member.role);
             const initials = member.userName.slice(0, 2).toUpperCase();
             return (
-              <Clickable
-                key={member.userId}
-                style={[styles.row, { borderBottomColor: colors.border }]}
-                onPress={() => {
-                  if (clubId) router.push(Routes.clubMember(clubId, member.userId));
-                }}
-              >
-                <Row align="center" gap="sm">
-                  <View style={[styles.avatar, { backgroundColor: withAlpha(roleColor, 0.09) }]}>
-                    <ThemedText style={[Typography.smallSemiBold, { color: roleColor }]}>
-                      {initials}
-                    </ThemedText>
-                  </View>
-                  <View style={{ flex: 1 }}>
-                    <ThemedText type="defaultSemiBold">{member.userName}</ThemedText>
-                    <ThemedText style={[Typography.caption, { color: roleColor }]}>
-                      {clubService.formatRole(member.role)}
-                    </ThemedText>
-                  </View>
-                  <Row gap="xs" align="center">
-                    <Clickable onPress={() => onRemove(member)} hitSlop={8}>
-                      <Ionicons name="remove-circle-outline" size={20} color={colors.error} />
-                    </Clickable>
-                    <Ionicons name="chevron-forward" size={18} color={colors.muted} />
-                  </Row>
+              <View key={member.userId} style={[styles.row, { borderBottomColor: colors.border }]}>
+                <Row align="center" gap="xs">
+                  <Clickable
+                    style={styles.rowMainAction}
+                    onPress={() => {
+                      if (clubId) router.push(Routes.clubMember(clubId, member.userId));
+                    }}
+                    accessibilityLabel={`View ${member.userName}`}
+                  >
+                    <Row align="center" gap="sm">
+                      <View style={[styles.avatar, { backgroundColor: withAlpha(roleColor, 0.09) }]}>
+                        <ThemedText style={[Typography.smallSemiBold, { color: roleColor }]}>
+                          {initials}
+                        </ThemedText>
+                      </View>
+                      <View style={{ flex: 1 }}>
+                        <ThemedText type="defaultSemiBold">{member.userName}</ThemedText>
+                        <ThemedText style={[Typography.caption, { color: roleColor }]}>
+                          {clubService.formatRole(member.role)}
+                        </ThemedText>
+                      </View>
+                      <Ionicons name="chevron-forward" size={18} color={colors.muted} />
+                    </Row>
+                  </Clickable>
+
+                  <Clickable
+                    onPress={() => onRemove(member)}
+                    hitSlop={8}
+                    accessibilityLabel={`Remove ${member.userName}`}
+                  >
+                    <Ionicons name="remove-circle-outline" size={20} color={colors.error} />
+                  </Clickable>
                 </Row>
-              </Clickable>
+              </View>
             );
           })}
         </View>
@@ -106,6 +113,7 @@ const styles = StyleSheet.create({
   empty: { alignItems: 'center', paddingVertical: Spacing.lg, gap: Spacing.sm },
   list: { gap: Spacing.xxs },
   row: { paddingVertical: Spacing.sm, borderBottomWidth: 1 },
+  rowMainAction: { flex: 1 },
   avatar: {
     width: 36,
     height: 36,

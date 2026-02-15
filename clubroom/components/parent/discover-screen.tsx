@@ -39,6 +39,13 @@ import {
 } from './discover-screen-sections';
 const logger = createLogger('ParentDiscoverScreen');
 const nextAvailableCache: Record<string, { slot: AvailabilitySlot | null; timestamp: number }> = {};
+
+interface StoredReview {
+  bookingId?: string;
+  userId?: string;
+  parentId?: string;
+}
+
 export function ParentDiscoverScreen() {
   const { colors: palette } = useTheme();
   const { currentUser } = useAuth();
@@ -117,12 +124,28 @@ export function ParentDiscoverScreen() {
   const loadCompletedSessions = useCallback(async () => {
     if (!currentUser?.id) return;
     try {
-      const bookings = await bookingService.getBookingsForUser(currentUser.id, 'parent');
-      const dismissed = await apiClient.get<Record<string, number>>('dismissed_reviews', {});
+      const [bookings, dismissed, reviews] = await Promise.all([
+        bookingService.getBookingsForUser(currentUser.id, 'parent'),
+        apiClient.get<Record<string, number>>('dismissed_reviews', {}),
+        apiClient.get<StoredReview[]>('coach_reviews', []),
+      ]);
       const now = Date.now(),
         DAY = 86_400_000;
+      const reviewedBookingIds = new Set(
+        reviews
+          .filter((review) => {
+            if (!review.bookingId) return false;
+            return (
+              review.userId === currentUser.id ||
+              review.parentId === currentUser.id ||
+              (!review.userId && !review.parentId)
+            );
+          })
+          .map((review) => review.bookingId as string),
+      );
       const needsReview = bookings.filter((b) => {
         if (b.status !== 'COMPLETED') return false;
+        if (reviewedBookingIds.has(b.id)) return false;
         if (!dismissed[b.id]) return true;
         return !dismissed[`${b.id}_second`] && now - dismissed[b.id] > DAY;
       });
@@ -217,7 +240,7 @@ export function ParentDiscoverScreen() {
   return (
     <SafeAreaView
       style={[styles.container, { backgroundColor: palette.background }]}
-      edges={['top']}
+      edges={['top', 'bottom']}
     >
       <ScrollView contentContainerStyle={styles.content} stickyHeaderIndices={[0]}>
         <DiscoverHeader

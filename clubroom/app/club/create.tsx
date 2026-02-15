@@ -19,6 +19,7 @@ import { Ionicons } from '@expo/vector-icons';
 
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { Clickable } from '@/components/primitives/clickable';
+import { PageHeader } from '@/components/primitives/page-header';
 import { ThemedText } from '@/components/themed-text';
 import { Row } from '@/components/primitives/row';
 import { Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
@@ -61,7 +62,7 @@ export default function CreateClubScreen() {
     return (
       <SafeAreaView
         style={[styles.container, { backgroundColor: palette.background }]}
-        edges={['top']}
+        edges={['top', 'bottom']}
       >
         <LoadingState variant="form" />
       </SafeAreaView>
@@ -72,7 +73,7 @@ export default function CreateClubScreen() {
     return (
       <SafeAreaView
         style={[styles.container, { backgroundColor: palette.background }]}
-        edges={['top']}
+        edges={['top', 'bottom']}
       >
         <ErrorState
           message={error?.message || 'Failed to open club creation flow.'}
@@ -86,7 +87,7 @@ export default function CreateClubScreen() {
     return (
       <SafeAreaView
         style={[styles.container, { backgroundColor: palette.background }]}
-        edges={['top']}
+        edges={['top', 'bottom']}
       >
         <EmptyState
           icon="business-outline"
@@ -102,23 +103,22 @@ export default function CreateClubScreen() {
   return (
     <SafeAreaView
       style={[styles.container, { backgroundColor: palette.background }]}
-      edges={['top']}
+      edges={['top', 'bottom']}
     >
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         style={{ flex: 1 }}
       >
-        <Row align="center" justify="space-between" style={styles.header}>
-          <Clickable onPress={() => router.back()} hitSlop={8}>
-            <Ionicons name="close" size={24} color={palette.text} />
-          </Clickable>
-          <ThemedText type="title" style={Typography.heading}>
-            Create Club
-          </ThemedText>
-          <View style={{ width: 24 }} />
-        </Row>
+        <PageHeader
+          title="Create Club"
+          showBack
+          backIcon="close"
+          onBackPress={() => router.back()}
+          centerTitle
+        />
 
         <ScrollView
+          style={styles.scroll}
           contentContainerStyle={styles.content}
           showsVerticalScrollIndicator={false}
           keyboardShouldPersistTaps="handled"
@@ -299,8 +299,8 @@ function FormInput({
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
-  header: { paddingHorizontal: Spacing.lg, paddingVertical: Spacing.md },
-  content: { padding: Spacing.lg, gap: Spacing.lg, paddingBottom: 100 },
+  scroll: { flex: 1 },
+  content: { padding: Spacing.lg, gap: Spacing.lg, paddingBottom: Spacing.lg },
   infoCard: { alignItems: 'center', gap: Spacing.sm, padding: Spacing.lg },
   iconCircle: {
     width: 64,
@@ -331,10 +331,6 @@ const styles = StyleSheet.create({
   },
   features: { gap: Spacing.sm },
   footer: {
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
     padding: Spacing.lg,
     borderTopWidth: 1,
   },

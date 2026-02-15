@@ -37,7 +37,7 @@ export default function DrillsDashboardScreen() {
     return (
       <SafeAreaView
         style={[styles.container, { backgroundColor: colors.background }]}
-        edges={['top']}
+        edges={['top', 'bottom']}
       >
         <Row align="center" justify="space-between" style={styles.header}>
           <Row gap="md" align="center">
@@ -58,7 +58,7 @@ export default function DrillsDashboardScreen() {
     return (
       <SafeAreaView
         style={[styles.container, { backgroundColor: colors.background }]}
-        edges={['top']}
+        edges={['top', 'bottom']}
       >
         <Row align="center" justify="space-between" style={styles.header}>
           <Row gap="md" align="center">
@@ -79,7 +79,7 @@ export default function DrillsDashboardScreen() {
     return (
       <SafeAreaView
         style={[styles.container, { backgroundColor: colors.background }]}
-        edges={['top']}
+        edges={['top', 'bottom']}
       >
         <Row align="center" justify="space-between" style={styles.header}>
           <Row gap="md" align="center">
@@ -108,7 +108,7 @@ export default function DrillsDashboardScreen() {
   return (
     <SafeAreaView
       style={[styles.container, { backgroundColor: colors.background }]}
-      edges={['top']}
+      edges={['top', 'bottom']}
     >
       {/* Header */}
       <Row align="center" justify="space-between" style={styles.header}>

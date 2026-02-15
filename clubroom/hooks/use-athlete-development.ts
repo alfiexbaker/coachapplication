@@ -6,6 +6,7 @@ import { useState, useEffect, useCallback, useMemo } from 'react';
 import { router } from 'expo-router';
 import { Routes } from '@/navigation/routes';
 import { apiClient } from '@/services/api-client';
+import { ensureCoachSessionsSeeded } from '@/services/coach-session-seed-service';
 import { useAuth } from '@/hooks/use-auth';
 import { createLogger } from '@/utils/logger';
 import { badgeService } from '@/services/badge-service';
@@ -13,6 +14,7 @@ import { childService, type ChildProfile } from '@/services/child-service';
 import { userService } from '@/services/user-service';
 import type { Session, BadgeAward, BadgeCategory, User } from '@/constants/types';
 import type { ProgressionLevel } from '@/constants/progression';
+import { STORAGE_KEYS } from '@/constants/storage-keys';
 
 const logger = createLogger('AthleteDetailScreen');
 
@@ -102,7 +104,7 @@ export function useAthleteDevelopment(athleteId: string) {
     const loadSessions = async () => {
       if (!currentUser) return;
       try {
-        const asyncSessions = await apiClient.get<Session[]>('coach_sessions', []);
+        const asyncSessions = await ensureCoachSessionsSeeded();
         const athleteAsyncSessions = asyncSessions.filter(
           (s) => s.athleteId === athleteId && s.coachId === currentUser.id,
         );
@@ -218,9 +220,9 @@ export function useAthleteDevelopment(athleteId: string) {
         nextFocusAreas: [],
         attendance: 'ATTENDED' as const,
       };
-      const existing = await apiClient.get<Session[]>('coach_sessions', []);
+      const existing = await apiClient.get<Session[]>(STORAGE_KEYS.COACH_SESSIONS, []);
       existing.push(sessionRecord);
-      await apiClient.set('coach_sessions', existing);
+      await apiClient.set(STORAGE_KEYS.COACH_SESSIONS, existing);
       logger.info('Session created', { sessionId, athleteId });
       router.push(Routes.developmentSession(sessionId));
     } catch (error) {

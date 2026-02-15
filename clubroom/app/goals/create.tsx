@@ -130,7 +130,7 @@ export default function CreateGoalScreen() {
     return (
       <SafeAreaView
         style={[styles.container, { backgroundColor: palette.background }]}
-        edges={['top']}
+        edges={['top', 'bottom']}
       >
         <Header title="Edit Goal" onBack={handleCancel} palette={palette} />
         <LoadingState variant="detail" />
@@ -141,7 +141,7 @@ export default function CreateGoalScreen() {
   return (
     <SafeAreaView
       style={[styles.container, { backgroundColor: palette.background }]}
-      edges={['top']}
+      edges={['top', 'bottom']}
     >
       <Header
         title={isEditing ? 'Edit Goal' : 'Create Goal'}

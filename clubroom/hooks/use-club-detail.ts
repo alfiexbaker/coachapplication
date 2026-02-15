@@ -37,15 +37,6 @@ export const CLUB_FEED_FILTERS: { key: FeedFilter; label: string; icon: string }
   { key: 'event', label: 'Events', icon: 'calendar-outline' },
 ];
 
-const mapUserRoleToClubRole = (role: string | undefined): ClubMembership['role'] => {
-  if (role === 'ADMIN') return 'ADMIN';
-  if (role === 'COACH') return 'COACH';
-  return 'MEMBER';
-};
-
-const canPostAsClub = (role: ClubMembership['role']) =>
-  role === 'OWNER' || role === 'HEAD_COACH' || role === 'ADMIN' || role === 'COACH';
-
 function buildClubInvites(club: Club | undefined): ClubInvite[] {
   if (!club) return [];
   return [
@@ -121,15 +112,7 @@ export function useClubDetail(clubId: string | undefined) {
       setClub(clubData);
 
       if (currentUser?.id && userClubs.some((candidate) => candidate.id === clubId)) {
-        const role = mapUserRoleToClubRole(currentUser.role);
-        setMembership({
-          clubId,
-          userId: currentUser.id,
-          role,
-          status: 'active',
-          joinSource: 'invite',
-          canPostAsClub: canPostAsClub(role),
-        });
+        setMembership(socialFeedService.getMembership(currentUser.id, clubId));
       } else {
         setMembership(undefined);
       }
@@ -147,7 +130,7 @@ export function useClubDetail(clubId: string | undefined) {
     } finally {
       setLoading(false);
     }
-  }, [clubId, knownClubs, currentUser?.id, currentUser?.role, userClubs]);
+  }, [clubId, knownClubs, currentUser?.id, userClubs]);
 
   const loadFeed = useCallback(() => {
     if (!clubId) {

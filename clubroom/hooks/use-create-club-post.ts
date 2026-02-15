@@ -48,6 +48,8 @@ export const POST_TYPES: PostTypeOption[] = [
   },
 ];
 
+const CLUB_POSTING_ROLES: ClubMembership['role'][] = ['OWNER', 'ADMIN', 'HEAD_COACH', 'COACH'];
+
 export function useCreateClubPost(clubId: string | undefined) {
   const { currentUser } = useAuth();
 
@@ -61,20 +63,13 @@ export function useCreateClubPost(clubId: string | undefined) {
     [userClubs, resolvedClubId],
   );
   const membership = useMemo<ClubMembership | undefined>(() => {
-    if (!currentUser || !resolvedClubId) return undefined;
-    const role =
-      currentUser.role === 'ADMIN' ? 'ADMIN' : currentUser.role === 'COACH' ? 'COACH' : 'MEMBER';
-    return {
-      clubId: resolvedClubId,
-      userId: currentUser.id,
-      role,
-      status: 'active',
-      joinSource: 'invite',
-      canPostAsClub: role === 'ADMIN' || role === 'COACH',
-    };
-  }, [resolvedClubId, currentUser]);
-  const canPostAsClub =
-    membership?.canPostAsClub || membership?.role === 'ADMIN' || membership?.role === 'COACH';
+    if (!currentUser?.id || !resolvedClubId) return undefined;
+    return clubFeedService.getMembership(currentUser.id, resolvedClubId);
+  }, [resolvedClubId, currentUser?.id]);
+  const canPostAsClub = Boolean(
+    membership &&
+      (membership.canPostAsClub === true || CLUB_POSTING_ROLES.includes(membership.role)),
+  );
   const isCoach = currentUser?.role === 'COACH' || currentUser?.role === 'ADMIN';
 
   const [title, setTitle] = useState('');
@@ -240,12 +235,13 @@ export function useCreateClubPost(clubId: string | undefined) {
 
   const handlePost = useCallback(async () => {
     if (!body.trim() && !imageUri) return;
-    if (!currentUser || !resolvedClubId) return;
+    if (!currentUser || !resolvedClubId || !membership) return;
     if (feedType === 'CLUB' && audienceType === 'squad' && !selectedSquadId) return;
     if (Platform.OS !== 'web') Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
 
     setIsPosting(true);
     try {
+      let posted = false;
       if (isCoach && (feedType === 'PERSONAL' || feedType === 'BOTH')) {
         const result = await clubFeedService.createCoachPost({
           coachId: currentUser.id,
@@ -261,13 +257,12 @@ export function useCreateClubPost(clubId: string | undefined) {
           clubId: resolvedClubId,
           clubName: club?.name,
         });
-        if (result.success && Platform.OS !== 'web')
-          Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+        posted = result.success;
       } else {
         const audience = audienceType === 'squad' && selectedSquadId ? 'squad' : 'club';
         const finalAudienceLabel =
           audienceType === 'squad' && selectedSquad ? selectedSquad.name : 'Club-wide';
-        await clubFeedService.createPost({
+        const result = clubFeedService.createPost({
           clubId: resolvedClubId,
           authorId: currentUser.id,
           authorName:
@@ -287,10 +282,15 @@ export function useCreateClubPost(clubId: string | undefined) {
           eventDate: eventDate?.toISOString(),
           eventLocation: eventLocation.trim() || undefined,
         });
-        if (Platform.OS !== 'web')
-          Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+        posted = result.success;
       }
-      router.back();
+
+      if (posted) {
+        if (Platform.OS !== 'web') {
+          Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+        }
+        router.back();
+      }
     } finally {
       setIsPosting(false);
     }
@@ -299,6 +299,7 @@ export function useCreateClubPost(clubId: string | undefined) {
     imageUri,
     currentUser,
     resolvedClubId,
+    membership,
     isCoach,
     feedType,
     title,
@@ -316,7 +317,11 @@ export function useCreateClubPost(clubId: string | undefined) {
   const hasAudienceTarget =
     feedType !== 'CLUB' || audienceType !== 'squad' || Boolean(selectedSquadId);
   const canPost =
-    (body.trim().length > 0 || imageUri !== null) && !!resolvedClubId && hasAudienceTarget && !isPosting;
+    (body.trim().length > 0 || imageUri !== null) &&
+    !!resolvedClubId &&
+    !!membership &&
+    hasAudienceTarget &&
+    !isPosting;
 
   const handleSelectAudienceClub = useCallback(() => {
     setAudienceType('club');

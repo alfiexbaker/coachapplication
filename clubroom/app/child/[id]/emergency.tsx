@@ -47,7 +47,7 @@ export default function EmergencyContactsScreen() {
     return (
       <SafeAreaView
         style={[styles.container, { backgroundColor: colors.background }]}
-        edges={['top']}
+        edges={['top', 'bottom']}
       >
         <LoadingState variant="detail" />
       </SafeAreaView>
@@ -58,7 +58,7 @@ export default function EmergencyContactsScreen() {
     return (
       <SafeAreaView
         style={[styles.container, { backgroundColor: colors.background }]}
-        edges={['top']}
+        edges={['top', 'bottom']}
       >
         <ErrorState
           message={error?.message ?? 'Failed to load emergency contacts.'}
@@ -71,7 +71,7 @@ export default function EmergencyContactsScreen() {
   return (
     <SafeAreaView
       style={[styles.container, { backgroundColor: colors.background }]}
-      edges={['top']}
+      edges={['top', 'bottom']}
     >
       <ScrollView
         contentContainerStyle={styles.content}

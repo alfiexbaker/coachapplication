@@ -366,7 +366,9 @@ const styles = StyleSheet.create({
   quickDateText: { fontWeight: '600' },
   holidayGrid: { flexWrap: 'wrap', gap: Spacing.sm },
   holidayCard: {
-    width: '48%',
+    flexGrow: 1,
+    flexBasis: '47%',
+    minWidth: 156,
     padding: Spacing.md,
     borderRadius: Radii.md,
     borderWidth: 1.5,

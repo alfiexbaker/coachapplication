@@ -65,7 +65,7 @@ export default function LogInjuryScreen() {
   return (
     <SafeAreaView
       style={[styles.container, { backgroundColor: palette.background }]}
-      edges={['top']}
+      edges={['top', 'bottom']}
     >
       {/* Header */}
       <Row align="center" justify="space-between" style={styles.header}>

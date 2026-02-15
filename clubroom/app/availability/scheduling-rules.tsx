@@ -35,7 +35,7 @@ export default function SchedulingRulesScreen() {
 
   if (status === 'loading') {
     return (
-      <SafeAreaView style={{ flex: 1, backgroundColor: palette.background }} edges={['top']}>
+      <SafeAreaView style={{ flex: 1, backgroundColor: palette.background }} edges={['top', 'bottom']}>
         <PageHeader
           title="Booking Rules"
           showBack
@@ -48,7 +48,7 @@ export default function SchedulingRulesScreen() {
 
   if (status === 'error') {
     return (
-      <SafeAreaView style={{ flex: 1, backgroundColor: palette.background }} edges={['top']}>
+      <SafeAreaView style={{ flex: 1, backgroundColor: palette.background }} edges={['top', 'bottom']}>
         <PageHeader
           title="Booking Rules"
           showBack
@@ -64,7 +64,7 @@ export default function SchedulingRulesScreen() {
 
   if (status === 'empty') {
     return (
-      <SafeAreaView style={{ flex: 1, backgroundColor: palette.background }} edges={['top']}>
+      <SafeAreaView style={{ flex: 1, backgroundColor: palette.background }} edges={['top', 'bottom']}>
         <PageHeader
           title="Booking Rules"
           showBack
@@ -82,7 +82,7 @@ export default function SchedulingRulesScreen() {
   }
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: palette.background }} edges={['top']}>
+    <SafeAreaView style={{ flex: 1, backgroundColor: palette.background }} edges={['top', 'bottom']}>
       <PageHeader
         title="Booking Rules"
         showBack

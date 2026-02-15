@@ -47,7 +47,7 @@ const node_test_1 = __importStar(require("node:test"));
 (0, node_test_1.describe)('Invoice Service Utility Functions', () => {
     (0, node_test_1.describe)('formatAmount', () => {
         const formatAmount = (amount, currency = 'GBP') => {
-            const symbol = currency === 'GBP' ? '\u00A3' : '$';
+            const symbol = '\u00A3';
             return `${symbol}${amount.toFixed(2)}`;
         };
         (0, node_test_1.default)('should format GBP amount correctly', () => {
@@ -62,9 +62,9 @@ const node_test_1 = __importStar(require("node:test"));
             const formatted = formatAmount(0, 'GBP');
             node_assert_1.default.ok(formatted.includes('0.00'));
         });
-        (0, node_test_1.default)('should handle USD currency', () => {
-            const formatted = formatAmount(50.00, 'USD');
-            node_assert_1.default.ok(formatted.includes('$'));
+        (0, node_test_1.default)('should keep GBP formatting even when another currency is passed', () => {
+            const formatted = formatAmount(50.00, 'EUR');
+            node_assert_1.default.ok(formatted.includes('\u00A3'));
             node_assert_1.default.ok(formatted.includes('50.00'));
         });
         (0, node_test_1.default)('should default to GBP when currency not specified', () => {

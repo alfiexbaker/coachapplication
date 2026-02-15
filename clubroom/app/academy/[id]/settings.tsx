@@ -18,6 +18,7 @@ import { ok, err, notFound, serviceError } from '@/types/result';
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { Clickable } from '@/components/primitives/clickable';
 import { Button } from '@/components/primitives/button';
+import { PageHeader } from '@/components/primitives/page-header';
 import { Row } from '@/components/primitives/row';
 import { ThemedText } from '@/components/themed-text';
 import { Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
@@ -125,18 +126,18 @@ export default function AcademySettingsScreen() {
   return (
     <SafeAreaView
       style={[styles.container, { backgroundColor: palette.background }]}
-      edges={['top']}
+      edges={['top', 'bottom']}
     >
-      <Row style={styles.header}>
-        <Clickable onPress={() => router.back()} hitSlop={8} accessibilityLabel="Go back">
-          <Ionicons name="arrow-back" size={24} color={palette.text} />
-        </Clickable>
-        <ThemedText type="title" style={{ flex: 1 }}>
-          Academy Settings
-        </ThemedText>
-      </Row>
+      <PageHeader
+        title="Academy Settings"
+        showBack
+        backIcon="arrow-back"
+        onBackPress={() => router.back()}
+        centerTitle
+      />
 
       <ScrollView
+        style={styles.scroll}
         contentContainerStyle={styles.content}
         showsVerticalScrollIndicator={false}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
@@ -264,7 +265,6 @@ export default function AcademySettingsScreen() {
           </SurfaceCard>
         )}
 
-        <View style={styles.bottomSpacer} />
       </ScrollView>
 
       {isOwner && (
@@ -280,13 +280,8 @@ export default function AcademySettingsScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
-  header: {
-    alignItems: 'center',
-    paddingHorizontal: Spacing.lg,
-    paddingVertical: Spacing.md,
-    gap: Spacing.md,
-  },
-  content: { padding: Spacing.lg, gap: Spacing.md },
+  scroll: { flex: 1 },
+  content: { padding: Spacing.lg, gap: Spacing.md, paddingBottom: Spacing.lg },
   card: { gap: Spacing.md },
   sectionTitle: { marginBottom: Spacing.xs },
   inputGroup: { gap: Spacing.xs },
@@ -319,12 +314,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     alignItems: 'center',
   },
-  bottomSpacer: { height: 100 },
   footer: {
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
     padding: Spacing.lg,
     borderTopWidth: 1,
   },

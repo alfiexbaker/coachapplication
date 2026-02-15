@@ -92,7 +92,7 @@ export default function CounterOfferScreen() {
   return (
     <SafeAreaView
       style={[styles.container, { backgroundColor: palette.background }]}
-      edges={['top']}
+      edges={['top', 'bottom']}
     >
       <Stack.Screen
         options={{

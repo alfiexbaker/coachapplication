@@ -68,7 +68,8 @@ export const CreateFooterBar = memo(function CreateFooterBar({
 
 const styles = StyleSheet.create({
   footer: {
-    padding: Spacing.lg,
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.md,
     borderTopWidth: 1,
   },
 });

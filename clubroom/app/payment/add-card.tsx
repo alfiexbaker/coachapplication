@@ -20,7 +20,7 @@ export default function AddCardScreen() {
 
   if (status === 'loading') {
     return (
-      <SafeAreaView style={{ flex: 1, backgroundColor: palette.background }} edges={['top']}>
+      <SafeAreaView style={{ flex: 1, backgroundColor: palette.background }} edges={['top', 'bottom']}>
         <LoadingState variant="form" />
       </SafeAreaView>
     );
@@ -28,7 +28,7 @@ export default function AddCardScreen() {
 
   if (status === 'error') {
     return (
-      <SafeAreaView style={{ flex: 1, backgroundColor: palette.background }} edges={['top']}>
+      <SafeAreaView style={{ flex: 1, backgroundColor: palette.background }} edges={['top', 'bottom']}>
         <ErrorState message={error?.message || 'Failed to open add-card form.'} onRetry={retry} />
       </SafeAreaView>
     );
@@ -36,7 +36,7 @@ export default function AddCardScreen() {
 
   if (status === 'empty') {
     return (
-      <SafeAreaView style={{ flex: 1, backgroundColor: palette.background }} edges={['top']}>
+      <SafeAreaView style={{ flex: 1, backgroundColor: palette.background }} edges={['top', 'bottom']}>
         <EmptyState
           icon="card-outline"
           title="Card form unavailable"
@@ -49,7 +49,7 @@ export default function AddCardScreen() {
   }
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: palette.background }} edges={['top']}>
+    <SafeAreaView style={{ flex: 1, backgroundColor: palette.background }} edges={['top', 'bottom']}>
       <View style={styles.content}>
         <ThemedText type="title">Add payment method</ThemedText>
         <ThemedText style={{ color: palette.muted }}>Mock form—no real charges.</ThemedText>

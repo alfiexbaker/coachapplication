@@ -65,7 +65,7 @@ export default function AthleteProfileScreen() {
     return (
       <SafeAreaView
         style={[styles.container, { backgroundColor: colors.background }]}
-        edges={['top']}
+        edges={['top', 'bottom']}
       >
         <LoadingState variant="detail" />
       </SafeAreaView>
@@ -76,7 +76,7 @@ export default function AthleteProfileScreen() {
     return (
       <SafeAreaView
         style={[styles.container, { backgroundColor: colors.background }]}
-        edges={['top']}
+        edges={['top', 'bottom']}
       >
         <ErrorState message={error?.message || 'Failed to load'} onRetry={retry} />
       </SafeAreaView>
@@ -87,7 +87,7 @@ export default function AthleteProfileScreen() {
     return (
       <SafeAreaView
         style={[styles.container, { backgroundColor: colors.background }]}
-        edges={['top']}
+        edges={['top', 'bottom']}
       >
         <EmptyState
           icon="person-outline"
@@ -133,7 +133,7 @@ export default function AthleteProfileScreen() {
   return (
     <SafeAreaView
       style={[styles.container, { backgroundColor: colors.background }]}
-      edges={['top']}
+      edges={['top', 'bottom']}
     >
       <Row gap="md" align="center" style={styles.header}>
         <Clickable onPress={() => router.back()} hitSlop={8} accessibilityLabel="Go back">

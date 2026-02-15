@@ -138,6 +138,17 @@ const BASE_CLUB_SQUADS = [
 ];
 // Cache for custom squads (created by users)
 let customSquadsCache = [];
+function mergeSquads(baseSquads, customSquads) {
+    const byId = new Map();
+    for (const squad of baseSquads) {
+        byId.set(squad.id, squad);
+    }
+    for (const squad of customSquads) {
+        const current = byId.get(squad.id);
+        byId.set(squad.id, current ? { ...current, ...squad } : squad);
+    }
+    return Array.from(byId.values());
+}
 async function loadCustomSquads() {
     try {
         const stored = await api_client_1.apiClient.get(storage_keys_1.STORAGE_KEYS.CLUB_SQUADS, null);
@@ -296,7 +307,7 @@ exports.squadService = {
             const custom = await loadCustomSquads();
             const mockSquads = BASE_CLUB_SQUADS.filter((s) => s.clubId === clubId);
             const customForClub = custom.filter((s) => s.clubId === clubId);
-            return [...mockSquads, ...customForClub];
+            return mergeSquads(mockSquads, customForClub);
         }
         const response = await fetch(`/api/clubs/${clubId}/squads`);
         return response.json();
@@ -306,11 +317,14 @@ exports.squadService = {
      */
     async getSquad(squadId) {
         if (USE_MOCK) {
+            const custom = await loadCustomSquads();
+            const fromCustom = custom.find((s) => s.id === squadId);
+            if (fromCustom)
+                return fromCustom;
             const fromMock = BASE_CLUB_SQUADS.find((s) => s.id === squadId);
             if (fromMock)
                 return fromMock;
-            const custom = await loadCustomSquads();
-            return custom.find((s) => s.id === squadId) || null;
+            return null;
         }
         const response = await fetch(`/api/squads/${squadId}`);
         if (!response.ok)

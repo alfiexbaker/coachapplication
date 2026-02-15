@@ -51,7 +51,7 @@ export default function InvitesScreen() {
     return (
       <SafeAreaView
         style={[styles.container, { backgroundColor: palette.background }]}
-        edges={['top']}
+        edges={['top', 'bottom']}
       >
         <PageHeader
           title="Session Invites"
@@ -68,7 +68,7 @@ export default function InvitesScreen() {
     return (
       <SafeAreaView
         style={[styles.container, { backgroundColor: palette.background }]}
-        edges={['top']}
+        edges={['top', 'bottom']}
       >
         <PageHeader
           title="Session Invites"
@@ -85,7 +85,7 @@ export default function InvitesScreen() {
     return (
       <SafeAreaView
         style={[styles.container, { backgroundColor: palette.background }]}
-        edges={['top']}
+        edges={['top', 'bottom']}
       >
         <PageHeader
           title="Session Invites"
@@ -105,7 +105,7 @@ export default function InvitesScreen() {
   return (
     <SafeAreaView
       style={[styles.container, { backgroundColor: palette.background }]}
-      edges={['top']}
+      edges={['top', 'bottom']}
     >
       <PageHeader
         title="Session Invites"

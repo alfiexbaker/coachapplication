@@ -100,7 +100,7 @@ export default function FiltersScreen() {
     return (
       <SafeAreaView
         style={[styles.container, { backgroundColor: palette.background }]}
-        edges={['top']}
+        edges={['top', 'bottom']}
       >
         <LoadingState variant="detail" />
       </SafeAreaView>
@@ -111,7 +111,7 @@ export default function FiltersScreen() {
     return (
       <SafeAreaView
         style={[styles.container, { backgroundColor: palette.background }]}
-        edges={['top']}
+        edges={['top', 'bottom']}
       >
         <ErrorState message={error?.message || 'Failed to load filter options.'} onRetry={retry} />
       </SafeAreaView>
@@ -122,7 +122,7 @@ export default function FiltersScreen() {
     return (
       <SafeAreaView
         style={[styles.container, { backgroundColor: palette.background }]}
-        edges={['top']}
+        edges={['top', 'bottom']}
       >
         <EmptyState
           icon="options-outline"

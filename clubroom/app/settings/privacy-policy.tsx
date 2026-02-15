@@ -1,11 +1,9 @@
-import { ScrollView, StyleSheet, View } from 'react-native';
+import { ScrollView, StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Stack, router } from 'expo-router';
-import { Ionicons } from '@expo/vector-icons';
 
+import { PageHeader } from '@/components/primitives/page-header';
 import { ThemedText } from '@/components/themed-text';
-import { Clickable } from '@/components/primitives/clickable';
-import { Row } from '@/components/primitives/row';
 import { Spacing, Typography } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
 
@@ -15,20 +13,17 @@ export default function PrivacyPolicyScreen() {
   return (
     <SafeAreaView
       style={[styles.container, { backgroundColor: palette.background }]}
-      edges={['top']}
+      edges={['top', 'bottom']}
     >
       <Stack.Screen options={{ headerShown: false }} />
 
-      {/* Header */}
-      <Row align="center" justify="space-between" style={styles.header}>
-        <Clickable onPress={() => router.back()} hitSlop={8}>
-          <Ionicons name="arrow-back" size={24} color={palette.text} />
-        </Clickable>
-        <ThemedText type="title" style={styles.headerTitle}>
-          Privacy Policy
-        </ThemedText>
-        <View style={{ width: 24 }} />
-      </Row>
+      <PageHeader
+        title="Privacy Policy"
+        showBack
+        backIcon="arrow-back"
+        onBackPress={() => router.back()}
+        centerTitle
+      />
 
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
         <ThemedText style={[styles.lastUpdated, { color: palette.muted }]}>

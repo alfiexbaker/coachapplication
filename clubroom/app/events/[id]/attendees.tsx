@@ -5,6 +5,7 @@ import { router, useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 
 import { Clickable } from '@/components/primitives/clickable';
+import { PageHeader } from '@/components/primitives/page-header';
 import { ThemedText } from '@/components/themed-text';
 import { AttendeeList } from '@/components/event/AttendeeList';
 import { CheckInButton } from '@/components/event/CheckInButton';
@@ -42,7 +43,7 @@ export default function EventAttendeesScreen() {
     return (
       <SafeAreaView
         style={[styles.container, { backgroundColor: colors.background }]}
-        edges={['top']}
+        edges={['top', 'bottom']}
       >
         <LoadingState variant="list" />
       </SafeAreaView>
@@ -53,7 +54,7 @@ export default function EventAttendeesScreen() {
     return (
       <SafeAreaView
         style={[styles.container, { backgroundColor: colors.background }]}
-        edges={['top']}
+        edges={['top', 'bottom']}
       >
         <ErrorState message={error?.message || 'Failed to load attendee data.'} onRetry={retry} />
       </SafeAreaView>
@@ -64,7 +65,7 @@ export default function EventAttendeesScreen() {
     return (
       <SafeAreaView
         style={[styles.container, { backgroundColor: colors.background }]}
-        edges={['top']}
+        edges={['top', 'bottom']}
       >
         <EmptyState
           icon="people-outline"
@@ -80,22 +81,17 @@ export default function EventAttendeesScreen() {
   return (
     <SafeAreaView
       style={[styles.container, { backgroundColor: colors.background }]}
-      edges={['top']}
+      edges={['top', 'bottom']}
     >
-      <Row align="center" style={[styles.header, { borderBottomColor: colors.border }]}>
-        <Clickable onPress={() => router.back()} style={styles.backButton}>
-          <Ionicons name="arrow-back" size={24} color={colors.text} />
-        </Clickable>
-        <View style={styles.headerContent}>
-          <ThemedText type="defaultSemiBold" numberOfLines={1}>
-            Attendees
-          </ThemedText>
-          <ThemedText style={[styles.headerSubtitle, { color: colors.muted }]} numberOfLines={1}>
-            {event.title}
-          </ThemedText>
-        </View>
-        <View style={{ width: 40 }} />
-      </Row>
+      <PageHeader
+        title="Attendees"
+        subtitle={event.title}
+        showBack
+        backIcon="arrow-back"
+        onBackPress={() => router.back()}
+        centerTitle
+        containerStyle={[styles.header, { borderBottomColor: colors.border }]}
+      />
 
       {(isEventToday || checkInAvailable || currentAttendance) && currentUser && (
         <View style={styles.checkInSection}>
@@ -184,9 +180,6 @@ const styles = StyleSheet.create({
   },
   errorText: { ...Typography.subheading, textAlign: 'center' },
   header: { paddingHorizontal: Spacing.md, paddingVertical: Spacing.sm, borderBottomWidth: 1 },
-  backButton: { width: 40, height: 40, alignItems: 'center', justifyContent: 'center' },
-  headerContent: { flex: 1, alignItems: 'center' },
-  headerSubtitle: { ...Typography.caption },
   checkInSection: { padding: Spacing.md },
   checkInCard: { padding: Spacing.md, gap: Spacing.sm },
   todayBadge: { marginBottom: Spacing.xs },

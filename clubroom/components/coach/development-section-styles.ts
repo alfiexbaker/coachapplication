@@ -35,9 +35,10 @@ export const styles = StyleSheet.create({
   athleteName: { ...Typography.bodySemiBold, letterSpacing: -0.1 },
   athleteMetadata: { ...Typography.small },
   recentRow: { padding: Spacing.sm, borderRadius: Radii.card, borderWidth: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: Spacing.sm },
-  emptyState: { alignItems: 'center', gap: Spacing.md, paddingVertical: Spacing['2xl'], paddingHorizontal: Spacing.xl },
-  emptyIconCircle: { width: Components.listItem.large, height: Components.listItem.large, borderRadius: Components.listItem.large / 2, alignItems: 'center', justifyContent: 'center', marginBottom: Spacing.xs },
-  emptyText: { ...Typography.bodySmall, lineHeight: 20, textAlign: 'center', maxWidth: 260 },
+  emptyStateInline: { alignItems: 'center', gap: Spacing.sm, paddingVertical: Spacing.xs, paddingHorizontal: Spacing.xs },
+  emptyCopy: { flex: 1, gap: Spacing.micro },
+  emptyIconCircle: { width: 44, height: 44, borderRadius: 22, alignItems: 'center', justifyContent: 'center' },
+  emptyText: { ...Typography.bodySmall, lineHeight: 20 },
   badgesShortcut: { alignItems: 'center', gap: Spacing.sm, padding: Spacing.md, borderRadius: Radii.card, borderWidth: 1 },
   badgesIcon: { width: 40, height: 40, borderRadius: Radii.xl, alignItems: 'center', justifyContent: 'center' },
 });

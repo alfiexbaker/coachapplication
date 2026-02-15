@@ -6,16 +6,13 @@
  */
 
 import { useState, useCallback } from 'react';
-import { View, StyleSheet, Alert } from 'react-native';
-import { Row } from '@/components/primitives/row';
+import { StyleSheet, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 import { Routes } from '@/navigation/routes';
-import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 
-import { ThemedText } from '@/components/themed-text';
-import { Clickable } from '@/components/primitives/clickable';
+import { PageHeader } from '@/components/primitives/page-header';
 import { DrillForm } from '@/components/drills';
 import { Spacing, Typography } from '@/constants/theme';
 import type { CreateDrillInput } from '@/constants/types';
@@ -100,22 +97,16 @@ export default function CreateDrillScreen() {
   return (
     <SafeAreaView
       style={[styles.container, { backgroundColor: palette.background }]}
-      edges={['top']}
+      edges={['top', 'bottom']}
     >
-      {/* Header */}
-      <Row
-        align="center"
-        justify="space-between"
-        style={[styles.header, { borderBottomColor: palette.border }]}
-      >
-        <Clickable accessibilityLabel="Close" onPress={handleCancel} hitSlop={8}>
-          <Ionicons name="close" size={24} color={palette.text} />
-        </Clickable>
-        <ThemedText type="subtitle" style={styles.headerTitle}>
-          Create Drill
-        </ThemedText>
-        <View style={{ width: 24 }} />
-      </Row>
+      <PageHeader
+        title="Create Drill"
+        showBack
+        backIcon="close"
+        onBackPress={handleCancel}
+        centerTitle
+        containerStyle={[styles.header, { borderBottomColor: palette.border }]}
+      />
 
       {/* Form */}
       <DrillForm

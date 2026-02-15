@@ -11,6 +11,7 @@ import { router } from 'expo-router';
 import { Routes } from '@/navigation/routes';
 
 import { ThemedText } from '@/components/themed-text';
+import { PageHeader } from '@/components/primitives/page-header';
 import { Radii, Shadows, Spacing, withAlpha } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
 import { scaleFont } from '@/utils/scale';
@@ -36,6 +37,7 @@ export function SessionDetailModal({
 }: SessionDetailModalProps) {
   const { colors: palette, scheme } = useTheme();
   const {
+    currentUser,
     isCoach,
     isMyOffering,
     registeredCount,
@@ -48,6 +50,7 @@ export function SessionDetailModal({
     weeksToBook,
     setWeeksToBook,
     sessionAwards,
+    userNameMap,
     showInstanceManagement,
     setShowInstanceManagement,
     upcomingInstances,
@@ -62,6 +65,7 @@ export function SessionDetailModal({
 
   const isInviteOnlyOffering = isMyOffering && offering.inviteType === 'CLOSED';
   const invitedAthleteCount = offering.invitedAthleteIds?.length ?? 0;
+  const showAttendeeList = offering.sessionType === 'group' && (isMyOffering || isRegistered);
 
   return (
     <Modal
@@ -71,20 +75,14 @@ export function SessionDetailModal({
       onRequestClose={onClose}
     >
       <View style={[styles.container, { backgroundColor: palette.background }]}>
-        {/* Header */}
-        <Row
-          align="center"
-          justify="between"
-          style={[styles.header, { borderBottomColor: palette.border }]}
-        >
-          <Clickable accessibilityLabel="Close" onPress={onClose} style={styles.closeButton}>
-            <Ionicons name="close" size={28} color={palette.text} />
-          </Clickable>
-          <ThemedText type="title" style={styles.headerTitle}>
-            Session Details
-          </ThemedText>
-          <View style={{ width: 28 }} />
-        </Row>
+        <PageHeader
+          title="Session Details"
+          showBack
+          onBackPress={onClose}
+          backIcon="close"
+          centerTitle
+          containerStyle={[styles.header, { borderBottomColor: palette.border }]}
+        />
 
         <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
           <SessionInfoSection
@@ -95,8 +93,14 @@ export function SessionDetailModal({
             formatSchedule={formatSchedule}
           />
 
-          {isMyOffering && (
-            <SessionRegistrations offering={offering} registeredCount={registeredCount} />
+          {showAttendeeList && (
+            <SessionRegistrations
+              offering={offering}
+              registeredCount={registeredCount}
+              viewer={isMyOffering ? 'coach' : 'registered-athlete'}
+              currentUserId={currentUser?.id}
+              userNameMap={userNameMap}
+            />
           )}
 
           {isInviteOnlyOffering && (
@@ -208,15 +212,7 @@ export function SessionDetailModal({
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
-  header: { paddingHorizontal: 20, paddingVertical: 16, borderBottomWidth: 0 },
-  closeButton: { padding: 8 },
-  headerTitle: {
-    flex: 1,
-    textAlign: 'center',
-    fontSize: scaleFont(18),
-    fontWeight: '700',
-    letterSpacing: -0.4,
-  },
+  header: { paddingHorizontal: 20, paddingVertical: 16, borderBottomWidth: 1 },
   content: { flex: 1, padding: 20 },
   inviteManageCard: {
     borderWidth: 1,

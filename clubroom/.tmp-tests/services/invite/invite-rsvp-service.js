@@ -13,6 +13,45 @@ const event_bus_1 = require("@/services/event-bus");
 const logger_1 = require("@/utils/logger");
 const result_1 = require("@/types/result");
 const logger = (0, logger_1.createLogger)('InviteRsvpService');
+const MOCK_INVITE_RSVPS = [
+    {
+        id: 'invite_rsvp_seed_1',
+        inviteId: 'inv_group_rsvp_1',
+        userId: 'user1',
+        userName: 'Sarah Baker',
+        childId: 'athlete_1',
+        childName: 'Tom Henderson',
+        status: 'going',
+        respondedAt: '2026-02-10T12:40:00Z',
+    },
+    {
+        id: 'invite_rsvp_seed_2',
+        inviteId: 'inv_group_rsvp_1',
+        userId: 'user2',
+        userName: 'James Henderson',
+        childId: 'athlete_3',
+        childName: 'Mia Patel',
+        status: 'maybe',
+        respondedAt: '2026-02-10T13:05:00Z',
+    },
+    {
+        id: 'invite_rsvp_seed_3',
+        inviteId: 'inv_group_rsvp_1',
+        userId: 'user5',
+        userName: 'Priya Shah',
+        childId: 'athlete_4',
+        childName: 'Luca Bell',
+        status: 'cant_go',
+        respondedAt: '2026-02-10T14:25:00Z',
+    },
+];
+async function loadResponses() {
+    const stored = await api_client_1.apiClient.get(storage_keys_1.STORAGE_KEYS.INVITE_RSVPS, null);
+    return stored ?? [...MOCK_INVITE_RSVPS];
+}
+async function saveResponses(responses) {
+    await api_client_1.apiClient.set(storage_keys_1.STORAGE_KEYS.INVITE_RSVPS, responses);
+}
 /**
  * Sync rsvpCounts on the SessionInvite object in storage
  * so carousel/card UIs reading invite.rsvpCounts get fresh data.
@@ -45,7 +84,7 @@ exports.inviteRsvpService = {
      */
     async respondToInvite(inviteId, userId, userName, status, childId, childName, userPhotoUrl) {
         try {
-            const allResponses = await api_client_1.apiClient.get(storage_keys_1.STORAGE_KEYS.INVITE_RSVPS, []);
+            const allResponses = await loadResponses();
             // Check for existing response from this user on this invite
             const existingIndex = allResponses.findIndex((r) => r.inviteId === inviteId && r.userId === userId);
             const response = {
@@ -65,7 +104,7 @@ exports.inviteRsvpService = {
             else {
                 allResponses.push(response);
             }
-            await api_client_1.apiClient.set(storage_keys_1.STORAGE_KEYS.INVITE_RSVPS, allResponses);
+            await saveResponses(allResponses);
             // Sync counts back to the invite object so card/carousel UIs stay fresh
             await syncCountsToInvite(inviteId, allResponses);
             // Emit event
@@ -90,7 +129,7 @@ exports.inviteRsvpService = {
      */
     async getResponses(inviteId) {
         try {
-            const allResponses = await api_client_1.apiClient.get(storage_keys_1.STORAGE_KEYS.INVITE_RSVPS, []);
+            const allResponses = await loadResponses();
             const filtered = allResponses.filter((r) => r.inviteId === inviteId);
             return (0, result_1.ok)(filtered);
         }
@@ -104,7 +143,7 @@ exports.inviteRsvpService = {
      */
     async getCounts(inviteId) {
         try {
-            const allResponses = await api_client_1.apiClient.get(storage_keys_1.STORAGE_KEYS.INVITE_RSVPS, []);
+            const allResponses = await loadResponses();
             const inviteResponses = allResponses.filter((r) => r.inviteId === inviteId);
             const counts = {
                 going: inviteResponses.filter((r) => r.status === 'going').length,
@@ -123,7 +162,7 @@ exports.inviteRsvpService = {
      */
     async getRespondents(inviteId, status) {
         try {
-            const allResponses = await api_client_1.apiClient.get(storage_keys_1.STORAGE_KEYS.INVITE_RSVPS, []);
+            const allResponses = await loadResponses();
             const filtered = allResponses.filter((r) => r.inviteId === inviteId && r.status === status);
             return (0, result_1.ok)(filtered);
         }
@@ -137,7 +176,7 @@ exports.inviteRsvpService = {
      */
     async updateResponse(responseId, newStatus) {
         try {
-            const allResponses = await api_client_1.apiClient.get(storage_keys_1.STORAGE_KEYS.INVITE_RSVPS, []);
+            const allResponses = await loadResponses();
             const index = allResponses.findIndex((r) => r.id === responseId);
             if (index === -1) {
                 return (0, result_1.err)((0, result_1.serviceError)('NOT_FOUND', `RSVP response not found: ${responseId}`));
@@ -147,7 +186,7 @@ exports.inviteRsvpService = {
                 status: newStatus,
                 respondedAt: new Date().toISOString(),
             };
-            await api_client_1.apiClient.set(storage_keys_1.STORAGE_KEYS.INVITE_RSVPS, allResponses);
+            await saveResponses(allResponses);
             // Sync counts back to the invite object
             await syncCountsToInvite(allResponses[index].inviteId, allResponses);
             (0, event_bus_1.emitTyped)(event_bus_1.ServiceEvents.INVITE_RSVP_RESPONDED, {

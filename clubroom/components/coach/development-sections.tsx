@@ -85,6 +85,32 @@ export const QuickActions = memo(QuickActionsInner);
 function CompletionCardInner({ bookings }: { bookings: Booking[] }) {
   const { colors: palette } = useTheme();
   if (bookings.length === 0) return null;
+
+  const cleanAthleteLabel = (label: string): string | null => {
+    const trimmed = label.trim();
+    if (!trimmed) {
+      return null;
+    }
+    if (/^(user[_-]?\d+|athlete[_-]?\d+|parent[_-]?\d+)$/i.test(trimmed)) {
+      return null;
+    }
+    return trimmed;
+  };
+
+  const getCompletionRoute = (booking: Booking): Href => {
+    const linkedGroupSessionId = booking.groupSessionId?.trim();
+    if (linkedGroupSessionId) {
+      return Routes.sessionComplete(linkedGroupSessionId);
+    }
+
+    return Routes.sessionFeedback({
+      bookingId: booking.id,
+      athleteId: booking.athleteId || booking.athleteIds?.[0],
+      athleteName: getBookingAthleteName(booking),
+      athleteObjectives: JSON.stringify(booking.objectives || []),
+    });
+  };
+
   return (
     <SurfaceCard
       style={[styles.sectionCard, styles.completionCard, { borderLeftColor: palette.warning }]}
@@ -110,12 +136,12 @@ function CompletionCardInner({ bookings }: { bookings: Booking[] }) {
         const dateStr = isToday
           ? `Today ${timeStr}`
           : `${sessionDate.toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' })} ${timeStr}`;
-        const athleteName = getBookingAthleteName(booking);
+        const athleteName = cleanAthleteLabel(getBookingAthleteName(booking));
         return (
           <Clickable
             key={booking.id}
             style={[styles.completionRow, { borderColor: palette.border }]}
-            onPress={() => router.push(Routes.sessionComplete(booking.id))}
+            onPress={() => router.push(getCompletionRoute(booking))}
           >
             <View style={styles.completionRowContent}>
               <ThemedText
@@ -134,7 +160,7 @@ function CompletionCardInner({ bookings }: { bookings: Booking[] }) {
         );
       })}
       <ThemedText style={[styles.completionHint, { color: palette.muted }]}>
-        Tap to mark attendance & add notes
+        Tap to complete notes, attendance, and media
       </ThemedText>
     </SurfaceCard>
   );
@@ -162,15 +188,17 @@ function AttentionSectionInner({
         </ThemedText>
       </Row>
       {athletes.length === 0 ? (
-        <View style={styles.emptyState}>
+        <Row style={styles.emptyStateInline}>
           <View style={[styles.emptyIconCircle, { backgroundColor: palette.surface }]}>
-            <Ionicons name="checkmark-circle" size={28} color={palette.tint} />
+            <Ionicons name="checkmark-circle" size={20} color={palette.tint} />
           </View>
-          <ThemedText type="defaultSemiBold">All caught up</ThemedText>
-          <ThemedText style={[styles.emptyText, { color: palette.muted }]}>
-            No athletes need follow-up right now.
-          </ThemedText>
-        </View>
+          <View style={styles.emptyCopy}>
+            <ThemedText type="defaultSemiBold">All caught up</ThemedText>
+            <ThemedText style={[styles.emptyText, { color: palette.muted }]}>
+              No athletes need follow-up right now.
+            </ThemedText>
+          </View>
+        </Row>
       ) : (
         <View style={styles.attentionList}>
           {athletes.map((entry) => (

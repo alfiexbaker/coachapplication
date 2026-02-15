@@ -197,19 +197,19 @@ const mockSpending = [
     (0, node_test_1.describe)('Currency Formatting', () => {
         (0, node_test_1.default)('should format GBP correctly', () => {
             const formatAmount = (amount, currency = 'GBP') => {
-                const symbol = currency === 'GBP' ? '\u00A3' : '$';
+                const symbol = '\u00A3';
                 return `${symbol}${amount.toFixed(2)}`;
             };
             node_assert_1.default.strictEqual(formatAmount(100), '\u00A3100.00');
             node_assert_1.default.strictEqual(formatAmount(50.5), '\u00A350.50');
             node_assert_1.default.strictEqual(formatAmount(0), '\u00A30.00');
         });
-        (0, node_test_1.default)('should format USD correctly', () => {
+        (0, node_test_1.default)('should keep GBP formatting for all inputs', () => {
             const formatAmount = (amount, currency = 'GBP') => {
-                const symbol = currency === 'GBP' ? '\u00A3' : '$';
+                const symbol = '\u00A3';
                 return `${symbol}${amount.toFixed(2)}`;
             };
-            node_assert_1.default.strictEqual(formatAmount(100, 'USD'), '$100.00');
+            node_assert_1.default.strictEqual(formatAmount(100, 'EUR'), '\u00A3100.00');
         });
     });
     (0, node_test_1.describe)('Month Label Formatting', () => {

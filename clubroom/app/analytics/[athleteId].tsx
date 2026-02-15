@@ -54,7 +54,7 @@ export default function AthleteAnalyticsScreen() {
     return (
       <SafeAreaView
         style={[styles.container, { backgroundColor: colors.background }]}
-        edges={['top']}
+        edges={['top', 'bottom']}
       >
         {header}
         <LoadingState variant="detail" />
@@ -66,7 +66,7 @@ export default function AthleteAnalyticsScreen() {
     return (
       <SafeAreaView
         style={[styles.container, { backgroundColor: colors.background }]}
-        edges={['top']}
+        edges={['top', 'bottom']}
       >
         {header}
         <ErrorState
@@ -81,7 +81,7 @@ export default function AthleteAnalyticsScreen() {
     return (
       <SafeAreaView
         style={[styles.container, { backgroundColor: colors.background }]}
-        edges={['top']}
+        edges={['top', 'bottom']}
       >
         {header}
         <EmptyState
@@ -101,7 +101,7 @@ export default function AthleteAnalyticsScreen() {
   return (
     <SafeAreaView
       style={[styles.container, { backgroundColor: colors.background }]}
-      edges={['top']}
+      edges={['top', 'bottom']}
     >
       {header}
 

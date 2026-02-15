@@ -189,7 +189,7 @@ export default function RecurringBookingsScreen() {
     return (
       <SafeAreaView
         style={[styles.container, { backgroundColor: palette.background }]}
-        edges={['top']}
+        edges={['top', 'bottom']}
       >
         <Stack.Screen options={baseScreenOptions} />
         <LoadingState variant="list" />
@@ -201,7 +201,7 @@ export default function RecurringBookingsScreen() {
     return (
       <SafeAreaView
         style={[styles.container, { backgroundColor: palette.background }]}
-        edges={['top']}
+        edges={['top', 'bottom']}
       >
         <Stack.Screen options={baseScreenOptions} />
         <ErrorState
@@ -216,7 +216,7 @@ export default function RecurringBookingsScreen() {
     return (
       <SafeAreaView
         style={[styles.container, { backgroundColor: palette.background }]}
-        edges={['top']}
+        edges={['top', 'bottom']}
       >
         <Stack.Screen options={createScreenOptions} />
         <EmptyState
@@ -239,7 +239,7 @@ export default function RecurringBookingsScreen() {
   return (
     <SafeAreaView
       style={[styles.container, { backgroundColor: palette.background }]}
-      edges={['top']}
+      edges={['top', 'bottom']}
     >
       <Stack.Screen options={createScreenOptions} />
       <ThemedView style={styles.header}>

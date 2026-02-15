@@ -46,7 +46,7 @@ export default function TrainingScheduleScreen() {
   return (
     <SafeAreaView
       style={[styles.container, { backgroundColor: colors.background }]}
-      edges={['top']}
+      edges={['top', 'bottom']}
     >
       {/* Header */}
       <Row align="center" gap="md" style={styles.header}>

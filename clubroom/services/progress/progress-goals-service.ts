@@ -682,7 +682,7 @@ function getCategoryInfo(category: GoalCategory): {
     TECHNIQUE: { label: 'Technique', icon: 'football', color: '#3B82F6' },
     FITNESS: { label: 'Fitness', icon: 'fitness', color: '#10B981' },
     TACTICAL: { label: 'Tactical', icon: 'bulb', color: '#8B5CF6' },
-    MENTAL: { label: 'Mental', icon: 'brain', color: '#EC4899' },
+    MENTAL: { label: 'Mental', icon: 'sparkles', color: '#EC4899' },
     OTHER: { label: 'Other', icon: 'star', color: '#6B7280' },
   };
 

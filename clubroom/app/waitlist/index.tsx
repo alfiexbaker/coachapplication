@@ -76,7 +76,7 @@ export default function WaitlistScreen() {
     return (
       <SafeAreaView
         style={[styles.container, { backgroundColor: palette.background }]}
-        edges={['top']}
+        edges={['top', 'bottom']}
       >
         <LoadingState variant="list" />
       </SafeAreaView>
@@ -87,7 +87,7 @@ export default function WaitlistScreen() {
     return (
       <SafeAreaView
         style={[styles.container, { backgroundColor: palette.background }]}
-        edges={['top']}
+        edges={['top', 'bottom']}
       >
         <ErrorState message={error?.message ?? 'Failed to load waitlists.'} onRetry={retry} />
       </SafeAreaView>
@@ -97,7 +97,7 @@ export default function WaitlistScreen() {
   return (
     <SafeAreaView
       style={[styles.container, { backgroundColor: palette.background }]}
-      edges={['top']}
+      edges={['top', 'bottom']}
     >
       <Row align="center" gap="md" style={styles.header}>
         <Clickable onPress={() => router.back()} hitSlop={8}>

@@ -5,21 +5,20 @@
  * Allows renaming, adding/removing members, and navigating to squad invite.
  */
 
-import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, View } from 'react-native';
+import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router, useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 
-import { ThemedText } from '@/components/themed-text';
 import { Clickable } from '@/components/primitives/clickable';
-import { Row } from '@/components/primitives/row';
+import { PageHeader } from '@/components/primitives/page-header';
 import { LoadingState, EmptyState } from '@/components/ui/screen-states';
 import { SquadInfoCard } from '@/components/squad/squad-info-card';
 import { SquadMembersCard } from '@/components/squad/squad-members-card';
 import { SquadAddMembers } from '@/components/squad/squad-add-members';
 import { SquadQuickActions } from '@/components/squad/squad-quick-actions';
 import { SquadDangerZone, RemoveMemberOverlay } from '@/components/squad/squad-danger-zone';
-import { Spacing, Typography } from '@/constants/theme';
+import { Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
 import { useSquadDetail } from '@/hooks/use-squad-detail';
 
@@ -59,7 +58,7 @@ export default function SquadDetailScreen() {
     return (
       <SafeAreaView
         style={[styles.container, { backgroundColor: colors.background }]}
-        edges={['top']}
+        edges={['top', 'bottom']}
       >
         <LoadingState variant="form" />
       </SafeAreaView>
@@ -70,17 +69,9 @@ export default function SquadDetailScreen() {
     return (
       <SafeAreaView
         style={[styles.container, { backgroundColor: colors.background }]}
-        edges={['top']}
+        edges={['top', 'bottom']}
       >
-        <Row align="center" justify="space-between" style={styles.header}>
-          <Clickable onPress={() => router.back()} hitSlop={8}>
-            <Ionicons name="arrow-back" size={24} color={colors.text} />
-          </Clickable>
-          <ThemedText type="title" style={Typography.heading}>
-            Squad
-          </ThemedText>
-          <View style={{ width: 24 }} />
-        </Row>
+        <PageHeader title="Squad" showBack centerTitle />
         <EmptyState
           icon="people-outline"
           title="Squad not found"
@@ -95,19 +86,18 @@ export default function SquadDetailScreen() {
   return (
     <SafeAreaView
       style={[styles.container, { backgroundColor: colors.background }]}
-      edges={['top']}
+      edges={['top', 'bottom']}
     >
-      <Row align="center" justify="space-between" style={styles.header}>
-        <Clickable onPress={() => router.back()} hitSlop={8}>
-          <Ionicons name="arrow-back" size={24} color={colors.text} />
-        </Clickable>
-        <ThemedText type="title" style={Typography.heading}>
-          {squad.name}
-        </ThemedText>
-        <Clickable onPress={handleInviteSquad} hitSlop={8}>
-          <Ionicons name="paper-plane-outline" size={22} color={colors.tint} />
-        </Clickable>
-      </Row>
+      <PageHeader
+        title={squad.name}
+        showBack
+        centerTitle
+        right={
+          <Clickable onPress={handleInviteSquad} hitSlop={8} accessibilityLabel="Invite squad">
+            <Ionicons name="paper-plane-outline" size={22} color={colors.tint} />
+          </Clickable>
+        }
+      />
 
       <KeyboardAvoidingView
         style={{ flex: 1 }}
@@ -171,6 +161,5 @@ export default function SquadDetailScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
-  header: { paddingHorizontal: Spacing.lg, paddingVertical: Spacing.md },
   content: { padding: Spacing.lg, paddingTop: 0, gap: Spacing.md, paddingBottom: Spacing.xl * 2 },
 });

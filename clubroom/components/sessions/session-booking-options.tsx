@@ -52,10 +52,24 @@ function SessionBookingOptionsInner({
             <ThemedText style={[styles.registeredText, { color: palette.success }]}>
               Registered for this session
             </ThemedText>
-            <Clickable style={styles.cancelBookingLink} onPress={onCancelBooking}>
-              <ThemedText style={[styles.cancelBookingText, { color: palette.error }]}>
-                Cancel Booking
-              </ThemedText>
+            <Clickable
+              style={[
+                styles.cancelBookingButton,
+                {
+                  borderColor: withAlpha(palette.error, 0.35),
+                  backgroundColor: withAlpha(palette.error, 0.08),
+                },
+              ]}
+              onPress={onCancelBooking}
+              accessibilityRole="button"
+              accessibilityLabel="Cancel booking"
+            >
+              <Row align="center" justify="center" gap="xxs">
+                <Ionicons name="close-circle-outline" size={14} color={palette.error} />
+                <ThemedText style={[styles.cancelBookingText, { color: palette.error }]}>
+                  Cancel Booking
+                </ThemedText>
+              </Row>
             </Clickable>
           </View>
         </Row>
@@ -148,6 +162,14 @@ const styles = StyleSheet.create({
     letterSpacing: -0.3,
     lineHeight: scaleFont(23),
   },
-  cancelBookingLink: { alignSelf: 'flex-start' },
+  cancelBookingButton: {
+    alignSelf: 'flex-start',
+    marginTop: Spacing.micro,
+    borderWidth: 1,
+    borderRadius: Radii.pill,
+    minHeight: 34,
+    paddingHorizontal: Spacing.sm,
+    justifyContent: 'center',
+  },
   cancelBookingText: { fontSize: scaleFont(14), fontWeight: '600' },
 });

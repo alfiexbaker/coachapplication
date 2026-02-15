@@ -68,9 +68,10 @@ export default function CoachProfileScreen() {
   return (
     <SafeAreaView
       style={[styles.container, { backgroundColor: palette.background }]}
-      edges={['top']}
+      edges={['top', 'bottom']}
     >
       <ScrollView
+        style={styles.scroll}
         showsVerticalScrollIndicator={false}
         refreshControl={
           <RefreshControl
@@ -164,14 +165,13 @@ const styles = StyleSheet.create({
     gap: Spacing.md,
     padding: Spacing.xl,
   },
+  scroll: {
+    flex: 1,
+  },
   tabBar: { borderBottomWidth: 1, marginTop: Spacing.md },
   tab: { flex: 1, paddingVertical: Spacing.md },
-  tabContentContainer: { paddingBottom: 100 },
+  tabContentContainer: { paddingBottom: Spacing.lg },
   fixedFooter: {
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
     alignItems: 'center',
     gap: Spacing.md,
     padding: Spacing.lg,

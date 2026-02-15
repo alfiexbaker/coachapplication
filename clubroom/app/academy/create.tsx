@@ -1,14 +1,12 @@
 import { View, StyleSheet, ScrollView, KeyboardAvoidingView, Platform } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Ionicons } from '@expo/vector-icons';
 
 import { useScreen } from '@/hooks/use-screen';
 import { LoadingState, ErrorState, EmptyState } from '@/components/ui/screen-states';
 import { ok } from '@/types/result';
-import { Clickable } from '@/components/primitives/clickable';
 import { Button } from '@/components/primitives/button';
+import { PageHeader } from '@/components/primitives/page-header';
 import { Row } from '@/components/primitives/row';
-import { ThemedText } from '@/components/themed-text';
 import { CreateAcademyStepContent } from '@/components/academy/create-academy-steps';
 import { Spacing, Radii } from '@/constants/theme';
 import { useCreateAcademy } from '@/hooks/use-create-academy';
@@ -55,7 +53,7 @@ export default function CreateAcademyScreen() {
     return (
       <SafeAreaView
         style={[styles.container, { backgroundColor: palette.background }]}
-        edges={['top']}
+        edges={['top', 'bottom']}
       >
         <LoadingState variant="form" />
       </SafeAreaView>
@@ -66,7 +64,7 @@ export default function CreateAcademyScreen() {
     return (
       <SafeAreaView
         style={[styles.container, { backgroundColor: palette.background }]}
-        edges={['top']}
+        edges={['top', 'bottom']}
       >
         <ErrorState
           message={error?.message || 'Failed to open academy creation.'}
@@ -80,7 +78,7 @@ export default function CreateAcademyScreen() {
     return (
       <SafeAreaView
         style={[styles.container, { backgroundColor: palette.background }]}
-        edges={['top']}
+        edges={['top', 'bottom']}
       >
         <EmptyState
           icon="business-outline"
@@ -96,22 +94,20 @@ export default function CreateAcademyScreen() {
   return (
     <SafeAreaView
       style={[styles.container, { backgroundColor: palette.background }]}
-      edges={['top']}
+      edges={['top', 'bottom']}
     >
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         style={styles.flex}
       >
-        {/* Header */}
-        <Row style={styles.header}>
-          <Clickable accessibilityLabel="Go back" onPress={goBack} hitSlop={8}>
-            <Ionicons name="arrow-back" size={24} color={palette.text} />
-          </Clickable>
-          <ThemedText type="subtitle" style={{ flex: 1, textAlign: 'center' }}>
-            Create Academy
-          </ThemedText>
-          <View style={{ width: 24 }} />
-        </Row>
+        <PageHeader
+          title="Create Academy"
+          showBack
+          backIcon="arrow-back"
+          onBackPress={goBack}
+          centerTitle
+          containerStyle={styles.header}
+        />
 
         {/* Progress */}
         <Row style={styles.progressContainer}>

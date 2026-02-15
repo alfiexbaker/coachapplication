@@ -68,7 +68,7 @@ export default function PackagesScreen() {
   return (
     <SafeAreaView
       style={[styles.container, { backgroundColor: palette.background }]}
-      edges={['top']}
+      edges={['top', 'bottom']}
     >
       {/* Header */}
       <Row align="center" gap="md" style={styles.header}>

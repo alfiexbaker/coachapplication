@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { RefreshControl, ScrollView, StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { router, useLocalSearchParams } from 'expo-router';
+import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 
 import { ThemedText } from '@/components/themed-text';
@@ -20,15 +20,27 @@ import {
 import { BookingParticipantsCard } from '@/components/bookings/booking-participants-card';
 import { BookingNotesCard, BookingFollowUpsCard } from '@/components/bookings/booking-notes-card';
 import { Row } from '@/components/primitives/row';
-import { Spacing } from '@/constants/theme';
+import { Clickable } from '@/components/primitives/clickable';
+import { Radii, Spacing, withAlpha } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
 import { useBookingDetail } from '@/hooks/use-booking-detail';
+import { useAuth } from '@/hooks/use-auth';
 import { schedulingRulesService } from '@/services/scheduling-rules-service';
+import { apiClient } from '@/services/api-client';
 import { getBookingSummaryClientName, getBookingSummaryCoachName } from '@/utils/booking-display';
+import { Routes } from '@/navigation/routes';
+
+interface StoredReview {
+  bookingId?: string;
+  userId?: string;
+  parentId?: string;
+}
 
 export default function SessionDetailScreen() {
-  const { id } = useLocalSearchParams<{ id: string }>();
+  const { id: idParam } = useLocalSearchParams<{ id?: string | string[] }>();
+  const bookingId = Array.isArray(idParam) ? idParam[0] : (idParam ?? '');
   const { colors: palette } = useTheme();
+  const { currentUser } = useAuth();
   const {
     booking,
     status,
@@ -37,13 +49,15 @@ export default function SessionDetailScreen() {
     onRefresh,
     retry,
     isCoach,
+    canCancelBooking,
     sessionNote,
     handlers,
     formatted,
-  } = useBookingDetail(id);
+  } = useBookingDetail(bookingId);
   const coachName = booking ? getBookingSummaryCoachName(booking) : 'Coach';
   const childName = booking ? getBookingSummaryClientName(booking) : 'Athlete';
   const [cancellationSummary, setCancellationSummary] = useState('Standard cancellation policy');
+  const [hasSubmittedReview, setHasSubmittedReview] = useState(false);
 
   const handleGoBack = useCallback(() => router.back(), []);
 
@@ -64,6 +78,40 @@ export default function SessionDetailScreen() {
     };
   }, [booking?.coachId]);
 
+  const loadReviewStatus = useCallback(async () => {
+    if (!bookingId || isCoach || booking?.status !== 'Completed') {
+      setHasSubmittedReview(false);
+      return;
+    }
+
+    try {
+      const reviews = await apiClient.get<StoredReview[]>('coach_reviews', []);
+      const alreadyReviewed = reviews.some((review) => {
+        if (review.bookingId !== bookingId) return false;
+        if (!currentUser?.id) return true;
+        return (
+          review.userId === currentUser.id ||
+          review.parentId === currentUser.id ||
+          (!review.userId && !review.parentId)
+        );
+      });
+      setHasSubmittedReview(alreadyReviewed);
+    } catch {
+      setHasSubmittedReview(false);
+    }
+  }, [booking?.status, bookingId, currentUser?.id, isCoach]);
+
+  useFocusEffect(
+    useCallback(() => {
+      void loadReviewStatus();
+    }, [loadReviewStatus]),
+  );
+
+  const handleReviewCoach = useCallback(() => {
+    if (!bookingId || isCoach) return;
+    router.push(Routes.review(bookingId));
+  }, [bookingId, isCoach]);
+
   if (status === 'loading') {
     return (
       <SafeAreaView style={[styles.container, { backgroundColor: palette.background }]}>
@@ -76,7 +124,7 @@ export default function SessionDetailScreen() {
     return (
       <SafeAreaView
         style={[styles.container, { backgroundColor: palette.background }]}
-        edges={['top']}
+        edges={['top', 'bottom']}
       >
         <ErrorState message={error?.message ?? 'Failed to load booking details.'} onRetry={retry} />
       </SafeAreaView>
@@ -87,7 +135,7 @@ export default function SessionDetailScreen() {
     return (
       <SafeAreaView
         style={[styles.container, { backgroundColor: palette.background }]}
-        edges={['top']}
+        edges={['top', 'bottom']}
       >
         <EmptyState
           icon="warning"
@@ -163,19 +211,74 @@ export default function SessionDetailScreen() {
 
         {/* Session Notes */}
         <BookingNotesCard
-          bookingId={id}
+          bookingId={bookingId}
           sessionNote={sessionNote.note}
           loading={sessionNote.loading}
           error={sessionNote.error}
+          isCoach={isCoach}
           onRefresh={sessionNote.refresh}
         />
 
-        {/* Follow-ups */}
-        <BookingFollowUpsCard
-          sessionNote={sessionNote.note}
-          loading={sessionNote.loading}
-          onRefresh={sessionNote.refresh}
-        />
+        {/* Follow-ups (coach only) */}
+        {isCoach ? (
+          <BookingFollowUpsCard
+            sessionNote={sessionNote.note}
+            loading={sessionNote.loading}
+            onRefresh={sessionNote.refresh}
+          />
+        ) : null}
+
+        {!isCoach && booking.status === 'Completed' && (
+          <ThemedView style={[styles.reviewCard, { borderColor: palette.border }]}>
+            <Row align="center" justify="between" gap="sm">
+              <ThemedText type="defaultSemiBold">Session review</ThemedText>
+              {hasSubmittedReview ? (
+                <Row
+                  align="center"
+                  gap="xxs"
+                  style={[styles.reviewStatusPill, { backgroundColor: withAlpha(palette.success, 0.1) }]}
+                >
+                  <Ionicons name="checkmark-circle" size={14} color={palette.success} />
+                  <ThemedText style={[styles.reviewStatusText, { color: palette.success }]}>
+                    Submitted
+                  </ThemedText>
+                </Row>
+              ) : null}
+            </Row>
+            <ThemedText style={[styles.reviewCopy, { color: palette.muted }]}>
+              Share feedback on this specific session to help improve future coaching.
+            </ThemedText>
+            <Clickable
+              onPress={handleReviewCoach}
+              disabled={hasSubmittedReview}
+              style={[
+                styles.reviewButton,
+                hasSubmittedReview
+                  ? { backgroundColor: palette.surface, borderColor: palette.border }
+                  : { backgroundColor: palette.tint },
+              ]}
+              accessibilityLabel={
+                hasSubmittedReview ? 'Review already submitted' : 'Review coach for this session'
+              }
+            >
+              <Row align="center" justify="center" gap="xs">
+                <Ionicons
+                  name={hasSubmittedReview ? 'checkmark-done-circle' : 'star-outline'}
+                  size={18}
+                  color={hasSubmittedReview ? palette.muted : palette.onPrimary}
+                />
+                <ThemedText
+                  style={[
+                    styles.reviewButtonText,
+                    { color: hasSubmittedReview ? palette.muted : palette.onPrimary },
+                  ]}
+                >
+                  {hasSubmittedReview ? 'Review submitted' : 'Review coach'}
+                </ThemedText>
+              </Row>
+            </Clickable>
+          </ThemedView>
+        )}
 
         {/* Action Buttons */}
         {isCoach ? (
@@ -185,11 +288,14 @@ export default function SessionDetailScreen() {
             onReschedule={handlers.reschedule}
             onRefund={handlers.refund}
             onCancelBooking={handlers.cancelBooking}
+            canCancelBooking={canCancelBooking}
           />
         ) : (
           <BookingParentView
             onMessageCoach={handlers.messageCoach}
+            onCancelBooking={handlers.cancelBooking}
             onReportProblem={handlers.reportProblem}
+            canCancelBooking={canCancelBooking}
           />
         )}
       </ScrollView>
@@ -211,5 +317,35 @@ const styles = StyleSheet.create({
   policySummary: {
     fontSize: 13,
     lineHeight: 18,
+  },
+  reviewCard: {
+    borderWidth: 1,
+    borderRadius: Radii.lg,
+    padding: Spacing.md,
+    gap: Spacing.sm,
+  },
+  reviewCopy: {
+    fontSize: 14,
+    lineHeight: 20,
+  },
+  reviewButton: {
+    marginTop: Spacing.xs,
+    minHeight: 48,
+    borderRadius: Radii.md,
+    borderWidth: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  reviewButtonText: {
+    fontWeight: '700',
+  },
+  reviewStatusPill: {
+    paddingHorizontal: Spacing.xs,
+    paddingVertical: Spacing.micro,
+    borderRadius: Radii.pill,
+  },
+  reviewStatusText: {
+    fontSize: 12,
+    fontWeight: '700',
   },
 });

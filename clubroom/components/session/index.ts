@@ -4,6 +4,7 @@ export * from './attendance-step';
 export * from './notes-step';
 export * from './badges-step';
 export * from './review-step';
+export * from './group-completion-board';
 export * from './create-session-types';
 export * from './create-step-indicator';
 export * from './create-details-step';

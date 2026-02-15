@@ -2,16 +2,13 @@ import { useEffect, useState } from 'react';
 import { View, StyleSheet, ScrollView, RefreshControl, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router, useLocalSearchParams } from 'expo-router';
-import { Ionicons } from '@expo/vector-icons';
 
 import { useScreen } from '@/hooks/use-screen';
 import { useAuth } from '@/hooks/use-auth';
 import { LoadingState, ErrorState, EmptyState } from '@/components/ui/screen-states';
 import { ok, err, notFound, serviceError } from '@/types/result';
-import { Clickable } from '@/components/primitives/clickable';
 import { Button } from '@/components/primitives/button';
-import { Row } from '@/components/primitives/row';
-import { ThemedText } from '@/components/themed-text';
+import { PageHeader } from '@/components/primitives/page-header';
 import { BrandingPreview } from '@/components/academy/branding-preview';
 import { BrandingColorPicker } from '@/components/academy/branding-color-picker';
 import { BrandingContactForm } from '@/components/academy/branding-contact-form';
@@ -125,18 +122,18 @@ export default function AcademyBrandingScreen() {
   return (
     <SafeAreaView
       style={[styles.container, { backgroundColor: colors.background }]}
-      edges={['top']}
+      edges={['top', 'bottom']}
     >
-      <Row style={styles.header}>
-        <Clickable onPress={() => router.back()} hitSlop={8}>
-          <Ionicons name="arrow-back" size={24} color={colors.text} />
-        </Clickable>
-        <ThemedText type="title" style={{ flex: 1 }}>
-          Branding
-        </ThemedText>
-      </Row>
+      <PageHeader
+        title="Branding"
+        showBack
+        backIcon="arrow-back"
+        onBackPress={() => router.back()}
+        centerTitle
+      />
 
       <ScrollView
+        style={styles.scroll}
         contentContainerStyle={styles.content}
         showsVerticalScrollIndicator={false}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
@@ -177,7 +174,6 @@ export default function AcademyBrandingScreen() {
           onAddressChange={setAddress}
         />
 
-        <View style={styles.bottomSpacer} />
       </ScrollView>
 
       {canEdit && (
@@ -193,19 +189,9 @@ export default function AcademyBrandingScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
-  header: {
-    alignItems: 'center',
-    paddingHorizontal: Spacing.lg,
-    paddingVertical: Spacing.md,
-    gap: Spacing.md,
-  },
-  content: { padding: Spacing.lg, gap: Spacing.md },
-  bottomSpacer: { height: 100 },
+  scroll: { flex: 1 },
+  content: { padding: Spacing.lg, gap: Spacing.md, paddingBottom: Spacing.lg },
   footer: {
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
     padding: Spacing.lg,
     borderTopWidth: 1,
   },

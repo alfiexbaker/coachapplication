@@ -86,6 +86,8 @@ async function saveSessionNote(bookingId, payload) {
     logger.info('session_note_saved', {
         bookingId,
         focusAreas: payload.focus.length,
+        videoCount: payload.videoUrls?.length ?? 0,
+        imageCount: payload.imageUrls?.length ?? 0,
     });
     return record;
 }

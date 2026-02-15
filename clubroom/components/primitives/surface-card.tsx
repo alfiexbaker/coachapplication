@@ -27,6 +27,7 @@ import { styles } from './surface-card-styles';
 import { buildLinearGradientUri, darkenHex, lightenHex } from './surface-card-utils';
 
 const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
+const AnimatedView = Animated.createAnimatedComponent(View);
 
 const shimmerPresets = {
   light: ['rgba(255,255,255,0)', 'rgba(255,255,255,0.9)', 'rgba(255,255,255,0)'],
@@ -76,6 +77,7 @@ export function SurfaceCard({
   const shimmerProgress = useSharedValue(0);
 
   const interactive = tactile && Boolean((onPress || rest.onLongPress) && !disabled);
+  const isPressable = Boolean(onPress || rest.onLongPress || onPressIn || onPressOut);
 
   useEffect(() => {
     if (loading && cardSize.width > 0) {
@@ -168,7 +170,35 @@ export function SurfaceCard({
     };
   }, [cardSize.width, loading]);
 
-  const card = (
+  const cardStyles = [
+    styles.card,
+    {
+      backgroundColor: palette.card,
+      borderColor: palette.border,
+      shadowColor: baseShadow.shadowColor,
+      shadowOpacity: baseShadow.shadowOpacity,
+      shadowRadius: baseShadow.shadowRadius,
+      shadowOffset: baseShadow.shadowOffset,
+      elevation: baseShadow.elevation,
+    },
+    animatedCardStyle,
+    style,
+  ];
+
+  const shimmerOverlay = loading ? (
+    <View pointerEvents="none" style={styles.shimmerOverlay}>
+      <Animated.View style={[styles.shimmerBand, shimmerAnimatedStyle]}>
+        <Image
+          pointerEvents="none"
+          source={{ uri: shimmerGradientUri }}
+          style={[styles.shimmerGradient, { height: cardSize.height || '100%' }]}
+          contentFit="cover"
+        />
+      </Animated.View>
+    </View>
+  ) : null;
+
+  const card = isPressable ? (
     <AnimatedPressable
       accessibilityRole={onPress ? 'button' : undefined}
       {...rest}
@@ -177,35 +207,16 @@ export function SurfaceCard({
       onPressIn={handlePressIn}
       onPressOut={handlePressOut}
       onPress={onPress}
-      style={[
-        styles.card,
-        {
-          backgroundColor: palette.card,
-          borderColor: palette.border,
-          shadowColor: baseShadow.shadowColor,
-          shadowOpacity: baseShadow.shadowOpacity,
-          shadowRadius: baseShadow.shadowRadius,
-          shadowOffset: baseShadow.shadowOffset,
-          elevation: baseShadow.elevation,
-        },
-        animatedCardStyle,
-        style,
-      ]}
+      style={cardStyles}
     >
       {children}
-      {loading ? (
-        <View pointerEvents="none" style={styles.shimmerOverlay}>
-          <Animated.View style={[styles.shimmerBand, shimmerAnimatedStyle]}>
-            <Image
-              pointerEvents="none"
-              source={{ uri: shimmerGradientUri }}
-              style={[styles.shimmerGradient, { height: cardSize.height || '100%' }]}
-              contentFit="cover"
-            />
-          </Animated.View>
-        </View>
-      ) : null}
+      {shimmerOverlay}
     </AnimatedPressable>
+  ) : (
+    <AnimatedView onLayout={handleLayout} style={cardStyles}>
+      {children}
+      {shimmerOverlay}
+    </AnimatedView>
   );
 
   if (!outlineGradient) {

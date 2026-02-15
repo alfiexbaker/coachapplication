@@ -11,6 +11,7 @@ import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 
 import { Clickable } from '@/components/primitives/clickable';
+import { PageHeader } from '@/components/primitives/page-header';
 import { ThemedText } from '@/components/themed-text';
 import { Row } from '@/components/primitives/row';
 import { InviteRoleSelector } from '@/components/club/invite-role-selector';
@@ -51,7 +52,7 @@ export default function InviteMembersScreen() {
     return (
       <SafeAreaView
         style={[styles.container, { backgroundColor: colors.background }]}
-        edges={['top']}
+        edges={['top', 'bottom']}
       >
         <LoadingState variant="list" />
       </SafeAreaView>
@@ -61,17 +62,15 @@ export default function InviteMembersScreen() {
   return (
     <SafeAreaView
       style={[styles.container, { backgroundColor: colors.background }]}
-      edges={['top']}
+      edges={['top', 'bottom']}
     >
-      <Row align="center" justify="space-between" style={styles.header}>
-        <Clickable onPress={() => router.back()} hitSlop={8}>
-          <Ionicons name="close" size={24} color={colors.text} />
-        </Clickable>
-        <ThemedText type="title" style={Typography.heading}>
-          Invite Members
-        </ThemedText>
-        <View style={{ width: 24 }} />
-      </Row>
+      <PageHeader
+        title="Invite Members"
+        showBack
+        backIcon="close"
+        onBackPress={() => router.back()}
+        centerTitle
+      />
 
       {/* Tabs */}
       <Row gap="sm" style={styles.tabs}>
@@ -104,7 +103,11 @@ export default function InviteMembersScreen() {
         ))}
       </Row>
 
-      <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
+      <ScrollView
+        style={styles.scroll}
+        contentContainerStyle={styles.content}
+        showsVerticalScrollIndicator={false}
+      >
         <InviteRoleSelector selectedRole={selectedRole} onSelectRole={setSelectedRole} />
 
         {activeTab === 'past-sessions' ? (
@@ -169,16 +172,12 @@ export default function InviteMembersScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
-  header: { paddingHorizontal: Spacing.lg, paddingVertical: Spacing.md },
+  scroll: { flex: 1 },
   tabs: { paddingHorizontal: Spacing.lg, marginBottom: Spacing.md },
   tab: { flex: 1, paddingVertical: Spacing.sm, borderRadius: Radii.md },
   tabText: { fontWeight: '600' },
-  content: { padding: Spacing.lg, paddingTop: 0, gap: Spacing.md, paddingBottom: 120 },
+  content: { padding: Spacing.lg, paddingTop: 0, gap: Spacing.md, paddingBottom: Spacing.lg },
   footer: {
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
     padding: Spacing.lg,
     borderTopWidth: 1,
   },

@@ -51,6 +51,8 @@ export type SessionNoteFields = {
   homework: string;
   effort: number;
   attendance: string;
+  videoUrls?: string[];
+  imageUrls?: string[];
 };
 
 export type SessionNoteRecord = SessionNoteFields & {
@@ -158,6 +160,8 @@ async function saveSessionNote(
   logger.info('session_note_saved', {
     bookingId,
     focusAreas: payload.focus.length,
+    videoCount: payload.videoUrls?.length ?? 0,
+    imageCount: payload.imageUrls?.length ?? 0,
   });
 
   return record;

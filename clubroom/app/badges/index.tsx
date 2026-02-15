@@ -5,7 +5,7 @@
  * All state/logic in useBadgesScreen hook.
  */
 
-import { View, StyleSheet, ScrollView, ViewStyle } from 'react-native';
+import { View, StyleSheet, ViewStyle } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 
@@ -59,11 +59,7 @@ export default function AllBadgesScreen() {
       />
 
       <SurfaceCard style={styles.filterCard}>
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={styles.filterScroll}
-        >
+        <View style={styles.filterWrap}>
           {FILTER_TABS.map((tab) => {
             const isActive = tab.key === c.activeFilter;
             const count = c.getFilterCount(tab.key);
@@ -116,7 +112,7 @@ export default function AllBadgesScreen() {
               </Clickable>
             );
           })}
-        </ScrollView>
+        </View>
       </SurfaceCard>
 
       {c.loading ? (
@@ -177,7 +173,11 @@ export default function AllBadgesScreen() {
 
 const styles = StyleSheet.create({
   filterCard: { padding: Spacing.xs },
-  filterScroll: { gap: Spacing.xs },
+  filterWrap: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: Spacing.xs,
+  },
   filterTab: {
     paddingVertical: Spacing.xs,
     paddingHorizontal: Spacing.sm,

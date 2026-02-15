@@ -82,9 +82,9 @@ const SEED_MEMBERSHIPS = [
     {
         clubId: 'club_lions',
         userId: 'coach1',
-        role: 'HEAD_COACH',
+        role: 'OWNER',
         status: 'active',
-        joinSource: 'invite',
+        joinSource: 'created',
         inviteCode: 'LIONS-CLUB',
         canPostAsClub: true,
     },
@@ -320,6 +320,7 @@ let clubsStore = [...SEED_CLUBS];
 let membershipsStore = [...SEED_MEMBERSHIPS];
 let clubFeedStore = [...SEED_FEED_POSTS];
 const userReactions = new Map();
+const CLUB_POSTING_ROLES = ['OWNER', 'ADMIN', 'HEAD_COACH', 'COACH'];
 function getClubById(clubId) {
     return clubsStore.find((club) => club.id === clubId);
 }
@@ -331,6 +332,11 @@ function getUserClubsInternal(userId) {
     return memberships
         .map((membership) => getClubById(membership.clubId))
         .filter((club) => Boolean(club));
+}
+function canPostAsClubMembership(membership) {
+    if (!membership)
+        return false;
+    return membership.canPostAsClub === true || CLUB_POSTING_ROLES.includes(membership.role);
 }
 function sortClubPosts(posts) {
     return [...posts].sort((a, b) => {
@@ -449,9 +455,29 @@ class ClubFeedService {
         this.logger = (0, logger_1.createLogger)('ClubFeedService');
     }
     createPost(input) {
+        if (!input.clubId) {
+            return (0, result_1.err)((0, result_1.validationError)('Club ID is required'));
+        }
         const body = input.body.trim();
         if (!body && !input.imageUrl) {
             return (0, result_1.err)((0, result_1.validationError)('Post must have content or an image'));
+        }
+        const membership = this.getMembership(input.authorId, input.clubId);
+        if (!membership) {
+            this.logger.warn('club_post_rejected_not_member', {
+                clubId: input.clubId,
+                authorId: input.authorId,
+            });
+            return (0, result_1.err)((0, result_1.unauthorized)('You must be an active club member to post'));
+        }
+        const postAs = input.postAs || 'self';
+        if (postAs === 'club' && !canPostAsClubMembership(membership)) {
+            this.logger.warn('club_post_rejected_no_permission', {
+                clubId: input.clubId,
+                authorId: input.authorId,
+                role: membership.role,
+            });
+            return (0, result_1.err)((0, result_1.unauthorized)('You do not have permission to post on behalf of the club'));
         }
         const feedType = input.feedType || 'CLUB';
         let audienceLabel = input.audienceLabel || 'Club-wide';
@@ -468,11 +494,12 @@ class ClubFeedService {
             audience: input.audience || 'club',
             audienceLabel,
             authorId: input.authorId,
-            postAs: input.postAs || 'self',
+            postAs,
             postType: input.postType || 'general',
             feedType,
             imageUrl: input.imageUrl,
             attachments: input.attachments,
+            eventId: input.eventId,
             eventDate: input.eventDate,
             eventLocation: input.eventLocation,
             badgeAwarded: input.badgeAwarded,
@@ -544,6 +571,12 @@ class ClubFeedService {
     }
     getUserClubs(userId) {
         return getUserClubsInternal(userId);
+    }
+    getUserMemberships(userId) {
+        return getAllClubMembershipsForUser(userId);
+    }
+    getMembership(userId, clubId) {
+        return getAllClubMembershipsForUser(userId).find((membership) => membership.clubId === clubId);
     }
     addPost(input) {
         const clubs = getUserClubsInternal(input.authorId);
@@ -744,6 +777,17 @@ class ClubFeedService {
         if ((feedType === 'CLUB' || feedType === 'BOTH') && !clubId) {
             return (0, result_1.err)((0, result_1.validationError)('Club ID is required for CLUB or BOTH feed type'));
         }
+        if (feedType === 'CLUB' || feedType === 'BOTH') {
+            const membership = this.getMembership(input.coachId, clubId);
+            if (!membership) {
+                this.logger.warn('coach_post_rejected_not_member', {
+                    coachId: input.coachId,
+                    clubId,
+                    feedType,
+                });
+                return (0, result_1.err)((0, result_1.unauthorized)('You must be an active club member to post to club feed'));
+            }
+        }
         const audienceLabel = feedType === 'PERSONAL'
             ? 'Personal Feed'
             : feedType === 'BOTH'
@@ -760,6 +804,7 @@ class ClubFeedService {
             postType: input.postType || 'general',
             feedType,
             imageUrl: input.imageUrl,
+            eventId: input.eventId,
             eventDate: input.eventDate,
             eventLocation: input.eventLocation,
         });

@@ -12,6 +12,7 @@ import { Routes } from '@/navigation/routes';
 
 import { bookingService } from '@/services/booking';
 import { inviteService as sessionInviteService } from '@/services/invite';
+import { ensureRelationalDemoSeeded } from '@/services/relational-demo-seed-service';
 import { ServiceEvents } from '@/services/event-bus';
 import { apiClient } from '@/services/api-client';
 import { STORAGE_KEYS } from '@/constants/storage-keys';
@@ -26,6 +27,15 @@ import type { BookingSummary, SessionOffering, SessionInvite } from '@/constants
 import type { TimeFilter } from '@/components/bookings/BookingsList';
 
 const logger = createLogger('useBookings');
+
+const mapBookingStatus = (status: string): BookingSummary['status'] => {
+  if (status === 'CONFIRMED') return 'Confirmed';
+  if (status === 'AWAITING_COMPLETION') return 'Needs Completion';
+  if (status === 'PENDING' || status === 'AWAITING_CONFIRMATION') return 'Pending';
+  if (status === 'COMPLETED') return 'Completed';
+  if (status === 'CANCELLED') return 'Cancelled';
+  return 'Pending';
+};
 
 export interface UseBookingsResult {
   // Data
@@ -83,17 +93,14 @@ export function useBookings(): UseBookingsResult {
   // Load all data
   const loadData = useCallback(async () => {
     try {
+      await ensureRelationalDemoSeeded();
+
       const bookings = await bookingService.list();
       const summaries: BookingSummary[] = bookings.map((booking) => ({
         id: booking.id,
         service: booking.service ?? 'Session',
         start: booking.scheduledAt,
-        status:
-          booking.status === 'CONFIRMED'
-            ? 'Confirmed'
-            : booking.status === 'PENDING'
-              ? 'Pending'
-              : 'Completed',
+        status: mapBookingStatus(booking.status),
         locationLabel: booking.location,
         coach: {
           name: booking.coachName,
@@ -174,38 +181,55 @@ export function useBookings(): UseBookingsResult {
   const now = new Date();
   let displayItems: (SessionOffering | BookingSummary)[] = [];
 
+  const isPastBooking = (booking: BookingSummary) =>
+    booking.status === 'Completed' ||
+    booking.status === 'Cancelled' ||
+    new Date(booking.start) < now;
+
+  const isPastOffering = (offering: SessionOffering) =>
+    offering.status === 'completed' ||
+    offering.status === 'cancelled' ||
+    (!offering.isRecurring && new Date(offering.scheduledAt) < now);
+
   if (userRole === 'COACH') {
     const myOfferings = sessionOfferings.filter((o) => o.coachId === currentUser?.id);
     displayItems =
       timeFilter === 'upcoming'
-        ? myOfferings.filter((o) => new Date(o.scheduledAt) >= now || o.isRecurring)
-        : myOfferings.filter((o) => new Date(o.scheduledAt) < now && !o.isRecurring);
+        ? myOfferings.filter((offering) => !isPastOffering(offering))
+        : myOfferings.filter((offering) => isPastOffering(offering));
   } else {
+    const viewerIds = new Set<string>();
+    if (currentUser?.id) {
+      viewerIds.add(currentUser.id);
+    }
+    const relatedChildren = hasChildren(currentUser) ? (currentUser?.children ?? []) : [];
+    for (const child of relatedChildren) {
+        if (child.childId) {
+          viewerIds.add(child.childId);
+        }
+    }
+
     const myRegisteredOfferings = sessionOfferings.filter((offering) =>
       offering.registrations.some(
-        (reg) => reg.userId === currentUser?.id && reg.status === 'confirmed',
+        (reg) => reg.status === 'confirmed' && viewerIds.has(reg.userId),
       ),
     );
 
     const filteredBookings = sessionBookings.filter((booking) => {
-      if (hasChildren(currentUser)) {
-        const childrenIds = (currentUser?.children || []).map((child) => child.childId);
-        return (
-          childrenIds.includes(booking.clientId || '') ||
-          booking.clientId === currentUser?.id ||
-          booking.client?.name === currentUser?.fullName
-        );
-      }
-      return booking.clientId === currentUser?.id || booking.client?.name === currentUser?.fullName;
+      const clientId = booking.clientId || '';
+      return viewerIds.has(clientId) || booking.client?.name === currentUser?.fullName;
     });
 
     displayItems =
       timeFilter === 'upcoming'
         ? [
-            ...myRegisteredOfferings.filter((o) => new Date(o.scheduledAt) >= now || o.isRecurring),
-            ...filteredBookings,
+            ...myRegisteredOfferings.filter((offering) => !isPastOffering(offering)),
+            ...filteredBookings.filter((booking) => !isPastBooking(booking)),
           ]
-        : myRegisteredOfferings.filter((o) => new Date(o.scheduledAt) < now && !o.isRecurring);
+        : [
+            ...myRegisteredOfferings.filter((offering) => isPastOffering(offering)),
+            ...filteredBookings.filter((booking) => isPastBooking(booking)),
+          ];
   }
 
   // Navigation handlers

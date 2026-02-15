@@ -78,7 +78,7 @@ export const SessionFooterBadges = memo(function SessionFooterBadges({
   palette,
 }: SessionFooterBadgesProps) {
   return (
-    <Row wrap align="center" gap={10} style={styles.footer}>
+    <Row wrap align="center" gap={8} style={styles.footer}>
       {ageMin && ageMax && (
         <View style={[styles.ageBadge, { backgroundColor: palette.border }]}>
           <ThemedText style={styles.ageText}>
@@ -100,11 +100,7 @@ export const SessionFooterBadges = memo(function SessionFooterBadges({
           <ThemedText
             style={[styles.capacityText, { color: isFull ? palette.error : palette.success }]}
           >
-            {isFull
-              ? 'FULL'
-              : showCoach
-                ? `${registeredCount} attending · ${maxParticipants - registeredCount} left`
-                : `${capacityText} spots`}
+            {isFull ? 'Full' : `${capacityText} spots`}
           </ThemedText>
         </View>
       )}
@@ -121,43 +117,43 @@ export const SessionFooterBadges = memo(function SessionFooterBadges({
 
 const styles = StyleSheet.create({
   typeBadge: {
-    paddingHorizontal: 10,
-    paddingVertical: 5,
+    paddingHorizontal: Spacing.xs,
+    paddingVertical: Spacing.micro,
     borderRadius: Radii.sm,
   },
   typeBadgeText: {
-    fontSize: scaleFont(12),
+    fontSize: scaleFont(11),
     fontWeight: '600',
-    letterSpacing: 0.3,
+    letterSpacing: 0.15,
   },
   footer: {
-    marginTop: 10,
+    marginTop: Spacing.xxs,
   },
   ageBadge: {
-    paddingHorizontal: Spacing.xs + Spacing.xxs,
-    paddingVertical: Spacing.xxs,
+    paddingHorizontal: Spacing.xs,
+    paddingVertical: Spacing.micro,
     borderRadius: Radii.sm,
   },
   ageText: {
-    fontSize: scaleFont(13),
+    fontSize: scaleFont(11),
     fontWeight: '600',
-    letterSpacing: 0.2,
+    letterSpacing: 0.1,
   },
   capacityBadge: {
-    paddingHorizontal: Spacing.xs + Spacing.xxs,
-    paddingVertical: Spacing.xxs,
+    paddingHorizontal: Spacing.xs,
+    paddingVertical: Spacing.micro,
     borderRadius: Radii.sm,
   },
   capacityText: {
-    fontSize: scaleFont(13),
+    fontSize: scaleFont(11),
     fontWeight: '700',
-    letterSpacing: 0.3,
+    letterSpacing: 0.15,
   },
   priceContainer: {
     marginLeft: 'auto',
   },
   priceText: {
-    fontSize: scaleFont(20),
+    fontSize: scaleFont(18),
     fontWeight: '700',
     letterSpacing: -0.5,
   },

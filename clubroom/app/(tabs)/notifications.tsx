@@ -31,7 +31,7 @@ export default function NotificationsScreen() {
   return (
     <SafeAreaView
       style={[styles.safeArea, { backgroundColor: palette.background }]}
-      edges={['top']}
+      edges={['top', 'bottom']}
     >
       <ScreenHeader title="Notifications" />
       <NotificationsActionsBar

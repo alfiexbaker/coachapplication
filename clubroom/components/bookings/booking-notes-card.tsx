@@ -29,6 +29,7 @@ interface BookingNotesCardProps {
   sessionNote: SessionNoteRecord | null;
   loading: boolean;
   error: string | null;
+  isCoach: boolean;
   onRefresh: () => Promise<void>;
 }
 
@@ -37,6 +38,7 @@ export const BookingNotesCard = memo(function BookingNotesCard({
   sessionNote,
   loading,
   error,
+  isCoach,
   onRefresh,
 }: BookingNotesCardProps) {
   const { colors: palette } = useTheme();
@@ -48,22 +50,28 @@ export const BookingNotesCard = memo(function BookingNotesCard({
   return (
     <SurfaceCard style={styles.card}>
       <Row gap="md" align="center" justify="between">
-        <ThemedText type="defaultSemiBold">Session notes & development</ThemedText>
-        <Clickable
-          style={[styles.linkPill, { backgroundColor: palette.background }]}
-          onPress={handleNavigateToNotes}
-          accessibilityLabel={sessionNote ? 'View and edit session notes' : 'Add session notes'}
-        >
-          <ThemedText style={{ color: palette.tint, fontWeight: '700' }}>
-            {sessionNote ? 'View & edit' : 'Add notes'}
-          </ThemedText>
-        </Clickable>
+        <ThemedText type="defaultSemiBold">
+          {isCoach ? 'Session notes & development' : 'Coach feedback'}
+        </ThemedText>
+        {isCoach ? (
+          <Clickable
+            style={[styles.linkPill, { backgroundColor: palette.background }]}
+            onPress={handleNavigateToNotes}
+            accessibilityLabel={sessionNote ? 'View and edit session notes' : 'Add session notes'}
+          >
+            <ThemedText style={{ color: palette.tint, fontWeight: '700' }}>
+              {sessionNote ? 'View & edit' : 'Add notes'}
+            </ThemedText>
+          </Clickable>
+        ) : null}
       </Row>
 
       {loading && !sessionNote ? (
         <Row gap="sm" align="center">
           <ActivityIndicator color={palette.tint} />
-          <ThemedText style={{ color: palette.muted }}>Loading coach notes...</ThemedText>
+          <ThemedText style={{ color: palette.muted }}>
+            {isCoach ? 'Loading coach notes...' : 'Loading coach feedback...'}
+          </ThemedText>
         </Row>
       ) : null}
 
@@ -85,27 +93,35 @@ export const BookingNotesCard = memo(function BookingNotesCard({
           <SessionNotesView {...sessionNote} />
         </Column>
       ) : !loading ? (
-        <Column gap="xs">
-          <ThemedText style={{ color: palette.muted }}>
-            Capture what was covered, effort and homework so parents can track the session.
-          </ThemedText>
-          <Clickable
-            onPress={handleNavigateToNotes}
-            style={[
-              styles.ctaButton,
-              {
-                backgroundColor: withAlpha(palette.tint, 0.07),
-                borderColor: withAlpha(palette.border, 0.25),
-              },
-            ]}
-            accessibilityLabel="Add coach notes"
-          >
-            <Ionicons name="create" size={16} color={palette.tint} />
-            <ThemedText style={{ color: palette.tint, fontWeight: '700' }}>
-              Add coach notes
+        isCoach ? (
+          <Column gap="xs">
+            <ThemedText style={{ color: palette.muted }}>
+              Capture what was covered, effort and homework so parents can track the session.
             </ThemedText>
-          </Clickable>
-        </Column>
+            <Clickable
+              onPress={handleNavigateToNotes}
+              style={[
+                styles.ctaButton,
+                {
+                  backgroundColor: withAlpha(palette.tint, 0.07),
+                  borderColor: withAlpha(palette.border, 0.25),
+                },
+              ]}
+              accessibilityLabel="Add coach notes"
+            >
+              <Ionicons name="create" size={16} color={palette.tint} />
+              <ThemedText style={{ color: palette.tint, fontWeight: '700' }}>
+                Add coach notes
+              </ThemedText>
+            </Clickable>
+          </Column>
+        ) : (
+          <Column gap="xs">
+            <ThemedText style={{ color: palette.muted }}>
+              Your coach&apos;s notes will appear here after the session is completed.
+            </ThemedText>
+          </Column>
+        )
       ) : null}
     </SurfaceCard>
   );

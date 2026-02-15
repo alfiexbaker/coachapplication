@@ -29,7 +29,7 @@ export default function SubscribeScreen() {
     return (
       <SafeAreaView
         style={[styles.container, { backgroundColor: palette.background }]}
-        edges={['top']}
+        edges={['top', 'bottom']}
       >
         <Stack.Screen options={{ title: 'Select a Coach', headerShown: true }} />
         <LoadingState variant="list" />
@@ -41,7 +41,7 @@ export default function SubscribeScreen() {
     return (
       <SafeAreaView
         style={[styles.container, { backgroundColor: palette.background }]}
-        edges={['top']}
+        edges={['top', 'bottom']}
       >
         <Stack.Screen options={{ title: 'Select a Coach', headerShown: true }} />
         <ErrorState message={c.error?.message ?? 'Failed to load coaches'} onRetry={c.retry} />
@@ -53,7 +53,7 @@ export default function SubscribeScreen() {
     return (
       <SafeAreaView
         style={[styles.container, { backgroundColor: palette.background }]}
-        edges={['top']}
+        edges={['top', 'bottom']}
       >
         <Stack.Screen options={{ title: 'Select a Coach', headerShown: true }} />
         <EmptyState
@@ -71,7 +71,7 @@ export default function SubscribeScreen() {
     return (
       <SafeAreaView
         style={[styles.container, { backgroundColor: palette.background }]}
-        edges={['top']}
+        edges={['top', 'bottom']}
       >
         <Stack.Screen options={{ title: 'Select a Coach', headerShown: true }} />
         <ThemedView style={styles.header}>
@@ -153,7 +153,7 @@ export default function SubscribeScreen() {
   return (
     <SafeAreaView
       style={[styles.container, { backgroundColor: palette.background }]}
-      edges={['top']}
+      edges={['top', 'bottom']}
     >
       <Stack.Screen
         options={{

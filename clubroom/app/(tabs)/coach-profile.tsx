@@ -70,7 +70,7 @@ export default function CoachProfileScreen() {
     return (
       <SafeAreaView
         style={[styles.safeArea, { backgroundColor: palette.background }]}
-        edges={['top']}
+        edges={['top', 'bottom']}
       >
         <ScreenHeader title="Coach Profile" subtitle="Your coaching identity" />
         <LoadingState variant="detail" />
@@ -83,7 +83,7 @@ export default function CoachProfileScreen() {
     return (
       <SafeAreaView
         style={[styles.safeArea, { backgroundColor: palette.background }]}
-        edges={['top']}
+        edges={['top', 'bottom']}
       >
         <ScreenHeader title="Coach Profile" subtitle="Your coaching identity" />
         <ErrorState message={profileError} onRetry={loadProfileData} />
@@ -95,7 +95,7 @@ export default function CoachProfileScreen() {
     return (
       <SafeAreaView
         style={[styles.safeArea, { backgroundColor: palette.background }]}
-        edges={['top']}
+        edges={['top', 'bottom']}
       >
         <ScreenHeader title="Coach Profile" subtitle="Your coaching identity" />
         <EmptyState
@@ -111,7 +111,7 @@ export default function CoachProfileScreen() {
   return (
     <SafeAreaView
       style={[styles.safeArea, { backgroundColor: palette.background }]}
-      edges={['top']}
+      edges={['top', 'bottom']}
     >
       <ScreenHeader title="Coach Profile" subtitle="Your coaching identity" />
       <ScrollView showsVerticalScrollIndicator={false}>

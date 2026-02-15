@@ -80,6 +80,8 @@ exports.STORAGE_KEYS = {
     SESSION_NOTES: 'progress.session_notes',
     /** Skill tree progression data */
     SKILL_TREE_PROGRESS: 'skill_tree.user_progress',
+    /** Completed coach session records used across development/progress surfaces */
+    COACH_SESSIONS: 'coach_sessions',
     // ============================================================================
     // ANALYTICS DOMAIN
     // ============================================================================
@@ -297,6 +299,8 @@ exports.STORAGE_KEYS = {
     // ============================================================================
     /** User directory records for UserService lookups */
     USERS: 'clubroom.users',
+    /** Version marker for relational demo seed bootstrap */
+    RELATIONAL_DEMO_SEED_VERSION: 'clubroom.relational_demo_seed_version',
     /** Persisted auth user profile for active session */
     AUTH_USER: 'auth_user',
     /** Persisted access token for active session */

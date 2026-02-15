@@ -199,7 +199,9 @@ const styles = StyleSheet.create({
   todayDot: { width: 6, height: 6, borderRadius: Radii.xs, marginTop: Spacing.xxs },
   reasonGrid: { flexWrap: 'wrap', gap: Spacing.sm },
   reasonCard: {
-    width: '48%',
+    flexGrow: 1,
+    flexBasis: '47%',
+    minWidth: 148,
     padding: Spacing.md,
     borderRadius: Radii.md,
     borderWidth: 1.5,

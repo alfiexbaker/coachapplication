@@ -28,7 +28,7 @@ export default function MultiWeekScreen() {
     return (
       <SafeAreaView
         style={[styles.safeArea, { backgroundColor: palette.background }]}
-        edges={['top']}
+        edges={['top', 'bottom']}
       >
         <LoadingState variant="list" />
       </SafeAreaView>
@@ -39,7 +39,7 @@ export default function MultiWeekScreen() {
     return (
       <SafeAreaView
         style={[styles.safeArea, { backgroundColor: palette.background }]}
-        edges={['top']}
+        edges={['top', 'bottom']}
       >
         <ErrorState
           message={c.error?.message ?? 'Failed to load multi-week availability.'}
@@ -53,7 +53,7 @@ export default function MultiWeekScreen() {
     return (
       <SafeAreaView
         style={[styles.safeArea, { backgroundColor: palette.background }]}
-        edges={['top']}
+        edges={['top', 'bottom']}
       >
         <EmptyState
           icon="calendar-outline"
@@ -69,7 +69,7 @@ export default function MultiWeekScreen() {
   return (
     <SafeAreaView
       style={[styles.safeArea, { backgroundColor: palette.background }]}
-      edges={['top']}
+      edges={['top', 'bottom']}
     >
       <Row style={[styles.header, { borderBottomColor: palette.border }]}>
         <Clickable onPress={() => router.back()} style={styles.backButton}>

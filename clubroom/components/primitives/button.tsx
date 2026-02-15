@@ -1,7 +1,7 @@
 import { Pressable, StyleSheet, type ViewStyle } from 'react-native';
 import React from 'react';
 import { ThemedText } from '@/components/themed-text';
-import { Radii, Spacing, Typography } from '@/constants/theme';
+import { Components, Radii, Spacing, Typography } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
 
 export interface ButtonProps {
@@ -88,9 +88,10 @@ export function Button({
 
 const styles = StyleSheet.create({
   button: {
-    paddingVertical: Spacing.md,
-    paddingHorizontal: Spacing.lg,
-    borderRadius: Radii.md,
+    minHeight: Components.button.height,
+    paddingVertical: Spacing.xs,
+    paddingHorizontal: Spacing.md,
+    borderRadius: Radii.button,
     alignItems: 'center',
     justifyContent: 'center',
   },

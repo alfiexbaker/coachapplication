@@ -33,7 +33,7 @@ export default function EditProfileScreen() {
     return (
       <SafeAreaView
         style={[styles.safeArea, { backgroundColor: colors.background }]}
-        edges={['top']}
+        edges={['top', 'bottom']}
       >
         <PageHeader title="Edit Profile" showBack />
         <LoadingState variant="form" />
@@ -45,7 +45,7 @@ export default function EditProfileScreen() {
     return (
       <SafeAreaView
         style={[styles.safeArea, { backgroundColor: colors.background }]}
-        edges={['top']}
+        edges={['top', 'bottom']}
       >
         <PageHeader title="Edit Profile" showBack />
         <ErrorState message={authError} onRetry={() => void logout()} />
@@ -57,7 +57,7 @@ export default function EditProfileScreen() {
     return (
       <SafeAreaView
         style={[styles.safeArea, { backgroundColor: colors.background }]}
-        edges={['top']}
+        edges={['top', 'bottom']}
       >
         <PageHeader title="Edit Profile" showBack />
         <EmptyState
@@ -73,7 +73,7 @@ export default function EditProfileScreen() {
     return (
       <SafeAreaView
         style={[styles.safeArea, { backgroundColor: colors.background }]}
-        edges={['top']}
+        edges={['top', 'bottom']}
       >
         <PageHeader title="Edit Profile" showBack />
         <LoadingState variant="form" />
@@ -85,7 +85,7 @@ export default function EditProfileScreen() {
     return (
       <SafeAreaView
         style={[styles.safeArea, { backgroundColor: colors.background }]}
-        edges={['top']}
+        edges={['top', 'bottom']}
       >
         <PageHeader title="Edit Profile" showBack />
         <ErrorState message={profile.loadError} onRetry={profile.retryLoad} />
@@ -94,7 +94,7 @@ export default function EditProfileScreen() {
   }
 
   return (
-    <SafeAreaView style={[styles.safeArea, { backgroundColor: colors.background }]} edges={['top']}>
+    <SafeAreaView style={[styles.safeArea, { backgroundColor: colors.background }]} edges={['top', 'bottom']}>
       <PageHeader title="Edit Profile" showBack action="Save" onActionPress={profile.handleSave} />
 
       <KeyboardAvoidingView

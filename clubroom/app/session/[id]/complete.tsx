@@ -2,7 +2,7 @@
  * Session Completion Screen
  *
  * 4-step wizard for coaches to complete a session:
- * 1. Mark attendance per athlete (present/late/absent)
+ * 1. Mark attendance per athlete (present/absent)
  * 2. Add session notes, skills, effort rating, homework
  * 3. Award badges to present athletes
  * 4. Review summary and configure sharing preferences
@@ -15,17 +15,28 @@
  * so I can track athlete progress and provide feedback."
  */
 
-import { StyleSheet, ScrollView, KeyboardAvoidingView, Platform } from 'react-native';
+import { useState } from 'react';
+import { Alert, StyleSheet, ScrollView, KeyboardAvoidingView, Platform, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router, useLocalSearchParams } from 'expo-router';
+import { Ionicons } from '@expo/vector-icons';
 
+import { Clickable } from '@/components/primitives/clickable';
+import { Row } from '@/components/primitives/row';
+import { ThemedText } from '@/components/themed-text';
 import { PageHeader } from '@/components/primitives/page-header';
 import { LoadingState, ErrorState } from '@/components/ui/screen-states';
-import { Spacing } from '@/constants/theme';
+import { Components, Spacing, Typography } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
 import { useSessionCompletion } from '@/hooks/use-session-completion';
 
-import { AttendanceStep, NotesStep, BadgesStep, ReviewStep } from '@/components/session';
+import {
+  AttendanceStep,
+  BadgesStep,
+  GroupCompletionBoard,
+  NotesStep,
+  ReviewStep,
+} from '@/components/session';
 import { CompletionStepIndicator } from '@/components/session/completion-step-indicator';
 import { WizardNavButtons } from '@/components/session/wizard-nav-buttons';
 
@@ -36,6 +47,7 @@ import { WizardNavButtons } from '@/components/session/wizard-nav-buttons';
 export default function SessionCompleteScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const { colors } = useTheme();
+  const [groupMessage, setGroupMessage] = useState('');
 
   const {
     session,
@@ -51,25 +63,65 @@ export default function SessionCompleteScreen() {
     setOverallEffort,
     homework,
     setHomework,
+    videoUrls,
+    imageUrls,
     shareNotesWithParents,
     setShareNotesWithParents,
     shareAttendance,
     setShareAttendance,
     currentStep,
     currentStepIndex,
+    isGroupCompletion,
     attendanceStepData,
+    parentNameByRegistration,
     presentAthletes,
     presentCount,
     absentCount,
     totalBadgesAwarded,
     loadSession,
     updateAttendanceStatus,
+    setAllAttendanceStatus,
+    sendGroupBroadcast,
+    sendPersonalUpdate,
+    sendMessageParent,
+    addImage,
+    addVideo,
+    removeImage,
+    removeVideo,
     toggleBadge,
     goToNextStep,
     goToPrevStep,
     handleBackPress,
     handleComplete,
   } = useSessionCompletion(id);
+
+  const handleSendGroupMessage = async () => {
+    const sent = await sendGroupBroadcast(groupMessage);
+    if (!sent) {
+      Alert.alert('Add a message', 'Write a group update before sending.');
+      return;
+    }
+    setGroupMessage('');
+    Alert.alert('Sent', 'Update pushed to the group thread.');
+  };
+
+  const handleSendPersonalFeedback = async (registrationId: string) => {
+    const result = await sendPersonalUpdate(registrationId);
+    if (!result.ok) {
+      Alert.alert('Unable to send', result.reason || 'Could not send personal feedback.');
+      return;
+    }
+    Alert.alert('Sent', `Personal feedback sent for ${result.athleteName}.`);
+  };
+
+  const handleSendMessage = async (registrationId: string) => {
+    const result = await sendMessageParent(registrationId);
+    if (!result.ok) {
+      Alert.alert('Unable to message', result.reason || 'Message could not be sent.');
+      return;
+    }
+    Alert.alert('Sent', `Message sent to ${result.targetName}.`);
+  };
 
   // ==========================================================================
   // VISUAL STATES
@@ -79,7 +131,7 @@ export default function SessionCompleteScreen() {
     return (
       <SafeAreaView
         style={[styles.container, { backgroundColor: colors.background }]}
-        edges={['top']}
+        edges={['top', 'bottom']}
       >
         <PageHeader title="Complete Session" showBack onBackPress={() => router.back()} />
         <LoadingState variant="form" />
@@ -91,7 +143,7 @@ export default function SessionCompleteScreen() {
     return (
       <SafeAreaView
         style={[styles.container, { backgroundColor: colors.background }]}
-        edges={['top']}
+        edges={['top', 'bottom']}
       >
         <PageHeader title="Complete Session" showBack onBackPress={() => router.back()} />
         <ErrorState message={error} onRetry={loadSession} />
@@ -103,7 +155,7 @@ export default function SessionCompleteScreen() {
     return (
       <SafeAreaView
         style={[styles.container, { backgroundColor: colors.background }]}
-        edges={['top']}
+        edges={['top', 'bottom']}
       >
         <PageHeader title="Complete Session" showBack onBackPress={() => router.back()} />
         <ErrorState message="Session not found" onRetry={loadSession} />
@@ -118,7 +170,7 @@ export default function SessionCompleteScreen() {
   return (
     <SafeAreaView
       style={[styles.container, { backgroundColor: colors.background }]}
-      edges={['top']}
+      edges={['top', 'bottom']}
     >
       <PageHeader
         title="Complete Session"
@@ -127,76 +179,154 @@ export default function SessionCompleteScreen() {
         onBackPress={handleBackPress}
       />
 
-      <CompletionStepIndicator
-        currentStep={currentStep}
-        currentStepIndex={currentStepIndex}
-        colors={colors}
-      />
-
       <KeyboardAvoidingView
         style={styles.flex}
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       >
         <ScrollView
           style={styles.flex}
-          contentContainerStyle={styles.contentInner}
+          contentContainerStyle={[
+            styles.contentInner,
+            isGroupCompletion ? styles.contentWithStickyFooter : undefined,
+          ]}
           showsVerticalScrollIndicator={false}
           keyboardShouldPersistTaps="handled"
         >
-          {currentStep === 'attendance' && (
-            <AttendanceStep
-              athletes={attendanceStepData}
-              colors={colors}
-              onUpdateStatus={updateAttendanceStatus}
-            />
-          )}
-          {currentStep === 'notes' && (
-            <NotesStep
-              colors={colors}
-              sessionSummary={sessionSummary}
-              onSessionSummaryChange={setSessionSummary}
-              skillsFocused={skillsFocused}
-              onSkillsFocusedChange={setSkillsFocused}
-              overallEffort={overallEffort}
-              onOverallEffortChange={setOverallEffort}
-              homework={homework}
-              onHomeworkChange={setHomework}
-            />
-          )}
-          {currentStep === 'badges' && (
-            <BadgesStep
-              presentAthletes={presentAthletes}
-              availableBadges={availableBadges}
-              colors={colors}
-              onToggleBadge={toggleBadge}
-            />
-          )}
-          {currentStep === 'summary' && (
-            <ReviewStep
-              colors={colors}
-              presentCount={presentCount}
-              absentCount={absentCount}
-              sessionSummary={sessionSummary}
-              skillsFocused={skillsFocused}
-              totalBadgesAwarded={totalBadgesAwarded}
-              overallEffort={overallEffort}
-              shareNotesWithParents={shareNotesWithParents}
-              onShareNotesChange={setShareNotesWithParents}
-              shareAttendance={shareAttendance}
-              onShareAttendanceChange={setShareAttendance}
-            />
-          )}
+          {isGroupCompletion ? (
+            <>
+              <GroupCompletionBoard
+                colors={colors}
+                athletes={attendanceStepData}
+                parentNameByRegistration={parentNameByRegistration}
+                groupMessage={groupMessage}
+                videoUrls={videoUrls}
+                imageUrls={imageUrls}
+                onGroupMessageChange={setGroupMessage}
+                onUpdateStatus={updateAttendanceStatus}
+                onSelectAll={() => setAllAttendanceStatus('present')}
+                onSendGroupMessage={handleSendGroupMessage}
+                onPersonalFeedback={handleSendPersonalFeedback}
+                onMessage={handleSendMessage}
+                onAddVideo={addVideo}
+                onRemoveVideo={removeVideo}
+                onAddImage={addImage}
+                onRemoveImage={removeImage}
+              />
 
-          <WizardNavButtons
-            colors={colors}
-            currentStep={currentStep}
-            currentStepIndex={currentStepIndex}
-            submitting={submitting}
-            onNext={goToNextStep}
-            onPrev={goToPrevStep}
-            onComplete={handleComplete}
-          />
+              <NotesStep
+                colors={colors}
+                sessionSummary={sessionSummary}
+                onSessionSummaryChange={setSessionSummary}
+                skillsFocused={skillsFocused}
+                onSkillsFocusedChange={setSkillsFocused}
+                overallEffort={overallEffort}
+                onOverallEffortChange={setOverallEffort}
+                homework={homework}
+                onHomeworkChange={setHomework}
+              />
+            </>
+          ) : (
+            <>
+              <CompletionStepIndicator
+                currentStep={currentStep}
+                currentStepIndex={currentStepIndex}
+                colors={colors}
+              />
+
+              {currentStep === 'attendance' && (
+                <AttendanceStep
+                  athletes={attendanceStepData}
+                  colors={colors}
+                  onUpdateStatus={updateAttendanceStatus}
+                />
+              )}
+              {currentStep === 'notes' && (
+                <NotesStep
+                  colors={colors}
+                  sessionSummary={sessionSummary}
+                  onSessionSummaryChange={setSessionSummary}
+                  skillsFocused={skillsFocused}
+                  onSkillsFocusedChange={setSkillsFocused}
+                  overallEffort={overallEffort}
+                  onOverallEffortChange={setOverallEffort}
+                  homework={homework}
+                  onHomeworkChange={setHomework}
+                />
+              )}
+              {currentStep === 'badges' && (
+                <BadgesStep
+                  presentAthletes={presentAthletes}
+                  availableBadges={availableBadges}
+                  colors={colors}
+                  onToggleBadge={toggleBadge}
+                />
+              )}
+              {currentStep === 'summary' && (
+                <ReviewStep
+                  colors={colors}
+                  presentCount={presentCount}
+                  absentCount={absentCount}
+                  sessionSummary={sessionSummary}
+                  skillsFocused={skillsFocused}
+                  totalBadgesAwarded={totalBadgesAwarded}
+                  overallEffort={overallEffort}
+                  shareNotesWithParents={shareNotesWithParents}
+                  onShareNotesChange={setShareNotesWithParents}
+                  shareAttendance={shareAttendance}
+                  onShareAttendanceChange={setShareAttendance}
+                />
+              )}
+
+              <WizardNavButtons
+                colors={colors}
+                currentStep={currentStep}
+                currentStepIndex={currentStepIndex}
+                submitting={submitting}
+                onNext={goToNextStep}
+                onPrev={goToPrevStep}
+                onComplete={handleComplete}
+              />
+            </>
+          )}
         </ScrollView>
+
+        {isGroupCompletion && (
+          <View
+            style={[
+              styles.groupStickyFooter,
+              {
+                borderTopColor: colors.border,
+                backgroundColor: colors.background,
+              },
+            ]}
+          >
+            <Clickable
+              style={[
+                styles.groupCompleteButton,
+                { backgroundColor: submitting ? colors.muted : colors.tint },
+              ]}
+              onPress={handleComplete}
+              disabled={submitting}
+              accessibilityLabel="Complete group session"
+              accessibilityRole="button"
+            >
+              <Row align="center" justify="center" gap="sm">
+                {submitting ? (
+                  <ThemedText style={[styles.groupCompleteText, { color: colors.onPrimary }]}>
+                    Saving...
+                  </ThemedText>
+                ) : (
+                  <>
+                    <Ionicons name="checkmark-circle" size={20} color={colors.onPrimary} />
+                    <ThemedText style={[styles.groupCompleteText, { color: colors.onPrimary }]}>
+                      Complete Session
+                    </ThemedText>
+                  </>
+                )}
+              </Row>
+            </Clickable>
+          </View>
+        )}
       </KeyboardAvoidingView>
     </SafeAreaView>
   );
@@ -216,5 +346,21 @@ const styles = StyleSheet.create({
   contentInner: {
     padding: Spacing.md,
     paddingBottom: Spacing['3xl'],
+  },
+  contentWithStickyFooter: {
+    paddingBottom: Spacing['3xl'],
+  },
+  groupStickyFooter: {
+    borderTopWidth: 1,
+    paddingHorizontal: Spacing.md,
+    paddingTop: Spacing.xs,
+    paddingBottom: Spacing.sm,
+  },
+  groupCompleteButton: {
+    height: Components.button.height,
+    borderRadius: Components.button.borderRadius,
+  },
+  groupCompleteText: {
+    ...Typography.subheading,
   },
 });

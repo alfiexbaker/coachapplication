@@ -14,18 +14,27 @@ import { Clickable } from '@/components/primitives/clickable';
 import { useSessionNote } from '@/hooks/use-session-note';
 import { SessionNoteFields } from '@/services/progress-service';
 import { ok } from '@/types/result';
+import { useAuth } from '@/hooks/use-auth';
 
 export default function SessionNotesScreen() {
-  const { bookingId } = useLocalSearchParams<{ bookingId: string }>();
+  const { bookingId: bookingIdParam } = useLocalSearchParams<{ bookingId?: string | string[] }>();
+  const bookingId = Array.isArray(bookingIdParam) ? bookingIdParam[0] : (bookingIdParam ?? '');
+  const { currentUser } = useAuth();
+  const isCoach = currentUser?.role === 'COACH';
   const { note, loading, saving, error, persist, refresh } = useSessionNote(bookingId);
-  const [mode, setMode] = useState<'view' | 'edit'>(note ? 'view' : 'edit');
+  const [mode, setMode] = useState<'view' | 'edit'>(isCoach && !note ? 'edit' : 'view');
   const { colors: palette } = useScreen<null>({ load: async () => ok(null), isEmpty: () => false });
 
   useEffect(() => {
-    setMode(note ? 'view' : 'edit');
-  }, [note]);
+    setMode(isCoach && !note ? 'edit' : 'view');
+  }, [isCoach, note]);
 
   const handleSubmit = async (data: SessionNoteFields) => {
+    if (!isCoach) {
+      Alert.alert('Read-only', 'Only coaches can submit session notes.');
+      return;
+    }
+
     try {
       await persist(data);
       setMode('view');
@@ -55,7 +64,7 @@ export default function SessionNotesScreen() {
 
   if (loading && !note) {
     return (
-      <SafeAreaView style={{ flex: 1, backgroundColor: palette.background }} edges={['top']}>
+      <SafeAreaView style={{ flex: 1, backgroundColor: palette.background }} edges={['top', 'bottom']}>
         <LoadingState variant="form" />
       </SafeAreaView>
     );
@@ -63,7 +72,7 @@ export default function SessionNotesScreen() {
 
   if (error && !note) {
     return (
-      <SafeAreaView style={{ flex: 1, backgroundColor: palette.background }} edges={['top']}>
+      <SafeAreaView style={{ flex: 1, backgroundColor: palette.background }} edges={['top', 'bottom']}>
         <ErrorState message={error} onRetry={refresh} />
       </SafeAreaView>
     );
@@ -71,7 +80,7 @@ export default function SessionNotesScreen() {
 
   if (!bookingId) {
     return (
-      <SafeAreaView style={{ flex: 1, backgroundColor: palette.background }} edges={['top']}>
+      <SafeAreaView style={{ flex: 1, backgroundColor: palette.background }} edges={['top', 'bottom']}>
         <EmptyState
           icon="document-text-outline"
           title="Booking not found"
@@ -82,35 +91,42 @@ export default function SessionNotesScreen() {
   }
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: palette.background }} edges={['top']}>
+    <SafeAreaView style={{ flex: 1, backgroundColor: palette.background }} edges={['top', 'bottom']}>
       <ScrollView contentContainerStyle={styles.content}>
-        <ThemedText type="title">Session notes</ThemedText>
-        <ThemedText style={{ color: palette.muted }}>Booking ID: {bookingId}</ThemedText>
+        <ThemedText type="title">{isCoach ? 'Session notes' : 'Coach notes'}</ThemedText>
 
         {header}
 
         {mode === 'view' && note ? (
           <View style={{ gap: Spacing.md }}>
             <SessionNotesView {...note} />
-            <Clickable
-              onPress={() => setMode('edit')}
-              style={{
-                padding: Spacing.md,
-                borderRadius: Radii.md,
-                borderWidth: 1,
-                borderColor: palette.border,
-              }}
-            >
-              <ThemedText style={{ textAlign: 'center', color: palette.tint, fontWeight: '700' }}>
-                Edit notes
-              </ThemedText>
-            </Clickable>
+            {isCoach ? (
+              <Clickable
+                onPress={() => setMode('edit')}
+                style={{
+                  padding: Spacing.md,
+                  borderRadius: Radii.md,
+                  borderWidth: 1,
+                  borderColor: palette.border,
+                }}
+              >
+                <ThemedText style={{ textAlign: 'center', color: palette.tint, fontWeight: '700' }}>
+                  Edit notes
+                </ThemedText>
+              </Clickable>
+            ) : null}
           </View>
-        ) : (
+        ) : isCoach ? (
           <SessionNotesForm
             onSubmit={handleSubmit}
             initialValues={note ?? undefined}
             submitting={saving}
+          />
+        ) : (
+          <EmptyState
+            icon="document-text-outline"
+            title="Coach notes not available yet"
+            message="Your coach will add feedback once the session is completed."
           />
         )}
       </ScrollView>

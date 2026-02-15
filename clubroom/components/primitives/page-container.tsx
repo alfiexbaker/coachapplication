@@ -34,7 +34,7 @@ export interface PageContainerProps extends PropsWithChildren {
   scrollable?: boolean;
 
   /**
-   * SafeAreaView edges to respect (default: ['top'])
+   * SafeAreaView edges to respect (default: ['top', 'bottom'])
    */
   edges?: ('top' | 'bottom' | 'left' | 'right')[];
 
@@ -102,11 +102,11 @@ export function PageContainer({
   style,
   contentStyle,
   scrollable = true,
-  edges = ['top'],
+  edges = ['top', 'bottom'],
   horizontalSpacing = Spacing.md,
-  topSpacing = Spacing.md,
-  bottomSpacing = Spacing.xl,
-  gap = Spacing.md,
+  topSpacing = Spacing.sm,
+  bottomSpacing = Spacing.lg,
+  gap = Spacing.sm,
   showsScrollIndicator = false,
   refreshing = false,
   onRefresh,

@@ -1,5 +1,6 @@
 import { useEffect } from 'react';
 import { useLocalSearchParams, router } from 'expo-router';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { LoadingState } from '@/components/ui/screen-states';
 import { Routes } from '@/navigation/routes';
@@ -26,5 +27,9 @@ export default function CreateSessionInviteRedirect() {
     );
   }, [params.athleteId, params.athleteIds, params.athleteNames, params.date, params.offeringId]);
 
-  return <LoadingState variant="detail" />;
+  return (
+    <SafeAreaView style={{ flex: 1 }} edges={['top', 'bottom']}>
+      <LoadingState variant="detail" />
+    </SafeAreaView>
+  );
 }

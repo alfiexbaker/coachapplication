@@ -43,7 +43,7 @@ export default function CredentialsScreen() {
     return (
       <SafeAreaView
         style={[styles.safeArea, { backgroundColor: colors.background }]}
-        edges={['top']}
+        edges={['top', 'bottom']}
       >
         <LoadingState variant="detail" />
       </SafeAreaView>
@@ -54,7 +54,7 @@ export default function CredentialsScreen() {
     return (
       <SafeAreaView
         style={[styles.safeArea, { backgroundColor: colors.background }]}
-        edges={['top']}
+        edges={['top', 'bottom']}
       >
         <ErrorState message={error?.message || 'Failed to load credentials.'} onRetry={retry} />
       </SafeAreaView>
@@ -65,7 +65,7 @@ export default function CredentialsScreen() {
     return (
       <SafeAreaView
         style={[styles.safeArea, { backgroundColor: colors.background }]}
-        edges={['top']}
+        edges={['top', 'bottom']}
       >
         <EmptyState
           icon="ribbon-outline"
@@ -79,7 +79,7 @@ export default function CredentialsScreen() {
   }
 
   return (
-    <SafeAreaView style={[styles.safeArea, { backgroundColor: colors.background }]} edges={['top']}>
+    <SafeAreaView style={[styles.safeArea, { backgroundColor: colors.background }]} edges={['top', 'bottom']}>
       <ScrollView
         contentContainerStyle={styles.content}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}

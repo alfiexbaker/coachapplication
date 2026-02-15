@@ -7,6 +7,7 @@ import { ThemedText } from '@/components/themed-text';
 import { Button } from '@/components/primitives/button';
 import { Clickable } from '@/components/primitives/clickable';
 import { Row } from '@/components/primitives/row';
+import { PageHeader } from '@/components/primitives/page-header';
 import { Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
 import type { ThemeColors } from '@/hooks/useTheme';
 import type { BodyPart, InjurySeverity } from '@/constants/types';
@@ -50,28 +51,17 @@ export const InjuryReportModal = memo(function InjuryReportModal({
     >
       <SafeAreaView
         style={[styles.container, { backgroundColor: colors.background }]}
-        edges={['top']}
+        edges={['top', 'bottom']}
       >
-        <Row style={[styles.header, { borderBottomColor: colors.border }]}>
-          <Clickable
-            onPress={onClose}
-            accessibilityRole="button"
-            accessibilityLabel="Close injury report"
-          >
-            <Ionicons name="close" size={24} color={colors.text} />
-          </Clickable>
-          <View style={{ flex: 1, alignItems: 'center' }}>
-            <ThemedText type="defaultSemiBold" style={Typography.heading}>
-              Report Injury
-            </ThemedText>
-            {athleteName && (
-              <ThemedText style={[Typography.small, { color: colors.muted }]}>
-                {athleteName}
-              </ThemedText>
-            )}
-          </View>
-          <View style={{ width: 24 }} />
-        </Row>
+        <PageHeader
+          title="Report Injury"
+          subtitle={athleteName}
+          showBack
+          onBackPress={onClose}
+          backIcon="close"
+          centerTitle
+          containerStyle={[styles.header, { borderBottomColor: colors.border }]}
+        />
 
         <ScrollView
           style={{ flex: 1, paddingHorizontal: Spacing.lg, paddingTop: Spacing.md }}

@@ -113,7 +113,7 @@ export function ProgressRing({
   return (
     <View style={[styles.container, { width: size, height: size }]}>
       <Svg width={size} height={size}>
-        <G rotation="-90" origin={`${center}, ${center}`}>
+        <G transform={`rotate(-90 ${center} ${center})`}>
           {/* Background circle */}
           <Circle
             cx={center}

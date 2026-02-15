@@ -23,7 +23,6 @@ exports.apiClient = exports.ApiError = void 0;
 exports.apiFetch = apiFetch;
 const async_storage_1 = __importDefault(require("@react-native-async-storage/async-storage"));
 const logger_1 = require("@/utils/logger");
-const auth_service_1 = require("@/services/auth-service");
 const error_types_1 = require("@/constants/error-types");
 Object.defineProperty(exports, "ApiError", { enumerable: true, get: function () { return error_types_1.ApiError; } });
 const config_1 = require("@/constants/config");
@@ -66,6 +65,22 @@ const rateLimiter = new RateLimiter(config_1.rateLimits.apiRequestsPerMinute);
 // ============================================================================
 let _isRefreshing = false;
 let _refreshPromise = null;
+let authServiceRef;
+function getAuthService() {
+    if (authServiceRef !== undefined) {
+        return authServiceRef;
+    }
+    try {
+        // Lazy import to avoid static require-cycle with auth-service.
+        // eslint-disable-next-line @typescript-eslint/no-require-imports
+        const mod = require('@/services/auth-service');
+        authServiceRef = mod.authService ?? null;
+    }
+    catch {
+        authServiceRef = null;
+    }
+    return authServiceRef;
+}
 /**
  * Internal fetch that throws errors (for backward compat).
  * Use apiFetch() instead which returns Result<T, ServiceError>.
@@ -76,9 +91,10 @@ async function _apiFetchUnsafe(path, options) {
     rateLimiter.recordRequest();
     // Get auth token from authService
     let authHeaders = {};
+    const authService = getAuthService();
     if (!USE_MOCK) {
         try {
-            const tokens = await auth_service_1.authService.getTokens();
+            const tokens = authService ? await authService.getTokens() : null;
             if (tokens?.accessToken) {
                 authHeaders = { Authorization: `Bearer ${tokens.accessToken}` };
             }
@@ -110,12 +126,15 @@ async function _apiFetchUnsafe(path, options) {
         throw new error_types_1.NetworkError(isTimeout ? `Request timeout after ${API_TIMEOUT}ms` : errorMessage);
     }
     if (response.status === 401) {
+        if (!authService) {
+            throw new error_types_1.UnauthorizedError('Session expired. Please log in again.');
+        }
         // Try refresh token via authService
         logger.info('Received 401, attempting token refresh');
         try {
             if (!_isRefreshing) {
                 _isRefreshing = true;
-                _refreshPromise = auth_service_1.authService.refreshToken().then((result) => {
+                _refreshPromise = authService.refreshToken().then((result) => {
                     _isRefreshing = false;
                     _refreshPromise = null;
                     if (!result.success) {
@@ -125,7 +144,7 @@ async function _apiFetchUnsafe(path, options) {
             }
             await _refreshPromise;
             // Retry with new token
-            const newTokens = await auth_service_1.authService.getTokens();
+            const newTokens = await authService.getTokens();
             const retryHeaders = newTokens?.accessToken
                 ? { Authorization: `Bearer ${newTokens.accessToken}` }
                 : {};
@@ -144,7 +163,7 @@ async function _apiFetchUnsafe(path, options) {
             }
             if (retryResponse.status === 401) {
                 logger.warn('Token refresh did not resolve 401, logging out');
-                await auth_service_1.authService.logout();
+                await authService.logout();
                 throw new error_types_1.UnauthorizedError('Session expired. Please log in again.');
             }
         }
@@ -154,7 +173,7 @@ async function _apiFetchUnsafe(path, options) {
             _isRefreshing = false;
             _refreshPromise = null;
             logger.error('Token refresh failed', error);
-            await auth_service_1.authService.logout();
+            await authService.logout();
             throw new error_types_1.UnauthorizedError('Session expired. Please log in again.');
         }
     }

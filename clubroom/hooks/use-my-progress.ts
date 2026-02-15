@@ -10,6 +10,7 @@ import {
   type AthleteProgress,
   type SessionFeedback,
 } from '@/services/progress-service';
+import { ensureProgressDemoSeeded } from '@/services/progress/progress-demo-seed-service';
 import { badgeService } from '@/services/badge-service';
 import { createLogger } from '@/utils/logger';
 import type { BadgeAward } from '@/constants/types';
@@ -55,6 +56,10 @@ export function useMyProgress() {
     }
 
     try {
+      if (currentUser.role !== 'COACH') {
+        await ensureProgressDemoSeeded(currentUser.id, currentUser.name);
+      }
+
       const progressData = await progressService.getAthleteProgress(currentUser.id, 'athlete');
       progressData.athleteName = currentUser.name || 'Me';
 
@@ -78,7 +83,7 @@ export function useMyProgress() {
       logger.error('Failed to load progress', error);
       return err(serviceError('UNKNOWN', 'Failed to load progress data.', error));
     }
-  }, [currentUser?.id, currentUser?.name]);
+  }, [currentUser?.id, currentUser?.name, currentUser?.role]);
 
   const { data, status, error, refreshing, onRefresh, retry } = useScreen<MyProgressData>({
     load: loadData,

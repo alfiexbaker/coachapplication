@@ -36,17 +36,9 @@ export function useCreatePost() {
     [currentUser],
   );
   const membership = useMemo<ClubMembership | undefined>(() => {
-    if (!currentUser || clubs.length === 0) return undefined;
-    const role =
-      currentUser.role === 'ADMIN' ? 'ADMIN' : currentUser.role === 'COACH' ? 'COACH' : 'MEMBER';
-    return {
-      clubId: clubs[0].id,
-      userId: currentUser.id,
-      role,
-      status: 'active',
-      joinSource: 'invite',
-    };
-  }, [clubs, currentUser]);
+    if (!currentUser?.id || clubs.length === 0) return undefined;
+    return clubFeedService.getMembership(currentUser.id, clubs[0].id);
+  }, [clubs, currentUser?.id]);
   const isCoach = currentUser?.role === 'COACH' || currentUser?.role === 'ADMIN';
 
   const [title, setTitle] = useState('');

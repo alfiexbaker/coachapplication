@@ -129,6 +129,7 @@ export default function OnboardingScreen({ onComplete, onBackToLogin }: Onboardi
       case 'location':
         return (
           <StepLocation
+            addressLine={state.addressLine}
             city={state.city}
             postcode={state.postcode}
             country={state.country}
@@ -175,7 +176,7 @@ export default function OnboardingScreen({ onComplete, onBackToLogin }: Onboardi
   return (
     <SafeAreaView
       style={[styles.container, { backgroundColor: palette.background }]}
-      edges={['top']}
+      edges={['top', 'bottom']}
     >
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}

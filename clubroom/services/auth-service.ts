@@ -72,6 +72,7 @@ export interface UserProfile {
   photoUrl?: string;
 
   // Location
+  addressLine?: string;
   city?: string;
   postcode?: string;
   country?: string;
@@ -135,6 +136,7 @@ export interface OnboardingData {
   phone: string;
   password: string;
   dateOfBirth?: string;
+  addressLine?: string;
   city?: string;
   postcode?: string;
   country?: string;
@@ -508,6 +510,7 @@ export const authService = {
     }
 
     const updateResult = await this.updateProfile({
+      addressLine: data.addressLine,
       city: data.city,
       postcode: data.postcode,
       country: data.country,

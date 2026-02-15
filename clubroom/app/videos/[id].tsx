@@ -6,7 +6,7 @@ import Animated, { FadeInDown } from 'react-native-reanimated';
 
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { Clickable } from '@/components/primitives/clickable';
-import { ThemedText } from '@/components/themed-text';
+import { PageHeader } from '@/components/primitives/page-header';
 import { Row } from '@/components/primitives/row';
 import { VideoPlayer, AnnotationTimeline } from '@/components/video/video-player';
 import { AddAnnotationModal, QuickAnnotationBar } from '@/components/video/video-annotation';
@@ -47,15 +47,16 @@ export default function VideoDetailScreen() {
     return (
       <SafeAreaView
         style={[styles.container, { backgroundColor: colors.background }]}
-        edges={['top']}
+        edges={['top', 'bottom']}
       >
-        <Row align="center" gap="md" style={styles.header}>
-          <Clickable onPress={() => router.back()} hitSlop={8}>
-            <Ionicons name="arrow-back" size={24} color={colors.text} />
-          </Clickable>
-          <ThemedText type="title">Video</ThemedText>
-          <View style={{ width: 24 }} />
-        </Row>
+        <PageHeader
+          title="Video"
+          showBack
+          backIcon="arrow-back"
+          onBackPress={() => router.back()}
+          centerTitle
+          containerStyle={styles.header}
+        />
         <LoadingState variant="detail" />
       </SafeAreaView>
     );
@@ -65,7 +66,7 @@ export default function VideoDetailScreen() {
     return (
       <SafeAreaView
         style={[styles.container, { backgroundColor: colors.background }]}
-        edges={['top']}
+        edges={['top', 'bottom']}
       >
         <ErrorState message={error?.message ?? 'Failed to load video.'} onRetry={retry} />
       </SafeAreaView>
@@ -76,7 +77,7 @@ export default function VideoDetailScreen() {
     return (
       <SafeAreaView
         style={[styles.container, { backgroundColor: colors.background }]}
-        edges={['top']}
+        edges={['top', 'bottom']}
       >
         <EmptyState
           icon="videocam-outline"
@@ -90,7 +91,7 @@ export default function VideoDetailScreen() {
   return (
     <SafeAreaView
       style={[styles.container, { backgroundColor: colors.background }]}
-      edges={['top']}
+      edges={['top', 'bottom']}
     >
       <Row align="center" gap="md" style={styles.header}>
         <Clickable onPress={() => router.back()} hitSlop={8}>

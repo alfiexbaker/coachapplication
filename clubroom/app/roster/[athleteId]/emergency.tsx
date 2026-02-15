@@ -7,12 +7,12 @@
 
 import { View, StyleSheet, ScrollView, RefreshControl } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 
 import { Clickable } from '@/components/primitives/clickable';
 import { Row } from '@/components/primitives/row';
+import { PageHeader } from '@/components/primitives/page-header';
 import { ThemedText } from '@/components/themed-text';
 import { EmptyState } from '@/components/ui/empty-state';
 import { EmergencyQuickCard } from '@/components/safety/EmergencyQuickCard';
@@ -30,15 +30,9 @@ export default function EmergencyQuickAccessScreen() {
     return (
       <SafeAreaView
         style={[styles.container, { backgroundColor: palette.background }]}
-        edges={['top']}
+        edges={['top', 'bottom']}
       >
-        <Row align="center" justify="space-between" style={styles.header}>
-          <Clickable onPress={() => router.back()} hitSlop={8}>
-            <Ionicons name="arrow-back" size={24} color={palette.text} />
-          </Clickable>
-          <ThemedText type="title">Emergency Info</ThemedText>
-          <View style={{ width: 24 }} />
-        </Row>
+        <PageHeader title="Emergency Info" showBack centerTitle />
         <LoadingState variant="detail" />
       </SafeAreaView>
     );
@@ -48,15 +42,9 @@ export default function EmergencyQuickAccessScreen() {
     return (
       <SafeAreaView
         style={[styles.container, { backgroundColor: palette.background }]}
-        edges={['top']}
+        edges={['top', 'bottom']}
       >
-        <Row align="center" justify="space-between" style={styles.header}>
-          <Clickable onPress={() => router.back()} hitSlop={8}>
-            <Ionicons name="arrow-back" size={24} color={palette.text} />
-          </Clickable>
-          <ThemedText type="title">Emergency Info</ThemedText>
-          <View style={{ width: 24 }} />
-        </Row>
+        <PageHeader title="Emergency Info" showBack centerTitle />
         <ErrorState
           message={e.error?.message || 'Could not load emergency information for this athlete.'}
           onRetry={e.retry}
@@ -69,15 +57,9 @@ export default function EmergencyQuickAccessScreen() {
     return (
       <SafeAreaView
         style={[styles.container, { backgroundColor: palette.background }]}
-        edges={['top']}
+        edges={['top', 'bottom']}
       >
-        <Row align="center" justify="space-between" style={styles.header}>
-          <Clickable onPress={() => router.back()} hitSlop={8}>
-            <Ionicons name="arrow-back" size={24} color={palette.text} />
-          </Clickable>
-          <ThemedText type="title">Emergency Info</ThemedText>
-          <View style={{ width: 24 }} />
-        </Row>
+        <PageHeader title="Emergency Info" showBack centerTitle />
         <EmptyState
           icon="shield-outline"
           title="No emergency profile"
@@ -92,31 +74,31 @@ export default function EmergencyQuickAccessScreen() {
   return (
     <SafeAreaView
       style={[styles.container, { backgroundColor: palette.background }]}
-      edges={['top']}
+      edges={['top', 'bottom']}
     >
-      <Row align="center" justify="space-between" style={styles.header}>
-        <Clickable onPress={() => router.back()} hitSlop={8}>
-          <Ionicons name="arrow-back" size={24} color={palette.text} />
-        </Clickable>
-        <Row align="center" justify="center" gap="xs" style={styles.headerCenter}>
-          <ThemedText type="title">Emergency Info</ThemedText>
-          {e.emergencyData.isCached && (
-            <Row
-              align="center"
-              gap="xxs"
-              style={[styles.cachedBadge, { backgroundColor: withAlpha(palette.warning, 0.09) }]}
-            >
-              <Ionicons name="cloud-offline" size={12} color={palette.warning} />
-              <ThemedText style={[styles.cachedText, { color: palette.warning }]}>
-                Cached
-              </ThemedText>
-            </Row>
-          )}
-        </Row>
-        <Clickable onPress={e.handleRefresh} hitSlop={8} disabled={e.refreshing}>
-          <Ionicons name="refresh" size={22} color={e.refreshing ? palette.muted : palette.tint} />
-        </Clickable>
-      </Row>
+      <PageHeader
+        title="Emergency Info"
+        showBack
+        centerTitle
+        right={
+          <Clickable onPress={e.handleRefresh} hitSlop={8} disabled={e.refreshing}>
+            <Ionicons name="refresh" size={22} color={e.refreshing ? palette.muted : palette.tint} />
+          </Clickable>
+        }
+      />
+
+      {e.emergencyData.isCached && (
+        <View style={styles.cachedWrap}>
+          <Row
+            align="center"
+            gap="xxs"
+            style={[styles.cachedBadge, { backgroundColor: withAlpha(palette.warning, 0.09) }]}
+          >
+            <Ionicons name="cloud-offline" size={12} color={palette.warning} />
+            <ThemedText style={[styles.cachedText, { color: palette.warning }]}>Cached</ThemedText>
+          </Row>
+        </View>
+      )}
 
       <ScrollView
         contentContainerStyle={styles.content}
@@ -163,8 +145,10 @@ export default function EmergencyQuickAccessScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
-  header: { paddingHorizontal: Spacing.lg, paddingVertical: Spacing.md },
-  headerCenter: { flex: 1, alignItems: 'center' as const },
+  cachedWrap: {
+    alignItems: 'center',
+    paddingBottom: Spacing.sm,
+  },
   cachedBadge: {
     paddingHorizontal: Spacing.xs,
     paddingVertical: Spacing.micro,

@@ -177,9 +177,9 @@ export const Routes = {
   }) as Href,
 
   // ─── Booking (non-tab) ────────────────────────────────────────
-  bookingCancel: (id: string) => ({
+  bookingCancel: (id: string, mode?: 'coach' | 'parent') => ({
     pathname: '/booking/[id]/cancel',
-    params: { id },
+    params: mode ? { id, mode } : { id },
   }) as Href,
   bookingsNegotiate: (id: string) => ({
     pathname: '/bookings/[id]/negotiate',

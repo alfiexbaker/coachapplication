@@ -13,6 +13,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { SettingsRow, SettingsToggleRow, SettingsSection } from '@/components/settings';
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { Clickable } from '@/components/primitives/clickable';
+import { PageHeader } from '@/components/primitives/page-header';
 import { ThemedText } from '@/components/themed-text';
 import { Row } from '@/components/primitives/row';
 import { Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
@@ -80,17 +81,15 @@ export default function AppearanceSettingsScreen() {
   return (
     <SafeAreaView
       style={[styles.container, { backgroundColor: palette.background }]}
-      edges={['top']}
+      edges={['top', 'bottom']}
     >
-      <Row align="center" justify="space-between" style={styles.header}>
-        <Clickable onPress={() => router.back()} hitSlop={8}>
-          <Ionicons name="arrow-back" size={24} color={palette.text} />
-        </Clickable>
-        <ThemedText type="title" style={styles.headerTitle}>
-          Appearance
-        </ThemedText>
-        <View style={{ width: 24 }} />
-      </Row>
+      <PageHeader
+        title="Appearance"
+        showBack
+        backIcon="arrow-back"
+        onBackPress={() => router.back()}
+        centerTitle
+      />
 
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
         <View style={styles.section}>

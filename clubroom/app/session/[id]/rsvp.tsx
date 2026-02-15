@@ -1,6 +1,7 @@
 import React, { useState, useCallback } from 'react';
 import { View, ScrollView, StyleSheet, Alert } from 'react-native';
 import { useLocalSearchParams, useRouter, Stack } from 'expo-router';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { ThemedText } from '@/components/themed-text';
 import { LoadingState, ErrorState } from '@/components/ui/screen-states';
@@ -154,9 +155,12 @@ export default function RSVPScreen() {
     return (
       <>
         <Stack.Screen options={{ title: 'RSVP' }} />
-        <View style={[styles.centerContainer, { backgroundColor: colors.background }]}>
+        <SafeAreaView
+          style={[styles.safeArea, { backgroundColor: colors.background }]}
+          edges={['top', 'bottom']}
+        >
           <LoadingState variant="detail" />
-        </View>
+        </SafeAreaView>
       </>
     );
   }
@@ -165,13 +169,16 @@ export default function RSVPScreen() {
     return (
       <>
         <Stack.Screen options={{ title: 'RSVP' }} />
-        <View style={[styles.centerContainer, { backgroundColor: colors.background }]}>
+        <SafeAreaView
+          style={[styles.safeArea, { backgroundColor: colors.background }]}
+          edges={['top', 'bottom']}
+        >
           <ErrorState
             message={error?.message ?? 'Failed to load RSVP data.'}
             title="Unable to Load RSVP"
             onRetry={retry}
           />
-        </View>
+        </SafeAreaView>
       </>
     );
   }
@@ -180,13 +187,16 @@ export default function RSVPScreen() {
     return (
       <>
         <Stack.Screen options={{ title: 'RSVP' }} />
-        <View style={[styles.centerContainer, { backgroundColor: colors.background }]}>
+        <SafeAreaView
+          style={[styles.safeArea, { backgroundColor: colors.background }]}
+          edges={['top', 'bottom']}
+        >
           <ErrorState
             message="This session RSVP could not be found."
             title="RSVP Not Found"
             onRetry={retry}
           />
-        </View>
+        </SafeAreaView>
       </>
     );
   }
@@ -195,30 +205,35 @@ export default function RSVPScreen() {
     return (
       <>
         <Stack.Screen options={{ title: 'Attendance' }} />
-        <ScrollView
-          style={[styles.scrollView, { backgroundColor: colors.background }]}
-          contentContainerStyle={styles.scrollContent}
-          showsVerticalScrollIndicator={false}
+        <SafeAreaView
+          style={[styles.safeArea, { backgroundColor: colors.background }]}
+          edges={['top', 'bottom']}
         >
-          <View
-            style={[
-              styles.sessionCard,
-              { backgroundColor: colors.surface, borderColor: colors.border },
-            ]}
+          <ScrollView
+            style={styles.scrollView}
+            contentContainerStyle={styles.scrollContent}
+            showsVerticalScrollIndicator={false}
           >
-            <ThemedText style={[styles.cardLabel, { color: colors.muted }]}>Session</ThemedText>
-            <ThemedText style={[styles.cardTitle, { color: colors.text }]}>
-              {sessionInfo.title}
-            </ThemedText>
-            <ThemedText style={[styles.cardMeta, { color: colors.muted }]}>
-              {new Date(sessionInfo.scheduledAt).toLocaleString('en-GB')}
-            </ThemedText>
-            <ThemedText style={[styles.cardMeta, { color: colors.muted }]}>
-              {sessionInfo.location}
-            </ThemedText>
-          </View>
-          <RSVPSummary sessionId={sessionInfo.id} />
-        </ScrollView>
+            <View
+              style={[
+                styles.sessionCard,
+                { backgroundColor: colors.surface, borderColor: colors.border },
+              ]}
+            >
+              <ThemedText style={[styles.cardLabel, { color: colors.muted }]}>Session</ThemedText>
+              <ThemedText style={[styles.cardTitle, { color: colors.text }]}>
+                {sessionInfo.title}
+              </ThemedText>
+              <ThemedText style={[styles.cardMeta, { color: colors.muted }]}>
+                {new Date(sessionInfo.scheduledAt).toLocaleString('en-GB')}
+              </ThemedText>
+              <ThemedText style={[styles.cardMeta, { color: colors.muted }]}>
+                {sessionInfo.location}
+              </ThemedText>
+            </View>
+            <RSVPSummary sessionId={sessionInfo.id} />
+          </ScrollView>
+        </SafeAreaView>
       </>
     );
   }
@@ -227,13 +242,16 @@ export default function RSVPScreen() {
     return (
       <>
         <Stack.Screen options={{ title: 'RSVP' }} />
-        <View style={[styles.centerContainer, { backgroundColor: colors.background }]}>
+        <SafeAreaView
+          style={[styles.safeArea, { backgroundColor: colors.background }]}
+          edges={['top', 'bottom']}
+        >
           <ErrorState
             message="This RSVP may have expired or already been handled."
             title="RSVP Not Found"
             onRetry={retry}
           />
-        </View>
+        </SafeAreaView>
       </>
     );
   }
@@ -265,7 +283,10 @@ export default function RSVPScreen() {
     return (
       <>
         <Stack.Screen options={{ title: 'RSVP' }} />
-        <View style={[styles.centerContainer, { backgroundColor: colors.background }]}>
+        <SafeAreaView
+          style={[styles.safeArea, styles.centerContainer, { backgroundColor: colors.background }]}
+          edges={['top', 'bottom']}
+        >
           <Ionicons name={config.icon} size={64} color={config.color} />
           <ThemedText style={[styles.confirmedTitle, { color: config.color }]}>
             {config.label}
@@ -276,7 +297,7 @@ export default function RSVPScreen() {
           <ThemedText style={[styles.confirmedSession, { color: colors.text }]}>
             {sessionInfo.title}
           </ThemedText>
-        </View>
+        </SafeAreaView>
       </>
     );
   }
@@ -284,26 +305,34 @@ export default function RSVPScreen() {
   return (
     <>
       <Stack.Screen options={{ title: 'RSVP' }} />
-      <ScrollView
-        style={[styles.scrollView, { backgroundColor: colors.background }]}
-        contentContainerStyle={styles.scrollContent}
-        showsVerticalScrollIndicator={false}
+      <SafeAreaView
+        style={[styles.safeArea, { backgroundColor: colors.background }]}
+        edges={['top', 'bottom']}
       >
-        <RSVPFlow
-          sessionId={sessionInfo.id}
-          sessionTitle={sessionInfo.title}
-          sessionDate={sessionInfo.scheduledAt}
-          location={sessionInfo.location}
-          childName={getSessionRsvpChildName(rsvp)}
-          rsvpId={rsvp.id}
-          onRespond={handleRespond}
-        />
-      </ScrollView>
+        <ScrollView
+          style={styles.scrollView}
+          contentContainerStyle={styles.scrollContent}
+          showsVerticalScrollIndicator={false}
+        >
+          <RSVPFlow
+            sessionId={sessionInfo.id}
+            sessionTitle={sessionInfo.title}
+            sessionDate={sessionInfo.scheduledAt}
+            location={sessionInfo.location}
+            childName={getSessionRsvpChildName(rsvp)}
+            rsvpId={rsvp.id}
+            onRespond={handleRespond}
+          />
+        </ScrollView>
+      </SafeAreaView>
     </>
   );
 }
 
 const styles = StyleSheet.create({
+  safeArea: {
+    flex: 1,
+  },
   scrollView: {
     flex: 1,
   },

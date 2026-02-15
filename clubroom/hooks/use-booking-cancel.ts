@@ -127,6 +127,15 @@ export function useBookingCancel(id: string, mode?: string) {
       const bookingExt = booking as Booking & Record<string, unknown>;
       const bookingPrice = (bookingExt.price as number) ?? 35;
       const scheduledAt = new Date(booking.scheduledAt);
+      if (Number.isNaN(scheduledAt.getTime())) {
+        return err(serviceError('UNKNOWN', 'Booking session time is invalid.'));
+      }
+      if (scheduledAt.getTime() <= Date.now()) {
+        return err(serviceError('VALIDATION', 'Only upcoming bookings can be cancelled.'));
+      }
+      if (booking.status === 'COMPLETED' || booking.status === 'CANCELLED') {
+        return err(serviceError('VALIDATION', 'This booking is no longer cancellable.'));
+      }
       const coachPolicyResult = await schedulingRulesService.getCancellationPolicy(booking.coachId);
       const coachPolicy = coachPolicyResult.success ? coachPolicyResult.data : null;
       if (!coachPolicyResult.success) {
@@ -179,7 +188,10 @@ export function useBookingCancel(id: string, mode?: string) {
 
     setProcessing(true);
     try {
-      await bookingService.cancel(id, reasonLabel, isCoach ? 'coach' : 'parent');
+      const cancelledBooking = await bookingService.cancel(id, reasonLabel, isCoach ? 'coach' : 'parent');
+      if (!cancelledBooking) {
+        throw new Error('Cancellation failed');
+      }
 
       if (notifyWaitlist) {
         logger.debug('Waitlist notified for freed slot', { bookingId: id });
@@ -231,7 +243,7 @@ export function useBookingCancel(id: string, mode?: string) {
   }, []);
 
   const handleOpenCounterOffer = useCallback(() => {
-    router.push(Routes.bookingCancel(id));
+    router.push(Routes.bookingsCounter(id));
   }, [id]);
 
   const handleGoBack = useCallback(() => {

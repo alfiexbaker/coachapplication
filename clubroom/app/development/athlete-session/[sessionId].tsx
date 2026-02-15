@@ -12,8 +12,8 @@ import { Ionicons } from '@expo/vector-icons';
 
 import { ThemedText } from '@/components/themed-text';
 import { SurfaceCard } from '@/components/primitives/surface-card';
-import { Clickable } from '@/components/primitives/clickable';
 import { Row } from '@/components/primitives/row';
+import { PageHeader } from '@/components/primitives/page-header';
 import { Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
 import { useScreen } from '@/hooks/use-screen';
 import { ok } from '@/types/result';
@@ -38,7 +38,10 @@ export default function AthleteSessionDetailScreen() {
 
   if (loading) {
     return (
-      <SafeAreaView style={[styles.container, { backgroundColor: palette.background }]}>
+      <SafeAreaView
+        style={[styles.container, { backgroundColor: palette.background }]}
+        edges={['top', 'bottom']}
+      >
         <LoadingState variant="detail" />
       </SafeAreaView>
     );
@@ -48,7 +51,7 @@ export default function AthleteSessionDetailScreen() {
     return (
       <SafeAreaView
         style={[styles.container, { backgroundColor: palette.background }]}
-        edges={['top']}
+        edges={['top', 'bottom']}
       >
         <ErrorState message={error?.message ?? 'Failed to load session details.'} onRetry={retry} />
       </SafeAreaView>
@@ -59,7 +62,7 @@ export default function AthleteSessionDetailScreen() {
     return (
       <SafeAreaView
         style={[styles.container, { backgroundColor: palette.background }]}
-        edges={['top']}
+        edges={['top', 'bottom']}
       >
         <EmptyState
           icon="document-text-outline"
@@ -73,19 +76,16 @@ export default function AthleteSessionDetailScreen() {
   return (
     <SafeAreaView
       style={[styles.container, { backgroundColor: palette.background }]}
-      edges={['top']}
+      edges={['top', 'bottom']}
     >
       <ScrollView contentContainerStyle={styles.content}>
-        {/* Header */}
-        <Row align="center" justify="space-between" style={styles.header}>
-          <Clickable onPress={() => router.back()} style={styles.backButton}>
-            <Ionicons name="arrow-back" size={24} color={palette.foreground} />
-          </Clickable>
-          <ThemedText type="title" style={Typography.title}>
-            Session Details
-          </ThemedText>
-          <View style={{ width: 24 }} />
-        </Row>
+        <PageHeader
+          title="Session Details"
+          showBack
+          onBackPress={() => router.back()}
+          centerTitle
+          containerStyle={styles.header}
+        />
 
         {/* Session Info */}
         <SurfaceCard style={styles.infoCard}>
@@ -220,8 +220,7 @@ const styles = StyleSheet.create({
     paddingBottom: Spacing['2xl'],
     gap: Spacing.lg,
   },
-  header: { paddingTop: Spacing.md, paddingBottom: Spacing.sm },
-  backButton: { padding: Spacing.xs },
+  header: { paddingHorizontal: 0 },
   infoCard: { padding: Spacing.lg },
   section: { gap: Spacing.sm },
   ratingCard: { padding: Spacing.lg, alignItems: 'center', gap: Spacing.md },

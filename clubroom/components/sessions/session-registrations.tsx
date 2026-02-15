@@ -1,14 +1,14 @@
 /**
- * SessionRegistrations — Coach view: list of registered athletes.
+ * SessionRegistrations — Attendee roster for coach and registered athlete views.
  */
 import { memo } from 'react';
-import { StyleSheet } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 import { Row } from '@/components/primitives/row';
 import { Ionicons } from '@expo/vector-icons';
 
 import { ThemedText } from '@/components/themed-text';
 import { SurfaceCard } from '@/components/primitives/surface-card';
-import { Spacing } from '@/constants/theme';
+import { Radii, Spacing, withAlpha } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
 import { scaleFont } from '@/utils/scale';
 import type { SessionOffering } from '@/constants/types';
@@ -17,33 +17,80 @@ import { getSessionRegistrationUserName } from '@/utils/session-display';
 interface SessionRegistrationsProps {
   offering: SessionOffering;
   registeredCount: number;
+  viewer: 'coach' | 'registered-athlete';
+  currentUserId?: string;
+  userNameMap?: Record<string, string>;
 }
 
-function SessionRegistrationsInner({ offering, registeredCount }: SessionRegistrationsProps) {
+function SessionRegistrationsInner({
+  offering,
+  registeredCount,
+  viewer,
+  currentUserId,
+  userNameMap,
+}: SessionRegistrationsProps) {
   const { colors: palette } = useTheme();
+  const confirmedRegistrations = offering.registrations.filter((r) => r.status === 'confirmed');
+  const isCoachView = viewer === 'coach';
+  const title = isCoachView
+    ? `Registered Athletes (${registeredCount})`
+    : `Who's attending (${registeredCount})`;
 
   return (
     <SurfaceCard style={styles.card}>
-      <ThemedText type="subtitle">Registered Athletes ({registeredCount})</ThemedText>
-      {offering.registrations.length === 0 ? (
+      <ThemedText type="subtitle">{title}</ThemedText>
+      {!isCoachView && (
+        <ThemedText style={[styles.subhead, { color: palette.muted }]}>
+          Visible only to athletes who are registered for this session.
+        </ThemedText>
+      )}
+      {confirmedRegistrations.length === 0 ? (
         <ThemedText style={styles.emptyText}>No registrations yet</ThemedText>
       ) : (
-        offering.registrations
-          .filter((r) => r.status === 'confirmed')
-          .map((reg) => (
+        confirmedRegistrations.map((reg) => {
+          const athleteName = getSessionRegistrationUserName(reg, userNameMap);
+          const initials = athleteName
+            .split(' ')
+            .filter(Boolean)
+            .slice(0, 2)
+            .map((part) => part[0]?.toUpperCase() || '')
+            .join('');
+          const isCurrentUser = currentUserId ? reg.userId === currentUserId : false;
+
+          return (
             <Row
               key={reg.id}
               align="center"
               gap={12}
               style={[styles.registration, { borderBottomColor: palette.border }]}
             >
-              <Ionicons name="person" size={20} color={palette.icon} />
-              <ThemedText style={styles.regName}>{getSessionRegistrationUserName(reg)}</ThemedText>
-              <ThemedText style={styles.regDate}>
-                {new Date(reg.bookedAt).toLocaleDateString()}
-              </ThemedText>
+              <View style={[styles.avatar, { backgroundColor: withAlpha(palette.tint, 0.08) }]}>
+                <ThemedText style={[styles.avatarLabel, { color: palette.tint }]}>
+                  {initials || 'A'}
+                </ThemedText>
+              </View>
+
+              <View style={styles.nameBlock}>
+                <ThemedText style={styles.regName} numberOfLines={1}>
+                  {athleteName}
+                </ThemedText>
+                {!isCoachView && isCurrentUser && (
+                  <View style={[styles.youPill, { backgroundColor: withAlpha(palette.success, 0.12) }]}>
+                    <ThemedText style={[styles.youPillText, { color: palette.success }]}>You</ThemedText>
+                  </View>
+                )}
+              </View>
+
+              {isCoachView && (
+                <ThemedText style={styles.regDate}>
+                  {new Date(reg.bookedAt).toLocaleDateString()}
+                </ThemedText>
+              )}
+
+              {!isCoachView && <Ionicons name="checkmark-circle" size={18} color={palette.success} />}
             </Row>
-          ))
+          );
+        })
       )}
     </SurfaceCard>
   );
@@ -53,14 +100,51 @@ export const SessionRegistrations = memo(SessionRegistrationsInner);
 
 const styles = StyleSheet.create({
   card: { marginBottom: 16, padding: 20, gap: 14 },
+  subhead: {
+    fontSize: scaleFont(13),
+    lineHeight: scaleFont(18),
+    marginTop: -4,
+  },
   emptyText: {
     fontSize: scaleFont(15),
     opacity: 0.5,
     fontStyle: 'italic',
-    marginTop: 10,
+    marginTop: 4,
     lineHeight: scaleFont(21),
   },
   registration: { paddingVertical: Spacing.xs + Spacing.xxs, borderBottomWidth: 1 },
-  regName: { flex: 1, fontWeight: '600', fontSize: scaleFont(15), lineHeight: scaleFont(21) },
+  avatar: {
+    width: 34,
+    height: 34,
+    borderRadius: Radii.pill,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  avatarLabel: {
+    fontSize: scaleFont(13),
+    fontWeight: '700',
+  },
+  nameBlock: {
+    flex: 1,
+    gap: 2,
+    minWidth: 0,
+  },
+  regName: {
+    fontWeight: '600',
+    fontSize: scaleFont(15),
+    lineHeight: scaleFont(21),
+  },
+  youPill: {
+    alignSelf: 'flex-start',
+    borderRadius: Radii.pill,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+  },
+  youPillText: {
+    fontSize: scaleFont(11),
+    fontWeight: '700',
+    letterSpacing: 0.2,
+    textTransform: 'uppercase',
+  },
   regDate: { fontSize: scaleFont(13), opacity: 0.5 },
 });

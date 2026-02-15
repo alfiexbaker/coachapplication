@@ -31,7 +31,7 @@ export default function VideoUploadScreen() {
   } = useVideoUpload();
 
   return (
-    <SafeAreaView style={[styles.safeArea, { backgroundColor: colors.background }]} edges={['top']}>
+    <SafeAreaView style={[styles.safeArea, { backgroundColor: colors.background }]} edges={['top', 'bottom']}>
       <Row
         justify="space-between"
         align="center"

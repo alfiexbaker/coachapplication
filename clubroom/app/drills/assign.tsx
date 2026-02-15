@@ -10,23 +10,18 @@ import {
   Platform,
   ScrollView,
   StyleSheet,
-  View,
   RefreshControl,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 import { Routes } from '@/navigation/routes';
-import { Ionicons } from '@expo/vector-icons';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 
-import { ThemedText } from '@/components/themed-text';
-import { Clickable } from '@/components/primitives/clickable';
 import { Button } from '@/components/primitives/button';
-import { Row } from '@/components/primitives/row';
+import { PageHeader } from '@/components/primitives/page-header';
 import { LoadingState, ErrorState, EmptyState } from '@/components/ui/screen-states';
 import { AssignDrillForm } from '@/components/drills/assign-drill-form';
-import { Spacing, Typography } from '@/constants/theme';
-import { scaleFont } from '@/utils/scale';
+import { Spacing } from '@/constants/theme';
 import { useScreen } from '@/hooks/use-screen';
 import { ok } from '@/types/result';
 import { useDrillAssign } from '@/hooks/use-drill-assign';
@@ -60,7 +55,7 @@ export default function AssignDrillScreen() {
     return (
       <SafeAreaView
         style={[styles.container, { backgroundColor: colors.background }]}
-        edges={['top']}
+        edges={['top', 'bottom']}
       >
         <LoadingState variant="form" />
       </SafeAreaView>
@@ -71,7 +66,7 @@ export default function AssignDrillScreen() {
     return (
       <SafeAreaView
         style={[styles.container, { backgroundColor: colors.background }]}
-        edges={['top']}
+        edges={['top', 'bottom']}
       >
         <ErrorState message={error?.message ?? 'Failed to load drill.'} onRetry={retry} />
       </SafeAreaView>
@@ -82,7 +77,7 @@ export default function AssignDrillScreen() {
     return (
       <SafeAreaView
         style={[styles.container, { backgroundColor: colors.background }]}
-        edges={['top']}
+        edges={['top', 'bottom']}
       >
         <ScrollView
           contentContainerStyle={styles.center}
@@ -103,20 +98,16 @@ export default function AssignDrillScreen() {
   return (
     <SafeAreaView
       style={[styles.container, { backgroundColor: colors.background }]}
-      edges={['top']}
+      edges={['top', 'bottom']}
     >
-      <Row align="center" justify="space-between" style={styles.header}>
-        <Clickable onPress={() => router.back()} hitSlop={8}>
-          <Ionicons name="arrow-back" size={24} color={colors.text} />
-        </Clickable>
-        <ThemedText
-          type="subtitle"
-          style={[Typography.heading, { fontSize: scaleFont(Typography.heading.fontSize) }]}
-        >
-          Assign Drill
-        </ThemedText>
-        <View style={{ width: 24 }} />
-      </Row>
+      <PageHeader
+        title="Assign Drill"
+        showBack
+        backIcon="arrow-back"
+        onBackPress={() => router.back()}
+        centerTitle
+        containerStyle={styles.header}
+      />
 
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}

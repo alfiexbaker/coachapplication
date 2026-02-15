@@ -9,9 +9,9 @@ import React from 'react';
 import { View, StyleSheet, ScrollView, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
-import { Ionicons } from '@expo/vector-icons';
 
 import { Clickable } from '@/components/primitives/clickable';
+import { PageHeader } from '@/components/primitives/page-header';
 import { Row } from '@/components/primitives/row';
 import { ThemedText } from '@/components/themed-text';
 import { ConfirmBookingSummary } from '@/components/booking/confirm-booking-summary';
@@ -28,18 +28,17 @@ export default function ConfirmBookingScreen() {
   return (
     <SafeAreaView
       style={[styles.container, { backgroundColor: palette.background }]}
-      edges={['top']}
+      edges={['top', 'bottom']}
     >
+      <PageHeader
+        title="Confirm Booking"
+        showBack
+        backIcon="arrow-back"
+        onBackPress={() => router.back()}
+        centerTitle
+        containerStyle={styles.header}
+      />
       <ScrollView contentContainerStyle={styles.content}>
-        {/* Header */}
-        <Row style={styles.header}>
-          <Clickable onPress={() => router.back()} hitSlop={8} disabled={b.isProcessing}>
-            <Ionicons name="arrow-back" size={24} color={palette.text} />
-          </Clickable>
-          <ThemedText type="subtitle">Confirm Booking</ThemedText>
-          <View style={{ width: 24 }} />
-        </Row>
-
         <ConfirmBookingSummary
           coachName={b.coachName}
           athletesInfo={b.athletesInfo}

@@ -27,6 +27,8 @@ export const styles = StyleSheet.create({
   tierRow: { alignItems: 'center', gap: Spacing.xs },
   tierDot: { width: 8, height: 8, borderRadius: 4 },
   tierText: { ...Typography.smallSemiBold, minWidth: 80 },
+  refundControlRow: { gap: Spacing.xs, paddingVertical: Spacing.xs },
+  refundPercentValue: { ...Typography.bodySemiBold },
   tierHint: { ...Typography.micro },
   summaryCard: { padding: Spacing.md },
   summaryList: { gap: Spacing.xs },

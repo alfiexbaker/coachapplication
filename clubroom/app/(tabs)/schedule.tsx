@@ -43,7 +43,7 @@ export default function ScheduleScreen() {
     return (
       <SafeAreaView
         style={[styles.container, { backgroundColor: colors.background }]}
-        edges={['top']}
+        edges={['top', 'bottom']}
       >
         <LoadingState variant="calendar" />
       </SafeAreaView>
@@ -55,7 +55,7 @@ export default function ScheduleScreen() {
     return (
       <SafeAreaView
         style={[styles.container, { backgroundColor: colors.background }]}
-        edges={['top']}
+        edges={['top', 'bottom']}
       >
         <ScreenHeader title="Schedule" subtitle="Your upcoming sessions" />
         <ErrorState message={schedule.error} onRetry={schedule.retry} />
@@ -70,7 +70,7 @@ export default function ScheduleScreen() {
     return (
       <SafeAreaView
         style={[styles.container, { backgroundColor: colors.background }]}
-        edges={['top']}
+        edges={['top', 'bottom']}
       >
         <Row justify="between" align="center" style={styles.headerRow}>
           <ScreenHeader title="Schedule" subtitle="Your upcoming sessions" />
@@ -104,7 +104,7 @@ export default function ScheduleScreen() {
   return (
     <SafeAreaView
       style={[styles.container, { backgroundColor: colors.background }]}
-      edges={['top']}
+      edges={['top', 'bottom']}
     >
       {/* Header */}
       <Row justify="between" align="center" style={styles.headerRow}>

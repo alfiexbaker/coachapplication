@@ -93,6 +93,20 @@ describe('bookingService (real facade)', () => {
     assert.equal(cancelled?.cancellationReason, 'COACH');
   });
 
+  it('does not cancel past bookings', async () => {
+    const created = await bookingService.createBooking(
+      createParams('03-past', { scheduledAt: '2025-01-10T10:00:00.000Z' }),
+    );
+    assert.equal(created.success, true);
+    if (!created.success) return;
+
+    const cancelled = await bookingService.cancel(created.data.id, 'PARENT', 'parent');
+    assert.equal(cancelled, undefined);
+
+    const stillActive = await bookingService.getBooking(created.data.id);
+    assert.equal(stillActive?.status, 'CONFIRMED');
+  });
+
   it('filters bookings by role through getBookingsForUser', async () => {
     const one = await bookingService.createBooking(createParams('04'));
     const two = await bookingService.createBooking(

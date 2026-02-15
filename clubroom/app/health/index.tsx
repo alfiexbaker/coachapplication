@@ -41,7 +41,7 @@ export default function HealthDashboardScreen() {
     return (
       <SafeAreaView
         style={[styles.container, { backgroundColor: colors.background }]}
-        edges={['top']}
+        edges={['top', 'bottom']}
       >
         <LoadingState variant="detail" />
       </SafeAreaView>
@@ -52,7 +52,7 @@ export default function HealthDashboardScreen() {
     return (
       <SafeAreaView
         style={[styles.container, { backgroundColor: colors.background }]}
-        edges={['top']}
+        edges={['top', 'bottom']}
       >
         <ErrorState
           message={error?.message ?? 'Failed to load health dashboard.'}
@@ -65,7 +65,7 @@ export default function HealthDashboardScreen() {
   return (
     <SafeAreaView
       style={[styles.container, { backgroundColor: colors.background }]}
-      edges={['top']}
+      edges={['top', 'bottom']}
     >
       <Row gap="md" align="center" justify="between" style={styles.header}>
         <Clickable onPress={() => router.back()} hitSlop={8}>

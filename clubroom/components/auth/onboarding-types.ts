@@ -37,6 +37,7 @@ export interface OnboardingState {
   dateOfBirth: string;
 
   // Location
+  addressLine: string;
   city: string;
   postcode: string;
   country: string;
@@ -144,6 +145,7 @@ export const INITIAL_STATE: OnboardingState = {
   password: '',
   confirmPassword: '',
   dateOfBirth: '',
+  addressLine: '',
   city: '',
   postcode: '',
   country: 'UK',

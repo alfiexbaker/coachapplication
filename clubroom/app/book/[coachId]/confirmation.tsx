@@ -124,7 +124,7 @@ export default function ConfirmationScreen() {
   return (
     <SafeAreaView
       style={[styles.safeArea, { backgroundColor: palette.background }]}
-      edges={['top']}
+      edges={['top', 'bottom']}
     >
       <View style={styles.content}>
         <BookingWizardHeader

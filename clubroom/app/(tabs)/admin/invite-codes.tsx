@@ -60,7 +60,7 @@ export default function InviteCodesScreen() {
     return (
       <SafeAreaView
         style={[styles.safeArea, { backgroundColor: palette.background }]}
-        edges={['top']}
+        edges={['top', 'bottom']}
       >
         <LoadingState variant="list" />
       </SafeAreaView>
@@ -71,7 +71,7 @@ export default function InviteCodesScreen() {
     return (
       <SafeAreaView
         style={[styles.safeArea, { backgroundColor: palette.background }]}
-        edges={['top']}
+        edges={['top', 'bottom']}
       >
         <ErrorState message={error?.message ?? 'Failed to load invite codes.'} onRetry={retry} />
       </SafeAreaView>
@@ -81,7 +81,7 @@ export default function InviteCodesScreen() {
   return (
     <SafeAreaView
       style={[styles.safeArea, { backgroundColor: palette.background }]}
-      edges={['top']}
+      edges={['top', 'bottom']}
     >
       <Row justify="between" align="center" style={styles.header}>
         <Column>

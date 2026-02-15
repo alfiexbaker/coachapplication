@@ -62,7 +62,7 @@ export default function SessionRosterScreen() {
     return (
       <SafeAreaView
         style={[styles.container, { backgroundColor: colors.background }]}
-        edges={['top']}
+        edges={['top', 'bottom']}
       >
         <LoadingState variant="list" />
       </SafeAreaView>
@@ -73,7 +73,7 @@ export default function SessionRosterScreen() {
     return (
       <SafeAreaView
         style={[styles.container, { backgroundColor: colors.background }]}
-        edges={['top']}
+        edges={['top', 'bottom']}
       >
         <ErrorState message={error?.message || 'Failed to load session roster.'} onRetry={retry} />
       </SafeAreaView>
@@ -84,7 +84,7 @@ export default function SessionRosterScreen() {
     return (
       <SafeAreaView
         style={[styles.container, { backgroundColor: colors.background }]}
-        edges={['top']}
+        edges={['top', 'bottom']}
       >
         <EmptyState
           icon="people-outline"
@@ -100,7 +100,7 @@ export default function SessionRosterScreen() {
   return (
     <SafeAreaView
       style={[styles.container, { backgroundColor: colors.background }]}
-      edges={['top']}
+      edges={['top', 'bottom']}
     >
       <Row gap="md" align="center" style={styles.header}>
         <Clickable onPress={() => router.back()} hitSlop={8}>

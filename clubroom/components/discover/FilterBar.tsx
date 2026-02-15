@@ -27,6 +27,7 @@ interface FilterBarProps {
   onOpenFilters: () => void;
   totalResults: number;
   activeFilterCount: number;
+  variant?: 'default' | 'map';
 }
 
 export function FilterBar({
@@ -35,9 +36,13 @@ export function FilterBar({
   onOpenFilters,
   totalResults,
   activeFilterCount,
+  variant = 'default',
 }: FilterBarProps) {
   const { colors: palette } = useTheme();
   const scrollRef = useRef<ScrollView>(null);
+  const isMapVariant = variant === 'map';
+  const quickFilters = isMapVariant ? QUICK_FILTERS.slice(0, 2) : QUICK_FILTERS;
+  const showFocusFilters = !isMapVariant;
 
   const handleQuickFilterToggle = (quickFilter: QuickFilter) => {
     const newFilters = quickFilter.toggle(filters);
@@ -104,7 +109,7 @@ export function FilterBar({
         </Clickable>
 
         {/* Quick Filters */}
-        {QUICK_FILTERS.map((quickFilter) => (
+        {quickFilters.map((quickFilter) => (
           <Chip
             key={quickFilter.id}
             active={quickFilter.getIsActive(filters)}
@@ -115,20 +120,24 @@ export function FilterBar({
           </Chip>
         ))}
 
-        {/* Separator */}
-        <Divider vertical style={{ height: 24, marginHorizontal: Spacing.sm }} />
+        {showFocusFilters ? (
+          <>
+            {/* Separator */}
+            <Divider vertical style={{ height: 24, marginHorizontal: Spacing.sm }} />
 
-        {/* Focus Filters */}
-        {FOCUS_FILTERS.map((focus) => (
-          <Chip
-            key={focus.id}
-            active={filters.focuses?.includes(focus.id) ?? false}
-            onPress={() => handleFocusToggle(focus.id)}
-            style={styles.chip}
-          >
-            {focus.label}
-          </Chip>
-        ))}
+            {/* Focus Filters */}
+            {FOCUS_FILTERS.map((focus) => (
+              <Chip
+                key={focus.id}
+                active={filters.focuses?.includes(focus.id) ?? false}
+                onPress={() => handleFocusToggle(focus.id)}
+                style={styles.chip}
+              >
+                {focus.label}
+              </Chip>
+            ))}
+          </>
+        ) : null}
       </ScrollView>
 
       {/* Results count and Clear */}
@@ -153,7 +162,7 @@ export function FilterBar({
 
 const styles = StyleSheet.create({
   container: {
-    paddingVertical: Spacing.sm,
+    paddingVertical: Spacing.xs,
   },
   scrollContent: {
     paddingHorizontal: Spacing.md,
@@ -163,7 +172,8 @@ const styles = StyleSheet.create({
   filterButton: {
     alignItems: 'center',
     gap: Spacing.xs,
-    paddingVertical: Spacing.xs,
+    minHeight: 44,
+    paddingVertical: Spacing.xs / 2,
     paddingHorizontal: Spacing.md,
     borderRadius: Radii.pill,
     borderWidth: 1,
@@ -188,12 +198,14 @@ const styles = StyleSheet.create({
   chip: {
     marginRight: 0,
     marginBottom: 0,
+    minHeight: 44,
+    justifyContent: 'center',
   },
   footer: {
     justifyContent: 'space-between',
     alignItems: 'center',
     paddingHorizontal: Spacing.md,
-    paddingTop: Spacing.sm,
+    paddingTop: Spacing.xs,
   },
   resultsText: {
     ...Typography.sm,

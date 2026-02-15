@@ -37,7 +37,7 @@ export const SquadInfoCard = memo(function SquadInfoCard({
     <SurfaceCard style={styles.card}>
       <Row
         align="center"
-        gap="md"
+        gap="xs"
         style={[styles.banner, { backgroundColor: withAlpha(colors.tint, 0.03) }]}
       >
         <View style={[styles.icon, { backgroundColor: withAlpha(colors.tint, 0.09) }]}>
@@ -73,12 +73,12 @@ export const SquadInfoCard = memo(function SquadInfoCard({
           </View>
         ) : (
           <Row gap="sm" align="center" style={{ flex: 1 }}>
-            <View style={{ flex: 1 }}>
-              <ThemedText type="title" style={Typography.title}>
+            <View style={styles.infoText}>
+              <ThemedText type="title" style={styles.squadName} numberOfLines={1}>
                 {squad.name}
               </ThemedText>
-              <ThemedText style={[Typography.small, { color: colors.muted }]}>
-                {squad.level} -- {squad.primaryCoach}
+              <ThemedText style={[Typography.small, { color: colors.muted }]} numberOfLines={1}>
+                {squad.level} {'\u00B7'} {squad.primaryCoach}
               </ThemedText>
             </View>
             <Clickable onPress={onStartEdit} hitSlop={8}>
@@ -122,13 +122,22 @@ const styles = StyleSheet.create({
   card: { gap: Spacing.sm },
   banner: { padding: Spacing.md, borderRadius: Radii.md },
   icon: {
-    width: 56,
-    height: 56,
+    width: 48,
+    height: 48,
     borderRadius: Radii['2xl'],
     alignItems: 'center',
     justifyContent: 'center',
   },
   editContainer: { flex: 1, gap: Spacing.xs },
+  infoText: {
+    flex: 1,
+    minWidth: 0,
+    gap: Spacing.xxs,
+  },
+  squadName: {
+    ...Typography.subheading,
+    flexShrink: 1,
+  },
   nameInput: {
     borderWidth: 1,
     borderRadius: Radii.md,

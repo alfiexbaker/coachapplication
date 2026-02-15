@@ -1,4 +1,4 @@
-import { StyleSheet, ScrollView, View } from 'react-native';
+import { StyleSheet, ScrollView } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useLocalSearchParams, router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -7,6 +7,7 @@ import { ThemedText } from '@/components/themed-text';
 import { Clickable } from '@/components/primitives/clickable';
 import { Row } from '@/components/primitives/row';
 import { LoadingState, EmptyState } from '@/components/ui/screen-states';
+import { PageHeader } from '@/components/primitives/page-header';
 import { DevSessionInfo } from '@/components/development/dev-session-info';
 import { DevSessionRatings } from '@/components/development/dev-session-ratings';
 import { DevSessionSkills } from '@/components/development/dev-session-skills';
@@ -64,7 +65,10 @@ export default function SessionDetailScreen() {
 
   if (!resolvedSessionId) {
     return (
-      <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
+      <SafeAreaView
+        style={[styles.container, { backgroundColor: colors.background }]}
+        edges={['top', 'bottom']}
+      >
         <EmptyState
           icon="alert-circle-outline"
           title="Session link is invalid"
@@ -76,7 +80,10 @@ export default function SessionDetailScreen() {
 
   if (loading) {
     return (
-      <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
+      <SafeAreaView
+        style={[styles.container, { backgroundColor: colors.background }]}
+        edges={['top', 'bottom']}
+      >
         <LoadingState variant="form" />
       </SafeAreaView>
     );
@@ -84,7 +91,10 @@ export default function SessionDetailScreen() {
 
   if (!session || !athlete || !currentUser) {
     return (
-      <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
+      <SafeAreaView
+        style={[styles.container, { backgroundColor: colors.background }]}
+        edges={['top', 'bottom']}
+      >
         <EmptyState
           icon="document-text-outline"
           title="Session not found"
@@ -98,20 +108,16 @@ export default function SessionDetailScreen() {
     <>
       <SafeAreaView
         style={[styles.container, { backgroundColor: colors.background }]}
-        edges={['top']}
+        edges={['top', 'bottom']}
       >
         <ScrollView contentContainerStyle={styles.content}>
-          <Row
-            align="center"
-            justify="space-between"
-            style={{ paddingTop: Spacing.md, paddingBottom: Spacing.sm }}
-          >
-            <Clickable onPress={() => router.back()} style={{ padding: Spacing.xs }}>
-              <Ionicons name="arrow-back" size={24} color={colors.foreground} />
-            </Clickable>
-            <ThemedText type="title">Session Feedback</ThemedText>
-            <View style={{ width: 24 }} />
-          </Row>
+          <PageHeader
+            title="Session Feedback"
+            showBack
+            onBackPress={() => router.back()}
+            centerTitle
+            containerStyle={styles.header}
+          />
 
           <DevSessionInfo
             athleteName={athlete.name}
@@ -209,6 +215,9 @@ export default function SessionDetailScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
+  header: {
+    paddingHorizontal: 0,
+  },
   content: {
     flexGrow: 1,
     paddingHorizontal: Spacing.lg,

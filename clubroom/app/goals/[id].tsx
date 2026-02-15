@@ -54,7 +54,7 @@ export default function GoalDetailScreen() {
     return (
       <SafeAreaView
         style={[styles.container, { backgroundColor: colors.background }]}
-        edges={['top']}
+        edges={['top', 'bottom']}
       >
         <Row gap="md" align="center" style={styles.header}>
           <Clickable onPress={() => router.back()} hitSlop={8}>
@@ -70,7 +70,7 @@ export default function GoalDetailScreen() {
     return (
       <SafeAreaView
         style={[styles.container, { backgroundColor: colors.background }]}
-        edges={['top']}
+        edges={['top', 'bottom']}
       >
         <Row gap="md" align="center" style={styles.header}>
           <Clickable onPress={() => router.back()} hitSlop={8}>
@@ -86,7 +86,7 @@ export default function GoalDetailScreen() {
     return (
       <SafeAreaView
         style={[styles.container, { backgroundColor: colors.background }]}
-        edges={['top']}
+        edges={['top', 'bottom']}
       >
         <Row gap="md" align="center" style={styles.header}>
           <Clickable onPress={() => router.back()} hitSlop={8}>
@@ -105,7 +105,7 @@ export default function GoalDetailScreen() {
   return (
     <SafeAreaView
       style={[styles.container, { backgroundColor: colors.background }]}
-      edges={['top']}
+      edges={['top', 'bottom']}
     >
       <Row align="center" justify="space-between" style={styles.header}>
         <Clickable onPress={() => router.back()} hitSlop={8}>

@@ -229,6 +229,26 @@ class BookingCrudService {
   async cancel(id: string, reason: string, cancelledBy: 'coach' | 'parent' = 'parent') {
     const bookings = await this.loadFromStorage();
     const booking = bookings.find((b) => b.id === id);
+    if (!booking) {
+      logger.warn('Booking not found for cancellation', { bookingId: id, cancelledBy });
+      return undefined;
+    }
+
+    const sessionStart = new Date(booking.scheduledAt).getTime();
+    if (!Number.isFinite(sessionStart) || sessionStart <= Date.now()) {
+      logger.warn('Cancellation blocked for past booking', { bookingId: id, cancelledBy });
+      return undefined;
+    }
+
+    if (booking.status === 'CANCELLED' || booking.status === 'COMPLETED') {
+      logger.warn('Cancellation blocked for non-active booking', {
+        bookingId: id,
+        status: booking.status,
+        cancelledBy,
+      });
+      return undefined;
+    }
+
     const updated = bookings.map((b) =>
       b.id === id ? { ...b, status: 'CANCELLED' as const, cancellationReason: reason } : b,
     );

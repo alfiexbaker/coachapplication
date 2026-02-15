@@ -16,6 +16,7 @@ import type { UserRole, SimplifiedUserType } from '@/constants/user-types';
 import type { OnboardingData, AccountType } from '@/services/auth-service';
 import { authService } from '@/services/auth-service';
 import { apiClient } from '@/services/api-client';
+import { ensureCoachSessionsSeeded } from '@/services/coach-session-seed-service';
 import { STORAGE_KEYS } from '@/constants/storage-keys';
 import { createLogger } from '@/utils/logger';
 
@@ -28,6 +29,7 @@ type DemoUser = Omit<User, 'role'> & {
   username: string;
   password: string;
   fullName?: string;
+  addressLine?: string;
   schoolId?: string;
   schoolName?: string;
   // Simplified user type fields
@@ -249,6 +251,216 @@ const DEMO_USERS: DemoUser[] = [
       },
     ],
   },
+  {
+    id: 'athlete_4',
+    username: 'athlete4',
+    password: 'user',
+    role: 'USER',
+    type: 'USER',
+    fullName: 'Maya Patel',
+    email: 'maya.patel@email.com',
+    postcode: 'E2 8AA',
+    name: 'Maya Patel',
+    dateOfBirth: '2010-03-10',
+    skillLevel: 'INTERMEDIATE',
+    position: 'Defender',
+  },
+  {
+    id: 'athlete_5',
+    username: 'athlete5',
+    password: 'user',
+    role: 'USER',
+    type: 'USER',
+    fullName: 'Ethan Cole',
+    email: 'ethan.cole@email.com',
+    postcode: 'E2 8AA',
+    name: 'Ethan Cole',
+    dateOfBirth: '2011-09-02',
+    skillLevel: 'BEGINNER',
+    position: 'Midfielder',
+  },
+  {
+    id: 'athlete_6',
+    username: 'athlete6',
+    password: 'user',
+    role: 'USER',
+    type: 'USER',
+    fullName: 'Leo Grant',
+    email: 'leo.grant@email.com',
+    postcode: 'N7 0DP',
+    name: 'Leo Grant',
+    dateOfBirth: '2010-07-13',
+    skillLevel: 'INTERMEDIATE',
+    position: 'Winger',
+  },
+  {
+    id: 'athlete_7',
+    username: 'athlete7',
+    password: 'user',
+    role: 'USER',
+    type: 'USER',
+    fullName: 'Noah Grant',
+    email: 'noah.grant@email.com',
+    postcode: 'N7 0DP',
+    name: 'Noah Grant',
+    dateOfBirth: '2011-02-24',
+    skillLevel: 'INTERMEDIATE',
+    position: 'Defender',
+  },
+  {
+    id: 'athlete_8',
+    username: 'athlete8',
+    password: 'user',
+    role: 'USER',
+    type: 'USER',
+    fullName: 'Ava Khan',
+    email: 'ava.khan@email.com',
+    postcode: 'E10 4LA',
+    name: 'Ava Khan',
+    dateOfBirth: '2010-11-03',
+    skillLevel: 'INTERMEDIATE',
+    position: 'Midfielder',
+  },
+  {
+    id: 'athlete_9',
+    username: 'athlete9',
+    password: 'user',
+    role: 'USER',
+    type: 'USER',
+    fullName: 'Liam Ward',
+    email: 'liam.ward@email.com',
+    postcode: 'SE10 9AB',
+    name: 'Liam Ward',
+    dateOfBirth: '2010-04-21',
+    skillLevel: 'INTERMEDIATE',
+    position: 'Winger',
+  },
+  {
+    id: 'athlete_10',
+    username: 'athlete10',
+    password: 'user',
+    role: 'USER',
+    type: 'USER',
+    fullName: 'Zoe Ward',
+    email: 'zoe.ward@email.com',
+    postcode: 'SE10 9AB',
+    name: 'Zoe Ward',
+    dateOfBirth: '2011-09-14',
+    skillLevel: 'INTERMEDIATE',
+    position: 'Attacking Midfielder',
+  },
+  {
+    id: 'parent_3',
+    username: 'parent3',
+    password: 'user',
+    role: 'USER',
+    type: 'USER',
+    fullName: 'Priya Patel',
+    email: 'priya.patel@email.com',
+    postcode: 'E2 8AA',
+    name: 'Priya Patel',
+    dateOfBirth: '1984-04-18',
+    children: [
+      {
+        childId: 'athlete_4',
+        childName: 'Maya Patel',
+        relationshipType: 'PARENT_CHILD',
+        addedAt: '2021-01-01',
+      },
+    ],
+  },
+  {
+    id: 'parent_4',
+    username: 'parent4',
+    password: 'user',
+    role: 'USER',
+    type: 'USER',
+    fullName: 'Daniel Cole',
+    email: 'daniel.cole@email.com',
+    postcode: 'E2 8AA',
+    name: 'Daniel Cole',
+    dateOfBirth: '1981-12-04',
+    children: [
+      {
+        childId: 'athlete_5',
+        childName: 'Ethan Cole',
+        relationshipType: 'PARENT_CHILD',
+        addedAt: '2021-01-01',
+      },
+    ],
+  },
+  {
+    id: 'parent_5',
+    username: 'parent5',
+    password: 'user',
+    role: 'USER',
+    type: 'USER',
+    fullName: 'Rachel Grant',
+    email: 'rachel.grant@email.com',
+    postcode: 'N7 0DP',
+    name: 'Rachel Grant',
+    dateOfBirth: '1986-06-29',
+    children: [
+      {
+        childId: 'athlete_6',
+        childName: 'Leo Grant',
+        relationshipType: 'PARENT_CHILD',
+        addedAt: '2022-01-01',
+      },
+      {
+        childId: 'athlete_7',
+        childName: 'Noah Grant',
+        relationshipType: 'PARENT_CHILD',
+        addedAt: '2022-01-01',
+      },
+    ],
+  },
+  {
+    id: 'parent_6',
+    username: 'parent6',
+    password: 'user',
+    role: 'USER',
+    type: 'USER',
+    fullName: 'Omar Khan',
+    email: 'omar.khan@email.com',
+    postcode: 'E10 4LA',
+    name: 'Omar Khan',
+    dateOfBirth: '1982-10-17',
+    children: [
+      {
+        childId: 'athlete_8',
+        childName: 'Ava Khan',
+        relationshipType: 'PARENT_CHILD',
+        addedAt: '2022-06-01',
+      },
+    ],
+  },
+  {
+    id: 'parent_7',
+    username: 'parent7',
+    password: 'user',
+    role: 'USER',
+    type: 'USER',
+    fullName: 'Hannah Ward',
+    email: 'hannah.ward@email.com',
+    postcode: 'SE10 9AB',
+    name: 'Hannah Ward',
+    dateOfBirth: '1987-01-14',
+    children: [
+      {
+        childId: 'athlete_9',
+        childName: 'Liam Ward',
+        relationshipType: 'PARENT_CHILD',
+        addedAt: '2022-07-01',
+      },
+      {
+        childId: 'athlete_10',
+        childName: 'Zoe Ward',
+        relationshipType: 'PARENT_CHILD',
+        addedAt: '2022-07-01',
+      },
+    ],
+  },
   // Admin (System flag on a USER)
   {
     id: 'admin',
@@ -341,6 +553,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             (u) => u.email?.toLowerCase() === authState.user!.email.toLowerCase(),
           );
           if (demoMatch) {
+            await ensureCoachSessionsSeeded();
             setCurrentUser(demoMatch);
             logger.success('Session restored from storage', { userId: demoMatch.id });
           }
@@ -379,6 +592,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         });
         setCurrentUser(match);
         setError(null);
+        void ensureCoachSessionsSeeded().catch((seedError) => {
+          logger.error('Failed to seed coach sessions after login', seedError);
+        });
 
         const now = Date.now();
         const sessionUser = {
@@ -489,6 +705,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         fullName,
         name: fullName,
         email: data.email,
+        addressLine: data.addressLine,
         postcode: data.postcode || 'SW1A 1AA',
         dateOfBirth: data.dateOfBirth || '1990-01-01',
         // Athlete fields

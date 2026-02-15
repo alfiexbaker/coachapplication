@@ -174,7 +174,7 @@ const node_test_1 = __importStar(require("node:test"));
     });
     (0, node_test_1.describe)('Amount Formatting', () => {
         const formatAmount = (amount, currency = 'GBP') => {
-            const symbol = currency === 'GBP' ? '\u00A3' : '$';
+            const symbol = '\u00A3';
             return `${symbol}${amount.toFixed(2)}`;
         };
         (0, node_test_1.default)('should format GBP amount correctly', () => {

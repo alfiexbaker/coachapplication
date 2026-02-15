@@ -30,7 +30,7 @@ export default function PaymentMethodsScreen() {
 
   if (status === 'loading') {
     return (
-      <SafeAreaView style={{ flex: 1, backgroundColor: palette.background }} edges={['top']}>
+      <SafeAreaView style={{ flex: 1, backgroundColor: palette.background }} edges={['top', 'bottom']}>
         <LoadingState variant="list" />
       </SafeAreaView>
     );
@@ -38,7 +38,7 @@ export default function PaymentMethodsScreen() {
 
   if (status === 'error') {
     return (
-      <SafeAreaView style={{ flex: 1, backgroundColor: palette.background }} edges={['top']}>
+      <SafeAreaView style={{ flex: 1, backgroundColor: palette.background }} edges={['top', 'bottom']}>
         <ErrorState message={error?.message || 'Failed to load payment methods.'} onRetry={retry} />
       </SafeAreaView>
     );
@@ -46,7 +46,7 @@ export default function PaymentMethodsScreen() {
 
   if (status === 'empty') {
     return (
-      <SafeAreaView style={{ flex: 1, backgroundColor: palette.background }} edges={['top']}>
+      <SafeAreaView style={{ flex: 1, backgroundColor: palette.background }} edges={['top', 'bottom']}>
         <EmptyState
           icon="card-outline"
           title="No payment methods"
@@ -59,7 +59,7 @@ export default function PaymentMethodsScreen() {
   }
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: palette.background }} edges={['top']}>
+    <SafeAreaView style={{ flex: 1, backgroundColor: palette.background }} edges={['top', 'bottom']}>
       <ScrollView
         contentContainerStyle={styles.content}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}

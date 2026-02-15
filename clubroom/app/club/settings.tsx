@@ -8,6 +8,7 @@ import { SurfaceCard } from '@/components/primitives/surface-card';
 import { Clickable } from '@/components/primitives/clickable';
 import { ThemedText } from '@/components/themed-text';
 import { Row } from '@/components/primitives/row';
+import { PageHeader } from '@/components/primitives/page-header';
 import { LoadingState, EmptyState } from '@/components/ui/screen-states';
 import { SettingsDetailsSection } from '@/components/club/settings-details-section';
 import { SettingsInvitesSection } from '@/components/club/settings-invites-section';
@@ -59,7 +60,7 @@ export default function ClubSettingsScreen() {
     return (
       <SafeAreaView
         style={[styles.container, { backgroundColor: colors.background }]}
-        edges={['top']}
+        edges={['top', 'bottom']}
       >
         <LoadingState variant="form" />
       </SafeAreaView>
@@ -70,7 +71,7 @@ export default function ClubSettingsScreen() {
     return (
       <SafeAreaView
         style={[styles.container, { backgroundColor: colors.background }]}
-        edges={['top']}
+        edges={['top', 'bottom']}
       >
         <EmptyState
           icon="settings-outline"
@@ -86,27 +87,11 @@ export default function ClubSettingsScreen() {
   return (
     <SafeAreaView
       style={[styles.container, { backgroundColor: colors.background }]}
-      edges={['top']}
+      edges={['top', 'bottom']}
     >
-      <Row gap="md" align="center" style={styles.header}>
-        <Clickable onPress={() => router.back()} hitSlop={8}>
-          <Ionicons name="arrow-back" size={24} color={colors.text} />
-        </Clickable>
-        <View style={{ flex: 1 }}>
-          <ThemedText type="title">Club Settings</ThemedText>
-          <ThemedText style={[Typography.small, { color: colors.muted, marginTop: Spacing.micro }]}>
-            {club.name}
-          </ThemedText>
-        </View>
-        <View style={{ width: 24 }} />
-      </Row>
+      <PageHeader title="Club Settings" subtitle={club.name} showBack centerTitle />
 
-      <ScrollView
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        style={{ flexGrow: 0 }}
-        contentContainerStyle={styles.tabsContent}
-      >
+      <View style={styles.tabsContent}>
         {visibleSections.map((section) => (
           <Clickable
             key={section.key}
@@ -119,24 +104,17 @@ export default function ClubSettingsScreen() {
             }
             onPress={() => setActiveSection(section.key)}
           >
-            <Row align="center" gap="xs">
-              <Ionicons
-                name={section.icon as keyof typeof Ionicons.glyphMap}
-                size={18}
-                color={activeSection === section.key ? colors.tint : colors.muted}
-              />
-              <ThemedText
-                style={[
-                  Typography.smallSemiBold,
-                  { color: activeSection === section.key ? colors.tint : colors.muted },
-                ]}
-              >
-                {section.label}
-              </ThemedText>
-            </Row>
+            <ThemedText
+              style={[
+                Typography.smallSemiBold,
+                { color: activeSection === section.key ? colors.tint : colors.muted },
+              ]}
+            >
+              {section.label}
+            </ThemedText>
           </Clickable>
         ))}
-      </ScrollView>
+      </View>
 
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
         {!canManageClub && (
@@ -225,13 +203,21 @@ export default function ClubSettingsScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1 },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
-  header: { paddingHorizontal: Spacing.lg, paddingVertical: Spacing.md },
-  tabsContent: { paddingHorizontal: Spacing.lg, paddingBottom: Spacing.md, gap: Spacing.sm },
+  tabsContent: {
+    paddingHorizontal: Spacing.md,
+    paddingBottom: Spacing.md,
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: Spacing.xs,
+  },
   tab: {
     paddingHorizontal: Spacing.md,
-    paddingVertical: Spacing.sm,
+    paddingVertical: Spacing.xs,
+    minHeight: 40,
     borderRadius: Radii.full,
     borderWidth: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   content: { padding: Spacing.lg, paddingTop: 0, gap: Spacing.md },
   readOnlyCard: { gap: Spacing.xs, borderWidth: 1 },

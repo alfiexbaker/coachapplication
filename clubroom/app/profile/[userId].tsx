@@ -43,7 +43,7 @@ export default function ProfileScreen() {
     return (
       <SafeAreaView
         style={[styles.container, { backgroundColor: colors.background }]}
-        edges={['top']}
+        edges={['top', 'bottom']}
       >
         <LoadingState variant="detail" />
       </SafeAreaView>
@@ -54,7 +54,7 @@ export default function ProfileScreen() {
     return (
       <SafeAreaView
         style={[styles.container, { backgroundColor: colors.background }]}
-        edges={['top']}
+        edges={['top', 'bottom']}
       >
         <ErrorState message={error?.message ?? 'Failed to load profile.'} onRetry={retry} />
       </SafeAreaView>
@@ -65,7 +65,7 @@ export default function ProfileScreen() {
     return (
       <SafeAreaView
         style={[styles.container, { backgroundColor: colors.background }]}
-        edges={['top']}
+        edges={['top', 'bottom']}
       >
         <EmptyState
           icon="person-outline"
@@ -83,7 +83,7 @@ export default function ProfileScreen() {
   return (
     <SafeAreaView
       style={[styles.container, { backgroundColor: colors.background }]}
-      edges={['top']}
+      edges={['top', 'bottom']}
     >
       <Row style={styles.header} align="center" justify="between">
         <Clickable onPress={() => router.back()} hitSlop={8} accessibilityLabel="Go back">

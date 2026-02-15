@@ -16,6 +16,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { Clickable } from '@/components/primitives/clickable';
 import { Button } from '@/components/primitives/button';
+import { PageHeader } from '@/components/primitives/page-header';
 import { ThemedText } from '@/components/themed-text';
 import { LoadingState, ErrorState, EmptyState } from '@/components/ui/screen-states';
 import { Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
@@ -56,7 +57,7 @@ export default function EventRSVPScreen() {
     return (
       <SafeAreaView
         style={[styles.container, { backgroundColor: palette.background }]}
-        edges={['top']}
+        edges={['top', 'bottom']}
       >
         <LoadingState variant="detail" />
       </SafeAreaView>
@@ -67,7 +68,7 @@ export default function EventRSVPScreen() {
     return (
       <SafeAreaView
         style={[styles.container, { backgroundColor: palette.background }]}
-        edges={['top']}
+        edges={['top', 'bottom']}
       >
         <ErrorState message={error?.message || 'Failed to load RSVP details.'} onRetry={retry} />
       </SafeAreaView>
@@ -78,7 +79,7 @@ export default function EventRSVPScreen() {
     return (
       <SafeAreaView
         style={[styles.container, { backgroundColor: palette.background }]}
-        edges={['top']}
+        edges={['top', 'bottom']}
       >
         <EmptyState
           icon="calendar-outline"
@@ -94,21 +95,16 @@ export default function EventRSVPScreen() {
   return (
     <SafeAreaView
       style={[styles.container, { backgroundColor: palette.background }]}
-      edges={['top']}
+      edges={['top', 'bottom']}
     >
-      <Row
-        align="center"
-        justify="space-between"
-        style={[styles.header, { borderBottomColor: palette.border }]}
-      >
-        <Clickable onPress={() => router.back()} style={styles.backButton}>
-          <Ionicons name="close" size={24} color={palette.text} />
-        </Clickable>
-        <ThemedText type="subtitle" style={styles.headerTitle}>
-          RSVP
-        </ThemedText>
-        <View style={styles.headerSpacer} />
-      </Row>
+      <PageHeader
+        title="RSVP"
+        showBack
+        backIcon="close"
+        onBackPress={() => router.back()}
+        centerTitle
+        containerStyle={[styles.header, { borderBottomColor: palette.border }]}
+      />
 
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
@@ -441,11 +437,8 @@ export default function EventRSVPScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1 },
   flex: { flex: 1 },
-  header: { paddingHorizontal: Spacing.md, paddingVertical: Spacing.sm, borderBottomWidth: 1 },
-  backButton: { width: 40, height: 40, alignItems: 'center', justifyContent: 'center' },
-  headerTitle: { ...Typography.heading, fontSize: scaleFont(Typography.heading.fontSize) },
-  headerSpacer: { width: 40 },
-  scrollContent: { padding: Spacing.lg, gap: Spacing.lg, paddingBottom: 100 },
+  header: { borderBottomWidth: 1 },
+  scrollContent: { padding: Spacing.lg, gap: Spacing.lg, paddingBottom: Spacing.lg },
   eventCard: { padding: Spacing.md, gap: Spacing.md },
   eventTitle: { ...Typography.heading, fontSize: scaleFont(Typography.heading.fontSize) },
   eventDetails: { gap: Spacing.xxs, marginTop: Spacing.xxs },
@@ -534,10 +527,6 @@ const styles = StyleSheet.create({
     minHeight: 100,
   },
   footer: {
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
     padding: Spacing.lg,
     borderTopWidth: 1,
   },

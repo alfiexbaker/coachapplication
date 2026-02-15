@@ -57,7 +57,7 @@ export default function GoalsDashboardScreen() {
   return (
     <SafeAreaView
       style={[styles.container, { backgroundColor: colors.background }]}
-      edges={['top']}
+      edges={['top', 'bottom']}
     >
       {/* Header */}
       <Row align="center" justify="space-between" style={styles.header}>

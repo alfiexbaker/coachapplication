@@ -349,12 +349,21 @@ export const sessionRegistrationService = {
             price: session.pricePerParticipant,
           });
           if (bookingResult.success) {
-            // Stamp group linkage fields onto the booking
             const booking = bookingResult.data;
-            booking.isGroupSession = true;
-            booking.groupSessionId = session.id;
-            booking.groupRegistrationId = registration.id;
-            booking.status = 'CONFIRMED';
+            const linkResult = await bookingCrudService.updateBooking(booking.id, {
+              isGroupSession: true,
+              groupSessionId: session.id,
+              groupRegistrationId: registration.id,
+              status: 'CONFIRMED',
+            });
+            if (!linkResult.success) {
+              logger.error('Failed to persist group linkage on booking', {
+                bookingId: booking.id,
+                groupSessionId: session.id,
+                groupRegistrationId: registration.id,
+                error: linkResult.error.message,
+              });
+            }
 
             emitTyped(ServiceEvents.BOOKING_CREATED, {
               bookingId: booking.id,

@@ -68,9 +68,16 @@ export function ScreenHeader({
     >
       <Row align="center" justify="between" gap="sm">
         <View style={styles.textContainer}>
-          <ThemedText style={styles.title}>{title}</ThemedText>
+          <ThemedText style={styles.title} numberOfLines={1}>
+            {title}
+          </ThemedText>
           {subtitle && (
-            <ThemedText style={[styles.subtitle, { color: palette.muted }]}>{subtitle}</ThemedText>
+            <ThemedText
+              style={[styles.subtitle, { color: palette.muted }]}
+              numberOfLines={2}
+            >
+              {subtitle}
+            </ThemedText>
           )}
         </View>
 
@@ -80,17 +87,20 @@ export function ScreenHeader({
               (action && (
                 <Clickable
                   onPress={action.onPress}
-                  style={[styles.actionButton, { backgroundColor: palette.tint }]}
+                  style={[
+                    styles.actionButton,
+                    { backgroundColor: palette.surface, borderColor: palette.border },
+                  ]}
                   accessibilityRole="button"
                   accessibilityLabel={action.label ?? 'Header action'}
                   hitSlop={{ top: 8, right: 8, bottom: 8, left: 8 }}
                 >
                   <Row align="center" gap="xxs">
                     {action.icon && (
-                      <Ionicons name={action.icon} size={18} color={palette.onPrimary} />
+                      <Ionicons name={action.icon} size={18} color={palette.foreground} />
                     )}
                     {action.label && (
-                      <ThemedText style={[styles.actionLabel, { color: palette.onPrimary }]}>
+                      <ThemedText style={[styles.actionLabel, { color: palette.foreground }]}>
                         {action.label}
                       </ThemedText>
                     )}
@@ -121,9 +131,10 @@ const styles = StyleSheet.create({
   subtitle: { ...Typography.caption, lineHeight: 18 },
   actionButton: {
     paddingHorizontal: Spacing.sm,
-    minHeight: 44,
+    minHeight: 40,
     paddingVertical: Spacing.xxs,
-    borderRadius: Radii.sm,
+    borderRadius: Radii.md,
+    borderWidth: 1,
     justifyContent: 'center',
   },
   actionLabel: { ...Typography.smallSemiBold },

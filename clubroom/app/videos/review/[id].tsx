@@ -6,6 +6,7 @@ import Animated, { FadeInDown, FadeIn } from 'react-native-reanimated';
 
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { Clickable } from '@/components/primitives/clickable';
+import { PageHeader } from '@/components/primitives/page-header';
 import { Row } from '@/components/primitives/row';
 import { ThemedText } from '@/components/themed-text';
 import { VideoPlayer } from '@/components/video/video-player';
@@ -48,15 +49,16 @@ export default function AthleteReviewScreen() {
     return (
       <SafeAreaView
         style={[styles.container, { backgroundColor: palette.background }]}
-        edges={['top']}
+        edges={['top', 'bottom']}
       >
-        <Row align="center" gap="md" style={styles.header}>
-          <Clickable onPress={() => router.back()} hitSlop={8}>
-            <Ionicons name="arrow-back" size={24} color={palette.text} />
-          </Clickable>
-          <ThemedText type="defaultSemiBold">Video Review</ThemedText>
-          <View style={{ width: 24 }} />
-        </Row>
+        <PageHeader
+          title="Video Review"
+          showBack
+          backIcon="arrow-back"
+          onBackPress={() => router.back()}
+          centerTitle
+          containerStyle={styles.header}
+        />
         <LoadingState variant="detail" />
       </SafeAreaView>
     );
@@ -66,7 +68,7 @@ export default function AthleteReviewScreen() {
     return (
       <SafeAreaView
         style={[styles.container, { backgroundColor: palette.background }]}
-        edges={['top']}
+        edges={['top', 'bottom']}
       >
         <ErrorState message={error?.message ?? 'Failed to load review video.'} onRetry={retry} />
       </SafeAreaView>
@@ -77,7 +79,7 @@ export default function AthleteReviewScreen() {
     return (
       <SafeAreaView
         style={[styles.container, { backgroundColor: palette.background }]}
-        edges={['top']}
+        edges={['top', 'bottom']}
       >
         <EmptyState
           icon="videocam-outline"
@@ -92,15 +94,16 @@ export default function AthleteReviewScreen() {
     return (
       <SafeAreaView
         style={[styles.container, { backgroundColor: palette.background }]}
-        edges={['top']}
+        edges={['top', 'bottom']}
       >
-        <Row align="center" gap="md" style={styles.header}>
-          <Clickable onPress={() => router.back()} hitSlop={8}>
-            <Ionicons name="arrow-back" size={24} color={palette.text} />
-          </Clickable>
-          <ThemedText type="defaultSemiBold">Access Denied</ThemedText>
-          <View style={{ width: 24 }} />
-        </Row>
+        <PageHeader
+          title="Access Denied"
+          showBack
+          backIcon="arrow-back"
+          onBackPress={() => router.back()}
+          centerTitle
+          containerStyle={styles.header}
+        />
         <EmptyState
           icon="lock-closed-outline"
           title="Video Not Available"
@@ -113,22 +116,17 @@ export default function AthleteReviewScreen() {
   return (
     <SafeAreaView
       style={[styles.container, { backgroundColor: palette.background }]}
-      edges={['top']}
+      edges={['top', 'bottom']}
     >
-      <Row align="center" gap="md" style={styles.header}>
-        <Clickable onPress={() => router.back()} hitSlop={8}>
-          <Ionicons name="arrow-back" size={24} color={palette.text} />
-        </Clickable>
-        <View style={styles.headerCenter}>
-          <ThemedText type="defaultSemiBold" numberOfLines={1}>
-            {video.title}
-          </ThemedText>
-          <ThemedText style={[styles.headerSubtitle, { color: palette.muted }]}>
-            by {video.coachId}
-          </ThemedText>
-        </View>
-        <View style={{ width: 24 }} />
-      </Row>
+      <PageHeader
+        title={video.title}
+        subtitle={`by ${video.coachId}`}
+        showBack
+        backIcon="arrow-back"
+        onBackPress={() => router.back()}
+        centerTitle
+        containerStyle={styles.header}
+      />
 
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
         <Animated.View entering={FadeInDown.springify()}>

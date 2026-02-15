@@ -39,7 +39,7 @@ export default function DiscoverSessionsScreen() {
     return (
       <SafeAreaView
         style={[styles.container, { backgroundColor: palette.background }]}
-        edges={['top']}
+        edges={['top', 'bottom']}
       >
         {header}
         <LoadingState variant="list" />
@@ -51,7 +51,7 @@ export default function DiscoverSessionsScreen() {
     return (
       <SafeAreaView
         style={[styles.container, { backgroundColor: palette.background }]}
-        edges={['top']}
+        edges={['top', 'bottom']}
       >
         {header}
         <ErrorState
@@ -66,7 +66,7 @@ export default function DiscoverSessionsScreen() {
     return (
       <SafeAreaView
         style={[styles.container, { backgroundColor: palette.background }]}
-        edges={['top']}
+        edges={['top', 'bottom']}
       >
         {header}
         <EmptyState
@@ -83,7 +83,7 @@ export default function DiscoverSessionsScreen() {
   return (
     <SafeAreaView
       style={[styles.container, { backgroundColor: palette.background }]}
-      edges={['top']}
+      edges={['top', 'bottom']}
     >
       {header}
 

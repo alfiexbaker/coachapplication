@@ -123,7 +123,7 @@ export default function ChatScreen() {
 
   if (status === 'loading') {
     return (
-      <SafeAreaView style={{ flex: 1, backgroundColor: palette.background }} edges={['top']}>
+      <SafeAreaView style={{ flex: 1, backgroundColor: palette.background }} edges={['top', 'bottom']}>
         <LoadingState variant="detail" />
       </SafeAreaView>
     );
@@ -131,7 +131,7 @@ export default function ChatScreen() {
 
   if (status === 'error') {
     return (
-      <SafeAreaView style={{ flex: 1, backgroundColor: palette.background }} edges={['top']}>
+      <SafeAreaView style={{ flex: 1, backgroundColor: palette.background }} edges={['top', 'bottom']}>
         <ErrorState message={error?.message ?? 'Unable to load conversation'} onRetry={retry} />
       </SafeAreaView>
     );
@@ -139,7 +139,7 @@ export default function ChatScreen() {
 
   if (status === 'empty' || !thread) {
     return (
-      <SafeAreaView style={{ flex: 1, backgroundColor: palette.background }} edges={['top']}>
+      <SafeAreaView style={{ flex: 1, backgroundColor: palette.background }} edges={['top', 'bottom']}>
         <EmptyState
           icon="chatbubble-ellipses-outline"
           title="Conversation not found"
@@ -154,7 +154,7 @@ export default function ChatScreen() {
   const isGroup = thread.kind === 'group';
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: palette.background }} edges={['top']}>
+    <SafeAreaView style={{ flex: 1, backgroundColor: palette.background }} edges={['top', 'bottom']}>
       <ChatScreenHeader colors={palette} thread={thread} onBack={() => router.back()} />
       <ChatSafetyBanner
         colors={palette}

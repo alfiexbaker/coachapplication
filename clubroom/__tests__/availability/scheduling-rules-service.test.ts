@@ -69,6 +69,34 @@ describe('schedulingRulesService', () => {
     assert.ok(refund.netRefundAmount <= refund.refundAmount);
   });
 
+  it('saves custom cancellation tiers in 5% increments', async () => {
+    const policyResult = await schedulingRulesService.setCancellationPolicy('coach-rules-7', 'custom', [
+      {
+        hoursBeforeSession: 24,
+        refundPercentage: 83,
+        description: '',
+      },
+      {
+        hoursBeforeSession: 6,
+        refundPercentage: 41,
+        description: '',
+      },
+    ]);
+    assert.equal(policyResult.success, true);
+    if (!policyResult.success) return;
+
+    const customPolicy = policyResult.data;
+    const tier24 = customPolicy.tiers.find((tier) => tier.hoursBeforeSession === 24);
+    const tier6 = customPolicy.tiers.find((tier) => tier.hoursBeforeSession === 6);
+    const tier0 = customPolicy.tiers.find((tier) => tier.hoursBeforeSession === 0);
+
+    assert.equal(customPolicy.name, 'Custom');
+    assert.equal(tier24?.refundPercentage, 85);
+    assert.equal(tier6?.refundPercentage, 40);
+    assert.equal(tier0?.refundPercentage, 0);
+    assert.equal(customPolicy.tiers.every((tier) => tier.refundPercentage % 5 === 0), true);
+  });
+
   it('returns validation error for unknown preset', async () => {
     const result = await schedulingRulesService.applyPreset(
       'coach-rules-5',

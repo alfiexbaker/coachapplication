@@ -276,7 +276,9 @@ const styles = StyleSheet.create({
     gap: Spacing.xs,
   },
   skillCard: {
-    width: '48%',
+    flexGrow: 1,
+    flexBasis: '47%',
+    minWidth: 150,
     padding: Spacing.sm,
     borderRadius: Radii.card,
     borderWidth: 1,

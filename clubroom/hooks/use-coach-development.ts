@@ -5,8 +5,8 @@ import { useState, useMemo, useEffect, useCallback } from 'react';
 import { useFocusEffect } from 'expo-router';
 
 import { useAuth } from '@/hooks/use-auth';
-import { apiClient } from '@/services/api-client';
 import { bookingService } from '@/services/booking-service';
+import { ensureCoachSessionsSeeded } from '@/services/coach-session-seed-service';
 import { userService } from '@/services/user-service';
 import type { Session, Booking } from '@/constants/app-types';
 import type { User } from '@/constants/types';
@@ -92,7 +92,7 @@ export function useCoachDevelopment() {
 
       try {
         setLoading(true);
-        const storedSessions = await apiClient.get<Session[]>('coach_sessions', []);
+        const storedSessions = await ensureCoachSessionsSeeded();
         const coachSessions = storedSessions.filter(
           (session) => session.coachId === currentUser.id,
         );

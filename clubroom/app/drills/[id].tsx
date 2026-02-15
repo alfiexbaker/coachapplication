@@ -103,7 +103,7 @@ export default function DrillDetailScreen() {
     return (
       <SafeAreaView
         style={[styles.container, { backgroundColor: palette.background }]}
-        edges={['top']}
+        edges={['top', 'bottom']}
       >
         <LoadingState variant="detail" />
       </SafeAreaView>
@@ -114,7 +114,7 @@ export default function DrillDetailScreen() {
     return (
       <SafeAreaView
         style={[styles.container, { backgroundColor: palette.background }]}
-        edges={['top']}
+        edges={['top', 'bottom']}
       >
         <ErrorState
           message={error?.message ?? 'Failed to load drill assignment.'}
@@ -128,7 +128,7 @@ export default function DrillDetailScreen() {
     return (
       <SafeAreaView
         style={[styles.container, { backgroundColor: palette.background }]}
-        edges={['top']}
+        edges={['top', 'bottom']}
       >
         <View style={styles.notFoundContainer}>
           <EmptyState
@@ -159,7 +159,7 @@ export default function DrillDetailScreen() {
   return (
     <SafeAreaView
       style={[styles.container, { backgroundColor: palette.background }]}
-      edges={['top']}
+      edges={['top', 'bottom']}
     >
       <DrillDetailHeader
         colors={palette}

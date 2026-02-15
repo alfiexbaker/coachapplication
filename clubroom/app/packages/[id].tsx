@@ -14,6 +14,7 @@ import Animated, { FadeInDown } from 'react-native-reanimated';
 
 import { ThemedText } from '@/components/themed-text';
 import { Clickable } from '@/components/primitives/clickable';
+import { PageHeader } from '@/components/primitives/page-header';
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { Row } from '@/components/primitives/row';
 import { PurchaseButton } from '@/components/packages/PurchaseButton';
@@ -39,7 +40,7 @@ export default function PackageDetailScreen() {
     return (
       <SafeAreaView
         style={[styles.container, { backgroundColor: palette.background }]}
-        edges={['top']}
+        edges={['top', 'bottom']}
       >
         <Header palette={palette} />
         <LoadingState variant="detail" />
@@ -51,7 +52,7 @@ export default function PackageDetailScreen() {
     return (
       <SafeAreaView
         style={[styles.container, { backgroundColor: palette.background }]}
-        edges={['top']}
+        edges={['top', 'bottom']}
       >
         <Header palette={palette} />
         <ErrorState message={c.error?.message ?? 'Failed to load package.'} onRetry={c.retry} />
@@ -63,7 +64,7 @@ export default function PackageDetailScreen() {
     return (
       <SafeAreaView
         style={[styles.container, { backgroundColor: palette.background }]}
-        edges={['top']}
+        edges={['top', 'bottom']}
       >
         <Header palette={palette} />
         <View style={styles.loadingContainer}>
@@ -84,11 +85,12 @@ export default function PackageDetailScreen() {
   return (
     <SafeAreaView
       style={[styles.container, { backgroundColor: palette.background }]}
-      edges={['top']}
+      edges={['top', 'bottom']}
     >
       <Header editVisible={c.isOwnPackage} palette={palette} />
 
       <ScrollView
+        style={styles.scroll}
         contentContainerStyle={styles.content}
         showsVerticalScrollIndicator={false}
         refreshControl={
@@ -237,7 +239,6 @@ export default function PackageDetailScreen() {
           </SurfaceCard>
         </Animated.View>
 
-        <View style={{ height: 100 }} />
       </ScrollView>
 
       {!c.isCoach && pkg.isActive && (
@@ -281,31 +282,29 @@ export default function PackageDetailScreen() {
 
 function Header({ editVisible, palette }: { editVisible?: boolean; palette: ThemeColors }) {
   return (
-    <Row align="center" justify="between" style={styles.header}>
-      <Clickable onPress={() => router.back()} hitSlop={8}>
-        <Ionicons name="arrow-back" size={24} color={palette.text} />
-      </Clickable>
-      <ThemedText type="title" style={styles.headerTitleText}>
-        Package Details
-      </ThemedText>
-      {editVisible ? (
-        <Clickable onPress={() => router.push(Routes.PACKAGES_MANAGE)} hitSlop={8}>
-          <Ionicons name="create-outline" size={24} color={palette.tint} />
-        </Clickable>
-      ) : (
-        <View style={{ width: 24 }} />
-      )}
-    </Row>
+    <PageHeader
+      title="Package Details"
+      showBack
+      backIcon="arrow-back"
+      onBackPress={() => router.back()}
+      centerTitle
+      right={
+        editVisible ? (
+          <Clickable onPress={() => router.push(Routes.PACKAGES_MANAGE)} hitSlop={8}>
+            <Ionicons name="create-outline" size={24} color={palette.tint} />
+          </Clickable>
+        ) : undefined
+      }
+    />
   );
 }
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
-  header: { paddingHorizontal: Spacing.lg, paddingVertical: Spacing.md },
-  headerTitleText: { ...Typography.heading },
+  scroll: { flex: 1 },
   loadingContainer: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: Spacing.md },
   loadingText: { ...Typography.bodySmall },
-  content: { padding: Spacing.lg, paddingTop: 0, gap: Spacing.md },
+  content: { padding: Spacing.lg, paddingTop: 0, gap: Spacing.md, paddingBottom: Spacing.lg },
   mainCard: { padding: 0, overflow: 'hidden', position: 'relative' },
   discountBadge: {
     position: 'absolute',
@@ -351,13 +350,9 @@ const styles = StyleSheet.create({
   stepNumberText: { ...Typography.bodySmallSemiBold },
   stepText: { flex: 1, ...Typography.bodySmall },
   footer: {
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
     paddingHorizontal: Spacing.lg,
     paddingVertical: Spacing.md,
-    paddingBottom: Spacing.lg,
+    paddingBottom: Spacing.md,
     borderTopWidth: StyleSheet.hairlineWidth,
     borderTopColor: 'transparent',
   },

@@ -74,81 +74,88 @@ function AthleteCardInner({ athlete, upcomingSession }: AthleteCardProps) {
   const athleteName = getRosterAthleteName(athlete);
 
   return (
-    <SurfaceCard
-      style={styles.athleteCard}
-      tactile
-      onPress={() => router.push(Routes.rosterAthlete(athlete.athleteId))}
-    >
+    <SurfaceCard style={styles.athleteCard}>
       <Row align="center" gap="md">
-        {/* Avatar */}
-        <View style={[styles.avatar, { backgroundColor: withAlpha(palette.tint, 0.09) }]}>
-          <ThemedText style={[styles.avatarText, { color: palette.tint }]}>
-            {getInitials(athleteName)}
-          </ThemedText>
-        </View>
-
-        {/* Info */}
-        <View style={styles.athleteInfo}>
-          <Row align="center" gap="xs" style={styles.nameRow}>
-            <ThemedText type="defaultSemiBold" style={styles.athleteName} numberOfLines={1}>
-              {athleteName}
-            </ThemedText>
-            {athlete.status !== 'ACTIVE' && (
-              <View
-                style={[styles.statusBadge, { backgroundColor: withAlpha(palette.muted, 0.12) }]}
-              >
-                <ThemedText style={[styles.statusText, { color: palette.muted }]}>
-                  {formatStatusLabel(athlete.status)}
-                </ThemedText>
-              </View>
-            )}
-          </Row>
-
-          <Row align="center" gap="xxs" style={styles.metaRow}>
-            <ThemedText style={[styles.metaText, { color: palette.muted }]}>
-              {athlete.totalSessions} sessions
-            </ThemedText>
-            <ThemedText style={[styles.metaDot, { color: palette.muted }]}>•</ThemedText>
-            <ThemedText style={[styles.metaText, { color: palette.muted }]}>
-              Last: {formatRelativeDate(athlete.lastSessionDate)}
-            </ThemedText>
-          </Row>
-
-          {upcomingSession ? (
-            <Row
-              align="center"
-              gap="xxs"
-              style={[styles.upcomingBadge, { backgroundColor: withAlpha(palette.success, 0.09) }]}
-            >
-              <Ionicons name="calendar" size={12} color={palette.success} />
-              <ThemedText
-                style={[styles.upcomingText, { color: palette.success }]}
-                numberOfLines={1}
-              >
-                Next: {formatUpcomingDate(upcomingSession.scheduledAt)}
+        <Clickable
+          style={styles.detailsTap}
+          accessibilityLabel={`Open ${athleteName} details`}
+          onPress={() => router.push(Routes.rosterAthlete(athlete.athleteId))}
+        >
+          <Row align="center" gap="md" style={styles.detailsRow}>
+            {/* Avatar */}
+            <View style={[styles.avatar, { backgroundColor: withAlpha(palette.tint, 0.09) }]}>
+              <ThemedText style={[styles.avatarText, { color: palette.tint }]}>
+                {getInitials(athleteName)}
               </ThemedText>
-            </Row>
-          ) : (
-            <ThemedText style={[styles.noUpcomingText, { color: palette.muted }]}>
-              No upcoming session
-            </ThemedText>
-          )}
-        </View>
+            </View>
+
+            {/* Info */}
+            <View style={styles.athleteInfo}>
+              <Row align="center" gap="xs" style={styles.nameRow}>
+                <ThemedText type="defaultSemiBold" style={styles.athleteName} numberOfLines={1}>
+                  {athleteName}
+                </ThemedText>
+                {athlete.status !== 'ACTIVE' && (
+                  <View
+                    style={[styles.statusBadge, { backgroundColor: withAlpha(palette.muted, 0.12) }]}
+                  >
+                    <ThemedText style={[styles.statusText, { color: palette.muted }]}>
+                      {formatStatusLabel(athlete.status)}
+                    </ThemedText>
+                  </View>
+                )}
+              </Row>
+
+              <Row align="center" gap="xxs" style={styles.metaRow}>
+                <ThemedText style={[styles.metaText, { color: palette.muted }]}>
+                  {athlete.totalSessions} sessions
+                </ThemedText>
+                <ThemedText style={[styles.metaDot, { color: palette.muted }]}>•</ThemedText>
+                <ThemedText style={[styles.metaText, { color: palette.muted }]}>
+                  Last: {formatRelativeDate(athlete.lastSessionDate)}
+                </ThemedText>
+              </Row>
+
+              {upcomingSession ? (
+                <Row
+                  align="center"
+                  gap="xxs"
+                  style={[styles.upcomingBadge, { backgroundColor: withAlpha(palette.success, 0.09) }]}
+                >
+                  <Ionicons name="calendar" size={12} color={palette.success} />
+                  <ThemedText
+                    style={[styles.upcomingText, { color: palette.success }]}
+                    numberOfLines={1}
+                  >
+                    Next: {formatUpcomingDate(upcomingSession.scheduledAt)}
+                  </ThemedText>
+                </Row>
+              ) : (
+                <ThemedText style={[styles.noUpcomingText, { color: palette.muted }]}>
+                  No upcoming session
+                </ThemedText>
+              )}
+            </View>
+            <Ionicons name="chevron-forward" size={18} color={withAlpha(palette.muted, 0.7)} />
+          </Row>
+        </Clickable>
 
         {/* Actions */}
-        <Row align="center" gap="sm">
-          <Clickable
-            style={[styles.actionButton, { backgroundColor: palette.tint }]}
-            accessibilityLabel={`Add ${athleteName} to session`}
-            onPress={(event) => {
-              event.stopPropagation();
-              router.push(Routes.rosterAthleteAddToSession(athlete.athleteId, athleteName));
-            }}
-          >
-            <Ionicons name="add" size={18} color={palette.onPrimary} />
-          </Clickable>
-          <Ionicons name="chevron-forward" size={20} color={palette.muted} />
-        </Row>
+        <Clickable
+          style={[
+            styles.actionButton,
+            {
+              backgroundColor: palette.surface,
+              borderColor: withAlpha(palette.tint, 0.24),
+            },
+          ]}
+          accessibilityLabel={`Add ${athleteName} to session`}
+          onPress={() => {
+            router.push(Routes.rosterAthleteAddToSession(athlete.athleteId, athleteName));
+          }}
+        >
+          <Ionicons name="add" size={18} color={palette.tint} />
+        </Clickable>
       </Row>
     </SurfaceCard>
   );
@@ -165,6 +172,14 @@ const styles = StyleSheet.create({
     marginHorizontal: Spacing.lg,
     marginTop: Spacing.sm,
     padding: Spacing.md,
+  },
+  detailsTap: {
+    flex: 1,
+    minHeight: 44,
+    justifyContent: 'center',
+  },
+  detailsRow: {
+    minHeight: 44,
   },
   avatar: {
     width: 44,
@@ -226,5 +241,6 @@ const styles = StyleSheet.create({
     borderRadius: Radii.lg,
     alignItems: 'center',
     justifyContent: 'center',
+    borderWidth: 1,
   },
 });

@@ -101,7 +101,7 @@ export default function CoachInvitesScreen() {
     return (
       <SafeAreaView
         style={[styles.container, { backgroundColor: palette.background }]}
-        edges={['top']}
+        edges={['top', 'bottom']}
       >
         <PageHeader
           title="Club Invites"
@@ -118,7 +118,7 @@ export default function CoachInvitesScreen() {
     return (
       <SafeAreaView
         style={[styles.container, { backgroundColor: palette.background }]}
-        edges={['top']}
+        edges={['top', 'bottom']}
       >
         <PageHeader
           title="Club Invites"
@@ -138,7 +138,7 @@ export default function CoachInvitesScreen() {
     return (
       <SafeAreaView
         style={[styles.container, { backgroundColor: palette.background }]}
-        edges={['top']}
+        edges={['top', 'bottom']}
       >
         <PageHeader
           title="Club Invites"
@@ -160,7 +160,7 @@ export default function CoachInvitesScreen() {
   return (
     <SafeAreaView
       style={[styles.container, { backgroundColor: palette.background }]}
-      edges={['top']}
+      edges={['top', 'bottom']}
     >
       <PageHeader
         title="Club Invites"

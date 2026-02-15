@@ -1,6 +1,7 @@
 import { RefreshControl, ScrollView, StyleSheet, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { router, Stack, useLocalSearchParams } from 'expo-router';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { Routes } from '@/navigation/routes';
 
 import { Clickable } from '@/components/primitives/clickable';
@@ -66,7 +67,10 @@ export default function ClubDetailScreen() {
     return (
       <>
         <Stack.Screen options={{ title: 'Club', headerShown: false }} />
-        <View style={[styles.container, { backgroundColor: colors.background }]}>
+        <SafeAreaView
+          style={[styles.container, { backgroundColor: colors.background }]}
+          edges={['top', 'bottom']}
+        >
           <View style={[styles.topBar, { borderBottomColor: colors.border }]}>
             <Clickable onPress={handleBackPress} hitSlop={10} accessibilityLabel="Go back">
               <Ionicons name="arrow-back" size={22} color={colors.foreground} />
@@ -81,7 +85,7 @@ export default function ClubDetailScreen() {
             <View style={styles.topBarSpacer} />
           </View>
           <LoadingState variant="list" />
-        </View>
+        </SafeAreaView>
       </>
     );
   }
@@ -90,7 +94,10 @@ export default function ClubDetailScreen() {
     return (
       <>
         <Stack.Screen options={{ title: 'Club', headerShown: false }} />
-        <View style={[styles.container, { backgroundColor: colors.background }]}>
+        <SafeAreaView
+          style={[styles.container, { backgroundColor: colors.background }]}
+          edges={['top', 'bottom']}
+        >
           <View style={[styles.topBar, { borderBottomColor: colors.border }]}>
             <Clickable onPress={handleBackPress} hitSlop={10} accessibilityLabel="Go back">
               <Ionicons name="arrow-back" size={22} color={colors.foreground} />
@@ -111,7 +118,7 @@ export default function ClubDetailScreen() {
             actionLabel="Go Back"
             onPressAction={handleBackPress}
           />
-        </View>
+        </SafeAreaView>
       </>
     );
   }
@@ -119,7 +126,10 @@ export default function ClubDetailScreen() {
   return (
     <>
       <Stack.Screen options={{ title: club.name, headerShown: false }} />
-      <View style={[styles.container, { backgroundColor: colors.background }]}>
+      <SafeAreaView
+        style={[styles.container, { backgroundColor: colors.background }]}
+        edges={['top', 'bottom']}
+      >
         <View style={[styles.topBar, { borderBottomColor: colors.border }]}>
           <Clickable onPress={handleBackPress} hitSlop={10} accessibilityLabel="Go back">
             <Ionicons name="arrow-back" size={22} color={colors.foreground} />
@@ -305,7 +315,7 @@ export default function ClubDetailScreen() {
             )}
           </View>
         </ScrollView>
-      </View>
+      </SafeAreaView>
 
       <RemovalConfirmationModal
         visible={showMemberRemovalModal}

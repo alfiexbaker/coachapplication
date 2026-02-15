@@ -79,6 +79,7 @@ export default function MapScreen() {
     try {
       const parsed = JSON.parse(params.filters) as CoachSearchFilters;
       setFilters((prev) => ({ ...prev, ...parsed, location: parsed.location ?? prev.location }));
+      setSearchQuery(parsed.query ?? '');
     } catch (parseError) {
       logger.error('Failed to parse filters', parseError);
     }
@@ -91,6 +92,16 @@ export default function MapScreen() {
   const handleFilterChange = useCallback((newFilters: CoachSearchFilters) => {
     setFilters((prev) => ({ ...prev, ...newFilters, location: prev.location }));
     setShowFilterModal(false);
+  }, []);
+
+  const handleRadiusCommit = useCallback((radius: number) => {
+    setFilters((prev) => ({
+      ...prev,
+      location: {
+        ...(prev.location ?? { ...DEFAULT_LOCATION, radiusKm: DEFAULT_RADIUS }),
+        radiusKm: radius,
+      },
+    }));
   }, []);
 
   const handleCoachPress = useCallback(
@@ -111,7 +122,12 @@ export default function MapScreen() {
         setFilters((prev) => ({ ...prev, query: undefined }));
       }}
       onBack={() => router.back()}
-      onToggleView={() => router.replace(Routes.ROOT)}
+      onToggleView={() =>
+        router.replace({
+          pathname: '/book-coach',
+          params: { filters: JSON.stringify(filters) },
+        })
+      }
     />
   );
 
@@ -119,7 +135,7 @@ export default function MapScreen() {
     return (
       <SafeAreaView
         style={[styles.container, { backgroundColor: palette.background }]}
-        edges={['top']}
+        edges={['top', 'bottom']}
       >
         {header}
         <LoadingState variant="detail" />
@@ -131,7 +147,7 @@ export default function MapScreen() {
     return (
       <SafeAreaView
         style={[styles.container, { backgroundColor: palette.background }]}
-        edges={['top']}
+        edges={['top', 'bottom']}
       >
         {header}
         <ErrorState
@@ -146,7 +162,7 @@ export default function MapScreen() {
     return (
       <SafeAreaView
         style={[styles.container, { backgroundColor: palette.background }]}
-        edges={['top']}
+        edges={['top', 'bottom']}
       >
         {header}
         {filterOptions ? (
@@ -156,6 +172,7 @@ export default function MapScreen() {
             onOpenFilters={() => setShowFilterModal(true)}
             totalResults={0}
             activeFilterCount={activeFilterCount}
+            variant="map"
           />
         ) : null}
 
@@ -184,7 +201,7 @@ export default function MapScreen() {
   return (
     <SafeAreaView
       style={[styles.container, { backgroundColor: palette.background }]}
-      edges={['top']}
+      edges={['top', 'bottom']}
     >
       {header}
 
@@ -195,6 +212,7 @@ export default function MapScreen() {
           onOpenFilters={() => setShowFilterModal(true)}
           totalResults={coaches.length}
           activeFilterCount={activeFilterCount}
+          variant="map"
         />
       ) : null}
 
@@ -206,6 +224,8 @@ export default function MapScreen() {
         userLocation={DEFAULT_LOCATION}
         showUserLocation
         zoomLevel={zoomLevel}
+        radiusKm={filters.location?.radiusKm ?? DEFAULT_RADIUS}
+        onRadiusCommit={handleRadiusCommit}
         onSearchAreaPress={onRefresh}
         onZoomInPress={() => setZoomLevel((prev) => Math.min(prev + 0.5, 4))}
         onZoomOutPress={() => setZoomLevel((prev) => Math.max(prev - 0.5, 0.5))}

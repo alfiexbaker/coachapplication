@@ -1,6 +1,7 @@
 import { Tabs } from 'expo-router';
 import React, { useCallback, useEffect, useState } from 'react';
 import type { BottomTabBarButtonProps } from '@react-navigation/bottom-tabs';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { HapticTab } from '@/components/haptic-tab';
 import { IconSymbol } from '@/components/ui/icon-symbol';
@@ -149,6 +150,7 @@ const ROLE_TAB_CONFIG: Record<UserRole | 'DEFAULT', RoleTabConfig> = {
 export default function TabLayout() {
   const { colors: palette, scheme } = useTheme();
   const { currentUser } = useAuth();
+  const insets = useSafeAreaInsets();
   const notificationCount = useNotificationCount();
   const [messageCount, setMessageCount] = useState(0);
 
@@ -194,6 +196,7 @@ export default function TabLayout() {
     return count > 99 ? '99+' : count;
   };
 
+  const tabBarHeight = 62 + Math.max(insets.bottom, Spacing.sm);
   const tabBarOptions = {
     tabBarActiveTintColor: palette.tint,
     tabBarInactiveTintColor: palette.tabIconDefault,
@@ -203,19 +206,19 @@ export default function TabLayout() {
     tabBarStyle: {
       backgroundColor: palette.surface, // Use surface for cleaner white
       borderTopWidth: 0, // Remove border for sleeker look
-      height: 60, // Reduced from 72px for modern feel
-      paddingBottom: 8, // Reduced padding
-      paddingTop: 8,
+      height: tabBarHeight,
+      paddingBottom: Math.max(insets.bottom, Spacing.xs),
+      paddingTop: Spacing.xs,
       paddingHorizontal: 16, // More horizontal breathing room
       ...Shadows[scheme].card,
     },
     tabBarLabelStyle: {
-      ...Typography.micro,
+      ...Typography.caption,
       textTransform: 'none' as const,
       fontWeight: '600' as const,
-      lineHeight: 12,
-      letterSpacing: 0.3,
-      marginTop: Spacing.micro,
+      lineHeight: 16,
+      letterSpacing: 0.15,
+      marginTop: 2,
     },
     tabBarIconStyle: {
       marginTop: 0,

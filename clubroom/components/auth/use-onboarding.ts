@@ -188,6 +188,7 @@ export function useOnboarding(
         phone: state.phone,
         password: state.password,
         dateOfBirth: state.dateOfBirth || undefined,
+        addressLine: state.addressLine || undefined,
         city: state.city || undefined,
         postcode: state.postcode || undefined,
         country: state.country || undefined,

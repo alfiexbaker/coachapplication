@@ -33,7 +33,7 @@ export default function ManagePackagesScreen() {
     return (
       <SafeAreaView
         style={[styles.container, { backgroundColor: palette.background }]}
-        edges={['top']}
+        edges={['top', 'bottom']}
       >
         <Row align="center" gap="md" style={styles.header}>
           <Clickable onPress={() => router.back()} hitSlop={8}>
@@ -55,7 +55,7 @@ export default function ManagePackagesScreen() {
     return (
       <SafeAreaView
         style={[styles.container, { backgroundColor: palette.background }]}
-        edges={['top']}
+        edges={['top', 'bottom']}
       >
         <Row align="center" gap="md" style={styles.header}>
           <Clickable onPress={() => router.back()} hitSlop={8}>
@@ -76,7 +76,7 @@ export default function ManagePackagesScreen() {
   return (
     <SafeAreaView
       style={[styles.container, { backgroundColor: palette.background }]}
-      edges={['top']}
+      edges={['top', 'bottom']}
     >
       {/* Header */}
       <Row align="center" gap="md" style={styles.header}>
@@ -177,7 +177,7 @@ export default function ManagePackagesScreen() {
       >
         <SafeAreaView
           style={[styles.modalContainer, { backgroundColor: palette.background }]}
-          edges={['top']}
+          edges={['top', 'bottom']}
         >
           <Row align="center" justify="between" style={styles.modalHeader}>
             <ThemedText type="title" style={styles.modalTitle}>

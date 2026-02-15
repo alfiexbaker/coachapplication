@@ -47,7 +47,7 @@ export default function InjuryHistoryScreen() {
   return (
     <SafeAreaView
       style={[styles.container, { backgroundColor: palette.background }]}
-      edges={['top']}
+      edges={['top', 'bottom']}
     >
       <Row align="center" justify="space-between" style={styles.header}>
         <Row align="center" gap="md" style={styles.headerLeft}>

@@ -9,6 +9,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { Row } from '@/components/primitives/row';
 import { Clickable } from '@/components/primitives/clickable';
 import { ThemedText } from '@/components/themed-text';
+import { PageHeader } from '@/components/primitives/page-header';
 import { Spacing, Radii } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
 
@@ -79,27 +80,14 @@ export function SquadInviteModal({
       onRequestClose={onClose}
     >
       <View style={[styles.container, { backgroundColor: palette.background }]}>
-        {/* Header */}
-        <Row
-          align="center"
-          justify="between"
-          style={[styles.header, { borderBottomColor: palette.border }]}
-        >
-          <Clickable
-            onPress={inv.handlePrevStep}
-            accessibilityLabel={inv.step === 'squads' ? 'Close' : 'Back'}
-          >
-            <Ionicons
-              name={inv.step === 'squads' ? 'close' : 'arrow-back'}
-              size={24}
-              color={palette.text}
-            />
-          </Clickable>
-          <ThemedText type="subtitle">
-            Invite Squad{multiSelect && inv.selectedSquadIds.length > 1 ? 's' : ''}
-          </ThemedText>
-          <View style={{ width: 24 }} />
-        </Row>
+        <PageHeader
+          title={`Invite Squad${multiSelect && inv.selectedSquadIds.length > 1 ? 's' : ''}`}
+          showBack
+          onBackPress={inv.handlePrevStep}
+          backIcon={inv.step === 'squads' ? 'close' : 'arrow-back'}
+          centerTitle
+          containerStyle={[styles.header, { borderBottomColor: palette.border }]}
+        />
 
         {/* Step Indicator */}
         <Row align="center" justify="center" style={styles.stepIndicator}>

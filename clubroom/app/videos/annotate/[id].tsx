@@ -6,6 +6,7 @@ import Animated, { FadeInDown } from 'react-native-reanimated';
 
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { Clickable } from '@/components/primitives/clickable';
+import { PageHeader } from '@/components/primitives/page-header';
 import { Row } from '@/components/primitives/row';
 import { ThemedText } from '@/components/themed-text';
 import { VideoPlayer } from '@/components/video/video-player';
@@ -56,15 +57,16 @@ export default function CoachAnnotateScreen() {
     return (
       <SafeAreaView
         style={[styles.container, { backgroundColor: palette.background }]}
-        edges={['top']}
+        edges={['top', 'bottom']}
       >
-        <Row align="center" gap="md" style={styles.header}>
-          <Clickable onPress={() => router.back()} hitSlop={8}>
-            <Ionicons name="arrow-back" size={24} color={palette.text} />
-          </Clickable>
-          <ThemedText type="defaultSemiBold">Annotate Video</ThemedText>
-          <View style={{ width: 24 }} />
-        </Row>
+        <PageHeader
+          title="Annotate Video"
+          showBack
+          backIcon="arrow-back"
+          onBackPress={() => router.back()}
+          centerTitle
+          containerStyle={styles.header}
+        />
         <LoadingState variant="detail" />
       </SafeAreaView>
     );
@@ -74,7 +76,7 @@ export default function CoachAnnotateScreen() {
     return (
       <SafeAreaView
         style={[styles.container, { backgroundColor: palette.background }]}
-        edges={['top']}
+        edges={['top', 'bottom']}
       >
         <ErrorState
           message={error?.message ?? 'Failed to load video annotation workspace.'}
@@ -88,7 +90,7 @@ export default function CoachAnnotateScreen() {
     return (
       <SafeAreaView
         style={[styles.container, { backgroundColor: palette.background }]}
-        edges={['top']}
+        edges={['top', 'bottom']}
       >
         <EmptyState
           icon="videocam-outline"
@@ -103,15 +105,16 @@ export default function CoachAnnotateScreen() {
     return (
       <SafeAreaView
         style={[styles.container, { backgroundColor: palette.background }]}
-        edges={['top']}
+        edges={['top', 'bottom']}
       >
-        <Row align="center" gap="md" style={styles.header}>
-          <Clickable onPress={() => router.back()} hitSlop={8}>
-            <Ionicons name="arrow-back" size={24} color={palette.text} />
-          </Clickable>
-          <ThemedText type="defaultSemiBold">Access Denied</ThemedText>
-          <View style={{ width: 24 }} />
-        </Row>
+        <PageHeader
+          title="Access Denied"
+          showBack
+          backIcon="arrow-back"
+          onBackPress={() => router.back()}
+          centerTitle
+          containerStyle={styles.header}
+        />
         <EmptyState
           icon="lock-closed-outline"
           title="Not Authorized"
@@ -124,7 +127,7 @@ export default function CoachAnnotateScreen() {
   return (
     <SafeAreaView
       style={[styles.container, { backgroundColor: palette.background }]}
-      edges={['top']}
+      edges={['top', 'bottom']}
     >
       <Row align="center" gap="md" style={styles.header}>
         <Clickable onPress={() => router.back()} hitSlop={8}>

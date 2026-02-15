@@ -93,17 +93,8 @@ export function ProgressBadge({
   });
 
   const isComplete = progress === 100;
-
-  return (
-    <AnimatedClickable
-      onPress={handlePress}
-      onPressIn={handlePressIn}
-      onPressOut={handlePressOut}
-      accessibilityRole="button"
-      accessibilityLabel={`${label} progress ${Math.round(progress)} percent`}
-      accessibilityState={{ disabled: !onPress }}
-      style={[styles.container, animatedContainerStyle]}
-    >
+  const content = (
+    <>
       {/* Progress Ring */}
       <View style={[styles.ringContainer, { width: dimensions.outer, height: dimensions.outer }]}>
         <Svg width={dimensions.outer} height={dimensions.outer} style={styles.svg}>
@@ -128,8 +119,6 @@ export function ProgressBadge({
             fill="none"
             strokeDasharray={circumference}
             animatedProps={animatedCircleProps}
-            rotation="-90"
-            origin={`${dimensions.outer / 2}, ${dimensions.outer / 2}`}
           />
         </Svg>
 
@@ -193,6 +182,27 @@ export function ProgressBadge({
           {Math.round(progress)}%
         </ThemedText>
       </View>
+    </>
+  );
+
+  if (!onPress) {
+    return (
+      <View style={styles.container} accessibilityLabel={`${label} progress ${Math.round(progress)} percent`}>
+        {content}
+      </View>
+    );
+  }
+
+  return (
+    <AnimatedClickable
+      onPress={handlePress}
+      onPressIn={handlePressIn}
+      onPressOut={handlePressOut}
+      accessibilityRole="button"
+      accessibilityLabel={`${label} progress ${Math.round(progress)} percent`}
+      style={[styles.container, animatedContainerStyle]}
+    >
+      {content}
     </AnimatedClickable>
   );
 }

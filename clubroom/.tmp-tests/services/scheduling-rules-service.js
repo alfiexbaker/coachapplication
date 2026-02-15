@@ -191,6 +191,46 @@ class SchedulingRulesService {
         this.rulesCache = new Map();
         this.policiesCache = null;
     }
+    buildTierDescription(tier, nextLowerTierHours) {
+        if (tier.hoursBeforeSession === 0) {
+            if (nextLowerTierHours !== null && nextLowerTierHours > 0) {
+                return `${tier.refundPercentage}% refund if cancelled less than ${nextLowerTierHours} hours before`;
+            }
+            return `${tier.refundPercentage}% refund at session start`;
+        }
+        if (nextLowerTierHours !== null && nextLowerTierHours > 0) {
+            return `${tier.refundPercentage}% refund if cancelled ${tier.hoursBeforeSession}+ hours before`;
+        }
+        return `${tier.refundPercentage}% refund if cancelled ${tier.hoursBeforeSession}+ hours before`;
+    }
+    sanitizeCustomTiers(customTiers) {
+        const source = customTiers && customTiers.length > 0 ? customTiers : DEFAULT_TIERS;
+        const deduped = new Map();
+        for (const tier of source) {
+            const hoursBeforeSession = Math.max(0, Math.floor(tier.hoursBeforeSession));
+            const refundPercentage = Math.max(0, Math.min(100, Math.round(tier.refundPercentage / 5) * 5));
+            deduped.set(hoursBeforeSession, {
+                hoursBeforeSession,
+                refundPercentage,
+                description: tier.description,
+            });
+        }
+        if (!deduped.has(0)) {
+            deduped.set(0, {
+                hoursBeforeSession: 0,
+                refundPercentage: 0,
+                description: '',
+            });
+        }
+        const sorted = Array.from(deduped.values()).sort((a, b) => b.hoursBeforeSession - a.hoursBeforeSession);
+        return sorted.map((tier, index) => {
+            const nextLowerTier = sorted[index + 1];
+            return {
+                ...tier,
+                description: tier.description?.trim() || this.buildTierDescription(tier, nextLowerTier ? nextLowerTier.hoursBeforeSession : null),
+            };
+        });
+    }
     /**
      * Load all rules from storage
      */
@@ -487,12 +527,13 @@ class SchedulingRulesService {
             const existingIndex = policies.findIndex((p) => p.coachId === coachId);
             const now = new Date().toISOString();
             let template = exports.POLICY_TEMPLATES[templateKey] || exports.POLICY_TEMPLATES.standard;
-            if (templateKey === 'custom' && customTiers) {
+            if (templateKey === 'custom') {
+                const sanitizedCustomTiers = this.sanitizeCustomTiers(customTiers);
                 template = {
                     ...template,
                     name: 'Custom',
                     description: 'Custom cancellation policy',
-                    tiers: customTiers,
+                    tiers: sanitizedCustomTiers,
                 };
             }
             const policy = {

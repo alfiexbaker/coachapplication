@@ -41,6 +41,7 @@ export interface BookingDetailResult {
     reschedule: () => void;
     reportProblem: () => void;
   };
+  canCancelBooking: boolean;
   formatted: {
     weekday: string;
     dateStr: string;
@@ -51,8 +52,11 @@ export interface BookingDetailResult {
 
 const mapBookingStatus = (status: Booking['status']): BookingSummary['status'] => {
   if (status === 'CONFIRMED') return 'Confirmed';
+  if (status === 'AWAITING_COMPLETION') return 'Needs Completion';
   if (status === 'PENDING' || status === 'AWAITING_CONFIRMATION') return 'Pending';
-  return 'Completed';
+  if (status === 'COMPLETED') return 'Completed';
+  if (status === 'CANCELLED') return 'Cancelled';
+  return 'Pending';
 };
 
 const toBookingSummary = (booking: Booking): BookingSummary => ({
@@ -109,6 +113,14 @@ export function useBookingDetail(id: string): BookingDetailResult {
   });
 
   const booking = data ?? undefined;
+  const bookingStartMs = booking ? new Date(booking.start).getTime() : Number.NaN;
+  const isFutureBooking = Number.isFinite(bookingStartMs) ? bookingStartMs > Date.now() : false;
+  const canCancelBooking =
+    !!booking &&
+    isFutureBooking &&
+    booking.status !== 'Cancelled' &&
+    booking.status !== 'Completed' &&
+    booking.status !== 'Needs Completion';
 
   const handleMessageCoach = useCallback(() => {
     if (!booking) return;
@@ -116,22 +128,16 @@ export function useBookingDetail(id: string): BookingDetailResult {
   }, [booking]);
 
   const handleCancelBooking = useCallback(() => {
-    Alert.alert(
-      'Cancel Booking',
-      'Are you sure you want to cancel this booking? This action cannot be undone.',
-      [
-        { text: 'Keep Booking', style: 'cancel' },
-        {
-          text: 'Cancel Booking',
-          style: 'destructive',
-          onPress: () => {
-            Alert.alert('Success', 'Booking cancelled successfully');
-            router.back();
-          },
-        },
-      ],
-    );
-  }, []);
+    if (!booking) return;
+    if (!canCancelBooking) {
+      Alert.alert(
+        'Cancellation unavailable',
+        'Only upcoming bookings can be cancelled. Past or completed sessions cannot be cancelled.',
+      );
+      return;
+    }
+    router.push(Routes.bookingCancel(booking.id, isCoach ? 'coach' : 'parent'));
+  }, [booking, canCancelBooking, isCoach]);
 
   const handleRefund = useCallback(() => {
     Alert.alert('Issue Refund', 'Process a refund for this booking?', [
@@ -144,8 +150,9 @@ export function useBookingDetail(id: string): BookingDetailResult {
   }, []);
 
   const handleReschedule = useCallback(() => {
-    Alert.alert('Reschedule', 'Rescheduling not available');
-  }, []);
+    if (!booking) return;
+    router.push(Routes.bookingsCounter(booking.id));
+  }, [booking]);
 
   const handleReportProblem = useCallback(() => {
     router.push(Routes.BOOKINGS_REPORT_PROBLEM);
@@ -184,6 +191,7 @@ export function useBookingDetail(id: string): BookingDetailResult {
       reschedule: handleReschedule,
       reportProblem: handleReportProblem,
     },
+    canCancelBooking,
     formatted,
   };
 }

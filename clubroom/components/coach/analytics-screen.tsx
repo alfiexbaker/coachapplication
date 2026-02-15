@@ -90,7 +90,7 @@ export function CoachAnalyticsScreen() {
   return (
     <SafeAreaView
       style={[styles.container, { backgroundColor: palette.background }]}
-      edges={['top']}
+      edges={['top', 'bottom']}
     >
       <ScrollView contentContainerStyle={styles.content}>
         <View style={styles.header}>

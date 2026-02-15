@@ -345,19 +345,19 @@ export default function SessionInviteDetailScreen() {
 
   if (status === 'loading')
     return (
-      <SafeAreaView style={[s.root, { backgroundColor: colors.background }]} edges={['top']}>
+      <SafeAreaView style={[s.root, { backgroundColor: colors.background }]} edges={['top', 'bottom']}>
         <LoadingState variant="detail" />
       </SafeAreaView>
     );
   if (status === 'error')
     return (
-      <SafeAreaView style={[s.root, { backgroundColor: colors.background }]} edges={['top']}>
+      <SafeAreaView style={[s.root, { backgroundColor: colors.background }]} edges={['top', 'bottom']}>
         <ErrorState message={error?.message ?? 'Failed to load invite'} onRetry={retry} />
       </SafeAreaView>
     );
   if (status === 'empty' || !invite)
     return (
-      <SafeAreaView style={[s.root, { backgroundColor: colors.background }]} edges={['top']}>
+      <SafeAreaView style={[s.root, { backgroundColor: colors.background }]} edges={['top', 'bottom']}>
         <EmptyState
           icon="mail-outline"
           title="Invite Not Found"
@@ -367,7 +367,7 @@ export default function SessionInviteDetailScreen() {
     );
 
   return (
-    <SafeAreaView style={[s.root, { backgroundColor: colors.background }]} edges={['top']}>
+    <SafeAreaView style={[s.root, { backgroundColor: colors.background }]} edges={['top', 'bottom']}>
       <Row gap="md" align="center" justify="between" paddingH="lg" paddingV="md">
         <Clickable onPress={() => router.back()} hitSlop={8} accessibilityLabel="Go back">
           <Ionicons name="arrow-back" size={24} color={colors.text} />

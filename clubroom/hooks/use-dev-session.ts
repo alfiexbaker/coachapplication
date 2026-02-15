@@ -298,9 +298,30 @@ export function useDevSession(sessionId: string | undefined) {
   const handleRemoveImage = useCallback((index: number) => {
     setImageUrls((prev) => prev.filter((_, i) => i !== index));
   }, []);
-  const handleAddVideo = useCallback(() => {
-    setVideoUrls((prev) => [...prev, `https://example.com/video_${Date.now()}.mp4`]);
+
+  const handleAddVideo = useCallback(async () => {
+    try {
+      const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      if (status !== 'granted') {
+        Alert.alert('Permission needed', 'Please allow access to your videos');
+        return;
+      }
+
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Videos,
+        allowsMultipleSelection: false,
+        quality: 0.8,
+      });
+
+      if (!result.canceled && result.assets[0]) {
+        setVideoUrls((prev) => [...prev, result.assets[0].uri]);
+      }
+    } catch (error) {
+      logger.error('Failed to pick video', error);
+      Alert.alert('Error', 'Failed to pick video');
+    }
   }, []);
+
   const handleRemoveVideo = useCallback((index: number) => {
     setVideoUrls((prev) => prev.filter((_, i) => i !== index));
   }, []);

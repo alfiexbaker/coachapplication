@@ -2,6 +2,7 @@ import React from 'react';
 import { View, ScrollView, StyleSheet, RefreshControl } from 'react-native';
 import Animated, { useAnimatedStyle } from 'react-native-reanimated';
 import { Stack, router } from 'expo-router';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { Routes } from '@/navigation/routes';
 import { Ionicons } from '@expo/vector-icons';
 
@@ -37,19 +38,22 @@ export default function CoachingSettingsScreen() {
 
   if (loading || !rules) {
     return (
-      <View style={[styles.loadingContainer, { backgroundColor: colors.background }]}>
+      <SafeAreaView
+        style={[styles.loadingContainer, { backgroundColor: colors.background }]}
+        edges={['top', 'bottom']}
+      >
         <Stack.Screen options={{ title: 'Coaching Settings' }} />
         {status === 'error' ? (
           <ErrorState message={error ?? 'Failed to load coaching settings.'} onRetry={retry} />
         ) : (
           <LoadingState variant="form" />
         )}
-      </View>
+      </SafeAreaView>
     );
   }
 
   return (
-    <View style={[styles.screen, { backgroundColor: colors.background }]}>
+    <SafeAreaView style={[styles.screen, { backgroundColor: colors.background }]} edges={['top', 'bottom']}>
       <Stack.Screen
         options={{
           title: 'Coaching Settings',
@@ -171,7 +175,7 @@ export default function CoachingSettingsScreen() {
 
       {/* Saved toast */}
       {showSaved && <ToastView toastOpacity={toastOpacity} colors={colors} scheme={scheme} />}
-    </View>
+    </SafeAreaView>
   );
 }
 

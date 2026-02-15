@@ -15,6 +15,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { ThemedText } from '@/components/themed-text';
 import { Clickable } from '@/components/primitives/clickable';
 import { Row, Column } from '@/components/primitives';
+import { PageHeader } from '@/components/primitives/page-header';
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
@@ -234,8 +235,8 @@ function ExistingInviteFlow({
         const finalSessions = dateFiltered.length > 0 ? dateFiltered : merged;
         setSessions(finalSessions);
 
-        if (!selectedSessionId && finalSessions.length > 0) {
-          setSelectedSessionId(finalSessions[0].id);
+        if (finalSessions.length > 0) {
+          setSelectedSessionId((previous) => previous ?? finalSessions[0].id);
         }
 
         if (academyResult.success) {
@@ -244,7 +245,7 @@ function ExistingInviteFlow({
             setSelectedClubId(academyResult.data[0].id);
           }
         }
-      } catch (error) {
+      } catch {
         Alert.alert('Error', 'Failed to load session invite data. Pull to retry.');
       } finally {
         if (active) {
@@ -359,7 +360,7 @@ function ExistingInviteFlow({
           : `${sentCount} invite(s) sent successfully.`,
         [{ text: 'Done', onPress: () => router.back() }],
       );
-    } catch (error) {
+    } catch {
       Alert.alert('Error', 'Failed to send invites. Please try again.');
     } finally {
       setSubmitting(false);
@@ -370,21 +371,21 @@ function ExistingInviteFlow({
     notes,
     postingAs,
     selectedAthleteIds,
-    selectedClub?.name,
+    selectedClub,
     selectedSession,
   ]);
 
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
-      <Row align="center" justify="between" style={styles.headerRow}>
-        <Clickable onPress={handleBack} accessibilityLabel="Go back">
-          <Ionicons name="arrow-back" size={24} color={colors.text} />
-        </Clickable>
-        <ThemedText type="subtitle">Add to Existing Session</ThemedText>
-        <Clickable onPress={() => router.back()} accessibilityLabel="Cancel">
-          <ThemedText style={{ color: colors.muted }}>Cancel</ThemedText>
-        </Clickable>
-      </Row>
+    <SafeAreaView
+      style={[styles.container, { backgroundColor: colors.background }]}
+      edges={['top', 'bottom']}
+    >
+      <PageHeader
+        title="Add to Session"
+        showBack
+        onBackPress={handleBack}
+        centerTitle
+      />
 
       {loading ? (
         <View style={styles.loadingState}>
@@ -640,14 +641,11 @@ export default function CreateSessionScreen() {
 
   if (mode === 'choose') {
     return (
-      <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
-        <Row align="center" justify="between" style={styles.headerRow}>
-          <Clickable onPress={() => router.back()} accessibilityLabel="Go back">
-            <Ionicons name="arrow-back" size={24} color={colors.text} />
-          </Clickable>
-          <ThemedText type="subtitle">Create / Invite Session</ThemedText>
-          <View style={{ width: 24 }} />
-        </Row>
+      <SafeAreaView
+        style={[styles.container, { backgroundColor: colors.background }]}
+        edges={['top', 'bottom']}
+      >
+        <PageHeader title="Create / Invite Session" showBack centerTitle />
 
         <View style={styles.chooseContent}>
           <Clickable
@@ -701,27 +699,27 @@ export default function CreateSessionScreen() {
   return (
     <SafeAreaView
       style={[styles.container, { backgroundColor: colors.background }]}
-      edges={['top']}
+      edges={['top', 'bottom']}
     >
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         style={styles.flex}
       >
-        <Row align="center" justify="between" style={styles.headerRow}>
-          <Clickable onPress={handleBackFromNew} hitSlop={8} accessibilityLabel="Go back">
-            <Ionicons name="arrow-back" size={24} color={colors.text} />
-          </Clickable>
-          <Row flex align="center" justify="center">
-            <ThemedText type="subtitle">Book New Session</ThemedText>
-          </Row>
-          <Clickable
-            onPress={handleCancel}
-            hitSlop={8}
-            accessibilityLabel="Cancel session creation"
-          >
-            <ThemedText style={{ color: colors.muted }}>Cancel</ThemedText>
-          </Clickable>
-        </Row>
+        <PageHeader
+          title="Book New Session"
+          showBack
+          onBackPress={handleBackFromNew}
+          centerTitle
+          right={
+            <Clickable
+              onPress={handleCancel}
+              accessibilityLabel="Cancel session creation"
+              style={styles.cancelButton}
+            >
+              <ThemedText style={[styles.cancelText, { color: colors.muted }]}>Cancel</ThemedText>
+            </Clickable>
+          }
+        />
 
         <CreateStepIndicator
           currentStep={state.step}
@@ -819,22 +817,28 @@ const styles = StyleSheet.create({
   flex: {
     flex: 1,
   },
-  headerRow: {
-    paddingHorizontal: Spacing.lg,
-    paddingVertical: Spacing.md,
+  cancelButton: {
+    minHeight: 44,
+    justifyContent: 'center',
+    paddingHorizontal: Spacing.xs,
+  },
+  cancelText: {
+    ...Typography.smallSemiBold,
   },
   scrollContent: {
-    padding: Spacing.lg,
+    padding: Spacing.md,
     paddingTop: Spacing.sm,
   },
   chooseContent: {
-    padding: Spacing.lg,
-    gap: Spacing.md,
+    paddingHorizontal: Spacing.md,
+    paddingTop: Spacing.sm,
+    paddingBottom: Spacing.md,
+    gap: Spacing.sm,
   },
   choiceCard: {
     borderWidth: 1,
     borderRadius: Radii.lg,
-    padding: Spacing.md,
+    padding: Spacing.sm,
   },
   choiceIcon: {
     width: 40,

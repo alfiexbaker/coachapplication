@@ -32,9 +32,12 @@ export const MapScreenHeader = React.memo(function MapScreenHeader({
         accessibilityRole="button"
         accessibilityLabel="Go back"
         onPress={onBack}
-        style={styles.headerButton}
+        style={[
+          styles.headerButton,
+          { backgroundColor: colors.surface, borderColor: colors.border },
+        ]}
       >
-        <Ionicons name="arrow-back" size={24} color={colors.text} />
+        <Ionicons name="arrow-back" size={20} color={colors.text} />
       </Clickable>
 
       <Row
@@ -68,9 +71,12 @@ export const MapScreenHeader = React.memo(function MapScreenHeader({
         accessibilityRole="button"
         accessibilityLabel="Switch to list view"
         onPress={onToggleView}
-        style={styles.headerButton}
+        style={[
+          styles.headerButton,
+          { backgroundColor: colors.surface, borderColor: colors.border },
+        ]}
       >
-        <Ionicons name="list" size={24} color={colors.text} />
+        <Ionicons name="list" size={20} color={colors.text} />
       </Clickable>
     </Row>
   );
@@ -79,18 +85,21 @@ export const MapScreenHeader = React.memo(function MapScreenHeader({
 const styles = StyleSheet.create({
   header: {
     paddingHorizontal: Spacing.md,
-    paddingVertical: Spacing.sm,
+    paddingTop: Spacing.xs,
+    paddingBottom: Spacing.xs,
   },
   headerButton: {
-    minHeight: 44,
-    minWidth: 44,
+    width: 44,
+    height: 44,
+    borderRadius: Radii.pill,
+    borderWidth: 1,
     alignItems: 'center',
     justifyContent: 'center',
   },
   searchBar: {
     flex: 1,
-    paddingHorizontal: Spacing.md,
-    paddingVertical: Spacing.sm,
+    paddingHorizontal: Spacing.sm,
+    paddingVertical: Spacing.xs / 2,
     borderRadius: Radii.pill,
     borderWidth: 1,
     minHeight: 44,

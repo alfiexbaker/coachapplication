@@ -12,6 +12,7 @@ import { Ionicons } from '@expo/vector-icons';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 
 import { Clickable } from '@/components/primitives/clickable';
+import { PageHeader } from '@/components/primitives/page-header';
 import { ThemedText } from '@/components/themed-text';
 import { Row } from '@/components/primitives/row';
 import { SquadMemberSelect } from '@/components/squad/SquadMemberSelect';
@@ -32,7 +33,7 @@ export default function SquadInviteScreen() {
     return (
       <SafeAreaView
         style={[styles.container, { backgroundColor: palette.background }]}
-        edges={['top']}
+        edges={['top', 'bottom']}
       >
         <LoadingState variant="detail" />
       </SafeAreaView>
@@ -43,7 +44,7 @@ export default function SquadInviteScreen() {
     return (
       <SafeAreaView
         style={[styles.container, { backgroundColor: palette.background }]}
-        edges={['top']}
+        edges={['top', 'bottom']}
       >
         <ErrorState
           message={s.error?.message || 'Failed to load squad invite data.'}
@@ -57,7 +58,7 @@ export default function SquadInviteScreen() {
     return (
       <SafeAreaView
         style={[styles.container, { backgroundColor: palette.background }]}
-        edges={['top']}
+        edges={['top', 'bottom']}
       >
         <EmptyState
           icon="people-outline"
@@ -74,15 +75,18 @@ export default function SquadInviteScreen() {
     return (
       <SafeAreaView
         style={[styles.container, { backgroundColor: palette.background }]}
-        edges={['top']}
+        edges={['top', 'bottom']}
       >
-        <Row align="center" justify="space-between" style={styles.header}>
-          <View style={{ width: 24 }} />
-          <ThemedText type="title">Invites Sent</ThemedText>
-          <Clickable accessibilityLabel="Close" onPress={s.handleDone} hitSlop={8}>
-            <Ionicons name="close" size={24} color={palette.text} />
-          </Clickable>
-        </Row>
+        <PageHeader
+          title="Invites Sent"
+          centerTitle
+          containerStyle={styles.header}
+          right={
+            <Clickable accessibilityLabel="Close" onPress={s.handleDone} hitSlop={8}>
+              <Ionicons name="close" size={24} color={palette.text} />
+            </Clickable>
+          }
+        />
         <ScrollView contentContainerStyle={styles.content}>
           <InviteResultCard
             result={s.inviteResult.result}
@@ -101,15 +105,16 @@ export default function SquadInviteScreen() {
   return (
     <SafeAreaView
       style={[styles.container, { backgroundColor: palette.background }]}
-      edges={['top']}
+      edges={['top', 'bottom']}
     >
-      <Row align="center" justify="space-between" style={styles.header}>
-        <Clickable onPress={() => router.back()} hitSlop={8}>
-          <Ionicons name="arrow-back" size={24} color={palette.text} />
-        </Clickable>
-        <ThemedText type="title">Invite Squad</ThemedText>
-        <View style={{ width: 24 }} />
-      </Row>
+      <PageHeader
+        title="Invite Squad"
+        showBack
+        backIcon="arrow-back"
+        onBackPress={() => router.back()}
+        centerTitle
+        containerStyle={styles.header}
+      />
 
       {/* Squad Banner */}
       <Row

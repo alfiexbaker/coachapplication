@@ -18,6 +18,7 @@ interface BookingCoachViewProps {
   onReschedule: () => void;
   onRefund: () => void;
   onCancelBooking: () => void;
+  canCancelBooking: boolean;
 }
 
 function BookingCoachViewInner({
@@ -26,6 +27,7 @@ function BookingCoachViewInner({
   onReschedule,
   onRefund,
   onCancelBooking,
+  canCancelBooking,
 }: BookingCoachViewProps) {
   const { colors: palette } = useTheme();
 
@@ -110,21 +112,23 @@ function BookingCoachViewInner({
         </Clickable>
       </Row>
 
-      <Clickable
-        onPress={onCancelBooking}
-        style={({ pressed }) =>
-          [
-            styles.secondaryButton,
-            { borderColor: palette.error },
-            pressed && { backgroundColor: withAlpha(palette.error, 0.09), opacity: 0.7 },
-          ].filter(Boolean) as ViewStyle[]
-        }
-      >
-        <Ionicons name="close-circle-outline" size={20} color={palette.error} />
-        <ThemedText style={[styles.secondaryButtonText, { color: palette.error }]}>
-          Cancel Booking
-        </ThemedText>
-      </Clickable>
+      {canCancelBooking ? (
+        <Clickable
+          onPress={onCancelBooking}
+          style={({ pressed }) =>
+            [
+              styles.secondaryButton,
+              { borderColor: palette.error },
+              pressed && { backgroundColor: withAlpha(palette.error, 0.09), opacity: 0.7 },
+            ].filter(Boolean) as ViewStyle[]
+          }
+        >
+          <Ionicons name="close-circle-outline" size={20} color={palette.error} />
+          <ThemedText style={[styles.secondaryButtonText, { color: palette.error }]}>
+            Cancel Booking
+          </ThemedText>
+        </Clickable>
+      ) : null}
     </View>
   );
 }

@@ -170,19 +170,19 @@ const createMockPackage = (overrides = {}) => ({
 // ============================================================================
 (0, node_test_1.default)('PackageCard formats GBP price correctly', () => {
     const pkg = createMockPackage({ price: 200, currency: 'GBP' });
-    const symbol = pkg.currency === 'GBP' ? '\u00A3' : '$';
+    const symbol = '\u00A3';
     const formattedPrice = `${symbol}${pkg.price.toFixed(2)}`;
     node_assert_1.default.strictEqual(formattedPrice, '\u00A3200.00');
 });
-(0, node_test_1.default)('PackageCard formats USD price correctly', () => {
-    const pkg = createMockPackage({ price: 150, currency: 'USD' });
-    const symbol = pkg.currency === 'GBP' ? '\u00A3' : '$';
+(0, node_test_1.default)('PackageCard keeps GBP symbol for non-GBP currency values', () => {
+    const pkg = createMockPackage({ price: 150, currency: 'EUR' });
+    const symbol = '\u00A3';
     const formattedPrice = `${symbol}${pkg.price.toFixed(2)}`;
-    node_assert_1.default.strictEqual(formattedPrice, '$150.00');
+    node_assert_1.default.strictEqual(formattedPrice, '\u00A3150.00');
 });
 (0, node_test_1.default)('PackageCard formats per-session price correctly', () => {
     const pkg = createMockPackage({ pricePerSession: 40, currency: 'GBP' });
-    const symbol = pkg.currency === 'GBP' ? '\u00A3' : '$';
+    const symbol = '\u00A3';
     const formattedPerSession = `${symbol}${pkg.pricePerSession.toFixed(2)}/session`;
     node_assert_1.default.strictEqual(formattedPerSession, '\u00A340.00/session');
 });
@@ -231,7 +231,7 @@ const createMockPackage = (overrides = {}) => ({
 });
 (0, node_test_1.default)('PackageCard handles zero price', () => {
     const pkg = createMockPackage({ price: 0, discountPercent: 0 });
-    const symbol = pkg.currency === 'GBP' ? '\u00A3' : '$';
+    const symbol = '\u00A3';
     const formattedPrice = `${symbol}${pkg.price.toFixed(2)}`;
     node_assert_1.default.strictEqual(formattedPrice, '\u00A30.00');
 });

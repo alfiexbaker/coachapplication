@@ -281,7 +281,9 @@ export interface RosterEntry {
   id: string;
   coachId: string;
   athleteId: string;
+  athleteName?: string;
   parentId: string;
+  parentName?: string;
   status: 'ACTIVE' | 'PAUSED' | 'GRADUATED' | 'INACTIVE';
   startDate: string;
   lastSessionDate?: string;

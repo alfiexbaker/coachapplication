@@ -42,7 +42,7 @@ export default function AddToSessionScreen() {
   return (
     <SafeAreaView
       style={[styles.container, { backgroundColor: palette.background }]}
-      edges={['top']}
+      edges={['top', 'bottom']}
     >
       <AddToSessionHeader
         colors={palette}

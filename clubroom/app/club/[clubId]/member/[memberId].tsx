@@ -5,15 +5,15 @@
  * Allows role changes, squad assignments, banning, and removal.
  */
 
-import { View, StyleSheet, ScrollView } from 'react-native';
+import { StyleSheet, ScrollView } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 
 import { ThemedText } from '@/components/themed-text';
 import { SurfaceCard } from '@/components/primitives/surface-card';
-import { Clickable } from '@/components/primitives/clickable';
 import { Row } from '@/components/primitives/row';
+import { PageHeader } from '@/components/primitives/page-header';
 import { MemberProfileCard } from '@/components/club/member-profile-card';
 import { MemberSquadAssignments } from '@/components/club/member-squad-assignments';
 import { MemberRoleManagement } from '@/components/club/member-role-management';
@@ -46,7 +46,7 @@ export default function MemberManagementScreen() {
     return (
       <SafeAreaView
         style={[styles.container, { backgroundColor: colors.background }]}
-        edges={['top']}
+        edges={['top', 'bottom']}
       >
         <LoadingState variant="detail" />
       </SafeAreaView>
@@ -57,7 +57,7 @@ export default function MemberManagementScreen() {
     return (
       <SafeAreaView
         style={[styles.container, { backgroundColor: colors.background }]}
-        edges={['top']}
+        edges={['top', 'bottom']}
       >
         <ErrorState message={error?.message || 'Failed to load member details.'} onRetry={retry} />
       </SafeAreaView>
@@ -68,17 +68,9 @@ export default function MemberManagementScreen() {
     return (
       <SafeAreaView
         style={[styles.container, { backgroundColor: colors.background }]}
-        edges={['top']}
+        edges={['top', 'bottom']}
       >
-        <Row align="center" justify="space-between" style={styles.header}>
-          <Clickable onPress={() => router.back()} hitSlop={8}>
-            <Ionicons name="arrow-back" size={24} color={colors.text} />
-          </Clickable>
-          <ThemedText type="title" style={Typography.heading}>
-            Member
-          </ThemedText>
-          <View style={{ width: 24 }} />
-        </Row>
+        <PageHeader title="Member" showBack centerTitle />
         <EmptyState
           icon="person-outline"
           title="Member not found"
@@ -93,17 +85,9 @@ export default function MemberManagementScreen() {
   return (
     <SafeAreaView
       style={[styles.container, { backgroundColor: colors.background }]}
-      edges={['top']}
+      edges={['top', 'bottom']}
     >
-      <Row align="center" justify="space-between" style={styles.header}>
-        <Clickable onPress={() => router.back()} hitSlop={8}>
-          <Ionicons name="arrow-back" size={24} color={colors.text} />
-        </Clickable>
-        <ThemedText type="title" style={Typography.heading}>
-          Member
-        </ThemedText>
-        <View style={{ width: 24 }} />
-      </Row>
+      <PageHeader title="Member" showBack centerTitle />
 
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
         <MemberProfileCard member={member} />
@@ -146,6 +130,5 @@ export default function MemberManagementScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1 },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: Spacing.xl },
-  header: { paddingHorizontal: Spacing.lg, paddingVertical: Spacing.md },
   content: { padding: Spacing.lg, paddingTop: 0, gap: Spacing.md, paddingBottom: Spacing.xl * 2 },
 });

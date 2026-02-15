@@ -9,6 +9,7 @@ import Animated, { FadeInDown } from 'react-native-reanimated';
 
 import { ThemedText } from '@/components/themed-text';
 import { Clickable } from '@/components/primitives/clickable';
+import { PageHeader } from '@/components/primitives/page-header';
 import { ChallengeCard } from '@/components/drills/challenge-card';
 import { ChallengeStatsBar } from '@/components/drills/challenge-stats-bar';
 import { LoadingState, EmptyState, ErrorState } from '@/components/ui/screen-states';
@@ -107,7 +108,7 @@ export default function ChallengesScreen() {
     return (
       <SafeAreaView
         style={[styles.container, { backgroundColor: palette.background }]}
-        edges={['top']}
+        edges={['top', 'bottom']}
       >
         <LoadingState variant="list" />
       </SafeAreaView>
@@ -118,7 +119,7 @@ export default function ChallengesScreen() {
     return (
       <SafeAreaView
         style={[styles.container, { backgroundColor: palette.background }]}
-        edges={['top']}
+        edges={['top', 'bottom']}
       >
         <ErrorState message={error?.message ?? 'Failed to load challenges.'} onRetry={retry} />
       </SafeAreaView>
@@ -128,27 +129,27 @@ export default function ChallengesScreen() {
   return (
     <SafeAreaView
       style={[styles.container, { backgroundColor: palette.background }]}
-      edges={['top']}
+      edges={['top', 'bottom']}
     >
-      <Row align="center" justify="space-between" style={styles.header}>
-        <Clickable onPress={() => router.back()} hitSlop={8} accessibilityLabel="Go back">
-          <Ionicons name="arrow-back" size={24} color={palette.text} />
-        </Clickable>
-        <ThemedText type="title" style={styles.headerTitle}>
-          Challenges
-        </ThemedText>
-        {isCoach && status !== 'empty' ? (
-          <Clickable
-            onPress={handleCreateChallenge}
-            hitSlop={8}
-            accessibilityLabel="Create challenge"
-          >
-            <Ionicons name="add-circle-outline" size={28} color={palette.tint} />
-          </Clickable>
-        ) : (
-          <View style={{ width: 28 }} />
-        )}
-      </Row>
+      <PageHeader
+        title="Challenges"
+        showBack
+        backIcon="arrow-back"
+        onBackPress={() => router.back()}
+        centerTitle
+        containerStyle={styles.header}
+        right={
+          isCoach && status !== 'empty' ? (
+            <Clickable
+              onPress={handleCreateChallenge}
+              hitSlop={8}
+              accessibilityLabel="Create challenge"
+            >
+              <Ionicons name="add-circle-outline" size={28} color={palette.tint} />
+            </Clickable>
+          ) : undefined
+        }
+      />
 
       <ScrollView
         contentContainerStyle={styles.scrollContent}

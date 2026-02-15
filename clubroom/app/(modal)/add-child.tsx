@@ -10,8 +10,8 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 
 import { ThemedText } from '@/components/themed-text';
-import { Clickable } from '@/components/primitives/clickable';
 import { Button } from '@/components/primitives/button';
+import { PageHeader } from '@/components/primitives/page-header';
 import { AddChildBasicStep } from '@/components/family/add-child-basic-step';
 import { AddChildMedicalStep } from '@/components/family/add-child-medical-step';
 import {
@@ -45,16 +45,16 @@ export default function AddChildScreen() {
   return (
     <SafeAreaView
       style={[styles.container, { backgroundColor: palette.background }]}
-      edges={['top']}
+      edges={['top', 'bottom']}
     >
-      {/* Header */}
-      <Row style={[styles.header, { borderBottomColor: palette.border }]}>
-        <Clickable onPress={c.goBack} hitSlop={8}>
-          <Ionicons name={c.isFirstStep ? 'close' : 'arrow-back'} size={24} color={palette.text} />
-        </Clickable>
-        <ThemedText type="subtitle">Add Child</ThemedText>
-        <View style={{ width: 24 }} />
-      </Row>
+      <PageHeader
+        title="Add Child"
+        showBack
+        backIcon={c.isFirstStep ? 'close' : 'arrow-back'}
+        onBackPress={c.goBack}
+        centerTitle
+        containerStyle={[styles.header, { borderBottomColor: palette.border }]}
+      />
 
       {/* Step Indicator */}
       <Row style={styles.stepIndicator}>

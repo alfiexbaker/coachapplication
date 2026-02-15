@@ -51,13 +51,27 @@ function run() {
 
     if (isLikelyScreenFile(file)) {
       const hasSafeArea = source.includes('SafeAreaView');
-      const hasCustomScreen = source.includes('<Screen') || source.includes('PageScaffold');
+      const hasCustomScreen =
+        source.includes('<Screen') ||
+        source.includes('PageScaffold') ||
+        source.includes('PageContainer');
       if (!hasSafeArea && !hasCustomScreen) {
         findings.high.push({
           file,
           line: 1,
           rule: 'screen-without-safe-area-shell',
           detail: 'Screen may render under notch/home indicator on some devices.',
+        });
+      }
+
+      const topOnlyEdges = matchAllWithLine(source, /edges=\{\['top'\]\}/g);
+      for (const hit of topOnlyEdges) {
+        findings.medium.push({
+          file,
+          line: hit.line,
+          rule: 'top-only-safe-area',
+          detail:
+            'Top-only SafeAreaView can allow bottom controls/content to collide with the home indicator.',
         });
       }
     }
@@ -75,23 +89,35 @@ function run() {
       });
     }
 
-    const spacerViews = matchAllWithLine(source, /<View\s+style=\{\{\s*width:\s*\d+\s*\}\}\s*\/>/g);
+    const spacerViews = matchAllWithLine(
+      source,
+      /<View\s+style=\{\{\s*width:\s*(\d+)\s*\}\}\s*\/>/g,
+    ).filter(({ match }) => Number(match[1]) >= 20);
     for (const hit of spacerViews) {
       findings.medium.push({
         file,
         line: hit.line,
         rule: 'spacer-view-hack',
-        detail: 'Spacer View for header alignment is brittle across device widths.',
+        detail:
+          'Large fixed-width spacer View for alignment is brittle across device widths and text scaling.',
       });
     }
 
-    const absoluteBlocks = matchAllWithLine(source, /position:\s*'absolute'/g);
+    const absoluteBlocks = isLikelyScreenFile(file)
+      ? matchAllWithLine(source, /\{[^{}]*position:\s*'absolute'[^{}]*\}/g).filter(({ match }) => {
+          const block = match[0];
+          const hasLargeOffset = /(?:top|right|bottom|left):\s*\d{2,}/.test(block);
+          const hasLargeFixedSize = /(?:width|height):\s*\d{3,}/.test(block);
+          return hasLargeOffset || hasLargeFixedSize;
+        })
+      : [];
     for (const hit of absoluteBlocks) {
       findings.medium.push({
         file,
         line: hit.line,
         rule: 'absolute-layout-risk',
-        detail: 'Absolute positioning often causes overlap/cutoff on small screens.',
+        detail:
+          'Absolute positioning with large fixed offsets or dimensions can overlap/cut off on small screens.',
       });
     }
 

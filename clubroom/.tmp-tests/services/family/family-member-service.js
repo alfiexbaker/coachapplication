@@ -673,8 +673,8 @@ class FamilyMemberService {
     /**
      * Format currency amount.
      */
-    formatAmount(amount, currency = 'GBP') {
-        const symbol = currency === 'GBP' ? '\u00A3' : '$';
+    formatAmount(amount, _currency = 'GBP') {
+        const symbol = '\u00A3';
         return `${symbol}${amount.toFixed(2)}`;
     }
     /**

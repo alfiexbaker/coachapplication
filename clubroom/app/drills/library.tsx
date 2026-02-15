@@ -40,7 +40,7 @@ export default function DrillLibraryScreen() {
     return (
       <SafeAreaView
         style={[styles.container, { backgroundColor: colors.background }]}
-        edges={['top']}
+        edges={['top', 'bottom']}
       >
         <Row justify="space-between" align="center" style={styles.header}>
           <Row gap="md" align="center">
@@ -61,7 +61,7 @@ export default function DrillLibraryScreen() {
     return (
       <SafeAreaView
         style={[styles.container, { backgroundColor: colors.background }]}
-        edges={['top']}
+        edges={['top', 'bottom']}
       >
         <Row justify="space-between" align="center" style={styles.header}>
           <Row gap="md" align="center">
@@ -81,7 +81,7 @@ export default function DrillLibraryScreen() {
   return (
     <SafeAreaView
       style={[styles.container, { backgroundColor: colors.background }]}
-      edges={['top']}
+      edges={['top', 'bottom']}
     >
       {/* Header */}
       <Row justify="space-between" align="center" style={styles.header}>

@@ -39,7 +39,7 @@ export default function NotificationPreferencesScreen() {
     return (
       <SafeAreaView
         style={[styles.container, { backgroundColor: colors.background }]}
-        edges={['top']}
+        edges={['top', 'bottom']}
       >
         <Header colors={colors} updating={false} />
         <LoadingState variant="list" />
@@ -51,7 +51,7 @@ export default function NotificationPreferencesScreen() {
     return (
       <SafeAreaView
         style={[styles.container, { backgroundColor: colors.background }]}
-        edges={['top']}
+        edges={['top', 'bottom']}
       >
         <Header colors={colors} updating={false} />
         <ErrorState message={error ?? 'Failed to load notification preferences.'} onRetry={retry} />
@@ -62,7 +62,7 @@ export default function NotificationPreferencesScreen() {
   return (
     <SafeAreaView
       style={[styles.container, { backgroundColor: colors.background }]}
-      edges={['top']}
+      edges={['top', 'bottom']}
     >
       <Header colors={colors} updating={updating} />
 

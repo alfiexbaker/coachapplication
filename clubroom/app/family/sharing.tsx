@@ -54,7 +54,7 @@ export default function FamilySharingScreen() {
     return (
       <SafeAreaView
         style={[styles.container, { backgroundColor: colors.background }]}
-        edges={['top']}
+        edges={['top', 'bottom']}
       >
         <PageHeader title="Family Sharing" showBack onBackPress={() => router.back()} />
         <LoadingState variant="detail" />
@@ -66,7 +66,7 @@ export default function FamilySharingScreen() {
     return (
       <SafeAreaView
         style={[styles.container, { backgroundColor: colors.background }]}
-        edges={['top']}
+        edges={['top', 'bottom']}
       >
         <PageHeader title="Family Sharing" showBack onBackPress={() => router.back()} />
         <ErrorState
@@ -81,7 +81,7 @@ export default function FamilySharingScreen() {
     return (
       <SafeAreaView
         style={[styles.container, { backgroundColor: colors.background }]}
-        edges={['top']}
+        edges={['top', 'bottom']}
       >
         <PageHeader title="Family Sharing" showBack onBackPress={() => router.back()} />
         <EmptyState
@@ -98,7 +98,7 @@ export default function FamilySharingScreen() {
   return (
     <SafeAreaView
       style={[styles.container, { backgroundColor: colors.background }]}
-      edges={['top']}
+      edges={['top', 'bottom']}
     >
       <PageHeader title="Family Sharing" showBack onBackPress={() => router.back()} />
 

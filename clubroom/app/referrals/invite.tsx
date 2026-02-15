@@ -31,7 +31,7 @@ export default function ReferralInviteScreen() {
     return (
       <SafeAreaView
         style={[styles.container, { backgroundColor: palette.background }]}
-        edges={['top']}
+        edges={['top', 'bottom']}
       >
         <Row align="center" justify="between" style={styles.header}>
           <Clickable onPress={() => router.back()} hitSlop={8}>
@@ -51,7 +51,7 @@ export default function ReferralInviteScreen() {
     return (
       <SafeAreaView
         style={[styles.container, { backgroundColor: palette.background }]}
-        edges={['top']}
+        edges={['top', 'bottom']}
       >
         <Row align="center" justify="between" style={styles.header}>
           <Clickable onPress={() => router.back()} hitSlop={8}>
@@ -74,7 +74,7 @@ export default function ReferralInviteScreen() {
     return (
       <SafeAreaView
         style={[styles.container, { backgroundColor: palette.background }]}
-        edges={['top']}
+        edges={['top', 'bottom']}
       >
         <Row align="center" justify="between" style={styles.header}>
           <Clickable onPress={() => router.back()} hitSlop={8}>
@@ -99,7 +99,7 @@ export default function ReferralInviteScreen() {
   return (
     <SafeAreaView
       style={[styles.container, { backgroundColor: palette.background }]}
-      edges={['top']}
+      edges={['top', 'bottom']}
     >
       <Row align="center" justify="between" style={styles.header}>
         <Clickable onPress={() => router.back()} hitSlop={8}>

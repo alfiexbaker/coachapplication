@@ -49,7 +49,7 @@ export default function GroupSessionDetailScreen() {
     return (
       <SafeAreaView
         style={[styles.container, { backgroundColor: colors.background }]}
-        edges={['top']}
+        edges={['top', 'bottom']}
       >
         <LoadingState variant="detail" />
       </SafeAreaView>
@@ -60,7 +60,7 @@ export default function GroupSessionDetailScreen() {
     return (
       <SafeAreaView
         style={[styles.container, { backgroundColor: colors.background }]}
-        edges={['top']}
+        edges={['top', 'bottom']}
       >
         <ErrorState
           message={error?.message || 'Failed to load group session details.'}
@@ -74,7 +74,7 @@ export default function GroupSessionDetailScreen() {
     return (
       <SafeAreaView
         style={[styles.container, { backgroundColor: colors.background }]}
-        edges={['top']}
+        edges={['top', 'bottom']}
       >
         <EmptyState
           icon="calendar-outline"
@@ -93,9 +93,10 @@ export default function GroupSessionDetailScreen() {
   return (
     <SafeAreaView
       style={[styles.container, { backgroundColor: colors.background }]}
-      edges={['top']}
+      edges={['top', 'bottom']}
     >
       <ScrollView
+        style={styles.scroll}
         showsVerticalScrollIndicator={false}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
       >
@@ -160,7 +161,6 @@ export default function GroupSessionDetailScreen() {
             />
           )}
 
-          <View style={{ height: 100 }} />
         </View>
       </ScrollView>
 
@@ -195,8 +195,8 @@ export default function GroupSessionDetailScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
-  header: { paddingHorizontal: Spacing.lg, paddingVertical: Spacing.md },
-  content: { padding: Spacing.lg, gap: Spacing.md },
+  scroll: { flex: 1 },
+  content: { padding: Spacing.lg, gap: Spacing.md, paddingBottom: Spacing.lg },
   titleSection: {},
   priceSection: { alignItems: 'flex-end' },
   capacityBadge: {
@@ -206,10 +206,6 @@ const styles = StyleSheet.create({
     alignSelf: 'flex-start',
   },
   footer: {
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
     padding: Spacing.lg,
     borderTopWidth: 1,
   },

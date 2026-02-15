@@ -9,10 +9,17 @@ import { useTheme } from '@/hooks/useTheme';
 
 interface BookingParentViewProps {
   onMessageCoach: () => void;
+  onCancelBooking: () => void;
   onReportProblem: () => void;
+  canCancelBooking: boolean;
 }
 
-function BookingParentViewInner({ onMessageCoach, onReportProblem }: BookingParentViewProps) {
+function BookingParentViewInner({
+  onMessageCoach,
+  onCancelBooking,
+  onReportProblem,
+  canCancelBooking,
+}: BookingParentViewProps) {
   const { colors: palette } = useTheme();
 
   return (
@@ -32,6 +39,24 @@ function BookingParentViewInner({ onMessageCoach, onReportProblem }: BookingPare
           Message Coach
         </ThemedText>
       </Clickable>
+
+      {canCancelBooking ? (
+        <Clickable
+          onPress={onCancelBooking}
+          style={({ pressed }) =>
+            [
+              styles.secondaryButton,
+              { borderColor: palette.error },
+              pressed && { backgroundColor: palette.border, opacity: 0.7 },
+            ].filter(Boolean) as ViewStyle[]
+          }
+        >
+          <Ionicons name="close-circle-outline" size={20} color={palette.error} />
+          <ThemedText style={[styles.secondaryButtonText, { color: palette.error }]}>
+            Cancel Booking
+          </ThemedText>
+        </Clickable>
+      ) : null}
 
       <Clickable
         onPress={onReportProblem}

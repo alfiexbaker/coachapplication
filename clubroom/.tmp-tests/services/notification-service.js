@@ -31,6 +31,9 @@ class NotificationService {
     async clearAll() {
         return notification_store_1.notificationStore.clearAll();
     }
+    async dismiss(id) {
+        return notification_store_1.notificationStore.dismiss(id);
+    }
     async getUnreadCount(recipientId) {
         return notification_store_1.notificationStore.getUnreadCount(recipientId);
     }

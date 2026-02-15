@@ -5,8 +5,24 @@ export function getSessionOfferingCoachName(offering: SessionOffering): string {
   return offering.coachId || 'Coach';
 }
 
-export function getSessionRegistrationUserName(registration: SessionRegistration): string {
-  return registration.userId || 'User';
+function prettifyUserId(userId: string): string {
+  return userId
+    .replace(/[_-]+/g, ' ')
+    .replace(/\b\w/g, (char) => char.toUpperCase())
+    .trim();
+}
+
+export function getSessionRegistrationUserName(
+  registration: SessionRegistration,
+  userNameMap?: Record<string, string>,
+): string {
+  const registrationName = registration.userName?.trim();
+  if (registrationName) return registrationName;
+
+  const mappedName = userNameMap?.[registration.userId]?.trim();
+  if (mappedName) return mappedName;
+
+  return registration.userId ? prettifyUserId(registration.userId) : 'User';
 }
 
 export function getSessionAthleteName(session: Session): string {

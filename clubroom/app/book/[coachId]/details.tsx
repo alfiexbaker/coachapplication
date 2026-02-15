@@ -28,7 +28,7 @@ export default function DetailsScreen() {
   return (
     <SafeAreaView
       style={[styles.safeArea, { backgroundColor: palette.background }]}
-      edges={['top']}
+      edges={['top', 'bottom']}
     >
       <ScrollView contentContainerStyle={styles.content}>
         <BookingWizardHeader

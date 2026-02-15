@@ -12,7 +12,7 @@ export default function ProfileScreen() {
 
   if (isLoading) {
     return (
-      <SafeAreaView style={{ flex: 1, backgroundColor: colors.background }} edges={['top']}>
+      <SafeAreaView style={{ flex: 1, backgroundColor: colors.background }} edges={['top', 'bottom']}>
         <LoadingState variant="detail" />
       </SafeAreaView>
     );
@@ -20,7 +20,7 @@ export default function ProfileScreen() {
 
   if (error) {
     return (
-      <SafeAreaView style={{ flex: 1, backgroundColor: colors.background }} edges={['top']}>
+      <SafeAreaView style={{ flex: 1, backgroundColor: colors.background }} edges={['top', 'bottom']}>
         <ErrorState message={error} onRetry={() => void logout()} />
       </SafeAreaView>
     );
@@ -28,7 +28,7 @@ export default function ProfileScreen() {
 
   if (!currentUser) {
     return (
-      <SafeAreaView style={{ flex: 1, backgroundColor: colors.background }} edges={['top']}>
+      <SafeAreaView style={{ flex: 1, backgroundColor: colors.background }} edges={['top', 'bottom']}>
         <EmptyState
           icon="person-circle-outline"
           title="No active account"

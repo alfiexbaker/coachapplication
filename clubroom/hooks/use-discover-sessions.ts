@@ -5,9 +5,12 @@
 
 import { useState, useMemo, useCallback } from 'react';
 import { apiClient } from '@/services/api-client';
+import { bookingService } from '@/services/booking';
+import { inviteService } from '@/services/invite';
 import { useAuth } from '@/hooks/use-auth';
 import { useScreen, type ScreenStatus } from '@/hooks/use-screen';
 import type { SessionOffering, FootballObjective } from '@/constants/types';
+import { hasChildren } from '@/utils/user-helpers';
 import { createLogger } from '@/utils/logger';
 import { getSessionOfferingCoachName } from '@/utils/session-display';
 import { err, ok, serviceError, type ServiceError } from '@/types/result';
@@ -67,10 +70,81 @@ export function useDiscoverSessions() {
 
   const loadOfferings = useCallback(async () => {
     try {
-      const allOfferings = await apiClient.get<SessionOffering[]>('session_offerings', []);
-      const available = allOfferings.filter(
-        (offering) => offering.status === 'active' && offering.coachId !== currentUser?.id,
-      );
+      const viewerIds = new Set<string>();
+      if (currentUser?.id) {
+        viewerIds.add(currentUser.id);
+      }
+      const relatedChildren = hasChildren(currentUser) ? (currentUser?.children ?? []) : [];
+      for (const child of relatedChildren) {
+        if (child.childId) {
+          viewerIds.add(child.childId);
+        }
+      }
+
+      const [allOfferings, allBookings, pendingInvites] = await Promise.all([
+        apiClient.get<SessionOffering[]>('session_offerings', []),
+        bookingService.list(),
+        currentUser && currentUser.role !== 'COACH'
+          ? inviteService.getPendingInvites(currentUser.id)
+          : Promise.resolve([]),
+      ]);
+
+      const familiarCoachIds = new Set<string>();
+      const familiarClubIds = new Set<string>();
+
+      for (const offering of allOfferings) {
+        const hasLinkedRegistration = offering.registrations.some(
+          (registration) =>
+            registration.status === 'confirmed' && viewerIds.has(registration.userId),
+        );
+        if (!hasLinkedRegistration) continue;
+        familiarCoachIds.add(offering.coachId);
+        if (offering.clubId) {
+          familiarClubIds.add(offering.clubId);
+        }
+      }
+
+      for (const booking of allBookings) {
+        const linkedAthleteIds = new Set<string>();
+        if (booking.athleteId) linkedAthleteIds.add(booking.athleteId);
+        for (const athleteId of booking.athleteIds || []) {
+          linkedAthleteIds.add(athleteId);
+        }
+        const isLinkedBooking = Array.from(linkedAthleteIds).some((athleteId) =>
+          viewerIds.has(athleteId),
+        );
+        if (isLinkedBooking) {
+          familiarCoachIds.add(booking.coachId);
+        }
+      }
+
+      for (const invite of pendingInvites) {
+        familiarCoachIds.add(invite.coachId);
+      }
+
+      const now = new Date();
+      const available = allOfferings.filter((offering) => {
+        if (offering.status !== 'active') return false;
+        if (offering.coachId === currentUser?.id) return false;
+
+        const isFutureOrRecurring =
+          offering.isRecurring || new Date(offering.scheduledAt).getTime() > now.getTime();
+        if (!isFutureOrRecurring) return false;
+
+        const confirmedCount = offering.registrations.filter(
+          (registration) => registration.status === 'confirmed',
+        ).length;
+        if (confirmedCount >= offering.maxParticipants) return false;
+
+        const isInvited = offering.invitedAthleteIds?.some((id) => viewerIds.has(id)) ?? false;
+        const isOpenSession = offering.inviteType !== 'CLOSED';
+        if (!isOpenSession && !isInvited) return false;
+
+        const coachLinked = familiarCoachIds.has(offering.coachId);
+        const clubLinked = offering.clubId ? familiarClubIds.has(offering.clubId) : false;
+        return coachLinked || clubLinked || isInvited;
+      });
+
       logger.debug('Loaded offerings', { count: available.length });
       return ok<DiscoverSessionsData>({ offerings: available });
     } catch (loadError) {
@@ -83,7 +157,7 @@ export function useDiscoverSessions() {
         ),
       );
     }
-  }, [currentUser?.id]);
+  }, [currentUser]);
 
   const { data, status, error, refreshing, onRefresh, retry } = useScreen<DiscoverSessionsData>({
     load: loadOfferings,

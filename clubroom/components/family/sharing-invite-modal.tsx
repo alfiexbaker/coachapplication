@@ -5,6 +5,7 @@ import { Ionicons } from '@expo/vector-icons';
 
 import { Clickable } from '@/components/primitives/clickable';
 import { ThemedText } from '@/components/themed-text';
+import { PageHeader } from '@/components/primitives/page-header';
 import { Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
 import { ROLE_INFO } from '@/hooks/use-family-sharing';
@@ -54,19 +55,18 @@ export const SharingInviteModal = memo(function SharingInviteModal({
       presentationStyle="pageSheet"
       onRequestClose={onClose}
     >
-      <SafeAreaView style={[styles.modal, { backgroundColor: colors.background }]} edges={['top']}>
-        <Row style={[styles.header, { borderBottomColor: colors.border }]}>
-          <Clickable
-            onPress={onClose}
-            style={{ padding: Spacing.xxs }}
-            accessibilityLabel="Close invite guardian modal"
-            accessibilityRole="button"
-          >
-            <Ionicons name="close" size={28} color={colors.text} />
-          </Clickable>
-          <ThemedText type="subtitle">Invite Guardian</ThemedText>
-          <View style={{ width: 28 }} />
-        </Row>
+      <SafeAreaView
+        style={[styles.modal, { backgroundColor: colors.background }]}
+        edges={['top', 'bottom']}
+      >
+        <PageHeader
+          title="Invite Guardian"
+          showBack
+          onBackPress={onClose}
+          backIcon="close"
+          centerTitle
+          containerStyle={[styles.header, { borderBottomColor: colors.border }]}
+        />
 
         <ScrollView style={{ flex: 1 }} contentContainerStyle={styles.content}>
           <View style={styles.group}>

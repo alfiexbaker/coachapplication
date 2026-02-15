@@ -6,14 +6,12 @@
  */
 
 import { View, StyleSheet } from 'react-native';
-import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 
-import { Clickable } from '@/components/primitives/clickable';
-import { Row } from '@/components/primitives/row';
 import { ThemedText } from '@/components/themed-text';
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { PageContainer } from '@/components/primitives/page-container';
+import { PageHeader } from '@/components/primitives/page-header';
 import { SpecialNeedsHero } from '@/components/development/special-needs-hero';
 import { SpecialNeedsDisabilities } from '@/components/development/special-needs-disabilities';
 import { SpecialNeedsAccommodations } from '@/components/development/special-needs-accommodations';
@@ -62,17 +60,10 @@ export default function SpecialNeedsScreen() {
 
   return (
     <PageContainer
+      edges={['top', 'bottom']}
       gap={Spacing.md}
       header={
-        <Row align="center" justify="space-between" style={styles.header}>
-          <Clickable onPress={() => router.back()} style={styles.backButton}>
-            <Ionicons name="arrow-back" size={24} color={colors.foreground} />
-          </Clickable>
-          <ThemedText type="title" style={Typography.heading}>
-            Special Needs
-          </ThemedText>
-          <View style={{ width: 24 }} />
-        </Row>
+        <PageHeader title="Special Needs" showBack centerTitle />
       }
     >
       <SpecialNeedsHero
@@ -107,8 +98,6 @@ export default function SpecialNeedsScreen() {
 }
 
 const styles = StyleSheet.create({
-  header: { paddingHorizontal: Spacing.lg, paddingTop: Spacing.md, paddingBottom: Spacing.sm },
-  backButton: { padding: Spacing.xs },
   emptyCard: { padding: Spacing.lg, alignItems: 'center', gap: Spacing.sm },
   emptyIcon: {
     width: Components.avatar.xl,

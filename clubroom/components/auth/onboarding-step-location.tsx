@@ -13,6 +13,7 @@ import type { AccountType } from '@/services/auth-service';
 import { Row } from '@/components/primitives';
 
 interface StepLocationProps {
+  addressLine: string;
   city: string;
   postcode: string;
   country: string;
@@ -21,6 +22,7 @@ interface StepLocationProps {
 }
 
 function StepLocationInner({
+  addressLine,
   city,
   postcode,
   country,
@@ -40,6 +42,20 @@ function StepLocationInner({
       <ThemedText style={[styles.subtitle, { color: palette.muted }]}>
         This helps us find {accountType === 'COACH' ? 'athletes' : 'coaches'} near you.
       </ThemedText>
+
+      <View style={styles.fieldGroup}>
+        <ThemedText style={styles.label}>
+          {accountType === 'COACH' ? 'Coaching Address' : 'Address'}
+        </ThemedText>
+        <TextInput
+          value={addressLine}
+          onChangeText={(v) => onChangeField('addressLine', v)}
+          placeholder={accountType === 'COACH' ? '12 Training Ground Road' : '12 Example Street'}
+          placeholderTextColor={palette.muted}
+          accessibilityLabel="Address"
+          style={inputStyle}
+        />
+      </View>
 
       <View style={styles.fieldGroup}>
         <ThemedText style={styles.label}>City</ThemedText>

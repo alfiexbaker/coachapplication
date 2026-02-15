@@ -72,8 +72,8 @@ export const DevAthleteHero = memo(function DevAthleteHero({
         </View>
       </Row>
 
-      <Row gap="xs" justify="space-between" align="center" style={{ marginTop: Spacing.sm }}>
-        <Row gap="xs" style={{ flex: 1, flexWrap: 'wrap' }}>
+      <View style={styles.metaRow}>
+        <Row gap="xs" wrap style={styles.badgeGroup}>
           <View style={[styles.badge, { backgroundColor: withAlpha(trendColor, 0.09) }]}>
             <Row gap="xs" align="center">
               <Ionicons name={trendIcon} size={14} color={trendColor} />
@@ -89,14 +89,14 @@ export const DevAthleteHero = memo(function DevAthleteHero({
             </Row>
           </View>
         </Row>
-        <Row gap="xs" style={styles.heroActions}>
+        <Row gap="xs" wrap style={styles.heroActions}>
           <Clickable
             style={[styles.ctaButton, { backgroundColor: colors.tint }]}
             onPress={onLogSession}
             accessibilityRole="button"
             accessibilityLabel="Log session"
           >
-            <ThemedText style={[Typography.small, { color: colors.onPrimary }]}>
+            <ThemedText style={[Typography.small, { color: colors.onPrimary }]} numberOfLines={1}>
               Log Session
             </ThemedText>
           </Clickable>
@@ -110,12 +110,12 @@ export const DevAthleteHero = memo(function DevAthleteHero({
             accessibilityLabel="Award badge"
           >
             <Ionicons name="ribbon" size={14} color={colors.warning} />
-            <ThemedText style={[styles.awardButtonText, { color: colors.warning }]}>
+            <ThemedText style={[styles.awardButtonText, { color: colors.warning }]} numberOfLines={1}>
               Award Badge
             </ThemedText>
           </Clickable>
         </Row>
-      </Row>
+      </View>
 
       <View style={[styles.divider, { backgroundColor: colors.border }]} />
 
@@ -163,12 +163,20 @@ const styles = StyleSheet.create({
     ...Typography.micro,
     textTransform: 'none',
   },
+  metaRow: {
+    marginTop: Spacing.sm,
+    gap: Spacing.xs,
+  },
+  badgeGroup: {
+    minHeight: Components.buttonCompact.height,
+  },
   ctaButton: {
     paddingVertical: Components.pill.paddingVertical,
     paddingHorizontal: Spacing.sm,
     borderRadius: Components.buttonCompact.borderRadius,
-    height: Components.buttonCompact.height,
+    minHeight: Components.buttonCompact.height,
     justifyContent: 'center',
+    flexShrink: 1,
   },
   awardButton: {
     flexDirection: 'row',
@@ -177,12 +185,14 @@ const styles = StyleSheet.create({
     paddingVertical: Components.pill.paddingVertical,
     paddingHorizontal: Spacing.sm,
     borderRadius: Components.buttonCompact.borderRadius,
-    height: Components.buttonCompact.height,
+    minHeight: Components.buttonCompact.height,
     justifyContent: 'center',
     borderWidth: 1,
+    flexShrink: 1,
   },
   heroActions: {
-    flexShrink: 0,
+    justifyContent: 'flex-end',
+    alignSelf: 'flex-end',
   },
   awardButtonText: {
     ...Typography.smallSemiBold,

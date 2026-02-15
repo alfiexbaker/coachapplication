@@ -30,7 +30,7 @@ export default function GroupSessionsScreen() {
     return (
       <SafeAreaView
         style={[styles.container, { backgroundColor: colors.background }]}
-        edges={['top']}
+        edges={['top', 'bottom']}
       >
         <LoadingState variant="list" />
       </SafeAreaView>
@@ -41,7 +41,7 @@ export default function GroupSessionsScreen() {
     return (
       <SafeAreaView
         style={[styles.container, { backgroundColor: colors.background }]}
-        edges={['top']}
+        edges={['top', 'bottom']}
       >
         <ErrorState message={error?.message || 'Failed to load group sessions.'} onRetry={retry} />
       </SafeAreaView>
@@ -51,7 +51,7 @@ export default function GroupSessionsScreen() {
   return (
     <SafeAreaView
       style={[styles.container, { backgroundColor: colors.background }]}
-      edges={['top']}
+      edges={['top', 'bottom']}
     >
       <Row gap="md" align="center" style={styles.header}>
         <Clickable onPress={() => router.back()} hitSlop={8}>

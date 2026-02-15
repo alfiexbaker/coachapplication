@@ -1,9 +1,6 @@
-import { View } from 'react-native';
 import { useLocalSearchParams, router } from 'expo-router';
-import { Ionicons } from '@expo/vector-icons';
 
 import { PageContainer } from '@/components/primitives/page-container';
-import { Row } from '@/components/primitives/row';
 import { Column } from '@/components/primitives/column';
 import { ThemedText } from '@/components/themed-text';
 import { LoadingState, EmptyState } from '@/components/ui/screen-states';
@@ -17,7 +14,7 @@ import { useScreen } from '@/hooks/use-screen';
 import { ok } from '@/types/result';
 import { useAthleteDevelopment } from '@/hooks/use-athlete-development';
 import { Routes } from '@/navigation/routes';
-import { Clickable } from '@/components/primitives/clickable';
+import { PageHeader } from '@/components/primitives/page-header';
 
 export default function AthleteDetailScreen() {
   const { athleteId } = useLocalSearchParams<{ athleteId?: string | string[] }>();
@@ -79,23 +76,15 @@ export default function AthleteDetailScreen() {
   return (
     <>
       <PageContainer
+        edges={['top', 'bottom']}
         gap={Spacing.lg}
         header={
-          <Row
-            align="center"
-            justify="space-between"
-            style={{
-              paddingHorizontal: Spacing.lg,
-              paddingTop: Spacing.md,
-              paddingBottom: Spacing.sm,
-            }}
-          >
-            <Clickable onPress={() => router.back()} style={{ padding: Spacing.xs }}>
-              <Ionicons name="arrow-back" size={24} color={colors.foreground} />
-            </Clickable>
-            <ThemedText type="title">Athlete Progress</ThemedText>
-            <View style={{ width: 24 }} />
-          </Row>
+          <PageHeader
+            title="Athlete Progress"
+            showBack
+            onBackPress={() => router.back()}
+            centerTitle
+          />
         }
       >
         <DevAthleteHero

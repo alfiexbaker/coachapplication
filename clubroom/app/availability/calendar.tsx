@@ -38,7 +38,7 @@ export default function AvailabilityCalendarScreen() {
     return (
       <SafeAreaView
         style={[styles.container, { backgroundColor: palette.background }]}
-        edges={['top']}
+        edges={['top', 'bottom']}
       >
         <PageHeader title="Availability Calendar" showBack onBackPress={() => router.back()} />
         <LoadingState variant="calendar" />
@@ -50,7 +50,7 @@ export default function AvailabilityCalendarScreen() {
     return (
       <SafeAreaView
         style={[styles.container, { backgroundColor: palette.background }]}
-        edges={['top']}
+        edges={['top', 'bottom']}
       >
         <PageHeader title="Availability Calendar" showBack onBackPress={() => router.back()} />
         <ErrorState
@@ -65,7 +65,7 @@ export default function AvailabilityCalendarScreen() {
     return (
       <SafeAreaView
         style={[styles.container, { backgroundColor: palette.background }]}
-        edges={['top']}
+        edges={['top', 'bottom']}
       >
         <PageHeader title="Availability Calendar" showBack onBackPress={() => router.back()} />
         <EmptyState
@@ -82,7 +82,7 @@ export default function AvailabilityCalendarScreen() {
   return (
     <SafeAreaView
       style={[styles.container, { backgroundColor: palette.background }]}
-      edges={['top']}
+      edges={['top', 'bottom']}
     >
       <PageHeader title="Availability Calendar" showBack onBackPress={() => router.back()} />
 

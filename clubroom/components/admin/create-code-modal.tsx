@@ -56,7 +56,7 @@ export const CreateCodeModal = memo(function CreateCodeModal({
     >
       <SafeAreaView
         style={[styles.modalContainer, { backgroundColor: palette.background }]}
-        edges={['top']}
+        edges={['top', 'bottom']}
       >
         <Row
           justify="between"

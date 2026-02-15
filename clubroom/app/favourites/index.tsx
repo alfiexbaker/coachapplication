@@ -100,7 +100,7 @@ export default function FavouritesScreen() {
   return (
     <SafeAreaView
       style={[styles.container, { backgroundColor: palette.background }]}
-      edges={['top']}
+      edges={['top', 'bottom']}
     >
       <Row align="center" justify="space-between" style={styles.header}>
         <Row align="center" gap="md" style={styles.headerLeft}>
@@ -207,8 +207,8 @@ const styles = StyleSheet.create({
   },
   headerLeft: {},
   headerTitle: {
-    ...Typography.display,
-    fontSize: scaleFont(Typography.display.fontSize),
+    ...Typography.title,
+    fontSize: scaleFont(Typography.title.fontSize),
   },
   discoverButton: {
     paddingHorizontal: Spacing.sm,

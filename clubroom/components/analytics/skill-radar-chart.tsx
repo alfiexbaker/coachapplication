@@ -293,7 +293,7 @@ const styles = StyleSheet.create({
   ring: { position: 'absolute', borderWidth: 1, borderRadius: Radii.pill, borderStyle: 'dashed' },
   ringLabel: { position: 'absolute', left: '50%', marginLeft: -10 },
   ringLabelText: { ...Typography.micro },
-  axisLine: { position: 'absolute', height: 1, transformOrigin: 'left center' },
+  axisLine: { position: 'absolute', height: 1 },
   skillLabel: { position: 'absolute', width: 64, alignItems: 'center' },
   skillLabelBg: {
     paddingHorizontal: Spacing.xxs,

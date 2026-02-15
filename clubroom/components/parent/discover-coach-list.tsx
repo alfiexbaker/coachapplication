@@ -71,7 +71,7 @@ function DiscoverCoachListInner({
           key={coach.id}
           onPress={() => {
             logger.press('CoachCard', { coachId: coach.id, selectedChildId });
-            router.push(Routes.BOOK_COACH);
+            router.push(Routes.bookCoachWith(coach.id));
           }}
           style={({ pressed }) => [styles.coachCard, { opacity: pressed ? 0.7 : 1 }]}
         >

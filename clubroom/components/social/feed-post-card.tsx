@@ -56,11 +56,7 @@ function FeedPostCardInner({ post, onLike, onComment, onShare }: FeedPostCardPro
 
   return (
     <SurfaceCard style={styles.feedCard}>
-      <Clickable
-        onPress={handlePostPress}
-        style={styles.contentPressArea}
-        accessibilityLabel="Open post details"
-      >
+      <View style={styles.contentArea}>
         <OriginBadge
           clubName={post.clubName}
           clubBadge={post.clubBadge}
@@ -110,6 +106,14 @@ function FeedPostCardInner({ post, onLike, onComment, onShare }: FeedPostCardPro
         {post.attachments && post.attachments.length > 0 && (
           <AttachmentChips attachments={post.attachments} palette={palette} />
         )}
+      </View>
+
+      <Clickable
+        onPress={handlePostPress}
+        style={styles.detailsLink}
+        accessibilityLabel="Open post details"
+      >
+        <ThemedText style={[styles.detailsLinkText, { color: palette.tint }]}>View details</ThemedText>
       </Clickable>
 
       {/* Actions */}
@@ -140,8 +144,17 @@ const styles = StyleSheet.create({
   feedCard: {
     gap: Spacing.sm,
   },
-  contentPressArea: {
+  contentArea: {
     gap: Spacing.sm,
+  },
+  detailsLink: {
+    alignSelf: 'flex-start',
+    paddingHorizontal: Spacing.xs,
+    paddingVertical: Spacing.xxs,
+    borderRadius: Radii.pill,
+  },
+  detailsLinkText: {
+    ...Typography.smallSemiBold,
   },
   postContent: {
     gap: Spacing.xxs,

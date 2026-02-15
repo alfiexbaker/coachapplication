@@ -135,7 +135,7 @@ export default function RaiseConcernScreen() {
     return (
       <SafeAreaView
         style={[styles.container, { backgroundColor: colors.background }]}
-        edges={['top']}
+        edges={['top', 'bottom']}
       >
         <RaiseConcernHeader colors={colors} athleteName="" onBack={() => router.back()} />
         <LoadingState variant="form" />
@@ -147,7 +147,7 @@ export default function RaiseConcernScreen() {
     return (
       <SafeAreaView
         style={[styles.container, { backgroundColor: colors.background }]}
-        edges={['top']}
+        edges={['top', 'bottom']}
       >
         <RaiseConcernHeader colors={colors} athleteName="" onBack={() => router.back()} />
         <ErrorState message={error?.message || 'Failed to load athlete details.'} onRetry={retry} />
@@ -159,7 +159,7 @@ export default function RaiseConcernScreen() {
     return (
       <SafeAreaView
         style={[styles.container, { backgroundColor: colors.background }]}
-        edges={['top']}
+        edges={['top', 'bottom']}
       >
         <RaiseConcernHeader colors={colors} athleteName="" onBack={() => router.back()} />
         <ErrorState message="Athlete not found in your roster." onRetry={retry} />
@@ -170,7 +170,7 @@ export default function RaiseConcernScreen() {
   return (
     <SafeAreaView
       style={[styles.container, { backgroundColor: colors.background }]}
-      edges={['top']}
+      edges={['top', 'bottom']}
     >
       <RaiseConcernHeader colors={colors} athleteName={athleteName} onBack={() => router.back()} />
 

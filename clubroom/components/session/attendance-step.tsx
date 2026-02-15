@@ -1,7 +1,7 @@
 /**
  * Attendance Step — Step 1 of Session Completion Wizard
  *
- * Allows coach to mark each registered athlete as present, late, or absent.
+ * Allows coach to mark each registered athlete as present or absent.
  * Shows avatar, name, and attendance status buttons for each athlete.
  */
 
@@ -20,7 +20,7 @@ import type { ThemeColors } from '@/hooks/useTheme';
 // TYPES
 // ============================================================================
 
-export type AttendanceStatus = 'present' | 'absent' | 'late';
+export type AttendanceStatus = 'present' | 'absent';
 
 export interface AthleteAttendanceData {
   registrationId: string;
@@ -45,12 +45,10 @@ function getAttendanceIcon(status: AttendanceStatus, colors: ThemeColors) {
       return { name: 'checkmark-circle' as const, color: colors.success };
     case 'absent':
       return { name: 'close-circle' as const, color: colors.error };
-    case 'late':
-      return { name: 'time' as const, color: colors.warning };
   }
 }
 
-const ATTENDANCE_STATUSES: AttendanceStatus[] = ['present', 'late', 'absent'];
+const ATTENDANCE_STATUSES: AttendanceStatus[] = ['present', 'absent'];
 
 // ============================================================================
 // ATHLETE ROW

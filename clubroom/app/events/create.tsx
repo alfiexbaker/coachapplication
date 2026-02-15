@@ -1,11 +1,9 @@
 import { View, StyleSheet, ScrollView, KeyboardAvoidingView, Platform } from 'react-native';
 import { Row } from '@/components/primitives/row';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Ionicons } from '@expo/vector-icons';
 
-import { Clickable } from '@/components/primitives/clickable';
 import { Button } from '@/components/primitives/button';
-import { ThemedText } from '@/components/themed-text';
+import { PageHeader } from '@/components/primitives/page-header';
 import { CreateEventTypeStep } from '@/components/event/create-event-type-step';
 import { CreateEventDetailsStep } from '@/components/event/create-event-details-step';
 import { CreateEventScheduleStep } from '@/components/event/create-event-schedule-step';
@@ -45,7 +43,7 @@ export default function CreateEventScreen() {
     return (
       <SafeAreaView
         style={[styles.container, { backgroundColor: palette.background }]}
-        edges={['top']}
+        edges={['top', 'bottom']}
       >
         <LoadingState variant="form" />
       </SafeAreaView>
@@ -56,7 +54,7 @@ export default function CreateEventScreen() {
     return (
       <SafeAreaView
         style={[styles.container, { backgroundColor: palette.background }]}
-        edges={['top']}
+        edges={['top', 'bottom']}
       >
         <ErrorState
           message={error?.message || 'Failed to open event creation flow.'}
@@ -70,7 +68,7 @@ export default function CreateEventScreen() {
     return (
       <SafeAreaView
         style={[styles.container, { backgroundColor: palette.background }]}
-        edges={['top']}
+        edges={['top', 'bottom']}
       >
         <EmptyState
           icon="calendar-outline"
@@ -151,21 +149,20 @@ export default function CreateEventScreen() {
   return (
     <SafeAreaView
       style={[styles.container, { backgroundColor: palette.background }]}
-      edges={['top']}
+      edges={['top', 'bottom']}
     >
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         style={styles.keyboardView}
       >
-        <Row align="center" gap="md" style={styles.header}>
-          <Clickable onPress={goBack} hitSlop={8} accessibilityLabel="Go back">
-            <Ionicons name="arrow-back" size={24} color={palette.text} />
-          </Clickable>
-          <ThemedText type="subtitle" style={{ flex: 1, textAlign: 'center' }}>
-            Create Event
-          </ThemedText>
-          <View style={{ width: 24 }} />
-        </Row>
+        <PageHeader
+          title="Create Event"
+          showBack
+          backIcon="arrow-back"
+          onBackPress={goBack}
+          centerTitle
+          containerStyle={styles.header}
+        />
 
         <Row justify="center" gap="xs" style={styles.progressContainer}>
           {STEPS.map((s, i) => (

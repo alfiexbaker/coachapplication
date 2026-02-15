@@ -48,7 +48,7 @@ export default function EditTemplateScreen() {
     return (
       <SafeAreaView
         style={[styles.container, { backgroundColor: colors.background }]}
-        edges={['top']}
+        edges={['top', 'bottom']}
       >
         <PageHeader title="Edit Availability" showBack onBackPress={() => router.back()} />
         <LoadingState variant="detail" />
@@ -60,7 +60,7 @@ export default function EditTemplateScreen() {
     return (
       <SafeAreaView
         style={[styles.container, { backgroundColor: colors.background }]}
-        edges={['top']}
+        edges={['top', 'bottom']}
       >
         <PageHeader title="Edit Availability" showBack onBackPress={() => router.back()} />
         <ErrorState message={error?.message || 'Failed to load template.'} onRetry={retry} />
@@ -72,7 +72,7 @@ export default function EditTemplateScreen() {
     return (
       <SafeAreaView
         style={[styles.container, { backgroundColor: colors.background }]}
-        edges={['top']}
+        edges={['top', 'bottom']}
       >
         <PageHeader title="Edit Availability" showBack onBackPress={() => router.back()} />
         <EmptyState
@@ -89,7 +89,7 @@ export default function EditTemplateScreen() {
   return (
     <SafeAreaView
       style={[styles.container, { backgroundColor: colors.background }]}
-      edges={['top']}
+      edges={['top', 'bottom']}
     >
       <PageHeader title="Edit Availability" showBack onBackPress={() => router.back()} />
 

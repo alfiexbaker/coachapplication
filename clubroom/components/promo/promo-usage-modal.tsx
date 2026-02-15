@@ -43,7 +43,7 @@ export const PromoUsageModal = memo(function PromoUsageModal({
     >
       <SafeAreaView
         style={[styles.container, { backgroundColor: palette.background }]}
-        edges={['top']}
+        edges={['top', 'bottom']}
       >
         <Row align="flex-start" justify="space-between" style={styles.header}>
           <View>

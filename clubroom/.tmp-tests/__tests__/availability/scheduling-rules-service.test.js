@@ -60,6 +60,32 @@ const scheduling_rules_service_1 = require("@/services/scheduling-rules-service"
         strict_1.default.ok(refund.refundAmount > 0);
         strict_1.default.ok(refund.netRefundAmount <= refund.refundAmount);
     });
+    (0, node_test_1.it)('saves custom cancellation tiers in 5% increments', async () => {
+        const policyResult = await scheduling_rules_service_1.schedulingRulesService.setCancellationPolicy('coach-rules-7', 'custom', [
+            {
+                hoursBeforeSession: 24,
+                refundPercentage: 83,
+                description: '',
+            },
+            {
+                hoursBeforeSession: 6,
+                refundPercentage: 41,
+                description: '',
+            },
+        ]);
+        strict_1.default.equal(policyResult.success, true);
+        if (!policyResult.success)
+            return;
+        const customPolicy = policyResult.data;
+        const tier24 = customPolicy.tiers.find((tier) => tier.hoursBeforeSession === 24);
+        const tier6 = customPolicy.tiers.find((tier) => tier.hoursBeforeSession === 6);
+        const tier0 = customPolicy.tiers.find((tier) => tier.hoursBeforeSession === 0);
+        strict_1.default.equal(customPolicy.name, 'Custom');
+        strict_1.default.equal(tier24?.refundPercentage, 85);
+        strict_1.default.equal(tier6?.refundPercentage, 40);
+        strict_1.default.equal(tier0?.refundPercentage, 0);
+        strict_1.default.equal(customPolicy.tiers.every((tier) => tier.refundPercentage % 5 === 0), true);
+    });
     (0, node_test_1.it)('returns validation error for unknown preset', async () => {
         const result = await scheduling_rules_service_1.schedulingRulesService.applyPreset('coach-rules-5', 'unknown_preset');
         strict_1.default.equal(result.success, false);

@@ -5,15 +5,16 @@ import { memo } from 'react';
 import { View, Switch } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
+import Slider from '@react-native-community/slider';
 
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { Clickable } from '@/components/primitives/clickable';
 import { Divider } from '@/components/ui/primitives/Divider';
 import { ThemedText } from '@/components/themed-text';
 import { Spacing, Typography, withAlpha } from '@/constants/theme';
-import { POLICY_TEMPLATES } from '@/services/scheduling-rules-service';
 import { useTheme } from '@/hooks/useTheme';
 import { Row } from '@/components/primitives';
+import type { RefundTier } from '@/constants/types';
 import { styles } from './scheduling-rules-section-styles';
 
 // Modal-specific compact constants
@@ -23,6 +24,8 @@ const MODAL_RESCHEDULE_OPTIONS = [
   { value: 24, label: '24h before' },
   { value: 48, label: '48h before' },
 ];
+
+export const CANCELLATION_TIMEFRAMES = [48, 24, 12, 6, 2, 0] as const;
 
 // ---------------------------------------------------------------------------
 // OptionChip — Shared selectable chip
@@ -218,13 +221,24 @@ export const ToggleCard = memo(ToggleCardInner);
 // ---------------------------------------------------------------------------
 
 function CancellationSectionInner({
-  preset,
-  onPresetChange,
+  tiers,
+  onTierChange,
 }: {
-  preset: string;
-  onPresetChange: (p: string) => void;
+  tiers: RefundTier[];
+  onTierChange: (hoursBeforeSession: number, refundPercentage: number) => void;
 }) {
   const { colors: palette } = useTheme();
+  const sortedTiers = [...tiers].sort((a, b) => b.hoursBeforeSession - a.hoursBeforeSession);
+
+  const formatWindowLabel = (hours: number) => {
+    if (hours === 0) return 'At session time';
+    if (hours >= 24) {
+      const days = Math.floor(hours / 24);
+      return `${days} day${days === 1 ? '' : 's'}+ before`;
+    }
+    return `${hours}h+ before`;
+  };
+
   return (
     <View style={styles.section}>
       <Row style={styles.sectionHeader}>
@@ -233,57 +247,46 @@ function CancellationSectionInner({
         </View>
         <View style={styles.sectionTitleWrap}>
           <ThemedText type="defaultSemiBold">Cancellation Policy</ThemedText>
+          <ThemedText style={[styles.sectionHint, { color: palette.muted }]}>
+            Set refund by timeframe in 5% steps.
+          </ThemedText>
         </View>
       </Row>
-      <Row style={styles.chipRow}>
-        {(['flexible', 'standard', 'strict'] as const).map((key) => {
-          const tmpl = POLICY_TEMPLATES[key];
-          const isSelected = preset === key;
-          return (
-            <Clickable
-              key={key}
-              onPress={() => onPresetChange(key)}
-              style={[
-                styles.policyChip,
-                {
-                  backgroundColor: isSelected ? palette.tint : palette.surface,
-                  borderColor: isSelected ? palette.tint : palette.border,
-                },
-              ]}
-            >
-              <ThemedText
-                style={[
-                  styles.policyChipName,
-                  { color: isSelected ? palette.onPrimary : palette.text },
-                ]}
-              >
-                {tmpl.name}
-              </ThemedText>
-            </Clickable>
-          );
-        })}
-      </Row>
-      <View style={[styles.tierSummary, { backgroundColor: palette.surface }]}>
-        {POLICY_TEMPLATES[preset]?.tiers.map((tier, i) => {
-          const color =
-            tier.refundPercentage >= 75
-              ? palette.success
-              : tier.refundPercentage >= 25
-                ? palette.warning
-                : palette.error;
-          return (
-            <Row key={i} style={styles.tierRow}>
-              <View style={[styles.tierDot, { backgroundColor: color }]} />
+      <SurfaceCard style={[styles.tierSummary, { backgroundColor: palette.surface }]}>
+        {sortedTiers.map((tier, index) => (
+          <View
+            key={tier.hoursBeforeSession}
+            style={[
+              styles.refundControlRow,
+              index < sortedTiers.length - 1
+                ? { borderBottomWidth: 1, borderBottomColor: palette.border }
+                : undefined,
+            ]}
+          >
+            <Row justify="between" align="center">
               <ThemedText style={[styles.tierText, { color: palette.text }]}>
-                {tier.refundPercentage}% refund
+                {formatWindowLabel(tier.hoursBeforeSession)}
               </ThemedText>
-              <ThemedText style={[styles.tierHint, { color: palette.muted }]}>
-                {tier.hoursBeforeSession}h+ before
+              <ThemedText style={[styles.refundPercentValue, { color: palette.tint }]}>
+                {tier.refundPercentage}%
               </ThemedText>
             </Row>
-          );
-        })}
-      </View>
+            <Slider
+              value={tier.refundPercentage}
+              minimumValue={0}
+              maximumValue={100}
+              step={5}
+              minimumTrackTintColor={palette.tint}
+              maximumTrackTintColor={palette.border}
+              thumbTintColor={palette.tint}
+              onSlidingComplete={(value) => {
+                void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                onTierChange(tier.hoursBeforeSession, Math.round(value));
+              }}
+            />
+          </View>
+        ))}
+      </SurfaceCard>
     </View>
   );
 }
@@ -299,11 +302,16 @@ interface SettingsSummaryProps {
   bufferMinutes: number;
   maxAdvanceDays: number;
   allowSameDayBookings: boolean;
-  cancellationPreset: string;
+  cancellationTiers: RefundTier[];
 }
 
 function SettingsSummaryInner(p: SettingsSummaryProps) {
   const { colors: palette } = useTheme();
+  const highestRefundTier = [...p.cancellationTiers]
+    .sort((a, b) => b.refundPercentage - a.refundPercentage || b.hoursBeforeSession - a.hoursBeforeSession)[0];
+  const summaryText = highestRefundTier
+    ? `Max refund ${highestRefundTier.refundPercentage}% (${highestRefundTier.hoursBeforeSession}h+ window)`
+    : 'Custom cancellation policy';
   const items = [
     {
       text:
@@ -322,7 +330,7 @@ function SettingsSummaryInner(p: SettingsSummaryProps) {
       on: p.allowSameDayBookings,
     },
     {
-      text: `${POLICY_TEMPLATES[p.cancellationPreset]?.name || 'Standard'} cancellation policy`,
+      text: summaryText,
       on: true,
     },
   ];

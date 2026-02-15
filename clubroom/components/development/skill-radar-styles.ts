@@ -27,7 +27,6 @@ export const styles = StyleSheet.create({
   axisLine: {
     position: 'absolute',
     height: 1,
-    transformOrigin: 'left center',
   },
   skillLabel: {
     position: 'absolute',

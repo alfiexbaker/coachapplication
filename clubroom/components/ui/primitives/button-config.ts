@@ -1,4 +1,4 @@
-import { Components, Radii, Spacing, Typography } from '@/constants/theme';
+import { Components, Spacing, Typography } from '@/constants/theme';
 import type { ThemeColors } from '@/hooks/useTheme';
 
 export type ButtonVariant = 'primary' | 'secondary' | 'outline' | 'ghost' | 'destructive';
@@ -34,9 +34,9 @@ export const SIZE_MAP: Record<ButtonSize, SizeConfig> = {
     gap: Spacing.xs,
   },
   lg: {
-    height: 52,
-    paddingHorizontal: Spacing.lg,
-    borderRadius: Radii.lg,
+    height: 48,
+    paddingHorizontal: Spacing.md,
+    borderRadius: Components.button.borderRadius,
     fontSize: Typography.subheading.fontSize,
     lineHeight: Typography.subheading.lineHeight,
     iconSize: Components.icon.lg,

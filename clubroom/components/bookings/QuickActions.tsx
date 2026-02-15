@@ -3,40 +3,32 @@ import { Ionicons } from '@expo/vector-icons';
 
 import { Clickable } from '@/components/primitives/clickable';
 import { ThemedText } from '@/components/themed-text';
-import { Radii, Typography, Spacing } from '@/constants/theme';
+import { Radii, Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
 import { scaleFont } from '@/utils/scale';
 import { Row } from '@/components/primitives';
 
 export interface QuickActionsProps {
   userRole: 'USER' | 'PARENT' | 'COACH' | string | undefined;
-  onRateCoachPress?: () => void;
   onFindCoachPress?: () => void;
   onCalendarPress: () => void;
   onSettingsPress: () => void;
-  onGroupSessionsPress?: () => void;
   onDiscoverSessionsPress?: () => void;
-  onInvitesPress?: () => void;
-  pendingInvites?: number;
   /** For coaches, only show when on list tab */
   showCoachActions?: boolean;
 }
 
 export function QuickActions({
   userRole,
-  onRateCoachPress,
   onFindCoachPress,
   onCalendarPress,
   onSettingsPress,
-  onGroupSessionsPress,
   onDiscoverSessionsPress,
-  onInvitesPress,
-  pendingInvites = 0,
   showCoachActions = true,
 }: QuickActionsProps) {
   const { colors: palette } = useTheme();
 
-  // Quick Actions for Users/Parents - Discover, Find Coach, Groups
+  // Quick Actions for Users/Parents - Discover + Find Coach
   // Invites are now shown inline as "Action Required" section above the bookings list
   if (userRole === 'USER' || userRole === 'PARENT') {
     return (
@@ -45,24 +37,20 @@ export function QuickActions({
           onPress={onDiscoverSessionsPress || (() => {})}
           style={[styles.actionPill, { borderColor: palette.border }]}
         >
-          <Ionicons name="search-outline" size={18} color={palette.tint} />
-          <ThemedText style={[styles.actionText, { color: palette.text }]}>Discover</ThemedText>
+          <Row align="center" justify="center" gap="xs">
+            <Ionicons name="search-outline" size={18} color={palette.tint} />
+            <ThemedText style={[styles.actionText, { color: palette.text }]}>Discover</ThemedText>
+          </Row>
         </Clickable>
 
         <Clickable
           onPress={onFindCoachPress || (() => {})}
           style={[styles.actionPill, { borderColor: palette.border }]}
         >
-          <Ionicons name="people-outline" size={18} color={palette.tint} />
-          <ThemedText style={[styles.actionText, { color: palette.text }]}>Find Coach</ThemedText>
-        </Clickable>
-
-        <Clickable
-          onPress={onGroupSessionsPress || (() => {})}
-          style={[styles.actionPill, { borderColor: palette.border }]}
-        >
-          <Ionicons name="people-circle-outline" size={18} color={palette.tint} />
-          <ThemedText style={[styles.actionText, { color: palette.text }]}>Groups</ThemedText>
+          <Row align="center" justify="center" gap="xs">
+            <Ionicons name="people-outline" size={18} color={palette.tint} />
+            <ThemedText style={[styles.actionText, { color: palette.text }]}>Find Coach</ThemedText>
+          </Row>
         </Clickable>
       </Row>
     );
@@ -73,27 +61,23 @@ export function QuickActions({
     return (
       <Row style={styles.quickActions}>
         <Clickable
-          onPress={onGroupSessionsPress || (() => {})}
-          style={[styles.actionPill, { borderColor: palette.border }]}
-        >
-          <Ionicons name="people-outline" size={18} color={palette.tint} />
-          <ThemedText style={[styles.actionText, { color: palette.text }]}>Groups</ThemedText>
-        </Clickable>
-
-        <Clickable
           onPress={onCalendarPress}
           style={[styles.actionPill, { borderColor: palette.border }]}
         >
-          <Ionicons name="calendar-outline" size={18} color={palette.tint} />
-          <ThemedText style={[styles.actionText, { color: palette.text }]}>Calendar</ThemedText>
+          <Row align="center" justify="center" gap="xs">
+            <Ionicons name="calendar-outline" size={18} color={palette.tint} />
+            <ThemedText style={[styles.actionText, { color: palette.text }]}>Calendar</ThemedText>
+          </Row>
         </Clickable>
 
         <Clickable
           onPress={onSettingsPress}
           style={[styles.actionPill, { borderColor: palette.border }]}
         >
-          <Ionicons name="person-outline" size={18} color={palette.tint} />
-          <ThemedText style={[styles.actionText, { color: palette.text }]}>Settings</ThemedText>
+          <Row align="center" justify="center" gap="xs">
+            <Ionicons name="person-outline" size={18} color={palette.tint} />
+            <ThemedText style={[styles.actionText, { color: palette.text }]}>Settings</ThemedText>
+          </Row>
         </Clickable>
       </Row>
     );
@@ -106,13 +90,7 @@ const styles = StyleSheet.create({
   quickActions: {
     gap: 8,
     paddingHorizontal: 16,
-    paddingBottom: Spacing.xs + Spacing.xxs,
-  },
-  actionCard: {
-    flex: 1,
-    alignItems: 'center',
-    gap: 8,
-    padding: Spacing.xs + Spacing.xxs,
+    paddingBottom: Spacing.xs,
   },
   actionText: {
     fontSize: scaleFont(14),
@@ -123,24 +101,9 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 8,
-    paddingVertical: 10,
+    minHeight: 56,
+    paddingHorizontal: Spacing.xs,
     borderRadius: Radii.md,
     borderWidth: 1,
   },
-  iconWithBadge: {
-    position: 'relative',
-  },
-  badge: {
-    position: 'absolute',
-    top: -6,
-    right: -8,
-    minWidth: 16,
-    height: 16,
-    borderRadius: Radii.sm,
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingHorizontal: Spacing.xxs,
-  },
-  badgeText: { ...Typography.micro },
 });

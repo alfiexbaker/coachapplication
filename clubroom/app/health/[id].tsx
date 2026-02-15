@@ -46,7 +46,7 @@ export default function InjuryDetailScreen() {
     return (
       <SafeAreaView
         style={[styles.container, { backgroundColor: colors.background }]}
-        edges={['top']}
+        edges={['top', 'bottom']}
       >
         <LoadingState variant="detail" />
       </SafeAreaView>
@@ -57,7 +57,7 @@ export default function InjuryDetailScreen() {
     return (
       <SafeAreaView
         style={[styles.container, { backgroundColor: colors.background }]}
-        edges={['top']}
+        edges={['top', 'bottom']}
       >
         <ErrorState message={error?.message ?? 'Failed to load injury.'} onRetry={retry} />
       </SafeAreaView>
@@ -68,7 +68,7 @@ export default function InjuryDetailScreen() {
     return (
       <SafeAreaView
         style={[styles.container, { backgroundColor: colors.background }]}
-        edges={['top']}
+        edges={['top', 'bottom']}
       >
         <EmptyState
           icon="alert-circle-outline"
@@ -84,7 +84,7 @@ export default function InjuryDetailScreen() {
   return (
     <SafeAreaView
       style={[styles.container, { backgroundColor: colors.background }]}
-      edges={['top']}
+      edges={['top', 'bottom']}
     >
       <Row justify="space-between" align="center" style={styles.header}>
         <Clickable onPress={() => router.back()} hitSlop={8}>
