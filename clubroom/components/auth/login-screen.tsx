@@ -2,10 +2,9 @@
  * LoginScreen - Authentication entry point using unified form system.
  */
 
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import {
   Alert,
-  Animated,
   KeyboardAvoidingView,
   Platform,
   StyleSheet,
@@ -13,6 +12,12 @@ import {
   ScrollView,
   useWindowDimensions,
 } from 'react-native';
+import ReAnimated, {
+  useSharedValue,
+  useAnimatedStyle,
+  withTiming,
+  withDelay,
+} from 'react-native-reanimated';
 import { Ionicons } from '@expo/vector-icons';
 // import { useEventListener } from 'expo';
 // import { VideoView, useVideoPlayer } from 'expo-video';
@@ -51,21 +56,17 @@ interface LoginFormValues {
 const LOGIN_VIDEO_URI = 'https://interactive-examples.mdn.mozilla.net/media/cc0-videos/flower.mp4';
 
 export default function LoginScreen() {
-  console.log('[CRASH-DEBUG] LoginScreen function called');
   const { colors: palette } = useTheme();
-  console.log('[CRASH-DEBUG] useTheme OK');
   const { width: screenWidth, height: screenHeight } = useWindowDimensions();
-  console.log('[CRASH-DEBUG] useWindowDimensions OK');
   const { login, error, availableUsers, registerCoach, forgotPassword } = useAuth();
-  console.log('[CRASH-DEBUG] useAuth OK');
 
   const [screenMode, setScreenMode] = useState<ScreenMode>('login');
   const [videoFailed, setVideoFailed] = useState(false);
   const [showDemoAccounts, setShowDemoAccounts] = useState(false);
-  const heroOpacity = useRef(new Animated.Value(0)).current;
-  const heroTranslate = useRef(new Animated.Value(20)).current;
-  const authOpacity = useRef(new Animated.Value(0)).current;
-  const authTranslate = useRef(new Animated.Value(24)).current;
+  const heroOpacity = useSharedValue(0);
+  const heroTranslate = useSharedValue(20);
+  const authOpacity = useSharedValue(0);
+  const authTranslate = useSharedValue(24);
 
   const isDesktop = screenWidth >= 980;
   const cardMaxHeight = Math.max(500, Math.min(760, screenHeight - 72));
@@ -84,7 +85,6 @@ export default function LoginScreen() {
   //   if (status === 'error') setVideoFailed(true);
   // });
   const videoDisabled = true;
-  console.log('[CRASH-DEBUG] About to call useForm');
 
   const form = useForm<LoginFormValues>({
     initialValues: {
@@ -99,22 +99,14 @@ export default function LoginScreen() {
       login(values.username, values.password);
     },
   });
-  console.log('[CRASH-DEBUG] useForm OK, about to run useEffect animations');
 
   useEffect(() => {
-    console.log('[CRASH-DEBUG] Animation useEffect running');
-    const useNativeDriver = Platform.OS !== 'web';
-
-    Animated.stagger(110, [
-      Animated.parallel([
-        Animated.timing(heroOpacity, { toValue: 1, duration: 420, useNativeDriver }),
-        Animated.timing(heroTranslate, { toValue: 0, duration: 420, useNativeDriver }),
-      ]),
-      Animated.parallel([
-        Animated.timing(authOpacity, { toValue: 1, duration: 480, useNativeDriver }),
-        Animated.timing(authTranslate, { toValue: 0, duration: 480, useNativeDriver }),
-      ]),
-    ]).start();
+    // Hero fades in first
+    heroOpacity.value = withTiming(1, { duration: 420 });
+    heroTranslate.value = withTiming(0, { duration: 420 });
+    // Auth card fades in 110ms later (stagger)
+    authOpacity.value = withDelay(110, withTiming(1, { duration: 480 }));
+    authTranslate.value = withDelay(110, withTiming(0, { duration: 480 }));
   }, [authOpacity, authTranslate, heroOpacity, heroTranslate]);
 
   const handleSignupComplete = (data: CoachSignupData) => {
@@ -165,7 +157,16 @@ export default function LoginScreen() {
     );
   }
 
-  console.log('[CRASH-DEBUG] LoginScreen about to return JSX');
+  const heroAnimatedStyle = useAnimatedStyle(() => ({
+    opacity: heroOpacity.value,
+    transform: [{ translateY: heroTranslate.value }],
+  }));
+
+  const authAnimatedStyle = useAnimatedStyle(() => ({
+    opacity: authOpacity.value,
+    transform: [{ translateY: authTranslate.value }],
+  }));
+
   return (
     <View
       style={[styles.safeArea, { backgroundColor: palette.text }]}
@@ -216,11 +217,11 @@ export default function LoginScreen() {
             bounces={false}
           >
             <View style={[styles.layout, isDesktop ? styles.layoutDesktop : styles.layoutMobile]}>
-              <Animated.View
+              <ReAnimated.View
                 style={[
                   styles.hero,
                   isDesktop ? styles.heroDesktop : styles.heroMobile,
-                  { opacity: heroOpacity, transform: [{ translateY: heroTranslate }] },
+                  heroAnimatedStyle,
                 ]}
               >
                 <View
@@ -264,16 +265,13 @@ export default function LoginScreen() {
                     </View>
                   ))}
                 </View>
-              </Animated.View>
+              </ReAnimated.View>
 
-              <Animated.View
+              <ReAnimated.View
                 style={[
                   styles.authDock,
                   isDesktop ? styles.authDockDesktop : styles.authDockMobile,
-                  {
-                    opacity: authOpacity,
-                    transform: [{ translateY: authTranslate }],
-                  },
+                  authAnimatedStyle,
                 ]}
               >
                 <SurfaceCard
@@ -379,7 +377,7 @@ export default function LoginScreen() {
                     ) : null}
                   </View>
                 </SurfaceCard>
-              </Animated.View>
+              </ReAnimated.View>
             </View>
           </ScrollView>
         </KeyboardAvoidingView>
