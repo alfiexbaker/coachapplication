@@ -8,6 +8,7 @@ import {
 import { Stack, router } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import 'react-native-reanimated';
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
 
 import LoginScreen from '@/components/auth/login-screen';
 import { useTheme } from '@/hooks/useTheme';
@@ -49,7 +50,6 @@ function RootNavigation() {
     userRole: currentUser?.role,
     username: currentUser?.username,
   });
-
   // Register push token for authenticated users.
   useEffect(() => {
     if (!isAuthenticated) return;
@@ -243,7 +243,7 @@ function RootNavigation() {
       ) : (
         <>
           <LoginScreen />
-          <StatusBar style="auto" />
+          <StatusBar style="light" />
         </>
       )}
     </NavigationThemeProvider>
@@ -254,12 +254,14 @@ export default function RootLayout() {
   logger.info('App initializing');
 
   return (
-    <ErrorBoundary>
-      <AppThemeProvider>
-        <AuthProvider>
-          <RootNavigation />
-        </AuthProvider>
-      </AppThemeProvider>
-    </ErrorBoundary>
+    <GestureHandlerRootView style={{ flex: 1 }}>
+      <ErrorBoundary>
+        <AppThemeProvider>
+          <AuthProvider>
+            <RootNavigation />
+          </AuthProvider>
+        </AppThemeProvider>
+      </ErrorBoundary>
+    </GestureHandlerRootView>
   );
 }

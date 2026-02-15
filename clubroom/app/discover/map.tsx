@@ -1,40 +1,33 @@
 /**
- * Map View Screen
+ * Map Discovery Screen — Route File
  *
- * Full-screen map view showing coaches by location.
+ * Thin route that delegates to platform-specific content:
+ * - Native (iOS/Android): components/discover/map-content.native.tsx
+ * - Web: components/discover/map-content.web.tsx
+ *
+ * Metro resolves the correct file per platform. This route file
+ * contains zero native-only imports.
  */
 
 import { useCallback, useEffect, useState } from 'react';
-import { StyleSheet } from 'react-native';
+import { View, StyleSheet } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { Routes } from '@/navigation/routes';
-import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { MapView } from '@/components/discover/MapView';
-import { FilterBar } from '@/components/discover/FilterBar';
-import { FilterModal } from '@/components/discover/FilterModal';
+import MapContent from '@/components/discover/map-content';
 import { LoadingState, ErrorState, EmptyState } from '@/components/ui/screen-states';
 import { useScreen } from '@/hooks/use-screen';
-import { ok } from '@/types/result';
 import { useTheme } from '@/hooks/useTheme';
+import { Routes } from '@/navigation/routes';
 import { discoverService } from '@/services/discover-service';
-import { createLogger } from '@/utils/logger';
-import { MapScreenHeader } from '@/components/discover/map-screen-sections';
-import type {
-  CoachSearchFilters,
-  CoachSearchResult,
-  CoachProfile,
-  FilterOptions,
-} from '@/constants/types';
+import { ok } from '@/types/result';
+import type { MapScreenData } from '@/components/discover/map-content-types';
+import type { CoachSearchFilters } from '@/constants/types';
 
-const logger = createLogger('MapScreen');
-const DEFAULT_LOCATION = { lat: 51.5074, lng: -0.1278 };
-const DEFAULT_RADIUS = 10;
+// ─── Constants ─────────────────────────────────────────────────────────────
 
-interface MapScreenData {
-  coaches: CoachSearchResult[];
-  filterOptions: FilterOptions;
-}
+const DEFAULT_LOCATION = { lat: 51.5074, lng: -0.1278, radiusKm: 10 };
+
+// ─── Screen ────────────────────────────────────────────────────────────────
 
 export default function MapScreen() {
   const { colors: palette } = useTheme();
@@ -43,19 +36,27 @@ export default function MapScreen() {
 
   const [searchQuery, setSearchQuery] = useState('');
   const [filters, setFilters] = useState<CoachSearchFilters>({
-    location: { ...DEFAULT_LOCATION, radiusKm: DEFAULT_RADIUS },
+    location: DEFAULT_LOCATION,
   });
-  const [selectedCoachId, setSelectedCoachId] = useState<string>();
   const [showFilterModal, setShowFilterModal] = useState(false);
-  const [zoomLevel, setZoomLevel] = useState(1);
+  const [selectedCoachId, setSelectedCoachId] = useState<string | undefined>();
 
+  // ── Parse route params ────────────────────────────────────────────────
+  useEffect(() => {
+    if (!params.filters) return;
+    try {
+      const parsed = JSON.parse(params.filters) as CoachSearchFilters;
+      setFilters((prev) => ({ ...prev, ...parsed, location: parsed.location ?? prev.location }));
+      setSearchQuery(parsed.query ?? '');
+    } catch {
+      // ignore malformed
+    }
+  }, [params.filters]);
+
+  // ── Data loading ──────────────────────────────────────────────────────
   const loadMapData = useCallback(async () => {
     const result = await discoverService.searchCoaches(filters);
-    if (!result.success) {
-      logger.error('Failed to load coaches', result.error);
-      return result;
-    }
-
+    if (!result.success) return result;
     return ok<MapScreenData>({
       coaches: result.data.results,
       filterOptions: result.data.filterOptions,
@@ -64,7 +65,7 @@ export default function MapScreen() {
 
   const { data, status, error, onRefresh, retry } = useScreen<MapScreenData>({
     load: loadMapData,
-    deps: [filters],
+    deps: [loadMapData],
     isEmpty: (value) => value.coaches.length === 0,
     refetchOnFocus: true,
   });
@@ -73,180 +74,93 @@ export default function MapScreen() {
   const filterOptions = data?.filterOptions ?? null;
   const activeFilterCount = discoverService.getActiveFilterCount(filters);
 
-  useEffect(() => {
-    if (!params.filters) return;
-
-    try {
-      const parsed = JSON.parse(params.filters) as CoachSearchFilters;
-      setFilters((prev) => ({ ...prev, ...parsed, location: parsed.location ?? prev.location }));
-      setSearchQuery(parsed.query ?? '');
-    } catch (parseError) {
-      logger.error('Failed to parse filters', parseError);
-    }
-  }, [params.filters]);
-
+  // ── Handlers ──────────────────────────────────────────────────────────
   const handleSearch = useCallback(() => {
-    setFilters((prev) => ({ ...prev, query: searchQuery || undefined }));
+    setFilters((prev) => ({ ...prev, query: searchQuery.trim() || undefined }));
   }, [searchQuery]);
 
-  const handleFilterChange = useCallback((newFilters: CoachSearchFilters) => {
-    setFilters((prev) => ({ ...prev, ...newFilters, location: prev.location }));
+  const handleClearSearch = useCallback(() => {
+    setSearchQuery('');
+    setFilters((prev) => ({ ...prev, query: undefined }));
+  }, []);
+
+  const handleFilterChange = useCallback((next: CoachSearchFilters) => {
+    setFilters((prev) => ({ ...prev, ...next, location: prev.location }));
     setShowFilterModal(false);
   }, []);
 
-  const handleRadiusCommit = useCallback((radius: number) => {
-    setFilters((prev) => ({
-      ...prev,
-      location: {
-        ...(prev.location ?? { ...DEFAULT_LOCATION, radiusKm: DEFAULT_RADIUS }),
-        radiusKm: radius,
-      },
-    }));
+  const handleCoachSelect = useCallback((coachId: string) => {
+    setSelectedCoachId(coachId);
   }, []);
 
-  const handleCoachPress = useCallback(
-    (coach: CoachProfile) => {
-      router.push(Routes.bookCoach(coach.id));
+  const handleBookCoach = useCallback(
+    (coachId: string) => {
+      router.push(Routes.bookSessionType(coachId));
     },
     [router],
   );
 
-  const header = (
-    <MapScreenHeader
-      colors={palette}
-      searchQuery={searchQuery}
-      onSearchChange={setSearchQuery}
-      onSearch={handleSearch}
-      onClearSearch={() => {
-        setSearchQuery('');
-        setFilters((prev) => ({ ...prev, query: undefined }));
-      }}
-      onBack={() => router.back()}
-      onToggleView={() =>
-        router.replace({
-          pathname: '/book-coach',
-          params: { filters: JSON.stringify(filters) },
-        })
-      }
-    />
-  );
+  const handleToggleView = useCallback(() => {
+    router.replace({
+      pathname: Routes.BOOK_COACH,
+      params: { filters: JSON.stringify(filters) },
+    } as never);
+  }, [filters, router]);
 
+  // ── Non-success states ────────────────────────────────────────────────
   if (status === 'loading') {
     return (
-      <SafeAreaView
-        style={[styles.container, { backgroundColor: palette.background }]}
-        edges={['top', 'bottom']}
-      >
-        {header}
+      <View style={[styles.container, { backgroundColor: palette.background }]}>
         <LoadingState variant="detail" />
-      </SafeAreaView>
+      </View>
     );
   }
 
   if (status === 'error') {
     return (
-      <SafeAreaView
-        style={[styles.container, { backgroundColor: palette.background }]}
-        edges={['top', 'bottom']}
-      >
-        {header}
-        <ErrorState
-          message={error?.message || 'Failed to load coaches on the map.'}
-          onRetry={retry}
-        />
-      </SafeAreaView>
+      <View style={[styles.container, { backgroundColor: palette.background }]}>
+        <ErrorState message={error?.message ?? 'Failed to load coaches.'} onRetry={retry} />
+      </View>
     );
   }
 
   if (status === 'empty') {
     return (
-      <SafeAreaView
-        style={[styles.container, { backgroundColor: palette.background }]}
-        edges={['top', 'bottom']}
-      >
-        {header}
-        {filterOptions ? (
-          <FilterBar
-            filters={filters}
-            onFilterChange={handleFilterChange}
-            onOpenFilters={() => setShowFilterModal(true)}
-            totalResults={0}
-            activeFilterCount={activeFilterCount}
-            variant="map"
-          />
-        ) : null}
-
+      <View style={[styles.container, { backgroundColor: palette.background }]}>
         <EmptyState
           icon="map-outline"
-          title="No coaches found"
-          message="Try adjusting your filters or search to find coaches in this area."
-          actionLabel={activeFilterCount > 0 ? 'Adjust filters' : 'Refresh'}
-          onPressAction={activeFilterCount > 0 ? () => setShowFilterModal(true) : onRefresh}
+          title="No coaches nearby"
+          message="Try expanding your search or adjusting filters."
+          actionLabel={activeFilterCount > 0 ? 'Clear filters' : 'Refresh'}
+          onPressAction={activeFilterCount > 0 ? () => handleFilterChange({}) : onRefresh}
         />
-
-        {filterOptions ? (
-          <FilterModal
-            visible={showFilterModal}
-            onClose={() => setShowFilterModal(false)}
-            filters={filters}
-            filterOptions={filterOptions}
-            onApply={handleFilterChange}
-            resultCount={0}
-          />
-        ) : null}
-      </SafeAreaView>
+      </View>
     );
   }
 
+  // ── Success — delegate to platform content ────────────────────────────
   return (
-    <SafeAreaView
-      style={[styles.container, { backgroundColor: palette.background }]}
-      edges={['top', 'bottom']}
-    >
-      {header}
-
-      {filterOptions ? (
-        <FilterBar
-          filters={filters}
-          onFilterChange={handleFilterChange}
-          onOpenFilters={() => setShowFilterModal(true)}
-          totalResults={coaches.length}
-          activeFilterCount={activeFilterCount}
-          variant="map"
-        />
-      ) : null}
-
-      <MapView
-        coaches={coaches}
-        selectedCoachId={selectedCoachId}
-        onCoachSelect={setSelectedCoachId}
-        onCoachPress={handleCoachPress}
-        userLocation={DEFAULT_LOCATION}
-        showUserLocation
-        zoomLevel={zoomLevel}
-        radiusKm={filters.location?.radiusKm ?? DEFAULT_RADIUS}
-        onRadiusCommit={handleRadiusCommit}
-        onSearchAreaPress={onRefresh}
-        onZoomInPress={() => setZoomLevel((prev) => Math.min(prev + 0.5, 4))}
-        onZoomOutPress={() => setZoomLevel((prev) => Math.max(prev - 0.5, 0.5))}
-      />
-
-      {filterOptions ? (
-        <FilterModal
-          visible={showFilterModal}
-          onClose={() => setShowFilterModal(false)}
-          filters={filters}
-          filterOptions={filterOptions}
-          onApply={handleFilterChange}
-          resultCount={coaches.length}
-        />
-      ) : null}
-    </SafeAreaView>
+    <MapContent
+      coaches={coaches}
+      filterOptions={filterOptions}
+      filters={filters}
+      searchQuery={searchQuery}
+      selectedCoachId={selectedCoachId}
+      activeFilterCount={activeFilterCount}
+      showFilterModal={showFilterModal}
+      onSearchChange={setSearchQuery}
+      onSearch={handleSearch}
+      onClearSearch={handleClearSearch}
+      onFilterChange={handleFilterChange}
+      onToggleFilterModal={setShowFilterModal}
+      onCoachSelect={handleCoachSelect}
+      onBookCoach={handleBookCoach}
+      onBack={() => router.back()}
+      onToggleView={handleToggleView}
+    />
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
+  container: { flex: 1 },
 });

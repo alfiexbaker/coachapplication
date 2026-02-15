@@ -14,8 +14,8 @@ import {
   useWindowDimensions,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { useEventListener } from 'expo';
-import { VideoView, useVideoPlayer } from 'expo-video';
+// import { useEventListener } from 'expo';
+// import { VideoView, useVideoPlayer } from 'expo-video';
 import { Clickable } from '@/components/primitives/clickable';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -51,9 +51,13 @@ interface LoginFormValues {
 const LOGIN_VIDEO_URI = 'https://interactive-examples.mdn.mozilla.net/media/cc0-videos/flower.mp4';
 
 export default function LoginScreen() {
+  console.log('[CRASH-DEBUG] LoginScreen function called');
   const { colors: palette } = useTheme();
+  console.log('[CRASH-DEBUG] useTheme OK');
   const { width: screenWidth, height: screenHeight } = useWindowDimensions();
+  console.log('[CRASH-DEBUG] useWindowDimensions OK');
   const { login, error, availableUsers, registerCoach, forgotPassword } = useAuth();
+  console.log('[CRASH-DEBUG] useAuth OK');
 
   const [screenMode, setScreenMode] = useState<ScreenMode>('login');
   const [videoFailed, setVideoFailed] = useState(false);
@@ -69,17 +73,18 @@ export default function LoginScreen() {
     () => (isDesktop ? 'JUST TRAIN.\nWE HANDLE THE REST.' : 'JUST TRAIN.'),
     [isDesktop],
   );
-  const backgroundPlayer = useVideoPlayer(LOGIN_VIDEO_URI, (player) => {
-    player.loop = true;
-    player.muted = true;
-    player.play();
-  });
-
-  useEventListener(backgroundPlayer, 'statusChange', ({ status }) => {
-    if (status === 'error') {
-      setVideoFailed(true);
-    }
-  });
+  // Video disabled — expo-video crashes Expo Go 54.0.6 on simulator (SIGABRT / memory alloc failure).
+  // Re-enable once running via development build or Expo Go is updated.
+  // const backgroundPlayer = useVideoPlayer(LOGIN_VIDEO_URI, (player) => {
+  //   player.loop = true;
+  //   player.muted = true;
+  //   player.play();
+  // });
+  // useEventListener(backgroundPlayer, 'statusChange', ({ status }) => {
+  //   if (status === 'error') setVideoFailed(true);
+  // });
+  const videoDisabled = true;
+  console.log('[CRASH-DEBUG] About to call useForm');
 
   const form = useForm<LoginFormValues>({
     initialValues: {
@@ -94,8 +99,10 @@ export default function LoginScreen() {
       login(values.username, values.password);
     },
   });
+  console.log('[CRASH-DEBUG] useForm OK, about to run useEffect animations');
 
   useEffect(() => {
+    console.log('[CRASH-DEBUG] Animation useEffect running');
     const useNativeDriver = Platform.OS !== 'web';
 
     Animated.stagger(110, [
@@ -158,13 +165,13 @@ export default function LoginScreen() {
     );
   }
 
+  console.log('[CRASH-DEBUG] LoginScreen about to return JSX');
   return (
-    <SafeAreaView
+    <View
       style={[styles.safeArea, { backgroundColor: palette.text }]}
-      edges={['top', 'bottom']}
     >
       <View style={styles.root}>
-        {!videoFailed && (
+        {!videoFailed && !videoDisabled && (
           <VideoView
             player={backgroundPlayer}
             style={styles.backgroundVideo}
@@ -377,7 +384,7 @@ export default function LoginScreen() {
           </ScrollView>
         </KeyboardAvoidingView>
       </View>
-    </SafeAreaView>
+    </View>
   );
 }
 

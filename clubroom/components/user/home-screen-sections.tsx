@@ -136,7 +136,7 @@ export const StreakCard = memo(function StreakCard({ streakInfo }: { streakInfo:
 export const QuickActionsGrid = memo(function QuickActionsGrid() {
   const { colors: palette } = useTheme();
   const actions = [
-    { icon: 'search', label: 'Find Coach', route: '/(tabs)/more', primary: true },
+    { icon: 'search', label: 'Find Coach', route: '/discover/map', primary: true },
     {
       icon: 'analytics',
       label: 'My Progress',
@@ -224,7 +224,7 @@ export const NextSessionCard = memo(function NextSessionCard({ booking }: { book
         </View>
         <Clickable
           style={[styles.bookButton, { backgroundColor: palette.tint }]}
-          onPress={() => router.push(Routes.MORE)}
+          onPress={() => router.push(Routes.DISCOVER_MAP)}
         >
           <ThemedText style={{ ...Typography.smallSemiBold, color: palette.surface }}>
             Find Coach
