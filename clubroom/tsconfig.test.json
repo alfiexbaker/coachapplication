@@ -74,6 +74,8 @@
     "__tests__/services/**/*.ts",
     "__tests__/services/**/*.tsx",
     "__tests__/completion/**/*.ts",
-    "__tests__/reschedule/**/*.ts"
+    "__tests__/reschedule/**/*.ts",
+    "__tests__/child-context/**/*.ts",
+    "__tests__/child-context/**/*.tsx"
   ]
 }

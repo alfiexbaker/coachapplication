@@ -316,6 +316,7 @@ exports.childService = {
             childrenCache = await loadFromStorage();
             childrenCache.push(newChild);
             await saveToStorage(childrenCache);
+            (0, event_bus_1.emitTyped)(event_bus_1.ServiceEvents.CHILD_PROFILES_UPDATED, { parentId, action: 'created', childId: newChild.id });
             return newChild;
         }
         const response = await fetch('/api/children', {
@@ -343,6 +344,7 @@ exports.childService = {
                 updatedAt: new Date().toISOString(),
             };
             await saveToStorage(childrenCache);
+            (0, event_bus_1.emitTyped)(event_bus_1.ServiceEvents.CHILD_PROFILES_UPDATED, { parentId: childrenCache[index].parentId, action: 'updated', childId });
             return (0, result_1.ok)(childrenCache[index]);
         }
         const response = await fetch(`/api/children/${childId}`, {
@@ -358,8 +360,12 @@ exports.childService = {
     async deleteChild(childId) {
         if (USE_MOCK) {
             childrenCache = await loadFromStorage();
+            const deletedChild = childrenCache.find((c) => c.id === childId);
             childrenCache = childrenCache.filter((c) => c.id !== childId);
             await saveToStorage(childrenCache);
+            if (deletedChild) {
+                (0, event_bus_1.emitTyped)(event_bus_1.ServiceEvents.CHILD_PROFILES_UPDATED, { parentId: deletedChild.parentId, action: 'deleted', childId });
+            }
             return;
         }
         await fetch(`/api/children/${childId}`, {

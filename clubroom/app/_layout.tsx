@@ -13,6 +13,7 @@ import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import LoginScreen from '@/components/auth/login-screen';
 import { useTheme } from '@/hooks/useTheme';
 import { AuthProvider, useAuth } from '@/hooks/use-auth';
+import { ChildProvider } from '@/hooks/use-child-context';
 import { ErrorBoundary } from '@/components/error-boundary';
 import { createLogger } from '@/utils/logger';
 import { ThemeProvider as AppThemeProvider } from '@/hooks/theme-provider';
@@ -135,7 +136,9 @@ export default function RootLayout() {
       <ErrorBoundary>
         <AppThemeProvider>
           <AuthProvider>
-            <RootNavigation />
+            <ChildProvider>
+              <RootNavigation />
+            </ChildProvider>
           </AuthProvider>
         </AppThemeProvider>
       </ErrorBoundary>

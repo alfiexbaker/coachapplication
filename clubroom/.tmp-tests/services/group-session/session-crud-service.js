@@ -67,6 +67,7 @@ const MOCK_SESSIONS = [
         focus: ['Dribbling', 'Passing', 'Finishing'],
         equipment: ['Boots', 'Shin pads', 'Water bottle'],
         imageUrl: 'https://picsum.photos/seed/camp1/800/400',
+        registrationDeadline: '2026-02-15T23:59:00Z',
     },
     {
         id: 'gs_2',
@@ -92,6 +93,7 @@ const MOCK_SESSIONS = [
         focus: ['Finishing'],
         equipment: ['Boots', 'Shin pads'],
         imageUrl: 'https://picsum.photos/seed/clinic1/800/400',
+        registrationDeadline: '2026-02-20T18:00:00Z',
     },
     {
         id: 'gs_3',
@@ -114,6 +116,7 @@ const MOCK_SESSIONS = [
         focus: ['Goalkeeping'],
         equipment: ['Goalkeeper gloves', 'Boots'],
         imageUrl: 'https://picsum.photos/seed/gk1/800/400',
+        registrationDeadline: '2026-02-17T12:00:00Z',
     },
     {
         id: 'gs_4',
@@ -137,6 +140,7 @@ const MOCK_SESSIONS = [
         createdAt: '2026-01-09T11:00:00Z',
         focus: ['Dribbling', 'Passing'],
         imageUrl: 'https://picsum.photos/seed/trial1/800/400',
+        registrationDeadline: '2026-02-21T17:00:00Z',
     },
     // Recurring Training Sessions
     {

@@ -124,6 +124,29 @@ const MOCKS = {
     createEventAsync: async () => 'event-id',
     requestCalendarPermissionsAsync: async () => ({ status: 'granted' }),
   },
+
+  // Expo Router — used by hooks/use-auth.tsx and navigation
+  'expo-router': {
+    __esModule: true,
+    router: {
+      push: () => {},
+      replace: () => {},
+      back: () => {},
+      navigate: () => {},
+    },
+    Stack: 'Stack',
+    Tabs: 'Tabs',
+    useRouter: () => ({
+      push: () => {},
+      replace: () => {},
+      back: () => {},
+      navigate: () => {},
+    }),
+    useLocalSearchParams: () => ({}),
+    usePathname: () => '/',
+    useSegments: () => [],
+    Link: 'Link',
+  },
 };
 
 // =============================================================================

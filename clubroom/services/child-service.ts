@@ -441,6 +441,7 @@ export const childService = {
       childrenCache = await loadFromStorage();
       childrenCache.push(newChild);
       await saveToStorage(childrenCache);
+      emitTyped(ServiceEvents.CHILD_PROFILES_UPDATED, { parentId, action: 'created', childId: newChild.id });
       return newChild;
     }
 
@@ -476,6 +477,7 @@ export const childService = {
       };
 
       await saveToStorage(childrenCache);
+      emitTyped(ServiceEvents.CHILD_PROFILES_UPDATED, { parentId: childrenCache[index].parentId, action: 'updated', childId });
       return ok(childrenCache[index]);
     }
 
@@ -493,8 +495,12 @@ export const childService = {
   async deleteChild(childId: string): Promise<void> {
     if (USE_MOCK) {
       childrenCache = await loadFromStorage();
+      const deletedChild = childrenCache.find((c) => c.id === childId);
       childrenCache = childrenCache.filter((c) => c.id !== childId);
       await saveToStorage(childrenCache);
+      if (deletedChild) {
+        emitTyped(ServiceEvents.CHILD_PROFILES_UPDATED, { parentId: deletedChild.parentId, action: 'deleted', childId });
+      }
       return;
     }
 

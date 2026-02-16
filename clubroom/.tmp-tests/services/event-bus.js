@@ -133,6 +133,7 @@ exports.ServiceEvents = {
     FAMILY_MEMBER_REMOVED: 'family:member:removed',
     FAMILY_LINK_CREATED: 'family:link:created',
     FAMILY_ACTIVE_CHILD_CHANGED: 'family:active_child:changed',
+    CHILD_PROFILES_UPDATED: 'child:profiles_updated',
     // Payment events
     PAYMENT_SUCCEEDED: 'payment:succeeded',
     PAYMENT_FAILED: 'payment:failed',
