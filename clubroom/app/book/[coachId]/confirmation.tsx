@@ -15,8 +15,9 @@ import { useScreen } from '@/hooks/use-screen';
 import { ok } from '@/types/result';
 import { useBookingFlow } from '@/context/booking-flow-context';
 import { useAuth } from '@/hooks/use-auth';
+import { CancellationPolicyCard } from '@/components/booking/cancellation-policy-card';
 import { bookingService } from '@/services/booking-service';
-import { schedulingRulesService } from '@/services/scheduling-rules-service';
+import { cancellationService } from '@/services/cancellation-service';
 import { createLogger } from '@/utils/logger';
 import { CelebrationOverlay, CelebrationOverlayRef } from '@/components/celebration-overlay';
 
@@ -31,7 +32,7 @@ export default function ConfirmationScreen() {
   const [isCreating, setIsCreating] = useState(false);
   const [bookingId, setBookingId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [cancellationSummary, setCancellationSummary] = useState('Standard cancellation policy');
+  const [cancellationPolicy, setCancellationPolicy] = useState<import('@/constants/types').CancellationPolicy | null>(null);
   const celebrationRef = useRef<CelebrationOverlayRef>(null);
   const handleOpenBooking = (id: string) => {
     reset();
@@ -39,24 +40,24 @@ export default function ConfirmationScreen() {
   };
   const handleMessageCoach = () => router.push(Routes.chat(coachId || 'new'));
 
+  const resolvedCoachId = coachId || draft.coachId;
+
   useEffect(() => {
-    const resolvedCoachId = coachId || draft.coachId;
     if (!resolvedCoachId) return;
 
     let isMounted = true;
 
-    void schedulingRulesService.getCancellationPolicy(resolvedCoachId).then((result) => {
+    void cancellationService.getCancellationPolicy(resolvedCoachId).then((result) => {
       if (!isMounted) return;
-      const summary = schedulingRulesService.getCancellationPolicySummary(
-        result.success ? result.data : null,
-      );
-      setCancellationSummary(summary);
+      if (result.success) {
+        setCancellationPolicy(result.data);
+      }
     });
 
     return () => {
       isMounted = false;
     };
-  }, [coachId, draft.coachId]);
+  }, [resolvedCoachId]);
 
   const handleViewBooking = async () => {
     if (bookingId) {
@@ -170,10 +171,9 @@ export default function ConfirmationScreen() {
               <ThemedText style={{ color: palette.text }}>{draft.locationText}</ThemedText>
             </Row>
           )}
-          <Row align="center" gap="sm">
-            <Ionicons name="shield-checkmark-outline" size={18} color={palette.muted} />
-            <ThemedText style={{ color: palette.text, flex: 1 }}>{cancellationSummary}</ThemedText>
-          </Row>
+          {resolvedCoachId && (
+            <CancellationPolicyCard coachId={resolvedCoachId} policy={cancellationPolicy ?? undefined} />
+          )}
         </View>
 
         {error && (

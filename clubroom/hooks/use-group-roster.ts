@@ -8,9 +8,10 @@ import * as Haptics from 'expo-haptics';
 import { createLogger } from '@/utils/logger';
 import { useScreen, type ScreenStatus } from '@/hooks/use-screen';
 import { groupSessionService } from '@/services/group-session-service';
+import { rsvpService } from '@/services/rsvp-service';
 import { injuryService } from '@/services/injury-service';
 import { err, ok, serviceError, type ServiceError } from '@/types/result';
-import type { GroupSession, GroupRegistration, BodyPart, InjurySeverity } from '@/constants/types';
+import type { GroupSession, GroupRegistration, SessionRsvp, BodyPart, InjurySeverity } from '@/constants/types';
 import { getGroupRegistrationAthleteName } from '@/utils/group-display';
 
 const logger = createLogger('SessionRosterScreen');
@@ -67,14 +68,28 @@ export const SEVERITY_OPTIONS: { value: InjurySeverity; label: string; color: st
   { value: 'SEVERE', label: 'Severe', color: '#EF4444' },
 ];
 
+export type RsvpStatus = 'going' | 'not_going' | 'maybe' | 'pending';
+
+export interface RosterRsvpCounts {
+  going: number;
+  maybe: number;
+  notGoing: number;
+  pending: number;
+  total: number;
+}
+
 interface GroupRosterData {
   session: GroupSession | null;
   roster: GroupRegistration[];
+  rsvps: SessionRsvp[];
 }
 
 export interface UseGroupRosterResult {
   session: GroupSession | null;
   roster: GroupRegistration[];
+  rsvps: SessionRsvp[];
+  rsvpCounts: RosterRsvpCounts;
+  getRsvpForRegistration: (registration: GroupRegistration) => SessionRsvp | null;
   loading: boolean;
   status: ScreenStatus;
   error: ServiceError | null;
@@ -139,17 +154,20 @@ export function useGroupRoster(sessionId: string | undefined) {
       return ok<GroupRosterData>({
         session: null,
         roster: [],
+        rsvps: [],
       });
     }
 
     try {
-      const [sessionData, rosterData] = await Promise.all([
+      const [sessionData, rosterData, rsvpData] = await Promise.all([
         groupSessionService.getSession(sessionId),
         groupSessionService.getSessionRoster(sessionId),
+        rsvpService.getForSession(sessionId),
       ]);
       return ok<GroupRosterData>({
         session: sessionData,
         roster: rosterData,
+        rsvps: rsvpData,
       });
     } catch (loadError) {
       logger.error('Failed to load roster:', loadError);
@@ -168,7 +186,34 @@ export function useGroupRoster(sessionId: string | undefined) {
 
   const session = data?.session ?? null;
   const roster = data?.roster ?? [];
+  const rsvps = data?.rsvps ?? [];
   const loading = status === 'loading';
+
+  // RSVP counts for the session
+  const rsvpCounts: RosterRsvpCounts = useMemo(() => {
+    const counts = { going: 0, maybe: 0, notGoing: 0, pending: 0, total: rsvps.length };
+    for (const r of rsvps) {
+      if (r.status === 'going') counts.going++;
+      else if (r.status === 'maybe') counts.maybe++;
+      else if (r.status === 'not_going') counts.notGoing++;
+      else counts.pending++;
+    }
+    return counts;
+  }, [rsvps]);
+
+  // Lookup RSVP for a given registration (match by athleteId/userId)
+  const getRsvpForRegistration = useCallback(
+    (registration: GroupRegistration): SessionRsvp | null => {
+      return rsvps.find(
+        (rv) =>
+          rv.sessionId === registration.sessionId &&
+          (rv.childId === registration.athleteId ||
+            rv.userId === registration.athleteId ||
+            rv.userId === registration.parentId),
+      ) ?? null;
+    },
+    [rsvps],
+  );
 
   const handleMarkAttendance = useCallback(
     async (registration: GroupRegistration, attended: boolean) => {
@@ -361,6 +406,9 @@ export function useGroupRoster(sessionId: string | undefined) {
   return {
     session,
     roster,
+    rsvps,
+    rsvpCounts,
+    getRsvpForRegistration,
     loading,
     status,
     error,

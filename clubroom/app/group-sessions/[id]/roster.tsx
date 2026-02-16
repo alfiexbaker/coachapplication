@@ -28,6 +28,8 @@ export default function SessionRosterScreen() {
     retry,
     filter,
     setFilter,
+    rsvpCounts,
+    getRsvpForRegistration,
     showRollCall,
     setShowRollCall,
     rollCallAttendance,
@@ -146,6 +148,28 @@ export default function SessionRosterScreen() {
         ))}
       </Row>
 
+      {/* RSVP Summary */}
+      {rsvpCounts.total > 0 && (
+        <Row gap="xs" style={styles.rsvpRow}>
+          {[
+            { count: rsvpCounts.going, label: 'Going', color: colors.success },
+            { count: rsvpCounts.maybe, label: 'Maybe', color: colors.warning },
+            { count: rsvpCounts.notGoing, label: "Can't", color: colors.error },
+            { count: rsvpCounts.pending, label: 'Pending', color: colors.muted },
+          ].map((item) => (
+            <Row key={item.label} align="center" gap="xxs" style={styles.rsvpChip}>
+              <View style={[styles.rsvpDot, { backgroundColor: item.color }]} />
+              <ThemedText style={[Typography.smallSemiBold, { color: item.color }]}>
+                {item.count}
+              </ThemedText>
+              <ThemedText style={[Typography.caption, { color: colors.muted }]}>
+                {item.label}
+              </ThemedText>
+            </Row>
+          ))}
+        </Row>
+      )}
+
       <ScrollView
         horizontal
         showsHorizontalScrollIndicator={false}
@@ -202,6 +226,7 @@ export default function SessionRosterScreen() {
               <Animated.View key={reg.id} entering={FadeInDown.delay(i * 50).springify()}>
                 <ParticipantCard
                   registration={reg}
+                  rsvp={getRsvpForRegistration(reg)}
                   onMarkAttendance={(attended) => handleMarkAttendance(reg, attended)}
                   onCancel={() => handleCancelRegistration(reg)}
                 />
@@ -261,5 +286,19 @@ const styles = StyleSheet.create({
     paddingVertical: Spacing.xs,
     borderRadius: Radii.pill,
     borderWidth: 1,
+  },
+  rsvpRow: {
+    paddingHorizontal: Spacing.lg,
+    marginBottom: Spacing.sm,
+    flexWrap: 'wrap',
+  },
+  rsvpChip: {
+    paddingHorizontal: Spacing.xs,
+    paddingVertical: Spacing.xxs,
+  },
+  rsvpDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
   },
 });

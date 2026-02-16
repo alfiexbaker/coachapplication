@@ -21,11 +21,12 @@ import { BookingParticipantsCard } from '@/components/bookings/booking-participa
 import { BookingNotesCard, BookingFollowUpsCard } from '@/components/bookings/booking-notes-card';
 import { Row } from '@/components/primitives/row';
 import { Clickable } from '@/components/primitives/clickable';
+import { CancellationPolicyCard } from '@/components/booking/cancellation-policy-card';
 import { Radii, Spacing, withAlpha } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
 import { useBookingDetail } from '@/hooks/use-booking-detail';
 import { useAuth } from '@/hooks/use-auth';
-import { schedulingRulesService } from '@/services/scheduling-rules-service';
+import { cancellationService } from '@/services/cancellation-service';
 import { apiClient } from '@/services/api-client';
 import { getBookingSummaryClientName, getBookingSummaryCoachName } from '@/utils/booking-display';
 import { Routes } from '@/navigation/routes';
@@ -56,7 +57,7 @@ export default function SessionDetailScreen() {
   } = useBookingDetail(bookingId);
   const coachName = booking ? getBookingSummaryCoachName(booking) : 'Coach';
   const childName = booking ? getBookingSummaryClientName(booking) : 'Athlete';
-  const [cancellationSummary, setCancellationSummary] = useState('Standard cancellation policy');
+  const [cancellationPolicy, setCancellationPolicy] = useState<import('@/constants/types').CancellationPolicy | null>(null);
   const [hasSubmittedReview, setHasSubmittedReview] = useState(false);
 
   const handleGoBack = useCallback(() => router.back(), []);
@@ -66,11 +67,11 @@ export default function SessionDetailScreen() {
 
     let isMounted = true;
 
-    void schedulingRulesService.getCancellationPolicy(booking.coachId).then((result) => {
+    void cancellationService.getCancellationPolicy(booking.coachId).then((result) => {
       if (!isMounted) return;
-      setCancellationSummary(
-        schedulingRulesService.getCancellationPolicySummary(result.success ? result.data : null),
-      );
+      if (result.success) {
+        setCancellationPolicy(result.data);
+      }
     });
 
     return () => {
@@ -178,15 +179,9 @@ export default function SessionDetailScreen() {
         />
         <LocationCard locationLabel={booking.locationLabel} />
         <PaymentCard />
-        <ThemedView style={[styles.policyCard, { borderColor: palette.border }]}>
-          <Row gap="sm" align="center">
-            <Ionicons name="shield-checkmark-outline" size={18} color={palette.muted} />
-            <ThemedText type="defaultSemiBold">Cancellation Policy</ThemedText>
-          </Row>
-          <ThemedText style={[styles.policySummary, { color: palette.muted }]}>
-            {cancellationSummary}
-          </ThemedText>
-        </ThemedView>
+        {booking.coachId && (
+          <CancellationPolicyCard coachId={booking.coachId} policy={cancellationPolicy ?? undefined} />
+        )}
         <BookingCoachCard coachName={coachName} coachPhotoUrl={formatted.coachPhotoUrl} />
 
         {/* Athlete Card (coach view, 1-on-1 sessions) */}
@@ -308,16 +303,6 @@ const styles = StyleSheet.create({
   scrollContent: { padding: Spacing.lg, gap: Spacing.md },
   headerSection: { gap: Spacing.sm, marginBottom: Spacing.sm },
   flex1: { flex: 1 },
-  policyCard: {
-    borderWidth: 1,
-    borderRadius: 12,
-    padding: Spacing.md,
-    gap: Spacing.xs,
-  },
-  policySummary: {
-    fontSize: 13,
-    lineHeight: 18,
-  },
   reviewCard: {
     borderWidth: 1,
     borderRadius: Radii.lg,

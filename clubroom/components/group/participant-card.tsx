@@ -6,15 +6,23 @@ import { Clickable } from '@/components/primitives/clickable';
 import { ThemedText } from '@/components/themed-text';
 import { Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
-import type { GroupRegistration } from '@/constants/types';
+import type { GroupRegistration, SessionRsvp } from '@/constants/types';
 import { Row } from '@/components/primitives';
 import {
   getGroupRegistrationAthleteName,
   getGroupRegistrationParentName,
 } from '@/utils/group-display';
 
+const RSVP_CONFIG: Record<string, { label: string; icon: keyof typeof Ionicons.glyphMap; colorKey: 'success' | 'warning' | 'error' | 'muted' }> = {
+  going: { label: 'Going', icon: 'checkmark-circle', colorKey: 'success' },
+  maybe: { label: 'Maybe', icon: 'help-circle', colorKey: 'warning' },
+  not_going: { label: "Can't Go", icon: 'close-circle', colorKey: 'error' },
+  pending: { label: 'Pending', icon: 'time', colorKey: 'muted' },
+};
+
 interface ParticipantCardProps {
   registration: GroupRegistration;
+  rsvp?: SessionRsvp | null;
   onMarkAttendance?: (attended: boolean) => void;
   onCancel?: () => void;
   onMessage?: () => void;
@@ -22,6 +30,7 @@ interface ParticipantCardProps {
 
 export function ParticipantCard({
   registration,
+  rsvp,
   onMarkAttendance,
   onCancel,
   onMessage,
@@ -62,11 +71,37 @@ export function ParticipantCard({
           <ThemedText style={[styles.parentName, { color: palette.muted }]}>
             Parent: {parentName}
           </ThemedText>
-          <View style={[styles.statusBadge, { backgroundColor: colors.bg }]}>
-            <ThemedText style={[styles.statusText, { color: colors.text }]}>
-              {statusLabels[registration.status]}
-            </ThemedText>
-          </View>
+          <Row gap="xs" style={{ marginTop: Spacing.xxs }}>
+            <View style={[styles.statusBadge, { backgroundColor: colors.bg }]}>
+              <ThemedText style={[styles.statusText, { color: colors.text }]}>
+                {statusLabels[registration.status]}
+              </ThemedText>
+            </View>
+            {rsvp && RSVP_CONFIG[rsvp.status] && (
+              <View
+                style={[
+                  styles.statusBadge,
+                  { backgroundColor: withAlpha(palette[RSVP_CONFIG[rsvp.status].colorKey], 0.09) },
+                ]}
+              >
+                <Row align="center" gap="micro">
+                  <Ionicons
+                    name={RSVP_CONFIG[rsvp.status].icon}
+                    size={10}
+                    color={palette[RSVP_CONFIG[rsvp.status].colorKey]}
+                  />
+                  <ThemedText
+                    style={[
+                      styles.statusText,
+                      { color: palette[RSVP_CONFIG[rsvp.status].colorKey] },
+                    ]}
+                  >
+                    {RSVP_CONFIG[rsvp.status].label}
+                  </ThemedText>
+                </Row>
+              </View>
+            )}
+          </Row>
         </View>
       </Row>
 
@@ -153,7 +188,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 8,
     paddingVertical: Spacing.micro,
     borderRadius: Radii.sm,
-    marginTop: Spacing.xxs,
   },
   statusText: { ...Typography.micro, textTransform: 'uppercase', letterSpacing: 0.5 },
   actions: {
