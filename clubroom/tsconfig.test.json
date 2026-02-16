@@ -76,6 +76,10 @@
     "__tests__/completion/**/*.ts",
     "__tests__/reschedule/**/*.ts",
     "__tests__/child-context/**/*.ts",
-    "__tests__/child-context/**/*.tsx"
+    "__tests__/child-context/**/*.tsx",
+    "__tests__/group-session/**/*.ts",
+    "__tests__/group-session/**/*.tsx",
+    "__tests__/utils/**/*.ts",
+    "__tests__/notification/**/*.ts"
   ]
 }

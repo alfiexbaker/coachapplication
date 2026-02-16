@@ -23,6 +23,7 @@ interface InviteListCardProps {
   index: number;
   mode: ViewMode;
   colors: ThemeColors;
+  childLabel?: string;
   onPress: () => void;
   onQuickDecline?: () => void;
   onCancel?: () => void;
@@ -75,6 +76,7 @@ export const InviteListCard = memo(function InviteListCard({
   index,
   mode,
   colors,
+  childLabel,
   onPress,
   onQuickDecline,
   onCancel,
@@ -147,6 +149,11 @@ export const InviteListCard = memo(function InviteListCard({
             <ThemedText style={{ color: colors.muted, ...Typography.small }}>
               {invite.sessionType} - {invite.focus}
             </ThemedText>
+            {childLabel != null && childLabel.length > 0 && (
+              <ThemedText style={{ color: colors.muted, ...Typography.caption }}>
+                For {childLabel}
+              </ThemedText>
+            )}
           </Column>
           <Row gap="xxs" align="center" style={[st.statusBadge, { backgroundColor: sc.bg }]}>
             <Ionicons name={sc.icon as keyof typeof Ionicons.glyphMap} size={12} color={sc.text} />

@@ -37,6 +37,7 @@ import { InviteCounterPropose } from '@/components/invite/invite-counter-propose
 import { InviteCounterDisplay } from '@/components/invite/invite-counter-display';
 import { InviteActionBar } from '@/components/invite/invite-action-bar';
 import { InviteRsvpStats } from '@/components/invite/invite-rsvp-stats';
+import { InviteChildHeader } from '@/components/invite/invite-child-header';
 import { Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
 import {
   inviteService as sessionInviteService,
@@ -49,12 +50,14 @@ import {
   getSessionInviteAthleteNames,
   getSessionInviteCoachName,
 } from '@/utils/session-invite-display';
+import { useChildContext } from '@/hooks/use-child-context';
 
 const logger = createLogger('SessionInviteDetailScreen');
 
 export default function SessionInviteDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const { currentUser } = useAuth();
+  const { isMultiChild, getChildById } = useChildContext();
   const {
     data: invite,
     status,
@@ -412,6 +415,13 @@ export default function SessionInviteDetailScreen() {
             }
             colors={colors}
           />
+          {!isCoach && invite.athleteIds.length > 0 && (
+            <InviteChildHeader
+              childIds={invite.athleteIds}
+              getChildById={getChildById}
+              isMultiChild={isMultiChild}
+            />
+          )}
           {!isCoach && (
             <Animated.View entering={FadeInDown.delay(50).springify()}>
               <Row

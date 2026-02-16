@@ -79,12 +79,15 @@ class NotificationSenderService {
         });
     }
     async notifyCoachBookingCancelled(params) {
+        const body = params.childName && params.isMultiChild
+            ? `❌ ${params.parentName} cancelled ${params.childName}'s booking for ${params.date}`
+            : `❌ ${params.parentName} cancelled booking for ${params.date}`;
         return this.send({
             id: `notif_cancel_${Date.now()}`,
             type: 'booking',
             notificationType: 'BOOKING_CANCELLED',
             title: 'Booking Cancelled',
-            body: `❌ ${params.parentName} cancelled booking for ${params.date}`,
+            body,
             recipientId: params.coachId,
             recipientRole: 'coach',
             deepLink: `/bookings/${params.bookingId}`,
@@ -111,12 +114,15 @@ class NotificationSenderService {
         });
     }
     async notifyCoachInviteDeclined(params) {
+        const body = params.childName
+            ? `❌ ${params.parentName} declined session invite for ${params.childName}`
+            : `❌ ${params.parentName} declined session invite`;
         return this.send({
             id: `notif_invite_decline_${Date.now()}`,
             type: 'booking',
             notificationType: 'SESSION_INVITE_RESPONSE',
             title: 'Invite Declined',
-            body: `❌ ${params.parentName} declined session invite`,
+            body,
             recipientId: params.coachId,
             recipientRole: 'coach',
             deepLink: `/session-invites/${params.inviteId}`,
@@ -174,12 +180,15 @@ class NotificationSenderService {
     // PARENT NOTIFICATIONS
     // ============================================================================
     async notifyParentBookingConfirmed(params) {
+        const body = params.childName && params.isMultiChild
+            ? `✅ ${params.childName}'s booking confirmed with Coach ${params.coachName} for ${params.date}`
+            : `✅ Booking confirmed with Coach ${params.coachName} for ${params.date}`;
         return this.send({
             id: `notif_confirm_${Date.now()}`,
             type: 'booking',
             notificationType: 'BOOKING_CONFIRMED',
             title: 'Booking Confirmed',
-            body: `✅ Booking confirmed with Coach ${params.coachName} for ${params.date}`,
+            body,
             recipientId: params.parentId,
             recipientRole: 'parent',
             deepLink: `/bookings/${params.bookingId}`,

@@ -458,17 +458,103 @@ When single child: omit child name (seamless).
 
 ## Phase 4: Home Screen Family Summary + Bulk Migration
 
-**Goal:** Open app → see all children's sessions today in one merged view. Plus migrate ~12 hooks to useChildContext().
-**Files:** ~8-12
-**Gate:** Parent with 2 kids sees "Tommy: Training 5pm | Emma: Camp 9am" without switching. All hasChildren() calls use context.
+**Goal:** Open app → see all children's sessions today in one merged view. Plus migrate ALL remaining hasChildren()/childService.getChildren() call sites to useChildContext().
+**Files:** ~18-20
+**Gate:** Parent with 2 kids sees "Tommy: Training 5pm | Emma: Camp 9am" without switching. `Grep "hasChildren"` shows ONLY: utils/user-helpers.ts (definition), admin/users-screen.tsx (operates on other users), booking hooks (Phase 7), auth/onboarding files (form state), use-auth.tsx (DemoUser type field).
 
 ### Deliverables
-1. `TodayFamilySummary` component — merged cards for all children's upcoming
-2. Modify `use-home-screen.ts` — "All" mode loads all children's data
+1. `TodayFamilySummary` component — merged cards for all children's upcoming bookings, deduped by sessionId
+2. Modify `use-home-screen.ts` — wire selectedChildId ↔ context.activeChildId, "All" mode loads + merges all children's data
 3. Same-session dedup: "Tommy + Emma: Football Camp 9am" (ONE card)
-4. Migrate ALL remaining `hasChildren()` call sites to `useChildContext().isParent`
-5. Migrate `use-statistics.ts`, `use-objectives.ts`, `use-parent-development.ts`
-6. Migrate ChildSwitcher consumers to use ChildInfo[] from context
+4. Migrate ALL remaining `hasChildren()` call sites in hooks/components/screens to `useChildContext().isParent`
+5. Migrate ALL remaining `childService.getChildren()` call sites to `useChildContext().children`
+6. Wire ChildSwitcher consumers to ChildInfo[] from context via per-site adapters (do NOT unify the 3 switcher components)
+
+### TRAPS — Read before coding, violations = rework
+
+**TRAP 1: Line numbers in this doc are STALE.** Phases 1-3 and Phase 4A-4G decomposition shifted lines everywhere. Before coding ANY migration, run fresh greps and use the RESULTS as the migration checklist:
+```
+Grep "hasChildren" --type ts   (exclude docs/, __tests__/, .tmp-tests/)
+Grep "childService\.getChildren" --type ts  (exclude docs/, __tests__/, .tmp-tests/, use-child-context.tsx)
+```
+
+**TRAP 2: admin/users-screen.tsx is NOT a valid migration.** Line ~20: `parents: availableUsers.filter((user) => hasChildren(user)).length` — this calls `hasChildren()` on OTHER USERS in a loop, not on currentUser. `useChildContext()` only knows the current user's children. SKIP this file.
+
+**TRAP 3: app/(tabs)/_layout.tsx defines its OWN local `hasChildren` function** (line ~26: `export const hasChildren = ...`), NOT importing from user-helpers. Before deleting it, grep for anything importing `hasChildren` FROM `_layout.tsx`. Nothing does (verified 2026-02-16), but double-check. Delete the local function, use `useChildContext().isParent` inside _layout.tsx.
+
+**TRAP 4: hooks/use-subscribe.ts is MISSING from this migration list.** Line ~90: `if (hasChildren(currentUser))`. Include it.
+
+**TRAP 5: Booking hooks are Phase 7, NOT Phase 4.** Do NOT migrate: `use-book-coach.ts`, `use-confirm-booking.ts`, `use-booking-persona.ts`. They get migrated in Phase 7.
+
+**TRAP 6: Auth/onboarding files use `hasChildren` as FORM STATE.** `components/auth/onboarding-step-athlete.tsx`, `components/auth/onboarding-types.ts`, `components/auth/use-onboarding.ts`, `components/auth/onboarding-screen.tsx` — these use `hasChildren` as a boolean field in the signup form ("Do you have children?"). This is NOT the same as `hasChildren(currentUser)`. Do NOT touch any `components/auth/` file.
+
+**TRAP 7: selectedChildId vs activeChildId.** `use-home-screen.ts` has LOCAL state `selectedChildId`. The context has `activeChildId`. These are DIFFERENT concerns:
+- `activeChildId` = global "which child is selected across the whole app"
+- `selectedChildId` = local "which child is the home screen showing data for right now"
+The correct wiring: initialize local from context. When user taps switcher, update BOTH local AND context. When context changes externally, sync to local. "All" mode = selectedChildId is null = show merged data. Do NOT simply replace one with the other.
+
+**TRAP 8: childService.getChildren() is ASYNC, context.children is SYNC.** When replacing `await childService.getChildren()` inside a `Promise.all()` or `try/catch`, you must restructure — pull the sync access out of the async block. Read the FULL function around each call site.
+
+**TRAP 9: use-children-hub.ts has 5 separate childService usages.** Not all are simple replacements:
+- `childService.getActiveChildId()` → context.activeChildId (sync, no await)
+- `childService.getChildren(id)` → context.children (sync, remove from async block)
+- `childService.getActiveChildId()` (refresh) → context.activeChildId (remove redundant)
+- `childService.setActiveChildId()` → context.setActiveChildId() (keep async)
+- `childService.deleteChild()` → KEEP as direct service call (mutation, not context's job), then call context.refresh() after
+
+**TRAP 10: app/session-invites/index.tsx was ALREADY migrated in Phase 3.** Skip it.
+
+### Verified Migration List (as of 2026-02-16)
+
+**MIGRATE (hooks):**
+| File | Usage | Replacement |
+|------|-------|-------------|
+| `hooks/use-home-screen.ts` | `hasChildren(currentUser)` x3, local selectedChildId | `useChildContext()` — isParent, children, activeChildId, setActiveChildId |
+| `hooks/use-statistics.ts` | `hasChildren(currentUser)` x2 | `useChildContext().isParent` |
+| `hooks/use-objectives.ts` | `hasChildren(currentUser)` x2 | `useChildContext().isParent` |
+| `hooks/use-parent-development.ts` | `hasChildren(currentUser)` | `useChildContext().isParent` |
+| `hooks/use-child-progress.ts` | `hasChildren(currentUser)`, `childService.getChildren()` | `useChildContext()` — isParent, children |
+| `hooks/use-children-hub.ts` | `childService` x5 (see TRAP 9) | `useChildContext()` for reads, keep direct service for mutations |
+| `hooks/use-family-calendar.ts` | `hasChildren(currentUser)` | `useChildContext().isParent` |
+| `hooks/use-bookings.ts` | `hasChildren(currentUser)`, `currentUser.children` | `useChildContext()` — isParent, children |
+| `hooks/use-training-schedule.ts` | `hasChildren(currentUser)` | `useChildContext().isParent` |
+| `hooks/use-discover-sessions.ts` | `hasChildren(currentUser)`, `currentUser.children` | `useChildContext()` — isParent, children |
+| `hooks/use-settings-hub.ts` | `hasChildren(currentUser)` | `useChildContext().isParent` |
+| `hooks/use-subscribe.ts` | `hasChildren(currentUser)`, `currentUser.children` | `useChildContext()` — isParent, children |
+
+**MIGRATE (components):**
+| File | Usage | Replacement |
+|------|-------|-------------|
+| `components/user/home-screen.tsx` | `hasChildren(currentUser)` | `useChildContext().isParent` |
+| `components/settings/settings-account-section.tsx` | `childService.getChildren()` | `useChildContext().children` (sync — restructure async block) |
+| `components/parent/discover-screen.tsx` | `childService.getChildren()` | `useChildContext().children` (sync — restructure async block) |
+| `components/parent/kids-screen.tsx` | `childService.getChildren()` | `useChildContext().children` (sync — restructure async block) |
+
+**MIGRATE (screens):**
+| File | Usage | Replacement |
+|------|-------|-------------|
+| `app/(tabs)/_layout.tsx` | LOCAL `hasChildren` function definition | DELETE function, use `useChildContext().isParent` |
+| `app/goals/create.tsx` | `hasChildren(currentUser)` | `useChildContext().isParent` |
+| `app/settings/notifications/index.tsx` | `hasChildren(currentUser)` | `useChildContext().isParent` |
+
+**SKIP (not Phase 4):**
+| File | Reason |
+|------|--------|
+| `components/admin/users-screen.tsx` | Operates on OTHER users, not currentUser (TRAP 2) |
+| `hooks/use-book-coach.ts` | Phase 7 — booking flow (TRAP 5) |
+| `hooks/use-confirm-booking.ts` | Phase 7 — booking flow (TRAP 5) |
+| `hooks/use-booking-persona.ts` | Phase 7 — booking flow (TRAP 5) |
+| `components/auth/*` | Form state field, not child-context migration (TRAP 6) |
+| `app/session-invites/index.tsx` | Already migrated in Phase 3 (TRAP 10) |
+| `utils/user-helpers.ts` | Definition file — keep for non-React code |
+| `hooks/use-auth.tsx` | DemoUser type field — not a migration target |
+
+### Batching Strategy (compile after EACH batch)
+
+**Batch 1 — Home screen (highest risk):** use-home-screen.ts + components/user/home-screen.tsx + TodayFamilySummary
+**Batch 2 — Simple hooks (11 files):** use-statistics, use-objectives, use-parent-development, use-child-progress, use-training-schedule, use-discover-sessions, use-settings-hub, use-subscribe, use-family-calendar, use-bookings
+**Batch 3 — Complex hook:** use-children-hub (5 usages, needs careful restructuring)
+**Batch 4 — Components + screens (7 files):** settings-account-section, discover-screen, kids-screen, _layout.tsx, goals/create, settings/notifications
 
 ### ARCHITECT Prompt
 ```
@@ -481,105 +567,160 @@ B) Migrate ALL remaining hasChildren()/childService calls to context
 This is Phase 4 — the largest migration phase.
 ═══════════════════════════════════════════════════════════════════
 
+READ THE PHASE 4 SECTION of clubroom/docs/sprints/MULTI-CHILD-SPRINT.md
+FIRST. It has a VERIFIED migration list, 10 numbered traps to avoid, and
+a batching strategy. Do NOT use the line numbers in the old file list —
+they are stale. Grep fresh.
+
 CONTEXT:
 Phase 1 delivered useChildContext() (children[], isParent, isMultiChild,
 activeChildId, setActiveChildId, getChildById, familyAthleteIds).
 Phase 2 migrated use-group-session.ts + use-session-detail-modal.ts.
+Phase 3 migrated app/session-invites/index.tsx + notification sender.
 Now: the home screen gets a family view AND we clean up every remaining
 child-loading pattern in the codebase.
 
 PART A — FAMILY SUMMARY:
 
-UX RULES:
-- Single-child parent: upcoming sessions shown normally. No child names.
-- Multi-child parent, "All" mode (default): merged timeline
-  - Different sessions: "Tommy: Training 5pm" and "Emma: Camp 9am" as rows
-  - SAME session: "Tommy + Emma: Football Camp 9am" — ONE row
-  - Color-coded by child (using ChildInfo.colorCode)
-- Multi-child parent, filtered: only selected child's sessions
-- No upcoming sessions: "No sessions today" (singular message, not per-child)
-- Loading: skeleton shimmer, not per-child spinners
+The home screen currently uses `hooks/use-home-screen.ts` which loads data
+via `bookingService.getBookingsForUser()` filtered by selectedChildId.
 
-DEDUP ALGORITHM:
-1. Fetch sessions for ALL children (batch, not sequential)
-2. Group by sessionId
-3. Sessions with >1 child → merge: collect child names, show ONE card
-4. Sort by startTime ascending
+QUESTIONS YOU MUST ANSWER (not leave vague):
+1. What data source provides upcoming sessions for TodayFamilySummary?
+   Read use-home-screen.ts ENTIRELY — it uses bookingService (lines 67-86).
+   Does TodayFamilySummary use the SAME bookings data or DIFFERENT?
+2. Where in components/user/home-screen.tsx does TodayFamilySummary render?
+   Read the ENTIRE component. Does it REPLACE the "Upcoming Bookings" section
+   or sit ABOVE it? What section heading?
+3. When a parent taps a merged card ("Tommy + Emma: Camp 9am"), what screen
+   opens? The booking detail? Which child's view?
+4. What does "today" mean — midnight to midnight local time? Next 24 hours?
+   Or "upcoming" (same as current behavior, which is all future bookings)?
+5. Does the dedup logic live in use-home-screen.ts or in TodayFamilySummary?
+   Recommend: PURE FUNCTION in use-home-screen.ts so it's unit-testable.
+
+UX RULES:
+- Single-child parent: upcoming bookings shown normally. No child names.
+- Multi-child parent, "All" mode (activeChildId=null, the default):
+  - Fetch bookings for ALL children
+  - Group by booking ID (or scheduledAt + coachId for dedup)
+  - Different bookings: "Tommy: Training 5pm" + "Emma: Camp 9am" as rows
+  - SAME booking (both kids): "Tommy + Emma: Football Camp 9am" — ONE row
+  - Color-coded child name using ChildInfo.colorCode
+  - Sort by scheduledAt ascending
+- Multi-child parent, filtered (activeChildId set): only that child's bookings
+- No upcoming: "No sessions today" (single message, not per-child empties)
+- Loading: use existing loading state, not per-child spinners
+
+selectedChildId ↔ activeChildId WIRING:
+- Home screen KEEPS local selectedChildId for immediate UI response
+- Initialize from context.activeChildId on mount
+- When user taps ChildSwitcher pill → update local selectedChildId AND
+  call context.setActiveChildId() (so other screens sync)
+- Subscribe to FAMILY_ACTIVE_CHILD_CHANGED event to sync from external changes
+- "All" pill = setSelectedChildId(null) + setActiveChildId(null)
+
+DEDUP ALGORITHM (must be a pure exported function for testing):
+```ts
+export function deduplicateBookings(
+  bookings: Booking[],
+  children: ChildInfo[],
+): FamilyBookingRow[] {
+  // 1. For each booking, determine which children are involved
+  //    (booking.athleteId or booking.athleteIds intersected with children IDs)
+  // 2. Group bookings by some dedup key (booking.id, or scheduledAt+coachId)
+  // 3. Merge: collect child names + colorCodes for grouped bookings
+  // 4. Sort by scheduledAt ascending
+  // Return: { booking, children: {name, colorCode}[], isShared: boolean }[]
+}
+```
 
 PART B — BULK MIGRATION:
 
-Every file that calls `hasChildren(currentUser)` or `childService.getChildren()`
-must be migrated to useChildContext(). Complete list from audit:
+The VERIFIED migration list is in the sprint doc Phase 4 section.
+Read it. Follow the SKIP list. Follow the TRAP warnings.
 
-HOOKS TO MIGRATE:
-- use-home-screen.ts (lines 36-48) → useChildContext()
-- use-statistics.ts (lines 64-93) → useChildContext()
-- use-objectives.ts (lines 100-126) → useChildContext()
-- use-parent-development.ts (lines 23-44) → useChildContext()
-- use-child-progress.ts (lines 59-93) → useChildContext()
-- use-children-hub.ts (lines 45-50, 106-108, 149-158) → useChildContext()
-- use-family-calendar.ts (line 27) → useChildContext()
-- use-bookings.ts (line 205) → useChildContext()
-- use-training-schedule.ts (line 27) → useChildContext()
-- use-discover-sessions.ts (line 77) → useChildContext()
-- use-settings-hub.ts (line 16) → useChildContext()
+For EACH file in the migration list, you MUST:
+1. Read the ENTIRE function containing the hasChildren/childService usage
+2. Determine if it's a simple boolean swap (hasChildren → isParent) or
+   a data-shape change (childService.getChildren() → context.children)
+3. If data-shape change: note that childService returns ChildProfile[]
+   but context provides ChildInfo[]. ChildInfo has .id, .name, .fullName,
+   .referenceId, .profileId, .profile (the full ChildProfile). Callers
+   that need ChildProfile fields must use child.profile.
+4. If inside async block (Promise.all, try/catch): restructure to pull
+   sync context access outside the async flow
 
-COMPONENTS TO MIGRATE:
-- components/user/home-screen.tsx (line 75) → useChildContext().isParent
-- components/settings/settings-account-section.tsx (lines 30-43) → useChildContext()
-- components/parent/discover-screen.tsx (lines 53-105) → useChildContext()
-- components/parent/kids-screen.tsx (lines 36-93) → useChildContext()
-- components/admin/users-screen.tsx (line 20) → useChildContext()
+CHILD SWITCHER STRATEGY:
+Do NOT unify the 3 switcher components. Add per-site adapters:
+```ts
+// For ChildSwitcher.tsx which expects {childId, childName}[]
+const switcherChildren = children.map(c => ({ childId: c.id, childName: c.name }));
+// For family/child-switcher.tsx which expects SwitcherChild[]
+const switcherChildren = children.map(c => ({ id: c.id, name: c.name, initials: c.initials, colorCode: c.colorCode }));
+// For group/child-selector.tsx which expects ChildOption[]
+const switcherChildren = children.map(c => ({ id: c.id, name: c.name, initials: c.initials }));
+```
 
-SCREENS TO MIGRATE:
-- app/(tabs)/_layout.tsx (line 26) — DELETE local hasChildren, use context
-- app/goals/create.tsx (line 74) → useChildContext().isParent
-- app/settings/notifications/index.tsx (line 43) → useChildContext().isParent
-- app/session-invites/index.tsx (line 32) → useChildContext().isParent
+RESEARCH (read ALL before producing output):
+1. hooks/use-home-screen.ts — ENTIRE (124 lines)
+2. components/user/home-screen.tsx — ENTIRE (find section structure, ChildSwitcher usage)
+3. components/ChildSwitcher.tsx — ENTIRE (props shape, "All" option)
+4. hooks/use-children-hub.ts — ENTIRE (5 separate childService usages — see TRAP 9)
+5. hooks/use-child-progress.ts — ENTIRE (has both hasChildren AND childService.getChildren)
+6. components/settings/settings-account-section.tsx — lines around childService.getChildren
+7. components/parent/discover-screen.tsx — lines around childService.getChildren
+8. components/parent/kids-screen.tsx — lines around childService.getChildren
+9. hooks/use-subscribe.ts — lines around hasChildren (MISSING from old sprint doc)
+10. hooks/use-bookings.ts — lines around hasChildren + currentUser.children
+11. hooks/use-discover-sessions.ts — lines around hasChildren + currentUser.children
+12. app/(tabs)/_layout.tsx — the LOCAL hasChildren definition + all usages in that file
+13. Grep "hasChildren" --type ts — FRESH complete list, cross-reference with migration table
+14. Grep "childService\.getChildren" --type ts — FRESH complete list
+15. Grep "ChildSwitcher" — all import sites
 
-RESEARCH (read ALL):
-1. hooks/use-home-screen.ts — ENTIRE (current data loading, child selection,
-   ChildSwitcher data flow, what changes for "All" mode)
-2. components/user/home-screen.tsx — ENTIRE (current structure, where
-   TodayFamilySummary would go, ChildSwitcher usage)
-3. components/ChildSwitcher.tsx — ENTIRE (current props, how it renders pills,
-   "All" option behavior)
-4. hooks/use-family-calendar.ts — ENTIRE (family event loading pattern to reuse)
-5. Every file in the migration list above — read the specific lines noted
-6. utils/user-helpers.ts — hasChildren() (will NOT be deleted — keep for
-   non-React contexts, but React code uses context instead)
-7. Grep "hasChildren" — COMPLETE list, verify migration list is exhaustive
-8. Grep "childService.getChildren" — verify no remaining direct calls after migration
-9. Grep "ChildSwitcher" — all usages, which need updated props
-
-CHILD SWITCHER UNIFICATION:
-Today there are 3 different child switcher components with different shapes:
-- components/ChildSwitcher.tsx → {childId, childName}[]
-- components/family/child-switcher.tsx → SwitcherChild {id, name, initials, colorCode}
-- components/group/child-selector.tsx → ChildOption {id, name, initials}
-All should consume ChildInfo[] from context. Plan the adapter or refactor.
-
-OUTPUT — BUILD SHEET:
+OUTPUT — BUILD SHEET (not an essay):
 
 ━━━ PART A: FAMILY SUMMARY ━━━
 
+ANSWERS to the 5 questions above (concrete, not vague).
+
+Type: FamilyBookingRow interface — written out.
+
+Pure function: deduplicateBookings() — signature, algorithm, return type.
+
 Component spec — TodayFamilySummary:
-Props, layout, color coding, dedup rendering, empty state.
+- Props interface (written out)
+- Layout: top-to-bottom with exact tokens
+- Per-row: child color dot(s) + child name(s) + booking info + time
+- Empty state: exact text
+- Tap behavior: exact navigation target
+
 Hook changes — use-home-screen.ts:
-New "All" mode, how data loads for multiple children, dedup logic.
+- selectedChildId ↔ activeChildId wiring (exact code pattern)
+- "All" mode data loading (what bookingService call, how merged)
+- Where deduplicateBookings() is called
 
 ━━━ PART B: MIGRATION TABLE ━━━
-| File | Lines to delete | Lines to add | What changes | Backward compat |
-Complete. Every file. No gaps.
+| # | File | Current code (exact) | New code (exact) | Notes |
+One row per file. NOT "similar to above". Actual code for each.
 
-━━━ CHILD SWITCHER PLAN ━━━
-How to unify or adapt. Which component becomes primary.
+━━━ CHILD SWITCHER ADAPTERS ━━━
+Per call site: which adapter map, what props change.
 
 ━━━ FILE PLAN ━━━
 | Path | New/Modify | Purpose | Line budget |
 
+━━━ TESTING PLAN ━━━
+What pure functions to test. What edge cases.
+deduplicateBookings: 2 kids same booking, 2 kids different, 1 kid, 0 bookings.
+
 ━━━ EXECUTION ORDER ━━━
-Dependency order. What can be parallelized.
+4 batches as defined in sprint doc. Compile gate after each.
+
+━━━ POST-MIGRATION VERIFICATION ━━━
+Exact grep commands to confirm no remaining hasChildren/childService calls.
+Expected remaining matches (admin, booking hooks, auth, definition).
 ```
 
 ---

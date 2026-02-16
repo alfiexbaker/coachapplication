@@ -3,11 +3,11 @@ import { Alert } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 
 import { useAuth } from '@/hooks/use-auth';
+import { useChildContext } from '@/hooks/use-child-context';
 import { useScreen, type ScreenStatus } from '@/hooks/use-screen';
 import { groupSessionService } from '@/services/group-session-service';
 import { rsvpService } from '@/services/rsvp-service';
 import { cancellationService } from '@/services/cancellation-service';
-import { childService } from '@/services/child-service';
 import { createLogger } from '@/utils/logger';
 import { err, ok, serviceError, type ServiceError } from '@/types/result';
 import type { GroupSession, GroupRegistration, SessionRsvp, CancellationPolicy } from '@/constants/types';
@@ -59,15 +59,6 @@ interface GroupSessionData {
 // Helpers
 // ---------------------------------------------------------------------------
 
-function getInitials(name: string): string {
-  return name
-    .split(' ')
-    .map((w) => w[0])
-    .join('')
-    .toUpperCase()
-    .slice(0, 2);
-}
-
 // Map RsvpButtonGroup's 'cant_go' → rsvpService's 'not_going'
 type ButtonGroupStatus = 'going' | 'maybe' | 'cant_go';
 type ServiceRsvpStatus = 'going' | 'maybe' | 'not_going';
@@ -90,43 +81,30 @@ function toButtonStatus(s: string): ButtonGroupStatus | null {
 export function useGroupSession() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const { currentUser } = useAuth();
+  const {
+    children: contextChildren,
+    activeChildId,
+    isMultiChild,
+  } = useChildContext();
 
   const [registering, setRegistering] = useState(false);
-  const [children, setChildren] = useState<ChildOption[]>([]);
   const [selectedChildId, setSelectedChildId] = useState<string | null>(null);
   const [responding, setResponding] = useState(false);
 
-  // Load children for multi-kid registration
+  // Map ChildInfo[] → ChildOption[] for backward compat with ChildSelector
+  const children: ChildOption[] = useMemo(
+    () => contextChildren.map((c) => ({ id: c.id, name: c.name, initials: c.initials })),
+    [contextChildren],
+  );
+
+  // Default selectedChildId to activeChildId when it changes
   useEffect(() => {
-    if (!currentUser?.id || currentUser.role === 'COACH') {
-      setChildren([]);
-      return;
+    if (activeChildId && children.some((c) => c.id === activeChildId)) {
+      setSelectedChildId(activeChildId);
+    } else if (children.length === 1) {
+      setSelectedChildId(children[0].id);
     }
-
-    (async () => {
-      try {
-        const kids = await childService.getChildren(currentUser.id);
-        const activeId = await childService.getActiveChildId();
-
-        const mapped: ChildOption[] = kids.map((c) => ({
-          id: c.id,
-          name: c.nickname || c.firstName,
-          initials: getInitials(`${c.firstName} ${c.lastName}`),
-        }));
-
-        setChildren(mapped);
-
-        // Default to active child
-        if (activeId && mapped.some((c) => c.id === activeId)) {
-          setSelectedChildId(activeId);
-        } else if (mapped.length === 1) {
-          setSelectedChildId(mapped[0].id);
-        }
-      } catch {
-        setChildren([]);
-      }
-    })();
-  }, [currentUser?.id, currentUser?.role]);
+  }, [activeChildId, children]);
 
   // -------------------------------------------------------------------------
   // Data loading — session + roster + RSVPs

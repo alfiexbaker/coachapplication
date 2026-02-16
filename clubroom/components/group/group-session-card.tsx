@@ -14,6 +14,8 @@ import type { GroupSession } from '@/constants/types';
 import { getGroupSessionClubLabel, getGroupSessionCoachName } from '@/utils/group-display';
 import { RsvpMiniBar, type RsvpMiniBarCounts } from '@/components/group/rsvp-mini-bar';
 import { DeadlineBadge } from '@/components/group/deadline-badge';
+import { SessionChildBadge } from '@/components/group/session-child-badge';
+import type { SessionBadgeData } from '@/types/session-child-status';
 
 interface GroupSessionCardProps {
   session: GroupSession;
@@ -21,6 +23,10 @@ interface GroupSessionCardProps {
   onPress: () => void;
   /** RSVP counts for the attendance mini-bar. Pass null to hide. */
   rsvpCounts?: RsvpMiniBarCounts | null;
+  /** Per-child registration badge data. Null/undefined = no badge. */
+  childBadge?: SessionBadgeData | null;
+  /** Whether parent has exactly 1 child */
+  isSingleChild?: boolean;
 }
 
 export const GroupSessionCard = memo(function GroupSessionCard({
@@ -28,6 +34,8 @@ export const GroupSessionCard = memo(function GroupSessionCard({
   index,
   onPress,
   rsvpCounts,
+  childBadge,
+  isSingleChild,
 }: GroupSessionCardProps) {
   const { colors } = useTheme();
   const clubLabel = getGroupSessionClubLabel(session);
@@ -147,6 +155,11 @@ export const GroupSessionCard = memo(function GroupSessionCard({
               </ThemedText>
             </View>
           </Row>
+
+          {/* Per-child registration badge */}
+          {childBadge && childBadge.childStatuses.length > 0 && (
+            <SessionChildBadge data={childBadge} isSingleChild={isSingleChild ?? false} />
+          )}
 
           {/* RSVP Mini-Bar — at-a-glance attendance */}
           {rsvpCounts && (

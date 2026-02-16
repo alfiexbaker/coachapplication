@@ -947,7 +947,9 @@ export const sessionInviteService = {
         type: 'booking',
         notificationType: 'SESSION_INVITE_RESPONSE',
         title: 'Counter Proposal Accepted!',
-        body: `Coach ${coachName.split(' ')[0]} accepted your proposed time. Session confirmed!`,
+        body: athleteNames.length > 0
+          ? `Coach ${coachName.split(' ')[0]} accepted your proposed time for ${athleteNames.join(' + ')}. Session confirmed!`
+          : `Coach ${coachName.split(' ')[0]} accepted your proposed time. Session confirmed!`,
         timeLabel: 'Just now',
         read: false,
         recipientId: invite.parentId,

@@ -8,7 +8,7 @@ import { router } from 'expo-router';
 import { apiClient } from '@/services/api-client';
 import { toDateStr } from '@/utils/format';
 import { useAuth } from '@/hooks/use-auth';
-import { hasChildren } from '@/utils/user-helpers';
+import { useChildContext } from '@/hooks/use-child-context';
 import { badgeService } from '@/services/badge-service';
 import { bookingService } from '@/services/booking-service';
 import { STORAGE_KEYS } from '@/constants/storage-keys';
@@ -68,6 +68,11 @@ export function useSessionDetailModal(
   onUpdate?: () => void,
 ) {
   const { currentUser } = useAuth();
+  const {
+    children: contextChildren,
+    familyAthleteIds,
+    isMultiChild,
+  } = useChildContext();
   const [selectedChildId, setSelectedChildId] = useState('');
   const [weeksToBook, setWeeksToBook] = useState(1);
   const [sessionAwards, setSessionAwards] = useState<BadgeAward[]>([]);
@@ -120,31 +125,16 @@ export function useSessionDetailModal(
   const isFull = registeredCount >= (offering?.maxParticipants ?? 0);
 
   const children = useMemo(
-    () =>
-      currentUser && hasChildren(currentUser)
-        ? (currentUser.children || []).map((child) => ({
-            id: child.childId,
-            name: child.childName || 'Child',
-          }))
-        : [],
-    [currentUser],
+    () => contextChildren.map((c) => ({ id: c.id, name: c.name })),
+    [contextChildren],
   );
-  const actorIds = useMemo(() => {
-    const ids = new Set<string>();
-    if (currentUser?.id) {
-      ids.add(currentUser.id);
-    }
-    for (const child of children) {
-      ids.add(child.id);
-    }
-    return Array.from(ids);
-  }, [children, currentUser?.id]);
+  const actorIds = useMemo(() => Array.from(familyAthleteIds), [familyAthleteIds]);
   const isRegistered =
     offering?.registrations.some(
       (registration) =>
         registration.status === 'confirmed' && actorIds.includes(registration.userId),
     ) ?? false;
-  const hasMultipleKids = children.length > 1;
+  const hasMultipleKids = isMultiChild;
 
   const handleCancelInstance = useCallback(
     async (instanceDate: Date) => {

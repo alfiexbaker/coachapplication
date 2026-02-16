@@ -16,11 +16,13 @@ import { InviteListCard } from '@/components/invite/invite-list-card';
 import { Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
 import { inviteService as sessionInviteService } from '@/services/invite';
 import { ServiceEvents } from '@/services/event-bus';
-import { hasChildren, isCoach } from '@/utils/user-helpers';
+import { isCoach } from '@/utils/user-helpers';
+import { useChildContext } from '@/hooks/use-child-context';
 import type { SessionInvite } from '@/constants/types';
 import {
   getSessionInviteAthleteNames,
   getSessionInviteCoachName,
+  resolveInviteChildLabel,
 } from '@/utils/session-invite-display';
 
 type ViewMode = 'sent' | 'received';
@@ -29,7 +31,7 @@ type FilterMode = 'all' | 'pending' | 'responded';
 export default function SessionInvitesScreen() {
   const { currentUser } = useAuth();
   const userIsCoach = isCoach(currentUser);
-  const userHasChildren = hasChildren(currentUser);
+  const { isParent: userHasChildren, isMultiChild, getChildById } = useChildContext();
   const [mode, setMode] = useState<ViewMode>(userIsCoach ? 'sent' : 'received');
   const [filter, setFilter] = useState<FilterMode>('all');
   const {
@@ -303,6 +305,7 @@ export default function SessionInvitesScreen() {
                 index={index}
                 mode={mode}
                 colors={colors}
+                childLabel={resolveInviteChildLabel(invite.athleteIds, getChildById, isMultiChild)}
                 onPress={() => handleOpenInvite(invite.id)}
                 onQuickDecline={() => handleQuickDecline(invite)}
                 onCancel={() => handleCancelInvite(invite)}

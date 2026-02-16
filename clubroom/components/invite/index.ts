@@ -18,6 +18,9 @@ export * from './create-confirm-summary';
 export * from './sent-invites-banner';
 export * from './wizard-nav-buttons';
 
+// Multi-child parent experience
+export * from './invite-child-header';
+
 // Sprint 13C: Invite detail + list
 export * from './invite-status-banner';
 export * from './invite-person-card';

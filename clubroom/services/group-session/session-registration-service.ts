@@ -579,4 +579,21 @@ export const sessionRegistrationService = {
     const response = await fetch(`/api/parents/${parentId}/registrations`);
     return response.json();
   },
+
+  /**
+   * Get all active registrations for a set of athlete IDs (across all sessions).
+   * Used by the session list to compute per-child registration badges.
+   */
+  async getRegistrationsForAthletes(athleteIds: ReadonlySet<string>): Promise<GroupRegistration[]> {
+    if (USE_MOCK) {
+      registrationsCache = await loadRegistrations();
+      return registrationsCache.filter(
+        (r) => athleteIds.has(r.athleteId) && r.status !== 'CANCELLED',
+      );
+    }
+
+    const ids = Array.from(athleteIds).join(',');
+    const response = await fetch(`/api/registrations?athleteIds=${encodeURIComponent(ids)}`);
+    return response.json();
+  },
 };

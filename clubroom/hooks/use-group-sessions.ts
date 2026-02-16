@@ -1,11 +1,15 @@
 import { useMemo, useState, useCallback } from 'react';
 
 import { useAuth } from '@/hooks/use-auth';
+import { useChildContext } from '@/hooks/use-child-context';
 import { useScreen, type ScreenStatus } from '@/hooks/use-screen';
 import { groupSessionService } from '@/services/group-session-service';
+import { sessionRegistrationService } from '@/services/group-session/session-registration-service';
+import { useSessionRegistrationBadges } from '@/hooks/use-session-registration-badges';
 import { err, ok, serviceError, type ServiceError } from '@/types/result';
 import { createLogger } from '@/utils/logger';
-import type { GroupSession } from '@/constants/types';
+import type { GroupSession, GroupRegistration } from '@/constants/types';
+import type { SessionBadgeData } from '@/types/session-child-status';
 
 const logger = createLogger('GroupSessionsScreen');
 
@@ -30,6 +34,7 @@ export const SESSION_FILTERS: { key: FilterType; label: string }[] = [
 
 interface GroupSessionsData {
   sessions: GroupSession[];
+  familyRegistrations: GroupRegistration[];
 }
 
 export interface UseGroupSessionsResult {
@@ -43,25 +48,33 @@ export interface UseGroupSessionsResult {
   filter: FilterType;
   setFilter: (value: FilterType) => void;
   isCoach: boolean;
+  badgeMap: Map<string, SessionBadgeData>;
+  isSingleChild: boolean;
 }
 
 export function useGroupSessions() {
   const { currentUser } = useAuth();
+  const { children, familyAthleteIds, isParent } = useChildContext();
   const [filter, setFilter] = useState<FilterType>('ALL');
 
   const isCoach = currentUser?.role === 'COACH';
 
   const loadSessions = useCallback(async () => {
     try {
-      const data = await groupSessionService.discoverSessions();
-      return ok<GroupSessionsData>({ sessions: data });
+      const [sessionsData, familyRegs] = await Promise.all([
+        groupSessionService.discoverSessions(),
+        isParent && familyAthleteIds.size > 0
+          ? sessionRegistrationService.getRegistrationsForAthletes(familyAthleteIds)
+          : Promise.resolve([] as GroupRegistration[]),
+      ]);
+      return ok<GroupSessionsData>({ sessions: sessionsData, familyRegistrations: familyRegs });
     } catch (loadError) {
       logger.error('Failed to load sessions:', loadError);
       return err(
         serviceError('UNKNOWN', 'Failed to load group sessions. Pull down to refresh.', loadError),
       );
     }
-  }, []);
+  }, [isParent, familyAthleteIds]);
 
   const { data, status, error, refreshing, onRefresh, retry } = useScreen<GroupSessionsData>({
     load: loadSessions,
@@ -70,12 +83,15 @@ export function useGroupSessions() {
   });
 
   const sessions = data?.sessions ?? [];
+  const familyRegistrations = data?.familyRegistrations ?? [];
   const loading = status === 'loading';
 
   const filteredSessions = useMemo(
     () => (filter === 'ALL' ? sessions : sessions.filter((s) => s.sessionType === filter)),
     [sessions, filter],
   );
+
+  const badgeMap = useSessionRegistrationBadges(filteredSessions, children, familyRegistrations);
 
   return {
     sessions: filteredSessions,
@@ -88,5 +104,7 @@ export function useGroupSessions() {
     filter,
     setFilter,
     isCoach,
+    badgeMap,
+    isSingleChild: children.length === 1,
   } satisfies UseGroupSessionsResult;
 }

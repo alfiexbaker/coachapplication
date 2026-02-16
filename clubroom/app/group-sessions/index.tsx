@@ -23,7 +23,7 @@ import { useGroupSessions, SESSION_FILTERS } from '@/hooks/use-group-sessions';
 
 export default function GroupSessionsScreen() {
   const { colors } = useTheme();
-  const { sessions, status, error, refreshing, onRefresh, retry, filter, setFilter, isCoach } =
+  const { sessions, status, error, refreshing, onRefresh, retry, filter, setFilter, isCoach, badgeMap, isSingleChild } =
     useGroupSessions();
 
   if (status === 'loading') {
@@ -124,6 +124,8 @@ export default function GroupSessionsScreen() {
                 session={session}
                 index={index}
                 onPress={() => router.push(Routes.groupSession(session.id))}
+                childBadge={badgeMap.get(session.id) ?? null}
+                isSingleChild={isSingleChild}
               />
             ))}
           </View>
