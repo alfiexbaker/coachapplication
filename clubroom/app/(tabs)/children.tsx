@@ -38,7 +38,10 @@ export default function ChildrenHubScreen() {
     totalSessions,
     totalBadges,
     totalUnseenBadges,
+    activeChildId,
     handleViewBadge,
+    handleSetActiveChild,
+    handleRemoveChild,
   } = useChildrenHub();
 
   const handleAddChild = useCallback(() => {
@@ -163,6 +166,9 @@ export default function ChildrenHubScreen() {
                 childStats[child.id] || { sessions: 0, badges: 0, avgRating: 0, unseenBadges: 0 }
               }
               index={index}
+              isActive={activeChildId === child.id}
+              onSetActive={handleSetActiveChild}
+              onRemove={handleRemoveChild}
             />
           ))}
         </Column>

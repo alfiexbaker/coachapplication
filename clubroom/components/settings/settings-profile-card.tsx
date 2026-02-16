@@ -1,5 +1,5 @@
 import React, { memo, useCallback } from 'react';
-import { Image, StyleSheet } from 'react-native';
+import { Image, StyleSheet, View } from 'react-native';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { Routes } from '@/navigation/routes';
@@ -28,7 +28,6 @@ export const SettingsProfileCard = memo(function SettingsProfileCard({
 
   const profileName = currentUser?.name ?? 'Your profile';
   const profileEmail = currentUser?.email ?? 'No email available';
-  const profilePhone = undefined;
   const profilePhotoUrl =
     currentUser?.avatar && currentUser.avatar.startsWith('http') ? currentUser.avatar : undefined;
 
@@ -43,7 +42,8 @@ export const SettingsProfileCard = memo(function SettingsProfileCard({
 
   return (
     <SurfaceCard style={styles.profileCard}>
-      <Row gap="md" align="center">
+      {/* Avatar + Info */}
+      <Column align="center" gap="sm">
         {profilePhotoUrl ? (
           <Image
             source={{ uri: profilePhotoUrl }}
@@ -51,42 +51,34 @@ export const SettingsProfileCard = memo(function SettingsProfileCard({
             accessibilityLabel="Profile photo"
           />
         ) : (
-          <Row
-            align="center"
-            justify="center"
-            style={[styles.profilePhoto, { backgroundColor: palette.border }]}
-          >
-            <Ionicons name="person" size={40} color={palette.muted} />
-          </Row>
+          <View style={[styles.profilePhoto, { backgroundColor: withAlpha(palette.muted, 0.08) }]}>
+            <Ionicons name="person" size={32} color={palette.muted} />
+          </View>
         )}
-        <Column gap="xs" flex>
-          <ThemedText type="subtitle" style={styles.profileName}>
+
+        <Column align="center" gap="xxs">
+          <ThemedText style={styles.profileName} numberOfLines={1}>
             {profileName}
           </ThemedText>
-          <ThemedText style={[styles.profileEmail, { color: palette.muted }]}>
+          <ThemedText style={[styles.profileEmail, { color: palette.muted }]} numberOfLines={1}>
             {profileEmail}
           </ThemedText>
-          {profilePhone && (
-            <ThemedText style={[styles.profilePhone, { color: palette.muted }]}>
-              {profilePhone}
-            </ThemedText>
-          )}
         </Column>
-        <Row
-          align="center"
-          justify="center"
+
+        <View
           style={[
             styles.rolePill,
-            { backgroundColor: withAlpha(palette.premium, 0.12), borderColor: palette.premium },
+            { backgroundColor: withAlpha(palette.tint, 0.08) },
           ]}
         >
-          <ThemedText style={[styles.rolePillLabel, { color: palette.premium }]}>
+          <ThemedText style={[styles.rolePillLabel, { color: palette.tint }]}>
             {role ?? 'GUEST'}
           </ThemedText>
-        </Row>
-      </Row>
+        </View>
+      </Column>
 
-      <Row gap="sm">
+      {/* Actions */}
+      <Row gap="xs">
         <Clickable
           style={({ pressed }) => [
             styles.editButton,
@@ -98,8 +90,8 @@ export const SettingsProfileCard = memo(function SettingsProfileCard({
           accessibilityLabel="Edit profile"
           accessibilityRole="button"
         >
-          <Ionicons name="create-outline" size={20} color={palette.onPrimary} />
-          <ThemedText style={[styles.editButtonLabel, { color: palette.onPrimary }]}>
+          <Ionicons name="create-outline" size={18} color={palette.onPrimary} />
+          <ThemedText style={[styles.buttonLabel, { color: palette.onPrimary }]}>
             Edit profile
           </ThemedText>
         </Clickable>
@@ -116,8 +108,8 @@ export const SettingsProfileCard = memo(function SettingsProfileCard({
             accessibilityLabel="My Athletes"
             accessibilityRole="button"
           >
-            <Ionicons name="people" size={20} color={palette.tint} />
-            <ThemedText style={[styles.editButtonLabel, { color: palette.tint }]}>
+            <Ionicons name="people" size={18} color={palette.tint} />
+            <ThemedText style={[styles.buttonLabel, { color: palette.tint }]}>
               My Athletes
             </ThemedText>
           </Clickable>
@@ -130,28 +122,25 @@ export const SettingsProfileCard = memo(function SettingsProfileCard({
 const styles = StyleSheet.create({
   profileCard: {
     gap: Spacing.md,
+    paddingVertical: Spacing.md,
   },
   profilePhoto: {
-    width: Components.avatar.xl,
-    height: Components.avatar.xl,
-    borderRadius: Components.avatar.xl / 2,
+    width: Components.avatar.lg,
+    height: Components.avatar.lg,
+    borderRadius: Components.avatar.lg / 2,
     justifyContent: 'center',
     alignItems: 'center',
   },
   profileName: {
-    ...Typography.title,
+    ...Typography.heading,
   },
   profileEmail: {
-    ...Typography.body,
-  },
-  profilePhone: {
     ...Typography.bodySmall,
   },
   rolePill: {
-    paddingHorizontal: Spacing.md,
-    paddingVertical: Spacing.xs,
+    paddingHorizontal: Spacing.sm,
+    paddingVertical: Spacing.xxs,
     borderRadius: Radii.pill,
-    borderWidth: 1.5,
   },
   rolePillLabel: {
     ...Typography.caption,
@@ -164,9 +153,8 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     gap: Spacing.xs,
-    paddingVertical: Spacing.md,
-    paddingHorizontal: Spacing.lg,
-    borderRadius: Radii.pill,
+    height: 44,
+    borderRadius: Radii.md,
     flex: 1,
   },
   secondaryButton: {
@@ -174,13 +162,12 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     gap: Spacing.xs,
-    paddingVertical: Spacing.md,
-    paddingHorizontal: Spacing.lg,
-    borderRadius: Radii.pill,
+    height: 44,
+    borderRadius: Radii.md,
     flex: 1,
     borderWidth: 1.5,
   },
-  editButtonLabel: {
-    ...Typography.subheading,
+  buttonLabel: {
+    ...Typography.bodySemiBold,
   },
 });

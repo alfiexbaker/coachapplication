@@ -3,10 +3,12 @@
  *
  * Full Apple/Google Maps with price pins, clustered markers,
  * gesture-driven bottom sheet, GPS, search-as-you-move.
+ *
+ * Airbnb-quality design: premium cards, pill markers, polished transitions.
  */
 
 import { memo, useCallback, useEffect, useRef, useState } from 'react';
-import { StyleSheet, TextInput, View } from 'react-native';
+import { Platform, StyleSheet, TextInput, View } from 'react-native';
 import MapView, { Marker, type Region } from 'react-native-maps';
 import ClusteredMapView from 'react-native-map-clustering';
 import BottomSheet, { BottomSheetFlatList } from '@gorhom/bottom-sheet';
@@ -19,6 +21,7 @@ import Animated, { FadeIn, FadeOut } from 'react-native-reanimated';
 
 import { Clickable } from '@/components/primitives/clickable';
 import { Row } from '@/components/primitives/row';
+import { Column } from '@/components/primitives/column';
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { ThemedText } from '@/components/themed-text';
 import { FilterBar } from '@/components/discover/FilterBar';
@@ -36,8 +39,8 @@ const DEFAULT_REGION: Region = {
   latitudeDelta: 0.08,
   longitudeDelta: 0.08,
 };
-const SHEET_SNAP_POINTS = [130, '45%', '85%'];
-const ListSeparator = () => <View style={{ height: Spacing.xs }} />;
+const SHEET_SNAP_POINTS = [140, '50%', '90%'];
+const ListSeparator = () => <View style={{ height: Spacing.sm }} />;
 const REGION_SHIFT_THRESHOLD = 0.3;
 
 function hasRegionShifted(prev: Region, next: Region): boolean {
@@ -45,6 +48,17 @@ function hasRegionShifted(prev: Region, next: Region): boolean {
   const lngShift = Math.abs(next.longitude - prev.longitude) / prev.longitudeDelta;
   return latShift > REGION_SHIFT_THRESHOLD || lngShift > REGION_SHIFT_THRESHOLD;
 }
+
+// ─── SkillChip ─────────────────────────────────────────────────────────────
+
+const SkillChip = memo(function SkillChip({ label }: { label: string }) {
+  const { colors: palette } = useTheme();
+  return (
+    <View style={[styles.skillChip, { backgroundColor: withAlpha(palette.tint, 0.08) }]}>
+      <ThemedText style={[styles.skillChipText, { color: palette.tint }]}>{label}</ThemedText>
+    </View>
+  );
+});
 
 // ─── PricePin ──────────────────────────────────────────────────────────────
 
@@ -66,15 +80,31 @@ const PricePin = memo(function PricePin({
           styles.pin,
           {
             backgroundColor: bg,
-            borderColor: selected ? palette.tint : palette.border,
-            ...(selected ? Shadows[scheme].cardHover : Shadows[scheme].subtle),
-            transform: [{ scale: selected ? 1.12 : 1 }],
+            borderColor: selected ? palette.tint : withAlpha(palette.text, 0.08),
+            ...Shadows[scheme].card,
+            transform: [{ scale: selected ? 1.15 : 1 }],
           },
         ]}
       >
         <ThemedText style={[styles.pinText, { color: textColor }]}>£{price}</ThemedText>
       </View>
-      <View style={[styles.pinArrow, { borderTopColor: bg }]} />
+      <View
+        style={[
+          styles.pinArrow,
+          {
+            borderTopColor: bg,
+            ...Platform.select({
+              ios: {
+                shadowColor: '#000',
+                shadowOpacity: 0.08,
+                shadowRadius: 2,
+                shadowOffset: { width: 0, height: 1 },
+              },
+              android: {},
+            }),
+          },
+        ]}
+      />
     </View>
   );
 });
@@ -88,6 +118,7 @@ const SearchHeader = memo(function SearchHeader({
   onClearSearch,
   onBack,
   onToggleView,
+  filterBar,
 }: {
   searchQuery: string;
   onSearchChange: (v: string) => void;
@@ -95,6 +126,7 @@ const SearchHeader = memo(function SearchHeader({
   onClearSearch: () => void;
   onBack: () => void;
   onToggleView: () => void;
+  filterBar?: React.ReactNode;
 }) {
   const { colors: palette, scheme } = useTheme();
   const insets = useSafeAreaInsets();
@@ -105,24 +137,36 @@ const SearchHeader = memo(function SearchHeader({
         styles.header,
         {
           paddingTop: insets.top + Spacing.xs,
-          backgroundColor: withAlpha(palette.background, 0.92),
+          backgroundColor: withAlpha(palette.background, 0.95),
         },
       ]}
     >
       <Row align="center" gap="xs">
         <Clickable
           onPress={onBack}
-          style={[styles.headerBtn, { backgroundColor: palette.surface, borderColor: palette.border, ...Shadows[scheme].subtle }]}
+          style={[
+            styles.headerBtn,
+            {
+              backgroundColor: palette.surface,
+              ...Shadows[scheme].subtle,
+            },
+          ]}
           accessibilityLabel="Go back"
         >
           <Ionicons name="arrow-back" size={20} color={palette.text} />
         </Clickable>
         <Row
           align="center"
-          gap="sm"
-          style={[styles.searchBar, { backgroundColor: palette.surface, borderColor: palette.border }]}
+          gap="xs"
+          style={[
+            styles.searchBar,
+            {
+              backgroundColor: withAlpha(palette.muted, 0.06),
+              borderColor: withAlpha(palette.border, 0.5),
+            },
+          ]}
         >
-          <Ionicons name="search" size={16} color={palette.muted} />
+          <Ionicons name="search" size={18} color={palette.muted} />
           <TextInput
             value={searchQuery}
             onChangeText={onSearchChange}
@@ -134,19 +178,26 @@ const SearchHeader = memo(function SearchHeader({
             accessibilityLabel="Search coaches"
           />
           {searchQuery.length > 0 ? (
-            <Clickable accessibilityLabel="Clear search" onPress={onClearSearch}>
-              <Ionicons name="close-circle" size={16} color={palette.muted} />
+            <Clickable accessibilityLabel="Clear search" onPress={onClearSearch} style={styles.clearSearchBtn}>
+              <Ionicons name="close-circle" size={18} color={palette.muted} />
             </Clickable>
           ) : null}
         </Row>
         <Clickable
           onPress={onToggleView}
-          style={[styles.headerBtn, { backgroundColor: palette.surface, borderColor: palette.border, ...Shadows[scheme].subtle }]}
+          style={[
+            styles.headerBtn,
+            {
+              backgroundColor: palette.surface,
+              ...Shadows[scheme].subtle,
+            },
+          ]}
           accessibilityLabel="Switch to list view"
         >
           <Ionicons name="list" size={20} color={palette.text} />
         </Clickable>
       </Row>
+      {filterBar}
     </View>
   );
 });
@@ -164,8 +215,9 @@ const CoachSheetItem = memo(function CoachSheetItem({
   onPress: () => void;
   onBook: () => void;
 }) {
-  const { colors: palette } = useTheme();
+  const { colors: palette, scheme } = useTheme();
   const price = coach.sessionRate ?? coach.priceRange.minUsd;
+  const focuses = (coach.footballFocuses ?? []).slice(0, 3);
 
   return (
     <SurfaceCard
@@ -175,43 +227,102 @@ const CoachSheetItem = memo(function CoachSheetItem({
       gradientPadding={selected ? 2 : 0}
       accessibilityLabel={`Coach ${coach.fullName}, £${price} per session`}
     >
-      <Row gap="sm" align="center">
-        <Image
-          source={{ uri: coach.profilePhotoUrl }}
-          style={styles.avatar}
-          contentFit="cover"
-        />
-        <View style={styles.sheetInfo}>
+      <Row gap="sm" align="flex-start">
+        {/* Avatar */}
+        <View>
+          <Image
+            source={{ uri: coach.profilePhotoUrl }}
+            style={styles.avatar}
+            contentFit="cover"
+            placeholder={{ blurhash: 'L6PZfSi_.AyE_3t7t7R**0o#DgR4' }}
+            transition={200}
+          />
+          {coach.badges?.length > 0 ? (
+            <View style={[styles.verifiedBadge, { backgroundColor: palette.tint }]}>
+              <Ionicons name="checkmark" size={10} color={palette.onPrimary} />
+            </View>
+          ) : null}
+        </View>
+
+        {/* Info */}
+        <Column style={styles.sheetInfo} gap="xxs">
+          {/* Name + Price */}
           <Row align="center" justify="between">
             <ThemedText style={styles.sheetName} numberOfLines={1}>
               {coach.fullName}
             </ThemedText>
-            <ThemedText style={[styles.sheetPrice, { color: palette.text }]}>
-              £{price}
-            </ThemedText>
+            <Column align="flex-end">
+              <ThemedText style={[styles.sheetPrice, { color: palette.text }]}>
+                £{price}
+              </ThemedText>
+              <ThemedText style={[styles.priceUnit, { color: palette.muted }]}>
+                /session
+              </ThemedText>
+            </Column>
           </Row>
+
+          {/* Rating + Distance */}
           <Row align="center" gap="xs">
-            <Ionicons name="star" size={12} color={palette.warning} />
-            <ThemedText style={[styles.sheetMeta, { color: palette.muted }]}>
-              {coach.rating.average.toFixed(1)} ({coach.rating.reviewCount})
+            <Row align="center" gap="micro">
+              <Ionicons name="star" size={13} color="#F59E0B" />
+              <ThemedText style={styles.ratingText}>
+                {coach.rating.average.toFixed(1)}
+              </ThemedText>
+            </Row>
+            <ThemedText style={[styles.reviewCount, { color: palette.muted }]}>
+              ({coach.rating.reviewCount})
             </ThemedText>
             {coach.distanceMiles > 0 ? (
-              <ThemedText style={[styles.sheetMeta, { color: palette.muted }]}>
-                · {coach.distanceMiles.toFixed(1)} mi
-              </ThemedText>
+              <>
+                <View style={[styles.metaDot, { backgroundColor: palette.muted }]} />
+                <Row align="center" gap="micro">
+                  <Ionicons name="location-outline" size={12} color={palette.muted} />
+                  <ThemedText style={[styles.distanceText, { color: palette.muted }]}>
+                    {coach.distanceMiles.toFixed(1)} mi
+                  </ThemedText>
+                </Row>
+              </>
             ) : null}
           </Row>
-          <Row align="center" justify="between">
-            <ThemedText style={[styles.sheetFocus, { color: palette.muted }]} numberOfLines={1}>
-              {(coach.footballFocuses ?? []).slice(0, 2).join(' · ')}
+
+          {/* Skill chips */}
+          {focuses.length > 0 ? (
+            <Row gap="xxs" style={styles.skillRow}>
+              {focuses.map((focus) => (
+                <SkillChip key={focus} label={focus} />
+              ))}
+            </Row>
+          ) : null}
+
+          {/* Book button */}
+          <Clickable
+            onPress={onBook}
+            style={[styles.bookBtn, { backgroundColor: palette.tint }]}
+            accessibilityLabel={`Book ${coach.fullName}`}
+          >
+            <ThemedText style={[styles.bookBtnText, { color: palette.onPrimary }]}>
+              Book session
             </ThemedText>
-            <Clickable onPress={onBook} accessibilityLabel={`Book ${coach.fullName}`}>
-              <ThemedText style={[styles.bookLink, { color: palette.tint }]}>Book</ThemedText>
-            </Clickable>
-          </Row>
-        </View>
+          </Clickable>
+        </Column>
       </Row>
     </SurfaceCard>
+  );
+});
+
+// ─── SheetHeader ──────────────────────────────────────────────────────────
+
+const SheetHeader = memo(function SheetHeader({ count }: { count: number }) {
+  const { colors: palette } = useTheme();
+  return (
+    <Row align="center" gap="xs" style={styles.sheetHeader}>
+      <ThemedText type="heading">
+        {count} {count === 1 ? 'coach' : 'coaches'} nearby
+      </ThemedText>
+      <View style={[styles.countBadge, { backgroundColor: withAlpha(palette.tint, 0.1) }]}>
+        <ThemedText style={[styles.countBadgeText, { color: palette.tint }]}>{count}</ThemedText>
+      </View>
+    </Row>
   );
 });
 
@@ -240,6 +351,7 @@ export default function MapContent(props: MapContentProps) {
   const { colors: palette, scheme } = useTheme();
   const [userLocation, setUserLocation] = useState<{ latitude: number; longitude: number } | null>(null);
   const [showRedoSearch, setShowRedoSearch] = useState(false);
+  const [sheetExpanded, setSheetExpanded] = useState(false);
 
   const mapRef = useRef<MapView>(null);
   const sheetRef = useRef<BottomSheet>(null);
@@ -321,6 +433,10 @@ export default function MapContent(props: MapContentProps) {
     setShowRedoSearch(false);
   }, [filters, onFilterChange]);
 
+  const handleSheetChange = useCallback((index: number) => {
+    setSheetExpanded(index > 0);
+  }, []);
+
   const handleRecenter = useCallback(() => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     if (userLocation) {
@@ -345,7 +461,7 @@ export default function MapContent(props: MapContentProps) {
         showsUserLocation={!!userLocation}
         showsMyLocationButton={false}
         showsCompass={false}
-        mapPadding={{ top: 100, bottom: 140, left: 0, right: 0 }}
+        mapPadding={{ top: 100, bottom: 160, left: 0, right: 0 }}
         onRegionChangeComplete={handleRegionChange}
         radius={40}
         clusterColor={palette.tint}
@@ -369,7 +485,7 @@ export default function MapContent(props: MapContentProps) {
         ))}
       </ClusteredMapView>
 
-      {/* Floating header */}
+      {/* Floating header + filters */}
       <SearchHeader
         searchQuery={searchQuery}
         onSearchChange={onSearchChange}
@@ -377,24 +493,22 @@ export default function MapContent(props: MapContentProps) {
         onClearSearch={onClearSearch}
         onBack={onBack}
         onToggleView={onToggleView}
+        filterBar={
+          filterOptions ? (
+            <FilterBar
+              filters={filters}
+              onFilterChange={onFilterChange}
+              onOpenFilters={() => onToggleFilterModal(true)}
+              totalResults={coaches.length}
+              activeFilterCount={activeFilterCount}
+              variant="map"
+            />
+          ) : null
+        }
       />
 
-      {/* Filter bar — below header */}
-      {filterOptions ? (
-        <View style={[styles.filterBarWrap, { backgroundColor: withAlpha(palette.background, 0.88) }]}>
-          <FilterBar
-            filters={filters}
-            onFilterChange={onFilterChange}
-            onOpenFilters={() => onToggleFilterModal(true)}
-            totalResults={coaches.length}
-            activeFilterCount={activeFilterCount}
-            variant="map"
-          />
-        </View>
-      ) : null}
-
-      {/* "Redo search here" pill */}
-      {showRedoSearch ? (
+      {/* "Redo search here" pill — hidden when sheet is expanded */}
+      {showRedoSearch && !sheetExpanded ? (
         <Animated.View entering={FadeIn.duration(250)} exiting={FadeOut.duration(150)} style={styles.redoWrap}>
           <Clickable
             onPress={handleSearchArea}
@@ -403,7 +517,7 @@ export default function MapContent(props: MapContentProps) {
           >
             <Ionicons name="refresh" size={14} color={palette.onPrimary} />
             <ThemedText style={[styles.redoText, { color: palette.onPrimary }]}>
-              Redo search here
+              Search this area
             </ThemedText>
           </Clickable>
         </Animated.View>
@@ -417,8 +531,7 @@ export default function MapContent(props: MapContentProps) {
             styles.recenterFab,
             {
               backgroundColor: palette.surface,
-              borderColor: palette.border,
-              ...Shadows[scheme].subtle,
+              ...Shadows[scheme].card,
             },
           ]}
           accessibilityLabel="Re-center on my location"
@@ -432,9 +545,13 @@ export default function MapContent(props: MapContentProps) {
         ref={sheetRef}
         index={0}
         snapPoints={SHEET_SNAP_POINTS}
-        backgroundStyle={{ backgroundColor: palette.surface, borderRadius: Radii.xl }}
-        handleIndicatorStyle={{ backgroundColor: withAlpha(palette.muted, 0.3), width: 40 }}
+        backgroundStyle={[
+          styles.sheetBackground,
+          { backgroundColor: palette.background, ...Shadows[scheme].card },
+        ]}
+        handleIndicatorStyle={[styles.sheetHandle, { backgroundColor: withAlpha(palette.muted, 0.25) }]}
         enablePanDownToClose={false}
+        onChange={handleSheetChange}
       >
         <BottomSheetFlatList
           data={coaches}
@@ -448,11 +565,7 @@ export default function MapContent(props: MapContentProps) {
             />
           )}
           contentContainerStyle={styles.sheetContent}
-          ListHeaderComponent={
-            <ThemedText type="heading" style={styles.sheetHeader}>
-              {coaches.length} {coaches.length === 1 ? 'coach' : 'coaches'} nearby
-            </ThemedText>
-          }
+          ListHeaderComponent={<SheetHeader count={coaches.length} />}
           ItemSeparatorComponent={ListSeparator}
         />
       </BottomSheet>
@@ -478,6 +591,7 @@ const styles = StyleSheet.create({
   container: { flex: 1 },
   map: { ...StyleSheet.absoluteFillObject },
 
+  // ── Header ────────────────────────────────────────────────────────────
   header: {
     position: 'absolute',
     top: 0,
@@ -491,94 +605,187 @@ const styles = StyleSheet.create({
     width: 44,
     height: 44,
     borderRadius: Radii.pill,
-    borderWidth: 1,
     alignItems: 'center',
     justifyContent: 'center',
   },
   searchBar: {
     flex: 1,
-    minHeight: 44,
-    borderRadius: Radii.pill,
+    height: 44,
+    borderRadius: Radii.xl,
     borderWidth: 1,
     paddingHorizontal: Spacing.sm,
   },
   searchInput: {
     flex: 1,
-    ...Typography.bodySmall,
+    ...Typography.body,
     padding: 0,
   },
-
-  filterBarWrap: {
-    position: 'absolute',
-    top: 96,
-    left: 0,
-    right: 0,
-    zIndex: 9,
-  },
-
-  pinWrap: { alignItems: 'center' },
-  pin: {
-    paddingHorizontal: Spacing.xs,
-    paddingVertical: Spacing.xxs,
-    borderRadius: Radii.pill,
-    borderWidth: 1,
-    minHeight: 28,
+  clearSearchBtn: {
+    minHeight: 44,
+    minWidth: 32,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  pinText: { ...Typography.smallSemiBold },
+
+  // ── Map pins ──────────────────────────────────────────────────────────
+  pinWrap: { alignItems: 'center' },
+  pin: {
+    paddingHorizontal: Spacing.sm,
+    paddingVertical: Spacing.xxs + 2,
+    borderRadius: Radii.pill,
+    borderWidth: 1.5,
+    minHeight: 32,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  pinText: {
+    ...Typography.bodySmallSemiBold,
+    fontWeight: '700',
+  },
   pinArrow: {
     width: 0,
     height: 0,
-    borderLeftWidth: 5,
-    borderRightWidth: 5,
-    borderTopWidth: 5,
+    borderLeftWidth: 6,
+    borderRightWidth: 6,
+    borderTopWidth: 6,
     borderLeftColor: 'transparent',
     borderRightColor: 'transparent',
     marginTop: -1,
   },
 
+  // ── Redo search ───────────────────────────────────────────────────────
   redoWrap: {
     position: 'absolute',
-    top: 150,
+    top: 200,
     alignSelf: 'center',
     zIndex: 8,
   },
   redoPill: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: Spacing.xxs,
+    gap: Spacing.xs,
     paddingHorizontal: Spacing.md,
-    height: 44,
+    height: 40,
     borderRadius: Radii.pill,
   },
   redoText: { ...Typography.smallSemiBold },
 
+  // ── Re-center FAB ─────────────────────────────────────────────────────
   recenterFab: {
     position: 'absolute',
-    bottom: 150,
+    bottom: 160,
     right: Spacing.sm,
     width: 44,
     height: 44,
     borderRadius: Radii.pill,
-    borderWidth: 1,
     alignItems: 'center',
     justifyContent: 'center',
     zIndex: 7,
   },
 
-  sheetContent: { paddingHorizontal: Spacing.sm, paddingBottom: Spacing.xl },
-  sheetHeader: { paddingVertical: Spacing.xs, paddingHorizontal: Spacing.xxs },
-  sheetCard: { padding: Spacing.sm },
-  avatar: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
+  // ── Bottom sheet ──────────────────────────────────────────────────────
+  sheetBackground: {
+    borderTopLeftRadius: Radii['2xl'],
+    borderTopRightRadius: Radii['2xl'],
   },
-  sheetInfo: { flex: 1, gap: Spacing.xxs },
-  sheetName: { ...Typography.bodySemiBold, flex: 1 },
-  sheetPrice: { ...Typography.bodySemiBold },
-  sheetMeta: { ...Typography.caption },
-  sheetFocus: { ...Typography.caption, flex: 1 },
-  bookLink: { ...Typography.smallSemiBold },
+  sheetHandle: {
+    width: 36,
+    height: 4,
+    borderRadius: 2,
+    marginTop: Spacing.xs,
+  },
+  sheetContent: {
+    paddingHorizontal: Spacing.sm,
+    paddingBottom: Spacing.xl,
+  },
+  sheetHeader: {
+    paddingVertical: Spacing.sm,
+    paddingHorizontal: Spacing.xxs,
+  },
+  countBadge: {
+    paddingHorizontal: Spacing.xs,
+    paddingVertical: Spacing.micro,
+    borderRadius: Radii.pill,
+  },
+  countBadgeText: {
+    ...Typography.caption,
+    fontWeight: '700',
+  },
+
+  // ── Coach card ────────────────────────────────────────────────────────
+  sheetCard: {
+    padding: Spacing.sm,
+  },
+  avatar: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+  },
+  verifiedBadge: {
+    position: 'absolute',
+    bottom: 0,
+    right: 0,
+    width: 18,
+    height: 18,
+    borderRadius: 9,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 2,
+    borderColor: '#fff',
+  },
+  sheetInfo: { flex: 1 },
+  sheetName: {
+    ...Typography.bodySemiBold,
+    flex: 1,
+    marginRight: Spacing.xs,
+  },
+  sheetPrice: {
+    ...Typography.heading,
+  },
+  priceUnit: {
+    ...Typography.caption,
+  },
+  ratingText: {
+    ...Typography.bodySmallSemiBold,
+  },
+  reviewCount: {
+    ...Typography.caption,
+  },
+  metaDot: {
+    width: 3,
+    height: 3,
+    borderRadius: 1.5,
+    opacity: 0.4,
+  },
+  distanceText: {
+    ...Typography.caption,
+  },
+
+  // ── Skill chips ───────────────────────────────────────────────────────
+  skillRow: {
+    marginTop: Spacing.micro,
+    flexWrap: 'wrap',
+  },
+  skillChip: {
+    paddingHorizontal: Spacing.xs,
+    paddingVertical: Spacing.micro + 1,
+    borderRadius: Radii.sm,
+  },
+  skillChipText: {
+    ...Typography.caption,
+    fontWeight: '600',
+  },
+
+  // ── Book button ───────────────────────────────────────────────────────
+  bookBtn: {
+    marginTop: Spacing.xs,
+    height: 36,
+    borderRadius: Radii.sm,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  bookBtnText: {
+    ...Typography.bodySmallSemiBold,
+    fontWeight: '700',
+  },
 });

@@ -36,12 +36,17 @@ export default function AthleteSessionDetailScreen() {
     formatDate,
   } = useAthleteSessionDetail();
 
+  const header = (
+    <PageHeader title="Session Details" showBack centerTitle onBackPress={() => router.back()} />
+  );
+
   if (loading) {
     return (
       <SafeAreaView
         style={[styles.container, { backgroundColor: palette.background }]}
         edges={['top', 'bottom']}
       >
+        {header}
         <LoadingState variant="detail" />
       </SafeAreaView>
     );
@@ -53,6 +58,7 @@ export default function AthleteSessionDetailScreen() {
         style={[styles.container, { backgroundColor: palette.background }]}
         edges={['top', 'bottom']}
       >
+        {header}
         <ErrorState message={error?.message ?? 'Failed to load session details.'} onRetry={retry} />
       </SafeAreaView>
     );
@@ -64,6 +70,7 @@ export default function AthleteSessionDetailScreen() {
         style={[styles.container, { backgroundColor: palette.background }]}
         edges={['top', 'bottom']}
       >
+        {header}
         <EmptyState
           icon="document-text-outline"
           title="Session not found"

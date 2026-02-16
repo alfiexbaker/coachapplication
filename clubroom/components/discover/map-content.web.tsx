@@ -24,7 +24,18 @@ import { useTheme } from '@/hooks/useTheme';
 import type { CoachProfile } from '@/constants/types';
 import type { MapContentProps } from './map-content-types';
 
-const ListSeparator = () => <View style={{ height: Spacing.xs }} />;
+const ListSeparator = () => <View style={{ height: Spacing.sm }} />;
+
+// ─── SkillChip ─────────────────────────────────────────────────────────────
+
+const SkillChip = memo(function SkillChip({ label }: { label: string }) {
+  const { colors: palette } = useTheme();
+  return (
+    <View style={[styles.skillChip, { backgroundColor: withAlpha(palette.tint, 0.08) }]}>
+      <ThemedText style={[styles.skillChipText, { color: palette.tint }]}>{label}</ThemedText>
+    </View>
+  );
+});
 
 // ─── CoachListCard ─────────────────────────────────────────────────────────
 
@@ -41,6 +52,7 @@ const CoachListCard = memo(function CoachListCard({
 }) {
   const { colors: palette } = useTheme();
   const price = coach.sessionRate ?? coach.priceRange.minUsd;
+  const focuses = (coach.footballFocuses ?? []).slice(0, 3);
 
   return (
     <SurfaceCard
@@ -50,52 +62,110 @@ const CoachListCard = memo(function CoachListCard({
       gradientPadding={selected ? 2 : 0}
       accessibilityLabel={`Coach ${coach.fullName}, £${price} per session`}
     >
-      <Row gap="sm" align="center">
-        <Image
-          source={{ uri: coach.profilePhotoUrl }}
-          style={styles.avatar}
-          contentFit="cover"
-        />
-        <View style={styles.cardInfo}>
+      <Row gap="sm" align="flex-start">
+        {/* Avatar */}
+        <View>
+          <Image
+            source={{ uri: coach.profilePhotoUrl }}
+            style={styles.avatar}
+            contentFit="cover"
+            placeholder={{ blurhash: 'L6PZfSi_.AyE_3t7t7R**0o#DgR4' }}
+            transition={200}
+          />
+          {coach.badges?.length > 0 ? (
+            <View style={[styles.verifiedBadge, { backgroundColor: palette.tint }]}>
+              <Ionicons name="checkmark" size={10} color={palette.onPrimary} />
+            </View>
+          ) : null}
+        </View>
+
+        {/* Info */}
+        <Column style={styles.cardInfo} gap="xxs">
+          {/* Name + Price */}
           <Row align="center" justify="between">
             <ThemedText style={styles.cardName} numberOfLines={1}>
               {coach.fullName}
             </ThemedText>
-            <ThemedText style={[styles.cardPrice, { color: palette.tint }]}>
-              £{price}/hr
-            </ThemedText>
+            <Column align="flex-end">
+              <ThemedText style={[styles.cardPrice, { color: palette.text }]}>
+                £{price}
+              </ThemedText>
+              <ThemedText style={[styles.priceUnit, { color: palette.muted }]}>
+                /session
+              </ThemedText>
+            </Column>
           </Row>
+
+          {/* Rating + Distance */}
           <Row align="center" gap="xs">
-            <Ionicons name="star" size={12} color={palette.warning} />
-            <ThemedText style={[styles.cardMeta, { color: palette.muted }]}>
-              {coach.rating.average.toFixed(1)} ({coach.rating.reviewCount})
+            <Row align="center" gap="micro">
+              <Ionicons name="star" size={13} color="#F59E0B" />
+              <ThemedText style={styles.ratingText}>
+                {coach.rating.average.toFixed(1)}
+              </ThemedText>
+            </Row>
+            <ThemedText style={[styles.reviewCount, { color: palette.muted }]}>
+              ({coach.rating.reviewCount})
             </ThemedText>
             {coach.distanceMiles > 0 ? (
-              <ThemedText style={[styles.cardMeta, { color: palette.muted }]}>
-                · {coach.distanceMiles.toFixed(1)} mi
-              </ThemedText>
+              <>
+                <View style={[styles.metaDot, { backgroundColor: palette.muted }]} />
+                <Row align="center" gap="micro">
+                  <Ionicons name="location-outline" size={12} color={palette.muted} />
+                  <ThemedText style={[styles.distanceText, { color: palette.muted }]}>
+                    {coach.distanceMiles.toFixed(1)} mi
+                  </ThemedText>
+                </Row>
+              </>
             ) : null}
             {coach.city ? (
-              <ThemedText style={[styles.cardMeta, { color: palette.muted }]}>
-                · {coach.city}
-              </ThemedText>
+              <>
+                <View style={[styles.metaDot, { backgroundColor: palette.muted }]} />
+                <ThemedText style={[styles.distanceText, { color: palette.muted }]}>
+                  {coach.city}
+                </ThemedText>
+              </>
             ) : null}
           </Row>
-          <Row align="center" justify="between">
-            <ThemedText style={[styles.cardFocus, { color: palette.muted }]} numberOfLines={1}>
-              {(coach.footballFocuses ?? []).slice(0, 3).join(' · ')}
+
+          {/* Skill chips */}
+          {focuses.length > 0 ? (
+            <Row gap="xxs" style={styles.skillRow}>
+              {focuses.map((focus) => (
+                <SkillChip key={focus} label={focus} />
+              ))}
+            </Row>
+          ) : null}
+
+          {/* Book button */}
+          <Clickable
+            onPress={onBook}
+            style={[styles.bookBtn, { backgroundColor: palette.tint }]}
+            accessibilityLabel={`Book ${coach.fullName}`}
+          >
+            <ThemedText style={[styles.bookBtnText, { color: palette.onPrimary }]}>
+              Book session
             </ThemedText>
-            <Clickable
-              onPress={onBook}
-              style={[styles.bookBtn, { backgroundColor: palette.tint }]}
-              accessibilityLabel={`Book ${coach.fullName}`}
-            >
-              <ThemedText style={[styles.bookBtnText, { color: palette.onPrimary }]}>Book</ThemedText>
-            </Clickable>
-          </Row>
-        </View>
+          </Clickable>
+        </Column>
       </Row>
     </SurfaceCard>
+  );
+});
+
+// ─── SheetHeader ──────────────────────────────────────────────────────────
+
+const SheetHeader = memo(function SheetHeader({ count }: { count: number }) {
+  const { colors: palette } = useTheme();
+  return (
+    <Row align="center" gap="xs" style={styles.listHeader}>
+      <ThemedText type="heading">
+        {count} {count === 1 ? 'coach' : 'coaches'} nearby
+      </ThemedText>
+      <View style={[styles.countBadge, { backgroundColor: withAlpha(palette.tint, 0.1) }]}>
+        <ThemedText style={[styles.countBadgeText, { color: palette.tint }]}>{count}</ThemedText>
+      </View>
+    </Row>
   );
 });
 
@@ -140,17 +210,23 @@ export default function MapContent(props: MapContentProps) {
         <Row align="center" gap="xs">
           <Clickable
             onPress={onBack}
-            style={[styles.headerBtn, { backgroundColor: palette.surface, borderColor: palette.border, ...Shadows[scheme].subtle }]}
+            style={[styles.headerBtn, { backgroundColor: palette.surface, ...Shadows[scheme].subtle }]}
             accessibilityLabel="Go back"
           >
             <Ionicons name="arrow-back" size={20} color={palette.text} />
           </Clickable>
           <Row
             align="center"
-            gap="sm"
-            style={[styles.searchBar, { backgroundColor: palette.surface, borderColor: palette.border }]}
+            gap="xs"
+            style={[
+              styles.searchBar,
+              {
+                backgroundColor: withAlpha(palette.muted, 0.06),
+                borderColor: withAlpha(palette.border, 0.5),
+              },
+            ]}
           >
-            <Ionicons name="search" size={16} color={palette.muted} />
+            <Ionicons name="search" size={18} color={palette.muted} />
             <TextInput
               value={searchQuery}
               onChangeText={onSearchChange}
@@ -162,14 +238,14 @@ export default function MapContent(props: MapContentProps) {
               accessibilityLabel="Search coaches"
             />
             {searchQuery.length > 0 ? (
-              <Clickable accessibilityLabel="Clear search" onPress={onClearSearch}>
-                <Ionicons name="close-circle" size={16} color={palette.muted} />
+              <Clickable accessibilityLabel="Clear search" onPress={onClearSearch} style={styles.clearSearchBtn}>
+                <Ionicons name="close-circle" size={18} color={palette.muted} />
               </Clickable>
             ) : null}
           </Row>
           <Clickable
             onPress={onToggleView}
-            style={[styles.headerBtn, { backgroundColor: palette.surface, borderColor: palette.border, ...Shadows[scheme].subtle }]}
+            style={[styles.headerBtn, { backgroundColor: palette.surface, ...Shadows[scheme].subtle }]}
             accessibilityLabel="Switch to list view"
           >
             <Ionicons name="list" size={20} color={palette.text} />
@@ -223,11 +299,7 @@ export default function MapContent(props: MapContentProps) {
           />
         )}
         contentContainerStyle={styles.listContent}
-        ListHeaderComponent={
-          <ThemedText type="heading" style={styles.listHeader}>
-            {coaches.length} {coaches.length === 1 ? 'coach' : 'coaches'} nearby
-          </ThemedText>
-        }
+        ListHeaderComponent={<SheetHeader count={coaches.length} />}
         ItemSeparatorComponent={ListSeparator}
         style={styles.list}
       />
@@ -261,21 +333,26 @@ const styles = StyleSheet.create({
     width: 44,
     height: 44,
     borderRadius: Radii.pill,
-    borderWidth: 1,
     alignItems: 'center',
     justifyContent: 'center',
   },
   searchBar: {
     flex: 1,
-    minHeight: 44,
-    borderRadius: Radii.pill,
+    height: 44,
+    borderRadius: Radii.xl,
     borderWidth: 1,
     paddingHorizontal: Spacing.sm,
   },
   searchInput: {
     flex: 1,
-    ...Typography.bodySmall,
+    ...Typography.body,
     padding: 0,
+  },
+  clearSearchBtn: {
+    minHeight: 44,
+    minWidth: 32,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
 
   filterBarWrap: {
@@ -301,25 +378,71 @@ const styles = StyleSheet.create({
   list: { flex: 1 },
   listContent: { paddingHorizontal: Spacing.sm, paddingBottom: Spacing.xl },
   listHeader: { paddingVertical: Spacing.sm },
+  countBadge: {
+    paddingHorizontal: Spacing.xs,
+    paddingVertical: Spacing.micro,
+    borderRadius: Radii.pill,
+  },
+  countBadgeText: {
+    ...Typography.caption,
+    fontWeight: '700',
+  },
 
   card: { padding: Spacing.sm },
   avatar: {
-    width: 52,
-    height: 52,
-    borderRadius: 26,
+    width: 56,
+    height: 56,
+    borderRadius: 28,
   },
-  cardInfo: { flex: 1, gap: Spacing.xxs },
-  cardName: { ...Typography.bodySemiBold, flex: 1 },
-  cardPrice: { ...Typography.bodySemiBold },
-  cardMeta: { ...Typography.caption },
-  cardFocus: { ...Typography.caption, flex: 1 },
-  bookBtn: {
-    paddingHorizontal: Spacing.sm,
-    paddingVertical: Spacing.xxs,
+  verifiedBadge: {
+    position: 'absolute',
+    bottom: 0,
+    right: 0,
+    width: 18,
+    height: 18,
+    borderRadius: 9,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 2,
+    borderColor: '#fff',
+  },
+  cardInfo: { flex: 1 },
+  cardName: { ...Typography.bodySemiBold, flex: 1, marginRight: Spacing.xs },
+  cardPrice: { ...Typography.heading },
+  priceUnit: { ...Typography.caption },
+  ratingText: { ...Typography.bodySmallSemiBold },
+  reviewCount: { ...Typography.caption },
+  metaDot: {
+    width: 3,
+    height: 3,
+    borderRadius: 1.5,
+    opacity: 0.4,
+  },
+  distanceText: { ...Typography.caption },
+
+  skillRow: {
+    marginTop: Spacing.micro,
+    flexWrap: 'wrap',
+  },
+  skillChip: {
+    paddingHorizontal: Spacing.xs,
+    paddingVertical: Spacing.micro + 1,
     borderRadius: Radii.sm,
-    minHeight: 44,
+  },
+  skillChipText: {
+    ...Typography.caption,
+    fontWeight: '600',
+  },
+
+  bookBtn: {
+    marginTop: Spacing.xs,
+    height: 36,
+    borderRadius: Radii.sm,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  bookBtnText: { ...Typography.smallSemiBold },
+  bookBtnText: {
+    ...Typography.bodySmallSemiBold,
+    fontWeight: '700',
+  },
 });

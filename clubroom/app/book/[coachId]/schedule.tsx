@@ -6,6 +6,7 @@ import { Routes } from '@/navigation/routes';
 import { Ionicons } from '@expo/vector-icons';
 
 import { Row } from '@/components/primitives/row';
+import { Column } from '@/components/primitives/column';
 import { BookingWizardHeader } from '@/components/ui/booking/booking-wizard';
 import { createLogger } from '@/utils/logger';
 import { toDateStr } from '@/utils/format';
@@ -13,8 +14,9 @@ import { CalendarPicker } from '@/components/ui/booking/calendar-picker';
 import { TimeSlotPicker } from '@/components/ui/booking/time-slot-picker';
 import { Clickable } from '@/components/primitives/clickable';
 import { ThemedText } from '@/components/themed-text';
-import { EmptyState, ErrorState, LoadingState } from '@/components/ui/screen-states';
-import { Radii, Spacing } from '@/constants/theme';
+import { ErrorState, LoadingState } from '@/components/ui/screen-states';
+import { Radii, Shadows, Spacing, Typography, withAlpha } from '@/constants/theme';
+import { useTheme } from '@/hooks/useTheme';
 import { useScreen } from '@/hooks/use-screen';
 import { err, ok, serviceError } from '@/types/result';
 import { useBookingFlow } from '@/context/booking-flow-context';
@@ -26,6 +28,7 @@ const logger = createLogger('ScheduleScreen');
 export default function ScheduleScreen() {
   const { coachId } = useLocalSearchParams<{ coachId: string }>();
   const { draft, updateDraft } = useBookingFlow();
+  const { colors: themeColors, scheme } = useTheme();
 
   // Calculate date range (next 14 days)
   const dateRange = useMemo(() => {
@@ -45,7 +48,6 @@ export default function ScheduleScreen() {
       return ok([]);
     }
     try {
-      // Get session duration from draft or default to 60 minutes
       const duration = draft.duration || 60;
       const slots = await availabilityService.getAvailableSlots(
         coachId,
@@ -107,21 +109,19 @@ export default function ScheduleScreen() {
     return allSlots.filter((slot) => slot.date === draft.date);
   }, [allSlots, draft.date]);
 
-  // Handle date selection - clear slot if date changes
-  const handleDateSelect = (date: string) => {
+  const handleDateSelect = useCallback((date: string) => {
     if (date !== draft.date) {
       updateDraft({ date, slot: undefined });
     }
-  };
+  }, [draft.date, updateDraft]);
 
-  // Handle slot selection - also store the location
-  const handleSlotSelect = (slotTime: string) => {
+  const handleSlotSelect = useCallback((slotTime: string) => {
     const selectedSlot = slotsForSelectedDate.find((s) => s.startTime === slotTime);
     updateDraft({
       slot: slotTime,
       locationText: selectedSlot?.location,
     });
-  };
+  }, [slotsForSelectedDate, updateDraft]);
 
   if (status === 'loading') {
     return (
@@ -129,6 +129,13 @@ export default function ScheduleScreen() {
         style={[styles.safeArea, { backgroundColor: palette.background }]}
         edges={['top', 'bottom']}
       >
+        <View style={styles.content}>
+          <BookingWizardHeader
+            title="Choose date & time"
+            subtitle="Loading availability..."
+            step={2}
+          />
+        </View>
         <LoadingState variant="calendar" />
       </SafeAreaView>
     );
@@ -140,6 +147,13 @@ export default function ScheduleScreen() {
         style={[styles.safeArea, { backgroundColor: palette.background }]}
         edges={['top', 'bottom']}
       >
+        <View style={styles.content}>
+          <BookingWizardHeader
+            title="Choose date & time"
+            subtitle="Something went wrong"
+            step={2}
+          />
+        </View>
         <ErrorState
           message={error?.message ?? 'Unable to load available times. Please try again.'}
           onRetry={retry}
@@ -154,18 +168,57 @@ export default function ScheduleScreen() {
         style={[styles.safeArea, { backgroundColor: palette.background }]}
         edges={['top', 'bottom']}
       >
-        <BookingWizardHeader
-          title="Choose date & time"
-          subtitle="No availability in the next 2 weeks"
-          step={2}
-        />
-        <EmptyState
-          icon="calendar-outline"
-          title="No availability found"
-          message="This coach has no available slots in the next two weeks. Pull to refresh or message the coach to request a custom time."
-          actionLabel="Retry"
-          onPressAction={retry}
-        />
+        <ScrollView
+          contentContainerStyle={styles.emptyContent}
+          refreshControl={
+            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={palette.tint} />
+          }
+        >
+          <BookingWizardHeader
+            title="Choose date & time"
+            subtitle="No availability in the next 2 weeks"
+            step={2}
+          />
+
+          {/* Custom empty state — not the generic one */}
+          <Column align="center" gap="md" style={styles.emptyStateWrap}>
+            <View style={[styles.emptyIconWrap, { backgroundColor: withAlpha(palette.tint, 0.08) }]}>
+              <Ionicons name="calendar-outline" size={32} color={palette.tint} />
+            </View>
+            <Column align="center" gap="xxs">
+              <ThemedText style={styles.emptyTitle}>
+                No slots available
+              </ThemedText>
+              <ThemedText style={[styles.emptyMessage, { color: palette.muted }]}>
+                This coach hasn't opened any slots for the next two weeks. You can check back later or reach out directly.
+              </ThemedText>
+            </Column>
+
+            <Column gap="xs" style={styles.emptyActions}>
+              <Clickable
+                onPress={retry}
+                style={[styles.emptyPrimaryBtn, { backgroundColor: palette.tint }]}
+                accessibilityLabel="Refresh availability"
+              >
+                <Row align="center" justify="center" gap="xs">
+                  <Ionicons name="refresh" size={18} color={palette.onPrimary} />
+                  <ThemedText style={[styles.emptyBtnText, { color: palette.onPrimary }]}>
+                    Refresh availability
+                  </ThemedText>
+                </Row>
+              </Clickable>
+              <Clickable
+                onPress={() => router.back()}
+                style={[styles.emptySecondaryBtn, { backgroundColor: withAlpha(palette.muted, 0.06) }]}
+                accessibilityLabel="Go back"
+              >
+                <ThemedText style={[styles.emptyBtnText, { color: palette.text }]}>
+                  Back to coach profile
+                </ThemedText>
+              </Clickable>
+            </Column>
+          </Column>
+        </ScrollView>
       </SafeAreaView>
     );
   }
@@ -193,8 +246,8 @@ export default function ScheduleScreen() {
         />
 
         <View style={{ gap: Spacing.sm }}>
-          <ThemedText type="defaultSemiBold">
-            Available slots{draft.date ? ` - ${formatDate(draft.date)}` : ''}
+          <ThemedText style={styles.sectionTitle}>
+            Available slots{draft.date ? ` — ${formatDate(draft.date)}` : ''}
           </ThemedText>
           <TimeSlotPicker
             selectedSlot={draft.slot}
@@ -205,23 +258,28 @@ export default function ScheduleScreen() {
         </View>
       </ScrollView>
 
-      <View style={[styles.footer, { borderTopColor: palette.border }]}>
+      {/* CTA Footer */}
+      <View style={[styles.footer, { borderTopColor: withAlpha(palette.border, 0.5) }]}>
         <Clickable
           onPress={() => router.push(Routes.bookDetails(coachId))}
           style={[
             styles.cta,
             {
-              backgroundColor: draft.date && draft.slot ? palette.tint : palette.muted,
+              backgroundColor: draft.date && draft.slot ? palette.tint : withAlpha(palette.muted, 0.15),
+              ...(draft.date && draft.slot ? Shadows[scheme].subtle : {}),
             },
           ]}
           disabled={!draft.date || !draft.slot}
+          accessibilityLabel="Continue to booking details"
         >
-          <Row justify="center" align="center" gap="sm">
-            <Ionicons name="arrow-forward" size={18} color={palette.onPrimary} />
-            <ThemedText style={{ color: palette.onPrimary, fontWeight: '700' }}>
-              Continue
-            </ThemedText>
-          </Row>
+          <ThemedText
+            style={[
+              styles.ctaText,
+              { color: draft.date && draft.slot ? palette.onPrimary : palette.muted },
+            ]}
+          >
+            Continue
+          </ThemedText>
         </Clickable>
       </View>
     </SafeAreaView>
@@ -239,10 +297,77 @@ function formatDate(dateStr: string): string {
 
 const styles = StyleSheet.create({
   safeArea: { flex: 1 },
-  content: { padding: Spacing.lg, gap: Spacing.lg },
-  footer: { padding: Spacing.lg, borderTopWidth: 1 },
-  cta: {
+  content: {
     padding: Spacing.md,
-    borderRadius: Radii.button,
+    gap: Spacing.lg,
+  },
+  emptyContent: {
+    padding: Spacing.md,
+    gap: Spacing.lg,
+    flexGrow: 1,
+  },
+
+  // ── Section title ─────────────────────────────────────────────────────
+  sectionTitle: {
+    ...Typography.bodySemiBold,
+  },
+
+  // ── Empty state ───────────────────────────────────────────────────────
+  emptyStateWrap: {
+    flex: 1,
+    justifyContent: 'center',
+    paddingVertical: Spacing['2xl'],
+    paddingHorizontal: Spacing.md,
+  },
+  emptyIconWrap: {
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  emptyTitle: {
+    ...Typography.heading,
+    textAlign: 'center',
+  },
+  emptyMessage: {
+    ...Typography.body,
+    textAlign: 'center',
+    maxWidth: 280,
+  },
+  emptyActions: {
+    width: '100%',
+    marginTop: Spacing.xs,
+  },
+  emptyPrimaryBtn: {
+    height: 48,
+    borderRadius: Radii.md,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  emptySecondaryBtn: {
+    height: 48,
+    borderRadius: Radii.md,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  emptyBtnText: {
+    ...Typography.bodySemiBold,
+  },
+
+  // ── Footer ────────────────────────────────────────────────────────────
+  footer: {
+    padding: Spacing.md,
+    borderTopWidth: StyleSheet.hairlineWidth,
+  },
+  cta: {
+    height: 52,
+    borderRadius: Radii.md,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  ctaText: {
+    ...Typography.bodySemiBold,
+    fontWeight: '700',
   },
 });

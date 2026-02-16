@@ -118,10 +118,10 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   content: {
-    paddingHorizontal: Spacing.lg,
-    paddingTop: Spacing.lg,
+    paddingHorizontal: Spacing.sm,
+    paddingTop: Spacing.sm,
     paddingBottom: Spacing['3xl'],
-    gap: Spacing.lg,
+    gap: Spacing.md,
   },
   versionContainer: {
     marginTop: Spacing.lg,

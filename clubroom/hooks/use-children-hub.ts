@@ -2,10 +2,11 @@
  * useChildrenHub — Data loading hook for the Children Hub screen.
  *
  * Loads child profiles, per-child stats (sessions, badges, rating),
- * and recent badge awards across all children.
+ * recent badge awards, and active child state.
  */
 
-import { useCallback } from 'react';
+import { useCallback, useState, useEffect } from 'react';
+import { Alert } from 'react-native';
 
 import { useAuth } from '@/hooks/use-auth';
 import { useScreen } from '@/hooks/use-screen';
@@ -13,8 +14,11 @@ import { apiClient } from '@/services/api-client';
 import { childService, type ChildProfile } from '@/services/child-service';
 import { badgeService } from '@/services/badge-service';
 import { err, ok, serviceError } from '@/types/result';
+import { createLogger } from '@/utils/logger';
 import type { BadgeAward } from '@/constants/types';
 import type { Session } from '@/constants/app-types';
+
+const logger = createLogger('useChildrenHub');
 
 // ─── Types ─────────────────────────────────────────────────────────────────────
 
@@ -38,6 +42,12 @@ export type ChildrenHubData = {
 
 export function useChildrenHub() {
   const { currentUser } = useAuth();
+  const [activeChildId, setActiveChildIdState] = useState<string | null>(null);
+
+  // Load active child ID on mount
+  useEffect(() => {
+    childService.getActiveChildId().then(setActiveChildIdState);
+  }, []);
 
   const loadData = useCallback(async () => {
     if (!currentUser?.id) {
@@ -93,6 +103,10 @@ export function useChildrenHub() {
         0,
       );
 
+      // Refresh active child ID
+      const storedActiveId = await childService.getActiveChildId();
+      setActiveChildIdState(storedActiveId);
+
       return ok<ChildrenHubData>({
         children: childrenData,
         childStats: stats,
@@ -132,6 +146,47 @@ export function useChildrenHub() {
     [onRefresh],
   );
 
+  const handleSetActiveChild = useCallback(
+    async (childId: string) => {
+      const child = resolved.children.find((c) => c.id === childId);
+      const name = child ? `${child.firstName} ${child.lastName}` : undefined;
+      await childService.setActiveChildId(childId, name);
+      setActiveChildIdState(childId);
+      logger.info('active_child_set', { childId, name });
+    },
+    [resolved.children],
+  );
+
+  const handleRemoveChild = useCallback(
+    (childId: string) => {
+      const child = resolved.children.find((c) => c.id === childId);
+      const displayName = child?.nickname || child?.firstName || 'this child';
+
+      Alert.alert(
+        'Remove Child',
+        `Are you sure you want to remove ${displayName} from your account? This cannot be undone.`,
+        [
+          { text: 'Cancel', style: 'cancel' },
+          {
+            text: 'Remove',
+            style: 'destructive',
+            onPress: async () => {
+              await childService.deleteChild(childId);
+              // Clear active child if it was the removed one
+              if (activeChildId === childId) {
+                await childService.setActiveChildId(null);
+                setActiveChildIdState(null);
+              }
+              logger.info('child_removed', { childId, displayName });
+              onRefresh();
+            },
+          },
+        ],
+      );
+    },
+    [resolved.children, activeChildId, onRefresh],
+  );
+
   return {
     currentUser,
     children: resolved.children,
@@ -146,7 +201,10 @@ export function useChildrenHub() {
     totalSessions: resolved.totalSessions,
     totalBadges: resolved.totalBadges,
     totalUnseenBadges: resolved.totalUnseenBadges,
+    activeChildId,
     handleViewBadge,
+    handleSetActiveChild,
+    handleRemoveChild,
     loadData: onRefresh,
   };
 }

@@ -246,6 +246,9 @@ export const STORAGE_KEYS = {
   /** Guardian invite data */
   GUARDIAN_INVITES: 'guardian_invites',
 
+  /** Currently active child ID for default selection */
+  ACTIVE_CHILD_ID: 'clubroom.active_child_id',
+
   // ============================================================================
   // CLUB & SQUAD DOMAIN
   // ============================================================================

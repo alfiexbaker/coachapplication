@@ -29,7 +29,7 @@ export function PriceRangeSlider({
   currentMax,
   step = 5,
   onChange,
-  formatValue = (v) => `$${v}`,
+  formatValue = (v) => `£${v}`,
 }: PriceRangeSliderProps) {
   const { colors: palette } = useTheme();
   const [sliderWidth, setSliderWidth] = useState(0);

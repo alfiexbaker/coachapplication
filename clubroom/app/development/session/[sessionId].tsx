@@ -63,12 +63,17 @@ export default function SessionDetailScreen() {
     formatDate,
   } = useDevSession(resolvedSessionId);
 
+  const header = (
+    <PageHeader title="Session Feedback" showBack centerTitle onBackPress={() => router.back()} />
+  );
+
   if (!resolvedSessionId) {
     return (
       <SafeAreaView
         style={[styles.container, { backgroundColor: colors.background }]}
         edges={['top', 'bottom']}
       >
+        {header}
         <EmptyState
           icon="alert-circle-outline"
           title="Session link is invalid"
@@ -84,6 +89,7 @@ export default function SessionDetailScreen() {
         style={[styles.container, { backgroundColor: colors.background }]}
         edges={['top', 'bottom']}
       >
+        {header}
         <LoadingState variant="form" />
       </SafeAreaView>
     );
@@ -95,6 +101,7 @@ export default function SessionDetailScreen() {
         style={[styles.container, { backgroundColor: colors.background }]}
         edges={['top', 'bottom']}
       >
+        {header}
         <EmptyState
           icon="document-text-outline"
           title="Session not found"

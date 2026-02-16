@@ -12,6 +12,7 @@ import { Ionicons } from '@expo/vector-icons';
 
 import { Button } from '@/components/primitives/button';
 import { Row } from '@/components/primitives/row';
+import { PageHeader } from '@/components/primitives/page-header';
 import { ThemedText } from '@/components/themed-text';
 import { LoadingState, ErrorState, EmptyState } from '@/components/ui/screen-states';
 import { WaitlistBanner } from '@/components/group/waitlist-banner';
@@ -45,12 +46,17 @@ export default function GroupSessionDetailScreen() {
     handleCancel,
   } = useGroupSession();
 
+  const header = (
+    <PageHeader title="Session Details" showBack centerTitle onBackPress={() => router.back()} />
+  );
+
   if (status === 'loading') {
     return (
       <SafeAreaView
         style={[styles.container, { backgroundColor: colors.background }]}
         edges={['top', 'bottom']}
       >
+        {header}
         <LoadingState variant="detail" />
       </SafeAreaView>
     );
@@ -62,6 +68,7 @@ export default function GroupSessionDetailScreen() {
         style={[styles.container, { backgroundColor: colors.background }]}
         edges={['top', 'bottom']}
       >
+        {header}
         <ErrorState
           message={error?.message || 'Failed to load group session details.'}
           onRetry={retry}
@@ -76,6 +83,7 @@ export default function GroupSessionDetailScreen() {
         style={[styles.container, { backgroundColor: colors.background }]}
         edges={['top', 'bottom']}
       >
+        {header}
         <EmptyState
           icon="calendar-outline"
           title="Session not found"
@@ -95,6 +103,7 @@ export default function GroupSessionDetailScreen() {
       style={[styles.container, { backgroundColor: colors.background }]}
       edges={['top', 'bottom']}
     >
+      {header}
       <ScrollView
         style={styles.scroll}
         showsVerticalScrollIndicator={false}

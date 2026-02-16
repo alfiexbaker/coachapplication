@@ -128,7 +128,7 @@ export function FilterModal({
               currentMin={draftFilters.priceMin ?? filterOptions.priceRange.min}
               currentMax={draftFilters.priceMax ?? filterOptions.priceRange.max}
               onChange={handlePriceChange}
-              formatValue={(v) => `$${v}`}
+              formatValue={(v) => `£${v}`}
             />
           </View>
 

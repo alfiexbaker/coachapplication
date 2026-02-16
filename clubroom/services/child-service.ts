@@ -12,6 +12,7 @@ import { apiClient } from './api-client';
 import { api } from '@/constants/config';
 import { createLogger } from '@/utils/logger';
 import { type Result, type ServiceError, ok, err, notFound, storageError } from '@/types/result';
+import { emitTyped, ServiceEvents } from './event-bus';
 
 import { STORAGE_KEYS } from '@/constants/storage-keys';
 
@@ -643,5 +644,34 @@ export const childService = {
       allergies: child.allergies,
       disabilities: child.disabilities.map((d) => d.type),
     };
+  },
+
+  /**
+   * Get the currently active child ID (the default child for bookings, badges, etc.)
+   */
+  async getActiveChildId(): Promise<string | null> {
+    try {
+      return await apiClient.get<string | null>(STORAGE_KEYS.ACTIVE_CHILD_ID, null);
+    } catch (error) {
+      logger.error('get_active_child_failed', { error });
+      return null;
+    }
+  },
+
+  /**
+   * Set the active child. Pass null to clear.
+   */
+  async setActiveChildId(childId: string | null, childName?: string): Promise<void> {
+    try {
+      if (childId) {
+        await apiClient.set(STORAGE_KEYS.ACTIVE_CHILD_ID, childId);
+      } else {
+        await apiClient.remove(STORAGE_KEYS.ACTIVE_CHILD_ID);
+      }
+      emitTyped(ServiceEvents.FAMILY_ACTIVE_CHILD_CHANGED, { childId, childName });
+      logger.info('active_child_set', { childId, childName });
+    } catch (error) {
+      logger.error('set_active_child_failed', { childId, error });
+    }
   },
 };

@@ -3,6 +3,9 @@
  *
  * Parent view of child's development: overview dashboard, skills grid,
  * radar chart, feedback list, badges — with tabbed navigation.
+ *
+ * For parents with 2+ children, shows a child switcher at the top
+ * that defaults to the active child.
  */
 
 import { View, StyleSheet, ScrollView, RefreshControl, ViewStyle } from 'react-native';
@@ -18,6 +21,7 @@ import { PageHeader } from '@/components/primitives/page-header';
 import { ProgressDashboard, SkillLevelGrid, FeedbackList } from '@/components/progress';
 import { SkillRadar } from '@/components/analytics/skill-radar';
 import { ChildProgressStats } from '@/components/development/child-progress-stats';
+import { ChildSwitcher } from '@/components/family/child-switcher';
 import { Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
 import { useScreen } from '@/hooks/use-screen';
 import { ok } from '@/types/result';
@@ -41,6 +45,12 @@ export default function ChildProgressScreen() {
     handleRefresh,
     getTrendInfo,
     retry,
+    // Child switcher
+    switcherChildren,
+    selectedChildId,
+    activeChildId,
+    handleSelectChild,
+    isParent,
   } = useChildProgress();
 
   if (loading) {
@@ -49,6 +59,17 @@ export default function ChildProgressScreen() {
         style={[styles.container, { backgroundColor: colors.background }]}
         edges={['top', 'bottom']}
       >
+        <PageHeader title="Progress" showBack centerTitle onBackPress={() => router.back()} />
+        {switcherChildren.length > 1 && (
+          <View style={styles.switcherWrap}>
+            <ChildSwitcher
+              children={switcherChildren}
+              selectedId={selectedChildId}
+              onSelect={handleSelectChild}
+              activeChildId={activeChildId}
+            />
+          </View>
+        )}
         <LoadingState variant="detail" />
       </SafeAreaView>
     );
@@ -60,6 +81,17 @@ export default function ChildProgressScreen() {
         style={[styles.container, { backgroundColor: colors.background }]}
         edges={['top', 'bottom']}
       >
+        <PageHeader title="Progress" showBack centerTitle onBackPress={() => router.back()} />
+        {switcherChildren.length > 1 && (
+          <View style={styles.switcherWrap}>
+            <ChildSwitcher
+              children={switcherChildren}
+              selectedId={selectedChildId}
+              onSelect={handleSelectChild}
+              activeChildId={activeChildId}
+            />
+          </View>
+        )}
         <ErrorState message={error?.message ?? 'Failed to load child progress.'} onRetry={retry} />
       </SafeAreaView>
     );
@@ -71,10 +103,21 @@ export default function ChildProgressScreen() {
         style={[styles.container, { backgroundColor: colors.background }]}
         edges={['top', 'bottom']}
       >
+        <PageHeader title="Progress" showBack centerTitle onBackPress={() => router.back()} />
+        {switcherChildren.length > 1 && (
+          <View style={styles.switcherWrap}>
+            <ChildSwitcher
+              children={switcherChildren}
+              selectedId={selectedChildId}
+              onSelect={handleSelectChild}
+              activeChildId={activeChildId}
+            />
+          </View>
+        )}
         <EmptyState
           icon="person-outline"
           title="Child not found"
-          message="We couldn’t find this child profile."
+          message="We couldn't find this child profile."
         />
       </SafeAreaView>
     );
@@ -87,7 +130,26 @@ export default function ChildProgressScreen() {
       style={[styles.container, { backgroundColor: colors.background }]}
       edges={['top', 'bottom']}
     >
-      <PageHeader title={child.name} showBack centerTitle onBackPress={() => router.back()} />
+      <PageHeader
+        title={child.name}
+        showBack
+        centerTitle
+        onBackPress={() => router.back()}
+      />
+
+      {/* Child Switcher — only for parents with 2+ children */}
+      {switcherChildren.length > 1 && (
+        <View style={styles.switcherWrap}>
+          <ChildSwitcher
+            children={switcherChildren}
+            selectedId={selectedChildId}
+            onSelect={handleSelectChild}
+            activeChildId={activeChildId}
+          />
+        </View>
+      )}
+
+      {/* Trend Badge */}
       <View style={styles.trendWrap}>
         <Row
           align="center"
@@ -298,6 +360,10 @@ export default function ChildProgressScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
+  switcherWrap: {
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.xs,
+  },
   trendWrap: {
     alignItems: 'center',
     paddingTop: Spacing.xxs,

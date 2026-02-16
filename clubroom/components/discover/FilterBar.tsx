@@ -41,7 +41,7 @@ export function FilterBar({
   const { colors: palette } = useTheme();
   const scrollRef = useRef<ScrollView>(null);
   const isMapVariant = variant === 'map';
-  const quickFilters = isMapVariant ? QUICK_FILTERS.slice(0, 2) : QUICK_FILTERS;
+  const quickFilters = isMapVariant ? QUICK_FILTERS.slice(0, 3) : QUICK_FILTERS;
   const showFocusFilters = !isMapVariant;
 
   const handleQuickFilterToggle = (quickFilter: QuickFilter) => {
@@ -67,7 +67,7 @@ export function FilterBar({
   const hasActiveFilters = activeFilterCount > 0;
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, isMapVariant && styles.containerMap]}>
       <ScrollView
         ref={scrollRef}
         horizontal
@@ -81,20 +81,22 @@ export function FilterBar({
           style={[
             styles.filterButton,
             {
-              backgroundColor: hasActiveFilters ? withAlpha(palette.tint, 0.09) : palette.surface,
-              borderColor: hasActiveFilters ? palette.tint : palette.border,
+              backgroundColor: hasActiveFilters
+                ? withAlpha(palette.tint, 0.12)
+                : withAlpha(palette.surface, 0.95),
+              borderColor: hasActiveFilters ? palette.tint : withAlpha(palette.border, 0.6),
             },
           ]}
         >
           <Ionicons
             name="options-outline"
-            size={18}
-            color={hasActiveFilters ? palette.tint : palette.muted}
+            size={16}
+            color={hasActiveFilters ? palette.tint : palette.text}
           />
           <ThemedText
             style={[
               styles.filterButtonText,
-              { color: hasActiveFilters ? palette.tint : palette.muted },
+              { color: hasActiveFilters ? palette.tint : palette.text },
             ]}
           >
             Filters
@@ -138,24 +140,38 @@ export function FilterBar({
             ))}
           </>
         ) : null}
-      </ScrollView>
 
-      {/* Results count and Clear */}
-      <Row style={styles.footer}>
-        <ThemedText style={[styles.resultsText, { color: palette.muted }]}>
-          {totalResults} {totalResults === 1 ? 'coach' : 'coaches'} found
-        </ThemedText>
-        {hasActiveFilters && (
+        {/* Clear all — inline for map variant */}
+        {isMapVariant && hasActiveFilters ? (
           <Clickable
             accessibilityLabel="Clear all filters"
             onPress={handleClearFilters}
-            style={styles.clearButton}
+            style={styles.inlineClear}
           >
-            <Ionicons name="close-circle" size={16} color={palette.tint} />
-            <ThemedText style={[styles.clearText, { color: palette.tint }]}>Clear all</ThemedText>
+            <Ionicons name="close-circle" size={14} color={palette.tint} />
+            <ThemedText style={[styles.clearText, { color: palette.tint }]}>Clear</ThemedText>
           </Clickable>
-        )}
-      </Row>
+        ) : null}
+      </ScrollView>
+
+      {/* Results count and Clear — only on default variant */}
+      {!isMapVariant ? (
+        <Row style={styles.footer}>
+          <ThemedText style={[styles.resultsText, { color: palette.muted }]}>
+            {totalResults} {totalResults === 1 ? 'coach' : 'coaches'} found
+          </ThemedText>
+          {hasActiveFilters && (
+            <Clickable
+              accessibilityLabel="Clear all filters"
+              onPress={handleClearFilters}
+              style={styles.clearButton}
+            >
+              <Ionicons name="close-circle" size={16} color={palette.tint} />
+              <ThemedText style={[styles.clearText, { color: palette.tint }]}>Clear all</ThemedText>
+            </Clickable>
+          )}
+        </Row>
+      ) : null}
     </View>
   );
 }
@@ -164,42 +180,50 @@ const styles = StyleSheet.create({
   container: {
     paddingVertical: Spacing.xs,
   },
+  containerMap: {
+    paddingVertical: Spacing.xxs,
+  },
   scrollContent: {
-    paddingHorizontal: Spacing.md,
+    paddingHorizontal: Spacing.sm,
     gap: Spacing.xs,
     alignItems: 'center',
   },
   filterButton: {
+    flexDirection: 'row',
     alignItems: 'center',
-    gap: Spacing.xs,
-    minHeight: 44,
-    paddingVertical: Spacing.xs / 2,
-    paddingHorizontal: Spacing.md,
+    gap: Spacing.xxs,
+    height: 36,
+    paddingHorizontal: Spacing.sm,
     borderRadius: Radii.pill,
     borderWidth: 1,
-    marginRight: Spacing.xs,
   },
   filterButtonText: {
-    ...Typography.sm,
-    fontWeight: '500',
+    ...Typography.bodySmallSemiBold,
   },
   badge: {
     minWidth: 18,
     height: 18,
-    borderRadius: Radii.md,
+    borderRadius: 9,
     alignItems: 'center',
     justifyContent: 'center',
     paddingHorizontal: Spacing.xxs,
   },
   badgeText: {
-    ...Typography.caption,
+    fontSize: 11,
     fontWeight: '700',
   },
   chip: {
     marginRight: 0,
     marginBottom: 0,
-    minHeight: 44,
+    minHeight: 36,
     justifyContent: 'center',
+  },
+  inlineClear: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.xxs,
+    minHeight: 36,
+    paddingHorizontal: Spacing.xs,
   },
   footer: {
     justifyContent: 'space-between',
@@ -208,14 +232,16 @@ const styles = StyleSheet.create({
     paddingTop: Spacing.xs,
   },
   resultsText: {
-    ...Typography.sm,
+    ...Typography.caption,
   },
   clearButton: {
+    flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.xxs,
+    minHeight: 44,
   },
   clearText: {
-    ...Typography.sm,
+    ...Typography.caption,
     fontWeight: '600',
   },
 });

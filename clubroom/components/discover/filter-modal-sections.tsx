@@ -159,7 +159,7 @@ export const FilterModalFooter = memo(function FilterModalFooter({
       ]}
     >
       <Button onPress={onApply} style={styles.applyButton}>
-        Show {resultCount} {resultCount === 1 ? 'Coach' : 'Coaches'}
+        {`Show ${resultCount} ${resultCount === 1 ? 'Coach' : 'Coaches'}`}
       </Button>
     </View>
   );

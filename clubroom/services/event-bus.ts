@@ -146,6 +146,7 @@ export const ServiceEvents = {
   FAMILY_MEMBER_ADDED: 'family:member:added',
   FAMILY_MEMBER_REMOVED: 'family:member:removed',
   FAMILY_LINK_CREATED: 'family:link:created',
+  FAMILY_ACTIVE_CHILD_CHANGED: 'family:active_child:changed',
 
   // Payment events
   PAYMENT_SUCCEEDED: 'payment:succeeded',
@@ -414,6 +415,10 @@ export interface EventPayloads {
     guardianId: string;
     guardianName?: string;
     role?: string;
+  };
+  [ServiceEvents.FAMILY_ACTIVE_CHILD_CHANGED]: {
+    childId: string | null;
+    childName?: string;
   };
 
   // Payment events

@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { useLocalSearchParams } from 'expo-router';
 
 import { useAuth } from '@/hooks/use-auth';
@@ -10,9 +10,12 @@ import {
 } from '@/services/progress-service';
 import { badgeService } from '@/services/badge-service';
 import { userService } from '@/services/user-service';
+import { childService, type ChildProfile } from '@/services/child-service';
+import { hasChildren } from '@/utils/user-helpers';
 import { createLogger } from '@/utils/logger';
 import type { BadgeAward, User } from '@/constants/types';
 import { err, ok, serviceError, type ServiceError } from '@/types/result';
+import type { SwitcherChild } from '@/components/family/child-switcher';
 
 const logger = createLogger('ChildProgressScreen');
 
@@ -26,6 +29,12 @@ export const PROGRESS_TABS: { id: ProgressTab; label: string; icon: string }[] =
   { id: 'badges', label: 'Badges', icon: 'ribbon-outline' },
 ];
 
+// Color palette for children without a colorCode
+const CHILD_COLORS = [
+  '#3B82F6', '#10B981', '#F59E0B', '#EF4444',
+  '#8B5CF6', '#EC4899', '#06B6D4', '#F97316',
+];
+
 interface ChildProgressData {
   child: User | undefined;
   progress: AthleteProgress | null;
@@ -33,33 +42,79 @@ interface ChildProgressData {
   badges: BadgeAward[];
 }
 
+function getInitials(name: string): string {
+  return name
+    .split(' ')
+    .map((w) => w[0])
+    .join('')
+    .toUpperCase()
+    .slice(0, 2);
+}
+
 export function useChildProgress() {
-  const { childId } = useLocalSearchParams<{ childId: string }>();
-  useAuth();
+  const { childId: paramChildId } = useLocalSearchParams<{ childId: string }>();
+  const { currentUser } = useAuth();
 
   const [activeTab, setActiveTab] = useState<ProgressTab>('overview');
+  const [selectedChildId, setSelectedChildId] = useState<string | undefined>(paramChildId);
+  const [switcherChildren, setSwitcherChildren] = useState<SwitcherChild[]>([]);
+  const [activeChildId, setActiveChildId] = useState<string | null>(null);
+
+  const isParent = hasChildren(currentUser);
+
+  // Load children list + active child for switcher
+  useEffect(() => {
+    if (!isParent || !currentUser?.id) {
+      setSwitcherChildren([]);
+      return;
+    }
+
+    (async () => {
+      const children = await childService.getChildren(currentUser.id);
+      const storedActiveId = await childService.getActiveChildId();
+      setActiveChildId(storedActiveId);
+
+      const mapped: SwitcherChild[] = children.map((c, i) => ({
+        id: c.id,
+        name: c.nickname || c.firstName,
+        initials: getInitials(`${c.firstName} ${c.lastName}`),
+        colorCode: CHILD_COLORS[i % CHILD_COLORS.length],
+      }));
+      setSwitcherChildren(mapped);
+
+      // Default to active child or param child or first child
+      if (!selectedChildId || selectedChildId === paramChildId) {
+        const defaultId = storedActiveId || paramChildId || children[0]?.id;
+        if (defaultId) {
+          setSelectedChildId(defaultId);
+        }
+      }
+    })();
+  }, [currentUser?.id, isParent, paramChildId]);
+
+  const effectiveChildId = selectedChildId || paramChildId;
 
   const loadData = useCallback(async () => {
-    if (!childId) {
+    if (!effectiveChildId) {
       return err(serviceError('VALIDATION', 'Missing child id for progress screen.'));
     }
 
     try {
-      const childResult = await userService.getUserById(childId);
+      const childResult = await userService.getUserById(effectiveChildId);
       const childData = childResult.success ? childResult.data : undefined;
       if (!childResult.success) {
-        logger.error('Failed to load child profile', { childId, error: childResult.error });
+        logger.error('Failed to load child profile', { childId: effectiveChildId, error: childResult.error });
       }
 
-      const progressData = await progressService.getAthleteProgress(childId, 'parent');
+      const progressData = await progressService.getAthleteProgress(effectiveChildId, 'parent');
       progressData.athleteName = childData?.name || 'Athlete';
 
-      const feedbackData = await progressService.getFeedbackForAthlete(childId, 'parent');
-      const badgesData = await badgeService.listAwardsForAthlete(childId);
+      const feedbackData = await progressService.getFeedbackForAthlete(effectiveChildId, 'parent');
+      const badgesData = await badgeService.listAwardsForAthlete(effectiveChildId);
       const visibleBadges = badgesData.filter((badge) => badge.visibility !== 'coach_only');
 
       logger.info('Child progress loaded', {
-        childId,
+        childId: effectiveChildId,
         sessionCount: progressData.totalSessions,
         feedbackCount: feedbackData.length,
         badgeCount: visibleBadges.length,
@@ -75,11 +130,11 @@ export function useChildProgress() {
       logger.error('Failed to load child progress', error);
       return err(serviceError('UNKNOWN', 'Failed to load child progress data.', error));
     }
-  }, [childId]);
+  }, [effectiveChildId]);
 
   const { data, status, error, refreshing, onRefresh, retry } = useScreen<ChildProgressData>({
     load: loadData,
-    deps: [childId],
+    deps: [effectiveChildId],
     isEmpty: (value) => !value.child,
     refetchOnFocus: true,
   });
@@ -88,6 +143,11 @@ export function useChildProgress() {
   const progress = data?.progress ?? null;
   const feedback = data?.feedback ?? [];
   const badges = data?.badges ?? [];
+
+  const handleSelectChild = useCallback((childId: string) => {
+    setSelectedChildId(childId);
+    setActiveTab('overview');
+  }, []);
 
   const getTrendInfo = useCallback(
     (palette: { success: string; error: string; muted: string }) => {
@@ -119,24 +179,11 @@ export function useChildProgress() {
     setActiveTab,
     handleRefresh: onRefresh,
     getTrendInfo,
-  } satisfies {
-    loading: boolean;
-    status: ScreenStatus;
-    error: ServiceError | null;
-    refreshing: boolean;
-    onRefresh: () => void;
-    retry: () => void;
-    child: User | undefined;
-    progress: AthleteProgress | null;
-    feedback: SessionFeedback[];
-    badges: BadgeAward[];
-    activeTab: ProgressTab;
-    setActiveTab: (value: ProgressTab) => void;
-    handleRefresh: () => void;
-    getTrendInfo: (palette: { success: string; error: string; muted: string }) => {
-      icon: string;
-      color: string;
-      label: string;
-    };
+    // Child switcher
+    switcherChildren,
+    selectedChildId: effectiveChildId,
+    activeChildId,
+    handleSelectChild,
+    isParent,
   };
 }
