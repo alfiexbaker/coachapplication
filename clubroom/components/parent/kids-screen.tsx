@@ -11,10 +11,10 @@ import { SurfaceCard } from '@/components/primitives/surface-card';
 import { Row } from '@/components/primitives/row';
 import { Spacing, withAlpha } from '@/constants/theme';
 import { useAuth } from '@/hooks/use-auth';
+import { useChildContext } from '@/hooks/use-child-context';
 import { createLogger } from '@/utils/logger';
 import { useTheme } from '@/hooks/useTheme';
 import { bookingService } from '@/services/booking-service';
-import { childService } from '@/services/child-service';
 import { formatShortDateWithYear } from '@/utils/format';
 import type { Booking } from '@/constants/app-types';
 import { styles } from './kids-screen-styles';
@@ -27,77 +27,21 @@ const formatSkillLevel = (skillLevel?: string) => skillLevel?.toLowerCase();
 
 export function ParentKidsScreen() {
   const { colors: palette } = useTheme();
-  const { currentUser, availableUsers } = useAuth();
-  const [fallbackChildren, setFallbackChildren] = useState<KidSummary[]>([]);
+  const { currentUser } = useAuth();
+  const { children: contextChildren } = useChildContext();
   const [nextSessionsByChild, setNextSessionsByChild] = useState<
     Record<string, Booking | undefined>
   >({});
 
-  const linkedChildren = useMemo<KidSummary[]>(() => {
-    return (currentUser?.children || [])
-      .filter((child) => Boolean(child.childId))
-      .map((child) => {
-        const linkedUser = availableUsers.find((user) => user.id === child.childId);
-        const skillLevel = formatSkillLevel(linkedUser?.skillLevel);
-        const metadata =
-          linkedUser?.position && skillLevel
-            ? `${linkedUser.position} • ${skillLevel}`
-            : linkedUser?.position || skillLevel;
-
-        return {
-          id: child.childId,
-          name: child.childName || linkedUser?.name || 'Child',
-          avatar: linkedUser?.avatar,
-          metadata,
-        };
-      });
-  }, [availableUsers, currentUser?.children]);
-
-  const children = linkedChildren.length > 0 ? linkedChildren : fallbackChildren;
-
-  useFocusEffect(
-    useCallback(() => {
-      let active = true;
-
-      const loadFallbackChildren = async () => {
-        if (!currentUser?.id) {
-          if (active) {
-            setFallbackChildren([]);
-          }
-          return;
-        }
-
-        if (linkedChildren.length > 0) {
-          if (active) {
-            setFallbackChildren([]);
-          }
-          return;
-        }
-
-        const profiles = await childService.getChildren(currentUser.id);
-        if (!active) {
-          return;
-        }
-
-        setFallbackChildren(
-          profiles.map((child) => {
-            const age = child.dateOfBirth ? childService.getAge(child.dateOfBirth) : null;
-            return {
-              id: child.id,
-              name: child.nickname || `${child.firstName} ${child.lastName}`.trim(),
-              avatar: child.photoUrl,
-              metadata: age !== null ? `Age ${age}` : undefined,
-            };
-          }),
-        );
-      };
-
-      void loadFallbackChildren();
-
-      return () => {
-        active = false;
-      };
-    }, [currentUser?.id, linkedChildren]),
+  const children = useMemo<KidSummary[]>(
+    () =>
+      contextChildren.map((c) => ({
+        id: c.id,
+        name: c.name,
+        avatar: c.avatarUrl ?? undefined,
+        metadata: c.age !== null ? `Age ${c.age}` : undefined,
+      })),
+    [contextChildren],
   );
 
   useFocusEffect(

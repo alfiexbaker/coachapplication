@@ -25,9 +25,9 @@ import { useScreen } from '@/hooks/use-screen';
 import { ok } from '@/types/result';
 import type { ThemeColors } from '@/hooks/useTheme';
 import { useAuth } from '@/hooks/use-auth';
+import { useChildContext } from '@/hooks/use-child-context';
 import { progressService } from '@/services/progress-service';
 import { scaleFont } from '@/utils/scale';
-import { hasChildren } from '@/utils/user-helpers';
 
 const logger = createLogger('CreateGoalScreen');
 
@@ -37,6 +37,7 @@ const logger = createLogger('CreateGoalScreen');
 export default function CreateGoalScreen() {
   const { colors: palette } = useScreen<null>({ load: async () => ok(null), isEmpty: () => false });
   const { currentUser } = useAuth();
+  const { isParent } = useChildContext();
   const params = useLocalSearchParams<{ editId?: string }>();
   const editId = params.editId;
 
@@ -71,7 +72,7 @@ export default function CreateGoalScreen() {
   const getCreatorType = useCallback((): GoalCreator => {
     if (!currentUser) return 'ATHLETE';
     if (currentUser.role === 'COACH') return 'COACH';
-    if (hasChildren(currentUser)) return 'PARENT';
+    if (isParent) return 'PARENT';
     return 'ATHLETE';
   }, [currentUser]);
 

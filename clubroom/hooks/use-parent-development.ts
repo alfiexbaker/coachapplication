@@ -5,6 +5,7 @@ import { useEffect, useMemo, useState, useCallback } from 'react';
 import { Platform } from 'react-native';
 import * as Haptics from 'expo-haptics';
 import { useAuth } from '@/hooks/use-auth';
+import { useChildContext } from '@/hooks/use-child-context';
 import { ensureCoachSessionsSeeded } from '@/services/coach-session-seed-service';
 import { createLogger } from '@/utils/logger';
 import type { BadgeAward, SkillProgress, Goal, Session } from '@/constants/types';
@@ -17,27 +18,23 @@ const logger = createLogger('ParentDevelopmentScreen');
 export type DevTabType = 'progress' | 'badges' | 'goals';
 
 export function useParentDevelopment() {
-  const { currentUser, availableUsers } = useAuth();
+  const { currentUser } = useAuth();
+  const { children: contextChildren } = useChildContext();
 
   const userId = currentUser?.id;
-  const children = useMemo<User[]>(() => {
-    if (!currentUser?.children || currentUser.children.length === 0) {
-      return [];
-    }
-
-    return currentUser.children.map((childRef) => {
-      const linkedUser = availableUsers.find((user) => user.id === childRef.childId);
-      return {
-        id: childRef.childId,
-        name: childRef.childName || linkedUser?.name || 'Child',
-        email: linkedUser?.email || '',
-        role: linkedUser?.role || 'USER',
-        postcode: linkedUser?.postcode || '',
-        dateOfBirth: linkedUser?.dateOfBirth || '',
-        avatar: linkedUser?.avatar,
-      };
-    });
-  }, [availableUsers, currentUser?.children]);
+  const children = useMemo<User[]>(
+    () =>
+      contextChildren.map((c) => ({
+        id: c.id,
+        name: c.name,
+        email: '',
+        role: 'USER' as const,
+        postcode: '',
+        dateOfBirth: c.dateOfBirth || '',
+        avatar: c.avatarUrl ?? undefined,
+      })),
+    [contextChildren],
+  );
 
   const firstChildId = children[0]?.id;
 

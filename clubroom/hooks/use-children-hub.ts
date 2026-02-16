@@ -5,10 +5,11 @@
  * recent badge awards, and active child state.
  */
 
-import { useCallback, useState, useEffect } from 'react';
+import { useCallback } from 'react';
 import { Alert } from 'react-native';
 
 import { useAuth } from '@/hooks/use-auth';
+import { useChildContext } from '@/hooks/use-child-context';
 import { useScreen } from '@/hooks/use-screen';
 import { apiClient } from '@/services/api-client';
 import { childService, type ChildProfile } from '@/services/child-service';
@@ -42,12 +43,12 @@ export type ChildrenHubData = {
 
 export function useChildrenHub() {
   const { currentUser } = useAuth();
-  const [activeChildId, setActiveChildIdState] = useState<string | null>(null);
-
-  // Load active child ID on mount
-  useEffect(() => {
-    childService.getActiveChildId().then(setActiveChildIdState);
-  }, []);
+  const {
+    children: contextChildren,
+    activeChildId,
+    setActiveChildId: contextSetActiveChildId,
+    refresh: refreshContext,
+  } = useChildContext();
 
   const loadData = useCallback(async () => {
     if (!currentUser?.id) {
@@ -61,8 +62,12 @@ export function useChildrenHub() {
       });
     }
 
+    // TRAP 8: context.children is sync — pull out of async block
+    const childrenData: ChildProfile[] = contextChildren
+      .map((c) => c.profile)
+      .filter((p): p is ChildProfile => p !== null);
+
     try {
-      const childrenData = await childService.getChildren(currentUser.id);
       const stats: Record<string, ChildStats> = {};
       const allRecentBadges: BadgeAward[] = [];
       const sessions = await apiClient.get<Session[]>('coach_sessions', []);
@@ -103,10 +108,6 @@ export function useChildrenHub() {
         0,
       );
 
-      // Refresh active child ID
-      const storedActiveId = await childService.getActiveChildId();
-      setActiveChildIdState(storedActiveId);
-
       return ok<ChildrenHubData>({
         children: childrenData,
         childStats: stats,
@@ -118,7 +119,7 @@ export function useChildrenHub() {
     } catch (loadError) {
       return err(serviceError('UNKNOWN', 'Failed to load children hub data.', loadError));
     }
-  }, [currentUser?.id]);
+  }, [currentUser?.id, contextChildren]);
 
   const { data, status, error, refreshing, onRefresh, retry } = useScreen<ChildrenHubData>({
     load: loadData,
@@ -148,13 +149,10 @@ export function useChildrenHub() {
 
   const handleSetActiveChild = useCallback(
     async (childId: string) => {
-      const child = resolved.children.find((c) => c.id === childId);
-      const name = child ? `${child.firstName} ${child.lastName}` : undefined;
-      await childService.setActiveChildId(childId, name);
-      setActiveChildIdState(childId);
-      logger.info('active_child_set', { childId, name });
+      await contextSetActiveChildId(childId);
+      logger.info('active_child_set', { childId });
     },
-    [resolved.children],
+    [contextSetActiveChildId],
   );
 
   const handleRemoveChild = useCallback(
@@ -171,20 +169,20 @@ export function useChildrenHub() {
             text: 'Remove',
             style: 'destructive',
             onPress: async () => {
+              // TRAP 9: mutations stay as service calls, then refresh context
               await childService.deleteChild(childId);
-              // Clear active child if it was the removed one
               if (activeChildId === childId) {
-                await childService.setActiveChildId(null);
-                setActiveChildIdState(null);
+                await contextSetActiveChildId(null);
               }
               logger.info('child_removed', { childId, displayName });
+              await refreshContext();
               onRefresh();
             },
           },
         ],
       );
     },
-    [resolved.children, activeChildId, onRefresh],
+    [resolved.children, activeChildId, onRefresh, contextSetActiveChildId, refreshContext],
   );
 
   return {

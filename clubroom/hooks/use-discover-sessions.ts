@@ -8,9 +8,9 @@ import { apiClient } from '@/services/api-client';
 import { bookingService } from '@/services/booking';
 import { inviteService } from '@/services/invite';
 import { useAuth } from '@/hooks/use-auth';
+import { useChildContext } from '@/hooks/use-child-context';
 import { useScreen, type ScreenStatus } from '@/hooks/use-screen';
 import type { SessionOffering, FootballObjective } from '@/constants/types';
-import { hasChildren } from '@/utils/user-helpers';
 import { createLogger } from '@/utils/logger';
 import { getSessionOfferingCoachName } from '@/utils/session-display';
 import { err, ok, serviceError, type ServiceError } from '@/types/result';
@@ -61,6 +61,7 @@ export interface UseDiscoverSessionsResult {
 
 export function useDiscoverSessions() {
   const { currentUser } = useAuth();
+  const { children: contextChildren, isParent } = useChildContext();
 
   const [searchQuery, setSearchQuery] = useState('');
   const [skillFilter, setSkillFilter] = useState<FootballObjective | ''>('');
@@ -74,10 +75,9 @@ export function useDiscoverSessions() {
       if (currentUser?.id) {
         viewerIds.add(currentUser.id);
       }
-      const relatedChildren = hasChildren(currentUser) ? (currentUser?.children ?? []) : [];
-      for (const child of relatedChildren) {
-        if (child.childId) {
-          viewerIds.add(child.childId);
+      if (isParent) {
+        for (const child of contextChildren) {
+          viewerIds.add(child.id);
         }
       }
 

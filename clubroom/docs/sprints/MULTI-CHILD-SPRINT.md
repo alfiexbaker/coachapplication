@@ -763,12 +763,20 @@ WHAT DOES NOT COUNT:
 - Events on different days (obviously)
 - Events that are adjacent but not overlapping (5:00-6:00 and 6:00-7:00 → OK)
 
+CRITICAL: WARNINGS, NOT BLOCKS.
+Conflicts are informational — parents can dismiss them. Two parents, two cars,
+carpool, grandparents — families handle overlaps in ways we can't predict.
+Never prevent booking or RSVP based on a conflict. Just surface the overlap
+so they can make an informed decision.
+
 UX RULES:
 - Conflict indicator on the calendar event card: amber warning icon
 - Tapping shows: "Overlaps with Emma's Clinic at 5pm" — specific, not generic
 - Conflict banner at top of day view if any conflicts exist
+- Banner is DISMISSIBLE — "Got it" button. Dismissed state persists for that day.
 - Single-child parent: conflict detection disabled (impossible)
 - Must not slow rendering. Max O(n log n) per day.
+- NEVER block navigation, booking, or RSVP based on conflicts.
 
 RESEARCH (read ALL):
 1. hooks/use-family-calendar.ts — ENTIRE (how events load, FamilyCalendarEvent

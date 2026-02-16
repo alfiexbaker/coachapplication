@@ -11,9 +11,9 @@ import { ThemedText } from '@/components/themed-text';
 import { ChildSwitcher } from '@/components/ChildSwitcher';
 import { NotificationBell } from '@/components/ui/notification-bell';
 import { Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
-import { hasChildren } from '@/utils/user-helpers';
 import { useTheme } from '@/hooks/useTheme';
 import { useHomeScreen } from '@/hooks/use-home-screen';
+import { TodayFamilySummary } from './today-family-summary';
 import {
   StatsRow,
   StreakCard,
@@ -38,11 +38,16 @@ export function UserHomeScreen() {
     setSelectedChildId,
     onRefresh,
     upcomingBookings,
+    familyBookingRows,
+    isMultiChild,
+    isParent,
+    contextChildren,
   } = useHomeScreen();
 
   if (!currentUser) return null;
 
   const nextSession = upcomingBookings[0];
+  const showFamilySummary = isMultiChild && selectedChildId === null;
 
   return (
     <SafeAreaView
@@ -72,12 +77,12 @@ export function UserHomeScreen() {
           <NotificationBell size={20} />
         </Row>
 
-        {hasChildren(currentUser) && currentUser.children && (
+        {isParent && (
           <ChildSwitcher
-            childrenList={currentUser.children}
+            childrenList={contextChildren.map((c) => ({ childId: c.id, childName: c.name }))}
             selectedId={selectedChildId}
             onSelect={setSelectedChildId}
-            showAll={false}
+            showAll={isMultiChild}
           />
         )}
 
@@ -104,7 +109,11 @@ export function UserHomeScreen() {
         <StatsRow stats={stats} />
         {streakInfo && <StreakCard streakInfo={streakInfo} />}
         <QuickActionsGrid />
-        <NextSessionCard booking={nextSession} />
+        {showFamilySummary ? (
+          <TodayFamilySummary rows={familyBookingRows} />
+        ) : (
+          <NextSessionCard booking={nextSession} />
+        )}
         <RecentBadgesSection badges={recentBadges} />
         <MyClubsSection clubs={clubs} />
       </ScrollView>

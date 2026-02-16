@@ -8,10 +8,10 @@ import { Alert } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 import { Routes } from '@/navigation/routes';
 import { useAuth } from '@/hooks/use-auth';
+import { useChildContext } from '@/hooks/use-child-context';
 import { useScreen } from '@/hooks/use-screen';
 import { recurringBookingService } from '@/services/recurring-booking-service';
 import { discoverService } from '@/services/discover-service';
-import { hasChildren } from '@/utils/user-helpers';
 import { createLogger } from '@/utils/logger';
 import type { CreateRecurringBookingParams, CoachProfile } from '@/constants/types';
 import { ok } from '@/types/result';
@@ -42,6 +42,7 @@ const mapCoachProfileToOption = (coach: CoachProfile): CoachOption => ({
 
 export function useSubscribe() {
   const { currentUser, availableUsers } = useAuth();
+  const { children: contextChildren, isParent } = useChildContext();
   const params = useLocalSearchParams<{ coachId?: string }>();
 
   const [selectedCoach, setSelectedCoach] = useState<CoachOption | null>(null);
@@ -87,12 +88,11 @@ export function useSubscribe() {
 
   const athletes = useMemo(() => {
     if (!currentUser?.id || currentUser.role === 'COACH') return undefined;
-    if (hasChildren(currentUser)) {
-      const children = currentUser.children || [];
-      return children.map((child) => ({ id: child.childId, name: child.childName || 'Child' }));
+    if (isParent) {
+      return contextChildren.map((c) => ({ id: c.id, name: c.name }));
     }
     return [{ id: currentUser.id, name: currentUser.fullName || 'Me' }];
-  }, [currentUser]);
+  }, [currentUser, isParent, contextChildren]);
 
   useEffect(() => {
     if (params.coachId) {

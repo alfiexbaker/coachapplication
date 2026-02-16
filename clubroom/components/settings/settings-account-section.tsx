@@ -1,4 +1,4 @@
-import React, { memo, useCallback, useEffect, useState } from 'react';
+import React, { memo, useCallback } from 'react';
 import { Alert } from 'react-native';
 import { router } from 'expo-router';
 import { Routes } from '@/navigation/routes';
@@ -8,7 +8,7 @@ import { SurfaceCard } from '@/components/primitives/surface-card';
 import { Column } from '@/components/primitives/column';
 import { SettingsRow } from '@/components/settings/settings-row';
 import { useAuth } from '@/hooks/use-auth';
-import { childService } from '@/services/child-service';
+import { useChildContext } from '@/hooks/use-child-context';
 import { createLogger } from '@/utils/logger';
 
 const logger = createLogger('SettingsAccountSection');
@@ -21,26 +21,11 @@ export const SettingsAccountSection = memo(function SettingsAccountSection({
   role,
 }: SettingsAccountSectionProps) {
   const { currentUser } = useAuth();
-  const [childCount, setChildCount] = useState(0);
-  const [activeChildName, setActiveChildName] = useState<string | null>(null);
+  const { children: contextChildren, activeChild } = useChildContext();
 
   const isCoach = role === 'COACH';
-
-  // Load child count + active child name from childService storage
-  useEffect(() => {
-    if (!currentUser?.id || isCoach) return;
-    (async () => {
-      const children = await childService.getChildren(currentUser.id);
-      setChildCount(children.length);
-      const activeId = await childService.getActiveChildId();
-      if (activeId) {
-        const active = children.find((c) => c.id === activeId);
-        if (active) {
-          setActiveChildName(active.nickname || active.firstName);
-        }
-      }
-    })();
-  }, [currentUser?.id, isCoach]);
+  const childCount = contextChildren.length;
+  const activeChildName = activeChild?.name ?? null;
 
   const handleEditProfile = useCallback(() => {
     logger.press('EditProfile');

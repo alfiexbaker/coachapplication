@@ -13,11 +13,11 @@ import { useState, useMemo, useEffect, useCallback } from 'react';
 import { router } from 'expo-router';
 
 import { useAuth } from '@/hooks/use-auth';
+import { useChildContext } from '@/hooks/use-child-context';
 import { useScreen } from '@/hooks/use-screen';
 import { useTheme } from '@/hooks/useTheme';
 import { badgeService } from '@/services/badge-service';
 import { apiClient } from '@/services/api-client';
-import { hasChildren } from '@/utils/user-helpers';
 import { Routes } from '@/navigation/routes';
 import type { Session, User } from '@/constants/types';
 import { err, ok, serviceError } from '@/types/result';
@@ -58,32 +58,26 @@ interface StatisticsLoadData {
 }
 
 export function useStatistics() {
-  const { currentUser, availableUsers } = useAuth();
+  const { currentUser } = useAuth();
+  const { children: contextChildren, isParent } = useChildContext();
   const { colors: palette } = useTheme();
 
   const children = useMemo<User[]>(() => {
-    if (currentUser && hasChildren(currentUser)) {
-      return (currentUser.children || []).map((childRef) => {
-        const linkedUser = availableUsers.find((user) => user.id === childRef.childId);
-        return {
-          id: childRef.childId,
-          name: childRef.childName || linkedUser?.name || 'Child',
-          email: linkedUser?.email || '',
-          role: linkedUser?.role || 'USER',
-          postcode: linkedUser?.postcode || '',
-          dateOfBirth: linkedUser?.dateOfBirth || '',
-          avatar: linkedUser?.avatar,
-        };
-      });
-    }
-    return [];
-  }, [availableUsers, currentUser]);
+    if (!isParent) return [];
+    return contextChildren.map((c) => ({
+      id: c.id,
+      name: c.name,
+      email: '',
+      role: 'USER' as const,
+      postcode: '',
+      dateOfBirth: c.dateOfBirth || '',
+      avatar: c.avatarUrl ?? undefined,
+    }));
+  }, [contextChildren, isParent]);
 
   const [selectedChildId, setSelectedChildId] = useState<string>(
     children.length > 0 ? children[0].id : '',
   );
-
-  const isParent = hasChildren(currentUser);
   const targetId = isParent ? selectedChildId : currentUser?.id;
 
   useEffect(() => {

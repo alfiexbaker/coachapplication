@@ -12,9 +12,9 @@ import { useState, useMemo, useCallback, useEffect } from 'react';
 import { Alert } from 'react-native';
 
 import { useAuth } from '@/hooks/use-auth';
+import { useChildContext } from '@/hooks/use-child-context';
 import { useScreen, type ScreenStatus } from '@/hooks/use-screen';
 import { apiClient } from '@/services/api-client';
-import { hasChildren } from '@/utils/user-helpers';
 import { toDateStr } from '@/utils/format';
 import type { AthleteObjective, FootballObjective } from '@/constants/types';
 import type { User } from '@/constants/app-types';
@@ -63,7 +63,8 @@ interface ObjectivesLoadData {
 }
 
 export function useObjectives() {
-  const { currentUser, availableUsers } = useAuth();
+  const { currentUser } = useAuth();
+  const { children: contextChildren, isParent } = useChildContext();
 
   const [objectives, setObjectives] = useState<AthleteObjective[]>([]);
   const [showModal, setShowModal] = useState(false);
@@ -98,22 +99,17 @@ export function useObjectives() {
 
   // Parent-specific: child selection
   const children = useMemo<User[]>(() => {
-    if (currentUser && hasChildren(currentUser)) {
-      return (currentUser.children || []).map((childRef) => {
-        const linkedUser = availableUsers.find((user) => user.id === childRef.childId);
-        return {
-          id: childRef.childId,
-          name: childRef.childName || linkedUser?.name || 'Child',
-          email: linkedUser?.email || '',
-          role: linkedUser?.role || 'USER',
-          postcode: linkedUser?.postcode || '',
-          dateOfBirth: linkedUser?.dateOfBirth || '',
-          avatar: linkedUser?.avatar,
-        };
-      });
-    }
-    return [];
-  }, [availableUsers, currentUser]);
+    if (!isParent) return [];
+    return contextChildren.map((c) => ({
+      id: c.id,
+      name: c.name,
+      email: '',
+      role: 'USER' as const,
+      postcode: '',
+      dateOfBirth: c.dateOfBirth || '',
+      avatar: c.avatarUrl ?? undefined,
+    }));
+  }, [contextChildren, isParent]);
 
   const [selectedChildId, setSelectedChildId] = useState<string>(
     children.length > 0 ? children[0].id : '',
@@ -124,8 +120,6 @@ export function useObjectives() {
       setSelectedChildId(children[0].id);
     }
   }, [children, selectedChildId]);
-
-  const isParent = hasChildren(currentUser);
 
   // Filter objectives by selected child for parents
   const filteredObjectives = useMemo(() => {

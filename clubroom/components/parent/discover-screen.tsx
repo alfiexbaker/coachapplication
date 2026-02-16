@@ -12,13 +12,13 @@ import { ThemedText } from '@/components/themed-text';
 import { withAlpha } from '@/constants/theme';
 import { Clickable } from '@/components/primitives/clickable';
 import { useAuth } from '@/hooks/use-auth';
+import { useChildContext } from '@/hooks/use-child-context';
 import { useTheme } from '@/hooks/useTheme';
 import { apiClient } from '@/services/api-client';
 import { availabilityService } from '@/services/availability-service';
 import { inviteService as sessionInviteService } from '@/services/invite';
 import { bookingService } from '@/services/booking-service';
 import { socialFeedService } from '@/services/social-feed-service';
-import { childService } from '@/services/child-service';
 import { discoverService } from '@/services/discover-service';
 import { createLogger } from '@/utils/logger';
 import { toDateStr } from '@/utils/format';
@@ -49,6 +49,7 @@ interface StoredReview {
 export function ParentDiscoverScreen() {
   const { colors: palette } = useTheme();
   const { currentUser } = useAuth();
+  const { children: contextChildren } = useChildContext();
   const [postcode, setPostcode] = useState('');
   const [children, setChildren] = useState<ChildOption[]>([]);
   const [allCoaches, setAllCoaches] = useState<CoachOption[]>([]);
@@ -68,41 +69,8 @@ export function ParentDiscoverScreen() {
     if (children.length > 0 && !selectedChildId) setSelectedChildId(children[0].id);
   }, [children, selectedChildId]);
   useEffect(() => {
-    let active = true;
-    const loadChildren = async () => {
-      if (!currentUser?.id) {
-        if (active) {
-          setChildren([]);
-        }
-        return;
-      }
-      const linkedChildren = (currentUser.children || [])
-        .filter((child) => Boolean(child.childId))
-        .map((child) => ({
-          id: child.childId,
-          name: child.childName || 'Child',
-        }));
-      if (linkedChildren.length > 0) {
-        if (active) {
-          setChildren(linkedChildren);
-        }
-        return;
-      }
-      const childProfiles = await childService.getChildren(currentUser.id);
-      if (active) {
-        setChildren(
-          childProfiles.map((child) => ({
-            id: child.id,
-            name: formatChildName(child),
-          })),
-        );
-      }
-    };
-    void loadChildren();
-    return () => {
-      active = false;
-    };
-  }, [currentUser?.id, currentUser?.children]);
+    setChildren(contextChildren.map((c) => ({ id: c.id, name: c.name })));
+  }, [contextChildren]);
   useEffect(() => {
     let active = true;
     const loadCoaches = async () => {

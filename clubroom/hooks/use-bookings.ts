@@ -17,8 +17,8 @@ import { ServiceEvents } from '@/services/event-bus';
 import { apiClient } from '@/services/api-client';
 import { STORAGE_KEYS } from '@/constants/storage-keys';
 import { useAuth } from '@/hooks/use-auth';
+import { useChildContext } from '@/hooks/use-child-context';
 import { useScreen } from '@/hooks/use-screen';
-import { hasChildren } from '@/utils/user-helpers';
 import { createLogger } from '@/utils/logger';
 import { getSessionInviteCoachName } from '@/utils/session-invite-display';
 import { getBookingAthleteName } from '@/utils/booking-display';
@@ -84,6 +84,7 @@ interface BookingsScreenData {
 
 export function useBookings(): UseBookingsResult {
   const { currentUser } = useAuth();
+  const { children: contextChildren, isParent } = useChildContext();
   const [timeFilter, setTimeFilter] = useState<TimeFilter>('upcoming');
   const [selectedOffering, setSelectedOffering] = useState<SessionOffering | null>(null);
   const [showDetailModal, setShowDetailModal] = useState(false);
@@ -202,11 +203,10 @@ export function useBookings(): UseBookingsResult {
     if (currentUser?.id) {
       viewerIds.add(currentUser.id);
     }
-    const relatedChildren = hasChildren(currentUser) ? (currentUser?.children ?? []) : [];
-    for (const child of relatedChildren) {
-        if (child.childId) {
-          viewerIds.add(child.childId);
-        }
+    if (isParent) {
+      for (const child of contextChildren) {
+        viewerIds.add(child.id);
+      }
     }
 
     const myRegisteredOfferings = sessionOfferings.filter((offering) =>

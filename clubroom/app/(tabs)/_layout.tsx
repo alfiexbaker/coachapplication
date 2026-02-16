@@ -23,10 +23,6 @@ type UserWithSimplifiedFields = {
   isSystemAdmin?: boolean;
 };
 
-export const hasChildren = (user: UserWithSimplifiedFields | null): boolean => {
-  return Boolean(user?.children && user.children.length > 0);
-};
-
 export const isAthlete = (user: UserWithSimplifiedFields | null): boolean => {
   return Boolean(user?.skillLevel);
 };

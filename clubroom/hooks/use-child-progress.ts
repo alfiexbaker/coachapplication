@@ -1,7 +1,8 @@
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback, useEffect, useMemo } from 'react';
 import { useLocalSearchParams } from 'expo-router';
 
 import { useAuth } from '@/hooks/use-auth';
+import { useChildContext } from '@/hooks/use-child-context';
 import { useScreen, type ScreenStatus } from '@/hooks/use-screen';
 import {
   progressService,
@@ -10,8 +11,6 @@ import {
 } from '@/services/progress-service';
 import { badgeService } from '@/services/badge-service';
 import { userService } from '@/services/user-service';
-import { childService, type ChildProfile } from '@/services/child-service';
-import { hasChildren } from '@/utils/user-helpers';
 import { createLogger } from '@/utils/logger';
 import type { BadgeAward, User } from '@/constants/types';
 import { err, ok, serviceError, type ServiceError } from '@/types/result';
@@ -29,12 +28,6 @@ export const PROGRESS_TABS: { id: ProgressTab; label: string; icon: string }[] =
   { id: 'badges', label: 'Badges', icon: 'ribbon-outline' },
 ];
 
-// Color palette for children without a colorCode
-const CHILD_COLORS = [
-  '#3B82F6', '#10B981', '#F59E0B', '#EF4444',
-  '#8B5CF6', '#EC4899', '#06B6D4', '#F97316',
-];
-
 interface ChildProgressData {
   child: User | undefined;
   progress: AthleteProgress | null;
@@ -42,55 +35,39 @@ interface ChildProgressData {
   badges: BadgeAward[];
 }
 
-function getInitials(name: string): string {
-  return name
-    .split(' ')
-    .map((w) => w[0])
-    .join('')
-    .toUpperCase()
-    .slice(0, 2);
-}
-
 export function useChildProgress() {
   const { childId: paramChildId } = useLocalSearchParams<{ childId: string }>();
   const { currentUser } = useAuth();
+  const {
+    children: contextChildren,
+    activeChildId: contextActiveChildId,
+    isParent,
+  } = useChildContext();
 
   const [activeTab, setActiveTab] = useState<ProgressTab>('overview');
   const [selectedChildId, setSelectedChildId] = useState<string | undefined>(paramChildId);
-  const [switcherChildren, setSwitcherChildren] = useState<SwitcherChild[]>([]);
-  const [activeChildId, setActiveChildId] = useState<string | null>(null);
 
-  const isParent = hasChildren(currentUser);
-
-  // Load children list + active child for switcher
-  useEffect(() => {
-    if (!isParent || !currentUser?.id) {
-      setSwitcherChildren([]);
-      return;
-    }
-
-    (async () => {
-      const children = await childService.getChildren(currentUser.id);
-      const storedActiveId = await childService.getActiveChildId();
-      setActiveChildId(storedActiveId);
-
-      const mapped: SwitcherChild[] = children.map((c, i) => ({
+  // Derive switcher children from context
+  const switcherChildren = useMemo<SwitcherChild[]>(
+    () =>
+      contextChildren.map((c) => ({
         id: c.id,
-        name: c.nickname || c.firstName,
-        initials: getInitials(`${c.firstName} ${c.lastName}`),
-        colorCode: CHILD_COLORS[i % CHILD_COLORS.length],
-      }));
-      setSwitcherChildren(mapped);
+        name: c.name,
+        initials: c.initials,
+        colorCode: c.colorCode,
+      })),
+    [contextChildren],
+  );
 
-      // Default to active child or param child or first child
-      if (!selectedChildId || selectedChildId === paramChildId) {
-        const defaultId = storedActiveId || paramChildId || children[0]?.id;
-        if (defaultId) {
-          setSelectedChildId(defaultId);
-        }
+  // Default to context active child or param child or first child
+  useEffect(() => {
+    if (!selectedChildId || selectedChildId === paramChildId) {
+      const defaultId = contextActiveChildId || paramChildId || contextChildren[0]?.id;
+      if (defaultId) {
+        setSelectedChildId(defaultId);
       }
-    })();
-  }, [currentUser?.id, isParent, paramChildId]);
+    }
+  }, [contextChildren, contextActiveChildId, paramChildId]);
 
   const effectiveChildId = selectedChildId || paramChildId;
 
@@ -182,7 +159,7 @@ export function useChildProgress() {
     // Child switcher
     switcherChildren,
     selectedChildId: effectiveChildId,
-    activeChildId,
+    activeChildId: contextActiveChildId,
     handleSelectChild,
     isParent,
   };

@@ -1,10 +1,10 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
 
 import { useAuth } from '@/hooks/use-auth';
+import { useChildContext } from '@/hooks/use-child-context';
 import { groupSessionService } from '@/services/group-session-service';
 import { squadService } from '@/services/squad-service';
 import { socialFeedService } from '@/services/social-feed-service';
-import { hasChildren } from '@/utils/user-helpers';
 import { createLogger } from '@/utils/logger';
 import type { GroupSession, ClubSquad } from '@/constants/types';
 
@@ -24,7 +24,7 @@ export function useTrainingSchedule() {
   const [selectedSquadId, setSelectedSquadId] = useState<string | null>(null);
   const [clubName, setClubName] = useState('');
 
-  const userHasChildren = hasChildren(currentUser);
+  const { isParent: userHasChildren } = useChildContext();
   const isCoach = currentUser?.role === 'COACH' || currentUser?.role === 'ADMIN';
 
   const loadData = useCallback(async () => {

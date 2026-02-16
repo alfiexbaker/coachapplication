@@ -4,7 +4,8 @@ import { router } from 'expo-router';
 import { Routes } from '@/navigation/routes';
 
 import { useAuth } from '@/hooks/use-auth';
-import { hasChildren, isCoach as checkIsCoach } from '@/utils/user-helpers';
+import { useChildContext } from '@/hooks/use-child-context';
+import { isCoach as checkIsCoach } from '@/utils/user-helpers';
 import { createLogger } from '@/utils/logger';
 
 const logger = createLogger('useSettingsHub');
@@ -13,7 +14,7 @@ export function useSettingsHub() {
   const { currentUser, logout } = useAuth();
 
   const isCoach = checkIsCoach(currentUser);
-  const userHasChildren = hasChildren(currentUser);
+  const { isParent: userHasChildren } = useChildContext();
 
   const handleLogout = useCallback(() => {
     Alert.alert('Sign Out', 'Are you sure you want to sign out?', [

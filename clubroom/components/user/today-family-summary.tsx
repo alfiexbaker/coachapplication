@@ -1,0 +1,107 @@
+/**
+ * TodayFamilySummary — Merged upcoming sessions for multi-child parents in "All" mode.
+ * Shows deduplicated booking rows with color-coded child names.
+ */
+import { memo, useCallback } from 'react';
+import { View, StyleSheet } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
+import { router, type Href } from 'expo-router';
+import { Routes } from '@/navigation/routes';
+
+import { Row } from '@/components/primitives/row';
+import { SurfaceCard } from '@/components/primitives/surface-card';
+import { ThemedText } from '@/components/themed-text';
+import { Spacing, Typography } from '@/constants/theme';
+import { useTheme } from '@/hooks/useTheme';
+import { formatTime } from '@/utils/format';
+import type { Booking } from '@/constants/app-types';
+import type { FamilyBookingRow } from '@/types/family-booking';
+
+interface TodayFamilySummaryProps {
+  rows: FamilyBookingRow[];
+}
+
+function buildChildLabel(row: FamilyBookingRow): string {
+  return row.children.map((c) => c.name).join(' + ');
+}
+
+function buildAccessibilityLabel(row: FamilyBookingRow): string {
+  const names = buildChildLabel(row);
+  const service = row.booking.coachName || 'Session';
+  const time = formatTime(row.booking.scheduledAt);
+  return names ? `${names}: ${service} at ${time}` : `${service} at ${time}`;
+}
+
+export const TodayFamilySummary = memo(function TodayFamilySummary({
+  rows,
+}: TodayFamilySummaryProps) {
+  const { colors: palette } = useTheme();
+
+  const handleRowPress = useCallback((booking: Booking) => {
+    router.push(Routes.booking(booking.id) as Href);
+  }, []);
+
+  if (rows.length === 0) {
+    return (
+      <View style={styles.emptyContainer}>
+        <ThemedText type="heading">Upcoming Sessions</ThemedText>
+        <ThemedText style={[styles.mutedText, { color: palette.muted }]}>
+          No upcoming sessions
+        </ThemedText>
+      </View>
+    );
+  }
+
+  return (
+    <View style={styles.container}>
+      <ThemedText type="heading">Upcoming Sessions</ThemedText>
+      {rows.map((row) => (
+        <SurfaceCard
+          key={row.booking.id}
+          onPress={() => handleRowPress(row.booking)}
+          accessibilityLabel={buildAccessibilityLabel(row)}
+        >
+          <Row align="center" gap="sm">
+            {row.children.length > 0 && (
+              <Row gap="micro" align="center">
+                {row.children.map((child) => (
+                  <View
+                    key={child.id}
+                    style={[styles.colorDot, { backgroundColor: child.colorCode }]}
+                  />
+                ))}
+              </Row>
+            )}
+            <View style={styles.bookingInfo}>
+              {row.children.length > 0 && (
+                <ThemedText
+                  style={[styles.childName, { color: row.children[0]?.colorCode }]}
+                  numberOfLines={1}
+                >
+                  {buildChildLabel(row)}
+                </ThemedText>
+              )}
+              <ThemedText style={[styles.mutedText, { color: palette.muted }]} numberOfLines={1}>
+                {row.booking.coachName || 'Session'}
+              </ThemedText>
+            </View>
+            <ThemedText style={styles.timeText}>
+              {formatTime(row.booking.scheduledAt)}
+            </ThemedText>
+            <Ionicons name="chevron-forward" size={16} color={palette.icon} />
+          </Row>
+        </SurfaceCard>
+      ))}
+    </View>
+  );
+});
+
+const styles = StyleSheet.create({
+  container: { gap: Spacing.xs },
+  emptyContainer: { gap: Spacing.xs },
+  colorDot: { width: 8, height: 8, borderRadius: 4 },
+  bookingInfo: { flex: 1, minWidth: 0, gap: Spacing.micro },
+  childName: { ...Typography.bodySmallSemiBold },
+  mutedText: { ...Typography.bodySmall },
+  timeText: { ...Typography.bodySmallSemiBold },
+});

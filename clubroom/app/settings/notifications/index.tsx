@@ -9,14 +9,15 @@ import { ThemedText } from '@/components/themed-text';
 import { Spacing, Typography } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
 import { useAuth } from '@/hooks/use-auth';
+import { useChildContext } from '@/hooks/use-child-context';
 import { createLogger } from '@/utils/logger';
-import { hasChildren } from '@/utils/user-helpers';
 
 const logger = createLogger('NotificationSettings');
 
 export default function NotificationSettingsScreen() {
   const { colors: palette } = useTheme();
   const { currentUser } = useAuth();
+  const { isParent: userHasChildren } = useChildContext();
 
   // Push notification settings
   const [pushEnabled, setPushEnabled] = useState(true);
@@ -40,8 +41,6 @@ export default function NotificationSettingsScreen() {
   const [progressUpdates, setProgressUpdates] = useState(true);
 
   const isCoach = currentUser?.role === 'COACH';
-  const userHasChildren = hasChildren(currentUser);
-
   const handleToggle = (name: string, value: boolean, setter: (v: boolean) => void) => {
     logger.debug(`Toggle ${name}`, { newValue: value });
     setter(value);
