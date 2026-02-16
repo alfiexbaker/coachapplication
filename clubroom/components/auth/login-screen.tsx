@@ -1,44 +1,293 @@
 /**
- * LoginScreen - Authentication entry point using unified form system.
+ * LoginScreen — Clean, self-contained authentication screen.
+ *
+ * Deliberately keeps imports minimal to avoid a Hermes lazy-compile
+ * SIGABRT that occurs with the full dependency tree on iOS simulator
+ * (Expo 54 / Hermes / RN 0.81).
  */
 
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import {
   Alert,
   KeyboardAvoidingView,
   Platform,
-  StyleSheet,
-  View,
+  Pressable,
   ScrollView,
+  StyleSheet,
+  TextInput,
+  View,
   useWindowDimensions,
 } from 'react-native';
-import ReAnimated, {
+import Animated, {
   useSharedValue,
   useAnimatedStyle,
   withTiming,
   withDelay,
 } from 'react-native-reanimated';
-import { Ionicons } from '@expo/vector-icons';
-// import { useEventListener } from 'expo';
-// import { VideoView, useVideoPlayer } from 'expo-video';
-import { Clickable } from '@/components/primitives/clickable';
-import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { SurfaceCard } from '@/components/primitives/surface-card';
 import { ThemedText } from '@/components/themed-text';
-import { FormInput, FormButton } from '@/components/forms';
-import { useForm } from '@/hooks/use-form';
-import { validators } from '@/utils/validation';
-import { Radii, Spacing, Typography, withAlpha } from '@/constants/theme';
+import { Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
 import { useAuth } from '@/hooks/use-auth';
-import CoachSignupScreen, { CoachSignupData } from './coach-signup-screen';
-import OnboardingScreen from './onboarding-screen';
 
-import { SignupCard, InviteCodeCard, DemoAccountsCard } from './login-screen-sections';
-import { Row } from '@/components/primitives';
+// ─── Types ──────────────────────────────────────────────────────────────────
 
-// Re-export extracted components for backward compat
+type ScreenMode = 'login' | 'signup' | 'coach-signup';
+
+// ─── Component ──────────────────────────────────────────────────────────────
+
+export default function LoginScreen() {
+  const { colors: palette } = useTheme();
+  const { width: screenWidth } = useWindowDimensions();
+  const { login, error, availableUsers } = useAuth();
+
+  const [screenMode, setScreenMode] = useState<ScreenMode>('login');
+  const [username, setUsername] = useState('');
+  const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
+  const [showDemo, setShowDemo] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+
+  // ── Animations ────────────────────────────────────────────────────────
+  const cardOpacity = useSharedValue(0);
+  const cardTranslate = useSharedValue(24);
+
+  useEffect(() => {
+    cardOpacity.value = withDelay(100, withTiming(1, { duration: 500 }));
+    cardTranslate.value = withDelay(100, withTiming(0, { duration: 500 }));
+  }, [cardOpacity, cardTranslate]);
+
+  const cardStyle = useAnimatedStyle(() => ({
+    opacity: cardOpacity.value,
+    transform: [{ translateY: cardTranslate.value }],
+  }));
+
+  // ── Handlers ──────────────────────────────────────────────────────────
+  const handleLogin = useCallback(async () => {
+    if (!username.trim() || !password.trim()) return;
+    setSubmitting(true);
+    try {
+      await login(username.trim(), password.trim());
+    } finally {
+      setSubmitting(false);
+    }
+  }, [username, password, login]);
+
+  const handleDemoSelect = useCallback(
+    (user: { username: string; password: string }) => {
+      setUsername(user.username);
+      setPassword(user.password);
+    },
+    [],
+  );
+
+  const isDesktop = screenWidth >= 980;
+  const canSubmit = username.trim().length > 0 && password.trim().length > 0 && !submitting;
+
+  // ── Signup / Coach signup — lazy load to keep this file lean ─────────
+  if (screenMode === 'signup') {
+    const OnboardingScreen = require('./onboarding-screen').default;
+    return (
+      <OnboardingScreen
+        onComplete={() => {}}
+        onBackToLogin={() => setScreenMode('login')}
+      />
+    );
+  }
+
+  if (screenMode === 'coach-signup') {
+    const CoachSignupScreen = require('./coach-signup-screen').default;
+    return (
+      <CoachSignupScreen
+        onSignupComplete={() => setScreenMode('login')}
+        onBackToLogin={() => setScreenMode('login')}
+      />
+    );
+  }
+
+  // ── Render ─────────────────────────────────────────────────────────────
+  return (
+    <View style={[styles.root, { backgroundColor: palette.text }]}>
+      <KeyboardAvoidingView
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        style={styles.flex}
+      >
+        <ScrollView
+          contentContainerStyle={styles.scroll}
+          keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={false}
+          bounces={false}
+        >
+          {/* ── Hero ──────────────────────────────────────────────── */}
+          <View style={styles.hero}>
+            <View style={[styles.badge, { backgroundColor: withAlpha(palette.onPrimary, 0.14) }]}>
+              <ThemedText style={[styles.badgeLabel, { color: palette.onPrimary }]}>
+                Clubroom
+              </ThemedText>
+            </View>
+            <ThemedText style={[styles.heroTitle, { color: palette.onPrimary }]}>
+              JUST TRAIN.
+            </ThemedText>
+            <ThemedText style={[styles.heroSub, { color: withAlpha(palette.onPrimary, 0.8) }]}>
+              Find coaches. Book sessions. Track every rep.
+            </ThemedText>
+          </View>
+
+          {/* ── Auth Card ─────────────────────────────────────────── */}
+          <Animated.View
+            style={[
+              styles.card,
+              {
+                backgroundColor: palette.surface,
+                borderColor: withAlpha(palette.text, 0.08),
+                maxWidth: isDesktop ? 440 : undefined,
+              },
+              cardStyle,
+            ]}
+          >
+            <ThemedText style={styles.cardTitle}>Welcome back</ThemedText>
+            <ThemedText style={[styles.cardSub, { color: palette.muted }]}>
+              Sign in or create your account.
+            </ThemedText>
+
+            {/* Username */}
+            <View style={styles.fieldWrap}>
+              <ThemedText style={[styles.label, { color: palette.muted }]}>Username</ThemedText>
+              <TextInput
+                style={[
+                  styles.input,
+                  {
+                    backgroundColor: withAlpha(palette.text, 0.04),
+                    borderColor: withAlpha(palette.text, 0.12),
+                    color: palette.text,
+                  },
+                ]}
+                value={username}
+                onChangeText={setUsername}
+                placeholder="e.g. coach"
+                placeholderTextColor={withAlpha(palette.text, 0.35)}
+                autoCapitalize="none"
+                autoCorrect={false}
+                returnKeyType="next"
+              />
+            </View>
+
+            {/* Password */}
+            <View style={styles.fieldWrap}>
+              <ThemedText style={[styles.label, { color: palette.muted }]}>Password</ThemedText>
+              <View style={styles.passwordRow}>
+                <TextInput
+                  style={[
+                    styles.input,
+                    styles.passwordInput,
+                    {
+                      backgroundColor: withAlpha(palette.text, 0.04),
+                      borderColor: withAlpha(palette.text, 0.12),
+                      color: palette.text,
+                    },
+                  ]}
+                  value={password}
+                  onChangeText={setPassword}
+                  placeholder="••••••••"
+                  placeholderTextColor={withAlpha(palette.text, 0.35)}
+                  secureTextEntry={!showPassword}
+                  returnKeyType="go"
+                  onSubmitEditing={handleLogin}
+                />
+                <Pressable
+                  onPress={() => setShowPassword((p) => !p)}
+                  style={styles.eyeBtn}
+                  hitSlop={12}
+                >
+                  <ThemedText style={[styles.eyeText, { color: palette.muted }]}>
+                    {showPassword ? 'Hide' : 'Show'}
+                  </ThemedText>
+                </Pressable>
+              </View>
+            </View>
+
+            {/* Error / hint */}
+            {error ? (
+              <ThemedText style={[styles.hint, { color: palette.error }]}>{error}</ThemedText>
+            ) : (
+              <ThemedText style={[styles.hint, { color: palette.muted }]}>
+                Credentials are case-insensitive.
+              </ThemedText>
+            )}
+
+            {/* Login button */}
+            <Pressable
+              onPress={handleLogin}
+              disabled={!canSubmit}
+              style={[
+                styles.btn,
+                {
+                  backgroundColor: canSubmit ? palette.tint : withAlpha(palette.tint, 0.4),
+                },
+              ]}
+            >
+              <ThemedText style={[styles.btnLabel, { color: palette.onPrimary }]}>
+                {submitting ? 'Signing in...' : 'Log in'}
+              </ThemedText>
+            </Pressable>
+
+            {/* Divider */}
+            <View style={[styles.divider, { backgroundColor: withAlpha(palette.text, 0.08) }]} />
+
+            {/* Create account / Invite code */}
+            <Pressable
+              onPress={() => setScreenMode('signup')}
+              style={[styles.secondaryBtn, { borderColor: withAlpha(palette.tint, 0.2) }]}
+            >
+              <ThemedText style={[styles.secondaryLabel, { color: palette.tint }]}>
+                Create account
+              </ThemedText>
+            </Pressable>
+
+            <Pressable
+              onPress={() => setScreenMode('coach-signup')}
+              style={[styles.secondaryBtn, { borderColor: withAlpha(palette.text, 0.12) }]}
+            >
+              <ThemedText style={[styles.secondaryLabel, { color: palette.text }]}>
+                Use invite code
+              </ThemedText>
+            </Pressable>
+
+            {/* Demo accounts */}
+            <Pressable
+              onPress={() => setShowDemo((p) => !p)}
+              style={[styles.demoToggle, { borderColor: withAlpha(palette.text, 0.1) }]}
+            >
+              <ThemedText style={[styles.demoToggleText, { color: palette.muted }]}>
+                {showDemo ? 'Hide demo credentials' : 'Show demo credentials'}
+              </ThemedText>
+            </Pressable>
+
+            {showDemo &&
+              availableUsers.slice(0, 4).map((user) => (
+                <Pressable
+                  key={user.username}
+                  onPress={() => handleDemoSelect(user)}
+                  style={[styles.demoRow, { borderBottomColor: withAlpha(palette.text, 0.06) }]}
+                >
+                  <View style={[styles.rolePill, { backgroundColor: withAlpha(palette.tint, 0.12) }]}>
+                    <ThemedText style={[styles.roleText, { color: palette.tint }]}>
+                      {user.role}
+                    </ThemedText>
+                  </View>
+                  <ThemedText style={[styles.demoCred, { color: palette.text }]}>
+                    {user.username} / {user.password}
+                  </ThemedText>
+                </Pressable>
+              ))}
+          </Animated.View>
+        </ScrollView>
+      </KeyboardAvoidingView>
+    </View>
+  );
+}
+
+// Re-exports for backward compat (used by other files)
 export { SignupCard, InviteCodeCard, DemoAccountsCard } from './login-screen-sections';
 export type {
   SignupCardProps,
@@ -46,414 +295,29 @@ export type {
   DemoAccountsCardProps,
 } from './login-screen-sections';
 
-type ScreenMode = 'login' | 'signup' | 'coach-signup';
-
-interface LoginFormValues {
-  username: string;
-  password: string;
-}
-
-const LOGIN_VIDEO_URI = 'https://interactive-examples.mdn.mozilla.net/media/cc0-videos/flower.mp4';
-
-export default function LoginScreen() {
-  const { colors: palette } = useTheme();
-  const { width: screenWidth, height: screenHeight } = useWindowDimensions();
-  const { login, error, availableUsers, registerCoach, forgotPassword } = useAuth();
-
-  const [screenMode, setScreenMode] = useState<ScreenMode>('login');
-  const [videoFailed, setVideoFailed] = useState(false);
-  const [showDemoAccounts, setShowDemoAccounts] = useState(false);
-  const heroOpacity = useSharedValue(0);
-  const heroTranslate = useSharedValue(20);
-  const authOpacity = useSharedValue(0);
-  const authTranslate = useSharedValue(24);
-
-  const isDesktop = screenWidth >= 980;
-  const cardMaxHeight = Math.max(500, Math.min(760, screenHeight - 72));
-  const heroTitle = useMemo(
-    () => (isDesktop ? 'JUST TRAIN.\nWE HANDLE THE REST.' : 'JUST TRAIN.'),
-    [isDesktop],
-  );
-  // Video disabled — expo-video crashes Expo Go 54.0.6 on simulator (SIGABRT / memory alloc failure).
-  // Re-enable once running via development build or Expo Go is updated.
-  // const backgroundPlayer = useVideoPlayer(LOGIN_VIDEO_URI, (player) => {
-  //   player.loop = true;
-  //   player.muted = true;
-  //   player.play();
-  // });
-  // useEventListener(backgroundPlayer, 'statusChange', ({ status }) => {
-  //   if (status === 'error') setVideoFailed(true);
-  // });
-  const videoDisabled = true;
-
-  const form = useForm<LoginFormValues>({
-    initialValues: {
-      username: '',
-      password: '',
-    },
-    validators: {
-      username: validators.required('Username is required'),
-      password: validators.required('Password is required'),
-    },
-    onSubmit: async (values) => {
-      login(values.username, values.password);
-    },
-  });
-
-  useEffect(() => {
-    // Hero fades in first
-    heroOpacity.value = withTiming(1, { duration: 420 });
-    heroTranslate.value = withTiming(0, { duration: 420 });
-    // Auth card fades in 110ms later (stagger)
-    authOpacity.value = withDelay(110, withTiming(1, { duration: 480 }));
-    authTranslate.value = withDelay(110, withTiming(0, { duration: 480 }));
-  }, [authOpacity, authTranslate, heroOpacity, heroTranslate]);
-
-  const handleSignupComplete = (data: CoachSignupData) => {
-    const success = registerCoach(data);
-    if (success) {
-      setScreenMode('login');
-    }
-  };
-
-  const handleOnboardingComplete = () => {
-    // User is already auto-logged in by registerFromOnboarding
-  };
-
-  const handleForgotPassword = async () => {
-    const typedIdentity = form.values.username.trim();
-    const fallbackIdentity = 'coach';
-    const rawIdentity = typedIdentity || fallbackIdentity;
-    const email = rawIdentity.includes('@') ? rawIdentity : `${rawIdentity}@demo.clubroom.app`;
-
-    await forgotPassword(email);
-    Alert.alert(
-      'Reset requested',
-      `If ${email} exists, password reset instructions have been sent.`,
-    );
-  };
-
-  const handleUseDemoUser = (user: { username: string; password: string; role: string }) => {
-    form.setFieldValue('username', user.username);
-    form.setFieldValue('password', user.password);
-    form.clearErrors();
-  };
-
-  if (screenMode === 'signup') {
-    return (
-      <OnboardingScreen
-        onComplete={handleOnboardingComplete}
-        onBackToLogin={() => setScreenMode('login')}
-      />
-    );
-  }
-
-  if (screenMode === 'coach-signup') {
-    return (
-      <CoachSignupScreen
-        onSignupComplete={handleSignupComplete}
-        onBackToLogin={() => setScreenMode('login')}
-      />
-    );
-  }
-
-  const heroAnimatedStyle = useAnimatedStyle(() => ({
-    opacity: heroOpacity.value,
-    transform: [{ translateY: heroTranslate.value }],
-  }));
-
-  const authAnimatedStyle = useAnimatedStyle(() => ({
-    opacity: authOpacity.value,
-    transform: [{ translateY: authTranslate.value }],
-  }));
-
-  return (
-    <View
-      style={[styles.safeArea, { backgroundColor: palette.text }]}
-    >
-      <View style={styles.root}>
-        {!videoFailed && !videoDisabled && (
-          <VideoView
-            player={backgroundPlayer}
-            style={styles.backgroundVideo}
-            contentFit="cover"
-            nativeControls={false}
-            allowsFullscreen={false}
-            allowsPictureInPicture={false}
-          />
-        )}
-
-        <View
-          style={[
-            styles.backdrop,
-            {
-              backgroundColor: withAlpha(palette.text, videoFailed ? 0.9 : 0.62),
-              pointerEvents: 'none',
-            },
-          ]}
-        />
-        <View
-          style={[
-            styles.edgeGlow,
-            {
-              backgroundColor: withAlpha(palette.tint, 0.26),
-              pointerEvents: 'none',
-            },
-          ]}
-        />
-
-        <KeyboardAvoidingView
-          behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-          style={styles.wrapper}
-        >
-          <ScrollView
-            style={styles.pageScroll}
-            contentContainerStyle={[
-              styles.pageScrollContent,
-              isDesktop ? { minHeight: screenHeight - Spacing.md } : null,
-            ]}
-            keyboardShouldPersistTaps="handled"
-            showsVerticalScrollIndicator={false}
-            bounces={false}
-          >
-            <View style={[styles.layout, isDesktop ? styles.layoutDesktop : styles.layoutMobile]}>
-              <ReAnimated.View
-                style={[
-                  styles.hero,
-                  isDesktop ? styles.heroDesktop : styles.heroMobile,
-                  heroAnimatedStyle,
-                ]}
-              >
-                <View
-                  style={[styles.badge, { backgroundColor: withAlpha(palette.onPrimary, 0.14) }]}
-                >
-                  <ThemedText style={[styles.badgeText, { color: palette.onPrimary }]}>
-                    Clubroom
-                  </ThemedText>
-                </View>
-
-                <ThemedText
-                  style={[
-                    styles.heroTitle,
-                    {
-                      color: palette.onPrimary,
-                      fontSize: isDesktop ? 54 : 40,
-                      lineHeight: isDesktop ? 62 : 46,
-                    },
-                  ]}
-                >
-                  {heroTitle}
-                </ThemedText>
-                <ThemedText
-                  style={[styles.heroSubtitle, { color: withAlpha(palette.onPrimary, 0.84) }]}
-                >
-                  Find coaches. Book sessions. Track every rep.
-                </ThemedText>
-
-                <View style={styles.statementRow}>
-                  {['BOOK', 'TRACK', 'IMPROVE'].map((item) => (
-                    <View
-                      key={item}
-                      style={[
-                        styles.statementPill,
-                        { backgroundColor: withAlpha(palette.onPrimary, 0.14) },
-                      ]}
-                    >
-                      <ThemedText style={[styles.statementText, { color: palette.onPrimary }]}>
-                        {item}
-                      </ThemedText>
-                    </View>
-                  ))}
-                </View>
-              </ReAnimated.View>
-
-              <ReAnimated.View
-                style={[
-                  styles.authDock,
-                  isDesktop ? styles.authDockDesktop : styles.authDockMobile,
-                  authAnimatedStyle,
-                ]}
-              >
-                <SurfaceCard
-                  style={[
-                    styles.authCard,
-                    {
-                      backgroundColor: withAlpha(palette.surface, isDesktop ? 0.93 : 0.97),
-                      borderColor: withAlpha(palette.text, 0.1),
-                      maxHeight: isDesktop ? cardMaxHeight : undefined,
-                    },
-                  ]}
-                  animateElevation={false}
-                >
-                  <View style={styles.authContent}>
-                    <View>
-                      <ThemedText style={styles.authTitle}>Welcome back</ThemedText>
-                      <ThemedText style={[styles.authSubtitle, { color: palette.muted }]}>
-                        Sign in or create your account.
-                      </ThemedText>
-                    </View>
-
-                    <FormInput
-                      label="Username"
-                      placeholder="e.g. coach"
-                      autoCapitalize="none"
-                      autoCorrect={false}
-                      returnKeyType="next"
-                      {...form.getFieldProps('username')}
-                    />
-
-                    <View style={styles.fieldGroup}>
-                      <Row style={styles.labelRow}>
-                        <View />
-                        <Clickable onPress={() => void handleForgotPassword()}>
-                          <ThemedText style={[styles.forgotLink, { color: palette.tint }]}>
-                            Forgot password?
-                          </ThemedText>
-                        </Clickable>
-                      </Row>
-                      <FormInput
-                        label="Password"
-                        placeholder="••••••••"
-                        type="password"
-                        returnKeyType="go"
-                        {...form.getFieldProps('password')}
-                      />
-                    </View>
-
-                    {error ? (
-                      <ThemedText style={[styles.helper, { color: palette.error }]}>
-                        {error}
-                      </ThemedText>
-                    ) : (
-                      <ThemedText style={[styles.helper, { color: palette.muted }]}>
-                        Credentials are case-insensitive.
-                      </ThemedText>
-                    )}
-
-                    <FormButton
-                      label="Log in"
-                      onPress={form.handleSubmit}
-                      disabled={!form.isDirty}
-                      loading={form.isSubmitting}
-                      size="lg"
-                    />
-
-                    <View
-                      style={[styles.separator, { backgroundColor: withAlpha(palette.text, 0.1) }]}
-                    />
-
-                    <View style={styles.actionsStack}>
-                      <SignupCard onPress={() => setScreenMode('signup')} palette={palette} />
-                      <InviteCodeCard
-                        onPress={() => setScreenMode('coach-signup')}
-                        palette={palette}
-                      />
-                    </View>
-
-                    <Clickable
-                      style={[
-                        styles.demoToggle,
-                        {
-                          backgroundColor: withAlpha(palette.text, 0.03),
-                          borderColor: withAlpha(palette.text, 0.1),
-                        },
-                      ]}
-                      onPress={() => setShowDemoAccounts((prev) => !prev)}
-                    >
-                      <ThemedText style={styles.demoToggleLabel}>Demo credentials</ThemedText>
-                      <Ionicons
-                        name={showDemoAccounts ? 'chevron-up' : 'chevron-down'}
-                        size={16}
-                        color={palette.muted}
-                      />
-                    </Clickable>
-
-                    {showDemoAccounts ? (
-                      <DemoAccountsCard
-                        users={availableUsers}
-                        palette={palette}
-                        onSelectUser={handleUseDemoUser}
-                      />
-                    ) : null}
-                  </View>
-                </SurfaceCard>
-              </ReAnimated.View>
-            </View>
-          </ScrollView>
-        </KeyboardAvoidingView>
-      </View>
-    </View>
-  );
-}
+// ─── Styles ────────────────────────────────────────────────────────────────
 
 const styles = StyleSheet.create({
-  safeArea: {
-    flex: 1,
-  },
-  root: {
-    flex: 1,
-  },
-  backgroundVideo: {
-    ...StyleSheet.absoluteFillObject,
-  },
-  backdrop: {
-    ...StyleSheet.absoluteFillObject,
-  },
-  edgeGlow: {
-    position: 'absolute',
-    top: -120,
-    right: -120,
-    width: '72%',
-    maxWidth: 360,
-    aspectRatio: 1,
-    borderRadius: Radii.full,
-    opacity: 0.45,
-  },
-  wrapper: {
-    flex: 1,
-  },
-  pageScroll: {
-    flex: 1,
-  },
-  pageScrollContent: {
+  root: { flex: 1 },
+  flex: { flex: 1 },
+  scroll: {
     flexGrow: 1,
-    width: '100%',
-  },
-  layout: {
-    flexGrow: 1,
-    width: '100%',
-    gap: Spacing.lg,
-  },
-  layoutDesktop: {
-    flexDirection: 'row',
-    paddingHorizontal: Spacing['2xl'],
-    paddingVertical: Spacing.xl,
-    alignItems: 'stretch',
-    justifyContent: 'space-between',
-  },
-  layoutMobile: {
     paddingHorizontal: Spacing.lg,
-    paddingVertical: Spacing.lg,
-    justifyContent: 'flex-start',
+    paddingBottom: Spacing['2xl'],
   },
+  // Hero
   hero: {
-    gap: Spacing.md,
-  },
-  heroDesktop: {
-    flex: 1,
-    justifyContent: 'center',
-    maxWidth: 640,
-  },
-  heroMobile: {
-    paddingTop: Spacing.sm,
+    paddingTop: Spacing['3xl'],
+    paddingBottom: Spacing.lg,
+    gap: Spacing.sm,
   },
   badge: {
     alignSelf: 'flex-start',
     borderRadius: Radii.pill,
     paddingHorizontal: Spacing.sm,
-    paddingVertical: Spacing.xs,
+    paddingVertical: Spacing.xxs,
   },
-  badgeText: {
+  badgeLabel: {
     ...Typography.caption,
     letterSpacing: 1.3,
     textTransform: 'uppercase',
@@ -461,87 +325,82 @@ const styles = StyleSheet.create({
   heroTitle: {
     ...Typography.display,
     fontWeight: '700',
-    maxWidth: 700,
   },
-  heroSubtitle: {
+  heroSub: {
     ...Typography.subheading,
-    maxWidth: 500,
   },
-  statementRow: {
-    marginTop: Spacing.sm,
-    gap: Spacing.xs,
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-  },
-  statementPill: {
-    borderRadius: Radii.pill,
-    paddingHorizontal: Spacing.sm,
-    paddingVertical: Spacing.xs,
-  },
-  statementText: {
-    ...Typography.caption,
-    fontWeight: '700',
-    letterSpacing: 1,
-  },
-  authDock: {
-    width: '100%',
-  },
-  authDockDesktop: {
-    width: '100%',
-    maxWidth: 470,
-    justifyContent: 'center',
-  },
-  authDockMobile: {
-    width: '100%',
-    marginTop: Spacing.md,
-  },
-  authCard: {
-    borderWidth: 1,
+  // Card
+  card: {
     borderRadius: Radii['2xl'],
+    borderWidth: 1,
     padding: Spacing.md,
-    minHeight: 0,
-  },
-  authContent: {
     gap: Spacing.md,
-    paddingBottom: Spacing.xs,
   },
-  authTitle: {
+  cardTitle: {
     ...Typography.title,
   },
-  authSubtitle: {
-    ...Typography.bodySmall,
-    marginTop: Spacing.xxs,
-  },
-  fieldGroup: {
-    gap: Spacing.xs,
-  },
-  labelRow: {
-    justifyContent: 'flex-end',
-    alignItems: 'center',
-    marginBottom: -Spacing.sm,
-  },
-  forgotLink: {
-    ...Typography.bodySmallSemiBold,
-  },
-  helper: {
+  cardSub: {
     ...Typography.bodySmall,
     marginTop: -Spacing.xs,
   },
-  separator: {
-    height: StyleSheet.hairlineWidth,
+  // Fields
+  fieldWrap: { gap: Spacing.xxs },
+  label: { ...Typography.caption },
+  input: {
+    height: 44,
+    borderRadius: Radii.md,
+    borderWidth: 1,
+    paddingHorizontal: Spacing.sm,
+    ...Typography.body,
   },
-  actionsStack: {
-    gap: Spacing.sm,
+  passwordRow: { position: 'relative' },
+  passwordInput: { paddingRight: 64 },
+  eyeBtn: {
+    position: 'absolute',
+    right: Spacing.sm,
+    top: 0,
+    bottom: 0,
+    justifyContent: 'center',
   },
+  eyeText: { ...Typography.bodySmallSemiBold },
+  hint: { ...Typography.bodySmall, marginTop: -Spacing.xs },
+  // Buttons
+  btn: {
+    height: 48,
+    borderRadius: Radii.md,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  btnLabel: { ...Typography.bodySemiBold },
+  divider: { height: StyleSheet.hairlineWidth },
+  secondaryBtn: {
+    height: 44,
+    borderRadius: Radii.lg,
+    borderWidth: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  secondaryLabel: { ...Typography.bodySemiBold },
+  // Demo
   demoToggle: {
     borderWidth: 1,
     borderRadius: Radii.lg,
-    paddingHorizontal: Spacing.sm,
     paddingVertical: Spacing.sm,
     alignItems: 'center',
-    justifyContent: 'space-between',
   },
-  demoToggleLabel: {
-    ...Typography.bodySmallSemiBold,
+  demoToggleText: { ...Typography.bodySmallSemiBold },
+  demoRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.sm,
+    paddingVertical: Spacing.xs,
+    borderBottomWidth: StyleSheet.hairlineWidth,
   },
+  rolePill: {
+    paddingHorizontal: Spacing.sm,
+    paddingVertical: 2,
+    borderRadius: Radii.pill,
+  },
+  roleText: { ...Typography.caption, textTransform: 'uppercase' },
+  demoCred: { ...Typography.small, fontFamily: Platform.select({ ios: 'Menlo', default: 'monospace' }) },
 });

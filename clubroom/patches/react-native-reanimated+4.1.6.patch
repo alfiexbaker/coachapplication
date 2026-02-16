@@ -1,0 +1,18 @@
+diff --git a/node_modules/react-native-reanimated/Common/cpp/reanimated/LayoutAnimations/LayoutAnimationsProxy.cpp b/node_modules/react-native-reanimated/Common/cpp/reanimated/LayoutAnimations/LayoutAnimationsProxy.cpp
+index 6574d2d..fa21095 100644
+--- a/node_modules/react-native-reanimated/Common/cpp/reanimated/LayoutAnimations/LayoutAnimationsProxy.cpp
++++ b/node_modules/react-native-reanimated/Common/cpp/reanimated/LayoutAnimations/LayoutAnimationsProxy.cpp
+@@ -801,6 +801,13 @@ void LayoutAnimationsProxy::transferConfigFromNativeID(
+   if (nativeIdString.empty()) {
+     return;
+   }
++  // Guard: only parse if all characters are digits (avoids std::stoi throwing
++  // across dylib boundaries where catch may not work due to RTTI mismatch).
++  for (char c : nativeIdString) {
++    if (c < '0' || c > '9') {
++      return;
++    }
++  }
+   try {
+     auto nativeId = stoi(nativeIdString);
+     layoutAnimationsManager_->transferConfigFromNativeID(nativeId, tag);

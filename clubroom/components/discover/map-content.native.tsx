@@ -438,8 +438,8 @@ export default function MapContent(props: MapContentProps) {
       >
         <BottomSheetFlatList
           data={coaches}
-          keyExtractor={(item) => item.coach.id}
-          renderItem={({ item }) => (
+          keyExtractor={(item: CoachSearchResult) => item.coach.id}
+          renderItem={({ item }: { item: CoachSearchResult }) => (
             <CoachSheetItem
               coach={item.coach}
               selected={item.coach.id === selectedCoachId}

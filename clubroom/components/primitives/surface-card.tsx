@@ -123,12 +123,18 @@ export function SurfaceCard({
     return buildLinearGradientUri([...colors], Radii.lg);
   }, [scheme, shimmerColors]);
 
-  const animatedCardStyle = useAnimatedStyle(() => {
-    const pressedBackground =
-      scheme === 'light' ? lightenHex(palette.card, 0.04) : darkenHex(palette.card, 0.06);
-    const pressedBorder =
-      scheme === 'light' ? lightenHex(palette.border, 0.25) : lightenHex(palette.border, 0.1);
+  // Precompute pressed colors on JS thread (non-worklet functions can't run in worklets)
+  const pressedBackground = useMemo(
+    () => (scheme === 'light' ? lightenHex(palette.card, 0.04) : darkenHex(palette.card, 0.06)),
+    [palette.card, scheme],
+  );
+  const pressedBorder = useMemo(
+    () =>
+      scheme === 'light' ? lightenHex(palette.border, 0.25) : lightenHex(palette.border, 0.1),
+    [palette.border, scheme],
+  );
 
+  const animatedCardStyle = useAnimatedStyle(() => {
     const shadowOpacity = animateElevation
       ? baseShadow.shadowOpacity + pressed.value * (scheme === 'light' ? 0.08 : 0.1)
       : baseShadow.shadowOpacity;

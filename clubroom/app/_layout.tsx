@@ -50,6 +50,7 @@ function RootNavigation() {
     userRole: currentUser?.role,
     username: currentUser?.username,
   });
+
   // Register push token for authenticated users.
   useEffect(() => {
     if (!isAuthenticated) return;
@@ -111,133 +112,9 @@ function RootNavigation() {
       {isAuthenticated ? (
         <ToastProvider>
           <NotificationToastProvider>
-            <Stack screenOptions={{ headerShown: false }}>
-              <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-              <Stack.Screen
-                name="(modal)/post-detail"
-                options={{
-                  presentation: 'modal',
-                  headerShown: false,
-                  animation: 'slide_from_bottom',
-                }}
-              />
-              <Stack.Screen
-                name="(modal)/create-post"
-                options={{
-                  presentation: 'modal',
-                  headerShown: false,
-                  animation: 'slide_from_bottom',
-                }}
-              />
-              <Stack.Screen
-                name="(modal)/add-child"
-                options={{
-                  presentation: 'modal',
-                  headerShown: false,
-                  animation: 'slide_from_bottom',
-                }}
-              />
-              <Stack.Screen
-                name="book-coach"
-                options={{
-                  presentation: 'modal',
-                  headerShown: false,
-                }}
-              />
-              <Stack.Screen
-                name="confirm-booking"
-                options={{
-                  presentation: 'modal',
-                  headerShown: false,
-                }}
-              />
-              <Stack.Screen
-                name="development/athlete/[athleteId]"
-                options={{
-                  headerShown: false,
-                  animation: 'slide_from_right',
-                }}
-              />
-              <Stack.Screen
-                name="development/athlete/[athleteId]/special-needs"
-                options={{
-                  headerShown: false,
-                  animation: 'slide_from_right',
-                }}
-              />
-              <Stack.Screen
-                name="development/session/[sessionId]"
-                options={{
-                  headerShown: false,
-                  animation: 'slide_from_right',
-                }}
-              />
-              <Stack.Screen
-                name="development/athlete-session/[sessionId]"
-                options={{
-                  headerShown: false,
-                  animation: 'slide_from_right',
-                }}
-              />
-              <Stack.Screen
-                name="availability/scheduling-rules"
-                options={{
-                  headerShown: false,
-                  animation: 'slide_from_right',
-                }}
-              />
-              <Stack.Screen
-                name="availability/add-template"
-                options={{
-                  headerShown: false,
-                  animation: 'slide_from_right',
-                }}
-              />
-              <Stack.Screen
-                name="availability/edit-template"
-                options={{
-                  headerShown: false,
-                  animation: 'slide_from_right',
-                }}
-              />
-              <Stack.Screen
-                name="availability/calendar"
-                options={{
-                  headerShown: false,
-                  animation: 'slide_from_right',
-                }}
-              />
-              <Stack.Screen
-                name="availability/block-date"
-                options={{
-                  headerShown: false,
-                  animation: 'slide_from_right',
-                }}
-              />
-              <Stack.Screen
-                name="manage/index"
-                options={{
-                  headerShown: false,
-                  animation: 'slide_from_right',
-                }}
-              />
-              <Stack.Screen
-                name="settings"
-                options={{
-                  headerShown: false,
-                  animation: 'slide_from_right',
-                }}
-              />
-              <Stack.Screen
-                name="skills"
-                options={{
-                  headerShown: false,
-                  animation: 'slide_from_right',
-                }}
-              />
-            </Stack>
-            <StatusBar style="auto" />
+            <Stack screenOptions={{ headerShown: false }} />
             <OfflineBanner />
+            <StatusBar style={colorScheme === 'dark' ? 'light' : 'dark'} />
           </NotificationToastProvider>
         </ToastProvider>
       ) : (
