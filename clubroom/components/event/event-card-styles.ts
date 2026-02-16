@@ -109,6 +109,7 @@ export const styles = StyleSheet.create({
     letterSpacing: 0.3,
   },
   compactCard: {
+    flexDirection: 'row',
     alignItems: 'center',
     padding: Spacing.sm,
     marginBottom: Spacing.sm,
@@ -138,7 +139,8 @@ export const styles = StyleSheet.create({
     fontWeight: '600',
   },
   compactDetails: {
-    gap: Spacing.md,
+    flexDirection: 'column',
+    gap: Spacing.xxs,
   },
   compactDetailItem: {
     alignItems: 'center',

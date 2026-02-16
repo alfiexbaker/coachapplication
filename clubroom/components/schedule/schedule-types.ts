@@ -34,6 +34,10 @@ export interface SessionData {
   seriesId?: string;
   seriesIndex?: number;
   seriesTotalWeeks?: number;
+  /** RSVP counts for group sessions — enables at-a-glance attendance badge. */
+  rsvpCounts?: { going: number; maybe: number; notGoing: number; pending: number };
+  /** Whether this is a group session (vs 1-on-1 booking). */
+  isGroupSession?: boolean;
 }
 
 export interface DayEditorConfig {

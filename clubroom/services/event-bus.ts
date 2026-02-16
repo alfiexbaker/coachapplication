@@ -134,6 +134,10 @@ export const ServiceEvents = {
   // Group session events
   OPEN_SESSION_PUBLISHED: 'group_session:open_published',
 
+  // RSVP events
+  RSVP_RESPONDED: 'rsvp:responded',
+  RSVP_DEADLINE_PASSED: 'rsvp:deadline_passed',
+
   // User events
   USER_CREATED: 'user:created',
   USER_UPDATED: 'user:updated',
@@ -372,6 +376,20 @@ export interface EventPayloads {
     clubId?: string;
     clubName?: string;
     imageUrl?: string;
+  };
+
+  // RSVP events
+  [ServiceEvents.RSVP_RESPONDED]: {
+    rsvpId: string;
+    sessionId: string;
+    userId: string;
+    childId?: string;
+    previousStatus: 'going' | 'not_going' | 'maybe' | 'pending';
+    newStatus: 'going' | 'not_going' | 'maybe';
+  };
+  [ServiceEvents.RSVP_DEADLINE_PASSED]: {
+    sessionId: string;
+    pendingCount: number;
   };
 
   // User events

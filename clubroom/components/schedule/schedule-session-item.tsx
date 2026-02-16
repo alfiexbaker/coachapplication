@@ -14,6 +14,7 @@ import { Column } from '@/components/primitives/column';
 import { Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
 import type { SessionData } from './schedule-types';
+import { RsvpMiniBar } from '@/components/group/rsvp-mini-bar';
 
 interface Props {
   session: SessionData;
@@ -84,6 +85,9 @@ export const ScheduleSessionItem = memo(function ScheduleSessionItem({ session, 
               {session.location}
             </ThemedText>
           </Row>
+        )}
+        {session.isGroupSession && session.rsvpCounts && (
+          <RsvpMiniBar counts={session.rsvpCounts} compact />
         )}
       </Column>
 

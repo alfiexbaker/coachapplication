@@ -16,6 +16,8 @@ import { api } from '@/constants/config';
 import { STORAGE_KEYS } from '@/constants/storage-keys';
 import { notificationTriggers } from '../notification-trigger';
 import { socialFeedService } from '../social-feed-service';
+import { bulkInviteService } from '../invite/bulk-invite-service';
+import { rsvpService } from '../rsvp-service';
 import { emitTyped, ServiceEvents } from '../event-bus';
 import { userService } from '../user-service';
 import { createLogger } from '@/utils/logger';
@@ -71,6 +73,7 @@ const MOCK_SESSIONS: GroupSession[] = [
     focus: ['Dribbling', 'Passing', 'Finishing'],
     equipment: ['Boots', 'Shin pads', 'Water bottle'],
     imageUrl: 'https://picsum.photos/seed/camp1/800/400',
+    registrationDeadline: '2026-02-15T23:59:00Z',
   },
   {
     id: 'gs_2',
@@ -97,6 +100,7 @@ const MOCK_SESSIONS: GroupSession[] = [
     focus: ['Finishing'],
     equipment: ['Boots', 'Shin pads'],
     imageUrl: 'https://picsum.photos/seed/clinic1/800/400',
+    registrationDeadline: '2026-02-20T18:00:00Z',
   },
   {
     id: 'gs_3',
@@ -120,6 +124,7 @@ const MOCK_SESSIONS: GroupSession[] = [
     focus: ['Goalkeeping'],
     equipment: ['Goalkeeper gloves', 'Boots'],
     imageUrl: 'https://picsum.photos/seed/gk1/800/400',
+    registrationDeadline: '2026-02-17T12:00:00Z',
   },
   {
     id: 'gs_4',
@@ -144,6 +149,7 @@ const MOCK_SESSIONS: GroupSession[] = [
     createdAt: '2026-01-09T11:00:00Z',
     focus: ['Dribbling', 'Passing'],
     imageUrl: 'https://picsum.photos/seed/trial1/800/400',
+    registrationDeadline: '2026-02-21T17:00:00Z',
   },
   // Recurring Training Sessions
   {
@@ -560,6 +566,41 @@ export const sessionCrudService = {
           clubId: session.clubId,
           imageUrl: session.imageUrl,
         });
+      }
+
+      // Auto-invite squad members for SQUAD_ONLY sessions (Spond-style)
+      if (session.inviteType === 'SQUAD_ONLY' && session.squadId && session.schedule.length > 0) {
+        const coachName = await resolveUserName(session.coachId, 'Coach');
+        const firstSchedule = session.schedule[0];
+
+        try {
+          const inviteResult = await bulkInviteService.inviteSquadToSession({
+            sessionId: session.id,
+            sessionTitle: session.title,
+            squadId: session.squadId,
+            coachId: session.coachId,
+            coachName,
+            proposedSlots: [{
+              date: firstSchedule.date,
+              startTime: firstSchedule.startTime,
+              endTime: firstSchedule.endTime,
+            }],
+            sessionType: session.sessionType,
+            focus: session.focus?.join(', ') ?? '',
+            notes: session.description,
+            priceUsd: session.pricePerParticipant,
+          });
+
+          logger.info('Auto-invited squad members', {
+            sessionId: session.id,
+            squadId: session.squadId,
+            sent: inviteResult.sent,
+            failed: inviteResult.failed,
+          });
+        } catch (inviteErr) {
+          // Non-fatal — session is published even if invites fail
+          logger.error('Failed to auto-invite squad', { sessionId: session.id, error: inviteErr });
+        }
       }
 
       return ok(session);

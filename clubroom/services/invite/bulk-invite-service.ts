@@ -472,9 +472,14 @@ export const bulkInviteService = {
     await notificationService.create({
       id: `notif_bulk_${Date.now()}`,
       type: 'booking',
+      notificationType: 'SESSION_INVITE',
       title: 'Squad Invites Sent',
       body: `${sent} invite${sent !== 1 ? 's' : ''} sent to ${squad.name}${failed > 0 ? ` (${failed} failed)` : ''}`,
       timeLabel: 'Just now',
+      recipientId: input.coachId,
+      recipientRole: 'coach',
+      deepLink: `/invites`,
+      data: { squadId: input.squadId },
     });
 
     return ok({ squadInvite, result });

@@ -70,6 +70,10 @@
     "__tests__/invite/**/*.ts",
     "__tests__/social/**/*.ts",
     "__tests__/comments/**/*.ts",
-    "__tests__/offline/**/*.ts"
+    "__tests__/offline/**/*.ts",
+    "__tests__/services/**/*.ts",
+    "__tests__/services/**/*.tsx",
+    "__tests__/completion/**/*.ts",
+    "__tests__/reschedule/**/*.ts"
   ]
 }

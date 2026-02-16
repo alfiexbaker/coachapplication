@@ -118,6 +118,9 @@ exports.ServiceEvents = {
     SESSION_CANCELLED: 'session:cancelled',
     // Group session events
     OPEN_SESSION_PUBLISHED: 'group_session:open_published',
+    // RSVP events
+    RSVP_RESPONDED: 'rsvp:responded',
+    RSVP_DEADLINE_PASSED: 'rsvp:deadline_passed',
     // User events
     USER_CREATED: 'user:created',
     USER_UPDATED: 'user:updated',
@@ -129,6 +132,7 @@ exports.ServiceEvents = {
     FAMILY_MEMBER_ADDED: 'family:member:added',
     FAMILY_MEMBER_REMOVED: 'family:member:removed',
     FAMILY_LINK_CREATED: 'family:link:created',
+    FAMILY_ACTIVE_CHILD_CHANGED: 'family:active_child:changed',
     // Payment events
     PAYMENT_SUCCEEDED: 'payment:succeeded',
     PAYMENT_FAILED: 'payment:failed',

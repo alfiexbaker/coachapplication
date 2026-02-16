@@ -26,9 +26,9 @@ import type {
   SessionInviteType,
   TimeSlot,
   WeekAcceptance,
-  NotificationItem,
 } from '@/constants/types';
 import { notificationService } from '../notification-service';
+import type { ExtendedNotificationItem } from '../notification/notification-store';
 import { bookingService } from '../booking-service';
 import { inviteHoldService } from '../invite-hold-service';
 import { availabilityService } from '../availability-service';
@@ -429,14 +429,19 @@ export const sessionInviteService = {
           : `${input.athleteNames.length} athletes`;
       const clubDisplay = input.clubName ? ` to ${input.clubName}` : '';
 
-      const notification: NotificationItem = {
+      const notification: ExtendedNotificationItem = {
         id: apiClient.generateId('notif'),
         type: 'booking',
+        notificationType: 'SESSION_INVITE',
         title: 'New Session Invite',
         body: `Coach ${coachFirstName} has invited ${athleteDisplay}${clubDisplay} - ${input.sessionType}`,
         timeLabel: 'Just now',
         read: false,
         actionLabel: 'View Invite',
+        recipientId: input.parentId,
+        recipientRole: 'parent',
+        deepLink: `/invites`,
+        data: { inviteId: newInvite.id },
       };
 
       await notificationService.create(notification);
@@ -500,13 +505,18 @@ export const sessionInviteService = {
         resolveAthleteNames(invite.athleteIds),
       ]);
       const athleteDisplay = athleteNames.join(', ');
-      const notification: NotificationItem = {
+      const notification: ExtendedNotificationItem = {
         id: apiClient.generateId('notif'),
         type: 'booking',
+        notificationType: 'SESSION_INVITE_RESPONSE',
         title: '',
         body: '',
         timeLabel: 'Just now',
         read: false,
+        recipientId: invite.coachId,
+        recipientRole: 'coach',
+        deepLink: `/session-invites/${invite.id}`,
+        data: { inviteId: invite.id },
       };
 
       if (input.response === 'ACCEPTED') {
@@ -932,13 +942,18 @@ export const sessionInviteService = {
       });
 
       // Create notification for parent
-      const notification: NotificationItem = {
+      const notification: ExtendedNotificationItem = {
         id: apiClient.generateId('notif'),
         type: 'booking',
+        notificationType: 'SESSION_INVITE_RESPONSE',
         title: 'Counter Proposal Accepted!',
         body: `Coach ${coachName.split(' ')[0]} accepted your proposed time. Session confirmed!`,
         timeLabel: 'Just now',
         read: false,
+        recipientId: invite.parentId,
+        recipientRole: 'parent',
+        deepLink: `/bookings/${bookingResult.data.id}`,
+        data: { inviteId, bookingId: bookingResult.data.id },
       };
 
       await notificationService.create(notification);
@@ -1171,13 +1186,18 @@ export const sessionInviteService = {
 
     // Notify coach
     const athleteDisplay = athleteNames.join(', ');
-    const notification: NotificationItem = {
+    const notification: ExtendedNotificationItem = {
       id: apiClient.generateId('notif'),
       type: 'booking',
+      notificationType: 'SESSION_INVITE_RESPONSE',
       title: 'Recurring Invite Accepted!',
       body: `${parentName} accepted ${acceptedWeeks.length} of ${weekAcceptances.length} weeks for ${athleteDisplay}.`,
       timeLabel: 'Just now',
       read: false,
+      recipientId: invite.coachId,
+      recipientRole: 'coach',
+      deepLink: `/session-invites/${invite.id}`,
+      data: { inviteId: invite.id },
     };
     await notificationService.create(notification);
 

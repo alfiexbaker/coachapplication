@@ -9,6 +9,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.notificationSenderService = void 0;
 const notification_store_1 = require("./notification-store");
 const notification_preferences_1 = require("./notification-preferences");
+const push_notification_service_1 = require("../push-notification-service");
 const logger_1 = require("@/utils/logger");
 const result_1 = require("@/types/result");
 const logger = (0, logger_1.createLogger)('NotificationSender');
@@ -39,6 +40,20 @@ class NotificationSenderService {
         const createResult = await notification_store_1.notificationStore.create(notification);
         if (!createResult.success) {
             return (0, result_1.err)((0, result_1.storageError)(createResult.error.message));
+        }
+        // Schedule local push notification (best-effort — don't fail the in-app notification)
+        if (notification.deepLink) {
+            push_notification_service_1.pushNotificationService.scheduleLocalNotification({
+                title: notification.title,
+                body: notification.body ?? '',
+                data: {
+                    deepLink: notification.deepLink,
+                    notificationId: notification.id,
+                    ...(notification.data ?? {}),
+                },
+            }).catch((pushErr) => {
+                logger.warn('Failed to schedule push notification', { id: notification.id, error: pushErr });
+            });
         }
         return (0, result_1.ok)(undefined);
     }

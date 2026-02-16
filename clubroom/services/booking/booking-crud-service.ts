@@ -469,20 +469,30 @@ class BookingCrudService {
     await notificationService.create({
       id: apiClient.generateId('notif-coach'),
       type: 'booking',
+      notificationType: 'BOOKING_RECEIVED',
       title: 'New Booking Request',
       body: `${bookedByName} has booked a ${booking.service} session for ${athleteDisplayName} on ${formattedDate} at ${formattedTime}.`,
       timeLabel: 'Just now',
       read: false,
+      recipientId: booking.coachId,
+      recipientRole: 'coach',
+      deepLink: `/bookings/${booking.id}`,
+      data: { bookingId: booking.id },
     });
 
     // Notification for parent: Booking confirmed
     await notificationService.create({
       id: apiClient.generateId('notif-parent'),
       type: 'booking',
+      notificationType: 'BOOKING_CONFIRMED',
       title: 'Booking Confirmed',
       body: `Your session with Coach ${booking.coachName} for ${athleteDisplayName} is confirmed for ${formattedDate} at ${formattedTime}.`,
       timeLabel: 'Just now',
       read: false,
+      recipientId: booking.bookedById,
+      recipientRole: 'parent',
+      deepLink: `/bookings/${booking.id}`,
+      data: { bookingId: booking.id },
     });
   }
 

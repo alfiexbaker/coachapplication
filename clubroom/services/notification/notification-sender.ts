@@ -7,6 +7,7 @@
 
 import { notificationStore, type ExtendedNotificationItem } from './notification-store';
 import { notificationPreferencesService } from './notification-preferences';
+import { pushNotificationService } from '../push-notification-service';
 import { createLogger } from '@/utils/logger';
 import { type Result, type ServiceError, ok, err, storageError } from '@/types/result';
 
@@ -46,6 +47,22 @@ class NotificationSenderService {
     if (!createResult.success) {
       return err(storageError(createResult.error.message));
     }
+
+    // Schedule local push notification (best-effort — don't fail the in-app notification)
+    if (notification.deepLink) {
+      pushNotificationService.scheduleLocalNotification({
+        title: notification.title,
+        body: notification.body ?? '',
+        data: {
+          deepLink: notification.deepLink,
+          notificationId: notification.id,
+          ...(notification.data ?? {}),
+        },
+      }).catch((pushErr) => {
+        logger.warn('Failed to schedule push notification', { id: notification.id, error: pushErr });
+      });
+    }
+
     return ok(undefined);
   }
 

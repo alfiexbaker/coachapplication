@@ -12,17 +12,22 @@ import { groupSessionService } from '@/services/group-session-service';
 import { SESSION_TYPE_COLORS } from '@/hooks/use-group-sessions';
 import type { GroupSession } from '@/constants/types';
 import { getGroupSessionClubLabel, getGroupSessionCoachName } from '@/utils/group-display';
+import { RsvpMiniBar, type RsvpMiniBarCounts } from '@/components/group/rsvp-mini-bar';
+import { DeadlineBadge } from '@/components/group/deadline-badge';
 
 interface GroupSessionCardProps {
   session: GroupSession;
   index: number;
   onPress: () => void;
+  /** RSVP counts for the attendance mini-bar. Pass null to hide. */
+  rsvpCounts?: RsvpMiniBarCounts | null;
 }
 
 export const GroupSessionCard = memo(function GroupSessionCard({
   session,
   index,
   onPress,
+  rsvpCounts,
 }: GroupSessionCardProps) {
   const { colors } = useTheme();
   const clubLabel = getGroupSessionClubLabel(session);
@@ -142,6 +147,16 @@ export const GroupSessionCard = memo(function GroupSessionCard({
               </ThemedText>
             </View>
           </Row>
+
+          {/* RSVP Mini-Bar — at-a-glance attendance */}
+          {rsvpCounts && (
+            <RsvpMiniBar counts={rsvpCounts} />
+          )}
+
+          {/* Deadline Badge — urgency countdown */}
+          {session.registrationDeadline && (
+            <DeadlineBadge deadline={session.registrationDeadline} />
+          )}
 
           {session.focus && session.focus.length > 0 && (
             <Row gap="xxs" style={{ marginTop: Spacing.xxs }}>

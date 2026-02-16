@@ -46,10 +46,15 @@ exports.bookingStatusService = {
             await notification_service_1.notificationService.create({
                 id: `notif-confirmed-${Date.now()}`,
                 type: 'booking',
+                notificationType: 'BOOKING_CONFIRMED',
                 title: 'Booking Confirmed',
                 body: `Coach ${booking.coachName} has confirmed your session for ${athleteName}.`,
                 timeLabel: 'Just now',
                 read: false,
+                recipientId: booking.bookedById,
+                recipientRole: 'parent',
+                deepLink: `/bookings/${bookingId}`,
+                data: { bookingId },
             });
             // Emit typed event for cross-service reactions
             (0, event_bus_1.emitTyped)(event_bus_1.ServiceEvents.BOOKING_CONFIRMED, {

@@ -626,6 +626,7 @@ export interface GroupSession {
   parentSessionId?: string; // For recurring instances, links to the template
   isFree?: boolean;         // Quick flag for free sessions
   inviteType?: SessionInviteType; // OPEN = browsable, CLOSED = invite-only, SQUAD_ONLY = squad members
+  registrationDeadline?: string;  // ISO date — after this, RSVP responses are locked
 }
 
 export interface GroupRegistration {

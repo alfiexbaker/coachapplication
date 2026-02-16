@@ -48,7 +48,7 @@ export const CompactEventCard = memo(function CompactEventCard({
             </ThemedText>
           )}
         </Row>
-        <Row style={styles.compactDetails}>
+        <View style={styles.compactDetails}>
           <Row style={styles.compactDetailItem}>
             <Ionicons name="calendar-outline" size={14} color={palette.muted} />
             <ThemedText style={[styles.compactDetailText, { color: palette.muted }]}>
@@ -64,7 +64,7 @@ export const CompactEventCard = memo(function CompactEventCard({
               {event.venue}
             </ThemedText>
           </Row>
-        </Row>
+        </View>
       </View>
       <Ionicons name="chevron-forward" size={20} color={palette.muted} />
     </SurfaceCard>

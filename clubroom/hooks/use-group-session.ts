@@ -241,6 +241,10 @@ export function useGroupSession() {
     [children, registeredChildIds],
   );
 
+  // Deadline derived state
+  const deadline = session?.registrationDeadline ?? null;
+  const isDeadlinePassed = deadline ? new Date(deadline).getTime() < Date.now() : false;
+
   // RSVP counts (for coach view)
   const rsvpCounts: RsvpCounts = useMemo(() => {
     const counts = { going: 0, maybe: 0, notGoing: 0, pending: 0, total: rsvps.length };
@@ -357,6 +361,12 @@ export function useGroupSession() {
   /** Respond to RSVP for a specific family registration */
   const handleRsvpRespond = useCallback(
     async (familyReg: FamilyRegistration, buttonStatus: ButtonGroupStatus) => {
+      // Deadline guard — block responses after deadline
+      if (isDeadlinePassed) {
+        Alert.alert('Deadline Passed', 'The RSVP deadline for this session has passed.');
+        return;
+      }
+
       if (!familyReg.rsvp) {
         // Create RSVP if it doesn't exist yet
         if (!session || !currentUser) return;
@@ -378,16 +388,16 @@ export function useGroupSession() {
       try {
         const result = await rsvpService.respond(familyReg.rsvp.id, toServiceStatus(buttonStatus));
         if (!result.success) {
-          Alert.alert('Error', 'Failed to update your response.');
+          logger.error('Failed to update RSVP response', { rsvpId: familyReg.rsvp.id });
         }
         onRefresh();
       } catch {
-        Alert.alert('Error', 'Failed to update your response.');
+        logger.error('Failed to update RSVP response');
       } finally {
         setResponding(false);
       }
     },
-    [session, currentUser, onRefresh],
+    [session, currentUser, onRefresh, isDeadlinePassed],
   );
 
   /** Coach cancels the entire session */
@@ -466,6 +476,9 @@ export function useGroupSession() {
     handleRsvpRespond,
     handleCancel,
     handleSendReminder,
+    // Deadline
+    deadline,
+    isDeadlinePassed,
     // Helpers
     toButtonStatus,
   };
