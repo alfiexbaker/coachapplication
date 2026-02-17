@@ -39,7 +39,7 @@ export const NotificationFilterChip = memo(function NotificationFilterChip({
         style={[
           styles.filterChip,
           {
-            backgroundColor: isActive ? palette.tint : palette.surface,
+            backgroundColor: isActive ? palette.tint : 'transparent',
             borderColor: isActive ? palette.tint : 'transparent',
           },
         ]}

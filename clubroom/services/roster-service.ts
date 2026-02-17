@@ -35,6 +35,28 @@ import { userService } from './user-service';
 
 const logger = createLogger('RosterService');
 
+/** Canonical list of roster statuses — use for filter chips, dropdowns, etc. */
+export const ROSTER_STATUSES: readonly RosterEntry['status'][] = [
+  'ACTIVE',
+  'PAUSED',
+  'GRADUATED',
+  'INACTIVE',
+] as const;
+
+const STATUS_LABELS: Record<RosterEntry['status'], string> = {
+  ACTIVE: 'Active',
+  PAUSED: 'Paused',
+  GRADUATED: 'Graduated',
+  INACTIVE: 'Inactive',
+};
+
+const STATUS_COLORS: Record<RosterEntry['status'], string> = {
+  ACTIVE: '#16A34A',
+  PAUSED: '#CA8A04',
+  GRADUATED: '#2563EB',
+  INACTIVE: '#6B7280',
+};
+
 const USE_MOCK = api.useMock;
 
 async function resolveUserName(userId: string, fallback: string): Promise<string> {
@@ -497,26 +519,14 @@ class RosterServiceImpl extends BaseService<RosterEntry> {
    * Format status for display
    */
   formatStatus(status: RosterEntry['status']): string {
-    const labels: Record<RosterEntry['status'], string> = {
-      ACTIVE: 'Active',
-      PAUSED: 'Paused',
-      GRADUATED: 'Graduated',
-      INACTIVE: 'Inactive',
-    };
-    return labels[status] || status;
+    return STATUS_LABELS[status] || status;
   }
 
   /**
    * Get status color
    */
   getStatusColor(status: RosterEntry['status']): string {
-    const colors: Record<RosterEntry['status'], string> = {
-      ACTIVE: '#16A34A',
-      PAUSED: '#CA8A04',
-      GRADUATED: '#2563EB',
-      INACTIVE: '#6B7280',
-    };
-    return colors[status] || '#6B7280';
+    return STATUS_COLORS[status] || '#6B7280';
   }
 
   // --------------------------------------------------------------------------

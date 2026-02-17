@@ -6,10 +6,8 @@ import { ThemedText } from '@/components/themed-text';
 import { Row } from '@/components/primitives/row';
 import { Spacing, Radii, withAlpha } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
-import { rosterService } from '@/services/roster-service';
+import { rosterService, ROSTER_STATUSES } from '@/services/roster-service';
 import type { RosterEntry } from '@/constants/types';
-
-const STATUSES: RosterEntry['status'][] = ['ACTIVE', 'PAUSED', 'GRADUATED', 'INACTIVE'];
 
 interface AthleteStatusModalProps {
   visible: boolean;
@@ -36,7 +34,7 @@ export const AthleteStatusModal = memo(function AthleteStatusModal({
               <Ionicons name="close" size={24} color={colors.text} />
             </Clickable>
           </Row>
-          {STATUSES.map((s) => (
+          {ROSTER_STATUSES.map((s) => (
             <Clickable
               key={s}
               onPress={() => onSelect(s)}

@@ -175,7 +175,7 @@ export function NotificationsPanel({
         <ScrollView
           contentContainerStyle={styles.content}
           refreshControl={
-            <RefreshControl refreshing={refreshing || isLoading} onRefresh={refresh} />
+            <RefreshControl refreshing={refreshing} onRefresh={refresh} />
           }
         >
           {visibleItems.length === 0 ? (
@@ -214,7 +214,7 @@ const styles = StyleSheet.create({
   },
   content: {
     paddingHorizontal: NotificationDesign.list.horizontalPadding,
-    paddingTop: Spacing.xs,
+    paddingTop: Spacing.xxs,
     paddingBottom: Spacing.md,
     gap: NotificationDesign.list.cardGap,
   },

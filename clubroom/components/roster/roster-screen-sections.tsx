@@ -7,6 +7,7 @@ import { Row } from '@/components/primitives/row';
 import { ThemedText } from '@/components/themed-text';
 import { Spacing, Radii, Typography } from '@/constants/theme';
 import type { ThemeColors } from '@/hooks/useTheme';
+import type { RosterEntry } from '@/constants/types';
 import { rosterService, type RosterStats, type RosterFilters } from '@/services/roster-service';
 
 type HeaderProps = {
@@ -41,26 +42,24 @@ type StatsProps = {
 export const RosterStatsRow = React.memo(function RosterStatsRow({ colors, stats }: StatsProps) {
   if (!stats) return null;
 
+  const statusStats: { status: RosterEntry['status']; count: number; color: string }[] = [
+    { status: 'ACTIVE', count: stats.active, color: colors.success },
+    { status: 'PAUSED', count: stats.paused, color: colors.warning },
+    { status: 'GRADUATED', count: stats.graduated, color: colors.tint },
+  ];
+
   return (
     <Row gap="xs" style={styles.statsRow}>
-      <View style={[styles.statCard, { backgroundColor: colors.surface }]}>
-        <ThemedText type="heading" style={{ color: colors.success }}>
-          {stats.active}
-        </ThemedText>
-        <ThemedText style={[styles.statLabel, { color: colors.muted }]}>Active</ThemedText>
-      </View>
-      <View style={[styles.statCard, { backgroundColor: colors.surface }]}>
-        <ThemedText type="heading" style={{ color: colors.warning }}>
-          {stats.paused}
-        </ThemedText>
-        <ThemedText style={[styles.statLabel, { color: colors.muted }]}>Paused</ThemedText>
-      </View>
-      <View style={[styles.statCard, { backgroundColor: colors.surface }]}>
-        <ThemedText type="heading" style={{ color: colors.tint }}>
-          {stats.graduated}
-        </ThemedText>
-        <ThemedText style={[styles.statLabel, { color: colors.muted }]}>Graduated</ThemedText>
-      </View>
+      {statusStats.map(({ status, count, color }) => (
+        <View key={status} style={[styles.statCard, { backgroundColor: colors.surface }]}>
+          <ThemedText type="heading" style={{ color }}>
+            {count}
+          </ThemedText>
+          <ThemedText style={[styles.statLabel, { color: colors.muted }]}>
+            {rosterService.formatStatus(status)}
+          </ThemedText>
+        </View>
+      ))}
       <View style={[styles.statCard, { backgroundColor: colors.surface }]}>
         <ThemedText type="heading" style={{ color: colors.tint }}>
           {rosterService.formatRevenue(stats.totalRevenue)}

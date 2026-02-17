@@ -6,7 +6,7 @@ import { SurfaceCard } from '@/components/primitives/surface-card';
 import { Clickable } from '@/components/primitives/clickable';
 import { ThemedText } from '@/components/themed-text';
 import { Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
-import { RosterFilters, rosterService } from '@/services/roster-service';
+import { RosterFilters, ROSTER_STATUSES, rosterService } from '@/services/roster-service';
 import type { RosterEntry } from '@/constants/types';
 import { useTheme } from '@/hooks/useTheme';
 
@@ -17,12 +17,10 @@ interface AthleteFiltersProps {
   onClear: () => void;
 }
 
-const STATUS_OPTIONS: { key: RosterEntry['status']; label: string }[] = [
-  { key: 'ACTIVE', label: 'Active' },
-  { key: 'PAUSED', label: 'Paused' },
-  { key: 'GRADUATED', label: 'Graduated' },
-  { key: 'INACTIVE', label: 'Inactive' },
-];
+const STATUS_OPTIONS = ROSTER_STATUSES.map((key) => ({
+  key,
+  label: rosterService.formatStatus(key),
+}));
 
 type SkillLevelFilter = NonNullable<RosterFilters['skillLevel']>;
 

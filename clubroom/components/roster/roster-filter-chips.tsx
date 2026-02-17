@@ -1,7 +1,7 @@
 /**
  * RosterFilterChips — Horizontal scrollable status filter chips for the roster.
  *
- * Displays chip filters for All / Active / Paused / Graduated with counts.
+ * Displays chip filters for All + each roster status with counts.
  * Memoized to avoid re-renders from parent state changes.
  */
 
@@ -11,29 +11,27 @@ import { StyleSheet, ScrollView } from 'react-native';
 import { Chip } from '@/components/primitives/chip';
 import { Spacing } from '@/constants/theme';
 import type { RosterEntry } from '@/constants/types';
+import { ROSTER_STATUSES, rosterService } from '@/services/roster-service';
 
 export type StatusFilter = 'ALL' | RosterEntry['status'];
 
 interface RosterFilterChipsProps {
   statusFilter: StatusFilter;
   onFilterChange: (filter: StatusFilter) => void;
-  stats: {
-    total: number;
-    active: number;
-    paused: number;
-    graduated: number;
-  };
+  stats: Record<string, number>;
 }
 
 const STATUS_FILTERS: {
   label: string;
   value: StatusFilter;
-  statKey: keyof RosterFilterChipsProps['stats'];
+  statKey: string;
 }[] = [
   { label: 'All', value: 'ALL', statKey: 'total' },
-  { label: 'Active', value: 'ACTIVE', statKey: 'active' },
-  { label: 'Paused', value: 'PAUSED', statKey: 'paused' },
-  { label: 'Graduated', value: 'GRADUATED', statKey: 'graduated' },
+  ...ROSTER_STATUSES.filter((s) => s !== 'INACTIVE').map((status) => ({
+    label: rosterService.formatStatus(status),
+    value: status as StatusFilter,
+    statKey: status.toLowerCase(),
+  })),
 ];
 
 export const RosterFilterChips = memo(function RosterFilterChips({

@@ -39,7 +39,7 @@ export function Chip({
     styles.base,
     dense ? styles.dense : undefined,
     {
-      backgroundColor: isActive ? withAlpha(baseColor.tint, 0.09) : baseColor.surface,
+      backgroundColor: isActive ? withAlpha(baseColor.tint, 0.09) : 'transparent',
       borderColor: isActive ? baseColor.tint : baseColor.border,
     },
     style,

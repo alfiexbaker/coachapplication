@@ -13,6 +13,7 @@ import type { RosterEntry } from '@/constants/types';
 import type { Booking } from '@/constants/app-types';
 import { useTheme } from '@/hooks/useTheme';
 import { getRosterAthleteName } from '@/utils/roster-display';
+import { rosterService } from '@/services/roster-service';
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -24,14 +25,6 @@ function getInitials(name: string): string {
     .map((n) => n[0])
     .join('')
     .toUpperCase();
-}
-
-function formatStatusLabel(status: RosterEntry['status']): string {
-  return status
-    .toLowerCase()
-    .split('_')
-    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
-    .join(' ');
 }
 
 function formatRelativeDate(dateStr: string | undefined): string {
@@ -97,12 +90,11 @@ function AthleteCardInner({ athlete, upcomingSession }: AthleteCardProps) {
                 </ThemedText>
                 {athlete.status !== 'ACTIVE' && (
                   <View
-                    style={[styles.statusBadge, { backgroundColor: withAlpha(palette.muted, 0.12) }]}
-                  >
-                    <ThemedText style={[styles.statusText, { color: palette.muted }]}>
-                      {formatStatusLabel(athlete.status)}
-                    </ThemedText>
-                  </View>
+                    style={[
+                      styles.statusDot,
+                      { backgroundColor: rosterService.getStatusColor(athlete.status) },
+                    ]}
+                  />
                 )}
               </Row>
 
@@ -203,14 +195,11 @@ const styles = StyleSheet.create({
     ...Typography.subheading,
     flexShrink: 1,
   },
-  statusBadge: {
-    paddingHorizontal: Spacing.xs,
-    paddingVertical: Spacing.micro,
-    borderRadius: Radii.pill,
+  statusDot: {
+    width: 8,
+    height: 8,
+    borderRadius: Radii.full,
     flexShrink: 0,
-  },
-  statusText: {
-    ...Typography.caption,
   },
   metaRow: {
     minHeight: 20,

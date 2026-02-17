@@ -79,8 +79,8 @@ export const AthletesListHeader = React.memo(function AthletesListHeader({
               style={[
                 styles.filterChip,
                 {
-                  backgroundColor: selected ? colors.tint : colors.card,
-                  borderColor: selected ? colors.tint : colors.border,
+                  backgroundColor: selected ? colors.tint : 'transparent',
+                  borderColor: selected ? colors.tint : 'transparent',
                 },
               ]}
               onPress={() => onFilterChange(chip.id)}
@@ -97,9 +97,7 @@ export const AthletesListHeader = React.memo(function AthletesListHeader({
                     style={[
                       styles.filterCount,
                       {
-                        backgroundColor: selected
-                          ? withAlpha(colors.onPrimary, 0.3)
-                          : withAlpha(colors.muted, 0.19),
+                        backgroundColor: 'transparent',
                       },
                     ]}
                   >
@@ -175,7 +173,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing.md,
     paddingVertical: Spacing.sm,
     borderRadius: Radii.pill,
-    borderWidth: 1,
     minHeight: 36,
   },
   filterText: {

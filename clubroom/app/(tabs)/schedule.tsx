@@ -74,16 +74,19 @@ export default function ScheduleScreen() {
         style={[styles.container, { backgroundColor: colors.background }]}
         edges={['top', 'bottom']}
       >
-        <Row justify="between" align="center" style={styles.headerRow}>
-          <ScreenHeader title="Schedule" subtitle="Your upcoming sessions" />
-          <Clickable
-            onPress={schedule.handleOpenSettings}
-            accessibilityLabel="Booking rules"
-            style={[styles.settingsBtn, { backgroundColor: colors.surface }]}
-          >
-            <Ionicons name="settings-outline" size={22} color={colors.muted} />
-          </Clickable>
-        </Row>
+        <ScreenHeader
+          title="Schedule"
+          subtitle="Your upcoming sessions"
+          rightElement={
+            <Clickable
+              onPress={schedule.handleOpenSettings}
+              accessibilityLabel="Booking rules"
+              style={[styles.settingsBtn, { backgroundColor: colors.surface }]}
+            >
+              <Ionicons name="settings-outline" size={22} color={colors.muted} />
+            </Clickable>
+          }
+        />
 
         <ScheduleSegmentControl
           segment={schedule.segment}
@@ -109,25 +112,25 @@ export default function ScheduleScreen() {
       edges={['top', 'bottom']}
     >
       {/* Header */}
-      <Row justify="between" align="center" style={styles.headerRow}>
-        <ScreenHeader
-          title="Schedule"
-          subtitle={
-            schedule.segment === 'sessions'
-              ? schedule.weekOffset === 0
-                ? 'Your upcoming sessions'
-                : schedule.weekLabel
-              : 'Manage your availability'
-          }
-        />
-        <Clickable
-          onPress={schedule.handleOpenSettings}
-          accessibilityLabel="Booking rules"
-          style={[styles.settingsBtn, { backgroundColor: colors.surface }]}
-        >
-          <Ionicons name="settings-outline" size={22} color={colors.muted} />
-        </Clickable>
-      </Row>
+      <ScreenHeader
+        title={schedule.segment === 'sessions' ? 'Schedule' : 'Availability'}
+        subtitle={
+          schedule.segment === 'sessions'
+            ? schedule.weekOffset === 0
+              ? 'Your upcoming sessions'
+              : schedule.weekLabel
+            : 'Manage your availability'
+        }
+        rightElement={
+          <Clickable
+            onPress={schedule.handleOpenSettings}
+            accessibilityLabel="Booking rules"
+            style={[styles.settingsBtn, { backgroundColor: colors.surface }]}
+          >
+            <Ionicons name="settings-outline" size={22} color={colors.muted} />
+          </Clickable>
+        }
+      />
 
       {/* Segment Control + Quick Actions */}
       <ScheduleSegmentControl
@@ -258,9 +261,6 @@ const styles = StyleSheet.create({
     paddingTop: Spacing.sm,
     paddingBottom: Spacing['2xl'],
     gap: Spacing.lg,
-  },
-  headerRow: {
-    paddingRight: Spacing.md,
   },
   settingsBtn: {
     width: 44,
