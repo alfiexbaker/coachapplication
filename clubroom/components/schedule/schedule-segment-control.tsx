@@ -8,7 +8,7 @@ import { View, StyleSheet } from 'react-native';
 import { Clickable } from '@/components/primitives/clickable';
 import { ThemedText } from '@/components/themed-text';
 import { Row } from '@/components/primitives/row';
-import { Spacing, Radii, Typography } from '@/constants/theme';
+import { Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
 import type { Segment } from './schedule-types';
 
@@ -36,13 +36,14 @@ export const ScheduleSegmentControl = memo(function ScheduleSegmentControl({
           accessibilityLabel="Show sessions"
           style={[
             styles.button,
-            { backgroundColor: segment === 'sessions' ? colors.tint : 'transparent' },
+            segment === 'sessions' && { backgroundColor: withAlpha(colors.tint, 0.12) },
           ]}
         >
           <ThemedText
             style={[
               styles.text,
-              { color: segment === 'sessions' ? colors.onPrimary : colors.muted },
+              { color: segment === 'sessions' ? colors.tint : colors.muted },
+              segment === 'sessions' && styles.activeText,
             ]}
           >
             Sessions
@@ -53,13 +54,14 @@ export const ScheduleSegmentControl = memo(function ScheduleSegmentControl({
           accessibilityLabel="Show availability"
           style={[
             styles.button,
-            { backgroundColor: segment === 'availability' ? colors.tint : 'transparent' },
+            segment === 'availability' && { backgroundColor: withAlpha(colors.tint, 0.12) },
           ]}
         >
           <ThemedText
             style={[
               styles.text,
-              { color: segment === 'availability' ? colors.onPrimary : colors.muted },
+              { color: segment === 'availability' ? colors.tint : colors.muted },
+              segment === 'availability' && styles.activeText,
             ]}
           >
             Availability
@@ -87,5 +89,8 @@ const styles = StyleSheet.create({
   },
   text: {
     ...Typography.smallSemiBold,
+  },
+  activeText: {
+    fontWeight: '700' as const,
   },
 });

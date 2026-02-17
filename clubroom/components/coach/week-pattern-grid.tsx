@@ -205,7 +205,7 @@ export function WeekPatternGrid(props: WeekPatternGridProps) {
           <WeekPatternSlotRow
             dayLabel={d.short}
             showDayLabel
-            timeDisplay="--"
+            timeDisplay="Tap to add"
             locationDisplay={null}
             hasOverride={weekOffset === 0 && hasOverride}
             isBlocked={false}
@@ -282,28 +282,26 @@ export function WeekPatternGrid(props: WeekPatternGridProps) {
       </Row>
 
       {/* Summary */}
-      <View style={[styles.summaryRow, { backgroundColor: withAlpha(palette.tint, 0.05) }]}>
-        <Row style={styles.summaryPills}>
-          <Row style={[styles.summaryPill, { backgroundColor: withAlpha(palette.tint, 0.1) }]}>
-            <Ionicons name="calendar-outline" size={14} color={palette.tint} />
-            <ThemedText style={[styles.summaryText, { color: palette.text }]}>
-              {stats.days} day{stats.days !== 1 ? 's' : ''}
-            </ThemedText>
-          </Row>
-          <Row style={[styles.summaryPill, { backgroundColor: withAlpha(palette.tint, 0.1) }]}>
-            <Ionicons name="time-outline" size={14} color={palette.tint} />
-            <ThemedText style={[styles.summaryText, { color: palette.text }]}>
-              {stats.hrs} hrs/week
-            </ThemedText>
-          </Row>
-          <Row style={[styles.summaryPill, { backgroundColor: withAlpha(palette.tint, 0.1) }]}>
-            <Ionicons name="location-outline" size={14} color={palette.tint} />
-            <ThemedText style={[styles.summaryText, { color: palette.text }]}>
-              {stats.venues} venue{stats.venues !== 1 ? 's' : ''}
-            </ThemedText>
-          </Row>
+      <Row style={styles.summaryPills}>
+        <Row style={[styles.summaryPill, { backgroundColor: withAlpha(palette.tint, 0.08) }]}>
+          <Ionicons name="calendar-outline" size={14} color={palette.tint} />
+          <ThemedText style={[styles.summaryText, { color: palette.tint }]}>
+            {stats.days} day{stats.days !== 1 ? 's' : ''}
+          </ThemedText>
         </Row>
-      </View>
+        <Row style={[styles.summaryPill, { backgroundColor: withAlpha(palette.warning, 0.08) }]}>
+          <Ionicons name="time-outline" size={14} color={palette.warning} />
+          <ThemedText style={[styles.summaryText, { color: palette.warning }]}>
+            {stats.hrs} hrs/week
+          </ThemedText>
+        </Row>
+        <Row style={[styles.summaryPill, { backgroundColor: withAlpha(palette.success, 0.08) }]}>
+          <Ionicons name="location-outline" size={14} color={palette.success} />
+          <ThemedText style={[styles.summaryText, { color: palette.success }]}>
+            {stats.venues} venue{stats.venues !== 1 ? 's' : ''}
+          </ThemedText>
+        </Row>
+      </Row>
 
       {/* Day Rows */}
       <SurfaceCard style={styles.gridCard}>
@@ -331,11 +329,6 @@ const styles = StyleSheet.create({
   },
   weekNavLabelBtn: { flex: 1, alignItems: 'center', justifyContent: 'center', minHeight: 44 },
   weekNavLabel: { ...Typography.bodySemiBold, textAlign: 'center' },
-  summaryRow: {
-    paddingVertical: Spacing.xs,
-    paddingHorizontal: Spacing.md,
-    borderRadius: Radii.md,
-  },
   summaryPills: {
     justifyContent: 'space-between',
     flexWrap: 'wrap',

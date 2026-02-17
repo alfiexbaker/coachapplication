@@ -38,6 +38,12 @@ yarn-error.*
 
 app-example
 
+# Test build output
+.tmp-tests/
+
+# Screenshots (reference only, not code)
+screenshots/
+
 # generated native folders
 /ios
 /android
