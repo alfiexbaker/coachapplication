@@ -2,11 +2,12 @@
  * ScheduleTodayCard — Hero card showing today's session count and next session countdown.
  */
 
-import React, { memo } from 'react';
+import React, { memo, useCallback } from 'react';
 import { View, StyleSheet } from 'react-native';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 
 import { SurfaceCard } from '@/components/primitives/surface-card';
+import { Clickable } from '@/components/primitives/clickable';
 import { ThemedText } from '@/components/themed-text';
 import { Row } from '@/components/primitives/row';
 import { Column } from '@/components/primitives/column';
@@ -18,6 +19,7 @@ interface Props {
   todayData: DayData;
   todaySessions: SessionData[];
   nextSession: SessionData | null;
+  onSessionPress?: (session: SessionData) => void;
 }
 
 function getTimeUntil(timeStr: string): string {
@@ -37,8 +39,13 @@ export const ScheduleTodayCard = memo(function ScheduleTodayCard({
   todayData,
   todaySessions,
   nextSession,
+  onSessionPress,
 }: Props) {
   const { colors } = useTheme();
+
+  const handleNextSessionPress = useCallback(() => {
+    if (nextSession && onSessionPress) onSessionPress(nextSession);
+  }, [nextSession, onSessionPress]);
 
   return (
     <Animated.View entering={FadeInDown.delay(100).springify()}>
@@ -67,21 +74,26 @@ export const ScheduleTodayCard = memo(function ScheduleTodayCard({
         </Row>
 
         {nextSession ? (
-          <Row align="center" style={[styles.nextBanner, { backgroundColor: colors.background }]}>
-            <Column flex>
-              <ThemedText style={[styles.nextTitle, { color: colors.text }]} numberOfLines={1}>
-                {nextSession.athleteName || nextSession.title}
-              </ThemedText>
-              <ThemedText style={[styles.nextMeta, { color: colors.muted }]} numberOfLines={1}>
-                {nextSession.time} · {nextSession.location || 'Location TBD'}
-              </ThemedText>
-            </Column>
-            <View style={[styles.countdown, { backgroundColor: colors.tint }]}>
-              <ThemedText style={[styles.countdownText, { color: colors.onPrimary }]}>
-                {getTimeUntil(nextSession.time)}
-              </ThemedText>
-            </View>
-          </Row>
+          <Clickable
+            onPress={handleNextSessionPress}
+            accessibilityLabel={`Next session: ${nextSession.athleteName || nextSession.title} ${getTimeUntil(nextSession.time)}`}
+          >
+            <Row align="center" style={[styles.nextBanner, { backgroundColor: colors.background }]}>
+              <Column flex>
+                <ThemedText style={[styles.nextTitle, { color: colors.text }]} numberOfLines={1}>
+                  {nextSession.athleteName || nextSession.title}
+                </ThemedText>
+                <ThemedText style={[styles.nextMeta, { color: colors.muted }]} numberOfLines={1}>
+                  {nextSession.time} · {nextSession.location || 'Location TBD'}
+                </ThemedText>
+              </Column>
+              <View style={[styles.countdown, { backgroundColor: colors.tint }]}>
+                <ThemedText style={[styles.countdownText, { color: colors.onPrimary }]}>
+                  {getTimeUntil(nextSession.time)}
+                </ThemedText>
+              </View>
+            </Row>
+          </Clickable>
         ) : (
           <View style={[styles.emptyBanner, { borderTopColor: colors.border }]}>
             <ThemedText style={[styles.emptyText, { color: colors.muted }]}>

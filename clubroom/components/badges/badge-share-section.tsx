@@ -79,7 +79,7 @@ const ShareableAwardRow = memo(function ShareableAwardRow({
             )}
           </Row>
           <ThemedText style={[styles.pointsHint, { color: palette.muted }]} numberOfLines={1}>
-            +{award.badgePointValue ?? 0} pts
+            {TierNames[award.badgeTier!] ?? 'Recognition'}
           </ThemedText>
         </Column>
       </Row>
@@ -90,7 +90,7 @@ const ShareableAwardRow = memo(function ShareableAwardRow({
           styles.pillButton,
           { backgroundColor: palette.surface, borderColor: palette.border },
         ]}
-        accessibilityLabel={`Share ${award.badgeLabel} badge`}
+        accessibilityLabel={`Share ${award.badgeLabel} milestone`}
         accessibilityRole="button"
       >
         <ThemedText style={[styles.pillButtonText, { color: palette.tint }]}>
@@ -115,7 +115,7 @@ export const BadgeShareSection = memo(function BadgeShareSection({
       <Row justify="between" align="center">
         <ThemedText type="defaultSemiBold">Share updates</ThemedText>
         <ThemedText style={[styles.sectionHint, { color: palette.muted }]}>
-          Send badges to supporters
+          Share milestones with supporters
         </ThemedText>
       </Row>
 

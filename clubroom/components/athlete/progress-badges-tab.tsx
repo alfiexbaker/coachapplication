@@ -1,9 +1,11 @@
 /**
  * ProgressBadgesTab — Badge summary card with category breakdown + badge list.
+ * Tap a badge to view the full recognition detail card + share.
  */
-import { memo } from 'react';
+import { memo, useCallback, useState } from 'react';
 import { View, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import * as Haptics from 'expo-haptics';
 import Animated, { FadeIn, FadeInRight } from 'react-native-reanimated';
 
 import { ThemedText } from '@/components/themed-text';
@@ -13,15 +15,35 @@ import { useTheme } from '@/hooks/useTheme';
 import { EmptyMetrics } from '@/components/analytics/enhanced-stats';
 import { formatShortDateWithYear } from '@/utils/format';
 import { getBadgeColor, getBadgeIcon, getTierColor } from '@/hooks/use-athlete-progress';
+import { RecognitionDetailCard } from '@/components/badges/recognition-detail-card';
+import { shareRecognition } from '@/components/badges/recognition-share';
 import type { BadgeAward } from '@/constants/types';
 import { Row } from '@/components/primitives';
 
 interface ProgressBadgesTabProps {
   awards: BadgeAward[];
+  athleteName?: string;
 }
 
-function ProgressBadgesTabInner({ awards }: ProgressBadgesTabProps) {
+function ProgressBadgesTabInner({ awards, athleteName }: ProgressBadgesTabProps) {
   const { colors: palette } = useTheme();
+  const [selectedAward, setSelectedAward] = useState<BadgeAward | null>(null);
+
+  const handleAwardPress = useCallback((award: BadgeAward) => {
+    Haptics.selectionAsync();
+    setSelectedAward(award);
+  }, []);
+
+  const handleCloseDetail = useCallback(() => {
+    setSelectedAward(null);
+  }, []);
+
+  const handleShare = useCallback(async (award: BadgeAward) => {
+    await shareRecognition({
+      award,
+      athleteName: athleteName ?? 'Athlete',
+    });
+  }, [athleteName]);
 
   return (
     <Animated.View entering={FadeIn} style={styles.container}>
@@ -44,19 +66,24 @@ function ProgressBadgesTabInner({ awards }: ProgressBadgesTabProps) {
         <Row style={styles.categoryRow}>
           {[
             {
-              label: 'Leadership',
-              count: awards.filter((a) => a.badgeCategory === 'leadership').length,
+              label: 'Technical',
+              count: awards.filter((a) => a.badgeCategory === 'technical').length,
               color: palette.premium,
             },
             {
-              label: 'Technique',
-              count: awards.filter((a) => a.badgeCategory === 'technique').length,
+              label: 'Physical',
+              count: awards.filter((a) => a.badgeCategory === 'physical').length,
               color: palette.success,
             },
             {
-              label: 'Mindset',
-              count: awards.filter((a) => a.badgeCategory === 'mindset').length,
+              label: 'Psychological',
+              count: awards.filter((a) => a.badgeCategory === 'psychological').length,
               color: palette.warning,
+            },
+            {
+              label: 'Social',
+              count: awards.filter((a) => a.badgeCategory === 'social').length,
+              color: palette.premium,
             },
           ].map((cat) => (
             <Row key={cat.label} style={styles.categoryItem}>
@@ -83,7 +110,11 @@ function ProgressBadgesTabInner({ awards }: ProgressBadgesTabProps) {
         <View style={styles.list}>
           {awards.map((award, index) => (
             <Animated.View key={award.id} entering={FadeInRight.delay(index * 50).springify()}>
-              <SurfaceCard style={styles.badgeCard}>
+              <SurfaceCard
+                style={styles.badgeCard}
+                onPress={() => handleAwardPress(award)}
+                accessibilityLabel={`View ${award.badgeLabel} recognition`}
+              >
                 <View
                   style={[
                     styles.badgeIcon,
@@ -131,6 +162,13 @@ function ProgressBadgesTabInner({ awards }: ProgressBadgesTabProps) {
           ))}
         </View>
       )}
+      <RecognitionDetailCard
+        visible={selectedAward !== null}
+        award={selectedAward}
+        athleteName={athleteName}
+        onClose={handleCloseDetail}
+        onShare={handleShare}
+      />
     </Animated.View>
   );
 }

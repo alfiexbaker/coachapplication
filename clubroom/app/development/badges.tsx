@@ -7,6 +7,7 @@
 
 import { StyleSheet, ViewStyle } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { PageContainer } from '@/components/primitives/page-container';
 import { PageHeader } from '@/components/primitives/page-header';
@@ -15,16 +16,20 @@ import { Clickable } from '@/components/primitives/clickable';
 import { ThemedText } from '@/components/themed-text';
 import { Row } from '@/components/primitives/row';
 import { BadgeAwardModal } from '@/components/badges/badge-award-modal';
+import { QuickRecognitionModal } from '@/components/badges/quick-recognition-modal';
 import { BadgeSessionSelector } from '@/components/badges/badge-session-selector';
 import { BadgeListSection } from '@/components/badges/badge-list-section';
-import { Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
+import { Spacing, Radii, Typography, Components, Shadows, withAlpha } from '@/constants/theme';
 import { useScreen } from '@/hooks/use-screen';
+import { useTheme } from '@/hooks/useTheme';
 import { ok } from '@/types/result';
 import { useDevBadges, BADGE_TABS } from '@/hooks/use-dev-badges';
 import { LoadingState, ErrorState } from '@/components/ui/screen-states';
 
 export default function BadgesScreen() {
-  const { colors } = useScreen<null>({ load: async () => ok(null), isEmpty: () => false });
+  useScreen<null>({ load: async () => ok(null), isEmpty: () => false });
+  const { colors, scheme } = useTheme();
+  const insets = useSafeAreaInsets();
   const {
     loading,
     status,
@@ -45,6 +50,10 @@ export default function BadgesScreen() {
     currentUser,
     openAwardModal,
     closeAwardModal,
+    showQuickRecognition,
+    quickRecognitionContext,
+    openQuickRecognition,
+    closeQuickRecognition,
   } = useDevBadges();
 
   if (loading) {
@@ -53,8 +62,8 @@ export default function BadgesScreen() {
         gap={Spacing.md}
         header={
           <PageHeader
-            title="Badges"
-            subtitle="Review and share badges from completed sessions"
+            title="Recognition"
+            subtitle="Review and award recognition from sessions"
           />
         }
       >
@@ -69,8 +78,8 @@ export default function BadgesScreen() {
         gap={Spacing.md}
         header={
           <PageHeader
-            title="Badges"
-            subtitle="Review and share badges from completed sessions"
+            title="Recognition"
+            subtitle="Review and award recognition from sessions"
           />
         }
       >
@@ -88,8 +97,8 @@ export default function BadgesScreen() {
         gap={Spacing.md}
         header={
           <PageHeader
-            title="Badges"
-            subtitle="Review and share badges from completed sessions"
+            title="Recognition"
+            subtitle="Review and award recognition from sessions"
           />
         }
       >
@@ -163,12 +172,63 @@ export default function BadgesScreen() {
         initialReason={awardContext?.reason}
         onClose={closeAwardModal}
       />
+
+      <QuickRecognitionModal
+        visible={showQuickRecognition}
+        athleteId={quickRecognitionContext?.athleteId ?? ''}
+        athleteName={quickRecognitionContext?.athleteName ?? ''}
+        coachId={currentUser?.id ?? ''}
+        sessionId={quickRecognitionContext?.sessionId}
+        sessionLabel={quickRecognitionContext?.sessionLabel}
+        onClose={closeQuickRecognition}
+      />
+
+      {/* Quick Recognise FAB */}
+      <Clickable
+        onPress={() => {
+          if (selectedSession) {
+            openQuickRecognition(
+              selectedSession.athleteId ?? '',
+              linkedAthlete,
+            );
+          }
+        }}
+        disabled={!selectedSession}
+        style={[
+          styles.fab,
+          {
+            backgroundColor: colors.tint,
+            bottom: insets.bottom + Spacing.lg,
+            opacity: selectedSession ? 1 : 0.4,
+            ...Shadows[scheme].card,
+          },
+        ]}
+        accessibilityLabel="Quick recognise athlete"
+      >
+        <Row gap="xs" align="center">
+          <Ionicons name="sparkles" size={20} color={colors.onPrimary} />
+          <ThemedText type="defaultSemiBold" style={[Typography.bodySemiBold, { color: colors.onPrimary }]}>
+            Recognise
+          </ThemedText>
+        </Row>
+      </Clickable>
     </>
   );
 }
 
 const styles = StyleSheet.create({
   tabRow: { padding: Spacing.xs },
+  fab: {
+    position: 'absolute',
+    right: Spacing.lg,
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.sm,
+    borderRadius: Radii.pill,
+    minHeight: Components.button.height,
+    alignItems: 'center',
+    justifyContent: 'center',
+    zIndex: 10,
+  },
   tabButton: {
     flex: 1,
     paddingVertical: Spacing.sm,

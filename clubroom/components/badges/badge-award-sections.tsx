@@ -120,7 +120,7 @@ export const BadgeSelector = memo(function BadgeSelector({
                   </View>
                   <ThemedText
                     style={[styles.badgeLabel, { color: isSelected ? palette.tint : palette.text }]}
-                    numberOfLines={2}
+                    numberOfLines={3}
                   >
                     {badge.label}
                   </ThemedText>
@@ -335,8 +335,8 @@ const styles = StyleSheet.create({
   sectionTitle: { ...Typography.body },
   badgeScroll: { gap: Spacing.sm, paddingRight: Spacing.lg },
   badgeCard: {
-    width: 100,
-    padding: Spacing.md,
+    width: 110,
+    padding: Spacing.sm,
     borderRadius: Radii.lg,
     borderWidth: 1.5,
     alignItems: 'center',

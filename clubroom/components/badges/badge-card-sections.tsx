@@ -28,12 +28,10 @@ export const BADGE_TYPE_ICONS: Record<BadgeType, keyof typeof Ionicons.glyphMap>
 };
 
 export const CATEGORY_ICONS: Record<string, keyof typeof Ionicons.glyphMap> = {
-  leadership: 'people',
-  consistency: 'refresh',
-  technique: 'football',
-  mindset: 'bulb',
-  teamwork: 'hand-left',
-  resilience: 'fitness',
+  technical: 'football',
+  physical: 'fitness',
+  psychological: 'bulb',
+  social: 'people',
 };
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────

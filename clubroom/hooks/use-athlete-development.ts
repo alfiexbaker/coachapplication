@@ -3,9 +3,6 @@
  * Manages sessions, badges, progression, special needs, and badge award modal state.
  */
 import { useState, useEffect, useCallback, useMemo } from 'react';
-import { router } from 'expo-router';
-import { Routes } from '@/navigation/routes';
-import { apiClient } from '@/services/api-client';
 import { ensureCoachSessionsSeeded } from '@/services/coach-session-seed-service';
 import { useAuth } from '@/hooks/use-auth';
 import { createLogger } from '@/utils/logger';
@@ -14,7 +11,6 @@ import { childService, type ChildProfile } from '@/services/child-service';
 import { userService } from '@/services/user-service';
 import type { Session, BadgeAward, BadgeCategory, User } from '@/constants/types';
 import type { ProgressionLevel } from '@/constants/progression';
-import { STORAGE_KEYS } from '@/constants/storage-keys';
 
 const logger = createLogger('AthleteDetailScreen');
 
@@ -199,37 +195,6 @@ export function useAthleteDevelopment(athleteId: string) {
     ? `${selectedSession.nextFocusAreas?.[0] ?? 'Coaching session'} · ${formatDate(selectedSession.completedAt)}`
     : undefined;
 
-  // Handler: log a new session
-  const handleLogSession = useCallback(async () => {
-    if (!currentUser || !athlete) return;
-    logger.press('LogSession');
-    try {
-      const sessionId = `session-${Date.now()}`;
-      const sessionRecord = {
-        id: sessionId,
-        athleteId,
-        athleteName: athlete.name,
-        coachId: currentUser.id,
-        coachName: currentUser.name,
-        bookingId: `manual-${Date.now()}`,
-        completedAt: new Date().toISOString(),
-        performanceRating: 3,
-        skillsWorkedOn: [],
-        notes: '',
-        videoUrls: [],
-        nextFocusAreas: [],
-        attendance: 'ATTENDED' as const,
-      };
-      const existing = await apiClient.get<Session[]>(STORAGE_KEYS.COACH_SESSIONS, []);
-      existing.push(sessionRecord);
-      await apiClient.set(STORAGE_KEYS.COACH_SESSIONS, existing);
-      logger.info('Session created', { sessionId, athleteId });
-      router.push(Routes.developmentSession(sessionId));
-    } catch (error) {
-      logger.error('Failed to create session', error);
-    }
-  }, [currentUser, athlete, athleteId]);
-
   // Handler: open badge modal from profile button
   const handleOpenBadgeModal = useCallback(() => {
     logger.press('AwardBadgeFromProfile', { athleteId });
@@ -274,7 +239,6 @@ export function useAthleteDevelopment(athleteId: string) {
     trend,
     level,
     selectedSessionLabel,
-    handleLogSession,
     handleOpenBadgeModal,
     handleSelectSession,
     handleCloseModal,

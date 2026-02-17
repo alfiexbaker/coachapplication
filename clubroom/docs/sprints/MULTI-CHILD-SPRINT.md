@@ -753,12 +753,15 @@ Phase 4: Home screen family summary with merged timeline + dedup
 
 WHAT COUNTS AS A CONFLICT:
 - Two events for DIFFERENT children that OVERLAP in time
-- Same time slot, different sessions, different locations → CONFLICT
-- Same session for both children → NOT a conflict (they go together)
+  AND have DIFFERENT coachIds (or different locations if no coachId)
+- Parent must physically be in two places at once → CONFLICT
 - Event has no time → excluded from conflict detection
 - Event is cancelled → excluded
 
 WHAT DOES NOT COUNT:
+- Same session for both children → NOT a conflict (they go together)
+- Same coach, overlapping time → NOT a conflict (parent drops both kids
+  at the same place — coach handles both)
 - Same child, two overlapping events (that's a data error, not our problem)
 - Events on different days (obviously)
 - Events that are adjacent but not overlapping (5:00-6:00 and 6:00-7:00 → OK)

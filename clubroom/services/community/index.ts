@@ -1,12 +1,11 @@
 /**
  * Community Service Module
  *
- * Manages parent community features: groups, messaging, and carpool coordination.
+ * Manages parent community features: groups and messaging.
  *
  * This module is split into focused services:
  * - communityGroupService: Group CRUD, membership, invitations, role management
  * - communityMessagingService: Group messaging, read receipts, message status
- * - communityCarpoolService: Carpool offers, seat requests, acceptance/cancellation
  *
  * This index file provides a unified facade (communityService) for backward
  * compatibility, re-exporting all functionality from the split services.
@@ -15,7 +14,6 @@
 // Re-export individual services for direct use
 export { communityGroupService } from './community-group-service';
 export { communityMessagingService } from './community-messaging-service';
-export { communityCarpoolService } from './community-carpool-service';
 
 // Re-export types
 export type {
@@ -23,15 +21,10 @@ export type {
   GroupInvite,
   ChangeMemberRoleParams,
 } from './community-group-service';
-export type {
-  CreateCarpoolOfferParams,
-  RequestCarpoolSeatParams,
-} from './community-carpool-service';
 
 // Import services for the unified facade
 import { communityGroupService } from './community-group-service';
 import { communityMessagingService } from './community-messaging-service';
-import { communityCarpoolService } from './community-carpool-service';
 import { createLogger } from '@/utils/logger';
 
 const logger = createLogger('CommunityFacade');
@@ -80,22 +73,4 @@ export const communityService = {
   getGroupMessages: communityMessagingService.getGroupMessages.bind(communityMessagingService),
   sendGroupMessage: communityMessagingService.sendGroupMessage.bind(communityMessagingService),
   markMessagesRead: communityMessagingService.markMessagesRead.bind(communityMessagingService),
-
-  // ==========================================================================
-  // CARPOOL MANAGEMENT (from communityCarpoolService)
-  // ==========================================================================
-
-  getCarpoolOffers: communityCarpoolService.getCarpoolOffers.bind(communityCarpoolService),
-  getParentCarpoolOffers:
-    communityCarpoolService.getParentCarpoolOffers.bind(communityCarpoolService),
-  getAvailableCarpoolOffers:
-    communityCarpoolService.getAvailableCarpoolOffers.bind(communityCarpoolService),
-  getCarpoolOffer: communityCarpoolService.getCarpoolOffer.bind(communityCarpoolService),
-  createCarpoolOffer: communityCarpoolService.createCarpoolOffer.bind(communityCarpoolService),
-  requestCarpoolSeat: communityCarpoolService.requestCarpoolSeat.bind(communityCarpoolService),
-  acceptCarpoolRequest: communityCarpoolService.acceptCarpoolRequest.bind(communityCarpoolService),
-  declineCarpoolRequest:
-    communityCarpoolService.declineCarpoolRequest.bind(communityCarpoolService),
-  cancelCarpoolOffer: communityCarpoolService.cancelCarpoolOffer.bind(communityCarpoolService),
-  cancelCarpoolRequest: communityCarpoolService.cancelCarpoolRequest.bind(communityCarpoolService),
 };

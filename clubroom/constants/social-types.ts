@@ -1,8 +1,7 @@
 /**
  * Social Types
  *
- * Following system, parent community, group chats, carpool coordination,
- * and messaging types.
+ * Following system, parent community, group chats, and messaging types.
  */
 
 import type { FootballObjective } from './user-types';
@@ -142,7 +141,7 @@ export interface Attachment {
 // PARENT COMMUNITY
 // ============================================================================
 
-export type GroupType = 'CLUB' | 'SESSION' | 'CARPOOL' | 'GENERAL' | 'SQUAD';
+export type GroupType = 'CLUB' | 'SESSION' | 'GENERAL' | 'SQUAD';
 
 export type GroupMemberRole = 'OWNER' | 'ADMIN' | 'MODERATOR' | 'MEMBER';
 
@@ -176,40 +175,6 @@ export interface ParentGroup {
   isPublic: boolean;
   /** Maximum number of members (optional) */
   maxMembers?: number;
-}
-
-export type CarpoolRequestStatus = 'PENDING' | 'ACCEPTED' | 'DECLINED' | 'CANCELLED';
-
-export interface CarpoolRequest {
-  id: string;
-  offerId: string;
-  parentId: string;
-  seatsRequested: number;
-  message?: string;
-  status: CarpoolRequestStatus;
-  requestedAt: string;
-  respondedAt?: string;
-}
-
-export type CarpoolOfferStatus = 'ACTIVE' | 'FULL' | 'COMPLETED' | 'CANCELLED';
-
-export interface CarpoolOffer {
-  id: string;
-  parentId: string;
-  sessionId: string;
-  sessionDate: string;
-  seatsAvailable: number;
-  seatsTaken: number;
-  pickupLocation: string;
-  pickupTime: string;
-  returnOffered: boolean;
-  returnTime?: string;
-  notes?: string;
-  status: CarpoolOfferStatus;
-  requests: CarpoolRequest[];
-  acceptedRequests: CarpoolRequest[];
-  createdAt: string;
-  updatedAt: string;
 }
 
 export interface GroupMessage {

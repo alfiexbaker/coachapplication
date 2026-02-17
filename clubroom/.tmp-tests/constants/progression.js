@@ -6,39 +6,36 @@ exports.getProgressToNextLevel = getProgressToNextLevel;
 exports.getCategoryMilestoneStatus = getCategoryMilestoneStatus;
 exports.ProgressionThresholds = {
     levels: [
-        { level: 1, name: 'Beginner', pointsRequired: 0 },
-        { level: 2, name: 'Developing', pointsRequired: 50 },
-        { level: 3, name: 'Intermediate', pointsRequired: 150 },
+        { level: 1, name: 'Starting Out', pointsRequired: 0 },
+        { level: 2, name: 'Progressing', pointsRequired: 50 },
+        { level: 3, name: 'Established', pointsRequired: 150 },
         { level: 4, name: 'Advanced', pointsRequired: 300 },
         { level: 5, name: 'Elite', pointsRequired: 500 },
     ],
     categoryMilestones: {
-        // Unlock when X badges earned in category
-        bronze: 3,
-        silver: 7,
-        gold: 15,
+        foundation: 3,
+        developing: 7,
+        advanced: 15,
     },
 };
-// Point values for each tier
+// Point values for each tier (internal — not shown in UI)
 exports.TierPointValues = {
-    1: 10, // Bronze
-    2: 25, // Silver
-    3: 50, // Gold
+    1: 10, // Foundation
+    2: 25, // Developing
+    3: 50, // Advanced
 };
 // Tier display names
 exports.TierNames = {
-    1: 'Bronze',
-    2: 'Silver',
-    3: 'Gold',
+    1: 'Foundation',
+    2: 'Developing',
+    3: 'Advanced',
 };
-// Category display names and icons
+// FA Four Corners — category display names and icons
 exports.CategoryInfo = {
-    leadership: { label: 'Leadership', icon: 'people' },
-    consistency: { label: 'Consistency', icon: 'refresh' },
-    technique: { label: 'Technique', icon: 'football' },
-    mindset: { label: 'Mindset', icon: 'bulb' },
-    teamwork: { label: 'Teamwork', icon: 'hand-left' },
-    resilience: { label: 'Resilience', icon: 'fitness' },
+    technical: { label: 'Technical', icon: 'football' },
+    physical: { label: 'Physical', icon: 'fitness' },
+    psychological: { label: 'Psychological', icon: 'bulb' },
+    social: { label: 'Social', icon: 'people' },
 };
 // Helper function to get current level from points
 function getLevelFromPoints(points) {
@@ -78,34 +75,34 @@ function getProgressToNextLevel(points) {
 // Helper function to get category milestone status
 function getCategoryMilestoneStatus(badgeCount) {
     const milestones = exports.ProgressionThresholds.categoryMilestones;
-    if (badgeCount >= milestones.gold) {
+    if (badgeCount >= milestones.advanced) {
         return {
-            currentMilestone: 'Gold',
+            currentMilestone: 'Advanced',
             nextMilestone: null,
             badgesToNext: 0,
             progressPercent: 100,
         };
     }
-    if (badgeCount >= milestones.silver) {
+    if (badgeCount >= milestones.developing) {
         return {
-            currentMilestone: 'Silver',
-            nextMilestone: 'Gold',
-            badgesToNext: milestones.gold - badgeCount,
-            progressPercent: Math.round(((badgeCount - milestones.silver) / (milestones.gold - milestones.silver)) * 100),
+            currentMilestone: 'Developing',
+            nextMilestone: 'Advanced',
+            badgesToNext: milestones.advanced - badgeCount,
+            progressPercent: Math.round(((badgeCount - milestones.developing) / (milestones.advanced - milestones.developing)) * 100),
         };
     }
-    if (badgeCount >= milestones.bronze) {
+    if (badgeCount >= milestones.foundation) {
         return {
-            currentMilestone: 'Bronze',
-            nextMilestone: 'Silver',
-            badgesToNext: milestones.silver - badgeCount,
-            progressPercent: Math.round(((badgeCount - milestones.bronze) / (milestones.silver - milestones.bronze)) * 100),
+            currentMilestone: 'Foundation',
+            nextMilestone: 'Developing',
+            badgesToNext: milestones.developing - badgeCount,
+            progressPercent: Math.round(((badgeCount - milestones.foundation) / (milestones.developing - milestones.foundation)) * 100),
         };
     }
     return {
         currentMilestone: 'None',
-        nextMilestone: 'Bronze',
-        badgesToNext: milestones.bronze - badgeCount,
-        progressPercent: Math.round((badgeCount / milestones.bronze) * 100),
+        nextMilestone: 'Foundation',
+        badgesToNext: milestones.foundation - badgeCount,
+        progressPercent: Math.round((badgeCount / milestones.foundation) * 100),
     };
 }

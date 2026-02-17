@@ -137,7 +137,7 @@ export default function UserBadgesScreen() {
 
   if (status === 'loading') {
     return (
-      <PageContainer header={<ScreenHeader title="Badges" subtitle="Achievements and rewards" />}>
+      <PageContainer header={<ScreenHeader title="Development" subtitle="Progress & recognition" />}>
         <LoadingState variant="card" />
       </PageContainer>
     );
@@ -145,19 +145,19 @@ export default function UserBadgesScreen() {
 
   if (status === 'error') {
     return (
-      <PageContainer header={<ScreenHeader title="Badges" subtitle="Achievements and rewards" />}>
-        <ErrorState message={error?.message ?? 'Failed to load badges'} onRetry={retry} />
+      <PageContainer header={<ScreenHeader title="Development" subtitle="Progress & recognition" />}>
+        <ErrorState message={error?.message ?? 'Failed to load development data'} onRetry={retry} />
       </PageContainer>
     );
   }
 
   if (status === 'empty') {
     return (
-      <PageContainer header={<ScreenHeader title="Badges" subtitle="Achievements and rewards" />}>
+      <PageContainer header={<ScreenHeader title="Development" subtitle="Progress & recognition" />}>
         <EmptyState
-          icon="ribbon-outline"
-          title="No badges yet"
-          message="Complete sessions with your coach to start earning badges and tracking your progress."
+          icon="trending-up-outline"
+          title="Your journey starts here"
+          message="Complete sessions with your coach to start tracking your development."
           actionLabel="Find a coach"
           onPressAction={() => router.push(Routes.BOOK_COACH)}
         />
@@ -169,7 +169,7 @@ export default function UserBadgesScreen() {
 
   return (
     <PageContainer
-      header={<ScreenHeader title="Badges" subtitle="Achievements and rewards" />}
+      header={<ScreenHeader title="Development" subtitle="Progress & recognition" />}
       gap={Spacing.md}
     >
       {progression && (

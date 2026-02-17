@@ -7,14 +7,14 @@ import { SurfaceCard } from '@/components/primitives/surface-card';
 import { Clickable } from '@/components/primitives/clickable';
 import { Radii, Spacing, Typography } from '@/constants/theme';
 import type { ThemeColors } from '@/hooks/useTheme';
-import type { Disability } from '@/services/child-service';
+import type { Disability, SpecialNeed } from '@/services/child-service';
 
-import { DisabilitySelector } from './medical-special-needs-form-sections';
+import { DisabilitySelector, SpecialNeedEntrySection } from './medical-special-needs-form-sections';
 import { Row } from '@/components/primitives';
 
 // Re-export extracted components for backward compat
-export { DisabilitySelector } from './medical-special-needs-form-sections';
-export type { DisabilitySelectorProps } from './medical-special-needs-form-sections';
+export { DisabilitySelector, SpecialNeedEntrySection } from './medical-special-needs-form-sections';
+export type { DisabilitySelectorProps, SpecialNeedEntrySectionProps } from './medical-special-needs-form-sections';
 
 interface SpecialNeedsFormProps {
   firstName: string;
@@ -24,6 +24,21 @@ interface SpecialNeedsFormProps {
   disabilityDescription: string;
   communicationNotes: string;
   behavioralNotes: string;
+  // Disability detail fields
+  diagnosisDate: string;
+  supportRequired: string;
+  commPrefs: string[];
+  triggers: string[];
+  calmingStrategies: string[];
+  // Special need form fields
+  specialNeeds: SpecialNeed[];
+  snCategory: SpecialNeed['category'] | null;
+  snName: string;
+  snDescription: string;
+  snSeverity: SpecialNeed['severity'] | undefined;
+  snAccommodations: string[];
+  snParentHints: string;
+  // Callbacks
   onHasSpecialNeedsChange: (value: boolean) => void;
   onDisabilitiesChange: (value: Disability[]) => void;
   onSelectedDisabilityTypeChange: (value: string | null) => void;
@@ -31,6 +46,19 @@ interface SpecialNeedsFormProps {
   onCommunicationNotesChange: (value: string) => void;
   onBehavioralNotesChange: (value: string) => void;
   onAddDisability: () => void;
+  onDiagnosisDateChange: (value: string) => void;
+  onSupportRequiredChange: (value: string) => void;
+  onCommPrefsChange: (value: string[]) => void;
+  onTriggersChange: (value: string[]) => void;
+  onCalmingStrategiesChange: (value: string[]) => void;
+  onSnCategoryChange: (v: SpecialNeed['category']) => void;
+  onSnNameChange: (v: string) => void;
+  onSnDescriptionChange: (v: string) => void;
+  onSnSeverityChange: (v: SpecialNeed['severity']) => void;
+  onSnAccommodationsChange: (v: string[]) => void;
+  onSnParentHintsChange: (v: string) => void;
+  onAddSpecialNeed: () => void;
+  onRemoveSpecialNeed: (id: string) => void;
   palette: ThemeColors;
 }
 
@@ -42,6 +70,18 @@ export const SpecialNeedsForm = React.memo(function SpecialNeedsForm({
   disabilityDescription,
   communicationNotes,
   behavioralNotes,
+  diagnosisDate,
+  supportRequired,
+  commPrefs,
+  triggers,
+  calmingStrategies,
+  specialNeeds,
+  snCategory,
+  snName,
+  snDescription,
+  snSeverity,
+  snAccommodations,
+  snParentHints,
   onHasSpecialNeedsChange,
   onDisabilitiesChange,
   onSelectedDisabilityTypeChange,
@@ -49,6 +89,19 @@ export const SpecialNeedsForm = React.memo(function SpecialNeedsForm({
   onCommunicationNotesChange,
   onBehavioralNotesChange,
   onAddDisability,
+  onDiagnosisDateChange,
+  onSupportRequiredChange,
+  onCommPrefsChange,
+  onTriggersChange,
+  onCalmingStrategiesChange,
+  onSnCategoryChange,
+  onSnNameChange,
+  onSnDescriptionChange,
+  onSnSeverityChange,
+  onSnAccommodationsChange,
+  onSnParentHintsChange,
+  onAddSpecialNeed,
+  onRemoveSpecialNeed,
   palette,
 }: SpecialNeedsFormProps) {
   return (
@@ -113,10 +166,39 @@ export const SpecialNeedsForm = React.memo(function SpecialNeedsForm({
             disabilities={disabilities}
             selectedDisabilityType={selectedDisabilityType}
             disabilityDescription={disabilityDescription}
+            diagnosisDate={diagnosisDate}
+            supportRequired={supportRequired}
+            commPrefs={commPrefs}
+            triggers={triggers}
+            calmingStrategies={calmingStrategies}
             onDisabilitiesChange={onDisabilitiesChange}
             onSelectedDisabilityTypeChange={onSelectedDisabilityTypeChange}
             onDisabilityDescriptionChange={onDisabilityDescriptionChange}
+            onDiagnosisDateChange={onDiagnosisDateChange}
+            onSupportRequiredChange={onSupportRequiredChange}
+            onCommPrefsChange={onCommPrefsChange}
+            onTriggersChange={onTriggersChange}
+            onCalmingStrategiesChange={onCalmingStrategiesChange}
             onAddDisability={onAddDisability}
+            palette={palette}
+          />
+
+          <SpecialNeedEntrySection
+            specialNeeds={specialNeeds}
+            snCategory={snCategory}
+            snName={snName}
+            snDescription={snDescription}
+            snSeverity={snSeverity}
+            snAccommodations={snAccommodations}
+            snParentHints={snParentHints}
+            onSnCategoryChange={onSnCategoryChange}
+            onSnNameChange={onSnNameChange}
+            onSnDescriptionChange={onSnDescriptionChange}
+            onSnSeverityChange={onSnSeverityChange}
+            onSnAccommodationsChange={onSnAccommodationsChange}
+            onSnParentHintsChange={onSnParentHintsChange}
+            onAddSpecialNeed={onAddSpecialNeed}
+            onRemoveSpecialNeed={onRemoveSpecialNeed}
             palette={palette}
           />
 

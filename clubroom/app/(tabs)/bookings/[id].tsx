@@ -163,8 +163,15 @@ export default function SessionDetailScreen() {
       >
         {/* Header */}
         <ThemedView style={styles.headerSection}>
-          <Row gap="md" align="center">
-            <ThemedText type="title" style={styles.flex1}>
+          <Row gap="sm" align="center" style={styles.backRow}>
+            <Clickable
+              onPress={handleGoBack}
+              accessibilityLabel="Go back"
+              style={styles.backBtn}
+            >
+              <Ionicons name="chevron-back" size={24} color={palette.text} />
+            </Clickable>
+            <ThemedText type="title" style={styles.flex1} numberOfLines={1}>
               {booking.service}
             </ThemedText>
             <StatusBadge status={booking.status} />
@@ -302,6 +309,8 @@ const styles = StyleSheet.create({
   container: { flex: 1 },
   scrollContent: { padding: Spacing.lg, gap: Spacing.md },
   headerSection: { gap: Spacing.sm, marginBottom: Spacing.sm },
+  backRow: { marginTop: Spacing.xs },
+  backBtn: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center' },
   flex1: { flex: 1 },
   reviewCard: {
     borderWidth: 1,

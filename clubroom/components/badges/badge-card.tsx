@@ -4,7 +4,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { ThemedText } from '@/components/themed-text';
 import { Radii, Spacing, Typography, withAlpha } from '@/constants/theme';
-import { TierNames } from '@/constants/progression';
+import { TierNames, CategoryInfo } from '@/constants/progression';
 import type { AllBadgeWithProgress } from '@/services/badge-service';
 import { useTheme } from '@/hooks/useTheme';
 
@@ -140,16 +140,16 @@ export function BadgeCard({ badge, onPress, compact = false }: BadgeCardProps) {
         </Row>
       )}
 
-      <Row style={styles.pointsSection}>
-        {categoryIcon && (
+      {categoryIcon && (
+        <Row style={styles.pointsSection}>
           <View style={[styles.categoryPill, { backgroundColor: withAlpha(palette.tint, 0.06) }]}>
             <Ionicons name={categoryIcon} size={12} color={palette.tint} />
           </View>
-        )}
-        <ThemedText style={[styles.pointsText, { color: palette.tint }]}>
-          +{badge.pointValue} pts
-        </ThemedText>
-      </Row>
+          <ThemedText style={[styles.pointsText, { color: palette.tint }]}>
+            {badge.category ? CategoryInfo[badge.category as keyof typeof CategoryInfo]?.label ?? '' : ''}
+          </ThemedText>
+        </Row>
+      )}
     </SurfaceCard>
   );
 }

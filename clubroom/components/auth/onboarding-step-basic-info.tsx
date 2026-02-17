@@ -2,11 +2,12 @@
  * StepBasicInfo — Basic information form step of onboarding.
  */
 
-import { memo } from 'react';
+import { memo, useMemo } from 'react';
 import { View, StyleSheet, TextInput } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
 import { ThemedText } from '@/components/themed-text';
+import { DateTimeField } from '@/components/ui/primitives/DateTimeField';
 import { Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
 import { getPasswordStrength } from './onboarding-types';
@@ -36,6 +37,7 @@ function StepBasicInfoInner({
   onChangeField,
 }: StepBasicInfoProps) {
   const { colors: palette } = useTheme();
+  const today = useMemo(() => new Date(), []);
 
   const inputStyle = [styles.input, { borderColor: palette.border, backgroundColor: palette.card }];
   const checklist = [
@@ -206,17 +208,13 @@ function StepBasicInfoInner({
       </View>
 
       {showDateOfBirth && (
-        <View style={styles.fieldGroup}>
-          <ThemedText style={styles.label}>Date of Birth</ThemedText>
-          <TextInput
-            value={dateOfBirth}
-            onChangeText={(v) => onChangeField('dateOfBirth', v)}
-            placeholder="YYYY-MM-DD"
-            placeholderTextColor={palette.muted}
-            accessibilityLabel="Date of birth"
-            style={inputStyle}
-          />
-        </View>
+        <DateTimeField
+          mode="date"
+          label="Date of Birth"
+          value={dateOfBirth}
+          onChange={(v) => onChangeField('dateOfBirth', v)}
+          maximumDate={today}
+        />
       )}
     </View>
   );

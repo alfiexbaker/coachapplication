@@ -147,11 +147,9 @@
 | Maximum advance booking setting | ❌ | |
 | Same-day booking toggle | ❌ | |
 | Buffer time / minimum notice enhancement | 🔨 | 602 lines exist |
-| Smart slot suggestions | ❌ | Based on booking patterns |
 | "Copy last week's schedule" | ❌ | |
 | Mark no-show with categorisation | ❌ | |
 | Block specific dates enhancement | ✅ | 285 lines, needs polish |
-| "Your busiest day is Saturday" insights | ❌ | |
 
 ---
 
@@ -273,7 +271,6 @@
 | Shareable public coach profile (works without login) | ❌ | |
 | Shareable booking link + QR code | ❌ | |
 | Offer trial/taster sessions | ❌ | |
-| "Similar coaches" on coach profile | ❌ | |
 | Earnings projections (confirmed + pending + projected) | ❌ | |
 | Trial session conversion tracking | ❌ | |
 | See pending vs available balance | 🔨 | Rethink for cash |
@@ -304,8 +301,6 @@
 |-------|--------|-------|
 | Session plan templates | ❌ | |
 | Video challenges (coach posts, players submit) | ✅ | Sprint 9C — challenges.tsx + challenge-card |
-| Challenge leaderboard | ❌ | |
-| Monthly progress report (shareable) | ❌ | |
 | Personal session journal with mood/energy | ✅ | Sprint 9D — journal.tsx + session-journal component |
 | Goal setting with age-based suggestions | ❌ | |
 | Submit video challenge attempts | ✅ | Sprint 9C — ChallengeCard onSubmitAttempt |
@@ -331,9 +326,7 @@
 | One-tap match RSVP from notification | ❌ | |
 | One-tap invite accept from notification | ❌ | |
 | Session reminders 24h + 1h with directions | ❌ | |
-| Coach "I'm on my way" status | ❌ | |
 | Micro-interactions (haptics, press states, animations) | ❌ | |
-| Shareable achievement cards (organic marketing) | ❌ | |
 | Add child skill level + position during creation | ❌ | |
 | Award badges celebration trigger | ✅ | Needs celebration UI |
 | See badges earned celebration | ✅ | Needs celebration UI |
@@ -373,9 +366,9 @@
 |--------|-------|
 | ✅ Built (foundational) | 155 |
 | 🔨 Needs Enhancement | 24 |
-| ❌ Missing (to build) | 96 |
+| ❌ Missing (to build) | 89 |
 | 💤 Deferred (Cash MVP) | 18 |
-| **Total** | **293** |
+| **Total** | **286** |
 
 ---
 

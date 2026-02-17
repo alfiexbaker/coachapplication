@@ -34,12 +34,10 @@ interface BadgeCategoryCarouselProps {
 }
 
 const CATEGORY_ICONS: Record<BadgeCategory, keyof typeof Ionicons.glyphMap> = {
-  leadership: 'people',
-  consistency: 'refresh',
-  technique: 'football',
-  mindset: 'bulb',
-  teamwork: 'hand-left',
-  resilience: 'fitness',
+  technical: 'football',
+  physical: 'fitness',
+  psychological: 'bulb',
+  social: 'people',
 };
 
 const CategoryCard = memo(function CategoryCard({ cat }: { cat: CategoryBreakdownItem }) {
@@ -70,7 +68,7 @@ const CategoryCard = memo(function CategoryCard({ cat }: { cat: CategoryBreakdow
         {cat.label}
       </ThemedText>
       <ThemedText style={[styles.categoryCount, { color: palette.tint }]}>
-        {cat.badgeCount} badge{cat.badgeCount !== 1 ? 's' : ''}
+        {cat.badgeCount} recognition{cat.badgeCount !== 1 ? 's' : ''}
       </ThemedText>
 
       {cat.nextMilestone && (
@@ -117,9 +115,9 @@ export const BadgeCategoryCarousel = memo(function BadgeCategoryCarousel({
   return (
     <SurfaceCard style={styles.sectionCard}>
       <Row justify="between" align="center">
-        <ThemedText type="defaultSemiBold">Category Progress</ThemedText>
+        <ThemedText type="defaultSemiBold">Development Areas</ThemedText>
         <ThemedText style={[styles.sectionHint, { color: palette.muted }]}>
-          Earn badges to unlock milestones
+          FA Four Corners
         </ThemedText>
       </Row>
 

@@ -9,7 +9,7 @@ import * as Haptics from 'expo-haptics';
 import { Clickable } from '@/components/primitives/clickable';
 import { ThemedText } from '@/components/themed-text';
 import { Spacing } from '@/constants/theme';
-import { schedulingRulesService } from '@/services/scheduling-rules-service';
+import { schedulingRulesService, POLICY_TEMPLATES } from '@/services/scheduling-rules-service';
 import type { RefundTier } from '@/constants/types';
 
 import { createLogger } from '@/utils/logger';
@@ -19,8 +19,8 @@ import {
   ChipSection,
   ToggleCard,
   CancellationSection,
-  CANCELLATION_TIMEFRAMES,
   SettingsSummary,
+  type CancellationPreset,
 } from './scheduling-rules-sections';
 import { Row } from '@/components/primitives';
 
@@ -50,37 +50,20 @@ const WINDOW_OPTIONS = [
   { value: 90, label: '3 months' },
 ];
 
-function deriveRefundForHours(hoursBeforeSession: number, tiers: RefundTier[]): number {
-  const sorted = [...tiers].sort((a, b) => b.hoursBeforeSession - a.hoursBeforeSession);
-  for (const tier of sorted) {
-    if (hoursBeforeSession >= tier.hoursBeforeSession) {
-      return tier.refundPercentage;
-    }
+function detectPreset(tiers: RefundTier[]): CancellationPreset {
+  for (const key of ['flexible', 'standard', 'strict'] as const) {
+    const template = POLICY_TEMPLATES[key];
+    if (template.tiers.length !== tiers.length) continue;
+    const sorted = [...tiers].sort((a, b) => b.hoursBeforeSession - a.hoursBeforeSession);
+    const templateSorted = [...template.tiers].sort((a, b) => b.hoursBeforeSession - a.hoursBeforeSession);
+    const match = sorted.every(
+      (t, i) =>
+        t.hoursBeforeSession === templateSorted[i].hoursBeforeSession &&
+        t.refundPercentage === templateSorted[i].refundPercentage,
+    );
+    if (match) return key;
   }
-  return sorted[sorted.length - 1]?.refundPercentage ?? 0;
-}
-
-function toTierDescription(hoursBeforeSession: number, refundPercentage: number): string {
-  if (hoursBeforeSession === 0) {
-    return `${refundPercentage}% refund at session start`;
-  }
-  return `${refundPercentage}% refund ${hoursBeforeSession}+ hours before`;
-}
-
-function buildEditableCancellationTiers(sourceTiers?: RefundTier[]): RefundTier[] {
-  const baseTiers =
-    sourceTiers && sourceTiers.length > 0
-      ? sourceTiers
-      : schedulingRulesService.getDefaultCancellationPolicy().tiers;
-
-  return CANCELLATION_TIMEFRAMES.map((hoursBeforeSession) => {
-    const refundPercentage = Math.round(deriveRefundForHours(hoursBeforeSession, baseTiers) / 5) * 5;
-    return {
-      hoursBeforeSession,
-      refundPercentage: Math.max(0, Math.min(100, refundPercentage)),
-      description: toTierDescription(hoursBeforeSession, refundPercentage),
-    };
-  });
+  return 'custom';
 }
 
 interface SchedulingRulesModalProps {
@@ -106,8 +89,9 @@ export function SchedulingRulesModal({
   const [allowSameDayBookings, setAllowSameDayBookings] = useState(true);
   const [allowRescheduling, setAllowRescheduling] = useState(true);
   const [rescheduleDeadlineHours, setRescheduleDeadlineHours] = useState(24);
+  const [cancellationPreset, setCancellationPreset] = useState<CancellationPreset>('standard');
   const [cancellationTiers, setCancellationTiers] = useState<RefundTier[]>(
-    buildEditableCancellationTiers(schedulingRulesService.getDefaultCancellationPolicy().tiers),
+    schedulingRulesService.getDefaultCancellationPolicy().tiers,
   );
 
   const loadRules = useCallback(async () => {
@@ -130,12 +114,14 @@ export function SchedulingRulesModal({
         logger.error('Failed to load coach scheduling rules', dataResult.error);
       }
       if (policyResult.success && policyResult.data) {
-        setCancellationTiers(buildEditableCancellationTiers(policyResult.data.tiers));
+        const tiers = policyResult.data.tiers;
+        setCancellationTiers(tiers);
+        setCancellationPreset(detectPreset(tiers));
       } else if (policyResult.success) {
-        setCancellationTiers(
-          buildEditableCancellationTiers(schedulingRulesService.getDefaultCancellationPolicy().tiers),
-        );
-      } else if (!policyResult.success) {
+        const defaultTiers = schedulingRulesService.getDefaultCancellationPolicy().tiers;
+        setCancellationTiers(defaultTiers);
+        setCancellationPreset('standard');
+      } else {
         logger.error('Failed to load cancellation policy', policyResult.error);
       }
     } catch (error) {
@@ -152,6 +138,7 @@ export function SchedulingRulesModal({
   const handleSave = useCallback(async () => {
     setSaving(true);
     try {
+      const templateKey = cancellationPreset === 'custom' ? 'custom' : cancellationPreset;
       const [rulesResult, policyResult] = await Promise.all([
         schedulingRulesService.updateCoachRules(coachId, {
           minimumAdvanceBookingHours: minimumAdvanceHours,
@@ -162,7 +149,11 @@ export function SchedulingRulesModal({
           allowRescheduling,
           rescheduleDeadlineHours,
         }),
-        schedulingRulesService.setCancellationPolicy(coachId, 'custom', cancellationTiers),
+        schedulingRulesService.setCancellationPolicy(
+          coachId,
+          templateKey,
+          templateKey === 'custom' ? cancellationTiers : undefined,
+        ),
       ]);
       if (!rulesResult.success) {
         logger.error('Failed to save scheduling rules', rulesResult.error);
@@ -191,24 +182,23 @@ export function SchedulingRulesModal({
     allowSameDayBookings,
     allowRescheduling,
     rescheduleDeadlineHours,
+    cancellationPreset,
     cancellationTiers,
     onSaved,
     onClose,
   ]);
 
-  const handleTierChange = useCallback((hoursBeforeSession: number, refundPercentage: number) => {
-    const roundedRefund = Math.max(0, Math.min(100, Math.round(refundPercentage / 5) * 5));
-    setCancellationTiers((prev) =>
-      prev.map((tier) =>
-        tier.hoursBeforeSession === hoursBeforeSession
-          ? {
-              ...tier,
-              refundPercentage: roundedRefund,
-              description: toTierDescription(hoursBeforeSession, roundedRefund),
-            }
-          : tier,
-      ),
-    );
+  const handlePresetChange = useCallback((preset: CancellationPreset) => {
+    setCancellationPreset(preset);
+    if (preset !== 'custom') {
+      const template = POLICY_TEMPLATES[preset];
+      if (template) setCancellationTiers([...template.tiers]);
+    }
+  }, []);
+
+  const handleTiersChange = useCallback((tiers: RefundTier[]) => {
+    setCancellationTiers(tiers);
+    setCancellationPreset('custom');
   }, []);
 
   return (
@@ -271,7 +261,12 @@ export function SchedulingRulesModal({
             onDeadlineChange={setRescheduleDeadlineHours}
           />
 
-          <CancellationSection tiers={cancellationTiers} onTierChange={handleTierChange} />
+          <CancellationSection
+            tiers={cancellationTiers}
+            selectedPreset={cancellationPreset}
+            onPresetChange={handlePresetChange}
+            onTiersChange={handleTiersChange}
+          />
 
           <SettingsSummary
             minimumAdvanceHours={minimumAdvanceHours}

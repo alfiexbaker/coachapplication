@@ -7,6 +7,7 @@ import { userService } from '@/services/user-service';
 import { createLogger } from '@/utils/logger';
 import { useScreen, type ScreenStatus } from '@/hooks/use-screen';
 import { err, ok, serviceError, type ServiceError } from '@/types/result';
+import { ServiceEvents } from '@/services/event-bus';
 
 const logger = createLogger('SpecialNeedsScreen');
 
@@ -50,6 +51,12 @@ export function useSpecialNeeds() {
     deps: [athleteId],
     isEmpty: (value) => !value.athlete,
     refetchOnFocus: true,
+    events: [
+      ServiceEvents.CHILD_SEN_UPDATED,
+      ServiceEvents.COACH_OBSERVATION_CREATED,
+      ServiceEvents.COACH_OBSERVATION_UPDATED,
+      ServiceEvents.COACH_OBSERVATION_DELETED,
+    ],
   });
 
   const athlete = data?.athlete ?? null;

@@ -34,7 +34,7 @@ export interface SpecialNeed {
   description?: string;
   severity?: 'MILD' | 'MODERATE' | 'SEVERE';
   accommodationsNeeded?: string[];
-  coachNotes?: string; // Notes for coaches on how to accommodate
+  parentHints?: string; // Parent's hints for coaches on how to accommodate
 }
 
 export interface Disability {
@@ -191,7 +191,7 @@ export const SPECIAL_NEEDS_CATEGORIES: {
 let childrenCache: ChildProfile[] = [
   {
     id: 'child-1',
-    parentId: 'user1',
+    parentId: 'user4',
     firstName: 'Jake',
     lastName: 'Henderson',
     nickname: 'JT',
@@ -219,7 +219,7 @@ let childrenCache: ChildProfile[] = [
         description: 'Works best with clear routines and expectations',
         severity: 'MODERATE',
         accommodationsNeeded: ['Written schedule', 'Visual timers', 'Quiet space for breaks'],
-        coachNotes: 'Give 5-minute warning before transitions',
+        parentHints: 'Give 5-minute warning before transitions',
       },
     ],
     hasSpecialNeeds: true,
@@ -243,7 +243,7 @@ let childrenCache: ChildProfile[] = [
   },
   {
     id: 'child-2',
-    parentId: 'user1',
+    parentId: 'user4',
     firstName: 'Tom',
     lastName: 'Henderson',
     dateOfBirth: '2010-05-12',
@@ -270,7 +270,7 @@ let childrenCache: ChildProfile[] = [
         description: 'Learns better through verbal and visual demonstrations',
         severity: 'MILD',
         accommodationsNeeded: ['Verbal instructions', 'Visual demos', 'Extra processing time'],
-        coachNotes: 'Show drills physically rather than explaining on a whiteboard',
+        parentHints: 'Show drills physically rather than explaining on a whiteboard',
       },
     ],
     hasSpecialNeeds: true,
@@ -295,7 +295,7 @@ let childrenCache: ChildProfile[] = [
   },
   {
     id: 'child-3',
-    parentId: 'user1',
+    parentId: 'user4',
     firstName: 'Lily',
     lastName: 'Henderson',
     dateOfBirth: '2015-11-08',
@@ -524,9 +524,13 @@ export const childService = {
       id: apiClient.generateId('dis'),
     };
 
-    return this.updateChild(childId, {
+    const result = await this.updateChild(childId, {
       disabilities: [...child.disabilities, newDisability],
     });
+    if (result.success) {
+      emitTyped(ServiceEvents.CHILD_SEN_UPDATED, { childId, parentId: child.parentId, section: 'disabilities' });
+    }
+    return result;
   },
 
   /**
@@ -539,9 +543,13 @@ export const childService = {
     const child = await this.getChild(childId);
     if (!child) return err(notFound('Child', childId));
 
-    return this.updateChild(childId, {
+    const result = await this.updateChild(childId, {
       disabilities: child.disabilities.filter((d) => d.id !== disabilityId),
     });
+    if (result.success) {
+      emitTyped(ServiceEvents.CHILD_SEN_UPDATED, { childId, parentId: child.parentId, section: 'disabilities' });
+    }
+    return result;
   },
 
   /**
@@ -559,9 +567,13 @@ export const childService = {
       id: apiClient.generateId('sn'),
     };
 
-    return this.updateChild(childId, {
+    const result = await this.updateChild(childId, {
       specialNeeds: [...child.specialNeeds, newSpecialNeed],
     });
+    if (result.success) {
+      emitTyped(ServiceEvents.CHILD_SEN_UPDATED, { childId, parentId: child.parentId, section: 'specialNeeds' });
+    }
+    return result;
   },
 
   /**
@@ -574,9 +586,69 @@ export const childService = {
     const child = await this.getChild(childId);
     if (!child) return err(notFound('Child', childId));
 
-    return this.updateChild(childId, {
+    const result = await this.updateChild(childId, {
       specialNeeds: child.specialNeeds.filter((sn) => sn.id !== specialNeedId),
     });
+    if (result.success) {
+      emitTyped(ServiceEvents.CHILD_SEN_UPDATED, { childId, parentId: child.parentId, section: 'specialNeeds' });
+    }
+    return result;
+  },
+
+  /**
+   * Update a specific disability on a child
+   */
+  async updateDisability(
+    childId: string,
+    disabilityId: string,
+    updates: Partial<Omit<Disability, 'id'>>,
+  ): Promise<Result<ChildProfile, ServiceError>> {
+    const child = await this.getChild(childId);
+    if (!child) return err(notFound('Child', childId));
+
+    const index = child.disabilities.findIndex((d) => d.id === disabilityId);
+    if (index === -1) return err(notFound('Disability', disabilityId));
+
+    const updatedDisabilities = [...child.disabilities];
+    updatedDisabilities[index] = { ...updatedDisabilities[index], ...updates };
+
+    const result = await this.updateChild(childId, { disabilities: updatedDisabilities });
+    if (result.success) {
+      emitTyped(ServiceEvents.CHILD_SEN_UPDATED, {
+        childId,
+        parentId: child.parentId,
+        section: 'disabilities',
+      });
+    }
+    return result;
+  },
+
+  /**
+   * Update a specific special need on a child
+   */
+  async updateSpecialNeed(
+    childId: string,
+    specialNeedId: string,
+    updates: Partial<Omit<SpecialNeed, 'id'>>,
+  ): Promise<Result<ChildProfile, ServiceError>> {
+    const child = await this.getChild(childId);
+    if (!child) return err(notFound('Child', childId));
+
+    const index = child.specialNeeds.findIndex((sn) => sn.id === specialNeedId);
+    if (index === -1) return err(notFound('SpecialNeed', specialNeedId));
+
+    const updatedNeeds = [...child.specialNeeds];
+    updatedNeeds[index] = { ...updatedNeeds[index], ...updates };
+
+    const result = await this.updateChild(childId, { specialNeeds: updatedNeeds });
+    if (result.success) {
+      emitTyped(ServiceEvents.CHILD_SEN_UPDATED, {
+        childId,
+        parentId: child.parentId,
+        section: 'specialNeeds',
+      });
+    }
+    return result;
   },
 
   /**
@@ -637,8 +709,8 @@ export const childService = {
       quickNotes.push(child.behavioralNotes);
     }
     child.specialNeeds.forEach((sn) => {
-      if (sn.coachNotes) {
-        quickNotes.push(sn.coachNotes);
+      if (sn.parentHints) {
+        quickNotes.push(sn.parentHints);
       }
     });
 

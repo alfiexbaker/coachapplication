@@ -67,9 +67,14 @@ const DEFAULT_TIERS: RefundTier[] = [
     description: '50% refund if cancelled 12-24 hours before',
   },
   {
+    hoursBeforeSession: 2,
+    refundPercentage: 25,
+    description: '25% refund if cancelled 2-12 hours before',
+  },
+  {
     hoursBeforeSession: 0,
     refundPercentage: 0,
-    description: 'No refund if cancelled less than 12 hours before',
+    description: 'No refund for no-show',
   },
 ];
 
@@ -90,22 +95,27 @@ export const POLICY_TEMPLATES: Record<
   },
   flexible: {
     name: 'Flexible',
-    description: 'Generous policy with full refund up to 6 hours before',
+    description: 'Generous refunds at every window',
     tiers: [
       {
-        hoursBeforeSession: 6,
+        hoursBeforeSession: 24,
         refundPercentage: 100,
-        description: 'Full refund if cancelled 6+ hours before',
+        description: 'Full refund if cancelled 24+ hours before',
+      },
+      {
+        hoursBeforeSession: 12,
+        refundPercentage: 100,
+        description: 'Full refund if cancelled 12-24 hours before',
       },
       {
         hoursBeforeSession: 2,
         refundPercentage: 75,
-        description: '75% refund if cancelled 2-6 hours before',
+        description: '75% refund if cancelled 2-12 hours before',
       },
       {
         hoursBeforeSession: 0,
-        refundPercentage: 25,
-        description: '25% refund if cancelled less than 2 hours before',
+        refundPercentage: 50,
+        description: '50% refund for no-show',
       },
     ],
     minimumNoticeHours: 0,
@@ -114,17 +124,12 @@ export const POLICY_TEMPLATES: Record<
   },
   strict: {
     name: 'Strict',
-    description: 'Limited refunds - full refund only 48+ hours ahead',
+    description: 'Limited refunds — no-shows get nothing',
     tiers: [
       {
-        hoursBeforeSession: 48,
-        refundPercentage: 100,
-        description: 'Full refund if cancelled 48+ hours before',
-      },
-      {
         hoursBeforeSession: 24,
-        refundPercentage: 50,
-        description: '50% refund if cancelled 24-48 hours before',
+        refundPercentage: 100,
+        description: 'Full refund if cancelled 24+ hours before',
       },
       {
         hoursBeforeSession: 12,
@@ -132,9 +137,14 @@ export const POLICY_TEMPLATES: Record<
         description: '25% refund if cancelled 12-24 hours before',
       },
       {
+        hoursBeforeSession: 2,
+        refundPercentage: 0,
+        description: 'No refund if cancelled 2-12 hours before',
+      },
+      {
         hoursBeforeSession: 0,
         refundPercentage: 0,
-        description: 'No refund if cancelled less than 12 hours before',
+        description: 'No refund for no-show',
       },
     ],
     minimumNoticeHours: 2,

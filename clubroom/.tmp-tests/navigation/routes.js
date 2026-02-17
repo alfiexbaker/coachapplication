@@ -58,6 +58,11 @@ exports.Routes = {
         params: params ?? {},
     }),
     MODAL_CREATE_SQUAD: '/(modal)/create-squad',
+    MODAL_EDIT_CHILD_SEN: '/(modal)/edit-child-sen',
+    modalEditChildSen: (childId) => ({
+        pathname: '/(modal)/edit-child-sen',
+        params: { childId },
+    }),
     modalPostDetail: (postId) => ({
         pathname: '/(modal)/post-detail',
         params: { postId },
@@ -169,8 +174,6 @@ exports.Routes = {
         pathname: '/bookings/session-feedback',
         params,
     }),
-    // ─── Carpool ───────────────────────────────────────────────────
-    CARPOOL: '/carpool',
     // ─── Chat ──────────────────────────────────────────────────────
     chat: (threadId) => ({
         pathname: '/chat/[threadId]',

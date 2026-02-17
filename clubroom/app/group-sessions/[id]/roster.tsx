@@ -1,3 +1,4 @@
+import { useState, useCallback } from 'react';
 import { ScrollView, StyleSheet, View, RefreshControl } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router, useLocalSearchParams } from 'expo-router';
@@ -11,14 +12,27 @@ import { LoadingState, ErrorState, EmptyState } from '@/components/ui/screen-sta
 import { ParticipantCard } from '@/components/group/participant-card';
 import { RollCallModal } from '@/components/group/roll-call-modal';
 import { InjuryReportModal } from '@/components/group/injury-report-modal';
+import { QuickRecognitionModal } from '@/components/badges/quick-recognition-modal';
 import { Spacing, Radii, Typography } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
+import { useAuth } from '@/hooks/use-auth';
 import { useGroupRoster } from '@/hooks/use-group-roster';
 import { getGroupRegistrationAthleteName } from '@/utils/group-display';
 
 export default function SessionRosterScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const { colors } = useTheme();
+  const { currentUser } = useAuth();
+  const [recogniseTarget, setRecogniseTarget] = useState<{ athleteId: string; athleteName: string } | null>(null);
+
+  const handleOpenRecognise = useCallback((athleteId: string, athleteName: string) => {
+    setRecogniseTarget({ athleteId, athleteName });
+  }, []);
+
+  const handleCloseRecognise = useCallback(() => {
+    setRecogniseTarget(null);
+  }, []);
+
   const {
     session,
     status,
@@ -229,6 +243,7 @@ export default function SessionRosterScreen() {
                   rsvp={getRsvpForRegistration(reg)}
                   onMarkAttendance={(attended) => handleMarkAttendance(reg, attended)}
                   onCancel={() => handleCancelRegistration(reg)}
+                  onRecognise={() => handleOpenRecognise(reg.athleteId, getGroupRegistrationAthleteName(reg))}
                 />
               </Animated.View>
             ))}
@@ -266,6 +281,16 @@ export default function SessionRosterScreen() {
         onSeverityChange={setInjurySeverity}
         onDescriptionChange={setInjuryDescription}
         onSubmit={submitInjuryReport}
+      />
+
+      <QuickRecognitionModal
+        visible={recogniseTarget !== null}
+        athleteId={recogniseTarget?.athleteId ?? ''}
+        athleteName={recogniseTarget?.athleteName ?? ''}
+        coachId={currentUser?.id ?? ''}
+        sessionId={id}
+        sessionLabel={session?.title}
+        onClose={handleCloseRecognise}
       />
     </SafeAreaView>
   );

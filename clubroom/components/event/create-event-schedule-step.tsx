@@ -1,11 +1,10 @@
-import React from 'react';
-import { View, StyleSheet, TextInput } from 'react-native';
+import React, { useCallback, useMemo } from 'react';
+import { StyleSheet } from 'react-native';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 
 import { ThemedText } from '@/components/themed-text';
-import { Spacing, Radii, Typography } from '@/constants/theme';
-import { scaleFont } from '@/utils/scale';
-import { useTheme } from '@/hooks/useTheme';
+import { DateTimeField } from '@/components/ui/primitives/DateTimeField';
+import { Spacing } from '@/constants/theme';
 import { Row } from '@/components/primitives';
 
 interface CreateEventScheduleStepProps {
@@ -23,7 +22,12 @@ function CreateEventScheduleStepInner({
   rsvpDeadline,
   onFieldChange,
 }: CreateEventScheduleStepProps) {
-  const { colors: palette } = useTheme();
+  const today = useMemo(() => new Date(), []);
+
+  const handleDate = useCallback((v: string) => onFieldChange('date', v), [onFieldChange]);
+  const handleStart = useCallback((v: string) => onFieldChange('startTime', v), [onFieldChange]);
+  const handleEnd = useCallback((v: string) => onFieldChange('endTime', v), [onFieldChange]);
+  const handleRsvp = useCallback((v: string) => onFieldChange('rsvpDeadline', v), [onFieldChange]);
 
   return (
     <Animated.View entering={FadeInDown.springify()} style={styles.stepContent}>
@@ -31,50 +35,40 @@ function CreateEventScheduleStepInner({
         When is it?
       </ThemedText>
 
-      <View style={styles.inputGroup}>
-        <ThemedText style={styles.inputLabel}>Date *</ThemedText>
-        <TextInput
-          style={[styles.input, { backgroundColor: palette.surface, color: palette.text }]}
-          placeholder="YYYY-MM-DD"
-          placeholderTextColor={palette.muted}
-          value={date}
-          onChangeText={(v) => onFieldChange('date', v)}
-        />
-      </View>
+      <DateTimeField
+        mode="date"
+        value={date}
+        onChange={handleDate}
+        label="Date *"
+        minimumDate={today}
+      />
 
       <Row style={styles.rowInputs}>
-        <View style={[styles.inputGroup, { flex: 1 }]}>
-          <ThemedText style={styles.inputLabel}>Start Time</ThemedText>
-          <TextInput
-            style={[styles.input, { backgroundColor: palette.surface, color: palette.text }]}
-            placeholder="10:00"
-            placeholderTextColor={palette.muted}
-            value={startTime}
-            onChangeText={(v) => onFieldChange('startTime', v)}
-          />
-        </View>
-        <View style={[styles.inputGroup, { flex: 1 }]}>
-          <ThemedText style={styles.inputLabel}>End Time</ThemedText>
-          <TextInput
-            style={[styles.input, { backgroundColor: palette.surface, color: palette.text }]}
-            placeholder="12:00"
-            placeholderTextColor={palette.muted}
-            value={endTime}
-            onChangeText={(v) => onFieldChange('endTime', v)}
-          />
-        </View>
+        <DateTimeField
+          mode="time"
+          value={startTime}
+          onChange={handleStart}
+          label="Start Time"
+          minuteInterval={5}
+          style={styles.flex}
+        />
+        <DateTimeField
+          mode="time"
+          value={endTime}
+          onChange={handleEnd}
+          label="End Time"
+          minuteInterval={5}
+          style={styles.flex}
+        />
       </Row>
 
-      <View style={styles.inputGroup}>
-        <ThemedText style={styles.inputLabel}>RSVP Deadline</ThemedText>
-        <TextInput
-          style={[styles.input, { backgroundColor: palette.surface, color: palette.text }]}
-          placeholder="YYYY-MM-DD (optional)"
-          placeholderTextColor={palette.muted}
-          value={rsvpDeadline}
-          onChangeText={(v) => onFieldChange('rsvpDeadline', v)}
-        />
-      </View>
+      <DateTimeField
+        mode="date"
+        value={rsvpDeadline}
+        onChange={handleRsvp}
+        label="RSVP Deadline (optional)"
+        minimumDate={today}
+      />
     </Animated.View>
   );
 }
@@ -88,21 +82,10 @@ const styles = StyleSheet.create({
   stepTitle: {
     textAlign: 'center',
   },
-  inputGroup: {
-    gap: Spacing.xs,
-  },
-  inputLabel: {
-    ...Typography.smallSemiBold,
-    fontSize: scaleFont(Typography.smallSemiBold.fontSize),
-  },
-  input: {
-    height: 48,
-    borderRadius: Radii.md,
-    paddingHorizontal: Spacing.md,
-    ...Typography.body,
-    fontSize: scaleFont(Typography.body.fontSize),
-  },
   rowInputs: {
     gap: Spacing.md,
+  },
+  flex: {
+    flex: 1,
   },
 });

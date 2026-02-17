@@ -26,8 +26,6 @@ export function getGroupTypeIcon(type: GroupType): string {
       return 'football-outline';
     case 'SESSION':
       return 'calendar-outline';
-    case 'CARPOOL':
-      return 'car-outline';
     case 'SQUAD':
       return 'people';
     case 'GENERAL':
@@ -42,8 +40,6 @@ export function getGroupTypeLabel(type: GroupType): string {
       return 'Club';
     case 'SESSION':
       return 'Session';
-    case 'CARPOOL':
-      return 'Carpool';
     case 'SQUAD':
       return 'Squad';
     case 'GENERAL':

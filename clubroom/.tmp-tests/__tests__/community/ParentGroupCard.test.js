@@ -72,8 +72,6 @@ function getGroupTypeIcon(type) {
             return 'football-outline';
         case 'SESSION':
             return 'calendar-outline';
-        case 'CARPOOL':
-            return 'car-outline';
         case 'GENERAL':
         default:
             return 'chatbubbles-outline';
@@ -88,8 +86,6 @@ function getGroupTypeLabel(type) {
             return 'Club';
         case 'SESSION':
             return 'Session';
-        case 'CARPOOL':
-            return 'Carpool';
         case 'GENERAL':
         default:
             return 'General';
@@ -137,7 +133,7 @@ function formatTimeAgo(dateString) {
     });
     (0, node_test_1.describe)('Group Type Display', () => {
         (0, node_test_1.default)('should display correct icon for each group type', () => {
-            const types = ['CLUB', 'SESSION', 'CARPOOL', 'GENERAL'];
+            const types = ['CLUB', 'SESSION', 'GENERAL'];
             types.forEach((type) => {
                 const icon = getGroupTypeIcon(type);
                 node_assert_1.default.ok(icon, `Type ${type} should have an icon`);
@@ -148,13 +144,9 @@ function formatTimeAgo(dateString) {
             const icon = getGroupTypeIcon('CLUB');
             node_assert_1.default.strictEqual(icon, 'football-outline');
         });
-        (0, node_test_1.default)('CARPOOL type should have car icon', () => {
-            const icon = getGroupTypeIcon('CARPOOL');
-            node_assert_1.default.strictEqual(icon, 'car-outline');
-        });
         (0, node_test_1.default)('should display correct label for each group type', () => {
-            const types = ['CLUB', 'SESSION', 'CARPOOL', 'GENERAL'];
-            const expectedLabels = ['Club', 'Session', 'Carpool', 'General'];
+            const types = ['CLUB', 'SESSION', 'GENERAL'];
+            const expectedLabels = ['Club', 'Session', 'General'];
             types.forEach((type, index) => {
                 const label = getGroupTypeLabel(type);
                 node_assert_1.default.strictEqual(label, expectedLabels[index]);

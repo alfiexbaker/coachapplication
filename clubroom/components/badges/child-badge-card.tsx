@@ -77,7 +77,7 @@ export const ChildBadgeCard = memo(function ChildBadgeCard({
                 </ThemedText>
               </Row>
             )}
-            {award.badgeCategory && (
+            {award.badgeCategory && CategoryInfo[award.badgeCategory] && (
               <Row style={[styles.metaPill, { backgroundColor: withAlpha(colors.tint, 0.07) }]}>
                 <Ionicons
                   name={getCategoryIcon(award.badgeCategory)}

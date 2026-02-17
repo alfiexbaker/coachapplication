@@ -8,6 +8,7 @@ import { Ionicons } from '@expo/vector-icons';
 
 import { Clickable } from '@/components/primitives/clickable';
 import { SurfaceCard } from '@/components/primitives/surface-card';
+import { DateTimeField } from '@/components/ui/primitives/DateTimeField';
 import { ThemedText } from '@/components/themed-text';
 import { Row } from '@/components/primitives/row';
 import { Radii, Spacing, Typography, withAlpha } from '@/constants/theme';
@@ -199,28 +200,20 @@ export const EditCertificationsSection = memo(function EditCertificationsSection
                 />
               </View>
               <Row gap="md">
-                <View style={[styles.fieldGroup, styles.inlineField]}>
-                  <ThemedText style={styles.label}>Issue Date</ThemedText>
-                  <TextInput
-                    value={draft.issueDate}
-                    onChangeText={(t) => onDraftChange((p) => ({ ...p, issueDate: t }))}
-                    placeholder="YYYY-MM-DD"
-                    placeholderTextColor={colors.muted}
-                    style={inputStyle}
-                    accessibilityLabel="Issue date"
-                  />
-                </View>
-                <View style={[styles.fieldGroup, styles.inlineField]}>
-                  <ThemedText style={styles.label}>Expiry Date (optional)</ThemedText>
-                  <TextInput
-                    value={draft.expiryDate || ''}
-                    onChangeText={(t) => onDraftChange((p) => ({ ...p, expiryDate: t }))}
-                    placeholder="YYYY-MM-DD"
-                    placeholderTextColor={colors.muted}
-                    style={inputStyle}
-                    accessibilityLabel="Expiry date"
-                  />
-                </View>
+                <DateTimeField
+                  mode="date"
+                  label="Issue Date"
+                  value={draft.issueDate}
+                  onChange={(t) => onDraftChange((p) => ({ ...p, issueDate: t }))}
+                  style={styles.inlineField}
+                />
+                <DateTimeField
+                  mode="date"
+                  label="Expiry Date (optional)"
+                  value={draft.expiryDate || ''}
+                  onChange={(t) => onDraftChange((p) => ({ ...p, expiryDate: t }))}
+                  style={styles.inlineField}
+                />
               </Row>
               <View style={styles.fieldGroup}>
                 <ThemedText style={styles.label}>Credential URL (optional)</ThemedText>

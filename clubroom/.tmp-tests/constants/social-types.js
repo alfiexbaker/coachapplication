@@ -2,7 +2,6 @@
 /**
  * Social Types
  *
- * Following system, parent community, group chats, carpool coordination,
- * and messaging types.
+ * Following system, parent community, group chats, and messaging types.
  */
 Object.defineProperty(exports, "__esModule", { value: true });

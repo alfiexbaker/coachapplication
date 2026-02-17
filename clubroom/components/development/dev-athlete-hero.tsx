@@ -22,7 +22,6 @@ export interface DevAthleteHeroProps {
   trend: TrendType;
   level: LevelBadge;
   colors: ThemeColors;
-  onLogSession: () => void;
   onAwardBadge: () => void;
 }
 
@@ -34,7 +33,6 @@ export const DevAthleteHero = memo(function DevAthleteHero({
   trend,
   level,
   colors,
-  onLogSession,
   onAwardBadge,
 }: DevAthleteHeroProps) {
   const trendIcon =
@@ -90,16 +88,6 @@ export const DevAthleteHero = memo(function DevAthleteHero({
           </View>
         </Row>
         <Row gap="xs" wrap style={styles.heroActions}>
-          <Clickable
-            style={[styles.ctaButton, { backgroundColor: colors.tint }]}
-            onPress={onLogSession}
-            accessibilityRole="button"
-            accessibilityLabel="Log session"
-          >
-            <ThemedText style={[Typography.small, { color: colors.onPrimary }]} numberOfLines={1}>
-              Log Session
-            </ThemedText>
-          </Clickable>
           <Clickable
             style={[
               styles.awardButton,
@@ -170,14 +158,6 @@ const styles = StyleSheet.create({
   badgeGroup: {
     minHeight: Components.buttonCompact.height,
   },
-  ctaButton: {
-    paddingVertical: Components.pill.paddingVertical,
-    paddingHorizontal: Spacing.sm,
-    borderRadius: Components.buttonCompact.borderRadius,
-    minHeight: Components.buttonCompact.height,
-    justifyContent: 'center',
-    flexShrink: 1,
-  },
   awardButton: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -191,8 +171,8 @@ const styles = StyleSheet.create({
     flexShrink: 1,
   },
   heroActions: {
-    justifyContent: 'flex-end',
-    alignSelf: 'flex-end',
+    justifyContent: 'flex-start',
+    alignSelf: 'flex-start',
   },
   awardButtonText: {
     ...Typography.smallSemiBold,

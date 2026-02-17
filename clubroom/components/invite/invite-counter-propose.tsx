@@ -1,11 +1,12 @@
 /** InviteCounterPropose — Counter-proposal form for parents to add alternative time slots. */
 
-import React, { memo, useState, useCallback } from 'react';
+import React, { memo, useState, useCallback, useMemo } from 'react';
 import { StyleSheet, TextInput, Alert } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { Clickable } from '@/components/primitives/clickable';
+import { DateTimeField } from '@/components/ui/primitives/DateTimeField';
 import { ThemedText } from '@/components/themed-text';
 import { Row, Column } from '@/components/primitives';
 import { Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
@@ -59,6 +60,8 @@ export const InviteCounterPropose = memo(function InviteCounterPropose({
     onSubmit(slots, note);
   }, [slots, note, onSubmit]);
 
+  const today = useMemo(() => new Date(), []);
+
   return (
     <Animated.View entering={FadeInDown.delay(delay).springify()}>
       <SurfaceCard style={st.card}>
@@ -99,42 +102,30 @@ export const InviteCounterPropose = memo(function InviteCounterPropose({
           </Row>
         ))}
         <Column gap="sm">
+          <DateTimeField
+            mode="date"
+            label="Date"
+            value={date}
+            onChange={setDate}
+            minimumDate={today}
+          />
           <Row gap="sm">
-            <Column gap="xxs" style={st.flex}>
-              <ThemedText style={[st.label, { color: colors.muted }]}>Date</ThemedText>
-              <TextInput
-                style={[st.input, { color: colors.text, borderColor: colors.border }]}
-                placeholder="YYYY-MM-DD"
-                placeholderTextColor={colors.muted}
-                value={date}
-                onChangeText={setDate}
-                accessibilityLabel="Date input"
-              />
-            </Column>
-          </Row>
-          <Row gap="sm">
-            <Column gap="xxs" style={st.flex}>
-              <ThemedText style={[st.label, { color: colors.muted }]}>Start</ThemedText>
-              <TextInput
-                style={[st.input, { color: colors.text, borderColor: colors.border }]}
-                placeholder="10:00"
-                placeholderTextColor={colors.muted}
-                value={start}
-                onChangeText={setStart}
-                accessibilityLabel="Start time input"
-              />
-            </Column>
-            <Column gap="xxs" style={st.flex}>
-              <ThemedText style={[st.label, { color: colors.muted }]}>End</ThemedText>
-              <TextInput
-                style={[st.input, { color: colors.text, borderColor: colors.border }]}
-                placeholder="11:00"
-                placeholderTextColor={colors.muted}
-                value={end}
-                onChangeText={setEnd}
-                accessibilityLabel="End time input"
-              />
-            </Column>
+            <DateTimeField
+              mode="time"
+              label="Start"
+              value={start}
+              onChange={setStart}
+              minuteInterval={5}
+              style={st.flex}
+            />
+            <DateTimeField
+              mode="time"
+              label="End"
+              value={end}
+              onChange={setEnd}
+              minuteInterval={5}
+              style={st.flex}
+            />
           </Row>
           <Row gap="sm">
             <Column gap="xxs" style={st.flex}>

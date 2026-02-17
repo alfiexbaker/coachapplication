@@ -235,7 +235,7 @@ const rid = () => Math.random().toString(36).slice(2, 10);
     });
     (0, node_test_1.describe)('getCategoryInfo', () => {
         (0, node_test_1.default)('returns label and icon for category', () => {
-            const info = badge_service_1.badgeService.getCategoryInfo('leadership');
+            const info = badge_service_1.badgeService.getCategoryInfo('technical');
             strict_1.default.ok(info.label);
             strict_1.default.ok(info.icon);
         });

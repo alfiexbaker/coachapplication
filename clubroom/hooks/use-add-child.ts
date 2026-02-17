@@ -48,11 +48,26 @@ export function useAddChild() {
   // Step 2: Special Needs
   const [hasSpecialNeeds, setHasSpecialNeeds] = useState<boolean | null>(null);
   const [disabilities, setDisabilities] = useState<Disability[]>([]);
-  const [specialNeeds] = useState<SpecialNeed[]>([]);
+  const [specialNeeds, setSpecialNeeds] = useState<SpecialNeed[]>([]);
   const [selectedDisabilityType, setSelectedDisabilityType] = useState<string | null>(null);
   const [disabilityDescription, setDisabilityDescription] = useState('');
   const [communicationNotes, setCommunicationNotes] = useState('');
   const [behavioralNotes, setBehavioralNotes] = useState('');
+
+  // Disability detail fields (collected in expanded panel)
+  const [diagnosisDate, setDiagnosisDate] = useState('');
+  const [supportRequired, setSupportRequired] = useState('');
+  const [commPrefs, setCommPrefs] = useState<string[]>([]);
+  const [triggers, setTriggers] = useState<string[]>([]);
+  const [calmingStrategies, setCalmingStrategies] = useState<string[]>([]);
+
+  // SpecialNeed form fields
+  const [snCategory, setSnCategory] = useState<SpecialNeed['category'] | null>(null);
+  const [snName, setSnName] = useState('');
+  const [snDescription, setSnDescription] = useState('');
+  const [snSeverity, setSnSeverity] = useState<SpecialNeed['severity'] | undefined>(undefined);
+  const [snAccommodations, setSnAccommodations] = useState<string[]>([]);
+  const [snParentHints, setSnParentHints] = useState('');
 
   // Step 3: Medical
   const [allergies, setAllergies] = useState<string[]>([]);
@@ -116,12 +131,49 @@ export function useAddChild() {
           id: `dis-${Date.now()}`,
           type: selectedDisabilityType,
           description: disabilityDescription || undefined,
+          diagnosisDate: diagnosisDate || undefined,
+          supportRequired: supportRequired || undefined,
+          communicationPreferences: commPrefs.length > 0 ? commPrefs : undefined,
+          triggers: triggers.length > 0 ? triggers : undefined,
+          calmingStrategies: calmingStrategies.length > 0 ? calmingStrategies : undefined,
         },
       ]);
       setSelectedDisabilityType(null);
       setDisabilityDescription('');
+      setDiagnosisDate('');
+      setSupportRequired('');
+      setCommPrefs([]);
+      setTriggers([]);
+      setCalmingStrategies([]);
     }
-  }, [selectedDisabilityType, disabilityDescription]);
+  }, [selectedDisabilityType, disabilityDescription, diagnosisDate, supportRequired, commPrefs, triggers, calmingStrategies]);
+
+  const addSpecialNeed = useCallback(() => {
+    if (snCategory && snName.trim()) {
+      setSpecialNeeds((p) => [
+        ...p,
+        {
+          id: `sn-${Date.now()}`,
+          category: snCategory,
+          name: snName.trim(),
+          description: snDescription.trim() || undefined,
+          severity: snSeverity,
+          accommodationsNeeded: snAccommodations.length > 0 ? snAccommodations : undefined,
+          parentHints: snParentHints.trim() || undefined,
+        },
+      ]);
+      setSnCategory(null);
+      setSnName('');
+      setSnDescription('');
+      setSnSeverity(undefined);
+      setSnAccommodations([]);
+      setSnParentHints('');
+    }
+  }, [snCategory, snName, snDescription, snSeverity, snAccommodations, snParentHints]);
+
+  const removeSpecialNeed = useCallback((id: string) => {
+    setSpecialNeeds((p) => p.filter((sn) => sn.id !== id));
+  }, []);
 
   const validateStep = useCallback((): boolean => {
     switch (currentStep) {
@@ -272,16 +324,25 @@ export function useAddChild() {
       firstName,
       hasSpecialNeeds,
       disabilities,
+      specialNeeds,
       selectedDisabilityType,
       disabilityDescription,
       communicationNotes,
       behavioralNotes,
-      allergies,
-      allergyInput,
-      medicalConditions,
-      conditionInput,
-      medications,
-      medicationInput,
+      // Disability detail fields
+      diagnosisDate,
+      supportRequired,
+      commPrefs,
+      triggers,
+      calmingStrategies,
+      // SpecialNeed form fields
+      snCategory,
+      snName,
+      snDescription,
+      snSeverity,
+      snAccommodations,
+      snParentHints,
+      // Callbacks
       onHasSpecialNeedsChange: setHasSpecialNeeds,
       onDisabilitiesChange: setDisabilities,
       onSelectedDisabilityTypeChange: setSelectedDisabilityType,
@@ -289,6 +350,26 @@ export function useAddChild() {
       onCommunicationNotesChange: setCommunicationNotes,
       onBehavioralNotesChange: setBehavioralNotes,
       onAddDisability: addDisability,
+      onDiagnosisDateChange: setDiagnosisDate,
+      onSupportRequiredChange: setSupportRequired,
+      onCommPrefsChange: setCommPrefs,
+      onTriggersChange: setTriggers,
+      onCalmingStrategiesChange: setCalmingStrategies,
+      onSnCategoryChange: setSnCategory,
+      onSnNameChange: setSnName,
+      onSnDescriptionChange: setSnDescription,
+      onSnSeverityChange: setSnSeverity,
+      onSnAccommodationsChange: setSnAccommodations,
+      onSnParentHintsChange: setSnParentHints,
+      onAddSpecialNeed: addSpecialNeed,
+      onRemoveSpecialNeed: removeSpecialNeed,
+      // Medical fields
+      allergies,
+      allergyInput,
+      medicalConditions,
+      conditionInput,
+      medications,
+      medicationInput,
       onAllergiesChange: setAllergies,
       onAllergyInputChange: setAllergyInput,
       onAddAllergy: addAllergy,
@@ -303,10 +384,22 @@ export function useAddChild() {
       firstName,
       hasSpecialNeeds,
       disabilities,
+      specialNeeds,
       selectedDisabilityType,
       disabilityDescription,
       communicationNotes,
       behavioralNotes,
+      diagnosisDate,
+      supportRequired,
+      commPrefs,
+      triggers,
+      calmingStrategies,
+      snCategory,
+      snName,
+      snDescription,
+      snSeverity,
+      snAccommodations,
+      snParentHints,
       allergies,
       allergyInput,
       medicalConditions,
@@ -314,6 +407,8 @@ export function useAddChild() {
       medications,
       medicationInput,
       addDisability,
+      addSpecialNeed,
+      removeSpecialNeed,
       addAllergy,
       addCondition,
       addMedication,

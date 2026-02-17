@@ -1,7 +1,7 @@
 /**
  * Community Hub Screen
  *
- * Tab-based hub for parent groups, carpools, and group discovery.
+ * Tab-based hub for parent groups and group discovery.
  * All state/logic in useCommunityHub hook. Tab content extracted to component.
  */
 
@@ -24,7 +24,6 @@ import type { TabType } from '@/hooks/use-community-hub';
 
 const TABS: { key: TabType; label: string; icon: keyof typeof Ionicons.glyphMap }[] = [
   { key: 'groups', label: 'My Groups', icon: 'chatbubbles-outline' },
-  { key: 'carpools', label: 'Carpools', icon: 'car-outline' },
   { key: 'discover', label: 'Discover', icon: 'compass-outline' },
 ];
 
@@ -108,7 +107,7 @@ export default function CommunityHubScreen() {
           <EmptyState
             icon="chatbubbles-outline"
             title="No community activity yet"
-            message="Create a group to start conversations, discover other groups, and coordinate carpools."
+            message="Create a group to start conversations and discover other groups."
             actionLabel="Create Group"
             onPressAction={() => c.setShowCreateModal(true)}
           />
@@ -118,12 +117,10 @@ export default function CommunityHubScreen() {
             loading={false}
             myGroups={c.myGroups}
             publicGroups={c.publicGroups}
-            carpoolOffers={c.carpoolOffers}
             parentId={c.parentId}
             onCreateGroup={() => c.setShowCreateModal(true)}
             onGroupPress={c.handleGroupPress}
             onJoinGroup={c.handleJoinGroup}
-            onCarpoolPress={c.handleCarpoolPress}
           />
         )}
       </ScrollView>

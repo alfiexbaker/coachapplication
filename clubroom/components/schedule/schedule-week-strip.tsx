@@ -4,6 +4,7 @@
 
 import React, { memo, useCallback } from 'react';
 import { View, ScrollView, StyleSheet } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { Row } from '@/components/primitives/row';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 
@@ -18,6 +19,11 @@ interface Props {
   weekData: DayData[];
   selectedDayIndex: number | null;
   onDayPress: (index: number) => void;
+  weekLabel: string;
+  weekOffset: number;
+  onPrevWeek: () => void;
+  onNextWeek: () => void;
+  onGoToThisWeek: () => void;
 }
 
 const DayPill = memo(function DayPill({
@@ -89,13 +95,49 @@ export const ScheduleWeekStrip = memo(function ScheduleWeekStrip({
   weekData,
   selectedDayIndex,
   onDayPress,
+  weekLabel,
+  weekOffset,
+  onPrevWeek,
+  onNextWeek,
+  onGoToThisWeek,
 }: Props) {
+  const { colors } = useTheme();
+
   return (
     <Animated.View entering={FadeInDown.delay(200).springify()}>
       <Column gap="sm">
-        <ThemedText type="defaultSemiBold" style={styles.sectionTitle}>
-          This Week
-        </ThemedText>
+        <Row justify="between" align="center">
+          <Row align="center" gap="xs">
+            <Clickable
+              onPress={onPrevWeek}
+              accessibilityLabel="Previous week"
+              style={styles.navBtn}
+            >
+              <Ionicons name="chevron-back" size={20} color={colors.text} />
+            </Clickable>
+            <ThemedText type="defaultSemiBold" style={styles.sectionTitle}>
+              {weekLabel}
+            </ThemedText>
+            <Clickable
+              onPress={onNextWeek}
+              accessibilityLabel="Next week"
+              style={styles.navBtn}
+            >
+              <Ionicons name="chevron-forward" size={20} color={colors.text} />
+            </Clickable>
+          </Row>
+          {weekOffset !== 0 && (
+            <Clickable
+              onPress={onGoToThisWeek}
+              accessibilityLabel="Go to this week"
+              style={[styles.todayBtn, { backgroundColor: withAlpha(colors.tint, 0.09) }]}
+            >
+              <ThemedText style={[styles.todayBtnText, { color: colors.tint }]}>
+                Today
+              </ThemedText>
+            </Clickable>
+          )}
+        </Row>
         <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.strip}>
           <Row gap="xs" style={styles.days}>
             {weekData.map((day, index) => (
@@ -117,6 +159,22 @@ export const ScheduleWeekStrip = memo(function ScheduleWeekStrip({
 const styles = StyleSheet.create({
   sectionTitle: {
     ...Typography.subheading,
+  },
+  navBtn: {
+    width: 44,
+    height: 44,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  todayBtn: {
+    paddingHorizontal: Spacing.sm,
+    paddingVertical: Spacing.xs,
+    borderRadius: Radii.full,
+    minHeight: 44,
+    justifyContent: 'center',
+  },
+  todayBtnText: {
+    ...Typography.bodySmallSemiBold,
   },
   strip: {
     marginHorizontal: -Spacing.lg,

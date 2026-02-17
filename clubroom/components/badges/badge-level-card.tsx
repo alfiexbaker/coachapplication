@@ -48,10 +48,10 @@ export const BadgeLevelCard = memo(function BadgeLevelCard({
         </View>
         <Column gap="xxs" flex>
           <ThemedText type="subtitle" style={styles.levelName}>
-            Level {currentLevel.level}: {currentLevel.name}
+            {currentLevel.name}
           </ThemedText>
           <ThemedText style={[styles.levelPoints, { color: palette.muted }]}>
-            {totalPoints} points earned
+            {totalBadges} milestone{totalBadges !== 1 ? 's' : ''} earned
           </ThemedText>
         </Column>
       </Row>
@@ -63,7 +63,7 @@ export const BadgeLevelCard = memo(function BadgeLevelCard({
               Progress to {nextLevel.name}
             </ThemedText>
             <ThemedText style={[styles.progressValue, { color: palette.tint }]}>
-              {pointsToNext} pts to go
+              {progressPercent}%
             </ThemedText>
           </Row>
           <View style={[styles.progressBar, { backgroundColor: withAlpha(palette.tint, 0.09) }]}>
@@ -82,7 +82,7 @@ export const BadgeLevelCard = memo(function BadgeLevelCard({
           <ThemedText type="defaultSemiBold" style={styles.statValue}>
             {totalBadges}
           </ThemedText>
-          <ThemedText style={[styles.statLabel, { color: palette.muted }]}>Total badges</ThemedText>
+          <ThemedText style={[styles.statLabel, { color: palette.muted }]}>Milestones</ThemedText>
         </Column>
         <View style={[styles.statDivider, { backgroundColor: withAlpha(palette.text, 0.06) }]} />
         <Column gap="xxs" align="center" flex>
@@ -96,7 +96,7 @@ export const BadgeLevelCard = memo(function BadgeLevelCard({
           <View style={[styles.toneBadge, { backgroundColor: withAlpha(palette.tint, 0.07) }]}>
             <Ionicons name="sparkles" size={14} color={palette.tint} />
           </View>
-          <ThemedText style={[styles.statLabel, { color: palette.muted }]}>Last badge</ThemedText>
+          <ThemedText style={[styles.statLabel, { color: palette.muted }]}>Latest</ThemedText>
           <ThemedText type="defaultSemiBold" style={styles.statValue} numberOfLines={1}>
             {lastBadgeDate ?? 'Not yet'}
           </ThemedText>

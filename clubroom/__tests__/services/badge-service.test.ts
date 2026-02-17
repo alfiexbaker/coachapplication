@@ -227,7 +227,7 @@ describe('badgeService', () => {
 
   describe('getCategoryInfo', () => {
     test('returns label and icon for category', () => {
-      const info = badgeService.getCategoryInfo('leadership');
+      const info = badgeService.getCategoryInfo('technical');
       assert.ok(info.label);
       assert.ok(info.icon);
     });

@@ -64,7 +64,9 @@ export default function ScheduleScreen() {
   }
 
   const isSessionEmpty =
-    schedule.segment === 'sessions' && schedule.weekData.every((day) => day.sessions.length === 0);
+    schedule.segment === 'sessions' &&
+    schedule.weekOffset === 0 &&
+    schedule.weekData.every((day) => day.sessions.length === 0);
 
   if (isSessionEmpty) {
     return (
@@ -111,7 +113,11 @@ export default function ScheduleScreen() {
         <ScreenHeader
           title="Schedule"
           subtitle={
-            schedule.segment === 'sessions' ? 'Your upcoming sessions' : 'Manage your availability'
+            schedule.segment === 'sessions'
+              ? schedule.weekOffset === 0
+                ? 'Your upcoming sessions'
+                : schedule.weekLabel
+              : 'Manage your availability'
           }
         />
         <Clickable
@@ -123,11 +129,14 @@ export default function ScheduleScreen() {
         </Clickable>
       </Row>
 
-      {/* Segment Control */}
+      {/* Segment Control + Quick Actions */}
       <ScheduleSegmentControl
         segment={schedule.segment}
         onSegmentChange={schedule.handleSegmentChange}
       />
+      {schedule.segment === 'sessions' && (
+        <ScheduleQuickActions />
+      )}
 
       {/* Sessions Segment */}
       {schedule.segment === 'sessions' && (
@@ -142,11 +151,12 @@ export default function ScheduleScreen() {
             />
           }
         >
-          {schedule.todayData && (
+          {schedule.todayData && schedule.weekOffset === 0 && (
             <ScheduleTodayCard
               todayData={schedule.todayData}
               todaySessions={schedule.todaySessions}
               nextSession={schedule.nextSession}
+              onSessionPress={schedule.handleSessionPress}
             />
           )}
 
@@ -154,6 +164,11 @@ export default function ScheduleScreen() {
             weekData={schedule.weekData}
             selectedDayIndex={schedule.selectedDayIndex}
             onDayPress={schedule.handleDayPress}
+            weekLabel={schedule.weekLabel}
+            weekOffset={schedule.weekOffset}
+            onPrevWeek={schedule.handlePrevWeek}
+            onNextWeek={schedule.handleNextWeek}
+            onGoToThisWeek={schedule.handleGoToThisWeek}
           />
 
           {schedule.selectedDay && (
@@ -161,11 +176,9 @@ export default function ScheduleScreen() {
               day={schedule.selectedDay}
               onSessionPress={schedule.handleSessionPress}
               onAdjustDay={schedule.handleAdjustDay}
-              onInvite={schedule.handleInviteFromSchedule}
+              onCreateSession={schedule.handleInviteFromSchedule}
             />
           )}
-
-          <ScheduleQuickActions />
 
           {schedule.rules && (
             <ScheduleRulesSummary rules={schedule.rules} onPress={schedule.handleOpenSettings} />
@@ -242,6 +255,7 @@ const styles = StyleSheet.create({
   },
   content: {
     padding: Spacing.lg,
+    paddingTop: Spacing.sm,
     paddingBottom: Spacing['2xl'],
     gap: Spacing.lg,
   },

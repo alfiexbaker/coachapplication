@@ -80,6 +80,8 @@
     "__tests__/group-session/**/*.ts",
     "__tests__/group-session/**/*.tsx",
     "__tests__/utils/**/*.ts",
-    "__tests__/notification/**/*.ts"
+    "__tests__/notification/**/*.ts",
+    "__tests__/badges/**/*.ts",
+    "__tests__/badges/**/*.tsx"
   ]
 }

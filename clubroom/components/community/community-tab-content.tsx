@@ -2,15 +2,13 @@ import React, { memo } from 'react';
 import { View, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { ParentGroupCard } from '@/components/community/ParentGroupCard';
-import { CarpoolOfferCard } from '@/components/community/CarpoolOfferCard';
-import { Clickable } from '@/components/primitives/clickable';
 import { Button } from '@/components/primitives/button';
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { ThemedText } from '@/components/themed-text';
-import { Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
+import { Spacing, Typography, withAlpha } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
 import { scaleFont } from '@/utils/scale';
-import type { ParentGroup, CarpoolOffer } from '@/constants/types';
+import type { ParentGroup } from '@/constants/types';
 import type { TabType } from '@/hooks/use-community-hub';
 import { Row } from '@/components/primitives';
 
@@ -19,12 +17,10 @@ interface CommunityTabContentProps {
   loading: boolean;
   myGroups: ParentGroup[];
   publicGroups: ParentGroup[];
-  carpoolOffers: CarpoolOffer[];
   parentId: string;
   onCreateGroup: () => void;
   onGroupPress: (group: ParentGroup) => void;
   onJoinGroup: (group: ParentGroup) => void;
-  onCarpoolPress: () => void;
 }
 
 const EmptyState = ({
@@ -62,12 +58,10 @@ export const CommunityTabContent = memo(function CommunityTabContent({
   loading,
   myGroups,
   publicGroups,
-  carpoolOffers,
   parentId,
   onCreateGroup,
   onGroupPress,
   onJoinGroup,
-  onCarpoolPress,
 }: CommunityTabContentProps) {
   const { colors: palette } = useTheme();
 
@@ -95,57 +89,6 @@ export const CommunityTabContent = memo(function CommunityTabContent({
         {myGroups.map((group) => (
           <ParentGroupCard key={group.id} group={group} onPress={() => onGroupPress(group)} />
         ))}
-      </View>
-    );
-  }
-
-  if (tab === 'carpools') {
-    return (
-      <View style={styles.listContainer}>
-        <SurfaceCard style={styles.quickActionCard} onPress={onCarpoolPress}>
-          <View
-            style={[styles.quickActionIcon, { backgroundColor: withAlpha(palette.tint, 0.09) }]}
-          >
-            <Ionicons name="add-circle-outline" size={28} color={palette.tint} />
-          </View>
-          <View style={styles.quickActionContent}>
-            <ThemedText type="defaultSemiBold">Offer or Find a Ride</ThemedText>
-            <ThemedText style={[styles.quickActionSubtext, { color: palette.muted }]}>
-              Create a carpool offer or find available rides
-            </ThemedText>
-          </View>
-          <Ionicons name="chevron-forward" size={22} color={palette.muted} />
-        </SurfaceCard>
-        {carpoolOffers.length > 0 ? (
-          <>
-            <Row style={styles.sectionHeader}>
-              <ThemedText type="defaultSemiBold" style={styles.sectionTitle}>
-                Available Rides
-              </ThemedText>
-              <Clickable onPress={onCarpoolPress}>
-                <ThemedText style={[styles.seeAllLink, { color: palette.tint }]}>
-                  See all
-                </ThemedText>
-              </Clickable>
-            </Row>
-            {carpoolOffers.slice(0, 3).map((offer) => (
-              <CarpoolOfferCard
-                key={offer.id}
-                offer={offer}
-                currentUserId={parentId}
-                compact
-                onPress={onCarpoolPress}
-              />
-            ))}
-          </>
-        ) : (
-          <View style={styles.noCarpoolsMessage}>
-            <Ionicons name="car-outline" size={32} color={palette.muted} />
-            <ThemedText style={[styles.noCarpoolsText, { color: palette.muted }]}>
-              No carpool offers available right now
-            </ThemedText>
-          </View>
-        )}
       </View>
     );
   }
@@ -212,33 +155,6 @@ const styles = StyleSheet.create({
     fontSize: scaleFont(Typography.body.fontSize),
   },
   emptyButton: { marginTop: Spacing.sm },
-  quickActionCard: { alignItems: 'center', gap: Spacing.sm, marginBottom: Spacing.md },
-  quickActionIcon: {
-    width: 52,
-    height: 52,
-    borderRadius: Radii['2xl'],
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  quickActionContent: { flex: 1, gap: Spacing.micro },
-  quickActionSubtext: { ...Typography.small, fontSize: scaleFont(Typography.small.fontSize) },
-  sectionHeader: {
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    marginTop: Spacing.sm,
-    marginBottom: Spacing.xs,
-  },
-  sectionTitle: { ...Typography.subheading, fontSize: scaleFont(Typography.subheading.fontSize) },
-  seeAllLink: {
-    ...Typography.bodySmallSemiBold,
-    fontSize: scaleFont(Typography.bodySmallSemiBold.fontSize),
-  },
-  noCarpoolsMessage: { alignItems: 'center', paddingVertical: Spacing.xl, gap: Spacing.sm },
-  noCarpoolsText: {
-    ...Typography.bodySmall,
-    fontSize: scaleFont(Typography.bodySmall.fontSize),
-    textAlign: 'center',
-  },
   discoverHint: {
     ...Typography.small,
     fontSize: scaleFont(Typography.small.fontSize),

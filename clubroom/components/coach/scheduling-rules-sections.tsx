@@ -2,7 +2,7 @@
  * SchedulingRules — Section sub-components (chip selector, toggles, policy, summary).
  */
 import { memo } from 'react';
-import { View, Switch } from 'react-native';
+import { View, Switch, TextInput, StyleSheet as RNStyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import Slider from '@react-native-community/slider';
@@ -11,9 +11,9 @@ import { SurfaceCard } from '@/components/primitives/surface-card';
 import { Clickable } from '@/components/primitives/clickable';
 import { Divider } from '@/components/ui/primitives/Divider';
 import { ThemedText } from '@/components/themed-text';
-import { Spacing, Typography, withAlpha } from '@/constants/theme';
+import { Spacing, Radii, Typography, Components, withAlpha } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
-import { Row } from '@/components/primitives';
+import { Row, Column } from '@/components/primitives';
 import type { RefundTier } from '@/constants/types';
 import { styles } from './scheduling-rules-section-styles';
 
@@ -25,7 +25,7 @@ const MODAL_RESCHEDULE_OPTIONS = [
   { value: 48, label: '48h before' },
 ];
 
-export const CANCELLATION_TIMEFRAMES = [48, 24, 12, 6, 2, 0] as const;
+export const CANCELLATION_TIMEFRAMES = [24, 12, 2, 0] as const;
 
 // ---------------------------------------------------------------------------
 // OptionChip — Shared selectable chip
@@ -217,26 +217,160 @@ function ToggleCardInner(p: ToggleCardProps) {
 export const ToggleCard = memo(ToggleCardInner);
 
 // ---------------------------------------------------------------------------
-// CancellationSection — Policy picker + tier summary
+// CancellationSection — Presets + fully editable tiers
 // ---------------------------------------------------------------------------
+
+export type CancellationPreset = 'flexible' | 'standard' | 'strict' | 'custom';
+
+const PRESET_OPTIONS: { key: CancellationPreset; label: string; icon: keyof typeof Ionicons.glyphMap }[] = [
+  { key: 'flexible', label: 'Flexible', icon: 'happy-outline' },
+  { key: 'standard', label: 'Standard', icon: 'shield-checkmark-outline' },
+  { key: 'strict', label: 'Strict', icon: 'lock-closed-outline' },
+  { key: 'custom', label: 'Custom', icon: 'settings-outline' },
+];
+
+interface CancellationSectionProps {
+  tiers: RefundTier[];
+  selectedPreset: CancellationPreset;
+  onPresetChange: (preset: CancellationPreset) => void;
+  onTiersChange: (tiers: RefundTier[]) => void;
+}
+
+function formatWindowLabel(hours: number) {
+  if (hours === 0) return 'No-Show';
+  if (hours >= 24) {
+    const days = Math.floor(hours / 24);
+    return `${days} day${days === 1 ? '' : 's'}+ before`;
+  }
+  return `${hours}h+ before`;
+}
+
+const EditableTierRow = memo(function EditableTierRow({
+  tier,
+  index,
+  isCustom,
+  canRemove,
+  onUpdateHours,
+  onUpdateRefund,
+  onRemove,
+}: {
+  tier: RefundTier;
+  index: number;
+  isCustom: boolean;
+  canRemove: boolean;
+  onUpdateHours: (index: number, hours: number) => void;
+  onUpdateRefund: (index: number, refund: number) => void;
+  onRemove: (index: number) => void;
+}) {
+  const { colors: palette } = useTheme();
+  const refundColor =
+    tier.refundPercentage >= 75
+      ? palette.success
+      : tier.refundPercentage >= 25
+        ? palette.warning
+        : palette.error;
+
+  return (
+    <View
+      style={[
+        cancellationStyles.tierRow,
+        { borderBottomWidth: RNStyleSheet.hairlineWidth, borderBottomColor: palette.border },
+      ]}
+    >
+      <Row align="center" gap="sm" style={cancellationStyles.tierContent}>
+        {isCustom ? (
+          <View style={cancellationStyles.hoursInputWrap}>
+            <TextInput
+              style={[cancellationStyles.hoursInput, { borderColor: palette.border, color: palette.text }]}
+              value={String(tier.hoursBeforeSession)}
+              keyboardType="number-pad"
+              placeholder="0"
+              placeholderTextColor={palette.muted}
+              accessibilityLabel={`Hours before session for tier ${index + 1}`}
+              onChangeText={(text) => {
+                const n = parseInt(text, 10);
+                if (!isNaN(n) && n >= 0) onUpdateHours(index, n);
+              }}
+            />
+            <ThemedText style={[Typography.caption, { color: palette.muted }]}>hrs</ThemedText>
+          </View>
+        ) : (
+          <ThemedText style={[Typography.bodySmallSemiBold, { color: palette.text, minWidth: 80 }]}>
+            {formatWindowLabel(tier.hoursBeforeSession)}
+          </ThemedText>
+        )}
+
+        <View style={cancellationStyles.sliderWrap}>
+          <Slider
+            value={tier.refundPercentage}
+            minimumValue={0}
+            maximumValue={100}
+            step={5}
+            minimumTrackTintColor={palette.tint}
+            maximumTrackTintColor={palette.border}
+            thumbTintColor={palette.tint}
+            onValueChange={(value) => onUpdateRefund(index, Math.round(value))}
+            onSlidingComplete={() => {
+              void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+            }}
+          />
+        </View>
+
+        <View style={[cancellationStyles.refundBadge, { backgroundColor: withAlpha(refundColor, 0.09) }]}>
+          <ThemedText style={[Typography.bodySmallSemiBold, { color: refundColor }]}>
+            {tier.refundPercentage}%
+          </ThemedText>
+        </View>
+
+        {isCustom && canRemove && (
+          <Clickable
+            onPress={() => {
+              void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+              onRemove(index);
+            }}
+            style={cancellationStyles.removeButton}
+            accessibilityLabel={`Remove tier ${index + 1}`}
+          >
+            <Ionicons name="close-circle" size={20} color={palette.error} />
+          </Clickable>
+        )}
+      </Row>
+    </View>
+  );
+});
 
 function CancellationSectionInner({
   tiers,
-  onTierChange,
-}: {
-  tiers: RefundTier[];
-  onTierChange: (hoursBeforeSession: number, refundPercentage: number) => void;
-}) {
+  selectedPreset,
+  onPresetChange,
+  onTiersChange,
+}: CancellationSectionProps) {
   const { colors: palette } = useTheme();
+  const isCustom = selectedPreset === 'custom';
   const sortedTiers = [...tiers].sort((a, b) => b.hoursBeforeSession - a.hoursBeforeSession);
 
-  const formatWindowLabel = (hours: number) => {
-    if (hours === 0) return 'At session time';
-    if (hours >= 24) {
-      const days = Math.floor(hours / 24);
-      return `${days} day${days === 1 ? '' : 's'}+ before`;
-    }
-    return `${hours}h+ before`;
+  const handleUpdateHours = (index: number, hours: number) => {
+    const sorted = [...tiers].sort((a, b) => b.hoursBeforeSession - a.hoursBeforeSession);
+    const next = [...sorted];
+    next[index] = { ...next[index], hoursBeforeSession: hours };
+    onTiersChange(next);
+  };
+
+  const handleUpdateRefund = (index: number, refund: number) => {
+    const sorted = [...tiers].sort((a, b) => b.hoursBeforeSession - a.hoursBeforeSession);
+    const next = [...sorted];
+    next[index] = { ...next[index], refundPercentage: refund };
+    onTiersChange(next);
+  };
+
+  const handleRemove = (index: number) => {
+    const sorted = [...tiers].sort((a, b) => b.hoursBeforeSession - a.hoursBeforeSession);
+    onTiersChange(sorted.filter((_, i) => i !== index));
+  };
+
+  const handleAdd = () => {
+    void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    onTiersChange([...tiers, { hoursBeforeSession: 0, refundPercentage: 0, description: '' }]);
   };
 
   return (
@@ -248,50 +382,115 @@ function CancellationSectionInner({
         <View style={styles.sectionTitleWrap}>
           <ThemedText type="defaultSemiBold">Cancellation Policy</ThemedText>
           <ThemedText style={[styles.sectionHint, { color: palette.muted }]}>
-            Set refund by timeframe in 5% steps.
+            Pick a preset or build your own.
           </ThemedText>
         </View>
       </Row>
-      <SurfaceCard style={[styles.tierSummary, { backgroundColor: palette.surface }]}>
-        {sortedTiers.map((tier, index) => (
-          <View
-            key={tier.hoursBeforeSession}
+
+      {/* Preset chips */}
+      <Row style={styles.chipRow}>
+        {PRESET_OPTIONS.map((opt) => (
+          <Clickable
+            key={opt.key}
+            onPress={() => {
+              void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+              onPresetChange(opt.key);
+            }}
             style={[
-              styles.refundControlRow,
-              index < sortedTiers.length - 1
-                ? { borderBottomWidth: 1, borderBottomColor: palette.border }
-                : undefined,
+              styles.compactChip,
+              {
+                backgroundColor: selectedPreset === opt.key ? palette.tint : palette.surface,
+                borderColor: selectedPreset === opt.key ? palette.tint : palette.border,
+              },
             ]}
+            accessibilityRole="radio"
+            accessibilityLabel={`${opt.label} cancellation policy${selectedPreset === opt.key ? ', selected' : ''}`}
           >
-            <Row justify="between" align="center">
-              <ThemedText style={[styles.tierText, { color: palette.text }]}>
-                {formatWindowLabel(tier.hoursBeforeSession)}
-              </ThemedText>
-              <ThemedText style={[styles.refundPercentValue, { color: palette.tint }]}>
-                {tier.refundPercentage}%
-              </ThemedText>
-            </Row>
-            <Slider
-              value={tier.refundPercentage}
-              minimumValue={0}
-              maximumValue={100}
-              step={5}
-              minimumTrackTintColor={palette.tint}
-              maximumTrackTintColor={palette.border}
-              thumbTintColor={palette.tint}
-              onSlidingComplete={(value) => {
-                void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                onTierChange(tier.hoursBeforeSession, Math.round(value));
-              }}
+            <Ionicons
+              name={opt.icon}
+              size={14}
+              color={selectedPreset === opt.key ? palette.onPrimary : palette.muted}
             />
-          </View>
+            <ThemedText
+              style={[
+                styles.chipText,
+                { color: selectedPreset === opt.key ? palette.onPrimary : palette.text, fontSize: 13 },
+              ]}
+            >
+              {opt.label}
+            </ThemedText>
+          </Clickable>
         ))}
+      </Row>
+
+      {/* Tier rows */}
+      <SurfaceCard style={[cancellationStyles.tiersCard, { backgroundColor: palette.surface }]}>
+        {sortedTiers.map((tier, index) => (
+          <EditableTierRow
+            key={`${index}-${tier.hoursBeforeSession}`}
+            tier={tier}
+            index={index}
+            isCustom={isCustom}
+            canRemove={sortedTiers.length > 1}
+            onUpdateHours={handleUpdateHours}
+            onUpdateRefund={handleUpdateRefund}
+            onRemove={handleRemove}
+          />
+        ))}
+
+        {isCustom && (
+          <Clickable
+            onPress={handleAdd}
+            style={[cancellationStyles.addButton, { borderColor: palette.border }]}
+            accessibilityLabel="Add cancellation tier"
+          >
+            <Ionicons name="add-circle-outline" size={16} color={palette.tint} />
+            <ThemedText style={[Typography.smallSemiBold, { color: palette.tint }]}>
+              Add tier
+            </ThemedText>
+          </Clickable>
+        )}
       </SurfaceCard>
     </View>
   );
 }
 
 export const CancellationSection = memo(CancellationSectionInner);
+
+const cancellationStyles = RNStyleSheet.create({
+  tiersCard: { padding: Spacing.sm, borderRadius: Radii.card },
+  tierRow: { paddingVertical: Spacing.xs },
+  tierContent: { flex: 1 },
+  hoursInputWrap: { flexDirection: 'row', alignItems: 'center', gap: Spacing.xxs, minWidth: 70 },
+  hoursInput: {
+    width: 48,
+    height: 36,
+    borderRadius: Radii.sm,
+    borderWidth: 1,
+    textAlign: 'center',
+    ...Typography.bodySmallSemiBold,
+  },
+  sliderWrap: { flex: 1 },
+  refundBadge: {
+    paddingHorizontal: Spacing.xs,
+    paddingVertical: Spacing.xxs,
+    borderRadius: Radii.pill,
+    minWidth: 48,
+    alignItems: 'center',
+  },
+  removeButton: { padding: Spacing.xxs, minHeight: 44, justifyContent: 'center' },
+  addButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: Spacing.xs,
+    paddingVertical: Spacing.sm,
+    marginTop: Spacing.xs,
+    borderWidth: 1,
+    borderStyle: 'dashed',
+    borderRadius: Radii.md,
+  },
+});
 
 // ---------------------------------------------------------------------------
 // SettingsSummary — Current settings card

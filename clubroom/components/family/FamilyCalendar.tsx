@@ -9,6 +9,9 @@ import { ThemedText } from '@/components/themed-text';
 import { Spacing, Typography } from '@/constants/theme';
 import type { FamilyCalendarEvent, FamilyMember } from '@/constants/types';
 import { useTheme } from '@/hooks/useTheme';
+import { useScheduleConflicts } from '@/hooks/use-schedule-conflicts';
+import { ScheduleConflictBanner } from './schedule-conflict-banner';
+import type { ChildInfo } from '@/types/child-context';
 import {
   DAYS,
   MONTHS,
@@ -28,6 +31,8 @@ interface FamilyCalendarProps {
   onEventPress?: (event: FamilyCalendarEvent) => void;
   selectedChildId?: string | null;
   onChildFilterChange?: (childId: string | null) => void;
+  isMultiChild?: boolean;
+  getChildById?: (childId: string) => ChildInfo | undefined;
 }
 
 // ─── Component ──────────────────────────────────────────────────────────────
@@ -40,6 +45,8 @@ export function FamilyCalendar({
   onEventPress,
   selectedChildId = null,
   onChildFilterChange,
+  isMultiChild = false,
+  getChildById,
 }: FamilyCalendarProps) {
   const { colors: palette } = useTheme();
   const [currentMonth, setCurrentMonth] = useState(new Date(selectedDate));
@@ -102,6 +109,47 @@ export function FamilyCalendar({
     [selectedDate, getEventsForDate],
   );
 
+  // Schedule conflict detection (Phase 5)
+  const {
+    conflicts,
+    hasConflicts,
+    conflictsByEventId,
+    isDayDismissed,
+    dismissDay,
+  } = useScheduleConflicts({ events: filteredEvents, isMultiChild });
+
+  const selectedDateStr = useMemo(() => toDateStr(selectedDate), [selectedDate]);
+
+  const selectedDateConflicts = useMemo(
+    () =>
+      conflicts.filter(
+        (c) =>
+          c.eventA.start.split('T')[0] === selectedDateStr ||
+          c.eventB.start.split('T')[0] === selectedDateStr,
+      ),
+    [conflicts, selectedDateStr],
+  );
+
+  const hasConflictsForDate = useCallback(
+    (date: Date | null): boolean => {
+      if (!date || !hasConflicts) return false;
+      const dateStr = toDateStr(date);
+      return conflicts.some(
+        (c) =>
+          c.eventA.start.split('T')[0] === dateStr ||
+          c.eventB.start.split('T')[0] === dateStr,
+      );
+    },
+    [conflicts, hasConflicts],
+  );
+
+  const handleDismissConflicts = useCallback(() => {
+    dismissDay(selectedDateStr);
+  }, [dismissDay, selectedDateStr]);
+
+  const showBanner =
+    selectedDateConflicts.length > 0 && !isDayDismissed(selectedDateStr);
+
   return (
     <View style={styles.container}>
       <ChildFilterRow
@@ -147,14 +195,25 @@ export function FamilyCalendar({
           isToday={isToday}
           onDateSelect={onDateSelect}
           palette={palette}
+          hasConflictsForDate={hasConflictsForDate}
         />
       </SurfaceCard>
+
+      {showBanner && getChildById && (
+        <ScheduleConflictBanner
+          conflicts={selectedDateConflicts}
+          getChildById={getChildById}
+          onDismiss={handleDismissConflicts}
+        />
+      )}
 
       <EventListSection
         events={selectedDateEvents}
         selectedDate={selectedDate}
         onEventPress={onEventPress}
         palette={palette}
+        conflictsByEventId={conflictsByEventId}
+        getChildById={getChildById}
       />
     </View>
   );

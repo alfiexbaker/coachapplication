@@ -1,14 +1,15 @@
 import { memo } from 'react';
 import { StyleSheet, View, ScrollView, ViewStyle } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
 
-import { SurfaceCard } from '@/components/primitives/surface-card';
 import { Clickable } from '@/components/primitives/clickable';
 import { ThemedText } from '@/components/themed-text';
 import { Spacing, Radii, Typography } from '@/constants/theme';
 import type { FamilyCalendarEvent, FamilyMember } from '@/constants/types';
 import type { ThemeColors } from '@/hooks/useTheme';
 import { Row } from '@/components/primitives';
+
+// Re-export EventListSection for backward compat
+export { EventListSection } from './event-list-section';
 
 // ─── Constants ──────────────────────────────────────────────────────────────
 
@@ -116,6 +117,7 @@ type CalendarDayGridProps = {
   isToday: (date: Date | null) => boolean;
   onDateSelect?: (date: Date) => void;
   palette: ThemeColors;
+  hasConflictsForDate?: (date: Date | null) => boolean;
 };
 
 export const CalendarDayGrid = memo(function CalendarDayGrid({
@@ -125,6 +127,7 @@ export const CalendarDayGrid = memo(function CalendarDayGrid({
   isToday,
   onDateSelect,
   palette,
+  hasConflictsForDate,
 }: CalendarDayGridProps) {
   return (
     <Row style={styles.grid}>
@@ -165,84 +168,15 @@ export const CalendarDayGrid = memo(function CalendarDayGrid({
                 {dateEvents.slice(0, 3).map((event, i) => (
                   <View key={i} style={[styles.eventDot, { backgroundColor: event.colorCode }]} />
                 ))}
+                {hasConflictsForDate?.(item.date) && (
+                  <View style={[styles.conflictDot, { backgroundColor: palette.warning }]} />
+                )}
               </Row>
             )}
           </Clickable>
         );
       })}
     </Row>
-  );
-});
-
-// ─── EventListSection ───────────────────────────────────────────────────────
-
-type EventListSectionProps = {
-  events: FamilyCalendarEvent[];
-  selectedDate: Date;
-  onEventPress?: (event: FamilyCalendarEvent) => void;
-  palette: ThemeColors;
-};
-
-export const EventListSection = memo(function EventListSection({
-  events,
-  selectedDate,
-  onEventPress,
-  palette,
-}: EventListSectionProps) {
-  if (events.length === 0) return null;
-
-  return (
-    <View style={styles.eventsSection}>
-      <ThemedText type="defaultSemiBold" style={styles.eventsSectionTitle}>
-        {selectedDate.toLocaleDateString('en-GB', {
-          weekday: 'long',
-          day: 'numeric',
-          month: 'long',
-        })}
-      </ThemedText>
-      {events.map((event) => (
-        <Clickable key={event.id} onPress={() => onEventPress?.(event)}>
-          <SurfaceCard style={styles.eventCard}>
-            <View style={[styles.eventColorBar, { backgroundColor: event.colorCode }]} />
-            <View style={styles.eventContent}>
-              <Row style={styles.eventHeader}>
-                <ThemedText type="defaultSemiBold">{event.title}</ThemedText>
-                <ThemedText style={[styles.eventTime, { color: palette.muted }]}>
-                  {new Date(event.start).toLocaleTimeString('en-GB', {
-                    hour: '2-digit',
-                    minute: '2-digit',
-                  })}
-                </ThemedText>
-              </Row>
-              <Row style={styles.eventMeta}>
-                <Row style={styles.eventMetaItem}>
-                  <Ionicons name="person" size={12} color={palette.muted} />
-                  <ThemedText style={[styles.eventMetaText, { color: palette.muted }]}>
-                    {event.childId}
-                  </ThemedText>
-                </Row>
-                {event.coachId && (
-                  <Row style={styles.eventMetaItem}>
-                    <Ionicons name="school" size={12} color={palette.muted} />
-                    <ThemedText style={[styles.eventMetaText, { color: palette.muted }]}>
-                      {event.coachId}
-                    </ThemedText>
-                  </Row>
-                )}
-                {event.location && (
-                  <Row style={styles.eventMetaItem}>
-                    <Ionicons name="location" size={12} color={palette.muted} />
-                    <ThemedText style={[styles.eventMetaText, { color: palette.muted }]}>
-                      {event.location}
-                    </ThemedText>
-                  </Row>
-                )}
-              </Row>
-            </View>
-          </SurfaceCard>
-        </Clickable>
-      ))}
-    </View>
   );
 });
 
@@ -278,14 +212,5 @@ const styles = StyleSheet.create({
   dayText: { ...Typography.bodySmallSemiBold },
   eventDots: { gap: Spacing.micro, marginTop: Spacing.micro, position: 'absolute', bottom: 4 },
   eventDot: { width: 4, height: 4, borderRadius: Radii.xs },
-  eventsSection: { gap: Spacing.sm },
-  eventsSectionTitle: { ...Typography.bodySmall },
-  eventCard: { flexDirection: 'row', overflow: 'hidden' },
-  eventColorBar: { width: 4 },
-  eventContent: { flex: 1, padding: Spacing.sm, gap: Spacing.xxs },
-  eventHeader: { justifyContent: 'space-between', alignItems: 'center' },
-  eventTime: { ...Typography.small },
-  eventMeta: { flexWrap: 'wrap', gap: Spacing.sm },
-  eventMetaItem: { alignItems: 'center', gap: Spacing.xxs },
-  eventMetaText: { ...Typography.caption },
+  conflictDot: { width: 6, height: 6, borderRadius: 3 },
 });

@@ -34,22 +34,23 @@ type AwardBadgeInput = {
   recipientId?: string; // Optional notification recipient
 };
 
+// Badge catalog — mapped to FA Four Corners (Technical, Physical, Psychological, Social)
 const BASE_BADGE_CATALOG: BadgeDefinition[] = [
   {
     id: 'badge_best_training',
-    label: 'Best Training Session',
+    label: 'Standout Session',
     tone: 'success',
-    description: 'Recognises a standout session with effort and focus.',
-    category: 'consistency',
+    description: 'Recognised for outstanding effort and focus in training.',
+    category: 'physical',
     tier: 1,
     pointValue: 10,
   },
   {
     id: 'badge_streak_starter',
-    label: 'Streak Starter',
+    label: 'Consistent Attender',
     tone: 'default',
-    description: 'Completed 3 sessions in a row without missing.',
-    category: 'consistency',
+    description: 'Demonstrated reliable attendance across sessions.',
+    category: 'psychological',
     tier: 1,
     pointValue: 10,
   },
@@ -57,62 +58,62 @@ const BASE_BADGE_CATALOG: BadgeDefinition[] = [
     id: 'badge_dedicated_athlete',
     label: 'Dedicated Athlete',
     tone: 'success',
-    description: 'Maintained perfect attendance for a month.',
-    category: 'consistency',
+    description: 'Maintained strong attendance and commitment.',
+    category: 'psychological',
     tier: 2,
     pointValue: 25,
   },
   {
     id: 'badge_master_passer',
-    label: 'Master Passer',
+    label: 'Vision & Passing',
     tone: 'default',
-    description: 'Awarded for reliable build-up play and vision.',
-    category: 'technique',
+    description: 'Recognised for reliable build-up play and vision.',
+    category: 'technical',
     tier: 2,
     pointValue: 25,
   },
   {
     id: 'badge_sharp_shooter_pro',
-    label: 'Sharp Shooter Pro',
+    label: 'Clinical Finishing',
     tone: 'warning',
-    description: 'Celebrates clinical finishing under pressure.',
-    category: 'technique',
+    description: 'Recognised for composure and accuracy under pressure.',
+    category: 'technical',
     tier: 3,
     pointValue: 50,
   },
   {
     id: 'badge_first_touch',
-    label: 'Silky First Touch',
+    label: 'Ball Control',
     tone: 'default',
     description: 'Demonstrated excellent ball control in tight spaces.',
-    category: 'technique',
+    category: 'technical',
     tier: 1,
     pointValue: 10,
   },
   {
     id: 'badge_team_captain',
-    label: 'Team Captain',
+    label: 'Session Leader',
     tone: 'success',
     description: 'Led drills and encouraged teammates.',
-    category: 'leadership',
+    category: 'social',
     tier: 2,
     pointValue: 25,
   },
   {
     id: 'badge_vocal_leader',
-    label: 'Vocal Leader',
+    label: 'Communication',
     tone: 'default',
-    description: 'Communicated well and organized the group.',
-    category: 'leadership',
+    description: 'Communicated well and organised the group.',
+    category: 'social',
     tier: 1,
     pointValue: 10,
   },
   {
     id: 'badge_mentor',
-    label: 'Mentor',
+    label: 'Mentoring',
     tone: 'success',
     description: 'Helped younger players improve their skills.',
-    category: 'leadership',
+    category: 'social',
     tier: 3,
     pointValue: 50,
   },
@@ -121,16 +122,16 @@ const BASE_BADGE_CATALOG: BadgeDefinition[] = [
     label: 'Growth Mindset',
     tone: 'default',
     description: 'Embraced challenges and learned from mistakes.',
-    category: 'mindset',
+    category: 'psychological',
     tier: 1,
     pointValue: 10,
   },
   {
     id: 'badge_focused_athlete',
-    label: 'Laser Focus',
+    label: 'Focus & Concentration',
     tone: 'success',
     description: 'Maintained concentration throughout the session.',
-    category: 'mindset',
+    category: 'psychological',
     tier: 2,
     pointValue: 25,
   },
@@ -139,34 +140,71 @@ const BASE_BADGE_CATALOG: BadgeDefinition[] = [
     label: 'Team Player',
     tone: 'default',
     description: 'Put the team first and supported others.',
-    category: 'teamwork',
+    category: 'social',
+    tier: 1,
+    pointValue: 10,
+  },
+  // Generic recognition badges — one per FA Four Corners category
+  {
+    id: 'badge_recognition_technical',
+    label: 'Technical Recognition',
+    tone: 'default',
+    description: 'Recognised for technical development.',
+    category: 'technical',
+    tier: 1,
+    pointValue: 10,
+  },
+  {
+    id: 'badge_recognition_physical',
+    label: 'Physical Recognition',
+    tone: 'default',
+    description: 'Recognised for physical development.',
+    category: 'physical',
+    tier: 1,
+    pointValue: 10,
+  },
+  {
+    id: 'badge_recognition_psychological',
+    label: 'Psychological Recognition',
+    tone: 'default',
+    description: 'Recognised for psychological development.',
+    category: 'psychological',
+    tier: 1,
+    pointValue: 10,
+  },
+  {
+    id: 'badge_recognition_social',
+    label: 'Social Recognition',
+    tone: 'default',
+    description: 'Recognised for social development.',
+    category: 'social',
     tier: 1,
     pointValue: 10,
   },
   {
     id: 'badge_assist_king',
-    label: 'Assist King',
+    label: 'Creating Opportunities',
     tone: 'success',
-    description: 'Created multiple scoring opportunities for teammates.',
-    category: 'teamwork',
+    description: 'Created multiple opportunities for teammates.',
+    category: 'technical',
     tier: 2,
     pointValue: 25,
   },
   {
     id: 'badge_comeback_kid',
-    label: 'Comeback Kid',
+    label: 'Resilience',
     tone: 'warning',
     description: 'Bounced back from setbacks with determination.',
-    category: 'resilience',
+    category: 'psychological',
     tier: 2,
     pointValue: 25,
   },
   {
     id: 'badge_never_give_up',
-    label: 'Never Give Up',
+    label: 'Perseverance',
     tone: 'success',
     description: 'Showed incredible perseverance under pressure.',
-    category: 'resilience',
+    category: 'psychological',
     tier: 3,
     pointValue: 50,
   },
@@ -176,7 +214,7 @@ const SEED_BADGE_AWARDS: BadgeAward[] = [
   {
     id: 'award_training_focus',
     badgeId: 'badge_best_training',
-    badgeLabel: 'Best Training Session',
+    badgeLabel: 'Standout Session',
     badgeTone: 'success',
     athleteId: 'user1',
     coachId: 'coach1',
@@ -186,14 +224,14 @@ const SEED_BADGE_AWARDS: BadgeAward[] = [
     awardedBy: 'coach1',
     awardedAt: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(),
     visibility: 'supporters',
-    badgeCategory: 'consistency',
+    badgeCategory: 'physical',
     badgeTier: 1,
     badgePointValue: 10,
   },
   {
     id: 'award_master_passer',
     badgeId: 'badge_master_passer',
-    badgeLabel: 'Master Passer',
+    badgeLabel: 'Vision & Passing',
     badgeTone: 'default',
     athleteId: 'user2',
     coachId: 'coach3',
@@ -203,14 +241,14 @@ const SEED_BADGE_AWARDS: BadgeAward[] = [
     awardedBy: 'coach3',
     awardedAt: new Date(Date.now() - 4 * 24 * 60 * 60 * 1000).toISOString(),
     visibility: 'athlete',
-    badgeCategory: 'technique',
+    badgeCategory: 'technical',
     badgeTier: 2,
     badgePointValue: 25,
   },
   {
     id: 'award_sharp_shooter',
     badgeId: 'badge_sharp_shooter_pro',
-    badgeLabel: 'Sharp Shooter Pro',
+    badgeLabel: 'Clinical Finishing',
     badgeTone: 'warning',
     athleteId: 'user3',
     coachId: 'coach2',
@@ -220,7 +258,7 @@ const SEED_BADGE_AWARDS: BadgeAward[] = [
     awardedBy: 'coach2',
     awardedAt: new Date(Date.now() - 12 * 60 * 60 * 1000).toISOString(),
     visibility: 'supporters',
-    badgeCategory: 'technique',
+    badgeCategory: 'technical',
     badgeTier: 3,
     badgePointValue: 50,
   },
@@ -264,6 +302,10 @@ class BadgeService {
 
   async listDefinitions(): Promise<BadgeDefinition[]> {
     return BASE_BADGE_CATALOG;
+  }
+
+  findBadgeForCategory(category: BadgeCategory): BadgeDefinition | undefined {
+    return BASE_BADGE_CATALOG.find((badge) => badge.category === category);
   }
 
   async listAwards(): Promise<BadgeAward[]> {
@@ -428,14 +470,14 @@ class BadgeService {
     const notification = {
       id: `notif_badge_${award.id}`,
       type: 'badge' as const,
-      title: `${athleteName} earned a badge!`,
-      body: `${athleteName} earned the ${award.badgeLabel} badge from Coach ${coachName}`,
+      title: `${athleteName} received recognition`,
+      body: `Coach ${coachName} recognised ${athleteName} for ${award.badgeLabel}`,
       timeLabel: 'Just now',
       read: false,
       badgeTitle: award.badgeLabel,
       athleteName,
       badgeAwardId: award.id,
-      actionLabel: 'View Badge',
+      actionLabel: 'View Recognition',
       handled: false,
       deepLink: `/children/badges/${award.athleteId}?highlightBadge=${award.id}`,
     };
@@ -640,12 +682,10 @@ class BadgeService {
   > {
     const awards = await this.listAwardsForAthlete(athleteId);
     const categories: BadgeCategory[] = [
-      'leadership',
-      'consistency',
-      'technique',
-      'mindset',
-      'teamwork',
-      'resilience',
+      'technical',
+      'physical',
+      'psychological',
+      'social',
     ];
 
     return categories.map((category) => {
@@ -832,7 +872,7 @@ class BadgeService {
         id: milestone.id,
         label: milestone.label,
         description: milestone.description,
-        category: 'consistency',
+        category: 'physical',
         tier: milestone.tier,
         pointValue: milestone.pointValue,
         badgeType: 'milestone',
@@ -845,27 +885,9 @@ class BadgeService {
       });
     });
 
-    // Add weekly streak badges
-    STREAK_BADGES.forEach((streak) => {
-      const isUnlocked = weeklyStreak >= streak.threshold;
-      const progress = Math.min(100, Math.round((weeklyStreak / streak.threshold) * 100));
-
-      allBadges.push({
-        id: streak.id,
-        label: streak.label,
-        description: streak.description,
-        category: 'consistency',
-        tier: streak.tier,
-        pointValue: streak.pointValue,
-        badgeType: 'streak',
-        isUnlocked,
-        earnedAt: isUnlocked ? new Date().toISOString() : undefined,
-        progress,
-        progressLabel: isUnlocked ? 'Earned' : `${weeklyStreak}/${streak.threshold} weeks`,
-        currentValue: weeklyStreak,
-        targetValue: streak.threshold,
-      });
-    });
+    // Streak badges hidden from UI — kept for internal data tracking only.
+    // Consensus: streaks are harmful for youth athletes whose attendance
+    // is parent-dependent. May resurface as "rhythm" feature in v2.
 
     // Add special event badges
     // Check if athlete has earned any event badges from their awards
@@ -918,12 +940,10 @@ class BadgeService {
     // Add category-based groups for skill badges
     const skillBadges = badges.filter((b) => b.badgeType === 'skill');
     const categories: BadgeCategory[] = [
-      'leadership',
-      'consistency',
-      'technique',
-      'mindset',
-      'teamwork',
-      'resilience',
+      'technical',
+      'physical',
+      'psychological',
+      'social',
     ];
 
     categories.forEach((cat) => {

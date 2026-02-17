@@ -231,10 +231,6 @@ export type {
   GroupMemberRole,
   GroupMember,
   ParentGroup,
-  CarpoolRequestStatus,
-  CarpoolRequest,
-  CarpoolOfferStatus,
-  CarpoolOffer,
   GroupMessage,
 } from './social-types';
 
@@ -373,6 +369,8 @@ export type {
   LogInjuryInput,
   UpdateInjuryInput,
   InjuryStats,
+  ScheduleConflict,
+  ConflictsByEventId,
 } from './family-types';
 
 // ============================================================================

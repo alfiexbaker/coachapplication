@@ -218,6 +218,33 @@ export interface FamilyCalendarEvent {
   price?: number;
 }
 
+// ============================================================================
+// SCHEDULE CONFLICT DETECTION (Phase 5 — Multi-Child Sprint)
+// ============================================================================
+
+/**
+ * A pair of events that conflict — different children, overlapping time,
+ * different coaches/locations (parent must be in two places at once).
+ */
+export interface ScheduleConflict {
+  /** First event in the conflict (earlier start or first by sort order) */
+  eventA: FamilyCalendarEvent;
+  /** Second event in the conflict */
+  eventB: FamilyCalendarEvent;
+  /** Number of minutes the two events overlap */
+  overlapMinutes: number;
+}
+
+/**
+ * Map from event ID → conflicts that event is involved in.
+ * Enables O(1) lookup when rendering individual event cards.
+ */
+export type ConflictsByEventId = Map<string, ScheduleConflict[]>;
+
+// ============================================================================
+// FAMILY DASHBOARD — Overview Stats
+// ============================================================================
+
 /**
  * Family overview stats for the dashboard
  */

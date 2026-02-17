@@ -114,7 +114,7 @@ export function AthleteProgressScreen() {
             sortedSessions={sortedSessions}
           />
         )}
-        {activeTab === 'badges' && <ProgressBadgesTab awards={awards} />}
+        {activeTab === 'badges' && <ProgressBadgesTab awards={awards} athleteName={athlete.name} />}
         {activeTab === 'goals' && (
           <ProgressGoalsTab activeGoals={activeGoals} completedGoals={completedGoals} />
         )}

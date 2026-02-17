@@ -21,6 +21,7 @@ import { FamilyMemberCard } from '@/components/family/FamilyMemberCard';
 import { UpcomingSessionsList } from '@/components/family/UpcomingSessionsList';
 import { FamilyQuickActions } from '@/components/family/family-quick-actions';
 import { NextSessionCard } from '@/components/family/next-session-card';
+import { RecognitionSummaryCard } from '@/components/family/recognition-summary-card';
 import { EmptyState } from '@/components/ui/empty-state';
 import { LoadingState, ErrorState } from '@/components/ui/screen-states';
 import { Spacing, Typography } from '@/constants/theme';
@@ -42,6 +43,8 @@ export default function FamilyDashboardScreen() {
     handleSessionPress,
     navigateToCalendar,
     navigateToSpending,
+    childRecognitions,
+    navigateToRecognitions,
   } = useFamilyDashboard();
   const handleBookSession = () => router.push(Routes.BOOK_COACH);
 
@@ -127,6 +130,13 @@ export default function FamilyDashboardScreen() {
           onSpendingPress={navigateToSpending}
         />
       </Animated.View>
+
+      {/* Recognition Summary */}
+      {childRecognitions.length > 0 && (
+        <Animated.View entering={FadeInDown.delay(125).springify()}>
+          <RecognitionSummaryCard awards={childRecognitions} onPress={navigateToRecognitions} />
+        </Animated.View>
+      )}
 
       {/* Children Section */}
       <Animated.View entering={FadeInDown.delay(150).springify()}>

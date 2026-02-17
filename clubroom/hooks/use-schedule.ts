@@ -73,6 +73,7 @@ export function useSchedule() {
   const [blockedDates, setBlockedDates] = useState<Set<string>>(new Set());
   const [overrides, setOverrides] = useState<AvailabilityOverride[]>([]);
   const [selectedDayIndex, setSelectedDayIndex] = useState<number | null>(null);
+  const [weekOffset, setWeekOffset] = useState(0);
 
   // Availability segment state
   const [showRulesModal, setShowRulesModal] = useState(false);
@@ -114,16 +115,17 @@ export function useSchedule() {
       const allOfferings = await apiClient.get<SessionOffering[]>('session_offerings', []);
       const offeringsData = allOfferings.filter((offering) => offering.coachId === coachId);
 
+      // Fetch bookings for a wide window: 4 weeks back + 8 weeks forward from today
       const today = new Date();
-      const weekStart = new Date(today);
-      weekStart.setDate(today.getDate() - today.getDay());
-      const weekEnd = new Date(weekStart);
-      weekEnd.setDate(weekStart.getDate() + 13);
+      const fetchStart = new Date(today);
+      fetchStart.setDate(today.getDate() - today.getDay() - 28);
+      const fetchEnd = new Date(today);
+      fetchEnd.setDate(today.getDate() - today.getDay() + 56);
 
       const bookingsData = await availabilityService.getCoachBookings(
         coachId,
-        toDateStr(weekStart),
-        toDateStr(weekEnd),
+        toDateStr(fetchStart),
+        toDateStr(fetchEnd),
       );
 
       let blockedDatesData = new Set<string>();
@@ -208,8 +210,10 @@ export function useSchedule() {
 
   useFocusEffect(
     useCallback(() => {
-      setSelectedDayIndex(new Date().getDay());
-    }, []),
+      if (weekOffset === 0) {
+        setSelectedDayIndex(new Date().getDay());
+      }
+    }, [weekOffset]),
   );
 
   // Build week data
@@ -218,7 +222,7 @@ export function useSchedule() {
     const todayStr = toDateStr(today);
     const currentDay = today.getDay();
     const weekStart = new Date(today);
-    weekStart.setDate(today.getDate() - currentDay);
+    weekStart.setDate(today.getDate() - currentDay + weekOffset * 7);
 
     const seriesCounts = new Map<string, number>();
     for (const b of bookings) {
@@ -301,7 +305,7 @@ export function useSchedule() {
         hasOverride,
       };
     });
-  }, [templates, bookings, offerings, blockedDates, overrides]);
+  }, [templates, bookings, offerings, blockedDates, overrides, weekOffset]);
 
   const todayData = weekData.find((d) => d.isToday) ?? null;
   const todaySessions = todayData?.sessions || [];
@@ -332,7 +336,7 @@ export function useSchedule() {
   const handleSessionPress = useCallback(
     (session: SessionData) => {
       haptic();
-      router.push(Routes.bookingCancel(session.id));
+      router.push(Routes.booking(session.id));
     },
     [haptic],
   );
@@ -507,6 +511,37 @@ export function useSchedule() {
     loadData(false);
   }, [coachId, loadData]);
 
+  // Week navigation
+  const handlePrevWeek = useCallback(() => {
+    haptic();
+    setWeekOffset((prev) => prev - 1);
+    setSelectedDayIndex(0);
+  }, [haptic]);
+
+  const handleNextWeek = useCallback(() => {
+    haptic();
+    setWeekOffset((prev) => prev + 1);
+    setSelectedDayIndex(0);
+  }, [haptic]);
+
+  const handleGoToThisWeek = useCallback(() => {
+    haptic();
+    setWeekOffset(0);
+    setSelectedDayIndex(new Date().getDay());
+  }, [haptic]);
+
+  const weekLabel = useMemo(() => {
+    if (weekOffset === 0) return 'This Week';
+    if (weekOffset === -1) return 'Last Week';
+    if (weekOffset === 1) return 'Next Week';
+    const start = weekData[0];
+    const end = weekData[weekData.length - 1];
+    if (!start || !end) return '';
+    const fmt = (d: Date) =>
+      d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
+    return `${fmt(start.date)} – ${fmt(end.date)}`;
+  }, [weekOffset, weekData]);
+
   // Session type callbacks
   const handleSessionTypePress = useCallback((t: SessionTemplate) => {
     setEditingSessionType(t);
@@ -624,6 +659,13 @@ export function useSchedule() {
     sessionTemplates,
     venues,
     coachId,
+
+    // Week navigation
+    weekOffset,
+    weekLabel,
+    handlePrevWeek,
+    handleNextWeek,
+    handleGoToThisWeek,
 
     // Modal state
     dayEditorOpen,

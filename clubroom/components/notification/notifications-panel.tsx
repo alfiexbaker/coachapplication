@@ -214,7 +214,8 @@ const styles = StyleSheet.create({
   },
   content: {
     paddingHorizontal: NotificationDesign.list.horizontalPadding,
-    paddingVertical: Spacing.md,
+    paddingTop: Spacing.xs,
+    paddingBottom: Spacing.md,
     gap: NotificationDesign.list.cardGap,
   },
   emptyState: {

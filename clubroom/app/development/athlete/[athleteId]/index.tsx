@@ -34,7 +34,6 @@ export default function AthleteDetailScreen() {
     trend,
     level,
     selectedSessionLabel,
-    handleLogSession,
     handleOpenBadgeModal,
     handleSelectSession,
     handleCloseModal,
@@ -95,7 +94,6 @@ export default function AthleteDetailScreen() {
           trend={trend}
           level={level}
           colors={colors}
-          onLogSession={handleLogSession}
           onAwardBadge={handleOpenBadgeModal}
         />
 

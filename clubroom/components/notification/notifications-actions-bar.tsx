@@ -64,7 +64,7 @@ export const NotificationsActionsBar = memo(function NotificationsActionsBar({
 const styles = StyleSheet.create({
   actionsBar: {
     paddingHorizontal: NotificationDesign.list.horizontalPadding,
-    paddingBottom: Spacing.sm,
+    paddingBottom: Spacing.xxs,
   },
   unreadText: {
     ...Typography.caption,

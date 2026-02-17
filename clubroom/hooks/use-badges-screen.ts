@@ -15,12 +15,12 @@ import { err, ok, serviceError, type ServiceError } from '@/types/result';
 const logger = createLogger('BadgesScreen');
 
 export const BADGE_TIER_COLORS = {
-  gold: '#FFD700',
-  silver: '#C0C0C0',
-  bronze: '#CD7F32',
+  advanced: '#FFD700',
+  developing: '#C0C0C0',
+  foundation: '#CD7F32',
 } as const;
 
-export type FilterTab = 'all' | 'unlocked' | 'locked' | 'in-progress';
+export type FilterTab = 'all' | 'unlocked' | 'in-progress';
 
 export const FILTER_TABS: {
   key: FilterTab;
@@ -29,20 +29,16 @@ export const FILTER_TABS: {
 }[] = [
   { key: 'all', label: 'All', icon: 'grid-outline' },
   { key: 'unlocked', label: 'Earned', icon: 'checkmark-circle-outline' },
-  { key: 'locked', label: 'Locked', icon: 'lock-closed-outline' },
-  { key: 'in-progress', label: 'In Progress', icon: 'time-outline' },
+  { key: 'in-progress', label: 'Upcoming', icon: 'time-outline' },
 ];
 
 export const SECTION_ORDER = [
   'milestones',
-  'streaks',
   'events',
-  'leadership',
-  'consistency',
-  'technique',
-  'mindset',
-  'teamwork',
-  'resilience',
+  'technical',
+  'physical',
+  'psychological',
+  'social',
 ];
 
 interface BadgesScreenData {
@@ -90,12 +86,20 @@ export function useBadgesScreen() {
     switch (activeFilter) {
       case 'unlocked':
         return allBadges.filter((b) => b.isUnlocked);
-      case 'locked':
-        return allBadges.filter((b) => !b.isUnlocked && b.progress === 0);
       case 'in-progress':
-        return allBadges.filter((b) => !b.isUnlocked && b.progress > 0);
+        // Show next upcoming milestones (closest to unlocking, max 5)
+        return allBadges
+          .filter((b) => !b.isUnlocked && b.progress > 0)
+          .sort((a, b) => b.progress - a.progress)
+          .slice(0, 5);
       default:
-        return allBadges;
+        // Default: earned + next 3 upcoming (hide deeply locked)
+        const earned = allBadges.filter((b) => b.isUnlocked);
+        const upcoming = allBadges
+          .filter((b) => !b.isUnlocked)
+          .sort((a, b) => b.progress - a.progress)
+          .slice(0, 3);
+        return [...earned, ...upcoming];
     }
   }, [allBadges, activeFilter]);
 
@@ -106,11 +110,9 @@ export function useBadgesScreen() {
       const section =
         badge.badgeType === 'milestone'
           ? 'milestones'
-          : badge.badgeType === 'streak'
-            ? 'streaks'
-            : badge.badgeType === 'event'
-              ? 'events'
-              : badge.category || 'other';
+          : badge.badgeType === 'event'
+            ? 'events'
+            : badge.category || 'other';
       if (!grouped.has(section)) grouped.set(section, []);
       grouped.get(section)!.push(badge);
     });
@@ -128,11 +130,9 @@ export function useBadgesScreen() {
     (key: FilterTab) => {
       switch (key) {
         case 'all':
-          return allBadges.length;
+          return allBadges.filter((b) => b.isUnlocked).length + Math.min(3, allBadges.filter((b) => !b.isUnlocked).length);
         case 'unlocked':
           return allBadges.filter((b) => b.isUnlocked).length;
-        case 'locked':
-          return allBadges.filter((b) => !b.isUnlocked && b.progress === 0).length;
         case 'in-progress':
           return allBadges.filter((b) => !b.isUnlocked && b.progress > 0).length;
       }
@@ -150,13 +150,13 @@ export function useBadgesScreen() {
     if (badge.isUnlocked) {
       Alert.alert(
         badge.label,
-        `${badge.description || 'Achievement unlocked!'}\n\nEarned: ${badge.earnedAt ? new Date(badge.earnedAt).toLocaleDateString() : 'Recently'}${badge.awardedBy ? `\nAwarded by: ${badge.awardedBy}` : ''}\nPoints: +${badge.pointValue}`,
+        `${badge.description || 'Milestone achieved.'}\n\nEarned: ${badge.earnedAt ? new Date(badge.earnedAt).toLocaleDateString() : 'Recently'}${badge.awardedBy ? `\nRecognised by: ${badge.awardedBy}` : ''}`,
         [{ text: 'Close', style: 'cancel' }],
       );
     } else {
       Alert.alert(
-        `${badge.label} (Locked)`,
-        `${badge.description || 'Keep working to unlock this badge!'}\n\nProgress: ${badge.progressLabel}\nPoints when unlocked: +${badge.pointValue}`,
+        badge.label,
+        `${badge.description || 'Keep going to reach this milestone.'}\n\nProgress: ${badge.progressLabel}`,
         [{ text: 'Got it', style: 'cancel' }],
       );
     }

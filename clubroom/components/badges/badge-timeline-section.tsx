@@ -98,7 +98,7 @@ const TimelineItem = memo(function TimelineItem({ award }: { award: BadgeAward }
                   </View>
                 )}
               </Row>
-              {award.badgeCategory && (
+              {award.badgeCategory && CategoryInfo[award.badgeCategory] && (
                 <ThemedText style={[styles.categoryTag, { color: palette.muted }]}>
                   {CategoryInfo[award.badgeCategory].label}
                 </ThemedText>
@@ -106,9 +106,6 @@ const TimelineItem = memo(function TimelineItem({ award }: { award: BadgeAward }
             </Column>
           </Row>
           <Column align="flex-end" gap="micro">
-            <ThemedText style={[styles.pointsValue, { color: palette.tint }]}>
-              +{award.badgePointValue ?? 0}
-            </ThemedText>
             <ThemedText style={[styles.dateText, { color: palette.muted }]}>
               {formatDate(award.awardedAt)}
             </ThemedText>
@@ -170,7 +167,7 @@ export const BadgeTimelineSection = memo(function BadgeTimelineSection({
   return (
     <SurfaceCard style={styles.sectionCard}>
       <Row justify="between" align="center">
-        <ThemedText type="defaultSemiBold">Badge timeline</ThemedText>
+        <ThemedText type="defaultSemiBold">Recognition timeline</ThemedText>
         <ThemedText style={[styles.sectionHint, { color: palette.muted }]}>
           Tap to view linked sessions
         </ThemedText>
@@ -179,9 +176,9 @@ export const BadgeTimelineSection = memo(function BadgeTimelineSection({
       {awards.length === 0 ? (
         <Column gap="xs" align="center" style={styles.emptyTimeline}>
           <Ionicons name="ribbon-outline" size={24} color={palette.icon} />
-          <ThemedText type="defaultSemiBold">No badges yet</ThemedText>
+          <ThemedText type="defaultSemiBold">No recognitions yet</ThemedText>
           <ThemedText style={[styles.sectionHint, { color: palette.muted }]}>
-            They will show here once coaches award them
+            Coach recognitions will appear here
           </ThemedText>
         </Column>
       ) : (

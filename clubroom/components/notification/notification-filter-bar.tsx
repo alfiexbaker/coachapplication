@@ -65,7 +65,7 @@ export const NotificationFilterBar = memo(function NotificationFilterBar({
 const styles = StyleSheet.create({
   filterBar: {
     paddingHorizontal: NotificationDesign.list.horizontalPadding,
-    paddingBottom: Spacing.xs,
+    paddingBottom: Spacing.xxs,
   },
   segmentGroup: {
     gap: Spacing.xxs,

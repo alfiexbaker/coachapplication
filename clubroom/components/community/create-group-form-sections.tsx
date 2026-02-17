@@ -41,12 +41,6 @@ export const GROUP_TYPE_OPTIONS: GroupTypeOption[] = [
     description: 'For parents attending the same sessions',
     icon: 'calendar-outline',
   },
-  {
-    value: 'CARPOOL',
-    label: 'Carpool',
-    description: 'Coordinate rides to training and matches',
-    icon: 'car-outline',
-  },
 ];
 
 // ─── GroupTypeSelector ──────────────────────────────────────────────────────

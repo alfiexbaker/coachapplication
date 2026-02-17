@@ -39,8 +39,6 @@ function getGroupTypeIcon(type: GroupType): string {
       return 'football-outline';
     case 'SESSION':
       return 'calendar-outline';
-    case 'CARPOOL':
-      return 'car-outline';
     case 'GENERAL':
     default:
       return 'chatbubbles-outline';
@@ -56,8 +54,6 @@ function getGroupTypeLabel(type: GroupType): string {
       return 'Club';
     case 'SESSION':
       return 'Session';
-    case 'CARPOOL':
-      return 'Carpool';
     case 'GENERAL':
     default:
       return 'General';
@@ -110,7 +106,7 @@ describe('ParentGroupCard Component Logic', () => {
 
   describe('Group Type Display', () => {
     test('should display correct icon for each group type', () => {
-      const types: GroupType[] = ['CLUB', 'SESSION', 'CARPOOL', 'GENERAL'];
+      const types: GroupType[] = ['CLUB', 'SESSION', 'GENERAL'];
 
       types.forEach((type) => {
         const icon = getGroupTypeIcon(type);
@@ -124,14 +120,9 @@ describe('ParentGroupCard Component Logic', () => {
       assert.strictEqual(icon, 'football-outline');
     });
 
-    test('CARPOOL type should have car icon', () => {
-      const icon = getGroupTypeIcon('CARPOOL');
-      assert.strictEqual(icon, 'car-outline');
-    });
-
     test('should display correct label for each group type', () => {
-      const types: GroupType[] = ['CLUB', 'SESSION', 'CARPOOL', 'GENERAL'];
-      const expectedLabels = ['Club', 'Session', 'Carpool', 'General'];
+      const types: GroupType[] = ['CLUB', 'SESSION', 'GENERAL'];
+      const expectedLabels = ['Club', 'Session', 'General'];
 
       types.forEach((type, index) => {
         const label = getGroupTypeLabel(type);

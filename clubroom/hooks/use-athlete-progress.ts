@@ -15,14 +15,12 @@ const logger = createLogger('AthleteProgressScreen');
 
 export type ProgressTabType = 'progress' | 'badges' | 'goals';
 
-// Decorative: categorical badge colors for distinct visual identification
+// Decorative: FA Four Corners badge category colors
 const BADGE_CATEGORY_COLORS: Record<string, string> = {
-  leadership: '#8B5CF6',
-  consistency: '#3B82F6',
-  technique: '#10B981',
-  mindset: '#F59E0B',
-  teamwork: '#EC4899',
-  resilience: '#EF4444',
+  technical: '#10B981',
+  physical: '#3B82F6',
+  psychological: '#F59E0B',
+  social: '#8B5CF6',
 };
 const BADGE_DEFAULT_COLOR = '#6366F1'; // Decorative: fallback badge color
 
@@ -32,12 +30,10 @@ export function getBadgeColor(category?: string): string {
 
 export function getBadgeIcon(category?: string): keyof typeof Ionicons.glyphMap {
   const icons: Record<string, keyof typeof Ionicons.glyphMap> = {
-    leadership: 'people',
-    consistency: 'calendar',
-    technique: 'football',
-    mindset: 'bulb',
-    teamwork: 'hand-left',
-    resilience: 'fitness',
+    technical: 'football',
+    physical: 'fitness',
+    psychological: 'bulb',
+    social: 'people',
   };
   return icons[category || ''] || 'ribbon';
 }

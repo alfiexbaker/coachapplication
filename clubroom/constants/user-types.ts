@@ -176,8 +176,8 @@ export interface CoachReview {
   sessionDate: string;
 }
 
-export type BadgeCategory = 'leadership' | 'consistency' | 'technique' | 'mindset' | 'teamwork' | 'resilience';
-export type BadgeTier = 1 | 2 | 3;  // Bronze, Silver, Gold
+export type BadgeCategory = 'technical' | 'physical' | 'psychological' | 'social';
+export type BadgeTier = 1 | 2 | 3;  // Foundation, Developing, Advanced
 
 export interface BadgeDefinition {
   id: string;

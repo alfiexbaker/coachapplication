@@ -205,9 +205,6 @@ export const STORAGE_KEYS = {
   /** Messages within parent groups */
   GROUP_MESSAGES: 'clubroom.group_messages',
 
-  /** Carpool coordination offers */
-  CARPOOL_OFFERS: 'clubroom.carpool_offers',
-
   /** Group invites for parent community groups */
   GROUP_INVITES: 'clubroom.group_invites',
 
@@ -408,6 +405,9 @@ export const STORAGE_KEYS = {
 
   /** Children profiles managed by parents */
   CHILDREN_PROFILES: 'children_profiles',
+
+  /** Coach observations about athletes (SEN, behavioral, strategies) */
+  COACH_OBSERVATIONS: 'clubroom.coach_observations',
 
   // ============================================================================
   // TRIAL SESSIONS DOMAIN

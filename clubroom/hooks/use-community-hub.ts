@@ -1,6 +1,6 @@
 /**
  * Hook for the Community Hub screen.
- * Manages groups, carpools, tab state, and create group flow.
+ * Manages groups, tab state, and create group flow.
  */
 
 import { useState, useCallback, type Dispatch, type SetStateAction } from 'react';
@@ -11,19 +11,18 @@ import { useAuth } from '@/hooks/use-auth';
 import { communityService } from '@/services/community-service';
 import { ServiceEvents } from '@/services/event-bus';
 import { createLogger } from '@/utils/logger';
-import type { ParentGroup, CarpoolOffer } from '@/constants/types';
+import type { ParentGroup } from '@/constants/types';
 import type { CreateGroupFormData } from '@/components/community/CreateGroupForm';
 import { useScreen, type ScreenStatus } from '@/hooks/use-screen';
 import { err, ok, serviceError, type ServiceError } from '@/types/result';
 
 const logger = createLogger('CommunityHubScreen');
 
-export type TabType = 'groups' | 'carpools' | 'discover';
+export type TabType = 'groups' | 'discover';
 
 interface CommunityHubData {
   myGroups: ParentGroup[];
   publicGroups: ParentGroup[];
-  carpoolOffers: CarpoolOffer[];
 }
 
 export interface UseCommunityHubResult {
@@ -31,7 +30,6 @@ export interface UseCommunityHubResult {
   setActiveTab: Dispatch<SetStateAction<TabType>>;
   myGroups: ParentGroup[];
   publicGroups: ParentGroup[];
-  carpoolOffers: CarpoolOffer[];
   status: ScreenStatus;
   loading: boolean;
   error: ServiceError | null;
@@ -45,7 +43,6 @@ export interface UseCommunityHubResult {
   handleCreateGroup: (data: CreateGroupFormData) => Promise<void>;
   handleJoinGroup: (group: ParentGroup) => Promise<void>;
   handleGroupPress: (group: ParentGroup) => void;
-  handleCarpoolPress: () => void;
 }
 
 export function useCommunityHub(): UseCommunityHubResult {
@@ -59,15 +56,13 @@ export function useCommunityHub(): UseCommunityHubResult {
 
   const loadData = useCallback(async () => {
     try {
-      const [groupsResult, publicResult, carpoolsResult] = await Promise.all([
+      const [groupsResult, publicResult] = await Promise.all([
         communityService.getParentGroups(parentId),
         communityService.getPublicGroups(),
-        communityService.getAvailableCarpoolOffers(parentId),
       ]);
 
       if (!groupsResult.success) return err(groupsResult.error);
       if (!publicResult.success) return err(publicResult.error);
-      if (!carpoolsResult.success) return err(carpoolsResult.error);
 
       const availablePublicGroups = publicResult.data.filter(
         (group) => !groupsResult.data.some((memberGroup) => memberGroup.id === group.id),
@@ -76,7 +71,6 @@ export function useCommunityHub(): UseCommunityHubResult {
       return ok<CommunityHubData>({
         myGroups: groupsResult.data,
         publicGroups: availablePublicGroups,
-        carpoolOffers: carpoolsResult.data,
       });
     } catch (loadError) {
       logger.error('Failed to load community data:', loadError);
@@ -92,14 +86,12 @@ export function useCommunityHub(): UseCommunityHubResult {
     events: [ServiceEvents.GROUP_MEMBER_JOINED, ServiceEvents.GROUP_MEMBER_ROLE_CHANGED],
     isEmpty: (value) =>
       value.myGroups.length === 0 &&
-      value.publicGroups.length === 0 &&
-      value.carpoolOffers.length === 0,
+      value.publicGroups.length === 0,
     refetchOnFocus: true,
   });
 
   const myGroups = data?.myGroups ?? [];
   const publicGroups = data?.publicGroups ?? [];
-  const carpoolOffers = data?.carpoolOffers ?? [];
   const loading = status === 'loading';
 
   const handleCreateGroup = useCallback(
@@ -155,16 +147,12 @@ export function useCommunityHub(): UseCommunityHubResult {
   const handleGroupPress = useCallback((group: ParentGroup) => {
     router.push(Routes.communityGroup(group.id));
   }, []);
-  const handleCarpoolPress = useCallback(() => {
-    router.push(Routes.CARPOOL);
-  }, []);
 
   return {
     activeTab,
     setActiveTab,
     myGroups,
     publicGroups,
-    carpoolOffers,
     status,
     loading,
     error,
@@ -178,6 +166,5 @@ export function useCommunityHub(): UseCommunityHubResult {
     handleCreateGroup,
     handleJoinGroup,
     handleGroupPress,
-    handleCarpoolPress,
   };
 }

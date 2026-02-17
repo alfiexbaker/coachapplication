@@ -4,13 +4,14 @@
  * Frequency, date, time, location with saved locations, and pricing.
  */
 
-import React, { memo } from 'react';
+import React, { memo, useMemo } from 'react';
 import { StyleSheet, TextInput, ScrollView } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import Animated, { FadeInRight } from 'react-native-reanimated';
 
 import { ThemedText } from '@/components/themed-text';
 import { Clickable } from '@/components/primitives/clickable';
+import { DateTimeField } from '@/components/ui/primitives/DateTimeField';
 import { Row, Column } from '@/components/primitives';
 import { Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
 import type { ThemeColors } from '@/hooks/useTheme';
@@ -45,6 +46,7 @@ export const CreateScheduleStep = memo(function CreateScheduleStep({
   onLocationChange,
   onPriceChange,
 }: CreateScheduleStepProps) {
+  const today = useMemo(() => new Date(), []);
   const inputColors = {
     backgroundColor: colors.surface,
     color: colors.text,
@@ -97,34 +99,22 @@ export const CreateScheduleStep = memo(function CreateScheduleStep({
         </Column>
 
         {/* Date */}
-        <Column gap="sm">
-          <ThemedText type="defaultSemiBold" style={styles.label}>
-            {recurrence === 'once' ? 'Date *' : 'Start Date *'}
-          </ThemedText>
-          <TextInput
-            style={[styles.input, inputColors]}
-            placeholder="YYYY-MM-DD"
-            placeholderTextColor={colors.muted}
-            value={selectedDate}
-            onChangeText={onDateChange}
-            accessibilityLabel="Session date"
-          />
-        </Column>
+        <DateTimeField
+          mode="date"
+          label={recurrence === 'once' ? 'Date *' : 'Start Date *'}
+          value={selectedDate}
+          onChange={onDateChange}
+          minimumDate={today}
+        />
 
         {/* Time */}
-        <Column gap="sm">
-          <ThemedText type="defaultSemiBold" style={styles.label}>
-            Time
-          </ThemedText>
-          <TextInput
-            style={[styles.input, styles.smallInput, inputColors]}
-            placeholder="10:00"
-            placeholderTextColor={colors.muted}
-            value={selectedTime}
-            onChangeText={onTimeChange}
-            accessibilityLabel="Session time"
-          />
-        </Column>
+        <DateTimeField
+          mode="time"
+          label="Time"
+          value={selectedTime}
+          onChange={onTimeChange}
+          minuteInterval={5}
+        />
 
         {/* Location with saved */}
         <Column gap="sm">

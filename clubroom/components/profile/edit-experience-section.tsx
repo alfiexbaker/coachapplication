@@ -9,6 +9,7 @@ import { Ionicons } from '@expo/vector-icons';
 
 import { Clickable } from '@/components/primitives/clickable';
 import { SurfaceCard } from '@/components/primitives/surface-card';
+import { DateTimeField } from '@/components/ui/primitives/DateTimeField';
 import { ThemedText } from '@/components/themed-text';
 import { Radii, Spacing, Typography, withAlpha } from '@/constants/theme';
 import type { CoachExperience } from '@/constants/types';
@@ -194,17 +195,13 @@ export const EditExperienceSection = memo(function EditExperienceSection({
                 />
               </View>
               <Row gap="md">
-                <View style={[styles.fieldGroup, styles.inlineField]}>
-                  <ThemedText style={styles.label}>Start Date</ThemedText>
-                  <TextInput
-                    value={draft.startDate}
-                    onChangeText={(t) => onDraftChange((p) => ({ ...p, startDate: t }))}
-                    placeholder="YYYY-MM-DD"
-                    placeholderTextColor={colors.muted}
-                    style={inputStyle}
-                    accessibilityLabel="Start date"
-                  />
-                </View>
+                <DateTimeField
+                  mode="date"
+                  label="Start Date"
+                  value={draft.startDate}
+                  onChange={(t) => onDraftChange((p) => ({ ...p, startDate: t }))}
+                  style={styles.inlineField}
+                />
                 <View style={[styles.fieldGroup, styles.inlineField]}>
                   <Row justify="between" align="center">
                     <ThemedText style={styles.label}>End Date</ThemedText>
@@ -231,17 +228,12 @@ export const EditExperienceSection = memo(function EditExperienceSection({
                       </Row>
                     </Clickable>
                   </Row>
-                  <TextInput
+                  <DateTimeField
+                    mode="date"
                     value={draft.endDate || ''}
-                    onChangeText={(t) => onDraftChange((p) => ({ ...p, endDate: t }))}
-                    placeholder={draft.current ? 'Present' : 'YYYY-MM-DD'}
-                    editable={!draft.current}
-                    placeholderTextColor={colors.muted}
-                    style={[
-                      ...inputStyle,
-                      { backgroundColor: draft.current ? colors.border : colors.card },
-                    ]}
-                    accessibilityLabel="End date"
+                    onChange={(t) => onDraftChange((p) => ({ ...p, endDate: t }))}
+                    placeholder={draft.current ? 'Present' : undefined}
+                    disabled={draft.current}
                   />
                 </View>
               </Row>

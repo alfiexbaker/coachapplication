@@ -21,6 +21,7 @@ import Animated, { FadeInDown } from 'react-native-reanimated';
 import { ThemedText } from '@/components/themed-text';
 import { Button } from '@/components/primitives/button';
 import { Clickable } from '@/components/primitives/clickable';
+import { DateTimeField } from '@/components/ui/primitives/DateTimeField';
 import { Spacing, Radii, withAlpha } from '@/constants/theme';
 import type { Goal, GoalCategory, CreateGoalInput, UpdateGoalInput } from '@/constants/types';
 import { useTheme } from '@/hooks/useTheme';
@@ -177,25 +178,14 @@ export function GoalForm({ goal, onSubmit, onCancel, loading = false }: GoalForm
 
         {/* Target Date */}
         <Animated.View entering={FadeInDown.delay(250)} style={styles.section}>
-          <ThemedText style={styles.label}>Target Date (Optional)</ThemedText>
-          <TextInput
-            style={[
-              styles.input,
-              {
-                backgroundColor: palette.surface,
-                color: palette.text,
-                borderColor: palette.border,
-              },
-            ]}
-            placeholder="YYYY-MM-DD"
-            placeholderTextColor={palette.muted}
+          <DateTimeField
+            mode="date"
             value={targetDate}
-            onChangeText={setTargetDate}
-            keyboardType="numbers-and-punctuation"
+            onChange={setTargetDate}
+            label="Target Date (Optional)"
+            minimumDate={new Date()}
+            placeholder="Set a deadline to stay motivated"
           />
-          <ThemedText style={[styles.hint, { color: palette.muted }]}>
-            Set a deadline to stay motivated
-          </ThemedText>
         </Animated.View>
 
         {/* Milestones (create only) */}

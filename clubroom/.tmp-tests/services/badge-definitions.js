@@ -2,96 +2,116 @@
 /**
  * Badge Definitions
  *
- * Constants for badge milestones, streaks, and event badges.
- * Extracted from badge-service.ts to reduce file size.
+ * Constants for session milestones and event-based recognitions.
+ * Aligned to FA Four Corners: Technical, Physical, Psychological, Social.
+ *
+ * Streak badges removed from UI (consensus: harmful for youth athletes
+ * whose attendance is parent-dependent). Data kept internally for future
+ * "rhythm" feature if retention data demands it.
  */
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.EVENT_BADGES = exports.STREAK_BADGES = exports.SESSION_MILESTONE_BADGES = void 0;
-// Session milestone badge definitions
+// Session milestone definitions — clean, factual names
 exports.SESSION_MILESTONE_BADGES = [
     {
+        id: 'milestone_1_session',
+        label: 'First Session',
+        description: 'Completed your first training session',
+        threshold: 1,
+        tier: 1,
+        pointValue: 5,
+    },
+    {
+        id: 'milestone_3_sessions',
+        label: '3 Sessions',
+        description: 'Committed to the process — 3 sessions complete',
+        threshold: 3,
+        tier: 1,
+        pointValue: 5,
+    },
+    {
         id: 'milestone_5_sessions',
-        label: 'First Five',
-        description: 'Complete 5 training sessions',
+        label: '5 Sessions',
+        description: 'Building a training habit — 5 sessions complete',
         threshold: 5,
         tier: 1,
         pointValue: 10,
     },
     {
         id: 'milestone_10_sessions',
-        label: 'Double Digits',
-        description: 'Complete 10 training sessions',
+        label: '10 Sessions',
+        description: 'Dedicated to development — 10 sessions complete',
         threshold: 10,
         tier: 1,
         pointValue: 15,
     },
     {
         id: 'milestone_25_sessions',
-        label: 'Quarter Century',
-        description: 'Complete 25 training sessions',
+        label: '25 Sessions',
+        description: 'Established athlete — 25 sessions complete',
         threshold: 25,
         tier: 2,
         pointValue: 25,
     },
     {
         id: 'milestone_50_sessions',
-        label: 'Half Century',
-        description: 'Complete 50 training sessions',
+        label: '50 Sessions',
+        description: 'Committed to your craft — 50 sessions complete',
         threshold: 50,
         tier: 2,
         pointValue: 35,
     },
     {
         id: 'milestone_100_sessions',
-        label: 'Century Club',
-        description: 'Complete 100 training sessions',
+        label: '100 Sessions',
+        description: 'Elite commitment — 100 sessions complete',
         threshold: 100,
         tier: 3,
         pointValue: 50,
     },
 ];
-// Weekly streak badge definitions
+// Streak definitions — kept internally for data tracking, NOT shown in UI
 exports.STREAK_BADGES = [
     {
         id: 'streak_2_weeks',
-        label: '2 Week Streak',
-        description: 'Train consistently for 2 weeks in a row',
+        label: '2-Week Consistency',
+        description: 'Trained consistently for 2 weeks',
         threshold: 2,
         tier: 1,
         pointValue: 10,
     },
     {
         id: 'streak_4_weeks',
-        label: '4 Week Streak',
-        description: 'Train consistently for 4 weeks in a row',
+        label: '4-Week Consistency',
+        description: 'Trained consistently for 4 weeks',
         threshold: 4,
         tier: 2,
         pointValue: 20,
     },
     {
         id: 'streak_8_weeks',
-        label: '8 Week Dedication',
-        description: 'Train consistently for 8 weeks in a row',
+        label: '8-Week Consistency',
+        description: 'Trained consistently for 8 weeks',
         threshold: 8,
         tier: 2,
         pointValue: 30,
     },
     {
         id: 'streak_12_weeks',
-        label: '12 Week Champion',
-        description: 'Train consistently for 12 weeks in a row',
+        label: '12-Week Consistency',
+        description: 'Trained consistently for 12 weeks',
         threshold: 12,
         tier: 3,
         pointValue: 50,
     },
 ];
-// Event-based badge definitions
+// Event-based recognition definitions — mapped to FA Four Corners
 exports.EVENT_BADGES = [
     {
         id: 'event_tournament_participation',
-        label: 'Tournament Player',
+        label: 'Tournament Debut',
         description: 'Participated in first tournament',
-        category: 'consistency',
+        category: 'psychological',
         tier: 1,
         pointValue: 20,
         requirementLabel: 'Enter a tournament',
@@ -100,12 +120,12 @@ exports.EVENT_BADGES = [
     },
     {
         id: 'event_summer_camp',
-        label: 'Summer Camper',
-        description: 'Attended summer training camp',
-        category: 'consistency',
+        label: 'Summer Programme',
+        description: 'Completed summer training programme',
+        category: 'physical',
         tier: 2,
         pointValue: 30,
-        requirementLabel: 'Complete Summer Camp',
+        requirementLabel: 'Complete summer programme',
         mockUnlocked: true,
         mockEarnedAt: '2025-08-15T10:00:00Z',
     },
@@ -113,7 +133,7 @@ exports.EVENT_BADGES = [
         id: 'event_tournament_mvp',
         label: 'Tournament MVP',
         description: 'Named Most Valuable Player in a tournament',
-        category: 'leadership',
+        category: 'technical',
         tier: 3,
         pointValue: 50,
         requirementLabel: 'Win Tournament MVP',
@@ -123,7 +143,7 @@ exports.EVENT_BADGES = [
         id: 'event_first_goal',
         label: 'First Goal',
         description: 'Scored your first competitive goal',
-        category: 'technique',
+        category: 'technical',
         tier: 1,
         pointValue: 15,
         requirementLabel: 'Score in a match',
@@ -132,9 +152,9 @@ exports.EVENT_BADGES = [
     },
     {
         id: 'event_clean_sheet',
-        label: 'Clean Sheet Hero',
+        label: 'Clean Sheet',
         description: 'Kept a clean sheet as goalkeeper',
-        category: 'technique',
+        category: 'technical',
         tier: 2,
         pointValue: 25,
         requirementLabel: 'Keep a clean sheet',
@@ -142,9 +162,9 @@ exports.EVENT_BADGES = [
     },
     {
         id: 'event_community_helper',
-        label: 'Community Helper',
+        label: 'Peer Coaching',
         description: 'Helped coach younger players in a session',
-        category: 'teamwork',
+        category: 'social',
         tier: 2,
         pointValue: 25,
         requirementLabel: 'Assist in coaching session',

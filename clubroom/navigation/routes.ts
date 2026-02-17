@@ -65,6 +65,11 @@ export const Routes = {
       params: params ?? {},
     }) as Href,
   MODAL_CREATE_SQUAD: '/(modal)/create-squad' as Href,
+  MODAL_EDIT_CHILD_SEN: '/(modal)/edit-child-sen' as Href,
+  modalEditChildSen: (childId: string) => ({
+    pathname: '/(modal)/edit-child-sen',
+    params: { childId },
+  }) as Href,
   modalPostDetail: (postId: string) => ({
     pathname: '/(modal)/post-detail',
     params: { postId },
@@ -200,9 +205,6 @@ export const Routes = {
     pathname: '/bookings/session-feedback',
     params,
   }) as Href,
-
-  // ─── Carpool ───────────────────────────────────────────────────
-  CARPOOL: '/carpool' as Href,
 
   // ─── Chat ──────────────────────────────────────────────────────
   chat: (threadId: string) => ({

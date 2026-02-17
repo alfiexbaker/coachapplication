@@ -15,10 +15,11 @@ import type { ThemeColors } from '@/hooks/useTheme';
 
 interface EditChildrenSectionProps {
   colors: ThemeColors;
-  childProfiles: { name: string; age: number }[];
+  childProfiles: { id?: string; name: string; age: number }[];
   onAddChild: () => void;
   onUpdateChild: (index: number, field: 'name' | 'age', value: string | number) => void;
   onRemoveChild: (index: number) => void;
+  onEditSen?: (childId: string) => void;
 }
 
 export const EditChildrenSection = memo(function EditChildrenSection({
@@ -27,6 +28,7 @@ export const EditChildrenSection = memo(function EditChildrenSection({
   onAddChild,
   onUpdateChild,
   onRemoveChild,
+  onEditSen,
 }: EditChildrenSectionProps) {
   const inputStyle = [
     styles.input,
@@ -76,6 +78,16 @@ export const EditChildrenSection = memo(function EditChildrenSection({
               accessibilityLabel={`Child ${index + 1} age`}
             />
           </Row>
+          {onEditSen && child.id && (
+            <Clickable
+              onPress={() => onEditSen(child.id!)}
+              accessibilityLabel={`Edit SEN for ${child.name}`}
+              accessibilityRole="button"
+              hitSlop={8}
+            >
+              <Ionicons name="accessibility-outline" size={22} color={colors.tint} />
+            </Clickable>
+          )}
           <Clickable
             onPress={() => onRemoveChild(index)}
             accessibilityLabel={`Remove child ${index + 1}`}

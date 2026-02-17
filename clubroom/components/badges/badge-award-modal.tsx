@@ -5,10 +5,9 @@
 import { useRef } from 'react';
 import { Modal, ScrollView, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import Animated, { FadeInDown } from 'react-native-reanimated';
 
 import { Button } from '@/components/primitives/button';
-import { Radii, Spacing } from '@/constants/theme';
+import { Radii, Spacing, withAlpha } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
 import { useBadgeAward } from '@/hooks/use-badge-award';
 import type { BadgeAward } from '@/constants/types';
@@ -69,9 +68,8 @@ export function BadgeAwardModal({
 
   return (
     <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
-      <View style={[styles.backdrop, { backgroundColor: palette.overlay }]}>
-        <Animated.View
-          entering={FadeInDown.duration(300)}
+      <View style={[styles.backdrop, { backgroundColor: withAlpha(palette.text, 0.5) }]}>
+        <View
           style={[
             styles.sheet,
             { backgroundColor: palette.background, paddingBottom: insets.bottom + Spacing.md },
@@ -127,7 +125,7 @@ export function BadgeAwardModal({
               {award.isSubmitting ? 'Sending...' : 'Award Badge'}
             </Button>
           </View>
-        </Animated.View>
+        </View>
         <CelebrationOverlay ref={celebrationRef} />
       </View>
     </Modal>
@@ -136,7 +134,7 @@ export function BadgeAwardModal({
 
 const styles = StyleSheet.create({
   backdrop: { flex: 1, justifyContent: 'flex-end' },
-  sheet: { borderTopLeftRadius: Radii.xl, borderTopRightRadius: Radii.xl, maxHeight: '90%' },
+  sheet: { flex: 1, borderTopLeftRadius: Radii.xl, borderTopRightRadius: Radii.xl, maxHeight: '90%' },
   handleContainer: { alignItems: 'center', paddingVertical: Spacing.sm },
   handle: { width: 36, height: 4, borderRadius: Radii.xs },
   content: { flex: 1 },

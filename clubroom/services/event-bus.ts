@@ -238,6 +238,12 @@ export const ServiceEvents = {
   CONCERN_UPDATED: 'concern:updated',
   CONCERN_RESOLVED: 'concern:resolved',
 
+  // SEN events
+  CHILD_SEN_UPDATED: 'child:sen:updated',
+  COACH_OBSERVATION_CREATED: 'coach:observation:created',
+  COACH_OBSERVATION_UPDATED: 'coach:observation:updated',
+  COACH_OBSERVATION_DELETED: 'coach:observation:deleted',
+
   // Connection & offline queue events
   CONNECTION_CHANGED: 'connection:changed',
   QUEUE_FLUSHED: 'queue:flushed',
@@ -684,6 +690,29 @@ export interface EventPayloads {
     scope: string;
     userId?: string;
     error: string;
+  };
+
+  // SEN events
+  [ServiceEvents.CHILD_SEN_UPDATED]: {
+    childId: string;
+    parentId: string;
+    section: 'disabilities' | 'specialNeeds' | 'communicationNotes' | 'behavioralNotes';
+  };
+  [ServiceEvents.COACH_OBSERVATION_CREATED]: {
+    observationId: string;
+    athleteId: string;
+    coachId: string;
+    category: string;
+  };
+  [ServiceEvents.COACH_OBSERVATION_UPDATED]: {
+    observationId: string;
+    athleteId: string;
+    coachId: string;
+  };
+  [ServiceEvents.COACH_OBSERVATION_DELETED]: {
+    observationId: string;
+    athleteId: string;
+    coachId: string;
   };
 
   // Connection & offline queue events

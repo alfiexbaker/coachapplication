@@ -23,27 +23,21 @@ import { styles } from './badge-grid-styles';
 
 export const SECTION_ICONS: Record<string, keyof typeof Ionicons.glyphMap> = {
   milestones: 'trophy',
-  streaks: 'flame',
   events: 'star',
-  leadership: 'people',
-  consistency: 'refresh',
-  technique: 'football',
-  mindset: 'bulb',
-  teamwork: 'hand-left',
-  resilience: 'fitness',
+  technical: 'football',
+  physical: 'fitness',
+  psychological: 'bulb',
+  social: 'people',
   skill: 'ribbon',
 };
 
 export const SECTION_LABELS: Record<string, string> = {
   milestones: 'Session Milestones',
-  streaks: 'Consistency Streaks',
   events: 'Special Events',
-  leadership: 'Leadership',
-  consistency: 'Consistency',
-  technique: 'Technique',
-  mindset: 'Mindset',
-  teamwork: 'Teamwork',
-  resilience: 'Resilience',
+  technical: 'Technical',
+  physical: 'Physical',
+  psychological: 'Psychological',
+  social: 'Social',
 };
 
 // ─── BadgeSectionGridInner ───────────────────────────────────────────────────
@@ -155,26 +149,16 @@ export const BadgeStatsInner = memo(function BadgeStatsInner({
 
         <View style={[styles.statDivider, { backgroundColor: palette.border }]} />
 
-        <View style={styles.statItem}>
-          <View style={[styles.statIcon, { backgroundColor: withAlpha(palette.muted, 0.09) }]}>
-            <Ionicons name="lock-closed" size={20} color={palette.muted} />
-          </View>
-          <ThemedText type="heading" style={styles.statValue}>
-            {totalBadges - unlockedBadges}
-          </ThemedText>
-          <ThemedText style={[styles.statLabel, { color: palette.muted }]}>Locked</ThemedText>
-        </View>
-
         <View style={[styles.statDivider, { backgroundColor: palette.border }]} />
 
         <View style={styles.statItem}>
           <View style={[styles.statIcon, { backgroundColor: withAlpha(palette.tint, 0.09) }]}>
-            <Ionicons name="star" size={20} color={palette.tint} />
+            <Ionicons name="trending-up" size={20} color={palette.tint} />
           </View>
           <ThemedText type="heading" style={styles.statValue}>
-            {totalPoints}
+            {totalBadges}
           </ThemedText>
-          <ThemedText style={[styles.statLabel, { color: palette.muted }]}>Points</ThemedText>
+          <ThemedText style={[styles.statLabel, { color: palette.muted }]}>Total</ThemedText>
         </View>
       </Row>
 

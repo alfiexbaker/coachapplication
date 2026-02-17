@@ -26,6 +26,7 @@ interface ParticipantCardProps {
   onMarkAttendance?: (attended: boolean) => void;
   onCancel?: () => void;
   onMessage?: () => void;
+  onRecognise?: () => void;
 }
 
 export function ParticipantCard({
@@ -34,6 +35,7 @@ export function ParticipantCard({
   onMarkAttendance,
   onCancel,
   onMessage,
+  onRecognise,
 }: ParticipantCardProps) {
   const { colors: palette } = useTheme();
   const athleteName = getGroupRegistrationAthleteName(registration);
@@ -132,8 +134,22 @@ export function ParticipantCard({
               styles.actionButton,
               { backgroundColor: palette.surface, borderColor: palette.border },
             ]}
+            accessibilityLabel="Message"
           >
             <Ionicons name="chatbubble-outline" size={16} color={palette.tint} />
+          </Clickable>
+        )}
+
+        {onRecognise && (
+          <Clickable
+            onPress={onRecognise}
+            style={[
+              styles.actionButton,
+              { backgroundColor: withAlpha(palette.warning, 0.09), borderColor: withAlpha(palette.warning, 0.2) },
+            ]}
+            accessibilityLabel={`Recognise ${athleteName}`}
+          >
+            <Ionicons name="sparkles" size={16} color={palette.warning} />
           </Clickable>
         )}
 

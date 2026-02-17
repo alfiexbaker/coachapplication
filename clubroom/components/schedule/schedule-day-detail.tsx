@@ -9,6 +9,7 @@ import Animated, { FadeInDown } from 'react-native-reanimated';
 
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { Clickable } from '@/components/primitives/clickable';
+import { Button } from '@/components/primitives/button';
 import { ThemedText } from '@/components/themed-text';
 import { Row } from '@/components/primitives/row';
 import { Column } from '@/components/primitives/column';
@@ -22,14 +23,14 @@ interface Props {
   day: DayData;
   onSessionPress: (session: SessionData) => void;
   onAdjustDay: (dateStr: string) => void;
-  onInvite: (dateStr: string) => void;
+  onCreateSession?: (dateStr: string) => void;
 }
 
 export const ScheduleDayDetail = memo(function ScheduleDayDetail({
   day,
   onSessionPress,
   onAdjustDay,
-  onInvite,
+  onCreateSession,
 }: Props) {
   const { colors } = useTheme();
 
@@ -37,9 +38,9 @@ export const ScheduleDayDetail = memo(function ScheduleDayDetail({
     onAdjustDay(day.dateStr);
   }, [onAdjustDay, day.dateStr]);
 
-  const handleInvite = useCallback(() => {
-    onInvite(day.dateStr);
-  }, [onInvite, day.dateStr]);
+  const handleCreate = useCallback(() => {
+    onCreateSession?.(day.dateStr);
+  }, [onCreateSession, day.dateStr]);
 
   return (
     <Animated.View entering={FadeInDown.delay(300).springify()}>
@@ -98,25 +99,16 @@ export const ScheduleDayDetail = memo(function ScheduleDayDetail({
                 ? 'Available but no bookings yet'
                 : 'No availability set for this day'}
             </ThemedText>
-            {day.availabilitySlots > 0 && !day.isPast && (
-              <Clickable
-                onPress={handleInvite}
-                accessibilityLabel="Invite to this slot"
-                style={[styles.inviteBtn, { backgroundColor: colors.success }]}
-              >
-                <Row align="center" gap="xs">
-                  <Ionicons name="paper-plane-outline" size={16} color={colors.surface} />
-                  <ThemedText style={[styles.inviteBtnText, { color: colors.surface }]}>
-                    Invite to This Slot
-                  </ThemedText>
-                </Row>
-              </Clickable>
+            {!day.isPast && onCreateSession && (
+              <Button onPress={handleCreate} variant="primary" size="sm">
+                Create Session
+              </Button>
             )}
           </Center>
         ) : (
           <Column gap="sm">
-            {day.sessions.map((session) => (
-              <ScheduleSessionItem key={session.id} session={session} onPress={onSessionPress} />
+            {day.sessions.map((session, index) => (
+              <ScheduleSessionItem key={`${session.id}_${index}`} session={session} onPress={onSessionPress} />
             ))}
           </Column>
         )}
@@ -161,14 +153,5 @@ const styles = StyleSheet.create({
   emptyText: {
     ...Typography.body,
     textAlign: 'center',
-  },
-  inviteBtn: {
-    paddingHorizontal: Spacing.md,
-    paddingVertical: Spacing.sm,
-    borderRadius: Radii.md,
-    marginTop: Spacing.sm,
-  },
-  inviteBtnText: {
-    ...Typography.bodySemiBold,
   },
 });

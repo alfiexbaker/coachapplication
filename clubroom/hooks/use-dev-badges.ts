@@ -36,19 +36,19 @@ export type BadgeItem = {
 
 export const BADGES: BadgeItem[] = [
   {
-    id: 'consistency',
-    title: 'Consistency',
+    id: 'dedicated-athlete',
+    title: 'Dedicated Athlete',
     athlete: 'Tom Henderson',
     athleteId: 'user1',
-    detail: 'Logged 4+ sessions this month',
+    detail: 'Maintained strong attendance and commitment',
     category: 'toAward',
   },
   {
-    id: 'leadership',
-    title: 'Leadership',
+    id: 'session-leader',
+    title: 'Session Leader',
     athlete: 'James Wilson',
     athleteId: 'user3',
-    detail: 'Captained team drills and encouraged peers',
+    detail: 'Led drills and encouraged teammates',
     category: 'toAward',
   },
   {
@@ -119,6 +119,15 @@ export function useDevBadges() {
     sessionId?: string;
     sessionLabel?: string;
     reason?: string;
+  } | null>(null);
+
+  // Quick recognition modal state
+  const [showQuickRecognition, setShowQuickRecognition] = useState(false);
+  const [quickRecognitionContext, setQuickRecognitionContext] = useState<{
+    athleteId: string;
+    athleteName: string;
+    sessionId?: string;
+    sessionLabel?: string;
   } | null>(null);
 
   const loadSessions = useCallback(async () => {
@@ -206,6 +215,25 @@ export function useDevBadges() {
     setAwardContext(null);
   }, []);
 
+  const openQuickRecognition = useCallback(
+    (athleteId: string, athleteName: string) => {
+      const session = sessions.find((s) => s.athleteId === athleteId) ?? selectedSession;
+      setQuickRecognitionContext({
+        athleteId,
+        athleteName,
+        sessionId: session?.id,
+        sessionLabel: session ? sessionLabelFn(session) : undefined,
+      });
+      setShowQuickRecognition(true);
+    },
+    [sessions, selectedSession, sessionLabelFn],
+  );
+
+  const closeQuickRecognition = useCallback(() => {
+    setShowQuickRecognition(false);
+    setQuickRecognitionContext(null);
+  }, []);
+
   useEffect(() => {
     if (!sessionIdParam || sessions.length === 0) return;
     const paramId = Array.isArray(sessionIdParam) ? sessionIdParam[0] : sessionIdParam;
@@ -235,6 +263,10 @@ export function useDevBadges() {
     currentUser,
     openAwardModal,
     closeAwardModal,
+    showQuickRecognition,
+    quickRecognitionContext,
+    openQuickRecognition,
+    closeQuickRecognition,
   } satisfies {
     loading: boolean;
     status: ScreenStatus;
@@ -263,5 +295,14 @@ export function useDevBadges() {
     currentUser: typeof currentUser;
     openAwardModal: (badge: BadgeItem) => void;
     closeAwardModal: () => void;
+    showQuickRecognition: boolean;
+    quickRecognitionContext: {
+      athleteId: string;
+      athleteName: string;
+      sessionId?: string;
+      sessionLabel?: string;
+    } | null;
+    openQuickRecognition: (athleteId: string, athleteName: string) => void;
+    closeQuickRecognition: () => void;
   };
 }

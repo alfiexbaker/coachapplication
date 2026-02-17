@@ -112,13 +112,6 @@ const MOCK_ROSTER: RosterEntry[] = [
     tags: ['midfielder', 'new-starter'],
     primaryFocus: 'Passing',
     notificationPreference: 'ALL',
-    senInfo: {
-      hasSen: true,
-      conditions: ['Dyspraxia'],
-      supportNotes: 'Extra time for coordination drills. Responds well to visual demonstrations.',
-      communicationPreferences:
-        'Clear step-by-step instructions. Avoid rushing between activities.',
-    },
   },
   {
     id: 'roster_3',
@@ -147,12 +140,6 @@ const MOCK_ROSTER: RosterEntry[] = [
     tags: ['defender', 'captain', 'academy-track', 'long-term'],
     primaryFocus: 'Defending',
     notificationPreference: 'IMPORTANT',
-    senInfo: {
-      hasSen: true,
-      conditions: ['ADHD'],
-      supportNotes: 'Short activity bursts. Clear verbal instructions. Positive reinforcement.',
-      communicationPreferences: 'Direct and concise. Use his name before giving instructions.',
-    },
   },
   {
     id: 'roster_4',

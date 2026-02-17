@@ -23,6 +23,7 @@ import { LoadingState, ErrorState, EmptyState } from '@/components/ui/screen-sta
 import { Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
 import { useFamilyCalendar } from '@/hooks/use-family-calendar';
+import { useChildContext } from '@/hooks/use-child-context';
 
 export default function FamilyCalendarScreen() {
   const { colors: palette } = useTheme();
@@ -41,6 +42,7 @@ export default function FamilyCalendarScreen() {
     handleEventPress,
     handleChildFilterChange,
   } = useFamilyCalendar();
+  const { isMultiChild, getChildById } = useChildContext();
   const handleBookSession = () => router.push(Routes.BOOK_COACH);
   const handleViewSpending = () => router.push(Routes.FAMILY_SPENDING);
 
@@ -151,6 +153,8 @@ export default function FamilyCalendarScreen() {
             onEventPress={handleEventPress}
             selectedChildId={selectedChildId}
             onChildFilterChange={handleChildFilterChange}
+            isMultiChild={isMultiChild}
+            getChildById={getChildById}
           />
         </ErrorBoundary>
       </Animated.View>

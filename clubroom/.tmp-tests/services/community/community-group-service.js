@@ -81,9 +81,9 @@ const mockGroups = [
     },
     {
         id: 'group_2',
-        name: 'Saturday Sessions Carpool',
-        description: 'Coordinate rides to Saturday training sessions',
-        type: 'CARPOOL',
+        name: 'Saturday Sessions',
+        description: 'Parents coordinating Saturday training sessions',
+        type: 'SESSION',
         members: [
             { parentId: 'parent1', role: 'OWNER', joinedAt: '2024-01-10' },
             { parentId: 'parent2', role: 'MEMBER', joinedAt: '2024-01-10' },
@@ -92,7 +92,7 @@ const mockGroups = [
         createdAt: '2024-01-10',
         updatedAt: '2024-01-18',
         lastMessageAt: '2024-01-18T09:00:00Z',
-        lastMessagePreview: 'I can take 3 kids this Saturday',
+        lastMessagePreview: 'See everyone this Saturday!',
         unreadCount: 0,
         isPublic: true,
     },

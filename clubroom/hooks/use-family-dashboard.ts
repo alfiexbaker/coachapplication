@@ -10,6 +10,8 @@ import {
   type FamilyCalendarEvent,
   type FamilyOverview,
 } from '@/services/family';
+import { badgeService } from '@/services/badge-service';
+import type { BadgeAward } from '@/constants/types';
 import { err, ok, serviceError, type ServiceError } from '@/types/result';
 
 const logger = createLogger('FamilyDashboardScreen');
@@ -18,6 +20,7 @@ interface FamilyDashboardData {
   members: FamilyMember[];
   upcomingSessions: FamilyCalendarEvent[];
   overview: FamilyOverview | null;
+  childRecognitions: BadgeAward[];
 }
 
 export function useFamilyDashboard() {
@@ -29,6 +32,7 @@ export function useFamilyDashboard() {
         members: [],
         upcomingSessions: [],
         overview: null,
+        childRecognitions: [],
       });
     }
 
@@ -39,10 +43,19 @@ export function useFamilyDashboard() {
         familyService.getFamilyOverview(currentUser.id),
       ]);
 
+      // Fetch recognitions for all children
+      const childAwardArrays = await Promise.all(
+        membersData.map((m) => badgeService.listAwardsForAthlete(m.id)),
+      );
+      const childRecognitions = childAwardArrays
+        .flat()
+        .sort((a, b) => new Date(b.awardedAt).getTime() - new Date(a.awardedAt).getTime());
+
       return ok<FamilyDashboardData>({
         members: membersData,
         upcomingSessions: sessionsData,
         overview: overviewData,
+        childRecognitions,
       });
     } catch (error) {
       logger.error('Failed to load family data:', error);
@@ -60,6 +73,7 @@ export function useFamilyDashboard() {
   const members = data?.members ?? [];
   const upcomingSessions = data?.upcomingSessions ?? [];
   const overview = data?.overview ?? null;
+  const childRecognitions = data?.childRecognitions ?? [];
 
   const handleMemberPress = useCallback((member: FamilyMember) => {
     router.push(Routes.developmentChildProgress(member.id));
@@ -77,6 +91,13 @@ export function useFamilyDashboard() {
     router.push(Routes.FAMILY_SPENDING);
   }, []);
 
+  const navigateToRecognitions = useCallback(() => {
+    // Navigate to first child's progress if available
+    if (members.length > 0) {
+      router.push(Routes.developmentChildProgress(members[0].id));
+    }
+  }, [members]);
+
   return {
     status,
     error: status === 'error' ? (error as ServiceError | null) : null,
@@ -87,9 +108,11 @@ export function useFamilyDashboard() {
     members,
     upcomingSessions,
     overview,
+    childRecognitions,
     handleMemberPress,
     handleSessionPress,
     navigateToCalendar,
     navigateToSpending,
+    navigateToRecognitions,
   };
 }

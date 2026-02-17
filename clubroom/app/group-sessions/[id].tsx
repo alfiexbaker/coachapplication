@@ -13,6 +13,7 @@ import { View, StyleSheet, ScrollView, RefreshControl } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
+import { Routes } from '@/navigation/routes';
 
 import { Button } from '@/components/primitives/button';
 import { Row } from '@/components/primitives/row';
@@ -76,8 +77,16 @@ export default function GroupSessionDetailScreen() {
     isDeadlinePassed,
   } = hook;
 
+  const handleBack = () => {
+    if (router.canGoBack()) {
+      router.back();
+    } else {
+      router.replace(Routes.HOME);
+    }
+  };
+
   const header = (
-    <PageHeader title="Session Details" showBack centerTitle onBackPress={() => router.back()} />
+    <PageHeader title="Session Details" showBack centerTitle onBackPress={handleBack} />
   );
 
   // -------------------------------------------------------------------------
@@ -123,7 +132,7 @@ export default function GroupSessionDetailScreen() {
           title="Session not found"
           message="This session may have been removed."
           actionLabel="Go Back"
-          onPressAction={() => router.back()}
+          onPressAction={handleBack}
         />
       </SafeAreaView>
     );

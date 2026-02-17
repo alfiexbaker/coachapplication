@@ -47,22 +47,22 @@ export const BadgeCtaSection = memo(function BadgeCtaSection() {
             <Ionicons name="trophy" size={24} color={palette.tint} />
           </Row>
           <Column gap="xxs" flex>
-            <ThemedText type="defaultSemiBold">View All Achievements</ThemedText>
+            <ThemedText type="defaultSemiBold">View All Milestones</ThemedText>
             <ThemedText style={[styles.hint, { color: palette.muted }]}>
-              See all badges, milestones, and progress
+              See all milestones and development progress
             </ThemedText>
           </Column>
         </Row>
         <Clickable
           onPress={handleBrowseAll}
           style={[styles.primaryButton, { backgroundColor: palette.tint }]}
-          accessibilityLabel="Browse all badges"
+          accessibilityLabel="Browse all milestones"
           accessibilityRole="button"
         >
           <Row gap="xs" align="center" justify="center">
             <Ionicons name="grid-outline" size={18} color={palette.onPrimary} />
             <ThemedText style={[styles.primaryButtonText, { color: palette.onPrimary }]}>
-              Browse All Badges
+              Browse All Milestones
             </ThemedText>
           </Row>
         </Clickable>

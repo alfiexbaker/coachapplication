@@ -200,6 +200,11 @@ exports.ServiceEvents = {
     CONCERN_RAISED: 'concern:raised',
     CONCERN_UPDATED: 'concern:updated',
     CONCERN_RESOLVED: 'concern:resolved',
+    // SEN events
+    CHILD_SEN_UPDATED: 'child:sen:updated',
+    COACH_OBSERVATION_CREATED: 'coach:observation:created',
+    COACH_OBSERVATION_UPDATED: 'coach:observation:updated',
+    COACH_OBSERVATION_DELETED: 'coach:observation:deleted',
     // Connection & offline queue events
     CONNECTION_CHANGED: 'connection:changed',
     QUEUE_FLUSHED: 'queue:flushed',
