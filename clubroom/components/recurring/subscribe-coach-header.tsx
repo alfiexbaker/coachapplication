@@ -34,7 +34,7 @@ function SubscribeCoachHeaderInner({ coach }: Props) {
           <ThemedText type="defaultSemiBold">{coach.name}</ThemedText>
           {coach.pricePerSession && (
             <ThemedText style={[styles.price, { color: palette.muted }]}>
-              ${coach.pricePerSession} per session
+              £{coach.pricePerSession} per session
             </ThemedText>
           )}
         </View>

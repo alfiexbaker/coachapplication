@@ -348,13 +348,13 @@ const styles = StyleSheet.create({
     paddingBottom: Spacing['3xl'],
   },
   contentWithStickyFooter: {
-    paddingBottom: Spacing['3xl'],
+    paddingBottom: 120,
   },
   groupStickyFooter: {
     borderTopWidth: 1,
     paddingHorizontal: Spacing.md,
-    paddingTop: Spacing.xs,
-    paddingBottom: Spacing.sm,
+    paddingTop: Spacing.md,
+    paddingBottom: Spacing.xs,
   },
   groupCompleteButton: {
     height: Components.button.height,

@@ -13,7 +13,7 @@ These are the baseline rules for action design across Clubroom.
 - Keep one canonical entry point per task per screen section.
 
 3. Primary action hierarchy.
-- A screen should have one clear primary CTA.
+- A screen should have onthe clear primary CTA.
 - Secondary actions should be visually lighter and context-specific.
 
 4. Label by outcome.

@@ -158,6 +158,14 @@ export const ServiceEvents = {
   PAYMENT_FAILED: 'payment:failed',
   REFUND_ISSUED: 'payment:refund',
 
+  // Bill events
+  BILL_CREATED: 'bill:created',
+  BILL_UPDATED: 'bill:updated',
+  BILL_PAID: 'bill:paid',
+
+  // Invoice events
+  INVOICE_PAID: 'invoice:paid',
+
   // Notification events
   NOTIFICATION_CREATED: 'notification:created',
   NOTIFICATION_READ: 'notification:read',
@@ -471,6 +479,29 @@ export interface EventPayloads {
     bookingId: string;
     amount: number;
     reason?: string;
+  };
+
+  // Bill events
+  [ServiceEvents.BILL_CREATED]: {
+    billId: string;
+    coachId: string;
+    amount: number;
+  };
+  [ServiceEvents.BILL_UPDATED]: {
+    billId: string;
+    coachId: string;
+  };
+  [ServiceEvents.BILL_PAID]: {
+    billId: string;
+    coachId: string;
+    amount: number;
+  };
+
+  // Invoice events
+  [ServiceEvents.INVOICE_PAID]: {
+    invoiceId: string;
+    coachId: string;
+    amount: number;
   };
 
   // Notification events

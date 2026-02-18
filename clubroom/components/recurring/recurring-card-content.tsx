@@ -111,7 +111,7 @@ export const StatsRow = memo(function StatsRow({
         {recurring.pricePerSession && (
           <View style={styles.statItem}>
             <ThemedText style={[styles.statValue, { color: palette.foreground }]}>
-              ${recurring.pricePerSession}
+              £{recurring.pricePerSession}
             </ThemedText>
             <ThemedText style={[styles.statLabel, { color: palette.muted }]}>
               Per session

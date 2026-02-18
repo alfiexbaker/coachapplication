@@ -169,13 +169,13 @@ export const BookingFollowUpsCard = memo(function BookingFollowUpsCard({
       </Row>
       <Column gap="sm">
         {followUps.map((action) => (
-          <Row key={action.label} gap="xs" align="center">
+          <Row key={action.label} gap="sm" align="center">
             <Ionicons
-              name={action.completed ? 'checkmark-circle' : 'radio-button-off'}
-              size={18}
-              color={action.completed ? palette.tint : palette.icon}
+              name={action.completed ? 'checkmark-circle' : 'ellipse-outline'}
+              size={20}
+              color={action.completed ? palette.success : palette.border}
             />
-            <ThemedText style={{ color: action.completed ? palette.tint : palette.muted }}>
+            <ThemedText style={{ color: action.completed ? palette.text : palette.muted }}>
               {action.label}
             </ThemedText>
           </Row>
@@ -192,11 +192,14 @@ export const BookingFollowUpsCard = memo(function BookingFollowUpsCard({
 const styles = StyleSheet.create({
   card: { padding: Spacing.lg, gap: Spacing.md },
   linkPill: {
+    flexDirection: 'row',
     paddingHorizontal: Spacing.md,
     paddingVertical: Spacing.sm,
     borderRadius: Radii.pill,
+    flexShrink: 0,
   },
   errorPill: {
+    flexDirection: 'row',
     paddingHorizontal: Spacing.md,
     paddingVertical: Spacing.sm,
     borderRadius: Radii.pill,
@@ -204,6 +207,7 @@ const styles = StyleSheet.create({
     gap: Spacing.xs,
   },
   ctaButton: {
+    flexDirection: 'row',
     marginTop: Spacing.sm,
     paddingVertical: Spacing.sm,
     paddingHorizontal: Spacing.md,

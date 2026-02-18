@@ -174,7 +174,7 @@ export const CreateReviewStep = memo(function CreateReviewStep({
           <Row align="center" justify="between">
             <ThemedText style={{ color: colors.muted }}>Price per session</ThemedText>
             <ThemedText type="title" style={{ color: colors.tint }}>
-              {price && parseFloat(price) > 0 ? `$${parseFloat(price).toFixed(2)}` : 'Free'}
+              {price && parseFloat(price) > 0 ? `£${parseFloat(price).toFixed(2)}` : 'Free'}
             </ThemedText>
           </Row>
 

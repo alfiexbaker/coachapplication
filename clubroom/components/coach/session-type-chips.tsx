@@ -16,16 +16,13 @@ import type { SessionTemplate, SessionType } from '@/constants/session-types';
 import { useTheme } from '@/hooks/useTheme';
 import { Row } from '@/components/primitives';
 
-// Session type colors — resolved from theme at render time via getTypeMeta()
-type ThemePalette = ReturnType<typeof useTheme>['colors'];
-const getTypeMeta = (
-  p: ThemePalette,
-): Record<SessionType, { color: string; icon: keyof typeof Ionicons.glyphMap }> => ({
-  '1-to-1': { color: p.info, icon: 'person-outline' },
-  'small-group': { color: p.success, icon: 'people-outline' },
-  clinic: { color: p.warning, icon: 'fitness-outline' },
-  assessment: { color: p.accent, icon: 'clipboard-outline' },
-});
+// Session type icons — all use a single tint color for visual consistency
+const TYPE_ICONS: Record<SessionType, keyof typeof Ionicons.glyphMap> = {
+  '1-to-1': 'person-outline',
+  'small-group': 'people-outline',
+  clinic: 'fitness-outline',
+  assessment: 'clipboard-outline',
+};
 
 interface SessionTypeChipsProps {
   templates: SessionTemplate[];
@@ -36,7 +33,6 @@ interface SessionTypeChipsProps {
 
 export function SessionTypeChips({ templates, onPress, onAdd, selectedId }: SessionTypeChipsProps) {
   const { colors: palette } = useTheme();
-  const TYPE_META = getTypeMeta(palette);
 
   const hapticTap = () => {
     if (Platform.OS !== 'web') void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
@@ -73,10 +69,7 @@ export function SessionTypeChips({ templates, onPress, onAdd, selectedId }: Sess
         contentContainerStyle={styles.chipRow}
       >
         {templates.map((template) => {
-          const meta = TYPE_META[template.type] || {
-            color: palette.tint,
-            icon: 'ellipse-outline' as const,
-          };
+          const icon = TYPE_ICONS[template.type] || 'ellipse-outline';
           const isSelected = selectedId === template.id;
 
           return (
@@ -89,15 +82,13 @@ export function SessionTypeChips({ templates, onPress, onAdd, selectedId }: Sess
               style={[
                 styles.chip,
                 {
-                  backgroundColor: isSelected
-                    ? withAlpha(meta.color, 0.12)
-                    : withAlpha(meta.color, 0.06),
-                  borderColor: isSelected ? meta.color : withAlpha(meta.color, 0.2),
+                  backgroundColor: palette.surface,
+                  borderColor: isSelected ? palette.tint : palette.border,
                 },
               ]}
             >
-              <View style={[styles.chipIcon, { backgroundColor: withAlpha(meta.color, 0.12) }]}>
-                <Ionicons name={meta.icon} size={16} color={meta.color} />
+              <View style={[styles.chipIcon, { backgroundColor: withAlpha(palette.tint, 0.08) }]}>
+                <Ionicons name={icon} size={16} color={palette.tint} />
               </View>
               <View style={styles.chipContent}>
                 <ThemedText style={[styles.chipName, { color: palette.text }]} numberOfLines={1}>
@@ -147,6 +138,7 @@ const styles = StyleSheet.create({
     paddingRight: Spacing.sm,
   },
   chip: {
+    flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.sm,
     paddingVertical: Spacing.sm,
@@ -173,6 +165,7 @@ const styles = StyleSheet.create({
     ...Typography.micro,
   },
   addChip: {
+    flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.xxs,
     paddingHorizontal: Spacing.md,
@@ -185,6 +178,7 @@ const styles = StyleSheet.create({
     ...Typography.smallSemiBold,
   },
   emptyState: {
+    flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     gap: Spacing.sm,

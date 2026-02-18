@@ -408,6 +408,10 @@ export const Routes = {
   // ─── Invites ───────────────────────────────────────────────────
   INVITES: '/invites' as Href,
 
+  // ─── Bills ────────────────────────────────────────────────────
+  BILLS: '/bills' as Href,
+  BILLS_CREATE: '/bills/create' as Href,
+
   // ─── Invoices ──────────────────────────────────────────────────
   INVOICES: '/invoices' as Href,
   invoice: (id: string) => ({
@@ -432,6 +436,7 @@ export const Routes = {
   }) as Href,
 
   // ─── Payment ───────────────────────────────────────────────────
+  PAYMENTS: '/payments' as Href,
   PAYMENT_METHODS: '/payment/methods' as Href,
   PAYMENT_ADD_CARD: '/payment/add-card' as Href,
 

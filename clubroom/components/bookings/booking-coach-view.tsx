@@ -6,6 +6,7 @@ import { Ionicons } from '@expo/vector-icons';
 
 import { Clickable } from '@/components/primitives/clickable';
 import { ThemedText } from '@/components/themed-text';
+import { MarkPaidButton } from '@/components/invoices/mark-paid-button';
 import { Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
 import type { BookingSummary } from '@/constants/types';
@@ -19,6 +20,7 @@ interface BookingCoachViewProps {
   onRefund: () => void;
   onCancelBooking: () => void;
   canCancelBooking: boolean;
+  onMarkAsPaid?: () => void;
 }
 
 function BookingCoachViewInner({
@@ -28,6 +30,7 @@ function BookingCoachViewInner({
   onRefund,
   onCancelBooking,
   canCancelBooking,
+  onMarkAsPaid,
 }: BookingCoachViewProps) {
   const { colors: palette } = useTheme();
 
@@ -60,6 +63,11 @@ function BookingCoachViewInner({
             Add Session Feedback
           </ThemedText>
         </Clickable>
+        <MarkPaidButton
+          bookingId={booking.id}
+          onSuccess={onMarkAsPaid}
+          variant="compact"
+        />
       </View>
     );
   }
@@ -144,6 +152,7 @@ const styles = StyleSheet.create({
     gap: Spacing.sm,
   },
   primaryButton: {
+    flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     gap: Spacing.sm,
@@ -154,6 +163,7 @@ const styles = StyleSheet.create({
     ...Typography.subheading,
   },
   secondaryButton: {
+    flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     gap: Spacing.sm,
@@ -163,6 +173,7 @@ const styles = StyleSheet.create({
   },
   halfButton: {
     flex: 1,
+    flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     gap: Spacing.xs,

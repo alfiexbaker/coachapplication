@@ -12,8 +12,10 @@ import { useAuth } from '@/hooks/use-auth';
 import { useScreen, type ScreenStatus } from '@/hooks/use-screen';
 import { calendarService } from '@/services/calendar-service';
 import { bookingService } from '@/services/booking-service';
+import { groupSessionService } from '@/services/group-session-service';
+import { eventService } from '@/services/event';
 import { createLogger } from '@/utils/logger';
-import type { CalendarSyncSettings, CalendarProvider } from '@/constants/types';
+import type { CalendarSyncSettings, CalendarProvider, CalendarEvent } from '@/constants/types';
 import { err, ok, serviceError, type ServiceError } from '@/types/result';
 
 const logger = createLogger('useCalendarSync');
@@ -127,21 +129,61 @@ export function useCalendarSync() {
     setIsExporting(true);
     setActionError(null);
     try {
+      const now = new Date();
+      const allEvents: CalendarEvent[] = [];
+
+      // Bookings
       const bookings = await bookingService.list();
       const upcomingBookings = bookings.filter((booking) => {
         if (booking.status === 'CANCELLED') return false;
-        return new Date(booking.scheduledAt) > new Date();
+        return new Date(booking.scheduledAt) > now;
       });
-      if (upcomingBookings.length === 0) {
+      allEvents.push(...upcomingBookings.map((b) => calendarService.bookingToEvent(b)));
+
+      // Group sessions
+      try {
+        const coachSessions = await groupSessionService.getCoachSessions(userId);
+        const activeSessions = coachSessions.filter(
+          (s) => s.status !== 'CANCELLED' && s.status !== 'COMPLETED',
+        );
+        allEvents.push(...activeSessions.map((s) => calendarService.groupSessionToEvent(s)));
+      } catch (gsError) {
+        logger.warn('Could not fetch group sessions for export', gsError);
+      }
+
+      // Club events
+      try {
+        const upcomingEvents = await eventService.getUpcomingEvents(userId);
+        allEvents.push(...upcomingEvents.map((e) => calendarService.clubEventToEvent(e)));
+      } catch (evError) {
+        logger.warn('Could not fetch club events for export', evError);
+      }
+
+      if (allEvents.length === 0) {
         Alert.alert('No Sessions', 'You have no upcoming sessions to export.');
         return;
       }
-      const result = await calendarService.exportMultipleToCalendar(upcomingBookings);
-      if (!result.success) {
+
+      const result = await calendarService.generateICSFileFromEvents(allEvents);
+      if (!result.success || !result.filePath) {
         const message = result.error || 'Failed to export sessions.';
         setActionError(message);
         Alert.alert('Export Failed', message);
+        return;
       }
+
+      const isAvailable = await (await import('expo-sharing')).isAvailableAsync();
+      if (!isAvailable) {
+        setActionError('Sharing is not available on this device');
+        Alert.alert('Export Failed', 'Sharing is not available on this device');
+        return;
+      }
+
+      await (await import('expo-sharing')).shareAsync(result.filePath, {
+        mimeType: 'text/calendar',
+        dialogTitle: 'Export All Sessions',
+        UTI: 'public.calendar-event',
+      });
     } catch (exportError) {
       logger.error('Failed to export sessions', exportError);
       setActionError('Failed to export sessions. Please try again.');
@@ -149,7 +191,7 @@ export function useCalendarSync() {
     } finally {
       setIsExporting(false);
     }
-  }, []);
+  }, [userId]);
 
   const error =
     actionError ??

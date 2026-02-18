@@ -99,7 +99,7 @@ export const SquadConfirmStep = memo(function SquadConfirmStep({
             text={`${selectedMemberCount} athlete${selectedMemberCount !== 1 ? 's' : ''} selected`}
             colors={colors}
           />
-          {price ? <SummaryRow icon="pricetag-outline" text={`$${price}`} colors={colors} /> : null}
+          {price ? <SummaryRow icon="pricetag-outline" text={`£${price}`} colors={colors} /> : null}
           {notes ? (
             <Row align="center" gap="md">
               <Ionicons name="chatbubble-outline" size={18} color={colors.muted} />

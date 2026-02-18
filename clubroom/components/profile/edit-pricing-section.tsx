@@ -36,7 +36,7 @@ export const EditPricingSection = memo(function EditPricingSection({
       <ThemedText type="subtitle">Session Pricing</ThemedText>
       <Row gap="md">
         <View style={[styles.fieldGroup, styles.priceField]}>
-          <ThemedText style={styles.label}>Min Price (GBP)</ThemedText>
+          <ThemedText style={styles.label}>Min Price (£)</ThemedText>
           <TextInput
             value={priceMin}
             onChangeText={onChangeMin}
@@ -48,7 +48,7 @@ export const EditPricingSection = memo(function EditPricingSection({
           />
         </View>
         <View style={[styles.fieldGroup, styles.priceField]}>
-          <ThemedText style={styles.label}>Max Price (GBP)</ThemedText>
+          <ThemedText style={styles.label}>Max Price (£)</ThemedText>
           <TextInput
             value={priceMax}
             onChangeText={onChangeMax}

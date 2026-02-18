@@ -8,7 +8,7 @@ import { View, StyleSheet } from 'react-native';
 import { Clickable } from '@/components/primitives/clickable';
 import { ThemedText } from '@/components/themed-text';
 import { Row } from '@/components/primitives/row';
-import { Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
+import { Spacing, Radii, Typography } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
 import type { Segment } from './schedule-types';
 
@@ -36,13 +36,13 @@ export const ScheduleSegmentControl = memo(function ScheduleSegmentControl({
           accessibilityLabel="Show sessions"
           style={[
             styles.button,
-            segment === 'sessions' && { backgroundColor: withAlpha(colors.tint, 0.12) },
+            segment === 'sessions' && { backgroundColor: colors.text },
           ]}
         >
           <ThemedText
             style={[
               styles.text,
-              { color: segment === 'sessions' ? colors.tint : colors.muted },
+              { color: segment === 'sessions' ? colors.onPrimary : colors.muted },
               segment === 'sessions' && styles.activeText,
             ]}
           >
@@ -54,13 +54,13 @@ export const ScheduleSegmentControl = memo(function ScheduleSegmentControl({
           accessibilityLabel="Show availability"
           style={[
             styles.button,
-            segment === 'availability' && { backgroundColor: withAlpha(colors.tint, 0.12) },
+            segment === 'availability' && { backgroundColor: colors.text },
           ]}
         >
           <ThemedText
             style={[
               styles.text,
-              { color: segment === 'availability' ? colors.tint : colors.muted },
+              { color: segment === 'availability' ? colors.onPrimary : colors.muted },
               segment === 'availability' && styles.activeText,
             ]}
           >
@@ -84,7 +84,7 @@ const styles = StyleSheet.create({
   button: {
     flex: 1,
     alignItems: 'center',
-    paddingVertical: Spacing.sm,
+    paddingVertical: Spacing.xs,
     borderRadius: Radii.sm,
   },
   text: {

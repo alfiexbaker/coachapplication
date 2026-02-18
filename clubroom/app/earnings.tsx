@@ -9,6 +9,7 @@ import React from 'react';
 import { RefreshControl, ScrollView, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
+import { router } from 'expo-router';
 
 import { Row } from '@/components/primitives/row';
 import { StatCard } from '@/components/primitives/stat-card';
@@ -23,6 +24,7 @@ import { LoadingState, ErrorState, EmptyState } from '@/components/ui/screen-sta
 import { Radii, Spacing, Typography, withAlpha } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
 import { useEarnings, FILTER_OPTIONS } from '@/hooks/use-earnings';
+import { Routes } from '@/navigation/routes';
 
 export default function EarningsScreen() {
   const { colors: palette } = useTheme();
@@ -124,6 +126,42 @@ export default function EarningsScreen() {
             />
           </View>
         </Row>
+
+        {/* Session Payments */}
+        <Clickable onPress={() => router.push(Routes.PAYMENTS)}>
+          <SurfaceCard style={styles.billsCard}>
+            <Row align="center" gap="sm">
+              <View style={[styles.billsIcon, { backgroundColor: withAlpha(palette.success, 0.09) }]}>
+                <Ionicons name="cash-outline" size={20} color={palette.success} />
+              </View>
+              <View style={styles.billsInfo}>
+                <ThemedText type="defaultSemiBold">Session Payments</ThemedText>
+                <ThemedText style={{ color: palette.muted, ...Typography.caption }}>
+                  Track income per session
+                </ThemedText>
+              </View>
+              <Ionicons name="chevron-forward" size={20} color={palette.muted} />
+            </Row>
+          </SurfaceCard>
+        </Clickable>
+
+        {/* Bills & Expenses */}
+        <Clickable onPress={() => router.push(Routes.BILLS)}>
+          <SurfaceCard style={styles.billsCard}>
+            <Row align="center" gap="sm">
+              <View style={[styles.billsIcon, { backgroundColor: withAlpha(palette.warning, 0.09) }]}>
+                <Ionicons name="receipt-outline" size={20} color={palette.warning} />
+              </View>
+              <View style={styles.billsInfo}>
+                <ThemedText type="defaultSemiBold">Bills & Expenses</ThemedText>
+                <ThemedText style={{ color: palette.muted, ...Typography.caption }}>
+                  Track coaching costs
+                </ThemedText>
+              </View>
+              <Ionicons name="chevron-forward" size={20} color={palette.muted} />
+            </Row>
+          </SurfaceCard>
+        </Clickable>
 
         {/* Pending Withdrawals */}
         {e.pendingWithdrawals.length > 0 && (
@@ -397,5 +435,19 @@ const styles = StyleSheet.create({
     paddingVertical: Spacing.xs,
     borderRadius: Radii.pill,
     borderWidth: 1,
+  },
+  billsCard: {
+    padding: Spacing.md,
+  },
+  billsIcon: {
+    width: 40,
+    height: 40,
+    borderRadius: Radii.xl,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  billsInfo: {
+    flex: 1,
+    gap: Spacing.micro,
   },
 });

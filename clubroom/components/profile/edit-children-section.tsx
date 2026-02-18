@@ -1,122 +1,88 @@
 /**
- * EditChildrenSection — Children list for parent profile editing.
+ * EditChildrenSection — Children summary card with navigation actions.
+ * Shows child count + links to add/manage children screens.
  */
 
-import React, { memo } from 'react';
-import { StyleSheet, TextInput } from 'react-native';
-import { Row } from '@/components/primitives/row';
+import React, { memo, useCallback } from 'react';
+import { StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { router } from 'expo-router';
 
 import { Clickable } from '@/components/primitives/clickable';
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { ThemedText } from '@/components/themed-text';
-import { Radii, Spacing, Typography } from '@/constants/theme';
+import { Row } from '@/components/primitives/row';
+import { Column } from '@/components/primitives/column';
+import { Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
+import { Routes } from '@/navigation/routes';
 import type { ThemeColors } from '@/hooks/useTheme';
 
 interface EditChildrenSectionProps {
   colors: ThemeColors;
-  childProfiles: { id?: string; name: string; age: number }[];
+  childCount: number;
   onAddChild: () => void;
-  onUpdateChild: (index: number, field: 'name' | 'age', value: string | number) => void;
-  onRemoveChild: (index: number) => void;
-  onEditSen?: (childId: string) => void;
 }
 
 export const EditChildrenSection = memo(function EditChildrenSection({
   colors,
-  childProfiles,
+  childCount,
   onAddChild,
-  onUpdateChild,
-  onRemoveChild,
-  onEditSen,
 }: EditChildrenSectionProps) {
-  const inputStyle = [
-    styles.input,
-    { borderColor: colors.border, backgroundColor: colors.card, color: colors.foreground },
-  ];
+  const handleManage = useCallback(() => {
+    router.push(Routes.CHILDREN);
+  }, []);
 
   return (
     <SurfaceCard style={styles.section}>
       <Row justify="between" align="center">
         <ThemedText type="subtitle">Children</ThemedText>
-        <Clickable
-          onPress={onAddChild}
-          style={styles.inlineAction}
-          accessibilityLabel="Add child"
-          accessibilityRole="button"
-        >
-          <Row align="center" gap="xs">
-            <Ionicons name="add-circle" size={22} color={colors.tint} />
-            <ThemedText style={[styles.inlineActionText, { color: colors.tint }]}>Add</ThemedText>
-          </Row>
-        </Clickable>
+        <ThemedText style={[styles.count, { color: colors.muted }]}>
+          {childCount} {childCount === 1 ? 'child' : 'children'}
+        </ThemedText>
       </Row>
 
-      {childProfiles.map((child, index) => (
-        <Row
-          key={`child-${index}`}
-          align="center"
-          gap="sm"
-          style={[styles.childRow, { borderColor: colors.border }]}
+      <Column gap="xs">
+        <Clickable
+          onPress={onAddChild}
+          accessibilityLabel="Add child"
+          accessibilityRole="button"
+          style={[styles.actionRow, { backgroundColor: withAlpha(colors.tint, 0.06), borderColor: withAlpha(colors.tint, 0.15) }]}
         >
-          <Row gap="sm" flex>
-            <TextInput
-              value={child.name}
-              onChangeText={(text) => onUpdateChild(index, 'name', text)}
-              placeholder="Name"
-              placeholderTextColor={colors.muted}
-              style={[...inputStyle, styles.childNameInput]}
-              accessibilityLabel={`Child ${index + 1} name`}
-            />
-            <TextInput
-              value={child.age.toString()}
-              onChangeText={(text) => onUpdateChild(index, 'age', parseInt(text) || 0)}
-              placeholder="Age"
-              keyboardType="number-pad"
-              placeholderTextColor={colors.muted}
-              style={[...inputStyle, styles.childAgeInput]}
-              accessibilityLabel={`Child ${index + 1} age`}
-            />
+          <Row align="center" gap="sm" flex>
+            <Ionicons name="add-circle-outline" size={20} color={colors.tint} />
+            <ThemedText style={[styles.actionText, { color: colors.tint }]}>Add Child</ThemedText>
           </Row>
-          {onEditSen && child.id && (
-            <Clickable
-              onPress={() => onEditSen(child.id!)}
-              accessibilityLabel={`Edit SEN for ${child.name}`}
-              accessibilityRole="button"
-              hitSlop={8}
-            >
-              <Ionicons name="accessibility-outline" size={22} color={colors.tint} />
-            </Clickable>
-          )}
-          <Clickable
-            onPress={() => onRemoveChild(index)}
-            accessibilityLabel={`Remove child ${index + 1}`}
-            accessibilityRole="button"
-            hitSlop={8}
-          >
-            <Ionicons name="trash-outline" size={24} color={colors.destructive} />
-          </Clickable>
-        </Row>
-      ))}
+          <Ionicons name="chevron-forward" size={16} color={colors.tint} />
+        </Clickable>
+
+        <Clickable
+          onPress={handleManage}
+          accessibilityLabel="Manage children"
+          accessibilityRole="button"
+          style={[styles.actionRow, { backgroundColor: colors.surface, borderColor: colors.border }]}
+        >
+          <Row align="center" gap="sm" flex>
+            <Ionicons name="people-outline" size={20} color={colors.muted} />
+            <ThemedText style={[styles.actionText, { color: colors.text }]}>Manage Children</ThemedText>
+          </Row>
+          <Ionicons name="chevron-forward" size={16} color={colors.muted} />
+        </Clickable>
+      </Column>
     </SurfaceCard>
   );
 });
 
 const styles = StyleSheet.create({
-  section: { gap: Spacing.md },
-  inlineAction: {},
-  inlineActionText: { fontWeight: '700' },
-  childRow: {
-    paddingBottom: Spacing.sm,
-    borderBottomWidth: 1,
-  },
-  childNameInput: { flex: 2 },
-  childAgeInput: { flex: 1 },
-  input: {
-    borderWidth: 1,
-    borderRadius: Radii.md,
-    paddingHorizontal: Spacing.md,
+  section: { gap: Spacing.sm },
+  count: { ...Typography.caption },
+  actionRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
     paddingVertical: Spacing.sm,
-    ...Typography.subheading,
+    paddingHorizontal: Spacing.sm,
+    borderRadius: Radii.md,
+    borderWidth: 1,
+    minHeight: 44,
   },
+  actionText: { ...Typography.bodySmallSemiBold },
 });

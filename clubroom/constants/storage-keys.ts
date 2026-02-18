@@ -185,6 +185,9 @@ export const STORAGE_KEYS = {
   /** Referral tracking data */
   REFERRALS: 'clubroom.referrals',
 
+  /** Coach bills and expenses */
+  BILLS: 'clubroom.bills',
+
   // ============================================================================
   // SAFETY & EMERGENCY DOMAIN
   // ============================================================================

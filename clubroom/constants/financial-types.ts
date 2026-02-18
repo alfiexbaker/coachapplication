@@ -426,6 +426,49 @@ export interface GenerateInvoiceParams {
 }
 
 // ============================================================================
+// BILLS & EXPENSES
+// ============================================================================
+
+export type BillCategory =
+  | 'FACILITY_RENTAL'
+  | 'EQUIPMENT'
+  | 'INSURANCE'
+  | 'TRANSPORT'
+  | 'MARKETING'
+  | 'CERTIFICATION'
+  | 'SOFTWARE'
+  | 'OTHER';
+
+export type BillStatus = 'PENDING' | 'PAID' | 'OVERDUE';
+
+export interface Bill {
+  id: string;
+  coachId: string;
+  title: string;
+  amount: number;
+  currency: string;
+  category: BillCategory;
+  status: BillStatus;
+  vendor?: string;
+  dueDate?: string;
+  paidAt?: string;
+  isRecurring: boolean;
+  description?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface BillSummary {
+  totalExpenses: number;
+  totalPaid: number;
+  totalPending: number;
+  billCount: number;
+  paidCount: number;
+  pendingCount: number;
+  currency: string;
+}
+
+// ============================================================================
 // PROMO CODES SYSTEM
 // ============================================================================
 

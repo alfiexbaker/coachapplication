@@ -14,6 +14,8 @@ export interface CalendarExportButtonProps {
   booking?: Booking;
   /** Multiple bookings to export */
   bookings?: Booking[];
+  /** Generic export handler — when provided, overrides booking-based export */
+  onExport?: () => Promise<{ success: boolean; error?: string }>;
   /** Button variant */
   variant?: 'primary' | 'secondary' | 'icon';
   /** Button size */
@@ -31,6 +33,7 @@ export interface CalendarExportButtonProps {
 export function CalendarExportButton({
   booking,
   bookings,
+  onExport,
   variant = 'secondary',
   size = 'medium',
   label,
@@ -47,7 +50,9 @@ export function CalendarExportButton({
     try {
       let result: { success: boolean; error?: string };
 
-      if (booking) {
+      if (onExport) {
+        result = await onExport();
+      } else if (booking) {
         result = await calendarService.exportToCalendar(booking);
       } else if (bookings && bookings.length > 0) {
         result = await calendarService.exportMultipleToCalendar(bookings);

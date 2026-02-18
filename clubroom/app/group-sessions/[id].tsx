@@ -9,34 +9,36 @@
  * Coach: sees RSVP summary + send reminders + roster + cancel session.
  */
 
-import { View, StyleSheet, ScrollView, RefreshControl } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import { router } from 'expo-router';
-import { Ionicons } from '@expo/vector-icons';
 import { Routes } from '@/navigation/routes';
+import { Ionicons } from '@expo/vector-icons';
+import { router } from 'expo-router';
+import { RefreshControl, ScrollView, StyleSheet, View } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
+import { CancellationPolicyCard } from '@/components/booking/cancellation-policy-card';
+import { ChildSelector } from '@/components/group/child-selector';
+import { DeadlineBadge } from '@/components/group/deadline-badge';
+import { FamilyRegistrationCard } from '@/components/group/family-registration-card';
+import { GroupSessionCoachActions } from '@/components/group/group-session-coach-actions';
+import { GroupSessionDetails } from '@/components/group/group-session-details';
+import { GroupSessionHero } from '@/components/group/group-session-hero';
+import { RsvpMiniBar } from '@/components/group/rsvp-mini-bar';
+import { RsvpSummaryCard } from '@/components/group/rsvp-summary-card';
+import { StatusBanner } from '@/components/group/session-status-banner';
+import { WaitlistBanner } from '@/components/group/waitlist-banner';
+import { WhosGoingCard } from '@/components/group/whos-going-card';
 import { Button } from '@/components/primitives/button';
-import { Row } from '@/components/primitives/row';
 import { Column } from '@/components/primitives/column';
 import { PageHeader } from '@/components/primitives/page-header';
+import { Row } from '@/components/primitives/row';
 import { ThemedText } from '@/components/themed-text';
-import { LoadingState, ErrorState, EmptyState } from '@/components/ui/screen-states';
-import { WaitlistBanner } from '@/components/group/waitlist-banner';
-import { GroupSessionHero } from '@/components/group/group-session-hero';
-import { GroupSessionDetails } from '@/components/group/group-session-details';
-import { GroupSessionCoachActions } from '@/components/group/group-session-coach-actions';
-import { CancellationPolicyCard } from '@/components/booking/cancellation-policy-card';
-import { RsvpMiniBar } from '@/components/group/rsvp-mini-bar';
-import { DeadlineBadge } from '@/components/group/deadline-badge';
-import { StatusBanner } from '@/components/group/session-status-banner';
-import { RsvpSummaryCard } from '@/components/group/rsvp-summary-card';
-import { FamilyRegistrationCard } from '@/components/group/family-registration-card';
-import { WhosGoingCard } from '@/components/group/whos-going-card';
-import { ChildSelector } from '@/components/group/child-selector';
-import { Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
-import { useTheme } from '@/hooks/useTheme';
+import { EmptyState, ErrorState, LoadingState } from '@/components/ui/screen-states';
+import { Radii, Spacing, Typography, withAlpha } from '@/constants/theme';
 import { useGroupSession } from '@/hooks/use-group-session';
+import { useTheme } from '@/hooks/useTheme';
 import { groupSessionService } from '@/services/group-session-service';
+import { calendarService } from '@/services/calendar-service';
+import { CalendarExportButton } from '@/components/calendar/CalendarExportButton';
 import { getGroupSessionClubLabel } from '@/utils/group-display';
 
 export default function GroupSessionDetailScreen() {
@@ -132,7 +134,7 @@ export default function GroupSessionDetailScreen() {
           title="Session not found"
           message="This session may have been removed."
           actionLabel="Go Back"
-          onPressAction={handleBack}
+          onPressAction={() => router.back()}
         />
       </SafeAreaView>
     );
@@ -307,6 +309,14 @@ export default function GroupSessionDetailScreen() {
           )}
 
           <GroupSessionDetails session={session} />
+
+          {/* Calendar Export */}
+          <CalendarExportButton
+            onExport={() => calendarService.exportGroupSessionToCalendar(session)}
+            label="Add to Calendar"
+            variant="secondary"
+            size="medium"
+          />
 
           {/* Cancellation Policy — shown to parents considering registration */}
           {!isCoach && cancellationPolicy && (

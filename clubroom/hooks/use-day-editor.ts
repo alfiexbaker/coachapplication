@@ -3,7 +3,7 @@
  */
 import { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import { PanResponder, Dimensions, Platform } from 'react-native';
-import { useSharedValue, withSpring, withTiming, runOnJS } from 'react-native-reanimated';
+import { useSharedValue, withTiming, runOnJS } from 'react-native-reanimated';
 import * as Haptics from 'expo-haptics';
 
 import type { AvailabilityTemplate, AvailabilityOverride, CoachVenue } from '@/constants/types';
@@ -126,10 +126,10 @@ export function useDayEditor({
   // Animate in/out
   useEffect(() => {
     if (visible) {
-      slideAnim.value = withSpring(0, { damping: 20, stiffness: 200 });
+      slideAnim.value = withTiming(0, { duration: 300 });
       overlayOpacity.value = withTiming(1, { duration: 200 });
     } else {
-      slideAnim.value = withSpring(SCREEN_HEIGHT, { damping: 20, stiffness: 200 });
+      slideAnim.value = withTiming(SCREEN_HEIGHT, { duration: 250 });
       overlayOpacity.value = withTiming(0, { duration: 150 });
     }
   }, [visible, slideAnim, overlayOpacity]);
@@ -144,12 +144,12 @@ export function useDayEditor({
       },
       onPanResponderRelease: (_, gesture) => {
         if (gesture.dy > 80) {
-          slideAnim.value = withSpring(SCREEN_HEIGHT, { damping: 20, stiffness: 200 });
+          slideAnim.value = withTiming(SCREEN_HEIGHT, { duration: 250 });
           overlayOpacity.value = withTiming(0, { duration: 150 }, (finished) => {
             if (finished) runOnJS(onClose)();
           });
         } else {
-          slideAnim.value = withSpring(0, { damping: 20, stiffness: 200 });
+          slideAnim.value = withTiming(0, { duration: 200 });
         }
       },
     }),

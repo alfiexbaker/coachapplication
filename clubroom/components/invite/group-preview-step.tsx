@@ -153,7 +153,7 @@ export const GroupPreviewStep = memo(function GroupPreviewStep({
           {price ? (
             <Row align="center" gap="md">
               <Ionicons name="pricetag-outline" size={18} color={colors.muted} />
-              <ThemedText>${price} per athlete</ThemedText>
+              <ThemedText>£{price} per athlete</ThemedText>
             </Row>
           ) : null}
         </SurfaceCard>

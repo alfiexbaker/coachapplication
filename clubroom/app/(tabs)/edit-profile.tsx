@@ -7,7 +7,7 @@ import { SocialLinksEditor } from '@/components/profile/social-links-editor';
 import { EditPhotoSection } from '@/components/profile/edit-photo-section';
 import { EditBasicInfo } from '@/components/profile/edit-basic-info';
 import { EditContactInfo } from '@/components/profile/edit-contact-info';
-import { EditChildrenSection } from '@/components/profile/edit-children-section';
+
 import { EditPricingSection } from '@/components/profile/edit-pricing-section';
 import { EditSpecialtiesSection } from '@/components/profile/edit-specialties-section';
 import { EditExperienceSection } from '@/components/profile/edit-experience-section';
@@ -133,16 +133,6 @@ export default function EditProfileScreen() {
             website={profile.website}
             onChangeWebsite={profile.setWebsite}
           />
-
-          {!profile.userIsCoach && (
-            <EditChildrenSection
-              colors={colors}
-              childProfiles={profile.children}
-              onAddChild={profile.addChild}
-              onUpdateChild={profile.updateChild}
-              onRemoveChild={profile.removeChild}
-            />
-          )}
 
           {profile.userIsCoach && (
             <>

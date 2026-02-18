@@ -16,6 +16,8 @@ import * as FileSystem from 'expo-file-system/legacy';
 import * as Sharing from 'expo-sharing';
 import type { Booking } from '@/constants/app-types';
 import type { CalendarEvent, CalendarSyncSettings, CalendarProvider } from '@/constants/types';
+import type { GroupSession } from '@/constants/session-types';
+import type { ClubEvent } from '@/constants/event-types';
 import { createLogger } from '@/utils/logger';
 
 import { STORAGE_KEYS } from '@/constants/storage-keys';
@@ -91,6 +93,54 @@ function bookingToCalendarEvent(booking: Booking): CalendarEvent {
     location: booking.location || '',
     description: description.trim(),
     bookingId: booking.id,
+  };
+}
+
+/**
+ * Convert a group session to a CalendarEvent
+ */
+function groupSessionToCalendarEvent(session: GroupSession): CalendarEvent {
+  const firstSchedule = session.schedule[0];
+  const startTime = firstSchedule
+    ? `${firstSchedule.date}T${firstSchedule.startTime}:00`
+    : session.createdAt;
+  const endTime = firstSchedule
+    ? `${firstSchedule.date}T${firstSchedule.endTime}:00`
+    : new Date(new Date(startTime).getTime() + 60 * 60 * 1000).toISOString();
+
+  let description = `Type: ${session.sessionType}`;
+  if (session.description) description += `\n${session.description}`;
+  if (session.maxParticipants) description += `\nMax participants: ${session.maxParticipants}`;
+
+  return {
+    id: session.id,
+    title: session.title,
+    startTime,
+    endTime,
+    location: session.location || '',
+    description,
+  };
+}
+
+/**
+ * Convert a club event to a CalendarEvent
+ */
+function clubEventToCalendarEvent(event: ClubEvent): CalendarEvent {
+  const startTime = `${event.date}T${event.startTime}:00`;
+  const endTime = event.endTime
+    ? `${event.date}T${event.endTime}:00`
+    : new Date(new Date(startTime).getTime() + 2 * 60 * 60 * 1000).toISOString();
+
+  let description = event.description || '';
+  if (event.eventType) description = `Event: ${event.eventType}\n${description}`;
+
+  return {
+    id: event.id,
+    title: event.title,
+    startTime,
+    endTime,
+    location: event.venue || event.location || '',
+    description: description.trim(),
   };
 }
 
@@ -424,6 +474,122 @@ export const calendarService = {
    */
   bookingToEvent(booking: Booking): CalendarEvent {
     return bookingToCalendarEvent(booking);
+  },
+
+  /**
+   * Export a group session to calendar (opens share sheet)
+   */
+  async exportGroupSessionToCalendar(
+    session: GroupSession,
+  ): Promise<{ success: boolean; error?: string }> {
+    try {
+      const settings = await this.getSyncSettings('current_user');
+      const event = groupSessionToCalendarEvent(session);
+      const icsContent = generateICSContent(event, settings || undefined);
+
+      const filePath = `${FileSystem.cacheDirectory}group-session-${session.id}.ics`;
+      await FileSystem.writeAsStringAsync(filePath, icsContent, {
+        encoding: FileSystem.EncodingType.UTF8,
+      });
+
+      const isAvailable = await Sharing.isAvailableAsync();
+      if (!isAvailable) {
+        return { success: false, error: 'Sharing is not available on this device' };
+      }
+
+      await Sharing.shareAsync(filePath, {
+        mimeType: 'text/calendar',
+        dialogTitle: 'Add to Calendar',
+        UTI: 'public.calendar-event',
+      });
+
+      return { success: true };
+    } catch (error) {
+      logger.error('Failed to export group session to calendar', error);
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : 'Failed to export to calendar',
+      };
+    }
+  },
+
+  /**
+   * Export a club event to calendar (opens share sheet)
+   */
+  async exportClubEventToCalendar(
+    clubEvent: ClubEvent,
+  ): Promise<{ success: boolean; error?: string }> {
+    try {
+      const settings = await this.getSyncSettings('current_user');
+      const event = clubEventToCalendarEvent(clubEvent);
+      const icsContent = generateICSContent(event, settings || undefined);
+
+      const filePath = `${FileSystem.cacheDirectory}event-${clubEvent.id}.ics`;
+      await FileSystem.writeAsStringAsync(filePath, icsContent, {
+        encoding: FileSystem.EncodingType.UTF8,
+      });
+
+      const isAvailable = await Sharing.isAvailableAsync();
+      if (!isAvailable) {
+        return { success: false, error: 'Sharing is not available on this device' };
+      }
+
+      await Sharing.shareAsync(filePath, {
+        mimeType: 'text/calendar',
+        dialogTitle: 'Add to Calendar',
+        UTI: 'public.calendar-event',
+      });
+
+      return { success: true };
+    } catch (error) {
+      logger.error('Failed to export club event to calendar', error);
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : 'Failed to export to calendar',
+      };
+    }
+  },
+
+  /**
+   * Convert group session to CalendarEvent (exposed for external use)
+   */
+  groupSessionToEvent(session: GroupSession): CalendarEvent {
+    return groupSessionToCalendarEvent(session);
+  },
+
+  /**
+   * Convert club event to CalendarEvent (exposed for external use)
+   */
+  clubEventToEvent(clubEvent: ClubEvent): CalendarEvent {
+    return clubEventToCalendarEvent(clubEvent);
+  },
+
+  /**
+   * Generate ICS file from mixed CalendarEvents (bookings + group sessions + events)
+   */
+  async generateICSFileFromEvents(
+    events: CalendarEvent[],
+    filename?: string,
+  ): Promise<{ success: boolean; filePath?: string; error?: string }> {
+    try {
+      const settings = await this.getSyncSettings('current_user');
+      const icsContent = generateMultiEventICSContent(events, settings || undefined);
+
+      const finalFilename = filename || `clubroom-all-${Date.now()}.ics`;
+      const filePath = `${FileSystem.cacheDirectory}${finalFilename}`;
+
+      await FileSystem.writeAsStringAsync(filePath, icsContent, {
+        encoding: FileSystem.EncodingType.UTF8,
+      });
+
+      return { success: true, filePath };
+    } catch (error) {
+      logger.error('Failed to generate ICS file from events', error);
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : 'Failed to generate calendar file',
+      };
+    }
   },
 
   /**

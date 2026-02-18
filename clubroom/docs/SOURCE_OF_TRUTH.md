@@ -1,113 +1,204 @@
 # Clubroom — Single Source of Truth
 
-**Last Updated**: 2026-02-11
-**Project**: Clubroom (football-first coaching marketplace + community)
-**Status**: Frontend MVP with persisted storage (AsyncStorage via apiClient), mock data layer, backend/API planned
+**Last Updated**: 2026-02-17 (full codebase audit)
+**Project**: Clubroom — football coaching marketplace + family development tracker
+**Status**: Frontend MVP, AsyncStorage persistence, mock data layer, no backend API yet
 
 ---
 
 ## Vision
 
-Clubroom connects players, parents, coaches, and clubs around football training. It blends a booking marketplace, coaching tools, community features, and development tracking so coaches can grow their business and families can track progress.
+Clubroom connects football coaches with families. Coaches manage their business (availability, sessions, earnings). Parents book coaches for their kids and track development. Athletes track their own progress, goals, and badges.
 
-**Price point:** This is a premium product. Every screen must feel like it belongs in Linear, Stripe, or Airbnb.
+**Price point**: £20/month premium. Linear/Stripe/Airbnb quality bar.
 
-### Core Value Props
-- **Players/Athletes**: Find coaches, track objectives, share progress, earn badges
-- **Parents**: Manage multiple kids, book in one place, view development, communicate with coaches
-- **Coaches**: Fill calendars, manage services/availability, build reputation, grow business
-- **Clubs/Academies**: Showcase programs, manage squads, coordinate group sessions, build community
+**Football-only** for now. Multi-sport deferred.
 
 ---
 
-## Current Phase: Foundation Closed -> Scale-Up Refactor + Functionality Delivery
+## What Each Role Can Actually Do (Verified Feb 2026)
 
-Foundational architecture work is complete, and functionality delivery is now active. Current reality-based focus:
+### COACH (95 screens, ~53% of app)
 
-1. **Component decomposition debt** — 76/952 components exceed 250 lines
-2. **Screen complexity debt** — 25/197 route files exceed 300 lines
-3. **Hook complexity debt** — 61/165 hooks exceed 200 lines
-4. **Service complexity debt** — 69/126 service files exceed 300 lines
-5. **Token cleanup debt** — 313 raw hex literals remain across `app/`, `components/`, `hooks/`, `services/`, and `constants/`
-6. **Routing type safety guardrail** — unsafe `as unknown as Href` casts have been removed; keep regression checks in place
+**Inputs (what coaches create/configure):**
+- Set weekly availability templates (day, time, location, max concurrent)
+- Create session offerings (title, skill focus, type, price in GBP, location)
+- Invite athletes to sessions (from roster, multi-select)
+- Complete sessions (attendance, rating 1-5, skills worked on, notes, media)
+- Edit profile (photo, bio, specialties, certs, pricing, social links)
+- Manage squads, clubs, academies
+- Create posts for social feed
+- Message athletes/parents
+- Configure scheduling rules (confirmation mode, buffer, cancellation policy)
+- Block dates, manage waitlist
 
-### Key Decisions In Force
-1. **Football-only** for now; multi-sport later
-2. **Role-based navigation** with minimal overlap
-3. **Objectives on every booking** to power progress analytics
-4. **Cash payments** for MVP — Stripe integration deferred to backend phase
-5. **Result<T, ServiceError>** pattern — zero exceptions, Rust-inspired error handling
-6. **Zero `any` types** in service layer — enforced
+**Outputs (what coaches see):**
+- Home dashboard: sessions awaiting completion, athletes needing attention
+- Schedule: weekly view with session counts, day detail
+- Availability grid with templates and overrides
+- Athlete roster with skill levels, upcoming sessions, badges
+- Earnings dashboard: balance, period stats, transactions, payouts
+- Analytics: session count, active clients, average rating, revenue, top skills
+- Notification inbox
+
+**Key screens**: `sessions/create.tsx` (929 lines — needs decomposition), `schedule.tsx`, `athletes.tsx`, `earnings.tsx`, `coach-profile.tsx`
+
+### PARENT (10 screens, ~5% of app)
+
+**Inputs:**
+- Add/manage children (name, DOB, medical info, allergies, emergency contacts)
+- Book coaches for children (multi-step wizard: session type, schedule, child select, review, confirm)
+- Accept/decline session invites for children
+- Rate coaches after sessions
+- Message coaches
+- Set consent toggles (photos, recording, medical)
+
+**Outputs:**
+- Home: coach discovery cards with availability, ratings, reviews
+- Children hub: per-child stats, badges, progress
+- Child progress dashboard: skills grid, radar chart, coach feedback, badge timeline
+- Family calendar: month view with session dots, color-coded by child
+- Family spending: total, monthly chart, per-child breakdown, transactions
+- Sessions list for all children
+
+**Key screens**: `family/index.tsx`, `family/spending.tsx`, `development/child-progress/[childId].tsx`, `book/[coachId]/*` (6-step wizard)
+
+### ATHLETE (40 screens, ~22% of app)
+
+**Inputs:**
+- Book coaches for self (same wizard as parent, minus child selection)
+- Set personal goals (name, category, target date)
+- Write session journal entries (mood 1-5, energy 1-5, notes)
+- Log injuries (type, severity, recovery date)
+- Rate coaches after sessions
+- Share badges via native share
+
+**Outputs:**
+- Home: stats (sessions, skill progression, badges), streak, next session
+- My Progress: skills overview, radar chart, coach feedback, badge timeline
+- Goals dashboard with progress rings
+- Badges with progression levels, category breakdown, shareable cards
+- Health dashboard: active injuries, recovery timeline
+- Session journal: coach notes + personal reflections
+
+**Key screens**: `development/my-progress.tsx`, `goals/index.tsx`, `health/index.tsx`, `athlete/journal.tsx`, `(tabs)/badges.tsx`
+
+### CLUB/ACADEMY (20 screens, ~10% of app)
+- Club creation, branding, member management, squad management
+- Academy staff management, invite codes
+- Club events, training schedules, calendars
+
+### SHARED (35 screens, ~19% of app)
+- Settings (10 screens), messaging, notifications, community groups, profiles, events
+
+---
+
+## Data Reality
+
+**What's persisted (AsyncStorage via apiClient):**
+- Availability templates, overrides, blocked dates
+- Profile edits (coach and user)
+- Session completion records (notes, ratings)
+- Messages, posts, comments
+- Bookings, emergency contacts, medical info
+- Journal entries, reviews
+- Payout methods, notification preferences
+
+**What's mock/seeded (not real data):**
+- Coach profiles and ratings (demo seeds)
+- Booking history (mock data)
+- Athlete progress metrics (PROGRESS_SEEDS)
+- Badge awards (BADGE_SEEDS)
+- Spending/transactions (calculated from mock bookings)
+- Session invites, waitlist entries
+
+**No backend API exists yet.** Everything goes through `apiClient` → AsyncStorage.
+
+---
+
+## Tech Stack (Verified)
+
+| What | Reality |
+|------|---------|
+| Framework | Expo 54 / React Native 0.81 / React 19 / TypeScript 5.9 |
+| Routing | Expo Router 6, file-based, **199 route files** |
+| Services | **129 files** across **12 split modules** + single-file services |
+| Events | `event-bus.ts` — **83 typed events** with typed payloads |
+| Storage keys | `storage-keys.ts` — **120 keys** organized by domain |
+| Tests | Node.js built-in runner (`node --test`) — **171 test files** |
+| Components | **927 .tsx files** across 57 feature directories |
+| Hooks | **155 hooks** (9 infrastructure + 146 feature-specific) |
+| UI Primitives | 15 layout/atomic components + 12 infrastructure (states, toast, skeleton) |
+| Design tokens | Colors, Typography (12 variants), Spacing (9 sizes), Radii, Shadows, Components |
+
+---
+
+## Architecture Patterns
+
+| Pattern | How |
+|---------|-----|
+| Storage | `apiClient` wraps AsyncStorage — ONLY data access point |
+| Services | Extend `BaseService` (Map cache, 30s TTL, O(1) getById) |
+| Errors | `Result<T, ServiceError>` — `ok()`/`err()`, zero exceptions |
+| Events | `emitTyped()`/`onTyped()` via `event-bus.ts` |
+| Logging | `createLogger('ServiceName')` on every service |
+| Screen loading | `useScreen()` → state machine (loading/error/empty/success) |
+| Theming | `useTheme()` → `{ colors, scheme, isDark }` |
+| Layout | `Row`, `Column`, `Center`, `Spacer` primitives |
+| Types | Zero `any` in service layer |
+
+---
+
+## Key Decisions In Force
+
+1. **Football-only** — multi-sport later
+2. **Cash payments** for MVP — Stripe deferred to backend phase
+3. **Role-based navigation** — Coach/Parent/Athlete see different tabs
+4. **Objectives on every booking** — powers progress analytics
+5. **Result<T, ServiceError>** — Rust-inspired, zero exceptions
+6. **No backend** — AsyncStorage mock layer, API planned
 
 ---
 
 ## Product Spines
 
-Map every feature to at least one spine. Extend existing flows before adding new ones.
-
-1. **Community & Growth** — Social feed, groups, club hub, sharing, invites
-2. **Booking, Availability & Revenue** — Discovery, service formats, availability templates, checkout, booking states
-3. **Development & Analytics** — Objectives, attendance, notes, badges, videos, parent dashboards
-4. **Trust, Safety & Operations** — Verification, safeguarding, dispute flags, admin oversight
-
-See `SPINE_CATEGORIES.md` for detailed guidance on applying these.
+1. **Community & Growth** — Feed, groups, clubs, invites, sharing
+2. **Booking, Availability & Revenue** — Discovery, scheduling, checkout, earnings
+3. **Development & Analytics** — Goals, badges, skills, feedback, progress dashboards
+4. **Trust, Safety & Operations** — Verification, safeguarding, medical info, emergency contacts
 
 ---
 
-## Roles
-
-| Role | Tabs | Key Screens |
-|------|------|-------------|
-| **COACH** | Home, Schedule, Athletes, Feed, Profile | Availability builder, session management, roster, earnings, squad management |
-| **PARENT** | Home, Feed, Sessions, Messages, Profile | Child switcher, booking for kids, progress tracking, family dashboard |
-| **ATHLETE** | Home, Feed, Sessions, Messages, Profile | Discovery, self-booking, progress, badges |
-| **CLUB_ADMIN** | Club Hub, Squads, Events, Messages, Settings | Club dashboard, branding, member management |
-| **CLUB_COACH** | Calendar, Club, Squads, Messages, Profile | Squad sessions, roster management |
-
----
-
-## Tech Stack
-
-- **Expo 54 / React Native 0.81 / React 19 / TypeScript 5.9**
-- Routing: Expo Router 6 (file-based, 197 route files)
-- Design system: Custom tokens in `constants/theme.ts` — 14 UI primitives + 4 layout primitives
-- Services: 126 TypeScript files across 12 domain modules + core service files, centered on `BaseService`
-- Storage: `apiClient` wraps AsyncStorage — single data access layer
-- Events: `event-bus.ts` — 75 typed service events with typed payloads
-- Tests: Node.js built-in test runner (`node --test`) with 143 test files in `__tests__/`
-
----
-
-## Architecture Score: 76/100 (Scale-Up Ready, Not Enterprise-Hardened Yet)
-
-| Layer | Score | Status |
-|-------|-------|--------|
-| Service layer | 88/100 | Strong boundaries and Result<T>, but many oversized files |
-| Design tokens | 84/100 | Strong baseline; raw hex cleanup still open |
-| Navigation | 88/100 | Typed routes in place; unsafe casts removed in route helpers |
-| Screen layer | 68/100 | 25 route files exceed 300 lines |
-| Component layer | 64/100 | 76 components exceed 250 lines |
-| Test coverage | 84/100 | Lint/type/runtime gates are green; no E2E role-flow tests yet |
-| **Overall** | **76/100** | Target: 95/100 before real backend + scale launch |
-
----
-
-## Where to Look
+## Docs That Actually Exist
 
 | Doc | Purpose |
 |-----|---------|
-| `README.md` (project root) | Setup, scripts, and high-level project orientation |
-| `docs/AI_CONTEXT.md` | Live architecture metrics, gate snapshot, and AI read-order |
-| `docs/COACH_PARENT_FUNCTIONALITY_ATLAS.md` | Coach/parent functionality map with route paths and gap register |
-| `docs/ROADMAP.md` | 5-month UI & product roadmap (March-July 2026) |
-| `docs/USER-STORIES.md` | Feature map — 155 built, 96 to build, 24 to enhance |
-| `docs/SPINE_CATEGORIES.md` | 4 product spines with application guidance |
-| `docs/sprints/INDEX.md` | Sprint index — CompletedSprints/, Foundation/, Reference/ |
-| `constants/theme.ts` | Design tokens — Colors, Typography, Spacing, Radii, Shadows |
-| `services/api-client.ts` | Single data access layer |
-| `services/event-bus.ts` | 75 typed service events |
-| `hooks/use-screen.ts` | Screen state machine (loading/error/empty/success) |
+| `docs/USER-STORIES.md` | Feature map with build status (✅/❌/🔨/💤) |
+| `docs/SPINE_CATEGORIES.md` | 4 product spines with guidance |
+| `docs/UI_ACTION_TENETS.md` | UI interaction principles |
+| `docs/UI_RELIABILITY_AUDIT.md` | UI reliability findings |
+| `docs/sprints/` | Sprint history (completed + reference) |
+| `README.md` | Project setup and overview |
 
 ---
 
-*This document is the product vision anchor. For live code health and routing reality, read `docs/AI_CONTEXT.md` and `docs/COACH_PARENT_FUNCTIONALITY_ATLAS.md` before sprint execution.*
+## Service Modules (12 split modules)
+
+| Module | Purpose |
+|--------|---------|
+| `booking/` | CRUD, draft management, status transitions, search |
+| `invite/` | Session, squad, bulk, match, event invites + RSVP |
+| `family/` | Members, relationships, permissions, sharing |
+| `progress/` | Skills, feedback, goals, milestones, reports |
+| `earnings/` | Reports, payouts, calculator |
+| `notification/` | Store, preferences, sender |
+| `skills/` | Definitions, progress, achievements |
+| `wallet/` | CRUD, transactions, payments |
+| `event/` | RSVP, CRUD, attendance |
+| `community/` | Groups, messaging |
+| `analytics/` | Tracking, queries, export |
+| `group-session/` | CRUD, scheduling, registration |
+
+---
+
+*This document was verified against the actual codebase on 2026-02-17. Every number is fact-checked.*

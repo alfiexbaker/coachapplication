@@ -16,6 +16,7 @@ import { STORAGE_KEYS } from '@/constants/storage-keys';
 import { progressService } from '@/services/progress-service';
 import { badgeService } from '@/services/badge-service';
 import { bookingService } from '@/services/booking-service';
+import { groupSessionService } from '@/services/group-session-service';
 import { userService } from '@/services/user-service';
 import { emitTyped, ServiceEvents } from '@/services/event-bus';
 import { notificationTriggers } from '@/services/notification-trigger';
@@ -190,6 +191,62 @@ export function useSessionCompletion(sessionId: string | undefined) {
         }
       }
 
+      // 2. Try group sessions
+      const groupSession = await groupSessionService.getSession(sessionId);
+      if (groupSession) {
+        const roster = await groupSessionService.getSessionRoster(sessionId);
+        const registrations: SessionRegistration[] = roster.map((entry) => ({
+          id: entry.id,
+          userId: entry.athleteId,
+          bookedAt: entry.registeredAt,
+          status: 'confirmed' as const,
+        }));
+
+        const syntheticOffering: SessionOffering = {
+          id: groupSession.id,
+          coachId: groupSession.coachId,
+          clubId: groupSession.clubId,
+          title: groupSession.title,
+          description: groupSession.description,
+          sessionType: 'group',
+          maxParticipants: groupSession.maxParticipants,
+          location: groupSession.location,
+          scheduledAt: groupSession.schedule[0]?.date ?? groupSession.createdAt,
+          isRecurring: groupSession.isRecurring ?? false,
+          recurrenceType: groupSession.isRecurring ? 'weekly' : 'none',
+          status: 'active',
+          registrations,
+          createdAt: groupSession.createdAt,
+          ageMin: groupSession.ageMin,
+          ageMax: groupSession.ageMax,
+          squadId: groupSession.squadId,
+          inviteType: groupSession.inviteType,
+        };
+
+        setSession(syntheticOffering);
+        setSourceType('offering');
+
+        const initialAttendance: Record<string, AthleteAttendance> = {};
+        registrations.forEach((reg) => {
+          initialAttendance[reg.id] = {
+            registration: reg,
+            status: 'present',
+            effort: 3,
+            note: '',
+            badges: [],
+          };
+        });
+        setAttendance(initialAttendance);
+
+        if (groupSession.focus && groupSession.focus.length > 0) {
+          setSkillsFocused([groupSession.focus[0]]);
+        }
+        await loadParticipantContext(registrations, groupSession.coachId);
+        setLoading(false);
+        return;
+      }
+
+      // 3. Fall back to individual bookings
       const booking = await bookingService.getBooking(sessionId);
       if (booking && (booking.status === 'AWAITING_COMPLETION' || booking.status === 'CONFIRMED')) {
         setSourceType('booking');

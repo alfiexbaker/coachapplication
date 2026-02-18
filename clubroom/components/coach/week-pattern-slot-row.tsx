@@ -156,9 +156,9 @@ function AddBlockRowInner({ dayIndex, showSeparator, onPress }: AddBlockRowProps
   return (
     <Clickable key={`add-block-${dayIndex}`} onPress={handlePress} style={rowStyle}>
       <View style={styles.dayLabelCol} />
-      <Row style={[styles.addBlockPill, { borderColor: withAlpha(palette.tint, 0.2) }]}>
-        <Ionicons name="add-circle-outline" size={14} color={palette.tint} />
-        <ThemedText style={[styles.addBlockText, { color: palette.tint }]}>Add time block</ThemedText>
+      <Row style={[styles.addBlockPill, { borderColor: withAlpha(palette.muted, 0.25) }]}>
+        <Ionicons name="add-circle-outline" size={14} color={palette.muted} />
+        <ThemedText style={[styles.addBlockText, { color: palette.muted }]}>Add time block</ThemedText>
       </Row>
     </Clickable>
   );

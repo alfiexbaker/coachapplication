@@ -283,21 +283,21 @@ export function WeekPatternGrid(props: WeekPatternGridProps) {
 
       {/* Summary */}
       <Row style={styles.summaryPills}>
-        <Row style={[styles.summaryPill, { backgroundColor: withAlpha(palette.tint, 0.08) }]}>
-          <Ionicons name="calendar-outline" size={14} color={palette.tint} />
-          <ThemedText style={[styles.summaryText, { color: palette.tint }]}>
+        <Row style={[styles.summaryPill, { backgroundColor: withAlpha(palette.muted, 0.08) }]}>
+          <Ionicons name="calendar-outline" size={13} color={palette.muted} />
+          <ThemedText style={[styles.summaryText, { color: palette.muted }]}>
             {stats.days} day{stats.days !== 1 ? 's' : ''}
           </ThemedText>
         </Row>
-        <Row style={[styles.summaryPill, { backgroundColor: withAlpha(palette.warning, 0.08) }]}>
-          <Ionicons name="time-outline" size={14} color={palette.warning} />
-          <ThemedText style={[styles.summaryText, { color: palette.warning }]}>
+        <Row style={[styles.summaryPill, { backgroundColor: withAlpha(palette.muted, 0.08) }]}>
+          <Ionicons name="time-outline" size={13} color={palette.muted} />
+          <ThemedText style={[styles.summaryText, { color: palette.muted }]}>
             {stats.hrs} hrs/week
           </ThemedText>
         </Row>
-        <Row style={[styles.summaryPill, { backgroundColor: withAlpha(palette.success, 0.08) }]}>
-          <Ionicons name="location-outline" size={14} color={palette.success} />
-          <ThemedText style={[styles.summaryText, { color: palette.success }]}>
+        <Row style={[styles.summaryPill, { backgroundColor: withAlpha(palette.muted, 0.08) }]}>
+          <Ionicons name="location-outline" size={13} color={palette.muted} />
+          <ThemedText style={[styles.summaryText, { color: palette.muted }]}>
             {stats.venues} venue{stats.venues !== 1 ? 's' : ''}
           </ThemedText>
         </Row>
@@ -330,7 +330,7 @@ const styles = StyleSheet.create({
   weekNavLabelBtn: { flex: 1, alignItems: 'center', justifyContent: 'center', minHeight: 44 },
   weekNavLabel: { ...Typography.bodySemiBold, textAlign: 'center' },
   summaryPills: {
-    justifyContent: 'space-between',
+    justifyContent: 'center',
     flexWrap: 'wrap',
     gap: Spacing.xs,
   },
@@ -338,8 +338,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: Spacing.xxs,
     borderRadius: Radii.pill,
-    paddingHorizontal: Spacing.sm,
-    paddingVertical: Spacing.xs,
+    paddingHorizontal: Spacing.xs,
+    paddingVertical: Spacing.xxs,
   },
   summaryText: { ...Typography.caption, textAlign: 'center' },
   gridCard: { padding: 0, overflow: 'hidden' },
