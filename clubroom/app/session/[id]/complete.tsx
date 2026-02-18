@@ -15,7 +15,7 @@
  * so I can track athlete progress and provide feedback."
  */
 
-import { useState } from 'react';
+import { useCallback, useState } from 'react';
 import { Alert, StyleSheet, ScrollView, KeyboardAvoidingView, Platform, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router, useLocalSearchParams } from 'expo-router';
@@ -29,6 +29,10 @@ import { LoadingState, ErrorState } from '@/components/ui/screen-states';
 import { Components, Spacing, Typography } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
 import { useSessionCompletion } from '@/hooks/use-session-completion';
+import { apiClient } from '@/services/api-client';
+import { useAuth } from '@/hooks/use-auth';
+import { Routes } from '@/navigation/routes';
+import { createLogger } from '@/utils/logger';
 
 import {
   AttendanceStep,
@@ -40,6 +44,8 @@ import {
 import { CompletionStepIndicator } from '@/components/session/completion-step-indicator';
 import { WizardNavButtons } from '@/components/session/wizard-nav-buttons';
 
+const logger = createLogger('SessionComplete');
+
 // ============================================================================
 // SCREEN
 // ============================================================================
@@ -47,6 +53,7 @@ import { WizardNavButtons } from '@/components/session/wizard-nav-buttons';
 export default function SessionCompleteScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const { colors } = useTheme();
+  const { currentUser } = useAuth();
   const [groupMessage, setGroupMessage] = useState('');
 
   const {
@@ -72,6 +79,7 @@ export default function SessionCompleteScreen() {
     currentStep,
     currentStepIndex,
     isGroupCompletion,
+    attendance,
     attendanceStepData,
     parentNameByRegistration,
     presentAthletes,
@@ -82,7 +90,6 @@ export default function SessionCompleteScreen() {
     updateAttendanceStatus,
     setAllAttendanceStatus,
     sendGroupBroadcast,
-    sendPersonalUpdate,
     sendMessageParent,
     addImage,
     addVideo,
@@ -105,14 +112,38 @@ export default function SessionCompleteScreen() {
     Alert.alert('Sent', 'Update pushed to the group thread.');
   };
 
-  const handleSendPersonalFeedback = async (registrationId: string) => {
-    const result = await sendPersonalUpdate(registrationId);
-    if (!result.ok) {
-      Alert.alert('Unable to send', result.reason || 'Could not send personal feedback.');
-      return;
-    }
-    Alert.alert('Sent', `Personal feedback sent for ${result.athleteName}.`);
-  };
+  const handlePersonalFeedback = useCallback(
+    async (registrationId: string) => {
+      const athleteStep = attendanceStepData.find((a) => a.registrationId === registrationId);
+      const athleteRecord = attendance[registrationId];
+      if (!athleteStep || !athleteRecord || !session || !currentUser) return;
+
+      const athleteUserId = athleteRecord.registration.userId;
+      const sessionId = `session-${Date.now()}`;
+      const sessionRecord = {
+        id: sessionId,
+        athleteId: athleteUserId,
+        athleteName: athleteStep.userName,
+        coachId: currentUser.id,
+        bookingId: session.id,
+        completedAt: new Date().toISOString(),
+        performanceRating: 3,
+        skillsWorkedOn: [],
+        notes: '',
+        videoUrls: [],
+        imageUrls: [],
+        attendance: 'ATTENDED',
+      };
+
+      const sessions = await apiClient.get<Record<string, unknown>[]>('coach_sessions', []);
+      sessions.push(sessionRecord);
+      await apiClient.set('coach_sessions', sessions);
+      logger.info('Personal feedback session created', { sessionId, athlete: athleteStep.userName });
+
+      router.push(Routes.developmentSession(sessionId));
+    },
+    [attendance, attendanceStepData, session, currentUser],
+  );
 
   const handleSendMessage = async (registrationId: string) => {
     const result = await sendMessageParent(registrationId);
@@ -205,7 +236,7 @@ export default function SessionCompleteScreen() {
                 onUpdateStatus={updateAttendanceStatus}
                 onSelectAll={() => setAllAttendanceStatus('present')}
                 onSendGroupMessage={handleSendGroupMessage}
-                onPersonalFeedback={handleSendPersonalFeedback}
+                onPersonalFeedback={handlePersonalFeedback}
                 onMessage={handleSendMessage}
                 onAddVideo={addVideo}
                 onRemoveVideo={removeVideo}

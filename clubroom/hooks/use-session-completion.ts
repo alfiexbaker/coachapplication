@@ -792,6 +792,9 @@ export function useSessionCompletion(sessionId: string | undefined) {
     absentCount,
     totalBadgesAwarded,
 
+    // Raw attendance data (for accessing userId per registration)
+    attendance,
+
     // Actions
     loadSession,
     updateAttendanceStatus,
