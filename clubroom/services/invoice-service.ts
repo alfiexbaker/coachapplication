@@ -11,6 +11,7 @@ import {
 import { apiClient } from './api-client';
 import { createLogger } from '@/utils/logger';
 import { type Result, type ServiceError, ok, err, notFound } from '@/types/result';
+import { emitTyped, ServiceEvents } from './event-bus';
 import { generateInvoiceHtml } from './invoice-template';
 
 // ============================================================================
@@ -352,6 +353,20 @@ class InvoiceService {
     await apiClient.set(STORAGE_KEY_INVOICES, invoices);
   }
 
+  /**
+   * Upsert an invoice — saves it to storage if it doesn't already exist.
+   * Used by hooks that create synthetic invoices from booking data.
+   */
+  async upsertInvoice(invoice: Invoice): Promise<void> {
+    const invoices = await this.getAllInvoices();
+    const exists = invoices.some((inv) => inv.id === invoice.id);
+    if (!exists) {
+      invoices.unshift(invoice);
+      await this.saveInvoices(invoices);
+      logger.info('invoice_upserted', { invoiceId: invoice.id });
+    }
+  }
+
   // ==========================================================================
   // INVOICE GENERATION
   // ==========================================================================
@@ -501,7 +516,48 @@ class InvoiceService {
       paidAt: new Date().toISOString(),
     });
 
+    if (updatedInvoice) {
+      emitTyped(ServiceEvents.INVOICE_PAID, {
+        invoiceId,
+        coachId: invoice.coachId,
+        amount: invoice.total,
+      });
+    }
+
     logger.info('invoice_marked_paid', { invoiceId });
+    return updatedInvoice;
+  }
+
+  /**
+   * Undo mark-as-paid — move invoice back to SENT (owed)
+   */
+  async markAsUnpaid(invoiceId: string): Promise<Invoice | null> {
+    const invoice = await this.getInvoiceById(invoiceId);
+
+    if (!invoice) {
+      logger.warn('mark_unpaid_invoice_not_found', { invoiceId });
+      return null;
+    }
+
+    if (invoice.status !== 'PAID') {
+      logger.warn('mark_unpaid_not_paid', { invoiceId, status: invoice.status });
+      return null;
+    }
+
+    const updatedInvoice = await this.updateInvoice(invoiceId, {
+      status: 'SENT',
+      paidAt: undefined,
+    });
+
+    if (updatedInvoice) {
+      emitTyped(ServiceEvents.INVOICE_RESTORED, {
+        invoiceId,
+        coachId: invoice.coachId,
+        amount: invoice.total,
+      });
+    }
+
+    logger.info('invoice_marked_unpaid', { invoiceId });
     return updatedInvoice;
   }
 
@@ -528,6 +584,72 @@ class InvoiceService {
     });
 
     logger.info('invoice_voided', { invoiceId, reason });
+    return updatedInvoice;
+  }
+
+  /**
+   * Write off an invoice (coach decides not to chase payment)
+   */
+  async writeOff(invoiceId: string, reason?: string): Promise<Invoice | null> {
+    const invoice = await this.getInvoiceById(invoiceId);
+
+    if (!invoice) {
+      logger.warn('write_off_invoice_not_found', { invoiceId });
+      return null;
+    }
+
+    if (invoice.status === 'PAID' || invoice.status === 'VOID') {
+      logger.warn('write_off_invalid_status', { invoiceId, status: invoice.status });
+      return null;
+    }
+
+    const updatedInvoice = await this.updateInvoice(invoiceId, {
+      status: 'WRITTEN_OFF',
+      voidReason: reason || 'Written off by coach',
+    });
+
+    if (updatedInvoice) {
+      emitTyped(ServiceEvents.INVOICE_WRITTEN_OFF, {
+        invoiceId,
+        coachId: invoice.coachId,
+        amount: invoice.total,
+      });
+    }
+
+    logger.info('invoice_written_off', { invoiceId, reason });
+    return updatedInvoice;
+  }
+
+  /**
+   * Restore a written-off invoice back to SENT status
+   */
+  async restoreFromWriteOff(invoiceId: string): Promise<Invoice | null> {
+    const invoice = await this.getInvoiceById(invoiceId);
+
+    if (!invoice) {
+      logger.warn('restore_invoice_not_found', { invoiceId });
+      return null;
+    }
+
+    if (invoice.status !== 'WRITTEN_OFF') {
+      logger.warn('restore_not_written_off', { invoiceId, status: invoice.status });
+      return null;
+    }
+
+    const updatedInvoice = await this.updateInvoice(invoiceId, {
+      status: 'SENT',
+      voidReason: undefined,
+    });
+
+    if (updatedInvoice) {
+      emitTyped(ServiceEvents.INVOICE_RESTORED, {
+        invoiceId,
+        coachId: invoice.coachId,
+        amount: invoice.total,
+      });
+    }
+
+    logger.info('invoice_restored', { invoiceId });
     return updatedInvoice;
   }
 
@@ -681,6 +803,7 @@ class InvoiceService {
       SENT: 'Sent',
       PAID: 'Paid',
       VOID: 'Voided',
+      WRITTEN_OFF: 'Written Off',
     };
     return labels[status];
   }
@@ -694,6 +817,7 @@ class InvoiceService {
       SENT: '#2563EB',
       PAID: '#059669',
       VOID: '#DC2626',
+      WRITTEN_OFF: '#9CA3AF',
     };
     return colors[status];
   }

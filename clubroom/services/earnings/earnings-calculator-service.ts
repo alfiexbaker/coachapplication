@@ -24,7 +24,6 @@ import { type Result, type ServiceError, ok, err, networkError } from '@/types/r
 const logger = createLogger('EarningsCalculatorService');
 
 const USE_MOCK = api.useMock;
-const PLATFORM_FEE_PERCENT = 10;
 
 // ============================================================================
 // TYPES
@@ -56,17 +55,17 @@ export type EarningsPeriod = 'week' | 'month' | 'year';
 
 export const earningsCalculatorService = {
   /**
-   * Get platform fee percentage
+   * Get platform fee percentage (no fees — all payments are onsite)
    */
   getPlatformFeePercent(): number {
-    return PLATFORM_FEE_PERCENT;
+    return 0;
   },
 
   /**
-   * Calculate net amount after platform fee
+   * Calculate net amount (no fees — returns full amount)
    */
   calculateNetAmount(grossAmount: number): number {
-    return grossAmount * (1 - PLATFORM_FEE_PERCENT / 100);
+    return grossAmount;
   },
 
   /**
@@ -110,21 +109,20 @@ export const earningsCalculatorService = {
 
         for (const booking of completedBookings) {
           const price = booking.price || 0;
-          const netAmount = price * (1 - PLATFORM_FEE_PERCENT / 100);
           const bookingDate = new Date(booking.scheduledAt);
 
-          totalEarned += netAmount;
+          totalEarned += price;
 
           if (bookingDate >= startOfWeek) {
-            thisWeek += netAmount;
+            thisWeek += price;
           }
 
           if (bookingDate >= startOfMonth) {
-            thisMonth += netAmount;
+            thisMonth += price;
           }
 
           if (bookingDate >= startOfLastMonth && bookingDate <= endOfLastMonth) {
-            lastMonth += netAmount;
+            lastMonth += price;
           }
         }
 

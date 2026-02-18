@@ -109,7 +109,6 @@ export const PromoCodeCard = React.memo(function PromoCodeCard({
 type TotalsCardProps = {
   colors: ThemeColors;
   sessionPrice: number;
-  platformFee: number;
   promoDiscount: number;
   total: number;
 };
@@ -117,14 +116,12 @@ type TotalsCardProps = {
 export const BookingTotalsCard = React.memo(function BookingTotalsCard({
   colors,
   sessionPrice,
-  platformFee,
   promoDiscount,
   total,
 }: TotalsCardProps) {
   return (
     <View style={[styles.card, { borderColor: colors.border }]}>
       <SummaryRow label="Session" value={`£${sessionPrice.toFixed(2)}`} />
-      <SummaryRow label="Platform fee (15%)" value={`£${platformFee.toFixed(2)}`} />
       {promoDiscount > 0 ? (
         <SummaryRow label="Promo discount" value={`-£${promoDiscount.toFixed(2)}`} />
       ) : null}

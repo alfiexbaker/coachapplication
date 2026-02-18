@@ -284,6 +284,7 @@ describe('InvoiceCard Status Badge', () => {
       SENT: '#2563EB',
       PAID: '#059669',
       VOID: '#DC2626',
+      WRITTEN_OFF: '#9CA3AF',
     };
 
     return {

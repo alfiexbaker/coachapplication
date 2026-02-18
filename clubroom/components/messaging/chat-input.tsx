@@ -11,11 +11,12 @@ type ChatInputProps = {
   onAttach?: () => void;
   onSend?: (message: string) => void;
   disabled?: boolean;
+  initialValue?: string;
 };
 
-export function ChatInput({ onAttach, onSend, disabled }: ChatInputProps) {
+export function ChatInput({ onAttach, onSend, disabled, initialValue }: ChatInputProps) {
   const { colors: palette, scheme } = useTheme();
-  const [value, setValue] = useState('');
+  const [value, setValue] = useState(initialValue ?? '');
   const placeholderColor = palette.muted;
   const canAttach = Boolean(onAttach) && !disabled;
 

@@ -28,7 +28,6 @@ import { createLogger } from '@/utils/logger';
 
 const logger = createLogger('BookingReview');
 
-const PLATFORM_FEE_PERCENT = 0.15; // 15% platform fee
 
 interface ReviewLoadData {
   coach: Coach | null;
@@ -119,8 +118,7 @@ export default function ReviewScreen() {
   };
 
   const sessionPrice = getSessionPrice();
-  const platformFee = Math.round(sessionPrice * PLATFORM_FEE_PERCENT * 100) / 100;
-  const subtotal = sessionPrice + platformFee;
+  const subtotal = sessionPrice;
   const total = Math.max(0, subtotal - promoDiscount);
 
   // Handle promo code application
@@ -245,7 +243,6 @@ export default function ReviewScreen() {
         <BookingTotalsCard
           colors={palette}
           sessionPrice={sessionPrice}
-          platformFee={platformFee}
           promoDiscount={promoDiscount}
           total={total}
         />

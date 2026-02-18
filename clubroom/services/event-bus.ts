@@ -131,6 +131,11 @@ export const ServiceEvents = {
   SESSION_COMPLETED: 'session:completed',
   SESSION_CANCELLED: 'session:cancelled',
 
+  // Session data events
+  ATTENDANCE_RECORDED: 'session:attendance_recorded',
+  SESSION_NOTES_SAVED: 'session:notes_saved',
+  SESSION_FEEDBACK_SAVED: 'session:feedback_saved',
+
   // Group session events
   OPEN_SESSION_PUBLISHED: 'group_session:open_published',
 
@@ -165,6 +170,8 @@ export const ServiceEvents = {
 
   // Invoice events
   INVOICE_PAID: 'invoice:paid',
+  INVOICE_WRITTEN_OFF: 'invoice:written_off',
+  INVOICE_RESTORED: 'invoice:restored',
 
   // Notification events
   NOTIFICATION_CREATED: 'notification:created',
@@ -373,6 +380,28 @@ export interface EventPayloads {
     reason?: string;
   };
 
+  // Session data events
+  [ServiceEvents.ATTENDANCE_RECORDED]: {
+    sessionId: string;
+    bookingId?: string;
+    coachId: string;
+    athleteIds: string[];
+    presentCount: number;
+    absentCount: number;
+  };
+  [ServiceEvents.SESSION_NOTES_SAVED]: {
+    sessionId: string;
+    bookingId?: string;
+    coachId: string;
+  };
+  [ServiceEvents.SESSION_FEEDBACK_SAVED]: {
+    sessionId: string;
+    bookingId?: string;
+    coachId: string;
+    athleteId: string;
+    skillCount: number;
+  };
+
   // Group session events
   [ServiceEvents.OPEN_SESSION_PUBLISHED]: {
     sessionId: string;
@@ -499,6 +528,16 @@ export interface EventPayloads {
 
   // Invoice events
   [ServiceEvents.INVOICE_PAID]: {
+    invoiceId: string;
+    coachId: string;
+    amount: number;
+  };
+  [ServiceEvents.INVOICE_WRITTEN_OFF]: {
+    invoiceId: string;
+    coachId: string;
+    amount: number;
+  };
+  [ServiceEvents.INVOICE_RESTORED]: {
     invoiceId: string;
     coachId: string;
     amount: number;

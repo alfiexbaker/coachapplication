@@ -13,6 +13,8 @@
 
 import { apiClient } from '../api-client';
 import type { AthleteAnalytics, SkillProgress, Goal } from '@/constants/types';
+import type { SessionFeedback } from '@/services/progress/progress-feedback-service';
+import type { AthleteSkillLevels } from '@/services/progress/progress-skills-service';
 import { createLogger } from '@/utils/logger';
 import { api } from '@/constants/config';
 import { STORAGE_KEYS } from '@/constants/storage-keys';
@@ -281,6 +283,84 @@ async function loadGoals(): Promise<Goal[]> {
   return [...MOCK_GOALS];
 }
 
+/**
+ * Build AthleteAnalytics from real SESSION_FEEDBACK and SKILL_LEVELS data.
+ * Returns null if no real data exists for this athlete.
+ */
+async function buildRealAthleteAnalytics(
+  athleteId: string,
+  period: AnalyticsPeriod,
+): Promise<AthleteAnalytics | null> {
+  const [allFeedback, allSkillLevels] = await Promise.all([
+    apiClient.get<SessionFeedback[]>(STORAGE_KEYS.SESSION_FEEDBACK, []),
+    apiClient.get<Record<string, AthleteSkillLevels>>(STORAGE_KEYS.SKILL_LEVELS, {}),
+  ]);
+
+  const athleteFeedback = allFeedback.filter((f) => f.athleteId === athleteId);
+  const athleteSkills = allSkillLevels[athleteId];
+
+  // If no real data exists, return null so caller can fall back
+  if (athleteFeedback.length === 0 && !athleteSkills) {
+    return null;
+  }
+
+  // Build skill progress from SKILL_LEVELS
+  const skills: SkillProgress[] = [];
+  if (athleteSkills) {
+    for (const [, skillData] of Object.entries(athleteSkills.skills)) {
+      // Scale 1-10 skill level to 0-100 for display
+      const currentLevel = Math.round(skillData.level * 10);
+      const previousLevel = skillData.previousLevel ? Math.round(skillData.previousLevel * 10) : currentLevel;
+      const changePercent = previousLevel > 0
+        ? Math.round(((currentLevel - previousLevel) / previousLevel) * 1000) / 10
+        : 0;
+
+      skills.push({
+        skillName: skillData.skill,
+        category: 'Technical',
+        currentLevel,
+        previousLevel,
+        changePercent,
+        history: skillData.history.map((h) => ({
+          date: h.date.split('T')[0],
+          level: Math.round(h.level * 10),
+        })),
+      });
+    }
+  }
+
+  // Calculate session stats from feedback
+  const totalSessions = athleteFeedback.length;
+  const avgRating = totalSessions > 0
+    ? athleteFeedback.reduce((sum, f) => sum + f.overallPerformance, 0) / totalSessions
+    : 0;
+
+  // Calculate attendance rate from effort ratings (present athletes have effort > 0)
+  const attendanceRate = totalSessions > 0 ? 100 : 0;
+
+  // Calculate improvement rate from skill trends
+  const improvingSkills = skills.filter((s) => s.changePercent > 0).length;
+  const improvementRate = skills.length > 0
+    ? Math.round((improvingSkills / skills.length) * 100)
+    : 0;
+
+  return {
+    athleteId,
+    period,
+    totalSessions,
+    sessionsThisPeriod: totalSessions,
+    averageSessionRating: Math.round(avgRating * 10) / 10,
+    attendanceRate,
+    skills,
+    activeGoals: [],
+    completedGoals: [],
+    improvementRate,
+    consistencyScore: Math.min(100, totalSessions * 10),
+    percentileRank: 50,
+    lastSessionDate: athleteFeedback[0]?.createdAt?.split('T')[0],
+  };
+}
+
 // ============================================================================
 // ANALYTICS QUERY SERVICE
 // ============================================================================
@@ -295,41 +375,49 @@ export const analyticsQueryService = {
   ): Promise<Result<AthleteAnalytics | null, ServiceError>> {
     try {
       if (USE_MOCK) {
-        analyticsCache = await loadAnalytics();
+        // Try real data first (from session completions)
+        const realAnalytics = await buildRealAthleteAnalytics(athleteId, period);
+
+        // Load goals (real or mock)
         goalsCache = await loadGoals();
+        const activeGoals = goalsCache.filter(
+          (g) => g.athleteId === athleteId && g.status === 'ACTIVE',
+        );
+        const completedGoals = goalsCache.filter(
+          (g) => g.athleteId === athleteId && g.status === 'COMPLETED',
+        );
 
-        const analytics = analyticsCache.find((a) => a.athleteId === athleteId);
-        if (analytics) {
-          // Return a fresh value to avoid mutating shared cache objects between calls.
-          const activeGoals = goalsCache.filter(
-            (g) => g.athleteId === athleteId && g.status === 'ACTIVE',
-          );
-          const completedGoals = goalsCache.filter(
-            (g) => g.athleteId === athleteId && g.status === 'COMPLETED',
-          );
-
+        if (realAnalytics) {
           return ok({
-            ...analytics,
+            ...realAnalytics,
+            activeGoals,
+            completedGoals,
+          });
+        }
+
+        // Fall back to cached/mock analytics
+        analyticsCache = await loadAnalytics();
+        const cachedAnalytics = analyticsCache.find((a) => a.athleteId === athleteId);
+        if (cachedAnalytics) {
+          return ok({
+            ...cachedAnalytics,
             period,
             activeGoals,
             completedGoals,
           });
         }
 
-        // Return mock analytics for any athlete
+        // Return empty state for unknown athletes
         return ok({
           athleteId,
-          athleteName: 'Athlete',
           period,
           totalSessions: 0,
           sessionsThisPeriod: 0,
           averageSessionRating: 0,
           attendanceRate: 0,
           skills: [],
-          activeGoals: goalsCache.filter((g) => g.athleteId === athleteId && g.status === 'ACTIVE'),
-          completedGoals: goalsCache.filter(
-            (g) => g.athleteId === athleteId && g.status === 'COMPLETED',
-          ),
+          activeGoals,
+          completedGoals,
           improvementRate: 0,
           consistencyScore: 0,
           percentileRank: 50,
@@ -356,6 +444,36 @@ export const analyticsQueryService = {
   ): Promise<Result<SkillProgress[], ServiceError>> {
     try {
       if (USE_MOCK) {
+        // Try real skill data first
+        const allSkillLevels = await apiClient.get<Record<string, AthleteSkillLevels>>(
+          STORAGE_KEYS.SKILL_LEVELS,
+          {},
+        );
+        const athleteSkills = allSkillLevels[athleteId];
+
+        if (athleteSkills && Object.keys(athleteSkills.skills).length > 0) {
+          const skills: SkillProgress[] = Object.values(athleteSkills.skills).map((s) => ({
+            skillName: s.skill,
+            category: 'Technical',
+            currentLevel: Math.round(s.level * 10),
+            previousLevel: s.previousLevel ? Math.round(s.previousLevel * 10) : Math.round(s.level * 10),
+            changePercent: s.previousLevel && s.previousLevel > 0
+              ? Math.round(((s.level - s.previousLevel) / s.previousLevel) * 1000) / 10
+              : 0,
+            history: s.history.map((h) => ({
+              date: h.date.split('T')[0],
+              level: Math.round(h.level * 10),
+            })),
+          }));
+
+          if (skillName) {
+            const filtered = skills.filter((s) => s.skillName === skillName);
+            return ok(filtered);
+          }
+          return ok(skills);
+        }
+
+        // Fall back to cached/mock data
         analyticsCache = await loadAnalytics();
         const analytics = analyticsCache.find((a) => a.athleteId === athleteId);
         if (!analytics) return ok([]);

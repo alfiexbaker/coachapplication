@@ -24,8 +24,6 @@ import { api } from '@/constants/config';
 import type {
   CoachEarnings,
   EarningTransaction,
-  PayoutMethod,
-  Withdrawal,
 } from '@/constants/types';
 import { type Result, type ServiceError, ok, err, networkError } from '@/types/result';
 
@@ -34,22 +32,21 @@ const logger = createLogger('EarningsReportService');
 import { STORAGE_KEYS } from '@/constants/storage-keys';
 
 const USE_MOCK = api.useMock;
-const PLATFORM_FEE_PERCENT = 10;
 
 // Transaction filter type for earnings queries
-export type TransactionFilter = 'all' | 'payments' | 'refunds' | 'withdrawals';
+export type TransactionFilter = 'all' | 'payments' | 'refunds';
 
 // ============================================================================
 // MOCK DATA
 // ============================================================================
 
 const MOCK_TRANSACTIONS: EarningTransaction[] = [
-  // Coach 1 transactions
+  // Coach 1 transactions (all onsite — full session price, no platform fees)
   {
     id: 'txn_1',
     coachId: 'coach1',
     type: 'SESSION_PAYMENT',
-    amount: 54, // 60 - 10% platform fee
+    amount: 60,
     currency: 'GBP',
     status: 'COMPLETED',
     description: '1:1 Coaching - Finishing',
@@ -62,7 +59,7 @@ const MOCK_TRANSACTIONS: EarningTransaction[] = [
     id: 'txn_2',
     coachId: 'coach1',
     type: 'SESSION_PAYMENT',
-    amount: 54,
+    amount: 60,
     currency: 'GBP',
     status: 'COMPLETED',
     description: '1:1 Coaching - Dribbling',
@@ -75,7 +72,7 @@ const MOCK_TRANSACTIONS: EarningTransaction[] = [
     id: 'txn_3',
     coachId: 'coach1',
     type: 'SESSION_PAYMENT',
-    amount: 90, // 100 - 10% for group session
+    amount: 100,
     currency: 'GBP',
     status: 'COMPLETED',
     description: 'Group Training - U12',
@@ -85,21 +82,10 @@ const MOCK_TRANSACTIONS: EarningTransaction[] = [
     completedAt: '2026-01-06T12:05:00Z',
   },
   {
-    id: 'txn_4',
-    coachId: 'coach1',
-    type: 'WITHDRAWAL',
-    amount: -150,
-    currency: 'GBP',
-    status: 'COMPLETED',
-    description: 'Withdrawal to Barclays ****4521',
-    createdAt: '2026-01-05T10:00:00Z',
-    completedAt: '2026-01-06T09:00:00Z',
-  },
-  {
     id: 'txn_5',
     coachId: 'coach1',
     type: 'SESSION_PAYMENT',
-    amount: 45,
+    amount: 50,
     currency: 'GBP',
     status: 'COMPLETED',
     description: '1:1 Coaching - Passing',
@@ -112,7 +98,7 @@ const MOCK_TRANSACTIONS: EarningTransaction[] = [
     id: 'txn_6',
     coachId: 'coach1',
     type: 'REFUND',
-    amount: -54,
+    amount: -60,
     currency: 'GBP',
     status: 'COMPLETED',
     description: 'Refund - Session cancelled by parent',
@@ -124,7 +110,7 @@ const MOCK_TRANSACTIONS: EarningTransaction[] = [
     id: 'txn_7',
     coachId: 'coach1',
     type: 'SESSION_PAYMENT',
-    amount: 63,
+    amount: 70,
     currency: 'GBP',
     status: 'COMPLETED',
     description: '1:1 Coaching - Defending',
@@ -138,7 +124,7 @@ const MOCK_TRANSACTIONS: EarningTransaction[] = [
     id: 'txn_8',
     coachId: 'coach2',
     type: 'SESSION_PAYMENT',
-    amount: 72, // 80 - 10%
+    amount: 80,
     currency: 'GBP',
     status: 'COMPLETED',
     description: '1:1 Coaching - Goalkeeping',
@@ -151,7 +137,7 @@ const MOCK_TRANSACTIONS: EarningTransaction[] = [
     id: 'txn_9',
     coachId: 'coach2',
     type: 'SESSION_PAYMENT',
-    amount: 72,
+    amount: 80,
     currency: 'GBP',
     status: 'COMPLETED',
     description: '1:1 Coaching - Goalkeeping',
@@ -164,7 +150,7 @@ const MOCK_TRANSACTIONS: EarningTransaction[] = [
     id: 'txn_10',
     coachId: 'coach2',
     type: 'SESSION_PAYMENT',
-    amount: 63,
+    amount: 70,
     currency: 'GBP',
     status: 'PENDING',
     description: '1:1 Coaching - Defending',
@@ -173,21 +159,10 @@ const MOCK_TRANSACTIONS: EarningTransaction[] = [
     createdAt: '2026-01-11T10:00:00Z',
   },
   {
-    id: 'txn_11',
-    coachId: 'coach2',
-    type: 'WITHDRAWAL',
-    amount: -200,
-    currency: 'GBP',
-    status: 'COMPLETED',
-    description: 'Withdrawal to HSBC ****8834',
-    createdAt: '2025-12-28T14:00:00Z',
-    completedAt: '2025-12-29T10:00:00Z',
-  },
-  {
     id: 'txn_12',
     coachId: 'coach2',
     type: 'SESSION_PAYMENT',
-    amount: 81,
+    amount: 90,
     currency: 'GBP',
     status: 'COMPLETED',
     description: 'Group Training - Beginners',
@@ -201,7 +176,7 @@ const MOCK_TRANSACTIONS: EarningTransaction[] = [
     id: 'txn_13',
     coachId: 'coach3',
     type: 'SESSION_PAYMENT',
-    amount: 45,
+    amount: 50,
     currency: 'GBP',
     status: 'COMPLETED',
     description: '1:1 Coaching - Conditioning',
@@ -214,7 +189,7 @@ const MOCK_TRANSACTIONS: EarningTransaction[] = [
     id: 'txn_14',
     coachId: 'coach3',
     type: 'SESSION_PAYMENT',
-    amount: 45,
+    amount: 50,
     currency: 'GBP',
     status: 'COMPLETED',
     description: '1:1 Coaching - Conditioning',
@@ -227,7 +202,7 @@ const MOCK_TRANSACTIONS: EarningTransaction[] = [
     id: 'txn_15',
     coachId: 'coach3',
     type: 'SESSION_PAYMENT',
-    amount: 54,
+    amount: 60,
     currency: 'GBP',
     status: 'COMPLETED',
     description: '1:1 Coaching - Passing',
@@ -240,7 +215,7 @@ const MOCK_TRANSACTIONS: EarningTransaction[] = [
     id: 'txn_16',
     coachId: 'coach3',
     type: 'REFUND',
-    amount: -36,
+    amount: -40,
     currency: 'GBP',
     status: 'COMPLETED',
     description: 'Refund - Weather cancellation',
@@ -253,58 +228,55 @@ const MOCK_TRANSACTIONS: EarningTransaction[] = [
 const MOCK_EARNINGS: Record<string, CoachEarnings> = {
   coach1: {
     coachId: 'coach1',
-    availableBalance: 252,
+    availableBalance: 280,
     pendingBalance: 0,
-    totalEarned: 1893,
-    totalWithdrawn: 1650,
+    totalEarned: 2100,
+    totalWithdrawn: 0,
     totalSessions: 42,
-    averageSessionValue: 45,
-    thisWeek: 198,
-    thisMonth: 543,
-    lastMonth: 612,
+    averageSessionValue: 50,
+    thisWeek: 220,
+    thisMonth: 600,
+    lastMonth: 680,
     recentTransactions: [],
     pendingWithdrawals: [],
     payoutMethods: [],
-    defaultPayoutMethodId: 'pm_1',
-    platformFeePercent: PLATFORM_FEE_PERCENT,
+    platformFeePercent: 0,
     currency: 'GBP',
     updatedAt: new Date().toISOString(),
   },
   coach2: {
     coachId: 'coach2',
-    availableBalance: 288,
-    pendingBalance: 63,
-    totalEarned: 2456,
-    totalWithdrawn: 2168,
+    availableBalance: 320,
+    pendingBalance: 70,
+    totalEarned: 2730,
+    totalWithdrawn: 0,
     totalSessions: 58,
-    averageSessionValue: 42,
-    thisWeek: 225,
-    thisMonth: 489,
-    lastMonth: 578,
+    averageSessionValue: 47,
+    thisWeek: 250,
+    thisMonth: 540,
+    lastMonth: 640,
     recentTransactions: [],
     pendingWithdrawals: [],
     payoutMethods: [],
-    defaultPayoutMethodId: 'pm_3',
-    platformFeePercent: PLATFORM_FEE_PERCENT,
+    platformFeePercent: 0,
     currency: 'GBP',
     updatedAt: new Date().toISOString(),
   },
   coach3: {
     coachId: 'coach3',
-    availableBalance: 108,
+    availableBalance: 120,
     pendingBalance: 0,
-    totalEarned: 956,
-    totalWithdrawn: 848,
+    totalEarned: 1060,
+    totalWithdrawn: 0,
     totalSessions: 21,
-    averageSessionValue: 46,
-    thisWeek: 144,
-    thisMonth: 280,
-    lastMonth: 195,
+    averageSessionValue: 50,
+    thisWeek: 160,
+    thisMonth: 310,
+    lastMonth: 215,
     recentTransactions: [],
     pendingWithdrawals: [],
     payoutMethods: [],
-    defaultPayoutMethodId: 'pm_5',
-    platformFeePercent: PLATFORM_FEE_PERCENT,
+    platformFeePercent: 0,
     currency: 'GBP',
     updatedAt: new Date().toISOString(),
   },
@@ -338,30 +310,6 @@ async function saveEarnings(earnings: Record<string, CoachEarnings>): Promise<vo
   } catch (error) {
     logger.error('Failed to save earnings', error);
   }
-}
-
-async function loadPayoutMethods(): Promise<PayoutMethod[]> {
-  try {
-    const stored = await apiClient.get<PayoutMethod[] | null>(STORAGE_KEYS.PAYOUT_METHODS, null);
-    if (stored) {
-      return stored;
-    }
-  } catch (error) {
-    logger.error('Failed to load payout methods', error);
-  }
-  return [];
-}
-
-async function loadWithdrawals(): Promise<Withdrawal[]> {
-  try {
-    const stored = await apiClient.get<Withdrawal[] | null>(STORAGE_KEYS.WITHDRAWALS, null);
-    if (stored) {
-      return stored;
-    }
-  } catch (error) {
-    logger.error('Failed to load withdrawals', error);
-  }
-  return [];
 }
 
 async function loadTransactions(): Promise<EarningTransaction[]> {
@@ -406,8 +354,6 @@ export const earningsReportService = {
       if (USE_MOCK) {
         earningsCache = await loadEarnings();
         transactionsCache = await loadTransactions();
-        const withdrawalsCache = await loadWithdrawals();
-        const payoutMethodsCache = await loadPayoutMethods();
 
         const earnings = earningsCache[coachId];
         if (!earnings) {
@@ -427,28 +373,22 @@ export const earningsReportService = {
             recentTransactions: [],
             pendingWithdrawals: [],
             payoutMethods: [],
-            platformFeePercent: PLATFORM_FEE_PERCENT,
+            platformFeePercent: 0,
             currency: 'GBP',
             updatedAt: new Date().toISOString(),
           });
         }
 
-        // Populate related data
+        // Populate recent transactions
         const coachTransactions = transactionsCache
           .filter((t) => t.coachId === coachId)
           .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
 
-        const pendingWithdrawals = withdrawalsCache.filter(
-          (w) => w.coachId === coachId && (w.status === 'PENDING' || w.status === 'PROCESSING'),
-        );
-
-        const payoutMethods = payoutMethodsCache.filter((p) => p.coachId === coachId);
-
         return ok({
           ...earnings,
           recentTransactions: coachTransactions.slice(0, 10),
-          pendingWithdrawals,
-          payoutMethods,
+          pendingWithdrawals: [],
+          payoutMethods: [],
           updatedAt: new Date().toISOString(),
         });
       }
@@ -483,14 +423,11 @@ export const earningsReportService = {
   ): Promise<Result<EarningTransaction, ServiceError>> {
     logger.debug('Recording session payment', { coachId, bookingId, amount });
 
-    const platformFee = amount * (PLATFORM_FEE_PERCENT / 100);
-    const netAmount = amount - platformFee;
-
     const transaction: EarningTransaction = {
       id: `txn_${Date.now()}`,
       coachId,
       type: 'SESSION_PAYMENT',
-      amount: netAmount,
+      amount,
       currency: 'GBP',
       status: 'COMPLETED',
       description: 'Session payment',
@@ -510,8 +447,8 @@ export const earningsReportService = {
 
         // Update coach earnings
         if (earningsCache[coachId]) {
-          earningsCache[coachId].availableBalance += netAmount;
-          earningsCache[coachId].totalEarned += netAmount;
+          earningsCache[coachId].availableBalance += amount;
+          earningsCache[coachId].totalEarned += amount;
           earningsCache[coachId].totalSessions += 1;
           earningsCache[coachId].averageSessionValue = Math.round(
             earningsCache[coachId].totalEarned / earningsCache[coachId].totalSessions,
@@ -522,19 +459,19 @@ export const earningsReportService = {
           // Create new earnings record for coach
           earningsCache[coachId] = {
             coachId,
-            availableBalance: netAmount,
+            availableBalance: amount,
             pendingBalance: 0,
-            totalEarned: netAmount,
+            totalEarned: amount,
             totalWithdrawn: 0,
             totalSessions: 1,
-            averageSessionValue: netAmount,
-            thisWeek: netAmount,
-            thisMonth: netAmount,
+            averageSessionValue: amount,
+            thisWeek: amount,
+            thisMonth: amount,
             lastMonth: 0,
             recentTransactions: [],
             pendingWithdrawals: [],
             payoutMethods: [],
-            platformFeePercent: PLATFORM_FEE_PERCENT,
+            platformFeePercent: 0,
             currency: 'GBP',
             updatedAt: new Date().toISOString(),
           };
@@ -544,7 +481,7 @@ export const earningsReportService = {
         logger.info('Session payment recorded', {
           transactionId: transaction.id,
           coachId,
-          netAmount,
+          amount,
         });
         return ok(transaction);
       }
@@ -579,13 +516,11 @@ export const earningsReportService = {
   ): Promise<Result<EarningTransaction, ServiceError>> {
     logger.debug('Recording refund', { coachId, bookingId, amount });
 
-    const netRefund = amount * (1 - PLATFORM_FEE_PERCENT / 100);
-
     const transaction: EarningTransaction = {
       id: `txn_refund_${Date.now()}`,
       coachId,
       type: 'REFUND',
-      amount: -netRefund,
+      amount: -amount,
       currency: 'GBP',
       status: 'COMPLETED',
       description: reason || 'Session refund',
@@ -604,8 +539,8 @@ export const earningsReportService = {
 
         // Update coach earnings
         if (earningsCache[coachId]) {
-          earningsCache[coachId].availableBalance -= netRefund;
-          earningsCache[coachId].totalEarned -= netRefund;
+          earningsCache[coachId].availableBalance -= amount;
+          earningsCache[coachId].totalEarned -= amount;
           earningsCache[coachId].updatedAt = new Date().toISOString();
           await saveEarnings(earningsCache);
         }
@@ -613,7 +548,7 @@ export const earningsReportService = {
         logger.info('Refund recorded', {
           transactionId: transaction.id,
           coachId,
-          netRefund,
+          amount,
         });
         return ok(transaction);
       }

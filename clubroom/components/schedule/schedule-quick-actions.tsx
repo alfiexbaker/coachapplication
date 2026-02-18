@@ -31,23 +31,17 @@ export const ScheduleQuickActions = memo(function ScheduleQuickActions() {
       <Clickable
         onPress={goCreate}
         accessibilityLabel="Create session"
-        style={[styles.pill, { backgroundColor: withAlpha(colors.success, 0.09) }]}
+        style={[styles.pill, { backgroundColor: withAlpha(colors.tint, 0.09) }]}
       >
-        <Row align="center" gap="xxs">
-          <Ionicons name="add-circle-outline" size={16} color={colors.success} />
-          <ThemedText style={[styles.pillText, { color: colors.success }]}>Create</ThemedText>
-        </Row>
+        <ThemedText style={[styles.pillText, { color: colors.tint }]}>Create</ThemedText>
       </Clickable>
 
       <Clickable
         onPress={goBookings}
         accessibilityLabel="View bookings"
-        style={[styles.pill, { backgroundColor: withAlpha(colors.accent, 0.09) }]}
+        style={[styles.pill, { backgroundColor: withAlpha(colors.tint, 0.09) }]}
       >
-        <Row align="center" gap="xxs">
-          <Ionicons name="calendar-outline" size={16} color={colors.accent} />
-          <ThemedText style={[styles.pillText, { color: colors.accent }]}>Bookings</ThemedText>
-        </Row>
+        <ThemedText style={[styles.pillText, { color: colors.tint }]}>Bookings</ThemedText>
       </Clickable>
 
       <Clickable
@@ -55,10 +49,7 @@ export const ScheduleQuickActions = memo(function ScheduleQuickActions() {
         accessibilityLabel="Manage schedule"
         style={[styles.pill, { backgroundColor: withAlpha(colors.tint, 0.09) }]}
       >
-        <Row align="center" gap="xxs">
-          <Ionicons name="construct-outline" size={16} color={colors.tint} />
-          <ThemedText style={[styles.pillText, { color: colors.tint }]}>Manage</ThemedText>
-        </Row>
+        <ThemedText style={[styles.pillText, { color: colors.tint }]}>Manage</ThemedText>
       </Clickable>
     </Row>
   );

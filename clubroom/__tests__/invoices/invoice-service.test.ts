@@ -52,6 +52,7 @@ describe('Invoice Service Utility Functions', () => {
         SENT: 'Sent',
         PAID: 'Paid',
         VOID: 'Voided',
+        WRITTEN_OFF: 'Written Off',
       };
       return labels[status];
     };
@@ -80,6 +81,7 @@ describe('Invoice Service Utility Functions', () => {
         SENT: '#2563EB',
         PAID: '#059669',
         VOID: '#DC2626',
+        WRITTEN_OFF: '#9CA3AF',
       };
       return colors[status];
     };
@@ -426,7 +428,7 @@ describe('Invoice Service Utility Functions', () => {
 
 describe('Invoice Types', () => {
   test('InvoiceStatus should have expected values', () => {
-    const validStatuses: InvoiceStatus[] = ['DRAFT', 'SENT', 'PAID', 'VOID'];
+    const validStatuses: InvoiceStatus[] = ['DRAFT', 'SENT', 'PAID', 'VOID', 'WRITTEN_OFF'];
     assert.strictEqual(validStatuses.length, 4);
   });
 

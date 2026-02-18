@@ -36,7 +36,6 @@ import {
 import { STORAGE_KEYS } from '@/constants/storage-keys';
 
 const logger = createLogger('SchedulingRulesService');
-const PLATFORM_FEE_PERCENT = 10; // 10% platform fee on refunds
 
 /**
  * Default scheduling rules for new coaches
@@ -735,24 +734,22 @@ class SchedulingRulesService {
 
     const refundPercentage = appliedTier?.refundPercentage ?? 0;
     const refundAmount = Math.round(((bookingAmount * refundPercentage) / 100) * 100) / 100;
-    const platformFee = Math.round(((refundAmount * PLATFORM_FEE_PERCENT) / 100) * 100) / 100;
-    const netRefundAmount = Math.round((refundAmount - platformFee) * 100) / 100;
 
     // Build explanation
     let explanation: string;
     if (refundPercentage === 100) {
-      explanation = `Full refund of £${refundAmount.toFixed(2)} (less £${platformFee.toFixed(2)} platform fee).`;
+      explanation = `Full refund of £${refundAmount.toFixed(2)}.`;
     } else if (refundPercentage === 0) {
       explanation = `No refund available. Session is within ${appliedTier?.hoursBeforeSession || 0} hours.`;
     } else {
-      explanation = `${refundPercentage}% refund: £${refundAmount.toFixed(2)} (less £${platformFee.toFixed(2)} platform fee).`;
+      explanation = `${refundPercentage}% refund: £${refundAmount.toFixed(2)}.`;
     }
 
     return {
       originalAmount: bookingAmount,
       refundAmount,
-      platformFee,
-      netRefundAmount,
+      platformFee: 0,
+      netRefundAmount: refundAmount,
       refundPercentage,
       hoursUntilSession,
       appliedTier,

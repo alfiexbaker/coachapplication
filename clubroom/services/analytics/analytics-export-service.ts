@@ -26,8 +26,11 @@ import type {
   SessionStats,
   PeakHoursData,
   TopSkillData,
+  EarningTransaction,
+  Booking,
 } from '@/constants/types';
 import { DAY_NAMES } from '@/constants/booking-types';
+import type { SessionFeedback } from '@/services/progress/progress-feedback-service';
 import { createLogger } from '@/utils/logger';
 import { toDateStr } from '@/utils/format';
 import { api } from '@/constants/config';
@@ -390,6 +393,137 @@ async function saveCoachAnalytics(analytics: Record<string, CoachAnalytics>): Pr
 }
 
 // ============================================================================
+// REAL DATA BUILDER
+// ============================================================================
+
+/**
+ * Build CoachAnalytics from real EARNING_TRANSACTIONS, BOOKINGS, and SESSION_FEEDBACK.
+ * Returns null if no real data exists for this coach.
+ */
+async function buildRealCoachAnalytics(
+  coachId: string,
+  period: CoachAnalyticsPeriod,
+): Promise<CoachAnalytics | null> {
+  const [transactions, bookings, feedback] = await Promise.all([
+    apiClient.get<EarningTransaction[]>(STORAGE_KEYS.EARNING_TRANSACTIONS, []),
+    apiClient.get<Booking[]>(STORAGE_KEYS.BOOKINGS, []),
+    apiClient.get<SessionFeedback[]>(STORAGE_KEYS.SESSION_FEEDBACK, []),
+  ]);
+
+  const coachTxns = transactions.filter(
+    (t) => t.coachId === coachId && t.type === 'SESSION_PAYMENT' && t.status === 'COMPLETED',
+  );
+  const coachBookings = bookings.filter((b) => b.coachId === coachId);
+  const coachFeedback = feedback.filter((f) => f.coachId === coachId);
+
+  // If no real transactions or bookings, return null to fall back to mock
+  if (coachTxns.length === 0 && coachBookings.length === 0 && coachFeedback.length === 0) {
+    return null;
+  }
+
+  const dateRange = getDateRangeForPeriod(period);
+  const totalRevenue = coachTxns.reduce((sum, t) => sum + t.amount, 0);
+  const completedBookings = coachBookings.filter((b) => b.status === 'COMPLETED');
+  const totalSessions = completedBookings.length || coachTxns.length;
+
+  // Build revenue chart from real transactions
+  const revenueChart: RevenueDataPoint[] = [];
+  const txnsByDate = new Map<string, { amount: number; count: number }>();
+  for (const txn of coachTxns) {
+    const date = txn.createdAt?.split('T')[0] || txn.sessionDate || '';
+    if (!date) continue;
+    const existing = txnsByDate.get(date) || { amount: 0, count: 0 };
+    existing.amount += txn.amount;
+    existing.count += 1;
+    txnsByDate.set(date, existing);
+  }
+  for (const [date, data] of txnsByDate) {
+    revenueChart.push({ date, amount: data.amount, sessionCount: data.count });
+  }
+  revenueChart.sort((a, b) => a.date.localeCompare(b.date));
+
+  // Calculate average rating from feedback
+  const avgRating = coachFeedback.length > 0
+    ? Math.round(
+        (coachFeedback.reduce((sum, f) => sum + f.overallPerformance, 0) / coachFeedback.length) * 10,
+      ) / 10
+    : 0;
+
+  // Build top skills from feedback
+  const skillCounts = new Map<string, { count: number; revenue: number }>();
+  for (const fb of coachFeedback) {
+    for (const skill of fb.skillsWorkedOn) {
+      const existing = skillCounts.get(skill) || { count: 0, revenue: 0 };
+      existing.count += 1;
+      skillCounts.set(skill, existing);
+    }
+  }
+  const topSkills: TopSkillData[] = [...skillCounts.entries()]
+    .sort((a, b) => b[1].count - a[1].count)
+    .slice(0, 5)
+    .map(([skill, data]) => ({
+      skill,
+      sessionCount: data.count,
+      percentage: totalSessions > 0 ? Math.round((data.count / totalSessions) * 100) : 0,
+      revenue: Math.round((data.count / Math.max(1, coachFeedback.length)) * totalRevenue),
+    }));
+
+  // Unique athletes = clients
+  const uniqueAthletes = new Set(coachBookings.map((b) => b.athleteId || b.athleteIds?.[0]).filter(Boolean));
+
+  const coachName = coachBookings[0]?.coachName || 'Coach';
+
+  return {
+    coachId,
+    coachName,
+    period,
+    dateRange,
+    totalRevenue: Math.round(totalRevenue),
+    revenueChange: 0,
+    revenueChangePercent: 0,
+    revenueTrend: 'STABLE',
+    revenueChart,
+    avgRevenuePerSession: totalSessions > 0 ? Math.round(totalRevenue / totalSessions) : 0,
+    sessions: {
+      totalSessions,
+      sessionsChange: 0,
+      sessionsChangePercent: 0,
+      avgSessionsPerWeek: Math.round(totalSessions / 4),
+      avgDuration: 60,
+      popularSessionType: '1-on-1 Coaching',
+      bySessionType: [
+        { type: '1-on-1 Coaching', count: totalSessions, percentage: 100, revenue: totalRevenue },
+      ],
+    },
+    retention: {
+      newClients: uniqueAthletes.size,
+      returningClients: 0,
+      churnRate: 0,
+      retentionRate: 100,
+      avgSessionsPerClient: uniqueAthletes.size > 0 ? Math.round(totalSessions / uniqueAthletes.size * 10) / 10 : 0,
+      totalActiveClients: uniqueAthletes.size,
+      clientsLost: 0,
+    },
+    cancellations: {
+      totalCancellations: 0,
+      cancellationRate: 0,
+      byReason: [],
+      byDayOfWeek: [],
+      avgNoticeHours: 0,
+      revenueLost: 0,
+    },
+    peakHours: [],
+    busiestDay: { dayOfWeek: 6, dayName: 'Saturday', sessionCount: 0 },
+    busiestHour: { hour: 17, sessionCount: 0 },
+    topSkills,
+    avgRating,
+    ratingChange: 0,
+    reviewCount: coachFeedback.length,
+    computedAt: new Date().toISOString(),
+  };
+}
+
+// ============================================================================
 // ANALYTICS EXPORT SERVICE (Coach Analytics)
 // ============================================================================
 
@@ -403,6 +537,13 @@ export const analyticsExportService = {
   ): Promise<Result<CoachAnalytics | null, ServiceError>> {
     try {
       if (USE_MOCK) {
+        // Try real data first (from actual session completions + earnings)
+        const realAnalytics = await buildRealCoachAnalytics(coachId, period);
+        if (realAnalytics) {
+          return ok(realAnalytics);
+        }
+
+        // Fall back to cached/mock data
         coachAnalyticsCache = await loadCoachAnalytics();
         const analytics = coachAnalyticsCache[coachId];
 

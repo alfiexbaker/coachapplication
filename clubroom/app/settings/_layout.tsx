@@ -13,6 +13,10 @@ export default function SettingsLayout() {
       <Stack.Screen name="help" />
       <Stack.Screen name="terms" />
       <Stack.Screen name="privacy-policy" />
+      <Stack.Screen name="cancellation-policy" />
+      <Stack.Screen name="blocked-dates" />
+      <Stack.Screen name="smart-slots" />
+      <Stack.Screen name="travel-radius" />
     </Stack>
   );
 }

@@ -27,7 +27,7 @@ type ChatScreenData = {
 };
 
 export default function ChatScreen() {
-  const { threadId } = useLocalSearchParams<{ threadId: string }>();
+  const { threadId, prefill } = useLocalSearchParams<{ threadId: string; prefill?: string }>();
   const [showSafetyBanner, setShowSafetyBanner] = useState(true);
   const [postingAs, setPostingAs] = useState<string | undefined>();
 
@@ -185,7 +185,7 @@ export default function ChatScreen() {
         <TypingIndicator />
       </ScrollView>
       <View style={[styles.chatInput, { borderTopColor: palette.border }]}>
-        <ChatInput onAttach={() => {}} disabled={!thread} onSend={handleSend} />
+        <ChatInput onAttach={() => {}} disabled={!thread} onSend={handleSend} initialValue={prefill} />
       </View>
     </SafeAreaView>
   );

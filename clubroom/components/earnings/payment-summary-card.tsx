@@ -1,5 +1,5 @@
 /**
- * PaymentSummaryCard — Income summary: owed vs collected split.
+ * PaymentSummaryCard — Income summary: owed vs collected split, optional written-off line.
  */
 
 import { memo } from 'react';
@@ -17,6 +17,8 @@ interface PaymentSummaryCardProps {
   totalCollected: number;
   unpaidCount: number;
   paidCount: number;
+  totalWrittenOff?: number;
+  writtenOffCount?: number;
 }
 
 function PaymentSummaryCardInner({
@@ -24,6 +26,8 @@ function PaymentSummaryCardInner({
   totalCollected,
   unpaidCount,
   paidCount,
+  totalWrittenOff = 0,
+  writtenOffCount = 0,
 }: PaymentSummaryCardProps) {
   const { colors } = useTheme();
 
@@ -57,6 +61,15 @@ function PaymentSummaryCardInner({
           </ThemedText>
         </View>
       </Row>
+
+      {writtenOffCount > 0 && (
+        <Row align="center" gap="xs" style={styles.writtenOffRow}>
+          <Ionicons name="close-circle-outline" size={14} color={colors.muted} />
+          <ThemedText style={[Typography.caption, { color: colors.muted }]}>
+            {formatGBP(totalWrittenOff)} written off ({writtenOffCount} {writtenOffCount === 1 ? 'session' : 'sessions'})
+          </ThemedText>
+        </Row>
+      )}
     </SurfaceCard>
   );
 }
@@ -75,5 +88,9 @@ const styles = StyleSheet.create({
     padding: Spacing.sm,
     borderRadius: 12,
     gap: Spacing.xxs,
+  },
+  writtenOffRow: {
+    marginTop: Spacing.sm,
+    paddingTop: Spacing.xs,
   },
 });

@@ -41,7 +41,7 @@
 11. **Touch targets**: 44px minimum (via minHeight or hitSlop)
 12. **Memoization**: `memo()` on FlatList renderItem, `useCallback` on handler props
 13. **Colors**: `const { colors, scheme } = useTheme()` — NEVER `Colors.light.*` directly
-14. **Screen structure**: `useScreen()` hook for data loading. Max 250 lines per screen file.
+14. **Screen structure**: `useScreen()` hook for data loading.
 15. **Layout**: `Row`, `Column`, `Center`, `Spacer` from `@/components/primitives` — never raw `View` with `flexDirection: 'row'`
 
 ## Key Files
@@ -142,7 +142,7 @@ Types → Storage keys → Services → Components → Screens → Navigation �
 ### Zero Tolerance
 - `any` / `as any` / TouchableOpacity / hardcoded colors, spacing, shadows
 - Missing visual states / accessibilityLabel / useCallback / memo()
-- Screens >250 lines / raw View+flexDirection / missing useScreen()
+- raw View+flexDirection / missing useScreen()
 
 ## Gotchas
 - `tsconfig.test.json` include must cover transitive deps

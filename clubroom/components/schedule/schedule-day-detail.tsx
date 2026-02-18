@@ -99,11 +99,7 @@ export const ScheduleDayDetail = memo(function ScheduleDayDetail({
                 ? 'Available but no bookings yet'
                 : 'No availability set for this day'}
             </ThemedText>
-            {!day.isPast && onCreateSession && (
-              <Button onPress={handleCreate} variant="primary" size="sm">
-                Create Session
-              </Button>
-            )}
+            {null}
           </Center>
         ) : (
           <Column gap="sm">

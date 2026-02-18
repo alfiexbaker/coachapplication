@@ -299,7 +299,7 @@ export interface PackageRedemption {
 /**
  * Status of an invoice
  */
-export type InvoiceStatus = 'DRAFT' | 'SENT' | 'PAID' | 'VOID';
+export type InvoiceStatus = 'DRAFT' | 'SENT' | 'PAID' | 'VOID' | 'WRITTEN_OFF';
 
 /**
  * Represents an invoice for a coaching session

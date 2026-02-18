@@ -27,8 +27,8 @@ export const SettingsMembersSection = memo(function SettingsMembersSection({
   return (
     <Animated.View entering={FadeInDown.springify()}>
       <SurfaceCard style={styles.card}>
-        <Row align="flex-start" justify="space-between">
-          <View>
+        <Row align="center" justify="space-between" gap="sm">
+          <View style={styles.headerText}>
             <ThemedText type="defaultSemiBold" style={Typography.heading}>
               Members ({members.length})
             </ThemedText>
@@ -42,63 +42,70 @@ export const SettingsMembersSection = memo(function SettingsMembersSection({
             style={[styles.inviteBtn, { borderColor: colors.tint }]}
             onPress={() => router.push(Routes.CLUB_INVITE_MEMBERS)}
           >
-            <Ionicons name="person-add-outline" size={18} color={colors.tint} />
-            <ThemedText style={{ color: colors.tint, fontWeight: '600' }}>Invite</ThemedText>
+            <Row align="center" gap="xs">
+              <Ionicons name="person-add-outline" size={16} color={colors.tint} />
+              <ThemedText style={[Typography.small, { color: colors.tint, fontWeight: '600' }]}>Invite</ThemedText>
+            </Row>
           </Clickable>
         </Row>
 
-        {members.map((member) => (
-          <Clickable
-            key={member.userId}
-            style={[styles.row, { borderColor: colors.border }]}
-            onPress={() => {
-              if (clubId) router.push(Routes.clubMember(clubId, member.userId));
-            }}
-          >
-            <View style={[styles.avatar, { backgroundColor: withAlpha(colors.tint, 0.12) }]}>
-              <ThemedText style={{ color: colors.tint, fontWeight: '600' }}>
-                {member.userName.charAt(0)}
-              </ThemedText>
-            </View>
-            <View style={{ flex: 1, gap: Spacing.xs }}>
-              <ThemedText type="defaultSemiBold">{member.userName}</ThemedText>
-              <View
-                style={[
-                  styles.roleBadge,
-                  { backgroundColor: withAlpha(clubService.getRoleColor(member.role), 0.12) },
-                ]}
+        <View style={styles.list}>
+          {members.map((member, index) => (
+            <React.Fragment key={member.userId}>
+              <Clickable
+                onPress={() => {
+                  if (clubId) router.push(Routes.clubMember(clubId, member.userId));
+                }}
               >
-                <ThemedText
-                  style={[Typography.caption, { color: clubService.getRoleColor(member.role) }]}
-                >
-                  {clubService.formatRole(member.role)}
-                </ThemedText>
-              </View>
-            </View>
-            <Ionicons name="chevron-forward" size={20} color={colors.muted} />
-          </Clickable>
-        ))}
+                <Row align="center" gap="sm" style={styles.memberRow}>
+                  <View style={[styles.avatar, { backgroundColor: withAlpha(colors.tint, 0.09) }]}>
+                    <ThemedText style={[Typography.body, { color: colors.tint, fontWeight: '600' }]}>
+                      {member.userName.charAt(0)}
+                    </ThemedText>
+                  </View>
+                  <View style={styles.memberInfo}>
+                    <ThemedText type="defaultSemiBold" numberOfLines={1}>
+                      {member.userName}
+                    </ThemedText>
+                    <ThemedText
+                      style={[Typography.caption, { color: clubService.getRoleColor(member.role) }]}
+                    >
+                      {clubService.formatRole(member.role)}
+                    </ThemedText>
+                  </View>
+                  <Ionicons name="chevron-forward" size={18} color={colors.muted} />
+                </Row>
+              </Clickable>
+              {index < members.length - 1 && (
+                <View style={[styles.separator, { backgroundColor: colors.border }]} />
+              )}
+            </React.Fragment>
+          ))}
+        </View>
       </SurfaceCard>
     </Animated.View>
   );
 });
 
 const styles = StyleSheet.create({
-  card: { gap: Spacing.md },
-  inviteBtn: {
-    alignItems: 'center',
-    gap: Spacing.xs,
-    paddingHorizontal: Spacing.md,
-    paddingVertical: Spacing.xs,
-    borderRadius: Radii.full,
-    borderWidth: 1.5,
+  card: { gap: Spacing.md, overflow: 'hidden' },
+  headerText: {
+    flex: 1,
+    flexShrink: 1,
   },
-  row: {
-    alignItems: 'center',
-    gap: Spacing.md,
-    padding: Spacing.md,
-    borderRadius: Radii.md,
+  inviteBtn: {
+    paddingHorizontal: Spacing.sm,
+    paddingVertical: Spacing.xs,
+    borderRadius: Radii.pill,
     borderWidth: 1,
+    minHeight: 36,
+    justifyContent: 'center',
+  },
+  list: {
+    marginTop: Spacing.xxs,
+  },
+  memberRow: {
+    paddingVertical: Spacing.sm,
   },
   avatar: {
     width: 40,
@@ -107,10 +114,12 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  roleBadge: {
-    paddingHorizontal: Spacing.sm,
-    paddingVertical: Spacing.micro,
-    borderRadius: Radii.sm,
-    alignSelf: 'flex-start',
+  memberInfo: {
+    flex: 1,
+    gap: Spacing.micro,
+  },
+  separator: {
+    height: StyleSheet.hairlineWidth,
+    marginLeft: 56,
   },
 });

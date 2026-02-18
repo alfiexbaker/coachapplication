@@ -39,7 +39,7 @@ type ScreenMode = 'login' | 'signup' | 'coach-signup';
 export default function LoginScreen() {
   const { colors: palette } = useTheme();
   const { width: screenWidth } = useWindowDimensions();
-  const { login, error, availableUsers } = useAuth();
+  const { login, registerCoach, error, availableUsers } = useAuth();
 
   const [screenMode, setScreenMode] = useState<ScreenMode>('login');
   const [username, setUsername] = useState('');
@@ -99,7 +99,11 @@ export default function LoginScreen() {
     const CoachSignupScreen = require('./coach-signup-screen').default;
     return (
       <CoachSignupScreen
-        onSignupComplete={() => setScreenMode('login')}
+        onSignupComplete={(data: { fullName: string; email: string; phone: string; password: string; inviteCode: string; schoolId: string; schoolName: string }) => {
+          // registerCoach calls setCurrentUser which makes isAuthenticated=true,
+          // triggering RootNavigation to swap LoginScreen for the authenticated Stack.
+          registerCoach(data);
+        }}
         onBackToLogin={() => setScreenMode('login')}
       />
     );
