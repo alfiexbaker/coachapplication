@@ -5,6 +5,7 @@ import { useState, useEffect, useCallback, useMemo } from 'react';
 import { Ionicons } from '@expo/vector-icons';
 import { schedulingRulesService } from '@/services/scheduling-rules-service';
 import { cancellationService } from '@/services/cancellation-service';
+import { notificationSenderService } from '@/services/notification/notification-sender';
 import { apiClient } from '@/services/api-client';
 import { STORAGE_KEYS } from '@/constants/storage-keys';
 import type { Booking } from '@/constants/app-types';
@@ -144,25 +145,25 @@ export function useCancelFlow({
         /* non-critical */
       }
       try {
-        const notifications = await apiClient.get<Record<string, unknown>[]>(
-          STORAGE_KEYS.NOTIFICATIONS,
-          [],
-        );
-        const recipientId = isCoachCancelling ? booking.bookedById || '' : booking.coachId;
-        const senderName = isCoachCancelling
-          ? booking.coachName || 'Coach'
-          : getBookingAthleteName(booking);
-        notifications.push({
-          id: `notif_cancel_${Date.now()}`,
-          userId: recipientId,
-          type: 'booking_cancelled',
-          title: 'Session cancelled',
-          body: `${senderName} has cancelled the ${booking.service || 'session'} on ${formatSessionDate(booking.scheduledAt || booking.start || '')}.`,
-          read: false,
-          createdAt: new Date().toISOString(),
-          data: { bookingId, reason },
-        });
-        await apiClient.set(STORAGE_KEYS.NOTIFICATIONS, notifications);
+        const dateLabel = formatSessionDate(booking.scheduledAt || booking.start || '');
+        if (isCoachCancelling) {
+          // Coach cancelled → notify parent
+          await notificationSenderService.notifyParentBookingCancelled({
+            parentId: booking.bookedById || '',
+            coachName: booking.coachName || 'Coach',
+            childName: getBookingAthleteName(booking) || undefined,
+            date: dateLabel,
+            bookingId,
+          });
+        } else {
+          // Parent cancelled → notify coach
+          await notificationSenderService.notifyCoachBookingCancelled({
+            coachId: booking.coachId,
+            parentName: booking.bookedByName || 'Parent',
+            date: dateLabel,
+            bookingId,
+          });
+        }
       } catch {
         /* non-critical */
       }

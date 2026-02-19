@@ -36,8 +36,17 @@ const STEP_ORDER_ATHLETE: OnboardingStep[] = [
   'complete',
 ];
 
+const STEP_ORDER_PARENT: OnboardingStep[] = [
+  'account-type',
+  'basic-info',
+  'location',
+  'parent-details',
+  'complete',
+];
+
 function getStepOrder(accountType: OnboardingState['accountType']): OnboardingStep[] {
   if (accountType === 'COACH') return STEP_ORDER_COACH;
+  if (accountType === 'PARENT') return STEP_ORDER_PARENT;
   return STEP_ORDER_ATHLETE;
 }
 
@@ -47,6 +56,7 @@ const STEP_LABELS: Record<OnboardingStep, string> = {
   location: 'Location',
   'coach-details': 'Coach Profile',
   'athlete-details': 'Athlete Profile',
+  'parent-details': 'Your Family',
   complete: 'All Done',
 };
 
@@ -117,6 +127,9 @@ function validateStep(state: OnboardingState): string | null {
     case 'coach-details':
       return null; // All enrichment, nothing required
 
+    case 'parent-details':
+      return null; // Children are added post-signup via add-child flow
+
     case 'complete':
       return null;
   }
@@ -180,6 +193,7 @@ export function useOnboarding({ onComplete, onBackToLogin }: UseOnboardingOption
         specializations: state.specializations.length > 0 ? state.specializations : undefined,
         bio: state.bio.trim() || undefined,
         hourlyRate: state.hourlyRate ? Number(state.hourlyRate) : undefined,
+        childrenCount: state.accountType === 'PARENT' ? state.childrenCount : undefined,
       };
 
       const success = registerFromOnboarding(data);

@@ -154,9 +154,10 @@ describe('matchService', () => {
   });
 
   describe('getMatchTypeColor (sync)', () => {
-    test('returns color string', () => {
-      const color = matchService.getMatchTypeColor('FRIENDLY');
-      assert.ok(color.startsWith('#'));
+    test('returns palette color for known type', () => {
+      const palette = { info: '#2563EB', success: '#1C8C5E', accent: '#0F172A', warning: '#C78000' };
+      const color = matchService.getMatchTypeColor('FRIENDLY', palette);
+      assert.equal(color, '#2563EB');
     });
   });
 

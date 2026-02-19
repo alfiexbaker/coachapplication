@@ -294,6 +294,8 @@ export interface SessionOffering {
   sessionType: '1on1' | 'group';
   maxParticipants: number;
   location: string;
+  venueName?: string;
+  locationCoordinates?: { latitude: number; longitude: number };
   scheduledAt: string; // ISO date string
   isRecurring: boolean;
   recurrenceType: 'none' | 'weekly' | 'biweekly';
@@ -377,6 +379,8 @@ export interface TimeSlot {
   startTime: string;
   endTime: string;
   location?: string;
+  venueName?: string;
+  locationCoordinates?: { latitude: number; longitude: number };
 }
 
 export interface SessionInvite {
@@ -613,6 +617,8 @@ export interface GroupSession {
   ageMax?: number;
   skillLevel?: 'BEGINNER' | 'INTERMEDIATE' | 'ADVANCED' | 'ALL';
   location: string;
+  venueName?: string;
+  locationCoordinates?: { latitude: number; longitude: number };
   isVirtual: boolean;
   status: 'DRAFT' | 'PUBLISHED' | 'FULL' | 'COMPLETED' | 'CANCELLED';
   createdAt: string;

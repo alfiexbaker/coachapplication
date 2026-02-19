@@ -5,7 +5,6 @@
 
 import React, { memo, useCallback } from 'react';
 import { StyleSheet } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 
 import { Clickable } from '@/components/primitives/clickable';

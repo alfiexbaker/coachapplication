@@ -15,6 +15,7 @@ import type { ThemeColors } from '@/hooks/useTheme';
 export type SessionType = '1on1' | 'small_group' | 'group' | 'camp';
 
 export type RecurrenceType = 'once' | 'weekly' | 'biweekly' | 'monthly';
+export type CampLength = 'single_day' | 'multi_day';
 
 export type WizardStep = 'details' | 'schedule' | 'review' | 'invite';
 
@@ -22,7 +23,7 @@ export const WIZARD_STEPS: WizardStep[] = ['details', 'schedule', 'review', 'inv
 
 export const WIZARD_STEP_LABELS: Record<WizardStep, string> = {
   details: 'Type & Details',
-  schedule: 'Schedule & Pricing',
+  schedule: 'Plan & Pricing',
   review: 'Review & Publish',
   invite: 'Invite Athletes',
 };
@@ -43,7 +44,7 @@ export const SESSION_TYPES: SessionTypeOption[] = [
   { key: '1on1', label: '1-on-1', description: 'Personal training', icon: 'person', maxParticipants: 1 },
   { key: 'small_group', label: 'Small Group', description: '2-4 athletes', icon: 'people', maxParticipants: 4 },
   { key: 'group', label: 'Group', description: '5+ athletes', icon: 'people-circle', maxParticipants: 15 },
-  { key: 'camp', label: 'Camp/Clinic', description: 'Intensive training', icon: 'sunny', maxParticipants: 30 },
+  { key: 'camp', label: 'Camp', description: 'Intensive training block', icon: 'sunny', maxParticipants: 30 },
 ];
 
 export interface DurationOption {
@@ -57,6 +58,7 @@ export const DURATION_OPTIONS: DurationOption[] = [
   { value: 60, label: '1 hour' },
   { value: 90, label: '1.5 hours' },
   { value: 120, label: '2 hours' },
+  { value: 180, label: '3 hours' },
 ];
 
 export interface RecurrenceOption {
@@ -70,6 +72,23 @@ export const RECURRENCE_OPTIONS: RecurrenceOption[] = [
   { key: 'weekly', label: 'Weekly', icon: 'repeat' },
   { key: 'biweekly', label: 'Biweekly', icon: 'sync' },
   { key: 'monthly', label: 'Monthly', icon: 'calendar' },
+];
+
+export const CAMP_LENGTH_OPTIONS: Array<{
+  key: CampLength;
+  label: string;
+  description: string;
+}> = [
+  {
+    key: 'single_day',
+    label: 'Single Day',
+    description: 'One-day camp event',
+  },
+  {
+    key: 'multi_day',
+    label: 'Multi-Day',
+    description: 'Consecutive day camp block',
+  },
 ];
 
 export const FOCUS_AREAS: FootballObjective[] = [

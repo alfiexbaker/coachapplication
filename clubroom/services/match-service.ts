@@ -727,16 +727,16 @@ export const matchService = {
   },
 
   /**
-   * Get match type color
+   * Get match type color from palette (theme-aware)
    */
-  getMatchTypeColor(type: MatchType): string {
+  getMatchTypeColor(type: MatchType, palette: { info: string; success: string; accent: string; warning: string }): string {
     const colors: Record<MatchType, string> = {
-      FRIENDLY: '#0891B2',
-      LEAGUE: '#16A34A',
-      CUP: '#7C3AED',
-      TOURNAMENT: '#EA580C',
+      FRIENDLY: palette.info,
+      LEAGUE: palette.success,
+      CUP: palette.accent,
+      TOURNAMENT: palette.warning,
     };
-    return colors[type] || '#6B7280';
+    return colors[type] || palette.accent;
   },
 
   /**

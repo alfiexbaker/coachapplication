@@ -117,12 +117,10 @@ export function getTierColor(tier?: 1 | 2 | 3): string {
 export function getCategoryIcon(category?: BadgeCategory): keyof typeof Ionicons.glyphMap {
   if (!category) return 'ribbon';
   const icons: Record<BadgeCategory, keyof typeof Ionicons.glyphMap> = {
-    leadership: 'people',
-    consistency: 'refresh',
-    technique: 'football',
-    mindset: 'bulb',
-    teamwork: 'hand-left',
-    resilience: 'fitness',
+    technical: 'football',
+    physical: 'fitness',
+    psychological: 'bulb',
+    social: 'people',
   };
   return icons[category];
 }

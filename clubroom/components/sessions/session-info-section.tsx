@@ -2,7 +2,7 @@
  * SessionInfoSection — Session details card: title, schedule, location, meta badges, awards.
  */
 import { memo } from 'react';
-import { StyleSheet, View } from 'react-native';
+import { Alert, StyleSheet, View } from 'react-native';
 import { Row } from '@/components/primitives/row';
 import { Clickable } from '@/components/primitives/clickable';
 import { Ionicons } from '@expo/vector-icons';
@@ -17,6 +17,7 @@ import { useTheme } from '@/hooks/useTheme';
 import { scaleFont } from '@/utils/scale';
 import type { SessionOffering, BadgeAward } from '@/constants/types';
 import { getSessionOfferingCoachName } from '@/utils/session-display';
+import { openLocationInMaps } from '@/utils/map-links';
 
 interface SessionInfoSectionProps {
   offering: SessionOffering;
@@ -35,6 +36,19 @@ function SessionInfoSectionInner({
 }: SessionInfoSectionProps) {
   const { colors: palette } = useTheme();
   const coachName = getSessionOfferingCoachName(offering);
+  const locationLabel = offering.venueName
+    ? `${offering.venueName} · ${offering.location}`
+    : offering.location;
+  const handleOpenLocation = () => {
+    void openLocationInMaps({
+      location: offering.location,
+      coordinates: offering.locationCoordinates,
+    }).then((opened) => {
+      if (!opened) {
+        Alert.alert('Error', 'Could not open maps application.');
+      }
+    });
+  };
 
   return (
     <SurfaceCard style={styles.card}>
@@ -54,10 +68,17 @@ function SessionInfoSectionInner({
         <ThemedText>{formatSchedule()}</ThemedText>
       </Row>
 
-      <Row align="center" gap={10} style={styles.detailRow}>
-        <Ionicons name="location-outline" size={20} color={palette.icon} />
-        <ThemedText>{offering.location}</ThemedText>
-      </Row>
+      <Clickable
+        onPress={handleOpenLocation}
+        accessibilityLabel="Open training location in maps"
+        style={styles.locationLink}
+      >
+        <Row align="center" gap={10} style={styles.detailRow}>
+          <Ionicons name="location-outline" size={20} color={palette.icon} />
+          <ThemedText style={{ flex: 1 }}>{locationLabel}</ThemedText>
+          <Ionicons name="navigate-outline" size={18} color={palette.tint} />
+        </Row>
+      </Clickable>
 
       {offering.description && (
         <>
@@ -143,6 +164,7 @@ const styles = StyleSheet.create({
     lineHeight: scaleFont(32),
   },
   detailRow: { marginTop: Spacing.xxs },
+  locationLink: { marginTop: Spacing.xxs },
   description: { fontSize: scaleFont(15), opacity: 0.7, lineHeight: scaleFont(22) },
   metaRow: { marginTop: Spacing.xs + Spacing.xxs },
   badge: {

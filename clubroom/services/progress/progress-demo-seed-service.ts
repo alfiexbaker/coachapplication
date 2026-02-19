@@ -2,6 +2,7 @@ import { STORAGE_KEYS } from '@/constants/storage-keys';
 import type { BadgeAward, Goal, GoalMilestone } from '@/constants/types';
 import { apiClient } from '@/services/api-client';
 import { badgeService } from '@/services/badge-service';
+import { type Result, type ServiceError, ok, err, storageError } from '@/types/result';
 import { createLogger } from '@/utils/logger';
 import { progressGoalsService } from './progress-goals-service';
 import type { SessionFeedback } from './progress-feedback-service';
@@ -367,9 +368,9 @@ async function ensureJournalSeeded(athleteId: string): Promise<void> {
 export async function ensureProgressDemoSeeded(
   athleteId: string,
   athleteName?: string,
-): Promise<void> {
+): Promise<Result<void, ServiceError>> {
   if (!athleteId) {
-    return;
+    return ok(undefined);
   }
 
   const safeAthleteName = athleteName?.trim() || 'Athlete';
@@ -380,7 +381,9 @@ export async function ensureProgressDemoSeeded(
     await ensureGoalsSeeded(athleteId);
     await ensureBadgesSeeded(athleteId);
     await ensureJournalSeeded(athleteId);
+    return ok(undefined);
   } catch (error) {
     logger.error('failed_to_seed_progress_demo', { athleteId, error });
+    return err(storageError('Failed to seed progress demo data'));
   }
 }

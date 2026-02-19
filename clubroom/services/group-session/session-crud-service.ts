@@ -324,6 +324,8 @@ export interface CreateGroupSessionInput {
   ageMax?: number;
   skillLevel?: GroupSession['skillLevel'];
   location: string;
+  venueName?: string;
+  locationCoordinates?: { latitude: number; longitude: number };
   isVirtual?: boolean;
   focus?: FootballObjective[];
   equipment?: string[];
@@ -482,6 +484,8 @@ export const sessionCrudService = {
       ageMax: input.ageMax,
       skillLevel: input.skillLevel,
       location: input.location,
+      venueName: input.venueName,
+      locationCoordinates: input.locationCoordinates,
       isVirtual: input.isVirtual || false,
       status: 'DRAFT',
       createdAt: new Date().toISOString(),

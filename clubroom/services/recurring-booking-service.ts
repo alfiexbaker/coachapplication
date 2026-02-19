@@ -13,6 +13,7 @@ import { bookingService } from './booking-service';
 import { userService } from './user-service';
 import { createLogger } from '@/utils/logger';
 import { emitTyped, ServiceEvents } from './event-bus';
+import { STORAGE_KEYS } from '@/constants/storage-keys';
 import {
   type Result,
   type ServiceError,
@@ -22,11 +23,8 @@ import {
   validationError,
   storageError,
 } from '@/types/result';
-
 // Re-export getDayName for consumers that imported it from here
 export { getDayName };
-
-import { STORAGE_KEYS } from '@/constants/storage-keys';
 
 const logger = createLogger('RecurringBookingService');
 
@@ -520,6 +518,8 @@ class RecurringBookingService {
           recurringBookingId: recurringId,
           coachId: recurring.coachId,
           coachName,
+          athleteIds: [recurring.athleteId || recurring.userId],
+          athleteNames: [athleteName],
           athleteId: recurring.athleteId || recurring.userId,
           athleteName,
           bookedById: recurring.userId,

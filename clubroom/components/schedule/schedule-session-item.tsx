@@ -4,7 +4,7 @@
  */
 
 import React, { memo, useCallback } from 'react';
-import { StyleSheet } from 'react-native';
+import { Alert, StyleSheet, type GestureResponderEvent } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
 import { Clickable } from '@/components/primitives/clickable';
@@ -15,6 +15,7 @@ import { Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
 import type { SessionData } from './schedule-types';
 import { RsvpMiniBar } from '@/components/group/rsvp-mini-bar';
+import { openLocationInMaps } from '@/utils/map-links';
 
 interface Props {
   session: SessionData;
@@ -27,6 +28,19 @@ export const ScheduleSessionItem = memo(function ScheduleSessionItem({ session, 
   const handlePress = useCallback(() => {
     onPress(session);
   }, [onPress, session]);
+  const handleOpenMap = useCallback(
+    (event: GestureResponderEvent) => {
+      event.stopPropagation();
+      if (!session.location) return;
+
+      void openLocationInMaps({ location: session.location }).then((opened) => {
+        if (!opened) {
+          Alert.alert('Error', 'Could not open maps application.');
+        }
+      });
+    },
+    [session.location],
+  );
 
   return (
     <Clickable
@@ -91,7 +105,18 @@ export const ScheduleSessionItem = memo(function ScheduleSessionItem({ session, 
         )}
       </Column>
 
-      <Ionicons name="chevron-forward" size={18} color={colors.muted} />
+      <Row align="center" gap="xs">
+        {session.location ? (
+          <Clickable
+            onPress={handleOpenMap}
+            accessibilityLabel="Open training location in maps"
+            style={[styles.mapButton, { backgroundColor: withAlpha(colors.tint, 0.08) }]}
+          >
+            <Ionicons name="navigate-outline" size={14} color={colors.tint} />
+          </Clickable>
+        ) : null}
+        <Ionicons name="chevron-forward" size={18} color={colors.muted} />
+      </Row>
     </Clickable>
   );
 });
@@ -127,5 +152,12 @@ const styles = StyleSheet.create({
   },
   metaText: {
     ...Typography.caption,
+  },
+  mapButton: {
+    width: 28,
+    height: 28,
+    borderRadius: Radii.sm,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
 });

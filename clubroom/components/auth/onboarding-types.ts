@@ -17,6 +17,7 @@ export type OnboardingStep =
   | 'location'
   | 'athlete-details'
   | 'coach-details'
+  | 'parent-details'
   | 'complete';
 
 export interface OnboardingState {
@@ -56,6 +57,9 @@ export interface OnboardingState {
   specializations: string[];
   bio: string;
   hourlyRate: string;
+
+  // Parent specific
+  childrenCount: number;
 }
 
 export type OnboardingAction =
@@ -63,7 +67,7 @@ export type OnboardingAction =
   | { type: 'SET_SUBMITTING'; value: boolean }
   | { type: 'SET_ERROR'; error: string | null }
   | { type: 'SET_ACCOUNT_TYPE'; accountType: AccountType }
-  | { type: 'SET_FIELD'; field: keyof OnboardingState; value: string | boolean | null }
+  | { type: 'SET_FIELD'; field: keyof OnboardingState; value: string | boolean | number | null }
   | { type: 'SET_SKILL_LEVEL'; value: SkillLevel }
   | { type: 'TOGGLE_SPECIALIZATION'; spec: string }
   | { type: 'TOGGLE_HAS_CHILDREN' }
@@ -79,6 +83,12 @@ export const ACCOUNT_TYPES: {
   description: string;
   icon: keyof typeof Ionicons.glyphMap;
 }[] = [
+  {
+    type: 'PARENT',
+    title: "I'm a Parent",
+    description: 'Book coaches for your children, track their progress',
+    icon: 'people',
+  },
   {
     type: 'ATHLETE',
     title: "I'm an Athlete",
@@ -160,4 +170,5 @@ export const INITIAL_STATE: OnboardingState = {
   specializations: [],
   bio: '',
   hourlyRate: '',
+  childrenCount: 1,
 };

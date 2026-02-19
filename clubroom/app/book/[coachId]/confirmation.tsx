@@ -70,18 +70,41 @@ export default function ConfirmationScreen() {
     setError(null);
 
     try {
-      // Create the booking using the validated createBooking method
-      // This saves to AsyncStorage and makes the slot unavailable for others
+      const resolvedCoach = coachId || draft.coachId;
+      const resolvedAthleteId = draft.childId || currentUser?.id;
+      const resolvedAthleteName = draft.athleteName || currentUser?.name;
+
+      if (!resolvedCoach || !draft.coachName) {
+        setError('Missing coach information. Please go back and try again.');
+        setIsCreating(false);
+        return;
+      }
+      if (!resolvedAthleteId || !resolvedAthleteName) {
+        setError('No child selected. Please go back and select a child.');
+        setIsCreating(false);
+        return;
+      }
+      if (!currentUser?.id) {
+        setError('You must be logged in to book a session.');
+        setIsCreating(false);
+        return;
+      }
+      if (!draft.date || !draft.slot) {
+        setError('Missing date or time. Please go back and select a slot.');
+        setIsCreating(false);
+        return;
+      }
+
       const result = await bookingService.createBooking({
-        coachId: coachId || draft.coachId || 'coach_1',
-        coachName: draft.coachName || 'Sarah Mitchell',
-        athleteIds: [draft.childId || 'athlete_1'],
-        athleteNames: [draft.athleteName || 'Tom Henderson'],
-        bookedById: currentUser?.id || 'unknown',
-        bookedByName: currentUser?.name || currentUser?.fullName || 'Unknown',
+        coachId: resolvedCoach,
+        coachName: draft.coachName,
+        athleteIds: [resolvedAthleteId],
+        athleteNames: [resolvedAthleteName],
+        bookedById: currentUser.id,
+        bookedByName: currentUser.name || currentUser.fullName || 'Parent',
         scheduledAt: `${draft.date}T${draft.slot}:00`,
         duration: draft.duration || 60,
-        location: draft.locationText || draft.locationOption || 'Coach preferred location',
+        location: draft.locationText || draft.locationOption || '',
         service: draft.sessionType || '1-on-1 Session',
         serviceType: draft.sessionType || '1-on-1',
         objectives: draft.objectives,

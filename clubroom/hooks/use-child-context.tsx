@@ -144,7 +144,7 @@ export function ChildProvider({ children: reactChildren }: ChildProviderProps) {
 
   const childRefs = currentUser?.children;
   const userId = currentUser?.id;
-  const isParentUser = Boolean(childRefs && childRefs.length > 0);
+  const isParentUser = Boolean(currentUser?.hasChildren || (childRefs && childRefs.length > 0));
 
   // Main load function
   const loadChildren = useCallback(async () => {

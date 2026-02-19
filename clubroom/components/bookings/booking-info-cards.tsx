@@ -5,7 +5,7 @@
  */
 
 import React, { memo, useCallback } from 'react';
-import { Image, StyleSheet, View, Alert, Linking } from 'react-native';
+import { Image, StyleSheet, View, Alert } from 'react-native';
 import { router } from 'expo-router';
 import { Routes } from '@/navigation/routes';
 import { Ionicons } from '@expo/vector-icons';
@@ -17,6 +17,7 @@ import { Row } from '@/components/primitives/row';
 import { Column } from '@/components/primitives/column';
 import { Radii, Spacing, Typography, withAlpha } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
+import { openLocationInMaps } from '@/utils/map-links';
 
 // ============================================================================
 // DATE & TIME CARD
@@ -65,10 +66,11 @@ export const LocationCard = memo(function LocationCard({ locationLabel }: Locati
   const { colors: palette } = useTheme();
 
   const handleOpenMap = useCallback(() => {
-    const location = encodeURIComponent(locationLabel);
-    Linking.openURL(`https://maps.google.com/?q=${location}`).catch(() =>
-      Alert.alert('Error', 'Could not open maps application.'),
-    );
+    void openLocationInMaps({ location: locationLabel }).then((opened) => {
+      if (!opened) {
+        Alert.alert('Error', 'Could not open maps application.');
+      }
+    });
   }, [locationLabel]);
 
   return (

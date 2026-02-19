@@ -16,8 +16,9 @@ describe('EarningsCalculatorService', () => {
       const fee = earningsCalculatorService.getPlatformFeePercent();
 
       assert.ok(typeof fee === 'number');
-      assert.ok(fee > 0);
+      assert.ok(fee >= 0);
       assert.ok(fee <= 100);
+      assert.equal(fee, 0);
     });
   });
 
@@ -27,8 +28,9 @@ describe('EarningsCalculatorService', () => {
       const net = earningsCalculatorService.calculateNetAmount(gross);
 
       assert.ok(typeof net === 'number');
-      assert.ok(net < gross);
+      assert.ok(net <= gross);
       assert.ok(net > 0);
+      assert.equal(net, gross);
     });
 
     it('should return correct net amount for zero', () => {
@@ -41,14 +43,14 @@ describe('EarningsCalculatorService', () => {
       const net = earningsCalculatorService.calculateNetAmount(gross);
 
       assert.ok(net > 0);
-      assert.ok(net < gross);
+      assert.ok(net <= gross);
+      assert.equal(net, gross);
     });
 
-    it('should calculate 10% platform fee correctly', () => {
-      // Assuming 10% platform fee
+    it('should return full gross amount when platform fee is disabled', () => {
       const gross = 100;
       const net = earningsCalculatorService.calculateNetAmount(gross);
-      const expectedNet = 90; // 100 - 10%
+      const expectedNet = 100;
 
       assert.equal(net, expectedNet);
     });
@@ -180,7 +182,7 @@ describe('EarningsCalculatorService', () => {
       const net = earningsCalculatorService.calculateNetAmount(gross);
 
       assert.ok(net > 0);
-      assert.ok(net < gross);
+      assert.ok(net <= gross);
     });
 
     it('should handle very small decimal amounts', () => {

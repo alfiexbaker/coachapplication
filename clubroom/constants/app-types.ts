@@ -61,8 +61,10 @@ export interface Booking {
   id: string;
   coachId: string;
   athleteIds?: string[]; // The users being coached (supports multiple athletes)
+  athleteNames?: string[]; // Denormalized athlete display names
   athleteId?: string; // Deprecated: kept for backwards compatibility
   bookedById?: string; // Could be parent or athlete
+  bookedByName?: string; // Denormalized booker display name
   status: BookingStatus;
   isSharedSession?: boolean; // True if multiple athletes share this session
   scheduledAt: string; // ISO date string

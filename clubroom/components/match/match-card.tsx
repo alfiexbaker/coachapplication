@@ -32,7 +32,7 @@ export function MatchCard({ match, isCoach = false, showClub = false, onPress }:
     month: 'short',
   });
 
-  const typeColor = matchService.getMatchTypeColor(match.matchType);
+  const typeColor = matchService.getMatchTypeColor(match.matchType, palette);
   const isUpcoming = match.status === 'SCHEDULED' || match.status === 'LINEUP_SET';
 
   const handlePress = () => {

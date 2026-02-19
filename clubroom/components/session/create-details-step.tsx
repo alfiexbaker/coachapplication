@@ -1,12 +1,12 @@
 /**
  * CreateDetailsStep — Step 1 of session creation wizard.
  *
- * Session type selection, title, duration, max participants,
+ * Session type selection, title, max participants,
  * description, and focus area chips.
  */
 
 import React, { memo } from 'react';
-import { StyleSheet, TextInput, ScrollView, View, useWindowDimensions } from 'react-native';
+import { StyleSheet, TextInput, View, useWindowDimensions } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import Animated, { FadeInRight } from 'react-native-reanimated';
 
@@ -19,7 +19,6 @@ import type { FootballObjective } from '@/constants/types';
 import {
   type SessionType,
   SESSION_TYPES,
-  DURATION_OPTIONS,
   FOCUS_AREAS,
 } from './create-session-types';
 
@@ -28,14 +27,12 @@ interface CreateDetailsStepProps {
   sessionType: SessionType;
   title: string;
   description: string;
-  duration: number;
   focusAreas: FootballObjective[];
   maxParticipants: string;
   defaultMaxParticipants: number;
   onSessionTypeChange: (v: SessionType) => void;
   onTitleChange: (v: string) => void;
   onDescriptionChange: (v: string) => void;
-  onDurationChange: (v: number) => void;
   onToggleFocusArea: (area: FootballObjective) => void;
   onMaxParticipantsChange: (v: string) => void;
 }
@@ -45,19 +42,23 @@ export const CreateDetailsStep = memo(function CreateDetailsStep({
   sessionType,
   title,
   description,
-  duration,
   focusAreas,
   maxParticipants,
   defaultMaxParticipants,
   onSessionTypeChange,
   onTitleChange,
   onDescriptionChange,
-  onDurationChange,
   onToggleFocusArea,
   onMaxParticipantsChange,
 }: CreateDetailsStepProps) {
   const { width } = useWindowDimensions();
   const useSingleColumnTypeCards = width < 360;
+  const participantRuleText =
+    sessionType === 'small_group'
+      ? '2-4 athletes'
+      : sessionType === 'group'
+        ? '5+ athletes'
+        : '6+ athletes recommended for camps';
 
   const inputColors = {
     backgroundColor: colors.surface,
@@ -133,43 +134,6 @@ export const CreateDetailsStep = memo(function CreateDetailsStep({
           />
         </Column>
 
-        {/* Duration */}
-        <Column gap="sm">
-          <ThemedText type="defaultSemiBold" style={styles.label}>
-            Duration
-          </ThemedText>
-          <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-            <Row gap="sm">
-              {DURATION_OPTIONS.map((opt) => {
-                const selected = duration === opt.value;
-                return (
-                  <Clickable
-                    key={opt.value}
-                    onPress={() => onDurationChange(opt.value)}
-                    accessibilityLabel={`Select ${opt.label} duration`}
-                    style={[
-                      styles.chip,
-                      {
-                        backgroundColor: selected ? colors.tint : colors.surface,
-                        borderColor: selected ? colors.tint : colors.border,
-                      },
-                    ]}
-                  >
-                    <ThemedText
-                      style={[
-                        styles.chipText,
-                        { color: selected ? colors.onPrimary : colors.text },
-                      ]}
-                    >
-                      {opt.label}
-                    </ThemedText>
-                  </Clickable>
-                );
-              })}
-            </Row>
-          </ScrollView>
-        </Column>
-
         {/* Max Participants (non-1on1) */}
         {sessionType !== '1on1' && (
           <Column gap="sm">
@@ -181,10 +145,15 @@ export const CreateDetailsStep = memo(function CreateDetailsStep({
               placeholder={`Default: ${defaultMaxParticipants}`}
               placeholderTextColor={colors.muted}
               value={maxParticipants}
-              onChangeText={onMaxParticipantsChange}
+              onChangeText={(value) =>
+                onMaxParticipantsChange(value.replace(/[^0-9]/g, ''))
+              }
               keyboardType="number-pad"
               accessibilityLabel="Max participants"
             />
+            <ThemedText style={[styles.caption, { color: colors.muted }]}>
+              {participantRuleText}
+            </ThemedText>
           </Column>
         )}
 
@@ -251,6 +220,9 @@ const styles = StyleSheet.create({
     borderWidth: 1,
   },
   smallInput: { width: 140 },
+  caption: {
+    ...Typography.caption,
+  },
   textArea: { height: 100, paddingTop: Spacing.sm, textAlignVertical: 'top' },
   typeCard: {
     padding: Spacing.md,

@@ -194,7 +194,6 @@ export const Routes = {
     pathname: '/bookings/[id]/counter',
     params: { id },
   }) as Href,
-  BOOKINGS_RECURRING: '/bookings/recurring' as Href,
   BOOKINGS_SUBSCRIBE: '/bookings/subscribe' as Href,
   sessionFeedback: (params: {
     bookingId: string;

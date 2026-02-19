@@ -63,7 +63,7 @@ describe('schedulingRulesService', () => {
     const refund = schedulingRulesService.calculateRefund(100, sessionStart, policyResult.data);
 
     assert.equal(refund.originalAmount, 100);
-    assert.equal(refund.refundPercentage, 100);
+    assert.equal(refund.refundPercentage, 75);
     assert.equal(refund.isEligible, true);
     assert.ok(refund.refundAmount > 0);
     assert.ok(refund.netRefundAmount <= refund.refundAmount);

@@ -172,13 +172,13 @@ export function QuickRecognitionModal({
 
           {/* Athlete header */}
           <Row gap="sm" align="center" style={styles.header}>
-            <Avatar name={athleteName} photoUrl={athleteAvatar} size="md" />
+            <Avatar name={athleteName} uri={athleteAvatar} size="md" />
             <Column gap="micro">
               <ThemedText type="defaultSemiBold" style={Typography.heading}>
                 {athleteName}
               </ThemedText>
               {sessionLabel ? (
-                <ThemedText style={[Typography.caption, { color: palette.textSecondary }]}>
+                <ThemedText style={[Typography.caption, { color: palette.muted }]}>
                   {sessionLabel}
                 </ThemedText>
               ) : null}
@@ -202,7 +202,7 @@ export function QuickRecognitionModal({
               /* Category grid */
               <Animated.View entering={FadeIn.duration(200)}>
                 <ThemedText
-                  style={[Typography.bodySmall, { color: palette.textSecondary, marginBottom: Spacing.sm }]}
+                  style={[Typography.bodySmall, { color: palette.muted, marginBottom: Spacing.sm }]}
                 >
                   What would you like to recognise?
                 </ThemedText>
@@ -276,9 +276,9 @@ export function QuickRecognitionModal({
                     <Ionicons
                       name={showNoteInput ? 'chevron-up' : 'create-outline'}
                       size={16}
-                      color={palette.textSecondary}
+                      color={palette.muted}
                     />
-                    <ThemedText style={[Typography.bodySmall, { color: palette.textSecondary }]}>
+                    <ThemedText style={[Typography.bodySmall, { color: palette.muted }]}>
                       {showNoteInput ? 'Hide note' : 'Add a note (optional)'}
                     </ThemedText>
                   </Row>
@@ -290,7 +290,7 @@ export function QuickRecognitionModal({
                       value={customNote}
                       onChangeText={setCustomNote}
                       placeholder="Add a personal note..."
-                      placeholderTextColor={palette.textTertiary}
+                      placeholderTextColor={palette.muted}
                       multiline
                       style={[
                         styles.noteInput,
@@ -379,7 +379,7 @@ const TemplateRow = memo(function TemplateRow({ template, onPress, disabled }: T
         <ThemedText type="defaultSemiBold" style={Typography.bodySemiBold}>
           {template.label}
         </ThemedText>
-        <ThemedText style={[Typography.bodySmall, { color: palette.textSecondary }]}>
+        <ThemedText style={[Typography.bodySmall, { color: palette.muted }]}>
           {template.message}
         </ThemedText>
       </Column>

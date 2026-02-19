@@ -28,6 +28,7 @@ import { StepBasicInfo } from '@/components/auth/onboarding-step-basic-info';
 import { StepLocation } from '@/components/auth/onboarding-step-location';
 import { StepAthleteDetails } from '@/components/auth/onboarding-step-athlete';
 import { StepCoachDetails } from '@/components/auth/onboarding-step-coach';
+import { StepParentDetails } from '@/components/auth/onboarding-step-parent';
 import { StepComplete } from '@/components/auth/onboarding-step-complete';
 import { useOnboarding } from '@/hooks/use-onboarding';
 import { Spacing, Typography, Components } from '@/constants/theme';
@@ -101,6 +102,12 @@ function OnboardingScreenInner({ onComplete, onBackToLogin }: OnboardingScreenPr
     [dispatch],
   );
 
+  const handleChangeChildrenCount = useCallback(
+    (count: number) =>
+      dispatch({ type: 'SET_FIELD', field: 'childrenCount', value: count }),
+    [dispatch],
+  );
+
   // Button label changes based on step
   const buttonLabel = isComplete
     ? 'Get Started'
@@ -169,7 +176,7 @@ function OnboardingScreenInner({ onComplete, onBackToLogin }: OnboardingScreenPr
               password={state.password}
               confirmPassword={state.confirmPassword}
               dateOfBirth={state.dateOfBirth}
-              showDateOfBirth={state.accountType === 'ATHLETE'}
+              showDateOfBirth={state.accountType === 'ATHLETE' || state.accountType === 'PARENT'}
               onChangeField={handleChangeField}
             />
           )}
@@ -209,6 +216,13 @@ function OnboardingScreenInner({ onComplete, onBackToLogin }: OnboardingScreenPr
               onToggleIsOrganization={handleToggleIsOrganization}
               onToggleSpecialization={handleToggleSpecialization}
               onChangeField={handleChangeField}
+            />
+          )}
+
+          {state.step === 'parent-details' && (
+            <StepParentDetails
+              childrenCount={state.childrenCount}
+              onChangeChildrenCount={handleChangeChildrenCount}
             />
           )}
 

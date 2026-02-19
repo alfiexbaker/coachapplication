@@ -260,6 +260,32 @@ class NotificationSenderService {
     });
   }
 
+  async notifyParentBookingCancelled(params: {
+    parentId: string;
+    coachName: string;
+    childName?: string;
+    isMultiChild?: boolean;
+    date: string;
+    bookingId: string;
+  }): Promise<Result<void, ServiceError>> {
+    const body =
+      params.childName && params.isMultiChild
+        ? `${params.childName}'s session with Coach ${params.coachName} on ${params.date} has been cancelled`
+        : `Session with Coach ${params.coachName} on ${params.date} has been cancelled`;
+    return this.send({
+      id: `notif_cancel_parent_${Date.now()}`,
+      type: 'booking',
+      notificationType: 'BOOKING_CANCELLED',
+      title: 'Session Cancelled',
+      body,
+      recipientId: params.parentId,
+      recipientRole: 'parent',
+      deepLink: `/bookings/${params.bookingId}`,
+      data: { bookingId: params.bookingId, coachName: params.coachName },
+      timeLabel: 'Just now',
+    });
+  }
+
   async notifyParentSessionInvite(params: {
     parentId: string;
     coachName: string;

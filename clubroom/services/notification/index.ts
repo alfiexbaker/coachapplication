@@ -64,6 +64,8 @@ export const notificationServices = {
   // Sender operations (parent)
   notifyParentBookingConfirmed:
     notificationSenderService.notifyParentBookingConfirmed.bind(notificationSenderService),
+  notifyParentBookingCancelled:
+    notificationSenderService.notifyParentBookingCancelled.bind(notificationSenderService),
   notifyParentSessionInvite:
     notificationSenderService.notifyParentSessionInvite.bind(notificationSenderService),
   notifyParentBadgeAwarded:

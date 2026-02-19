@@ -2,7 +2,7 @@
  * RecognitionSummaryCard — "X recognitions this month" for parent dashboard.
  * Shows count + category breakdown dots.
  */
-import { memo, useCallback } from 'react';
+import { memo } from 'react';
 import { View, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
@@ -64,7 +64,7 @@ function RecognitionSummaryCardInner({ awards, onPress }: RecognitionSummaryCard
               return (
                 <Row key={cat.key} align="center" gap="xxs">
                   <View style={[styles.dot, { backgroundColor: palette[cat.colorKey] }]} />
-                  <ThemedText style={[Typography.caption, { color: palette.textSecondary }]}>
+                  <ThemedText style={[Typography.caption, { color: palette.muted }]}>
                     {cat.label} {count}
                   </ThemedText>
                 </Row>
@@ -72,7 +72,7 @@ function RecognitionSummaryCardInner({ awards, onPress }: RecognitionSummaryCard
             })}
           </Row>
         </Column>
-        <Ionicons name="chevron-forward" size={16} color={palette.textSecondary} />
+        <Ionicons name="chevron-forward" size={16} color={palette.muted} />
       </Row>
     </SurfaceCard>
   );

@@ -70,15 +70,13 @@ describe('ClubFeedService.createCoachPost', () => {
     });
 
     test('should create a post with feedType CLUB and correct audienceLabel', () => {
-      const coachId = testId('coach');
-
       const result = clubFeedService.createCoachPost({
-        coachId,
+        coachId: 'coach1',
         coachName: 'Club Coach',
         title: 'Club Update',
         body: 'Important club news.',
         feedType: 'CLUB',
-        clubId: 'club_test',
+        clubId: 'club_lions',
       });
 
       assert.equal(result.success, true);
@@ -89,15 +87,13 @@ describe('ClubFeedService.createCoachPost', () => {
     });
 
     test('should create a post with feedType BOTH and correct audienceLabel', () => {
-      const coachId = testId('coach');
-
       const result = clubFeedService.createCoachPost({
-        coachId,
+        coachId: 'coach1',
         coachName: 'Dual Coach',
         title: 'Shared Post',
         body: 'Visible in both feeds.',
         feedType: 'BOTH',
-        clubId: 'club_test',
+        clubId: 'club_lions',
       });
 
       assert.equal(result.success, true);
@@ -292,8 +288,7 @@ describe('ClubFeedService.createCoachPost', () => {
     });
 
     test('should include clubId in event when post has a club', () => {
-      // Use a known mock coach that has clubs — coach1 is Sarah Mitchell,
-      // who is associated with club_bradwell in the mock data.
+      // Use a known seeded coach + club membership.
       let emittedPayload: EventPayloads[typeof ServiceEvents.COACH_POST_CREATED] | undefined;
 
       const unsub = eventBus.on<EventPayloads[typeof ServiceEvents.COACH_POST_CREATED]>(
@@ -306,14 +301,14 @@ describe('ClubFeedService.createCoachPost', () => {
         coachName: 'Sarah Mitchell',
         title: 'Club Post',
         body: 'Post with club context.',
-        clubId: 'club_bradwell',
+        clubId: 'club_lions',
       });
 
       unsub();
 
       assert.equal(result.success, true);
       assert.ok(emittedPayload, 'Event should have been emitted');
-      assert.equal(emittedPayload!.clubId, 'club_bradwell');
+      assert.equal(emittedPayload!.clubId, 'club_lions');
     });
 
     test('should emit correct feedType values in the event', () => {
@@ -327,17 +322,28 @@ describe('ClubFeedService.createCoachPost', () => {
           (data) => { emittedPayload = data; },
         );
 
-        clubFeedService.createCoachPost({
-          coachId: testId('coach_ft'),
-          coachName: `Coach ${feedType}`,
-          title: `${feedType} Post`,
-          body: `Testing feedType ${feedType}.`,
-          feedType,
-          clubId: feedType !== 'PERSONAL' ? 'club_test' : undefined,
-        });
+        const result = clubFeedService.createCoachPost(
+          feedType === 'PERSONAL'
+            ? {
+                coachId: testId('coach_ft'),
+                coachName: `Coach ${feedType}`,
+                title: `${feedType} Post`,
+                body: `Testing feedType ${feedType}.`,
+                feedType,
+              }
+            : {
+                coachId: 'coach1',
+                coachName: `Coach ${feedType}`,
+                title: `${feedType} Post`,
+                body: `Testing feedType ${feedType}.`,
+                feedType,
+                clubId: 'club_lions',
+              },
+        );
 
         unsub();
 
+        assert.equal(result.success, true, `post should succeed for feedType ${feedType}`);
         assert.ok(emittedPayload, `Event should have been emitted for feedType ${feedType}`);
         assert.equal(emittedPayload!.feedType, feedType, `emitted feedType should be ${feedType}`);
       }
@@ -394,7 +400,7 @@ describe('ClubFeedService.createCoachPost', () => {
     });
 
     test('should be retrievable via getPersonalFeed after creation with BOTH feedType', () => {
-      const coachId = testId('coach_both');
+      const coachId = 'coach1';
 
       const result = clubFeedService.createCoachPost({
         coachId,
@@ -402,7 +408,7 @@ describe('ClubFeedService.createCoachPost', () => {
         title: 'Both Post',
         body: 'Visible in personal and club.',
         feedType: 'BOTH',
-        clubId: 'club_test',
+        clubId: 'club_lions',
       });
 
       assert.equal(result.success, true);
@@ -414,7 +420,7 @@ describe('ClubFeedService.createCoachPost', () => {
     });
 
     test('CLUB feedType posts should NOT appear in personal feed', () => {
-      const coachId = testId('coach_club_only');
+      const coachId = 'coach1';
 
       const result = clubFeedService.createCoachPost({
         coachId,
@@ -422,7 +428,7 @@ describe('ClubFeedService.createCoachPost', () => {
         title: 'Club Only Post',
         body: 'Only visible in club feed.',
         feedType: 'CLUB',
-        clubId: 'club_test',
+        clubId: 'club_lions',
       });
 
       assert.equal(result.success, true);
@@ -442,8 +448,8 @@ describe('ClubFeedService.createCoachPost', () => {
 describe('ClubFeedService.createPost', () => {
   test('should create a club post successfully', () => {
     const result = clubFeedService.createPost({
-      clubId: 'club_test',
-      authorId: testId('author'),
+      clubId: 'club_lions',
+      authorId: 'coach1',
       authorName: 'Test Author',
       title: 'Club Announcement',
       body: 'Testing the club post creation.',
@@ -453,7 +459,7 @@ describe('ClubFeedService.createPost', () => {
     if (!result.success) return;
 
     assert.ok(result.data.id);
-    assert.equal(result.data.clubId, 'club_test');
+    assert.equal(result.data.clubId, 'club_lions');
     assert.equal(result.data.body, 'Testing the club post creation.');
   });
 

@@ -26,7 +26,9 @@ function StepAccountTypeInner({ accountType, onSelectAccountType }: StepAccountT
   const selectedHighlights =
     accountType === 'COACH'
       ? ['Build a coaching profile', 'Set rates and availability', 'Grow bookings with trust signals']
-      : ['Discover nearby coaches', 'Track progress and milestones', 'Book and manage sessions fast'];
+      : accountType === 'PARENT'
+        ? ['Add your children and track their progress', 'Book verified coaches near you', 'Manage schedules, consents, and spending']
+        : ['Discover nearby coaches', 'Track progress and milestones', 'Book and manage sessions fast'];
 
   return (
     <View style={styles.content}>

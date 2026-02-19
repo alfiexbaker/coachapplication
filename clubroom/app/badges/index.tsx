@@ -153,15 +153,17 @@ export default function AllBadgesScreen() {
           Badge Tiers
         </ThemedText>
         <Row justify="between" style={styles.legendRow}>
-          {(['bronze', 'silver', 'gold'] as const).map((tier) => (
-            <Row key={tier} align="center" gap="xxs" style={styles.legendItem}>
-              <View style={[styles.legendDot, { backgroundColor: BADGE_TIER_COLORS[tier] }]} />
+          {(
+            [
+              { key: 'foundation', label: 'Bronze (10 pts)' },
+              { key: 'developing', label: 'Silver (25 pts)' },
+              { key: 'advanced', label: 'Gold (50 pts)' },
+            ] as const
+          ).map((tier) => (
+            <Row key={tier.key} align="center" gap="xxs" style={styles.legendItem}>
+              <View style={[styles.legendDot, { backgroundColor: BADGE_TIER_COLORS[tier.key] }]} />
               <ThemedText style={[styles.legendText, { color: palette.muted }]}>
-                {tier === 'bronze'
-                  ? 'Bronze (10 pts)'
-                  : tier === 'silver'
-                    ? 'Silver (25 pts)'
-                    : 'Gold (50 pts)'}
+                {tier.label}
               </ThemedText>
             </Row>
           ))}

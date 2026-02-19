@@ -41,7 +41,7 @@ export const CreateMatchReview = memo(function CreateMatchReview({
   autoInvite,
   colors,
 }: CreateMatchReviewProps) {
-  const typeColor = matchService.getMatchTypeColor(matchType);
+  const typeColor = matchService.getMatchTypeColor(matchType, colors);
 
   return (
     <View style={styles.stepContent}>

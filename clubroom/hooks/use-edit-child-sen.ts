@@ -11,7 +11,6 @@ import { router, useLocalSearchParams } from 'expo-router';
 import {
   childService,
   type ChildProfile,
-  type Disability,
   type SpecialNeed,
 } from '@/services/child-service';
 import { useScreen } from '@/hooks/use-screen';
@@ -72,7 +71,6 @@ export function useEditChildSen() {
     setSaving(true);
     try {
       const result = await childService.addDisability(child.id, {
-        id: `dis-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
         type: selectedDisabilityType,
         description: disabilityDescription || undefined,
         diagnosisDate: diagnosisDate || undefined,
@@ -105,7 +103,6 @@ export function useEditChildSen() {
     setSaving(true);
     try {
       const result = await childService.addSpecialNeed(child.id, {
-        id: `sn-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
         category: snCategory,
         name: snName.trim(),
         description: snDescription.trim() || undefined,
@@ -135,7 +132,7 @@ export function useEditChildSen() {
     if (!child || !currentUser?.id) return;
     setSaving(true);
     try {
-      const result = await childService.updateChild(child.id, currentUser.id, {
+      const result = await childService.updateChild(child.id, {
         communicationNotes: communicationNotes.trim() || undefined,
         behavioralNotes: behavioralNotes.trim() || undefined,
       });

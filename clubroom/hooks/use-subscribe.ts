@@ -108,11 +108,11 @@ export function useSubscribe() {
       if (result.success) {
         Alert.alert(
           'Subscription Created',
-          'Your recurring booking has been set up successfully!',
+          'Your recurring sessions are on your schedule.',
           [
             {
-              text: 'View Subscriptions',
-              onPress: () => router.replace(Routes.BOOKINGS_RECURRING),
+              text: 'View Schedule',
+              onPress: () => router.replace(Routes.SCHEDULE),
             },
           ],
         );

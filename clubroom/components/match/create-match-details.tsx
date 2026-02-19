@@ -49,7 +49,7 @@ export const CreateMatchDetails = memo(function CreateMatchDetails({
         <Row wrap gap="sm">
           {MATCH_TYPES.map((t) => {
             const isSelected = matchType === t.type;
-            const color = matchService.getMatchTypeColor(t.type);
+            const color = matchService.getMatchTypeColor(t.type, colors);
             return (
               <Clickable
                 key={t.type}

@@ -15,6 +15,7 @@
 
 import { Booking } from '@/constants/app-types';
 import { availabilityService } from '../availability-service';
+import { verificationService } from '../verification-service';
 import { notificationService } from '../notification-service';
 import { apiClient } from '../api-client';
 import { STORAGE_KEYS } from '@/constants/storage-keys';
@@ -33,6 +34,9 @@ import {
 } from '@/types/result';
 
 const logger = createLogger('BookingCrudService');
+const ENFORCE_DBS_SAFEGUARDING_GATE =
+  process.env.EXPO_PUBLIC_ENFORCE_DBS_SAFEGUARDING_GATE === 'true' ||
+  process.env.EXPO_PUBLIC_ENFORCE_DBS_SAFEGUARDING_GATE === '1';
 
 /** Maximum age (ms) before cache is considered stale. */
 const CACHE_MAX_AGE = 30_000;
@@ -299,6 +303,56 @@ class BookingCrudService {
   }
 
   /**
+   * DBS safeguarding gate — fail-closed.
+   * If any athlete differs from the booker (parent booking for child),
+   * the coach must have a VERIFIED and non-expired background check.
+   */
+  private async validateDbsGate(
+    coachId: string,
+    athleteIds: string[],
+    bookedById: string,
+  ): Promise<Result<void, ServiceError>> {
+    if (!ENFORCE_DBS_SAFEGUARDING_GATE) {
+      return ok(undefined);
+    }
+
+    if (!bookedById || athleteIds.length === 0) {
+      return ok(undefined);
+    }
+
+    const hasMinorAthlete = athleteIds.some((id) => id !== bookedById);
+    if (!hasMinorAthlete) return ok(undefined);
+
+    const verificationResult = await verificationService.getStatus(coachId);
+    if (!verificationResult.success) {
+      return err(
+        validationError(
+          'Unable to verify coach background check status. Booking blocked for safety.',
+        ),
+      );
+    }
+
+    const bg = verificationResult.data.backgroundCheck;
+    if (bg.status !== 'VERIFIED') {
+      return err(
+        validationError(
+          'This coach has not completed a DBS background check. A verified DBS is required for sessions with under-18 athletes.',
+        ),
+      );
+    }
+
+    if (bg.expiresAt && new Date(bg.expiresAt) < new Date()) {
+      return err(
+        validationError(
+          "This coach's DBS background check has expired. An up-to-date DBS is required for sessions with under-18 athletes.",
+        ),
+      );
+    }
+
+    return ok(undefined);
+  }
+
+  /**
    * Validate booking against coach availability
    * Returns { valid: true } if slot is available, otherwise { valid: false, reason: string }
    */
@@ -375,6 +429,10 @@ class BookingCrudService {
       }
     }
 
+    // DBS safeguarding gate (fail-closed)
+    const dbsResult = await this.validateDbsGate(coachId, athleteIds, bookedById);
+    if (!dbsResult.success) return dbsResult;
+
     // Calculate total price (base price * number of athletes)
     const basePrice = price || 0;
     const totalPrice = basePrice * athleteIds.length;
@@ -386,8 +444,10 @@ class BookingCrudService {
       coachId,
       coachName,
       athleteIds,
+      athleteNames,
       athleteId: athleteIds[0], // Backwards compatibility: first athlete
       bookedById,
+      bookedByName,
       scheduledAt,
       status: 'CONFIRMED',
       duration,
@@ -536,7 +596,15 @@ class BookingCrudService {
       isSharedSession: (draft.childIds?.length || 1) > 1,
     };
 
-    // Save directly to bypass validation (draft flow is legacy)
+    // DBS safeguarding gate (fail-closed)
+    const dbsResult = await this.validateDbsGate(
+      booking.coachId,
+      booking.athleteIds,
+      booking.bookedById ?? '',
+    );
+    if (!dbsResult.success) return dbsResult;
+
+    // Save directly (draft flow skips availability validation only, not DBS)
     const result = await this.saveBookingDirect(booking);
 
     if (!result.success) {
@@ -567,6 +635,16 @@ class BookingCrudService {
    */
   async createMultipleBookings(bookings: Booking[]): Promise<Result<Booking[], ServiceError>> {
     try {
+      // DBS safeguarding gate for each booking in batch
+      for (const booking of bookings) {
+        const dbsResult = await this.validateDbsGate(
+          booking.coachId,
+          booking.athleteIds ?? [],
+          booking.bookedById ?? '',
+        );
+        if (!dbsResult.success) return err(dbsResult.error);
+      }
+
       const existing = await this.loadFromStorage();
       existing.push(...bookings);
       const saveResult = await this.saveToStorage(existing);

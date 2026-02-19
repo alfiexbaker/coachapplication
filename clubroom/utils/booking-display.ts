@@ -14,5 +14,12 @@ export function getBookingSummaryClientName(booking: BookingSummary): string {
 }
 
 export function getBookingAthleteName(booking: Booking): string {
-  return booking.athleteId || booking.athleteIds?.[0] || 'Athlete';
+  const legacyAthleteName = (booking as Booking & { athleteName?: string }).athleteName;
+  return (
+    booking.athleteNames?.[0] ||
+    legacyAthleteName ||
+    booking.athleteId ||
+    booking.athleteIds?.[0] ||
+    'Athlete'
+  );
 }

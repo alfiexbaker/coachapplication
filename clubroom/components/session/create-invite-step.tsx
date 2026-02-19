@@ -27,6 +27,7 @@ import { INVITE_TYPE_OPTIONS } from './create-session-types';
 interface CreateInviteStepProps {
   colors: ThemeColors;
   inviteType: SessionInviteType;
+  allowedInviteTypes: SessionInviteType[];
   selectedAthletes: string[];
   pastAthletes: PastAthlete[];
   onInviteTypeChange: (v: SessionInviteType) => void;
@@ -40,11 +41,15 @@ interface CreateInviteStepProps {
 export const CreateInviteStep = memo(function CreateInviteStep({
   colors,
   inviteType,
+  allowedInviteTypes,
   selectedAthletes,
   pastAthletes,
   onInviteTypeChange,
   onToggleAthlete,
 }: CreateInviteStepProps) {
+  const visibleInviteOptions = INVITE_TYPE_OPTIONS.filter((option) =>
+    allowedInviteTypes.includes(option.key),
+  );
   const allSelected =
     pastAthletes.length > 0 && pastAthletes.every((athlete) => selectedAthletes.includes(athlete.id));
 
@@ -74,7 +79,7 @@ export const CreateInviteStep = memo(function CreateInviteStep({
             Who can join?
           </ThemedText>
 
-          {INVITE_TYPE_OPTIONS.map((option) => (
+          {visibleInviteOptions.map((option) => (
             <Clickable
               key={option.key}
               onPress={() => onInviteTypeChange(option.key)}
@@ -113,14 +118,21 @@ export const CreateInviteStep = memo(function CreateInviteStep({
               </Row>
             </Clickable>
           ))}
+          {visibleInviteOptions.length === 1 && (
+            <ThemedText style={[styles.selectionHelp, { color: colors.muted }]}>
+              This session type is invite-only by default.
+            </ThemedText>
+          )}
         </Column>
 
-        {/* Closed: Athlete selection list */}
-        {inviteType === 'CLOSED' && (
+        {/* Open/Closed: Optional athlete pre-invites */}
+        {(inviteType === 'CLOSED' || inviteType === 'OPEN') && (
           <SurfaceCard style={styles.athleteList}>
             <Row align="center" justify="space-between">
               <ThemedText type="defaultSemiBold" style={styles.athleteListTitle}>
-                Select Athletes to Invite
+                {inviteType === 'OPEN'
+                  ? 'Pre-Invite Athletes (Optional)'
+                  : 'Select Athletes to Invite'}
               </ThemedText>
               <Clickable
                 onPress={handleToggleSelectAll}
@@ -132,7 +144,9 @@ export const CreateInviteStep = memo(function CreateInviteStep({
               </Clickable>
             </Row>
             <ThemedText style={[styles.selectionHelp, { color: colors.muted }]}>
-              {selectedAthletes.length} selected now. You can invite more later from Bookings.
+              {inviteType === 'OPEN'
+                ? `${selectedAthletes.length} selected for early invites. Session remains open to everyone else.`
+                : `${selectedAthletes.length} selected now. You can invite more later from Bookings.`}
             </ThemedText>
             {pastAthletes.length === 0 ? (
               <ThemedText style={[styles.selectionHelp, { color: colors.muted }]}>

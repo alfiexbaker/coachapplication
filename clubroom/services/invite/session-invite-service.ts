@@ -27,8 +27,8 @@ import type {
   TimeSlot,
   WeekAcceptance,
 } from '@/constants/types';
-import { notificationService } from '../notification-service';
-import type { ExtendedNotificationItem } from '../notification/notification-store';
+import { notificationSenderService } from '../notification/notification-sender';
+import { notificationStore, type ExtendedNotificationItem } from '../notification/notification-store';
 import { bookingService } from '../booking-service';
 import { inviteHoldService } from '../invite-hold-service';
 import { availabilityService } from '../availability-service';
@@ -421,30 +421,18 @@ export const sessionInviteService = {
         newInvite.expiresAt,
       );
 
-      // Create notification for parent
-      const coachFirstName = input.coachName.split(' ')[0];
+      // Notify parent via sender service (respects preferences + push)
       const athleteDisplay =
         input.athleteNames.length === 1
           ? input.athleteNames[0]
           : `${input.athleteNames.length} athletes`;
-      const clubDisplay = input.clubName ? ` to ${input.clubName}` : '';
 
-      const notification: ExtendedNotificationItem = {
-        id: apiClient.generateId('notif'),
-        type: 'booking',
-        notificationType: 'SESSION_INVITE',
-        title: 'New Session Invite',
-        body: `Coach ${coachFirstName} has invited ${athleteDisplay}${clubDisplay} - ${input.sessionType}`,
-        timeLabel: 'Just now',
-        read: false,
-        actionLabel: 'View Invite',
-        recipientId: input.parentId,
-        recipientRole: 'parent',
-        deepLink: `/invites`,
-        data: { inviteId: newInvite.id },
-      };
-
-      await notificationService.create(notification);
+      await notificationSenderService.notifyParentSessionInvite({
+        parentId: input.parentId,
+        coachName: input.coachName,
+        childName: athleteDisplay,
+        inviteId: newInvite.id,
+      });
 
       return newInvite;
     }
@@ -505,19 +493,6 @@ export const sessionInviteService = {
         resolveAthleteNames(invite.athleteIds),
       ]);
       const athleteDisplay = athleteNames.join(', ');
-      const notification: ExtendedNotificationItem = {
-        id: apiClient.generateId('notif'),
-        type: 'booking',
-        notificationType: 'SESSION_INVITE_RESPONSE',
-        title: '',
-        body: '',
-        timeLabel: 'Just now',
-        read: false,
-        recipientId: invite.coachId,
-        recipientRole: 'coach',
-        deepLink: `/session-invites/${invite.id}`,
-        data: { inviteId: invite.id },
-      };
 
       if (input.response === 'ACCEPTED') {
         // CRITICAL FIX: Attempt booking creation FIRST, before changing invite status.
@@ -602,16 +577,12 @@ export const sessionInviteService = {
           },
         });
 
-        notification.title = 'Invite Accepted!';
-        notification.body = `${parentName} accepted your invite for ${athleteDisplay}. Session confirmed for ${
-          new Date(input.selectedSlot.date).toLocaleDateString('en-GB', {
-            weekday: 'short',
-            day: 'numeric',
-            month: 'short',
-          }) + ` at ${input.selectedSlot.startTime}`
-        }.`;
-
-        await notificationService.create(notification);
+        await notificationSenderService.notifyCoachInviteAccepted({
+          coachId: invite.coachId,
+          parentName,
+          childName: athleteDisplay,
+          inviteId: invite.id,
+        });
 
         // Release all holds for this invite (accepted slot becomes a booking, others freed)
         await inviteHoldService.releaseHoldsForInvite(invite.id);
@@ -632,18 +603,31 @@ export const sessionInviteService = {
       await saveToStorage(invitesCache);
 
       if (input.response === 'DECLINED') {
-        notification.title = 'Invite Declined';
-        notification.body = `${parentName} declined your session invite for ${athleteDisplay}.`;
         // Release all holds
         await inviteHoldService.releaseHoldsForInvite(invite.id);
+        await notificationSenderService.notifyCoachInviteDeclined({
+          coachId: invite.coachId,
+          parentName,
+          childName: athleteDisplay,
+          inviteId: invite.id,
+        });
       } else if (input.response === 'COUNTERED') {
-        notification.title = 'Counter Proposal Received';
-        notification.body = `${parentName} proposed alternative times for ${athleteDisplay}. ${input.counterNote || ''}`;
         // Release original holds (counter slots aren't held until coach accepts)
         await inviteHoldService.releaseHoldsForInvite(invite.id);
+        await notificationStore.create({
+          id: apiClient.generateId('notif'),
+          type: 'booking',
+          notificationType: 'SESSION_INVITE_RESPONSE',
+          title: 'Counter Proposal Received',
+          body: `${parentName} proposed alternative times for ${athleteDisplay}. ${input.counterNote || ''}`,
+          timeLabel: 'Just now',
+          read: false,
+          recipientId: invite.coachId,
+          recipientRole: 'coach',
+          deepLink: `/session-invites/${invite.id}`,
+          data: { inviteId: invite.id },
+        });
       }
-
-      await notificationService.create(notification);
 
       return ok(invitesCache[index]);
     }
@@ -704,7 +688,7 @@ export const sessionInviteService = {
       const athleteDisplay =
         athleteNames.length === 1 ? athleteNames[0] : `${athleteNames.length} athletes`;
 
-      const reminderResult = await notificationService.create({
+      const reminderResult = await notificationStore.create({
         id: apiClient.generateId('notif'),
         type: 'reminder',
         notificationType: 'SESSION_INVITE',
@@ -958,7 +942,7 @@ export const sessionInviteService = {
         data: { inviteId, bookingId: bookingResult.data.id },
       };
 
-      await notificationService.create(notification);
+      await notificationStore.create(notification);
 
       return ok(invitesCache[index]);
     }
@@ -1201,7 +1185,7 @@ export const sessionInviteService = {
       deepLink: `/session-invites/${invite.id}`,
       data: { inviteId: invite.id },
     };
-    await notificationService.create(notification);
+    await notificationStore.create(notification);
 
     // Release holds
     await inviteHoldService.releaseHoldsForInvite(invite.id);

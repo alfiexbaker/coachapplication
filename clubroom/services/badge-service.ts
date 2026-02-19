@@ -1,7 +1,7 @@
 import { BadgeAward, BadgeDefinition, BadgeVisibility, BadgeCategory } from '@/constants/types';
 import { apiClient } from './api-client';
 import { socialFeedService } from './social-feed-service';
-import { notificationService } from './notification-service';
+import { notificationSenderService } from './notification/notification-sender';
 import { bookingService } from './booking-service';
 import { userService } from './user-service';
 import { createLogger } from '@/utils/logger';
@@ -467,22 +467,14 @@ class BadgeService {
       resolveUserName(award.coachId, 'Coach'),
     ]);
 
-    const notification = {
-      id: `notif_badge_${award.id}`,
-      type: 'badge' as const,
-      title: `${athleteName} received recognition`,
-      body: `Coach ${coachName} recognised ${athleteName} for ${award.badgeLabel}`,
-      timeLabel: 'Just now',
-      read: false,
-      badgeTitle: award.badgeLabel,
-      athleteName,
+    await notificationSenderService.notifyParentBadgeAwarded({
+      parentId: parent.id,
+      childName: athleteName,
+      badgeName: award.badgeLabel || 'Badge',
+      coachName,
       badgeAwardId: award.id,
-      actionLabel: 'View Recognition',
-      handled: false,
-      deepLink: `/children/badges/${award.athleteId}?highlightBadge=${award.id}`,
-    };
+    });
 
-    await notificationService.create(notification);
     this.logger.info('parent_notified_of_badge', {
       parentId: parent.id,
       badgeAwardId: award.id,

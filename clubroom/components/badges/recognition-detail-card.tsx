@@ -8,14 +8,13 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import Animated, { FadeInDown, FadeIn } from 'react-native-reanimated';
 
-import { Avatar } from '@/components/ui/primitives';
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { Button } from '@/components/primitives/button';
 import { Clickable } from '@/components/primitives/clickable';
 import { ThemedText } from '@/components/themed-text';
 import { Row } from '@/components/primitives/row';
 import { Column } from '@/components/primitives/column';
-import { Spacing, Radii, Typography, withAlpha, Components } from '@/constants/theme';
+import { Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
 import { CategoryInfo } from '@/constants/progression';
 import { formatShortDateWithYear } from '@/utils/format';
@@ -104,7 +103,7 @@ function RecognitionDetailCardInner({
             {/* Athlete name */}
             {athleteName ? (
               <Column align="center" gap="micro">
-                <ThemedText style={[Typography.caption, { color: palette.textSecondary }]}>
+                <ThemedText style={[Typography.caption, { color: palette.muted }]}>
                   Awarded to
                 </ThemedText>
                 <ThemedText type="defaultSemiBold" style={Typography.heading}>
@@ -122,7 +121,7 @@ function RecognitionDetailCardInner({
 
             {/* Coach attribution + note */}
             {award.note ? (
-              <ThemedText style={[Typography.bodySmall, { color: palette.textSecondary, textAlign: 'center' }]}>
+              <ThemedText style={[Typography.bodySmall, { color: palette.muted, textAlign: 'center' }]}>
                 {award.note}
               </ThemedText>
             ) : null}
@@ -131,15 +130,15 @@ function RecognitionDetailCardInner({
             <Row align="center" justify="center" gap="sm" style={styles.metaRow}>
               {coachName ? (
                 <Row align="center" gap="xxs">
-                  <Ionicons name="person-outline" size={14} color={palette.textSecondary} />
-                  <ThemedText style={[Typography.caption, { color: palette.textSecondary }]}>
+                  <Ionicons name="person-outline" size={14} color={palette.muted} />
+                  <ThemedText style={[Typography.caption, { color: palette.muted }]}>
                     Coach {coachName}
                   </ThemedText>
                 </Row>
               ) : null}
               <Row align="center" gap="xxs">
-                <Ionicons name="calendar-outline" size={14} color={palette.textSecondary} />
-                <ThemedText style={[Typography.caption, { color: palette.textSecondary }]}>
+                <Ionicons name="calendar-outline" size={14} color={palette.muted} />
+                <ThemedText style={[Typography.caption, { color: palette.muted }]}>
                   {formatShortDateWithYear(award.awardedAt)}
                 </ThemedText>
               </Row>

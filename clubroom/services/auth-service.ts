@@ -152,6 +152,7 @@ export interface OnboardingData {
   certifications?: string[];
   bio?: string;
   hourlyRate?: number;
+  childrenCount?: number;
   inviteCode?: string;
 }
 

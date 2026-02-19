@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   Alert,
   KeyboardAvoidingView,
@@ -593,6 +593,7 @@ function ExistingInviteFlow({
 export default function CreateSessionScreen() {
   const { colors } = useTheme();
   const state = useCreateSession();
+  const stepScrollRef = useRef<ScrollView | null>(null);
   const params = useLocalSearchParams<{
     intent?: 'new' | 'existing' | 'invite';
     source?: string;
@@ -617,6 +618,10 @@ export default function CreateSessionScreen() {
     setMode(initialMode);
   }, [initialMode]);
 
+  useEffect(() => {
+    stepScrollRef.current?.scrollTo({ y: 0, animated: false });
+  }, [state.step]);
+
   const presetAthleteIds = useMemo(
     () =>
       params.athleteIds
@@ -627,6 +632,14 @@ export default function CreateSessionScreen() {
   );
 
   const handleCancel = useCallback(() => router.back(), []);
+  const startTemplate = useCallback(
+    (template: '1on1' | 'small_group' | 'camp') => {
+      state.setSessionType(template);
+      state.setRecurrence('once');
+      setMode('new');
+    },
+    [state],
+  );
 
   if (mode === 'existing') {
     return (
@@ -665,6 +678,68 @@ export default function CreateSessionScreen() {
               <Ionicons name="chevron-forward" size={18} color={colors.muted} />
             </Row>
           </Clickable>
+
+          <SurfaceCard style={styles.quickStartCard}>
+            <ThemedText type="defaultSemiBold">Quick Start</ThemedText>
+            <Row wrap gap="sm" style={styles.quickStartRow}>
+              <Clickable
+                onPress={() => startTemplate('1on1')}
+                style={[
+                  styles.templateChip,
+                  {
+                    borderColor: withAlpha(colors.info, 0.4),
+                    backgroundColor: withAlpha(colors.info, 0.08),
+                  },
+                ]}
+              >
+                <Row align="center" gap="xs">
+                  <Ionicons name="person-outline" size={14} color={colors.info} />
+                  <ThemedText style={{ color: colors.info, ...Typography.smallSemiBold }}>
+                    1-on-1
+                  </ThemedText>
+                </Row>
+              </Clickable>
+
+              <Clickable
+                onPress={() => startTemplate('small_group')}
+                style={[
+                  styles.templateChip,
+                  {
+                    borderColor: withAlpha(colors.success, 0.4),
+                    backgroundColor: withAlpha(colors.success, 0.08),
+                  },
+                ]}
+              >
+                <Row align="center" gap="xs">
+                  <Ionicons name="people-outline" size={14} color={colors.success} />
+                  <ThemedText style={{ color: colors.success, ...Typography.smallSemiBold }}>
+                    Group
+                  </ThemedText>
+                </Row>
+              </Clickable>
+
+              <Clickable
+                onPress={() => startTemplate('camp')}
+                style={[
+                  styles.templateChip,
+                  {
+                    borderColor: withAlpha(colors.warning, 0.4),
+                    backgroundColor: withAlpha(colors.warning, 0.08),
+                  },
+                ]}
+              >
+                <Row align="center" gap="xs">
+                  <Ionicons name="sunny-outline" size={14} color={colors.warning} />
+                  <ThemedText style={{ color: colors.warning, ...Typography.smallSemiBold }}>
+                    Camp
+                  </ThemedText>
+                </Row>
+              </Clickable>
+            </Row>
+            <ThemedText style={[styles.quickStartHint, { color: colors.muted }]}>
+              Pick a template and we prefill the flow.
+            </ThemedText>
+          </SurfaceCard>
 
           <Clickable
             onPress={() => setMode('existing')}
@@ -728,6 +803,7 @@ export default function CreateSessionScreen() {
         />
 
         <ScrollView
+          ref={stepScrollRef}
           style={styles.flex}
           contentContainerStyle={styles.scrollContent}
           showsVerticalScrollIndicator={false}
@@ -739,14 +815,12 @@ export default function CreateSessionScreen() {
               sessionType={state.sessionType}
               title={state.title}
               description={state.description}
-              duration={state.duration}
               focusAreas={state.focusAreas}
               maxParticipants={state.maxParticipants}
               defaultMaxParticipants={state.getDefaultMaxParticipants()}
               onSessionTypeChange={state.setSessionType}
               onTitleChange={state.setTitle}
               onDescriptionChange={state.setDescription}
-              onDurationChange={state.setDuration}
               onToggleFocusArea={state.toggleFocusArea}
               onMaxParticipantsChange={state.setMaxParticipants}
             />
@@ -754,16 +828,35 @@ export default function CreateSessionScreen() {
           {state.step === 'schedule' && (
             <CreateScheduleStep
               colors={colors}
+              sessionType={state.sessionType}
               recurrence={state.recurrence}
+              allowedRecurrenceOptions={state.allowedRecurrenceOptions}
               selectedDate={state.selectedDate}
+              campLength={state.campLength}
+              campEndDate={state.campEndDate}
               selectedTime={state.selectedTime}
+              selectedEndTime={state.selectedEndTime}
+              campDatesPreview={state.campDatesPreview}
+              useCampDailyTimes={state.useCampDailyTimes}
+              campDailyTimes={state.campDailyTimes}
               location={state.location}
+              venueName={state.venueName}
+              locationCoordinates={state.locationCoordinates}
               price={state.price}
               savedLocations={state.savedLocations}
+              onCampLengthChange={state.setCampLength}
+              onCampEndDateChange={state.setCampEndDate}
+              onUseCampDailyTimesChange={state.setUseCampDailyTimes}
+              onCampDailyTimeChange={state.setCampDailyTime}
               onRecurrenceChange={state.setRecurrence}
               onDateChange={state.setSelectedDate}
               onTimeChange={state.setSelectedTime}
+              onEndTimeChange={state.setSelectedEndTime}
               onLocationChange={state.setLocation}
+              onVenueNameChange={state.setVenueName}
+              onSelectSavedLocation={state.selectSavedLocation}
+              onSaveLocationPreset={state.saveLocationPreset}
+              onLocationCoordinatesChange={state.setLocationCoordinates}
               onPriceChange={state.setPrice}
             />
           )}
@@ -773,11 +866,18 @@ export default function CreateSessionScreen() {
               sessionType={state.sessionType}
               title={state.title}
               description={state.description}
-              duration={state.duration}
               selectedDate={state.selectedDate}
+              campLength={state.campLength}
+              campEndDate={state.campEndDate}
               selectedTime={state.selectedTime}
+              selectedEndTime={state.selectedEndTime}
+              campDatesPreview={state.campDatesPreview}
+              useCampDailyTimes={state.useCampDailyTimes}
+              campDailyTimes={state.campDailyTimes}
               recurrence={state.recurrence}
               location={state.location}
+              venueName={state.venueName}
+              locationCoordinates={state.locationCoordinates}
               price={state.price}
               focusAreas={state.focusAreas}
               maxParticipants={state.maxParticipants}
@@ -789,6 +889,7 @@ export default function CreateSessionScreen() {
             <CreateInviteStep
               colors={colors}
               inviteType={state.inviteType}
+              allowedInviteTypes={state.allowedInviteTypes}
               selectedAthletes={state.selectedAthletes}
               pastAthletes={state.pastAthletes}
               onInviteTypeChange={state.setInviteType}
@@ -839,6 +940,22 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderRadius: Radii.lg,
     padding: Spacing.sm,
+  },
+  quickStartCard: {
+    gap: Spacing.sm,
+  },
+  quickStartRow: {
+    marginTop: Spacing.xxs,
+  },
+  templateChip: {
+    borderWidth: 1,
+    borderRadius: Radii.xl,
+    paddingHorizontal: Spacing.md,
+    minHeight: 38,
+    justifyContent: 'center',
+  },
+  quickStartHint: {
+    ...Typography.caption,
   },
   choiceIcon: {
     width: 40,

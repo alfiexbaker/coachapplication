@@ -429,7 +429,7 @@ describe('Invoice Service Utility Functions', () => {
 describe('Invoice Types', () => {
   test('InvoiceStatus should have expected values', () => {
     const validStatuses: InvoiceStatus[] = ['DRAFT', 'SENT', 'PAID', 'VOID', 'WRITTEN_OFF'];
-    assert.strictEqual(validStatuses.length, 4);
+    assert.strictEqual(validStatuses.length, 5);
   });
 
   test('Invoice should have required fields', () => {

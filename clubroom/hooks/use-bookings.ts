@@ -63,6 +63,8 @@ export interface UseBookingsResult {
   handleDiscoverSessionsPress: () => void;
   handleInvitesPress: () => void;
   handleCreateSessionPress: () => void;
+  handleCreateDirectPress: () => void;
+  handleCreateGroupPress: () => void;
   handleFindCoachPress: () => void;
   handleOfferingPress: (offering: SessionOffering) => void;
   handleModalClose: () => void;
@@ -268,6 +270,16 @@ export function useBookings(): UseBookingsResult {
     router.push(Routes.SESSIONS_CREATE);
   }, []);
 
+  const handleCreateDirectPress = useCallback(() => {
+    logger.press('CreateDirectButton', { preset: '1on1' });
+    router.push(Routes.sessionsCreateIntent({ intent: 'new', source: 'manual', preset: '1on1' }));
+  }, []);
+
+  const handleCreateGroupPress = useCallback(() => {
+    logger.press('CreateGroupButton', { preset: 'group' });
+    router.push(Routes.sessionsCreateIntent({ intent: 'new', source: 'manual', preset: 'group' }));
+  }, []);
+
   const handleFindCoachPress = useCallback(() => {
     logger.press('FindCoachButton', { route: '/(tabs)/index' });
     router.push(Routes.HOME_INDEX);
@@ -344,6 +356,8 @@ export function useBookings(): UseBookingsResult {
     handleDiscoverSessionsPress,
     handleInvitesPress,
     handleCreateSessionPress,
+    handleCreateDirectPress,
+    handleCreateGroupPress,
     handleFindCoachPress,
     handleOfferingPress,
     handleModalClose,

@@ -1,13 +1,15 @@
 import { Ionicons } from '@expo/vector-icons';
-import { StyleSheet, View } from 'react-native';
+import { Alert, StyleSheet, View, type GestureResponderEvent } from 'react-native';
 import { Row } from '@/components/primitives/row';
 
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { ThemedText } from '@/components/themed-text';
+import { Clickable } from '@/components/primitives/clickable';
 import { Radii, Spacing, Typography, withAlpha } from '@/constants/theme';
 import { SessionOffering } from '@/constants/types';
 import { useTheme } from '@/hooks/useTheme';
 import { getSessionOfferingCoachName } from '@/utils/session-display';
+import { openLocationInMaps } from '@/utils/map-links';
 
 import { SessionTypeBadge, SessionFooterBadges } from './session-offering-card-sections';
 
@@ -33,6 +35,20 @@ export function SessionOfferingCard({
 }: SessionOfferingCardProps) {
   const { colors: palette } = useTheme();
   const coachName = getSessionOfferingCoachName(offering);
+  const locationLabel = offering.venueName
+    ? `${offering.venueName} · ${offering.location}`
+    : offering.location;
+  const handleOpenLocation = (event: GestureResponderEvent) => {
+    event.stopPropagation();
+    void openLocationInMaps({
+      location: offering.location,
+      coordinates: offering.locationCoordinates,
+    }).then((opened) => {
+      if (!opened) {
+        Alert.alert('Error', 'Could not open maps application.');
+      }
+    });
+  };
 
   const registeredCount = offering.registrations.filter((r) => r.status === 'confirmed').length;
   const isFull = registeredCount >= offering.maxParticipants;
@@ -88,8 +104,15 @@ export function SessionOfferingCard({
           <Row align="center" gap="xxs" style={styles.metaRow}>
             <Ionicons name="location-outline" size={14} color={palette.tint} />
             <ThemedText style={[styles.metaText, { color: palette.tint }]} numberOfLines={1}>
-              {offering.location}
+              {locationLabel}
             </ThemedText>
+            <Clickable
+              onPress={handleOpenLocation}
+              accessibilityLabel="Open training location in maps"
+              style={[styles.mapButton, { backgroundColor: withAlpha(palette.tint, 0.08) }]}
+            >
+              <Ionicons name="navigate-outline" size={12} color={palette.tint} />
+            </Clickable>
           </Row>
 
           {offering.footballSkill && (
@@ -162,6 +185,13 @@ const styles = StyleSheet.create({
   metaText: {
     ...Typography.caption,
     flex: 1,
+  },
+  mapButton: {
+    width: 24,
+    height: 24,
+    borderRadius: Radii.sm,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   trailing: {
     alignItems: 'flex-end',

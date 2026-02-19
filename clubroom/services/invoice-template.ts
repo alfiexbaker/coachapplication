@@ -5,7 +5,7 @@
  * Generates a printable/shareable HTML invoice.
  */
 
-import type { Invoice } from '@/constants/types';
+import type { Invoice, InvoiceStatus } from '@/constants/types';
 
 export function generateInvoiceHtml(invoice: Invoice): string {
   const formatDate = (dateString: string) => {
@@ -29,11 +29,12 @@ export function generateInvoiceHtml(invoice: Invoice): string {
     .filter((item): item is string => Boolean(item))
     .join(' · ');
 
-  const statusColor = {
+  const statusColor: Record<InvoiceStatus, string> = {
     DRAFT: '#6B7280',
     SENT: '#2563EB',
     PAID: '#059669',
     VOID: '#DC2626',
+    WRITTEN_OFF: '#9CA3AF',
   };
 
   return `

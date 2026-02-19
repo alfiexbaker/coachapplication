@@ -22,7 +22,7 @@ export const MatchHeaderCard = memo(function MatchHeaderCard({
 }: MatchHeaderCardProps) {
   const { colors } = useTheme();
   const squadLabel = getMatchSquadLabel(match);
-  const typeColor = matchService.getMatchTypeColor(match.matchType);
+  const typeColor = matchService.getMatchTypeColor(match.matchType, colors);
   const statusColor = matchService.getStatusColor(match.status);
   const matchDate = new Date(match.date);
   const dateLabel = matchDate.toLocaleDateString('en-GB', {

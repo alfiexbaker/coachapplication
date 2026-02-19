@@ -1,5 +1,5 @@
 import { memo } from 'react';
-import { View, StyleSheet } from 'react-native';
+import { Alert, View, StyleSheet } from 'react-native';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import Animated, { FadeInDown } from 'react-native-reanimated';
@@ -13,6 +13,7 @@ import { useTheme } from '@/hooks/useTheme';
 import type { GroupSession } from '@/constants/types';
 import { getGroupSessionCoachName } from '@/utils/group-display';
 import { Routes } from '@/navigation/routes';
+import { openLocationInMaps } from '@/utils/map-links';
 
 interface GroupSessionDetailsProps {
   session: GroupSession;
@@ -23,6 +24,19 @@ export const GroupSessionDetails = memo(function GroupSessionDetails({
 }: GroupSessionDetailsProps) {
   const { colors } = useTheme();
   const coachName = getGroupSessionCoachName(session);
+  const locationLabel = session.venueName
+    ? `${session.venueName} · ${session.location}`
+    : session.location;
+  const handleOpenMap = () => {
+    void openLocationInMaps({
+      location: session.location,
+      coordinates: session.locationCoordinates,
+    }).then((opened) => {
+      if (!opened) {
+        Alert.alert('Error', 'Could not open maps application.');
+      }
+    });
+  };
 
   return (
     <>
@@ -69,13 +83,20 @@ export const GroupSessionDetails = memo(function GroupSessionDetails({
       {/* Location */}
       <Animated.View entering={FadeInDown.delay(200).springify()}>
         <SurfaceCard style={styles.card}>
-          <Row gap="md" align="center">
-            <Ionicons name="location" size={20} color={colors.tint} />
-            <View style={{ flex: 1 }}>
-              <ThemedText type="defaultSemiBold">Location</ThemedText>
-              <ThemedText style={{ color: colors.muted }}>{session.location}</ThemedText>
-            </View>
-          </Row>
+          <Clickable
+            onPress={handleOpenMap}
+            accessibilityLabel="Open training location in maps"
+            style={styles.locationClickable}
+          >
+            <Row gap="md" align="center">
+              <Ionicons name="location" size={20} color={colors.tint} />
+              <View style={{ flex: 1 }}>
+                <ThemedText type="defaultSemiBold">Location</ThemedText>
+                <ThemedText style={{ color: colors.muted }}>{locationLabel}</ThemedText>
+              </View>
+              <Ionicons name="navigate-outline" size={18} color={colors.tint} />
+            </Row>
+          </Clickable>
         </SurfaceCard>
       </Animated.View>
 
@@ -175,6 +196,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   coachPhoto: { width: 48, height: 48, borderRadius: Radii.xl },
+  locationClickable: { minHeight: 44, justifyContent: 'center' },
   messageButton: {
     width: 40,
     height: 40,

@@ -52,8 +52,8 @@ export const ClubFeedListHeader = memo(function ClubFeedListHeader({
       />
 
       <TeamsPanel squads={hub.squads} isCoach={hub.isCoach} clubId={hub.membership?.clubId} />
-      <SessionsPanel sessions={hub.trainingSessions} isCoach={hub.isCoach} />
       <MatchesPanel matches={hub.upcomingMatches} isCoach={hub.isCoach} />
+      <SessionsPanel sessions={hub.trainingSessions} isCoach={hub.isCoach} />
 
       {hub.upcomingInvites.length > 0 && (
         <View style={styles.carouselSection}>

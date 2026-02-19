@@ -6,7 +6,7 @@
  */
 
 import { memo, useCallback } from 'react';
-import { View, StyleSheet, Platform, Linking } from 'react-native';
+import { View, StyleSheet, Alert } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
 import { SurfaceCard } from '@/components/primitives/surface-card';
@@ -15,6 +15,7 @@ import { ThemedText } from '@/components/themed-text';
 import { Spacing, Radii, Typography } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
 import { Row } from '@/components/primitives';
+import { openLocationInMaps } from '@/utils/map-links';
 
 interface LocationMapPreviewProps {
   location: string;
@@ -25,25 +26,11 @@ function LocationMapPreviewComponent({ location, coordinates }: LocationMapPrevi
   const { colors: palette } = useTheme();
 
   const handleGetDirections = useCallback(() => {
-    if (coordinates) {
-      const url = Platform.select({
-        ios: `maps://app?daddr=${coordinates.latitude},${coordinates.longitude}`,
-        default: `https://www.google.com/maps/dir/?api=1&destination=${coordinates.latitude},${coordinates.longitude}`,
-      });
-      if (url) {
-        Linking.openURL(url);
+    void openLocationInMaps({ location, coordinates }).then((opened) => {
+      if (!opened) {
+        Alert.alert('Error', 'Could not open maps application.');
       }
-    } else {
-      // Fallback: search for the location by name
-      const encoded = encodeURIComponent(location);
-      const url = Platform.select({
-        ios: `maps://app?q=${encoded}`,
-        default: `https://www.google.com/maps/search/?api=1&query=${encoded}`,
-      });
-      if (url) {
-        Linking.openURL(url);
-      }
-    }
+    });
   }, [coordinates, location]);
 
   if (!location) return null;
