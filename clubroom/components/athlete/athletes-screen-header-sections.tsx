@@ -6,7 +6,6 @@ import { Clickable } from '@/components/primitives/clickable';
 import { ThemedText } from '@/components/themed-text';
 import { Row } from '@/components/primitives/row';
 import { AthleteCard } from '@/components/roster/athlete-card';
-import { AthletesStatsBar } from '@/components/athlete/athletes-stats-bar';
 import { Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
 import type { ThemeColors } from '@/hooks/useTheme';
 import type { RosterEntry } from '@/constants/types';
@@ -17,7 +16,6 @@ export type FilterType = 'all' | 'active';
 type HeaderProps = {
   colors: ThemeColors;
   roster: RosterEntry[];
-  upcomingSessions: Record<string, Booking>;
   searchQuery: string;
   onSearchChange: (value: string) => void;
   onClearSearch: () => void;
@@ -28,7 +26,6 @@ type HeaderProps = {
 export const AthletesListHeader = React.memo(function AthletesListHeader({
   colors,
   roster,
-  upcomingSessions,
   searchQuery,
   onSearchChange,
   onClearSearch,
@@ -46,8 +43,6 @@ export const AthletesListHeader = React.memo(function AthletesListHeader({
 
   return (
     <View style={styles.headerContent}>
-      <AthletesStatsBar roster={roster} upcomingSessions={upcomingSessions} />
-
       <Row
         style={[
           styles.searchContainer,
@@ -148,8 +143,8 @@ export const renderAthleteCard = ({
 
 const styles = StyleSheet.create({
   headerContent: {
-    paddingTop: Spacing.md,
-    gap: Spacing.md,
+    paddingTop: Spacing.sm,
+    gap: Spacing.xs,
     paddingBottom: Spacing.xs,
   },
   searchContainer: {
@@ -157,7 +152,7 @@ const styles = StyleSheet.create({
     gap: Spacing.sm,
     marginHorizontal: Spacing.lg,
     paddingHorizontal: Spacing.md,
-    paddingVertical: Spacing.sm,
+    paddingVertical: Spacing.xs,
     borderRadius: Radii.lg,
     borderWidth: 1,
   },

@@ -16,7 +16,6 @@ export * from './invite-athlete-modal';
 export * from './invite-session-flow';
 export * from './onboarding-checklist';
 export * from './recurring-template-modal';
-export * from './scheduling-rules-editor';
 export * from './scheduling-rules-modal';
 export * from './share-profile';
 export * from './time-off-sheet';

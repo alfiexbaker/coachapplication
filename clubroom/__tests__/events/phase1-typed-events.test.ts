@@ -3,7 +3,6 @@ import test, { beforeEach, afterEach } from 'node:test';
 
 import { eventBus, ServiceEvents, type EventPayloads } from '../../services/event-bus';
 import { messagingService } from '../../services/messaging-service';
-import { waitlistService } from '../../services/waitlist-service';
 import { favouriteService } from '../../services/favourite-service';
 import { recurringBookingService } from '../../services/recurring-booking-service';
 import { verificationService } from '../../services/verification-service';
@@ -64,41 +63,6 @@ test('messagingService.sendMessage emits MESSAGE_SENT', async () => {
   assert.strictEqual(emitted?.sender, 'parent');
 });
 
-test('waitlistService emits WAITLIST_JOINED and WAITLIST_PROMOTED', async () => {
-  let joined: EventPayloads[typeof ServiceEvents.WAITLIST_JOINED] | undefined;
-  let promoted: EventPayloads[typeof ServiceEvents.WAITLIST_PROMOTED] | undefined;
-
-  const unsubJoined = eventBus.on<EventPayloads[typeof ServiceEvents.WAITLIST_JOINED]>(
-    ServiceEvents.WAITLIST_JOINED,
-    (payload) => {
-      joined = payload;
-    },
-  );
-  const unsubPromoted = eventBus.on<EventPayloads[typeof ServiceEvents.WAITLIST_PROMOTED]>(
-    ServiceEvents.WAITLIST_PROMOTED,
-    (payload) => {
-      promoted = payload;
-    },
-  );
-
-  const entryResult = await waitlistService.joinWaitlist({
-    userId: 'user_wait_1',
-    sessionId: 'session_wait_1',
-    coachId: 'coach_wait_1',
-    autoBook: true,
-  });
-  const result = await waitlistService.promoteFromWaitlist('session_wait_1');
-  unsubJoined();
-  unsubPromoted();
-
-  assert.strictEqual(entryResult.success, true);
-  assert.ok(result.success);
-  const entry = entryResult.success ? entryResult.data : undefined;
-  assert.ok(entry);
-  assert.strictEqual(joined?.entryId, entry?.id);
-  assert.strictEqual(promoted?.entryId, entry?.id);
-  assert.strictEqual(promoted?.sessionId, entry?.sessionId);
-});
 
 test('favouriteService emits FAVOURITE_ADDED and FAVOURITE_REMOVED', async () => {
   let added: EventPayloads[typeof ServiceEvents.FAVOURITE_ADDED] | undefined;

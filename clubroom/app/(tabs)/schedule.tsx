@@ -137,10 +137,6 @@ export default function ScheduleScreen() {
         segment={schedule.segment}
         onSegmentChange={schedule.handleSegmentChange}
       />
-      {schedule.segment === 'sessions' && (
-        <ScheduleQuickActions />
-      )}
-
       {/* Sessions Segment */}
       {schedule.segment === 'sessions' && (
         <ScrollView
@@ -154,6 +150,8 @@ export default function ScheduleScreen() {
             />
           }
         >
+          <ScheduleQuickActions />
+
           {schedule.todayData && schedule.weekOffset === 0 && (
             <ScheduleTodayCard
               todayData={schedule.todayData}

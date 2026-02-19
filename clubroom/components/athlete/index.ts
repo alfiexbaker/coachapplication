@@ -5,6 +5,4 @@ export { AthleteOverview } from './athlete-overview';
 export { AthleteSessions } from './athlete-sessions';
 export { AthleteProgress } from './athlete-progress';
 export { AthleteNotesTab } from './athlete-notes-tab';
-export { AthletesStatsBar } from './athletes-stats-bar';
-export { NeedsAttentionSection } from './needs-attention-section';
-export * from './progress-screen';
+

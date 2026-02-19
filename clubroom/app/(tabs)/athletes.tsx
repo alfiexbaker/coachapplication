@@ -46,7 +46,6 @@ export default function AthletesScreen() {
       <AthletesListHeader
         colors={colors}
         roster={roster}
-        upcomingSessions={upcomingSessions}
         searchQuery={searchQuery}
         onSearchChange={setSearchQuery}
         onClearSearch={() => setSearchQuery('')}
@@ -54,7 +53,7 @@ export default function AthletesScreen() {
         onFilterChange={setFilter}
       />
     ),
-    [colors, roster, upcomingSessions, searchQuery, setSearchQuery, filter, setFilter],
+    [colors, roster, searchQuery, setSearchQuery, filter, setFilter],
   );
 
   if (status === 'loading') {

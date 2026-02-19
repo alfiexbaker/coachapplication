@@ -57,8 +57,7 @@ export const ScheduleQuickActions = memo(function ScheduleQuickActions() {
 
 const styles = StyleSheet.create({
   container: {
-    paddingHorizontal: Spacing.lg,
-    paddingBottom: Spacing.xs,
+    paddingHorizontal: 0,
   },
   pill: {
     flex: 1,
