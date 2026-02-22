@@ -1,15 +1,33 @@
-import { chromium, devices } from 'playwright';
 import fs from 'node:fs/promises';
 import path from 'node:path';
 
 const baseUrl = process.env.UI_BASE_URL || 'http://localhost:8083';
-const outDir = '/tmp/ui-flow-checks-50';
+const defaultOutDir = process.env.UI_FLOW_OUT_DIR || '/tmp/ui-flow-checks-50';
+const failLevels = ['none', 'high', 'medium'];
+let chromium = null;
+let devices = null;
 
 const creds = {
   coach: { username: 'coach1', password: 'coach' },
   parent: { username: 'parent1', password: 'user' },
   athlete: { username: 'user1', password: 'user' },
 };
+
+async function ensurePlaywrightLoaded() {
+  if (chromium && devices) {
+    return;
+  }
+
+  try {
+    const playwright = await import('playwright');
+    chromium = playwright.chromium;
+    devices = playwright.devices;
+  } catch (error) {
+    throw new Error(
+      `Playwright is required to run UI flow checks. Install it with "npm install --save-dev playwright". ${String(error)}`,
+    );
+  }
+}
 
 /**
  * Flow actions are intentionally minimal and resilient:
@@ -49,8 +67,8 @@ const flows = [
   {
     id: 'coach_availability_rules',
     role: 'coach',
-    title: 'Coach opens booking rules',
-    path: '/availability/scheduling-rules',
+    title: 'Coach opens cancellation policy',
+    path: '/settings/cancellation-policy',
   },
   {
     id: 'coach_group_sessions',
@@ -228,7 +246,12 @@ const flows = [
   { id: 'athlete_goals', role: 'athlete', title: 'Athlete opens goals', path: '/goals' },
   { id: 'athlete_skills', role: 'athlete', title: 'Athlete opens skills', path: '/skills' },
   { id: 'athlete_badges', role: 'athlete', title: 'Athlete opens achievements', path: '/badges' },
-  { id: 'athlete_journal', role: 'athlete', title: 'Athlete opens journal', path: '/athlete/journal' },
+  {
+    id: 'athlete_analytics',
+    role: 'athlete',
+    title: 'Athlete opens analytics view',
+    path: '/analytics/user1',
+  },
   { id: 'athlete_rate', role: 'athlete', title: 'Athlete opens rate coach', path: '/rate-coach' },
   {
     id: 'athlete_discover_sessions',
@@ -245,9 +268,274 @@ function flowFile(flow) {
   return `${flow.role}__${flow.id}.png`;
 }
 
+const allowedRoles = Object.keys(creds);
+
+function parseList(value) {
+  return value
+    .split(',')
+    .map((item) => item.trim().toLowerCase())
+    .filter(Boolean);
+}
+
+function parseNonNegativeInt(value, flagName) {
+  const parsed = Number.parseInt(value, 10);
+  if (!Number.isFinite(parsed) || parsed < 0) {
+    throw new Error(`${flagName} must be a non-negative integer.`);
+  }
+  return parsed;
+}
+
+function parsePositiveInt(value, flagName) {
+  const parsed = Number.parseInt(value, 10);
+  if (!Number.isFinite(parsed) || parsed <= 0) {
+    throw new Error(`${flagName} must be a positive integer.`);
+  }
+  return parsed;
+}
+
+function parseCliOptions(argv) {
+  const envFailOn = (process.env.UI_FLOW_FAIL_ON || 'high').toLowerCase();
+  if (!failLevels.includes(envFailOn)) {
+    throw new Error(
+      `UI_FLOW_FAIL_ON must be one of: ${failLevels.join(', ')} (received "${envFailOn}")`,
+    );
+  }
+
+  const options = {
+    outDir: defaultOutDir,
+    roles: [],
+    chunkSize:
+      process.env.UI_FLOW_CHUNK_SIZE !== undefined
+        ? parseNonNegativeInt(process.env.UI_FLOW_CHUNK_SIZE, 'UI_FLOW_CHUNK_SIZE')
+        : 0,
+    chunkIndex:
+      process.env.UI_FLOW_CHUNK_INDEX !== undefined
+        ? parsePositiveInt(process.env.UI_FLOW_CHUNK_INDEX, 'UI_FLOW_CHUNK_INDEX')
+        : null,
+    retries:
+      process.env.UI_FLOW_RETRIES !== undefined
+        ? parseNonNegativeInt(process.env.UI_FLOW_RETRIES, 'UI_FLOW_RETRIES')
+        : 1,
+    headless: process.env.UI_FLOW_HEADED === '1' ? false : true,
+    listOnly: false,
+    helpOnly: false,
+    failOn: envFailOn,
+    pauseMs:
+      process.env.UI_FLOW_PAUSE_MS !== undefined
+        ? parseNonNegativeInt(process.env.UI_FLOW_PAUSE_MS, 'UI_FLOW_PAUSE_MS')
+        : 900,
+  };
+
+  if (process.env.UI_FLOW_ROLES) {
+    options.roles.push(...parseList(process.env.UI_FLOW_ROLES));
+  }
+
+  for (const arg of argv) {
+    if (arg === '--help' || arg === '-h') {
+      options.helpOnly = true;
+      continue;
+    }
+    if (arg === '--list') {
+      options.listOnly = true;
+      continue;
+    }
+    if (arg === '--headed') {
+      options.headless = false;
+      continue;
+    }
+    if (arg.startsWith('--roles=')) {
+      options.roles.push(...parseList(arg.slice('--roles='.length)));
+      continue;
+    }
+    if (arg.startsWith('--role=')) {
+      options.roles.push(arg.slice('--role='.length).trim().toLowerCase());
+      continue;
+    }
+    if (arg.startsWith('--out-dir=')) {
+      options.outDir = arg.slice('--out-dir='.length).trim();
+      continue;
+    }
+    if (arg.startsWith('--chunk-size=')) {
+      options.chunkSize = parseNonNegativeInt(arg.slice('--chunk-size='.length), '--chunk-size');
+      continue;
+    }
+    if (arg.startsWith('--chunk-index=')) {
+      options.chunkIndex = parsePositiveInt(arg.slice('--chunk-index='.length), '--chunk-index');
+      continue;
+    }
+    if (arg.startsWith('--retries=')) {
+      options.retries = parseNonNegativeInt(arg.slice('--retries='.length), '--retries');
+      continue;
+    }
+    if (arg.startsWith('--pause-ms=')) {
+      options.pauseMs = parseNonNegativeInt(arg.slice('--pause-ms='.length), '--pause-ms');
+      continue;
+    }
+    if (arg.startsWith('--fail-on=')) {
+      options.failOn = arg.slice('--fail-on='.length).trim().toLowerCase();
+      continue;
+    }
+
+    throw new Error(`Unknown argument: ${arg}`);
+  }
+
+  const uniqueRoles = Array.from(new Set(options.roles));
+  const invalidRole = uniqueRoles.find((role) => !allowedRoles.includes(role));
+  if (invalidRole) {
+    throw new Error(`Invalid role "${invalidRole}". Allowed roles: ${allowedRoles.join(', ')}`);
+  }
+  if (!failLevels.includes(options.failOn)) {
+    throw new Error(`--fail-on must be one of: ${failLevels.join(', ')}`);
+  }
+
+  return {
+    ...options,
+    roles: uniqueRoles.length > 0 ? uniqueRoles : [...allowedRoles],
+  };
+}
+
+function usageText() {
+  return [
+    'UI flow checks (50+) options:',
+    '',
+    '  --help, -h                 Show help and exit',
+    '  --list                     Show available roles/flow counts and exit',
+    '  --roles=coach,parent       Run only specific roles',
+    '  --role=coach               Add one role (repeatable)',
+    '  --chunk-size=10            Split each role into chunks of N flows',
+    '  --chunk-index=2            Run only chunk N (1-based) for selected role(s)',
+    '  --retries=1                Retry login and flow navigation failures N times',
+    '  --pause-ms=900             Wait between navigation/action steps in ms',
+    '  --fail-on=high             Exit non-zero on: none | high | medium',
+    '  --out-dir=/tmp/path        Output directory for screenshots/reports',
+    '  --headed                   Run browser headed (not headless)',
+    '',
+    'Environment overrides:',
+    '  UI_BASE_URL                Base URL (default: http://localhost:8083)',
+    '  UI_FLOW_OUT_DIR            Output directory',
+    '  UI_FLOW_ROLES              Comma-separated roles',
+    '  UI_FLOW_CHUNK_SIZE         Chunk size',
+    '  UI_FLOW_CHUNK_INDEX        Chunk index (1-based)',
+    '  UI_FLOW_RETRIES            Retry count',
+    '  UI_FLOW_PAUSE_MS           Pause duration',
+    '  UI_FLOW_FAIL_ON            none | high | medium',
+    '  UI_FLOW_HEADED=1           Headed mode',
+  ].join('\n');
+}
+
+function splitIntoChunks(items, chunkSize) {
+  if (chunkSize <= 0 || chunkSize >= items.length) {
+    return [items];
+  }
+
+  const chunks = [];
+  for (let i = 0; i < items.length; i += chunkSize) {
+    chunks.push(items.slice(i, i + chunkSize));
+  }
+  return chunks;
+}
+
+function buildTotals(results) {
+  return {
+    total: results.length,
+    ok: results.filter((r) => r.status === 'ok').length,
+    failed: results.filter((r) => r.status === 'failed').length,
+    high: results.filter((r) => r.severity === 'high').length,
+    medium: results.filter((r) => r.severity === 'medium').length,
+    none: results.filter((r) => r.severity === 'none').length,
+  };
+}
+
+function buildReport(results, meta = {}) {
+  return {
+    baseUrl,
+    generatedAt: new Date().toISOString(),
+    meta,
+    totals: buildTotals(results),
+    results,
+  };
+}
+
+function shouldFailRun(totals, failOn) {
+  if (failOn === 'none') {
+    return { shouldFail: false, reason: '' };
+  }
+  if (failOn === 'high') {
+    const shouldFail = totals.high > 0;
+    return {
+      shouldFail,
+      reason: shouldFail ? `high severity findings detected (${totals.high})` : '',
+    };
+  }
+  const mediumOrHigher = totals.high + totals.medium;
+  const shouldFail = mediumOrHigher > 0;
+  return {
+    shouldFail,
+    reason: shouldFail
+      ? `medium-or-higher findings detected (high=${totals.high}, medium=${totals.medium})`
+      : '',
+  };
+}
+
+function buildMarkdown(report, title) {
+  const markdownLines = [
+    `# ${title}`,
+    '',
+    `- Base URL: ${report.baseUrl}`,
+    `- Generated: ${report.generatedAt}`,
+    `- Total flows: ${report.totals.total}`,
+    `- Failed: ${report.totals.failed}`,
+    `- High: ${report.totals.high}`,
+    `- Medium: ${report.totals.medium}`,
+  ];
+
+  if (report.meta.roles?.length) {
+    markdownLines.push(`- Roles: ${report.meta.roles.join(', ')}`);
+  }
+  if (report.meta.chunkSize) {
+    markdownLines.push(`- Chunk size: ${report.meta.chunkSize}`);
+  }
+  if (report.meta.chunkIndex !== undefined && report.meta.chunkIndex !== null) {
+    markdownLines.push(`- Chunk index: ${report.meta.chunkIndex}`);
+  }
+  if (report.meta.retries !== undefined) {
+    markdownLines.push(`- Retries: ${report.meta.retries}`);
+  }
+
+  markdownLines.push('', '## High / Medium Findings', '');
+
+  const findings = report.results.filter((r) => r.severity === 'high' || r.severity === 'medium');
+  if (findings.length === 0) {
+    markdownLines.push('- None');
+  } else {
+    for (const item of findings) {
+      markdownLines.push(
+        `- [${item.severity.toUpperCase()}] ${item.id} (${item.path}) :: ${item.issues.join(' | ')}`,
+      );
+    }
+  }
+
+  return `${markdownLines.join('\n')}\n`;
+}
+
+async function writeReportFiles(report, outDir, stem, title) {
+  await fs.writeFile(path.join(outDir, `${stem}.json`), JSON.stringify(report, null, 2));
+  await fs.writeFile(path.join(outDir, `${stem}.md`), buildMarkdown(report, title));
+}
+
+async function writePartialReport(allResults, options) {
+  const partial = buildReport(allResults, {
+    roles: options.roles,
+    chunkSize: options.chunkSize || undefined,
+    chunkIndex: options.chunkIndex,
+    retries: options.retries,
+  });
+  await fs.writeFile(path.join(options.outDir, 'report.partial.json'), JSON.stringify(partial, null, 2));
+}
+
 async function login(page, role) {
   const { username, password } = creds[role];
-  await page.goto(baseUrl, { waitUntil: 'domcontentloaded', timeout: 60000 });
+  await page.goto(baseUrl, { waitUntil: 'domcontentloaded', timeout: 120000 });
   await page.waitForTimeout(1000);
 
   const usernameInput = page.getByPlaceholder('e.g. coach');
@@ -259,18 +547,53 @@ async function login(page, role) {
 
   await usernameInput.fill(username);
   await passwordInput.fill(password);
-  await page.getByRole('button', { name: 'Log in' }).click();
+
+  const loginButtonByRole = page.getByRole('button', { name: 'Log in', exact: true }).first();
+  const loginButtonByText = page.getByText('Log in', { exact: true }).first();
+  if (await loginButtonByRole.isVisible().catch(() => false)) {
+    await loginButtonByRole.click();
+  } else if (await loginButtonByText.isVisible().catch(() => false)) {
+    await loginButtonByText.click();
+  } else {
+    await passwordInput.press('Enter');
+  }
+
   await page.waitForFunction(
     () => {
       try {
-        return Boolean(window.localStorage.getItem('auth_user'));
+        const localKeys = [
+          'auth_user',
+          '@auth_user',
+          '@clubroom:auth_user',
+          '@react-native-async-storage/auth_user',
+        ];
+        const hasAuthKey = localKeys.some((key) => Boolean(window.localStorage.getItem(key)));
+        const loginFieldPresent = Boolean(document.querySelector('input[placeholder="e.g. coach"]'));
+        return hasAuthKey || !loginFieldPresent;
       } catch {
         return false;
       }
     },
-    { timeout: 25000 },
+    undefined,
+    { timeout: 45000 },
   );
   await page.waitForTimeout(1200);
+}
+
+async function loginWithRetry(page, role, retries) {
+  let lastError = null;
+  for (let attempt = 1; attempt <= retries + 1; attempt += 1) {
+    try {
+      await login(page, role);
+      return attempt;
+    } catch (error) {
+      lastError = error;
+      if (attempt <= retries) {
+        await page.waitForTimeout(800 * attempt);
+      }
+    }
+  }
+  throw lastError;
 }
 
 async function runAction(page, action, actionErrors) {
@@ -348,126 +671,246 @@ function classify(flowErrors, actionErrors, metrics) {
   return { severity, issues };
 }
 
+async function runFlowWithRetry(page, flow, options, currentFlowErrors) {
+  const start = Date.now();
+  let lastError = null;
+  let lastIssues = [];
+
+  for (let attempt = 1; attempt <= options.retries + 1; attempt += 1) {
+    currentFlowErrors.length = 0;
+    const actionErrors = [];
+
+    try {
+      await page.goto(`${baseUrl}${flow.path}`, {
+        waitUntil: 'domcontentloaded',
+        timeout: 60000,
+      });
+      await page.waitForTimeout(options.pauseMs);
+
+      for (const action of flow.actions ?? []) {
+        // eslint-disable-next-line no-await-in-loop
+        await runAction(page, action, actionErrors);
+      }
+
+      const metrics = await collectMetrics(page);
+      const screenshotPath = path.join(options.outDir, flowFile(flow));
+      await page.screenshot({ path: screenshotPath, fullPage: false });
+      const { severity, issues } = classify(currentFlowErrors, actionErrors, metrics);
+
+      return {
+        id: flow.id,
+        role: flow.role,
+        title: flow.title,
+        path: flow.path,
+        screenshot: screenshotPath,
+        status: severity === 'high' ? 'failed' : 'ok',
+        severity,
+        issues,
+        metrics,
+        attempts: attempt,
+        durationMs: Date.now() - start,
+      };
+    } catch (error) {
+      lastError = error;
+      lastIssues = [...currentFlowErrors, ...actionErrors, `navigation_failed:${String(error)}`];
+      if (attempt <= options.retries) {
+        // Short backoff to ride out transient bundling/network hiccups in local/CI.
+        // eslint-disable-next-line no-await-in-loop
+        await page.waitForTimeout(1200 * attempt);
+      }
+    }
+  }
+
+  return {
+    id: flow.id,
+    role: flow.role,
+    title: flow.title,
+    path: flow.path,
+    status: 'failed',
+    severity: 'high',
+    issues: lastIssues.length > 0 ? lastIssues : [`navigation_failed:${String(lastError)}`],
+    attempts: options.retries + 1,
+    durationMs: Date.now() - start,
+  };
+}
+
 async function main() {
-  await fs.mkdir(outDir, { recursive: true });
-  const browser = await chromium.launch({ headless: true });
+  const options = parseCliOptions(process.argv.slice(2));
+  if (options.helpOnly) {
+    console.log(usageText());
+    return;
+  }
+  await fs.mkdir(options.outDir, { recursive: true });
+
   const grouped = flows.reduce((acc, flow) => {
     if (!acc[flow.role]) acc[flow.role] = [];
     acc[flow.role].push(flow);
     return acc;
   }, {});
 
+  if (options.listOnly) {
+    const byRole = Object.fromEntries(
+      allowedRoles.map((role) => [role, grouped[role] ? grouped[role].length : 0]),
+    );
+    console.log(
+      JSON.stringify(
+        {
+          baseUrl,
+          availableRoles: allowedRoles,
+          selectedRoles: options.roles,
+          totalFlows: flows.length,
+          flowsByRole: byRole,
+        },
+        null,
+        2,
+      ),
+    );
+    return;
+  }
+
+  await ensurePlaywrightLoaded();
+  const browser = await chromium.launch({ headless: options.headless });
   const allResults = [];
+  const roleSummaries = [];
 
-  for (const [role, roleFlows] of Object.entries(grouped)) {
-    const context = await browser.newContext({ ...devices['iPhone 13'] });
-    const page = await context.newPage();
-    let currentFlowErrors = [];
+  try {
+    for (const role of options.roles) {
+      const roleFlows = grouped[role] ?? [];
+      const chunks = splitIntoChunks(roleFlows, options.chunkSize);
 
-    page.on('console', (msg) => {
-      if (msg.type() === 'error') currentFlowErrors.push(`console:${msg.text()}`);
-    });
-    page.on('pageerror', (err) => currentFlowErrors.push(`pageerror:${err.message}`));
-
-    await login(page, role);
-
-    for (const flow of roleFlows) {
-      currentFlowErrors = [];
-      const actionErrors = [];
-      const start = Date.now();
-
-      try {
-        await page.goto(`${baseUrl}${flow.path}`, {
-          waitUntil: 'domcontentloaded',
-          timeout: 60000,
+      if (options.chunkIndex !== null && options.chunkIndex > chunks.length) {
+        roleSummaries.push({
+          role,
+          skipped: true,
+          reason: `chunk_index_out_of_range (${options.chunkIndex} > ${chunks.length})`,
         });
-        await page.waitForTimeout(900);
+        continue;
+      }
 
-        for (const action of flow.actions ?? []) {
-          // eslint-disable-next-line no-await-in-loop
-          await runAction(page, action, actionErrors);
+      const chunkIndices =
+        options.chunkIndex === null ? chunks.map((_, index) => index) : [options.chunkIndex - 1];
+
+      const roleResults = [];
+
+      for (const chunkIdx of chunkIndices) {
+        const chunkFlows = chunks[chunkIdx] ?? [];
+        if (chunkFlows.length === 0) continue;
+
+        const context = await browser.newContext({ ...devices['iPhone 13'] });
+        const page = await context.newPage();
+        let currentFlowErrors = [];
+
+        page.on('console', (msg) => {
+          if (msg.type() === 'error') currentFlowErrors.push(`console:${msg.text()}`);
+        });
+        page.on('pageerror', (err) => currentFlowErrors.push(`pageerror:${err.message}`));
+
+        let loginError = null;
+        let loginAttempts = 0;
+        try {
+          loginAttempts = await loginWithRetry(page, role, options.retries);
+        } catch (error) {
+          loginError = error;
         }
 
-        const metrics = await collectMetrics(page);
-        const screenshotPath = path.join(outDir, flowFile(flow));
-        await page.screenshot({ path: screenshotPath, fullPage: false });
+        const chunkResults = [];
 
-        const { severity, issues } = classify(currentFlowErrors, actionErrors, metrics);
-        allResults.push({
-          id: flow.id,
-          role: flow.role,
-          title: flow.title,
-          path: flow.path,
-          screenshot: screenshotPath,
-          status: severity === 'high' ? 'failed' : 'ok',
-          severity,
-          issues,
-          metrics,
-          durationMs: Date.now() - start,
+        if (loginError) {
+          for (const flow of chunkFlows) {
+            const failed = {
+              id: flow.id,
+              role: flow.role,
+              title: flow.title,
+              path: flow.path,
+              status: 'failed',
+              severity: 'high',
+              issues: [`login_failed:${String(loginError)}`],
+              attempts: loginAttempts || options.retries + 1,
+              durationMs: 0,
+            };
+            chunkResults.push(failed);
+            roleResults.push(failed);
+            allResults.push(failed);
+          }
+        } else {
+          for (const flow of chunkFlows) {
+            // eslint-disable-next-line no-await-in-loop
+            const result = await runFlowWithRetry(page, flow, options, currentFlowErrors);
+            chunkResults.push(result);
+            roleResults.push(result);
+            allResults.push(result);
+            // eslint-disable-next-line no-await-in-loop
+            await writePartialReport(allResults, options);
+          }
+        }
+
+        await context.close();
+
+        const chunkLabel = `chunk-${chunkIdx + 1}-of-${chunks.length}`;
+        const chunkReport = buildReport(chunkResults, {
+          roles: [role],
+          role,
+          chunkIndex: chunkIdx + 1,
+          chunkSize: options.chunkSize || roleFlows.length,
+          retries: options.retries,
+          pauseMs: options.pauseMs,
         });
-      } catch (error) {
-        allResults.push({
-          id: flow.id,
-          role: flow.role,
-          title: flow.title,
-          path: flow.path,
-          status: 'failed',
-          severity: 'high',
-          issues: [...currentFlowErrors, ...actionErrors, `navigation_failed:${String(error)}`],
-          durationMs: Date.now() - start,
-        });
+        await writeReportFiles(
+          chunkReport,
+          options.outDir,
+          `report.${role}.${chunkLabel}`,
+          `UI Flow Check Report (${role}, ${chunkLabel})`,
+        );
       }
-    }
 
-    await context.close();
+      const roleReport = buildReport(roleResults, {
+        roles: [role],
+        role,
+        chunkSize: options.chunkSize || roleFlows.length,
+        chunkIndex: options.chunkIndex,
+        retries: options.retries,
+        pauseMs: options.pauseMs,
+      });
+      await writeReportFiles(roleReport, options.outDir, `report.${role}`, `UI Flow Check Report (${role})`);
+
+      roleSummaries.push({
+        role,
+        totals: roleReport.totals,
+      });
+    }
+  } finally {
+    await browser.close();
   }
 
-  await browser.close();
+  const report = buildReport(allResults, {
+    roles: options.roles,
+    chunkSize: options.chunkSize || undefined,
+    chunkIndex: options.chunkIndex,
+    retries: options.retries,
+    pauseMs: options.pauseMs,
+    failOn: options.failOn,
+    outDir: options.outDir,
+  });
 
-  const totals = {
-    total: allResults.length,
-    ok: allResults.filter((r) => r.status === 'ok').length,
-    failed: allResults.filter((r) => r.status === 'failed').length,
-    high: allResults.filter((r) => r.severity === 'high').length,
-    medium: allResults.filter((r) => r.severity === 'medium').length,
-    none: allResults.filter((r) => r.severity === 'none').length,
-  };
-
-  const report = {
-    baseUrl,
-    generatedAt: new Date().toISOString(),
-    totals,
-    results: allResults,
-  };
-
-  const markdownLines = [
-    '# UI Flow Check Report (50+)',
-    '',
-    `- Base URL: ${baseUrl}`,
-    `- Generated: ${report.generatedAt}`,
-    `- Total flows: ${totals.total}`,
-    `- Failed: ${totals.failed}`,
-    `- High: ${totals.high}`,
-    `- Medium: ${totals.medium}`,
-    '',
-    '## High / Medium Findings',
-    '',
-  ];
-
-  const findings = allResults.filter((r) => r.severity === 'high' || r.severity === 'medium');
-  if (findings.length === 0) {
-    markdownLines.push('- None');
-  } else {
-    for (const item of findings) {
-      markdownLines.push(
-        `- [${item.severity.toUpperCase()}] ${item.id} (${item.path}) :: ${item.issues.join(' | ')}`,
-      );
-    }
+  await writeReportFiles(report, options.outDir, 'report', 'UI Flow Check Report (50+)');
+  const failDecision = shouldFailRun(report.totals, options.failOn);
+  console.log(
+    JSON.stringify(
+      {
+        totals: report.totals,
+        roles: roleSummaries,
+        failOn: options.failOn,
+        shouldFail: failDecision.shouldFail,
+        failReason: failDecision.reason || undefined,
+        outDir: options.outDir,
+      },
+      null,
+      2,
+    ),
+  );
+  if (failDecision.shouldFail) {
+    process.exitCode = 1;
   }
-
-  await fs.writeFile(path.join(outDir, 'report.json'), JSON.stringify(report, null, 2));
-  await fs.writeFile(path.join(outDir, 'report.md'), `${markdownLines.join('\n')}\n`);
-  console.log(JSON.stringify(totals, null, 2));
 }
 
 await main();

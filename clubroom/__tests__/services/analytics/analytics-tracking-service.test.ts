@@ -15,16 +15,17 @@ describe('AnalyticsTrackingService', () => {
   beforeEach(async () => {
     // Clear storage
     await apiClient.remove(STORAGE_KEYS.ATHLETE_ANALYTICS);
+    await apiClient.remove(STORAGE_KEYS.GOALS);
     await apiClient.remove(STORAGE_KEYS.ATHLETE_GOALS);
   });
 
   describe('updateSkillLevel', () => {
     it('should update skill level for existing skill', async () => {
-      await analyticsTrackingService.updateSkillLevel('athlete_1', 'Dribbling', 80);
+      await analyticsTrackingService.updateSkillLevel('athlete_1', 'Dribbling & Skills', 80);
 
       const analytics: any[] = await apiClient.get(STORAGE_KEYS.ATHLETE_ANALYTICS, []);
       const athlete = analytics.find((a) => a.athleteId === 'athlete_1');
-      const skill = athlete?.skills.find((s: any) => s.skillName === 'Dribbling');
+      const skill = athlete?.skills.find((s: any) => s.skillName === 'Dribbling & Skills');
 
       assert.ok(skill);
       assert.equal(skill.currentLevel, 80);
@@ -43,7 +44,7 @@ describe('AnalyticsTrackingService', () => {
 
     it('should add new skill to existing athlete', async () => {
       const athleteId = 'test-athlete-' + Math.random().toString(36).slice(2);
-      await analyticsTrackingService.updateSkillLevel(athleteId, 'Defending', 50);
+      await analyticsTrackingService.updateSkillLevel(athleteId, '1v1 Defending', 50);
       await analyticsTrackingService.updateSkillLevel(athleteId, 'Finishing', 55);
 
       const analytics: any[] = await apiClient.get(STORAGE_KEYS.ATHLETE_ANALYTICS, []);
@@ -55,12 +56,12 @@ describe('AnalyticsTrackingService', () => {
 
     it('should calculate change percent on update', async () => {
       const athleteId = 'test-athlete-' + Math.random().toString(36).slice(2);
-      await analyticsTrackingService.updateSkillLevel(athleteId, 'Dribbling', 50);
-      await analyticsTrackingService.updateSkillLevel(athleteId, 'Dribbling', 60);
+      await analyticsTrackingService.updateSkillLevel(athleteId, 'Dribbling & Skills', 50);
+      await analyticsTrackingService.updateSkillLevel(athleteId, 'Dribbling & Skills', 60);
 
       const analytics: any[] = await apiClient.get(STORAGE_KEYS.ATHLETE_ANALYTICS, []);
       const athlete = analytics.find((a) => a.athleteId === athleteId);
-      const skill = athlete?.skills.find((s: any) => s.skillName === 'Dribbling');
+      const skill = athlete?.skills.find((s: any) => s.skillName === 'Dribbling & Skills');
 
       assert.ok(skill);
       assert.equal(skill.previousLevel, 50);
@@ -113,7 +114,7 @@ describe('AnalyticsTrackingService', () => {
       assert.ok(goal.milestones.every((m) => !m.isCompleted));
     });
 
-    it('should save goal to storage', async () => {
+    it('should save goal to unified storage', async () => {
       const goal = expectOk(await analyticsTrackingService.createGoal({
         athleteId: 'athlete_1',
         title: 'Test goal',
@@ -121,7 +122,7 @@ describe('AnalyticsTrackingService', () => {
         createdById: 'coach1',
       }));
 
-      const goals: any[] = await apiClient.get(STORAGE_KEYS.ATHLETE_GOALS, []);
+      const goals: any[] = await apiClient.get(STORAGE_KEYS.GOALS, []);
       const saved = goals.find((g: any) => g.id === goal.id);
 
       assert.ok(saved);

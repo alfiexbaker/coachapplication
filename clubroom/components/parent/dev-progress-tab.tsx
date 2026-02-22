@@ -27,6 +27,7 @@ interface Session {
   id: string;
   bookingId: string;
   coachName: string;
+  athleteId: string;
   completedAt: string;
   performanceRating: number;
   skillsWorkedOn?: string[];
@@ -36,9 +37,17 @@ interface DevProgressTabProps {
   skills: SkillProgress[];
   sessions: Session[];
   sortedSessions: Session[];
+  showFamilyContext?: boolean;
+  childNameById?: Record<string, string>;
 }
 
-function DevProgressTabInner({ skills, sessions, sortedSessions }: DevProgressTabProps) {
+function DevProgressTabInner({
+  skills,
+  sessions,
+  sortedSessions,
+  showFamilyContext,
+  childNameById,
+}: DevProgressTabProps) {
   const { colors: palette } = useTheme();
 
   const handleSessionPress = useCallback((session: Session) => {
@@ -85,7 +94,14 @@ function DevProgressTabInner({ skills, sessions, sortedSessions }: DevProgressTa
                   <SurfaceCard style={styles.card}>
                     <Row justify="space-between" align="flex-start">
                       <View style={styles.cardInfo}>
-                        <ThemedText type="defaultSemiBold">{session.coachName}</ThemedText>
+                        <ThemedText type="defaultSemiBold">
+                          {session.coachName}
+                        </ThemedText>
+                        {showFamilyContext && childNameById?.[session.athleteId] && (
+                          <ThemedText style={[styles.contextText, { color: palette.muted }]}>
+                            For {childNameById[session.athleteId]}
+                          </ThemedText>
+                        )}
                         <ThemedText style={[styles.date, { color: palette.muted }]}>
                           {formatShortDateWithYear(session.completedAt)}
                         </ThemedText>
@@ -135,6 +151,7 @@ const styles = StyleSheet.create({
   list: { gap: Spacing.sm },
   card: { padding: Spacing.md, gap: Spacing.sm },
   cardInfo: { flex: 1, gap: Spacing.micro },
+  contextText: { ...Typography.micro },
   date: { ...Typography.caption },
   ratingValue: { ...Typography.subheading },
   skillPill: {

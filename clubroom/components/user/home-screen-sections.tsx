@@ -213,22 +213,29 @@ export const NextSessionCard = memo(function NextSessionCard({ booking }: { book
   if (!booking) {
     return (
       <SurfaceCard style={styles.noSessionCard}>
-        <View style={[styles.noSessionIcon, { backgroundColor: withAlpha(palette.tint, 0.06) }]}>
-          <Ionicons name="calendar-outline" size={28} color={palette.tint} />
-        </View>
-        <View style={{ flex: 1 }}>
-          <ThemedText type="defaultSemiBold">No Upcoming Sessions</ThemedText>
-          <ThemedText style={{ ...Typography.small, color: palette.muted }}>
-            Book a session to start training
-          </ThemedText>
-        </View>
+        <Row align="center" gap="sm">
+          <View style={[styles.noSessionIcon, { backgroundColor: withAlpha(palette.tint, 0.06) }]}>
+            <Ionicons name="calendar-outline" size={22} color={palette.tint} />
+          </View>
+          <View style={styles.noSessionCopy}>
+            <ThemedText type="defaultSemiBold" style={styles.noSessionTitle} numberOfLines={1}>
+              No upcoming sessions
+            </ThemedText>
+            <ThemedText style={[styles.noSessionSubtitle, { color: palette.muted }]} numberOfLines={2}>
+              Book your next session to keep training momentum.
+            </ThemedText>
+          </View>
+        </Row>
         <Clickable
           style={[styles.bookButton, { backgroundColor: palette.tint }]}
           onPress={() => router.push(Routes.DISCOVER_MAP)}
         >
-          <ThemedText style={{ ...Typography.smallSemiBold, color: palette.surface }}>
-            Find Coach
-          </ThemedText>
+          <Row align="center" justify="center" gap="xs">
+            <Ionicons name="search" size={14} color={palette.surface} />
+            <ThemedText style={[styles.bookButtonText, { color: palette.surface }]}>
+              Find a Coach
+            </ThemedText>
+          </Row>
         </Clickable>
       </SurfaceCard>
     );
@@ -474,22 +481,37 @@ const styles = StyleSheet.create({
     /* layout moved to Row */
   },
   noSessionCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
     padding: Spacing.md,
-    gap: Spacing.md,
+    gap: Spacing.sm,
+  },
+  noSessionCopy: {
+    flex: 1,
+    minWidth: 0,
+    gap: Spacing.micro,
+  },
+  noSessionTitle: {
+    ...Typography.subheading,
+  },
+  noSessionSubtitle: {
+    ...Typography.small,
+    lineHeight: 18,
   },
   noSessionIcon: {
-    width: 52,
-    height: 52,
-    borderRadius: Radii['2xl'],
+    width: 42,
+    height: 42,
+    borderRadius: Radii.xl,
     alignItems: 'center',
     justifyContent: 'center',
   },
   bookButton: {
-    paddingHorizontal: Spacing.md,
-    paddingVertical: Spacing.sm,
+    minHeight: 40,
     borderRadius: Radii.md,
+    paddingVertical: Spacing.sm,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  bookButtonText: {
+    ...Typography.smallSemiBold,
   },
   section: { gap: Spacing.sm },
   sectionHeader: {

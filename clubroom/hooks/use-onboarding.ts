@@ -15,6 +15,7 @@ import type {
 import { INITIAL_STATE } from '@/components/auth/onboarding-types';
 import type { OnboardingData } from '@/services/auth-service';
 import { useAuth } from '@/hooks/use-auth';
+import { POSITION_LABELS } from '@/constants/position-skills';
 
 // ============================================================================
 // STEP FLOW
@@ -183,7 +184,7 @@ export function useOnboarding({ onComplete, onBackToLogin }: UseOnboardingOption
         postcode: state.postcode.trim() || undefined,
         country: state.country || undefined,
         skillLevel: state.skillLevel || undefined,
-        position: state.position.trim() || undefined,
+        position: state.position ? POSITION_LABELS[state.position] : undefined,
         sport: state.sport || undefined,
         goals: state.goals.length > 0 ? state.goals : undefined,
         hasChildren: state.hasChildren || undefined,

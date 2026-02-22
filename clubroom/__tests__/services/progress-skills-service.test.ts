@@ -18,7 +18,7 @@ describe('progressSkillsService', () => {
       'coach_ps_1'
     );
     assert.equal(updated.level, 8);
-    assert.equal(updated.trend, 'steady');
+    assert.equal(updated.trend, 'consistent');
 
     const levels = await progressSkillsService.getAthleteSkillLevels('athlete_ps_1');
     assert.ok(levels);
@@ -42,5 +42,36 @@ describe('progressSkillsService', () => {
     assert.equal(result.length, 2);
     assert.equal(result[0].skill, 'Passing');
     assert.equal(result[1].skill, 'Shooting');
+  });
+
+  it('updates position-based ratings and computes four corners', async () => {
+    const result = await progressSkillsService.updateFromPositionRate(
+      'athlete_ps_3',
+      'session_ps_3',
+      'coach_ps_3',
+      'MID',
+      [
+        { skill: 'Work Rate', rating: 4, label: 'Excellent', trend: 'consistent' },
+        { skill: 'Attitude', rating: 3, label: 'Very Good', trend: 'consistent' },
+        { skill: 'Communication', rating: 5, label: 'Exceptional', trend: 'consistent' },
+        { skill: 'Coachability', rating: 4, label: 'Excellent', trend: 'consistent' },
+        { skill: 'Passing', rating: 5, label: 'Exceptional', trend: 'improving' },
+        { skill: 'Ball Carrying', rating: 4, label: 'Excellent', trend: 'improving' },
+        { skill: 'Game Vision', rating: 4, label: 'Excellent', trend: 'consistent' },
+        { skill: 'Pressing & Defending', rating: 3, label: 'Very Good', trend: 'consistent' },
+        { skill: 'Tempo & Control', rating: 4, label: 'Excellent', trend: 'consistent' },
+      ],
+    );
+
+    assert.equal(result.success, true);
+    if (!result.success) {
+      return;
+    }
+
+    assert.equal(result.data.updatedSkills.length, 9);
+    assert.equal(result.data.fourCorners.technical, 4);
+    assert.equal(result.data.fourCorners.physical, 4);
+    assert.equal(result.data.fourCorners.psychological, 4);
+    assert.equal(result.data.fourCorners.social, 4);
   });
 });

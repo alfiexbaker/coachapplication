@@ -95,6 +95,10 @@ export default function ConfirmationScreen() {
         return;
       }
 
+      const serviceLabel =
+        draft.sessionTypeLabel || draft.sessionType || 'Session';
+      const serviceType = draft.sessionType || '1-to-1';
+
       const result = await bookingService.createBooking({
         coachId: resolvedCoach,
         coachName: draft.coachName,
@@ -105,8 +109,8 @@ export default function ConfirmationScreen() {
         scheduledAt: `${draft.date}T${draft.slot}:00`,
         duration: draft.duration || 60,
         location: draft.locationText || draft.locationOption || '',
-        service: draft.sessionType || '1-on-1 Session',
-        serviceType: draft.sessionType || '1-on-1',
+        service: serviceLabel,
+        serviceType,
         objectives: draft.objectives,
         price: draft.price,
         notes: draft.notes,

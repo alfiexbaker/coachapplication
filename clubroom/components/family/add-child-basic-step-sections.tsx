@@ -16,8 +16,10 @@ import DateTimePicker from '@react-native-community/datetimepicker';
 import { Clickable } from '@/components/primitives/clickable';
 import { ThemedText } from '@/components/themed-text';
 import { withAlpha } from '@/constants/theme';
+import { POSITION_OPTIONS_WITH_ROTATE } from '@/constants/position-skills';
 import type { ThemeColors } from '@/hooks/useTheme';
 import type { Gender, Relationship } from '@/services/child-service';
+import type { PositionRole } from '@/types/progress-types';
 import { Row } from '@/components/primitives';
 import { styles } from './add-child-basic-step-styles';
 
@@ -239,5 +241,73 @@ export const OptionChipGrid = memo(function OptionChipGrid<T extends string>({
     </View>
   );
 }) as <T extends string>(props: OptionChipGridProps<T>) => React.ReactElement;
+
+interface PositionOptionGridProps {
+  selected: PositionRole | null;
+  onSelect: (position: PositionRole | null) => void;
+  palette: ThemeColors;
+}
+
+export const PositionOptionGrid = memo(function PositionOptionGrid({
+  selected,
+  onSelect,
+  palette,
+}: PositionOptionGridProps) {
+  const toDisplayLabel = (key: PositionRole | null): string => {
+    if (key === null) {
+      return 'They rotate';
+    }
+    if (key === 'ATT') {
+      return 'Striker';
+    }
+    return key;
+  };
+
+  return (
+    <View style={styles.field}>
+      <ThemedText style={styles.label}>Primary Position</ThemedText>
+      <Row style={styles.optionGrid}>
+        {POSITION_OPTIONS_WITH_ROTATE.map((option) => {
+          const isSelected = selected === option.key;
+          return (
+            <Clickable
+              key={option.key ?? 'rotate'}
+              onPress={() => onSelect(option.key)}
+              style={[
+                styles.optionChip,
+                {
+                  backgroundColor: isSelected ? palette.tint : palette.surface,
+                  borderColor: isSelected ? palette.tint : palette.border,
+                },
+              ]}
+              accessibilityRole="button"
+              accessibilityLabel={`Set primary position to ${option.label}`}
+              accessibilityState={{ selected: isSelected }}
+            >
+              <Row align="center" gap="xxs">
+                <Ionicons
+                  name={option.icon as keyof typeof Ionicons.glyphMap}
+                  size={14}
+                  color={isSelected ? palette.onPrimary : palette.muted}
+                />
+                <ThemedText
+                  style={[
+                    styles.optionText,
+                    { color: isSelected ? palette.onPrimary : palette.text },
+                  ]}
+                >
+                  {toDisplayLabel(option.key)}
+                </ThemedText>
+              </Row>
+            </Clickable>
+          );
+        })}
+      </Row>
+      <ThemedText style={[styles.photoHint, { color: palette.muted }]}>
+        Pick a default position for coaches. Choose rotate if they play multiple roles.
+      </ThemedText>
+    </View>
+  );
+});
 
 export { styles };

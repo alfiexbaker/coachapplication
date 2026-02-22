@@ -15,7 +15,7 @@
  * so I can track athlete progress and provide feedback."
  */
 
-import { useCallback, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import { Alert, StyleSheet, ScrollView, KeyboardAvoidingView, Platform, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router, useLocalSearchParams } from 'expo-router';
@@ -29,16 +29,26 @@ import { LoadingState, ErrorState } from '@/components/ui/screen-states';
 import { Components, Spacing, Typography } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
 import { useSessionCompletion } from '@/hooks/use-session-completion';
+import { useQuickRate } from '@/hooks/use-quick-rate';
 import { apiClient } from '@/services/api-client';
 import { useAuth } from '@/hooks/use-auth';
 import { Routes } from '@/navigation/routes';
 import { createLogger } from '@/utils/logger';
+import { STORAGE_KEYS } from '@/constants/storage-keys';
+import { buildFeedbackPrefillFromQuickRate } from '@/utils/feedback-prefill';
+import { BadgeAwardModal } from '@/components/badges/badge-award-modal';
+import type { BadgeAward } from '@/constants/types';
+import type { CompletionSummaryData } from '@/hooks/use-session-completion';
+import type { QuickRateInput } from '@/types/progress-types';
 
 import {
   AttendanceStep,
   BadgesStep,
+  BulkQuickRatePanel,
+  CompletionSummary,
   GroupCompletionBoard,
   NotesStep,
+  QuickRateStep,
   ReviewStep,
 } from '@/components/session';
 import { CompletionStepIndicator } from '@/components/session/completion-step-indicator';
@@ -55,6 +65,9 @@ export default function SessionCompleteScreen() {
   const { colors } = useTheme();
   const { currentUser } = useAuth();
   const [groupMessage, setGroupMessage] = useState('');
+  const [showCompletionSummary, setShowCompletionSummary] = useState(false);
+  const [completionSummaryData, setCompletionSummaryData] = useState<CompletionSummaryData | null>(null);
+  const [quickRateBadgeAthleteId, setQuickRateBadgeAthleteId] = useState<string | null>(null);
 
   const {
     session,
@@ -70,6 +83,8 @@ export default function SessionCompleteScreen() {
     setOverallEffort,
     homework,
     setHomework,
+    improvements,
+    setImprovements,
     videoUrls,
     imageUrls,
     shareNotesWithParents,
@@ -89,6 +104,7 @@ export default function SessionCompleteScreen() {
     loadSession,
     updateAttendanceStatus,
     setAllAttendanceStatus,
+    updateAthleteEffort,
     sendGroupBroadcast,
     sendMessageParent,
     addImage,
@@ -101,6 +117,88 @@ export default function SessionCompleteScreen() {
     handleBackPress,
     handleComplete,
   } = useSessionCompletion(id);
+
+  const quickRateAthletes = useMemo(
+    () =>
+      attendanceStepData
+        .filter((athlete) => athlete.status === 'present')
+        .map((athlete) => {
+          const athleteRecord = attendance[athlete.registrationId];
+          if (!athleteRecord?.registration.userId) {
+            return null;
+          }
+          return {
+            athleteId: athleteRecord.registration.userId,
+            athleteName: athlete.userName,
+          };
+        })
+        .filter((athlete): athlete is { athleteId: string; athleteName: string } => athlete !== null),
+    [attendance, attendanceStepData],
+  );
+
+  const effortByAthleteId = useMemo(() => {
+    const next: Record<string, number> = {};
+    for (const athlete of Object.values(attendance)) {
+      if (athlete.status !== 'present') {
+        continue;
+      }
+      if (!athlete.registration.userId) {
+        continue;
+      }
+      next[athlete.registration.userId] = athlete.effort;
+    }
+    return next;
+  }, [attendance]);
+
+  const quickRateEnabledAthletes = quickRateAthletes;
+
+  const quickRate = useQuickRate({
+    athletes: quickRateEnabledAthletes,
+    sessionId: session?.id ?? '',
+    coachId: currentUser?.id ?? '',
+    effortByAthleteId,
+  });
+
+  const effectiveQuickRateByAthleteId = useMemo<Record<string, QuickRateInput>>(
+    () => (quickRate.isSkippedAll ? {} : quickRate.ratingsByAthleteId),
+    [quickRate.isSkippedAll, quickRate.ratingsByAthleteId],
+  );
+
+  const completionAthletes = useMemo(
+    () =>
+      presentAthletes
+        .map((athlete) => {
+          const athleteRecord = attendance[athlete.registrationId];
+          if (!athleteRecord?.registration.userId) {
+            return null;
+          }
+          return {
+            registrationId: athlete.registrationId,
+            athleteId: athleteRecord.registration.userId,
+            athleteName: athlete.userName,
+          };
+        })
+        .filter(
+          (
+            athlete,
+          ): athlete is { registrationId: string; athleteId: string; athleteName: string } =>
+            athlete !== null,
+        ),
+    [attendance, presentAthletes],
+  );
+
+  const selectedQuickRateAthlete = useMemo(
+    () =>
+      quickRateEnabledAthletes.find((athlete) => athlete.athleteId === quickRateBadgeAthleteId) ??
+      null,
+    [quickRateEnabledAthletes, quickRateBadgeAthleteId],
+  );
+
+  const quickRateBadgeCount = useMemo(
+    () =>
+      Object.values(effectiveQuickRateByAthleteId).filter((rating) => Boolean(rating.badgeId)).length,
+    [effectiveQuickRateByAthleteId],
+  );
 
   const handleSendGroupMessage = async () => {
     const sent = await sendGroupBroadcast(groupMessage);
@@ -119,6 +217,8 @@ export default function SessionCompleteScreen() {
       if (!athleteStep || !athleteRecord || !session || !currentUser) return;
 
       const athleteUserId = athleteRecord.registration.userId;
+      const quickRateInput = effectiveQuickRateByAthleteId[athleteUserId];
+      const prefill = quickRateInput ? buildFeedbackPrefillFromQuickRate(quickRateInput) : null;
       const sessionId = `session-${Date.now()}`;
       const sessionRecord = {
         id: sessionId,
@@ -126,24 +226,62 @@ export default function SessionCompleteScreen() {
         athleteName: athleteStep.userName,
         coachId: currentUser.id,
         bookingId: session.id,
+        sourceSessionId: session.id,
         completedAt: new Date().toISOString(),
-        performanceRating: 3,
-        skillsWorkedOn: [],
-        notes: '',
+        performanceRating: prefill?.performanceRating ?? athleteRecord.effort,
+        skillsWorkedOn: prefill?.skillsWorkedOn ?? [],
+        notes: prefill?.sessionSummary ?? '',
         videoUrls: [],
         imageUrls: [],
+        effortRating: prefill?.effortRating ?? athleteRecord.effort,
+        prefillSkillRatings: prefill?.skillRatings ?? [],
         attendance: 'ATTENDED',
       };
 
-      const sessions = await apiClient.get<Record<string, unknown>[]>('coach_sessions', []);
+      const sessions = await apiClient.get<Record<string, unknown>[]>(STORAGE_KEYS.COACH_SESSIONS, []);
       sessions.push(sessionRecord);
-      await apiClient.set('coach_sessions', sessions);
+      await apiClient.set(STORAGE_KEYS.COACH_SESSIONS, sessions);
       logger.info('Personal feedback session created', { sessionId, athlete: athleteStep.userName });
 
-      router.push(Routes.developmentSession(sessionId));
+      router.push(
+        Routes.developmentSession(sessionId, {
+          prefillFromQuickRate: 'true',
+          athleteId: athleteUserId,
+        }),
+      );
     },
-    [attendance, attendanceStepData, session, currentUser],
+    [attendance, attendanceStepData, currentUser, effectiveQuickRateByAthleteId, session],
   );
+
+  const handleQuickRateBadgePress = useCallback(
+    (athleteId: string) => {
+      setQuickRateBadgeAthleteId(athleteId);
+    },
+    [],
+  );
+
+  const handleQuickRateBadgeAwarded = useCallback(
+    (award: BadgeAward) => {
+      if (quickRateBadgeAthleteId) {
+        quickRate.setBadge(quickRateBadgeAthleteId, award.badgeId);
+      }
+      setQuickRateBadgeAthleteId(null);
+    },
+    [quickRate.setBadge, quickRateBadgeAthleteId],
+  );
+
+  const handleSkipQuickRate = useCallback(() => {
+    quickRate.clearAllRatings();
+    goToNextStep();
+  }, [goToNextStep, quickRate.clearAllRatings]);
+
+  const handleCompleteWithQuickRate = useCallback(async () => {
+    const completionResult = await handleComplete(effectiveQuickRateByAthleteId);
+    if (completionResult) {
+      setCompletionSummaryData(completionResult);
+      setShowCompletionSummary(true);
+    }
+  }, [effectiveQuickRateByAthleteId, handleComplete]);
 
   const handleSendMessage = async (registrationId: string) => {
     const result = await sendMessageParent(registrationId);
@@ -199,79 +337,79 @@ export default function SessionCompleteScreen() {
   // ==========================================================================
 
   return (
-    <SafeAreaView
-      style={[styles.container, { backgroundColor: colors.background }]}
-      edges={['top', 'bottom']}
-    >
-      <PageHeader
-        title="Complete Session"
-        subtitle={session.title}
-        showBack
-        onBackPress={handleBackPress}
-      />
-
-      <KeyboardAvoidingView
-        style={styles.flex}
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+    <>
+      <SafeAreaView
+        style={[styles.container, { backgroundColor: colors.background }]}
+        edges={['top', 'bottom']}
       >
-        <ScrollView
+        <PageHeader
+          title="Complete Session"
+          subtitle={session.title}
+          showBack
+          onBackPress={showCompletionSummary ? () => setShowCompletionSummary(false) : handleBackPress}
+        />
+
+        <KeyboardAvoidingView
           style={styles.flex}
-          contentContainerStyle={[
-            styles.contentInner,
-            isGroupCompletion ? styles.contentWithStickyFooter : undefined,
-          ]}
-          showsVerticalScrollIndicator={false}
-          keyboardShouldPersistTaps="handled"
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         >
-          {isGroupCompletion ? (
-            <>
-              <GroupCompletionBoard
-                colors={colors}
-                athletes={attendanceStepData}
-                parentNameByRegistration={parentNameByRegistration}
-                groupMessage={groupMessage}
-                videoUrls={videoUrls}
-                imageUrls={imageUrls}
-                onGroupMessageChange={setGroupMessage}
-                onUpdateStatus={updateAttendanceStatus}
-                onSelectAll={() => setAllAttendanceStatus('present')}
-                onSendGroupMessage={handleSendGroupMessage}
-                onPersonalFeedback={handlePersonalFeedback}
-                onMessage={handleSendMessage}
-                onAddVideo={addVideo}
-                onRemoveVideo={removeVideo}
-                onAddImage={addImage}
-                onRemoveImage={removeImage}
+          <ScrollView
+            style={styles.flex}
+            contentContainerStyle={[
+              styles.contentInner,
+              isGroupCompletion ? styles.contentWithStickyFooter : undefined,
+            ]}
+            showsVerticalScrollIndicator={false}
+            keyboardShouldPersistTaps="handled"
+          >
+            {showCompletionSummary ? (
+              <CompletionSummary
+                ratedAthletes={completionSummaryData?.ratedAthletes ?? 0}
+                photosCaptured={completionSummaryData?.photosCaptured ?? 0}
+                videosRecorded={completionSummaryData?.videosRecorded ?? 0}
+                badgesAwarded={
+                  completionSummaryData?.badgesAwarded ?? totalBadgesAwarded + quickRateBadgeCount
+                }
+                athletes={completionSummaryData?.athletes ?? completionAthletes}
+                onOpenAthlete={(athlete) => {
+                  void handlePersonalFeedback(athlete.registrationId);
+                }}
+                onDone={() => router.back()}
               />
-
-              <NotesStep
-                colors={colors}
-                sessionSummary={sessionSummary}
-                onSessionSummaryChange={setSessionSummary}
-                skillsFocused={skillsFocused}
-                onSkillsFocusedChange={setSkillsFocused}
-                overallEffort={overallEffort}
-                onOverallEffortChange={setOverallEffort}
-                homework={homework}
-                onHomeworkChange={setHomework}
-              />
-            </>
-          ) : (
-            <>
-              <CompletionStepIndicator
-                currentStep={currentStep}
-                currentStepIndex={currentStepIndex}
-                colors={colors}
-              />
-
-              {currentStep === 'attendance' && (
-                <AttendanceStep
-                  athletes={attendanceStepData}
+            ) : isGroupCompletion ? (
+              <>
+                <GroupCompletionBoard
                   colors={colors}
+                  athletes={attendanceStepData}
+                  parentNameByRegistration={parentNameByRegistration}
+                  groupMessage={groupMessage}
+                  videoUrls={videoUrls}
+                  imageUrls={imageUrls}
+                  onGroupMessageChange={setGroupMessage}
                   onUpdateStatus={updateAttendanceStatus}
+                  onSelectAll={() => setAllAttendanceStatus('present')}
+                  onSendGroupMessage={handleSendGroupMessage}
+                  onPersonalFeedback={handlePersonalFeedback}
+                  onMessage={handleSendMessage}
+                  onAddVideo={addVideo}
+                  onRemoveVideo={removeVideo}
+                  onAddImage={addImage}
+                  onRemoveImage={removeImage}
                 />
-              )}
-              {currentStep === 'notes' && (
+
+                <BulkQuickRatePanel
+                  athletes={quickRateEnabledAthletes}
+                  ratingsByAthleteId={quickRate.ratingsByAthleteId}
+                  isPrefilling={quickRate.isPrefilling}
+                  onPositionChange={quickRate.updatePosition}
+                  onSkillChange={quickRate.updateSkillRating}
+                  onEffortChange={(athleteId, value) => {
+                    quickRate.updateEffort(athleteId, value);
+                    updateAthleteEffort(athleteId, value);
+                  }}
+                  onBadgePress={handleQuickRateBadgePress}
+                />
+
                 <NotesStep
                   colors={colors}
                   sessionSummary={sessionSummary}
@@ -282,84 +420,153 @@ export default function SessionCompleteScreen() {
                   onOverallEffortChange={setOverallEffort}
                   homework={homework}
                   onHomeworkChange={setHomework}
+                  improvements={improvements}
+                  onImprovementsChange={setImprovements}
                 />
-              )}
-              {currentStep === 'badges' && (
-                <BadgesStep
-                  presentAthletes={presentAthletes}
-                  availableBadges={availableBadges}
+              </>
+            ) : (
+              <>
+                <CompletionStepIndicator
+                  currentStep={currentStep}
+                  currentStepIndex={currentStepIndex}
                   colors={colors}
-                  onToggleBadge={toggleBadge}
                 />
-              )}
-              {currentStep === 'summary' && (
-                <ReviewStep
-                  colors={colors}
-                  presentCount={presentCount}
-                  absentCount={absentCount}
-                  sessionSummary={sessionSummary}
-                  skillsFocused={skillsFocused}
-                  totalBadgesAwarded={totalBadgesAwarded}
-                  overallEffort={overallEffort}
-                  shareNotesWithParents={shareNotesWithParents}
-                  onShareNotesChange={setShareNotesWithParents}
-                  shareAttendance={shareAttendance}
-                  onShareAttendanceChange={setShareAttendance}
-                />
-              )}
 
-              <WizardNavButtons
-                colors={colors}
-                currentStep={currentStep}
-                currentStepIndex={currentStepIndex}
-                submitting={submitting}
-                onNext={goToNextStep}
-                onPrev={goToPrevStep}
-                onComplete={handleComplete}
-              />
-            </>
-          )}
-        </ScrollView>
-
-        {isGroupCompletion && (
-          <View
-            style={[
-              styles.groupStickyFooter,
-              {
-                borderTopColor: colors.border,
-                backgroundColor: colors.background,
-              },
-            ]}
-          >
-            <Clickable
-              style={[
-                styles.groupCompleteButton,
-                { backgroundColor: submitting ? colors.muted : colors.tint },
-              ]}
-              onPress={handleComplete}
-              disabled={submitting}
-              accessibilityLabel="Complete group session"
-              accessibilityRole="button"
-            >
-              <Row align="center" justify="center" gap="sm">
-                {submitting ? (
-                  <ThemedText style={[styles.groupCompleteText, { color: colors.onPrimary }]}>
-                    Saving...
-                  </ThemedText>
-                ) : (
-                  <>
-                    <Ionicons name="checkmark-circle" size={20} color={colors.onPrimary} />
-                    <ThemedText style={[styles.groupCompleteText, { color: colors.onPrimary }]}>
-                      Complete Session
-                    </ThemedText>
-                  </>
+                {currentStep === 'attendance' && (
+                  <AttendanceStep
+                    athletes={attendanceStepData}
+                    colors={colors}
+                    onUpdateStatus={updateAttendanceStatus}
+                  />
                 )}
-              </Row>
-            </Clickable>
-          </View>
-        )}
-      </KeyboardAvoidingView>
-    </SafeAreaView>
+                {currentStep === 'quickRate' && (
+                  <QuickRateStep
+                    athletes={quickRateEnabledAthletes}
+                  ratingsByAthleteId={quickRate.ratingsByAthleteId}
+                  currentIndex={quickRate.currentIndex}
+                  isPrefilling={quickRate.isPrefilling}
+                  onIndexChange={quickRate.setIndex}
+                  onPositionChange={quickRate.updatePosition}
+                  onSkillChange={quickRate.updateSkillRating}
+                  onEffortChange={(athleteId, value) => {
+                    quickRate.updateEffort(athleteId, value);
+                    updateAthleteEffort(athleteId, value);
+                  }}
+                    onBadgePress={handleQuickRateBadgePress}
+                    onMediaIdsChange={quickRate.setMediaIds}
+                    onSkipAll={handleSkipQuickRate}
+                  />
+                )}
+                {currentStep === 'notes' && (
+                  <NotesStep
+                    colors={colors}
+                    sessionSummary={sessionSummary}
+                    onSessionSummaryChange={setSessionSummary}
+                    skillsFocused={skillsFocused}
+                    onSkillsFocusedChange={setSkillsFocused}
+                    overallEffort={overallEffort}
+                    onOverallEffortChange={setOverallEffort}
+                    homework={homework}
+                    onHomeworkChange={setHomework}
+                    improvements={improvements}
+                    onImprovementsChange={setImprovements}
+                  />
+                )}
+                {currentStep === 'badges' && (
+                  <BadgesStep
+                    presentAthletes={presentAthletes}
+                    availableBadges={availableBadges}
+                    colors={colors}
+                    onToggleBadge={toggleBadge}
+                  />
+                )}
+                {currentStep === 'summary' && (
+                  <ReviewStep
+                    colors={colors}
+                    presentCount={presentCount}
+                    absentCount={absentCount}
+                    sessionSummary={sessionSummary}
+                    skillsFocused={skillsFocused}
+                    totalBadgesAwarded={totalBadgesAwarded}
+                    overallEffort={overallEffort}
+                    shareNotesWithParents={shareNotesWithParents}
+                    onShareNotesChange={setShareNotesWithParents}
+                    shareAttendance={shareAttendance}
+                    onShareAttendanceChange={setShareAttendance}
+                  />
+                )}
+
+                <WizardNavButtons
+                  colors={colors}
+                  currentStep={currentStep}
+                  currentStepIndex={currentStepIndex}
+                  submitting={submitting}
+                  onNext={goToNextStep}
+                  onPrev={goToPrevStep}
+                  onComplete={() => {
+                    void handleCompleteWithQuickRate();
+                  }}
+                />
+              </>
+            )}
+          </ScrollView>
+
+          {isGroupCompletion && !showCompletionSummary && (
+            <View
+              style={[
+                styles.groupStickyFooter,
+                {
+                  borderTopColor: colors.border,
+                  backgroundColor: colors.background,
+                },
+              ]}
+            >
+              <Clickable
+                style={[
+                  styles.groupCompleteButton,
+                  { backgroundColor: submitting ? colors.muted : colors.tint },
+                ]}
+                onPress={() => {
+                  void handleCompleteWithQuickRate();
+                }}
+                disabled={submitting}
+                accessibilityLabel="Complete group session"
+                accessibilityRole="button"
+              >
+                <Row align="center" justify="center" gap="sm">
+                  {submitting ? (
+                    <ThemedText style={[styles.groupCompleteText, { color: colors.onPrimary }]}>
+                      Saving...
+                    </ThemedText>
+                  ) : (
+                    <>
+                      <Ionicons name="checkmark-circle" size={20} color={colors.onPrimary} />
+                      <ThemedText style={[styles.groupCompleteText, { color: colors.onPrimary }]}>
+                        Complete Session
+                      </ThemedText>
+                    </>
+                  )}
+                </Row>
+              </Clickable>
+            </View>
+          )}
+        </KeyboardAvoidingView>
+      </SafeAreaView>
+
+      {session && currentUser && selectedQuickRateAthlete ? (
+        <BadgeAwardModal
+          visible={Boolean(selectedQuickRateAthlete)}
+          athleteId={selectedQuickRateAthlete.athleteId}
+          athleteName={selectedQuickRateAthlete.athleteName}
+          coachId={currentUser.id}
+          coachName={currentUser.fullName || currentUser.name || 'Coach'}
+          sessionId={session.id}
+          sessionLabel={session.title}
+          onClose={() => setQuickRateBadgeAthleteId(null)}
+          onAwarded={handleQuickRateBadgeAwarded}
+        />
+      ) : null}
+    </>
   );
 }
 

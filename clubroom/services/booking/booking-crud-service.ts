@@ -23,6 +23,7 @@ import { notificationTriggers } from '../notification-trigger';
 import { createLogger } from '@/utils/logger';
 import { toDateStr } from '@/utils/format';
 import { emitTyped, ServiceEvents } from '@/services/event-bus';
+import { progressAttendanceService } from '@/services/progress/progress-attendance-service';
 import {
   type Result,
   type ServiceError,
@@ -43,6 +44,8 @@ const CACHE_MAX_AGE = 30_000;
 
 export type BookingDraft = {
   sessionType?: string;
+  sessionTypeLabel?: string;
+  sessionTemplateId?: string;
   participants?: number;
   duration?: number;
   date?: string;
@@ -73,6 +76,8 @@ export interface CreateBookingParams {
   location: string;
   service: string;
   serviceType: string;
+  sessionTemplateId?: string;
+  sessionTemplateName?: string;
   objectives?: string[];
   price?: number; // Base price per athlete
   notes?: string;
@@ -206,19 +211,37 @@ class BookingCrudService {
     const index = bookings.findIndex((b) => b.id === id);
     if (index === -1) return err(notFound('Booking', id));
 
-    const updated = { ...bookings[index], ...updates };
+    const previous = bookings[index];
+    const updated = { ...previous, ...updates };
     bookings[index] = updated;
     const saveResult = await this.saveToStorage(bookings);
     if (!saveResult.success) {
       return err(saveResult.error);
     }
+
+    if (previous.status !== 'COMPLETED' && updated.status === 'COMPLETED') {
+      const ingestionResult = await progressAttendanceService.upsertCompletedBookingSessions(updated);
+      if (!ingestionResult.success) {
+        logger.error('Failed to ingest completed booking after status transition', {
+          bookingId: updated.id,
+          error: ingestionResult.error,
+        });
+      }
+    }
+
     return ok(updated);
   }
 
   async updateStatus(id: string, status: Booking['status']) {
     const bookings = await this.loadFromStorage();
-    const updated = bookings.map((b) => (b.id === id ? { ...b, status } : b));
-    const saveResult = await this.saveToStorage(updated);
+    const index = bookings.findIndex((booking) => booking.id === id);
+    if (index === -1) {
+      return undefined;
+    }
+
+    const previousStatus = bookings[index].status;
+    bookings[index] = { ...bookings[index], status };
+    const saveResult = await this.saveToStorage(bookings);
     if (!saveResult.success) {
       logger.error('Failed to update booking status', {
         bookingId: id,
@@ -227,7 +250,20 @@ class BookingCrudService {
       });
       return undefined;
     }
-    return updated.find((b) => b.id === id);
+
+    const updatedBooking = bookings[index];
+    if (previousStatus !== 'COMPLETED' && updatedBooking.status === 'COMPLETED') {
+      const ingestionResult =
+        await progressAttendanceService.upsertCompletedBookingSessions(updatedBooking);
+      if (!ingestionResult.success) {
+        logger.error('Failed to ingest completed booking from updateStatus', {
+          bookingId: updatedBooking.id,
+          error: ingestionResult.error,
+        });
+      }
+    }
+
+    return updatedBooking;
   }
 
   async cancel(id: string, reason: string, cancelledBy: 'coach' | 'parent' = 'parent') {
@@ -407,6 +443,8 @@ class BookingCrudService {
       location,
       service,
       serviceType,
+      sessionTemplateId,
+      sessionTemplateName,
       objectives,
       price,
       notes,
@@ -454,6 +492,8 @@ class BookingCrudService {
       location,
       service,
       serviceType,
+      ...(sessionTemplateId ? { sessionTemplateId } : {}),
+      ...(sessionTemplateName ? { sessionTemplateName } : {}),
       objectives: objectives || [],
       price: totalPrice,
       isSharedSession,
@@ -587,8 +627,9 @@ class BookingCrudService {
       status: 'PENDING' as const,
       duration: draft.duration || 60,
       location: draft.locationText || 'Coach preferred venue',
-      service: draft.sessionType || '1-on-1',
-      serviceType: draft.sessionType || '1-on-1',
+      service: draft.sessionTypeLabel || draft.sessionType || 'Session',
+      serviceType: draft.sessionType || '1-to-1',
+      ...(draft.sessionTemplateId ? { sessionTemplateId: draft.sessionTemplateId } : {}),
       objectives: draft.objectives || [],
       price: draft.price || 0,
       notes: draft.notes || '',

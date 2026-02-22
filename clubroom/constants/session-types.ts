@@ -257,6 +257,9 @@ export interface BookingSummary {
   };
   coachId?: string;
   clientId?: string;
+  bookedById?: string;
+  bookedByName?: string;
+  audienceLabel?: string;
   // Group booking fields
   isGroupSession?: boolean;
   maxParticipants?: number;
@@ -314,6 +317,7 @@ export interface SessionOffering {
   footballSkill?: FootballObjective; // Primary skill focus
   invitedAthleteIds?: string[]; // Coach-selected invite list for CLOSED sessions
   invitedAthleteNames?: string[]; // Display labels for invited athletes
+  viewerAthleteNames?: string[]; // Parent/athlete-facing: who this session is for
 }
 
 export interface AthleteObjective {

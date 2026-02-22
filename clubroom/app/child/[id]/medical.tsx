@@ -147,7 +147,7 @@ export default function MedicalInfoScreen() {
             <ThemedText style={Typography.bodySmallSemiBold}>Doctor Name</ThemedText>
             <TextInput
               style={inputStyle}
-              placeholder="Dr. John Smith"
+              placeholder="e.g. Dr. Patel"
               placeholderTextColor={colors.muted}
               value={doctorName}
               onChangeText={setDoctorName}

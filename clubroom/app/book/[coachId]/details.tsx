@@ -32,7 +32,6 @@ export default function DetailsScreen() {
   const { children, isMultiChild } = useChildContext();
   const { currentUser } = useAuth();
 
-  // Map ChildInfo[] → User[] for ChildSelector (only needs id + name)
   const childOptions = useMemo(
     () =>
       children.map((c) => ({
@@ -45,6 +44,24 @@ export default function DetailsScreen() {
       })) satisfies User[],
     [children],
   );
+
+  const bookingTargets = useMemo<User[]>(() => {
+    const targets = [...childOptions];
+
+    // Parents can always book for themselves as well.
+    if (currentUser && children.length > 0) {
+      targets.unshift({
+        id: currentUser.id,
+        name: 'Myself',
+        email: '',
+        role: 'USER' as const,
+        postcode: '',
+        dateOfBirth: currentUser.dateOfBirth || '',
+      });
+    }
+
+    return targets;
+  }, [childOptions, children.length, currentUser]);
 
   // Auto-select single child
   useEffect(() => {
@@ -65,11 +82,23 @@ export default function DetailsScreen() {
   }, [children.length, currentUser, draft.childId, updateDraft]);
 
   const handleSelectChild = useCallback(
-    (childId: string) => {
-      const child = children.find((c) => c.id === childId);
-      updateDraft({ childId, athleteName: child?.name });
+    (targetId: string) => {
+      if (!currentUser) {
+        return;
+      }
+
+      if (targetId === currentUser.id && children.length > 0) {
+        updateDraft({
+          childId: currentUser.id,
+          athleteName: currentUser.name || currentUser.fullName || 'Athlete',
+        });
+        return;
+      }
+
+      const child = children.find((c) => c.id === targetId);
+      updateDraft({ childId: targetId, athleteName: child?.name });
     },
-    [children, updateDraft],
+    [children, currentUser, updateDraft],
   );
 
   const isParentWithoutChildren = Boolean(currentUser?.hasChildren) && children.length === 0;
@@ -128,12 +157,12 @@ export default function DetailsScreen() {
           />
         </View>
 
-        {children.length > 0 && (
+        {bookingTargets.length > 0 && (
           <ChildSelector
-            childOptions={childOptions}
+            childOptions={bookingTargets}
             selectedChildId={draft.childId}
             onSelectChild={handleSelectChild}
-            autoSelected={!isMultiChild}
+            autoSelected={!isMultiChild && bookingTargets.length === 1}
           />
         )}
         {isParentWithoutChildren && (

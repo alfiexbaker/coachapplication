@@ -11,6 +11,7 @@
 import { apiClient } from '../api-client';
 import { createLogger } from '@/utils/logger';
 import { STORAGE_KEYS } from '@/constants/storage-keys';
+import { emitTyped, ServiceEvents } from '@/services/event-bus';
 import type {
   Goal,
   GoalMilestone,
@@ -22,6 +23,78 @@ import type {
 } from '@/constants/types';
 
 const logger = createLogger('ProgressGoalsService');
+const ENABLE_PROGRESS_DEMO_SEED =
+  process.env.EXPO_PUBLIC_ENABLE_PROGRESS_DEMO_SEED === 'true' ||
+  process.env.EXPO_PUBLIC_ENABLE_PROGRESS_DEMO_SEED === '1' ||
+  process.env.NODE_ENV === 'test';
+
+function createUniqueId(prefix: 'goal' | 'ms'): string {
+  return `${prefix}_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 8)}`;
+}
+
+function emitGoalCompletedIfNeeded(previous: Goal, next: Goal): void {
+  if (previous.status !== 'COMPLETED' && next.status === 'COMPLETED') {
+    emitTyped(ServiceEvents.GOAL_COMPLETED, {
+      goalId: next.id,
+      athleteId: next.athleteId,
+      title: next.title,
+    });
+  }
+}
+
+function ensureUniqueGoalIds(goals: Goal[]): { goals: Goal[]; changed: boolean } {
+  const seenGoalIds = new Set<string>();
+  let changed = false;
+
+  const normalized = goals.map((goal) => {
+    let normalizedGoalId = goal.id;
+    while (seenGoalIds.has(normalizedGoalId)) {
+      normalizedGoalId = createUniqueId('goal');
+    }
+    if (normalizedGoalId !== goal.id) {
+      changed = true;
+    }
+    seenGoalIds.add(normalizedGoalId);
+
+    const seenMilestoneIds = new Set<string>();
+    let milestoneChanged = false;
+    const normalizedMilestones = goal.milestones.map((milestone) => {
+      let normalizedMilestoneId = milestone.id;
+      while (seenMilestoneIds.has(normalizedMilestoneId)) {
+        normalizedMilestoneId = createUniqueId('ms');
+      }
+      if (normalizedMilestoneId !== milestone.id) {
+        changed = true;
+        milestoneChanged = true;
+      }
+      seenMilestoneIds.add(normalizedMilestoneId);
+
+      if (milestone.goalId !== normalizedGoalId || normalizedMilestoneId !== milestone.id) {
+        changed = true;
+        milestoneChanged = true;
+        return {
+          ...milestone,
+          id: normalizedMilestoneId,
+          goalId: normalizedGoalId,
+        };
+      }
+
+      return milestone;
+    });
+
+    if (normalizedGoalId !== goal.id || milestoneChanged) {
+      return {
+        ...goal,
+        id: normalizedGoalId,
+        milestones: normalizedMilestones,
+      };
+    }
+
+    return goal;
+  });
+
+  return { goals: normalized, changed };
+}
 
 // ============================================================================
 // MOCK DATA
@@ -34,7 +107,7 @@ const MOCK_GOALS: Goal[] = [
     athleteId: 'user1',
     title: 'Improve Sprint Speed',
     description: 'Reduce my 100m sprint time by 0.5 seconds before the end of the season.',
-    category: 'SPEED',
+    category: 'CHARACTER',
     targetDate: '2026-06-30',
     status: 'ACTIVE',
     progress: 40,
@@ -88,7 +161,9 @@ const MOCK_GOALS: Goal[] = [
     athleteId: 'user1',
     title: 'Master Ball Control',
     description: 'Improve dribbling skills and first touch to elite level.',
-    category: 'TECHNIQUE',
+    category: 'BALL_SKILLS',
+    linkedSkill: 'Dribbling & Skills',
+    targetLevel: 'Excellent',
     targetDate: '2026-05-15',
     status: 'ACTIVE',
     progress: 66,
@@ -128,7 +203,7 @@ const MOCK_GOALS: Goal[] = [
     athleteId: 'user1',
     title: 'Build Mental Resilience',
     description: 'Develop better focus and composure during high-pressure situations.',
-    category: 'MENTAL',
+    category: 'CHARACTER',
     status: 'ACTIVE',
     progress: 25,
     milestones: [
@@ -173,7 +248,7 @@ const MOCK_GOALS: Goal[] = [
     athleteId: 'user1',
     title: 'Increase Endurance',
     description: 'Build stamina to maintain performance throughout full matches.',
-    category: 'FITNESS',
+    category: 'CHARACTER',
     targetDate: '2026-03-01',
     status: 'COMPLETED',
     progress: 100,
@@ -214,7 +289,9 @@ const MOCK_GOALS: Goal[] = [
     athleteId: 'user2',
     title: 'Improve Tactical Awareness',
     description: 'Better understand positioning and movement off the ball.',
-    category: 'TACTICAL',
+    category: 'GAME_SENSE',
+    linkedSkill: 'Game Vision',
+    targetLevel: 'Very Good',
     status: 'ACTIVE',
     progress: 50,
     milestones: [
@@ -249,9 +326,16 @@ async function getAllGoals(): Promise<Goal[]> {
   const goals = await apiClient.get<Goal[]>(STORAGE_KEYS.GOALS, []);
   // Return mock data if no goals stored
   if (goals.length === 0) {
-    return [...MOCK_GOALS];
+    return ENABLE_PROGRESS_DEMO_SEED ? [...MOCK_GOALS] : [];
   }
-  return goals;
+
+  const normalized = ensureUniqueGoalIds(goals);
+  if (normalized.changed) {
+    await saveGoals(normalized.goals);
+    logger.warn('goals_deduped', { total: normalized.goals.length });
+  }
+
+  return normalized.goals;
 }
 
 async function saveGoals(goals: Goal[]): Promise<void> {
@@ -278,7 +362,7 @@ async function createGoal(
 ): Promise<Goal> {
   const allGoals = await getAllGoals();
   const now = new Date().toISOString();
-  const goalId = `goal_${Date.now()}`;
+  const goalId = createUniqueId('goal');
 
   // Handle both old and new parameter formats
   const isCreateInput =
@@ -292,7 +376,7 @@ async function createGoal(
     // New format: params.milestones is string[]
     const input = params as CreateGoalInput;
     milestones = (input.milestones ?? []).map((title, index) => ({
-      id: `ms_${Date.now()}_${index}`,
+      id: createUniqueId('ms'),
       goalId,
       title,
       isCompleted: false,
@@ -311,6 +395,8 @@ async function createGoal(
     title: params.title,
     description: params.description,
     category: params.category,
+    linkedSkill: 'linkedSkill' in params ? params.linkedSkill : undefined,
+    targetLevel: 'targetLevel' in params ? params.targetLevel : undefined,
     targetDate: params.targetDate,
     status: 'status' in params ? params.status : 'ACTIVE',
     progress: 'progress' in params ? params.progress : 0,
@@ -371,6 +457,8 @@ async function updateGoal(id: string, updates: UpdateGoalInput): Promise<Goal | 
     updatedAt: new Date().toISOString(),
   };
 
+  emitGoalCompletedIfNeeded(goal, updatedGoal);
+
   goals[goalIndex] = updatedGoal;
   await saveGoals(goals);
 
@@ -409,6 +497,7 @@ async function updateGoalProgress(
   if (goalIndex === -1) return null;
 
   const goal = allGoals[goalIndex];
+  const previousGoal: Goal = { ...goal };
   goal.progress = progress;
   goal.updatedAt = new Date().toISOString();
 
@@ -425,6 +514,8 @@ async function updateGoalProgress(
   if (progress >= 100) {
     goal.status = 'COMPLETED';
   }
+
+  emitGoalCompletedIfNeeded(previousGoal, goal);
 
   allGoals[goalIndex] = goal;
   await saveGoals(allGoals);
@@ -455,7 +546,7 @@ async function addMilestone(goalId: string, title: string): Promise<Goal | null>
   const maxOrder = Math.max(...goal.milestones.map((m) => m.order), -1);
 
   const newMilestone: GoalMilestone = {
-    id: `ms_${Date.now()}`,
+    id: createUniqueId('ms'),
     goalId,
     title,
     isCompleted: false,
@@ -490,6 +581,7 @@ async function completeMilestone(milestoneId: string): Promise<Goal | null> {
   }
 
   const goal = goals[goalIndex];
+  const previousGoal: Goal = { ...goal };
   const milestoneIndex = goal.milestones.findIndex((m) => m.id === milestoneId);
   const milestone = goal.milestones[milestoneIndex];
 
@@ -506,6 +598,8 @@ async function completeMilestone(milestoneId: string): Promise<Goal | null> {
     goal.status = 'COMPLETED';
     logger.info('goal_auto_completed', { goalId: goal.id });
   }
+
+  emitGoalCompletedIfNeeded(previousGoal, goal);
 
   goals[goalIndex] = goal;
   await saveGoals(goals);
@@ -644,11 +738,11 @@ async function getGoalStats(userId: string): Promise<{
       : 0;
 
   const categories: GoalCategory[] = [
-    'SPEED',
-    'TECHNIQUE',
-    'FITNESS',
-    'TACTICAL',
-    'MENTAL',
+    'BALL_SKILLS',
+    'ATTACKING',
+    'DEFENDING',
+    'GAME_SENSE',
+    'CHARACTER',
     'OTHER',
   ];
   const goalsByCategory = categories.reduce(
@@ -678,11 +772,11 @@ function getCategoryInfo(category: GoalCategory): {
   color: string;
 } {
   const categoryInfo: Record<GoalCategory, { label: string; icon: string; color: string }> = {
-    SPEED: { label: 'Speed', icon: 'flash', color: '#F59E0B' },
-    TECHNIQUE: { label: 'Technique', icon: 'football', color: '#3B82F6' },
-    FITNESS: { label: 'Fitness', icon: 'fitness', color: '#10B981' },
-    TACTICAL: { label: 'Tactical', icon: 'bulb', color: '#8B5CF6' },
-    MENTAL: { label: 'Mental', icon: 'sparkles', color: '#EC4899' },
+    BALL_SKILLS: { label: 'Ball Skills', icon: 'football', color: '#3B82F6' },
+    ATTACKING: { label: 'Attacking', icon: 'flash', color: '#EF4444' },
+    DEFENDING: { label: 'Defending', icon: 'shield', color: '#10B981' },
+    GAME_SENSE: { label: 'Game Sense', icon: 'bulb', color: '#8B5CF6' },
+    CHARACTER: { label: 'Character', icon: 'sparkles', color: '#EC4899' },
     OTHER: { label: 'Other', icon: 'star', color: '#6B7280' },
   };
 

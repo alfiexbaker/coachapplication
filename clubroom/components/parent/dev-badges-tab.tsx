@@ -23,7 +23,9 @@ interface DevBadgesTabProps {
   awards: BadgeAward[];
   sharedBadges: BadgeAward[];
   coachOnlyCount: number;
-  selectedChildId: string | undefined;
+  selectedChildId: string | null;
+  showFamilyContext?: boolean;
+  childNameById?: Record<string, string>;
 }
 
 function DevBadgesTabInner({
@@ -31,6 +33,8 @@ function DevBadgesTabInner({
   sharedBadges,
   coachOnlyCount,
   selectedChildId,
+  showFamilyContext,
+  childNameById,
 }: DevBadgesTabProps) {
   const { colors: palette } = useTheme();
 
@@ -90,6 +94,11 @@ function DevBadgesTabInner({
                     <ThemedText style={[styles.reason, { color: palette.muted }]}>
                       {award.reason}
                     </ThemedText>
+                    {showFamilyContext && childNameById?.[award.athleteId] && (
+                      <ThemedText style={[styles.childContext, { color: palette.muted }]}>
+                        For {childNameById[award.athleteId]}
+                      </ThemedText>
+                    )}
                     {award.note && (
                       <ThemedText style={[styles.note, { color: palette.text }]} numberOfLines={2}>
                         &quot;{award.note}&quot;
@@ -138,22 +147,24 @@ function DevBadgesTabInner({
             title="No Badges Yet"
             description="Badges will appear here when coaches award them"
           />
-        ) : selectedChildId ? (
+        ) : (
           <>
-            <Clickable onPress={handleViewAll}>
-              <Row
-                align="center"
-                justify="center"
-                gap="xs"
-                style={[styles.viewAllLink, { borderColor: palette.border }]}
-              >
-                <Ionicons name="ribbon-outline" size={16} color={palette.tint} />
-                <ThemedText style={[styles.viewAllText, { color: palette.tint }]}>
-                  View all {awards.length} badge{awards.length !== 1 ? 's' : ''}
-                </ThemedText>
-                <Ionicons name="chevron-forward" size={14} color={palette.tint} />
-              </Row>
-            </Clickable>
+            {selectedChildId && (
+              <Clickable onPress={handleViewAll}>
+                <Row
+                  align="center"
+                  justify="center"
+                  gap="xs"
+                  style={[styles.viewAllLink, { borderColor: palette.border }]}
+                >
+                  <Ionicons name="ribbon-outline" size={16} color={palette.tint} />
+                  <ThemedText style={[styles.viewAllText, { color: palette.tint }]}>
+                    View all {awards.length} badge{awards.length !== 1 ? 's' : ''}
+                  </ThemedText>
+                  <Ionicons name="chevron-forward" size={14} color={palette.tint} />
+                </Row>
+              </Clickable>
+            )}
             <View style={styles.badgeList}>
               {awards.map((award, index) => (
                 <Animated.View key={award.id} entering={FadeInDown.delay(index * 50).springify()}>
@@ -183,6 +194,11 @@ function DevBadgesTabInner({
                         <ThemedText style={[styles.reason, { color: palette.muted }]}>
                           {award.reason}
                         </ThemedText>
+                        {showFamilyContext && childNameById?.[award.athleteId] && (
+                          <ThemedText style={[styles.childContext, { color: palette.muted }]}>
+                            For {childNameById[award.athleteId]}
+                          </ThemedText>
+                        )}
                       </View>
                       <ThemedText style={[styles.date, { color: palette.muted }]}>
                         {formatShortDateWithYear(award.awardedAt)}
@@ -221,7 +237,7 @@ function DevBadgesTabInner({
               ))}
             </View>
           </>
-        ) : null}
+        )}
       </View>
     </Animated.View>
   );
@@ -240,6 +256,7 @@ const styles = StyleSheet.create({
   badgeIcon: { width: 40, height: 40, borderRadius: Radii.xl },
   badgeContent: { flex: 1, gap: Spacing.xxs },
   reason: { ...Typography.caption },
+  childContext: { ...Typography.micro },
   note: { ...Typography.caption, fontStyle: 'italic' },
   date: { ...Typography.caption },
   section: { gap: Spacing.sm },

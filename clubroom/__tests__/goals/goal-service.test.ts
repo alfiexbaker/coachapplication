@@ -21,14 +21,14 @@ describe('Goal Service', () => {
     test('should create a new goal with required fields', async () => {
       const input: CreateGoalInput = {
         title: 'Test Goal',
-        category: 'SPEED',
+        category: 'CHARACTER',
       };
 
       const goal = await goalService.createGoal('test_user', input);
 
       assert.ok(goal.id.startsWith('goal_'));
       assert.strictEqual(goal.title, 'Test Goal');
-      assert.strictEqual(goal.category, 'SPEED');
+      assert.strictEqual(goal.category, 'CHARACTER');
       assert.strictEqual(goal.status, 'ACTIVE');
       assert.strictEqual(goal.progress, 0);
       assert.strictEqual(goal.userId, 'test_user');
@@ -41,7 +41,7 @@ describe('Goal Service', () => {
       const input: CreateGoalInput = {
         title: 'Complete Goal',
         description: 'A detailed description',
-        category: 'TECHNIQUE',
+        category: 'BALL_SKILLS',
         targetDate: '2026-06-30',
         milestones: ['Milestone 1', 'Milestone 2', 'Milestone 3'],
       };
@@ -50,7 +50,7 @@ describe('Goal Service', () => {
 
       assert.strictEqual(goal.title, 'Complete Goal');
       assert.strictEqual(goal.description, 'A detailed description');
-      assert.strictEqual(goal.category, 'TECHNIQUE');
+      assert.strictEqual(goal.category, 'BALL_SKILLS');
       assert.strictEqual(goal.targetDate, '2026-06-30');
       assert.strictEqual(goal.milestones.length, 3);
       assert.strictEqual(goal.milestones[0].title, 'Milestone 1');
@@ -63,7 +63,7 @@ describe('Goal Service', () => {
     test('should initialize milestones with correct structure', async () => {
       const input: CreateGoalInput = {
         title: 'Milestone Test',
-        category: 'FITNESS',
+        category: 'CHARACTER',
         milestones: ['Step 1', 'Step 2'],
       };
 
@@ -140,13 +140,13 @@ describe('Goal Service', () => {
       const updatedGoal = await goalService.updateGoal('goal_1', {
         title: 'Updated Title',
         description: 'Updated description',
-        category: 'MENTAL',
+        category: 'CHARACTER',
       });
 
       assert.ok(updatedGoal);
       assert.strictEqual(updatedGoal.title, 'Updated Title');
       assert.strictEqual(updatedGoal.description, 'Updated description');
-      assert.strictEqual(updatedGoal.category, 'MENTAL');
+      assert.strictEqual(updatedGoal.category, 'CHARACTER');
       assert.ok(new Date(updatedGoal.updatedAt) > new Date(originalGoal.updatedAt));
     });
 
@@ -265,7 +265,7 @@ describe('Goal Service', () => {
       // Create goal with 4 milestones
       const goal = await goalService.createGoal('test_user', {
         title: 'Progress Test',
-        category: 'FITNESS',
+        category: 'CHARACTER',
         milestones: ['A', 'B', 'C', 'D'],
       });
 
@@ -292,7 +292,7 @@ describe('Goal Service', () => {
     test('should auto-complete goal when all milestones are done', async () => {
       const goal = await goalService.createGoal('test_user', {
         title: 'Auto Complete Test',
-        category: 'TECHNIQUE',
+        category: 'BALL_SKILLS',
         milestones: ['Step 1', 'Step 2'],
       });
 
@@ -310,7 +310,7 @@ describe('Goal Service', () => {
       // Create and complete goal
       const goal = await goalService.createGoal('test_user', {
         title: 'Reactivate Test',
-        category: 'SPEED',
+        category: 'CHARACTER',
         milestones: ['Only Step'],
       });
 
@@ -353,7 +353,7 @@ describe('Goal Service', () => {
       assert.ok(stats.goalsByCategory);
 
       // Check category counts
-      const categories: GoalCategory[] = ['SPEED', 'TECHNIQUE', 'FITNESS', 'TACTICAL', 'MENTAL', 'OTHER'];
+      const categories: GoalCategory[] = ['CHARACTER', 'BALL_SKILLS', 'CHARACTER', 'GAME_SENSE', 'CHARACTER', 'OTHER'];
       categories.forEach((cat) => {
         assert.ok(typeof stats.goalsByCategory[cat] === 'number');
       });
@@ -362,7 +362,7 @@ describe('Goal Service', () => {
 
   describe('Helper Functions', () => {
     test('getCategoryInfo should return correct info', () => {
-      const categories: GoalCategory[] = ['SPEED', 'TECHNIQUE', 'FITNESS', 'TACTICAL', 'MENTAL', 'OTHER'];
+      const categories: GoalCategory[] = ['CHARACTER', 'BALL_SKILLS', 'CHARACTER', 'GAME_SENSE', 'CHARACTER', 'OTHER'];
 
       categories.forEach((cat) => {
         const info = goalService.getCategoryInfo(cat);

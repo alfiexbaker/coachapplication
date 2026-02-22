@@ -79,7 +79,7 @@ export default function VideoUploadScreen() {
             <TextInput
               value={title}
               onChangeText={setTitle}
-              placeholder="e.g., Tom's Dribbling Session - Week 4"
+              placeholder="e.g., Dribbling Session — Week 4"
               placeholderTextColor={colors.muted}
               style={[styles.input, { borderColor: colors.border, backgroundColor: colors.card }]}
             />

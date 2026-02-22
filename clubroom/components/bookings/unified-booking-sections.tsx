@@ -192,7 +192,7 @@ export const DetailedBookingCard = memo(function DetailedBookingCard({
             >
               <Ionicons name="person-outline" size={16} color={palette.tint} />
               <ThemedText style={[styles.metaText, { color: palette.tint }]}>
-                {childName}
+                For: {childName}
               </ThemedText>
               {isCoach && <Ionicons name="chevron-forward" size={14} color={palette.tint} />}
             </Clickable>

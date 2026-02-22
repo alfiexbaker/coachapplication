@@ -10,14 +10,22 @@ import { apiClient } from '@/services/api-client';
 import { useAuth } from '@/hooks/use-auth';
 import { createLogger } from '@/utils/logger';
 import { progressService } from '@/services/progress-service';
+import { progressFeedbackService } from '@/services/progress/progress-feedback-service';
 import { badgeService } from '@/services/badge-service';
 import { userService } from '@/services/user-service';
+import { mediaService } from '@/services/media-service';
+import { STORAGE_KEYS } from '@/constants/storage-keys';
+import { buildFeedbackPrefillFromQuickRate } from '@/utils/feedback-prefill';
 import type { Session, BadgeAward } from '@/constants/types';
+import type { QuickRateInput } from '@/types/progress-types';
 
 const logger = createLogger('SessionDetailScreen');
 
 type SessionRecord = Session & {
   imageUrls?: string[];
+  effortRating?: number;
+  sourceSessionId?: string;
+  prefillSkillRatings?: SkillRating[];
   updatedAt?: string;
 };
 
@@ -64,7 +72,17 @@ export const AVAILABLE_SKILLS = [
 export type SkillRating = { skill: string; rating: number; previousRating?: number };
 export type FeedbackVisibility = 'parent' | 'athlete' | 'coach_only';
 
-export function useDevSession(sessionId: string | undefined) {
+interface UseDevSessionParams {
+  sessionId: string | undefined;
+  prefillFromQuickRate?: boolean;
+  athleteId?: string;
+}
+
+export function useDevSession({
+  sessionId,
+  prefillFromQuickRate = false,
+  athleteId,
+}: UseDevSessionParams) {
   const { currentUser } = useAuth();
 
   const [session, setSession] = useState<SessionRecord | null>(null);
@@ -104,7 +122,7 @@ export function useDevSession(sessionId: string | undefined) {
 
       try {
         setLoading(true);
-        const sessions = await apiClient.get<SessionRecord[]>('coach_sessions', []);
+        const sessions = await apiClient.get<SessionRecord[]>(STORAGE_KEYS.COACH_SESSIONS, []);
         const foundSession = sessions.find((candidate) => candidate.id === sessionId);
 
         if (!foundSession) {
@@ -120,9 +138,67 @@ export function useDevSession(sessionId: string | undefined) {
           setSession(foundSession);
           setPublicNotes(foundSession.notes || '');
           setRating(foundSession.performanceRating || 3);
+          setEffortRating(foundSession.effortRating || 3);
           setSelectedSkills(foundSession.skillsWorkedOn || []);
           setVideoUrls(foundSession.videoUrls || []);
           setImageUrls(foundSession.imageUrls || []);
+          if (foundSession.prefillSkillRatings && foundSession.prefillSkillRatings.length > 0) {
+            setSkillRatings(foundSession.prefillSkillRatings);
+          }
+        }
+
+        const targetAthleteId = athleteId || foundSession.athleteId;
+        const shouldPrefillFromQuickRate = prefillFromQuickRate && Boolean(targetAthleteId);
+        let hasExplicitSkillRatings =
+          Array.isArray(foundSession.prefillSkillRatings) && foundSession.prefillSkillRatings.length > 0;
+
+        if (shouldPrefillFromQuickRate && targetAthleteId) {
+          const sourceSessionId = foundSession.sourceSessionId;
+          let latestQuickRateFeedback = sourceSessionId
+            ? await progressFeedbackService.getLatestForAthlete(targetAthleteId, sourceSessionId)
+            : null;
+          if (!latestQuickRateFeedback) {
+            latestQuickRateFeedback = await progressFeedbackService.getLatestForAthlete(targetAthleteId);
+          }
+
+          if (latestQuickRateFeedback?.fourCorners) {
+            const quickRateInput: QuickRateInput = {
+              athleteId: targetAthleteId,
+              athleteName: latestQuickRateFeedback.athleteName,
+              sessionId: latestQuickRateFeedback.sessionId,
+              coachId: latestQuickRateFeedback.coachId,
+              technical: latestQuickRateFeedback.fourCorners.technical,
+              physical: latestQuickRateFeedback.fourCorners.physical,
+              psychological: latestQuickRateFeedback.fourCorners.psychological,
+              social: latestQuickRateFeedback.fourCorners.social,
+              effort: latestQuickRateFeedback.effortRating,
+              badgeId: latestQuickRateFeedback.badgeAwarded,
+            };
+            const prefill = buildFeedbackPrefillFromQuickRate(quickRateInput, {
+              attendeeCount: 1,
+            });
+
+            if (isMounted) {
+              setRating(prefill.performanceRating);
+              setEffortRating(prefill.effortRating);
+              setSelectedSkills(prefill.skillsWorkedOn);
+              setSkillRatings(prefill.skillRatings);
+              if (!foundSession.notes) {
+                setPublicNotes(prefill.sessionSummary);
+              }
+            }
+            hasExplicitSkillRatings = true;
+          }
+
+          const mediaSessionId =
+            foundSession.sourceSessionId || latestQuickRateFeedback?.sessionId || foundSession.bookingId;
+          if (mediaSessionId) {
+            const mediaResult = await mediaService.getSessionMedia(mediaSessionId, targetAthleteId);
+            if (mediaResult.success && mediaResult.data && isMounted) {
+              setImageUrls(mediaResult.data.photos.map((photo) => photo.uri));
+              setVideoUrls(mediaResult.data.video ? [mediaResult.data.video.uri] : []);
+            }
+          }
         }
 
         const athleteResult = await userService.getUserById(foundSession.athleteId);
@@ -150,13 +226,15 @@ export function useDevSession(sessionId: string | undefined) {
           setSessionBadges(badges);
         }
 
-        const athleteSkills = await progressService.getAthleteSkillLevels(foundSession.athleteId);
-        if (athleteSkills && isMounted) {
-          const existingRatings = (foundSession.skillsWorkedOn || []).map((skill) => {
-            const existing = athleteSkills.skills[skill];
-            return { skill, rating: existing?.level ?? 5, previousRating: existing?.previousLevel };
-          });
-          setSkillRatings(existingRatings);
+        if (!hasExplicitSkillRatings) {
+          const athleteSkills = await progressService.getAthleteSkillLevels(foundSession.athleteId);
+          if (athleteSkills && isMounted) {
+            const existingRatings = (foundSession.skillsWorkedOn || []).map((skill) => {
+              const existing = athleteSkills.skills[skill];
+              return { skill, rating: existing?.level ?? 5, previousRating: existing?.previousLevel };
+            });
+            setSkillRatings(existingRatings);
+          }
         }
       } catch (error) {
         logger.error('Failed to load session', error);
@@ -176,13 +254,13 @@ export function useDevSession(sessionId: string | undefined) {
     return () => {
       isMounted = false;
     };
-  }, [sessionId]);
+  }, [athleteId, prefillFromQuickRate, sessionId]);
 
   const handleSave = useCallback(async () => {
     if (!session || !athlete || !currentUser || !sessionId) return;
     setSaving(true);
     try {
-      const sessions = await apiClient.get<SessionRecord[]>('coach_sessions', []);
+      const sessions = await apiClient.get<SessionRecord[]>(STORAGE_KEYS.COACH_SESSIONS, []);
       const idx = sessions.findIndex((candidate) => candidate.id === sessionId);
       const updatedSession: SessionRecord = {
         ...(idx >= 0 ? sessions[idx] : session),
@@ -201,7 +279,7 @@ export function useDevSession(sessionId: string | undefined) {
         logger.warn('Session missing during save; record re-created', { sessionId });
       }
 
-      await apiClient.set('coach_sessions', sessions);
+      await apiClient.set(STORAGE_KEYS.COACH_SESSIONS, sessions);
       setSession(updatedSession);
 
       await progressService.addSessionFeedback({

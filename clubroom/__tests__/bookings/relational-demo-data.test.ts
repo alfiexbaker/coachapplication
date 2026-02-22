@@ -215,6 +215,37 @@ describe('relational demo data seeding', () => {
       const childrenProfileIds = new Set(snapshot.childrenProfiles.map((child) => child.id));
       const familyMemberIds = new Set(snapshot.familyMembers.map((member) => member.id));
 
+      const parentSelfBooking = bookingById.get('book20_parent_self_user4');
+      assert.ok(parentSelfBooking, `pass ${pass}: missing parent self-booking seed`);
+      assert.equal(
+        parentSelfBooking?.athleteId,
+        'user4',
+        `pass ${pass}: parent self-booking should target user4`,
+      );
+      assert.equal(
+        parentSelfBooking?.bookedById,
+        'user4',
+        `pass ${pass}: parent self-booking should be booked by user4`,
+      );
+
+      const eaglesOffering = offeringById.get('offering_eagles_u14_technical');
+      assert.ok(eaglesOffering, `pass ${pass}: missing cross-club offering seed`);
+      assert.equal(
+        eaglesOffering?.clubId,
+        'club_eagles',
+        `pass ${pass}: cross-club offering should belong to club_eagles`,
+      );
+      assert.ok(
+        eaglesOffering?.registrations.some((registration) => registration.userId === 'user2'),
+        `pass ${pass}: cross-club offering should include user2 registration`,
+      );
+      assert.ok(
+        snapshot.squadMembers.some(
+          (member) => member.squadId === 'squad_eagles_u14' && member.athleteId === 'user2',
+        ),
+        `pass ${pass}: expected squad membership linking user2 to squad_eagles_u14`,
+      );
+
       for (const booking of snapshot.bookings) {
         assert.ok(userIds.has(booking.coachId), `pass ${pass}: booking ${booking.id} missing coach`);
         if (booking.athleteId) {
@@ -465,4 +496,3 @@ describe('relational demo data seeding', () => {
     }
   });
 });
-

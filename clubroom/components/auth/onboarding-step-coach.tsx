@@ -131,7 +131,7 @@ function StepCoachDetailsInner({
           <TextInput
             value={organizationName}
             onChangeText={(v) => onChangeField('organizationName', v)}
-            placeholder="Elite Sports Academy"
+            placeholder="Southgate Academy"
             placeholderTextColor={palette.muted}
             accessibilityLabel="Organization name"
             style={inputStyle}

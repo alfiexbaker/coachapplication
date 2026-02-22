@@ -16,21 +16,21 @@ import { useTheme } from '@/hooks/useTheme';
 import type { ChildOption } from '@/hooks/use-group-session';
 
 interface ChildSelectorProps {
-  children: ChildOption[];
+  options: ChildOption[];
   selectedId: string | null;
   onSelect: (id: string) => void;
 }
 
-function ChildSelectorComponent({ children: childOptions, selectedId, onSelect }: ChildSelectorProps) {
+function ChildSelectorComponent({ options, selectedId, onSelect }: ChildSelectorProps) {
   const { colors } = useTheme();
 
-  if (childOptions.length === 0) return null;
+  if (options.length === 0) return null;
 
   return (
     <SurfaceCard style={styles.card}>
       <ThemedText type="defaultSemiBold">Select Child</ThemedText>
       <Row gap="xs" style={{ marginTop: Spacing.xs, flexWrap: 'wrap' }}>
-        {childOptions.map((child) => {
+        {options.map((child) => {
           const isSelected = child.id === selectedId;
           return (
             <Clickable

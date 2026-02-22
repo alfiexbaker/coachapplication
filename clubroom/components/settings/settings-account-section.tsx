@@ -7,7 +7,6 @@ import { SectionHeader } from '@/components/primitives/section-header';
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { Column } from '@/components/primitives/column';
 import { SettingsRow } from '@/components/settings/settings-row';
-import { useAuth } from '@/hooks/use-auth';
 import { useChildContext } from '@/hooks/use-child-context';
 import { createLogger } from '@/utils/logger';
 
@@ -20,7 +19,6 @@ interface SettingsAccountSectionProps {
 export const SettingsAccountSection = memo(function SettingsAccountSection({
   role,
 }: SettingsAccountSectionProps) {
-  const { currentUser } = useAuth();
   const { children: contextChildren, activeChild } = useChildContext();
 
   const isCoach = role === 'COACH';

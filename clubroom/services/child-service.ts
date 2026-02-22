@@ -13,6 +13,7 @@ import { api } from '@/constants/config';
 import { createLogger } from '@/utils/logger';
 import { type Result, type ServiceError, ok, err, notFound, storageError } from '@/types/result';
 import { emitTyped, ServiceEvents } from './event-bus';
+import type { PositionRole } from '@/types/progress-types';
 
 import { STORAGE_KEYS } from '@/constants/storage-keys';
 
@@ -59,6 +60,7 @@ export interface ChildProfile {
   dateOfBirth?: string; // ISO date (optional)
   gender: Gender;
   relationship: Relationship;
+  primaryPosition?: PositionRole | null;
 
   // Photo
   photoUrl?: string;
@@ -102,6 +104,7 @@ export interface CreateChildInput {
   dateOfBirth?: string;
   gender: Gender;
   relationship: Relationship;
+  primaryPosition?: PositionRole | null;
   photoUrl?: string;
   disabilities?: Disability[];
   specialNeeds?: SpecialNeed[];
@@ -193,11 +196,12 @@ let childrenCache: ChildProfile[] = [
     id: 'user1',
     parentId: 'user4',
     firstName: 'Tom',
-    lastName: 'Henderson',
+    lastName: 'Barton',
     nickname: 'Tommy',
     dateOfBirth: '2008-05-12',
     gender: 'MALE',
     relationship: 'SON',
+    primaryPosition: 'MID',
     photoUrl: undefined,
     disabilities: [
       {
@@ -229,10 +233,10 @@ let childrenCache: ChildProfile[] = [
     communicationNotes: 'Responds well to positive reinforcement. Prefers direct communication.',
     behavioralNotes:
       'May need movement breaks every 20-30 minutes. Gets overwhelmed in large groups.',
-    emergencyContactName: 'John Henderson',
+    emergencyContactName: 'Chris Barton',
     emergencyContactPhone: '+44 7700 900123',
     emergencyContactRelation: 'Father',
-    secondaryEmergencyName: 'Mary Henderson',
+    secondaryEmergencyName: 'Mary Barton',
     secondaryEmergencyPhone: '+44 7700 900124',
     photoConsent: true,
     videoConsent: true,
@@ -245,10 +249,11 @@ let childrenCache: ChildProfile[] = [
     id: 'user2',
     parentId: 'user4',
     firstName: 'Emma',
-    lastName: 'Henderson',
+    lastName: 'Barton',
     dateOfBirth: '2009-08-20',
     gender: 'FEMALE',
     relationship: 'DAUGHTER',
+    primaryPosition: 'ATT',
     photoUrl: undefined,
     disabilities: [],
     specialNeeds: [],
@@ -258,10 +263,10 @@ let childrenCache: ChildProfile[] = [
     medications: [],
     communicationNotes: 'Very shy at first but warms up quickly. Loves praise and stickers.',
     behavioralNotes: 'May cling to parent at drop-off. Give her a moment to adjust.',
-    emergencyContactName: 'John Henderson',
+    emergencyContactName: 'Chris Barton',
     emergencyContactPhone: '+44 7700 900123',
     emergencyContactRelation: 'Father',
-    secondaryEmergencyName: 'Mary Henderson',
+    secondaryEmergencyName: 'Mary Barton',
     secondaryEmergencyPhone: '+44 7700 900124',
     photoConsent: true,
     videoConsent: true,
@@ -364,6 +369,7 @@ export const childService = {
       dateOfBirth: input.dateOfBirth,
       gender: input.gender,
       relationship: input.relationship,
+      primaryPosition: input.primaryPosition,
       photoUrl: input.photoUrl,
       disabilities: input.disabilities || [],
       specialNeeds: input.specialNeeds || [],

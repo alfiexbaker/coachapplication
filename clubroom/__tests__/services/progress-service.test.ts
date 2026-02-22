@@ -24,7 +24,7 @@ describe('progressService facade', () => {
     const goal = await progressService.createGoal('athlete_progress_1', {
       title: 'Improve passing range',
       description: 'Hit longer passes accurately',
-      category: 'TECHNIQUE',
+      category: 'BALL_SKILLS',
       milestones: ['Week 1 baseline', 'Week 2 progression'],
       targetDate: '2026-05-01',
     });

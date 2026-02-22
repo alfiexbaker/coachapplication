@@ -6,9 +6,8 @@
  * (Expo 54 / Hermes / RN 0.81).
  */
 
-import { useCallback, useEffect, useState } from 'react';
+import { Suspense, lazy, useCallback, useEffect, useState } from 'react';
 import {
-  Alert,
   KeyboardAvoidingView,
   Platform,
   Pressable,
@@ -33,6 +32,9 @@ import { useAuth } from '@/hooks/use-auth';
 // ─── Types ──────────────────────────────────────────────────────────────────
 
 type ScreenMode = 'login' | 'signup' | 'coach-signup';
+
+const LazyOnboardingScreen = lazy(() => import('./onboarding-screen'));
+const LazyCoachSignupScreen = lazy(() => import('./coach-signup-screen'));
 
 // ─── Component ──────────────────────────────────────────────────────────────
 
@@ -83,29 +85,36 @@ export default function LoginScreen() {
 
   const isDesktop = screenWidth >= 980;
   const canSubmit = username.trim().length > 0 && password.trim().length > 0 && !submitting;
+  const lazyFallback = (
+    <View style={[styles.lazyFallback, { backgroundColor: palette.surface }]}>
+      <ThemedText style={[styles.hint, { color: palette.muted }]}>Loading...</ThemedText>
+    </View>
+  );
 
   // ── Signup / Coach signup — lazy load to keep this file lean ─────────
   if (screenMode === 'signup') {
-    const OnboardingScreen = require('./onboarding-screen').default;
     return (
-      <OnboardingScreen
-        onComplete={() => {}}
-        onBackToLogin={() => setScreenMode('login')}
-      />
+      <Suspense fallback={lazyFallback}>
+        <LazyOnboardingScreen
+          onComplete={() => {}}
+          onBackToLogin={() => setScreenMode('login')}
+        />
+      </Suspense>
     );
   }
 
   if (screenMode === 'coach-signup') {
-    const CoachSignupScreen = require('./coach-signup-screen').default;
     return (
-      <CoachSignupScreen
-        onSignupComplete={(data: { fullName: string; email: string; phone: string; password: string; inviteCode: string; schoolId: string; schoolName: string }) => {
-          // registerCoach calls setCurrentUser which makes isAuthenticated=true,
-          // triggering RootNavigation to swap LoginScreen for the authenticated Stack.
-          registerCoach(data);
-        }}
-        onBackToLogin={() => setScreenMode('login')}
-      />
+      <Suspense fallback={lazyFallback}>
+        <LazyCoachSignupScreen
+          onSignupComplete={(data: { fullName: string; email: string; phone: string; password: string; inviteCode: string; schoolId: string; schoolName: string }) => {
+            // registerCoach calls setCurrentUser which makes isAuthenticated=true,
+            // triggering RootNavigation to swap LoginScreen for the authenticated Stack.
+            registerCoach(data);
+          }}
+          onBackToLogin={() => setScreenMode('login')}
+        />
+      </Suspense>
     );
   }
 
@@ -304,6 +313,11 @@ export type {
 const styles = StyleSheet.create({
   root: { flex: 1 },
   flex: { flex: 1 },
+  lazyFallback: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   scroll: {
     flexGrow: 1,
     paddingHorizontal: Spacing.lg,

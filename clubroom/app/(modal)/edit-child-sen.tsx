@@ -17,7 +17,7 @@ import { PageHeader } from '@/components/primitives/page-header';
 import { Row } from '@/components/primitives/row';
 import { DisabilitySelector, SpecialNeedEntrySection } from '@/components/family/medical-special-needs-form-sections';
 import { LoadingState, ErrorState } from '@/components/ui/screen-states';
-import { Radii, Spacing, Typography, withAlpha } from '@/constants/theme';
+import { Radii, Spacing, Typography } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
 import { useEditChildSen } from '@/hooks/use-edit-child-sen';
 

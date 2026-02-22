@@ -96,28 +96,7 @@ export default function ReviewScreen() {
     }
   }, [coach?.name, updateDraft]);
 
-  // Calculate price based on coach's actual rate
-  const getSessionPrice = () => {
-    // Use minPriceUsd from Coach type, fallback to 60
-    const coachRate = coach?.minPriceUsd ?? 60;
-    if (!coachRate) return 60; // Default fallback
-
-    // Coach minPriceUsd is their hourly rate
-    // Adjust for session type
-    const baseRate = coachRate;
-    switch (draft.sessionType) {
-      case '1-on-1':
-        return baseRate; // Standard rate for 1-on-1
-      case 'team':
-        return baseRate * 1.5; // 50% more for team sessions
-      case 'group':
-        return baseRate * 0.7; // 30% less for group (split cost)
-      default:
-        return baseRate;
-    }
-  };
-
-  const sessionPrice = getSessionPrice();
+  const sessionPrice = draft.price ?? coach?.minPriceUsd ?? 60;
   const subtotal = sessionPrice;
   const total = Math.max(0, subtotal - promoDiscount);
 
@@ -208,7 +187,11 @@ export default function ReviewScreen() {
           <SummaryRow label="Coach" value={coach?.name || draft.coachName || 'Coach'} />
           <SummaryRow label="Date" value={draft.date || 'Pick a date'} />
           <SummaryRow label="Time" value={draft.slot || 'Pick a slot'} />
-          <SummaryRow label="Session" value={draft.sessionType || 'Select type'} />
+          <SummaryRow
+            label="Session"
+            value={draft.sessionTypeLabel || draft.sessionType || 'Select type'}
+          />
+          <SummaryRow label="Duration" value={`${draft.duration || 60} mins`} />
           <SummaryRow label="Location" value={draft.locationOption || 'Coach preferred location'} />
           {draft.athleteName && <SummaryRow label="Athlete" value={draft.athleteName} />}
         </View>

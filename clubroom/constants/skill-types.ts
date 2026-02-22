@@ -5,8 +5,8 @@
  * and player analytics types.
  */
 
-import type { FootballObjective } from './user-types';
 import type { BadgeCategory, BadgeTier } from './user-types';
+import type { FootballSkill, SkillRatingLevel } from '@/types/progress-types';
 
 // ============================================================================
 // BADGE AWARDS
@@ -50,133 +50,12 @@ export interface BadgeAward {
 // ============================================================================
 
 export interface SkillProgress {
-  skillName: string;
+  skillName: FootballSkill;
   category: string;
   currentLevel: number;
   previousLevel: number;
   changePercent: number;
   history: { date: string; level: number }[];
-}
-
-// ============================================================================
-// SKILL PROGRESSION TREES
-// ============================================================================
-
-/**
- * Category of skill tree (maps to training focus areas)
- */
-export type SkillTreeCategory =
-  | 'DRIBBLING'
-  | 'PASSING'
-  | 'SHOOTING'
-  | 'DEFENDING'
-  | 'GOALKEEPING'
-  | 'FITNESS'
-  | 'TACTICS';
-
-/**
- * A single node in the skill tree representing a learnable skill
- */
-export interface SkillNode {
-  /** Unique identifier for the skill node */
-  id: string;
-  /** Display name of the skill */
-  name: string;
-  /** Brief description of what this skill involves */
-  description: string;
-  /** Skill level tier (1 = beginner, 2 = intermediate, 3 = advanced) */
-  level: 1 | 2 | 3;
-  /** IDs of prerequisite skills that must be unlocked first */
-  prerequisites: string[];
-  /** Optional badge ID awarded when this skill is unlocked */
-  badgeId?: string;
-  /** Whether the skill is currently unlocked for the user */
-  isUnlocked: boolean;
-  /** Progress toward unlocking (0-100) */
-  progress: number;
-  /** Icon name for display (Ionicons) */
-  icon: string;
-  /** Position in the visual tree layout */
-  position: {
-    x: number;
-    y: number;
-  };
-  /** XP required to unlock this skill */
-  xpRequired: number;
-  /** Current XP earned toward this skill */
-  xpCurrent: number;
-}
-
-/**
- * A complete skill tree for a specific category
- */
-export interface SkillTree {
-  /** Unique identifier for the skill tree */
-  id: string;
-  /** Category this tree belongs to */
-  category: SkillTreeCategory;
-  /** Display name of the skill tree */
-  name: string;
-  /** Description of what this tree covers */
-  description: string;
-  /** Icon for the tree category */
-  icon: string;
-  /** All nodes in this tree */
-  nodes: SkillNode[];
-  /** Total number of nodes */
-  totalNodes: number;
-  /** Number of unlocked nodes */
-  unlockedNodes: number;
-  /** Overall progress percentage */
-  progressPercent: number;
-  /** Color theme for the tree */
-  themeColor: string;
-}
-
-/**
- * User's progress on a specific skill node
- */
-export interface SkillNodeProgress {
-  /** Reference to the skill node */
-  nodeId: string;
-  /** Current XP earned for this skill */
-  currentXp: number;
-  /** Maximum XP needed to fully unlock */
-  maxXp: number;
-  /** Current level achieved (0 = locked, 1-3 = unlocked tier) */
-  currentLevel: number;
-  /** Maximum level for this skill */
-  maxLevel: number;
-  /** Whether currently unlocked */
-  isUnlocked: boolean;
-  /** Timestamp when unlocked */
-  unlockedAt?: string;
-  /** Timestamp of last progress update */
-  lastUpdatedAt: string;
-}
-
-/**
- * User's overall progress on a skill tree
- */
-export interface SkillTreeProgress {
-  /** User ID */
-  userId: string;
-  /** Tree ID */
-  treeId: string;
-  /** Category of the tree */
-  category: SkillTreeCategory;
-  /** Progress for each node */
-  nodeProgress: Record<string, SkillNodeProgress>;
-  /** Total XP earned in this tree */
-  totalXp: number;
-  /** Number of nodes unlocked */
-  nodesUnlocked: number;
-  /** Total number of nodes */
-  totalNodes: number;
-  /** Overall percentage complete */
-  percentComplete: number;
-  /** When progress was last updated */
-  lastUpdatedAt: string;
 }
 
 // ============================================================================
@@ -191,7 +70,13 @@ export type GoalStatus = 'ACTIVE' | 'COMPLETED' | 'PAUSED' | 'ABANDONED';
 /**
  * Category of a goal for grouping and filtering
  */
-export type GoalCategory = 'SPEED' | 'TECHNIQUE' | 'FITNESS' | 'TACTICAL' | 'MENTAL' | 'OTHER';
+export type GoalCategory =
+  | 'BALL_SKILLS'
+  | 'ATTACKING'
+  | 'DEFENDING'
+  | 'GAME_SENSE'
+  | 'CHARACTER'
+  | 'OTHER';
 
 /**
  * Who created the goal
@@ -232,6 +117,10 @@ export interface Goal {
   description?: string;
   /** Category for grouping and filtering */
   category: GoalCategory;
+  /** Optional direct skill linkage for auto-tracking */
+  linkedSkill?: FootballSkill;
+  /** Optional target level label used in parent-facing progress copy */
+  targetLevel?: SkillRatingLevel;
   /** Target date to achieve the goal */
   targetDate?: string;
   /** Current status of the goal */
@@ -268,6 +157,10 @@ export interface CreateGoalInput {
   description?: string;
   /** Category for grouping */
   category: GoalCategory;
+  /** Optional skill linkage for auto-tracking progress from coach ratings */
+  linkedSkill?: FootballSkill;
+  /** Optional target level label */
+  targetLevel?: SkillRatingLevel;
   /** Target date to achieve */
   targetDate?: string;
   /** Initial milestones (titles only) */
@@ -284,6 +177,10 @@ export interface UpdateGoalInput {
   description?: string;
   /** Updated category */
   category?: GoalCategory;
+  /** Updated linked skill */
+  linkedSkill?: FootballSkill;
+  /** Updated target level */
+  targetLevel?: SkillRatingLevel;
   /** Updated target date */
   targetDate?: string;
   /** Updated status */

@@ -99,23 +99,44 @@ export function useBookings(): UseBookingsResult {
       await ensureRelationalDemoSeeded();
 
       const bookings = await bookingService.list();
-      const summaries: BookingSummary[] = bookings.map((booking) => ({
-        id: booking.id,
-        service: booking.service ?? 'Session',
-        start: booking.scheduledAt,
-        status: mapBookingStatus(booking.status),
-        locationLabel: booking.location,
-        coach: {
-          name: booking.coachName,
-          photoUrl: 'https://i.pravatar.cc/100?u=' + booking.coachId,
-        },
-        client: {
-          name: getBookingAthleteName(booking),
-          photoUrl: 'https://i.pravatar.cc/100?u=' + booking.athleteId,
-        },
-        coachId: booking.coachId,
-        clientId: booking.athleteId ?? booking.athleteIds?.[0] ?? '',
-      }));
+      const viewerNameById = new Map<string, string>();
+      if (currentUser?.id) {
+        const selfLabel =
+          isParent && contextChildren.length > 0
+            ? 'You'
+            : currentUser.name || currentUser.fullName || 'You';
+        viewerNameById.set(currentUser.id, selfLabel);
+      }
+      for (const child of contextChildren) {
+        viewerNameById.set(child.id, child.name);
+      }
+
+      const summaries: BookingSummary[] = bookings.map((booking) => {
+        const athleteId = booking.athleteId ?? booking.athleteIds?.[0] ?? '';
+        const athleteName = getBookingAthleteName(booking);
+        const isSelfBooking = Boolean(currentUser?.id && athleteId && athleteId === currentUser.id);
+        const audienceLabel = isSelfBooking ? 'You' : viewerNameById.get(athleteId) || athleteName;
+        return {
+          id: booking.id,
+          service: booking.service ?? 'Session',
+          start: booking.scheduledAt,
+          status: mapBookingStatus(booking.status),
+          locationLabel: booking.location,
+          coach: {
+            name: booking.coachName,
+            photoUrl: 'https://i.pravatar.cc/100?u=' + booking.coachId,
+          },
+          client: {
+            name: audienceLabel,
+            photoUrl: 'https://i.pravatar.cc/100?u=' + booking.athleteId,
+          },
+          coachId: booking.coachId,
+          clientId: athleteId,
+          bookedById: booking.bookedById,
+          bookedByName: booking.bookedByName,
+          audienceLabel,
+        };
+      });
       logger.debug('Loaded session bookings', { count: summaries.length });
 
       const offerings = await apiClient.get<SessionOffering[]>(STORAGE_KEYS.SESSION_OFFERINGS, []);
@@ -143,7 +164,7 @@ export function useBookings(): UseBookingsResult {
         serviceError('UNKNOWN', 'Failed to load bookings. Pull down to refresh.', loadError),
       );
     }
-  }, [currentUser]);
+  }, [contextChildren, currentUser, isParent]);
 
   const {
     data,
@@ -202,24 +223,57 @@ export function useBookings(): UseBookingsResult {
         : myOfferings.filter((offering) => isPastOffering(offering));
   } else {
     const viewerIds = new Set<string>();
+    const viewerNameById = new Map<string, string>();
     if (currentUser?.id) {
       viewerIds.add(currentUser.id);
+      const selfLabel =
+        isParent && contextChildren.length > 0
+          ? 'You'
+          : currentUser.name || currentUser.fullName || 'You';
+      viewerNameById.set(currentUser.id, selfLabel);
     }
     if (isParent) {
       for (const child of contextChildren) {
         viewerIds.add(child.id);
+        viewerNameById.set(child.id, child.name);
       }
     }
 
-    const myRegisteredOfferings = sessionOfferings.filter((offering) =>
-      offering.registrations.some(
+    const myRegisteredOfferings = sessionOfferings.reduce<SessionOffering[]>((acc, offering) => {
+      const matchingRegistrations = offering.registrations.filter(
         (reg) => reg.status === 'confirmed' && viewerIds.has(reg.userId),
-      ),
-    );
+      );
+      if (matchingRegistrations.length === 0) {
+        return acc;
+      }
+
+      const viewerAthleteNames = Array.from(
+        new Set(
+          matchingRegistrations.map((registration) => {
+            if (isParent && currentUser?.id && registration.userId === currentUser.id) {
+              return 'You';
+            }
+            if (registration.userName?.trim()) {
+              return registration.userName.trim();
+            }
+            return viewerNameById.get(registration.userId) || registration.userId;
+          }),
+        ),
+      );
+
+      acc.push({
+        ...offering,
+        viewerAthleteNames,
+      });
+      return acc;
+    }, []);
 
     const filteredBookings = sessionBookings.filter((booking) => {
       const clientId = booking.clientId || '';
-      return viewerIds.has(clientId) || booking.client?.name === currentUser?.fullName;
+      const bookedById = booking.bookedById || '';
+      const matchesByName =
+        booking.client?.name === currentUser?.fullName || booking.client?.name === currentUser?.name;
+      return viewerIds.has(clientId) || viewerIds.has(bookedById) || matchesByName;
     });
 
     displayItems =

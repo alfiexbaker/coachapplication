@@ -8,9 +8,11 @@ import { Clickable } from '@/components/primitives/clickable';
 import { Row } from '@/components/primitives/row';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
+import { router } from 'expo-router';
+import { Routes } from '@/navigation/routes';
 
 import { ThemedText } from '@/components/themed-text';
-import { Spacing, Radii, Typography } from '@/constants/theme';
+import { Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
 import { EmptyMetrics } from '@/components/analytics/enhanced-stats';
 import { useParentDevelopment, type DevTabType } from '@/hooks/use-parent-development';
@@ -33,6 +35,8 @@ export function ParentDevelopmentScreen() {
     children,
     selectedChildId,
     selectedChild,
+    isAllChildrenSelected,
+    childNameById,
     sessions,
     sortedSessions,
     skills,
@@ -49,6 +53,17 @@ export function ParentDevelopmentScreen() {
   } = useParentDevelopment();
 
   if (!currentUser) return null;
+  const selectedName = isAllChildrenSelected
+    ? 'All children'
+    : selectedChild?.name || children[0]?.name || 'Child';
+  const subtitle = children.length === 1
+    ? 'Single athlete development view'
+    : children.length > 1
+      ? isAllChildrenSelected
+        ? 'Family overview across all children'
+        : 'Focused athlete development view'
+      : 'Add children to track their progress';
+  const hasSelection = children.length > 0 && (isAllChildrenSelected || Boolean(selectedChild));
 
   return (
     <SafeAreaView
@@ -62,11 +77,7 @@ export function ParentDevelopmentScreen() {
             Development
           </ThemedText>
           <ThemedText style={[styles.subtitle, { color: palette.muted }]}>
-            {children.length === 1
-              ? `Tracking ${children[0].name}\u2019s progress`
-              : children.length > 1
-                ? 'Track your children\u2019s progress'
-                : 'Add children to track their progress'}
+            {subtitle}
           </ThemedText>
         </View>
 
@@ -76,6 +87,61 @@ export function ParentDevelopmentScreen() {
           onSelectChild={handleSelectChild}
         />
 
+        {selectedChild && !isAllChildrenSelected && (
+          <Row
+            align="center"
+            gap="xs"
+            style={[
+              styles.focusMeta,
+              {
+                backgroundColor: withAlpha(palette.tint, 0.06),
+                borderColor: withAlpha(palette.tint, 0.18),
+              },
+            ]}
+          >
+            <Ionicons name="person-circle-outline" size={14} color={palette.tint} />
+            <ThemedText style={styles.focusName}>{selectedChild.name}</ThemedText>
+            <ThemedText style={[styles.focusLabel, { color: palette.muted }]}>
+              active focus
+            </ThemedText>
+          </Row>
+        )}
+
+        {selectedChildId && (
+          <Row gap="sm">
+            <Clickable
+              onPress={() => router.push(Routes.developmentChildProgress(selectedChildId))}
+              style={[
+                styles.quickLink,
+                { borderColor: palette.border, backgroundColor: palette.surface },
+              ]}
+              accessibilityLabel="Open detailed progress"
+            >
+              <Row align="center" gap="xs">
+                <Ionicons name="stats-chart-outline" size={14} color={palette.tint} />
+                <ThemedText style={[styles.quickLinkText, { color: palette.tint }]}>
+                  Detailed Progress
+                </ThemedText>
+              </Row>
+            </Clickable>
+            <Clickable
+              onPress={() => router.push(Routes.childBadges(selectedChildId))}
+              style={[
+                styles.quickLink,
+                { borderColor: palette.border, backgroundColor: palette.surface },
+              ]}
+              accessibilityLabel="Open full badges"
+            >
+              <Row align="center" gap="xs">
+                <Ionicons name="ribbon-outline" size={14} color={palette.tint} />
+                <ThemedText style={[styles.quickLinkText, { color: palette.tint }]}>
+                  Full Badges
+                </ThemedText>
+              </Row>
+            </Clickable>
+          </Row>
+        )}
+
         {children.length === 0 && (
           <EmptyMetrics
             icon="people-outline"
@@ -84,10 +150,10 @@ export function ParentDevelopmentScreen() {
           />
         )}
 
-        {selectedChild && (
+        {hasSelection && (
           <>
             <DevProfileCard
-              childName={selectedChild.name}
+              childName={selectedName}
               sessionCount={sessions.length}
               avgRating={avgRating}
               badgeCount={awards.length}
@@ -132,7 +198,13 @@ export function ParentDevelopmentScreen() {
             </Row>
 
             {activeTab === 'progress' && (
-              <DevProgressTab skills={skills} sessions={sessions} sortedSessions={sortedSessions} />
+              <DevProgressTab
+                skills={skills}
+                sessions={sessions}
+                sortedSessions={sortedSessions}
+                showFamilyContext={isAllChildrenSelected}
+                childNameById={childNameById}
+              />
             )}
             {activeTab === 'badges' && (
               <DevBadgesTab
@@ -140,6 +212,8 @@ export function ParentDevelopmentScreen() {
                 sharedBadges={sharedBadges}
                 coachOnlyCount={coachOnlyCount}
                 selectedChildId={selectedChildId}
+                showFamilyContext={isAllChildrenSelected}
+                childNameById={childNameById}
               />
             )}
             {activeTab === 'goals' && (
@@ -164,6 +238,25 @@ const styles = StyleSheet.create({
   header: { gap: Spacing.xs },
   title: { ...Typography.display, letterSpacing: -0.6 },
   subtitle: { ...Typography.bodySmall, lineHeight: 20 },
+  focusMeta: {
+    borderRadius: Radii.pill,
+    borderWidth: 1,
+    paddingHorizontal: Spacing.sm,
+    paddingVertical: Spacing.xxs,
+    alignSelf: 'flex-start',
+  },
+  focusName: { ...Typography.caption, fontWeight: '700' },
+  focusLabel: { ...Typography.micro },
+  quickLink: {
+    flex: 1,
+    minHeight: 36,
+    borderRadius: Radii.md,
+    borderWidth: 1,
+    paddingHorizontal: Spacing.sm,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  quickLinkText: { ...Typography.caption, fontWeight: '700' },
   tabContainer: { borderRadius: Radii.md, padding: Spacing.xxs },
   tab: { flex: 1, paddingVertical: Spacing.sm, borderRadius: Radii.sm },
   tabActive: {},

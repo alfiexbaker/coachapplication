@@ -97,11 +97,50 @@ export const STORAGE_KEYS = {
   /** Post-session feedback from coaches */
   SESSION_FEEDBACK: 'progress.session_feedback',
 
+  /** Session media assets captured during completion (photos + video) */
+  SESSION_MEDIA: 'clubroom.session_media',
+
   /** Athlete goals set with coaches */
   GOALS: 'progress.goals',
 
+  /** One active progress challenge per athlete */
+  PROGRESS_ACTIVE_CHALLENGE: 'progress.active_challenge',
+
+  /** Historical progress challenges per athlete */
+  PROGRESS_CHALLENGE_HISTORY: 'progress.challenge_history',
+
+  /** Daily challenge completion tracking */
+  DAILY_CHALLENGE_COMPLETIONS: 'progress.daily_challenge_completions',
+
+  /** Self-reported practice log entries */
+  PROGRESS_PRACTICE_LOGS: 'progress.practice_logs',
+
+  /** Weekly recap dispatch tracking keyed by parentId+athleteId */
+  PROGRESS_WEEKLY_RECAP_NOTIFICATIONS: 'progress.weekly_recap_notifications',
+
+  /** Unlocked card cosmetic borders/patterns */
+  CARD_COSMETICS: 'progress.card_cosmetics',
+
+  /** Squad leaderboard cache */
+  SQUAD_LEADERBOARD: 'progress.squad_leaderboard',
+
+  /** Homework completion tracking keyed by feedbackId */
+  HOMEWORK_COMPLETION: 'progress.homework_completion',
+
+  /** Athlete self-assessment entries after completed sessions */
+  PROGRESS_SELF_ASSESSMENTS: 'progress.self_assessments',
+
+  /** Athlete self-assessment prompts queued from completed sessions */
+  PROGRESS_SELF_ASSESSMENT_PROMPTS: 'progress.self_assessment_prompts',
+
+  /** Termly progress report snapshots for export history */
+  PROGRESS_TERM_REPORTS: 'progress.term_reports',
+
   /** Session notes and observations */
   SESSION_NOTES: 'progress.session_notes',
+
+  /** Athlete position history (session-by-session context for progress ratings) */
+  POSITION_HISTORY: 'progress.position_history',
 
   /** Skill tree progression data */
   SKILL_TREE_PROGRESS: 'skill_tree.user_progress',
@@ -223,6 +262,9 @@ export const STORAGE_KEYS = {
 
   /** User's favorite coaches/content */
   FAVOURITES: 'favourites',
+
+  /** Public coach directory entries */
+  COACH_DIRECTORY: 'clubroom.coaches',
 
   /** Coach personal feed posts (keyed by coachId) */
   COACH_FEED_POSTS: 'clubroom.coach_feed_posts',

@@ -7,7 +7,7 @@ import { ThemedText } from '@/components/themed-text';
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { PageHeader } from '@/components/primitives/page-header';
 import { Row } from '@/components/primitives/row';
-import { Spacing, Typography, Radii } from '@/constants/theme';
+import { Spacing, Typography } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
 
 const POLICY_TIERS = [

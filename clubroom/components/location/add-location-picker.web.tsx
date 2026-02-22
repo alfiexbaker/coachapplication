@@ -109,7 +109,7 @@ export default memo(function AddLocationPickerWeb({
         setIsEditorOpen(false);
       }
     },
-    [geocodeAddress, onChangeCoordinates, onChangeValue, onSelectSavedLocation, presetLocations],
+    [geocodeAddress, onChangeCoordinates, onChangeValue, onSelectSavedLocation],
   );
 
   const handleTextChange = useCallback(

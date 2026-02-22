@@ -3,7 +3,7 @@
  */
 
 import { memo } from 'react';
-import { View, StyleSheet, TextInput, ScrollView } from 'react-native';
+import { View, StyleSheet, ScrollView } from 'react-native';
 import { Clickable } from '@/components/primitives/clickable';
 import Animated, { useAnimatedStyle, withTiming } from 'react-native-reanimated';
 
@@ -11,17 +11,19 @@ import { ThemedText } from '@/components/themed-text';
 import { Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
 import type { SkillLevel } from '@/services/auth-service';
+import type { PositionRole } from '@/types/progress-types';
 import { SPORTS, SKILL_LEVELS } from './onboarding-types';
 import { Row } from '@/components/primitives';
+import { PositionSelector } from '@/components/session/position-selector';
 
 interface StepAthleteDetailsProps {
   sport: string;
   skillLevel: SkillLevel | null;
-  position: string;
+  position: PositionRole | null;
   hasChildren: boolean;
   onSelectSport: (sport: string) => void;
   onSelectSkillLevel: (level: SkillLevel) => void;
-  onChangePosition: (value: string) => void;
+  onChangePosition: (position: PositionRole | null) => void;
   onToggleHasChildren: () => void;
 }
 
@@ -39,7 +41,7 @@ function StepAthleteDetailsInner({
   const readinessChecks = [
     { key: 'sport', label: 'Sport selected', done: sport.length > 0 },
     { key: 'level', label: 'Skill level selected', done: Boolean(skillLevel) },
-    { key: 'position', label: 'Position added', done: position.trim().length > 0 },
+    { key: 'position', label: 'Position added', done: position !== null },
   ];
   const readiness = Math.round(
     (readinessChecks.filter((item) => item.done).length / readinessChecks.length) * 100,
@@ -153,15 +155,30 @@ function StepAthleteDetailsInner({
 
       {/* Position */}
       <View style={styles.fieldGroup}>
-        <ThemedText style={styles.label}>Position (Optional)</ThemedText>
-        <TextInput
-          value={position}
-          onChangeText={onChangePosition}
-          placeholder="e.g. Midfielder, Point Guard"
-          placeholderTextColor={palette.muted}
-          accessibilityLabel="Position"
-          style={[styles.input, { borderColor: palette.border, backgroundColor: palette.card }]}
-        />
+        <ThemedText style={styles.label}>Primary Position (Optional)</ThemedText>
+        <PositionSelector value={position} onChange={onChangePosition} />
+        <Clickable
+          onPress={() => onChangePosition(null)}
+          accessibilityRole="button"
+          accessibilityLabel="Set position to they rotate"
+          style={[
+            styles.rotateOption,
+            {
+              borderColor: position === null ? palette.tint : palette.border,
+              backgroundColor:
+                position === null ? withAlpha(palette.tint, 0.08) : palette.card,
+            },
+          ]}
+        >
+          <ThemedText
+            style={[
+              styles.rotateOptionText,
+              { color: position === null ? palette.tint : palette.muted },
+            ]}
+          >
+            They rotate
+          </ThemedText>
+        </Clickable>
       </View>
 
       {/* Has children toggle */}
@@ -253,6 +270,17 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing.md,
     paddingVertical: Spacing.sm,
     ...Typography.body,
+  },
+  rotateOption: {
+    minHeight: 44,
+    borderWidth: 1,
+    borderRadius: Radii.md,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: Spacing.sm,
+  },
+  rotateOptionText: {
+    ...Typography.bodySmallSemiBold,
   },
   chipScroll: {
     marginHorizontal: -Spacing.lg,

@@ -14,7 +14,6 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { ScreenHeader } from '@/components/primitives/screen-header';
 import { Clickable } from '@/components/primitives/clickable';
-import { Row } from '@/components/primitives/row';
 import { EmptyState, LoadingState, ErrorState } from '@/components/ui/screen-states';
 import { Spacing, Radii } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';

@@ -9,6 +9,7 @@ import { router } from 'expo-router';
 import * as ImagePicker from 'expo-image-picker';
 import { toDateStr } from '@/utils/format';
 import { useAuth } from '@/hooks/use-auth';
+import type { PositionRole } from '@/types/progress-types';
 import {
   childService,
   type Gender,
@@ -43,6 +44,7 @@ export function useAddChild() {
   const [dateOfBirth, setDateOfBirth] = useState<Date | null>(null);
   const [gender, setGender] = useState<Gender | null>(null);
   const [relationship, setRelationship] = useState<Relationship | null>(null);
+  const [primaryPosition, setPrimaryPosition] = useState<PositionRole | null>(null);
   const [photoUri, setPhotoUri] = useState<string | null>(null);
 
   // Step 2: Special Needs
@@ -146,7 +148,15 @@ export function useAddChild() {
       setTriggers([]);
       setCalmingStrategies([]);
     }
-  }, [selectedDisabilityType, disabilityDescription, diagnosisDate, supportRequired, commPrefs, triggers, calmingStrategies]);
+  }, [
+    selectedDisabilityType,
+    disabilityDescription,
+    diagnosisDate,
+    supportRequired,
+    commPrefs,
+    triggers,
+    calmingStrategies,
+  ]);
 
   const addSpecialNeed = useCallback(() => {
     if (snCategory && snName.trim()) {
@@ -225,13 +235,14 @@ export function useAddChild() {
     if (!validateStep() || !currentUser?.id) return;
     setSaving(true);
     try {
-      await childService.createChild(currentUser.id, {
+      const createdChild = await childService.createChild(currentUser.id, {
         firstName: firstName.trim(),
         lastName: lastName.trim(),
         nickname: nickname.trim() || undefined,
         dateOfBirth: dateOfBirth ? toDateStr(dateOfBirth) : undefined,
         gender: gender!,
         relationship: relationship!,
+        primaryPosition: primaryPosition ?? undefined,
         photoUrl: photoUri || undefined,
         disabilities,
         specialNeeds,
@@ -250,6 +261,13 @@ export function useAddChild() {
         socialMediaConsent,
         emergencyTreatmentConsent,
       });
+
+      // Make the newly added child immediately visible as current context.
+      await childService.setActiveChildId(
+        createdChild.id,
+        createdChild.nickname || createdChild.firstName,
+      );
+
       Alert.alert('Success', `${firstName}'s profile has been created!`, [
         { text: 'OK', onPress: () => router.back() },
       ]);
@@ -267,6 +285,7 @@ export function useAddChild() {
     dateOfBirth,
     gender,
     relationship,
+    primaryPosition,
     photoUri,
     disabilities,
     specialNeeds,
@@ -295,6 +314,7 @@ export function useAddChild() {
       dateOfBirth,
       gender,
       relationship,
+      primaryPosition,
       photoUri,
       showDatePicker,
       onFirstNameChange: setFirstName,
@@ -303,6 +323,7 @@ export function useAddChild() {
       onDateOfBirthChange: setDateOfBirth,
       onGenderChange: setGender,
       onRelationshipChange: setRelationship,
+      onPrimaryPositionChange: setPrimaryPosition,
       onPickImage: pickImage,
       onShowDatePicker: setShowDatePicker,
     }),
@@ -313,6 +334,7 @@ export function useAddChild() {
       dateOfBirth,
       gender,
       relationship,
+      primaryPosition,
       photoUri,
       showDatePicker,
       pickImage,

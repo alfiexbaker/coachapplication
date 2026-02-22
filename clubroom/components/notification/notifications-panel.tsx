@@ -45,7 +45,6 @@ export function NotificationsPanel({
     notifications,
     unreadCount,
     status,
-    isLoading,
     refreshing,
     error,
     refresh,

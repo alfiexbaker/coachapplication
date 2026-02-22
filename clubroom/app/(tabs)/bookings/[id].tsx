@@ -178,6 +178,25 @@ export default function SessionDetailScreen() {
           </Row>
         </ThemedView>
 
+        {!isCoach && (
+          <ThemedView
+            style={[
+              styles.audienceChip,
+              {
+                backgroundColor: withAlpha(palette.tint, 0.08),
+                borderColor: withAlpha(palette.tint, 0.22),
+              },
+            ]}
+          >
+            <Row align="center" gap="xs">
+              <Ionicons name="person-outline" size={16} color={palette.tint} />
+              <ThemedText style={[styles.audienceChipText, { color: palette.tint }]}>
+                For: {childName}
+              </ThemedText>
+            </Row>
+          </ThemedView>
+        )}
+
         {/* Info Cards */}
         <DateTimeCard
           weekday={formatted.weekday}
@@ -312,6 +331,15 @@ const styles = StyleSheet.create({
   backRow: { marginTop: Spacing.xs },
   backBtn: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center' },
   flex1: { flex: 1 },
+  audienceChip: {
+    borderWidth: 1,
+    borderRadius: Radii.md,
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.sm,
+  },
+  audienceChipText: {
+    fontWeight: '700',
+  },
   reviewCard: {
     borderWidth: 1,
     borderRadius: Radii.lg,

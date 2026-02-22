@@ -74,11 +74,11 @@ export const RECURRENCE_OPTIONS: RecurrenceOption[] = [
   { key: 'monthly', label: 'Monthly', icon: 'calendar' },
 ];
 
-export const CAMP_LENGTH_OPTIONS: Array<{
+export const CAMP_LENGTH_OPTIONS: {
   key: CampLength;
   label: string;
   description: string;
-}> = [
+}[] = [
   {
     key: 'single_day',
     label: 'Single Day',

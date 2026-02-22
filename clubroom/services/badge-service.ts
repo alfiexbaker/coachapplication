@@ -1,4 +1,4 @@
-import { BadgeAward, BadgeDefinition, BadgeVisibility, BadgeCategory } from '@/constants/types';
+import { BadgeAward, BadgeDefinition, BadgeVisibility, BadgeCategory, type Booking } from '@/constants/types';
 import { apiClient } from './api-client';
 import { socialFeedService } from './social-feed-service';
 import { notificationSenderService } from './notification/notification-sender';
@@ -15,7 +15,11 @@ import {
   TierNames,
 } from '@/constants/progression';
 import { STORAGE_KEYS } from '@/constants/storage-keys';
-import { SESSION_MILESTONE_BADGES, STREAK_BADGES, EVENT_BADGES } from './badge-definitions';
+import { SESSION_MILESTONE_BADGES, EVENT_BADGES } from './badge-definitions';
+const ENABLE_PROGRESS_DEMO_SEED =
+  process.env.EXPO_PUBLIC_ENABLE_PROGRESS_DEMO_SEED === 'true' ||
+  process.env.EXPO_PUBLIC_ENABLE_PROGRESS_DEMO_SEED === '1' ||
+  process.env.NODE_ENV === 'test';
 
 type AwardBadgeInput = {
   badgeId: string;
@@ -208,6 +212,61 @@ const BASE_BADGE_CATALOG: BadgeDefinition[] = [
     tier: 3,
     pointValue: 50,
   },
+  // Challenge reward badges
+  {
+    id: 'badge_challenge_on_a_roll',
+    label: 'On a Roll',
+    tone: 'success',
+    description: 'Completed a consistency streak challenge.',
+    category: 'psychological',
+    tier: 1,
+    pointValue: 10,
+  },
+  {
+    id: 'badge_challenge_unstoppable',
+    label: 'Unstoppable',
+    tone: 'success',
+    description: 'Completed a major streak milestone challenge.',
+    category: 'psychological',
+    tier: 2,
+    pointValue: 25,
+  },
+  {
+    id: 'badge_challenge_machine',
+    label: 'Machine',
+    tone: 'warning',
+    description: 'Completed an elite streak challenge.',
+    category: 'psychological',
+    tier: 3,
+    pointValue: 50,
+  },
+  {
+    id: 'badge_challenge_levelling_up',
+    label: 'Levelling Up',
+    tone: 'default',
+    description: 'Completed a skill development challenge.',
+    category: 'technical',
+    tier: 1,
+    pointValue: 10,
+  },
+  {
+    id: 'badge_challenge_collector',
+    label: 'Collector',
+    tone: 'default',
+    description: 'Completed a badge collection challenge.',
+    category: 'social',
+    tier: 1,
+    pointValue: 10,
+  },
+  {
+    id: 'badge_challenge_reflector',
+    label: 'Reflector',
+    tone: 'default',
+    description: 'Completed a reflection challenge.',
+    category: 'psychological',
+    tier: 1,
+    pointValue: 10,
+  },
 ];
 
 const SEED_BADGE_AWARDS: BadgeAward[] = [
@@ -281,6 +340,7 @@ async function resolveUserName(userId: string, fallback: string): Promise<string
 
 class BadgeService {
   private logger = createLogger('BadgeService');
+  private static readonly WEEK_MS = 7 * 24 * 60 * 60 * 1000;
 
   private async getStoredAwards(): Promise<BadgeAward[]> {
     return apiClient.get<BadgeAward[]>(STORAGE_KEYS.BADGE_AWARDS, []);
@@ -288,9 +348,11 @@ class BadgeService {
 
   private mergeAwards(stored: BadgeAward[]): BadgeAward[] {
     const merged = new Map<string, BadgeAward>();
-    SEED_BADGE_AWARDS.forEach((award) => {
-      merged.set(award.id, award);
-    });
+    if (ENABLE_PROGRESS_DEMO_SEED) {
+      SEED_BADGE_AWARDS.forEach((award) => {
+        merged.set(award.id, award);
+      });
+    }
     stored.forEach((award) => {
       merged.set(award.id, award);
     });
@@ -828,7 +890,6 @@ class BadgeService {
 
     // Get session count for milestone badges
     const sessionCount = await this.getSessionCount(athleteId);
-    const weeklyStreak = await this.getWeeklyStreak(athleteId);
 
     // Combine catalog badges with milestone badges
     const allBadges: AllBadgeWithProgress[] = [];
@@ -969,14 +1030,66 @@ class BadgeService {
    * Get mock weekly streak for an athlete
    */
   private async getWeeklyStreak(athleteId: string): Promise<number> {
-    // In production, this would calculate from session history
-    const mockStreaks: Record<string, number> = {
-      user1: 6,
-      user2: 3,
-      user3: 2,
-      athlete1: 4,
-    };
-    return mockStreaks[athleteId] ?? 1;
+    try {
+      const bookings = await apiClient.get<Booking[]>(STORAGE_KEYS.BOOKINGS, []);
+      const completedBookings = bookings.filter(
+        (booking) =>
+          booking.status === 'COMPLETED' &&
+          (booking.athleteId === athleteId || booking.athleteIds?.includes(athleteId)),
+      );
+      if (completedBookings.length === 0) {
+        return 0;
+      }
+
+      const toWeekStart = (dateString: string): number | null => {
+        const timestamp = new Date(dateString).getTime();
+        if (Number.isNaN(timestamp)) {
+          return null;
+        }
+
+        const date = new Date(timestamp);
+        const day = date.getDay();
+        const mondayOffset = day === 0 ? -6 : 1 - day;
+        date.setDate(date.getDate() + mondayOffset);
+        date.setHours(0, 0, 0, 0);
+        return date.getTime();
+      };
+
+      const activeWeeks = new Set<number>();
+      for (const booking of completedBookings) {
+        const weekStart = toWeekStart(booking.scheduledAt);
+        if (weekStart !== null) {
+          activeWeeks.add(weekStart);
+        }
+      }
+
+      if (activeWeeks.size === 0) {
+        return 0;
+      }
+
+      const sortedWeeks = Array.from(activeWeeks).sort((left, right) => right - left);
+      const nowWeekStart = toWeekStart(new Date().toISOString()) ?? 0;
+      const latestWeek = sortedWeeks[0];
+      if (latestWeek < nowWeekStart - BadgeService.WEEK_MS) {
+        return 0;
+      }
+
+      let streak = 1;
+      let cursor = latestWeek;
+      for (let index = 1; index < sortedWeeks.length; index += 1) {
+        const expectedPreviousWeek = cursor - BadgeService.WEEK_MS;
+        if (sortedWeeks[index] !== expectedPreviousWeek) {
+          break;
+        }
+        streak += 1;
+        cursor = sortedWeeks[index];
+      }
+
+      return streak;
+    } catch (error) {
+      this.logger.error('Failed to calculate weekly streak from completed bookings', error);
+      return 0;
+    }
   }
 
   /**

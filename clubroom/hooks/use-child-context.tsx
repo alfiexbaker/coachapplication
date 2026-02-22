@@ -19,9 +19,12 @@ import {
   type ReactNode,
 } from 'react';
 import { useAuth } from '@/hooks/use-auth';
+import { apiClient } from '@/services/api-client';
 import { childService, type ChildProfile } from '@/services/child-service';
 import { onTyped, ServiceEvents } from '@/services/event-bus';
+import { STORAGE_KEYS } from '@/constants/storage-keys';
 import { createLogger } from '@/utils/logger';
+import type { ClubSquad, SquadMember } from '@/constants/types';
 import type { ChildInfo, ChildContextValue } from '@/types/child-context';
 import { CHILD_COLORS } from '@/types/child-context';
 import type { ChildReference } from '@/constants/user-types';
@@ -59,18 +62,20 @@ function calculateAge(dateOfBirth?: string | null): number | null {
  * Merge ChildReference[] (auth) + ChildProfile[] (service) into ChildInfo[].
  *
  * Strategy:
- * 1. ChildReference[] is source of truth for "which children this parent has"
- * 2. Match profiles to refs by name (IDs don't align between sources)
- * 3. If no profile match, build ChildInfo from ref alone (degraded but usable)
+ * 1. Resolve references first for backward compatibility.
+ * 2. Match profiles by ID first, then full name, then first name.
+ * 3. Include unmatched profiles so newly added children appear immediately.
  */
 export function reconcileChildren(
   refs: ChildReference[],
   profiles: ChildProfile[],
 ): ChildInfo[] {
+  const profileById = new Map<string, ChildProfile>();
   // Build name-indexed lookup for profiles
   const profileByFullName = new Map<string, ChildProfile>();
   const profileByFirstName = new Map<string, ChildProfile>();
   for (const p of profiles) {
+    profileById.set(p.id, p);
     profileByFullName.set(`${p.firstName} ${p.lastName}`.toLowerCase(), p);
     // Only use first-name fallback if no collision
     const firstKey = p.firstName.toLowerCase();
@@ -84,8 +89,13 @@ export function reconcileChildren(
   const children: ChildInfo[] = refs.map((ref, index) => {
     const refNameLower = ref.childName.toLowerCase();
 
+    // Try ID match first (most reliable)
+    let profile = profileById.get(ref.childId) ?? null;
+
     // Try exact full name match
-    let profile = profileByFullName.get(refNameLower) ?? null;
+    if (!profile) {
+      profile = profileByFullName.get(refNameLower) ?? null;
+    }
 
     // Try first-name fallback
     if (!profile) {
@@ -122,7 +132,90 @@ export function reconcileChildren(
     };
   });
 
+  // Include profile-only children (e.g. newly created child profile before auth refs update).
+  const unmatchedProfiles = profiles.filter((profile) => !matchedProfileIds.has(profile.id));
+  const offset = children.length;
+
+  for (let i = 0; i < unmatchedProfiles.length; i += 1) {
+    const profile = unmatchedProfiles[i];
+    const fullName = `${profile.firstName} ${profile.lastName}`;
+    const name = profile.nickname || profile.firstName || fullName;
+
+    children.push({
+      id: profile.id,
+      referenceId: profile.id,
+      profileId: profile.id,
+      name,
+      fullName,
+      initials: getInitials(fullName),
+      avatarUrl: profile.photoUrl ?? null,
+      age: calculateAge(profile.dateOfBirth),
+      dateOfBirth: profile.dateOfBirth ?? null,
+      colorCode: CHILD_COLORS[(offset + i) % CHILD_COLORS.length],
+      squadIds: [],
+      clubIds: [],
+      hasSpecialNeeds: profile.hasSpecialNeeds,
+      profile,
+    });
+  }
+
   return children;
+}
+
+/**
+ * Attach squad + club memberships for each child using squad membership storage.
+ */
+export function attachMembershipData(
+  children: ChildInfo[],
+  squads: ClubSquad[],
+  squadMembers: SquadMember[],
+): ChildInfo[] {
+  if (children.length === 0 || squadMembers.length === 0) {
+    return children;
+  }
+
+  const clubIdBySquadId = new Map<string, string>();
+  for (const squad of squads) {
+    clubIdBySquadId.set(squad.id, squad.clubId);
+  }
+
+  const squadIdsByAthleteId = new Map<string, Set<string>>();
+  for (const member of squadMembers) {
+    if (member.status !== 'ACTIVE') continue;
+    const existing = squadIdsByAthleteId.get(member.athleteId) ?? new Set<string>();
+    existing.add(member.squadId);
+    squadIdsByAthleteId.set(member.athleteId, existing);
+  }
+
+  return children.map((child) => {
+    const athleteIds = new Set<string>([child.id, child.referenceId]);
+    if (child.profileId) {
+      athleteIds.add(child.profileId);
+    }
+
+    const squadIdSet = new Set<string>();
+    for (const athleteId of athleteIds) {
+      const membershipSquads = squadIdsByAthleteId.get(athleteId);
+      if (!membershipSquads) continue;
+      for (const squadId of membershipSquads) {
+        squadIdSet.add(squadId);
+      }
+    }
+
+    const clubIdSet = new Set<string>();
+    for (const squadId of squadIdSet) {
+      const clubId = clubIdBySquadId.get(squadId);
+      if (clubId) {
+        clubIdSet.add(clubId);
+      }
+    }
+
+    return {
+      ...child,
+      squadIds: Array.from(squadIdSet),
+      clubIds: Array.from(clubIdSet),
+    };
+  });
 }
 
 // ---------------------------------------------------------------------------
@@ -142,13 +235,13 @@ export function ChildProvider({ children: reactChildren }: ChildProviderProps) {
   const [loading, setLoading] = useState(true);
   const mountedRef = useRef(true);
 
-  const childRefs = currentUser?.children;
+  const childRefs = useMemo(() => currentUser?.children ?? [], [currentUser?.children]);
   const userId = currentUser?.id;
-  const isParentUser = Boolean(currentUser?.hasChildren || (childRefs && childRefs.length > 0));
+  const isParentUser = Boolean(currentUser?.hasChildren || childRefs.length > 0);
 
   // Main load function
   const loadChildren = useCallback(async () => {
-    if (!userId || !childRefs || childRefs.length === 0) {
+    if (!userId) {
       setChildInfos([]);
       setActiveChildIdState(null);
       setLoading(false);
@@ -158,23 +251,26 @@ export function ChildProvider({ children: reactChildren }: ChildProviderProps) {
     setLoading(true);
     try {
       // Fetch profiles + active ID in parallel
-      const [profiles, storedActiveId] = await Promise.all([
+      const [profiles, storedActiveId, squads, squadMembers] = await Promise.all([
         childService.getChildren(userId),
         childService.getActiveChildId(),
+        apiClient.get<ClubSquad[]>(STORAGE_KEYS.CLUB_SQUADS, []),
+        apiClient.get<SquadMember[]>(STORAGE_KEYS.SQUAD_MEMBERS, []),
       ]);
 
       if (!mountedRef.current) return;
 
       // Reconcile
       const reconciled = reconcileChildren(childRefs, profiles);
-      setChildInfos(reconciled);
+      const withMembership = attachMembershipData(reconciled, squads, squadMembers);
+      setChildInfos(withMembership);
 
       // Validate and set active child
-      if (storedActiveId && reconciled.some((c) => c.id === storedActiveId)) {
+      if (storedActiveId && withMembership.some((c) => c.id === storedActiveId)) {
         setActiveChildIdState(storedActiveId);
-      } else if (reconciled.length === 1) {
+      } else if (withMembership.length === 1) {
         // Auto-select only child
-        setActiveChildIdState(reconciled[0].id);
+        setActiveChildIdState(withMembership[0].id);
       } else {
         // Multi-child: null = "All" mode
         setActiveChildIdState(null);
@@ -184,7 +280,7 @@ export function ChildProvider({ children: reactChildren }: ChildProviderProps) {
       if (!mountedRef.current) return;
 
       // Degraded mode: build from refs only
-      const fallback = reconcileChildren(childRefs, []);
+      const fallback = attachMembershipData(reconcileChildren(childRefs, []), [], []);
       setChildInfos(fallback);
       setActiveChildIdState(null);
     } finally {
@@ -289,7 +385,7 @@ export function ChildProvider({ children: reactChildren }: ChildProviderProps) {
       activeChild,
       setActiveChildId,
       isMultiChild,
-      isParent: isParentUser,
+      isParent: isParentUser || childInfos.length > 0,
       getChildById,
       getChildByReferenceId,
       familyAthleteIds,

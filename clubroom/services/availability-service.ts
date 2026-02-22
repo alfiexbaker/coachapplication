@@ -69,7 +69,7 @@ async function resolveBookingAthleteName(booking: Booking): Promise<string | und
 
 // Mock templates for development - coach availability
 const MOCK_TEMPLATES: AvailabilityTemplate[] = [
-  // Coach 1 - Sarah Mitchell (Goalkeeping)
+  // Coach 1 - Jess Okafor (Goalkeeping)
   {
     id: 'tmpl_1',
     coachId: 'coach1',
@@ -114,7 +114,7 @@ const MOCK_TEMPLATES: AvailabilityTemplate[] = [
     bufferMinutes: 15,
     location: 'Hyde Park',
   },
-  // Coach 2 - Mike Thompson (Striker Training)
+  // Coach 2 - Reuben Carr (Striker Training)
   {
     id: 'tmpl_5',
     coachId: 'coach2',
@@ -148,7 +148,7 @@ const MOCK_TEMPLATES: AvailabilityTemplate[] = [
     bufferMinutes: 15,
     location: 'Hackney Marshes',
   },
-  // Coach 3 - David Roberts (Youth Development)
+  // Coach 3 - Aiden Sharma (Youth Development)
   {
     id: 'tmpl_8',
     coachId: 'coach3',

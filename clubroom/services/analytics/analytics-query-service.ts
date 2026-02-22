@@ -15,6 +15,7 @@ import { apiClient } from '../api-client';
 import type { AthleteAnalytics, SkillProgress, Goal } from '@/constants/types';
 import type { SessionFeedback } from '@/services/progress/progress-feedback-service';
 import type { AthleteSkillLevels } from '@/services/progress/progress-skills-service';
+import type { FootballSkill } from '@/types/progress-types';
 import { createLogger } from '@/utils/logger';
 import { api } from '@/constants/config';
 import { STORAGE_KEYS } from '@/constants/storage-keys';
@@ -33,6 +34,14 @@ const USE_MOCK = api.useMock;
 
 export type AnalyticsPeriod = 'WEEK' | 'MONTH' | 'QUARTER' | 'YEAR' | 'ALL';
 
+function normalizeAnalyticsSkill(skill: string): FootballSkill {
+  if (skill === 'Dribbling') return 'Dribbling & Skills';
+  if (skill === 'Defending') return '1v1 Defending';
+  if (skill === 'Conditioning') return 'Work Rate';
+  if (skill === 'Goalkeeping') return 'Shot Stopping';
+  return skill as FootballSkill;
+}
+
 // ============================================================================
 // MOCK DATA (shared references for query operations)
 // ============================================================================
@@ -47,7 +56,7 @@ const MOCK_ANALYTICS: AthleteAnalytics[] = [
     attendanceRate: 95,
     skills: [
       {
-        skillName: 'Dribbling',
+        skillName: 'Dribbling & Skills',
         category: 'Technical',
         currentLevel: 72,
         previousLevel: 65,
@@ -86,7 +95,7 @@ const MOCK_ANALYTICS: AthleteAnalytics[] = [
         ],
       },
       {
-        skillName: 'Defending',
+        skillName: '1v1 Defending',
         category: 'Tactical',
         currentLevel: 45,
         previousLevel: 45,
@@ -99,7 +108,7 @@ const MOCK_ANALYTICS: AthleteAnalytics[] = [
         ],
       },
       {
-        skillName: 'Conditioning',
+        skillName: 'Work Rate',
         category: 'Physical',
         currentLevel: 75,
         previousLevel: 70,
@@ -129,7 +138,7 @@ const MOCK_GOALS: Goal[] = [
     athleteId: 'athlete_1',
     title: 'Master weak foot finishing',
     description: 'Be confident shooting with left foot from inside the box',
-    category: 'TECHNIQUE',
+    category: 'BALL_SKILLS',
     targetDate: '2026-03-01',
     progress: 45,
     milestones: [
@@ -176,7 +185,7 @@ const MOCK_GOALS: Goal[] = [
     athleteId: 'athlete_1',
     title: 'Improve first touch under pressure',
     description: 'Control the ball cleanly when defenders are close',
-    category: 'TECHNIQUE',
+    category: 'BALL_SKILLS',
     targetDate: '2026-02-15',
     progress: 70,
     milestones: [
@@ -216,7 +225,7 @@ const MOCK_GOALS: Goal[] = [
     athleteId: 'athlete_1',
     title: 'Complete 10 consecutive sessions',
     description: 'Build consistency and commitment',
-    category: 'FITNESS',
+    category: 'CHARACTER',
     targetDate: '2025-12-31',
     progress: 100,
     milestones: [
@@ -275,8 +284,16 @@ async function loadAnalytics(): Promise<AthleteAnalytics[]> {
 
 async function loadGoals(): Promise<Goal[]> {
   try {
-    const stored = await apiClient.get<Goal[] | null>(STORAGE_KEYS.ATHLETE_GOALS, null);
-    if (stored) return stored;
+    const storedUnified = await apiClient.get<Goal[] | null>(STORAGE_KEYS.GOALS, null);
+    if (storedUnified && storedUnified.length > 0) {
+      return storedUnified;
+    }
+
+    const storedLegacy = await apiClient.get<Goal[] | null>(STORAGE_KEYS.ATHLETE_GOALS, null);
+    if (storedLegacy && storedLegacy.length > 0) {
+      await apiClient.set(STORAGE_KEYS.GOALS, storedLegacy);
+      return storedLegacy;
+    }
   } catch (error) {
     logger.error('Failed to load goals', error);
   }
@@ -316,7 +333,7 @@ async function buildRealAthleteAnalytics(
         : 0;
 
       skills.push({
-        skillName: skillData.skill,
+        skillName: normalizeAnalyticsSkill(skillData.skill),
         category: 'Technical',
         currentLevel,
         previousLevel,
@@ -453,7 +470,7 @@ export const analyticsQueryService = {
 
         if (athleteSkills && Object.keys(athleteSkills.skills).length > 0) {
           const skills: SkillProgress[] = Object.values(athleteSkills.skills).map((s) => ({
-            skillName: s.skill,
+            skillName: normalizeAnalyticsSkill(s.skill),
             category: 'Technical',
             currentLevel: Math.round(s.level * 10),
             previousLevel: s.previousLevel ? Math.round(s.previousLevel * 10) : Math.round(s.level * 10),

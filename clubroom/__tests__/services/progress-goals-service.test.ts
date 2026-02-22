@@ -15,7 +15,7 @@ describe('progressGoalsService', () => {
     const created = await progressGoalsService.createGoal('athlete_pg_1', {
       title: 'Improve weak foot finishing',
       description: 'Increase confidence using weaker foot',
-      category: 'TECHNIQUE',
+      category: 'BALL_SKILLS',
       milestones: ['Baseline', 'Session block', 'Match application'],
       targetDate: '2026-06-01',
     });
@@ -34,7 +34,7 @@ describe('progressGoalsService', () => {
     const created = await progressGoalsService.createGoal('athlete_pg_2', {
       title: 'Improve sprint starts',
       description: 'Explosive first step',
-      category: 'SPEED',
+      category: 'CHARACTER',
       milestones: ['Technique prep', 'Timing drills'],
       targetDate: '2026-05-20',
     });

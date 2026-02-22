@@ -249,7 +249,7 @@ export default memo(function AddLocationPicker({
         setIsEditorOpen(false);
       }
     },
-    [focusMap, geocodeAddress, onChangeCoordinates, onChangeValue, onSelectSavedLocation, presetLocations],
+    [focusMap, geocodeAddress, onChangeCoordinates, onChangeValue, onSelectSavedLocation],
   );
 
   const handleTextChange = useCallback(

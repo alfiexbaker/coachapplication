@@ -28,7 +28,7 @@ const logger = createLogger('ScheduleScreen');
 export default function ScheduleScreen() {
   const { coachId } = useLocalSearchParams<{ coachId: string }>();
   const { draft, updateDraft } = useBookingFlow();
-  const { colors: themeColors, scheme } = useTheme();
+  const { scheme } = useTheme();
 
   // Calculate date range (next 14 days)
   const dateRange = useMemo(() => {
@@ -49,12 +49,19 @@ export default function ScheduleScreen() {
     }
     try {
       const duration = draft.duration || 60;
-      const slots = await availabilityService.getAvailableSlots(
-        coachId,
-        dateRange.startDate,
-        dateRange.endDate,
-        duration,
-      );
+      const slots = draft.sessionTemplateId
+        ? await availabilityService.getInvitableSlots(
+            coachId,
+            dateRange.startDate,
+            dateRange.endDate,
+            draft.sessionTemplateId,
+          )
+        : await availabilityService.getAvailableSlots(
+            coachId,
+            dateRange.startDate,
+            dateRange.endDate,
+            duration,
+          );
       return ok(slots);
     } catch (loadError) {
       logger.error('Failed to fetch availability:', loadError);
@@ -62,7 +69,7 @@ export default function ScheduleScreen() {
         serviceError('UNKNOWN', 'Unable to load available times. Please try again.', loadError),
       );
     }
-  }, [coachId, dateRange.startDate, dateRange.endDate, draft.duration]);
+  }, [coachId, dateRange.startDate, dateRange.endDate, draft.duration, draft.sessionTemplateId]);
 
   const {
     data,
@@ -190,7 +197,7 @@ export default function ScheduleScreen() {
                 No slots available
               </ThemedText>
               <ThemedText style={[styles.emptyMessage, { color: palette.muted }]}>
-                This coach hasn't opened any slots for the next two weeks. You can check back later or reach out directly.
+                {`This coach hasn't opened any slots for the next two weeks. You can check back later or reach out directly.`}
               </ThemedText>
             </Column>
 
@@ -236,7 +243,11 @@ export default function ScheduleScreen() {
       >
         <BookingWizardHeader
           title="Choose date & time"
-          subtitle="Only available slots are shown"
+          subtitle={
+            draft.sessionTypeLabel
+              ? `Only available ${draft.sessionTypeLabel.toLowerCase()} slots are shown`
+              : 'Only available slots are shown'
+          }
           step={2}
         />
         <CalendarPicker

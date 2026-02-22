@@ -1,12 +1,11 @@
 /**
- * ChildrenChildCard — Individual child card with avatar, stats, notes, and actions.
+ * ChildrenChildCard — Primary profile card for a child.
  *
- * Displays child info (name, age, initials), special needs/allergy/communication
- * notes, session/badge/rating stats, and action buttons (set active, remove).
- * Wrapped in memo() for FlatList performance.
+ * Entire card is pressable and opens the child's profile/development view.
+ * Shows concise identity, profile signals, and core progress stats.
  */
 
-import { memo, useCallback } from 'react';
+import { memo, useCallback, useMemo } from 'react';
 import { View, StyleSheet } from 'react-native';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -15,12 +14,12 @@ import Animated, { FadeInDown } from 'react-native-reanimated';
 import { Row } from '@/components/primitives/row';
 import { Column } from '@/components/primitives/column';
 import { SurfaceCard } from '@/components/primitives/surface-card';
-import { Clickable } from '@/components/primitives/clickable';
 import { ThemedText } from '@/components/themed-text';
 import { Routes } from '@/navigation/routes';
 import { Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
+import { POSITION_LABELS } from '@/constants/position-skills';
 import { useTheme } from '@/hooks/useTheme';
-import { childService, type ChildProfile } from '@/services/child-service';
+import { childService, type ChildProfile, type Relationship } from '@/services/child-service';
 import type { ChildStats } from '@/hooks/use-children-hub';
 
 interface ChildrenChildCardProps {
@@ -28,16 +27,79 @@ interface ChildrenChildCardProps {
   stats: ChildStats;
   index: number;
   isActive?: boolean;
-  onSetActive?: (childId: string) => void;
-  onRemove?: (childId: string) => void;
 }
+
+type ProfileSignalTone = 'neutral' | 'warning' | 'alert';
+
+type ProfileSignal = {
+  id: string;
+  icon: keyof typeof Ionicons.glyphMap;
+  label: string;
+  tone: ProfileSignalTone;
+};
+
+const RELATIONSHIP_LABELS: Record<Relationship, string> = {
+  SON: 'Son',
+  DAUGHTER: 'Daughter',
+  WARD: 'Ward',
+  GRANDCHILD: 'Grandchild',
+  OTHER: 'Child',
+};
 
 function getInitials(name: string): string {
   return name
     .split(' ')
+    .filter(Boolean)
     .map((n) => n[0])
     .join('')
     .toUpperCase();
+}
+
+function pluralize(value: number, singular: string, plural: string): string {
+  return `${value} ${value === 1 ? singular : plural}`;
+}
+
+function buildSignals(child: ChildProfile): ProfileSignal[] {
+  const signals: ProfileSignal[] = [];
+
+  const supportCount = child.disabilities.length + child.specialNeeds.length;
+  if (child.hasSpecialNeeds || supportCount > 0) {
+    signals.push({
+      id: 'support',
+      icon: 'heart-outline',
+      label: supportCount > 0 ? `${supportCount} support item${supportCount === 1 ? '' : 's'}` : 'Support plan',
+      tone: 'warning',
+    });
+  }
+
+  if (child.allergies.length > 0) {
+    signals.push({
+      id: 'allergies',
+      icon: 'medical-outline',
+      label: pluralize(child.allergies.length, 'allergy', 'allergies'),
+      tone: 'alert',
+    });
+  }
+
+  if (child.medicalConditions.length > 0) {
+    signals.push({
+      id: 'conditions',
+      icon: 'fitness-outline',
+      label: pluralize(child.medicalConditions.length, 'medical condition', 'medical conditions'),
+      tone: 'warning',
+    });
+  }
+
+  if (signals.length === 0) {
+    signals.push({
+      id: 'clear',
+      icon: 'checkmark-circle-outline',
+      label: 'No key support alerts',
+      tone: 'neutral',
+    });
+  }
+
+  return signals.slice(0, 3);
 }
 
 export const ChildrenChildCard = memo(function ChildrenChildCard({
@@ -45,73 +107,101 @@ export const ChildrenChildCard = memo(function ChildrenChildCard({
   stats,
   index,
   isActive = false,
-  onSetActive,
-  onRemove,
 }: ChildrenChildCardProps) {
   const { colors: palette } = useTheme();
 
-  const fullName = `${child.firstName} ${child.lastName}`;
+  const fullName = `${child.firstName} ${child.lastName}`.trim();
+  const displayName = child.nickname || child.firstName;
   const age = child.dateOfBirth ? childService.getAge(child.dateOfBirth) : null;
 
-  const handleNavigateProgress = useCallback(() => {
+  const profileSignals = useMemo(() => buildSignals(child), [child]);
+  const relationshipLabel = RELATIONSHIP_LABELS[child.relationship] ?? 'Child';
+  const positionLabel = useMemo(() => {
+    if (child.primaryPosition === null) {
+      return 'Rotates';
+    }
+    if (child.primaryPosition) {
+      return POSITION_LABELS[child.primaryPosition];
+    }
+    return null;
+  }, [child.primaryPosition]);
+
+  const handleOpenProfile = useCallback(async () => {
+    await childService.setActiveChildId(child.id, displayName);
     router.push(Routes.developmentChildProgress(child.id));
-  }, [child.id]);
+  }, [child.id, displayName]);
 
-  const handleNavigateBadges = useCallback(() => {
-    router.push(Routes.childBadges(child.id));
-  }, [child.id]);
-
-  const handleSetActive = useCallback(() => {
-    onSetActive?.(child.id);
-  }, [child.id, onSetActive]);
-
-  const handleRemove = useCallback(() => {
-    onRemove?.(child.id);
-  }, [child.id, onRemove]);
-
-  const hasNotes =
-    child.hasSpecialNeeds || child.allergies.length > 0 || !!child.communicationNotes;
+  const supportToneStyles = useMemo(
+    () => ({
+      neutral: {
+        backgroundColor: withAlpha(palette.tint, 0.06),
+        iconColor: palette.tint,
+        textColor: palette.tint,
+      },
+      warning: {
+        backgroundColor: withAlpha(palette.warning, 0.08),
+        iconColor: palette.warning,
+        textColor: palette.warning,
+      },
+      alert: {
+        backgroundColor: withAlpha(palette.error, 0.08),
+        iconColor: palette.error,
+        textColor: palette.error,
+      },
+    }),
+    [palette.error, palette.tint, palette.warning],
+  );
 
   return (
     <Animated.View entering={FadeInDown.delay(100 + index * 50).springify()}>
       <SurfaceCard
+        onPress={handleOpenProfile}
         style={[
           styles.card,
-          isActive && { borderWidth: 1.5, borderColor: withAlpha(palette.tint, 0.3) },
+          isActive && { borderWidth: 1.5, borderColor: withAlpha(palette.tint, 0.28) },
         ]}
+        accessibilityLabel={`Open ${displayName}'s profile`}
+        accessibilityHint="Shows development, badges, and feedback for this child."
       >
-        {/* Header: Avatar + Name + Chevron */}
         <Row align="center" gap="md">
-          <View style={[styles.avatar, { backgroundColor: withAlpha(palette.tint, 0.06) }]}>
+          <View style={[styles.avatar, { backgroundColor: withAlpha(palette.tint, 0.08) }]}>
             <ThemedText style={[styles.avatarText, { color: palette.tint }]}>
-              {getInitials(fullName)}
+              {getInitials(fullName || displayName)}
             </ThemedText>
-            {child.hasSpecialNeeds && (
-              <View style={[styles.specialNeedsBadge, { backgroundColor: palette.warning }]}>
-                <Ionicons name="heart" size={10} color={palette.onPrimary} />
-              </View>
-            )}
             {isActive && (
               <View style={[styles.activeBadge, { backgroundColor: palette.tint }]}>
                 <Ionicons name="checkmark" size={10} color={palette.onPrimary} />
               </View>
             )}
           </View>
+
           <Column gap="micro" style={styles.infoFlex}>
-            <Row align="center" gap="xs">
+            <Row align="center" gap="xs" wrap>
               <ThemedText type="defaultSemiBold" style={styles.childName} numberOfLines={1}>
-                {child.nickname || child.firstName}
+                {displayName}
               </ThemedText>
               {age !== null && (
-                <ThemedText style={[styles.agePill, { color: palette.muted }]}>
-                  {age} yrs
-                </ThemedText>
-              )}
-              {isActive && (
-                <View style={[styles.activeLabel, { backgroundColor: withAlpha(palette.tint, 0.1) }]}>
-                  <ThemedText style={[styles.activeLabelText, { color: palette.tint }]}>
-                    Active
+                <View style={[styles.metaPill, { backgroundColor: withAlpha(palette.tint, 0.08) }]}>
+                  <ThemedText style={[styles.metaPillText, { color: palette.tint }]}>
+                    {age} yrs
                   </ThemedText>
+                </View>
+              )}
+              <View style={[styles.metaPill, { backgroundColor: withAlpha(palette.muted, 0.12) }]}>
+                <ThemedText style={[styles.metaPillText, { color: palette.muted }]}>
+                  {relationshipLabel}
+                </ThemedText>
+              </View>
+              {positionLabel ? (
+                <View style={[styles.metaPill, { backgroundColor: withAlpha(palette.info, 0.12) }]}>
+                  <ThemedText style={[styles.metaPillText, { color: palette.info }]}>
+                    {positionLabel}
+                  </ThemedText>
+                </View>
+              ) : null}
+              {isActive && (
+                <View style={[styles.metaPill, { backgroundColor: withAlpha(palette.tint, 0.12) }]}>
+                  <ThemedText style={[styles.metaPillText, { color: palette.tint }]}>Active</ThemedText>
                 </View>
               )}
             </Row>
@@ -119,144 +209,68 @@ export const ChildrenChildCard = memo(function ChildrenChildCard({
               {fullName}
             </ThemedText>
           </Column>
-          <Clickable
-            onPress={handleNavigateProgress}
-            accessibilityLabel={`View progress for ${child.nickname || child.firstName}`}
-            accessibilityRole="button"
-          >
-            <Ionicons name="chevron-forward" size={20} color={palette.muted} />
-          </Clickable>
+
+          <Ionicons name="chevron-forward" size={20} color={palette.muted} />
         </Row>
 
-        {/* Special Needs & Notes Summary */}
-        {hasNotes && (
-          <Column gap="xs" style={[styles.notesSection, { borderTopColor: palette.border }]}>
-            {child.hasSpecialNeeds && child.disabilities.length > 0 && (
+        <Row gap="xs" wrap style={styles.signalsRow}>
+          {profileSignals.map((signal) => {
+            const tone = supportToneStyles[signal.tone];
+            return (
               <Row
-                align="flex-start"
-                gap="xs"
-                style={[styles.noteRow, { backgroundColor: withAlpha(palette.warning, 0.06) }]}
+                key={signal.id}
+                align="center"
+                gap="xxs"
+                style={[styles.signalChip, { backgroundColor: tone.backgroundColor }]}
               >
-                <Ionicons name="alert-circle" size={14} color={palette.warning} />
-                <ThemedText style={styles.noteText} numberOfLines={1}>
-                  {child.disabilities.map((d) => d.type).join(', ')}
+                <Ionicons name={signal.icon} size={13} color={tone.iconColor} />
+                <ThemedText style={[styles.signalText, { color: tone.textColor }]}>
+                  {signal.label}
                 </ThemedText>
               </Row>
-            )}
-            {child.allergies.length > 0 && (
-              <Row
-                align="flex-start"
-                gap="xs"
-                style={[styles.noteRow, { backgroundColor: withAlpha(palette.error, 0.06) }]}
-              >
-                <Ionicons name="medical" size={14} color={palette.error} />
-                <ThemedText style={styles.noteText} numberOfLines={1}>
-                  Allergies: {child.allergies.join(', ')}
-                </ThemedText>
-              </Row>
-            )}
-            {child.communicationNotes && (
-              <Row
-                align="flex-start"
-                gap="xs"
-                style={[styles.noteRow, { backgroundColor: withAlpha(palette.tint, 0.06) }]}
-              >
-                <Ionicons name="chatbubble" size={14} color={palette.tint} />
-                <ThemedText style={styles.noteText} numberOfLines={2}>
-                  {child.communicationNotes}
-                </ThemedText>
-              </Row>
-            )}
-          </Column>
-        )}
+            );
+          })}
+        </Row>
 
-        {/* Stats Row */}
-        <Row gap="lg" style={[styles.statsRow, { borderTopColor: palette.border }]}>
+        <Row style={[styles.statsRow, { borderTopColor: palette.border }]}>
+          <Column style={styles.statCell} gap="micro">
+            <ThemedText style={styles.statValue}>{stats.sessions}</ThemedText>
+            <ThemedText style={[styles.statLabel, { color: palette.muted }]}>Sessions</ThemedText>
+          </Column>
+          <View style={[styles.divider, { backgroundColor: palette.border }]} />
+
+          <Column style={styles.statCell} gap="micro">
+            <ThemedText style={styles.statValue}>{stats.badges}</ThemedText>
+            <ThemedText style={[styles.statLabel, { color: palette.muted }]}>
+              Badges
+              {stats.unseenBadges > 0 ? ` (${stats.unseenBadges} new)` : ''}
+            </ThemedText>
+          </Column>
+          <View style={[styles.divider, { backgroundColor: palette.border }]} />
+
+          <Column style={styles.statCell} gap="micro">
+            <ThemedText style={styles.statValue}>
+              {stats.avgRating > 0 ? stats.avgRating.toFixed(1) : '--'}
+            </ThemedText>
+            <ThemedText style={[styles.statLabel, { color: palette.muted }]}>Avg Rating</ThemedText>
+          </Column>
+        </Row>
+
+        <Row
+          align="center"
+          justify="between"
+          style={[styles.footerRow, { borderTopColor: palette.border }]}
+        >
+          <ThemedText style={[styles.footerHint, { color: palette.muted }]}>
+            Tap to open profile
+          </ThemedText>
           <Row align="center" gap="xxs">
-            <Ionicons name="calendar" size={14} color={palette.tint} />
-            <ThemedText style={[styles.statText, { color: palette.muted }]}>
-              {stats.sessions} sessions
+            <Ionicons name="analytics-outline" size={14} color={palette.tint} />
+            <ThemedText style={[styles.footerHintAccent, { color: palette.tint }]}>
+              Progress & badges
             </ThemedText>
           </Row>
-          <Clickable
-            onPress={handleNavigateBadges}
-            accessibilityLabel={`View badges for ${child.nickname || child.firstName}`}
-            accessibilityRole="button"
-          >
-            <Row
-              align="center"
-              gap="xxs"
-              style={[
-                stats.unseenBadges > 0 && styles.statHighlight,
-                stats.unseenBadges > 0 && { backgroundColor: withAlpha(palette.warning, 0.09) },
-              ]}
-            >
-              <Ionicons name="ribbon" size={14} color={palette.warning} />
-              <ThemedText
-                style={[
-                  styles.statText,
-                  { color: stats.unseenBadges > 0 ? palette.warning : palette.muted },
-                ]}
-              >
-                {stats.badges} badges
-              </ThemedText>
-            </Row>
-          </Clickable>
-          {stats.avgRating > 0 && (
-            <Row align="center" gap="xxs">
-              <Ionicons name="star" size={14} color={palette.warning} />
-              <ThemedText style={[styles.statText, { color: palette.muted }]}>
-                {stats.avgRating.toFixed(1)} avg
-              </ThemedText>
-            </Row>
-          )}
         </Row>
-
-        {/* Action Row */}
-        {(onSetActive || onRemove) && (
-          <Row gap="xs" style={[styles.actionsRow, { borderTopColor: palette.border }]}>
-            {onSetActive && !isActive && (
-              <Clickable
-                onPress={handleSetActive}
-                style={[styles.actionBtn, { backgroundColor: withAlpha(palette.tint, 0.08) }]}
-                accessibilityLabel={`Set ${child.nickname || child.firstName} as active child`}
-                accessibilityRole="button"
-              >
-                <Row align="center" justify="center" gap="xxs">
-                  <Ionicons name="star-outline" size={14} color={palette.tint} />
-                  <ThemedText style={[styles.actionBtnText, { color: palette.tint }]}>
-                    Set Active
-                  </ThemedText>
-                </Row>
-              </Clickable>
-            )}
-            {isActive && (
-              <View style={[styles.actionBtn, { backgroundColor: withAlpha(palette.tint, 0.08) }]}>
-                <Row align="center" justify="center" gap="xxs">
-                  <Ionicons name="star" size={14} color={palette.tint} />
-                  <ThemedText style={[styles.actionBtnText, { color: palette.tint }]}>
-                    Active Child
-                  </ThemedText>
-                </Row>
-              </View>
-            )}
-            {onRemove && (
-              <Clickable
-                onPress={handleRemove}
-                style={[styles.actionBtn, { backgroundColor: withAlpha(palette.error, 0.06) }]}
-                accessibilityLabel={`Remove ${child.nickname || child.firstName}`}
-                accessibilityRole="button"
-              >
-                <Row align="center" justify="center" gap="xxs">
-                  <Ionicons name="trash-outline" size={14} color={palette.error} />
-                  <ThemedText style={[styles.actionBtnText, { color: palette.error }]}>
-                    Remove
-                  </ThemedText>
-                </Row>
-              </Clickable>
-            )}
-          </Row>
-        )}
       </SurfaceCard>
     </Animated.View>
   );
@@ -268,8 +282,8 @@ const styles = StyleSheet.create({
     gap: Spacing.md,
   },
   avatar: {
-    width: 48,
-    height: 48,
+    width: 50,
+    height: 50,
     borderRadius: Radii.xl,
     alignItems: 'center',
     justifyContent: 'center',
@@ -277,34 +291,15 @@ const styles = StyleSheet.create({
   avatarText: {
     ...Typography.heading,
   },
-  specialNeedsBadge: {
+  activeBadge: {
     position: 'absolute',
-    bottom: -2,
-    right: -2,
+    top: -3,
+    right: -3,
     width: 18,
     height: 18,
     borderRadius: Radii.md,
     alignItems: 'center',
     justifyContent: 'center',
-  },
-  activeBadge: {
-    position: 'absolute',
-    top: -2,
-    right: -2,
-    width: 18,
-    height: 18,
-    borderRadius: 9,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  activeLabel: {
-    paddingHorizontal: Spacing.xs,
-    paddingVertical: Spacing.micro,
-    borderRadius: Radii.pill,
-  },
-  activeLabelText: {
-    ...Typography.micro,
-    textTransform: 'uppercase',
   },
   infoFlex: {
     flex: 1,
@@ -312,48 +307,55 @@ const styles = StyleSheet.create({
   childName: {
     ...Typography.subheading,
   },
-  agePill: {
-    ...Typography.caption,
-  },
   childMeta: {
     ...Typography.small,
   },
-  notesSection: {
-    paddingTop: Spacing.sm,
-    borderTopWidth: 1,
+  metaPill: {
+    paddingHorizontal: Spacing.xs,
+    paddingVertical: Spacing.micro,
+    borderRadius: Radii.pill,
   },
-  noteRow: {
-    padding: Spacing.xs,
-    borderRadius: Radii.sm,
+  metaPillText: {
+    ...Typography.micro,
   },
-  noteText: {
-    flex: 1,
+  signalsRow: {
+    marginTop: -Spacing.xxs,
+  },
+  signalChip: {
+    paddingHorizontal: Spacing.xs,
+    paddingVertical: Spacing.xxs,
+    borderRadius: Radii.rounded,
+  },
+  signalText: {
     ...Typography.caption,
   },
   statsRow: {
     paddingTop: Spacing.sm,
     borderTopWidth: 1,
+    alignItems: 'stretch',
   },
-  statText: {
+  statCell: {
+    flex: 1,
+    alignItems: 'center',
+  },
+  statValue: {
+    ...Typography.bodySmallSemiBold,
+  },
+  statLabel: {
     ...Typography.caption,
   },
-  statHighlight: {
-    paddingHorizontal: Spacing.xs,
-    paddingVertical: Spacing.micro,
-    borderRadius: Radii.sm,
+  divider: {
+    width: 1,
+    marginHorizontal: Spacing.xs,
   },
-  actionsRow: {
-    paddingTop: Spacing.sm,
+  footerRow: {
     borderTopWidth: 1,
+    paddingTop: Spacing.sm,
   },
-  actionBtn: {
-    flex: 1,
-    paddingVertical: Spacing.xs,
-    borderRadius: Radii.sm,
-    minHeight: 44,
-    justifyContent: 'center',
+  footerHint: {
+    ...Typography.caption,
   },
-  actionBtnText: {
+  footerHintAccent: {
     ...Typography.caption,
     fontWeight: '600',
   },

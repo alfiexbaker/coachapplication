@@ -10,11 +10,12 @@ import { createLogger } from '@/utils/logger';
 import type { Result, ServiceError } from '@/types/result';
 import { ok, err, notFound, storageError } from '@/types/result';
 import { accountIdsMatch } from '@/utils/account-id';
+import { STORAGE_KEYS } from '@/constants/storage-keys';
 
 const logger = createLogger('CoachService');
 
 // Storage keys (inline until added to storage-keys.ts)
-const COACHES_KEY = 'clubroom.coaches';
+const COACHES_KEY = STORAGE_KEYS.COACH_DIRECTORY;
 const COACH_REVIEWS_KEY = 'clubroom.coach_reviews';
 
 // Simplified Coach type for public profiles

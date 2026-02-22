@@ -31,9 +31,10 @@ import { StepCoachDetails } from '@/components/auth/onboarding-step-coach';
 import { StepParentDetails } from '@/components/auth/onboarding-step-parent';
 import { StepComplete } from '@/components/auth/onboarding-step-complete';
 import { useOnboarding } from '@/hooks/use-onboarding';
-import { Spacing, Typography, Components } from '@/constants/theme';
+import { Spacing, Typography } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
 import type { OnboardingState } from '@/components/auth/onboarding-types';
+import type { PositionRole } from '@/types/progress-types';
 
 interface OnboardingScreenProps {
   onComplete: () => void;
@@ -77,7 +78,8 @@ function OnboardingScreenInner({ onComplete, onBackToLogin }: OnboardingScreenPr
   );
 
   const handleChangePosition = useCallback(
-    (value: string) => dispatch({ type: 'SET_FIELD', field: 'position', value }),
+    (position: PositionRole | null) =>
+      dispatch({ type: 'SET_FIELD', field: 'position', value: position }),
     [dispatch],
   );
 

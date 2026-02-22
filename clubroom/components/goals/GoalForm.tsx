@@ -31,7 +31,14 @@ import { GoalMilestonesSection } from './goal-milestones-section';
 import { GoalPreviewCard } from './goal-preview-card';
 import { Row } from '@/components/primitives';
 
-const CATEGORIES: GoalCategory[] = ['SPEED', 'TECHNIQUE', 'FITNESS', 'TACTICAL', 'MENTAL', 'OTHER'];
+const CATEGORIES: GoalCategory[] = [
+  'BALL_SKILLS',
+  'ATTACKING',
+  'DEFENDING',
+  'GAME_SENSE',
+  'CHARACTER',
+  'OTHER',
+];
 
 interface GoalFormProps {
   goal?: Goal;

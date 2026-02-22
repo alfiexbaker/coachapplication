@@ -48,7 +48,7 @@ export const SpecialNeedsObservations = memo(function SpecialNeedsObservations({
       {observations.length === 0 ? (
         <SurfaceCard style={styles.emptyCard}>
           <ThemedText style={[Typography.small, { color: colors.muted, textAlign: 'center' }]}>
-            Add your first observation — what works in sessions, strategies you've tried, things to watch for.
+            {`Add your first observation - what works in sessions, strategies you've tried, things to watch for.`}
           </ThemedText>
           <Clickable
             onPress={onAdd}

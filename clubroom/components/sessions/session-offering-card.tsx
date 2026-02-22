@@ -53,6 +53,11 @@ export function SessionOfferingCard({
   const registeredCount = offering.registrations.filter((r) => r.status === 'confirmed').length;
   const isFull = registeredCount >= offering.maxParticipants;
   const capacityText = `${registeredCount}/${offering.maxParticipants}`;
+  const viewerAudienceText = offering.viewerAthleteNames?.length
+    ? offering.viewerAthleteNames.length <= 2
+      ? offering.viewerAthleteNames.join(', ')
+      : `${offering.viewerAthleteNames.slice(0, 2).join(', ')} +${offering.viewerAthleteNames.length - 2}`
+    : null;
 
   const formatSchedule = () => {
     if (offering.isRecurring && offering.dayOfWeek !== undefined && offering.timeOfDay) {
@@ -94,6 +99,15 @@ export function SessionOfferingCard({
             </ThemedText>
           )}
 
+          {viewerAudienceText && (
+            <Row align="center" gap="xxs" style={styles.metaRow}>
+              <Ionicons name="person-outline" size={14} color={palette.tint} />
+              <ThemedText style={[styles.metaText, { color: palette.tint }]} numberOfLines={1}>
+                For: {viewerAudienceText}
+              </ThemedText>
+            </Row>
+          )}
+
           <Row align="center" gap="xxs" style={styles.metaRow}>
             <Ionicons name="calendar-outline" size={14} color={palette.muted} />
             <ThemedText style={[styles.metaText, { color: palette.muted }]} numberOfLines={1}>
@@ -109,6 +123,7 @@ export function SessionOfferingCard({
             <Clickable
               onPress={handleOpenLocation}
               accessibilityLabel="Open training location in maps"
+              accessibilityRole="none"
               style={[styles.mapButton, { backgroundColor: withAlpha(palette.tint, 0.08) }]}
             >
               <Ionicons name="navigate-outline" size={12} color={palette.tint} />

@@ -138,7 +138,7 @@ export function UnifiedBookingCard({
               <Row style={styles.childRow}>
                 <Ionicons name="person" size={14} color={palette.tint} />
                 <ThemedText style={[styles.childText, { color: palette.tint }]}>
-                  {childName}
+                  For: {childName}
                 </ThemedText>
               </Row>
             )}

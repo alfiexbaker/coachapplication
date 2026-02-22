@@ -31,6 +31,8 @@ export interface NotesStepProps {
   onOverallEffortChange: (value: number) => void;
   homework: string;
   onHomeworkChange: (text: string) => void;
+  improvements: string;
+  onImprovementsChange: (text: string) => void;
 }
 
 // ============================================================================
@@ -61,6 +63,8 @@ export const NotesStep = memo(function NotesStep({
   onOverallEffortChange,
   homework,
   onHomeworkChange,
+  improvements,
+  onImprovementsChange,
 }: NotesStepProps) {
   const handleToggleSkill = useCallback(
     (skill: string) => {
@@ -178,6 +182,28 @@ export const NotesStep = memo(function NotesStep({
           accessibilityLabel="Homework and practice focus"
         />
       </SurfaceCard>
+
+      {/* Improvement Focus */}
+      <SurfaceCard style={styles.section}>
+        <Row align="center" gap="sm" style={styles.sectionHeader}>
+          <Ionicons name="trending-up" size={20} color={colors.tint} />
+          <ThemedText type="subtitle">Improvement Focus</ThemedText>
+        </Row>
+        <TextInput
+          style={[
+            styles.input,
+            styles.multilineInput,
+            { backgroundColor: colors.surface, borderColor: colors.border, color: colors.text },
+          ]}
+          placeholder="What should they focus on improving?"
+          placeholderTextColor={colors.muted}
+          value={improvements}
+          onChangeText={onImprovementsChange}
+          multiline
+          numberOfLines={3}
+          accessibilityLabel="Improvement focus"
+        />
+      </SurfaceCard>
     </>
   );
 });
@@ -207,6 +233,10 @@ const styles = StyleSheet.create({
     borderRadius: Radii.md,
     padding: Spacing.sm,
     ...Typography.body,
+  },
+  multilineInput: {
+    minHeight: 84,
+    textAlignVertical: 'top',
   },
   skillChip: {
     paddingHorizontal: Spacing.sm,

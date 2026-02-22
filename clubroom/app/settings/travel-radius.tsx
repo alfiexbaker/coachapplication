@@ -1,4 +1,4 @@
-import { ScrollView, StyleSheet, View } from 'react-native';
+import { ScrollView, StyleSheet } from 'react-native';
 import { router } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -35,8 +35,7 @@ export default function TravelRadiusScreen() {
         showsVerticalScrollIndicator={false}
       >
         <ThemedText style={[styles.description, { color: palette.muted }]}>
-          Set how far you're willing to travel for coaching sessions. Parents searching nearby will
-          see you in their results.
+          {`Set how far you're willing to travel for coaching sessions. Parents searching nearby will see you in their results.`}
         </ThemedText>
 
         <SurfaceCard style={styles.card}>

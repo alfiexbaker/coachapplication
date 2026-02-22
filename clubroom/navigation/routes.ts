@@ -70,6 +70,11 @@ export const Routes = {
     pathname: '/(modal)/edit-child-sen',
     params: { childId },
   }) as Href,
+  MODAL_EDIT_CHILD_PROFILE: '/(modal)/edit-child-profile' as Href,
+  modalEditChildProfile: (childId: string) => ({
+    pathname: '/(modal)/edit-child-profile',
+    params: { childId },
+  }) as Href,
   modalPostDetail: (postId: string) => ({
     pathname: '/(modal)/post-detail',
     params: { postId },
@@ -312,6 +317,8 @@ export const Routes = {
     params: { highlightBadge: badgeAwardId },
   }) as Href,
   DEVELOPMENT_MY_PROGRESS: '/development/my-progress' as Href,
+  DEVELOPMENT_MEDIA_GALLERY: '/development/media-gallery' as Href,
+  DEVELOPMENT_SESSION_HISTORY: '/development/session-history' as Href,
   developmentAthlete: (athleteId: string) => ({
     pathname: '/development/athlete/[athleteId]',
     params: { athleteId },
@@ -320,14 +327,31 @@ export const Routes = {
     pathname: '/development/athlete/[athleteId]/special-needs',
     params: { athleteId },
   }) as Href,
-  developmentSession: (sessionId: string) => ({
+  developmentSession: (
+    sessionId: string,
+    params?: { prefillFromQuickRate?: 'true' | 'false'; athleteId?: string },
+  ) => ({
     pathname: '/development/session/[sessionId]',
-    params: { sessionId },
+    params: { sessionId, ...(params ?? {}) },
   }) as Href,
-  developmentChildProgress: (childId: string) => ({
-    pathname: '/development/child-progress/[childId]',
-    params: { childId },
-  }) as Href,
+  developmentChildProgress: (
+    childId: string,
+    params?: { tab?: 'profile' | 'feedback' | 'badges' | 'radar' },
+  ) =>
+    ({
+      pathname: '/development/child-progress/[childId]',
+      params: { childId, ...(params ?? {}) },
+    }) as Href,
+  developmentSessionHistory: (params?: { athleteId?: string }) =>
+    ({
+      pathname: '/development/session-history',
+      params: params ?? {},
+    }) as Href,
+  developmentMediaGallery: (params?: { athleteId?: string }) =>
+    ({
+      pathname: '/development/media-gallery',
+      params: params ?? {},
+    }) as Href,
 
   // ─── Discover ──────────────────────────────────────────────────
   DISCOVER_SESSIONS: '/discover-sessions' as Href,
@@ -352,6 +376,11 @@ export const Routes = {
 
   // ─── Athlete ──────────────────────────────────────────────────
   ATHLETE_JOURNAL: '/athlete/journal' as Href,
+  athleteJournal: (params?: { athleteId?: string }) =>
+    ({
+      pathname: '/athlete/journal',
+      params: params ?? {},
+    }) as Href,
 
   // ─── Events ────────────────────────────────────────────────────
   EVENTS: '/events' as Href,

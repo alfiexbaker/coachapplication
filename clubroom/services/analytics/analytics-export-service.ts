@@ -241,7 +241,7 @@ const MOCK_COACH_ANALYTICS: Record<string, CoachAnalytics> = {
   },
   coach2: {
     coachId: 'coach2',
-    coachName: 'Sarah Mitchell',
+    coachName: 'Jess Okafor',
     period: 'MONTH',
     dateRange: getDateRangeForPeriod('MONTH'),
     totalRevenue: 1890,

@@ -6,12 +6,16 @@ import { ThemedText } from '@/components/themed-text';
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { Clickable } from '@/components/primitives/clickable';
 import { Row } from '@/components/primitives/row';
+import { Column } from '@/components/primitives/column';
+import { calculateDaysRemaining } from '@/constants/challenge-definitions';
 import { Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
 import type { ThemeColors } from '@/hooks/useTheme';
 import type { AthleteProgress } from '@/services/progress-service';
+import type { ProgressChallenge } from '@/types/progress-types';
 
 interface ProgressGoalsTabProps {
   progress: AthleteProgress;
+  challenge?: ProgressChallenge | null;
   showGoalForm: boolean;
   newGoalTitle: string;
   colors: ThemeColors;
@@ -21,8 +25,21 @@ interface ProgressGoalsTabProps {
   onCancelForm: () => void;
 }
 
+function mapCreatorLabel(createdBy: string): string {
+  switch (createdBy) {
+    case 'COACH':
+      return 'Set by coach';
+    case 'PARENT':
+      return 'Set by parent';
+    case 'ATHLETE':
+    default:
+      return 'Set by you';
+  }
+}
+
 export const ProgressGoalsTab = memo(function ProgressGoalsTab({
   progress,
+  challenge,
   showGoalForm,
   newGoalTitle,
   colors,
@@ -31,6 +48,11 @@ export const ProgressGoalsTab = memo(function ProgressGoalsTab({
   onCreateGoal,
   onCancelForm,
 }: ProgressGoalsTabProps) {
+  const challengeProgress = challenge
+    ? Math.max(0, Math.min(100, challenge.progress))
+    : 0;
+  const daysRemaining = challenge ? calculateDaysRemaining(challenge.expiresAt) : 0;
+
   return (
     <View style={styles.section}>
       <Row align="center" justify="space-between">
@@ -41,12 +63,60 @@ export const ProgressGoalsTab = memo(function ProgressGoalsTab({
           onPress={onToggleForm}
           style={[styles.addBtn, { backgroundColor: withAlpha(colors.tint, 0.09) }]}
         >
-          <Ionicons name="add" size={18} color={colors.tint} />
-          <ThemedText style={[Typography.smallSemiBold, { color: colors.tint }]}>
-            Add Goal
-          </ThemedText>
+          <Row align="center" gap="xxs">
+            <Ionicons name="add" size={18} color={colors.tint} />
+            <ThemedText style={[Typography.smallSemiBold, { color: colors.tint }]}>
+              Add Goal
+            </ThemedText>
+          </Row>
         </Clickable>
       </Row>
+
+      <SurfaceCard
+        style={[styles.challengeCard, { borderColor: withAlpha(colors.tint, 0.2) }]}
+      >
+        {challenge ? (
+          <Column gap="xxs">
+            <Row align="center" gap="xs">
+              <Ionicons name="flag-outline" size={16} color={colors.tint} />
+              <ThemedText style={styles.challengeTitle}>Next Challenge</ThemedText>
+            </Row>
+            <ThemedText style={[Typography.bodySmallSemiBold, { color: colors.foreground }]}>
+              {challenge.title}
+            </ThemedText>
+            <ThemedText style={[Typography.small, { color: colors.muted }]}>
+              {challenge.description}
+            </ThemedText>
+            <Row align="center" gap="sm">
+              <View
+                style={[styles.progressBar, { backgroundColor: withAlpha(colors.tint, 0.12) }]}
+              >
+                <View
+                  style={[
+                    styles.progressFill,
+                    { width: `${challengeProgress}%`, backgroundColor: colors.tint },
+                  ]}
+                />
+              </View>
+              <ThemedText style={[Typography.caption, { color: colors.muted, minWidth: 40, textAlign: 'right' }]}>
+                {challenge.currentValue}/{challenge.targetValue}
+              </ThemedText>
+            </Row>
+            <ThemedText style={[Typography.caption, { color: colors.muted }]}>
+              Reward: {challenge.rewardLabel} · {daysRemaining} day{daysRemaining === 1 ? '' : 's'} left
+            </ThemedText>
+          </Column>
+        ) : (
+          <Row align="center" gap="xs">
+            <Ionicons name="flag-outline" size={16} color={colors.tint} />
+            <ThemedText style={styles.challengeTitle}>
+              {progress.totalSessions === 0
+                ? 'Complete your first session to unlock challenges'
+                : 'No active challenge yet'}
+            </ThemedText>
+          </Row>
+        )}
+      </SurfaceCard>
 
       {showGoalForm && (
         <SurfaceCard style={styles.form}>
@@ -95,19 +165,22 @@ export const ProgressGoalsTab = memo(function ProgressGoalsTab({
                     ]}
                   />
                 </View>
-                <ThemedText
-                  style={[
-                    Typography.caption,
-                    { color: colors.muted, minWidth: 32, textAlign: 'right' },
-                  ]}
-                >
-                  {goal.progress}%
-                </ThemedText>
-              </Row>
-              {goal.description && (
-                <ThemedText style={[Typography.small, { color: colors.muted }]}>
-                  {goal.description}
-                </ThemedText>
+              <ThemedText
+                style={[
+                  Typography.caption,
+                  { color: colors.muted, minWidth: 32, textAlign: 'right' },
+                ]}
+              >
+                {goal.progress}%
+              </ThemedText>
+            </Row>
+            <ThemedText style={[Typography.caption, { color: colors.muted }]}>
+              {mapCreatorLabel(goal.createdBy)}
+            </ThemedText>
+            {goal.description && (
+              <ThemedText style={[Typography.small, { color: colors.muted }]}>
+                {goal.description}
+              </ThemedText>
               )}
             </SurfaceCard>
           ))}
@@ -153,12 +226,10 @@ export const ProgressGoalsTab = memo(function ProgressGoalsTab({
 const styles = StyleSheet.create({
   section: { gap: Spacing.md },
   addBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.xxs,
     paddingHorizontal: Spacing.sm,
     paddingVertical: Spacing.xxs,
     borderRadius: Radii.sm,
+    justifyContent: 'center',
   },
   form: { padding: Spacing.md, gap: Spacing.sm },
   input: { borderWidth: 1, borderRadius: Radii.md, padding: Spacing.sm, ...Typography.body },
@@ -168,6 +239,13 @@ const styles = StyleSheet.create({
     borderRadius: Radii.sm,
     borderWidth: 1,
     borderColor: 'transparent',
+  },
+  challengeCard: {
+    borderWidth: 1,
+    padding: Spacing.sm,
+  },
+  challengeTitle: {
+    ...Typography.bodySmall,
   },
   list: { gap: Spacing.sm },
   goalCard: { padding: Spacing.md, gap: Spacing.sm },

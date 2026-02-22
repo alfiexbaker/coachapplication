@@ -11,13 +11,78 @@
  */
 
 import { badgeService } from '../badge-service';
+import { apiClient } from '../api-client';
 import { createLogger } from '@/utils/logger';
 import type { Goal } from '@/constants/types';
+import type { Booking, Session } from '@/constants/app-types';
+import { STORAGE_KEYS } from '@/constants/storage-keys';
 import { progressSkillsService, type SkillLevel } from './progress-skills-service';
 import { progressFeedbackService, type SessionFeedback } from './progress-feedback-service';
 import { progressGoalsService } from './progress-goals-service';
 
 const logger = createLogger('ProgressReportService');
+
+function isCompletedBookingForAthlete(booking: Booking, athleteId: string): boolean {
+  if (booking.status !== 'COMPLETED') {
+    return false;
+  }
+
+  if (booking.athleteIds?.includes(athleteId)) {
+    return true;
+  }
+
+  return booking.athleteId === athleteId;
+}
+
+function signalKeyFromSession(session: Session): string {
+  return session.bookingId ? `booking:${session.bookingId}` : `session:${session.id}`;
+}
+
+function signalKeyFromFeedback(feedback: SessionFeedback): string {
+  return feedback.bookingId ? `booking:${feedback.bookingId}` : `session:${feedback.sessionId}`;
+}
+
+function signalKeyFromBooking(booking: Booking): string {
+  return `booking:${booking.id}`;
+}
+
+function toTimestamp(value: string | undefined): number | null {
+  if (!value) {
+    return null;
+  }
+  const timestamp = new Date(value).getTime();
+  return Number.isNaN(timestamp) ? null : timestamp;
+}
+
+function buildActivitySignals(
+  sessions: Session[],
+  feedback: SessionFeedback[],
+  bookings: Booking[],
+): Map<string, number> {
+  const signals = new Map<string, number>();
+
+  const upsertSignal = (key: string, timestamp: number | null) => {
+    const normalizedTimestamp = timestamp ?? 0;
+    const existing = signals.get(key);
+    if (existing === undefined || normalizedTimestamp > existing) {
+      signals.set(key, normalizedTimestamp);
+    }
+  };
+
+  sessions.forEach((session) => {
+    upsertSignal(signalKeyFromSession(session), toTimestamp(session.completedAt));
+  });
+
+  feedback.forEach((entry) => {
+    upsertSignal(signalKeyFromFeedback(entry), toTimestamp(entry.createdAt));
+  });
+
+  bookings.forEach((booking) => {
+    upsertSignal(signalKeyFromBooking(booking), toTimestamp(booking.scheduledAt ?? booking.createdAt));
+  });
+
+  return signals;
+}
 
 // ============================================================================
 // TYPES
@@ -65,32 +130,68 @@ async function getAthleteProgress(
   viewerRole: 'coach' | 'parent' | 'athlete' = 'parent',
 ): Promise<AthleteProgress> {
   // Fetch all data in parallel
-  const [skillLevels, feedback, goals, badgeProgress, badges] = await Promise.all([
+  const [skillLevels, feedback, goals, badgeProgress, badges, allSessions, allBookings] = await Promise.all([
     progressSkillsService.getAthleteSkillLevels(athleteId),
-    progressFeedbackService.getFeedbackForAthlete(athleteId, viewerRole, 10),
+    progressFeedbackService.getFeedbackForAthlete(athleteId, viewerRole),
     progressGoalsService.getGoalsForAthlete(athleteId),
     badgeService.getProgressToNextLevel(athleteId),
     badgeService.listAwardsForAthlete(athleteId),
+    apiClient.get<Session[]>(STORAGE_KEYS.COACH_SESSIONS, []),
+    apiClient.get<Booking[]>(STORAGE_KEYS.BOOKINGS, []),
   ]);
 
   // Convert skills to array
   const skills = skillLevels ? Object.values(skillLevels.skills) : [];
+  const sessionsForAthlete = allSessions.filter((session) => session.athleteId === athleteId);
+  const completedBookings = allBookings.filter((booking) =>
+    isCompletedBookingForAthlete(booking, athleteId),
+  );
 
-  // Calculate metrics from feedback
-  const totalSessions = feedback.length;
+  // Deduplicate feedback by session+athlete and keep newest record.
+  const feedbackBySession = new Map<string, SessionFeedback>();
+  [...feedback]
+    .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+    .forEach((entry) => {
+      const key = `${entry.athleteId}:${entry.sessionId}`;
+      if (!feedbackBySession.has(key)) {
+        feedbackBySession.set(key, entry);
+      }
+    });
+  const uniqueFeedback = Array.from(feedbackBySession.values()).sort(
+    (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
+  );
+
+  const activitySignals = buildActivitySignals(sessionsForAthlete, uniqueFeedback, completedBookings);
+
+  // Calculate metrics from sessions + feedback + completed bookings.
+  const totalSessions = activitySignals.size;
   const now = new Date();
-  const monthAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
-  const sessionsThisMonth = feedback.filter((f) => new Date(f.createdAt) >= monthAgo).length;
+  const monthAgoTimestamp = now.getTime() - 30 * 24 * 60 * 60 * 1000;
+  const sessionsThisMonth = Array.from(activitySignals.values()).filter(
+    (timestamp) => timestamp >= monthAgoTimestamp,
+  ).length;
 
   const avgPerformance =
-    feedback.length > 0
-      ? feedback.reduce((sum, f) => sum + f.overallPerformance, 0) / feedback.length
-      : 0;
+    uniqueFeedback.length > 0
+      ? uniqueFeedback.reduce((sum, f) => sum + f.overallPerformance, 0) / uniqueFeedback.length
+      : sessionsForAthlete.length > 0
+        ? sessionsForAthlete.reduce((sum, session) => sum + session.performanceRating, 0) /
+          sessionsForAthlete.length
+        : 0;
 
   const avgEffort =
-    feedback.length > 0
-      ? feedback.reduce((sum, f) => sum + f.effortRating, 0) / feedback.length
+    uniqueFeedback.length > 0
+      ? uniqueFeedback.reduce((sum, f) => sum + f.effortRating, 0) / uniqueFeedback.length
       : 0;
+
+  const attendanceRecords = sessionsForAthlete.filter((session) => Boolean(session.attendance));
+  const attendedCount = attendanceRecords.filter((session) => session.attendance === 'ATTENDED').length;
+  const attendanceRate =
+    attendanceRecords.length > 0
+      ? Math.round((attendedCount / attendanceRecords.length) * 100)
+      : totalSessions > 0
+        ? 100
+        : 0;
 
   // Calculate overall trend
   const improvingSkills = skills.filter((s) => s.trend === 'improving').length;
@@ -114,13 +215,13 @@ async function getAthleteProgress(
     sessionsThisMonth,
     averagePerformance: Math.round(avgPerformance * 10) / 10,
     averageEffort: Math.round(avgEffort * 10) / 10,
-    attendanceRate: 100, // Would calculate from actual session data
+    attendanceRate,
     skills,
     overallTrend,
     improvementRate,
     activeGoals: goals.active,
     completedGoals: goals.completed,
-    recentFeedback: feedback.slice(0, 5),
+    recentFeedback: uniqueFeedback.slice(0, 5),
     totalBadges: visibleBadges.length,
     recentBadges: visibleBadges.slice(0, 5).map((b) => ({
       id: b.id,

@@ -27,11 +27,15 @@ import { apiClient } from '@/services/api-client';
 import { createLogger } from '@/utils/logger';
 
 const logger = createLogger('RelationalDemoSeedService');
+const ENABLE_RELATIONAL_DEMO_SEED =
+  process.env.EXPO_PUBLIC_ENABLE_RELATIONAL_DEMO_SEED === 'true' ||
+  process.env.EXPO_PUBLIC_ENABLE_RELATIONAL_DEMO_SEED === '1' ||
+  process.env.NODE_ENV === 'test';
 
 const CLUB_MEMBERS_KEY = `${STORAGE_KEYS.CLUB_MEMBERS}_${CLUB_LIONS_ID}`;
 const RATE_COACH_REVIEWS_KEY = 'coach_reviews';
 const COACH_PUBLIC_REVIEWS_KEY = 'clubroom.coach_reviews';
-const COACH_DIRECTORY_KEY = 'clubroom.coaches';
+const COACH_DIRECTORY_KEY = STORAGE_KEYS.COACH_DIRECTORY;
 const COACH_BOOKINGS_KEY = 'coach_bookings';
 
 interface SeedHealthSnapshot {
@@ -246,6 +250,10 @@ async function seedRelationalDemoDataInternal(): Promise<void> {
 export async function ensureRelationalDemoSeeded(
   options: EnsureRelationalSeedOptions = {},
 ): Promise<void> {
+  if (!options.force && !ENABLE_RELATIONAL_DEMO_SEED) {
+    return;
+  }
+
   if (seedInFlight) {
     return seedInFlight;
   }

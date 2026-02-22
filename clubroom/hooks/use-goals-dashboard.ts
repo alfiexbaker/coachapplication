@@ -13,11 +13,11 @@ const logger = createLogger('GoalsDashboardScreen');
 export type TabFilter = 'active' | 'completed' | 'all';
 
 export const GOAL_CATEGORIES: GoalCategory[] = [
-  'SPEED',
-  'TECHNIQUE',
-  'FITNESS',
-  'TACTICAL',
-  'MENTAL',
+  'BALL_SKILLS',
+  'ATTACKING',
+  'DEFENDING',
+  'GAME_SENSE',
+  'CHARACTER',
   'OTHER',
 ];
 

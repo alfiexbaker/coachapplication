@@ -61,6 +61,13 @@ export default ({ config }: ConfigContext): ExpoConfig => {
           },
         },
       ],
+      [
+        'expo-camera',
+        {
+          cameraPermission: 'Allow Clubroom to capture training photos and videos',
+          microphonePermission: 'Allow Clubroom to record training videos with audio',
+        },
+      ],
     ],
 
     experiments: {

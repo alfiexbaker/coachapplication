@@ -74,7 +74,7 @@ export default function CreateGoalScreen() {
     if (currentUser.role === 'COACH') return 'COACH';
     if (isParent) return 'PARENT';
     return 'ATHLETE';
-  }, [currentUser]);
+  }, [currentUser, isParent]);
 
   // Handle form submission
   const handleSubmit = useCallback(

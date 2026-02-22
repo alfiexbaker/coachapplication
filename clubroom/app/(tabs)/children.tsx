@@ -1,7 +1,7 @@
 /**
  * Children Hub Screen — Parent view of all child profiles.
  *
- * Composes: StatsRow, RecentBadges, ChildCards, HubSections, QuickActions.
+ * Composes: StatsRow, RecentBadges, ChildCards.
  * Data loading delegated to useChildrenHub hook.
  */
 
@@ -21,8 +21,6 @@ import { useChildrenHub } from '@/hooks/use-children-hub';
 import { ChildrenStatsRow } from '@/components/family/children-stats-row';
 import { ChildrenRecentBadges } from '@/components/family/children-recent-badges';
 import { ChildrenChildCard } from '@/components/family/children-child-card';
-import { ChildrenHubSections } from '@/components/family/children-hub-sections';
-import { ChildrenQuickActions } from '@/components/family/children-quick-actions';
 
 export default function ChildrenHubScreen() {
   const {
@@ -36,12 +34,9 @@ export default function ChildrenHubScreen() {
     onRefresh,
     retry,
     totalSessions,
-    totalBadges,
     totalUnseenBadges,
     activeChildId,
     handleViewBadge,
-    handleSetActiveChild,
-    handleRemoveChild,
   } = useChildrenHub();
 
   const handleAddChild = useCallback(() => {
@@ -55,10 +50,6 @@ export default function ChildrenHubScreen() {
     },
     [handleViewBadge],
   );
-
-  // Navigate to first child's progress, or stay on this screen if multiple
-  const progressRoute =
-    children.length === 1 ? `/development/child-progress/${children[0].id}` : '/(tabs)/children';
 
   if (status === 'loading') {
     return (
@@ -167,21 +158,10 @@ export default function ChildrenHubScreen() {
               }
               index={index}
               isActive={activeChildId === child.id}
-              onSetActive={handleSetActiveChild}
-              onRemove={handleRemoveChild}
             />
           ))}
         </Column>
       </Column>
-
-      <ChildrenHubSections
-        totalSessions={totalSessions}
-        totalBadges={totalBadges}
-        totalUnseenBadges={totalUnseenBadges}
-        progressRoute={progressRoute}
-      />
-
-      <ChildrenQuickActions />
     </PageContainer>
   );
 }

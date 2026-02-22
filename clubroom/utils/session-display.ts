@@ -26,5 +26,15 @@ export function getSessionRegistrationUserName(
 }
 
 export function getSessionAthleteName(session: Session): string {
-  return session.athleteId || 'Athlete';
+  const sessionWithName = session as Session & { athleteName?: string };
+  const explicitName = sessionWithName.athleteName?.trim();
+  if (explicitName) {
+    return explicitName;
+  }
+
+  if (!session.athleteId) {
+    return 'Athlete';
+  }
+
+  return prettifyUserId(session.athleteId);
 }

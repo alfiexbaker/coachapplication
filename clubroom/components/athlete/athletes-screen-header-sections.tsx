@@ -6,7 +6,7 @@ import { Clickable } from '@/components/primitives/clickable';
 import { ThemedText } from '@/components/themed-text';
 import { Row } from '@/components/primitives/row';
 import { AthleteCard } from '@/components/roster/athlete-card';
-import { Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
+import { Spacing, Radii, Typography } from '@/constants/theme';
 import type { ThemeColors } from '@/hooks/useTheme';
 import type { RosterEntry } from '@/constants/types';
 import type { Booking } from '@/constants/app-types';

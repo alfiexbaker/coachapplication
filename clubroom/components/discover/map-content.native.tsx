@@ -215,7 +215,7 @@ const CoachSheetItem = memo(function CoachSheetItem({
   onPress: () => void;
   onBook: () => void;
 }) {
-  const { colors: palette, scheme } = useTheme();
+  const { colors: palette } = useTheme();
   const price = coach.sessionRate ?? coach.priceRange.minUsd;
   const focuses = (coach.footballFocuses ?? []).slice(0, 3);
 

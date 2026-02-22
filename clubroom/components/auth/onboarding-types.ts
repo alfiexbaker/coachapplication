@@ -6,6 +6,7 @@
 
 import { Ionicons } from '@expo/vector-icons';
 import type { AccountType, SkillLevel } from '@/services/auth-service';
+import type { PositionRole } from '@/types/progress-types';
 
 // ============================================================================
 // TYPES
@@ -45,7 +46,7 @@ export interface OnboardingState {
 
   // Athlete specific
   skillLevel: SkillLevel | null;
-  position: string;
+  position: PositionRole | null;
   sport: string;
   goals: string[];
   hasChildren: boolean;
@@ -160,7 +161,7 @@ export const INITIAL_STATE: OnboardingState = {
   postcode: '',
   country: 'UK',
   skillLevel: null,
-  position: '',
+  position: null,
   sport: '',
   goals: [],
   hasChildren: false,

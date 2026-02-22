@@ -1,30 +1,55 @@
 import { View, StyleSheet } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { Clickable } from '@/components/primitives/clickable';
 import { Row } from '@/components/primitives/row';
 import { ThemedText } from '@/components/themed-text';
 import { Radii, Spacing, withAlpha } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
 
-interface SessionTypeOption {
+export interface SessionTypeOption {
   id: string;
   title: string;
-  price: string;
+  priceText: string;
   description: string;
+  detailText?: string;
 }
 
 export function SessionTypeSelector({
   selected,
   onSelect,
+  options,
+  loading,
 }: {
-  selected?: string;
+  selected?: string | null;
   onSelect: (id: string) => void;
+  options: SessionTypeOption[];
+  loading?: boolean;
 }) {
   const { colors: palette } = useTheme();
-  const options: SessionTypeOption[] = [
-    { id: '1-on-1', title: '1-on-1', price: '£90', description: '60 mins, personalised focus' },
-    { id: 'small-group', title: 'Small Group', price: '£60 pp', description: 'Max 4 players' },
-    { id: 'team', title: 'Team Training', price: '£150', description: 'Up to 15 players' },
-  ];
+
+  if (loading) {
+    return (
+      <View style={styles.list}>
+        <View style={[styles.emptyCard, { borderColor: palette.border, backgroundColor: palette.surface }]}>
+          <Ionicons name="time-outline" size={18} color={palette.muted} />
+          <ThemedText style={{ color: palette.muted }}>Loading coach offerings...</ThemedText>
+        </View>
+      </View>
+    );
+  }
+
+  if (options.length === 0) {
+    return (
+      <View style={styles.list}>
+        <View style={[styles.emptyCard, { borderColor: palette.border, backgroundColor: palette.surface }]}>
+          <Ionicons name="alert-circle-outline" size={18} color={palette.muted} />
+          <ThemedText style={{ color: palette.muted }}>
+            This coach has no bookable session types set up yet.
+          </ThemedText>
+        </View>
+      </View>
+    );
+  }
 
   return (
     <View style={styles.list}>
@@ -44,9 +69,12 @@ export function SessionTypeSelector({
           >
             <Row justify="between" align="center">
               <ThemedText type="defaultSemiBold">{opt.title}</ThemedText>
-              <ThemedText style={{ color: palette.muted }}>{opt.price}</ThemedText>
+              <ThemedText style={{ color: palette.muted }}>{opt.priceText}</ThemedText>
             </Row>
             <ThemedText style={{ color: palette.muted }}>{opt.description}</ThemedText>
+            {opt.detailText ? (
+              <ThemedText style={{ color: palette.muted }}>{opt.detailText}</ThemedText>
+            ) : null}
           </Clickable>
         );
       })}
@@ -63,5 +91,13 @@ const styles = StyleSheet.create({
     borderRadius: Radii.lg,
     borderWidth: 1.5,
     gap: Spacing.xs / 2,
+  },
+  emptyCard: {
+    padding: Spacing.md,
+    borderRadius: Radii.lg,
+    borderWidth: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.xs,
   },
 });

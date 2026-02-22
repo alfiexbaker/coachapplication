@@ -5,7 +5,6 @@
  * Parent-provided data is labeled "From Parent". Coach observations are editable.
  */
 
-import { useCallback } from 'react';
 import { View, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useLocalSearchParams } from 'expo-router';
@@ -45,10 +44,7 @@ export default function SpecialNeedsScreen() {
 
   const obsHook = useCoachObservations(athleteId ?? '');
 
-  const handleEditObs = useCallback(
-    (obs: Parameters<typeof obsHook.showModal>[0]) => obsHook.showModal(obs),
-    [obsHook.showModal],
-  );
+  const handleEditObs = (obs: Parameters<typeof obsHook.showModal>[0]) => obsHook.showModal(obs);
 
   if (!athlete) return null;
 

@@ -6,9 +6,10 @@
 import assert from 'node:assert/strict';
 import test, { describe } from 'node:test';
 
-import { reconcileChildren, getInitials } from '../../hooks/use-child-context';
+import { attachMembershipData, reconcileChildren, getInitials } from '../../hooks/use-child-context';
 import type { ChildReference } from '../../constants/user-types';
 import type { ChildProfile } from '../../services/child-service';
+import type { ClubSquad, SquadMember } from '../../constants/types';
 import { CHILD_COLORS } from '../../types/child-context';
 
 // ---------------------------------------------------------------------------
@@ -43,6 +44,28 @@ function makeProfile(overrides: Partial<ChildProfile> & { id: string; firstName:
     emergencyTreatmentConsent: true,
     createdAt: '2024-01-01T00:00:00Z',
     updatedAt: '2024-01-01T00:00:00Z',
+    ...overrides,
+  };
+}
+
+function makeSquad(overrides: Partial<ClubSquad> & { id: string; clubId: string }): ClubSquad {
+  return {
+    name: 'Test Squad',
+    level: 'U14',
+    memberCount: 1,
+    primaryCoach: 'coach-1',
+    meetLocation: 'Pitch 1',
+    ...overrides,
+  };
+}
+
+function makeSquadMember(
+  overrides: Partial<SquadMember> & { id: string; squadId: string; athleteId: string },
+): SquadMember {
+  return {
+    parentId: 'parent-1',
+    status: 'ACTIVE',
+    joinedAt: '2024-01-01',
     ...overrides,
   };
 }
@@ -87,6 +110,17 @@ describe('getInitials', () => {
 
 describe('reconcileChildren', () => {
   describe('exact full-name matching', () => {
+    test('matches ref to profile by ID when IDs align', () => {
+      const refs = [makeRef({ childId: 'user1', childName: 'Tom Henderson' })];
+      const profiles = [makeProfile({ id: 'user1', firstName: 'Tom', lastName: 'Henderson' })];
+
+      const result = reconcileChildren(refs, profiles);
+
+      assert.equal(result.length, 1);
+      assert.equal(result[0].id, 'user1');
+      assert.equal(result[0].profileId, 'user1');
+    });
+
     test('matches ref to profile by full name (case-insensitive)', () => {
       const refs = [makeRef({ childId: 'user1', childName: 'Tom Henderson' })];
       const profiles = [makeProfile({ id: 'child-2', firstName: 'Tom', lastName: 'Henderson' })];
@@ -263,11 +297,11 @@ describe('reconcileChildren', () => {
   // ---------------------------------------------------------------------------
 
   describe('edge cases', () => {
-    test('returns empty array for empty refs', () => {
+    test('returns empty array for empty refs and empty profiles', () => {
       assert.deepEqual(reconcileChildren([], []), []);
     });
 
-    test('ignores unmatched profiles', () => {
+    test('includes unmatched profiles so profile-only children still appear', () => {
       const refs = [makeRef({ childId: 'u1', childName: 'Tom Henderson' })];
       const profiles = [
         makeProfile({ id: 'c1', firstName: 'Tom', lastName: 'Henderson' }),
@@ -276,8 +310,21 @@ describe('reconcileChildren', () => {
 
       const result = reconcileChildren(refs, profiles);
 
-      // Only one ref → only one ChildInfo
+      assert.equal(result.length, 2);
+      assert.equal(result[0].id, 'u1');
+      assert.equal(result[1].id, 'c99');
+      assert.equal(result[1].referenceId, 'c99');
+      assert.equal(result[1].profileId, 'c99');
+    });
+
+    test('builds children from profiles when refs are empty', () => {
+      const profiles = [makeProfile({ id: 'c1', firstName: 'Maya', lastName: 'Patel' })];
+      const result = reconcileChildren([], profiles);
+
       assert.equal(result.length, 1);
+      assert.equal(result[0].id, 'c1');
+      assert.equal(result[0].name, 'Maya');
+      assert.equal(result[0].fullName, 'Maya Patel');
     });
 
     test('multiple refs each match distinct profiles', () => {
@@ -295,6 +342,34 @@ describe('reconcileChildren', () => {
       assert.equal(result.length, 2);
       assert.equal(result[0].profileId, 'c1');
       assert.equal(result[1].profileId, 'c2');
+    });
+  });
+
+  describe('membership linking', () => {
+    test('attaches squadIds and clubIds to matched children', () => {
+      const refs = [makeRef({ childId: 'user1', childName: 'Tom Henderson' })];
+      const profiles = [makeProfile({ id: 'user1', firstName: 'Tom', lastName: 'Henderson' })];
+      const squads = [makeSquad({ id: 'squad-1', clubId: 'club-1' })];
+      const squadMembers = [makeSquadMember({ id: 'member-1', squadId: 'squad-1', athleteId: 'user1' })];
+
+      const reconciled = reconcileChildren(refs, profiles);
+      const result = attachMembershipData(reconciled, squads, squadMembers);
+
+      assert.deepEqual(result[0].squadIds, ['squad-1']);
+      assert.deepEqual(result[0].clubIds, ['club-1']);
+    });
+
+    test('leaves children unchanged when there is no membership match', () => {
+      const refs = [makeRef({ childId: 'user1', childName: 'Tom Henderson' })];
+      const profiles = [makeProfile({ id: 'user1', firstName: 'Tom', lastName: 'Henderson' })];
+      const squads = [makeSquad({ id: 'squad-1', clubId: 'club-1' })];
+      const squadMembers = [makeSquadMember({ id: 'member-1', squadId: 'squad-1', athleteId: 'other-user' })];
+
+      const reconciled = reconcileChildren(refs, profiles);
+      const result = attachMembershipData(reconciled, squads, squadMembers);
+
+      assert.deepEqual(result[0].squadIds, []);
+      assert.deepEqual(result[0].clubIds, []);
     });
   });
 });

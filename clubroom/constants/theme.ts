@@ -185,24 +185,24 @@ export const Shadows = {
   light: {
     card: {
       shadowColor: '#111827',
-      shadowOpacity: 0.06,
-      shadowRadius: 12,
+      shadowOpacity: 0.1,
+      shadowRadius: 16,
       shadowOffset: { width: 0, height: 4 },
-      elevation: 1,
+      elevation: 3,
     },
     cardHover: {
       shadowColor: '#111827',
-      shadowOpacity: 0.08,
-      shadowRadius: 14,
+      shadowOpacity: 0.14,
+      shadowRadius: 20,
       shadowOffset: { width: 0, height: 6 },
-      elevation: 2,
+      elevation: 5,
     },
     subtle: {
       shadowColor: '#111827',
-      shadowOpacity: 0.04,
-      shadowRadius: 6,
+      shadowOpacity: 0.06,
+      shadowRadius: 8,
       shadowOffset: { width: 0, height: 2 },
-      elevation: 1,
+      elevation: 2,
     },
   },
   dark: {

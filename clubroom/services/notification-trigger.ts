@@ -303,6 +303,28 @@ export const notificationTriggers = {
     });
   },
 
+  selfAssessmentPrompt(athleteName: string, recipientId?: string) {
+    return triggerNotification({
+      type: 'self_assessment_prompt',
+      recipientRole: 'athlete',
+      recipientId,
+      title: 'Quick Session Check-In',
+      body: `How did training feel today, ${athleteName}?`,
+      deepLink: '/development/my-progress',
+    });
+  },
+
+  weeklyProgressRecap(athleteName: string, body: string, recipientId?: string) {
+    return triggerNotification({
+      type: 'weekly_progress_recap',
+      recipientRole: 'parent',
+      recipientId,
+      title: `${athleteName}'s Weekly Progress`,
+      body,
+      deepLink: '/development/my-progress',
+    });
+  },
+
   // --- Badge Service ---
   badgeEarned(athleteName: string, badgeName: string, recipientId?: string) {
     return triggerNotification({

@@ -6,13 +6,18 @@ import { ensureRelationalDemoSeeded } from '@/services/relational-demo-seed-serv
 import { createLogger } from '@/utils/logger';
 
 const logger = createLogger('CoachSessionSeedService');
+const ENABLE_COACH_SESSION_DEMO_SEED =
+  process.env.EXPO_PUBLIC_ENABLE_COACH_SESSION_DEMO_SEED === 'true' ||
+  process.env.EXPO_PUBLIC_ENABLE_COACH_SESSION_DEMO_SEED === '1' ||
+  process.env.NODE_ENV === 'test';
 
 export async function ensureCoachSessionsSeeded(): Promise<Session[]> {
   try {
-    await ensureRelationalDemoSeeded();
-
     const existing = await apiClient.get<Session[]>(STORAGE_KEYS.COACH_SESSIONS, []);
     if (existing.length > 0) return existing;
+    if (!ENABLE_COACH_SESSION_DEMO_SEED) return existing;
+
+    await ensureRelationalDemoSeeded();
 
     const seeds = buildCoachSessionSeeds();
     await apiClient.set(STORAGE_KEYS.COACH_SESSIONS, seeds);

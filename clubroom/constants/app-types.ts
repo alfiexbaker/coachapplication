@@ -21,6 +21,7 @@ export interface CoachProfile {
   bio: string;
   qualifications: string[];
   specialties: string[]; // e.g., ['Striker Training', 'Goalkeeping']
+  dbsChecked?: boolean;
   yearsExperience: number;
   sessionRate: number; // £ GBP per session
   availability: AvailabilitySlot[];
@@ -85,6 +86,8 @@ export interface Booking {
   start?: string;
   price?: number;
   serviceType?: string;
+  sessionTemplateId?: string;
+  sessionTemplateName?: string;
   objectives?: string[];
   createdAt?: string;
   cancellationReason?: string;

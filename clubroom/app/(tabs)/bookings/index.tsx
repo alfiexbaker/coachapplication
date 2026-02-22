@@ -1,7 +1,8 @@
-import { memo } from 'react';
-import { StyleSheet } from 'react-native';
+import { memo, useCallback, useState } from 'react';
+import { Platform, StyleSheet, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import * as Haptics from 'expo-haptics';
 
 import { Clickable } from '@/components/primitives/clickable';
 import { Row } from '@/components/primitives/row';
@@ -11,13 +12,17 @@ import { LoadingState, ErrorState, EmptyState } from '@/components/ui/screen-sta
 import { BookingsList } from '@/components/bookings/BookingsList';
 import { PendingInvitesSection } from '@/components/bookings/pending-invites-section';
 import { SessionDetailModal } from '@/components/sessions/session-detail-modal';
+import { DiscoverFeed } from '@/components/bookings/discover-feed';
 import { NotificationBell } from '@/components/ui/notification-bell';
 import { Radii, Spacing, Typography, withAlpha } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
 import { useBookings } from '@/hooks/use-bookings';
 
+type BookingsTab = 'sessions' | 'discover';
+
 export default function BookingsScreen() {
   const { colors: palette } = useTheme();
+  const [activeTab, setActiveTab] = useState<BookingsTab>('sessions');
   const {
     displayItems,
     pendingInvitesList,
@@ -41,7 +46,9 @@ export default function BookingsScreen() {
     handleAcceptInvite,
     handleDeclineInvite,
   } = useBookings();
+
   const headerRightAction = userRole === 'COACH' ? <NotificationBell size={20} /> : undefined;
+  const isNonCoach = userRole !== 'COACH';
 
   // ─── Loading ───────────────────────────────────────────────────
   if (loading) {
@@ -51,10 +58,13 @@ export default function BookingsScreen() {
         edges={['top', 'bottom']}
       >
         <PageHeader
-          title="Bookings"
+          title="Sessions"
           subtitle={userRole === 'COACH' ? 'Manage your sessions' : 'Your upcoming sessions'}
           rightAction={headerRightAction}
         />
+        {isNonCoach && (
+          <SegmentControl activeTab={activeTab} onTabChange={setActiveTab} />
+        )}
         <LoadingState variant="list" />
       </SafeAreaView>
     );
@@ -68,16 +78,37 @@ export default function BookingsScreen() {
         edges={['top', 'bottom']}
       >
         <PageHeader
-          title="Bookings"
+          title="Sessions"
           subtitle={userRole === 'COACH' ? 'Manage your sessions' : 'Your upcoming sessions'}
           rightAction={headerRightAction}
         />
+        {isNonCoach && (
+          <SegmentControl activeTab={activeTab} onTabChange={setActiveTab} />
+        )}
         <ErrorState message={error} onRetry={retry} />
       </SafeAreaView>
     );
   }
 
-  // ─── Empty ─────────────────────────────────────────────────────
+  // ─── Discover tab (non-coach only) ────────────────────────────
+  if (isNonCoach && activeTab === 'discover') {
+    return (
+      <SafeAreaView
+        style={[styles.container, { backgroundColor: palette.background }]}
+        edges={['top', 'bottom']}
+      >
+        <PageHeader
+          title="Sessions"
+          subtitle="Find your next session"
+          rightAction={headerRightAction}
+        />
+        <SegmentControl activeTab={activeTab} onTabChange={setActiveTab} />
+        <DiscoverFeed />
+      </SafeAreaView>
+    );
+  }
+
+  // ─── Empty (My Sessions tab) ──────────────────────────────────
   if (displayItems.length === 0 && pendingInvitesList.length === 0) {
     return (
       <SafeAreaView
@@ -85,10 +116,13 @@ export default function BookingsScreen() {
         edges={['top', 'bottom']}
       >
         <PageHeader
-          title="Bookings"
+          title="Sessions"
           subtitle={userRole === 'COACH' ? 'Manage your sessions' : 'Your upcoming sessions'}
           rightAction={headerRightAction}
         />
+        {isNonCoach && (
+          <SegmentControl activeTab={activeTab} onTabChange={setActiveTab} />
+        )}
         {userRole === 'COACH' && (
           <CreatePills onDirectPress={handleCreateDirectPress} onGroupPress={handleCreateGroupPress} />
         )}
@@ -107,23 +141,27 @@ export default function BookingsScreen() {
     );
   }
 
-  // ─── Success ───────────────────────────────────────────────────
+  // ─── Success (My Sessions tab) ────────────────────────────────
   return (
     <SafeAreaView
       style={[styles.container, { backgroundColor: palette.background }]}
       edges={['top', 'bottom']}
     >
       <PageHeader
-        title="Bookings"
+        title="Sessions"
         subtitle={userRole === 'COACH' ? 'Manage your sessions' : 'Your upcoming sessions'}
         rightAction={headerRightAction}
       />
+
+      {isNonCoach && (
+        <SegmentControl activeTab={activeTab} onTabChange={setActiveTab} />
+      )}
 
       {userRole === 'COACH' && (
         <CreatePills onDirectPress={handleCreateDirectPress} onGroupPress={handleCreateGroupPress} />
       )}
 
-      {userRole !== 'COACH' && (
+      {isNonCoach && (
         <PendingInvitesSection
           invites={pendingInvitesList}
           onAccept={handleAcceptInvite}
@@ -152,6 +190,78 @@ export default function BookingsScreen() {
     </SafeAreaView>
   );
 }
+
+// ─── Segment Control ──────────────────────────────────────────────
+
+const SegmentControl = memo(function SegmentControl({
+  activeTab,
+  onTabChange,
+}: {
+  activeTab: BookingsTab;
+  onTabChange: (tab: BookingsTab) => void;
+}) {
+  const { colors: palette } = useTheme();
+
+  const handlePress = useCallback(
+    (tab: BookingsTab) => {
+      if (tab === activeTab) return;
+      if (Platform.OS !== 'web') {
+        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+      }
+      onTabChange(tab);
+    },
+    [activeTab, onTabChange],
+  );
+
+  return (
+    <Row gap="xs" style={styles.segmentRow}>
+      <Clickable
+        onPress={() => handlePress('sessions')}
+        accessibilityRole="tab"
+        accessibilityLabel="My Sessions"
+        accessibilityState={{ selected: activeTab === 'sessions' }}
+        style={[
+          styles.segment,
+          activeTab === 'sessions'
+            ? { backgroundColor: palette.tint }
+            : { backgroundColor: withAlpha(palette.tint, 0.08) },
+        ]}
+      >
+        <ThemedText
+          style={[
+            styles.segmentText,
+            { color: activeTab === 'sessions' ? palette.onPrimary : palette.tint },
+          ]}
+        >
+          My Sessions
+        </ThemedText>
+      </Clickable>
+      <Clickable
+        onPress={() => handlePress('discover')}
+        accessibilityRole="tab"
+        accessibilityLabel="Discover"
+        accessibilityState={{ selected: activeTab === 'discover' }}
+        style={[
+          styles.segment,
+          activeTab === 'discover'
+            ? { backgroundColor: palette.tint }
+            : { backgroundColor: withAlpha(palette.tint, 0.08) },
+        ]}
+      >
+        <ThemedText
+          style={[
+            styles.segmentText,
+            { color: activeTab === 'discover' ? palette.onPrimary : palette.tint },
+          ]}
+        >
+          Discover
+        </ThemedText>
+      </Clickable>
+    </Row>
+  );
+});
+
+// ─── Create Pills (Coach only) ───────────────────────────────────
 
 const CreatePills = memo(function CreatePills({
   onDirectPress,
@@ -190,6 +300,23 @@ const CreatePills = memo(function CreatePills({
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+  },
+  segmentRow: {
+    paddingHorizontal: Spacing.md,
+    paddingBottom: Spacing.xs,
+  },
+  segment: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    minHeight: 36,
+    paddingVertical: Spacing.xs,
+    paddingHorizontal: Spacing.sm,
+    borderRadius: Radii.pill,
+  },
+  segmentText: {
+    ...Typography.bodySmall,
+    fontWeight: '600',
   },
   pillRow: {
     paddingHorizontal: Spacing.md,

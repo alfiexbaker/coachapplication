@@ -133,7 +133,7 @@ export function CardForm({ onSave, loading = false }: CardFormProps) {
         </View>
       </Row>
 
-      <FormInput label="Cardholder name" placeholder="Alex Smith" {...form.getFieldProps('name')} />
+      <FormInput label="Cardholder name" placeholder="Name on card" {...form.getFieldProps('name')} />
 
       <FormInput
         label="Billing address"

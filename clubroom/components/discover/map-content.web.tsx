@@ -5,7 +5,7 @@
  * with a subtle app-download CTA. No fake maps.
  */
 
-import { memo, useCallback } from 'react';
+import { memo } from 'react';
 import { FlatList, StyleSheet, TextInput, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';

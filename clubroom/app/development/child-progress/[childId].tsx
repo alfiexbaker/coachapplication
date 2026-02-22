@@ -1,8 +1,8 @@
 /**
  * Child Progress Screen
  *
- * Parent view of child's development: overview dashboard, skills grid,
- * radar chart, feedback list, badges — with tabbed navigation.
+ * Parent view of child's development profile, radar chart,
+ * feedback list, and badges — with tabbed navigation.
  *
  * For parents with 2+ children, shows a child switcher at the top
  * that defaults to the active child.
@@ -18,7 +18,7 @@ import { Clickable } from '@/components/primitives/clickable';
 import { ThemedText } from '@/components/themed-text';
 import { Row } from '@/components/primitives/row';
 import { PageHeader } from '@/components/primitives/page-header';
-import { ProgressDashboard, SkillLevelGrid, FeedbackList } from '@/components/progress';
+import { FeedbackList } from '@/components/progress';
 import { SkillRadar } from '@/components/analytics/skill-radar';
 import { ChildProgressStats } from '@/components/development/child-progress-stats';
 import { ChildSwitcher } from '@/components/family/child-switcher';
@@ -28,6 +28,7 @@ import { ok } from '@/types/result';
 import { useChildProgress, PROGRESS_TABS } from '@/hooks/use-child-progress';
 import { formatShortDateWithYear } from '@/utils/format';
 import { LoadingState, ErrorState, EmptyState } from '@/components/ui/screen-states';
+import { Routes } from '@/navigation/routes';
 
 export default function ChildProgressScreen() {
   const { colors } = useScreen<null>({ load: async () => ok(null), isEmpty: () => false });
@@ -37,6 +38,7 @@ export default function ChildProgressScreen() {
     error,
     refreshing,
     child,
+    childProfile,
     progress,
     feedback,
     badges,
@@ -50,7 +52,6 @@ export default function ChildProgressScreen() {
     selectedChildId,
     activeChildId,
     handleSelectChild,
-    isParent,
   } = useChildProgress();
 
   if (loading) {
@@ -63,7 +64,7 @@ export default function ChildProgressScreen() {
         {switcherChildren.length > 1 && (
           <View style={styles.switcherWrap}>
             <ChildSwitcher
-              children={switcherChildren}
+              options={switcherChildren}
               selectedId={selectedChildId}
               onSelect={handleSelectChild}
               activeChildId={activeChildId}
@@ -85,7 +86,7 @@ export default function ChildProgressScreen() {
         {switcherChildren.length > 1 && (
           <View style={styles.switcherWrap}>
             <ChildSwitcher
-              children={switcherChildren}
+              options={switcherChildren}
               selectedId={selectedChildId}
               onSelect={handleSelectChild}
               activeChildId={activeChildId}
@@ -107,7 +108,7 @@ export default function ChildProgressScreen() {
         {switcherChildren.length > 1 && (
           <View style={styles.switcherWrap}>
             <ChildSwitcher
-              children={switcherChildren}
+              options={switcherChildren}
               selectedId={selectedChildId}
               onSelect={handleSelectChild}
               activeChildId={activeChildId}
@@ -124,6 +125,12 @@ export default function ChildProgressScreen() {
   }
 
   const trend = getTrendInfo(colors);
+  const handleEditChildProfile = () => {
+    if (!selectedChildId) {
+      return;
+    }
+    router.push(Routes.modalEditChildProfile(selectedChildId));
+  };
 
   return (
     <SafeAreaView
@@ -135,13 +142,15 @@ export default function ChildProgressScreen() {
         showBack
         centerTitle
         onBackPress={() => router.back()}
+        actionIcon="create-outline"
+        onActionPress={handleEditChildProfile}
       />
 
       {/* Child Switcher — only for parents with 2+ children */}
       {switcherChildren.length > 1 && (
         <View style={styles.switcherWrap}>
           <ChildSwitcher
-            children={switcherChildren}
+            options={switcherChildren}
             selectedId={selectedChildId}
             onSelect={handleSelectChild}
             activeChildId={activeChildId}
@@ -209,40 +218,104 @@ export default function ChildProgressScreen() {
         contentContainerStyle={styles.content}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />}
       >
-        {activeTab === 'overview' && (
-          <ProgressDashboard
-            progress={progress}
-            athleteName={child.name}
-            viewerRole="parent"
-            onViewAllSkills={() => setActiveTab('skills')}
-            onViewAllFeedback={() => setActiveTab('feedback')}
-            onViewBadges={() => setActiveTab('badges')}
-          />
-        )}
-
-        {activeTab === 'skills' && (
+        {activeTab === 'profile' && (
           <View style={styles.tabSection}>
             <View style={styles.sectionHeader}>
-              <ThemedText type="heading">Skill Levels</ThemedText>
+              <ThemedText type="heading">Child Profile</ThemedText>
               <ThemedText style={[Typography.small, { color: colors.muted }]}>
-                Based on coach assessments
+                Details used for coaching, safety, and bookings
               </ThemedText>
             </View>
-            {progress.skills.length > 0 ? (
-              <SkillLevelGrid skills={progress.skills} />
-            ) : (
-              <SurfaceCard style={styles.emptyCard}>
-                <Ionicons name="analytics-outline" size={32} color={colors.muted} />
-                <ThemedText style={[Typography.bodySemiBold, { color: colors.muted }]}>
-                  No skill ratings yet
+
+            <SurfaceCard style={styles.profileCard}>
+              <ThemedText type="defaultSemiBold">Basic</ThemedText>
+              <ThemedText style={[styles.profileLine, { color: colors.muted }]}>
+                Full name: {childProfile ? `${childProfile.firstName} ${childProfile.lastName}` : child.name}
+              </ThemedText>
+              {!!childProfile?.nickname && (
+                <ThemedText style={[styles.profileLine, { color: colors.muted }]}>
+                  Nickname: {childProfile.nickname}
                 </ThemedText>
-                <ThemedText
-                  style={[Typography.small, { color: colors.muted, textAlign: 'center' }]}
-                >
-                  Coaches will rate skills during sessions
+              )}
+              {!!childProfile?.dateOfBirth && (
+                <ThemedText style={[styles.profileLine, { color: colors.muted }]}>
+                  DOB: {childProfile.dateOfBirth}
                 </ThemedText>
-              </SurfaceCard>
-            )}
+              )}
+              {!!childProfile?.relationship && (
+                <ThemedText style={[styles.profileLine, { color: colors.muted }]}>
+                  Relationship: {childProfile.relationship}
+                </ThemedText>
+              )}
+            </SurfaceCard>
+
+            <SurfaceCard style={styles.profileCard}>
+              <ThemedText type="defaultSemiBold">Medical & Support</ThemedText>
+              <ThemedText style={[styles.profileLine, { color: colors.muted }]}>
+                Allergies: {childProfile?.allergies.length ? childProfile.allergies.join(', ') : 'None'}
+              </ThemedText>
+              <ThemedText style={[styles.profileLine, { color: colors.muted }]}>
+                Conditions:{' '}
+                {childProfile?.medicalConditions.length
+                  ? childProfile.medicalConditions.join(', ')
+                  : 'None'}
+              </ThemedText>
+              <ThemedText style={[styles.profileLine, { color: colors.muted }]}>
+                Medications:{' '}
+                {childProfile?.medications.length ? childProfile.medications.join(', ') : 'None'}
+              </ThemedText>
+              <ThemedText style={[styles.profileLine, { color: colors.muted }]}>
+                SEN: {childProfile?.hasSpecialNeeds ? 'Yes' : 'No'}
+              </ThemedText>
+            </SurfaceCard>
+
+            <SurfaceCard style={styles.profileCard}>
+              <ThemedText type="defaultSemiBold">Emergency</ThemedText>
+              <ThemedText style={[styles.profileLine, { color: colors.muted }]}>
+                Primary: {childProfile?.emergencyContactName || '--'} ({childProfile?.emergencyContactRelation || '--'})
+              </ThemedText>
+              <ThemedText style={[styles.profileLine, { color: colors.muted }]}>
+                Phone: {childProfile?.emergencyContactPhone || '--'}
+              </ThemedText>
+              {!!childProfile?.secondaryEmergencyName && (
+                <ThemedText style={[styles.profileLine, { color: colors.muted }]}>
+                  Secondary: {childProfile.secondaryEmergencyName} ({childProfile.secondaryEmergencyPhone || '--'})
+                </ThemedText>
+              )}
+            </SurfaceCard>
+
+            <SurfaceCard style={styles.profileCard}>
+              <ThemedText type="defaultSemiBold">Coach Notes</ThemedText>
+              <ThemedText style={[styles.profileLine, { color: colors.muted }]}>
+                Communication:{' '}
+                {childProfile?.communicationNotes?.trim() || 'No communication notes yet.'}
+              </ThemedText>
+              <ThemedText style={[styles.profileLine, { color: colors.muted }]}>
+                Behavioral: {childProfile?.behavioralNotes?.trim() || 'No behavioral notes yet.'}
+              </ThemedText>
+            </SurfaceCard>
+
+            <Row gap="sm">
+              <Clickable
+                onPress={handleEditChildProfile}
+                style={[styles.profileAction, { backgroundColor: colors.tint }]}
+              >
+                <ThemedText style={[Typography.bodySmallSemiBold, { color: colors.onPrimary }]}>
+                  Edit Profile Details
+                </ThemedText>
+              </Clickable>
+              <Clickable
+                onPress={() => selectedChildId && router.push(Routes.modalEditChildSen(selectedChildId))}
+                style={[
+                  styles.profileAction,
+                  { backgroundColor: colors.surface, borderColor: colors.border, borderWidth: 1 },
+                ]}
+              >
+                <ThemedText style={[Typography.bodySmallSemiBold, { color: colors.text }]}>
+                  Edit SEN Details
+                </ThemedText>
+              </Clickable>
+            </Row>
           </View>
         )}
 
@@ -380,6 +453,16 @@ const styles = StyleSheet.create({
   content: { padding: Spacing.md, gap: Spacing.lg, paddingBottom: Spacing['2xl'] },
   tabSection: { gap: Spacing.sm },
   sectionHeader: { gap: Spacing.xxs, marginBottom: Spacing.sm },
+  profileCard: { gap: Spacing.xs },
+  profileLine: { ...Typography.small },
+  profileAction: {
+    flex: 1,
+    minHeight: 44,
+    borderRadius: Radii.md,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: Spacing.sm,
+  },
   emptyCard: { alignItems: 'center', padding: Spacing.xl, gap: Spacing.sm },
   badgeCard: { padding: Spacing.md, gap: Spacing.xs },
   badgeIcon: {

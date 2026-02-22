@@ -5,7 +5,7 @@
  * with optional "Remind" button for non-responders.
  */
 
-import { memo, useCallback } from 'react';
+import { memo } from 'react';
 import { View, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 

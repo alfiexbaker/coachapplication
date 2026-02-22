@@ -18,6 +18,7 @@ const rid = () => Math.random().toString(36).slice(2, 10);
 describe('badgeService', () => {
   beforeEach(async () => {
     await apiClient.set(STORAGE_KEYS.BADGE_AWARDS, []);
+    await apiClient.set(STORAGE_KEYS.BOOKINGS, []);
     eventBus.clearAll();
   });
 
@@ -242,6 +243,49 @@ describe('badgeService', () => {
       assert.ok(typeof info.currentStreak === 'number');
       assert.ok(typeof info.nextMilestone === 'number');
       assert.ok(typeof info.streakLabel === 'string');
+    });
+
+    test('calculates streak from real completed bookings', async () => {
+      const athleteId = `ath_${rid()}`;
+      const now = new Date();
+      const thisWeek = new Date(now);
+      const lastWeek = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+
+      await apiClient.set(STORAGE_KEYS.BOOKINGS, [
+        {
+          id: `booking_${rid()}`,
+          coachId: `coach_${rid()}`,
+          coachName: 'Coach',
+          athleteIds: [athleteId],
+          athleteId,
+          bookedById: `parent_${rid()}`,
+          bookedByName: 'Parent',
+          status: 'COMPLETED',
+          scheduledAt: thisWeek.toISOString(),
+          duration: 60,
+          location: 'Pitch',
+          service: '1-on-1',
+          serviceType: 'COACHING',
+        },
+        {
+          id: `booking_${rid()}`,
+          coachId: `coach_${rid()}`,
+          coachName: 'Coach',
+          athleteIds: [athleteId],
+          athleteId,
+          bookedById: `parent_${rid()}`,
+          bookedByName: 'Parent',
+          status: 'COMPLETED',
+          scheduledAt: lastWeek.toISOString(),
+          duration: 60,
+          location: 'Pitch',
+          service: '1-on-1',
+          serviceType: 'COACHING',
+        },
+      ]);
+
+      const info = await badgeService.getStreakInfo(athleteId);
+      assert.equal(info.currentStreak, 2);
     });
   });
 });

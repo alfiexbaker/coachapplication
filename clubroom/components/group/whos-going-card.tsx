@@ -8,7 +8,7 @@
  *                → Emma  [Going]   [Maybe] [Can't ✓]
  */
 
-import { memo, useCallback } from 'react';
+import { memo } from 'react';
 import { View, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
@@ -197,7 +197,7 @@ function WhosGoingCardComponent({
         <Row align="center" gap="xs">
           <Ionicons name="hand-left" size={18} color={colors.tint} />
           <ThemedText type="defaultSemiBold" style={Typography.subheading}>
-            Who's Going?
+            {"Who's Going?"}
           </ThemedText>
         </Row>
         {deadline && <DeadlineBadge deadline={deadline} compact />}

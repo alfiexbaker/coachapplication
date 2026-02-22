@@ -15,6 +15,7 @@ describe('AnalyticsQueryService', () => {
   beforeEach(async () => {
     // Clear storage
     await apiClient.remove(STORAGE_KEYS.ATHLETE_ANALYTICS);
+    await apiClient.remove(STORAGE_KEYS.GOALS);
     await apiClient.remove(STORAGE_KEYS.ATHLETE_GOALS);
   });
 
@@ -88,11 +89,11 @@ describe('AnalyticsQueryService', () => {
     });
 
     it('should filter by skill name when provided', async () => {
-      const skills = expectOk(await analyticsQueryService.getSkillHistory('athlete_1', 'Dribbling'));
+      const skills = expectOk(await analyticsQueryService.getSkillHistory('athlete_1', 'Dribbling & Skills'));
 
       assert.ok(Array.isArray(skills));
       if (skills.length > 0) {
-        assert.equal(skills[0].skillName, 'Dribbling');
+        assert.equal(skills[0].skillName, 'Dribbling & Skills');
       }
     });
 

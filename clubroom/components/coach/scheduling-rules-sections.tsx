@@ -11,9 +11,9 @@ import { SurfaceCard } from '@/components/primitives/surface-card';
 import { Clickable } from '@/components/primitives/clickable';
 import { Divider } from '@/components/ui/primitives/Divider';
 import { ThemedText } from '@/components/themed-text';
-import { Spacing, Radii, Typography, Components, withAlpha } from '@/constants/theme';
+import { Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
-import { Row, Column } from '@/components/primitives';
+import { Row } from '@/components/primitives';
 import type { RefundTier } from '@/constants/types';
 import { styles } from './scheduling-rules-section-styles';
 

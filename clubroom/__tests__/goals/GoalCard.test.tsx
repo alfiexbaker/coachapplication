@@ -21,7 +21,7 @@ function createMockGoal(overrides: Partial<Goal> = {}): Goal {
     athleteId: 'user1',
     title: 'Test Goal',
     description: 'A test goal description',
-    category: 'TECHNIQUE',
+    category: 'BALL_SKILLS',
     targetDate: '2026-06-30',
     status: 'ACTIVE',
     progress: 50,
@@ -64,7 +64,7 @@ describe('GoalCard Component Logic', () => {
 
   describe('Category Display', () => {
     test('should display correct category info for each category', () => {
-      const categories: GoalCategory[] = ['SPEED', 'TECHNIQUE', 'FITNESS', 'TACTICAL', 'MENTAL', 'OTHER'];
+      const categories: GoalCategory[] = ['BALL_SKILLS', 'ATTACKING', 'DEFENDING', 'GAME_SENSE', 'CHARACTER', 'OTHER'];
 
       categories.forEach((category) => {
         const goal = createMockGoal({ category });
@@ -77,22 +77,22 @@ describe('GoalCard Component Logic', () => {
       });
     });
 
-    test('SPEED category should have flash icon', () => {
-      const info = goalService.getCategoryInfo('SPEED');
+    test('ATTACKING category should have flash icon', () => {
+      const info = goalService.getCategoryInfo('ATTACKING');
       assert.strictEqual(info.icon, 'flash');
-      assert.strictEqual(info.label, 'Speed');
+      assert.strictEqual(info.label, 'Attacking');
     });
 
-    test('TECHNIQUE category should have football icon', () => {
-      const info = goalService.getCategoryInfo('TECHNIQUE');
+    test('BALL_SKILLS category should have football icon', () => {
+      const info = goalService.getCategoryInfo('BALL_SKILLS');
       assert.strictEqual(info.icon, 'football');
-      assert.strictEqual(info.label, 'Technique');
+      assert.strictEqual(info.label, 'Ball Skills');
     });
 
-    test('FITNESS category should have fitness icon', () => {
-      const info = goalService.getCategoryInfo('FITNESS');
-      assert.strictEqual(info.icon, 'fitness');
-      assert.strictEqual(info.label, 'Fitness');
+    test('CHARACTER category should have sparkles icon', () => {
+      const info = goalService.getCategoryInfo('CHARACTER');
+      assert.strictEqual(info.icon, 'sparkles');
+      assert.strictEqual(info.label, 'Character');
     });
   });
 

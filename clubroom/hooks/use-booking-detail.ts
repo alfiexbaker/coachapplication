@@ -59,23 +59,33 @@ const mapBookingStatus = (status: Booking['status']): BookingSummary['status'] =
   return 'Pending';
 };
 
-const toBookingSummary = (booking: Booking): BookingSummary => ({
-  id: booking.id,
-  service: booking.service ?? 'Session',
-  start: booking.scheduledAt,
-  status: mapBookingStatus(booking.status),
-  locationLabel: booking.location,
-  coach: {
-    name: booking.coachName,
-    photoUrl: `https://i.pravatar.cc/100?u=${booking.coachId}`,
-  },
-  client: {
-    name: getBookingAthleteName(booking),
-    photoUrl: `https://i.pravatar.cc/100?u=${booking.athleteId ?? 'athlete'}`,
-  },
-  coachId: booking.coachId,
-  clientId: booking.athleteId ?? booking.athleteIds?.[0] ?? '',
-});
+const toBookingSummary = (booking: Booking, viewerUserId?: string): BookingSummary => {
+  const athleteId = booking.athleteId ?? booking.athleteIds?.[0] ?? '';
+  const athleteName = getBookingAthleteName(booking);
+  const isSelfBooking = Boolean(viewerUserId && athleteId && athleteId === viewerUserId);
+  const audienceLabel = isSelfBooking ? 'You' : athleteName;
+
+  return {
+    id: booking.id,
+    service: booking.service ?? 'Session',
+    start: booking.scheduledAt,
+    status: mapBookingStatus(booking.status),
+    locationLabel: booking.location,
+    coach: {
+      name: booking.coachName,
+      photoUrl: `https://i.pravatar.cc/100?u=${booking.coachId}`,
+    },
+    client: {
+      name: audienceLabel,
+      photoUrl: `https://i.pravatar.cc/100?u=${booking.athleteId ?? 'athlete'}`,
+    },
+    coachId: booking.coachId,
+    clientId: athleteId,
+    bookedById: booking.bookedById,
+    bookedByName: booking.bookedByName,
+    audienceLabel,
+  };
+};
 
 export function useBookingDetail(id: string): BookingDetailResult {
   const { currentUser } = useAuth();
@@ -89,13 +99,13 @@ export function useBookingDetail(id: string): BookingDetailResult {
     try {
       const booking = await bookingService.getBooking(id);
       if (booking) {
-        return ok<BookingSummary | null>(toBookingSummary(booking));
+        return ok<BookingSummary | null>(toBookingSummary(booking, currentUser?.id));
       }
 
       const sessionBookings = await apiClient.get<Booking[]>('session_bookings', []);
       const sessionBooking = sessionBookings.find((entry) => entry.id === id);
       if (sessionBooking) {
-        return ok<BookingSummary | null>(toBookingSummary(sessionBooking));
+        return ok<BookingSummary | null>(toBookingSummary(sessionBooking, currentUser?.id));
       }
 
       return ok<BookingSummary | null>(null);
@@ -103,7 +113,7 @@ export function useBookingDetail(id: string): BookingDetailResult {
       logger.error('Failed to load booking', loadError);
       return err(serviceError('UNKNOWN', 'Failed to load booking details.', loadError));
     }
-  }, [id]);
+  }, [currentUser?.id, id]);
 
   const { data, status, error, refreshing, onRefresh, retry } = useScreen<BookingSummary | null>({
     load: loadBooking,

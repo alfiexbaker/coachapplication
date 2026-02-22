@@ -10,6 +10,10 @@ describe('BookingCrudService', () => {
   beforeEach(async () => {
     // Clear storage and reset draft
     await apiClient.remove(STORAGE_KEYS.BOOKINGS);
+    await apiClient.remove(STORAGE_KEYS.COACH_SESSIONS);
+    await apiClient.remove(STORAGE_KEYS.PROGRESS_SELF_ASSESSMENT_PROMPTS);
+    await apiClient.remove(STORAGE_KEYS.PROGRESS_SELF_ASSESSMENTS);
+    await apiClient.remove(STORAGE_KEYS.SESSION_JOURNAL);
     bookingCrudService.resetDraft();
   });
 
@@ -274,6 +278,112 @@ describe('BookingCrudService', () => {
       });
 
       assert.ok(!result.success);
+    });
+
+    it('should ingest completed booking into coach sessions exactly once', async () => {
+      const athleteId = 'athlete-' + Math.random().toString(36).slice(2);
+      const createResult = await bookingCrudService.createBooking({
+        coachId: 'coach-' + Math.random().toString(36).slice(2),
+        coachName: 'Test Coach',
+        athleteIds: [athleteId],
+        athleteNames: ['Test Athlete'],
+        bookedById: 'parent-' + Math.random().toString(36).slice(2),
+        bookedByName: 'Test Parent',
+        scheduledAt: new Date(Date.now() + 86400000).toISOString(),
+        duration: 60,
+        location: 'Test Field',
+        service: '1-on-1',
+        serviceType: 'COACHING',
+        skipAvailabilityValidation: true,
+      });
+
+      assert.ok(createResult.success);
+      if (!createResult.success) return;
+
+      const firstUpdate = await bookingCrudService.updateBooking(createResult.data.id, {
+        status: 'COMPLETED',
+      });
+      assert.ok(firstUpdate.success);
+
+      const sessionsAfterFirstUpdate = await apiClient.get(STORAGE_KEYS.COACH_SESSIONS, []);
+      const ingestedAfterFirstUpdate = sessionsAfterFirstUpdate.filter(
+        (session: { bookingId?: string; athleteId?: string }) =>
+          session.bookingId === createResult.data.id && session.athleteId === athleteId,
+      );
+      assert.equal(ingestedAfterFirstUpdate.length, 1);
+
+      const promptsAfterFirstUpdate = await apiClient.get(
+        STORAGE_KEYS.PROGRESS_SELF_ASSESSMENT_PROMPTS,
+        [],
+      );
+      const athletePromptsAfterFirstUpdate = promptsAfterFirstUpdate.filter(
+        (prompt: { bookingId?: string; athleteId?: string }) =>
+          prompt.bookingId === createResult.data.id && prompt.athleteId === athleteId,
+      );
+      assert.equal(athletePromptsAfterFirstUpdate.length, 1);
+
+      const secondUpdate = await bookingCrudService.updateBooking(createResult.data.id, {
+        notes: 'Coach added note after completion',
+      });
+      assert.ok(secondUpdate.success);
+
+      const sessionsAfterSecondUpdate = await apiClient.get(STORAGE_KEYS.COACH_SESSIONS, []);
+      const ingestedAfterSecondUpdate = sessionsAfterSecondUpdate.filter(
+        (session: { bookingId?: string; athleteId?: string }) =>
+          session.bookingId === createResult.data.id && session.athleteId === athleteId,
+      );
+      assert.equal(ingestedAfterSecondUpdate.length, 1);
+
+      const promptsAfterSecondUpdate = await apiClient.get(
+        STORAGE_KEYS.PROGRESS_SELF_ASSESSMENT_PROMPTS,
+        [],
+      );
+      const athletePromptsAfterSecondUpdate = promptsAfterSecondUpdate.filter(
+        (prompt: { bookingId?: string; athleteId?: string }) =>
+          prompt.bookingId === createResult.data.id && prompt.athleteId === athleteId,
+      );
+      assert.equal(athletePromptsAfterSecondUpdate.length, 1);
+    });
+  });
+
+  describe('updateStatus', () => {
+    it('ingests completed booking session when status changes via updateStatus()', async () => {
+      const athleteId = 'athlete-' + Math.random().toString(36).slice(2);
+      const createResult = await bookingCrudService.createBooking({
+        coachId: 'coach-' + Math.random().toString(36).slice(2),
+        coachName: 'Test Coach',
+        athleteIds: [athleteId],
+        athleteNames: ['Test Athlete'],
+        bookedById: 'parent-' + Math.random().toString(36).slice(2),
+        bookedByName: 'Test Parent',
+        scheduledAt: new Date(Date.now() + 86400000).toISOString(),
+        duration: 60,
+        location: 'Test Field',
+        service: '1-on-1',
+        serviceType: 'COACHING',
+        skipAvailabilityValidation: true,
+      });
+
+      assert.ok(createResult.success);
+      if (!createResult.success) return;
+
+      const updated = await bookingCrudService.updateStatus(createResult.data.id, 'COMPLETED');
+      assert.ok(updated);
+      assert.equal(updated?.status, 'COMPLETED');
+
+      const sessions = await apiClient.get(STORAGE_KEYS.COACH_SESSIONS, []);
+      const ingested = sessions.filter(
+        (session: { bookingId?: string; athleteId?: string }) =>
+          session.bookingId === createResult.data.id && session.athleteId === athleteId,
+      );
+      assert.equal(ingested.length, 1);
+
+      const prompts = await apiClient.get(STORAGE_KEYS.PROGRESS_SELF_ASSESSMENT_PROMPTS, []);
+      const athletePrompts = prompts.filter(
+        (prompt: { bookingId?: string; athleteId?: string }) =>
+          prompt.bookingId === createResult.data.id && prompt.athleteId === athleteId,
+      );
+      assert.equal(athletePrompts.length, 1);
     });
   });
 

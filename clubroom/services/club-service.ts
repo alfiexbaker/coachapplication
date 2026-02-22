@@ -348,7 +348,7 @@ const MOCK_MEMBERS: ClubMember[] = [
   },
   {
     userId: 'coach2',
-    userName: 'Sarah Mitchell',
+    userName: 'Jess Okafor',
     role: 'COACH',
     status: 'active',
     joinedAt: '2024-03-20',
@@ -356,7 +356,7 @@ const MOCK_MEMBERS: ClubMember[] = [
   },
   {
     userId: 'coach3',
-    userName: 'Mike Thompson',
+    userName: 'Reuben Carr',
     role: 'COACH',
     status: 'pending',
     joinedAt: '2024-11-10',
@@ -371,7 +371,7 @@ const MOCK_MEMBERS: ClubMember[] = [
   },
   {
     userId: 'parent2',
-    userName: 'Mike Wilson',
+    userName: 'Dan Mensah',
     role: 'MEMBER',
     status: 'active',
     joinedAt: '2024-07-15',

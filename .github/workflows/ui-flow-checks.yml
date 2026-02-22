@@ -1,0 +1,196 @@
+name: UI Flow Checks
+
+on:
+  pull_request:
+    paths:
+      - "clubroom/**"
+      - ".github/workflows/ui-flow-checks.yml"
+  workflow_dispatch:
+
+jobs:
+  plan-ui-flow-matrix:
+    name: Plan UI Flow Matrix
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: clubroom
+    outputs:
+      matrix: ${{ steps.matrix.outputs.matrix }}
+      expected_chunk_reports: ${{ steps.matrix.outputs.expected_chunk_reports }}
+      chunk_size: ${{ steps.matrix.outputs.chunk_size }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Build role/chunk matrix
+        id: matrix
+        shell: bash
+        run: |
+          set -euo pipefail
+          LIST_FILE="$RUNNER_TEMP/ui-flow-list.json"
+          node ./scripts/ui-flow-checks-50.mjs --list > "$LIST_FILE"
+
+          node - "$LIST_FILE" >> "$GITHUB_OUTPUT" <<'NODE'
+          const fs = require('node:fs');
+          const listPath = process.argv[2];
+          const list = JSON.parse(fs.readFileSync(listPath, 'utf8'));
+          const chunkSize = 10;
+          const include = [];
+
+          for (const role of list.availableRoles) {
+            const flowCount = list.flowsByRole?.[role] ?? 0;
+            const chunkCount = Math.max(1, Math.ceil(flowCount / chunkSize));
+            for (let chunkIndex = 1; chunkIndex <= chunkCount; chunkIndex += 1) {
+              include.push({ role, chunk_index: chunkIndex });
+            }
+          }
+
+          process.stdout.write(`matrix=${JSON.stringify({ include })}\n`);
+          process.stdout.write(`expected_chunk_reports=${include.length}\n`);
+          process.stdout.write(`chunk_size=${chunkSize}\n`);
+          NODE
+
+  ui-flow-chunks:
+    name: UI Flows (${{ matrix.role }} chunk ${{ matrix.chunk_index }})
+    runs-on: ubuntu-latest
+    needs: plan-ui-flow-matrix
+    timeout-minutes: 35
+    strategy:
+      fail-fast: false
+      matrix: ${{ fromJson(needs.plan-ui-flow-matrix.outputs.matrix) }}
+    defaults:
+      run:
+        working-directory: clubroom
+    env:
+      UI_BASE_URL: http://127.0.0.1:8083
+      UI_FLOW_CHUNK_SIZE: ${{ needs.plan-ui-flow-matrix.outputs.chunk_size }}
+      UI_FLOW_RETRIES: "2"
+      UI_FLOW_PAUSE_MS: "1000"
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: clubroom/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Install Playwright Chromium
+        run: |
+          npm install --no-save playwright@1.58.2
+          npx playwright install --with-deps chromium
+
+      - name: Run chunked UI flow checks
+        shell: bash
+        run: |
+          set -euo pipefail
+          OUT_DIR="$RUNNER_TEMP/ui-flow/${{ matrix.role }}-chunk-${{ matrix.chunk_index }}"
+          mkdir -p "$OUT_DIR"
+
+          cleanup() {
+            if [[ -n "${EXPO_PID:-}" ]]; then
+              kill "$EXPO_PID" >/dev/null 2>&1 || true
+            fi
+          }
+          trap cleanup EXIT
+
+          npm run web -- --port 8083 --non-interactive >"$OUT_DIR/expo.log" 2>&1 &
+          EXPO_PID=$!
+
+          for attempt in $(seq 1 120); do
+            if curl -fsS "$UI_BASE_URL" >/dev/null; then
+              break
+            fi
+            sleep 2
+            if [[ "$attempt" -eq 120 ]]; then
+              echo "Expo web did not start before timeout."
+              tail -n 200 "$OUT_DIR/expo.log" || true
+              exit 1
+            fi
+          done
+
+          node ./scripts/ui-flow-checks-50.mjs \
+            --roles=${{ matrix.role }} \
+            --chunk-size=${UI_FLOW_CHUNK_SIZE} \
+            --chunk-index=${{ matrix.chunk_index }} \
+            --retries=${UI_FLOW_RETRIES} \
+            --pause-ms=${UI_FLOW_PAUSE_MS} \
+            --fail-on=none \
+            --out-dir="$OUT_DIR"
+
+      - name: Upload chunk artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ui-flow-${{ matrix.role }}-chunk-${{ matrix.chunk_index }}
+          path: ${{ runner.temp }}/ui-flow/${{ matrix.role }}-chunk-${{ matrix.chunk_index }}
+          if-no-files-found: warn
+
+  ui-flow-merge:
+    name: Merge UI Flow Reports
+    runs-on: ubuntu-latest
+    needs:
+      - plan-ui-flow-matrix
+      - ui-flow-chunks
+    if: always()
+    defaults:
+      run:
+        working-directory: clubroom
+    env:
+      EXPECTED_CHUNK_REPORTS: ${{ needs.plan-ui-flow-matrix.outputs.expected_chunk_reports }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Download chunk artifacts
+        uses: actions/download-artifact@v4
+        with:
+          pattern: ui-flow-*
+          path: ${{ runner.temp }}/ui-flow-artifacts
+          merge-multiple: true
+
+      - name: Merge reports and apply quality gate
+        shell: bash
+        run: |
+          set -euo pipefail
+          MERGED_DIR="$RUNNER_TEMP/ui-flow-merged"
+          mkdir -p "$MERGED_DIR"
+
+          CHUNK_REPORT_COUNT="$(find "$RUNNER_TEMP/ui-flow-artifacts" -type f -name 'report.*.chunk-*-of-*.json' | wc -l | tr -d ' ')"
+          if [[ "$CHUNK_REPORT_COUNT" -lt "$EXPECTED_CHUNK_REPORTS" ]]; then
+            echo "Missing chunk reports: expected at least $EXPECTED_CHUNK_REPORTS, found $CHUNK_REPORT_COUNT."
+            find "$RUNNER_TEMP/ui-flow-artifacts" -maxdepth 3 -type f | sort
+            exit 1
+          fi
+
+          node ./scripts/ui-flow-merge-reports.mjs \
+            --input-dir="$RUNNER_TEMP/ui-flow-artifacts" \
+            --output-dir="$MERGED_DIR" \
+            --fail-on=high
+
+          cat "$MERGED_DIR/report.merged.md" >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload merged report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ui-flow-merged-report
+          path: ${{ runner.temp }}/ui-flow-merged
+          if-no-files-found: warn

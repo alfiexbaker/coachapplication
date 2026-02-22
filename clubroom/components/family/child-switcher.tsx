@@ -1,9 +1,5 @@
 /**
- * ChildSwitcher — Premium horizontal child picker with color-coded avatars.
- *
- * Shows nothing if 0-1 children. For 2+ children, renders a sleek
- * pill-row with initials, name, and active child highlight.
- * Uses the child's colorCode from FamilyMember for visual identity.
+ * ChildSwitcher — Low-noise horizontal focus picker.
  */
 
 import { memo, useCallback } from 'react';
@@ -25,14 +21,14 @@ export interface SwitcherChild {
 }
 
 interface ChildSwitcherProps {
-  children: SwitcherChild[];
+  options: SwitcherChild[];
   selectedId: string | undefined;
   onSelect: (childId: string) => void;
   activeChildId?: string | null;
 }
 
 function ChildSwitcherInner({
-  children: childOptions,
+  options,
   selectedId,
   onSelect,
   activeChildId,
@@ -49,16 +45,24 @@ function ChildSwitcherInner({
     [onSelect],
   );
 
-  if (childOptions.length <= 1) return null;
+  if (options.length <= 1) return null;
 
   return (
-    <View style={[styles.container, { backgroundColor: withAlpha(palette.surface, 0.8) }]}>
+    <View
+      style={[
+        styles.container,
+        {
+          backgroundColor: withAlpha(palette.surface, 0.92),
+          borderColor: withAlpha(palette.border, 0.9),
+        },
+      ]}
+    >
       <ScrollView
         horizontal
         showsHorizontalScrollIndicator={false}
         contentContainerStyle={styles.scrollContent}
       >
-        {childOptions.map((child) => {
+        {options.map((child) => {
           const isSelected = child.id === selectedId;
           const isActiveChild = child.id === activeChildId;
           const accentColor = child.colorCode || palette.tint;
@@ -69,50 +73,48 @@ function ChildSwitcherInner({
               onPress={() => handleSelect(child.id)}
               style={[
                 styles.chip,
-                isSelected
-                  ? { backgroundColor: accentColor }
-                  : { backgroundColor: withAlpha(palette.muted, 0.06) },
+                {
+                  borderColor: isSelected ? withAlpha(accentColor, 0.35) : palette.border,
+                  backgroundColor: isSelected
+                    ? withAlpha(accentColor, 0.12)
+                    : withAlpha(palette.surface, 0.45),
+                },
               ]}
               accessibilityRole="tab"
               accessibilityLabel={`View progress for ${child.name}`}
               accessibilityState={{ selected: isSelected }}
             >
               <Row align="center" gap="xs">
-                {/* Avatar circle */}
                 <View
                   style={[
-                    styles.avatar,
+                    styles.dot,
                     {
-                      backgroundColor: isSelected
-                        ? withAlpha('#FFFFFF', 0.25)
-                        : withAlpha(accentColor, 0.12),
+                      backgroundColor: isSelected ? accentColor : withAlpha(accentColor, 0.55),
                     },
                   ]}
-                >
-                  <ThemedText
-                    style={[
-                      styles.avatarText,
-                      { color: isSelected ? '#FFFFFF' : accentColor },
-                    ]}
-                  >
-                    {child.initials}
-                  </ThemedText>
-                </View>
+                />
 
-                {/* Name */}
                 <ThemedText
                   style={[
                     styles.chipName,
-                    { color: isSelected ? '#FFFFFF' : palette.text },
+                    { color: isSelected ? palette.text : palette.muted },
+                    isSelected && styles.chipNameActive,
                   ]}
                   numberOfLines={1}
                 >
                   {child.name}
                 </ThemedText>
 
-                {/* Active star indicator */}
+                {isSelected && (
+                  <Ionicons name="checkmark" size={12} color={accentColor} />
+                )}
                 {isActiveChild && !isSelected && (
-                  <Ionicons name="star" size={10} color={palette.warning} />
+                  <View
+                    style={[
+                      styles.activeHint,
+                      { borderColor: withAlpha(accentColor, 0.5) },
+                    ]}
+                  />
                 )}
               </Row>
             </Clickable>
@@ -127,35 +129,38 @@ export const ChildSwitcher = memo(ChildSwitcherInner);
 
 const styles = StyleSheet.create({
   container: {
-    borderRadius: Radii.lg,
+    borderRadius: Radii.md,
+    borderWidth: 1,
     paddingVertical: Spacing.xxs,
     paddingHorizontal: Spacing.xs,
   },
   scrollContent: {
     gap: Spacing.xs,
-    paddingHorizontal: Spacing.xxs,
   },
   chip: {
-    paddingVertical: Spacing.xs,
+    paddingVertical: Spacing.xxs,
     paddingHorizontal: Spacing.sm,
     borderRadius: Radii.pill,
-    minHeight: 44,
+    minHeight: 34,
+    borderWidth: 1,
     justifyContent: 'center',
   },
-  avatar: {
-    width: 26,
-    height: 26,
-    borderRadius: 13,
-    alignItems: 'center',
-    justifyContent: 'center',
+  dot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
   },
-  avatarText: {
-    ...Typography.micro,
-    fontSize: 11,
-    letterSpacing: 0,
-    textTransform: 'none',
+  activeHint: {
+    width: 7,
+    height: 7,
+    borderRadius: 3.5,
+    borderWidth: 1,
   },
   chipName: {
-    ...Typography.bodySmallSemiBold,
+    ...Typography.caption,
+    fontWeight: '600',
+  },
+  chipNameActive: {
+    fontWeight: '700',
   },
 });

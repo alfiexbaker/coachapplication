@@ -3,6 +3,7 @@ import { View } from 'react-native';
 
 import { useTheme } from '@/hooks/useTheme';
 import type { Gender, Relationship } from '@/services/child-service';
+import type { PositionRole } from '@/types/progress-types';
 
 import {
   GENDERS,
@@ -11,6 +12,7 @@ import {
   NameFieldsRow,
   DateOfBirthField,
   OptionChipGrid,
+  PositionOptionGrid,
   styles,
 } from './add-child-basic-step-sections';
 
@@ -23,6 +25,7 @@ export interface AddChildBasicStepProps {
   dateOfBirth: Date | null;
   gender: Gender | null;
   relationship: Relationship | null;
+  primaryPosition: PositionRole | null;
   photoUri: string | null;
   showDatePicker: boolean;
   onFirstNameChange: (value: string) => void;
@@ -31,6 +34,7 @@ export interface AddChildBasicStepProps {
   onDateOfBirthChange: (date: Date | null) => void;
   onGenderChange: (gender: Gender) => void;
   onRelationshipChange: (relationship: Relationship) => void;
+  onPrimaryPositionChange: (position: PositionRole | null) => void;
   onPickImage: () => void;
   onShowDatePicker: (show: boolean) => void;
 }
@@ -44,6 +48,7 @@ function AddChildBasicStepInner({
   dateOfBirth,
   gender,
   relationship,
+  primaryPosition,
   photoUri,
   showDatePicker,
   onFirstNameChange,
@@ -52,6 +57,7 @@ function AddChildBasicStepInner({
   onDateOfBirthChange,
   onGenderChange,
   onRelationshipChange,
+  onPrimaryPositionChange,
   onPickImage,
   onShowDatePicker,
 }: AddChildBasicStepProps) {
@@ -92,6 +98,12 @@ function AddChildBasicStepInner({
         options={RELATIONSHIPS}
         selected={relationship}
         onSelect={onRelationshipChange}
+        palette={palette}
+      />
+
+      <PositionOptionGrid
+        selected={primaryPosition}
+        onSelect={onPrimaryPositionChange}
         palette={palette}
       />
     </View>

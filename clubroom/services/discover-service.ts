@@ -79,7 +79,7 @@ const MOCK_DISCOVERY_COACHES: CoachProfile[] = [
   },
   {
     id: 'coach_david',
-    fullName: 'David Roberts',
+    fullName: 'Aiden Sharma',
     primarySport: 'Football',
     sports: ['Football'],
     city: 'London',

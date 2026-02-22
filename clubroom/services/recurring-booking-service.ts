@@ -822,7 +822,7 @@ class RecurringBookingService {
         dayOfWeek: 5, // Friday
         time: '10:00',
         duration: 90,
-        location: 'Elite Sports Academy',
+        location: 'Southgate Academy',
         sessionType: 'Group Training',
         frequency: 'BIWEEKLY',
         startDate: startDate.toISOString(),

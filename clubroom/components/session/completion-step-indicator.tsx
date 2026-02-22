@@ -24,7 +24,10 @@ export const CompletionStepIndicator = memo(function CompletionStepIndicator({
   currentStep,
   currentStepIndex,
 }: CompletionStepIndicatorProps) {
-  const stepLabel = currentStep.charAt(0).toUpperCase() + currentStep.slice(1);
+  const stepLabel =
+    currentStep === 'quickRate'
+      ? 'Quick Rate'
+      : currentStep.charAt(0).toUpperCase() + currentStep.slice(1);
 
   return (
     <ProgressStepper

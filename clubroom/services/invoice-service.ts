@@ -49,8 +49,8 @@ const MOCK_INVOICES: Invoice[] = [
     status: 'PAID',
     createdAt: '2025-01-05T15:00:00.000Z',
     paidAt: '2025-01-05T15:00:00.000Z',
-    coachBusinessName: 'Sarah Mitchell Coaching',
-    coachBusinessEmail: 'sarah.mitchell@coach.com',
+    coachBusinessName: 'Jess Okafor Coaching',
+    coachBusinessEmail: 'jess.okafor@coach.com',
     notes: 'Thank you for your business!',
   },
   {
@@ -72,10 +72,10 @@ const MOCK_INVOICES: Invoice[] = [
     status: 'SENT',
     createdAt: '2025-01-08T12:00:00.000Z',
     sentAt: '2025-01-08T12:30:00.000Z',
-    sentTo: 'john.henderson@email.com',
+    sentTo: 'chris.barton@email.com',
     dueDate: '2025-01-22T00:00:00.000Z',
-    coachBusinessName: 'Thompson Football Academy',
-    coachBusinessEmail: 'mike.thompson@coach.com',
+    coachBusinessName: 'Carr Football Academy',
+    coachBusinessEmail: 'reuben.carr@coach.com',
   },
   {
     id: 'inv_003',
@@ -95,8 +95,8 @@ const MOCK_INVOICES: Invoice[] = [
     currency: 'GBP',
     status: 'DRAFT',
     createdAt: '2025-01-10T17:00:00.000Z',
-    coachBusinessName: 'Sarah Mitchell Coaching',
-    coachBusinessEmail: 'sarah.mitchell@coach.com',
+    coachBusinessName: 'Jess Okafor Coaching',
+    coachBusinessEmail: 'jess.okafor@coach.com',
   },
   {
     id: 'inv_004',
@@ -117,8 +117,8 @@ const MOCK_INVOICES: Invoice[] = [
     status: 'PAID',
     createdAt: '2024-12-15T15:00:00.000Z',
     paidAt: '2024-12-15T15:30:00.000Z',
-    coachBusinessName: 'Roberts Goalkeeping',
-    coachBusinessEmail: 'david.roberts@coach.com',
+    coachBusinessName: 'Sharma Goalkeeping',
+    coachBusinessEmail: 'aiden.sharma@coach.com',
   },
   {
     id: 'inv_005',
@@ -140,8 +140,8 @@ const MOCK_INVOICES: Invoice[] = [
     createdAt: '2024-11-20T11:00:00.000Z',
     voidedAt: '2024-11-21T09:00:00.000Z',
     voidReason: 'Session cancelled by coach',
-    coachBusinessName: 'Sarah Mitchell Coaching',
-    coachBusinessEmail: 'sarah.mitchell@coach.com',
+    coachBusinessName: 'Jess Okafor Coaching',
+    coachBusinessEmail: 'jess.okafor@coach.com',
   },
   // Parent 2 invoices
   {
@@ -163,8 +163,8 @@ const MOCK_INVOICES: Invoice[] = [
     status: 'PAID',
     createdAt: '2025-01-07T16:00:00.000Z',
     paidAt: '2025-01-07T16:00:00.000Z',
-    coachBusinessName: 'Roberts Goalkeeping',
-    coachBusinessEmail: 'david.roberts@coach.com',
+    coachBusinessName: 'Sharma Goalkeeping',
+    coachBusinessEmail: 'aiden.sharma@coach.com',
   },
   // Coach-generated invoice
   {
@@ -186,10 +186,10 @@ const MOCK_INVOICES: Invoice[] = [
     status: 'SENT',
     createdAt: '2025-01-12T15:00:00.000Z',
     sentAt: '2025-01-12T15:30:00.000Z',
-    sentTo: 'john.henderson@email.com',
+    sentTo: 'chris.barton@email.com',
     dueDate: '2025-01-26T00:00:00.000Z',
-    coachBusinessName: 'Sarah Mitchell Coaching',
-    coachBusinessEmail: 'sarah.mitchell@coach.com',
+    coachBusinessName: 'Jess Okafor Coaching',
+    coachBusinessEmail: 'jess.okafor@coach.com',
   },
 ];
 
@@ -212,11 +212,11 @@ const MOCK_BOOKINGS: Record<
 > = {
   booking_new_001: {
     coachId: 'coach1',
-    coachName: 'Sarah Mitchell',
+    coachName: 'Jess Okafor',
     athleteId: 'user1',
-    athleteName: 'Tom Henderson',
+    athleteName: 'Alfie Barton',
     userId: 'parent1',
-    userName: 'John Henderson',
+    userName: 'Chris Barton',
     sessionDate: '2025-01-15T14:00:00.000Z',
     sessionType: '1-on-1 Training',
     sessionLocation: 'Central Park Training Ground',

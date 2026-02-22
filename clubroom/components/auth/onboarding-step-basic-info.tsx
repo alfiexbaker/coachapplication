@@ -108,7 +108,7 @@ function StepBasicInfoInner({
           <TextInput
             value={firstName}
             onChangeText={(v) => onChangeField('firstName', v)}
-            placeholder="John"
+            placeholder="First name"
             placeholderTextColor={palette.muted}
             accessibilityLabel="First name"
             style={inputStyle}
@@ -119,7 +119,7 @@ function StepBasicInfoInner({
           <TextInput
             value={lastName}
             onChangeText={(v) => onChangeField('lastName', v)}
-            placeholder="Smith"
+            placeholder="Last name"
             placeholderTextColor={palette.muted}
             accessibilityLabel="Last name"
             style={inputStyle}
@@ -132,7 +132,7 @@ function StepBasicInfoInner({
         <TextInput
           value={email}
           onChangeText={(v) => onChangeField('email', v)}
-          placeholder="john@email.com"
+          placeholder="you@example.com"
           placeholderTextColor={palette.muted}
           keyboardType="email-address"
           autoCapitalize="none"

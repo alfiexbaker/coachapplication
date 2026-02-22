@@ -16,6 +16,7 @@ import { ThemedText } from '@/components/themed-text';
 import { Row } from '@/components/primitives/row';
 import { ChildLevelCard } from '@/components/badges/child-level-card';
 import { ChildBadgeCard } from '@/components/badges/child-badge-card';
+import { ChildSwitcher } from '@/components/family/child-switcher';
 import { LoadingState, ErrorState, EmptyState } from '@/components/ui/screen-states';
 import { Spacing, Typography } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
@@ -34,6 +35,10 @@ export default function ChildBadgesScreen() {
     retry,
     highlightBadge,
     loadData,
+    switcherChildren,
+    selectedChildId,
+    activeChildId,
+    handleSelectChild,
   } = useChildBadges();
 
   if (status === 'loading') {
@@ -81,6 +86,17 @@ export default function ChildBadgesScreen() {
         </View>
       </Row>
 
+      {switcherChildren.length > 1 && selectedChildId && (
+        <View style={styles.switcherWrap}>
+          <ChildSwitcher
+            options={switcherChildren}
+            selectedId={selectedChildId}
+            onSelect={handleSelectChild}
+            activeChildId={activeChildId}
+          />
+        </View>
+      )}
+
       {/* Level Progress */}
       {progressionData && (
         <Animated.View entering={FadeInDown.delay(50).springify()}>
@@ -113,4 +129,5 @@ export default function ChildBadgesScreen() {
 const styles = StyleSheet.create({
   backButton: { padding: Spacing.xs },
   headerContent: { flex: 1, gap: Spacing.micro },
+  switcherWrap: { paddingTop: Spacing.xs },
 });

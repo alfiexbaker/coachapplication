@@ -9,7 +9,6 @@ import Animated, { FadeInDown } from 'react-native-reanimated';
 
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { Clickable } from '@/components/primitives/clickable';
-import { Button } from '@/components/primitives/button';
 import { ThemedText } from '@/components/themed-text';
 import { Row } from '@/components/primitives/row';
 import { Column } from '@/components/primitives/column';
@@ -30,17 +29,12 @@ export const ScheduleDayDetail = memo(function ScheduleDayDetail({
   day,
   onSessionPress,
   onAdjustDay,
-  onCreateSession,
 }: Props) {
   const { colors } = useTheme();
 
   const handleAdjust = useCallback(() => {
     onAdjustDay(day.dateStr);
   }, [onAdjustDay, day.dateStr]);
-
-  const handleCreate = useCallback(() => {
-    onCreateSession?.(day.dateStr);
-  }, [onCreateSession, day.dateStr]);
 
   return (
     <Animated.View entering={FadeInDown.delay(300).springify()}>

@@ -4,10 +4,13 @@ import { useLocalSearchParams } from 'expo-router';
 import { useAuth } from '@/hooks/use-auth';
 import { useScreen, type ScreenStatus } from '@/hooks/use-screen';
 import { apiClient } from '@/services/api-client';
+import { badgeService } from '@/services/badge-service';
+import { userService } from '@/services/user-service';
+import { STORAGE_KEYS } from '@/constants/storage-keys';
 import { createLogger } from '@/utils/logger';
+import type { BadgeAward } from '@/constants/types';
 import type { Session } from '@/constants/app-types';
 import { BADGE_REASONS } from '@/components/badges/badge-award-modal';
-import { getSessionAthleteName } from '@/utils/session-display';
 import { err, ok, serviceError, type ServiceError } from '@/types/result';
 
 const logger = createLogger('useDevBadges');
@@ -18,6 +21,36 @@ function formatDate(date: Date | string): string {
     return 'Unknown date';
   }
   return parsed.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
+}
+
+function fallbackAthleteName(athleteId: string): string {
+  return athleteId
+    .replace(/[_-]+/g, ' ')
+    .replace(/\b\w/g, (char) => char.toUpperCase())
+    .trim();
+}
+
+function getSessionLabel(session: Session): string {
+  return session.nextFocusAreas?.[0] ?? 'Coaching session';
+}
+
+function getRecognitionDetail(session: Session): string {
+  const focus = session.nextFocusAreas?.[0];
+  const skill = session.skillsWorkedOn?.[0];
+  const effort =
+    session.performanceRating >= 4.5
+      ? 'Outstanding session quality and consistency'
+      : session.performanceRating >= 3.5
+        ? 'Strong effort and clear progression'
+        : 'Positive attitude with room to build confidence';
+
+  if (focus) {
+    return `${effort}. Focus area: ${focus}.`;
+  }
+  if (skill) {
+    return `${effort}. Highlighted skill: ${skill}.`;
+  }
+  return effort;
 }
 
 export type BadgeCategory = 'toAward' | 'recent' | 'shared';
@@ -34,75 +67,22 @@ export type BadgeItem = {
   sharedWith?: string;
 };
 
-export const BADGES: BadgeItem[] = [
-  {
-    id: 'dedicated-athlete',
-    title: 'Dedicated Athlete',
-    athlete: 'Tom Henderson',
-    athleteId: 'user1',
-    detail: 'Maintained strong attendance and commitment',
-    category: 'toAward',
-  },
-  {
-    id: 'session-leader',
-    title: 'Session Leader',
-    athlete: 'James Wilson',
-    athleteId: 'user3',
-    detail: 'Led drills and encouraged teammates',
-    category: 'toAward',
-  },
-  {
-    id: 'recent-pace',
-    title: 'Burst of Pace',
-    athlete: 'Emma Henderson',
-    athleteId: 'user2',
-    detail: 'Awarded after sprint focus block',
-    category: 'recent',
-    awardedAt: '2025-02-13',
-    sessionName: 'Speed mechanics lab',
-  },
-  {
-    id: 'recent-keeper',
-    title: 'Safe Hands',
-    athlete: 'Tom Henderson',
-    athleteId: 'user1',
-    detail: 'Completed three clean sheets in a row',
-    category: 'recent',
-    awardedAt: '2025-02-11',
-    sessionName: 'Shot-stopping clinic',
-  },
-  {
-    id: 'shared-technique',
-    title: 'Technique Spotlight',
-    athlete: 'Tom Henderson',
-    athleteId: 'user1',
-    detail: 'Shared with parents for weekly digest',
-    category: 'shared',
-    sharedWith: 'Parents (U13s)',
-    awardedAt: '2025-02-09',
-  },
-  {
-    id: 'shared-team',
-    title: 'Team Player',
-    athlete: 'James Wilson',
-    athleteId: 'user3',
-    detail: 'Highlighted to club staff',
-    category: 'shared',
-    sharedWith: 'Club staff channel',
-    awardedAt: '2025-02-07',
-  },
-];
-
 export const BADGE_TABS: { key: BadgeCategory; label: string; icon: string }[] = [
   { key: 'toAward', label: 'To award', icon: 'ribbon-outline' },
   { key: 'recent', label: 'Recently awarded', icon: 'sparkles-outline' },
   { key: 'shared', label: 'Shared badges', icon: 'share-social-outline' },
 ];
 
-const getSessionLabel = (session: Session) => session.nextFocusAreas?.[0] ?? 'Coaching session';
-
 interface DevBadgesData {
   sessions: Session[];
+  coachAwards: BadgeAward[];
+  athleteNameById: Record<string, string>;
+}
+
+function getSharedLabel(visibility: BadgeAward['visibility']): string {
+  if (visibility === 'supporters') return 'Parents & athlete';
+  if (visibility === 'athlete') return 'Athlete only';
+  return 'Coach only';
 }
 
 export function useDevBadges() {
@@ -121,7 +101,6 @@ export function useDevBadges() {
     reason?: string;
   } | null>(null);
 
-  // Quick recognition modal state
   const [showQuickRecognition, setShowQuickRecognition] = useState(false);
   const [quickRecognitionContext, setQuickRecognitionContext] = useState<{
     athleteId: string;
@@ -132,13 +111,50 @@ export function useDevBadges() {
 
   const loadSessions = useCallback(async () => {
     if (!currentUser?.id) {
-      return ok<DevBadgesData>({ sessions: [] });
+      return ok<DevBadgesData>({ sessions: [], coachAwards: [], athleteNameById: {} });
     }
 
     try {
-      const storedSessions = await apiClient.get<Session[]>('coach_sessions', []);
-      const coachSessions = storedSessions.filter((session) => session.coachId === currentUser.id);
-      return ok<DevBadgesData>({ sessions: coachSessions });
+      const [storedSessions, allAwards] = await Promise.all([
+        apiClient.get<Session[]>(STORAGE_KEYS.COACH_SESSIONS, []),
+        badgeService.listAwards(),
+      ]);
+
+      const coachSessions = storedSessions
+        .filter((session) => session.coachId === currentUser.id)
+        .sort((a, b) => new Date(b.completedAt).getTime() - new Date(a.completedAt).getTime());
+      const coachAwards = allAwards
+        .filter((award) => award.coachId === currentUser.id)
+        .sort((a, b) => new Date(b.awardedAt).getTime() - new Date(a.awardedAt).getTime());
+
+      const athleteIds = Array.from(
+        new Set([
+          ...coachSessions.map((session) => session.athleteId).filter(Boolean),
+          ...coachAwards.map((award) => award.athleteId).filter(Boolean),
+        ]),
+      );
+      const athleteNameById: Record<string, string> = {};
+
+      if (athleteIds.length > 0) {
+        const usersResult = await userService.getUsersByIds(athleteIds);
+        if (usersResult.success) {
+          usersResult.data.forEach((user) => {
+            const normalizedName = user.name?.trim();
+            athleteNameById[user.id] =
+              normalizedName && normalizedName.length > 0
+                ? normalizedName
+                : fallbackAthleteName(user.id);
+          });
+        }
+      }
+
+      athleteIds.forEach((athleteId) => {
+        if (!athleteNameById[athleteId]) {
+          athleteNameById[athleteId] = fallbackAthleteName(athleteId);
+        }
+      });
+
+      return ok<DevBadgesData>({ sessions: coachSessions, coachAwards, athleteNameById });
     } catch (error) {
       logger.error('Failed to load coach sessions for badges', { coachId: currentUser.id, error });
       return err(serviceError('UNKNOWN', 'Failed to load badge sessions.', error));
@@ -153,31 +169,103 @@ export function useDevBadges() {
   });
 
   const sessions = data?.sessions ?? [];
+  const coachAwards = data?.coachAwards ?? [];
+  const athleteNameById = data?.athleteNameById ?? {};
+  const awardsBySession = useMemo(() => {
+    const counts = new Map<string, number>();
+    coachAwards.forEach((award) => {
+      if (!award.sessionId) return;
+      counts.set(award.sessionId, (counts.get(award.sessionId) ?? 0) + 1);
+    });
+    return counts;
+  }, [coachAwards]);
+
+  const getAthleteName = useCallback(
+    (athleteId: string) => athleteNameById[athleteId] ?? fallbackAthleteName(athleteId),
+    [athleteNameById],
+  );
 
   const filteredSessions = useMemo(() => {
-    const q = sessionQuery.toLowerCase();
+    const q = sessionQuery.toLowerCase().trim();
     return sessions
-      .filter(
-        (s) =>
-          getSessionAthleteName(s).toLowerCase().includes(q) ||
-          getSessionLabel(s).toLowerCase().includes(q),
-      )
-      .slice(0, 6);
-  }, [sessions, sessionQuery]);
+      .filter((session) => {
+        if (!q) return true;
+        const athleteName = getAthleteName(session.athleteId).toLowerCase();
+        return (
+          athleteName.includes(q) ||
+          getSessionLabel(session).toLowerCase().includes(q) ||
+          formatDate(session.completedAt).toLowerCase().includes(q)
+        );
+      })
+      .slice(0, 8);
+  }, [sessions, sessionQuery, getAthleteName]);
+
+  useEffect(() => {
+    if (selectedSessionId || sessions.length === 0) return;
+    setSelectedSessionId(sessions[0].id);
+  }, [selectedSessionId, sessions]);
 
   const selectedSession = useMemo(
-    () => sessions.find((s) => s.id === selectedSessionId) ?? null,
+    () => sessions.find((session) => session.id === selectedSessionId) ?? null,
     [sessions, selectedSessionId],
   );
 
-  const linkedAthlete = selectedSession ? getSessionAthleteName(selectedSession) : 'Session';
+  const linkedAthlete = selectedSession ? getAthleteName(selectedSession.athleteId) : 'Session';
 
-  const sessionLabelFn = useCallback((session: Session | null) => {
-    if (!session) return undefined;
-    return `${getSessionLabel(session)} · ${formatDate(session.completedAt)}`;
-  }, []);
+  const sessionLabelFn = useCallback(
+    (session: Session | null) => {
+      if (!session) return undefined;
+      return `${getSessionLabel(session)} · ${formatDate(session.completedAt)}`;
+    },
+    [],
+  );
 
-  const visibleBadges = useMemo(() => BADGES.filter((b) => b.category === activeTab), [activeTab]);
+  const badges = useMemo<BadgeItem[]>(() => {
+    const toAwardItems: BadgeItem[] = sessions
+      .filter((session) => (awardsBySession.get(session.id) ?? 0) === 0)
+      .slice(0, 10)
+      .map((session) => ({
+        id: `to-award-${session.id}`,
+        title: 'Session Recognition',
+        athlete: getAthleteName(session.athleteId),
+        athleteId: session.athleteId,
+        detail: getRecognitionDetail(session),
+        category: 'toAward' as const,
+        sessionName: sessionLabelFn(session),
+      }));
+
+    const recentItems: BadgeItem[] = coachAwards.slice(0, 12).map((award) => {
+      const session = sessions.find((entry) => entry.id === award.sessionId);
+      return {
+        id: `recent-${award.id}`,
+        title: award.badgeLabel,
+        athlete: getAthleteName(award.athleteId),
+        athleteId: award.athleteId,
+        detail: award.reason,
+        category: 'recent' as const,
+        awardedAt: award.awardedAt,
+        sessionName: session ? sessionLabelFn(session) : undefined,
+      };
+    });
+
+    const sharedItems: BadgeItem[] = coachAwards
+      .filter((award) => award.visibility !== 'coach_only')
+      .slice(0, 12)
+      .map((award) => ({
+        id: `shared-${award.id}`,
+        title: award.badgeLabel,
+        athlete: getAthleteName(award.athleteId),
+        athleteId: award.athleteId,
+        detail: award.reason,
+        category: 'shared' as const,
+        sharedWith: getSharedLabel(award.visibility),
+        awardedAt: award.awardedAt,
+      }));
+
+    return [...toAwardItems, ...recentItems, ...sharedItems];
+  }, [sessions, awardsBySession, coachAwards, getAthleteName, sessionLabelFn]);
+
+  const visibleBadges = useMemo(() => badges.filter((badge) => badge.category === activeTab), [badges, activeTab]);
 
   const openAwardModal = useCallback(
     (badge: BadgeItem) => {
@@ -188,15 +276,17 @@ export function useDevBadges() {
       if (selectedSession && selectedSession.athleteId === athleteId) {
         session = selectedSession;
       } else {
-        session = sessions.find((s) => s.athleteId === athleteId) ?? null;
+        session = sessions.find((entry) => entry.athleteId === athleteId) ?? null;
       }
 
-      const matchFromTitle = BADGE_REASONS.find((r) =>
-        badge.title.toLowerCase().includes(r.toLowerCase()),
+      const matchFromTitle = BADGE_REASONS.find((reason) =>
+        badge.title.toLowerCase().includes(reason.toLowerCase()),
       );
       const reason =
         matchFromTitle ??
-        BADGE_REASONS.find((r) => badge.detail.toLowerCase().includes(r.toLowerCase()));
+        BADGE_REASONS.find((candidate) =>
+          badge.detail.toLowerCase().includes(candidate.toLowerCase()),
+        );
 
       setAwardContext({
         athleteId,
@@ -217,7 +307,7 @@ export function useDevBadges() {
 
   const openQuickRecognition = useCallback(
     (athleteId: string, athleteName: string) => {
-      const session = sessions.find((s) => s.athleteId === athleteId) ?? selectedSession;
+      const session = sessions.find((entry) => entry.athleteId === athleteId) ?? selectedSession;
       setQuickRecognitionContext({
         athleteId,
         athleteName,
@@ -237,7 +327,7 @@ export function useDevBadges() {
   useEffect(() => {
     if (!sessionIdParam || sessions.length === 0) return;
     const paramId = Array.isArray(sessionIdParam) ? sessionIdParam[0] : sessionIdParam;
-    const match = sessions.find((s) => s.id === paramId);
+    const match = sessions.find((session) => session.id === paramId);
     if (match) setSelectedSessionId(paramId);
   }, [sessionIdParam, sessions]);
 

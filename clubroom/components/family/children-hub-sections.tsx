@@ -1,5 +1,5 @@
 /**
- * ChildrenHubSections — Quick access hub sections (Progress, Badges, Goals).
+ * ChildrenHubSections — Quick access hub sections (Progress, Badges).
  *
  * Each section is a navigable SurfaceCard with icon, title, subtitle,
  * stat chip, and optional unseen count badge.
@@ -144,15 +144,6 @@ export const ChildrenHubSections = memo(function ChildrenHubSections({
       stat: `${totalBadges} earned`,
       color: palette.warning,
       unseenCount: totalUnseenBadges,
-    },
-    {
-      id: 'goals',
-      title: 'Goals',
-      subtitle: 'Current objectives and targets',
-      icon: 'flag-outline',
-      route: '/bookings/objectives',
-      stat: 'Active',
-      color: palette.success,
     },
   ];
 

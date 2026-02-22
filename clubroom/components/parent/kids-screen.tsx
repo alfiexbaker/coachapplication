@@ -23,8 +23,6 @@ const logger = createLogger('ParentKidsScreen');
 
 type KidSummary = { id: string; name: string; avatar?: string; metadata?: string };
 
-const formatSkillLevel = (skillLevel?: string) => skillLevel?.toLowerCase();
-
 export function ParentKidsScreen() {
   const { colors: palette } = useTheme();
   const { currentUser } = useAuth();

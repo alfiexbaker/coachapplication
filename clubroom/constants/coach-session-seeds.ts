@@ -22,7 +22,7 @@ export function buildCoachSessionSeeds(): Session[] {
       skillsWorkedOn: ['Scanning', 'First Touch', 'Passing'],
       performanceRating: 4,
       nextFocusAreas: ['Play forward quicker', 'Open body shape'],
-      coachName: 'Sarah Mitchell',
+      coachName: 'Jess Okafor',
     },
     {
       id: 'seed_session_user2_1',
@@ -35,7 +35,7 @@ export function buildCoachSessionSeeds(): Session[] {
       skillsWorkedOn: ['Finishing', 'Movement'],
       performanceRating: 3,
       nextFocusAreas: ['Weaker-foot finishing', 'Shot selection speed'],
-      coachName: 'Sarah Mitchell',
+      coachName: 'Jess Okafor',
     },
     {
       id: 'seed_session_user2_2',
@@ -48,7 +48,7 @@ export function buildCoachSessionSeeds(): Session[] {
       skillsWorkedOn: ['Passing', 'Composure'],
       performanceRating: 4,
       nextFocusAreas: ['Switch play earlier', 'Receive on back foot'],
-      coachName: 'Sarah Mitchell',
+      coachName: 'Jess Okafor',
     },
     {
       id: 'seed_session_user3_1',
@@ -61,7 +61,7 @@ export function buildCoachSessionSeeds(): Session[] {
       skillsWorkedOn: ['Goalkeeping', 'Distribution'],
       performanceRating: 3,
       nextFocusAreas: ['Set position before release', 'Long-pass accuracy'],
-      coachName: 'Sarah Mitchell',
+      coachName: 'Jess Okafor',
     },
     {
       id: 'seed_session_user1_2',
@@ -74,7 +74,7 @@ export function buildCoachSessionSeeds(): Session[] {
       skillsWorkedOn: ['Decision Making', 'Dribbling'],
       performanceRating: 5,
       nextFocusAreas: ['Final ball quality', 'Acceleration after turn'],
-      coachName: 'Sarah Mitchell',
+      coachName: 'Jess Okafor',
     },
     {
       id: 'seed_session_user3_2',
@@ -87,7 +87,7 @@ export function buildCoachSessionSeeds(): Session[] {
       skillsWorkedOn: ['Communication', 'Positioning'],
       performanceRating: 4,
       nextFocusAreas: ['Lead defensive line', 'Quick reset after save'],
-      coachName: 'Mike Thompson',
+      coachName: 'Reuben Carr',
     },
     {
       id: 'seed_session_user1_3',
@@ -100,7 +100,7 @@ export function buildCoachSessionSeeds(): Session[] {
       skillsWorkedOn: ['Transition', 'Passing'],
       performanceRating: 4,
       nextFocusAreas: ['One-touch passing', 'Awareness before receive'],
-      coachName: 'Mike Thompson',
+      coachName: 'Reuben Carr',
     },
   ];
 }

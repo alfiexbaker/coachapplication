@@ -8,7 +8,7 @@ import { Ionicons } from '@expo/vector-icons';
 
 import { ThemedText } from '@/components/themed-text';
 import { SurfaceCard } from '@/components/primitives/surface-card';
-import { Spacing, Radii, Components, Typography, withAlpha } from '@/constants/theme';
+import { Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
 
 interface DevProfileCardProps {
@@ -37,31 +37,21 @@ function DevProfileCardInner({
 
   return (
     <SurfaceCard style={styles.card}>
-      <Row align="center" gap="md">
-        <Row
-          align="center"
-          justify="center"
-          style={[styles.avatar, { backgroundColor: withAlpha(palette.tint, 0.12) }]}
-        >
-          <ThemedText style={[styles.avatarText, { color: palette.tint }]}>
-            {childName.charAt(0)}
-          </ThemedText>
-        </Row>
-        <View style={styles.info}>
-          <ThemedText type="subtitle" style={styles.name}>
+      <Row justify="space-between" align="center">
+        <View style={styles.focusCopy}>
+          <ThemedText style={[styles.focusLabel, { color: palette.muted }]}>Focus Athlete</ThemedText>
+          <ThemedText type="defaultSemiBold" style={styles.focusName} numberOfLines={1}>
             {childName}
           </ThemedText>
-          <Row gap="xs">
-            <Row
-              align="center"
-              gap="xxs"
-              style={[styles.trendBadge, { backgroundColor: withAlpha(trendColor, 0.12) }]}
-            >
-              <Ionicons name={trendIcon} size={12} color={trendColor} />
-              <ThemedText style={[styles.trendText, { color: trendColor }]}>{trendText}</ThemedText>
-            </Row>
-          </Row>
         </View>
+        <Row
+          align="center"
+          gap="xxs"
+          style={[styles.trendBadge, { backgroundColor: withAlpha(trendColor, 0.12) }]}
+        >
+          <Ionicons name={trendIcon} size={12} color={trendColor} />
+          <ThemedText style={[styles.trendText, { color: trendColor }]}>{trendText}</ThemedText>
+        </Row>
       </Row>
 
       <Row style={[styles.stats, { borderTopColor: palette.border }]}>
@@ -124,18 +114,13 @@ export const DevProfileCard = memo(DevProfileCardInner);
 
 const styles = StyleSheet.create({
   card: { padding: Spacing.md, gap: Spacing.md },
-  avatar: {
-    width: Components.avatar.lg,
-    height: Components.avatar.lg,
-    borderRadius: Components.avatar.lg / 2,
-  },
-  avatarText: { ...Typography.display },
-  info: { flex: 1, gap: Spacing.xs },
-  name: { ...Typography.heading },
+  focusCopy: { flex: 1, gap: Spacing.micro, paddingRight: Spacing.sm },
+  focusLabel: { ...Typography.micro, letterSpacing: 0.3 },
+  focusName: { ...Typography.subheading },
   trendBadge: {
     paddingHorizontal: Spacing.sm,
     paddingVertical: Spacing.micro,
-    borderRadius: Radii.sm,
+    borderRadius: Radii.pill,
   },
   trendText: { ...Typography.caption },
   stats: { paddingTop: Spacing.md, borderTopWidth: 1 },
@@ -143,5 +128,5 @@ const styles = StyleSheet.create({
   statIcon: { width: 32, height: 32, borderRadius: Radii.lg },
   divider: { width: 1, alignSelf: 'stretch', marginVertical: Spacing.xxs },
   statValue: { ...Typography.heading },
-  statLabel: { ...Typography.micro, textTransform: 'uppercase', letterSpacing: 0.3 },
+  statLabel: { ...Typography.micro },
 });

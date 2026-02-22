@@ -11,7 +11,7 @@ import { View, StyleSheet } from 'react-native';
 
 import { ThemedText } from '@/components/themed-text';
 import { Row } from '@/components/primitives/row';
-import { Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
+import { Radii, Typography, withAlpha } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
 
 export interface RsvpMiniBarCounts {

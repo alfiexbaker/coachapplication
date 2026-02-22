@@ -23,7 +23,7 @@ export const INVITE_CODES = [
     code: 'clubroom-coach',
     status: 'active' as const,
     schoolId: 'school-1',
-    schoolName: 'Elite Sports Academy',
+    schoolName: 'Southgate Academy',
     currentUses: 0,
     maxUses: 10,
     expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
@@ -147,7 +147,7 @@ export const CoachFormFields = memo(function CoachFormFields({
         <TextInput
           value={fullName}
           onChangeText={onChangeFullName}
-          placeholder="John Smith"
+          placeholder="Full name"
           placeholderTextColor={palette.muted}
           style={inputStyle}
           returnKeyType="next"

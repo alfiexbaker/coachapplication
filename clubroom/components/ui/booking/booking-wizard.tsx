@@ -4,7 +4,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { Row } from '@/components/primitives/row';
 import { Clickable } from '@/components/primitives/clickable';
 import { ThemedText } from '@/components/themed-text';
-import { Radii, Shadows, Spacing, Typography, withAlpha } from '@/constants/theme';
+import { Radii, Spacing, Typography, withAlpha } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
 
 const TOTAL_STEPS = 5;
@@ -18,7 +18,7 @@ export function BookingWizardHeader({
   subtitle: string;
   step: number;
 }) {
-  const { colors: palette, scheme } = useTheme();
+  const { colors: palette } = useTheme();
   return (
     <View style={styles.headerWrap}>
       {/* Back + Step indicator row */}

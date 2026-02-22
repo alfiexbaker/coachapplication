@@ -24,7 +24,6 @@ import {
   useSessionPayments,
   type SessionPaymentItem as SessionPaymentItemType,
 } from '@/hooks/use-session-payments';
-import { Routes } from '@/navigation/routes';
 
 const TABS: { key: PaymentTab; label: string }[] = [
   { key: 'owed', label: 'Owed' },

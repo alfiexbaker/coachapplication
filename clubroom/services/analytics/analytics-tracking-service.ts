@@ -23,7 +23,13 @@ import {
   storageError,
   networkError,
 } from '@/types/result';
-import type { AthleteAnalytics, SkillProgress, Goal, FootballObjective } from '@/constants/types';
+import type {
+  AthleteAnalytics,
+  SkillProgress,
+  Goal,
+  GoalCategory,
+} from '@/constants/types';
+import type { FootballSkill } from '@/types/progress-types';
 import { createLogger } from '@/utils/logger';
 import { toDateStr } from '@/utils/format';
 import { api } from '@/constants/config';
@@ -32,6 +38,18 @@ import { STORAGE_KEYS } from '@/constants/storage-keys';
 const logger = createLogger('AnalyticsTrackingService');
 
 const USE_MOCK = api.useMock;
+
+function createUniqueId(prefix: 'goal' | 'ms'): string {
+  return `${prefix}_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 8)}`;
+}
+
+function normalizeAnalyticsSkill(skill: string): FootballSkill {
+  if (skill === 'Dribbling') return 'Dribbling & Skills';
+  if (skill === 'Defending') return '1v1 Defending';
+  if (skill === 'Conditioning') return 'Work Rate';
+  if (skill === 'Goalkeeping') return 'Shot Stopping';
+  return skill as FootballSkill;
+}
 
 // ============================================================================
 // MOCK DATA
@@ -47,7 +65,7 @@ const MOCK_ANALYTICS: AthleteAnalytics[] = [
     attendanceRate: 95,
     skills: [
       {
-        skillName: 'Dribbling',
+        skillName: 'Dribbling & Skills',
         category: 'Technical',
         currentLevel: 72,
         previousLevel: 65,
@@ -86,7 +104,7 @@ const MOCK_ANALYTICS: AthleteAnalytics[] = [
         ],
       },
       {
-        skillName: 'Defending',
+        skillName: '1v1 Defending',
         category: 'Tactical',
         currentLevel: 45,
         previousLevel: 45,
@@ -99,7 +117,7 @@ const MOCK_ANALYTICS: AthleteAnalytics[] = [
         ],
       },
       {
-        skillName: 'Conditioning',
+        skillName: 'Work Rate',
         category: 'Physical',
         currentLevel: 75,
         previousLevel: 70,
@@ -129,7 +147,7 @@ const MOCK_GOALS: Goal[] = [
     athleteId: 'athlete_1',
     title: 'Master weak foot finishing',
     description: 'Be confident shooting with left foot from inside the box',
-    category: 'TECHNIQUE',
+    category: 'BALL_SKILLS',
     targetDate: '2026-03-01',
     progress: 45,
     milestones: [
@@ -176,7 +194,7 @@ const MOCK_GOALS: Goal[] = [
     athleteId: 'athlete_1',
     title: 'Improve first touch under pressure',
     description: 'Control the ball cleanly when defenders are close',
-    category: 'TECHNIQUE',
+    category: 'BALL_SKILLS',
     targetDate: '2026-02-15',
     progress: 70,
     milestones: [
@@ -216,7 +234,7 @@ const MOCK_GOALS: Goal[] = [
     athleteId: 'athlete_1',
     title: 'Complete 10 consecutive sessions',
     description: 'Build consistency and commitment',
-    category: 'FITNESS',
+    category: 'CHARACTER',
     targetDate: '2025-12-31',
     progress: 100,
     milestones: [
@@ -275,8 +293,16 @@ async function loadAnalytics(): Promise<AthleteAnalytics[]> {
 
 async function loadGoals(): Promise<Goal[]> {
   try {
-    const stored = await apiClient.get<Goal[] | null>(STORAGE_KEYS.ATHLETE_GOALS, null);
-    if (stored) return stored;
+    const storedUnified = await apiClient.get<Goal[] | null>(STORAGE_KEYS.GOALS, null);
+    if (storedUnified && storedUnified.length > 0) {
+      return storedUnified;
+    }
+
+    const storedLegacy = await apiClient.get<Goal[] | null>(STORAGE_KEYS.ATHLETE_GOALS, null);
+    if (storedLegacy && storedLegacy.length > 0) {
+      await apiClient.set(STORAGE_KEYS.GOALS, storedLegacy);
+      return storedLegacy;
+    }
   } catch (error) {
     logger.error('Failed to load goals', error);
   }
@@ -285,7 +311,10 @@ async function loadGoals(): Promise<Goal[]> {
 
 async function saveGoals(goals: Goal[]): Promise<void> {
   try {
-    await apiClient.set(STORAGE_KEYS.ATHLETE_GOALS, goals);
+    await Promise.all([
+      apiClient.set(STORAGE_KEYS.GOALS, goals),
+      apiClient.set(STORAGE_KEYS.ATHLETE_GOALS, goals),
+    ]);
   } catch (error) {
     logger.error('Failed to save goals', error);
   }
@@ -301,7 +330,7 @@ export const analyticsTrackingService = {
    */
   async updateSkillLevel(
     athleteId: string,
-    skill: FootballObjective,
+    skill: FootballSkill,
     newLevel: number,
   ): Promise<Result<void, ServiceError>> {
     try {
@@ -328,7 +357,8 @@ export const analyticsTrackingService = {
           analyticsCache.push(analytics);
         }
 
-        let skillProgress = analytics.skills.find((s) => s.skillName === skill);
+        const normalizedSkill = normalizeAnalyticsSkill(skill);
+        const skillProgress = analytics.skills.find((s) => s.skillName === normalizedSkill);
         const today = toDateStr(new Date());
 
         if (skillProgress) {
@@ -340,15 +370,15 @@ export const analyticsTrackingService = {
               : 0;
           skillProgress.history.push({ date: today, level: newLevel });
         } else {
-          skillProgress = {
-            skillName: skill,
+          const newSkillProgress: SkillProgress = {
+            skillName: normalizedSkill,
             category: 'Technical',
             currentLevel: newLevel,
             previousLevel: 0,
             changePercent: 0,
             history: [{ date: today, level: newLevel }],
           };
-          analytics.skills.push(skillProgress);
+          analytics.skills.push(newSkillProgress);
         }
 
         await apiClient.set(STORAGE_KEYS.ATHLETE_ANALYTICS, analyticsCache);
@@ -368,7 +398,7 @@ export const analyticsTrackingService = {
     athleteId: string;
     title: string;
     description?: string;
-    category?: 'SPEED' | 'TECHNIQUE' | 'FITNESS' | 'TACTICAL' | 'MENTAL' | 'OTHER';
+    category?: GoalCategory;
     targetDate?: string;
     milestones?: string[];
     createdBy: 'COACH' | 'ATHLETE' | 'PARENT';
@@ -376,7 +406,7 @@ export const analyticsTrackingService = {
   }): Promise<Result<Goal, ServiceError>> {
     try {
       const now = new Date().toISOString();
-      const goalId = `goal_${Date.now()}`;
+      const goalId = createUniqueId('goal');
       const newGoal: Goal = {
         id: goalId,
         userId: input.athleteId,
@@ -387,7 +417,7 @@ export const analyticsTrackingService = {
         targetDate: input.targetDate,
         progress: 0,
         milestones: (input.milestones || []).map((title, index) => ({
-          id: `ms_${Date.now()}_${index}`,
+          id: createUniqueId('ms'),
           goalId: goalId,
           title,
           order: index,
@@ -499,7 +529,7 @@ export const analyticsTrackingService = {
       if (!goal) return err(notFound('Goal', goalId));
 
       goal.milestones.push({
-        id: `ms_${Date.now()}`,
+        id: createUniqueId('ms'),
         goalId: goalId,
         title,
         order: goal.milestones.length,

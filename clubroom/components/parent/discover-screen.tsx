@@ -34,7 +34,6 @@ import {
   type ChildOption,
   type CoachOption,
   DiscoverEmptyState,
-  formatChildName,
   mapCoachOption,
 } from './discover-screen-sections';
 const logger = createLogger('ParentDiscoverScreen');

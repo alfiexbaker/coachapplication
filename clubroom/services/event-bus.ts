@@ -4,6 +4,8 @@
  */
 
 import { createLogger } from '@/utils/logger';
+import type { BadgeCategory } from '@/constants/user-types';
+import type { ProgressChallengeType } from '@/types/progress-types';
 
 const logger = createLogger('EventBus');
 
@@ -135,6 +137,7 @@ export const ServiceEvents = {
   ATTENDANCE_RECORDED: 'session:attendance_recorded',
   SESSION_NOTES_SAVED: 'session:notes_saved',
   SESSION_FEEDBACK_SAVED: 'session:feedback_saved',
+  SESSION_MEDIA_CAPTURED: 'session:media_captured',
 
   // Group session events
   OPEN_SESSION_PUBLISHED: 'group_session:open_published',
@@ -219,6 +222,13 @@ export const ServiceEvents = {
   // Achievement events
   BADGE_EARNED: 'achievement:badge_earned',
   STREAK_MILESTONE: 'achievement:streak_milestone',
+  SKILL_LEVEL_UP: 'progress:skill_level_up',
+  LEVEL_UP: 'progress:level_up',
+  PROGRESS_CHALLENGE_COMPLETED: 'progress:challenge_completed',
+  PROGRESS_CHALLENGE_ASSIGNED: 'progress:challenge_assigned',
+  GOAL_COMPLETED: 'progress:goal_completed',
+  POSITION_RECORDED: 'progress:position_recorded',
+  JOURNAL_SAVED: 'journal:saved',
 
   // Invite RSVP events
   INVITE_RSVP_RESPONDED: 'invite:rsvp:responded',
@@ -400,6 +410,12 @@ export interface EventPayloads {
     coachId: string;
     athleteId: string;
     skillCount: number;
+  };
+  [ServiceEvents.SESSION_MEDIA_CAPTURED]: {
+    sessionId: string;
+    athleteId: string;
+    photoCount: number;
+    hasVideo: boolean;
   };
 
   // Group session events
@@ -710,6 +726,45 @@ export interface EventPayloads {
     userId: string;
     streakWeeks: number;
     milestoneLabel?: string;
+  };
+  [ServiceEvents.SKILL_LEVEL_UP]: {
+    athleteId: string;
+    skill: string;
+    previousLevel: number;
+    newLevel: number;
+    corner: BadgeCategory;
+  };
+  [ServiceEvents.LEVEL_UP]: {
+    userId: string;
+    previousLevel: number;
+    newLevel: number;
+    newLevelName: string;
+  };
+  [ServiceEvents.PROGRESS_CHALLENGE_COMPLETED]: {
+    challengeId: string;
+    athleteId: string;
+    type: ProgressChallengeType;
+    rewardBadgeId: string;
+  };
+  [ServiceEvents.PROGRESS_CHALLENGE_ASSIGNED]: {
+    challengeId: string;
+    athleteId: string;
+    type: ProgressChallengeType;
+  };
+  [ServiceEvents.GOAL_COMPLETED]: {
+    goalId: string;
+    athleteId: string;
+    title: string;
+  };
+  [ServiceEvents.POSITION_RECORDED]: {
+    sessionId: string;
+    athleteId: string;
+    position: 'GK' | 'DEF' | 'MID' | 'ATT';
+  };
+  [ServiceEvents.JOURNAL_SAVED]: {
+    athleteId: string;
+    sessionId?: string;
+    entryId: string;
   };
 
   // Invite RSVP events

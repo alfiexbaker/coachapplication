@@ -33,6 +33,7 @@ import { bookingService } from '../booking-service';
 import { inviteHoldService } from '../invite-hold-service';
 import { availabilityService } from '../availability-service';
 import { multiWeekBookingService } from '../multi-week-booking-service';
+import { sessionTemplateService } from '../session-template-service';
 import { userService } from '../user-service';
 import { createLogger } from '@/utils/logger';
 import { toDateStr } from '@/utils/format';
@@ -202,6 +203,36 @@ async function resolveAthleteNames(
     (athleteId, index) =>
       usersById.get(athleteId) || fallbackNames[index] || `Athlete ${index + 1}`,
   );
+}
+
+async function resolveInviteTemplateContext(invite: SessionInvite): Promise<{
+  sessionTemplateName?: string;
+  objectives: string[];
+}> {
+  const fallbackObjectives =
+    invite.focus?.trim().length ? [invite.focus.trim()] : [];
+
+  if (!invite.sessionTemplateId) {
+    return { objectives: fallbackObjectives };
+  }
+
+  const template = await sessionTemplateService.getTemplate(invite.sessionTemplateId);
+  if (!template) {
+    return { objectives: fallbackObjectives };
+  }
+
+  const templateObjectives = Array.from(
+    new Set(
+      (template.skillsFocus ?? [])
+        .map((skill) => skill.trim())
+        .filter((skill) => skill.length > 0),
+    ),
+  );
+
+  return {
+    sessionTemplateName: template.name,
+    objectives: templateObjectives.length > 0 ? templateObjectives : fallbackObjectives,
+  };
 }
 
 export async function loadFromStorage(): Promise<SessionInvite[]> {
@@ -509,6 +540,7 @@ export const sessionInviteService = {
         const [startHour, startMin] = startTime.split(':').map(Number);
         const [endHour, endMin] = endTime.split(':').map(Number);
         const durationMinutes = endHour * 60 + endMin - (startHour * 60 + startMin);
+        const templateContext = await resolveInviteTemplateContext(invite);
 
         const bookingResult = await bookingService.createBooking({
           coachId: invite.coachId,
@@ -523,7 +555,9 @@ export const sessionInviteService = {
           location: input.selectedSlot.location || 'Coach preferred location',
           service: invite.sessionType,
           serviceType: invite.sessionType,
-          objectives: invite.focus ? [invite.focus] : [],
+          sessionTemplateId: invite.sessionTemplateId,
+          sessionTemplateName: templateContext.sessionTemplateName,
+          objectives: templateContext.objectives,
           price: invite.priceUsd,
           notes: invite.notes,
           sessionInviteId: invite.id, // Link booking to invite
@@ -856,6 +890,7 @@ export const sessionInviteService = {
       const [startHour, startMin] = startTime.split(':').map(Number);
       const [endHour, endMin] = endTime.split(':').map(Number);
       const durationMinutes = endHour * 60 + endMin - (startHour * 60 + startMin);
+      const templateContext = await resolveInviteTemplateContext(invite);
 
       const bookingResult = await bookingService.createBooking({
         coachId: invite.coachId,
@@ -870,7 +905,9 @@ export const sessionInviteService = {
         location: selectedSlot.location || 'Coach preferred location',
         service: invite.sessionType,
         serviceType: invite.sessionType,
-        objectives: invite.focus ? [invite.focus] : [],
+        sessionTemplateId: invite.sessionTemplateId,
+        sessionTemplateName: templateContext.sessionTemplateName,
+        objectives: templateContext.objectives,
         price: invite.priceUsd,
         notes: invite.notes,
         sessionInviteId: invite.id, // Link booking to invite

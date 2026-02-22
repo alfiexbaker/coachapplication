@@ -75,8 +75,6 @@ export default function GroupSessionDetailScreen() {
     handleSendReminder,
     toButtonStatus,
     cancellationPolicy,
-    deadline,
-    isDeadlinePassed,
   } = hook;
 
   const handleBack = () => {
@@ -274,12 +272,20 @@ export default function GroupSessionDetailScreen() {
 
           {/* Child Selector (for registering another child) */}
           {canRegisterMore && (
-            <ChildSelector children={unregisteredChildren} selectedId={selectedChildId} onSelect={setSelectedChildId} />
+            <ChildSelector
+              options={unregisteredChildren}
+              selectedId={selectedChildId}
+              onSelect={setSelectedChildId}
+            />
           )}
 
           {/* Child Selector (for first registration when multi-kid) */}
           {!isRegistered && !isCoach && hasMultipleKids && isActive && (
-            <ChildSelector children={children} selectedId={selectedChildId} onSelect={setSelectedChildId} />
+            <ChildSelector
+              options={children}
+              selectedId={selectedChildId}
+              onSelect={setSelectedChildId}
+            />
           )}
 
           {/* Deadline for unregistered users */}
