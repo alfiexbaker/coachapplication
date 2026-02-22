@@ -1,7 +1,6 @@
 import { memo } from 'react';
 import { ScrollView, StyleSheet, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { BlurView } from 'expo-blur';
 
 import { Clickable } from '@/components/primitives/clickable';
 import { Row } from '@/components/primitives/row';
@@ -32,17 +31,11 @@ export const PositionToggle = memo(function PositionToggle({
       style={[
         styles.wrap,
         {
-          borderColor: withAlpha(colors.border, 0.75),
-          backgroundColor: withAlpha(colors.surface, 0.52),
+          borderColor: withAlpha(colors.border, 0.5),
+          backgroundColor: withAlpha(colors.surface, 0.65),
         },
       ]}
     >
-      <BlurView
-        tint="systemThinMaterial"
-        intensity={30}
-        experimentalBlurMethod="dimezisBlurView"
-        style={StyleSheet.absoluteFill}
-      />
       <ScrollView
         horizontal
         showsHorizontalScrollIndicator={false}
@@ -60,11 +53,11 @@ export const PositionToggle = memo(function PositionToggle({
                   styles.pill,
                   {
                     borderColor: active
-                      ? withAlpha(colors.tint, 0.55)
-                      : withAlpha(colors.border, 0.85),
+                      ? withAlpha(colors.tint, 0.65)
+                      : withAlpha(colors.border, 0.6),
                     backgroundColor: active
-                      ? withAlpha(colors.tint, 0.2)
-                      : withAlpha(colors.background, 0.5),
+                      ? withAlpha(colors.tint, 0.15)
+                      : 'transparent',
                   },
                 ]}
                 accessibilityRole="button"
@@ -111,7 +104,7 @@ export const PositionToggle = memo(function PositionToggle({
                         },
                       ]}
                     >
-                      {item.sessionCount}
+                      {item.sessionCount} {item.sessionCount === 1 ? 'session' : 'sessions'}
                     </ThemedText>
                   </View>
                 </Row>
@@ -140,9 +133,8 @@ const styles = StyleSheet.create({
     minHeight: 44,
     borderWidth: 1,
     borderRadius: Radii.pill,
-    paddingHorizontal: Spacing.md,
+    paddingHorizontal: Spacing.sm,
     justifyContent: 'center',
-    minWidth: 150,
   },
   leftMeta: {
     flexShrink: 1,

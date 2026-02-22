@@ -1,4 +1,4 @@
-import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { memo, useCallback, useEffect, useMemo, useRef } from 'react';
 import { StyleSheet, View, useWindowDimensions } from 'react-native';
 import { Image } from 'expo-image';
 import Animated, {
@@ -70,7 +70,6 @@ export const PlayerCard = memo(function PlayerCard({ data }: PlayerCardProps) {
   const captureRef = useRef<View>(null);
   const isBackRef = useRef(false);
   const isFlippingRef = useRef(false);
-  const [showHint, setShowHint] = useState(true);
   const compact = viewportWidth <= 375;
 
   const tierConfig = TIER_CONFIG[data.tier];
@@ -160,7 +159,6 @@ export const PlayerCard = memo(function PlayerCard({ data }: PlayerCardProps) {
         }
       },
     );
-    setShowHint(false);
     void HapticPatterns.flip();
   }, [cardScale, flipProgress, handleFlipFinish, sheenProgress]);
 
@@ -223,7 +221,9 @@ export const PlayerCard = memo(function PlayerCard({ data }: PlayerCardProps) {
                 style={[
                   StyleSheet.absoluteFill,
                   {
-                    backgroundColor: withAlpha(colors.text, compact ? 0.1 : 0.07),
+                    backgroundColor: scheme === 'dark'
+                      ? withAlpha('#000000', 0.35)
+                      : withAlpha(colors.text, compact ? 0.1 : 0.07),
                   },
                 ]}
               />
@@ -246,11 +246,6 @@ export const PlayerCard = memo(function PlayerCard({ data }: PlayerCardProps) {
         </View>
       </Animated.View>
 
-      {showHint ? (
-        <ThemedText style={[styles.hintText, { color: withAlpha(colors.muted, 0.9) }]}>
-          Tap to flip · Hold to share
-        </ThemedText>
-      ) : null}
     </Column>
   );
 });
@@ -274,10 +269,10 @@ const styles = StyleSheet.create({
     borderColor: withAlpha('#FFFFFF', 0.24),
   },
   cardFrameCompact: {
-    minHeight: 372,
+    minHeight: 270,
   },
   cardFrameRegular: {
-    minHeight: 408,
+    minHeight: 300,
   },
   face: {
     ...StyleSheet.absoluteFillObject,
@@ -294,10 +289,5 @@ const styles = StyleSheet.create({
     width: 96,
     backgroundColor: withAlpha('#FFFFFF', 0.26),
     borderRadius: Radii.pill,
-  },
-  hintText: {
-    ...Typography.caption,
-    textAlign: 'center',
-    paddingHorizontal: Spacing.xs,
   },
 });

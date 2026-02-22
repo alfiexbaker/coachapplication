@@ -58,6 +58,12 @@ function toTierLabel(tier: CardTier): string {
   return `${tier.charAt(0).toUpperCase()}${tier.slice(1)}`;
 }
 
+/** FIFA-style 3-char abbreviation for stat chips */
+function chipAbbrev(label: string): string {
+  const firstWord = label.split(/[\s&,]+/)[0] ?? label;
+  return firstWord.slice(0, 3).toUpperCase();
+}
+
 export const PlayerCardFront = memo(function PlayerCardFront({
   data,
   tier,
@@ -71,7 +77,7 @@ export const PlayerCardFront = memo(function PlayerCardFront({
   const softText = withAlpha(textColor, 0.86);
   const badgeBackground = withAlpha(textColor, 0.2);
   const scoreBackground = withAlpha(textColor, 0.15);
-  const photoOverlayOpacity = data.latestPhotoUri ? (compact ? 0.36 : 0.3) : 0.18;
+  const photoOverlayOpacity = data.latestPhotoUri ? (compact ? 0.52 : 0.48) : 0.18;
   const shimmerX = useSharedValue(-160);
   const shimmerEnabled = tier === 'gold' || tier === 'platinum' || tier === 'diamond';
 
@@ -96,16 +102,6 @@ export const PlayerCardFront = memo(function PlayerCardFront({
 
   const positionalAttributes = data.attributes ?? [];
   const showPositionalAttributes = positionalAttributes.length === 5;
-  const cornerRows: { key: keyof PlayerCardData['corners']; icon: keyof typeof Ionicons.glyphMap; label: string }[][] = [
-    [
-      { key: 'technical', icon: 'football-outline', label: 'Technical' },
-      { key: 'physical', icon: 'fitness-outline', label: 'Physical' },
-    ],
-    [
-      { key: 'psychological', icon: 'bulb-outline', label: 'Psychological' },
-      { key: 'social', icon: 'people-outline', label: 'Social' },
-    ],
-  ];
 
   return (
     <View style={styles.face}>
@@ -136,7 +132,7 @@ export const PlayerCardFront = memo(function PlayerCardFront({
           align="center"
           justify="center"
           style={styles.heroBlock}
-          gap={compact ? 'xxs' : 'xs'}
+          gap="micro"
         >
           <View
             style={[
@@ -194,23 +190,11 @@ export const PlayerCardFront = memo(function PlayerCardFront({
                       { backgroundColor: scoreBackground },
                     ]}
                   >
-                    <Row align="center" gap="xxs" style={styles.cornerMeta}>
-                      <Ionicons
-                        name={attribute.icon as keyof typeof Ionicons.glyphMap}
-                        size={compact ? 12 : 13}
-                        color={textColor}
-                      />
-                      <ThemedText
-                        style={[
-                          styles.cornerLabel,
-                          compact ? styles.cornerLabelCompact : undefined,
-                          { color: softText },
-                        ]}
-                        numberOfLines={1}
-                      >
-                        {attribute.label}
-                      </ThemedText>
-                    </Row>
+                    <ThemedText
+                      style={[styles.chipAbbrev, { color: softText }]}
+                    >
+                      {chipAbbrev(attribute.label)}
+                    </ThemedText>
                     <View
                       style={[
                         styles.scoreBadge,
@@ -244,23 +228,11 @@ export const PlayerCardFront = memo(function PlayerCardFront({
                       { backgroundColor: scoreBackground },
                     ]}
                   >
-                    <Row align="center" gap="xxs" style={styles.cornerMeta}>
-                      <Ionicons
-                        name={attribute.icon as keyof typeof Ionicons.glyphMap}
-                        size={compact ? 12 : 13}
-                        color={textColor}
-                      />
-                      <ThemedText
-                        style={[
-                          styles.cornerLabel,
-                          compact ? styles.cornerLabelCompact : undefined,
-                          { color: softText },
-                        ]}
-                        numberOfLines={1}
-                      >
-                        {attribute.label}
-                      </ThemedText>
-                    </Row>
+                    <ThemedText
+                      style={[styles.chipAbbrev, { color: softText }]}
+                    >
+                      {chipAbbrev(attribute.label)}
+                    </ThemedText>
                     <View
                       style={[
                         styles.scoreBadge,
@@ -283,44 +255,100 @@ export const PlayerCardFront = memo(function PlayerCardFront({
               </Row>
             </>
           ) : (
-            cornerRows.map((row, rowIndex) => (
-              <Row key={`row-${rowIndex}`} align="center" gap="xxs">
-                {row.map((corner) => (
-                  <Row
-                    key={corner.key}
-                    align="center"
-                    justify="between"
+            <>
+              <Row align="center" gap="xxs">
+                <Row
+                  align="center"
+                  justify="between"
+                  style={[
+                    styles.scorePill,
+                    compact ? styles.scorePillCompact : undefined,
+                    { backgroundColor: scoreBackground },
+                  ]}
+                >
+                  <ThemedText style={[styles.chipAbbrev, { color: softText }]}>TEC</ThemedText>
+                  <View
                     style={[
-                      styles.scorePill,
-                      compact ? styles.scorePillCompact : undefined,
-                      { backgroundColor: scoreBackground },
+                      styles.scoreBadge,
+                      compact ? styles.scoreBadgeCompact : undefined,
+                      { backgroundColor: withAlpha(textColor, 0.22) },
                     ]}
                   >
-                    <Row align="center" gap="xxs" style={styles.cornerMeta}>
-                      <Ionicons name={corner.icon} size={compact ? 12 : 13} color={textColor} />
-                      <ThemedText
-                        style={[styles.cornerLabel, compact ? styles.cornerLabelCompact : undefined, { color: softText }]}
-                      >
-                        {corner.label}
-                      </ThemedText>
-                    </Row>
-                    <View
-                      style={[
-                        styles.scoreBadge,
-                        compact ? styles.scoreBadgeCompact : undefined,
-                        { backgroundColor: withAlpha(textColor, 0.22) },
-                      ]}
-                    >
-                      <ThemedText
-                        style={[styles.scoreText, compact ? styles.scoreTextCompact : undefined, { color: textColor }]}
-                      >
-                        {data.corners[corner.key]}
-                      </ThemedText>
-                    </View>
-                  </Row>
-                ))}
+                    <ThemedText style={[styles.scoreText, compact ? styles.scoreTextCompact : undefined, { color: textColor }]}>
+                      {data.corners.technical}
+                    </ThemedText>
+                  </View>
+                </Row>
+                <Row
+                  align="center"
+                  justify="between"
+                  style={[
+                    styles.scorePill,
+                    compact ? styles.scorePillCompact : undefined,
+                    { backgroundColor: scoreBackground },
+                  ]}
+                >
+                  <ThemedText style={[styles.chipAbbrev, { color: softText }]}>PHY</ThemedText>
+                  <View
+                    style={[
+                      styles.scoreBadge,
+                      compact ? styles.scoreBadgeCompact : undefined,
+                      { backgroundColor: withAlpha(textColor, 0.22) },
+                    ]}
+                  >
+                    <ThemedText style={[styles.scoreText, compact ? styles.scoreTextCompact : undefined, { color: textColor }]}>
+                      {data.corners.physical}
+                    </ThemedText>
+                  </View>
+                </Row>
               </Row>
-            ))
+              <Row align="center" gap="xxs">
+                <Row
+                  align="center"
+                  justify="between"
+                  style={[
+                    styles.scorePill,
+                    compact ? styles.scorePillCompact : undefined,
+                    { backgroundColor: scoreBackground },
+                  ]}
+                >
+                  <ThemedText style={[styles.chipAbbrev, { color: softText }]}>PSY</ThemedText>
+                  <View
+                    style={[
+                      styles.scoreBadge,
+                      compact ? styles.scoreBadgeCompact : undefined,
+                      { backgroundColor: withAlpha(textColor, 0.22) },
+                    ]}
+                  >
+                    <ThemedText style={[styles.scoreText, compact ? styles.scoreTextCompact : undefined, { color: textColor }]}>
+                      {data.corners.psychological}
+                    </ThemedText>
+                  </View>
+                </Row>
+                <Row
+                  align="center"
+                  justify="between"
+                  style={[
+                    styles.scorePill,
+                    compact ? styles.scorePillCompact : undefined,
+                    { backgroundColor: scoreBackground },
+                  ]}
+                >
+                  <ThemedText style={[styles.chipAbbrev, { color: softText }]}>SOC</ThemedText>
+                  <View
+                    style={[
+                      styles.scoreBadge,
+                      compact ? styles.scoreBadgeCompact : undefined,
+                      { backgroundColor: withAlpha(textColor, 0.22) },
+                    ]}
+                  >
+                    <ThemedText style={[styles.scoreText, compact ? styles.scoreTextCompact : undefined, { color: textColor }]}>
+                      {data.corners.social}
+                    </ThemedText>
+                  </View>
+                </Row>
+              </Row>
+            </>
           )}
         </Column>
       </Column>
@@ -345,18 +373,18 @@ const styles = StyleSheet.create({
     backgroundColor: withAlpha('#FFFFFF', 0.14),
   },
   content: {
-    paddingHorizontal: Spacing.md,
-    paddingTop: Spacing.sm,
-    paddingBottom: Spacing.md,
+    paddingHorizontal: Spacing.sm,
+    paddingTop: Spacing.xs,
+    paddingBottom: Spacing.sm,
     width: '100%',
   },
   contentCompact: {
-    paddingHorizontal: Spacing.sm,
-    paddingBottom: Spacing.sm,
+    paddingHorizontal: Spacing.xs,
+    paddingBottom: Spacing.xs,
   },
   levelBadge: {
     borderRadius: Radii.pill,
-    minHeight: 28,
+    minHeight: 26,
     paddingHorizontal: Spacing.xs,
   },
   levelBadgeText: {
@@ -370,8 +398,8 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing.xs,
   },
   avatarWrap: {
-    width: 84,
-    height: 84,
+    width: 64,
+    height: 64,
     borderRadius: Radii.pill,
     alignItems: 'center',
     justifyContent: 'center',
@@ -380,65 +408,63 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
   },
   avatarWrapCompact: {
-    width: 72,
-    height: 72,
+    width: 56,
+    height: 56,
   },
   avatarImage: {
     width: '100%',
     height: '100%',
   },
   initialsText: {
-    ...Typography.title,
+    ...Typography.subheading,
     letterSpacing: 0.4,
   },
   initialsTextCompact: {
-    ...Typography.subheading,
+    ...Typography.bodySmallSemiBold,
   },
   nameText: {
-    ...Typography.heading,
+    ...Typography.subheading,
     fontWeight: '700',
     textAlign: 'center',
     letterSpacing: 0.5,
   },
   nameTextCompact: {
     ...Typography.bodySmallSemiBold,
+    textAlign: 'center',
   },
   levelName: {
-    ...Typography.bodySmall,
+    ...Typography.caption,
     textAlign: 'center',
   },
   levelNameCompact: {
-    ...Typography.caption,
+    ...Typography.micro,
+    textAlign: 'center',
   },
   scorePill: {
     flex: 1,
     borderRadius: Radii.pill,
-    minHeight: 36,
+    minHeight: 32,
     paddingHorizontal: Spacing.xs,
   },
   scorePillCompact: {
-    minHeight: 32,
+    minHeight: 28,
   },
   scorePillPositional: {
     flex: 1,
     borderRadius: Radii.pill,
-    minHeight: 36,
+    minHeight: 32,
     paddingHorizontal: Spacing.xs,
   },
   scorePillPositionalBottom: {
     width: '48%',
     borderRadius: Radii.pill,
-    minHeight: 36,
+    minHeight: 32,
     paddingHorizontal: Spacing.xs,
   },
-  cornerMeta: {
-    flexShrink: 1,
-  },
-  cornerLabel: {
-    ...Typography.caption,
-  },
-  cornerLabelCompact: {
+  chipAbbrev: {
     ...Typography.micro,
+    fontWeight: '700',
+    letterSpacing: 0.6,
   },
   scoreText: {
     ...Typography.smallSemiBold,
@@ -447,15 +473,15 @@ const styles = StyleSheet.create({
     ...Typography.caption,
   },
   scoreBadge: {
-    minWidth: 32,
-    minHeight: 24,
+    minWidth: 30,
+    minHeight: 22,
     borderRadius: Radii.pill,
     alignItems: 'center',
     justifyContent: 'center',
     paddingHorizontal: Spacing.xxs,
   },
   scoreBadgeCompact: {
-    minWidth: 28,
-    minHeight: 20,
+    minWidth: 26,
+    minHeight: 18,
   },
 });

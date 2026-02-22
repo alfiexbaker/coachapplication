@@ -1,5 +1,5 @@
-import { createContext, useContext, useMemo, useState } from 'react';
-import { ColorSchemeName } from 'react-native';
+import { createContext, useContext, useEffect, useMemo, useState } from 'react';
+import { Platform, useColorScheme, type ColorSchemeName } from 'react-native';
 
 export type ThemeContextValue = {
   colorScheme: NonNullable<ColorSchemeName>;
@@ -10,18 +10,52 @@ export type ThemeContextValue = {
 
 const ThemeContext = createContext<ThemeContextValue | undefined>(undefined);
 
+function useSystemScheme(): NonNullable<ColorSchemeName> {
+  const rnScheme = useColorScheme();
+
+  // On web, also listen to prefers-color-scheme media query
+  const [webScheme, setWebScheme] = useState<NonNullable<ColorSchemeName>>(() => {
+    if (Platform.OS === 'web' && typeof window !== 'undefined') {
+      return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+    }
+    return rnScheme ?? 'light';
+  });
+
+  useEffect(() => {
+    if (Platform.OS !== 'web' || typeof window === 'undefined') {
+      return;
+    }
+    const mq = window.matchMedia('(prefers-color-scheme: dark)');
+    const handler = (e: MediaQueryListEvent) => {
+      setWebScheme(e.matches ? 'dark' : 'light');
+    };
+    mq.addEventListener('change', handler);
+    return () => mq.removeEventListener('change', handler);
+  }, []);
+
+  if (Platform.OS === 'web') {
+    return webScheme;
+  }
+  return rnScheme ?? 'light';
+}
+
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
-  const [colorScheme, setColorScheme] = useState<NonNullable<ColorSchemeName>>('light');
-  const systemScheme: NonNullable<ColorSchemeName> = 'light';
+  const systemScheme = useSystemScheme();
+  const [override, setOverride] = useState<NonNullable<ColorSchemeName> | null>(null);
+  const colorScheme = override ?? systemScheme;
 
   const value = useMemo(
     () => ({
       colorScheme,
       systemScheme,
-      toggleColorScheme: () => setColorScheme('light'),
-      setColorScheme: (scheme: NonNullable<ColorSchemeName>) => setColorScheme(scheme === 'dark' ? 'light' : scheme),
+      toggleColorScheme: () =>
+        setOverride((prev) => {
+          const current = prev ?? systemScheme;
+          return current === 'dark' ? 'light' : 'dark';
+        }),
+      setColorScheme: (scheme: NonNullable<ColorSchemeName>) => setOverride(scheme),
     }),
-    [colorScheme, systemScheme]
+    [colorScheme, systemScheme],
   );
 
   return <ThemeContext.Provider value={value}>{children}</ThemeContext.Provider>;

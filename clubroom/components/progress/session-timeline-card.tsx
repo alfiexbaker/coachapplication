@@ -1,15 +1,13 @@
 import { memo } from 'react';
-import { StyleSheet } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
 import { Column } from '@/components/primitives/column';
 import { Row } from '@/components/primitives/row';
-import { SurfaceCard } from '@/components/primitives/surface-card';
 import { ThemedText } from '@/components/themed-text';
 import { Radii, Spacing, Typography, withAlpha } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
 import type { PastSession, PastSessionDelta } from '@/types/progress-types';
-import { CornerDotsCompact } from './corner-dots-compact';
 import { CoachBadge } from './coach-badge';
 import { MediaStrip } from './media-strip';
 
@@ -31,11 +29,27 @@ function formatSessionDate(dateString: string): string {
   });
 }
 
-function formatDelta(value: number): string {
-  if (value > 0) {
-    return `+${value}`;
+function buildDeltaSummary(delta: PastSessionDelta | null | undefined): string | null {
+  if (!delta) {
+    return null;
   }
-  return `${value}`;
+  const improvements: string[] = [];
+  const allValues = [
+    { key: 'performance', value: delta.performance },
+    { key: 'technical', value: delta.technical },
+    { key: 'physical', value: delta.physical },
+    { key: 'psychological', value: delta.psychological },
+    { key: 'social', value: delta.social },
+  ];
+  for (const item of allValues) {
+    if (typeof item.value === 'number' && item.value > 0) {
+      improvements.push(item.key);
+    }
+  }
+  if (improvements.length === 0) {
+    return null;
+  }
+  return `${improvements.length} area${improvements.length > 1 ? 's' : ''} improved`;
 }
 
 export const SessionTimelineCard = memo(function SessionTimelineCard({
@@ -45,39 +59,20 @@ export const SessionTimelineCard = memo(function SessionTimelineCard({
 }: SessionTimelineCardProps) {
   const { colors } = useTheme();
   const hasMedia = session.photos.length > 0 || Boolean(session.video);
-  const deltaItems = [
-    typeof deltaFromPrevious?.performance === 'number'
-      ? `Perf ${formatDelta(deltaFromPrevious.performance)}`
-      : null,
-    typeof deltaFromPrevious?.technical === 'number'
-      ? `Tech ${formatDelta(deltaFromPrevious.technical)}`
-      : null,
-    typeof deltaFromPrevious?.physical === 'number'
-      ? `Phys ${formatDelta(deltaFromPrevious.physical)}`
-      : null,
-    typeof deltaFromPrevious?.psychological === 'number'
-      ? `Psych ${formatDelta(deltaFromPrevious.psychological)}`
-      : null,
-    typeof deltaFromPrevious?.social === 'number'
-      ? `Soc ${formatDelta(deltaFromPrevious.social)}`
-      : null,
-  ].filter((item): item is string => Boolean(item));
-  const visibleDeltaText = deltaItems.slice(0, 3).join(' · ');
+  const deltaSummary = buildDeltaSummary(deltaFromPrevious);
 
   return (
-    <SurfaceCard style={styles.card}>
-      <Column gap="sm">
-        <Row align="center" justify="between">
-          <ThemedText style={styles.headerTitle}>
-            {formatSessionDate(session.date)} · {session.coachName}
-          </ThemedText>
-        </Row>
+    <View style={styles.card}>
+      <Column gap="xs">
+        <ThemedText style={styles.headerTitle}>
+          {formatSessionDate(session.date)} · {session.coachName}
+        </ThemedText>
 
-        {visibleDeltaText ? (
+        {deltaSummary ? (
           <Row align="center" gap="xxs">
-            <Ionicons name="analytics-outline" size={13} color={colors.info} />
-            <ThemedText style={[styles.deltaText, { color: colors.muted }]}>
-              vs previous: {visibleDeltaText}
+            <Ionicons name="trending-up" size={12} color={colors.success} />
+            <ThemedText style={[styles.deltaText, { color: colors.success }]}>
+              {deltaSummary}
             </ThemedText>
           </Row>
         ) : null}
@@ -98,67 +93,70 @@ export const SessionTimelineCard = memo(function SessionTimelineCard({
           />
         ) : null}
 
-        <CornerDotsCompact corners={session.corners} effort={session.effort} />
+        {/* Session performance — single star rating, not a data dump */}
+        {session.performance > 0 ? (
+          <Row align="center" gap="xxs">
+            <Ionicons name="star" size={13} color={colors.warning} />
+            <ThemedText style={[styles.performanceText, { color: colors.text }]}>
+              {session.performance}/5 session
+            </ThemedText>
+          </Row>
+        ) : null}
 
         {session.summary ? (
-          <ThemedText style={styles.summary}>
-            &ldquo;{session.summary}&rdquo;
+          <ThemedText style={[styles.summary, { color: colors.muted }]} numberOfLines={2}>
+            {session.summary}
           </ThemedText>
         ) : null}
 
-        <Row align="center" justify="between">
-          {session.performance > 0 ? (
-            <Row align="center" gap="xxs">
-              <Ionicons name="star" size={14} color={colors.warning} />
-              <ThemedText style={styles.ratingText}>Performance {session.performance}/5</ThemedText>
-            </Row>
-          ) : null}
-
-          {session.badgeAwarded ? (
-            <Row
-              align="center"
-              gap="xxs"
-              style={[
-                styles.badgeChip,
-                {
-                  borderColor: withAlpha(colors.tint, 0.28),
-                  backgroundColor: withAlpha(colors.tint, 0.1),
-                },
-              ]}
-            >
-              <Ionicons name="ribbon-outline" size={12} color={colors.tint} />
-              <ThemedText style={[styles.badgeText, { color: colors.tint }]}>
-                {session.badgeAwarded.label}
-              </ThemedText>
-            </Row>
-          ) : null}
-        </Row>
+        {session.badgeAwarded ? (
+          <Row
+            align="center"
+            gap="xxs"
+            style={[
+              styles.badgeChip,
+              {
+                borderColor: withAlpha(colors.tint, 0.28),
+                backgroundColor: withAlpha(colors.tint, 0.1),
+              },
+            ]}
+          >
+            <Ionicons name="ribbon-outline" size={12} color={colors.tint} />
+            <ThemedText style={[styles.badgeText, { color: colors.tint }]}>
+              {session.badgeAwarded.label}
+            </ThemedText>
+          </Row>
+        ) : null}
       </Column>
-    </SurfaceCard>
+    </View>
   );
 });
 
 const styles = StyleSheet.create({
   card: {
-    gap: Spacing.sm,
+    gap: Spacing.xs,
   },
   headerTitle: {
     ...Typography.bodySmallSemiBold,
   },
   summary: {
-    ...Typography.bodySmall,
+    ...Typography.caption,
+    lineHeight: 18,
   },
   deltaText: {
     ...Typography.caption,
+    fontWeight: '600',
   },
-  ratingText: {
-    ...Typography.bodySmall,
+  performanceText: {
+    ...Typography.caption,
+    fontWeight: '600',
   },
   badgeChip: {
-    minHeight: 28,
+    minHeight: 24,
     borderWidth: 1,
     borderRadius: Radii.pill,
     paddingHorizontal: Spacing.xs,
+    alignSelf: 'flex-start',
   },
   badgeText: {
     ...Typography.caption,

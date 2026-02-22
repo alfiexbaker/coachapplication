@@ -83,7 +83,7 @@ export const PastSessionsTimeline = memo(function PastSessionsTimeline({
               ]}
             />
 
-            <Column gap="sm" style={styles.timelineCards}>
+            <Column gap="xxs" style={styles.timelineCards}>
               {visibleSessions.map((session, index) => {
                 const dotColor = performanceToColor(session.performance, colors);
 
@@ -116,6 +116,14 @@ export const PastSessionsTimeline = memo(function PastSessionsTimeline({
                           deltaFromPrevious={buildDelta(session, visibleSessions[index + 1])}
                           onOpenMediaGallery={onOpenMediaGallery}
                         />
+                        {index < visibleSessions.length - 1 ? (
+                          <View
+                            style={[
+                              styles.sessionDivider,
+                              { backgroundColor: withAlpha(colors.border, 0.35) },
+                            ]}
+                          />
+                        ) : null}
                       </View>
                     </Row>
                   </Animated.View>
@@ -187,6 +195,10 @@ const styles = StyleSheet.create({
   sessionCardWrap: {
     flex: 1,
     marginLeft: Spacing.xs,
+  },
+  sessionDivider: {
+    height: StyleSheet.hairlineWidth,
+    marginTop: Spacing.sm,
   },
   viewOlderButton: {
     minHeight: 44,

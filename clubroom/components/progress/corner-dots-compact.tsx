@@ -6,7 +6,6 @@ import { Column } from '@/components/primitives/column';
 import { Row } from '@/components/primitives/row';
 import { ThemedText } from '@/components/themed-text';
 import { POSITION_LABELS } from '@/constants/position-skills';
-import { CORNER_COLORS } from '@/constants/four-corner-mapping';
 import { Radii, Spacing, Typography, withAlpha } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
 import type { FourCornerRatings, PositionRole } from '@/types/progress-types';
@@ -78,17 +77,17 @@ export const CornerDotsCompact = memo(function CornerDotsCompact({
               style={[
                 styles.badge,
                 {
-                  borderColor: withAlpha(CORNER_COLORS[entry.key], 0.3),
-                  backgroundColor: withAlpha(CORNER_COLORS[entry.key], 0.08),
+                  borderColor: withAlpha(colors.border, 0.5),
+                  backgroundColor: withAlpha(colors.background, 0.5),
                 },
               ]}
             >
               <Ionicons
                 name={entry.icon as ComponentProps<typeof Ionicons>['name']}
                 size={12}
-                color={CORNER_COLORS[entry.key]}
+                color={colors.muted}
               />
-              <ThemedText style={styles.badgeText}>
+              <ThemedText style={[styles.badgeText, { color: colors.text }]}>
                 {entry.label} {entry.value}/5
               </ThemedText>
             </Row>

@@ -1,8 +1,5 @@
 import { memo, useEffect, useMemo, useState } from 'react';
 import { StyleSheet, View, useWindowDimensions } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
-import { BlurView } from 'expo-blur';
-import { LinearGradient } from 'expo-linear-gradient';
 import Svg, {
   Circle,
   Defs,
@@ -15,7 +12,6 @@ import Svg, {
 } from 'react-native-svg';
 
 import { Center } from '@/components/primitives/center';
-import { Clickable } from '@/components/primitives/clickable';
 import { Column } from '@/components/primitives/column';
 import { Row } from '@/components/primitives/row';
 import { ThemedText } from '@/components/themed-text';
@@ -64,13 +60,6 @@ function scalePoint(center: Point, edge: Point, value: number): Point {
   };
 }
 
-function projectPoint(center: Point, edge: Point, factor: number): Point {
-  return {
-    x: center.x + (edge.x - center.x) * factor,
-    y: center.y + (edge.y - center.y) * factor,
-  };
-}
-
 function interpolateValues(
   from: Record<string, number>,
   to: Record<string, number>,
@@ -85,14 +74,13 @@ function interpolateValues(
 
 export const PositionPentagon = memo(function PositionPentagon({
   data,
-  isParentView = false,
   velocityHighlight = null,
 }: PositionPentagonProps) {
   const { colors } = useTheme();
   const { width } = useWindowDimensions();
   const compact = width <= 390;
-  const size = compact ? 248 : 292;
-  const padding = compact ? 44 : 52;
+  const size = compact ? 280 : 320;
+  const padding = compact ? 60 : 68;
   const center = useMemo<Point>(() => ({ x: size / 2, y: size / 2 }), [size]);
   const radius = size / 2 - padding;
   const baseVertices = useMemo(
@@ -104,7 +92,6 @@ export const PositionPentagon = memo(function PositionPentagon({
     () => `position-pentagon-${data.position.toLowerCase()}-${compact ? 'compact' : 'regular'}`,
     [compact, data.position],
   );
-  const [selectedKey, setSelectedKey] = useState<string | null>(null);
 
   const currentValues = useMemo(
     () =>
@@ -199,17 +186,6 @@ export const PositionPentagon = memo(function PositionPentagon({
     );
   }, [baseVertices, center, comparisonValues, data.attributes]);
 
-  const orderedAttributes = data.attributes;
-  const orderedByStrength = useMemo(
-    () =>
-      [...data.attributes].sort((left, right) => {
-        if (right.rating !== left.rating) {
-          return right.rating - left.rating;
-        }
-        return right.value - left.value;
-      }),
-    [data.attributes],
-  );
   const averageRating = useMemo(
     () =>
       data.attributes.length > 0
@@ -225,127 +201,36 @@ export const PositionPentagon = memo(function PositionPentagon({
     () => data.sessionSnapshots.filter((snapshot) => snapshot.id !== 'current').length,
     [data.sessionSnapshots],
   );
-  const topAttribute = orderedByStrength[0] ?? null;
-  const [showAllAttributes, setShowAllAttributes] = useState(false);
-  const selectedAttribute = selectedKey
-    ? data.attributes.find((attribute) => attribute.key === selectedKey) ?? null
-    : null;
-
-  useEffect(() => {
-    const fallbackKey = topAttribute?.key ?? data.attributes[0]?.key ?? null;
-    if (!fallbackKey) {
-      if (selectedKey !== null) {
-        setSelectedKey(null);
-      }
-      return;
-    }
-    const selectedStillExists = selectedKey
-      ? data.attributes.some((attribute) => attribute.key === selectedKey)
-      : false;
-    if (!selectedStillExists && selectedKey !== fallbackKey) {
-      setSelectedKey(fallbackKey);
-    }
-  }, [data.attributes, selectedKey, topAttribute]);
-
-  useEffect(() => {
-    setShowAllAttributes(false);
-  }, [data.position]);
-
-  const visibleAttributes = showAllAttributes ? orderedAttributes : orderedAttributes.slice(0, 3);
 
   return (
     <View
       style={[
         styles.card,
         {
-          borderColor: withAlpha(colors.border, 0.5),
-          backgroundColor: withAlpha(colors.surface, 0.66),
+          borderColor: withAlpha(colors.border, 0.65),
+          backgroundColor: withAlpha(colors.surface, 0.92),
         },
       ]}
     >
-      <BlurView
-        tint="systemThinMaterial"
-        intensity={30}
-        experimentalBlurMethod="dimezisBlurView"
-        style={StyleSheet.absoluteFill}
-      />
-      <LinearGradient
-        pointerEvents="none"
-        colors={[
-          withAlpha(colors.tint, 0.08),
-          withAlpha(colors.tint, 0.025),
-          'transparent',
-        ]}
-        start={{ x: 0.5, y: 0 }}
-        end={{ x: 0.5, y: 1 }}
-        style={styles.heroGradient}
-      />
+      <Column gap="xxs">
+        <ThemedText style={styles.title}>
+          {POSITION_LABELS[data.position]} Profile
+        </ThemedText>
 
-      <Column gap="sm">
-        <Column gap="micro">
-          <ThemedText style={styles.title}>
-            {POSITION_LABELS[data.position]} Skill Pentagon
+        <Row align="baseline" gap="xxs" style={styles.heroRow}>
+          <ThemedText style={styles.heroNumber}>{averageRating.toFixed(1)}</ThemedText>
+          <ThemedText style={[styles.heroUnit, { color: colors.muted }]}>/5 avg</ThemedText>
+          <View style={[styles.heroDot, { backgroundColor: withAlpha(colors.muted, 0.4) }]} />
+          <ThemedText style={[styles.heroMeta, { color: colors.muted }]}>
+            {improvingCount} improving
           </ThemedText>
-          <ThemedText style={[styles.subtitle, { color: colors.muted }]}>
-            {isParentView ? 'Five position-specific skills' : 'Shape of this role right now'}
+          <View style={[styles.heroDot, { backgroundColor: withAlpha(colors.muted, 0.4) }]} />
+          <ThemedText style={[styles.heroMeta, { color: colors.muted }]}>
+            {sessionCount} sessions
           </ThemedText>
-          <Row gap="xxs" wrap>
-            <View
-              style={[
-                styles.metricChip,
-                {
-                  borderColor: withAlpha(colors.border, 0.72),
-                  backgroundColor: withAlpha(colors.background, 0.58),
-                },
-              ]}
-            >
-              <ThemedText style={[styles.metricLabel, { color: colors.muted }]}>Avg</ThemedText>
-              <ThemedText style={styles.metricValue}>{averageRating.toFixed(1)}/5</ThemedText>
-            </View>
-            <View
-              style={[
-                styles.metricChip,
-                {
-                  borderColor: withAlpha(colors.border, 0.72),
-                  backgroundColor: withAlpha(colors.background, 0.58),
-                },
-              ]}
-            >
-              <ThemedText style={[styles.metricLabel, { color: colors.muted }]}>Improving</ThemedText>
-              <ThemedText style={styles.metricValue}>{improvingCount}/5</ThemedText>
-            </View>
-            <View
-              style={[
-                styles.metricChip,
-                {
-                  borderColor: withAlpha(colors.border, 0.72),
-                  backgroundColor: withAlpha(colors.background, 0.58),
-                },
-              ]}
-            >
-              <ThemedText style={[styles.metricLabel, { color: colors.muted }]}>Sessions</ThemedText>
-              <ThemedText style={styles.metricValue}>{sessionCount}</ThemedText>
-            </View>
-          </Row>
-          {topAttribute ? (
-            <ThemedText style={[styles.comparisonMeta, { color: colors.muted }]}>
-              Top skill: {topAttribute.label} ({topAttribute.rating}/5)
-            </ThemedText>
-          ) : null}
-          {data.comparisonLabel ? (
-            <ThemedText style={[styles.comparisonMeta, { color: colors.muted }]}>
-              Comparison: 4w ago ({data.comparisonLabel}) vs now
-            </ThemedText>
-          ) : null}
-          {velocityHighlight ? (
-            <ThemedText style={[styles.comparisonMeta, { color: colors.muted }]}>
-              Fastest improving: {velocityHighlight.skill} +{velocityHighlight.delta} in{' '}
-              {velocityHighlight.weeks}w
-            </ThemedText>
-          ) : null}
-        </Column>
+        </Row>
 
-        <Center style={styles.chartWrap}>
+        <Center>
           <Svg width={size} height={size} viewBox={`0 0 ${size} ${size}`}>
             <Defs>
               <RadialGradient id={gradientId} cx="50%" cy="42%" r="72%">
@@ -405,6 +290,13 @@ export const PositionPentagon = memo(function PositionPentagon({
 
             {data.attributes.map((attribute, index) => {
               const point = currentPoints[index];
+              const vertex = baseVertices[index];
+              const labelOffset = compact ? 20 : 24;
+              const dx = vertex.x - center.x;
+              const dy = vertex.y - center.y;
+              const dist = Math.sqrt(dx * dx + dy * dy);
+              const labelX = vertex.x + (dx / dist) * labelOffset;
+              const labelY = vertex.y + (dy / dist) * labelOffset;
               return (
                 <G key={`dot-${attribute.key}`}>
                   <Circle
@@ -421,31 +313,16 @@ export const PositionPentagon = memo(function PositionPentagon({
                     stroke={withAlpha(colors.background, 0.9)}
                     strokeWidth={1.8}
                   />
-                </G>
-              );
-            })}
-
-            {data.attributes.map((attribute, index) => {
-              const marker = projectPoint(center, baseVertices[index], 1.08);
-              return (
-                <G key={`axis-number-${attribute.key}`}>
-                  <Circle
-                    cx={marker.x}
-                    cy={marker.y}
-                    r={8}
-                    fill={withAlpha(colors.background, 0.9)}
-                    stroke={withAlpha(colors.border, 0.7)}
-                    strokeWidth={1.2}
-                  />
                   <SvgText
-                    x={marker.x}
-                    y={marker.y + 3}
-                    textAnchor="middle"
+                    x={labelX}
+                    y={labelY}
+                    fontSize={compact ? 10 : 11}
+                    fontWeight="600"
                     fill={withAlpha(colors.text, 0.78)}
-                    fontSize={9}
-                    fontWeight="700"
+                    textAnchor="middle"
+                    alignmentBaseline="central"
                   >
-                    {String(index + 1)}
+                    {attribute.label}
                   </SvgText>
                 </G>
               );
@@ -466,185 +343,56 @@ export const PositionPentagon = memo(function PositionPentagon({
                     { borderColor: withAlpha(colors.muted, 0.7) },
                   ]}
                 />
-                <ThemedText style={[styles.legendText, { color: colors.muted }]}>
-                  {data.comparisonLabel ? `4w ago (${data.comparisonLabel})` : '4w ago'}
-                </ThemedText>
+                <ThemedText style={[styles.legendText, { color: colors.muted }]}>4w ago</ThemedText>
               </>
             ) : null}
           </Row>
           {data.sessionSnapshots.length > 1 ? (
-            <ThemedText style={[styles.sessionMorphMeta, { color: colors.muted }]}>
-              Now: {data.sessionSnapshots[activeSnapshotIndex]?.label ?? 'Now'}
+            <ThemedText style={[styles.legendText, { color: colors.muted }]}>
+              {data.sessionSnapshots[activeSnapshotIndex]?.label ?? 'Now'}
             </ThemedText>
           ) : null}
         </Row>
 
-        <Column gap="xs">
-          {visibleAttributes.map((attribute, index) => {
-            const selected = selectedKey === attribute.key;
-            return (
-              <Clickable
-                key={attribute.key}
-                style={[
-                  styles.attributeRow,
-                  {
-                    borderColor: selected
-                      ? withAlpha(colors.tint, 0.42)
-                      : withAlpha(colors.border, 0.75),
-                    backgroundColor: selected
-                      ? withAlpha(colors.surface, 0.72)
-                      : withAlpha(colors.background, 0.58),
-                    borderLeftColor: withAlpha(attribute.color, selected ? 0.8 : 0.55),
-                  },
-                ]}
-                onPress={() =>
-                  setSelectedKey((previous) =>
-                    previous === attribute.key ? null : attribute.key,
-                  )
-                }
-                accessibilityRole="button"
-                accessibilityLabel={`${attribute.label} details`}
-              >
-                <Row align="center" justify="between" gap="xs">
-                  <Row align="center" gap="xxs" style={styles.attributeLeft}>
-                    <View
-                      style={[
-                        styles.indexChip,
-                        {
-                          borderColor: withAlpha(colors.border, 0.7),
-                          backgroundColor: withAlpha(colors.background, 0.76),
-                        },
-                      ]}
-                    >
-                      <ThemedText style={[styles.indexChipText, { color: colors.text }]}>
-                        {String(index + 1)}
-                      </ThemedText>
-                    </View>
-                    <View style={[styles.iconChip, { backgroundColor: withAlpha(colors.border, 0.34) }]}>
-                      <Ionicons
-                        name={(attribute.icon as keyof typeof Ionicons.glyphMap) ?? 'ellipse-outline'}
-                        size={13}
-                        color={withAlpha(colors.text, 0.76)}
-                      />
-                    </View>
-                    <ThemedText style={styles.attributeLabel} numberOfLines={1}>
-                      {attribute.label}
-                    </ThemedText>
-                  </Row>
-                  <Row align="center" gap="xs" style={styles.attributeRight}>
-                    <View
-                      style={[
-                        styles.pointsPill,
-                        {
-                          borderColor: withAlpha(attribute.color, 0.4),
-                          backgroundColor: withAlpha(colors.background, 0.7),
-                        },
-                      ]}
-                    >
-                      <ThemedText style={[styles.pointsPillText, { color: colors.text }]}>
-                        {attribute.rating}/5
-                      </ThemedText>
-                    </View>
+        <Column gap="xxs">
+          {data.attributes.map((attribute) => (
+            <View
+              key={attribute.key}
+              style={[
+                styles.skillRow,
+                {
+                  borderLeftColor: withAlpha(attribute.color, 0.65),
+                  backgroundColor: withAlpha(colors.background, 0.5),
+                },
+              ]}
+              accessibilityLabel={`${attribute.label}: ${attribute.rating} out of 5${attribute.trend === 'improving' ? ', improving' : ''}`}
+            >
+              <Row align="center" justify="between">
+                <ThemedText style={styles.skillName} numberOfLines={1}>
+                  {attribute.label}
+                </ThemedText>
+                <Row align="center" gap="xs">
+                  <ThemedText style={styles.skillRating}>{attribute.rating}/5</ThemedText>
+                  {attribute.trend === 'improving' ? (
                     <View
                       style={[
                         styles.trendDot,
-                        {
-                          backgroundColor:
-                            attribute.trend === 'improving'
-                              ? withAlpha(colors.success, 0.82)
-                              : withAlpha(colors.border, 0.72),
-                          borderColor: withAlpha(colors.background, 0.84),
-                        },
+                        { backgroundColor: withAlpha(colors.success, 0.82) },
                       ]}
                     />
-                  </Row>
+                  ) : null}
                 </Row>
-                <Row align="center" gap="xxs" style={styles.segmentRow}>
-                  {Array.from({ length: 5 }).map((_, index) => (
-                    <View
-                      key={`${attribute.key}_segment_${index}`}
-                      style={[
-                        styles.segment,
-                        {
-                          backgroundColor:
-                            index < attribute.rating
-                              ? withAlpha(attribute.color, 0.78)
-                              : withAlpha(colors.border, 0.4),
-                        },
-                      ]}
-                    />
-                  ))}
-                </Row>
-                <ThemedText style={[styles.attributeMeta, { color: colors.muted }]} numberOfLines={1}>
-                  {attribute.ratingLabel}
-                </ThemedText>
-              </Clickable>
-            );
-          })}
-          {orderedAttributes.length > 3 ? (
-            <Clickable
-              style={[
-                styles.expandButton,
-                {
-                  borderColor: withAlpha(colors.border, 0.72),
-                  backgroundColor: withAlpha(colors.background, 0.56),
-                },
-              ]}
-              onPress={() => setShowAllAttributes((previous) => !previous)}
-              accessibilityRole="button"
-              accessibilityLabel={showAllAttributes ? 'Show fewer skill rows' : 'Show all skill rows'}
-            >
-              <Row align="center" justify="center" gap="xxs">
-                <ThemedText style={[styles.expandButtonText, { color: colors.text }]}>
-                  {showAllAttributes ? 'Show top 3 skills' : `Show all ${orderedAttributes.length} skills`}
-                </ThemedText>
-                <Ionicons
-                  name={showAllAttributes ? 'chevron-up' : 'chevron-down'}
-                  size={14}
-                  color={colors.muted}
-                />
               </Row>
-            </Clickable>
-          ) : null}
+            </View>
+          ))}
         </Column>
 
-        {selectedAttribute ? (
-          <View
-            style={[
-              styles.detailPanel,
-              {
-                borderColor: withAlpha(colors.border, 0.8),
-                backgroundColor: withAlpha(colors.background, 0.75),
-              },
-            ]}
-          >
-            <Row align="center" justify="between">
-              <ThemedText style={styles.detailTitle}>{selectedAttribute.label}</ThemedText>
-              <Row align="center" gap="xxs">
-                <View
-                  style={[
-                    styles.trendDot,
-                    {
-                      backgroundColor:
-                        selectedAttribute.trend === 'improving'
-                          ? withAlpha(colors.success, 0.82)
-                          : withAlpha(colors.border, 0.72),
-                      borderColor: withAlpha(colors.background, 0.84),
-                    },
-                  ]}
-                />
-                <ThemedText style={[styles.detailMeta, { color: colors.muted }]}>
-                  {selectedAttribute.trend === 'improving' ? 'Improving' : 'Consistent'}
-                </ThemedText>
-              </Row>
-            </Row>
-            <ThemedText style={[styles.detailMeta, { color: colors.muted }]}>
-              Current: {selectedAttribute.ratingLabel} ({selectedAttribute.rating}/5)
+        {velocityHighlight ? (
+          <Row align="center" gap="xxs" style={styles.velocityRow}>
+            <ThemedText style={[styles.velocityText, { color: colors.success }]}>
+              Fastest: {velocityHighlight.skill} +{velocityHighlight.delta} in {velocityHighlight.weeks}w
             </ThemedText>
-            <ThemedText style={[styles.detailMeta, { color: colors.muted }]}>
-              Change vs 4w: {data.deltas[selectedAttribute.key] ?? 0}
-            </ThemedText>
-          </View>
+          </Row>
         ) : null}
       </Column>
     </View>
@@ -655,43 +403,33 @@ const styles = StyleSheet.create({
   card: {
     borderRadius: Radii.lg,
     borderWidth: 1,
-    padding: Spacing.md,
+    padding: Spacing.sm,
     overflow: 'hidden',
-    gap: Spacing.sm,
-  },
-  heroGradient: {
-    ...StyleSheet.absoluteFillObject,
   },
   title: {
     ...Typography.subheading,
     fontWeight: '700',
   },
-  subtitle: {
+  heroRow: {
+    flexWrap: 'wrap',
+  },
+  heroNumber: {
+    fontSize: 28,
+    fontWeight: '800',
+    lineHeight: 34,
+  },
+  heroUnit: {
+    ...Typography.bodySmall,
+    fontWeight: '600',
+  },
+  heroDot: {
+    width: 3,
+    height: 3,
+    borderRadius: 2,
+    marginHorizontal: 2,
+  },
+  heroMeta: {
     ...Typography.caption,
-  },
-  metricChip: {
-    minHeight: 40,
-    minWidth: 88,
-    borderWidth: 1,
-    borderRadius: Radii.md,
-    paddingHorizontal: Spacing.xs,
-    paddingVertical: Spacing.xxs,
-    justifyContent: 'center',
-    gap: 2,
-  },
-  metricLabel: {
-    ...Typography.micro,
-    letterSpacing: 0.2,
-  },
-  metricValue: {
-    ...Typography.bodySmallSemiBold,
-  },
-  comparisonMeta: {
-    ...Typography.caption,
-  },
-  chartWrap: {
-    paddingTop: Spacing.xxs,
-    paddingBottom: Spacing.micro,
   },
   legendSwatch: {
     width: 14,
@@ -705,101 +443,34 @@ const styles = StyleSheet.create({
   legendText: {
     ...Typography.caption,
   },
-  sessionMorphMeta: {
-    ...Typography.caption,
-  },
-  attributeRow: {
-    borderWidth: 1,
+  skillRow: {
     borderLeftWidth: 3,
-    borderRadius: Radii.md,
-    minHeight: 68,
+    borderRadius: Radii.sm,
     paddingHorizontal: Spacing.xs,
-    paddingVertical: Spacing.xxs,
-    gap: Spacing.xxs,
+    paddingVertical: Spacing.xs,
+    minHeight: 40,
     justifyContent: 'center',
   },
-  attributeLeft: {
+  skillName: {
+    ...Typography.bodySmall,
+    fontWeight: '600',
     flex: 1,
     minWidth: 0,
   },
-  indexChip: {
-    width: 20,
-    height: 20,
-    borderRadius: Radii.pill,
-    borderWidth: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  indexChipText: {
-    ...Typography.micro,
-    fontWeight: '700',
-  },
-  attributeRight: {
-    flexShrink: 1,
-  },
-  iconChip: {
-    width: 22,
-    height: 22,
-    borderRadius: Radii.pill,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  attributeLabel: {
-    ...Typography.caption,
-    fontWeight: '700',
-    flexShrink: 1,
-  },
-  attributeMeta: {
-    ...Typography.micro,
-    letterSpacing: 0.1,
-  },
-  pointsPill: {
-    minWidth: 42,
-    minHeight: 22,
-    borderWidth: 1,
-    borderRadius: Radii.pill,
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingHorizontal: Spacing.xxs,
-  },
-  pointsPillText: {
-    ...Typography.micro,
+  skillRating: {
+    ...Typography.bodySmall,
     fontWeight: '700',
   },
   trendDot: {
-    width: 10,
-    height: 10,
-    borderRadius: Radii.pill,
-    borderWidth: 1.5,
-  },
-  segmentRow: {
-    width: '100%',
-  },
-  segment: {
-    flex: 1,
-    height: 6,
+    width: 8,
+    height: 8,
     borderRadius: Radii.pill,
   },
-  expandButton: {
-    minHeight: 40,
-    borderWidth: 1,
-    borderRadius: Radii.md,
-    paddingHorizontal: Spacing.sm,
-    justifyContent: 'center',
+  velocityRow: {
+    paddingTop: Spacing.xxs,
   },
-  expandButtonText: {
-    ...Typography.bodySmallSemiBold,
-  },
-  detailPanel: {
-    borderWidth: 1,
-    borderRadius: Radii.md,
-    padding: Spacing.sm,
-    gap: Spacing.xxs,
-  },
-  detailTitle: {
-    ...Typography.bodySmallSemiBold,
-  },
-  detailMeta: {
+  velocityText: {
     ...Typography.caption,
+    fontWeight: '600',
   },
 });

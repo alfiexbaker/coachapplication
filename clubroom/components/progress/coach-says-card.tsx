@@ -4,7 +4,6 @@ import { Ionicons } from '@expo/vector-icons';
 import Animated, {
   useAnimatedStyle,
   useSharedValue,
-  withDelay,
   withTiming,
   FadeInDown,
   FadeOutUp,
@@ -25,7 +24,6 @@ import { CornerDotsCompact } from './corner-dots-compact';
 import { MediaStrip } from './media-strip';
 import { CORNER_COLORS } from '@/constants/four-corner-mapping';
 import { POSITION_LABELS, getParentGroup, mapSkillToCorner } from '@/constants/position-skills';
-import { getSkillLabel } from './skill-level-helpers';
 
 interface HomeworkData {
   homework: string;
@@ -82,7 +80,6 @@ export const CoachSaysCard = memo(function CoachSaysCard({
   const { colors } = useTheme();
   const quoteOpacity = useSharedValue(0);
   const quoteLift = useSharedValue(10);
-  const coachOpacity = useSharedValue(0);
   const [homeworkExpanded, setHomeworkExpanded] = useState(false);
 
   useEffect(() => {
@@ -91,24 +88,19 @@ export const CoachSaysCard = memo(function CoachSaysCard({
     }
     quoteOpacity.value = 0;
     quoteLift.value = 10;
-    coachOpacity.value = 0;
     quoteOpacity.value = withTiming(1, { duration: 220 });
     quoteLift.value = withTiming(0, { duration: 220 });
-    coachOpacity.value = withDelay(120, withTiming(1, { duration: 200 }));
-  }, [coachOpacity, feedback?.id, quoteLift, quoteOpacity]);
+  }, [feedback?.id, quoteLift, quoteOpacity]);
 
   const quoteStyle = useAnimatedStyle(() => ({
     opacity: quoteOpacity.value,
     transform: [{ translateY: quoteLift.value }],
   }));
 
-  const coachMetaStyle = useAnimatedStyle(() => ({
-    opacity: coachOpacity.value,
-  }));
-
   const toggleHomework = useCallback(() => {
     setHomeworkExpanded((prev) => !prev);
   }, []);
+
   const trimmedImprovements = feedback?.improvements?.trim() ?? '';
   const trimmedTemplate = feedback?.sessionTemplateName?.trim() ?? '';
   const trimmedSessionTitle = feedback?.sessionTitle?.trim() ?? '';
@@ -133,24 +125,6 @@ export const CoachSaysCard = memo(function CoachSaysCard({
       next[group] = [...(next[group] ?? []), entry];
     }
     return next;
-  }, [skillRatings]);
-  const skillRatingInsights = useMemo(() => {
-    let improving = 0;
-    let topSkill: { label: string; dots: number } | null = null;
-
-    for (const entry of skillRatings) {
-      const dots = toFivePointDots(entry.rating);
-      const previousDots =
-        typeof entry.previousRating === 'number' ? toFivePointDots(entry.previousRating) : undefined;
-      if (typeof previousDots === 'number' && dots > previousDots) {
-        improving += 1;
-      }
-      if (!topSkill || dots > topSkill.dots) {
-        topSkill = { label: entry.skill, dots };
-      }
-    }
-
-    return { improving, topSkill };
   }, [skillRatings]);
 
   if (!feedback) {
@@ -189,6 +163,27 @@ export const CoachSaysCard = memo(function CoachSaysCard({
           />
         ) : null}
 
+        {/* Hero performance score */}
+        {feedback.overallPerformance > 0 || feedback.effortRating > 0 ? (
+          <Row align="baseline" gap="micro">
+            <ThemedText style={styles.heroScore}>
+              {feedback.overallPerformance > 0 ? feedback.overallPerformance : feedback.effortRating}
+            </ThemedText>
+            <ThemedText style={[styles.heroLabel, { color: colors.muted }]}>
+              /5 {feedback.overallPerformance > 0 ? 'performance' : 'effort'}
+            </ThemedText>
+            {feedback.overallPerformance > 0 && feedback.effortRating > 0 ? (
+              <>
+                <View style={[styles.heroDot, { backgroundColor: withAlpha(colors.muted, 0.4) }]} />
+                <ThemedText style={[styles.heroSub, { color: colors.muted }]}>
+                  Effort {feedback.effortRating}/5
+                </ThemedText>
+              </>
+            ) : null}
+          </Row>
+        ) : null}
+
+        {/* Quote with inline attribution */}
         <Animated.View style={quoteStyle}>
           <View
             style={[
@@ -200,81 +195,19 @@ export const CoachSaysCard = memo(function CoachSaysCard({
             ]}
           >
             <View style={[styles.quoteAccent, { backgroundColor: withAlpha(colors.tint, 0.62) }]} />
-            <ThemedText style={styles.quote}>
-              {feedback.publicSummary}
-            </ThemedText>
+            <Column gap="xxs" style={styles.quoteBody}>
+              <ThemedText style={styles.quote}>
+                {feedback.publicSummary}
+              </ThemedText>
+              <Row align="center" gap="xxs" style={styles.attributionRow}>
+                <ThemedText style={[styles.attribution, { color: colors.muted }]}>
+                  — {feedback.coachName}, {formatDate(feedback.createdAt)}
+                </ThemedText>
+                {coachBadge ? <CoachBadge coach={coachBadge} /> : null}
+              </Row>
+            </Column>
           </View>
         </Animated.View>
-
-        <Animated.View style={coachMetaStyle}>
-          <Row align="center" gap="xs">
-            <Row
-              align="center"
-              justify="center"
-              style={[styles.avatarCircle, { backgroundColor: withAlpha(colors.tint, 0.1) }]}
-            >
-              <Ionicons name="person" size={14} color={colors.tint} />
-            </Row>
-            <Column gap="xxs" style={styles.coachMeta}>
-              <ThemedText style={styles.coachName}>{feedback.coachName}</ThemedText>
-              <ThemedText style={[styles.coachSub, { color: colors.muted }]}>
-                {formatDate(feedback.createdAt)}
-              </ThemedText>
-              {coachBadge ? <CoachBadge coach={coachBadge} /> : null}
-            </Column>
-          </Row>
-        </Animated.View>
-
-        {(feedback.overallPerformance > 0 || feedback.effortRating > 0 || skillRatings.length > 0) ? (
-          <Row wrap gap="xxs">
-            {feedback.overallPerformance > 0 ? (
-              <View
-                style={[
-                  styles.quickStatPill,
-                  {
-                    borderColor: withAlpha(colors.border, 0.7),
-                    backgroundColor: withAlpha(colors.background, 0.56),
-                  },
-                ]}
-              >
-                <ThemedText style={[styles.quickStatLabel, { color: colors.muted }]}>Performance</ThemedText>
-                <ThemedText style={styles.quickStatValue}>{feedback.overallPerformance}/5</ThemedText>
-              </View>
-            ) : null}
-            {feedback.effortRating > 0 ? (
-              <View
-                style={[
-                  styles.quickStatPill,
-                  {
-                    borderColor: withAlpha(colors.border, 0.7),
-                    backgroundColor: withAlpha(colors.background, 0.56),
-                  },
-                ]}
-              >
-                <ThemedText style={[styles.quickStatLabel, { color: colors.muted }]}>Effort</ThemedText>
-                <ThemedText style={styles.quickStatValue}>{feedback.effortRating}/5</ThemedText>
-              </View>
-            ) : null}
-            {skillRatings.length > 0 ? (
-              <View
-                style={[
-                  styles.quickStatPill,
-                  {
-                    borderColor: withAlpha(colors.border, 0.7),
-                    backgroundColor: withAlpha(colors.background, 0.56),
-                  },
-                ]}
-              >
-                <ThemedText style={[styles.quickStatLabel, { color: colors.muted }]}>
-                  {skillRatingInsights.improving > 0 ? `${skillRatingInsights.improving} improving` : 'Skills rated'}
-                </ThemedText>
-                <ThemedText style={styles.quickStatValue}>
-                  {skillRatingInsights.topSkill ? `${skillRatingInsights.topSkill.label} ${skillRatingInsights.topSkill.dots}/5` : `${skillRatings.length} skills`}
-                </ThemedText>
-              </View>
-            ) : null}
-          </Row>
-        ) : null}
 
         {focusNarrative ? (
           <Row
@@ -283,13 +216,13 @@ export const CoachSaysCard = memo(function CoachSaysCard({
             style={[
               styles.focusBanner,
               {
-                borderColor: withAlpha(colors.border, 0.72),
-                backgroundColor: withAlpha(colors.background, 0.5),
+                borderColor: withAlpha(colors.info, 0.24),
+                backgroundColor: withAlpha(colors.info, 0.08),
               },
             ]}
           >
-            <Ionicons name="analytics-outline" size={14} color={colors.muted} />
-            <ThemedText style={[styles.focusText, { color: colors.muted }]}>
+            <Ionicons name="bulb-outline" size={16} color={colors.info} />
+            <ThemedText style={[styles.focusText, { color: colors.text }]}>
               {focusNarrative}
             </ThemedText>
           </Row>
@@ -302,7 +235,7 @@ export const CoachSaysCard = memo(function CoachSaysCard({
                 align="center"
                 gap="xxs"
                 style={[
-                  styles.templateBanner,
+                  styles.contextChip,
                   {
                     borderColor: withAlpha(colors.border, 0.7),
                     backgroundColor: withAlpha(colors.background, 0.52),
@@ -310,7 +243,7 @@ export const CoachSaysCard = memo(function CoachSaysCard({
                 ]}
               >
                 <Ionicons name="layers-outline" size={13} color={colors.muted} />
-                <ThemedText style={[styles.templateText, { color: colors.text }]}>
+                <ThemedText style={[styles.contextChipText, { color: colors.text }]}>
                   {sessionContextLabel}
                 </ThemedText>
               </Row>
@@ -320,7 +253,7 @@ export const CoachSaysCard = memo(function CoachSaysCard({
                 align="center"
                 gap="xxs"
                 style={[
-                  styles.templateBanner,
+                  styles.contextChip,
                   {
                     borderColor: withAlpha(colors.border, 0.7),
                     backgroundColor: withAlpha(colors.background, 0.52),
@@ -328,7 +261,7 @@ export const CoachSaysCard = memo(function CoachSaysCard({
                 ]}
               >
                 <Ionicons name="person-outline" size={13} color={colors.muted} />
-                <ThemedText style={[styles.templateText, { color: colors.text }]}>
+                <ThemedText style={[styles.contextChipText, { color: colors.text }]}>
                   {POSITION_LABELS[feedback.positionPlayed]}
                 </ThemedText>
               </Row>
@@ -336,29 +269,11 @@ export const CoachSaysCard = memo(function CoachSaysCard({
           </Row>
         ) : null}
 
-        {feedback.skillsWorkedOn.length > 0 ? (
-          <Row wrap gap="xxs">
-            {feedback.skillsWorkedOn.slice(0, 4).map((skill) => (
-              <Row
-                key={skill}
-                style={[
-                  styles.skillChip,
-                  {
-                    borderColor: withAlpha(colors.border, 0.7),
-                    backgroundColor: withAlpha(colors.background, 0.52),
-                  },
-                ]}
-              >
-                <ThemedText style={styles.skillChipText}>{skill}</ThemedText>
-              </Row>
-            ))}
-          </Row>
-        ) : null}
-
+        {/* Skill ratings — clean rows, no progress bars */}
         {skillRatings.length > 0 ? (
           <Column gap="xxs">
             <ThemedText style={styles.sectionTitle}>Skill ratings</ThemedText>
-            <Column gap="sm">
+            <Column gap="xs">
               {skillGroupOrder.map((group) => {
                 const entries = groupedSkillRatings[group] ?? [];
                 if (entries.length === 0) {
@@ -376,11 +291,10 @@ export const CoachSaysCard = memo(function CoachSaysCard({
                         typeof previousDots === 'number'
                           ? (dots > previousDots ? 'improving' : dots < previousDots ? 'declining' : 'consistent')
                           : 'consistent';
-                      const trendDotColor =
+                      const trendColor =
                         trend === 'improving'
                           ? withAlpha(colors.success, 0.82)
                           : withAlpha(colors.border, 0.72);
-                      const levelLabel = getSkillLabel(dots);
                       const cornerKey = mapSkillToCorner(entry.skill);
                       const barColor = CORNER_COLORS[cornerKey] ?? colors.tint;
 
@@ -388,51 +302,25 @@ export const CoachSaysCard = memo(function CoachSaysCard({
                         <View
                           key={`${group}_${entry.skill}_${entry.rating}`}
                           style={[
-                            styles.skillRatingRow,
+                            styles.skillRow,
                             {
-                              borderColor: withAlpha(colors.border, 0.72),
-                              backgroundColor: withAlpha(colors.background, 0.56),
+                              borderLeftColor: withAlpha(barColor, 0.55),
+                              backgroundColor: withAlpha(colors.background, 0.45),
                             },
                           ]}
+                          accessibilityLabel={`${entry.skill}: ${dots} out of 5${trend === 'improving' ? ', improving' : ''}`}
                         >
-                          <View style={[styles.skillAccent, { backgroundColor: withAlpha(barColor, 0.75) }]} />
-                          <Column gap="xxs" style={styles.skillRatingBody}>
-                            <Row align="center" justify="between">
-                              <ThemedText style={styles.skillRatingName}>{entry.skill}</ThemedText>
-                              <Row align="center" gap="xs" style={styles.scoreMeta}>
-                                <View
-                                  style={[
-                                    styles.pointsPill,
-                                    {
-                                      borderColor: withAlpha(colors.border, 0.65),
-                                      backgroundColor: withAlpha(colors.background, 0.7),
-                                    },
-                                  ]}
-                                >
-                                  <ThemedText style={[styles.pointsText, { color: colors.text }]}>
-                                    {dots}/5
-                                  </ThemedText>
-                                </View>
-                                <ThemedText style={[styles.skillRatingValue, { color: colors.text }]} numberOfLines={1}>
-                                  {levelLabel}
-                                </ThemedText>
-                                <ThemedText style={[styles.trendGlyph, { color: trendDotColor }]}>
-                                  {trend === 'improving' ? '↑' : '→'}
-                                </ThemedText>
-                              </Row>
+                          <Row align="center" justify="between">
+                            <ThemedText style={styles.skillName} numberOfLines={1}>
+                              {entry.skill}
+                            </ThemedText>
+                            <Row align="center" gap="xs">
+                              <ThemedText style={styles.skillScore}>{dots}/5</ThemedText>
+                              <ThemedText style={[styles.trendGlyph, { color: trendColor }]}>
+                                {trend === 'improving' ? '\u2191' : '\u2192'}
+                              </ThemedText>
                             </Row>
-                            <View style={[styles.ratingTrack, { backgroundColor: withAlpha(colors.border, 0.35) }]}>
-                              <View
-                                style={[
-                                  styles.ratingFill,
-                                  {
-                                    width: `${dots * 20}%`,
-                                    backgroundColor: withAlpha(barColor, 0.65),
-                                  },
-                                ]}
-                              />
-                            </View>
-                          </Column>
+                          </Row>
                         </View>
                       );
                     })}
@@ -490,7 +378,7 @@ export const CoachSaysCard = memo(function CoachSaysCard({
           </Column>
         ) : null}
 
-        {/* Homework sub-section (absorbed from HomeworkCard) */}
+        {/* Homework */}
         {hasHomework ? (
           <Column gap="xs">
             <View style={[styles.homeworkDivider, { backgroundColor: withAlpha(colors.border, 0.5) }]} />
@@ -664,6 +552,24 @@ const styles = StyleSheet.create({
   emptyBody: {
     ...Typography.bodySmall,
   },
+  heroScore: {
+    fontSize: 28,
+    fontWeight: '800',
+    lineHeight: 34,
+  },
+  heroLabel: {
+    ...Typography.bodySmall,
+    fontWeight: '600',
+  },
+  heroDot: {
+    width: 3,
+    height: 3,
+    borderRadius: 2,
+    marginHorizontal: 2,
+  },
+  heroSub: {
+    ...Typography.caption,
+  },
   quote: {
     ...Typography.bodySmall,
     lineHeight: 22,
@@ -675,27 +581,24 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing.sm,
     paddingVertical: Spacing.xs,
     flexDirection: 'row',
-    alignItems: 'center',
+    alignItems: 'flex-start',
     gap: Spacing.xs,
   },
   quoteAccent: {
     width: 3,
     alignSelf: 'stretch',
     borderRadius: Radii.pill,
+    marginTop: 2,
   },
-  avatarCircle: {
-    width: 36,
-    height: 36,
-    borderRadius: Radii.pill,
-  },
-  coachMeta: {
+  quoteBody: {
     flex: 1,
   },
-  coachName: {
-    ...Typography.bodySmallSemiBold,
+  attributionRow: {
+    flexWrap: 'wrap',
   },
-  coachSub: {
+  attribution: {
     ...Typography.caption,
+    fontStyle: 'italic',
   },
   focusBanner: {
     borderWidth: 1,
@@ -708,13 +611,13 @@ const styles = StyleSheet.create({
     flex: 1,
     lineHeight: 18,
   },
-  templateBanner: {
+  contextChip: {
     borderWidth: 1,
     borderRadius: Radii.sm,
     paddingHorizontal: Spacing.xs,
     paddingVertical: Spacing.xxs,
   },
-  templateText: {
+  contextChipText: {
     ...Typography.caption,
     fontWeight: '600',
   },
@@ -723,97 +626,34 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     letterSpacing: 0.2,
   },
-  quickStatPill: {
-    minHeight: 44,
-    minWidth: 92,
-    borderWidth: 1,
-    borderRadius: Radii.md,
-    paddingHorizontal: Spacing.xs,
-    paddingVertical: Spacing.xxs,
-    justifyContent: 'center',
-    gap: 2,
-  },
-  quickStatLabel: {
-    ...Typography.micro,
-    letterSpacing: 0.2,
-  },
-  quickStatValue: {
-    ...Typography.caption,
-    fontWeight: '700',
-  },
-  skillChip: {
-    minHeight: 30,
-    borderRadius: Radii.pill,
-    borderWidth: 1,
-    paddingHorizontal: Spacing.xs,
-    justifyContent: 'center',
-  },
-  skillChipText: {
-    ...Typography.caption,
-  },
   groupTitle: {
     ...Typography.caption,
     fontWeight: '600',
     letterSpacing: 0.2,
   },
-  skillRatingName: {
-    ...Typography.bodySmallSemiBold,
+  skillRow: {
+    borderLeftWidth: 3,
+    borderRadius: Radii.sm,
+    paddingHorizontal: Spacing.xs,
+    paddingVertical: Spacing.xs,
+    minHeight: 36,
+    justifyContent: 'center',
+  },
+  skillName: {
+    ...Typography.bodySmall,
+    fontWeight: '600',
     flex: 1,
     minWidth: 0,
   },
-  skillRatingRow: {
-    borderWidth: 1,
-    borderRadius: Radii.md,
-    paddingVertical: Spacing.xxs,
-    paddingLeft: Spacing.xxs,
-    paddingRight: Spacing.xs,
-    flexDirection: 'row',
-    alignItems: 'stretch',
-    gap: Spacing.xs,
-  },
-  skillAccent: {
-    width: 3,
-    borderRadius: Radii.pill,
-  },
-  skillRatingBody: {
-    flex: 1,
-  },
-  scoreMeta: {
-    flexShrink: 1,
-  },
-  pointsPill: {
-    minHeight: 20,
-    minWidth: 40,
-    borderRadius: Radii.pill,
-    borderWidth: 1,
-    paddingHorizontal: Spacing.xxs,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  pointsText: {
-    ...Typography.micro,
+  skillScore: {
+    ...Typography.bodySmall,
     fontWeight: '700',
-  },
-  skillRatingValue: {
-    ...Typography.caption,
-    fontWeight: '700',
-    maxWidth: 94,
   },
   trendGlyph: {
-    ...Typography.caption,
+    ...Typography.bodySmall,
     fontWeight: '700',
-    minWidth: 12,
+    minWidth: 14,
     textAlign: 'right',
-  },
-  ratingTrack: {
-    width: '100%',
-    height: 7,
-    borderRadius: Radii.pill,
-    overflow: 'hidden',
-  },
-  ratingFill: {
-    height: '100%',
-    borderRadius: Radii.pill,
   },
   improvementText: {
     ...Typography.bodySmall,

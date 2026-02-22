@@ -4,8 +4,6 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 import Animated from 'react-native-reanimated';
 import * as ImagePicker from 'expo-image-picker';
-import { LinearGradient } from 'expo-linear-gradient';
-
 import { PageHeader } from '@/components/primitives/page-header';
 import { ChildSwitcher } from '@/components/family/child-switcher';
 import { LoadingState, ErrorState, EmptyState } from '@/components/ui/screen-states';
@@ -136,38 +134,6 @@ export default function MyProgressScreen() {
   const showChildSwitcher =
     isParentContext && switcherChildren.length > 1 && Boolean(selectedAthleteId);
   const pageTitle = isParentContext ? 'Progress' : 'My Progress';
-  const backgroundDecor = (
-    <>
-      <LinearGradient
-        pointerEvents="none"
-        colors={[
-          withAlpha(colors.tint, 0.12),
-          withAlpha(colors.background, 0.6),
-          colors.background,
-        ]}
-        locations={[0, 0.3, 1]}
-        start={{ x: 0.2, y: 0 }}
-        end={{ x: 0.9, y: 1 }}
-        style={StyleSheet.absoluteFill}
-      />
-      <View
-        pointerEvents="none"
-        style={[
-          styles.bgOrb,
-          styles.bgOrbTop,
-          { backgroundColor: withAlpha(colors.tint, 0.1) },
-        ]}
-      />
-      <View
-        pointerEvents="none"
-        style={[
-          styles.bgOrb,
-          styles.bgOrbBottom,
-          { backgroundColor: withAlpha(colors.info, 0.08) },
-        ]}
-      />
-    </>
-  );
 
   const handleViewAllFeedback = useCallback(() => {
     if (selectedAthleteId) {
@@ -343,7 +309,7 @@ export default function MyProgressScreen() {
     latestHomeworkProof?.proofUri,
   ]);
 
-  const progressSummaryLine = useMemo(() => {
+  const progressSummary = useMemo(() => {
     if (!latestFeedback) {
       return null;
     }
@@ -364,22 +330,19 @@ export default function MyProgressScreen() {
     const previousWithCorners = [...feedback]
       .filter((entry) => entry.id !== latestFeedback.id && entry.fourCorners)
       .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())[0];
-    const technicalNow = latestFeedback.fourCorners?.technical;
-    const technicalPrevious = previousWithCorners?.fourCorners?.technical;
+    const technicalNow = latestFeedback.fourCorners?.technical ?? null;
+    const technicalPrevious = previousWithCorners?.fourCorners?.technical ?? null;
     const technicalDelta =
       typeof technicalNow === 'number' && typeof technicalPrevious === 'number'
         ? technicalNow - technicalPrevious
         : null;
 
-    const segments = [`Last session: ${dateLabel} with ${coachLabel}`];
-    if (typeof technicalNow === 'number') {
-      const deltaSuffix =
-        typeof technicalDelta === 'number' && technicalDelta !== 0
-          ? ` (${technicalDelta > 0 ? `+${technicalDelta}` : technicalDelta})`
-          : '';
-      segments.push(`Technical ${technicalNow}/5${deltaSuffix}`);
-    }
-    return segments.join(' · ');
+    return {
+      dateLabel,
+      coachLabel,
+      technicalNow,
+      technicalDelta,
+    };
   }, [feedback, latestFeedback]);
 
   const parentCoachQuotes = useMemo(() => {
@@ -425,7 +388,7 @@ export default function MyProgressScreen() {
         style={[styles.container, { backgroundColor: colors.background }]}
         edges={['top', 'bottom']}
       >
-        {backgroundDecor}
+
         <PageHeader title={pageTitle} showBack centerTitle onBackPress={() => router.back()} />
         {showChildSwitcher ? (
           <View style={styles.switcherWrap}>
@@ -448,7 +411,7 @@ export default function MyProgressScreen() {
         style={[styles.container, { backgroundColor: colors.background }]}
         edges={['top', 'bottom']}
       >
-        {backgroundDecor}
+
         <PageHeader title={pageTitle} showBack centerTitle onBackPress={() => router.back()} />
         {showChildSwitcher ? (
           <View style={styles.switcherWrap}>
@@ -472,7 +435,7 @@ export default function MyProgressScreen() {
         style={[styles.container, { backgroundColor: colors.background }]}
         edges={['top', 'bottom']}
       >
-        {backgroundDecor}
+
         <PageHeader title={pageTitle} showBack centerTitle onBackPress={() => router.back()} />
         {showChildSwitcher ? (
           <View style={styles.switcherWrap}>
@@ -490,8 +453,26 @@ export default function MyProgressScreen() {
           message={
             isParentWithoutChildren
               ? 'Add a child profile to start tracking progress and badges.'
-              : 'Complete sessions to start tracking progress.'
+              : isParentContext
+                ? 'Book a session to start tracking progress.'
+                : 'Complete sessions to start tracking progress.'
           }
+          actionLabel={
+            isParentWithoutChildren
+              ? 'Add Child'
+              : isParentContext
+                ? 'Book a Session'
+                : 'Find a Coach'
+          }
+          onPressAction={() => {
+            if (isParentWithoutChildren) {
+              router.push(Routes.MODAL_ADD_CHILD);
+            } else if (isParentContext) {
+              router.push(Routes.BOOK_COACH);
+            } else {
+              router.push(Routes.BOOK_COACH);
+            }
+          }}
         />
       </SafeAreaView>
     );
@@ -502,7 +483,6 @@ export default function MyProgressScreen() {
       style={[styles.container, { backgroundColor: colors.background }]}
       edges={['top', 'bottom']}
     >
-      {backgroundDecor}
       <PageHeader title={pageTitle} showBack centerTitle onBackPress={() => router.back()} />
 
       {showChildSwitcher ? (
@@ -525,7 +505,7 @@ export default function MyProgressScreen() {
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />}
         showsVerticalScrollIndicator={false}
       >
-        {progressSummaryLine ? (
+        {progressSummary ? (
           <Animated.View
             style={summaryLineStyle}
             onLayout={scrollAnimations.createSectionLayoutHandler('summary-line')}
@@ -540,8 +520,31 @@ export default function MyProgressScreen() {
               ]}
             >
               <ThemedText style={[styles.summaryLineText, { color: colors.muted }]}>
-                {progressSummaryLine}
+                {progressSummary.dateLabel} with{' '}
               </ThemedText>
+              <ThemedText style={[styles.summaryLineCoach, { color: colors.text }]}>
+                {progressSummary.coachLabel}
+              </ThemedText>
+              {typeof progressSummary.technicalNow === 'number' ? (
+                <>
+                  <ThemedText style={[styles.summaryLineText, { color: colors.muted }]}>
+                    {' · Technical '}
+                  </ThemedText>
+                  <ThemedText style={[styles.summaryLineScore, { color: colors.text }]}>
+                    {progressSummary.technicalNow}/5
+                  </ThemedText>
+                  {typeof progressSummary.technicalDelta === 'number' && progressSummary.technicalDelta > 0 ? (
+                    <ThemedText
+                      style={[
+                        styles.summaryLineDelta,
+                        { color: colors.success },
+                      ]}
+                    >
+                      {' '}+{progressSummary.technicalDelta}
+                    </ThemedText>
+                  ) : null}
+                </>
+              ) : null}
             </View>
           </Animated.View>
         ) : null}
@@ -679,30 +682,31 @@ const styles = StyleSheet.create({
   pentagonCluster: {
     gap: Spacing.xs,
   },
+  sectionBreak: {
+    height: Spacing.xs,
+  },
   summaryLine: {
     borderWidth: 1,
     borderRadius: 999,
     paddingHorizontal: Spacing.sm,
     paddingVertical: Spacing.xs,
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    alignItems: 'center',
   },
   summaryLineText: {
-    ...Typography.bodySmall,
-    letterSpacing: 0.1,
+    ...Typography.caption,
   },
-  bgOrb: {
-    position: 'absolute',
-    borderRadius: 999,
+  summaryLineCoach: {
+    ...Typography.caption,
+    fontWeight: '700',
   },
-  bgOrbTop: {
-    width: 280,
-    height: 280,
-    top: -120,
-    right: -80,
+  summaryLineScore: {
+    ...Typography.caption,
+    fontWeight: '700',
   },
-  bgOrbBottom: {
-    width: 220,
-    height: 220,
-    bottom: 80,
-    left: -110,
+  summaryLineDelta: {
+    ...Typography.caption,
+    fontWeight: '700',
   },
 });

@@ -1,8 +1,8 @@
 import { memo } from 'react';
-import { StyleSheet, useWindowDimensions, View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { BlurView } from 'expo-blur';
 
+import { Column } from '@/components/primitives/column';
 import { Row } from '@/components/primitives/row';
 import { ThemedText } from '@/components/themed-text';
 import { POSITION_SKILL_ICONS } from '@/constants/position-skills';
@@ -16,8 +16,6 @@ interface CharacterBarProps {
 
 export const CharacterBar = memo(function CharacterBar({ universalSkills }: CharacterBarProps) {
   const { colors } = useTheme();
-  const { width } = useWindowDimensions();
-  const compact = width <= 390;
   if (universalSkills.length === 0) {
     return null;
   }
@@ -27,84 +25,57 @@ export const CharacterBar = memo(function CharacterBar({ universalSkills }: Char
       style={[
         styles.card,
         {
-          borderColor: withAlpha(colors.border, 0.6),
-          backgroundColor: withAlpha(colors.surface, 0.56),
+          borderColor: withAlpha(colors.border, 0.5),
+          backgroundColor: withAlpha(colors.surface, 0.65),
         },
       ]}
     >
-      <BlurView
-        tint="systemThinMaterial"
-        intensity={26}
-        experimentalBlurMethod="dimezisBlurView"
-        style={StyleSheet.absoluteFill}
-      />
       <ThemedText style={styles.title}>Character</ThemedText>
-      <Row wrap gap="xs">
-        {universalSkills.map((entry) => (
+      <Column gap="xxs">
+        {universalSkills.map((entry, index) => (
           <View
             key={entry.skill}
             style={[
-              styles.skillPill,
-              compact ? styles.skillPillCompact : styles.skillPillWide,
-              {
-                borderColor: withAlpha(colors.border, 0.6),
-                backgroundColor: withAlpha(colors.background, 0.55),
-              },
+              styles.skillRow,
+              index < universalSkills.length - 1
+                ? { borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: withAlpha(colors.border, 0.4) }
+                : undefined,
             ]}
           >
             <Row align="center" justify="between">
-              <Row align="center" gap="xxs" style={styles.skillLeft}>
+              <Row align="center" gap="xs" style={styles.skillLeft}>
                 <View style={[styles.iconWrap, { backgroundColor: withAlpha(colors.border, 0.38) }]}>
                   <Ionicons
                     name={(POSITION_SKILL_ICONS[entry.skill] as keyof typeof Ionicons.glyphMap) ?? 'ellipse-outline'}
-                    size={13}
+                    size={14}
                     color={withAlpha(colors.text, 0.78)}
                   />
                 </View>
-                <ThemedText style={styles.skillLabel} numberOfLines={1}>
+                <ThemedText style={styles.skillLabel}>
                   {entry.skill}
                 </ThemedText>
               </Row>
-              <View
-                style={[
-                  styles.trendDot,
-                  {
-                    backgroundColor:
-                      entry.trend === 'improving'
-                        ? withAlpha(colors.success, 0.82)
-                        : withAlpha(colors.border, 0.72),
-                    borderColor: withAlpha(colors.background, 0.85),
-                  },
-                ]}
-              />
-            </Row>
-            <Row align="center" justify="between">
-              <Row align="center" gap="xxs" style={styles.segmentRow}>
-                {Array.from({ length: 5 }).map((_, index) => (
-                  <View
-                    key={`${entry.skill}_${index}`}
-                    style={[
-                      styles.segment,
-                      {
-                        backgroundColor:
-                          index < entry.rating
-                            ? withAlpha(colors.tint, 0.76)
-                            : withAlpha(colors.border, 0.42),
-                      },
-                    ]}
-                  />
-                ))}
+              <Row align="center" gap="xs">
+                <ThemedText style={[styles.ratingText, { color: colors.text }]}>
+                  {entry.rating}/5
+                </ThemedText>
+                <View
+                  style={[
+                    styles.trendDot,
+                    {
+                      backgroundColor:
+                        entry.trend === 'improving'
+                          ? withAlpha(colors.success, 0.82)
+                          : withAlpha(colors.border, 0.72),
+                      borderColor: withAlpha(colors.background, 0.85),
+                    },
+                  ]}
+                />
               </Row>
-              <ThemedText style={[styles.pointsText, { color: colors.muted }]}>
-                {entry.rating}/5
-              </ThemedText>
             </Row>
-            <ThemedText style={[styles.skillValue, { color: colors.muted }]} numberOfLines={1}>
-              {entry.ratingLabel}
-            </ThemedText>
           </View>
         ))}
-      </Row>
+      </Column>
     </View>
   );
 });
@@ -119,42 +90,27 @@ const styles = StyleSheet.create({
   title: {
     ...Typography.bodySmallSemiBold,
   },
-  skillPill: {
-    borderWidth: 1,
-    borderRadius: Radii.md,
-    paddingHorizontal: Spacing.xs,
-    paddingVertical: Spacing.xxs,
-    minHeight: 56,
+  skillRow: {
+    minHeight: 44,
+    paddingHorizontal: Spacing.xxs,
+    paddingVertical: Spacing.xs,
     justifyContent: 'center',
-    gap: Spacing.xxs,
-  },
-  skillPillWide: {
-    flex: 1,
-    minWidth: 86,
-  },
-  skillPillCompact: {
-    width: '48%',
   },
   skillLeft: {
     flex: 1,
     minWidth: 0,
   },
   iconWrap: {
-    width: 20,
-    height: 20,
+    width: 22,
+    height: 22,
     borderRadius: Radii.pill,
     alignItems: 'center',
     justifyContent: 'center',
   },
   skillLabel: {
-    ...Typography.micro,
-    fontWeight: '700',
-    letterSpacing: 0.2,
+    ...Typography.bodySmall,
+    fontWeight: '600',
     flexShrink: 1,
-  },
-  skillValue: {
-    ...Typography.micro,
-    fontWeight: '500',
   },
   trendDot: {
     width: 10,
@@ -162,19 +118,8 @@ const styles = StyleSheet.create({
     borderRadius: Radii.pill,
     borderWidth: 1.5,
   },
-  segmentRow: {
-    flex: 1,
-  },
-  segment: {
-    height: 6,
-    flex: 1,
-    borderRadius: Radii.pill,
-  },
-  pointsText: {
-    ...Typography.micro,
+  ratingText: {
+    ...Typography.bodySmall,
     fontWeight: '700',
-    marginLeft: Spacing.xs,
-    minWidth: 30,
-    textAlign: 'right',
   },
 });

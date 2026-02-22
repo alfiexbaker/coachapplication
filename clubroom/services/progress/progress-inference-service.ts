@@ -124,7 +124,7 @@ export function inferCoachFocus(feedback: SessionFeedback[]): CoachFocusNarrativ
   }
 
   const coachName = recent[0].coachName;
-  const consecutiveSessions = Math.round(topCount);
+  const consecutiveSessions = Math.min(Math.round(topCount), recent.length);
   const focusLabel = CORNER_LABELS[topCorner];
 
   return {
