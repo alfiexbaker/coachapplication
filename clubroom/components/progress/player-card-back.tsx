@@ -9,6 +9,7 @@ import { ThemedText } from '@/components/themed-text';
 import { Radii, Spacing, Typography, withAlpha } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
 import type { PlayerCardData } from '@/types/progress-types';
+import { getSkillLabel } from './skill-level-helpers';
 import { StreakVisual } from './streak-visual';
 
 interface PlayerCardBackProps {
@@ -45,7 +46,7 @@ export const PlayerCardBack = memo(function PlayerCardBack({
     ? `${data.mostImproved.name} +${data.mostImproved.changePercent}%`
     : null;
   const bestSkillLabel = data.bestSkill
-    ? `${data.bestSkill.name} (${data.bestSkill.level}/10)`
+    ? `${data.bestSkill.name} — ${getSkillLabel(data.bestSkill.level)}`
     : null;
   const memberSince = useMemo(() => formatMemberSince(data.memberSince), [data.memberSince]);
   const nextMilestone = useMemo(
@@ -54,7 +55,7 @@ export const PlayerCardBack = memo(function PlayerCardBack({
   );
   const textColor = colors.onPrimary;
   const softText = withAlpha(textColor, 0.86);
-  const statBackground = withAlpha(textColor, 0.14);
+  const statBackground = withAlpha(textColor, 0.18);
   const infoBackground = withAlpha(textColor, 0.1);
   const statRows: { id: string; icon: keyof typeof Ionicons.glyphMap; label: string; value: string }[][] = [
     [
@@ -73,9 +74,9 @@ export const PlayerCardBack = memo(function PlayerCardBack({
         <Image source={{ uri: data.latestPhotoUri }} style={StyleSheet.absoluteFill} blurRadius={20} />
       ) : null}
 
-      <View style={[styles.overlay, { backgroundColor: withAlpha(tierAccent, compact ? 0.46 : 0.42) }]} />
+      <View style={[styles.overlay, { backgroundColor: withAlpha(tierAccent, compact ? 0.72 : 0.68) }]} />
 
-      <Column flex style={[styles.content, compact ? styles.contentCompact : undefined]} gap="xs">
+      <Column flex style={[styles.content, compact ? styles.contentCompact : undefined]} gap="sm">
         <Column gap="micro">
           <ThemedText style={[styles.nameText, compact ? styles.nameTextCompact : undefined, { color: textColor }]} numberOfLines={1}>
             {data.name.toUpperCase()}
@@ -145,7 +146,7 @@ export const PlayerCardBack = memo(function PlayerCardBack({
           </Column>
         ) : null}
 
-        <View style={[styles.streakPanel, { backgroundColor: withAlpha(textColor, 0.84) }]}>
+        <View style={[styles.streakPanel, { backgroundColor: withAlpha(tierAccent, 0.2) }]}>
           <StreakVisual currentWeeks={data.streakWeeks} nextMilestone={nextMilestone} />
         </View>
 

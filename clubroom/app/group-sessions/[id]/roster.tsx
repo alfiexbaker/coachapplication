@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useCallback, useState } from 'react';
 import { ScrollView, StyleSheet, View, RefreshControl } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router, useLocalSearchParams } from 'expo-router';
@@ -12,26 +12,19 @@ import { LoadingState, ErrorState, EmptyState } from '@/components/ui/screen-sta
 import { ParticipantCard } from '@/components/group/participant-card';
 import { RollCallModal } from '@/components/group/roll-call-modal';
 import { InjuryReportModal } from '@/components/group/injury-report-modal';
-import { QuickRecognitionModal } from '@/components/badges/quick-recognition-modal';
+import { QuickRateModal } from '@/components/group/quick-rate-modal';
 import { Spacing, Radii, Typography } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
 import { useAuth } from '@/hooks/use-auth';
 import { useGroupRoster } from '@/hooks/use-group-roster';
 import { getGroupRegistrationAthleteName } from '@/utils/group-display';
+import type { GroupRegistration } from '@/constants/types';
+import type { QuickRateAthlete } from '@/hooks/use-quick-rate';
 
 export default function SessionRosterScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const { colors } = useTheme();
   const { currentUser } = useAuth();
-  const [recogniseTarget, setRecogniseTarget] = useState<{ athleteId: string; athleteName: string } | null>(null);
-
-  const handleOpenRecognise = useCallback((athleteId: string, athleteName: string) => {
-    setRecogniseTarget({ athleteId, athleteName });
-  }, []);
-
-  const handleCloseRecognise = useCallback(() => {
-    setRecogniseTarget(null);
-  }, []);
 
   const {
     session,
@@ -73,6 +66,20 @@ export default function SessionRosterScreen() {
     openInjuryReport,
     submitInjuryReport,
   } = useGroupRoster(id);
+
+  const [quickRateAthlete, setQuickRateAthlete] = useState<QuickRateAthlete | null>(null);
+  const [showQuickRate, setShowQuickRate] = useState(false);
+
+  const handleRecognise = useCallback((reg: GroupRegistration) => {
+    const name = getGroupRegistrationAthleteName(reg);
+    setQuickRateAthlete({ athleteId: reg.athleteId, athleteName: name });
+    setShowQuickRate(true);
+  }, []);
+
+  const handleQuickRateSaved = useCallback(() => {
+    setShowQuickRate(false);
+    setQuickRateAthlete(null);
+  }, []);
 
   if (status === 'loading') {
     return (
@@ -243,7 +250,7 @@ export default function SessionRosterScreen() {
                   rsvp={getRsvpForRegistration(reg)}
                   onMarkAttendance={(attended) => handleMarkAttendance(reg, attended)}
                   onCancel={() => handleCancelRegistration(reg)}
-                  onRecognise={() => handleOpenRecognise(reg.athleteId, getGroupRegistrationAthleteName(reg))}
+                  onRecognise={() => handleRecognise(reg)}
                 />
               </Animated.View>
             ))}
@@ -283,15 +290,16 @@ export default function SessionRosterScreen() {
         onSubmit={submitInjuryReport}
       />
 
-      <QuickRecognitionModal
-        visible={recogniseTarget !== null}
-        athleteId={recogniseTarget?.athleteId ?? ''}
-        athleteName={recogniseTarget?.athleteName ?? ''}
-        coachId={currentUser?.id ?? ''}
+      <QuickRateModal
+        visible={showQuickRate}
+        athlete={quickRateAthlete}
         sessionId={id}
-        sessionLabel={session?.title}
-        onClose={handleCloseRecognise}
+        coachId={currentUser?.id ?? ''}
+        coachName={currentUser?.fullName ?? 'Coach'}
+        onClose={() => setShowQuickRate(false)}
+        onSaved={handleQuickRateSaved}
       />
+
     </SafeAreaView>
   );
 }

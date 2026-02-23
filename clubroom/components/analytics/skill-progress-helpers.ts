@@ -3,21 +3,23 @@
  */
 import { Ionicons } from '@expo/vector-icons';
 
-// Decorative: skill level categorical colors (not themeable)
+// Decorative: skill level categorical colors (not themeable).
+// Keys match canonical RATING_LABELS from constants/position-skills.ts.
 export const SKILL_LEVEL_COLORS = {
-  beginner: '#F59E0B',
-  developing: '#3B82F6',
-  proficient: '#10B981',
-  advanced: '#8B5CF6',
-  expert: '#EC4899',
+  developing: '#F59E0B',
+  good: '#3B82F6',
+  veryGood: '#10B981',
+  excellent: '#8B5CF6',
+  exceptional: '#EC4899',
 } as const;
 
+/** Maps 0-100 analytics scale to canonical label + color. Boundaries align with stored 1-10 × 10. */
 export function getSkillLevelInfo(level: number): { label: string; color: string } {
-  if (level < 20) return { label: 'Beginner', color: SKILL_LEVEL_COLORS.beginner };
-  if (level < 40) return { label: 'Developing', color: SKILL_LEVEL_COLORS.developing };
-  if (level < 60) return { label: 'Proficient', color: SKILL_LEVEL_COLORS.proficient };
-  if (level < 80) return { label: 'Advanced', color: SKILL_LEVEL_COLORS.advanced };
-  return { label: 'Expert', color: SKILL_LEVEL_COLORS.expert };
+  if (level <= 20) return { label: 'Developing', color: SKILL_LEVEL_COLORS.developing };
+  if (level <= 40) return { label: 'Good', color: SKILL_LEVEL_COLORS.good };
+  if (level <= 60) return { label: 'Very Good', color: SKILL_LEVEL_COLORS.veryGood };
+  if (level <= 80) return { label: 'Excellent', color: SKILL_LEVEL_COLORS.excellent };
+  return { label: 'Exceptional', color: SKILL_LEVEL_COLORS.exceptional };
 }
 
 export function getCategoryIcon(category: string): keyof typeof Ionicons.glyphMap {

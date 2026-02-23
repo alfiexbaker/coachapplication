@@ -13,8 +13,10 @@ import { EditSpecialtiesSection } from '@/components/profile/edit-specialties-se
 import { EditExperienceSection } from '@/components/profile/edit-experience-section';
 import { EditLanguagesSection } from '@/components/profile/edit-languages-section';
 import { EditCertificationsSection } from '@/components/profile/edit-certifications-section';
+import { PositionSelector } from '@/components/session/position-selector';
 import { EmptyState, ErrorState, LoadingState } from '@/components/ui/screen-states';
-import { Spacing } from '@/constants/theme';
+import { ThemedText } from '@/components/themed-text';
+import { Spacing, Typography } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
 import { useAuth } from '@/hooks/use-auth';
 import { useEditProfile } from '@/hooks/use-edit-profile';
@@ -133,6 +135,18 @@ export default function EditProfileScreen() {
             website={profile.website}
             onChangeWebsite={profile.setWebsite}
           />
+
+          {profile.userIsAthlete && (
+            <SurfaceCard style={styles.section}>
+              <ThemedText style={[Typography.subheading, { color: colors.text }]}>
+                Primary Position
+              </ThemedText>
+              <PositionSelector
+                value={profile.primaryPosition}
+                onChange={profile.setPrimaryPosition}
+              />
+            </SurfaceCard>
+          )}
 
           {profile.userIsCoach && (
             <>

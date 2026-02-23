@@ -15,10 +15,6 @@ import {
   formatLastUpdated,
 } from './skill-level-helpers';
 
-// ─── Re-exports ─────────────────────────────────────────────────────────────
-
-export { SKILL_CATEGORIES } from './skill-level-helpers';
-
 // ─── Types ──────────────────────────────────────────────────────────────────
 
 type SkillLevelCardProps = {
@@ -43,7 +39,7 @@ export function SkillLevelCard({
       case 'improving':
         return { name: 'trending-up', color: palette.success };
       case 'declining':
-        return { name: 'trending-down', color: palette.error };
+        return { name: 'arrow-forward', color: palette.warning };
       default:
         return { name: 'remove', color: palette.muted };
     }
@@ -54,7 +50,7 @@ export function SkillLevelCard({
       case 'improving':
         return 'Improving';
       case 'declining':
-        return 'Needs Focus';
+        return 'Keep practising';
       default:
         return 'Steady';
     }
@@ -159,15 +155,14 @@ export function SkillLevelCard({
       {change !== 0 && (
         <Row align="center" gap="xxs">
           <Ionicons
-            name={change > 0 ? 'arrow-up' : 'arrow-down'}
+            name={change > 0 ? 'arrow-up' : 'arrow-forward'}
             size={12}
-            color={change > 0 ? palette.success : palette.error}
+            color={change > 0 ? palette.success : palette.warning}
           />
           <ThemedText
-            style={[styles.changeText, { color: change > 0 ? palette.success : palette.error }]}
+            style={[styles.changeText, { color: change > 0 ? palette.success : palette.warning }]}
           >
-            {change > 0 ? '+' : ''}
-            {change} from last assessment
+            {change > 0 ? `+${change} from last assessment` : 'Keep practising this one'}
           </ThemedText>
         </Row>
       )}

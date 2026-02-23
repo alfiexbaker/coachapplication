@@ -15,7 +15,7 @@ import { Colors, type ThemeName } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 
 export function useTheme() {
-  const scheme: ThemeName = useColorScheme() ?? 'light';
+  const scheme: ThemeName = useColorScheme() ?? 'dark';
   return {
     colors: Colors[scheme],
     scheme,

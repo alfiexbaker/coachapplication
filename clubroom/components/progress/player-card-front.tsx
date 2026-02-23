@@ -1,4 +1,4 @@
-import { memo, useEffect, useMemo } from 'react';
+import { Fragment, memo, useEffect, useMemo } from 'react';
 import { StyleSheet, View } from 'react-native';
 import { Image } from 'expo-image';
 import { Ionicons } from '@expo/vector-icons';
@@ -64,6 +64,19 @@ function chipAbbrev(label: string): string {
   return firstWord.slice(0, 3).toUpperCase();
 }
 
+/** Compute OVR from 5 positional attributes */
+function computeOvr(attributes: PlayerCardData['attributes']): number | null {
+  if (!attributes || attributes.length !== 5) return null;
+  const sum = attributes.reduce((acc, attr) => acc + attr.value, 0);
+  return Math.round(sum / 5);
+}
+
+/** Position abbreviation for OVR badge */
+function positionAbbrev(position: PlayerCardData['position']): string {
+  if (!position) return '';
+  return position;
+}
+
 export const PlayerCardFront = memo(function PlayerCardFront({
   data,
   tier,
@@ -76,10 +89,14 @@ export const PlayerCardFront = memo(function PlayerCardFront({
   const textColor = colors.onPrimary;
   const softText = withAlpha(textColor, 0.86);
   const badgeBackground = withAlpha(textColor, 0.2);
-  const scoreBackground = withAlpha(textColor, 0.15);
-  const photoOverlayOpacity = data.latestPhotoUri ? (compact ? 0.52 : 0.48) : 0.18;
+  const photoOverlayOpacity = data.latestPhotoUri ? (compact ? 0.72 : 0.68) : 0.18;
   const shimmerX = useSharedValue(-160);
   const shimmerEnabled = tier === 'gold' || tier === 'platinum' || tier === 'diamond';
+
+  const positionalAttributes = data.attributes ?? [];
+  const showPositionalAttributes = positionalAttributes.length === 5;
+  const ovr = useMemo(() => computeOvr(data.attributes), [data.attributes]);
+  const posAbbrev = useMemo(() => positionAbbrev(data.position), [data.position]);
 
   useEffect(() => {
     if (!shimmerEnabled) {
@@ -100,8 +117,7 @@ export const PlayerCardFront = memo(function PlayerCardFront({
     transform: [{ translateX: shimmerX.value }, { rotate: '-12deg' }],
   }));
 
-  const positionalAttributes = data.attributes ?? [];
-  const showPositionalAttributes = positionalAttributes.length === 5;
+  const avatarSize = compact ? 84 : 96;
 
   return (
     <View style={styles.face}>
@@ -115,6 +131,7 @@ export const PlayerCardFront = memo(function PlayerCardFront({
       ) : null}
 
       <Column flex style={[styles.content, compact ? styles.contentCompact : undefined]}>
+        {/* Top row: Level + Tier */}
         <Row align="center" justify="between">
           <Row align="center" gap="xxs" style={[styles.levelBadge, { backgroundColor: badgeBackground }]}>
             <Ionicons name="trophy-outline" size={13} color={textColor} />
@@ -128,45 +145,81 @@ export const PlayerCardFront = memo(function PlayerCardFront({
           </Row>
         </Row>
 
-        <Column
-          align="center"
-          justify="center"
-          style={styles.heroBlock}
-          gap="micro"
-        >
+        {/* Hero: OVR badge (absolute top-left) + centered Avatar */}
+        <View style={styles.heroBlock}>
+          {/* OVR badge — positioned like FIFA cards, top-left of hero */}
+          {ovr !== null && posAbbrev ? (
+            <Column
+              align="center"
+              style={[
+                styles.ovrBadge,
+                compact ? styles.ovrBadgeCompact : undefined,
+              ]}
+            >
+              <ThemedText
+                style={[
+                  styles.ovrNumber,
+                  compact ? styles.ovrNumberCompact : undefined,
+                  { color: textColor },
+                ]}
+              >
+                {ovr}
+              </ThemedText>
+              <View style={[styles.ovrDivider, { backgroundColor: withAlpha(textColor, 0.3) }]} />
+              <ThemedText style={[styles.ovrPosition, { color: softText }]}>
+                {posAbbrev}
+              </ThemedText>
+            </Column>
+          ) : null}
+
+          {/* Avatar — centered, full prominence */}
           <View
             style={[
               styles.avatarWrap,
-              compact ? styles.avatarWrapCompact : undefined,
-              { backgroundColor: withAlpha(textColor, 0.12) },
+              {
+                width: avatarSize,
+                height: avatarSize,
+                borderRadius: avatarSize / 2,
+                backgroundColor: withAlpha(textColor, 0.12),
+                borderColor: withAlpha(tierAccent, 0.7),
+              },
             ]}
           >
             {data.latestPhotoUri ? (
-              <Image source={{ uri: data.latestPhotoUri }} style={styles.avatarImage} />
+              <Image
+                source={{ uri: data.latestPhotoUri }}
+                style={styles.avatarImage}
+              />
             ) : (
-              <ThemedText style={[styles.initialsText, compact ? styles.initialsTextCompact : undefined, { color: textColor }]}>
+              <ThemedText
+                style={[
+                  styles.initialsText,
+                  compact ? styles.initialsTextCompact : undefined,
+                  { color: textColor },
+                ]}
+              >
                 {initials}
               </ThemedText>
             )}
           </View>
+        </View>
 
-          <Column align="center" gap="micro" style={styles.nameWrap}>
+        {/* Name + Level name */}
+        <Column align="center" gap="micro" style={styles.nameWrap}>
+          <ThemedText
+            style={[styles.nameText, compact ? styles.nameTextCompact : undefined, { color: textColor }]}
+            numberOfLines={1}
+          >
+            {nameLines.firstLine.toUpperCase()}
+          </ThemedText>
+          {nameLines.secondLine ? (
             <ThemedText
               style={[styles.nameText, compact ? styles.nameTextCompact : undefined, { color: textColor }]}
               numberOfLines={1}
             >
-              {nameLines.firstLine.toUpperCase()}
+              {nameLines.secondLine.toUpperCase()}
             </ThemedText>
-            {nameLines.secondLine ? (
-              <ThemedText
-                style={[styles.nameText, compact ? styles.nameTextCompact : undefined, { color: textColor }]}
-                numberOfLines={1}
-              >
-                {nameLines.secondLine.toUpperCase()}
-              </ThemedText>
-            ) : null}
-          </Column>
-
+          ) : null}
           <ThemedText
             style={[styles.levelName, compact ? styles.levelNameCompact : undefined, { color: softText }]}
             numberOfLines={1}
@@ -175,182 +228,50 @@ export const PlayerCardFront = memo(function PlayerCardFront({
           </ThemedText>
         </Column>
 
-        <Column gap="xxs">
-          {showPositionalAttributes ? (
-            <>
-              <Row align="center" gap="xxs">
-                {positionalAttributes.slice(0, 3).map((attribute) => (
-                  <Row
-                    key={attribute.key}
-                    align="center"
-                    justify="between"
+        {/* Stats — frosted glass bar with micro-separators */}
+        <View
+          style={[
+            styles.statsBar,
+            compact ? styles.statsBarCompact : undefined,
+            {
+              backgroundColor: withAlpha(textColor, 0.12),
+              borderWidth: 1,
+              borderColor: withAlpha(textColor, 0.18),
+            },
+          ]}
+        >
+          <Row align="center" justify="between">
+            {(showPositionalAttributes
+              ? positionalAttributes.map((a) => ({ key: a.key, label: chipAbbrev(a.label), value: a.value }))
+              : [
+                  { key: 'tec', label: 'TEC', value: data.corners.technical },
+                  { key: 'phy', label: 'PHY', value: data.corners.physical },
+                  { key: 'psy', label: 'PSY', value: data.corners.psychological },
+                  { key: 'soc', label: 'SOC', value: data.corners.social },
+                ]
+            ).map((stat, index) => (
+              <Fragment key={stat.key}>
+                {index > 0 ? (
+                  <View style={[styles.statSeparator, { backgroundColor: withAlpha(textColor, 0.2) }]} />
+                ) : null}
+                <Column align="center" gap="micro" style={styles.statColumn}>
+                  <ThemedText style={[styles.statAbbrev, { color: softText }]}>
+                    {stat.label}
+                  </ThemedText>
+                  <ThemedText
                     style={[
-                      styles.scorePillPositional,
-                      compact ? styles.scorePillCompact : undefined,
-                      { backgroundColor: scoreBackground },
+                      styles.statValue,
+                      compact ? styles.statValueCompact : undefined,
+                      { color: textColor },
                     ]}
                   >
-                    <ThemedText
-                      style={[styles.chipAbbrev, { color: softText }]}
-                    >
-                      {chipAbbrev(attribute.label)}
-                    </ThemedText>
-                    <View
-                      style={[
-                        styles.scoreBadge,
-                        compact ? styles.scoreBadgeCompact : undefined,
-                        { backgroundColor: withAlpha(textColor, 0.22) },
-                      ]}
-                    >
-                      <ThemedText
-                        style={[
-                          styles.scoreText,
-                          compact ? styles.scoreTextCompact : undefined,
-                          { color: textColor },
-                        ]}
-                      >
-                        {attribute.value}
-                      </ThemedText>
-                    </View>
-                  </Row>
-                ))}
-              </Row>
-
-              <Row align="center" justify="center" gap="xxs">
-                {positionalAttributes.slice(3).map((attribute) => (
-                  <Row
-                    key={attribute.key}
-                    align="center"
-                    justify="between"
-                    style={[
-                      styles.scorePillPositionalBottom,
-                      compact ? styles.scorePillCompact : undefined,
-                      { backgroundColor: scoreBackground },
-                    ]}
-                  >
-                    <ThemedText
-                      style={[styles.chipAbbrev, { color: softText }]}
-                    >
-                      {chipAbbrev(attribute.label)}
-                    </ThemedText>
-                    <View
-                      style={[
-                        styles.scoreBadge,
-                        compact ? styles.scoreBadgeCompact : undefined,
-                        { backgroundColor: withAlpha(textColor, 0.22) },
-                      ]}
-                    >
-                      <ThemedText
-                        style={[
-                          styles.scoreText,
-                          compact ? styles.scoreTextCompact : undefined,
-                          { color: textColor },
-                        ]}
-                      >
-                        {attribute.value}
-                      </ThemedText>
-                    </View>
-                  </Row>
-                ))}
-              </Row>
-            </>
-          ) : (
-            <>
-              <Row align="center" gap="xxs">
-                <Row
-                  align="center"
-                  justify="between"
-                  style={[
-                    styles.scorePill,
-                    compact ? styles.scorePillCompact : undefined,
-                    { backgroundColor: scoreBackground },
-                  ]}
-                >
-                  <ThemedText style={[styles.chipAbbrev, { color: softText }]}>TEC</ThemedText>
-                  <View
-                    style={[
-                      styles.scoreBadge,
-                      compact ? styles.scoreBadgeCompact : undefined,
-                      { backgroundColor: withAlpha(textColor, 0.22) },
-                    ]}
-                  >
-                    <ThemedText style={[styles.scoreText, compact ? styles.scoreTextCompact : undefined, { color: textColor }]}>
-                      {data.corners.technical}
-                    </ThemedText>
-                  </View>
-                </Row>
-                <Row
-                  align="center"
-                  justify="between"
-                  style={[
-                    styles.scorePill,
-                    compact ? styles.scorePillCompact : undefined,
-                    { backgroundColor: scoreBackground },
-                  ]}
-                >
-                  <ThemedText style={[styles.chipAbbrev, { color: softText }]}>PHY</ThemedText>
-                  <View
-                    style={[
-                      styles.scoreBadge,
-                      compact ? styles.scoreBadgeCompact : undefined,
-                      { backgroundColor: withAlpha(textColor, 0.22) },
-                    ]}
-                  >
-                    <ThemedText style={[styles.scoreText, compact ? styles.scoreTextCompact : undefined, { color: textColor }]}>
-                      {data.corners.physical}
-                    </ThemedText>
-                  </View>
-                </Row>
-              </Row>
-              <Row align="center" gap="xxs">
-                <Row
-                  align="center"
-                  justify="between"
-                  style={[
-                    styles.scorePill,
-                    compact ? styles.scorePillCompact : undefined,
-                    { backgroundColor: scoreBackground },
-                  ]}
-                >
-                  <ThemedText style={[styles.chipAbbrev, { color: softText }]}>PSY</ThemedText>
-                  <View
-                    style={[
-                      styles.scoreBadge,
-                      compact ? styles.scoreBadgeCompact : undefined,
-                      { backgroundColor: withAlpha(textColor, 0.22) },
-                    ]}
-                  >
-                    <ThemedText style={[styles.scoreText, compact ? styles.scoreTextCompact : undefined, { color: textColor }]}>
-                      {data.corners.psychological}
-                    </ThemedText>
-                  </View>
-                </Row>
-                <Row
-                  align="center"
-                  justify="between"
-                  style={[
-                    styles.scorePill,
-                    compact ? styles.scorePillCompact : undefined,
-                    { backgroundColor: scoreBackground },
-                  ]}
-                >
-                  <ThemedText style={[styles.chipAbbrev, { color: softText }]}>SOC</ThemedText>
-                  <View
-                    style={[
-                      styles.scoreBadge,
-                      compact ? styles.scoreBadgeCompact : undefined,
-                      { backgroundColor: withAlpha(textColor, 0.22) },
-                    ]}
-                  >
-                    <ThemedText style={[styles.scoreText, compact ? styles.scoreTextCompact : undefined, { color: textColor }]}>
-                      {data.corners.social}
-                    </ThemedText>
-                  </View>
-                </Row>
-              </Row>
-            </>
-          )}
-        </Column>
+                    {stat.value}
+                  </ThemedText>
+                </Column>
+              </Fragment>
+            ))}
+          </Row>
+        </View>
       </Column>
     </View>
   );
@@ -392,24 +313,45 @@ const styles = StyleSheet.create({
   },
   heroBlock: {
     flex: 1,
-  },
-  nameWrap: {
-    width: '100%',
-    paddingHorizontal: Spacing.xs,
-  },
-  avatarWrap: {
-    width: 64,
-    height: 64,
-    borderRadius: Radii.pill,
     alignItems: 'center',
     justifyContent: 'center',
-    borderWidth: 1,
-    borderColor: withAlpha('#FFFFFF', 0.35),
-    overflow: 'hidden',
   },
-  avatarWrapCompact: {
-    width: 56,
-    height: 56,
+  ovrBadge: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    zIndex: 1,
+    alignItems: 'center',
+    minWidth: 44,
+  },
+  ovrBadgeCompact: {
+    minWidth: 38,
+  },
+  ovrNumber: {
+    fontSize: 32,
+    fontWeight: '800',
+    lineHeight: 36,
+    letterSpacing: -0.5,
+  },
+  ovrNumberCompact: {
+    fontSize: 26,
+    lineHeight: 30,
+  },
+  ovrDivider: {
+    width: '80%',
+    height: 1,
+    marginVertical: Spacing.micro,
+  },
+  ovrPosition: {
+    ...Typography.caption,
+    fontWeight: '700',
+    letterSpacing: 1,
+  },
+  avatarWrap: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 2.5,
+    overflow: 'hidden',
   },
   avatarImage: {
     width: '100%',
@@ -422,15 +364,21 @@ const styles = StyleSheet.create({
   initialsTextCompact: {
     ...Typography.bodySmallSemiBold,
   },
+  nameWrap: {
+    width: '100%',
+    paddingHorizontal: Spacing.xs,
+  },
   nameText: {
-    ...Typography.subheading,
-    fontWeight: '700',
+    ...Typography.heading,
+    fontWeight: '800',
     textAlign: 'center',
-    letterSpacing: 0.5,
+    letterSpacing: 0.8,
   },
   nameTextCompact: {
-    ...Typography.bodySmallSemiBold,
+    ...Typography.subheading,
+    fontWeight: '800',
     textAlign: 'center',
+    letterSpacing: 0.8,
   },
   levelName: {
     ...Typography.caption,
@@ -440,48 +388,35 @@ const styles = StyleSheet.create({
     ...Typography.micro,
     textAlign: 'center',
   },
-  scorePill: {
+  statsBar: {
+    borderRadius: Radii.md,
+    paddingVertical: Spacing.xs,
+    paddingHorizontal: Spacing.sm,
+  },
+  statsBarCompact: {
+    paddingVertical: Spacing.xxs,
+    paddingHorizontal: Spacing.xs,
+  },
+  statSeparator: {
+    width: 1,
+    height: 24,
+  },
+  statColumn: {
     flex: 1,
-    borderRadius: Radii.pill,
-    minHeight: 32,
-    paddingHorizontal: Spacing.xs,
-  },
-  scorePillCompact: {
-    minHeight: 28,
-  },
-  scorePillPositional: {
-    flex: 1,
-    borderRadius: Radii.pill,
-    minHeight: 32,
-    paddingHorizontal: Spacing.xs,
-  },
-  scorePillPositionalBottom: {
-    width: '48%',
-    borderRadius: Radii.pill,
-    minHeight: 32,
-    paddingHorizontal: Spacing.xs,
-  },
-  chipAbbrev: {
-    ...Typography.micro,
-    fontWeight: '700',
-    letterSpacing: 0.6,
-  },
-  scoreText: {
-    ...Typography.smallSemiBold,
-  },
-  scoreTextCompact: {
-    ...Typography.caption,
-  },
-  scoreBadge: {
-    minWidth: 30,
-    minHeight: 22,
-    borderRadius: Radii.pill,
     alignItems: 'center',
-    justifyContent: 'center',
-    paddingHorizontal: Spacing.xxs,
   },
-  scoreBadgeCompact: {
-    minWidth: 26,
-    minHeight: 18,
+  statAbbrev: {
+    ...Typography.caption,
+    fontWeight: '800',
+    letterSpacing: 1.2,
+  },
+  statValue: {
+    ...Typography.heading,
+    fontWeight: '800',
+    letterSpacing: -0.5,
+  },
+  statValueCompact: {
+    ...Typography.subheading,
+    fontWeight: '800',
   },
 });

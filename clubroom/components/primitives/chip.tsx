@@ -17,6 +17,7 @@ export interface ChipProps extends PressableProps {
   active?: boolean;
   selected?: boolean; // Alias for active
   dense?: boolean;
+  muted?: boolean;
   label?: string;
   style?: StyleProp<ViewStyle>;
 }
@@ -25,6 +26,7 @@ export function Chip({
   active,
   selected,
   dense,
+  muted,
   label,
   children,
   style,
@@ -40,16 +42,17 @@ export function Chip({
     dense ? styles.dense : undefined,
     {
       backgroundColor: isActive ? withAlpha(baseColor.tint, 0.09) : 'transparent',
-      borderColor: isActive ? baseColor.tint : baseColor.border,
+      borderColor: muted ? withAlpha(baseColor.border, 0.5) : isActive ? baseColor.tint : baseColor.border,
     },
     style,
   ];
 
-  const fontWeight: TextStyle['fontWeight'] = isActive ? '600' : '500';
+  const fontWeight: TextStyle['fontWeight'] = isActive ? '600' : muted ? '400' : '500';
   const labelStyles = [
     dense ? Typography.xs : Typography.sm,
+    muted ? { fontSize: 11 } : undefined,
     {
-      color: isActive ? baseColor.tint : baseColor.muted,
+      color: isActive ? baseColor.tint : muted ? baseColor.mutedForeground : baseColor.muted,
       fontWeight,
     },
   ];

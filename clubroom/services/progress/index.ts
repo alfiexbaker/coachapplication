@@ -95,7 +95,6 @@ export const progressService = {
   getAthleteSkillLevels: progressSkillsService.getAthleteSkillLevels,
   updateSkillLevel: progressSkillsService.updateSkillLevel,
   updateMultipleSkillLevels: progressSkillsService.updateMultipleSkillLevels,
-  bulkUpdateFromQuickRate: progressSkillsService.bulkUpdateFromQuickRate,
   updateFromPositionRate: progressSkillsService.updateFromPositionRate,
 
   // ==========================================================================

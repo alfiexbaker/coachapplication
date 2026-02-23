@@ -11,6 +11,7 @@ import { ThemedText } from '@/components/themed-text';
 import { CORNER_COLORS } from '@/constants/four-corner-mapping';
 import { Radii, Spacing, Typography, withAlpha } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
+import { MEANINGFUL_SKILL_BADGE_IDS } from '@/constants/badge-registry';
 import type { AllBadgeWithProgress } from '@/services/badge-service';
 import { BadgeCircle } from './badge-circle';
 import { BadgeDetailModal } from './badge-detail-modal';
@@ -39,16 +40,7 @@ const CATEGORY_ICONS: Record<(typeof CATEGORY_ORDER)[number], ComponentProps<typ
   other: 'ribbon-outline',
 };
 
-const MEANINGFUL_SKILL_BADGE_IDS = new Set([
-  'badge_best_training',
-  'badge_master_passer',
-  'badge_sharp_shooter_pro',
-  'badge_first_touch',
-  'badge_assist_king',
-  'badge_team_captain',
-  'badge_vocal_leader',
-  'badge_mentor',
-]);
+// MEANINGFUL_SKILL_BADGE_IDS imported from @/constants/badge-registry
 
 export const BadgeWall = memo(function BadgeWall({ badges, athleteName, onViewFull }: BadgeWallProps) {
   const { colors } = useTheme();

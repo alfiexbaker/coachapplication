@@ -18,7 +18,7 @@ function useSystemScheme(): NonNullable<ColorSchemeName> {
     if (Platform.OS === 'web' && typeof window !== 'undefined') {
       return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
     }
-    return rnScheme ?? 'light';
+    return rnScheme ?? 'dark';
   });
 
   useEffect(() => {
@@ -36,7 +36,7 @@ function useSystemScheme(): NonNullable<ColorSchemeName> {
   if (Platform.OS === 'web') {
     return webScheme;
   }
-  return rnScheme ?? 'light';
+  return rnScheme ?? 'dark';
 }
 
 export function ThemeProvider({ children }: { children: React.ReactNode }) {

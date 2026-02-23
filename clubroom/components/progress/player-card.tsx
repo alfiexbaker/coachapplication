@@ -35,16 +35,16 @@ interface PlayerCardProps {
 
 const TIER_CONFIG: Record<CardTier, TierConfig> = {
   bronze: {
-    gradient: ['#8B6914', '#CD7F32'],
-    accent: '#CD7F32',
+    gradient: ['#3D1C00', '#B87333'],
+    accent: '#B87333',
   },
   silver: {
-    gradient: ['#71706E', '#C0C0C0'],
-    accent: '#C0C0C0',
+    gradient: ['#1C1C24', '#7A7A88'],
+    accent: '#7A7A88',
   },
   gold: {
-    gradient: ['#B8860B', '#FFD700'],
-    accent: '#FFD700',
+    gradient: ['#3D2600', '#D4A420'],
+    accent: '#D4A420',
   },
   platinum: {
     gradient: ['#1A1A2E', '#4A90D9'],
@@ -190,11 +190,11 @@ export const PlayerCard = memo(function PlayerCard({ data }: PlayerCardProps) {
           style={[
             styles.captureWrap,
             {
-              shadowColor: Shadows[scheme].card.shadowColor,
-              shadowOpacity: Shadows[scheme].card.shadowOpacity,
-              shadowRadius: Shadows[scheme].card.shadowRadius,
-              shadowOffset: Shadows[scheme].card.shadowOffset,
-              elevation: Shadows[scheme].card.elevation,
+              shadowColor: tierConfig.accent,
+              shadowOpacity: scheme === 'dark' ? 0.18 : 0.24,
+              shadowRadius: 22,
+              shadowOffset: { width: 0, height: 8 },
+              elevation: 12,
             },
           ]}
         >
@@ -228,6 +228,13 @@ export const PlayerCard = memo(function PlayerCard({ data }: PlayerCardProps) {
                 ]}
               />
               <AnimatedView pointerEvents="none" style={[styles.sheen, sheenStyle]} />
+              <View
+                pointerEvents="none"
+                style={[
+                  styles.innerBorder,
+                  { borderColor: withAlpha(tierConfig.accent, 0.12) },
+                ]}
+              />
 
               <AnimatedView style={[styles.face, frontStyle]}>
                 <PlayerCardFront
@@ -269,10 +276,10 @@ const styles = StyleSheet.create({
     borderColor: withAlpha('#FFFFFF', 0.24),
   },
   cardFrameCompact: {
-    minHeight: 270,
+    minHeight: 300,
   },
   cardFrameRegular: {
-    minHeight: 300,
+    minHeight: 330,
   },
   face: {
     ...StyleSheet.absoluteFillObject,
@@ -289,5 +296,15 @@ const styles = StyleSheet.create({
     width: 96,
     backgroundColor: withAlpha('#FFFFFF', 0.26),
     borderRadius: Radii.pill,
+  },
+  innerBorder: {
+    position: 'absolute',
+    top: 4,
+    left: 4,
+    right: 4,
+    bottom: 4,
+    borderRadius: Radii.xl - 2,
+    borderWidth: 1,
+    zIndex: 5,
   },
 });

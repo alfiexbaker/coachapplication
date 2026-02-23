@@ -161,11 +161,11 @@ export function SkillRadar({
         <Row style={styles.levelLegendItems}>
           {(
             [
-              { label: 'Beginner', color: SKILL_COLORS.beginner },
               { label: 'Developing', color: SKILL_COLORS.developing },
-              { label: 'Proficient', color: SKILL_COLORS.proficient },
-              { label: 'Advanced', color: SKILL_COLORS.advanced },
-              { label: 'Expert', color: SKILL_COLORS.expert },
+              { label: 'Good', color: SKILL_COLORS.good },
+              { label: 'Very Good', color: SKILL_COLORS.veryGood },
+              { label: 'Excellent', color: SKILL_COLORS.excellent },
+              { label: 'Exceptional', color: SKILL_COLORS.exceptional },
             ] as const
           ).map((item) => (
             <Row key={item.label} style={styles.levelLegendItem}>

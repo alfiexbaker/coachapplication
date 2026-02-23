@@ -3,6 +3,7 @@ import { Ionicons } from '@expo/vector-icons';
 import type { FootballObjective } from './types';
 import type { CoachProfile, User } from './app-types';
 import { formatGBP } from '@/utils/format';
+import { COACHING_FOCUSES } from '@/constants/football-registry';
 
 export interface ServiceType {
   id: string;
@@ -114,14 +115,7 @@ const BOOKING_COACH_PROFILES: CoachProfile[] = [
   },
 ];
 
-export const FOOTBALL_OBJECTIVES: FootballObjective[] = [
-  'Dribbling',
-  'Passing',
-  'Defending',
-  'Finishing',
-  'Goalkeeping',
-  'Conditioning',
-];
+export const FOOTBALL_OBJECTIVES: FootballObjective[] = COACHING_FOCUSES;
 
 /**
  * Day names indexed by JavaScript Date.getDay() (0 = Sunday, 6 = Saturday)

@@ -1,12 +1,18 @@
 ## Current Task
-**Feature**: De-slop progress views — round 2 (10 more fixes)
-**Step**: All 10 fixes complete, Playwright screenshots verified in light+dark
+**Feature**: Remove bulk quick rate — personal feedback only
+**Step**: COMPLETE — removed `bulkUpdateFromQuickRate` entirely
+
 **Files touched**:
-- `components/progress/position-pentagon.tsx` — vertex labels via SvgText, renamed "Pentagon" → "Profile", increased SVG size for label room
-- `components/progress/character-bar.tsx` — rebuilt: vertical list layout, sentence case 14px labels, no truncation
-- `components/progress/session-timeline-card.tsx` — rebuilt: removed delta jargon ("Perf -1"), added human "X areas improved", star rating replaces corner dump
-- `components/progress/coach-says-card.tsx` — section headers sentence case, focus narrative accent blue with bulb icon
-- `components/progress/position-toggle.tsx` — "4 sessions" context instead of bare "4"
-- `app/development/my-progress.tsx` — section spacing sm→md (24px), summary line hides negative deltas
-**Next**: Done — ready for visual review on device
+- `utils/feedback-prefill.ts` — removed `DEFAULT_SKILLS` import (crash fix), removed `skillRatings` from `FeedbackPrefillData`
+- `services/progress/progress-skills-service.ts` — deleted `bulkUpdateFromQuickRate` function + unused imports (`BadgeCategory`, `mapSkillToCorner`, `QuickRateInput`, `LEGACY_BULK_FALLBACK_SKILLS`)
+- `services/progress/index.ts` — removed `bulkUpdateFromQuickRate` from facade
+- `hooks/use-session-completion.ts` — removed legacy `else` branch that called `bulkUpdateFromQuickRate`
+- `app/session/[id]/complete.tsx` — `prefillSkillRatings` now always `[]` (no more corner→skill mapping)
+- `__tests__/services/data-integrity-e2e.test.ts` — removed `bulkUpdateFromQuickRate` test (30/30 pass, was 31)
+
+**Verification**:
+- TypeScript: zero new errors (only pre-existing `window` in theme-provider.tsx)
+- Tests: data-integrity 30/30, progress-skills 4/4
+
+**Next**: Verify in simulator
 **Blockers**: none

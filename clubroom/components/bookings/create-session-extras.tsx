@@ -12,14 +12,8 @@ import { scaleFont } from '@/utils/scale';
 import type { FootballObjective } from '@/constants/types';
 import { Row } from '@/components/primitives';
 
-const SKILLS: FootballObjective[] = [
-  'Dribbling',
-  'Passing',
-  'Defending',
-  'Finishing',
-  'Goalkeeping',
-  'Conditioning',
-];
+import { COACHING_FOCUSES } from '@/constants/football-registry';
+const SKILLS: FootballObjective[] = COACHING_FOCUSES;
 
 interface SessionExtrasProps {
   price: string;

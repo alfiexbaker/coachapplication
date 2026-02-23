@@ -1,4 +1,5 @@
 import type { Booking, Session } from '@/constants/app-types';
+import type { SessionAttendance } from '@/constants/session-types';
 import { STORAGE_KEYS } from '@/constants/storage-keys';
 import { apiClient } from '@/services/api-client';
 import { progressSelfAssessmentService } from '@/services/progress/progress-self-assessment-service';
@@ -63,6 +64,15 @@ export async function upsertCompletedBookingSessions(
     const mergedSessions = [...existingSessions];
     const createdSessions: Session[] = [];
 
+    // Read actual attendance recorded by the coach during session completion.
+    // SESSION_ATTENDANCE is keyed by the session/offering ID — for group bookings
+    // that's the groupSessionId, for 1-on-1 it's the booking ID itself.
+    const attendanceKey = booking.groupSessionId || booking.id;
+    const attendanceData = await apiClient.get<SessionAttendance | null>(
+      `${STORAGE_KEYS.SESSION_ATTENDANCE}_${attendanceKey}`,
+      null,
+    );
+
     athleteIds.forEach((athleteId) => {
       const expectedSessionId = buildSessionId(booking.id, athleteId);
       const alreadyExists = mergedSessions.some(
@@ -74,13 +84,17 @@ export async function upsertCompletedBookingSessions(
         return;
       }
 
+      // Use the coach's actual attendance mark if available, default to ATTENDED
+      const athleteRecord = attendanceData?.records.find((r) => r.athleteId === athleteId);
+      const attendance = athleteRecord?.status === 'NO_SHOW' ? 'NO_SHOW' : 'ATTENDED';
+
       const sessionRecord: Session = {
         id: expectedSessionId,
         bookingId: booking.id,
         coachId: booking.coachId,
         athleteId,
         completedAt: resolveSessionCompletedAt(booking),
-        attendance: 'ATTENDED',
+        attendance,
         notes: '',
         skillsWorkedOn: booking.objectives ?? [],
         performanceRating: 0,

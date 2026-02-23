@@ -10,27 +10,29 @@ export const CENTER = RADAR_SIZE / 2;
 export const RADIUS = RADAR_SIZE / 2 - 45;
 
 export const SKILL_COLORS = {
-  beginner: '#F59E0B',
-  developing: '#3B82F6',
-  proficient: '#10B981',
-  advanced: '#8B5CF6',
-  expert: '#EC4899',
+  developing: '#F59E0B',
+  good: '#3B82F6',
+  veryGood: '#10B981',
+  excellent: '#8B5CF6',
+  exceptional: '#EC4899',
 } as const;
 
+/** Maps 0-100 analytics scale to a color. Boundaries align with stored 1-10 × 10. */
 export function getSkillColor(level: number): string {
-  if (level < 20) return SKILL_COLORS.beginner;
-  if (level < 40) return SKILL_COLORS.developing;
-  if (level < 60) return SKILL_COLORS.proficient;
-  if (level < 80) return SKILL_COLORS.advanced;
-  return SKILL_COLORS.expert;
+  if (level <= 20) return SKILL_COLORS.developing;
+  if (level <= 40) return SKILL_COLORS.good;
+  if (level <= 60) return SKILL_COLORS.veryGood;
+  if (level <= 80) return SKILL_COLORS.excellent;
+  return SKILL_COLORS.exceptional;
 }
 
+/** Maps 0-100 analytics scale to canonical label (matches RATING_LABELS). Boundaries align with stored 1-10 × 10. */
 export function getSkillLabel(level: number): string {
-  if (level < 20) return 'Beginner';
-  if (level < 40) return 'Developing';
-  if (level < 60) return 'Proficient';
-  if (level < 80) return 'Advanced';
-  return 'Expert';
+  if (level <= 20) return 'Developing';
+  if (level <= 40) return 'Good';
+  if (level <= 60) return 'Very Good';
+  if (level <= 80) return 'Excellent';
+  return 'Exceptional';
 }
 
 export function getPosition(index: number, level: number, numSkills: number): { x: number; y: number } {

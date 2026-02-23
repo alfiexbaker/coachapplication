@@ -23,7 +23,13 @@ export const CategoryInfo: Record<BadgeCategory, { label: string; icon: string }
 };
 ```
 
-**DECISION:** Use `social`, NOT `tactical`. The FA Four Corner Model is Technical/Physical/Psychological/Social. All sprint docs that say "tactical" should read "social". The four-corner-mapping.ts will use `BadgeCategory` type directly. Social includes: Positioning, Decision-Making, Vision, Awareness, Communication, Leadership, Teamwork.
+**DECISION:** Use `social`, NOT `tactical`. The FA Four Corner Model is Technical/Physical/Psychological/Social. All sprint docs that say "tactical" should read "social". The four-corner-mapping.ts will use `BadgeCategory` type directly.
+
+**Corner-to-skill mapping (updated Feb 2026):**
+- **Technical:** All position-specific skills (Ball Skills, Attacking, Defending, Game Sense groups) — Passing, Game Vision, Tackling, Finishing, etc.
+- **Physical:** Work Rate (hardcoded override)
+- **Psychological:** Attitude, Coachability (Character group minus overrides)
+- **Social:** Communication, Command of Area (hardcoded overrides — interpersonal/leadership skills)
 
 ### D2. Pager Library = FlatList with pagingEnabled
 

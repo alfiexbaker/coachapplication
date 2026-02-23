@@ -1,4 +1,4 @@
-import { memo, type ComponentProps } from 'react';
+import { memo, useCallback, type ComponentProps } from 'react';
 import { StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
@@ -10,10 +10,21 @@ import { POSITION_LABELS } from '@/constants/position-skills';
 import { useTheme } from '@/hooks/useTheme';
 import type { PositionRole } from '@/types/progress-types';
 
-interface PositionSelectorProps {
+/** Single-select position selector (legacy). */
+interface SingleSelectProps {
   value: PositionRole | null;
   onChange: (position: PositionRole) => void;
+  multiSelect?: false;
 }
+
+/** Multi-select position selector (new). */
+interface MultiSelectProps {
+  value: PositionRole[];
+  onToggle: (position: PositionRole) => void;
+  multiSelect: true;
+}
+
+type PositionSelectorProps = SingleSelectProps | MultiSelectProps;
 
 const POSITION_OPTIONS: Array<{
   key: PositionRole;
@@ -26,13 +37,35 @@ const POSITION_OPTIONS: Array<{
   { key: 'ATT', shortLabel: 'ATT', icon: 'football-outline' },
 ];
 
-export const PositionSelector = memo(function PositionSelector({ value, onChange }: PositionSelectorProps) {
+export const PositionSelector = memo(function PositionSelector(props: PositionSelectorProps) {
   const { colors } = useTheme();
+  const isMulti = props.multiSelect === true;
+
+  const isActive = useCallback(
+    (key: PositionRole): boolean => {
+      if (isMulti) {
+        return (props as MultiSelectProps).value.includes(key);
+      }
+      return key === (props as SingleSelectProps).value;
+    },
+    [isMulti, props],
+  );
+
+  const handlePress = useCallback(
+    (key: PositionRole) => {
+      if (isMulti) {
+        (props as MultiSelectProps).onToggle(key);
+      } else {
+        (props as SingleSelectProps).onChange(key);
+      }
+    },
+    [isMulti, props],
+  );
 
   return (
     <Row gap="xs" wrap>
       {POSITION_OPTIONS.map((option) => {
-        const active = option.key === value;
+        const active = isActive(option.key);
         return (
           <Clickable
             key={option.key}
@@ -43,8 +76,8 @@ export const PositionSelector = memo(function PositionSelector({ value, onChange
                 backgroundColor: active ? withAlpha(colors.tint, 0.14) : colors.background,
               },
             ]}
-            onPress={() => onChange(option.key)}
-            accessibilityLabel={`Set position to ${POSITION_LABELS[option.key]}`}
+            onPress={() => handlePress(option.key)}
+            accessibilityLabel={`${isMulti ? 'Toggle' : 'Set'} position ${POSITION_LABELS[option.key]}`}
             accessibilityRole="button"
             accessibilityState={{ selected: active }}
           >

@@ -15,7 +15,11 @@ import {
   TierNames,
 } from '@/constants/progression';
 import { STORAGE_KEYS } from '@/constants/storage-keys';
-import { SESSION_MILESTONE_BADGES, EVENT_BADGES } from './badge-definitions';
+import {
+  SKILL_BADGES,
+  SESSION_MILESTONE_BADGES,
+  EVENT_BADGES,
+} from '@/constants/badge-registry';
 const ENABLE_PROGRESS_DEMO_SEED =
   process.env.EXPO_PUBLIC_ENABLE_PROGRESS_DEMO_SEED === 'true' ||
   process.env.EXPO_PUBLIC_ENABLE_PROGRESS_DEMO_SEED === '1' ||
@@ -38,236 +42,9 @@ type AwardBadgeInput = {
   recipientId?: string; // Optional notification recipient
 };
 
-// Badge catalog — mapped to FA Four Corners (Technical, Physical, Psychological, Social)
-const BASE_BADGE_CATALOG: BadgeDefinition[] = [
-  {
-    id: 'badge_best_training',
-    label: 'Standout Session',
-    tone: 'success',
-    description: 'Recognised for outstanding effort and focus in training.',
-    category: 'physical',
-    tier: 1,
-    pointValue: 10,
-  },
-  {
-    id: 'badge_streak_starter',
-    label: 'Consistent Attender',
-    tone: 'default',
-    description: 'Demonstrated reliable attendance across sessions.',
-    category: 'psychological',
-    tier: 1,
-    pointValue: 10,
-  },
-  {
-    id: 'badge_dedicated_athlete',
-    label: 'Dedicated Athlete',
-    tone: 'success',
-    description: 'Maintained strong attendance and commitment.',
-    category: 'psychological',
-    tier: 2,
-    pointValue: 25,
-  },
-  {
-    id: 'badge_master_passer',
-    label: 'Vision & Passing',
-    tone: 'default',
-    description: 'Recognised for reliable build-up play and vision.',
-    category: 'technical',
-    tier: 2,
-    pointValue: 25,
-  },
-  {
-    id: 'badge_sharp_shooter_pro',
-    label: 'Clinical Finishing',
-    tone: 'warning',
-    description: 'Recognised for composure and accuracy under pressure.',
-    category: 'technical',
-    tier: 3,
-    pointValue: 50,
-  },
-  {
-    id: 'badge_first_touch',
-    label: 'Ball Control',
-    tone: 'default',
-    description: 'Demonstrated excellent ball control in tight spaces.',
-    category: 'technical',
-    tier: 1,
-    pointValue: 10,
-  },
-  {
-    id: 'badge_team_captain',
-    label: 'Session Leader',
-    tone: 'success',
-    description: 'Led drills and encouraged teammates.',
-    category: 'social',
-    tier: 2,
-    pointValue: 25,
-  },
-  {
-    id: 'badge_vocal_leader',
-    label: 'Communication',
-    tone: 'default',
-    description: 'Communicated well and organised the group.',
-    category: 'social',
-    tier: 1,
-    pointValue: 10,
-  },
-  {
-    id: 'badge_mentor',
-    label: 'Mentoring',
-    tone: 'success',
-    description: 'Helped younger players improve their skills.',
-    category: 'social',
-    tier: 3,
-    pointValue: 50,
-  },
-  {
-    id: 'badge_growth_mindset',
-    label: 'Growth Mindset',
-    tone: 'default',
-    description: 'Embraced challenges and learned from mistakes.',
-    category: 'psychological',
-    tier: 1,
-    pointValue: 10,
-  },
-  {
-    id: 'badge_focused_athlete',
-    label: 'Focus & Concentration',
-    tone: 'success',
-    description: 'Maintained concentration throughout the session.',
-    category: 'psychological',
-    tier: 2,
-    pointValue: 25,
-  },
-  {
-    id: 'badge_team_player',
-    label: 'Team Player',
-    tone: 'default',
-    description: 'Put the team first and supported others.',
-    category: 'social',
-    tier: 1,
-    pointValue: 10,
-  },
-  // Generic recognition badges — one per FA Four Corners category
-  {
-    id: 'badge_recognition_technical',
-    label: 'Technical Recognition',
-    tone: 'default',
-    description: 'Recognised for technical development.',
-    category: 'technical',
-    tier: 1,
-    pointValue: 10,
-  },
-  {
-    id: 'badge_recognition_physical',
-    label: 'Physical Recognition',
-    tone: 'default',
-    description: 'Recognised for physical development.',
-    category: 'physical',
-    tier: 1,
-    pointValue: 10,
-  },
-  {
-    id: 'badge_recognition_psychological',
-    label: 'Psychological Recognition',
-    tone: 'default',
-    description: 'Recognised for psychological development.',
-    category: 'psychological',
-    tier: 1,
-    pointValue: 10,
-  },
-  {
-    id: 'badge_recognition_social',
-    label: 'Social Recognition',
-    tone: 'default',
-    description: 'Recognised for social development.',
-    category: 'social',
-    tier: 1,
-    pointValue: 10,
-  },
-  {
-    id: 'badge_assist_king',
-    label: 'Creating Opportunities',
-    tone: 'success',
-    description: 'Created multiple opportunities for teammates.',
-    category: 'technical',
-    tier: 2,
-    pointValue: 25,
-  },
-  {
-    id: 'badge_comeback_kid',
-    label: 'Resilience',
-    tone: 'warning',
-    description: 'Bounced back from setbacks with determination.',
-    category: 'psychological',
-    tier: 2,
-    pointValue: 25,
-  },
-  {
-    id: 'badge_never_give_up',
-    label: 'Perseverance',
-    tone: 'success',
-    description: 'Showed incredible perseverance under pressure.',
-    category: 'psychological',
-    tier: 3,
-    pointValue: 50,
-  },
-  // Challenge reward badges
-  {
-    id: 'badge_challenge_on_a_roll',
-    label: 'On a Roll',
-    tone: 'success',
-    description: 'Completed a consistency streak challenge.',
-    category: 'psychological',
-    tier: 1,
-    pointValue: 10,
-  },
-  {
-    id: 'badge_challenge_unstoppable',
-    label: 'Unstoppable',
-    tone: 'success',
-    description: 'Completed a major streak milestone challenge.',
-    category: 'psychological',
-    tier: 2,
-    pointValue: 25,
-  },
-  {
-    id: 'badge_challenge_machine',
-    label: 'Machine',
-    tone: 'warning',
-    description: 'Completed an elite streak challenge.',
-    category: 'psychological',
-    tier: 3,
-    pointValue: 50,
-  },
-  {
-    id: 'badge_challenge_levelling_up',
-    label: 'Levelling Up',
-    tone: 'default',
-    description: 'Completed a skill development challenge.',
-    category: 'technical',
-    tier: 1,
-    pointValue: 10,
-  },
-  {
-    id: 'badge_challenge_collector',
-    label: 'Collector',
-    tone: 'default',
-    description: 'Completed a badge collection challenge.',
-    category: 'social',
-    tier: 1,
-    pointValue: 10,
-  },
-  {
-    id: 'badge_challenge_reflector',
-    label: 'Reflector',
-    tone: 'default',
-    description: 'Completed a reflection challenge.',
-    category: 'psychological',
-    tier: 1,
-    pointValue: 10,
-  },
-];
+// Badge catalog imported from constants/badge-registry.ts (single source of truth)
+const BASE_BADGE_CATALOG: BadgeDefinition[] = SKILL_BADGES;
+
 
 const SEED_BADGE_AWARDS: BadgeAward[] = [
   {
@@ -363,7 +140,35 @@ class BadgeService {
   }
 
   async listDefinitions(): Promise<BadgeDefinition[]> {
-    return BASE_BADGE_CATALOG;
+    const eventBadgesAsDefs: BadgeDefinition[] = EVENT_BADGES.map((e) => ({
+      id: e.id,
+      label: e.label,
+      description: e.description,
+      category: e.category,
+      tier: e.tier,
+      pointValue: e.pointValue,
+    }));
+    return [...BASE_BADGE_CATALOG, ...eventBadgesAsDefs];
+  }
+
+  async listDefinitionsWithStats(): Promise<BadgeDefinitionWithStats[]> {
+    const [definitions, allAwards] = await Promise.all([
+      this.listDefinitions(),
+      this.listAwards(),
+    ]);
+    const athletesByBadge = new Map<string, Set<string>>();
+    for (const award of allAwards) {
+      const set = athletesByBadge.get(award.badgeId);
+      if (set) {
+        set.add(award.athleteId);
+      } else {
+        athletesByBadge.set(award.badgeId, new Set([award.athleteId]));
+      }
+    }
+    return definitions.map((def) => ({
+      ...def,
+      awardCount: athletesByBadge.get(def.id)?.size ?? 0,
+    }));
   }
 
   findBadgeForCategory(category: BadgeCategory): BadgeDefinition | undefined {
@@ -387,7 +192,8 @@ class BadgeService {
 
   async awardBadge(input: AwardBadgeInput): Promise<Result<BadgeAward, ServiceError>> {
     const stored = await this.getStoredAwards();
-    const definition = BASE_BADGE_CATALOG.find((badge) => badge.id === input.badgeId);
+    const allDefs = await this.listDefinitions();
+    const definition = allDefs.find((badge) => badge.id === input.badgeId);
     const allAwards = this.mergeAwards(stored);
     const mostRecentAward = allAwards.find((award) => award.athleteId === input.athleteId);
     const cooldownWindowDays = 7;
@@ -925,7 +731,7 @@ class BadgeService {
         id: milestone.id,
         label: milestone.label,
         description: milestone.description,
-        category: 'physical',
+        category: 'psychological',
         tier: milestone.tier,
         pointValue: milestone.pointValue,
         badgeType: 'milestone',
@@ -1152,6 +958,10 @@ export interface AllBadgeWithProgress {
   progressLabel: string;
   currentValue?: number;
   targetValue?: number;
+}
+
+export interface BadgeDefinitionWithStats extends BadgeDefinition {
+  awardCount: number; // unique athletes who earned this badge
 }
 
 export const badgeService = new BadgeService();

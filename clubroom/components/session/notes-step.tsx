@@ -8,6 +8,7 @@
 import React, { memo, useCallback } from 'react';
 import { StyleSheet, TextInput } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { SESSION_NOTE_FOCUSES } from '@/constants/football-registry';
 import Slider from '@react-native-community/slider';
 import { Row } from '@/components/primitives/row';
 
@@ -39,16 +40,7 @@ export interface NotesStepProps {
 // CONSTANTS
 // ============================================================================
 
-const SKILL_OPTIONS = [
-  'Dribbling',
-  'Passing',
-  'Defending',
-  'Finishing',
-  'Goalkeeping',
-  'Conditioning',
-  'Tactics',
-];
-
+const SKILL_OPTIONS = SESSION_NOTE_FOCUSES;
 // ============================================================================
 // NOTES STEP
 // ============================================================================

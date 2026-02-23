@@ -59,7 +59,7 @@ describe('monthlySummaryService.buildMonthlySummary', () => {
     assert.equal(result.success, true);
     assert.ok(result.success && result.data.monthTitle.endsWith('Summary'));
     assert.ok(result.success && result.data.narrative.includes('Marcus had a strong month.'));
-    assert.ok(result.success && result.data.narrative.includes('Passing moved from Developing to Proficient.'));
+    assert.ok(result.success && result.data.narrative.includes('Passing moved from Good to Very Good.'));
     assert.ok(result.success && result.data.narrative.includes('Coach Sarah noted:'));
     assert.ok(result.success && result.data.valueLine.includes('Your £20 this month:'));
     assert.ok(result.success && result.data.valueLine.includes('6 hours'));

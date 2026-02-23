@@ -1,304 +1,311 @@
-# Position-Specific Pentagon, Position Toggle, Onboarding & Profile Integration
+# Unified Skill Hierarchy — Master Plan
 
-## Context
-
-The 4-corner diamond forces 5 skill groups into 4 FA corners, creating misleading labels and lopsided weighting. We replace it with a **position-specific pentagon** showing the 5 actual skills for each position. We add a **position toggle** so parents see progress per position. We add `primaryPosition` to child profiles (set by parent during add-child/edit, used by coach as default). We update onboarding to use the existing `PositionSelector` component instead of a freeform text field. We change "Attacker" to "Striker" in all display labels.
-
-**Services are PROTECTED — zero logic changes to any service file.**
+## Status: ALL PHASES COMPLETE (Phase 1 + 2 + 3 + 4)
 
 ---
 
-## Label change
+## The Problem (solved)
 
-`constants/position-skills.ts` line 37:
+Three disconnected skill lists existed:
+- **POSITION_SKILLS** (24 rated skills) — quick-rate, progress, player card
+- **DEV_SESSION_SKILLS** (14 free-text) — dev session feedback (NOW DELETED)
+- **COACHING_FOCUSES** (6 high-level) — session creation, filtering (unchanged)
+
+Coach rated "Ball Control" in dev session but progress tracked "Ball Carrying". Nothing connected.
+
+## The Solution (implemented)
+
+**One hierarchy. 24 parent skills. Sub-skills underneath as context tags.**
+
 ```
-ATT: 'Attacker'  →  ATT: 'Striker'
-```
+FootballSkill (parent, rated 1-5)
+  └── sub-skills (context tags, not rated)
 
-Internal type stays `ATT`. Display label changes everywhere automatically via `POSITION_LABELS`.
-
----
-
-## Phase 1: Types + Constants (3 files)
-
-### 1. `types/progress-types.ts`
-- Add `PentagonData` interface:
-  ```ts
-  interface PentagonData {
-    position: PositionRole;
-    attributes: PentagonAttribute[];  // 5 items
-    universalSkills: UniversalSkillRating[];  // 4 items (for character bar)
-    deltas: Record<string, number>;
-    sessionSnapshots: Array<{ id: string; label: string; values: Record<string, number> }>;
-    comparisonLabel: string | null;
-  }
-  interface PentagonAttribute {
-    key: string;           // kebab skill name
-    label: string;         // e.g. "Shot Stopping"
-    value: number;         // 0-100 scale
-    rating: number;        // 1-5 dots
-    ratingLabel: SkillRatingLevel;  // e.g. "Excellent"
-    trend: SkillTrendDirection;
-    color: string;
-    icon: string;
-  }
-  interface UniversalSkillRating {
-    skill: UniversalSkill;
-    rating: number;        // 1-5
-    ratingLabel: SkillRatingLevel;
-    trend: SkillTrendDirection;
-  }
-  ```
-- Keep `FourCornerData` / `FourCornerDisplay` (backward compat, player card can still use internally)
-
-### 2. `constants/position-skills.ts`
-- Change `ATT` label: `'Attacker'` → `'Striker'`
-- Add `POSITION_SKILL_COLORS: Record<PositionRole, Record<string, string>>` — unique color per skill per position (5 colors per position)
-- Add `POSITION_SKILL_ICONS: Record<string, string>` — Ionicon name per skill (e.g. `'Shot Stopping': 'hand-left-outline'`)
-- Add `POSITION_OPTIONS_WITH_ROTATE` for onboarding/profile:
-  ```ts
-  export const POSITION_OPTIONS_WITH_ROTATE = [
-    { key: 'GK', label: 'Goalkeeper', icon: 'hand-left-outline' },
-    { key: 'DEF', label: 'Defender', icon: 'shield-outline' },
-    { key: 'MID', label: 'Midfielder', icon: 'swap-horizontal-outline' },
-    { key: 'ATT', label: 'Striker', icon: 'football-outline' },
-    { key: null, label: 'They rotate', icon: 'sync-outline' },
-  ];
-  ```
-
-### 3. `constants/storage-keys.ts`
-- Already has `POSITION_HISTORY` — no change needed
-
----
-
-## Phase 2: Data model — primaryPosition on child profiles (3 files)
-
-### 4. `services/child-service.ts` — INTERFACE ONLY, no logic change
-- Add to `ChildProfile` interface (after `relationship`):
-  ```ts
-  primaryPosition?: PositionRole | null;  // null = "they rotate"
-  ```
-- Add same field to `CreateChildInput` interface
-- Existing `createChild()` and `updateChild()` pass-through — field flows through automatically
-
-### 5. `hooks/use-add-child.ts`
-- Add state: `const [primaryPosition, setPrimaryPosition] = useState<PositionRole | null>(null);`
-- Add to `basicProps` object passed to step component
-- Include in `handleSave` payload: `primaryPosition: primaryPosition ?? undefined`
-
-### 6. `hooks/use-edit-child-profile.ts`
-- Add state: `const [primaryPosition, setPrimaryPosition] = useState<PositionRole | null>(null);`
-- Hydrate from `child.primaryPosition` on load
-- Include in `handleSave` updates payload
-
----
-
-## Phase 3: Onboarding + Profile UI (3 files)
-
-### 7. `components/auth/onboarding-step-athlete.tsx`
-- Replace freeform TextInput (lines 154-165) with `PositionSelector` component
-- Change prop type: `position: string` → `position: PositionRole | null`
-- Change callback: `onChangePosition: (value: string) => void` → `onChangePosition: (position: PositionRole | null) => void`
-- Add "They rotate" option (5th button or separate "skip" link below)
-
-### 8. `components/auth/onboarding-types.ts`
-- Line 48: Change `position: string` → `position: PositionRole | null`
-- Line 163 (INITIAL_STATE): Change `position: ''` → `position: null`
-
-### 9. `app/(modal)/edit-child-profile.tsx`
-- Add position selector in "Basic Information" section (after relationship pills, ~line 146)
-- Uses same pill pattern as gender/relationship (Clickable pills in a Row)
-- Shows 5 options: GK / DEF / MID / Striker / They rotate
-- Import `POSITION_OPTIONS_WITH_ROTATE` from position-skills
-
----
-
-## Phase 4: Position toggle component (1 new file)
-
-### 10. `components/progress/position-toggle.tsx` — NEW
-- Props: `positions: Array<{ role: PositionRole; sessionCount: number }>`, `selected: PositionRole`, `onChange: (role: PositionRole) => void`
-- Horizontal row of pills: `MID (6) · DEF (3) · GK (1)`
-- Active pill: tint bg, bold text
-- Only shows positions the athlete has been rated in (from position history)
-- If only 1 position → don't render (no toggle needed)
-- 44px min touch targets, memo'd, useTheme
-
----
-
-## Phase 5: Pentagon component (1 new file)
-
-### 11. `components/progress/position-pentagon.tsx` — NEW
-Clone diamond geometry, change to 5 axes:
-
-**SVG geometry:**
-- 5 vertices at 72° intervals, starting from top (-90°):
-  ```
-  angle(i) = -π/2 + (2π/5) * i
-  point(i) = { x: cx + r*cos(angle), y: cy + r*sin(angle) }
-  ```
-- Grid rings at 1/2/3/4/5 (pentagon-shaped, not circular)
-- 5 colored axis lines from center to tips
-- Filled polygon (current values) with radial gradient
-- Dashed polygon (comparison values, 4 weeks ago)
-- Vertex dots at each point
-
-**Props:**
-```ts
-interface PositionPentagonProps {
-  data: PentagonData;
-  isParentView?: boolean;
-  velocityHighlight?: { skill: string; delta: number; weeks: number } | null;
-}
+Example:
+  Passing (rated 1-5 via DotRating)
+    ├── First Touch (tag)
+    ├── One-Touch Play (tag)
+    └── Weight of Pass (tag)
 ```
 
-**Below chart — 5 attribute chips:**
-- Layout: Row of 3 on top, Row of 2 below (centered)
-- Each chip: color dot + label + rating label (e.g. "Excellent") + trend arrow
-- Tap chip → expand detail panel showing that single skill's history
-- Same animation pattern as diamond (FadeInDown entry)
+## Rating Model
 
-**Session morphing:**
-- Reuse same interval/interpolation pattern from diamond
-- 5 values instead of 4, same timing (12 steps, 105ms/frame, 520ms pause)
+| What | How | Scale | Stored where |
+|------|-----|-------|--------------|
+| Parent skill (e.g. "Passing") | DotRating (1-5 coloured dots) | 1-5 | `SkillLevel.level` (x2 = 1-10 internal) |
+| Sub-skill (e.g. "First Touch") | Toggle chip on/off | Boolean | `SessionFeedback.skillsWorkedOn[]` |
+| Effort | DotRating | 1-5 | `SessionFeedback.effortRating` |
+| Overall performance | Star rating | 1-5 | `SessionFeedback.overallPerformance` |
 
----
+**Why 1-5 not 1-10:** Consistent with Quick Rate flow. Less false precision. One tap per skill. Internal storage remains 1-10 (multiplied by 2) for future granularity.
 
-## Phase 6: Character bar (1 new file)
+## Data Flow
 
-### 12. `components/progress/character-bar.tsx` — NEW
-- Shows 4 universal skills in a compact horizontal layout
-- Each skill: label + rating label (e.g. "Work Rate: Excellent") + trend arrow (↑ or →)
-- Single row if space allows, 2x2 grid on compact screens
-- Props: `universalSkills: UniversalSkillRating[]`
-- Muted styling — secondary to pentagon, not competing for attention
-- memo'd, useTheme
+```
+Coach taps DotRating dot (1-5)
+  → updateSkillRating(skill, value) in use-dev-session.ts
+  → stored in skillRatings: { skill, rating }[]
+  → on Save: progressService.addSessionFeedback(...)
+    → progressSkillsService stores as SkillLevel (rating * 2 = 1-10)
+    → computeFourCorners() maps skills via SKILL_TO_CORNER
+    → FourCornerRatings { technical, physical, psychological, social }
+  → displays on: pentagon, player card, progress trends
+```
 
----
+## Coach UX Flow (implemented)
 
-## Phase 7: Pentagon data hook (1 new file)
+1. Coach opens session feedback screen
+2. Sees position tabs: **Core | GK | DEF | MID | ATT**
+3. Each tab shows 4-5 parent skills as **DotRating rows** (icon + label + 5 coloured dots)
+4. Coach taps dots to rate — dot animation + haptic feedback
+5. Rated skill expands to show sub-skill chips underneath
+6. Coach toggles sub-skills for context ("worked on First Touch and Weight of Pass")
+7. X button to remove a rating entirely
+8. Below: notes, improvements, homework, media, badges
+9. Save & Submit
 
-### 13. `hooks/use-pentagon-data.ts` — NEW
-- Signature: `usePentagonData(skills: SkillLevel[], feedback: SessionFeedback[], position: PositionRole)`
-- Returns: `PentagonData`
+**Minimum taps for a session:** 3-5 (rate 3 skills, save)
 
-**Logic:**
-1. Get position-specific skills: `POSITION_SKILLS[position]` (5 skills)
-2. For each positional skill, find matching `SkillLevel` in `skills` array
-3. Convert level (1-10) to value (0-100): `level * 10`
-4. Convert level to rating (1-5): `Math.ceil(level / 2)`
-5. Get rating label from `RATING_LABELS[rating]`
-6. Compute deltas from 28-day comparison (same pattern as use-four-corners)
-7. Build session snapshots from feedback that has `positionPlayed === position`
-8. Extract universal skills separately for character bar
+## What Parents See
 
-Also returns:
-- `availablePositions: Array<{ role: PositionRole; sessionCount: number }>` — for toggle
-- `universalSkills: UniversalSkillRating[]` — for character bar
+- **Current (Phase 1):** Parent skill ratings (e.g. "Passing 4/5") with trend arrows
+- **Phase 2:** Sub-skill context tags shown beneath ratings ("Worked on: First Touch, Weight of Pass")
+- Pentagon/player card shows positional skills on 0-100 scale
+- Four corners model aggregates into Technical/Physical/Psychological/Social
 
----
+## What Athletes See
 
-## Phase 8: Wire to My Progress (3 files)
+- Pentagon with animated morphing between sessions
+- Player card (FIFA-style) with corner scores and tier
+- "Coach says focus on: [homework]"
+- Badges and achievements
+- **Phase 3:** Sub-skills shown as "Today we practised: ..." motivational tags
 
-### 14. `hooks/use-my-progress.ts`
-- Import `usePentagonData` (new hook)
-- Load child's `primaryPosition` from child service
-- Add state: `selectedPosition` (defaults to `primaryPosition` or most-played from position service)
-- Call `usePentagonData(skills, feedback, selectedPosition)` alongside existing `useFourCorners`
-- Return: `pentagonData`, `selectedPosition`, `setSelectedPosition`, `availablePositions`, `universalSkills`
-- Keep `fourCorners` for backward compat (player card still uses it for now)
+## Calculation Model
 
-### 15. `app/development/my-progress.tsx`
-- Between player card (line 504) and coach card (line 520), replace diamond section:
-  - Remove `<FourCornerDiamond>` (lines 506-518)
-  - Add `<PositionToggle>` (only if `availablePositions.length > 1`)
-  - Add `<PositionPentagon>`
-  - Add `<CharacterBar>`
-- Import new components, remove `FourCornerDiamond` import
+### Four Corners (already working)
 
-### 16. `hooks/use-quick-rate.ts`
-- Change default position: instead of hardcoded `'MID'`, use child's `primaryPosition` if available
-- Minimal change — just the default value in initialization
+Each of the 24 skills maps to one corner via `SKILL_TO_CORNER`:
+- **Technical (10):** Shot Stopping, Handling & Crosses, Distribution, Tackling, Passing, Ball Carrying, Dribbling & Skills, Finishing, Hold-Up Play, Playing Out
+- **Physical (5):** Work Rate, Pressing & Work Rate, Pressing & Defending, Heading & Aerial, 1v1 Defending
+- **Psychological (7):** Attitude, Coachability, Game Vision, Positioning, Positioning & Sweeping, Tempo & Control, Movement
+- **Social (2):** Communication, Command of Area
 
----
+Corner value = average of all rated skills in that bucket, clamped 1-5.
 
-## Phase 9: Child card + athlete profile (2 files)
+### Pentagon (already working)
 
-### 17. `components/family/children-child-card.tsx`
-- Show position pill in metadata row (alongside age/relationship pills)
-- Uses `POSITION_LABELS[child.primaryPosition]` for text
-- If `primaryPosition === null`, show "Rotates" pill or nothing
-
-### 18. `app/development/athlete/[athleteId]/index.tsx` (or equivalent coach athlete view)
-- Show primary position in athlete hero section
-- Coach can tap to change → position selector inline
-- Saves via `childService.updateChild()`
+5 vertices = 5 positional skills for athlete's position. Values mapped from 1-10 internal scale to 0-100 display scale.
 
 ---
 
-## Phase 10: Player card update (2 files)
+## Sub-Skill Hierarchy (complete reference)
 
-### 19. `hooks/use-player-card.ts`
-- Accept `position?: PositionRole` parameter
-- If position provided: compute 5 position-specific scores instead of 4 corner scores
-- Use `POSITION_SKILLS[position]` to get skill names, match against `skills` array
-- Return 5 attributes with FIFA scores (0-99)
-- If no position: fall back to existing 4-corner logic
+### GK
+| Parent | Sub-skills |
+|--------|-----------|
+| Shot Stopping | Reflexes, Shot Reading, 1v1 Saving |
+| Handling & Crosses | Catching, Punching, Cross Claiming |
+| Distribution | Goal Kicks, Throwing, Short Passing |
+| Positioning & Sweeping | Starting Position, Sweeping, Angle Play |
+| Command of Area | Organising Defence, Commanding Box, Communication with Back Line |
 
-### 20. `components/progress/player-card-front.tsx`
-- If 5 attributes: render as 3 pills top row + 2 pills bottom row (centered)
-- Dynamic labels/icons from `POSITION_SKILL_ICONS`
-- If 4 corners (fallback): keep existing 2x2 layout
+### DEF
+| Parent | Sub-skills |
+|--------|-----------|
+| Tackling | Tackling Technique, Interceptions |
+| Heading & Aerial | Aerial Duels, Set Piece Attacking |
+| Positioning | Positional Sense, Defensive Shape |
+| Playing Out | Building from the Back, Receiving Under Pressure, Switching Play |
+| 1v1 Defending | Jockeying, Recovery Runs |
 
----
+### MID
+| Parent | Sub-skills |
+|--------|-----------|
+| Passing | First Touch, One-Touch Play, Weight of Pass |
+| Ball Carrying | Ball Control, Close Control, Dribbling |
+| Game Vision | Decision Making, Scanning, Awareness |
+| Pressing & Defending | Transition, Pressing Shape |
+| Tempo & Control | Game Management, Tempo Setting |
 
-## Phase 11: Onboarding screen wiring (1 file)
+### ATT
+| Parent | Sub-skills |
+|--------|-----------|
+| Finishing | Shooting, Composure, Weak Foot Finishing |
+| Movement | Off the Ball, Timing of Runs, Movement in Box |
+| Dribbling & Skills | Skill Moves, 1v1 Attacking, Weak Foot |
+| Hold-Up Play | Back to Goal, Link-Up Play, Holding Possession |
+| Pressing & Work Rate | Speed, Stamina, Pressing Intensity |
 
-### 21. `components/auth/onboarding-screen.tsx`
-- Update `handleChangePosition` callback type: `(value: string)` → `(position: PositionRole | null)`
-- Import `PositionRole` type
-
----
-
-## Files summary
-
-| # | File | Action | Risk |
-|---|------|--------|------|
-| 1 | `types/progress-types.ts` | EDIT — add pentagon types | None |
-| 2 | `constants/position-skills.ts` | EDIT — Striker label, colors, icons | None |
-| 3 | `services/child-service.ts` | EDIT — add `primaryPosition` to interface | **Zero logic** |
-| 4 | `hooks/use-add-child.ts` | EDIT — add position state | Low |
-| 5 | `hooks/use-edit-child-profile.ts` | EDIT — add position state | Low |
-| 6 | `components/auth/onboarding-step-athlete.tsx` | EDIT — PositionSelector | Low |
-| 7 | `components/auth/onboarding-types.ts` | EDIT — position type | None |
-| 8 | `app/(modal)/edit-child-profile.tsx` | EDIT — add position pills | Low |
-| 9 | `components/auth/onboarding-screen.tsx` | EDIT — callback type | None |
-| 10 | `components/progress/position-toggle.tsx` | **NEW** | — |
-| 11 | `components/progress/position-pentagon.tsx` | **NEW** | — |
-| 12 | `components/progress/character-bar.tsx` | **NEW** | — |
-| 13 | `hooks/use-pentagon-data.ts` | **NEW** | — |
-| 14 | `hooks/use-my-progress.ts` | EDIT — wire pentagon | Medium |
-| 15 | `app/development/my-progress.tsx` | EDIT — swap diamond | Medium |
-| 16 | `hooks/use-quick-rate.ts` | EDIT — default position | Low |
-| 17 | `components/family/children-child-card.tsx` | EDIT — position pill | Low |
-| 18 | `app/development/athlete/[athleteId]/index.tsx` | EDIT — show position | Low |
-| 19 | `hooks/use-player-card.ts` | EDIT — 5 attributes | Medium |
-| 20 | `components/progress/player-card-front.tsx` | EDIT — 5 pill layout | Medium |
-| 21 | `components/auth/onboarding-screen.tsx` | EDIT — callback type | None |
-
-**4 new files, 17 edits. 0 service logic changes. 1 interface-only service touch.**
+### Universal (all positions)
+| Parent | Sub-skills |
+|--------|-----------|
+| Work Rate | Conditioning, Fitness, Endurance |
+| Attitude | Discipline, Resilience, Confidence |
+| Communication | Leadership, Organising |
+| Coachability | Listening, Learning Attitude |
 
 ---
 
-## Verification
+## Phases
 
-1. `npx tsc -p tsconfig.test.json` — zero errors
-2. Onboarding: athlete signup shows PositionSelector with GK/DEF/MID/Striker/They rotate
-3. Add child: position selector appears in basic info section
-4. Edit child: position selector shows current position, can change
-5. Child card: shows position pill next to age
-6. My Progress: pentagon shows 5 position-specific skills
-7. My Progress: position toggle switches between positions (if multiple)
-8. My Progress: character bar shows 4 universal skills with labels
-9. Player card: shows 5 position-specific FIFA scores
-10. Quick rate: pre-fills position from child's primaryPosition
-11. All labels show "Striker" not "Attacker"
+### Phase 1: Unified Hierarchy + DotRating (COMPLETE)
+
+**What was done:**
+1. Added `SKILL_SUB_SKILLS` record to `constants/position-skills.ts` — maps all 24 parent skills to sub-skill arrays
+2. Added helpers: `ALL_SUB_SKILLS`, `getParentSkill()`, `getSkillWithSubs()`
+3. Deleted `DEV_SESSION_SKILLS` from `constants/football-registry.ts`
+4. Rewrote `components/development/dev-session-skills.tsx`:
+   - Position tabs (Core | GK | DEF | MID | ATT) — max 5 skills per tab
+   - Inline `DotRating` (1-5) per parent skill — same component as Quick Rate
+   - Expandable sub-skill chips appear when parent is rated
+   - X button to remove a rating
+5. Rewrote `hooks/use-dev-session.ts`:
+   - `updateSkillRating(skill, 1-5)` — rates parent, auto-adds to selectedSkills
+   - `removeSkillRating(skill)` — removes rating and from selectedSkills
+   - `toggleSubSkill(subSkill)` — toggles context tags
+   - No prefilling of skill ratings (starts empty, coach builds)
+6. Fixed seed data: mapped legacy names (Scanning, Decision Making, Composure, etc.) to parent skills
+7. Updated `app/development/session/[sessionId].tsx` to pass new props
+
+**Files changed:**
+- `constants/position-skills.ts`
+- `constants/football-registry.ts`
+- `hooks/use-dev-session.ts`
+- `components/development/dev-session-skills.tsx`
+- `app/development/session/[sessionId].tsx`
+- `constants/coach-session-seeds.ts`
+- `constants/relational-demo-seeds.ts`
+- `services/invite/session-invite-service.ts`
+
+**Tests:** 35/35 passing. Zero new TS errors.
+
+### Phase 2: Enrich Feedback Display (COMPLETE)
+
+**What was done:**
+1. **`components/progress/session-feedback-sections.tsx`** — `SkillRatingsGrid` now accepts `skillsWorkedOn`. Sub-skills appear as small tinted chips beneath each parent skill rating row. Decline arrows use `palette.muted` not `palette.error`.
+2. **`components/progress/session-feedback-card.tsx`** — "Skills covered" chips distinguish parent skills (normal) from sub-skills (muted, smaller) using `getParentSkill()` + new Chip `muted` prop.
+3. **`components/primitives/chip.tsx`** — Added `muted` prop: lighter border, smaller font, mutedForeground colour.
+4. **`components/progress/coach-says-card.tsx`** — Skill rating rows show sub-skill chips underneath using `SKILL_SUB_SKILLS` lookup against `feedback.skillsWorkedOn`. Corner-coloured tint background.
+
+**Files changed:**
+- `components/progress/session-feedback-sections.tsx`
+- `components/progress/session-feedback-card.tsx`
+- `components/primitives/chip.tsx`
+- `components/progress/coach-says-card.tsx`
+
+### Phase 3: Athlete-Friendly Display (COMPLETE)
+
+**What was done:**
+1. **`components/progress/skill-level-card.tsx`**:
+   - Declining trend: "Needs Focus" → "Keep practising"
+   - Declining icon: `trending-down` (red) → `arrow-forward` (amber)
+   - Change text: "-2 from last assessment" → "Keep practising this one"
+2. **`components/progress/skill-level-helpers.ts`**:
+   - Developing: "Needs more repetition" → "Building foundations"
+3. **`components/progress/session-feedback-sections.tsx`**:
+   - Rating 1 label: "Needs Work" → "Keep Going"
+   - Decline arrows: neutral colour
+
+**Language audit — zero negative language in athlete views:**
+- "declining" → never shown (mapped to `→`)
+- "Needs Focus" → "Keep practising"
+- "Needs Work" → "Keep Going"
+- "Needs more repetition" → "Building foundations"
+- Down arrows → forward arrows (amber)
+
+**Files changed:**
+- `components/progress/skill-level-card.tsx`
+- `components/progress/skill-level-helpers.ts`
+- `components/progress/session-feedback-sections.tsx`
+
+### Phase 4: Position-First Data Architecture + UI Redesign (COMPLETE)
+
+**Problems solved:**
+1. Dev session didn't store `positionPlayed` or compute `fourCorners` — pentagon/player card showed stale data
+2. Save path diverged from Quick Rate — two code paths producing different quality data
+3. Tabs (Core/GK/DEF/MID/ATT) didn't match coach mental model — "rate the athlete's position skills"
+4. Rainbow coloured dots looked garish and amateur
+5. Labels truncated on small screens (iPhone SE)
+6. No previous rating context — coach had no idea what they rated last time
+7. Universal skills labelled "Core" when they're actually character/behavioural traits
+
+**What was done:**
+
+1. **`hooks/use-dev-session.ts`** — Complete position-first rewrite:
+   - Loads athlete's position: `latestFeedback.positionPlayed` → `getMostPlayedPosition()` → `childProfile.primaryPosition` → MID fallback
+   - Loads previous ratings from `SKILL_LEVELS` (converted 1-10 → 1-5 for display)
+   - Position change handler: preserves character ratings, clears old positional ratings
+   - Save path aligned with Quick Rate: `recordPosition()` → `updateFromPositionRate()` → `addSessionFeedback(skipSkillUpdate: true)`
+   - `positionPlayed` + `fourCorners` now stored on every dev session feedback record
+
+2. **`components/session/rating-bar.tsx`** — NEW: Segmented pill bar:
+   - 5 connected segments in a pill shape (first/last have rounded ends)
+   - Single monochrome `colors.tint` fill (no rainbow)
+   - Animated fill transitions (180ms) + subtle scaleY pulse on tap
+   - 28px visual height, 44px touch target via container padding
+
+3. **`components/development/dev-session-skills.tsx`** — Position-first layout:
+   - Removed tabs (Core/GK/DEF/MID/ATT)
+   - Added `PositionSelector` chips (GK/DEF/MID/ATT) at top, pre-selected from athlete data
+   - Section 1: "[Position] Skills" — 5 positional skills with stacked RatingBar
+   - Section 2: "Character" — 4 universal skills (Work Rate, Attitude, Communication, Coachability)
+   - Previous rating trend indicators (↑ improved, → steady, was X/5 hint for unrated)
+   - Full-width labels that NEVER truncate (stacked layout: label above, bar below)
+
+4. **`components/session/dot-rating.tsx`** — Monochrome tint:
+   - All 5 dot positions now use single `colors.tint` instead of 5 different colours (red/orange/yellow/green/blue)
+
+5. **`app/development/session/[sessionId].tsx`** — Wired new props:
+   - `positionPlayed`, `onPositionChange`, `positionalSkills`, `characterSkills`, `positionLabel`, `previousRatings`
+
+**Data flow (after Phase 4):**
+```
+Coach opens session → hook loads athlete position (MID)
+                    → hook loads previous ratings from SKILL_LEVELS
+                    → UI shows: Position selector (MID selected)
+                              + 5 MID skills with previous rating hints
+                              + 4 Character skills
+Coach rates skills → RatingBar segments fill (monochrome tint)
+                   → sub-skills expand beneath rated skills
+                   → trend arrows show vs previous session
+Coach saves → recordPosition(sessionId, athleteId, MID)
+            → updateFromPositionRate() → updates SKILL_LEVELS + computes fourCorners
+            → addSessionFeedback(positionPlayed: MID, fourCorners: {...}, skipSkillUpdate: true)
+Pentagon, player card, four corners → all show correct, fresh data
+```
+
+**Files changed:**
+- `components/session/rating-bar.tsx` (NEW)
+- `hooks/use-dev-session.ts`
+- `components/development/dev-session-skills.tsx`
+- `components/session/dot-rating.tsx`
+- `app/development/session/[sessionId].tsx`
+
+**Tests:** 40/40 passing (7 progress-skills + 31 data-integrity + 2 monthly-summary). Zero new TS errors.
+
+---
+
+## Key Files Reference
+
+| File | Purpose |
+|------|---------|
+| `constants/position-skills.ts` | 24 parent skills, sub-skill map, helpers, four corner mapping |
+| `constants/football-registry.ts` | Single import point — re-exports everything from position-skills |
+| `hooks/use-dev-session.ts` | Dev session state: position-first flow, ratings, sub-skills, aligned save |
+| `components/development/dev-session-skills.tsx` | UI: position selector + positional/character sections + RatingBar |
+| `components/session/rating-bar.tsx` | 5-segment monochrome pill bar (dev session) |
+| `components/session/dot-rating.tsx` | Monochrome 1-5 dot rating (quick-rate screens) |
+| `components/session/position-selector.tsx` | GK/DEF/MID/ATT position chips |
+| `components/session/quick-rate-card.tsx` | Quick Rate uses DotRating — reference implementation |
+| `services/progress/progress-position-service.ts` | Position history tracking (recordPosition, getMostPlayedPosition) |
+| `services/progress/progress-skills-service.ts` | Stores skill levels (1-10 internal) |
+| `services/progress/progress-feedback-service.ts` | Stores session feedback records |
+| `types/progress-types.ts` | FootballSkill, PositionRole, SessionFeedback, SkillLevel types |
+| `components/progress/session-feedback-sections.tsx` | Parent/athlete feedback display (Phase 2) |
+| `components/progress/skill-level-card.tsx` | Skill trend card (Phase 3) |
+| `components/progress/player-card-front.tsx` | FIFA-style player card (Phase 3) |
+
+## COACHING_FOCUSES — Unchanged
+
+The 6 high-level coaching focuses (`Dribbling`, `Passing`, `Defending`, `Finishing`, `Goalkeeping`, `Conditioning`) are for coach discovery and session creation filtering. They are NOT rated skills and remain separate from the skill hierarchy. No changes needed.

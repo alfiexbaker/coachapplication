@@ -9,8 +9,9 @@ import { Clickable } from '@/components/primitives/clickable';
 import { RatingStars } from '@/components/review/rating-stars';
 import { SessionNoteFields } from '@/services/progress-service';
 import { useTheme } from '@/hooks/useTheme';
+import { COACHING_FOCUSES } from '@/constants/football-registry';
 
-const FOCUS_OPTIONS = ['Passing', 'Shooting', 'Dribbling', 'Defending', 'Conditioning'];
+const FOCUS_OPTIONS = COACHING_FOCUSES;
 const ATTENDANCE = ['Present', 'Late', 'No-show'];
 
 export function SessionNotesForm({

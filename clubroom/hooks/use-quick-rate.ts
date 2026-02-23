@@ -4,7 +4,9 @@ import {
   POSITION_SKILLS,
   RATING_LABELS,
   UNIVERSAL_SKILLS,
+  SKILL_SUB_SKILLS,
   computeFourCorners,
+  deriveParentRatingsFromSubSkills,
 } from '@/constants/position-skills';
 import { childService } from '@/services/child-service';
 import { progressFeedbackService } from '@/services/progress/progress-feedback-service';
@@ -16,6 +18,7 @@ import type {
   QuickRateInput,
   SessionSkillRating,
   SkillTrendDirection,
+  SubSkillRating,
 } from '@/types/progress-types';
 
 const logger = createLogger('UseQuickRate');
@@ -149,6 +152,10 @@ export function useQuickRate({ athletes, sessionId, coachId, effortByAthleteId }
   const [currentIndex, setCurrentIndex] = useState(0);
   const [ratingsByAthleteId, setRatingsByAthleteId] = useState<Record<string, QuickRateInput>>({});
   const [positionByAthleteId, setPositionByAthleteId] = useState<Record<string, PositionRole>>({});
+  /** Multi-position selections per athlete */
+  const [positionsByAthleteId, setPositionsByAthleteId] = useState<Record<string, PositionRole[]>>({});
+  /** Sub-skill ratings per athlete */
+  const [subSkillsByAthleteId, setSubSkillsByAthleteId] = useState<Record<string, SubSkillRating[]>>({});
   const [isPrefilling, setIsPrefilling] = useState(false);
   const [isSkippedAll, setIsSkippedAll] = useState(false);
 
@@ -160,6 +167,8 @@ export function useQuickRate({ athletes, sessionId, coachId, effortByAthleteId }
     if (athletes.length === 0) {
       setRatingsByAthleteId({});
       setPositionByAthleteId({});
+      setPositionsByAthleteId({});
+      setSubSkillsByAthleteId({});
       setCurrentIndex(0);
       setIsPrefilling(false);
       setIsSkippedAll(false);
@@ -173,6 +182,7 @@ export function useQuickRate({ athletes, sessionId, coachId, effortByAthleteId }
 
       const nextRatings: Record<string, QuickRateInput> = {};
       const nextPositions: Record<string, PositionRole> = {};
+      const nextPositionsMulti: Record<string, PositionRole[]> = {};
 
       await Promise.all(
         athletes.map(async (athlete) => {
@@ -191,6 +201,10 @@ export function useQuickRate({ athletes, sessionId, coachId, effortByAthleteId }
               DEFAULT_POSITION;
 
             nextPositions[athlete.athleteId] = inferredPosition;
+            nextPositionsMulti[athlete.athleteId] =
+              latestFeedback?.positionsPlayed && latestFeedback.positionsPlayed.length > 0
+                ? latestFeedback.positionsPlayed
+                : [inferredPosition];
             const base = createDefaultRating(
               athlete,
               sessionId,
@@ -230,6 +244,7 @@ export function useQuickRate({ athletes, sessionId, coachId, effortByAthleteId }
               error,
             });
             nextPositions[athlete.athleteId] = DEFAULT_POSITION;
+            nextPositionsMulti[athlete.athleteId] = [DEFAULT_POSITION];
             nextRatings[athlete.athleteId] = createDefaultRating(
               athlete,
               sessionId,
@@ -247,6 +262,7 @@ export function useQuickRate({ athletes, sessionId, coachId, effortByAthleteId }
 
       setRatingsByAthleteId(nextRatings);
       setPositionByAthleteId(nextPositions);
+      setPositionsByAthleteId(nextPositionsMulti);
       setCurrentIndex((prev) => Math.max(0, Math.min(prev, athletes.length - 1)));
       setIsPrefilling(false);
       setIsSkippedAll(false);
@@ -272,7 +288,11 @@ export function useQuickRate({ athletes, sessionId, coachId, effortByAthleteId }
     setRatingsByAthleteId((prev) => {
       const existing = prev[athleteId];
       if (!existing) {
-        return prev;
+        // Create a default entry if prefill hasn't populated this athlete yet
+        const athlete = athletes.find((a) => a.athleteId === athleteId);
+        if (!athlete) return prev;
+        const defaultEntry = createDefaultRating(athlete, sessionId, coachId, position, effortByAthleteId);
+        return { ...prev, [athleteId]: defaultEntry };
       }
 
       const existingLookup = buildSkillLookup(existing.positionSkillRatings);
@@ -298,14 +318,18 @@ export function useQuickRate({ athletes, sessionId, coachId, effortByAthleteId }
         },
       };
     });
-  }, []);
+  }, [athletes, sessionId, coachId, effortByAthleteId]);
 
   const updateSkillRating = useCallback((athleteId: string, skill: FootballSkill, value: number) => {
     setIsSkippedAll(false);
     setRatingsByAthleteId((prev) => {
-      const existing = prev[athleteId];
+      let existing = prev[athleteId];
       if (!existing) {
-        return prev;
+        // Create a default entry if prefill hasn't populated this athlete yet
+        const athlete = athletes.find((a) => a.athleteId === athleteId);
+        if (!athlete) return prev;
+        const position = positionByAthleteId[athleteId] ?? DEFAULT_POSITION;
+        existing = createDefaultRating(athlete, sessionId, coachId, position, effortByAthleteId);
       }
 
       const previousLookup = buildSkillLookup(existing.positionSkillRatings);
@@ -334,14 +358,17 @@ export function useQuickRate({ athletes, sessionId, coachId, effortByAthleteId }
         },
       };
     });
-  }, []);
+  }, [athletes, sessionId, coachId, effortByAthleteId, positionByAthleteId]);
 
   const updateEffort = useCallback((athleteId: string, value: number) => {
     setIsSkippedAll(false);
     setRatingsByAthleteId((prev) => {
-      const existing = prev[athleteId];
+      let existing = prev[athleteId];
       if (!existing) {
-        return prev;
+        const athlete = athletes.find((a) => a.athleteId === athleteId);
+        if (!athlete) return prev;
+        const position = positionByAthleteId[athleteId] ?? DEFAULT_POSITION;
+        existing = createDefaultRating(athlete, sessionId, coachId, position, effortByAthleteId);
       }
       return {
         ...prev,
@@ -351,7 +378,7 @@ export function useQuickRate({ athletes, sessionId, coachId, effortByAthleteId }
         },
       };
     });
-  }, []);
+  }, [athletes, sessionId, coachId, effortByAthleteId, positionByAthleteId]);
 
   const setBadge = useCallback((athleteId: string, badgeId?: string) => {
     setIsSkippedAll(false);
@@ -387,6 +414,125 @@ export function useQuickRate({ athletes, sessionId, coachId, effortByAthleteId }
     });
   }, []);
 
+  /** Toggle a position for an athlete (multi-select, min 1). */
+  const togglePosition = useCallback((athleteId: string, position: PositionRole) => {
+    setIsSkippedAll(false);
+    setPositionsByAthleteId((prev) => {
+      const current = prev[athleteId] ?? [DEFAULT_POSITION];
+      const isActive = current.includes(position);
+      if (isActive && current.length === 1) return prev; // min 1
+      const next = isActive
+        ? current.filter((p) => p !== position)
+        : [...current, position];
+      return { ...prev, [athleteId]: next };
+    });
+    // Also update legacy single position to first in list
+    setPositionByAthleteId((prev) => {
+      const current = positionsByAthleteId[athleteId] ?? [DEFAULT_POSITION];
+      const isActive = current.includes(position);
+      const next = isActive
+        ? current.filter((p) => p !== position)
+        : [...current, position];
+      return { ...prev, [athleteId]: next[0] ?? DEFAULT_POSITION };
+    });
+    // Rebuild skill ratings for new position set
+    setRatingsByAthleteId((prev) => {
+      const existing = prev[athleteId];
+      if (!existing) return prev;
+      const currentPositions = positionsByAthleteId[athleteId] ?? [DEFAULT_POSITION];
+      const isActive = currentPositions.includes(position);
+      const nextPositions = isActive
+        ? currentPositions.filter((p) => p !== position)
+        : [...currentPositions, position];
+      const primaryPosition = nextPositions[0] ?? DEFAULT_POSITION;
+
+      const existingLookup = buildSkillLookup(existing.positionSkillRatings);
+      const previousLookup = buildSkillLookup(existing.positionSkillRatings);
+      // Build ratings merging all positions' skills
+      const allSkills = new Set<FootballSkill>(UNIVERSAL_SKILLS);
+      for (const pos of nextPositions) {
+        for (const skill of POSITION_SKILLS[pos]) {
+          allSkills.add(skill);
+        }
+      }
+      const nextRatings = Array.from(allSkills).map((skill) => {
+        const current = existingLookup[skill] ?? DEFAULT_RATING;
+        const previous = previousLookup[skill];
+        return buildSkillRating(skill, current, previous);
+      });
+
+      const fourCorners = computeFourCorners(nextRatings);
+      return {
+        ...prev,
+        [athleteId]: {
+          ...existing,
+          positionPlayed: primaryPosition,
+          positionsPlayed: nextPositions,
+          positionSkillRatings: nextRatings,
+          ...fourCorners,
+        },
+      };
+    });
+  }, [positionsByAthleteId]);
+
+  /** Rate a sub-skill for an athlete (optional in quick rate). */
+  const updateSubSkillRating = useCallback((
+    athleteId: string,
+    parentSkill: FootballSkill,
+    subSkill: string,
+    value: number,
+  ) => {
+    setIsSkippedAll(false);
+    const rating = clampOneToFive(value);
+    setSubSkillsByAthleteId((prev) => {
+      const current = prev[athleteId] ?? [];
+      const withoutThis = current.filter(
+        (r) => !(r.parentSkill === parentSkill && r.subSkill === subSkill),
+      );
+      return {
+        ...prev,
+        [athleteId]: [...withoutThis, { subSkill, parentSkill, rating }],
+      };
+    });
+    // Also update the parent skill rating from sub-skill averages
+    setRatingsByAthleteId((prev) => {
+      const existing = prev[athleteId];
+      if (!existing) return prev;
+      // Get all sub-skill ratings for this parent (including the new one)
+      const currentSubs = subSkillsByAthleteId[athleteId] ?? [];
+      const allSubs = [
+        ...currentSubs.filter(
+          (r) => !(r.parentSkill === parentSkill && r.subSkill === subSkill),
+        ),
+        { subSkill, parentSkill, rating },
+      ];
+      const parentAvgs = deriveParentRatingsFromSubSkills(allSubs);
+      const derivedRating = parentAvgs[parentSkill];
+      if (derivedRating === undefined) return prev;
+
+      const updatedSkillRatings = (existing.positionSkillRatings ?? []).map((entry) => {
+        if (entry.skill !== parentSkill) return entry;
+        const nextRating = clampOneToFive(Math.round(derivedRating));
+        return {
+          ...entry,
+          rating: nextRating,
+          label: RATING_LABELS[nextRating],
+          trend: buildTrend(nextRating, entry.previousRating),
+        };
+      });
+      const fourCorners = computeFourCorners(updatedSkillRatings);
+      return {
+        ...prev,
+        [athleteId]: {
+          ...existing,
+          positionSkillRatings: updatedSkillRatings,
+          subSkillRatings: allSubs,
+          ...fourCorners,
+        },
+      };
+    });
+  }, [subSkillsByAthleteId]);
+
   const clearAllRatings = useCallback(() => {
     setIsSkippedAll(true);
     setCurrentIndex(0);
@@ -396,11 +542,15 @@ export function useQuickRate({ athletes, sessionId, coachId, effortByAthleteId }
     currentIndex,
     ratingsByAthleteId,
     positionByAthleteId,
+    positionsByAthleteId,
+    subSkillsByAthleteId,
     isPrefilling,
     isSkippedAll,
     setIndex,
     updatePosition,
+    togglePosition,
     updateSkillRating,
+    updateSubSkillRating,
     updateEffort,
     setBadge,
     setMediaIds,

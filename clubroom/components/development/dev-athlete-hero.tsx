@@ -1,7 +1,6 @@
 import React, { memo } from 'react';
 import { View, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { Clickable } from '@/components/primitives/clickable';
 import { ThemedText } from '@/components/themed-text';
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { StatCard } from '@/components/primitives/stat-card';
@@ -22,7 +21,6 @@ export interface DevAthleteHeroProps {
   trend: TrendType;
   level: LevelBadge;
   colors: ThemeColors;
-  onAwardBadge: () => void;
 }
 
 export const DevAthleteHero = memo(function DevAthleteHero({
@@ -33,7 +31,6 @@ export const DevAthleteHero = memo(function DevAthleteHero({
   trend,
   level,
   colors,
-  onAwardBadge,
 }: DevAthleteHeroProps) {
   const trendIcon =
     trend === 'improving' ? 'trending-up' : trend === 'declining' ? 'trending-down' : 'pulse';
@@ -86,22 +83,6 @@ export const DevAthleteHero = memo(function DevAthleteHero({
               </ThemedText>
             </Row>
           </View>
-        </Row>
-        <Row gap="xs" wrap style={styles.heroActions}>
-          <Clickable
-            style={[
-              styles.awardButton,
-              { borderColor: colors.warning, backgroundColor: withAlpha(colors.warning, 0.09) },
-            ]}
-            onPress={onAwardBadge}
-            accessibilityRole="button"
-            accessibilityLabel="Award badge"
-          >
-            <Ionicons name="ribbon" size={14} color={colors.warning} />
-            <ThemedText style={[styles.awardButtonText, { color: colors.warning }]} numberOfLines={1}>
-              Award Badge
-            </ThemedText>
-          </Clickable>
         </Row>
       </View>
 
@@ -157,26 +138,6 @@ const styles = StyleSheet.create({
   },
   badgeGroup: {
     minHeight: Components.buttonCompact.height,
-  },
-  awardButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.xs,
-    paddingVertical: Components.pill.paddingVertical,
-    paddingHorizontal: Spacing.sm,
-    borderRadius: Components.buttonCompact.borderRadius,
-    minHeight: Components.buttonCompact.height,
-    justifyContent: 'center',
-    borderWidth: 1,
-    flexShrink: 1,
-  },
-  heroActions: {
-    justifyContent: 'flex-start',
-    alignSelf: 'flex-start',
-  },
-  awardButtonText: {
-    ...Typography.smallSemiBold,
-    letterSpacing: 0,
   },
   divider: {
     height: 1,

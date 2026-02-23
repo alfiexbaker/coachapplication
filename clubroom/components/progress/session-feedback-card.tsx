@@ -9,6 +9,7 @@ import { Chip } from '@/components/primitives/chip';
 import { Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
 import type { SessionFeedback } from '@/services/progress-service';
 import { useTheme } from '@/hooks/useTheme';
+import { getParentSkill } from '@/constants/position-skills';
 import {
   formatDate,
   getPerformanceLabel,
@@ -92,23 +93,26 @@ export function SessionFeedbackCard({
         </View>
       )}
 
-      {/* Skills Worked On */}
+      {/* Skills Worked On — parent skills bold, sub-skills lighter */}
       {feedback.skillsWorkedOn.length > 0 && (
         <View style={styles.section}>
           <ThemedText style={[styles.sectionLabel, { color: palette.muted }]}>
             Skills covered
           </ThemedText>
           <Row gap="xxs" wrap>
-            {feedback.skillsWorkedOn.map((skill, index) => (
-              <Chip key={index} dense>
-                {skill}
-              </Chip>
-            ))}
+            {feedback.skillsWorkedOn.map((skill, index) => {
+              const isSubSkill = getParentSkill(skill) !== null;
+              return (
+                <Chip key={index} dense muted={isSubSkill}>
+                  {skill}
+                </Chip>
+              );
+            })}
           </Row>
         </View>
       )}
 
-      <SkillRatingsGrid ratings={feedback.skillRatings} />
+      <SkillRatingsGrid ratings={feedback.skillRatings} skillsWorkedOn={feedback.skillsWorkedOn} subSkillRatings={feedback.subSkillRatings} />
       <FeedbackCardDetails feedback={feedback} />
 
       {onPress && (

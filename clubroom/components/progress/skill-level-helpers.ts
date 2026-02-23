@@ -1,27 +1,16 @@
 import type { ThemeColors } from '@/hooks/useTheme';
 import type { SkillRatingLevel, SkillTrendDirection } from '@/types/progress-types';
-import { POSITION_SKILLS, mapSkillToCorner } from '@/constants/position-skills';
+import { mapSkillToCorner } from '@/constants/position-skills';
 
 // ─── Constants ──────────────────────────────────────────────────────────────
-
-export const SKILL_CATEGORIES: Record<string, string[]> = {
-  Technical: Array.from(
-    new Set(
-      Object.values(POSITION_SKILLS).flatMap((skills) => skills),
-    ),
-  ),
-  Physical: ['Work Rate'],
-  Psychological: ['Attitude', 'Coachability'],
-  Social: ['Communication'],
-};
 
 export const CATEGORY_ORDER = ['Technical', 'Physical', 'Psychological', 'Social', 'Other'];
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
 
 function levelToDots(level: number): 1 | 2 | 3 | 4 | 5 {
-  const normalized = level <= 5 ? level : Math.round(level / 2);
-  return Math.max(1, Math.min(5, Math.round(normalized))) as 1 | 2 | 3 | 4 | 5;
+  // Storage is always 1-10 scale — convert to 1-5 dots
+  return Math.max(1, Math.min(5, Math.ceil(level / 2))) as 1 | 2 | 3 | 4 | 5;
 }
 
 export function getSkillLabel(level: number): SkillRatingLevel {
@@ -36,7 +25,7 @@ export function getSkillLabel(level: number): SkillRatingLevel {
 export function getSkillLevelLabel(level: number): { label: SkillRatingLevel; description: string } {
   const label = getSkillLabel(level);
   const descriptionByLabel: Record<SkillRatingLevel, string> = {
-    Developing: 'Needs more repetition',
+    Developing: 'Building foundations',
     Good: 'Building consistency',
     'Very Good': 'Solid and reliable',
     Excellent: 'High quality execution',
@@ -58,19 +47,16 @@ export function getSkillCategory(skillName: string): string {
   if (corner === 'physical') return 'Physical';
   if (corner === 'psychological') return 'Psychological';
   if (corner === 'social') return 'Social';
-  for (const [category, skills] of Object.entries(SKILL_CATEGORIES)) {
-    if (skills.some((s) => s.toLowerCase() === skillName.toLowerCase())) {
-      return category;
-    }
-  }
   return 'Other';
 }
 
 export function getSkillColor(level: number, palette: ThemeColors): string {
-  if (level >= 8) return palette.success;
-  if (level >= 5) return palette.tint;
-  if (level >= 3) return palette.warning;
-  return palette.error;
+  // Thresholds match label boundaries: 1-2=Developing, 3-4=Good, 5-6=VeryGood, 7-8=Excellent, 9-10=Exceptional
+  if (level >= 9) return palette.success;    // Exceptional
+  if (level >= 7) return palette.tint;       // Excellent
+  if (level >= 5) return palette.rating;     // Very Good
+  if (level >= 3) return palette.muted;      // Good
+  return palette.warning;                    // Developing
 }
 
 export function formatLastUpdated(dateStr: string): string {

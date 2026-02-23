@@ -19,15 +19,9 @@ import { toDateStr } from '@/utils/format';
 import type { AthleteObjective, FootballObjective } from '@/constants/types';
 import type { User } from '@/constants/app-types';
 import { err, ok, serviceError, type ServiceError } from '@/types/result';
+import { COACHING_FOCUSES } from '@/constants/football-registry';
 
-export const FOOTBALL_OBJECTIVES: FootballObjective[] = [
-  'Dribbling',
-  'Passing',
-  'Defending',
-  'Finishing',
-  'Goalkeeping',
-  'Conditioning',
-];
+export const FOOTBALL_OBJECTIVES: FootballObjective[] = COACHING_FOCUSES;
 
 const DEFAULT_OBJECTIVES: AthleteObjective[] = [
   {

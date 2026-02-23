@@ -15,20 +15,14 @@ export interface MonthlySummaryCopy {
 const POSITIVE_FEEDBACK_PATTERN =
   /excellent|great|strong|impressed|outstanding|brilliant|confident|sharp|composed/i;
 
+/** Maps 1-10 stored skill level to canonical label (matches RATING_LABELS). */
 function getSkillLevelLabel(level: number): string {
-  if (level <= 2) {
-    return 'Beginner';
-  }
-  if (level <= 4) {
-    return 'Developing';
-  }
-  if (level <= 6) {
-    return 'Proficient';
-  }
-  if (level <= 8) {
-    return 'Advanced';
-  }
-  return 'Elite';
+  const dots = Math.max(1, Math.min(5, Math.ceil(level / 2)));
+  if (dots === 1) return 'Developing';
+  if (dots === 2) return 'Good';
+  if (dots === 3) return 'Very Good';
+  if (dots === 4) return 'Excellent';
+  return 'Exceptional';
 }
 
 function buildMonthTitle(now: Date): string {

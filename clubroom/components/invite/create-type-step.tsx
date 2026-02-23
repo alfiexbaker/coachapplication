@@ -15,8 +15,9 @@ import { ThemedText } from '@/components/themed-text';
 import { Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
 import type { ThemeColors } from '@/hooks/useTheme';
 import type { SessionTemplate, SessionInviteType } from '@/constants/types';
+import { COACHING_FOCUSES } from '@/constants/football-registry';
 
-const FOCUSES = ['Dribbling', 'Passing', 'Finishing', 'Defending', 'Goalkeeping', 'Conditioning'];
+const FOCUSES = COACHING_FOCUSES;
 
 const INVITE_TYPE_OPTIONS: {
   key: SessionInviteType;

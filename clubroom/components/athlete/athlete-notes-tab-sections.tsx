@@ -11,16 +11,9 @@ import { Column } from '@/components/primitives/column';
 import { Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
 import type { ThemeColors } from '@/hooks/useTheme';
 import type { RosterNote, FootballObjective } from '@/constants/types';
+import { COACHING_FOCUSES } from '@/constants/football-registry';
 
-export const FOCUS_OPTIONS: FootballObjective[] = [
-  'Dribbling',
-  'Passing',
-  'Finishing',
-  'Defending',
-  'Goalkeeping',
-  'Conditioning',
-];
-
+export const FOCUS_OPTIONS: FootballObjective[] = COACHING_FOCUSES;
 interface NoteCardProps {
   note: RosterNote;
   onDelete: () => void;

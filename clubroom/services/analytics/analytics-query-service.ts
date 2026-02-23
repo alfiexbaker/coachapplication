@@ -15,6 +15,7 @@ import { apiClient } from '../api-client';
 import type { AthleteAnalytics, SkillProgress, Goal } from '@/constants/types';
 import type { SessionFeedback } from '@/services/progress/progress-feedback-service';
 import type { AthleteSkillLevels } from '@/services/progress/progress-skills-service';
+import type { Session } from '@/constants/app-types';
 import type { FootballSkill } from '@/types/progress-types';
 import { createLogger } from '@/utils/logger';
 import { api } from '@/constants/config';
@@ -308,9 +309,10 @@ async function buildRealAthleteAnalytics(
   athleteId: string,
   period: AnalyticsPeriod,
 ): Promise<AthleteAnalytics | null> {
-  const [allFeedback, allSkillLevels] = await Promise.all([
+  const [allFeedback, allSkillLevels, allSessions] = await Promise.all([
     apiClient.get<SessionFeedback[]>(STORAGE_KEYS.SESSION_FEEDBACK, []),
     apiClient.get<Record<string, AthleteSkillLevels>>(STORAGE_KEYS.SKILL_LEVELS, {}),
+    apiClient.get<Session[]>(STORAGE_KEYS.COACH_SESSIONS, []),
   ]);
 
   const athleteFeedback = allFeedback.filter((f) => f.athleteId === athleteId);
@@ -352,8 +354,13 @@ async function buildRealAthleteAnalytics(
     ? athleteFeedback.reduce((sum, f) => sum + f.overallPerformance, 0) / totalSessions
     : 0;
 
-  // Calculate attendance rate from effort ratings (present athletes have effort > 0)
-  const attendanceRate = totalSessions > 0 ? 100 : 0;
+  // Calculate attendance rate from actual COACH_SESSIONS records
+  const athleteSessions = allSessions.filter((s) => s.athleteId === athleteId);
+  const sessionsWithAttendance = athleteSessions.filter((s) => Boolean(s.attendance));
+  const attendedCount = sessionsWithAttendance.filter((s) => s.attendance === 'ATTENDED').length;
+  const attendanceRate = sessionsWithAttendance.length > 0
+    ? Math.round((attendedCount / sessionsWithAttendance.length) * 100)
+    : totalSessions > 0 ? 100 : 0;
 
   // Calculate improvement rate from skill trends
   const improvingSkills = skills.filter((s) => s.changePercent > 0).length;

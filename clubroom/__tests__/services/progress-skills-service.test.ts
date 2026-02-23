@@ -69,9 +69,11 @@ describe('progressSkillsService', () => {
     }
 
     assert.equal(result.data.updatedSkills.length, 9);
-    assert.equal(result.data.fourCorners.technical, 4);
+    // With rebalanced SKILL_TO_CORNER: technical=Passing(5)+BallCarrying(4)→5,
+    // physical=WorkRate(4)+Pressing(3)→4, psych=Attitude(3)+Coach(4)+Vision(4)+Tempo(4)→4, social=Comm(5)
+    assert.equal(result.data.fourCorners.technical, 5);
     assert.equal(result.data.fourCorners.physical, 4);
     assert.equal(result.data.fourCorners.psychological, 4);
-    assert.equal(result.data.fourCorners.social, 4);
+    assert.equal(result.data.fourCorners.social, 5);
   });
 });

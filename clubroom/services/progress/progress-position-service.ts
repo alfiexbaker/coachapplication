@@ -73,6 +73,24 @@ export async function recordPosition(
   }
 }
 
+/**
+ * Record multiple positions for a single session (multi-position support).
+ * Creates one history entry per position.
+ */
+export async function recordPositions(
+  sessionId: string,
+  athleteId: string,
+  positions: PositionRole[],
+): Promise<Result<PositionHistoryEntry[], ServiceError>> {
+  const results: PositionHistoryEntry[] = [];
+  for (const position of positions) {
+    const result = await recordPosition(sessionId, athleteId, position);
+    if (!result.success) return result as unknown as Result<PositionHistoryEntry[], ServiceError>;
+    results.push(result.data);
+  }
+  return ok(results);
+}
+
 export async function getPositionHistory(
   athleteId: string,
   limit?: number,
@@ -133,6 +151,7 @@ export async function getMostPlayedPosition(
 
 export const progressPositionService = {
   recordPosition,
+  recordPositions,
   getPositionHistory,
   getMostPlayedPosition,
 };

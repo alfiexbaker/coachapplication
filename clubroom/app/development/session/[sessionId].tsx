@@ -14,7 +14,6 @@ import { DevSessionSkills } from '@/components/development/dev-session-skills';
 import { DevSessionNotes } from '@/components/development/dev-session-notes';
 import { DevSessionMedia } from '@/components/development/dev-session-media';
 import { DevSessionVisibility } from '@/components/development/dev-session-visibility';
-import { BadgeAwardModal } from '@/components/badges/badge-award-modal';
 import { Spacing, Radii, Typography } from '@/constants/theme';
 import { useScreen } from '@/hooks/use-screen';
 import { ok } from '@/types/result';
@@ -56,19 +55,26 @@ export default function SessionDetailScreen() {
     imageUrls,
     visibility,
     setVisibility,
-    showBadgeModal,
     sessionBadges,
     handleSave,
-    toggleSkill,
+    toggleSubSkill,
     updateSkillRating,
+    removeSkillRating,
     handleAddImage,
     handleRemoveImage,
     handleAddVideo,
     handleRemoveVideo,
-    handleBadgeAwarded,
-    handleOpenBadgeModal,
-    handleCloseBadgeModal,
     formatDate,
+    positionsPlayed,
+    handlePositionToggle,
+    positionalSkills,
+    characterSkills,
+    positionLabel,
+    previousRatings,
+    subSkillRatings,
+    updateSubSkillRating,
+    removeParentRatings,
+    derivedParentAverages,
   } = useDevSession({
     sessionId: resolvedSessionId,
     prefillFromQuickRate: resolvedPrefillFlag === 'true',
@@ -124,7 +130,6 @@ export default function SessionDetailScreen() {
   }
 
   return (
-    <>
       <SafeAreaView
         style={[styles.container, { backgroundColor: colors.background }]}
         edges={['top', 'bottom']}
@@ -144,7 +149,6 @@ export default function SessionDetailScreen() {
             sessionDate={formatDate(session.completedAt)}
             sessionBadges={sessionBadges}
             colors={colors}
-            onAwardBadge={handleOpenBadgeModal}
           />
 
           <DevSessionRatings
@@ -156,11 +160,17 @@ export default function SessionDetailScreen() {
           />
 
           <DevSessionSkills
-            selectedSkills={selectedSkills}
-            skillRatings={skillRatings}
-            onToggleSkill={toggleSkill}
-            onUpdateRating={updateSkillRating}
             colors={colors}
+            positionsPlayed={positionsPlayed}
+            onPositionToggle={handlePositionToggle}
+            positionalSkills={positionalSkills}
+            characterSkills={characterSkills}
+            positionLabel={positionLabel}
+            previousRatings={previousRatings}
+            subSkillRatings={subSkillRatings}
+            derivedParentAverages={derivedParentAverages}
+            onUpdateSubSkillRating={updateSubSkillRating}
+            onRemoveParentRatings={removeParentRatings}
           />
 
           <DevSessionNotes
@@ -216,19 +226,6 @@ export default function SessionDetailScreen() {
           </Clickable>
         </ScrollView>
       </SafeAreaView>
-
-      <BadgeAwardModal
-        visible={showBadgeModal}
-        athleteId={athlete.id}
-        athleteName={athlete.name}
-        coachId={currentUser.id}
-        coachName={currentUser.name || 'Coach'}
-        sessionId={resolvedSessionId}
-        sessionLabel={formatDate(session.completedAt)}
-        onClose={handleCloseBadgeModal}
-        onAwarded={handleBadgeAwarded}
-      />
-    </>
   );
 }
 

@@ -13,16 +13,10 @@ import { ThemedText } from '@/components/themed-text';
 import { ChipSelector } from '@/components/invite/chip-selector';
 import { Spacing, Radii, Typography } from '@/constants/theme';
 import type { ThemeColors } from '@/hooks/useTheme';
+import { COACHING_FOCUSES } from '@/constants/football-registry';
 
 const SESSION_TYPES = ['1:1 Coaching', 'Group Session', 'Assessment', 'Training'] as const;
-const FOCUSES = [
-  'Dribbling',
-  'Passing',
-  'Finishing',
-  'Defending',
-  'Goalkeeping',
-  'Conditioning',
-] as const;
+const FOCUSES = COACHING_FOCUSES;
 
 export interface SquadDetailsStepProps {
   sessionTitle: string;

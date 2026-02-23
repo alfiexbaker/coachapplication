@@ -66,6 +66,13 @@ export interface SessionSkillRating {
   previousRating?: number;
 }
 
+/** Sub-skill rating: rated 1-5 by coach, keyed to its parent FootballSkill. */
+export interface SubSkillRating {
+  subSkill: string;
+  parentSkill: FootballSkill;
+  rating: 1 | 2 | 3 | 4 | 5;
+}
+
 export interface QuickRateInput {
   athleteId: string;
   athleteName: string;
@@ -77,14 +84,20 @@ export interface QuickRateInput {
   psychological?: number; // 1-5 dots
   social?: number; // 1-5 dots (NOT tactical)
   effort: number; // 1-5
+  overallPerformance?: number; // 1-5 session-wide (distinct from per-athlete effort)
   positionPlayed?: PositionRole;
+  /** Multi-position selection (new). Takes priority over positionPlayed when present. */
+  positionsPlayed?: PositionRole[];
   positionSkillRatings?: SessionSkillRating[];
+  /** Sub-skill ratings (new). When present, parent ratings are derived from these. */
+  subSkillRatings?: SubSkillRating[];
   mediaIds?: string[];
   badgeId?: string;
   focusSkills?: string[];
   sessionTemplateId?: string;
   sessionTemplateName?: string;
   sessionTitle?: string;
+  visibility?: 'parent' | 'athlete' | 'coach_only';
 }
 
 export type FourCornerKey = BadgeCategory; // 'technical' | 'physical' | 'psychological' | 'social'

@@ -16,14 +16,13 @@ export interface DevSessionCardProps {
   session: Session;
   awards: BadgeAward[];
   colors: ThemeColors;
-  onSelectForBadge: (session: Session) => void;
+  onSelectForBadge?: (session: Session) => void;
 }
 
 export const DevSessionCard = memo(function DevSessionCard({
   session,
   awards,
   colors,
-  onSelectForBadge,
 }: DevSessionCardProps) {
   const needsNotes = !session.notes || session.notes.trim() === '';
   const sessionAwards = awards.filter((a) => a.sessionId === session.id);
@@ -31,10 +30,6 @@ export const DevSessionCard = memo(function DevSessionCard({
   const handlePress = useCallback(() => {
     router.push(Routes.developmentSession(session.id));
   }, [session.id]);
-
-  const handleBadgePress = useCallback(() => {
-    onSelectForBadge(session);
-  }, [onSelectForBadge, session]);
 
   return (
     <SurfaceCard style={styles.card}>
@@ -52,21 +47,6 @@ export const DevSessionCard = memo(function DevSessionCard({
           )}
         </Row>
         <Row gap="sm" align="center">
-          <Clickable
-            onPress={handleBadgePress}
-            accessibilityLabel="Open badges workspace for this session"
-            hitSlop={10}
-            accessibilityRole="button"
-          >
-            <Row
-              style={[
-                styles.workspaceChip,
-                { borderColor: colors.tint, backgroundColor: withAlpha(colors.tint, 0.09) },
-              ]}
-            >
-              <Ionicons name="ribbon-outline" size={14} color={colors.tint} />
-            </Row>
-          </Clickable>
           <Row gap="xs" align="center">
             <ThemedText style={styles.rating}>{session.performanceRating}</ThemedText>
             <Ionicons name="star" size={16} color={colors.tint} />
@@ -138,14 +118,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing.xs,
     paddingVertical: Components.pill.paddingVertical,
     borderRadius: Radii.sm,
-  },
-  workspaceChip: {
-    alignItems: 'center',
-    gap: Spacing.xs,
-    paddingHorizontal: Spacing.xs,
-    paddingVertical: Spacing.xs,
-    borderRadius: Radii.card,
-    borderWidth: 1,
   },
   rating: {
     ...Typography.body,

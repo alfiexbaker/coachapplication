@@ -33,7 +33,8 @@ import type {
   SessionAttendance,
   SessionRegistration,
 } from '@/constants/session-types';
-import type { BadgeDefinition, ChatMessage, RosterEntry } from '@/constants/types';
+import type { ChatMessage, RosterEntry } from '@/constants/types';
+import type { BadgeDefinitionWithStats } from '@/services/badge-service';
 import type { AttendanceStatus as StepAttendanceStatus } from '@/components/session/attendance-step';
 import type { QuickRateInput } from '@/types/progress-types';
 
@@ -122,7 +123,7 @@ export function useSessionCompletion(sessionId: string | undefined) {
   const [overallEffort, setOverallEffort] = useState(3);
   const [homework, setHomework] = useState('');
   const [improvements, setImprovements] = useState('');
-  const [availableBadges, setAvailableBadges] = useState<BadgeDefinition[]>([]);
+  const [availableBadges, setAvailableBadges] = useState<BadgeDefinitionWithStats[]>([]);
   const [videoUrls, setVideoUrls] = useState<string[]>([]);
   const [imageUrls, setImageUrls] = useState<string[]>([]);
 
@@ -368,7 +369,7 @@ export function useSessionCompletion(sessionId: string | undefined) {
 
   const loadBadges = useCallback(async () => {
     try {
-      const badges = await badgeService.listDefinitions();
+      const badges = await badgeService.listDefinitionsWithStats();
       setAvailableBadges(badges);
     } catch (err) {
       logger.error('Failed to load badges', err);
@@ -647,20 +648,20 @@ export function useSessionCompletion(sessionId: string | undefined) {
           }
         }
 
-        // 3. Write session feedback for each present athlete (also updates skill levels)
+        // 3. Write session feedback for present athletes WITHOUT quick-rate data.
+        //    Athletes WITH quick-rate data get richer feedback in step 3b via
+        //    createFeedbackFromQuickRate() which upserts and includes position/skill ratings.
         const coachName = currentUser.fullName || currentUser.name || 'Coach';
         for (const athleteData of attendanceValues) {
           if (athleteData.status !== 'present') continue;
 
           const athleteId = athleteData.registration.userId;
+
+          // Skip athletes that have quick-rate data — step 3b handles their feedback
+          if (quickRateByAthleteId[athleteId]) continue;
+
           const athleteName =
             participantNames[athleteId] || getRegistrationName(athleteData.registration);
-
-          // Map skillsFocused to ratings using the athlete's effort score (1-5 → scaled to 1-10)
-          const skillRatings = skillsFocused.map((skill) => ({
-            skill,
-            rating: Math.min(10, Math.round(athleteData.effort * 2)),
-          }));
 
           try {
             await progressFeedbackService.addSessionFeedback({
@@ -675,7 +676,7 @@ export function useSessionCompletion(sessionId: string | undefined) {
               athleteName,
               publicSummary: sessionSummary || `Session completed: ${session.title}`,
               skillsWorkedOn: normalizedFocusSkills,
-              skillRatings,
+              skillRatings: [],
               improvements,
               homework,
               effortRating: athleteData.effort,
@@ -683,7 +684,9 @@ export function useSessionCompletion(sessionId: string | undefined) {
               visibility: shareNotesWithParents ? 'parent' : 'coach_only',
               videoClipUrls: videoUrls.length > 0 ? videoUrls : undefined,
               photoUrls: imageUrls.length > 0 ? imageUrls : undefined,
-              badgeAwarded: athleteData.badges.join(', ') || undefined,
+              badgeAwarded: athleteData.badges
+                .map((id) => availableBadges.find((b) => b.id === id)?.label ?? id)
+                .join(', ') || undefined,
               privateNotes: athleteData.note || undefined,
             });
 
@@ -692,7 +695,7 @@ export function useSessionCompletion(sessionId: string | undefined) {
               bookingId: sourceType === 'booking' ? session.id : undefined,
               coachId: session.coachId,
               athleteId,
-              skillCount: skillRatings.length,
+              skillCount: 0,
             });
           } catch (feedbackErr) {
             logger.error('Failed to save session feedback for athlete', {
@@ -720,6 +723,8 @@ export function useSessionCompletion(sessionId: string | undefined) {
             sessionTemplateName:
               quickRateInput.sessionTemplateName ?? sessionTemplateContext.sessionTemplateName,
             sessionTitle: quickRateInput.sessionTitle ?? session.title,
+            overallPerformance: quickRateInput.overallPerformance ?? overallEffort,
+            visibility: shareNotesWithParents ? 'parent' : 'coach_only',
           };
 
           if (
@@ -755,25 +760,15 @@ export function useSessionCompletion(sessionId: string | undefined) {
                 error: skillResult.error,
               });
             }
-          } else {
-            const legacySkillResult = await progressSkillsService.bulkUpdateFromQuickRate(
-              quickRatePayload,
-              {
-                focusSkills: quickRatePayload.focusSkills,
-              },
-            );
-            if (!legacySkillResult.success) {
-              logger.error('Failed to save quick rate legacy skill updates', {
-                athleteId,
-                error: legacySkillResult.error,
-              });
-            }
           }
 
+          // Skills were already written by updateFromPositionRate above — tell
+          // addSessionFeedback to skip its own skill write to avoid duplicate history entries.
           const feedbackResult = await progressFeedbackService.createFeedbackFromQuickRate(
             quickRatePayload,
             coachName,
             quickRatePayload.athleteName,
+            { skillsAlreadyWritten: true },
           );
           if (!feedbackResult.success) {
             logger.error('Failed to save quick rate feedback', {

@@ -18,7 +18,9 @@ import type {
   FootballObjective,
   SocialLinks,
 } from '@/constants/types';
+import type { PositionRole } from '@/types/progress-types';
 import { useAuth } from '@/hooks/use-auth';
+import { childService } from '@/services/child-service';
 import { discoverService } from '@/services/discover-service';
 import { createLogger } from '@/utils/logger';
 
@@ -260,6 +262,7 @@ export interface EditProfileModals {
 export function useEditProfile() {
   const { currentUser, availableUsers } = useAuth();
   const userIsCoach = currentUser?.role === 'COACH';
+  const userIsAthlete = currentUser?.role === 'ATHLETE';
   const [initializing, setInitializing] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [reloadKey, setReloadKey] = useState(0);
@@ -275,6 +278,9 @@ export function useEditProfile() {
 
   // ── Parent fields ──────────────────────────────────────────────
   const [children, setChildren] = useState<{ name: string; age: number }[]>([]);
+
+  // ── Athlete fields ────────────────────────────────────────────
+  const [primaryPosition, setPrimaryPosition] = useState<PositionRole | null>(null);
 
   // ── Coach fields ───────────────────────────────────────────────
   const [website, setWebsite] = useState('');
@@ -370,6 +376,14 @@ export function useEditProfile() {
         setLanguages([]);
         setCertifications([]);
         setSocialLinks({});
+
+        // Hydrate athlete position from child profile
+        if (typedCurrentUser.role === 'ATHLETE') {
+          const childProfile = await childService.getChild(typedCurrentUser.id);
+          if (active && childProfile?.primaryPosition) {
+            setPrimaryPosition(childProfile.primaryPosition);
+          }
+        }
       } catch (error) {
         if (!active) return;
         logger.error('Failed to initialize edit profile state', error);
@@ -536,6 +550,11 @@ export function useEditProfile() {
 
       const payload = { ...user, fullName, bio, email, phone, children };
       logger.info('User profile payload ready for API sync', payload);
+
+      // Persist athlete position change via child service
+      if (userIsAthlete && primaryPosition) {
+        void childService.updateChild(currentUser?.id ?? '', { primaryPosition });
+      }
     }
 
     Alert.alert('Success', 'Profile updated successfully', [
@@ -543,8 +562,10 @@ export function useEditProfile() {
     ]);
   }, [
     userIsCoach,
+    userIsAthlete,
     coach,
     user,
+    currentUser?.id,
     fullName,
     bio,
     email,
@@ -558,6 +579,7 @@ export function useEditProfile() {
     certifications,
     socialLinks,
     children,
+    primaryPosition,
   ]);
 
   // ── Image picker ───────────────────────────────────────────────
@@ -576,6 +598,7 @@ export function useEditProfile() {
   return {
     // Identity
     userIsCoach,
+    userIsAthlete,
     coach,
     user,
     initializing,
@@ -595,6 +618,9 @@ export function useEditProfile() {
     addChild,
     updateChild,
     removeChild,
+    // Athlete
+    primaryPosition,
+    setPrimaryPosition,
     // Coach general
     website,
     setWebsite,

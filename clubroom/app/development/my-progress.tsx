@@ -3,7 +3,6 @@ import { Alert, RefreshControl, Share, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 import Animated from 'react-native-reanimated';
-import * as ImagePicker from 'expo-image-picker';
 import { PageHeader } from '@/components/primitives/page-header';
 import { ChildSwitcher } from '@/components/family/child-switcher';
 import { LoadingState, ErrorState, EmptyState } from '@/components/ui/screen-states';
@@ -23,20 +22,29 @@ import {
   PastSessionsTimeline,
   ParentValueSummary,
 } from '@/components/progress';
+import { LinearGradient } from 'expo-linear-gradient';
 import { Spacing, Typography, withAlpha } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
+import type { CardTier } from '@/types/progress-types';
 import { useMyProgress } from '@/hooks/use-my-progress';
 import { useScrollAnimations, useSectionRevealStyle } from '@/hooks/use-scroll-animations';
 import { Routes } from '@/navigation/routes';
 import { onTyped, ServiceEvents } from '@/services/event-bus';
 import { progressTermlyReportService } from '@/services/progress/progress-termly-report-service';
 
+const TIER_ACCENT: Record<CardTier, string> = {
+  bronze: '#B87333',
+  silver: '#7A7A88',
+  gold: '#D4A420',
+  platinum: '#4A90D9',
+  diamond: '#E040FB',
+};
+
 export default function MyProgressScreen() {
-  const { colors } = useTheme();
+  const { colors, scheme } = useTheme();
   const celebrationRef = useRef<CelebrationOverlayRef>(null);
   const scrollRef = useRef<ComponentRef<typeof Animated.ScrollView>>(null);
   const levelUpRef = useRef<LevelUpCeremonyRef>(null);
-  const [homeworkProofSubmitting, setHomeworkProofSubmitting] = useState(false);
   const scrollAnimations = useScrollAnimations();
 
   // Section reveal styles for each zone
@@ -75,7 +83,6 @@ export default function MyProgressScreen() {
     latestHomeworkProof,
     skillVelocityHighlight,
     attendanceDates,
-    markHomeworkDone,
     coachFocus,
     familyHighlights,
     isParentContext,
@@ -229,58 +236,6 @@ export default function MyProgressScreen() {
     router.push(Routes.BADGES);
   }, [isParentContext, selectedAthleteId]);
 
-  const handleHomeworkProofUpload = useCallback(
-    async (proofType: 'photo' | 'video') => {
-      if (isParentContext || !latestHomeworkFeedback || homeworkCompleted || homeworkProofSubmitting) {
-        return;
-      }
-
-      try {
-        const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
-        if (permission.status !== 'granted') {
-          Alert.alert('Permission needed', 'Allow media access to upload homework proof.');
-          return;
-        }
-
-        const pickerResult = await ImagePicker.launchImageLibraryAsync({
-          mediaTypes:
-            proofType === 'video'
-              ? ImagePicker.MediaTypeOptions.Videos
-              : ImagePicker.MediaTypeOptions.Images,
-          allowsMultipleSelection: false,
-          quality: 0.8,
-        });
-
-        if (pickerResult.canceled || !pickerResult.assets[0]?.uri) {
-          return;
-        }
-
-        const selectedAsset = pickerResult.assets[0];
-        if (proofType === 'video' && (selectedAsset.duration ?? 0) > 10_000) {
-          Alert.alert('Video too long', 'Upload a clip up to 10 seconds.');
-          return;
-        }
-
-        setHomeworkProofSubmitting(true);
-        await markHomeworkDone({
-          proofType,
-          proofUri: selectedAsset.uri,
-        });
-      } catch {
-        Alert.alert('Upload failed', 'Could not upload homework proof right now.');
-      } finally {
-        setHomeworkProofSubmitting(false);
-      }
-    },
-    [
-      homeworkCompleted,
-      homeworkProofSubmitting,
-      isParentContext,
-      latestHomeworkFeedback,
-      markHomeworkDone,
-    ],
-  );
-
   // Build homework data for CoachSaysCard
   const homeworkData = useMemo(() => {
     if (!latestHomeworkFeedback) {
@@ -294,15 +249,9 @@ export default function MyProgressScreen() {
       completedAt: latestHomeworkProof?.completedAt,
       proofUri: latestHomeworkProof?.proofUri,
       proofType: latestHomeworkProof?.proofType,
-      isSubmittingProof: homeworkProofSubmitting,
-      onAddPhotoProof: isParentContext ? undefined : () => void handleHomeworkProofUpload('photo'),
-      onAddVideoProof: isParentContext ? undefined : () => void handleHomeworkProofUpload('video'),
     };
   }, [
-    handleHomeworkProofUpload,
     homeworkCompleted,
-    homeworkProofSubmitting,
-    isParentContext,
     latestHomeworkFeedback,
     latestHomeworkProof?.completedAt,
     latestHomeworkProof?.proofType,
@@ -553,7 +502,16 @@ export default function MyProgressScreen() {
           style={playerCardStyle}
           onLayout={scrollAnimations.createSectionLayoutHandler('player-card')}
         >
-          <PlayerCard data={playerCard} />
+          <View style={styles.cardStage}>
+            <LinearGradient
+              colors={[
+                withAlpha(TIER_ACCENT[playerCard.tier], scheme === 'dark' ? 0.10 : 0.06),
+                'transparent',
+              ]}
+              style={styles.cardStageGradient}
+            />
+            <PlayerCard data={playerCard} />
+          </View>
         </Animated.View>
 
         {pentagonData.attributes.some((attribute) => attribute.value > 0) ? (
@@ -570,7 +528,6 @@ export default function MyProgressScreen() {
             ) : null}
             <PositionPentagon
               data={pentagonData}
-              isParentView={isParentContext}
               velocityHighlight={skillVelocityHighlight}
             />
             <CharacterBar universalSkills={universalSkills} />
@@ -678,6 +635,20 @@ const styles = StyleSheet.create({
     padding: Spacing.md,
     gap: Spacing.md,
     paddingBottom: Spacing['3xl'],
+  },
+  cardStage: {
+    position: 'relative',
+    marginHorizontal: -Spacing.md,
+    paddingHorizontal: Spacing.md,
+    paddingTop: Spacing.sm,
+    paddingBottom: Spacing.xs,
+  },
+  cardStageGradient: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    height: 320,
   },
   pentagonCluster: {
     gap: Spacing.xs,

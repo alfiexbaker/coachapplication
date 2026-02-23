@@ -19,5 +19,5 @@ export function useColorScheme() {
     return colorScheme;
   }
 
-  return systemScheme ?? 'light';
+  return systemScheme ?? 'dark';
 }

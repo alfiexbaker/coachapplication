@@ -11,30 +11,17 @@
 import { apiClient } from '../api-client';
 import { createLogger } from '@/utils/logger';
 import { STORAGE_KEYS } from '@/constants/storage-keys';
-import type { BadgeCategory } from '@/constants/user-types';
-import { computeFourCorners } from '@/constants/position-skills';
-import { mapSkillToCorner } from '@/constants/position-skills';
+import { computeFourCorners, deriveParentRatingsFromSubSkills } from '@/constants/position-skills';
 import type {
   PositionRole,
-  QuickRateInput,
   SessionSkillRating,
+  SubSkillRating,
   FourCornerRatings,
 } from '@/types/progress-types';
 import { err, ok, type Result, type ServiceError } from '@/types/result';
 
 const logger = createLogger('ProgressSkillsService');
 
-const LEGACY_BULK_FALLBACK_SKILLS = [
-  'Work Rate',
-  'Attitude',
-  'Communication',
-  'Coachability',
-  'Passing',
-  'Ball Carrying',
-  'Game Vision',
-  'Pressing & Defending',
-  'Tempo & Control',
-] as const;
 
 // ============================================================================
 // TYPES
@@ -75,6 +62,12 @@ async function updateSkillLevel(
   newLevel: number,
   coachId: string,
 ): Promise<SkillLevel> {
+  // Validate and clamp level to 1-10 range
+  const safeLevel = Number.isFinite(newLevel)
+    ? Math.max(1, Math.min(10, Math.round(newLevel)))
+    : 5; // default to midpoint if NaN/undefined
+  newLevel = safeLevel;
+
   const allLevels = await getAllSkillLevels();
   const athleteData = allLevels[athleteId] ?? {
     athleteId,
@@ -83,7 +76,7 @@ async function updateSkillLevel(
   };
 
   const existingSkill = athleteData.skills[skill];
-  const previousLevel = existingSkill?.level ?? 0;
+  const previousLevel = existingSkill?.level;
   const history = existingSkill?.history ?? [];
 
   // Add to history
@@ -96,14 +89,13 @@ async function updateSkillLevel(
   // Keep only last 20 entries
   const trimmedHistory = history.slice(-20);
 
-  // Calculate trend based on last 3 entries
+  // Calculate trend: compare current level to previous level
   let trend: 'improving' | 'consistent' | 'declining' = 'consistent';
   if (trimmedHistory.length >= 2) {
-    const recentLevels = trimmedHistory.slice(-3).map((h) => h.level);
-    const avgRecent = recentLevels.reduce((a, b) => a + b, 0) / recentLevels.length;
-    const firstLevel = recentLevels[0];
-    if (avgRecent > firstLevel + 0.3) trend = 'improving';
-    else if (avgRecent < firstLevel - 0.3) trend = 'declining';
+    const prev = trimmedHistory[trimmedHistory.length - 2].level;
+    const curr = trimmedHistory[trimmedHistory.length - 1].level;
+    if (curr > prev) trend = 'improving';
+    else if (curr < prev) trend = 'declining';
   }
 
   const updatedSkill: SkillLevel = {
@@ -146,90 +138,6 @@ async function updateMultipleSkillLevels(
   return results;
 }
 
-async function bulkUpdateFromQuickRate(
-  input: QuickRateInput,
-  options?: { focusSkills?: string[] },
-): Promise<Result<SkillLevel[], ServiceError>> {
-  try {
-    const dotToLevel = (dots: number): number => dots * 2;
-    const technical = Math.max(1, Math.min(5, Math.round(input.technical ?? 3)));
-    const physical = Math.max(1, Math.min(5, Math.round(input.physical ?? 3)));
-    const psychological = Math.max(1, Math.min(5, Math.round(input.psychological ?? 3)));
-    const social = Math.max(1, Math.min(5, Math.round(input.social ?? 3)));
-
-    const cornerLevels: Record<BadgeCategory, number> = {
-      technical: dotToLevel(technical),
-      physical: dotToLevel(physical),
-      psychological: dotToLevel(psychological),
-      social: dotToLevel(social),
-    };
-    const focusSkillSet = new Set(
-      (options?.focusSkills ?? [])
-        .map((skill) => skill.trim().toLowerCase())
-        .filter((skill) => skill.length > 0),
-    );
-
-    const athleteSkills = await getAthleteSkillLevels(input.athleteId);
-    if (!athleteSkills || Object.keys(athleteSkills.skills).length === 0) {
-      const seededSkills = focusSkillSet.size > 0
-        ? Array.from(
-            new Set(
-              (options?.focusSkills ?? [])
-                .map((skill) => skill.trim())
-                .filter((skill) => skill.length > 0),
-            ),
-          ).map((skill) => ({
-            skill,
-            level: cornerLevels[mapSkillToCorner(skill)],
-          }))
-        : LEGACY_BULK_FALLBACK_SKILLS.map((skill) => ({
-            skill,
-            level: cornerLevels[mapSkillToCorner(skill)],
-          }));
-      const defaults = seededSkills;
-      const created = await updateMultipleSkillLevels(input.athleteId, defaults, input.coachId);
-
-      logger.info('quick_rate_default_skills_created', {
-        athleteId: input.athleteId,
-        defaultsCreated: defaults.length,
-      });
-
-      return ok(created);
-    }
-
-    const updatesFromExisting = Object.values(athleteSkills.skills).map((skill) => ({
-      skill: skill.skill,
-      level: cornerLevels[mapSkillToCorner(skill.skill)],
-    }));
-    const updates = focusSkillSet.size > 0
-      ? updatesFromExisting.filter((skill) => focusSkillSet.has(skill.skill.toLowerCase()))
-      : updatesFromExisting;
-
-    const finalUpdates = updates.length > 0 ? updates : updatesFromExisting;
-
-    const updated = await updateMultipleSkillLevels(input.athleteId, finalUpdates, input.coachId);
-
-      logger.info('quick_rate_skill_update_saved', {
-        athleteId: input.athleteId,
-        skillCount: finalUpdates.length,
-        technical,
-        physical,
-        psychological,
-        social,
-        focusSkillCount: focusSkillSet.size,
-      });
-
-    return ok(updated);
-  } catch (error) {
-    logger.error('Failed to bulk update skills from quick rate', error);
-    return err({
-      code: 'STORAGE',
-      message: 'Failed to save quick rate skill updates',
-      details: error,
-    });
-  }
-}
-
 export interface PositionRateUpdateResult {
   updatedSkills: SkillLevel[];
   fourCorners: FourCornerRatings;
@@ -241,8 +149,43 @@ async function updateFromPositionRate(
   coachId: string,
   positionPlayed: PositionRole,
   skillRatings: SessionSkillRating[],
+  subSkillRatings?: SubSkillRating[],
 ): Promise<Result<PositionRateUpdateResult, ServiceError>> {
   try {
+    // ─── Sub-skill path (new): store each sub-skill, derive parents ────
+    if (subSkillRatings && subSkillRatings.length > 0) {
+      const subUpdates = subSkillRatings.map((entry) => ({
+        skill: entry.subSkill,
+        level: Math.max(1, Math.min(10, entry.rating * 2)),
+      }));
+      const updatedSkills = await updateMultipleSkillLevels(athleteId, subUpdates, coachId);
+
+      // Derive parent ratings from sub-skills (1-5 scale) → build SessionSkillRating[]
+      const parentAvgs = deriveParentRatingsFromSubSkills(subSkillRatings);
+      const derivedParentRatings: SessionSkillRating[] = Object.entries(parentAvgs).map(
+        ([skill, avg]) => ({
+          skill: skill as import('@/types/progress-types').FootballSkill,
+          rating: Math.max(1, Math.min(5, Math.round(avg))) as 1 | 2 | 3 | 4 | 5,
+          label: 'Very Good' as const,
+          trend: 'consistent' as const,
+        }),
+      );
+      const fourCorners = computeFourCorners(derivedParentRatings);
+
+      logger.info('position_rate_sub_skill_update_saved', {
+        athleteId,
+        sessionId,
+        coachId,
+        positionPlayed,
+        subSkillCount: subUpdates.length,
+        parentCount: derivedParentRatings.length,
+        fourCorners,
+      });
+
+      return ok({ updatedSkills, fourCorners });
+    }
+
+    // ─── Legacy parent-skill path ──────────────────────────────────────
     const normalizedRatings = skillRatings
       .filter((rating) => Boolean(rating?.skill))
       .map((rating) => ({
@@ -323,6 +266,5 @@ export const progressSkillsService = {
   getSkillHistory,
   updateSkillLevel,
   updateMultipleSkillLevels,
-  bulkUpdateFromQuickRate,
   updateFromPositionRate,
 };

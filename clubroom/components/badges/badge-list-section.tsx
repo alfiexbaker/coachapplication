@@ -16,7 +16,7 @@ interface BadgeListSectionProps {
   visibleBadges: BadgeItem[];
   selectedSession: Session | null;
   linkedAthlete: string;
-  onAward: (badge: BadgeItem) => void;
+  onAward?: (badge: BadgeItem) => void;
 }
 
 function formatDate(date: Date | string): string {
@@ -91,7 +91,7 @@ export const BadgeListSection = memo(function BadgeListSection({
                 </Row>
               )}
 
-              {activeTab === 'toAward' && (
+              {activeTab === 'toAward' && onAward ? (
                 <Row gap="sm" align="center" justify="space-between">
                   <Row gap="xs" align="center" style={{ flex: 1 }}>
                     <Ionicons name="link" size={14} color={colors.icon} />
@@ -110,7 +110,7 @@ export const BadgeListSection = memo(function BadgeListSection({
                     </ThemedText>
                   </Clickable>
                 </Row>
-              )}
+              ) : null}
             </SurfaceCard>
           ))}
         </View>

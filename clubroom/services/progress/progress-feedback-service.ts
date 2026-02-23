@@ -12,7 +12,6 @@ import { apiClient } from '../api-client';
 import { createLogger } from '@/utils/logger';
 import { STORAGE_KEYS } from '@/constants/storage-keys';
 import { progressSkillsService } from './progress-skills-service';
-import { progressPositionService } from './progress-position-service';
 import { computeFourCorners } from '@/constants/position-skills';
 import { err, ok, type Result, type ServiceError } from '@/types/result';
 import type {
@@ -20,6 +19,7 @@ import type {
   FourCornerRatings,
   PositionRole,
   QuickRateInput,
+  SubSkillRating,
 } from '@/types/progress-types';
 
 const logger = createLogger('ProgressFeedbackService');
@@ -56,6 +56,10 @@ export interface SessionFeedback {
   badgeAwarded?: string;
   fourCorners?: FourCornerRatings;
   positionPlayed?: PositionRole;
+  /** Multi-position selection (new). Takes priority over positionPlayed when present. */
+  positionsPlayed?: PositionRole[];
+  /** Sub-skill ratings (new). When present, parent ratings are derived from these. */
+  subSkillRatings?: SubSkillRating[];
   // Visibility
   visibility: 'coach_only' | 'parent' | 'athlete';
 }
@@ -117,6 +121,7 @@ async function getAllSessionFeedback(): Promise<SessionFeedback[]> {
 
 async function addSessionFeedback(
   feedback: Omit<SessionFeedback, 'id' | 'createdAt'>,
+  options?: { skipSkillUpdate?: boolean },
 ): Promise<SessionFeedback> {
   const allFeedback = await getAllSessionFeedback();
 
@@ -130,6 +135,11 @@ async function addSessionFeedback(
     ? {
         ...previousFeedback,
         ...feedback,
+        // Preserve position data when caller doesn't supply it (e.g. dev screen edits)
+        fourCorners: feedback.fourCorners ?? previousFeedback.fourCorners,
+        positionPlayed: feedback.positionPlayed ?? previousFeedback.positionPlayed,
+        positionsPlayed: feedback.positionsPlayed ?? previousFeedback.positionsPlayed,
+        subSkillRatings: feedback.subSkillRatings ?? previousFeedback.subSkillRatings,
         id: previousFeedback.id,
         createdAt: previousFeedback.createdAt,
         updatedAt: now,
@@ -140,8 +150,9 @@ async function addSessionFeedback(
         createdAt: now,
       };
 
-  // Update skill levels based on ratings
+  // Update skill levels based on ratings (skip when caller already wrote skills)
   const shouldUpdateSkills =
+    !options?.skipSkillUpdate &&
     feedback.skillRatings.length > 0 &&
     JSON.stringify(previousFeedback?.skillRatings ?? []) !== JSON.stringify(feedback.skillRatings);
 
@@ -150,7 +161,7 @@ async function addSessionFeedback(
       feedback.athleteId,
       feedback.skillRatings.map((r) => ({
         skill: r.skill,
-        level: r.rating <= 5 ? Math.max(1, Math.min(10, r.rating * 2)) : r.rating,
+        level: Math.max(1, Math.min(10, r.rating * 2)),
       })),
       feedback.coachId,
     );
@@ -237,6 +248,7 @@ async function createFeedbackFromQuickRate(
   input: QuickRateInput,
   coachName: string,
   athleteName: string,
+  options?: { skillsAlreadyWritten?: boolean },
 ): Promise<Result<SessionFeedback, ServiceError>> {
   try {
     const positionSkillRatings = (input.positionSkillRatings ?? [])
@@ -302,37 +314,28 @@ async function createFeedbackFromQuickRate(
       skillRatings: nextSkillRatings,
       improvements: existingForSession?.improvements ?? '',
       homework: existingForSession?.homework ?? '',
-      effortRating: input.effort,
-      overallPerformance: existingForSession?.overallPerformance ?? input.effort,
+      effortRating: Number.isFinite(input.effort) ? Math.max(1, Math.min(5, Math.round(input.effort))) : 3,
+      overallPerformance: existingForSession?.overallPerformance
+        ?? (input.overallPerformance != null && Number.isFinite(input.overallPerformance) ? Math.max(1, Math.min(5, Math.round(input.overallPerformance as number))) : undefined)
+        ?? (Number.isFinite(input.effort) ? Math.max(1, Math.min(5, Math.round(input.effort))) : 3),
       videoClipUrls: input.mediaIds?.length
         ? input.mediaIds
         : (existingForSession?.videoClipUrls ?? []),
       photoUrls: existingForSession?.photoUrls,
       badgeAwarded: input.badgeId ?? existingForSession?.badgeAwarded,
       privateNotes: existingForSession?.privateNotes,
-      visibility: existingForSession?.visibility ?? 'athlete',
+      visibility: existingForSession?.visibility ?? input.visibility ?? 'athlete',
       fourCorners,
       positionPlayed: input.positionPlayed ?? existingForSession?.positionPlayed,
+      positionsPlayed: input.positionsPlayed ?? existingForSession?.positionsPlayed,
+      subSkillRatings: input.subSkillRatings ?? existingForSession?.subSkillRatings,
       sessionTemplateId: existingForSession?.sessionTemplateId ?? input.sessionTemplateId,
       sessionTemplateName: existingForSession?.sessionTemplateName ?? input.sessionTemplateName,
       sessionTitle: existingForSession?.sessionTitle ?? input.sessionTitle,
-    });
+    }, { skipSkillUpdate: options?.skillsAlreadyWritten });
 
-    if (input.positionPlayed) {
-      const positionResult = await progressPositionService.recordPosition(
-        input.sessionId,
-        input.athleteId,
-        input.positionPlayed,
-      );
-      if (!positionResult.success) {
-        logger.error('Failed to record quick-rate position context', {
-          athleteId: input.athleteId,
-          sessionId: input.sessionId,
-          positionPlayed: input.positionPlayed,
-          error: positionResult.error,
-        });
-      }
-    }
+    // Position recording handled by caller (use-session-completion.ts step 3b)
+    // to avoid duplicate POSITION_HISTORY entries.
 
     logger.info('quick_rate_feedback_saved', {
       feedbackId: feedback.id,

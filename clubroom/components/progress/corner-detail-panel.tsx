@@ -33,7 +33,7 @@ function mapTrendIcon(trend: SkillLevel['trend']): {
 }
 
 function toDotScore(level: number): number {
-  return Math.max(1, Math.min(5, Math.round(level / 2)));
+  return Math.max(1, Math.min(5, Math.ceil(level / 2)));
 }
 
 export const CornerDetailPanel = memo(function CornerDetailPanel({

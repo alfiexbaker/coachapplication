@@ -23,7 +23,7 @@ import { CoachBadge } from './coach-badge';
 import { CornerDotsCompact } from './corner-dots-compact';
 import { MediaStrip } from './media-strip';
 import { CORNER_COLORS } from '@/constants/four-corner-mapping';
-import { POSITION_LABELS, getParentGroup, mapSkillToCorner } from '@/constants/position-skills';
+import { POSITION_LABELS, getParentGroup, mapSkillToCorner, SKILL_SUB_SKILLS } from '@/constants/position-skills';
 
 interface HomeworkData {
   homework: string;
@@ -33,9 +33,6 @@ interface HomeworkData {
   completedAt?: string;
   proofUri?: string;
   proofType?: 'photo' | 'video';
-  isSubmittingProof?: boolean;
-  onAddPhotoProof?: () => void;
-  onAddVideoProof?: () => void;
 }
 
 interface CoachSaysCardProps {
@@ -58,13 +55,9 @@ function formatDate(dateString: string): string {
 }
 
 function toFivePointDots(value: number): number {
-  if (value <= 0) {
-    return 0;
-  }
-  if (value <= 5) {
-    return Math.max(1, Math.min(5, Math.round(value)));
-  }
-  return Math.max(1, Math.min(5, Math.round(value / 2)));
+  if (value <= 0) return 0;
+  // SessionSkillRating.rating is always 1-5
+  return Math.max(1, Math.min(5, Math.round(value)));
 }
 
 export const CoachSaysCard = memo(function CoachSaysCard({
@@ -298,30 +291,54 @@ export const CoachSaysCard = memo(function CoachSaysCard({
                       const cornerKey = mapSkillToCorner(entry.skill);
                       const barColor = CORNER_COLORS[cornerKey] ?? colors.tint;
 
+                      const parentSubs = SKILL_SUB_SKILLS[entry.skill as FootballSkill] ?? [];
+                      const workedOnSubs = (feedback.skillsWorkedOn ?? []).filter((tag) => parentSubs.includes(tag));
+
                       return (
-                        <View
+                        <Column
                           key={`${group}_${entry.skill}_${entry.rating}`}
-                          style={[
-                            styles.skillRow,
-                            {
-                              borderLeftColor: withAlpha(barColor, 0.55),
-                              backgroundColor: withAlpha(colors.background, 0.45),
-                            },
-                          ]}
-                          accessibilityLabel={`${entry.skill}: ${dots} out of 5${trend === 'improving' ? ', improving' : ''}`}
+                          gap="micro"
                         >
-                          <Row align="center" justify="between">
-                            <ThemedText style={styles.skillName} numberOfLines={1}>
-                              {entry.skill}
-                            </ThemedText>
-                            <Row align="center" gap="xs">
-                              <ThemedText style={styles.skillScore}>{dots}/5</ThemedText>
-                              <ThemedText style={[styles.trendGlyph, { color: trendColor }]}>
-                                {trend === 'improving' ? '\u2191' : '\u2192'}
+                          <View
+                            style={[
+                              styles.skillRow,
+                              {
+                                borderLeftColor: withAlpha(barColor, 0.55),
+                                backgroundColor: withAlpha(colors.background, 0.45),
+                              },
+                            ]}
+                            accessibilityLabel={`${entry.skill}: ${dots} out of 5${trend === 'improving' ? ', improving' : ''}`}
+                          >
+                            <Row align="center" justify="between">
+                              <ThemedText style={styles.skillName} numberOfLines={1}>
+                                {entry.skill}
                               </ThemedText>
+                              <Row align="center" gap="xs">
+                                <ThemedText style={styles.skillScore}>{dots}/5</ThemedText>
+                                <ThemedText style={[styles.trendGlyph, { color: trendColor }]}>
+                                  {trend === 'improving' ? '\u2191' : '\u2192'}
+                                </ThemedText>
+                              </Row>
                             </Row>
-                          </Row>
-                        </View>
+                          </View>
+                          {workedOnSubs.length > 0 ? (
+                            <Row wrap gap="xxs" style={styles.subSkillRow}>
+                              {workedOnSubs.map((sub) => (
+                                <View
+                                  key={sub}
+                                  style={[
+                                    styles.subSkillChip,
+                                    { backgroundColor: withAlpha(barColor, 0.08) },
+                                  ]}
+                                >
+                                  <ThemedText style={[styles.subSkillText, { color: colors.mutedForeground }]}>
+                                    {sub}
+                                  </ThemedText>
+                                </View>
+                              ))}
+                            </Row>
+                          ) : null}
+                        </Column>
                       );
                     })}
                   </Column>
@@ -425,64 +442,35 @@ export const CoachSaysCard = memo(function CoachSaysCard({
                       ]}
                     >
                       <Ionicons
-                        name={homework.proofType === 'video' ? 'videocam' : 'image'}
+                        name={homework.proofType === 'video' ? 'videocam' : homework.proofType === 'photo' ? 'image' : 'checkmark-circle'}
                         size={16}
-                        color={colors.muted}
+                        color={colors.success}
                       />
                       <ThemedText style={[styles.homeworkProofText, { color: colors.text }]}>
-                        {homework.proofType === 'video' ? 'Video proof uploaded' : 'Photo proof uploaded'}
+                        {homework.proofType === 'video'
+                          ? 'Video proof uploaded'
+                          : homework.proofType === 'photo'
+                            ? 'Photo proof uploaded'
+                            : 'Completed'}
                         {homework.completedAt ? ` · ${formatDate(homework.completedAt)}` : ''}
                       </ThemedText>
                     </Row>
                   ) : (
-                    <Row gap="xs">
-                      <Clickable
-                        style={[
-                          styles.homeworkActionButton,
-                          {
-                            borderColor: withAlpha(colors.tint, 0.24),
-                            backgroundColor: withAlpha(colors.tint, 0.1),
-                          },
-                        ]}
-                        onPress={homework.onAddPhotoProof}
-                        disabled={homework.isSubmittingProof || !homework.onAddPhotoProof}
-                        accessibilityLabel="Upload photo proof"
-                        accessibilityRole="button"
-                        accessibilityState={{
-                          disabled: homework.isSubmittingProof || !homework.onAddPhotoProof,
-                        }}
-                      >
-                        <Row align="center" justify="center" gap="xxs">
-                          <Ionicons name="image-outline" size={15} color={colors.tint} />
-                          <ThemedText style={[styles.homeworkActionButtonLabel, { color: colors.text }]}>
-                            {homework.isSubmittingProof ? 'Uploading...' : 'Photo proof'}
-                          </ThemedText>
-                        </Row>
-                      </Clickable>
-
-                      <Clickable
-                        style={[
-                          styles.homeworkActionButton,
-                          {
-                            borderColor: withAlpha(colors.tint, 0.24),
-                            backgroundColor: withAlpha(colors.tint, 0.1),
-                          },
-                        ]}
-                        onPress={homework.onAddVideoProof}
-                        disabled={homework.isSubmittingProof || !homework.onAddVideoProof}
-                        accessibilityLabel="Upload video proof"
-                        accessibilityRole="button"
-                        accessibilityState={{
-                          disabled: homework.isSubmittingProof || !homework.onAddVideoProof,
-                        }}
-                      >
-                        <Row align="center" justify="center" gap="xxs">
-                          <Ionicons name="videocam-outline" size={15} color={colors.tint} />
-                          <ThemedText style={[styles.homeworkActionButtonLabel, { color: colors.text }]}>
-                            {homework.isSubmittingProof ? 'Uploading...' : 'Video proof'}
-                          </ThemedText>
-                        </Row>
-                      </Clickable>
+                    <Row
+                      align="center"
+                      gap="xxs"
+                      style={[
+                        styles.homeworkProofRow,
+                        {
+                          borderColor: withAlpha(colors.warning, 0.3),
+                          backgroundColor: withAlpha(colors.warning, 0.08),
+                        },
+                      ]}
+                    >
+                      <Ionicons name="time-outline" size={16} color={colors.warning} />
+                      <ThemedText style={[styles.homeworkProofText, { color: colors.muted }]}>
+                        Not yet completed
+                      </ThemedText>
                     </Row>
                   )}
                 </Column>
@@ -655,6 +643,17 @@ const styles = StyleSheet.create({
     minWidth: 14,
     textAlign: 'right',
   },
+  subSkillRow: {
+    paddingLeft: Spacing.sm,
+  },
+  subSkillChip: {
+    paddingHorizontal: Spacing.xs,
+    paddingVertical: Spacing.micro,
+    borderRadius: Radii.xs,
+  },
+  subSkillText: {
+    ...Typography.micro,
+  },
   improvementText: {
     ...Typography.bodySmall,
     lineHeight: 20,
@@ -695,17 +694,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   homeworkProofText: {
-    ...Typography.bodySmallSemiBold,
-  },
-  homeworkActionButton: {
-    minHeight: 44,
-    flex: 1,
-    borderWidth: 1,
-    borderRadius: Radii.md,
-    paddingHorizontal: Spacing.sm,
-    justifyContent: 'center',
-  },
-  homeworkActionButtonLabel: {
     ...Typography.bodySmallSemiBold,
   },
   actionsRow: {

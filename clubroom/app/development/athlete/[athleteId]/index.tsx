@@ -13,7 +13,6 @@ import { DevAthleteHero } from '@/components/development/dev-athlete-hero';
 import { DevSpecialNeedsCard } from '@/components/development/dev-special-needs-card';
 import { DevProgressionCard } from '@/components/development/dev-progression-card';
 import { DevSessionCard } from '@/components/development/dev-session-card';
-import { BadgeAwardModal, BADGE_REASONS } from '@/components/badges/badge-award-modal';
 import { Spacing, Typography, withAlpha } from '@/constants/theme';
 import { POSITION_LABELS } from '@/constants/position-skills';
 import { useScreen } from '@/hooks/use-screen';
@@ -36,17 +35,10 @@ export default function AthleteDetailScreen() {
     sortedSessions,
     sessions,
     awards,
-    selectedSession,
-    showBadgeModal,
     childProfile,
     progressionSummary,
     trend,
     level,
-    selectedSessionLabel,
-    handleOpenBadgeModal,
-    handleSelectSession,
-    handleCloseModal,
-    handleOnAwarded,
   } = useAthleteDevelopment(resolvedAthleteId ?? '');
   const [editingPosition, setEditingPosition] = useState(false);
   const [savingPosition, setSavingPosition] = useState(false);
@@ -118,7 +110,6 @@ export default function AthleteDetailScreen() {
   }
 
   return (
-    <>
       <PageContainer
         edges={['top', 'bottom']}
         gap={Spacing.lg}
@@ -139,7 +130,6 @@ export default function AthleteDetailScreen() {
           trend={trend}
           level={level}
           colors={colors}
-          onAwardBadge={handleOpenBadgeModal}
         />
 
         {childProfile ? (
@@ -245,27 +235,10 @@ export default function AthleteDetailScreen() {
               session={session}
               awards={awards}
               colors={colors}
-              onSelectForBadge={handleSelectSession}
             />
           ))}
         </Column>
       </PageContainer>
-
-      <BadgeAwardModal
-        visible={!!selectedSession || showBadgeModal}
-        athleteId={athlete.id}
-        athleteName={athlete.name}
-        coachId={currentUser.id}
-        coachName={currentUser.name}
-        sessionId={selectedSession?.id}
-        sessionLabel={selectedSession ? selectedSessionLabel : undefined}
-        initialReason={selectedSession?.nextFocusAreas?.find((focus) =>
-          BADGE_REASONS.includes(focus),
-        )}
-        onClose={handleCloseModal}
-        onAwarded={handleOnAwarded}
-      />
-    </>
   );
 }
 

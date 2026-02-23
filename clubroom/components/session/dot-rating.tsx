@@ -25,6 +25,7 @@ interface DotRatingProps {
   icon: IoniconName;
   value: number;
   onChange: (value: number) => void;
+  compact?: boolean;
 }
 
 function clampRating(value: number): number {
@@ -39,6 +40,7 @@ interface DotButtonProps {
   fillColor: string;
   pulseDot: number | null;
   onPress: () => void;
+  size: number;
 }
 
 const DotButton = memo(function DotButton({
@@ -49,6 +51,7 @@ const DotButton = memo(function DotButton({
   fillColor,
   pulseDot,
   onPress,
+  size,
 }: DotButtonProps) {
   const fillProgress = useSharedValue(filled ? 1 : 0);
   const pulseProgress = useSharedValue(0);
@@ -80,7 +83,7 @@ const DotButton = memo(function DotButton({
   }));
 
   return (
-    <Animated.View style={[styles.dotButton, animatedStyle]}>
+    <Animated.View style={[styles.dotButton, { minWidth: size, minHeight: size }, animatedStyle]}>
       <Clickable
         onPress={onPress}
         style={styles.dotTouch}
@@ -90,7 +93,7 @@ const DotButton = memo(function DotButton({
       >
         <Ionicons
           name={filled ? 'ellipse' : 'ellipse-outline'}
-          size={16}
+          size={size <= 36 ? 13 : 16}
           color={filled ? fillColor : mutedBorder}
         />
       </Clickable>
@@ -98,18 +101,14 @@ const DotButton = memo(function DotButton({
   );
 });
 
-export const DotRating = memo(function DotRating({ label, icon, value, onChange }: DotRatingProps) {
+export const DotRating = memo(function DotRating({ label, icon, value, onChange, compact = false }: DotRatingProps) {
   const { colors } = useTheme();
   const normalizedValue = clampRating(value);
   const [pulseDot, setPulseDot] = useState<number | null>(null);
+  const dotSize = compact ? 36 : 44;
+  const iconSize = compact ? 14 : 18;
 
-  const dotColors: Record<(typeof DOT_VALUES)[number], string> = {
-    1: colors.error,
-    2: colors.warning,
-    3: colors.rating,
-    4: colors.success,
-    5: colors.info,
-  };
+  const fillColor = colors.tint;
 
   const handleSelect = useCallback(
     (nextValue: number) => {
@@ -121,10 +120,10 @@ export const DotRating = memo(function DotRating({ label, icon, value, onChange 
   );
 
   return (
-    <Row align="center" justify="between" style={styles.row}>
+    <Row align="center" justify="between" style={compact ? styles.rowCompact : styles.row}>
       <Row align="center" gap="xs" style={styles.labelWrap}>
-        <Ionicons name={icon} size={18} color={colors.tint} />
-        <ThemedText style={styles.label}>{label}</ThemedText>
+        <Ionicons name={icon} size={iconSize} color={colors.tint} />
+        <ThemedText style={compact ? styles.labelCompact : styles.label} numberOfLines={1}>{label}</ThemedText>
       </Row>
 
       <Row gap="xxs">
@@ -137,9 +136,10 @@ export const DotRating = memo(function DotRating({ label, icon, value, onChange 
               label={label}
               filled={filled}
               mutedBorder={colors.border}
-              fillColor={dotColors[dot]}
+              fillColor={fillColor}
               pulseDot={pulseDot}
               onPress={() => handleSelect(dot)}
+              size={dotSize}
             />
           );
         })}
@@ -152,6 +152,9 @@ const styles = StyleSheet.create({
   row: {
     minHeight: 44,
   },
+  rowCompact: {
+    minHeight: 36,
+  },
   labelWrap: {
     flex: 1,
     marginRight: Spacing.xs,
@@ -159,9 +162,10 @@ const styles = StyleSheet.create({
   label: {
     ...Typography.bodySmall,
   },
+  labelCompact: {
+    ...Typography.small,
+  },
   dotButton: {
-    minWidth: 44,
-    minHeight: 44,
     borderRadius: Radii.pill,
     borderWidth: 1,
     overflow: 'hidden',

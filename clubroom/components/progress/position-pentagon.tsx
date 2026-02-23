@@ -22,7 +22,6 @@ import type { PentagonData } from '@/types/progress-types';
 
 interface PositionPentagonProps {
   data: PentagonData;
-  isParentView?: boolean;
   velocityHighlight?: { skill: string; delta: number; weeks: number } | null;
 }
 
@@ -72,6 +71,15 @@ function interpolateValues(
   }, {});
 }
 
+// Reorder attributes so short labels sit on the tight side vertices (indices 1 & 4)
+// and longer labels go to top (0) / bottom (2, 3) where there's more horizontal room.
+function optimiseLabelPlacement<T extends { label: string }>(attributes: T[]): T[] {
+  if (attributes.length !== 5) return attributes;
+  const sorted = [...attributes].sort((a, b) => a.label.length - b.label.length);
+  // shortest two → side slots (indices 1, 4); remaining → top (0), bottom-right (2), bottom-left (3)
+  return [sorted[2], sorted[0], sorted[3], sorted[4], sorted[1]];
+}
+
 export const PositionPentagon = memo(function PositionPentagon({
   data,
   velocityHighlight = null,
@@ -79,15 +87,28 @@ export const PositionPentagon = memo(function PositionPentagon({
   const { colors } = useTheme();
   const { width } = useWindowDimensions();
   const compact = width <= 390;
-  const size = compact ? 280 : 320;
+  const pentagonSize = compact ? 280 : 320;
   const padding = compact ? 60 : 68;
-  const center = useMemo<Point>(() => ({ x: size / 2, y: size / 2 }), [size]);
-  const radius = size / 2 - padding;
-  const baseVertices = useMemo(
-    () => data.attributes.map((_, index) => getVertex(center, radius, index)),
-    [center, data.attributes, radius],
+  // Extra margin around the pentagon for labels that extend beyond vertices
+  const labelMargin = compact ? 30 : 36;
+  const svgW = pentagonSize + labelMargin * 2;
+  const svgH = pentagonSize + labelMargin;
+  const center = useMemo<Point>(
+    () => ({ x: svgW / 2, y: pentagonSize / 2 + labelMargin * 0.3 }),
+    [svgW, pentagonSize, labelMargin],
   );
-  const keyOrder = useMemo(() => data.attributes.map((attribute) => attribute.key), [data.attributes]);
+  const radius = pentagonSize / 2 - padding;
+
+  const orderedAttributes = useMemo(
+    () => optimiseLabelPlacement(data.attributes),
+    [data.attributes],
+  );
+
+  const baseVertices = useMemo(
+    () => orderedAttributes.map((_, index) => getVertex(center, radius, index)),
+    [center, orderedAttributes, radius],
+  );
+  const keyOrder = useMemo(() => orderedAttributes.map((attribute) => attribute.key), [orderedAttributes]);
   const gradientId = useMemo(
     () => `position-pentagon-${data.position.toLowerCase()}-${compact ? 'compact' : 'regular'}`,
     [compact, data.position],
@@ -95,11 +116,11 @@ export const PositionPentagon = memo(function PositionPentagon({
 
   const currentValues = useMemo(
     () =>
-      data.attributes.reduce<Record<string, number>>((acc, attribute) => {
+      orderedAttributes.reduce<Record<string, number>>((acc, attribute) => {
         acc[attribute.key] = clampValue(attribute.value);
         return acc;
       }, {}),
-    [data.attributes],
+    [orderedAttributes],
   );
 
   const [displayValues, setDisplayValues] = useState<Record<string, number>>(currentValues);
@@ -159,10 +180,10 @@ export const PositionPentagon = memo(function PositionPentagon({
 
   const currentPoints = useMemo(
     () =>
-      data.attributes.map((attribute, index) =>
+      orderedAttributes.map((attribute, index) =>
         scalePoint(center, baseVertices[index], displayValues[attribute.key] ?? 0),
       ),
-    [baseVertices, center, data.attributes, displayValues],
+    [baseVertices, center, orderedAttributes, displayValues],
   );
 
   const comparisonValues = useMemo(() => {
@@ -181,21 +202,21 @@ export const PositionPentagon = memo(function PositionPentagon({
     if (!comparisonValues) {
       return null;
     }
-    return data.attributes.map((attribute, index) =>
+    return orderedAttributes.map((attribute, index) =>
       scalePoint(center, baseVertices[index], comparisonValues[attribute.key] ?? 0),
     );
-  }, [baseVertices, center, comparisonValues, data.attributes]);
+  }, [baseVertices, center, comparisonValues, orderedAttributes]);
 
   const averageRating = useMemo(
     () =>
-      data.attributes.length > 0
-        ? data.attributes.reduce((total, attribute) => total + attribute.rating, 0) / data.attributes.length
+      orderedAttributes.length > 0
+        ? orderedAttributes.reduce((total, attribute) => total + attribute.rating, 0) / orderedAttributes.length
         : 0,
-    [data.attributes],
+    [orderedAttributes],
   );
   const improvingCount = useMemo(
-    () => data.attributes.filter((attribute) => attribute.trend === 'improving').length,
-    [data.attributes],
+    () => orderedAttributes.filter((attribute) => attribute.trend === 'improving').length,
+    [orderedAttributes],
   );
   const sessionCount = useMemo(
     () => data.sessionSnapshots.filter((snapshot) => snapshot.id !== 'current').length,
@@ -231,7 +252,7 @@ export const PositionPentagon = memo(function PositionPentagon({
         </Row>
 
         <Center>
-          <Svg width={size} height={size} viewBox={`0 0 ${size} ${size}`}>
+          <Svg width={svgW} height={svgH} viewBox={`0 0 ${svgW} ${svgH}`}>
             <Defs>
               <RadialGradient id={gradientId} cx="50%" cy="42%" r="72%">
                 <Stop offset="0%" stopColor={withAlpha(colors.tint, 0.34)} />
@@ -259,7 +280,7 @@ export const PositionPentagon = memo(function PositionPentagon({
               />
             ))}
 
-            {data.attributes.map((attribute, index) => (
+            {orderedAttributes.map((attribute, index) => (
               <Line
                 key={`axis-${attribute.key}`}
                 x1={center.x}
@@ -288,15 +309,21 @@ export const PositionPentagon = memo(function PositionPentagon({
               strokeWidth={2.8}
             />
 
-            {data.attributes.map((attribute, index) => {
+            {orderedAttributes.map((attribute, index) => {
               const point = currentPoints[index];
               const vertex = baseVertices[index];
-              const labelOffset = compact ? 20 : 24;
+              const labelOffset = compact ? 18 : 22;
               const dx = vertex.x - center.x;
               const dy = vertex.y - center.y;
               const dist = Math.sqrt(dx * dx + dy * dy);
               const labelX = vertex.x + (dx / dist) * labelOffset;
               const labelY = vertex.y + (dy / dist) * labelOffset;
+
+              // Smart text anchor: left-side labels anchor "end", right-side "start", top/bottom "middle"
+              const relX = labelX - center.x;
+              const anchor: 'start' | 'middle' | 'end' =
+                relX < -8 ? 'end' : relX > 8 ? 'start' : 'middle';
+
               return (
                 <G key={`dot-${attribute.key}`}>
                   <Circle
@@ -319,7 +346,7 @@ export const PositionPentagon = memo(function PositionPentagon({
                     fontSize={compact ? 10 : 11}
                     fontWeight="600"
                     fill={withAlpha(colors.text, 0.78)}
-                    textAnchor="middle"
+                    textAnchor={anchor}
                     alignmentBaseline="central"
                   >
                     {attribute.label}

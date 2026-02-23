@@ -2,10 +2,10 @@
  * Badges Step — Step 3 of Session Completion Wizard
  *
  * Allows coaches to award badges to athletes who were marked as present.
- * Shows each present athlete with a grid of available badges to toggle.
+ * Shows each present athlete with badges grouped by FA Four Corners category.
  */
 
-import React, { memo, useCallback } from 'react';
+import React, { memo, useCallback, useMemo } from 'react';
 import { View, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Row } from '@/components/primitives/row';
@@ -15,7 +15,10 @@ import { SurfaceCard } from '@/components/primitives/surface-card';
 import { ThemedText } from '@/components/themed-text';
 import { Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
 import type { ThemeColors } from '@/hooks/useTheme';
-import type { BadgeDefinition } from '@/constants/types';
+import type { BadgeDefinitionWithStats } from '@/services/badge-service';
+import type { BadgeCategory } from '@/constants/types';
+import { EVENT_BADGE_IDS } from '@/services/badge-definitions';
+import { CategoryInfo } from '@/constants/progression';
 
 // ============================================================================
 // TYPES
@@ -29,9 +32,66 @@ export interface BadgeAthleteData {
 
 export interface BadgesStepProps {
   presentAthletes: BadgeAthleteData[];
-  availableBadges: BadgeDefinition[];
+  availableBadges: BadgeDefinitionWithStats[];
   colors: ThemeColors;
   onToggleBadge: (registrationId: string, badgeId: string) => void;
+}
+
+// ============================================================================
+// CONSTANTS
+// ============================================================================
+
+const CATEGORY_ORDER: BadgeCategory[] = ['technical', 'physical', 'psychological', 'social'];
+
+// ============================================================================
+// BADGE CHIPS
+// ============================================================================
+
+function BadgeChips({
+  badges,
+  athlete,
+  colors,
+  onToggle,
+}: {
+  badges: BadgeDefinitionWithStats[];
+  athlete: BadgeAthleteData;
+  colors: ThemeColors;
+  onToggle: (badgeId: string) => void;
+}) {
+  return (
+    <Row wrap gap="xs">
+      {badges.map((badge) => {
+        const isAwarded = athlete.badges.includes(badge.id);
+        const chipLabel =
+          badge.awardCount > 0 ? `${badge.label} \u00B7 ${badge.awardCount} earned` : badge.label;
+        return (
+          <Clickable
+            key={badge.id}
+            style={[
+              styles.badgeOption,
+              {
+                backgroundColor: isAwarded ? withAlpha(colors.warning, 0.09) : 'transparent',
+                borderColor: isAwarded ? colors.warning : colors.border,
+              },
+            ]}
+            onPress={() => onToggle(badge.id)}
+            accessibilityLabel={`${isAwarded ? 'Remove' : 'Award'} ${badge.label} badge to ${athlete.userName}`}
+            accessibilityRole="button"
+            accessibilityState={{ selected: isAwarded }}
+          >
+            <ThemedText
+              style={[
+                styles.badgeOptionText,
+                { color: isAwarded ? colors.warning : colors.text },
+              ]}
+            >
+              {chipLabel}
+            </ThemedText>
+          </Clickable>
+        );
+      })}
+    </Row>
+  );
 }
 
 // ============================================================================
@@ -40,7 +100,7 @@ export interface BadgesStepProps {
 
 interface BadgeAthleteRowProps {
   athlete: BadgeAthleteData;
-  availableBadges: BadgeDefinition[];
+  availableBadges: BadgeDefinitionWithStats[];
   colors: ThemeColors;
   onToggleBadge: (registrationId: string, badgeId: string) => void;
 }
@@ -57,6 +117,27 @@ const BadgeAthleteRow = memo(function BadgeAthleteRow({
     },
     [athlete.registrationId, onToggleBadge],
   );
+
+  const skillBadges = useMemo(
+    () => availableBadges.filter((b) => !EVENT_BADGE_IDS.has(b.id)),
+    [availableBadges],
+  );
+  const eventBadges = useMemo(
+    () => availableBadges.filter((b) => EVENT_BADGE_IDS.has(b.id)).slice(0, 6),
+    [availableBadges],
+  );
+
+  const groupedSkillBadges = useMemo(() => {
+    const groups: { category: BadgeCategory; label: string; badges: BadgeDefinitionWithStats[] }[] =
+      [];
+    for (const cat of CATEGORY_ORDER) {
+      const catBadges = skillBadges.filter((b) => b.category === cat);
+      if (catBadges.length > 0) {
+        groups.push({ category: cat, label: CategoryInfo[cat].label, badges: catBadges });
+      }
+    }
+    return groups;
+  }, [skillBadges]);
 
   return (
     <View style={[styles.badgeAthleteRow, { borderBottomColor: colors.border }]}>
@@ -83,36 +164,28 @@ const BadgeAthleteRow = memo(function BadgeAthleteRow({
         )}
       </Row>
 
-      <Row wrap gap="xs">
-        {availableBadges.slice(0, 8).map((badge) => {
-          const isAwarded = athlete.badges.includes(badge.id);
-          return (
-            <Clickable
-              key={badge.id}
-              style={[
-                styles.badgeOption,
-                {
-                  backgroundColor: isAwarded ? withAlpha(colors.warning, 0.09) : 'transparent',
-                  borderColor: isAwarded ? colors.warning : colors.border,
-                },
-              ]}
-              onPress={() => handleToggle(badge.id)}
-              accessibilityLabel={`${isAwarded ? 'Remove' : 'Award'} ${badge.label} badge to ${athlete.userName}`}
-              accessibilityRole="button"
-              accessibilityState={{ selected: isAwarded }}
-            >
-              <ThemedText
-                style={[
-                  styles.badgeOptionText,
-                  { color: isAwarded ? colors.warning : colors.text },
-                ]}
-              >
-                {badge.label}
-              </ThemedText>
-            </Clickable>
-          );
-        })}
-      </Row>
+      {groupedSkillBadges.map((group) => (
+        <View key={group.category}>
+          <ThemedText style={[styles.sectionLabel, { color: colors.muted }]}>
+            {group.label}
+          </ThemedText>
+          <BadgeChips
+            badges={group.badges}
+            athlete={athlete}
+            colors={colors}
+            onToggle={handleToggle}
+          />
+        </View>
+      ))}
+
+      {eventBadges.length > 0 ? (
+        <>
+          <ThemedText style={[styles.sectionLabel, { color: colors.muted }]}>
+            Match & Event
+          </ThemedText>
+          <BadgeChips badges={eventBadges} athlete={athlete} colors={colors} onToggle={handleToggle} />
+        </>
+      ) : null}
     </View>
   );
 });
@@ -181,7 +254,6 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     gap: Spacing.sm,
   },
-  athleteInfo: {},
   avatar: {
     width: 36,
     height: 36,
@@ -203,7 +275,6 @@ const styles = StyleSheet.create({
   badgeCount: {
     ...Typography.caption,
   },
-  badgeGrid: {},
   badgeOption: {
     paddingHorizontal: Spacing.sm,
     paddingVertical: Spacing.xxs,
@@ -214,5 +285,9 @@ const styles = StyleSheet.create({
   },
   badgeOptionText: {
     ...Typography.caption,
+  },
+  sectionLabel: {
+    ...Typography.caption,
+    fontWeight: '600',
   },
 });

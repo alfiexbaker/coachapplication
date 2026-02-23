@@ -44,7 +44,6 @@ import type { QuickRateInput } from '@/types/progress-types';
 import {
   AttendanceStep,
   BadgesStep,
-  BulkQuickRatePanel,
   CompletionSummary,
   GroupCompletionBoard,
   NotesStep,
@@ -234,7 +233,7 @@ export default function SessionCompleteScreen() {
         videoUrls: [],
         imageUrls: [],
         effortRating: prefill?.effortRating ?? athleteRecord.effort,
-        prefillSkillRatings: prefill?.skillRatings ?? [],
+        prefillSkillRatings: [],
         attendance: 'ATTENDED',
       };
 
@@ -395,19 +394,6 @@ export default function SessionCompleteScreen() {
                   onRemoveVideo={removeVideo}
                   onAddImage={addImage}
                   onRemoveImage={removeImage}
-                />
-
-                <BulkQuickRatePanel
-                  athletes={quickRateEnabledAthletes}
-                  ratingsByAthleteId={quickRate.ratingsByAthleteId}
-                  isPrefilling={quickRate.isPrefilling}
-                  onPositionChange={quickRate.updatePosition}
-                  onSkillChange={quickRate.updateSkillRating}
-                  onEffortChange={(athleteId, value) => {
-                    quickRate.updateEffort(athleteId, value);
-                    updateAthleteEffort(athleteId, value);
-                  }}
-                  onBadgePress={handleQuickRateBadgePress}
                 />
 
                 <NotesStep

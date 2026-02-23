@@ -159,7 +159,7 @@ const MOCK_INVITES: SessionInvite[] = [
       },
     ],
     sessionType: 'Small Group Session',
-    focus: 'Decision making under pressure',
+    focus: 'Game Vision',
     notes: 'Invite-only development block for U14 core group.',
     priceUsd: 25,
     status: 'PENDING',
