@@ -71,6 +71,44 @@ function expiryText(inv: SessionInvite): string | null {
   return h > 0 ? `${h}h left` : 'Expires soon';
 }
 
+function getRecurringSummary(invite: SessionInvite): {
+  pattern: string;
+  range: string | null;
+  totalSessions: number;
+} | null {
+  if (!invite.isRecurring) return null;
+
+  const sortedSlots = [...invite.proposedSlots].sort((a, b) => {
+    const aKey = `${a.date}T${a.startTime}`;
+    const bKey = `${b.date}T${b.startTime}`;
+    return aKey.localeCompare(bKey);
+  });
+
+  const totalSessions = invite.recurrenceWeeks ?? sortedSlots.length ?? 1;
+  const first = sortedSlots[0];
+  const last = sortedSlots[sortedSlots.length - 1];
+  const range =
+    first && last
+      ? `${new Date(first.date).toLocaleDateString('en-GB', {
+          day: 'numeric',
+          month: 'short',
+        })} - ${new Date(last.date).toLocaleDateString('en-GB', {
+          day: 'numeric',
+          month: 'short',
+          year: 'numeric',
+        })}`
+      : null;
+
+  return {
+    pattern:
+      invite.recurrenceWeeks && invite.recurrenceWeeks > 1
+        ? `Weekly for ${invite.recurrenceWeeks} weeks`
+        : 'Recurring session invite',
+    range,
+    totalSessions,
+  };
+}
+
 export const InviteListCard = memo(function InviteListCard({
   invite,
   index,
@@ -146,6 +184,8 @@ export const InviteListCard = memo(function InviteListCard({
     : '';
   const exp = expiryText(invite);
   const tc = typeCfg(invite.inviteType || 'OPEN', colors);
+  const recurringSummary = getRecurringSummary(invite);
+  const isRecurring = recurringSummary !== null;
 
   return (
     <Animated.View entering={FadeInDown.delay(index * 50).springify()}>
@@ -161,9 +201,25 @@ export const InviteListCard = memo(function InviteListCard({
           </ThemedText>
         </Row>
         <Row>
-          <Row gap="xxs" align="center" style={[st.typeBadge, { backgroundColor: tc.bg }]}>
-            <Ionicons name={tc.icon as keyof typeof Ionicons.glyphMap} size={12} color={tc.text} />
-            <ThemedText style={[st.typeText, { color: tc.text }]}>{tc.label}</ThemedText>
+          <Row gap="xs" align="center">
+            <Row gap="xxs" align="center" style={[st.typeBadge, { backgroundColor: tc.bg }]}>
+              <Ionicons
+                name={tc.icon as keyof typeof Ionicons.glyphMap}
+                size={12}
+                color={tc.text}
+              />
+              <ThemedText style={[st.typeText, { color: tc.text }]}>{tc.label}</ThemedText>
+            </Row>
+            {isRecurring && (
+              <Row
+                gap="xxs"
+                align="center"
+                style={[st.typeBadge, { backgroundColor: withAlpha(colors.info, 0.09) }]}
+              >
+                <Ionicons name="repeat-outline" size={12} color={colors.info} />
+                <ThemedText style={[st.typeText, { color: colors.info }]}>Recurring</ThemedText>
+              </Row>
+            )}
           </Row>
         </Row>
         <Row gap="md" align="center">
@@ -208,12 +264,31 @@ export const InviteListCard = memo(function InviteListCard({
               </ThemedText>
             </Row>
           )}
+          {recurringSummary && (
+            <>
+              <Row gap="xs" align="center">
+                <Ionicons name="repeat-outline" size={16} color={colors.muted} />
+                <ThemedText style={{ color: colors.text, ...Typography.small }}>
+                  {recurringSummary.pattern}
+                </ThemedText>
+              </Row>
+              <Row gap="xs" align="center">
+                <Ionicons name="layers-outline" size={16} color={colors.muted} />
+                <ThemedText style={{ color: colors.text, ...Typography.small }}>
+                  {recurringSummary.totalSessions} session
+                  {recurringSummary.totalSessions === 1 ? '' : 's'}
+                  {recurringSummary.range ? ` • ${recurringSummary.range}` : ''}
+                </ThemedText>
+              </Row>
+            </>
+          )}
           {invite.price != null && invite.price > 0 && (
             <Row gap="xs" align="center">
               <Ionicons name="pricetag-outline" size={16} color={colors.muted} />
               <ThemedText style={{ color: colors.text, ...Typography.small }}>
                 {'\u00A3'}
                 {invite.price}
+                {recurringSummary ? ` per session` : ''}
               </ThemedText>
             </Row>
           )}

@@ -1,7 +1,7 @@
 /**
  * SessionRegistrations — Attendee roster for coach and registered athlete views.
  */
-import { memo } from 'react';
+import { memo, useMemo, useState, useCallback, useEffect } from 'react';
 import { StyleSheet, View } from 'react-native';
 import { Row } from '@/components/primitives/row';
 import { Ionicons } from '@expo/vector-icons';
@@ -31,6 +31,24 @@ function SessionRegistrationsInner({
 }: SessionRegistrationsProps) {
   const { colors: palette } = useTheme();
   const confirmedRegistrations = offering.registrations.filter((r) => r.status === 'confirmed');
+  const [visibleCount, setVisibleCount] = useState(10);
+  useEffect(() => {
+    setVisibleCount(10);
+  }, [offering.id]);
+  const visibleRegistrations = useMemo(
+    () => confirmedRegistrations.slice(0, visibleCount),
+    [confirmedRegistrations, visibleCount],
+  );
+  const remainingCount = Math.max(0, confirmedRegistrations.length - visibleCount);
+  const handleShowMore = useCallback(() => {
+    setVisibleCount((prev) => Math.min(prev + 10, confirmedRegistrations.length));
+  }, [confirmedRegistrations.length]);
+  const handleShowAll = useCallback(() => {
+    setVisibleCount(confirmedRegistrations.length);
+  }, [confirmedRegistrations.length]);
+  const handleShowLess = useCallback(() => {
+    setVisibleCount(10);
+  }, []);
   const isCoachView = viewer === 'coach';
   const title = isCoachView
     ? `Registered Athletes (${registeredCount})`
@@ -47,7 +65,7 @@ function SessionRegistrationsInner({
       {confirmedRegistrations.length === 0 ? (
         <ThemedText style={styles.emptyText}>No registrations yet</ThemedText>
       ) : (
-        confirmedRegistrations.map((reg) => {
+        visibleRegistrations.map((reg) => {
           const athleteName = getSessionRegistrationUserName(reg, userNameMap);
           const initials = athleteName
             .split(' ')
@@ -91,6 +109,26 @@ function SessionRegistrationsInner({
             </Row>
           );
         })
+      )}
+      {remainingCount > 0 && (
+        <Clickable
+          onPress={remainingCount <= 20 ? handleShowAll : handleShowMore}
+          style={[styles.moreButton, { borderColor: palette.border }]}
+        >
+          <ThemedText style={[styles.moreButtonText, { color: palette.tint }]}>
+            {remainingCount <= 20 ? `Show all (${confirmedRegistrations.length})` : 'Show 10 more'}
+          </ThemedText>
+        </Clickable>
+      )}
+      {visibleCount > 10 && confirmedRegistrations.length > 10 && (
+        <Clickable
+          onPress={handleShowLess}
+          style={[styles.moreButton, { borderColor: palette.border }]}
+        >
+          <ThemedText style={[styles.moreButtonText, { color: palette.muted }]}>
+            Show less
+          </ThemedText>
+        </Clickable>
       )}
     </SurfaceCard>
   );
@@ -147,4 +185,17 @@ const styles = StyleSheet.create({
     textTransform: 'uppercase',
   },
   regDate: { fontSize: scaleFont(13), opacity: 0.5 },
+  moreButton: {
+    marginTop: Spacing.xs,
+    borderWidth: 1,
+    borderRadius: Radii.md,
+    minHeight: 40,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: Spacing.sm,
+  },
+  moreButtonText: {
+    fontSize: scaleFont(13),
+    fontWeight: '600',
+  },
 });

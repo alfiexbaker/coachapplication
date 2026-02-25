@@ -11,10 +11,14 @@ import { useAuth } from '@/hooks/use-auth';
 import { useChildContext } from '@/hooks/use-child-context';
 import { badgeService } from '@/services/badge-service';
 import { bookingService } from '@/services/booking-service';
+import { notificationService } from '@/services/notification-service';
 import { STORAGE_KEYS } from '@/constants/storage-keys';
 import type { User } from '@/constants/app-types';
 import type { SessionOffering, BadgeAward } from '@/constants/types';
 import { Routes } from '@/navigation/routes';
+import { createLogger } from '@/utils/logger';
+
+const logger = createLogger('useSessionDetailModal');
 
 /** Generate upcoming instances for a recurring session. */
 function getUpcomingInstances(offering: SessionOffering, count: number = 8): Date[] {
@@ -164,7 +168,47 @@ export function useSessionDetailModal(
                   return o;
                 });
                 await apiClient.set('session_offerings', updatedOfferings);
-                Alert.alert('Cancelled', `Session on ${formattedDate} has been cancelled.`);
+                const registeredParticipants = offering.registrations.filter(
+                  (registration) => registration.status === 'confirmed',
+                );
+
+                const notificationResults = await Promise.allSettled(
+                  registeredParticipants.map((registration) =>
+                    notificationService.create({
+                      id: `notif_session_instance_cancel_${offering.id}_${registration.userId}_${Date.now()}`,
+                      type: 'booking',
+                      title: 'Session Cancelled',
+                      body: `${offering.title} on ${formattedDate} has been cancelled by the coach.`,
+                      recipientId: registration.userId,
+                      timeLabel: 'Just now',
+                      read: false,
+                    }),
+                  ),
+                );
+                const failedNotifications = notificationResults.filter(
+                  (result) =>
+                    result.status === 'rejected' ||
+                    (result.status === 'fulfilled' && !result.value.success),
+                ).length;
+
+                if (failedNotifications > 0) {
+                  logger.warn('Partial notification failure for recurring instance cancel', {
+                    offeringId: offering.id,
+                    date: dateStr,
+                    failedNotifications,
+                    totalParticipants: registeredParticipants.length,
+                  });
+                }
+
+                const notifiedCount = Math.max(0, registeredParticipants.length - failedNotifications);
+                Alert.alert(
+                  'Cancelled',
+                  registeredParticipants.length > 0
+                    ? failedNotifications > 0
+                      ? `Session on ${formattedDate} has been cancelled. ${notifiedCount} of ${registeredParticipants.length} athletes were notified.`
+                      : `Session on ${formattedDate} has been cancelled. All ${registeredParticipants.length} athletes were notified.`
+                    : `Session on ${formattedDate} has been cancelled.`,
+                );
                 onUpdate?.();
               } catch {
                 Alert.alert('Error', 'Failed to cancel session. Please try again.');

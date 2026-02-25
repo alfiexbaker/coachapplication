@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useCallback } from 'react';
+import { useMemo, useCallback } from 'react';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { ScrollView, StyleSheet, View, RefreshControl } from 'react-native';
 import { router } from 'expo-router';
@@ -88,17 +88,6 @@ export default function ScheduleScreen() {
     refetchOnFocus: true,
   });
   const allSlots = useMemo(() => data ?? [], [data]);
-
-  // Auto-select first available date if none selected
-  useEffect(() => {
-    if (draft.date || allSlots.length === 0) {
-      return;
-    }
-    const firstAvailableSlot = allSlots.find((slot) => slot.isAvailable);
-    if (firstAvailableSlot) {
-      updateDraft({ date: firstAvailableSlot.date });
-    }
-  }, [allSlots, draft.date, updateDraft]);
 
   // Group slots by date for the calendar picker
   const availabilityByDate = useMemo(() => {
@@ -274,15 +263,36 @@ export default function ScheduleScreen() {
         />
 
         <View style={{ gap: Spacing.sm }}>
+          {!draft.date && (
+            <View
+              style={[
+                styles.placeholderCard,
+                {
+                  backgroundColor: withAlpha(palette.tint, 0.04),
+                  borderColor: withAlpha(palette.tint, 0.12),
+                },
+              ]}
+            >
+              <Ionicons name="calendar-outline" size={22} color={palette.tint} />
+              <Column flex gap="micro">
+                <ThemedText style={styles.placeholderTitle}>Select a date to view times</ThemedText>
+                <ThemedText style={[styles.placeholderText, { color: palette.muted }]}>
+                  Tap an available date in the calendar to load time slots.
+                </ThemedText>
+              </Column>
+            </View>
+          )}
           <ThemedText style={styles.sectionTitle}>
             Available slots{draft.date ? ` — ${formatDate(draft.date)}` : ''}
           </ThemedText>
-          <TimeSlotPicker
-            selectedSlot={draft.slot}
-            onSelect={handleSlotSelect}
-            slots={slotsForSelectedDate}
-            isLoading={false}
-          />
+          {draft.date ? (
+            <TimeSlotPicker
+              selectedSlot={draft.slot}
+              onSelect={handleSlotSelect}
+              slots={slotsForSelectedDate}
+              isLoading={false}
+            />
+          ) : null}
         </View>
       </ScrollView>
 
@@ -336,6 +346,20 @@ const styles = StyleSheet.create({
   },
 
   // ── Section title ─────────────────────────────────────────────────────
+  placeholderCard: {
+    borderWidth: 1,
+    borderRadius: Radii.md,
+    padding: Spacing.sm,
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: Spacing.sm,
+  },
+  placeholderTitle: {
+    ...Typography.bodySmallSemiBold,
+  },
+  placeholderText: {
+    ...Typography.caption,
+  },
   sectionTitle: {
     ...Typography.bodySemiBold,
   },

@@ -11,9 +11,17 @@ interface WaitlistBannerProps {
   waitlistCount: number;
   onJoinWaitlist: () => void;
   loading?: boolean;
+  userPosition?: number | null;
+  alreadyJoined?: boolean;
 }
 
-export function WaitlistBanner({ waitlistCount, onJoinWaitlist, loading }: WaitlistBannerProps) {
+export function WaitlistBanner({
+  waitlistCount,
+  onJoinWaitlist,
+  loading,
+  userPosition,
+  alreadyJoined,
+}: WaitlistBannerProps) {
   const { colors: palette } = useTheme();
   const [isJoining, setIsJoining] = useState(false);
   const isLoading = Boolean(loading) || isJoining;
@@ -28,6 +36,15 @@ export function WaitlistBanner({ waitlistCount, onJoinWaitlist, loading }: Waitl
     }
   }, [isLoading, onJoinWaitlist]);
 
+  const positionMessage =
+    userPosition && userPosition > 0
+      ? userPosition === 1
+        ? `You're next on the waitlist${waitlistCount > 1 ? ` (#1 of ${waitlistCount})` : ''}`
+        : userPosition <= 3
+          ? `You're #${userPosition} of ${waitlistCount} on the waitlist. Good chance of a spot.`
+          : `You're #${userPosition} of ${waitlistCount} on the waitlist.`
+      : null;
+
   return (
     <View
       style={[
@@ -41,33 +58,42 @@ export function WaitlistBanner({ waitlistCount, onJoinWaitlist, loading }: Waitl
 
       <View style={styles.content}>
         <ThemedText type="defaultSemiBold" style={{ color: palette.warning }}>
-          Session is Full
+          {alreadyJoined ? 'You’re on the Waitlist' : 'Session is Full'}
         </ThemedText>
         <ThemedText style={[styles.description, { color: palette.muted }]}>
-          {waitlistCount > 0
+          {positionMessage
+            ? positionMessage
+            : waitlistCount > 0
             ? `${waitlistCount} ${waitlistCount === 1 ? 'person is' : 'people are'} already on the waitlist`
             : 'Be the first on the waitlist and get notified if a spot opens up'}
         </ThemedText>
+        {alreadyJoined && (
+          <ThemedText style={[Typography.caption, { color: palette.muted }]}>
+            We’ll notify you if a spot opens up.
+          </ThemedText>
+        )}
       </View>
 
-      <Clickable
-        onPress={() => {
-          void handleJoin();
-        }}
-        disabled={isLoading}
-        style={[styles.button, { backgroundColor: palette.warning }]}
-      >
-        {isLoading ? (
-          <ActivityIndicator size="small" color={palette.onPrimary} />
-        ) : (
-          <>
-            <Ionicons name="add" size={18} color={palette.onPrimary} />
-            <ThemedText style={[styles.buttonText, { color: palette.onPrimary }]}>
-              Join Waitlist
-            </ThemedText>
-          </>
-        )}
-      </Clickable>
+      {!alreadyJoined && (
+        <Clickable
+          onPress={() => {
+            void handleJoin();
+          }}
+          disabled={isLoading}
+          style={[styles.button, { backgroundColor: palette.warning }]}
+        >
+          {isLoading ? (
+            <ActivityIndicator size="small" color={palette.onPrimary} />
+          ) : (
+            <>
+              <Ionicons name="add" size={18} color={palette.onPrimary} />
+              <ThemedText style={[styles.buttonText, { color: palette.onPrimary }]}>
+                Join Waitlist
+              </ThemedText>
+            </>
+          )}
+        </Clickable>
+      )}
     </View>
   );
 }

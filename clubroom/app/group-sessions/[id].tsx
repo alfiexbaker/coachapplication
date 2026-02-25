@@ -57,6 +57,7 @@ export default function GroupSessionDetailScreen() {
     responding,
     isCoach,
     isRegistered,
+    isWaitlisted,
     isActive,
     isFull,
     isFree,
@@ -67,6 +68,8 @@ export default function GroupSessionDetailScreen() {
     setSelectedChildId,
     unregisteredChildren,
     myRegistrations,
+    waitlistPosition,
+    waitlistTotal,
     rsvpCounts,
     handleRegister,
     handleUnregister,
@@ -330,7 +333,20 @@ export default function GroupSessionDetailScreen() {
 
           {/* Waitlist Banner */}
           {canJoinWaitlist && !isRegistered && (
-            <WaitlistBanner waitlistCount={session.waitlistCount} onJoinWaitlist={handleRegister} loading={registering} />
+            <WaitlistBanner
+              waitlistCount={session.waitlistCount}
+              onJoinWaitlist={handleRegister}
+              loading={registering}
+            />
+          )}
+
+          {isWaitlisted && (
+            <WaitlistBanner
+              waitlistCount={waitlistTotal || session.waitlistCount}
+              userPosition={waitlistPosition}
+              alreadyJoined
+              onJoinWaitlist={handleRegister}
+            />
           )}
 
           {/* Capacity Badge */}

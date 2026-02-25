@@ -206,6 +206,27 @@ export function useGroupSession() {
 
   const isRegistered = myRegistrations.length > 0;
   const hasMultipleKids = children.length > 1;
+  const waitlistedRegistrations = useMemo(
+    () => myRegistrations.filter((r) => r.registration.status === 'WAITLISTED'),
+    [myRegistrations],
+  );
+  const isWaitlisted = waitlistedRegistrations.length > 0;
+  const waitlistedRoster = useMemo(
+    () =>
+      roster
+        .filter((r) => r.status === 'WAITLISTED')
+        .sort(
+          (a, b) => new Date(a.registeredAt).getTime() - new Date(b.registeredAt).getTime(),
+        ),
+    [roster],
+  );
+  const waitlistPosition = useMemo(() => {
+    const firstWaitlisted = waitlistedRegistrations[0]?.registration.id;
+    if (!firstWaitlisted) return null;
+    const index = waitlistedRoster.findIndex((r) => r.id === firstWaitlisted);
+    return index >= 0 ? index + 1 : null;
+  }, [waitlistedRegistrations, waitlistedRoster]);
+  const waitlistTotal = waitlistedRoster.length;
 
   // Which children are already registered?
   const registeredChildIds = useMemo(
@@ -444,6 +465,7 @@ export function useGroupSession() {
     responding,
     isCoach,
     isRegistered,
+    isWaitlisted,
     isActive,
     isFull,
     isFree,
@@ -456,6 +478,8 @@ export function useGroupSession() {
     unregisteredChildren,
     // Family registrations (all kids)
     myRegistrations,
+    waitlistPosition,
+    waitlistTotal,
     // RSVP
     rsvpCounts,
     // Cancellation policy
