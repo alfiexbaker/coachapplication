@@ -3,7 +3,7 @@
  * Coach scheduling rules editor modal with chip selectors, toggles, and cancellation policy.
  */
 import { useState, useEffect, useCallback } from 'react';
-import { View, StyleSheet, Modal, ScrollView, Alert, Platform } from 'react-native';
+import { View, StyleSheet, Modal, ScrollView, Alert, Platform, Keyboard } from 'react-native';
 import * as Haptics from 'expo-haptics';
 
 import { Clickable } from '@/components/primitives/clickable';
@@ -15,6 +15,7 @@ import type { RefundTier } from '@/constants/types';
 import { createLogger } from '@/utils/logger';
 import { useTheme } from '@/hooks/useTheme';
 import { useToast } from '@/components/ui/toast';
+import { ErrorState, LoadingState } from '@/components/ui/screen-states';
 
 import {
   ChipSection,
@@ -85,6 +86,7 @@ export function SchedulingRulesModal({
 
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [minimumAdvanceHours, setMinimumAdvanceHours] = useState(24);
   const [maxAdvanceDays, setMaxAdvanceDays] = useState(30);
   const [bufferMinutes, setBufferMinutes] = useState(15);
@@ -99,6 +101,7 @@ export function SchedulingRulesModal({
   const loadRules = useCallback(async () => {
     if (!visible) return;
     setLoading(true);
+    setLoadError(null);
     try {
       const [dataResult, policyResult] = await Promise.all([
         schedulingRulesService.getCoachRules(coachId),
@@ -114,6 +117,7 @@ export function SchedulingRulesModal({
         setRescheduleDeadlineHours(data.rescheduleDeadlineHours);
       } else {
         logger.error('Failed to load coach scheduling rules', dataResult.error);
+        setLoadError(dataResult.error.message || 'Failed to load booking rules.');
       }
       if (policyResult.success && policyResult.data) {
         const tiers = policyResult.data.tiers;
@@ -125,9 +129,13 @@ export function SchedulingRulesModal({
         setCancellationPreset('standard');
       } else {
         logger.error('Failed to load cancellation policy', policyResult.error);
+        setLoadError(
+          (prev) => prev ?? (policyResult.error.message || 'Failed to load cancellation policy.'),
+        );
       }
     } catch (error) {
       logger.error('Failed to load scheduling rules', error);
+      setLoadError('Failed to load booking rules.');
     } finally {
       setLoading(false);
     }
@@ -170,6 +178,7 @@ export function SchedulingRulesModal({
       if (Platform.OS !== 'web') void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       showToast('Booking rules saved', 'success');
       onSaved?.();
+      Keyboard.dismiss();
       onClose();
     } catch (error) {
       logger.error('Failed to save scheduling rules', error);
@@ -204,16 +213,21 @@ export function SchedulingRulesModal({
     setCancellationPreset('custom');
   }, []);
 
+  const handleClose = useCallback(() => {
+    Keyboard.dismiss();
+    onClose();
+  }, [onClose]);
+
   return (
     <Modal
       visible={visible}
       animationType="slide"
       presentationStyle="pageSheet"
-      onRequestClose={onClose}
+      onRequestClose={handleClose}
     >
       <View style={[styles.container, { backgroundColor: palette.background }]}>
         <Row style={[styles.header, { borderBottomColor: palette.border }]}>
-          <Clickable onPress={onClose} disabled={saving}>
+          <Clickable onPress={handleClose} disabled={saving}>
             <ThemedText style={{ color: palette.muted }}>Cancel</ThemedText>
           </Clickable>
           <ThemedText type="subtitle">Booking Rules</ThemedText>
@@ -224,61 +238,71 @@ export function SchedulingRulesModal({
           </Clickable>
         </Row>
 
-        <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
-          <ChipSection
-            icon="time-outline"
-            iconColor={palette.warning}
-            title="Minimum Notice"
-            hint="Required time before session"
-            options={NOTICE_OPTIONS}
-            selected={minimumAdvanceHours}
-            onSelect={setMinimumAdvanceHours}
-            compact
-          />
-          <ChipSection
-            icon="pause-outline"
-            iconColor={palette.tint}
-            title="Buffer Between Sessions"
-            hint="Break time between bookings"
-            options={BUFFER_OPTIONS}
-            selected={bufferMinutes}
-            onSelect={setBufferMinutes}
-            compact
-          />
-          <ChipSection
-            icon="calendar-outline"
-            iconColor={palette.success}
-            title="Booking Window"
-            hint="How far ahead can they book?"
-            options={WINDOW_OPTIONS}
-            selected={maxAdvanceDays}
-            onSelect={setMaxAdvanceDays}
-          />
+        {loading ? (
+          <View style={styles.loadingWrap}>
+            <LoadingState variant="form" />
+          </View>
+        ) : loadError ? (
+          <View style={styles.loadingWrap}>
+            <ErrorState message={loadError} onRetry={() => void loadRules()} />
+          </View>
+        ) : (
+          <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
+            <ChipSection
+              icon="time-outline"
+              iconColor={palette.warning}
+              title="Minimum Notice"
+              hint="Required time before session"
+              options={NOTICE_OPTIONS}
+              selected={minimumAdvanceHours}
+              onSelect={setMinimumAdvanceHours}
+              compact
+            />
+            <ChipSection
+              icon="pause-outline"
+              iconColor={palette.tint}
+              title="Buffer Between Sessions"
+              hint="Break time between bookings"
+              options={BUFFER_OPTIONS}
+              selected={bufferMinutes}
+              onSelect={setBufferMinutes}
+              compact
+            />
+            <ChipSection
+              icon="calendar-outline"
+              iconColor={palette.success}
+              title="Booking Window"
+              hint="How far ahead can they book?"
+              options={WINDOW_OPTIONS}
+              selected={maxAdvanceDays}
+              onSelect={setMaxAdvanceDays}
+            />
 
-          <ToggleCard
-            allowSameDayBookings={allowSameDayBookings}
-            allowRescheduling={allowRescheduling}
-            rescheduleDeadlineHours={rescheduleDeadlineHours}
-            onSameDayChange={setAllowSameDayBookings}
-            onRescheduleChange={setAllowRescheduling}
-            onDeadlineChange={setRescheduleDeadlineHours}
-          />
+            <ToggleCard
+              allowSameDayBookings={allowSameDayBookings}
+              allowRescheduling={allowRescheduling}
+              rescheduleDeadlineHours={rescheduleDeadlineHours}
+              onSameDayChange={setAllowSameDayBookings}
+              onRescheduleChange={setAllowRescheduling}
+              onDeadlineChange={setRescheduleDeadlineHours}
+            />
 
-          <CancellationSection
-            tiers={cancellationTiers}
-            selectedPreset={cancellationPreset}
-            onPresetChange={handlePresetChange}
-            onTiersChange={handleTiersChange}
-          />
+            <CancellationSection
+              tiers={cancellationTiers}
+              selectedPreset={cancellationPreset}
+              onPresetChange={handlePresetChange}
+              onTiersChange={handleTiersChange}
+            />
 
-          <SettingsSummary
-            minimumAdvanceHours={minimumAdvanceHours}
-            bufferMinutes={bufferMinutes}
-            maxAdvanceDays={maxAdvanceDays}
-            allowSameDayBookings={allowSameDayBookings}
-            cancellationTiers={cancellationTiers}
-          />
-        </ScrollView>
+            <SettingsSummary
+              minimumAdvanceHours={minimumAdvanceHours}
+              bufferMinutes={bufferMinutes}
+              maxAdvanceDays={maxAdvanceDays}
+              allowSameDayBookings={allowSameDayBookings}
+              cancellationTiers={cancellationTiers}
+            />
+          </ScrollView>
+        )}
       </View>
     </Modal>
   );
@@ -294,4 +318,5 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
   },
   content: { padding: Spacing.lg, gap: Spacing.lg, paddingBottom: Spacing['2xl'] },
+  loadingWrap: { flex: 1 },
 });

@@ -1,5 +1,14 @@
-import { memo } from 'react';
-import { View, StyleSheet, ScrollView, TextInput, ActivityIndicator, Modal } from 'react-native';
+import { memo, useCallback, useMemo } from 'react';
+import {
+  View,
+  StyleSheet,
+  ScrollView,
+  TextInput,
+  ActivityIndicator,
+  Modal,
+  Alert,
+  Keyboard,
+} from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 
@@ -51,13 +60,44 @@ export const SharingInviteModal = memo(function SharingInviteModal({
   onSend,
 }: SharingInviteModalProps) {
   const { colors } = useTheme();
+  const hasUnsavedChanges = useMemo(
+    () =>
+      inviteEmail.trim().length > 0 ||
+      inviteName.trim().length > 0 ||
+      inviteMessage.trim().length > 0 ||
+      inviteRelationship !== 'Co-parent' ||
+      inviteRole !== 'GUARDIAN',
+    [inviteEmail, inviteName, inviteMessage, inviteRelationship, inviteRole],
+  );
+
+  const closeNow = useCallback(() => {
+    Keyboard.dismiss();
+    onClose();
+  }, [onClose]);
+
+  const handleClose = useCallback(() => {
+    if (inviting) return;
+    if (!hasUnsavedChanges) {
+      closeNow();
+      return;
+    }
+    Alert.alert('Discard Invite?', 'You have an unsent invite. Are you sure you want to close?', [
+      { text: 'Keep Editing', style: 'cancel' },
+      { text: 'Discard', style: 'destructive', onPress: closeNow },
+    ]);
+  }, [inviting, hasUnsavedChanges, closeNow]);
+
+  const handleSend = useCallback(() => {
+    Keyboard.dismiss();
+    onSend();
+  }, [onSend]);
 
   return (
     <Modal
       visible={visible}
       animationType="slide"
       presentationStyle="pageSheet"
-      onRequestClose={onClose}
+      onRequestClose={handleClose}
     >
       <SafeAreaView
         style={[styles.modal, { backgroundColor: colors.background }]}
@@ -66,7 +106,7 @@ export const SharingInviteModal = memo(function SharingInviteModal({
         <PageHeader
           title="Invite Guardian"
           showBack
-          onBackPress={onClose}
+          onBackPress={handleClose}
           backIcon="close"
           centerTitle
           containerStyle={[styles.header, { borderBottomColor: colors.border }]}
@@ -193,7 +233,7 @@ export const SharingInviteModal = memo(function SharingInviteModal({
         <View style={[styles.footer, { borderTopColor: colors.border }]}>
           <Clickable
             style={[styles.sendBtn, { backgroundColor: inviting ? colors.muted : colors.tint }]}
-            onPress={onSend}
+            onPress={handleSend}
             disabled={inviting || !inviteEmail.trim() || !!emailError}
             accessibilityLabel="Send guardian invitation"
             accessibilityRole="button"

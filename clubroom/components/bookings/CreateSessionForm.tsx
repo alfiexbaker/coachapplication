@@ -80,6 +80,24 @@ export function CreateSessionForm(props: CreateSessionFormProps) {
   };
 
   const canSubmit = !ageValidationError && !priceValidationError;
+  const now = new Date();
+  const titleError = props.sessionTitle.trim().length < 3 ? 'Enter a session title (min 3 characters)' : null;
+  const locationError = props.location.trim().length === 0 ? 'Location is required' : null;
+  const participantError =
+    props.sessionType === 'group'
+      ? (() => {
+          const raw = props.maxParticipants.trim();
+          if (!raw) return 'Max participants is required for group sessions';
+          if (!/^\d+$/.test(raw)) return 'Max participants must be a whole number';
+          const count = Number.parseInt(raw, 10);
+          if (count < 2) return 'Group sessions need at least 2 participants';
+          if (count > 100) return 'Max participants must be 100 or fewer';
+          return null;
+        })()
+      : null;
+  const dateError = props.selectedDate.getTime() < now.getTime() ? 'Session date/time must be in the future' : null;
+  const formError = titleError || locationError || participantError || dateError || ageValidationError || priceValidationError;
+  const canSubmitForm = !formError;
 
   return (
     <ScrollView
@@ -110,6 +128,9 @@ export function CreateSessionForm(props: CreateSessionFormProps) {
             onChangeText={props.onSessionTitleChange}
             accessibilityLabel="Session title"
           />
+          {titleError ? (
+            <ThemedText style={[styles.errorText, { color: palette.error }]}>{titleError}</ThemedText>
+          ) : null}
         </View>
 
         <View style={styles.fieldContainer}>
@@ -145,6 +166,11 @@ export function CreateSessionForm(props: CreateSessionFormProps) {
               keyboardType="number-pad"
               accessibilityLabel="Maximum participants"
             />
+            {participantError ? (
+              <ThemedText style={[styles.errorText, { color: palette.error }]}>
+                {participantError}
+              </ThemedText>
+            ) : null}
           </View>
         )}
 
@@ -161,6 +187,9 @@ export function CreateSessionForm(props: CreateSessionFormProps) {
             onChangeText={props.onLocationChange}
             accessibilityLabel="Session location"
           />
+          {locationError ? (
+            <ThemedText style={[styles.errorText, { color: palette.error }]}>{locationError}</ThemedText>
+          ) : null}
         </View>
 
         {/* Date & Time */}
@@ -172,6 +201,9 @@ export function CreateSessionForm(props: CreateSessionFormProps) {
           showTimePicker={props.showTimePicker}
           onShowTimePickerChange={props.onShowTimePickerChange}
         />
+        {dateError ? (
+          <ThemedText style={[styles.errorText, { color: palette.error }]}>{dateError}</ThemedText>
+        ) : null}
 
         {/* Price, Age, Skill */}
         <SessionExtras
@@ -191,9 +223,9 @@ export function CreateSessionForm(props: CreateSessionFormProps) {
       {/* Create Button */}
       <Clickable
         onPress={props.onSubmit}
-        disabled={!canSubmit}
+        disabled={!canSubmit || !canSubmitForm}
         accessibilityLabel="Create session offering"
-        accessibilityState={{ disabled: !canSubmit }}
+        accessibilityState={{ disabled: !canSubmit || !canSubmitForm }}
         style={[styles.createButton, { backgroundColor: palette.tint, ...Shadows[scheme].card }]}
       >
         <Ionicons name="checkmark-circle-outline" size={24} color={palette.onPrimary} />
@@ -210,6 +242,9 @@ const styles = StyleSheet.create({
   formContent: { padding: Spacing.sm, paddingTop: Spacing.sm, gap: Spacing.md },
   formFields: { gap: Spacing.sm },
   fieldContainer: { gap: Spacing.xs },
+  errorText: {
+    fontSize: scaleFont(12),
+  },
   label: {
     fontSize: scaleFont(15),
     fontWeight: '600',

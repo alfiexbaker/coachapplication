@@ -97,8 +97,10 @@ function SessionDatePickerInner({
               display="default"
               maximumDate={maxDate}
               onChange={(event, date) => {
-                onShowDatePickerChange(Platform.OS === 'ios');
-                if (date) onDateChange(date);
+                if (date && event.type === 'set') {
+                  onDateChange(date);
+                }
+                onShowDatePickerChange(false);
               }}
             />
           )}

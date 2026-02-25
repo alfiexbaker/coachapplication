@@ -5,8 +5,8 @@
  * without changing the weekly recurring pattern.
  */
 
-import { useState, useEffect } from 'react';
-import { View, StyleSheet, Modal, KeyboardAvoidingView, Platform } from 'react-native';
+import { useState, useEffect, useMemo } from 'react';
+import { View, StyleSheet, Modal, KeyboardAvoidingView, Platform, Keyboard } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 
@@ -49,27 +49,49 @@ export function AdjustDayModal({
   const [endTime, setEndTime] = useState('');
   const [location, setLocation] = useState('');
   const [showCustomInput, setShowCustomInput] = useState(false);
+  const initialStartTime = templateStartTime || '09:00';
+  const initialEndTime = templateEndTime || '17:00';
+  const initialLocation = templateLocation || '';
 
   useEffect(() => {
     if (visible) {
-      setStartTime(templateStartTime || '09:00');
-      setEndTime(templateEndTime || '17:00');
-      setLocation(templateLocation || '');
+      setStartTime(initialStartTime);
+      setEndTime(initialEndTime);
+      setLocation(initialLocation);
+      setShowCustomInput(Boolean(initialLocation && !['Home', 'Field', 'Gym'].includes(initialLocation)));
+    } else {
+      setStartTime('');
+      setEndTime('');
+      setLocation('');
       setShowCustomInput(false);
     }
-  }, [visible, templateStartTime, templateEndTime, templateLocation]);
+  }, [visible, initialStartTime, initialEndTime, initialLocation]);
 
-  const isValid = startTime && endTime && startTime < endTime;
+  const hasChanges = useMemo(
+    () =>
+      startTime !== initialStartTime ||
+      endTime !== initialEndTime ||
+      location.trim() !== initialLocation.trim(),
+    [startTime, endTime, location, initialStartTime, initialEndTime, initialLocation],
+  );
+  const isValid = Boolean(startTime && endTime && startTime < endTime);
+  const saveDisabled = !isValid || !hasChanges;
+
+  const handleClose = () => {
+    Keyboard.dismiss();
+    onClose();
+  };
 
   const handleSave = () => {
-    if (!isValid) return;
+    if (saveDisabled) return;
+    Keyboard.dismiss();
     if (Platform.OS !== 'web')
       void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     onSave({ startTime, endTime, location: location || undefined });
   };
 
   return (
-    <Modal visible={visible} animationType="slide" transparent onRequestClose={onClose}>
+    <Modal visible={visible} animationType="slide" transparent onRequestClose={handleClose}>
       <KeyboardAvoidingView
         style={[styles.overlay, { backgroundColor: withAlpha(palette.text, 0.4) }]}
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
@@ -79,7 +101,7 @@ export function AdjustDayModal({
 
           <Row style={styles.header}>
             <ThemedText type="subtitle">Adjust Hours</ThemedText>
-            <Clickable accessibilityLabel="Close" onPress={onClose}>
+            <Clickable accessibilityLabel="Close" onPress={handleClose}>
               <Ionicons name="close" size={24} color={palette.muted} />
             </Clickable>
           </Row>
@@ -130,6 +152,7 @@ export function AdjustDayModal({
 
           <Clickable
             onPress={handleSave}
+            disabled={saveDisabled}
             style={[styles.saveBtn, { backgroundColor: isValid ? palette.tint : palette.border }]}
           >
             <Ionicons name="checkmark" size={20} color={palette.onPrimary} />
@@ -137,6 +160,11 @@ export function AdjustDayModal({
               Save Override
             </ThemedText>
           </Clickable>
+          {!hasChanges && isValid && (
+            <ThemedText style={[Typography.caption, { color: palette.muted, textAlign: 'center' }]}>
+              No changes to save
+            </ThemedText>
+          )}
         </View>
       </KeyboardAvoidingView>
     </Modal>

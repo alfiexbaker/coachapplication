@@ -3,7 +3,7 @@
  * Coach blocks time off: single day, date range, or holiday presets.
  */
 import { useState, useEffect, useCallback } from 'react';
-import { View, StyleSheet, Modal, ScrollView, Alert, Platform } from 'react-native';
+import { View, StyleSheet, Modal, ScrollView, Alert, Platform, Keyboard } from 'react-native';
 import * as Haptics from 'expo-haptics';
 
 import { Clickable } from '@/components/primitives/clickable';
@@ -46,19 +46,38 @@ export function BlockDateModal({
   const [reason, setReason] = useState<string>('holiday');
   const [saving, setSaving] = useState(false);
   const [selectedPreset, setSelectedPreset] = useState<string | null>(null);
+  const [initialState, setInitialState] = useState<{
+    mode: 'single' | 'range' | 'holiday';
+    startDate: string;
+    endDate: string;
+    reason: string;
+    selectedPreset: string | null;
+  } | null>(null);
 
   useEffect(() => {
     if (visible) {
+      const nextStart = preselectedDate ? new Date(preselectedDate) : new Date();
+      const nextEnd = preselectedDate ? new Date(preselectedDate) : new Date();
       if (preselectedDate) {
-        setStartDate(preselectedDate);
-        setEndDate(preselectedDate);
+        setStartDate(nextStart);
+        setEndDate(nextEnd);
         setMode('single');
       } else {
-        setStartDate(new Date());
-        setEndDate(new Date());
+        setStartDate(nextStart);
+        setEndDate(nextEnd);
+        setMode('single');
       }
       setReason('holiday');
       setSelectedPreset(null);
+      setInitialState({
+        mode: 'single',
+        startDate: toDateStr(nextStart),
+        endDate: toDateStr(nextEnd),
+        reason: 'holiday',
+        selectedPreset: null,
+      });
+    } else {
+      setInitialState(null);
     }
   }, [visible, preselectedDate]);
 
@@ -127,6 +146,7 @@ export function BlockDateModal({
       const reasonLabel = BLOCK_REASONS.find((r) => r.id === reason)?.label || reason;
       await onBlock(dates, reasonLabel);
       if (Platform.OS !== 'web') void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      Keyboard.dismiss();
       onClose();
     } catch (error) {
       logger.error('Failed to block dates:', error);
@@ -158,17 +178,46 @@ export function BlockDateModal({
 
   const dayCount = getDaysBetween(startDate, endDate);
   const isSameDay = toDateStr(startDate) === toDateStr(endDate);
+  const hasUnsavedChanges = Boolean(
+    initialState &&
+      (mode !== initialState.mode ||
+        toDateStr(startDate) !== initialState.startDate ||
+        toDateStr(endDate) !== initialState.endDate ||
+        reason !== initialState.reason ||
+        selectedPreset !== initialState.selectedPreset),
+  );
+
+  const closeNow = useCallback(() => {
+    Keyboard.dismiss();
+    onClose();
+  }, [onClose]);
+
+  const handleClose = useCallback(() => {
+    if (saving) return;
+    if (!hasUnsavedChanges) {
+      closeNow();
+      return;
+    }
+    Alert.alert(
+      'Discard Block?',
+      'You have unsaved changes. Are you sure you want to close?',
+      [
+        { text: 'Keep Editing', style: 'cancel' },
+        { text: 'Discard', style: 'destructive', onPress: closeNow },
+      ],
+    );
+  }, [saving, hasUnsavedChanges, closeNow]);
 
   return (
     <Modal
       visible={visible}
       animationType="slide"
       presentationStyle="pageSheet"
-      onRequestClose={onClose}
+      onRequestClose={handleClose}
     >
       <View style={[styles.container, { backgroundColor: palette.background }]}>
         <Row style={[styles.header, { borderBottomColor: palette.border }]}>
-          <Clickable onPress={onClose} disabled={saving}>
+          <Clickable onPress={handleClose} disabled={saving}>
             <ThemedText style={{ color: palette.muted }}>Cancel</ThemedText>
           </Clickable>
           <ThemedText type="subtitle">Block Time Off</ThemedText>

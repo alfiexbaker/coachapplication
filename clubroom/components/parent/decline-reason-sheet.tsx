@@ -5,10 +5,11 @@
  * Lets them pick a structured reason so the coach can adjust.
  */
 
-import { useState } from 'react';
-import { View, StyleSheet, Modal, TextInput, KeyboardAvoidingView, Platform } from 'react-native';
+import { useMemo, useState } from 'react';
+import { View, StyleSheet, Modal, TextInput, KeyboardAvoidingView, Platform, Keyboard } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
+import Animated, { FadeOutUp, SlideInDown } from 'react-native-reanimated';
 
 import { Clickable } from '@/components/primitives/clickable';
 import { Row } from '@/components/primitives/row';
@@ -58,13 +59,19 @@ export function DeclineReasonSheet({
   const { colors: palette } = useTheme();
   const [selected, setSelected] = useState<DeclineReasonCategory | null>(null);
   const [note, setNote] = useState('');
+  const noteRequired = selected === 'other';
+  const noteError = noteRequired && note.trim().length === 0 ? 'Please provide a reason' : null;
+  const canSubmit = !noteError;
 
   const handleSelect = (key: DeclineReasonCategory) => {
     if (Platform.OS !== 'web') void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    if (key !== 'other') setNote('');
     setSelected(key);
   };
 
   const handleSubmit = () => {
+    if (!canSubmit) return;
+    Keyboard.dismiss();
     if (Platform.OS !== 'web')
       void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     onSubmit({
@@ -76,6 +83,7 @@ export function DeclineReasonSheet({
   };
 
   const handleClose = () => {
+    Keyboard.dismiss();
     setSelected(null);
     setNote('');
     onClose();
@@ -142,30 +150,43 @@ export function DeclineReasonSheet({
             })}
           </View>
 
-          {/* Note field — always visible, but especially relevant for "Other" */}
-          {(selected === 'other' || note.length > 0) && (
-            <TextInput
-              style={[
-                styles.noteInput,
-                {
-                  color: palette.text,
-                  backgroundColor: palette.background,
-                  borderColor: palette.border,
-                },
-              ]}
-              placeholder="Add a note (optional)"
-              placeholderTextColor={palette.muted}
-              value={note}
-              onChangeText={setNote}
-              multiline
-              maxLength={200}
-            />
+          {selected === 'other' && (
+            <Animated.View entering={SlideInDown.duration(180)} exiting={FadeOutUp.duration(120)} style={styles.noteWrap}>
+              <ThemedText style={[Typography.caption, { color: palette.muted }]}>
+                Please provide a reason
+              </ThemedText>
+              <TextInput
+                style={[
+                  styles.noteInput,
+                  {
+                    color: palette.text,
+                    backgroundColor: palette.background,
+                    borderColor: noteError ? palette.error : palette.border,
+                  },
+                ]}
+                placeholder="e.g. Family emergency"
+                placeholderTextColor={palette.muted}
+                value={note}
+                onChangeText={setNote}
+                multiline
+                maxLength={200}
+              />
+              <View style={styles.noteMetaRow}>
+                <ThemedText style={[Typography.caption, { color: noteError ? palette.error : palette.muted }]}>
+                  {noteError ?? ' '}
+                </ThemedText>
+                <ThemedText style={[Typography.caption, { color: palette.muted }]}>
+                  {note.length}/200
+                </ThemedText>
+              </View>
+            </Animated.View>
           )}
 
           {/* Submit */}
           <Clickable
             onPress={handleSubmit}
             accessibilityLabel="Send decline"
+            disabled={!canSubmit}
             style={[styles.submitBtn, { backgroundColor: palette.error }]}
           >
             <Ionicons name="close-outline" size={20} color={palette.onPrimary} />
@@ -204,6 +225,14 @@ const styles = StyleSheet.create({
   },
   options: {
     gap: Spacing.sm,
+  },
+  noteWrap: {
+    gap: Spacing.xs,
+  },
+  noteMetaRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    gap: Spacing.xs,
   },
   option: {
     flexDirection: 'row',

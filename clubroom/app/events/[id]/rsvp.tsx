@@ -61,10 +61,35 @@ export default function EventRSVPScreen() {
       : null;
   const isPastDeadline = Boolean(rsvpDeadlineDate && new Date() > rsvpDeadlineDate);
   const isSubmitClosed = rsvpClosed || isPastDeadline;
+  const maxGuestsPerRegistration = 10;
+  const availableGuestCapacity = (() => {
+    if (!event?.maxAttendees) return maxGuestsPerRegistration;
+    const occupied = attendeeCounts.going + attendeeCounts.totalGuests;
+    const currentReservationFootprint =
+      currentRSVP?.status === 'GOING' ? 1 + (currentRSVP.guestCount ?? 0) : 0;
+    const availableIncludingCurrent = Math.max(0, event.maxAttendees - (occupied - currentReservationFootprint));
+    return Math.max(0, Math.min(maxGuestsPerRegistration, availableIncludingCurrent - 1));
+  })();
+  const guestCountError =
+    selectedStatus === 'GOING'
+      ? guestCount < 0
+        ? 'Guest count cannot be negative'
+        : guestCount > maxGuestsPerRegistration
+          ? 'Maximum 10 guests per registration'
+          : guestCount > availableGuestCapacity
+            ? availableGuestCapacity === 0
+              ? 'No remaining spots for additional guests'
+              : `Only ${availableGuestCapacity} guest spot${availableGuestCapacity === 1 ? '' : 's'} available`
+            : null
+      : null;
 
   const handleSubmitWithDeadlineCheck = async () => {
     if (isPastDeadline) {
       showToast('RSVP deadline has passed', 'error');
+      return;
+    }
+    if (guestCountError) {
+      showToast(guestCountError, 'error');
       return;
     }
     await handleSubmit();
@@ -380,7 +405,7 @@ export default function EventRSVPScreen() {
                     Additional guests
                   </ThemedText>
                   <ThemedText style={[styles.sectionSubtitle, { color: palette.muted }]}>
-                    How many additional guests are you bringing? (Not including yourself)
+                    Additional people attending with you (e.g. siblings, partner)
                   </ThemedText>
                   <Row align="center" justify="center" gap="md" style={styles.guestCounter}>
                     <Clickable
@@ -395,12 +420,21 @@ export default function EventRSVPScreen() {
                     </View>
                     <Clickable
                       accessibilityLabel="Increase guest count"
-                      onPress={() => setGuestCount(guestCount + 1)}
+                      onPress={() => setGuestCount(Math.min(maxGuestsPerRegistration, guestCount + 1))}
+                      disabled={guestCount >= Math.min(maxGuestsPerRegistration, availableGuestCapacity)}
                       style={[styles.counterButton, { borderColor: palette.border }]}
                     >
                       <Ionicons name="add" size={24} color={palette.text} />
                     </Clickable>
                   </Row>
+                  <ThemedText
+                    style={[
+                      styles.guestHelperText,
+                      { color: guestCountError ? palette.error : palette.muted },
+                    ]}
+                  >
+                    {guestCountError ?? `Up to ${Math.min(maxGuestsPerRegistration, availableGuestCapacity)} additional guests available`}
+                  </ThemedText>
                 </View>
               )}
 
@@ -439,7 +473,7 @@ export default function EventRSVPScreen() {
           >
             <Button
               onPress={handleSubmitWithDeadlineCheck}
-              disabled={isSubmitClosed || !selectedStatus || submitting}
+              disabled={isSubmitClosed || !selectedStatus || submitting || !!guestCountError}
               style={styles.submitButton}
             >
               {submitting ? (
@@ -526,6 +560,12 @@ const styles = StyleSheet.create({
     fontSize: scaleFont(Typography.subheading.fontSize),
   },
   guestCounter: {},
+  guestHelperText: {
+    marginTop: Spacing.xs,
+    textAlign: 'center',
+    ...Typography.caption,
+    fontSize: scaleFont(Typography.caption.fontSize),
+  },
   counterButton: {
     width: 48,
     height: 48,

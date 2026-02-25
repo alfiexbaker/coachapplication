@@ -5,8 +5,8 @@
  * Category picker + text input + private toggle.
  */
 
-import { memo, useState, useCallback, useEffect, type ComponentProps } from 'react';
-import { View, StyleSheet, TextInput, Modal, ScrollView, Switch } from 'react-native';
+import { memo, useState, useCallback, useEffect, useMemo, type ComponentProps } from 'react';
+import { View, StyleSheet, TextInput, Modal, ScrollView, Switch, Alert, Keyboard } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
 type IconName = ComponentProps<typeof Ionicons>['name'];
@@ -44,33 +44,70 @@ export const CoachObservationModal = memo(function CoachObservationModal({
   const [text, setText] = useState('');
   const [category, setCategory] = useState<ObservationCategory>('OTHER');
   const [isPrivate, setIsPrivate] = useState(false);
+  const [initialState, setInitialState] = useState({
+    text: '',
+    category: 'OTHER' as ObservationCategory,
+    isPrivate: false,
+  });
 
   useEffect(() => {
     if (visible) {
-      setText(observation?.text ?? '');
-      setCategory(observation?.category ?? 'OTHER');
-      setIsPrivate(observation?.isPrivate ?? false);
+      const nextText = observation?.text ?? '';
+      const nextCategory = observation?.category ?? 'OTHER';
+      const nextPrivate = observation?.isPrivate ?? false;
+      setText(nextText);
+      setCategory(nextCategory);
+      setIsPrivate(nextPrivate);
+      setInitialState({ text: nextText, category: nextCategory, isPrivate: nextPrivate });
     }
   }, [visible, observation]);
 
   const canSave = text.trim().length > 0 && !saving;
+  const hasUnsavedChanges = useMemo(
+    () =>
+      text.trim() !== initialState.text.trim() ||
+      category !== initialState.category ||
+      isPrivate !== initialState.isPrivate,
+    [text, category, isPrivate, initialState],
+  );
 
   const handleSave = useCallback(() => {
     if (!canSave) return;
+    Keyboard.dismiss();
     onSave({ text: text.trim(), category, isPrivate });
   }, [canSave, text, category, isPrivate, onSave]);
+
+  const closeNow = useCallback(() => {
+    Keyboard.dismiss();
+    onClose();
+  }, [onClose]);
+
+  const handleClose = useCallback(() => {
+    if (!hasUnsavedChanges || saving) {
+      closeNow();
+      return;
+    }
+    Alert.alert(
+      'Discard Changes?',
+      'You have unsaved observations. Are you sure you want to close?',
+      [
+        { text: 'Keep Editing', style: 'cancel' },
+        { text: 'Discard', style: 'destructive', onPress: closeNow },
+      ],
+    );
+  }, [hasUnsavedChanges, saving, closeNow]);
 
   return (
     <Modal
       visible={visible}
       presentationStyle="pageSheet"
       animationType="slide"
-      onRequestClose={onClose}
+      onRequestClose={handleClose}
     >
       <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
         <Row align="center" justify="space-between" style={styles.header}>
           <Clickable
-            onPress={onClose}
+            onPress={handleClose}
             accessibilityLabel="Close"
             style={styles.headerButton}
           >

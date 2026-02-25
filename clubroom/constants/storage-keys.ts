@@ -459,6 +459,9 @@ export const STORAGE_KEYS = {
   /** Children profiles managed by parents */
   CHILDREN_PROFILES: 'children_profiles',
 
+  /** In-progress add-child wizard draft (expires client-side) */
+  ADD_CHILD_DRAFT: 'clubroom.add_child_draft',
+
   /** Coach observations about athletes (SEN, behavioral, strategies) */
   COACH_OBSERVATIONS: 'clubroom.coach_observations',
 

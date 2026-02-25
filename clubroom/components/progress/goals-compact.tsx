@@ -142,6 +142,33 @@ export const GoalsCompact = memo(function GoalsCompact({
     }
   };
 
+  const closeCreate = () => {
+    if (!newGoalTitle.trim()) {
+      setShowCreate(false);
+      setNewGoalTitle('');
+      return;
+    }
+    Alert.alert('Discard Goal?', 'You have an unsaved goal. Are you sure you want to cancel?', [
+      { text: 'Keep Editing', style: 'cancel' },
+      {
+        text: 'Discard',
+        style: 'destructive',
+        onPress: () => {
+          setShowCreate(false);
+          setNewGoalTitle('');
+        },
+      },
+    ]);
+  };
+
+  const handleToggleCreate = () => {
+    if (showCreate) {
+      closeCreate();
+      return;
+    }
+    setShowCreate(true);
+  };
+
   return (
     <SurfaceCard style={styles.card}>
       <Column gap="sm">
@@ -149,7 +176,7 @@ export const GoalsCompact = memo(function GoalsCompact({
           <ThemedText style={styles.title}>Goals</ThemedText>
           <Clickable
             style={[styles.addButton, { backgroundColor: withAlpha(colors.tint, 0.1) }]}
-            onPress={() => setShowCreate((value) => !value)}
+            onPress={handleToggleCreate}
             accessibilityLabel="Add goal"
             accessibilityRole="button"
           >
@@ -195,8 +222,7 @@ export const GoalsCompact = memo(function GoalsCompact({
               <Clickable
                 style={[styles.smallButton, { borderColor: colors.border }]}
                 onPress={() => {
-                  setShowCreate(false);
-                  setNewGoalTitle('');
+                  closeCreate();
                 }}
                 accessibilityLabel="Cancel goal creation"
                 accessibilityRole="button"

@@ -1,5 +1,5 @@
-import React, { memo, useCallback, useState } from 'react';
-import { Modal, ScrollView, StyleSheet, View } from 'react-native';
+import React, { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { Modal, ScrollView, StyleSheet, View, Alert, Keyboard } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 
@@ -52,6 +52,27 @@ export const QuickRateModal = memo(function QuickRateModal({
   });
 
   const currentRating = athlete ? quickRate.ratingsByAthleteId[athlete.athleteId] : undefined;
+  const initialRatingJsonRef = useRef<string | null>(null);
+  const currentRatingJson = useMemo(
+    () => (currentRating ? JSON.stringify(currentRating) : null),
+    [currentRating],
+  );
+
+  useEffect(() => {
+    if (!visible) {
+      initialRatingJsonRef.current = null;
+      return;
+    }
+    if (!quickRate.isPrefilling && currentRatingJson !== null && initialRatingJsonRef.current === null) {
+      initialRatingJsonRef.current = currentRatingJson;
+    }
+  }, [visible, quickRate.isPrefilling, currentRatingJson]);
+
+  const hasUnsavedChanges =
+    !quickRate.isPrefilling &&
+    currentRatingJson !== null &&
+    initialRatingJsonRef.current !== null &&
+    currentRatingJson !== initialRatingJsonRef.current;
 
   const handlePositionChange = useCallback(
     (position: import('@/types/progress-types').PositionRole) => {
@@ -115,6 +136,7 @@ export const QuickRateModal = memo(function QuickRateModal({
 
       showToast('Rating saved', 'success');
       onSaved();
+      Keyboard.dismiss();
       onClose();
     } catch (error) {
       logger.error('Failed to save quick rate from group roster', { error });
@@ -124,6 +146,23 @@ export const QuickRateModal = memo(function QuickRateModal({
     }
   }, [athlete, currentRating, sessionId, coachId, coachName, onSaved, onClose, showToast]);
 
+  const closeNow = useCallback(() => {
+    Keyboard.dismiss();
+    onClose();
+  }, [onClose]);
+
+  const handleClose = useCallback(() => {
+    if (saving) return;
+    if (!hasUnsavedChanges) {
+      closeNow();
+      return;
+    }
+    Alert.alert('Discard Ratings?', 'You have unsaved ratings. Are you sure you want to close?', [
+      { text: 'Keep Editing', style: 'cancel' },
+      { text: 'Discard', style: 'destructive', onPress: closeNow },
+    ]);
+  }, [saving, hasUnsavedChanges, closeNow]);
+
   if (!athlete) return null;
 
   return (
@@ -131,7 +170,7 @@ export const QuickRateModal = memo(function QuickRateModal({
       visible={visible}
       animationType="slide"
       presentationStyle="pageSheet"
-      onRequestClose={onClose}
+      onRequestClose={handleClose}
     >
       <SafeAreaView
         style={[styles.container, { backgroundColor: colors.background }]}
@@ -139,7 +178,7 @@ export const QuickRateModal = memo(function QuickRateModal({
       >
         <Row style={[styles.header, { borderBottomColor: colors.border }]}>
           <Clickable
-            onPress={onClose}
+            onPress={handleClose}
             accessibilityRole="button"
             accessibilityLabel="Close skill rating"
           >

@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import {
   View,
   StyleSheet,
@@ -7,6 +7,7 @@ import {
   Alert,
   KeyboardAvoidingView,
   Platform,
+  Keyboard,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
@@ -52,6 +53,16 @@ export function SessionTypeModal({
   const [price, setPrice] = useState('');
   const [description, setDescription] = useState('');
   const [capacityManuallySet, setCapacityManuallySet] = useState(false);
+  const resetForm = useCallback(() => {
+    setName('');
+    setType('1-to-1');
+    setDuration(60);
+    setCapacity(1);
+    setPrice('');
+    setDescription('');
+    setCapacityManuallySet(false);
+  }, []);
+
   useEffect(() => {
     if (visible) {
       if (existing) {
@@ -63,20 +74,17 @@ export function SessionTypeModal({
         setDescription(existing.description || '');
         setCapacityManuallySet(true);
       } else {
-        setName('');
-        setType('1-to-1');
-        setDuration(60);
-        setCapacity(1);
-        setPrice('');
-        setDescription('');
-        setCapacityManuallySet(false);
+        resetForm();
       }
+    } else {
+      resetForm();
     }
-  }, [visible, existing]);
+  }, [visible, existing, resetForm]);
   const trimmedName = name.trim();
   const isValid = trimmedName.length >= 3;
   const handleSave = () => {
     if (!isValid) return;
+    Keyboard.dismiss();
     if (Platform.OS !== 'web') void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     onSave({
       name: name.trim(),
@@ -86,6 +94,10 @@ export function SessionTypeModal({
       defaultPrice: Number(price) || 0,
       description: description.trim(),
     });
+  };
+  const handleClose = () => {
+    Keyboard.dismiss();
+    onClose();
   };
   const handleDelete = () => {
     Alert.alert(`Delete "${name}"?`, "This won't affect existing bookings or invites.", [
@@ -125,7 +137,7 @@ export function SessionTypeModal({
   };
   const durationOptions = DURATION_OPTIONS.map((d) => ({ key: d, label: `${d}m` }));
   return (
-    <Modal visible={visible} animationType="slide" transparent onRequestClose={onClose}>
+    <Modal visible={visible} animationType="slide" transparent onRequestClose={handleClose}>
       <KeyboardAvoidingView
         style={[styles.overlay, { backgroundColor: withAlpha(palette.text, 0.4) }]}
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
@@ -136,7 +148,7 @@ export function SessionTypeModal({
             <ThemedText type="subtitle">
               {existing ? 'Edit Session Type' : 'New Session Type'}
             </ThemedText>
-            <Clickable accessibilityLabel="Close" onPress={onClose}>
+            <Clickable accessibilityLabel="Close" onPress={handleClose}>
               <Ionicons name="close" size={24} color={palette.muted} />
             </Clickable>
           </Row>

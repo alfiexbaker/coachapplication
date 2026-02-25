@@ -3,7 +3,7 @@
  * Manages all step state, validation, navigation, and save.
  */
 
-import { useState, useCallback, useMemo } from 'react';
+import { useState, useCallback, useMemo, useEffect, useRef } from 'react';
 import { Alert } from 'react-native';
 import { router } from 'expo-router';
 import * as ImagePicker from 'expo-image-picker';
@@ -17,6 +17,8 @@ import {
   type Disability,
   type SpecialNeed,
 } from '@/services/child-service';
+import { apiClient } from '@/services/api-client';
+import { STORAGE_KEYS } from '@/constants/storage-keys';
 
 export type Step = 'basic' | 'special_needs' | 'medical' | 'emergency' | 'consents';
 
@@ -28,6 +30,55 @@ export const STEP_TITLES: Record<Step, string> = {
   medical: 'Medical Information',
   emergency: 'Emergency Contacts',
   consents: 'Permissions & Consents',
+};
+
+const ADD_CHILD_DRAFT_MAX_AGE_MS = 7 * 24 * 60 * 60 * 1000;
+
+type AddChildDraft = {
+  version: 1;
+  timestamp: number;
+  currentStep: Step;
+  firstName: string;
+  lastName: string;
+  nickname: string;
+  dateOfBirth: string | null;
+  gender: Gender | null;
+  relationship: Relationship | null;
+  primaryPosition: PositionRole | null;
+  photoUri: string | null;
+  hasSpecialNeeds: boolean | null;
+  disabilities: Disability[];
+  specialNeeds: SpecialNeed[];
+  selectedDisabilityType: string | null;
+  disabilityDescription: string;
+  communicationNotes: string;
+  behavioralNotes: string;
+  diagnosisDate: string;
+  supportRequired: string;
+  commPrefs: string[];
+  triggers: string[];
+  calmingStrategies: string[];
+  snCategory: SpecialNeed['category'] | null;
+  snName: string;
+  snDescription: string;
+  snSeverity: SpecialNeed['severity'] | undefined;
+  snAccommodations: string[];
+  snParentHints: string;
+  allergies: string[];
+  allergyInput: string;
+  medicalConditions: string[];
+  conditionInput: string;
+  medications: string[];
+  medicationInput: string;
+  emergencyName: string;
+  emergencyPhone: string;
+  emergencyRelation: string;
+  secondaryName: string;
+  secondaryPhone: string;
+  photoConsent: boolean;
+  videoConsent: boolean;
+  socialMediaConsent: boolean;
+  emergencyTreatmentConsent: boolean;
 };
 
 export function useAddChild() {
@@ -91,10 +142,274 @@ export function useAddChild() {
   const [videoConsent, setVideoConsent] = useState(true);
   const [socialMediaConsent, setSocialMediaConsent] = useState(false);
   const [emergencyTreatmentConsent, setEmergencyTreatmentConsent] = useState(true);
+  const hydratingDraftRef = useRef(false);
+  const initializedDraftRef = useRef(false);
+  const draftCheckCompleteRef = useRef(false);
 
   const stepIndex = STEPS.indexOf(currentStep);
   const isFirstStep = stepIndex === 0;
   const isLastStep = stepIndex === STEPS.length - 1;
+
+  const buildDraft = useCallback(
+    (): AddChildDraft => ({
+      version: 1,
+      timestamp: Date.now(),
+      currentStep,
+      firstName,
+      lastName,
+      nickname,
+      dateOfBirth: dateOfBirth ? dateOfBirth.toISOString() : null,
+      gender,
+      relationship,
+      primaryPosition,
+      photoUri,
+      hasSpecialNeeds,
+      disabilities,
+      specialNeeds,
+      selectedDisabilityType,
+      disabilityDescription,
+      communicationNotes,
+      behavioralNotes,
+      diagnosisDate,
+      supportRequired,
+      commPrefs,
+      triggers,
+      calmingStrategies,
+      snCategory,
+      snName,
+      snDescription,
+      snSeverity,
+      snAccommodations,
+      snParentHints,
+      allergies,
+      allergyInput,
+      medicalConditions,
+      conditionInput,
+      medications,
+      medicationInput,
+      emergencyName,
+      emergencyPhone,
+      emergencyRelation,
+      secondaryName,
+      secondaryPhone,
+      photoConsent,
+      videoConsent,
+      socialMediaConsent,
+      emergencyTreatmentConsent,
+    }),
+    [
+      currentStep,
+      firstName,
+      lastName,
+      nickname,
+      dateOfBirth,
+      gender,
+      relationship,
+      primaryPosition,
+      photoUri,
+      hasSpecialNeeds,
+      disabilities,
+      specialNeeds,
+      selectedDisabilityType,
+      disabilityDescription,
+      communicationNotes,
+      behavioralNotes,
+      diagnosisDate,
+      supportRequired,
+      commPrefs,
+      triggers,
+      calmingStrategies,
+      snCategory,
+      snName,
+      snDescription,
+      snSeverity,
+      snAccommodations,
+      snParentHints,
+      allergies,
+      allergyInput,
+      medicalConditions,
+      conditionInput,
+      medications,
+      medicationInput,
+      emergencyName,
+      emergencyPhone,
+      emergencyRelation,
+      secondaryName,
+      secondaryPhone,
+      photoConsent,
+      videoConsent,
+      socialMediaConsent,
+      emergencyTreatmentConsent,
+    ],
+  );
+
+  const applyDraft = useCallback((draft: AddChildDraft) => {
+    hydratingDraftRef.current = true;
+    setCurrentStep(draft.currentStep);
+    setFirstName(draft.firstName);
+    setLastName(draft.lastName);
+    setNickname(draft.nickname);
+    setDateOfBirth(draft.dateOfBirth ? new Date(draft.dateOfBirth) : null);
+    setGender(draft.gender);
+    setRelationship(draft.relationship);
+    setPrimaryPosition(draft.primaryPosition);
+    setPhotoUri(draft.photoUri);
+    setHasSpecialNeeds(draft.hasSpecialNeeds);
+    setDisabilities(draft.disabilities);
+    setSpecialNeeds(draft.specialNeeds);
+    setSelectedDisabilityType(draft.selectedDisabilityType);
+    setDisabilityDescription(draft.disabilityDescription);
+    setCommunicationNotes(draft.communicationNotes);
+    setBehavioralNotes(draft.behavioralNotes);
+    setDiagnosisDate(draft.diagnosisDate);
+    setSupportRequired(draft.supportRequired);
+    setCommPrefs(draft.commPrefs);
+    setTriggers(draft.triggers);
+    setCalmingStrategies(draft.calmingStrategies);
+    setSnCategory(draft.snCategory);
+    setSnName(draft.snName);
+    setSnDescription(draft.snDescription);
+    setSnSeverity(draft.snSeverity);
+    setSnAccommodations(draft.snAccommodations);
+    setSnParentHints(draft.snParentHints);
+    setAllergies(draft.allergies);
+    setAllergyInput(draft.allergyInput);
+    setMedicalConditions(draft.medicalConditions);
+    setConditionInput(draft.conditionInput);
+    setMedications(draft.medications);
+    setMedicationInput(draft.medicationInput);
+    setEmergencyName(draft.emergencyName);
+    setEmergencyPhone(draft.emergencyPhone);
+    setEmergencyRelation(draft.emergencyRelation);
+    setSecondaryName(draft.secondaryName);
+    setSecondaryPhone(draft.secondaryPhone);
+    setPhotoConsent(draft.photoConsent);
+    setVideoConsent(draft.videoConsent);
+    setSocialMediaConsent(draft.socialMediaConsent);
+    setEmergencyTreatmentConsent(draft.emergencyTreatmentConsent);
+    setTimeout(() => {
+      hydratingDraftRef.current = false;
+    }, 0);
+  }, []);
+
+  const clearDraft = useCallback(async () => {
+    await apiClient.remove(STORAGE_KEYS.ADD_CHILD_DRAFT);
+  }, []);
+
+  useEffect(() => {
+    if (initializedDraftRef.current) return;
+    initializedDraftRef.current = true;
+
+    let active = true;
+    const loadDraft = async () => {
+      const draft = await apiClient.get<AddChildDraft | null>(STORAGE_KEYS.ADD_CHILD_DRAFT, null);
+      if (!active) return;
+      if (!draft) {
+        draftCheckCompleteRef.current = true;
+        return;
+      }
+
+      const ageMs = Date.now() - draft.timestamp;
+      if (ageMs > ADD_CHILD_DRAFT_MAX_AGE_MS) {
+        await clearDraft();
+        draftCheckCompleteRef.current = true;
+        return;
+      }
+
+      Alert.alert(
+        'Resume draft?',
+        'You have an unfinished child registration. Continue where you left off?',
+        [
+          {
+            text: 'Start Fresh',
+            style: 'destructive',
+            onPress: () => {
+              void clearDraft();
+              draftCheckCompleteRef.current = true;
+            },
+          },
+          {
+            text: 'Resume',
+            onPress: () => {
+              applyDraft(draft);
+              draftCheckCompleteRef.current = true;
+            },
+          },
+        ],
+      );
+    };
+
+    void loadDraft().catch(() => {
+      if (active) draftCheckCompleteRef.current = true;
+    });
+    return () => {
+      active = false;
+    };
+  }, [applyDraft, clearDraft]);
+
+  const draftPayload = useMemo(() => buildDraft(), [buildDraft]);
+  const hasDraftContent = useMemo(
+    () =>
+      Boolean(
+        firstName.trim() ||
+          lastName.trim() ||
+          nickname.trim() ||
+          dateOfBirth ||
+          gender ||
+          relationship ||
+          photoUri ||
+          hasSpecialNeeds !== null ||
+          disabilities.length ||
+          specialNeeds.length ||
+          communicationNotes.trim() ||
+          behavioralNotes.trim() ||
+          allergies.length ||
+          medicalConditions.length ||
+          medications.length ||
+          emergencyName.trim() ||
+          emergencyPhone.trim() ||
+          emergencyRelation.trim() ||
+          secondaryName.trim() ||
+          secondaryPhone.trim(),
+      ),
+    [
+      firstName,
+      lastName,
+      nickname,
+      dateOfBirth,
+      gender,
+      relationship,
+      photoUri,
+      hasSpecialNeeds,
+      disabilities.length,
+      specialNeeds.length,
+      communicationNotes,
+      behavioralNotes,
+      allergies.length,
+      medicalConditions.length,
+      medications.length,
+      emergencyName,
+      emergencyPhone,
+      emergencyRelation,
+      secondaryName,
+      secondaryPhone,
+    ],
+  );
+
+  useEffect(() => {
+    if (!draftCheckCompleteRef.current) return;
+    if (hydratingDraftRef.current) return;
+
+    const timeout = setTimeout(() => {
+      if (hasDraftContent) {
+        void apiClient.set(STORAGE_KEYS.ADD_CHILD_DRAFT, draftPayload);
+      } else {
+        void clearDraft();
+      }
+    }, 300);
+
+    return () => clearTimeout(timeout);
+  }, [draftPayload, hasDraftContent, clearDraft]);
 
   const pickImage = useCallback(async () => {
     const result = await ImagePicker.launchImageLibraryAsync({
@@ -308,6 +623,7 @@ export function useAddChild() {
         createdChild.id,
         createdChild.nickname || createdChild.firstName,
       );
+      await clearDraft();
 
       Alert.alert('Success', `${firstName}'s profile has been created!`, [
         { text: 'OK', onPress: () => router.back() },
@@ -344,6 +660,7 @@ export function useAddChild() {
     videoConsent,
     socialMediaConsent,
     emergencyTreatmentConsent,
+    clearDraft,
   ]);
 
   // Pre-built props for step components

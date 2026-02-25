@@ -3,7 +3,7 @@ import { ActivityIndicator, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Clickable } from '@/components/primitives/clickable';
 import { ThemedText } from '@/components/themed-text';
-import { Spacing, Radii, withAlpha } from '@/constants/theme';
+import { Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
 import type { RSVPStatus, EventRSVP } from '@/constants/types';
 import { eventService } from '@/services/event-service';
 import { scaleFont } from '@/utils/scale';
@@ -127,10 +127,14 @@ export const FullRSVPButtonRow = memo(function FullRSVPButtonRow({
     { status: 'MAYBE', label: 'Maybe' },
     { status: 'NOT_GOING', label: "Can't Go", useRawDisabled: true },
   ];
+  const cantGoAlreadySelected = currentRSVP?.status === 'NOT_GOING';
   return (
-    <Row style={styles.buttonRow}>
-      {statuses.map((s) => {
-        const btnDisabled = s.useRawDisabled ? disabled : isDisabled;
+    <>
+      <Row style={styles.buttonRow}>
+        {statuses.map((s) => {
+          const btnDisabled = s.useRawDisabled
+            ? disabled || (s.status === 'NOT_GOING' && cantGoAlreadySelected)
+            : isDisabled;
         const textColor = getTextColor(s.status, currentRSVP, palette);
         return (
           <Clickable
@@ -158,7 +162,13 @@ export const FullRSVPButtonRow = memo(function FullRSVPButtonRow({
           </Clickable>
         );
       })}
-    </Row>
+      </Row>
+      {cantGoAlreadySelected && !disabled ? (
+        <ThemedText style={[Typography.caption, { color: palette.muted }]}>
+          Already marked as can&apos;t attend
+        </ThemedText>
+      ) : null}
+    </>
   );
 });
 interface CurrentRSVPStatusProps {
