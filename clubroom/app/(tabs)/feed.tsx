@@ -5,7 +5,7 @@
  * Sub-components: FeedPostCard, FeedFilters, ClubHubCard, EmptyFeedState.
  */
 
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useMemo, useRef, useState } from 'react';
 import { Alert, RefreshControl, ScrollView, Share, StyleSheet, View } from 'react-native';
 import { router } from 'expo-router';
 import { Routes } from '@/navigation/routes';
@@ -28,6 +28,7 @@ import {
   EmptyFeedState,
   type FeedFilter,
 } from '@/components/social/feed-filters';
+import { useScrollToTopOnTabReselect } from '@/hooks/use-scroll-to-top-on-tab-reselect';
 
 interface FeedData {
   feed: AggregatedFeedPost[];
@@ -36,6 +37,8 @@ interface FeedData {
 
 export default function FeedScreen() {
   const { currentUser } = useAuth();
+  const scrollRef = useRef<ScrollView>(null);
+  useScrollToTopOnTabReselect(scrollRef);
   const [feedFilter, setFeedFilter] = useState<FeedFilter>('all');
 
   const isCoach = currentUser?.role === 'COACH' || currentUser?.role === 'ADMIN';
@@ -144,6 +147,7 @@ export default function FeedScreen() {
       horizontalSpacing={0}
     >
       <ScrollView
+        ref={scrollRef}
         style={styles.scrollView}
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}

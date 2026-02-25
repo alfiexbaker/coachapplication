@@ -32,6 +32,8 @@ export function InviteSessionFlow({
 }: InviteSessionFlowProps) {
   const { colors: palette } = useTheme();
   const flow = useInviteSessionFlow({ visible, coachId, onClose, onComplete });
+  const stepIndex = flow.step === 'choice' ? 1 : flow.step === 'select-session' ? 2 : 4;
+  const totalSteps = 4;
 
   // Delegate to full-screen athlete picker for select-athletes step
   if (flow.step === 'select-athletes') {
@@ -76,6 +78,36 @@ export function InviteSessionFlow({
           </Row>
 
           <ScrollView contentContainerStyle={styles.content}>
+            <View
+              style={[
+                styles.stepIndicator,
+                {
+                  backgroundColor: withAlpha(palette.tint, 0.06),
+                  borderColor: withAlpha(palette.tint, 0.18),
+                },
+              ]}
+            >
+              <Row align="center" justify="between">
+                <ThemedText style={{ color: palette.tint }}>
+                  Step {stepIndex} of {totalSteps}
+                </ThemedText>
+                <ThemedText style={{ color: palette.muted }}>
+                  {flow.step === 'choice'
+                    ? 'Choose'
+                    : flow.step === 'select-session'
+                      ? 'Session'
+                      : 'Send'}
+                </ThemedText>
+              </Row>
+              <View style={[styles.progressTrack, { backgroundColor: withAlpha(palette.border, 0.5) }]}>
+                <View
+                  style={[
+                    styles.progressFill,
+                    { backgroundColor: palette.tint, width: `${(stepIndex / totalSteps) * 100}%` },
+                  ]}
+                />
+              </View>
+            </View>
             {flow.step === 'choice' && <ChoiceStep onSelect={flow.handleChoiceSelect} />}
             {flow.step === 'select-session' && (
               <SessionListStep
@@ -116,4 +148,20 @@ const styles = StyleSheet.create({
   backButton: { marginRight: Spacing.sm },
   headerTitle: { flex: 1, textAlign: 'center' },
   content: { padding: Spacing.lg, paddingTop: 0 },
+  stepIndicator: {
+    borderWidth: 1,
+    borderRadius: Radii.md,
+    padding: Spacing.sm,
+    gap: Spacing.xs,
+    marginBottom: Spacing.md,
+  },
+  progressTrack: {
+    height: 4,
+    borderRadius: Radii.pill,
+    overflow: 'hidden',
+  },
+  progressFill: {
+    height: 4,
+    borderRadius: Radii.pill,
+  },
 });

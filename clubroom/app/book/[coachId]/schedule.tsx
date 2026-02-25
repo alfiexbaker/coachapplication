@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useCallback } from 'react';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { ScrollView, StyleSheet, View, RefreshControl } from 'react-native';
-import { useLocalSearchParams, router } from 'expo-router';
+import { router } from 'expo-router';
 import { Routes } from '@/navigation/routes';
 import { Ionicons } from '@expo/vector-icons';
 
@@ -22,11 +22,13 @@ import { err, ok, serviceError } from '@/types/result';
 import { useBookingFlow } from '@/context/booking-flow-context';
 import { availabilityService } from '@/services/availability-service';
 import type { AvailabilitySlot } from '@/constants/types';
+import { useRequiredParam } from '@/hooks/use-required-param';
 
 const logger = createLogger('ScheduleScreen');
 
 export default function ScheduleScreen() {
-  const { coachId } = useLocalSearchParams<{ coachId: string }>();
+  const coachIdParam = useRequiredParam('coachId');
+  const coachId = coachIdParam.valid ? coachIdParam.value : '';
   const { draft, updateDraft } = useBookingFlow();
   const { scheme } = useTheme();
 
@@ -144,6 +146,21 @@ export default function ScheduleScreen() {
           />
         </View>
         <LoadingState variant="calendar" />
+      </SafeAreaView>
+    );
+  }
+
+  if (!coachIdParam.valid) {
+    return (
+      <SafeAreaView
+        style={[styles.safeArea, { backgroundColor: palette.background }]}
+        edges={['top', 'bottom']}
+      >
+        <ErrorState
+          message="Coach not found"
+          description="This booking link is missing a coach."
+          onRetry={() => router.back()}
+        />
       </SafeAreaView>
     );
   }

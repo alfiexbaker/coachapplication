@@ -1,4 +1,4 @@
-import { useCallback } from 'react';
+import { useCallback, useRef } from 'react';
 import { RefreshControl, ScrollView, StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
@@ -12,9 +12,12 @@ import { ConversationRow } from '@/components/messaging/conversation-row';
 import { MessagesSearchBar } from '@/components/messaging/messages-search-bar';
 import { MessagesViewToggle } from '@/components/messaging/messages-view-toggle';
 import { GroupThreadsSection } from '@/components/messaging/group-threads-section';
+import { useScrollToTopOnTabReselect } from '@/hooks/use-scroll-to-top-on-tab-reselect';
 
 export default function MessagesScreen() {
   const { colors: palette } = useTheme();
+  const scrollRef = useRef<ScrollView>(null);
+  useScrollToTopOnTabReselect(scrollRef);
   const {
     search,
     setSearch,
@@ -89,6 +92,7 @@ export default function MessagesScreen() {
       <MessagesViewToggle viewMode={viewMode} onViewModeChange={setViewMode} />
 
       <ScrollView
+        ref={scrollRef}
         style={styles.scrollView}
         refreshControl={
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={palette.tint} />

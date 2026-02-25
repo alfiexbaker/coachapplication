@@ -5,6 +5,7 @@ import { apiClient } from '@/services/api-client';
 import { useAuth } from '@/hooks/use-auth';
 import { createLogger } from '@/utils/logger';
 import type { Club, ClubMembership } from '@/constants/types';
+import { useUnsavedChangesWarning } from '@/hooks/use-unsaved-changes-warning';
 
 const logger = createLogger('CreateClub');
 
@@ -42,6 +43,13 @@ export function useCreateClub() {
       ? 'Club name cannot be empty or spaces only'
       : null;
   const isValid = trimmedName.length >= 3 && city.trim().length >= 2 && !nameError;
+  const isDirty =
+    trimmedName.length > 0 ||
+    tagline.trim().length > 0 ||
+    city.trim().length > 0 ||
+    country.trim() !== 'UK' ||
+    badge.trim().length > 0;
+  useUnsavedChangesWarning(isDirty && !isSubmitting);
 
   const setName = useCallback((value: string) => {
     setNameState(value);

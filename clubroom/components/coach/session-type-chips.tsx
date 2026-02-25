@@ -6,6 +6,7 @@
  */
 
 import { View, StyleSheet, ScrollView, Platform } from 'react-native';
+import { useCallback } from 'react';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 
@@ -37,6 +38,10 @@ export function SessionTypeChips({ templates, onPress, onAdd, selectedId }: Sess
   const hapticTap = () => {
     if (Platform.OS !== 'web') void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
   };
+  const handleAdd = useCallback(() => {
+    hapticTap();
+    onAdd();
+  }, [onAdd]);
 
   if (templates.length === 0) {
     return (
@@ -65,55 +70,54 @@ export function SessionTypeChips({ templates, onPress, onAdd, selectedId }: Sess
         </ThemedText>
       </Row>
 
-      <ScrollView
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        contentContainerStyle={styles.chipRow}
-      >
-        {templates.map((template) => {
-          const icon = TYPE_ICONS[template.type] || 'ellipse-outline';
-          const isSelected = selectedId === template.id;
+      <Row style={styles.chipRowWrap}>
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.chipRow}
+          style={styles.chipScroll}
+        >
+          {templates.map((template) => {
+            const icon = TYPE_ICONS[template.type] || 'ellipse-outline';
+            const isSelected = selectedId === template.id;
 
-          return (
-            <Clickable
-              key={template.id}
-              onPress={() => {
-                hapticTap();
-                onPress(template);
-              }}
-              accessibilityRole="button"
-              accessibilityLabel={`${template.name}, ${template.duration} minutes, ${template.defaultPrice > 0 ? `£${template.defaultPrice}` : 'Free'}`}
-              accessibilityState={{ selected: isSelected }}
-              style={[
-                styles.chip,
-                {
-                  backgroundColor: palette.surface,
-                  borderColor: isSelected ? palette.tint : palette.border,
-                },
-              ]}
-            >
-              <View style={[styles.chipIcon, { backgroundColor: withAlpha(palette.tint, 0.08) }]}>
-                <Ionicons name={icon} size={16} color={palette.tint} />
-              </View>
-              <View style={styles.chipContent}>
-                <ThemedText style={[styles.chipName, { color: palette.text }]} numberOfLines={1}>
-                  {template.name}
-                </ThemedText>
-                <ThemedText style={[styles.chipDetail, { color: palette.muted }]} numberOfLines={1}>
-                  {template.duration}m ·{' '}
-                  {template.defaultPrice > 0 ? `£${template.defaultPrice}` : 'Free'}
-                </ThemedText>
-              </View>
-              <Ionicons name="chevron-forward" size={14} color={palette.muted} />
-            </Clickable>
-          );
-        })}
-        {/* Add chip */}
+            return (
+              <Clickable
+                key={template.id}
+                onPress={() => {
+                  hapticTap();
+                  onPress(template);
+                }}
+                accessibilityRole="button"
+                accessibilityLabel={`${template.name}, ${template.duration} minutes, ${template.defaultPrice > 0 ? `£${template.defaultPrice}` : 'Free'}`}
+                accessibilityState={{ selected: isSelected }}
+                style={[
+                  styles.chip,
+                  {
+                    backgroundColor: palette.surface,
+                    borderColor: isSelected ? palette.tint : palette.border,
+                  },
+                ]}
+              >
+                <View style={[styles.chipIcon, { backgroundColor: withAlpha(palette.tint, 0.08) }]}>
+                  <Ionicons name={icon} size={16} color={palette.tint} />
+                </View>
+                <View style={styles.chipContent}>
+                  <ThemedText style={[styles.chipName, { color: palette.text }]} numberOfLines={1}>
+                    {template.name}
+                  </ThemedText>
+                  <ThemedText style={[styles.chipDetail, { color: palette.muted }]} numberOfLines={1}>
+                    {template.duration}m ·{' '}
+                    {template.defaultPrice > 0 ? `£${template.defaultPrice}` : 'Free'}
+                  </ThemedText>
+                </View>
+                <Ionicons name="chevron-forward" size={14} color={palette.muted} />
+              </Clickable>
+            );
+          })}
+        </ScrollView>
         <Clickable
-          onPress={() => {
-            hapticTap();
-            onAdd();
-          }}
+          onPress={handleAdd}
           accessibilityRole="button"
           accessibilityLabel="Add session type"
           style={[
@@ -124,7 +128,7 @@ export function SessionTypeChips({ templates, onPress, onAdd, selectedId }: Sess
           <Ionicons name="add" size={18} color={palette.tint} />
           <ThemedText style={[styles.addChipText, { color: palette.tint }]}>Add</ThemedText>
         </Clickable>
-      </ScrollView>
+      </Row>
     </View>
   );
 }
@@ -142,7 +146,14 @@ const styles = StyleSheet.create({
   },
   chipRow: {
     gap: Spacing.sm,
-    paddingRight: Spacing.sm,
+    paddingRight: Spacing.xs,
+  },
+  chipRowWrap: {
+    alignItems: 'stretch',
+    gap: Spacing.sm,
+  },
+  chipScroll: {
+    flex: 1,
   },
   chip: {
     flexDirection: 'row',

@@ -6,7 +6,7 @@
  * All UI sections are imported sub-components.
  */
 
-import React from 'react';
+import React, { useRef } from 'react';
 import { RefreshControl, ScrollView, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
@@ -32,10 +32,13 @@ import { TimeOffSheet } from '@/components/coach/time-off-sheet';
 import { SchedulingRulesModal } from '@/components/coach/scheduling-rules-modal';
 import { SessionTypeModal } from '@/components/coach/session-type-modal';
 import { Routes } from '@/navigation/routes';
+import { useScrollToTopOnTabReselect } from '@/hooks/use-scroll-to-top-on-tab-reselect';
 
 export default function ScheduleScreen() {
   const { colors } = useTheme();
   const schedule = useSchedule();
+  const sessionsScrollRef = useRef<ScrollView>(null);
+  useScrollToTopOnTabReselect(sessionsScrollRef);
 
   // Loading state
   if (schedule.loading) {
@@ -139,6 +142,7 @@ export default function ScheduleScreen() {
       {/* Sessions Segment */}
       {schedule.segment === 'sessions' && (
         <ScrollView
+          ref={sessionsScrollRef}
           showsVerticalScrollIndicator={false}
           contentContainerStyle={styles.content}
           refreshControl={

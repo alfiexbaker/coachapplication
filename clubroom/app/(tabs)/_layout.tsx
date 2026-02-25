@@ -1,5 +1,5 @@
-import { Tabs, router, useSegments } from 'expo-router';
-import React, { useCallback, useEffect, useState } from 'react';
+import { Tabs, router, useNavigation, useSegments } from 'expo-router';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import type { BottomTabBarButtonProps } from '@react-navigation/bottom-tabs';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -14,6 +14,7 @@ import { messagingService } from '@/services/messaging-service';
 import { onTyped, ServiceEvents } from '@/services/event-bus';
 import { useToast } from '@/components/ui/toast';
 import { Routes } from '@/navigation/routes';
+import { useFocusEffect } from '@react-navigation/native';
 
 type UserWithSimplifiedFields = {
   role?: UserRole | 'ADMIN';
@@ -150,6 +151,7 @@ export default function TabLayout() {
   const { currentUser } = useAuth();
   const { showToast } = useToast();
   const segments = useSegments();
+  const navigation = useNavigation();
   const insets = useSafeAreaInsets();
   const notificationCount = useNotificationCount();
   const [messageCount, setMessageCount] = useState(0);
@@ -188,7 +190,7 @@ export default function TabLayout() {
   const userRole = currentUser?.role ?? 'DEFAULT';
   const roleConfig = ROLE_TAB_CONFIG[userRole] ?? ROLE_TAB_CONFIG.DEFAULT;
   const hiddenRoutes = roleConfig.hidden ?? [];
-  const hiddenRouteSet = new Set(hiddenRoutes);
+  const hiddenRouteSet = useMemo(() => new Set(hiddenRoutes), [hiddenRoutes]);
 
   useEffect(() => {
     const tabSegment = typeof segments[1] === 'string' ? segments[1] : '';
@@ -198,6 +200,18 @@ export default function TabLayout() {
     router.replace(Routes.HOME);
     showToast('Access restricted', 'error');
   }, [hiddenRouteSet, segments, showToast]);
+
+  useFocusEffect(
+    useCallback(() => {
+      const state = navigation.getState();
+      const currentRoute = state?.routes?.[state.index ?? 0]?.name;
+      if (typeof currentRoute !== 'string') return;
+      if (!hiddenRouteSet.has(currentRoute)) return;
+
+      router.replace(Routes.HOME);
+      showToast('Access restricted', 'error');
+    }, [hiddenRouteSet, navigation, showToast]),
+  );
 
   const getBadgeCount = (badgeType?: BadgeType): number | string | undefined => {
     if (!badgeType) return undefined;

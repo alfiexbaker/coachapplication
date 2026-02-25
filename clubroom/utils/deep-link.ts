@@ -1,5 +1,8 @@
 import { type Href } from 'expo-router';
 import { Routes } from '@/navigation/routes';
+import { createLogger } from '@/utils/logger';
+
+const logger = createLogger('DeepLink');
 
 type RouterLike = {
   push: (href: Href) => void;
@@ -52,7 +55,11 @@ function applyLegacyRewrites(path: string): string {
 }
 
 function applyRouteAliases(path: string): string {
-  return ROUTE_ALIASES[path] ?? path;
+  const alias = ROUTE_ALIASES[path];
+  if (alias) {
+    logger.info('Route alias used', { oldRoute: path, newRoute: alias });
+  }
+  return alias ?? path;
 }
 
 export function resolveDeepLink(raw: unknown): Href | null {
