@@ -39,8 +39,14 @@ export const CredentialForm = memo(function CredentialForm({
   onSubmit,
   onClose,
 }: CredentialFormProps) {
+  const customNameError =
+    selectedType === 'other'
+      ? customName.trim().length < 3
+        ? 'Enter a credential name'
+        : null
+      : null;
   const canSubmit =
-    selectedType && uploaded && !submitting && (selectedType !== 'other' || customName);
+    Boolean(selectedType && uploaded && !submitting && (selectedType !== 'other' || !customNameError));
 
   return (
     <SurfaceCard style={styles.card}>
@@ -93,13 +99,31 @@ export const CredentialForm = memo(function CredentialForm({
       {selectedType === 'other' && (
         <View style={styles.section}>
           <ThemedText style={styles.label}>Qualification Name</ThemedText>
+          <ThemedText style={[Typography.caption, { color: colors.muted }]}>
+            e.g., Grassroots Coach Award, First Aid Certificate
+          </ThemedText>
           <TextInput
-            style={[styles.input, { borderColor: colors.border, color: colors.text }]}
+            style={[
+              styles.input,
+              { borderColor: customNameError ? colors.error : colors.border, color: colors.text },
+            ]}
             placeholder="Enter qualification name"
             placeholderTextColor={colors.muted}
             value={customName}
             onChangeText={onCustomNameChange}
+            maxLength={50}
           />
+          <ThemedText
+            style={[
+              Typography.caption,
+              { color: customName.length > 45 ? colors.error : colors.muted, textAlign: 'right' },
+            ]}
+          >
+            {customName.length}/50
+          </ThemedText>
+          {customNameError ? (
+            <ThemedText style={[Typography.caption, { color: colors.error }]}>{customNameError}</ThemedText>
+          ) : null}
         </View>
       )}
 

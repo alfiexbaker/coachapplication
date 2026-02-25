@@ -22,6 +22,10 @@ export interface JoinClubCardProps {
 export function JoinClubCard({ isCoach, onJoin, onCreate }: JoinClubCardProps) {
   const { colors: palette } = useTheme();
   const [joinCode, setJoinCode] = useState('');
+  const normalizedCode = joinCode.trim().toUpperCase();
+  const codeError =
+    normalizedCode.length === 0 ? null : normalizedCode.length !== 6 ? 'Code must be 6 characters (letters and numbers)' : null;
+  const canJoin = normalizedCode.length === 6 && !codeError;
 
   const handleCreateClub = () => {
     router.push(Routes.CLUB_CREATE);
@@ -50,26 +54,31 @@ export function JoinClubCard({ isCoach, onJoin, onCreate }: JoinClubCardProps) {
           placeholder="Enter invite code"
           placeholderTextColor={palette.muted}
           value={joinCode}
-          onChangeText={setJoinCode}
+          onChangeText={handleCodeChange}
           autoCapitalize="characters"
+          maxLength={6}
           style={[
             styles.input,
             {
               backgroundColor: palette.background,
               color: palette.text,
-              borderColor: palette.border,
+              borderColor: codeError ? palette.error : palette.border,
             },
           ]}
         />
         <Clickable
-          style={[styles.primaryButton, { backgroundColor: palette.tint }]}
-          onPress={() => onJoin(joinCode)}
+          style={[styles.primaryButton, { backgroundColor: canJoin ? palette.tint : palette.border }]}
+          onPress={() => onJoin(normalizedCode)}
+          disabled={!canJoin}
         >
           <ThemedText style={[styles.primaryButtonText, { color: palette.onPrimary }]}>
             Join
           </ThemedText>
         </Clickable>
       </Row>
+      <ThemedText style={[Typography.caption, { color: codeError ? palette.error : palette.muted }]}>
+        {codeError ?? 'Enter the 6-character code from your coach'}
+      </ThemedText>
 
       {isCoach && (
         <>
@@ -164,3 +173,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing.sm,
   },
 });
+  const handleCodeChange = (value: string) => {
+    setJoinCode(value.replace(/[^A-Za-z0-9]/g, '').toUpperCase());
+  };

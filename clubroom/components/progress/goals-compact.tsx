@@ -162,11 +162,15 @@ export const GoalsCompact = memo(function GoalsCompact({
 
         {showCreate ? (
           <Column gap="xs">
+            <ThemedText style={[Typography.caption, { color: colors.muted }]}>
+              Short, specific goals are more motivating
+            </ThemedText>
             <TextInput
               value={newGoalTitle}
               onChangeText={setNewGoalTitle}
               placeholder="Goal title"
               placeholderTextColor={colors.muted}
+              maxLength={60}
               style={[
                 styles.input,
                 {
@@ -176,6 +180,17 @@ export const GoalsCompact = memo(function GoalsCompact({
                 },
               ]}
             />
+            <ThemedText
+              style={[
+                Typography.caption,
+                {
+                  color: newGoalTitle.length > 55 ? colors.error : colors.muted,
+                  textAlign: 'right',
+                },
+              ]}
+            >
+              {newGoalTitle.length}/60
+            </ThemedText>
             <Row gap="xs" justify="end">
               <Clickable
                 style={[styles.smallButton, { borderColor: colors.border }]}
@@ -193,7 +208,7 @@ export const GoalsCompact = memo(function GoalsCompact({
                 onPress={() => {
                   void handleCreateGoal();
                 }}
-                disabled={isSubmitting}
+                disabled={isSubmitting || newGoalTitle.trim().length < 1}
                 accessibilityLabel="Create goal"
                 accessibilityRole="button"
               >

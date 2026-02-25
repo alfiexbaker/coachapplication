@@ -66,6 +66,8 @@ export const CreatePostForm = memo(function CreatePostForm({
   onCloseDatePicker,
 }: CreatePostFormProps) {
   const { colors: palette, scheme } = useTheme();
+  const trimmedBody = body.trim();
+  const bodyError = body.length > 0 && trimmedBody.length < 10 ? 'Post cannot be empty or spaces only' : null;
 
   return (
     <>
@@ -195,10 +197,14 @@ export const CreatePostForm = memo(function CreatePostForm({
               placeholderTextColor={palette.muted}
               value={body}
               onChangeText={onBodyChange}
+              onBlur={() => onBodyChange(body.trim())}
               multiline
               autoFocus
-              maxLength={500}
+              maxLength={1000}
             />
+            <ThemedText style={[styles.bodyHelper, { color: bodyError ? palette.error : palette.muted }]}>
+              {bodyError ?? 'Share updates, tips, or celebration with your club'}
+            </ThemedText>
           </View>
 
           {/* Consent reminder for media posts */}
@@ -254,13 +260,24 @@ export const CreatePostForm = memo(function CreatePostForm({
           {/* Character count */}
           {body.length > 0 && (
             <View style={styles.charCountContainer}>
+              <View style={[styles.charCountTrack, { backgroundColor: palette.border }]}>
+                <View
+                  style={[
+                    styles.charCountFill,
+                    {
+                      width: `${Math.min(100, (body.length / 1000) * 100)}%`,
+                      backgroundColor: body.length > 900 ? palette.error : palette.success,
+                    },
+                  ]}
+                />
+              </View>
               <ThemedText
                 style={[
                   styles.charCount,
-                  { color: body.length > 450 ? palette.warning : palette.muted },
+                  { color: body.length > 900 ? palette.error : palette.muted },
                 ]}
               >
-                {body.length}/500
+                {body.length}/1000
               </ThemedText>
             </View>
           )}
@@ -340,6 +357,7 @@ const styles = StyleSheet.create({
   typeLabel: { ...Typography.smallSemiBold },
   titleInput: { ...Typography.heading, paddingVertical: Spacing.sm, borderBottomWidth: 1 },
   bodyInput: { ...Typography.subheading, minHeight: 120, textAlignVertical: 'top' },
+  bodyHelper: { ...Typography.caption, marginTop: Spacing.xs },
   consentReminder: {
     marginHorizontal: Spacing.md,
     marginTop: Spacing.md,
@@ -362,7 +380,10 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing.md,
     paddingTop: Spacing.sm,
     alignItems: 'flex-end',
+    gap: Spacing.xs,
   },
+  charCountTrack: { width: '100%', height: 4, borderRadius: Radii.pill, overflow: 'hidden' },
+  charCountFill: { height: '100%', borderRadius: Radii.pill },
   charCount: { ...Typography.caption },
   toolbar: { paddingHorizontal: Spacing.md, paddingVertical: Spacing.sm, borderTopWidth: 0.5 },
   toolbarButton: {

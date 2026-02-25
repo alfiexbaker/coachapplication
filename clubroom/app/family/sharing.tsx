@@ -36,6 +36,9 @@ export default function FamilySharingScreen() {
     setShowInviteModal,
     inviteEmail,
     setInviteEmail,
+    inviteEmailTouched,
+    setInviteEmailTouched,
+    inviteEmailError,
     inviteName,
     setInviteName,
     inviteRole,
@@ -146,7 +149,12 @@ export default function FamilySharingScreen() {
         visible={showInviteModal}
         onClose={() => setShowInviteModal(false)}
         inviteEmail={inviteEmail}
-        onEmailChange={setInviteEmail}
+        onEmailChange={(value) => {
+          setInviteEmailTouched(true);
+          setInviteEmail(value);
+        }}
+        emailError={inviteEmailError}
+        onEmailBlur={() => setInviteEmailTouched(true)}
         inviteName={inviteName}
         onNameChange={setInviteName}
         inviteRole={inviteRole}

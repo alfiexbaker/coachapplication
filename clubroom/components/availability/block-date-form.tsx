@@ -46,6 +46,9 @@ export const BlockDateForm = React.memo(function BlockDateForm({
   onSetCustomReason,
   onSave,
 }: Props) {
+  const notesError =
+    reason === 'other' && customReason.trim().length < 10 ? 'Please provide a brief reason' : null;
+  const canSave = !saving && (reason !== 'other' || !notesError);
   return (
     <>
       <ScrollView style={styles.content} contentContainerStyle={styles.contentInner}>
@@ -125,14 +128,32 @@ export const BlockDateForm = React.memo(function BlockDateForm({
           </Row>
 
           {reason === 'other' ? (
-            <TextInput
-              style={[styles.input, { borderColor: colors.border, color: colors.text }]}
-              placeholder="Enter reason..."
-              placeholderTextColor={colors.muted}
-              value={customReason}
-              onChangeText={onSetCustomReason}
-              accessibilityLabel="Custom reason"
-            />
+            <View style={{ gap: Spacing.xs }}>
+              <ThemedText style={[Typography.caption, { color: colors.muted }]}>
+                This helps athletes understand your availability
+              </ThemedText>
+              <TextInput
+                style={[styles.input, { borderColor: notesError ? colors.error : colors.border, color: colors.text }]}
+                placeholder="Enter reason..."
+                placeholderTextColor={colors.muted}
+                value={customReason}
+                onChangeText={onSetCustomReason}
+                accessibilityLabel="Custom reason"
+                maxLength={200}
+                multiline
+              />
+              <ThemedText
+                style={[
+                  Typography.caption,
+                  { color: customReason.length > 180 ? colors.error : colors.muted, textAlign: 'right' },
+                ]}
+              >
+                {customReason.length}/200
+              </ThemedText>
+              {notesError ? (
+                <ThemedText style={[Typography.caption, { color: colors.error }]}>{notesError}</ThemedText>
+              ) : null}
+            </View>
           ) : null}
         </SurfaceCard>
 
@@ -160,9 +181,9 @@ export const BlockDateForm = React.memo(function BlockDateForm({
         ]}
       >
         <Clickable
-          style={[styles.saveButton, { backgroundColor: saving ? colors.muted : colors.error }]}
+          style={[styles.saveButton, { backgroundColor: canSave ? colors.error : colors.muted }]}
           onPress={onSave}
-          disabled={saving}
+          disabled={!canSave}
         >
           {saving ? (
             <ActivityIndicator size="small" color={colors.onPrimary} />

@@ -342,7 +342,11 @@ export const AssignDrillForm = memo(function AssignDrillForm({
             <ThemedText style={[Typography.caption, { color: colors.error, marginTop: Spacing.xs }]}>
               {repetitionsError}
             </ThemedText>
-          ) : null}
+          ) : (
+            <ThemedText style={[Typography.caption, { color: colors.muted, marginTop: Spacing.xs }]}>
+              Recommended: 10-20 reps per drill
+            </ThemedText>
+          )}
         </View>
       </Animated.View>
 

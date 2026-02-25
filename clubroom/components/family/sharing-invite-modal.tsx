@@ -18,6 +18,8 @@ interface SharingInviteModalProps {
   onClose: () => void;
   inviteEmail: string;
   onEmailChange: (v: string) => void;
+  emailError?: string | null;
+  onEmailBlur?: () => void;
   inviteName: string;
   onNameChange: (v: string) => void;
   inviteRole: GuardianRole;
@@ -35,6 +37,8 @@ export const SharingInviteModal = memo(function SharingInviteModal({
   onClose,
   inviteEmail,
   onEmailChange,
+  emailError,
+  onEmailBlur,
   inviteName,
   onNameChange,
   inviteRole,
@@ -72,14 +76,22 @@ export const SharingInviteModal = memo(function SharingInviteModal({
           <View style={styles.group}>
             <ThemedText type="defaultSemiBold">Email Address</ThemedText>
             <TextInput
-              style={[styles.input, { borderColor: colors.border, color: colors.text }]}
+              style={[
+                styles.input,
+                { borderColor: emailError ? colors.error : colors.border, color: colors.text },
+              ]}
               placeholder="Enter their email address"
               placeholderTextColor={colors.muted}
               value={inviteEmail}
-              onChangeText={onEmailChange}
+              onChangeText={(v) => onEmailChange(v)}
+              onBlur={onEmailBlur}
               keyboardType="email-address"
               autoCapitalize="none"
+              maxLength={100}
             />
+            {emailError ? (
+              <ThemedText style={[Typography.caption, { color: colors.error }]}>{emailError}</ThemedText>
+            ) : null}
           </View>
 
           <View style={styles.group}>
@@ -90,6 +102,7 @@ export const SharingInviteModal = memo(function SharingInviteModal({
               placeholderTextColor={colors.muted}
               value={inviteName}
               onChangeText={onNameChange}
+              maxLength={50}
             />
           </View>
 
@@ -172,6 +185,7 @@ export const SharingInviteModal = memo(function SharingInviteModal({
               onChangeText={onMessageChange}
               multiline
               numberOfLines={3}
+              maxLength={500}
             />
           </View>
         </ScrollView>
@@ -180,10 +194,10 @@ export const SharingInviteModal = memo(function SharingInviteModal({
           <Clickable
             style={[styles.sendBtn, { backgroundColor: inviting ? colors.muted : colors.tint }]}
             onPress={onSend}
-            disabled={inviting}
+            disabled={inviting || !inviteEmail.trim() || !!emailError}
             accessibilityLabel="Send guardian invitation"
             accessibilityRole="button"
-            accessibilityState={{ disabled: inviting }}
+            accessibilityState={{ disabled: inviting || !inviteEmail.trim() || !!emailError }}
           >
             {inviting ? (
               <ActivityIndicator size="small" color={colors.onPrimary} />

@@ -3,7 +3,7 @@ import { ActivityIndicator, ScrollView, StyleSheet, TextInput, View } from 'reac
 import { Ionicons } from '@expo/vector-icons';
 import { Row } from '@/components/primitives/row';
 
-import { Radii, Spacing, withAlpha } from '@/constants/theme';
+import { Radii, Spacing, Typography, withAlpha } from '@/constants/theme';
 import { ThemedText } from '@/components/themed-text';
 import { Clickable } from '@/components/primitives/clickable';
 import { RatingStars } from '@/components/review/rating-stars';
@@ -47,10 +47,16 @@ export function SessionNotesForm({
     setFocus((prev) => (prev.includes(item) ? prev.filter((f) => f !== item) : [...prev, item]));
   };
 
+  const summaryCount = summary.length;
+  const summaryWarn = summaryCount > 450;
+
   return (
     <ScrollView contentContainerStyle={styles.content}>
       <View style={{ gap: Spacing.sm }}>
         <ThemedText type="defaultSemiBold">Session summary</ThemedText>
+        <ThemedText style={[Typography.caption, { color: palette.muted }]}>
+          Brief notes help parents. Focus on key observations.
+        </ThemedText>
         <TextInput
           placeholder="What we covered today"
           placeholderTextColor={palette.muted}
@@ -58,7 +64,24 @@ export function SessionNotesForm({
           value={summary}
           onChangeText={setSummary}
           multiline
+          maxLength={500}
         />
+        <Row style={styles.counterRow}>
+          <View style={[styles.counterTrack, { backgroundColor: palette.border }]}>
+            <View
+              style={[
+                styles.counterFill,
+                {
+                  width: `${Math.min(100, (summaryCount / 500) * 100)}%`,
+                  backgroundColor: summaryWarn ? palette.error : palette.tint,
+                },
+              ]}
+            />
+          </View>
+          <ThemedText style={[Typography.caption, { color: summaryWarn ? palette.error : palette.muted }]}>
+            {summaryCount}/500
+          </ThemedText>
+        </Row>
       </View>
 
       <View style={{ gap: Spacing.sm }}>
@@ -143,7 +166,16 @@ export function SessionNotesForm({
       </View>
 
       <Clickable
-        onPress={() => onSubmit({ summary, focus, improvements, homework, effort, attendance })}
+        onPress={() =>
+          onSubmit({
+            summary: summary.trim(),
+            focus,
+            improvements: improvements.trim(),
+            homework: homework.trim(),
+            effort,
+            attendance,
+          })
+        }
         style={[styles.submit, { backgroundColor: submitting ? palette.border : palette.tint, opacity: viewerRole !== 'coach' ? 0.5 : 1 }]}
         disabled={submitting || viewerRole !== 'coach'}
         accessibilityLabel={viewerRole !== 'coach' ? 'Only coaches can submit session notes' : 'Submit Notes'}
@@ -187,5 +219,19 @@ const styles = StyleSheet.create({
   submit: {
     padding: Spacing.sm,
     borderRadius: Radii.button,
+  },
+  counterRow: {
+    alignItems: 'center',
+    gap: Spacing.xs,
+  },
+  counterTrack: {
+    flex: 1,
+    height: 4,
+    borderRadius: Radii.pill,
+    overflow: 'hidden',
+  },
+  counterFill: {
+    height: '100%',
+    borderRadius: Radii.pill,
   },
 });

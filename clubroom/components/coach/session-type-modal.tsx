@@ -51,6 +51,7 @@ export function SessionTypeModal({
   const [capacity, setCapacity] = useState(1);
   const [price, setPrice] = useState('');
   const [description, setDescription] = useState('');
+  const [capacityManuallySet, setCapacityManuallySet] = useState(false);
   useEffect(() => {
     if (visible) {
       if (existing) {
@@ -60,6 +61,7 @@ export function SessionTypeModal({
         setCapacity(existing.capacity);
         setPrice(existing.defaultPrice > 0 ? String(existing.defaultPrice) : '');
         setDescription(existing.description || '');
+        setCapacityManuallySet(true);
       } else {
         setName('');
         setType('1-to-1');
@@ -67,10 +69,12 @@ export function SessionTypeModal({
         setCapacity(1);
         setPrice('');
         setDescription('');
+        setCapacityManuallySet(false);
       }
     }
   }, [visible, existing]);
-  const isValid = name.trim().length > 0;
+  const trimmedName = name.trim();
+  const isValid = trimmedName.length >= 3;
   const handleSave = () => {
     if (!isValid) return;
     if (Platform.OS !== 'web') void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
@@ -97,8 +101,27 @@ export function SessionTypeModal({
     ]);
   };
   const handleTypeSelect = (key: SessionType) => {
+    if ((key === '1-to-1' || key === 'assessment') && capacity > 1) {
+      Alert.alert(
+        'Change session type?',
+        'Changing to 1-to-1/assessment will set capacity to 1 player.',
+        [
+          { text: 'Cancel', style: 'cancel' },
+          {
+            text: 'Change',
+            onPress: () => {
+              setType(key);
+              setCapacity(1);
+            },
+          },
+        ],
+      );
+      return;
+    }
     setType(key);
-    if (key === '1-to-1' || key === 'assessment') setCapacity(1);
+    if ((key === 'small-group' || key === 'clinic') && capacity === 1 && !capacityManuallySet) {
+      setCapacity(8);
+    }
   };
   const durationOptions = DURATION_OPTIONS.map((d) => ({ key: d, label: `${d}m` }));
   return (
@@ -131,9 +154,21 @@ export function SessionTypeModal({
               placeholder="e.g. 1-on-1 Skills Session"
               placeholderTextColor={palette.muted}
               value={name}
-              onChangeText={(v) => setName(v.slice(0, 40))}
+              onChangeText={setName}
+              maxLength={40}
               autoFocus={!existing}
             />
+            <ThemedText
+              style={[
+                Typography.caption,
+                { color: name.length > 35 ? palette.error : palette.muted, textAlign: 'right' },
+              ]}
+            >
+              {name.length}/40
+            </ThemedText>
+            <ThemedText style={[Typography.caption, { color: palette.muted }]}>
+              Short names work best for parent booking screens
+            </ThemedText>
           </View>
           <SegmentSelector
             label="Type"
@@ -150,7 +185,14 @@ export function SessionTypeModal({
             palette={palette}
           />
           <Row style={styles.row}>
-            <CapacityStepper value={capacity} onChange={setCapacity} palette={palette} />
+            <CapacityStepper
+              value={capacity}
+              onChange={(next) => {
+                setCapacityManuallySet(true);
+                setCapacity(next);
+              }}
+              palette={palette}
+            />
             <PriceInput value={price} onChange={setPrice} palette={palette} />
           </Row>
           <View style={styles.field}>

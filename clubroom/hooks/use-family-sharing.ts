@@ -16,6 +16,7 @@ import type {
 } from '@/constants/types';
 
 const logger = createLogger('FamilySharing');
+const EMAIL_REGEX = /^(?!\.)(?!.*\.\.)([A-Za-z0-9._%+-]+)@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$/;
 
 export const ROLE_INFO: Record<GuardianRole, { label: string; description: string }> = {
   PRIMARY: { label: 'Primary', description: 'Full access with admin controls' },
@@ -44,6 +45,7 @@ export function useFamilySharing() {
   const [inviteRelationship, setInviteRelationship] = useState('Co-parent');
   const [inviteMessage, setInviteMessage] = useState('');
   const [inviting, setInviting] = useState(false);
+  const [inviteEmailTouched, setInviteEmailTouched] = useState(false);
 
   const loadFamilyData = useCallback(async () => {
     if (!currentUser?.id) {
@@ -70,6 +72,18 @@ export function useFamilySharing() {
   });
 
   const family = data ?? null;
+  const normalizedInviteEmail = inviteEmail.trim().toLowerCase();
+  const duplicateInvite =
+    family?.pendingInvites.some((invite) => invite.email.toLowerCase() === normalizedInviteEmail) ??
+    false;
+  const inviteEmailError =
+    !inviteEmailTouched || normalizedInviteEmail.length === 0
+      ? null
+      : duplicateInvite
+        ? 'This email has already been invited'
+        : !EMAIL_REGEX.test(normalizedInviteEmail)
+          ? 'Enter a valid email address'
+          : null;
 
   const resetInviteForm = useCallback(() => {
     setInviteEmail('');
@@ -77,15 +91,22 @@ export function useFamilySharing() {
     setInviteRole('GUARDIAN');
     setInviteRelationship('Co-parent');
     setInviteMessage('');
+    setInviteEmailTouched(false);
   }, []);
 
   const handleInvite = useCallback(async () => {
     if (!family || !currentUser) return;
-    if (!inviteEmail.trim()) {
+    const email = inviteEmail.trim().toLowerCase();
+    if (!email) {
       Alert.alert('Error', 'Please enter an email address');
       return;
     }
-    if (!inviteEmail.includes('@')) {
+    setInviteEmailTouched(true);
+    if (duplicateInvite) {
+      Alert.alert('Error', 'This email has already been invited');
+      return;
+    }
+    if (!EMAIL_REGEX.test(email)) {
       Alert.alert('Error', 'Please enter a valid email address');
       return;
     }
@@ -95,7 +116,7 @@ export function useFamilySharing() {
         family.id,
         currentUser.id,
         currentUser.fullName || 'Parent',
-        inviteEmail.trim(),
+        email,
         inviteName.trim() || 'Guardian',
         inviteRole,
         inviteRelationship,
@@ -104,12 +125,12 @@ export function useFamilySharing() {
       );
       Alert.alert(
         'Invitation Sent',
-        `An invitation has been sent to ${inviteEmail}. They'll receive instructions to join your family account.`,
+        `An invitation has been sent to ${email}. They'll receive instructions to join your family account.`,
       );
       setShowInviteModal(false);
       resetInviteForm();
       onRefresh();
-      logger.success('InviteSent', { email: inviteEmail, role: inviteRole });
+      logger.success('InviteSent', { email, role: inviteRole });
     } catch (error: unknown) {
       logger.error('Failed to send invite', error);
       Alert.alert('Error', error instanceof Error ? error.message : 'Failed to send invitation');
@@ -120,6 +141,7 @@ export function useFamilySharing() {
     family,
     currentUser,
     inviteEmail,
+    duplicateInvite,
     inviteName,
     inviteRole,
     inviteRelationship,
@@ -199,6 +221,9 @@ export function useFamilySharing() {
     setShowInviteModal,
     inviteEmail,
     setInviteEmail,
+    inviteEmailTouched,
+    setInviteEmailTouched,
+    inviteEmailError,
     inviteName,
     setInviteName,
     inviteRole,

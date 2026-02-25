@@ -5,7 +5,7 @@
  */
 
 import React, { useState, useCallback, useMemo } from 'react';
-import { View, TextInput, Platform } from 'react-native';
+import { View, TextInput, Platform, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 import * as Haptics from 'expo-haptics';
@@ -108,17 +108,43 @@ function AthleteNotesTabInner({
 
           {showInput && (
             <Column gap="sm">
+              <ThemedText style={[localStyles.helper, { color: colors.muted }]}>
+                Quick notes for coaching reference
+              </ThemedText>
               <TextInput
                 style={[styles.input, { backgroundColor: colors.background, color: colors.text }]}
                 placeholder="Write a note about this athlete..."
                 placeholderTextColor={colors.muted}
                 value={newNote}
                 onChangeText={setNewNote}
+                onBlur={() => setNewNote((value) => value.trim())}
                 multiline
                 numberOfLines={3}
+                maxLength={500}
                 autoFocus
                 accessibilityLabel="Note content"
               />
+              <Row style={localStyles.counterRow}>
+                <View style={[localStyles.counterTrack, { backgroundColor: colors.border }]}>
+                  <View
+                    style={[
+                      localStyles.counterFill,
+                      {
+                        width: `${Math.min(100, (newNote.length / 500) * 100)}%`,
+                        backgroundColor: newNote.length > 450 ? colors.error : colors.tint,
+                      },
+                    ]}
+                  />
+                </View>
+                <ThemedText
+                  style={[
+                    Typography.caption,
+                    { color: newNote.length > 450 ? colors.error : colors.muted },
+                  ]}
+                >
+                  {newNote.length}/500
+                </ThemedText>
+              </Row>
               <Row gap="sm" justify="end">
                 <Clickable
                   onPress={() => {
@@ -172,3 +198,23 @@ function AthleteNotesTabInner({
 }
 
 export const AthleteNotesTab = React.memo(AthleteNotesTabInner);
+
+const localStyles = StyleSheet.create({
+  helper: {
+    ...Typography.caption,
+  },
+  counterRow: {
+    alignItems: 'center',
+    gap: Spacing.xs,
+  },
+  counterTrack: {
+    flex: 1,
+    height: 4,
+    borderRadius: Radii.pill,
+    overflow: 'hidden',
+  },
+  counterFill: {
+    height: '100%',
+    borderRadius: Radii.pill,
+  },
+});

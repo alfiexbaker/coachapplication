@@ -50,7 +50,8 @@ export const EmergencyContactForm = memo(function EmergencyContactForm({
   const isValid = name.trim() && relationship.trim() && phone.trim() && !phoneError && !emailError;
 
   const handlePhoneChange = useCallback((text: string) => {
-    setPhone(text);
+    const sanitized = text.replace(/[^0-9\s+()-]/g, '');
+    setPhone(sanitized);
     if (phoneError) setPhoneError(undefined);
   }, [phoneError]);
 
@@ -61,7 +62,7 @@ export const EmergencyContactForm = memo(function EmergencyContactForm({
   }, [phone]);
 
   const handleEmailChange = useCallback((text: string) => {
-    setEmail(text);
+    setEmail(text.trim().toLowerCase());
     if (emailError) setEmailError(undefined);
   }, [emailError]);
 
@@ -139,6 +140,7 @@ export const EmergencyContactForm = memo(function EmergencyContactForm({
           onChangeText={handlePhoneChange}
           onBlur={handlePhoneBlur}
           keyboardType="phone-pad"
+          maxLength={20}
         />
         {phoneError && (
           <Row align="center" gap="xxs">
@@ -149,7 +151,7 @@ export const EmergencyContactForm = memo(function EmergencyContactForm({
           </Row>
         )}
         <ThemedText style={[Typography.caption, { color: colors.muted }]}>
-          UK mobile (07xxx) or landline (01xxx), or +44 format
+          UK mobile: 07700 900123
         </ThemedText>
       </View>
 
@@ -165,6 +167,7 @@ export const EmergencyContactForm = memo(function EmergencyContactForm({
           keyboardType="email-address"
           autoCapitalize="none"
           autoCorrect={false}
+          maxLength={100}
         />
         {emailError && (
           <Row align="center" gap="xxs">

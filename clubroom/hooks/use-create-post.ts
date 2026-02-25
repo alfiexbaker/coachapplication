@@ -49,6 +49,7 @@ export function useCreatePost() {
   const [eventLocation, setEventLocation] = useState('');
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [isPosting, setIsPosting] = useState(false);
+  const trimmedBody = body.trim();
 
   useEffect(() => {
     if (membership?.clubId) {
@@ -77,7 +78,8 @@ export function useCreatePost() {
   }, []);
 
   const handlePersonalPost = useCallback(async () => {
-    if ((!body.trim() && !imageUri) || !currentUser) return;
+    if ((!trimmedBody && !imageUri) || !currentUser) return;
+    if (trimmedBody && trimmedBody.length < 10) return;
     if (Platform.OS !== 'web') Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
 
     setIsPosting(true);
@@ -86,7 +88,7 @@ export function useCreatePost() {
         coachId: currentUser.id,
         coachName: currentUser.fullName || currentUser.username || 'Unknown',
         title: title.trim() || (postType === 'photo' ? 'Photo' : 'Update'),
-        body: body.trim(),
+        body: trimmedBody,
         postType,
         feedType: 'PERSONAL',
         imageUrl: imageUri || undefined,
@@ -102,9 +104,9 @@ export function useCreatePost() {
     } finally {
       setIsPosting(false);
     }
-  }, [body, imageUri, currentUser, title, postType, eventDate, eventLocation, clubs]);
+  }, [trimmedBody, body, imageUri, currentUser, title, postType, eventDate, eventLocation, clubs]);
 
-  const canPost = (body.trim().length > 0 || imageUri !== null) && !isPosting;
+  const canPost = ((trimmedBody.length >= 10) || imageUri !== null) && !isPosting;
 
   return {
     membership,

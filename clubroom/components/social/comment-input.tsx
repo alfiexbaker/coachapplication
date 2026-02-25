@@ -16,7 +16,7 @@ import { useTheme } from '@/hooks/useTheme';
 export interface CommentInputProps {
   value: string;
   onChangeText: (text: string) => void;
-  onSubmit: () => void;
+  onSubmit: (text?: string) => void;
   replyingTo?: string | null; // Author name being replied to
   onCancelReply?: () => void;
   placeholder?: string;
@@ -37,14 +37,16 @@ function CommentInputInner({
   const { colors: palette } = useTheme();
 
   const hasText = value.trim().length > 0;
+  const maxLength = 2000;
+  const warnThreshold = Math.floor(maxLength * 0.9);
 
   const handleSend = useCallback(() => {
     if (!hasText) return;
     if (Platform.OS !== 'web') {
       void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     }
-    onSubmit();
-  }, [hasText, onSubmit]);
+    onSubmit(value.trim());
+  }, [hasText, onSubmit, value]);
 
   return (
     <View
@@ -87,7 +89,7 @@ function CommentInputInner({
           value={value}
           onChangeText={onChangeText}
           multiline
-          maxLength={2000}
+          maxLength={maxLength}
           returnKeyType="default"
           accessibilityLabel={replyingTo ? `Reply to ${replyingTo}` : 'Add a comment'}
         />
@@ -108,6 +110,18 @@ function CommentInputInner({
           <Ionicons name="arrow-up" size={18} color={palette.onPrimary} />
         </Clickable>
       </Row>
+      <ThemedText
+        style={[
+          Typography.caption,
+          {
+            color: value.length > warnThreshold ? palette.error : palette.muted,
+            textAlign: 'right',
+            marginTop: Spacing.xxs,
+          },
+        ]}
+      >
+        {value.length}/{maxLength}
+      </ThemedText>
     </View>
   );
 }

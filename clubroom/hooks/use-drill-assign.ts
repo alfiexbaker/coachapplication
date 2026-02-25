@@ -104,12 +104,16 @@ export function useDrillAssign() {
     const sanitized = value.replace(/[^0-9]/g, '');
     setRepetitionsState(sanitized);
     if (!sanitized) {
-      setRepetitionsError('Reps must be between 1 and 100');
+      setRepetitionsError('Minimum 1 rep');
       return;
     }
     const parsed = Number.parseInt(sanitized, 10);
-    if (Number.isNaN(parsed) || parsed < 1 || parsed > 100) {
-      setRepetitionsError('Reps must be between 1 and 100');
+    if (Number.isNaN(parsed) || parsed < 1) {
+      setRepetitionsError('Minimum 1 rep');
+      return;
+    }
+    if (parsed > 50) {
+      setRepetitionsError('Maximum 50 reps recommended for youth athletes');
       return;
     }
     setRepetitionsError(null);
@@ -121,9 +125,11 @@ export function useDrillAssign() {
       return;
     }
     const reps = Number.parseInt(repetitions, 10);
-    if (Number.isNaN(reps) || reps < 1 || reps > 100) {
-      setRepetitionsError('Reps must be between 1 and 100');
-      Alert.alert('Invalid repetitions', 'Reps must be between 1 and 100.');
+    if (Number.isNaN(reps) || reps < 1 || reps > 50) {
+      setRepetitionsError(
+        Number.isNaN(reps) || reps < 1 ? 'Minimum 1 rep' : 'Maximum 50 reps recommended for youth athletes',
+      );
+      Alert.alert('Invalid repetitions', 'Reps must be between 1 and 50.');
       return;
     }
     void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
