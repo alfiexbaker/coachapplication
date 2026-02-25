@@ -18,6 +18,7 @@ import { Clickable } from '@/components/primitives/clickable';
 import { ExtendedNotificationItem } from '@/services/notification-service';
 import { navigateToDeepLink } from '@/utils/deep-link';
 import { NotificationDesign } from './notification-design';
+import { useToast } from '@/components/ui/toast';
 
 const logger = createLogger('NotificationCard');
 
@@ -66,6 +67,7 @@ export function NotificationCard({
   showTypeIndicator?: boolean;
 }) {
   const { colors: palette } = useTheme();
+  const { showToast } = useToast();
   const router = useRouter();
   const icon = ICONS[item.type] || 'notifications';
   const TYPE_COLORS = getTypeColors(palette);
@@ -75,10 +77,11 @@ export function NotificationCard({
   void _onShare;
   void _onAddToFeed;
 
-  const handlePress = () => {
+  const handlePress = useCallback(async () => {
     if (onPress) {
       onPress();
     }
+    onMarkRead?.();
 
     // Navigate to deep link if available
     if (item.deepLink) {
@@ -86,15 +89,17 @@ export function NotificationCard({
         const navigated = navigateToDeepLink(router, item.deepLink);
         if (!navigated) {
           logger.warn('Invalid notification deep link', { deepLink: item.deepLink });
+          showToast('Could not open notification', 'error');
         }
       } catch (error) {
         logger.error('Failed to navigate', { deepLink: item.deepLink, error });
+        showToast('Could not open notification', 'error');
       }
     }
-  };
+  }, [item.deepLink, onMarkRead, onPress, router, showToast]);
 
   const content = (
-    <Clickable onPress={handlePress}>
+    <Clickable onPress={() => void handlePress()}>
       <Row
         align="start"
         gap="sm"

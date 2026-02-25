@@ -18,6 +18,8 @@ import { Row } from '@/components/primitives/row';
 import { Column } from '@/components/primitives/column';
 import { Radii, Spacing, Typography, withAlpha } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
+import { useToast } from '@/components/ui/toast';
+import { createLogger } from '@/utils/logger';
 import { openLocationInMaps } from '@/utils/map-links';
 
 // ============================================================================
@@ -129,21 +131,32 @@ export const PaymentCard = memo(function PaymentCard() {
 // ============================================================================
 // COACH CARD
 // ============================================================================
+const logger = createLogger('BookingInfoCards');
 
 interface CoachCardProps {
+  coachId?: string;
+  bookingId?: string;
   coachName: string;
   coachPhotoUrl: string;
 }
 
 export const BookingCoachCard = memo(function BookingCoachCard({
+  coachId,
+  bookingId,
   coachName,
   coachPhotoUrl,
 }: CoachCardProps) {
   const { colors: palette } = useTheme();
+  const { showToast } = useToast();
 
   const handlePress = useCallback(() => {
-    router.push(Routes.COACH_PROFILE);
-  }, []);
+    if (!coachId) {
+      logger.warn('Coach profile unavailable from booking card', { bookingId });
+      showToast('Coach profile unavailable', 'warning');
+      return;
+    }
+    router.push(Routes.profile(coachId));
+  }, [bookingId, coachId, showToast]);
 
   return (
     <Clickable onPress={handlePress} accessibilityLabel={`View ${coachName} profile`}>

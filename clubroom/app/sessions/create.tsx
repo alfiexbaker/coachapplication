@@ -19,6 +19,7 @@ import { PageHeader } from '@/components/primitives/page-header';
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
+import { useToast } from '@/components/ui/toast';
 import { useAuth } from '@/hooks/use-auth';
 import { useCreateSession } from '@/hooks/use-create-session';
 import { CreateStepIndicator } from '@/components/session/create-step-indicator';
@@ -153,6 +154,7 @@ function ExistingInviteFlow({
 }: ExistingInviteFlowProps) {
   const { colors } = useTheme();
   const { currentUser } = useAuth();
+  const { showToast } = useToast();
 
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
@@ -353,13 +355,13 @@ function ExistingInviteFlow({
         await apiClient.set(STORAGE_KEYS.SESSION_OFFERINGS, updated);
       }
 
-      Alert.alert(
-        failedCount > 0 ? 'Invite partially sent' : 'Invite sent',
+      showToast(
         failedCount > 0
           ? `${sentCount} invite(s) sent, ${failedCount} failed.`
           : `${sentCount} invite(s) sent successfully.`,
-        [{ text: 'Done', onPress: () => router.back() }],
+        failedCount > 0 ? 'warning' : 'success',
       );
+      router.replace(Routes.groupSession(selectedSession.id));
     } catch {
       Alert.alert('Error', 'Failed to send invites. Please try again.');
     } finally {
@@ -373,6 +375,7 @@ function ExistingInviteFlow({
     selectedAthleteIds,
     selectedClub,
     selectedSession,
+    showToast,
   ]);
 
   return (

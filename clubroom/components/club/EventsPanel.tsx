@@ -112,7 +112,7 @@ export function EventsPanel({ events, isCoach, clubId, onCreateEvent }: EventsPa
       {eventPosts.length > 0 ? (
         <View style={styles.eventsList}>
           {eventPosts.slice(0, 3).map((event) => (
-            <EventCard key={event.id} event={event} onPress={() => router.push(Routes.EVENTS)} />
+            <EventCard key={event.id} event={event} onPress={() => handleEventPress(event.id)} />
           ))}
           {eventPosts.length > 3 && (
             <Clickable style={styles.viewAllButton} onPress={() => router.push(Routes.EVENTS)}>
@@ -208,3 +208,7 @@ const styles = StyleSheet.create({
     marginTop: Spacing.xs,
   },
 });
+  const handleEventPress = (eventId?: string) => {
+    if (!eventId) return;
+    router.push(Routes.event(eventId));
+  };

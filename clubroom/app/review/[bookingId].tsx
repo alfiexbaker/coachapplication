@@ -9,6 +9,7 @@ import {
   RefreshControl,
 } from 'react-native';
 import { useLocalSearchParams, router } from 'expo-router';
+import { useRequiredParam } from '@/hooks/use-required-param';
 
 import { apiClient } from '@/services/api-client';
 import { useAuth } from '@/hooks/use-auth';
@@ -25,6 +26,7 @@ import {
   ReviewSuccessState,
 } from '@/components/review/review-screen-sections';
 import { LoadingState, ErrorState, EmptyState } from '@/components/ui/screen-states';
+import { useToast } from '@/components/ui/toast';
 
 const logger = createLogger('ReviewScreen');
 let _reviewSubmitLock: Promise<void> = Promise.resolve();
@@ -81,10 +83,11 @@ function isReviewForBookingByUser(
 }
 
 export default function ReviewScreen() {
-  const { bookingId: bookingIdParam } = useLocalSearchParams<{ bookingId?: string | string[] }>();
-  const bookingId = Array.isArray(bookingIdParam) ? bookingIdParam[0] : (bookingIdParam ?? '');
+  const bookingIdParam = useRequiredParam('bookingId');
+  const bookingId = bookingIdParam.valid ? bookingIdParam.value : '';
   const { colors: palette } = useTheme();
   const { currentUser } = useAuth();
+  const { showToast } = useToast();
   const [submitted, setSubmitted] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submittedReview, setSubmittedReview] = useState<{
@@ -231,6 +234,8 @@ export default function ReviewScreen() {
           text: persistedReview.review.text || persistedReview.review.content || '',
         });
         setSubmitted(true);
+        showToast('Review submitted!', 'success');
+        router.replace(Routes.booking(bookingId));
       } catch (submitError) {
         logger.error('Failed to submit review', submitError);
         Alert.alert('Error', 'Failed to submit review. Please try again.');
@@ -238,7 +243,7 @@ export default function ReviewScreen() {
         setIsSubmitting(false);
       }
     },
-    [isSubmitting, booking, bookingId, currentUser?.id, currentUser?.fullName, currentUser?.name, currentUser?.username],
+    [isSubmitting, booking, bookingId, currentUser?.id, currentUser?.fullName, currentUser?.name, currentUser?.username, showToast],
   );
 
   const formatDate = (dateString?: string) => {
@@ -254,6 +259,18 @@ export default function ReviewScreen() {
     return (
       <SafeAreaView style={{ flex: 1, backgroundColor: palette.background }} edges={['top', 'bottom']}>
         <LoadingState variant="detail" />
+      </SafeAreaView>
+    );
+  }
+
+  if (!bookingIdParam.valid) {
+    return (
+      <SafeAreaView style={{ flex: 1, backgroundColor: palette.background }} edges={['top', 'bottom']}>
+        <ErrorState
+          message="Invalid link"
+          description="The booking review link is missing or invalid."
+          onRetry={() => router.back()}
+        />
       </SafeAreaView>
     );
   }

@@ -1,4 +1,4 @@
-import { Tabs } from 'expo-router';
+import { Tabs, router, useSegments } from 'expo-router';
 import React, { useCallback, useEffect, useState } from 'react';
 import type { BottomTabBarButtonProps } from '@react-navigation/bottom-tabs';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -12,6 +12,8 @@ import { useAuth, type UserRole } from '@/hooks/use-auth';
 import { useNotificationCount } from '@/hooks/use-notifications';
 import { messagingService } from '@/services/messaging-service';
 import { onTyped, ServiceEvents } from '@/services/event-bus';
+import { useToast } from '@/components/ui/toast';
+import { Routes } from '@/navigation/routes';
 
 type UserWithSimplifiedFields = {
   role?: UserRole | 'ADMIN';
@@ -146,6 +148,8 @@ const ROLE_TAB_CONFIG: Record<UserRole | 'DEFAULT', RoleTabConfig> = {
 export default function TabLayout() {
   const { colors: palette, scheme } = useTheme();
   const { currentUser } = useAuth();
+  const { showToast } = useToast();
+  const segments = useSegments();
   const insets = useSafeAreaInsets();
   const notificationCount = useNotificationCount();
   const [messageCount, setMessageCount] = useState(0);
@@ -184,6 +188,16 @@ export default function TabLayout() {
   const userRole = currentUser?.role ?? 'DEFAULT';
   const roleConfig = ROLE_TAB_CONFIG[userRole] ?? ROLE_TAB_CONFIG.DEFAULT;
   const hiddenRoutes = roleConfig.hidden ?? [];
+  const hiddenRouteSet = new Set(hiddenRoutes);
+
+  useEffect(() => {
+    const tabSegment = typeof segments[1] === 'string' ? segments[1] : '';
+    if (!tabSegment) return;
+    if (!hiddenRouteSet.has(tabSegment)) return;
+
+    router.replace(Routes.HOME);
+    showToast('Access restricted', 'error');
+  }, [hiddenRouteSet, segments, showToast]);
 
   const getBadgeCount = (badgeType?: BadgeType): number | string | undefined => {
     if (!badgeType) return undefined;

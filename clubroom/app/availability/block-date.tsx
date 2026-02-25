@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Alert } from 'react-native';
 import { router } from 'expo-router';
+import { Routes } from '@/navigation/routes';
 
 import { PageHeader } from '@/components/primitives/page-header';
 import { LoadingState, ErrorState, EmptyState } from '@/components/ui/screen-states';
@@ -12,6 +13,7 @@ import { availabilityService } from '@/services/availability-service';
 import { createLogger } from '@/utils/logger';
 import { toDateStr } from '@/utils/format';
 import { BlockDateForm } from '@/components/availability/block-date-form';
+import { useToast } from '@/components/ui/toast';
 
 const logger = createLogger('BlockDate');
 
@@ -35,6 +37,7 @@ export default function BlockDateScreen() {
     refetchOnFocus: true,
   });
   const { currentUser } = useAuth();
+  const { showToast } = useToast();
 
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   const [reason, setReason] = useState('personal');
@@ -70,9 +73,8 @@ export default function BlockDateScreen() {
         reason: reasonText,
       });
 
-      Alert.alert('Date Blocked', `${formatDate(selectedDate)} has been blocked`, [
-        { text: 'OK', onPress: () => router.back() },
-      ]);
+      showToast('Date blocked', 'success');
+      router.replace(Routes.AVAILABILITY);
       logger.success('DateBlocked', { date: selectedDate.toISOString(), reason: reasonText });
     } catch (saveError) {
       logger.error('Failed to block date', saveError);

@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Alert, StyleSheet } from 'react-native';
-import { useLocalSearchParams, router } from 'expo-router';
+import { router } from 'expo-router';
 
 import { PageContainer } from '@/components/primitives/page-container';
 import { Column } from '@/components/primitives/column';
@@ -23,10 +23,11 @@ import { PageHeader } from '@/components/primitives/page-header';
 import { PositionSelector } from '@/components/session/position-selector';
 import { childService } from '@/services/child-service';
 import type { PositionRole } from '@/types/progress-types';
+import { useRequiredParam } from '@/hooks/use-required-param';
 
 export default function AthleteDetailScreen() {
-  const { athleteId } = useLocalSearchParams<{ athleteId?: string | string[] }>();
-  const resolvedAthleteId = Array.isArray(athleteId) ? athleteId[0] : athleteId;
+  const athleteIdParam = useRequiredParam('athleteId');
+  const resolvedAthleteId = athleteIdParam.valid ? athleteIdParam.value : undefined;
   const { colors } = useScreen<null>({ load: async () => ok(null), isEmpty: () => false });
   const {
     athlete,
@@ -89,7 +90,7 @@ export default function AthleteDetailScreen() {
     }
   }, [childProfile, positionDraft]);
 
-  if (!resolvedAthleteId) {
+  if (!athleteIdParam.valid) {
     return (
       <PageContainer>
         <EmptyState

@@ -1,4 +1,5 @@
 import { type Href } from 'expo-router';
+import { Routes } from '@/navigation/routes';
 
 type RouterLike = {
   push: (href: Href) => void;
@@ -7,6 +8,11 @@ type RouterLike = {
 const LEGACY_REWRITES: { pattern: RegExp; replace: string }[] = [
   { pattern: /^\/booking\//, replace: '/bookings/' },
 ];
+
+const ROUTE_ALIASES: Record<string, string> = {
+  '/sessions/view': '/group-sessions',
+  '/availability': Routes.AVAILABILITY as string,
+};
 
 function normalizeUrl(raw: string): string {
   const trimmed = raw.trim();
@@ -45,6 +51,10 @@ function applyLegacyRewrites(path: string): string {
   return next;
 }
 
+function applyRouteAliases(path: string): string {
+  return ROUTE_ALIASES[path] ?? path;
+}
+
 export function resolveDeepLink(raw: unknown): Href | null {
   if (typeof raw !== 'string') return null;
 
@@ -56,6 +66,7 @@ export function resolveDeepLink(raw: unknown): Href | null {
   }
 
   normalized = applyLegacyRewrites(normalized);
+  normalized = applyRouteAliases(normalized);
 
   const lower = normalized.toLowerCase();
   if (lower.startsWith('/javascript:') || lower.startsWith('/data:')) {

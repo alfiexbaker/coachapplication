@@ -39,6 +39,7 @@ import { InviteActionBar } from '@/components/invite/invite-action-bar';
 import { InviteRsvpStats } from '@/components/invite/invite-rsvp-stats';
 import { InviteChildHeader } from '@/components/invite/invite-child-header';
 import { Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
+import { useToast } from '@/components/ui/toast';
 import {
   inviteService as sessionInviteService,
   inviteRsvpService,
@@ -57,6 +58,7 @@ const logger = createLogger('SessionInviteDetailScreen');
 export default function SessionInviteDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const { currentUser } = useAuth();
+  const { showToast } = useToast();
   const { isMultiChild, getChildById } = useChildContext();
   const {
     data: invite,
@@ -170,16 +172,15 @@ export default function SessionInviteDetailScreen() {
         Alert.alert('Booking Failed', result.error?.message ?? 'Could not create the booking.');
         return;
       }
-      Alert.alert('Accepted!', 'The session has been confirmed.', [
-        { text: 'OK', onPress: () => router.back() },
-      ]);
+      showToast('Invite accepted!', 'success');
+      router.replace(invite.sessionId ? Routes.groupSession(invite.sessionId) : Routes.GROUP_SESSIONS);
     } catch (e) {
       logger.error('Failed to accept invite', e);
       Alert.alert('Error', 'Failed to accept invite.');
     } finally {
       setResponding(false);
     }
-  }, [invite, selectedSlot]);
+  }, [invite, selectedSlot, showToast]);
 
   const handleAccept = useCallback(async () => {
     if (!invite || selectedSlot === null) {

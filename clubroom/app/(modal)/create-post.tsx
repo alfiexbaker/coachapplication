@@ -31,8 +31,7 @@ export default function CreatePostScreen() {
 
   const handleClose = useCallback(() => router.back(), []);
   const handleGoToClubHub = useCallback(() => {
-    router.back();
-    setTimeout(() => router.push(Routes.CLUB_HUB), 100);
+    router.replace(Routes.CLUB_HUB);
   }, []);
 
   // Coach without club → personal post form

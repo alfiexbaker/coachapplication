@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { RefreshControl, ScrollView, StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
+import { router, useFocusEffect } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 
 import { ThemedText } from '@/components/themed-text';
@@ -30,6 +30,7 @@ import { cancellationService } from '@/services/cancellation-service';
 import { apiClient } from '@/services/api-client';
 import { getBookingSummaryClientName, getBookingSummaryCoachName } from '@/utils/booking-display';
 import { Routes } from '@/navigation/routes';
+import { useRequiredParam } from '@/hooks/use-required-param';
 
 interface StoredReview {
   bookingId?: string;
@@ -38,8 +39,8 @@ interface StoredReview {
 }
 
 export default function SessionDetailScreen() {
-  const { id: idParam } = useLocalSearchParams<{ id?: string | string[] }>();
-  const bookingId = Array.isArray(idParam) ? idParam[0] : (idParam ?? '');
+  const bookingIdParam = useRequiredParam('id');
+  const bookingId = bookingIdParam.valid ? bookingIdParam.value : '';
   const { colors: palette } = useTheme();
   const { currentUser } = useAuth();
   const {
@@ -117,6 +118,21 @@ export default function SessionDetailScreen() {
     return (
       <SafeAreaView style={[styles.container, { backgroundColor: palette.background }]}>
         <LoadingState variant="detail" />
+      </SafeAreaView>
+    );
+  }
+
+  if (!bookingIdParam.valid) {
+    return (
+      <SafeAreaView
+        style={[styles.container, { backgroundColor: palette.background }]}
+        edges={['top', 'bottom']}
+      >
+        <ErrorState
+          message="Invalid link"
+          description="The booking you are trying to open could not be found."
+          onRetry={handleGoBack}
+        />
       </SafeAreaView>
     );
   }
@@ -208,8 +224,12 @@ export default function SessionDetailScreen() {
         {booking.coachId && (
           <CancellationPolicyCard coachId={booking.coachId} policy={cancellationPolicy ?? undefined} />
         )}
-        <BookingCoachCard coachName={coachName} coachPhotoUrl={formatted.coachPhotoUrl} />
-
+        <BookingCoachCard
+          coachId={booking.coachId}
+          bookingId={booking.id}
+          coachName={coachName}
+          coachPhotoUrl={formatted.coachPhotoUrl}
+        />
         {/* Athlete Card (coach view, 1-on-1 sessions) */}
         {!booking.isGroupSession && booking.clientId && isCoach && (
           <BookingAthleteCard

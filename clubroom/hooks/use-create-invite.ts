@@ -34,6 +34,7 @@ import type {
 } from '@/constants/types';
 import type { ThemeColors } from '@/hooks/useTheme';
 import type { ThemeName } from '@/constants/theme';
+import { Routes } from '@/navigation/routes';
 
 const logger = createLogger('useCreateInvite');
 
@@ -591,9 +592,7 @@ export function useCreateInvite(): UseCreateInviteReturn {
         failedCount === 0
           ? `Invites sent to ${sentCount} athlete${sentCount === 1 ? '' : 's'}.`
           : `${sentCount} sent, ${failedCount} failed. Try sending the failed invites again.`,
-        [
-          { text: 'OK', onPress: () => router.back() },
-        ],
+        [{ text: 'OK', onPress: () => router.replace(Routes.GROUP_SESSIONS) }],
       );
     } catch (error) {
       logger.error('Failed to create invite', error);
