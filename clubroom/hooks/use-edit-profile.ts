@@ -5,7 +5,7 @@
  * for both coach and parent profile editing flows.
  */
 
-import { useState, useCallback, useEffect, useMemo } from 'react';
+import { useState, useCallback, useEffect, useMemo, useRef } from 'react';
 import { Alert } from 'react-native';
 import { router } from 'expo-router';
 
@@ -327,6 +327,8 @@ export function useEditProfile() {
     createBlankCertification(),
   );
   const [isCertificationModalVisible, setCertificationModalVisible] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+  const isSavingRef = useRef(false);
 
   const retryLoad = useCallback(() => {
     setReloadKey((value) => value + 1);
@@ -543,53 +545,61 @@ export function useEditProfile() {
 
   // ── Save handler ───────────────────────────────────────────────
   const handleSave = useCallback(() => {
-    if (userIsCoach && priceRangeError) {
-      Alert.alert('Invalid pricing', priceRangeError);
-      return;
-    }
-    if (userIsCoach) {
-      if (!coach) {
-        Alert.alert('Profile unavailable', 'Coach profile is still loading. Please try again.');
+    if (isSavingRef.current) return;
+    isSavingRef.current = true;
+    setIsSaving(true);
+    try {
+      if (userIsCoach && priceRangeError) {
+        Alert.alert('Invalid pricing', priceRangeError);
         return;
       }
+      if (userIsCoach) {
+        if (!coach) {
+          Alert.alert('Profile unavailable', 'Coach profile is still loading. Please try again.');
+          return;
+        }
 
-      const payload = {
-        ...coach,
-        fullName,
-        bio,
-        email,
-        phone,
-        website,
-        priceRange: {
-          ...coach.priceRange,
-          min: Number(priceMin),
-          max: Number(priceMax),
-        },
-        footballFocuses: selectedFocuses,
-        experiences,
-        languages,
-        certifications,
-        socialLinks,
-      };
-      logger.info('Coach profile payload ready for API sync', payload);
-    } else {
-      if (!user) {
-        Alert.alert('Profile unavailable', 'User profile is still loading. Please try again.');
-        return;
+        const payload = {
+          ...coach,
+          fullName,
+          bio,
+          email,
+          phone,
+          website,
+          priceRange: {
+            ...coach.priceRange,
+            min: Number(priceMin),
+            max: Number(priceMax),
+          },
+          footballFocuses: selectedFocuses,
+          experiences,
+          languages,
+          certifications,
+          socialLinks,
+        };
+        logger.info('Coach profile payload ready for API sync', payload);
+      } else {
+        if (!user) {
+          Alert.alert('Profile unavailable', 'User profile is still loading. Please try again.');
+          return;
+        }
+
+        const payload = { ...user, fullName, bio, email, phone, children };
+        logger.info('User profile payload ready for API sync', payload);
+
+        // Persist athlete position change via child service
+        if (userIsAthlete && primaryPosition) {
+          void childService.updateChild(currentUser?.id ?? '', { primaryPosition });
+        }
       }
 
-      const payload = { ...user, fullName, bio, email, phone, children };
-      logger.info('User profile payload ready for API sync', payload);
-
-      // Persist athlete position change via child service
-      if (userIsAthlete && primaryPosition) {
-        void childService.updateChild(currentUser?.id ?? '', { primaryPosition });
-      }
+      Alert.alert('Success', 'Profile updated successfully', [
+        { text: 'OK', onPress: () => router.back() },
+      ]);
+    } finally {
+      isSavingRef.current = false;
+      setIsSaving(false);
     }
-
-    Alert.alert('Success', 'Profile updated successfully', [
-      { text: 'OK', onPress: () => router.back() },
-    ]);
   }, [
     userIsCoach,
     userIsAthlete,
@@ -611,6 +621,7 @@ export function useEditProfile() {
     children,
     primaryPosition,
     priceRangeError,
+    isSaving,
   ]);
 
   // ── Image picker ───────────────────────────────────────────────
@@ -626,7 +637,7 @@ export function useEditProfile() {
     );
   }, []);
 
-  const canSave = !userIsCoach || priceRangeError === null;
+  const canSave = (!userIsCoach || priceRangeError === null) && !isSaving;
 
   return {
     // Identity
@@ -702,6 +713,7 @@ export function useEditProfile() {
     // Actions
     handleSave,
     canSave,
+    isSaving,
     pickImage,
   };
 }

@@ -5,7 +5,7 @@
  * Returns 3-way split: unpaid (owed), paid, written-off with totals and action handlers.
  */
 
-import { useCallback, useMemo } from 'react';
+import { useCallback, useMemo, useRef } from 'react';
 
 import { useAuth } from '@/hooks/use-auth';
 import { useScreen } from '@/hooks/use-screen';
@@ -38,6 +38,7 @@ export function useSessionPayments() {
   const { currentUser } = useAuth();
   const coachId = currentUser?.id ?? '';
   const { showToast } = useToast();
+  const processingInvoiceIdsRef = useRef<Set<string>>(new Set());
 
   const load = useCallback(async () => {
     try {
@@ -186,11 +187,17 @@ export function useSessionPayments() {
   const overdueCount = data?.overdueCount ?? 0;
 
   const handleMarkPaid = useCallback(async (invoiceId: string) => {
-    const result = await invoiceService.markAsPaid(invoiceId);
-    if (result) {
-      showToast('Marked as paid', 'success');
-    } else {
-      showToast('Failed to update payment', 'error');
+    if (processingInvoiceIdsRef.current.has(invoiceId)) return;
+    processingInvoiceIdsRef.current.add(invoiceId);
+    try {
+      const result = await invoiceService.markAsPaid(invoiceId);
+      if (result) {
+        showToast('Marked as paid', 'success');
+      } else {
+        showToast('Failed to update payment', 'error');
+      }
+    } finally {
+      processingInvoiceIdsRef.current.delete(invoiceId);
     }
   }, [showToast]);
 

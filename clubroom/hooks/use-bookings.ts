@@ -5,7 +5,7 @@
  * modal state, and all navigation/action handlers.
  */
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useRef } from 'react';
 import { Alert } from 'react-native';
 import { router } from 'expo-router';
 import { Routes } from '@/navigation/routes';
@@ -352,17 +352,24 @@ export function useBookings(): UseBookingsResult {
   const handleModalUpdate = useCallback(() => {
     onRefresh();
   }, [onRefresh]);
+  const processingInviteIdsRef = useRef<Set<string>>(new Set());
 
   const handleAcceptInvite = useCallback(
     async (invite: SessionInvite, selectedSlot?: SessionInvite['proposedSlots'][0]) => {
+      if (processingInviteIdsRef.current.has(invite.id)) return;
+      processingInviteIdsRef.current.add(invite.id);
       const slot = selectedSlot || invite.proposedSlots[0];
-      const result = await sessionInviteService.respondToInvite({
-        inviteId: invite.id,
-        response: 'ACCEPTED',
-        selectedSlot: slot,
-      });
-      if (result.success) {
-        onRefresh();
+      try {
+        const result = await sessionInviteService.respondToInvite({
+          inviteId: invite.id,
+          response: 'ACCEPTED',
+          selectedSlot: slot,
+        });
+        if (result.success) {
+          onRefresh();
+        }
+      } finally {
+        processingInviteIdsRef.current.delete(invite.id);
       }
     },
     [onRefresh],
@@ -377,12 +384,18 @@ export function useBookings(): UseBookingsResult {
           text: 'Decline',
           style: 'destructive',
           onPress: async () => {
-            const result = await sessionInviteService.respondToInvite({
-              inviteId: invite.id,
-              response: 'DECLINED',
-            });
-            if (result.success) {
-              onRefresh();
+            if (processingInviteIdsRef.current.has(invite.id)) return;
+            processingInviteIdsRef.current.add(invite.id);
+            try {
+              const result = await sessionInviteService.respondToInvite({
+                inviteId: invite.id,
+                response: 'DECLINED',
+              });
+              if (result.success) {
+                onRefresh();
+              }
+            } finally {
+              processingInviteIdsRef.current.delete(invite.id);
             }
           },
         },

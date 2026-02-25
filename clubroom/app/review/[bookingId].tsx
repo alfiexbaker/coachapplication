@@ -27,6 +27,17 @@ import {
 import { LoadingState, ErrorState, EmptyState } from '@/components/ui/screen-states';
 
 const logger = createLogger('ReviewScreen');
+let _reviewSubmitLock: Promise<void> = Promise.resolve();
+
+function withReviewSubmitLock<T>(fn: () => Promise<T>): Promise<T> {
+  let release!: () => void;
+  const next = new Promise<void>((resolve) => {
+    release = resolve;
+  });
+  const prev = _reviewSubmitLock;
+  _reviewSubmitLock = next;
+  return prev.then(fn).finally(() => release());
+}
 
 interface StoredReview {
   id: string;
@@ -75,6 +86,7 @@ export default function ReviewScreen() {
   const { colors: palette } = useTheme();
   const { currentUser } = useAuth();
   const [submitted, setSubmitted] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [submittedReview, setSubmittedReview] = useState<{
     rating: number;
     text: string;
@@ -148,73 +160,86 @@ export default function ReviewScreen() {
   const isSubmitted = submitted || Boolean(reviewFromStorage);
   const visibleReview = submittedReview ?? reviewFromStorage;
 
-  const handleSubmitReview = async (payload: {
-    rating: number;
-    text: string;
-    categories: Record<string, number>;
-  }) => {
-    if (!booking || !bookingId) {
-      Alert.alert('Missing booking', 'This session could not be reviewed.');
-      return;
-    }
+  const handleSubmitReview = useCallback(
+    async (payload: { rating: number; text: string; categories: Record<string, number> }) => {
+      if (isSubmitting) return;
+      setIsSubmitting(true);
 
-    if (booking.status !== 'COMPLETED') {
-      Alert.alert('Not ready yet', 'You can review a coach once the session is completed.');
-      return;
-    }
+      try {
+        if (!booking || !bookingId) {
+          Alert.alert('Missing booking', 'This session could not be reviewed.');
+          return;
+        }
 
-    try {
-      const reviews = await apiClient.get<StoredReview[]>('coach_reviews', []);
-      const alreadyReviewed = reviews.find((review) =>
-        isReviewForBookingByUser(review, bookingId, currentUser?.id),
-      );
+        if (booking.status !== 'COMPLETED') {
+          Alert.alert('Not ready yet', 'You can review a coach once the session is completed.');
+          return;
+        }
 
-      if (alreadyReviewed) {
-        setSubmitted(true);
-        setSubmittedReview({
-          rating: alreadyReviewed.rating,
-          text: alreadyReviewed.text || alreadyReviewed.content || '',
+        const persistedReview = await withReviewSubmitLock(async () => {
+          const reviews = await apiClient.get<StoredReview[]>('coach_reviews', []);
+          const alreadyReviewed = reviews.find((review) =>
+            isReviewForBookingByUser(review, bookingId, currentUser?.id),
+          );
+
+          if (alreadyReviewed) {
+            return { review: alreadyReviewed, alreadyExisted: true as const };
+          }
+
+          const reviewerName =
+            currentUser?.fullName || currentUser?.name || currentUser?.username || 'Anonymous';
+
+          const newReview: StoredReview = {
+            id: `review_${Date.now()}`,
+            bookingId,
+            coachId: booking.coachId,
+            coachName: booking.coachName,
+            parentName: reviewerName,
+            userName: reviewerName,
+            userId: currentUser?.id,
+            parentId: currentUser?.id,
+            rating: payload.rating,
+            text: payload.text,
+            content: payload.text,
+            categories: payload.categories,
+            createdAt: new Date().toISOString(),
+            sessionDate: booking.scheduledAt ?? new Date().toISOString(),
+          };
+
+          await apiClient.set('coach_reviews', [...reviews, newReview]);
+          return { review: newReview, alreadyExisted: false as const };
         });
-        Alert.alert('Review already submitted', 'You already reviewed this session.');
-        return;
+
+        if (persistedReview.alreadyExisted) {
+          setSubmitted(true);
+          setSubmittedReview({
+            rating: persistedReview.review.rating,
+            text: persistedReview.review.text || persistedReview.review.content || '',
+          });
+          Alert.alert('Review already submitted', 'You already reviewed this session.');
+          return;
+        }
+
+        logger.info('Review submitted', {
+          bookingId,
+          coachId: booking.coachId,
+          rating: payload.rating,
+        });
+
+        setSubmittedReview({
+          rating: persistedReview.review.rating,
+          text: persistedReview.review.text || persistedReview.review.content || '',
+        });
+        setSubmitted(true);
+      } catch (submitError) {
+        logger.error('Failed to submit review', submitError);
+        Alert.alert('Error', 'Failed to submit review. Please try again.');
+      } finally {
+        setIsSubmitting(false);
       }
-
-      const reviewerName =
-        currentUser?.fullName || currentUser?.name || currentUser?.username || 'Anonymous';
-
-      const newReview: StoredReview = {
-        id: `review_${Date.now()}`,
-        bookingId,
-        coachId: booking.coachId,
-        coachName: booking.coachName,
-        parentName: reviewerName,
-        userName: reviewerName,
-        userId: currentUser?.id,
-        parentId: currentUser?.id,
-        rating: payload.rating,
-        text: payload.text,
-        content: payload.text,
-        categories: payload.categories,
-        createdAt: new Date().toISOString(),
-        sessionDate: booking.scheduledAt ?? new Date().toISOString(),
-      };
-
-      reviews.push(newReview);
-      await apiClient.set('coach_reviews', reviews);
-
-      logger.info('Review submitted', {
-        bookingId,
-        coachId: booking.coachId,
-        rating: payload.rating,
-      });
-
-      setSubmittedReview({ rating: payload.rating, text: payload.text });
-      setSubmitted(true);
-    } catch (submitError) {
-      logger.error('Failed to submit review', submitError);
-      Alert.alert('Error', 'Failed to submit review. Please try again.');
-    }
-  };
+    },
+    [isSubmitting, booking, bookingId, currentUser?.id, currentUser?.fullName, currentUser?.name, currentUser?.username],
+  );
 
   const formatDate = (dateString?: string) => {
     if (!dateString) return '';
@@ -315,7 +340,7 @@ export default function ReviewScreen() {
               onDone={() => router.back()}
             />
           ) : (
-            <ReviewForm onSubmit={handleSubmitReview} />
+            <ReviewForm onSubmit={handleSubmitReview} submitting={isSubmitting} />
           )}
         </ScrollView>
       </KeyboardAvoidingView>

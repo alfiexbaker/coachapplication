@@ -172,13 +172,22 @@ export function useRateCoach() {
   const coaches = data?.coaches ?? [];
 
   const handleSubmitReview = useCallback(async () => {
+    if (submitting) return;
+    setSubmitting(true);
     if (!selectedCoach || rating === 0) {
       Alert.alert('Missing Rating', 'Please select a star rating');
+      setSubmitting(false);
       return;
     }
-    setSubmitting(true);
     try {
       const reviews = await apiClient.get<StoredReview[]>('coach_reviews', []);
+      const existingReview = reviews.find(
+        (review) => review.coachId === selectedCoach.id && review.userId === (currentUser?.id ?? ''),
+      );
+      if (existingReview) {
+        Alert.alert('Review already submitted', 'You already submitted a review for this coach.');
+        return;
+      }
       const userName = currentUser?.fullName || currentUser?.username || 'Anonymous';
       const newReview: StoredReview = {
         id: `review_${Date.now()}`,
@@ -205,7 +214,7 @@ export function useRateCoach() {
     } finally {
       setSubmitting(false);
     }
-  }, [selectedCoach, rating, reviewText, currentUser]);
+  }, [selectedCoach, rating, reviewText, currentUser, submitting]);
 
   const toggleChip = useCallback((label: string) => {
     setReviewText((prev) => {

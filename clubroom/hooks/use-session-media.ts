@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Alert, Platform } from 'react-native';
 import * as FileSystem from 'expo-file-system/legacy';
 import * as ImageManipulator from 'expo-image-manipulator';
@@ -100,6 +100,7 @@ export function useSessionMedia({ sessionId, athleteId, coachId }: UseSessionMed
   const [cameraMode, setCameraMode] = useState<CaptureMode>('photo');
   const [isRecording, setIsRecording] = useState(false);
   const [recordingSeconds, setRecordingSeconds] = useState(10);
+  const isUploadingPhotosRef = useRef(false);
 
   const mediaIds = useMemo(() => {
     const photoUris = photos.map((photo) => photo.uri);
@@ -153,12 +154,14 @@ export function useSessionMedia({ sessionId, athleteId, coachId }: UseSessionMed
   }, []);
 
   const takePhoto = useCallback(async () => {
+    if (isUploadingPhotosRef.current) return;
     if (photos.length >= MAX_PHOTOS) {
       Alert.alert('Limit reached', 'Maximum 3 photos per session.');
       return;
     }
 
     if (Platform.OS === 'web') {
+      isUploadingPhotosRef.current = true;
       try {
         const result = await ImagePicker.launchImageLibraryAsync({
           mediaTypes: ImagePicker.MediaTypeOptions.Images,
@@ -180,6 +183,8 @@ export function useSessionMedia({ sessionId, athleteId, coachId }: UseSessionMed
       } catch (error) {
         logger.error('Failed to select photo from library', error);
         Alert.alert('Capture failed', 'Unable to save photo. Please try again.');
+      } finally {
+        isUploadingPhotosRef.current = false;
       }
       return;
     }
@@ -205,15 +210,29 @@ export function useSessionMedia({ sessionId, athleteId, coachId }: UseSessionMed
 
   const handlePhotoCaptured = useCallback(
     async (payload: CapturedPhotoPayload) => {
+      if (isUploadingPhotosRef.current) {
+        closeCamera();
+        return;
+      }
+      isUploadingPhotosRef.current = true;
       try {
+        if (photos.length >= MAX_PHOTOS) {
+          Alert.alert('Limit reached', 'Maximum 3 photos per session.');
+          return;
+        }
         const photoAsset = await processPhotoAsset(payload);
         const nextPhotos = [...photos, photoAsset];
+        if (nextPhotos.length > MAX_PHOTOS) {
+          Alert.alert('Limit reached', 'Maximum 3 photos per session.');
+          return;
+        }
         setPhotos(nextPhotos);
         await persistMedia(nextPhotos, video);
       } catch (error) {
         logger.error('Failed to process captured photo', error);
         Alert.alert('Capture failed', 'Unable to save photo. Please try again.');
       } finally {
+        isUploadingPhotosRef.current = false;
         closeCamera();
       }
     },

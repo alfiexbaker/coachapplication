@@ -14,14 +14,14 @@ const MIN_REVIEW_LENGTH = 10;
 interface ReviewFormProps {
   onSubmit: (payload: { rating: number; text: string; categories: Record<string, number> }) => void;
   isCoachView?: boolean;
+  submitting?: boolean;
 }
 
-export function ReviewForm({ onSubmit, isCoachView }: ReviewFormProps) {
+export function ReviewForm({ onSubmit, isCoachView, submitting = false }: ReviewFormProps) {
   const { colors: palette } = useTheme();
   const [rating, setRating] = useState(0);
   const [text, setText] = useState('');
   const [categories, setCategories] = useState<Record<string, number>>({});
-  const [submitting, setSubmitting] = useState(false);
 
   const categoryFields = isCoachView
     ? [
@@ -47,6 +47,8 @@ export function ReviewForm({ onSubmit, isCoachView }: ReviewFormProps) {
   };
 
   const validateAndSubmit = () => {
+    if (submitting) return;
+
     // Validate rating
     if (rating === 0) {
       Alert.alert('Missing Rating', 'Please select an overall rating');
@@ -62,7 +64,6 @@ export function ReviewForm({ onSubmit, isCoachView }: ReviewFormProps) {
       return;
     }
 
-    setSubmitting(true);
     onSubmit({ rating, text: text.trim(), categories });
   };
 

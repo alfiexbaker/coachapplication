@@ -135,6 +135,9 @@ export function useForm<T extends { [K in keyof T]: string }>({
 
   // Handle form submission
   const handleSubmit = useCallback(async () => {
+    if (isSubmitting) return;
+    setIsSubmitting(true);
+
     // Mark all fields as touched
     const allTouched = Object.keys(values).reduce(
       (acc, key) => ({ ...acc, [key]: true }),
@@ -150,11 +153,10 @@ export function useForm<T extends { [K in keyof T]: string }>({
       if (hasErrors(allErrors)) {
         logger.warn('Form validation failed', { errors: allErrors });
         onValidationError?.(allErrors);
+        setIsSubmitting(false);
         return;
       }
     }
-
-    setIsSubmitting(true);
 
     try {
       await onSubmit(values);
@@ -164,7 +166,7 @@ export function useForm<T extends { [K in keyof T]: string }>({
     } finally {
       setIsSubmitting(false);
     }
-  }, [values, fieldValidators, onSubmit, onValidationError]);
+  }, [values, fieldValidators, onSubmit, onValidationError, isSubmitting]);
 
   // Reset form
   const reset = useCallback(() => {

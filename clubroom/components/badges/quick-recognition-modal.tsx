@@ -70,6 +70,7 @@ export function QuickRecognitionModal({
   const [awarding, setAwarding] = useState(false);
   const [cooldownError, setCooldownError] = useState<string | null>(null);
   const closeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const awardingAthleteIdsRef = useRef<Set<string>>(new Set());
 
   useEffect(() => {
     return () => {
@@ -103,58 +104,62 @@ export function QuickRecognitionModal({
   }, []);
 
   const handleTemplateSelect = useCallback(async (template: RecognitionTemplate) => {
-    if (awarding) return;
+    if (awarding || awardingAthleteIdsRef.current.has(athleteId)) return;
 
+    awardingAthleteIdsRef.current.add(athleteId);
     setAwarding(true);
     setCooldownError(null);
-    if (Platform.OS !== 'web') Haptics.selectionAsync();
+    try {
+      if (Platform.OS !== 'web') Haptics.selectionAsync();
 
-    const badge = badgeService.findBadgeForCategory(template.category);
-    if (!badge) {
-      setCooldownError('No badge found for this category.');
-      setAwarding(false);
-      return;
-    }
-
-    const result = await badgeService.awardBadge({
-      badgeId: badge.id,
-      athleteId,
-      coachId,
-      sessionId,
-      reason: template.message,
-      note: customNote.trim() || undefined,
-      visibility: 'supporters',
-      overrideCooldown: false,
-    });
-
-    if (!result.success) {
-      const msg = result.error.message;
-      if (msg.includes('Cooldown')) {
-        setCooldownError(msg);
-        if (Platform.OS !== 'web') Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
-      } else {
-        setCooldownError(msg);
-        if (Platform.OS !== 'web') Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+      const badge = badgeService.findBadgeForCategory(template.category);
+      if (!badge) {
+        setCooldownError('No badge found for this category.');
+        return;
       }
+
+      const result = await badgeService.awardBadge({
+        badgeId: badge.id,
+        athleteId,
+        coachId,
+        sessionId,
+        reason: template.message,
+        note: customNote.trim() || undefined,
+        visibility: 'supporters',
+        overrideCooldown: false,
+      });
+
+      if (!result.success) {
+        const msg = result.error.message;
+        if (msg.includes('Cooldown')) {
+          setCooldownError(msg);
+          if (Platform.OS !== 'web') Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
+        } else {
+          setCooldownError(msg);
+          if (Platform.OS !== 'web') Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+        }
+        return;
+      }
+
+      if (Platform.OS !== 'web') Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      showToast('Recognition sent', 'success');
+      onAwarded?.(result.data);
+      logger.info('quick_recognition_awarded', {
+        athleteId,
+        coachId,
+        sessionId,
+        category: template.category,
+        templateId: template.id,
+      });
+
+      closeTimerRef.current = setTimeout(() => {
+        resetState();
+        onClose();
+      }, 500);
+    } finally {
+      awardingAthleteIdsRef.current.delete(athleteId);
       setAwarding(false);
-      return;
     }
-
-    if (Platform.OS !== 'web') Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-    showToast('Recognition sent', 'success');
-    onAwarded?.(result.data);
-    logger.info('quick_recognition_awarded', {
-      athleteId,
-      coachId,
-      sessionId,
-      category: template.category,
-      templateId: template.id,
-    });
-
-    closeTimerRef.current = setTimeout(() => {
-      resetState();
-      onClose();
-    }, 500);
   }, [awarding, athleteId, coachId, sessionId, customNote, showToast, onAwarded, resetState, onClose]);
 
   const handleToggleNote = useCallback(() => {

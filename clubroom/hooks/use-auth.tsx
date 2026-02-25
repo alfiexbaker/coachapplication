@@ -6,6 +6,7 @@ import {
   useCallback,
   useEffect,
   useMemo,
+  useRef,
   useState,
   type ReactNode,
 } from 'react';
@@ -511,6 +512,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [currentUser, setCurrentUser] = useState<DemoUser | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const isAuthenticatingRef = useRef(false);
   const [registeredUsers, setRegisteredUsers] = useState<DemoUser[]>(DEMO_USERS);
 
   useEffect(() => {
@@ -578,6 +580,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const login = useCallback(
     (username: string, password: string) => {
+      if (isAuthenticatingRef.current) return false;
+      isAuthenticatingRef.current = true;
+      try {
       const normalizedUsername = username.trim().toLowerCase();
       logger.info('Login attempt', { username: normalizedUsername });
 
@@ -627,6 +632,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       logger.warn('Login failed: Invalid credentials', { username: normalizedUsername });
       setError('Invalid username or password.');
       return false;
+      } finally {
+        isAuthenticatingRef.current = false;
+      }
     },
     [registeredUsers],
   );

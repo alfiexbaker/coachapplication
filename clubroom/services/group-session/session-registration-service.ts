@@ -504,6 +504,17 @@ const MOCK_REGISTRATIONS: GroupRegistration[] = [
 ];
 
 let registrationsCache: GroupRegistration[] = [...MOCK_REGISTRATIONS];
+let _registrationLock: Promise<void> = Promise.resolve();
+
+function withRegistrationLock<T>(fn: () => Promise<T>): Promise<T> {
+  let release!: () => void;
+  const next = new Promise<void>((resolve) => {
+    release = resolve;
+  });
+  const prev = _registrationLock;
+  _registrationLock = next;
+  return prev.then(fn).finally(() => release());
+}
 
 async function resolveUserName(userId: string, fallback: string): Promise<string> {
   const userResult = await userService.getUserById(userId);
@@ -553,104 +564,103 @@ export const sessionRegistrationService = {
     parentId: string,
   ): Promise<Result<GroupRegistration, ServiceError>> {
     if (USE_MOCK) {
-      let sessionsCache = await loadSessions();
-      registrationsCache = await loadRegistrations();
+      // Single-device, in-process mutex to serialize AsyncStorage read-check-write.
+      return withRegistrationLock(async () => {
+        let sessionsCache = await loadSessions();
+        registrationsCache = await loadRegistrations();
 
-      const session = sessionsCache.find((s) => s.id === sessionId);
-      if (!session) return err(notFound('Session', sessionId));
+        const session = sessionsCache.find((s) => s.id === sessionId);
+        if (!session) return err(notFound('Session', sessionId));
 
-      // Check capacity
-      const isFull = session.currentParticipants >= session.maxParticipants;
+        const isFull = session.currentParticipants >= session.maxParticipants;
 
-      const registration: GroupRegistration = {
-        id: `reg_${Date.now()}`,
-        sessionId,
-        athleteId,
-        parentId,
-        status: isFull ? 'WAITLISTED' : 'REGISTERED',
-        registeredAt: new Date().toISOString(),
-        paidAt: isFull ? undefined : new Date().toISOString(),
-        attendedDates: [],
-      };
+        const registration: GroupRegistration = {
+          id: `reg_${Date.now()}`,
+          sessionId,
+          athleteId,
+          parentId,
+          status: isFull ? 'WAITLISTED' : 'REGISTERED',
+          registeredAt: new Date().toISOString(),
+          paidAt: isFull ? undefined : new Date().toISOString(),
+          attendedDates: [],
+        };
 
-      registrationsCache.push(registration);
-      await saveRegistrations(registrationsCache);
+        registrationsCache.push(registration);
+        await saveRegistrations(registrationsCache);
 
-      // Trigger notification to coach for new registration
-      if (!isFull) {
-        const athleteDisplayName = await resolveUserName(athleteId, 'Athlete');
-        await notificationTriggers.groupRegistered(
-          athleteDisplayName,
-          session.title,
-          session.coachId,
-        );
-      }
-
-      // Update session counts
-      if (isFull) {
-        session.waitlistCount += 1;
-      } else {
-        session.currentParticipants += 1;
-        if (session.currentParticipants >= session.maxParticipants) {
-          session.status = 'FULL';
+        if (!isFull) {
+          const athleteDisplayName = await resolveUserName(athleteId, 'Athlete');
+          await notificationTriggers.groupRegistered(
+            athleteDisplayName,
+            session.title,
+            session.coachId,
+          );
         }
-      }
-      await saveSessions(sessionsCache);
 
-      // Create a linked booking so group sessions appear in the bookings list
-      if (!isFull) {
-        try {
-          const [coachDisplayName, athleteDisplayName, parentDisplayName] = await Promise.all([
-            resolveUserName(session.coachId, 'Coach'),
-            resolveUserName(athleteId, 'Athlete'),
-            resolveUserName(parentId, 'Parent'),
-          ]);
-          const nextDate = session.schedule[0]?.date
-            ? `${session.schedule[0].date}T${session.schedule[0].startTime || '09:00'}:00`
-            : new Date().toISOString();
-          const bookingResult = await bookingCrudService.createBooking({
-            coachId: session.coachId,
-            coachName: coachDisplayName,
-            athleteIds: [athleteId],
-            athleteNames: [athleteDisplayName],
-            bookedById: parentId,
-            bookedByName: parentDisplayName,
-            scheduledAt: nextDate,
-            duration: 60,
-            location: session.location,
-            service: session.title,
-            serviceType: 'GROUP_SESSION',
-            price: session.pricePerParticipant,
-          });
-          if (bookingResult.success) {
-            const booking = bookingResult.data;
-            const linkResult = await bookingCrudService.updateBooking(booking.id, {
-              isGroupSession: true,
-              groupSessionId: session.id,
-              groupRegistrationId: registration.id,
-              status: 'CONFIRMED',
+        if (isFull) {
+          session.waitlistCount += 1;
+        } else {
+          session.currentParticipants += 1;
+          if (session.currentParticipants >= session.maxParticipants) {
+            session.status = 'FULL';
+          }
+        }
+        await saveSessions(sessionsCache);
+
+        if (!isFull) {
+          try {
+            const [coachDisplayName, athleteDisplayName, parentDisplayName] = await Promise.all([
+              resolveUserName(session.coachId, 'Coach'),
+              resolveUserName(athleteId, 'Athlete'),
+              resolveUserName(parentId, 'Parent'),
+            ]);
+            const nextDate = session.schedule[0]?.date
+              ? `${session.schedule[0].date}T${session.schedule[0].startTime || '09:00'}:00`
+              : new Date().toISOString();
+            const bookingResult = await bookingCrudService.createBooking({
+              coachId: session.coachId,
+              coachName: coachDisplayName,
+              athleteIds: [athleteId],
+              athleteNames: [athleteDisplayName],
+              bookedById: parentId,
+              bookedByName: parentDisplayName,
+              scheduledAt: nextDate,
+              duration: 60,
+              location: session.location,
+              service: session.title,
+              serviceType: 'GROUP_SESSION',
+              price: session.pricePerParticipant,
             });
-            if (!linkResult.success) {
-              logger.error('Failed to persist group linkage on booking', {
-                bookingId: booking.id,
+            if (bookingResult.success) {
+              const booking = bookingResult.data;
+              const linkResult = await bookingCrudService.updateBooking(booking.id, {
+                isGroupSession: true,
                 groupSessionId: session.id,
                 groupRegistrationId: registration.id,
-                error: linkResult.error.message,
+                status: 'CONFIRMED',
+              });
+              if (!linkResult.success) {
+                logger.error('Failed to persist group linkage on booking', {
+                  bookingId: booking.id,
+                  groupSessionId: session.id,
+                  groupRegistrationId: registration.id,
+                  error: linkResult.error.message,
+                });
+              }
+
+              emitTyped(ServiceEvents.BOOKING_CREATED, {
+                bookingId: booking.id,
+                userId: parentId,
+                coachId: session.coachId,
               });
             }
-
-            emitTyped(ServiceEvents.BOOKING_CREATED, {
-              bookingId: booking.id,
-              userId: parentId,
-              coachId: session.coachId,
-            });
+          } catch (error) {
+            logger.error('Failed to create linked booking for group registration', error);
           }
-        } catch (error) {
-          logger.error('Failed to create linked booking for group registration', error);
         }
-      }
 
-      return ok(registration);
+        return ok(registration);
+      });
     }
 
     const response = await fetch(`/api/group-sessions/${sessionId}/register`, {

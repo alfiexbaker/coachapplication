@@ -1,4 +1,4 @@
-import React, { memo } from 'react';
+import React, { memo, useCallback, useRef } from 'react';
 import { Modal, ScrollView, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -46,6 +46,21 @@ export const RollCallModal = memo(function RollCallModal({
   onSave,
   onReportInjury,
 }: RollCallModalProps) {
+  const processingParticipantIdsRef = useRef<Set<string>>(new Set());
+
+  const handleMarkStatus = useCallback(
+    async (participantId: string, status: AttendanceStatus) => {
+      if (processingParticipantIdsRef.current.has(participantId)) return;
+      processingParticipantIdsRef.current.add(participantId);
+      try {
+        await Promise.resolve(onMarkStatus(participantId, status));
+      } finally {
+        processingParticipantIdsRef.current.delete(participantId);
+      }
+    },
+    [onMarkStatus],
+  );
+
   return (
     <Modal
       visible={visible}
@@ -164,7 +179,9 @@ export const RollCallModal = memo(function RollCallModal({
                           borderColor: status === s ? color : colors.border,
                         },
                       ]}
-                      onPress={() => onMarkStatus(reg.id, s)}
+                      onPress={() => {
+                        void handleMarkStatus(reg.id, s);
+                      }}
                       accessibilityRole="button"
                       accessibilityLabel={`Mark ${athleteName} as ${s}`}
                       accessibilityState={{ selected: status === s }}

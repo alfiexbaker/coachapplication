@@ -56,9 +56,12 @@ export function useCreateClub() {
   }, []);
 
   const handleCreate = useCallback(async () => {
-    if (!isValid || !currentUser) return;
-
+    if (isSubmitting) return;
     setIsSubmitting(true);
+    if (!isValid || !currentUser) {
+      setIsSubmitting(false);
+      return;
+    }
     logger.action('CreateClub', { name, city });
 
     try {
@@ -104,7 +107,7 @@ export function useCreateClub() {
     } finally {
       setIsSubmitting(false);
     }
-  }, [isValid, currentUser, trimmedName, tagline, city, country, badge]);
+  }, [isSubmitting, isValid, currentUser, trimmedName, tagline, city, country, badge, name]);
 
   const previewBadge = badge || name.slice(0, 3).toUpperCase() || 'ABC';
   const previewName = name || 'Your Club Name';
