@@ -133,9 +133,16 @@ export function useBlockedDates(
         ? selectedEnd
         : selectedStart
       : selectedStart;
-    (async () => {
-      setBookingConflict(await getBookingsInRange(coachId, start, end));
-    })();
+    const timeoutId = setTimeout(() => {
+      void (async () => {
+        const nextConflict = await getBookingsInRange(coachId, start, end);
+        setBookingConflict(() => nextConflict);
+      })();
+    }, 150);
+
+    return () => {
+      clearTimeout(timeoutId);
+    };
   }, [coachId, selectedStart, selectedEnd]);
 
   const handleDateSelect = useCallback(

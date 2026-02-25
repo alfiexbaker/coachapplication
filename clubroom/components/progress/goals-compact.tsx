@@ -224,10 +224,13 @@ export const GoalsCompact = memo(function GoalsCompact({
                 onPress={() => {
                   closeCreate();
                 }}
+                disabled={isSubmitting}
                 accessibilityLabel="Cancel goal creation"
                 accessibilityRole="button"
               >
-                <ThemedText style={[styles.smallButtonText, { color: colors.muted }]}>Cancel</ThemedText>
+                <ThemedText style={[styles.smallButtonText, { color: colors.muted }]}>
+                  {isSubmitting ? 'Saving...' : 'Cancel'}
+                </ThemedText>
               </Clickable>
               <Clickable
                 style={[styles.smallButton, { backgroundColor: colors.tint }]}

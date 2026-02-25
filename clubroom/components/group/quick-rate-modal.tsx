@@ -147,9 +147,10 @@ export const QuickRateModal = memo(function QuickRateModal({
   }, [athlete, currentRating, sessionId, coachId, coachName, onSaved, onClose, showToast]);
 
   const closeNow = useCallback(() => {
+    if (saving) return;
     Keyboard.dismiss();
     onClose();
-  }, [onClose]);
+  }, [onClose, saving]);
 
   const handleClose = useCallback(() => {
     if (saving) return;
@@ -181,12 +182,14 @@ export const QuickRateModal = memo(function QuickRateModal({
             onPress={handleClose}
             accessibilityRole="button"
             accessibilityLabel="Close skill rating"
+            disabled={saving}
+            accessibilityState={{ disabled: saving }}
           >
             <Ionicons name="close" size={24} color={colors.text} />
           </Clickable>
           <View style={styles.headerCenter}>
             <ThemedText type="defaultSemiBold" style={Typography.heading}>
-              Rate Skills
+              {saving ? 'Saving rating...' : 'Rate Skills'}
             </ThemedText>
           </View>
           <Clickable

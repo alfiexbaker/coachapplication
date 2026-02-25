@@ -51,6 +51,7 @@ export default function MatchesScreen() {
               action={isCoach ? 'Create Match' : undefined}
               actionIcon="add"
               onActionPress={isCoach ? handleCreateMatch : undefined}
+              rightActionLoading={false}
             />
           }
         >
@@ -72,6 +73,7 @@ export default function MatchesScreen() {
               action={isCoach ? 'Create Match' : undefined}
               actionIcon="add"
               onActionPress={isCoach ? handleCreateMatch : undefined}
+              rightActionLoading={false}
             />
           }
         >
@@ -92,6 +94,7 @@ export default function MatchesScreen() {
             action={isCoach ? 'Create Match' : undefined}
             actionIcon="add"
             onActionPress={isCoach ? handleCreateMatch : undefined}
+            rightActionLoading={refreshing}
           />
         }
         gap={0}

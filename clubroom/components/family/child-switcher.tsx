@@ -2,8 +2,8 @@
  * ChildSwitcher — Low-noise horizontal focus picker.
  */
 
-import { memo, useCallback } from 'react';
-import { View, StyleSheet, ScrollView, Platform } from 'react-native';
+import { memo, useCallback, useEffect, useRef, useState } from 'react';
+import { ActivityIndicator, View, StyleSheet, ScrollView, Platform } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 
@@ -27,6 +27,14 @@ interface ChildSwitcherProps {
   activeChildId?: string | null;
 }
 
+function debounce<T extends (...args: never[]) => void>(fn: T, waitMs: number) {
+  let timeoutId: ReturnType<typeof setTimeout> | null = null;
+  return (...args: Parameters<T>) => {
+    if (timeoutId) clearTimeout(timeoutId);
+    timeoutId = setTimeout(() => fn(...args), waitMs);
+  };
+}
+
 function ChildSwitcherInner({
   options,
   selectedId,
@@ -34,15 +42,34 @@ function ChildSwitcherInner({
   activeChildId,
 }: ChildSwitcherProps) {
   const { colors: palette } = useTheme();
+  const [isSwitching, setIsSwitching] = useState(false);
+  const [pendingChildId, setPendingChildId] = useState<string | null>(null);
+  const debouncedSwitchRef = useRef<(childId: string) => void>(() => {});
+
+  useEffect(() => {
+    debouncedSwitchRef.current = debounce((childId: string) => {
+      void (async () => {
+        setIsSwitching(true);
+        try {
+          await Promise.resolve(onSelect(childId));
+        } finally {
+          setIsSwitching(false);
+          setPendingChildId(null);
+        }
+      })();
+    }, 300);
+  }, [onSelect]);
 
   const handleSelect = useCallback(
     (childId: string) => {
+      if (isSwitching) return;
       if (Platform.OS !== 'web') {
         Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
       }
-      onSelect(childId);
+      setPendingChildId(childId);
+      debouncedSwitchRef.current(childId);
     },
-    [onSelect],
+    [isSwitching],
   );
 
   if (options.length <= 1) return null;
@@ -65,12 +92,14 @@ function ChildSwitcherInner({
         {options.map((child) => {
           const isSelected = child.id === selectedId;
           const isActiveChild = child.id === activeChildId;
+          const isPending = pendingChildId === child.id && isSwitching;
           const accentColor = child.colorCode || palette.tint;
 
           return (
             <Clickable
               key={child.id}
               onPress={() => handleSelect(child.id)}
+              disabled={isSwitching}
               style={[
                 styles.chip,
                 {
@@ -82,7 +111,7 @@ function ChildSwitcherInner({
               ]}
               accessibilityRole="tab"
               accessibilityLabel={`View progress for ${child.name}`}
-              accessibilityState={{ selected: isSelected }}
+              accessibilityState={{ selected: isSelected, disabled: isSwitching }}
             >
               <Row align="center" gap="xs">
                 <View
@@ -105,10 +134,12 @@ function ChildSwitcherInner({
                   {child.name}
                 </ThemedText>
 
-                {isSelected && (
+                {isPending ? (
+                  <ActivityIndicator size="small" color={accentColor} />
+                ) : isSelected ? (
                   <Ionicons name="checkmark" size={12} color={accentColor} />
-                )}
-                {isActiveChild && !isSelected && (
+                ) : null}
+                {isActiveChild && !isSelected && !isPending && (
                   <View
                     style={[
                       styles.activeHint,

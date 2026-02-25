@@ -428,19 +428,20 @@ export default function SessionCompleteScreen() {
                 {currentStep === 'quickRate' && (
                   <QuickRateStep
                     athletes={quickRateEnabledAthletes}
-                  ratingsByAthleteId={quickRate.ratingsByAthleteId}
-                  currentIndex={quickRate.currentIndex}
-                  isPrefilling={quickRate.isPrefilling}
-                  onIndexChange={quickRate.setIndex}
-                  onPositionChange={quickRate.updatePosition}
-                  onSkillChange={quickRate.updateSkillRating}
-                  onEffortChange={(athleteId, value) => {
-                    quickRate.updateEffort(athleteId, value);
-                    updateAthleteEffort(athleteId, value);
-                  }}
+                    ratingsByAthleteId={quickRate.ratingsByAthleteId}
+                    currentIndex={quickRate.currentIndex}
+                    isPrefilling={quickRate.isPrefilling}
+                    onIndexChange={quickRate.setIndex}
+                    onPositionChange={quickRate.updatePosition}
+                    onSkillChange={quickRate.updateSkillRating}
+                    onEffortChange={(athleteId, value) => {
+                      quickRate.updateEffort(athleteId, value);
+                      updateAthleteEffort(athleteId, value);
+                    }}
                     onBadgePress={handleQuickRateBadgePress}
                     onMediaIdsChange={quickRate.setMediaIds}
                     onSkipAll={handleSkipQuickRate}
+                    isSubmitting={submitting}
                   />
                 )}
                 {currentStep === 'notes' && (

@@ -162,7 +162,7 @@ export function useQuickRate({ athletes, sessionId, coachId, effortByAthleteId }
   const athleteKey = useMemo(() => athletes.map((athlete) => athlete.athleteId).join('|'), [athletes]);
 
   useEffect(() => {
-    let isMounted = true;
+    const controller = new AbortController();
 
     if (athletes.length === 0) {
       setRatingsByAthleteId({});
@@ -173,7 +173,7 @@ export function useQuickRate({ athletes, sessionId, coachId, effortByAthleteId }
       setIsPrefilling(false);
       setIsSkippedAll(false);
       return () => {
-        isMounted = false;
+        controller.abort();
       };
     }
 
@@ -256,7 +256,7 @@ export function useQuickRate({ athletes, sessionId, coachId, effortByAthleteId }
         }),
       );
 
-      if (!isMounted) {
+      if (controller.signal.aborted) {
         return;
       }
 
@@ -271,7 +271,7 @@ export function useQuickRate({ athletes, sessionId, coachId, effortByAthleteId }
     void prefillFromPrevious();
 
     return () => {
-      isMounted = false;
+      controller.abort();
     };
   }, [athleteKey, athletes, coachId, effortByAthleteId, sessionId]);
 

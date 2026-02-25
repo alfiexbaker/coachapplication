@@ -33,6 +33,7 @@ interface QuickRateStepProps {
   onBadgePress: (athleteId: string) => void;
   onMediaIdsChange: (athleteId: string, mediaIds: string[]) => void;
   onSkipAll: () => void;
+  isSubmitting?: boolean;
 }
 
 interface QuickRatePagerItemProps {
@@ -93,6 +94,7 @@ export const QuickRateStep = memo(function QuickRateStep({
   onBadgePress,
   onMediaIdsChange,
   onSkipAll,
+  isSubmitting = false,
 }: QuickRateStepProps) {
   const { colors } = useTheme();
   const { width: windowWidth } = useWindowDimensions();
@@ -260,17 +262,20 @@ export const QuickRateStep = memo(function QuickRateStep({
         <Clickable
           style={styles.skipButton}
           onPress={onSkipAll}
+          disabled={isSubmitting}
           accessibilityLabel="Skip quick rate step"
           accessibilityRole="button"
         >
-          <ThemedText style={[styles.skipText, { color: colors.muted }]}>Skip All</ThemedText>
+          <ThemedText style={[styles.skipText, { color: colors.muted }]}>
+            {isSubmitting ? 'Saving...' : 'Skip All'}
+          </ThemedText>
         </Clickable>
 
         <Row gap="xs">
           <Clickable
             style={[styles.navButton, { borderColor: colors.border }]}
             onPress={() => scrollToIndex(clampedIndex - 1)}
-            disabled={!canGoPrev}
+            disabled={!canGoPrev || isSubmitting}
             accessibilityLabel="Show previous athlete"
             accessibilityRole="button"
           >
@@ -286,11 +291,13 @@ export const QuickRateStep = memo(function QuickRateStep({
               },
             ]}
             onPress={() => scrollToIndex(clampedIndex + 1)}
-            disabled={!canGoNext}
+            disabled={!canGoNext || isSubmitting}
             accessibilityLabel="Show next athlete"
             accessibilityRole="button"
           >
-            <ThemedText style={[styles.navText, { color: colors.tint }]}>Next</ThemedText>
+            <ThemedText style={[styles.navText, { color: colors.tint }]}>
+              {isSubmitting ? 'Saving...' : 'Next'}
+            </ThemedText>
           </Clickable>
         </Row>
       </Row>

@@ -1,5 +1,5 @@
-import React, { memo } from 'react';
-import { StyleSheet, View } from 'react-native';
+import React, { memo, useCallback, useState } from 'react';
+import { ActivityIndicator, StyleSheet, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
 import { Column } from '@/components/primitives/column';
@@ -26,6 +26,26 @@ export const SquadAddMembers = memo(function SquadAddMembers({
   colors,
   onAdd,
 }: SquadAddMembersProps) {
+  const [isAddingByMemberId, setIsAddingByMemberId] = useState<Map<string, boolean>>(new Map());
+
+  const handleAddMember = useCallback(
+    async (member: ClubMember) => {
+      if (isAddingByMemberId.get(member.userId)) return;
+
+      setIsAddingByMemberId((prev) => new Map(prev).set(member.userId, true));
+      try {
+        await Promise.resolve(onAdd(member));
+      } finally {
+        setIsAddingByMemberId((prev) => {
+          const next = new Map(prev);
+          next.delete(member.userId);
+          return next;
+        });
+      }
+    },
+    [isAddingByMemberId, onAdd],
+  );
+
   if (!visible) return null;
 
   if (membersNotInSquad.length === 0) {
@@ -51,11 +71,15 @@ export const SquadAddMembers = memo(function SquadAddMembers({
         {membersNotInSquad.map((member) => {
           const roleColor = clubService.getRoleColor(member.role);
           const initials = member.userName.slice(0, 2).toUpperCase();
+          const isAdding = Boolean(isAddingByMemberId.get(member.userId));
           return (
             <Clickable
               key={member.userId}
               style={[styles.row, { borderColor: colors.border }]}
-              onPress={() => onAdd(member)}
+              onPress={() => {
+                void handleAddMember(member);
+              }}
+              disabled={isAdding}
             >
               <Row align="center" gap="sm">
                 <View style={[styles.avatar, { backgroundColor: withAlpha(roleColor, 0.09) }]}>
@@ -69,8 +93,19 @@ export const SquadAddMembers = memo(function SquadAddMembers({
                     {clubService.formatRole(member.role)}
                   </ThemedText>
                 </Column>
-                <View style={[styles.addIcon, { backgroundColor: withAlpha(colors.tint, 0.09) }]}>
-                  <Ionicons name="add" size={18} color={colors.tint} />
+                <View style={styles.addAction}>
+                  {isAdding ? (
+                    <Row align="center" gap="xxs">
+                      <ActivityIndicator size="small" color={colors.tint} />
+                      <ThemedText style={[Typography.caption, { color: colors.tint }]}>
+                        Adding...
+                      </ThemedText>
+                    </Row>
+                  ) : (
+                    <View style={[styles.addIcon, { backgroundColor: withAlpha(colors.tint, 0.09) }]}>
+                      <Ionicons name="add" size={18} color={colors.tint} />
+                    </View>
+                  )}
                 </View>
               </Row>
             </Clickable>
@@ -98,6 +133,11 @@ const styles = StyleSheet.create({
     height: 28,
     borderRadius: Radii.lg,
     alignItems: 'center',
+    justifyContent: 'center',
+  },
+  addAction: {
+    minWidth: 72,
+    alignItems: 'flex-end',
     justifyContent: 'center',
   },
 });

@@ -1,5 +1,5 @@
 import { ReactNode, useState } from 'react';
-import { View, StyleSheet, type StyleProp, type ViewStyle } from 'react-native';
+import { ActivityIndicator, View, StyleSheet, type StyleProp, type ViewStyle } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 
@@ -56,6 +56,11 @@ export interface PageHeaderProps {
   onActionPress?: () => void;
 
   /**
+   * Optional loading state for default right action button
+   */
+  rightActionLoading?: boolean;
+
+  /**
    * Custom right element (overrides action/actionIcon)
    */
   right?: ReactNode;
@@ -106,6 +111,7 @@ export function PageHeader({
   action,
   actionIcon,
   onActionPress,
+  rightActionLoading = false,
   right,
   rightAction,
   centerTitle = false,
@@ -160,11 +166,17 @@ export function PageHeader({
               },
             ]}
             onPress={onActionPress}
+            disabled={rightActionLoading}
             accessibilityRole="button"
             accessibilityLabel={action ?? 'Header action'}
+            accessibilityState={{ disabled: rightActionLoading }}
           >
             <Row align="center" gap={Spacing.xs / 2}>
-              {actionIcon ? <Ionicons name={actionIcon} size={18} color={palette.foreground} /> : null}
+              {rightActionLoading ? (
+                <ActivityIndicator size="small" color={palette.foreground} />
+              ) : actionIcon ? (
+                <Ionicons name={actionIcon} size={18} color={palette.foreground} />
+              ) : null}
               {action ? (
                 <ThemedText
                   style={[
@@ -173,7 +185,7 @@ export function PageHeader({
                     !actionIcon ? styles.actionTextOnly : undefined,
                   ]}
                 >
-                  {action}
+                  {rightActionLoading ? 'Loading...' : action}
                 </ThemedText>
               ) : null}
             </Row>

@@ -1,4 +1,5 @@
 import { View, StyleSheet, ActivityIndicator } from 'react-native';
+import { useCallback, useState } from 'react';
 import { Ionicons } from '@expo/vector-icons';
 
 import { Clickable } from '@/components/primitives/clickable';
@@ -14,6 +15,18 @@ interface WaitlistBannerProps {
 
 export function WaitlistBanner({ waitlistCount, onJoinWaitlist, loading }: WaitlistBannerProps) {
   const { colors: palette } = useTheme();
+  const [isJoining, setIsJoining] = useState(false);
+  const isLoading = Boolean(loading) || isJoining;
+
+  const handleJoin = useCallback(async () => {
+    if (isLoading) return;
+    setIsJoining(true);
+    try {
+      await Promise.resolve(onJoinWaitlist());
+    } finally {
+      setIsJoining(false);
+    }
+  }, [isLoading, onJoinWaitlist]);
 
   return (
     <View
@@ -38,11 +51,13 @@ export function WaitlistBanner({ waitlistCount, onJoinWaitlist, loading }: Waitl
       </View>
 
       <Clickable
-        onPress={onJoinWaitlist}
-        disabled={loading}
+        onPress={() => {
+          void handleJoin();
+        }}
+        disabled={isLoading}
         style={[styles.button, { backgroundColor: palette.warning }]}
       >
-        {loading ? (
+        {isLoading ? (
           <ActivityIndicator size="small" color={palette.onPrimary} />
         ) : (
           <>
