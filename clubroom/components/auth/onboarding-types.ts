@@ -64,6 +64,7 @@ export interface OnboardingState {
 }
 
 export type OnboardingAction =
+  | { type: 'HYDRATE_STATE'; state: OnboardingState }
   | { type: 'SET_STEP'; step: OnboardingStep }
   | { type: 'SET_SUBMITTING'; value: boolean }
   | { type: 'SET_ERROR'; error: string | null }

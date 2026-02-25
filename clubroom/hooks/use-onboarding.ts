@@ -5,7 +5,7 @@
  * via useAuth().registerFromOnboarding().
  */
 
-import { useReducer, useCallback, useMemo } from 'react';
+import { useReducer, useCallback, useMemo, useEffect, useState } from 'react';
 
 import type {
   OnboardingState,
@@ -16,6 +16,11 @@ import { INITIAL_STATE } from '@/components/auth/onboarding-types';
 import type { OnboardingData } from '@/services/auth-service';
 import { useAuth } from '@/hooks/use-auth';
 import { POSITION_LABELS } from '@/constants/position-skills';
+import { apiClient } from '@/services/api-client';
+import { STORAGE_KEYS } from '@/constants/storage-keys';
+import { createLogger } from '@/utils/logger';
+
+const logger = createLogger('useOnboarding');
 
 // ============================================================================
 // STEP FLOW
@@ -69,6 +74,8 @@ const EMAIL_REGEX = /^(?!\.)(?!.*\.\.)([A-Za-z0-9._%+-]+)@[A-Za-z0-9.-]+\.[A-Za-
 
 function onboardingReducer(state: OnboardingState, action: OnboardingAction): OnboardingState {
   switch (action.type) {
+    case 'HYDRATE_STATE':
+      return action.state;
     case 'SET_STEP':
       return { ...state, step: action.step, error: null };
     case 'SET_SUBMITTING':
@@ -147,9 +154,78 @@ interface UseOnboardingOptions {
   onBackToLogin: () => void;
 }
 
+interface OnboardingDraft {
+  state: OnboardingState;
+  timestamp: number;
+}
+
+function hasOnboardingProgress(state: OnboardingState): boolean {
+  return state.step !== 'account-type' || state.accountType !== null;
+}
+
+function sanitizeHydratedState(state: OnboardingState): OnboardingState {
+  return {
+    ...state,
+    isSubmitting: false,
+    error: null,
+  };
+}
+
 export function useOnboarding({ onComplete, onBackToLogin }: UseOnboardingOptions) {
   const [state, dispatch] = useReducer(onboardingReducer, INITIAL_STATE);
   const { registerFromOnboarding } = useAuth();
+  const [isHydrated, setIsHydrated] = useState(false);
+  const [showResumePrompt, setShowResumePrompt] = useState(false);
+  const [savedDraftTimestamp, setSavedDraftTimestamp] = useState<number | null>(null);
+
+  useEffect(() => {
+    let isCancelled = false;
+
+    const loadDraft = async () => {
+      try {
+        const draft = await apiClient.get<OnboardingDraft | null>(STORAGE_KEYS.ONBOARDING_PROGRESS, null);
+        if (isCancelled || !draft) {
+          return;
+        }
+
+        const hydrated = sanitizeHydratedState(draft.state);
+        dispatch({ type: 'HYDRATE_STATE', state: hydrated });
+        setSavedDraftTimestamp(draft.timestamp);
+        if (hasOnboardingProgress(hydrated)) {
+          setShowResumePrompt(true);
+        }
+      } catch (error) {
+        logger.warn('Failed to load onboarding draft', error);
+      } finally {
+        if (!isCancelled) {
+          setIsHydrated(true);
+        }
+      }
+    };
+
+    void loadDraft();
+
+    return () => {
+      isCancelled = true;
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!isHydrated) return;
+    if (!hasOnboardingProgress(state) || state.step === 'complete') return;
+
+    const timeoutId = setTimeout(() => {
+      const draft: OnboardingDraft = {
+        state: sanitizeHydratedState(state),
+        timestamp: Date.now(),
+      };
+      void apiClient
+        .set(STORAGE_KEYS.ONBOARDING_PROGRESS, draft)
+        .catch((error) => logger.warn('Failed to save onboarding draft', error));
+    }, 500);
+
+    return () => clearTimeout(timeoutId);
+  }, [state, isHydrated]);
 
   const stepOrder = useMemo(() => getStepOrder(state.accountType), [state.accountType]);
   const stepIndex = stepOrder.indexOf(state.step);
@@ -160,6 +236,21 @@ export function useOnboarding({ onComplete, onBackToLogin }: UseOnboardingOption
   const isComplete = state.step === 'complete';
 
   const canAdvance = useMemo(() => validateStep(state) === null, [state]);
+
+  const dismissResumePrompt = useCallback(() => {
+    setShowResumePrompt(false);
+  }, []);
+
+  const discardSavedDraft = useCallback(async () => {
+    dispatch({ type: 'HYDRATE_STATE', state: INITIAL_STATE });
+    setShowResumePrompt(false);
+    setSavedDraftTimestamp(null);
+    try {
+      await apiClient.remove(STORAGE_KEYS.ONBOARDING_PROGRESS);
+    } catch (error) {
+      logger.warn('Failed to discard onboarding draft', error);
+    }
+  }, []);
 
   const next = useCallback(() => {
     const validationError = validateStep(state);
@@ -203,6 +294,11 @@ export function useOnboarding({ onComplete, onBackToLogin }: UseOnboardingOption
       dispatch({ type: 'SET_SUBMITTING', value: false });
 
       if (success) {
+        void apiClient.remove(STORAGE_KEYS.ONBOARDING_PROGRESS).catch((error) => {
+          logger.warn('Failed to clear onboarding draft after completion', error);
+        });
+        setShowResumePrompt(false);
+        setSavedDraftTimestamp(null);
         dispatch({ type: 'SET_STEP', step: 'complete' });
       } else {
         dispatch({ type: 'SET_ERROR', error: 'Registration failed. Email may already be in use.' });
@@ -231,6 +327,7 @@ export function useOnboarding({ onComplete, onBackToLogin }: UseOnboardingOption
 
   return {
     state,
+    isHydrated,
     dispatch,
     canAdvance,
     next,
@@ -242,5 +339,9 @@ export function useOnboarding({ onComplete, onBackToLogin }: UseOnboardingOption
     isSubmitting: state.isSubmitting,
     isComplete,
     error: state.error,
+    showResumePrompt,
+    savedDraftTimestamp,
+    dismissResumePrompt,
+    discardSavedDraft,
   };
 }

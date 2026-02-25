@@ -11,6 +11,7 @@ import { apiClient } from './api-client';
 import { createLogger } from '@/utils/logger';
 import { generateId, generateMockToken } from '@/utils/generate-id';
 import { STORAGE_KEYS } from '@/constants/storage-keys';
+import { emitTyped, onTyped, ServiceEvents } from '@/services/event-bus';
 import {
   type Result,
   type ServiceError,
@@ -169,6 +170,7 @@ export interface AuthState {
 
 let usersCache: (UserProfile & { password: string })[] = [];
 let currentUser: UserProfile | null = null;
+let tokenExpiryMonitorUnsubscribe: (() => void) | null = null;
 
 // ============================================================================
 // UTILITY FUNCTIONS
@@ -386,6 +388,42 @@ export const authService = {
       logger.error('Auth check failed', error);
       return { isAuthenticated: false, user: null, tokens: null };
     }
+  },
+
+  initTokenExpiryMonitor(): void {
+    if (tokenExpiryMonitorUnsubscribe) return;
+
+    tokenExpiryMonitorUnsubscribe = onTyped(ServiceEvents.APP_ACTIVE, () => {
+      void this.checkTokenExpiryOnResume();
+    });
+
+    logger.info('Token expiry monitor initialized');
+  },
+
+  cleanupTokenExpiryMonitor(): void {
+    tokenExpiryMonitorUnsubscribe?.();
+    tokenExpiryMonitorUnsubscribe = null;
+  },
+
+  async checkTokenExpiryOnResume(): Promise<Result<void, ServiceError>> {
+    const tokens = await this.getTokens();
+    if (!tokens) {
+      return ok(undefined);
+    }
+
+    if (tokens.expiresAt > Date.now()) {
+      return ok(undefined);
+    }
+
+    logger.info('Token expired on app resume, attempting refresh');
+    const refreshResult = await this.refreshToken();
+    if (refreshResult.success) {
+      return ok(undefined);
+    }
+
+    logger.warn('Token refresh failed after app resume', { error: refreshResult.error.message });
+    emitTyped(ServiceEvents.TOKEN_EXPIRED_BACKGROUND, { timestamp: Date.now() });
+    return err(refreshResult.error);
   },
 
   async forgotPassword(email: string): Promise<void> {

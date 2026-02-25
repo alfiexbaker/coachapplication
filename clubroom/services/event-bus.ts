@@ -313,6 +313,10 @@ export const ServiceEvents = {
   DATA_RETENTION_WARNING: 'data:retention_warning',
 
   // Connection & offline queue events
+  APP_FOREGROUNDED: 'app:foregrounded',
+  APP_BACKGROUNDED: 'app:backgrounded',
+  APP_ACTIVE: 'app:active',
+  TOKEN_EXPIRED_BACKGROUND: 'auth:token_expired_background',
   CONNECTION_CHANGED: 'connection:changed',
   QUEUE_ACTION_ADDED: 'queue:action_added',
   QUEUE_FLUSHED: 'queue:flushed',
@@ -1005,6 +1009,18 @@ export interface EventPayloads {
   };
 
   // Connection & offline queue events
+  [ServiceEvents.APP_FOREGROUNDED]: {
+    timestamp: number;
+  };
+  [ServiceEvents.APP_BACKGROUNDED]: {
+    timestamp: number;
+  };
+  [ServiceEvents.APP_ACTIVE]: {
+    timestamp: number;
+  };
+  [ServiceEvents.TOKEN_EXPIRED_BACKGROUND]: {
+    timestamp: number;
+  };
   [ServiceEvents.CONNECTION_CHANGED]: {
     isConnected: boolean;
     wasOffline: boolean;

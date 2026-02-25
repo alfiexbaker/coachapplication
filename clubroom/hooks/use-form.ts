@@ -3,9 +3,11 @@
  * Single source of truth for all form handling across the app.
  */
 
-import { useState, useCallback, useMemo } from 'react';
+import { useState, useCallback, useMemo, useEffect } from 'react';
 import { validateForm, type FieldValidators, type Validator, hasErrors } from '@/utils/validation';
 import { createLogger } from '@/utils/logger';
+import { apiClient } from '@/services/api-client';
+import { STORAGE_KEYS } from '@/constants/storage-keys';
 
 const logger = createLogger('useForm');
 
@@ -22,6 +24,10 @@ export interface UseFormConfig<T extends { [K in keyof T]: string }> {
   validateOnChange?: boolean;
   /** Validate on blur (default: true) */
   validateOnBlur?: boolean;
+  /** Unique form ID for draft persistence. If omitted, persistence is disabled. */
+  formId?: string;
+  /** Auto-save delay in ms (default: 1000) */
+  autosaveDelay?: number;
 }
 
 export interface UseFormReturn<T extends { [K in keyof T]: string }> {
@@ -33,6 +39,8 @@ export interface UseFormReturn<T extends { [K in keyof T]: string }> {
   touched: Partial<Record<keyof T, boolean>>;
   /** Is form currently submitting */
   isSubmitting: boolean;
+  /** True once persisted draft (if enabled) has been loaded */
+  isHydrated: boolean;
   /** Is form valid (no errors) */
   isValid: boolean;
   /** Has form been modified from initial values */
@@ -51,6 +59,8 @@ export interface UseFormReturn<T extends { [K in keyof T]: string }> {
   setFieldError: (field: keyof T, error: string | undefined) => void;
   /** Clear all errors */
   clearErrors: () => void;
+  /** Clear persisted draft for this form (if enabled) */
+  clearDraft: () => Promise<void>;
   /** Validate all fields */
   validateAll: () => boolean;
   /** Get props for FormInput component */
@@ -70,11 +80,64 @@ export function useForm<T extends { [K in keyof T]: string }>({
   onValidationError,
   validateOnChange = false,
   validateOnBlur = true,
+  formId,
+  autosaveDelay = 1000,
 }: UseFormConfig<T>): UseFormReturn<T> {
+  const draftKey = formId ? `${STORAGE_KEYS.FORM_DRAFT_PREFIX}${formId}` : null;
   const [values, setValues] = useState<T>(initialValues);
   const [errors, setErrors] = useState<Partial<Record<keyof T, string>>>({});
   const [touched, setTouched] = useState<Partial<Record<keyof T, boolean>>>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isHydrated, setIsHydrated] = useState(draftKey == null);
+
+  useEffect(() => {
+    if (!draftKey) return;
+
+    let isCancelled = false;
+
+    const loadDraft = async () => {
+      try {
+        const draft = await apiClient.get<{ values: T; timestamp: number } | null>(draftKey, null);
+        if (!draft || isCancelled) {
+          return;
+        }
+        setValues(draft.values);
+        logger.debug('Loaded form draft', {
+          formId,
+          ageMs: Date.now() - draft.timestamp,
+        });
+      } catch (error) {
+        logger.warn('Failed to load form draft', { formId, error });
+      } finally {
+        if (!isCancelled) {
+          setIsHydrated(true);
+        }
+      }
+    };
+
+    void loadDraft();
+
+    return () => {
+      isCancelled = true;
+    };
+  }, [draftKey, formId]);
+
+  useEffect(() => {
+    if (!draftKey || !isHydrated) return;
+
+    const timeoutId = setTimeout(() => {
+      void apiClient
+        .set(draftKey, { values, timestamp: Date.now() })
+        .then(() => {
+          logger.debug('Auto-saved form draft', { formId });
+        })
+        .catch((error) => {
+          logger.warn('Failed to auto-save form draft', { formId, error });
+        });
+    }, autosaveDelay);
+
+    return () => clearTimeout(timeoutId);
+  }, [values, draftKey, isHydrated, autosaveDelay, formId]);
 
   // Validate a single field
   const validateField = useCallback(
@@ -191,6 +254,16 @@ export function useForm<T extends { [K in keyof T]: string }>({
     setErrors({});
   }, []);
 
+  const clearDraft = useCallback(async () => {
+    if (!draftKey) return;
+    try {
+      await apiClient.remove(draftKey);
+      logger.debug('Cleared form draft', { formId });
+    } catch (error) {
+      logger.warn('Failed to clear form draft', { formId, error });
+    }
+  }, [draftKey, formId]);
+
   // Get props for FormInput component
   const getFieldProps = useCallback(
     (field: keyof T) => ({
@@ -217,6 +290,7 @@ export function useForm<T extends { [K in keyof T]: string }>({
     errors,
     touched,
     isSubmitting,
+    isHydrated,
     isValid,
     isDirty,
     handleChange,
@@ -226,6 +300,7 @@ export function useForm<T extends { [K in keyof T]: string }>({
     setFieldValue,
     setFieldError,
     clearErrors,
+    clearDraft,
     validateAll,
     getFieldProps,
   };

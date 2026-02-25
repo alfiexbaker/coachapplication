@@ -16,8 +16,9 @@ import { type Result, type ServiceError, ok, err, storageError } from '@/types/r
 
 const logger = createLogger('OfflineQueue');
 
-/** Maximum age for queued actions before they are purged (24 hours). */
-const QUEUE_ITEM_MAX_AGE_MS = 24 * 60 * 60 * 1000;
+/** Maximum age for queued actions before they are purged (7 days). */
+const QUEUE_ITEM_MAX_AGE_MS = 7 * 24 * 60 * 60 * 1000;
+const QUEUE_ITEM_WARN_AGE_MS = 3 * 24 * 60 * 60 * 1000;
 
 /** Guard to prevent concurrent flushes. */
 let _isFlushing = false;
@@ -33,6 +34,8 @@ export interface QueuedAction {
   path: string;
   body: unknown;
   timestamp: number;
+  baseVersion?: number;
+  conflictStrategy?: 'overwrite' | 'merge' | 'reject';
 }
 
 export interface FlushResult {
@@ -64,6 +67,55 @@ async function saveQueue(queue: QueuedAction[]): Promise<Result<void, ServiceErr
     logger.error('Failed to save offline queue', error);
     return err(storageError('Failed to save offline queue'));
   }
+}
+
+function parsePathForEntity(path: string): { storageKey: string; entityId: string } | null {
+  const match = path.match(/^\/api\/([^/]+)\/([^/]+)$/);
+  if (!match) return null;
+
+  const [, collection, entityId] = match;
+
+  const storageKeyMap: Record<string, string> = {
+    bookings: STORAGE_KEYS.BOOKINGS,
+    users: STORAGE_KEYS.USERS,
+    goals: STORAGE_KEYS.GOALS,
+    messages: STORAGE_KEYS.MESSAGES,
+    invoices: STORAGE_KEYS.INVOICES,
+    reviews: STORAGE_KEYS.REVIEWS,
+    notifications: STORAGE_KEYS.NOTIFICATIONS,
+    roster: STORAGE_KEYS.ROSTER,
+    availability: STORAGE_KEYS.AVAILABILITY_OVERRIDES,
+    'availability-overrides': STORAGE_KEYS.AVAILABILITY_OVERRIDES,
+    'blocked-dates': STORAGE_KEYS.BLOCKED_DATES,
+    'session-templates': STORAGE_KEYS.SESSION_TEMPLATES,
+    'counter-offers': STORAGE_KEYS.COUNTER_OFFERS,
+  };
+
+  const storageKey = storageKeyMap[collection];
+  if (!storageKey) return null;
+
+  return { storageKey, entityId };
+}
+
+async function detectConflict(action: QueuedAction): Promise<boolean> {
+  if (action.method === 'POST') return false;
+  if (action.baseVersion == null) return false;
+
+  const parsed = parsePathForEntity(action.path);
+  if (!parsed) return false;
+
+  const items = await apiClient.get<Array<{ id: string; version?: number }>>(parsed.storageKey, []);
+  const current = items.find((item) => item.id === parsed.entityId);
+
+  if (!current) {
+    return true;
+  }
+
+  if (current.version !== undefined && current.version > action.baseVersion) {
+    return true;
+  }
+
+  return false;
 }
 
 // ---------------------------------------------------------------------------
@@ -154,16 +206,29 @@ export async function purgeExpired(
 ): Promise<Result<number, ServiceError>> {
   try {
     const queue = await loadQueue();
-    const cutoff = Date.now() - maxAgeMs;
+    const now = Date.now();
+    const cutoff = now - maxAgeMs;
+    const warnCutoff = now - QUEUE_ITEM_WARN_AGE_MS;
     const kept = queue.filter((a) => a.timestamp >= cutoff);
     const purgedCount = queue.length - kept.length;
+
+    const aging = kept.filter((a) => a.timestamp < warnCutoff);
+    if (aging.length > 0) {
+      logger.warn(`${aging.length} queued actions are older than 3 days`, {
+        actions: aging.map((action) => ({
+          id: action.id,
+          path: action.path,
+          ageDays: Math.round((now - action.timestamp) / (24 * 60 * 60 * 1000)),
+        })),
+      });
+    }
 
     if (purgedCount > 0) {
       const saveResult = await saveQueue(kept);
       if (!saveResult.success) {
         return err(saveResult.error);
       }
-      logger.info(`Purged ${purgedCount} expired queue actions`, { maxAgeMs });
+      logger.warn(`Purged ${purgedCount} expired queue actions`, { maxAgeMs });
     }
 
     return ok(purgedCount);
@@ -211,6 +276,34 @@ export async function flushQueue(): Promise<Result<FlushResult, ServiceError>> {
     const failedActions: string[] = [];
 
     for (const action of queue) {
+      const hasConflict = await detectConflict(action);
+      if (hasConflict) {
+        const strategy = action.conflictStrategy ?? 'overwrite';
+
+        if (strategy === 'reject') {
+          logger.warn('Queue conflict detected, rejecting action', {
+            actionId: action.id,
+            path: action.path,
+          });
+          await removeFromQueue(action.id);
+          emitTyped(ServiceEvents.QUEUE_ACTION_FAILED, {
+            actionId: action.id,
+            path: action.path,
+            method: action.method,
+            error: 'Version conflict — action rejected',
+            willRetry: false,
+          });
+          processed++;
+          continue;
+        }
+
+        logger.warn('Queue conflict detected, proceeding with strategy', {
+          actionId: action.id,
+          path: action.path,
+          strategy,
+        });
+      }
+
       const apiResult = await apiFetch(action.path, {
         method: action.method,
         body: action.body ? JSON.stringify(action.body) : undefined,

@@ -17,6 +17,7 @@ import { ThemedText } from '@/components/themed-text';
 import { Row } from '@/components/primitives/row';
 import { Column } from '@/components/primitives/column';
 import { useTheme } from '@/hooks/useTheme';
+import { Typography, Spacing, Radii } from '@/constants/theme';
 import type { RosterEntry, FootballObjective } from '@/constants/types';
 
 import { NoteCard, PrimaryFocusSection, NoteSearchBar, styles } from './athlete-notes-tab-sections';

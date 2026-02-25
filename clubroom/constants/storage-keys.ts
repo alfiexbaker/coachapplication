@@ -437,6 +437,9 @@ export const STORAGE_KEYS = {
   /** Offline queue for write operations */
   OFFLINE_QUEUE: 'clubroom.offline_queue',
 
+  /** Prefix for per-form draft keys (suffix with formId) */
+  FORM_DRAFT_PREFIX: 'clubroom.form_draft.',
+
   /** Seen/read status tracking for messages and entities */
   SEEN_STATUSES: 'clubroom.seen_statuses',
 
@@ -499,6 +502,9 @@ export const STORAGE_KEYS = {
 
   /** Tracks whether onboarding flow is complete for current user */
   ONBOARDING_COMPLETE: 'onboarding_complete',
+
+  /** In-progress onboarding wizard draft */
+  ONBOARDING_PROGRESS: 'clubroom.onboarding_progress',
 
   /** Whether the availability tutorial has been completed by the coach */
   AVAILABILITY_TUTORIAL_COMPLETED: 'clubroom.availability_tutorial_completed',

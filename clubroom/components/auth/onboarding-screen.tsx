@@ -22,6 +22,7 @@ import { Clickable } from '@/components/primitives/clickable';
 import { Button } from '@/components/primitives/button';
 import { Row } from '@/components/primitives/row';
 import { Spacer } from '@/components/primitives/spacer';
+import { SurfaceCard } from '@/components/primitives/surface-card';
 import { OnboardingProgressBar } from '@/components/auth/onboarding-progress-bar';
 import { StepAccountType } from '@/components/auth/onboarding-step-account-type';
 import { StepBasicInfo } from '@/components/auth/onboarding-step-basic-info';
@@ -56,6 +57,11 @@ function OnboardingScreenInner({ onComplete, onBackToLogin }: OnboardingScreenPr
     isSubmitting,
     isComplete,
     error,
+    isHydrated,
+    showResumePrompt,
+    savedDraftTimestamp,
+    dismissResumePrompt,
+    discardSavedDraft,
   } = useOnboarding({ onComplete, onBackToLogin });
 
   const handleChangeField = useCallback(
@@ -125,6 +131,26 @@ function OnboardingScreenInner({ onComplete, onBackToLogin }: OnboardingScreenPr
     }
   }, [isComplete, finish, next]);
 
+  const handleResumeDraft = useCallback(() => {
+    dismissResumePrompt();
+  }, [dismissResumePrompt]);
+
+  const handleDiscardDraft = useCallback(() => {
+    void discardSavedDraft();
+  }, [discardSavedDraft]);
+
+  if (!isHydrated) {
+    return (
+      <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
+        <View style={[styles.flex, styles.centered]}>
+          <ActivityIndicator size="small" color={colors.primary} />
+          <Spacer size={Spacing.sm} />
+          <ThemedText type="bodySmall">Loading onboarding...</ThemedText>
+        </View>
+      </SafeAreaView>
+    );
+  }
+
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
       <KeyboardAvoidingView
@@ -162,6 +188,26 @@ function OnboardingScreenInner({ onComplete, onBackToLogin }: OnboardingScreenPr
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}
         >
+          {showResumePrompt ? (
+            <SurfaceCard style={styles.resumeCard}>
+              <ThemedText type="body">
+                Resume your previous onboarding draft
+                {savedDraftTimestamp
+                  ? ` (${new Date(savedDraftTimestamp).toLocaleDateString()})`
+                  : ''}
+                ?
+              </ThemedText>
+              <Row gap={Spacing.sm} style={styles.resumeActions}>
+                <Button variant="secondary" size="compact" onPress={handleDiscardDraft}>
+                  Start Fresh
+                </Button>
+                <Button variant="primary" size="compact" onPress={handleResumeDraft}>
+                  Resume
+                </Button>
+              </Row>
+            </SurfaceCard>
+          ) : null}
+
           {state.step === 'account-type' && (
             <StepAccountType
               accountType={state.accountType}
@@ -273,6 +319,11 @@ const styles = StyleSheet.create({
   progressContainer: {
     flex: 1,
   },
+  centered: {
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: Spacing.lg,
+  },
   headerSpacer: {
     width: 24,
   },
@@ -280,6 +331,12 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing.sm,
     paddingTop: Spacing.sm,
     flexGrow: 1,
+  },
+  resumeCard: {
+    marginBottom: Spacing.sm,
+  },
+  resumeActions: {
+    marginTop: Spacing.sm,
   },
   errorText: {
     ...Typography.bodySmall,

@@ -23,6 +23,9 @@ import { OfflineBanner } from '@/components/ui/offline-banner';
 import { pushNotificationService } from '@/services/push-notification-service';
 import { initAutoFlush } from '@/services/offline-queue';
 import { navigateToDeepLink } from '@/utils/deep-link';
+import { appLifecycleService } from '@/services/app-lifecycle-service';
+import { authService } from '@/services/auth-service';
+import { useTokenExpiryAlert } from '@/hooks/use-token-expiry-alert';
 
 // Lazy-load expo-notifications for deep linking
 let Notifications: typeof import('expo-notifications') | null = null;
@@ -45,6 +48,7 @@ function RootNavigation() {
   const { scheme: colorScheme } = useTheme();
   const { isAuthenticated, currentUser } = useAuth();
   const notificationResponseSubscription = useRef<{ remove: () => void } | null>(null);
+  useTokenExpiryAlert();
 
   logger.debug('RootNavigation rendered', {
     isAuthenticated,
@@ -63,6 +67,16 @@ function RootNavigation() {
     const unsubscribe = initAutoFlush();
     logger.info('Offline queue auto-flush initialized');
     return unsubscribe;
+  }, []);
+
+  useEffect(() => {
+    appLifecycleService.init();
+    authService.initTokenExpiryMonitor();
+
+    return () => {
+      authService.cleanupTokenExpiryMonitor();
+      appLifecycleService.cleanup();
+    };
   }, []);
 
   // Deep linking: handle notification taps and initial launch tap.
