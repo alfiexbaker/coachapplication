@@ -57,8 +57,31 @@ export function useAddTemplate() {
       return;
     }
 
+    const toMinutes = (time: string) => {
+      const [hours, minutes] = time.split(':').map(Number);
+      return hours * 60 + minutes;
+    };
+
     setSaving(true);
     try {
+      const existingTemplates = await availabilityService.getTemplates(currentUser.id);
+      const nextStart = toMinutes(startTime);
+      const nextEnd = toMinutes(endTime);
+      const overlappingTemplate = existingTemplates.find((template) => {
+        if (template.dayOfWeek !== dayOfWeek) return false;
+        const existingStart = toMinutes(template.startTime);
+        const existingEnd = toMinutes(template.endTime);
+        return nextStart < existingEnd && existingStart < nextEnd;
+      });
+
+      if (overlappingTemplate) {
+        Alert.alert(
+          'Overlapping Availability',
+          `This overlaps with an existing block (${overlappingTemplate.startTime}-${overlappingTemplate.endTime}). Choose a different time or make the blocks adjacent.`,
+        );
+        return;
+      }
+
       await availabilityService.saveTemplate({
         coachId: currentUser.id,
         dayOfWeek,

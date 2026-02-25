@@ -32,7 +32,7 @@ interface RSVPFlowProps {
   location: string;
   childName: string;
   rsvpId: string;
-  onRespond: (status: 'going' | 'not_going' | 'maybe') => void;
+  onRespond: (status: 'going' | 'not_going' | 'maybe') => Promise<boolean>;
   responseDeadline?: string;
 }
 
@@ -65,10 +65,12 @@ export function RSVPFlow({
 
   const handlePress = async (status: 'going' | 'not_going' | 'maybe') => {
     if (isSubmitting) return;
-    setSelectedStatus(status);
     setIsSubmitting(true);
     try {
-      await onRespond(status);
+      const success = await onRespond(status);
+      if (success) {
+        setSelectedStatus(status);
+      }
     } finally {
       setIsSubmitting(false);
     }

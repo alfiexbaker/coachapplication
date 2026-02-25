@@ -40,6 +40,7 @@ export interface BookingDetailResult {
     refund: () => void;
     reschedule: () => void;
     reportProblem: () => void;
+    rebook: () => void;
   };
   canCancelBooking: boolean;
   formatted: {
@@ -125,9 +126,13 @@ export function useBookingDetail(id: string): BookingDetailResult {
   const booking = data ?? undefined;
   const bookingStartMs = booking ? new Date(booking.start).getTime() : Number.NaN;
   const isFutureBooking = Number.isFinite(bookingStartMs) ? bookingStartMs > Date.now() : false;
+  const hoursUntilBooking = Number.isFinite(bookingStartMs)
+    ? (bookingStartMs - Date.now()) / (1000 * 60 * 60)
+    : Number.NaN;
   const canCancelBooking =
     !!booking &&
     isFutureBooking &&
+    hoursUntilBooking > 24 &&
     booking.status !== 'Cancelled' &&
     booking.status !== 'Completed' &&
     booking.status !== 'Needs Completion';
@@ -168,6 +173,11 @@ export function useBookingDetail(id: string): BookingDetailResult {
     router.push(Routes.BOOKINGS_REPORT_PROBLEM);
   }, []);
 
+  const handleRebook = useCallback(() => {
+    if (!booking?.coachId) return;
+    router.push(Routes.bookSchedule(booking.coachId));
+  }, [booking?.coachId]);
+
   // Pre-format date values for rendering
   const formatted = booking
     ? (() => {
@@ -200,6 +210,7 @@ export function useBookingDetail(id: string): BookingDetailResult {
       refund: handleRefund,
       reschedule: handleReschedule,
       reportProblem: handleReportProblem,
+      rebook: handleRebook,
     },
     canCancelBooking,
     formatted,

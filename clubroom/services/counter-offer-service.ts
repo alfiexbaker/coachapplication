@@ -35,7 +35,16 @@ import { notificationService } from './notification-service';
 import { userService } from './user-service';
 import { createLogger } from '@/utils/logger';
 import { generateId } from '@/utils/generate-id';
-import { type Result, type ServiceError, ok, err, notFound, storageError } from '@/types/result';
+import {
+  type Result,
+  type ServiceError,
+  ok,
+  err,
+  notFound,
+  storageError,
+  conflictError,
+  validationError,
+} from '@/types/result';
 import { emitTyped, ServiceEvents } from './event-bus';
 
 const logger = createLogger('CounterOfferService');
@@ -102,6 +111,7 @@ const MOCK_NEGOTIATIONS: NegotiationHistory[] = [
 
 let counterOffersCache: CounterOffer[] = [...MOCK_COUNTER_OFFERS];
 let negotiationsCache: NegotiationHistory[] = [...MOCK_NEGOTIATIONS];
+const acceptCounterOfferInFlight = new Map<string, Promise<Result<CounterOffer, ServiceError>>>();
 
 export interface CreateCounterOfferInput {
   bookingId: string;
@@ -277,111 +287,142 @@ export const counterOfferService = {
    * Updates booking time and notifies proposer
    */
   async acceptCounterOffer(offerId: string): Promise<Result<CounterOffer, ServiceError>> {
-    if (USE_MOCK) {
-      counterOffersCache = await loadCounterOffersFromStorage();
-      const index = counterOffersCache.findIndex((o) => o.id === offerId);
+    if (!offerId || typeof offerId !== 'string') {
+      return err(validationError('Invalid counter-offer ID'));
+    }
 
-      if (index === -1) {
-        return err(notFound('Counter-offer', offerId));
-      }
+    const inFlight = acceptCounterOfferInFlight.get(offerId);
+    if (inFlight) {
+      return inFlight;
+    }
 
-      const offer = counterOffersCache[index];
-      counterOffersCache[index] = {
-        ...offer,
-        status: 'ACCEPTED',
-        respondedAt: new Date().toISOString(),
-      };
+    const request = (async (): Promise<Result<CounterOffer, ServiceError>> => {
+      if (USE_MOCK) {
+        counterOffersCache = await loadCounterOffersFromStorage();
+        const index = counterOffersCache.findIndex((o) => o.id === offerId);
 
-      await saveCounterOffersToStorage(counterOffersCache);
-
-      // Update negotiation status
-      negotiationsCache = await loadNegotiationsFromStorage();
-      const negotiation = negotiationsCache.find((n) => n.bookingId === offer.bookingId);
-      if (negotiation) {
-        negotiation.status = 'RESOLVED';
-        negotiation.finalTime = offer.proposedTime;
-        negotiation.resolvedAt = new Date().toISOString();
-
-        // Update the offer in the negotiation
-        const offerIndex = negotiation.offers.findIndex((o) => o.id === offerId);
-        if (offerIndex !== -1) {
-          negotiation.offers[offerIndex].status = 'ACCEPTED';
-          negotiation.offers[offerIndex].respondedAt = new Date().toISOString();
+        if (index === -1) {
+          return err(notFound('Counter-offer', offerId));
         }
-      }
-      await saveNegotiationsToStorage(negotiationsCache);
 
-      // Notify proposer
-      const notification: NotificationItem = {
-        id: generateId('notif_co_accepted'),
-        type: 'booking',
-        title: 'Time Change Accepted!',
-        body: `Your proposed time of ${formatTimeSlot(offer.proposedTime)} has been accepted.`,
-        timeLabel: 'Just now',
-        read: false,
-      };
+        const offer = counterOffersCache[index];
+        if (offer.status === 'ACCEPTED') {
+          logger.info('Counter-offer already accepted (idempotent return)', { offerId });
+          return ok(offer);
+        }
+        if (offer.status === 'REJECTED') {
+          return err(conflictError('This counter-offer has already been rejected.'));
+        }
+        if (offer.status === 'EXPIRED') {
+          return err(conflictError('This counter-offer has expired.'));
+        }
+        if (offer.expiresAt && new Date(offer.expiresAt).getTime() <= Date.now()) {
+          counterOffersCache[index] = { ...offer, status: 'EXPIRED' };
+          await saveCounterOffersToStorage(counterOffersCache);
+          return err(conflictError('This counter-offer has expired.'));
+        }
 
-      await notificationService.create(notification);
+        const respondedAt = new Date().toISOString();
+        counterOffersCache[index] = {
+          ...offer,
+          status: 'ACCEPTED',
+          respondedAt,
+        };
 
-      // CRITICAL: Create a real booking when counter-offer is accepted
-      if (offer.proposedTime) {
+        await saveCounterOffersToStorage(counterOffersCache);
+
+        // Update negotiation status
+        negotiationsCache = await loadNegotiationsFromStorage();
         const negotiation = negotiationsCache.find((n) => n.bookingId === offer.bookingId);
         if (negotiation) {
-          const scheduledAt = `${offer.proposedTime.date}T${offer.proposedTime.startTime}:00`;
-          const [startH, startM] = offer.proposedTime.startTime.split(':').map(Number);
-          const [endH, endM] = offer.proposedTime.endTime.split(':').map(Number);
-          const durationMinutes = endH * 60 + endM - (startH * 60 + startM);
-          const [coachName, athleteName, parentName] = await Promise.all([
-            resolveUserName(negotiation.coachId, 'Coach'),
-            resolveUserName(negotiation.athleteId, 'Athlete'),
-            resolveUserName(negotiation.parentId, 'Parent'),
-          ]);
+          negotiation.status = 'RESOLVED';
+          negotiation.finalTime = offer.proposedTime;
+          negotiation.resolvedAt = respondedAt;
 
-          const bookingResult = await bookingService.createBooking({
-            coachId: negotiation.coachId,
-            coachName,
-            athleteIds: [negotiation.athleteId],
-            athleteNames: [athleteName],
-            bookedById: negotiation.parentId,
-            bookedByName: parentName,
-            scheduledAt,
-            duration: durationMinutes > 0 ? durationMinutes : 60,
-            location: offer.proposedTime.location || 'Coach preferred location',
-            service: 'Rescheduled Session',
-            serviceType: '1-on-1',
-          });
-
-          if (bookingResult.success) {
-            logger.info('Booking created from counter-offer', {
-              bookingId: bookingResult.data?.id,
-            });
-          } else {
-            logger.error('Failed to create booking from counter-offer', {
-              error: bookingResult.error?.message,
-            });
+          const offerIndex = negotiation.offers.findIndex((o) => o.id === offerId);
+          if (offerIndex !== -1) {
+            negotiation.offers[offerIndex].status = 'ACCEPTED';
+            negotiation.offers[offerIndex].respondedAt = respondedAt;
           }
         }
+        await saveNegotiationsToStorage(negotiationsCache);
+
+        const notification: NotificationItem = {
+          id: generateId('notif_co_accepted'),
+          type: 'booking',
+          title: 'Time Change Accepted!',
+          body: `Your proposed time of ${formatTimeSlot(offer.proposedTime)} has been accepted.`,
+          timeLabel: 'Just now',
+          read: false,
+        };
+        await notificationService.create(notification);
+
+        if (offer.proposedTime) {
+          const resolvedNegotiation = negotiationsCache.find((n) => n.bookingId === offer.bookingId);
+          if (resolvedNegotiation) {
+            const scheduledAt = `${offer.proposedTime.date}T${offer.proposedTime.startTime}:00`;
+            const [startH, startM] = offer.proposedTime.startTime.split(':').map(Number);
+            const [endH, endM] = offer.proposedTime.endTime.split(':').map(Number);
+            const durationMinutes = endH * 60 + endM - (startH * 60 + startM);
+            const [coachName, athleteName, parentName] = await Promise.all([
+              resolveUserName(resolvedNegotiation.coachId, 'Coach'),
+              resolveUserName(resolvedNegotiation.athleteId, 'Athlete'),
+              resolveUserName(resolvedNegotiation.parentId, 'Parent'),
+            ]);
+
+            const bookingResult = await bookingService.createBooking({
+              coachId: resolvedNegotiation.coachId,
+              coachName,
+              athleteIds: [resolvedNegotiation.athleteId],
+              athleteNames: [athleteName],
+              bookedById: resolvedNegotiation.parentId,
+              bookedByName: parentName,
+              scheduledAt,
+              duration: durationMinutes > 0 ? durationMinutes : 60,
+              location: offer.proposedTime.location || 'Coach preferred location',
+              service: 'Rescheduled Session',
+              serviceType: '1-on-1',
+            });
+
+            if (bookingResult.success) {
+              logger.info('Booking created from counter-offer', {
+                bookingId: bookingResult.data?.id,
+                offerId,
+              });
+            } else {
+              logger.error('Failed to create booking from counter-offer', {
+                offerId,
+                error: bookingResult.error?.message,
+              });
+            }
+          }
+        }
+
+        const acceptedOffer = counterOffersCache[index];
+        emitTyped(ServiceEvents.COUNTER_OFFER_ACCEPTED, {
+          offerId: acceptedOffer.id,
+          bookingId: acceptedOffer.bookingId,
+          respondedAt: acceptedOffer.respondedAt ?? respondedAt,
+        });
+        return ok(acceptedOffer);
       }
 
-      const acceptedOffer = counterOffersCache[index];
+      const response = await fetch(`/api/counter-offers/${offerId}/accept`, {
+        method: 'PATCH',
+      });
+      const acceptedOffer = await response.json();
       emitTyped(ServiceEvents.COUNTER_OFFER_ACCEPTED, {
-        offerId: acceptedOffer.id,
-        bookingId: acceptedOffer.bookingId,
+        offerId: acceptedOffer.id ?? offerId,
+        bookingId: acceptedOffer.bookingId ?? '',
         respondedAt: acceptedOffer.respondedAt ?? new Date().toISOString(),
       });
       return ok(acceptedOffer);
-    }
+    })().finally(() => {
+      acceptCounterOfferInFlight.delete(offerId);
+    });
 
-    const response = await fetch(`/api/counter-offers/${offerId}/accept`, {
-      method: 'PATCH',
-    });
-    const acceptedOffer = await response.json();
-    emitTyped(ServiceEvents.COUNTER_OFFER_ACCEPTED, {
-      offerId: acceptedOffer.id ?? offerId,
-      bookingId: acceptedOffer.bookingId ?? '',
-      respondedAt: acceptedOffer.respondedAt ?? new Date().toISOString(),
-    });
-    return ok(acceptedOffer);
+    acceptCounterOfferInFlight.set(offerId, request);
+    return request;
   },
 
   /**

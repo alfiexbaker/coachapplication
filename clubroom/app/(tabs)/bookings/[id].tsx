@@ -224,6 +224,25 @@ export default function SessionDetailScreen() {
         {booking.coachId && (
           <CancellationPolicyCard coachId={booking.coachId} policy={cancellationPolicy ?? undefined} />
         )}
+        {!isCoach && booking.status === 'Confirmed' && !canCancelBooking ? (
+          <ThemedView
+            style={[
+              styles.noticeCard,
+              {
+                backgroundColor: withAlpha(palette.warning, 0.08),
+                borderColor: withAlpha(palette.warning, 0.22),
+              },
+            ]}
+          >
+            <Row align="start" gap="xs">
+              <Ionicons name="information-circle-outline" size={18} color={palette.warning} />
+              <ThemedText style={[styles.noticeText, { color: palette.text }]}>
+                Free cancellation is unavailable within 24 hours of the session. Contact your coach
+                to discuss options.
+              </ThemedText>
+            </Row>
+          </ThemedView>
+        ) : null}
         <BookingCoachCard
           coachId={booking.coachId}
           bookingId={booking.id}
@@ -333,9 +352,12 @@ export default function SessionDetailScreen() {
           />
         ) : (
           <BookingParentView
+            bookingStatus={booking.status}
             onMessageCoach={handlers.messageCoach}
             onCancelBooking={handlers.cancelBooking}
             onReportProblem={handlers.reportProblem}
+            onReschedule={handlers.reschedule}
+            onRebook={handlers.rebook}
             canCancelBooking={canCancelBooking}
           />
         )}
@@ -389,5 +411,15 @@ const styles = StyleSheet.create({
   reviewStatusText: {
     fontSize: Typography.caption.fontSize,
     fontWeight: '700',
+  },
+  noticeCard: {
+    borderWidth: 1,
+    borderRadius: Radii.md,
+    padding: Spacing.sm,
+  },
+  noticeText: {
+    flex: 1,
+    fontSize: Typography.bodySmall.fontSize,
+    lineHeight: Typography.bodySmall.lineHeight,
   },
 });

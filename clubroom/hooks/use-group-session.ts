@@ -242,6 +242,10 @@ export function useGroupSession() {
   /** Register a child (or self) for this session + auto-create RSVP as "going" */
   const handleRegister = useCallback(async () => {
     if (!session || !currentUser) return;
+    if (isDeadlinePassed) {
+      Alert.alert('Registration Closed', 'The registration deadline for this session has passed.');
+      return;
+    }
 
     // If parent has kids, require child selection
     const athleteId = children.length > 0
@@ -296,7 +300,15 @@ export function useGroupSession() {
     } finally {
       setRegistering(false);
     }
-  }, [session, currentUser, selectedChildId, children, registeredChildIds, onRefresh]);
+  }, [
+    session,
+    currentUser,
+    isDeadlinePassed,
+    selectedChildId,
+    children,
+    registeredChildIds,
+    onRefresh,
+  ]);
 
   /** Cancel a specific registration */
   const handleUnregister = useCallback(

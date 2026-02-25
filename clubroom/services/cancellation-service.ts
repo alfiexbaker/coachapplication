@@ -15,6 +15,7 @@
 import { apiClient } from './api-client';
 import { generateId } from '@/utils/generate-id';
 import { schedulingRulesService } from '@/services/scheduling-rules-service';
+import { bookingService } from '@/services/booking-service';
 import type { CancellationPolicy, RefundCalculation, RefundTier } from '@/constants/types';
 import { createLogger } from '@/utils/logger';
 import { type Result, type ServiceError, ok, err, storageError } from '@/types/result';
@@ -146,12 +147,32 @@ export const cancellationService = {
   ): Promise<Result<CancellationRecord, ServiceError>> {
     try {
       const records = await loadRecords();
+      const existing = records.find((r) => r.bookingId === bookingId);
+      if (existing) {
+        logger.info('Booking already cancelled (idempotent return)', { bookingId });
+        return ok(existing);
+      }
+
+      const cancelledAt = new Date().toISOString();
+      const bookingUpdateResult = await bookingService.updateBooking(bookingId, {
+        status: 'CANCELLED',
+        cancelledAt,
+        cancelReason: details.reason,
+        cancelledBy,
+      });
+      if (!bookingUpdateResult.success) {
+        logger.error('Failed to update booking status during cancellation', {
+          bookingId,
+          error: bookingUpdateResult.error,
+        });
+        return err(bookingUpdateResult.error);
+      }
 
       const record: CancellationRecord = {
         id: generateId('cancel'),
         bookingId,
         cancelledBy: cancelledBy as 'parent' | 'coach',
-        cancelledAt: new Date().toISOString(),
+        cancelledAt,
         reason: details.reason,
         reasonCategory: details.reason,
         note: details.note ?? '',

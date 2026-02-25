@@ -146,10 +146,26 @@ export default function GroupSessionDetailScreen() {
   const clubLabel = getGroupSessionClubLabel(session);
   const isCancelled = session.status === 'CANCELLED';
   const isCompleted = session.status === 'COMPLETED';
-  const canRegister = isActive && !isCoach && !isFull;
+  const isPastRegistrationDeadline = Boolean(
+    session.registrationDeadline && new Date(session.registrationDeadline).getTime() < Date.now(),
+  );
+  const canRegister = isActive && !isCoach && !isFull && !isPastRegistrationDeadline;
   const canJoinWaitlist = isActive && !isCoach && isFull && session.waitlistEnabled;
   const canRegisterMore = canRegister && unregisteredChildren.length > 0 && isRegistered;
-  const showRegisterFooter = isActive && !isCoach && !isFull && (!isRegistered || canRegisterMore);
+  const showRegisterFooter =
+    isActive &&
+    !isCoach &&
+    !isFull &&
+    (!isRegistered || (isRegistered && unregisteredChildren.length > 0));
+  const registrationDeadlineLabel = session.registrationDeadline
+    ? new Date(session.registrationDeadline).toLocaleString('en-GB', {
+        day: 'numeric',
+        month: 'short',
+        year: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
+      })
+    : null;
 
   return (
     <SafeAreaView
@@ -171,6 +187,25 @@ export default function GroupSessionDetailScreen() {
           )}
           {isCompleted && (
             <StatusBanner icon="checkmark-circle" label="This session has been completed" color={colors.success} />
+          )}
+          {isPastRegistrationDeadline && !isCoach && (
+            <Row
+              align="center"
+              gap="xs"
+              style={[styles.closedBanner, { backgroundColor: withAlpha(colors.warning, 0.09) }]}
+            >
+              <Ionicons name="time-outline" size={18} color={colors.warning} />
+              <Column flex>
+                <ThemedText style={[Typography.bodySmallSemiBold, { color: colors.warning }]}>
+                  Registration closed
+                </ThemedText>
+                {registrationDeadlineLabel && (
+                  <ThemedText style={[Typography.caption, { color: colors.muted }]}>
+                    Deadline was {registrationDeadlineLabel}
+                  </ThemedText>
+                )}
+              </Column>
+            </Row>
           )}
 
           {/* RSVP FIRST — "Who's Going?" for multi-child, single card for solo */}
@@ -352,8 +387,14 @@ export default function GroupSessionDetailScreen() {
                 : `${spotsLeft} ${spotsLeft === 1 ? 'spot' : 'spots'} left`}
             </ThemedText>
           </View>
-          <Button onPress={handleRegister} disabled={registering}>
-            {registering ? 'Registering...' : canRegisterMore ? 'Add Child' : 'Register Now'}
+          <Button onPress={handleRegister} disabled={registering || isPastRegistrationDeadline}>
+            {registering
+              ? 'Registering...'
+              : isPastRegistrationDeadline
+                ? 'Registration Closed'
+                : canRegisterMore
+                  ? 'Add Child'
+                  : 'Register Now'}
           </Button>
         </Row>
       )}
@@ -370,6 +411,11 @@ const styles = StyleSheet.create({
     paddingVertical: Spacing.sm,
     borderRadius: Radii.md,
     alignSelf: 'flex-start',
+  },
+  closedBanner: {
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.sm,
+    borderRadius: Radii.md,
   },
   footer: {
     padding: Spacing.lg,

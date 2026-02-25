@@ -121,8 +121,8 @@ export default function RSVPScreen() {
   const responded = responseOverride?.responded ?? data?.responded ?? false;
   const responseStatus = responseOverride?.responseStatus ?? data?.responseStatus ?? null;
 
-  const handleRespond = async (status: 'going' | 'not_going' | 'maybe') => {
-    if (!rsvp) return;
+  const handleRespond = async (status: 'going' | 'not_going' | 'maybe'): Promise<boolean> => {
+    if (!rsvp) return false;
 
     try {
       await rsvpService.respond(rsvp.id, status);
@@ -146,8 +146,10 @@ export default function RSVPScreen() {
           },
         ],
       );
+      return true;
     } catch {
       Alert.alert('Error', 'Failed to submit your response. Please try again.');
+      return false;
     }
   };
 

@@ -29,7 +29,7 @@ import { Row } from '@/components/primitives';
 const logger = createLogger('SchedulingRulesModal');
 
 const NOTICE_OPTIONS = [
-  { value: 0, label: 'None' },
+  { value: 1, label: '1h' },
   { value: 2, label: '2h' },
   { value: 6, label: '6h' },
   { value: 24, label: '24h' },
@@ -109,7 +109,7 @@ export function SchedulingRulesModal({
       ]);
       if (dataResult.success) {
         const data = dataResult.data;
-        setMinimumAdvanceHours(data.minimumAdvanceBookingHours);
+        setMinimumAdvanceHours(Math.min(168, Math.max(1, data.minimumAdvanceBookingHours)));
         setMaxAdvanceDays(data.maxAdvanceBookingDays);
         setBufferMinutes(data.bufferMinutesDefault);
         setAllowSameDayBookings(data.allowSameDayBookings);
@@ -151,7 +151,7 @@ export function SchedulingRulesModal({
       const templateKey = cancellationPreset === 'custom' ? 'custom' : cancellationPreset;
       const [rulesResult, policyResult] = await Promise.all([
         schedulingRulesService.updateCoachRules(coachId, {
-          minimumAdvanceBookingHours: minimumAdvanceHours,
+          minimumAdvanceBookingHours: Math.min(168, Math.max(1, minimumAdvanceHours)),
           maxAdvanceBookingDays: maxAdvanceDays,
           bufferMinutesDefault: bufferMinutes,
           maxConcurrentDefault: 1,
@@ -252,7 +252,7 @@ export function SchedulingRulesModal({
               icon="time-outline"
               iconColor={palette.warning}
               title="Minimum Notice"
-              hint="Required time before session"
+              hint="Required time before session (recommended: 24h)"
               options={NOTICE_OPTIONS}
               selected={minimumAdvanceHours}
               onSelect={setMinimumAdvanceHours}
