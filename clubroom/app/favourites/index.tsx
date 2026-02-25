@@ -19,6 +19,7 @@ import type { FavouriteCoach } from '@/constants/types';
 import { useScreen } from '@/hooks/use-screen';
 import { useAuth } from '@/hooks/use-auth';
 import { favouriteService } from '@/services/favourite-service';
+import { onTyped, ServiceEvents } from '@/services/event-bus';
 import { scaleFont } from '@/utils/scale';
 import { ok } from '@/types/result';
 
@@ -57,6 +58,21 @@ export default function FavouritesScreen() {
   useFocusEffect(
     useCallback(() => {
       loadFavourites();
+    }, [loadFavourites]),
+  );
+
+  useFocusEffect(
+    useCallback(() => {
+      const unsubscribeAdded = onTyped(ServiceEvents.FAVOURITE_ADDED, () => {
+        void loadFavourites();
+      });
+      const unsubscribeRemoved = onTyped(ServiceEvents.FAVOURITE_REMOVED, () => {
+        void loadFavourites();
+      });
+      return () => {
+        unsubscribeAdded();
+        unsubscribeRemoved();
+      };
     }, [loadFavourites]),
   );
 

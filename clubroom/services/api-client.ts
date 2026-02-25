@@ -24,6 +24,7 @@ import type { Result, ServiceError, ServiceErrorCode } from '@/types/result';
 import { ok, err, networkError, unauthorized, serviceError, storageError } from '@/types/result';
 import { withTimeout } from '@/utils/timeout';
 import { withRetry } from '@/utils/retry';
+import { emitTyped, ServiceEvents } from './event-bus';
 
 const logger = createLogger('ApiClient');
 
@@ -356,6 +357,14 @@ async function mockSet<T>(key: string, data: T): Promise<void> {
       throw new Error(`Storage write timeout for ${key}`);
     }
   } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    if (/quotaexceeded|quota exceeded/i.test(message)) {
+      logger.error(`Storage quota exceeded for key: ${key}`, { error: message });
+      emitTyped(ServiceEvents.STORAGE_QUOTA_WARNING, {
+        key,
+        timestamp: Date.now(),
+      });
+    }
     logger.error(`Failed to set ${key}`, error);
     throw error;
   }

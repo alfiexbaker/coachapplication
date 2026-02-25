@@ -21,6 +21,7 @@ import { NotificationToastProvider } from '@/components/notification/notificatio
 import { ToastProvider } from '@/components/ui/toast';
 import { OfflineBanner } from '@/components/ui/offline-banner';
 import { pushNotificationService } from '@/services/push-notification-service';
+import { initAutoFlush } from '@/services/offline-queue';
 import { navigateToDeepLink } from '@/utils/deep-link';
 
 // Lazy-load expo-notifications for deep linking
@@ -57,6 +58,12 @@ function RootNavigation() {
     if (!isAuthenticated) return;
     void pushNotificationService.registerForPushNotifications();
   }, [isAuthenticated]);
+
+  useEffect(() => {
+    const unsubscribe = initAutoFlush();
+    logger.info('Offline queue auto-flush initialized');
+    return unsubscribe;
+  }, []);
 
   // Deep linking: handle notification taps and initial launch tap.
   useEffect(() => {

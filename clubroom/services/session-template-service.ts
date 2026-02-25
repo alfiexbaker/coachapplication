@@ -16,6 +16,7 @@ import { api } from '@/constants/config';
 import { STORAGE_KEYS } from '@/constants/storage-keys';
 import type { SessionTemplate } from '@/constants/session-types';
 import { createLogger } from '@/utils/logger';
+import { emitTyped, ServiceEvents } from './event-bus';
 
 const logger = createLogger('SessionTemplateService');
 const USE_MOCK = api.useMock;
@@ -156,12 +157,18 @@ export const sessionTemplateService = {
   async deleteTemplate(templateId: string): Promise<void> {
     if (USE_MOCK) {
       const all = await loadTemplates();
+      const existing = all.find((t) => t.id === templateId);
       const filtered = all.filter((t) => t.id !== templateId);
       await saveTemplates(filtered);
+      emitTyped(ServiceEvents.SESSION_TEMPLATE_DELETED, {
+        templateId,
+        coachId: existing?.coachId,
+      });
       return;
     }
 
     await fetch(`/api/session-templates/${templateId}`, { method: 'DELETE' });
+    emitTyped(ServiceEvents.SESSION_TEMPLATE_DELETED, { templateId });
   },
 
   /**

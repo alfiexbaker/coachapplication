@@ -206,6 +206,7 @@ export const ServiceEvents = {
   // Favourite events
   FAVOURITE_ADDED: 'favourite:added',
   FAVOURITE_REMOVED: 'favourite:removed',
+  STORAGE_QUOTA_WARNING: 'storage:quota_warning',
 
   // Cancellation events
   CANCELLATION_RECORDED: 'cancellation:recorded',
@@ -239,6 +240,15 @@ export const ServiceEvents = {
   SQUAD_DELETED: 'squad:deleted',
   SQUAD_MEMBER_ADDED: 'squad:member:added',
   SQUAD_MEMBER_REMOVED: 'squad:member:removed',
+
+  // Availability/template/video/roster delete events
+  AVAILABILITY_TEMPLATE_DELETED: 'availability:template:deleted',
+  AVAILABILITY_OVERRIDE_DELETED: 'availability:override:deleted',
+  SESSION_TEMPLATE_DELETED: 'session_template:deleted',
+  VIDEO_DELETED: 'video:deleted',
+  VIDEO_ANNOTATION_REMOVED: 'video:annotation:removed',
+  VIDEO_ANNOTATION_DELETED: 'video:annotation:deleted',
+  ROSTER_NOTE_DELETED: 'roster:note_deleted',
 
   // Comment events
   COMMENT_CREATED: 'comment:created',
@@ -704,6 +714,10 @@ export interface EventPayloads {
     coachId: string;
     favouriteId: string;
   };
+  [ServiceEvents.STORAGE_QUOTA_WARNING]: {
+    key: string;
+    timestamp: number;
+  };
 
   // Cancellation events
   [ServiceEvents.CANCELLATION_RECORDED]: {
@@ -1040,6 +1054,37 @@ export interface EventPayloads {
     clubId: string;
     userId: string;
     userName: string;
+  };
+  [ServiceEvents.AVAILABILITY_TEMPLATE_DELETED]: {
+    templateId: string;
+    coachId?: string;
+  };
+  [ServiceEvents.AVAILABILITY_OVERRIDE_DELETED]: {
+    overrideId: string;
+    coachId?: string;
+    date?: string;
+  };
+  [ServiceEvents.SESSION_TEMPLATE_DELETED]: {
+    templateId: string;
+    coachId?: string;
+  };
+  [ServiceEvents.VIDEO_DELETED]: {
+    videoId: string;
+    coachId: string;
+    athleteIds: string[];
+  };
+  [ServiceEvents.VIDEO_ANNOTATION_REMOVED]: {
+    videoId: string;
+    annotationId: string;
+  };
+  [ServiceEvents.VIDEO_ANNOTATION_DELETED]: {
+    videoId: string;
+    annotationId: string;
+  };
+  [ServiceEvents.ROSTER_NOTE_DELETED]: {
+    athleteId: string;
+    noteId: string;
+    coachId: string;
   };
 
   // Comment events

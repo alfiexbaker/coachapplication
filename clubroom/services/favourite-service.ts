@@ -54,24 +54,45 @@ const MOCK_FAVOURITES: FavouriteCoach[] = [
 ];
 
 let favouritesCache: FavouriteCoach[] = [...MOCK_FAVOURITES];
+let favouritesCacheTimestamp = 0;
+const FAVOURITES_CACHE_TTL_MS = 30_000;
+
+function invalidateFavouritesCache(): void {
+  favouritesCache = [];
+  favouritesCacheTimestamp = 0;
+}
+
+function hasFreshFavouritesCache(): boolean {
+  return favouritesCacheTimestamp > 0 && Date.now() - favouritesCacheTimestamp < FAVOURITES_CACHE_TTL_MS;
+}
 
 async function loadFavourites(): Promise<FavouriteCoach[]> {
+  if (hasFreshFavouritesCache()) {
+    return favouritesCache;
+  }
   try {
     const stored = await apiClient.get<FavouriteCoach[] | null>(STORAGE_KEYS.FAVOURITES, null);
     if (stored) {
+      favouritesCache = stored;
+      favouritesCacheTimestamp = Date.now();
       return stored;
     }
   } catch (error) {
     logger.error('Failed to load favourites', error);
   }
-  return [...MOCK_FAVOURITES];
+  favouritesCache = [...MOCK_FAVOURITES];
+  favouritesCacheTimestamp = Date.now();
+  return favouritesCache;
 }
 
 async function saveFavourites(favourites: FavouriteCoach[]): Promise<void> {
   try {
     await apiClient.set(STORAGE_KEYS.FAVOURITES, favourites);
+    favouritesCache = favourites;
+    favouritesCacheTimestamp = Date.now();
   } catch (error) {
     logger.error('Failed to save favourites', error);
+    invalidateFavouritesCache();
   }
 }
 

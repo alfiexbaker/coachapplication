@@ -35,6 +35,7 @@ import type {
 import { type Result, type ServiceError, ok, err, notFound, storageError } from '@/types/result';
 import { userService } from './user-service';
 import { createLogger } from '@/utils/logger';
+import { emitTyped, ServiceEvents } from './event-bus';
 
 import { STORAGE_KEYS } from '@/constants/storage-keys';
 
@@ -405,12 +406,20 @@ export const videoService = {
       if (video) {
         video.annotations = video.annotations.filter((a) => a.id !== annotationId);
         await saveToStorage(videosCache);
+        emitTyped(ServiceEvents.VIDEO_ANNOTATION_REMOVED, {
+          videoId,
+          annotationId,
+        });
       }
       return;
     }
 
     await fetch(`/api/videos/${videoId}/annotations/${annotationId}`, {
       method: 'DELETE',
+    });
+    emitTyped(ServiceEvents.VIDEO_ANNOTATION_REMOVED, {
+      videoId,
+      annotationId,
     });
   },
 
@@ -471,12 +480,25 @@ export const videoService = {
   async deleteVideo(videoId: string): Promise<void> {
     if (USE_MOCK) {
       videosCache = await loadFromStorage();
+      const existing = videosCache.find((v) => v.id === videoId);
       videosCache = videosCache.filter((v) => v.id !== videoId);
       await saveToStorage(videosCache);
+      if (existing) {
+        emitTyped(ServiceEvents.VIDEO_DELETED, {
+          videoId,
+          coachId: existing.coachId,
+          athleteIds: existing.athleteIds,
+        });
+      }
       return;
     }
 
     await fetch(`/api/videos/${videoId}`, { method: 'DELETE' });
+    emitTyped(ServiceEvents.VIDEO_DELETED, {
+      videoId,
+      coachId: '',
+      athleteIds: [],
+    });
   },
 
   /**
@@ -647,6 +669,10 @@ export const videoService = {
   async deleteAnnotation(videoId: string, annotationId: string): Promise<boolean> {
     try {
       await this.removeAnnotation(videoId, annotationId);
+      emitTyped(ServiceEvents.VIDEO_ANNOTATION_DELETED, {
+        videoId,
+        annotationId,
+      });
       return true;
     } catch {
       return false;

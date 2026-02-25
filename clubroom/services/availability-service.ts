@@ -29,6 +29,7 @@ import { toDateStr } from '@/utils/format';
 import type { Result, ServiceError } from '@/types/result';
 import { ok, err, storageError } from '@/types/result';
 import { userService } from './user-service';
+import { emitTyped, ServiceEvents } from './event-bus';
 
 const logger = createLogger('AvailabilityService');
 const USE_MOCK = api.useMock;
@@ -300,12 +301,18 @@ export const availabilityService = {
   async deleteTemplate(templateId: string): Promise<void> {
     if (USE_MOCK) {
       templatesCache = await loadTemplates();
+      const existing = templatesCache.find((t) => t.id === templateId);
       templatesCache = templatesCache.filter((t) => t.id !== templateId);
       await saveTemplates(templatesCache);
+      emitTyped(ServiceEvents.AVAILABILITY_TEMPLATE_DELETED, {
+        templateId,
+        coachId: existing?.coachId,
+      });
       return;
     }
 
     await fetch(`/api/availability/templates/${templateId}`, { method: 'DELETE' });
+    emitTyped(ServiceEvents.AVAILABILITY_TEMPLATE_DELETED, { templateId });
   },
 
   /**
@@ -380,12 +387,19 @@ export const availabilityService = {
   async deleteOverride(overrideId: string): Promise<void> {
     if (USE_MOCK) {
       overridesCache = await loadOverrides();
+      const existing = overridesCache.find((o) => o.id === overrideId);
       overridesCache = overridesCache.filter((o) => o.id !== overrideId);
       await saveOverrides(overridesCache);
+      emitTyped(ServiceEvents.AVAILABILITY_OVERRIDE_DELETED, {
+        overrideId,
+        coachId: existing?.coachId,
+        date: existing?.date,
+      });
       return;
     }
 
     await fetch(`/api/availability/overrides/${overrideId}`, { method: 'DELETE' });
+    emitTyped(ServiceEvents.AVAILABILITY_OVERRIDE_DELETED, { overrideId });
   },
 
   /**
@@ -407,8 +421,16 @@ export const availabilityService = {
   async unblockDate(coachId: string, date: string): Promise<void> {
     if (USE_MOCK) {
       overridesCache = await loadOverrides();
+      const existing = overridesCache.find((o) => o.coachId === coachId && o.date === date);
       overridesCache = overridesCache.filter((o) => !(o.coachId === coachId && o.date === date));
       await saveOverrides(overridesCache);
+      if (existing) {
+        emitTyped(ServiceEvents.AVAILABILITY_OVERRIDE_DELETED, {
+          overrideId: existing.id,
+          coachId: existing.coachId,
+          date: existing.date,
+        });
+      }
 
       // Also clean legacy BLOCKED_DATES key so schedule screen stays in sync
       await this.removeLegacyBlockedDate(coachId, date);

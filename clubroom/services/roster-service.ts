@@ -33,6 +33,7 @@ import { BaseService } from './base-service';
 import { createLogger } from '@/utils/logger';
 import { userService } from './user-service';
 import { verificationService } from './verification-service';
+import { emitTyped, ServiceEvents } from './event-bus';
 
 const logger = createLogger('RosterService');
 
@@ -421,6 +422,11 @@ class RosterServiceImpl extends BaseService<RosterEntry> {
     if (entry) {
       entry.notes = entry.notes.filter((n: RosterNote) => n.id !== noteId);
       await this.saveToStorage(data);
+      emitTyped(ServiceEvents.ROSTER_NOTE_DELETED, {
+        athleteId,
+        noteId,
+        coachId,
+      });
     }
   }
 
