@@ -42,6 +42,7 @@ export default function AssignDrillScreen() {
     setNotes,
     repetitions,
     setRepetitions,
+    repetitionsError,
     priority,
     daysFromNow,
     formattedDate,
@@ -127,6 +128,7 @@ export default function AssignDrillScreen() {
             formattedDate={formattedDate}
             priority={priority}
             repetitions={repetitions}
+            repetitionsError={repetitionsError}
             notes={notes}
             colors={colors}
             onAthleteSelect={handleAthleteSelect}
@@ -140,7 +142,7 @@ export default function AssignDrillScreen() {
             entering={FadeInDown.delay(400).springify()}
             style={{ marginTop: Spacing.md }}
           >
-            <Button onPress={handleSubmit} disabled={submitting || !selectedAthlete}>
+            <Button onPress={handleSubmit} disabled={submitting || !selectedAthlete || !!repetitionsError}>
               {submitting
                 ? 'Assigning...'
                 : selectedAthlete

@@ -37,6 +37,14 @@ export const CreateDetailsStep = memo(function CreateDetailsStep({
   onRemoveCoverImage,
   colors,
 }: CreateDetailsStepProps) {
+  const priceError = (() => {
+    const raw = price.trim();
+    if (!raw) return null;
+    if (!/^\d+$/.test(raw)) return 'Price must be between £10 and £200 (whole pounds only)';
+    const parsed = Number.parseInt(raw, 10);
+    if (parsed < 10 || parsed > 200) return 'Price must be between £10 and £200 (whole pounds only)';
+    return null;
+  })();
   return (
     <Animated.View entering={FadeInDown.springify()}>
       <Column gap="md">
@@ -97,14 +105,20 @@ export const CreateDetailsStep = memo(function CreateDetailsStep({
         <Column gap="xs">
           <ThemedText style={styles.formLabel}>Price (optional)</ThemedText>
           <TextInput
-            style={[styles.input, { color: colors.text, borderColor: colors.border }]}
+            style={[
+              styles.input,
+              { color: colors.text, borderColor: priceError ? colors.error : colors.border },
+            ]}
             placeholder="e.g., 50"
             placeholderTextColor={colors.muted}
             value={price}
-            onChangeText={onChangePrice}
+            onChangeText={(value) => onChangePrice(value.replace(/[^0-9]/g, ''))}
             keyboardType="numeric"
             accessibilityLabel="Session price"
           />
+          <ThemedText style={[Typography.caption, { color: priceError ? colors.error : colors.muted }]}>
+            {priceError ?? 'Whole pounds only (£10-£200)'}
+          </ThemedText>
         </Column>
       </Column>
     </Animated.View>

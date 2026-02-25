@@ -66,7 +66,20 @@ export function CreateSessionForm(props: CreateSessionFormProps) {
     return null;
   })();
 
-  const canSubmit = !ageValidationError;
+  const priceValidationError = (() => {
+    const raw = props.price.trim();
+    if (!raw) return null;
+    if (!/^\d+$/.test(raw)) return 'Price must be between £10 and £200 (whole pounds only)';
+    const parsed = Number.parseInt(raw, 10);
+    if (parsed < 10 || parsed > 200) return 'Price must be between £10 and £200 (whole pounds only)';
+    return null;
+  })();
+
+  const handlePriceChange = (value: string) => {
+    props.onPriceChange(value.replace(/[^0-9]/g, ''));
+  };
+
+  const canSubmit = !ageValidationError && !priceValidationError;
 
   return (
     <ScrollView
@@ -163,7 +176,8 @@ export function CreateSessionForm(props: CreateSessionFormProps) {
         {/* Price, Age, Skill */}
         <SessionExtras
           price={props.price}
-          onPriceChange={props.onPriceChange}
+          onPriceChange={handlePriceChange}
+          priceError={priceValidationError}
           ageMin={props.ageMin}
           onAgeMinChange={props.onAgeMinChange}
           ageMax={props.ageMax}

@@ -39,8 +39,9 @@ export function useDrillAssign() {
     return d;
   });
   const [notes, setNotes] = useState('');
-  const [repetitions, setRepetitions] = useState('1');
+  const [repetitions, setRepetitionsState] = useState('1');
   const [priority, setPriority] = useState<1 | 2 | 3>(2);
+  const [repetitionsError, setRepetitionsError] = useState<string | null>(null);
 
   const coachId = currentUser?.id ?? 'coach1';
   const coachName = currentUser?.name ?? 'Coach';
@@ -99,9 +100,30 @@ export function useDrillAssign() {
     setSelectedAthlete((prev) => (prev?.id === athlete.id ? null : athlete));
   }, []);
 
+  const setRepetitions = useCallback((value: string) => {
+    const sanitized = value.replace(/[^0-9]/g, '');
+    setRepetitionsState(sanitized);
+    if (!sanitized) {
+      setRepetitionsError('Reps must be between 1 and 100');
+      return;
+    }
+    const parsed = Number.parseInt(sanitized, 10);
+    if (Number.isNaN(parsed) || parsed < 1 || parsed > 100) {
+      setRepetitionsError('Reps must be between 1 and 100');
+      return;
+    }
+    setRepetitionsError(null);
+  }, []);
+
   const handleSubmit = useCallback(async () => {
     if (!drill || !selectedAthlete) {
       Alert.alert('Missing Information', 'Please select a drill and athlete.');
+      return;
+    }
+    const reps = Number.parseInt(repetitions, 10);
+    if (Number.isNaN(reps) || reps < 1 || reps > 100) {
+      setRepetitionsError('Reps must be between 1 and 100');
+      Alert.alert('Invalid repetitions', 'Reps must be between 1 and 100.');
       return;
     }
     void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
@@ -116,7 +138,7 @@ export function useDrillAssign() {
         {
           dueDate: dueDate.toISOString(),
           notes: notes.trim() || undefined,
-          repetitions: parseInt(repetitions, 10) || 1,
+          repetitions: reps,
           priority,
         },
       );
@@ -133,7 +155,8 @@ export function useDrillAssign() {
             onPress: () => {
               setSelectedAthlete(null);
               setNotes('');
-              setRepetitions('1');
+              setRepetitionsState('1');
+              setRepetitionsError(null);
               setPriority(2);
             },
           },
@@ -175,6 +198,7 @@ export function useDrillAssign() {
     setNotes,
     repetitions,
     setRepetitions,
+    repetitionsError,
     priority,
     daysFromNow: getDaysFromNow(dueDate),
     formattedDate: formatDate(dueDate),
@@ -199,6 +223,7 @@ export function useDrillAssign() {
     setNotes: (value: string) => void;
     repetitions: string;
     setRepetitions: (value: string) => void;
+    repetitionsError: string | null;
     priority: 1 | 2 | 3;
     daysFromNow: number;
     formattedDate: string;

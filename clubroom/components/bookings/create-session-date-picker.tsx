@@ -8,7 +8,7 @@ import DateTimePicker from '@react-native-community/datetimepicker';
 
 import { ThemedText } from '@/components/themed-text';
 import { Clickable } from '@/components/primitives/clickable';
-import { Spacing, Radii } from '@/constants/theme';
+import { Spacing, Radii, Typography } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
 import { scaleFont } from '@/utils/scale';
 
@@ -30,6 +30,9 @@ function SessionDatePickerInner({
   onShowTimePickerChange,
 }: SessionDatePickerProps) {
   const { colors: palette } = useTheme();
+  const maxDate = new Date();
+  maxDate.setHours(23, 59, 59, 999);
+  maxDate.setDate(maxDate.getDate() + 365);
 
   const dateLabel = `${selectedDate.toLocaleDateString(undefined, {
     weekday: 'short',
@@ -60,6 +63,7 @@ function SessionDatePickerInner({
               value={selectedDate}
               mode="date"
               display="default"
+              maximumDate={maxDate}
               onChange={(event, date) => {
                 onShowDatePickerChange(false);
                 if (date && event.type === 'set') {
@@ -91,6 +95,7 @@ function SessionDatePickerInner({
               value={selectedDate}
               mode="datetime"
               display="default"
+              maximumDate={maxDate}
               onChange={(event, date) => {
                 onShowDatePickerChange(Platform.OS === 'ios');
                 if (date) onDateChange(date);
@@ -99,6 +104,9 @@ function SessionDatePickerInner({
           )}
         </>
       )}
+      <ThemedText style={[Typography.caption, { color: palette.muted }]}>
+        Sessions can be scheduled up to 1 year in advance
+      </ThemedText>
     </View>
   );
 }

@@ -61,6 +61,8 @@ const STEP_LABELS: Record<OnboardingStep, string> = {
   complete: 'All Done',
 };
 
+const EMAIL_REGEX = /^(?!\.)(?!.*\.\.)([A-Za-z0-9._%+-]+)@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$/;
+
 // ============================================================================
 // REDUCER
 // ============================================================================
@@ -110,7 +112,7 @@ function validateStep(state: OnboardingState): string | null {
     case 'basic-info': {
       if (!state.firstName.trim()) return 'First name is required';
       if (!state.lastName.trim()) return 'Last name is required';
-      if (!state.email.includes('@')) return 'Please enter a valid email';
+      if (!EMAIL_REGEX.test(state.email.trim())) return 'Please enter a valid email';
       if (state.password.length < 6) return 'Password must be at least 6 characters';
       if (state.password !== state.confirmPassword) return 'Passwords do not match';
       return null;

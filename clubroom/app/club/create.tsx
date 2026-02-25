@@ -43,6 +43,8 @@ export default function CreateClubScreen() {
   const {
     name,
     setName,
+    handleNameBlur,
+    nameError,
     tagline,
     setTagline,
     city,
@@ -148,8 +150,10 @@ export default function CreateClubScreen() {
               placeholder="e.g., Lions FC Academy"
               value={name}
               onChangeText={setName}
+              onBlur={handleNameBlur}
               palette={palette}
               autoCapitalize="words"
+              errorText={nameError}
             />
             <FormInput
               label="Tagline (optional)"
@@ -276,11 +280,13 @@ function FormInput({
   label,
   palette,
   inputStyle,
+  errorText,
   ...inputProps
 }: {
   label: string;
-  palette: { surface: string; border: string; text: string; muted: string };
+  palette: { surface: string; border: string; text: string; muted: string; error: string };
   inputStyle?: object;
+  errorText?: string | null;
 } & React.ComponentProps<typeof TextInput>) {
   return (
     <View style={styles.inputGroup}>
@@ -288,12 +294,19 @@ function FormInput({
       <TextInput
         style={[
           styles.input,
-          { backgroundColor: palette.surface, borderColor: palette.border, color: palette.text },
+          {
+            backgroundColor: palette.surface,
+            borderColor: errorText ? palette.error : palette.border,
+            color: palette.text,
+          },
           inputStyle,
         ]}
         placeholderTextColor={palette.muted}
         {...inputProps}
       />
+      {errorText ? (
+        <ThemedText style={[Typography.caption, { color: palette.error }]}>{errorText}</ThemedText>
+      ) : null}
     </View>
   );
 }

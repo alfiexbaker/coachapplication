@@ -96,7 +96,7 @@ function formatCampDateLabel(dateStr: string): string {
 }
 
 function isValidDuration(minutes: number): boolean {
-  return minutes >= 15 && minutes <= 480;
+  return minutes >= 30 && minutes <= 480;
 }
 
 export const CreateScheduleStep = memo(function CreateScheduleStep({
@@ -133,6 +133,12 @@ export const CreateScheduleStep = memo(function CreateScheduleStep({
   onPriceChange,
 }: CreateScheduleStepProps) {
   const today = useMemo(() => new Date(), []);
+  const maxDate = useMemo(() => {
+    const d = new Date();
+    d.setHours(23, 59, 59, 999);
+    d.setDate(d.getDate() + 365);
+    return d;
+  }, []);
   const isCamp = sessionType === 'camp';
   const supportsPerDayTimes = isCamp && campLength === 'multi_day' && campDatesPreview.length > 0;
   const showDefaultTimeFields = !supportsPerDayTimes || !useCampDailyTimes;
@@ -142,6 +148,24 @@ export const CreateScheduleStep = memo(function CreateScheduleStep({
     [selectedTime, selectedEndTime],
   );
   const defaultDurationValid = isValidDuration(defaultDurationMinutes);
+  const campDateRangeError = useMemo(() => {
+    if (!isCamp || campLength !== 'multi_day' || !selectedDate || !campEndDate) return null;
+    if (campEndDate < selectedDate) return 'End date must be same day or after start date';
+    const start = new Date(`${selectedDate}T00:00:00`);
+    const end = new Date(`${campEndDate}T00:00:00`);
+    const days = Math.floor((end.getTime() - start.getTime()) / 86400000) + 1;
+    if (days > 14) return 'Maximum camp duration is 14 days';
+    if (end > maxDate) return 'Date must be within 1 year';
+    return null;
+  }, [isCamp, campLength, selectedDate, campEndDate, maxDate]);
+  const priceError = useMemo(() => {
+    if (!price.trim()) return null;
+    if (!/^\d+$/.test(price)) return 'Price must be between £10 and £200 (whole pounds only)';
+    const parsed = Number.parseInt(price, 10);
+    if (parsed === 0) return null;
+    if (parsed < 10 || parsed > 200) return 'Price must be between £10 and £200 (whole pounds only)';
+    return null;
+  }, [price]);
 
   const inputColors = {
     backgroundColor: colors.surface,
@@ -250,16 +274,29 @@ export const CreateScheduleStep = memo(function CreateScheduleStep({
           value={selectedDate}
           onChange={onDateChange}
           minimumDate={today}
+          maximumDate={maxDate}
         />
+        <ThemedText style={[styles.caption, { color: colors.muted }]}>
+          Sessions can be scheduled up to 1 year in advance
+        </ThemedText>
 
         {isCamp && campLength === 'multi_day' && (
-          <DateTimeField
-            mode="date"
-            label="Camp End Date *"
-            value={campEndDate}
-            onChange={onCampEndDateChange}
-            minimumDate={selectedDate ? new Date(`${selectedDate}T00:00:00`) : today}
-          />
+          <Column gap="xs">
+            <DateTimeField
+              mode="date"
+              label="Camp End Date *"
+              value={campEndDate}
+              onChange={onCampEndDateChange}
+              minimumDate={selectedDate ? new Date(`${selectedDate}T00:00:00`) : today}
+              maximumDate={maxDate}
+              error={campDateRangeError ?? undefined}
+            />
+            {campDateRangeError ? (
+              <ThemedText style={[styles.caption, { color: colors.error }]}>
+                {campDateRangeError}
+              </ThemedText>
+            ) : null}
+          </Column>
         )}
 
         {supportsPerDayTimes && (
@@ -339,7 +376,7 @@ export const CreateScheduleStep = memo(function CreateScheduleStep({
             >
               {defaultDurationValid
                 ? `Session length: ${formatDuration(defaultDurationMinutes)}`
-                : 'End time must be after start (15 min to 8 hours).'}
+                : 'End time must be after start (30 min to 8 hours).'}
             </ThemedText>
           </Column>
         )}
@@ -424,12 +461,12 @@ export const CreateScheduleStep = memo(function CreateScheduleStep({
               placeholderTextColor={colors.muted}
               value={price}
               onChangeText={onPriceChange}
-              keyboardType="decimal-pad"
+              keyboardType="number-pad"
               accessibilityLabel="Session price"
             />
           </Row>
-          <ThemedText style={[styles.hint, { color: colors.muted }]}>
-            Leave empty or set to 0 for free sessions
+          <ThemedText style={[styles.hint, { color: priceError ? colors.error : colors.muted }]}>
+            {priceError ?? 'Leave empty or set to 0 for free sessions. Whole pounds only (£10-£200 otherwise).'}
           </ThemedText>
         </Column>
       </Column>

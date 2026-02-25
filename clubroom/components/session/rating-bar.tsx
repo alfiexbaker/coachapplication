@@ -10,6 +10,7 @@ import Animated, {
 
 import { Clickable } from '@/components/primitives/clickable';
 import { Row } from '@/components/primitives/row';
+import { ThemedText } from '@/components/themed-text';
 import { Radii, Spacing, withAlpha } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
 import { HapticPatterns } from '@/utils/haptics';
@@ -17,8 +18,8 @@ import { HapticPatterns } from '@/utils/haptics';
 const RATING_VALUES = [1, 2, 3, 4, 5] as const;
 
 interface RatingBarProps {
-  /** 0 = unrated, 1-5 = rated */
-  value: number;
+  /** null/undefined = unrated, 1-5 = rated */
+  value?: number | null;
   onChange: (value: number) => void;
   /** Visual height of segments. Touch target is always ≥44px via padding. */
   height?: number;
@@ -116,10 +117,13 @@ export const RatingBar = memo(function RatingBar({
   const emptyColor = withAlpha(colors.muted, 0.12);
   const ghostColor = withAlpha(colors.muted, 0.25);
 
+  const normalizedValue =
+    typeof value === 'number' && value >= 1 && value <= 5 ? Math.round(value) : null;
   const handlePress = useCallback(
     (rating: number) => {
       void HapticPatterns.tap();
-      onChange(rating);
+      if (rating < 1) return;
+      onChange(Math.max(1, rating));
     },
     [onChange],
   );
@@ -130,7 +134,7 @@ export const RatingBar = memo(function RatingBar({
     <View style={[styles.barContainer, { minHeight: Math.max(height, 44) }]}>
       <Row gap="micro" style={[styles.barInner, { height }]}>
         {RATING_VALUES.map((rating, i) => {
-          const isFilled = value > 0 && rating <= value;
+          const isFilled = normalizedValue !== null && rating <= normalizedValue;
           // Show ghost only on segments that were previously filled but aren't currently
           const isGhost = !isFilled && safePrevious > 0 && rating <= safePrevious;
 
@@ -150,6 +154,11 @@ export const RatingBar = memo(function RatingBar({
           );
         })}
       </Row>
+      {normalizedValue === null ? (
+        <ThemedText style={[styles.helperText, { color: colors.muted }]}>
+          Tap to rate (1-5 stars)
+        </ThemedText>
+      ) : null}
     </View>
   );
 });
@@ -161,6 +170,9 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   barInner: {},
+  helperText: {
+    marginTop: Spacing.xs,
+  },
   segment: {
     flex: 1,
     overflow: 'hidden',

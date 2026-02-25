@@ -70,8 +70,10 @@ const PARTICIPANT_RULES: Record<
   camp: { defaultValue: 20, min: 6 },
 };
 
-const MIN_DURATION_MINUTES = 15;
+const MIN_DURATION_MINUTES = 30;
 const MAX_DURATION_MINUTES = 480;
+const MAX_CAMP_DAYS = 14;
+const MAX_SCHEDULE_AHEAD_DAYS = 365;
 
 function formatLocalDate(date: Date): string {
   const year = date.getFullYear();
@@ -112,7 +114,7 @@ function buildCampDates(startDate: string, endDate?: string): string[] | null {
   const dates: string[] = [];
   const cursor = new Date(`${startDate}T00:00:00`);
   const finalDate = new Date(`${endDate}T00:00:00`);
-  const maxDays = 21; // Guard against accidental huge camp ranges
+  const maxDays = MAX_CAMP_DAYS; // Policy limit
 
   while (cursor <= finalDate && dates.length < maxDays) {
     // Keep local calendar date stable across timezones (critical for UK BST camps).
@@ -125,6 +127,35 @@ function buildCampDates(startDate: string, endDate?: string): string[] | null {
   }
 
   return dates;
+}
+
+function getMaxScheduleDate(): Date {
+  const max = new Date();
+  max.setHours(23, 59, 59, 999);
+  max.setDate(max.getDate() + MAX_SCHEDULE_AHEAD_DAYS);
+  return max;
+}
+
+function isWithinScheduleWindow(dateStr: string): boolean {
+  if (!dateStr) return false;
+  const date = new Date(`${dateStr}T00:00:00`);
+  if (Number.isNaN(date.getTime())) return false;
+  return date <= getMaxScheduleDate();
+}
+
+function parseSessionPrice(priceInput: string): number | undefined {
+  if (!priceInput.trim()) return undefined;
+  const parsed = Number.parseInt(priceInput, 10);
+  return Number.isNaN(parsed) ? undefined : parsed;
+}
+
+function validateSessionPrice(priceInput: string): string | null {
+  if (!priceInput.trim()) return null;
+  if (!/^\d+$/.test(priceInput)) return 'Price must be between £10 and £200 (whole pounds only)';
+  const parsed = Number.parseInt(priceInput, 10);
+  if (parsed === 0) return null; // Preserve free-session support
+  if (parsed < 10 || parsed > 200) return 'Price must be between £10 and £200 (whole pounds only)';
+  return null;
 }
 
 function normalizeParticipantsForType(sessionType: SessionType, rawValue: string): number {
@@ -272,7 +303,7 @@ export function useCreateSession(): CreateSessionState & CreateSessionActions {
   const [location, setLocation] = useState('');
   const [venueName, setVenueName] = useState('');
   const [locationCoordinates, setLocationCoordinates] = useState<LocationCoordinates | null>(null);
-  const [price, setPrice] = useState('');
+  const [price, setPriceState] = useState('');
 
   // Step 3: Invite
   const [inviteType, setInviteTypeState] = useState<SessionInviteType>('CLOSED');
@@ -289,6 +320,14 @@ export function useCreateSession(): CreateSessionState & CreateSessionActions {
   );
   const campDatesPreview = campDateRange ?? [];
   const campRangeTooLong = campDateRange === null;
+  const priceError = useMemo(() => validateSessionPrice(price), [price]);
+  const datesWithinLimit = useMemo(() => {
+    if (!selectedDate || !isWithinScheduleWindow(selectedDate)) return false;
+    if (sessionType === 'camp' && campLength === 'multi_day' && campEndDate) {
+      return isWithinScheduleWindow(campEndDate);
+    }
+    return true;
+  }, [selectedDate, sessionType, campLength, campEndDate]);
 
   const setRecurrence = useCallback(
     (next: RecurrenceType) => {
@@ -320,6 +359,10 @@ export function useCreateSession(): CreateSessionState & CreateSessionActions {
     },
     [selectedTime, selectedEndTime],
   );
+
+  const setPrice = useCallback((value: string) => {
+    setPriceState(value.replace(/[^0-9]/g, ''));
+  }, []);
 
   const setSessionType = useCallback((next: SessionType) => {
     setSessionTypeState(next);
@@ -526,6 +569,9 @@ export function useCreateSession(): CreateSessionState & CreateSessionActions {
         if (selectedDate.trim().length === 0 || !hasLocation) {
           return false;
         }
+        if (!datesWithinLimit) {
+          return false;
+        }
         if (!isValidTimeWindow(selectedTime, selectedEndTime)) {
           return false;
         }
@@ -540,6 +586,9 @@ export function useCreateSession(): CreateSessionState & CreateSessionActions {
               return isValidTimeWindow(range.startTime, range.endTime);
             });
           }
+        }
+        if (priceError) {
+          return false;
         }
         return true;
       }
@@ -563,6 +612,8 @@ export function useCreateSession(): CreateSessionState & CreateSessionActions {
     useCampDailyTimes,
     campDatesPreview,
     campDailyTimes,
+    datesWithinLimit,
+    priceError,
   ]);
 
   const goNext = useCallback(() => {
@@ -615,14 +666,25 @@ export function useCreateSession(): CreateSessionState & CreateSessionActions {
       });
 
       const participants = normalizeParticipantsForType(sessionType, maxParticipants);
-      const parsedPrice = price ? parseFloat(price) : undefined;
+      const parsedPrice = parseSessionPrice(price);
+
+      if (!isWithinScheduleWindow(selectedDate) || (campRangeEnd && !isWithinScheduleWindow(campRangeEnd))) {
+        Alert.alert('Invalid date', 'Date must be within 1 year.');
+        setLoading(false);
+        return;
+      }
+      if (priceError) {
+        Alert.alert('Invalid price', priceError);
+        setLoading(false);
+        return;
+      }
       const selectedAthleteRecords = pastAthletes.filter((athlete) =>
         selectedAthletes.includes(athlete.id),
       );
 
       const primaryDuration = durationBetweenTimes(selectedTime, selectedEndTime);
       if (!isValidTimeWindow(selectedTime, selectedEndTime)) {
-        Alert.alert('Invalid time range', 'End time must be after start time (15 min to 8 hours).');
+        Alert.alert('Invalid time range', 'End time must be after start time (30 min to 8 hours).');
         setLoading(false);
         return;
       }
@@ -720,7 +782,7 @@ export function useCreateSession(): CreateSessionState & CreateSessionActions {
 
         const campDates = buildCampDates(selectedDate, campRangeEnd);
         if (!campDates) {
-          Alert.alert('Camp too long', 'Camp range cannot exceed 21 days.');
+          Alert.alert('Camp too long', 'Camp range cannot exceed 14 days.');
           setLoading(false);
           return;
         }
@@ -1016,6 +1078,7 @@ export function useCreateSession(): CreateSessionState & CreateSessionActions {
     inviteType,
     recurrence,
     price,
+    priceError,
     venueName,
     locationCoordinates,
     focusAreas,

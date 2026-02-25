@@ -23,6 +23,7 @@ interface AssignDrillFormProps {
   formattedDate: string;
   priority: 1 | 2 | 3;
   repetitions: string;
+  repetitionsError: string | null;
   notes: string;
   colors: ThemeColors;
   onAthleteSelect: (athlete: DrillAthlete) => void;
@@ -40,6 +41,7 @@ export const AssignDrillForm = memo(function AssignDrillForm({
   formattedDate,
   priority,
   repetitions,
+  repetitionsError,
   notes,
   colors,
   onAthleteSelect,
@@ -336,6 +338,11 @@ export const AssignDrillForm = memo(function AssignDrillForm({
               maxLength={2}
             />
           </Row>
+          {repetitionsError ? (
+            <ThemedText style={[Typography.caption, { color: colors.error, marginTop: Spacing.xs }]}>
+              {repetitionsError}
+            </ThemedText>
+          ) : null}
         </View>
       </Animated.View>
 

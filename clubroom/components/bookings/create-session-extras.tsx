@@ -18,6 +18,7 @@ const SKILLS: FootballObjective[] = COACHING_FOCUSES;
 interface SessionExtrasProps {
   price: string;
   onPriceChange: (value: string) => void;
+  priceError?: string | null;
   ageMin: string;
   onAgeMinChange: (value: string) => void;
   ageMax: string;
@@ -30,6 +31,7 @@ interface SessionExtrasProps {
 function SessionExtrasInner({
   price,
   onPriceChange,
+  priceError,
   ageMin,
   onAgeMinChange,
   ageMax,
@@ -64,6 +66,15 @@ function SessionExtrasInner({
             accessibilityLabel="Price in pounds"
           />
         </Row>
+        {priceError ? (
+          <ThemedText style={[Typography.caption, { color: palette.error }]}>
+            {priceError}
+          </ThemedText>
+        ) : (
+          <ThemedText style={[Typography.caption, { color: palette.muted }]}>
+            Whole pounds only (£10-£200, or leave blank)
+          </ThemedText>
+        )}
       </View>
 
       {/* Age Range */}

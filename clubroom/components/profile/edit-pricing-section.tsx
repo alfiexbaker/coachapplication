@@ -17,6 +17,7 @@ interface EditPricingSectionProps {
   onChangeMin: (text: string) => void;
   priceMax: string;
   onChangeMax: (text: string) => void;
+  priceError?: string | null;
 }
 
 export const EditPricingSection = memo(function EditPricingSection({
@@ -25,6 +26,7 @@ export const EditPricingSection = memo(function EditPricingSection({
   onChangeMin,
   priceMax,
   onChangeMax,
+  priceError,
 }: EditPricingSectionProps) {
   const inputStyle = [
     styles.input,
@@ -60,6 +62,13 @@ export const EditPricingSection = memo(function EditPricingSection({
           />
         </View>
       </Row>
+      {priceError ? (
+        <ThemedText style={[Typography.caption, { color: colors.error }]}>{priceError}</ThemedText>
+      ) : (
+        <ThemedText style={[Typography.caption, { color: colors.muted }]}>
+          Enter whole pounds only (£10-£200)
+        </ThemedText>
+      )}
     </SurfaceCard>
   );
 });

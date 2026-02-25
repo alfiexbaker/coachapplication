@@ -37,6 +37,15 @@ import type { ThemeName } from '@/constants/theme';
 
 const logger = createLogger('useCreateInvite');
 
+function validateInvitePrice(price: string): string | null {
+  const raw = price.trim();
+  if (!raw) return null;
+  if (!/^\d+$/.test(raw)) return 'Price must be between £10 and £200 (whole pounds only)';
+  const parsed = Number.parseInt(raw, 10);
+  if (parsed < 10 || parsed > 200) return 'Price must be between £10 and £200 (whole pounds only)';
+  return null;
+}
+
 function mapOfferingToExistingSession(offering: SessionOffering): GroupSession {
   const start = new Date(offering.scheduledAt);
   const safeStart = Number.isNaN(start.getTime()) ? new Date() : start;
@@ -211,10 +220,11 @@ export function useCreateInvite(): UseCreateInviteReturn {
   const [sessionInviteType, setSessionInviteType] = useState<SessionInviteType>('OPEN');
   const [inviteMode, setInviteMode] = useState<'new' | 'existing'>('new');
   const [notes, setNotes] = useState('');
-  const [price, setPrice] = useState('');
+  const [price, setPriceState] = useState('');
   const [coverImageUri, setCoverImageUri] = useState<string | null>(null);
   const [isRecurring, setIsRecurring] = useState(false);
   const [recurrenceWeeks, setRecurrenceWeeks] = useState(8);
+  const priceError = validateInvitePrice(price);
 
   // ── Data loading ──────────────────────────────────────────────────────
 
@@ -357,6 +367,10 @@ export function useCreateInvite(): UseCreateInviteReturn {
     }
   }, []);
 
+  const setPrice = useCallback((value: string) => {
+    setPriceState(value.replace(/[^0-9]/g, ''));
+  }, []);
+
   const canProceed = useCallback((): boolean => {
     switch (step) {
       case 'athlete':
@@ -370,7 +384,7 @@ export function useCreateInvite(): UseCreateInviteReturn {
       case 'slots':
         return selectedAvailabilitySlots.length > 0;
       case 'details':
-        return true;
+        return priceError === null;
       case 'existing':
         return selectedExistingSession !== null;
       default:
@@ -383,6 +397,7 @@ export function useCreateInvite(): UseCreateInviteReturn {
     focus,
     selectedAvailabilitySlots.length,
     selectedExistingSession,
+    priceError,
   ]);
 
   const nextStep = useCallback(() => {
@@ -453,6 +468,10 @@ export function useCreateInvite(): UseCreateInviteReturn {
   const submitInvite = useCallback(async () => {
     if (!currentUser) return;
     if (selectedAthletes.length === 0) return;
+    if (priceError) {
+      Alert.alert('Invalid price', priceError);
+      return;
+    }
 
     setLoading(true);
     try {
@@ -520,7 +539,7 @@ export function useCreateInvite(): UseCreateInviteReturn {
                 duration: selectedTemplate?.duration,
                 focus,
                 notes: notes || undefined,
-                price: price ? parseFloat(price) : selectedTemplate?.defaultPrice,
+                price: price ? Number.parseInt(price, 10) : selectedTemplate?.defaultPrice,
                 expiresInDays: 7,
                 isRecurring: isRecurring || undefined,
                 recurrenceWeeks: isRecurring ? recurrenceWeeks : undefined,
@@ -598,6 +617,7 @@ export function useCreateInvite(): UseCreateInviteReturn {
     isRecurring,
     recurrenceWeeks,
     coverImageUri,
+    priceError,
   ]);
 
   // ── Return ────────────────────────────────────────────────────────────

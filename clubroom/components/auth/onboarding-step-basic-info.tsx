@@ -2,7 +2,7 @@
  * StepBasicInfo — Basic information form step of onboarding.
  */
 
-import { memo, useMemo } from 'react';
+import { memo, useMemo, useState } from 'react';
 import { View, StyleSheet, TextInput } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
@@ -38,12 +38,19 @@ function StepBasicInfoInner({
 }: StepBasicInfoProps) {
   const { colors: palette } = useTheme();
   const today = useMemo(() => new Date(), []);
+  const [emailTouched, setEmailTouched] = useState(false);
+  const emailRegex = /^(?!\.)(?!.*\.\.)([A-Za-z0-9._%+-]+)@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$/;
+  const trimmedEmail = email.trim();
+  const emailError =
+    emailTouched && trimmedEmail.length > 0 && !emailRegex.test(trimmedEmail)
+      ? 'Enter a valid email address'
+      : null;
 
   const inputStyle = [styles.input, { borderColor: palette.border, backgroundColor: palette.card }];
   const checklist = [
     { key: 'first', label: 'First name', done: firstName.trim().length > 0 },
     { key: 'last', label: 'Last name', done: lastName.trim().length > 0 },
-    { key: 'email', label: 'Valid email', done: email.includes('@') && email.trim().length > 4 },
+    { key: 'email', label: 'Valid email', done: emailRegex.test(trimmedEmail) },
     { key: 'password', label: 'Password length', done: password.length >= 6 },
     { key: 'confirm', label: 'Passwords match', done: password.length > 0 && password === confirmPassword },
   ];
@@ -131,14 +138,27 @@ function StepBasicInfoInner({
         <ThemedText style={styles.label}>Email *</ThemedText>
         <TextInput
           value={email}
-          onChangeText={(v) => onChangeField('email', v)}
+          onChangeText={(v) => {
+            onChangeField('email', v);
+            if (emailTouched) setEmailTouched(true);
+          }}
+          onBlur={() => {
+            setEmailTouched(true);
+            onChangeField('email', email.trim());
+          }}
           placeholder="you@example.com"
           placeholderTextColor={palette.muted}
           keyboardType="email-address"
           autoCapitalize="none"
           accessibilityLabel="Email address"
-          style={inputStyle}
+          style={[
+            inputStyle,
+            emailError ? { borderColor: palette.error } : null,
+          ]}
         />
+        {emailError ? (
+          <ThemedText style={[Typography.caption, { color: palette.error }]}>{emailError}</ThemedText>
+        ) : null}
       </View>
 
       <View style={styles.fieldGroup}>

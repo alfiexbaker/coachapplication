@@ -28,14 +28,28 @@ export const CLUB_FEATURES = [
 export function useCreateClub() {
   const { currentUser } = useAuth();
 
-  const [name, setName] = useState('');
+  const [name, setNameState] = useState('');
   const [tagline, setTagline] = useState('');
   const [city, setCity] = useState('');
   const [country, setCountry] = useState('UK');
   const [badge, setBadge] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [nameTouched, setNameTouched] = useState(false);
 
-  const isValid = name.trim().length >= 3 && city.trim().length >= 2;
+  const trimmedName = name.trim();
+  const nameError =
+    nameTouched && trimmedName.length < 3
+      ? 'Club name cannot be empty or spaces only'
+      : null;
+  const isValid = trimmedName.length >= 3 && city.trim().length >= 2 && !nameError;
+
+  const setName = useCallback((value: string) => {
+    setNameState(value);
+  }, []);
+  const handleNameBlur = useCallback(() => {
+    setNameTouched(true);
+    setNameState((prev) => prev.trim());
+  }, []);
 
   const handleBadgeChange = useCallback((t: string) => {
     setBadge(t.toUpperCase().slice(0, 4));
@@ -49,15 +63,15 @@ export function useCreateClub() {
 
     try {
       const clubId = `club_${Date.now()}`;
-      const inviteCode = generateInviteCode(name);
+      const inviteCode = generateInviteCode(trimmedName);
 
       const newClub: Club = {
         id: clubId,
-        name: name.trim(),
+        name: trimmedName,
         tagline: tagline.trim() || undefined,
         city: city.trim(),
         country: country.trim(),
-        badge: badge.trim() || name.slice(0, 3).toUpperCase(),
+        badge: badge.trim() || trimmedName.slice(0, 3).toUpperCase(),
         memberCount: 1,
         coachCount: 1,
         squadCount: 0,
@@ -90,7 +104,7 @@ export function useCreateClub() {
     } finally {
       setIsSubmitting(false);
     }
-  }, [isValid, currentUser, name, tagline, city, country, badge]);
+  }, [isValid, currentUser, trimmedName, tagline, city, country, badge]);
 
   const previewBadge = badge || name.slice(0, 3).toUpperCase() || 'ABC';
   const previewName = name || 'Your Club Name';
@@ -99,6 +113,8 @@ export function useCreateClub() {
   return {
     name,
     setName,
+    handleNameBlur,
+    nameError,
     tagline,
     setTagline,
     city,

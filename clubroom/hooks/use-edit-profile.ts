@@ -5,7 +5,7 @@
  * for both coach and parent profile editing flows.
  */
 
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback, useEffect, useMemo } from 'react';
 import { Alert } from 'react-native';
 import { router } from 'expo-router';
 
@@ -285,13 +285,38 @@ export function useEditProfile() {
 
   // ── Coach fields ───────────────────────────────────────────────
   const [website, setWebsite] = useState('');
-  const [priceMin, setPriceMin] = useState('50');
-  const [priceMax, setPriceMax] = useState('80');
+  const [priceMin, setPriceMinState] = useState('50');
+  const [priceMax, setPriceMaxState] = useState('80');
   const [selectedFocuses, setSelectedFocuses] = useState<FootballObjective[]>([]);
   const [experiences, setExperiences] = useState<CoachExperience[]>([]);
   const [languages, setLanguages] = useState<CoachLanguage[]>([]);
   const [certifications, setCertifications] = useState<CoachCertification[]>([]);
   const [socialLinks, setSocialLinks] = useState<SocialLinks>({});
+
+  const sanitizePriceInput = useCallback((value: string) => value.replace(/[^0-9]/g, ''), []);
+  const parseOptionalInt = useCallback((value: string) => {
+    if (!value.trim()) return null;
+    const parsed = Number.parseInt(value, 10);
+    return Number.isNaN(parsed) ? null : parsed;
+  }, []);
+  const priceRangeError = useMemo(() => {
+    if (!userIsCoach) return null;
+    const min = parseOptionalInt(priceMin);
+    const max = parseOptionalInt(priceMax);
+    if (priceMin.trim() && min === null) return 'Enter whole pounds only (no pence)';
+    if (priceMax.trim() && max === null) return 'Enter whole pounds only (no pence)';
+    if (min !== null && min < 10) return 'Minimum price must be at least £10';
+    if (max !== null && max > 200) return 'Maximum price must be under £200';
+    if (min !== null && max !== null && min > max) return 'Minimum price must be less than maximum';
+    return null;
+  }, [userIsCoach, parseOptionalInt, priceMin, priceMax]);
+
+  const setPriceMin = useCallback((value: string) => {
+    setPriceMinState(sanitizePriceInput(value));
+  }, [sanitizePriceInput]);
+  const setPriceMax = useCallback((value: string) => {
+    setPriceMaxState(sanitizePriceInput(value));
+  }, [sanitizePriceInput]);
 
   // ── Modal drafts ───────────────────────────────────────────────
   const [experienceDraft, setExperienceDraft] = useState<CoachExperience>(createBlankExperience());
@@ -518,6 +543,10 @@ export function useEditProfile() {
 
   // ── Save handler ───────────────────────────────────────────────
   const handleSave = useCallback(() => {
+    if (userIsCoach && priceRangeError) {
+      Alert.alert('Invalid pricing', priceRangeError);
+      return;
+    }
     if (userIsCoach) {
       if (!coach) {
         Alert.alert('Profile unavailable', 'Coach profile is still loading. Please try again.');
@@ -581,6 +610,7 @@ export function useEditProfile() {
     socialLinks,
     children,
     primaryPosition,
+    priceRangeError,
   ]);
 
   // ── Image picker ───────────────────────────────────────────────
@@ -595,6 +625,8 @@ export function useEditProfile() {
       ],
     );
   }, []);
+
+  const canSave = !userIsCoach || priceRangeError === null;
 
   return {
     // Identity
@@ -629,6 +661,7 @@ export function useEditProfile() {
     setPriceMin,
     priceMax,
     setPriceMax,
+    priceRangeError,
     // Focuses
     selectedFocuses,
     toggleFocus,
@@ -668,6 +701,7 @@ export function useEditProfile() {
     setSocialLinks,
     // Actions
     handleSave,
+    canSave,
     pickImage,
   };
 }

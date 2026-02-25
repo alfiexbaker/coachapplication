@@ -20,6 +20,7 @@ import { Spacing, Typography } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
 import { useAuth } from '@/hooks/use-auth';
 import { useEditProfile } from '@/hooks/use-edit-profile';
+import { Clickable } from '@/components/primitives/clickable';
 
 export default function EditProfileScreen() {
   const { colors } = useTheme();
@@ -97,7 +98,22 @@ export default function EditProfileScreen() {
 
   return (
     <SafeAreaView style={[styles.safeArea, { backgroundColor: colors.background }]} edges={['top', 'bottom']}>
-      <PageHeader title="Edit Profile" showBack action="Save" onActionPress={profile.handleSave} />
+      <PageHeader
+        title="Edit Profile"
+        showBack
+        right={
+          <Clickable
+            onPress={profile.handleSave}
+            disabled={!profile.canSave}
+            accessibilityLabel="Save profile"
+            style={{ minHeight: 44, justifyContent: 'center', paddingHorizontal: Spacing.xs }}
+          >
+            <ThemedText style={[Typography.smallSemiBold, { color: profile.canSave ? colors.text : colors.muted }]}>
+              Save
+            </ThemedText>
+          </Clickable>
+        }
+      />
 
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
@@ -156,6 +172,7 @@ export default function EditProfileScreen() {
                 onChangeMin={profile.setPriceMin}
                 priceMax={profile.priceMax}
                 onChangeMax={profile.setPriceMax}
+                priceError={profile.priceRangeError}
               />
 
               <EditSpecialtiesSection
