@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { StyleSheet, TextInput, View } from 'react-native';
 import { Row } from '@/components/primitives/row';
 import { Ionicons } from '@expo/vector-icons';
@@ -26,17 +26,65 @@ const PLATFORM_ORDER: SocialPlatform[] = [
 ];
 
 const PLATFORM_PLACEHOLDERS: Record<SocialPlatform, string> = {
-  instagram: '@coachsarah or full URL',
-  twitter: '@coachsarah or full URL',
-  facebook: 'profile username or full URL',
-  linkedin: 'profile username or full URL',
-  youtube: '@channelname or full URL',
-  tiktok: '@username or full URL',
+  instagram: 'e.g., https://instagram.com/yourhandle',
+  twitter: 'e.g., https://twitter.com/yourhandle',
+  facebook: 'e.g., https://facebook.com/yourpage',
+  linkedin: 'e.g., https://linkedin.com/in/yourname',
+  youtube: 'e.g., https://youtube.com/@yourchannel',
+  tiktok: 'e.g., https://tiktok.com/@yourname',
   website: 'https://yourwebsite.com',
 };
 
+const PLATFORM_DOMAINS: Partial<Record<SocialPlatform, string[]>> = {
+  instagram: ['instagram.com'],
+  twitter: ['twitter.com', 'x.com'],
+  facebook: ['facebook.com'],
+  linkedin: ['linkedin.com'],
+  youtube: ['youtube.com', 'youtu.be'],
+  tiktok: ['tiktok.com'],
+};
+
+function normalizeUrlInput(platform: SocialPlatform, raw: string): string {
+  const value = raw.trim();
+  if (!value) return '';
+  if (platform !== 'website' && value.startsWith('@')) {
+    const handle = value.slice(1);
+    const domain = PLATFORM_DOMAINS[platform]?.[0];
+    return domain ? `https://${domain}/${handle}` : value;
+  }
+  if (!/^https?:\/\//i.test(value)) {
+    return `https://${value}`;
+  }
+  return value;
+}
+
+function validateSocialLink(platform: SocialPlatform, raw: string): string | null {
+  const value = raw.trim();
+  if (!value) return null;
+  const normalized = normalizeUrlInput(platform, value);
+  let parsed: URL;
+  try {
+    parsed = new URL(normalized);
+  } catch {
+    return 'Enter a valid URL';
+  }
+  if (!/^https?:$/.test(parsed.protocol)) return 'Enter a valid URL';
+  const domains = PLATFORM_DOMAINS[platform];
+  if (domains && !domains.some((domain) => parsed.hostname.toLowerCase().includes(domain))) {
+    return `Must be a ${SOCIAL_PLATFORMS[platform].label} URL`;
+  }
+  return null;
+}
+
 export function SocialLinksEditor({ socialLinks, onChange }: SocialLinksEditorProps) {
   const { colors: palette } = useTheme();
+  const errors = useMemo(() => {
+    const next: Partial<Record<SocialPlatform, string | null>> = {};
+    for (const platform of PLATFORM_ORDER) {
+      next[platform] = validateSocialLink(platform, socialLinks[platform] || '');
+    }
+    return next;
+  }, [socialLinks]);
 
   const handleChange = (platform: SocialPlatform, value: string) => {
     onChange({
@@ -49,6 +97,14 @@ export function SocialLinksEditor({ socialLinks, onChange }: SocialLinksEditorPr
     const newLinks = { ...socialLinks };
     delete newLinks[platform];
     onChange(newLinks);
+  };
+
+  const handleBlur = (platform: SocialPlatform) => {
+    const current = socialLinks[platform] || '';
+    const normalized = normalizeUrlInput(platform, current);
+    if (normalized && normalized !== current) {
+      onChange({ ...socialLinks, [platform]: normalized });
+    }
   };
 
   return (
@@ -65,6 +121,7 @@ export function SocialLinksEditor({ socialLinks, onChange }: SocialLinksEditorPr
           const config = SOCIAL_PLATFORMS[platform];
           const value = socialLinks[platform] || '';
           const hasValue = value.trim() !== '';
+          const error = errors[platform];
 
           return (
             <Row key={platform} align="start" gap="sm">
@@ -87,7 +144,7 @@ export function SocialLinksEditor({ socialLinks, onChange }: SocialLinksEditorPr
                   style={[
                     styles.inputWrapper,
                     {
-                      borderColor: hasValue ? config.color : palette.border,
+                      borderColor: error ? palette.error : hasValue ? config.color : palette.border,
                       backgroundColor: palette.card,
                     },
                   ]}
@@ -95,6 +152,7 @@ export function SocialLinksEditor({ socialLinks, onChange }: SocialLinksEditorPr
                   <TextInput
                     value={value}
                     onChangeText={(text) => handleChange(platform, text)}
+                    onBlur={() => handleBlur(platform)}
                     placeholder={PLATFORM_PLACEHOLDERS[platform]}
                     placeholderTextColor={palette.muted}
                     autoCapitalize="none"
@@ -112,6 +170,9 @@ export function SocialLinksEditor({ socialLinks, onChange }: SocialLinksEditorPr
                     </Clickable>
                   )}
                 </Row>
+                <ThemedText style={[styles.helperText, { color: error ? palette.error : palette.muted }]}>
+                  {error ?? PLATFORM_PLACEHOLDERS[platform]}
+                </ThemedText>
               </View>
             </Row>
           );
@@ -171,6 +232,9 @@ const styles = StyleSheet.create({
   input: { ...Typography.body, flex: 1, paddingVertical: Spacing.sm },
   clearButton: {
     padding: Spacing.xxs,
+  },
+  helperText: {
+    ...Typography.caption,
   },
   infoBox: {
     padding: Spacing.sm,

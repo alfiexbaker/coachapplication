@@ -110,6 +110,20 @@ export const styles = StyleSheet.create({
     letterSpacing: 0.5,
     marginBottom: Spacing.sm,
   },
+  searchBar: {
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    borderRadius: 12,
+    borderWidth: 1,
+    marginBottom: 8,
+  },
+  searchInput: {
+    flex: 1,
+  },
+  emptyText: {
+    textAlign: 'center',
+    paddingVertical: 20,
+  },
   categoryItem: {
     marginBottom: Spacing.xs,
   },

@@ -1,15 +1,18 @@
-import { PropsWithChildren } from 'react';
+import { PropsWithChildren, useCallback, useRef } from 'react';
 import {
-  Pressable,
+  Platform,
   StyleSheet,
   Text,
   View,
+  type GestureResponderEvent,
   type PressableProps,
   type StyleProp,
   type TextStyle,
   type ViewStyle,
 } from 'react-native';
+import * as Haptics from 'expo-haptics';
 
+import { Clickable } from '@/components/primitives/clickable';
 import { Radii, Spacing, Typography, withAlpha } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
 
@@ -36,6 +39,7 @@ export function Chip({
   const isActive = active ?? selected ?? false;
   const { colors: baseColor } = useTheme();
   const isInteractive = Boolean(props.onPress || props.onLongPress || props.onPressIn || props.onPressOut);
+  const lastPressRef = useRef(0);
 
   const containerStyles = [
     styles.base,
@@ -65,17 +69,52 @@ export function Chip({
     );
   }
 
+  const {
+    onPress,
+    onLongPress,
+    onPressIn,
+    onPressOut,
+    delayLongPress,
+    disabled,
+    hitSlop,
+    accessibilityLabel,
+    accessibilityHint,
+    accessibilityRole,
+    accessibilityState,
+  } = props;
+
+  const handlePress = useCallback(
+    (event: GestureResponderEvent) => {
+      if (disabled) return;
+      const now = Date.now();
+      if (now - lastPressRef.current < 300) return;
+      lastPressRef.current = now;
+      if (Platform.OS !== 'web') void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+      onPress?.(event);
+    },
+    [disabled, onPress],
+  );
+
   return (
-    <Pressable
-      accessibilityRole="button"
+    <Clickable
       style={({ pressed }) => [
         containerStyles,
         { opacity: pressed ? 0.8 : 1 },
       ]}
-      {...props}
+      onPress={handlePress}
+      onLongPress={onLongPress ?? undefined}
+      onPressIn={onPressIn ?? undefined}
+      onPressOut={onPressOut ?? undefined}
+      delayLongPress={delayLongPress ?? undefined}
+      disabled={disabled ?? undefined}
+      hitSlop={hitSlop ?? undefined}
+      accessibilityLabel={accessibilityLabel}
+      accessibilityHint={accessibilityHint}
+      accessibilityRole={accessibilityRole ?? 'button'}
+      accessibilityState={accessibilityState}
     >
       <Text style={labelStyles}>{label ?? children}</Text>
-    </Pressable>
+    </Clickable>
   );
 }
 

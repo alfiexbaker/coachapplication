@@ -14,6 +14,7 @@ import { useTheme } from '@/hooks/useTheme';
 import { createLogger } from '@/utils/logger';
 
 const logger = createLogger('DiscoverHeader');
+const UK_POSTCODE_REGEX = /^[A-Z]{1,2}\d[A-Z\d]?\s\d[A-Z]{2}$/;
 
 interface ChildInfo {
   id: string;
@@ -36,6 +37,11 @@ function DiscoverHeaderInner({
   onPostcodeChange,
 }: DiscoverHeaderProps) {
   const { colors: palette } = useTheme();
+  const postcodeTrimmed = postcode.trim();
+  const postcodeError =
+    postcodeTrimmed.length >= 6 && !UK_POSTCODE_REGEX.test(postcodeTrimmed)
+      ? 'Enter a valid UK postcode (e.g. SW1A 1AA)'
+      : null;
 
   const handlePostcodeChange = useCallback(
     (value: string) => {
@@ -119,35 +125,44 @@ function DiscoverHeaderInner({
       </View>
 
       {childOptions.length > 0 && (
-        <Row
-          align="center"
-          gap="sm"
-          style={[
-            styles.searchBar,
-            { backgroundColor: palette.surface, borderColor: palette.border },
-          ]}
-        >
-          <Ionicons name="search" size={20} color={palette.icon} />
-          <TextInput
-            value={postcode}
-            onChangeText={handlePostcodeChange}
-            placeholder="Search by postcode"
-            placeholderTextColor={palette.muted}
-            keyboardType="default"
-            autoCapitalize="characters"
-            accessibilityLabel="Search by postcode"
-            style={[styles.searchInput, { color: palette.text }]}
-          />
-          {postcode ? (
-            <Clickable
-              accessibilityLabel="Clear postcode"
-              onPress={() => onPostcodeChange('')}
-              hitSlop={8}
-            >
-              <Ionicons name="close-circle" size={20} color={palette.icon} />
-            </Clickable>
-          ) : null}
-        </Row>
+        <>
+          <Row
+            align="center"
+            gap="sm"
+            style={[
+              styles.searchBar,
+              { backgroundColor: palette.surface, borderColor: palette.border },
+            ]}
+          >
+            <Ionicons name="search" size={20} color={palette.icon} />
+            <TextInput
+              value={postcode}
+              onChangeText={handlePostcodeChange}
+              placeholder="e.g., SW1A 1AA"
+              maxLength={8}
+              placeholderTextColor={palette.muted}
+              keyboardType="default"
+              autoCapitalize="characters"
+              autoCorrect={false}
+              accessibilityLabel="Search by postcode"
+              style={[styles.searchInput, { color: palette.text }]}
+            />
+            {postcode ? (
+              <Clickable
+                accessibilityLabel="Clear postcode"
+                onPress={() => onPostcodeChange('')}
+                hitSlop={8}
+              >
+                <Ionicons name="close-circle" size={20} color={palette.icon} />
+              </Clickable>
+            ) : null}
+          </Row>
+          <ThemedText
+            style={[styles.postcodeHint, { color: postcodeError ? palette.error : palette.muted }]}
+          >
+            {postcodeError ?? 'e.g., SW1A 1AA'}
+          </ThemedText>
+        </>
       )}
     </View>
   );
@@ -178,4 +193,5 @@ const styles = StyleSheet.create({
     minHeight: 44,
   },
   searchInput: { ...Typography.bodySemiBold, flex: 1, paddingVertical: 0 },
+  postcodeHint: { ...Typography.caption, marginTop: -Spacing.xs, paddingHorizontal: Spacing.xs },
 });

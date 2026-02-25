@@ -76,6 +76,7 @@ interface CategoryAccordionItemProps {
   selectedPart: BodyPart | null;
   onCategoryPress: (id: BodyPartCategory) => void;
   onPartSelect: (part: BodyPart) => void;
+  searchTerm?: string;
   palette: ThemeColors;
 }
 
@@ -85,10 +86,19 @@ export const CategoryAccordionItem = memo(function CategoryAccordionItem({
   selectedPart,
   onCategoryPress,
   onPartSelect,
+  searchTerm = '',
   palette,
 }: CategoryAccordionItemProps) {
-  const parts = injuryService.getBodyPartsByCategory(category.id);
+  const parts = injuryService
+    .getBodyPartsByCategory(category.id)
+    .filter((part) =>
+      searchTerm
+        ? injuryService.getBodyPartLabel(part).toLowerCase().includes(searchTerm.toLowerCase())
+        : true,
+    );
   const hasSelectedPart = selectedPart !== null && parts.includes(selectedPart);
+
+  if (parts.length === 0) return null;
 
   return (
     <View style={styles.categoryItem}>
@@ -145,6 +155,7 @@ export const CategoryAccordionItem = memo(function CategoryAccordionItem({
                       styles.partLabel,
                       { color: isSelected ? palette.onPrimary : palette.text },
                     ]}
+                    numberOfLines={1}
                   >
                     {injuryService.getBodyPartLabel(part)}
                   </ThemedText>

@@ -40,6 +40,10 @@ const CATEGORIES: GoalCategory[] = [
   'CHARACTER',
   'OTHER',
 ];
+const CATEGORY_LABEL_OVERRIDES: Partial<Record<GoalCategory, string>> = {
+  BALL_SKILLS: 'Ball Skills',
+  GAME_SENSE: 'Game Sense',
+};
 
 interface GoalFormProps {
   goal?: Goal;
@@ -201,8 +205,9 @@ export function GoalForm({ goal, onSubmit, onCancel, loading = false }: GoalForm
                   />
                   <ThemedText
                     style={[styles.categoryLabel, { color: isSelected ? color : palette.text }]}
+                    numberOfLines={1}
                   >
-                    {progressService.getCategoryInfo(cat).label}
+                    {CATEGORY_LABEL_OVERRIDES[cat] ?? progressService.getCategoryInfo(cat).label}
                   </ThemedText>
                 </Clickable>
               );
@@ -303,8 +308,9 @@ const styles = StyleSheet.create({
     borderRadius: Radii.md,
     borderWidth: 1.5,
     gap: Spacing.xxs,
+    maxWidth: '48%',
   },
-  categoryLabel: { fontSize: scaleFont(13), fontWeight: '500' },
+  categoryLabel: { fontSize: scaleFont(13), fontWeight: '500', flexShrink: 1 },
   footer: { padding: Spacing.lg, borderTopWidth: 1, gap: Spacing.sm },
   footerButton: { flex: 1 },
   fullWidthButton: { flex: 1 },

@@ -1,7 +1,8 @@
 import { useCallback, useState } from 'react';
-import { StyleSheet, View } from 'react-native';
+import { Platform, StyleSheet, View } from 'react-native';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import Animated, { runOnJS, useAnimatedStyle, useSharedValue } from 'react-native-reanimated';
+import * as Haptics from 'expo-haptics';
 
 import { ThemedText } from '@/components/themed-text';
 import { Shadows, Spacing, Typography } from '@/constants/theme';
@@ -21,6 +22,7 @@ interface PriceRangeSliderProps {
 const TRACK_HEIGHT = 4;
 const THUMB_SIZE = 24;
 const SLIDER_PADDING = THUMB_SIZE / 2;
+const MIN_GAP = 5;
 
 export function PriceRangeSlider({
   min,
@@ -69,7 +71,12 @@ export function PriceRangeSlider({
 
   const handleMinChange = useCallback(
     (newMin: number) => {
-      const clampedMin = Math.min(newMin, currentMax - step);
+      const minGap = Math.max(MIN_GAP, step);
+      const boundary = currentMax - minGap;
+      const clampedMin = Math.min(newMin, boundary);
+      if (newMin > boundary && Platform.OS !== 'web') {
+        void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+      }
       onChange(clampedMin, currentMax);
     },
     [currentMax, step, onChange],
@@ -77,7 +84,12 @@ export function PriceRangeSlider({
 
   const handleMaxChange = useCallback(
     (newMax: number) => {
-      const clampedMax = Math.max(newMax, currentMin + step);
+      const minGap = Math.max(MIN_GAP, step);
+      const boundary = currentMin + minGap;
+      const clampedMax = Math.max(newMax, boundary);
+      if (newMax < boundary && Platform.OS !== 'web') {
+        void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+      }
       onChange(currentMin, clampedMax);
     },
     [currentMin, step, onChange],
@@ -170,6 +182,9 @@ export function PriceRangeSlider({
           {formatValue(max)}
         </ThemedText>
       </Row>
+      <ThemedText style={[styles.helperText, { color: palette.muted }]}>
+        Minimum £{Math.max(MIN_GAP, step)} range
+      </ThemedText>
     </View>
   );
 }
@@ -220,5 +235,10 @@ const styles = StyleSheet.create({
   },
   rangeLabel: {
     ...Typography.xs,
+  },
+  helperText: {
+    ...Typography.caption,
+    marginTop: Spacing.xs,
+    textAlign: 'right',
   },
 });

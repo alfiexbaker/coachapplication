@@ -1,4 +1,4 @@
-import { View, StyleSheet, Modal, Alert, Platform } from 'react-native';
+import { View, StyleSheet, Modal, Alert, Platform, Keyboard } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
 import * as DocumentPicker from 'expo-document-picker';
@@ -17,6 +17,8 @@ import type { Attachment } from '@/constants/types';
 export { AttachmentPreview } from './attachment-preview';
 
 const logger = createLogger('AttachmentPicker');
+const MAX_FILE_SIZE_BYTES = 10 * 1024 * 1024;
+const MAX_ATTACHMENTS = 5;
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 
@@ -82,6 +84,33 @@ export function AttachmentPicker({
   allowedTypes = ['IMAGE', 'VIDEO', 'DOCUMENT'],
 }: AttachmentPickerProps) {
   const { colors: palette } = useTheme();
+  const closePicker = () => {
+    Keyboard.dismiss();
+    onClose();
+  };
+
+  const formatSize = (bytes?: number) => {
+    const value = bytes ?? 0;
+    if (value < 1024) return `${value}B`;
+    if (value < 1024 * 1024) return `${(value / 1024).toFixed(1)}KB`;
+    return `${(value / 1024 / 1024).toFixed(1)}MB`;
+  };
+
+  const validateAttachments = (attachments: Attachment[]) => {
+    if (attachments.length > MAX_ATTACHMENTS) {
+      Alert.alert('Too many attachments', `Maximum ${MAX_ATTACHMENTS} attachments per message.`);
+      return null;
+    }
+    const oversized = attachments.find((a) => (a.size ?? 0) > MAX_FILE_SIZE_BYTES);
+    if (oversized) {
+      Alert.alert(
+        'File too large',
+        `${oversized.name} is ${formatSize(oversized.size)}. Maximum size is 10MB. Try compressing the file.`,
+      );
+      return null;
+    }
+    return attachments;
+  };
 
   const availableOptions = PICKER_OPTIONS.filter((opt) =>
     opt.types.some((t) => allowedTypes.includes(t)),
@@ -103,8 +132,10 @@ export function AttachmentPicker({
           mimeType: asset.mimeType || 'image/jpeg',
           thumbnailUrl: asset.uri,
         }));
-        onSelect(attachments);
-        onClose();
+        const valid = validateAttachments(attachments);
+        if (!valid) return;
+        onSelect(valid);
+        closePicker();
       }
     } catch (error) {
       logger.error('Failed to pick photo', error);
@@ -122,7 +153,7 @@ export function AttachmentPicker({
       const result = await ImagePicker.launchCameraAsync({ quality: 0.8 });
       if (!result.canceled && result.assets.length > 0) {
         const asset = result.assets[0];
-        onSelect([
+        const attachments: Attachment[] = [
           {
             type: 'IMAGE',
             url: asset.uri,
@@ -131,8 +162,11 @@ export function AttachmentPicker({
             mimeType: asset.mimeType || 'image/jpeg',
             thumbnailUrl: asset.uri,
           },
-        ]);
-        onClose();
+        ];
+        const valid = validateAttachments(attachments);
+        if (!valid) return;
+        onSelect(valid);
+        closePicker();
       }
     } catch (error) {
       logger.error('Failed to take photo', error);
@@ -148,7 +182,7 @@ export function AttachmentPicker({
       });
       if (!result.canceled && result.assets.length > 0) {
         const asset = result.assets[0];
-        onSelect([
+        const attachments: Attachment[] = [
           {
             type: 'VIDEO',
             url: asset.uri,
@@ -158,8 +192,11 @@ export function AttachmentPicker({
             thumbnailUrl: asset.uri,
             duration: asset.duration ?? undefined,
           },
-        ]);
-        onClose();
+        ];
+        const valid = validateAttachments(attachments);
+        if (!valid) return;
+        onSelect(valid);
+        closePicker();
       }
     } catch (error) {
       logger.error('Failed to pick video', error);
@@ -181,8 +218,10 @@ export function AttachmentPicker({
           size: asset.size,
           mimeType: asset.mimeType || 'application/octet-stream',
         }));
-        onSelect(attachments);
-        onClose();
+        const valid = validateAttachments(attachments);
+        if (!valid) return;
+        onSelect(valid);
+        closePicker();
       }
     } catch (error) {
       logger.error('Failed to pick document', error);
@@ -209,16 +248,19 @@ export function AttachmentPicker({
   };
 
   return (
-    <Modal visible={visible} animationType="slide" transparent onRequestClose={onClose}>
+    <Modal visible={visible} animationType="slide" transparent onRequestClose={closePicker}>
       <View style={styles.overlay}>
         <Clickable
-          onPress={onClose}
+          onPress={closePicker}
           style={[styles.backdrop, { backgroundColor: withAlpha(palette.text, 0.4) }]}
         />
         <View style={[styles.sheet, { backgroundColor: palette.background }]}>
           <View style={[styles.handle, { backgroundColor: palette.border }]} />
           <ThemedText type="subtitle" style={styles.title}>
             Add Attachment
+          </ThemedText>
+          <ThemedText style={[styles.helperText, { color: palette.muted }]}>
+            Up to {MAX_ATTACHMENTS} attachments, max 10MB each
           </ThemedText>
           <Row gap="md" wrap>
             {availableOptions.map((option) => {
@@ -249,7 +291,7 @@ export function AttachmentPicker({
             })}
           </Row>
           <Clickable
-            onPress={onClose}
+            onPress={closePicker}
             style={[styles.cancelButton, { borderColor: palette.border }]}
           >
             <ThemedText style={{ fontWeight: '600' }}>Cancel</ThemedText>
@@ -279,6 +321,7 @@ const styles = StyleSheet.create({
     marginBottom: Spacing.md,
   },
   title: { textAlign: 'center', marginBottom: Spacing.lg },
+  helperText: { ...Typography.caption, textAlign: 'center', marginBottom: Spacing.md },
   option: {
     width: '47%',
     padding: Spacing.lg,

@@ -7,14 +7,14 @@ export function RatingStars({
   rating,
   onRate,
 }: {
-  rating: number;
+  rating: number | null;
   onRate?: (value: number) => void;
 }) {
   const { colors: palette } = useTheme();
   return (
     <Row gap="xs">
       {[1, 2, 3, 4, 5].map((value) => {
-        const active = rating >= value;
+        const active = (rating ?? 0) >= value;
         return (
           <Clickable key={value} onPress={() => onRate?.(value)} disabled={!onRate}>
             <Ionicons

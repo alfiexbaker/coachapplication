@@ -41,6 +41,11 @@ export const CancelReasonPicker = memo(function CancelReasonPicker({
       <ThemedText type="defaultSemiBold" style={styles.title}>
         {isCoach ? 'Reason for cancelling (required)' : 'Why are you cancelling?'}
       </ThemedText>
+      <ThemedText style={[styles.helper, { color: palette.muted }]}>
+        {isCoach
+          ? 'Frequent cancellations can affect parent trust and booking reliability.'
+          : 'Cancellation fees may apply depending on timing and coach policy.'}
+      </ThemedText>
       <View style={styles.options}>
         {reasons.map((r) => {
           const active = selectedReason === r.key;
@@ -77,11 +82,11 @@ export const CancelReasonPicker = memo(function CancelReasonPicker({
         })}
       </View>
 
-      {isCoach && touched && !selectedReason && (
+      {touched && !selectedReason && (
         <Row style={[styles.notice, { backgroundColor: withAlpha(palette.error, 0.03) }]}>
           <Ionicons name="alert-circle-outline" size={14} color={palette.error} />
           <ThemedText style={[styles.noticeText, { color: palette.error }]}>
-            A reason is required for coach cancellations
+            Please select a cancellation reason
           </ThemedText>
         </Row>
       )}
@@ -92,6 +97,7 @@ export const CancelReasonPicker = memo(function CancelReasonPicker({
 const styles = StyleSheet.create({
   card: { padding: Spacing.md, gap: Spacing.sm },
   title: { marginBottom: Spacing.xxs },
+  helper: { ...Typography.caption },
   options: { gap: Spacing.xs },
   option: {
     alignItems: 'center',

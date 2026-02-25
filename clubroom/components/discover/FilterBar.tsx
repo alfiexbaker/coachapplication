@@ -5,7 +5,7 @@
  * Allows users to quickly toggle common filters and clear all filters.
  */
 
-import { useRef } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { ScrollView, StyleSheet, View } from 'react-native';
 import { Clickable } from '@/components/primitives/clickable';
 import { Ionicons } from '@expo/vector-icons';
@@ -16,6 +16,7 @@ import { ThemedText } from '@/components/themed-text';
 import { Radii, Spacing, Typography, withAlpha } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
 import type { CoachSearchFilters, FootballObjective } from '@/constants/types';
+import { discoverService } from '@/services/discover-service';
 
 import { QUICK_FILTERS, FOCUS_FILTERS } from './filter-bar-sections';
 import type { QuickFilter } from './filter-bar-sections';
@@ -43,6 +44,56 @@ export function FilterBar({
   const isMapVariant = variant === 'map';
   const quickFilters = isMapVariant ? QUICK_FILTERS.slice(0, 3) : QUICK_FILTERS;
   const showFocusFilters = !isMapVariant;
+  const [filterCounts, setFilterCounts] = useState<Record<string, number>>({});
+  const [isCountingFilters, setIsCountingFilters] = useState(false);
+
+  const countableFilters = useMemo(
+    () => [
+      ...quickFilters.map((q) => ({
+        id: q.id,
+        apply: (f: CoachSearchFilters) => (q.getIsActive(f) ? f : q.toggle(f)),
+      })),
+      ...(showFocusFilters
+        ? FOCUS_FILTERS.map((focus) => ({
+            id: `focus:${focus.id}`,
+            apply: (f: CoachSearchFilters) => {
+              const current = f.focuses ?? [];
+              return {
+                ...f,
+                focuses: current.includes(focus.id)
+                  ? current
+                  : [...current, focus.id],
+              };
+            },
+          }))
+        : []),
+    ],
+    [quickFilters, showFocusFilters],
+  );
+
+  useEffect(() => {
+    let active = true;
+    const timeout = setTimeout(async () => {
+      setIsCountingFilters(true);
+      try {
+        const entries = await Promise.all(
+          countableFilters.map(async (item) => {
+            const result = await discoverService.countCoaches(item.apply(filters));
+            return [item.id, result.success ? result.data : 0] as const;
+          }),
+        );
+        if (!active) return;
+        setFilterCounts(Object.fromEntries(entries));
+      } finally {
+        if (active) setIsCountingFilters(false);
+      }
+    }, 200);
+
+    return () => {
+      active = false;
+      clearTimeout(timeout);
+    };
+  }, [countableFilters, filters]);
 
   const handleQuickFilterToggle = (quickFilter: QuickFilter) => {
     const newFilters = quickFilter.toggle(filters);
@@ -111,16 +162,23 @@ export function FilterBar({
         </Clickable>
 
         {/* Quick Filters */}
-        {quickFilters.map((quickFilter) => (
-          <Chip
-            key={quickFilter.id}
-            active={quickFilter.getIsActive(filters)}
-            onPress={() => handleQuickFilterToggle(quickFilter)}
-            style={styles.chip}
-          >
-            {quickFilter.label}
-          </Chip>
-        ))}
+        {quickFilters.map((quickFilter) => {
+          const count = filterCounts[quickFilter.id];
+          const countKnown = typeof count === 'number';
+          const chipDisabled = countKnown && count === 0 && !quickFilter.getIsActive(filters);
+          return (
+            <Chip
+              key={quickFilter.id}
+              active={quickFilter.getIsActive(filters)}
+              onPress={() => handleQuickFilterToggle(quickFilter)}
+              disabled={chipDisabled}
+              style={[styles.chip, chipDisabled ? styles.dimChip : undefined]}
+            >
+              {quickFilter.label}
+              {countKnown ? ` (${count})` : isCountingFilters ? ' (...)' : ''}
+            </Chip>
+          );
+        })}
 
         {showFocusFilters ? (
           <>
@@ -128,16 +186,24 @@ export function FilterBar({
             <Divider vertical style={{ height: 24, marginHorizontal: Spacing.sm }} />
 
             {/* Focus Filters */}
-            {FOCUS_FILTERS.map((focus) => (
-              <Chip
-                key={focus.id}
-                active={filters.focuses?.includes(focus.id) ?? false}
-                onPress={() => handleFocusToggle(focus.id)}
-                style={styles.chip}
-              >
-                {focus.label}
-              </Chip>
-            ))}
+            {FOCUS_FILTERS.map((focus) => {
+              const key = `focus:${focus.id}`;
+              const count = filterCounts[key];
+              const countKnown = typeof count === 'number';
+              const chipDisabled = countKnown && count === 0 && !(filters.focuses?.includes(focus.id) ?? false);
+              return (
+                <Chip
+                  key={focus.id}
+                  active={filters.focuses?.includes(focus.id) ?? false}
+                  onPress={() => handleFocusToggle(focus.id)}
+                  disabled={chipDisabled}
+                  style={[styles.chip, chipDisabled ? styles.dimChip : undefined]}
+                >
+                  {focus.label}
+                  {countKnown ? ` (${count})` : isCountingFilters ? ' (...)' : ''}
+                </Chip>
+              );
+            })}
           </>
         ) : null}
 
@@ -171,6 +237,11 @@ export function FilterBar({
             </Clickable>
           )}
         </Row>
+      ) : null}
+      {isCountingFilters ? (
+        <ThemedText style={[styles.countingText, { color: palette.muted }]}>
+          Updating filter counts...
+        </ThemedText>
       ) : null}
     </View>
   );
@@ -218,6 +289,9 @@ const styles = StyleSheet.create({
     minHeight: 36,
     justifyContent: 'center',
   },
+  dimChip: {
+    opacity: 0.5,
+  },
   inlineClear: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -243,5 +317,10 @@ const styles = StyleSheet.create({
   clearText: {
     ...Typography.caption,
     fontWeight: '600',
+  },
+  countingText: {
+    ...Typography.caption,
+    paddingHorizontal: Spacing.md,
+    paddingTop: Spacing.xxs,
   },
 });

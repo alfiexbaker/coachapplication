@@ -38,7 +38,13 @@ function TagInput({
       Alert.alert('Limit reached', `Maximum ${MAX_TAGS} tags allowed.`);
       return;
     }
-    if (trimmed && !tags.includes(trimmed)) {
+    const duplicate = tags.find((tag) => tag.toLowerCase() === trimmed.toLowerCase());
+    if (trimmed && duplicate) {
+      Alert.alert('Already added', `"${duplicate}" is already in the list.`);
+      setInput('');
+      return;
+    }
+    if (trimmed) {
       onChange([...tags, trimmed]);
       setInput('');
     }

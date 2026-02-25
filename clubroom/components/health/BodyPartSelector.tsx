@@ -5,11 +5,14 @@
  * Allows users to select injured body parts from categorized groups.
  */
 
-import { useState, useCallback } from 'react';
-import { View, ScrollView, Platform } from 'react-native';
+import { useState, useCallback, useMemo } from 'react';
+import { View, ScrollView, Platform, TextInput } from 'react-native';
 import * as Haptics from 'expo-haptics';
+import { Ionicons } from '@expo/vector-icons';
 
 import { ThemedText } from '@/components/themed-text';
+import { Clickable } from '@/components/primitives/clickable';
+import { Row } from '@/components/primitives';
 import type { BodyPart, BodyPartCategory } from '@/constants/types';
 import { useTheme } from '@/hooks/useTheme';
 import { injuryService } from '@/services/injury-service';
@@ -31,6 +34,16 @@ export function BodyPartSelector({ selectedPart, onSelect }: BodyPartSelectorPro
   const [expandedCategory, setExpandedCategory] = useState<BodyPartCategory | null>(
     selectedPart ? injuryService.getBodyPartCategory(selectedPart) : null,
   );
+  const [searchTerm, setSearchTerm] = useState('');
+  const normalizedSearch = searchTerm.trim().toLowerCase();
+  const filteredCategories = useMemo(() => {
+    if (!normalizedSearch) return CATEGORIES;
+    return CATEGORIES.filter((category) =>
+      injuryService
+        .getBodyPartsByCategory(category.id)
+        .some((part) => injuryService.getBodyPartLabel(part).toLowerCase().includes(normalizedSearch)),
+    );
+  }, [normalizedSearch]);
 
   const handleCategoryPress = useCallback(
     (category: BodyPartCategory) => {
@@ -56,8 +69,37 @@ export function BodyPartSelector({ selectedPart, onSelect }: BodyPartSelectorPro
         <ThemedText style={[styles.sectionTitle, { color: palette.muted }]}>
           Select Body Part
         </ThemedText>
+        <Row
+          align="center"
+          gap="sm"
+          style={[
+            styles.searchBar,
+            { backgroundColor: palette.surface, borderColor: palette.border },
+          ]}
+        >
+          <Ionicons name="search" size={18} color={palette.muted} />
+          <TextInput
+            value={searchTerm}
+            onChangeText={setSearchTerm}
+            placeholder="Search body parts..."
+            placeholderTextColor={palette.muted}
+            autoCapitalize="none"
+            autoCorrect={false}
+            style={[styles.searchInput, { color: palette.text }]}
+          />
+          {searchTerm ? (
+            <Clickable onPress={() => setSearchTerm('')} accessibilityLabel="Clear search">
+              <Ionicons name="close-circle" size={18} color={palette.muted} />
+            </Clickable>
+          ) : null}
+        </Row>
 
-        {CATEGORIES.map((category) => (
+        {filteredCategories.length === 0 ? (
+          <ThemedText style={[styles.emptyText, { color: palette.muted }]}>
+            No body parts match "{searchTerm.trim()}"
+          </ThemedText>
+        ) : (
+          filteredCategories.map((category) => (
           <CategoryAccordionItem
             key={category.id}
             category={category}
@@ -65,9 +107,11 @@ export function BodyPartSelector({ selectedPart, onSelect }: BodyPartSelectorPro
             selectedPart={selectedPart}
             onCategoryPress={handleCategoryPress}
             onPartSelect={handlePartSelect}
+            searchTerm={normalizedSearch}
             palette={palette}
           />
-        ))}
+          ))
+        )}
       </View>
     </ScrollView>
   );
