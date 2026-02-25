@@ -203,13 +203,13 @@ const styles = StyleSheet.create({
   badge: {
     minWidth: 18,
     height: 18,
-    borderRadius: 9,
+    borderRadius: Radii.pill,
     alignItems: 'center',
     justifyContent: 'center',
     paddingHorizontal: Spacing.xxs,
   },
   badgeText: {
-    fontSize: 11,
+    fontSize: Typography.micro.fontSize,
     fontWeight: '700',
   },
   chip: {

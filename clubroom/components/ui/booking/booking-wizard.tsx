@@ -92,12 +92,12 @@ const styles = StyleSheet.create({
   },
   progressTrack: {
     height: 3,
-    borderRadius: 1.5,
+    borderRadius: Radii.xs,
     overflow: 'hidden',
   },
   progressFill: {
     height: 3,
-    borderRadius: 1.5,
+    borderRadius: Radii.xs,
   },
   title: {
     ...Typography.title,

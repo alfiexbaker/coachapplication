@@ -12,7 +12,8 @@
  */
 
 import React, { useMemo, useState } from 'react';
-import { Image, StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, Text, View } from 'react-native';
+import { Image } from 'expo-image';
 
 import { Components, Fonts, Typography, withAlpha } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';

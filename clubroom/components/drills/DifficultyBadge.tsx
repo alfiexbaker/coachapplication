@@ -47,7 +47,7 @@ const styles = StyleSheet.create({
     alignSelf: 'flex-start',
   },
   badgeSmall: {
-    paddingHorizontal: 8,
+    paddingHorizontal: Spacing.xs,
     paddingVertical: Spacing.micro,
   },
   text: {

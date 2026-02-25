@@ -1,11 +1,12 @@
 import React, { useCallback } from 'react';
-import { View, StyleSheet } from 'react-native';
+import { View, StyleSheet, Platform, Linking, Alert } from 'react-native';
 import { router } from 'expo-router';
 import { Routes } from '@/navigation/routes';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 
 import { SurfaceCard } from '@/components/primitives/surface-card';
+import { Button } from '@/components/primitives/button';
 import { ThemedText } from '@/components/themed-text';
 import { Row } from '@/components/primitives/row';
 import { Column } from '@/components/primitives/column';
@@ -13,8 +14,11 @@ import { MedicalAlertBadge } from '@/components/safety/MedicalAlertBadge';
 import { Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
 import { safetyService } from '@/services/safety-service';
-import type { RosterEntry } from '@/constants/types';
+import { createLogger } from '@/utils/logger';
+import type { RosterEntry, EmergencyContact } from '@/constants/types';
 import type { AthleteEmergencyQuickView } from '@/services/safety-service';
+
+const logger = createLogger('AthleteEmergencyCard');
 
 export const AthleteEmergencyCard = React.memo(function AthleteEmergencyCard({
   athlete,
@@ -26,9 +30,38 @@ export const AthleteEmergencyCard = React.memo(function AthleteEmergencyCard({
   const { colors } = useTheme();
 
   const handlePress = useCallback(() => {
-    void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    if (Platform.OS !== 'web') void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     router.push(Routes.rosterAthleteEmergency(athlete.athleteId));
   }, [athlete.athleteId]);
+
+  const handleCallContact = useCallback((contact: EmergencyContact) => {
+    const phoneNumber = contact.phone.replace(/\s/g, '');
+    const telUrl = `tel:${phoneNumber}`;
+
+    Alert.alert(
+      'Call Emergency Contact',
+      `Call ${contact.name} at ${contact.phone}?`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Call',
+          style: 'destructive',
+          onPress: async () => {
+            if (Platform.OS !== 'web') {
+              await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
+            }
+            const canOpen = await Linking.canOpenURL(telUrl);
+            if (canOpen) {
+              await Linking.openURL(telUrl);
+              logger.info('Emergency contact called', { contactId: contact.id });
+            } else {
+              Alert.alert('Cannot Make Call', 'This device cannot make phone calls');
+            }
+          },
+        },
+      ],
+    );
+  }, []);
 
   const alertColor = emergencyData?.hasAlerts
     ? safetyService.getAlertLevelColor(emergencyData.alertLevel)
@@ -85,6 +118,13 @@ export const AthleteEmergencyCard = React.memo(function AthleteEmergencyCard({
           <ThemedText style={[styles.contactText, { color: colors.muted }]} numberOfLines={1}>
             {emergencyData.primaryContact.name} ({emergencyData.primaryContact.relationship})
           </ThemedText>
+          <Button
+            onPress={() => handleCallContact(emergencyData.primaryContact!)}
+            variant="primary"
+            style={{ backgroundColor: colors.error }}
+          >
+            Call
+          </Button>
         </Row>
       )}
     </SurfaceCard>

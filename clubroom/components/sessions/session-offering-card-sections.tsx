@@ -60,7 +60,7 @@ export interface SessionFooterBadgesProps {
   capacityText: string;
   registeredCount: number;
   maxParticipants: number;
-  priceUsd?: number;
+  price?: number;
   palette: ThemeColors;
 }
 
@@ -74,7 +74,7 @@ export const SessionFooterBadges = memo(function SessionFooterBadges({
   capacityText,
   registeredCount,
   maxParticipants,
-  priceUsd,
+  price,
   palette,
 }: SessionFooterBadgesProps) {
   return (
@@ -104,9 +104,9 @@ export const SessionFooterBadges = memo(function SessionFooterBadges({
           </ThemedText>
         </View>
       )}
-      {priceUsd !== undefined && priceUsd > 0 && (
+      {price !== undefined && price > 0 && (
         <View style={styles.priceContainer}>
-          <ThemedText style={styles.priceText}>£{priceUsd}</ThemedText>
+          <ThemedText style={styles.priceText}>£{price}</ThemedText>
         </View>
       )}
     </Row>

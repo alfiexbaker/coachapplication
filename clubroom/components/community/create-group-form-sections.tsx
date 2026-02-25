@@ -185,7 +185,7 @@ export const PrivacySelector = memo(function PrivacySelector({
 
 const styles = StyleSheet.create({
   typeOptions: { flexWrap: 'wrap', gap: Spacing.sm },
-  typeOption: { width: '47%', padding: Spacing.sm, gap: 8, alignItems: 'center' },
+  typeOption: { width: '47%', padding: Spacing.sm, gap: Spacing.xs, alignItems: 'center' },
   typeIconContainer: {
     width: 48,
     height: 48,

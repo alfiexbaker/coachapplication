@@ -29,6 +29,7 @@ import {
   runFocusRefetch,
   type ScreenLoadMode,
 } from '@/hooks/use-screen-core';
+import { withTimeout } from '@/utils/timeout';
 import { onTyped } from '@/services/event-bus';
 import type { EventPayloads } from '@/services/event-bus';
 import type { Result, ServiceError } from '@/types/result';
@@ -46,12 +47,16 @@ export interface UseScreenOptions<T> {
   isEmpty?: (data: T) => boolean;
   /** Re-fetch silently when the screen gains focus after initial load. */
   refetchOnFocus?: boolean;
+  /** Timeout in ms for the load function. Default: 10000 (10s). */
+  loadTimeoutMs?: number;
 }
 
 export interface UseScreenResult<T> {
   data: T | null;
   status: ScreenStatus;
   error: ServiceError | null;
+  /** Error from a silent focus refetch. Non-null when stale data is shown but refresh failed. */
+  silentError: ServiceError | null;
   refreshing: boolean;
   onRefresh: () => void;
   retry: () => void;
@@ -60,11 +65,12 @@ export interface UseScreenResult<T> {
 }
 
 export function useScreen<T>(options: UseScreenOptions<T>): UseScreenResult<T> {
-  const { load, deps = [], events = [], isEmpty, refetchOnFocus = false } = options;
+  const { load, deps = [], events = [], isEmpty, refetchOnFocus = false, loadTimeoutMs = 10_000 } = options;
 
   const [data, setData] = useState<T | null>(null);
   const [status, setStatus] = useState<ScreenStatus>('loading');
   const [error, setError] = useState<ServiceError | null>(null);
+  const [silentError, setSilentError] = useState<ServiceError | null>(null);
   const [refreshing, setRefreshing] = useState(false);
 
   // Theme
@@ -88,14 +94,37 @@ export function useScreen<T>(options: UseScreenOptions<T>): UseScreenResult<T> {
       setError(null);
     }
 
+    // Clear silent error on any non-silent fetch
+    if (mode !== 'silent') {
+      setSilentError(null);
+    }
+
     try {
-      const result = await load();
+      const timeoutResult = await withTimeout(load(), loadTimeoutMs);
 
       if (!mountedRef.current) return;
 
+      // Timeout expired — treat as a network error
+      if (!timeoutResult.success) {
+        if (mode === 'silent') {
+          setSilentError(timeoutResult.error);
+        } else {
+          setError(timeoutResult.error);
+          setStatus('error');
+        }
+        return;
+      }
+
+      const result = timeoutResult.data;
+
       if (!result.success) {
-        setError(result.error);
-        setStatus('error');
+        if (mode === 'silent') {
+          // Silent refetch failed — show silentError, keep existing data visible
+          setSilentError(result.error);
+        } else {
+          setError(result.error);
+          setStatus('error');
+        }
         return;
       }
 
@@ -103,10 +132,15 @@ export function useScreen<T>(options: UseScreenOptions<T>): UseScreenResult<T> {
       setData(resultData);
       setStatus(deriveScreenStatus(resultData, isEmpty));
       setError(null);
+      setSilentError(null);
     } catch (loadError) {
       if (!mountedRef.current) return;
-      setError(normalizeUnknownError(loadError));
-      setStatus('error');
+      if (mode === 'silent') {
+        setSilentError(normalizeUnknownError(loadError));
+      } else {
+        setError(normalizeUnknownError(loadError));
+        setStatus('error');
+      }
     } finally {
       if (mode === 'refresh' && mountedRef.current) {
         setRefreshing(false);
@@ -114,7 +148,7 @@ export function useScreen<T>(options: UseScreenOptions<T>): UseScreenResult<T> {
       hasLoadedOnceRef.current = true;
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, deps);
+  }, [...deps, loadTimeoutMs]);
 
   // Initial load + deps change
   useEffect(() => {
@@ -155,5 +189,5 @@ export function useScreen<T>(options: UseScreenOptions<T>): UseScreenResult<T> {
     void fetchData();
   }, [fetchData]);
 
-  return { data, status, error, refreshing, onRefresh, retry, colors, scheme };
+  return { data, status, error, silentError, refreshing, onRefresh, retry, colors, scheme };
 }

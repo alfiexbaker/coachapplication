@@ -162,12 +162,12 @@ export const DailyChallengeBanner = memo(function DailyChallengeBanner({
         </Row>
 
         {isCompleted ? (
-          <View style={[styles.completedStrip, { backgroundColor: withAlpha(colors.success, 0.12) }]}>
+          <Row align="center" justify="center" gap="xxs" style={[styles.completedStrip, { backgroundColor: withAlpha(colors.success, 0.12) }]}>
             <Ionicons name="checkmark" size={12} color={colors.success} />
             <ThemedText style={[styles.completedText, { color: colors.success }]}>
               Completed today
             </ThemedText>
-          </View>
+          </Row>
         ) : null}
       </Clickable>
     </Animated.View>
@@ -215,10 +215,6 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   completedStrip: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: Spacing.xxs,
     marginTop: Spacing.xs,
     marginHorizontal: -Spacing.sm,
     marginBottom: -Spacing.xs,

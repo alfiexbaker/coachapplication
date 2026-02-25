@@ -68,7 +68,7 @@ describe('coachService', () => {
       assert.equal(result.success, true);
       if (result.success) {
         for (const coach of result.data) {
-          assert.ok(coach.minPriceUsd <= 40);
+          assert.ok(coach.minPrice <= 40);
         }
       }
     });

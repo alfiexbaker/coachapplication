@@ -81,7 +81,7 @@ const styles = StyleSheet.create({
     marginBottom: Spacing.sm,
   },
   title: { ...Typography.display, letterSpacing: -0.8 },
-  subtitle: { ...Typography.body, lineHeight: 22, fontWeight: '500' },
+  subtitle: { ...Typography.body, fontWeight: '500' },
   statsGrid: {
     flexWrap: 'wrap',
     gap: Spacing.md,

@@ -7,7 +7,8 @@
  */
 
 import React, { memo } from 'react';
-import { View, Image } from 'react-native';
+import { View } from 'react-native';
+import { Image } from 'expo-image';
 import { Ionicons } from '@expo/vector-icons';
 import Animated, { FadeIn, useAnimatedStyle, type SharedValue } from 'react-native-reanimated';
 
@@ -100,6 +101,8 @@ interface VideoPreviewCardProps {
   onClear: () => void;
   onUpload: () => void;
   palette: ThemeColors;
+  /** When false, upload button is disabled until consent is verified */
+  consentVerified?: boolean;
 }
 
 export const VideoPreviewCard = memo(function VideoPreviewCard({
@@ -110,6 +113,7 @@ export const VideoPreviewCard = memo(function VideoPreviewCard({
   onClear,
   onUpload,
   palette,
+  consentVerified = true,
 }: VideoPreviewCardProps) {
   const progressStyle = useAnimatedStyle(() => ({
     width: `${progressWidth.value}%`,
@@ -123,7 +127,7 @@ export const VideoPreviewCard = memo(function VideoPreviewCard({
             <Image
               source={{ uri: video.thumbnailUri }}
               style={styles.previewImage}
-              resizeMode="cover"
+              contentFit="cover"
             />
           )}
           <View style={[styles.playOverlay, { backgroundColor: withAlpha(palette.text, 0.3) }]}>
@@ -180,11 +184,13 @@ export const VideoPreviewCard = memo(function VideoPreviewCard({
         {!uploading && (
           <Clickable
             onPress={onUpload}
-            style={[styles.uploadButton, { backgroundColor: palette.tint }]}
+            style={[styles.uploadButton, { backgroundColor: consentVerified ? palette.tint : palette.border }]}
+            disabled={!consentVerified}
+            accessibilityLabel={consentVerified ? 'Upload Video' : 'Video consent required before upload'}
           >
             <Ionicons name="cloud-upload" size={20} color={palette.onPrimary} />
             <ThemedText style={{ color: palette.onPrimary, fontWeight: '700' }}>
-              Upload Video
+              {consentVerified ? 'Upload Video' : 'Consent Required'}
             </ThemedText>
           </Clickable>
         )}

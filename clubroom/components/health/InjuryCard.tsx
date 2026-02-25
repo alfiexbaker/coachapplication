@@ -5,7 +5,7 @@
  * and recovery progress.
  */
 
-import { View, StyleSheet } from 'react-native';
+import { View, StyleSheet, Platform } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 
@@ -43,7 +43,7 @@ export function InjuryCard({ injury, onPress, compact = false }: InjuryCardProps
 
   const handlePress = () => {
     if (onPress) {
-      void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+      if (Platform.OS !== 'web') void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
       onPress();
     }
   };
@@ -122,7 +122,7 @@ const styles = StyleSheet.create({
   },
   statusBadge: {
     alignItems: 'center',
-    paddingHorizontal: 8,
+    paddingHorizontal: Spacing.xs,
     paddingVertical: Spacing.xxs,
     borderRadius: Radii.pill,
     gap: Spacing.xxs,
@@ -132,7 +132,7 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   severityBadge: {
-    paddingHorizontal: 8,
+    paddingHorizontal: Spacing.xs,
     paddingVertical: Spacing.xxs,
     borderRadius: Radii.pill,
   },

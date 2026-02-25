@@ -13,7 +13,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { ThemedText } from '@/components/themed-text';
 import { Row } from '@/components/primitives/row';
-import { Radii, Spacing, Typography, withAlpha } from '@/constants/theme';
+import { Radii, Shadows, Spacing, Typography, withAlpha } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
 import { Clickable } from '@/components/primitives/clickable';
 import { createLogger } from '@/utils/logger';
@@ -41,7 +41,7 @@ interface ToastState {
 }
 
 export function NotificationToastProvider({ children }: { children: React.ReactNode }) {
-  const { colors: palette } = useTheme();
+  const { colors: palette, scheme } = useTheme();
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const [toast, setToast] = useState<ToastState>({ notification: null, visible: false });
@@ -118,7 +118,7 @@ export function NotificationToastProvider({ children }: { children: React.ReactN
               {
                 backgroundColor: palette.surface,
                 borderColor: palette.border,
-                shadowColor: palette.text,
+                ...Shadows[scheme].card,
               },
             ]}
           >
@@ -169,7 +169,7 @@ export function NotificationToast({
   onPress?: () => void;
   onDismiss?: () => void;
 }) {
-  const { colors: palette } = useTheme();
+  const { colors: palette, scheme } = useTheme();
   const icon = ICONS[notification.type] || 'notifications';
 
   return (
@@ -182,7 +182,7 @@ export function NotificationToast({
           {
             backgroundColor: palette.surface,
             borderColor: palette.border,
-            shadowColor: palette.text,
+            ...Shadows[scheme].card,
           },
         ]}
       >
@@ -217,16 +217,12 @@ const styles = StyleSheet.create({
     left: Spacing.md,
     right: Spacing.md,
     zIndex: 9999,
-    elevation: 10,
+    elevation: Shadows.light.cardHover.elevation,
   },
   toast: {
     padding: Spacing.md,
     borderRadius: Radii.lg,
     borderWidth: 1,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.15,
-    shadowRadius: 12,
-    elevation: 8,
   },
   iconContainer: {
     width: 40,
@@ -240,7 +236,7 @@ const styles = StyleSheet.create({
     gap: Spacing.micro,
   },
   title: { ...Typography.bodySmall },
-  body: { ...Typography.small, lineHeight: 18 },
+  body: { ...Typography.small, lineHeight: Typography.caption.lineHeight },
   closeButton: {
     padding: Spacing.xxs,
   },

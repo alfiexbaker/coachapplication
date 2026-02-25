@@ -6,7 +6,7 @@
 import { apiClient } from './api-client';
 import { createLogger } from '@/utils/logger';
 import { emitTyped, type EventPayloads } from './event-bus';
-import { type Result, type ServiceError, ok, err, notFound, storageError } from '@/types/result';
+import { type Result, type ServiceError, ok, err, notFound, storageError, conflictError } from '@/types/result';
 
 const logger = createLogger('BaseService');
 
@@ -14,6 +14,8 @@ export interface BaseEntity {
   id: string;
   createdAt?: string;
   updatedAt?: string;
+  version?: number;
+  deletedAt?: string;
 }
 
 export interface QueryOptions<T> {
@@ -22,6 +24,21 @@ export interface QueryOptions<T> {
   sortDirection?: 'asc' | 'desc';
   limit?: number;
   offset?: number;
+  /** Cursor-based pagination: page size */
+  first?: number;
+  /** Cursor-based pagination: cursor (ISO date or ID) */
+  after?: string;
+  /** Include soft-deleted entities (default: false) */
+  includeDeleted?: boolean;
+}
+
+export interface PagedResult<T> {
+  items: T[];
+  pageInfo: {
+    hasNextPage: boolean;
+    endCursor: string | null;
+    totalCount?: number;
+  };
 }
 
 export abstract class BaseService<T extends BaseEntity> {
@@ -122,6 +139,11 @@ export abstract class BaseService<T extends BaseEntity> {
       const cache = await this.getCache();
       let data = Array.from(cache.values());
 
+      // Filter soft-deleted unless explicitly included
+      if (!options?.includeDeleted) {
+        data = data.filter((item) => !item.deletedAt);
+      }
+
       // Apply filter
       if (options?.filter) {
         data = data.filter((item) =>
@@ -141,7 +163,7 @@ export abstract class BaseService<T extends BaseEntity> {
         });
       }
 
-      // Apply pagination
+      // Apply legacy offset/limit pagination
       if (options?.offset !== undefined) {
         data = data.slice(options.offset);
       }
@@ -149,10 +171,78 @@ export abstract class BaseService<T extends BaseEntity> {
         data = data.slice(0, options.limit);
       }
 
+      // Apply cursor-based pagination
+      if (options?.after) {
+        const cursorIndex = data.findIndex((item) => item.id === options.after);
+        if (cursorIndex !== -1) {
+          data = data.slice(cursorIndex + 1);
+        }
+      }
+      if (options?.first !== undefined) {
+        data = data.slice(0, options.first);
+      }
+
       return ok(data);
     } catch (error) {
       logger.error(`Failed to get all ${this.entityName}`, error);
       return err(storageError(`Failed to retrieve ${this.entityName} list`));
+    }
+  }
+
+  /**
+   * Get entities with cursor-based pagination metadata.
+   */
+  async getPaged(options?: QueryOptions<T>): Promise<Result<PagedResult<T>, ServiceError>> {
+    try {
+      const cache = await this.getCache();
+      let data = Array.from(cache.values());
+
+      // Filter soft-deleted unless explicitly included
+      if (!options?.includeDeleted) {
+        data = data.filter((item) => !item.deletedAt);
+      }
+
+      // Apply filter
+      if (options?.filter) {
+        data = data.filter((item) =>
+          Object.entries(options.filter!).every(([key, value]) => item[key as keyof T] === value),
+        );
+      }
+
+      // Apply sort
+      if (options?.sort) {
+        const direction = options.sortDirection === 'desc' ? -1 : 1;
+        data.sort((a, b) => {
+          const aVal = a[options.sort!];
+          const bVal = b[options.sort!];
+          if (aVal < bVal) return -1 * direction;
+          if (aVal > bVal) return 1 * direction;
+          return 0;
+        });
+      }
+
+      const totalCount = data.length;
+
+      // Apply cursor
+      if (options?.after) {
+        const cursorIndex = data.findIndex((item) => item.id === options.after);
+        if (cursorIndex !== -1) {
+          data = data.slice(cursorIndex + 1);
+        }
+      }
+
+      const pageSize = options?.first ?? data.length;
+      const hasNextPage = data.length > pageSize;
+      const items = data.slice(0, pageSize);
+      const endCursor = items.length > 0 ? items[items.length - 1].id : null;
+
+      return ok({
+        items,
+        pageInfo: { hasNextPage, endCursor, totalCount },
+      });
+    } catch (error) {
+      logger.error(`Failed to get paged ${this.entityName}`, error);
+      return err(storageError(`Failed to retrieve ${this.entityName} page`));
     }
   }
 
@@ -164,7 +254,7 @@ export abstract class BaseService<T extends BaseEntity> {
       const cache = await this.getCache();
       const item = cache.get(id);
 
-      if (!item) {
+      if (!item || item.deletedAt) {
         return err(notFound(this.entityName, id));
       }
 
@@ -194,6 +284,7 @@ export abstract class BaseService<T extends BaseEntity> {
         id: this.generateId(),
         createdAt: now,
         updatedAt: now,
+        version: 1,
       } as T;
 
       data.push(newEntity);
@@ -233,11 +324,21 @@ export abstract class BaseService<T extends BaseEntity> {
         return validationResult;
       }
 
+      // Optimistic locking: reject if version doesn't match
+      const existing = data[index];
+      if (updates.version !== undefined && existing.version !== undefined
+          && updates.version !== existing.version) {
+        return err(conflictError(
+          `${this.entityName} was modified by another process (expected version ${updates.version}, found ${existing.version})`
+        ));
+      }
+
       const updatedEntity = {
-        ...data[index],
+        ...existing,
         ...updates,
         id, // Prevent ID change
         updatedAt: new Date().toISOString(),
+        version: (existing.version ?? 0) + 1,
       };
 
       data[index] = updatedEntity;
@@ -262,7 +363,46 @@ export abstract class BaseService<T extends BaseEntity> {
   /**
    * Delete an entity by ID.
    */
+  /**
+   * Soft-delete an entity by setting deletedAt. Use hardDelete() for permanent removal.
+   */
   async delete(id: string): Promise<Result<void, ServiceError>> {
+    try {
+      const data = await this.loadFromStorage();
+      const index = data.findIndex((entity) => entity.id === id);
+
+      if (index === -1) {
+        return err(notFound(this.entityName, id));
+      }
+
+      const entity = data[index];
+      data[index] = {
+        ...entity,
+        deletedAt: new Date().toISOString(),
+        version: (entity.version ?? 0) + 1,
+      };
+
+      const saveResult = await this.saveToStorage(data);
+      if (!saveResult.success) {
+        return saveResult;
+      }
+
+      this.invalidateCache();
+
+      // Emit delete event
+      this.emit(`${this.entityName.toLowerCase()}:deleted`, { id, entity });
+
+      return ok(undefined);
+    } catch (error) {
+      logger.error(`Failed to delete ${this.entityName}`, error);
+      return err(storageError(`Failed to delete ${this.entityName}`));
+    }
+  }
+
+  /**
+   * Permanently remove an entity from storage.
+   */
+  async hardDelete(id: string): Promise<Result<void, ServiceError>> {
     try {
       const data = await this.loadFromStorage();
       const index = data.findIndex((entity) => entity.id === id);
@@ -280,14 +420,50 @@ export abstract class BaseService<T extends BaseEntity> {
       }
 
       this.invalidateCache();
-
-      // Emit delete event
       this.emit(`${this.entityName.toLowerCase()}:deleted`, { id, entity: deletedEntity });
 
       return ok(undefined);
     } catch (error) {
-      logger.error(`Failed to delete ${this.entityName}`, error);
+      logger.error(`Failed to hard-delete ${this.entityName}`, error);
       return err(storageError(`Failed to delete ${this.entityName}`));
+    }
+  }
+
+  /**
+   * Restore a soft-deleted entity.
+   */
+  async restore(id: string): Promise<Result<T, ServiceError>> {
+    try {
+      const data = await this.loadFromStorage();
+      const index = data.findIndex((entity) => entity.id === id);
+
+      if (index === -1) {
+        return err(notFound(this.entityName, id));
+      }
+
+      const entity = data[index];
+      if (!entity.deletedAt) {
+        return ok(entity); // Not deleted, nothing to restore
+      }
+
+      const restored = {
+        ...entity,
+        deletedAt: undefined,
+        updatedAt: new Date().toISOString(),
+        version: (entity.version ?? 0) + 1,
+      };
+      data[index] = restored;
+
+      const saveResult = await this.saveToStorage(data);
+      if (!saveResult.success) {
+        return saveResult as Result<T, ServiceError>;
+      }
+
+      this.invalidateCache();
+      return ok(restored);
+    } catch (error) {
+      logger.error(`Failed to restore ${this.entityName}`, error);
+      return err(storageError(`Failed to restore ${this.entityName}`));
     }
   }
 
@@ -347,6 +523,7 @@ export abstract class BaseService<T extends BaseEntity> {
           id: this.generateId(),
           createdAt: now,
           updatedAt: now,
+          version: 1,
         } as T);
       }
 
@@ -372,12 +549,22 @@ export abstract class BaseService<T extends BaseEntity> {
   async deleteMany(ids: string[]): Promise<Result<number, ServiceError>> {
     try {
       const data = await this.loadFromStorage();
-      const initialCount = data.length;
-      const filtered = data.filter((entity) => !ids.includes(entity.id));
-      const deletedCount = initialCount - filtered.length;
+      const now = new Date().toISOString();
+      let deletedCount = 0;
+
+      for (let i = 0; i < data.length; i++) {
+        if (ids.includes(data[i].id) && !data[i].deletedAt) {
+          data[i] = {
+            ...data[i],
+            deletedAt: now,
+            version: (data[i].version ?? 0) + 1,
+          };
+          deletedCount++;
+        }
+      }
 
       if (deletedCount > 0) {
-        const saveResult = await this.saveToStorage(filtered);
+        const saveResult = await this.saveToStorage(data);
         if (!saveResult.success) {
           return saveResult as Result<number, ServiceError>;
         }

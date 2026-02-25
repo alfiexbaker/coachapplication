@@ -2,7 +2,8 @@
  * BadgeAwardModal — Sub-components.
  */
 import { memo } from 'react';
-import { View, StyleSheet, TextInput, Image, ScrollView } from 'react-native';
+import { View, StyleSheet, TextInput, ScrollView } from 'react-native';
+import { Image } from 'expo-image';
 import { Ionicons } from '@expo/vector-icons';
 import Animated, { FadeIn } from 'react-native-reanimated';
 
@@ -352,8 +353,8 @@ const styles = StyleSheet.create({
   badgeLabel: { ...Typography.caption, textAlign: 'center' },
   selectedCheck: {
     position: 'absolute',
-    top: 8,
-    right: 8,
+    top: Spacing.xs,
+    right: Spacing.xs,
     width: 18,
     height: 18,
     borderRadius: Radii.md,
@@ -391,7 +392,7 @@ const styles = StyleSheet.create({
   },
   previewHeaderText: { flex: 1 },
   previewReason: { ...Typography.small },
-  previewNote: { ...Typography.bodySmall, lineHeight: 20 },
+  previewNote: { ...Typography.bodySmall },
   previewFooter: { ...Typography.caption },
   errorBanner: {
     alignItems: 'center',

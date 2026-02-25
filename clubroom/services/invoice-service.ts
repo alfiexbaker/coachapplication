@@ -1,5 +1,6 @@
 import * as FileSystem from 'expo-file-system/legacy';
 import * as Sharing from 'expo-sharing';
+import { generateId } from '@/utils/generate-id';
 import { api } from '@/constants/config';
 import {
   Invoice,
@@ -10,9 +11,10 @@ import {
 } from '@/constants/types';
 import { apiClient } from './api-client';
 import { createLogger } from '@/utils/logger';
-import { type Result, type ServiceError, ok, err, notFound } from '@/types/result';
+import { type Result, type ServiceError, ok, err, notFound, validationError } from '@/types/result';
 import { emitTyped, ServiceEvents } from './event-bus';
 import { generateInvoiceHtml } from './invoice-template';
+import { bookingService } from '@/services/booking';
 
 // ============================================================================
 // CONFIGURATION
@@ -384,21 +386,71 @@ class InvoiceService {
       return ok(existingInvoice);
     }
 
-    // Get booking data (in real app, would fetch from booking service)
+    // Fetch real booking data
+    const booking = await bookingService.getById(bookingId);
+    if (booking) {
+      const amount = booking.status === 'CANCELLED'
+        ? (booking.cancellationFee ?? 0)
+        : (booking.price ?? 0);
+
+      if (amount <= 0) {
+        return err(validationError('Booking has no price'));
+      }
+
+      const roundMoney = (n: number): number => Math.round(n * 100) / 100;
+      const netAmount = roundMoney(amount / (1 + taxRate / 100));
+      const taxAmount = roundMoney(amount - netAmount);
+      const invoiceNumber = await this.generateInvoiceNumber();
+
+      const newInvoice: Invoice = {
+        id: generateId('inv'),
+        invoiceNumber,
+        userId: booking.bookedById ?? booking.athleteId ?? '',
+        bookingId,
+        coachId: booking.coachId,
+        athleteId: booking.athleteId,
+        sessionDate: booking.scheduledAt,
+        sessionType: booking.service ?? booking.serviceType ?? 'Session',
+        sessionLocation: booking.location ?? '',
+        sessionDuration: booking.duration ?? 60,
+        amount: netAmount,
+        tax: taxAmount,
+        taxRate,
+        total: netAmount + taxAmount,
+        currency: 'GBP',
+        status: 'SENT',
+        createdAt: new Date().toISOString(),
+        dueDate: dueDate || this.getDefaultDueDate(),
+        notes,
+      };
+
+      const invoices = await this.getAllInvoices();
+      invoices.unshift(newInvoice);
+      await this.saveInvoices(invoices);
+
+      logger.info('invoice_generated', {
+        invoiceId: newInvoice.id,
+        invoiceNumber,
+        bookingId,
+        total: newInvoice.total,
+      });
+
+      return ok(newInvoice);
+    }
+
+    // Fallback to mock data for demo/testing
     const bookingData = MOCK_BOOKINGS[bookingId];
     if (!bookingData) {
       return err(notFound('Booking', bookingId));
     }
 
-    // Calculate tax
-    const netAmount = bookingData.amount / (1 + taxRate / 100);
-    const taxAmount = bookingData.amount - netAmount;
-
-    // Generate invoice number
+    const roundMoney = (n: number): number => Math.round(n * 100) / 100;
+    const netAmount = roundMoney(bookingData.amount / (1 + taxRate / 100));
+    const taxAmount = roundMoney(bookingData.amount - netAmount);
     const invoiceNumber = await this.generateInvoiceNumber();
 
     const newInvoice: Invoice = {
-      id: `inv_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+      id: generateId('inv'),
       invoiceNumber,
       userId: bookingData.userId,
       bookingId,
@@ -408,12 +460,12 @@ class InvoiceService {
       sessionType: bookingData.sessionType,
       sessionLocation: bookingData.sessionLocation,
       sessionDuration: bookingData.sessionDuration,
-      amount: Math.round(netAmount * 100) / 100,
-      tax: Math.round(taxAmount * 100) / 100,
+      amount: netAmount,
+      tax: taxAmount,
       taxRate,
-      total: bookingData.amount,
+      total: netAmount + taxAmount,
       currency: 'GBP',
-      status: 'DRAFT',
+      status: 'SENT',
       createdAt: new Date().toISOString(),
       dueDate: dueDate || this.getDefaultDueDate(),
       notes,
@@ -806,20 +858,6 @@ class InvoiceService {
       WRITTEN_OFF: 'Written Off',
     };
     return labels[status];
-  }
-
-  /**
-   * Get status color for UI
-   */
-  getStatusColor(status: InvoiceStatus): string {
-    const colors: Record<InvoiceStatus, string> = {
-      DRAFT: '#6B7280',
-      SENT: '#2563EB',
-      PAID: '#059669',
-      VOID: '#DC2626',
-      WRITTEN_OFF: '#9CA3AF',
-    };
-    return colors[status];
   }
 
   /**

@@ -9,6 +9,7 @@ import { useCallback, useMemo } from 'react';
 
 import { useAuth } from '@/hooks/use-auth';
 import { useScreen } from '@/hooks/use-screen';
+import { useToast } from '@/components/ui/toast';
 import { bookingService } from '@/services/booking';
 import { invoiceService } from '@/services/invoice-service';
 import { rosterService } from '@/services/roster-service';
@@ -20,6 +21,7 @@ export interface SessionPaymentItem {
   booking: Booking;
   invoice: Invoice;
   athleteName: string;
+  isOverdue?: boolean;
 }
 
 interface SessionPaymentsData {
@@ -29,11 +31,13 @@ interface SessionPaymentsData {
   totalOwed: number;
   totalCollected: number;
   totalWrittenOff: number;
+  overdueCount: number;
 }
 
 export function useSessionPayments() {
   const { currentUser } = useAuth();
   const coachId = currentUser?.id ?? '';
+  const { showToast } = useToast();
 
   const load = useCallback(async () => {
     try {
@@ -41,7 +45,12 @@ export function useSessionPayments() {
         bookingService.getBookingsForUser(coachId, 'coach'),
         rosterService.getRoster(coachId),
       ]);
-      const completed = bookings.filter((b) => b.status === 'COMPLETED');
+      // Include completed sessions + late-cancelled (inside cancellation window = payment owed)
+      const reconcilable = bookings.filter(
+        (b) =>
+          b.status === 'COMPLETED' ||
+          (b.status === 'CANCELLED' && b.cancellationFee && b.cancellationFee > 0),
+      );
 
       // Build athlete name lookup from roster
       const nameMap = new Map<string, string>();
@@ -57,8 +66,15 @@ export function useSessionPayments() {
       let totalOwed = 0;
       let totalCollected = 0;
       let totalWrittenOff = 0;
+      let overdueCount = 0;
+      const now = Date.now();
 
-      for (const booking of completed) {
+      for (const booking of reconcilable) {
+        // Use cancellation fee for cancelled bookings, otherwise booking price
+        const invoiceAmount = booking.status === 'CANCELLED'
+          ? (booking.cancellationFee ?? 0)
+          : (booking.price ?? 0);
+
         let invoice = await invoiceService.getInvoiceByBookingId(booking.id);
 
         // Auto-generate invoice if missing
@@ -69,8 +85,8 @@ export function useSessionPayments() {
           }
         }
 
-        // Fallback: create synthetic invoice from booking data when invoice service can't resolve
-        if (!invoice && booking.price) {
+        // TODO: Remove synthetic fallback when real API replaces AsyncStorage mock layer
+        if (!invoice && invoiceAmount > 0) {
           invoice = {
             id: `inv_auto_${booking.id}`,
             invoiceNumber: `INV-AUTO-${booking.id}`,
@@ -82,10 +98,10 @@ export function useSessionPayments() {
             sessionType: booking.service ?? booking.serviceType,
             sessionLocation: booking.location,
             sessionDuration: booking.duration ?? 60,
-            amount: booking.price,
+            amount: invoiceAmount,
             tax: 0,
             taxRate: 0,
-            total: booking.price,
+            total: invoiceAmount,
             currency: 'GBP',
             status: 'SENT',
             createdAt: booking.createdAt ?? booking.scheduledAt,
@@ -94,11 +110,15 @@ export function useSessionPayments() {
           await invoiceService.upsertInvoice(invoice);
         }
 
-        if (!invoice) continue;
+        // Skip bookings with no monetary value (e.g. free trial sessions)
+        if (!invoice) {
+          if (invoiceAmount <= 0) continue;
+          continue;
+        }
 
         const athleteName =
           nameMap.get(booking.athleteId ?? '') ??
-          (booking.coachName !== currentUser?.name ? booking.coachName : 'Athlete');
+          (booking.coachName !== currentUser?.name ? (booking.coachName ?? 'Athlete') : 'Athlete');
 
         const item: SessionPaymentItem = { booking, invoice, athleteName };
 
@@ -109,19 +129,30 @@ export function useSessionPayments() {
           writtenOff.push(item);
           totalWrittenOff += invoice.total;
         } else {
-          unpaid.push(item);
+          // Check if overdue (past dueDate or > 14 days since session with no dueDate)
+          const dueDate = invoice.dueDate
+            ? new Date(invoice.dueDate).getTime()
+            : new Date(booking.scheduledAt).getTime() + 14 * 24 * 60 * 60 * 1000;
+          const isOverdue = now > dueDate;
+
+          unpaid.push({ ...item, isOverdue });
           totalOwed += invoice.total;
+          if (isOverdue) overdueCount++;
         }
       }
 
-      // Sort: most recent first
+      // Sort: overdue first in unpaid, then most recent
+      unpaid.sort((a, b) => {
+        if (a.isOverdue && !b.isOverdue) return -1;
+        if (!a.isOverdue && b.isOverdue) return 1;
+        return new Date(b.booking.scheduledAt).getTime() - new Date(a.booking.scheduledAt).getTime();
+      });
       const sortByDate = (a: SessionPaymentItem, b: SessionPaymentItem) =>
         new Date(b.booking.scheduledAt).getTime() - new Date(a.booking.scheduledAt).getTime();
-      unpaid.sort(sortByDate);
       paid.sort(sortByDate);
       writtenOff.sort(sortByDate);
 
-      return ok<SessionPaymentsData>({ unpaid, paid, writtenOff, totalOwed, totalCollected, totalWrittenOff });
+      return ok<SessionPaymentsData>({ unpaid, paid, writtenOff, totalOwed, totalCollected, totalWrittenOff, overdueCount });
     } catch {
       return err(serviceError('UNKNOWN', 'Failed to load session payments'));
     }
@@ -152,22 +183,43 @@ export function useSessionPayments() {
   const totalOwed = data?.totalOwed ?? 0;
   const totalCollected = data?.totalCollected ?? 0;
   const totalWrittenOff = data?.totalWrittenOff ?? 0;
+  const overdueCount = data?.overdueCount ?? 0;
 
   const handleMarkPaid = useCallback(async (invoiceId: string) => {
-    await invoiceService.markAsPaid(invoiceId);
-  }, []);
+    const result = await invoiceService.markAsPaid(invoiceId);
+    if (result) {
+      showToast('Marked as paid', 'success');
+    } else {
+      showToast('Failed to update payment', 'error');
+    }
+  }, [showToast]);
 
   const handleMarkUnpaid = useCallback(async (invoiceId: string) => {
-    await invoiceService.markAsUnpaid(invoiceId);
-  }, []);
+    const result = await invoiceService.markAsUnpaid(invoiceId);
+    if (result) {
+      showToast('Moved back to owed', 'default');
+    } else {
+      showToast('Failed to update', 'error');
+    }
+  }, [showToast]);
 
   const handleWriteOff = useCallback(async (invoiceId: string) => {
-    await invoiceService.writeOff(invoiceId);
-  }, []);
+    const result = await invoiceService.writeOff(invoiceId);
+    if (result) {
+      showToast('Written off', 'default');
+    } else {
+      showToast('Failed to write off', 'error');
+    }
+  }, [showToast]);
 
   const handleRestore = useCallback(async (invoiceId: string) => {
-    await invoiceService.restoreFromWriteOff(invoiceId);
-  }, []);
+    const result = await invoiceService.restoreFromWriteOff(invoiceId);
+    if (result) {
+      showToast('Restored to owed', 'success');
+    } else {
+      showToast('Failed to restore', 'error');
+    }
+  }, [showToast]);
 
   return {
     unpaidSessions,
@@ -179,6 +231,7 @@ export function useSessionPayments() {
     unpaidCount: unpaidSessions.length,
     paidCount: paidSessions.length,
     writtenOffCount: writtenOffSessions.length,
+    overdueCount,
     handleMarkPaid,
     handleMarkUnpaid,
     handleWriteOff,

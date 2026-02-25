@@ -8,7 +8,7 @@ import {
 } from 'react-native';
 import Animated, { FadeIn, FadeOut, LinearTransition } from 'react-native-reanimated';
 
-import { Radii, withAlpha } from '@/constants/theme';
+import { Radii, Spacing, withAlpha } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
 
 type SkeletonProps = {
@@ -60,6 +60,6 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
   },
   rowContainer: {
-    gap: 10,
+    gap: Spacing.xs,
   },
 });

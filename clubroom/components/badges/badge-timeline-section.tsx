@@ -221,7 +221,7 @@ const styles = StyleSheet.create({
   },
   tierTextSmall: {
     ...Typography.micro,
-    fontSize: 9,
+    fontSize: Typography.micro.fontSize,
   },
   categoryTag: {
     ...Typography.caption,

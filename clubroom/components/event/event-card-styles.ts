@@ -35,7 +35,7 @@ export const styles = StyleSheet.create({
   virtualBadge: {
     alignItems: 'center',
     gap: Spacing.xxs,
-    paddingHorizontal: 8,
+    paddingHorizontal: Spacing.xs,
     paddingVertical: Spacing.xxs,
     borderRadius: Radii.sm,
   },
@@ -89,7 +89,7 @@ export const styles = StyleSheet.create({
     letterSpacing: -0.3,
   },
   statusBadge: {
-    paddingHorizontal: 8,
+    paddingHorizontal: Spacing.xs,
     paddingVertical: Spacing.xxs,
     borderRadius: Radii.sm,
   },

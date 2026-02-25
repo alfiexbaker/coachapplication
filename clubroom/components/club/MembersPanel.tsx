@@ -11,6 +11,7 @@ import { Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
 import { clubService, type ClubMember } from '@/services/club-service';
 import { useTheme } from '@/hooks/useTheme';
 import { Row } from '@/components/primitives';
+import { Column } from '@/components/primitives/column';
 
 export interface MemberRowProps {
   member: ClubMember;
@@ -63,12 +64,12 @@ export function MemberRow({ member, canRemove, onRemove, onPress }: MemberRowPro
             {initials}
           </ThemedText>
         </View>
-        <View style={{ flex: 1 }}>
+        <Column flex>
           <ThemedText type="defaultSemiBold">{member.userName}</ThemedText>
           <ThemedText style={{ ...Typography.caption, color: roleColor }}>
             {clubService.formatRole(member.role)}
           </ThemedText>
-        </View>
+        </Column>
         {member.status === 'pending' && <Chip>Pending</Chip>}
         <Ionicons name="chevron-forward" size={18} color={palette.muted} />
       </Row>

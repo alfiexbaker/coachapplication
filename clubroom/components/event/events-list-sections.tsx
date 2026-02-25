@@ -146,8 +146,8 @@ const styles = StyleSheet.create({
     paddingBottom: Spacing.md,
   },
   filterTab: {
-    paddingHorizontal: 16,
-    paddingVertical: 8,
+    paddingHorizontal: Spacing.sm,
+    paddingVertical: Spacing.xs,
     borderRadius: Radii.pill,
     borderWidth: 1,
   },

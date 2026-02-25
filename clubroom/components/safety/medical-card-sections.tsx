@@ -10,6 +10,7 @@
 import React, { memo } from 'react';
 import { StyleSheet, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { Column } from '@/components/primitives/column';
 import { Row } from '@/components/primitives/row';
 
 import { ThemedText } from '@/components/themed-text';
@@ -58,10 +59,10 @@ export const MedicalInfoRow = memo(function MedicalInfoRow({
       <View style={[styles.iconBg, { backgroundColor: withAlpha(iconColor, 0.06) }]}>
         <Ionicons name={icon} size={14} color={iconColor} />
       </View>
-      <View style={{ flex: 1 }}>
+      <Column flex>
         <ThemedText style={[styles.infoLabel, { color: palette.muted }]}>{label}</ThemedText>
         <ThemedText style={styles.infoValue}>{value}</ThemedText>
-      </View>
+      </Column>
     </Row>
   );
 });

@@ -1,12 +1,25 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { Alert } from 'react-native';
 import { router } from 'expo-router';
 import { Routes } from '@/navigation/routes';
 
 import { useAuth } from '@/hooks/use-auth';
+import { apiClient } from '@/services/api-client';
+import { STORAGE_KEYS } from '@/constants/storage-keys';
+import { emitTyped, ServiceEvents } from '@/services/event-bus';
+import { generateId } from '@/utils/generate-id';
 import { createLogger } from '@/utils/logger';
 
 const logger = createLogger('useAccountSettings');
+
+export interface AccountDeletionRequest {
+  id: string;
+  userId: string;
+  requestedAt: string;
+  scheduledDeletionAt: string;
+  status: 'pending' | 'cancelled' | 'completed';
+  cancelledAt?: string;
+}
 
 export function useAccountSettings() {
   const { currentUser, logout } = useAuth();
@@ -17,6 +30,19 @@ export function useAccountSettings() {
   const [phone, setPhone] = useState(
     (currentUser as unknown as Record<string, string>)?.phone || '',
   );
+  const [deletionRequest, setDeletionRequest] = useState<AccountDeletionRequest | null>(null);
+
+  // Check for existing deletion request on mount
+  useEffect(() => {
+    if (!currentUser?.id) return;
+    void (async () => {
+      const key = `${STORAGE_KEYS.ACCOUNT_DELETION_PREFIX}${currentUser.id}`;
+      const existing = await apiClient.get<AccountDeletionRequest>(key, null as unknown as AccountDeletionRequest);
+      if (existing && existing.status === 'pending') {
+        setDeletionRequest(existing);
+      }
+    })();
+  }, [currentUser?.id]);
 
   const handleSaveEmail = useCallback(() => {
     logger.press('SaveEmail', { email });
@@ -57,34 +83,70 @@ export function useAccountSettings() {
     logger.press('DeleteAccount');
     Alert.alert(
       'Delete Account',
-      'Are you sure you want to delete your account? This action cannot be undone.',
+      'Are you sure you want to delete your account?\n\n\u2022 Your account will be scheduled for deletion in 30 days\n\u2022 You can cancel anytime during this period\n\u2022 After 30 days, all data will be permanently deleted',
       [
         { text: 'Cancel', style: 'cancel' },
         {
-          text: 'Delete',
+          text: 'Delete Account',
           style: 'destructive',
-          onPress: () => {
+          onPress: async () => {
+            if (!currentUser?.id) return;
+            const deletionDate = new Date();
+            deletionDate.setDate(deletionDate.getDate() + 30);
+
+            const request: AccountDeletionRequest = {
+              id: generateId('del'),
+              userId: currentUser.id,
+              requestedAt: new Date().toISOString(),
+              scheduledDeletionAt: deletionDate.toISOString(),
+              status: 'pending',
+            };
+
+            const key = `${STORAGE_KEYS.ACCOUNT_DELETION_PREFIX}${currentUser.id}`;
+            await apiClient.set(key, request);
+            setDeletionRequest(request);
+
+            emitTyped(ServiceEvents.ACCOUNT_DELETION_REQUESTED, {
+              userId: currentUser.id,
+              requestedAt: request.requestedAt,
+              scheduledDeletionAt: request.scheduledDeletionAt,
+            });
+
+            logger.info('Account deletion scheduled', {
+              userId: currentUser.id,
+              scheduledDeletionAt: deletionDate.toISOString(),
+            });
+
             Alert.alert(
-              'Confirm Deletion',
-              'This will permanently delete all your data including bookings, messages, and profile information.',
-              [
-                { text: 'Cancel', style: 'cancel' },
-                {
-                  text: 'Delete Forever',
-                  style: 'destructive',
-                  onPress: async () => {
-                    logger.info('Account deletion confirmed');
-                    await logout();
-                    router.replace(Routes.ROOT);
-                  },
-                },
-              ],
+              'Deletion Scheduled',
+              `Your account will be deleted on ${deletionDate.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}. You can cancel anytime before then.`,
             );
           },
         },
       ],
     );
-  }, [logout]);
+  }, [currentUser?.id]);
+
+  const handleCancelDeletion = useCallback(async () => {
+    if (!currentUser?.id || !deletionRequest) return;
+    const key = `${STORAGE_KEYS.ACCOUNT_DELETION_PREFIX}${currentUser.id}`;
+    const cancelledAt = new Date().toISOString();
+    const updated: AccountDeletionRequest = {
+      ...deletionRequest,
+      status: 'cancelled',
+      cancelledAt,
+    };
+    await apiClient.set(key, updated);
+    setDeletionRequest(null);
+
+    emitTyped(ServiceEvents.ACCOUNT_DELETION_CANCELLED, {
+      userId: currentUser.id,
+      cancelledAt,
+    });
+
+    logger.info('Account deletion cancelled', { userId: currentUser.id });
+    Alert.alert('Deletion Cancelled', 'Your account will not be deleted.');
+  }, [currentUser?.id, deletionRequest]);
 
   const handleDeactivateAccount = useCallback(() => {
     logger.press('DeactivateAccount');
@@ -111,6 +173,7 @@ export function useAccountSettings() {
     editingPhone,
     email,
     phone,
+    deletionRequest,
     setEditingEmail,
     setEditingPhone,
     setEmail,
@@ -119,6 +182,7 @@ export function useAccountSettings() {
     handleSavePhone,
     handleChangePassword,
     handleDeleteAccount,
+    handleCancelDeletion,
     handleDeactivateAccount,
   };
 }

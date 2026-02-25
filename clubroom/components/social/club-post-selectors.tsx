@@ -1,5 +1,6 @@
 import React, { memo } from 'react';
 import { View, StyleSheet, ScrollView } from 'react-native';
+import { Column } from '@/components/primitives/column';
 import { Clickable } from '@/components/primitives/clickable';
 import { Ionicons } from '@expo/vector-icons';
 import { Row } from '@/components/primitives/row';
@@ -270,12 +271,12 @@ export const AudienceSelector = memo(function AudienceSelector({
                   {squad.name.slice(0, 2).toUpperCase()}
                 </ThemedText>
               </View>
-              <View style={{ flex: 1 }}>
+              <Column flex>
                 <ThemedText style={{ ...Typography.smallSemiBold }}>{squad.name}</ThemedText>
                 <ThemedText style={{ color: palette.muted, ...Typography.caption }}>
                   {squad.memberCount} members
                 </ThemedText>
-              </View>
+              </Column>
               {selectedSquadId === squad.id && (
                 <Ionicons name="checkmark-circle" size={18} color={palette.success} />
               )}

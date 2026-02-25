@@ -66,7 +66,7 @@ export interface CreateInviteInput {
   sessionTemplateId?: string; // Links to SessionTemplate for auto-fill
   focus: string;
   notes?: string;
-  priceUsd?: number;
+  price?: number;
   duration?: number; // Duration in minutes from session template
   expiresInDays?: number;
   groupId?: string; // Links invites that were sent as part of a group/bulk send
@@ -103,7 +103,7 @@ const MOCK_INVITES: SessionInvite[] = [
     sessionType: '1:1 Coaching',
     focus: 'Finishing',
     notes: 'Great progress last session! Ready to work on weak foot finishing.',
-    priceUsd: 60,
+    price: 60,
     status: 'PENDING',
     expiresAt: '2026-02-28T23:59:59Z',
     createdAt: '2026-02-08T10:00:00Z',
@@ -120,7 +120,7 @@ const MOCK_INVITES: SessionInvite[] = [
     sessionType: '1:1 Coaching',
     focus: 'Goalkeeping',
     notes: 'Trial session to assess current level.',
-    priceUsd: 50,
+    price: 50,
     status: 'PENDING',
     expiresAt: '2026-02-28T23:59:59Z',
     createdAt: '2026-02-08T14:30:00Z',
@@ -136,7 +136,7 @@ const MOCK_INVITES: SessionInvite[] = [
     ],
     sessionType: '1:1 Coaching',
     focus: 'Dribbling',
-    priceUsd: 60,
+    price: 60,
     status: 'ACCEPTED',
     expiresAt: '2026-02-28T23:59:59Z',
     createdAt: '2026-02-08T09:00:00Z',
@@ -161,7 +161,7 @@ const MOCK_INVITES: SessionInvite[] = [
     sessionType: 'Small Group Session',
     focus: 'Game Vision',
     notes: 'Invite-only development block for U14 core group.',
-    priceUsd: 25,
+    price: 25,
     status: 'PENDING',
     expiresAt: '2026-03-01T23:59:59Z',
     createdAt: '2026-02-10T08:45:00Z',
@@ -390,7 +390,7 @@ export const sessionInviteService = {
       sessionTemplateId: input.sessionTemplateId,
       focus: input.focus,
       notes: input.notes,
-      priceUsd: input.priceUsd,
+      price: input.price,
       duration: input.duration,
       status: 'PENDING',
       expiresAt: expiresAt.toISOString(),
@@ -558,7 +558,7 @@ export const sessionInviteService = {
           sessionTemplateId: invite.sessionTemplateId,
           sessionTemplateName: templateContext.sessionTemplateName,
           objectives: templateContext.objectives,
-          price: invite.priceUsd,
+          price: invite.price,
           notes: invite.notes,
           sessionInviteId: invite.id, // Link booking to invite
           skipAvailabilityValidation: true, // Coach already validated when creating the invite
@@ -908,7 +908,7 @@ export const sessionInviteService = {
         sessionTemplateId: invite.sessionTemplateId,
         sessionTemplateName: templateContext.sessionTemplateName,
         objectives: templateContext.objectives,
-        price: invite.priceUsd,
+        price: invite.price,
         notes: invite.notes,
         sessionInviteId: invite.id, // Link booking to invite
         skipAvailabilityValidation: true, // Counter-proposal accepted by coach, skip validation
@@ -1178,7 +1178,7 @@ export const sessionInviteService = {
       athleteNames,
       sessionType: invite.sessionType,
       focus: invite.focus,
-      pricePerSession: invite.priceUsd,
+      pricePerSession: invite.price,
       selectedWeeks: acceptedWeeks.map((w) => w.weekDate),
       startTime: acceptedWeeks[0].startTime,
       duration: invite.duration ?? 60,

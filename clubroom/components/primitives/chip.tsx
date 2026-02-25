@@ -50,9 +50,9 @@ export function Chip({
   const fontWeight: TextStyle['fontWeight'] = isActive ? '600' : muted ? '400' : '500';
   const labelStyles = [
     dense ? Typography.xs : Typography.sm,
-    muted ? { fontSize: 11 } : undefined,
+    muted ? { fontSize: Typography.micro.fontSize } : undefined,
     {
-      color: isActive ? baseColor.tint : muted ? baseColor.mutedForeground : baseColor.muted,
+      color: isActive ? baseColor.tint : baseColor.muted,
       fontWeight,
     },
   ];

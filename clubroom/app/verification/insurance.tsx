@@ -168,13 +168,13 @@ export default function InsuranceVerificationScreen() {
           </View>
         </SurfaceCard>
 
-        {!isVerified && (
+        {!isVerified && __DEV__ && (
           <Button
             onPress={handleUpload}
             disabled={submitting}
             variant="primary"
           >
-            {submitting ? 'Verifying...' : isPending ? 'Approve (Demo)' : 'Upload & Verify (Demo)'}
+            {submitting ? 'Verifying...' : isPending ? 'Approve (DEV ONLY)' : 'Upload & Verify (DEV ONLY)'}
           </Button>
         )}
 
@@ -203,9 +203,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  statusText: { flex: 1, gap: 2 },
+  statusText: { flex: 1, gap: Spacing.micro },
   requirements: { gap: Spacing.xs },
-  reqIcon: { marginTop: 2 },
+  reqIcon: { marginTop: Spacing.micro },
   reqText: { flex: 1, ...Typography.bodySmall },
   infoText: { flex: 1, ...Typography.small },
 });

@@ -17,7 +17,7 @@ interface ConsentBadgeProps {
 const SIZE_CONFIG = {
   sm: { ...Typography.micro, icon: 14, padding: Spacing.xxs, gap: Spacing.micro },
   md: { ...Typography.caption, icon: 18, padding: Spacing.xxs, gap: Spacing.xxs },
-  lg: { ...Typography.bodySmall, icon: 22, padding: 8, gap: Spacing.xxs },
+  lg: { ...Typography.bodySmall, icon: 22, padding: Spacing.xs, gap: Spacing.xxs },
 } as const;
 
 export function ConsentBadge({ type, granted, showLabel = false, size = 'md' }: ConsentBadgeProps) {

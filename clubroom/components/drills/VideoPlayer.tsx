@@ -9,7 +9,7 @@ import { View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
 import { ThemedText } from '@/components/themed-text';
-import { withAlpha } from '@/constants/theme';
+import { Spacing, withAlpha } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
 import { styles } from './video-player-styles';
 
@@ -34,7 +34,7 @@ export function VideoPlayer({ height = 240 }: VideoPlayerProps) {
       ]}
     >
       <Ionicons name="videocam-off-outline" size={36} color={palette.muted} />
-      <ThemedText style={{ color: palette.muted, marginTop: 8 }}>
+      <ThemedText style={{ color: palette.muted, marginTop: Spacing.xs }}>
         Video playback unavailable
       </ThemedText>
     </View>
@@ -57,7 +57,7 @@ export function NoVideoPlaceholder({
       ]}
     >
       <Ionicons name="videocam-off-outline" size={36} color={palette.muted} />
-      <ThemedText style={{ color: palette.muted, marginTop: 8 }}>
+      <ThemedText style={{ color: palette.muted, marginTop: Spacing.xs }}>
         {message}
       </ThemedText>
     </View>

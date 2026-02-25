@@ -146,7 +146,7 @@ const styles = StyleSheet.create({
   },
   stepLine: { width: 40, height: 2, marginHorizontal: Spacing.xxs },
   stepHeader: { paddingHorizontal: Spacing.lg, paddingBottom: Spacing.sm },
-  stepTitle: { ...Typography.title, fontSize: 24 },
+  stepTitle: { ...Typography.title, fontSize: Typography.title.fontSize },
   stepCount: { ...Typography.small },
   content: { padding: Spacing.lg, paddingBottom: Spacing['2xl'] },
   footer: { padding: Spacing.lg, borderTopWidth: 1 },

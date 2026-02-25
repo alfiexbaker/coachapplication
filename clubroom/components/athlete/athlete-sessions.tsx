@@ -13,6 +13,7 @@ import { ThemedText } from '@/components/themed-text';
 import { Row } from '@/components/primitives/row';
 import { Column } from '@/components/primitives/column';
 import { EmptyState } from '@/components/ui/empty-state';
+import { ErrorState } from '@/components/ui/screen-states';
 import { Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
 import { Routes } from '@/navigation/routes';
@@ -44,15 +45,19 @@ function AthleteSessionsInner({ athlete, coachId }: AthleteSessionsProps) {
   const athleteName = getRosterAthleteName(athlete);
   const [sessions, setSessions] = useState<Booking[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     async function load() {
+      setLoading(true);
+      setError(null);
       try {
         const allBookings = await bookingService.getBookingsForUser(coachId, 'coach');
         const athleteSessions = allBookings.filter((b) => b.athleteId === athlete.athleteId);
         setSessions(athleteSessions);
-      } catch (error) {
-        logger.error('Failed to load sessions for athlete', error);
+      } catch (loadError) {
+        logger.error('Failed to load sessions for athlete', loadError);
+        setError('Failed to load sessions');
       } finally {
         setLoading(false);
       }
@@ -86,6 +91,29 @@ function AthleteSessionsInner({ athlete, coachId }: AthleteSessionsProps) {
           <View key={i} style={[styles.skeleton, { backgroundColor: colors.surfaceSecondary }]} />
         ))}
       </Column>
+    );
+  }
+
+  if (error) {
+    return (
+      <ErrorState
+        message={error}
+        onRetry={() => {
+          setLoading(true);
+          setError(null);
+          void (async () => {
+            try {
+              const allBookings = await bookingService.getBookingsForUser(coachId, 'coach');
+              setSessions(allBookings.filter((b) => b.athleteId === athlete.athleteId));
+            } catch (retryError) {
+              logger.error('Retry failed', retryError);
+              setError('Failed to load sessions');
+            } finally {
+              setLoading(false);
+            }
+          })();
+        }}
+      />
     );
   }
 

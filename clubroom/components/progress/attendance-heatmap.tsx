@@ -111,13 +111,13 @@ const styles = StyleSheet.create({
   cell: {
     width: 18,
     height: 18,
-    borderRadius: 4,
+    borderRadius: Radii.xs,
     borderWidth: 1,
   },
   legendSwatch: {
     width: 16,
     height: 16,
-    borderRadius: 4,
+    borderRadius: Radii.xs,
   },
   legendText: {
     ...Typography.caption,

@@ -107,7 +107,7 @@ export const SessionDatePicker = memo(SessionDatePickerInner);
 
 const styles = StyleSheet.create({
   container: {
-    gap: 8,
+    gap: Spacing.xs,
   },
   label: {
     fontSize: scaleFont(15),
@@ -120,8 +120,8 @@ const styles = StyleSheet.create({
     gap: Spacing.xs + Spacing.xxs,
     borderWidth: 1,
     borderRadius: Radii.md,
-    paddingHorizontal: 16,
-    paddingVertical: 16,
+    paddingHorizontal: Spacing.sm,
+    paddingVertical: Spacing.sm,
     minHeight: 44,
   },
   dateText: {

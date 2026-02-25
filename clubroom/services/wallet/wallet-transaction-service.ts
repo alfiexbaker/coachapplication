@@ -10,6 +10,7 @@
 
 import { api } from '@/constants/config';
 import { WalletTransaction, TransactionType, TransactionStatus } from '@/constants/types';
+import { generateId } from '@/utils/generate-id';
 import { apiClient } from '../api-client';
 import { createLogger } from '@/utils/logger';
 import { STORAGE_KEYS } from '@/constants/storage-keys';
@@ -365,7 +366,7 @@ class WalletTransactionService {
 
     const newTransaction: WalletTransaction = {
       ...params,
-      id: `txn_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+      id: generateId('txn'),
       createdAt: new Date().toISOString(),
     };
 

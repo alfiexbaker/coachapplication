@@ -1,18 +1,26 @@
 ## Current Task
-**Feature**: Remove bulk quick rate — personal feedback only
-**Step**: COMPLETE — removed `bulkUpdateFromQuickRate` entirely
+**Feature**: Sprint execution — 37 sprints across 15 categories
+**Step**: Completed Error Handling Sprint 4 (row #12) — 8/9 items implemented, 1 skipped
 
-**Files touched**:
-- `utils/feedback-prefill.ts` — removed `DEFAULT_SKILLS` import (crash fix), removed `skillRatings` from `FeedbackPrefillData`
-- `services/progress/progress-skills-service.ts` — deleted `bulkUpdateFromQuickRate` function + unused imports (`BadgeCategory`, `mapSkillToCorner`, `QuickRateInput`, `LEGACY_BULK_FALLBACK_SKILLS`)
-- `services/progress/index.ts` — removed `bulkUpdateFromQuickRate` from facade
-- `hooks/use-session-completion.ts` — removed legacy `else` branch that called `bulkUpdateFromQuickRate`
-- `app/session/[id]/complete.tsx` — `prefillSkillRatings` now always `[]` (no more corner→skill mapping)
-- `__tests__/services/data-integrity-e2e.test.ts` — removed `bulkUpdateFromQuickRate` test (30/30 pass, was 31)
+**Error Handling Sprint 4 (8/9 fixes — "Polish & Debugging"):**
+- components/booking/cancel-reason-picker.tsx (Item 135: touched prop gates validation)
+- components/invoices/InvoicePreview.tsx (Item 142: ErrorBoundary wrapper + ThemedText)
+- components/club/ClubHeader.tsx (Item 149: separate handleDeleteClub/handleLeaveClub + SafeImage)
+- components/error-boundary.tsx (Item 202: env-aware message + onGoHome prop)
+- constants/config.ts (Item 361: showErrorDetails export)
+- components/ui/screen-states.tsx (Item 362: ErrorState ServiceError prop + error code)
+- components/ui/toast.tsx (Item 363: toast queue implementation)
+- components/primitives/safe-image.tsx (Item 364: new SafeImage component)
+- components/coach/coach-card-header.tsx (Item 364: SafeImage migration)
+- components/coach/coach-detail-hero.tsx (Item 364: SafeImage migration)
 
-**Verification**:
-- TypeScript: zero new errors (only pre-existing `window` in theme-provider.tsx)
-- Tests: data-integrity 30/30, progress-skills 4/4
+**Skipped (1):** Item 211 (useSessionCompletion 1142-line refactor — too risky, interconnected state doesn't match suggested decomposition)
 
-**Next**: Verify in simulator
+**Next**: Forms & Modals Sprint 1 (row #13 in DONE.md)
 **Blockers**: none
+
+## Test Suite Status
+- TSC test config: clean (0 errors)
+
+## How to Continue
+User says "continue" → read DONE.md → find first `—` row → execute that sprint → update DONE.md → update this file

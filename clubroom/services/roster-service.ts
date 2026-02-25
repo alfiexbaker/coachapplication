@@ -32,6 +32,7 @@ import {
 import { BaseService } from './base-service';
 import { createLogger } from '@/utils/logger';
 import { userService } from './user-service';
+import { verificationService } from './verification-service';
 
 const logger = createLogger('RosterService');
 
@@ -272,6 +273,18 @@ class RosterServiceImpl extends BaseService<RosterEntry> {
   // --------------------------------------------------------------------------
 
   /**
+   * Check if coach has valid DBS verification.
+   */
+  async isDbsValid(coachId: string): Promise<boolean> {
+    const verificationResult = await verificationService.getStatus(coachId);
+    if (!verificationResult.success) return false;
+    const dbs = verificationResult.data.backgroundCheck;
+    if (dbs.status !== 'VERIFIED') return false;
+    if (dbs.expiresAt && new Date(dbs.expiresAt) < new Date()) return false;
+    return true;
+  }
+
+  /**
    * Get full roster for a coach, with optional filters and sorting.
    */
   async getRoster(coachId: string, filters?: RosterFilters): Promise<RosterEntry[]> {
@@ -282,6 +295,18 @@ class RosterServiceImpl extends BaseService<RosterEntry> {
     }
 
     let filtered = result.data;
+
+    // Cross-coach isolation safeguard: filter out athletes assigned to other coaches
+    const incorrectlyAssigned = filtered.filter(
+      (entry) => entry.coachId && entry.coachId !== coachId,
+    );
+    if (incorrectlyAssigned.length > 0) {
+      logger.warn('Roster data contains entries from other coaches - possible data leak', {
+        coachId,
+        incorrectCount: incorrectlyAssigned.length,
+      });
+      filtered = filtered.filter((entry) => !entry.coachId || entry.coachId === coachId);
+    }
 
     if (filters?.status) {
       filtered = filtered.filter((r) => r.status === filters.status);

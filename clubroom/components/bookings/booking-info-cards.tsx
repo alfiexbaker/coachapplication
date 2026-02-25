@@ -5,7 +5,8 @@
  */
 
 import React, { memo, useCallback } from 'react';
-import { Image, StyleSheet, View, Alert } from 'react-native';
+import { StyleSheet, View, Alert } from 'react-native';
+import { Image } from 'expo-image';
 import { router } from 'expo-router';
 import { Routes } from '@/navigation/routes';
 import { Ionicons } from '@expo/vector-icons';
@@ -117,7 +118,7 @@ export const PaymentCard = memo(function PaymentCard() {
         <Column gap="xxs" style={styles.flex1}>
           <ThemedText style={styles.cardTitle}>Payment</ThemedText>
           <ThemedText type="subtitle" style={styles.cardValue}>
-            &pound;65 (mock)
+            £65.00
           </ThemedText>
         </Column>
       </Row>

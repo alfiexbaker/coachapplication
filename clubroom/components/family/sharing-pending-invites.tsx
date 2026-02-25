@@ -1,11 +1,12 @@
-import { memo } from 'react';
-import { View, StyleSheet } from 'react-native';
+import { memo, useCallback } from 'react';
+import { Alert, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
 import { Clickable } from '@/components/primitives/clickable';
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { ThemedText } from '@/components/themed-text';
 import { Row } from '@/components/primitives/row';
+import { Column } from '@/components/primitives/column';
 import { Spacing, Radii, Typography } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
 import type { FamilyAccount } from '@/constants/types';
@@ -21,6 +22,21 @@ export const SharingPendingInvites = memo(function SharingPendingInvites({
 }: SharingPendingInvitesProps) {
   const { colors } = useTheme();
 
+  const handleCancel = useCallback((inviteId: string, email: string) => {
+    Alert.alert(
+      'Cancel Invite',
+      `Cancel the pending invite to ${email}? They will no longer be able to accept.`,
+      [
+        { text: 'Back', style: 'cancel' },
+        {
+          text: 'Cancel Invite',
+          style: 'destructive',
+          onPress: () => onCancel(inviteId, email),
+        },
+      ],
+    );
+  }, [onCancel]);
+
   if (invites.length === 0) return null;
 
   return (
@@ -32,7 +48,7 @@ export const SharingPendingInvites = memo(function SharingPendingInvites({
 
       {invites.map((invite) => (
         <Row key={invite.id} align="center" style={[styles.card, { borderColor: colors.border }]}>
-          <View style={{ flex: 1 }}>
+          <Column flex>
             <ThemedText type="defaultSemiBold">
               {invite.inviteeName || invite.inviteeEmail}
             </ThemedText>
@@ -41,10 +57,10 @@ export const SharingPendingInvites = memo(function SharingPendingInvites({
             >
               {invite.relationship} • Expires {new Date(invite.expiresAt).toLocaleDateString()}
             </ThemedText>
-          </View>
+          </Column>
           <Clickable
             style={[styles.cancelBtn, { borderColor: colors.error }]}
-            onPress={() => onCancel(invite.id, invite.inviteeEmail)}
+            onPress={() => handleCancel(invite.id, invite.inviteeEmail)}
             accessibilityLabel={`Cancel invite for ${invite.inviteeEmail}`}
             accessibilityRole="button"
           >

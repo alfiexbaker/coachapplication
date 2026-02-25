@@ -101,7 +101,7 @@ function mapOfferingToExisting(offering: SessionOffering): ExistingSessionOption
     location: offering.location,
     inviteType: offering.inviteType,
     focus: offering.footballSkill,
-    price: offering.priceUsd,
+    price: offering.price,
     currentParticipants: confirmedCount,
     maxParticipants: offering.maxParticipants,
     slot: {
@@ -319,7 +319,7 @@ function ExistingInviteFlow({
             sessionType: selectedSession.title,
             focus: selectedSession.focus ?? 'General',
             notes: notes.trim() || `You're invited to join "${selectedSession.title}"`,
-            priceUsd: selectedSession.price,
+            price: selectedSession.price,
             expiresInDays: 7,
             existingSessionId: selectedSession.id,
           },

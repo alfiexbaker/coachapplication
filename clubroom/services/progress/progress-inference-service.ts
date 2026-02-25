@@ -28,7 +28,7 @@ export interface CoachFocusNarrative {
 export interface SkillTrajectory {
   skill: string;
   corner: FourCornerKey;
-  trend: 'improving' | 'steady' | 'declining';
+  trend: 'improving' | 'consistent' | 'steady' | 'declining';
   currentLevel: number;
   eightWeekDelta: number;
   predictedNextLevel: number | null;

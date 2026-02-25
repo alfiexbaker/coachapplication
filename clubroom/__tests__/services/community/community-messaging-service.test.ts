@@ -4,6 +4,7 @@ import assert from 'node:assert/strict';
 import { apiClient } from '@/services/api-client';
 import { STORAGE_KEYS } from '@/constants/storage-keys';
 import { communityMessagingService } from '@/services/community/community-messaging-service';
+import { communityGroupService } from '@/services/community/community-group-service';
 import type { Result, ServiceError } from '@/types/result';
 
 function expectOk<T>(result: Result<T, ServiceError>): T {
@@ -22,6 +23,9 @@ describe('CommunityMessagingService', () => {
   beforeEach(async () => {
     seq = 0;
     (communityMessagingService as unknown as { inMemoryMessages: Record<string, unknown[]> }).inMemoryMessages = {};
+    // Clear group mock data so member checks don't block test senders
+    (communityGroupService as unknown as { inMemoryGroups: unknown[] }).inMemoryGroups = [];
+    await apiClient.set(STORAGE_KEYS.PARENT_GROUPS, []);
     await apiClient.set(STORAGE_KEYS.GROUP_MESSAGES, {});
   });
 

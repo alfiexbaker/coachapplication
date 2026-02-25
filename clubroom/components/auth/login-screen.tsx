@@ -24,6 +24,7 @@ import Animated, {
   withDelay,
 } from 'react-native-reanimated';
 
+import { Ionicons } from '@expo/vector-icons';
 import { ThemedText } from '@/components/themed-text';
 import { Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
@@ -46,9 +47,12 @@ export default function LoginScreen() {
   const [screenMode, setScreenMode] = useState<ScreenMode>('login');
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
+  const [localError, setLocalError] = useState<string | null>(null);
   const [showPassword, setShowPassword] = useState(false);
   const [showDemo, setShowDemo] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+
+  const displayError = error || localError;
 
   // ── Animations ────────────────────────────────────────────────────────
   const cardOpacity = useSharedValue(0);
@@ -66,7 +70,11 @@ export default function LoginScreen() {
 
   // ── Handlers ──────────────────────────────────────────────────────────
   const handleLogin = useCallback(async () => {
-    if (!username.trim() || !password.trim()) return;
+    setLocalError(null);
+    if (!username.trim() || !password.trim()) {
+      setLocalError('Please enter username and password');
+      return;
+    }
     setSubmitting(true);
     try {
       await login(username.trim(), password.trim());
@@ -74,6 +82,16 @@ export default function LoginScreen() {
       setSubmitting(false);
     }
   }, [username, password, login]);
+
+  const handleUsernameChange = useCallback((text: string) => {
+    setUsername(text);
+    if (displayError) setLocalError(null);
+  }, [displayError]);
+
+  const handlePasswordChange = useCallback((text: string) => {
+    setPassword(text);
+    if (displayError) setLocalError(null);
+  }, [displayError]);
 
   const handleDemoSelect = useCallback(
     (user: { username: string; password: string }) => {
@@ -176,7 +194,7 @@ export default function LoginScreen() {
                   },
                 ]}
                 value={username}
-                onChangeText={setUsername}
+                onChangeText={handleUsernameChange}
                 placeholder="e.g. coach"
                 placeholderTextColor={withAlpha(palette.text, 0.35)}
                 autoCapitalize="none"
@@ -200,7 +218,7 @@ export default function LoginScreen() {
                     },
                   ]}
                   value={password}
-                  onChangeText={setPassword}
+                  onChangeText={handlePasswordChange}
                   placeholder="••••••••"
                   placeholderTextColor={withAlpha(palette.text, 0.35)}
                   secureTextEntry={!showPassword}
@@ -220,8 +238,11 @@ export default function LoginScreen() {
             </View>
 
             {/* Error / hint */}
-            {error ? (
-              <ThemedText style={[styles.hint, { color: palette.error }]}>{error}</ThemedText>
+            {displayError ? (
+              <View style={[styles.errorCard, { backgroundColor: withAlpha(palette.error, 0.08) }]}>
+                <Ionicons name="alert-circle" size={18} color={palette.error} />
+                <ThemedText style={[styles.hint, { color: palette.error, flex: 1 }]}>{displayError}</ThemedText>
+              </View>
             ) : (
               <ThemedText style={[styles.hint, { color: palette.muted }]}>
                 Credentials are case-insensitive.
@@ -266,33 +287,37 @@ export default function LoginScreen() {
               </ThemedText>
             </Pressable>
 
-            {/* Demo accounts */}
-            <Pressable
-              onPress={() => setShowDemo((p) => !p)}
-              style={[styles.demoToggle, { borderColor: withAlpha(palette.text, 0.1) }]}
-            >
-              <ThemedText style={[styles.demoToggleText, { color: palette.muted }]}>
-                {showDemo ? 'Hide demo credentials' : 'Show demo credentials'}
-              </ThemedText>
-            </Pressable>
-
-            {showDemo &&
-              availableUsers.slice(0, 4).map((user) => (
+            {/* Demo accounts — DEV builds only */}
+            {__DEV__ && (
+              <>
                 <Pressable
-                  key={user.username}
-                  onPress={() => handleDemoSelect(user)}
-                  style={[styles.demoRow, { borderBottomColor: withAlpha(palette.text, 0.06) }]}
+                  onPress={() => setShowDemo((p) => !p)}
+                  style={[styles.demoToggle, { borderColor: withAlpha(palette.text, 0.1) }]}
                 >
-                  <View style={[styles.rolePill, { backgroundColor: withAlpha(palette.tint, 0.12) }]}>
-                    <ThemedText style={[styles.roleText, { color: palette.tint }]}>
-                      {user.role}
-                    </ThemedText>
-                  </View>
-                  <ThemedText style={[styles.demoCred, { color: palette.text }]}>
-                    {user.username} / {user.password}
+                  <ThemedText style={[styles.demoToggleText, { color: palette.muted }]}>
+                    {showDemo ? 'Hide demo credentials' : 'Show demo credentials (DEV ONLY)'}
                   </ThemedText>
                 </Pressable>
-              ))}
+
+                {showDemo &&
+                  availableUsers.slice(0, 4).map((user) => (
+                    <Pressable
+                      key={user.username}
+                      onPress={() => handleDemoSelect(user)}
+                      style={[styles.demoRow, { borderBottomColor: withAlpha(palette.text, 0.06) }]}
+                    >
+                      <View style={[styles.rolePill, { backgroundColor: withAlpha(palette.tint, 0.12) }]}>
+                        <ThemedText style={[styles.roleText, { color: palette.tint }]}>
+                          {user.role}
+                        </ThemedText>
+                      </View>
+                      <ThemedText style={[styles.demoCred, { color: palette.text }]}>
+                        {user.username} / {user.password}
+                      </ThemedText>
+                    </Pressable>
+                  ))}
+              </>
+            )}
           </Animated.View>
         </ScrollView>
       </KeyboardAvoidingView>
@@ -372,7 +397,7 @@ const styles = StyleSheet.create({
     ...Typography.body,
   },
   passwordRow: { position: 'relative' },
-  passwordInput: { paddingRight: 64 },
+  passwordInput: { paddingRight: Spacing['3xl'] },
   eyeBtn: {
     position: 'absolute',
     right: Spacing.sm,
@@ -382,6 +407,14 @@ const styles = StyleSheet.create({
   },
   eyeText: { ...Typography.bodySmallSemiBold },
   hint: { ...Typography.bodySmall, marginTop: -Spacing.xs },
+  errorCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.xs,
+    padding: Spacing.sm,
+    borderRadius: Radii.md,
+    marginTop: -Spacing.xs,
+  },
   // Buttons
   btn: {
     height: 48,
@@ -416,7 +449,7 @@ const styles = StyleSheet.create({
   },
   rolePill: {
     paddingHorizontal: Spacing.sm,
-    paddingVertical: 2,
+    paddingVertical: Spacing.micro,
     borderRadius: Radii.pill,
   },
   roleText: { ...Typography.caption, textTransform: 'uppercase' },

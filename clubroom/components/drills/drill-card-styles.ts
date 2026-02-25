@@ -31,9 +31,9 @@ export const styles = StyleSheet.create({
   },
   durationOverlay: {
     position: 'absolute',
-    bottom: 8,
-    right: 8,
-    paddingHorizontal: 8,
+    bottom: Spacing.xs,
+    right: Spacing.xs,
+    paddingHorizontal: Spacing.xs,
     paddingVertical: Spacing.xxs,
     borderRadius: Radii.xs,
   },
@@ -64,7 +64,7 @@ export const styles = StyleSheet.create({
   videoBadge: {
     alignItems: 'center',
     gap: Spacing.xxs,
-    paddingHorizontal: 8,
+    paddingHorizontal: Spacing.xs,
     paddingVertical: Spacing.xxs,
     borderRadius: Radii.sm,
   },

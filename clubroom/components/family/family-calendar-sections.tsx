@@ -210,7 +210,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   dayText: { ...Typography.bodySmallSemiBold },
-  eventDots: { gap: Spacing.micro, marginTop: Spacing.micro, position: 'absolute', bottom: 4 },
+  eventDots: { gap: Spacing.micro, marginTop: Spacing.micro, position: 'absolute', bottom: Spacing.xxs },
   eventDot: { width: 4, height: 4, borderRadius: Radii.xs },
-  conflictDot: { width: 6, height: 6, borderRadius: 3 },
+  conflictDot: { width: 6, height: 6, borderRadius: Radii.xs },
 });

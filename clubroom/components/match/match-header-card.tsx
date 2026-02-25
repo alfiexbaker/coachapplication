@@ -4,6 +4,7 @@ import { Ionicons } from '@expo/vector-icons';
 
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { ThemedText } from '@/components/themed-text';
+import { Column } from '@/components/primitives/column';
 import { Row } from '@/components/primitives/row';
 import { Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
@@ -99,7 +100,7 @@ export const MatchHeaderCard = memo(function MatchHeaderCard({
         </Row>
         <Row gap="sm" align="flex-start">
           <Ionicons name="location" size={20} color={colors.tint} />
-          <View style={{ flex: 1 }}>
+          <Column flex>
             <ThemedText style={Typography.bodySmall}>{match.venue}</ThemedText>
             {match.address && (
               <ThemedText
@@ -108,7 +109,7 @@ export const MatchHeaderCard = memo(function MatchHeaderCard({
                 {match.address}
               </ThemedText>
             )}
-          </View>
+          </Column>
         </Row>
         {squadLabel && (
           <Row gap="sm" align="flex-start">

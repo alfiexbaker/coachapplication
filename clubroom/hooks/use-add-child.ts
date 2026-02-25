@@ -187,12 +187,29 @@ export function useAddChild() {
 
   const validateStep = useCallback((): boolean => {
     switch (currentStep) {
-      case 'basic':
-        if (!firstName.trim() || !lastName.trim() || !gender || !relationship) {
-          Alert.alert('Required Fields', 'Please fill in name, gender, and relationship');
+      case 'basic': {
+        const errors: string[] = [];
+        if (!firstName.trim()) errors.push('First name is required');
+        if (!lastName.trim()) errors.push('Last name is required');
+        if (!gender) errors.push('Gender is required');
+        if (!relationship) errors.push('Relationship is required');
+        if (dateOfBirth) {
+          const now = new Date();
+          const age = now.getFullYear() - dateOfBirth.getFullYear();
+          const adjustedAge =
+            now < new Date(now.getFullYear(), dateOfBirth.getMonth(), dateOfBirth.getDate())
+              ? age - 1
+              : age;
+          if (adjustedAge < 3 || adjustedAge > 18) {
+            errors.push('Age must be between 3 and 18');
+          }
+        }
+        if (errors.length > 0) {
+          Alert.alert('Required Fields', errors.join('\n'));
           return false;
         }
         return true;
+      }
       case 'special_needs':
         if (hasSpecialNeeds === null) {
           Alert.alert(
@@ -202,12 +219,34 @@ export function useAddChild() {
           return false;
         }
         return true;
-      case 'emergency':
-        if (!emergencyName.trim() || !emergencyPhone.trim() || !emergencyRelation.trim()) {
-          Alert.alert('Required Fields', 'Please provide at least one emergency contact');
+      case 'emergency': {
+        const errors: string[] = [];
+        if (!emergencyName.trim()) errors.push('Emergency contact name is required');
+        if (!emergencyPhone.trim()) {
+          errors.push('Emergency contact phone is required');
+        } else {
+          // UK phone validation: 07xxx xxxxxx or +44 7xxx xxxxxx
+          const cleaned = emergencyPhone.replace(/\s/g, '');
+          const ukPhoneRegex = /^(\+447\d{9}|07\d{9})$/;
+          if (!ukPhoneRegex.test(cleaned)) {
+            errors.push('Please enter a valid UK phone number (07xxx xxxxxx)');
+          }
+        }
+        if (!emergencyRelation.trim()) errors.push('Emergency contact relationship is required');
+        // Validate secondary phone if provided
+        if (secondaryPhone.trim()) {
+          const cleaned = secondaryPhone.replace(/\s/g, '');
+          const ukPhoneRegex = /^(\+447\d{9}|07\d{9})$/;
+          if (!ukPhoneRegex.test(cleaned)) {
+            errors.push('Secondary phone: Please enter a valid UK phone number');
+          }
+        }
+        if (errors.length > 0) {
+          Alert.alert('Required Fields', errors.join('\n'));
           return false;
         }
         return true;
+      }
       default:
         return true;
     }
@@ -217,10 +256,12 @@ export function useAddChild() {
     lastName,
     gender,
     relationship,
+    dateOfBirth,
     hasSpecialNeeds,
     emergencyName,
     emergencyPhone,
     emergencyRelation,
+    secondaryPhone,
   ]);
 
   const goNext = useCallback(() => {

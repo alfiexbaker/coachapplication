@@ -73,7 +73,7 @@ export function SessionTypeModal({
   const isValid = name.trim().length > 0;
   const handleSave = () => {
     if (!isValid) return;
-    void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    if (Platform.OS !== 'web') void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     onSave({
       name: name.trim(),
       type,
@@ -90,7 +90,7 @@ export function SessionTypeModal({
         text: 'Delete',
         style: 'destructive',
         onPress: () => {
-          void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
+          if (Platform.OS !== 'web') void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
           onDelete?.();
         },
       },
@@ -210,7 +210,7 @@ const styles = StyleSheet.create({
   handle: {
     width: 36,
     height: 4,
-    borderRadius: 2,
+    borderRadius: Radii.xs,
     alignSelf: 'center',
     marginBottom: Spacing.xs,
   },

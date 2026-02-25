@@ -10,8 +10,9 @@
  */
 
 import { ParentGroup, GroupMessage, ChatAttachment } from '@/constants/types';
+import { generateId } from '@/utils/generate-id';
 import { apiClient } from '../api-client';
-import { type Result, type ServiceError, ok, err, storageError } from '@/types/result';
+import { type Result, type ServiceError, ok, err, storageError, unauthorized } from '@/types/result';
 import { STORAGE_KEYS } from '@/constants/storage-keys';
 import { createLogger } from '@/utils/logger';
 import { communityGroupService } from './community-group-service';
@@ -87,10 +88,22 @@ class CommunityMessagingService {
     attachments?: ChatAttachment[],
   ): Promise<Result<GroupMessage, ServiceError>> {
     try {
+      // S-37: Verify sender is a member of this group
+      const groupResult = await communityGroupService.getGroup(groupId);
+      if (groupResult.success) {
+        const isMember = groupResult.data.members.some((m) =>
+          accountIdsMatch(m.parentId, senderId),
+        );
+        if (!isMember) {
+          logger.warn('Non-member attempted to send group message', { groupId, senderId });
+          return err(unauthorized('You must be a member of this group to send messages'));
+        }
+      }
+
       const timestamp = new Date().toISOString();
 
       const newMessage: GroupMessage = {
-        id: `gmsg_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`,
+        id: generateId('gmsg'),
         groupId,
         senderId,
         body,

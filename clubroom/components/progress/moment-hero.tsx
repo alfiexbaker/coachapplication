@@ -332,7 +332,6 @@ const styles = StyleSheet.create({
   },
   subtitle: {
     ...Typography.bodySmall,
-    lineHeight: 20,
   },
   ctaButton: {
     minHeight: 44,

@@ -15,7 +15,7 @@ import { ThemedText } from '@/components/themed-text';
 import { Clickable } from '@/components/primitives/clickable';
 import { Spacing, Components, Typography, withAlpha } from '@/constants/theme';
 import type { ThemeColors } from '@/hooks/useTheme';
-import { Row } from '@/components/primitives';
+import { Column, Row } from '@/components/primitives';
 import { styles } from './share-profile-styles';
 
 // ─── ShareUrlBox ─────────────────────────────────────────────────────────────
@@ -75,12 +75,12 @@ export const ShareActionRow = memo(function ShareActionRow({
       >
         <Ionicons name={icon} size={Components.icon.md} color={iconColor ?? palette.tint} />
       </View>
-      <View style={{ flex: 1 }}>
+      <Column flex>
         <ThemedText style={[Typography.bodySemiBold, { color: titleColor ?? palette.text }]}>
           {title}
         </ThemedText>
         <ThemedText style={[Typography.small, { color: palette.muted }]}>{subtitle}</ThemedText>
-      </View>
+      </Column>
       {showChevron && (
         <Ionicons name="chevron-forward" size={Components.icon.md} color={palette.muted} />
       )}

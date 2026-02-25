@@ -49,7 +49,7 @@ function RsvpMiniBarComponent({ counts, showLabel = true, compact = false }: Rsv
 
   return (
     <Row align="center" gap="xs" accessibilityLabel={`RSVP: ${counts.going} of ${total} going`}>
-      <View style={[styles.bar, compact && styles.barCompact]}>
+      <Row style={[styles.bar, compact && styles.barCompact]}>
         {segments.map((seg, i) => {
           if (seg.value === 0) return null;
           const widthPercent = (seg.value / total) * 100;
@@ -68,7 +68,7 @@ function RsvpMiniBarComponent({ counts, showLabel = true, compact = false }: Rsv
             />
           );
         })}
-      </View>
+      </Row>
       {showLabel && (
         <ThemedText
           style={[
@@ -91,7 +91,6 @@ const styles = StyleSheet.create({
     flex: 1,
     height: 6,
     borderRadius: Radii.xs,
-    flexDirection: 'row',
     overflow: 'hidden',
   },
   barCompact: {

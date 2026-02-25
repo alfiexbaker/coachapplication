@@ -22,7 +22,7 @@ import { ThemedText } from '@/components/themed-text';
 import { Button } from '@/components/primitives/button';
 import { Clickable } from '@/components/primitives/clickable';
 import { DateTimeField } from '@/components/ui/primitives/DateTimeField';
-import { Spacing, Radii, withAlpha } from '@/constants/theme';
+import { Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
 import type { Goal, GoalCategory, CreateGoalInput, UpdateGoalInput } from '@/constants/types';
 import { useTheme } from '@/hooks/useTheme';
 import { progressService } from '@/services/progress-service';
@@ -30,6 +30,7 @@ import { scaleFont } from '@/utils/scale';
 import { GoalMilestonesSection } from './goal-milestones-section';
 import { GoalPreviewCard } from './goal-preview-card';
 import { Row } from '@/components/primitives';
+import { useToast } from '@/components/ui/toast';
 
 const CATEGORIES: GoalCategory[] = [
   'BALL_SKILLS',
@@ -49,6 +50,7 @@ interface GoalFormProps {
 
 export function GoalForm({ goal, onSubmit, onCancel, loading = false }: GoalFormProps) {
   const { colors: palette } = useTheme();
+  const { showToast } = useToast();
   const isEditing = Boolean(goal);
 
   const [title, setTitle] = useState(goal?.title ?? '');
@@ -60,16 +62,29 @@ export function GoalForm({ goal, onSubmit, onCancel, loading = false }: GoalForm
   );
   const [newMilestone, setNewMilestone] = useState('');
 
-  const isValid = title.trim().length > 0;
+  const minTargetDate = new Date();
+  minTargetDate.setHours(0, 0, 0, 0);
+  minTargetDate.setDate(minTargetDate.getDate() + 1);
+
+  const parsedTargetDate = targetDate ? new Date(`${targetDate}T00:00:00`) : null;
+  const targetDateError =
+    parsedTargetDate && parsedTargetDate.getTime() <= Date.now()
+      ? 'Target must be in the future'
+      : null;
+  const isValid = title.trim().length > 0 && !targetDateError;
 
   const handleCategorySelect = useCallback((cat: GoalCategory) => {
-    void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    if (Platform.OS !== 'web') void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     setCategory(cat);
   }, []);
 
   const handleSubmit = useCallback(async () => {
     if (!isValid || loading) return;
-    void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    if (targetDateError) {
+      showToast('Target date must be in the future', 'error');
+      return;
+    }
+    if (Platform.OS !== 'web') void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
 
     if (isEditing) {
       await onSubmit({
@@ -87,7 +102,19 @@ export function GoalForm({ goal, onSubmit, onCancel, loading = false }: GoalForm
         milestones: milestones.length > 0 ? milestones : undefined,
       });
     }
-  }, [isValid, loading, isEditing, title, description, category, targetDate, milestones, onSubmit]);
+  }, [
+    isValid,
+    loading,
+    targetDateError,
+    isEditing,
+    title,
+    description,
+    category,
+    targetDate,
+    milestones,
+    onSubmit,
+    showToast,
+  ]);
 
   return (
     <KeyboardAvoidingView
@@ -190,9 +217,13 @@ export function GoalForm({ goal, onSubmit, onCancel, loading = false }: GoalForm
             value={targetDate}
             onChange={setTargetDate}
             label="Target Date (Optional)"
-            minimumDate={new Date()}
+            minimumDate={minTargetDate}
             placeholder="Set a deadline to stay motivated"
+            error={targetDateError ?? undefined}
           />
+          <ThemedText style={[Typography.caption, { color: palette.muted }]}>
+            Target must be in the future
+          </ThemedText>
         </Animated.View>
 
         {/* Milestones (create only) */}

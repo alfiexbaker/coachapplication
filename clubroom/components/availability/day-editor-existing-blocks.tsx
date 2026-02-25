@@ -97,9 +97,9 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing.xs,
     borderRadius: Radii.sm,
   },
-  dot: { width: 6, height: 6, borderRadius: 3 },
+  dot: { width: 6, height: 6, borderRadius: Radii.xs },
   time: { ...Typography.smallSemiBold },
   location: { ...Typography.small, flex: 1 },
-  editingBadge: { paddingHorizontal: Spacing.xs, paddingVertical: 2, borderRadius: Radii.pill },
+  editingBadge: { paddingHorizontal: Spacing.xs, paddingVertical: Spacing.micro, borderRadius: Radii.pill },
   editingText: { ...Typography.micro },
 });

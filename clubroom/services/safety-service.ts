@@ -81,8 +81,8 @@ const createDefaultEmergencyInfo = (athleteId: string): EmergencyInfo => ({
   updatedAt: new Date().toISOString(),
 });
 
-// Mock emergency info data for demo purposes
-const MOCK_EMERGENCY_INFO: Record<string, EmergencyInfo> = {
+// Mock emergency info data — only available in development
+const MOCK_EMERGENCY_INFO: Record<string, EmergencyInfo> | null = __DEV__ ? {
   athlete1: {
     athleteId: 'athlete1',
     contacts: [
@@ -195,13 +195,13 @@ const MOCK_EMERGENCY_INFO: Record<string, EmergencyInfo> = {
     ],
     updatedAt: '2024-02-01T14:30:00Z',
   },
-};
+} : null;
 
 class SafetyService {
   private async getEmergencyInfoValue(athleteId: string): Promise<EmergencyInfo> {
     const allInfo = await apiClient.get<Record<string, EmergencyInfo>>(
       STORAGE_KEYS.EMERGENCY_INFO,
-      MOCK_EMERGENCY_INFO,
+      MOCK_EMERGENCY_INFO ?? {},
     );
     return allInfo[athleteId] ?? createDefaultEmergencyInfo(athleteId);
   }
@@ -212,7 +212,7 @@ class SafetyService {
   ): Promise<EmergencyInfo> {
     const allInfo = await apiClient.get<Record<string, EmergencyInfo>>(
       STORAGE_KEYS.EMERGENCY_INFO,
-      MOCK_EMERGENCY_INFO,
+      MOCK_EMERGENCY_INFO ?? {},
     );
 
     const currentInfo = allInfo[athleteId] ?? createDefaultEmergencyInfo(athleteId);
@@ -230,14 +230,125 @@ class SafetyService {
   }
 
   /**
-   * Get emergency info for an athlete
+   * Get emergency info for an athlete.
+   *
+   * When requestorId and requestorRole are provided, access control is
+   * enforced and the access is logged for audit compliance.
+   * When omitted (legacy callers), a warning is logged but access is allowed
+   * to avoid breaking existing flows during migration.
    */
-  async getEmergencyInfo(athleteId: string): Promise<Result<EmergencyInfo, ServiceError>> {
+  async getEmergencyInfo(
+    athleteId: string,
+    requestorId?: string,
+    requestorRole?: 'coach' | 'parent' | 'admin',
+  ): Promise<Result<EmergencyInfo, ServiceError>> {
     try {
+      // Access control when credentials are provided
+      if (requestorId && requestorRole) {
+        const hasAccess = await this.verifyEmergencyDataAccess(
+          athleteId,
+          requestorId,
+          requestorRole,
+        );
+        if (!hasAccess) {
+          logger.warn('Unauthorized emergency data access attempt', {
+            athleteId,
+            requestorId,
+            requestorRole,
+          });
+          return err({
+            code: 'UNAUTHORIZED',
+            message:
+              "You do not have permission to view this athlete's emergency information",
+          });
+        }
+        // Log access for audit trail
+        await this.logEmergencyDataAccess(athleteId, requestorId, requestorRole);
+      } else {
+        logger.warn('Emergency data accessed without credentials — legacy caller', {
+          athleteId,
+        });
+      }
+
       return ok(await this.getEmergencyInfoValue(athleteId));
     } catch (error) {
       logger.error('Failed to get emergency info', { athleteId, error });
       return err(storageError('Failed to load emergency info'));
+    }
+  }
+
+  /**
+   * Verify whether a requestor has access to an athlete's emergency data.
+   * - Parents can access their own children's data
+   * - Coaches can access rostered athletes' data
+   * - Admins always have access
+   */
+  private async verifyEmergencyDataAccess(
+    athleteId: string,
+    requestorId: string,
+    requestorRole: 'coach' | 'parent' | 'admin',
+  ): Promise<boolean> {
+    if (requestorRole === 'admin') {
+      return true;
+    }
+
+    // Self-access is always allowed
+    if (requestorId === athleteId) {
+      return true;
+    }
+
+    // Parents: check family membership (flat list, match by child id)
+    if (requestorRole === 'parent') {
+      const familyMembers = await apiClient.get<
+        { id: string; parentId?: string }[]
+      >(STORAGE_KEYS.FAMILY_MEMBERS, []);
+      return familyMembers.some((m) => m.id === athleteId);
+    }
+
+    // Coaches: check roster (coach's rostered athletes)
+    if (requestorRole === 'coach') {
+      const roster = await apiClient.get<
+        { athleteId: string; coachId?: string }[]
+      >(STORAGE_KEYS.ROSTER, []);
+      return roster.some((a) => a.athleteId === athleteId);
+    }
+
+    return false;
+  }
+
+  /**
+   * Log emergency data access for audit compliance.
+   * Per-athlete key, FIFO capped at 1000 entries.
+   */
+  private async logEmergencyDataAccess(
+    athleteId: string,
+    requestorId: string,
+    requestorRole: string,
+  ): Promise<void> {
+    try {
+      const logEntry = {
+        timestamp: new Date().toISOString(),
+        athleteId,
+        requestorId,
+        requestorRole,
+        action: 'VIEW_EMERGENCY_INFO' as const,
+      };
+
+      const key = `${STORAGE_KEYS.AUDIT_LOG_PREFIX}${athleteId}`;
+      const existingLogs = await apiClient.get<typeof logEntry[]>(key, []);
+
+      const MAX_AUDIT_ENTRIES = 1000;
+      const updatedLogs = [...existingLogs, logEntry];
+      const trimmedLogs =
+        updatedLogs.length > MAX_AUDIT_ENTRIES
+          ? updatedLogs.slice(updatedLogs.length - MAX_AUDIT_ENTRIES)
+          : updatedLogs;
+
+      await apiClient.set(key, trimmedLogs);
+      logger.info('Emergency data accessed', logEntry);
+    } catch (error) {
+      // Audit failure should not block access
+      logger.error('Failed to log emergency data access', { athleteId, error });
     }
   }
 
@@ -367,9 +478,20 @@ class SafetyService {
     type: ConsentType,
     granted: boolean,
     grantedBy: string,
+    durationMonths = 12,
   ): Promise<Result<EmergencyInfo, ServiceError>> {
     try {
       const info = await this.getEmergencyInfoValue(athleteId);
+
+      // Calculate expiry date (default 12 months from now)
+      let expiryAt: string | undefined;
+      if (granted) {
+        const expiryDate = new Date();
+        expiryDate.setDate(1); // Avoid month-end overflow
+        expiryDate.setMonth(expiryDate.getMonth() + durationMonths);
+        expiryAt = expiryDate.toISOString();
+      }
+
       const consents = info.consents.map((c) =>
         c.type === type
           ? {
@@ -377,6 +499,7 @@ class SafetyService {
               granted,
               grantedBy,
               grantedAt: granted ? new Date().toISOString() : undefined,
+              expiryAt,
             }
           : c,
       );
@@ -811,7 +934,7 @@ class SafetyService {
    */
   async resetToMockData(): Promise<Result<void, ServiceError>> {
     try {
-      await apiClient.set(STORAGE_KEYS.EMERGENCY_INFO, MOCK_EMERGENCY_INFO);
+      await apiClient.set(STORAGE_KEYS.EMERGENCY_INFO, MOCK_EMERGENCY_INFO ?? {});
       const clearResult = await this.clearCache();
       if (!clearResult.success) return err(clearResult.error);
       return ok(undefined);

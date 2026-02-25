@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
-import { StyleSheet, View, ActivityIndicator } from 'react-native';
+import { StyleSheet, View, ActivityIndicator, Platform } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 
@@ -53,7 +53,7 @@ export function CompareButton({
           nextInComparison = false;
           setIsInComparison(false);
           onStateChange?.(false);
-          void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+          if (Platform.OS !== 'web') void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
         }
       } else {
         const result = await comparisonService.addToComparison(coachId);
@@ -61,17 +61,17 @@ export function CompareButton({
           nextInComparison = true;
           setIsInComparison(true);
           onStateChange?.(true);
-          void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+          if (Platform.OS !== 'web') void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
         } else {
           nextInComparison = false;
-          void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
+          if (Platform.OS !== 'web') void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
         }
       }
       const canAddResult = await comparisonService.canAddMore();
       const canAdd = canAddResult.success ? canAddResult.data : false;
       setCanAddMore(canAdd || nextInComparison);
     } catch {
-      void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+      if (Platform.OS !== 'web') void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
     } finally {
       setIsLoading(false);
     }

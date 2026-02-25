@@ -53,7 +53,7 @@ export function MultiWeekInviteCard({ invite, onResponded }: MultiWeekInviteCard
 
   const acceptedCount = weekAcceptances.filter((w) => w.accepted).length;
   const totalCount = weekAcceptances.length;
-  const pricePerSession = invite.priceUsd ?? 0;
+  const pricePerSession = invite.price ?? 0;
   const totalCost = pricePerSession * acceptedCount;
 
   const handleToggle = useCallback((weekDate: string) => {

@@ -12,7 +12,7 @@ export const styles = StyleSheet.create({
   },
   filterTab: {
     paddingHorizontal: Spacing.md,
-    paddingVertical: 8,
+    paddingVertical: Spacing.xs,
     borderRadius: Radii.pill,
     borderWidth: 1,
   },
@@ -39,7 +39,7 @@ export const styles = StyleSheet.create({
   },
   clubPillIconText: {
     ...Typography.micro,
-    fontSize: 9,
+    fontSize: Typography.micro.fontSize,
     letterSpacing: 0,
     textTransform: 'none',
   },
@@ -70,7 +70,7 @@ export const styles = StyleSheet.create({
   emptyDescription: {
     ...Typography.body,
     textAlign: 'center',
-    lineHeight: 20,
+    lineHeight: Typography.bodySmall.lineHeight,
   },
   emptyStateActions: {
     marginTop: Spacing.sm,

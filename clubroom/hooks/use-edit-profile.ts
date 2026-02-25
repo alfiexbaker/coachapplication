@@ -22,6 +22,7 @@ import type { PositionRole } from '@/types/progress-types';
 import { useAuth } from '@/hooks/use-auth';
 import { childService } from '@/services/child-service';
 import { discoverService } from '@/services/discover-service';
+import { generateId } from '@/utils/generate-id';
 import { createLogger } from '@/utils/logger';
 
 const logger = createLogger('EditProfile');
@@ -80,7 +81,7 @@ type AuthLikeUser = {
 };
 
 const createBlankExperience = (): CoachExperience => ({
-  id: `exp-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+  id: generateId('exp'),
   title: '',
   organization: '',
   startDate: '',
@@ -90,13 +91,13 @@ const createBlankExperience = (): CoachExperience => ({
 });
 
 const createBlankLanguage = (): CoachLanguage => ({
-  id: `lang-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+  id: generateId('lang'),
   name: '',
   proficiency: 'Conversational',
 });
 
 const createBlankCertification = (): CoachCertification => ({
-  id: `cert-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+  id: generateId('cert'),
   name: '',
   issuer: '',
   issueDate: '',
@@ -176,8 +177,8 @@ function createFallbackCoachProfile(currentUser: AuthLikeUser): CoachProfile {
       reviewCount: 0,
     },
     priceRange: {
-      minUsd: 50,
-      maxUsd: 80,
+      min: 50,
+      max: 80,
       unitLabel: 'per session',
     },
     nextAvailability: nowIso,
@@ -262,7 +263,7 @@ export interface EditProfileModals {
 export function useEditProfile() {
   const { currentUser, availableUsers } = useAuth();
   const userIsCoach = currentUser?.role === 'COACH';
-  const userIsAthlete = currentUser?.role === 'ATHLETE';
+  const userIsAthlete = (currentUser?.role as string) === 'ATHLETE';
   const [initializing, setInitializing] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [reloadKey, setReloadKey] = useState(0);
@@ -348,8 +349,8 @@ export function useEditProfile() {
           setPhone(resolvedCoach.phone || typedCurrentUser.phone || '');
           setChildren([]);
           setWebsite(resolvedCoach.website || '');
-          setPriceMin(resolvedCoach.priceRange.minUsd.toString());
-          setPriceMax(resolvedCoach.priceRange.maxUsd.toString());
+          setPriceMin(resolvedCoach.priceRange.min.toString());
+          setPriceMax(resolvedCoach.priceRange.max.toString());
           setSelectedFocuses(resolvedCoach.footballFocuses || []);
           setExperiences(resolvedCoach.experiences || []);
           setLanguages(resolvedCoach.languages || []);
@@ -461,7 +462,7 @@ export function useEditProfile() {
     setLanguages((prev) => [
       ...prev,
       {
-        id: `lang-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+        id: generateId('lang'),
         name,
         proficiency: 'Fluent',
       },
@@ -532,8 +533,8 @@ export function useEditProfile() {
         website,
         priceRange: {
           ...coach.priceRange,
-          minUsd: Number(priceMin),
-          maxUsd: Number(priceMax),
+          min: Number(priceMin),
+          max: Number(priceMax),
         },
         footballFocuses: selectedFocuses,
         experiences,

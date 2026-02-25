@@ -13,7 +13,7 @@ export const styles = StyleSheet.create({
   },
   header: { gap: Spacing.xs, marginBottom: Spacing.sm },
   title: { ...Typography.display, letterSpacing: -0.8 },
-  subtitle: { ...Typography.body, lineHeight: 22, fontWeight: '500' },
+  subtitle: { ...Typography.body, fontWeight: '500' },
   kidsList: { gap: Spacing.md },
   kidCard: { borderRadius: Radii.lg },
   cardContent: { padding: Spacing.lg },
@@ -48,5 +48,5 @@ export const styles = StyleSheet.create({
     marginBottom: Spacing.xs,
   },
   emptyTitle: { ...Typography.heading, letterSpacing: -0.3 },
-  emptyText: { ...Typography.bodySmall, lineHeight: 20, textAlign: 'center', maxWidth: 260 },
+  emptyText: { ...Typography.bodySmall, textAlign: 'center', maxWidth: 260 },
 });

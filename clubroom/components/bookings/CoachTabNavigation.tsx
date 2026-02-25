@@ -73,9 +73,9 @@ export function CoachTabNavigation({ activeTab, onTabChange }: CoachTabNavigatio
 
 const styles = StyleSheet.create({
   tabContainer: {
-    paddingHorizontal: 16,
+    paddingHorizontal: Spacing.sm,
     marginBottom: Spacing.xs + Spacing.xxs,
-    gap: 10,
+    gap: Spacing.xs,
   },
   tab: {
     flex: 1,

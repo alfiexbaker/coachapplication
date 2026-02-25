@@ -102,7 +102,7 @@ export default function ReviewScreen() {
       return ok<BookingInfo | null>({
         id: found.id,
         coachId: found.coachId,
-        coachName: found.coachName,
+        coachName: found.coachName ?? 'Coach',
         service: found.service ?? 'Session',
         scheduledAt: found.scheduledAt,
         status: found.status,

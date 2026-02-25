@@ -200,7 +200,7 @@ export interface MomentData {
   nextStreakMilestone: number;
   currentLevel: { level: number; name: string };
   progressToNextLevel: number;
-  nextSession?: { date: string; coachName: string };
+  nextSession?: { date: string; coachName?: string };
 }
 
 // ─── Progress Challenge ───
@@ -236,7 +236,7 @@ export interface PastSession {
   sessionId: string;
   feedbackId?: string;
   date: string;
-  coachName: string;
+  coachName?: string; // @deprecated — resolve via coachId
   coachQualification?: string;
   corners: FourCornerRatings | null;
   effort: number;

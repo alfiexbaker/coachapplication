@@ -6,6 +6,7 @@ import { SurfaceCard } from '@/components/primitives/surface-card';
 import { ThemedText } from '@/components/themed-text';
 import { Badge } from '@/components/primitives/badge';
 import { Row } from '@/components/primitives/row';
+import { Column } from '@/components/primitives/column';
 import { Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
 import type { ThemeColors } from '@/hooks/useTheme';
 import type { VerificationItem } from '@/constants/types';
@@ -53,7 +54,7 @@ export const CredentialCard = memo(function CredentialCard({
         <View style={[styles.icon, { backgroundColor: withAlpha(colors.tint, 0.06) }]}>
           <Ionicons name="ribbon" size={20} color={colors.tint} />
         </View>
-        <View style={{ flex: 1 }}>
+        <Column flex>
           <ThemedText type="defaultSemiBold">
             {credential.notes || `Credential ${index + 1}`}
           </ThemedText>
@@ -62,7 +63,7 @@ export const CredentialCard = memo(function CredentialCard({
               Verified: {new Date(credential.verifiedAt).toLocaleDateString()}
             </ThemedText>
           )}
-        </View>
+        </Column>
         <Badge label={getStatusLabel()} tone={getStatusTone()} />
       </Row>
       {credential.expiresAt && (

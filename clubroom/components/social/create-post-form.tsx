@@ -11,6 +11,7 @@ import {
 } from 'react-native';
 import { Clickable } from '@/components/primitives/clickable';
 import { Ionicons } from '@expo/vector-icons';
+import { Column } from '@/components/primitives/column';
 import { Row } from '@/components/primitives/row';
 import { ThemedText } from '@/components/themed-text';
 import { ClubPostEventFields } from '@/components/social/club-post-event-fields';
@@ -123,12 +124,12 @@ export const CreatePostForm = memo(function CreatePostForm({
             ]}
           >
             <Ionicons name="person-circle-outline" size={24} color={palette.success} />
-            <View style={{ flex: 1 }}>
+            <Column flex>
               <ThemedText type="defaultSemiBold">Personal Feed</ThemedText>
               <ThemedText style={{ color: palette.muted, ...Typography.caption }}>
                 Visible to parents who have had sessions with you
               </ThemedText>
-            </View>
+            </Column>
           </Row>
 
           {/* Post type selector */}
@@ -199,6 +200,25 @@ export const CreatePostForm = memo(function CreatePostForm({
               maxLength={500}
             />
           </View>
+
+          {/* Consent reminder for media posts */}
+          {imageUri && (
+            <Row
+              align="center"
+              gap="xs"
+              style={[
+                styles.consentReminder,
+                { backgroundColor: withAlpha(palette.warning, 0.08) },
+              ]}
+            >
+              <Ionicons name="shield-checkmark" size={18} color={palette.warning} />
+              <Column flex>
+                <ThemedText style={[Typography.caption, { color: palette.warning }]}>
+                  Ensure you have photo/video consent for any athletes visible in this image
+                </ThemedText>
+              </Column>
+            </Row>
+          )}
 
           {/* Image preview */}
           {imageUri && (
@@ -320,6 +340,12 @@ const styles = StyleSheet.create({
   typeLabel: { ...Typography.smallSemiBold },
   titleInput: { ...Typography.heading, paddingVertical: Spacing.sm, borderBottomWidth: 1 },
   bodyInput: { ...Typography.subheading, minHeight: 120, textAlignVertical: 'top' },
+  consentReminder: {
+    marginHorizontal: Spacing.md,
+    marginTop: Spacing.md,
+    padding: Spacing.sm,
+    borderRadius: Radii.sm,
+  },
   imageSection: { position: 'relative', marginHorizontal: Spacing.md, marginTop: Spacing.md },
   imagePreview: { width: '100%', height: 200, borderRadius: Radii.md },
   removeImageButton: {

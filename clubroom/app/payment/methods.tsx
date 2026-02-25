@@ -65,7 +65,9 @@ export default function PaymentMethodsScreen() {
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
       >
         <ThemedText type="title">Payment methods</ThemedText>
-        <ThemedText style={{ color: palette.muted }}>Mock vault—cards are not real.</ThemedText>
+        {__DEV__ && (
+          <ThemedText style={{ color: palette.muted }}>Dev mode: payments are simulated.</ThemedText>
+        )}
 
         <View style={{ gap: Spacing.md }}>
           {(data?.cards ?? []).map((card) => (

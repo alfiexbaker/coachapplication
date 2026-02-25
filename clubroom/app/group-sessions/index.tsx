@@ -12,6 +12,7 @@ import { Routes } from '@/navigation/routes';
 import { Ionicons } from '@expo/vector-icons';
 
 import { Clickable } from '@/components/primitives/clickable';
+import { Column } from '@/components/primitives/column';
 import { ThemedText } from '@/components/themed-text';
 import { Row } from '@/components/primitives/row';
 import { LoadingState, ErrorState } from '@/components/ui/screen-states';
@@ -57,12 +58,12 @@ export default function GroupSessionsScreen() {
         <Clickable onPress={() => router.back()} hitSlop={8}>
           <Ionicons name="arrow-back" size={24} color={colors.text} />
         </Clickable>
-        <View style={{ flex: 1 }}>
+        <Column flex>
           <ThemedText type="title">Group Sessions</ThemedText>
           <ThemedText style={[Typography.small, { color: colors.muted, marginTop: Spacing.micro }]}>
             Camps, clinics & open training
           </ThemedText>
-        </View>
+        </Column>
         {isCoach && (
           <Clickable
             accessibilityLabel="Create group session"

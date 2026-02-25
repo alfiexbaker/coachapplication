@@ -7,7 +7,7 @@ import { SurfaceCard } from '@/components/primitives/surface-card';
 import { Spacing, Radii, Components, Typography, withAlpha } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
 import type { Coach } from '@/services/coach-service';
-import { Row } from '@/components/primitives';
+import { Column, Row } from '@/components/primitives';
 
 interface PublicProfileCredentialsProps {
   coach: Coach;
@@ -26,7 +26,7 @@ export const PublicProfileCredentials = memo(function PublicProfileCredentials({
           {coach.experiences.map((exp, i) => (
             <Row key={i} style={styles.expItem}>
               <View style={[styles.expDot, { backgroundColor: palette.tint }]} />
-              <View style={{ flex: 1 }}>
+              <Column flex>
                 <ThemedText style={[Typography.bodySemiBold, { color: palette.text }]}>
                   {exp.title}
                 </ThemedText>
@@ -45,7 +45,7 @@ export const PublicProfileCredentials = memo(function PublicProfileCredentials({
                     {exp.description}
                   </ThemedText>
                 ) : null}
-              </View>
+              </Column>
             </Row>
           ))}
         </SurfaceCard>
@@ -61,14 +61,14 @@ export const PublicProfileCredentials = memo(function PublicProfileCredentials({
               <View style={[styles.certIcon, { backgroundColor: withAlpha(palette.tint, 0.09) }]}>
                 <Ionicons name="ribbon-outline" size={Components.icon.md} color={palette.tint} />
               </View>
-              <View style={{ flex: 1 }}>
+              <Column flex>
                 <ThemedText style={[Typography.bodySemiBold, { color: palette.text }]}>
                   {cert.name}
                 </ThemedText>
                 <ThemedText style={[Typography.small, { color: palette.muted }]}>
                   {cert.issuer} {'\u2022'} {cert.issueDate}
                 </ThemedText>
-              </View>
+              </Column>
             </Row>
           ))}
         </SurfaceCard>

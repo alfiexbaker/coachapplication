@@ -249,7 +249,7 @@ const styles = StyleSheet.create({
   statLabel: { ...Typography.small, fontSize: scaleFont(Typography.small.fontSize) },
   statDivider: { width: 1, height: 40 },
   tabRow: { marginBottom: Spacing.md },
-  tab: { paddingHorizontal: 16, paddingVertical: 8, borderRadius: Radii.pill, borderWidth: 1 },
+  tab: { paddingHorizontal: Spacing.sm, paddingVertical: Spacing.xs, borderRadius: Radii.pill, borderWidth: 1 },
   tabText: {
     ...Typography.bodySmallSemiBold,
     fontSize: scaleFont(Typography.bodySmallSemiBold.fontSize),

@@ -1,5 +1,5 @@
-import React, { memo } from 'react';
-import { StyleSheet, View } from 'react-native';
+import React, { memo, useCallback } from 'react';
+import { Alert, StyleSheet, View } from 'react-native';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 
@@ -7,16 +7,37 @@ import { ThemedText } from '@/components/themed-text';
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { Clickable } from '@/components/primitives/clickable';
 import { Row } from '@/components/primitives/row';
+import { Column } from '@/components/primitives/column';
 import { Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
 import { Routes } from '@/navigation/routes';
 import { clubService, type ClubMember } from '@/services/club-service';
 import type { ThemeColors } from '@/hooks/useTheme';
+
+/**
+ * Formats a name for privacy: coaches see full names, parents see "First L." for
+ * other children, and full names for their own children.
+ */
+function formatNameForPrivacy(
+  name: string,
+  viewerRole: 'coach' | 'parent' | 'athlete',
+): string {
+  if (viewerRole === 'coach') return name;
+
+  const parts = name.split(' ');
+  if (parts.length === 0) return name;
+
+  const firstName = parts[0];
+  const lastInitial = parts.length > 1 ? parts[parts.length - 1][0] : '';
+
+  return lastInitial ? `${firstName} ${lastInitial}.` : firstName;
+}
 
 interface SquadMembersCardProps {
   members: ClubMember[];
   clubId: string | null;
   showAddMembers: boolean;
   colors: ThemeColors;
+  viewerRole?: 'coach' | 'parent' | 'athlete';
   onToggleAdd: () => void;
   onRemove: (member: ClubMember) => void;
 }
@@ -26,9 +47,25 @@ export const SquadMembersCard = memo(function SquadMembersCard({
   clubId,
   showAddMembers,
   colors,
+  viewerRole = 'coach',
   onToggleAdd,
   onRemove,
 }: SquadMembersCardProps) {
+  const handleRemove = useCallback((member: ClubMember) => {
+    Alert.alert(
+      'Remove Squad Member',
+      `Remove ${member.userName} from this squad?`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Remove',
+          style: 'destructive',
+          onPress: () => onRemove(member),
+        },
+      ],
+    );
+  }, [onRemove]);
+
   return (
     <SurfaceCard style={styles.card}>
       <Row align="center" justify="space-between">
@@ -63,7 +100,8 @@ export const SquadMembersCard = memo(function SquadMembersCard({
         <View style={styles.list}>
           {members.map((member) => {
             const roleColor = clubService.getRoleColor(member.role);
-            const initials = member.userName.slice(0, 2).toUpperCase();
+            const displayName = formatNameForPrivacy(member.userName, viewerRole);
+            const initials = displayName.slice(0, 2).toUpperCase();
             return (
               <View key={member.userId} style={[styles.row, { borderBottomColor: colors.border }]}>
                 <Row align="center" gap="xs">
@@ -80,18 +118,18 @@ export const SquadMembersCard = memo(function SquadMembersCard({
                           {initials}
                         </ThemedText>
                       </View>
-                      <View style={{ flex: 1 }}>
+                      <Column flex>
                         <ThemedText type="defaultSemiBold">{member.userName}</ThemedText>
                         <ThemedText style={[Typography.caption, { color: roleColor }]}>
                           {clubService.formatRole(member.role)}
                         </ThemedText>
-                      </View>
+                      </Column>
                       <Ionicons name="chevron-forward" size={18} color={colors.muted} />
                     </Row>
                   </Clickable>
 
                   <Clickable
-                    onPress={() => onRemove(member)}
+                    onPress={() => handleRemove(member)}
                     hitSlop={8}
                     accessibilityLabel={`Remove ${member.userName}`}
                   >

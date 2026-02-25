@@ -304,7 +304,7 @@ const styles = StyleSheet.create({
     borderWidth: 1.5,
   },
   dayText: { ...Typography.bodySmallSemiBold },
-  timeRow: { marginTop: Spacing.sm, gap: 8 },
+  timeRow: { marginTop: Spacing.sm, gap: Spacing.xs },
   label: { ...Typography.smallSemiBold },
   timeOption: {
     paddingHorizontal: Spacing.md,

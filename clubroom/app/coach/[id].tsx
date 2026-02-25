@@ -144,7 +144,7 @@ export default function CoachProfileScreen() {
           <View style={styles.footerPrice}>
             <ThemedText style={{ color: palette.muted, ...Typography.caption }}>From</ThemedText>
             <ThemedText type="title" style={{ color: palette.tint }}>
-              £{p.coach.minPriceUsd}
+              £{p.coach.minPrice}
             </ThemedText>
           </View>
           <Button onPress={p.handleBook} style={{ flex: 1 }}>

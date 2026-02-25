@@ -93,7 +93,7 @@ export const CosmeticSelector = memo(function CosmeticSelector({
                     {locked ? (
                       <Ionicons name="lock-closed" size={12} color={colors.muted} />
                     ) : isSelected ? (
-                      <Ionicons name="checkmark" size={12} color="#FFFFFF" />
+                      <Ionicons name="checkmark" size={12} color={colors.onPrimary} />
                     ) : null}
                   </View>
 
@@ -146,14 +146,14 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing.xxs,
     borderRadius: Radii.md,
     borderWidth: 1.5,
-    gap: 4,
+    gap: Spacing.xxs,
     minHeight: 72,
     justifyContent: 'center',
   },
   swatch: {
     width: 28,
     height: 28,
-    borderRadius: 14,
+    borderRadius: Radii.lg,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -164,6 +164,6 @@ const styles = StyleSheet.create({
   },
   lockHint: {
     ...Typography.micro,
-    fontSize: 9,
+    fontSize: Typography.micro.fontSize,
   },
 });

@@ -139,7 +139,7 @@ function buildFallbackCoach(currentUser: ReturnType<typeof useAuth>['currentUser
     state: 'England',
     distanceMiles: 0,
     rating: { average: 4.5, reviewCount: 0 },
-    priceRange: { minUsd: 50, maxUsd: 50, unitLabel: 'per session' },
+    priceRange: { min: 50, max: 50, unitLabel: 'per session' },
     sessionRate: 50,
     nextAvailability: new Date().toISOString(),
     badges: [],

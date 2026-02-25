@@ -63,7 +63,6 @@ export const styles = StyleSheet.create({
   },
   successMessage: {
     ...Typography.bodySmall,
-    lineHeight: 20,
     textAlign: 'center',
     marginBottom: Spacing.md,
   },

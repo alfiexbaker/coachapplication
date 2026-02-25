@@ -2,10 +2,12 @@
  * QuickRecognitionModal — 3-tap coach recognition flow.
  * Category → Template → Done. Under 5 seconds.
  */
-import { memo, useCallback, useState } from 'react';
-import { Modal, ScrollView, StyleSheet, TextInput, View } from 'react-native';
+import { memo, useCallback, useEffect, useRef, useState, type ComponentProps } from 'react';
+import { Modal, ScrollView, StyleSheet, TextInput, View, Platform } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
+
+type IconName = ComponentProps<typeof Ionicons>['name'];
 import * as Haptics from 'expo-haptics';
 import Animated, { FadeInDown, FadeIn } from 'react-native-reanimated';
 
@@ -40,7 +42,7 @@ interface QuickRecognitionModalProps {
 
 const CATEGORIES: BadgeCategory[] = ['technical', 'physical', 'psychological', 'social'];
 
-const CATEGORY_ICONS: Record<BadgeCategory, string> = {
+const CATEGORY_ICONS: Record<BadgeCategory, IconName> = {
   technical: 'football-outline',
   physical: 'fitness-outline',
   psychological: 'bulb-outline',
@@ -67,6 +69,13 @@ export function QuickRecognitionModal({
   const [showNoteInput, setShowNoteInput] = useState(false);
   const [awarding, setAwarding] = useState(false);
   const [cooldownError, setCooldownError] = useState<string | null>(null);
+  const closeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    return () => {
+      if (closeTimerRef.current) clearTimeout(closeTimerRef.current);
+    };
+  }, []);
 
   const resetState = useCallback(() => {
     setSelectedCategory(null);
@@ -82,13 +91,13 @@ export function QuickRecognitionModal({
   }, [resetState, onClose]);
 
   const handleCategorySelect = useCallback((category: BadgeCategory) => {
-    Haptics.selectionAsync();
+    if (Platform.OS !== 'web') Haptics.selectionAsync();
     setSelectedCategory(category);
     setCooldownError(null);
   }, []);
 
   const handleBackToCategories = useCallback(() => {
-    Haptics.selectionAsync();
+    if (Platform.OS !== 'web') Haptics.selectionAsync();
     setSelectedCategory(null);
     setCooldownError(null);
   }, []);
@@ -98,7 +107,7 @@ export function QuickRecognitionModal({
 
     setAwarding(true);
     setCooldownError(null);
-    Haptics.selectionAsync();
+    if (Platform.OS !== 'web') Haptics.selectionAsync();
 
     const badge = badgeService.findBadgeForCategory(template.category);
     if (!badge) {
@@ -122,16 +131,16 @@ export function QuickRecognitionModal({
       const msg = result.error.message;
       if (msg.includes('Cooldown')) {
         setCooldownError(msg);
-        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
+        if (Platform.OS !== 'web') Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
       } else {
         setCooldownError(msg);
-        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+        if (Platform.OS !== 'web') Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
       }
       setAwarding(false);
       return;
     }
 
-    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    if (Platform.OS !== 'web') Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     showToast('Recognition sent', 'success');
     onAwarded?.(result.data);
     logger.info('quick_recognition_awarded', {
@@ -142,14 +151,14 @@ export function QuickRecognitionModal({
       templateId: template.id,
     });
 
-    setTimeout(() => {
+    closeTimerRef.current = setTimeout(() => {
       resetState();
       onClose();
     }, 500);
   }, [awarding, athleteId, coachId, sessionId, customNote, showToast, onAwarded, resetState, onClose]);
 
   const handleToggleNote = useCallback(() => {
-    Haptics.selectionAsync();
+    if (Platform.OS !== 'web') Haptics.selectionAsync();
     setShowNoteInput((prev) => !prev);
   }, []);
 
@@ -183,7 +192,7 @@ export function QuickRecognitionModal({
                 </ThemedText>
               ) : null}
             </Column>
-            <View style={{ flex: 1 }} />
+            <Column flex />
             <Clickable
               onPress={handleClose}
               style={[styles.closeButton, { backgroundColor: withAlpha(palette.text, 0.06) }]}
@@ -206,7 +215,7 @@ export function QuickRecognitionModal({
                 >
                   What would you like to recognise?
                 </ThemedText>
-                <View style={styles.categoryGrid}>
+                <Row wrap gap="sm">
                   {CATEGORIES.map((category) => (
                     <CategoryButton
                       key={category}
@@ -214,7 +223,7 @@ export function QuickRecognitionModal({
                       onPress={handleCategorySelect}
                     />
                   ))}
-                </View>
+                </Row>
               </Animated.View>
             ) : (
               /* Template list */
@@ -228,7 +237,7 @@ export function QuickRecognitionModal({
                     <Ionicons name="chevron-back" size={20} color={palette.tint} />
                   </Clickable>
                   <Ionicons
-                    name={CATEGORY_ICONS[selectedCategory] as any}
+                    name={CATEGORY_ICONS[selectedCategory]}
                     size={20}
                     color={palette.tint}
                   />
@@ -248,19 +257,40 @@ export function QuickRecognitionModal({
                   ))}
                 </Column>
 
-                {/* Cooldown error */}
+                {/* Cooldown / error banner */}
                 {cooldownError ? (
                   <Animated.View entering={FadeIn.duration(200)}>
                     <SurfaceCard
-                      style={[styles.errorBanner, { borderColor: withAlpha(palette.warning, 0.3) }]}
+                      style={[
+                        styles.errorBanner,
+                        {
+                          borderColor: cooldownError.includes('Cooldown')
+                            ? withAlpha(palette.warning, 0.3)
+                            : withAlpha(palette.error, 0.3),
+                          backgroundColor: cooldownError.includes('Cooldown')
+                            ? withAlpha(palette.warning, 0.06)
+                            : withAlpha(palette.error, 0.06),
+                        },
+                      ]}
                     >
                       <Row align="center" gap="xs">
-                        <Ionicons name="time-outline" size={16} color={palette.warning} />
-                        <ThemedText
-                          style={[Typography.bodySmall, { color: palette.warning, flex: 1 }]}
-                        >
-                          {cooldownError}
-                        </ThemedText>
+                        <Ionicons
+                          name={cooldownError.includes('Cooldown') ? 'hourglass-outline' : 'alert-circle'}
+                          size={20}
+                          color={cooldownError.includes('Cooldown') ? palette.warning : palette.error}
+                        />
+                        <Column style={{ flex: 1 }} gap="micro">
+                          <ThemedText
+                            style={[Typography.bodySmallSemiBold, { color: cooldownError.includes('Cooldown') ? palette.warning : palette.error }]}
+                          >
+                            {cooldownError.includes('Cooldown') ? 'Cooldown Active' : 'Cannot Award'}
+                          </ThemedText>
+                          <ThemedText
+                            style={[Typography.caption, { color: palette.muted }]}
+                          >
+                            {cooldownError}
+                          </ThemedText>
+                        </Column>
                       </Row>
                     </SurfaceCard>
                   </Animated.View>
@@ -342,7 +372,7 @@ const CategoryButton = memo(function CategoryButton({ category, onPress }: Categ
             { backgroundColor: withAlpha(palette.tint, 0.08) },
           ]}
         >
-          <Ionicons name={icon as any} size={24} color={palette.tint} />
+          <Ionicons name={icon} size={24} color={palette.tint} />
         </View>
         <ThemedText type="defaultSemiBold" style={Typography.bodySmallSemiBold}>
           {info.label}
@@ -402,11 +432,7 @@ const styles = StyleSheet.create({
   },
   content: { flex: 1 },
   contentContainer: { paddingHorizontal: Spacing.lg, paddingBottom: Spacing.lg },
-  categoryGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: Spacing.sm,
-  },
+  categoryGrid: {},
   categoryButton: {
     width: '47%',
     flexGrow: 1,

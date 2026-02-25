@@ -178,7 +178,7 @@ export const createButtonStyles = (colors: ThemeColors) => ({
   } as ViewStyle,
   primaryText: {
     color: colors.onPrimary,
-    fontSize: 16,
+    fontSize: Typography.subheading.fontSize,
     fontWeight: '600',
   } as TextStyle,
 
@@ -197,7 +197,7 @@ export const createButtonStyles = (colors: ThemeColors) => ({
   } as ViewStyle,
   secondaryText: {
     color: colors.tint,
-    fontSize: 16,
+    fontSize: Typography.subheading.fontSize,
     fontWeight: '600',
   } as TextStyle,
 
@@ -212,7 +212,7 @@ export const createButtonStyles = (colors: ThemeColors) => ({
   } as ViewStyle,
   ghostText: {
     color: colors.tint,
-    fontSize: 15,
+    fontSize: Typography.body.fontSize,
     fontWeight: '600',
   } as TextStyle,
 
@@ -227,7 +227,7 @@ export const createButtonStyles = (colors: ThemeColors) => ({
     borderRadius: Components.buttonCompact.borderRadius,
   } as ViewStyle,
   compactText: {
-    fontSize: 13,
+    fontSize: Typography.small.fontSize,
     fontWeight: '600',
   } as TextStyle,
 
@@ -235,14 +235,14 @@ export const createButtonStyles = (colors: ThemeColors) => ({
   icon: {
     width: 44,
     height: 44,
-    borderRadius: 22,
+    borderRadius: Radii.pill,
     alignItems: 'center',
     justifyContent: 'center',
   } as ViewStyle,
   iconSmall: {
     width: 32,
     height: 32,
-    borderRadius: 16,
+    borderRadius: Radii.pill,
     alignItems: 'center',
     justifyContent: 'center',
   } as ViewStyle,
@@ -265,7 +265,7 @@ export const createBadgeStyles = (colors: ThemeColors) => ({
     borderRadius: Radii.sm,
   } as ViewStyle,
   badgeText: {
-    fontSize: 12,
+    fontSize: Typography.caption.fontSize,
     fontWeight: '600',
   } as TextStyle,
 
@@ -276,7 +276,7 @@ export const createBadgeStyles = (colors: ThemeColors) => ({
     borderRadius: Radii.pill,
   } as ViewStyle,
   pillText: {
-    fontSize: 12,
+    fontSize: Typography.caption.fontSize,
     fontWeight: '600',
   } as TextStyle,
 
@@ -310,7 +310,7 @@ export const createBadgeStyles = (colors: ThemeColors) => ({
     borderColor: colors.tint,
   } as ViewStyle,
   chipText: {
-    fontSize: 13,
+    fontSize: Typography.small.fontSize,
     fontWeight: '600',
   } as TextStyle,
 });
@@ -367,7 +367,7 @@ export const createInputStyles = (colors: ThemeColors) => ({
     borderWidth: 1,
     borderColor: colors.border,
     backgroundColor: colors.surface,
-    fontSize: 16,
+    fontSize: Typography.subheading.fontSize,
     color: colors.text,
   } as TextStyle,
 
@@ -398,7 +398,7 @@ export const createInputStyles = (colors: ThemeColors) => ({
 
   // Label
   label: {
-    fontSize: 13,
+    fontSize: Typography.small.fontSize,
     fontWeight: '500',
     color: colors.muted,
     marginBottom: 6,
@@ -409,7 +409,7 @@ export const createInputStyles = (colors: ThemeColors) => ({
     borderColor: colors.error,
   } as ViewStyle,
   errorText: {
-    fontSize: 12,
+    fontSize: Typography.caption.fontSize,
     color: colors.error,
     marginTop: 4,
   } as TextStyle,
@@ -463,12 +463,12 @@ export const createSectionStyles = (colors: ThemeColors) => ({
     paddingHorizontal: Spacing.sm,
   } as ViewStyle,
   headerTitle: {
-    fontSize: 17,
+    fontSize: Typography.lg.fontSize,
     fontWeight: '600',
     letterSpacing: -0.2,
   } as TextStyle,
   headerAction: {
-    fontSize: 14,
+    fontSize: Typography.bodySmall.fontSize,
     fontWeight: '600',
     color: colors.tint,
   } as TextStyle,
@@ -522,7 +522,7 @@ export const createModalStyles = (colors: ThemeColors) => ({
     marginBottom: Spacing.md,
   } as ViewStyle,
   headerTitle: {
-    fontSize: 18,
+    fontSize: Typography.heading.fontSize,
     fontWeight: '600',
   } as TextStyle,
 
@@ -531,7 +531,7 @@ export const createModalStyles = (colors: ThemeColors) => ({
     width: 36,
     height: 4,
     backgroundColor: colors.border,
-    borderRadius: 2,
+    borderRadius: Radii.xs,
     alignSelf: 'center',
     marginBottom: Spacing.sm,
   } as ViewStyle,
@@ -551,19 +551,19 @@ export const createEmptyStateStyles = (colors: ThemeColors) => ({
   icon: {
     width: 64,
     height: 64,
-    borderRadius: 32,
+    borderRadius: Radii['2xl'],
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: colors.border,
     marginBottom: Spacing.xs,
   } as ViewStyle,
   title: {
-    fontSize: 17,
+    fontSize: Typography.lg.fontSize,
     fontWeight: '600',
     textAlign: 'center',
   } as TextStyle,
   message: {
-    fontSize: 14,
+    fontSize: Typography.bodySmall.fontSize,
     color: colors.muted,
     textAlign: 'center',
     lineHeight: 20,
@@ -582,12 +582,12 @@ export const createStatStyles = (colors: ThemeColors) => ({
     gap: 4,
   } as ViewStyle,
   value: {
-    fontSize: 24,
+    fontSize: Typography.xl.fontSize,
     fontWeight: '700',
     letterSpacing: -0.5,
   } as TextStyle,
   label: {
-    fontSize: 12,
+    fontSize: Typography.caption.fontSize,
     fontWeight: '500',
     color: colors.muted,
   } as TextStyle,
@@ -605,11 +605,11 @@ export const createStatStyles = (colors: ThemeColors) => ({
     gap: 6,
   } as ViewStyle,
   inlineValue: {
-    fontSize: 15,
+    fontSize: Typography.body.fontSize,
     fontWeight: '600',
   } as TextStyle,
   inlineLabel: {
-    fontSize: 13,
+    fontSize: Typography.small.fontSize,
     color: colors.muted,
   } as TextStyle,
 });

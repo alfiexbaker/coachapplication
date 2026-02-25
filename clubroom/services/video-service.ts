@@ -919,7 +919,7 @@ export const videoService = {
 
     let summary = `Video: ${exportData.videoTitle}\n`;
     summary += `Coach: ${exportData.coachName}\n`;
-    summary += `Athletes: ${exportData.athleteNames.join(', ')}\n`;
+    summary += `Athletes: ${(exportData.athleteNames ?? []).join(', ')}\n`;
     summary += `Duration: ${this.formatTimestamp(exportData.videoDuration)}\n\n`;
     summary += `--- Annotations ---\n\n`;
 

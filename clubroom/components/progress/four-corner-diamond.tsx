@@ -615,7 +615,7 @@ const styles = StyleSheet.create({
   cornerDot: {
     width: 8,
     height: 8,
-    borderRadius: 4,
+    borderRadius: Radii.xs,
   },
   cornerChipLabel: {
     ...Typography.caption,

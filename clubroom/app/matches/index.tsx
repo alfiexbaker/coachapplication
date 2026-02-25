@@ -166,6 +166,9 @@ export default function MatchesScreen() {
                     : { borderColor: palette.border },
                 ]}
                 onPress={() => setFilter(f.key)}
+                accessibilityRole="tab"
+                accessibilityLabel={`${f.label} matches`}
+                accessibilityState={{ selected: filter === f.key }}
               >
                 <Row align="center" gap="xs">
                   <Ionicons

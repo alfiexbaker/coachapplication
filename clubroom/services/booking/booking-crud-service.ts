@@ -23,6 +23,7 @@ import { notificationTriggers } from '../notification-trigger';
 import { createLogger } from '@/utils/logger';
 import { toDateStr } from '@/utils/format';
 import { emitTyped, ServiceEvents } from '@/services/event-bus';
+import { blockService } from '@/services/block-service';
 import { progressAttendanceService } from '@/services/progress/progress-attendance-service';
 import {
   type Result,
@@ -35,9 +36,11 @@ import {
 } from '@/types/result';
 
 const logger = createLogger('BookingCrudService');
+// Safeguarding: DBS verification required by default (fail-closed).
+// Only explicit 'false' or '0' disables enforcement (dev/testing only).
 const ENFORCE_DBS_SAFEGUARDING_GATE =
-  process.env.EXPO_PUBLIC_ENFORCE_DBS_SAFEGUARDING_GATE === 'true' ||
-  process.env.EXPO_PUBLIC_ENFORCE_DBS_SAFEGUARDING_GATE === '1';
+  process.env.EXPO_PUBLIC_ENFORCE_DBS_SAFEGUARDING_GATE !== 'false' &&
+  process.env.EXPO_PUBLIC_ENFORCE_DBS_SAFEGUARDING_GATE !== '0';
 
 /** Maximum age (ms) before cache is considered stale. */
 const CACHE_MAX_AGE = 30_000;
@@ -349,6 +352,7 @@ class BookingCrudService {
     bookedById: string,
   ): Promise<Result<void, ServiceError>> {
     if (!ENFORCE_DBS_SAFEGUARDING_GATE) {
+      logger.warn('DBS safeguarding gate DISABLED — not for production use', { coachId });
       return ok(undefined);
     }
 
@@ -453,6 +457,22 @@ class BookingCrudService {
 
     if (!scheduledAt) {
       return err(validationError('Scheduled date/time is required'));
+    }
+
+    // Check if coach/booker have blocked each other
+    const blockedResult = await blockService.isBlocked(coachId, bookedById);
+    if (blockedResult.success && blockedResult.data) {
+      logger.warn('Booking blocked due to block relationship', { coachId, bookedById });
+      emitTyped(ServiceEvents.USER_ACTION_BLOCKED, {
+        blockerId: bookedById,
+        blockedId: coachId,
+        action: 'create_booking',
+        timestamp: new Date().toISOString(),
+      });
+      return err({
+        code: 'CONFLICT',
+        message: 'Cannot create booking with this user',
+      });
     }
 
     // Extract date and time from scheduledAt

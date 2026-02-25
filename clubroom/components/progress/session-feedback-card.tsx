@@ -188,7 +188,7 @@ const styles = StyleSheet.create({
     letterSpacing: 0.3,
     fontWeight: '600',
   },
-  summaryText: { ...Typography.bodySmall, lineHeight: 20 },
+  summaryText: { ...Typography.bodySmall },
   chevron: { position: 'absolute', top: Spacing.md, right: Spacing.sm },
   list: { gap: Spacing.sm },
   emptyContainer: { alignItems: 'center', padding: Spacing.lg, gap: Spacing.sm },

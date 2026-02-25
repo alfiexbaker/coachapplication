@@ -7,7 +7,7 @@ import { SurfaceCard } from '@/components/primitives/surface-card';
 import { Spacing, Radii, Components, Typography, withAlpha } from '@/constants/theme';
 import type { ThemeColors } from '@/hooks/useTheme';
 import type { TrialOffering } from '@/services/trial-service';
-import { Row } from '@/components/primitives';
+import { Column, Row } from '@/components/primitives';
 
 export function FieldLabel({
   label,
@@ -52,14 +52,14 @@ export function TrialDiscoveryPreview({
                 .join('')}
             </ThemedText>
           </View>
-          <View style={{ flex: 1 }}>
+          <Column flex>
             <ThemedText style={[Typography.bodySemiBold, { color: palette.text }]}>
               {coachName}
             </ThemedText>
             <ThemedText style={[Typography.small, { color: palette.muted }]}>
               Football Coach
             </ThemedText>
-          </View>
+          </Column>
         </Row>
 
         {offering.enabled ? (

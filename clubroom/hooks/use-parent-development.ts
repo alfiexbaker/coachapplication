@@ -13,6 +13,7 @@ import {
 } from '@/services/progress-service';
 import { createLogger } from '@/utils/logger';
 import type { BadgeAward, SkillProgress, Goal, Session } from '@/constants/types';
+import type { FootballSkill } from '@/types/progress-types';
 import { badgeService } from '@/services/badge-service';
 import type { ThemeColors } from '@/hooks/useTheme';
 import type { User } from '@/constants/app-types';
@@ -67,7 +68,7 @@ function mapProgressSkillsToAnalytics(skills: ProgressReport['skills']): SkillPr
           : [{ date: skill.lastUpdated, level: currentLevel }];
 
       return {
-        skillName: skill.skill,
+        skillName: skill.skill as FootballSkill,
         category: inferSkillCategory(skill.skill),
         currentLevel,
         previousLevel,
@@ -305,6 +306,8 @@ export function useParentDevelopment() {
   const [awards, setAwards] = useState<BadgeAward[]>([]);
   const [coachOnlyCount, setCoachOnlyCount] = useState(0);
   const [activeTab, setActiveTab] = useState<DevTabType>('progress');
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   const selectedChild = useMemo(
     () => children.find((c) => c.id === selectedChildId),
@@ -372,11 +375,35 @@ export function useParentDevelopment() {
           setProgress(null);
           setAwards([]);
           setCoachOnlyCount(0);
+          setLoading(false);
+          setError(null);
         }
         return;
       }
 
+      if (active) {
+        setLoading(true);
+        setError(null);
+      }
+
       try {
+        // Verify selectedChildId belongs to current user's children
+        if (selectedChildId) {
+          const isOwnChild = children.some((c) => c.id === selectedChildId);
+          if (!isOwnChild) {
+            logger.warn('Unauthorized child progress access attempt', {
+              parentId: userId,
+              attemptedChildId: selectedChildId,
+            });
+            if (active) {
+              setProgress(null);
+              setAwards([]);
+              setCoachOnlyCount(0);
+            }
+            return;
+          }
+        }
+
         if (selectedChildId) {
           const [childProgress, childAwards] = await Promise.all([
             progressService.getAthleteProgress(selectedChildId, 'parent'),
@@ -390,6 +417,8 @@ export function useParentDevelopment() {
           setProgress(childProgress);
           setAwards(supporterVisible);
           setCoachOnlyCount(childAwards.length - supporterVisible.length);
+
+          setLoading(false);
 
           logger.info('Parent development loaded', {
             scope: selectedChildId,
@@ -428,6 +457,8 @@ export function useParentDevelopment() {
         setAwards(supporterVisible);
         setCoachOnlyCount(allAwards.length - supporterVisible.length);
 
+        setLoading(false);
+
         logger.info('Parent family development loaded', {
           scope: 'all_children',
           childCount: childIds.length,
@@ -436,15 +467,17 @@ export function useParentDevelopment() {
           goals: mergedProgress.activeGoals.length + mergedProgress.completedGoals.length,
           badgesVisible: supporterVisible.length,
         });
-      } catch (error) {
+      } catch (loadError) {
         logger.error('Failed to load parent development data', {
           scope: selectedChildId ?? 'all_children',
-          error,
+          error: loadError,
         });
         if (active) {
           setProgress(null);
           setAwards([]);
           setCoachOnlyCount(0);
+          setError('Failed to load development data. Pull down to refresh.');
+          setLoading(false);
         }
       }
     };
@@ -540,6 +573,8 @@ export function useParentDevelopment() {
     selectedChild,
     isAllChildrenSelected,
     childNameById,
+    loading,
+    error,
     sessions,
     sortedSessions,
     skills,

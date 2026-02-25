@@ -30,6 +30,7 @@ import type {
   GoalCategory,
 } from '@/constants/types';
 import type { FootballSkill } from '@/types/progress-types';
+import { generateId } from '@/utils/generate-id';
 import { createLogger } from '@/utils/logger';
 import { toDateStr } from '@/utils/format';
 import { api } from '@/constants/config';
@@ -40,7 +41,7 @@ const logger = createLogger('AnalyticsTrackingService');
 const USE_MOCK = api.useMock;
 
 function createUniqueId(prefix: 'goal' | 'ms'): string {
-  return `${prefix}_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 8)}`;
+  return generateId(prefix);
 }
 
 function normalizeAnalyticsSkill(skill: string): FootballSkill {
@@ -309,14 +310,16 @@ async function loadGoals(): Promise<Goal[]> {
   return [...MOCK_GOALS];
 }
 
-async function saveGoals(goals: Goal[]): Promise<void> {
+async function saveGoals(goals: Goal[]): Promise<Result<void, ServiceError>> {
   try {
     await Promise.all([
       apiClient.set(STORAGE_KEYS.GOALS, goals),
       apiClient.set(STORAGE_KEYS.ATHLETE_GOALS, goals),
     ]);
+    return ok(undefined);
   } catch (error) {
-    logger.error('Failed to save goals', error);
+    logger.error('Failed to save goals', { error });
+    return err(storageError('Failed to save goals'));
   }
 }
 
@@ -433,7 +436,8 @@ export const analyticsTrackingService = {
       if (USE_MOCK) {
         goalsCache = await loadGoals();
         goalsCache.push(newGoal);
-        await saveGoals(goalsCache);
+        const saveResult = await saveGoals(goalsCache);
+        if (!saveResult.success) return err(saveResult.error);
         return ok(newGoal);
       }
 
@@ -470,7 +474,8 @@ export const analyticsTrackingService = {
         goal.status = 'COMPLETED';
       }
 
-      await saveGoals(goalsCache);
+      const saveResult = await saveGoals(goalsCache);
+      if (!saveResult.success) return err(saveResult.error);
       return ok(goal);
     }
 
@@ -509,7 +514,8 @@ export const analyticsTrackingService = {
         goal.status = 'COMPLETED';
       }
 
-      await saveGoals(goalsCache);
+      const saveResult = await saveGoals(goalsCache);
+      if (!saveResult.success) return err(saveResult.error);
       return ok(goal);
     }
 
@@ -541,7 +547,8 @@ export const analyticsTrackingService = {
       const completedCount = goal.milestones.filter((m) => m.isCompleted).length;
       goal.progress = Math.round((completedCount / goal.milestones.length) * 100);
 
-      await saveGoals(goalsCache);
+      const saveResult = await saveGoals(goalsCache);
+      if (!saveResult.success) return err(saveResult.error);
       return ok(goal);
     }
 
@@ -565,7 +572,8 @@ export const analyticsTrackingService = {
       goal.status = 'ABANDONED';
       goal.updatedAt = new Date().toISOString();
 
-      await saveGoals(goalsCache);
+      const saveResult = await saveGoals(goalsCache);
+      if (!saveResult.success) return err(saveResult.error);
       return ok(goal);
     }
 

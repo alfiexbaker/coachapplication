@@ -46,7 +46,7 @@ export const styles = StyleSheet.create({
     textTransform: 'uppercase',
   },
   dayDate: {
-    fontSize: 18,
+    fontSize: Typography.heading.fontSize,
   },
   slotsRow: {
     flex: 1,

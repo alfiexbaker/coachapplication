@@ -31,6 +31,7 @@ import {
 } from '@/components/social/club-post-selectors';
 import { ClubPostEventFields } from '@/components/social/club-post-event-fields';
 import { Row } from '@/components/primitives/row';
+import { Column } from '@/components/primitives/column';
 import { Spacing, Radii, Typography, Shadows, withAlpha } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
 import { useCreateClubPost } from '@/hooks/use-create-club-post';
@@ -89,7 +90,7 @@ export default function CreateClubPostScreen() {
                   {p.club.name.slice(0, 2).toUpperCase()}
                 </ThemedText>
               </View>
-              <View style={{ flex: 1 }}>
+              <Column flex>
                 <ThemedText type="defaultSemiBold">{p.club.name}</ThemedText>
                 <ThemedText style={{ color: palette.muted, ...Typography.caption }}>
                   Posting to{' '}
@@ -99,7 +100,7 @@ export default function CreateClubPostScreen() {
                       ? `Personal + ${p.club.name}`
                       : p.audienceLabel}
                 </ThemedText>
-              </View>
+              </Column>
             </Row>
           )}
 

@@ -4,6 +4,7 @@ import { Ionicons } from '@expo/vector-icons';
 
 import { ThemedText } from '@/components/themed-text';
 import { Clickable } from '@/components/primitives/clickable';
+import { Column } from '@/components/primitives/column';
 import { Row } from '@/components/primitives/row';
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { AnalyticsStatCard, RetentionCard, CancellationChart } from '@/components/analytics';
@@ -105,14 +106,14 @@ export default function RetentionScreen() {
                 color={retention.retentionStatus.color}
               />
             </View>
-            <View style={{ flex: 1 }}>
+            <Column flex>
               <ThemedText style={[styles.statusLabel, { color: retention.retentionStatus.color }]}>
                 {retention.retentionStatus.label}
               </ThemedText>
               <ThemedText style={Typography.title}>
                 {retention.retention.retentionRate.toFixed(1)}% Retention Rate
               </ThemedText>
-            </View>
+            </Column>
           </Row>
         </SurfaceCard>
 
@@ -182,7 +183,7 @@ const styles = StyleSheet.create({
     gap: Spacing.md,
   },
   header: { marginBottom: Spacing.sm },
-  subtitle: { ...Typography.body, marginTop: Spacing.xxs, marginLeft: 32 },
+  subtitle: { ...Typography.body, marginTop: Spacing.xxs, marginLeft: Spacing.lg },
   statusCard: { padding: Spacing.md },
   statusIcon: {
     width: 56,

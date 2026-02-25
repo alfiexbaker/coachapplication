@@ -1,6 +1,7 @@
 import { StyleSheet, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Row } from '@/components/primitives/row';
+import { Column } from '@/components/primitives/column';
 
 import { ThemedText } from '@/components/themed-text';
 import { SurfaceCard } from '@/components/primitives/surface-card';
@@ -77,14 +78,14 @@ export function SafetyChecklist({
             color={isAllComplete ? palette.success : palette.warning}
           />
         </View>
-        <View style={{ flex: 1 }}>
+        <Column flex>
           <ThemedText type="defaultSemiBold">Safety Checklist</ThemedText>
           <ThemedText style={[styles.headerSubtext, { color: palette.muted }]}>
             {isAllComplete
               ? 'All safety requirements met'
               : `${completedCount}/${items.length} requirements complete`}
           </ThemedText>
-        </View>
+        </Column>
         <View
           style={[
             styles.progressBadge,

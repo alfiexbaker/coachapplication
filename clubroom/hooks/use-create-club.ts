@@ -13,7 +13,7 @@ function generateInviteCode(name: string): string {
     .replace(/[^a-zA-Z]/g, '')
     .slice(0, 5)
     .toUpperCase();
-  const suffix = Math.random().toString(36).substring(2, 6).toUpperCase();
+  const suffix = crypto.randomUUID().slice(0, 4).toUpperCase();
   return `${prefix}-${suffix}`;
 }
 

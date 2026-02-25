@@ -13,6 +13,7 @@
  */
 
 import { apiClient } from './api-client';
+import { generateId } from '@/utils/generate-id';
 import { schedulingRulesService } from '@/services/scheduling-rules-service';
 import type { CancellationPolicy, RefundCalculation, RefundTier } from '@/constants/types';
 import { createLogger } from '@/utils/logger';
@@ -147,7 +148,7 @@ export const cancellationService = {
       const records = await loadRecords();
 
       const record: CancellationRecord = {
-        id: `cancel_${Date.now()}_${Math.random().toString(36).substr(2, 6)}`,
+        id: generateId('cancel'),
         bookingId,
         cancelledBy: cancelledBy as 'parent' | 'coach',
         cancelledAt: new Date().toISOString(),

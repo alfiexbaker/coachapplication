@@ -10,7 +10,8 @@ import { Clickable } from '@/components/primitives/clickable';
 import { PageHeader } from '@/components/primitives/page-header';
 import { ThemedText } from '@/components/themed-text';
 import { Row } from '@/components/primitives/row';
-import { Spacing, Radii, Typography } from '@/constants/theme';
+import { Column } from '@/components/primitives/column';
+import { Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
 import { useAccountSettings } from '@/hooks/use-account-settings';
 
@@ -22,6 +23,7 @@ export default function AccountSettingsScreen() {
     editingPhone,
     email,
     phone,
+    deletionRequest,
     setEditingEmail,
     setEditingPhone,
     setEmail,
@@ -30,6 +32,7 @@ export default function AccountSettingsScreen() {
     handleSavePhone,
     handleChangePassword,
     handleDeleteAccount,
+    handleCancelDeletion,
     handleDeactivateAccount,
   } = useAccountSettings();
 
@@ -62,12 +65,13 @@ export default function AccountSettingsScreen() {
                   autoCapitalize="none"
                   autoFocus
                   accessibilityLabel="Email address"
+                  accessibilityRole="none"
                 />
                 <Row justify="flex-end" align="center" gap="md">
-                  <Clickable onPress={() => setEditingEmail(false)}>
+                  <Clickable onPress={() => setEditingEmail(false)} accessibilityLabel="Cancel email edit" accessibilityRole="button">
                     <ThemedText style={{ color: colors.muted }}>Cancel</ThemedText>
                   </Clickable>
-                  <Button onPress={handleSaveEmail}>Save</Button>
+                  <Button onPress={handleSaveEmail} accessibilityLabel="Save email">Save</Button>
                 </Row>
               </View>
             ) : (
@@ -96,12 +100,13 @@ export default function AccountSettingsScreen() {
                   autoFocus
                   placeholder="+44 7XXX XXXXXX"
                   placeholderTextColor={colors.muted}
+                  accessibilityLabel="Phone number"
                 />
                 <Row justify="flex-end" align="center" gap="md">
-                  <Clickable onPress={() => setEditingPhone(false)}>
+                  <Clickable onPress={() => setEditingPhone(false)} accessibilityLabel="Cancel phone edit" accessibilityRole="button">
                     <ThemedText style={{ color: colors.muted }}>Cancel</ThemedText>
                   </Clickable>
-                  <Button onPress={handleSavePhone}>Save</Button>
+                  <Button onPress={handleSavePhone} accessibilityLabel="Save phone number">Save</Button>
                 </Row>
               </View>
             ) : (
@@ -152,6 +157,43 @@ export default function AccountSettingsScreen() {
           </View>
         </SettingsSection>
 
+        {deletionRequest && deletionRequest.status === 'pending' && (
+          <SurfaceCard style={[styles.deletionBanner, { borderColor: colors.error }]}>
+            <Row align="center" gap="sm">
+              <Ionicons name="warning" size={24} color={colors.error} />
+              <ThemedText type="defaultSemiBold" style={{ color: colors.error }}>
+                Account Deletion Scheduled
+              </ThemedText>
+            </Row>
+            <ThemedText style={[Typography.body, { marginTop: Spacing.xs }]}>
+              Your account will be deleted on{' '}
+              {new Date(deletionRequest.scheduledDeletionAt).toLocaleDateString('en-GB', {
+                day: 'numeric',
+                month: 'short',
+                year: 'numeric',
+              })}
+              .
+            </ThemedText>
+            <ThemedText style={[Typography.caption, { color: colors.muted, marginTop: Spacing.xxs }]}>
+              {Math.max(
+                0,
+                Math.ceil(
+                  (new Date(deletionRequest.scheduledDeletionAt).getTime() - Date.now()) /
+                    (1000 * 60 * 60 * 24),
+                ),
+              )}{' '}
+              days remaining to cancel
+            </ThemedText>
+            <Button
+              onPress={handleCancelDeletion}
+              variant="primary"
+              style={{ marginTop: Spacing.md }}
+            >
+              Cancel Deletion
+            </Button>
+          </SurfaceCard>
+        )}
+
         <SettingsSection title="Danger Zone">
           <SurfaceCard style={[styles.dangerCard, { borderColor: colors.error }]}>
             <SettingsRow
@@ -175,7 +217,7 @@ export default function AccountSettingsScreen() {
         <Row gap="sm" align="flex-start" style={styles.warningContainer}>
           <Ionicons name="warning" size={16} color={colors.warning} />
           <ThemedText style={[styles.warningText, { color: colors.muted }]}>
-            Deleting your account will remove all your data permanently and cannot be undone.
+            Deleting your account schedules a 30-day grace period. After that, all data is permanently removed.
           </ThemedText>
         </Row>
       </ScrollView>
@@ -219,6 +261,7 @@ const styles = StyleSheet.create({
   input: { height: 48, borderRadius: Radii.md, paddingHorizontal: Spacing.md, ...Typography.body },
   infoCard: { gap: Spacing.md, paddingHorizontal: Spacing.sm },
   infoLabel: { ...Typography.bodySmall },
+  deletionBanner: { borderWidth: 2, marginBottom: Spacing.md },
   dangerCard: { padding: 0, borderWidth: 1 },
   divider: { height: 1, marginHorizontal: Spacing.sm },
   warningContainer: { paddingHorizontal: Spacing.sm, marginTop: Spacing.sm },

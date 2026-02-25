@@ -97,21 +97,23 @@ function InlineAthleteSelectorInner({
         <Row style={styles.quickActions}>
           <Clickable
             onPress={selectAll}
-            style={[styles.quickActionButton, { backgroundColor: withAlpha(palette.tint, 0.06) }]}
+            disabled={selectedAthleteIds.length === athletes.length}
+            style={[styles.quickActionButton, { backgroundColor: withAlpha(palette.tint, 0.06), opacity: selectedAthleteIds.length === athletes.length ? 0.5 : 1 }]}
           >
             <Ionicons name="checkmark-done" size={14} color={palette.tint} />
             <ThemedText style={{ color: palette.tint, ...Typography.caption }}>
-              Select All
+              Select All ({athletes.length - selectedAthleteIds.length})
             </ThemedText>
           </Clickable>
           <Clickable
             onPress={selectNone}
+            disabled={selectedAthleteIds.length === 0}
             style={[
               styles.quickActionButton,
-              { backgroundColor: palette.surface, borderColor: palette.border, borderWidth: 1 },
+              { backgroundColor: palette.surface, borderColor: palette.border, borderWidth: 1, opacity: selectedAthleteIds.length === 0 ? 0.5 : 1 },
             ]}
           >
-            <ThemedText style={{ ...Typography.caption, color: palette.text }}>Clear</ThemedText>
+            <ThemedText style={{ ...Typography.caption, color: palette.text }}>Deselect All ({selectedAthleteIds.length})</ThemedText>
           </Clickable>
         </Row>
       )}
@@ -202,7 +204,7 @@ const styles = StyleSheet.create({
   athleteAvatar: {
     width: 36,
     height: 36,
-    borderRadius: 18,
+    borderRadius: Radii.xl,
     alignItems: 'center',
     justifyContent: 'center',
   },

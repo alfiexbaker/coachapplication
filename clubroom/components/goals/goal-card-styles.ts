@@ -44,7 +44,7 @@ export const styles = StyleSheet.create({
     fontSize: scaleFont(12),
   },
   statusBadge: {
-    paddingHorizontal: 8,
+    paddingHorizontal: Spacing.xs,
     paddingVertical: Spacing.micro,
     borderRadius: Radii.sm,
   },

@@ -65,7 +65,7 @@ const styles = StyleSheet.create({
   },
   description: {
     textAlign: 'center',
-    lineHeight: 22,
+    lineHeight: Typography.body.lineHeight,
   },
   button: {
     flexDirection: 'row',

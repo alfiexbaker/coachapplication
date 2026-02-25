@@ -236,7 +236,7 @@ export const CreateConfirmStep = memo(function CreateConfirmStep({
 const styles = StyleSheet.create({
   stepTitle: { ...Typography.title },
   previewBanner: { padding: Spacing.md, borderRadius: Radii.md },
-  previewText: { ...Typography.bodySmallSemiBold, flex: 1, lineHeight: 20 },
+  previewText: { ...Typography.bodySmallSemiBold, flex: 1 },
   summaryCard: { padding: Spacing.md, gap: Spacing.md },
   recurringCard: { padding: Spacing.md, gap: Spacing.md },
   recurringInfo: { flex: 1 },
@@ -244,13 +244,13 @@ const styles = StyleSheet.create({
   toggleTrack: {
     width: 48,
     height: 28,
-    borderRadius: 14,
+    borderRadius: Radii.lg,
     justifyContent: 'center',
-    paddingHorizontal: 2,
+    paddingHorizontal: Spacing.micro,
     minHeight: 44,
     minWidth: 48,
   },
-  toggleThumb: { width: 24, height: 24, borderRadius: 12 },
+  toggleThumb: { width: 24, height: 24, borderRadius: Radii.md },
   recurringLabel: { ...Typography.smallSemiBold },
   recurringPreview: { ...Typography.smallSemiBold },
   optionChip: {

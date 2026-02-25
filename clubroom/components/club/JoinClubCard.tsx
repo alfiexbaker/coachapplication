@@ -11,6 +11,7 @@ import { ThemedText } from '@/components/themed-text';
 import { Radii, Spacing, Typography, withAlpha } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
 import { Row } from '@/components/primitives';
+import { Column } from '@/components/primitives/column';
 
 export interface JoinClubCardProps {
   isCoach: boolean;
@@ -32,7 +33,7 @@ export function JoinClubCard({ isCoach, onJoin, onCreate }: JoinClubCardProps) {
         <View style={[styles.clubAvatar, { backgroundColor: withAlpha(palette.tint, 0.06) }]}>
           <Ionicons name="people" size={24} color={palette.tint} />
         </View>
-        <View style={{ flex: 1 }}>
+        <Column flex>
           <ThemedText type="title" style={{ ...Typography.title }}>
             {isCoach ? 'Join or Create a Club' : 'Join a Club'}
           </ThemedText>
@@ -41,7 +42,7 @@ export function JoinClubCard({ isCoach, onJoin, onCreate }: JoinClubCardProps) {
               ? 'Connect with your coaching team'
               : "Join your coach's club for exclusive content"}
           </ThemedText>
-        </View>
+        </Column>
       </Row>
 
       <Row style={styles.joinForm}>

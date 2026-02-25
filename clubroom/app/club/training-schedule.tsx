@@ -14,6 +14,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { Clickable } from '@/components/primitives/clickable';
 import { ThemedText } from '@/components/themed-text';
 import { Row } from '@/components/primitives/row';
+import { Column } from '@/components/primitives/column';
 import { EmptyState } from '@/components/ui/empty-state';
 import { LoadingState } from '@/components/ui/screen-states';
 import { TrainingCard } from '@/components/club/training-card';
@@ -53,12 +54,12 @@ export default function TrainingScheduleScreen() {
         <Clickable onPress={() => router.back()} hitSlop={8}>
           <Ionicons name="arrow-back" size={24} color={colors.text} />
         </Clickable>
-        <View style={{ flex: 1 }}>
+        <Column flex>
           <ThemedText type="title">Training Schedule</ThemedText>
           <ThemedText style={[Typography.small, { color: colors.muted, marginTop: Spacing.micro }]}>
             {clubName}
           </ThemedText>
-        </View>
+        </Column>
         {isCoach && (
           <Clickable
             accessibilityLabel="Create training session"

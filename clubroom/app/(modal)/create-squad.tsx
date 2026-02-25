@@ -15,6 +15,7 @@ import { PageHeader } from '@/components/primitives/page-header';
 import { ThemedText } from '@/components/themed-text';
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { Row } from '@/components/primitives/row';
+import { Column } from '@/components/primitives/column';
 import { Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
 import { useCreateSquad, AGE_GROUPS, SQUAD_LEVELS, SKILL_TAGS } from '@/hooks/use-create-squad';
@@ -239,14 +240,14 @@ export default function CreateSquadScreen() {
                     {c.squadName.slice(0, 2).toUpperCase()}
                   </ThemedText>
                 </View>
-                <View style={{ flex: 1 }}>
+                <Column flex>
                   <ThemedText type="defaultSemiBold" style={{ ...Typography.subheading }}>
                     {c.squadName}
                   </ThemedText>
                   <ThemedText style={{ color: palette.muted, ...Typography.small }}>
                     {c.selectedAgeGroup.label} · {c.selectedLevel}
                   </ThemedText>
-                </View>
+                </Column>
               </Row>
               {c.meetLocation ? (
                 <Row align="center" gap="xs" style={styles.previewMeta}>

@@ -56,7 +56,7 @@ const MOCK_DISCOVERY_COACHES: CoachProfile[] = [
     state: 'England',
     distanceMiles: 5.2,
     rating: { average: 4.7, reviewCount: 38 },
-    priceRange: { minUsd: 45, maxUsd: 70, unitLabel: 'per session' },
+    priceRange: { min: 45, max: 70, unitLabel: 'per session' },
     nextAvailability: new Date(Date.now() + 3 * 24 * 60 * 60 * 1000).toISOString(),
     badges: [{ id: 'b1', label: 'Verified', tone: 'success' as const }],
     sessionFormats: ['In-person', 'Virtual'] as TrainingFormat[],
@@ -86,7 +86,7 @@ const MOCK_DISCOVERY_COACHES: CoachProfile[] = [
     state: 'England',
     distanceMiles: 3.8,
     rating: { average: 4.8, reviewCount: 29 },
-    priceRange: { minUsd: 40, maxUsd: 60, unitLabel: 'per session' },
+    priceRange: { min: 40, max: 60, unitLabel: 'per session' },
     nextAvailability: new Date(Date.now() + 1 * 24 * 60 * 60 * 1000).toISOString(),
     badges: [{ id: 'b1', label: 'Background Check', tone: 'success' as const }],
     sessionFormats: ['In-person', 'Small group'] as TrainingFormat[],
@@ -113,7 +113,7 @@ const MOCK_DISCOVERY_COACHES: CoachProfile[] = [
     state: 'England',
     distanceMiles: 4.1,
     rating: { average: 4.6, reviewCount: 22 },
-    priceRange: { minUsd: 55, maxUsd: 85, unitLabel: 'per session' },
+    priceRange: { min: 55, max: 85, unitLabel: 'per session' },
     nextAvailability: new Date(Date.now() + 2 * 24 * 60 * 60 * 1000).toISOString(),
     badges: [{ id: 'b1', label: 'Verified', tone: 'success' as const }],
     sessionFormats: ['In-person'] as TrainingFormat[],
@@ -143,7 +143,7 @@ const MOCK_DISCOVERY_COACHES: CoachProfile[] = [
     state: 'England',
     distanceMiles: 8.5,
     rating: { average: 4.9, reviewCount: 55 },
-    priceRange: { minUsd: 60, maxUsd: 90, unitLabel: 'per session' },
+    priceRange: { min: 60, max: 90, unitLabel: 'per session' },
     nextAvailability: new Date(Date.now() + 4 * 24 * 60 * 60 * 1000).toISOString(),
     badges: [
       { id: 'b1', label: 'Premium Coach', tone: 'warning' as const },
@@ -176,7 +176,7 @@ const MOCK_DISCOVERY_COACHES: CoachProfile[] = [
     state: 'England',
     distanceMiles: 2.9,
     rating: { average: 4.7, reviewCount: 33 },
-    priceRange: { minUsd: 58, maxUsd: 75, unitLabel: 'per session' },
+    priceRange: { min: 58, max: 75, unitLabel: 'per session' },
     nextAvailability: new Date(Date.now() + 1 * 24 * 60 * 60 * 1000).toISOString(),
     badges: [{ id: 'b1', label: 'Verified', tone: 'success' as const }],
     sessionFormats: ['In-person', 'Small group'] as TrainingFormat[],
@@ -203,7 +203,7 @@ const MOCK_DISCOVERY_COACHES: CoachProfile[] = [
     state: 'England',
     distanceMiles: 12.3,
     rating: { average: 4.5, reviewCount: 18 },
-    priceRange: { minUsd: 35, maxUsd: 50, unitLabel: 'per session' },
+    priceRange: { min: 35, max: 50, unitLabel: 'per session' },
     nextAvailability: new Date(Date.now() + 5 * 24 * 60 * 60 * 1000).toISOString(),
     badges: [],
     sessionFormats: ['In-person', 'Virtual'] as TrainingFormat[],
@@ -326,10 +326,10 @@ class DiscoverService {
 
       // Apply price filter
       if (filters.priceMin !== undefined) {
-        results = results.filter((coach) => coach.priceRange.maxUsd >= filters.priceMin!);
+        results = results.filter((coach) => coach.priceRange.max >= filters.priceMin!);
       }
       if (filters.priceMax !== undefined) {
-        results = results.filter((coach) => coach.priceRange.minUsd <= filters.priceMax!);
+        results = results.filter((coach) => coach.priceRange.min <= filters.priceMax!);
       }
 
       // Apply rating filter
@@ -403,10 +403,10 @@ class DiscoverService {
           searchResults.sort((a, b) => b.coach.rating.average - a.coach.rating.average);
           break;
         case 'price_low':
-          searchResults.sort((a, b) => a.coach.priceRange.minUsd - b.coach.priceRange.minUsd);
+          searchResults.sort((a, b) => a.coach.priceRange.min - b.coach.priceRange.min);
           break;
         case 'price_high':
-          searchResults.sort((a, b) => b.coach.priceRange.maxUsd - a.coach.priceRange.maxUsd);
+          searchResults.sort((a, b) => b.coach.priceRange.max - a.coach.priceRange.max);
           break;
         case 'reviews':
           searchResults.sort((a, b) => b.coach.rating.reviewCount - a.coach.rating.reviewCount);
@@ -483,9 +483,9 @@ class DiscoverService {
       // Get all coaches that match current filters (except the filter being counted)
       const matchingCoaches = this.coaches.filter((coach) => {
         if (currentFilters.query && !matchesQuery(coach, currentFilters.query)) return false;
-        if (currentFilters.priceMin && coach.priceRange.maxUsd < currentFilters.priceMin)
+        if (currentFilters.priceMin && coach.priceRange.max < currentFilters.priceMin)
           return false;
-        if (currentFilters.priceMax && coach.priceRange.minUsd > currentFilters.priceMax)
+        if (currentFilters.priceMax && coach.priceRange.min > currentFilters.priceMax)
           return false;
         if (currentFilters.rating && coach.rating.average < currentFilters.rating) return false;
         return true;
@@ -516,8 +516,8 @@ class DiscoverService {
         });
 
         // Price range
-        minPrice = Math.min(minPrice, coach.priceRange.minUsd);
-        maxPrice = Math.max(maxPrice, coach.priceRange.maxUsd);
+        minPrice = Math.min(minPrice, coach.priceRange.min);
+        maxPrice = Math.max(maxPrice, coach.priceRange.max);
 
         // Rating distribution
         const ratingBucket = Math.floor(coach.rating.average);

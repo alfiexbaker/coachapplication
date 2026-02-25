@@ -12,6 +12,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { ThemedText } from '@/components/themed-text';
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { Row } from '@/components/primitives/row';
+import { Column } from '@/components/primitives/column';
 import { Clickable } from '@/components/primitives/clickable';
 import { RsvpButtonGroup } from '@/components/invite/rsvp-button-group';
 import { Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
@@ -52,7 +53,7 @@ function FamilyRegistrationCardComponent({
         <View style={[styles.icon, { backgroundColor: withAlpha(statusColor, 0.12) }]}>
           <Ionicons name={statusIcon} size={20} color={statusColor} />
         </View>
-        <View style={{ flex: 1 }}>
+        <Column flex>
           <ThemedText type="defaultSemiBold">
             {showChildName ? familyReg.childName : statusLabel}
           </ThemedText>
@@ -63,7 +64,7 @@ function FamilyRegistrationCardComponent({
                 ? statusLabel
                 : `Since ${new Date(familyReg.registration.registeredAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}`}
           </ThemedText>
-        </View>
+        </Column>
         {isActive && (
           <Clickable
             onPress={onUnregister}

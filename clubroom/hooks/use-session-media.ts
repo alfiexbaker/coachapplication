@@ -50,7 +50,7 @@ async function copyToDocumentDirectory(uri: string, prefix: string, extension: s
 
   const folder = `${base}session-media`;
   await FileSystem.makeDirectoryAsync(folder, { intermediates: true });
-  const target = `${folder}/${prefix}_${Date.now()}_${Math.random().toString(36).slice(2, 8)}.${extension}`;
+  const target = `${folder}/${prefix}_${crypto.randomUUID()}.${extension}`;
   await FileSystem.copyAsync({ from: uri, to: target });
   return target;
 }

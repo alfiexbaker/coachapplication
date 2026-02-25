@@ -171,7 +171,7 @@ export const SkillRatingsGrid = memo(function SkillRatingsGrid({
               {/* Sub-skills */}
               {subs.map((sub) => (
                 <Row key={sub.subSkill} align="center" gap="xxs" style={{ paddingLeft: Spacing.sm }}>
-                  <ThemedText style={[styles.skillRatingName, { color: palette.mutedForeground }]}>
+                  <ThemedText style={[styles.skillRatingName, { color: palette.muted }]}>
                     {sub.subSkill}
                   </ThemedText>
                   <Row align="baseline">
@@ -230,7 +230,7 @@ export const SkillRatingsGrid = memo(function SkillRatingsGrid({
                         { backgroundColor: withAlpha(palette.tint, 0.08) },
                       ]}
                     >
-                      <ThemedText style={[styles.subSkillTagText, { color: palette.mutedForeground }]}>
+                      <ThemedText style={[styles.subSkillTagText, { color: palette.muted }]}>
                         {sub}
                       </ThemedText>
                     </View>
@@ -329,7 +329,7 @@ const styles = StyleSheet.create({
   compactRight: {},
   compactDate: { ...Typography.bodySmall },
   compactCoach: { ...Typography.caption },
-  compactSummary: { ...Typography.small, lineHeight: 18 },
+  compactSummary: { ...Typography.small, lineHeight: Typography.caption.lineHeight },
   section: { gap: Spacing.xxs },
   sectionLabel: {
     ...Typography.caption,
@@ -337,7 +337,7 @@ const styles = StyleSheet.create({
     letterSpacing: 0.3,
     fontWeight: '600',
   },
-  sectionContent: { ...Typography.bodySmall, lineHeight: 20 },
+  sectionContent: { ...Typography.bodySmall },
   skillRatingItem: {},
   skillRatingName: { ...Typography.small, flex: 1 },
   skillRatingNumber: { ...Typography.body, fontVariant: ['tabular-nums'] },

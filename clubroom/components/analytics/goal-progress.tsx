@@ -194,7 +194,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   progressText: { ...Typography.caption },
-  description: { ...Typography.small, lineHeight: 18 },
+  description: { ...Typography.small, lineHeight: Typography.caption.lineHeight },
   progressBarContainer: { gap: Spacing.xxs },
   progressBarBg: {
     height: 6,

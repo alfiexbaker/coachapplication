@@ -1,4 +1,4 @@
-import { View, StyleSheet, Modal, Alert } from 'react-native';
+import { View, StyleSheet, Modal, Alert, Platform } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
 import * as DocumentPicker from 'expo-document-picker';
@@ -191,7 +191,7 @@ export function AttachmentPicker({
   };
 
   const handleOptionPress = async (key: 'photo' | 'camera' | 'video' | 'document') => {
-    void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    if (Platform.OS !== 'web') void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     switch (key) {
       case 'photo':
         await handlePickPhoto();

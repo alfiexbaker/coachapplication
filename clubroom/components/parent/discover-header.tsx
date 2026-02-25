@@ -164,7 +164,7 @@ const styles = StyleSheet.create({
   },
   header: { gap: Spacing.xs },
   title: { ...Typography.display, letterSpacing: -0.6 },
-  subtitle: { ...Typography.bodySmall, lineHeight: 20 },
+  subtitle: { ...Typography.bodySmall },
   singleChild: { marginTop: Spacing.micro },
   childTabs: { marginTop: Spacing.xs, marginHorizontal: -Spacing.lg },
   tabsContent: { paddingHorizontal: Spacing.lg, gap: Spacing.lg },

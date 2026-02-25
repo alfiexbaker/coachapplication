@@ -87,6 +87,7 @@ export const ReviewSuccessState = React.memo(function ReviewSuccessState({
       <ThemedText style={[styles.successText, { color: colors.muted }]}>
         Your {submittedRating}-star review has been submitted.
         {coachName ? ` ${coachName} will appreciate your feedback.` : ''}
+        {'\n\n'}• It will appear on their profile within 24 hours{'\n'}• You can edit or delete it from your bookings{'\n'}• The coach has been notified
       </ThemedText>
 
       <Clickable onPress={onDone} style={[styles.doneButton, { backgroundColor: colors.tint }]}>
@@ -145,7 +146,7 @@ const styles = StyleSheet.create({
   },
   successText: {
     textAlign: 'center',
-    lineHeight: 20,
+    lineHeight: Typography.bodySmall.lineHeight,
     paddingHorizontal: Spacing.lg,
   },
   doneButton: {

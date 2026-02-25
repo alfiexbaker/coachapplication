@@ -1,5 +1,6 @@
 import { StyleSheet, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { Column } from '@/components/primitives/column';
 import { Row } from '@/components/primitives/row';
 
 import { ThemedText } from '@/components/themed-text';
@@ -53,7 +54,7 @@ export function MedicalCard({
         <View style={[styles.avatar, { backgroundColor: withAlpha(palette.tint, 0.09) }]}>
           <Ionicons name="medical" size={20} color={palette.tint} />
         </View>
-        <View style={{ flex: 1 }}>
+        <Column flex>
           <Row align="center" gap="xs">
             <ThemedText type="defaultSemiBold">{athleteName}</ThemedText>
             {severityBadge && <Badge label={severityBadge.label} tone={severityBadge.tone} />}
@@ -61,7 +62,7 @@ export function MedicalCard({
           <ThemedText style={{ ...Typography.small, color: palette.muted }}>
             {hasAnyMedicalInfo ? 'Medical information on file' : 'No medical alerts'}
           </ThemedText>
-        </View>
+        </Column>
         <Ionicons name="chevron-forward" size={18} color={palette.muted} />
       </Row>
 
@@ -184,7 +185,7 @@ const styles = StyleSheet.create({
     backgroundColor: 'transparent',
     borderRadius: Radii.sm,
   },
-  notes: { ...Typography.small, flex: 1, lineHeight: 18 },
+  notes: { ...Typography.small, flex: 1, lineHeight: Typography.caption.lineHeight },
   contactRow: {
     padding: Spacing.md,
     borderTopWidth: 1,

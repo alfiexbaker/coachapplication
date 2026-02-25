@@ -30,7 +30,7 @@ export function toDateStr(d: Date): string {
 }
 
 export const formatPriceRange = (price: CoachProfile['priceRange']) =>
-  `£${price.minUsd.toLocaleString()}–£${price.maxUsd.toLocaleString()} / ${price.unitLabel}`;
+  `£${price.min.toLocaleString()}–£${price.max.toLocaleString()} / ${price.unitLabel}`;
 
 export const formatDistance = (distanceMiles: number) => `${distanceMiles.toFixed(1)} mi away`;
 

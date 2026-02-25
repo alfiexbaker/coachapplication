@@ -173,11 +173,12 @@ describe('apiClient', () => {
       assert.ok(!id.startsWith('undefined'), 'Should not contain "undefined"');
     });
 
-    test('IDs contain timestamp and random component', () => {
+    test('IDs contain prefix and UUID component', () => {
       const id = apiClient.generateId('test');
-      const parts = id.split('_');
-      // Structure: prefix_timestamp_random
-      assert.ok(parts.length >= 3, `Expected at least 3 parts, got: ${parts.length}`);
+      // Structure: prefix_uuid (e.g. test_a1b2c3d4-e5f6-...)
+      assert.ok(id.startsWith('test_'), `Expected prefix "test_", got: ${id}`);
+      const uuid = id.slice('test_'.length);
+      assert.ok(uuid.length >= 20, `UUID part should be substantial, got: ${uuid}`);
     });
   });
 });

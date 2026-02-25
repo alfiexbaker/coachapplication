@@ -81,7 +81,7 @@ export const MonthlyStory = memo(function MonthlyStory({
       presentationStyle="fullScreen"
       statusBarTranslucent
     >
-      <View style={[styles.container, { backgroundColor: '#0A0A0F' }]}>
+      <View style={[styles.container, { backgroundColor: colors.background }]}>
         {/* Photo background with dark overlay */}
         {page.photo ? (
           <>
@@ -91,27 +91,27 @@ export const MonthlyStory = memo(function MonthlyStory({
               contentFit="cover"
             />
             <LinearGradient
-              colors={['rgba(10,10,15,0.6)', 'rgba(10,10,15,0.85)', 'rgba(10,10,15,0.95)']}
+              colors={[withAlpha(colors.background, 0.6), withAlpha(colors.background, 0.85), withAlpha(colors.background, 0.95)]}
               style={StyleSheet.absoluteFill}
             />
           </>
         ) : null}
 
         {/* Progress bars */}
-        <View style={[styles.progressRow, { paddingTop: insets.top + Spacing.xs }]}>
+        <Row gap="micro" style={[styles.progressRow, { paddingTop: insets.top + Spacing.xs }]}>
           {pages.map((p, i) => (
             <View
               key={p.id}
               style={[
                 styles.progressTrack,
-                { backgroundColor: withAlpha('#FFFFFF', 0.2) },
+                { backgroundColor: withAlpha(colors.text, 0.2) },
               ]}
             >
               <View
                 style={[
                   styles.progressFill,
                   {
-                    backgroundColor: '#FFFFFF',
+                    backgroundColor: colors.text,
                     width:
                       i < story.pageIndex
                         ? '100%'
@@ -123,7 +123,7 @@ export const MonthlyStory = memo(function MonthlyStory({
               />
             </View>
           ))}
-        </View>
+        </Row>
 
         {/* Close button */}
         <Clickable
@@ -132,11 +132,11 @@ export const MonthlyStory = memo(function MonthlyStory({
           accessibilityLabel="Close story"
           accessibilityRole="button"
         >
-          <Ionicons name="close" size={24} color="#FFFFFF" />
+          <Ionicons name="close" size={24} color={colors.text} />
         </Clickable>
 
         {/* Touch zones */}
-        <View style={styles.touchZones}>
+        <Row style={styles.touchZones}>
           <Clickable
             style={[styles.touchZoneLeft, { width: screenWidth * 0.3 }]}
             onPress={handleTapLeft}
@@ -151,7 +151,7 @@ export const MonthlyStory = memo(function MonthlyStory({
             accessibilityLabel="Next page"
             accessibilityRole="button"
           />
-        </View>
+        </Row>
 
         {/* Content */}
         <Center style={styles.contentWrap}>
@@ -180,7 +180,7 @@ export const MonthlyStory = memo(function MonthlyStory({
                       value={Number(page.stat.value) || 0}
                       style={[styles.statValue, { color: accent }]}
                     />
-                    <ThemedText style={[styles.statLabel, { color: withAlpha('#FFFFFF', 0.7) }]}>
+                    <ThemedText style={[styles.statLabel, { color: withAlpha(colors.text, 0.7) }]}>
                       {page.stat.label}
                     </ThemedText>
                   </Column>
@@ -198,7 +198,7 @@ export const MonthlyStory = memo(function MonthlyStory({
               </Animated.View>
 
               {/* Page indicator */}
-              <ThemedText style={[styles.pageIndicator, { color: withAlpha('#FFFFFF', 0.4) }]}>
+              <ThemedText style={[styles.pageIndicator, { color: withAlpha(colors.text, 0.4) }]}>
                 {story.pageIndex + 1} / {story.totalPages}
               </ThemedText>
             </Column>
@@ -207,7 +207,7 @@ export const MonthlyStory = memo(function MonthlyStory({
 
         {/* Branding */}
         <Animated.View entering={FadeIn.delay(300)} style={styles.branding}>
-          <ThemedText style={[styles.brandText, { color: withAlpha('#FFFFFF', 0.3) }]}>
+          <ThemedText style={[styles.brandText, { color: withAlpha(colors.text, 0.3) }]}>
             clubroom
           </ThemedText>
         </Animated.View>
@@ -222,8 +222,6 @@ const styles = StyleSheet.create({
     position: 'relative',
   },
   progressRow: {
-    flexDirection: 'row',
-    gap: 3,
     paddingHorizontal: Spacing.sm,
     zIndex: 10,
   },
@@ -248,7 +246,6 @@ const styles = StyleSheet.create({
   },
   touchZones: {
     ...StyleSheet.absoluteFillObject,
-    flexDirection: 'row',
     zIndex: 5,
   },
   touchZoneLeft: {
@@ -269,12 +266,12 @@ const styles = StyleSheet.create({
   pageIcon: {
     width: 72,
     height: 72,
-    borderRadius: 36,
+    borderRadius: Radii['2xl'],
     alignItems: 'center',
     justifyContent: 'center',
   },
   statValue: {
-    fontSize: 48,
+    fontSize: Typography.displayLarge.fontSize,
     fontWeight: '800',
     textAlign: 'center',
   },
@@ -284,15 +281,12 @@ const styles = StyleSheet.create({
   },
   pageTitle: {
     ...Typography.title,
-    color: '#FFFFFF',
     fontWeight: '700',
     textAlign: 'center',
   },
   pageBody: {
     ...Typography.body,
-    color: 'rgba(255,255,255,0.8)',
     textAlign: 'center',
-    lineHeight: 22,
   },
   pageIndicator: {
     ...Typography.micro,
@@ -300,7 +294,7 @@ const styles = StyleSheet.create({
   },
   branding: {
     position: 'absolute',
-    bottom: 32,
+    bottom: Spacing.lg,
     left: 0,
     right: 0,
     alignItems: 'center',

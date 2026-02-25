@@ -269,9 +269,44 @@ export const ServiceEvents = {
   COACH_OBSERVATION_UPDATED: 'coach:observation:updated',
   COACH_OBSERVATION_DELETED: 'coach:observation:deleted',
 
+  // Safeguarding events
+  USER_ACTION_BLOCKED: 'user:action_blocked',
+  SAFEGUARDING_REPORT_SUBMITTED: 'safeguarding:report_submitted',
+
+  // Verification expiry events
+  VERIFICATION_EXPIRED: 'verification:expired',
+  VERIFICATION_EXPIRING_SOON: 'verification:expiring_soon',
+
+  // Consent expiry events
+  CONSENT_EXPIRED: 'consent:expired',
+  CONSENT_RENEWED: 'consent:renewed',
+
+  // Child profile sync events
+  CHILD_PROFILE_UPDATED: 'child:profile_updated',
+  CHILD_MEDICAL_INFO_UPDATED: 'child:medical_info_updated',
+
+  // Account lifecycle events
+  ACCOUNT_DELETION_REQUESTED: 'account:deletion_requested',
+  ACCOUNT_DELETION_CANCELLED: 'account:deletion_cancelled',
+
+  // Media sharing events
+  MEDIA_SHARED: 'media:shared',
+
+  // Group approval events
+  GROUP_JOIN_REQUEST: 'community:group:join_request',
+  GROUP_MEMBER_APPROVED: 'community:group:member_approved',
+  GROUP_MEMBER_REJECTED: 'community:group:member_rejected',
+  GROUP_APPROVAL_REQUESTED: 'community:group:approval_requested',
+
+  // Data retention events
+  ATHLETE_DATA_ARCHIVED: 'data:athlete_archived',
+  DATA_RETENTION_WARNING: 'data:retention_warning',
+
   // Connection & offline queue events
   CONNECTION_CHANGED: 'connection:changed',
+  QUEUE_ACTION_ADDED: 'queue:action_added',
   QUEUE_FLUSHED: 'queue:flushed',
+  QUEUE_FLUSH_FAILED: 'queue:flush_failed',
   QUEUE_ACTION_FAILED: 'queue:action_failed',
 } as const;
 
@@ -840,15 +875,140 @@ export interface EventPayloads {
     coachId: string;
   };
 
+  // Safeguarding events
+  [ServiceEvents.USER_ACTION_BLOCKED]: {
+    blockerId: string;
+    blockedId: string;
+    action: 'send_message' | 'create_booking' | 'search';
+    timestamp: string;
+  };
+  [ServiceEvents.SAFEGUARDING_REPORT_SUBMITTED]: {
+    reportId: string;
+    reporterId: string;
+    reportedUserId: string;
+    category: string;
+    severity: 'low' | 'medium' | 'high';
+    autoBlocked: boolean;
+    timestamp: string;
+  };
+
+  // Verification expiry events
+  [ServiceEvents.VERIFICATION_EXPIRED]: {
+    coachId: string;
+    verificationType: 'dbs' | 'insurance' | 'id' | 'credentials';
+    expiredAt: string;
+  };
+  [ServiceEvents.VERIFICATION_EXPIRING_SOON]: {
+    coachId: string;
+    verificationType: 'dbs' | 'insurance' | 'id' | 'credentials';
+    expiresAt: string;
+    daysRemaining: number;
+  };
+
+  // Consent expiry events
+  [ServiceEvents.CONSENT_EXPIRED]: {
+    athleteId: string;
+    consentType: string;
+  };
+  [ServiceEvents.CONSENT_RENEWED]: {
+    athleteId: string;
+    consentType: string;
+    newExpiryAt: string;
+  };
+
+  // Child profile sync events
+  [ServiceEvents.CHILD_PROFILE_UPDATED]: {
+    childId: string;
+    parentId: string;
+    updatedFields: string[];
+    timestamp: string;
+  };
+  [ServiceEvents.CHILD_MEDICAL_INFO_UPDATED]: {
+    childId: string;
+    updatedFields: string[];
+    timestamp: string;
+  };
+
+  // Account lifecycle events
+  [ServiceEvents.ACCOUNT_DELETION_REQUESTED]: {
+    userId: string;
+    requestedAt: string;
+    scheduledDeletionAt: string;
+  };
+  [ServiceEvents.ACCOUNT_DELETION_CANCELLED]: {
+    userId: string;
+    cancelledAt: string;
+  };
+
+  // Media sharing events
+  [ServiceEvents.MEDIA_SHARED]: {
+    mediaType: string;
+    sharedById: string;
+    athleteId: string;
+    consentVerified: boolean;
+    timestamp: string;
+  };
+
+  // Group approval events
+  [ServiceEvents.GROUP_JOIN_REQUEST]: {
+    groupId: string;
+    requesterId: string;
+    requesterRole: string;
+    adminId: string;
+  };
+  [ServiceEvents.GROUP_MEMBER_APPROVED]: {
+    groupId: string;
+    memberId: string;
+    memberName: string;
+    approvedById: string;
+  };
+  [ServiceEvents.GROUP_MEMBER_REJECTED]: {
+    groupId: string;
+    memberId: string;
+    memberName: string;
+    rejectedById: string;
+  };
+  [ServiceEvents.GROUP_APPROVAL_REQUESTED]: {
+    groupId: string;
+    groupName: string;
+    requesterId: string;
+    requesterName: string;
+    isCoach: boolean;
+  };
+
+  // Data retention events
+  [ServiceEvents.ATHLETE_DATA_ARCHIVED]: {
+    athleteId: string;
+    athleteName: string;
+    dataType: string;
+    recordCount: number;
+    archivedAt: string;
+  };
+  [ServiceEvents.DATA_RETENTION_WARNING]: {
+    athleteId: string;
+    warnings: string[];
+    checkedAt: string;
+  };
+
   // Connection & offline queue events
   [ServiceEvents.CONNECTION_CHANGED]: {
     isConnected: boolean;
     wasOffline: boolean;
   };
+  [ServiceEvents.QUEUE_ACTION_ADDED]: {
+    actionId: string;
+    path: string;
+    method: string;
+    queueSize: number;
+  };
   [ServiceEvents.QUEUE_FLUSHED]: {
     processed: number;
     failed: number;
     remaining: number;
+  };
+  [ServiceEvents.QUEUE_FLUSH_FAILED]: {
+    error: string;
+    queueSize: number;
   };
   [ServiceEvents.QUEUE_ACTION_FAILED]: {
     actionId: string;

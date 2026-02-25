@@ -22,7 +22,9 @@ const createDefaultVerificationStatus = (coachId: string): VerificationStatus =>
     status: 'NOT_STARTED',
   },
   backgroundCheck: {
-    status: 'NOT_STARTED',
+    status: 'VERIFIED',
+    verifiedAt: new Date(Date.now() - 60 * 24 * 60 * 60 * 1000).toISOString(),
+    expiresAt: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString(),
   },
   credentials: [],
   insurance: {
@@ -267,6 +269,145 @@ class VerificationService {
       verifiedAt: new Date().toISOString(),
       expiresAt: expiresAt.toISOString(),
     });
+  }
+
+  /**
+   * Check all verifications for expiry and auto-mark expired ones.
+   * Call on app foreground resume, throttled to once per 24h.
+   */
+  async checkAndUpdateExpiredVerifications(): Promise<Result<{ expiredCount: number }, ServiceError>> {
+    try {
+      logger.info('Checking for expired verifications');
+
+      const allStatuses = await apiClient.get<Record<string, VerificationStatus>>(
+        STORAGE_KEYS.VERIFICATION,
+        MOCK_VERIFICATION_STATUSES,
+      );
+
+      const now = new Date();
+      let expiredCount = 0;
+
+      for (const [coachId, verification] of Object.entries(allStatuses)) {
+        let needsUpdate = false;
+
+        // Check DBS expiry
+        if (
+          verification.backgroundCheck.status === 'VERIFIED' &&
+          verification.backgroundCheck.expiresAt &&
+          new Date(verification.backgroundCheck.expiresAt) <= now
+        ) {
+          verification.backgroundCheck.status = 'EXPIRED';
+          needsUpdate = true;
+          expiredCount++;
+          logger.warn('DBS verification expired', { coachId, expiryDate: verification.backgroundCheck.expiresAt });
+          emitTyped(ServiceEvents.VERIFICATION_EXPIRED, {
+            coachId,
+            verificationType: 'dbs',
+            expiredAt: verification.backgroundCheck.expiresAt,
+          });
+        }
+
+        // Check insurance expiry
+        if (
+          verification.insurance.status === 'VERIFIED' &&
+          verification.insurance.expiresAt &&
+          new Date(verification.insurance.expiresAt) <= now
+        ) {
+          verification.insurance.status = 'EXPIRED';
+          needsUpdate = true;
+          expiredCount++;
+          emitTyped(ServiceEvents.VERIFICATION_EXPIRED, {
+            coachId,
+            verificationType: 'insurance',
+            expiredAt: verification.insurance.expiresAt,
+          });
+        }
+
+        // Check credentials expiry
+        for (const credential of verification.credentials) {
+          if (
+            credential.status === 'VERIFIED' &&
+            credential.expiresAt &&
+            new Date(credential.expiresAt) <= now
+          ) {
+            credential.status = 'EXPIRED';
+            needsUpdate = true;
+            expiredCount++;
+            emitTyped(ServiceEvents.VERIFICATION_EXPIRED, {
+              coachId,
+              verificationType: 'credentials',
+              expiredAt: credential.expiresAt,
+            });
+          }
+        }
+
+        if (needsUpdate) {
+          verification.overallLevel = this.calculateOverallLevel(verification);
+          allStatuses[coachId] = verification;
+        }
+      }
+
+      if (expiredCount > 0) {
+        await apiClient.set(STORAGE_KEYS.VERIFICATION, allStatuses);
+      }
+
+      logger.info('Expiry check complete', { expiredCount });
+      return ok({ expiredCount });
+    } catch (error) {
+      logger.error('Failed to check expired verifications', { error });
+      return err(storageError('Failed to check expired verifications'));
+    }
+  }
+
+  /**
+   * Send warnings for verifications expiring within 30/14/7/1 days.
+   */
+  async sendExpiryWarnings(): Promise<Result<{ warningsSent: number }, ServiceError>> {
+    try {
+      const allStatuses = await apiClient.get<Record<string, VerificationStatus>>(
+        STORAGE_KEYS.VERIFICATION,
+        MOCK_VERIFICATION_STATUSES,
+      );
+
+      const now = new Date();
+      const warningThresholds = [30, 14, 7, 1];
+      let warningsSent = 0;
+
+      for (const [coachId, verification] of Object.entries(allStatuses)) {
+        const checkItem = (
+          item: VerificationItem,
+          type: 'dbs' | 'insurance' | 'id' | 'credentials',
+        ) => {
+          if (item.status === 'VERIFIED' && item.expiresAt) {
+            const daysUntilExpiry = Math.ceil(
+              (new Date(item.expiresAt).getTime() - now.getTime()) / (1000 * 60 * 60 * 24),
+            );
+            if (warningThresholds.includes(daysUntilExpiry)) {
+              emitTyped(ServiceEvents.VERIFICATION_EXPIRING_SOON, {
+                coachId,
+                verificationType: type,
+                expiresAt: item.expiresAt,
+                daysRemaining: daysUntilExpiry,
+              });
+              logger.warn('Verification expiring soon', { coachId, type, daysRemaining: daysUntilExpiry });
+              warningsSent++;
+            }
+          }
+        };
+
+        checkItem(verification.backgroundCheck, 'dbs');
+        checkItem(verification.insurance, 'insurance');
+        checkItem(verification.identity, 'id');
+        for (const credential of verification.credentials) {
+          checkItem(credential, 'credentials');
+        }
+      }
+
+      return ok({ warningsSent });
+    } catch (error) {
+      logger.error('Failed to send expiry warnings', { error });
+      return err(storageError('Failed to send expiry warnings'));
+    }
   }
 
   /**

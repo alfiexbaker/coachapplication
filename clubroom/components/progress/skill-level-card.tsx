@@ -2,6 +2,7 @@ import React from 'react';
 import { StyleSheet, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
+import { Column } from '@/components/primitives/column';
 import { Row } from '@/components/primitives/row';
 import { ThemedText } from '@/components/themed-text';
 import { SurfaceCard } from '@/components/primitives/surface-card';
@@ -67,12 +68,12 @@ export function SkillLevelCard({
     return (
       <View style={styles.compactContainer}>
         <Row justify="space-between" align="center">
-          <View style={{ flex: 1 }}>
+          <Column flex>
             <ThemedText style={styles.compactSkillName}>{skill.skill}</ThemedText>
             <ThemedText style={[styles.compactLevelLabel, { color: skillColor }]}>
               {levelInfo.label}
             </ThemedText>
-          </View>
+          </Column>
           <Row align="center" gap="xxs">
             <ThemedText type="defaultSemiBold" style={[styles.compactLevel, { color: skillColor }]}>
               {skill.level}

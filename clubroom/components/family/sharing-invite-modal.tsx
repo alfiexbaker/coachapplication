@@ -11,7 +11,7 @@ import { useTheme } from '@/hooks/useTheme';
 import { ROLE_INFO } from '@/hooks/use-family-sharing';
 import { RELATIONSHIP_OPTIONS } from '@/services/family';
 import type { GuardianRole } from '@/constants/types';
-import { Row } from '@/components/primitives';
+import { Row, Column } from '@/components/primitives';
 
 interface SharingInviteModalProps {
   visible: boolean;
@@ -150,14 +150,14 @@ export const SharingInviteModal = memo(function SharingInviteModal({
                     <View style={[styles.radioDot, { backgroundColor: colors.tint }]} />
                   )}
                 </View>
-                <View style={{ flex: 1 }}>
+                <Column flex>
                   <ThemedText type="defaultSemiBold">{ROLE_INFO[role].label}</ThemedText>
                   <ThemedText
                     style={[Typography.small, { color: colors.muted, marginTop: Spacing.micro }]}
                   >
                     {ROLE_INFO[role].description}
                   </ThemedText>
-                </View>
+                </Column>
               </Clickable>
             ))}
           </View>

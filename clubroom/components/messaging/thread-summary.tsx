@@ -2,6 +2,7 @@ import { StyleSheet, View } from 'react-native';
 
 import { Chip } from '@/components/primitives/chip';
 import { Row } from '@/components/primitives/row';
+import { Column } from '@/components/primitives/column';
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { ThemedText } from '@/components/themed-text';
 import { IconSymbol } from '@/components/ui/icon-symbol';
@@ -28,7 +29,7 @@ export function ThreadSummary({ thread }: ThreadSummaryProps) {
         >
           <IconSymbol name="person.circle" size={28} color={palette.tint} />
         </View>
-        <View style={{ flex: 1 }}>
+        <Column flex>
           <ThemedText type="defaultSemiBold">{displayName}</ThemedText>
           <Row align="center" gap="xs">
             <ThemedText style={styles.subtitle}>{subtitle}</ThemedText>
@@ -43,7 +44,7 @@ export function ThreadSummary({ thread }: ThreadSummaryProps) {
               </View>
             ) : null}
           </Row>
-        </View>
+        </Column>
         {thread.unreadCount ? (
           <View style={[styles.badge, { backgroundColor: palette.tint }]}>
             <ThemedText style={[styles.badgeLabel, { color: palette.onPrimary }]}>
@@ -143,7 +144,7 @@ const styles = StyleSheet.create({
     padding: Spacing.sm,
     borderRadius: Radii.md,
   },
-  safetyCopy: { ...Typography.small, flex: 1, lineHeight: 18 },
+  safetyCopy: { ...Typography.small, flex: 1, lineHeight: Typography.caption.lineHeight },
   objectivesRow: {
     marginTop: -Spacing.xs,
   },

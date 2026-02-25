@@ -2,6 +2,7 @@ import React, { memo } from 'react';
 import { View, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import Animated, { FadeInDown } from 'react-native-reanimated';
+import { Column } from '@/components/primitives/column';
 import { Row } from '@/components/primitives/row';
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { Clickable } from '@/components/primitives/clickable';
@@ -61,14 +62,14 @@ export const EmergencyDetails = memo(function EmergencyDetails({
                 ]}
               >
                 <Ionicons name="ban" size={16} color={palette.warning} />
-                <View style={{ flex: 1 }}>
+                <Column flex>
                   <ThemedText style={[styles.restrictionsLabel, { color: palette.warning }]}>
                     Restrictions
                   </ThemedText>
                   <ThemedText style={styles.restrictionsText}>
                     {data.restrictions.join('; ')}
                   </ThemedText>
-                </View>
+                </Column>
               </Row>
             )}
             {data.medicalNotes && (
@@ -138,14 +139,14 @@ export const EmergencyDetails = memo(function EmergencyDetails({
               <ThemedText type="defaultSemiBold">Doctor Information</ThemedText>
             </Row>
             <Row align="center" gap="md">
-              <View style={{ flex: 1 }}>
+              <Column flex>
                 {data.doctorName && (
                   <ThemedText type="defaultSemiBold">{data.doctorName}</ThemedText>
                 )}
                 {data.doctorPhone && (
                   <ThemedText style={{ color: palette.muted }}>{data.doctorPhone}</ThemedText>
                 )}
-              </View>
+              </Column>
               {data.doctorPhone && (
                 <Clickable
                   onPress={onCallDoctor}

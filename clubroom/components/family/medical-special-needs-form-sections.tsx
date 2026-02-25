@@ -1,5 +1,5 @@
 import React, { useState, useCallback } from 'react';
-import { View, StyleSheet, TextInput } from 'react-native';
+import { Alert, View, StyleSheet, TextInput } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
 import { ThemedText } from '@/components/themed-text';
@@ -14,6 +14,8 @@ import {
   SPECIAL_NEEDS_CATEGORIES,
 } from '@/services/child-service';
 import { Row } from '@/components/primitives';
+
+const MAX_TAGS = 10;
 
 /* ---------- Tag Input Helper ---------- */
 
@@ -32,6 +34,10 @@ function TagInput({
 
   const addTag = useCallback(() => {
     const trimmed = input.trim();
+    if (tags.length >= MAX_TAGS) {
+      Alert.alert('Limit reached', `Maximum ${MAX_TAGS} tags allowed.`);
+      return;
+    }
     if (trimmed && !tags.includes(trimmed)) {
       onChange([...tags, trimmed]);
       setInput('');
@@ -491,9 +497,9 @@ const styles = StyleSheet.create({
   tag: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
+    gap: Spacing.xxs,
     paddingHorizontal: Spacing.sm,
-    paddingVertical: 4,
+    paddingVertical: Spacing.xxs,
     borderRadius: Radii.pill,
   },
   tagInputRow: { gap: Spacing.xs, alignItems: 'center' },

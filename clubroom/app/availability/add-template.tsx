@@ -291,7 +291,7 @@ const styles = StyleSheet.create({
   },
   dayButtonText: { ...Typography.bodySmallSemiBold },
   timeRow: { marginTop: Spacing.sm },
-  timeCol: { gap: 8 },
+  timeCol: { gap: Spacing.xs },
   label: { ...Typography.smallSemiBold },
   timeOptions: { gap: Spacing.xs },
   timeOption: {

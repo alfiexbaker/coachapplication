@@ -141,7 +141,6 @@ const styles = StyleSheet.create({
   },
   summary: {
     ...Typography.caption,
-    lineHeight: 18,
   },
   deltaText: {
     ...Typography.caption,

@@ -9,7 +9,8 @@
  */
 
 import { memo } from 'react';
-import { Image, Platform, TextInput, View } from 'react-native';
+import { Platform, TextInput, View } from 'react-native';
+import { Image } from 'expo-image';
 import { Ionicons } from '@expo/vector-icons';
 import DateTimePicker from '@react-native-community/datetimepicker';
 

@@ -4,6 +4,7 @@
 import { memo } from 'react';
 import { View, StyleSheet, ScrollView } from 'react-native';
 import { Row } from '@/components/primitives/row';
+import { Column } from '@/components/primitives/column';
 import { Ionicons } from '@expo/vector-icons';
 import { router, type Href } from 'expo-router';
 import { Routes } from '@/navigation/routes';
@@ -41,7 +42,7 @@ export const StatsRow = memo(function StatsRow({
     { icon: 'trophy' as const, color: palette.success, value: String(stats.level), label: 'Level' },
   ];
   return (
-    <View
+    <Row
       style={[
         styles.statsRow,
         {
@@ -70,7 +71,7 @@ export const StatsRow = memo(function StatsRow({
           )}
         </View>
       ))}
-    </View>
+    </Row>
   );
 });
 
@@ -191,7 +192,7 @@ export const QuickActionsGrid = memo(function QuickActionsGrid() {
 // --- NextSession ---
 interface Booking {
   id: string;
-  coachName: string;
+  coachName?: string;
   scheduledAt: string;
   location: string;
   status: string;
@@ -248,7 +249,7 @@ export const NextSessionCard = memo(function NextSessionCard({ booking }: { book
         >
           <Ionicons name="time" size={20} color={palette.tint} />
         </View>
-        <View style={{ flex: 1 }}>
+        <Column flex>
           <ThemedText
             type="defaultSemiBold"
             style={{ ...Typography.caption, color: palette.tint, textTransform: 'uppercase' }}
@@ -258,7 +259,7 @@ export const NextSessionCard = memo(function NextSessionCard({ booking }: { book
           <ThemedText type="subtitle" style={styles.coachName} numberOfLines={1}>
             {booking.coachName}
           </ThemedText>
-        </View>
+        </Column>
         <Ionicons name="chevron-forward" size={18} color={palette.muted} />
       </Row>
       <View style={styles.sessionDetails}>
@@ -366,12 +367,12 @@ export const MyClubsSection = memo(function MyClubsSection({ clubs }: { clubs: C
               {club.badge || club.name.slice(0, 2).toUpperCase()}
             </ThemedText>
           </View>
-          <View style={{ flex: 1 }}>
+          <Column flex>
             <ThemedText type="defaultSemiBold">{club.name}</ThemedText>
             <ThemedText style={{ ...Typography.caption, color: palette.muted }}>
               {club.memberCount} members
             </ThemedText>
-          </View>
+          </Column>
           <Ionicons name="chevron-forward" size={18} color={palette.muted} />
         </SurfaceCard>
       ))}
@@ -381,7 +382,6 @@ export const MyClubsSection = memo(function MyClubsSection({ clubs }: { clubs: C
 
 const styles = StyleSheet.create({
   statsRow: {
-    flexDirection: 'row',
     paddingVertical: Spacing.sm,
     borderRadius: Radii.lg,
     borderWidth: 1,
@@ -434,7 +434,7 @@ const styles = StyleSheet.create({
   },
   streakNumber: { ...Typography.display },
   streakWeeks: { ...Typography.bodySmallSemiBold },
-  streakLabel: { ...Typography.smallSemiBold, lineHeight: 18 },
+  streakLabel: { ...Typography.smallSemiBold, lineHeight: Typography.caption.lineHeight },
   streakProgress: {
     /* layout moved to Row */
   },
@@ -494,7 +494,7 @@ const styles = StyleSheet.create({
   },
   noSessionSubtitle: {
     ...Typography.small,
-    lineHeight: 18,
+    lineHeight: Typography.caption.lineHeight,
   },
   noSessionIcon: {
     width: 42,

@@ -21,7 +21,7 @@ import { SpendingChart } from '@/components/family/SpendingChart';
 import { SpendingComparisonCard } from '@/components/family/spending-comparison-card';
 import { SpendingTransactions } from '@/components/family/spending-transactions';
 import { LoadingState, ErrorState, EmptyState } from '@/components/ui/screen-states';
-import { Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
+import { Spacing, Radii, Typography } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
 import { useFamilySpending, DATE_FILTERS, DATE_FILTER_LABELS } from '@/hooks/use-family-spending';
 
@@ -41,7 +41,6 @@ export default function FamilySpendingScreen() {
     recentTransactions,
   } = useFamilySpending();
   const handleOpenCalendar = () => router.push(Routes.FAMILY_CALENDAR);
-  const handleOpenPackages = () => router.push(Routes.PACKAGES);
   const handleOpenWallet = () => router.push(Routes.WALLET);
 
   if (status === 'loading') {
@@ -156,30 +155,6 @@ export default function FamilySpendingScreen() {
         <SpendingTransactions transactions={recentTransactions} />
       </Animated.View>
 
-      {/* Tips Card */}
-      <Animated.View entering={FadeInDown.delay(250).springify()}>
-        <SurfaceCard style={[styles.tipsCard, { backgroundColor: withAlpha(colors.tint, 0.03) }]}>
-          <Row gap="xs" align="center">
-            <Ionicons name="bulb" size={20} color={colors.tint} />
-            <ThemedText type="defaultSemiBold" style={Typography.bodySmall}>
-              Save on Sessions
-            </ThemedText>
-          </Row>
-          <ThemedText style={[Typography.small, { color: colors.muted }]}>
-            Consider booking session packages to save up to 15% on regular training. Packages are
-            available from most coaches.
-          </ThemedText>
-          <Clickable
-            onPress={handleOpenPackages}
-            style={[styles.tipsButton, { borderColor: colors.tint }]}
-          >
-            <ThemedText style={[Typography.smallSemiBold, { color: colors.tint }]}>
-              View Packages
-            </ThemedText>
-          </Clickable>
-        </SurfaceCard>
-      </Animated.View>
-
       {/* Quick Actions */}
       <Animated.View entering={FadeInDown.delay(300).springify()}>
         <Row gap="sm">
@@ -218,15 +193,6 @@ const styles = StyleSheet.create({
     paddingVertical: Spacing.xs,
     borderRadius: Radii.pill,
     borderWidth: 1.5,
-  },
-  tipsCard: { padding: Spacing.md, gap: Spacing.sm },
-  tipsButton: {
-    alignSelf: 'flex-start',
-    paddingHorizontal: Spacing.md,
-    paddingVertical: Spacing.xs,
-    borderRadius: Radii.pill,
-    borderWidth: 1.5,
-    marginTop: Spacing.xs,
   },
   actionButton: { flex: 1, paddingVertical: Spacing.md, borderRadius: Radii.lg },
   actionButtonSecondary: {

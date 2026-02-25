@@ -6,7 +6,7 @@
  */
 
 import { useState, useCallback } from 'react';
-import { View, ScrollView } from 'react-native';
+import { View, ScrollView, Platform } from 'react-native';
 import * as Haptics from 'expo-haptics';
 
 import { ThemedText } from '@/components/themed-text';
@@ -34,7 +34,7 @@ export function BodyPartSelector({ selectedPart, onSelect }: BodyPartSelectorPro
 
   const handleCategoryPress = useCallback(
     (category: BodyPartCategory) => {
-      void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+      if (Platform.OS !== 'web') void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
       setExpandedCategory(expandedCategory === category ? null : category);
     },
     [expandedCategory],
@@ -42,7 +42,7 @@ export function BodyPartSelector({ selectedPart, onSelect }: BodyPartSelectorPro
 
   const handlePartSelect = useCallback(
     (part: BodyPart) => {
-      void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+      if (Platform.OS !== 'web') void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
       onSelect(part);
     },
     [onSelect],

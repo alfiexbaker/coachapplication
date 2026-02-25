@@ -171,11 +171,11 @@ const styles = StyleSheet.create({
   iconWrap: {
     width: 28,
     height: 28,
-    borderRadius: 14,
+    borderRadius: Radii.lg,
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 1,
-    marginTop: 2,
+    marginTop: Spacing.micro,
   },
   content: {
     flex: 1,
@@ -191,7 +191,7 @@ const styles = StyleSheet.create({
   time: {
     ...Typography.micro,
     fontWeight: '600',
-    paddingTop: 2,
+    paddingTop: Spacing.micro,
   },
   selfChip: {
     paddingHorizontal: 6,

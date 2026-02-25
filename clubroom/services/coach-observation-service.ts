@@ -56,7 +56,7 @@ export interface CreateObservationInput {
   isPrivate?: boolean;
 }
 
-export const OBSERVATION_CATEGORIES: { id: ObservationCategory; label: string; icon: string }[] = [
+export const OBSERVATION_CATEGORIES: readonly { id: ObservationCategory; label: string; icon: string }[] = [
   { id: 'BEHAVIORAL', label: 'Behaviour', icon: 'person' },
   { id: 'PHYSICAL', label: 'Physical', icon: 'fitness' },
   { id: 'COMMUNICATION', label: 'Communication', icon: 'chatbubble' },
@@ -107,11 +107,21 @@ export const coachObservationService = {
   },
 
   async createObservation(input: CreateObservationInput): Promise<Result<CoachObservation, ServiceError>> {
+    if (!input.athleteId?.trim()) {
+      return err(validationError('Athlete ID is required'));
+    }
     if (!input.text.trim()) {
       return err(validationError('Observation text is required'));
     }
     if (input.text.length > 2000) {
       return err(validationError('Observation text must be under 2000 characters'));
+    }
+
+    // Validate athlete exists
+    const users = await apiClient.get<{ id: string; name: string }[]>(STORAGE_KEYS.USERS, []);
+    const athlete = users.find(u => u.id === input.athleteId);
+    if (!athlete) {
+      return err(notFound('Athlete', input.athleteId));
     }
 
     const now = new Date().toISOString();

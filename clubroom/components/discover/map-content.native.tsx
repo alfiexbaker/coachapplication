@@ -93,15 +93,7 @@ const PricePin = memo(function PricePin({
           styles.pinArrow,
           {
             borderTopColor: bg,
-            ...Platform.select({
-              ios: {
-                shadowColor: '#000',
-                shadowOpacity: 0.08,
-                shadowRadius: 2,
-                shadowOffset: { width: 0, height: 1 },
-              },
-              android: {},
-            }),
+            ...Shadows[scheme].subtle,
           },
         ]}
       />
@@ -216,7 +208,7 @@ const CoachSheetItem = memo(function CoachSheetItem({
   onBook: () => void;
 }) {
   const { colors: palette } = useTheme();
-  const price = coach.sessionRate ?? coach.priceRange.minUsd;
+  const price = coach.sessionRate ?? coach.priceRange.min;
   const focuses = (coach.footballFocuses ?? []).slice(0, 3);
 
   return (
@@ -238,7 +230,7 @@ const CoachSheetItem = memo(function CoachSheetItem({
             transition={200}
           />
           {coach.badges?.length > 0 ? (
-            <View style={[styles.verifiedBadge, { backgroundColor: palette.tint }]}>
+            <View style={[styles.verifiedBadge, { backgroundColor: palette.tint, borderColor: palette.card }]}>
               <Ionicons name="checkmark" size={10} color={palette.onPrimary} />
             </View>
           ) : null}
@@ -264,7 +256,7 @@ const CoachSheetItem = memo(function CoachSheetItem({
           {/* Rating + Distance */}
           <Row align="center" gap="xs">
             <Row align="center" gap="micro">
-              <Ionicons name="star" size={13} color="#F59E0B" />
+              <Ionicons name="star" size={13} color={palette.rating} />
               <ThemedText style={styles.ratingText}>
                 {coach.rating.average.toFixed(1)}
               </ThemedText>
@@ -478,7 +470,7 @@ export default function MapContent(props: MapContentProps) {
             tracksViewChanges={false}
           >
             <PricePin
-              price={result.coach.sessionRate ?? result.coach.priceRange.minUsd}
+              price={result.coach.sessionRate ?? result.coach.priceRange.min}
               selected={result.coach.id === selectedCoachId}
             />
           </Marker>
@@ -691,7 +683,7 @@ const styles = StyleSheet.create({
   sheetHandle: {
     width: 36,
     height: 4,
-    borderRadius: 2,
+    borderRadius: Radii.xs,
     marginTop: Spacing.xs,
   },
   sheetContent: {
@@ -719,7 +711,7 @@ const styles = StyleSheet.create({
   avatar: {
     width: 56,
     height: 56,
-    borderRadius: 28,
+    borderRadius: Radii.xl,
   },
   verifiedBadge: {
     position: 'absolute',
@@ -727,11 +719,10 @@ const styles = StyleSheet.create({
     right: 0,
     width: 18,
     height: 18,
-    borderRadius: 9,
+    borderRadius: Radii.sm,
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 2,
-    borderColor: '#fff',
   },
   sheetInfo: { flex: 1 },
   sheetName: {
@@ -754,7 +745,7 @@ const styles = StyleSheet.create({
   metaDot: {
     width: 3,
     height: 3,
-    borderRadius: 1.5,
+    borderRadius: Radii.xs,
     opacity: 0.4,
   },
   distanceText: {

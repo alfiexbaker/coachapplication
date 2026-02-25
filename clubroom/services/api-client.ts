@@ -17,15 +17,38 @@
 
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { createLogger } from '@/utils/logger';
+import { generateId } from '@/utils/generate-id';
 import { ApiError, UnauthorizedError, NetworkError } from '@/constants/error-types';
 import { api, rateLimits } from '@/constants/config';
 import type { Result, ServiceError, ServiceErrorCode } from '@/types/result';
 import { ok, err, networkError, unauthorized, serviceError, storageError } from '@/types/result';
+import { withTimeout } from '@/utils/timeout';
+import { withRetry } from '@/utils/retry';
 
 const logger = createLogger('ApiClient');
 
 // Config-driven settings
 const USE_MOCK = api.useMock;
+
+// Storage resilience
+const STORAGE_TIMEOUT_MS = 5000;
+const STORAGE_RETRY_ATTEMPTS = 3;
+const STORAGE_RETRY_DELAY = 500;
+
+function isTransientError(error: unknown): boolean {
+  if (!error || typeof error !== 'object') return false;
+
+  const message =
+    'message' in error && typeof (error as { message: unknown }).message === 'string'
+      ? ((error as { message: string }).message).toLowerCase()
+      : '';
+
+  return (
+    message.includes('database locked') ||
+    message.includes('disk i/o error') ||
+    message.includes('temporarily unavailable')
+  );
+}
 const API_BASE_URL = api.baseUrl;
 const API_TIMEOUT = api.timeout;
 
@@ -77,7 +100,7 @@ let _isRefreshing = false;
 let _refreshPromise: Promise<void> | null = null;
 
 type AuthServiceLike = {
-  getTokens: () => Promise<{ accessToken?: string; refreshToken?: string } | null>;
+  getTokens: () => Promise<{ accessToken?: string; refreshToken?: string; expiresAt?: number } | null>;
   refreshToken: () => Promise<Result<unknown, ServiceError>>;
   logout: () => Promise<void>;
 };
@@ -110,12 +133,30 @@ async function _apiFetchUnsafe<T>(path: string, options?: RequestInit): Promise<
   await rateLimiter.waitForSlot();
   rateLimiter.recordRequest();
 
-  // Get auth token from authService
+  // Get auth token from authService, proactively refreshing if about to expire
   let authHeaders: Record<string, string> = {};
   const authService = getAuthService();
-  if (!USE_MOCK) {
+  if (!USE_MOCK && authService) {
     try {
-      const tokens = authService ? await authService.getTokens() : null;
+      let tokens = await authService.getTokens();
+
+      // Proactive refresh: if token expires within 60s, refresh now
+      if (tokens?.expiresAt && tokens.expiresAt < Date.now() + 60_000) {
+        logger.debug('Token expiring soon, proactively refreshing');
+        if (!_isRefreshing) {
+          _isRefreshing = true;
+          _refreshPromise = authService.refreshToken().then((result) => {
+            _isRefreshing = false;
+            _refreshPromise = null;
+            if (!result.success) {
+              logger.warn('Proactive token refresh failed');
+            }
+          });
+        }
+        await _refreshPromise;
+        tokens = await authService.getTokens();
+      }
+
       if (tokens?.accessToken) {
         authHeaders = { Authorization: `Bearer ${tokens.accessToken}` };
       }
@@ -277,7 +318,20 @@ export async function apiFetch<T>(
 
 async function mockGet<T>(key: string, fallback: T): Promise<T> {
   try {
-    const raw = await AsyncStorage.getItem(key);
+    const timeoutResult = await withTimeout(
+      withRetry(
+        () => AsyncStorage.getItem(key),
+        { maxAttempts: STORAGE_RETRY_ATTEMPTS, delayMs: STORAGE_RETRY_DELAY, shouldRetry: isTransientError },
+      ),
+      STORAGE_TIMEOUT_MS,
+    );
+
+    if (!timeoutResult.success) {
+      logger.error('Storage read timeout', { key, timeout: STORAGE_TIMEOUT_MS });
+      return fallback;
+    }
+
+    const raw = timeoutResult.data;
     if (raw) return JSON.parse(raw) as T;
     return fallback;
   } catch (error) {
@@ -287,8 +341,20 @@ async function mockGet<T>(key: string, fallback: T): Promise<T> {
 }
 
 async function mockSet<T>(key: string, data: T): Promise<void> {
+  const serialized = JSON.stringify(data);
   try {
-    await AsyncStorage.setItem(key, JSON.stringify(data));
+    const timeoutResult = await withTimeout(
+      withRetry(
+        () => AsyncStorage.setItem(key, serialized),
+        { maxAttempts: STORAGE_RETRY_ATTEMPTS, delayMs: STORAGE_RETRY_DELAY, shouldRetry: isTransientError },
+      ),
+      STORAGE_TIMEOUT_MS,
+    );
+
+    if (!timeoutResult.success) {
+      logger.error('Storage write timeout', { key, timeout: STORAGE_TIMEOUT_MS });
+      throw new Error(`Storage write timeout for ${key}`);
+    }
   } catch (error) {
     logger.error(`Failed to set ${key}`, error);
     throw error;
@@ -369,8 +435,7 @@ export const apiClient = {
    * Generate a unique ID with optional prefix.
    */
   generateId(prefix?: string): string {
-    const id = `${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-    return prefix ? `${prefix}_${id}` : id;
+    return generateId(prefix);
   },
 
   /**

@@ -144,7 +144,7 @@ const styles = StyleSheet.create({
   },
   message: {
     ...Typography.bodySmall,
-    lineHeight: 20,
+    lineHeight: Typography.bodySmall.lineHeight,
     textAlign: 'center',
     marginBottom: Spacing.sm,
   },

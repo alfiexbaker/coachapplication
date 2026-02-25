@@ -212,11 +212,11 @@ export interface BookingSeries {
   id: string;
   bookingIds: string[];
   createdById: string;
-  createdByName: string;
+  createdByName?: string; // @deprecated — resolve via createdById
   coachId: string;
-  coachName: string;
+  coachName?: string; // @deprecated — resolve via coachId
   athleteIds: string[];
-  athleteNames: string[];
+  athleteNames?: string[]; // @deprecated — resolve via athleteIds
   sessionType: string;
   focus?: string;
   pricePerSession?: number;
@@ -311,7 +311,7 @@ export interface SessionOffering {
   registrations: SessionRegistration[];
   createdAt: string;
   duration?: number; // Duration in minutes (default 60)
-  priceUsd?: number;
+  price?: number;
   ageMin?: number; // Minimum age (e.g., 10 for U12)
   ageMax?: number; // Maximum age (e.g., 12 for U12)
   footballSkill?: FootballObjective; // Primary skill focus
@@ -400,7 +400,7 @@ export interface SessionInvite {
   sessionTemplateId?: string; // Links to SessionTemplate for auto-fill
   focus: string;
   notes?: string;
-  priceUsd?: number;
+  price?: number;
   duration?: number; // Duration in minutes (from session template)
   status: 'PENDING' | 'ACCEPTED' | 'DECLINED' | 'EXPIRED' | 'COUNTERED' | 'MAYBE';
   expiresAt: string;

@@ -144,12 +144,12 @@ function SessionBookingOptionsInner({
 export const SessionBookingOptions = memo(SessionBookingOptionsInner);
 
 const styles = StyleSheet.create({
-  card: { marginBottom: 16, padding: 20, gap: 14 },
-  childOption: { padding: 16, borderRadius: Radii.md, borderWidth: 2, marginTop: 10 },
-  weeksSelector: { marginTop: 10 },
+  card: { marginBottom: Spacing.sm, padding: Spacing.md, gap: Spacing.sm },
+  childOption: { padding: Spacing.sm, borderRadius: Radii.md, borderWidth: 2, marginTop: Spacing.xs },
+  weeksSelector: { marginTop: Spacing.xs },
   weekButton: {
     flex: 1,
-    paddingVertical: 16,
+    paddingVertical: Spacing.sm,
     borderRadius: Radii.md,
     borderWidth: 2,
     alignItems: 'center',

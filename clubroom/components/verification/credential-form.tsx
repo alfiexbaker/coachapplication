@@ -6,6 +6,7 @@ import { SurfaceCard } from '@/components/primitives/surface-card';
 import { Clickable } from '@/components/primitives/clickable';
 import { Button } from '@/components/primitives/button';
 import { ThemedText } from '@/components/themed-text';
+import { Column } from '@/components/primitives/column';
 import { Row } from '@/components/primitives/row';
 import { Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
 import type { ThemeColors } from '@/hooks/useTheme';
@@ -66,7 +67,7 @@ export const CredentialForm = memo(function CredentialForm({
                 },
               ]}
             >
-              <View style={{ flex: 1 }}>
+              <Column flex>
                 <ThemedText
                   style={{
                     fontWeight: selectedType === type.id ? '600' : '400',
@@ -78,7 +79,7 @@ export const CredentialForm = memo(function CredentialForm({
                 <ThemedText style={{ color: colors.muted, ...Typography.caption }}>
                   {type.category}
                 </ThemedText>
-              </View>
+              </Column>
               <Ionicons
                 name={selectedType === type.id ? 'radio-button-on' : 'radio-button-off'}
                 size={20}
@@ -115,12 +116,12 @@ export const CredentialForm = memo(function CredentialForm({
               ]}
             >
               <Ionicons name="document-text" size={24} color={colors.success} />
-              <View style={{ flex: 1 }}>
+              <Column flex>
                 <ThemedText type="defaultSemiBold">Document uploaded</ThemedText>
                 <ThemedText style={{ color: colors.muted, ...Typography.caption }}>
                   credential.pdf
                 </ThemedText>
-              </View>
+              </Column>
               <Clickable accessibilityLabel="Remove uploaded document" onPress={onRemoveUpload}>
                 <Ionicons name="trash-outline" size={20} color={colors.error} />
               </Clickable>
@@ -138,8 +139,15 @@ export const CredentialForm = memo(function CredentialForm({
       )}
 
       <Button onPress={onSubmit} disabled={!canSubmit}>
-        {submitting ? 'Submitting...' : 'Submit Credential'}
+        {submitting ? 'Submitting...' : !uploaded ? 'Upload Required' : 'Submit Credential'}
       </Button>
+      {!uploaded && selectedType && (
+        <ThemedText
+          style={[Typography.small, { textAlign: 'center', marginTop: Spacing.xs, color: colors.muted }]}
+        >
+          Upload a document to enable submission
+        </ThemedText>
+      )}
     </SurfaceCard>
   );
 });

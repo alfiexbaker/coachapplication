@@ -32,7 +32,7 @@ export const mapCoachOption = (coach: CoachProfile): CoachOption => ({
   distance: coach.distanceMiles,
   profile: {
     rating: coach.rating.average,
-    sessionRate: coach.sessionRate ?? coach.priceRange.minUsd,
+    sessionRate: coach.sessionRate ?? coach.priceRange.min,
     specialties: coach.footballFocuses,
   },
 });

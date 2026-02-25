@@ -127,13 +127,13 @@ const ChildRow = memo(function ChildRow({
       <Row align="center" gap="sm" style={{ marginBottom: Spacing.xs }}>
         {/* Avatar */}
         <View style={[styles.avatar, { backgroundColor: withAlpha(colors.tint, 0.12) }]}>
-          <ThemedText style={[Typography.micro, { color: colors.tint, fontSize: 10 }]}>
+          <ThemedText style={[Typography.micro, { color: colors.tint }]}>
             {initials}
           </ThemedText>
         </View>
 
         {/* Name + status */}
-        <View style={{ flex: 1 }}>
+        <Column flex>
           <ThemedText type="defaultSemiBold" style={Typography.bodySmallSemiBold}>
             {familyReg.childName}
           </ThemedText>
@@ -142,7 +142,7 @@ const ChildRow = memo(function ChildRow({
               WAITLISTED
             </ThemedText>
           )}
-        </View>
+        </Column>
 
         {/* Cancel registration */}
         <Clickable
@@ -239,7 +239,7 @@ const styles = StyleSheet.create({
   avatar: {
     width: 32,
     height: 32,
-    borderRadius: 16,
+    borderRadius: Radii.lg,
     alignItems: 'center',
     justifyContent: 'center',
   },

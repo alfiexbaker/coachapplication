@@ -54,10 +54,10 @@ export const GoalListSkeletonInner = memo(function GoalListSkeletonInner({
         >
           <Skeleton width="30%" height={20} />
           <Skeleton width="80%" height={16} style={{ marginTop: Spacing.xs + Spacing.xxs }} />
-          <Skeleton width="60%" height={14} style={{ marginTop: 8 }} />
+          <Skeleton width="60%" height={14} style={{ marginTop: Spacing.xs }} />
           {variant === 'featured' && (
             <>
-              <Skeleton width="100%" height={12} style={{ marginTop: 16 }} />
+              <Skeleton width="100%" height={12} style={{ marginTop: Spacing.sm }} />
               <Skeleton width="90%" height={12} style={{ marginTop: Spacing.xxs }} />
             </>
           )}
@@ -207,7 +207,7 @@ export const styles = StyleSheet.create({
     fontSize: scaleFont(16),
   },
   countBadge: {
-    paddingHorizontal: 10,
+    paddingHorizontal: Spacing.xs,
     paddingVertical: Spacing.xxs,
     borderRadius: Radii.pill,
   },

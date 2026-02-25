@@ -237,7 +237,7 @@ const styles = StyleSheet.create({
   },
   header: { gap: Spacing.xs },
   title: { ...Typography.display, letterSpacing: -0.6 },
-  subtitle: { ...Typography.bodySmall, lineHeight: 20 },
+  subtitle: { ...Typography.bodySmall },
   focusMeta: {
     borderRadius: Radii.pill,
     borderWidth: 1,

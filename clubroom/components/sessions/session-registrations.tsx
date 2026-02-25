@@ -61,7 +61,7 @@ function SessionRegistrationsInner({
             <Row
               key={reg.id}
               align="center"
-              gap={12}
+              gap="sm"
               style={[styles.registration, { borderBottomColor: palette.border }]}
             >
               <View style={[styles.avatar, { backgroundColor: withAlpha(palette.tint, 0.08) }]}>
@@ -99,17 +99,17 @@ function SessionRegistrationsInner({
 export const SessionRegistrations = memo(SessionRegistrationsInner);
 
 const styles = StyleSheet.create({
-  card: { marginBottom: 16, padding: 20, gap: 14 },
+  card: { marginBottom: Spacing.sm, padding: Spacing.sm, gap: Spacing.sm },
   subhead: {
     fontSize: scaleFont(13),
     lineHeight: scaleFont(18),
-    marginTop: -4,
+    marginTop: -Spacing.xxs,
   },
   emptyText: {
     fontSize: scaleFont(15),
     opacity: 0.5,
     fontStyle: 'italic',
-    marginTop: 4,
+    marginTop: Spacing.xxs,
     lineHeight: scaleFont(21),
   },
   registration: { paddingVertical: Spacing.xs + Spacing.xxs, borderBottomWidth: 1 },
@@ -126,7 +126,7 @@ const styles = StyleSheet.create({
   },
   nameBlock: {
     flex: 1,
-    gap: 2,
+    gap: Spacing.micro,
     minWidth: 0,
   },
   regName: {
@@ -137,7 +137,7 @@ const styles = StyleSheet.create({
   youPill: {
     alignSelf: 'flex-start',
     borderRadius: Radii.pill,
-    paddingHorizontal: 8,
+    paddingHorizontal: Spacing.xs,
     paddingVertical: 3,
   },
   youPillText: {

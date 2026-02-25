@@ -276,7 +276,7 @@ const styles = StyleSheet.create({
   centerTitleText: {
     textAlign: 'center',
   },
-  subtitle: { ...Typography.caption, lineHeight: 18, fontWeight: '400' },
+  subtitle: { ...Typography.caption, fontWeight: '400' },
   centerSubtitleText: {
     textAlign: 'center',
   },

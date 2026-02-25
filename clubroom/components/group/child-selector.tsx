@@ -60,7 +60,7 @@ function ChildSelectorComponent({ options, selectedId, onSelect }: ChildSelector
                   <ThemedText
                     style={[
                       Typography.micro,
-                      { color: isSelected ? colors.onPrimary : colors.tint, fontSize: 10 },
+                      { color: isSelected ? colors.onPrimary : colors.tint, fontSize: Typography.micro.fontSize },
                     ]}
                   >
                     {child.initials}
@@ -98,7 +98,7 @@ const styles = StyleSheet.create({
   avatar: {
     width: 24,
     height: 24,
-    borderRadius: 12,
+    borderRadius: Radii.md,
     alignItems: 'center',
     justifyContent: 'center',
   },

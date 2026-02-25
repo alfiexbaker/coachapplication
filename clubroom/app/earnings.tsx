@@ -5,25 +5,48 @@
  * Coaches track who owes money, mark paid, write off bad debts, send reminders.
  */
 
-import { useCallback, useState, useMemo } from 'react';
-import { FlatList, StyleSheet, View, RefreshControl } from 'react-native';
+import { memo, useCallback, useState, useMemo } from 'react';
+import { FlatList, StyleSheet, View, RefreshControl, Share } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
-import { router } from 'expo-router';
 
 import { Row } from '@/components/primitives/row';
 import { Clickable } from '@/components/primitives/clickable';
+import { Button } from '@/components/primitives/button';
 import { ScreenHeader } from '@/components/primitives/screen-header';
 import { SessionPaymentItem, type PaymentTab } from '@/components/earnings/session-payment-item';
 import { PaymentSummaryCard } from '@/components/earnings/payment-summary-card';
 import { ThemedText } from '@/components/themed-text';
 import { LoadingState, ErrorState, EmptyState } from '@/components/ui/screen-states';
-import { Spacing, Typography, Radii, withAlpha } from '@/constants/theme';
+import { Spacing, Typography, Radii, withAlpha, Components } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
 import {
   useSessionPayments,
   type SessionPaymentItem as SessionPaymentItemType,
 } from '@/hooks/use-session-payments';
+
+function formatSessionDate(scheduledAt: string): string {
+  return new Date(scheduledAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
+}
+
+function formatSingleReminder(item: SessionPaymentItemType): string {
+  const amount = `\u00A3${item.invoice.total.toFixed(2)}`;
+  const date = formatSessionDate(item.booking.scheduledAt);
+  return `Hi! Just a friendly reminder about the ${amount} payment for the session on ${date}. Let me know if you have any questions!`;
+}
+
+function formatBatchReminder(items: SessionPaymentItemType[]): string {
+  const total = items.reduce((sum, item) => sum + item.invoice.total, 0);
+  const lines = items
+    .map((item) => `- ${item.athleteName} (${formatSessionDate(item.booking.scheduledAt)}): \u00A3${item.invoice.total.toFixed(2)}`)
+    .join('\n');
+  return `Hi! Just a friendly reminder about outstanding payments totalling \u00A3${total.toFixed(2)}:\n\n${lines}\n\nPlease let me know if you have any questions!`;
+}
+
+const Separator = memo(function Separator() {
+  const { colors } = useTheme();
+  return <View style={[styles.separator, { backgroundColor: colors.border }]} />;
+});
 
 const TABS: { key: PaymentTab; label: string }[] = [
   { key: 'owed', label: 'Owed' },
@@ -31,9 +54,18 @@ const TABS: { key: PaymentTab; label: string }[] = [
   { key: 'written_off', label: 'Written Off' },
 ];
 
+type Period = 'week' | 'month' | 'all';
+
+const PERIODS: { key: Period; label: string }[] = [
+  { key: 'week', label: 'This Week' },
+  { key: 'month', label: 'This Month' },
+  { key: 'all', label: 'All Time' },
+];
+
 export default function EarningsScreen() {
   const { colors } = useTheme();
   const [activeTab, setActiveTab] = useState<PaymentTab>('owed');
+  const [period, setPeriod] = useState<Period>('all');
 
   const {
     unpaidSessions,
@@ -45,6 +77,7 @@ export default function EarningsScreen() {
     unpaidCount,
     paidCount,
     writtenOffCount,
+    overdueCount,
     handleMarkPaid,
     handleMarkUnpaid,
     handleWriteOff,
@@ -67,26 +100,59 @@ export default function EarningsScreen() {
     }
   }, [activeTab, unpaidSessions, paidSessions, writtenOffSessions]);
 
-  const handleSendReminder = useCallback(
-    (item: SessionPaymentItemType) => {
-      const amount = `\u00A3${item.invoice.total.toFixed(2)}`;
-      const sessionDate = new Date(item.booking.scheduledAt).toLocaleDateString('en-GB', {
-        day: 'numeric',
-        month: 'short',
-      });
-      const prefill = `Hi! Just a friendly reminder about the ${amount} payment for the session on ${sessionDate}. Let me know if you have any questions!`;
+  const filteredData = useMemo(() => {
+    if (period === 'all') return activeData;
 
-      // Navigate to messaging — use coach's thread or fallback
-      router.push({
-        pathname: '/chat/[threadId]',
-        params: {
-          threadId: item.booking.id,
-          prefill,
-        },
-      } as never);
+    const now = new Date();
+    const startOfWeek = new Date(now);
+    const day = startOfWeek.getDay();
+    startOfWeek.setDate(now.getDate() - (day === 0 ? 6 : day - 1));
+    startOfWeek.setHours(0, 0, 0, 0);
+
+    const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+    const cutoff = period === 'week' ? startOfWeek : startOfMonth;
+
+    return activeData.filter(
+      (item) => new Date(item.booking.scheduledAt).getTime() >= cutoff.getTime(),
+    );
+  }, [activeData, period]);
+
+  const handleSendReminder = useCallback(
+    async (item: SessionPaymentItemType) => {
+      const message = formatSingleReminder(item);
+      try {
+        await Share.share({ message });
+      } catch {
+        // User cancelled share sheet — no action needed
+      }
     },
     [],
   );
+
+  const handleRemindAllOverdue = useCallback(async () => {
+    const overdueItems = unpaidSessions.filter((s) => s.isOverdue);
+    if (overdueItems.length === 0) return;
+
+    const message = formatBatchReminder(overdueItems);
+    try {
+      await Share.share({ message });
+    } catch {
+      // User cancelled
+    }
+  }, [unpaidSessions]);
+
+  const subtitle = useMemo(() => {
+    if (overdueCount > 0) {
+      return `${overdueCount} overdue \u2014 chase payments`;
+    }
+    if (unpaidCount > 0) {
+      return `\u00A3${totalOwed.toFixed(2)} outstanding`;
+    }
+    if (paidCount > 0) {
+      return `\u00A3${totalCollected.toFixed(2)} collected`;
+    }
+    return 'Track your session payments';
+  }, [overdueCount, unpaidCount, paidCount, totalOwed, totalCollected]);
 
   const emptyMessage = useMemo(() => {
     switch (activeTab) {
@@ -149,7 +215,7 @@ export default function EarningsScreen() {
 
   const listHeader = (
     <View style={styles.listHeader}>
-      <ScreenHeader title="Earnings" subtitle="Cash reconciliation" />
+      <ScreenHeader title="Earnings" subtitle={subtitle} />
 
       <PaymentSummaryCard
         totalOwed={totalOwed}
@@ -165,7 +231,7 @@ export default function EarningsScreen() {
           const isActive = activeTab === tab.key;
           const count = tab.key === 'owed' ? unpaidCount : tab.key === 'paid' ? paidCount : writtenOffCount;
           return (
-            <Clickable key={tab.key} onPress={() => setActiveTab(tab.key)}>
+            <Clickable key={tab.key} onPress={() => setActiveTab(tab.key)} accessibilityRole="tab" accessibilityLabel={`${tab.label} tab${count > 0 ? `, ${count} items` : ''}`}>
               <View
                 style={[
                   styles.tabChip,
@@ -175,27 +241,77 @@ export default function EarningsScreen() {
                   },
                 ]}
               >
+                <Row align="center" gap="xxs">
+                  <ThemedText
+                    style={{
+                      color: isActive ? colors.tint : colors.muted,
+                      ...Typography.small,
+                      fontWeight: isActive ? '600' : '500',
+                    }}
+                  >
+                    {tab.label}{count > 0 ? ` (${count})` : ''}
+                  </ThemedText>
+                  {tab.key === 'owed' && overdueCount > 0 && (
+                    <View style={[styles.overdueDot, { backgroundColor: colors.error }]}>
+                      <ThemedText style={[Typography.micro, { color: colors.onError, fontWeight: '700' }]}>
+                        {overdueCount}
+                      </ThemedText>
+                    </View>
+                  )}
+                </Row>
+              </View>
+            </Clickable>
+          );
+        })}
+      </Row>
+
+      <Row gap="xs" style={{ marginTop: Spacing.xs }}>
+        {PERIODS.map((p) => {
+          const isActive = period === p.key;
+          return (
+            <Clickable key={p.key} onPress={() => setPeriod(p.key)} accessibilityRole="button" accessibilityLabel={`${p.label} filter`}>
+              <View
+                style={[
+                  styles.periodChip,
+                  {
+                    backgroundColor: isActive ? withAlpha(colors.foreground, 0.06) : 'transparent',
+                  },
+                ]}
+              >
                 <ThemedText
                   style={{
-                    color: isActive ? colors.tint : colors.muted,
-                    ...Typography.small,
-                    fontWeight: isActive ? '600' : '500',
+                    ...Typography.caption,
+                    color: isActive ? colors.foreground : colors.muted,
+                    fontWeight: isActive ? '600' : '400',
                   }}
                 >
-                  {tab.label}{count > 0 ? ` (${count})` : ''}
+                  {p.label}
                 </ThemedText>
               </View>
             </Clickable>
           );
         })}
       </Row>
+
+      {activeTab === 'owed' && overdueCount > 0 && (
+        <Row style={{ marginTop: Spacing.xs }}>
+          <Button
+            onPress={handleRemindAllOverdue}
+            variant="outline"
+            style={{ minHeight: Components.buttonCompact.height }}
+            accessibilityLabel={`Send reminder for ${overdueCount} overdue payments`}
+          >
+            Remind All Overdue ({overdueCount})
+          </Button>
+        </Row>
+      )}
     </View>
   );
 
   return (
     <SafeAreaView style={[styles.safeArea, { backgroundColor: colors.background }]} edges={['top', 'bottom']}>
       <FlatList
-        data={activeData}
+        data={filteredData}
         renderItem={renderItem}
         keyExtractor={keyExtractor}
         contentContainerStyle={styles.content}
@@ -211,9 +327,7 @@ export default function EarningsScreen() {
             </ThemedText>
           </View>
         }
-        ItemSeparatorComponent={() => (
-          <View style={[styles.separator, { backgroundColor: colors.border }]} />
-        )}
+        ItemSeparatorComponent={Separator}
         refreshControl={
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.tint} />
         }
@@ -242,11 +356,24 @@ const styles = StyleSheet.create({
     borderRadius: Radii.pill,
     borderWidth: 1,
   },
+  overdueDot: {
+    minWidth: 18,
+    height: 18,
+    borderRadius: 9,
+    alignItems: 'center' as const,
+    justifyContent: 'center' as const,
+    paddingHorizontal: Spacing.xxs,
+  },
   tabEmpty: {
     alignItems: 'center',
     justifyContent: 'center',
     paddingVertical: Spacing.xl,
     gap: Spacing.xs,
+  },
+  periodChip: {
+    paddingHorizontal: Spacing.sm,
+    paddingVertical: Spacing.xxs,
+    borderRadius: Radii.pill,
   },
   separator: {
     height: StyleSheet.hairlineWidth,

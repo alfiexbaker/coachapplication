@@ -1,6 +1,15 @@
 import { createContext, useContext, useEffect, useMemo, useState } from 'react';
 import { Platform, useColorScheme, type ColorSchemeName } from 'react-native';
 
+// Web API types for cross-platform theme detection
+declare const window: {
+  matchMedia(query: string): {
+    matches: boolean;
+    addEventListener(type: string, listener: (e: { matches: boolean }) => void): void;
+    removeEventListener(type: string, listener: (e: { matches: boolean }) => void): void;
+  };
+} | undefined;
+
 export type ThemeContextValue = {
   colorScheme: NonNullable<ColorSchemeName>;
   systemScheme: NonNullable<ColorSchemeName>;
@@ -15,18 +24,18 @@ function useSystemScheme(): NonNullable<ColorSchemeName> {
 
   // On web, also listen to prefers-color-scheme media query
   const [webScheme, setWebScheme] = useState<NonNullable<ColorSchemeName>>(() => {
-    if (Platform.OS === 'web' && typeof window !== 'undefined') {
+    if (Platform.OS === 'web' && window) {
       return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
     }
     return rnScheme ?? 'dark';
   });
 
   useEffect(() => {
-    if (Platform.OS !== 'web' || typeof window === 'undefined') {
+    if (Platform.OS !== 'web' || !window) {
       return;
     }
     const mq = window.matchMedia('(prefers-color-scheme: dark)');
-    const handler = (e: MediaQueryListEvent) => {
+    const handler = (e: { matches: boolean }) => {
       setWebScheme(e.matches ? 'dark' : 'light');
     };
     mq.addEventListener('change', handler);

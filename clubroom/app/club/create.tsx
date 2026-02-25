@@ -19,6 +19,7 @@ import { Ionicons } from '@expo/vector-icons';
 
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { Clickable } from '@/components/primitives/clickable';
+import { Column } from '@/components/primitives/column';
 import { PageHeader } from '@/components/primitives/page-header';
 import { ThemedText } from '@/components/themed-text';
 import { Row } from '@/components/primitives/row';
@@ -168,7 +169,7 @@ export default function CreateClubScreen() {
                   autoCapitalize="words"
                 />
               </View>
-              <View style={{ flex: 1 }}>
+              <Column flex>
                 <FormInput
                   label="Country"
                   placeholder="UK"
@@ -177,7 +178,7 @@ export default function CreateClubScreen() {
                   palette={palette}
                   autoCapitalize="characters"
                 />
-              </View>
+              </Column>
             </Row>
             <FormInput
               label="Badge/Abbreviation (3-4 letters)"
@@ -204,7 +205,7 @@ export default function CreateClubScreen() {
                   {previewBadge}
                 </ThemedText>
               </View>
-              <View style={{ flex: 1, gap: Spacing.micro }}>
+              <Column flex style={{ gap: Spacing.micro }}>
                 <ThemedText type="defaultSemiBold" style={Typography.subheading}>
                   {previewName}
                 </ThemedText>
@@ -216,7 +217,7 @@ export default function CreateClubScreen() {
                 <ThemedText style={[Typography.caption, { color: palette.muted }]}>
                   {previewLocation}
                 </ThemedText>
-              </View>
+              </Column>
             </Row>
           </SurfaceCard>
 

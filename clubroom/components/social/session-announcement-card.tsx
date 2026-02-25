@@ -127,7 +127,6 @@ const styles = StyleSheet.create({
   },
   sessionTypeBadgeText: {
     ...Typography.micro,
-    fontSize: 11,
     letterSpacing: 0.4,
   },
   priceLabel: {

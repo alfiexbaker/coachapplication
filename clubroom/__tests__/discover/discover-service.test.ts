@@ -54,8 +54,8 @@ describe('Discover Service', () => {
       assert.ok(response.results.length > 0);
       response.results.forEach((r) => {
         assert.ok(
-          r.coach.priceRange.maxUsd >= minPrice,
-          `Coach ${r.coach.fullName} maxPrice ${r.coach.priceRange.maxUsd} should be >= ${minPrice}`
+          r.coach.priceRange.max >= minPrice,
+          `Coach ${r.coach.fullName} maxPrice ${r.coach.priceRange.max} should be >= ${minPrice}`
         );
       });
     });
@@ -67,8 +67,8 @@ describe('Discover Service', () => {
       assert.ok(response.results.length > 0);
       response.results.forEach((r) => {
         assert.ok(
-          r.coach.priceRange.minUsd <= maxPrice,
-          `Coach ${r.coach.fullName} minPrice ${r.coach.priceRange.minUsd} should be <= ${maxPrice}`
+          r.coach.priceRange.min <= maxPrice,
+          `Coach ${r.coach.fullName} minPrice ${r.coach.priceRange.min} should be <= ${maxPrice}`
         );
       });
     });
@@ -154,8 +154,8 @@ describe('Discover Service', () => {
       assert.ok(response.results.length > 1);
       for (let i = 1; i < response.results.length; i++) {
         assert.ok(
-          response.results[i - 1].coach.priceRange.minUsd <=
-            response.results[i].coach.priceRange.minUsd,
+          response.results[i - 1].coach.priceRange.min <=
+            response.results[i].coach.priceRange.min,
           'Results should be sorted by price ascending'
         );
       }
@@ -169,8 +169,8 @@ describe('Discover Service', () => {
       assert.ok(response.results.length > 1);
       for (let i = 1; i < response.results.length; i++) {
         assert.ok(
-          response.results[i - 1].coach.priceRange.maxUsd >=
-            response.results[i].coach.priceRange.maxUsd,
+          response.results[i - 1].coach.priceRange.max >=
+            response.results[i].coach.priceRange.max,
           'Results should be sorted by price descending'
         );
       }
@@ -205,7 +205,7 @@ describe('Discover Service', () => {
 
       response.results.forEach((r) => {
         assert.ok(r.coach.rating.average >= 4.5);
-        assert.ok(r.coach.priceRange.minUsd <= 80);
+        assert.ok(r.coach.priceRange.min <= 80);
         assert.ok(r.coach.sessionFormats.includes('In-person'));
       });
     });

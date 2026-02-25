@@ -66,7 +66,7 @@ export const InjurySummaryCard = memo(function InjurySummaryCard({
 const styles = StyleSheet.create({
   card: { marginBottom: Spacing.lg },
   header: { marginBottom: Spacing.sm },
-  severityBadge: { paddingHorizontal: 8, paddingVertical: Spacing.xxs, borderRadius: Radii.pill },
+  severityBadge: { paddingHorizontal: Spacing.xs, paddingVertical: Spacing.xxs, borderRadius: Radii.pill },
   severityText: { ...Typography.caption, fontSize: scaleFont(Typography.caption.fontSize) },
   description: {
     ...Typography.body,

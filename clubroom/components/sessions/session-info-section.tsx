@@ -109,9 +109,9 @@ function SessionInfoSectionInner({
             </ThemedText>
           </View>
         )}
-        {offering.priceUsd !== undefined && offering.priceUsd > 0 && (
+        {offering.price !== undefined && offering.price > 0 && (
           <ThemedText type="defaultSemiBold" style={styles.price}>
-            £{offering.priceUsd}
+            £{offering.price}
           </ThemedText>
         )}
       </Row>
@@ -156,7 +156,7 @@ function SessionInfoSectionInner({
 export const SessionInfoSection = memo(SessionInfoSectionInner);
 
 const styles = StyleSheet.create({
-  card: { marginBottom: 16, padding: 20, gap: 14 },
+  card: { marginBottom: Spacing.sm, padding: Spacing.md, gap: Spacing.sm },
   title: {
     fontSize: scaleFont(24),
     fontWeight: '700',
@@ -174,14 +174,14 @@ const styles = StyleSheet.create({
   },
   badgeText: { fontSize: scaleFont(13), fontWeight: '600', letterSpacing: 0.2 },
   price: { marginLeft: 'auto', fontSize: scaleFont(24), fontWeight: '700', letterSpacing: -0.6 },
-  awardsBlock: { gap: 8, marginTop: Spacing.xs + Spacing.xxs },
+  awardsBlock: { gap: Spacing.xs, marginTop: Spacing.xs + Spacing.xxs },
   awardChip: {
     borderWidth: 1,
     borderRadius: Radii.md,
-    paddingHorizontal: 10,
+    paddingHorizontal: Spacing.xs,
     paddingVertical: Spacing.xxs,
     gap: Spacing.xxs,
   },
-  awardMeta: { ...Typography.caption, lineHeight: 16 },
-  manageBadgesLink: { marginTop: 8, alignSelf: 'flex-start' },
+  awardMeta: { ...Typography.caption, lineHeight: Typography.micro.lineHeight },
+  manageBadgesLink: { marginTop: Spacing.xs, alignSelf: 'flex-start' },
 });

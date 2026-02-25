@@ -1,7 +1,8 @@
 import { memo } from 'react';
-import { StyleSheet, View } from 'react-native';
+import { StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
+import { Row } from '@/components/primitives/row';
 import { Spacing, Radii } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
 
@@ -21,7 +22,7 @@ export const SharePreview = memo(function SharePreview({
   const { colors: palette } = useTheme();
 
   return (
-    <View style={[styles.previewContainer, { backgroundColor: palette.background }]}>
+    <Row align="center" gap="xs" style={[styles.previewContainer, { backgroundColor: palette.background }]}>
       <Ionicons name="chatbubble-outline" size={16} color={palette.muted} />
       <Ionicons
         name="document-text-outline"
@@ -30,7 +31,7 @@ export const SharePreview = memo(function SharePreview({
         style={styles.previewIcon}
       />
       <Ionicons name="link-outline" size={14} color={palette.tint} style={styles.previewIcon} />
-    </View>
+    </Row>
   );
 });
 
@@ -38,11 +39,8 @@ export const SharePreview = memo(function SharePreview({
 
 const styles = StyleSheet.create({
   previewContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
     padding: Spacing.sm,
     borderRadius: Radii.sm,
-    gap: Spacing.xs,
   },
   previewIcon: {
     marginLeft: Spacing.xxs,

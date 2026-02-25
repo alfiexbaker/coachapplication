@@ -152,9 +152,9 @@ export const InviteCard = memo(function InviteCard({
 
       {/* Price & Expiry */}
       <Row style={styles.metaRow}>
-        {invite.priceUsd !== undefined && invite.priceUsd > 0 && (
+        {invite.price !== undefined && invite.price > 0 && (
           <ThemedText type="defaultSemiBold" style={[styles.price, { color: palette.tint }]}>
-            £{invite.priceUsd}
+            £{invite.price}
           </ThemedText>
         )}
         {isPending && !isExpired && (
@@ -257,7 +257,7 @@ const styles = StyleSheet.create({
     borderRadius: Radii.sm,
   },
   focusText: { ...Typography.caption },
-  notes: { ...Typography.bodySmall, fontStyle: 'italic', lineHeight: 20 },
+  notes: { ...Typography.bodySmall, fontStyle: 'italic' },
   slotsSection: { gap: Spacing.xs },
   slotsLabel: { ...Typography.caption },
   slotsList: { flexWrap: 'wrap', gap: Spacing.xs, alignItems: 'center' },

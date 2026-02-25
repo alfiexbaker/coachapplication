@@ -6,6 +6,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { ThemedText } from '@/components/themed-text';
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { Clickable } from '@/components/primitives/clickable';
+import { Column } from '@/components/primitives/column';
 import { Row } from '@/components/primitives/row';
 import { CredentialCard } from '@/components/verification/credential-card';
 import { CredentialForm } from '@/components/verification/credential-form';
@@ -88,9 +89,9 @@ export default function CredentialsScreen() {
           <Clickable onPress={() => router.back()} style={styles.backButton}>
             <Ionicons name="arrow-back" size={24} color={colors.text} />
           </Clickable>
-          <View style={{ flex: 1 }}>
+          <Column flex>
             <ThemedText type="title">Credentials</ThemedText>
-          </View>
+          </Column>
           {!showForm && (
             <Clickable
               accessibilityLabel="Add credential"

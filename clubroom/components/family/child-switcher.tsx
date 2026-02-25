@@ -148,12 +148,12 @@ const styles = StyleSheet.create({
   dot: {
     width: 8,
     height: 8,
-    borderRadius: 4,
+    borderRadius: Radii.xs,
   },
   activeHint: {
     width: 7,
     height: 7,
-    borderRadius: 3.5,
+    borderRadius: Radii.xs,
     borderWidth: 1,
   },
   chipName: {

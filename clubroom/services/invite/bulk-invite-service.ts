@@ -8,6 +8,7 @@
  */
 
 import { api } from '@/constants/config';
+import { generateId } from '@/utils/generate-id';
 import { type Result, type ServiceError, ok, err, notFound, validationError } from '@/types/result';
 import type {
   SessionInvite,
@@ -20,6 +21,7 @@ import type {
   BulkInviteError,
 } from '@/constants/types';
 import { notificationService } from '../notification-service';
+import { rosterService } from '../roster-service';
 import { squadService } from '../squad-service';
 import { userService } from '../user-service';
 import { createLogger } from '@/utils/logger';
@@ -73,7 +75,7 @@ export interface CreateBulkInviteInput {
   sessionType: string;
   focus: string;
   notes?: string;
-  priceUsd?: number;
+  price?: number;
   expiresInDays?: number;
 }
 
@@ -89,7 +91,7 @@ export interface InviteSelectedMembersInput {
   sessionType: string;
   focus: string;
   notes?: string;
-  priceUsd?: number;
+  price?: number;
   expiresInDays?: number;
 }
 
@@ -105,7 +107,7 @@ export interface InviteSquadToSessionInput {
   sessionType: string;
   focus: string;
   notes?: string;
-  priceUsd?: number;
+  price?: number;
   excludeMemberIds?: string[];
 }
 
@@ -140,7 +142,7 @@ export const bulkInviteService = {
           expiresAt.setDate(expiresAt.getDate() + (input.expiresInDays || 7));
 
           const newInvite: SessionInvite = {
-            id: `inv_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+            id: generateId('inv'),
             coachId: input.coachId,
             clubName: input.clubName,
             athleteIds: input.athleteIds,
@@ -149,7 +151,7 @@ export const bulkInviteService = {
             sessionType: input.sessionType,
             focus: input.focus,
             notes: input.notes,
-            priceUsd: input.priceUsd,
+            price: input.price,
             status: 'PENDING',
             expiresAt: expiresAt.toISOString(),
             createdAt: new Date().toISOString(),
@@ -242,6 +244,17 @@ export const bulkInviteService = {
     const members = await squadService.getSquadMembers(input.squadId);
     const squad = await squadService.getSquad(input.squadId);
 
+    // Verify all athletes are on coach's roster
+    const roster = await rosterService.getRoster(input.coachId);
+    const rosterAthleteIds = new Set(roster.map((r) => r.athleteId));
+    const unauthorizedMembers = members.filter((m) => !rosterAthleteIds.has(m.athleteId));
+    if (unauthorizedMembers.length > 0) {
+      logger.warn('Squad invite blocked - athletes not on roster', {
+        coachId: input.coachId,
+        unauthorizedCount: unauthorizedMembers.length,
+      });
+    }
+
     // Filter out excluded members
     const eligibleMembers = input.excludeMemberIds
       ? members.filter((m) => !input.excludeMemberIds!.includes(m.athleteId))
@@ -281,7 +294,7 @@ export const bulkInviteService = {
           sessionType: input.sessionType,
           focus: input.focus,
           notes: input.notes ? `[${squad?.name}] ${input.notes}` : `Squad Training: ${squad?.name}`,
-          priceUsd: input.priceUsd,
+          price: input.price,
           groupId,
         });
         sent++;
@@ -352,6 +365,20 @@ export const bulkInviteService = {
       return err(validationError('Squad has no active members'));
     }
 
+    // Verify all athletes are on coach's roster
+    const roster = await rosterService.getRoster(input.coachId);
+    const rosterAthleteIds = new Set(roster.map((r) => r.athleteId));
+    const unauthorizedAthletes = members.filter((m) => !rosterAthleteIds.has(m.athleteId));
+    if (unauthorizedAthletes.length > 0) {
+      logger.warn('Bulk invite contains athletes not on roster', {
+        coachId: input.coachId,
+        unauthorizedCount: unauthorizedAthletes.length,
+      });
+      return err(validationError(
+        `Cannot invite ${unauthorizedAthletes.length} athlete(s) - not on your roster`,
+      ));
+    }
+
     const groupId = `squad_bulk_${input.squadId}_${Date.now()}`;
     const invitedMembers: SquadInvitedMember[] = [];
     const errors: BulkInviteError[] = [];
@@ -389,7 +416,7 @@ export const bulkInviteService = {
             sessionType: input.sessionType,
             focus: input.focus,
             notes: input.notes ? `[${squad.name}] ${input.notes}` : `Squad Training: ${squad.name}`,
-            priceUsd: input.priceUsd,
+            price: input.price,
             expiresInDays: input.expiresInDays ?? 7,
             groupId,
           });
@@ -555,7 +582,7 @@ export const bulkInviteService = {
             sessionType: input.sessionType,
             focus: input.focus,
             notes: input.notes,
-            priceUsd: input.priceUsd,
+            price: input.price,
             expiresInDays: input.expiresInDays ?? 7,
             groupId,
           });
@@ -630,7 +657,7 @@ export const bulkInviteService = {
       sessionType: sessionDetails.sessionType,
       focus: sessionDetails.focus,
       notes: sessionDetails.notes,
-      priceUsd: sessionDetails.priceUsd,
+      price: sessionDetails.price,
     });
   },
 };

@@ -433,7 +433,28 @@ export const childService = {
       };
 
       await saveToStorage(childrenCache);
+
+      const updatedFields = Object.keys(updates);
       emitTyped(ServiceEvents.CHILD_PROFILES_UPDATED, { parentId: childrenCache[index].parentId, action: 'updated', childId });
+      emitTyped(ServiceEvents.CHILD_PROFILE_UPDATED, {
+        childId,
+        parentId: childrenCache[index].parentId,
+        updatedFields,
+        timestamp: childrenCache[index].updatedAt,
+      });
+
+      // Emit specific event for critical medical/emergency fields
+      const criticalFields = ['allergies', 'medicalConditions', 'medications', 'emergencyContactName', 'emergencyContactPhone', 'secondaryEmergencyName', 'secondaryEmergencyPhone'];
+      const criticalChanged = updatedFields.filter((f) => criticalFields.includes(f));
+      if (criticalChanged.length > 0) {
+        emitTyped(ServiceEvents.CHILD_MEDICAL_INFO_UPDATED, {
+          childId,
+          updatedFields: criticalChanged,
+          timestamp: childrenCache[index].updatedAt,
+        });
+        logger.warn('Critical medical/emergency information updated', { childId, fields: criticalChanged });
+      }
+
       return ok(childrenCache[index]);
     }
 

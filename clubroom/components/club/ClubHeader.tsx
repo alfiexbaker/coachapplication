@@ -1,5 +1,6 @@
 import { useMemo, useState, useCallback } from 'react';
-import { StyleSheet, View, Share, Alert, Image } from 'react-native';
+import { StyleSheet, View, Share, Alert, ActivityIndicator } from 'react-native';
+import { SafeImage } from '@/components/primitives/safe-image';
 import { Clickable } from '@/components/primitives/clickable';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
@@ -12,6 +13,7 @@ import type { Club, ClubMembership } from '@/constants/types';
 import { useTheme } from '@/hooks/useTheme';
 import { ClubHeaderMenu, type ClubMenuItem } from './club-header-menu';
 import { Row } from '@/components/primitives';
+import { Column } from '@/components/primitives/column';
 
 // ─── Re-exports ─────────────────────────────────────────────────────────────
 
@@ -38,6 +40,7 @@ export function ClubHeader({
 }: ClubHeaderProps) {
   const { colors: palette } = useTheme();
   const [showMenu, setShowMenu] = useState(false);
+  const [uploadingPhoto, setUploadingPhoto] = useState(false);
 
   const roleLabel = useMemo(() => {
     switch (membership.role) {
@@ -77,13 +80,15 @@ export function ClubHeader({
       });
       if (!result.canceled && result.assets[0]) {
         const uri = result.assets[0].uri;
+        setUploadingPhoto(true);
         onUpdatePhotos?.(type === 'profile' ? { profilePhotoUrl: uri } : { coverPhotoUrl: uri });
+        setUploadingPhoto(false);
       }
     },
     [onUpdatePhotos],
   );
 
-  const handleShareInvite = async () => {
+  const handleShareInvite = useCallback(async () => {
     setShowMenu(false);
     try {
       await Share.share({
@@ -93,33 +98,43 @@ export function ClubHeader({
     } catch {
       Alert.alert('Error', 'Failed to share invite code');
     }
-  };
+  }, [club.name, club.inviteCode]);
 
-  const handleOpenClubSettings = () => {
+  const handleOpenClubSettings = useCallback(() => {
     setShowMenu(false);
     router.push(Routes.clubSettings({ clubId: club.id, section: 'details' }));
-  };
+  }, [club.id]);
 
-  const handleLeaveClub = () => {
+  const handleLeaveClub = useCallback(() => {
     setShowMenu(false);
-    if (isOwner) {
-      Alert.alert(
-        'Cannot Leave',
-        'As the club owner, you cannot leave. Please transfer ownership first or delete the club.',
-        [{ text: 'OK' }],
-      );
-    } else {
-      Alert.alert('Leave Club', `Are you sure you want to leave ${club.name}?`, [
-        { text: 'Cancel', style: 'cancel' },
-        { text: 'Leave', style: 'destructive', onPress: onLeave },
-      ]);
-    }
-  };
+    Alert.alert('Leave Club', `Are you sure you want to leave ${club.name}?`, [
+      { text: 'Cancel', style: 'cancel' },
+      { text: 'Leave', style: 'destructive', onPress: onLeave },
+    ]);
+  }, [club.name, onLeave]);
 
-  const handleCreateGroup = () => {
+  const handleDeleteClub = useCallback(() => {
+    setShowMenu(false);
+    Alert.alert(
+      'Delete Club',
+      `This will permanently delete "${club.name}" and all associated data. This cannot be undone.`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Delete',
+          style: 'destructive',
+          onPress: () => {
+            router.push(Routes.clubSettings({ clubId: club.id, section: 'delete' }));
+          },
+        },
+      ],
+    );
+  }, [club.name, club.id]);
+
+  const handleCreateGroup = useCallback(() => {
     setShowMenu(false);
     router.push(Routes.clubSquadCreate(club.id));
-  };
+  }, [club.id]);
 
   const menuItems: ClubMenuItem[] = [
     ...(canShareInvite
@@ -155,7 +170,7 @@ export function ClubHeader({
     {
       icon: (isOwner ? 'trash-outline' : 'exit-outline') as keyof typeof Ionicons.glyphMap,
       label: isOwner ? 'Delete Club' : 'Leave Club',
-      onPress: handleLeaveClub,
+      onPress: isOwner ? handleDeleteClub : handleLeaveClub,
       color: palette.error,
     },
   ];
@@ -169,10 +184,12 @@ export function ClubHeader({
         style={styles.coverPhotoContainer}
       >
         {club.coverPhotoUrl ? (
-          <Image
+          <SafeImage
             source={{ uri: club.coverPhotoUrl }}
+            fallbackIcon="image-outline"
+            fallbackIconSize={48}
             style={styles.coverPhoto}
-            resizeMode="cover"
+            contentFit="cover"
           />
         ) : (
           <View
@@ -206,8 +223,10 @@ export function ClubHeader({
           style={styles.profilePhotoTouchable}
         >
           {club.profilePhotoUrl ? (
-            <Image
+            <SafeImage
               source={{ uri: club.profilePhotoUrl }}
+              fallbackIcon="people-outline"
+              fallbackIconSize={24}
               style={[styles.clubAvatar, { borderColor: palette.surface }]}
             />
           ) : (
@@ -220,14 +239,19 @@ export function ClubHeader({
               <ThemedText style={styles.clubAvatarText}>{badgeText}</ThemedText>
             </View>
           )}
-          {canManage && (
+          {canManage && !uploadingPhoto && (
             <View style={[styles.profileEditBadge, { backgroundColor: palette.tint }]}>
               <Ionicons name="camera" size={10} color={palette.surface} />
             </View>
           )}
+          {uploadingPhoto && (
+            <View style={[styles.profileEditBadge, { backgroundColor: palette.tint, width: 56, height: 56, borderRadius: Radii['2xl'], position: 'absolute', top: 0, left: 0, opacity: 0.7, alignItems: 'center', justifyContent: 'center' }]}>
+              <ActivityIndicator size="small" color={palette.surface} />
+            </View>
+          )}
         </Clickable>
 
-        <View style={{ flex: 1 }}>
+        <Column flex>
           <ThemedText type="title" style={{ ...Typography.title }}>
             {club.name}
           </ThemedText>
@@ -241,7 +265,7 @@ export function ClubHeader({
               {club.tagline}
             </ThemedText>
           ) : null}
-        </View>
+        </Column>
         <Clickable
           accessibilityLabel="Club options"
           onPress={() => setShowMenu(true)}

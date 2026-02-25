@@ -90,23 +90,23 @@ export const SessionTypeSelector = memo(SessionTypeSelectorInner);
 
 const styles = StyleSheet.create({
   container: {
-    gap: 24,
+    gap: Spacing.md,
   },
   sectionTitle: {
-    marginBottom: 8,
+    marginBottom: Spacing.xs,
     fontSize: scaleFont(18),
     fontWeight: '700',
     letterSpacing: -0.4,
   },
   row: {
     gap: Spacing.xs + Spacing.xxs,
-    marginBottom: 14,
+    marginBottom: Spacing.sm,
   },
   button: {
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 10,
+    gap: Spacing.xs,
     padding: scale(18),
     borderRadius: Radii.md,
     borderWidth: 2,

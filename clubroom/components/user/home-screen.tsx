@@ -133,7 +133,7 @@ const styles = StyleSheet.create({
   header: { marginBottom: Spacing.xs },
   headerCopy: { flex: 1, minWidth: 0, gap: Spacing.xs },
   title: { ...Typography.display, letterSpacing: -0.6 },
-  subtitle: { ...Typography.bodySmall, lineHeight: 20, fontWeight: '500' },
+  subtitle: { ...Typography.bodySmall, fontWeight: '500' },
   loadingContainer: { padding: Spacing['2xl'], alignItems: 'center', justifyContent: 'center' },
   errorContainer: { padding: Spacing.md, borderRadius: Radii.md, borderWidth: 1 },
   errorText: { ...Typography.bodySmall, flex: 1 },

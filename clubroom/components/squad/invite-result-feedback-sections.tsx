@@ -6,7 +6,7 @@ import Animated, { FadeInUp } from 'react-native-reanimated';
 import { Row } from '@/components/primitives/row';
 import { Clickable } from '@/components/primitives/clickable';
 import { ThemedText } from '@/components/themed-text';
-import { Typography, withAlpha } from '@/constants/theme';
+import { Spacing, Typography, withAlpha } from '@/constants/theme';
 import type { BulkInviteResult } from '@/constants/types';
 import type { ThemeColors } from '@/hooks/useTheme';
 
@@ -21,42 +21,32 @@ export const InviteErrorDetails = memo(function InviteErrorDetails({
   errors,
   palette,
 }: InviteErrorDetailsProps) {
-  const [showDetails, setShowDetails] = useState(false);
-
   if (errors.length === 0) return null;
 
   return (
-    <View style={styles.errorSection}>
-      <Clickable onPress={() => setShowDetails(!showDetails)}>
-        <Row align="center" gap="xs">
-          <Ionicons
-            name={showDetails ? 'chevron-down' : 'chevron-forward'}
-            size={16}
-            color={palette.error}
-          />
-          <ThemedText style={[styles.errorToggleText, { color: palette.error }]}>
-            View {errors.length} error{errors.length !== 1 ? 's' : ''}
-          </ThemedText>
-        </Row>
-      </Clickable>
+    <View style={[styles.errorSection, { backgroundColor: withAlpha(palette.error, 0.06), borderRadius: 8, padding: Spacing.sm }]}>
+      <Row align="center" gap="xs" style={{ marginBottom: Spacing.xs }}>
+        <Ionicons name="alert-circle" size={18} color={palette.error} />
+        <ThemedText style={[styles.errorToggleText, { color: palette.error }]}>
+          {errors.length} invite{errors.length !== 1 ? 's' : ''} failed
+        </ThemedText>
+      </Row>
 
-      {showDetails && (
-        <Animated.View entering={FadeInUp.duration(200)} style={styles.errorList}>
-          {errors.map((error, index) => (
-            <View
-              key={`${error.memberId}-${index}`}
-              style={[styles.errorItem, { backgroundColor: withAlpha(palette.error, 0.03) }]}
-            >
-              <ThemedText type="defaultSemiBold" style={{ ...Typography.small }}>
-                {error.memberId}
-              </ThemedText>
-              <ThemedText style={[styles.errorMessage, { color: palette.muted }]}>
-                {error.error}
-              </ThemedText>
-            </View>
-          ))}
-        </Animated.View>
-      )}
+      <Animated.View entering={FadeInUp.duration(200)} style={styles.errorList}>
+        {errors.map((error, index) => (
+          <View
+            key={`${error.memberId}-${index}`}
+            style={[styles.errorItem, { backgroundColor: withAlpha(palette.error, 0.03) }]}
+          >
+            <ThemedText type="defaultSemiBold" style={{ ...Typography.small }}>
+              {error.memberId}
+            </ThemedText>
+            <ThemedText style={[styles.errorMessage, { color: palette.error }]}>
+              {error.error}
+            </ThemedText>
+          </View>
+        ))}
+      </Animated.View>
     </View>
   );
 });
@@ -171,5 +161,5 @@ export const CompactInviteResultInner = memo(function CompactInviteResultInner({
 });
 
 export const inviteResultCardStyles = StyleSheet.create({
-  card: { gap: 16 },
+  card: { gap: Spacing.sm },
 });

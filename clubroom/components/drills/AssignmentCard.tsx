@@ -1,5 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
-import { Image, StyleSheet, View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
+import { Image } from 'expo-image';
 
 import { DifficultyBadge } from './DifficultyBadge';
 import { AssignmentCardCompact } from './assignment-card-compact';
@@ -211,7 +212,7 @@ const styles = StyleSheet.create({
   categoryBadge: {
     alignItems: 'center',
     gap: Spacing.xxs,
-    paddingHorizontal: 8,
+    paddingHorizontal: Spacing.xs,
     paddingVertical: Spacing.xxs,
     borderRadius: Radii.sm,
   },
@@ -219,7 +220,7 @@ const styles = StyleSheet.create({
   priorityBadgeFull: {
     alignItems: 'center',
     gap: Spacing.xxs,
-    paddingHorizontal: 8,
+    paddingHorizontal: Spacing.xs,
     paddingVertical: Spacing.xxs,
     borderRadius: Radii.sm,
   },
@@ -233,7 +234,7 @@ const styles = StyleSheet.create({
   completedText: { textDecorationLine: 'line-through', opacity: 0.7 },
   notesContainer: {
     alignItems: 'flex-start',
-    gap: 8,
+    gap: Spacing.xs,
     padding: Spacing.sm,
     borderRadius: Radii.sm,
     marginTop: Spacing.xxs,
@@ -255,7 +256,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: Spacing.xxs,
     alignSelf: 'flex-start',
-    paddingHorizontal: 10,
+    paddingHorizontal: Spacing.xs,
     paddingVertical: Spacing.xxs,
     borderRadius: Radii.sm,
     marginTop: Spacing.xxs,
@@ -264,7 +265,7 @@ const styles = StyleSheet.create({
   completeButton: {
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 8,
+    gap: Spacing.xs,
     paddingVertical: Spacing.xs + Spacing.xxs,
     borderRadius: Radii.md,
     marginTop: Spacing.sm,

@@ -1,5 +1,6 @@
 import React, { memo } from 'react';
-import { StyleSheet, View, Image, Alert } from 'react-native';
+import { StyleSheet, View, Alert } from 'react-native';
+import { Image } from 'expo-image';
 import { Ionicons } from '@expo/vector-icons';
 
 import { ThemedText } from '@/components/themed-text';
@@ -78,7 +79,7 @@ export const MutedCoachRow = memo(function MutedCoachRow({
           style={[styles.avatarPlaceholder, { backgroundColor: withAlpha(palette.accent, 0.12) }]}
         >
           <ThemedText type="defaultSemiBold" style={{ color: palette.accent }}>
-            {coach.coachName.charAt(0).toUpperCase()}
+            {(coach.coachName ?? 'C').charAt(0).toUpperCase()}
           </ThemedText>
         </View>
       )}

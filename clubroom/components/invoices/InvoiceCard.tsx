@@ -1,3 +1,4 @@
+import { memo } from 'react';
 import { View, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
@@ -11,7 +12,7 @@ import { useTheme } from '@/hooks/useTheme';
 import { Invoice } from '@/constants/types';
 import { invoiceService } from '@/services/invoice-service';
 
-import { getStatusIcon, formatDate, CompactInvoiceRow } from './invoice-card-sections';
+import { getStatusIcon, formatDate, CompactInvoiceRow, getInvoiceStatusColor } from './invoice-card-sections';
 
 // Re-export extracted components for backward compat
 export {
@@ -19,6 +20,7 @@ export {
   formatDate,
   formatShortDate,
   CompactInvoiceRow,
+  getInvoiceStatusColor,
 } from './invoice-card-sections';
 export type { CompactInvoiceRowProps } from './invoice-card-sections';
 
@@ -28,9 +30,9 @@ interface InvoiceCardProps {
   onPress?: () => void;
 }
 
-export function InvoiceCard({ invoice, compact = false, onPress }: InvoiceCardProps) {
+export const InvoiceCard = memo(function InvoiceCard({ invoice, compact = false, onPress }: InvoiceCardProps) {
   const { colors: palette } = useTheme();
-  const statusColor = invoiceService.getStatusColor(invoice.status);
+  const statusColor = getInvoiceStatusColor(invoice.status, palette);
 
   const handlePress = () => {
     if (onPress) onPress();
@@ -104,7 +106,7 @@ export function InvoiceCard({ invoice, compact = false, onPress }: InvoiceCardPr
       )}
     </SurfaceCard>
   );
-}
+});
 
 const styles = StyleSheet.create({
   card: { gap: Spacing.sm },

@@ -38,7 +38,7 @@ export const styles = StyleSheet.create({
     borderTopWidth: 1,
   },
   actionsRow: {
-    paddingBottom: 8,
+    paddingBottom: Spacing.xs,
   },
   actionButton: {
     width: 44,
@@ -54,7 +54,7 @@ export const styles = StyleSheet.create({
     ...Typography.subheading,
     paddingVertical: Platform.OS === 'ios' ? 10 : 6,
     paddingHorizontal: Spacing.xxs,
-    lineHeight: 20,
+    lineHeight: Typography.bodySmall.lineHeight,
   },
   sendButton: {
     width: 44,

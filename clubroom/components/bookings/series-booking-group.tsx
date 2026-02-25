@@ -140,7 +140,7 @@ const styles = StyleSheet.create({
   },
   headerText: { flex: 1, gap: Spacing.micro },
   progressContainer: { gap: Spacing.xxs },
-  progressTrack: { height: 4, borderRadius: 2, overflow: 'hidden' },
-  progressFill: { height: '100%', borderRadius: 2 },
+  progressTrack: { height: 4, borderRadius: Radii.xs, overflow: 'hidden' },
+  progressFill: { height: '100%', borderRadius: Radii.xs },
   expandedContent: { gap: 0 },
 });

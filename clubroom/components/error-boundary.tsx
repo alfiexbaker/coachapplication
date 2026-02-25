@@ -8,6 +8,7 @@ import { Colors, Spacing, Radii, Typography } from '@/constants/theme';
 interface Props {
   children: ReactNode;
   fallback?: (error: Error, errorInfo: ErrorInfo, reset: () => void) => ReactNode;
+  onGoHome?: () => void;
 }
 
 interface State {
@@ -82,7 +83,9 @@ export class ErrorBoundary extends Component<Props, State> {
           <ScrollView contentContainerStyle={styles.content}>
             <Text style={[styles.title, { color: palette.foreground }]}>Something went wrong</Text>
             <Text style={[styles.message, { color: palette.muted }]}>
-              The app encountered an unexpected error. This has been logged for debugging.
+              {__DEV__
+                ? 'The app encountered an unexpected error. See details below.'
+                : "We're sorry for the inconvenience. Please try again."}
             </Text>
 
             {__DEV__ && this.state.error && (
@@ -139,6 +142,20 @@ export class ErrorBoundary extends Component<Props, State> {
             >
               <Text style={[styles.buttonText, { color: palette.onPrimary }]}>Try Again</Text>
             </Clickable>
+
+            {this.props.onGoHome && (
+              <Clickable
+                style={({ pressed }) => [
+                  styles.secondaryButton,
+                  { borderColor: palette.border, opacity: pressed ? 0.7 : 1 },
+                ]}
+                onPress={this.props.onGoHome}
+                accessibilityRole="button"
+                accessibilityLabel="Go to home screen"
+              >
+                <Text style={[styles.buttonText, { color: palette.foreground }]}>Go Home</Text>
+              </Clickable>
+            )}
           </ScrollView>
         </SafeAreaView>
       );
@@ -160,7 +177,7 @@ const styles = StyleSheet.create({
     gap: Spacing.md,
   },
   title: { ...Typography.display, textAlign: 'center' },
-  message: { ...Typography.subheading, textAlign: 'center', maxWidth: 400, lineHeight: 24 },
+  message: { ...Typography.subheading, textAlign: 'center', maxWidth: 400 },
   errorDetails: {
     marginTop: Spacing.lg,
     padding: Spacing.md,
@@ -187,6 +204,13 @@ const styles = StyleSheet.create({
     paddingVertical: Spacing.md,
     borderRadius: Radii.lg,
     marginTop: Spacing.lg,
+  },
+  secondaryButton: {
+    paddingHorizontal: Spacing.xl,
+    paddingVertical: Spacing.md,
+    borderRadius: Radii.lg,
+    borderWidth: 1,
+    marginTop: Spacing.sm,
   },
   buttonText: { ...Typography.subheading },
 });

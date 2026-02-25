@@ -1,15 +1,30 @@
 import { memo, useState, useCallback } from 'react';
-import { View, StyleSheet, TextInput } from 'react-native';
+import { View, StyleSheet, TextInput, Alert } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { Clickable } from '@/components/primitives/clickable';
 import { Button } from '@/components/primitives/button';
 import { ThemedText } from '@/components/themed-text';
+import { Spacer } from '@/components/primitives/spacer';
 import { Spacing, Radii, Typography } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
 import type { EmergencyContact } from '@/constants/types';
-import { Row } from '@/components/primitives';
+import { Row, Column } from '@/components/primitives';
+
+/** Validates UK mobile (+447/07) and landline (+44[1-3]/0[1-3]) numbers */
+function validateUKPhone(phone: string): boolean {
+  const cleaned = phone.replace(/\s/g, '');
+  const ukMobileRegex = /^(\+447\d{3}|07\d{3})\d{6}$/;
+  const ukLandlineRegex = /^(\+44[1-3]|0[1-3])\d{8,9}$/;
+  return ukMobileRegex.test(cleaned) || ukLandlineRegex.test(cleaned);
+}
+
+/** Basic email validation */
+function validateEmail(email: string): boolean {
+  if (!email || email.length > 254) return false;
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+}
 
 interface EmergencyContactFormProps {
   contact?: EmergencyContact;
@@ -29,16 +44,51 @@ export const EmergencyContactForm = memo(function EmergencyContactForm({
   const [email, setEmail] = useState(contact?.email ?? '');
   const [canPickup, setCanPickup] = useState(contact?.canPickup ?? true);
   const [isPrimary, setIsPrimary] = useState(contact?.isPrimary ?? false);
+  const [phoneError, setPhoneError] = useState<string>();
+  const [emailError, setEmailError] = useState<string>();
 
-  const isValid = name.trim() && relationship.trim() && phone.trim();
+  const isValid = name.trim() && relationship.trim() && phone.trim() && !phoneError && !emailError;
+
+  const handlePhoneChange = useCallback((text: string) => {
+    setPhone(text);
+    if (phoneError) setPhoneError(undefined);
+  }, [phoneError]);
+
+  const handlePhoneBlur = useCallback(() => {
+    if (phone.trim() && !validateUKPhone(phone)) {
+      setPhoneError('Please enter a valid UK phone number');
+    }
+  }, [phone]);
+
+  const handleEmailChange = useCallback((text: string) => {
+    setEmail(text);
+    if (emailError) setEmailError(undefined);
+  }, [emailError]);
+
+  const handleEmailBlur = useCallback(() => {
+    if (email.trim() && !validateEmail(email)) {
+      setEmailError('Please enter a valid email address');
+    }
+  }, [email]);
 
   const handleSave = useCallback(() => {
-    if (!name.trim() || !relationship.trim() || !phone.trim()) return;
+    const errors: string[] = [];
+    if (!name.trim()) errors.push('Name is required');
+    if (!relationship.trim()) errors.push('Relationship is required');
+    if (!phone.trim()) errors.push('Phone number is required');
+    else if (!validateUKPhone(phone)) errors.push('Phone number is not a valid UK number');
+    if (email.trim() && !validateEmail(email)) errors.push('Email address is invalid');
+
+    if (errors.length > 0) {
+      Alert.alert('Validation Error', errors.join('\n'));
+      return;
+    }
+
     onSave({
       name: name.trim(),
       relationship: relationship.trim(),
       phone: phone.trim(),
-      email: email.trim() || undefined,
+      email: email.trim() ? email.trim().toLowerCase() : undefined,
       canPickup,
       isPrimary,
     });
@@ -82,26 +132,48 @@ export const EmergencyContactForm = memo(function EmergencyContactForm({
       <View style={styles.field}>
         <ThemedText style={styles.label}>Phone Number *</ThemedText>
         <TextInput
-          style={inputStyle}
-          placeholder="+44 7700 900000"
+          style={[inputStyle, phoneError ? { borderColor: colors.error } : undefined]}
+          placeholder="07xxx xxx xxx"
           placeholderTextColor={colors.muted}
           value={phone}
-          onChangeText={setPhone}
+          onChangeText={handlePhoneChange}
+          onBlur={handlePhoneBlur}
           keyboardType="phone-pad"
         />
+        {phoneError && (
+          <Row align="center" gap="xxs">
+            <Ionicons name="alert-circle" size={14} color={colors.error} />
+            <ThemedText style={[Typography.caption, { color: colors.error }]}>
+              {phoneError}
+            </ThemedText>
+          </Row>
+        )}
+        <ThemedText style={[Typography.caption, { color: colors.muted }]}>
+          UK mobile (07xxx) or landline (01xxx), or +44 format
+        </ThemedText>
       </View>
 
       <View style={styles.field}>
         <ThemedText style={styles.label}>Email (optional)</ThemedText>
         <TextInput
-          style={inputStyle}
-          placeholder="email@example.com"
+          style={[inputStyle, emailError ? { borderColor: colors.error } : undefined]}
+          placeholder="name@example.com"
           placeholderTextColor={colors.muted}
           value={email}
-          onChangeText={setEmail}
+          onChangeText={handleEmailChange}
+          onBlur={handleEmailBlur}
           keyboardType="email-address"
           autoCapitalize="none"
+          autoCorrect={false}
         />
+        {emailError && (
+          <Row align="center" gap="xxs">
+            <Ionicons name="alert-circle" size={14} color={colors.error} />
+            <ThemedText style={[Typography.caption, { color: colors.error }]}>
+              {emailError}
+            </ThemedText>
+          </Row>
+        )}
       </View>
 
       <ToggleRow
@@ -144,10 +216,10 @@ function ToggleRow({
 }) {
   return (
     <Row style={styles.toggleRow}>
-      <View style={{ flex: 1 }}>
+      <Column flex>
         <ThemedText type="defaultSemiBold">{label}</ThemedText>
         <ThemedText style={{ color: colors.muted, ...Typography.small }}>{subtitle}</ThemedText>
-      </View>
+      </Column>
       <Clickable onPress={onToggle}>
         <View style={[styles.toggle, { backgroundColor: value ? colors.success : colors.border }]}>
           <View

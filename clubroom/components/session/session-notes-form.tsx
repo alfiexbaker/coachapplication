@@ -18,10 +18,13 @@ export function SessionNotesForm({
   onSubmit,
   initialValues,
   submitting,
+  viewerRole = 'coach',
 }: {
   onSubmit: (payload: SessionNoteFields) => void;
   initialValues?: Partial<SessionNoteFields>;
   submitting?: boolean;
+  /** Only coaches can submit session notes. Parents/athletes see read-only view. */
+  viewerRole?: 'coach' | 'parent' | 'athlete';
 }) {
   const { colors: palette } = useTheme();
   const [summary, setSummary] = useState(initialValues?.summary ?? '');
@@ -141,8 +144,9 @@ export function SessionNotesForm({
 
       <Clickable
         onPress={() => onSubmit({ summary, focus, improvements, homework, effort, attendance })}
-        style={[styles.submit, { backgroundColor: submitting ? palette.border : palette.tint }]}
-        disabled={submitting}
+        style={[styles.submit, { backgroundColor: submitting ? palette.border : palette.tint, opacity: viewerRole !== 'coach' ? 0.5 : 1 }]}
+        disabled={submitting || viewerRole !== 'coach'}
+        accessibilityLabel={viewerRole !== 'coach' ? 'Only coaches can submit session notes' : 'Submit Notes'}
       >
         <Row align="center" justify="center" gap="xs">
           {submitting ? (
@@ -171,7 +175,7 @@ const styles = StyleSheet.create({
     borderRadius: Radii.md,
     borderWidth: 1.5,
     padding: Spacing.sm,
-    lineHeight: 20,
+    lineHeight: 20, // Typography.bodySmall.lineHeight
     textAlignVertical: 'top',
   },
   chip: {

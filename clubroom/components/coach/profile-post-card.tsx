@@ -1,5 +1,6 @@
 import React from 'react';
-import { Image, StyleSheet, View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
+import { Image } from 'expo-image';
 import { Ionicons } from '@expo/vector-icons';
 
 import { SurfaceCard } from '@/components/primitives/surface-card';
@@ -145,7 +146,7 @@ const styles = StyleSheet.create({
   },
   postContent: {
     ...Typography.body,
-    lineHeight: 20,
+    lineHeight: Typography.bodySmall.lineHeight,
   },
   postMedia: {
     gap: Spacing.xs,

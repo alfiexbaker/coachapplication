@@ -9,7 +9,8 @@ import Animated, {
 } from 'react-native-reanimated';
 
 import { Clickable } from '@/components/primitives/clickable';
-import { withAlpha } from '@/constants/theme';
+import { Row } from '@/components/primitives/row';
+import { Radii, Spacing, withAlpha } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
 import { HapticPatterns } from '@/utils/haptics';
 
@@ -85,10 +86,10 @@ const Segment = memo(function Segment({
         styles.segment,
         {
           height,
-          borderTopLeftRadius: isFirst ? radius : 3,
-          borderBottomLeftRadius: isFirst ? radius : 3,
-          borderTopRightRadius: isLast ? radius : 3,
-          borderBottomRightRadius: isLast ? radius : 3,
+          borderTopLeftRadius: isFirst ? radius : Radii.xs,
+          borderBottomLeftRadius: isFirst ? radius : Radii.xs,
+          borderTopRightRadius: isLast ? radius : Radii.xs,
+          borderBottomRightRadius: isLast ? radius : Radii.xs,
         },
         animatedStyle,
       ]}
@@ -127,7 +128,7 @@ export const RatingBar = memo(function RatingBar({
 
   return (
     <View style={[styles.barContainer, { minHeight: Math.max(height, 44) }]}>
-      <View style={[styles.barInner, { height }]}>
+      <Row gap="micro" style={[styles.barInner, { height }]}>
         {RATING_VALUES.map((rating, i) => {
           const isFilled = value > 0 && rating <= value;
           // Show ghost only on segments that were previously filled but aren't currently
@@ -148,7 +149,7 @@ export const RatingBar = memo(function RatingBar({
             />
           );
         })}
-      </View>
+      </Row>
     </View>
   );
 });
@@ -159,10 +160,7 @@ const styles = StyleSheet.create({
   barContainer: {
     justifyContent: 'center',
   },
-  barInner: {
-    flexDirection: 'row',
-    gap: 3,
-  },
+  barInner: {},
   segment: {
     flex: 1,
     overflow: 'hidden',

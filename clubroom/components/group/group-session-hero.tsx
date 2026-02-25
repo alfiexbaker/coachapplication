@@ -1,5 +1,6 @@
 import { memo } from 'react';
-import { View, StyleSheet, Image } from 'react-native';
+import { View, StyleSheet } from 'react-native';
+import { Image } from 'expo-image';
 import { router } from 'expo-router';
 import { Routes } from '@/navigation/routes';
 import { Ionicons } from '@expo/vector-icons';
@@ -28,7 +29,7 @@ export const GroupSessionHero = memo(function GroupSessionHero({
   return (
     <View style={styles.container}>
       {session.imageUrl ? (
-        <Image source={{ uri: session.imageUrl }} style={styles.image} />
+        <Image source={{ uri: session.imageUrl }} style={styles.image} contentFit="cover" />
       ) : (
         <View style={[styles.placeholder, { backgroundColor: typeColor }]}>
           <Ionicons name="calendar" size={48} color={withAlpha(colors.onPrimary, 0.6)} />

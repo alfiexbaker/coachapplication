@@ -39,7 +39,7 @@ export const styles = StyleSheet.create({
   statusBadge: {
     alignItems: 'center',
     gap: Spacing.xxs,
-    paddingHorizontal: 8,
+    paddingHorizontal: Spacing.xs,
     paddingVertical: Spacing.micro,
     borderRadius: Radii.sm,
   },

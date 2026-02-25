@@ -193,7 +193,7 @@ const styles = StyleSheet.create({
   },
   dayName: { ...Typography.caption },
   dayBadge: {
-    paddingHorizontal: 8,
+    paddingHorizontal: Spacing.xs,
     paddingVertical: Spacing.xxs,
     borderRadius: Radii.md,
     minWidth: 28,

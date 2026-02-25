@@ -208,7 +208,7 @@ const styles = StyleSheet.create({
     gap: Spacing.micro,
   },
   categoryTitle: { ...Typography.subheading },
-  categorySubtitle: { ...Typography.small, lineHeight: 18 },
+  categorySubtitle: { ...Typography.small, lineHeight: Typography.caption.lineHeight },
   statusText: { ...Typography.small },
   typeList: {
     borderTopWidth: StyleSheet.hairlineWidth,

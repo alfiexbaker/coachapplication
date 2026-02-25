@@ -159,7 +159,7 @@ const styles = StyleSheet.create({
   },
   clubBadgeIconText: {
     ...Typography.micro,
-    fontSize: 8,
+    fontSize: Typography.micro.fontSize,
     letterSpacing: 0,
     textTransform: 'none',
   },

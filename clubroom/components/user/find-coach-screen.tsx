@@ -40,7 +40,7 @@ const mapCoachToSearchResult = (coach: CoachProfile): CoachWithDistance => ({
     bio: coach.shortBio || coach.bio || 'No bio available',
     rating: coach.rating.average,
     totalReviews: coach.rating.reviewCount,
-    sessionRate: coach.sessionRate ?? coach.priceRange.minUsd,
+    sessionRate: coach.sessionRate ?? coach.priceRange.min,
     specialties: coach.footballFocuses || [],
   },
 });

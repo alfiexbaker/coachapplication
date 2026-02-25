@@ -4,6 +4,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { Alert } from 'react-native';
 import { apiClient } from '@/services/api-client';
+import { generateId } from '@/utils/generate-id';
 import { STORAGE_KEYS } from '@/constants/storage-keys';
 import { createLogger } from '@/utils/logger';
 import { toDateStr } from '@/utils/format';
@@ -158,7 +159,7 @@ export function useBlockedDates(
         : selectedStart
       : selectedStart;
     const newBlock: BlockedDateRange = {
-      id: `block_${Date.now()}_${Math.random().toString(36).substr(2, 6)}`,
+      id: generateId('block'),
       coachId,
       startDate: start,
       endDate: end,
@@ -181,7 +182,7 @@ export function useBlockedDates(
   const doBlockWeek = useCallback(
     async (start: string, end: string) => {
       const newBlock: BlockedDateRange = {
-        id: `block_${Date.now()}_${Math.random().toString(36).substr(2, 6)}`,
+        id: generateId('block'),
         coachId,
         startDate: start,
         endDate: end,

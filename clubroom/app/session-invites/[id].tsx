@@ -186,7 +186,7 @@ export default function SessionInviteDetailScreen() {
       Alert.alert('Select a time', 'Please select one of the proposed time slots');
       return;
     }
-    if (invite.priceUsd && invite.priceUsd > 0) {
+    if (invite.price && invite.price > 0) {
       setShowPaymentModal(true);
       return;
     }

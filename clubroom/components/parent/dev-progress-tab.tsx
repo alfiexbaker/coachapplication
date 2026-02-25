@@ -26,7 +26,7 @@ const logger = createLogger('DevProgressTab');
 interface Session {
   id: string;
   bookingId: string;
-  coachName: string;
+  coachName?: string;
   athleteId: string;
   completedAt: string;
   performanceRating: number;

@@ -12,7 +12,7 @@ import Animated, {
 import { Clickable } from '@/components/primitives/clickable';
 import { ThemedText } from '@/components/themed-text';
 import { CORNER_COLORS } from '@/constants/four-corner-mapping';
-import { Radii, Typography, withAlpha } from '@/constants/theme';
+import { Radii, Spacing, Typography, withAlpha } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
 import type { AllBadgeWithProgress } from '@/services/badge-service';
 import { HapticPatterns } from '@/utils/haptics';
@@ -157,7 +157,7 @@ const styles = StyleSheet.create({
   },
   progressBadge: {
     position: 'absolute',
-    bottom: 2,
+    bottom: Spacing.micro,
     borderRadius: Radii.pill,
     paddingHorizontal: 5,
     minHeight: 16,
@@ -167,6 +167,6 @@ const styles = StyleSheet.create({
     ...Typography.micro,
     textTransform: 'none',
     lineHeight: 12,
-    fontSize: 9,
+    fontSize: Typography.micro.fontSize,
   },
 });

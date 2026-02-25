@@ -15,6 +15,12 @@
 const Module = require('module');
 const path = require('path');
 
+// Define __DEV__ for test environment (matches React Native runtime global)
+global.__DEV__ = true;
+
+// Keep USE_MOCK=true so apiClient uses AsyncStorage (not real HTTP).
+// Individual BaseService subclasses' useMock flag is handled separately in tests.
+
 const tmpTestsDir = path.resolve(__dirname, '..', '.tmp-tests');
 
 // =============================================================================
@@ -100,6 +106,13 @@ const MOCKS = {
   'expo-clipboard': {
     setStringAsync: async () => {},
     getStringAsync: async () => '',
+  },
+  'expo-image-manipulator': {
+    manipulateAsync: async (uri) => ({ uri, width: 200, height: 200 }),
+    SaveFormat: { JPEG: 'jpeg', PNG: 'png' },
+  },
+  'expo-video-thumbnails': {
+    getThumbnailAsync: async () => ({ uri: 'file:///thumb.jpg', width: 200, height: 200 }),
   },
 
   // NetInfo — used by useConnectionStatus and offline-queue

@@ -2,6 +2,7 @@ import React, { memo } from 'react';
 import { StyleSheet, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
+import { Column } from '@/components/primitives/column';
 import { Row } from '@/components/primitives/row';
 import { ThemedText } from '@/components/themed-text';
 import { SurfaceCard } from '@/components/primitives/surface-card';
@@ -62,12 +63,12 @@ export const SquadAddMembers = memo(function SquadAddMembers({
                     {initials}
                   </ThemedText>
                 </View>
-                <View style={{ flex: 1 }}>
+                <Column flex>
                   <ThemedText type="defaultSemiBold">{member.userName}</ThemedText>
                   <ThemedText style={[Typography.caption, { color: roleColor }]}>
                     {clubService.formatRole(member.role)}
                   </ThemedText>
-                </View>
+                </Column>
                 <View style={[styles.addIcon, { backgroundColor: withAlpha(colors.tint, 0.09) }]}>
                   <Ionicons name="add" size={18} color={colors.tint} />
                 </View>

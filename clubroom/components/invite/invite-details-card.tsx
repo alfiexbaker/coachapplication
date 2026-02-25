@@ -61,11 +61,11 @@ export const InviteDetailsCard = memo(function InviteDetailsCard({
           colors={colors}
         />
 
-        {invite.priceUsd != null && invite.priceUsd > 0 && (
+        {invite.price != null && invite.price > 0 && (
           <DetailRow
             icon="pricetag-outline"
             label="Price"
-            value={`£${invite.priceUsd}`}
+            value={`£${invite.price}`}
             colors={colors}
           />
         )}

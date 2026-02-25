@@ -5,7 +5,7 @@
  * Expandable: tap to reveal tab-specific actions with confirmation alerts.
  */
 
-import { memo, useState, useCallback } from 'react';
+import { memo, useState, useCallback, useMemo } from 'react';
 import { Alert, View, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
@@ -123,16 +123,30 @@ function SessionPaymentItemInner({
     minute: '2-digit',
   });
 
+  const isOverdue = item.isOverdue ?? false;
+
   const iconName = tab === 'paid'
     ? 'checkmark-circle'
     : tab === 'written_off'
       ? 'close-circle-outline'
-      : 'time-outline';
+      : isOverdue
+        ? 'alert-circle'
+        : 'time-outline';
   const iconColor = tab === 'paid'
     ? colors.success
     : tab === 'written_off'
       ? colors.muted
-      : colors.warning;
+      : isOverdue
+        ? colors.error
+        : colors.warning;
+
+  const daysOverdue = useMemo(() => {
+    if (!isOverdue) return 0;
+    const due = invoice.dueDate
+      ? new Date(invoice.dueDate).getTime()
+      : new Date(booking.scheduledAt).getTime() + 14 * 24 * 60 * 60 * 1000;
+    return Math.max(0, Math.floor((Date.now() - due) / (1000 * 60 * 60 * 24)));
+  }, [isOverdue, invoice.dueDate, booking.scheduledAt]);
 
   return (
     <Column>
@@ -163,6 +177,13 @@ function SessionPaymentItemInner({
             <ThemedText style={[Typography.caption, { color: colors.muted }]}>
               {dateLabel} at {timeLabel}
             </ThemedText>
+            {isOverdue && daysOverdue > 0 && (
+              <View style={[styles.overdueBadge, { backgroundColor: withAlpha(colors.error, 0.08) }]}>
+                <ThemedText style={[Typography.micro, { color: colors.error, fontWeight: '700' }]}>
+                  {daysOverdue} {daysOverdue === 1 ? 'day' : 'days'} overdue
+                </ThemedText>
+              </View>
+            )}
           </View>
 
           <View style={styles.right}>
@@ -274,14 +295,19 @@ const styles = StyleSheet.create({
     ...Typography.micro,
     fontWeight: '700',
   },
+  overdueBadge: {
+    paddingHorizontal: Spacing.xs,
+    paddingVertical: Spacing.micro,
+    borderRadius: Radii.sm,
+    alignSelf: 'flex-start' as const,
+  },
   actions: {
-    paddingLeft: 56,
+    paddingLeft: 40 + Spacing.sm, // icon width (40) + gap
     paddingBottom: Spacing.sm,
     flexWrap: 'wrap',
   },
   actionButton: {
-    minHeight: Components.buttonCompact.height,
-    paddingVertical: Spacing.xxs,
+    minHeight: Components.button.height,
     paddingHorizontal: Spacing.sm,
   },
 });

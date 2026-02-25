@@ -3,12 +3,13 @@
  * Re-exports ProfileTabBar and composes ProfileTabContent from sub-tabs.
  */
 import React from 'react';
-import { View, Image, StyleSheet } from 'react-native';
+import { View, StyleSheet } from 'react-native';
+import { Image } from 'expo-image';
 
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { ThemedText } from '@/components/themed-text';
 import { SessionOfferingCard } from '@/components/sessions/session-offering-card';
-import { Spacing } from '@/constants/theme';
+import { Spacing, Typography } from '@/constants/theme';
 import type {
   SessionOffering,
   SocialLinks as SocialLinksType,
@@ -153,5 +154,5 @@ const styles = StyleSheet.create({
   photosGrid: { flexWrap: 'wrap', gap: Spacing.micro },
   gridPhoto: { width: '32.5%', aspectRatio: 1 },
   emptyState: { paddingVertical: Spacing.xl, alignItems: 'center', gap: Spacing.xs },
-  emptyStateText: { fontSize: 15, opacity: 0.6 },
+  emptyStateText: { fontSize: Typography.body.fontSize, opacity: 0.6 },
 });

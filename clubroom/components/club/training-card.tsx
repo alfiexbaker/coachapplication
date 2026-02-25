@@ -1,9 +1,11 @@
-import { memo } from 'react';
+import { memo, type ComponentProps } from 'react';
 import { View, StyleSheet } from 'react-native';
 import { Clickable } from '@/components/primitives/clickable';
 import { router } from 'expo-router';
 import { Routes } from '@/navigation/routes';
 import { Ionicons } from '@expo/vector-icons';
+
+type IconName = ComponentProps<typeof Ionicons>['name'];
 import Animated, { FadeInDown } from 'react-native-reanimated';
 
 import { SurfaceCard } from '@/components/primitives/surface-card';
@@ -143,7 +145,7 @@ function DetailRow({
   textColor,
   children,
 }: {
-  icon: string;
+  icon: IconName;
   iconColor: string;
   colors: { text: string };
   textColor?: string;
@@ -152,7 +154,7 @@ function DetailRow({
   return (
     <Row gap="sm" align="center">
       <View style={[styles.iconCircle, { backgroundColor: withAlpha(iconColor, 0.09) }]}>
-        <Ionicons name={icon as any} size={14} color={iconColor} />
+        <Ionicons name={icon} size={14} color={iconColor} />
       </View>
       <ThemedText
         style={{ color: textColor || colors.text }}
@@ -169,11 +171,11 @@ const styles = StyleSheet.create({
   titleSection: { flex: 1, gap: Spacing.xs, marginRight: Spacing.md },
   squadBadge: {
     alignSelf: 'flex-start',
-    paddingHorizontal: 8,
+    paddingHorizontal: Spacing.xs,
     paddingVertical: Spacing.micro,
     borderRadius: Radii.sm,
   },
-  freeBadge: { paddingHorizontal: 8, paddingVertical: Spacing.xxs, borderRadius: Radii.sm },
+  freeBadge: { paddingHorizontal: Spacing.xs, paddingVertical: Spacing.xxs, borderRadius: Radii.sm },
   details: { gap: Spacing.sm },
   iconCircle: {
     width: 28,

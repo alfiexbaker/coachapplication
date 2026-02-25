@@ -10,7 +10,8 @@
  */
 
 import React, { memo } from 'react';
-import { ActivityIndicator, Image, View, type ViewStyle } from 'react-native';
+import { ActivityIndicator, View, type ViewStyle } from 'react-native';
+import { Image } from 'expo-image';
 import { router } from 'expo-router';
 import { Routes } from '@/navigation/routes';
 import { Ionicons } from '@expo/vector-icons';

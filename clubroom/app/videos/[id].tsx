@@ -6,6 +6,7 @@ import Animated, { FadeInDown } from 'react-native-reanimated';
 
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { Clickable } from '@/components/primitives/clickable';
+import { Column } from '@/components/primitives/column';
 import { PageHeader } from '@/components/primitives/page-header';
 import { Row } from '@/components/primitives/row';
 import { VideoPlayer, AnnotationTimeline } from '@/components/video/video-player';
@@ -97,7 +98,7 @@ export default function VideoDetailScreen() {
         <Clickable onPress={() => router.back()} hitSlop={8}>
           <Ionicons name="arrow-back" size={24} color={colors.text} />
         </Clickable>
-        <View style={{ flex: 1 }} />
+        <Column flex />
         <Clickable accessibilityLabel="Share video" onPress={handleShare} hitSlop={8}>
           <Ionicons name="share-outline" size={22} color={colors.text} />
         </Clickable>

@@ -117,7 +117,7 @@ const styles = StyleSheet.create({
   },
   cardHeaderText: { flex: 1, alignItems: 'center', justifyContent: 'space-between' },
   cardTitle: { ...Typography.bodySemiBold },
-  metricBadge: { paddingHorizontal: 8, paddingVertical: Spacing.micro, borderRadius: Radii.pill },
+  metricBadge: { paddingHorizontal: Spacing.xs, paddingVertical: Spacing.micro, borderRadius: Radii.pill },
   metricText: { ...Typography.caption, fontWeight: '600' },
   cardDescription: { ...Typography.small, marginBottom: Spacing.sm },
   actionButton: {

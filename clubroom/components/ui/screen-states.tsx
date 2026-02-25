@@ -22,6 +22,7 @@ import { ThemedText } from '@/components/themed-text';
 import { Clickable } from '@/components/primitives/clickable';
 import { useTheme } from '@/hooks/useTheme';
 import { VARIANT_MAP } from './screen-states-sections';
+import type { ServiceError } from '@/types/result';
 
 // Re-export EmptyState for convenience (single source of truth)
 export { EmptyState } from './empty-state';
@@ -37,6 +38,7 @@ export interface LoadingStateProps {
 
 export interface ErrorStateProps {
   message: string;
+  error?: ServiceError;
   onRetry: () => void;
   title?: string;
 }
@@ -59,7 +61,15 @@ export function LoadingState({ variant }: LoadingStateProps) {
 // ERROR STATE
 // ============================================================================
 
-export function ErrorState({ message, onRetry, title }: ErrorStateProps) {
+const USER_FACING_CODES: string[] = [
+  'NETWORK',
+  'UNAUTHORIZED',
+  'NOT_FOUND',
+  'CONFLICT',
+  'RATE_LIMITED',
+];
+
+export function ErrorState({ message, error, onRetry, title }: ErrorStateProps) {
   const { colors } = useTheme();
   const ButtonStyles = createButtonStyles(colors);
 
@@ -70,6 +80,13 @@ export function ErrorState({ message, onRetry, title }: ErrorStateProps) {
         {title ?? 'Something went wrong'}
       </ThemedText>
       <ThemedText style={[errorStyles.message, { color: colors.muted }]}>{message}</ThemedText>
+
+      {error?.code && (__DEV__ || USER_FACING_CODES.includes(error.code)) && (
+        <ThemedText style={[errorStyles.code, { color: colors.muted }]}>
+          Error: {error.code}
+        </ThemedText>
+      )}
+
       <Clickable
         onPress={onRetry}
         style={[ButtonStyles.primary, { marginTop: Spacing.xs }]}
@@ -78,6 +95,19 @@ export function ErrorState({ message, onRetry, title }: ErrorStateProps) {
       >
         <ThemedText style={ButtonStyles.primaryText}>Try again</ThemedText>
       </Clickable>
+
+      {__DEV__ && error?.details && (
+        <View style={{ marginTop: Spacing.md, width: '90%' }}>
+          <ThemedText style={[errorStyles.title, { color: colors.muted }]}>
+            Debug Info (Dev Only)
+          </ThemedText>
+          <ThemedText style={[errorStyles.message, { color: colors.muted, fontFamily: 'monospace' }]}>
+            {typeof error.details === 'string'
+              ? error.details
+              : JSON.stringify(error.details, null, 2)}
+          </ThemedText>
+        </View>
+      )}
     </View>
   );
 }
@@ -116,6 +146,10 @@ const errorStyles = StyleSheet.create({
   },
   message: {
     ...Typography.body,
+    textAlign: 'center',
+  },
+  code: {
+    ...Typography.caption,
     textAlign: 'center',
   },
 });

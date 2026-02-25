@@ -9,7 +9,9 @@
  */
 
 import { notificationService } from './notification-service';
+import { generateId } from '@/utils/generate-id';
 import { createLogger } from '@/utils/logger';
+import { type Result, type ServiceError, ok, err } from '@/types/result';
 
 const logger = createLogger('NotificationTrigger');
 
@@ -47,12 +49,12 @@ function mapToNotificationType(
  * Fire a notification from any service.
  * Call this after every write action that affects another user.
  */
-export async function triggerNotification(action: NotifiableAction): Promise<void> {
+export async function triggerNotification(action: NotifiableAction): Promise<Result<void, ServiceError>> {
   try {
     const notificationType = mapToNotificationType(action.type);
 
     await notificationService.create({
-      id: `notif_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+      id: generateId('notif'),
       type: notificationType,
       title: action.title,
       body: action.body,
@@ -64,8 +66,14 @@ export async function triggerNotification(action: NotifiableAction): Promise<voi
     });
 
     logger.info('Notification triggered', { type: action.type, recipient: action.recipientRole });
+    return ok(undefined);
   } catch (error) {
-    logger.error('Failed to trigger notification', error);
+    logger.error('Failed to trigger notification', { type: action.type, error });
+    return err({
+      code: 'UNKNOWN',
+      message: 'Failed to trigger notification',
+      details: error,
+    });
   }
 }
 

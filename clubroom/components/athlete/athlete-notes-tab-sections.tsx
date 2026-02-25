@@ -206,7 +206,6 @@ export const styles = StyleSheet.create({
   },
   noteContent: {
     ...Typography.bodySmall,
-    lineHeight: 20,
   },
   emptyNotes: {
     alignItems: 'center',

@@ -22,7 +22,7 @@ import { BookingNotesCard, BookingFollowUpsCard } from '@/components/bookings/bo
 import { Row } from '@/components/primitives/row';
 import { Clickable } from '@/components/primitives/clickable';
 import { CancellationPolicyCard } from '@/components/booking/cancellation-policy-card';
-import { Radii, Spacing, withAlpha } from '@/constants/theme';
+import { Radii, Spacing, Typography, withAlpha } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
 import { useBookingDetail } from '@/hooks/use-booking-detail';
 import { useAuth } from '@/hooks/use-auth';
@@ -347,8 +347,8 @@ const styles = StyleSheet.create({
     gap: Spacing.sm,
   },
   reviewCopy: {
-    fontSize: 14,
-    lineHeight: 20,
+    fontSize: Typography.bodySmall.fontSize,
+    lineHeight: Typography.bodySmall.lineHeight,
   },
   reviewButton: {
     marginTop: Spacing.xs,
@@ -367,7 +367,7 @@ const styles = StyleSheet.create({
     borderRadius: Radii.pill,
   },
   reviewStatusText: {
-    fontSize: 12,
+    fontSize: Typography.caption.fontSize,
     fontWeight: '700',
   },
 });

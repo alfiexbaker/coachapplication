@@ -3,12 +3,12 @@
  * Coach blocks time off: single day, date range, or holiday presets.
  */
 import { useState, useEffect, useCallback } from 'react';
-import { View, StyleSheet, Modal, ScrollView, Alert } from 'react-native';
+import { View, StyleSheet, Modal, ScrollView, Alert, Platform } from 'react-native';
 import * as Haptics from 'expo-haptics';
 
 import { Clickable } from '@/components/primitives/clickable';
 import { ThemedText } from '@/components/themed-text';
-import { Spacing, Typography, withAlpha } from '@/constants/theme';
+import { Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
 import { toDateStr } from '@/utils/format';
 import { createLogger } from '@/utils/logger';
@@ -63,7 +63,7 @@ export function BlockDateModal({
   }, [visible, preselectedDate]);
 
   const handleQuickDate = useCallback((date: Date) => {
-    void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    if (Platform.OS !== 'web') void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     setStartDate(date);
     setEndDate(date);
     setSelectedPreset(null);
@@ -71,7 +71,7 @@ export function BlockDateModal({
 
   const handleHolidayPreset = useCallback(
     (presetId: string, dateRange: { start: Date; end: Date }) => {
-      void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+      if (Platform.OS !== 'web') void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
       setSelectedPreset(presetId);
       setStartDate(dateRange.start);
       setEndDate(dateRange.end);
@@ -83,7 +83,7 @@ export function BlockDateModal({
 
   const adjustDate = useCallback(
     (target: 'start' | 'end', days: number) => {
-      void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+      if (Platform.OS !== 'web') void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
       if (target === 'start') {
         setStartDate((prev) => {
           const d = new Date(prev);
@@ -114,7 +114,7 @@ export function BlockDateModal({
     [startDate],
   );
 
-  const handleSave = useCallback(async () => {
+  const performBlock = useCallback(async () => {
     setSaving(true);
     try {
       const dates: string[] = [];
@@ -126,7 +126,7 @@ export function BlockDateModal({
       }
       const reasonLabel = BLOCK_REASONS.find((r) => r.id === reason)?.label || reason;
       await onBlock(dates, reasonLabel);
-      void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      if (Platform.OS !== 'web') void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       onClose();
     } catch (error) {
       logger.error('Failed to block dates:', error);
@@ -135,6 +135,26 @@ export function BlockDateModal({
       setSaving(false);
     }
   }, [startDate, endDate, reason, onBlock, onClose]);
+
+  const handleSave = useCallback(() => {
+    const dayCount = getDaysBetween(startDate, endDate);
+    const dateLabel = dayCount === 1
+      ? startDate.toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'short' })
+      : `${dayCount} days`;
+
+    Alert.alert(
+      'Block Time Off',
+      `Block ${dateLabel}? Any existing bookings on ${dayCount === 1 ? 'this date' : 'these dates'} may need to be rescheduled.`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Block',
+          style: 'destructive',
+          onPress: () => void performBlock(),
+        },
+      ],
+    );
+  }, [startDate, endDate, performBlock]);
 
   const dayCount = getDaysBetween(startDate, endDate);
   const isSameDay = toDateStr(startDate) === toDateStr(endDate);
@@ -238,6 +258,6 @@ const styles = StyleSheet.create({
     gap: Spacing.xs,
     paddingVertical: Spacing.sm,
     paddingHorizontal: Spacing.md,
-    borderRadius: 12,
+    borderRadius: Radii.md,
   },
 });

@@ -203,15 +203,6 @@ export const STORAGE_KEYS = {
   /** Invoice records */
   INVOICES: 'clubroom.invoices',
 
-  /** Session packages offered by coaches */
-  PACKAGES: 'clubroom.packages',
-
-  /** Package purchases by parents/athletes */
-  PACKAGE_PURCHASES: 'clubroom.package_purchases',
-
-  /** Package redemptions (sessions booked with packages) */
-  PACKAGE_REDEMPTIONS: 'clubroom.package_redemptions',
-
   /** Promotional codes */
   PROMO_CODES: 'clubroom.promo_codes',
 
@@ -234,8 +225,25 @@ export const STORAGE_KEYS = {
   /** Emergency contact information for athletes */
   EMERGENCY_INFO: 'clubroom.emergency_info',
 
+  /** Audit log for emergency data access (per-athlete, FIFO capped at 1000) */
+  AUDIT_LOG_PREFIX: 'clubroom.audit_log_',
+
   /** Emergency info cache for offline access */
   EMERGENCY_CACHE: 'clubroom.emergency_cache',
+
+  /** Account deletion requests (soft-delete 30-day grace period) */
+  ACCOUNT_DELETION_PREFIX: 'clubroom.account_deletion_',
+
+  /** Media share records (consent-gated social sharing) */
+  MEDIA_SHARE_PREFIX: 'clubroom.media_share_',
+
+  /** Archived athlete data (90-day retention policy) */
+  ARCHIVE_PREFIX: 'clubroom.archive_',
+  /** Data retention policies configuration */
+  DATA_RETENTION_POLICIES: 'clubroom.data_retention_policies',
+
+  /** Group join approval requests (coach joining parent-only groups) */
+  GROUP_APPROVAL_PREFIX: 'clubroom.group_approval_',
 
   // ============================================================================
   // COMMUNITY DOMAIN

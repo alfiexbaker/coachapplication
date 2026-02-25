@@ -74,34 +74,7 @@ describe('Invoice Service Utility Functions', () => {
     });
   });
 
-  describe('getStatusColor', () => {
-    const getStatusColor = (status: InvoiceStatus): string => {
-      const colors: Record<InvoiceStatus, string> = {
-        DRAFT: '#6B7280',
-        SENT: '#2563EB',
-        PAID: '#059669',
-        VOID: '#DC2626',
-        WRITTEN_OFF: '#9CA3AF',
-      };
-      return colors[status];
-    };
 
-    test('should return gray color for DRAFT status', () => {
-      assert.strictEqual(getStatusColor('DRAFT'), '#6B7280');
-    });
-
-    test('should return blue color for SENT status', () => {
-      assert.strictEqual(getStatusColor('SENT'), '#2563EB');
-    });
-
-    test('should return green color for PAID status', () => {
-      assert.strictEqual(getStatusColor('PAID'), '#059669');
-    });
-
-    test('should return red color for VOID status', () => {
-      assert.strictEqual(getStatusColor('VOID'), '#DC2626');
-    });
-  });
 
   describe('Tax Calculation', () => {
     const DEFAULT_TAX_RATE = 20;

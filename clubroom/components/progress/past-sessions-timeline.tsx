@@ -176,7 +176,7 @@ const styles = StyleSheet.create({
     top: 10,
     bottom: 10,
     width: 2,
-    borderRadius: 1,
+    borderRadius: Radii.xs,
   },
   timelineCards: {
     paddingLeft: 0,

@@ -6,7 +6,7 @@
  * ShareOnlyButtonInner — single share icon button (accepts palette).
  */
 
-import React, { memo, useState } from 'react';
+import React, { memo, useState, useCallback } from 'react';
 import { StyleSheet, ActivityIndicator, Alert } from 'react-native';
 import { Clickable } from '@/components/primitives/clickable';
 import { Ionicons } from '@expo/vector-icons';
@@ -21,11 +21,11 @@ import type { ThemeColors } from '@/hooks/useTheme';
 export function getButtonSize(size: 'small' | 'medium' | 'large') {
   switch (size) {
     case 'small':
-      return { paddingVertical: 8, paddingHorizontal: Spacing.xs + Spacing.xxs };
+      return { paddingVertical: Spacing.xs, paddingHorizontal: Spacing.xs + Spacing.xxs };
     case 'large':
-      return { paddingVertical: 16, paddingHorizontal: 24 };
+      return { paddingVertical: Spacing.sm, paddingHorizontal: Spacing.md };
     default:
-      return { paddingVertical: Spacing.xs + Spacing.xxs, paddingHorizontal: 16 };
+      return { paddingVertical: Spacing.xs + Spacing.xxs, paddingHorizontal: Spacing.sm };
   }
 }
 
@@ -66,7 +66,7 @@ export const DownloadOnlyButtonInner = memo(function DownloadOnlyButtonInner({
 }: SingleButtonInnerProps) {
   const [downloading, setDownloading] = useState(false);
 
-  const handleDownload = async () => {
+  const handleDownload = useCallback(async () => {
     if (downloading) return;
     setDownloading(true);
 
@@ -75,14 +75,14 @@ export const DownloadOnlyButtonInner = memo(function DownloadOnlyButtonInner({
       if (result) {
         Alert.alert('Downloaded', `${invoice.invoiceNumber} saved.`);
       } else {
-        Alert.alert('Failed', 'Could not download the invoice.');
+        Alert.alert('Download Failed', 'Could not download the invoice. Please try again.');
       }
     } catch {
-      Alert.alert('Error', 'An error occurred.');
+      Alert.alert('Download Failed', 'Something went wrong. Check your connection and try again.');
     } finally {
       setDownloading(false);
     }
-  };
+  }, [downloading, invoice.id, invoice.invoiceNumber]);
 
   const iconSz = getIconSize(size);
 
@@ -110,7 +110,7 @@ export const ShareOnlyButtonInner = memo(function ShareOnlyButtonInner({
 }: SingleButtonInnerProps) {
   const [sharing, setSharing] = useState(false);
 
-  const handleShare = async () => {
+  const handleShare = useCallback(async () => {
     if (sharing) return;
     setSharing(true);
 
@@ -121,7 +121,7 @@ export const ShareOnlyButtonInner = memo(function ShareOnlyButtonInner({
     } finally {
       setSharing(false);
     }
-  };
+  }, [sharing, invoice.id]);
 
   const iconSz = getIconSize(size);
 

@@ -21,3 +21,6 @@ export { Row, type RowProps } from './row';
 export { Column, type ColumnProps } from './column';
 export { Spacer, type SpacerProps } from './spacer';
 export { Center, type CenterProps } from './center';
+
+// Image
+export { SafeImage } from './safe-image';

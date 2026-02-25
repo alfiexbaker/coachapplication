@@ -185,9 +185,22 @@ async function addSessionFeedback(
   return nextFeedback;
 }
 
-async function getSessionFeedback(sessionId: string): Promise<SessionFeedback | null> {
+async function getSessionFeedback(
+  sessionId: string,
+  viewerRole: 'coach' | 'parent' | 'athlete' = 'coach',
+): Promise<SessionFeedback | null> {
   const allFeedback = await getAllSessionFeedback();
-  return allFeedback.find((f) => f.sessionId === sessionId) ?? null;
+  const feedback = allFeedback.find((f) => f.sessionId === sessionId) ?? null;
+
+  if (!feedback) return null;
+
+  // Strip private data for non-coach viewers
+  if (viewerRole !== 'coach') {
+    if (feedback.visibility === 'coach_only') return null;
+    return { ...feedback, privateNotes: undefined };
+  }
+
+  return feedback;
 }
 
 async function getFeedbackForAthlete(

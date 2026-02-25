@@ -441,9 +441,9 @@ const styles = StyleSheet.create({
     flexWrap: 'wrap',
   },
   heroNumber: {
-    fontSize: 28,
+    fontSize: Typography.hero.fontSize,
     fontWeight: '800',
-    lineHeight: 34,
+    lineHeight: Typography.hero.lineHeight,
   },
   heroUnit: {
     ...Typography.bodySmall,
@@ -452,8 +452,8 @@ const styles = StyleSheet.create({
   heroDot: {
     width: 3,
     height: 3,
-    borderRadius: 2,
-    marginHorizontal: 2,
+    borderRadius: Radii.xs,
+    marginHorizontal: Spacing.micro,
   },
   heroMeta: {
     ...Typography.caption,

@@ -1,5 +1,5 @@
 import { useCallback } from 'react';
-import { View, StyleSheet, ScrollView } from 'react-native';
+import { View, StyleSheet, ScrollView, Platform } from 'react-native';
 
 import * as Haptics from 'expo-haptics';
 
@@ -45,14 +45,14 @@ export function AvailabilityGrid({
   );
 
   const handleSlotPress = (dayOfWeek: number, hour: number) => {
-    void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    if (Platform.OS !== 'web') void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     onSlotPress(dayOfWeek, hour);
   };
 
   const handleSlotLongPress = (dayOfWeek: number, hour: number) => {
     const { template } = getSlotStatus(dayOfWeek, hour);
     if (template && onSlotLongPress) {
-      void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+      if (Platform.OS !== 'web') void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
       onSlotLongPress(template);
     }
   };

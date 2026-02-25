@@ -1,6 +1,6 @@
 import { StyleSheet } from 'react-native';
 
-import { Spacing, Typography } from '@/constants/theme';
+import { Spacing, Radii, Typography } from '@/constants/theme';
 
 export const styles = StyleSheet.create({
   container: { flex: 1 },
@@ -9,12 +9,12 @@ export const styles = StyleSheet.create({
   errorContainer: {
     marginHorizontal: Spacing.lg,
     padding: Spacing.md,
-    borderRadius: 12,
+    borderRadius: Radii.md,
     borderWidth: 1,
   },
   errorText: { ...Typography.small, flex: 1 },
   retryLink: { ...Typography.smallSemiBold },
   emptyState: { paddingTop: Spacing['3xl'], paddingHorizontal: Spacing.lg, alignItems: 'center', gap: Spacing.sm },
   emptyTitle: { ...Typography.heading, marginTop: Spacing.sm },
-  emptyText: { ...Typography.bodySmall, textAlign: 'center', lineHeight: 20 },
+  emptyText: { ...Typography.bodySmall, textAlign: 'center' },
 });

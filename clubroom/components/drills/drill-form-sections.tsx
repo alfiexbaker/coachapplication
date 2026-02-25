@@ -292,7 +292,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing.md,
     fontSize: scaleFont(15),
   },
-  inputWithIconInput: { paddingLeft: 48 },
+  inputWithIconInput: { paddingLeft: Spacing['2xl'] },
   errorText: { fontSize: scaleFont(12), marginTop: Spacing.xxs },
   actions: { gap: Spacing.md, marginTop: Spacing.md },
   cancelButton: { flex: 1 },

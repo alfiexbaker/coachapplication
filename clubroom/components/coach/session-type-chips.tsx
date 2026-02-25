@@ -45,6 +45,8 @@ export function SessionTypeChips({ templates, onPress, onAdd, selectedId }: Sess
           hapticTap();
           onAdd();
         }}
+        accessibilityRole="button"
+        accessibilityLabel="Add your first session type"
         style={[styles.emptyState, { borderColor: palette.tint }]}
       >
         <Ionicons name="add-circle-outline" size={20} color={palette.tint} />
@@ -79,6 +81,9 @@ export function SessionTypeChips({ templates, onPress, onAdd, selectedId }: Sess
                 hapticTap();
                 onPress(template);
               }}
+              accessibilityRole="button"
+              accessibilityLabel={`${template.name}, ${template.duration} minutes, ${template.defaultPrice > 0 ? `£${template.defaultPrice}` : 'Free'}`}
+              accessibilityState={{ selected: isSelected }}
               style={[
                 styles.chip,
                 {
@@ -109,6 +114,8 @@ export function SessionTypeChips({ templates, onPress, onAdd, selectedId }: Sess
             hapticTap();
             onAdd();
           }}
+          accessibilityRole="button"
+          accessibilityLabel="Add session type"
           style={[
             styles.addChip,
             { borderColor: palette.border, backgroundColor: palette.background },
@@ -156,7 +163,7 @@ const styles = StyleSheet.create({
   },
   chipContent: {
     flex: 1,
-    gap: 2,
+    gap: Spacing.micro,
   },
   chipName: {
     ...Typography.smallSemiBold,

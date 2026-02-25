@@ -177,7 +177,7 @@ export interface TypeNotificationPreference {
  */
 export interface MutedCoach {
   coachId: string;
-  coachName: string;
+  coachName?: string; // @deprecated — resolve via coachId
   coachAvatar?: string;
   mutedAt: string;
   reason?: string;
@@ -386,8 +386,8 @@ export type TrendDirection = 'UP' | 'DOWN' | 'STABLE';
 export interface CoachAnalytics {
   /** Coach ID */
   coachId: string;
-  /** Coach name */
-  coachName: string;
+  /** @deprecated — resolve via coachId */
+  coachName?: string;
   /** Period these analytics cover */
   period: CoachAnalyticsPeriod;
   /** Date range for the analytics */

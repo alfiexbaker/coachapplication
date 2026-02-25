@@ -6,7 +6,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { HapticTab } from '@/components/haptic-tab';
 import { IconSymbol } from '@/components/ui/icon-symbol';
 import { ErrorBoundary } from '@/components/error-boundary';
-import { Typography, Spacing, Shadows } from '@/constants/theme';
+import { Typography, Spacing, Shadows, Radii } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
 import { useAuth, type UserRole } from '@/hooks/use-auth';
 import { useNotificationCount } from '@/hooks/use-notifications';
@@ -205,7 +205,7 @@ export default function TabLayout() {
       height: tabBarHeight,
       paddingBottom: Math.max(insets.bottom, Spacing.xs),
       paddingTop: Spacing.xs,
-      paddingHorizontal: 16, // More horizontal breathing room
+      paddingHorizontal: Spacing.sm, // More horizontal breathing room
       ...Shadows[scheme].card,
     },
     tabBarLabelStyle: {
@@ -214,7 +214,7 @@ export default function TabLayout() {
       fontWeight: '600' as const,
       lineHeight: 16,
       letterSpacing: 0.15,
-      marginTop: 2,
+      marginTop: Spacing.micro,
     },
     tabBarIconStyle: {
       marginTop: 0,
@@ -224,8 +224,8 @@ export default function TabLayout() {
       color: palette.onError,
       minWidth: 16,
       height: 16,
-      borderRadius: 8,
-      fontSize: 10,
+      borderRadius: Radii.sm,
+      fontSize: Typography.micro.fontSize,
       fontWeight: '700' as const,
       lineHeight: 12,
       borderWidth: 1,

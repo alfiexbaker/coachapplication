@@ -2,10 +2,12 @@
  * RecognitionDetailCard — Full recognition card shown when parent taps a badge.
  * The "screenshot moment" — designed to be shared on WhatsApp.
  */
-import { memo, useCallback } from 'react';
+import { memo, useCallback, type ComponentProps } from 'react';
 import { Modal, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
+
+type IconName = ComponentProps<typeof Ionicons>['name'];
 import Animated, { FadeInDown, FadeIn } from 'react-native-reanimated';
 
 import { SurfaceCard } from '@/components/primitives/surface-card';
@@ -20,7 +22,7 @@ import { CategoryInfo } from '@/constants/progression';
 import { formatShortDateWithYear } from '@/utils/format';
 import type { BadgeAward, BadgeCategory } from '@/constants/types';
 
-const CATEGORY_ICONS: Record<BadgeCategory, string> = {
+const CATEGORY_ICONS: Record<BadgeCategory, IconName> = {
   technical: 'football-outline',
   physical: 'fitness-outline',
   psychological: 'bulb-outline',
@@ -57,7 +59,7 @@ function RecognitionDetailCardInner({
 
   const category = award.badgeCategory as BadgeCategory | undefined;
   const categoryLabel = category ? CategoryInfo[category]?.label : 'Development';
-  const categoryIcon = category ? CATEGORY_ICONS[category] : 'ribbon-outline';
+  const categoryIcon: IconName = category ? CATEGORY_ICONS[category] : 'ribbon-outline';
 
   return (
     <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
@@ -83,7 +85,7 @@ function RecognitionDetailCardInner({
               style={[styles.categoryBanner, { backgroundColor: withAlpha(palette.tint, 0.06) }]}
             >
               <Row align="center" gap="xs" justify="center">
-                <Ionicons name={categoryIcon as any} size={20} color={palette.tint} />
+                <Ionicons name={categoryIcon} size={20} color={palette.tint} />
                 <ThemedText style={[Typography.caption, { color: palette.tint, letterSpacing: 1 }]}>
                   {categoryLabel.toUpperCase()} RECOGNITION
                 </ThemedText>

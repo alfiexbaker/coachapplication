@@ -1,5 +1,5 @@
 import React, { useCallback } from 'react';
-import { View, StyleSheet } from 'react-native';
+import { View, StyleSheet, Platform } from 'react-native';
 import { router } from 'expo-router';
 import { Routes } from '@/navigation/routes';
 import { Ionicons } from '@expo/vector-icons';
@@ -24,7 +24,7 @@ export const NextSessionCard = React.memo(function NextSessionCard({
   const athleteName = getRosterAthleteName(athlete);
 
   const handleBook = useCallback(() => {
-    void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    if (Platform.OS !== 'web') void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     router.push(Routes.rosterAthleteAddToSession(athlete.athleteId, athleteName));
   }, [athlete.athleteId, athleteName]);
 

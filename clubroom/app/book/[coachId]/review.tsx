@@ -96,7 +96,7 @@ export default function ReviewScreen() {
     }
   }, [coach?.name, updateDraft]);
 
-  const sessionPrice = draft.price ?? coach?.minPriceUsd ?? 60;
+  const sessionPrice = draft.price ?? coach?.minPrice ?? 60;
   const subtotal = sessionPrice;
   const total = Math.max(0, subtotal - promoDiscount);
 
@@ -230,9 +230,9 @@ export default function ReviewScreen() {
           total={total}
         />
 
-        {coach?.minPriceUsd && (
+        {coach?.minPrice && (
           <ThemedText style={[styles.rateNote, { color: palette.muted }]}>
-            {coach.name}&apos;s rate: £{coach.minPriceUsd}/hour
+            {coach.name}&apos;s rate: £{coach.minPrice}/hour
           </ThemedText>
         )}
       </ScrollView>

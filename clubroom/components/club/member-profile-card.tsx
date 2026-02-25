@@ -1,10 +1,12 @@
 import { memo } from 'react';
-import { View, Image, StyleSheet } from 'react-native';
+import { View, StyleSheet } from 'react-native';
+import { Image } from 'expo-image';
 import { Ionicons } from '@expo/vector-icons';
 
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { ThemedText } from '@/components/themed-text';
 import { Row } from '@/components/primitives/row';
+import { Column } from '@/components/primitives/column';
 import { Spacing, Radii, Typography, Components, withAlpha } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
 import { clubService, type ClubMember } from '@/services/club-service';
@@ -43,7 +45,7 @@ export const MemberProfileCard = memo(function MemberProfileCard({
             <ThemedText style={[Typography.display, { color: roleColor }]}>{initials}</ThemedText>
           </View>
         )}
-        <View style={{ flex: 1, gap: Spacing.xs }}>
+        <Column flex gap="xs">
           <ThemedText type="title">{member.userName}</ThemedText>
           <Row style={[styles.roleBadge, { backgroundColor: withAlpha(roleColor, 0.09) }]}>
             <View style={[styles.roleDot, { backgroundColor: roleColor }]} />
@@ -51,7 +53,7 @@ export const MemberProfileCard = memo(function MemberProfileCard({
               {clubService.formatRole(member.role)}
             </ThemedText>
           </Row>
-        </View>
+        </Column>
       </Row>
 
       <View style={[styles.details, { borderTopColor: colors.border }]}>

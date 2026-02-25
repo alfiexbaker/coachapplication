@@ -78,7 +78,7 @@ export const BadgeListSection = memo(function BadgeListSection({
                 )}
               </Row>
 
-              <ThemedText style={{ lineHeight: 20, color: colors.foreground }}>
+              <ThemedText style={{ lineHeight: Typography.bodySmall.lineHeight, color: colors.foreground }}>
                 {badge.detail}
               </ThemedText>
 

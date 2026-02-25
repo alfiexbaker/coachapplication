@@ -699,7 +699,7 @@ export const sessionCrudService = {
             sessionType: session.sessionType,
             focus: session.focus?.join(', ') ?? '',
             notes: session.description,
-            priceUsd: session.pricePerParticipant,
+            price: session.pricePerParticipant,
           });
 
           logger.info('Auto-invited squad members', {

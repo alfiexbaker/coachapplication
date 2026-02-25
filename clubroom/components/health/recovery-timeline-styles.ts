@@ -87,7 +87,7 @@ export const styles = StyleSheet.create({
   noteDate: { fontSize: scaleFont(14), fontWeight: '600' },
   noteTime: { fontSize: scaleFont(12) },
   progressBadge: {
-    paddingHorizontal: 8,
+    paddingHorizontal: Spacing.xs,
     paddingVertical: Spacing.xxs,
     borderRadius: Radii.pill,
   },

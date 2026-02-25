@@ -135,7 +135,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderRadius: Radii.md,
     paddingHorizontal: Spacing.sm,
-    paddingVertical: 8,
+    paddingVertical: Spacing.xs,
   },
   input: { flex: 1, ...Typography.bodySmall },
   sessionList: { maxHeight: 200 },

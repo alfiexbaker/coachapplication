@@ -54,10 +54,10 @@ export interface AnnotationExport {
   videoTitle: string;
   /** Video duration in seconds */
   videoDuration: number;
-  /** Coach name */
-  coachName: string;
-  /** Athlete names */
-  athleteNames: string[];
+  /** @deprecated — resolve via coachId */
+  coachName?: string;
+  /** @deprecated — resolve via athleteIds */
+  athleteNames?: string[];
   /** Export timestamp */
   exportedAt: string;
   /** Annotations sorted by timestamp */

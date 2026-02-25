@@ -1,5 +1,6 @@
 import { View, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { Column } from '@/components/primitives/column';
 import { Row } from '@/components/primitives/row';
 import { ThemedText } from '@/components/themed-text';
 import { Radii, Spacing, withAlpha } from '@/constants/theme';
@@ -18,12 +19,12 @@ export function CardListItem({ card, onDelete }: { card: PaymentCard; onDelete?:
     <View style={[styles.card, { borderColor: palette.border }]}>
       <Row align="center" gap="md">
         <Ionicons name="card" size={24} color={palette.tint} />
-        <View style={{ flex: 1 }}>
+        <Column flex>
           <ThemedText type="defaultSemiBold">{card.brand || 'Visa ending 4242'}</ThemedText>
           <ThemedText style={{ color: palette.muted }}>
             {card.number || '•••• •••• •••• 4242'}
           </ThemedText>
-        </View>
+        </Column>
         {card.default && (
           <View style={[styles.badge, { backgroundColor: withAlpha(palette.tint, 0.09) }]}>
             <ThemedText style={{ color: palette.tint, fontWeight: '700' }}>Default</ThemedText>

@@ -1,5 +1,5 @@
 import React, { memo, useCallback } from 'react';
-import { View, StyleSheet } from 'react-native';
+import { View, StyleSheet, Platform } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import { ThemedText } from '@/components/themed-text';
@@ -15,6 +15,8 @@ interface CancelReasonPickerProps {
   reasons: CancellationReason[];
   selectedReason: string;
   onSelectReason: (key: string) => void;
+  /** Only show validation notice after user has attempted to submit */
+  touched?: boolean;
 }
 
 export const CancelReasonPicker = memo(function CancelReasonPicker({
@@ -22,12 +24,13 @@ export const CancelReasonPicker = memo(function CancelReasonPicker({
   reasons,
   selectedReason,
   onSelectReason,
+  touched = false,
 }: CancelReasonPickerProps) {
   const { colors: palette } = useTheme();
 
   const handlePress = useCallback(
     (key: string) => {
-      void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+      if (Platform.OS !== 'web') void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
       onSelectReason(key);
     },
     [onSelectReason],
@@ -74,7 +77,7 @@ export const CancelReasonPicker = memo(function CancelReasonPicker({
         })}
       </View>
 
-      {isCoach && !selectedReason && (
+      {isCoach && touched && !selectedReason && (
         <Row style={[styles.notice, { backgroundColor: withAlpha(palette.error, 0.03) }]}>
           <Ionicons name="alert-circle-outline" size={14} color={palette.error} />
           <ThemedText style={[styles.noticeText, { color: palette.error }]}>

@@ -51,7 +51,7 @@ const CoachListCard = memo(function CoachListCard({
   onBook: () => void;
 }) {
   const { colors: palette } = useTheme();
-  const price = coach.sessionRate ?? coach.priceRange.minUsd;
+  const price = coach.sessionRate ?? coach.priceRange.min;
   const focuses = (coach.footballFocuses ?? []).slice(0, 3);
 
   return (
@@ -73,7 +73,7 @@ const CoachListCard = memo(function CoachListCard({
             transition={200}
           />
           {coach.badges?.length > 0 ? (
-            <View style={[styles.verifiedBadge, { backgroundColor: palette.tint }]}>
+            <View style={[styles.verifiedBadge, { backgroundColor: palette.tint, borderColor: palette.card }]}>
               <Ionicons name="checkmark" size={10} color={palette.onPrimary} />
             </View>
           ) : null}
@@ -99,7 +99,7 @@ const CoachListCard = memo(function CoachListCard({
           {/* Rating + Distance */}
           <Row align="center" gap="xs">
             <Row align="center" gap="micro">
-              <Ionicons name="star" size={13} color="#F59E0B" />
+              <Ionicons name="star" size={13} color={palette.rating} />
               <ThemedText style={styles.ratingText}>
                 {coach.rating.average.toFixed(1)}
               </ThemedText>
@@ -392,7 +392,7 @@ const styles = StyleSheet.create({
   avatar: {
     width: 56,
     height: 56,
-    borderRadius: 28,
+    borderRadius: Radii.xl,
   },
   verifiedBadge: {
     position: 'absolute',
@@ -400,11 +400,10 @@ const styles = StyleSheet.create({
     right: 0,
     width: 18,
     height: 18,
-    borderRadius: 9,
+    borderRadius: Radii.sm,
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 2,
-    borderColor: '#fff',
   },
   cardInfo: { flex: 1 },
   cardName: { ...Typography.bodySemiBold, flex: 1, marginRight: Spacing.xs },
@@ -415,7 +414,7 @@ const styles = StyleSheet.create({
   metaDot: {
     width: 3,
     height: 3,
-    borderRadius: 1.5,
+    borderRadius: Radii.xs,
     opacity: 0.4,
   },
   distanceText: { ...Typography.caption },

@@ -54,7 +54,7 @@ export function AnnotationBadge({
     },
     medium: {
       ...Typography.caption,
-      paddingHorizontal: 8,
+      paddingHorizontal: Spacing.xs,
       paddingVertical: Spacing.xxs,
       iconSize: 12,
       gap: Spacing.xxs,

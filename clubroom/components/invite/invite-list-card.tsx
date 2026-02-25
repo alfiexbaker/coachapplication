@@ -1,7 +1,7 @@
 /** InviteListCard — Memoized invite card for the invites list screen. */
 
-import React, { memo } from 'react';
-import { StyleSheet, View } from 'react-native';
+import React, { memo, useCallback } from 'react';
+import { Alert, StyleSheet, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 import { SurfaceCard } from '@/components/primitives/surface-card';
@@ -82,6 +82,37 @@ export const InviteListCard = memo(function InviteListCard({
   onCancel,
   onDismiss,
 }: InviteListCardProps) {
+  const handleCancel = useCallback(() => {
+    const recipientName = getSessionInviteAthleteNames(invite).join(', ') || 'recipient';
+    Alert.alert(
+      'Cancel Invite',
+      `Cancel the pending invite to ${recipientName}?`,
+      [
+        { text: 'Back', style: 'cancel' },
+        {
+          text: 'Cancel Invite',
+          style: 'destructive',
+          onPress: () => onCancel?.(),
+        },
+      ],
+    );
+  }, [invite, onCancel]);
+
+  const handleDismiss = useCallback(() => {
+    Alert.alert(
+      'Remove Invite',
+      'Remove this invite from your list?',
+      [
+        { text: 'Back', style: 'cancel' },
+        {
+          text: 'Remove',
+          style: 'destructive',
+          onPress: () => onDismiss?.(),
+        },
+      ],
+    );
+  }, [onDismiss]);
+
   const expired = new Date(invite.expiresAt) < new Date();
   const status = expired && invite.status === 'PENDING' ? 'EXPIRED' : invite.status;
   const sc = statusCfg(status, colors);
@@ -177,12 +208,12 @@ export const InviteListCard = memo(function InviteListCard({
               </ThemedText>
             </Row>
           )}
-          {invite.priceUsd != null && invite.priceUsd > 0 && (
+          {invite.price != null && invite.price > 0 && (
             <Row gap="xs" align="center">
               <Ionicons name="pricetag-outline" size={16} color={colors.muted} />
               <ThemedText style={{ color: colors.text, ...Typography.small }}>
                 {'\u00A3'}
-                {invite.priceUsd}
+                {invite.price}
               </ThemedText>
             </Row>
           )}
@@ -233,7 +264,7 @@ export const InviteListCard = memo(function InviteListCard({
           <Row gap="sm" style={st.actions}>
             <Clickable
               style={[st.actBtn, st.outline, { borderColor: colors.border }]}
-              onPress={onCancel}
+              onPress={handleCancel}
               accessibilityLabel="Cancel invite"
             >
               <Row gap="xxs" align="center" justify="center">
@@ -249,7 +280,7 @@ export const InviteListCard = memo(function InviteListCard({
           <Row gap="sm" style={st.actions}>
             <Clickable
               style={[st.actBtn, st.outline, { borderColor: colors.border }]}
-              onPress={onDismiss}
+              onPress={handleDismiss}
               accessibilityLabel="Remove invite from list"
             >
               <Row gap="xxs" align="center" justify="center">
@@ -269,7 +300,7 @@ export const InviteListCard = memo(function InviteListCard({
 const st = StyleSheet.create({
   card: { padding: Spacing.md, gap: Spacing.sm },
   msgBanner: { padding: Spacing.sm, borderRadius: Radii.sm },
-  msgText: { ...Typography.bodySmallSemiBold, flex: 1, lineHeight: 18 },
+  msgText: { ...Typography.bodySmallSemiBold, flex: 1, lineHeight: Typography.caption.lineHeight },
   typeBadge: { paddingHorizontal: 10, paddingVertical: Spacing.micro, borderRadius: Radii.sm },
   typeText: { ...Typography.caption },
   avatar: {

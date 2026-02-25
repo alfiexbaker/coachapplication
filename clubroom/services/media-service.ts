@@ -5,6 +5,7 @@ import * as VideoThumbnails from 'expo-video-thumbnails';
 
 import { STORAGE_KEYS } from '@/constants/storage-keys';
 import { apiClient } from '@/services/api-client';
+import { consentService } from '@/services/consent-service';
 import { emitTyped, ServiceEvents } from '@/services/event-bus';
 import { err, ok, type Result, type ServiceError } from '@/types/result';
 import { createLogger } from '@/utils/logger';
@@ -23,8 +24,32 @@ async function safeDelete(uri: string | undefined): Promise<void> {
   await FileSystem.deleteAsync(uri, { idempotent: true });
 }
 
-async function saveSessionMedia(media: SessionMedia): Promise<Result<SessionMedia, ServiceError>> {
+async function saveSessionMedia(
+  media: SessionMedia,
+  coachId?: string,
+): Promise<Result<SessionMedia, ServiceError>> {
   try {
+    // SAFEGUARDING: Check photo/video consent when coachId provided
+    if (coachId && media.athleteId) {
+      const photoConsentResult = await consentService.checkConsent(media.athleteId, 'PHOTO', coachId);
+      const videoConsentResult = await consentService.checkConsent(media.athleteId, 'VIDEO', coachId);
+
+      const hasPhotoConsent = photoConsentResult.success && photoConsentResult.data;
+      const hasVideoConsent = videoConsentResult.success && videoConsentResult.data;
+
+      if (!hasPhotoConsent && !hasVideoConsent) {
+        logger.warn('Media upload blocked - no photo/video consent', {
+          coachId,
+          athleteId: media.athleteId,
+          sessionId: media.sessionId,
+        });
+        return err({
+          code: 'UNAUTHORIZED',
+          message: "Photo/video consent required from athlete's parent before uploading media",
+        });
+      }
+    }
+
     const allMedia = await getAllSessionMedia();
     const existingIndex = allMedia.findIndex(
       (entry) => entry.sessionId === media.sessionId && entry.athleteId === media.athleteId,

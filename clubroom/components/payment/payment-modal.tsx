@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { View, StyleSheet, Modal, ScrollView } from 'react-native';
+import { View, StyleSheet, Modal, ScrollView, Platform } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 
@@ -47,7 +47,7 @@ export function PaymentModal({
 
   if (!invite || !selectedSlot) return null;
 
-  const price = invite.priceUsd || 0;
+  const price = invite.price || 0;
   const coachName = getSessionInviteCoachName(invite);
   const athleteNames = getSessionInviteAthleteNames(invite);
   const serviceFee = Math.round(price * 0.05 * 100) / 100;
@@ -61,20 +61,20 @@ export function PaymentModal({
   });
 
   const handlePayment = async () => {
-    void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    if (Platform.OS !== 'web') void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     setProcessing(true);
     setPaymentStep('processing');
 
     try {
       await new Promise((resolve) => setTimeout(resolve, 1500));
       setPaymentStep('success');
-      void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      if (Platform.OS !== 'web') void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       await new Promise((resolve) => setTimeout(resolve, 800));
       await onPaymentComplete();
       setPaymentStep('review');
     } catch (error) {
       logger.error('Payment failed:', error);
-      void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+      if (Platform.OS !== 'web') void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
       setPaymentStep('review');
     } finally {
       setProcessing(false);

@@ -62,7 +62,7 @@ export const styles = StyleSheet.create({
   filterChip: {
     alignItems: 'center',
     gap: Spacing.xxs,
-    paddingVertical: 8,
+    paddingVertical: Spacing.xs,
     paddingHorizontal: Spacing.xs + Spacing.xxs,
     borderRadius: Radii.pill,
     borderWidth: 1,

@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { View, StyleSheet, TextInput } from 'react-native';
+import { useState, useCallback } from 'react';
+import { Alert, View, StyleSheet, TextInput } from 'react-native';
 import { Row } from '@/components/primitives/row';
 import { Ionicons } from '@expo/vector-icons';
 
@@ -22,6 +22,28 @@ export function AthleteNotes({ notes, onAddNote, onDeleteNote }: AthleteNotesPro
 
   const [showInput, setShowInput] = useState(false);
   const [newNote, setNewNote] = useState('');
+
+  const handleDeleteNote = useCallback((noteId: string) => {
+    const note = notes.find((n) => n.id === noteId);
+    const preview = note?.content
+      ? note.content.length > 50
+        ? note.content.substring(0, 50) + '...'
+        : note.content
+      : 'this note';
+
+    Alert.alert(
+      'Delete Note',
+      `Delete this note?\n\n"${preview}"\n\nThis cannot be undone.`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Delete',
+          style: 'destructive',
+          onPress: () => onDeleteNote(noteId),
+        },
+      ],
+    );
+  }, [notes, onDeleteNote]);
 
   const handleAddNote = () => {
     if (newNote.trim()) {
@@ -105,7 +127,7 @@ export function AthleteNotes({ notes, onAddNote, onDeleteNote }: AthleteNotesPro
                   </ThemedText>
                   <Clickable
                     accessibilityLabel="Delete note"
-                    onPress={() => onDeleteNote(note.id)}
+                    onPress={() => handleDeleteNote(note.id)}
                     hitSlop={8}
                   >
                     <Ionicons name="trash-outline" size={16} color={palette.error} />
@@ -145,7 +167,7 @@ const styles = StyleSheet.create({
     padding: Spacing.lg,
     gap: Spacing.sm,
   },
-  emptyText: { ...Typography.small, textAlign: 'center', lineHeight: 18 },
+  emptyText: { ...Typography.small, textAlign: 'center', lineHeight: Typography.caption.lineHeight },
   notesList: {
     gap: Spacing.sm,
   },
@@ -155,5 +177,5 @@ const styles = StyleSheet.create({
     gap: Spacing.xs,
   },
   noteDate: { ...Typography.caption },
-  noteContent: { ...Typography.bodySmall, lineHeight: 20 },
+  noteContent: { ...Typography.bodySmall },
 });

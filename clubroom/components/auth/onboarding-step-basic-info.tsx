@@ -11,7 +11,7 @@ import { DateTimeField } from '@/components/ui/primitives/DateTimeField';
 import { Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
 import { getPasswordStrength } from './onboarding-types';
-import { Row } from '@/components/primitives';
+import { Row, Column } from '@/components/primitives';
 
 interface StepBasicInfoProps {
   firstName: string;
@@ -103,7 +103,7 @@ function StepBasicInfoInner({
       </View>
 
       <Row style={styles.formRow}>
-        <View style={[styles.fieldGroup, { flex: 1 }]}>
+        <Column style={styles.fieldGroup} flex>
           <ThemedText style={styles.label}>First Name *</ThemedText>
           <TextInput
             value={firstName}
@@ -113,8 +113,8 @@ function StepBasicInfoInner({
             accessibilityLabel="First name"
             style={inputStyle}
           />
-        </View>
-        <View style={[styles.fieldGroup, { flex: 1 }]}>
+        </Column>
+        <Column style={styles.fieldGroup} flex>
           <ThemedText style={styles.label}>Last Name *</ThemedText>
           <TextInput
             value={lastName}
@@ -124,7 +124,7 @@ function StepBasicInfoInner({
             accessibilityLabel="Last name"
             style={inputStyle}
           />
-        </View>
+        </Column>
       </Row>
 
       <View style={styles.fieldGroup}>

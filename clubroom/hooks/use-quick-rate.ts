@@ -296,7 +296,6 @@ export function useQuickRate({ athletes, sessionId, coachId, effortByAthleteId }
       }
 
       const existingLookup = buildSkillLookup(existing.positionSkillRatings);
-      const previousLookup = buildSkillLookup(existing.positionSkillRatings);
       const nextRatings = buildSkillRatingsForPosition(position, {
         currentBySkill: {
           'Work Rate': existingLookup['Work Rate'],
@@ -304,7 +303,7 @@ export function useQuickRate({ athletes, sessionId, coachId, effortByAthleteId }
           Communication: existingLookup.Communication,
           Coachability: existingLookup.Coachability,
         },
-        previousBySkill: previousLookup,
+        previousBySkill: existingLookup,
       });
 
       const fourCorners = computeFourCorners(nextRatings);
@@ -447,7 +446,6 @@ export function useQuickRate({ athletes, sessionId, coachId, effortByAthleteId }
       const primaryPosition = nextPositions[0] ?? DEFAULT_POSITION;
 
       const existingLookup = buildSkillLookup(existing.positionSkillRatings);
-      const previousLookup = buildSkillLookup(existing.positionSkillRatings);
       // Build ratings merging all positions' skills
       const allSkills = new Set<FootballSkill>(UNIVERSAL_SKILLS);
       for (const pos of nextPositions) {
@@ -457,7 +455,7 @@ export function useQuickRate({ athletes, sessionId, coachId, effortByAthleteId }
       }
       const nextRatings = Array.from(allSkills).map((skill) => {
         const current = existingLookup[skill] ?? DEFAULT_RATING;
-        const previous = previousLookup[skill];
+        const previous = existingLookup[skill];
         return buildSkillRating(skill, current, previous);
       });
 

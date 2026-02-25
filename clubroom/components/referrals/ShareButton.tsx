@@ -10,12 +10,14 @@ import { Share, StyleSheet, Alert, Platform, ViewStyle } from 'react-native';
 import * as Haptics from 'expo-haptics';
 import { Ionicons } from '@expo/vector-icons';
 
+import * as Clipboard from 'expo-clipboard';
 import { Button } from '@/components/primitives/button';
 import { Clickable } from '@/components/primitives/clickable';
 import { Spacing, Radii } from '@/constants/theme';
 import { createLogger } from '@/utils/logger';
 import { referralService } from '@/services/referral-service';
 import { useTheme } from '@/hooks/useTheme';
+import { useToast } from '@/components/ui/toast';
 
 // Re-export extracted components for backward compat
 export { SharePreview } from './share-button-sections';
@@ -49,10 +51,30 @@ export function ShareButton({
   disabled = false,
 }: ShareButtonProps) {
   const { colors: palette } = useTheme();
+  const { showToast } = useToast();
+
+  const handleCopyLink = useCallback(async () => {
+    const url = referralService.getShareUrl(code);
+    try {
+      await Clipboard.setStringAsync(url);
+      showToast('Referral link copied', 'success');
+      onShareComplete?.(true);
+    } catch (error) {
+      logger.error('Failed to copy link', error);
+      showToast('Failed to copy link', 'error');
+      onShareComplete?.(false);
+    }
+  }, [code, showToast, onShareComplete]);
 
   const handleShare = useCallback(async () => {
-    void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     onShare?.();
+
+    if (Platform.OS === 'web') {
+      await handleCopyLink();
+      return;
+    }
+
+    void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
 
     const message = customMessage || referralService.getShareMessage(code, userName, creditAmount);
     const url = referralService.getShareUrl(code);
@@ -73,15 +95,22 @@ export function ShareButton({
       if (result.action === Share.sharedAction) {
         onShareComplete?.(true);
         void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+        showToast('Referral link shared', 'success');
       } else if (result.action === Share.dismissedAction) {
         onShareComplete?.(false);
       }
     } catch (error) {
       logger.error('Share error', error);
-      Alert.alert('Error', 'Failed to open share dialog');
-      onShareComplete?.(false);
+      Alert.alert(
+        'Share Failed',
+        'Would you like to copy the link instead?',
+        [
+          { text: 'Cancel', style: 'cancel', onPress: () => onShareComplete?.(false) },
+          { text: 'Copy Link', onPress: handleCopyLink },
+        ],
+      );
     }
-  }, [code, userName, creditAmount, customMessage, onShare, onShareComplete]);
+  }, [code, userName, creditAmount, customMessage, onShare, onShareComplete, handleCopyLink, showToast]);
 
   if (variant === 'icon') {
     return (

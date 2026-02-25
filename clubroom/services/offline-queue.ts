@@ -8,6 +8,7 @@
  */
 
 import { apiClient, apiFetch } from './api-client';
+import { generateId } from '@/utils/generate-id';
 import { emitTyped, ServiceEvents } from '@/services/event-bus';
 import { createLogger } from '@/utils/logger';
 import { STORAGE_KEYS } from '@/constants/storage-keys';
@@ -20,6 +21,11 @@ const QUEUE_ITEM_MAX_AGE_MS = 24 * 60 * 60 * 1000;
 
 /** Guard to prevent concurrent flushes. */
 let _isFlushing = false;
+
+/** Backoff state for retry attempts. */
+let _retryAttempt = 0;
+const MAX_RETRY_ATTEMPTS = 5;
+const BASE_DELAY_MS = 1000;
 
 export interface QueuedAction {
   id: string;
@@ -74,7 +80,7 @@ export async function addToQueue(
     const queue = await loadQueue();
     const newAction: QueuedAction = {
       ...action,
-      id: `q_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+      id: generateId('q'),
       timestamp: Date.now(),
     };
     queue.push(newAction);
@@ -83,6 +89,13 @@ export async function addToQueue(
     if (!saveResult.success) {
       return err(saveResult.error);
     }
+
+    emitTyped(ServiceEvents.QUEUE_ACTION_ADDED, {
+      actionId: newAction.id,
+      path: action.path,
+      method: action.method,
+      queueSize: queue.length,
+    });
 
     logger.info('Action queued for offline sync', { id: newAction.id, path: action.path });
     return ok(newAction);
@@ -235,12 +248,63 @@ export async function flushQueue(): Promise<Result<FlushResult, ServiceError>> {
       remaining: result.remaining,
     });
 
+    // Reset backoff on successful flush
+    if (failedActions.length === 0) {
+      _retryAttempt = 0;
+    }
+
     logger.info('Queue flush complete', { processed, failed: failedActions.length, remaining });
     _isFlushing = false;
     return ok(result);
   } catch (error) {
     _isFlushing = false;
+    const message = error instanceof Error ? error.message : 'Unknown error';
     logger.error('Queue flush failed unexpectedly', error);
+
+    emitTyped(ServiceEvents.QUEUE_FLUSH_FAILED, {
+      error: message,
+      queueSize: (await loadQueue()).length,
+    });
+
     return err(storageError('Queue flush failed'));
   }
+}
+
+/**
+ * Flush with exponential backoff. Retries up to MAX_RETRY_ATTEMPTS times
+ * with increasing delays (1s, 2s, 4s, 8s, 16s).
+ */
+export async function flushWithBackoff(): Promise<Result<FlushResult, ServiceError>> {
+  const result = await flushQueue();
+
+  if (!result.success || (result.data.failed > 0 && _retryAttempt < MAX_RETRY_ATTEMPTS)) {
+    _retryAttempt++;
+    const delay = BASE_DELAY_MS * Math.pow(2, _retryAttempt - 1);
+    logger.info(`Scheduling retry #${_retryAttempt} in ${delay}ms`);
+
+    setTimeout(() => {
+      flushWithBackoff().catch((e) => logger.error('Backoff flush failed', e));
+    }, delay);
+  }
+
+  return result;
+}
+
+/**
+ * Initialize network-aware auto-flush.
+ * Call once at app startup. Listens for CONNECTION_CHANGED events
+ * and auto-flushes the queue when coming back online.
+ */
+export function initAutoFlush(): () => void {
+  const { onTyped } = require('@/services/event-bus') as typeof import('@/services/event-bus');
+
+  const unsubscribe = onTyped(ServiceEvents.CONNECTION_CHANGED, (payload) => {
+    if (payload.isConnected && payload.wasOffline) {
+      logger.info('Network restored — auto-flushing offline queue');
+      _retryAttempt = 0;
+      flushWithBackoff().catch((e) => logger.error('Auto-flush failed', e));
+    }
+  });
+
+  return unsubscribe;
 }

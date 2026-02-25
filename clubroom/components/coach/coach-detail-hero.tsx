@@ -1,5 +1,6 @@
 import React, { memo } from 'react';
-import { View, StyleSheet, Image } from 'react-native';
+import { View, StyleSheet } from 'react-native';
+import { SafeImage } from '@/components/primitives/safe-image';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { ThemedText } from '@/components/themed-text';
@@ -33,7 +34,7 @@ export const CoachDetailHero = memo(function CoachDetailHero({
       {/* Cover + Avatar */}
       <View style={styles.coverContainer}>
         {coach.coverPhotoUrl ? (
-          <Image source={{ uri: coach.coverPhotoUrl }} style={styles.coverImage} />
+          <SafeImage source={{ uri: coach.coverPhotoUrl }} fallbackIcon="image-outline" fallbackIconSize={48} style={styles.coverImage} />
         ) : (
           <View style={[styles.coverPlaceholder, { backgroundColor: palette.tint }]} />
         )}
@@ -45,8 +46,10 @@ export const CoachDetailHero = memo(function CoachDetailHero({
         </Clickable>
         <View style={styles.avatarContainer}>
           {coach.profilePhotoUrl ? (
-            <Image
+            <SafeImage
               source={{ uri: coach.profilePhotoUrl }}
+              fallbackIcon="person-circle-outline"
+              fallbackIconSize={40}
               style={[styles.avatar, { borderColor: palette.onPrimary }]}
             />
           ) : (
@@ -182,7 +185,7 @@ const styles = StyleSheet.create({
   badge: {
     alignItems: 'center',
     gap: Spacing.xxs,
-    paddingHorizontal: 8,
+    paddingHorizontal: Spacing.xs,
     paddingVertical: Spacing.xxs,
     borderRadius: Radii.pill,
   },

@@ -30,10 +30,10 @@ export function SessionTypeSelector({
   if (loading) {
     return (
       <View style={styles.list}>
-        <View style={[styles.emptyCard, { borderColor: palette.border, backgroundColor: palette.surface }]}>
+        <Row align="center" gap="xs" style={[styles.emptyCard, { borderColor: palette.border, backgroundColor: palette.surface }]}>
           <Ionicons name="time-outline" size={18} color={palette.muted} />
           <ThemedText style={{ color: palette.muted }}>Loading coach offerings...</ThemedText>
-        </View>
+        </Row>
       </View>
     );
   }
@@ -41,12 +41,12 @@ export function SessionTypeSelector({
   if (options.length === 0) {
     return (
       <View style={styles.list}>
-        <View style={[styles.emptyCard, { borderColor: palette.border, backgroundColor: palette.surface }]}>
+        <Row align="center" gap="xs" style={[styles.emptyCard, { borderColor: palette.border, backgroundColor: palette.surface }]}>
           <Ionicons name="alert-circle-outline" size={18} color={palette.muted} />
           <ThemedText style={{ color: palette.muted }}>
             This coach has no bookable session types set up yet.
           </ThemedText>
-        </View>
+        </Row>
       </View>
     );
   }
@@ -96,8 +96,5 @@ const styles = StyleSheet.create({
     padding: Spacing.md,
     borderRadius: Radii.lg,
     borderWidth: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.xs,
   },
 });

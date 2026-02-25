@@ -4,6 +4,7 @@ import { View, StyleSheet } from 'react-native';
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { ThemedText } from '@/components/themed-text';
 import { Row } from '@/components/primitives/row';
+import { Column } from '@/components/primitives/column';
 import { Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
 import { matchService } from '@/services/match-service';
@@ -40,7 +41,7 @@ export const MatchPlayerList = memo(function MatchPlayerList({ match }: MatchPla
                   {athleteName.slice(0, 2).toUpperCase()}
                 </ThemedText>
               </View>
-              <View style={{ flex: 1 }}>
+              <Column flex>
                 <ThemedText type="defaultSemiBold">{athleteName}</ThemedText>
                 {player.position && (
                   <ThemedText style={[Typography.caption, { color: colors.muted }]}>
@@ -48,7 +49,7 @@ export const MatchPlayerList = memo(function MatchPlayerList({ match }: MatchPla
                     {player.jerseyNumber && ` #${player.jerseyNumber}`}
                   </ThemedText>
                 )}
-              </View>
+              </Column>
               <View style={[styles.pill, { backgroundColor: withAlpha(statusCol, 0.09) }]}>
                 <ThemedText style={[Typography.caption, { color: statusCol }]}>
                   {matchService.formatPlayerStatus(player.status)}

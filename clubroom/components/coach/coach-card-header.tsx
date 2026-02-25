@@ -6,7 +6,7 @@
  */
 
 import { StyleSheet, View } from 'react-native';
-import { Image } from 'expo-image';
+import { SafeImage } from '@/components/primitives/safe-image';
 import { Ionicons } from '@expo/vector-icons';
 
 import { Spacing, Radii, Components, Typography } from '@/constants/theme';
@@ -56,8 +56,10 @@ export function CoachCardHeader({
     <Row style={layout === 'inline' ? styles.inlineContainer : styles.stackedContainer}>
       {/* Avatar with optional trial badge */}
       <View style={styles.avatarContainer}>
-        <Image
+        <SafeImage
           source={{ uri: profilePhotoUrl }}
+          fallbackIcon="person-circle-outline"
+          fallbackIconSize={avatarDimension * 0.5}
           style={[styles.avatar, { width: avatarDimension, height: avatarDimension }]}
           contentFit="cover"
         />
@@ -109,8 +111,10 @@ export function CoachAvatar({
 
   return (
     <View style={styles.avatarContainer}>
-      <Image
-        source={{ uri: profilePhotoUrl || 'https://via.placeholder.com/64' }}
+      <SafeImage
+        source={{ uri: profilePhotoUrl }}
+        fallbackIcon="person-circle-outline"
+        fallbackIconSize={avatarDimension * 0.5}
         style={[styles.avatar, { width: avatarDimension, height: avatarDimension }]}
         contentFit="cover"
       />
@@ -180,7 +184,7 @@ const styles = StyleSheet.create({
   },
   trialText: {
     ...Typography.micro,
-    fontSize: 9,
+    fontSize: Typography.micro.fontSize,
     letterSpacing: 0.8,
   },
   nameContainer: {

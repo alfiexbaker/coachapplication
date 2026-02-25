@@ -7,6 +7,7 @@ import Animated, { FadeInDown, FadeIn } from 'react-native-reanimated';
 import { Clickable } from '@/components/primitives/clickable';
 import { ThemedText } from '@/components/themed-text';
 import { Row } from '@/components/primitives/row';
+import { Column } from '@/components/primitives/column';
 import { Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
 import type { ThemeColors } from '@/hooks/useTheme';
 import type { GroupRegistration } from '@/constants/types';
@@ -64,14 +65,14 @@ export const RollCallModal = memo(function RollCallModal({
           >
             <Ionicons name="close" size={24} color={colors.text} />
           </Clickable>
-          <View style={{ flex: 1, alignItems: 'center' }}>
+          <Column flex align="center">
             <ThemedText type="defaultSemiBold" style={Typography.heading}>
               Roll Call
             </ThemedText>
             <ThemedText style={[Typography.small, { color: colors.muted }]}>
               {sessionTitle}
             </ThemedText>
-          </View>
+          </Column>
           <Clickable
             style={[
               styles.saveBtn,
@@ -137,14 +138,14 @@ export const RollCallModal = memo(function RollCallModal({
                         .join('')}
                     </ThemedText>
                   </View>
-                  <View style={{ flex: 1 }}>
+                  <Column flex>
                     <ThemedText type="defaultSemiBold">{athleteName}</ThemedText>
                     {parentName && (
                       <ThemedText style={[Typography.caption, { color: colors.muted }]}>
                         Parent: {parentName}
                       </ThemedText>
                     )}
-                  </View>
+                  </Column>
                 </Row>
                 <Row gap="sm" justify="flex-end">
                   {(

@@ -91,7 +91,7 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 8,
+    gap: Spacing.xs,
     paddingVertical: 10,
     borderRadius: Radii.md,
     borderWidth: 1,

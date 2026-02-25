@@ -15,6 +15,7 @@ import { Clickable } from '@/components/primitives/clickable';
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { ThemedText } from '@/components/themed-text';
 import { Row } from '@/components/primitives/row';
+import { Column } from '@/components/primitives/column';
 import { AthleteStatCard } from '@/components/analytics/athlete-stat-card';
 import { AthleteSkillBar } from '@/components/analytics/athlete-skill-bar';
 import { AthleteGoalCard } from '@/components/analytics/athlete-goal-card';
@@ -38,12 +39,12 @@ export default function AthleteAnalyticsScreen() {
       <Clickable onPress={() => router.back()} hitSlop={8}>
         <Ionicons name="arrow-back" size={24} color={colors.text} />
       </Clickable>
-      <View style={{ flex: 1 }}>
+      <Column flex>
         <ThemedText type="title">{headerTitle}</ThemedText>
         <ThemedText style={[Typography.small, { color: colors.muted, marginTop: Spacing.micro }]}>
           Progress Analytics
         </ThemedText>
-      </View>
+      </Column>
       <Clickable accessibilityLabel="Share analytics" onPress={athlete.handleShare} hitSlop={8}>
         <Ionicons name="share-outline" size={22} color={colors.text} />
       </Clickable>
@@ -195,7 +196,7 @@ export default function AthleteAnalyticsScreen() {
               <ThemedText type="subtitle">Active Goals</ThemedText>
               <Clickable
                 onPress={() => router.push(Routes.analyticsAthleteGoals(athleteRouteId))}
-                style={{ paddingVertical: Spacing.xxs, paddingHorizontal: 8 }}
+                style={{ paddingVertical: Spacing.xxs, paddingHorizontal: Spacing.xs }}
               >
                 <ThemedText style={[Typography.smallSemiBold, { color: colors.tint }]}>
                   See all
@@ -237,7 +238,7 @@ export default function AthleteAnalyticsScreen() {
               <SurfaceCard key={goal.id} style={{ padding: Spacing.md }}>
                 <Row gap="md" align="center">
                   <Ionicons name="trophy" size={20} color={colors.success} />
-                  <View style={{ flex: 1 }}>
+                  <Column flex>
                     <ThemedText type="defaultSemiBold">{goal.title}</ThemedText>
                     <ThemedText
                       style={[
@@ -251,7 +252,7 @@ export default function AthleteAnalyticsScreen() {
                         month: 'short',
                       })}
                     </ThemedText>
-                  </View>
+                  </Column>
                 </Row>
               </SurfaceCard>
             ))}
@@ -279,7 +280,7 @@ const styles = StyleSheet.create({
   completedBadge: {
     alignItems: 'center',
     gap: Spacing.xxs,
-    paddingHorizontal: 8,
+    paddingHorizontal: Spacing.xs,
     paddingVertical: Spacing.xxs,
     borderRadius: Radii.sm,
   },

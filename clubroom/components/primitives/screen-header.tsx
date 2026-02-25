@@ -128,7 +128,7 @@ const styles = StyleSheet.create({
   // GLOBAL: Title = 22px, weight 600 (same everywhere)
   title: { ...Typography.title, letterSpacing: -0.3 },
   // GLOBAL: Subtitle = 12px, weight 400
-  subtitle: { ...Typography.caption, lineHeight: 18 },
+  subtitle: { ...Typography.caption },
   actionButton: {
     paddingHorizontal: Spacing.sm,
     minHeight: 40,
@@ -149,6 +149,5 @@ export const SCREEN_TYPOGRAPHY = {
   },
   subtitle: {
     ...Typography.caption,
-    lineHeight: 18,
   },
 } as const;

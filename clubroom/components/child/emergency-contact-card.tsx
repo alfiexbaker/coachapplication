@@ -1,5 +1,5 @@
-import { memo } from 'react';
-import { View, StyleSheet } from 'react-native';
+import { memo, useCallback } from 'react';
+import { Alert, View, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
 import { SurfaceCard } from '@/components/primitives/surface-card';
@@ -7,6 +7,7 @@ import { Clickable } from '@/components/primitives/clickable';
 import { ThemedText } from '@/components/themed-text';
 import { Badge } from '@/components/primitives/badge';
 import { Row } from '@/components/primitives/row';
+import { Column } from '@/components/primitives/column';
 import { Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
 import type { EmergencyContact } from '@/constants/types';
@@ -26,13 +27,28 @@ export const EmergencyContactCard = memo(function EmergencyContactCard({
 }: EmergencyContactCardProps) {
   const { colors } = useTheme();
 
+  const handleDelete = useCallback(() => {
+    Alert.alert(
+      'Delete Emergency Contact',
+      `Remove ${contact.name} (${contact.relationship}) as emergency contact?\n\nThis is critical safety information and should only be deleted if no longer accurate.`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Delete',
+          style: 'destructive',
+          onPress: onDelete,
+        },
+      ],
+    );
+  }, [contact.name, contact.relationship, onDelete]);
+
   return (
     <SurfaceCard style={styles.card}>
       <Row gap="sm" align="center">
         <View style={[styles.avatar, { backgroundColor: withAlpha(colors.tint, 0.09) }]}>
           <Ionicons name="person" size={20} color={colors.tint} />
         </View>
-        <View style={{ flex: 1 }}>
+        <Column flex>
           <Row gap="xs" align="center">
             <ThemedText type="defaultSemiBold">{contact.name}</ThemedText>
             {contact.isPrimary && <Badge label="Primary" tone="success" />}
@@ -40,7 +56,7 @@ export const EmergencyContactCard = memo(function EmergencyContactCard({
           <ThemedText style={{ color: colors.muted, ...Typography.small }}>
             {contact.relationship}
           </ThemedText>
-        </View>
+        </Column>
       </Row>
 
       <View style={styles.details}>
@@ -78,7 +94,7 @@ export const EmergencyContactCard = memo(function EmergencyContactCard({
           <Ionicons name="create-outline" size={18} color={colors.tint} />
           <ThemedText style={{ color: colors.tint, ...Typography.small }}>Edit</ThemedText>
         </Clickable>
-        <Clickable onPress={onDelete} style={styles.actionButton}>
+        <Clickable onPress={handleDelete} style={styles.actionButton}>
           <Ionicons name="trash-outline" size={18} color={colors.error} />
           <ThemedText style={{ color: colors.error, ...Typography.small }}>Remove</ThemedText>
         </Clickable>

@@ -11,6 +11,7 @@ import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 
 import { Clickable } from '@/components/primitives/clickable';
+import { Column } from '@/components/primitives/column';
 import { ThemedText } from '@/components/themed-text';
 import { Row } from '@/components/primitives/row';
 import { EmptyState } from '@/components/ui/empty-state';
@@ -83,9 +84,9 @@ export default function EmergencyContactsScreen() {
           <Clickable onPress={() => router.back()} style={styles.backButton}>
             <Ionicons name="arrow-back" size={24} color={colors.text} />
           </Clickable>
-          <View style={{ flex: 1 }}>
+          <Column flex>
             <ThemedText type="title">Emergency Contacts</ThemedText>
-          </View>
+          </Column>
           {!showForm && !editingContact && contacts.length > 0 && (
             <Clickable
               accessibilityLabel="Add emergency contact"

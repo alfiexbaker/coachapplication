@@ -37,10 +37,9 @@ const styles = StyleSheet.create({
   },
   eyebrow: { ...Typography.caption, textTransform: 'uppercase', letterSpacing: 1.2 },
   title: {
-    ...Typography.display,
-    fontSize: 34,
+    ...Typography.displayLarge,
     fontWeight: '800',
     letterSpacing: -1,
   },
-  subtitle: { ...Typography.subheading, lineHeight: 24, fontWeight: '500' },
+  subtitle: { ...Typography.subheading, fontWeight: '500' },
 });

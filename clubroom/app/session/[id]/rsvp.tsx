@@ -5,7 +5,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { ThemedText } from '@/components/themed-text';
 import { LoadingState, ErrorState } from '@/components/ui/screen-states';
-import { Spacing, Typography } from '@/constants/theme';
+import { Spacing, Typography, Radii } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
 import { useScreen } from '@/hooks/use-screen';
 import { useAuth } from '@/hooks/use-auth';
@@ -343,7 +343,7 @@ const styles = StyleSheet.create({
   },
   sessionCard: {
     borderWidth: 1,
-    borderRadius: 12,
+    borderRadius: Radii.md,
     padding: Spacing.md,
     gap: Spacing.xs,
   },

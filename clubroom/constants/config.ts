@@ -54,6 +54,9 @@ export const isStaging = env === 'staging';
 export const isProduction = env === 'production';
 export const isDebug = getBool('DEBUG', isDevelopment);
 
+/** Whether to show detailed error info (stack traces, error codes). True only in dev builds. */
+export const showErrorDetails = __DEV__;
+
 // -----------------------------------------------------------------------------
 // Feature Flags
 // -----------------------------------------------------------------------------

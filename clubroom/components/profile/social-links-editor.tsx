@@ -146,7 +146,7 @@ const styles = StyleSheet.create({
   header: {
     gap: Spacing.xs / 2,
   },
-  subtitle: { ...Typography.bodySmall, lineHeight: 20 },
+  subtitle: { ...Typography.bodySmall },
   fieldsContainer: {
     gap: Spacing.sm,
   },
@@ -156,7 +156,7 @@ const styles = StyleSheet.create({
     borderRadius: Radii.md,
     alignItems: 'center',
     justifyContent: 'center',
-    marginTop: 20, // Align with input field
+    marginTop: Spacing.md, // Align with input field
   },
   inputContainer: {
     flex: 1,
@@ -177,5 +177,5 @@ const styles = StyleSheet.create({
     borderRadius: Radii.md,
     borderWidth: 1,
   },
-  infoText: { ...Typography.small, flex: 1, lineHeight: 18 },
+  infoText: { ...Typography.small, flex: 1, lineHeight: Typography.caption.lineHeight },
 });

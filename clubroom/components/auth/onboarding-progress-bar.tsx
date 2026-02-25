@@ -6,6 +6,7 @@ import { memo } from 'react';
 import { View, StyleSheet } from 'react-native';
 import Animated, { useAnimatedStyle, withTiming } from 'react-native-reanimated';
 
+import { Row } from '@/components/primitives';
 import { ThemedText } from '@/components/themed-text';
 import { Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
@@ -39,7 +40,7 @@ function OnboardingProgressBarInner({
       <View style={[styles.track, { backgroundColor: withAlpha(palette.border, 0.85) }]}>
         <Animated.View style={[styles.fill, { backgroundColor: palette.tint }, fillStyle]} />
       </View>
-      <View style={styles.milestonesRow}>
+      <Row gap="xxs">
         {Array.from({ length: totalSteps }).map((_, idx) => {
           const isActive = idx + 1 <= stepNumber;
           return (
@@ -55,7 +56,7 @@ function OnboardingProgressBarInner({
             />
           );
         })}
-      </View>
+      </Row>
       {stepLabel ? (
         <ThemedText style={[styles.stepLabel, { color: palette.muted }]} numberOfLines={1}>
           {stepLabel}
@@ -92,10 +93,7 @@ const styles = StyleSheet.create({
     ...Typography.caption,
     fontWeight: '700',
   },
-  milestonesRow: {
-    flexDirection: 'row',
-    gap: Spacing.xxs,
-  },
+  milestonesRow: {},
   milestoneDot: {
     flex: 1,
     height: 3,

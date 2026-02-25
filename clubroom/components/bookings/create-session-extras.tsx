@@ -6,7 +6,7 @@ import { View, StyleSheet, TextInput } from 'react-native';
 
 import { ThemedText } from '@/components/themed-text';
 import { Clickable } from '@/components/primitives/clickable';
-import { Spacing, Radii } from '@/constants/theme';
+import { Spacing, Radii, Typography } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
 import { scaleFont } from '@/utils/scale';
 import type { FootballObjective } from '@/constants/types';
@@ -22,6 +22,7 @@ interface SessionExtrasProps {
   onAgeMinChange: (value: string) => void;
   ageMax: string;
   onAgeMaxChange: (value: string) => void;
+  ageError?: string | null;
   footballSkill: FootballObjective | '';
   onFootballSkillChange: (skill: FootballObjective | '') => void;
 }
@@ -33,6 +34,7 @@ function SessionExtrasInner({
   onAgeMinChange,
   ageMax,
   onAgeMaxChange,
+  ageError,
   footballSkill,
   onFootballSkillChange,
 }: SessionExtrasProps) {
@@ -88,6 +90,11 @@ function SessionExtrasInner({
             accessibilityLabel="Maximum age"
           />
         </Row>
+        {ageError ? (
+          <ThemedText style={[Typography.caption, { color: palette.error }]}>
+            {ageError}
+          </ThemedText>
+        ) : null}
       </View>
 
       {/* Skill Focus */}
@@ -130,10 +137,10 @@ export const SessionExtras = memo(SessionExtrasInner);
 
 const styles = StyleSheet.create({
   container: {
-    gap: 20,
+    gap: Spacing.sm,
   },
   field: {
-    gap: 8,
+    gap: Spacing.xs,
   },
   label: {
     fontSize: scaleFont(15),
@@ -144,8 +151,8 @@ const styles = StyleSheet.create({
   input: {
     borderWidth: 1,
     borderRadius: Radii.md,
-    paddingHorizontal: 16,
-    paddingVertical: 16,
+    paddingHorizontal: Spacing.sm,
+    paddingVertical: Spacing.sm,
     fontSize: scaleFont(16),
     lineHeight: scaleFont(20),
   },
@@ -153,7 +160,7 @@ const styles = StyleSheet.create({
     alignItems: 'stretch',
   },
   currencyPrefix: {
-    paddingHorizontal: 16,
+    paddingHorizontal: Spacing.sm,
     justifyContent: 'center',
     borderTopLeftRadius: Radii.md,
     borderBottomLeftRadius: Radii.md,
@@ -176,16 +183,16 @@ const styles = StyleSheet.create({
   },
   ageSeparator: {
     fontSize: scaleFont(15),
-    paddingHorizontal: 8,
+    paddingHorizontal: Spacing.xs,
     fontWeight: '600',
   },
   skillPicker: {
     flexWrap: 'wrap',
-    gap: 10,
+    gap: Spacing.xs,
   },
   skillButton: {
-    paddingHorizontal: 16,
-    paddingVertical: 10,
+    paddingHorizontal: Spacing.sm,
+    paddingVertical: Spacing.xs,
     borderRadius: Radii.md,
     borderWidth: 2,
     minHeight: 44,

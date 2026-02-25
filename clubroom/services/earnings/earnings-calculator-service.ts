@@ -127,7 +127,8 @@ export const earningsCalculatorService = {
         }
 
         const totalSessions = completedBookings.length;
-        const averageSessionValue = totalSessions > 0 ? Math.round(totalEarned / totalSessions) : 0;
+        const roundMoney = (n: number): number => Math.round(n * 100) / 100;
+        const averageSessionValue = totalSessions > 0 ? roundMoney(totalEarned / totalSessions) : 0;
 
         logger.debug('Calculated earnings from bookings', {
           coachId,
@@ -207,7 +208,8 @@ export const earningsCalculatorService = {
         const totalEarned = currentPeriodTxns.reduce((sum, t) => sum + t.amount, 0);
         const lastPeriodTotal = lastPeriodTxns.reduce((sum, t) => sum + t.amount, 0);
         const totalSessions = currentPeriodTxns.length;
-        const averagePerSession = totalSessions > 0 ? Math.round(totalEarned / totalSessions) : 0;
+        const roundMoney = (n: number): number => Math.round(n * 100) / 100;
+        const averagePerSession = totalSessions > 0 ? roundMoney(totalEarned / totalSessions) : 0;
 
         const comparedToLastPeriod =
           lastPeriodTotal > 0
@@ -297,7 +299,7 @@ export const earningsCalculatorService = {
   calculateProjectedEarnings(currentMonthEarnings: number, dayOfMonth: number): number {
     if (dayOfMonth === 0) return 0;
     const daysInMonth = new Date(new Date().getFullYear(), new Date().getMonth() + 1, 0).getDate();
-    return Math.round((currentMonthEarnings / dayOfMonth) * daysInMonth);
+    return Math.round(((currentMonthEarnings / dayOfMonth) * daysInMonth) * 100) / 100;
   },
 
   /**
@@ -311,6 +313,6 @@ export const earningsCalculatorService = {
     if (sessionPayments.length === 0) return 0;
 
     const total = sessionPayments.reduce((sum, t) => sum + t.amount, 0);
-    return Math.round(total / sessionPayments.length);
+    return Math.round((total / sessionPayments.length) * 100) / 100;
   },
 };

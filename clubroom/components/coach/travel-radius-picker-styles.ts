@@ -34,8 +34,7 @@ export const styles = StyleSheet.create({
     marginBottom: Spacing.xs,
   },
   radiusValue: {
-    ...Typography.display,
-    fontSize: 36,
+    ...Typography.displayLarge,
   },
   radiusUnit: {
     ...Typography.caption,
@@ -65,7 +64,7 @@ export const styles = StyleSheet.create({
   },
   quickSetBtn: {
     paddingHorizontal: 14,
-    paddingVertical: 8,
+    paddingVertical: Spacing.xs,
     borderRadius: Radii.pill,
     borderWidth: 1,
   },
@@ -73,7 +72,7 @@ export const styles = StyleSheet.create({
     ...Typography.smallSemiBold,
   },
   helperArea: {
-    gap: 8,
+    gap: Spacing.xs,
   },
   helperText: {
     flex: 1,

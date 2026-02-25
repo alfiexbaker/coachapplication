@@ -75,5 +75,5 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   radioInner: { width: 10, height: 10, borderRadius: Radii.sm },
-  description: { ...Typography.small, marginLeft: 32 },
+  description: { ...Typography.small, marginLeft: Spacing.lg },
 });

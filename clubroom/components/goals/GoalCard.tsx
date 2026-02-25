@@ -5,6 +5,7 @@
  * Used in goal lists and dashboards to show goal information at a glance.
  */
 
+import { memo } from 'react';
 import { View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
@@ -26,7 +27,7 @@ interface GoalCardProps {
   showMilestones?: boolean;
 }
 
-export function GoalCard({
+export const GoalCard = memo(function GoalCard({
   goal,
   onPress,
   variant = 'default',
@@ -112,4 +113,4 @@ export function GoalCard({
       </View>
     </SurfaceCard>
   );
-}
+});

@@ -224,7 +224,7 @@ const styles = StyleSheet.create({
     gap: Spacing.md,
   },
   header: { marginBottom: Spacing.sm },
-  subtitle: { ...Typography.body, marginTop: Spacing.xxs, marginLeft: 32 },
+  subtitle: { ...Typography.body, marginTop: Spacing.xxs, marginLeft: Spacing.lg },
   periodButton: {
     flex: 1,
     paddingVertical: Spacing.sm,

@@ -1,5 +1,6 @@
 import React, { memo } from 'react';
 import { View, StyleSheet } from 'react-native';
+import { Column } from '@/components/primitives/column';
 import { Ionicons } from '@expo/vector-icons';
 
 import { SurfaceCard } from '@/components/primitives/surface-card';
@@ -68,10 +69,10 @@ export const RetentionRecommendations = memo(function RetentionRecommendations({
                 color={colors[tip.color as keyof ThemeColors] as string}
               />
             </View>
-            <View style={{ flex: 1 }}>
+            <Column flex>
               <ThemedText style={styles.tipTitle}>{tip.title}</ThemedText>
               <ThemedText style={[styles.tipSub, { color: colors.muted }]}>{tip.sub}</ThemedText>
-            </View>
+            </Column>
           </Row>
         ))}
       </View>

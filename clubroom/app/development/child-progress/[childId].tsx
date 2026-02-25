@@ -29,6 +29,7 @@ import { useChildProgress, PROGRESS_TABS } from '@/hooks/use-child-progress';
 import { formatShortDateWithYear } from '@/utils/format';
 import { LoadingState, ErrorState, EmptyState } from '@/components/ui/screen-states';
 import { Routes } from '@/navigation/routes';
+import type { FootballSkill } from '@/types/progress-types';
 
 export default function ChildProgressScreen() {
   const { colors } = useScreen<null>({ load: async () => ok(null), isEmpty: () => false });
@@ -346,7 +347,7 @@ export default function ChildProgressScreen() {
             {progress.skills?.length > 0 ? (
               <SkillRadar
                 skills={progress.skills.map((s) => ({
-                  skillName: s.skill,
+                  skillName: s.skill as FootballSkill,
                   category: '',
                   currentLevel: s.level,
                   previousLevel: s.previousLevel ?? s.level,

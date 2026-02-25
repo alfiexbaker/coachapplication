@@ -5,7 +5,7 @@
  * session completion wizard. The screen component only handles rendering.
  */
 
-import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { Alert, Platform } from 'react-native';
 import { router } from 'expo-router';
 import * as Haptics from 'expo-haptics';
@@ -23,9 +23,11 @@ import { bookingService } from '@/services/booking-service';
 import { groupSessionService } from '@/services/group-session-service';
 import { sessionTemplateService } from '@/services/session-template-service';
 import { userService } from '@/services/user-service';
+import { earningsService } from '@/services/earnings';
 import { emitTyped, ServiceEvents } from '@/services/event-bus';
 import { notificationTriggers } from '@/services/notification-trigger';
 import { useAuth } from '@/hooks/use-auth';
+import { generateId } from '@/utils/generate-id';
 import { createLogger } from '@/utils/logger';
 import type {
   SessionOffering,
@@ -109,6 +111,22 @@ export function useSessionCompletion(sessionId: string | undefined) {
     (registration: SessionRegistration) => registration.userId || 'Athlete',
     [],
   );
+
+  // Unmount guard for async setState safety
+  const isMountedRef = useRef(true);
+
+  // Timer ref for review prompt delay
+  const reviewPromptTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Clean up floating timer and mark unmounted
+  useEffect(() => {
+    return () => {
+      isMountedRef.current = false;
+      if (reviewPromptTimerRef.current) {
+        clearTimeout(reviewPromptTimerRef.current);
+      }
+    };
+  }, []);
 
   // Data state
   const [session, setSession] = useState<SessionOffering | null>(null);
@@ -326,6 +344,7 @@ export function useSessionCompletion(sessionId: string | undefined) {
           sessionType: '1on1' as const,
           scheduledAt: booking.scheduledAt,
           duration: booking.duration || 60,
+          price: booking.price,
           location: booking.location,
           maxParticipants: 1,
           isRecurring: false,
@@ -361,9 +380,13 @@ export function useSessionCompletion(sessionId: string | undefined) {
       }
     } catch (err) {
       logger.error('Failed to load session', err);
-      setError('Failed to load session. Please try again.');
+      if (isMountedRef.current) {
+        setError('Failed to load session. Please try again.');
+      }
     } finally {
-      setLoading(false);
+      if (isMountedRef.current) {
+        setLoading(false);
+      }
     }
   }, [sessionId, loadParticipantContext]);
 
@@ -429,7 +452,7 @@ export function useSessionCompletion(sessionId: string | undefined) {
         {},
       );
       const nextMessage: ChatMessage = {
-        id: `msg_${session.id}_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
+        id: generateId('msg'),
         threadId,
         sender: 'coach',
         body,
@@ -871,7 +894,7 @@ export function useSessionCompletion(sessionId: string | undefined) {
           }
         }
 
-        // 7. Emit SESSION_COMPLETED event
+        // Compute present athlete lists (used by earnings + event + notifications)
         const athleteIds = attendanceValues
           .filter((a) => a.status === 'present')
           .map((a) => a.registration.userId);
@@ -880,11 +903,33 @@ export function useSessionCompletion(sessionId: string | undefined) {
           .filter((a) => a.status === 'present')
           .map((a) => getRegistrationName(a.registration));
 
+        // 6b. Record earnings for the coach
+        if (completedBookingId && session.price) {
+          try {
+            const earningsResult = await earningsService.recordSessionPayment(
+              session.coachId,
+              completedBookingId,
+              session.price,
+              athleteNamesList.length > 0
+                ? athleteNamesList.join(', ')
+                : 'Athlete',
+              new Date().toISOString(),
+            );
+            if (!earningsResult.success) {
+              logger.error('Earnings recording failed', earningsResult.error);
+            }
+          } catch (earningsErr) {
+            logger.error('Earnings recording threw', earningsErr);
+          }
+        }
+
+        // 7. Emit SESSION_COMPLETED event
         emitTyped(ServiceEvents.SESSION_COMPLETED, {
           sessionId: session.id,
           bookingId: completedBookingId,
           coachId: session.coachId,
           athleteIds,
+          price: session.price,
           athleteName: athleteNamesList.join(', '),
         });
 
@@ -894,7 +939,7 @@ export function useSessionCompletion(sessionId: string | undefined) {
         void notificationTriggers.sessionCompleted(coachName, athleteNamesDisplay);
 
         // 9. Queue review prompt (delayed to avoid collision)
-        setTimeout(() => {
+        reviewPromptTimerRef.current = setTimeout(() => {
           void notificationTriggers.reviewPrompt(coachName, athleteNamesDisplay);
         }, 2000);
 
@@ -943,10 +988,14 @@ export function useSessionCompletion(sessionId: string | undefined) {
         };
       } catch (err) {
         logger.error('Failed to complete session', err);
-        Alert.alert('Error', 'Failed to complete session. Please try again.');
+        if (isMountedRef.current) {
+          Alert.alert('Error', 'Failed to complete session. Please try again.');
+        }
         return null;
       } finally {
-        setSubmitting(false);
+        if (isMountedRef.current) {
+          setSubmitting(false);
+        }
       }
     },
     [

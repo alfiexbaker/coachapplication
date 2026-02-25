@@ -1,5 +1,6 @@
 import React from 'react';
 import { StyleSheet, View } from 'react-native';
+import { Column } from '@/components/primitives/column';
 import { Ionicons } from '@expo/vector-icons';
 
 import { ThemedText } from '@/components/themed-text';
@@ -80,12 +81,12 @@ function AddChildConsentsStepInner(props: AddChildConsentsStepProps) {
           onPress={() => item.onChange(!item.value)}
           style={[styles.consentRow, { borderColor: palette.border }]}
         >
-          <View style={{ flex: 1 }}>
+          <Column flex>
             <ThemedText type="defaultSemiBold">{item.title}</ThemedText>
             <ThemedText style={[styles.consentDesc, { color: palette.muted }]}>
               {item.description}
             </ThemedText>
-          </View>
+          </Column>
           <View
             style={[
               styles.toggle,

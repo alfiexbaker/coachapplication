@@ -307,14 +307,14 @@ describe('FavouriteCoachCard Logic', () => {
       const formatPrice = () => {
         if (favourite.coachPriceMin && favourite.coachPriceMax) {
           if (favourite.coachPriceMin === favourite.coachPriceMax) {
-            return `$${favourite.coachPriceMin}`;
+            return `£${favourite.coachPriceMin}`;
           }
-          return `$${favourite.coachPriceMin}-$${favourite.coachPriceMax}`;
+          return `£${favourite.coachPriceMin}-£${favourite.coachPriceMax}`;
         }
         return null;
       };
 
-      assert.strictEqual(formatPrice(), '$50-$100');
+      assert.strictEqual(formatPrice(), '£50-£100');
     });
 
     test('should display single price when min equals max', () => {
@@ -326,14 +326,14 @@ describe('FavouriteCoachCard Logic', () => {
       const formatPrice = () => {
         if (favourite.coachPriceMin && favourite.coachPriceMax) {
           if (favourite.coachPriceMin === favourite.coachPriceMax) {
-            return `$${favourite.coachPriceMin}`;
+            return `£${favourite.coachPriceMin}`;
           }
-          return `$${favourite.coachPriceMin}-$${favourite.coachPriceMax}`;
+          return `£${favourite.coachPriceMin}-£${favourite.coachPriceMax}`;
         }
         return null;
       };
 
-      assert.strictEqual(formatPrice(), '$75');
+      assert.strictEqual(formatPrice(), '£75');
     });
 
     test('should return null when prices are not set', () => {

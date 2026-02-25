@@ -26,10 +26,10 @@ export function buildFeedbackPrefillFromQuickRate(
   const attendeeCount = options.attendeeCount ?? 1;
   const defaultDotValue = options.defaultDotValue ?? 3;
   const corners: FourCornerRatings = {
-    technical: quickRate.technical,
-    physical: quickRate.physical,
-    psychological: quickRate.psychological,
-    social: quickRate.social,
+    technical: quickRate.technical ?? defaultDotValue,
+    physical: quickRate.physical ?? defaultDotValue,
+    psychological: quickRate.psychological ?? defaultDotValue,
+    social: quickRate.social ?? defaultDotValue,
   };
 
   const cornerLabels: Record<FourCornerKey, string> = {

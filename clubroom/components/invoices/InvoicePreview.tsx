@@ -3,7 +3,10 @@ import { ScrollView } from 'react-native';
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { ThemedText } from '@/components/themed-text';
 import { useTheme } from '@/hooks/useTheme';
+import { Spacing } from '@/constants/theme';
 import { Invoice } from '@/constants/types';
+import { ErrorBoundary } from '@/components/error-boundary';
+import { Button } from '@/components/primitives';
 
 import {
   InvoiceHeader,
@@ -20,7 +23,7 @@ interface InvoicePreviewProps {
   invoice: Invoice;
 }
 
-export function InvoicePreview({ invoice }: InvoicePreviewProps) {
+function InvoicePreviewContent({ invoice }: InvoicePreviewProps) {
   const { colors: palette } = useTheme();
 
   return (
@@ -42,7 +45,7 @@ export function InvoicePreview({ invoice }: InvoicePreviewProps) {
       {invoice.notes && (
         <SurfaceCard style={styles.card}>
           <ThemedText style={[styles.sectionTitle, { color: palette.muted }]}>NOTES</ThemedText>
-          <ThemedText style={{ lineHeight: 20 }}>{invoice.notes}</ThemedText>
+          <ThemedText type="bodySmall">{invoice.notes}</ThemedText>
         </SurfaceCard>
       )}
 
@@ -58,5 +61,31 @@ export function InvoicePreview({ invoice }: InvoicePreviewProps) {
         <InvoiceSentInfo sentTo={invoice.sentTo} sentAt={invoice.sentAt} palette={palette} />
       )}
     </ScrollView>
+  );
+}
+
+export function InvoicePreview({ invoice }: InvoicePreviewProps) {
+  const { colors } = useTheme();
+
+  return (
+    <ErrorBoundary
+      fallback={(_error, _errorInfo, reset) => (
+        <SurfaceCard style={{ padding: Spacing.md }}>
+          <ThemedText style={{ color: colors.error }}>
+            Failed to load invoice preview
+          </ThemedText>
+          <Button
+            variant="secondary"
+            size="compact"
+            onPress={reset}
+            style={{ marginTop: Spacing.sm }}
+          >
+            Try Again
+          </Button>
+        </SurfaceCard>
+      )}
+    >
+      <InvoicePreviewContent invoice={invoice} />
+    </ErrorBoundary>
   );
 }

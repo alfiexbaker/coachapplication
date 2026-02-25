@@ -5,9 +5,11 @@
  * Category picker + text input + private toggle.
  */
 
-import { memo, useState, useCallback, useEffect } from 'react';
+import { memo, useState, useCallback, useEffect, type ComponentProps } from 'react';
 import { View, StyleSheet, TextInput, Modal, ScrollView, Switch } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+
+type IconName = ComponentProps<typeof Ionicons>['name'];
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { ThemedText } from '@/components/themed-text';
@@ -111,7 +113,7 @@ export const CoachObservationModal = memo(function CoachObservationModal({
                     ]}
                   >
                     <Ionicons
-                      name={cat.icon as any}
+                      name={cat.icon as IconName}
                       size={14}
                       color={isActive ? colors.tint : colors.muted}
                     />
@@ -212,5 +214,5 @@ const styles = StyleSheet.create({
     ...Typography.body,
   },
   toggleRow: { paddingVertical: Spacing.xs },
-  toggleLabel: { flex: 1, gap: 2 },
+  toggleLabel: { flex: 1, gap: Spacing.micro },
 });

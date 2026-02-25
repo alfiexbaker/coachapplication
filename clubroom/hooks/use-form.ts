@@ -112,14 +112,12 @@ export function useForm<T extends { [K in keyof T]: string }>({
       if (validateOnChange && fieldValidators) {
         const error = validateField(field, value);
         setErrors((prev) => ({ ...prev, [field]: error }));
-      }
-
-      // Clear error when user starts typing
-      if (errors[field]) {
-        setErrors((prev) => ({ ...prev, [field]: undefined }));
+      } else {
+        // Clear error when user starts typing
+        setErrors((prev) => (prev[field] ? { ...prev, [field]: undefined } : prev));
       }
     },
-    [validateOnChange, validateField, fieldValidators, errors],
+    [validateOnChange, validateField, fieldValidators],
   );
 
   // Handle blur

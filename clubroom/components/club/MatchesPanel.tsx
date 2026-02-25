@@ -260,7 +260,7 @@ const styles = StyleSheet.create({
   emptyIconCircle: {
     width: 56,
     height: 56,
-    borderRadius: 28,
+    borderRadius: Radii.xl,
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: Spacing.xs,

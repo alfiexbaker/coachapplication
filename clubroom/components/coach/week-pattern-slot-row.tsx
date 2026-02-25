@@ -190,7 +190,7 @@ const styles = StyleSheet.create({
   },
   locationPillText: { ...Typography.caption, letterSpacing: 0 },
   dayIndicators: { alignItems: 'center', gap: Spacing.xxs, width: 36, justifyContent: 'flex-end' },
-  indicatorDot: { width: 6, height: 6, borderRadius: 3 },
+  indicatorDot: { width: 6, height: 6, borderRadius: Radii.xs },
   addBlockRow: {
     flexDirection: 'row',
     alignItems: 'center',

@@ -97,6 +97,9 @@ export default function BadgesScreen() {
                 <Clickable
                   key={tab.key}
                   onPress={() => setActiveTab(tab.key)}
+                  accessibilityRole="tab"
+                  accessibilityLabel={tab.label}
+                  accessibilityState={{ selected: isActive }}
                   style={
                     [
                       styles.tabButton,
@@ -111,7 +114,7 @@ export default function BadgesScreen() {
                 >
                   <Row gap="xs" align="center" justify="center">
                     <Ionicons
-                      name={tab.icon as any}
+                      name={tab.icon}
                       size={16}
                       color={isActive ? colors.tint : colors.icon}
                     />

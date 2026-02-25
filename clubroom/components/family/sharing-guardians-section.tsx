@@ -6,6 +6,7 @@ import { Clickable } from '@/components/primitives/clickable';
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { ThemedText } from '@/components/themed-text';
 import { Row } from '@/components/primitives/row';
+import { Column } from '@/components/primitives/column';
 import { Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
 import { ROLE_INFO, getPermissionIcons } from '@/hooks/use-family-sharing';
@@ -38,14 +39,14 @@ export const SharingGuardiansSection = memo(function SharingGuardiansSection({
                 {(guardian.userId || 'U').charAt(0)}
               </ThemedText>
             </View>
-            <View style={{ flex: 1 }}>
+            <Column flex>
               <ThemedText type="defaultSemiBold">{guardian.userId}</ThemedText>
               <ThemedText
                 style={[Typography.small, { color: colors.muted, marginTop: Spacing.micro }]}
               >
                 {guardian.relationship} • {ROLE_INFO[guardian.role].label}
               </ThemedText>
-            </View>
+            </Column>
             {guardian.isPrimary ? (
               <View
                 style={[styles.primaryBadge, { backgroundColor: withAlpha(colors.success, 0.09) }]}

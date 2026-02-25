@@ -20,7 +20,6 @@ export const styles = StyleSheet.create({
   title: { ...Typography.display, letterSpacing: -0.8 },
   subtitle: {
     ...Typography.body,
-    lineHeight: 22,
     fontWeight: '500',
   },
   searchBar: {
@@ -51,7 +50,6 @@ export const styles = StyleSheet.create({
   emptyTitle: { ...Typography.heading, letterSpacing: -0.3 },
   emptyText: {
     ...Typography.bodySmall,
-    lineHeight: 20,
     textAlign: 'center',
     maxWidth: 260,
   },
@@ -90,7 +88,7 @@ export const styles = StyleSheet.create({
   metaItem: {},
   metaText: { ...Typography.small },
   price: { ...Typography.heading },
-  bio: { ...Typography.bodySmall, lineHeight: 20 },
+  bio: { ...Typography.bodySmall },
   specialties: {},
   specialtyBadge: {
     paddingHorizontal: Spacing.md,

@@ -455,14 +455,6 @@ export const Routes = {
     params: { id },
   }) as Href,
 
-  // ─── Packages ──────────────────────────────────────────────────
-  PACKAGES: '/packages' as Href,
-  PACKAGES_MANAGE: '/packages/manage' as Href,
-  package: (id: string) => ({
-    pathname: '/packages/[id]',
-    params: { id },
-  }) as Href,
-
   // ─── Payment ───────────────────────────────────────────────────
   PAYMENTS: '/payments' as Href,
   PAYMENT_METHODS: '/payment/methods' as Href,

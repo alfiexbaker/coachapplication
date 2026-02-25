@@ -1,11 +1,11 @@
 import { useCallback, useMemo } from 'react';
-import { View, StyleSheet, ScrollView } from 'react-native';
+import { View, StyleSheet, ScrollView, Platform } from 'react-native';
 import * as Haptics from 'expo-haptics';
 
 import { Clickable } from '@/components/primitives/clickable';
 import { ThemedText } from '@/components/themed-text';
 import { SurfaceCard } from '@/components/primitives/surface-card';
-import { Spacing, Radii, withAlpha } from '@/constants/theme';
+import { Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
 import type { AvailabilityTemplate, AvailabilityOverride } from '@/constants/types';
 import { useTheme } from '@/hooks/useTheme';
 
@@ -62,14 +62,14 @@ export function AvailabilityWeekGrid({
   );
 
   const handlePress = (day: number, hour: number) => {
-    void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    if (Platform.OS !== 'web') void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     onSlotPress(day, hour);
   };
 
   const handleLongPress = (day: number, hour: number) => {
     const template = getSlotTemplate(day, hour);
     if (template && onSlotLongPress) {
-      void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+      if (Platform.OS !== 'web') void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
       onSlotLongPress(template);
     }
   };
@@ -156,7 +156,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   hourText: {
-    fontSize: 9,
+    fontSize: Typography.micro.fontSize,
     fontWeight: '600',
     textTransform: 'uppercase',
     letterSpacing: 0.6,

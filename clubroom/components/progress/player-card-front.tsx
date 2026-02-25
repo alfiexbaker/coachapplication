@@ -328,14 +328,14 @@ const styles = StyleSheet.create({
     minWidth: 38,
   },
   ovrNumber: {
-    fontSize: 32,
+    fontSize: Typography.heroLarge.fontSize,
     fontWeight: '800',
-    lineHeight: 36,
-    letterSpacing: -0.5,
+    lineHeight: Typography['2xl'].lineHeight,
+    letterSpacing: Typography.heroLarge.letterSpacing,
   },
   ovrNumberCompact: {
-    fontSize: 26,
-    lineHeight: 30,
+    fontSize: Typography.hero.fontSize,
+    lineHeight: Typography.hero.lineHeight,
   },
   ovrDivider: {
     width: '80%',

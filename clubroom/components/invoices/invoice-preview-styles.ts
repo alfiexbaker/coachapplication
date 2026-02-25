@@ -53,7 +53,7 @@ export const styles = StyleSheet.create({
     marginBottom: Spacing.xs,
   },
   partyName: { ...Typography.body, marginBottom: Spacing.xxs },
-  partyDetail: { ...Typography.small, lineHeight: 18 },
+  partyDetail: { ...Typography.small, lineHeight: Typography.caption.lineHeight },
   sectionTitle: {
     ...Typography.caption,
     textTransform: 'uppercase',

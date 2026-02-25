@@ -288,8 +288,8 @@ const styles = StyleSheet.create({
   },
   filterBadge: {
     position: 'absolute',
-    top: 4,
-    right: 4,
+    top: Spacing.xxs,
+    right: Spacing.xxs,
     width: 16,
     height: 16,
     borderRadius: Radii.sm,

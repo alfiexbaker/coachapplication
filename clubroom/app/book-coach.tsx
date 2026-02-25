@@ -58,7 +58,7 @@ function toCoachCardData(coach: CoachProfile): CoachCardData {
     rating: coach.rating.average,
     reviewCount: coach.rating.reviewCount,
     distanceMiles: coach.distanceMiles,
-    pricePerHour: coach.sessionRate ?? coach.priceRange.minUsd,
+    pricePerHour: coach.sessionRate ?? coach.priceRange.min,
     city: coach.city,
     footballFocuses: coach.footballFocuses,
     reviewQuote: coach.shortBio,
@@ -215,7 +215,10 @@ export default function BookCoachScreen() {
           >
             <Ionicons name="arrow-back" size={20} color={palette.text} />
           </Clickable>
-          <View
+          <Row
+            align="center"
+            justify="center"
+            gap="xs"
             style={[
               styles.locationPill,
               {
@@ -228,7 +231,7 @@ export default function BookCoachScreen() {
             <ThemedText style={[styles.locationText, { color: palette.tint }]}>
               {ASSUMED_LOCATION_LABEL}
             </ThemedText>
-          </View>
+          </Row>
           <Clickable
             onPress={handleOpenMap}
             style={[styles.mapIconButton, { backgroundColor: palette.surface, borderColor: palette.border }]}
@@ -442,10 +445,6 @@ const styles = StyleSheet.create({
     borderRadius: Radii.pill,
     borderWidth: 1,
     paddingHorizontal: Spacing.sm,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: Spacing.xs,
   },
   locationText: {
     ...Typography.smallSemiBold,

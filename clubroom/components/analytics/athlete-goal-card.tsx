@@ -185,6 +185,6 @@ const styles = StyleSheet.create({
     paddingTop: Spacing.sm,
   },
   milestoneCount: { ...Typography.caption },
-  creatorBadge: { paddingHorizontal: 8, paddingVertical: Spacing.micro, borderRadius: Radii.sm },
+  creatorBadge: { paddingHorizontal: Spacing.xs, paddingVertical: Spacing.micro, borderRadius: Radii.sm },
   creatorText: { ...Typography.micro },
 });

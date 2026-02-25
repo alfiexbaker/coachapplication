@@ -282,15 +282,26 @@ describe('BaseService', () => {
   // ---------------------------------------------------------------------------
 
   describe('delete', () => {
-    test('removes entity', async () => {
+    test('soft-deletes entity (hidden from getAll, still findable by ID)', async () => {
       const createResult = await service.create({ name: 'Delete Me', category: 'X', score: 0 });
       if (!createResult.success) return;
 
       const deleteResult = await service.delete(createResult.data.id);
       assert.equal(deleteResult.success, true);
 
+      // Soft-deleted: still accessible via getById (has deletedAt set)
       const getResult = await service.getById(createResult.data.id);
-      assert.equal(getResult.success, false);
+      assert.equal(getResult.success, true);
+      if (getResult.success) {
+        assert.ok((getResult.data as unknown as Record<string, unknown>).deletedAt, 'Should have deletedAt');
+      }
+
+      // But hidden from getAll
+      const allResult = await service.getAll();
+      if (allResult.success) {
+        const found = allResult.data.find((e: { id: string }) => e.id === createResult.data.id);
+        assert.equal(found, undefined, 'Soft-deleted entity should not appear in getAll');
+      }
     });
 
     test('emits a deleted event', async () => {

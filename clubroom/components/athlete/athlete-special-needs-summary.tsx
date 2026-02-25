@@ -95,7 +95,7 @@ const styles = StyleSheet.create({
   },
   supportText: {
     ...Typography.small,
-    marginLeft: 24,
+    marginLeft: Spacing.md,
   },
   sectionLabel: {
     ...Typography.caption,

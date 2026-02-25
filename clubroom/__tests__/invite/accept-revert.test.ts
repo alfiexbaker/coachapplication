@@ -34,7 +34,7 @@ interface SessionInvite {
   proposedSlots: TimeSlot[];
   sessionType: string;
   focus: string;
-  priceUsd?: number;
+  price?: number;
   duration?: number;
   status: 'PENDING' | 'ACCEPTED' | 'DECLINED' | 'EXPIRED' | 'COUNTERED';
   expiresAt: string;
@@ -231,7 +231,7 @@ async function respondToInvite(input: RespondToInviteInput): Promise<Result<Sess
         service: invite.sessionType,
         serviceType: invite.sessionType,
         objectives: invite.focus ? [invite.focus] : [],
-        price: invite.priceUsd,
+        price: invite.price,
         notes: invite.notes,
         sessionInviteId: invite.id,
       });
@@ -285,7 +285,7 @@ const MOCK_INVITE: SessionInvite = {
   ],
   sessionType: '1:1 Coaching',
   focus: 'Finishing',
-  priceUsd: 60,
+  price: 60,
   duration: 60,
   status: 'PENDING',
   expiresAt: '2026-03-14T23:59:59Z',

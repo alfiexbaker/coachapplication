@@ -23,7 +23,8 @@ import {
   ParentValueSummary,
 } from '@/components/progress';
 import { LinearGradient } from 'expo-linear-gradient';
-import { Spacing, Typography, withAlpha } from '@/constants/theme';
+import { Row } from '@/components/primitives/row';
+import { Spacing, Typography, withAlpha, Radii } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
 import type { CardTier } from '@/types/progress-types';
 import { useMyProgress } from '@/hooks/use-my-progress';
@@ -459,7 +460,9 @@ export default function MyProgressScreen() {
             style={summaryLineStyle}
             onLayout={scrollAnimations.createSectionLayoutHandler('summary-line')}
           >
-            <View
+            <Row
+              wrap
+              align="center"
               style={[
                 styles.summaryLine,
                 {
@@ -494,7 +497,7 @@ export default function MyProgressScreen() {
                   ) : null}
                 </>
               ) : null}
-            </View>
+            </Row>
           </Animated.View>
         ) : null}
 
@@ -658,12 +661,9 @@ const styles = StyleSheet.create({
   },
   summaryLine: {
     borderWidth: 1,
-    borderRadius: 999,
+    borderRadius: Radii.pill,
     paddingHorizontal: Spacing.sm,
     paddingVertical: Spacing.xs,
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    alignItems: 'center',
   },
   summaryLineText: {
     ...Typography.caption,

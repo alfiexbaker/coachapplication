@@ -190,11 +190,8 @@ export const PlayerCard = memo(function PlayerCard({ data }: PlayerCardProps) {
           style={[
             styles.captureWrap,
             {
+              ...Shadows[scheme].cardHover,
               shadowColor: tierConfig.accent,
-              shadowOpacity: scheme === 'dark' ? 0.18 : 0.24,
-              shadowRadius: 22,
-              shadowOffset: { width: 0, height: 8 },
-              elevation: 12,
             },
           ]}
         >

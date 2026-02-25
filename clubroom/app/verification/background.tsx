@@ -7,6 +7,7 @@ import { ThemedText } from '@/components/themed-text';
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { Clickable } from '@/components/primitives/clickable';
 import { Button } from '@/components/primitives/button';
+import { Column } from '@/components/primitives/column';
 import { Row } from '@/components/primitives/row';
 import { LoadingState, ErrorState, EmptyState } from '@/components/ui/screen-states';
 import { Radii, Spacing, Typography, withAlpha } from '@/constants/theme';
@@ -122,14 +123,16 @@ export default function BackgroundCheckScreen() {
             <ThemedText style={[styles.statusText, { color: colors.muted }]}>
               Your background check is being processed. This typically takes 2-5 business days.
             </ThemedText>
-            <Clickable
-              onPress={handleMockApprove}
-              style={[styles.mockButton, { borderColor: colors.success }]}
-            >
-              <ThemedText style={{ color: colors.success, fontWeight: '600' }}>
-                Mock: Complete Now
-              </ThemedText>
-            </Clickable>
+            {__DEV__ && (
+              <Clickable
+                onPress={handleMockApprove}
+                style={[styles.mockButton, { borderColor: colors.success }]}
+              >
+                <ThemedText style={{ color: colors.success, fontWeight: '600' }}>
+                  Complete Now (DEV ONLY)
+                </ThemedText>
+              </Clickable>
+            )}
           </SurfaceCard>
         ) : (
           <>
@@ -226,10 +229,10 @@ function InfoRow({
   return (
     <Row align="center" gap="md">
       <Ionicons name={icon as keyof typeof Ionicons.glyphMap} size={24} color={colors.tint} />
-      <View style={{ flex: 1 }}>
+      <Column flex>
         <ThemedText type="defaultSemiBold">{title}</ThemedText>
         <ThemedText style={{ color: colors.muted, ...Typography.small }}>{subtitle}</ThemedText>
-      </View>
+      </Column>
     </Row>
   );
 }

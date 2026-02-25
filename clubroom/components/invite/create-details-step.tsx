@@ -154,7 +154,7 @@ const styles = StyleSheet.create({
     right: Spacing.sm,
     width: 28,
     height: 28,
-    borderRadius: 14,
+    borderRadius: Radii.lg,
     alignItems: 'center',
     justifyContent: 'center',
     minHeight: 44,

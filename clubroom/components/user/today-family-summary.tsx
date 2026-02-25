@@ -11,7 +11,7 @@ import { Routes } from '@/navigation/routes';
 import { Row } from '@/components/primitives/row';
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { ThemedText } from '@/components/themed-text';
-import { Spacing, Typography } from '@/constants/theme';
+import { Spacing, Typography, Radii } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
 import { formatTime } from '@/utils/format';
 import type { Booking } from '@/constants/app-types';
@@ -99,7 +99,7 @@ export const TodayFamilySummary = memo(function TodayFamilySummary({
 const styles = StyleSheet.create({
   container: { gap: Spacing.xs },
   emptyContainer: { gap: Spacing.xs },
-  colorDot: { width: 8, height: 8, borderRadius: 4 },
+  colorDot: { width: 8, height: 8, borderRadius: Radii.xs },
   bookingInfo: { flex: 1, minWidth: 0, gap: Spacing.micro },
   childName: { ...Typography.bodySmallSemiBold },
   mutedText: { ...Typography.bodySmall },

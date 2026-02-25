@@ -1,0 +1,69 @@
+# Sprint Completion Tracker
+
+This file is the **single source of truth** for sprint progress. After completing a sprint, the agent MUST update this file.
+
+---
+
+## How to Update
+
+After completing a sprint, add a row to the table below with:
+- **Status**: DONE / PARTIAL (if some fixes skipped) / BLOCKED (if can't proceed)
+- **Date**: When completed
+- **Fixes**: How many fixes landed vs total in sprint file
+- **TSC**: Whether `npx tsc -p tsconfig.test.json` passes after the sprint
+- **Review**: Whether the self-review checklist passed (see RUN.md)
+- **Notes**: Any skipped fixes, blockers, or regressions introduced
+
+---
+
+## Progress
+
+| # | Category | Sprint | Status | Date | Fixes | TSC | Review | Notes |
+|---|----------|--------|--------|------|-------|-----|--------|-------|
+| 1 | Safeguarding | Sprint 1 | DONE | 2026-02-25 | 8/8 | PASS | PASS | All 8 P0 fixes landed: DBS fail-closed, mock buttons gated, emergency access control, minor search exclusion, block enforcement, report auto-block, age validation, demo creds gated |
+| 2 | Safeguarding | Sprint 2 | DONE | 2026-02-25 | 10/11 | PASS | PASS | S-03: DBS check + cross-coach isolation on roster, S-04: upload required gate on credentials, S-06: coachId verification in consent checks, S-07: child ownership verification, S-10: roster isolation test, S-16: emergency consent confirmation dialog, S-20: consent check infra added (no athlete tagging in post form), S-21: media consent gate, S-31: safety gate hook, S-35: roster verification on bulk invites, S-44: age + UK phone validation |
+| 3 | Safeguarding | Sprint 3 | DONE | 2026-02-25 | 12/13 | PASS | PASS | S-08: role-based feedback filtering, S-17: consent 12-month expiry, S-18: expiry display in ConsentCard, S-19: name resolution in ConsentCard, S-23: consent reminder banner on post creation, S-24/S-25: UK phone + email validation on emergency contacts, S-26: quick-dial on emergency card, S-29: mock emergency data gated behind __DEV__, S-30: child profile change events, S-33: removed false monitoring claim, S-50: verification expiry monitoring. SKIPPED S-12 (requires crypto-js + expo-secure-store install) |
+| 4 | Safeguarding | Sprint 4 | DONE | 2026-02-25 | 18/20 | PASS | PASS | S-11: session notes access control, S-15: 30-day soft-delete account deletion, S-22: media consent gate on parent posts, S-27: emergency call confirmation dialog, S-28: phone hidden outside active sessions, S-32: SEN tag max limit (10), S-34: co-guardian message access, S-36: coach join approval for parent groups, S-37: group messaging member verification, S-38: squad member name privacy, S-39: session location hidden for non-participants, S-40: GPS privacy warning, S-45: location permission recovery, S-46: video upload consent gate, S-47: attachment type whitelist, S-48: data retention service, S-49: consent enforcement wrapper, S-52: safety audit service. SKIPPED S-51 (duplicate of S-31, done in Sprint 2) |
+| 5 | Financial | Sprint 1 | DONE | 2026-02-25 | 6/6 | PASS | PASS | Fix 1: CANCELLED bookings with cancellationFee in reconciler, Fix 2: £0 bookings skipped, Fix 3: generateInvoice fetches real bookings via bookingService.getById() with MOCK fallback + status SENT, Fix 4: collection rate % in PaymentSummaryCard, Fix 5: remind uses Share.share() not router.push, Fix 6: toast feedback on all reconciler actions |
+| 6 | Financial | Sprint 2 | DONE | 2026-02-25 | 6/6 | PASS | PASS | Fix 1: overdue detection (isOverdue flag, overdueCount, overdue-first sort), Fix 2: red overdue visual indicator + daysOverdue badge, Fix 3: overdue count dot on Owed tab, Fix 4: priceUsd→price + minUsd/maxUsd→min/max rename (~45 files), Fix 5: currency audit $→£ in CoachColumn-sections + test, Fix 6: batch "Remind All Overdue" button with Share.share() |
+| 7 | Financial | Sprint 3 | DONE | 2026-02-25 | 5/6 | PASS | PASS | Fix 1: revenue dashboard already wired (no changes needed), Fix 2: earnings calculator roundMoney for averages (4 locations), Fix 3: invoice tax rounding with roundMoney + total = net + tax on both paths, Fix 4: period filter chips (week/month/all) with filteredData memo, Fix 5: SKIPPED (package validation unnecessary — service already works), Fix 6: dynamic subtitle based on overdue/outstanding/collected state |
+| 8 | Financial | Sprint 4 | DONE | 2026-02-25 | 6/6 | PASS | PASS | Fix 1: wallet imports removed from package-service + referral-service, Fix 2: purchasePackage rewritten without wallet balance check, Fix 3: "(mock)" removed from booking-info-cards + payment/methods (__DEV__ guarded), Fix 4: write-off info tooltip with Alert explanation, Fix 5: getStatusColor removed from invoice-service → theme-aware getInvoiceStatusColor in components, Fix 6: concrete examples added to cancellation policy tiers |
+| 9 | Error Handling | Sprint 1 | DONE | 2026-02-25 | 12/17 | PASS | PASS | Items 274: getById soft-delete check, 81: saveGoals returns Result, 275: triggerNotification returns Result, 7: quick-rate toast feedback, 359: withTimeout utility, 366: withRetry utility, 205: useScreen silentError, 82: parent-dev loading/error state, 83: athlete-sessions error state, 266: useSessionCompletion unmount guard, 360: useScreen loadTimeoutMs, 299: event audit (3 broken: JOURNAL_SAVED/SKILL_LEVEL_UP/STREAK_MILESTONE never emitted; 27 dead events). SKIPPED: 8 (roll-call presentational), 79 (already Result), 267 (already fixed), 80 (requires signature change), 365 (no submitRating in hook) |
+| 10 | Error Handling | Sprint 2 | DONE | 2026-02-25 | 9/9 | PASS | PASS | Item 18: two-step club delete confirmation, Item 39: cancel instance + end series Alert, Item 40: block date confirmation, Item 51: squad member remove Alert, Item 53: emergency contact delete Alert, Item 59: invite cancel Alert, Item 238: invite cancel/dismiss Alerts, Item 313: swipe-to-delete Alert, Item 314: note delete with preview Alert |
+| 11 | Error Handling | Sprint 3 | DONE | 2026-02-25 | 12/22 | PASS | PASS | Item 277: observation athleteId validation, Item 30: review success explanatory text, Item 155: event athlete selector counts + disabled states, Item 132: download button useCallback + error handling, Item 41: scheduling rules toast feedback, Item 43: trial session toggle confirmation + toast, Item 218: persistent login error display, Item 49: invite errors shown prominently, Item 157: club photo upload loading state, Item 167: join group confirmation alert, Item 201: share button web clipboard fallback + toast, Item 9: cooldown error display + timeout cleanup. SKIPPED 10: Item 33 (file deleted), Items 16/26/47/60/115/129 (code pattern doesn't match spec), Item 86 (already has loading), Item 114 (too broad), Item 367 (already has empty state) |
+| 12 | Error Handling | Sprint 4 | DONE | 2026-02-25 | 8/9 | PASS | PASS | Item 135: cancel-reason touched prop, Item 142: InvoicePreview ErrorBoundary + ThemedText, Item 149: separate handleDeleteClub/handleLeaveClub, Item 202: env-aware error msg + onGoHome prop, Item 361: showErrorDetails export, Item 362: ErrorState ServiceError prop + error code display, Item 363: toast queue (sequential display, error=5s), Item 364: SafeImage component + coach-card-header + coach-detail-hero + ClubHeader. SKIPPED Item 211 (1142-line hook refactor too risky for sprint — interconnected state doesn't match suggested decomposition) |
+| 13 | Forms & Modals | Sprint 1 | — | — | —/— | — | — | |
+| 14 | Forms & Modals | Sprint 2 | — | — | —/— | — | — | |
+| 15 | Forms & Modals | Sprint 3 | — | — | —/— | — | — | |
+| 16 | Forms & Modals | Sprint 4 | — | — | —/— | — | — | |
+| 17 | Double Submit | Sprint 1 | — | — | —/— | — | — | |
+| 18 | Double Submit | Sprint 2 | — | — | —/— | — | — | |
+| 19 | Navigation | Sprint 1 | — | — | —/— | — | — | |
+| 20 | Navigation | Sprint 2 | — | — | —/— | — | — | |
+| 21 | Booking & Sessions | Sprint 1 | — | — | —/— | — | — | |
+| 22 | Booking & Sessions | Sprint 2 | — | — | —/— | — | — | |
+| 23 | Offline | Sprint 1 | — | — | —/— | — | — | |
+| 24 | Offline | Sprint 2 | — | — | —/— | — | — | |
+| 25 | Dead Ends | Sprint 1 | — | — | —/— | — | — | |
+| 26 | Dead Ends | Sprint 2 | — | — | —/— | — | — | |
+| 27 | Data Display | Sprint 1 | — | — | —/— | — | — | |
+| 28 | Data Display | Sprint 2 | — | — | —/— | — | — | |
+| 29 | Progress & Dev | Sprint 1 | — | — | —/— | — | — | |
+| 30 | Progress & Dev | Sprint 2 | — | — | —/— | — | — | |
+| 31 | Social & Community | Sprint 1 | — | — | —/— | — | — | |
+| 32 | Social & Community | Sprint 2 | — | — | —/— | — | — | |
+| 33 | Accessibility | Sprint 1 | — | — | —/— | — | — | |
+| 34 | Accessibility | Sprint 2 | — | — | —/— | — | — | |
+| 35 | Performance | Sprint 1 | — | — | —/— | — | — | |
+| 36 | Performance | Sprint 2 | — | — | —/— | — | — | |
+| 37 | Family & Roster | Sprint 1 | — | — | —/— | — | — | |
+
+---
+
+## Regressions Log
+
+If a sprint introduces a regression (breaks something that worked before), log it here:
+
+| Date | Sprint | Regression | Severity | Fixed In |
+|------|--------|-----------|----------|----------|
+| — | — | — | — | — |

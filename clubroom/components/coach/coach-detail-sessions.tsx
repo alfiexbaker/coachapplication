@@ -32,17 +32,17 @@ export const CoachDetailSessions = memo(function CoachDetailSessions({
           <View style={styles.priceBox}>
             <ThemedText style={[styles.priceLabel, { color: palette.muted }]}>From</ThemedText>
             <ThemedText type="title" style={{ color: palette.tint }}>
-              £{coach.minPriceUsd}
+              £{coach.minPrice}
             </ThemedText>
             <ThemedText style={{ color: palette.muted, ...Typography.caption }}>
               per session
             </ThemedText>
           </View>
-          {coach.maxPriceUsd && coach.maxPriceUsd !== coach.minPriceUsd && (
+          {coach.maxPrice && coach.maxPrice !== coach.minPrice && (
             <View style={styles.priceBox}>
               <ThemedText style={[styles.priceLabel, { color: palette.muted }]}>Up to</ThemedText>
               <ThemedText type="title" style={{ color: palette.tint }}>
-                £{coach.maxPriceUsd}
+                £{coach.maxPrice}
               </ThemedText>
               <ThemedText style={{ color: palette.muted, ...Typography.caption }}>
                 per session
@@ -107,7 +107,7 @@ export const CoachDetailSessions = memo(function CoachDetailSessions({
 
       <Button onPress={onBook} style={styles.bookButton}>
         <Ionicons name="calendar" size={18} color={palette.onPrimary} />
-        <ThemedText style={{ color: palette.onPrimary, fontWeight: '700', marginLeft: 8 }}>
+        <ThemedText style={{ color: palette.onPrimary, fontWeight: '700', marginLeft: Spacing.xs }}>
           Book a Session
         </ThemedText>
       </Button>

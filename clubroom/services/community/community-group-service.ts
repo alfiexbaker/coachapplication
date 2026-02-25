@@ -13,6 +13,7 @@
  */
 
 import { ParentGroup, GroupType, GroupMember, GroupMemberRole } from '@/constants/types';
+import { generateId } from '@/utils/generate-id';
 import { apiClient } from '../api-client';
 import { notificationService } from '../notification-service';
 import {
@@ -285,7 +286,7 @@ class CommunityGroupService {
       ];
 
       const newGroup: ParentGroup = {
-        id: `group_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`,
+        id: generateId('group'),
         name: params.name,
         description: params.description,
         type: params.type,
@@ -352,6 +353,53 @@ class CommunityGroupService {
     // Coaches always join as MEMBER
     const assignedRole: GroupMemberRole = 'MEMBER';
     const isCoach = options?.isCoach ?? false;
+
+    // S-36: Coaches joining parent groups require admin approval
+    if (isCoach) {
+      const approvalRequest = {
+        id: generateId('approval'),
+        groupId,
+        requesterId: parentId,
+        requesterName: parentName || (await resolveMemberName(parentId)),
+        requestedRole: assignedRole,
+        isCoach: true,
+        status: 'PENDING' as const,
+        createdAt: new Date().toISOString(),
+      };
+
+      const approvals = await apiClient.get<typeof approvalRequest[]>(
+        STORAGE_KEYS.GROUP_APPROVAL_PREFIX + groupId,
+        [],
+      );
+      approvals.push(approvalRequest);
+      await apiClient.set(STORAGE_KEYS.GROUP_APPROVAL_PREFIX + groupId, approvals);
+
+      // Notify group admins
+      const admins = group.members.filter((m) => isAdminRole(m.role) || m.role === 'OWNER');
+      for (const admin of admins) {
+        await notificationService.create({
+          id: `notif_coach_approval_${Date.now()}`,
+          type: 'community',
+          title: 'Coach Join Request',
+          body: `${approvalRequest.requesterName} (coach) wants to join ${group.name}`,
+          recipientId: admin.parentId,
+          timeLabel: 'Just now',
+          read: false,
+        });
+      }
+
+      emitTyped(ServiceEvents.GROUP_APPROVAL_REQUESTED, {
+        groupId,
+        groupName: group.name,
+        requesterId: parentId,
+        requesterName: approvalRequest.requesterName,
+        isCoach: true,
+      });
+
+      logger.info('coach_join_requires_approval', { groupId, parentId });
+
+      return err(validationError('Your join request has been sent to the group admins for approval.'));
+    }
 
     const newMember: GroupMember = {
       parentId,
@@ -461,7 +509,7 @@ class CommunityGroupService {
 
     // Create the invite
     const invite: GroupInvite = {
-      id: `group_invite_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`,
+      id: generateId('group_invite'),
       groupId,
       groupName: group.name,
       inviterId,
@@ -852,6 +900,125 @@ class CommunityGroupService {
     logger.info('group_deleted', { groupId });
 
     return ok(undefined);
+  }
+
+  /**
+   * Approve a pending join request (S-36: coach approval workflow).
+   * API Integration: POST /api/groups/:groupId/approvals/:approvalId/approve
+   */
+  async approveJoinRequest(
+    groupId: string,
+    approvalId: string,
+    approverId: string,
+  ): Promise<Result<ParentGroup, ServiceError>> {
+    const storageKey = STORAGE_KEYS.GROUP_APPROVAL_PREFIX + groupId;
+    const approvals = await apiClient.get<Array<{
+      id: string; groupId: string; requesterId: string; requesterName: string;
+      requestedRole: GroupMemberRole; isCoach: boolean; status: string; createdAt: string;
+    }>>(storageKey, []);
+
+    const index = approvals.findIndex((a) => a.id === approvalId && a.status === 'PENDING');
+    if (index === -1) {
+      return err(notFound('Approval request', approvalId));
+    }
+
+    const approval = approvals[index];
+    approvals[index] = { ...approval, status: 'APPROVED' };
+    await apiClient.set(storageKey, approvals);
+
+    // Add member to group
+    const result = await this.addMemberDirect(
+      groupId,
+      approval.requesterId,
+      approval.requesterName,
+      approval.requestedRole,
+    );
+
+    if (result.success) {
+      emitTyped(ServiceEvents.GROUP_MEMBER_APPROVED, {
+        groupId,
+        memberId: approval.requesterId,
+        memberName: approval.requesterName,
+        approvedById: approverId,
+      });
+
+      await notificationService.create({
+        id: `notif_join_approved_${Date.now()}`,
+        type: 'community',
+        title: 'Join Request Approved',
+        body: `Your request to join the group has been approved.`,
+        recipientId: approval.requesterId,
+        timeLabel: 'Just now',
+        read: false,
+      });
+    }
+
+    return result;
+  }
+
+  /**
+   * Reject a pending join request (S-36).
+   * API Integration: POST /api/groups/:groupId/approvals/:approvalId/reject
+   */
+  async rejectJoinRequest(
+    groupId: string,
+    approvalId: string,
+    rejectedById: string,
+  ): Promise<Result<void, ServiceError>> {
+    const storageKey = STORAGE_KEYS.GROUP_APPROVAL_PREFIX + groupId;
+    const approvals = await apiClient.get<Array<{
+      id: string; groupId: string; requesterId: string; requesterName: string;
+      requestedRole: GroupMemberRole; isCoach: boolean; status: string; createdAt: string;
+    }>>(storageKey, []);
+
+    const index = approvals.findIndex((a) => a.id === approvalId && a.status === 'PENDING');
+    if (index === -1) {
+      return err(notFound('Approval request', approvalId));
+    }
+
+    const approval = approvals[index];
+    approvals[index] = { ...approval, status: 'REJECTED' };
+    await apiClient.set(storageKey, approvals);
+
+    emitTyped(ServiceEvents.GROUP_MEMBER_REJECTED, {
+      groupId,
+      memberId: approval.requesterId,
+      memberName: approval.requesterName,
+      rejectedById,
+    });
+
+    await notificationService.create({
+      id: `notif_join_rejected_${Date.now()}`,
+      type: 'community',
+      title: 'Join Request Declined',
+      body: `Your request to join the group was not approved.`,
+      recipientId: approval.requesterId,
+      timeLabel: 'Just now',
+      read: false,
+    });
+
+    return ok(undefined);
+  }
+
+  /**
+   * Get pending join requests for a group (S-36).
+   * API Integration: GET /api/groups/:groupId/approvals?status=PENDING
+   */
+  async getPendingJoinRequests(groupId: string): Promise<Result<Array<{
+    id: string; groupId: string; requesterId: string; requesterName: string;
+    requestedRole: GroupMemberRole; isCoach: boolean; status: string; createdAt: string;
+  }>, ServiceError>> {
+    try {
+      const storageKey = STORAGE_KEYS.GROUP_APPROVAL_PREFIX + groupId;
+      const approvals = await apiClient.get<Array<{
+        id: string; groupId: string; requesterId: string; requesterName: string;
+        requestedRole: GroupMemberRole; isCoach: boolean; status: string; createdAt: string;
+      }>>(storageKey, []);
+      return ok(approvals.filter((a) => a.status === 'PENDING'));
+    } catch (error) {
+      logger.error('Failed to get pending join requests', error);
+      return err(storageError('Failed to get pending join requests'));
+    }
   }
 
   /**

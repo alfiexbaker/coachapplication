@@ -89,6 +89,7 @@ function CommentInputInner({
           multiline
           maxLength={2000}
           returnKeyType="default"
+          accessibilityLabel={replyingTo ? `Reply to ${replyingTo}` : 'Add a comment'}
         />
         <Clickable
           onPress={handleSend}
@@ -100,6 +101,9 @@ function CommentInputInner({
             },
           ]}
           hitSlop={8}
+          accessibilityLabel="Send comment"
+          accessibilityRole="button"
+          accessibilityState={{ disabled: !hasText }}
         >
           <Ionicons name="arrow-up" size={18} color={palette.onPrimary} />
         </Clickable>

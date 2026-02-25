@@ -313,7 +313,7 @@ export const CreateScheduleStep = memo(function CreateScheduleStep({
             <ThemedText type="defaultSemiBold" style={styles.label}>
               {isCamp ? 'Daily Time Window *' : 'Time Window *'}
             </ThemedText>
-            <View style={styles.timeFieldRow}>
+            <Row gap="sm" style={styles.timeFieldRow}>
               <DateTimeField
                 mode="time"
                 label="Start"
@@ -330,7 +330,7 @@ export const CreateScheduleStep = memo(function CreateScheduleStep({
                 minuteInterval={5}
                 style={styles.timeField}
               />
-            </View>
+            </Row>
             <ThemedText
               style={[
                 styles.caption,
@@ -371,7 +371,7 @@ export const CreateScheduleStep = memo(function CreateScheduleStep({
                       {dayValid ? formatDuration(dayDuration) : 'Invalid range'}
                     </ThemedText>
                   </Row>
-                  <View style={styles.timeFieldRow}>
+                  <Row gap="sm" style={styles.timeFieldRow}>
                     <DateTimeField
                       mode="time"
                       label="Start"
@@ -388,7 +388,7 @@ export const CreateScheduleStep = memo(function CreateScheduleStep({
                       minuteInterval={5}
                       style={styles.timeField}
                     />
-                  </View>
+                  </Row>
                 </View>
               );
             })}
@@ -462,10 +462,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     paddingHorizontal: Spacing.sm,
   },
-  timeFieldRow: {
-    flexDirection: 'row',
-    gap: Spacing.sm,
-  },
+  timeFieldRow: {},
   timeField: {
     flex: 1,
   },

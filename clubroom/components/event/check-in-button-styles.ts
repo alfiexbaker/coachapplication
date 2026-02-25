@@ -47,7 +47,7 @@ export const styles = StyleSheet.create({
   guestsBadge: {
     alignItems: 'center',
     gap: Spacing.xxs,
-    paddingHorizontal: 8,
+    paddingHorizontal: Spacing.xs,
     paddingVertical: Spacing.xxs,
     borderRadius: Radii.sm,
   },
@@ -58,7 +58,7 @@ export const styles = StyleSheet.create({
   undoButton: {
     alignSelf: 'flex-start',
     paddingVertical: Spacing.xxs,
-    paddingHorizontal: 8,
+    paddingHorizontal: Spacing.xs,
   },
   undoButtonText: {
     fontSize: scaleFont(13),
@@ -70,7 +70,7 @@ export const styles = StyleSheet.create({
   buttonContent: {
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 8,
+    gap: Spacing.xs,
   },
   buttonText: {
     fontSize: scaleFont(16),

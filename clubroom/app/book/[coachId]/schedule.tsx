@@ -333,7 +333,7 @@ const styles = StyleSheet.create({
   emptyIconWrap: {
     width: 64,
     height: 64,
-    borderRadius: 32,
+    borderRadius: Radii['2xl'],
     alignItems: 'center',
     justifyContent: 'center',
   },

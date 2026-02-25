@@ -28,8 +28,8 @@ export const styles = StyleSheet.create({
   },
   editAvatarButton: {
     position: 'absolute',
-    bottom: 4,
-    right: 4,
+    bottom: Spacing.xxs,
+    right: Spacing.xxs,
     width: 32,
     height: 32,
     borderRadius: Radii.full,

@@ -13,6 +13,18 @@ import type { useTheme } from '@/hooks/useTheme';
 type ThemeColors = ReturnType<typeof useTheme>['colors'];
 type IoniconsName = keyof typeof Ionicons.glyphMap;
 
+/** Theme-aware invoice status color mapping */
+export function getInvoiceStatusColor(status: InvoiceStatus, palette: ThemeColors): string {
+  const map: Record<InvoiceStatus, string> = {
+    DRAFT: palette.muted,
+    SENT: palette.tint,
+    PAID: palette.success,
+    VOID: palette.error,
+    WRITTEN_OFF: palette.muted,
+  };
+  return map[status];
+}
+
 // ─── Helpers ────────────────────────────────────────────────────
 
 export function getStatusIcon(status: InvoiceStatus): IoniconsName {
@@ -60,7 +72,7 @@ export const CompactInvoiceRow = memo(function CompactInvoiceRow({
   onPress,
   palette,
 }: CompactInvoiceRowProps) {
-  const statusColor = invoiceService.getStatusColor(invoice.status);
+  const statusColor = getInvoiceStatusColor(invoice.status, palette);
 
   return (
     <Clickable

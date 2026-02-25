@@ -15,6 +15,7 @@ import { Clickable } from '@/components/primitives/clickable';
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { PageHeader } from '@/components/primitives/page-header';
 import { Row } from '@/components/primitives/row';
+import { Column } from '@/components/primitives/column';
 import { DisabilitySelector, SpecialNeedEntrySection } from '@/components/family/medical-special-needs-form-sections';
 import { LoadingState, ErrorState } from '@/components/ui/screen-states';
 import { Radii, Spacing, Typography } from '@/constants/theme';
@@ -73,14 +74,14 @@ export default function EditChildSenScreen() {
                   justify="space-between"
                   style={[styles.itemRow, { borderColor: palette.border }]}
                 >
-                  <View style={{ flex: 1 }}>
+                  <Column flex>
                     <ThemedText style={Typography.bodySemiBold}>{d.type}</ThemedText>
                     {d.description && (
                       <ThemedText style={[Typography.small, { color: palette.muted }]}>
                         {d.description}
                       </ThemedText>
                     )}
-                  </View>
+                  </Column>
                   <Clickable
                     onPress={() => c.removeDisability(d.id)}
                     accessibilityLabel={`Remove ${d.type}`}

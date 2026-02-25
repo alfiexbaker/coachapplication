@@ -188,11 +188,38 @@ export default memo(function AddLocationPicker({
   );
 
   const handleUseCurrentLocation = useCallback(async () => {
+    // S-40: Privacy warning before using GPS
+    const proceed = await new Promise<boolean>((resolve) => {
+      Alert.alert(
+        'Location Privacy',
+        'Your current location will be used to set the session venue. This location may be visible to session participants. Are you sure?',
+        [
+          { text: 'Cancel', style: 'cancel', onPress: () => resolve(false) },
+          { text: 'Use Location', onPress: () => resolve(true) },
+        ],
+      );
+    });
+    if (!proceed) return;
+
     setIsLocating(true);
     try {
       const permission = await Location.requestForegroundPermissionsAsync();
       if (permission.status !== 'granted') {
-        Alert.alert('Location permission needed', 'Allow location access to pin your current spot.');
+        // S-45: Location permission recovery — guide user to Settings
+        Alert.alert(
+          'Location Permission Needed',
+          'Location access is required to pin your current spot. You can enable it in your device Settings.',
+          [
+            { text: 'Cancel', style: 'cancel' },
+            {
+              text: 'Open Settings',
+              onPress: () => {
+                // expo-location handles the Linking to settings internally on iOS
+                void Location.requestForegroundPermissionsAsync();
+              },
+            },
+          ],
+        );
         return;
       }
 
@@ -539,10 +566,10 @@ export default memo(function AddLocationPicker({
               ) : null}
             </MapView>
             {!coordinates && (
-              <View style={[styles.pinHint, { backgroundColor: withAlpha(palette.surface, 0.92) }]}>
+              <Row align="center" gap="xxs" style={[styles.pinHint, { backgroundColor: withAlpha(palette.surface, 0.92) }]}>
                 <Ionicons name="location" size={15} color={palette.tint} />
                 <ThemedText style={styles.pinHintText}>Tap map to drop pin</ThemedText>
-              </View>
+              </Row>
             )}
           </View>
 
@@ -711,9 +738,6 @@ const styles = StyleSheet.create({
     borderRadius: Radii.pill,
     paddingHorizontal: Spacing.sm,
     paddingVertical: Spacing.xxs,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.xxs,
   },
   pinHintText: {
     ...Typography.caption,

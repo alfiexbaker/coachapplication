@@ -6,7 +6,7 @@
  */
 
 import { useCallback, useState } from 'react';
-import { View, StyleSheet, TextInput, Alert } from 'react-native';
+import { View, StyleSheet, TextInput, Alert, Platform } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import Animated, { FadeInLeft } from 'react-native-reanimated';
@@ -52,7 +52,7 @@ export function MilestoneList({
     async (milestone: GoalMilestone) => {
       if (!editable || loading) return;
 
-      void Haptics.impactAsync(
+      if (Platform.OS !== 'web') void Haptics.impactAsync(
         milestone.isCompleted
           ? Haptics.ImpactFeedbackStyle.Light
           : Haptics.ImpactFeedbackStyle.Medium,
@@ -73,7 +73,7 @@ export function MilestoneList({
           text: 'Delete',
           style: 'destructive',
           onPress: () => {
-            void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+            if (Platform.OS !== 'web') void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
             void onDeleteMilestone?.(milestone.id);
           },
         },
@@ -89,7 +89,7 @@ export function MilestoneList({
     try {
       await onAddMilestone?.(newMilestoneTitle.trim());
       setNewMilestoneTitle('');
-      void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      if (Platform.OS !== 'web') void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     } finally {
       setIsAdding(false);
     }

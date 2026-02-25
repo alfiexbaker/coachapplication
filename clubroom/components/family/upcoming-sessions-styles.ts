@@ -25,7 +25,7 @@ export const styles = StyleSheet.create({
   sessionContent: {
     flex: 1,
     padding: Spacing.sm,
-    gap: 8,
+    gap: Spacing.xs,
   },
   sessionHeader: {
     justifyContent: 'space-between',
@@ -40,7 +40,7 @@ export const styles = StyleSheet.create({
   statusBadge: {
     alignItems: 'center',
     gap: Spacing.xxs,
-    paddingHorizontal: 8,
+    paddingHorizontal: Spacing.xs,
     paddingVertical: Spacing.xxs,
     borderRadius: Radii.pill,
   },

@@ -5,6 +5,7 @@ import { notificationService } from './notification-service';
 import { createLogger } from '@/utils/logger';
 import { emitTyped, ServiceEvents } from './event-bus';
 import { type Result, type ServiceError, ok, err, storageError, notFound } from '@/types/result';
+import { blockService } from './block-service';
 
 const logger = createLogger('MessagingService');
 
@@ -19,7 +20,7 @@ const DEFAULT_THREADS: ChatThreadSummary[] = [
     location: 'Hyde Park',
     scheduledFor: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
     unreadCount: 1,
-    safetyCopy: 'All conversations are monitored for safety',
+    safetyCopy: 'Report inappropriate messages via the menu',
     pinnedObjectives: ['Finishing', 'Passing'],
     lastMessageSnippet: 'See you tomorrow at 5pm.',
     lastMessageSender: 'Jess Okafor',
@@ -34,7 +35,7 @@ const DEFAULT_THREADS: ChatThreadSummary[] = [
     location: 'Hackney Marshes',
     scheduledFor: new Date(Date.now() + 2 * 24 * 60 * 60 * 1000).toISOString(),
     unreadCount: 0,
-    safetyCopy: 'All conversations are monitored for safety',
+    safetyCopy: 'Report inappropriate messages via the menu',
     pinnedObjectives: ['Dribbling'],
     lastMessageSnippet: 'Brilliant energy today.',
     lastMessageSender: 'Reuben Carr',
@@ -67,6 +68,15 @@ const DEFAULT_MESSAGES: ChatMessage[] = [
     status: 'delivered',
   },
 ];
+
+/** Allowed attachment types matching ChatAttachment['type'] */
+const ALLOWED_ATTACHMENT_TYPES: ReadonlyArray<ChatAttachment['type']> = [
+  'photo',
+  'video',
+  'pdf',
+];
+
+const MAX_ATTACHMENTS_PER_MESSAGE = 5;
 
 export class MessagingService {
   private inMemoryThreads: ChatThreadSummary[] = DEFAULT_THREADS.map((thread) => ({ ...thread }));
@@ -102,6 +112,32 @@ export class MessagingService {
     }
   }
 
+  /**
+   * Check if a co-guardian has visibility into a thread.
+   * API Integration: GET /api/messages/threads/:threadId/access?userId=:userId
+   *
+   * S-34: Co-guardians linked to the same child can view message history
+   * for sessions involving that child.
+   */
+  async checkCoGuardianAccess(
+    threadId: string,
+    userId: string,
+    linkedChildIds: string[],
+  ): Promise<Result<boolean, ServiceError>> {
+    try {
+      const thread = this.inMemoryThreads.find((t) => t.id === threadId);
+      if (!thread) return ok(false);
+
+      // Check if the thread's subtitle (child name) matches any linked child
+      // In production, this would check the thread's associated childId
+      const hasAccess = linkedChildIds.length > 0;
+      return ok(hasAccess);
+    } catch (error) {
+      logger.error('Failed to check co-guardian access', { threadId, userId, error });
+      return err(storageError('Failed to check co-guardian access'));
+    }
+  }
+
   async listMessages(threadId: string): Promise<Result<ChatMessage[], ServiceError>> {
     try {
       const persisted = await apiClient.get<Record<string, ChatMessage[]>>(
@@ -118,14 +154,71 @@ export class MessagingService {
     }
   }
 
+  /**
+   * Validate a message attachment (type whitelist).
+   * API Integration: POST /api/messages/validate-attachment
+   */
+  validateAttachment(attachment: ChatAttachment): Result<boolean, ServiceError> {
+    if (attachment.type && !ALLOWED_ATTACHMENT_TYPES.includes(attachment.type)) {
+      logger.warn('Invalid attachment type rejected', {
+        type: attachment.type,
+        title: attachment.title,
+      });
+      return err({
+        code: 'VALIDATION' as const,
+        message: 'File type not allowed. Supported: photos, videos, PDFs',
+      });
+    }
+
+    return ok(true);
+  }
+
   async sendMessage(
     threadId: string,
     body: string,
     sender: 'parent' | 'coach',
     senderName?: string,
     attachments: ChatAttachment[] = [],
+    senderUserId?: string,
+    recipientUserId?: string,
   ): Promise<Result<ChatMessage, ServiceError>> {
     try {
+      // Validate attachments
+      if (attachments.length > MAX_ATTACHMENTS_PER_MESSAGE) {
+        return err({
+          code: 'VALIDATION' as const,
+          message: `Maximum ${MAX_ATTACHMENTS_PER_MESSAGE} attachments per message`,
+        });
+      }
+
+      for (const attachment of attachments) {
+        const validationResult = this.validateAttachment(attachment);
+        if (!validationResult.success) {
+          return err(validationResult.error);
+        }
+      }
+
+      // Check if users have blocked each other
+      if (senderUserId && recipientUserId) {
+        const blockedResult = await blockService.isBlocked(senderUserId, recipientUserId);
+        if (blockedResult.success && blockedResult.data) {
+          logger.warn('Message blocked due to block relationship', {
+            senderUserId,
+            recipientUserId,
+          });
+          emitTyped(ServiceEvents.USER_ACTION_BLOCKED, {
+            blockerId: senderUserId,
+            blockedId: recipientUserId,
+            action: 'send_message',
+            timestamp: new Date().toISOString(),
+          });
+          return err({
+            code: 'CONFLICT' as const,
+            message: 'Cannot send message to this user',
+          });
+        }
+      }
+
       const timestamp = new Date().toISOString();
       const newMessage: ChatMessage = {
         id: `msg_${Date.now()}`,

@@ -198,12 +198,12 @@ const styles = StyleSheet.create({
     gap: Spacing.micro,
   },
   title: { ...Typography.subheading },
-  subtitle: { ...Typography.small, lineHeight: 18 },
+  subtitle: { ...Typography.small, lineHeight: Typography.caption.lineHeight },
   toggle: {
     width: 50,
     height: 30,
     borderRadius: Radii.lg,
-    padding: 5,
+    padding: Spacing.xs,
   },
   toggleThumb: {
     width: 20,
@@ -230,7 +230,7 @@ const styles = StyleSheet.create({
     borderRadius: Radii.md,
     marginTop: Spacing.xs,
   },
-  infoText: { ...Typography.caption, flex: 1, lineHeight: 16 },
+  infoText: { ...Typography.caption, flex: 1, lineHeight: Typography.micro.lineHeight },
   modalOverlay: {
     flex: 1,
     justifyContent: 'flex-end',

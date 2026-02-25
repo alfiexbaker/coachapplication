@@ -54,7 +54,6 @@
     "__tests__/health/**/*.ts",
     "__tests__/health/**/*.tsx",
     "__tests__/notification-preferences/**/*.ts",
-    "__tests__/packages/**/*.ts",
     "__tests__/promo/**/*.ts",
     "__tests__/recurring/**/*.ts",
     "__tests__/recurring/**/*.tsx",
@@ -82,6 +81,9 @@
     "__tests__/utils/**/*.ts",
     "__tests__/notification/**/*.ts",
     "__tests__/badges/**/*.ts",
-    "__tests__/badges/**/*.tsx"
+    "__tests__/badges/**/*.tsx",
+    "__tests__/hooks/**/*.ts",
+    "__tests__/integration/**/*.ts",
+    "__tests__/contracts/**/*.ts"
   ]
 }

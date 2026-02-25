@@ -109,11 +109,12 @@ export function useObjectives() {
     children.length > 0 ? children[0].id : '',
   );
 
+  const firstChildId = children[0]?.id;
   useEffect(() => {
-    if (!selectedChildId && children.length > 0) {
-      setSelectedChildId(children[0].id);
+    if (!selectedChildId && firstChildId) {
+      setSelectedChildId(firstChildId);
     }
-  }, [children, selectedChildId]);
+  }, [firstChildId, selectedChildId]);
 
   // Filter objectives by selected child for parents
   const filteredObjectives = useMemo(() => {

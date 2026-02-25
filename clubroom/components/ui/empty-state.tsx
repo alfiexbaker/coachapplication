@@ -3,7 +3,7 @@ import { StyleSheet, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
 import { ThemedText } from '@/components/themed-text';
-import { Radii, Spacing, Typography, withAlpha } from '@/constants/theme';
+import { Radii, Shadows, Spacing, Typography, withAlpha } from '@/constants/theme';
 import { Clickable } from '@/components/primitives/clickable';
 import { useTheme } from '@/hooks/useTheme';
 
@@ -22,7 +22,7 @@ export function EmptyState({
   actionLabel,
   onPressAction,
 }: EmptyStateProps) {
-  const { colors: palette } = useTheme();
+  const { colors: palette, scheme } = useTheme();
 
   return (
     <View style={styles.container}>
@@ -40,6 +40,7 @@ export function EmptyState({
             styles.action,
             {
               backgroundColor: pressed ? palette.tintPressed : palette.tint,
+              ...Shadows[scheme].card,
               shadowColor: palette.tint,
             },
           ]}
@@ -75,10 +76,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing.md,
     paddingVertical: Spacing.sm,
     borderRadius: Radii.pill,
-    shadowOpacity: 0.1,
-    shadowRadius: 10,
-    shadowOffset: { width: 0, height: 6 },
-    elevation: 6,
   },
   actionLabel: {
     ...Typography.bodySemiBold,

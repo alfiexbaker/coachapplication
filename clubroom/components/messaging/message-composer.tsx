@@ -1,5 +1,5 @@
 import { useState, useRef, useCallback } from 'react';
-import { View, TextInput } from 'react-native';
+import { View, TextInput, Platform } from 'react-native';
 import * as Haptics from 'expo-haptics';
 
 import { useTheme } from '@/hooks/useTheme';
@@ -53,7 +53,7 @@ export function MessageComposer({
   const handleSend = useCallback(() => {
     if (!canSend || disabled) return;
 
-    void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    if (Platform.OS !== 'web') void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     onSend(text.trim(), attachments);
     setText('');
     setIsExpanded(false);

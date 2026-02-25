@@ -8,6 +8,7 @@ import { withAlpha } from '@/constants/theme';
 import type { ThemeColors } from '@/hooks/useTheme';
 import type { Invoice } from '@/constants/types';
 import { invoiceService } from '@/services/invoice-service';
+import { getInvoiceStatusColor } from './invoice-card-sections';
 
 import { formatDate } from './invoice-preview-helpers';
 import { styles } from './invoice-preview-styles';
@@ -18,7 +19,7 @@ interface InvoiceHeaderProps {
 }
 
 export const InvoiceHeader = memo(function InvoiceHeader({ invoice, palette }: InvoiceHeaderProps) {
-  const statusColor = invoiceService.getStatusColor(invoice.status);
+  const statusColor = getInvoiceStatusColor(invoice.status, palette);
 
   return (
     <Row justify="space-between" align="flex-start" style={styles.header}>

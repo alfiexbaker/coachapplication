@@ -205,11 +205,11 @@ export interface CoachProfile {
     reviewCount: number;
   };
   priceRange: {
-    minUsd: number;
-    maxUsd: number;
+    min: number;
+    max: number;
     unitLabel: string;
   };
-  sessionRate?: number; // £ GBP per session - alias for priceRange.minUsd
+  sessionRate?: number; // £ GBP per session - alias for priceRange.min
   nextAvailability: string;
   badges: CoachBadge[];
   sessionFormats: TrainingFormat[];
@@ -283,8 +283,8 @@ export interface SimplifiedCoach {
 
   // Pricing
   priceRange: {
-    minUsd: number;
-    maxUsd: number;
+    min: number;
+    max: number;
     unitLabel: string;
   };
   sessionFormats: ('In-person' | 'Virtual' | 'Small group')[];
@@ -314,7 +314,7 @@ export interface CoachSearchParams {
   sports?: SportCategory[];
   formats?: TrainingFormat[];
   skillLevels?: string[];
-  price?: { minUsd?: number; maxUsd?: number };
+  price?: { min?: number; max?: number };
   rating?: { min: number };
   coachGender?: 'Male' | 'Female' | 'Non-binary';
   languages?: string[];
@@ -419,9 +419,9 @@ export interface CoachFeedback {
 export interface Review {
   id: string;
   coachId: string;
-  coachName: string;
+  coachName?: string; // @deprecated — resolve via coachId
   parentId: string;
-  parentName: string;
+  parentName?: string; // @deprecated — resolve via parentId
   parentPhotoUrl?: string;
   athleteId?: string;
   athleteName?: string;

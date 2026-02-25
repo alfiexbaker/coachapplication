@@ -1,5 +1,6 @@
 import React from 'react';
-import { Image, StyleSheet, View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
+import { Image } from 'expo-image';
 import { router } from 'expo-router';
 import { Routes } from '@/navigation/routes';
 
@@ -84,7 +85,7 @@ function FeedPostCardInner({ post, onLike, onComment, onShare }: FeedPostCardPro
 
         {/* Image */}
         {post.imageUrl && (
-          <Image source={{ uri: post.imageUrl }} style={styles.postImage} resizeMode="cover" />
+          <Image source={{ uri: post.imageUrl }} style={styles.postImage} contentFit="cover" />
         )}
 
         {/* Event details */}

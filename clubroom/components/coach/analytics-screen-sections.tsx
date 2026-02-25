@@ -153,7 +153,6 @@ export const styles = StyleSheet.create({
   title: { ...Typography.display, letterSpacing: -0.8 },
   subtitle: {
     ...Typography.body,
-    lineHeight: 22,
     fontWeight: '500',
   },
   statsGrid: {

@@ -38,7 +38,7 @@ describe('sessionInviteService', () => {
       proposedSlots: [],
       sessionType: '1:1 Coaching',
       focus: 'Passing',
-      priceUsd: 50,
+      price: 50,
       duration: 60,
     }));
 

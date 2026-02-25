@@ -1,5 +1,6 @@
 import React, { memo } from 'react';
 import { StyleSheet, Switch, View } from 'react-native';
+import { Column } from '@/components/primitives/column';
 import { Clickable } from '@/components/primitives/clickable';
 import { Ionicons } from '@expo/vector-icons';
 
@@ -89,12 +90,12 @@ export const CreateMatchSquad = memo(function CreateMatchSquad({
 
       {selectedSquadId && (
         <Row align="center" style={[styles.autoInviteRow, { borderTopColor: colors.border }]}>
-          <View style={{ flex: 1 }}>
+          <Column flex>
             <ThemedText type="defaultSemiBold">Auto-invite Squad</ThemedText>
             <ThemedText style={[Typography.small, { color: colors.muted }]}>
               Send availability requests to all {squadMemberCount} squad members
             </ThemedText>
-          </View>
+          </Column>
           <Switch
             value={autoInvite}
             onValueChange={onAutoInviteChange}

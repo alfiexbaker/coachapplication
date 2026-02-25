@@ -7,7 +7,7 @@ import { SurfaceCard } from '@/components/primitives/surface-card';
 import { Radii, Spacing, Typography, withAlpha } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
 import type { Coach } from '@/services/coach-service';
-import { Row } from '@/components/primitives';
+import { Column, Row } from '@/components/primitives';
 
 interface CoachDetailAboutProps {
   coach: Coach;
@@ -51,7 +51,7 @@ export const CoachDetailAbout = memo(function CoachDetailAbout({ coach }: CoachD
           {coach.experiences.map((exp, index) => (
             <Row key={index} style={styles.experienceItem}>
               <View style={[styles.expDot, { backgroundColor: palette.tint }]} />
-              <View style={styles.expContent}>
+              <Column flex style={styles.expContent}>
                 <ThemedText type="defaultSemiBold">{exp.title}</ThemedText>
                 <ThemedText style={{ color: palette.muted }}>{exp.organization}</ThemedText>
                 <ThemedText style={[styles.expDates, { color: palette.muted }]}>
@@ -60,7 +60,7 @@ export const CoachDetailAbout = memo(function CoachDetailAbout({ coach }: CoachD
                 {exp.description && (
                   <ThemedText style={styles.expDesc}>{exp.description}</ThemedText>
                 )}
-              </View>
+              </Column>
             </Row>
           ))}
         </SurfaceCard>
@@ -73,12 +73,12 @@ export const CoachDetailAbout = memo(function CoachDetailAbout({ coach }: CoachD
           {coach.certifications.map((cert, index) => (
             <Row key={index} style={styles.certItem}>
               <Ionicons name="ribbon-outline" size={20} color={palette.tint} />
-              <View style={{ flex: 1 }}>
+              <Column flex>
                 <ThemedText type="defaultSemiBold">{cert.name}</ThemedText>
                 <ThemedText style={{ color: palette.muted, ...Typography.small }}>
                   {cert.issuer} • {cert.issueDate}
                 </ThemedText>
-              </View>
+              </Column>
             </Row>
           ))}
         </SurfaceCard>
@@ -113,14 +113,14 @@ const styles = StyleSheet.create({
   tabContent: { padding: Spacing.lg, gap: Spacing.md },
   section: { gap: Spacing.sm },
   sectionTitle: { marginBottom: Spacing.xs },
-  bioText: { lineHeight: 22 },
+  bioText: { lineHeight: Typography.body.lineHeight },
   chipGrid: { flexWrap: 'wrap', gap: Spacing.xs },
   chip: { paddingHorizontal: Spacing.sm, paddingVertical: Spacing.xxs, borderRadius: Radii.pill },
   chipText: { ...Typography.smallSemiBold },
   experienceItem: { gap: Spacing.sm, marginTop: Spacing.sm },
   expDot: { width: 8, height: 8, borderRadius: Radii.xs, marginTop: Spacing.xxs },
-  expContent: { flex: 1, gap: Spacing.micro },
+  expContent: { gap: Spacing.micro },
   expDates: { ...Typography.caption },
-  expDesc: { ...Typography.small, marginTop: Spacing.xxs, lineHeight: 18 },
+  expDesc: { ...Typography.small, marginTop: Spacing.xxs, lineHeight: Typography.caption.lineHeight },
   certItem: { alignItems: 'center', gap: Spacing.sm, paddingVertical: Spacing.xs },
 });

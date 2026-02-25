@@ -229,8 +229,8 @@ const styles = StyleSheet.create({
   },
   durationBadge: {
     position: 'absolute',
-    bottom: 4,
-    right: 4,
+    bottom: Spacing.xxs,
+    right: Spacing.xxs,
     borderRadius: Radii.sm,
     paddingHorizontal: Spacing.xxs,
     minHeight: 16,
@@ -238,7 +238,7 @@ const styles = StyleSheet.create({
   },
   durationText: {
     ...Typography.micro,
-    fontSize: 8,
+    fontSize: Typography.micro.fontSize,
     lineHeight: 10,
     textTransform: 'none',
   },

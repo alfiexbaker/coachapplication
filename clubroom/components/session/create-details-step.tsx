@@ -74,7 +74,7 @@ export const CreateDetailsStep = memo(function CreateDetailsStep({
           <ThemedText type="defaultSemiBold" style={styles.label}>
             Session Type
           </ThemedText>
-          <View style={styles.typeGrid}>
+          <Row wrap justify="between" style={styles.typeGrid}>
             {SESSION_TYPES.map((type) => {
               const selected = sessionType === type.key;
               return (
@@ -116,7 +116,7 @@ export const CreateDetailsStep = memo(function CreateDetailsStep({
                 </Clickable>
               );
             })}
-          </View>
+          </Row>
         </Column>
 
         {/* Title */}
@@ -232,9 +232,6 @@ const styles = StyleSheet.create({
     gap: Spacing.xs,
   },
   typeGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    justifyContent: 'space-between',
     rowGap: Spacing.sm,
   },
   typeCardHalf: {

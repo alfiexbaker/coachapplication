@@ -1,5 +1,5 @@
 import { useCallback } from 'react';
-import { View, StyleSheet, TextInput } from 'react-native';
+import { View, StyleSheet, TextInput, Platform } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 
@@ -28,14 +28,14 @@ export function GoalMilestonesSection({
 
   const handleAdd = useCallback(() => {
     if (!newMilestone.trim()) return;
-    void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    if (Platform.OS !== 'web') void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     onMilestonesChange([...milestones, newMilestone.trim()]);
     onNewMilestoneChange('');
   }, [newMilestone, milestones, onMilestonesChange, onNewMilestoneChange]);
 
   const handleRemove = useCallback(
     (index: number) => {
-      void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+      if (Platform.OS !== 'web') void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
       onMilestonesChange(milestones.filter((_, i) => i !== index));
     },
     [milestones, onMilestonesChange],

@@ -6,6 +6,7 @@ import type {
   FeedFilter,
   FeedType,
 } from '@/constants/types';
+import { generateId } from '@/utils/generate-id';
 import {
   type Result,
   type ServiceError,
@@ -442,7 +443,7 @@ function addClubFeedPostInternal(
 ): ClubFeedPost {
   const createdPost: ClubFeedPost = {
     ...post,
-    id: `club_post_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
+    id: generateId('club_post'),
     createdAt: new Date().toISOString(),
     reactionCount: 0,
     commentCount: 0,
@@ -905,7 +906,29 @@ class ClubFeedService {
     badgeAwarded?: string;
     badgeAwardId?: string;
     imageUrl?: string;
-  }): ClubFeedPost {
+    /** S-22: Must be true when post contains media featuring athletes */
+    mediaConsentVerified?: boolean;
+  }): ClubFeedPost | undefined {
+    // S-22: Block media shares without consent verification
+    if (input.imageUrl && !input.mediaConsentVerified) {
+      this.logger.warn('media_share_blocked_no_consent', {
+        parentId: input.parentId,
+        athleteId: input.athleteId,
+        clubId: input.clubId,
+      });
+      return undefined;
+    }
+
+    if (input.imageUrl) {
+      emitTyped(ServiceEvents.MEDIA_SHARED, {
+        mediaType: 'image',
+        sharedById: input.parentId,
+        athleteId: input.athleteId,
+        consentVerified: input.mediaConsentVerified ?? false,
+        timestamp: new Date().toISOString(),
+      });
+    }
+
     const post = addClubFeedPostInternal({
       clubId: input.clubId,
       title: input.title,

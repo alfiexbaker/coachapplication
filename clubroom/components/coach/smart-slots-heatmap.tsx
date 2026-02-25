@@ -72,7 +72,7 @@ const styles = StyleSheet.create({
   headerRow: { marginBottom: Spacing.xxs },
   dayLabelCell: { width: 36, justifyContent: 'center' },
   timeCell: { flex: 1, alignItems: 'center' },
-  timeLabel: { ...Typography.caption, fontSize: 10 },
+  timeLabel: { ...Typography.caption, fontSize: Typography.micro.fontSize },
   dayRow: { marginBottom: Spacing.micro },
   dayLabel: { ...Typography.caption },
   heatCell: {
@@ -90,6 +90,6 @@ const styles = StyleSheet.create({
     gap: Spacing.xxs,
     marginTop: Spacing.xs,
   },
-  legendLabel: { ...Typography.caption, fontSize: 10 },
+  legendLabel: { ...Typography.caption, fontSize: Typography.micro.fontSize },
   legendSwatch: { width: 16, height: 10, borderRadius: Radii.xs },
 });

@@ -8,6 +8,7 @@ import {
 import { getDayName } from '@/constants/booking-types';
 import type { Booking } from '@/constants/app-types';
 import { apiClient } from './api-client';
+import { generateId } from '@/utils/generate-id';
 import { notificationService } from './notification-service';
 import { bookingService } from './booking-service';
 import { userService } from './user-service';
@@ -113,7 +114,7 @@ class RecurringBookingService {
       const now = new Date().toISOString();
 
       const newRecurring: RecurringBooking = {
-        id: `recurring_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`,
+        id: generateId('recurring'),
         userId: params.userId,
         coachId: params.coachId,
         athleteId: params.athleteId,
@@ -506,7 +507,7 @@ class RecurringBookingService {
         const scheduledAt = new Date(currentDate);
         scheduledAt.setHours(hours, minutes, 0, 0);
 
-        const bookingId = `booking_gen_${Date.now()}_${i}_${Math.random().toString(36).substring(2, 7)}`;
+        const bookingId = generateId('booking_gen');
         const [coachName, athleteName, bookedByName] = await Promise.all([
           resolveUserName(recurring.coachId, 'Coach'),
           resolveUserName(recurring.athleteId || recurring.userId, 'Athlete'),

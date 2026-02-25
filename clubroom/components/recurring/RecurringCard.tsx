@@ -2,7 +2,7 @@
  * RecurringCard — Composition root.
  * Displays a recurring booking subscription with pause/resume/cancel actions.
  */
-import { useState, useCallback } from 'react';
+import { useState, useCallback, memo } from 'react';
 import { StyleSheet, Alert } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
@@ -31,7 +31,7 @@ interface RecurringCardProps {
   loading?: boolean;
 }
 
-export function RecurringCard({
+export const RecurringCard = memo(function RecurringCard({
   recurring,
   onPause,
   onResume,
@@ -195,7 +195,7 @@ export function RecurringCard({
       />
     </>
   );
-}
+});
 
 const styles = StyleSheet.create({
   card: { marginBottom: Spacing.sm, gap: Spacing.sm },

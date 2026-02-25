@@ -90,7 +90,7 @@ const styles = StyleSheet.create({
   header: { alignItems: 'center', gap: Spacing.sm },
   badge: {
     marginLeft: 'auto',
-    paddingHorizontal: 8,
+    paddingHorizontal: Spacing.xs,
     paddingVertical: Spacing.xxs,
     borderRadius: Radii.sm,
   },
@@ -117,5 +117,5 @@ const styles = StyleSheet.create({
     borderRadius: Radii.xs,
   },
   activeText: { ...Typography.micro, textTransform: 'uppercase', letterSpacing: 0.5 },
-  tierDesc: { ...Typography.caption, marginTop: Spacing.micro, lineHeight: 16 },
+  tierDesc: { ...Typography.caption, marginTop: Spacing.micro, lineHeight: Typography.micro.lineHeight },
 });

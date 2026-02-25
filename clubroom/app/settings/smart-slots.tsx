@@ -84,6 +84,6 @@ const styles = StyleSheet.create({
   content: { padding: Spacing.lg, gap: Spacing.lg },
   description: { ...Typography.body },
   card: { gap: Spacing.sm },
-  featureText: { flex: 1, gap: 2 },
+  featureText: { flex: 1, gap: Spacing.micro },
   infoText: { flex: 1, ...Typography.small },
 });

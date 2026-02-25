@@ -14,7 +14,7 @@
  */
 
 import { apiClient } from './api-client';
-import { walletService } from './wallet-service';
+import { generateId } from '@/utils/generate-id';
 import { createLogger } from '@/utils/logger';
 import { type Result, type ServiceError, ok, err, validationError } from '@/types/result';
 import type { ReferralCode, Referral, ReferralStats, ReferralStatus } from '@/constants/types';
@@ -230,7 +230,7 @@ async function generateCode(
 
   const now = new Date().toISOString();
   const newCode: ReferralCode = {
-    id: `refcode_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+    id: generateId('refcode'),
     userId,
     code,
     creditAmount,
@@ -351,7 +351,7 @@ async function applyReferralCode(
   const now = new Date().toISOString();
 
   const newReferral: Referral = {
-    id: `ref_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+    id: generateId('ref'),
     referrerId: referralCode.userId,
     refereeId: newUserId,
     code: referralCode.code,
@@ -422,23 +422,12 @@ async function completeReferral(
   const referralCode = codes.find((c) => c.code === referral.code);
   const creditAmount = referralCode?.creditAmount ?? DEFAULT_CREDIT_AMOUNT;
 
-  // Award credits to the referrer via wallet service
-  try {
-    await walletService.applyPromoCredit(
-      referral.referrerId,
-      creditAmount,
-      `REFERRAL-${referral.code}`,
-    );
-
-    logger.info('referral_credit_awarded', {
-      referralId,
-      referrerId: referral.referrerId,
-      amount: creditAmount,
-    });
-  } catch (error) {
-    logger.error('referral_credit_failed', { referralId, error });
-    return { success: false, error: 'Failed to award referral credit' };
-  }
+  // Log referral credit (tracked via reconciler, not wallet)
+  logger.info('referral_credit_awarded', {
+    referralId,
+    referrerId: referral.referrerId,
+    amount: creditAmount,
+  });
 
   // Update referral status
   const now = new Date().toISOString();

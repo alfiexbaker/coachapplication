@@ -177,7 +177,7 @@ const styles = StyleSheet.create({
   card: { gap: Spacing.md },
   inviteHeader: { alignItems: 'center', gap: Spacing.sm },
   inviteTitle: { ...Typography.title, textAlign: 'center' },
-  inviteMessage: { ...Typography.body, textAlign: 'center', lineHeight: 22 },
+  inviteMessage: { ...Typography.body, textAlign: 'center' },
   coachNote: { padding: Spacing.sm, borderRadius: Radii.sm },
   coachNoteText: { ...Typography.small, flex: 1, fontStyle: 'italic' },
   noteInputContainer: { gap: Spacing.xs },

@@ -50,6 +50,23 @@ export interface CreateSessionFormProps {
 
 export function CreateSessionForm(props: CreateSessionFormProps) {
   const { colors: palette, scheme } = useTheme();
+  const parseAge = (value: string) => {
+    const trimmed = value.trim();
+    if (!trimmed) return null;
+    const parsed = Number.parseInt(trimmed, 10);
+    return Number.isNaN(parsed) ? null : parsed;
+  };
+
+  const ageValidationError = (() => {
+    const min = parseAge(props.ageMin);
+    const max = parseAge(props.ageMax);
+    if (min !== null && min < 4) return 'Minimum age must be at least 4';
+    if (max !== null && max > 18) return 'Maximum age must be under 18';
+    if (min !== null && max !== null && min > max) return 'Minimum age must be less than maximum';
+    return null;
+  })();
+
+  const canSubmit = !ageValidationError;
 
   return (
     <ScrollView
@@ -151,6 +168,7 @@ export function CreateSessionForm(props: CreateSessionFormProps) {
           onAgeMinChange={props.onAgeMinChange}
           ageMax={props.ageMax}
           onAgeMaxChange={props.onAgeMaxChange}
+          ageError={ageValidationError}
           footballSkill={props.footballSkill}
           onFootballSkillChange={props.onFootballSkillChange}
         />
@@ -159,7 +177,9 @@ export function CreateSessionForm(props: CreateSessionFormProps) {
       {/* Create Button */}
       <Clickable
         onPress={props.onSubmit}
+        disabled={!canSubmit}
         accessibilityLabel="Create session offering"
+        accessibilityState={{ disabled: !canSubmit }}
         style={[styles.createButton, { backgroundColor: palette.tint, ...Shadows[scheme].card }]}
       >
         <Ionicons name="checkmark-circle-outline" size={24} color={palette.onPrimary} />
@@ -173,9 +193,9 @@ export function CreateSessionForm(props: CreateSessionFormProps) {
 
 const styles = StyleSheet.create({
   formContainer: { flex: 1 },
-  formContent: { padding: 20, paddingTop: 14, gap: 24 },
-  formFields: { gap: 20 },
-  fieldContainer: { gap: 8 },
+  formContent: { padding: Spacing.sm, paddingTop: Spacing.sm, gap: Spacing.md },
+  formFields: { gap: Spacing.sm },
+  fieldContainer: { gap: Spacing.xs },
   label: {
     fontSize: scaleFont(15),
     fontWeight: '600',
@@ -185,24 +205,24 @@ const styles = StyleSheet.create({
   input: {
     borderWidth: 1,
     borderRadius: Radii.md,
-    paddingHorizontal: 16,
-    paddingVertical: 16,
+    paddingHorizontal: Spacing.sm,
+    paddingVertical: Spacing.sm,
     fontSize: scaleFont(16),
     lineHeight: scaleFont(20),
   },
   multilineInput: {
     minHeight: scale(100),
     textAlignVertical: 'top',
-    paddingTop: 16,
+    paddingTop: Spacing.sm,
   },
   createButton: {
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 10,
-    paddingVertical: 18,
+    gap: Spacing.xs,
+    paddingVertical: Spacing.sm,
     borderRadius: Radii.md,
     marginTop: Spacing.xs + Spacing.xxs,
-    marginBottom: 32,
+    marginBottom: Spacing.lg,
     minHeight: 44,
   },
   createButtonText: {

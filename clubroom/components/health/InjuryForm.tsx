@@ -5,7 +5,7 @@
  */
 
 import { useState } from 'react';
-import { View, StyleSheet } from 'react-native';
+import { View, StyleSheet, Platform } from 'react-native';
 import * as Haptics from 'expo-haptics';
 
 import { ThemedText } from '@/components/themed-text';
@@ -36,26 +36,37 @@ export function InjuryForm({ onSubmit, onCancel, loading = false }: InjuryFormPr
   const [sharedWithCoach, setSharedWithCoach] = useState(true);
   const [showOccurredPicker, setShowOccurredPicker] = useState(false);
   const [showRecoveryPicker, setShowRecoveryPicker] = useState(false);
+  const [dateError, setDateError] = useState<string | null>(null);
+
+  const validateRecoveryDate = (injuryDate: Date, recoveryDate: Date | null) => {
+    if (!recoveryDate) return null;
+    return recoveryDate < injuryDate ? 'Recovery date must be after injury date' : null;
+  };
 
   const canProceedFromBodyPart = bodyPart !== null;
   const canProceedFromSeverity = severity !== null;
-  const canSubmit = bodyPart && severity && description.trim().length > 0;
+  const canSubmit = Boolean(bodyPart && severity && description.trim().length > 0 && !dateError);
 
   const handleNext = () => {
-    void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    if (Platform.OS !== 'web') void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     if (step === 'body_part' && canProceedFromBodyPart) setStep('severity');
     else if (step === 'severity' && canProceedFromSeverity) setStep('details');
   };
 
   const handleBack = () => {
-    void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    if (Platform.OS !== 'web') void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     if (step === 'severity') setStep('body_part');
     else if (step === 'details') setStep('severity');
   };
 
   const handleSubmit = () => {
+    const nextDateError = validateRecoveryDate(occurredAt, expectedRecovery);
+    if (nextDateError) {
+      setDateError(nextDateError);
+      return;
+    }
     if (!canSubmit || !bodyPart || !severity) return;
-    void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    if (Platform.OS !== 'web') void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     onSubmit({
       bodyPart,
       severity,
@@ -98,9 +109,16 @@ export function InjuryForm({ onSubmit, onCancel, loading = false }: InjuryFormPr
           sharedWithCoach={sharedWithCoach}
           showOccurredPicker={showOccurredPicker}
           showRecoveryPicker={showRecoveryPicker}
+          dateError={dateError}
           onDescriptionChange={setDescription}
-          onOccurredAtChange={setOccurredAt}
-          onExpectedRecoveryChange={setExpectedRecovery}
+          onOccurredAtChange={(date) => {
+            setOccurredAt(date);
+            setDateError(validateRecoveryDate(date, expectedRecovery));
+          }}
+          onExpectedRecoveryChange={(date) => {
+            setExpectedRecovery(date);
+            setDateError(validateRecoveryDate(occurredAt, date));
+          }}
           onSharedWithCoachChange={setSharedWithCoach}
           onShowOccurredPicker={setShowOccurredPicker}
           onShowRecoveryPicker={setShowRecoveryPicker}

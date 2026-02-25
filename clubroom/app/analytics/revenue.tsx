@@ -189,7 +189,7 @@ const styles = StyleSheet.create({
   titleRow: { alignItems: 'center', gap: Spacing.sm },
   backButton: { padding: Spacing.xxs, marginLeft: -4 },
   title: { ...Typography.display, letterSpacing: -0.5 },
-  subtitle: { ...Typography.body, marginTop: Spacing.xxs, marginLeft: 32 },
+  subtitle: { ...Typography.body, marginTop: Spacing.xxs, marginLeft: Spacing.lg },
   periodSelector: { gap: Spacing.xs, marginBottom: Spacing.sm },
   periodButton: {
     flex: 1,

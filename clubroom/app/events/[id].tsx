@@ -1,4 +1,5 @@
-import { View, StyleSheet, ScrollView, Image, RefreshControl, Alert, Linking } from 'react-native';
+import { View, StyleSheet, ScrollView, RefreshControl, Alert, Linking } from 'react-native';
+import { Image } from 'expo-image';
 import { Row } from '@/components/primitives/row';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router, useLocalSearchParams } from 'expo-router';

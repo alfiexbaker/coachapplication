@@ -100,7 +100,7 @@ const styles = StyleSheet.create({
   homework: {
     ...Typography.body,
     fontStyle: 'italic',
-    lineHeight: 24,
+    lineHeight: Typography.subheading.lineHeight,
   },
   meta: {
     ...Typography.caption,

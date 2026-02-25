@@ -169,7 +169,7 @@ const styles = StyleSheet.create({
     gap: Spacing.micro,
   },
   settingTitle: { ...Typography.subheading },
-  settingSubtitle: { ...Typography.small, lineHeight: 18 },
+  settingSubtitle: { ...Typography.small, lineHeight: Typography.caption.lineHeight },
   valueText: { ...Typography.body, marginRight: Spacing.xs },
   section: {
     gap: Spacing.xs,

@@ -3,6 +3,7 @@ import { StyleSheet, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { ThemedText } from '@/components/themed-text';
 import { SurfaceCard } from '@/components/primitives/surface-card';
+import { Column } from '@/components/primitives/column';
 import { Row } from '@/components/primitives/row';
 import { Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
 import type { ThemeColors } from '@/hooks/useTheme';
@@ -31,12 +32,12 @@ export const DevSessionInfo = memo(function DevSessionInfo({
             {avatar || athleteName.charAt(0)}
           </ThemedText>
         </View>
-        <View style={{ flex: 1, gap: Spacing.micro }}>
+        <Column flex gap="micro">
           <ThemedText type="defaultSemiBold" style={Typography.subheading}>
             {athleteName}
           </ThemedText>
           <ThemedText style={[Typography.small, { color: colors.muted }]}>{sessionDate}</ThemedText>
-        </View>
+        </Column>
       </Row>
       {sessionBadges.length > 0 && (
         <Row gap="xs" style={{ flexWrap: 'wrap' }}>

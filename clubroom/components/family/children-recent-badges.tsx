@@ -145,7 +145,7 @@ const styles = StyleSheet.create({
   },
   newBadgeText: {
     ...Typography.micro,
-    fontSize: 9,
+    fontSize: Typography.micro.fontSize,
   },
   badgeIconCircle: {
     width: 40,

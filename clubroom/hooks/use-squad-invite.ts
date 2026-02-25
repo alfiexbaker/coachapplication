@@ -225,7 +225,7 @@ export function useSquadInvite() {
         sessionType,
         focus,
         notes: notes || undefined,
-        priceUsd: price ? parseFloat(price) : undefined,
+        price: price ? parseFloat(price) : undefined,
         expiresInDays: 7,
       });
 

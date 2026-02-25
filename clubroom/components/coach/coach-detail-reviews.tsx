@@ -7,7 +7,7 @@ import { SurfaceCard } from '@/components/primitives/surface-card';
 import { Radii, Spacing, Typography, withAlpha } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
 import type { Coach, PublicReview } from '@/services/coach-service';
-import { Row } from '@/components/primitives';
+import { Column, Row } from '@/components/primitives';
 
 /** Renders 5 star icons for a given rating. Shared with hero. */
 export function renderStars(rating: number, color: string) {
@@ -57,10 +57,10 @@ export const CoachDetailReviews = memo(function CoachDetailReviews({
                     {review.reviewerName.charAt(0)}
                   </ThemedText>
                 </View>
-                <View style={{ flex: 1 }}>
+                <Column flex>
                   <ThemedText type="defaultSemiBold">{review.reviewerName}</ThemedText>
                   <Row style={styles.starsRow}>{renderStars(review.rating, palette.warning)}</Row>
-                </View>
+                </Column>
                 <ThemedText style={{ color: palette.muted, ...Typography.caption }}>
                   {new Date(review.createdAt).toLocaleDateString('en-GB', {
                     day: 'numeric',
@@ -112,10 +112,10 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  reviewText: { lineHeight: 20 },
+  reviewText: { lineHeight: Typography.bodySmall.lineHeight },
   sessionTypeBadge: {
     alignSelf: 'flex-start',
-    paddingHorizontal: 8,
+    paddingHorizontal: Spacing.xs,
     paddingVertical: Spacing.xxs,
     borderRadius: Radii.sm,
   },

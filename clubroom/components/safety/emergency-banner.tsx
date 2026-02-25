@@ -1,5 +1,6 @@
 import { StyleSheet, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { Column } from '@/components/primitives/column';
 import { Row } from '@/components/primitives/row';
 
 import { ThemedText } from '@/components/themed-text';
@@ -17,6 +18,8 @@ type EmergencyBannerProps = {
   onPressContact?: () => void;
   onPressMedical?: () => void;
   compact?: boolean;
+  /** When false, contact phone is hidden and tap shows info instead of calling */
+  isActiveSession?: boolean;
 };
 
 export function EmergencyBanner({
@@ -25,6 +28,7 @@ export function EmergencyBanner({
   onPressContact,
   onPressMedical,
   compact = false,
+  isActiveSession = false,
 }: EmergencyBannerProps) {
   const { colors: palette } = useTheme();
 
@@ -110,42 +114,42 @@ export function EmergencyBanner({
             {hasAllergies && (
               <Row align="start" gap="sm">
                 <Ionicons name="alert-circle" size={16} color={palette.error} />
-                <View style={{ flex: 1 }}>
+                <Column flex>
                   <ThemedText style={[styles.alertLabel, { color: palette.muted }]}>
                     Allergies
                   </ThemedText>
                   <ThemedText style={{ color: palette.text }}>
                     {medical.allergies.join(', ')}
                   </ThemedText>
-                </View>
+                </Column>
               </Row>
             )}
 
             {hasConditions && (
               <Row align="start" gap="sm">
                 <Ionicons name="medical" size={16} color={palette.warning} />
-                <View style={{ flex: 1 }}>
+                <Column flex>
                   <ThemedText style={[styles.alertLabel, { color: palette.muted }]}>
                     Conditions
                   </ThemedText>
                   <ThemedText style={{ color: palette.text }}>
                     {medical.conditions.join(', ')}
                   </ThemedText>
-                </View>
+                </Column>
               </Row>
             )}
 
             {hasMedications && (
               <Row align="start" gap="sm">
                 <Ionicons name="fitness" size={16} color={palette.muted} />
-                <View style={{ flex: 1 }}>
+                <Column flex>
                   <ThemedText style={[styles.alertLabel, { color: palette.muted }]}>
                     Medications
                   </ThemedText>
                   <ThemedText style={{ color: palette.text }}>
                     {medical.medications.join(', ')}
                   </ThemedText>
-                </View>
+                </Column>
               </Row>
             )}
           </View>
@@ -160,15 +164,22 @@ export function EmergencyBanner({
             style={[styles.contactSection, { borderTopColor: palette.border }]}
           >
             <Ionicons name="call" size={18} color={palette.tint} />
-            <View style={{ flex: 1 }}>
+            <Column flex>
               <ThemedText style={[styles.alertLabel, { color: palette.muted }]}>
                 Emergency Contact
               </ThemedText>
               <ThemedText style={{ color: palette.text }}>
                 {primaryContact.name} ({primaryContact.relationship})
               </ThemedText>
-              <ThemedText style={{ color: palette.tint }}>{primaryContact.phone}</ThemedText>
-            </View>
+              {isActiveSession && (
+                <ThemedText style={{ color: palette.tint }}>{primaryContact.phone}</ThemedText>
+              )}
+              {!isActiveSession && (
+                <ThemedText style={[Typography.caption, { color: palette.muted }]}>
+                  Phone visible during active sessions only
+                </ThemedText>
+              )}
+            </Column>
             <Ionicons name="chevron-forward" size={18} color={palette.muted} />
           </Row>
         </Clickable>

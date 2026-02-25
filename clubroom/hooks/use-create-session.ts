@@ -674,7 +674,7 @@ export function useCreateSession(): CreateSessionState & CreateSessionActions {
               sessionType: options.sessionTypeLabel,
               focus: options.focusLabel,
               notes: options.notesLabel,
-              priceUsd: parsedPrice,
+              price: parsedPrice,
               expiresInDays: 7,
               existingSessionId: options.existingSessionId,
               locationCoordinates: options.locationCoordinates ?? undefined,
@@ -932,7 +932,7 @@ export function useCreateSession(): CreateSessionState & CreateSessionActions {
         registrations: [],
         createdAt: new Date().toISOString(),
         duration: primaryDuration,
-        priceUsd: parsedPrice,
+        price: parsedPrice,
         footballSkill: focusAreas[0] || undefined,
         invitedAthleteIds: inviteType === 'CLOSED' ? selectedAthletes : undefined,
         invitedAthleteNames:

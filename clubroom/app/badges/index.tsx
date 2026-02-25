@@ -59,7 +59,7 @@ export default function AllBadgesScreen() {
       />
 
       <SurfaceCard style={styles.filterCard}>
-        <View style={styles.filterWrap}>
+        <Row wrap gap="xs" style={styles.filterWrap}>
           {FILTER_TABS.map((tab) => {
             const isActive = tab.key === c.activeFilter;
             const count = c.getFilterCount(tab.key);
@@ -112,7 +112,7 @@ export default function AllBadgesScreen() {
               </Clickable>
             );
           })}
-        </View>
+        </Row>
       </SurfaceCard>
 
       {c.loading ? (
@@ -175,11 +175,7 @@ export default function AllBadgesScreen() {
 
 const styles = StyleSheet.create({
   filterCard: { padding: Spacing.xs },
-  filterWrap: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: Spacing.xs,
-  },
+  filterWrap: {},
   filterTab: {
     paddingVertical: Spacing.xs,
     paddingHorizontal: Spacing.sm,

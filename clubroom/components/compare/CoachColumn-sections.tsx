@@ -23,8 +23,8 @@ import { styles } from './coach-column-styles';
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
 export function formatPrice(min: number, max: number): string {
-  if (min === max) return `$${min}`;
-  return `$${min}-$${max}`;
+  if (min === max) return `£${min}`;
+  return `£${min}-£${max}`;
 }
 
 export function formatAvailability(nextSlot: string | null): string {

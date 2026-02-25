@@ -15,6 +15,7 @@ import {
 } from '@/services/progress-service';
 import { STORAGE_KEYS } from '@/constants/storage-keys';
 import type { BadgeAward, Goal, Session, SkillProgress, User } from '@/constants/types';
+import type { FootballSkill } from '@/types/progress-types';
 
 const logger = createLogger('AthleteProgressScreen');
 
@@ -74,7 +75,7 @@ function mapProgressSkillsToAnalytics(skills: ProgressReport['skills']): SkillPr
         : [{ date: skill.lastUpdated, level: currentLevel }];
 
     return {
-      skillName: skill.skill,
+      skillName: skill.skill as FootballSkill,
       category: inferSkillCategory(skill.skill),
       currentLevel,
       previousLevel,

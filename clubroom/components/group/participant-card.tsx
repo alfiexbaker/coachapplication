@@ -201,7 +201,7 @@ const styles = StyleSheet.create({
   parentName: { ...Typography.caption, marginTop: Spacing.micro },
   statusBadge: {
     alignSelf: 'flex-start',
-    paddingHorizontal: 8,
+    paddingHorizontal: Spacing.xs,
     paddingVertical: Spacing.micro,
     borderRadius: Radii.sm,
   },
@@ -224,5 +224,5 @@ const styles = StyleSheet.create({
     paddingTop: Spacing.sm,
     borderTopWidth: 1,
   },
-  notesText: { ...Typography.caption, flex: 1, lineHeight: 16 },
+  notesText: { ...Typography.caption, flex: 1, lineHeight: Typography.micro.lineHeight },
 });

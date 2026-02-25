@@ -10,6 +10,7 @@ import { Radii, Spacing, Typography, withAlpha } from '@/constants/theme';
 import type { ClubFeedPost } from '@/constants/types';
 import { useTheme } from '@/hooks/useTheme';
 import { Row } from '@/components/primitives';
+import { Column } from '@/components/primitives/column';
 
 export interface EventCardProps {
   event: ClubFeedPost;
@@ -34,7 +35,7 @@ export function EventCard({ event, onPress }: EventCardProps) {
         <View style={[styles.eventIcon, { backgroundColor: withAlpha(palette.tint, 0.09) }]}>
           <Ionicons name="calendar" size={20} color={palette.tint} />
         </View>
-        <View style={{ flex: 1 }}>
+        <Column flex>
           <ThemedText type="defaultSemiBold" style={{ ...Typography.bodySmall }}>
             {event.title}
           </ThemedText>
@@ -43,7 +44,7 @@ export function EventCard({ event, onPress }: EventCardProps) {
               {formatDate(event.eventDate)}
             </ThemedText>
           )}
-        </View>
+        </Column>
         <Ionicons name="chevron-forward" size={18} color={palette.muted} />
       </Row>
 

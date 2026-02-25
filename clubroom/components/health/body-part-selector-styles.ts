@@ -82,7 +82,7 @@ export const styles = StyleSheet.create({
   },
   feetContainer: {
     justifyContent: 'center',
-    gap: 8,
+    gap: Spacing.xs,
     marginTop: Spacing.micro,
   },
   foot: {

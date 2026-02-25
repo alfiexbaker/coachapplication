@@ -6,7 +6,8 @@
  */
 
 import React, { memo } from 'react';
-import { Image, View } from 'react-native';
+import { View } from 'react-native';
+import { Image } from 'expo-image';
 import { Ionicons } from '@expo/vector-icons';
 
 import { DifficultyBadge } from './DifficultyBadge';

@@ -1,5 +1,6 @@
 import React, { memo } from 'react';
 import { View, StyleSheet, TextInput } from 'react-native';
+import { Column } from '@/components/primitives/column';
 import { Row } from '@/components/primitives/row';
 import { Ionicons } from '@expo/vector-icons';
 import Animated, { FadeInDown } from 'react-native-reanimated';
@@ -158,7 +159,7 @@ export const SquadInviteSessionForm = memo(function SquadInviteSessionForm({
             />
           </Row>
           <Row gap="sm">
-            <View style={{ flex: 1 }}>
+            <Column flex>
               <TextInput
                 style={[styles.input, { color: palette.text, borderColor: palette.border }]}
                 placeholder="Location (optional)"
@@ -166,7 +167,7 @@ export const SquadInviteSessionForm = memo(function SquadInviteSessionForm({
                 value={slotLocation}
                 onChangeText={onSlotLocationChange}
               />
-            </View>
+            </Column>
             <Clickable
               accessibilityLabel="Add time slot"
               onPress={onAddSlot}
@@ -188,7 +189,7 @@ export const SquadInviteSessionForm = memo(function SquadInviteSessionForm({
                   { backgroundColor: palette.surface, borderColor: palette.border },
                 ]}
               >
-                <View style={styles.slotInfo}>
+                <Column flex style={styles.slotInfo}>
                   <ThemedText type="defaultSemiBold" style={{ ...Typography.small }}>
                     {new Date(slot.date).toLocaleDateString('en-GB', {
                       weekday: 'short',
@@ -200,7 +201,7 @@ export const SquadInviteSessionForm = memo(function SquadInviteSessionForm({
                     {slot.startTime} - {slot.endTime}
                     {slot.location && ` at ${slot.location}`}
                   </ThemedText>
-                </View>
+                </Column>
                 <Clickable
                   accessibilityLabel="Remove time slot"
                   onPress={() => onRemoveSlot(index)}
@@ -244,5 +245,5 @@ const styles = StyleSheet.create({
   },
   slotsList: { gap: Spacing.xs, marginTop: Spacing.xs },
   slotItem: { padding: Spacing.sm, borderRadius: Radii.md, borderWidth: 1 },
-  slotInfo: { flex: 1, gap: Spacing.micro },
+  slotInfo: { gap: Spacing.micro },
 });

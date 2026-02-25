@@ -212,8 +212,8 @@ export function SessionDetailModal({
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
-  header: { paddingHorizontal: 20, paddingVertical: 16, borderBottomWidth: 1 },
-  content: { flex: 1, padding: 20 },
+  header: { paddingHorizontal: Spacing.md, paddingVertical: Spacing.sm, borderBottomWidth: 1 },
+  content: { flex: 1, padding: Spacing.md },
   inviteManageCard: {
     borderWidth: 1,
     borderRadius: Radii.md,
@@ -236,7 +236,7 @@ const styles = StyleSheet.create({
     fontSize: scaleFont(13),
     fontWeight: '700',
   },
-  footer: { padding: 20, borderTopWidth: 0 },
+  footer: { padding: Spacing.md, borderTopWidth: 0 },
   bookButton: { paddingVertical: 18, borderRadius: Radii.md, alignItems: 'center' },
   bookButtonText: { fontSize: scaleFont(18), fontWeight: '700', letterSpacing: -0.4 },
   completeButton: { paddingVertical: 18, borderRadius: Radii.md },

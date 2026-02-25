@@ -146,7 +146,7 @@ export const SessionListStep = memo(function SessionListStep({
                         name="location-outline"
                         size={14}
                         color={palette.muted}
-                        style={{ marginLeft: 8 }}
+                        style={{ marginLeft: Spacing.xs }}
                       />
                       <ThemedText
                         style={[styles.sessionMetaText, { color: palette.muted }]}
@@ -273,7 +273,7 @@ const styles = StyleSheet.create({
   },
   choiceInfo: { flex: 1, gap: Spacing.xxs },
   choiceTitle: { ...Typography.subheading },
-  choiceDesc: { ...Typography.small, lineHeight: 18 },
+  choiceDesc: { ...Typography.small, lineHeight: Typography.caption.lineHeight },
   sessionList: { gap: Spacing.sm },
   sectionSubtitle: { ...Typography.bodySmall, marginBottom: Spacing.sm },
   sessionCard: {
@@ -285,7 +285,7 @@ const styles = StyleSheet.create({
   },
   sessionDate: {
     alignItems: 'center',
-    paddingVertical: 8,
+    paddingVertical: Spacing.xs,
     paddingHorizontal: Spacing.sm,
     borderRadius: Radii.sm,
     minWidth: 50,
@@ -297,7 +297,7 @@ const styles = StyleSheet.create({
   sessionMetaText: { ...Typography.caption },
   spotsBadge: {
     alignSelf: 'flex-start',
-    paddingHorizontal: 8,
+    paddingHorizontal: Spacing.xs,
     paddingVertical: Spacing.micro,
     borderRadius: Radii.sm,
     marginTop: Spacing.xxs,
@@ -321,7 +321,7 @@ const styles = StyleSheet.create({
   confirmButton: {
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 8,
+    gap: Spacing.xs,
     paddingVertical: Spacing.md,
     borderRadius: Radii.md,
   },

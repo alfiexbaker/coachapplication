@@ -19,6 +19,7 @@ import { Button } from '@/components/primitives/button';
 import { PageHeader } from '@/components/primitives/page-header';
 import { ThemedText } from '@/components/themed-text';
 import { LoadingState, ErrorState, EmptyState } from '@/components/ui/screen-states';
+import { useToast } from '@/components/ui/toast';
 import { Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
 import { useEventRSVP } from '@/hooks/use-event-rsvp';
@@ -28,6 +29,7 @@ import type { RSVPStatus } from '@/constants/types';
 
 export default function EventRSVPScreen() {
   const { colors: palette } = useTheme();
+  const { showToast } = useToast();
   const { id } = useLocalSearchParams<{ id: string }>();
   const {
     event,
@@ -52,6 +54,21 @@ export default function EventRSVPScreen() {
     handleSubmit,
     handleSendReminder,
   } = useEventRSVP(id);
+
+  const rsvpDeadlineDate =
+    event?.rsvpDeadline && !Number.isNaN(new Date(event.rsvpDeadline).getTime())
+      ? new Date(event.rsvpDeadline)
+      : null;
+  const isPastDeadline = Boolean(rsvpDeadlineDate && new Date() > rsvpDeadlineDate);
+  const isSubmitClosed = rsvpClosed || isPastDeadline;
+
+  const handleSubmitWithDeadlineCheck = async () => {
+    if (isPastDeadline) {
+      showToast('RSVP deadline has passed', 'error');
+      return;
+    }
+    await handleSubmit();
+  };
 
   if (status === 'loading') {
     return (
@@ -173,8 +190,10 @@ export default function EventRSVPScreen() {
                 </View>
               </View>
             )}
-            <View style={styles.rsvpCountRow}>
-              <View
+            <Row wrap style={styles.rsvpCountRow}>
+              <Row
+                align="center"
+                gap="xxs"
                 style={[
                   styles.rsvpCountChip,
                   { backgroundColor: withAlpha(palette.success, 0.09) },
@@ -184,8 +203,10 @@ export default function EventRSVPScreen() {
                 <ThemedText style={[styles.rsvpCountText, { color: palette.success }]}>
                   {attendeeCounts.going} going
                 </ThemedText>
-              </View>
-              <View
+              </Row>
+              <Row
+                align="center"
+                gap="xxs"
                 style={[
                   styles.rsvpCountChip,
                   { backgroundColor: withAlpha(palette.warning, 0.09) },
@@ -195,16 +216,18 @@ export default function EventRSVPScreen() {
                 <ThemedText style={[styles.rsvpCountText, { color: palette.warning }]}>
                   {attendeeCounts.maybe} maybe
                 </ThemedText>
-              </View>
-              <View
+              </Row>
+              <Row
+                align="center"
+                gap="xxs"
                 style={[styles.rsvpCountChip, { backgroundColor: withAlpha(palette.error, 0.09) }]}
               >
                 <Ionicons name="close-circle-outline" size={14} color={palette.error} />
                 <ThemedText style={[styles.rsvpCountText, { color: palette.error }]}>
                   {attendeeCounts.notGoing} can&apos;t
                 </ThemedText>
-              </View>
-            </View>
+              </Row>
+            </Row>
           </SurfaceCard>
 
           {isCoach && attendeeCounts.maybe > 0 && !rsvpClosed && (
@@ -234,7 +257,7 @@ export default function EventRSVPScreen() {
             </View>
           )}
 
-          {rsvpClosed && (
+          {isPastDeadline && rsvpDeadlineDate && (
             <Row
               align="center"
               gap="sm"
@@ -242,7 +265,7 @@ export default function EventRSVPScreen() {
             >
               <Ionicons name="time" size={20} color={palette.warning} />
               <ThemedText style={[styles.warningText, { color: palette.warning }]}>
-                RSVP deadline has passed
+                RSVP deadline was {rsvpDeadlineDate.toLocaleString()}
               </ThemedText>
             </Row>
           )}
@@ -407,7 +430,7 @@ export default function EventRSVPScreen() {
           )}
         </ScrollView>
 
-        {!rsvpClosed && (
+        {(!rsvpClosed || isPastDeadline) && (
           <View
             style={[
               styles.footer,
@@ -415,18 +438,25 @@ export default function EventRSVPScreen() {
             ]}
           >
             <Button
-              onPress={handleSubmit}
-              disabled={!selectedStatus || submitting}
+              onPress={handleSubmitWithDeadlineCheck}
+              disabled={isSubmitClosed || !selectedStatus || submitting}
               style={styles.submitButton}
             >
               {submitting ? (
                 <ActivityIndicator size="small" color={palette.onPrimary} />
+              ) : isSubmitClosed ? (
+                'RSVP Closed'
               ) : currentRSVP ? (
                 'Update Response'
               ) : (
                 'Submit RSVP'
               )}
             </Button>
+            {isPastDeadline ? (
+              <ThemedText style={[styles.footerHint, { color: palette.muted }]}>
+                Responses can no longer be submitted after the RSVP deadline.
+              </ThemedText>
+            ) : null}
           </View>
         )}
       </KeyboardAvoidingView>
@@ -453,13 +483,8 @@ const styles = StyleSheet.create({
   rsvpCountRow: {
     marginTop: Spacing.xs,
     gap: Spacing.xs,
-    flexDirection: 'row',
-    flexWrap: 'wrap',
   },
   rsvpCountChip: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.xxs,
     borderRadius: Radii.pill,
     paddingHorizontal: Spacing.sm,
     paddingVertical: Spacing.xs,
@@ -531,4 +556,10 @@ const styles = StyleSheet.create({
     borderTopWidth: 1,
   },
   submitButton: { paddingVertical: 14 },
+  footerHint: {
+    marginTop: Spacing.xs,
+    textAlign: 'center',
+    ...Typography.caption,
+    fontSize: scaleFont(Typography.caption.fontSize),
+  },
 });

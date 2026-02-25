@@ -149,14 +149,14 @@ export function SessionOfferingCard({
             capacityText={capacityText}
             registeredCount={registeredCount}
             maxParticipants={offering.maxParticipants}
-            priceUsd={undefined}
+            price={undefined}
             palette={palette}
           />
         </View>
 
         <View style={styles.trailing}>
-          {offering.priceUsd !== undefined && offering.priceUsd > 0 ? (
-            <ThemedText style={styles.price}>£{offering.priceUsd}</ThemedText>
+          {offering.price !== undefined && offering.price > 0 ? (
+            <ThemedText style={styles.price}>£{offering.price}</ThemedText>
           ) : null}
           <Ionicons name="chevron-forward" size={18} color={palette.muted} />
         </View>

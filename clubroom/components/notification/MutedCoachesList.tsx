@@ -113,14 +113,14 @@ const styles = StyleSheet.create({
     gap: Spacing.micro,
   },
   title: { ...Typography.subheading },
-  subtitle: { ...Typography.small, lineHeight: 18 },
+  subtitle: { ...Typography.small, lineHeight: Typography.caption.lineHeight },
   badge: {
     minWidth: 24,
     height: 24,
     borderRadius: Radii.md,
     justifyContent: 'center',
     alignItems: 'center',
-    paddingHorizontal: 8,
+    paddingHorizontal: Spacing.xs,
   },
   badgeText: { ...Typography.caption },
   list: {
@@ -132,7 +132,7 @@ const styles = StyleSheet.create({
     gap: Spacing.sm,
   },
   emptyTitle: { ...Typography.subheading, marginTop: Spacing.xs },
-  emptySubtitle: { ...Typography.small, textAlign: 'center', lineHeight: 18 },
+  emptySubtitle: { ...Typography.small, textAlign: 'center', lineHeight: Typography.caption.lineHeight },
 });
 
 export default MutedCoachesList;

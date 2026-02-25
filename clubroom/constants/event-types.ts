@@ -67,7 +67,6 @@ export interface ClubEvent {
 
   // Cost
   price: number; // 0 = free
-  priceUsd?: number; // alias for price
   currency: string;
 
   // RSVP

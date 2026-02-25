@@ -9,7 +9,7 @@
  * - Animated entry
  */
 
-import React, { useCallback } from 'react';
+import React, { memo, useCallback } from 'react';
 import { StyleSheet, View } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Routes } from '@/navigation/routes';
@@ -23,6 +23,7 @@ import { Button } from '@/components/primitives/button';
 import { Clickable } from '@/components/primitives/clickable';
 import { FavouriteButton } from './FavouriteButton';
 import { Row } from '@/components/primitives';
+import { useTheme } from '@/hooks/useTheme';
 
 export interface FavouriteCoachCardProps {
   /** The favourite coach data */
@@ -37,7 +38,7 @@ export interface FavouriteCoachCardProps {
   index?: number;
 }
 
-export function FavouriteCoachCard({
+export const FavouriteCoachCard = memo(function FavouriteCoachCard({
   favourite,
   onBook,
   onToggleFavourite,
@@ -45,6 +46,7 @@ export function FavouriteCoachCard({
   index = 0,
 }: FavouriteCoachCardProps) {
   const router = useRouter();
+  const { colors } = useTheme();
   const coachName = favourite.coachId;
   const coachInitials = coachName
     .split(' ')
@@ -81,8 +83,8 @@ export function FavouriteCoachCard({
         style={styles.card}
       >
         <Row style={styles.content}>
-          <View style={styles.avatarPlaceholder}>
-            <ThemedText style={styles.avatarText}>{coachInitials}</ThemedText>
+          <View style={[styles.avatarPlaceholder, { backgroundColor: withAlpha(colors.tint, 0.08) }]}>
+            <ThemedText style={[styles.avatarText, { color: colors.tint }]}>{coachInitials}</ThemedText>
           </View>
 
           {/* Coach Info */}
@@ -111,9 +113,9 @@ export function FavouriteCoachCard({
               <Clickable
                 onPress={handlePress}
                 accessibilityLabel={`View ${coachName} profile`}
-                style={styles.profileButton}
+                style={[styles.profileButton, { borderColor: withAlpha(colors.tint, 0.16), backgroundColor: withAlpha(colors.tint, 0.04) }]}
               >
-                <ThemedText style={styles.profileButtonText}>View Profile</ThemedText>
+                <ThemedText style={[styles.profileButtonText, { color: colors.tint }]}>View Profile</ThemedText>
               </Clickable>
               <Button onPress={handleBook} variant="primary" style={styles.bookButton}>
                 Book Now
@@ -124,7 +126,7 @@ export function FavouriteCoachCard({
       </SurfaceCard>
     </Animated.View>
   );
-}
+});
 
 const styles = StyleSheet.create({
   card: {
@@ -145,11 +147,9 @@ const styles = StyleSheet.create({
     borderRadius: Radii.md,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: withAlpha('#0B1736', 0.08),
   },
   avatarText: {
     ...Typography.bodySemiBold,
-    color: '#0B1736',
   },
   info: {
     flex: 1,
@@ -178,12 +178,9 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing.sm,
     borderRadius: Radii.pill,
     borderWidth: 1,
-    borderColor: withAlpha('#0B1736', 0.16),
-    backgroundColor: withAlpha('#0B1736', 0.04),
   },
   profileButtonText: {
     ...Typography.caption,
-    color: '#0B1736',
   },
   bookButton: {
     paddingVertical: Spacing.xs,

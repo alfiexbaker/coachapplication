@@ -4,7 +4,7 @@ import DateTimePicker from '@react-native-community/datetimepicker';
 
 import { ThemedText } from '@/components/themed-text';
 import { Clickable } from '@/components/primitives/clickable';
-import { Spacing, Radii } from '@/constants/theme';
+import { Spacing, Radii, Typography } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
 import type { BodyPart, InjurySeverity } from '@/constants/types';
 import { scaleFont } from '@/utils/scale';
@@ -21,6 +21,7 @@ interface InjuryDetailsStepProps {
   sharedWithCoach: boolean;
   showOccurredPicker: boolean;
   showRecoveryPicker: boolean;
+  dateError: string | null;
   onDescriptionChange: (value: string) => void;
   onOccurredAtChange: (date: Date) => void;
   onExpectedRecoveryChange: (date: Date | null) => void;
@@ -38,6 +39,7 @@ export function InjuryDetailsStep({
   sharedWithCoach,
   showOccurredPicker,
   showRecoveryPicker,
+  dateError,
   onDescriptionChange,
   onOccurredAtChange,
   onExpectedRecoveryChange,
@@ -108,7 +110,7 @@ export function InjuryDetailsStep({
           <Clickable
             onPress={() => {
               if (!expectedRecovery) {
-                const defaultRecovery = new Date();
+                const defaultRecovery = new Date(occurredAt);
                 defaultRecovery.setDate(defaultRecovery.getDate() + 14);
                 onExpectedRecoveryChange(defaultRecovery);
               }
@@ -148,6 +150,12 @@ export function InjuryDetailsStep({
         </View>
       </View>
 
+      {dateError ? (
+        <ThemedText style={[Typography.caption, { color: palette.error }]}>
+          {dateError}
+        </ThemedText>
+      ) : null}
+
       <ShareWithCoachToggle sharedWithCoach={sharedWithCoach} onToggle={onSharedWithCoachChange} />
 
       {showOccurredPicker && (
@@ -171,7 +179,7 @@ export function InjuryDetailsStep({
             onShowRecoveryPicker(Platform.OS === 'ios');
             if (date) onExpectedRecoveryChange(date);
           }}
-          minimumDate={new Date()}
+          minimumDate={occurredAt}
         />
       )}
     </View>

@@ -49,8 +49,8 @@ function transformToComparison(coach: CoachProfile): CoachComparison {
     rating: coach.rating.average,
     reviewCount: coach.rating.reviewCount,
     price: {
-      min: coach.priceRange.minUsd,
-      max: coach.priceRange.maxUsd,
+      min: coach.priceRange.min,
+      max: coach.priceRange.max,
       currency: 'GBP',
     },
     specialties: coach.footballFocuses,

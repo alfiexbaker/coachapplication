@@ -25,13 +25,15 @@ interface CategoryConfig {
   icon: string;
   key: keyof LeaderboardEntry;
   suffix: string;
-  color: string;
 }
 
+/** Data-viz accent for badges category — no semantic theme equivalent */
+const BADGE_PURPLE = '#8B5CF6';
+
 const CATEGORIES: Record<Category, CategoryConfig> = {
-  streak: { label: 'Streak', icon: 'flame-outline', key: 'streakWeeks', suffix: 'wk', color: '#FF6B35' },
-  sessions: { label: 'Sessions', icon: 'calendar-outline', key: 'totalSessions', suffix: '', color: '#3B82F6' },
-  badges: { label: 'Badges', icon: 'ribbon-outline', key: 'badgeCount', suffix: '', color: '#8B5CF6' },
+  streak: { label: 'Streak', icon: 'flame-outline', key: 'streakWeeks', suffix: 'wk' },
+  sessions: { label: 'Sessions', icon: 'calendar-outline', key: 'totalSessions', suffix: '' },
+  badges: { label: 'Badges', icon: 'ribbon-outline', key: 'badgeCount', suffix: '' },
 };
 
 const RANK_MEDALS = ['🥇', '🥈', '🥉'];
@@ -44,7 +46,14 @@ export const SquadLeaderboard = memo(function SquadLeaderboard({
   const { colors } = useTheme();
   const [activeCategory, setActiveCategory] = useState<Category>('streak');
 
+  const categoryColors: Record<Category, string> = useMemo(() => ({
+    streak: colors.warning,
+    sessions: colors.info,
+    badges: BADGE_PURPLE,
+  }), [colors.warning, colors.info]);
+
   const config = CATEGORIES[activeCategory];
+  const configColor = categoryColors[activeCategory];
 
   const ranked = useMemo(() => {
     return [...entries]
@@ -80,8 +89,8 @@ export const SquadLeaderboard = memo(function SquadLeaderboard({
                 style={[
                   styles.categoryTab,
                   {
-                    backgroundColor: active ? withAlpha(c.color, 0.15) : withAlpha(colors.surface, 0.6),
-                    borderColor: active ? withAlpha(c.color, 0.35) : withAlpha(colors.border, 0.5),
+                    backgroundColor: active ? withAlpha(categoryColors[cat], 0.15) : withAlpha(colors.surface, 0.6),
+                    borderColor: active ? withAlpha(categoryColors[cat], 0.35) : withAlpha(colors.border, 0.5),
                   },
                 ]}
                 accessibilityRole="tab"
@@ -90,12 +99,12 @@ export const SquadLeaderboard = memo(function SquadLeaderboard({
                 <Ionicons
                   name={c.icon as React.ComponentProps<typeof Ionicons>['name']}
                   size={14}
-                  color={active ? c.color : colors.muted}
+                  color={active ? categoryColors[cat] : colors.muted}
                 />
                 <ThemedText
                   style={[
                     styles.categoryLabel,
-                    { color: active ? c.color : colors.muted },
+                    { color: active ? categoryColors[cat] : colors.muted },
                   ]}
                 >
                   {c.label}
@@ -122,10 +131,10 @@ export const SquadLeaderboard = memo(function SquadLeaderboard({
                     styles.row,
                     {
                       backgroundColor: isMe
-                        ? withAlpha(config.color, 0.08)
+                        ? withAlpha(configColor, 0.08)
                         : 'transparent',
                       borderColor: isMe
-                        ? withAlpha(config.color, 0.2)
+                        ? withAlpha(configColor, 0.2)
                         : 'transparent',
                     },
                   ]}
@@ -145,7 +154,7 @@ export const SquadLeaderboard = memo(function SquadLeaderboard({
                       styles.avatar,
                       {
                         backgroundColor: isMe
-                          ? withAlpha(config.color, 0.2)
+                          ? withAlpha(configColor, 0.2)
                           : withAlpha(colors.border, 0.4),
                       },
                     ]}
@@ -153,7 +162,7 @@ export const SquadLeaderboard = memo(function SquadLeaderboard({
                     <ThemedText
                       style={[
                         styles.avatarText,
-                        { color: isMe ? config.color : colors.muted },
+                        { color: isMe ? configColor : colors.muted },
                       ]}
                     >
                       {entry.initials}
@@ -161,7 +170,7 @@ export const SquadLeaderboard = memo(function SquadLeaderboard({
                   </View>
 
                   {isMe ? (
-                    <ThemedText style={[styles.youLabel, { color: config.color }]}>You</ThemedText>
+                    <ThemedText style={[styles.youLabel, { color: configColor }]}>You</ThemedText>
                   ) : (
                     <ThemedText style={[styles.initialsLabel, { color: colors.text }]}>
                       {entry.initials}
@@ -173,7 +182,7 @@ export const SquadLeaderboard = memo(function SquadLeaderboard({
                   <ThemedText
                     style={[
                       styles.valueText,
-                      { color: isMe ? config.color : colors.text },
+                      { color: isMe ? configColor : colors.text },
                     ]}
                   >
                     {value}{config.suffix}
@@ -204,8 +213,8 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 4,
-    paddingVertical: 6,
+    gap: Spacing.xxs,
+    paddingVertical: Spacing.xs,
     borderRadius: Radii.sm,
     borderWidth: 1,
     minHeight: 32,
@@ -215,7 +224,7 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   row: {
-    paddingVertical: 6,
+    paddingVertical: Spacing.xs,
     paddingHorizontal: Spacing.xs,
     borderRadius: Radii.sm,
     borderWidth: 1,
@@ -225,7 +234,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   medal: {
-    fontSize: 14,
+    fontSize: Typography.bodySmall.fontSize,
   },
   rankNumber: {
     ...Typography.caption,
@@ -234,7 +243,7 @@ const styles = StyleSheet.create({
   avatar: {
     width: 28,
     height: 28,
-    borderRadius: 14,
+    borderRadius: Radii.md,
     alignItems: 'center',
     justifyContent: 'center',
   },

@@ -34,6 +34,7 @@ import type {
 import { notificationService } from './notification-service';
 import { userService } from './user-service';
 import { createLogger } from '@/utils/logger';
+import { generateId } from '@/utils/generate-id';
 import { type Result, type ServiceError, ok, err, notFound, storageError } from '@/types/result';
 import { emitTyped, ServiceEvents } from './event-bus';
 
@@ -180,7 +181,7 @@ export const counterOfferService = {
       expiresAt.setHours(expiresAt.getHours() + (input.expiryHours || DEFAULT_EXPIRY_HOURS));
 
       const newOffer: CounterOffer = {
-        id: `co_${Date.now()}`,
+        id: generateId('co'),
         bookingId: input.bookingId,
         proposedBy: input.proposedBy,
         proposerId: input.proposerId,
@@ -207,7 +208,7 @@ export const counterOfferService = {
         } else {
           // Create new negotiation - would need booking details in real implementation
           const newNegotiation: NegotiationHistory = {
-            id: `neg_${Date.now()}`,
+            id: generateId('neg'),
             bookingId: input.bookingId,
             coachId: input.proposedBy === 'COACH' ? input.proposerId : 'coach1',
             parentId: input.proposedBy === 'PARENT' ? input.proposerId : 'parent_1',
@@ -224,7 +225,7 @@ export const counterOfferService = {
 
         // Create notification for the other party
         const notification: NotificationItem = {
-          id: `notif_co_${Date.now()}`,
+          id: generateId('notif_co'),
           type: 'booking',
           title: 'Time Change Request',
           body: `${input.proposerName} has proposed a new time: ${formatTimeSlot(input.proposedTime)}`,
@@ -312,7 +313,7 @@ export const counterOfferService = {
 
       // Notify proposer
       const notification: NotificationItem = {
-        id: `notif_co_accepted_${Date.now()}`,
+        id: generateId('notif_co_accepted'),
         type: 'booking',
         title: 'Time Change Accepted!',
         body: `Your proposed time of ${formatTimeSlot(offer.proposedTime)} has been accepted.`,
@@ -424,7 +425,7 @@ export const counterOfferService = {
       // Notify proposer
       const reasonText = input.reason ? ` Reason: ${input.reason}` : '';
       const notification: NotificationItem = {
-        id: `notif_co_rejected_${Date.now()}`,
+        id: generateId('notif_co_rejected'),
         type: 'booking',
         title: 'Time Change Declined',
         body: `Your proposed time of ${formatTimeSlot(offer.proposedTime)} was declined.${reasonText}`,

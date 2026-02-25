@@ -4,7 +4,7 @@
  * Visual severity selector for injuries with color-coded options.
  */
 
-import { View, StyleSheet } from 'react-native';
+import { View, StyleSheet, Platform } from 'react-native';
 import * as Haptics from 'expo-haptics';
 
 import { ThemedText } from '@/components/themed-text';
@@ -32,7 +32,7 @@ export function SeverityPicker({ selectedSeverity, onSelect }: SeverityPickerPro
   const { colors: palette } = useTheme();
 
   const handleSelect = (severity: InjurySeverity) => {
-    void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    if (Platform.OS !== 'web') void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     onSelect(severity);
   };
 

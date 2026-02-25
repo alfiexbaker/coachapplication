@@ -9,6 +9,7 @@
 
 import { apiClient } from './api-client';
 import { createLogger } from '@/utils/logger';
+import { generateId, generateMockToken } from '@/utils/generate-id';
 import { STORAGE_KEYS } from '@/constants/storage-keys';
 import {
   type Result,
@@ -173,18 +174,10 @@ let currentUser: UserProfile | null = null;
 // UTILITY FUNCTIONS
 // ============================================================================
 
-function generateId(): string {
-  return `user_${Date.now()}_${Math.random().toString(36).substring(2, 11)}`;
-}
-
-function generateToken(): string {
-  return `token_${Date.now()}_${Math.random().toString(36).substring(2, 18)}`;
-}
-
 function generateMockTokens(): AuthTokens {
   return {
-    accessToken: `mock_access_${Date.now()}_${Math.random().toString(36).substring(2, 18)}`,
-    refreshToken: `mock_refresh_${Date.now()}_${Math.random().toString(36).substring(2, 18)}`,
+    accessToken: generateMockToken('mock_access'),
+    refreshToken: generateMockToken('mock_refresh'),
     expiresAt: Date.now() + 3600 * 1000,
   };
 }
@@ -258,6 +251,14 @@ export const authService = {
 
   async register(input: RegisterInput): Promise<Result<AuthData, ServiceError>> {
     logger.info('Registration attempt', { email: input.email, accountType: input.accountType });
+
+    // Age validation for self-registration
+    if (input.dateOfBirth) {
+      const ageValidation = this._validateAge(input.dateOfBirth);
+      if (!ageValidation.success) {
+        return err(ageValidation.error);
+      }
+    }
 
     if (USE_MOCK) {
       return this._mockRegister(input);
@@ -585,6 +586,51 @@ export const authService = {
   // MOCK IMPLEMENTATIONS (internal)
   // ============================================================================
 
+  /**
+   * Validate date of birth for registration.
+   * Under-13: blocked (COPPA compliance).
+   * 13-17: allowed but flagged for parental consent.
+   */
+  _validateAge(dateOfBirth: string): Result<{ age: number; isMinor: boolean }, ServiceError> {
+    const parts = dateOfBirth.split('-');
+    if (parts.length !== 3) {
+      return err(validationError('Please enter a valid date of birth'));
+    }
+    const dob = new Date(
+      Date.UTC(parseInt(parts[0], 10), parseInt(parts[1], 10) - 1, parseInt(parts[2], 10)),
+    );
+    if (isNaN(dob.getTime())) {
+      return err(validationError('Please enter a valid date of birth'));
+    }
+
+    const today = new Date();
+    let age = today.getFullYear() - dob.getUTCFullYear();
+    const monthDiff = today.getMonth() - dob.getUTCMonth();
+    if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < dob.getUTCDate())) {
+      age--;
+    }
+
+    if (age < 13) {
+      logger.warn('Under-13 self-registration blocked', { age });
+      return err(
+        validationError(
+          'Users under 13 must be registered by a parent or guardian. Please ask your parent to create an account and add you as a child.',
+        ),
+      );
+    }
+
+    if (age > 120) {
+      return err(validationError('Please enter a valid date of birth'));
+    }
+
+    const isMinor = age < 18;
+    if (isMinor) {
+      logger.info('Minor self-registration flagged for parental consent', { age });
+    }
+
+    return ok({ age, isMinor });
+  },
+
   async _mockLogin(email: string, password: string): Promise<Result<AuthData, ServiceError>> {
     const user = usersCache.find(
       (u) => u.email.toLowerCase() === email.toLowerCase() && u.password === password,
@@ -596,7 +642,7 @@ export const authService = {
     }
 
     const tokens = generateMockTokens();
-    const legacyToken = generateToken();
+    const legacyToken = generateMockToken('token');
     const { password: _, ...userWithoutPassword } = user;
 
     await apiClient.set(STORAGE_KEYS.AUTH_USER, userWithoutPassword);
@@ -615,7 +661,7 @@ export const authService = {
     }
 
     const now = new Date().toISOString();
-    const userId = generateId();
+    const userId = generateId('user');
 
     const newUser: UserProfile & { password: string } = {
       id: userId,
@@ -641,7 +687,7 @@ export const authService = {
     usersCache.push(newUser);
 
     const tokens = generateMockTokens();
-    const legacyToken = generateToken();
+    const legacyToken = generateMockToken('token');
 
     const { password: _, ...userWithoutPassword } = newUser;
     await apiClient.set(STORAGE_KEYS.AUTH_USER, userWithoutPassword);
@@ -650,5 +696,74 @@ export const authService = {
 
     logger.success('Registration successful', { userId, accountType: input.accountType });
     return ok({ user: userWithoutPassword, tokens, token: legacyToken });
+  },
+
+  /**
+   * Check if the current access token is expired or about to expire.
+   * Returns true if expired or within the buffer window.
+   */
+  async isTokenExpired(bufferMs: number = 60_000): Promise<boolean> {
+    const tokens = await this.getTokens();
+    if (!tokens) return true;
+    return tokens.expiresAt < Date.now() + bufferMs;
+  },
+
+  /**
+   * Revoke the current session server-side (for logout-everywhere).
+   * In mock mode, just clears local tokens.
+   */
+  async revokeSession(): Promise<Result<void, ServiceError>> {
+    logger.info('Revoking session');
+
+    if (USE_MOCK) {
+      await this.logout();
+      return ok(undefined);
+    }
+
+    const tokens = await this.getTokens();
+    if (!tokens) {
+      return err(unauthorized('No active session to revoke'));
+    }
+
+    const result = await apiFetch<void>('/api/auth/revoke', {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${tokens.accessToken}` },
+      body: JSON.stringify({ refreshToken: tokens.refreshToken }),
+    });
+
+    // Always clear local state regardless of server response
+    await this.logout();
+
+    if (!result.success) {
+      logger.warn('Server-side revocation failed, local tokens cleared', result.error);
+      return ok(undefined); // Still consider it success since local state is clean
+    }
+
+    logger.success('Session revoked');
+    return ok(undefined);
+  },
+
+  /**
+   * Ensure a valid token is available, refreshing if needed.
+   * Returns the current access token or an error.
+   */
+  async ensureValidToken(): Promise<Result<string, ServiceError>> {
+    const tokens = await this.getTokens();
+    if (!tokens) {
+      return err(unauthorized('Not authenticated'));
+    }
+
+    // Token still valid
+    if (tokens.expiresAt > Date.now() + 60_000) {
+      return ok(tokens.accessToken);
+    }
+
+    // Need to refresh
+    const refreshResult = await this.refreshToken();
+    if (!refreshResult.success) {
+      return err(refreshResult.error);
+    }
+
+    return ok(refreshResult.data.accessToken);
   },
 };

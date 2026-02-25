@@ -25,7 +25,7 @@ export const styles = StyleSheet.create({
   policyChipDesc: { ...Typography.micro, textAlign: 'center' },
   tierSummary: { padding: Spacing.sm, borderRadius: Radii.md, gap: Spacing.xs },
   tierRow: { alignItems: 'center', gap: Spacing.xs },
-  tierDot: { width: 8, height: 8, borderRadius: 4 },
+  tierDot: { width: 8, height: 8, borderRadius: Radii.xs },
   tierText: { ...Typography.smallSemiBold, minWidth: 80 },
   refundControlRow: { gap: Spacing.xs, paddingVertical: Spacing.xs },
   refundPercentValue: { ...Typography.bodySemiBold },

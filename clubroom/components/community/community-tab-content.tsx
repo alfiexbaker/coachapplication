@@ -1,11 +1,11 @@
-import React, { memo } from 'react';
-import { View, StyleSheet } from 'react-native';
+import React, { memo, useCallback } from 'react';
+import { View, StyleSheet, Alert } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { ParentGroupCard } from '@/components/community/ParentGroupCard';
 import { Button } from '@/components/primitives/button';
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { ThemedText } from '@/components/themed-text';
-import { Spacing, Typography, withAlpha } from '@/constants/theme';
+import { Spacing, Typography, withAlpha, Radii } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
 import { scaleFont } from '@/utils/scale';
 import type { ParentGroup } from '@/constants/types';
@@ -65,6 +65,20 @@ export const CommunityTabContent = memo(function CommunityTabContent({
 }: CommunityTabContentProps) {
   const { colors: palette } = useTheme();
 
+  const handleJoinGroup = useCallback((group: ParentGroup) => {
+    Alert.alert(
+      'Join Group',
+      `Join "${group.name}"?\n\n` +
+      (group.isPrivate
+        ? 'Your request will be sent to group admins for approval.'
+        : 'You will have immediate access to:\n• Group posts and discussions\n• Member list\n• Event notifications'),
+      [
+        { text: 'Cancel', style: 'cancel' },
+        { text: group.isPrivate ? 'Request' : 'Join', onPress: () => onJoinGroup(group) },
+      ],
+    );
+  }, [onJoinGroup]);
+
   if (loading) {
     return (
       <View style={styles.loadingContainer}>
@@ -112,7 +126,7 @@ export const CommunityTabContent = memo(function CommunityTabContent({
       {publicGroups.map((group) => (
         <SurfaceCard key={group.id} style={styles.discoverCard}>
           <ParentGroupCard group={group} compact />
-          <Button variant="secondary" onPress={() => onJoinGroup(group)} style={styles.joinButton}>
+          <Button variant="secondary" onPress={() => handleJoinGroup(group)} style={styles.joinButton}>
             <Row style={styles.joinButtonContent}>
               <Ionicons name="add" size={18} color={palette.text} />
               <ThemedText style={styles.joinButtonText}>Join</ThemedText>
@@ -143,7 +157,7 @@ const styles = StyleSheet.create({
   emptyIcon: {
     width: 96,
     height: 96,
-    borderRadius: 48,
+    borderRadius: Radii['3xl'],
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: Spacing.sm,

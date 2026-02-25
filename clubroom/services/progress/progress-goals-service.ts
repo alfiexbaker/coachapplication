@@ -9,6 +9,7 @@
  */
 
 import { apiClient } from '../api-client';
+import { generateId } from '@/utils/generate-id';
 import { createLogger } from '@/utils/logger';
 import { STORAGE_KEYS } from '@/constants/storage-keys';
 import { emitTyped, ServiceEvents } from '@/services/event-bus';
@@ -29,7 +30,7 @@ const ENABLE_PROGRESS_DEMO_SEED =
   process.env.NODE_ENV === 'test';
 
 function createUniqueId(prefix: 'goal' | 'ms'): string {
-  return `${prefix}_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 8)}`;
+  return generateId(prefix);
 }
 
 function emitGoalCompletedIfNeeded(previous: Goal, next: Goal): void {

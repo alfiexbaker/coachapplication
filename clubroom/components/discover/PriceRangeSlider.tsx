@@ -4,7 +4,7 @@ import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import Animated, { runOnJS, useAnimatedStyle, useSharedValue } from 'react-native-reanimated';
 
 import { ThemedText } from '@/components/themed-text';
-import { Spacing, Typography } from '@/constants/theme';
+import { Shadows, Spacing, Typography } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
 import { Row } from '@/components/primitives';
 
@@ -31,7 +31,7 @@ export function PriceRangeSlider({
   onChange,
   formatValue = (v) => `£${v}`,
 }: PriceRangeSliderProps) {
-  const { colors: palette } = useTheme();
+  const { colors: palette, scheme } = useTheme();
   const [sliderWidth, setSliderWidth] = useState(0);
 
   const valueToPosition = useCallback(
@@ -140,7 +140,7 @@ export function PriceRangeSlider({
               {
                 backgroundColor: palette.surface,
                 borderColor: palette.tint,
-                shadowColor: palette.text,
+                ...Shadows[scheme].subtle,
               },
               minThumbStyle,
             ]}
@@ -154,7 +154,7 @@ export function PriceRangeSlider({
               {
                 backgroundColor: palette.surface,
                 borderColor: palette.tint,
-                shadowColor: palette.text,
+                ...Shadows[scheme].subtle,
               },
               maxThumbStyle,
             ]}
@@ -212,10 +212,6 @@ const styles = StyleSheet.create({
     height: THUMB_SIZE,
     borderRadius: THUMB_SIZE / 2,
     borderWidth: 2,
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    shadowOffset: { width: 0, height: 2 },
-    elevation: 2,
   },
   rangeLabels: {
     justifyContent: 'space-between',

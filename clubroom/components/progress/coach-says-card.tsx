@@ -178,7 +178,9 @@ export const CoachSaysCard = memo(function CoachSaysCard({
 
         {/* Quote with inline attribution */}
         <Animated.View style={quoteStyle}>
-          <View
+          <Row
+            align="start"
+            gap="xs"
             style={[
               styles.quotePanel,
               {
@@ -199,7 +201,7 @@ export const CoachSaysCard = memo(function CoachSaysCard({
                 {coachBadge ? <CoachBadge coach={coachBadge} /> : null}
               </Row>
             </Column>
-          </View>
+          </Row>
         </Animated.View>
 
         {focusNarrative ? (
@@ -331,7 +333,7 @@ export const CoachSaysCard = memo(function CoachSaysCard({
                                     { backgroundColor: withAlpha(barColor, 0.08) },
                                   ]}
                                 >
-                                  <ThemedText style={[styles.subSkillText, { color: colors.mutedForeground }]}>
+                                  <ThemedText style={[styles.subSkillText, { color: colors.muted }]}>
                                     {sub}
                                   </ThemedText>
                                 </View>
@@ -541,9 +543,9 @@ const styles = StyleSheet.create({
     ...Typography.bodySmall,
   },
   heroScore: {
-    fontSize: 28,
+    fontSize: Typography.hero.fontSize,
     fontWeight: '800',
-    lineHeight: 34,
+    lineHeight: Typography.hero.lineHeight,
   },
   heroLabel: {
     ...Typography.bodySmall,
@@ -552,15 +554,15 @@ const styles = StyleSheet.create({
   heroDot: {
     width: 3,
     height: 3,
-    borderRadius: 2,
-    marginHorizontal: 2,
+    borderRadius: Radii.xs,
+    marginHorizontal: Spacing.micro,
   },
   heroSub: {
     ...Typography.caption,
   },
   quote: {
     ...Typography.bodySmall,
-    lineHeight: 22,
+    lineHeight: Typography.body.lineHeight,
   },
   quotePanel: {
     borderWidth: 1,
@@ -568,15 +570,12 @@ const styles = StyleSheet.create({
     minHeight: 52,
     paddingHorizontal: Spacing.sm,
     paddingVertical: Spacing.xs,
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    gap: Spacing.xs,
   },
   quoteAccent: {
     width: 3,
     alignSelf: 'stretch',
     borderRadius: Radii.pill,
-    marginTop: 2,
+    marginTop: Spacing.micro,
   },
   quoteBody: {
     flex: 1,
@@ -597,7 +596,6 @@ const styles = StyleSheet.create({
   focusText: {
     ...Typography.caption,
     flex: 1,
-    lineHeight: 18,
   },
   contextChip: {
     borderWidth: 1,
@@ -656,7 +654,6 @@ const styles = StyleSheet.create({
   },
   improvementText: {
     ...Typography.bodySmall,
-    lineHeight: 20,
   },
   sessionBadgeChip: {
     minHeight: 30,
@@ -681,7 +678,7 @@ const styles = StyleSheet.create({
   homeworkText: {
     ...Typography.body,
     fontStyle: 'italic',
-    lineHeight: 24,
+    lineHeight: Typography.subheading.lineHeight,
   },
   homeworkMeta: {
     ...Typography.caption,

@@ -168,7 +168,7 @@ const styles = StyleSheet.create({
   nextSessionBadge: {
     alignItems: 'center',
     gap: Spacing.xxs,
-    paddingHorizontal: 8,
+    paddingHorizontal: Spacing.xs,
     paddingVertical: Spacing.micro,
     borderRadius: Radii.sm,
     marginTop: Spacing.xxs,
@@ -186,5 +186,5 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: Spacing.sm,
   },
-  emptyText: { ...Typography.small, textAlign: 'center', lineHeight: 18 },
+  emptyText: { ...Typography.small, textAlign: 'center', lineHeight: Typography.caption.lineHeight },
 });

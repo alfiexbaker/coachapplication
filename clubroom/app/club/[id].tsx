@@ -71,7 +71,7 @@ export default function ClubDetailScreen() {
           style={[styles.container, { backgroundColor: colors.background }]}
           edges={['top', 'bottom']}
         >
-          <View style={[styles.topBar, { borderBottomColor: colors.border }]}>
+          <Row align="center" style={[styles.topBar, { borderBottomColor: colors.border }]}>
             <Clickable onPress={handleBackPress} hitSlop={10} accessibilityLabel="Go back">
               <Ionicons name="arrow-back" size={22} color={colors.foreground} />
             </Clickable>
@@ -83,7 +83,7 @@ export default function ClubDetailScreen() {
               Club
             </ThemedText>
             <View style={styles.topBarSpacer} />
-          </View>
+          </Row>
           <LoadingState variant="list" />
         </SafeAreaView>
       </>
@@ -98,7 +98,7 @@ export default function ClubDetailScreen() {
           style={[styles.container, { backgroundColor: colors.background }]}
           edges={['top', 'bottom']}
         >
-          <View style={[styles.topBar, { borderBottomColor: colors.border }]}>
+          <Row align="center" style={[styles.topBar, { borderBottomColor: colors.border }]}>
             <Clickable onPress={handleBackPress} hitSlop={10} accessibilityLabel="Go back">
               <Ionicons name="arrow-back" size={22} color={colors.foreground} />
             </Clickable>
@@ -110,7 +110,7 @@ export default function ClubDetailScreen() {
               Club
             </ThemedText>
             <View style={styles.topBarSpacer} />
-          </View>
+          </Row>
           <EmptyState
             icon="business-outline"
             title="Club not found"
@@ -130,7 +130,7 @@ export default function ClubDetailScreen() {
         style={[styles.container, { backgroundColor: colors.background }]}
         edges={['top', 'bottom']}
       >
-        <View style={[styles.topBar, { borderBottomColor: colors.border }]}>
+        <Row align="center" style={[styles.topBar, { borderBottomColor: colors.border }]}>
           <Clickable onPress={handleBackPress} hitSlop={10} accessibilityLabel="Go back">
             <Ionicons name="arrow-back" size={22} color={colors.foreground} />
           </Clickable>
@@ -142,7 +142,7 @@ export default function ClubDetailScreen() {
             {club.name}
           </ThemedText>
           <View style={styles.topBarSpacer} />
-        </View>
+        </Row>
         <ScrollView
           showsVerticalScrollIndicator={false}
           contentContainerStyle={{ paddingBottom: Spacing.xl * 2 }}
@@ -336,8 +336,6 @@ const styles = StyleSheet.create({
   topBar: {
     minHeight: 56,
     paddingHorizontal: Spacing.md,
-    flexDirection: 'row',
-    alignItems: 'center',
     borderBottomWidth: 1,
   },
   topBarTitle: {

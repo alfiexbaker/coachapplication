@@ -183,7 +183,7 @@ function SessionInviteCardComponent({
       <SessionMetaRow
         sessionType={invite.sessionType}
         duration={invite.duration}
-        priceUsd={invite.priceUsd}
+        price={invite.price}
       />
 
       <Row align="center" gap="xs">

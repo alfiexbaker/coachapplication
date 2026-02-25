@@ -4,7 +4,7 @@
  * Displays list of coaches available for rating, with reviewed badge.
  */
 
-import { memo } from 'react';
+import { memo, useCallback } from 'react';
 import { View, StyleSheet, FlatList } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
@@ -13,6 +13,7 @@ import { Clickable } from '@/components/primitives/clickable';
 import { Row } from '@/components/primitives/row';
 import { ThemedText } from '@/components/themed-text';
 import { Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
+import type { ThemeColors } from '@/hooks/useTheme';
 import { useTheme } from '@/hooks/useTheme';
 import { formatCoachDate, type CoachToRate } from '@/hooks/use-rate-coach';
 
@@ -31,6 +32,13 @@ export const CoachSelectList = memo(function CoachSelectList({
 }: CoachSelectListProps) {
   const { colors: palette } = useTheme();
 
+  const renderItem = useCallback(
+    ({ item }: { item: CoachToRate }) => (
+      <CoachSelectItem coach={item} onSelect={onSelect} palette={palette} />
+    ),
+    [onSelect, palette],
+  );
+
   return (
     <FlatList
       data={coaches}
@@ -38,41 +46,7 @@ export const CoachSelectList = memo(function CoachSelectList({
       contentContainerStyle={styles.list}
       refreshing={refreshing}
       onRefresh={onRefresh}
-      renderItem={({ item }) => (
-        <Clickable onPress={() => onSelect(item)}>
-          <SurfaceCard>
-            <Row align="center" gap="md" style={styles.coachCard}>
-              <View style={[styles.avatar, { backgroundColor: withAlpha(palette.tint, 0.12) }]}>
-                <Ionicons name="person" size={28} color={palette.tint} />
-              </View>
-              <View style={styles.coachInfo}>
-                <ThemedText type="defaultSemiBold">{item.name}</ThemedText>
-                <ThemedText style={[styles.coachMeta, { color: palette.muted }]}>
-                  {item.sessionCount} session{item.sessionCount !== 1 ? 's' : ''} - Last:{' '}
-                  {formatCoachDate(item.lastSession)}
-                </ThemedText>
-              </View>
-              {item.hasReview ? (
-                <Row
-                  align="center"
-                  gap="xxs"
-                  style={[
-                    styles.reviewedBadge,
-                    { backgroundColor: withAlpha(palette.success, 0.12) },
-                  ]}
-                >
-                  <Ionicons name="checkmark-circle" size={16} color={palette.success} />
-                  <ThemedText style={[styles.reviewedText, { color: palette.success }]}>
-                    Reviewed
-                  </ThemedText>
-                </Row>
-              ) : (
-                <Ionicons name="chevron-forward" size={20} color={palette.muted} />
-              )}
-            </Row>
-          </SurfaceCard>
-        </Clickable>
-      )}
+      renderItem={renderItem}
       ListEmptyComponent={
         <View style={styles.emptyState}>
           <Ionicons name="person-outline" size={48} color={palette.muted} />
@@ -85,6 +59,54 @@ export const CoachSelectList = memo(function CoachSelectList({
         </View>
       }
     />
+  );
+});
+
+const CoachSelectItem = memo(function CoachSelectItem({
+  coach,
+  onSelect,
+  palette,
+}: {
+  coach: CoachToRate;
+  onSelect: (coach: CoachToRate) => void;
+  palette: ThemeColors;
+}) {
+  const handlePress = useCallback(() => onSelect(coach), [onSelect, coach]);
+
+  return (
+    <Clickable onPress={handlePress}>
+      <SurfaceCard>
+        <Row align="center" gap="md" style={styles.coachCard}>
+          <View style={[styles.avatar, { backgroundColor: withAlpha(palette.tint, 0.12) }]}>
+            <Ionicons name="person" size={28} color={palette.tint} />
+          </View>
+          <View style={styles.coachInfo}>
+            <ThemedText type="defaultSemiBold">{coach.name}</ThemedText>
+            <ThemedText style={[styles.coachMeta, { color: palette.muted }]}>
+              {coach.sessionCount} session{coach.sessionCount !== 1 ? 's' : ''} - Last:{' '}
+              {formatCoachDate(coach.lastSession)}
+            </ThemedText>
+          </View>
+          {coach.hasReview ? (
+            <Row
+              align="center"
+              gap="xxs"
+              style={[
+                styles.reviewedBadge,
+                { backgroundColor: withAlpha(palette.success, 0.12) },
+              ]}
+            >
+              <Ionicons name="checkmark-circle" size={16} color={palette.success} />
+              <ThemedText style={[styles.reviewedText, { color: palette.success }]}>
+                Reviewed
+              </ThemedText>
+            </Row>
+          ) : (
+            <Ionicons name="chevron-forward" size={20} color={palette.muted} />
+          )}
+        </Row>
+      </SurfaceCard>
+    </Clickable>
   );
 });
 

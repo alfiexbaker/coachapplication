@@ -8,7 +8,7 @@ import { Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
 import { renderStars } from '@/hooks/use-public-profile';
 import type { Coach, PublicReview } from '@/services/coach-service';
-import { Row } from '@/components/primitives';
+import { Column, Row } from '@/components/primitives';
 
 interface PublicProfileReviewsProps {
   coach: Coach;
@@ -55,7 +55,7 @@ export const PublicProfileReviews = memo(function PublicProfileReviews({
                       {review.reviewerName.charAt(0)}
                     </ThemedText>
                   </View>
-                  <View style={{ flex: 1 }}>
+                  <Column flex>
                     <ThemedText style={[Typography.bodySemiBold, { color: palette.text }]}>
                       {review.reviewerName}
                     </ThemedText>
@@ -64,7 +64,7 @@ export const PublicProfileReviews = memo(function PublicProfileReviews({
                         <Ionicons key={i} name={s.name} size={14} color={s.color} />
                       ))}
                     </Row>
-                  </View>
+                  </Column>
                   <ThemedText style={[Typography.caption, { color: palette.muted }]}>
                     {new Date(review.createdAt).toLocaleDateString('en-GB', {
                       day: 'numeric',

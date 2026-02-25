@@ -70,7 +70,7 @@ const styles = StyleSheet.create({
   content: {
     gap: Spacing.xxs,
   },
-  description: { ...Typography.small, lineHeight: 18 },
+  description: { ...Typography.small, lineHeight: Typography.caption.lineHeight },
   button: {
     alignItems: 'center',
     justifyContent: 'center',

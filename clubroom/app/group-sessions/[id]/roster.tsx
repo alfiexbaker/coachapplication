@@ -7,6 +7,7 @@ import Animated, { FadeInDown } from 'react-native-reanimated';
 
 import { ThemedText } from '@/components/themed-text';
 import { Clickable } from '@/components/primitives/clickable';
+import { Column } from '@/components/primitives/column';
 import { Row } from '@/components/primitives/row';
 import { LoadingState, ErrorState, EmptyState } from '@/components/ui/screen-states';
 import { ParticipantCard } from '@/components/group/participant-card';
@@ -129,12 +130,12 @@ export default function SessionRosterScreen() {
         <Clickable onPress={() => router.back()} hitSlop={8}>
           <Ionicons name="arrow-back" size={24} color={colors.text} />
         </Clickable>
-        <View style={{ flex: 1 }}>
+        <Column flex>
           <ThemedText type="title">Roster</ThemedText>
           <ThemedText style={[Typography.small, { color: colors.muted, marginTop: Spacing.micro }]}>
             {session?.title}
           </ThemedText>
-        </View>
+        </Column>
         {registeredCount > 0 && (
           <Clickable
             style={[styles.rollCallBtn, { backgroundColor: colors.success }]}
@@ -332,6 +333,6 @@ const styles = StyleSheet.create({
   rsvpDot: {
     width: 8,
     height: 8,
-    borderRadius: 4,
+    borderRadius: Radii.xs,
   },
 });

@@ -1,5 +1,6 @@
 import { memo } from 'react';
-import { View, StyleSheet, Image } from 'react-native';
+import { View, StyleSheet } from 'react-native';
+import { Image } from 'expo-image';
 import { Ionicons } from '@expo/vector-icons';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 
@@ -52,7 +53,7 @@ export const GroupSessionCard = memo(function GroupSessionCard({
       <SurfaceCard style={styles.card} onPress={onPress}>
         {session.imageUrl && (
           <View style={styles.imageContainer}>
-            <Image source={{ uri: session.imageUrl }} style={styles.image} resizeMode="cover" />
+            <Image source={{ uri: session.imageUrl }} style={styles.image} contentFit="cover" />
             <View
               style={[
                 styles.typeBadge,
@@ -205,11 +206,11 @@ const styles = StyleSheet.create({
     position: 'absolute',
     top: Spacing.sm,
     right: Spacing.sm,
-    paddingHorizontal: 8,
+    paddingHorizontal: Spacing.xs,
     paddingVertical: Spacing.xxs,
     borderRadius: Radii.sm,
   },
-  content: { padding: Spacing.md, gap: 8 },
+  content: { padding: Spacing.md, gap: Spacing.xs },
   coachPhoto: { width: 20, height: 20, borderRadius: Radii.md },
   coachPhotoPlaceholder: {
     width: 20,
@@ -218,6 +219,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  spotsBadge: { paddingHorizontal: 8, paddingVertical: Spacing.xxs, borderRadius: Radii.sm },
-  focusTag: { paddingHorizontal: 8, paddingVertical: Spacing.micro, borderRadius: Radii.sm },
+  spotsBadge: { paddingHorizontal: Spacing.xs, paddingVertical: Spacing.xxs, borderRadius: Radii.sm },
+  focusTag: { paddingHorizontal: Spacing.xs, paddingVertical: Spacing.micro, borderRadius: Radii.sm },
 });

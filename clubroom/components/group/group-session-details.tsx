@@ -8,6 +8,7 @@ import { SurfaceCard } from '@/components/primitives/surface-card';
 import { Clickable } from '@/components/primitives/clickable';
 import { ThemedText } from '@/components/themed-text';
 import { Row } from '@/components/primitives/row';
+import { Column } from '@/components/primitives/column';
 import { Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
 import type { GroupSession } from '@/constants/types';
@@ -17,16 +18,22 @@ import { openLocationInMaps } from '@/utils/map-links';
 
 interface GroupSessionDetailsProps {
   session: GroupSession;
+  /** S-39: When false, exact address is hidden for non-participants */
+  isRegistered?: boolean;
 }
 
 export const GroupSessionDetails = memo(function GroupSessionDetails({
   session,
+  isRegistered = true,
 }: GroupSessionDetailsProps) {
   const { colors } = useTheme();
   const coachName = getGroupSessionCoachName(session);
-  const locationLabel = session.venueName
-    ? `${session.venueName} · ${session.location}`
-    : session.location;
+  // S-39: Non-participants see only area name, not full address
+  const locationLabel = isRegistered
+    ? (session.venueName
+      ? `${session.venueName} · ${session.location}`
+      : session.location)
+    : (session.venueName || session.location?.split(',')[0] || 'Location visible after registration');
   const handleOpenMap = () => {
     void openLocationInMaps({
       location: session.location,
@@ -90,10 +97,10 @@ export const GroupSessionDetails = memo(function GroupSessionDetails({
           >
             <Row gap="md" align="center">
               <Ionicons name="location" size={20} color={colors.tint} />
-              <View style={{ flex: 1 }}>
+              <Column flex>
                 <ThemedText type="defaultSemiBold">Location</ThemedText>
                 <ThemedText style={{ color: colors.muted }}>{locationLabel}</ThemedText>
-              </View>
+              </Column>
               <Ionicons name="navigate-outline" size={18} color={colors.tint} />
             </Row>
           </Clickable>
@@ -112,10 +119,10 @@ export const GroupSessionDetails = memo(function GroupSessionDetails({
             >
               <Ionicons name="person" size={20} color={colors.muted} />
             </View>
-            <View style={{ flex: 1 }}>
+            <Column flex>
               <ThemedText type="defaultSemiBold">{coachName}</ThemedText>
               <ThemedText style={{ color: colors.muted }}>Coach</ThemedText>
-            </View>
+            </Column>
             <Clickable
               onPress={() => router.push(Routes.messagesWith({ coachId: session.coachId }))}
               style={[

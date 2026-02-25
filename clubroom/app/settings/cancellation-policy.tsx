@@ -14,18 +14,21 @@ const POLICY_TIERS = [
   {
     label: 'More than 24 hours before',
     refund: '100% refund',
+    example: 'e.g. For a 2pm Monday session, cancel by 2pm Sunday for a full refund.',
     icon: 'checkmark-circle' as const,
     color: 'success' as const,
   },
   {
     label: '12–24 hours before',
     refund: '50% refund',
+    example: 'e.g. For a 2pm Monday session, cancelling at 6pm Sunday means a 50% charge.',
     icon: 'alert-circle' as const,
     color: 'warning' as const,
   },
   {
     label: 'Less than 12 hours before',
     refund: 'No refund',
+    example: 'e.g. For a 2pm Monday session, cancelling after 2am Monday means full charge.',
     icon: 'close-circle' as const,
     color: 'error' as const,
   },
@@ -68,6 +71,9 @@ export default function CancellationPolicyScreen() {
                 <View style={styles.tierText}>
                   <ThemedText type="defaultSemiBold">{tier.label}</ThemedText>
                   <ThemedText style={{ color: palette.muted }}>{tier.refund}</ThemedText>
+                  <ThemedText style={[Typography.caption, { color: palette.muted, fontStyle: 'italic' }]}>
+                    {tier.example}
+                  </ThemedText>
                 </View>
               </Row>
             </View>
@@ -95,7 +101,7 @@ const styles = StyleSheet.create({
   card: { gap: Spacing.sm },
   sectionTitle: { marginBottom: Spacing.xxs },
   tierRow: { paddingVertical: Spacing.xs },
-  tierText: { flex: 1, gap: 2 },
+  tierText: { flex: 1, gap: Spacing.micro },
   divider: { height: 1, marginLeft: 38 },
   infoText: { flex: 1, ...Typography.small },
 });

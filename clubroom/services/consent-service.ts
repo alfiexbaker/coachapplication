@@ -179,15 +179,48 @@ class ConsentService {
   }
 
   /**
-   * Check if an athlete has a specific consent
+   * Check if an athlete has a specific consent.
+   * coachId is required to verify coach-athlete relationship.
    */
-  async checkConsent(athleteId: string, type: ConsentType): Promise<Result<boolean, ServiceError>> {
+  async checkConsent(
+    athleteId: string,
+    type: ConsentType,
+    coachId?: string,
+  ): Promise<Result<boolean, ServiceError>> {
     try {
+      // Verify coach-athlete relationship when coachId provided
+      if (coachId) {
+        const roster = await rosterService.getRoster(coachId);
+        const isOnRoster = roster.some(
+          (entry) => entry.athleteId === athleteId,
+        );
+        if (!isOnRoster) {
+          logger.warn('Consent check failed - no coach-athlete relationship', {
+            coachId,
+            athleteId,
+            consentType: type,
+          });
+          return err({
+            code: 'UNAUTHORIZED',
+            message: 'Coach is not authorized to check consent for this athlete',
+          });
+        }
+      }
+
       const consentResult = await safetyService.getConsent(athleteId, type);
       if (!consentResult.success) {
         return err(consentResult.error);
       }
-      return ok(consentResult.data?.granted ?? false);
+      const consent = consentResult.data;
+      if (!consent?.granted) return ok(false);
+
+      // Check expiry if set
+      if (consent.expiryAt && new Date(consent.expiryAt) <= new Date()) {
+        logger.info('Consent expired', { athleteId, type, expiryAt: consent.expiryAt });
+        return ok(false);
+      }
+
+      return ok(true);
     } catch (error) {
       logger.error('Failed to check consent', { athleteId, type, error });
       return err(storageError('Failed to check consent'));

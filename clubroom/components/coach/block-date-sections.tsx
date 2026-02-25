@@ -2,7 +2,7 @@
  * BlockDateModal — Sections: ModeSelector, QuickDates, HolidayPresets, DatePicker, ReasonSelector, Summary.
  */
 import { memo, useMemo } from 'react';
-import { View, StyleSheet } from 'react-native';
+import { View, StyleSheet, Platform } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 
@@ -14,7 +14,7 @@ import { Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
 import { toDateStr } from '@/utils/format';
 import { BLOCK_REASONS, HOLIDAY_PRESETS, formatBlockDate } from './block-date-helpers';
-import { Row } from '@/components/primitives';
+import { Row, Column } from '@/components/primitives';
 
 // --- ModeSelector ---
 type BlockMode = 'single' | 'range' | 'holiday';
@@ -40,7 +40,7 @@ export const ModeSelector = memo(function ModeSelector({
           <Clickable
             key={m.id}
             onPress={() => {
-              void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+              if (Platform.OS !== 'web') void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
               onSelect(m.id);
             }}
             style={[
@@ -278,7 +278,7 @@ export const ReasonSelector = memo(function ReasonSelector({
           <Clickable
             key={r.id}
             onPress={() => {
-              void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+              if (Platform.OS !== 'web') void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
               onSelect(r.id);
             }}
             style={[
@@ -325,7 +325,7 @@ export const BlockSummary = memo(function BlockSummary({
     <SurfaceCard style={[styles.summaryCard, { backgroundColor: withAlpha(palette.error, 0.03) }]}>
       <Row style={styles.summaryRow}>
         <Ionicons name="alert-circle" size={20} color={palette.error} />
-        <View style={{ flex: 1 }}>
+        <Column flex>
           <ThemedText type="defaultSemiBold" style={{ color: palette.error }}>
             Time Off Summary
           </ThemedText>
@@ -337,7 +337,7 @@ export const BlockSummary = memo(function BlockSummary({
           <ThemedText style={[styles.summaryText, { color: palette.muted }]}>
             Reason: {BLOCK_REASONS.find((r) => r.id === reason)?.label}
           </ThemedText>
-        </View>
+        </Column>
       </Row>
     </SurfaceCard>
   );
@@ -386,8 +386,8 @@ const styles = StyleSheet.create({
   holidayDates: { ...Typography.caption },
   selectedBadge: {
     position: 'absolute',
-    top: 8,
-    right: 8,
+    top: Spacing.xs,
+    right: Spacing.xs,
     width: 20,
     height: 20,
     borderRadius: Radii.md,

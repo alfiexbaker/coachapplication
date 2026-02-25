@@ -57,5 +57,5 @@ const styles = StyleSheet.create({
     gap: Spacing.micro,
   },
   label: { ...Typography.bodySmall },
-  description: { ...Typography.caption, lineHeight: 18 },
+  description: { ...Typography.caption },
 });

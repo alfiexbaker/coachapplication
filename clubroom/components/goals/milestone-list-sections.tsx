@@ -223,6 +223,6 @@ const styles = StyleSheet.create({
   moreText: {
     fontSize: scaleFont(12),
     fontStyle: 'italic',
-    marginLeft: 20,
+    marginLeft: Spacing.md,
   },
 });

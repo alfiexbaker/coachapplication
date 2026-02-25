@@ -62,17 +62,17 @@ export interface Booking {
   id: string;
   coachId: string;
   athleteIds?: string[]; // The users being coached (supports multiple athletes)
-  athleteNames?: string[]; // Denormalized athlete display names
-  athleteId?: string; // Deprecated: kept for backwards compatibility
+  athleteNames?: string[]; // @deprecated — resolve via athleteIds at display time
+  athleteId?: string; // @deprecated — use athleteIds instead
   bookedById?: string; // Could be parent or athlete
-  bookedByName?: string; // Denormalized booker display name
+  bookedByName?: string; // @deprecated — resolve via bookedById at display time
   status: BookingStatus;
   isSharedSession?: boolean; // True if multiple athletes share this session
   scheduledAt: string; // ISO date string
   duration?: number; // minutes (default 60)
   location: string;
   notes?: string;
-  coachName: string; // Denormalized — resolve from coachId in real API
+  coachName?: string; // @deprecated — resolve via coachId at display time
   // Group booking fields
   isGroupSession?: boolean;
   maxParticipants?: number;
@@ -105,6 +105,7 @@ export interface Booking {
   cancelledBy?: string;                    // userId who cancelled
   cancelledAt?: string;                    // when cancelled
   cancelReason?: string;                   // reason for cancellation
+  cancellationFee?: number;                // amount owed for late cancellation
   // Multi-week series fields
   seriesId?: string;                       // ID of the BookingSeries this booking belongs to
   seriesIndex?: number;                    // 0-based index within the series
@@ -126,7 +127,7 @@ export interface Session {
   performanceRating: number; // 1-5
   nextFocusAreas: string[];
   videoUrls?: string[]; // Session videos uploaded by coach
-  coachName: string; // Denormalized — resolve from coachId in real API
+  coachName?: string; // @deprecated — resolve via coachId at display time
 }
 
 // Messages

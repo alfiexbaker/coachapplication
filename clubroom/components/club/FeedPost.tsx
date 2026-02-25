@@ -1,4 +1,5 @@
-import { Image, StyleSheet, View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
+import { Image } from 'expo-image';
 import { Clickable } from '@/components/primitives/clickable';
 import { Ionicons } from '@expo/vector-icons';
 
@@ -9,6 +10,7 @@ import { Radii, Spacing, Typography, withAlpha } from '@/constants/theme';
 import type { ClubFeedPost } from '@/constants/types';
 import { useTheme } from '@/hooks/useTheme';
 import { Row } from '@/components/primitives';
+import { Column } from '@/components/primitives/column';
 
 export interface FeedPostProps {
   post: ClubFeedPost;
@@ -67,7 +69,7 @@ export function FeedPost({ post, canPin, onPinToggle, onLike, onComment, onShare
         >
           <ThemedText style={styles.avatarText}>{initials}</ThemedText>
         </View>
-        <View style={{ flex: 1 }}>
+        <Column flex>
           <Row style={styles.authorRow}>
             <ThemedText type="defaultSemiBold" numberOfLines={1}>
               {authorLabel}
@@ -83,7 +85,7 @@ export function FeedPost({ post, canPin, onPinToggle, onLike, onComment, onShare
           <ThemedText style={{ ...Typography.caption, color: palette.muted }}>
             {formatDate(post.createdAt)} · {post.audienceLabel || post.audience}
           </ThemedText>
-        </View>
+        </Column>
         {canPin && (
           <Clickable onPress={() => onPinToggle?.(post.id)} hitSlop={10}>
             <Ionicons
@@ -105,7 +107,7 @@ export function FeedPost({ post, canPin, onPinToggle, onLike, onComment, onShare
 
       {/* Image if present */}
       {post.imageUrl && (
-        <Image source={{ uri: post.imageUrl }} style={styles.postImage} resizeMode="cover" />
+        <Image source={{ uri: post.imageUrl }} style={styles.postImage} contentFit="cover" />
       )}
 
       {/* Event details */}
@@ -244,7 +246,6 @@ const styles = StyleSheet.create({
   },
   postBody: {
     ...Typography.body,
-    lineHeight: 22,
   },
   postImage: {
     width: '100%',

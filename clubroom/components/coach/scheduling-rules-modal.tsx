@@ -3,7 +3,7 @@
  * Coach scheduling rules editor modal with chip selectors, toggles, and cancellation policy.
  */
 import { useState, useEffect, useCallback } from 'react';
-import { View, StyleSheet, Modal, ScrollView, Alert } from 'react-native';
+import { View, StyleSheet, Modal, ScrollView, Alert, Platform } from 'react-native';
 import * as Haptics from 'expo-haptics';
 
 import { Clickable } from '@/components/primitives/clickable';
@@ -14,6 +14,7 @@ import type { RefundTier } from '@/constants/types';
 
 import { createLogger } from '@/utils/logger';
 import { useTheme } from '@/hooks/useTheme';
+import { useToast } from '@/components/ui/toast';
 
 import {
   ChipSection,
@@ -80,6 +81,7 @@ export function SchedulingRulesModal({
   onSaved,
 }: SchedulingRulesModalProps) {
   const { colors: palette } = useTheme();
+  const { showToast } = useToast();
 
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -157,20 +159,21 @@ export function SchedulingRulesModal({
       ]);
       if (!rulesResult.success) {
         logger.error('Failed to save scheduling rules', rulesResult.error);
-        Alert.alert('Error', 'Failed to save scheduling rules. Please try again.');
+        showToast(rulesResult.error.message || 'Failed to save scheduling rules', 'error');
         return;
       }
       if (!policyResult.success) {
         logger.error('Failed to save cancellation policy', policyResult.error);
-        Alert.alert('Error', 'Failed to save cancellation policy. Please try again.');
+        showToast(policyResult.error.message || 'Failed to save cancellation policy', 'error');
         return;
       }
-      void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      if (Platform.OS !== 'web') void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      showToast('Booking rules saved', 'success');
       onSaved?.();
       onClose();
     } catch (error) {
       logger.error('Failed to save scheduling rules', error);
-      Alert.alert('Error', 'Failed to save. Please try again.');
+      showToast('Failed to save. Please try again.', 'error');
     } finally {
       setSaving(false);
     }

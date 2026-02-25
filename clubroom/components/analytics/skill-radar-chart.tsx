@@ -8,7 +8,7 @@ import Animated, { FadeIn, FadeInDown } from 'react-native-reanimated';
 
 import { Clickable } from '@/components/primitives/clickable';
 import { ThemedText } from '@/components/themed-text';
-import { Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
+import { Spacing, Radii, Typography, Shadows, withAlpha } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
 import type { SkillProgress } from '@/constants/types';
 import {
@@ -40,7 +40,7 @@ function SkillRadarChartInner({
   comparisonValues,
   comparisonLabel,
 }: SkillRadarChartProps) {
-  const { colors: palette } = useTheme();
+  const { colors: palette, scheme } = useTheme();
   const numSkills = skills.length;
 
   return (
@@ -170,12 +170,8 @@ function SkillRadarChartInner({
                     backgroundColor: getSkillColor(skill.currentLevel),
                     borderColor: palette.surface,
                     borderWidth: 2,
-                    shadowColor: palette.text,
-                    shadowOffset: { width: 0, height: 2 },
-                    shadowOpacity: 0.1,
-                    shadowRadius: 3,
-                    elevation: 2,
                   },
+                  Shadows[scheme].subtle,
                 ]}
                 accessibilityRole="button"
                 accessibilityLabel={`Select ${skill.skillName} skill`}

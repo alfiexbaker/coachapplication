@@ -123,7 +123,7 @@ export function useBookings(): UseBookingsResult {
           status: mapBookingStatus(booking.status),
           locationLabel: booking.location,
           coach: {
-            name: booking.coachName,
+            name: booking.coachName ?? 'Coach',
             photoUrl: 'https://i.pravatar.cc/100?u=' + booking.coachId,
           },
           client: {

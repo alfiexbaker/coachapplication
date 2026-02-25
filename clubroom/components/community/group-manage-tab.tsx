@@ -179,6 +179,6 @@ const styles = StyleSheet.create({
   },
   actionDescription: {
     ...Typography.caption,
-    lineHeight: 16,
+    lineHeight: Typography.micro.lineHeight,
   },
 });

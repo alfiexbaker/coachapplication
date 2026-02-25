@@ -28,8 +28,8 @@ export interface Coach {
   distance?: number;
   rating: number;
   reviewCount: number;
-  minPriceUsd: number;
-  maxPriceUsd?: number;
+  minPrice: number;
+  maxPrice?: number;
   profilePhotoUrl?: string;
   coverPhotoUrl?: string;
   joinedAt?: string;
@@ -83,8 +83,8 @@ const MOCK_COACHES: Coach[] = [
     distance: 2.5,
     rating: 4.8,
     reviewCount: 47,
-    minPriceUsd: 35,
-    maxPriceUsd: 60,
+    minPrice: 35,
+    maxPrice: 60,
     profilePhotoUrl: undefined,
     coverPhotoUrl: undefined,
     joinedAt: '2021-03-15',
@@ -129,8 +129,8 @@ const MOCK_COACHES: Coach[] = [
     distance: 5.0,
     rating: 4.9,
     reviewCount: 89,
-    minPriceUsd: 45,
-    maxPriceUsd: 75,
+    minPrice: 45,
+    maxPrice: 75,
     profilePhotoUrl: undefined,
     coverPhotoUrl: undefined,
     joinedAt: '2020-06-01',
@@ -244,7 +244,7 @@ export const coachService = {
         coaches = coaches.filter((c) => c.rating >= filters.minRating!);
       }
       if (filters?.maxPrice) {
-        coaches = coaches.filter((c) => c.minPriceUsd <= filters.maxPrice!);
+        coaches = coaches.filter((c) => c.minPrice <= filters.maxPrice!);
       }
       if (filters?.sport) {
         coaches = coaches.filter((c) =>

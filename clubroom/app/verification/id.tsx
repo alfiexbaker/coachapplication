@@ -7,6 +7,7 @@ import { ThemedText } from '@/components/themed-text';
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { Clickable } from '@/components/primitives/clickable';
 import { Button } from '@/components/primitives/button';
+import { Column } from '@/components/primitives/column';
 import { Row } from '@/components/primitives/row';
 import { LoadingState, ErrorState, EmptyState } from '@/components/ui/screen-states';
 import { Radii, Spacing, Typography, withAlpha } from '@/constants/theme';
@@ -108,14 +109,16 @@ export default function IdUploadScreen() {
             <ThemedText style={[styles.statusText, { color: colors.muted }]}>
               Your ID document is being reviewed. This usually takes 1-2 business days.
             </ThemedText>
-            <Clickable
-              onPress={handleMockApprove}
-              style={[styles.mockButton, { borderColor: colors.success }]}
-            >
-              <ThemedText style={{ color: colors.success, fontWeight: '600' }}>
-                Mock: Approve Now
-              </ThemedText>
-            </Clickable>
+            {__DEV__ && (
+              <Clickable
+                onPress={handleMockApprove}
+                style={[styles.mockButton, { borderColor: colors.success }]}
+              >
+                <ThemedText style={{ color: colors.success, fontWeight: '600' }}>
+                  Approve Now (DEV ONLY)
+                </ThemedText>
+              </Clickable>
+            )}
           </SurfaceCard>
         ) : (
           <>
@@ -165,12 +168,12 @@ export default function IdUploadScreen() {
                   <SurfaceCard style={styles.uploadedCard}>
                     <Row align="center" gap="md">
                       <Ionicons name="document" size={32} color={colors.success} />
-                      <View style={{ flex: 1 }}>
+                      <Column flex>
                         <ThemedText type="defaultSemiBold">Document uploaded</ThemedText>
                         <ThemedText style={{ color: colors.muted, ...Typography.small }}>
                           {ID_TYPES.find((t) => t.id === selectedType)?.label}
                         </ThemedText>
-                      </View>
+                      </Column>
                       <Clickable
                         accessibilityLabel="Remove uploaded ID"
                         onPress={() => setUploaded(false)}

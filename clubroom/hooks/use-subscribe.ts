@@ -34,7 +34,7 @@ const mapCoachProfileToOption = (coach: CoachProfile): CoachOption => ({
   name: coach.fullName,
   photoUrl: coach.profilePhotoUrl,
   sessionTypes: coach.footballFocuses?.length > 0 ? coach.footballFocuses : ['1-on-1 Training'],
-  pricePerSession: coach.sessionRate ?? coach.priceRange.minUsd,
+  pricePerSession: coach.sessionRate ?? coach.priceRange.min,
   location: coach.city ? `${coach.city}, ${coach.state}` : 'TBD',
   rating: coach.rating.average,
   totalSessions: coach.totalSessions,

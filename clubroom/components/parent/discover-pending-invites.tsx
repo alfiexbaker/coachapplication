@@ -134,7 +134,7 @@ const styles = StyleSheet.create({
   avatar: { width: 40, height: 40, borderRadius: Radii.xl },
   avatarText: { ...Typography.bodySmallSemiBold },
   inviteInfo: { flex: 1, gap: Spacing.xs / 2 },
-  inviteMessage: { ...Typography.bodySmall, lineHeight: 18 },
+  inviteMessage: { ...Typography.bodySmall, lineHeight: Typography.caption.lineHeight },
   metaText: { ...Typography.caption },
   expiryBadge: {
     paddingHorizontal: Spacing.xs,

@@ -2,14 +2,15 @@
  * PaymentSummaryCard — Income summary: owed vs collected split, optional written-off line.
  */
 
-import { memo } from 'react';
-import { View, StyleSheet } from 'react-native';
+import { memo, useCallback } from 'react';
+import { View, StyleSheet, Alert } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
 import { SurfaceCard } from '@/components/primitives/surface-card';
+import { Clickable } from '@/components/primitives/clickable';
 import { Row } from '@/components/primitives/row';
 import { ThemedText } from '@/components/themed-text';
-import { Spacing, Typography, withAlpha } from '@/constants/theme';
+import { Spacing, Typography, withAlpha, Radii } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
 
 interface PaymentSummaryCardProps {
@@ -32,6 +33,23 @@ function PaymentSummaryCardInner({
   const { colors } = useTheme();
 
   const formatGBP = (amount: number) => `\u00A3${amount.toFixed(2)}`;
+
+  const handleWriteOffInfo = useCallback(() => {
+    Alert.alert(
+      'What does "written off" mean?',
+      'Written-off sessions are payments you\'ve decided not to chase. Common reasons:\n\n' +
+        '\u2022 Athlete cancelled last minute\n' +
+        '\u2022 Payment was waived as a favour\n' +
+        '\u2022 Unable to collect after multiple reminders\n\n' +
+        'You can restore a written-off session back to "owed" at any time.',
+      [{ text: 'Got it' }],
+    );
+  }, []);
+
+  const totalBilled = totalOwed + totalCollected + totalWrittenOff;
+  const collectionRate = totalBilled > 0
+    ? Math.round((totalCollected / totalBilled) * 100)
+    : 0;
 
   return (
     <SurfaceCard>
@@ -63,10 +81,26 @@ function PaymentSummaryCardInner({
       </Row>
 
       {writtenOffCount > 0 && (
-        <Row align="center" gap="xs" style={styles.writtenOffRow}>
-          <Ionicons name="close-circle-outline" size={14} color={colors.muted} />
+        <Clickable onPress={handleWriteOffInfo} accessibilityLabel="What does written off mean?">
+          <Row align="center" gap="xs" style={styles.writtenOffRow}>
+            <Ionicons name="close-circle-outline" size={14} color={colors.muted} />
+            <ThemedText style={[Typography.caption, { color: colors.muted }]}>
+              {formatGBP(totalWrittenOff)} written off ({writtenOffCount} {writtenOffCount === 1 ? 'session' : 'sessions'})
+            </ThemedText>
+            <Ionicons name="information-circle-outline" size={14} color={colors.muted} />
+          </Row>
+        </Clickable>
+      )}
+
+      {totalBilled > 0 && (
+        <Row align="center" gap="xs" style={styles.collectionRow}>
+          <Ionicons
+            name={collectionRate >= 80 ? 'trending-up' : 'trending-down'}
+            size={14}
+            color={collectionRate >= 80 ? colors.success : colors.warning}
+          />
           <ThemedText style={[Typography.caption, { color: colors.muted }]}>
-            {formatGBP(totalWrittenOff)} written off ({writtenOffCount} {writtenOffCount === 1 ? 'session' : 'sessions'})
+            {collectionRate}% collection rate
           </ThemedText>
         </Row>
       )}
@@ -86,11 +120,14 @@ const styles = StyleSheet.create({
   splitItem: {
     flex: 1,
     padding: Spacing.sm,
-    borderRadius: 12,
+    borderRadius: Radii.md,
     gap: Spacing.xxs,
   },
   writtenOffRow: {
     marginTop: Spacing.sm,
     paddingTop: Spacing.xs,
+  },
+  collectionRow: {
+    marginTop: Spacing.sm,
   },
 });

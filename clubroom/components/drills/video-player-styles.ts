@@ -49,7 +49,7 @@ export const styles = StyleSheet.create({
   },
   progressBarContainer: {
     width: '100%',
-    marginBottom: 8,
+    marginBottom: Spacing.xs,
   },
   progressBarBackground: {
     height: 4,

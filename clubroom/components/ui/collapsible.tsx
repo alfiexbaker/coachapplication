@@ -42,6 +42,6 @@ export function Collapsible({ children, title }: PropsWithChildren & { title: st
 const styles = StyleSheet.create({
   content: {
     marginTop: Spacing.xxs,
-    marginLeft: 24,
+    marginLeft: Spacing.md,
   },
 });

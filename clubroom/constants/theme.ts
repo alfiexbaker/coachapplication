@@ -132,6 +132,9 @@ export const Borders = {
 // Inspired by premium apps: lighter weights, generous spacing, smooth hierarchy
 export const Typography = {
   // Semantic type scale - lighter weights for elegance
+  displayLarge: { fontSize: 34, lineHeight: 44, letterSpacing: -0.5, fontWeight: '700' as const },
+  heroLarge: { fontSize: 32, lineHeight: 42, letterSpacing: -0.5, fontWeight: '700' as const },
+  hero: { fontSize: 28, lineHeight: 38, letterSpacing: -0.4, fontWeight: '600' as const },
   display: { fontSize: 30, lineHeight: 40, letterSpacing: -0.4, fontWeight: '600' as const },   // H1 - Page titles
   title: { fontSize: 22, lineHeight: 30, letterSpacing: -0.3, fontWeight: '600' as const },     // H2 - Section titles
   heading: { fontSize: 18, lineHeight: 26, letterSpacing: -0.2, fontWeight: '600' as const },   // H3 - Card headers

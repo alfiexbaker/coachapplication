@@ -233,7 +233,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   selectionTitle: { ...Typography.title, textAlign: 'center' },
-  selectionMessage: { ...Typography.body, textAlign: 'center', lineHeight: 22 },
+  selectionMessage: { ...Typography.body, textAlign: 'center' },
   statusIcon: {
     width: 48,
     height: 48,

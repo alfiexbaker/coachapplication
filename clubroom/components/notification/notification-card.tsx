@@ -1,4 +1,4 @@
-import { View, StyleSheet } from 'react-native';
+import { Alert, View, StyleSheet } from 'react-native';
 import Animated, {
   Extrapolate,
   interpolate,
@@ -196,7 +196,18 @@ export function NotificationCard({
             onDelete
               ? () => {
                   swipeableMethods.close();
-                  onDelete();
+                  Alert.alert(
+                    'Delete Notification',
+                    'Delete this notification?',
+                    [
+                      { text: 'Cancel', style: 'cancel' },
+                      {
+                        text: 'Delete',
+                        style: 'destructive',
+                        onPress: onDelete,
+                      },
+                    ],
+                  );
                 }
               : undefined
           }
@@ -312,7 +323,7 @@ const styles = StyleSheet.create({
     height: NotificationDesign.card.unreadDot,
     borderRadius: Radii.xs,
   },
-  body: { ...Typography.bodySmall, lineHeight: 18 },
+  body: { ...Typography.bodySmall, lineHeight: Typography.caption.lineHeight },
   badgeInfo: {
     marginTop: Spacing.xxs,
   },

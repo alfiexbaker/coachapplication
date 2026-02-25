@@ -370,7 +370,7 @@ const styles = StyleSheet.create({
   categoryBadge: {
     alignItems: 'center',
     gap: Spacing.xxs,
-    paddingHorizontal: 8,
+    paddingHorizontal: Spacing.xs,
     paddingVertical: Spacing.xxs,
     borderRadius: Radii.sm,
   },
@@ -399,8 +399,8 @@ const styles = StyleSheet.create({
   },
   check: {
     position: 'absolute',
-    top: 8,
-    right: 8,
+    top: Spacing.xs,
+    right: Spacing.xs,
     width: 20,
     height: 20,
     borderRadius: Radii.md,

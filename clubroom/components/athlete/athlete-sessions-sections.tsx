@@ -7,7 +7,7 @@
  */
 
 import React, { useCallback } from 'react';
-import { View, StyleSheet } from 'react-native';
+import { View, StyleSheet, Platform } from 'react-native';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
@@ -36,7 +36,7 @@ export const SessionItem = React.memo(function SessionItem({ session, isPast }: 
   const date = new Date(session.scheduledAt);
 
   const handlePress = useCallback(() => {
-    void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    if (Platform.OS !== 'web') void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     router.push(Routes.booking(session.id));
   }, [session.id]);
 
@@ -122,11 +122,10 @@ export const styles = StyleSheet.create({
   },
   dateDay: {
     ...Typography.heading,
-    lineHeight: 22,
+    lineHeight: Typography.body.lineHeight,
   },
   dateMonth: {
     ...Typography.micro,
-    lineHeight: 14,
   },
   timeText: {
     ...Typography.bodySmall,

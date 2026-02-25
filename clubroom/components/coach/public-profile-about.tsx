@@ -7,7 +7,7 @@ import { Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
 import { MOCK_SESSION_TYPES } from '@/hooks/use-public-profile';
 import type { Coach } from '@/services/coach-service';
-import { Row } from '@/components/primitives';
+import { Column, Row } from '@/components/primitives';
 
 interface PublicProfileAboutProps {
   coach: Coach;
@@ -35,7 +35,7 @@ export const PublicProfileAbout = memo(function PublicProfileAbout({
         </ThemedText>
         {MOCK_SESSION_TYPES.map((session) => (
           <Row key={session.id} style={[styles.sessionRow, { borderBottomColor: palette.border }]}>
-            <View style={{ flex: 1 }}>
+            <Column flex>
               <ThemedText style={[Typography.bodySemiBold, { color: palette.text }]}>
                 {session.name}
               </ThemedText>
@@ -49,7 +49,7 @@ export const PublicProfileAbout = memo(function PublicProfileAbout({
               >
                 {session.duration} min
               </ThemedText>
-            </View>
+            </Column>
             <View style={styles.priceBlock}>
               <ThemedText style={[Typography.heading, { color: palette.tint }]}>
                 {'\u00A3'}

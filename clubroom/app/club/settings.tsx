@@ -91,7 +91,7 @@ export default function ClubSettingsScreen() {
     >
       <PageHeader title="Club Settings" subtitle={club.name} showBack centerTitle />
 
-      <View style={styles.tabsContent}>
+      <Row wrap gap="xs" style={styles.tabsContent}>
         {visibleSections.map((section) => (
           <Clickable
             key={section.key}
@@ -114,7 +114,7 @@ export default function ClubSettingsScreen() {
             </ThemedText>
           </Clickable>
         ))}
-      </View>
+      </Row>
 
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
         {!canManageClub && (
@@ -206,9 +206,6 @@ const styles = StyleSheet.create({
   tabsContent: {
     paddingHorizontal: Spacing.md,
     paddingBottom: Spacing.md,
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: Spacing.xs,
   },
   tab: {
     paddingHorizontal: Spacing.md,

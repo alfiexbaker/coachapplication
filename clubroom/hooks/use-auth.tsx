@@ -18,6 +18,7 @@ import { authService } from '@/services/auth-service';
 import { apiClient } from '@/services/api-client';
 import { ensureCoachSessionsSeeded } from '@/services/coach-session-seed-service';
 import { STORAGE_KEYS } from '@/constants/storage-keys';
+import { generateId } from '@/utils/generate-id';
 import { createLogger } from '@/utils/logger';
 
 const logger = createLogger('useAuth');
@@ -694,7 +695,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         ATHLETE: 'USER',
       };
 
-      const userId = `user_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+      const userId = generateId('user');
       const fullName = `${data.firstName} ${data.lastName}`;
 
       const newUser: DemoUser = {
@@ -771,10 +772,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     router.replace(Routes.ROOT);
   }, [currentUser]);
 
-  const forgotPassword = async (email: string) => {
+  const forgotPassword = useCallback(async (email: string) => {
     logger.info('Forgot password requested', { email });
     await authService.forgotPassword(email);
-  };
+  }, []);
 
   const value = useMemo(
     () => ({
@@ -798,6 +799,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       logout,
       registerCoach,
       registerFromOnboarding,
+      forgotPassword,
     ],
   );
 

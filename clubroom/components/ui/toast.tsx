@@ -32,37 +32,66 @@ type ToastContextValue = {
 
 const ToastContext = createContext<ToastContextValue | undefined>(undefined);
 
+interface QueuedToast {
+  id: number;
+  message: string;
+  tone: 'default' | 'success' | 'error' | 'warning';
+  action?: { label: string; onPress: () => void };
+  duration: number;
+}
+
 export function ToastProvider({ children }: { children: React.ReactNode }) {
-  const [toast, setToast] = useState<{
-    message: string;
-    tone: 'default' | 'success' | 'error' | 'warning';
-    action?: { label: string; onPress: () => void };
-  } | null>(null);
+  const [queue, setQueue] = useState<QueuedToast[]>([]);
+  const [current, setCurrent] = useState<QueuedToast | null>(null);
   const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const idCounter = useRef(0);
 
   const hideToast = useCallback(() => {
     if (timeoutRef.current) {
       clearTimeout(timeoutRef.current);
       timeoutRef.current = null;
     }
-    setToast(null);
+    setCurrent(null);
   }, []);
+
+  // Process queue — show next toast when current dismisses
+  React.useEffect(() => {
+    if (current || queue.length === 0) return;
+
+    const [next, ...rest] = queue;
+    setCurrent(next);
+    setQueue(rest);
+
+    timeoutRef.current = setTimeout(() => {
+      setCurrent(null);
+    }, next.duration);
+
+    return () => {
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current);
+        timeoutRef.current = null;
+      }
+    };
+  }, [current, queue]);
 
   const showToast = useCallback(
     (message: string, options?: ToastOptions | 'default' | 'success' | 'error' | 'warning') => {
-      // Clear any existing timeout
-      if (timeoutRef.current) {
-        clearTimeout(timeoutRef.current);
-      }
-
-      // Handle legacy string-only tone parameter
       const resolvedOptions: ToastOptions =
         typeof options === 'string' ? { tone: options } : options || {};
 
-      const { tone = 'default', action, duration = 2500 } = resolvedOptions;
+      const { tone = 'default', action, duration } = resolvedOptions;
+      const effectiveDuration = duration ?? (tone === 'error' ? 5000 : 2500);
 
-      setToast({ message, tone, action });
-      timeoutRef.current = setTimeout(() => setToast(null), duration);
+      idCounter.current += 1;
+      const newToast: QueuedToast = {
+        id: idCounter.current,
+        message,
+        tone,
+        action,
+        duration: effectiveDuration,
+      };
+
+      setQueue(prev => [...prev, newToast]);
     },
     [],
   );
@@ -93,11 +122,12 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
     <ToastContext.Provider value={value}>
       {children}
       <Toast
-        message={toast?.message}
-        tone={toast?.tone}
-        action={toast?.action}
+        message={current?.message}
+        tone={current?.tone}
+        action={current?.action}
         onActionPress={() => {
-          toast?.action?.onPress();
+          current?.action?.onPress();
+          hideToast();
         }}
       />
     </ToastContext.Provider>

@@ -88,8 +88,8 @@ export function QuickActions({
 
 const styles = StyleSheet.create({
   quickActions: {
-    gap: 8,
-    paddingHorizontal: 16,
+    gap: Spacing.xs,
+    paddingHorizontal: Spacing.sm,
     paddingBottom: Spacing.xs,
   },
   actionText: {

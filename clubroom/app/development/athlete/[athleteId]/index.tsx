@@ -13,7 +13,7 @@ import { DevAthleteHero } from '@/components/development/dev-athlete-hero';
 import { DevSpecialNeedsCard } from '@/components/development/dev-special-needs-card';
 import { DevProgressionCard } from '@/components/development/dev-progression-card';
 import { DevSessionCard } from '@/components/development/dev-session-card';
-import { Spacing, Typography, withAlpha } from '@/constants/theme';
+import { Spacing, Typography, withAlpha, Radii } from '@/constants/theme';
 import { POSITION_LABELS } from '@/constants/position-skills';
 import { useScreen } from '@/hooks/use-screen';
 import { ok } from '@/types/result';
@@ -57,6 +57,18 @@ export default function AthleteDetailScreen() {
     }
     return 'Not set';
   }, [positionDraft]);
+
+  const handleToggleEditing = useCallback(() => {
+    setEditingPosition((prev) => !prev);
+  }, []);
+
+  const handleClearPosition = useCallback(() => {
+    setPositionDraft(null);
+  }, []);
+
+  const handleSpecialNeedsPress = useCallback(() => {
+    router.push(Routes.developmentAthleteSpecialNeeds(resolvedAthleteId!));
+  }, [resolvedAthleteId]);
 
   const handleSavePrimaryPosition = useCallback(async () => {
     if (!childProfile) {
@@ -140,7 +152,7 @@ export default function AthleteDetailScreen() {
                 <ThemedText style={{ color: colors.muted }}>{positionLabel}</ThemedText>
               </Column>
               <Clickable
-                onPress={() => setEditingPosition((prev) => !prev)}
+                onPress={handleToggleEditing}
                 style={[
                   styles.positionEditButton,
                   {
@@ -165,7 +177,7 @@ export default function AthleteDetailScreen() {
                 />
                 <Row gap="xs">
                   <Clickable
-                    onPress={() => setPositionDraft(null)}
+                    onPress={handleClearPosition}
                     style={[
                       styles.rotateButton,
                       {
@@ -216,7 +228,7 @@ export default function AthleteDetailScreen() {
         <DevSpecialNeedsCard
           childProfile={childProfile}
           colors={colors}
-          onPress={() => router.push(Routes.developmentAthleteSpecialNeeds(resolvedAthleteId))}
+          onPress={handleSpecialNeedsPress}
         />
 
         {progressionSummary && <DevProgressionCard summary={progressionSummary} colors={colors} />}
@@ -249,7 +261,7 @@ const styles = StyleSheet.create({
   positionEditButton: {
     minHeight: 36,
     borderWidth: 1,
-    borderRadius: 999,
+    borderRadius: Radii.pill,
     paddingHorizontal: Spacing.sm,
     alignItems: 'center',
     justifyContent: 'center',
@@ -261,7 +273,7 @@ const styles = StyleSheet.create({
   rotateButton: {
     minHeight: 44,
     borderWidth: 1,
-    borderRadius: 999,
+    borderRadius: Radii.pill,
     paddingHorizontal: Spacing.sm,
     alignItems: 'center',
     justifyContent: 'center',
@@ -269,7 +281,7 @@ const styles = StyleSheet.create({
   saveButton: {
     minHeight: 44,
     borderWidth: 1,
-    borderRadius: 999,
+    borderRadius: Radii.pill,
     paddingHorizontal: Spacing.md,
     alignItems: 'center',
     justifyContent: 'center',

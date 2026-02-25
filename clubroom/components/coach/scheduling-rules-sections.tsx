@@ -2,7 +2,7 @@
  * SchedulingRules — Section sub-components (chip selector, toggles, policy, summary).
  */
 import { memo } from 'react';
-import { View, Switch, TextInput, StyleSheet as RNStyleSheet } from 'react-native';
+import { View, Switch, TextInput, StyleSheet as RNStyleSheet, Platform } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import Slider from '@react-native-community/slider';
@@ -13,7 +13,7 @@ import { Divider } from '@/components/ui/primitives/Divider';
 import { ThemedText } from '@/components/themed-text';
 import { Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
-import { Row } from '@/components/primitives';
+import { Row, Column } from '@/components/primitives';
 import type { RefundTier } from '@/constants/types';
 import { styles } from './scheduling-rules-section-styles';
 
@@ -46,7 +46,7 @@ export function OptionChip({
   return (
     <Clickable
       onPress={() => {
-        void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+        if (Platform.OS !== 'web') void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
         onPress();
       }}
       style={[
@@ -60,7 +60,7 @@ export function OptionChip({
       <ThemedText
         style={[
           styles.chipText,
-          { color: isSelected ? palette.onPrimary : palette.text, fontSize: compact ? 13 : 14 },
+          { color: isSelected ? palette.onPrimary : palette.text, fontSize: compact ? Typography.small.fontSize : Typography.bodySmall.fontSize },
         ]}
       >
         {label}
@@ -145,19 +145,19 @@ function ToggleCardInner(p: ToggleCardProps) {
           <View style={[styles.toggleIcon, { backgroundColor: withAlpha(palette.success, 0.09) }]}>
             <Ionicons name="today-outline" size={16} color={palette.success} />
           </View>
-          <View style={{ flex: 1 }}>
+          <Column flex>
             <ThemedText type="defaultSemiBold" style={{ ...Typography.bodySmall }}>
               Same-Day Bookings
             </ThemedText>
             <ThemedText style={[styles.toggleHint, { color: palette.muted }]}>
               Allow booking for today
             </ThemedText>
-          </View>
+          </Column>
         </Row>
         <Switch
           value={p.allowSameDayBookings}
           onValueChange={(v) => {
-            void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+            if (Platform.OS !== 'web') void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
             p.onSameDayChange(v);
           }}
           trackColor={{ false: palette.border, true: palette.success }}
@@ -170,19 +170,19 @@ function ToggleCardInner(p: ToggleCardProps) {
           <View style={[styles.toggleIcon, { backgroundColor: withAlpha(palette.tint, 0.09) }]}>
             <Ionicons name="swap-horizontal-outline" size={16} color={palette.tint} />
           </View>
-          <View style={{ flex: 1 }}>
+          <Column flex>
             <ThemedText type="defaultSemiBold" style={{ ...Typography.bodySmall }}>
               Allow Rescheduling
             </ThemedText>
             <ThemedText style={[styles.toggleHint, { color: palette.muted }]}>
               Let athletes change booking time
             </ThemedText>
-          </View>
+          </Column>
         </Row>
         <Switch
           value={p.allowRescheduling}
           onValueChange={(v) => {
-            void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+            if (Platform.OS !== 'web') void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
             p.onRescheduleChange(v);
           }}
           trackColor={{ false: palette.border, true: palette.tint }}
@@ -279,7 +279,7 @@ const EditableTierRow = memo(function EditableTierRow({
     >
       <Row align="center" gap="sm" style={cancellationStyles.tierContent}>
         {isCustom ? (
-          <View style={cancellationStyles.hoursInputWrap}>
+          <Row align="center" gap="xxs" style={cancellationStyles.hoursInputWrap}>
             <TextInput
               style={[cancellationStyles.hoursInput, { borderColor: palette.border, color: palette.text }]}
               value={String(tier.hoursBeforeSession)}
@@ -293,7 +293,7 @@ const EditableTierRow = memo(function EditableTierRow({
               }}
             />
             <ThemedText style={[Typography.caption, { color: palette.muted }]}>hrs</ThemedText>
-          </View>
+          </Row>
         ) : (
           <ThemedText style={[Typography.bodySmallSemiBold, { color: palette.text, minWidth: 80 }]}>
             {formatWindowLabel(tier.hoursBeforeSession)}
@@ -311,7 +311,7 @@ const EditableTierRow = memo(function EditableTierRow({
             thumbTintColor={palette.tint}
             onValueChange={(value) => onUpdateRefund(index, Math.round(value))}
             onSlidingComplete={() => {
-              void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+              if (Platform.OS !== 'web') void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
             }}
           />
         </View>
@@ -325,7 +325,7 @@ const EditableTierRow = memo(function EditableTierRow({
         {isCustom && canRemove && (
           <Clickable
             onPress={() => {
-              void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+              if (Platform.OS !== 'web') void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
               onRemove(index);
             }}
             style={cancellationStyles.removeButton}
@@ -369,7 +369,7 @@ function CancellationSectionInner({
   };
 
   const handleAdd = () => {
-    void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    if (Platform.OS !== 'web') void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     onTiersChange([...tiers, { hoursBeforeSession: 0, refundPercentage: 0, description: '' }]);
   };
 
@@ -393,7 +393,7 @@ function CancellationSectionInner({
           <Clickable
             key={opt.key}
             onPress={() => {
-              void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+              if (Platform.OS !== 'web') void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
               onPresetChange(opt.key);
             }}
             style={[
@@ -414,7 +414,7 @@ function CancellationSectionInner({
             <ThemedText
               style={[
                 styles.chipText,
-                { color: selectedPreset === opt.key ? palette.onPrimary : palette.text, fontSize: 13 },
+                { color: selectedPreset === opt.key ? palette.onPrimary : palette.text, fontSize: Typography.small.fontSize },
               ]}
             >
               {opt.label}
@@ -461,7 +461,7 @@ const cancellationStyles = RNStyleSheet.create({
   tiersCard: { padding: Spacing.sm, borderRadius: Radii.card },
   tierRow: { paddingVertical: Spacing.xs },
   tierContent: { flex: 1 },
-  hoursInputWrap: { flexDirection: 'row', alignItems: 'center', gap: Spacing.xxs, minWidth: 70 },
+  hoursInputWrap: { minWidth: 70 },
   hoursInput: {
     width: 48,
     height: 36,

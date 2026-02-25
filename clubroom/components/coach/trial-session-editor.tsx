@@ -22,10 +22,11 @@ import { Spacing, Components, Typography, withAlpha } from '@/constants/theme';
 import { useAuth } from '@/hooks/use-auth';
 import { trialService, type TrialOffering } from '@/services/trial-service';
 import { useTheme } from '@/hooks/useTheme';
+import { useToast } from '@/components/ui/toast';
 import { TrialDiscoveryPreview } from './trial-discovery-preview';
 
 import { validateTrialForm, TrialFormFields } from './trial-session-editor-sections';
-import { Row } from '@/components/primitives';
+import { Row, Column } from '@/components/primitives';
 
 // Re-export extracted components for backward compat
 export { validateTrialForm, TrialFormFields } from './trial-session-editor-sections';
@@ -46,6 +47,7 @@ interface TrialSessionEditorProps {
 
 export default function TrialSessionEditor({ onSave, onBack }: TrialSessionEditorProps) {
   const { colors: palette } = useTheme();
+  const { showToast } = useToast();
   const { currentUser } = useAuth();
   const coachId = currentUser?.id ?? '';
   const coachName = currentUser?.name ?? 'Coach';
@@ -81,6 +83,28 @@ export default function TrialSessionEditor({ onSave, onBack }: TrialSessionEdito
     })();
   }, [coachId]);
 
+  const handleToggleEnabled = useCallback((newValue: boolean) => {
+    if (newValue) {
+      Alert.alert(
+        'Publish Trial Session',
+        'Your trial session will be visible to:\n\n• New clients in discovery\n• On your public profile\n• In booking flows\n\nMake sure pricing and details are correct.',
+        [
+          { text: 'Cancel', style: 'cancel' },
+          { text: 'Publish', onPress: () => setEnabled(true) },
+        ],
+      );
+    } else {
+      Alert.alert(
+        'Hide Trial Session',
+        'Your trial session will be hidden from:\n\n• Discovery search\n• Your public profile\n• New client booking flows\n\nExisting trial bookings will continue.',
+        [
+          { text: 'Cancel', style: 'cancel' },
+          { text: 'Hide', onPress: () => setEnabled(false) },
+        ],
+      );
+    }
+  }, []);
+
   const handleSave = useCallback(async () => {
     if (enabled) {
       const error = validateTrialForm({
@@ -107,12 +131,12 @@ export default function TrialSessionEditor({ onSave, onBack }: TrialSessionEdito
         description,
       });
       onSave?.(offering);
-      Alert.alert(
-        'Saved',
-        enabled ? 'Trial session offering is now live.' : 'Trial sessions have been disabled.',
+      showToast(
+        enabled ? 'Trial session is now live' : 'Trial sessions disabled',
+        'success',
       );
     } catch {
-      Alert.alert('Error', 'Failed to save trial settings. Please try again.');
+      showToast('Failed to save trial settings', 'error');
     } finally {
       setSaving(false);
     }
@@ -159,17 +183,17 @@ export default function TrialSessionEditor({ onSave, onBack }: TrialSessionEdito
 
       <SurfaceCard style={styles.toggleCard}>
         <Row style={styles.toggleRow}>
-          <View style={{ flex: 1 }}>
+          <Column flex>
             <ThemedText style={[Typography.bodySemiBold, { color: palette.text }]}>
               Enable Trial Sessions
             </ThemedText>
             <ThemedText style={[Typography.small, { color: palette.muted }]}>
               {enabled ? 'Trial sessions are visible to parents' : 'Trial sessions are hidden'}
             </ThemedText>
-          </View>
+          </Column>
           <Switch
             value={enabled}
-            onValueChange={setEnabled}
+            onValueChange={handleToggleEnabled}
             trackColor={{ false: palette.border, true: withAlpha(palette.success, 0.5) }}
             thumbColor={enabled ? palette.success : palette.surface}
           />

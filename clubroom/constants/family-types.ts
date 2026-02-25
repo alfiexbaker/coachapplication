@@ -339,6 +339,8 @@ export interface Consent {
   granted: boolean;
   grantedAt?: string;
   grantedBy: string;
+  /** ISO date when this consent expires. Defaults to 12 months from grant. */
+  expiryAt?: string;
 }
 
 export interface EmergencyInfo {

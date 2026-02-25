@@ -221,14 +221,14 @@ export default function GroupSessionDetailScreen() {
 
           {/* Title & Price */}
           <Row justify="between" align="start">
-            <View style={{ flex: 1 }}>
+            <Column flex>
               <ThemedText type="title">{session.title}</ThemedText>
               {clubLabel && (
                 <ThemedText style={[Typography.small, { color: colors.muted, marginTop: Spacing.xxs }]}>
                   by {clubLabel}
                 </ThemedText>
               )}
-            </View>
+            </Column>
             <Column align="flex-end">
               <ThemedText style={[Typography.title, { color: colors.tint }]}>
                 {isFree

@@ -67,10 +67,10 @@ export type BadgeItem = {
   sharedWith?: string;
 };
 
-export const BADGE_TABS: { key: BadgeCategory; label: string; icon: string }[] = [
-  { key: 'toAward', label: 'To award', icon: 'ribbon-outline' },
-  { key: 'recent', label: 'Recently awarded', icon: 'sparkles-outline' },
-  { key: 'shared', label: 'Shared badges', icon: 'share-social-outline' },
+export const BADGE_TABS = [
+  { key: 'toAward' as BadgeCategory, label: 'To award', icon: 'ribbon-outline' as const },
+  { key: 'recent' as BadgeCategory, label: 'Recently awarded', icon: 'sparkles-outline' as const },
+  { key: 'shared' as BadgeCategory, label: 'Shared badges', icon: 'share-social-outline' as const },
 ];
 
 interface DevBadgesData {

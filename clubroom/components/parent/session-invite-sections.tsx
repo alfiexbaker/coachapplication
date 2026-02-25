@@ -40,12 +40,12 @@ export const InvitationBanner = memo(function InvitationBanner({ message }: Invi
 interface SessionMetaProps {
   sessionType: string;
   duration?: number;
-  priceUsd?: number;
+  price?: number;
 }
 export const SessionMetaRow = memo(function SessionMetaRow({
   sessionType,
   duration,
-  priceUsd,
+  price,
 }: SessionMetaProps) {
   const { colors: palette } = useTheme();
   return (
@@ -66,10 +66,10 @@ export const SessionMetaRow = memo(function SessionMetaRow({
       {duration != null && (
         <ThemedText style={[styles.metaText, { color: palette.muted }]}>{duration} min</ThemedText>
       )}
-      {priceUsd != null && priceUsd > 0 && (
+      {price != null && price > 0 && (
         <ThemedText style={[styles.metaText, { color: palette.text }]}>
           {'\u00A3'}
-          {priceUsd}/session
+          {price}/session
         </ThemedText>
       )}
     </Row>

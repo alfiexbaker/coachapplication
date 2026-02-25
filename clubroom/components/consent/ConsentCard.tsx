@@ -1,3 +1,4 @@
+import { useState, useEffect } from 'react';
 import { View, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
@@ -8,6 +9,7 @@ import { Spacing, Radii, Typography, Components, withAlpha } from '@/constants/t
 import { useTheme } from '@/hooks/useTheme';
 import type { AthleteConsent } from '@/constants/types';
 import { consentService } from '@/services/consent-service';
+import { userService } from '@/services/user-service';
 import { Row } from '@/components/primitives';
 
 interface ConsentCardProps {
@@ -18,7 +20,20 @@ interface ConsentCardProps {
 
 export function ConsentCard({ athleteConsent, onPress, showDetails = false }: ConsentCardProps) {
   const { colors: palette } = useTheme();
-  const athleteName = athleteConsent.athleteId || 'Athlete';
+  const [resolvedName, setResolvedName] = useState<string>('');
+
+  useEffect(() => {
+    let cancelled = false;
+    void (async () => {
+      const result = await userService.getUserById(athleteConsent.athleteId);
+      if (!cancelled && result.success && result.data.name) {
+        setResolvedName(result.data.name);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [athleteConsent.athleteId]);
+
+  const athleteName = resolvedName || athleteConsent.athleteId || 'Athlete';
 
   const { granted, total } = consentService.getConsentCount(athleteConsent);
   const percentage = consentService.getConsentPercentage(athleteConsent);
@@ -119,6 +134,24 @@ export function ConsentCard({ athleteConsent, onPress, showDetails = false }: Co
                         by {consent.grantedBy}
                       </ThemedText>
                     )}
+                    {consent.expiryAt && (
+                      <ThemedText
+                        style={[
+                          styles.detailMeta,
+                          {
+                            color: new Date(consent.expiryAt) <= new Date()
+                              ? palette.error
+                              : new Date(consent.expiryAt).getTime() - Date.now() < 30 * 24 * 60 * 60 * 1000
+                                ? palette.warning
+                                : palette.muted,
+                          },
+                        ]}
+                      >
+                        {new Date(consent.expiryAt) <= new Date()
+                          ? 'Expired'
+                          : `Expires ${new Date(consent.expiryAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}`}
+                      </ThemedText>
+                    )}
                   </>
                 ) : (
                   <ThemedText style={[styles.detailValue, { color: palette.muted }]}>
@@ -184,7 +217,7 @@ const styles = StyleSheet.create({
   contentBadge: {
     alignItems: 'center',
     gap: Spacing.xxs,
-    paddingHorizontal: 8,
+    paddingHorizontal: Spacing.xs,
     paddingVertical: Spacing.xxs,
     borderRadius: Radii.sm,
   },

@@ -26,6 +26,17 @@
 **Blockers**: [any, or "none"]
 ```
 
+## Sprint Auto-Continue
+
+When the user says **"continue"** (or "next", "go", "keep going"):
+
+1. Read `docs/newsprints/DONE.md` — find the first row where Status is `—` (not started)
+2. That's the next sprint. Read the matching prompt from `docs/newsprints/RUN.md`
+3. Read the sprint `.md` file referenced in the prompt
+4. Execute: **Implement all fixes → TSC → Spawn review agent → Fix flagged issues → TSC again → Update DONE.md row**
+5. Update `memory/LastStep.md` with what you just completed and what's next
+6. Tell the user: what sprint you ran, how many fixes landed, pass/fail, and what's next
+
 ## Architecture Rules (violations = FAILs)
 
 1. **Storage**: All data through `apiClient` — NEVER import AsyncStorage directly

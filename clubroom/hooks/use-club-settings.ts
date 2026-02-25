@@ -188,7 +188,7 @@ export function useClubSettings() {
         return;
       }
       const prefix = club?.name.slice(0, 4).toUpperCase() || 'CLUB';
-      const suffix = Math.random().toString(36).substring(2, 6).toUpperCase();
+      const suffix = crypto.randomUUID().slice(0, 4).toUpperCase();
       const newCode = `${prefix}-${suffix}`;
       setInviteCodes((prev) => [
         ...prev,
@@ -259,23 +259,38 @@ export function useClubSettings() {
       showToast('Only club admins can delete a club', 'error');
       return;
     }
+    const clubName = club?.name || 'this club';
     Alert.alert(
       'Delete Club',
-      'This will permanently delete the club and remove all members. This action cannot be undone.',
+      `This will permanently delete "${clubName}" and all associated data:\n\n• All members will be removed\n• Training schedules deleted\n• Posts and events removed\n• This cannot be undone\n\nAre you sure?`,
       [
         { text: 'Cancel', style: 'cancel' },
         {
-          text: 'Delete',
+          text: 'Continue',
           style: 'destructive',
           onPress: () => {
-            logger.action('DeleteClub', { clubId });
-            showToast('Club deleted', 'success');
-            router.replace(Routes.CLUB_HUB);
+            // Second confirmation
+            Alert.alert(
+              'Final Confirmation',
+              `Type DELETE in your head and confirm: permanently delete "${clubName}"?`,
+              [
+                { text: 'Back', style: 'cancel' },
+                {
+                  text: 'Delete Forever',
+                  style: 'destructive',
+                  onPress: () => {
+                    logger.action('DeleteClub', { clubId });
+                    showToast('Club deleted', 'success');
+                    router.replace(Routes.CLUB_HUB);
+                  },
+                },
+              ],
+            );
           },
         },
       ],
     );
-  }, [canManageClub, clubId, showToast]);
+  }, [canManageClub, club?.name, clubId, showToast]);
 
   const handleDeleteCode = useCallback(
     (code: string) => {
@@ -301,7 +316,7 @@ export function useClubSettings() {
 
               // Keep a primary code available if the default is deleted.
               if (remaining.length === 0) {
-                const fallbackCode = `${club?.name.slice(0, 4).toUpperCase() || 'CLUB'}-${Math.random().toString(36).slice(2, 6).toUpperCase()}`;
+                const fallbackCode = `${club?.name.slice(0, 4).toUpperCase() || 'CLUB'}-${crypto.randomUUID().slice(0, 4).toUpperCase()}`;
                 return [
                   {
                     code: fallbackCode,
