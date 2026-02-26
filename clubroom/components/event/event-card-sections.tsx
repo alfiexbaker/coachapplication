@@ -5,8 +5,8 @@
  * FullEventCardContent — full card with image, badges, details, footer.
  */
 
-import React, { memo } from 'react';
-import { View } from 'react-native';
+import React, { memo, useCallback, useState } from 'react';
+import { Alert, View } from 'react-native';
 import { Image } from 'expo-image';
 import { Ionicons } from '@expo/vector-icons';
 
@@ -17,8 +17,55 @@ import type { ClubEvent } from '@/constants/types';
 import type { ThemeColors } from '@/hooks/useTheme';
 import { eventService } from '@/services/event-service';
 import { Row } from '@/components/primitives';
+import { Clickable } from '@/components/primitives/clickable';
 import { formatEventDate } from './event-card-helpers';
 import { styles } from './event-card-styles';
+
+function ExpandableVenueText({
+  venue,
+  palette,
+  lines = 1,
+  showIcon = true,
+}: {
+  venue: string;
+  palette: ThemeColors;
+  lines?: number;
+  showIcon?: boolean;
+}) {
+  const [expanded, setExpanded] = useState(false);
+  const isLong = venue.trim().length > 50;
+  const handleLongPress = useCallback(() => {
+    if (isLong) {
+      Alert.alert('Venue', venue);
+    }
+  }, [isLong, venue]);
+
+  return (
+    <View style={{ flex: 1 }}>
+      <Clickable onLongPress={handleLongPress} disabled={false}>
+        <Row style={styles.compactDetailItem}>
+          {showIcon ? <Ionicons name="location-outline" size={14} color={palette.muted} /> : null}
+          <ThemedText
+            style={[styles.compactDetailText, { color: palette.muted, flex: 1 }]}
+            numberOfLines={expanded ? undefined : lines}
+          >
+            {venue}
+          </ThemedText>
+          {isLong && !expanded ? (
+            <Ionicons name="information-circle-outline" size={14} color={palette.muted} />
+          ) : null}
+        </Row>
+      </Clickable>
+      {isLong && (
+        <Clickable onPress={() => setExpanded((prev) => !prev)}>
+          <ThemedText style={[styles.compactDetailText, { color: palette.tint }]}>
+            {expanded ? 'Show less' : 'Show more'}
+          </ThemedText>
+        </Clickable>
+      )}
+    </View>
+  );
+}
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
@@ -56,15 +103,7 @@ export const CompactEventCard = memo(function CompactEventCard({
               {formatEventDate(event.date)} at {event.startTime}
             </ThemedText>
           </Row>
-          <Row style={styles.compactDetailItem}>
-            <Ionicons name="location-outline" size={14} color={palette.muted} />
-            <ThemedText
-              style={[styles.compactDetailText, { color: palette.muted }]}
-              numberOfLines={1}
-            >
-              {event.venue}
-            </ThemedText>
-          </Row>
+          <ExpandableVenueText venue={event.venue} palette={palette} lines={1} />
         </View>
       </View>
       <Ionicons name="chevron-forward" size={20} color={palette.muted} />
@@ -141,9 +180,7 @@ export const FullEventCardContent = memo(function FullEventCardContent({
           </Row>
           <Row style={styles.detailRow}>
             <Ionicons name="location-outline" size={16} color={palette.icon} />
-            <ThemedText style={styles.detailText} numberOfLines={1}>
-              {event.venue}
-            </ThemedText>
+            <ExpandableVenueText venue={event.venue} palette={palette} lines={1} showIcon={false} />
           </Row>
         </View>
 

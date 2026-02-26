@@ -12,6 +12,8 @@ import { View, StyleSheet, Platform } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import Animated, { FadeIn, FadeOut } from 'react-native-reanimated';
+import { router } from 'expo-router';
+import { Routes } from '@/navigation/routes';
 
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { ThemedText } from '@/components/themed-text';
@@ -53,6 +55,35 @@ export const SeriesBookingGroup = memo(function SeriesBookingGroup({
     (a, b) => new Date(a.start).getTime() - new Date(b.start).getTime(),
   );
 
+  if (sorted.length === 0) {
+    return (
+      <SurfaceCard style={styles.card}>
+        <Row gap="sm" align="center">
+          <View style={[styles.seriesBadge, { backgroundColor: withAlpha(palette.muted, 0.08) }]}>
+            <Ionicons name="calendar-outline" size={18} color={palette.muted} />
+          </View>
+          <View style={styles.headerText}>
+            <ThemedText type="defaultSemiBold">No sessions scheduled</ThemedText>
+            <ThemedText style={[Typography.small, { color: palette.muted }]}>
+              This series has no bookings yet.
+            </ThemedText>
+          </View>
+        </Row>
+        <SurfaceCard
+          style={[styles.emptyActionCard, { backgroundColor: withAlpha(palette.tint, 0.03) }]}
+          onPress={() => router.push(Routes.DISCOVER_MAP)}
+        >
+          <Row align="center" justify="space-between">
+            <ThemedText style={[Typography.smallSemiBold, { color: palette.tint }]}>
+              Find other coaches
+            </ThemedText>
+            <Ionicons name="chevron-forward" size={16} color={palette.tint} />
+          </Row>
+        </SurfaceCard>
+      </SurfaceCard>
+    );
+  }
+
   const totalWeeks = sorted.length;
   const completedCount = sorted.filter((b) => b.status === 'Completed').length;
   const cancelledCount = sorted.filter((b) => b.status === 'Cancelled').length;
@@ -68,7 +99,11 @@ export const SeriesBookingGroup = memo(function SeriesBookingGroup({
         const loc = nextBooking.locationLabel ? ` @ ${nextBooking.locationLabel}` : '';
         return `Next: ${day} ${time}${loc}`;
       })()
-    : 'All sessions complete';
+    : cancelledCount === totalWeeks
+      ? 'Series cancelled'
+      : completedCount === totalWeeks
+        ? 'Series complete'
+        : `Series ended: ${completedCount} completed, ${cancelledCount} cancelled`;
 
   return (
     <SurfaceCard style={styles.card} onPress={toggleExpanded}>
@@ -143,4 +178,9 @@ const styles = StyleSheet.create({
   progressTrack: { height: 4, borderRadius: Radii.xs, overflow: 'hidden' },
   progressFill: { height: '100%', borderRadius: Radii.xs },
   expandedContent: { gap: 0 },
+  emptyActionCard: {
+    marginTop: Spacing.xs,
+    paddingVertical: Spacing.sm,
+    paddingHorizontal: Spacing.sm,
+  },
 });

@@ -12,6 +12,29 @@ import { matchService } from '@/services/match-service';
 import type { Match } from '@/constants/types';
 import { getMatchSquadLabel } from '@/utils/match-display';
 
+function getResultSummary(match: Match, colors: ReturnType<typeof useTheme>['colors']) {
+  if (!match.result) return null;
+  const ourScore = match.isHome ? match.result.home : match.result.away;
+  const theirScore = match.isHome ? match.result.away : match.result.home;
+
+  let outcome = 'Draw';
+  let color = colors.warning;
+  if (ourScore > theirScore) {
+    outcome = 'Won';
+    color = colors.success;
+  } else if (ourScore < theirScore) {
+    outcome = 'Lost';
+    color = colors.error;
+  }
+
+  return {
+    outcome,
+    color,
+    score: `${ourScore} - ${theirScore}`,
+    detail: `vs ${match.opponent} (${match.isHome ? 'home' : 'away'})`,
+  };
+}
+
 interface MatchHeaderCardProps {
   match: Match;
   isUpcoming: boolean;
@@ -25,6 +48,7 @@ export const MatchHeaderCard = memo(function MatchHeaderCard({
   const squadLabel = getMatchSquadLabel(match);
   const typeColor = matchService.getMatchTypeColor(match.matchType, colors);
   const statusColor = matchService.getStatusColor(match.status);
+  const resultSummary = getResultSummary(match, colors);
   const matchDate = new Date(match.date);
   const dateLabel = matchDate.toLocaleDateString('en-GB', {
     weekday: 'long',
@@ -70,16 +94,30 @@ export const MatchHeaderCard = memo(function MatchHeaderCard({
       {match.result && (
         <View style={styles.resultContainer}>
           <View style={[styles.resultBox, { backgroundColor: colors.surface }]}>
-            <ThemedText style={Typography.display}>
-              {match.isHome
-                ? `${match.result.home} - ${match.result.away}`
-                : `${match.result.away} - ${match.result.home}`}
-            </ThemedText>
+            {resultSummary && (
+              <ThemedText
+                style={[Typography.caption, { color: resultSummary.color, textTransform: 'uppercase' }]}
+              >
+                {resultSummary.outcome}
+              </ThemedText>
+            )}
+            <ThemedText style={Typography.display}>{resultSummary?.score}</ThemedText>
             <ThemedText
               style={[Typography.caption, { color: colors.muted, marginTop: Spacing.xxs }]}
             >
-              Final Score
+              {resultSummary?.detail ?? 'Final Score'}
             </ThemedText>
+            <ThemedText style={[Typography.micro, { color: colors.muted, marginTop: Spacing.micro }]}>
+              Our score shown first
+            </ThemedText>
+            <Row gap="md" style={{ marginTop: Spacing.xs }}>
+              <ThemedText style={[Typography.caption, { color: colors.muted }]}>
+                Home: {match.result.home}
+              </ThemedText>
+              <ThemedText style={[Typography.caption, { color: colors.muted }]}>
+                Away: {match.result.away}
+              </ThemedText>
+            </Row>
           </View>
         </View>
       )}

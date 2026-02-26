@@ -18,6 +18,16 @@ import { DeadlineBadge } from '@/components/group/deadline-badge';
 import { SessionChildBadge } from '@/components/group/session-child-badge';
 import type { SessionBadgeData } from '@/types/session-child-status';
 
+function formatAgeRange(ageMin?: number, ageMax?: number): string {
+  const min = typeof ageMin === 'number' && ageMin > 0 ? ageMin : undefined;
+  const max = typeof ageMax === 'number' && ageMax > 0 ? ageMax : undefined;
+  if (!min && !max) return 'All ages';
+  if (min && !max) return `${min}+ years`;
+  if (!min && max) return `Up to ${max} years`;
+  if (min === max) return `Age ${min}`;
+  return `Ages ${min}-${max}`;
+}
+
 interface GroupSessionCardProps {
   session: GroupSession;
   index: number;
@@ -127,14 +137,12 @@ export const GroupSessionCard = memo(function GroupSessionCard({
                 {session.location}
               </ThemedText>
             </Row>
-            {(session.ageMin || session.ageMax) && (
-              <Row gap="xxs" align="center">
-                <Ionicons name="people-outline" size={14} color={colors.muted} />
-                <ThemedText style={[Typography.caption, { color: colors.muted }]}>
-                  Ages {session.ageMin || 'Any'}-{session.ageMax || 'Any'}
-                </ThemedText>
-              </Row>
-            )}
+            <Row gap="xxs" align="center">
+              <Ionicons name="people-outline" size={14} color={colors.muted} />
+              <ThemedText style={[Typography.caption, { color: colors.muted }]}>
+                {formatAgeRange(session.ageMin, session.ageMax)}
+              </ThemedText>
+            </Row>
           </View>
 
           <Row align="center" justify="space-between" style={{ marginTop: Spacing.xxs }}>

@@ -9,6 +9,7 @@ import { useTheme } from '@/hooks/useTheme';
 
 import { ReasonsBreakdown, DayOfWeekBreakdown, NoticeFooter } from './cancellation-chart-sections';
 import { Row } from '@/components/primitives';
+import { EmptyState } from '@/components/ui/empty-state';
 
 // Re-export extracted components for backward compat
 export {
@@ -40,6 +41,9 @@ export function CancellationChart({
   currencySymbol = '\u00A3',
 }: CancellationChartProps) {
   const { colors: palette } = useTheme();
+  const safeRate = Number.isFinite(stats.cancellationRate)
+    ? Math.max(0, stats.cancellationRate)
+    : 0;
 
   const getCancellationRateColor = (rate: number): string => {
     if (rate <= 5) return palette.success;
@@ -47,8 +51,13 @@ export function CancellationChart({
     return palette.error;
   };
 
-  const rateColor = getCancellationRateColor(stats.cancellationRate);
+  const rateColor = getCancellationRateColor(safeRate);
   const maxReasonCount = Math.max(...stats.byReason.map((r) => r.count), 1);
+  const hasNoData =
+    stats.totalCancellations === 0 &&
+    stats.byReason.length === 0 &&
+    stats.byDayOfWeek.length === 0 &&
+    safeRate === 0;
 
   return (
     <SurfaceCard style={styles.card} loading={loading} onPress={onPress} tactile={!!onPress}>
@@ -59,11 +68,19 @@ export function CancellationChart({
         </Row>
       </View>
 
+      {hasNoData ? (
+        <EmptyState
+          context="bookings"
+          title="No cancellation data"
+          message="Cancellation analytics will appear once bookings are cancelled."
+        />
+      ) : (
+        <>
       {/* Summary stats */}
       <Row style={styles.summaryRow}>
         <View style={styles.summaryItem}>
           <ThemedText style={[styles.summaryValue, { color: rateColor }]}>
-            {stats.cancellationRate.toFixed(1)}%
+            {safeRate.toFixed(1)}%
           </ThemedText>
           <ThemedText style={[styles.summaryLabel, { color: palette.muted }]}>
             Cancel Rate
@@ -93,6 +110,8 @@ export function CancellationChart({
       <DayOfWeekBreakdown byDayOfWeek={stats.byDayOfWeek} palette={palette} />
 
       <NoticeFooter avgNoticeHours={stats.avgNoticeHours} palette={palette} />
+        </>
+      )}
     </SurfaceCard>
   );
 }

@@ -30,16 +30,21 @@ export const StatsRow = memo(function StatsRow({
     {
       icon: 'calendar' as const,
       color: palette.tint,
-      value: String(stats.sessions),
+      value: String(stats.sessions ?? 0),
       label: 'Sessions',
     },
     {
       icon: 'ribbon' as const,
       color: palette.warning,
-      value: String(stats.badges),
+      value: String(stats.badges ?? 0),
       label: 'Badges',
     },
-    { icon: 'trophy' as const, color: palette.success, value: String(stats.level), label: 'Level' },
+    {
+      icon: 'trophy' as const,
+      color: palette.success,
+      value: String(stats.level ?? 0),
+      label: 'Level',
+    },
   ];
   return (
     <Row

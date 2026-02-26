@@ -1,4 +1,4 @@
-import { memo } from 'react';
+import { memo, useCallback, useEffect, useState } from 'react';
 import { View, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
@@ -11,6 +11,7 @@ import { Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
 import { Invoice } from '@/constants/types';
 import { invoiceService } from '@/services/invoice-service';
+import { userService } from '@/services/user-service';
 
 import { getStatusIcon, formatDate, CompactInvoiceRow, getInvoiceStatusColor } from './invoice-card-sections';
 
@@ -30,14 +31,66 @@ interface InvoiceCardProps {
   onPress?: () => void;
 }
 
+const userNameCache = new Map<string, string>();
+
+function getCachedUserLabel(id?: string, fallback = 'Unknown User'): string {
+  if (!id) return fallback;
+  return userNameCache.get(id) ?? 'Loading...';
+}
+
 export const InvoiceCard = memo(function InvoiceCard({ invoice, compact = false, onPress }: InvoiceCardProps) {
   const { colors: palette } = useTheme();
   const statusColor = getInvoiceStatusColor(invoice.status, palette);
+  const [athleteName, setAthleteName] = useState(() =>
+    getCachedUserLabel(invoice.athleteId, 'Athlete'),
+  );
+  const [coachName, setCoachName] = useState(() => getCachedUserLabel(invoice.coachId, 'Coach'));
 
-  const handlePress = () => {
+  useEffect(() => {
+    let cancelled = false;
+
+    const loadUserName = async (
+      userId: string | undefined,
+      fallback: string,
+      setName: (name: string) => void,
+    ) => {
+      if (!userId) {
+        setName(fallback);
+        return;
+      }
+
+      const cached = userNameCache.get(userId);
+      if (cached) {
+        setName(cached);
+        return;
+      }
+
+      setName('Loading...');
+      const result = await userService.getUserById(userId);
+      if (cancelled) return;
+
+      if (result.success) {
+        userNameCache.set(userId, result.data.name);
+        setName(result.data.name);
+      } else {
+        setName(fallback);
+      }
+    };
+
+    void Promise.all([
+      loadUserName(invoice.athleteId, 'Unknown Athlete', setAthleteName),
+      loadUserName(invoice.coachId, 'Unknown Coach', setCoachName),
+    ]);
+
+    return () => {
+      cancelled = true;
+    };
+  }, [invoice.athleteId, invoice.coachId]);
+
+  const handlePress = useCallback(() => {
     if (onPress) onPress();
     else router.push(Routes.invoice(invoice.id));
-  };
+  }, [invoice.id, onPress]);
 
   if (compact) {
     return <CompactInvoiceRow invoice={invoice} onPress={handlePress} palette={palette} />;
@@ -69,7 +122,7 @@ export const InvoiceCard = memo(function InvoiceCard({ invoice, compact = false,
       <View style={styles.details}>
         <Row align="center" gap="xs">
           <Ionicons name="person-outline" size={16} color={palette.muted} />
-          <ThemedText style={styles.detailText}>{invoice.athleteId || 'Athlete'}</ThemedText>
+          <ThemedText style={styles.detailText}>{athleteName}</ThemedText>
         </Row>
         <Row align="center" gap="xs">
           <Ionicons name="fitness-outline" size={16} color={palette.muted} />
@@ -89,7 +142,7 @@ export const InvoiceCard = memo(function InvoiceCard({ invoice, compact = false,
         style={[styles.coachRow, { borderTopColor: palette.border }]}
       >
         <ThemedText style={[styles.coachLabel, { color: palette.muted }]}>Coach</ThemedText>
-        <ThemedText type="defaultSemiBold">{invoice.coachId || 'Coach'}</ThemedText>
+        <ThemedText type="defaultSemiBold">{coachName}</ThemedText>
       </Row>
 
       {invoice.status === 'SENT' && invoice.dueDate && (

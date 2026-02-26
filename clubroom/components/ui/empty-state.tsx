@@ -9,25 +9,56 @@ import { useTheme } from '@/hooks/useTheme';
 
 type EmptyStateProps = {
   icon?: string;
+  context?:
+    | 'bookings'
+    | 'sessions'
+    | 'events'
+    | 'messages'
+    | 'goals'
+    | 'badges'
+    | 'roster'
+    | 'invoices'
+    | 'search'
+    | 'network'
+    | 'error';
   title: string;
   message: string;
   actionLabel?: string;
   onPressAction?: () => void;
 };
 
+const DEFAULT_ICON_BY_CONTEXT: Record<NonNullable<EmptyStateProps['context']>, keyof typeof Ionicons.glyphMap> = {
+  bookings: 'calendar-clear-outline',
+  sessions: 'football-outline',
+  events: 'calendar-outline',
+  messages: 'chatbubble-ellipses-outline',
+  goals: 'flag-outline',
+  badges: 'ribbon-outline',
+  roster: 'people-outline',
+  invoices: 'receipt-outline',
+  search: 'search-outline',
+  network: 'cloud-offline-outline',
+  error: 'alert-circle-outline',
+};
+
 export function EmptyState({
-  icon = 'information-circle',
+  icon,
+  context,
   title,
   message,
   actionLabel,
   onPressAction,
 }: EmptyStateProps) {
   const { colors: palette, scheme } = useTheme();
+  const resolvedIcon =
+    (icon as keyof typeof Ionicons.glyphMap | undefined) ??
+    (context ? DEFAULT_ICON_BY_CONTEXT[context] : undefined) ??
+    'information-circle-outline';
 
   return (
     <View style={styles.container}>
       <View style={[styles.iconContainer, { backgroundColor: withAlpha(palette.border, 0.19) }]}>
-        <Ionicons name={icon as keyof typeof Ionicons.glyphMap} size={24} color={palette.icon} />
+        <Ionicons name={resolvedIcon} size={24} color={palette.icon} />
       </View>
       <ThemedText type="subtitle" style={styles.title}>
         {title}

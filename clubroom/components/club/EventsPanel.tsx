@@ -1,4 +1,4 @@
-import { StyleSheet, View } from 'react-native';
+import { Alert, StyleSheet, View } from 'react-native';
 import { Clickable } from '@/components/primitives/clickable';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
@@ -87,10 +87,6 @@ export function EventsPanel({ events, isCoach, clubId, onCreateEvent }: EventsPa
   // Filter only event-type posts
   const eventPosts = events.filter((post) => post.postType === 'event');
 
-  if (eventPosts.length === 0 && !isCoach) {
-    return null;
-  }
-
   return (
     <SurfaceCard style={styles.eventsCard}>
       <Row style={styles.eventsSectionHeader}>
@@ -127,15 +123,38 @@ export function EventsPanel({ events, isCoach, clubId, onCreateEvent }: EventsPa
         <View style={styles.emptyEvents}>
           <Ionicons name="calendar-outline" size={32} color={palette.muted} />
           <ThemedText style={{ ...Typography.small, color: palette.muted, textAlign: 'center' }}>
-            No upcoming events
+            {isCoach
+              ? 'No upcoming events. Create one to bring members together.'
+              : 'No upcoming events yet. Check back soon for club activities.'}
           </ThemedText>
-          {isCoach && (
+          {isCoach ? (
             <Clickable
               style={[styles.createEventButton, { borderColor: palette.tint }]}
               onPress={handleCreateEvent}
             >
               <ThemedText style={{ color: palette.tint, ...Typography.smallSemiBold }}>
                 Create Event
+              </ThemedText>
+            </Clickable>
+          ) : (
+            <Clickable
+              style={[styles.createEventButton, { borderColor: palette.border }]}
+              onPress={() => {
+                Alert.alert(
+                  'Suggest an event',
+                  'Open the club feed and post your event idea for coaches/admins to review.',
+                  [
+                    { text: 'Cancel', style: 'cancel' },
+                    {
+                      text: 'Open Club Feed',
+                      onPress: () => router.push(Routes.modalCreateClubPost({ clubId, audience: 'club' })),
+                    },
+                  ],
+                );
+              }}
+            >
+              <ThemedText style={{ color: palette.tint, ...Typography.smallSemiBold }}>
+                Suggest an Event
               </ThemedText>
             </Clickable>
           )}
@@ -208,7 +227,8 @@ const styles = StyleSheet.create({
     marginTop: Spacing.xs,
   },
 });
-  const handleEventPress = (eventId?: string) => {
-    if (!eventId) return;
-    router.push(Routes.event(eventId));
-  };
+
+const handleEventPress = (eventId?: string) => {
+  if (!eventId) return;
+  router.push(Routes.event(eventId));
+};

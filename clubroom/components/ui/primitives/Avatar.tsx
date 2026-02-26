@@ -11,7 +11,7 @@
  *   <Avatar uri={imageUrl} size="xl" />
  */
 
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import { Image } from 'expo-image';
 
@@ -90,6 +90,8 @@ const INDICATOR_BORDER_MAP: Record<AvatarSize, number> = {
 function AvatarInner({ uri, name, size = 'md', online }: AvatarProps) {
   const { colors } = useTheme();
   const [hasError, setHasError] = useState(false);
+  const [retryCount, setRetryCount] = useState(0);
+  const retryTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const dimension = DIMENSION_MAP[size];
   const fontConfig = FONT_MAP[size];
   const indicatorSize = INDICATOR_SIZE_MAP[size];
@@ -97,6 +99,24 @@ function AvatarInner({ uri, name, size = 'md', online }: AvatarProps) {
 
   const showImage = uri && !hasError;
   const initials = name ? getInitials(name) : '?';
+
+  useEffect(() => {
+    if (retryTimeoutRef.current) {
+      clearTimeout(retryTimeoutRef.current);
+      retryTimeoutRef.current = null;
+    }
+    setHasError(false);
+    setRetryCount(0);
+  }, [uri]);
+
+  useEffect(() => {
+    return () => {
+      if (retryTimeoutRef.current) {
+        clearTimeout(retryTimeoutRef.current);
+        retryTimeoutRef.current = null;
+      }
+    };
+  }, []);
 
   const themedStyles = useMemo(
     () => ({
@@ -110,11 +130,29 @@ function AvatarInner({ uri, name, size = 'md', online }: AvatarProps) {
     [colors],
   );
 
+  const handleImageError = () => {
+    if (!uri) {
+      setHasError(true);
+      return;
+    }
+
+    if (retryCount >= 2) {
+      setHasError(true);
+      return;
+    }
+
+    const nextRetry = retryCount + 1;
+    retryTimeoutRef.current = setTimeout(() => {
+      setRetryCount(nextRetry);
+      retryTimeoutRef.current = null;
+    }, nextRetry * 1000);
+  };
+
   return (
     <View style={[styles.wrapper, { width: dimension, height: dimension }]}>
       {showImage ? (
         <Image
-          source={{ uri }}
+          source={{ uri: retryCount > 0 ? `${uri}${uri.includes('?') ? '&' : '?'}retry=${retryCount}` : uri }}
           style={[
             themedStyles.image,
             {
@@ -123,7 +161,7 @@ function AvatarInner({ uri, name, size = 'md', online }: AvatarProps) {
               borderRadius: dimension / 2,
             },
           ]}
-          onError={() => setHasError(true)}
+          onError={handleImageError}
         />
       ) : (
         <View

@@ -96,10 +96,23 @@ export const LocationCard = memo(function LocationCard({ locationLabel }: Locati
           <Ionicons name="navigate" size={20} color={palette.tint} />
         </Clickable>
       </Row>
-      <View style={[styles.mapPreview, { backgroundColor: palette.border }]}>
-        <Ionicons name="map" size={32} color={palette.muted} />
-        <ThemedText style={styles.mapText}>Map preview</ThemedText>
-      </View>
+      <Clickable
+        style={[
+          styles.mapPreview,
+          {
+            backgroundColor: withAlpha(palette.tint, 0.04),
+            borderColor: withAlpha(palette.tint, 0.12),
+          },
+        ]}
+        onPress={handleOpenMap}
+        accessibilityLabel="Open directions in maps"
+      >
+        <View style={[styles.mapGrid, { borderColor: withAlpha(palette.border, 0.8) }]} />
+        <View style={[styles.mapPin, { backgroundColor: palette.tint }]}>
+          <Ionicons name="location" size={18} color={palette.onPrimary} />
+        </View>
+        <ThemedText style={[styles.mapText, { color: palette.muted }]}>Tap for directions</ThemedText>
+      </Clickable>
     </SurfaceCard>
   );
 });
@@ -256,8 +269,25 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     gap: Spacing.xs,
+    borderWidth: 1,
+    overflow: 'hidden',
   },
-  mapText: { ...Typography.caption, opacity: 0.5 },
+  mapGrid: {
+    ...StyleSheet.absoluteFillObject,
+    opacity: 0.35,
+    borderWidth: 1,
+    borderStyle: 'dashed',
+    margin: Spacing.sm,
+    borderRadius: Radii.sm,
+  },
+  mapPin: {
+    width: 36,
+    height: 36,
+    borderRadius: Radii.xl,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  mapText: { ...Typography.caption },
   avatar: { width: 48, height: 48, borderRadius: Radii.xl },
   ratingText: { ...Typography.caption, opacity: 0.6 },
   actionIconButton: {
