@@ -22,11 +22,13 @@ export const PaymentMethodCard = React.memo(function PaymentMethodCard({
 }: PaymentMethodCardProps) {
   return (
     <View style={[styles.card, { borderColor: colors.border }]}>
-      <ThemedText type="defaultSemiBold">Payment method</ThemedText>
+      <ThemedText type="defaultSemiBold">Payment arrangement</ThemedText>
       <ThemedText style={{ color: colors.muted }}>{paymentMethod}</ThemedText>
       {onChange ? (
-        <Clickable onPress={onChange} accessibilityLabel="Change payment method">
-          <ThemedText style={{ color: colors.tint, fontWeight: '700' }}>Change</ThemedText>
+        <Clickable onPress={onChange} accessibilityLabel="Change payment arrangement">
+          <ThemedText style={{ color: colors.tint, fontWeight: '700' }}>
+            Change
+          </ThemedText>
         </Clickable>
       ) : null}
     </View>

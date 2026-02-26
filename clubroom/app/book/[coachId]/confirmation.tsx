@@ -173,8 +173,9 @@ export default function ConfirmationScreen() {
         <View style={{ gap: Spacing.sm }}>
           <ThemedText type="defaultSemiBold">{"What's next"}</ThemedText>
           <ThemedText style={{ color: palette.muted }}>
-            We emailed a confirmation. You can message your coach anytime or add this to your
-            calendar.
+            Your booking request is in. Once your coach confirms, payment is made directly to the
+            coach (outside the app) using the details they share. You can message your coach anytime
+            or add this to your calendar.
           </ThemedText>
         </View>
 

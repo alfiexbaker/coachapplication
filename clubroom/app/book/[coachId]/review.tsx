@@ -251,7 +251,7 @@ export default function ReviewScreen() {
         >
           <Row justify="center" align="center" gap="sm">
             <Ionicons
-              name={promoApplied ? 'checkmark-circle' : 'card-outline'}
+              name={promoApplied ? 'checkmark-circle' : 'receipt-outline'}
               size={18}
               color={palette.onPrimary}
             />
