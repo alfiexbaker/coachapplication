@@ -117,6 +117,18 @@ export function useEventRSVP(id: string | undefined): UseEventRSVPResult {
   const handleSubmit = useCallback(async () => {
     if (!event || !currentUser || !selectedStatus) return;
 
+    if (selectedStatus === 'GOING' && event.maxAttendees) {
+      const { going, totalGuests } = eventService.getAttendeeCounts(event.attendees);
+      const existingFootprint =
+        currentRSVP?.status === 'GOING' ? 1 + (currentRSVP.guestCount ?? 0) : 0;
+      const nextFootprint = 1 + guestCount;
+      const occupiedExcludingCurrent = going + totalGuests - existingFootprint;
+      if (occupiedExcludingCurrent + nextFootprint > event.maxAttendees) {
+        Alert.alert('Event Full', 'This event is now full. Please choose Maybe or Can’t Go.');
+        return;
+      }
+    }
+
     setSubmitting(true);
     try {
       await eventService.submitRSVP({
@@ -135,11 +147,15 @@ export function useEventRSVP(id: string | undefined): UseEventRSVPResult {
       );
     } catch (error) {
       logger.error('Failed to submit RSVP:', error);
-      Alert.alert('Error', 'Failed to save your response. Please try again.');
+      const message =
+        error instanceof Error && /maximum capacity|event has reached maximum capacity/i.test(error.message)
+          ? 'This event is full. Please update your RSVP without selecting Going.'
+          : 'Failed to save your response. Please try again.';
+      Alert.alert('Error', message);
     } finally {
       setSubmitting(false);
     }
-  }, [event, currentUser, selectedStatus, guestCount, note, isCoach]);
+  }, [event, currentUser, selectedStatus, guestCount, note, isCoach, currentRSVP]);
 
   const handleSendReminder = useCallback(async () => {
     if (!event || !isCoach) return;

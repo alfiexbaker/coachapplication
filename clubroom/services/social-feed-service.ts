@@ -656,11 +656,39 @@ class ClubFeedService {
     postId: string,
     authorId: string,
   ): Promise<void> {
-    const members = MOCK_CLUB_MEMBERS[clubId] || [];
+    const legacyMembers = MOCK_CLUB_MEMBERS[clubId] || [];
+    const activeMembershipRecipients = membershipsStore
+      .filter((membership) => membership.clubId === clubId && membership.status === 'active')
+      .map((membership) => membership.userId);
 
-    for (const memberId of members) {
-      if (memberId === authorId) continue;
+    const recipientCandidates = Array.from(new Set([...legacyMembers, ...activeMembershipRecipients]));
+    const recipients = recipientCandidates.filter((memberId) => {
+      if (memberId === authorId) return false;
+      const membership = membershipsStore.find(
+        (entry) => entry.clubId === clubId && entry.userId === memberId,
+      );
+      // If we have membership data, require active membership. If not, allow legacy seed recipients.
+      return membership ? membership.status === 'active' : true;
+    });
 
+    const excludedInactive = recipientCandidates.filter((memberId) => {
+      const membership = membershipsStore.find(
+        (entry) => entry.clubId === clubId && entry.userId === memberId,
+      );
+      return memberId !== authorId && membership ? membership.status !== 'active' : false;
+    });
+
+    this.logger.info('club_post_notification_recipients', {
+      clubId,
+      postId,
+      totalCandidates: recipientCandidates.length,
+      activeRecipients: recipients.length,
+      excludedAuthor: recipientCandidates.includes(authorId),
+      excludedInactive: excludedInactive.length,
+      note: 'Notification preferences/mutes are enforced by notification sender service',
+    });
+
+    for (const memberId of recipients) {
       await notificationService.notifyParentClubPost({
         parentId: memberId,
         clubName,
@@ -726,6 +754,20 @@ class ClubFeedService {
 
   getMembership(userId: string, clubId: string): ClubMembership | undefined {
     return getAllClubMembershipsForUser(userId).find((membership) => membership.clubId === clubId);
+  }
+
+  leaveClub(userId: string, clubId: string): boolean {
+    const membershipIndex = membershipsStore.findIndex(
+      (entry) => entry.userId === userId && entry.clubId === clubId && entry.status === 'active',
+    );
+    if (membershipIndex === -1) {
+      this.logger.warn('leave_club_membership_not_found', { userId, clubId });
+      return false;
+    }
+    membershipsStore.splice(membershipIndex, 1);
+    emitTyped(ServiceEvents.CLUB_MEMBER_LEFT, { clubId, userId });
+    this.logger.info('club_membership_left', { userId, clubId });
+    return true;
   }
 
   addPost(input: {

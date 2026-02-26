@@ -111,9 +111,9 @@ export interface ClubHubState {
   loadAllData: () => Promise<void>;
   onRefresh: () => void;
   handlePinToggle: (postId: string) => void;
-  handleLikePost: (postId: string) => void;
-  handleCommentPost: (postId: string) => void;
-  handleSharePost: (postId: string) => void;
+  handleLikePost: (postId: string) => Promise<void>;
+  handleCommentPost: (postId: string) => Promise<void>;
+  handleSharePost: (postId: string) => Promise<void>;
   handleJoinWithCode: (code: string) => void;
   handleLeaveClub: () => void;
   handleRemoveMember: (member: ClubMember) => void;
@@ -379,7 +379,7 @@ export function useClubHub(): ClubHubState {
   );
 
   const handleLikePost = useCallback(
-    (postId: string) => {
+    async (postId: string) => {
       if (!currentUser) return;
       socialFeedService.toggleReaction(postId, currentUser.id);
       loadFeed();
@@ -387,16 +387,16 @@ export function useClubHub(): ClubHubState {
     [currentUser, loadFeed],
   );
 
-  const handleCommentPost = useCallback((postId: string) => {
+  const handleCommentPost = useCallback(async (postId: string) => {
     router.push(Routes.modalPostDetail(postId));
   }, []);
 
   const handleSharePost = useCallback(
-    (postId: string) => {
+    async (postId: string) => {
       const post = feed.find((candidate) => candidate.id === postId);
       if (!post) return;
 
-      void Share.share({
+      await Share.share({
         title: post.title,
         message: `${post.title}\n\n${post.body}`,
       });
@@ -468,13 +468,16 @@ export function useClubHub(): ClubHubState {
         text: 'Leave club',
         style: 'destructive',
         onPress: () => {
+          if (currentUser?.id && membership?.clubId) {
+            socialFeedService.leaveClub(currentUser.id, membership.clubId);
+          }
           setMembership(undefined);
           setClub(undefined);
           setFeed([]);
         },
       },
     ]);
-  }, []);
+  }, [currentUser?.id, membership?.clubId]);
 
   const handleRemoveMember = useCallback((member: ClubMember) => {
     if (!clubService.canBeRemoved(member.role)) {

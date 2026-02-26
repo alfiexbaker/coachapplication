@@ -185,6 +185,10 @@ export const ServiceEvents = {
   MESSAGE_SENT: 'message:sent',
   MESSAGE_EDITED: 'message:edited',
   MESSAGE_DELETED: 'message:deleted',
+  THREAD_OPENED: 'message:thread_opened',
+  MESSAGES_MARKED_READ: 'message:marked_read',
+  USER_TYPING: 'message:user_typing',
+  USER_STOPPED_TYPING: 'message:user_stopped_typing',
 
   // Waitlist events
   WAITLIST_JOINED: 'waitlist:joined',
@@ -639,6 +643,24 @@ export interface EventPayloads {
   [ServiceEvents.MESSAGE_DELETED]: {
     threadId: string;
     messageId: string;
+  };
+  [ServiceEvents.THREAD_OPENED]: {
+    threadId: string;
+    userId: string;
+  };
+  [ServiceEvents.MESSAGES_MARKED_READ]: {
+    threadId: string;
+    userId?: string;
+    unreadCleared: number;
+  };
+  [ServiceEvents.USER_TYPING]: {
+    threadId: string;
+    userId: string;
+    userName: string;
+  };
+  [ServiceEvents.USER_STOPPED_TYPING]: {
+    threadId: string;
+    userId: string;
   };
 
   // Waitlist events

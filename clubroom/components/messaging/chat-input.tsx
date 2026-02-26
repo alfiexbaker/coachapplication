@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { StyleSheet, TextInput } from 'react-native';
 
 import { Clickable } from '@/components/primitives/clickable';
@@ -6,19 +6,104 @@ import { Row } from '@/components/primitives/row';
 import { IconSymbol } from '@/components/ui/icon-symbol';
 import { Radii, Spacing, Typography } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
+import { emitTyped, ServiceEvents } from '@/services/event-bus';
 
 type ChatInputProps = {
   onAttach?: () => void;
   onSend?: (message: string) => void;
   disabled?: boolean;
   initialValue?: string;
+  threadId?: string;
+  currentUserId?: string;
+  currentUserName?: string;
 };
 
-export function ChatInput({ onAttach, onSend, disabled, initialValue }: ChatInputProps) {
+export function ChatInput({
+  onAttach,
+  onSend,
+  disabled,
+  initialValue,
+  threadId,
+  currentUserId,
+  currentUserName,
+}: ChatInputProps) {
   const { colors: palette, scheme } = useTheme();
   const [value, setValue] = useState(initialValue ?? '');
+  const [isTyping, setIsTyping] = useState(false);
+  const stopTypingTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const placeholderColor = palette.muted;
   const canAttach = Boolean(onAttach) && !disabled;
+
+  const emitStoppedTyping = useCallback(() => {
+    if (!threadId || !currentUserId) return;
+    emitTyped(ServiceEvents.USER_STOPPED_TYPING, {
+      threadId,
+      userId: currentUserId,
+    });
+  }, [threadId, currentUserId]);
+
+  const clearStopTypingTimer = useCallback(() => {
+    if (stopTypingTimerRef.current) {
+      clearTimeout(stopTypingTimerRef.current);
+      stopTypingTimerRef.current = null;
+    }
+  }, []);
+
+  const scheduleStopTyping = useCallback(() => {
+    clearStopTypingTimer();
+    stopTypingTimerRef.current = setTimeout(() => {
+      setIsTyping(false);
+      emitStoppedTyping();
+      stopTypingTimerRef.current = null;
+    }, 2000);
+  }, [clearStopTypingTimer, emitStoppedTyping]);
+
+  const handleTextChange = useCallback(
+    (text: string) => {
+      setValue(text);
+
+      if (!threadId || !currentUserId) return;
+
+      if (text.trim().length === 0) {
+        if (isTyping) {
+          setIsTyping(false);
+          emitStoppedTyping();
+        }
+        clearStopTypingTimer();
+        return;
+      }
+
+      if (!isTyping) {
+        setIsTyping(true);
+        emitTyped(ServiceEvents.USER_TYPING, {
+          threadId,
+          userId: currentUserId,
+          userName: currentUserName || 'Someone',
+        });
+      }
+
+      scheduleStopTyping();
+    },
+    [
+      clearStopTypingTimer,
+      currentUserId,
+      currentUserName,
+      emitStoppedTyping,
+      isTyping,
+      scheduleStopTyping,
+      threadId,
+    ],
+  );
+
+  useEffect(
+    () => () => {
+      clearStopTypingTimer();
+      if (isTyping) {
+        emitStoppedTyping();
+      }
+    },
+    [clearStopTypingTimer, emitStoppedTyping, isTyping],
+  );
 
   return (
     <Row
@@ -42,7 +127,7 @@ export function ChatInput({ onAttach, onSend, disabled, initialValue }: ChatInpu
         placeholder="Drop a note, media, or PDF"
         placeholderTextColor={placeholderColor}
         value={value}
-        onChangeText={setValue}
+        onChangeText={handleTextChange}
         multiline
         editable={!disabled}
       />
@@ -66,6 +151,11 @@ export function ChatInput({ onAttach, onSend, disabled, initialValue }: ChatInpu
           const trimmed = value.trim();
           if (!trimmed || disabled) return;
           onSend?.(trimmed);
+          clearStopTypingTimer();
+          if (isTyping) {
+            setIsTyping(false);
+            emitStoppedTyping();
+          }
           setValue('');
         }}
       >

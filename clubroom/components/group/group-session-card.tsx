@@ -1,4 +1,4 @@
-import { memo } from 'react';
+import { memo, useEffect, useState } from 'react';
 import { View, StyleSheet } from 'react-native';
 import { Image } from 'expo-image';
 import { Ionicons } from '@expo/vector-icons';
@@ -10,6 +10,7 @@ import { Row } from '@/components/primitives/row';
 import { Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
 import { groupSessionService } from '@/services/group-session-service';
+import { onTyped, ServiceEvents } from '@/services/event-bus';
 import { SESSION_TYPE_COLORS } from '@/hooks/use-group-sessions';
 import type { GroupSession } from '@/constants/types';
 import { getGroupSessionClubLabel, getGroupSessionCoachName } from '@/utils/group-display';
@@ -49,6 +50,8 @@ export const GroupSessionCard = memo(function GroupSessionCard({
   isSingleChild,
 }: GroupSessionCardProps) {
   const { colors } = useTheme();
+  const [liveRsvpCounts, setLiveRsvpCounts] = useState<RsvpMiniBarCounts | null>(rsvpCounts ?? null);
+  const [isUpdatingRsvpCounts, setIsUpdatingRsvpCounts] = useState(false);
   const clubLabel = getGroupSessionClubLabel(session);
   const coachName = getGroupSessionCoachName(session);
 
@@ -57,6 +60,32 @@ export const GroupSessionCard = memo(function GroupSessionCard({
   const spotsLeft = session.maxParticipants - session.currentParticipants;
   const isFull = spotsLeft <= 0;
   const spotsColor = isFull ? colors.error : spotsLeft <= 3 ? colors.warning : colors.success;
+
+  useEffect(() => {
+    setLiveRsvpCounts(rsvpCounts ?? null);
+  }, [rsvpCounts]);
+
+  useEffect(() => {
+    const unsub = onTyped(ServiceEvents.RSVP_RESPONDED, (event) => {
+      if (event.sessionId !== session.id) return;
+      setIsUpdatingRsvpCounts(true);
+      setLiveRsvpCounts((prev) => {
+        if (!prev) return prev;
+        const next = { ...prev };
+        if (event.previousStatus === 'going') next.going = Math.max(0, next.going - 1);
+        else if (event.previousStatus === 'maybe') next.maybe = Math.max(0, next.maybe - 1);
+        else if (event.previousStatus === 'not_going') next.notGoing = Math.max(0, next.notGoing - 1);
+        else next.pending = Math.max(0, next.pending - 1);
+
+        if (event.newStatus === 'going') next.going += 1;
+        else if (event.newStatus === 'maybe') next.maybe += 1;
+        else next.notGoing += 1;
+        return next;
+      });
+      setTimeout(() => setIsUpdatingRsvpCounts(false), 350);
+    });
+    return unsub;
+  }, [session.id]);
 
   return (
     <Animated.View entering={FadeInDown.delay(index * 50).springify()}>
@@ -171,8 +200,15 @@ export const GroupSessionCard = memo(function GroupSessionCard({
           )}
 
           {/* RSVP Mini-Bar — at-a-glance attendance */}
-          {rsvpCounts && (
-            <RsvpMiniBar counts={rsvpCounts} />
+          {liveRsvpCounts && (
+            <View style={{ gap: Spacing.xxs }}>
+              <RsvpMiniBar counts={liveRsvpCounts} />
+              {isUpdatingRsvpCounts ? (
+                <ThemedText style={[Typography.micro, { color: colors.muted }]}>
+                  Updating attendance...
+                </ThemedText>
+              ) : null}
+            </View>
           )}
 
           {/* Deadline Badge — urgency countdown */}

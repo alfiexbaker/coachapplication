@@ -1,7 +1,9 @@
-import { StyleSheet, View } from 'react-native';
+import { useEffect, useMemo, useState } from 'react';
+import { ActivityIndicator, StyleSheet, View } from 'react-native';
 import { Image } from 'expo-image';
 import { Clickable } from '@/components/primitives/clickable';
 import { Ionicons } from '@expo/vector-icons';
+import * as Haptics from 'expo-haptics';
 
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { Chip } from '@/components/primitives/chip';
@@ -9,23 +11,44 @@ import { ThemedText } from '@/components/themed-text';
 import { Radii, Spacing, Typography, withAlpha } from '@/constants/theme';
 import type { ClubFeedPost } from '@/constants/types';
 import { useTheme } from '@/hooks/useTheme';
+import { useAuth } from '@/hooks/use-auth';
 import { Row } from '@/components/primitives';
 import { Column } from '@/components/primitives/column';
+import { socialFeedService } from '@/services/social-feed-service';
 
 export interface FeedPostProps {
   post: ClubFeedPost;
   canPin?: boolean;
   onPinToggle?: (postId: string) => void;
-  onLike?: (postId: string) => void;
-  onComment?: (postId: string) => void;
-  onShare?: (postId: string) => void;
+  onLike?: (postId: string) => void | Promise<void>;
+  onComment?: (postId: string) => void | Promise<void>;
+  onShare?: (postId: string) => void | Promise<void>;
 }
 
 export function FeedPost({ post, canPin, onPinToggle, onLike, onComment, onShare }: FeedPostProps) {
   const { colors: palette } = useTheme();
+  const { currentUser } = useAuth();
+  const [isLiking, setIsLiking] = useState(false);
+  const [isCommenting, setIsCommenting] = useState(false);
+  const [optimisticReactionCount, setOptimisticReactionCount] = useState<number | null>(null);
+  const [optimisticLiked, setOptimisticLiked] = useState<boolean | null>(null);
   const authorLabel = post.postAs === 'club' ? post.clubId || 'Club' : post.authorId || 'Coach';
   const initials = post.postAs === 'club' ? 'CL' : authorLabel.slice(0, 2).toUpperCase() || 'ME';
   const showActions = !!(onLike || onComment || onShare);
+  const baseReactionCount = post.reactionCount ?? 0;
+  const hasUserReacted = useMemo(
+    () => (currentUser?.id ? socialFeedService.hasUserReacted(post.id, currentUser.id) : false),
+    [currentUser?.id, post.id, post.reactionCount],
+  );
+  const liked = optimisticLiked ?? hasUserReacted;
+  const reactionCount = optimisticReactionCount ?? baseReactionCount;
+
+  useEffect(() => {
+    if (!isLiking) {
+      setOptimisticLiked(null);
+      setOptimisticReactionCount(null);
+    }
+  }, [isLiking, post.reactionCount]);
 
   const formatDate = (dateStr: string) => {
     const date = new Date(dateStr);
@@ -38,6 +61,38 @@ export function FeedPost({ post, canPin, onPinToggle, onLike, onComment, onShare
     if (diffHours < 24) return `${diffHours}h ago`;
     if (diffDays < 7) return `${diffDays}d ago`;
     return date.toLocaleDateString('en-GB', { month: 'short', day: 'numeric' });
+  };
+
+  const handleLikePress = async () => {
+    if (!onLike || isLiking) return;
+    const previousLiked = liked;
+    const previousCount = reactionCount;
+    const nextLiked = !previousLiked;
+    const nextCount = Math.max(0, previousCount + (nextLiked ? 1 : -1));
+
+    setOptimisticLiked(nextLiked);
+    setOptimisticReactionCount(nextCount);
+    setIsLiking(true);
+    void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => undefined);
+
+    try {
+      await Promise.resolve(onLike(post.id));
+    } catch {
+      setOptimisticLiked(previousLiked);
+      setOptimisticReactionCount(previousCount);
+    } finally {
+      setIsLiking(false);
+    }
+  };
+
+  const handleCommentPress = async () => {
+    if (!onComment || isCommenting) return;
+    setIsCommenting(true);
+    try {
+      await Promise.resolve(onComment(post.id));
+    } finally {
+      setIsCommenting(false);
+    }
   };
 
   return (
@@ -167,11 +222,20 @@ export function FeedPost({ post, canPin, onPinToggle, onLike, onComment, onShare
             <Clickable
               style={styles.actionButton}
               accessibilityLabel="Like post"
-              onPress={() => onLike(post.id)}
+              disabled={isLiking}
+              onPress={handleLikePress}
             >
-              <Ionicons name="heart-outline" size={18} color={palette.muted} />
-              <ThemedText style={{ ...Typography.small, color: palette.muted }}>
-                {post.reactionCount ?? 0}
+              {isLiking ? (
+                <ActivityIndicator size="small" color={palette.tint} />
+              ) : (
+                <Ionicons
+                  name={liked ? 'heart' : 'heart-outline'}
+                  size={18}
+                  color={liked ? palette.error : palette.muted}
+                />
+              )}
+              <ThemedText style={{ ...Typography.small, color: liked ? palette.error : palette.muted }}>
+                {reactionCount}
               </ThemedText>
             </Clickable>
           )}
@@ -179,9 +243,14 @@ export function FeedPost({ post, canPin, onPinToggle, onLike, onComment, onShare
             <Clickable
               style={styles.actionButton}
               accessibilityLabel="Comment on post"
-              onPress={() => onComment(post.id)}
+              disabled={isCommenting}
+              onPress={handleCommentPress}
             >
-              <Ionicons name="chatbubble-outline" size={18} color={palette.muted} />
+              {isCommenting ? (
+                <ActivityIndicator size="small" color={palette.tint} />
+              ) : (
+                <Ionicons name="chatbubble-outline" size={18} color={palette.muted} />
+              )}
               <ThemedText style={{ ...Typography.small, color: palette.muted }}>
                 {post.commentCount ?? 0}
               </ThemedText>

@@ -177,37 +177,53 @@ export default function TabLayout() {
   const notificationCount = useNotificationCount();
   const [messageCount, setMessageCount] = useState(0);
   const lastRestrictedRouteRef = useRef<string | null>(null);
+  const messageCountRefreshTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const loadMessageCount = useCallback(async () => {
-    const threadResult = await messagingService.listThreads();
-    if (!threadResult.success) {
+    const unreadResult = await messagingService.getUnreadCount();
+    if (!unreadResult.success) {
       setMessageCount(0);
       return;
     }
-
-    const count = threadResult.data.reduce((total, thread) => total + (thread.unreadCount ?? 0), 0);
-    setMessageCount(count);
+    setMessageCount(unreadResult.data);
   }, []);
+
+  const scheduleMessageCountRefresh = useCallback(() => {
+    if (messageCountRefreshTimerRef.current) {
+      clearTimeout(messageCountRefreshTimerRef.current);
+    }
+    messageCountRefreshTimerRef.current = setTimeout(() => {
+      void loadMessageCount();
+      messageCountRefreshTimerRef.current = null;
+    }, 150);
+  }, [loadMessageCount]);
 
   useEffect(() => {
     void loadMessageCount();
 
-    const unsubscribeMessageSent = onTyped(ServiceEvents.MESSAGE_SENT, () => {
-      void loadMessageCount();
-    });
-    const unsubscribeMessageEdited = onTyped(ServiceEvents.MESSAGE_EDITED, () => {
-      void loadMessageCount();
-    });
-    const unsubscribeMessageDeleted = onTyped(ServiceEvents.MESSAGE_DELETED, () => {
-      void loadMessageCount();
-    });
+    const unsubscribeMessageSent = onTyped(ServiceEvents.MESSAGE_SENT, scheduleMessageCountRefresh);
+    const unsubscribeMessageEdited = onTyped(ServiceEvents.MESSAGE_EDITED, scheduleMessageCountRefresh);
+    const unsubscribeMessageDeleted = onTyped(
+      ServiceEvents.MESSAGE_DELETED,
+      scheduleMessageCountRefresh,
+    );
+    const unsubscribeMessagesMarkedRead = onTyped(
+      ServiceEvents.MESSAGES_MARKED_READ,
+      scheduleMessageCountRefresh,
+    );
+    const unsubscribeThreadOpened = onTyped(ServiceEvents.THREAD_OPENED, scheduleMessageCountRefresh);
 
     return () => {
+      if (messageCountRefreshTimerRef.current) {
+        clearTimeout(messageCountRefreshTimerRef.current);
+      }
       unsubscribeMessageSent();
       unsubscribeMessageEdited();
       unsubscribeMessageDeleted();
+      unsubscribeMessagesMarkedRead();
+      unsubscribeThreadOpened();
     };
-  }, [loadMessageCount]);
+  }, [loadMessageCount, scheduleMessageCountRefresh]);
 
   const userRole = currentUser?.role ?? 'DEFAULT';
   const roleConfig = ROLE_TAB_CONFIG[userRole] ?? ROLE_TAB_CONFIG.DEFAULT;

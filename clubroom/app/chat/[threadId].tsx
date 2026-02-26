@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useRef, useState, useCallback } from 'react';
 import { Alert, RefreshControl, ScrollView, StyleSheet, View } from 'react-native';
 import * as Clipboard from 'expo-clipboard';
 import * as Haptics from 'expo-haptics';
@@ -16,7 +16,8 @@ import {
 import { EmptyState, ErrorState, LoadingState } from '@/components/ui/screen-states';
 import { Spacing } from '@/constants/theme';
 import { useScreen } from '@/hooks/use-screen';
-import { ServiceEvents } from '@/services/event-bus';
+import { useAuth } from '@/hooks/use-auth';
+import { onTyped, emitTyped, ServiceEvents } from '@/services/event-bus';
 import { messagingService } from '@/services/messaging-service';
 import { ChatMessage, ChatThreadSummary } from '@/constants/types';
 import { combineResults, err, ok, validationError } from '@/types/result';
@@ -27,9 +28,12 @@ type ChatScreenData = {
 };
 
 export default function ChatScreen() {
+  const { currentUser } = useAuth();
   const { threadId, prefill } = useLocalSearchParams<{ threadId: string; prefill?: string }>();
   const [showSafetyBanner, setShowSafetyBanner] = useState(true);
   const [postingAs, setPostingAs] = useState<string | undefined>();
+  const [typingUsers, setTypingUsers] = useState<Record<string, string>>({});
+  const clearedThreadsRef = useRef<Set<string>>(new Set());
 
   const loadChat = useCallback(async () => {
     if (!threadId) {
@@ -93,9 +97,74 @@ export default function ChatScreen() {
       Alert.alert('Unable to send message', sendResult.error.message);
       return;
     }
-    await messagingService.simulateIncoming(threadId, 'Coach is typing...');
+    if (thread?.id) {
+      emitTyped(ServiceEvents.USER_TYPING, {
+        threadId: thread.id,
+        userId: 'coach_demo',
+        userName: thread.title || 'Coach',
+      });
+      setTimeout(() => {
+        emitTyped(ServiceEvents.USER_STOPPED_TYPING, {
+          threadId: thread.id,
+          userId: 'coach_demo',
+        });
+        void messagingService.simulateIncoming(
+          thread.id,
+          'Thanks, see you then.',
+          thread.title || 'Coach',
+        ).then(() => onRefresh());
+      }, 900);
+      return;
+    }
     onRefresh();
   };
+
+  useEffect(() => {
+    if (!threadId) return;
+
+    emitTyped(ServiceEvents.THREAD_OPENED, {
+      threadId,
+      userId: currentUser?.id || 'current_user',
+    });
+
+    if (clearedThreadsRef.current.has(threadId)) return;
+    clearedThreadsRef.current.add(threadId);
+    void messagingService.markThreadRead(threadId);
+  }, [threadId]);
+
+  useEffect(() => {
+    if (!threadId) return;
+
+    const unsubTyping = onTyped(ServiceEvents.USER_TYPING, (event) => {
+      if (event.threadId !== threadId) return;
+      setTypingUsers((prev) => {
+        if (event.userId === (currentUser?.id || 'current_user')) return prev;
+        if (prev[event.userId] === event.userName) return prev;
+        return { ...prev, [event.userId]: event.userName };
+      });
+    });
+    const unsubStopped = onTyped(ServiceEvents.USER_STOPPED_TYPING, (event) => {
+      if (event.threadId !== threadId) return;
+      setTypingUsers((prev) => {
+        if (!(event.userId in prev)) return prev;
+        const next = { ...prev };
+        delete next[event.userId];
+        return next;
+      });
+    });
+    return () => {
+      unsubTyping();
+      unsubStopped();
+    };
+  }, [threadId, currentUser?.id]);
+
+  const typingNames = Object.values(typingUsers);
+  const typingLabel =
+    typingNames.length === 0
+      ? null
+      : typingNames.length === 1
+        ? `${typingNames[0]} is typing`
+        : `${typingNames.slice(0, 2).join(', ')}${typingNames.length > 2 ? ` +${typingNames.length - 2}` : ''} are typing`;
 
   const onLongPressMessage = (message: ChatMessage) => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
@@ -182,10 +251,22 @@ export default function ChatScreen() {
             showSenderLabel={isGroup}
           />
         ))}
-        <TypingIndicator />
+        {typingLabel ? <TypingIndicator label={typingLabel} /> : null}
       </ScrollView>
       <View style={[styles.chatInput, { borderTopColor: palette.border }]}>
-        <ChatInput onAttach={() => {}} disabled={!thread} onSend={handleSend} initialValue={prefill} />
+        <ChatInput
+          onAttach={() => {}}
+          disabled={!thread}
+          onSend={handleSend}
+          initialValue={prefill}
+          threadId={thread?.id}
+          currentUserId={currentUser?.id}
+          currentUserName={
+            postingAs
+              ? `${currentUser?.fullName || currentUser?.username || 'You'} (${postingAs})`
+              : currentUser?.fullName || currentUser?.username || 'You'
+          }
+        />
       </View>
     </SafeAreaView>
   );

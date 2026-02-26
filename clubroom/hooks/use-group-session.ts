@@ -8,6 +8,7 @@ import { useScreen, type ScreenStatus } from '@/hooks/use-screen';
 import { groupSessionService } from '@/services/group-session-service';
 import { rsvpService } from '@/services/rsvp-service';
 import { cancellationService } from '@/services/cancellation-service';
+import { ServiceEvents } from '@/services/event-bus';
 import { createLogger } from '@/utils/logger';
 import { err, ok, serviceError, type ServiceError } from '@/types/result';
 import type { GroupSession, GroupRegistration, SessionRsvp, CancellationPolicy } from '@/constants/types';
@@ -148,6 +149,12 @@ export function useGroupSession() {
   const { data, status, error, refreshing, onRefresh, retry } = useScreen<GroupSessionData>({
     load: loadData,
     deps: [id],
+    events: [
+      ServiceEvents.RSVP_RESPONDED,
+      ServiceEvents.WAITLIST_JOINED,
+      ServiceEvents.WAITLIST_LEFT,
+      ServiceEvents.WAITLIST_PROMOTED,
+    ],
     isEmpty: (value) => value.session === null,
     refetchOnFocus: true,
   });

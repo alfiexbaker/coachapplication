@@ -239,6 +239,25 @@ export const eventRsvpService = {
    * Submit or update an RSVP (enhanced version with full tracking)
    */
   async submitRSVP(input: SubmitRSVPInput): Promise<EventRSVP> {
+    if (USE_MOCK && input.status === 'GOING') {
+      const eventsCache = await loadEvents();
+      const event = eventsCache.find((candidate) => candidate.id === input.eventId);
+      if (event?.maxAttendees) {
+        rsvpsCache = await loadRSVPs();
+        const existing = rsvpsCache.find((r) => r.eventId === input.eventId && r.userId === input.userId);
+        const existingGuests = existing?.status === 'GOING' ? existing.guestCount ?? 0 : 0;
+        const existingSelf = existing?.status === 'GOING' ? 1 : 0;
+        const requestedGuests = input.guestCount ?? 0;
+        const requestedSelf = 1;
+        const { going, totalGuests } = this.getAttendeeCounts(event.attendees);
+        const occupiedExcludingCurrent = going + totalGuests - existingSelf - existingGuests;
+        const requestedFootprint = requestedSelf + requestedGuests;
+        if (occupiedExcludingCurrent + requestedFootprint > event.maxAttendees) {
+          throw new Error('Event has reached maximum capacity');
+        }
+      }
+    }
+
     const rsvp: EventRSVP = {
       id: `rsvp_${Date.now()}`,
       eventId: input.eventId,

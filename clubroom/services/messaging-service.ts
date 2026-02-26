@@ -99,6 +99,13 @@ export class MessagingService {
     }
   }
 
+  async getUnreadCount(): Promise<Result<number, ServiceError>> {
+    const threadResult = await this.listThreads();
+    if (!threadResult.success) return err(threadResult.error);
+    const count = threadResult.data.reduce((total, thread) => total + (thread.unreadCount ?? 0), 0);
+    return ok(count);
+  }
+
   async getThread(threadId: string): Promise<Result<ChatThreadSummary, ServiceError>> {
     try {
       const thread = this.inMemoryThreads.find((t) => t.id === threadId);
@@ -231,6 +238,7 @@ export class MessagingService {
       };
 
       await this.persistMessage(threadId, newMessage);
+      this.updateThreadAfterMessage(threadId, newMessage, false, senderName);
       emitTyped(ServiceEvents.MESSAGE_SENT, {
         threadId,
         messageId: newMessage.id,
@@ -284,6 +292,7 @@ export class MessagingService {
         status: 'delivered',
       };
       await this.persistMessage(threadId, incoming);
+      this.updateThreadAfterMessage(threadId, incoming, true, senderName);
       emitTyped(ServiceEvents.MESSAGE_SENT, {
         threadId,
         messageId: incoming.id,
@@ -314,7 +323,14 @@ export class MessagingService {
       if (!thread) {
         return err(notFound('Thread', threadId));
       }
+      const unreadCleared = thread.unreadCount ?? 0;
       thread.unreadCount = 0;
+      if (unreadCleared > 0) {
+        emitTyped(ServiceEvents.MESSAGES_MARKED_READ, {
+          threadId,
+          unreadCleared,
+        });
+      }
       return ok(thread);
     } catch (error) {
       logger.error('Failed to mark thread read', { threadId, error });
@@ -379,6 +395,24 @@ export class MessagingService {
     const updated = [...current, message];
     persisted[threadId] = updated;
     await apiClient.set(STORAGE_KEYS.MESSAGES, persisted);
+  }
+
+  private updateThreadAfterMessage(
+    threadId: string,
+    message: ChatMessage,
+    incrementUnread: boolean,
+    senderName?: string,
+  ) {
+    const thread = this.inMemoryThreads.find((candidate) => candidate.id === threadId);
+    if (!thread) return;
+
+    thread.lastMessageSnippet = message.body;
+    thread.lastMessageSender =
+      senderName || (message.sender === 'coach' ? 'Coach' : 'You');
+    thread.scheduledFor = thread.scheduledFor || message.createdAt;
+    if (incrementUnread) {
+      thread.unreadCount = (thread.unreadCount ?? 0) + 1;
+    }
   }
 }
 

@@ -194,7 +194,7 @@ export function useClubDetail(clubId: string | undefined) {
   );
 
   const handleLikePost = useCallback(
-    (postId: string) => {
+    async (postId: string) => {
       if (!currentUser) return;
       socialFeedService.toggleReaction(postId, currentUser.id);
       loadFeed();
@@ -202,16 +202,16 @@ export function useClubDetail(clubId: string | undefined) {
     [currentUser, loadFeed],
   );
 
-  const handleCommentPost = useCallback((postId: string) => {
+  const handleCommentPost = useCallback(async (postId: string) => {
     router.push(Routes.modalPostDetail(postId));
   }, []);
 
   const handleSharePost = useCallback(
-    (postId: string) => {
+    async (postId: string) => {
       const post = feed.find((candidate) => candidate.id === postId);
       if (!post) return;
 
-      void Share.share({
+      await Share.share({
         title: post.title,
         message: `${post.title}\n\n${post.body}`,
       });
@@ -281,12 +281,15 @@ export function useClubDetail(clubId: string | undefined) {
         text: 'Leave',
         style: 'destructive',
         onPress: () => {
+          if (currentUser?.id && clubId) {
+            socialFeedService.leaveClub(currentUser.id, clubId);
+          }
           setMembership(undefined);
           router.back();
         },
       },
     ]);
-  }, []);
+  }, [clubId, currentUser?.id]);
 
   const handleCloseMemberRemovalModal = useCallback(() => {
     setShowMemberRemovalModal(false);
