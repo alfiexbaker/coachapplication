@@ -2,7 +2,7 @@
 
 **Sprint Goal**: Fix data display bugs, broken calculations, and UI elements showing incorrect or malformed data. These are user-facing bugs that show wrong information or break visual layouts.
 
-**Items**: 17 (2, 22, 23, 24, 127, 141, 152, 156, 159, 194, 204, 207, 244, 245, 246, 293, 294)
+**Items**: 15 (2, 22, 23, 24, 127, 141, 152, 156, 159, 204, 207, 244, 245, 246, 293)
 
 ---
 
@@ -2013,7 +2013,7 @@ Acceptance criteria:
 
 ## Sprint 1 Summary
 
-**Total Items**: 17
+**Total Items**: 15
 **Estimated Effort**: 28-34 hours
 **Priority**: HIGH - broken displays and calculations
 
