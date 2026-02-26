@@ -12,6 +12,7 @@ import Animated, { FadeInDown } from 'react-native-reanimated';
 import { ThemedText } from '@/components/themed-text';
 import { Row } from '@/components/primitives/row';
 import { Column } from '@/components/primitives/column';
+import { Clickable } from '@/components/primitives/clickable';
 import { EmptyState } from '@/components/ui/empty-state';
 import { ErrorState } from '@/components/ui/screen-states';
 import { Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
@@ -167,9 +168,22 @@ function AthleteSessionsInner({ athlete, coachId }: AthleteSessionsProps) {
               <SessionItem key={session.id} session={session} isPast />
             ))}
             {past.length > 20 && (
-              <ThemedText style={[styles.moreText, { color: colors.muted }]}>
-                + {past.length - 20} older sessions
-              </ThemedText>
+              <Column gap="xs">
+                <ThemedText style={[styles.moreText, { color: colors.muted }]}>
+                  + {past.length - 20} older sessions
+                </ThemedText>
+                <Clickable
+                  onPress={() =>
+                    router.push(Routes.developmentSessionHistory({ athleteId: athlete.athleteId }))
+                  }
+                  style={[styles.viewAllButton, { borderColor: colors.border }]}
+                  accessibilityLabel={`View all sessions for ${athleteName}`}
+                >
+                  <ThemedText style={[styles.viewAllText, { color: colors.tint }]}>
+                    View All Sessions
+                  </ThemedText>
+                </Clickable>
+              </Column>
             )}
           </Column>
         </Animated.View>
@@ -203,6 +217,16 @@ const styles = StyleSheet.create({
     ...Typography.bodySmall,
     textAlign: 'center',
     paddingVertical: Spacing.sm,
+  },
+  viewAllButton: {
+    alignSelf: 'center',
+    borderWidth: 1,
+    borderRadius: Radii.md,
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.xs,
+  },
+  viewAllText: {
+    ...Typography.bodySmallSemiBold,
   },
   skeleton: {
     height: 72,

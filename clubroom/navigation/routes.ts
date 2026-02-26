@@ -39,7 +39,6 @@ export const Routes = {
   NOTIFICATIONS: '/(tabs)/notifications' as Href,
   ROSTER: '/(tabs)/roster' as Href,
   SCHEDULE: '/(tabs)/schedule' as Href,
-  WALLET: '/(tabs)/wallet' as Href,
 
   // ─── Tab sub-routes (dynamic) ─────────────────────────────────
   booking: (id: string) => ({
@@ -457,8 +456,6 @@ export const Routes = {
 
   // ─── Payment ───────────────────────────────────────────────────
   PAYMENTS: '/payments' as Href,
-  PAYMENT_METHODS: '/payment/methods' as Href,
-  PAYMENT_ADD_CARD: '/payment/add-card' as Href,
 
   // ─── Profile ──────────────────────────────────────────────────
   profile: (userId: string) => ({

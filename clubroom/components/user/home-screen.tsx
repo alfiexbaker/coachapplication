@@ -3,6 +3,7 @@
  * Athlete/parent home: stats, streak, quick actions, next session, badges, clubs.
  */
 import { View, StyleSheet, ScrollView, RefreshControl, ActivityIndicator } from 'react-native';
+import { router } from 'expo-router';
 import { Row } from '@/components/primitives/row';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -10,9 +11,13 @@ import { Ionicons } from '@expo/vector-icons';
 import { ThemedText } from '@/components/themed-text';
 import { ChildSwitcher } from '@/components/ChildSwitcher';
 import { NotificationBell } from '@/components/ui/notification-bell';
+import { Clickable } from '@/components/primitives/clickable';
+import { SurfaceCard } from '@/components/primitives/surface-card';
+import { Column } from '@/components/primitives/column';
 import { Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
 import { useHomeScreen } from '@/hooks/use-home-screen';
+import { Routes } from '@/navigation/routes';
 import { TodayFamilySummary } from './today-family-summary';
 import {
   StatsRow,
@@ -48,6 +53,7 @@ export function UserHomeScreen() {
 
   const nextSession = upcomingBookings[0];
   const showFamilySummary = isMultiChild && selectedChildId === null;
+  const isNewParent = isParent && contextChildren.length === 0;
 
   return (
     <SafeAreaView
@@ -106,6 +112,39 @@ export function UserHomeScreen() {
           </Row>
         )}
 
+        {isNewParent ? (
+          <SurfaceCard style={[styles.onboardingCard, { borderColor: palette.border }]}>
+            <Column gap="sm">
+              <ThemedText type="subtitle">Welcome to Clubroom</ThemedText>
+              <ThemedText style={[styles.onboardingSubtitle, { color: palette.muted }]}>
+                Add your child first, then you can find coaches and book sessions.
+              </ThemedText>
+              <Clickable
+                onPress={() => router.push(Routes.MODAL_ADD_CHILD)}
+                style={[styles.primaryCta, { backgroundColor: palette.tint }]}
+              >
+                <Row align="center" justify="center" gap="xs">
+                  <Ionicons name="person-add-outline" size={18} color={palette.onPrimary} />
+                  <ThemedText style={[styles.ctaText, { color: palette.onPrimary }]}>
+                    Add Your Child
+                  </ThemedText>
+                </Row>
+              </Clickable>
+              <Clickable
+                onPress={() => router.push(Routes.DISCOVER_MAP)}
+                style={[styles.secondaryCta, { borderColor: palette.border }]}
+              >
+                <Row align="center" justify="center" gap="xs">
+                  <Ionicons name="search-outline" size={18} color={palette.tint} />
+                  <ThemedText style={[styles.ctaText, { color: palette.tint }]}>
+                    Browse Coaches
+                  </ThemedText>
+                </Row>
+              </Clickable>
+            </Column>
+          </SurfaceCard>
+        ) : null}
+
         <StatsRow stats={stats} />
         {streakInfo && <StreakCard streakInfo={streakInfo} />}
         <QuickActionsGrid />
@@ -137,4 +176,25 @@ const styles = StyleSheet.create({
   loadingContainer: { padding: Spacing['2xl'], alignItems: 'center', justifyContent: 'center' },
   errorContainer: { padding: Spacing.md, borderRadius: Radii.md, borderWidth: 1 },
   errorText: { ...Typography.bodySmall, flex: 1 },
+  onboardingCard: {
+    borderWidth: 1,
+    padding: Spacing.md,
+  },
+  onboardingSubtitle: {
+    ...Typography.bodySmall,
+  },
+  primaryCta: {
+    borderRadius: Radii.md,
+    paddingVertical: Spacing.sm,
+    paddingHorizontal: Spacing.md,
+  },
+  secondaryCta: {
+    borderRadius: Radii.md,
+    borderWidth: 1,
+    paddingVertical: Spacing.sm,
+    paddingHorizontal: Spacing.md,
+  },
+  ctaText: {
+    ...Typography.bodySmallSemiBold,
+  },
 });

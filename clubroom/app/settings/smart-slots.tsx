@@ -7,8 +7,11 @@ import { ThemedText } from '@/components/themed-text';
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { PageHeader } from '@/components/primitives/page-header';
 import { Row } from '@/components/primitives/row';
+import { Column } from '@/components/primitives/column';
+import { Button } from '@/components/primitives/button';
 import { Spacing, Typography } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
+import { Routes } from '@/navigation/routes';
 
 const SMART_FEATURES = [
   {
@@ -73,6 +76,20 @@ export default function SmartSlotsScreen() {
               and the algorithm will learn your best times.
             </ThemedText>
           </Row>
+        </SurfaceCard>
+
+        <SurfaceCard style={styles.card}>
+          <Column gap="sm">
+            <ThemedText type="defaultSemiBold">Turn suggestions into action</ThemedText>
+            <ThemedText style={{ color: palette.muted }}>
+              Smart Slots insights are informational right now. Apply them by updating your
+              availability or reviewing your schedule.
+            </ThemedText>
+            <Button onPress={() => router.push(Routes.AVAILABILITY)}>Open Availability</Button>
+            <Button variant="secondary" onPress={() => router.push(Routes.SCHEDULE)}>
+              Review Schedule
+            </Button>
+          </Column>
         </SurfaceCard>
       </ScrollView>
     </SafeAreaView>

@@ -167,28 +167,17 @@ export default function SettingsHubScreen() {
           />
         </SettingsSection>
 
-        {(isCoach || userHasChildren) && (
-          <SettingsSection title="Payments">
+        {isCoach && (
+          <SettingsSection title="Earnings">
             <SettingsRow
-              icon="card"
-              title="Payment Methods"
-              subtitle={isCoach ? 'Manage how you get paid' : 'Manage your payment methods'}
+              icon="wallet"
+              title="Earnings Reconciler"
+              subtitle="Track owed, paid, and written-off session payments"
               onPress={() => {
-                logger.press('PaymentMethods');
-                router.push(Routes.PAYMENT_METHODS);
+                logger.press('EarningsReconciler');
+                router.push(Routes.EARNINGS);
               }}
             />
-            {isCoach && (
-              <SettingsRow
-                icon="wallet"
-                title="Earnings"
-                subtitle="View your earnings and payouts"
-                onPress={() => {
-                  logger.press('Earnings');
-                  router.push(Routes.EARNINGS);
-                }}
-              />
-            )}
           </SettingsSection>
         )}
 

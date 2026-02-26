@@ -1,5 +1,5 @@
 import { Tabs, router, useNavigation, useSegments } from 'expo-router';
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { BottomTabBarButtonProps } from '@react-navigation/bottom-tabs';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -15,11 +15,15 @@ import { onTyped, ServiceEvents } from '@/services/event-bus';
 import { useToast } from '@/components/ui/toast';
 import { Routes } from '@/navigation/routes';
 import { useFocusEffect } from '@react-navigation/native';
+import { createLogger } from '@/utils/logger';
+
+const logger = createLogger('TabLayout');
 
 type UserWithSimplifiedFields = {
   role?: UserRole | 'ADMIN';
   type?: 'USER' | 'COACH';
   children?: { childId: string; childName: string }[];
+  hasChildren?: boolean;
   skillLevel?: string;
   isOrganization?: boolean;
   isLive?: boolean;
@@ -44,6 +48,10 @@ export const isAdmin = (user: UserWithSimplifiedFields | null): boolean => {
 
 export const isAcceptingBookings = (user: UserWithSimplifiedFields | null): boolean => {
   return isCoach(user) && user?.isLive !== false;
+};
+
+export const isParentLikeUser = (user: UserWithSimplifiedFields | null): boolean => {
+  return Boolean(user?.role === 'PARENT' || user?.hasChildren || (user?.children?.length ?? 0) > 0);
 };
 
 type BadgeType = 'messages' | 'notifications';
@@ -72,6 +80,19 @@ const BASE_HIDDEN_ROUTES = [
   'roster',
   'wallet',
 ];
+
+// Hidden from the tab bar does not always mean forbidden.
+// These routes are intentionally opened via deep links / settings / manage actions.
+const HIDDEN_BUT_ALLOWED_ROUTES = new Set([
+  'notifications',
+  'availability',
+  'coach-profile',
+  'edit-profile',
+  'profile',
+  'earnings',
+  'badges',
+  'roster',
+]);
 
 const ROLE_TAB_CONFIG: Record<UserRole | 'DEFAULT', RoleTabConfig> = {
   COACH: {
@@ -155,6 +176,7 @@ export default function TabLayout() {
   const insets = useSafeAreaInsets();
   const notificationCount = useNotificationCount();
   const [messageCount, setMessageCount] = useState(0);
+  const lastRestrictedRouteRef = useRef<string | null>(null);
 
   const loadMessageCount = useCallback(async () => {
     const threadResult = await messagingService.listThreads();
@@ -189,28 +211,87 @@ export default function TabLayout() {
 
   const userRole = currentUser?.role ?? 'DEFAULT';
   const roleConfig = ROLE_TAB_CONFIG[userRole] ?? ROLE_TAB_CONFIG.DEFAULT;
-  const hiddenRoutes = roleConfig.hidden ?? [];
+  const hiddenRoutes = useMemo(() => {
+    const baseHidden = roleConfig.hidden ?? [];
+    if (!isParentLikeUser(currentUser)) {
+      return baseHidden;
+    }
+    return baseHidden.filter((route) => route !== 'children');
+  }, [roleConfig.hidden, currentUser]);
   const hiddenRouteSet = useMemo(() => new Set(hiddenRoutes), [hiddenRoutes]);
+  const restrictedRouteSet = useMemo(
+    () => new Set(hiddenRoutes.filter((route) => !HIDDEN_BUT_ALLOWED_ROUTES.has(route))),
+    [hiddenRoutes],
+  );
+
+  useEffect(() => {
+    logger.debug('Tab guard config', {
+      role: currentUser?.role,
+      type: currentUser?.type,
+      hasChildrenFlag: currentUser?.hasChildren,
+      childCount: currentUser?.children?.length ?? 0,
+      isParentLike: isParentLikeUser(currentUser),
+      hiddenRoutes,
+    });
+  }, [currentUser, hiddenRoutes]);
+
+  const handleRestrictedRoute = useCallback(
+    (routeName: string) => {
+      if (lastRestrictedRouteRef.current === routeName) {
+        logger.debug('Skipping duplicate restricted route toast', { routeName });
+        return;
+      }
+
+      lastRestrictedRouteRef.current = routeName;
+      logger.warn('Restricted tab route blocked', {
+        routeName,
+        role: currentUser?.role,
+        type: currentUser?.type,
+        hasChildrenFlag: currentUser?.hasChildren,
+        childCount: currentUser?.children?.length ?? 0,
+        hiddenRoutes,
+      });
+      router.replace(Routes.HOME);
+      showToast('Access restricted', 'error');
+    },
+    [currentUser, hiddenRoutes, showToast],
+  );
 
   useEffect(() => {
     const tabSegment = typeof segments[1] === 'string' ? segments[1] : '';
+    logger.debug('Segment guard check', {
+      segments,
+      tabSegment,
+      isHidden: tabSegment ? hiddenRouteSet.has(tabSegment) : false,
+      isRestricted: tabSegment ? restrictedRouteSet.has(tabSegment) : false,
+    });
     if (!tabSegment) return;
-    if (!hiddenRouteSet.has(tabSegment)) return;
+    if (!restrictedRouteSet.has(tabSegment)) {
+      lastRestrictedRouteRef.current = null;
+      return;
+    }
 
-    router.replace(Routes.HOME);
-    showToast('Access restricted', 'error');
-  }, [hiddenRouteSet, segments, showToast]);
+    handleRestrictedRoute(tabSegment);
+  }, [handleRestrictedRoute, hiddenRouteSet, segments]);
 
   useFocusEffect(
     useCallback(() => {
       const state = navigation.getState();
       const currentRoute = state?.routes?.[state.index ?? 0]?.name;
+      logger.debug('Focus guard check', {
+        currentRoute,
+        isHidden: typeof currentRoute === 'string' ? hiddenRouteSet.has(currentRoute) : false,
+        isRestricted:
+          typeof currentRoute === 'string' ? restrictedRouteSet.has(currentRoute) : false,
+      });
       if (typeof currentRoute !== 'string') return;
-      if (!hiddenRouteSet.has(currentRoute)) return;
+      if (!restrictedRouteSet.has(currentRoute)) {
+        lastRestrictedRouteRef.current = null;
+        return;
+      }
 
-      router.replace(Routes.HOME);
-      showToast('Access restricted', 'error');
-    }, [hiddenRouteSet, navigation, showToast]),
+      handleRestrictedRoute(currentRoute);
+    }, [handleRestrictedRoute, hiddenRouteSet, navigation, restrictedRouteSet]),
   );
 
   const getBadgeCount = (badgeType?: BadgeType): number | string | undefined => {

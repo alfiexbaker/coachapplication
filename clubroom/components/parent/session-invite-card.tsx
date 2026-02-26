@@ -206,11 +206,31 @@ function SessionInviteCardComponent({
       <Divider />
 
       {canRespond && invite.proposedSlots.length > 1 ? (
-        <SlotSelector
-          slots={invite.proposedSlots}
-          selectedIndex={selectedSlotIndex}
-          onSelect={setSelectedSlotIndex}
-        />
+        <>
+          <View
+            style={[
+              styles.slotExplainer,
+              { backgroundColor: withAlpha(palette.tint, 0.06), borderColor: withAlpha(palette.tint, 0.18) },
+            ]}
+          >
+            <Row align="center" gap="xs">
+              <Ionicons name="information-circle-outline" size={16} color={palette.tint} />
+              <ThemedText style={[styles.slotExplainerText, { color: palette.muted }]}>
+                Select one proposed time slot to accept this invite.
+              </ThemedText>
+            </Row>
+          </View>
+          <SlotSelector
+            slots={invite.proposedSlots}
+            selectedIndex={selectedSlotIndex}
+            onSelect={setSelectedSlotIndex}
+          />
+          {selectedSlotIndex === null && (
+            <ThemedText style={[styles.slotSelectionHint, { color: palette.muted }]}>
+              Choose a slot to enable the Accept button.
+            </ThemedText>
+          )}
+        </>
       ) : (
         <SlotDisplay slots={invite.proposedSlots} />
       )}
@@ -279,4 +299,12 @@ const styles = StyleSheet.create({
   statusText: { ...Typography.caption, textTransform: 'uppercase' },
   athletes: { ...Typography.small },
   notes: { ...Typography.small, fontStyle: 'italic' },
+  slotExplainer: {
+    borderWidth: 1,
+    borderRadius: Radii.md,
+    paddingHorizontal: Spacing.sm,
+    paddingVertical: Spacing.xs,
+  },
+  slotExplainerText: { ...Typography.caption, flex: 1 },
+  slotSelectionHint: { ...Typography.caption, marginTop: -Spacing.xxs },
 });

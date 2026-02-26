@@ -12,7 +12,7 @@ import type { ThemeColors } from '@/hooks/useTheme';
 type PaymentMethodCardProps = {
   colors: ThemeColors;
   paymentMethod: string;
-  onChange: () => void;
+  onChange?: () => void;
 };
 
 export const PaymentMethodCard = React.memo(function PaymentMethodCard({
@@ -24,9 +24,11 @@ export const PaymentMethodCard = React.memo(function PaymentMethodCard({
     <View style={[styles.card, { borderColor: colors.border }]}>
       <ThemedText type="defaultSemiBold">Payment method</ThemedText>
       <ThemedText style={{ color: colors.muted }}>{paymentMethod}</ThemedText>
-      <Clickable onPress={onChange} accessibilityLabel="Change payment method">
-        <ThemedText style={{ color: colors.tint, fontWeight: '700' }}>Change</ThemedText>
-      </Clickable>
+      {onChange ? (
+        <Clickable onPress={onChange} accessibilityLabel="Change payment method">
+          <ThemedText style={{ color: colors.tint, fontWeight: '700' }}>Change</ThemedText>
+        </Clickable>
+      ) : null}
     </View>
   );
 });

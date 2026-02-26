@@ -45,8 +45,8 @@ const NAV_LINKS: Record<string, NavLink[]> = {
       route: '/(tabs)/messages',
     },
     {
-      title: 'Earnings',
-      subtitle: 'Mock payouts & statements',
+      title: 'Earnings Reconciler',
+      subtitle: 'Session payment reconciliation',
       icon: 'wallet-outline',
       route: '/(tabs)/earnings',
     },

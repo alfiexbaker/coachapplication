@@ -7,7 +7,7 @@
  * - Storage errors (apiClient.get/set throwing)
  * - UUID-style IDs
  *
- * Tests bookingCrudService, walletCrudService, and cancellationService.
+ * Tests bookingCrudService and cancellationService.
  */
 
 import assert from 'node:assert/strict';
@@ -17,7 +17,6 @@ import { STORAGE_KEYS } from '@/constants/storage-keys';
 import { apiClient } from '@/services/api-client';
 import { bookingCrudService } from '@/services/booking/booking-crud-service';
 import type { CreateBookingParams } from '@/services/booking/booking-crud-service';
-import { walletCrudService } from '@/services/wallet/wallet-crud-service';
 import { cancellationService } from '@/services/cancellation-service';
 
 function makeBookingParams(overrides: Partial<CreateBookingParams> = {}): CreateBookingParams {
@@ -42,7 +41,6 @@ function makeBookingParams(overrides: Partial<CreateBookingParams> = {}): Create
 describe('Contract: API Swap — Empty Data Handling', () => {
   beforeEach(async () => {
     await apiClient.remove(STORAGE_KEYS.BOOKINGS);
-    await apiClient.remove(STORAGE_KEYS.WALLETS);
     await apiClient.remove(STORAGE_KEYS.CANCELLATION_RECORDS);
     await apiClient.remove(STORAGE_KEYS.NO_SHOW_COUNTS);
     await apiClient.remove(STORAGE_KEYS.NOTIFICATIONS);
@@ -59,15 +57,6 @@ describe('Contract: API Swap — Empty Data Handling', () => {
     const bookings = await bookingCrudService.list();
     assert.ok(Array.isArray(bookings), 'should return an array');
     assert.equal(bookings.length, 0, 'should be empty');
-  });
-
-  it('walletCrudService.getAllWallets() returns ok with array when storage is empty', async () => {
-    // Clear wallets so mock fallback is not used
-    await apiClient.set(STORAGE_KEYS.WALLETS, []);
-    const result = await walletCrudService.getAllWallets();
-    assert.equal(result.success, true);
-    if (!result.success) return;
-    assert.ok(Array.isArray(result.data));
   });
 
   it('cancellationService.getCancellationRecords() returns ok([]) when empty', async () => {
@@ -109,14 +98,6 @@ describe('Contract: API Swap — Empty Data Handling', () => {
     assert.equal(result.error.code, 'NOT_FOUND');
   });
 
-  it('walletCrudService.updateWallet() returns NOT_FOUND for missing wallet', async () => {
-    await apiClient.set(STORAGE_KEYS.WALLETS, []);
-    const result = await walletCrudService.updateWallet('no-such-user', { balance: 100 });
-    assert.equal(result.success, false);
-    if (result.success) return;
-    assert.equal(result.error.code, 'NOT_FOUND');
-  });
-
   // --------------------------------------------------------------------------
   // UUID-style IDs don't break services
   // --------------------------------------------------------------------------
@@ -142,17 +123,6 @@ describe('Contract: API Swap — Empty Data Handling', () => {
     const fetched = await bookingCrudService.getBooking(result.data.id);
     assert.ok(fetched);
     assert.equal(fetched!.coachId, uuidCoachId);
-  });
-
-  it('walletCrudService.getWallet() handles UUID userId and auto-creates', async () => {
-    await apiClient.set(STORAGE_KEYS.WALLETS, []);
-    const uuidUserId = 'e9d71a2c-4f3b-47e8-9c5a-8f1d2e3c4b5a';
-
-    const result = await walletCrudService.getWallet(uuidUserId);
-    assert.equal(result.success, true, 'should auto-create wallet for UUID user');
-    if (!result.success) return;
-    assert.equal(result.data.userId, uuidUserId);
-    assert.equal(result.data.balance, 0);
   });
 
   it('cancellationService.cancelBooking() works with UUID IDs', async () => {
@@ -197,38 +167,6 @@ describe('Contract: API Swap — Empty Data Handling', () => {
       assert.ok(setCallCount > 0, 'apiClient.set should have been called');
     } finally {
       // Restore original
-      (apiClient as Record<string, unknown>).set = originalSet;
-    }
-  });
-
-  it('walletCrudService handles storage write failure gracefully', async () => {
-    await apiClient.set(STORAGE_KEYS.WALLETS, [
-      {
-        id: 'wallet_failtest',
-        userId: 'failtest',
-        balance: 50,
-        currency: 'GBP',
-        pendingBalance: 0,
-        totalDeposited: 100,
-        totalSpent: 50,
-        createdAt: '2026-01-01T00:00:00Z',
-        updatedAt: '2026-01-01T00:00:00Z',
-        isActive: true,
-      },
-    ]);
-
-    const originalSet = apiClient.set.bind(apiClient);
-    (apiClient as Record<string, unknown>).set = async (_key: string, _data: unknown) => {
-      throw new Error('Simulated storage failure');
-    };
-
-    try {
-      const result = await walletCrudService.updateWallet('failtest', { balance: 200 });
-      assert.equal(result.success, false, 'should return error on storage failure');
-      if (!result.success) {
-        assert.equal(result.error.code, 'STORAGE');
-      }
-    } finally {
       (apiClient as Record<string, unknown>).set = originalSet;
     }
   });

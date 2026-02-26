@@ -62,6 +62,14 @@ export default function ManageScreen() {
       colorKey: 'warning',
       route: Routes.SESSION_INVITES,
     },
+    {
+      id: 'earnings-reconciler',
+      title: 'Earnings Reconciler',
+      description: 'Reconcile session payments: owed, paid, and written-off.',
+      icon: 'wallet-outline',
+      colorKey: 'tint',
+      route: Routes.EARNINGS,
+    },
   ];
 
   if (!isCoach) {

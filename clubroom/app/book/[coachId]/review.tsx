@@ -199,9 +199,9 @@ export default function ReviewScreen() {
         <PaymentMethodCard
           colors={palette}
           paymentMethod={
-            (draft as unknown as Record<string, string>).paymentMethod || 'Wallet balance'
+            (draft as unknown as Record<string, string>).paymentMethod ||
+            'Card payment collected at confirmation (secure checkout)'
           }
-          onChange={() => router.push(Routes.PAYMENT_METHODS)}
         />
 
         <PromoCodeCard

@@ -6,7 +6,7 @@
  */
 
 import React, { memo } from 'react';
-import { StyleSheet } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 
 import { Clickable } from '@/components/primitives/clickable';
 import { ThemedText } from '@/components/themed-text';
@@ -46,42 +46,50 @@ export const InviteActionBar = memo(function InviteActionBar({
 }: InviteActionBarProps) {
   // Recipient action buttons (Accept/Decline/Counter)
   if (canRespond && !showCounterPropose) {
+    const needsSlotSelection = selectedSlot === null;
     return (
-      <Row gap="md" style={[styles.footer, { borderTopColor: colors.border }]}>
-        <Clickable
-          onPress={onDecline}
-          disabled={responding}
-          accessibilityLabel="Decline invite"
-          style={[styles.declineButton, { borderColor: colors.border }]}
-        >
-          <ThemedText style={{ ...Typography.bodySemiBold }}>Decline</ThemedText>
-        </Clickable>
-        <Clickable
-          onPress={onShowCounter}
-          accessibilityLabel="Counter propose alternative times"
-          style={[styles.counterButton, { borderColor: colors.tint }]}
-        >
-          <ThemedText style={{ color: colors.tint, ...Typography.bodySemiBold }}>
-            Counter
+      <View style={[styles.footer, { borderTopColor: colors.border }]}>
+        {needsSlotSelection && !responding && (
+          <ThemedText style={[styles.helperText, { color: colors.muted }]}>
+            Select a proposed time slot above to enable Accept.
           </ThemedText>
-        </Clickable>
-        <Clickable
-          onPress={onAccept}
-          disabled={responding || selectedSlot === null}
-          accessibilityLabel="Accept invite"
-          style={[
-            styles.acceptButton,
-            {
-              backgroundColor: colors.tint,
-              opacity: responding || selectedSlot === null ? 0.5 : 1,
-            },
-          ]}
-        >
-          <ThemedText style={{ color: colors.onPrimary, ...Typography.bodySemiBold }}>
-            {responding ? 'Accepting...' : 'Accept'}
-          </ThemedText>
-        </Clickable>
-      </Row>
+        )}
+        <Row gap="md">
+          <Clickable
+            onPress={onDecline}
+            disabled={responding}
+            accessibilityLabel="Decline invite"
+            style={[styles.declineButton, { borderColor: colors.border }]}
+          >
+            <ThemedText style={{ ...Typography.bodySemiBold }}>Decline</ThemedText>
+          </Clickable>
+          <Clickable
+            onPress={onShowCounter}
+            accessibilityLabel="Counter propose alternative times"
+            style={[styles.counterButton, { borderColor: colors.tint }]}
+          >
+            <ThemedText style={{ color: colors.tint, ...Typography.bodySemiBold }}>
+              Counter
+            </ThemedText>
+          </Clickable>
+          <Clickable
+            onPress={onAccept}
+            disabled={responding || needsSlotSelection}
+            accessibilityLabel="Accept invite"
+            style={[
+              styles.acceptButton,
+              {
+                backgroundColor: colors.tint,
+                opacity: responding || needsSlotSelection ? 0.5 : 1,
+              },
+            ]}
+          >
+            <ThemedText style={{ color: colors.onPrimary, ...Typography.bodySemiBold }}>
+              {responding ? 'Accepting...' : 'Accept'}
+            </ThemedText>
+          </Clickable>
+        </Row>
+      </View>
     );
   }
 
@@ -101,6 +109,10 @@ const styles = StyleSheet.create({
   footer: {
     padding: Spacing.lg,
     borderTopWidth: 1,
+  },
+  helperText: {
+    ...Typography.caption,
+    marginBottom: Spacing.sm,
   },
   declineButton: {
     flex: 1,

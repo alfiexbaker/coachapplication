@@ -149,8 +149,8 @@ export default function NotificationSettingsScreen() {
             />
             <SettingsToggleRow
               icon="wallet"
-              title="Payout Notifications"
-              subtitle="Updates about your earnings and payouts"
+              title="Earnings Notifications"
+              subtitle="Updates about reconciler changes and payment status"
               value={payoutNotifications}
               onValueChange={(v) => handleToggle('payoutNotifications', v, setPayoutNotifications)}
             />

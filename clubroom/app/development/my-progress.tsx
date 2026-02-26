@@ -174,7 +174,20 @@ export default function MyProgressScreen() {
   }, [selectedAthleteId]);
 
   const handleAskCoachAboutThis = useCallback(() => {
-    if (!isParentContext || !selectedAthleteId || !latestFeedback?.coachId) {
+    if (!isParentContext || !selectedAthleteId) {
+      Alert.alert('Coach messaging unavailable', 'Switch to a child profile to contact a coach.');
+      return;
+    }
+
+    if (!latestFeedback?.coachId) {
+      Alert.alert(
+        'No coach to message yet',
+        'Complete a session first to message the coach about this progress update.',
+        [
+          { text: 'Cancel', style: 'cancel' },
+          { text: 'Find Coach', onPress: () => router.push(Routes.DISCOVER_MAP) },
+        ],
+      );
       return;
     }
     router.push(

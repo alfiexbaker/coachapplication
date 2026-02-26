@@ -8,11 +8,13 @@ const logger = createLogger('AppLifecycle');
 class AppLifecycleService {
   private subscription: ReturnType<typeof AppState.addEventListener> | null = null;
   private appState: AppStateStatus = AppState.currentState;
+  private initialized = false;
 
   public init(): void {
-    if (this.subscription) return;
+    if (this.subscription || this.initialized) return;
 
     this.subscription = AppState.addEventListener('change', this.handleChange);
+    this.initialized = true;
     logger.info('App lifecycle listener initialized', { state: this.appState });
   }
 
@@ -42,6 +44,7 @@ class AppLifecycleService {
   public cleanup(): void {
     this.subscription?.remove();
     this.subscription = null;
+    this.initialized = false;
     logger.debug('App lifecycle listener removed');
   }
 }

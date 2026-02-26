@@ -1,4 +1,5 @@
 import { StyleSheet } from 'react-native';
+import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 
 import { Clickable } from '@/components/primitives/clickable';
@@ -7,6 +8,7 @@ import { Radii, Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
 import { scaleFont } from '@/utils/scale';
 import { Row } from '@/components/primitives';
+import { Routes } from '@/navigation/routes';
 
 export interface QuickActionsProps {
   userRole: 'USER' | 'PARENT' | 'COACH' | string | undefined;
@@ -31,10 +33,12 @@ export function QuickActions({
   // Quick Actions for Users/Parents - Discover + Find Coach
   // Invites are now shown inline as "Action Required" section above the bookings list
   if (userRole === 'USER' || userRole === 'PARENT') {
+    const handleDiscoverSessions = onDiscoverSessionsPress ?? (() => router.push(Routes.DISCOVER_MAP));
+    const handleFindCoach = onFindCoachPress ?? (() => router.push(Routes.DISCOVER_MAP));
     return (
       <Row style={styles.quickActions}>
         <Clickable
-          onPress={onDiscoverSessionsPress || (() => {})}
+          onPress={handleDiscoverSessions}
           style={[styles.actionPill, { borderColor: palette.border }]}
         >
           <Row align="center" justify="center" gap="xs">
@@ -44,7 +48,7 @@ export function QuickActions({
         </Clickable>
 
         <Clickable
-          onPress={onFindCoachPress || (() => {})}
+          onPress={handleFindCoach}
           style={[styles.actionPill, { borderColor: palette.border }]}
         >
           <Row align="center" justify="center" gap="xs">

@@ -41,7 +41,7 @@ export default function FamilySpendingScreen() {
     recentTransactions,
   } = useFamilySpending();
   const handleOpenCalendar = () => router.push(Routes.FAMILY_CALENDAR);
-  const handleOpenWallet = () => router.push(Routes.WALLET);
+  const handleOpenBookings = () => router.push(Routes.BOOKINGS);
 
   if (status === 'loading') {
     return (
@@ -159,13 +159,13 @@ export default function FamilySpendingScreen() {
       <Animated.View entering={FadeInDown.delay(300).springify()}>
         <Row gap="sm">
           <Clickable
-            onPress={handleOpenWallet}
+            onPress={handleOpenBookings}
             style={[styles.actionButton, { backgroundColor: colors.tint }]}
           >
             <Row align="center" justify="center" gap="xs">
-              <Ionicons name="wallet" size={20} color={colors.onPrimary} />
+              <Ionicons name="calendar-outline" size={20} color={colors.onPrimary} />
               <ThemedText style={[Typography.bodySemiBold, { color: colors.onPrimary }]}>
-                Top Up Wallet
+                View Bookings
               </ThemedText>
             </Row>
           </Clickable>
