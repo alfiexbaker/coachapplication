@@ -220,7 +220,7 @@ export default function SessionDetailScreen() {
           time={formatted.time}
         />
         <LocationCard locationLabel={booking.locationLabel} />
-        <PaymentCard />
+        <PaymentCard showDemoIndicator={!process.env.EXPO_PUBLIC_STRIPE_ENABLED} />
         {booking.coachId && (
           <CancellationPolicyCard coachId={booking.coachId} policy={cancellationPolicy ?? undefined} />
         )}

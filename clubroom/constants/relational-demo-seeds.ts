@@ -2717,3 +2717,10 @@ export function buildRelationalDemoSeedPayload(): RelationalDemoSeedPayload {
     coachBookings,
   };
 }
+/**
+ * DEMO DATA SEEDS (legacy)
+ *
+ * This file contains large deterministic demo fixtures used by mock/offline flows.
+ * Sprint note (Data Display Sprint 2): keep visible as demo-only; replace with lazy generation
+ * when the refactor is scheduled (too large/risky for a mixed UX sprint).
+ */

@@ -110,6 +110,12 @@ export interface AddFavouriteInput {
 }
 
 export const favouriteService = {
+  async isUsingDemoSeed(userId: string): Promise<boolean> {
+    const stored = await apiClient.get<FavouriteCoach[] | null>(STORAGE_KEYS.FAVOURITES, null);
+    if (stored && stored.length > 0) return false;
+    const favourites = await loadFavourites();
+    return favourites.some((f) => f.userId === userId && f.id.startsWith('fav_'));
+  },
   /**
    * Add a coach to user's favourites
    * Returns the new favourite if created, or existing favourite if already exists
@@ -359,6 +365,18 @@ export const favouriteService = {
     } catch (error) {
       logger.error('Failed to clear favourites', error);
       return err(storageError('Failed to clear favourites'));
+    }
+  },
+
+  async dismissDemoFavourites(): Promise<Result<void, ServiceError>> {
+    try {
+      favouritesCache = [];
+      await apiClient.set(STORAGE_KEYS.FAVOURITES, []);
+      invalidateFavouritesCache();
+      return ok(undefined);
+    } catch (error) {
+      logger.error('Failed to dismiss demo favourites', error);
+      return err(storageError('Failed to dismiss demo favourites'));
     }
   },
 };

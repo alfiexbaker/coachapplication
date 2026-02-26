@@ -12,6 +12,7 @@ import { Button } from '@/components/primitives/button';
 import { Spacing, Typography } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
 import { Routes } from '@/navigation/routes';
+import { DemoBanner, isDemoMode } from '@/utils/demo-mode';
 
 const SMART_FEATURES = [
   {
@@ -33,6 +34,7 @@ const SMART_FEATURES = [
 
 export default function SmartSlotsScreen() {
   const { colors: palette } = useTheme();
+  const demoMode = isDemoMode();
 
   return (
     <SafeAreaView
@@ -55,6 +57,9 @@ export default function SmartSlotsScreen() {
           Smart slot suggestions use your booking history to recommend the best times to offer
           coaching sessions.
         </ThemedText>
+        {demoMode ? (
+          <DemoBanner message="Smart Slots is currently running in demo mode in this environment." />
+        ) : null}
 
         {SMART_FEATURES.map((feature) => (
           <SurfaceCard key={feature.title} style={styles.card}>

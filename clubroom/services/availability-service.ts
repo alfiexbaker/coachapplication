@@ -249,6 +249,9 @@ async function saveOverrides(
 }
 
 export const availabilityService = {
+  isUsingMockData(): boolean {
+    return USE_MOCK;
+  },
   /**
    * Get all availability templates for a coach
    */

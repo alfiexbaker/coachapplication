@@ -662,6 +662,13 @@ async function clearAllData(): Promise<void> {
 // ============================================================================
 
 export const referralService = {
+  async isUsingDemoData(): Promise<boolean> {
+    const [codes, referrals] = await Promise.all([
+      apiClient.get<ReferralCode[]>(STORAGE_KEY_CODES, []),
+      apiClient.get<Referral[]>(STORAGE_KEY_REFERRALS, []),
+    ]);
+    return codes.length === 0 && referrals.length === 0;
+  },
   // Code operations
   generateCode,
   getUserCode,

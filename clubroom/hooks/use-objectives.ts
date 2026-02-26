@@ -54,6 +54,7 @@ const OBJECTIVES_STORAGE_KEY = 'clubroom.objectives';
 
 interface ObjectivesLoadData {
   objectives: AthleteObjective[];
+  isDemoSeeded: boolean;
 }
 
 export function useObjectives() {
@@ -73,7 +74,10 @@ export function useObjectives() {
         OBJECTIVES_STORAGE_KEY,
         DEFAULT_OBJECTIVES,
       );
-      return ok<ObjectivesLoadData>({ objectives: storedObjectives });
+      return ok<ObjectivesLoadData>({
+        objectives: storedObjectives,
+        isDemoSeeded: storedObjectives.some((objective) => objective.id.startsWith('obj-seed-')),
+      });
     } catch (loadError) {
       return err(serviceError('UNKNOWN', 'Failed to load objectives.', loadError));
     }
@@ -178,6 +182,7 @@ export function useObjectives() {
     note,
     targetSessions,
     isParent,
+    isUsingDemoObjectives: data?.isDemoSeeded ?? false,
     selectedChildId,
     currentUser,
     objectives,

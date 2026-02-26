@@ -30,6 +30,10 @@ export interface DayHeatmapData {
   slots: { time: string; bookingRate: number }[];
 }
 
+export const SMART_SLOTS_USES_DEMO_DATA = true;
+export const SMART_SLOTS_DEMO_NOTE =
+  'Sample Smart Slots insights shown in demo/mock environments until enough real booking history exists.';
+
 // ---------------------------------------------------------------------------
 // Heat-color helpers
 // ---------------------------------------------------------------------------
@@ -48,7 +52,7 @@ export function getHeatTextColor(rate: number, colors: ThemeColors): string {
 }
 
 // ---------------------------------------------------------------------------
-// Mock analysis data (MVP)
+// Demo analysis data (MVP placeholder until real booking-pattern analytics is wired)
 // ---------------------------------------------------------------------------
 
 export const MOCK_SUGGESTIONS: SlotSuggestion[] = [

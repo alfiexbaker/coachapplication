@@ -121,11 +121,22 @@ export const LocationCard = memo(function LocationCard({ locationLabel }: Locati
 // PAYMENT CARD
 // ============================================================================
 
-export const PaymentCard = memo(function PaymentCard() {
+export const PaymentCard = memo(function PaymentCard({
+  showDemoIndicator = false,
+}: {
+  showDemoIndicator?: boolean;
+}) {
   const { colors: palette } = useTheme();
 
   return (
     <SurfaceCard style={styles.card}>
+      {showDemoIndicator ? (
+        <Row justify="flex-end" align="center">
+          <View style={[styles.demoBadge, { backgroundColor: withAlpha(palette.warning, 0.12) }]}>
+            <ThemedText style={[styles.demoBadgeText, { color: palette.warning }]}>Demo</ThemedText>
+          </View>
+        </Row>
+      ) : null}
       <Row gap="md" align="center">
         <View style={[styles.iconCircle, { backgroundColor: withAlpha(palette.tint, 0.12) }]}>
           <Ionicons name="card" size={24} color={palette.tint} />
@@ -135,6 +146,11 @@ export const PaymentCard = memo(function PaymentCard() {
           <ThemedText type="subtitle" style={styles.cardValue}>
             £65.00
           </ThemedText>
+          {showDemoIndicator ? (
+            <ThemedText style={[styles.cardSubtext, { color: palette.warning }]}>
+              Payment processing not connected yet
+            </ThemedText>
+          ) : null}
         </Column>
       </Row>
     </SurfaceCard>
@@ -263,6 +279,13 @@ const styles = StyleSheet.create({
   },
   cardValue: { ...Typography.subheading },
   cardSubtext: { ...Typography.bodySmall, opacity: 0.6 },
+  demoBadge: {
+    paddingHorizontal: Spacing.xs,
+    paddingVertical: Spacing.micro,
+    borderRadius: Radii.pill,
+    marginBottom: Spacing.xxs,
+  },
+  demoBadgeText: { ...Typography.caption, fontWeight: '600' },
   mapPreview: {
     height: 120,
     borderRadius: Radii.md,

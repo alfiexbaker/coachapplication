@@ -22,6 +22,7 @@ import { Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
 import { useReferralInvite } from '@/hooks/use-referral-invite';
 import { scaleFont } from '@/utils/scale';
+import { DemoBanner } from '@/utils/demo-mode';
 
 export default function ReferralInviteScreen() {
   const { colors: palette } = useTheme();
@@ -139,6 +140,9 @@ export default function ReferralInviteScreen() {
           </Animated.View>
 
           <Animated.View entering={FadeInDown.delay(150).springify()}>
+            {c.isDemoData ? (
+              <DemoBanner message="Referral code and credit balances are demo data in this environment." />
+            ) : null}
             <ThemedText type="title" style={styles.headline}>
               Give {c.creditText}, Get {c.creditText}
             </ThemedText>

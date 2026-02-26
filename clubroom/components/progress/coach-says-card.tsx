@@ -1,4 +1,4 @@
-import { memo, useCallback, useEffect, useMemo, useState } from 'react';
+import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import Animated, {
@@ -73,6 +73,7 @@ export const CoachSaysCard = memo(function CoachSaysCard({
   const { colors } = useTheme();
   const quoteOpacity = useSharedValue(0);
   const quoteLift = useSharedValue(10);
+  const homeworkExpandedByFeedbackIdRef = useRef<Record<string, boolean>>({});
   const [homeworkExpanded, setHomeworkExpanded] = useState(false);
 
   useEffect(() => {
@@ -85,14 +86,24 @@ export const CoachSaysCard = memo(function CoachSaysCard({
     quoteLift.value = withTiming(0, { duration: 220 });
   }, [feedback?.id, quoteLift, quoteOpacity]);
 
+  useEffect(() => {
+    const key = feedback?.id ?? 'none';
+    setHomeworkExpanded(Boolean(homeworkExpandedByFeedbackIdRef.current[key]));
+  }, [feedback?.id]);
+
   const quoteStyle = useAnimatedStyle(() => ({
     opacity: quoteOpacity.value,
     transform: [{ translateY: quoteLift.value }],
   }));
 
   const toggleHomework = useCallback(() => {
-    setHomeworkExpanded((prev) => !prev);
-  }, []);
+    setHomeworkExpanded((prev) => {
+      const next = !prev;
+      const key = feedback?.id ?? 'none';
+      homeworkExpandedByFeedbackIdRef.current[key] = next;
+      return next;
+    });
+  }, [feedback?.id]);
 
   const trimmedImprovements = feedback?.improvements?.trim() ?? '';
   const trimmedTemplate = feedback?.sessionTemplateName?.trim() ?? '';

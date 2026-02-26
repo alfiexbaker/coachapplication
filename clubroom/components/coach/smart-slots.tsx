@@ -17,6 +17,7 @@ import { MOCK_SUGGESTIONS, MOCK_HEATMAP } from './smart-slots-data';
 import { HeatmapGrid } from './smart-slots-heatmap';
 import { SuggestionCard, StatsSummary } from './smart-slots-cards';
 import { Row } from '@/components/primitives';
+import { DemoBanner, isDemoMode } from '@/utils/demo-mode';
 
 export default function SmartSlots({
   coachId,
@@ -25,6 +26,7 @@ export default function SmartSlots({
   onCopyLastWeek,
 }: SmartSlotsProps) {
   const { colors, scheme } = useTheme();
+  const demoMode = isDemoMode();
   const [dismissedIds, setDismissedIds] = useState<Set<string>>(new Set());
 
   const suggestions = useMemo(
@@ -82,11 +84,19 @@ export default function SmartSlots({
         <Text style={[styles.headerSubtitle, { color: colors.muted }]}>
           Insights from your booking patterns to help optimise your availability.
         </Text>
+        {demoMode ? (
+          <DemoBanner message="Showing sample Smart Slots insights (demo data)." />
+        ) : null}
       </View>
 
-      <StatsSummary />
+      <StatsSummary isDemoData={demoMode} />
 
       <Text style={[styles.sectionTitle, { color: colors.text }]}>Booking heatmap</Text>
+      {demoMode ? (
+        <Text style={[styles.sourceText, { color: colors.muted }]}>
+          Sample heatmap preview
+        </Text>
+      ) : null}
       <HeatmapGrid data={MOCK_HEATMAP} />
 
       <Clickable
@@ -162,5 +172,6 @@ const styles = StyleSheet.create({
   },
   copyWeekText: { flex: 1, ...Typography.bodySemiBold },
   suggestionsContainer: { gap: Spacing.xs },
+  sourceText: { ...Typography.caption, paddingHorizontal: Spacing.xs, marginTop: -Spacing.xs },
   bottomSpacer: { height: Spacing.lg },
 });

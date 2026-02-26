@@ -22,6 +22,7 @@ import { Spacing, Typography } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
 import { useObjectives } from '@/hooks/use-objectives';
 import type { AthleteObjective } from '@/constants/types';
+import { DemoBanner } from '@/utils/demo-mode';
 
 const ITEM_SEPARATOR_HEIGHT = Spacing.md;
 
@@ -38,6 +39,7 @@ export default function ObjectivesScreen() {
     selectedChildId,
     setSelectedChildId,
     isParent,
+    isUsingDemoObjectives,
     showModal,
     editingObjective,
     selectedSkill,
@@ -134,6 +136,11 @@ export default function ObjectivesScreen() {
         contentContainerStyle={styles.list}
         showsVerticalScrollIndicator={false}
       />
+      {isUsingDemoObjectives ? (
+        <View style={styles.demoBannerWrap}>
+          <DemoBanner message="Starter objectives are demo data. Edit or replace them with your real goals." />
+        </View>
+      ) : null}
 
       {/* Footer Add Button */}
       <View
@@ -195,6 +202,10 @@ const styles = StyleSheet.create({
   footer: {
     padding: Spacing.lg,
     borderTopWidth: 1,
+  },
+  demoBannerWrap: {
+    paddingHorizontal: Spacing.lg,
+    paddingBottom: Spacing.xs,
   },
   addButton: {
     paddingVertical: Spacing.md,

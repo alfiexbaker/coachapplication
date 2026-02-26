@@ -1751,3 +1751,10 @@ export async function ensureProgressDemoSeeded(
     return err(storageError('Failed to seed progress demo data'));
   }
 }
+/**
+ * DEMO SEED SERVICE (legacy)
+ *
+ * Provides seeded progress data for demo/mock environments.
+ * Sprint note (Data Display Sprint 2): demo-aware UI banners added in consumers; this module
+ * remains until a dedicated lazy-generation refactor removes the large seed dependency.
+ */

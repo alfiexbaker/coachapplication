@@ -21,12 +21,15 @@ export function useReferralInvite() {
 
   const [copied, setCopied] = useState(false);
   const [linkCopied, setLinkCopied] = useState(false);
+  const [isDemoData, setIsDemoData] = useState(false);
 
   const userId = currentUser?.id ?? 'parent1';
   const userName = currentUser?.fullName ?? currentUser?.name ?? 'User';
 
   const loadCode = useCallback(async () => {
     try {
+      const demo = await referralService.isUsingDemoData();
+      setIsDemoData(demo);
       const result = await referralService.getUserCode(userId, userName);
       if (!result.success) {
         logger.error('Failed to load referral code:', result.error);
@@ -94,6 +97,7 @@ export function useReferralInvite() {
     userName,
     creditAmount,
     creditText,
+    isDemoData,
     handleCopyCode,
     handleCopyLink,
   };

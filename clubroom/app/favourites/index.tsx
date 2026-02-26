@@ -22,6 +22,7 @@ import { favouriteService } from '@/services/favourite-service';
 import { onTyped, ServiceEvents } from '@/services/event-bus';
 import { scaleFont } from '@/utils/scale';
 import { ok } from '@/types/result';
+import { DemoBanner } from '@/utils/demo-mode';
 
 const logger = createLogger('FavouritesScreen');
 
@@ -34,6 +35,7 @@ export default function FavouritesScreen() {
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [togglingId, setTogglingId] = useState<string | null>(null);
+  const [showDemoBanner, setShowDemoBanner] = useState(false);
 
   const userId = currentUser?.id ?? 'parent1';
 
@@ -43,6 +45,8 @@ export default function FavouritesScreen() {
       const result = await favouriteService.getFavourites(userId);
       if (result.success) {
         setFavourites(result.data);
+        const usingDemoSeed = await favouriteService.isUsingDemoSeed(userId);
+        setShowDemoBanner(usingDemoSeed && result.data.length > 0);
       } else {
         logger.error('Failed to load favourites:', result.error);
         setError('Failed to load favourites.');
@@ -113,6 +117,14 @@ export default function FavouritesScreen() {
     router.push(Routes.BOOK_COACH);
   }, []);
 
+  const handleDismissDemoFavourites = useCallback(async () => {
+    const result = await favouriteService.dismissDemoFavourites();
+    if (result.success) {
+      setShowDemoBanner(false);
+      setFavourites([]);
+    }
+  }, []);
+
   return (
     <SafeAreaView
       style={[styles.container, { backgroundColor: palette.background }]}
@@ -159,6 +171,22 @@ export default function FavouritesScreen() {
       >
         {favourites.length > 0 && (
           <Animated.View entering={FadeInDown.delay(50).springify()}>
+            {showDemoBanner ? (
+              <View style={styles.demoBannerStack}>
+                <DemoBanner message="These saved coaches are starter demo data. Remove any card to curate your real favourites." />
+                <Clickable
+                  onPress={handleDismissDemoFavourites}
+                  style={[
+                    styles.dismissDemoButton,
+                    { backgroundColor: palette.surface, borderColor: palette.border },
+                  ]}
+                >
+                  <ThemedText style={[styles.dismissDemoText, { color: palette.text }]}>
+                    Clear Demo Favourites
+                  </ThemedText>
+                </Clickable>
+              </View>
+            ) : null}
             <Row
               align="center"
               justify="center"
@@ -262,7 +290,14 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     paddingVertical: Spacing['2xl'],
   },
-  listContainer: {
-    gap: Spacing.xs,
+  listContainer: { gap: Spacing.xs },
+  demoBannerStack: { gap: Spacing.xs, marginBottom: Spacing.sm },
+  dismissDemoButton: {
+    borderWidth: 1,
+    borderRadius: Radii.md,
+    paddingHorizontal: Spacing.sm,
+    paddingVertical: Spacing.xs,
+    alignSelf: 'flex-start',
   },
+  dismissDemoText: { ...Typography.caption, fontWeight: '600' },
 });

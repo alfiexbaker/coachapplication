@@ -1,3 +1,4 @@
+import { useMemo } from 'react';
 import { Alert, ScrollView, StyleSheet, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
@@ -35,6 +36,17 @@ export default function AccountSettingsScreen() {
     handleCancelDeletion,
     handleDeactivateAccount,
   } = useAccountSettings();
+  const memberSinceLabel = useMemo(() => {
+    const maybeCreatedAt =
+      currentUser && typeof currentUser === 'object' && 'createdAt' in currentUser
+        ? (currentUser as { createdAt?: string }).createdAt
+        : undefined;
+    const parsed = maybeCreatedAt ? new Date(maybeCreatedAt) : null;
+    const fallback = new Date();
+    fallback.setMonth(fallback.getMonth() - 3);
+    const date = parsed && !Number.isNaN(parsed.getTime()) ? parsed : fallback;
+    return date.toLocaleDateString('en-GB', { month: 'long', year: 'numeric' });
+  }, [currentUser]);
 
   return (
     <SafeAreaView
@@ -153,7 +165,7 @@ export default function AccountSettingsScreen() {
               bold
             />
             <InfoRow label="User ID" value={currentUser?.id || 'N/A'} colors={colors} mono />
-            <InfoRow label="Member Since" value="January 2024" colors={colors} />
+            <InfoRow label="Member Since" value={memberSinceLabel} colors={colors} />
           </View>
         </SettingsSection>
 

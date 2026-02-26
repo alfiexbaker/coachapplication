@@ -3,7 +3,7 @@
  * Also includes the "Add time block" sub-row.
  */
 import { memo, useCallback } from 'react';
-import { View, StyleSheet, Platform, type ViewStyle, useWindowDimensions } from 'react-native';
+import { View, StyleSheet, Platform, Alert, type ViewStyle, useWindowDimensions } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 
@@ -52,6 +52,12 @@ function SlotRowInner(props: WeekPatternSlotRowProps) {
     if (Platform.OS !== 'web') void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     onPress();
   }, [onPress]);
+  const handleOverrideInfo = useCallback(() => {
+    Alert.alert(
+      'One-time override',
+      'This yellow dot means the normal weekly slot was overridden for a specific date.',
+    );
+  }, []);
 
   const rowStyle: ViewStyle = {
     ...styles.dayRow,
@@ -79,6 +85,16 @@ function SlotRowInner(props: WeekPatternSlotRowProps) {
       </View>
 
       <View style={styles.dayTimeCol}>
+        {hasOverride && !isBlocked && showDayLabel ? (
+          <Clickable onPress={handleOverrideInfo} style={styles.overrideHint}>
+            <Row align="center" gap="xxs">
+              <View style={[styles.indicatorDot, { backgroundColor: palette.warning }]} />
+              <ThemedText style={[styles.overrideHintText, { color: palette.warning }]}>
+                What&apos;s this?
+              </ThemedText>
+            </Row>
+          </Clickable>
+        ) : null}
         {isBlocked ? (
           <Row style={styles.timeOffRow}>
             <Ionicons name="airplane-outline" size={14} color={palette.error} />
@@ -122,7 +138,9 @@ function SlotRowInner(props: WeekPatternSlotRowProps) {
 
       <Row style={styles.dayIndicators}>
         {hasOverride && !isBlocked && (
-          <View style={[styles.indicatorDot, { backgroundColor: palette.warning }]} />
+          <Clickable onPress={handleOverrideInfo} accessibilityLabel="Override indicator details">
+            <View style={[styles.indicatorDot, { backgroundColor: palette.warning }]} />
+          </Clickable>
         )}
         <Ionicons name="create-outline" size={16} color={palette.muted} />
       </Row>
@@ -177,6 +195,8 @@ const styles = StyleSheet.create({
   dayLabelCol: { width: 52 },
   dayLabel: { ...Typography.bodySmallSemiBold },
   dayTimeCol: { flex: 1, paddingHorizontal: Spacing.xs, gap: Spacing.xxs },
+  overrideHint: { alignSelf: 'flex-start' },
+  overrideHintText: { ...Typography.caption },
   dayTime: { ...Typography.bodySmall },
   timeOffRow: { alignItems: 'center', gap: Spacing.xxs },
   dayLocationCol: { flex: 1, alignItems: 'flex-end', paddingRight: Spacing.xs },

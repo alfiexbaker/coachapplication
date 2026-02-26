@@ -13,6 +13,7 @@ import { useTheme } from '@/hooks/useTheme';
 import type { SlotSuggestion } from './smart-slots-data';
 import { MOCK_STATS } from './smart-slots-data';
 import { Row } from '@/components/primitives';
+import { DemoBanner } from '@/utils/demo-mode';
 
 // ---------------------------------------------------------------------------
 // SuggestionCard
@@ -75,29 +76,34 @@ export const SuggestionCard = memo(SuggestionCardInner);
 // StatsSummary
 // ---------------------------------------------------------------------------
 
-function StatsSummaryInner() {
+function StatsSummaryInner({ isDemoData = true }: { isDemoData?: boolean }) {
   const { colors, scheme } = useTheme();
   return (
-    <Row style={[styles.statsContainer, { backgroundColor: colors.surface }, Shadows[scheme].card]}>
-      <View style={styles.stat}>
-        <Text style={[styles.statValue, { color: colors.text }]}>
-          {MOCK_STATS.totalSessionsLastMonth}
-        </Text>
-        <Text style={[styles.statLabel, { color: colors.muted }]}>Sessions (30d)</Text>
-      </View>
-      <Divider vertical />
-      <View style={styles.stat}>
-        <Text style={[styles.statValue, { color: colors.text }]}>
-          {Math.round(MOCK_STATS.averageBookingRate * 100)}%
-        </Text>
-        <Text style={[styles.statLabel, { color: colors.muted }]}>Fill rate</Text>
-      </View>
-      <Divider vertical />
-      <View style={styles.stat}>
-        <Text style={[styles.statValue, { color: colors.text }]}>{MOCK_STATS.waitlistCount}</Text>
-        <Text style={[styles.statLabel, { color: colors.muted }]}>On waitlist</Text>
-      </View>
-    </Row>
+    <View style={styles.statsWrap}>
+      {isDemoData ? (
+        <DemoBanner message="Smart Slots stats are demo data until enough booking history is available." />
+      ) : null}
+      <Row style={[styles.statsContainer, { backgroundColor: colors.surface }, Shadows[scheme].card]}>
+        <View style={styles.stat}>
+          <Text style={[styles.statValue, { color: colors.text }]}>
+            {MOCK_STATS.totalSessionsLastMonth}
+          </Text>
+          <Text style={[styles.statLabel, { color: colors.muted }]}>Sessions (30d)</Text>
+        </View>
+        <Divider vertical />
+        <View style={styles.stat}>
+          <Text style={[styles.statValue, { color: colors.text }]}>
+            {Math.round(MOCK_STATS.averageBookingRate * 100)}%
+          </Text>
+          <Text style={[styles.statLabel, { color: colors.muted }]}>Fill rate</Text>
+        </View>
+        <Divider vertical />
+        <View style={styles.stat}>
+          <Text style={[styles.statValue, { color: colors.text }]}>{MOCK_STATS.waitlistCount}</Text>
+          <Text style={[styles.statLabel, { color: colors.muted }]}>On waitlist</Text>
+        </View>
+      </Row>
+    </View>
   );
 }
 
@@ -131,6 +137,7 @@ const styles = StyleSheet.create({
   },
   actionButtonText: { ...Typography.caption, fontWeight: '600' },
   // Stats
+  statsWrap: { gap: Spacing.xs },
   statsContainer: { borderRadius: Radii.card, padding: Spacing.sm },
   stat: { flex: 1, alignItems: 'center' },
   statValue: { ...Typography.title },
