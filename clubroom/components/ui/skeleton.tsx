@@ -16,13 +16,20 @@ type SkeletonProps = {
   width?: DimensionValue;
   radius?: number;
   style?: StyleProp<ViewStyle>;
+  accessibilityLabel?: string;
 };
 
 /**
  * Lightweight skeleton shimmer that can wrap lists or individual rows.
  * Keeps implementation minimal so it can be swapped for a fancier shimmer later.
  */
-export function Skeleton({ height = 16, width = '100%', radius = Radii.md, style }: SkeletonProps) {
+export function Skeleton({
+  height = 16,
+  width = '100%',
+  radius = Radii.md,
+  style,
+  accessibilityLabel = 'Loading content',
+}: SkeletonProps) {
   const { colors: palette, scheme } = useTheme();
 
   return (
@@ -30,6 +37,8 @@ export function Skeleton({ height = 16, width = '100%', radius = Radii.md, style
       entering={FadeIn}
       exiting={FadeOut}
       layout={LinearTransition}
+      accessibilityRole="none"
+      accessibilityLabel={accessibilityLabel}
       style={[
         styles.base,
         {
@@ -47,9 +56,13 @@ export function Skeleton({ height = 16, width = '100%', radius = Radii.md, style
 
 export function SkeletonRow({ count = 3 }: { count?: number }) {
   return (
-    <View style={styles.rowContainer}>
+    <View style={styles.rowContainer} accessibilityRole="none" accessibilityLabel="Loading content">
       {Array.from({ length: count }).map((_, idx) => (
-        <Skeleton key={idx} width={`${Math.max(50, 100 - idx * 10)}%`} />
+        <Skeleton
+          key={idx}
+          width={`${Math.max(50, 100 - idx * 10)}%`}
+          accessibilityLabel={`Loading row ${idx + 1}`}
+        />
       ))}
     </View>
   );

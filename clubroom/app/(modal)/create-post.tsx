@@ -7,7 +7,7 @@
  * - Non-coaches without club → "Join a Club" prompt
  */
 
-import React, { useCallback } from 'react';
+import React, { useCallback, useRef } from 'react';
 import { View, StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -24,10 +24,13 @@ import { Row } from '@/components/primitives/row';
 import { Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
 import { useCreatePost } from '@/hooks/use-create-post';
+import { useFocusTrap } from '@/hooks/use-focus-trap';
 
 export default function CreatePostScreen() {
   const { colors: palette } = useTheme();
   const p = useCreatePost();
+  const modalRef = useRef<View>(null);
+  useFocusTrap(modalRef, 'Create post modal');
 
   const handleClose = useCallback(() => router.back(), []);
   const handleGoToClubHub = useCallback(() => {
@@ -38,6 +41,10 @@ export default function CreatePostScreen() {
   if (p.isCoach && !p.membership?.clubId) {
     return (
       <SafeAreaView
+        ref={modalRef}
+        accessible
+        accessibilityViewIsModal
+        accessibilityRole="dialog"
         style={[styles.container, { backgroundColor: palette.background }]}
         edges={['top', 'bottom']}
       >
@@ -71,6 +78,10 @@ export default function CreatePostScreen() {
   if (!p.membership?.clubId) {
     return (
       <SafeAreaView
+        ref={modalRef}
+        accessible
+        accessibilityViewIsModal
+        accessibilityRole="dialog"
         style={[styles.container, { backgroundColor: palette.background }]}
         edges={['top', 'bottom']}
       >
@@ -99,6 +110,8 @@ export default function CreatePostScreen() {
             <Clickable
               style={[styles.button, { backgroundColor: palette.tint }]}
               onPress={handleGoToClubHub}
+              accessibilityLabel="Go to club hub"
+              accessibilityRole="button"
             >
               <Row align="center" gap="sm">
                 <Ionicons name="people" size={18} color={palette.onPrimary} />
@@ -116,6 +129,10 @@ export default function CreatePostScreen() {
   // Club member → loading while redirecting
   return (
     <SafeAreaView
+      ref={modalRef}
+      accessible
+      accessibilityViewIsModal
+      accessibilityRole="dialog"
       style={[styles.container, { backgroundColor: palette.background }]}
       edges={['top', 'bottom']}
     >

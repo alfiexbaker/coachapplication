@@ -107,11 +107,15 @@ export function Chip({
       onPressOut={onPressOut ?? undefined}
       delayLongPress={delayLongPress ?? undefined}
       disabled={disabled ?? undefined}
-      hitSlop={hitSlop ?? undefined}
+      hitSlop={hitSlop ?? { top: 6, bottom: 6, left: 8, right: 8 }}
       accessibilityLabel={accessibilityLabel}
       accessibilityHint={accessibilityHint}
       accessibilityRole={accessibilityRole ?? 'button'}
-      accessibilityState={accessibilityState}
+      accessibilityState={{
+        selected: isActive,
+        disabled: Boolean(disabled),
+        ...accessibilityState,
+      }}
     >
       <Text style={labelStyles}>{label ?? children}</Text>
     </Clickable>

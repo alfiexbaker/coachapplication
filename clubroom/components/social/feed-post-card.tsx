@@ -85,7 +85,13 @@ function FeedPostCardInner({ post, onLike, onComment, onShare }: FeedPostCardPro
 
         {/* Image */}
         {post.imageUrl && (
-          <Image source={{ uri: post.imageUrl }} style={styles.postImage} contentFit="cover" />
+          <Image
+            source={{ uri: post.imageUrl }}
+            style={styles.postImage}
+            contentFit="cover"
+            accessibilityRole="image"
+            accessibilityLabel={`Photo posted by ${authorName}${post.title ? `: ${post.title}` : ''}`}
+          />
         )}
 
         {/* Event details */}

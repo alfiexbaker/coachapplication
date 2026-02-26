@@ -66,7 +66,11 @@ export function AthleteNotes({ notes, onAddNote, onDeleteNote }: AthleteNotesPro
     <SurfaceCard style={styles.container}>
       <Row align="center" justify="between">
         <ThemedText type="defaultSemiBold">Coach Notes</ThemedText>
-        <Clickable onPress={() => setShowInput(!showInput)}>
+        <Clickable
+          onPress={() => setShowInput(!showInput)}
+          accessibilityLabel={showInput ? 'Close add note form' : 'Add coach note'}
+          accessibilityRole="button"
+        >
           <Ionicons name={showInput ? 'close' : 'add-circle'} size={24} color={palette.tint} />
         </Clickable>
       </Row>
@@ -127,6 +131,7 @@ export function AthleteNotes({ notes, onAddNote, onDeleteNote }: AthleteNotesPro
                   </ThemedText>
                   <Clickable
                     accessibilityLabel="Delete note"
+                    accessibilityRole="button"
                     onPress={() => handleDeleteNote(note.id)}
                     hitSlop={8}
                   >

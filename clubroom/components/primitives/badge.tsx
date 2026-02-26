@@ -125,8 +125,9 @@ export function Badge({
       case 'subtle':
       default:
         return {
-          backgroundColor: withAlpha(toneColor, 0.09),
-          borderWidth: 0,
+          backgroundColor: withAlpha(toneColor, 0.12),
+          borderWidth: 1,
+          borderColor: withAlpha(toneColor, 0.2),
           textColor: toneColor,
         };
     }

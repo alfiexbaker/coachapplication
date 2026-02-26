@@ -5,7 +5,7 @@
  * All state/logic in usePostDetail hook. Post card extracted to component.
  */
 
-import React, { useCallback } from 'react';
+import React, { useCallback, useRef } from 'react';
 import { FlatList, KeyboardAvoidingView, Platform, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -22,10 +22,13 @@ import { Spacing, Typography } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
 import { usePostDetail } from '@/hooks/use-post-detail';
 import type { FlatItem } from '@/hooks/use-post-detail';
+import { useFocusTrap } from '@/hooks/use-focus-trap';
 
 export default function PostDetailScreen() {
   const { colors: palette } = useTheme();
   const p = usePostDetail();
+  const modalRef = useRef<View>(null);
+  useFocusTrap(modalRef, 'Post detail modal');
 
   const renderComment = useCallback(
     ({ item }: { item: FlatItem }) => (
@@ -46,6 +49,10 @@ export default function PostDetailScreen() {
   if (!p.post) {
     return (
       <SafeAreaView
+        ref={modalRef}
+        accessible
+        accessibilityViewIsModal
+        accessibilityRole="dialog"
         style={[styles.container, { backgroundColor: palette.background }]}
         edges={['top', 'bottom']}
       >
@@ -55,7 +62,13 @@ export default function PostDetailScreen() {
             { backgroundColor: palette.surface, borderBottomColor: palette.border },
           ]}
         >
-          <Clickable onPress={() => router.back()} style={styles.backButton} hitSlop={8}>
+          <Clickable
+            onPress={() => router.back()}
+            style={styles.backButton}
+            hitSlop={8}
+            accessibilityLabel="Close post details"
+            accessibilityRole="button"
+          >
             <Ionicons name="chevron-back" size={24} color={palette.text} />
           </Clickable>
           <ThemedText style={styles.headerTitle}>Post</ThemedText>
@@ -111,6 +124,10 @@ export default function PostDetailScreen() {
 
   return (
     <SafeAreaView
+      ref={modalRef}
+      accessible
+      accessibilityViewIsModal
+      accessibilityRole="dialog"
       style={[styles.container, { backgroundColor: palette.background }]}
       edges={['top', 'bottom']}
     >
@@ -120,7 +137,13 @@ export default function PostDetailScreen() {
           { backgroundColor: palette.surface, borderBottomColor: palette.border },
         ]}
       >
-        <Clickable onPress={() => router.back()} style={styles.backButton} hitSlop={8}>
+        <Clickable
+          onPress={() => router.back()}
+          style={styles.backButton}
+          hitSlop={8}
+          accessibilityLabel="Close post details"
+          accessibilityRole="button"
+        >
           <Ionicons name="chevron-back" size={24} color={palette.text} />
         </Clickable>
         <ThemedText style={styles.headerTitle}>Post</ThemedText>

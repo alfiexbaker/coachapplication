@@ -82,6 +82,9 @@ export function CompareBar({ visible = true, onCountChange, bottomOffset = 100 }
   return (
     <Animated.View style={[styles.container, { bottom: bottomOffset }, containerStyle]}>
       <View
+        accessibilityLiveRegion="polite"
+        accessibilityRole="status"
+        accessibilityLabel={`${count} ${count === 1 ? 'coach' : 'coaches'} selected for comparison`}
         style={[
           styles.bar,
           {

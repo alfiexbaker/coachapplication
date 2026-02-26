@@ -39,6 +39,8 @@ export function QuickActions({
       <Row style={styles.quickActions}>
         <Clickable
           onPress={handleDiscoverSessions}
+          accessibilityLabel="Discover sessions"
+          accessibilityRole="button"
           style={[styles.actionPill, { borderColor: palette.border }]}
         >
           <Row align="center" justify="center" gap="xs">
@@ -49,6 +51,8 @@ export function QuickActions({
 
         <Clickable
           onPress={handleFindCoach}
+          accessibilityLabel="Find a coach"
+          accessibilityRole="button"
           style={[styles.actionPill, { borderColor: palette.border }]}
         >
           <Row align="center" justify="center" gap="xs">
@@ -66,6 +70,8 @@ export function QuickActions({
       <Row style={styles.quickActions}>
         <Clickable
           onPress={onCalendarPress}
+          accessibilityLabel="Open calendar"
+          accessibilityRole="button"
           style={[styles.actionPill, { borderColor: palette.border }]}
         >
           <Row align="center" justify="center" gap="xs">
@@ -76,6 +82,8 @@ export function QuickActions({
 
         <Clickable
           onPress={onSettingsPress}
+          accessibilityLabel="Open settings"
+          accessibilityRole="button"
           style={[styles.actionPill, { borderColor: palette.border }]}
         >
           <Row align="center" justify="center" gap="xs">

@@ -5,6 +5,7 @@
  * All state/logic in useAddChild hook with pre-built step props.
  */
 
+import { useRef } from 'react';
 import { View, StyleSheet, ScrollView, KeyboardAvoidingView, Platform } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -22,10 +23,13 @@ import { Row } from '@/components/primitives/row';
 import { Radii, Spacing, Typography } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
 import { useAddChild, STEPS, STEP_TITLES } from '@/hooks/use-add-child';
+import { useFocusTrap } from '@/hooks/use-focus-trap';
 
 export default function AddChildScreen() {
   const { colors: palette } = useTheme();
   const c = useAddChild();
+  const modalRef = useRef<View>(null);
+  useFocusTrap(modalRef, 'Add child modal');
 
   const renderStep = () => {
     switch (c.currentStep) {
@@ -44,6 +48,10 @@ export default function AddChildScreen() {
 
   return (
     <SafeAreaView
+      ref={modalRef}
+      accessible
+      accessibilityViewIsModal
+      accessibilityRole="dialog"
       style={[styles.container, { backgroundColor: palette.background }]}
       edges={['top', 'bottom']}
     >

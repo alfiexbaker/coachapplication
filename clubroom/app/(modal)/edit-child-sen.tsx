@@ -5,6 +5,7 @@
  * Accessible from the parent's child profile / edit-children section.
  */
 
+import { useRef } from 'react';
 import { ScrollView, View, StyleSheet, TextInput, KeyboardAvoidingView, Platform } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -21,14 +22,24 @@ import { LoadingState, ErrorState } from '@/components/ui/screen-states';
 import { Radii, Spacing, Typography } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
 import { useEditChildSen } from '@/hooks/use-edit-child-sen';
+import { useFocusTrap } from '@/hooks/use-focus-trap';
 
 export default function EditChildSenScreen() {
   const { colors: palette } = useTheme();
   const c = useEditChildSen();
+  const modalRef = useRef<View>(null);
+  useFocusTrap(modalRef, 'Edit child special needs modal');
 
   if (c.loading) {
     return (
-      <SafeAreaView style={[styles.container, { backgroundColor: palette.background }]} edges={['top']}>
+      <SafeAreaView
+        ref={modalRef}
+        accessible
+        accessibilityViewIsModal
+        accessibilityRole="dialog"
+        style={[styles.container, { backgroundColor: palette.background }]}
+        edges={['top']}
+      >
         <PageHeader title="Edit SEN" showBack centerTitle />
         <LoadingState variant="detail" />
       </SafeAreaView>
@@ -37,7 +48,14 @@ export default function EditChildSenScreen() {
 
   if (c.status === 'error' || !c.child) {
     return (
-      <SafeAreaView style={[styles.container, { backgroundColor: palette.background }]} edges={['top']}>
+      <SafeAreaView
+        ref={modalRef}
+        accessible
+        accessibilityViewIsModal
+        accessibilityRole="dialog"
+        style={[styles.container, { backgroundColor: palette.background }]}
+        edges={['top']}
+      >
         <PageHeader title="Edit SEN" showBack centerTitle />
         <ErrorState
           message={c.error?.message ?? 'Failed to load child profile.'}
@@ -49,6 +67,10 @@ export default function EditChildSenScreen() {
 
   return (
     <SafeAreaView
+      ref={modalRef}
+      accessible
+      accessibilityViewIsModal
+      accessibilityRole="dialog"
       style={[styles.container, { backgroundColor: palette.background }]}
       edges={['top', 'bottom']}
     >

@@ -35,6 +35,10 @@ export function SelectionTile({
   return (
     <Clickable
       onPress={onPress}
+      accessibilityRole="button"
+      accessibilityLabel={title}
+      accessibilityHint={description}
+      accessibilityState={{ selected }}
       style={({ pressed }) => [
         styles.tile,
         {

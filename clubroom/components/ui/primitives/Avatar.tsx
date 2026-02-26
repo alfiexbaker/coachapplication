@@ -33,6 +33,8 @@ export interface AvatarProps {
   size?: AvatarSize;
   /** Show online status indicator */
   online?: boolean;
+  /** Accessible label override */
+  accessibilityLabel?: string;
 }
 
 // ---------------------------------------------------------------------------
@@ -87,7 +89,7 @@ const INDICATOR_BORDER_MAP: Record<AvatarSize, number> = {
 // Component
 // ---------------------------------------------------------------------------
 
-function AvatarInner({ uri, name, size = 'md', online }: AvatarProps) {
+function AvatarInner({ uri, name, size = 'md', online, accessibilityLabel }: AvatarProps) {
   const { colors } = useTheme();
   const [hasError, setHasError] = useState(false);
   const [retryCount, setRetryCount] = useState(0);
@@ -99,6 +101,8 @@ function AvatarInner({ uri, name, size = 'md', online }: AvatarProps) {
 
   const showImage = uri && !hasError;
   const initials = name ? getInitials(name) : '?';
+  const resolvedAccessibilityLabel =
+    accessibilityLabel ?? (name ? `${name}'s profile photo` : 'User profile photo');
 
   useEffect(() => {
     if (retryTimeoutRef.current) {
@@ -149,7 +153,12 @@ function AvatarInner({ uri, name, size = 'md', online }: AvatarProps) {
   };
 
   return (
-    <View style={[styles.wrapper, { width: dimension, height: dimension }]}>
+    <View
+      style={[styles.wrapper, { width: dimension, height: dimension }]}
+      accessible
+      accessibilityRole="image"
+      accessibilityLabel={resolvedAccessibilityLabel}
+    >
       {showImage ? (
         <Image
           source={{ uri: retryCount > 0 ? `${uri}${uri.includes('?') ? '&' : '?'}retry=${retryCount}` : uri }}
@@ -162,6 +171,7 @@ function AvatarInner({ uri, name, size = 'md', online }: AvatarProps) {
             },
           ]}
           onError={handleImageError}
+          accessible={false}
         />
       ) : (
         <View
@@ -174,6 +184,7 @@ function AvatarInner({ uri, name, size = 'md', online }: AvatarProps) {
               borderRadius: dimension / 2,
             },
           ]}
+          accessible={false}
         >
           <Text
             style={[

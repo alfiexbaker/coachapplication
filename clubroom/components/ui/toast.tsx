@@ -175,6 +175,8 @@ function Toast({
       exiting={FadeOutUp}
       style={[styles.container, { bottom: bottomPosition }]}
       pointerEvents={action ? 'box-none' : 'none'}
+      accessibilityLiveRegion="polite"
+      accessibilityRole="alert"
     >
       <Row
         align="center"

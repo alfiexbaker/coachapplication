@@ -1,3 +1,4 @@
+import { useRef } from 'react';
 import { ScrollView, StyleSheet, Switch, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -13,6 +14,7 @@ import { Radii, Spacing, Typography, withAlpha } from '@/constants/theme';
 import { POSITION_OPTIONS_WITH_ROTATE } from '@/constants/position-skills';
 import { useTheme } from '@/hooks/useTheme';
 import { useEditChildProfile } from '@/hooks/use-edit-child-profile';
+import { useFocusTrap } from '@/hooks/use-focus-trap';
 
 const GENDER_LABEL: Record<string, string> = {
   MALE: 'Male',
@@ -32,6 +34,8 @@ const RELATIONSHIP_LABEL: Record<string, string> = {
 export default function EditChildProfileModal() {
   const { colors: palette } = useTheme();
   const c = useEditChildProfile();
+  const modalRef = useRef<View>(null);
+  useFocusTrap(modalRef, 'Edit child profile modal');
   const positionDisplayLabel = (key: (typeof POSITION_OPTIONS_WITH_ROTATE)[number]['key']) => {
     if (key === null) {
       return 'They rotate';
@@ -44,7 +48,14 @@ export default function EditChildProfileModal() {
 
   if (c.loading) {
     return (
-      <SafeAreaView style={[styles.container, { backgroundColor: palette.background }]} edges={['top']}>
+      <SafeAreaView
+        ref={modalRef}
+        accessible
+        accessibilityViewIsModal
+        accessibilityRole="dialog"
+        style={[styles.container, { backgroundColor: palette.background }]}
+        edges={['top']}
+      >
         <PageHeader title="Edit Child Profile" showBack centerTitle />
         <LoadingState variant="form" />
       </SafeAreaView>
@@ -53,7 +64,14 @@ export default function EditChildProfileModal() {
 
   if (c.status === 'error' || !c.child) {
     return (
-      <SafeAreaView style={[styles.container, { backgroundColor: palette.background }]} edges={['top']}>
+      <SafeAreaView
+        ref={modalRef}
+        accessible
+        accessibilityViewIsModal
+        accessibilityRole="dialog"
+        style={[styles.container, { backgroundColor: palette.background }]}
+        edges={['top']}
+      >
         <PageHeader title="Edit Child Profile" showBack centerTitle />
         <ErrorState message={c.error?.message ?? 'Failed to load child profile.'} onRetry={c.retry} />
       </SafeAreaView>
@@ -65,6 +83,10 @@ export default function EditChildProfileModal() {
 
   return (
     <SafeAreaView
+      ref={modalRef}
+      accessible
+      accessibilityViewIsModal
+      accessibilityRole="dialog"
       style={[styles.container, { backgroundColor: palette.background }]}
       edges={['top', 'bottom']}
     >
@@ -109,10 +131,13 @@ export default function EditChildProfileModal() {
               {c.genderOptions.map((option) => {
                 const active = c.gender === option;
                 return (
-                  <Clickable
-                    key={option}
-                    onPress={() => c.setGender(option)}
-                    style={[
+                <Clickable
+                  key={option}
+                  onPress={() => c.setGender(option)}
+                  accessibilityLabel={`Select gender ${GENDER_LABEL[option] ?? option}`}
+                  accessibilityRole="button"
+                  accessibilityState={{ selected: active }}
+                  style={[
                       styles.optionPill,
                       {
                         borderColor: active ? palette.tint : palette.border,

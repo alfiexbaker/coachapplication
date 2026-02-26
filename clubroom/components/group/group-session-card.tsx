@@ -92,7 +92,13 @@ export const GroupSessionCard = memo(function GroupSessionCard({
       <SurfaceCard style={styles.card} onPress={onPress}>
         {session.imageUrl && (
           <View style={styles.imageContainer}>
-            <Image source={{ uri: session.imageUrl }} style={styles.image} contentFit="cover" />
+            <Image
+              source={{ uri: session.imageUrl }}
+              style={styles.image}
+              contentFit="cover"
+              accessibilityRole="image"
+              accessibilityLabel={`${session.title} session image`}
+            />
             <View
               style={[
                 styles.typeBadge,

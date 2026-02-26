@@ -47,6 +47,8 @@ export function WaitlistBanner({
 
   return (
     <View
+      accessibilityLiveRegion="polite"
+      accessibilityRole="status"
       style={[
         styles.container,
         { backgroundColor: withAlpha(palette.warning, 0.06), borderColor: palette.warning },
@@ -80,6 +82,9 @@ export function WaitlistBanner({
             void handleJoin();
           }}
           disabled={isLoading}
+          accessibilityLabel="Join waitlist"
+          accessibilityRole="button"
+          accessibilityState={{ disabled: isLoading }}
           style={[styles.button, { backgroundColor: palette.warning }]}
         >
           {isLoading ? (

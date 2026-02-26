@@ -225,8 +225,8 @@ export function CompareButton({
 
 const styles = StyleSheet.create({
   iconButton: {
-    width: 40,
-    height: 40,
+    width: 44,
+    height: 44,
     borderRadius: Radii.md,
     borderWidth: 1,
     alignItems: 'center',

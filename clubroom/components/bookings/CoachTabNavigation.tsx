@@ -19,9 +19,12 @@ export function CoachTabNavigation({ activeTab, onTabChange }: CoachTabNavigatio
   const { colors: palette } = useTheme();
 
   return (
-    <Row style={styles.tabContainer}>
+    <Row style={styles.tabContainer} accessibilityRole="tablist" accessibilityLabel="Booking tabs">
       <Clickable
         onPress={() => onTabChange('list')}
+        accessibilityRole="tab"
+        accessibilityLabel="Bookings list tab"
+        accessibilityState={{ selected: activeTab === 'list' }}
         style={[
           styles.tab,
           activeTab === 'list'
@@ -46,6 +49,9 @@ export function CoachTabNavigation({ activeTab, onTabChange }: CoachTabNavigatio
 
       <Clickable
         onPress={() => onTabChange('create')}
+        accessibilityRole="tab"
+        accessibilityLabel="Create booking tab"
+        accessibilityState={{ selected: activeTab === 'create' }}
         style={[
           styles.tab,
           activeTab === 'create'

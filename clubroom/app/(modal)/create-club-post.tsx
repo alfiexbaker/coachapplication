@@ -5,7 +5,7 @@
  * All state/logic in useCreateClubPost hook. Selectors + event fields extracted.
  */
 
-import React from 'react';
+import React, { useRef } from 'react';
 import {
   View,
   StyleSheet,
@@ -35,26 +35,40 @@ import { Column } from '@/components/primitives/column';
 import { Spacing, Radii, Typography, Shadows, withAlpha } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
 import { useCreateClubPost } from '@/hooks/use-create-club-post';
+import { useFocusTrap } from '@/hooks/use-focus-trap';
 
 export default function CreateClubPostScreen() {
   const { colors: palette, scheme } = useTheme();
   const { clubId } = useLocalSearchParams<{ clubId: string }>();
   const p = useCreateClubPost(clubId);
+  const modalRef = useRef<View>(null);
+  useFocusTrap(modalRef, 'Create club post modal');
 
   return (
     <SafeAreaView
+      ref={modalRef}
+      accessible
+      accessibilityViewIsModal
+      accessibilityRole="dialog"
       style={[styles.container, { backgroundColor: palette.background }]}
       edges={['top', 'bottom']}
     >
       {/* Header */}
       <Row style={[styles.header, { borderBottomColor: palette.border }]}>
-        <Clickable onPress={() => router.back()} hitSlop={10}>
+        <Clickable
+          onPress={() => router.back()}
+          hitSlop={10}
+          accessibilityLabel="Close create post"
+          accessibilityRole="button"
+        >
           <Ionicons name="close" size={24} color={palette.foreground} />
         </Clickable>
         <ThemedText type="defaultSemiBold">New Post</ThemedText>
         <Clickable
           onPress={p.handlePost}
           disabled={!p.canPost}
+          accessibilityLabel={p.isPosting ? 'Posting club post' : 'Post club post'}
+          accessibilityRole="button"
           style={[
             styles.postButton,
             {

@@ -5,6 +5,7 @@
  * All state/logic in useCreateSquad hook.
  */
 
+import { useRef } from 'react';
 import { View, StyleSheet, TextInput, ScrollView } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -19,14 +20,21 @@ import { Column } from '@/components/primitives/column';
 import { Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
 import { useCreateSquad, AGE_GROUPS, SQUAD_LEVELS, SKILL_TAGS } from '@/hooks/use-create-squad';
+import { useFocusTrap } from '@/hooks/use-focus-trap';
 
 export default function CreateSquadScreen() {
   const { colors: palette } = useTheme();
   const c = useCreateSquad();
+  const modalRef = useRef<View>(null);
+  useFocusTrap(modalRef, 'Create group modal');
 
   if (!c.club) {
     return (
       <SafeAreaView
+        ref={modalRef}
+        accessible
+        accessibilityViewIsModal
+        accessibilityRole="dialog"
         style={[styles.container, { backgroundColor: palette.background }]}
         edges={['top', 'bottom']}
       >
@@ -47,6 +55,10 @@ export default function CreateSquadScreen() {
 
   return (
     <SafeAreaView
+      ref={modalRef}
+      accessible
+      accessibilityViewIsModal
+      accessibilityRole="dialog"
       style={[styles.container, { backgroundColor: palette.background }]}
       edges={['top', 'bottom']}
     >
