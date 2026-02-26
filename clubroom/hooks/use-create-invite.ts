@@ -35,6 +35,7 @@ import type {
 import type { ThemeColors } from '@/hooks/useTheme';
 import type { ThemeName } from '@/constants/theme';
 import { Routes } from '@/navigation/routes';
+import { useUnsavedChangesWarning } from '@/hooks/use-unsaved-changes-warning';
 
 const logger = createLogger('useCreateInvite');
 
@@ -226,6 +227,23 @@ export function useCreateInvite(): UseCreateInviteReturn {
   const [isRecurring, setIsRecurring] = useState(false);
   const [recurrenceWeeks, setRecurrenceWeeks] = useState(8);
   const priceError = validateInvitePrice(price);
+  const isDirty =
+    selectedAthletes.length > 0 ||
+    selectedClub !== null ||
+    selectedTemplate !== null ||
+    selectedExistingSession !== null ||
+    selectedAvailabilitySlots.length > 0 ||
+    sessionType.trim().length > 0 ||
+    focus.trim().length > 0 ||
+    notes.trim().length > 0 ||
+    price.trim().length > 0 ||
+    coverImageUri !== null ||
+    inviteMode !== 'new' ||
+    sessionInviteType !== 'OPEN' ||
+    isRecurring ||
+    recurrenceWeeks !== 8;
+
+  useUnsavedChangesWarning(isDirty && !loading);
 
   // ── Data loading ──────────────────────────────────────────────────────
 
