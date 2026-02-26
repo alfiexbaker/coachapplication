@@ -97,7 +97,7 @@ export interface PageHeaderProps {
  *   subtitle="Track your athletes' progress"
  *   action="Add Session"
  *   actionIcon="add"
- *   onActionPress={() => router.push('/session/new')}
+ *   onActionPress={() => router.push(Routes.SESSIONS_CREATE)}
  * />
  * ```
  */
