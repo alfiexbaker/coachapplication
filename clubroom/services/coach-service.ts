@@ -11,6 +11,7 @@ import type { Result, ServiceError } from '@/types/result';
 import { ok, err, notFound, storageError } from '@/types/result';
 import { accountIdsMatch } from '@/utils/account-id';
 import { STORAGE_KEYS } from '@/constants/storage-keys';
+import { normalizeLegacyMockDates } from '@/utils/mock-date-normalizer';
 
 const logger = createLogger('CoachService');
 
@@ -73,7 +74,7 @@ export interface PublicReview {
 // MOCK DATA
 // ============================================================================
 
-const MOCK_COACHES: Coach[] = [
+const MOCK_COACHES: Coach[] = normalizeLegacyMockDates([
   {
     id: 'coach-1',
     name: 'Marcus Johnson',
@@ -149,9 +150,9 @@ const MOCK_COACHES: Coach[] = [
     certifications: [{ name: 'UEFA A License', issuer: 'UEFA', issueDate: '2020' }],
     languages: [{ name: 'English', proficiency: 'Native' }],
   },
-];
+]);
 
-const MOCK_REVIEWS: PublicReview[] = [
+const MOCK_REVIEWS: PublicReview[] = normalizeLegacyMockDates([
   {
     id: 'review-1',
     coachId: 'coach-1',
@@ -204,7 +205,7 @@ const MOCK_REVIEWS: PublicReview[] = [
     sessionType: '1-on-1 Session',
     createdAt: '2024-01-08T09:00:00Z',
   },
-];
+]);
 
 // ============================================================================
 // SERVICE METHODS

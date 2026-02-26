@@ -17,11 +17,12 @@ import { STORAGE_KEYS } from '@/constants/storage-keys';
 import { createLogger } from '@/utils/logger';
 import { communityGroupService } from './community-group-service';
 import { accountIdsMatch } from '@/utils/account-id';
+import { normalizeLegacyMockDates } from '@/utils/mock-date-normalizer';
 
 const logger = createLogger('CommunityMessagingService');
 
 // Mock data for initial state
-const mockMessages: Record<string, GroupMessage[]> = {
+const mockMessages: Record<string, GroupMessage[]> = normalizeLegacyMockDates({
   group_1: [
     {
       id: 'msg_1',
@@ -51,7 +52,7 @@ const mockMessages: Record<string, GroupMessage[]> = {
       readBy: ['parent1'],
     },
   ],
-};
+});
 
 class CommunityMessagingService {
   private inMemoryMessages: Record<string, GroupMessage[]> = { ...mockMessages };

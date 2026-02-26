@@ -18,6 +18,7 @@ import { generateId } from '@/utils/generate-id';
 import { createLogger } from '@/utils/logger';
 import { type Result, type ServiceError, ok, err, validationError } from '@/types/result';
 import type { ReferralCode, Referral, ReferralStats, ReferralStatus } from '@/constants/types';
+import { normalizeLegacyMockDates } from '@/utils/mock-date-normalizer';
 
 const logger = createLogger('ReferralService');
 
@@ -35,7 +36,7 @@ const REFERRAL_EXPIRY_DAYS = 30; // Pending referrals expire after 30 days
 // MOCK DATA
 // ============================================================================
 
-const MOCK_CODES: ReferralCode[] = [
+const MOCK_CODES: ReferralCode[] = normalizeLegacyMockDates([
   {
     id: 'refcode_parent1',
     userId: 'parent1',
@@ -66,9 +67,9 @@ const MOCK_CODES: ReferralCode[] = [
     createdAt: '2024-05-10T12:00:00.000Z',
     updatedAt: '2024-05-10T12:00:00.000Z',
   },
-];
+]);
 
-const MOCK_REFERRALS: Referral[] = [
+const MOCK_REFERRALS: Referral[] = normalizeLegacyMockDates([
   {
     id: 'ref_1',
     referrerId: 'parent1',
@@ -122,7 +123,7 @@ const MOCK_REFERRALS: Referral[] = [
     completedAt: '2024-12-10T14:20:00.000Z',
     triggerBookingId: 'booking_ref5',
   },
-];
+]);
 
 function isoDaysAgo(daysAgo: number, hour = 12, minute = 0): string {
   const date = new Date();

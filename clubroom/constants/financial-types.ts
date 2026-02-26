@@ -219,7 +219,7 @@ export type InvoiceStatus = 'DRAFT' | 'SENT' | 'PAID' | 'VOID' | 'WRITTEN_OFF';
 export interface Invoice {
   /** Unique identifier for the invoice */
   id: string;
-  /** Invoice number for display (e.g., INV-2024-001) */
+  /** Invoice number for display (e.g., INV-YYYY-001) */
   invoiceNumber: string;
   /** ID of the user this invoice belongs to */
   userId: string;

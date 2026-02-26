@@ -29,6 +29,7 @@ import {
 import { createLogger } from '@/utils/logger';
 import { emitTyped, ServiceEvents } from './event-bus';
 import { api } from '@/constants/config';
+import { normalizeLegacyMockDates } from '@/utils/mock-date-normalizer';
 
 import { STORAGE_KEYS } from '@/constants/storage-keys';
 
@@ -337,7 +338,7 @@ export interface ClubMember {
 }
 
 // Mock members data
-const MOCK_MEMBERS: ClubMember[] = [
+const MOCK_MEMBERS: ClubMember[] = normalizeLegacyMockDates([
   {
     userId: 'coach1',
     userName: 'Director Kelly',
@@ -376,7 +377,7 @@ const MOCK_MEMBERS: ClubMember[] = [
     status: 'active',
     joinedAt: '2024-07-15',
   },
-];
+]);
 
 let membersCache: Map<string, ClubMember[]> = new Map();
 let removalHistoryCache: ClubMemberRemovalRecord[] = [];

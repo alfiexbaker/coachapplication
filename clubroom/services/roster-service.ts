@@ -34,6 +34,7 @@ import { createLogger } from '@/utils/logger';
 import { userService } from './user-service';
 import { verificationService } from './verification-service';
 import { emitTyped, ServiceEvents } from './event-bus';
+import { normalizeLegacyMockDates } from '@/utils/mock-date-normalizer';
 
 const logger = createLogger('RosterService');
 
@@ -85,7 +86,7 @@ export interface AthleteRemovalRecord {
 }
 
 // Mock roster data
-const MOCK_ROSTER: RosterEntry[] = [
+const MOCK_ROSTER: RosterEntry[] = normalizeLegacyMockDates([
   {
     id: 'roster_1',
     coachId: 'coach1',
@@ -209,7 +210,7 @@ const MOCK_ROSTER: RosterEntry[] = [
     primaryFocus: 'Dribbling',
     notificationPreference: 'NONE',
   },
-];
+]);
 
 export interface RosterFilters {
   status?: RosterEntry['status'];

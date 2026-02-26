@@ -4,6 +4,7 @@ import { STORAGE_KEYS } from '@/constants/storage-keys';
 import { createLogger } from '@/utils/logger';
 import { emitTyped, ServiceEvents } from './event-bus';
 import { type Result, type ServiceError, ok, err, storageError } from '@/types/result';
+import { normalizeLegacyMockDates } from '@/utils/mock-date-normalizer';
 
 const logger = createLogger('VerificationService');
 
@@ -35,7 +36,7 @@ const createDefaultVerificationStatus = (coachId: string): VerificationStatus =>
 });
 
 // Mock verification statuses for demo purposes
-const MOCK_VERIFICATION_STATUSES: Record<string, VerificationStatus> = {
+const MOCK_VERIFICATION_STATUSES: Record<string, VerificationStatus> = normalizeLegacyMockDates({
   coach1: {
     coachId: 'coach1',
     email: {
@@ -113,7 +114,7 @@ const MOCK_VERIFICATION_STATUSES: Record<string, VerificationStatus> = {
     overallLevel: 'BASIC',
     lastUpdated: '2024-03-05T14:00:00Z',
   },
-};
+});
 
 class VerificationService {
   /**

@@ -22,6 +22,7 @@ import {
   type FamilyDateRange,
   type ChildProgressSummary,
 } from '@/constants/types';
+import { normalizeLegacyMockDates } from '@/utils/mock-date-normalizer';
 
 const logger = createLogger('FamilyMemberService');
 const USE_MOCK = api.useMock;
@@ -48,7 +49,7 @@ export const CHILD_COLORS = [
 // MOCK DATA
 // ============================================================================
 
-const MOCK_FAMILY_MEMBERS: FamilyMember[] = [
+const MOCK_FAMILY_MEMBERS: FamilyMember[] = normalizeLegacyMockDates([
   {
     id: 'child_tom',
     name: 'Tom Henderson',
@@ -79,9 +80,9 @@ const MOCK_FAMILY_MEMBERS: FamilyMember[] = [
     isActive: true,
     addedAt: '2024-03-15T14:00:00.000Z',
   },
-];
+]);
 
-const MOCK_FAMILY_BOOKINGS: FamilyCalendarEvent[] = [
+const MOCK_FAMILY_BOOKINGS: FamilyCalendarEvent[] = normalizeLegacyMockDates([
   // Tom's bookings
   {
     id: 'booking_fam_1',
@@ -220,7 +221,7 @@ const MOCK_FAMILY_BOOKINGS: FamilyCalendarEvent[] = [
     status: 'COMPLETED',
     price: 75,
   },
-];
+]);
 
 // ============================================================================
 // SERVICE CLASS

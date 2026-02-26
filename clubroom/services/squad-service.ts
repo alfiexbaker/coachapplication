@@ -16,6 +16,7 @@ import type { ClubSquad, SquadMember } from '@/constants/types';
 import { createLogger } from '@/utils/logger';
 import { emitTyped, ServiceEvents } from './event-bus';
 import { userService } from './user-service';
+import { normalizeLegacyMockDates } from '@/utils/mock-date-normalizer';
 
 import { STORAGE_KEYS } from '@/constants/storage-keys';
 
@@ -178,7 +179,7 @@ async function saveCustomSquads(squads: ClubSquad[]): Promise<void> {
 }
 
 // Mock squad members data
-const MOCK_SQUAD_MEMBERS: SquadMember[] = [
+const MOCK_SQUAD_MEMBERS: SquadMember[] = normalizeLegacyMockDates([
   // U15 Performance Squad members
   {
     id: 'sm_1',
@@ -291,7 +292,7 @@ const MOCK_SQUAD_MEMBERS: SquadMember[] = [
     position: 'Midfielder',
     jerseyNumber: 6,
   },
-];
+]);
 
 let membersCache: SquadMember[] = [...MOCK_SQUAD_MEMBERS];
 

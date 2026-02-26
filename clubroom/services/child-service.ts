@@ -14,6 +14,7 @@ import { createLogger } from '@/utils/logger';
 import { type Result, type ServiceError, ok, err, notFound, storageError } from '@/types/result';
 import { emitTyped, ServiceEvents } from './event-bus';
 import type { PositionRole } from '@/types/progress-types';
+import { normalizeLegacyMockDates } from '@/utils/mock-date-normalizer';
 
 import { STORAGE_KEYS } from '@/constants/storage-keys';
 
@@ -191,7 +192,7 @@ export const SPECIAL_NEEDS_CATEGORIES: {
 // MOCK DATA
 // ============================================================================
 
-let childrenCache: ChildProfile[] = [
+let childrenCache: ChildProfile[] = normalizeLegacyMockDates([
   {
     id: 'user1',
     parentId: 'user4',
@@ -275,7 +276,7 @@ let childrenCache: ChildProfile[] = [
     createdAt: '2023-06-10T10:00:00Z',
     updatedAt: '2023-06-10T10:00:00Z',
   },
-];
+]);
 
 // ============================================================================
 // STORAGE HELPERS

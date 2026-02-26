@@ -33,6 +33,7 @@ import {
   storageError,
 } from '@/types/result';
 import { createLogger } from '@/utils/logger';
+import { normalizeLegacyMockDates } from '@/utils/mock-date-normalizer';
 
 import { STORAGE_KEYS } from '@/constants/storage-keys';
 
@@ -41,7 +42,7 @@ const logger = createLogger('AcademyService');
 const USE_MOCK = api.useMock;
 
 // Mock academies
-const MOCK_ACADEMIES: Academy[] = [
+const MOCK_ACADEMIES: Academy[] = normalizeLegacyMockDates([
   {
     id: 'academy_1',
     name: 'East London FC Academy',
@@ -96,9 +97,9 @@ const MOCK_ACADEMIES: Academy[] = [
     sports: ['Football'],
     specialties: ['Goalkeeping'],
   },
-];
+]);
 
-const MOCK_MEMBERSHIPS: AcademyMembership[] = [
+const MOCK_MEMBERSHIPS: AcademyMembership[] = normalizeLegacyMockDates([
   {
     id: 'mem_1',
     academyId: 'academy_1',
@@ -136,7 +137,7 @@ const MOCK_MEMBERSHIPS: AcademyMembership[] = [
     joinedAt: '2025-01-05T11:00:00Z',
     invitedBy: 'coach1',
   },
-];
+]);
 
 const MOCK_INVITES: AcademyInvite[] = [
   {

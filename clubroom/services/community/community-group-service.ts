@@ -32,6 +32,7 @@ import { createLogger } from '@/utils/logger';
 import { emitTyped, ServiceEvents } from '../event-bus';
 import { userService } from '../user-service';
 import { accountIdsMatch } from '@/utils/account-id';
+import { normalizeLegacyMockDates } from '@/utils/mock-date-normalizer';
 
 const logger = createLogger('CommunityGroupService');
 
@@ -117,7 +118,7 @@ export interface ChangeMemberRoleParams {
 // MOCK DATA
 // ============================================================================
 
-const mockGroups: ParentGroup[] = [
+const mockGroups: ParentGroup[] = normalizeLegacyMockDates([
   {
     id: 'group_1',
     name: 'U12 Parents',
@@ -170,7 +171,7 @@ const mockGroups: ParentGroup[] = [
     unreadCount: 5,
     isPublic: true,
   },
-];
+]);
 
 // ============================================================================
 // SERVICE

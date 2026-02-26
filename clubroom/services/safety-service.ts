@@ -9,6 +9,7 @@ import { apiClient } from './api-client';
 import { STORAGE_KEYS } from '@/constants/storage-keys';
 import { createLogger } from '@/utils/logger';
 import { type Result, type ServiceError, ok, err, storageError } from '@/types/result';
+import { normalizeLegacyMockDates } from '@/utils/mock-date-normalizer';
 
 const logger = createLogger('SafetyService');
 const CACHE_TTL_MS = 30 * 60 * 1000; // 30 minutes
@@ -82,7 +83,8 @@ const createDefaultEmergencyInfo = (athleteId: string): EmergencyInfo => ({
 });
 
 // Mock emergency info data — only available in development
-const MOCK_EMERGENCY_INFO: Record<string, EmergencyInfo> | null = __DEV__ ? {
+const MOCK_EMERGENCY_INFO: Record<string, EmergencyInfo> | null = __DEV__
+  ? normalizeLegacyMockDates({
   athlete1: {
     athleteId: 'athlete1',
     contacts: [
@@ -195,7 +197,8 @@ const MOCK_EMERGENCY_INFO: Record<string, EmergencyInfo> | null = __DEV__ ? {
     ],
     updatedAt: '2024-02-01T14:30:00Z',
   },
-} : null;
+    })
+  : null;
 
 class SafetyService {
   private async getEmergencyInfoValue(athleteId: string): Promise<EmergencyInfo> {

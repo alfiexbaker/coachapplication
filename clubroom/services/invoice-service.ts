@@ -15,6 +15,7 @@ import { type Result, type ServiceError, ok, err, notFound, validationError } fr
 import { emitTyped, ServiceEvents } from './event-bus';
 import { generateInvoiceHtml } from './invoice-template';
 import { bookingService } from '@/services/booking';
+import { normalizeLegacyMockDates } from '@/utils/mock-date-normalizer';
 
 // ============================================================================
 // CONFIGURATION
@@ -31,7 +32,7 @@ const DEFAULT_TAX_RATE = 20;
 // MOCK DATA
 // ============================================================================
 
-const MOCK_INVOICES: Invoice[] = [
+const MOCK_INVOICES: Invoice[] = normalizeLegacyMockDates([
   {
     id: 'inv_001',
     invoiceNumber: 'INV-2025-001',
@@ -193,7 +194,7 @@ const MOCK_INVOICES: Invoice[] = [
     coachBusinessName: 'Jess Okafor Coaching',
     coachBusinessEmail: 'jess.okafor@coach.com',
   },
-];
+]);
 
 function shiftMockInvoiceDate(iso: string, daysAgo: number, hour?: number, minute?: number): string {
   const date = new Date();
@@ -239,7 +240,7 @@ const MOCK_BOOKINGS: Record<
     sessionDuration: number;
     amount: number;
   }
-> = {
+> = normalizeLegacyMockDates({
   booking_new_001: {
     coachId: 'coach1',
     coachName: 'Jess Okafor',
@@ -253,7 +254,7 @@ const MOCK_BOOKINGS: Record<
     sessionDuration: 60,
     amount: 50.0,
   },
-};
+});
 
 // ============================================================================
 // TYPES
