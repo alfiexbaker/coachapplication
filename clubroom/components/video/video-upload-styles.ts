@@ -68,6 +68,17 @@ export const styles = StyleSheet.create({
     borderRadius: Radii.xs,
   },
   progressText: { ...Typography.caption, textAlign: 'center' },
+  cancelUploadButton: {
+    alignSelf: 'center',
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.xs,
+    paddingHorizontal: Spacing.sm,
+    paddingVertical: Spacing.xs,
+    borderRadius: Radii.md,
+    borderWidth: 1,
+  },
+  cancelUploadText: { ...Typography.caption, fontWeight: '600' },
   uploadButton: {
     flexDirection: 'row',
     alignItems: 'center',

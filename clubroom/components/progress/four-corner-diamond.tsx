@@ -55,7 +55,7 @@ const FALLBACK_CORNER_META: Record<FourCornerKey, { label: string; kidLabel: str
 };
 
 function clampScore(value: number): number {
-  return Math.max(0, Math.min(99, Math.round(value)));
+  return Math.max(0, Math.min(100, Math.round(value)));
 }
 
 function getChartGeometry(size: number): {

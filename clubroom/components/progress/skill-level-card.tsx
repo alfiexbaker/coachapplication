@@ -59,10 +59,16 @@ export function SkillLevelCard({
 
   const trendInfo = getTrendIcon();
   const skillColor = getSkillColor(skill.level, palette);
-  const progressPercent = (skill.level / 10) * 100;
+  const progressPercent =
+    Number.isFinite(skill.level) && skill.level > 0
+      ? Math.min(100, Math.max(0, (skill.level / 10) * 100))
+      : 0;
   const levelInfo = getSkillLevelLabel(skill.level);
   const category = getSkillCategory(skill.skill);
-  const change = skill.previousLevel !== undefined ? skill.level - skill.previousLevel : 0;
+  const change =
+    skill.previousLevel !== undefined && Number.isFinite(skill.previousLevel)
+      ? skill.level - skill.previousLevel
+      : 0;
 
   if (compact) {
     return (

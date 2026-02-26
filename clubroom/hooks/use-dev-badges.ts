@@ -91,6 +91,7 @@ export function useDevBadges() {
 
   const [activeTab, setActiveTab] = useState<BadgeCategory>('toAward');
   const [sessionQuery, setSessionQuery] = useState('');
+  const [debouncedSessionQuery, setDebouncedSessionQuery] = useState('');
   const [selectedSessionId, setSelectedSessionId] = useState<string | null>(null);
   const [showAwardModal, setShowAwardModal] = useState(false);
   const [awardContext, setAwardContext] = useState<{
@@ -185,8 +186,15 @@ export function useDevBadges() {
     [athleteNameById],
   );
 
+  useEffect(() => {
+    const timeoutId = setTimeout(() => {
+      setDebouncedSessionQuery(sessionQuery);
+    }, 300);
+    return () => clearTimeout(timeoutId);
+  }, [sessionQuery]);
+
   const filteredSessions = useMemo(() => {
-    const q = sessionQuery.toLowerCase().trim();
+    const q = debouncedSessionQuery.toLowerCase().trim();
     return sessions
       .filter((session) => {
         if (!q) return true;
@@ -198,7 +206,7 @@ export function useDevBadges() {
         );
       })
       .slice(0, 8);
-  }, [sessions, sessionQuery, getAthleteName]);
+  }, [sessions, debouncedSessionQuery, getAthleteName]);
 
   useEffect(() => {
     if (selectedSessionId || sessions.length === 0) return;
@@ -341,12 +349,14 @@ export function useDevBadges() {
     activeTab,
     setActiveTab,
     sessionQuery,
+    debouncedSessionQuery,
     setSessionQuery,
     selectedSessionId,
     setSelectedSessionId,
     selectedSession,
     linkedAthlete,
     filteredSessions,
+    totalSessions: sessions.length,
     visibleBadges,
     showAwardModal,
     awardContext,
@@ -367,12 +377,14 @@ export function useDevBadges() {
     activeTab: BadgeCategory;
     setActiveTab: (key: BadgeCategory) => void;
     sessionQuery: string;
+    debouncedSessionQuery: string;
     setSessionQuery: (value: string) => void;
     selectedSessionId: string | null;
     setSelectedSessionId: (value: string | null) => void;
     selectedSession: Session | null;
     linkedAthlete: string;
     filteredSessions: Session[];
+    totalSessions: number;
     visibleBadges: BadgeItem[];
     showAwardModal: boolean;
     awardContext: {

@@ -247,6 +247,7 @@ export const ServiceEvents = {
   SESSION_TEMPLATE_DELETED: 'session_template:deleted',
   VIDEO_DELETED: 'video:deleted',
   VIDEO_ANNOTATION_REMOVED: 'video:annotation:removed',
+  VIDEO_ANNOTATION_UPDATED: 'video:annotation:updated',
   VIDEO_ANNOTATION_DELETED: 'video:annotation:deleted',
   ROSTER_NOTE_DELETED: 'roster:note_deleted',
 
@@ -1092,6 +1093,11 @@ export interface EventPayloads {
   [ServiceEvents.VIDEO_ANNOTATION_REMOVED]: {
     videoId: string;
     annotationId: string;
+  };
+  [ServiceEvents.VIDEO_ANNOTATION_UPDATED]: {
+    videoId: string;
+    annotationId: string;
+    annotation: unknown;
   };
   [ServiceEvents.VIDEO_ANNOTATION_DELETED]: {
     videoId: string;

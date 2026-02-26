@@ -100,6 +100,7 @@ interface VideoPreviewCardProps {
   progressWidth: SharedValue<number>;
   onClear: () => void;
   onUpload: () => void;
+  onCancelUpload?: () => void;
   palette: ThemeColors;
   /** When false, upload button is disabled until consent is verified */
   consentVerified?: boolean;
@@ -112,6 +113,7 @@ export const VideoPreviewCard = memo(function VideoPreviewCard({
   progressWidth,
   onClear,
   onUpload,
+  onCancelUpload,
   palette,
   consentVerified = true,
 }: VideoPreviewCardProps) {
@@ -177,6 +179,18 @@ export const VideoPreviewCard = memo(function VideoPreviewCard({
             <ThemedText style={[styles.progressText, { color: palette.muted }]}>
               Uploading... {uploadProgress}%
             </ThemedText>
+            {onCancelUpload ? (
+              <Clickable
+                onPress={onCancelUpload}
+                style={[styles.cancelUploadButton, { borderColor: palette.border }]}
+                accessibilityLabel="Cancel upload"
+              >
+                <Ionicons name="close-circle-outline" size={16} color={palette.error} />
+                <ThemedText style={[styles.cancelUploadText, { color: palette.error }]}>
+                  Cancel upload
+                </ThemedText>
+              </Clickable>
+            ) : null}
           </View>
         )}
 
@@ -236,3 +250,5 @@ export const RequirementsList = memo(function RequirementsList({
     </View>
   );
 });
+
+// style additions live in shared styles file

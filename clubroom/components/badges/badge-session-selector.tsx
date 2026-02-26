@@ -13,8 +13,10 @@ import { getSessionAthleteName } from '@/utils/session-display';
 
 interface BadgeSessionSelectorProps {
   sessionQuery: string;
+  debouncedQuery?: string;
   onQueryChange: (query: string) => void;
   filteredSessions: Session[];
+  totalSessions: number;
   selectedSessionId: string | null;
   onSelectSession: (id: string) => void;
   linkedAthlete: string;
@@ -31,10 +33,46 @@ function formatDate(date: Date | string): string {
   return parsed.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
 }
 
+function HighlightedText({
+  text,
+  query,
+  color,
+  highlightColor,
+}: {
+  text: string;
+  query: string;
+  color: string;
+  highlightColor: string;
+}) {
+  const normalizedQuery = query.trim().toLowerCase();
+  if (!normalizedQuery) {
+    return <ThemedText style={{ color }}>{text}</ThemedText>;
+  }
+
+  const lower = text.toLowerCase();
+  const start = lower.indexOf(normalizedQuery);
+  if (start === -1) {
+    return <ThemedText style={{ color }}>{text}</ThemedText>;
+  }
+
+  const end = start + normalizedQuery.length;
+  return (
+    <ThemedText style={{ color }}>
+      {text.slice(0, start)}
+      <ThemedText type="defaultSemiBold" style={{ color: highlightColor }}>
+        {text.slice(start, end)}
+      </ThemedText>
+      {text.slice(end)}
+    </ThemedText>
+  );
+}
+
 export const BadgeSessionSelector = memo(function BadgeSessionSelector({
   sessionQuery,
+  debouncedQuery = '',
   onQueryChange,
   filteredSessions,
+  totalSessions,
   selectedSessionId,
   onSelectSession,
   linkedAthlete,
@@ -72,9 +110,20 @@ export const BadgeSessionSelector = memo(function BadgeSessionSelector({
         />
       </Row>
 
+      <ThemedText style={[Typography.small, { color: colors.muted }]}>
+        {filteredSessions.length} {filteredSessions.length === 1 ? 'session' : 'sessions'}
+        {debouncedQuery.trim()
+          ? ` of ${totalSessions} matching "${debouncedQuery.trim()}"`
+          : totalSessions !== filteredSessions.length
+            ? ` of ${totalSessions}`
+            : ''}
+      </ThemedText>
+
       {filteredSessions.length === 0 ? (
         <ThemedText style={[Typography.small, { color: colors.muted }]}>
-          No matching sessions yet
+          {debouncedQuery.trim()
+            ? `No sessions match "${debouncedQuery.trim()}"`
+            : 'No matching sessions yet'}
         </ThemedText>
       ) : (
         <ScrollView style={styles.sessionList} contentContainerStyle={{ gap: Spacing.xs }}>
@@ -100,10 +149,18 @@ export const BadgeSessionSelector = memo(function BadgeSessionSelector({
                     </ThemedText>
                   </View>
                   <View style={styles.sessionMeta}>
-                    <ThemedText type="defaultSemiBold">{athleteName}</ThemedText>
-                    <ThemedText style={{ color: colors.muted }}>
-                      {getSessionLabel(session)} · {formatDate(session.completedAt)}
-                    </ThemedText>
+                    <HighlightedText
+                      text={athleteName}
+                      query={debouncedQuery}
+                      color={colors.text}
+                      highlightColor={colors.tint}
+                    />
+                    <HighlightedText
+                      text={`${getSessionLabel(session)} · ${formatDate(session.completedAt)}`}
+                      query={debouncedQuery}
+                      color={colors.muted}
+                      highlightColor={colors.tint}
+                    />
                   </View>
                 </Row>
                 <Ionicons

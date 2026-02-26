@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { View, StyleSheet, TextInput, Modal, ScrollView, Alert } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
@@ -40,15 +40,36 @@ export function AddAnnotationModal({
 }: AddAnnotationModalProps) {
   const { colors: palette } = useTheme();
 
-  const [timestamp] = useState(currentTime);
+  const [timestamp, setTimestamp] = useState(currentTime);
   const [label, setLabel] = useState('');
   const [note, setNote] = useState('');
   const [type, setType] = useState<VideoAnnotationType>('TECHNIQUE');
   const [saving, setSaving] = useState(false);
 
+  useEffect(() => {
+    if (!visible) return;
+    setTimestamp(Math.min(Math.max(0, currentTime), Math.max(0, duration)));
+  }, [visible, currentTime, duration]);
+
   const handleSave = async () => {
+    if (timestamp < 0) {
+      Alert.alert('Invalid Timestamp', 'Timestamp cannot be negative.');
+      return;
+    }
+    if (timestamp > duration) {
+      Alert.alert('Invalid Timestamp', `Timestamp cannot exceed ${formatTime(duration)}.`);
+      return;
+    }
     if (!label.trim()) {
       Alert.alert('Missing Label', 'Please enter a label for this annotation.');
+      return;
+    }
+    if (label.trim().length > 50) {
+      Alert.alert('Label Too Long', 'Maximum label length is 50 characters.');
+      return;
+    }
+    if (note.trim().length > 500) {
+      Alert.alert('Note Too Long', 'Maximum note length is 500 characters.');
       return;
     }
     setSaving(true);
@@ -118,6 +139,9 @@ export function AddAnnotationModal({
             </View>
             <ThemedText style={{ color: palette.muted }}>/ {formatTime(duration)}</ThemedText>
           </Row>
+          <ThemedText style={[styles.timestampHelper, { color: palette.muted }]}>
+            Annotation uses the current playhead time.
+          </ThemedText>
 
           {/* Type Selection */}
           <View style={styles.section}>
@@ -206,10 +230,10 @@ export function AddAnnotationModal({
               onChangeText={setNote}
               multiline
               numberOfLines={3}
-              maxLength={200}
+              maxLength={500}
             />
             <ThemedText style={[styles.charCount, { color: palette.muted }]}>
-              {note.length}/200
+              {note.length}/500
             </ThemedText>
           </View>
 
@@ -258,6 +282,7 @@ const styles = StyleSheet.create({
   timestampCard: { padding: Spacing.lg, borderRadius: Radii.lg },
   timestampInfo: { flex: 1 },
   timestampLabel: { ...Typography.caption },
+  timestampHelper: { ...Typography.caption, marginTop: -Spacing.sm },
   section: { gap: Spacing.sm },
   sectionTitle: { ...Typography.bodySmallSemiBold },
   typeButton: {

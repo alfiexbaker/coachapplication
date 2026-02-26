@@ -229,6 +229,7 @@ export interface CreateAnnotationInput {
 }
 
 export interface UpdateAnnotationInput {
+  timestamp?: number;
   label?: string;
   note?: string;
   type?: VideoAnnotationType;
@@ -369,6 +370,35 @@ export const videoService = {
     type: VideoAnnotationType,
     note?: string,
   ): Promise<VideoAnnotation> {
+    if (USE_MOCK) {
+      videosCache = await loadFromStorage();
+      const video = videosCache.find((v) => v.id === videoId);
+      if (video) {
+        const normalizedLabel = label.trim();
+        if (!normalizedLabel) {
+          throw new Error('Annotation label is required');
+        }
+        if (timestamp < 0 || timestamp > video.duration) {
+          throw new Error('Annotation timestamp is out of range');
+        }
+        if (video.annotations.some((annotation) => annotation.timestamp === timestamp)) {
+          throw new Error('Annotation timestamp already exists');
+        }
+        const annotation: VideoAnnotation = {
+          id: apiClient.generateId('ann'),
+          timestamp,
+          label: normalizedLabel,
+          type,
+          note: note?.trim() || undefined,
+        };
+        video.annotations.push(annotation);
+        video.annotations.sort((a, b) => a.timestamp - b.timestamp);
+        await saveToStorage(videosCache);
+        return annotation;
+      }
+      throw new Error(`Video not found: ${videoId}`);
+    }
+
     const annotation: VideoAnnotation = {
       id: apiClient.generateId('ann'),
       timestamp,
@@ -376,17 +406,6 @@ export const videoService = {
       type,
       note,
     };
-
-    if (USE_MOCK) {
-      videosCache = await loadFromStorage();
-      const video = videosCache.find((v) => v.id === videoId);
-      if (video) {
-        video.annotations.push(annotation);
-        video.annotations.sort((a, b) => a.timestamp - b.timestamp);
-        await saveToStorage(videosCache);
-      }
-      return annotation;
-    }
 
     const response = await fetch(`/api/videos/${videoId}/annotations`, {
       method: 'POST',
@@ -630,33 +649,66 @@ export const videoService = {
     if (annotationIndex === -1) return null;
 
     const existingAnnotation = video.annotations[annotationIndex];
+    const nextTimestamp = updates.timestamp ?? existingAnnotation.timestamp;
+    const nextLabel = (updates.label ?? existingAnnotation.label).trim();
+    if (!nextLabel) {
+      logger.warn('Annotation update rejected: empty label', { videoId, annotationId });
+      return null;
+    }
+    if (nextTimestamp < 0 || nextTimestamp > video.duration) {
+      logger.warn('Annotation update rejected: timestamp out of range', {
+        videoId,
+        annotationId,
+        timestamp: nextTimestamp,
+        duration: video.duration,
+      });
+      return null;
+    }
+    const duplicateTimestamp = video.annotations.some(
+      (annotation, index) => index !== annotationIndex && annotation.timestamp === nextTimestamp,
+    );
+    if (duplicateTimestamp) {
+      logger.warn('Annotation update rejected: duplicate timestamp', {
+        videoId,
+        annotationId,
+        timestamp: nextTimestamp,
+      });
+      return null;
+    }
     const updatedAnnotation: VideoAnnotation = {
       ...existingAnnotation,
-      label: updates.label ?? existingAnnotation.label,
+      timestamp: nextTimestamp,
+      label: nextLabel,
       note: updates.note ?? existingAnnotation.note,
       type: updates.type ?? existingAnnotation.type,
       updatedAt: new Date().toISOString(),
     };
 
-    // In mock mode, we need to remove and re-add to update
     if (USE_MOCK) {
-      await this.removeAnnotation(videoId, annotationId);
-      await this.addAnnotation(
+      videosCache = await loadFromStorage();
+      const mutableVideo = videosCache.find((entry) => entry.id === videoId);
+      if (!mutableVideo) return null;
+      const mutableIndex = mutableVideo.annotations.findIndex((a) => a.id === annotationId);
+      if (mutableIndex === -1) return null;
+      mutableVideo.annotations[mutableIndex] = {
+        ...updatedAnnotation,
+        id: annotationId,
+      };
+      mutableVideo.annotations.sort((a, b) => a.timestamp - b.timestamp);
+      await saveToStorage(videosCache);
+      emitTyped(ServiceEvents.VIDEO_ANNOTATION_UPDATED, {
         videoId,
-        updatedAnnotation.timestamp,
-        updatedAnnotation.label,
-        updatedAnnotation.type,
-        updatedAnnotation.note,
-      );
-
-      // Return the updated annotation with the original ID
-      return updatedAnnotation;
+        annotationId,
+        annotation: mutableVideo.annotations[mutableIndex],
+      });
+      logger.info('Annotation updated', { videoId, annotationId });
+      return mutableVideo.annotations[mutableIndex];
     }
 
     const response = await fetch(`/api/videos/${videoId}/annotations/${annotationId}`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(updates),
+      body: JSON.stringify({ ...updates, timestamp: nextTimestamp, label: nextLabel }),
     });
 
     if (!response.ok) return null;

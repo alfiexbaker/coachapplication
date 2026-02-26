@@ -64,12 +64,38 @@ export function useVideoDetail(id: string | undefined) {
   const handleSaveAnnotation = useCallback(
     async (annotation: Omit<VideoAnnotation, 'id'>) => {
       if (!video) return;
+      if (annotation.timestamp < 0) {
+        Alert.alert('Invalid Timestamp', 'Timestamp cannot be negative.');
+        return;
+      }
+      if (annotation.timestamp > video.duration) {
+        const mins = Math.floor(video.duration / 60);
+        const secs = Math.floor(video.duration % 60);
+        Alert.alert(
+          'Invalid Timestamp',
+          `Timestamp cannot exceed ${mins}:${secs.toString().padStart(2, '0')}.`,
+        );
+        return;
+      }
+      if (!annotation.label.trim()) {
+        Alert.alert('Missing Label', 'Please enter a label for this annotation.');
+        return;
+      }
+      if ((annotation.note?.trim().length ?? 0) > 500) {
+        Alert.alert('Annotation Too Long', 'Maximum note length is 500 characters.');
+        return;
+      }
+      const duplicateTimestamp = video.annotations.some((entry) => entry.timestamp === annotation.timestamp);
+      if (duplicateTimestamp) {
+        Alert.alert('Duplicate Timestamp', 'An annotation already exists at this timestamp.');
+        return;
+      }
       await videoService.addAnnotation(
         video.id,
         annotation.timestamp,
-        annotation.label,
+        annotation.label.trim(),
         annotation.type,
-        annotation.note,
+        annotation.note?.trim() || undefined,
       );
       await loadVideo();
     },

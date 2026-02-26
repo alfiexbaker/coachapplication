@@ -34,12 +34,14 @@ export default function BadgesScreen() {
     activeTab,
     setActiveTab,
     sessionQuery,
+    debouncedSessionQuery,
     setSessionQuery,
     selectedSessionId,
     setSelectedSessionId,
     selectedSession,
     linkedAthlete,
     filteredSessions,
+    totalSessions,
     visibleBadges,
   } = useDevBadges();
 
@@ -133,8 +135,10 @@ export default function BadgesScreen() {
 
         <BadgeSessionSelector
           sessionQuery={sessionQuery}
+          debouncedQuery={debouncedSessionQuery}
           onQueryChange={setSessionQuery}
           filteredSessions={filteredSessions}
+          totalSessions={totalSessions}
           selectedSessionId={selectedSessionId}
           onSelectSession={setSelectedSessionId}
           linkedAthlete={linkedAthlete}

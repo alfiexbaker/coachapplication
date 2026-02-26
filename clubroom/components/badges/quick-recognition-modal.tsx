@@ -69,6 +69,7 @@ export function QuickRecognitionModal({
   const [showNoteInput, setShowNoteInput] = useState(false);
   const [awarding, setAwarding] = useState(false);
   const [cooldownError, setCooldownError] = useState<string | null>(null);
+  const [awardedBadgeIds, setAwardedBadgeIds] = useState<Set<string>>(new Set());
   const closeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const awardingAthleteIdsRef = useRef<Set<string>>(new Set());
 
@@ -84,6 +85,7 @@ export function QuickRecognitionModal({
     setShowNoteInput(false);
     setAwarding(false);
     setCooldownError(null);
+    setAwardedBadgeIds(new Set());
   }, []);
 
   const handleClose = useCallback(() => {
@@ -117,6 +119,10 @@ export function QuickRecognitionModal({
         setCooldownError('No badge found for this category.');
         return;
       }
+      if (awardedBadgeIds.has(badge.id)) {
+        showToast(`${badge.label} already awarded in this session`, 'warning');
+        return;
+      }
 
       const result = await badgeService.awardBadge({
         badgeId: badge.id,
@@ -143,6 +149,7 @@ export function QuickRecognitionModal({
 
       if (Platform.OS !== 'web') Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       showToast('Recognition sent', 'success');
+      setAwardedBadgeIds((prev) => new Set(prev).add(badge.id));
       onAwarded?.(result.data);
       logger.info('quick_recognition_awarded', {
         athleteId,
@@ -160,7 +167,18 @@ export function QuickRecognitionModal({
       awardingAthleteIdsRef.current.delete(athleteId);
       setAwarding(false);
     }
-  }, [awarding, athleteId, coachId, sessionId, customNote, showToast, onAwarded, resetState, onClose]);
+  }, [
+    awarding,
+    athleteId,
+    coachId,
+    sessionId,
+    customNote,
+    showToast,
+    onAwarded,
+    resetState,
+    onClose,
+    awardedBadgeIds,
+  ]);
 
   const handleToggleNote = useCallback(() => {
     if (Platform.OS !== 'web') Haptics.selectionAsync();
@@ -253,12 +271,19 @@ export function QuickRecognitionModal({
 
                 <Column gap="xs">
                   {templates.map((template) => (
+                    (() => {
+                      const badge = badgeService.findBadgeForCategory(template.category);
+                      const alreadyAwarded = badge ? awardedBadgeIds.has(badge.id) : false;
+                      return (
                     <TemplateRow
                       key={template.id}
                       template={template}
                       onPress={handleTemplateSelect}
-                      disabled={awarding}
+                      disabled={awarding || alreadyAwarded}
+                      alreadyAwarded={alreadyAwarded}
                     />
+                      );
+                    })()
                   ))}
                 </Column>
 
@@ -391,9 +416,15 @@ interface TemplateRowProps {
   template: RecognitionTemplate;
   onPress: (template: RecognitionTemplate) => void;
   disabled: boolean;
+  alreadyAwarded?: boolean;
 }
 
-const TemplateRow = memo(function TemplateRow({ template, onPress, disabled }: TemplateRowProps) {
+const TemplateRow = memo(function TemplateRow({
+  template,
+  onPress,
+  disabled,
+  alreadyAwarded = false,
+}: TemplateRowProps) {
   const { colors: palette } = useTheme();
 
   const handlePress = useCallback(() => {
@@ -406,18 +437,29 @@ const TemplateRow = memo(function TemplateRow({ template, onPress, disabled }: T
       disabled={disabled}
       style={[
         styles.templateRow,
-        { backgroundColor: withAlpha(palette.text, 0.02), borderColor: palette.border },
+        {
+          backgroundColor: alreadyAwarded
+            ? withAlpha(palette.success, 0.06)
+            : withAlpha(palette.text, 0.02),
+          borderColor: alreadyAwarded ? withAlpha(palette.success, 0.35) : palette.border,
+          opacity: disabled && !alreadyAwarded ? 0.7 : 1,
+        },
       ]}
       accessibilityLabel={`Recognise: ${template.label}`}
     >
-      <Column gap="micro">
-        <ThemedText type="defaultSemiBold" style={Typography.bodySemiBold}>
-          {template.label}
-        </ThemedText>
-        <ThemedText style={[Typography.bodySmall, { color: palette.muted }]}>
-          {template.message}
-        </ThemedText>
-      </Column>
+      <Row align="center" justify="space-between" gap="sm">
+        <Column gap="micro" style={{ flex: 1 }}>
+          <ThemedText type="defaultSemiBold" style={Typography.bodySemiBold}>
+            {template.label}
+          </ThemedText>
+          <ThemedText style={[Typography.bodySmall, { color: palette.muted }]}>
+            {template.message}
+          </ThemedText>
+        </Column>
+        {alreadyAwarded ? (
+          <Ionicons name="checkmark-circle" size={18} color={palette.success} />
+        ) : null}
+      </Row>
     </Clickable>
   );
 });

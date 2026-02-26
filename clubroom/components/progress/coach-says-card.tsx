@@ -300,7 +300,11 @@ export const CoachSaysCard = memo(function CoachSaysCard({
                       const trendColor =
                         trend === 'improving'
                           ? withAlpha(colors.success, 0.82)
-                          : withAlpha(colors.border, 0.72);
+                          : trend === 'declining'
+                            ? withAlpha(colors.error, 0.82)
+                            : withAlpha(colors.muted, 0.82);
+                      const trendGlyph =
+                        trend === 'improving' ? '\u2191' : trend === 'declining' ? '\u2193' : '\u2212';
                       const cornerKey = mapSkillToCorner(entry.skill);
                       const barColor = CORNER_COLORS[cornerKey] ?? colors.tint;
 
@@ -329,7 +333,7 @@ export const CoachSaysCard = memo(function CoachSaysCard({
                               <Row align="center" gap="xs">
                                 <ThemedText style={styles.skillScore}>{dots}/5</ThemedText>
                                 <ThemedText style={[styles.trendGlyph, { color: trendColor }]}>
-                                  {trend === 'improving' ? '\u2191' : '\u2192'}
+                                  {trendGlyph}
                                 </ThemedText>
                               </Row>
                             </Row>

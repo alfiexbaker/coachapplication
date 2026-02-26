@@ -64,11 +64,11 @@ function chipAbbrev(label: string): string {
   return firstWord.slice(0, 3).toUpperCase();
 }
 
-/** Compute OVR from 5 positional attributes */
+/** Compute OVR from any available positional attributes */
 function computeOvr(attributes: PlayerCardData['attributes']): number | null {
-  if (!attributes || attributes.length !== 5) return null;
+  if (!attributes || attributes.length === 0) return null;
   const sum = attributes.reduce((acc, attr) => acc + attr.value, 0);
-  return Math.round(sum / 5);
+  return Math.round(sum / attributes.length);
 }
 
 /** Position abbreviation for OVR badge */
@@ -148,22 +148,23 @@ export const PlayerCardFront = memo(function PlayerCardFront({
         {/* Hero: OVR badge (absolute top-left) + centered Avatar */}
         <View style={styles.heroBlock}>
           {/* OVR badge — positioned like FIFA cards, top-left of hero */}
-          {ovr !== null && posAbbrev ? (
+          {(ovr !== null || posAbbrev) ? (
             <Column
               align="center"
               style={[
                 styles.ovrBadge,
                 compact ? styles.ovrBadgeCompact : undefined,
+                ovr === null ? styles.ovrBadgeEmpty : undefined,
               ]}
             >
               <ThemedText
                 style={[
                   styles.ovrNumber,
                   compact ? styles.ovrNumberCompact : undefined,
-                  { color: textColor },
+                  { color: ovr === null ? softText : textColor },
                 ]}
               >
-                {ovr}
+                {ovr ?? 'N/A'}
               </ThemedText>
               <View style={[styles.ovrDivider, { backgroundColor: withAlpha(textColor, 0.3) }]} />
               <ThemedText style={[styles.ovrPosition, { color: softText }]}>
@@ -326,6 +327,10 @@ const styles = StyleSheet.create({
   },
   ovrBadgeCompact: {
     minWidth: 38,
+  },
+  ovrBadgeEmpty: {
+    minHeight: 54,
+    justifyContent: 'center',
   },
   ovrNumber: {
     fontSize: Typography.heroLarge.fontSize,
