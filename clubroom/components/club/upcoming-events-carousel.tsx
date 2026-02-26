@@ -24,6 +24,7 @@ interface UpcomingEventsCarouselProps {
 }
 
 const CARD_WIDTH = 280;
+const CARD_ITEM_WIDTH = CARD_WIDTH + Spacing.sm;
 
 const EventCard = memo(function EventCardComponent({
   invite,
@@ -118,9 +119,14 @@ function UpcomingEventsCarouselComponent({ invites, onPress }: UpcomingEventsCar
         data={invites}
         keyExtractor={keyExtractor}
         renderItem={renderItem}
+        getItemLayout={(_, index) => ({
+          length: CARD_ITEM_WIDTH,
+          offset: CARD_ITEM_WIDTH * index,
+          index,
+        })}
         horizontal
         pagingEnabled={false}
-        snapToInterval={CARD_WIDTH + Spacing.sm}
+        snapToInterval={CARD_ITEM_WIDTH}
         decelerationRate="fast"
         showsHorizontalScrollIndicator={false}
         contentContainerStyle={styles.listContent}

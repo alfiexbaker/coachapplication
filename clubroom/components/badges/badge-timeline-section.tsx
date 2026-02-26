@@ -6,7 +6,7 @@
  */
 
 import { memo, useCallback } from 'react';
-import { View, StyleSheet } from 'react-native';
+import { View, StyleSheet, FlatList } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import { Routes } from '@/navigation/routes';
@@ -21,6 +21,7 @@ import { useTheme } from '@/hooks/useTheme';
 import { TierNames, CategoryInfo } from '@/constants/progression';
 import { createLogger } from '@/utils/logger';
 import type { BadgeAward } from '@/constants/types';
+import { AccessibleListCell } from '@/components/ui/list-accessibility';
 
 const logger = createLogger('BadgeTimeline');
 
@@ -55,6 +56,8 @@ function getTierColor(tier: 1 | 2 | 3 | undefined, fallback: string): string {
 interface BadgeTimelineSectionProps {
   awards: BadgeAward[];
 }
+
+const TIMELINE_ITEM_ESTIMATED_HEIGHT = 168;
 
 const TimelineItem = memo(function TimelineItem({ award }: { award: BadgeAward }) {
   const { colors: palette } = useTheme();
@@ -163,6 +166,19 @@ export const BadgeTimelineSection = memo(function BadgeTimelineSection({
   awards,
 }: BadgeTimelineSectionProps) {
   const { colors: palette } = useTheme();
+  const renderItem = useCallback(
+    ({ item }: { item: BadgeAward }) => <TimelineItem award={item} />,
+    [],
+  );
+  const keyExtractor = useCallback((item: BadgeAward) => item.id, []);
+  const getItemLayout = useCallback(
+    (_: ArrayLike<BadgeAward> | null | undefined, index: number) => ({
+      length: TIMELINE_ITEM_ESTIMATED_HEIGHT,
+      offset: TIMELINE_ITEM_ESTIMATED_HEIGHT * index,
+      index,
+    }),
+    [],
+  );
 
   return (
     <SurfaceCard style={styles.sectionCard}>
@@ -182,15 +198,32 @@ export const BadgeTimelineSection = memo(function BadgeTimelineSection({
           </ThemedText>
         </Column>
       ) : (
-        <Column gap="xs">
-          {awards.map((award) => (
-            <TimelineItem key={award.id} award={award} />
-          ))}
-        </Column>
+        <FlatList
+          CellRendererComponent={AccessibleListCell}
+          accessibilityRole="list"
+          data={awards}
+          renderItem={renderItem}
+          keyExtractor={keyExtractor}
+          getItemLayout={getItemLayout}
+          initialNumToRender={10}
+          maxToRenderPerBatch={5}
+          windowSize={5}
+          removeClippedSubviews
+          scrollEnabled={awards.length > 4}
+          nestedScrollEnabled
+          style={awards.length > 4 ? styles.timelineList : undefined}
+          contentContainerStyle={styles.timelineListContent}
+          ItemSeparatorComponent={TimelineSeparator}
+          showsVerticalScrollIndicator={false}
+        />
       )}
     </SurfaceCard>
   );
 });
+
+function TimelineSeparator() {
+  return <View style={styles.timelineSeparator} />;
+}
 
 const styles = StyleSheet.create({
   sectionCard: {
@@ -202,6 +235,15 @@ const styles = StyleSheet.create({
   },
   emptyTimeline: {
     paddingVertical: Spacing.md,
+  },
+  timelineList: {
+    maxHeight: 560,
+  },
+  timelineListContent: {
+    paddingBottom: Spacing.xxs,
+  },
+  timelineSeparator: {
+    height: Spacing.xs,
   },
   timelineItem: {
     padding: Spacing.sm,

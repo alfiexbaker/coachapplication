@@ -1,4 +1,4 @@
-import { useCallback, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Platform, StyleSheet, View } from 'react-native';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import Animated, { runOnJS, useAnimatedStyle, useSharedValue } from 'react-native-reanimated';
@@ -23,6 +23,22 @@ const TRACK_HEIGHT = 4;
 const THUMB_SIZE = 24;
 const SLIDER_PADDING = THUMB_SIZE / 2;
 const MIN_GAP = 5;
+const ON_CHANGE_DEBOUNCE_MS = 200;
+
+function createDebounce<T extends unknown[]>(fn: (...args: T) => void, ms: number) {
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  const debounced = (...args: T) => {
+    if (timer) clearTimeout(timer);
+    timer = setTimeout(() => fn(...args), ms);
+  };
+  debounced.cancel = () => {
+    if (timer) {
+      clearTimeout(timer);
+      timer = undefined;
+    }
+  };
+  return debounced;
+}
 
 export function PriceRangeSlider({
   min,
@@ -35,6 +51,7 @@ export function PriceRangeSlider({
 }: PriceRangeSliderProps) {
   const { colors: palette, scheme } = useTheme();
   const [sliderWidth, setSliderWidth] = useState(0);
+  const debouncedOnChangeRef = useRef<ReturnType<typeof createDebounce<[number, number]>> | null>(null);
 
   const valueToPosition = useCallback(
     (value: number) => {
@@ -69,49 +86,82 @@ export function PriceRangeSlider({
     }
   }
 
+  const emitChangeImmediately = useCallback((nextMin: number, nextMax: number) => {
+    debouncedOnChangeRef.current?.cancel();
+    onChange(nextMin, nextMax);
+  }, [onChange]);
+
+  const debouncedOnChange = useMemo(
+    () => createDebounce((nextMin: number, nextMax: number) => onChange(nextMin, nextMax), ON_CHANGE_DEBOUNCE_MS),
+    [onChange],
+  );
+
+  useEffect(() => {
+    debouncedOnChangeRef.current = debouncedOnChange;
+    return () => {
+      debouncedOnChange.cancel();
+    };
+  }, [debouncedOnChange]);
+
   const handleMinChange = useCallback(
-    (newMin: number) => {
+    (newMin: number, immediate = false) => {
       const minGap = Math.max(MIN_GAP, step);
       const boundary = currentMax - minGap;
       const clampedMin = Math.min(newMin, boundary);
       if (newMin > boundary && Platform.OS !== 'web') {
         void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
       }
-      onChange(clampedMin, currentMax);
+      if (immediate) {
+        emitChangeImmediately(clampedMin, currentMax);
+      } else {
+        debouncedOnChange(clampedMin, currentMax);
+      }
     },
-    [currentMax, step, onChange],
+    [currentMax, step, debouncedOnChange, emitChangeImmediately],
   );
 
   const handleMaxChange = useCallback(
-    (newMax: number) => {
+    (newMax: number, immediate = false) => {
       const minGap = Math.max(MIN_GAP, step);
       const boundary = currentMin + minGap;
       const clampedMax = Math.max(newMax, boundary);
       if (newMax < boundary && Platform.OS !== 'web') {
         void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
       }
-      onChange(currentMin, clampedMax);
+      if (immediate) {
+        emitChangeImmediately(currentMin, clampedMax);
+      } else {
+        debouncedOnChange(currentMin, clampedMax);
+      }
     },
-    [currentMin, step, onChange],
+    [currentMin, step, debouncedOnChange, emitChangeImmediately],
   );
 
-  const minGesture = Gesture.Pan().onUpdate((event) => {
-    const newPosition = Math.max(
-      0,
-      Math.min(event.absoluteX - SLIDER_PADDING, maxPosition.value - THUMB_SIZE),
-    );
-    minPosition.value = newPosition;
-    runOnJS(handleMinChange)(positionToValue(newPosition));
-  });
+  const minGesture = Gesture.Pan()
+    .onUpdate((event) => {
+      const newPosition = Math.max(
+        0,
+        Math.min(event.absoluteX - SLIDER_PADDING, maxPosition.value - THUMB_SIZE),
+      );
+      minPosition.value = newPosition;
+      runOnJS(handleMinChange)(positionToValue(newPosition), false);
+    })
+    .onEnd(() => {
+      runOnJS(handleMinChange)(positionToValue(minPosition.value), true);
+    });
 
-  const maxGesture = Gesture.Pan().onUpdate((event) => {
-    const newPosition = Math.max(
-      minPosition.value + THUMB_SIZE,
-      Math.min(event.absoluteX - SLIDER_PADDING, sliderWidth),
-    );
-    maxPosition.value = newPosition;
-    runOnJS(handleMaxChange)(positionToValue(newPosition));
-  });
+  const maxGesture = Gesture.Pan()
+    .onUpdate((event) => {
+      const newPosition = Math.max(
+        minPosition.value + THUMB_SIZE,
+        Math.min(event.absoluteX - SLIDER_PADDING, sliderWidth),
+      );
+      maxPosition.value = newPosition;
+      runOnJS(handleMaxChange)(positionToValue(newPosition), false);
+    })
+    .onEnd(() => {
+      runOnJS(handleMaxChange)(positionToValue(maxPosition.value), true);
+    });
 
   const minThumbStyle = useAnimatedStyle(() => ({
     transform: [{ translateX: minPosition.value }],

@@ -56,6 +56,14 @@ export default function InviteCodesScreen() {
   );
 
   const keyExtractor = useCallback((item: InviteCode) => item.id, []);
+  const getItemLayout = useCallback(
+    (_: ArrayLike<InviteCode> | null | undefined, index: number) => ({
+      length: 176,
+      offset: 176 * index,
+      index,
+    }),
+    [],
+  );
 
   if (status === 'loading') {
     return (
@@ -112,11 +120,12 @@ export default function InviteCodesScreen() {
         />
       ) : (
         <FlatList
-        CellRendererComponent={AccessibleListCell}
-        accessibilityRole="list"
+          CellRendererComponent={AccessibleListCell}
+          accessibilityRole="list"
           data={codes}
           renderItem={renderItem}
           keyExtractor={keyExtractor}
+          getItemLayout={getItemLayout}
           refreshing={refreshing}
           onRefresh={onRefresh}
           contentContainerStyle={styles.listContent}

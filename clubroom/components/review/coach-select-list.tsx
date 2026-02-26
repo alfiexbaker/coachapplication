@@ -25,6 +25,8 @@ interface CoachSelectListProps {
   onRefresh?: () => void;
 }
 
+const COACH_SELECT_ITEM_HEIGHT = 112;
+
 export const CoachSelectList = memo(function CoachSelectList({
   coaches,
   onSelect,
@@ -42,14 +44,19 @@ export const CoachSelectList = memo(function CoachSelectList({
 
   return (
     <FlatList
-        CellRendererComponent={AccessibleListCell}
-        accessibilityRole="list"
+      CellRendererComponent={AccessibleListCell}
+      accessibilityRole="list"
       data={coaches}
       keyExtractor={(item) => item.id}
       contentContainerStyle={styles.list}
       refreshing={refreshing}
       onRefresh={onRefresh}
       renderItem={renderItem}
+      getItemLayout={(_, index) => ({
+        length: COACH_SELECT_ITEM_HEIGHT,
+        offset: COACH_SELECT_ITEM_HEIGHT * index,
+        index,
+      })}
       ListEmptyComponent={
         <View style={styles.emptyState}>
           <Ionicons name="person-outline" size={48} color={palette.muted} />

@@ -5,8 +5,8 @@
  * Sub-components: FeedPostCard, FeedFilters, ClubHubCard, EmptyFeedState.
  */
 
-import { useCallback, useMemo, useRef, useState } from 'react';
-import { Alert, RefreshControl, ScrollView, Share, StyleSheet, View } from 'react-native';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { Alert, FlatList, RefreshControl, Share, StyleSheet, View } from 'react-native';
 import { router } from 'expo-router';
 import { Routes } from '@/navigation/routes';
 
@@ -29,6 +29,7 @@ import {
   type FeedFilter,
 } from '@/components/social/feed-filters';
 import { useScrollToTopOnTabReselect } from '@/hooks/use-scroll-to-top-on-tab-reselect';
+import { AccessibleListCell } from '@/components/ui/list-accessibility';
 
 interface FeedData {
   feed: AggregatedFeedPost[];
@@ -37,9 +38,10 @@ interface FeedData {
 
 export default function FeedScreen() {
   const { currentUser } = useAuth();
-  const scrollRef = useRef<ScrollView>(null);
-  useScrollToTopOnTabReselect(scrollRef);
+  const listRef = useRef<FlatList<AggregatedFeedPost>>(null);
+  useScrollToTopOnTabReselect(listRef);
   const [feedFilter, setFeedFilter] = useState<FeedFilter>('all');
+  const [visibleCount, setVisibleCount] = useState(20);
 
   const isCoach = currentUser?.role === 'COACH' || currentUser?.role === 'ADMIN';
 
@@ -65,6 +67,12 @@ export default function FeedScreen() {
 
   const feed = useMemo(() => data?.feed ?? [], [data?.feed]);
   const clubs = useMemo(() => data?.clubs ?? [], [data?.clubs]);
+  const visibleFeed = useMemo(() => feed.slice(0, visibleCount), [feed, visibleCount]);
+  const hasMoreFeed = visibleCount < feed.length;
+
+  useEffect(() => {
+    setVisibleCount(20);
+  }, [feedFilter, feed.length]);
 
   const handleLikePost = useCallback(
     (postId: string) => {
@@ -95,6 +103,47 @@ export default function FeedScreen() {
     },
     [feed],
   );
+
+  const handleLoadMore = useCallback(() => {
+    if (!hasMoreFeed) return;
+    setVisibleCount((count) => Math.min(count + 20, feed.length));
+  }, [feed.length, hasMoreFeed]);
+
+  const renderPost = useCallback(
+    ({ item }: { item: AggregatedFeedPost }) => (
+      <View style={styles.feedCardRow}>
+        <FeedPostCard
+          post={item}
+          onLike={handleLikePost}
+          onComment={handleCommentPost}
+          onShare={handleSharePost}
+        />
+      </View>
+    ),
+    [handleCommentPost, handleLikePost, handleSharePost],
+  );
+
+  const keyExtractor = useCallback((item: AggregatedFeedPost) => item.id, []);
+
+  const renderFeedHeader = useCallback(() => (
+    <>
+      {clubs.length > 0 && (
+        <View style={styles.clubsSection}>
+          <ClubHubCard clubs={clubs} />
+        </View>
+      )}
+      {(feed.length > 0 || clubs.length > 0) && (
+        <FeedFilters activeFilter={feedFilter} onFilterChange={setFeedFilter} />
+      )}
+    </>
+  ), [clubs, feed.length, feedFilter]);
+
+  const renderFeedEmpty = useCallback(
+    () => <EmptyFeedState hasClubs={clubs.length > 0} filter={feedFilter} isCoach={isCoach} />,
+    [clubs.length, feedFilter, isCoach],
+  );
+
+  const renderSeparator = useCallback(() => <View style={styles.feedItemSeparator} />, []);
 
   // ─── Loading ───────────────────────────────────────────────────
   if (status === 'loading') {
@@ -146,8 +195,23 @@ export default function FeedScreen() {
       gap={0}
       horizontalSpacing={0}
     >
-      <ScrollView
-        ref={scrollRef}
+      <FlatList
+        ref={listRef}
+        CellRendererComponent={AccessibleListCell}
+        accessibilityRole="list"
+        data={visibleFeed}
+        renderItem={renderPost}
+        keyExtractor={keyExtractor}
+        ListHeaderComponent={renderFeedHeader}
+        ListEmptyComponent={renderFeedEmpty}
+        ItemSeparatorComponent={renderSeparator}
+        onEndReached={handleLoadMore}
+        onEndReachedThreshold={0.5}
+        initialNumToRender={5}
+        maxToRenderPerBatch={3}
+        windowSize={5}
+        updateCellsBatchingPeriod={50}
+        removeClippedSubviews
         style={styles.scrollView}
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
@@ -159,33 +223,7 @@ export default function FeedScreen() {
             colors={[colors.tint]}
           />
         }
-      >
-        {clubs.length > 0 && (
-          <View style={styles.clubsSection}>
-            <ClubHubCard clubs={clubs} />
-          </View>
-        )}
-
-        {(feed.length > 0 || clubs.length > 0) && (
-          <FeedFilters activeFilter={feedFilter} onFilterChange={setFeedFilter} />
-        )}
-
-        <View style={styles.feedSection}>
-          {feed.length > 0 ? (
-            feed.map((post) => (
-              <FeedPostCard
-                key={post.id}
-                post={post}
-                onLike={handleLikePost}
-                onComment={handleCommentPost}
-                onShare={handleSharePost}
-              />
-            ))
-          ) : (
-            <EmptyFeedState hasClubs={clubs.length > 0} filter={feedFilter} isCoach={isCoach} />
-          )}
-        </View>
-      </ScrollView>
+      />
     </PageContainer>
   );
 }
@@ -204,5 +242,11 @@ const styles = StyleSheet.create({
   feedSection: {
     padding: Spacing.md,
     gap: Spacing.md,
+  },
+  feedCardRow: {
+    paddingHorizontal: Spacing.md,
+  },
+  feedItemSeparator: {
+    height: Spacing.md,
   },
 });

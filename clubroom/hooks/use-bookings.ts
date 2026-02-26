@@ -5,7 +5,7 @@
  * modal state, and all navigation/action handlers.
  */
 
-import { useState, useCallback, useRef } from 'react';
+import { useState, useCallback, useMemo, useRef } from 'react';
 import { Alert } from 'react-native';
 import { router } from 'expo-router';
 import { Routes } from '@/navigation/routes';
@@ -201,27 +201,25 @@ export function useBookings(): UseBookingsResult {
       ? (screenError?.message ?? 'Failed to load bookings. Pull down to refresh.')
       : null;
 
-  // Compute display items
-  const now = new Date();
-  let displayItems: (SessionOffering | BookingSummary)[] = [];
+  const displayItems = useMemo<(SessionOffering | BookingSummary)[]>(() => {
+    const now = new Date();
+    const isPastBooking = (booking: BookingSummary) =>
+      booking.status === 'Completed' ||
+      booking.status === 'Cancelled' ||
+      new Date(booking.start) < now;
 
-  const isPastBooking = (booking: BookingSummary) =>
-    booking.status === 'Completed' ||
-    booking.status === 'Cancelled' ||
-    new Date(booking.start) < now;
+    const isPastOffering = (offering: SessionOffering) =>
+      offering.status === 'completed' ||
+      offering.status === 'cancelled' ||
+      (!offering.isRecurring && new Date(offering.scheduledAt) < now);
 
-  const isPastOffering = (offering: SessionOffering) =>
-    offering.status === 'completed' ||
-    offering.status === 'cancelled' ||
-    (!offering.isRecurring && new Date(offering.scheduledAt) < now);
-
-  if (userRole === 'COACH') {
-    const myOfferings = sessionOfferings.filter((o) => o.coachId === currentUser?.id);
-    displayItems =
-      timeFilter === 'upcoming'
+    if (userRole === 'COACH') {
+      const myOfferings = sessionOfferings.filter((o) => o.coachId === currentUser?.id);
+      return timeFilter === 'upcoming'
         ? myOfferings.filter((offering) => !isPastOffering(offering))
         : myOfferings.filter((offering) => isPastOffering(offering));
-  } else {
+    }
+
     const viewerIds = new Set<string>();
     const viewerNameById = new Map<string, string>();
     if (currentUser?.id) {
@@ -276,17 +274,26 @@ export function useBookings(): UseBookingsResult {
       return viewerIds.has(clientId) || viewerIds.has(bookedById) || matchesByName;
     });
 
-    displayItems =
-      timeFilter === 'upcoming'
-        ? [
-            ...myRegisteredOfferings.filter((offering) => !isPastOffering(offering)),
-            ...filteredBookings.filter((booking) => !isPastBooking(booking)),
-          ]
-        : [
-            ...myRegisteredOfferings.filter((offering) => isPastOffering(offering)),
-            ...filteredBookings.filter((booking) => isPastBooking(booking)),
-          ];
-  }
+    return timeFilter === 'upcoming'
+      ? [
+          ...myRegisteredOfferings.filter((offering) => !isPastOffering(offering)),
+          ...filteredBookings.filter((booking) => !isPastBooking(booking)),
+        ]
+      : [
+          ...myRegisteredOfferings.filter((offering) => isPastOffering(offering)),
+          ...filteredBookings.filter((booking) => isPastBooking(booking)),
+        ];
+  }, [
+    contextChildren,
+    currentUser?.fullName,
+    currentUser?.id,
+    currentUser?.name,
+    isParent,
+    sessionBookings,
+    sessionOfferings,
+    timeFilter,
+    userRole,
+  ]);
 
   // Navigation handlers
   const handleRateCoachPress = useCallback(() => {

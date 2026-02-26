@@ -70,21 +70,40 @@ export function useSessionPayments() {
       let overdueCount = 0;
       const now = Date.now();
 
-      for (const booking of reconcilable) {
-        // Use cancellation fee for cancelled bookings, otherwise booking price
-        const invoiceAmount = booking.status === 'CANCELLED'
+      const invoiceAmounts = reconcilable.map((booking) =>
+        booking.status === 'CANCELLED'
           ? (booking.cancellationFee ?? 0)
-          : (booking.price ?? 0);
+          : (booking.price ?? 0),
+      );
 
-        let invoice = await invoiceService.getInvoiceByBookingId(booking.id);
+      const invoiceResults = await Promise.all(
+        reconcilable.map((booking) => invoiceService.getInvoiceByBookingId(booking.id)),
+      );
 
-        // Auto-generate invoice if missing
-        if (!invoice) {
-          const result = await invoiceService.generateInvoice({ bookingId: booking.id });
-          if (result.success) {
-            invoice = result.data;
-          }
-        }
+      const missingInvoiceIndices = invoiceResults
+        .map((invoice, index) => (invoice ? -1 : index))
+        .filter((index) => index >= 0);
+
+      if (missingInvoiceIndices.length > 0) {
+        const generatedResults = await Promise.all(
+          missingInvoiceIndices.map((index) =>
+            invoiceService.generateInvoice({ bookingId: reconcilable[index].id }),
+          ),
+        );
+
+        generatedResults.forEach((result, generatedIndex) => {
+          if (!result.success) return;
+          const targetIndex = missingInvoiceIndices[generatedIndex];
+          invoiceResults[targetIndex] = result.data;
+        });
+      }
+
+      const syntheticInvoicesToPersist: Invoice[] = [];
+
+      for (let index = 0; index < reconcilable.length; index += 1) {
+        const booking = reconcilable[index];
+        const invoiceAmount = invoiceAmounts[index];
+        let invoice = invoiceResults[index];
 
         // TODO: Remove synthetic fallback when real API replaces AsyncStorage mock layer
         if (!invoice && invoiceAmount > 0) {
@@ -107,8 +126,8 @@ export function useSessionPayments() {
             status: 'SENT',
             createdAt: booking.createdAt ?? booking.scheduledAt,
           };
-          // Persist so mark-paid / write-off actions can find it
-          await invoiceService.upsertInvoice(invoice);
+          invoiceResults[index] = invoice;
+          syntheticInvoicesToPersist.push(invoice);
         }
 
         // Skip bookings with no monetary value (e.g. free trial sessions)
@@ -140,6 +159,12 @@ export function useSessionPayments() {
           totalOwed += invoice.total;
           if (isOverdue) overdueCount++;
         }
+      }
+
+      if (syntheticInvoicesToPersist.length > 0) {
+        await Promise.all(
+          syntheticInvoicesToPersist.map((invoice) => invoiceService.upsertInvoice(invoice)),
+        );
       }
 
       // Sort: overdue first in unpaid, then most recent
