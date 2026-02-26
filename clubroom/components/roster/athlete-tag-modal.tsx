@@ -1,5 +1,5 @@
 import React, { memo } from 'react';
-import { View, StyleSheet, Modal, TextInput } from 'react-native';
+import { View, StyleSheet, Modal, TextInput, Keyboard } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Clickable } from '@/components/primitives/clickable';
 import { Button } from '@/components/primitives/button';
@@ -31,7 +31,13 @@ export const AthleteTagModal = memo(function AthleteTagModal({
         <View style={[styles.content, { backgroundColor: colors.surface }]}>
           <Row gap="sm" align="center" justify="space-between" style={styles.header}>
             <ThemedText type="title">Add Tag</ThemedText>
-            <Clickable accessibilityLabel="Close" onPress={onClose}>
+            <Clickable
+              accessibilityLabel="Close"
+              onPress={() => {
+                Keyboard.dismiss();
+                onClose();
+              }}
+            >
               <Ionicons name="close" size={24} color={colors.text} />
             </Clickable>
           </Row>

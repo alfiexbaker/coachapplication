@@ -3,7 +3,7 @@
  * Multi-select athlete picker with search, filters, and quick select actions.
  */
 import { useCallback } from 'react';
-import { View, StyleSheet, TextInput, Modal } from 'react-native';
+import { View, StyleSheet, TextInput, Modal, Keyboard } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
 import { Clickable } from '@/components/primitives/clickable';
@@ -43,12 +43,14 @@ export function InviteAthleteModal({
   const state = useInviteAthletes(athletes, squads);
 
   const handleConfirm = useCallback(() => {
+    Keyboard.dismiss();
     onSelect(state.selectedAthletes);
     state.resetAll();
     onClose();
   }, [onSelect, state, onClose]);
 
   const handleClose = useCallback(() => {
+    Keyboard.dismiss();
     state.resetAll();
     onClose();
   }, [state, onClose]);

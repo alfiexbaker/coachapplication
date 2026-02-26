@@ -3,7 +3,7 @@
  */
 
 import React, { memo } from 'react';
-import { Modal, StyleSheet, TextInput, View } from 'react-native';
+import { Modal, StyleSheet, TextInput, View, Keyboard } from 'react-native';
 import { Row } from '@/components/primitives/row';
 import { Ionicons } from '@expo/vector-icons';
 
@@ -149,13 +149,24 @@ export const EditLanguagesSection = memo(function EditLanguagesSection({
         </View>
       </SurfaceCard>
 
-      <Modal visible={modalVisible} transparent animationType="fade" onRequestClose={onCloseModal}>
+      <Modal
+        visible={modalVisible}
+        transparent
+        animationType="fade"
+        onRequestClose={() => {
+          Keyboard.dismiss();
+          onCloseModal();
+        }}
+      >
         <View style={[styles.modalOverlay, { backgroundColor: withAlpha(colors.text, 0.35) }]}>
           <SurfaceCard style={[styles.modalCard, { backgroundColor: colors.background }]}>
             <Row justify="between" align="center">
               <ThemedText type="subtitle">Language</ThemedText>
               <Clickable
-                onPress={onCloseModal}
+                onPress={() => {
+                  Keyboard.dismiss();
+                  onCloseModal();
+                }}
                 accessibilityLabel="Close"
                 accessibilityRole="button"
               >

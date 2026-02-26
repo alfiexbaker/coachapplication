@@ -5,7 +5,7 @@
  * All state/logic in useInvoiceDetail hook.
  */
 
-import { View, StyleSheet, ActivityIndicator, Modal, TextInput } from 'react-native';
+import { View, StyleSheet, ActivityIndicator, Modal, TextInput, Keyboard } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
 import { Clickable } from '@/components/primitives/clickable';
@@ -124,7 +124,10 @@ export default function InvoiceDetailScreen() {
         visible={c.showSendModal}
         animationType="slide"
         presentationStyle="pageSheet"
-        onRequestClose={c.closeSendModal}
+        onRequestClose={() => {
+          Keyboard.dismiss();
+          c.closeSendModal();
+        }}
       >
         <View style={[styles.modalContainer, { backgroundColor: palette.background }]}>
           <Row align="center" justify="between" style={styles.modalHeader}>

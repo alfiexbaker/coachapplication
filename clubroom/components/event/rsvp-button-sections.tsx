@@ -1,5 +1,5 @@
 import { memo } from 'react';
-import { StyleSheet, TextInput, Modal, View } from 'react-native';
+import { StyleSheet, TextInput, Modal, View, Keyboard } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
 import { Button } from '@/components/primitives/button';
@@ -149,10 +149,21 @@ export const GuestCountModal = memo(function GuestCountModal({
   palette,
 }: GuestCountModalProps) {
   return (
-    <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
+    <Modal
+      visible={visible}
+      transparent
+      animationType="fade"
+      onRequestClose={() => {
+        Keyboard.dismiss();
+        onClose();
+      }}
+    >
       <Clickable
         style={[styles.modalOverlay, { backgroundColor: withAlpha(palette.text, 0.5) }]}
-        onPress={onClose}
+        onPress={() => {
+          Keyboard.dismiss();
+          onClose();
+        }}
         accessibilityRole="button"
         accessibilityLabel="Close guest count modal"
       >
@@ -202,7 +213,14 @@ export const GuestCountModal = memo(function GuestCountModal({
           </ThemedText>
 
           <Row style={styles.modalButtons}>
-            <Button variant="outline" onPress={onClose} style={styles.modalButton}>
+            <Button
+              variant="outline"
+              onPress={() => {
+                Keyboard.dismiss();
+                onClose();
+              }}
+              style={styles.modalButton}
+            >
               Cancel
             </Button>
             <Button onPress={onSubmit} style={styles.modalButton}>

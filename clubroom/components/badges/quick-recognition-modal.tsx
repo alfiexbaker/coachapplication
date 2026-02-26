@@ -3,7 +3,7 @@
  * Category → Template → Done. Under 5 seconds.
  */
 import { memo, useCallback, useEffect, useRef, useState, type ComponentProps } from 'react';
-import { Modal, ScrollView, StyleSheet, TextInput, View, Platform } from 'react-native';
+import { Modal, ScrollView, StyleSheet, TextInput, View, Platform, Keyboard } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 
@@ -89,6 +89,7 @@ export function QuickRecognitionModal({
   }, []);
 
   const handleClose = useCallback(() => {
+    Keyboard.dismiss();
     resetState();
     onClose();
   }, [resetState, onClose]);

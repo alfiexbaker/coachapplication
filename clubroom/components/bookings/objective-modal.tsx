@@ -5,7 +5,7 @@
  */
 
 import React, { memo } from 'react';
-import { Modal, StyleSheet, TextInput } from 'react-native';
+import { Modal, StyleSheet, TextInput, Keyboard } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 
@@ -55,7 +55,13 @@ export const ObjectiveModal = memo(function ObjectiveModal({
           paddingV="md"
           style={{ borderBottomWidth: 1, borderBottomColor: palette.border }}
         >
-          <Clickable onPress={onClose} accessibilityLabel="Close modal">
+          <Clickable
+            onPress={() => {
+              Keyboard.dismiss();
+              onClose();
+            }}
+            accessibilityLabel="Close modal"
+          >
             <Ionicons name="close" size={28} color={palette.foreground} />
           </Clickable>
           <ThemedText type="subtitle">{isEditing ? 'Edit Goal' : 'New Goal'}</ThemedText>

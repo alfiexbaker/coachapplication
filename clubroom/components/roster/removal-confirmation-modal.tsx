@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Modal, StyleSheet, TextInput, View } from 'react-native';
+import { Modal, StyleSheet, TextInput, View, Keyboard } from 'react-native';
 import { Row } from '@/components/primitives/row';
 import { Ionicons } from '@expo/vector-icons';
 
@@ -57,6 +57,7 @@ export function RemovalConfirmationModal({
   };
 
   const handleClose = () => {
+    Keyboard.dismiss();
     setSelectedReason(null);
     setCustomReason('');
     setArchive(true);

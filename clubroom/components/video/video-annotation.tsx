@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { View, StyleSheet, TextInput, Modal, ScrollView, Alert } from 'react-native';
+import { View, StyleSheet, TextInput, Modal, ScrollView, Alert, Keyboard } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
 import { Clickable } from '@/components/primitives/clickable';
@@ -85,6 +85,7 @@ export function AddAnnotationModal({
   };
 
   const handleClose = () => {
+    Keyboard.dismiss();
     setLabel('');
     setNote('');
     setType('TECHNIQUE');

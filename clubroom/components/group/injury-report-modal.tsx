@@ -1,5 +1,5 @@
 import React, { memo } from 'react';
-import { Modal, ScrollView, StyleSheet, TextInput, View } from 'react-native';
+import { Modal, ScrollView, StyleSheet, TextInput, View, Keyboard } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 
@@ -47,7 +47,10 @@ export const InjuryReportModal = memo(function InjuryReportModal({
       visible={visible}
       animationType="slide"
       presentationStyle="pageSheet"
-      onRequestClose={onClose}
+      onRequestClose={() => {
+        Keyboard.dismiss();
+        onClose();
+      }}
     >
       <SafeAreaView
         style={[styles.container, { backgroundColor: colors.background }]}
@@ -57,7 +60,10 @@ export const InjuryReportModal = memo(function InjuryReportModal({
           title="Report Injury"
           subtitle={athleteName}
           showBack
-          onBackPress={onClose}
+          onBackPress={() => {
+            Keyboard.dismiss();
+            onClose();
+          }}
           backIcon="close"
           centerTitle
           containerStyle={[styles.header, { borderBottomColor: colors.border }]}

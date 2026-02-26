@@ -3,7 +3,7 @@
  */
 
 import React, { memo } from 'react';
-import { Modal, ScrollView, StyleSheet, TextInput, View } from 'react-native';
+import { Modal, ScrollView, StyleSheet, TextInput, View, Keyboard } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
 import { Clickable } from '@/components/primitives/clickable';
@@ -160,13 +160,24 @@ export const EditCertificationsSection = memo(function EditCertificationsSection
         )}
       </SurfaceCard>
 
-      <Modal visible={modalVisible} transparent animationType="slide" onRequestClose={onCloseModal}>
+      <Modal
+        visible={modalVisible}
+        transparent
+        animationType="slide"
+        onRequestClose={() => {
+          Keyboard.dismiss();
+          onCloseModal();
+        }}
+      >
         <View style={[styles.modalOverlay, { backgroundColor: withAlpha(colors.text, 0.35) }]}>
           <SurfaceCard style={[styles.modalCard, { backgroundColor: colors.background }]}>
             <Row justify="between" align="center">
               <ThemedText type="subtitle">Certification</ThemedText>
               <Clickable
-                onPress={onCloseModal}
+                onPress={() => {
+                  Keyboard.dismiss();
+                  onCloseModal();
+                }}
                 accessibilityLabel="Close"
                 accessibilityRole="button"
               >

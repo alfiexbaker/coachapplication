@@ -1,5 +1,5 @@
 import { Ionicons } from '@expo/vector-icons';
-import { Alert, Modal, StyleSheet, TextInput, View } from 'react-native';
+import { Alert, Modal, StyleSheet, TextInput, View, Keyboard } from 'react-native';
 import { Image } from 'expo-image';
 import * as ImagePicker from 'expo-image-picker';
 import { useCallback, useState } from 'react';
@@ -243,7 +243,10 @@ export function AssignmentCard({
         visible={showEvidenceModal}
         transparent
         animationType="slide"
-        onRequestClose={() => setShowEvidenceModal(false)}
+        onRequestClose={() => {
+          Keyboard.dismiss();
+          setShowEvidenceModal(false);
+        }}
       >
         <View style={[styles.modalBackdrop, { backgroundColor: withAlpha(palette.background, 0.9) }]}>
           <SurfaceCard style={styles.modalCard}>

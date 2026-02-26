@@ -5,7 +5,7 @@
  */
 
 import React, { memo, useCallback } from 'react';
-import { Modal, StyleSheet, TextInput } from 'react-native';
+import { Modal, StyleSheet, TextInput, Keyboard } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { Clickable } from '@/components/primitives/clickable';
@@ -53,7 +53,10 @@ export const CreateCodeModal = memo(function CreateCodeModal({
       visible={visible}
       animationType="slide"
       presentationStyle="pageSheet"
-      onRequestClose={onClose}
+      onRequestClose={() => {
+        Keyboard.dismiss();
+        onClose();
+      }}
     >
       <SafeAreaView
         style={[styles.modalContainer, { backgroundColor: palette.background }]}
@@ -67,7 +70,10 @@ export const CreateCodeModal = memo(function CreateCodeModal({
         >
           <ThemedText type="title">Generate Invite Code</ThemedText>
           <Clickable
-            onPress={onClose}
+            onPress={() => {
+              Keyboard.dismiss();
+              onClose();
+            }}
             accessibilityLabel="Close modal"
             accessibilityRole="button"
             style={styles.closeTarget}
