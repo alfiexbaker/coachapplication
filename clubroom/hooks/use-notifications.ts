@@ -5,6 +5,7 @@ import { ServiceEvents } from '@/services/event-bus';
 import { err, ok, serviceError } from '@/types/result';
 import { createLogger } from '@/utils/logger';
 import type { NotificationType } from '@/constants/types';
+import { useToast } from '@/components/ui/toast';
 
 export type NotificationFilter =
   | 'all'
@@ -55,6 +56,7 @@ export function useNotifications(options: UseNotificationsOptions = {}): UseNoti
 
   const [currentFilter, setFilter] = useState<NotificationFilter>(initialFilter);
   const [actionError, setActionError] = useState<Error | null>(null);
+  const { showToast } = useToast();
 
   const fetchNotifications = useCallback(async () => {
     try {
@@ -206,8 +208,9 @@ export function useNotifications(options: UseNotificationsOptions = {}): UseNoti
       }
 
       await dismissNotification(item.id);
+      showToast('Notification type muted. Change it in Notification Preferences.', 'success');
     },
-    [dismissNotification],
+    [dismissNotification, showToast],
   );
 
   return {

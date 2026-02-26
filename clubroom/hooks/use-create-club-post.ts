@@ -71,6 +71,10 @@ export function useCreateClubPost(clubId: string | undefined) {
       (membership.canPostAsClub === true || CLUB_POSTING_ROLES.includes(membership.role)),
   );
   const isCoach = currentUser?.role === 'COACH' || currentUser?.role === 'ADMIN';
+  const personalAudienceEstimate = Math.max(
+    0,
+    Math.round((club?.memberCount ?? 0) * 0.35),
+  );
 
   const [title, setTitle] = useState('');
   const [body, setBody] = useState('');
@@ -338,6 +342,7 @@ export function useCreateClubPost(clubId: string | undefined) {
     club,
     canPostAsClub,
     isCoach,
+    personalAudienceEstimate,
     title,
     setTitle,
     body,

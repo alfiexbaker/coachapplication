@@ -11,6 +11,7 @@ import type {
   QuietHours,
 } from '@/constants/types';
 import { err, serviceError, type ServiceError } from '@/types/result';
+import { useToast } from '@/components/ui/toast';
 
 const logger = createLogger('useNotificationPrefs');
 
@@ -22,6 +23,7 @@ export function useNotificationPrefs() {
     useState<EnhancedNotificationPreferences | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
   const [updating, setUpdating] = useState(false);
+  const { showToast } = useToast();
 
   const loadPreferences = useCallback(async () => {
     try {
@@ -84,6 +86,7 @@ export function useNotificationPrefs() {
         }
 
         setPreferencesOverride(updatedResult.data);
+        showToast('Coach notifications unmuted', 'success');
       } catch (updateError) {
         setActionError('Failed to update quiet hours');
         logger.error('Failed to update quiet hours', { updateError });
@@ -91,7 +94,7 @@ export function useNotificationPrefs() {
         setUpdating(false);
       }
     },
-    [preferences, userId],
+    [preferences, userId, showToast],
   );
 
   const handleChannelToggle = useCallback(

@@ -9,9 +9,10 @@ import { useState, useCallback } from 'react';
 import { View, StyleSheet, Platform } from 'react-native';
 import DateTimePicker from '@react-native-community/datetimepicker';
 
-import { Radii } from '@/constants/theme';
+import { Radii, Spacing, Typography } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
 import type { QuietHours } from '@/constants/types';
+import { ThemedText } from '@/components/themed-text';
 import {
   parseTimeToDate,
   formatDateToTime,
@@ -104,6 +105,7 @@ export function QuietHoursSelector({
 
       {value.enabled && (
         <TimeRangeSection
+          enabled={value.enabled}
           startTime={value.startTime}
           endTime={value.endTime}
           disabled={isDisabled}
@@ -117,6 +119,14 @@ export function QuietHoursSelector({
           }}
           palette={palette}
         />
+      )}
+      {!value.enabled && (
+        <View style={styles.helperContainer}>
+          <ThemedText style={[styles.helperText, { color: palette.muted }]}>
+            Quiet hours pause push notifications only. In-app notifications still appear when you
+            open the app. Recommended overnight range: 10:00 PM to 8:00 AM.
+          </ThemedText>
+        </View>
       )}
 
       {/* iOS Time Picker Modal */}
@@ -169,5 +179,12 @@ const styles = StyleSheet.create({
     borderRadius: Radii.lg,
     borderWidth: 0.75,
     overflow: 'hidden',
+  },
+  helperContainer: {
+    paddingHorizontal: Spacing.md,
+    paddingBottom: Spacing.md,
+  },
+  helperText: {
+    ...Typography.caption,
   },
 });

@@ -14,12 +14,16 @@ interface FeedTypeSelectorProps {
   feedType: FeedType;
   canTargetClub?: boolean;
   onSelect: (ft: FeedType) => void;
+  clubMemberCount?: number;
+  followerCountEstimate?: number;
 }
 
 export const FeedTypeSelector = memo(function FeedTypeSelector({
   feedType,
   canTargetClub = false,
   onSelect,
+  clubMemberCount = 0,
+  followerCountEstimate = 0,
 }: FeedTypeSelectorProps) {
   const { colors: palette } = useTheme();
   const opts: { key: FeedType; label: string; icon: string; color: string }[] = [
@@ -46,9 +50,32 @@ export const FeedTypeSelector = memo(function FeedTypeSelector({
         ]
       : []),
   ];
+  const distributionCopy: Record<
+    FeedType,
+    { description: string; count: number; recommended?: boolean; caution?: string }
+  > = {
+    PERSONAL: {
+      description: 'Only people following your personal coaching feed will see this.',
+      count: followerCountEstimate,
+    },
+    CLUB: {
+      description: 'Visible to active members in this club.',
+      count: clubMemberCount,
+      recommended: true,
+    },
+    BOTH: {
+      description: 'Visible on your personal feed and in the club feed.',
+      count: clubMemberCount + followerCountEstimate,
+      caution: 'This may reach people outside the club if they follow your personal feed.',
+    },
+  };
+
   return (
     <View style={styles.section}>
       <ThemedText style={[styles.sectionLabel, { color: palette.muted }]}>Distribution</ThemedText>
+      <ThemedText style={[styles.helperText, { color: palette.muted }]}>
+        Who can see this post?
+      </ThemedText>
       <Row wrap gap="xs">
         {opts.map((o) => (
           <Clickable
@@ -81,6 +108,43 @@ export const FeedTypeSelector = memo(function FeedTypeSelector({
           </Clickable>
         ))}
       </Row>
+      <View
+        style={[
+          styles.distributionHelperCard,
+          { borderColor: palette.border, backgroundColor: withAlpha(palette.tint, 0.035) },
+        ]}
+      >
+        <Row align="start" gap="xs">
+          <Ionicons name="information-circle-outline" size={16} color={palette.tint} />
+          <Column flex>
+            <Row align="center" gap="xs" wrap>
+              <ThemedText style={[Typography.caption, { color: palette.text }]}>
+                {distributionCopy[feedType].description}
+              </ThemedText>
+              {distributionCopy[feedType].recommended ? (
+                <View
+                  style={[
+                    styles.recommendedPill,
+                    { backgroundColor: withAlpha(palette.success, 0.12) },
+                  ]}
+                >
+                  <ThemedText style={[Typography.micro, { color: palette.success }]}>
+                    Recommended
+                  </ThemedText>
+                </View>
+              ) : null}
+            </Row>
+            <ThemedText style={[Typography.caption, { color: palette.tint, marginTop: Spacing.micro }]}>
+              Estimated audience: ~{Math.max(0, distributionCopy[feedType].count)} people
+            </ThemedText>
+            {distributionCopy[feedType].caution ? (
+              <ThemedText style={[Typography.caption, { color: palette.warning, marginTop: Spacing.micro }]}>
+                {distributionCopy[feedType].caution}
+              </ThemedText>
+            ) : null}
+          </Column>
+        </Row>
+      </View>
     </View>
   );
 });
@@ -373,6 +437,10 @@ const styles = StyleSheet.create({
     textTransform: 'uppercase',
     letterSpacing: 0.5,
   },
+  helperText: {
+    ...Typography.caption,
+    marginBottom: Spacing.xs,
+  },
   row: { flexDirection: 'row', flexWrap: 'wrap', gap: Spacing.xs },
   chip: {
     flexDirection: 'row',
@@ -432,5 +500,16 @@ const styles = StyleSheet.create({
   noSquadsHint: {
     ...Typography.caption,
     marginTop: Spacing.sm,
+  },
+  distributionHelperCard: {
+    marginTop: Spacing.sm,
+    borderWidth: 1,
+    borderRadius: Radii.md,
+    padding: Spacing.sm,
+  },
+  recommendedPill: {
+    borderRadius: Radii.pill,
+    paddingHorizontal: Spacing.xs,
+    paddingVertical: Spacing.micro,
   },
 });

@@ -7,6 +7,20 @@ import { Clickable } from '@/components/primitives/clickable';
 import { Row } from '@/components/primitives/row';
 import { Radii, Spacing, Typography, withAlpha } from '@/constants/theme';
 import type { ThemeColors } from '@/hooks/useTheme';
+
+function isQuietHoursActive(enabled: boolean, startTime: string, endTime: string): boolean {
+  if (!enabled) return false;
+  const now = new Date();
+  const current = now.getHours() * 60 + now.getMinutes();
+  const [startH, startM] = startTime.split(':').map(Number);
+  const [endH, endM] = endTime.split(':').map(Number);
+  const start = startH * 60 + startM;
+  const end = endH * 60 + endM;
+  if (start > end) {
+    return current >= start || current < end;
+  }
+  return current >= start && current < end;
+}
 export function parseTimeToDate(time: string): Date {
   const [hours, minutes] = time.split(':').map(Number);
   const date = new Date();
@@ -64,6 +78,7 @@ export const QuietHoursHeader = memo(function QuietHoursHeader({
   );
 });
 interface TimeRangeSectionProps {
+  enabled: boolean;
   startTime: string;
   endTime: string;
   disabled: boolean;
@@ -72,6 +87,7 @@ interface TimeRangeSectionProps {
   palette: ThemeColors;
 }
 export const TimeRangeSection = memo(function TimeRangeSection({
+  enabled,
   startTime,
   endTime,
   disabled,
@@ -80,6 +96,7 @@ export const TimeRangeSection = memo(function TimeRangeSection({
   palette,
 }: TimeRangeSectionProps) {
   const isOvernight = startTime > endTime;
+  const quietHoursActive = isQuietHoursActive(enabled, startTime, endTime);
   return (
     <View style={styles.timeSection}>
       <Row align="center" justify="between">
@@ -125,6 +142,36 @@ export const TimeRangeSection = memo(function TimeRangeSection({
             ? `Notifications paused from ${formatTimeForDisplay(startTime)} until ${formatTimeForDisplay(endTime)} the next day`
             : `Notifications paused between ${formatTimeForDisplay(startTime)} and ${formatTimeForDisplay(endTime)}`}
         </ThemedText>
+      </Row>
+      <Row
+        align="start"
+        gap="xs"
+        style={[
+          styles.infoContainer,
+          {
+            backgroundColor: withAlpha(quietHoursActive ? palette.warning : palette.success, 0.08),
+          },
+        ]}
+      >
+        <Ionicons
+          name={quietHoursActive ? 'moon-outline' : 'notifications-outline'}
+          size={16}
+          color={quietHoursActive ? palette.warning : palette.success}
+        />
+        <View style={{ flex: 1, gap: Spacing.micro }}>
+          <ThemedText
+            style={[
+              styles.infoText,
+              { color: quietHoursActive ? palette.warning : palette.success },
+            ]}
+          >
+            {quietHoursActive ? 'Quiet hours are active now' : 'Push notifications are active now'}
+          </ThemedText>
+          <ThemedText style={[styles.infoText, { color: palette.muted }]}>
+            Push notifications are paused during quiet hours. In-app notifications still appear when
+            you open the app.
+          </ThemedText>
+        </View>
       </Row>
     </View>
   );

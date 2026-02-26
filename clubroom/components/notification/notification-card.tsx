@@ -1,4 +1,5 @@
 import { Alert, View, StyleSheet } from 'react-native';
+import { useCallback } from 'react';
 import Animated, {
   Extrapolate,
   interpolate,
@@ -193,7 +194,14 @@ export function NotificationCard({
             onMute
               ? () => {
                   swipeableMethods.close();
-                  onMute();
+                  Alert.alert(
+                    'Mute similar notifications?',
+                    'This will mute this notification type from your preferences until you turn it back on in Notification Preferences.',
+                    [
+                      { text: 'Cancel', style: 'cancel' },
+                      { text: 'Mute', style: 'destructive', onPress: onMute },
+                    ],
+                  );
                 }
               : undefined
           }

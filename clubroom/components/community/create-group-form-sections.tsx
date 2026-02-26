@@ -147,6 +147,29 @@ export const PrivacySelector = memo(function PrivacySelector({
         </View>
         {isPublic && <Ionicons name="checkmark-circle" size={22} color={palette.tint} />}
       </Clickable>
+      {isPublic && (
+        <View
+          style={[
+            styles.privacyHelpCard,
+            { backgroundColor: withAlpha(palette.tint, 0.04), borderColor: palette.border },
+          ]}
+        >
+          <Row align="start" gap="xs">
+            <Ionicons name="information-circle-outline" size={16} color={palette.tint} />
+            <View style={styles.privacyHelpContent}>
+              <ThemedText style={[styles.privacyHelpTitle, { color: palette.text }]}>
+                Public groups are visible in search
+              </ThemedText>
+              <ThemedText style={[styles.privacyHelpText, { color: palette.muted }]}>
+                Anyone can find, join, and read posts in this group.
+              </ThemedText>
+              <ThemedText style={[styles.privacyHelpText, { color: palette.tint }]}>
+                Good for announcements and broad club/community discussions.
+              </ThemedText>
+            </View>
+          </Row>
+        </View>
+      )}
 
       <Clickable
         style={[
@@ -177,6 +200,41 @@ export const PrivacySelector = memo(function PrivacySelector({
         </View>
         {!isPublic && <Ionicons name="checkmark-circle" size={22} color={palette.tint} />}
       </Clickable>
+      {!isPublic && (
+        <View
+          style={[
+            styles.privacyHelpCard,
+            { backgroundColor: withAlpha(palette.success, 0.05), borderColor: palette.border },
+          ]}
+        >
+          <Row align="start" gap="xs">
+            <Ionicons name="lock-closed-outline" size={16} color={palette.success} />
+            <View style={styles.privacyHelpContent}>
+              <Row align="center" gap="xs" wrap>
+                <ThemedText style={[styles.privacyHelpTitle, { color: palette.text }]}>
+                  Private groups are invite-only
+                </ThemedText>
+                <View
+                  style={[styles.recommendedBadge, { backgroundColor: withAlpha(palette.success, 0.12) }]}
+                >
+                  <ThemedText style={[styles.recommendedBadgeText, { color: palette.success }]}>
+                    Recommended
+                  </ThemedText>
+                </View>
+              </Row>
+              <ThemedText style={[styles.privacyHelpText, { color: palette.muted }]}>
+                Only members can view posts. The group is hidden from search.
+              </ThemedText>
+              <ThemedText style={[styles.privacyHelpText, { color: palette.success }]}>
+                Best for parent chats, staff groups, and sensitive discussions.
+              </ThemedText>
+            </View>
+          </Row>
+        </View>
+      )}
+      <ThemedText style={[styles.privacyHint, { color: palette.muted }]}>
+        Choose who can join and view posts in this group.
+      </ThemedText>
     </View>
   );
 });
@@ -206,4 +264,19 @@ const styles = StyleSheet.create({
   privacyTextContainer: { flex: 1, gap: Spacing.micro },
   privacyLabel: { fontSize: scaleFont(15) },
   privacyDescription: { fontSize: scaleFont(12) },
+  privacyHelpCard: {
+    borderWidth: 1,
+    borderRadius: Radii.md,
+    padding: Spacing.sm,
+  },
+  privacyHelpContent: { flex: 1, gap: Spacing.micro },
+  privacyHelpTitle: { fontSize: scaleFont(13), fontWeight: '600' },
+  privacyHelpText: { fontSize: scaleFont(11), lineHeight: scaleFont(15) },
+  privacyHint: { fontSize: scaleFont(11), marginTop: Spacing.xs },
+  recommendedBadge: {
+    borderRadius: Radii.pill,
+    paddingHorizontal: Spacing.xs,
+    paddingVertical: Spacing.micro,
+  },
+  recommendedBadgeText: { ...Typography.micro },
 });

@@ -17,12 +17,16 @@ interface NotificationsActionsBarProps {
   unreadCount: number;
   onMarkAllRead: () => void;
   onClearAll: () => void;
+  markingAllRead?: boolean;
+  clearingAll?: boolean;
 }
 
 export const NotificationsActionsBar = memo(function NotificationsActionsBar({
   unreadCount,
   onMarkAllRead,
   onClearAll,
+  markingAllRead = false,
+  clearingAll = false,
 }: NotificationsActionsBarProps) {
   const { colors: palette } = useTheme();
 
@@ -31,7 +35,7 @@ export const NotificationsActionsBar = memo(function NotificationsActionsBar({
       <View>
         {unreadCount > 0 ? (
           <ThemedText style={[styles.unreadText, { color: palette.muted }]}>
-            {unreadCount} unread
+            {unreadCount > 99 ? '99+' : unreadCount} unread
           </ThemedText>
         ) : (
           <ThemedText style={[styles.caughtUpText, { color: palette.muted }]}>All caught up</ThemedText>
@@ -43,18 +47,28 @@ export const NotificationsActionsBar = memo(function NotificationsActionsBar({
           <Clickable
             onPress={onMarkAllRead}
             accessibilityLabel="Mark all notifications as read"
+            disabled={markingAllRead}
             style={[styles.iconAction, { borderColor: palette.border, backgroundColor: palette.surface }]}
           >
-            <Ionicons name="checkmark-done" size={18} color={palette.tint} />
+            <Ionicons
+              name={markingAllRead ? 'hourglass-outline' : 'checkmark-done'}
+              size={18}
+              color={palette.tint}
+            />
           </Clickable>
         )}
 
         <Clickable
           onPress={onClearAll}
           accessibilityLabel="Clear all notifications"
+          disabled={clearingAll}
           style={[styles.iconAction, { borderColor: palette.border, backgroundColor: palette.surface }]}
         >
-          <Ionicons name="trash-outline" size={18} color={palette.muted} />
+          <Ionicons
+            name={clearingAll ? 'hourglass-outline' : 'trash-outline'}
+            size={18}
+            color={palette.muted}
+          />
         </Clickable>
       </Row>
     </Row>

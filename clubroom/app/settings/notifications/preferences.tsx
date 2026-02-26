@@ -79,6 +79,10 @@ export default function NotificationPreferencesScreen() {
               <ThemedText style={[styles.sectionTitle, { color: colors.muted }]}>
                 QUIET HOURS
               </ThemedText>
+              <ThemedText style={[styles.sectionDescription, { color: colors.muted }]}>
+                Quiet hours pause push notifications only. In-app notifications still appear when
+                you open the app.
+              </ThemedText>
               <QuietHoursSelector
                 value={preferences.quietHours}
                 onChange={handleQuietHoursChange}

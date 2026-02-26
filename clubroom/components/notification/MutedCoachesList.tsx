@@ -52,6 +52,9 @@ export function MutedCoachesList({
           <ThemedText style={[styles.subtitle, { color: palette.muted }]}>
             You won&apos;t receive notifications from these coaches
           </ThemedText>
+          <ThemedText style={[styles.helperText, { color: palette.muted }]}>
+            Muted coaches won&apos;t send push notifications, but you can still view updates in-app.
+          </ThemedText>
         </View>
         {mutedCoaches.length > 0 && (
           <View style={[styles.badge, { backgroundColor: palette.muted }]}>
@@ -70,7 +73,8 @@ export function MutedCoachesList({
             No Muted Coaches
           </ThemedText>
           <ThemedText style={[styles.emptySubtitle, { color: palette.muted }]}>
-            You&apos;re receiving notifications from all your coaches
+            You&apos;re receiving notifications from all your coaches. Use mute on a notification to
+            hide a coach temporarily until you unmute them here.
           </ThemedText>
         </View>
       ) : (
@@ -114,6 +118,7 @@ const styles = StyleSheet.create({
   },
   title: { ...Typography.subheading },
   subtitle: { ...Typography.small, lineHeight: Typography.caption.lineHeight },
+  helperText: { ...Typography.caption, lineHeight: Typography.micro.lineHeight },
   badge: {
     minWidth: 24,
     height: 24,

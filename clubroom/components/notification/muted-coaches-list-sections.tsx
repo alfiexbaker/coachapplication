@@ -90,6 +90,9 @@ export const MutedCoachRow = memo(function MutedCoachRow({
         <ThemedText style={[styles.mutedDate, { color: palette.muted }]}>
           Muted {formatMutedDate(coach.mutedAt)}
         </ThemedText>
+        <ThemedText style={[styles.context, { color: palette.muted }]}>
+          Messages, reminders, and updates from this coach are hidden until you unmute.
+        </ThemedText>
         {coach.reason && (
           <ThemedText style={[styles.reason, { color: palette.muted }]}>{coach.reason}</ThemedText>
         )}
@@ -129,6 +132,7 @@ const styles = StyleSheet.create({
   },
   coachName: { ...Typography.body },
   mutedDate: { ...Typography.caption },
+  context: { ...Typography.caption, lineHeight: Typography.micro.lineHeight },
   reason: { ...Typography.caption, fontStyle: 'italic' },
   unmuteButton: {
     width: 40,

@@ -164,6 +164,17 @@ export function NotificationsPanel({
 
   return (
     <View style={styles.flex}>
+      <View
+        style={[
+          styles.muteHint,
+          { backgroundColor: palette.surface, borderColor: palette.border },
+        ]}
+      >
+        <ThemedText style={[styles.muteHintText, { color: palette.muted }]}>
+          Swipe a notification to mute that notification type. You can turn it back on in
+          Notification Preferences.
+        </ThemedText>
+      </View>
       <NotificationFilterBar currentFilter={currentFilter} onFilterChange={setFilter} />
 
       {status === 'loading' && notifications.length === 0 ? (
@@ -210,6 +221,17 @@ export function NotificationsPanel({
 const styles = StyleSheet.create({
   flex: {
     flex: 1,
+  },
+  muteHint: {
+    marginHorizontal: NotificationDesign.list.horizontalPadding,
+    marginTop: Spacing.xs,
+    paddingHorizontal: Spacing.sm,
+    paddingVertical: Spacing.xs,
+    borderRadius: 10,
+    borderWidth: 1,
+  },
+  muteHintText: {
+    ...Typography.caption,
   },
   content: {
     paddingHorizontal: NotificationDesign.list.horizontalPadding,
