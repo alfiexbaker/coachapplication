@@ -52,6 +52,7 @@ import {
   getSessionInviteCoachName,
 } from '@/utils/session-invite-display';
 import { useChildContext } from '@/hooks/use-child-context';
+import { formatInUserTimezone } from '@/utils/timezone';
 
 const logger = createLogger('SessionInviteDetailScreen');
 
@@ -295,7 +296,7 @@ export default function SessionInviteDetailScreen() {
     if (!invite) return;
     const s = invite.proposedSlots[0];
     const d = s
-      ? new Date(s.date + 'T00:00:00').toLocaleDateString('en-GB', {
+      ? formatInUserTimezone(`${s.date}T${s.startTime || '00:00'}`, {
           weekday: 'short',
           day: 'numeric',
           month: 'short',
@@ -507,12 +508,13 @@ export default function SessionInviteDetailScreen() {
                 <Ionicons name="time-outline" size={16} color={colors.warning} />
                 <ThemedText style={{ color: colors.warning, ...Typography.small }}>
                   Expires{' '}
-                  {new Date(invite.expiresAt).toLocaleDateString('en-GB', {
+                  {formatInUserTimezone(invite.expiresAt, {
                     weekday: 'short',
                     day: 'numeric',
                     month: 'short',
                     hour: '2-digit',
                     minute: '2-digit',
+                    timeZoneName: 'short',
                   })}
                 </ThemedText>
               </Row>

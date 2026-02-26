@@ -10,6 +10,7 @@ import { Column } from '@/components/primitives/column';
 import { BookingWizardHeader } from '@/components/ui/booking/booking-wizard';
 import { createLogger } from '@/utils/logger';
 import { toDateStr } from '@/utils/format';
+import { formatInUserTimezone } from '@/utils/timezone';
 import { CalendarPicker } from '@/components/ui/booking/calendar-picker';
 import { TimeSlotPicker } from '@/components/ui/booking/time-slot-picker';
 import { Clickable } from '@/components/primitives/clickable';
@@ -325,8 +326,7 @@ export default function ScheduleScreen() {
 }
 
 function formatDate(dateStr: string): string {
-  const date = new Date(dateStr);
-  return date.toLocaleDateString('en-GB', {
+  return formatInUserTimezone(`${dateStr}T00:00:00`, {
     weekday: 'short',
     day: 'numeric',
     month: 'short',

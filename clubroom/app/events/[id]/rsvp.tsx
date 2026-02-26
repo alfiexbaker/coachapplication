@@ -25,6 +25,7 @@ import { useTheme } from '@/hooks/useTheme';
 import { useEventRSVP } from '@/hooks/use-event-rsvp';
 import { eventService } from '@/services/event-service';
 import { scaleFont } from '@/utils/scale';
+import { formatInUserTimezone } from '@/utils/timezone';
 import type { RSVPStatus } from '@/constants/types';
 
 export default function EventRSVPScreen() {
@@ -290,7 +291,15 @@ export default function EventRSVPScreen() {
             >
               <Ionicons name="time" size={20} color={palette.warning} />
               <ThemedText style={[styles.warningText, { color: palette.warning }]}>
-                RSVP deadline was {rsvpDeadlineDate.toLocaleString()}
+                RSVP deadline was{' '}
+                {formatInUserTimezone(rsvpDeadlineDate, {
+                  day: 'numeric',
+                  month: 'short',
+                  year: 'numeric',
+                  hour: '2-digit',
+                  minute: '2-digit',
+                  timeZoneName: 'short',
+                })}
               </ThemedText>
             </Row>
           )}

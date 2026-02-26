@@ -15,6 +15,7 @@ import {
   getSessionInviteAthleteNames,
   getSessionInviteCoachName,
 } from '@/utils/session-invite-display';
+import { formatInUserTimezone } from '@/utils/timezone';
 
 type ViewMode = 'sent' | 'received';
 
@@ -89,10 +90,10 @@ function getRecurringSummary(invite: SessionInvite): {
   const last = sortedSlots[sortedSlots.length - 1];
   const range =
     first && last
-      ? `${new Date(first.date).toLocaleDateString('en-GB', {
+      ? `${formatInUserTimezone(`${first.date}T00:00:00`, {
           day: 'numeric',
           month: 'short',
-        })} - ${new Date(last.date).toLocaleDateString('en-GB', {
+        })} - ${formatInUserTimezone(`${last.date}T00:00:00`, {
           day: 'numeric',
           month: 'short',
           year: 'numeric',
@@ -176,7 +177,7 @@ export const InviteListCard = memo(function InviteListCard({
         : `${invite.sessionType} invite`;
   const slot = invite.proposedSlots[0];
   const dateStr = slot
-    ? new Date(slot.date).toLocaleDateString('en-GB', {
+    ? formatInUserTimezone(`${slot.date}T${slot.startTime || '00:00'}`, {
         weekday: 'short',
         day: 'numeric',
         month: 'short',

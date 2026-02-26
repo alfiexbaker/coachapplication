@@ -26,6 +26,7 @@ import {
   CAMP_LENGTH_OPTIONS,
   RECURRENCE_OPTIONS,
 } from './create-session-types';
+import { formatInUserTimezone } from '@/utils/timezone';
 
 interface CreateScheduleStepProps {
   colors: ThemeColors;
@@ -90,9 +91,12 @@ function formatDuration(minutes: number): string {
 }
 
 function formatCampDateLabel(dateStr: string): string {
-  const date = new Date(`${dateStr}T00:00:00`);
-  if (Number.isNaN(date.getTime())) return dateStr;
-  return date.toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' });
+  const formatted = formatInUserTimezone(`${dateStr}T00:00:00`, {
+    weekday: 'short',
+    day: 'numeric',
+    month: 'short',
+  });
+  return formatted || dateStr;
 }
 
 function isValidDuration(minutes: number): boolean {

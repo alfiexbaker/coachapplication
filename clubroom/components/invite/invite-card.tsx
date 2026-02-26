@@ -7,6 +7,7 @@ import { Clickable } from '@/components/primitives/clickable';
 import { RsvpButtonGroup } from '@/components/invite/rsvp-button-group';
 import { Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
+import { formatInUserTimezone } from '@/utils/timezone';
 import type { SessionInvite } from '@/constants/types';
 import { formatExpiresIn } from '@/hooks/use-invites';
 import { Row } from '@/components/primitives';
@@ -133,7 +134,7 @@ export const InviteCard = memo(function InviteCard({
             >
               <Ionicons name="calendar-outline" size={14} color={palette.icon} />
               <ThemedText style={styles.slotText}>
-                {new Date(slot.date).toLocaleDateString('en-GB', {
+                {formatInUserTimezone(`${slot.date}T${slot.startTime || '00:00'}`, {
                   weekday: 'short',
                   day: 'numeric',
                   month: 'short',
@@ -219,11 +220,14 @@ export const InviteCard = memo(function InviteCard({
           <Ionicons name="checkmark-circle" size={18} color={palette.success} />
           <ThemedText style={[styles.confirmedText, { color: palette.success }]}>
             Booked:{' '}
-            {new Date(invite.selectedSlot.date).toLocaleDateString('en-GB', {
-              weekday: 'short',
-              day: 'numeric',
-              month: 'short',
-            })}{' '}
+            {formatInUserTimezone(
+              `${invite.selectedSlot.date}T${invite.selectedSlot.startTime || '00:00'}`,
+              {
+                weekday: 'short',
+                day: 'numeric',
+                month: 'short',
+              },
+            )}{' '}
             at {invite.selectedSlot.startTime}
           </ThemedText>
         </Row>

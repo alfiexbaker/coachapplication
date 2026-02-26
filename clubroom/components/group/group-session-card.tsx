@@ -18,6 +18,7 @@ import { RsvpMiniBar, type RsvpMiniBarCounts } from '@/components/group/rsvp-min
 import { DeadlineBadge } from '@/components/group/deadline-badge';
 import { SessionChildBadge } from '@/components/group/session-child-badge';
 import type { SessionBadgeData } from '@/types/session-child-status';
+import { formatInUserTimezone } from '@/utils/timezone';
 
 function formatAgeRange(ageMin?: number, ageMax?: number): string {
   const min = typeof ageMin === 'number' && ageMin > 0 ? ageMin : undefined;
@@ -154,7 +155,7 @@ export const GroupSessionCard = memo(function GroupSessionCard({
               <Ionicons name="calendar-outline" size={14} color={colors.muted} />
               <ThemedText style={[Typography.caption, { color: colors.muted, flex: 1 }]}>
                 {firstDate
-                  ? new Date(firstDate.date).toLocaleDateString('en-GB', {
+                  ? formatInUserTimezone(`${firstDate.date}T${firstDate.startTime || '00:00'}`, {
                       weekday: 'short',
                       day: 'numeric',
                       month: 'short',

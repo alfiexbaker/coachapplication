@@ -40,6 +40,7 @@ import { groupSessionService } from '@/services/group-session-service';
 import { calendarService } from '@/services/calendar-service';
 import { CalendarExportButton } from '@/components/calendar/CalendarExportButton';
 import { getGroupSessionClubLabel } from '@/utils/group-display';
+import { formatInUserTimezone } from '@/utils/timezone';
 
 export default function GroupSessionDetailScreen() {
   const { colors } = useTheme();
@@ -161,12 +162,13 @@ export default function GroupSessionDetailScreen() {
     !isFull &&
     (!isRegistered || (isRegistered && unregisteredChildren.length > 0));
   const registrationDeadlineLabel = session.registrationDeadline
-    ? new Date(session.registrationDeadline).toLocaleString('en-GB', {
+    ? formatInUserTimezone(session.registrationDeadline, {
         day: 'numeric',
         month: 'short',
         year: 'numeric',
         hour: '2-digit',
         minute: '2-digit',
+        timeZoneName: 'short',
       })
     : null;
 
