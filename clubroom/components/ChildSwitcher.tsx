@@ -25,6 +25,10 @@ export function ChildSwitcher({
 }: ChildSwitcherProps) {
   const { colors: palette } = useTheme();
 
+  if (childrenList.length <= 1) {
+    return null;
+  }
+
   const renderPill = (id: string | null, label: string) => {
     const isActive = selectedId === id;
 

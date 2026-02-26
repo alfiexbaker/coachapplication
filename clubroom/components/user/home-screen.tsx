@@ -11,6 +11,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { ThemedText } from '@/components/themed-text';
 import { ChildSwitcher } from '@/components/ChildSwitcher';
 import { NotificationBell } from '@/components/ui/notification-bell';
+import { Avatar } from '@/components/ui/primitives/Avatar';
 import { Clickable } from '@/components/primitives/clickable';
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { Column } from '@/components/primitives/column';
@@ -54,6 +55,7 @@ export function UserHomeScreen() {
   const nextSession = upcomingBookings[0];
   const showFamilySummary = isMultiChild && selectedChildId === null;
   const isNewParent = isParent && contextChildren.length === 0;
+  const singleChild = isParent && contextChildren.length === 1 ? contextChildren[0] : null;
 
   return (
     <SafeAreaView
@@ -83,14 +85,38 @@ export function UserHomeScreen() {
           <NotificationBell size={20} />
         </Row>
 
-        {isParent && (
+        {singleChild ? (
+          <SurfaceCard style={[styles.singleChildCard, { borderColor: palette.border }]}>
+            <Row align="center" gap="sm">
+              <Avatar uri={singleChild.avatarUrl} name={singleChild.name} size="md" />
+              <Column flex gap="micro">
+                <ThemedText type="defaultSemiBold" numberOfLines={1}>
+                  {singleChild.name}
+                </ThemedText>
+                <ThemedText style={[styles.singleChildMeta, { color: palette.muted }]}>
+                  {singleChild.age != null ? `Age ${singleChild.age}` : 'Child profile'}
+                </ThemedText>
+              </Column>
+              <Clickable
+                onPress={() => router.push(Routes.MODAL_ADD_CHILD)}
+                accessibilityLabel="Add another child"
+                style={[styles.addChildMiniButton, { backgroundColor: withAlpha(palette.tint, 0.08) }]}
+              >
+                <Ionicons name="person-add-outline" size={16} color={palette.tint} />
+                <ThemedText style={[styles.addChildMiniLabel, { color: palette.tint }]}>
+                  Add Child
+                </ThemedText>
+              </Clickable>
+            </Row>
+          </SurfaceCard>
+        ) : isParent ? (
           <ChildSwitcher
             childrenList={contextChildren.map((c) => ({ childId: c.id, childName: c.name }))}
             selectedId={selectedChildId}
             onSelect={setSelectedChildId}
             showAll={isMultiChild}
           />
-        )}
+        ) : null}
 
         {loading && (
           <View style={styles.loadingContainer}>
@@ -196,5 +222,25 @@ const styles = StyleSheet.create({
   },
   ctaText: {
     ...Typography.bodySmallSemiBold,
+  },
+  singleChildCard: {
+    borderWidth: 1,
+    padding: Spacing.sm,
+  },
+  singleChildMeta: {
+    ...Typography.caption,
+  },
+  addChildMiniButton: {
+    minHeight: 36,
+    borderRadius: Radii.pill,
+    paddingHorizontal: Spacing.sm,
+    paddingVertical: Spacing.xxs,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.xxs,
+  },
+  addChildMiniLabel: {
+    ...Typography.caption,
+    fontWeight: '600',
   },
 });

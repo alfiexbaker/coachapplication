@@ -117,7 +117,7 @@ type CalendarDayGridProps = {
   isToday: (date: Date | null) => boolean;
   onDateSelect?: (date: Date) => void;
   palette: ThemeColors;
-  hasConflictsForDate?: (date: Date | null) => boolean;
+  hasConflictsForDate: (date: Date | null) => boolean;
 };
 
 export const CalendarDayGrid = memo(function CalendarDayGrid({
@@ -168,7 +168,7 @@ export const CalendarDayGrid = memo(function CalendarDayGrid({
                 {dateEvents.slice(0, 3).map((event, i) => (
                   <View key={i} style={[styles.eventDot, { backgroundColor: event.colorCode }]} />
                 ))}
-                {hasConflictsForDate?.(item.date) && (
+                {hasConflictsForDate(item.date) && (
                   <View style={[styles.conflictDot, { backgroundColor: palette.warning }]} />
                 )}
               </Row>
