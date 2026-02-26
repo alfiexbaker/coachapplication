@@ -170,6 +170,8 @@ export const STORAGE_KEYS = {
 
   /** Notification preferences per user */
   NOTIFICATION_PREFERENCES: 'clubroom.notification_preferences',
+  /** One-time route alias migration for persisted notification deep links */
+  NOTIFICATION_ROUTE_ALIAS_MIGRATION_V1: 'clubroom.notification_route_alias_migration_v1',
 
   // ============================================================================
   // MESSAGING DOMAIN

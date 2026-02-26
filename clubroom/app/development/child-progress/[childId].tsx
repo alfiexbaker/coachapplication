@@ -30,8 +30,10 @@ import { formatShortDateWithYear } from '@/utils/format';
 import { LoadingState, ErrorState, EmptyState } from '@/components/ui/screen-states';
 import { Routes } from '@/navigation/routes';
 import type { FootballSkill } from '@/types/progress-types';
+import { useRequiredParam } from '@/hooks/use-required-param';
 
 export default function ChildProgressScreen() {
+  const childIdParam = useRequiredParam('childId');
   const { colors } = useScreen<null>({ load: async () => ok(null), isEmpty: () => false });
   const {
     loading,
@@ -54,6 +56,18 @@ export default function ChildProgressScreen() {
     activeChildId,
     handleSelectChild,
   } = useChildProgress();
+
+  if (!childIdParam.valid) {
+    return (
+      <SafeAreaView
+        style={[styles.container, { backgroundColor: colors.background }]}
+        edges={['top', 'bottom']}
+      >
+        <PageHeader title="Progress" showBack centerTitle onBackPress={() => router.back()} />
+        <ErrorState message="Invalid child progress link." onRetry={() => router.back()} />
+      </SafeAreaView>
+    );
+  }
 
   if (loading) {
     return (

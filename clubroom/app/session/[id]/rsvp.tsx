@@ -1,6 +1,6 @@
 import React, { useState, useCallback } from 'react';
 import { View, ScrollView, StyleSheet, Alert } from 'react-native';
-import { useLocalSearchParams, useRouter, Stack } from 'expo-router';
+import { useRouter, Stack } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { ThemedText } from '@/components/themed-text';
@@ -16,6 +16,7 @@ import { groupSessionService } from '@/services/group-session-service';
 import type { SessionRsvp } from '@/constants/types';
 import { err, ok, serviceError } from '@/types/result';
 import { getSessionRsvpChildName } from '@/utils/session-rsvp-display';
+import { useOptionalParam, useRequiredParam } from '@/hooks/use-required-param';
 
 interface SessionInfo {
   id: string;
@@ -39,7 +40,9 @@ interface RsvpLoadData {
 }
 
 export default function RSVPScreen() {
-  const { id: sessionId, rsvpId } = useLocalSearchParams<{ id: string; rsvpId?: string }>();
+  const sessionIdParam = useRequiredParam('id');
+  const sessionId = sessionIdParam.valid ? sessionIdParam.value : '';
+  const rsvpId = useOptionalParam('rsvpId');
   const router = useRouter();
   const { colors } = useTheme();
   const { currentUser } = useAuth();
@@ -49,6 +52,14 @@ export default function RSVPScreen() {
     responded: boolean;
     responseStatus: 'going' | 'not_going' | 'maybe';
   } | null>(null);
+
+  if (!sessionIdParam.valid) {
+    return (
+      <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top', 'bottom']}>
+        <ErrorState message="Invalid RSVP link." onRetry={() => router.back()} />
+      </SafeAreaView>
+    );
+  }
 
   const loadData = useCallback(async () => {
     try {

@@ -28,8 +28,10 @@ import {
   ANALYTICS_ACCENT_COLOR,
   PERIOD_OPTIONS,
 } from '@/hooks/use-athlete-analytics';
+import { useRequiredParam } from '@/hooks/use-required-param';
 
 export default function AthleteAnalyticsScreen() {
+  const athleteIdParam = useRequiredParam('athleteId');
   const { colors } = useTheme();
   const athlete = useAthleteAnalytics();
   const fallbackName = athlete.athleteId || 'Athlete';
@@ -50,6 +52,18 @@ export default function AthleteAnalyticsScreen() {
       </Clickable>
     </Row>
   );
+
+  if (!athleteIdParam.valid) {
+    return (
+      <SafeAreaView
+        style={[styles.container, { backgroundColor: colors.background }]}
+        edges={['top', 'bottom']}
+      >
+        {header}
+        <ErrorState message="Invalid athlete analytics link." onRetry={() => router.back()} />
+      </SafeAreaView>
+    );
+  }
 
   if (athlete.status === 'loading') {
     return (

@@ -1,6 +1,6 @@
 import { View, StyleSheet, ScrollView } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { router, useLocalSearchParams } from 'expo-router';
+import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 
@@ -20,9 +20,11 @@ import { useScreen } from '@/hooks/use-screen';
 import { useVideoDetail } from '@/hooks/use-video-detail';
 import { Routes } from '@/navigation/routes';
 import { ok } from '@/types/result';
+import { useRequiredParam } from '@/hooks/use-required-param';
 
 export default function VideoDetailScreen() {
-  const { id } = useLocalSearchParams<{ id: string }>();
+  const idParam = useRequiredParam('id');
+  const id = idParam.valid ? idParam.value : '';
   const { colors } = useScreen<null>({ load: async () => ok(null), isEmpty: () => false });
   const {
     video,
@@ -43,6 +45,17 @@ export default function VideoDetailScreen() {
     dismissAnnotationModal,
     setCurrentTime,
   } = useVideoDetail(id);
+
+  if (!idParam.valid) {
+    return (
+      <SafeAreaView
+        style={[styles.container, { backgroundColor: colors.background }]}
+        edges={['top', 'bottom']}
+      >
+        <ErrorState message="Invalid video link." onRetry={() => router.back()} />
+      </SafeAreaView>
+    );
+  }
 
   if (loading) {
     return (

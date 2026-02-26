@@ -3,7 +3,7 @@
  */
 import { useState, useCallback } from 'react';
 import { Share, Alert } from 'react-native';
-import { useLocalSearchParams } from 'expo-router';
+import { useRequiredParam } from '@/hooks/use-required-param';
 import { analyticsService, type AnalyticsPeriod } from '@/services/analytics-service';
 import { useScreen, type ScreenStatus } from '@/hooks/use-screen';
 import { createLogger } from '@/utils/logger';
@@ -42,7 +42,8 @@ export interface UseAthleteAnalyticsResult {
 }
 
 export function useAthleteAnalytics() {
-  const { athleteId } = useLocalSearchParams<{ athleteId: string }>();
+  const athleteIdParam = useRequiredParam('athleteId');
+  const athleteId = athleteIdParam.valid ? athleteIdParam.value : undefined;
 
   const [period, setPeriod] = useState<AnalyticsPeriod>('MONTH');
 

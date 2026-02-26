@@ -2,7 +2,7 @@ import { View, StyleSheet, ScrollView, RefreshControl, Alert, Linking } from 're
 import { Image } from 'expo-image';
 import { Row } from '@/components/primitives/row';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { router, useLocalSearchParams } from 'expo-router';
+import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 
 import { RSVPButtons } from '@/components/event/rsvp-buttons';
@@ -15,12 +15,14 @@ import { LoadingState, ErrorState, EmptyState } from '@/components/ui/screen-sta
 import { Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
 import { useEventDetail } from '@/hooks/use-event-detail';
+import { useRequiredParam } from '@/hooks/use-required-param';
 import { eventService } from '@/services/event-service';
 import { scaleFont } from '@/utils/scale';
 
 export default function EventDetailScreen() {
   const { colors: palette } = useTheme();
-  const { id } = useLocalSearchParams<{ id: string }>();
+  const idParam = useRequiredParam('id');
+  const id = idParam.valid ? idParam.value : '';
   const {
     event,
     status,
@@ -62,6 +64,17 @@ export default function EventDetailScreen() {
         edges={['top', 'bottom']}
       >
         <LoadingState variant="detail" />
+      </SafeAreaView>
+    );
+  }
+
+  if (!idParam.valid) {
+    return (
+      <SafeAreaView
+        style={[styles.container, { backgroundColor: palette.background }]}
+        edges={['top', 'bottom']}
+      >
+        <ErrorState message="Invalid event link." onRetry={() => router.back()} />
       </SafeAreaView>
     );
   }

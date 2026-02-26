@@ -1,6 +1,6 @@
 import { RefreshControl, ScrollView, StyleSheet, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { router, Stack, useLocalSearchParams } from 'expo-router';
+import { router, Stack } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Routes } from '@/navigation/routes';
 
@@ -12,15 +12,17 @@ import { MembersPanel } from '@/components/club/MembersPanel';
 import { ClubDetailStats } from '@/components/club/club-detail-stats';
 import { EventCard } from '@/components/event/event-card';
 import { RemovalConfirmationModal } from '@/components/roster/removal-confirmation-modal';
-import { LoadingState, EmptyState } from '@/components/ui/screen-states';
+import { LoadingState, EmptyState, ErrorState } from '@/components/ui/screen-states';
 import { Row } from '@/components/primitives/row';
 import { Radii, Spacing, Typography, withAlpha } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
 import { useClubDetail, CLUB_FEED_FILTERS } from '@/hooks/use-club-detail';
+import { useRequiredParam } from '@/hooks/use-required-param';
 import type { MemberRemovalReason } from '@/services/club-service';
 
 export default function ClubDetailScreen() {
-  const { id } = useLocalSearchParams<{ id: string }>();
+  const idParam = useRequiredParam('id');
+  const id = idParam.valid ? idParam.value : '';
   const { colors } = useTheme();
   const handleBackPress = () => {
     if (router.canGoBack()) {
@@ -62,6 +64,20 @@ export default function ClubDetailScreen() {
     handleToggleMembersSection,
     handleUpdatePhotos,
   } = useClubDetail(id);
+
+  if (!idParam.valid) {
+    return (
+      <>
+        <Stack.Screen options={{ title: 'Club', headerShown: false }} />
+        <SafeAreaView
+          style={[styles.container, { backgroundColor: colors.background }]}
+          edges={['top', 'bottom']}
+        >
+          <ErrorState message="Invalid club link." onRetry={handleBackPress} />
+        </SafeAreaView>
+      </>
+    );
+  }
 
   if (loading) {
     return (

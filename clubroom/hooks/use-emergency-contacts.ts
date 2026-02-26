@@ -1,5 +1,5 @@
 import { useCallback, useState } from 'react';
-import { useLocalSearchParams } from 'expo-router';
+import { useRequiredParam } from '@/hooks/use-required-param';
 
 import { safetyService } from '@/services/safety-service';
 import { createLogger } from '@/utils/logger';
@@ -14,7 +14,8 @@ interface EmergencyContactsData {
 }
 
 export function useEmergencyContacts() {
-  const { id } = useLocalSearchParams<{ id: string }>();
+  const idParam = useRequiredParam('id');
+  const id = idParam.valid ? idParam.value : undefined;
 
   const [showForm, setShowForm] = useState(false);
   const [editingContact, setEditingContact] = useState<EmergencyContact | null>(null);

@@ -41,9 +41,11 @@ import { calendarService } from '@/services/calendar-service';
 import { CalendarExportButton } from '@/components/calendar/CalendarExportButton';
 import { getGroupSessionClubLabel } from '@/utils/group-display';
 import { formatInUserTimezone } from '@/utils/timezone';
+import { useRequiredParam } from '@/hooks/use-required-param';
 
 export default function GroupSessionDetailScreen() {
   const { colors } = useTheme();
+  const idParam = useRequiredParam('id');
   const hook = useGroupSession();
   const {
     id,
@@ -105,6 +107,18 @@ export default function GroupSessionDetailScreen() {
       >
         {header}
         <LoadingState variant="detail" />
+      </SafeAreaView>
+    );
+  }
+
+  if (!idParam.valid) {
+    return (
+      <SafeAreaView
+        style={[styles.container, { backgroundColor: colors.background }]}
+        edges={['top', 'bottom']}
+      >
+        {header}
+        <ErrorState message="Invalid session link." onRetry={handleBack} />
       </SafeAreaView>
     );
   }

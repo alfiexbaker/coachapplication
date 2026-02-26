@@ -11,6 +11,7 @@ import { emitTyped, ServiceEvents } from '../event-bus';
 import type { NotificationItem } from '@/constants/types';
 import { STORAGE_KEYS } from '@/constants/storage-keys';
 import { type Result, type ServiceError, ok, err, storageError } from '@/types/result';
+import { resolveDeepLink } from '@/utils/deep-link';
 
 const logger = createLogger('NotificationStore');
 
@@ -44,6 +45,47 @@ class NotificationStore {
     } catch (error) {
       logger.error('Failed to list notifications', error);
       return err(storageError('Failed to load notifications'));
+    }
+  }
+
+  async migrateRouteAliases(): Promise<Result<number, ServiceError>> {
+    try {
+      const alreadyMigrated = await apiClient.get<boolean>(
+        STORAGE_KEYS.NOTIFICATION_ROUTE_ALIAS_MIGRATION_V1,
+        false,
+      );
+      if (alreadyMigrated) {
+        return ok(0);
+      }
+
+      const currentResult = await this.list();
+      if (!currentResult.success) {
+        return currentResult;
+      }
+
+      let changed = 0;
+      const updated = currentResult.data.map((notification) => {
+        if (!notification.deepLink) {
+          return notification;
+        }
+        const resolved = resolveDeepLink(notification.deepLink);
+        if (!resolved || resolved === notification.deepLink) {
+          return notification;
+        }
+        changed += 1;
+        return { ...notification, deepLink: resolved };
+      });
+
+      if (changed > 0) {
+        await apiClient.set(STORAGE_KEYS.NOTIFICATIONS, updated);
+        logger.info('Migrated notification deep links to current routes', { changed });
+      }
+
+      await apiClient.set(STORAGE_KEYS.NOTIFICATION_ROUTE_ALIAS_MIGRATION_V1, true);
+      return ok(changed);
+    } catch (error) {
+      logger.error('Failed to migrate notification route aliases', error);
+      return err(storageError('Failed to migrate notification route aliases'));
     }
   }
 

@@ -10,7 +10,7 @@ import {
 } from 'react-native';
 import { Row } from '@/components/primitives/row';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { router, useLocalSearchParams } from 'expo-router';
+import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 
 import { SurfaceCard } from '@/components/primitives/surface-card';
@@ -26,12 +26,14 @@ import { useEventRSVP } from '@/hooks/use-event-rsvp';
 import { eventService } from '@/services/event-service';
 import { scaleFont } from '@/utils/scale';
 import { formatInUserTimezone } from '@/utils/timezone';
+import { useRequiredParam } from '@/hooks/use-required-param';
 import type { RSVPStatus } from '@/constants/types';
 
 export default function EventRSVPScreen() {
   const { colors: palette } = useTheme();
   const { showToast } = useToast();
-  const { id } = useLocalSearchParams<{ id: string }>();
+  const idParam = useRequiredParam('id');
+  const id = idParam.valid ? idParam.value : '';
   const {
     event,
     currentRSVP,
@@ -55,6 +57,17 @@ export default function EventRSVPScreen() {
     handleSubmit,
     handleSendReminder,
   } = useEventRSVP(id);
+
+  if (!idParam.valid) {
+    return (
+      <SafeAreaView
+        style={[styles.container, { backgroundColor: palette.background }]}
+        edges={['top', 'bottom']}
+      >
+        <ErrorState message="Invalid event RSVP link." onRetry={() => router.back()} />
+      </SafeAreaView>
+    );
+  }
 
   const rsvpDeadlineDate =
     event?.rsvpDeadline && !Number.isNaN(new Date(event.rsvpDeadline).getTime())

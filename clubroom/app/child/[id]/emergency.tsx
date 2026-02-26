@@ -22,8 +22,10 @@ import { Spacing, Radii, Typography } from '@/constants/theme';
 import { useScreen } from '@/hooks/use-screen';
 import { ok } from '@/types/result';
 import { useEmergencyContacts } from '@/hooks/use-emergency-contacts';
+import { useRequiredParam } from '@/hooks/use-required-param';
 
 export default function EmergencyContactsScreen() {
+  const childIdParam = useRequiredParam('id');
   const { colors } = useScreen<null>({ load: async () => ok(null), isEmpty: () => false });
   const {
     loading,
@@ -43,6 +45,17 @@ export default function EmergencyContactsScreen() {
     closeForm,
     startEdit,
   } = useEmergencyContacts();
+
+  if (!childIdParam.valid) {
+    return (
+      <SafeAreaView
+        style={[styles.container, { backgroundColor: colors.background }]}
+        edges={['top', 'bottom']}
+      >
+        <ErrorState message="Invalid emergency contacts link." onRetry={() => router.back()} />
+      </SafeAreaView>
+    );
+  }
 
   if (loading) {
     return (

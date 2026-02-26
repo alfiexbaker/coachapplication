@@ -14,6 +14,7 @@ import { createLogger } from '@/utils/logger';
 import type { BadgeAward } from '@/constants/types';
 import { err, ok, serviceError, type ServiceError } from '@/types/result';
 import type { SwitcherChild } from '@/components/family/child-switcher';
+import { useRequiredParam } from '@/hooks/use-required-param';
 
 const logger = createLogger('ChildProgressScreen');
 
@@ -51,11 +52,12 @@ interface ChildProgressData {
 }
 
 export function useChildProgress() {
-  const { childId: rawChildId, tab: rawTab } = useLocalSearchParams<{
+  const childIdParam = useRequiredParam('childId');
+  const { tab: rawTab } = useLocalSearchParams<{
     childId?: string | string[];
     tab?: string | string[];
   }>();
-  const paramChildId = normalizeParam(rawChildId);
+  const paramChildId = childIdParam.valid ? childIdParam.value : undefined;
   const paramTab = resolveProgressTab(rawTab);
   const {
     children: contextChildren,

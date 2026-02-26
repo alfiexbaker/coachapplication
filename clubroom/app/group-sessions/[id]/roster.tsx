@@ -1,7 +1,7 @@
 import { useCallback, useState } from 'react';
 import { ScrollView, StyleSheet, View, RefreshControl } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { router, useLocalSearchParams } from 'expo-router';
+import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 
@@ -18,12 +18,14 @@ import { Spacing, Radii, Typography } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
 import { useAuth } from '@/hooks/use-auth';
 import { useGroupRoster } from '@/hooks/use-group-roster';
+import { useRequiredParam } from '@/hooks/use-required-param';
 import { getGroupRegistrationAthleteName } from '@/utils/group-display';
 import type { GroupRegistration } from '@/constants/types';
 import type { QuickRateAthlete } from '@/hooks/use-quick-rate';
 
 export default function SessionRosterScreen() {
-  const { id } = useLocalSearchParams<{ id: string }>();
+  const idParam = useRequiredParam('id');
+  const id = idParam.valid ? idParam.value : '';
   const { colors } = useTheme();
   const { currentUser } = useAuth();
 
@@ -67,6 +69,14 @@ export default function SessionRosterScreen() {
     openInjuryReport,
     submitInjuryReport,
   } = useGroupRoster(id);
+
+  if (!idParam.valid) {
+    return (
+      <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top', 'bottom']}>
+        <ErrorState message="Invalid session roster link." onRetry={() => router.back()} />
+      </SafeAreaView>
+    );
+  }
 
   const [quickRateAthlete, setQuickRateAthlete] = useState<QuickRateAthlete | null>(null);
   const [showQuickRate, setShowQuickRate] = useState(false);

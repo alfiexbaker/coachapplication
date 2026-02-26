@@ -1,6 +1,6 @@
 import { useState, useCallback, useEffect, useMemo } from 'react';
 import { Alert } from 'react-native';
-import { router, useLocalSearchParams } from 'expo-router';
+import { router } from 'expo-router';
 
 import { useAuth } from '@/hooks/use-auth';
 import { useChildContext } from '@/hooks/use-child-context';
@@ -10,6 +10,7 @@ import { rsvpService } from '@/services/rsvp-service';
 import { cancellationService } from '@/services/cancellation-service';
 import { ServiceEvents } from '@/services/event-bus';
 import { createLogger } from '@/utils/logger';
+import { useRequiredParam } from '@/hooks/use-required-param';
 import { err, ok, serviceError, type ServiceError } from '@/types/result';
 import type { GroupSession, GroupRegistration, SessionRsvp, CancellationPolicy } from '@/constants/types';
 
@@ -80,7 +81,8 @@ function toButtonStatus(s: string): ButtonGroupStatus | null {
 // ---------------------------------------------------------------------------
 
 export function useGroupSession() {
-  const { id } = useLocalSearchParams<{ id: string }>();
+  const idParam = useRequiredParam('id');
+  const id = idParam.valid ? idParam.value : '';
   const { currentUser } = useAuth();
   const {
     children: contextChildren,
@@ -112,7 +114,7 @@ export function useGroupSession() {
   // -------------------------------------------------------------------------
 
   const loadData = useCallback(async () => {
-    if (!id) {
+    if (!idParam.valid) {
       return ok<GroupSessionData>({ session: null, roster: [], rsvps: [], cancellationPolicy: null });
     }
 
@@ -144,7 +146,7 @@ export function useGroupSession() {
         serviceError('UNKNOWN', 'Failed to load group session. Pull down to refresh.', loadError),
       );
     }
-  }, [id]);
+  }, [id, idParam.valid]);
 
   const { data, status, error, refreshing, onRefresh, retry } = useScreen<GroupSessionData>({
     load: loadData,

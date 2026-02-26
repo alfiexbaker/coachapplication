@@ -26,6 +26,7 @@ import { navigateToDeepLink } from '@/utils/deep-link';
 import { appLifecycleService } from '@/services/app-lifecycle-service';
 import { authService } from '@/services/auth-service';
 import { useTokenExpiryAlert } from '@/hooks/use-token-expiry-alert';
+import { notificationStore } from '@/services/notification';
 
 // Lazy-load expo-notifications for deep linking
 let Notifications: typeof import('expo-notifications') | null = null;
@@ -61,6 +62,7 @@ function RootNavigation() {
   useEffect(() => {
     if (!isAuthenticated) return;
     void pushNotificationService.registerForPushNotifications();
+    void notificationStore.migrateRouteAliases();
   }, [isAuthenticated]);
 
   useEffect(() => {
