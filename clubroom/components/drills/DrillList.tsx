@@ -6,7 +6,8 @@
  */
 
 import { Ionicons } from '@expo/vector-icons';
-import { StyleSheet, View } from 'react-native';
+import { AccessibilityInfo, FlatList, StyleSheet, View } from 'react-native';
+import { useCallback, useEffect, useState } from 'react';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 
 import { AssignmentCard } from './AssignmentCard';
@@ -17,6 +18,7 @@ import { Spacing, Radii, withAlpha } from '@/constants/theme';
 import type { Drill, AssignedDrill } from '@/constants/types';
 import { scaleFont } from '@/utils/scale';
 import { useTheme } from '@/hooks/useTheme';
+import { AccessibleListCell } from '@/components/ui/list-accessibility';
 
 // Re-export extracted components for backward compat
 export { DrillSectionHeader } from './drill-list-sections';
@@ -55,9 +57,22 @@ export function DrillList({
   showAssignmentCount = false,
 }: DrillListProps) {
   const { colors: palette } = useTheme();
+  const [reduceMotion, setReduceMotion] = useState(false);
 
   const isAssignmentMode = Boolean(assignments);
   const items = isAssignmentMode ? assignments : drills;
+
+  useEffect(() => {
+    let mounted = true;
+    AccessibilityInfo.isReduceMotionEnabled().then((enabled) => {
+      if (mounted) setReduceMotion(enabled);
+    });
+    const subscription = AccessibilityInfo.addEventListener?.('reduceMotionChanged', setReduceMotion);
+    return () => {
+      mounted = false;
+      subscription?.remove?.();
+    };
+  }, []);
 
   if (loading) {
     return (
@@ -94,35 +109,67 @@ export function DrillList({
     );
   }
 
-  return (
-    <View style={styles.list}>
-      {isAssignmentMode
-        ? (assignments as AssignedDrill[]).map((assignment, index) => (
-            <Animated.View key={assignment.id} entering={FadeInDown.delay(index * 50).springify()}>
-              <AssignmentCard
-                assignment={assignment}
-                onPress={() => onAssignmentPress?.(assignment)}
-                onComplete={(completion) => onAssignmentComplete?.(assignment, completion)}
-                compact={compact}
-              />
-            </Animated.View>
-          ))
-        : (drills as Drill[]).map((drill, index) => (
-            <Animated.View key={drill.id} entering={FadeInDown.delay(index * 50).springify()}>
-              <DrillCard
-                drill={drill}
-                onPress={() => onDrillPress?.(drill)}
-                compact={compact}
-                showAssignmentCount={showAssignmentCount}
-              />
-            </Animated.View>
-          ))}
-    </View>
+  const renderAssignment = useCallback(
+    ({ item, index }: { item: AssignedDrill; index: number }) => (
+      <Animated.View entering={FadeInDown.delay(reduceMotion ? 0 : Math.min(index, 9) * 50).springify()}>
+        <AssignmentCard
+          assignment={item}
+          onPress={() => onAssignmentPress?.(item)}
+          onComplete={(completion) => onAssignmentComplete?.(item, completion)}
+          compact={compact}
+        />
+      </Animated.View>
+    ),
+    [compact, onAssignmentComplete, onAssignmentPress, reduceMotion],
   );
+
+  const renderDrill = useCallback(
+    ({ item, index }: { item: Drill; index: number }) => (
+      <Animated.View entering={FadeInDown.delay(reduceMotion ? 0 : Math.min(index, 9) * 50).springify()}>
+        <DrillCard
+          drill={item}
+          onPress={() => onDrillPress?.(item)}
+          compact={compact}
+          showAssignmentCount={showAssignmentCount}
+        />
+      </Animated.View>
+    ),
+    [compact, onDrillPress, reduceMotion, showAssignmentCount],
+  );
+
+  const renderItem = useCallback(
+    ({ item, index }: { item: AssignedDrill | Drill; index: number }) =>
+      isAssignmentMode
+        ? renderAssignment({ item: item as AssignedDrill, index })
+        : renderDrill({ item: item as Drill, index }),
+    [isAssignmentMode, renderAssignment, renderDrill],
+  );
+
+  return (
+    <FlatList
+      CellRendererComponent={AccessibleListCell}
+      accessibilityRole="list"
+      data={items as Array<AssignedDrill | Drill>}
+      keyExtractor={(item) => item.id}
+      renderItem={renderItem}
+      initialNumToRender={10}
+      maxToRenderPerBatch={5}
+      windowSize={5}
+      removeClippedSubviews
+      style={styles.list}
+      showsVerticalScrollIndicator={false}
+      ItemSeparatorComponent={ListSeparator}
+    />
+  );
+}
+
+function ListSeparator() {
+  return <View style={styles.separator} />;
 }
 
 const styles = StyleSheet.create({
   list: { flex: 1 },
+  separator: { height: Spacing.sm },
   loadingContainer: { padding: Spacing.xl, alignItems: 'center', justifyContent: 'center' },
   loadingText: { fontSize: scaleFont(15) },
   emptyContainer: {

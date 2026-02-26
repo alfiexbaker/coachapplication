@@ -1,7 +1,7 @@
 /**
  * UserHomeScreen — Sections: StatsRow, StreakCard, QuickActions, NextSession, RecentBadges, MyClubs.
  */
-import { memo } from 'react';
+import { memo, useCallback, useMemo } from 'react';
 import { View, StyleSheet, ScrollView } from 'react-native';
 import { Row } from '@/components/primitives/row';
 import { Column } from '@/components/primitives/column';
@@ -18,6 +18,62 @@ import { useTheme } from '@/hooks/useTheme';
 import { formatDate } from '@/hooks/use-home-screen';
 import { formatTime } from '@/utils/format';
 import type { BadgeAward, Club } from '@/constants/types';
+
+const QUICK_ACTION_DEFS = [
+  { icon: 'search', label: 'Find Coach', route: '/discover/map', primary: true },
+  { icon: 'analytics', label: 'My Progress', route: '/development/my-progress', primary: false },
+  { icon: 'chatbubbles', label: 'Messages', route: '/(tabs)/messages', primary: false },
+  { icon: 'calendar', label: 'Bookings', route: '/(tabs)/bookings', primary: false },
+] as const;
+
+const QuickActionTile = memo(function QuickActionTile({
+  icon,
+  label,
+  primary,
+  onPress,
+}: {
+  icon: keyof typeof Ionicons.glyphMap;
+  label: string;
+  primary: boolean;
+  onPress: () => void;
+}) {
+  const { colors: palette } = useTheme();
+  return (
+    <Clickable
+      style={[
+        styles.quickAction,
+        {
+          backgroundColor: primary ? palette.tint : palette.surface,
+          borderColor: primary ? palette.tint : palette.border,
+        },
+      ]}
+      onPress={onPress}
+    >
+      <View
+        style={[
+          styles.quickActionIcon,
+          {
+            backgroundColor: primary
+              ? withAlpha(palette.onPrimary, 0.2)
+              : withAlpha(palette.tint, 0.09),
+          },
+        ]}
+      >
+        <Ionicons
+          name={icon}
+          size={20}
+          color={primary ? palette.onPrimary : palette.tint}
+        />
+      </View>
+      <ThemedText
+        style={[styles.quickActionLabel, { color: primary ? palette.onPrimary : palette.text }]}
+        numberOfLines={2}
+      >
+        {label}
+      </ThemedText>
+    </Clickable>
+  );
+});
 
 // --- StatsRow ---
 export const StatsRow = memo(function StatsRow({
@@ -140,55 +196,27 @@ export const StreakCard = memo(function StreakCard({ streakInfo }: { streakInfo:
 
 // --- QuickActions ---
 export const QuickActionsGrid = memo(function QuickActionsGrid() {
-  const { colors: palette } = useTheme();
-  const actions = [
-    { icon: 'search', label: 'Find Coach', route: '/discover/map', primary: true },
-    {
-      icon: 'analytics',
-      label: 'My Progress',
-      route: '/development/my-progress',
-      primary: false,
-    },
-    { icon: 'chatbubbles', label: 'Messages', route: '/(tabs)/messages', primary: false },
-    { icon: 'calendar', label: 'Bookings', route: '/(tabs)/bookings', primary: false },
-  ];
+  const handlePress = useCallback((route: string) => {
+    router.push(route as Href);
+  }, []);
+  const actions = useMemo(
+    () =>
+      QUICK_ACTION_DEFS.map((action) => ({
+        ...action,
+        onPress: () => handlePress(action.route),
+      })),
+    [handlePress],
+  );
   return (
     <Row wrap gap="sm">
-      {actions.map((action, index) => (
-        <Clickable
-          key={index}
-          style={[
-            styles.quickAction,
-            {
-              backgroundColor: action.primary ? palette.tint : palette.surface,
-              borderColor: action.primary ? palette.tint : palette.border,
-            },
-          ]}
-          onPress={() => router.push(action.route as Href)}
-        >
-          <View
-            style={[
-              styles.quickActionIcon,
-              {
-                backgroundColor: action.primary
-                  ? withAlpha(palette.onPrimary, 0.2)
-                  : withAlpha(palette.tint, 0.09),
-              },
-            ]}
-          >
-            <Ionicons
-              name={action.icon as keyof typeof Ionicons.glyphMap}
-              size={20}
-              color={action.primary ? palette.onPrimary : palette.tint}
-            />
-          </View>
-          <ThemedText
-            style={[styles.quickActionLabel, { color: action.primary ? palette.onPrimary : palette.text }]}
-            numberOfLines={2}
-          >
-            {action.label}
-          </ThemedText>
-        </Clickable>
+      {actions.map((action) => (
+        <QuickActionTile
+          key={action.label}
+          icon={action.icon}
+          label={action.label}
+          primary={action.primary}
+          onPress={action.onPress}
+        />
       ))}
     </Row>
   );

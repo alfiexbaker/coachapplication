@@ -101,6 +101,38 @@ const PricePin = memo(function PricePin({
   );
 });
 
+const CoachMapMarker = memo(function CoachMapMarker({
+  result,
+  selected,
+  onSelect,
+}: {
+  result: CoachSearchResult;
+  selected: boolean;
+  onSelect: (coachId: string) => void;
+}) {
+  const handlePress = useCallback(() => {
+    onSelect(result.coach.id);
+  }, [onSelect, result.coach.id]);
+
+  return (
+    <Marker
+      coordinate={{
+        latitude: result.coach.location.lat,
+        longitude: result.coach.location.lng,
+      }}
+      onPress={handlePress}
+      tracksViewChanges={false}
+      accessibilityLabel={`Coach ${result.coach.fullName} location${selected ? ', selected' : ''}`}
+      accessibilityRole="button"
+    >
+      <PricePin
+        price={result.coach.sessionRate ?? result.coach.priceRange.min}
+        selected={selected}
+      />
+    </Marker>
+  );
+});
+
 // ─── SearchHeader ──────────────────────────────────────────────────────────
 
 const SearchHeader = memo(function SearchHeader({
@@ -398,6 +430,20 @@ export default function MapContent(props: MapContentProps) {
     [onBookCoach],
   );
 
+  const renderSheetCoachItem = useCallback(
+    ({ item }: { item: CoachSearchResult }) => (
+      <CoachSheetItem
+        coach={item.coach}
+        selected={item.coach.id === selectedCoachId}
+        onPress={() => handleCoachSelect(item.coach.id)}
+        onBook={() => handleBookCoach(item.coach.id)}
+      />
+    ),
+    [handleBookCoach, handleCoachSelect, selectedCoachId],
+  );
+
+  const keyExtractor = useCallback((item: CoachSearchResult) => item.coach.id, []);
+
   const handleRegionChange = useCallback((region: Region) => {
     if (hasRegionShifted(lastSearchRegion.current, region)) {
       setShowRedoSearch(true);
@@ -462,20 +508,12 @@ export default function MapContent(props: MapContentProps) {
         clusterTextColor={palette.onPrimary}
       >
         {coaches.map((result) => (
-          <Marker
+          <CoachMapMarker
             key={result.coach.id}
-            coordinate={{
-              latitude: result.coach.location.lat,
-              longitude: result.coach.location.lng,
-            }}
-            onPress={() => handleCoachSelect(result.coach.id)}
-            tracksViewChanges={false}
-          >
-            <PricePin
-              price={result.coach.sessionRate ?? result.coach.priceRange.min}
-              selected={result.coach.id === selectedCoachId}
-            />
-          </Marker>
+            result={result}
+            selected={result.coach.id === selectedCoachId}
+            onSelect={handleCoachSelect}
+          />
         ))}
       </ClusteredMapView>
 
@@ -549,15 +587,8 @@ export default function MapContent(props: MapContentProps) {
       >
         <BottomSheetFlatList
           data={coaches}
-          keyExtractor={(item: CoachSearchResult) => item.coach.id}
-          renderItem={({ item }: { item: CoachSearchResult }) => (
-            <CoachSheetItem
-              coach={item.coach}
-              selected={item.coach.id === selectedCoachId}
-              onPress={() => handleCoachSelect(item.coach.id)}
-              onBook={() => handleBookCoach(item.coach.id)}
-            />
-          )}
+          keyExtractor={keyExtractor}
+          renderItem={renderSheetCoachItem}
           contentContainerStyle={styles.sheetContent}
           ListHeaderComponent={<SheetHeader count={coaches.length} />}
           ItemSeparatorComponent={ListSeparator}

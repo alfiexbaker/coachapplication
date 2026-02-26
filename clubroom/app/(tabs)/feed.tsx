@@ -42,6 +42,7 @@ export default function FeedScreen() {
   useScrollToTopOnTabReselect(listRef);
   const [feedFilter, setFeedFilter] = useState<FeedFilter>('all');
   const [visibleCount, setVisibleCount] = useState(20);
+  const feedByIdRef = useRef<Map<string, AggregatedFeedPost>>(new Map());
 
   const isCoach = currentUser?.role === 'COACH' || currentUser?.role === 'ADMIN';
 
@@ -74,6 +75,10 @@ export default function FeedScreen() {
     setVisibleCount(20);
   }, [feedFilter, feed.length]);
 
+  useEffect(() => {
+    feedByIdRef.current = new Map(feed.map((post) => [post.id, post]));
+  }, [feed]);
+
   const handleLikePost = useCallback(
     (postId: string) => {
       if (!currentUser?.id) return;
@@ -89,7 +94,7 @@ export default function FeedScreen() {
 
   const handleSharePost = useCallback(
     async (postId: string) => {
-      const post = feed.find((candidate) => candidate.id === postId);
+      const post = feedByIdRef.current.get(postId);
       if (!post) return;
 
       try {
@@ -101,7 +106,7 @@ export default function FeedScreen() {
         Alert.alert('Unable to share', 'Try again in a moment.');
       }
     },
-    [feed],
+    [],
   );
 
   const handleLoadMore = useCallback(() => {
