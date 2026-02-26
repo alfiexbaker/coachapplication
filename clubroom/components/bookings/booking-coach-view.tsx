@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useCallback } from 'react';
 import { View, StyleSheet, ViewStyle } from 'react-native';
 import { router } from 'expo-router';
 import { Routes } from '@/navigation/routes';
@@ -33,6 +33,9 @@ function BookingCoachViewInner({
   onMarkAsPaid,
 }: BookingCoachViewProps) {
   const { colors: palette } = useTheme();
+  const handleOpenReconciler = useCallback(() => {
+    router.push(Routes.EARNINGS);
+  }, []);
 
   if (booking.status === 'Completed') {
     const objectives = (booking as BookingSummary & { objectives?: string[] }).objectives || [];
@@ -68,6 +71,20 @@ function BookingCoachViewInner({
           onSuccess={onMarkAsPaid}
           variant="compact"
         />
+        <Clickable
+          onPress={handleOpenReconciler}
+          style={({ pressed }) =>
+            [
+              styles.secondaryButton,
+              { borderColor: palette.border },
+              pressed && { backgroundColor: palette.border, opacity: 0.7 },
+            ].filter(Boolean) as ViewStyle[]
+          }
+          accessibilityLabel="Open earnings reconciler"
+        >
+          <Ionicons name="cash-outline" size={20} color={palette.foreground} />
+          <ThemedText style={styles.secondaryButtonText}>Earnings Reconciler</ThemedText>
+        </Clickable>
       </View>
     );
   }

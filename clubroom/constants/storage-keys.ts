@@ -205,6 +205,9 @@ export const STORAGE_KEYS = {
   /** Invoice records */
   INVOICES: 'clubroom.invoices',
 
+  /** Coach direct-payment instructions used by invoices/reconciler reminders */
+  COACH_PAYMENT_INSTRUCTIONS: 'clubroom.coach_payment_instructions',
+
   /** Promotional codes */
   PROMO_CODES: 'clubroom.promo_codes',
 

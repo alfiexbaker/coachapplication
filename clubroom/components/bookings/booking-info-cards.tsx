@@ -139,18 +139,21 @@ export const PaymentCard = memo(function PaymentCard({
       ) : null}
       <Row gap="md" align="center">
         <View style={[styles.iconCircle, { backgroundColor: withAlpha(palette.tint, 0.12) }]}>
-          <Ionicons name="card" size={24} color={palette.tint} />
+          <Ionicons name="cash-outline" size={24} color={palette.tint} />
         </View>
         <Column gap="xxs" style={styles.flex1}>
           <ThemedText style={styles.cardTitle}>Payment</ThemedText>
           <ThemedText type="subtitle" style={styles.cardValue}>
             £65.00
           </ThemedText>
-          {showDemoIndicator ? (
-            <ThemedText style={[styles.cardSubtext, { color: palette.warning }]}>
-              Payment processing not connected yet
-            </ThemedText>
-          ) : null}
+          <ThemedText
+            style={[
+              styles.cardSubtext,
+              { color: showDemoIndicator ? palette.warning : palette.muted },
+            ]}
+          >
+            Pay coach directly (outside app). Coach tracks payment in the reconciler.
+          </ThemedText>
         </Column>
       </Row>
     </SurfaceCard>

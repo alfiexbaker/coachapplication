@@ -181,7 +181,11 @@ export default function ReviewScreen() {
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={palette.tint} />
         }
       >
-        <BookingWizardHeader title="Review & pay" subtitle="Confirm booking details" step={4} />
+        <BookingWizardHeader
+          title="Review booking"
+          subtitle="Confirm details and direct payment info"
+          step={4}
+        />
 
         <View style={[styles.card, { borderColor: palette.border }]}>
           <SummaryRow label="Coach" value={coach?.name || draft.coachName || 'Coach'} />
@@ -200,7 +204,7 @@ export default function ReviewScreen() {
           colors={palette}
           paymentMethod={
             (draft as unknown as Record<string, string>).paymentMethod ||
-            'Card payment collected at confirmation (secure checkout)'
+            'Pay coach directly after confirmation (bank transfer or agreed method)'
           }
         />
 
@@ -252,7 +256,9 @@ export default function ReviewScreen() {
               color={palette.onPrimary}
             />
             <ThemedText style={{ color: palette.onPrimary, fontWeight: '700' }}>
-              {promoApplied ? `Pay £${total.toFixed(2)}` : `Continue to pay £${total.toFixed(2)}`}
+              {promoApplied
+                ? `Confirm booking (£${total.toFixed(2)})`
+                : `Continue to confirmation (£${total.toFixed(2)})`}
             </ThemedText>
           </Row>
         </Clickable>

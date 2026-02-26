@@ -15,6 +15,7 @@ import { PageHeader } from '@/components/primitives/page-header';
 import { ThemedText } from '@/components/themed-text';
 import { LoadingState, ErrorState, EmptyState } from '@/components/ui/screen-states';
 import { InvoicePreview, DownloadButton } from '@/components/invoices';
+import { CoachPaymentInstructionsCard } from '@/components/earnings';
 import { Spacing, Radii, Typography } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
 import { useInvoiceDetail } from '@/hooks/use-invoice-detail';
@@ -70,6 +71,14 @@ export default function InvoiceDetailScreen() {
       }
     >
       <InvoicePreview invoice={c.invoice} />
+
+      <View style={styles.instructionsSection}>
+        <CoachPaymentInstructionsCard
+          coachId={c.invoice.coachId}
+          invoice={c.invoice}
+          editable={c.isCoach}
+        />
+      </View>
 
       <View
         style={[
@@ -195,6 +204,10 @@ export default function InvoiceDetailScreen() {
 const styles = StyleSheet.create({
   centered: { flex: 1, justifyContent: 'center', alignItems: 'center', gap: Spacing.md },
   actionBar: { padding: Spacing.md, borderTopWidth: StyleSheet.hairlineWidth },
+  instructionsSection: {
+    paddingHorizontal: Spacing.md,
+    paddingBottom: Spacing.md,
+  },
   actionButtons: {},
   actionButton: {
     paddingVertical: Spacing.sm,

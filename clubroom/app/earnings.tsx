@@ -14,35 +14,23 @@ import { Row } from '@/components/primitives/row';
 import { Clickable } from '@/components/primitives/clickable';
 import { Button } from '@/components/primitives/button';
 import { ScreenHeader } from '@/components/primitives/screen-header';
-import { SessionPaymentItem, type PaymentTab } from '@/components/earnings/session-payment-item';
+import {
+  SessionPaymentItem,
+  type PaymentTab,
+} from '@/components/earnings/session-payment-item';
 import { PaymentSummaryCard } from '@/components/earnings/payment-summary-card';
+import { CoachPaymentInstructionsCard } from '@/components/earnings/coach-payment-instructions-card';
 import { ThemedText } from '@/components/themed-text';
+import { AccessibleListCell } from '@/components/ui/list-accessibility';
 import { LoadingState, ErrorState, EmptyState } from '@/components/ui/screen-states';
 import { Spacing, Typography, Radii, withAlpha, Components } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
+import { useAuth } from '@/hooks/use-auth';
+import { coachPaymentInstructionsService } from '@/services/coach-payment-instructions-service';
 import {
-import { AccessibleListCell } from '@/components/ui/list-accessibility';
   useSessionPayments,
   type SessionPaymentItem as SessionPaymentItemType,
 } from '@/hooks/use-session-payments';
-
-function formatSessionDate(scheduledAt: string): string {
-  return new Date(scheduledAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
-}
-
-function formatSingleReminder(item: SessionPaymentItemType): string {
-  const amount = `\u00A3${item.invoice.total.toFixed(2)}`;
-  const date = formatSessionDate(item.booking.scheduledAt);
-  return `Hi! Just a friendly reminder about the ${amount} payment for the session on ${date}. Let me know if you have any questions!`;
-}
-
-function formatBatchReminder(items: SessionPaymentItemType[]): string {
-  const total = items.reduce((sum, item) => sum + item.invoice.total, 0);
-  const lines = items
-    .map((item) => `- ${item.athleteName} (${formatSessionDate(item.booking.scheduledAt)}): \u00A3${item.invoice.total.toFixed(2)}`)
-    .join('\n');
-  return `Hi! Just a friendly reminder about outstanding payments totalling \u00A3${total.toFixed(2)}:\n\n${lines}\n\nPlease let me know if you have any questions!`;
-}
 
 const Separator = memo(function Separator() {
   const { colors } = useTheme();
@@ -65,6 +53,7 @@ const PERIODS: { key: Period; label: string }[] = [
 
 export default function EarningsScreen() {
   const { colors } = useTheme();
+  const { currentUser } = useAuth();
   const [activeTab, setActiveTab] = useState<PaymentTab>('owed');
   const [period, setPeriod] = useState<Period>('all');
 
@@ -120,27 +109,59 @@ export default function EarningsScreen() {
 
   const handleSendReminder = useCallback(
     async (item: SessionPaymentItemType) => {
-      const message = formatSingleReminder(item);
+      const result = await coachPaymentInstructionsService.getCoachPaymentInstructions(
+        currentUser?.id ?? '',
+      );
+      const instructions =
+        result.success && result.data.coachId
+          ? result.data
+          : {
+              coachId: currentUser?.id ?? '',
+              payeeName: '',
+              bankTransferDetails: '',
+              paymentNotes: '',
+            };
+      const message = coachPaymentInstructionsService.buildReminderMessage({
+        item,
+        coachName: currentUser?.name,
+        instructions,
+      });
       try {
         await Share.share({ message });
       } catch {
         // User cancelled share sheet — no action needed
       }
     },
-    [],
+    [currentUser?.id, currentUser?.name],
   );
 
   const handleRemindAllOverdue = useCallback(async () => {
     const overdueItems = unpaidSessions.filter((s) => s.isOverdue);
     if (overdueItems.length === 0) return;
 
-    const message = formatBatchReminder(overdueItems);
+    const result = await coachPaymentInstructionsService.getCoachPaymentInstructions(
+      currentUser?.id ?? '',
+    );
+    const instructions =
+      result.success && result.data.coachId
+        ? result.data
+        : {
+            coachId: currentUser?.id ?? '',
+            payeeName: '',
+            bankTransferDetails: '',
+            paymentNotes: '',
+          };
+    const message = coachPaymentInstructionsService.buildBatchReminderMessage({
+      items: overdueItems,
+      coachName: currentUser?.name,
+      instructions,
+    });
     try {
       await Share.share({ message });
     } catch {
       // User cancelled
     }
-  }, [unpaidSessions]);
+  }, [currentUser?.id, currentUser?.name, unpaidSessions]);
 
   const subtitle = useMemo(() => {
     if (overdueCount > 0) {
@@ -205,11 +226,23 @@ export default function EarningsScreen() {
   if (status === 'empty') {
     return (
       <SafeAreaView style={[styles.safeArea, { backgroundColor: colors.background }]} edges={['top', 'bottom']}>
-        <EmptyState
-          icon="cash-outline"
-          title="No earnings yet"
-          message="Complete your first paid session to start tracking earnings."
-        />
+        <View style={styles.content}>
+          <View style={styles.listHeader}>
+            <ScreenHeader title="Earnings" subtitle="Track your session payments" />
+            {currentUser?.id ? (
+              <CoachPaymentInstructionsCard
+                coachId={currentUser.id}
+                coachName={currentUser.name}
+                editable
+              />
+            ) : null}
+          </View>
+          <EmptyState
+            icon="cash-outline"
+            title="No earnings yet"
+            message="Complete your first paid session to start tracking earnings."
+          />
+        </View>
       </SafeAreaView>
     );
   }
@@ -226,6 +259,14 @@ export default function EarningsScreen() {
         totalWrittenOff={totalWrittenOff}
         writtenOffCount={writtenOffCount}
       />
+
+      {currentUser?.id ? (
+        <CoachPaymentInstructionsCard
+          coachId={currentUser.id}
+          coachName={currentUser.name}
+          editable
+        />
+      ) : null}
 
       <Row gap="xs" style={styles.tabRow}>
         {TABS.map((tab) => {
