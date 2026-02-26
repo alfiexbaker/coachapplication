@@ -17,6 +17,7 @@ import {
   DayColumnHeaders,
 } from './availability-week-grid-sections';
 import { Row } from '@/components/primitives';
+import { DemoBanner, isDemoMode } from '@/utils/demo-mode';
 
 // Re-export extracted components for backward compat
 export {
@@ -42,6 +43,7 @@ export function AvailabilityWeekGrid({
   onSlotLongPress,
 }: AvailabilityWeekGridProps) {
   const { colors: palette } = useTheme();
+  const demoMode = isDemoMode();
   const todayIndex = new Date().getDay();
 
   const slotLookup = useMemo(() => {
@@ -82,6 +84,9 @@ export function AvailabilityWeekGrid({
 
   return (
     <SurfaceCard style={styles.container}>
+      {demoMode ? (
+        <DemoBanner message="Weekly availability overview may be populated from demo/mock templates in this environment." />
+      ) : null}
       <Row style={styles.headerRow}>
         <ThemedText type="defaultSemiBold">Weekly Overview</ThemedText>
         <GridLegend palette={palette} />

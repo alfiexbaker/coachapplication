@@ -16,7 +16,7 @@ import {
   clearProgressDemoSeedData,
   ensureProgressDemoSeeded,
   ensureUser1DiamondTestDataSeeded,
-} from '@/services/progress/progress-demo-seed-service';
+} from '@/services/progress/progress-demo-seed-lazy-service';
 import { badgeService, type AllBadgeWithProgress } from '@/services/badge-service';
 import { mediaService } from '@/services/media-service';
 import { STORAGE_KEYS } from '@/constants/storage-keys';

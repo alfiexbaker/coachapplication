@@ -10,6 +10,7 @@ import type { AvailabilityTemplate } from '@/constants/types';
 import { useTheme } from '@/hooks/useTheme';
 import { DAYS, HOURS } from './availability-grid-sections';
 import { Row } from '@/components/primitives';
+import { DemoBanner, isDemoMode } from '@/utils/demo-mode';
 
 // Re-export for backward compat
 export { DayScheduleView } from './availability-grid-sections';
@@ -30,6 +31,7 @@ export function AvailabilityGrid({
   onDaySelect,
 }: AvailabilityGridProps) {
   const { colors: palette } = useTheme();
+  const demoMode = isDemoMode();
 
   const getSlotStatus = useCallback(
     (dayOfWeek: number, hour: number): { available: boolean; template?: AvailabilityTemplate } => {
@@ -69,6 +71,11 @@ export function AvailabilityGrid({
 
   return (
     <View style={styles.container}>
+      {demoMode ? (
+        <View style={styles.bannerWrap}>
+          <DemoBanner message="Availability grid may be showing demo/mock templates in this environment." />
+        </View>
+      ) : null}
       {/* Day Headers */}
       <Row style={styles.header}>
         <View style={styles.timeColumn} />
@@ -172,6 +179,7 @@ export function AvailabilityGrid({
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
+  bannerWrap: { paddingHorizontal: Spacing.xs, paddingTop: Spacing.xs },
   header: { paddingVertical: Spacing.sm, paddingHorizontal: Spacing.xs },
   timeColumn: { width: 50, alignItems: 'center', justifyContent: 'center' },
   dayHeader: {

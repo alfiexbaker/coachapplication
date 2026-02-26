@@ -124,6 +124,40 @@ const MOCK_REFERRALS: Referral[] = [
   },
 ];
 
+function isoDaysAgo(daysAgo: number, hour = 12, minute = 0): string {
+  const date = new Date();
+  date.setDate(date.getDate() - daysAgo);
+  date.setHours(hour, minute, 0, 0);
+  return date.toISOString();
+}
+
+function applyRelativeDemoReferralDates(): void {
+  const codeOffsets = [240, 180, 270];
+  MOCK_CODES.forEach((code, index) => {
+    code.createdAt = isoDaysAgo(codeOffsets[index] ?? 120, 10, 0);
+    code.updatedAt = code.createdAt;
+  });
+
+  const referralOffsets = [
+    { created: 160, completed: 156 },
+    { created: 120, completed: 115 },
+    { created: 45 },
+    { created: 90, completed: 85 },
+    { created: 70, completed: 61 },
+  ];
+
+  MOCK_REFERRALS.forEach((referral, index) => {
+    const offset = referralOffsets[index];
+    if (!offset) return;
+    referral.createdAt = isoDaysAgo(offset.created, 11, 0);
+    if (typeof offset.completed === 'number' && referral.status === 'COMPLETED') {
+      referral.completedAt = isoDaysAgo(offset.completed, 14, 0);
+    }
+  });
+}
+
+applyRelativeDemoReferralDates();
+
 // ============================================================================
 // HELPER FUNCTIONS
 // ============================================================================

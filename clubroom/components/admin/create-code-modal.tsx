@@ -41,6 +41,7 @@ export const CreateCodeModal = memo(function CreateCodeModal({
   onGenerate,
 }: CreateCodeModalProps) {
   const { colors: palette } = useTheme();
+  const currentYear = new Date().getFullYear();
 
   const handleCodeTextChange = useCallback(
     (text: string) => onChangeCodeText(text.toUpperCase()),
@@ -129,7 +130,7 @@ export const CreateCodeModal = memo(function CreateCodeModal({
               value={newCodeText}
               onChangeText={handleCodeTextChange}
               autoCapitalize="characters"
-              placeholder="MYSCHOOL2024"
+              placeholder={`MYSCHOOL${currentYear}`}
               placeholderTextColor={palette.muted}
               style={[
                 styles.input,

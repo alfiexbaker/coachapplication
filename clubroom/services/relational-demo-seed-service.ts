@@ -1,15 +1,12 @@
 import type { Booking, Session, User } from '@/constants/app-types';
-import {
-  buildRelationalDemoSeedPayload,
-  CLUB_LIONS_ID,
-  RELATIONAL_DEMO_SEED_VERSION,
-  type AppReviewRecord,
-  type ChildProfileSeed,
-  type CoachBookingSeed,
-  type CoachDirectoryEntry,
-  type ClubMemberSeed,
-  type PublicCoachReview,
-  type RateCoachStoredReview,
+import type {
+  AppReviewRecord,
+  ChildProfileSeed,
+  CoachBookingSeed,
+  CoachDirectoryEntry,
+  ClubMemberSeed,
+  PublicCoachReview,
+  RateCoachStoredReview,
 } from '@/constants/relational-demo-seeds';
 import { STORAGE_KEYS } from '@/constants/storage-keys';
 import type {
@@ -32,7 +29,8 @@ const ENABLE_RELATIONAL_DEMO_SEED =
   process.env.EXPO_PUBLIC_ENABLE_RELATIONAL_DEMO_SEED === '1' ||
   process.env.NODE_ENV === 'test';
 
-const CLUB_MEMBERS_KEY = `${STORAGE_KEYS.CLUB_MEMBERS}_${CLUB_LIONS_ID}`;
+const RELATIONAL_DEMO_FALLBACK_CLUB_ID = 'club_lions';
+const CLUB_MEMBERS_KEY = `${STORAGE_KEYS.CLUB_MEMBERS}_${RELATIONAL_DEMO_FALLBACK_CLUB_ID}`;
 const RATE_COACH_REVIEWS_KEY = 'coach_reviews';
 const COACH_PUBLIC_REVIEWS_KEY = 'clubroom.coach_reviews';
 const COACH_DIRECTORY_KEY = STORAGE_KEYS.COACH_DIRECTORY;
@@ -59,6 +57,15 @@ export interface EnsureRelationalSeedOptions {
 }
 
 let seedInFlight: Promise<void> | null = null;
+type RelationalSeedModule = typeof import('@/constants/relational-demo-seeds');
+let relationalSeedModulePromise: Promise<RelationalSeedModule> | null = null;
+
+async function loadRelationalSeedModule(): Promise<RelationalSeedModule> {
+  if (!relationalSeedModulePromise) {
+    relationalSeedModulePromise = import('@/constants/relational-demo-seeds');
+  }
+  return relationalSeedModulePromise;
+}
 
 function mergeByKey<T>(existing: T[], seeded: T[], getKey: (item: T) => string): T[] {
   const seededKeys = new Set(seeded.map((item) => getKey(item)));
@@ -140,9 +147,9 @@ async function getSeedHealthSnapshot(): Promise<SeedHealthSnapshot> {
   };
 }
 
-function isHealthy(snapshot: SeedHealthSnapshot): boolean {
+function isHealthy(snapshot: SeedHealthSnapshot, expectedVersion: string): boolean {
   return (
-    snapshot.version === RELATIONAL_DEMO_SEED_VERSION &&
+    snapshot.version === expectedVersion &&
     snapshot.users >= 10 &&
     snapshot.bookings >= 10 &&
     snapshot.offerings >= 3 &&
@@ -159,7 +166,8 @@ function isHealthy(snapshot: SeedHealthSnapshot): boolean {
 }
 
 async function seedRelationalDemoDataInternal(): Promise<void> {
-  const payload = buildRelationalDemoSeedPayload();
+  const seedModule = await loadRelationalSeedModule();
+  const payload = seedModule.buildRelationalDemoSeedPayload();
 
   const [
     existingUsers,
@@ -243,7 +251,10 @@ async function seedRelationalDemoDataInternal(): Promise<void> {
     apiClient.set(STORAGE_KEYS.FAMILY_MEMBERS, familyMembers),
     apiClient.set(STORAGE_KEYS.FAMILY_BOOKINGS, familyBookings),
     apiClient.set(COACH_BOOKINGS_KEY, coachBookings),
-    apiClient.set(STORAGE_KEYS.RELATIONAL_DEMO_SEED_VERSION, RELATIONAL_DEMO_SEED_VERSION),
+    apiClient.set(
+      STORAGE_KEYS.RELATIONAL_DEMO_SEED_VERSION,
+      seedModule.RELATIONAL_DEMO_SEED_VERSION,
+    ),
   ]);
 }
 
@@ -260,9 +271,10 @@ export async function ensureRelationalDemoSeeded(
 
   seedInFlight = (async () => {
     try {
+      const seedModule = await loadRelationalSeedModule();
       if (!options.force) {
         const health = await getSeedHealthSnapshot();
-        if (isHealthy(health)) {
+        if (isHealthy(health, seedModule.RELATIONAL_DEMO_SEED_VERSION)) {
           return;
         }
       }
@@ -270,7 +282,7 @@ export async function ensureRelationalDemoSeeded(
       await seedRelationalDemoDataInternal();
 
       const finalHealth = await getSeedHealthSnapshot();
-      if (!isHealthy(finalHealth)) {
+      if (!isHealthy(finalHealth, seedModule.RELATIONAL_DEMO_SEED_VERSION)) {
         logger.warn('relational_demo_seed_health_check_incomplete', finalHealth);
       } else {
         logger.info('relational_demo_seeded', finalHealth);

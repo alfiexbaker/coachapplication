@@ -53,6 +53,17 @@ const MOCK_FAVOURITES: FavouriteCoach[] = [
   },
 ];
 
+function getRelativeIso(daysAgo: number, hour = 12, minute = 0): string {
+  const date = new Date();
+  date.setDate(date.getDate() - daysAgo);
+  date.setHours(hour, minute, 0, 0);
+  return date.toISOString();
+}
+
+for (const [index, favourite] of MOCK_FAVOURITES.entries()) {
+  favourite.createdAt = getRelativeIso(14 - index * 3, 9 + index, 0);
+}
+
 let favouritesCache: FavouriteCoach[] = [...MOCK_FAVOURITES];
 let favouritesCacheTimestamp = 0;
 const FAVOURITES_CACHE_TTL_MS = 30_000;

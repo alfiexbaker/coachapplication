@@ -51,6 +51,7 @@ export const InviteCodeSection = memo(function InviteCodeSection({
   validatedSchoolName,
   palette,
 }: InviteCodeSectionProps) {
+  const currentYear = new Date().getFullYear();
   return (
     <View style={styles.inviteSection}>
       <View style={styles.fieldGroup}>
@@ -61,7 +62,7 @@ export const InviteCodeSection = memo(function InviteCodeSection({
             onChangeText={onChangeCode}
             autoCapitalize="characters"
             autoCorrect={false}
-            placeholder="HIGHPRESS2024"
+            placeholder={`HIGHPRESS${currentYear}`}
             placeholderTextColor={palette.muted}
             style={[
               styles.input,

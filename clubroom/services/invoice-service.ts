@@ -195,6 +195,34 @@ const MOCK_INVOICES: Invoice[] = [
   },
 ];
 
+function shiftMockInvoiceDate(iso: string, daysAgo: number, hour?: number, minute?: number): string {
+  const date = new Date();
+  date.setDate(date.getDate() - daysAgo);
+  if (typeof hour === 'number') {
+    date.setHours(hour, minute ?? 0, 0, 0);
+  }
+  return date.toISOString();
+}
+
+// Keep demo invoices temporally relevant so UI examples don't look stale.
+MOCK_INVOICES.forEach((invoice, index) => {
+  const baseDaysAgo = 7 + index * 5;
+  invoice.sessionDate = shiftMockInvoiceDate(invoice.sessionDate, baseDaysAgo, 14, 0);
+  invoice.createdAt = shiftMockInvoiceDate(invoice.createdAt, baseDaysAgo, 15, 0);
+  if (invoice.paidAt) {
+    invoice.paidAt = shiftMockInvoiceDate(invoice.paidAt, baseDaysAgo, 15, 30);
+  }
+  if (invoice.sentAt) {
+    invoice.sentAt = shiftMockInvoiceDate(invoice.sentAt, baseDaysAgo, 12, 30);
+  }
+  if (invoice.dueDate) {
+    invoice.dueDate = shiftMockInvoiceDate(invoice.dueDate, Math.max(0, baseDaysAgo - 14), 0, 0);
+  }
+  if (invoice.voidedAt) {
+    invoice.voidedAt = shiftMockInvoiceDate(invoice.voidedAt, Math.max(0, baseDaysAgo - 1), 9, 0);
+  }
+});
+
 // Mock booking data for generating invoices
 const MOCK_BOOKINGS: Record<
   string,
