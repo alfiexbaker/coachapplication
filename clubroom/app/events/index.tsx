@@ -1,4 +1,5 @@
 import { useState, useCallback } from 'react';
+import { AccessibleListCell } from '@/components/ui/list-accessibility';
 import { StyleSheet, FlatList, RefreshControl } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
@@ -127,6 +128,7 @@ export default function EventsListScreen() {
       {tabs}
 
       <FlatList
+        CellRendererComponent={AccessibleListCell}
         accessibilityRole="list"
         data={filteredEvents}
         keyExtractor={(item) => item.id}

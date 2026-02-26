@@ -23,6 +23,7 @@ import { useTheme } from '@/hooks/useTheme';
 import { useObjectives } from '@/hooks/use-objectives';
 import type { AthleteObjective } from '@/constants/types';
 import { DemoBanner } from '@/utils/demo-mode';
+import { AccessibleListCell } from '@/components/ui/list-accessibility';
 
 const ITEM_SEPARATOR_HEIGHT = Spacing.md;
 
@@ -125,6 +126,7 @@ export default function ObjectivesScreen() {
       edges={['bottom']}
     >
       <FlatList
+        CellRendererComponent={AccessibleListCell}
         accessibilityRole="list"
         data={filteredObjectives}
         keyExtractor={keyExtractor}

@@ -20,6 +20,7 @@ import { LoadingState, ErrorState, EmptyState } from '@/components/ui/screen-sta
 import { Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
 import {
+import { AccessibleListCell } from '@/components/ui/list-accessibility';
   useCoachInvites,
   formatExpiry,
   ROLE_LABELS,
@@ -169,6 +170,7 @@ export default function CoachInvitesScreen() {
         onBackPress={() => router.back()}
       />
       <FlatList
+        CellRendererComponent={AccessibleListCell}
         accessibilityRole="list"
         data={c.invites}
         keyExtractor={(item) => item.id}

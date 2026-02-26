@@ -23,6 +23,7 @@ import { Radii, Shadows, Spacing, Typography, withAlpha } from '@/constants/them
 import { useTheme } from '@/hooks/useTheme';
 import type { CoachProfile } from '@/constants/types';
 import type { MapContentProps } from './map-content-types';
+import { AccessibleListCell } from '@/components/ui/list-accessibility';
 
 const ListSeparator = () => <View style={{ height: Spacing.sm }} />;
 
@@ -290,6 +291,7 @@ export default function MapContent(props: MapContentProps) {
 
       {/* Coach list */}
       <FlatList
+        CellRendererComponent={AccessibleListCell}
         accessibilityRole="list"
         data={coaches}
         keyExtractor={(item) => item.coach.id}

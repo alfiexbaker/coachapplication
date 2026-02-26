@@ -1,4 +1,5 @@
 import { useCallback, useRef, useState } from 'react';
+import { AccessibleListCell } from '@/components/ui/list-accessibility';
 import { FlatList, KeyboardAvoidingView, Platform } from 'react-native';
 
 import { useTheme } from '@/hooks/useTheme';
@@ -50,6 +51,7 @@ export function GroupChat({
 
   const [inputText, setInputText] = useState('');
   const flatListRef = useRef<FlatList<GroupChatMessage>
+        CellRendererComponent={AccessibleListCell}
         accessibilityRole="list">(null);
 
   const handleSend = useCallback(() => {
@@ -81,6 +83,7 @@ export function GroupChat({
       {unreadCount > 0 ? <UnreadBadge count={unreadCount} palette={palette} /> : null}
 
       <FlatList
+        CellRendererComponent={AccessibleListCell}
         accessibilityRole="list"
         ref={flatListRef}
         data={messages}

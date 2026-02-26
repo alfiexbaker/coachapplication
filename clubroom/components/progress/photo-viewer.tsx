@@ -1,4 +1,5 @@
 import { memo, useCallback, useEffect, useRef, useState } from 'react';
+import { AccessibleListCell } from '@/components/ui/list-accessibility';
 import {
   FlatList,
   Modal,
@@ -40,6 +41,7 @@ export const PhotoViewer = memo(function PhotoViewer({
   const { colors } = useTheme();
   const { width, height } = useWindowDimensions();
   const listRef = useRef<FlatList<PhotoViewerItem>
+        CellRendererComponent={AccessibleListCell}
         accessibilityRole="list">(null);
   const [activeIndex, setActiveIndex] = useState(0);
 
@@ -108,6 +110,7 @@ export const PhotoViewer = memo(function PhotoViewer({
         ]}
       >
         <FlatList
+        CellRendererComponent={AccessibleListCell}
         accessibilityRole="list"
           ref={listRef}
           data={photos}

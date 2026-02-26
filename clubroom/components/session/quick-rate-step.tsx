@@ -1,4 +1,5 @@
 import React, { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { AccessibleListCell } from '@/components/ui/list-accessibility';
 import {
   FlatList,
   type ListRenderItem,
@@ -99,6 +100,7 @@ export const QuickRateStep = memo(function QuickRateStep({
   const { colors } = useTheme();
   const { width: windowWidth } = useWindowDimensions();
   const flatListRef = useRef<FlatList<QuickRateAthlete>
+        CellRendererComponent={AccessibleListCell}
         accessibilityRole="list">(null);
   const previousIndexRef = useRef(currentIndex);
   const cardWidth = useMemo(() => Math.max(windowWidth - Spacing.md * 2, 280), [windowWidth]);
@@ -225,6 +227,7 @@ export const QuickRateStep = memo(function QuickRateStep({
       )}
 
       <FlatList
+        CellRendererComponent={AccessibleListCell}
         accessibilityRole="list"
         ref={flatListRef}
         data={athletes}

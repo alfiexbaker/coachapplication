@@ -1,4 +1,5 @@
 import { useState, useCallback } from 'react';
+import { AccessibleListCell } from '@/components/ui/list-accessibility';
 import { View, StyleSheet, FlatList, RefreshControl } from 'react-native';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 
@@ -128,6 +129,7 @@ export function InvoiceList({
   return (
     <View style={styles.container}>
       <FlatList
+        CellRendererComponent={AccessibleListCell}
         accessibilityRole="list"
         data={filteredInvoices}
         keyExtractor={(item) => item.id}

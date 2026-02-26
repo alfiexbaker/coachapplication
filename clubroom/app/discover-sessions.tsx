@@ -21,6 +21,7 @@ import { Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
 import { useDiscoverSessions, SKILL_FILTERS, TYPE_FILTERS } from '@/hooks/use-discover-sessions';
 import type { FootballObjective } from '@/constants/types';
+import { AccessibleListCell } from '@/components/ui/list-accessibility';
 
 export default function DiscoverSessionsScreen() {
   const { colors: palette } = useTheme();
@@ -118,6 +119,7 @@ export default function DiscoverSessionsScreen() {
       {/* Type Filter Pills */}
       <View style={styles.filters}>
         <FlatList
+        CellRendererComponent={AccessibleListCell}
         accessibilityRole="list"
           data={TYPE_FILTERS}
           horizontal
@@ -151,6 +153,7 @@ export default function DiscoverSessionsScreen() {
       {/* Skill Filter Pills */}
       <View style={styles.filters}>
         <FlatList
+        CellRendererComponent={AccessibleListCell}
         accessibilityRole="list"
           data={SKILL_FILTERS}
           horizontal
@@ -183,6 +186,7 @@ export default function DiscoverSessionsScreen() {
 
       {/* Results */}
       <FlatList
+        CellRendererComponent={AccessibleListCell}
         accessibilityRole="list"
         data={c.filteredOfferings}
         keyExtractor={(item) => item.id}

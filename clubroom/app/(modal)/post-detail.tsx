@@ -23,6 +23,7 @@ import { useTheme } from '@/hooks/useTheme';
 import { usePostDetail } from '@/hooks/use-post-detail';
 import type { FlatItem } from '@/hooks/use-post-detail';
 import { useFocusTrap } from '@/hooks/use-focus-trap';
+import { AccessibleListCell } from '@/components/ui/list-accessibility';
 
 export default function PostDetailScreen() {
   const { colors: palette } = useTheme();
@@ -155,6 +156,7 @@ export default function PostDetailScreen() {
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       >
         <FlatList<FlatItem>
+        CellRendererComponent={AccessibleListCell}
         accessibilityRole="list"
           data={p.flatItems}
           renderItem={renderComment}

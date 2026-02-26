@@ -21,6 +21,7 @@ import { LoadingState, ErrorState, EmptyState } from '@/components/ui/screen-sta
 import { Spacing, Typography, Radii, withAlpha, Components } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
 import {
+import { AccessibleListCell } from '@/components/ui/list-accessibility';
   useSessionPayments,
   type SessionPaymentItem as SessionPaymentItemType,
 } from '@/hooks/use-session-payments';
@@ -311,6 +312,7 @@ export default function EarningsScreen() {
   return (
     <SafeAreaView style={[styles.safeArea, { backgroundColor: colors.background }]} edges={['top', 'bottom']}>
       <FlatList
+        CellRendererComponent={AccessibleListCell}
         accessibilityRole="list"
         data={filteredData}
         renderItem={renderItem}

@@ -16,6 +16,7 @@ import type { InviteRsvpResponse } from '@/constants/types';
 
 import { AttendeeRow } from './attendee-list-modal-sections';
 import { Row } from '@/components/primitives';
+import { AccessibleListCell } from '@/components/ui/list-accessibility';
 
 // Re-export extracted components for backward compat
 export { AttendeeRow } from './attendee-list-modal-sections';
@@ -127,6 +128,7 @@ function AttendeeListModalComponent({
             </View>
           ) : (
             <FlatList
+        CellRendererComponent={AccessibleListCell}
         accessibilityRole="list"
               data={sections}
               keyExtractor={(item) => item.key}

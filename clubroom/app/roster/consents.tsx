@@ -24,6 +24,7 @@ import { useTheme } from '@/hooks/useTheme';
 import { useConsents } from '@/hooks/use-consents';
 import { CONSENT_TYPE_LABELS, consentService } from '@/services/consent-service';
 import type { AthleteConsent, ConsentType } from '@/constants/types';
+import { AccessibleListCell } from '@/components/ui/list-accessibility';
 
 function StatCard({
   type,
@@ -227,6 +228,7 @@ export default function ConsentsScreen() {
       )}
 
       <FlatList
+        CellRendererComponent={AccessibleListCell}
         accessibilityRole="list"
         data={c.consents}
         keyExtractor={(item) => item.athleteId}

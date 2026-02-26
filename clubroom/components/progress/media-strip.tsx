@@ -1,4 +1,5 @@
 import { memo, useCallback, useMemo, useState } from 'react';
+import { AccessibleListCell } from '@/components/ui/list-accessibility';
 import { FlatList, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Image as ExpoImage } from 'expo-image';
@@ -208,6 +209,7 @@ export const MediaStrip = memo(function MediaStrip({
   return (
     <>
       <FlatList
+        CellRendererComponent={AccessibleListCell}
         accessibilityRole="list"
         data={displayItems}
         keyExtractor={(item) => item.id}

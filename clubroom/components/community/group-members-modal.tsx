@@ -1,4 +1,5 @@
 import React from 'react';
+import { AccessibleListCell } from '@/components/ui/list-accessibility';
 import { View, StyleSheet, Modal, FlatList } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -115,6 +116,7 @@ function GroupMembersModalInner({
         )}
 
         <FlatList
+        CellRendererComponent={AccessibleListCell}
         accessibilityRole="list"
           data={sortedMembers}
           keyExtractor={(item) => item.parentId}

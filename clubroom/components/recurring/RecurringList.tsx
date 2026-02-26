@@ -1,4 +1,5 @@
 import React, { useState, useMemo, useCallback } from 'react';
+import { AccessibleListCell } from '@/components/ui/list-accessibility';
 import { StyleSheet, View, FlatList, RefreshControl } from 'react-native';
 
 import { ThemedView } from '@/components/themed-view';
@@ -155,6 +156,7 @@ export function RecurringList({
       {showFilters && bookings.length > 0 && (
         <View style={styles.filtersContainer}>
           <FlatList
+        CellRendererComponent={AccessibleListCell}
         accessibilityRole="list"
             horizontal
             data={FILTER_DATA}
@@ -167,6 +169,7 @@ export function RecurringList({
       )}
 
       <FlatList
+        CellRendererComponent={AccessibleListCell}
         accessibilityRole="list"
         data={sortedBookings}
         renderItem={renderItem}

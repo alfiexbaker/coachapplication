@@ -27,6 +27,7 @@ import { useTheme } from '@/hooks/useTheme';
 import { useClubHub } from '@/hooks/use-club-hub';
 import type { ClubFeedPost } from '@/constants/types';
 import type { MemberRemovalReason } from '@/services/club-service';
+import { AccessibleListCell } from '@/components/ui/list-accessibility';
 
 const HEADER_PROPS = { title: 'Club Hub', subtitle: 'Your clubs and communities' } as const;
 
@@ -120,6 +121,7 @@ export default function ClubHubScreen() {
       horizontalSpacing={0}
     >
       <FlatList<ClubFeedPost>
+        CellRendererComponent={AccessibleListCell}
         accessibilityRole="list"
         data={hub.feed}
         keyExtractor={feedKeyExtractor}

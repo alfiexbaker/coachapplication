@@ -1,4 +1,5 @@
 import { useState, useMemo, useCallback } from 'react';
+import { AccessibleListCell } from '@/components/ui/list-accessibility';
 import { StyleSheet, View, FlatList, ActivityIndicator } from 'react-native';
 
 import { Spacing } from '@/constants/theme';
@@ -123,6 +124,7 @@ export function AttendeeList({
       {showFilters && (
         <View style={styles.filtersContainer}>
           <FlatList
+        CellRendererComponent={AccessibleListCell}
         accessibilityRole="list"
             horizontal
             showsHorizontalScrollIndicator={false}
@@ -138,6 +140,7 @@ export function AttendeeList({
         <AttendeeEmptyState message={emptyMessage} palette={palette} />
       ) : (
         <FlatList
+        CellRendererComponent={AccessibleListCell}
         accessibilityRole="list"
           data={filteredData}
           keyExtractor={attendeeKeyExtractor}

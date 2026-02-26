@@ -16,6 +16,7 @@ import { Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
 import type { ThemeColors } from '@/hooks/useTheme';
 import { useTheme } from '@/hooks/useTheme';
 import { formatCoachDate, type CoachToRate } from '@/hooks/use-rate-coach';
+import { AccessibleListCell } from '@/components/ui/list-accessibility';
 
 interface CoachSelectListProps {
   coaches: CoachToRate[];
@@ -41,6 +42,7 @@ export const CoachSelectList = memo(function CoachSelectList({
 
   return (
     <FlatList
+        CellRendererComponent={AccessibleListCell}
         accessibilityRole="list"
       data={coaches}
       keyExtractor={(item) => item.id}

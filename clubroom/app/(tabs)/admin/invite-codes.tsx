@@ -21,6 +21,7 @@ import { Radii, Spacing, Typography } from '@/constants/theme';
 import type { InviteCode } from '@/constants/types';
 import { useInviteCodes } from '@/hooks/use-invite-codes';
 import { useTheme } from '@/hooks/useTheme';
+import { AccessibleListCell } from '@/components/ui/list-accessibility';
 
 export default function InviteCodesScreen() {
   const { colors: palette } = useTheme();
@@ -111,6 +112,7 @@ export default function InviteCodesScreen() {
         />
       ) : (
         <FlatList
+        CellRendererComponent={AccessibleListCell}
         accessibilityRole="list"
           data={codes}
           renderItem={renderItem}

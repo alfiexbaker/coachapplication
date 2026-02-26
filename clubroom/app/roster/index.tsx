@@ -1,4 +1,5 @@
 import { useState, useCallback } from 'react';
+import { AccessibleListCell } from '@/components/ui/list-accessibility';
 import { View, StyleSheet, FlatList, RefreshControl } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
@@ -132,6 +133,7 @@ export default function RosterScreen() {
 
       {/* Roster List */}
       <FlatList
+        CellRendererComponent={AccessibleListCell}
         accessibilityRole="list"
         data={roster}
         keyExtractor={(item) => item.id}

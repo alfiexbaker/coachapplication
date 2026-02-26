@@ -21,6 +21,7 @@ import { Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
 import { useInvites, type TabFilter } from '@/hooks/use-invites';
 import type { SessionInvite } from '@/constants/types';
+import { AccessibleListCell } from '@/components/ui/list-accessibility';
 
 const ItemSeparator = () => <View style={styles.separator} />;
 
@@ -147,6 +148,7 @@ export default function InvitesScreen() {
       </Row>
 
       <FlatList
+        CellRendererComponent={AccessibleListCell}
         accessibilityRole="list"
         data={inv.filteredInvites}
         keyExtractor={(item) => item.id}

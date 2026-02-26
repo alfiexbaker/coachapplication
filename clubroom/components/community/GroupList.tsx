@@ -1,4 +1,5 @@
 import { memo, useCallback } from 'react';
+import { AccessibleListCell } from '@/components/ui/list-accessibility';
 import { FlatList, StyleSheet, View, RefreshControl, ListRenderItem } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
@@ -73,6 +74,7 @@ function GroupListComponent({
 
   return (
     <FlatList
+        CellRendererComponent={AccessibleListCell}
         accessibilityRole="list"
       data={groups}
       keyExtractor={keyExtractor}

@@ -17,6 +17,7 @@ import { useTheme } from '@/hooks/useTheme';
 
 import { WeekSeparator, WeekRowItem } from './multi-week-picker-sections';
 import { Row } from '@/components/primitives';
+import { AccessibleListCell } from '@/components/ui/list-accessibility';
 
 // Re-export extracted components for backward compat
 export { formatTimeDisplay, WeekSeparator, WeekRowItem } from './multi-week-picker-sections';
@@ -87,6 +88,7 @@ export function MultiWeekPicker({
 
       {/* Week rows */}
       <FlatList
+        CellRendererComponent={AccessibleListCell}
         accessibilityRole="list"
         data={weeks}
         renderItem={renderItem}

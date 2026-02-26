@@ -1,4 +1,5 @@
 import { memo, useCallback } from 'react';
+import { AccessibleListCell } from '@/components/ui/list-accessibility';
 import { FlatList, StyleSheet, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
@@ -97,6 +98,7 @@ export const BulkMessageSent = memo(function BulkMessageSent({
             Delivery Status
           </ThemedText>
           <FlatList
+        CellRendererComponent={AccessibleListCell}
         accessibilityRole="list"
             data={recipients}
             renderItem={renderRecipient}

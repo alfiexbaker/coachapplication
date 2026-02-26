@@ -16,6 +16,7 @@ import { Spacing, Radii, Typography, Shadows } from '@/constants/theme';
 import type { SessionInvite } from '@/constants/types';
 import { useTheme } from '@/hooks/useTheme';
 import { getSessionInviteCoachName } from '@/utils/session-invite-display';
+import { AccessibleListCell } from '@/components/ui/list-accessibility';
 
 interface UpcomingEventsCarouselProps {
   invites: SessionInvite[];
@@ -112,6 +113,7 @@ function UpcomingEventsCarouselComponent({ invites, onPress }: UpcomingEventsCar
         </ThemedText>
       </View>
       <FlatList
+        CellRendererComponent={AccessibleListCell}
         accessibilityRole="list"
         data={invites}
         keyExtractor={keyExtractor}

@@ -14,6 +14,7 @@ import { Spacing } from '@/constants/theme';
 import type { RosterEntry } from '@/constants/types';
 import { useAthletesScreen } from '@/hooks/use-athletes-screen';
 import {
+import { AccessibleListCell } from '@/components/ui/list-accessibility';
   AthletesListHeader,
   AthletesSearchEmptyState,
   renderAthleteCard,
@@ -119,6 +120,7 @@ export default function AthletesScreen() {
       />
 
       <FlatList
+        CellRendererComponent={AccessibleListCell}
         accessibilityRole="list"
         data={filteredAthletes}
         renderItem={({ item }) => renderAthleteCard({ item, upcomingSessions })}

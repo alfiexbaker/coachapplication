@@ -20,6 +20,7 @@ import { CoachCardCompact } from './coach-card-compact';
 import { Radii, Spacing, Typography, withAlpha } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
 import type {
+import { AccessibleListCell } from '@/components/ui/list-accessibility';
   SessionOffering,
   CoachProfile,
   GroupSession,
@@ -123,6 +124,7 @@ export const YourCoachesSection = memo(function YourCoachesSection({
         <SectionHeader icon="people-outline" title="Your Coaches" />
       </View>
       <FlatList
+        CellRendererComponent={AccessibleListCell}
         accessibilityRole="list"
         data={coaches}
         renderItem={renderCoach}

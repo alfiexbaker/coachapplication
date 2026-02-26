@@ -27,6 +27,7 @@ import {
 } from '@/utils/session-invite-display';
 
 import {
+import { AccessibleListCell } from '@/components/ui/list-accessibility';
   WeekSeparator,
   WeekToggleRow,
   InviteHeader,
@@ -133,6 +134,7 @@ export function MultiWeekInviteCard({ invite, onResponded }: MultiWeekInviteCard
       />
 
       <FlatList
+        CellRendererComponent={AccessibleListCell}
         accessibilityRole="list"
         data={weekAcceptances}
         renderItem={renderItem}

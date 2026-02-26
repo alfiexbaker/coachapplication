@@ -19,6 +19,7 @@ import { Spacing, withAlpha } from '@/constants/theme';
 import type { ThemeColors } from '@/hooks/useTheme';
 import type { InvoiceStatus } from '@/constants/types';
 import { styles } from './invoice-list-styles';
+import { AccessibleListCell } from '@/components/ui/list-accessibility';
 
 export interface FilterOption {
   value: InvoiceStatus | 'ALL';
@@ -99,6 +100,7 @@ export const StatusFilterBar = memo(function StatusFilterBar({
   return (
     <Row align="center" gap="xs" style={styles.filterContainer}>
       <FlatList
+        CellRendererComponent={AccessibleListCell}
         accessibilityRole="list"
         horizontal
         data={filterOptions}

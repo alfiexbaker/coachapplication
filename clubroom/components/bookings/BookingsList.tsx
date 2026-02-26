@@ -1,4 +1,5 @@
 import { useCallback, useMemo } from 'react';
+import { AccessibleListCell } from '@/components/ui/list-accessibility';
 import { FlatList, View, StyleSheet, RefreshControl } from 'react-native';
 
 import { Clickable } from '@/components/primitives/clickable';
@@ -175,6 +176,7 @@ export function BookingsList({
 
       {hasItems ? (
         <FlatList
+        CellRendererComponent={AccessibleListCell}
         accessibilityRole="list"
           data={displayItems}
           keyExtractor={keyExtractor}

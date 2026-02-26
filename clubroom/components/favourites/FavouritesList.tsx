@@ -19,6 +19,7 @@ import type { FavouriteCoach } from '@/constants/types';
 import { EmptyState } from '@/components/ui/empty-state';
 import { FavouriteCoachCard } from './FavouriteCoachCard';
 import { useTheme } from '@/hooks/useTheme';
+import { AccessibleListCell } from '@/components/ui/list-accessibility';
 
 export interface FavouritesListProps {
   /** List of favourite coaches */
@@ -92,6 +93,7 @@ export function FavouritesList({
 
   return (
     <FlatList
+        CellRendererComponent={AccessibleListCell}
         accessibilityRole="list"
       data={favourites}
       renderItem={renderItem}

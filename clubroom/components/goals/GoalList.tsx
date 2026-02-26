@@ -13,6 +13,7 @@ import type { Goal, GoalStatus, GoalCategory } from '@/constants/types';
 import { useTheme } from '@/hooks/useTheme';
 
 import {
+import { AccessibleListCell } from '@/components/ui/list-accessibility';
   GoalListSkeletonInner,
   GoalSectionHeaderInner,
   GoalListEmptyState,
@@ -119,6 +120,7 @@ export function GoalList({
 
   return (
     <FlatList
+        CellRendererComponent={AccessibleListCell}
         accessibilityRole="list"
       data={filteredGoals}
       renderItem={renderGoal}
