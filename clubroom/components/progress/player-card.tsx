@@ -23,6 +23,7 @@ import { HapticPatterns } from '@/utils/haptics';
 import { buildLinearGradientUri } from '@/components/primitives/surface-card-utils';
 import { PlayerCardBack } from './player-card-back';
 import { PlayerCardFront } from './player-card-front';
+import { isDemoMode } from '@/utils/demo-mode';
 
 interface TierConfig {
   gradient: [string, string];
@@ -60,6 +61,7 @@ const AnimatedView = Animated.createAnimatedComponent(View);
 
 export const PlayerCard = memo(function PlayerCard({ data }: PlayerCardProps) {
   const { colors, scheme } = useTheme();
+  const demoMode = isDemoMode();
   const { width: viewportWidth } = useWindowDimensions();
   const flipProgress = useSharedValue(0);
   const cardScale = useSharedValue(1);
@@ -240,6 +242,11 @@ export const PlayerCard = memo(function PlayerCard({ data }: PlayerCardProps) {
                   tierAccent={tierConfig.accent}
                   compact={compact}
                 />
+                {demoMode ? (
+                  <View style={[styles.demoPill, { backgroundColor: withAlpha(colors.warning, 0.16) }]}>
+                    <ThemedText style={[styles.demoPillText, { color: colors.warning }]}>DEMO</ThemedText>
+                  </View>
+                ) : null}
               </AnimatedView>
 
               <AnimatedView style={[styles.face, styles.backFace, backStyle]}>
@@ -303,5 +310,19 @@ const styles = StyleSheet.create({
     borderRadius: Radii.xl - 2,
     borderWidth: 1,
     zIndex: 5,
+  },
+  demoPill: {
+    position: 'absolute',
+    top: Spacing.sm,
+    right: Spacing.sm,
+    borderRadius: Radii.pill,
+    paddingHorizontal: Spacing.xs,
+    paddingVertical: Spacing.micro,
+    zIndex: 10,
+  },
+  demoPillText: {
+    ...Typography.caption,
+    fontWeight: '700',
+    letterSpacing: 0.6,
   },
 });

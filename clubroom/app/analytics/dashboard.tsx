@@ -19,10 +19,12 @@ import { LoadingState, ErrorState, EmptyState } from '@/components/ui/screen-sta
 import { Spacing, Radii, Typography } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
 import { useAnalyticsDashboard, PERIOD_OPTIONS } from '@/hooks/use-analytics-dashboard';
+import { DemoBanner, isDemoMode } from '@/utils/demo-mode';
 
 export default function AnalyticsDashboardScreen() {
   const { colors: palette } = useTheme();
   const analytics = useAnalyticsDashboard();
+  const demoMode = isDemoMode();
   const header = (
     <View style={styles.header}>
       <Row gap="sm" align="center">
@@ -97,6 +99,9 @@ export default function AnalyticsDashboardScreen() {
         showsVerticalScrollIndicator={false}
       >
         {header}
+        {demoMode ? (
+          <DemoBanner message="Analytics may include demo/mock data in this environment." />
+        ) : null}
 
         {/* Period selector */}
         <Row gap="xs">

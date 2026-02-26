@@ -16,6 +16,7 @@ import { Spacing, Radii, Typography } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
 import type { AvailabilityTemplate, AvailabilityOverride } from '@/constants/types';
 import type { SessionTemplate } from '@/constants/session-types';
+import { DemoBanner, isDemoMode } from '@/utils/demo-mode';
 
 interface Props {
   templates: AvailabilityTemplate[];
@@ -47,9 +48,13 @@ export const ScheduleAvailabilitySegment = memo(function ScheduleAvailabilitySeg
   onRulesOpen,
 }: Props) {
   const { colors } = useTheme();
+  const demoMode = isDemoMode();
 
   return (
     <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.content}>
+      {demoMode ? (
+        <DemoBanner message="Availability is using demo/mock data in this environment until a live backend is connected." />
+      ) : null}
       <WeekPatternGrid
         templates={templates}
         overrides={overrides}

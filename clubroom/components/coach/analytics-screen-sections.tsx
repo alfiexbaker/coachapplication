@@ -15,6 +15,7 @@ import { ThemedText } from '@/components/themed-text';
 import { Radii, Spacing, Typography, withAlpha } from '@/constants/theme';
 import type { ThemeColors } from '@/hooks/useTheme';
 import { Row } from '@/components/primitives';
+import { DemoBanner, isDemoMode } from '@/utils/demo-mode';
 
 // ─── AnalyticsStatCard ───────────────────────────────────────────────────────
 
@@ -116,9 +117,13 @@ export const ScheduleInsightsSection = memo(function ScheduleInsightsSection({
   palette,
 }: ScheduleInsightsSectionProps) {
   if (busiestDay === 'N/A') return null;
+  const demoMode = isDemoMode();
 
   return (
     <SurfaceCard style={styles.section}>
+      {demoMode ? (
+        <DemoBanner message="Analytics insights shown here may use demo data in mock mode." />
+      ) : null}
       <Row style={styles.sectionHeader}>
         <Ionicons name="calendar-outline" size={20} color={palette.tint} />
         <ThemedText type="subtitle" style={styles.sectionTitle}>
