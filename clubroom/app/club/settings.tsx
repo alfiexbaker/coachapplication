@@ -18,6 +18,7 @@ import { SettingsBrandingSection } from '@/components/club/settings-branding-sec
 import { Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
 import { useClubSettings, SETTINGS_SECTIONS } from '@/hooks/use-club-settings';
+import { Routes } from '@/navigation/routes';
 
 export default function ClubSettingsScreen() {
   const { colors } = useTheme();
@@ -26,6 +27,7 @@ export default function ClubSettingsScreen() {
     clubId,
     squads,
     members,
+    membership,
     inviteCodes,
     canManageClub,
     loading,
@@ -123,6 +125,22 @@ export default function ClubSettingsScreen() {
             <ThemedText style={[Typography.small, { color: colors.muted }]}>
               Club leaders (Owner/Admin/Head Coach) can edit settings, invites, and member controls.
             </ThemedText>
+            <ThemedText style={[Typography.small, { color: colors.muted }]}>
+              {membership
+                ? `Your role: ${membership.role.replace('_', ' ')}. Use Club Hub for membership actions.`
+                : 'You are not a manager in this club. Use Club Hub to join, leave, or switch clubs.'}
+            </ThemedText>
+            <Clickable
+              style={[styles.readOnlyCta, { borderColor: colors.border }]}
+              onPress={() => router.push(Routes.clubHub(clubId ? { clubId } : undefined))}
+            >
+              <Row align="center" justify="center" gap="xs">
+                <Ionicons name="people-outline" size={16} color={colors.tint} />
+                <ThemedText style={[Typography.smallSemiBold, { color: colors.tint }]}>
+                  Open Club Hub
+                </ThemedText>
+              </Row>
+            </Clickable>
           </SurfaceCard>
         )}
         {activeSection === 'details' && (
@@ -218,6 +236,15 @@ const styles = StyleSheet.create({
   },
   content: { padding: Spacing.lg, paddingTop: 0, gap: Spacing.md },
   readOnlyCard: { gap: Spacing.xs, borderWidth: 1 },
+  readOnlyCta: {
+    marginTop: Spacing.xs,
+    minHeight: 40,
+    borderWidth: 1,
+    borderRadius: Radii.md,
+    paddingHorizontal: Spacing.sm,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   dangerCard: { gap: Spacing.md },
   dangerBtn: { paddingVertical: Spacing.md, borderRadius: Radii.md, borderWidth: 1.5 },
 });

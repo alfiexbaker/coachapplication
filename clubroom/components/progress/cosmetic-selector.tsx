@@ -1,5 +1,5 @@
 import { memo, useCallback } from 'react';
-import { StyleSheet, View } from 'react-native';
+import { Alert, StyleSheet, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 
@@ -28,11 +28,20 @@ export const CosmeticSelector = memo(function CosmeticSelector({
 
   const handleSelect = useCallback(
     (id: CosmeticId, unlocked: boolean) => {
-      if (!unlocked) return;
+      if (!unlocked) {
+        const lockedCosmetic = cosmetics.find((cosmetic) => cosmetic.id === id);
+        Alert.alert(
+          'Style locked',
+          lockedCosmetic
+            ? `${lockedCosmetic.label} unlocks at ${lockedCosmetic.requiredBadges} badges.`
+            : 'Earn more badges to unlock this style.',
+        );
+        return;
+      }
       void HapticPatterns.tap();
       onSelect(id);
     },
-    [onSelect],
+    [cosmetics, onSelect],
   );
 
   return (
@@ -61,12 +70,14 @@ export const CosmeticSelector = memo(function CosmeticSelector({
               >
                 <Clickable
                   onPress={() => handleSelect(cosmetic.id, cosmetic.unlocked)}
-                  disabled={locked}
                   accessibilityRole="button"
                   accessibilityLabel={
                     locked
                       ? `${cosmetic.label} — locked, need ${cosmetic.requiredBadges} badges`
                       : `${cosmetic.label} card style`
+                  }
+                  accessibilityHint={
+                    locked ? 'Shows unlock requirement' : 'Applies this card style'
                   }
                   style={[
                     styles.item,

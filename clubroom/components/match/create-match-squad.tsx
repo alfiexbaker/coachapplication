@@ -19,6 +19,7 @@ interface CreateMatchSquadProps {
   colors: ThemeColors;
   onSelectSquad: (id: string) => void;
   onAutoInviteChange: (val: boolean) => void;
+  onCreateSquad?: () => void;
 }
 
 export const CreateMatchSquad = memo(function CreateMatchSquad({
@@ -29,6 +30,7 @@ export const CreateMatchSquad = memo(function CreateMatchSquad({
   colors,
   onSelectSquad,
   onAutoInviteChange,
+  onCreateSquad,
 }: CreateMatchSquadProps) {
   return (
     <View style={styles.stepContent}>
@@ -83,7 +85,23 @@ export const CreateMatchSquad = memo(function CreateMatchSquad({
         {squads.length === 0 && (
           <View style={styles.emptySquads}>
             <Ionicons name="people-outline" size={48} color={colors.muted} />
-            <ThemedText style={{ color: colors.muted }}>No squads found</ThemedText>
+            <ThemedText type="defaultSemiBold">No squads found</ThemedText>
+            <ThemedText style={[Typography.small, { color: colors.muted, textAlign: 'center' }]}>
+              Create a squad first so you can select players and send invites for this match.
+            </ThemedText>
+            {onCreateSquad ? (
+              <Clickable
+                style={[styles.createSquadBtn, { borderColor: colors.border }]}
+                onPress={onCreateSquad}
+              >
+                <Row align="center" gap="xs">
+                  <Ionicons name="add-circle-outline" size={16} color={colors.tint} />
+                  <ThemedText style={[Typography.smallSemiBold, { color: colors.tint }]}>
+                    Create Squad
+                  </ThemedText>
+                </Row>
+              </Clickable>
+            ) : null}
           </View>
         )}
       </View>
@@ -128,5 +146,13 @@ const styles = StyleSheet.create({
   },
   emptyCheck: { width: 24, height: 24, borderRadius: Radii.md, borderWidth: 2 },
   emptySquads: { alignItems: 'center', paddingVertical: Spacing.xl, gap: Spacing.sm },
+  createSquadBtn: {
+    minHeight: 40,
+    borderRadius: Radii.pill,
+    borderWidth: 1,
+    paddingHorizontal: Spacing.md,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   autoInviteRow: { paddingTop: Spacing.md, marginTop: Spacing.md, borderTopWidth: 1 },
 });

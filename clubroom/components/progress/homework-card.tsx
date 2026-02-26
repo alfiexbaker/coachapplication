@@ -1,5 +1,5 @@
 import { memo } from 'react';
-import { StyleSheet } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
 import { Clickable } from '@/components/primitives/clickable';
@@ -54,36 +54,45 @@ export const HomeworkCard = memo(function HomeworkCard({
           {coachName} · Set {formatDate(setAt)}
         </ThemedText>
 
-        <Clickable
-          style={[
-            styles.button,
-            {
-              backgroundColor: completed ? withAlpha(colors.success, 0.12) : withAlpha(colors.tint, 0.1),
-              borderColor: completed ? withAlpha(colors.success, 0.3) : withAlpha(colors.tint, 0.24),
-            },
-          ]}
-          disabled={completed || !onMarkDone}
-          onPress={onMarkDone}
-          accessibilityLabel={completed ? 'Homework completed' : 'Mark homework as done'}
-          accessibilityRole="button"
-          accessibilityState={{ disabled: completed || !onMarkDone }}
-        >
-          <Row align="center" justify="center" gap="xxs">
-            <Ionicons
-              name={completed ? 'checkmark-circle' : 'checkmark-circle-outline'}
-              size={16}
-              color={completed ? colors.success : colors.tint}
-            />
-            <ThemedText
-              style={[
-                styles.buttonText,
-                { color: completed ? colors.success : colors.tint },
-              ]}
-            >
-              {completed ? 'Completed' : 'Mark as Done'}
-            </ThemedText>
-          </Row>
-        </Clickable>
+        {completed ? (
+          <View
+            style={[
+              styles.button,
+              styles.completedBadge,
+              {
+                backgroundColor: withAlpha(colors.success, 0.12),
+                borderColor: withAlpha(colors.success, 0.3),
+              },
+            ]}
+            accessibilityLabel="Homework completed"
+            accessibilityRole="text"
+          >
+            <Row align="center" justify="center" gap="xxs">
+              <Ionicons name="checkmark-circle" size={16} color={colors.success} />
+              <ThemedText style={[styles.buttonText, { color: colors.success }]}>Completed</ThemedText>
+            </Row>
+          </View>
+        ) : (
+          <Clickable
+            style={[
+              styles.button,
+              {
+                backgroundColor: withAlpha(colors.tint, 0.1),
+                borderColor: withAlpha(colors.tint, 0.24),
+              },
+            ]}
+            disabled={!onMarkDone}
+            onPress={onMarkDone}
+            accessibilityLabel="Mark homework as done"
+            accessibilityRole="button"
+            accessibilityState={{ disabled: !onMarkDone }}
+          >
+            <Row align="center" justify="center" gap="xxs">
+              <Ionicons name="checkmark-circle-outline" size={16} color={colors.tint} />
+              <ThemedText style={[styles.buttonText, { color: colors.tint }]}>Mark as Done</ThemedText>
+            </Row>
+          </Clickable>
+        )}
       </Column>
     </SurfaceCard>
   );
@@ -114,5 +123,8 @@ const styles = StyleSheet.create({
   },
   buttonText: {
     ...Typography.bodySmallSemiBold,
+  },
+  completedBadge: {
+    opacity: 0.95,
   },
 });

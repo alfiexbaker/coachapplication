@@ -1,6 +1,8 @@
+import { useCallback } from 'react';
 import { ScrollView, StyleSheet, View, KeyboardAvoidingView, Platform } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Stack } from 'expo-router';
+import { router } from 'expo-router';
 
 import { Clickable } from '@/components/primitives/clickable';
 import { Row } from '@/components/primitives/row';
@@ -17,6 +19,7 @@ import { useTheme } from '@/hooks/useTheme';
 import { useScreen } from '@/hooks/use-screen';
 import { ok } from '@/types/result';
 import { useCreateMatch } from '@/hooks/use-create-match';
+import { Routes } from '@/navigation/routes';
 
 export default function CreateMatchScreen() {
   const { colors } = useTheme();
@@ -61,6 +64,9 @@ export default function CreateMatchScreen() {
     handleBack,
     handleSubmit,
   } = useCreateMatch();
+  const handleCreateSquad = useCallback(() => {
+    router.push(Routes.CLUB_SQUAD_CREATE);
+  }, []);
 
   if (status === 'loading') {
     return (
@@ -206,6 +212,7 @@ export default function CreateMatchScreen() {
                 colors={colors}
                 onSelectSquad={setSelectedSquadId}
                 onAutoInviteChange={setAutoInvite}
+                onCreateSquad={handleCreateSquad}
               />
             )}
             {step === 'review' && (

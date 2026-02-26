@@ -91,13 +91,14 @@ export function MembersPanel({
   clubId,
 }: MembersPanelProps) {
   const { colors: palette } = useTheme();
+  const managementHint = canRemoveMembers ? 'Tap to view, long press to manage' : 'Tap to view';
 
   return (
     <SurfaceCard style={styles.membersCard}>
       <Row style={styles.membersSectionHeader}>
         <ThemedText type="defaultSemiBold">Club Members</ThemedText>
         <ThemedText style={{ ...Typography.caption, color: palette.muted }}>
-          Tap to manage
+          {managementHint}
         </ThemedText>
       </Row>
       <View style={styles.membersList}>

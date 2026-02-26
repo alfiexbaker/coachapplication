@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
-import { StyleSheet, View, ActivityIndicator, Platform } from 'react-native';
+import { StyleSheet, View, ActivityIndicator, Platform, Alert } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 
@@ -78,6 +78,20 @@ export function CompareButton({
   }, [coachId, isInComparison, onStateChange]);
 
   const isDisabled = isLoading || (!isInComparison && !canAddMore);
+  const showCapacityAlert = useCallback(() => {
+    Alert.alert(
+      'Comparison list full',
+      `You can compare up to ${comparisonService.getMaxCoaches()} coaches at a time. Remove one to add another.`,
+    );
+  }, []);
+
+  const handlePressWithReason = useCallback(() => {
+    if (!isInComparison && !canAddMore) {
+      showCapacityAlert();
+      return;
+    }
+    void handlePress();
+  }, [canAddMore, handlePress, isInComparison, showCapacityAlert]);
 
   if (variant === 'icon') {
     return (
@@ -87,9 +101,9 @@ export function CompareButton({
         accessibilityHint={
           isInComparison ? `Remove ${coachName} from comparison` : `Add ${coachName} to comparison`
         }
-        disabled={isDisabled}
+        disabled={isLoading}
         accessibilityState={{ disabled: isDisabled, selected: isInComparison }}
-        onPress={handlePress}
+        onPress={handlePressWithReason}
         style={({ pressed }) => [
           styles.iconButton,
           {
@@ -121,9 +135,9 @@ export function CompareButton({
       <Clickable
         accessibilityRole="button"
         accessibilityLabel={isInComparison ? 'Remove from comparison' : 'Add to comparison'}
-        disabled={isDisabled}
+        disabled={isLoading}
         accessibilityState={{ disabled: isDisabled, selected: isInComparison }}
-        onPress={handlePress}
+        onPress={handlePressWithReason}
         style={({ pressed }) => [
           styles.compactButton,
           {
@@ -164,9 +178,9 @@ export function CompareButton({
     <Clickable
       accessibilityRole="button"
       accessibilityLabel={isInComparison ? 'Remove from comparison' : 'Add to comparison'}
-      disabled={isDisabled}
+        disabled={isLoading}
       accessibilityState={{ disabled: isDisabled, selected: isInComparison }}
-      onPress={handlePress}
+      onPress={handlePressWithReason}
       style={({ pressed }) => [
         styles.fullButton,
         {
