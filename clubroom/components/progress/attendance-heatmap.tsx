@@ -1,5 +1,5 @@
-import { memo, useMemo } from 'react';
-import { StyleSheet, View } from 'react-native';
+import { memo, useCallback, useMemo, useState } from 'react';
+import { Modal, StyleSheet, View } from 'react-native';
 
 import { Column } from '@/components/primitives/column';
 import { Row } from '@/components/primitives/row';
@@ -18,6 +18,7 @@ function toDateKey(date: Date): string {
 
 export const AttendanceHeatmap = memo(function AttendanceHeatmap({ dates }: AttendanceHeatmapProps) {
   const { colors } = useTheme();
+  const [selectedCellKey, setSelectedCellKey] = useState<string | null>(null);
 
   const cells = useMemo(() => {
     const countsByDate = dates.reduce<Record<string, number>>((acc, dateString) => {
@@ -40,10 +41,18 @@ export const AttendanceHeatmap = memo(function AttendanceHeatmap({ dates }: Atte
       const count = countsByDate[toDateKey(day)] ?? 0;
       return {
         key: `${day.toISOString()}_${index}`,
+        dateKey: toDateKey(day),
+        dateLabel: day.toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' }),
         count,
       };
     });
   }, [dates]);
+
+  const selectedCell = useMemo(
+    () => cells.find((cell) => cell.key === selectedCellKey) ?? null,
+    [cells, selectedCellKey],
+  );
+  const closeModal = useCallback(() => setSelectedCellKey(null), []);
 
   const attendedDays = useMemo(
     () => cells.reduce((total, cell) => total + (cell.count > 0 ? 1 : 0), 0),
@@ -68,13 +77,22 @@ export const AttendanceHeatmap = memo(function AttendanceHeatmap({ dates }: Atte
                   : withAlpha(colors.border, 0.3);
 
             return (
-              <View
+              <Clickable
                 key={cell.key}
+                onPress={() => {
+                  if (cell.count > 0) {
+                    setSelectedCellKey(cell.key);
+                  }
+                }}
+                disabled={cell.count === 0}
+                accessibilityRole="button"
+                accessibilityLabel={`${cell.dateLabel}: ${cell.count} session${cell.count === 1 ? '' : 's'}`}
                 style={[
                   styles.cell,
                   {
                     backgroundColor: tone,
                     borderColor: withAlpha(colors.border, 0.4),
+                    opacity: cell.count === 0 ? 1 : undefined,
                   },
                 ]}
               />
@@ -90,6 +108,33 @@ export const AttendanceHeatmap = memo(function AttendanceHeatmap({ dates }: Atte
           <ThemedText style={[styles.legendText, { color: colors.muted }]}>High</ThemedText>
         </Row>
       </Column>
+
+      <Modal
+        visible={Boolean(selectedCell)}
+        transparent
+        animationType="fade"
+        onRequestClose={closeModal}
+      >
+        <Clickable style={[styles.modalBackdrop, { backgroundColor: withAlpha(colors.background, 0.86) }]} onPress={closeModal}>
+          <SurfaceCard style={styles.modalCard}>
+            <Column gap="xs">
+              <ThemedText style={styles.title}>{selectedCell?.dateLabel ?? 'Attendance'}</ThemedText>
+              <ThemedText style={[styles.subtitle, { color: colors.muted }]}>
+                {selectedCell?.count ?? 0} session{(selectedCell?.count ?? 0) === 1 ? '' : 's'} attended
+              </ThemedText>
+              <ThemedText style={[styles.legendText, { color: colors.muted }]}>
+                Detailed session drill-down is not available in this view yet.
+              </ThemedText>
+              <Clickable
+                onPress={closeModal}
+                style={[styles.closeChip, { borderColor: colors.border }]}
+              >
+                <ThemedText style={{ color: colors.text }}>Close</ThemedText>
+              </Clickable>
+            </Column>
+          </SurfaceCard>
+        </Clickable>
+      </Modal>
     </SurfaceCard>
   );
 });
@@ -121,5 +166,24 @@ const styles = StyleSheet.create({
   },
   legendText: {
     ...Typography.caption,
+  },
+  modalBackdrop: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: Spacing.lg,
+  },
+  modalCard: {
+    width: '100%',
+    maxWidth: 320,
+    padding: Spacing.md,
+  },
+  closeChip: {
+    alignSelf: 'flex-start',
+    borderWidth: 1,
+    borderRadius: Radii.md,
+    paddingHorizontal: Spacing.sm,
+    paddingVertical: Spacing.xs,
+    marginTop: Spacing.xs,
   },
 });

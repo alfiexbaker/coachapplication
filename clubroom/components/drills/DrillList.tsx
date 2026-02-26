@@ -27,7 +27,10 @@ interface DrillListProps {
   assignments?: AssignedDrill[];
   onDrillPress?: (drill: Drill) => void;
   onAssignmentPress?: (assignment: AssignedDrill) => void;
-  onAssignmentComplete?: (assignment: AssignedDrill) => void;
+  onAssignmentComplete?: (
+    assignment: AssignedDrill,
+    completion?: { evidenceVideoUri?: string; notes?: string },
+  ) => void;
   compact?: boolean;
   loading?: boolean;
   emptyMessage?: string;
@@ -99,7 +102,7 @@ export function DrillList({
               <AssignmentCard
                 assignment={assignment}
                 onPress={() => onAssignmentPress?.(assignment)}
-                onComplete={() => onAssignmentComplete?.(assignment)}
+                onComplete={(completion) => onAssignmentComplete?.(assignment, completion)}
                 compact={compact}
               />
             </Animated.View>

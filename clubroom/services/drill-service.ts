@@ -174,6 +174,7 @@ const MOCK_ASSIGNMENTS: AssignedDrill[] = [
     isCompleted: false,
     notes:
       'Focus on keeping your head up while juggling. Try to increase your count by 5 each day.',
+    requiresEvidence: true,
     repetitions: 3,
     priority: 1,
   },
@@ -526,7 +527,9 @@ async function getAssignmentById(assignmentId: string): Promise<AssignedDrill | 
  */
 async function completeDrill(
   assignmentId: string,
-  athleteFeedback?: string,
+  athleteFeedbackOrOptions?:
+    | string
+    | { athleteFeedback?: string; evidenceVideoUri?: string; evidenceNotes?: string },
 ): Promise<AssignedDrill | null> {
   const assignments = await getAllAssignments();
   const assignmentIndex = assignments.findIndex((a) => a.id === assignmentId);
@@ -537,6 +540,10 @@ async function completeDrill(
   }
 
   const assignment = assignments[assignmentIndex];
+  const options =
+    typeof athleteFeedbackOrOptions === 'string'
+      ? { athleteFeedback: athleteFeedbackOrOptions }
+      : athleteFeedbackOrOptions ?? {};
 
   if (assignment.isCompleted) {
     logger.info('assignment_already_completed', { assignmentId });
@@ -547,7 +554,9 @@ async function completeDrill(
     ...assignment,
     isCompleted: true,
     completedAt: new Date().toISOString(),
-    athleteFeedback,
+    athleteFeedback: options.athleteFeedback,
+    evidenceVideoUri: options.evidenceVideoUri,
+    evidenceNotes: options.evidenceNotes,
   };
 
   assignments[assignmentIndex] = updatedAssignment;
@@ -592,6 +601,8 @@ async function uncompleteDrill(assignmentId: string): Promise<AssignedDrill | nu
     ...assignment,
     isCompleted: false,
     completedAt: undefined,
+    evidenceVideoUri: undefined,
+    evidenceNotes: undefined,
   };
 
   assignments[assignmentIndex] = updatedAssignment;

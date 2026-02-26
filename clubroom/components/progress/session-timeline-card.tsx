@@ -1,4 +1,4 @@
-import { memo } from 'react';
+import { memo, useMemo, useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
@@ -10,6 +10,7 @@ import { useTheme } from '@/hooks/useTheme';
 import type { PastSession, PastSessionDelta } from '@/types/progress-types';
 import { CoachBadge } from './coach-badge';
 import { MediaStrip } from './media-strip';
+import { Clickable } from '@/components/primitives/clickable';
 
 interface SessionTimelineCardProps {
   session: PastSession;
@@ -60,6 +61,24 @@ export const SessionTimelineCard = memo(function SessionTimelineCard({
   const { colors } = useTheme();
   const hasMedia = session.photos.length > 0 || Boolean(session.video);
   const deltaSummary = buildDeltaSummary(deltaFromPrevious);
+  const [expanded, setExpanded] = useState(false);
+  const improvementRows = useMemo(() => {
+    if (!deltaFromPrevious) return [];
+    const labels: Array<{ key: keyof PastSessionDelta; label: string }> = [
+      { key: 'performance', label: 'Session performance' },
+      { key: 'technical', label: 'Technical' },
+      { key: 'physical', label: 'Physical' },
+      { key: 'psychological', label: 'Psychological' },
+      { key: 'social', label: 'Social' },
+    ];
+    return labels
+      .map(({ key, label }) => ({ key, label, value: deltaFromPrevious[key] }))
+      .filter((item) => typeof item.value === 'number' && item.value !== 0) as Array<{
+      key: keyof PastSessionDelta;
+      label: string;
+      value: number;
+    }>;
+  }, [deltaFromPrevious]);
 
   return (
     <View style={styles.card}>
@@ -69,12 +88,21 @@ export const SessionTimelineCard = memo(function SessionTimelineCard({
         </ThemedText>
 
         {deltaSummary ? (
-          <Row align="center" gap="xxs">
-            <Ionicons name="trending-up" size={12} color={colors.success} />
-            <ThemedText style={[styles.deltaText, { color: colors.success }]}>
-              {deltaSummary}
-            </ThemedText>
-          </Row>
+          <Clickable onPress={() => setExpanded((prev) => !prev)} style={styles.expandTrigger}>
+            <Row align="center" justify="between" gap="xs">
+              <Row align="center" gap="xxs">
+                <Ionicons name="trending-up" size={12} color={colors.success} />
+                <ThemedText style={[styles.deltaText, { color: colors.success }]}>
+                  {deltaSummary}
+                </ThemedText>
+              </Row>
+              <Ionicons
+                name={expanded ? 'chevron-up' : 'chevron-down'}
+                size={14}
+                color={colors.muted}
+              />
+            </Row>
+          </Clickable>
         ) : null}
 
         {session.coachQualification ? (
@@ -104,9 +132,45 @@ export const SessionTimelineCard = memo(function SessionTimelineCard({
         ) : null}
 
         {session.summary ? (
-          <ThemedText style={[styles.summary, { color: colors.muted }]} numberOfLines={2}>
+          <ThemedText style={[styles.summary, { color: colors.muted }]} numberOfLines={expanded ? undefined : 2}>
             {session.summary}
           </ThemedText>
+        ) : null}
+
+        {expanded && improvementRows.length > 0 ? (
+          <Column gap="xxs" style={[styles.expandedPanel, { borderColor: withAlpha(colors.border, 0.6) }]}>
+            {improvementRows.map((row) => (
+              <Row key={String(row.key)} align="center" justify="between">
+                <Row align="center" gap="xxs">
+                  <Ionicons
+                    name={row.value > 0 ? 'trending-up' : 'remove'}
+                    size={12}
+                    color={row.value > 0 ? colors.success : colors.muted}
+                  />
+                  <ThemedText style={[styles.expandedText, { color: colors.text }]}>
+                    {row.label}
+                  </ThemedText>
+                </Row>
+                <ThemedText
+                  style={[
+                    styles.expandedDelta,
+                    { color: row.value > 0 ? colors.success : colors.muted },
+                  ]}
+                >
+                  {row.value > 0 ? '+' : ''}
+                  {row.value}
+                </ThemedText>
+              </Row>
+            ))}
+            {session.summary ? (
+              <Row align="flex-start" gap="xxs" style={styles.notesRow}>
+                <Ionicons name="chatbubble-ellipses-outline" size={12} color={colors.muted} />
+                <ThemedText style={[styles.notesText, { color: colors.muted }]}>
+                  {session.summary}
+                </ThemedText>
+              </Row>
+            ) : null}
+          </Column>
         ) : null}
 
         {session.badgeAwarded ? (
@@ -159,5 +223,28 @@ const styles = StyleSheet.create({
   },
   badgeText: {
     ...Typography.caption,
+  },
+  expandTrigger: {
+    alignSelf: 'stretch',
+  },
+  expandedPanel: {
+    borderWidth: 1,
+    borderRadius: Radii.md,
+    padding: Spacing.xs,
+    gap: Spacing.xxs,
+  },
+  expandedText: {
+    ...Typography.caption,
+  },
+  expandedDelta: {
+    ...Typography.caption,
+    fontWeight: '700',
+  },
+  notesRow: {
+    marginTop: Spacing.xxs,
+  },
+  notesText: {
+    ...Typography.caption,
+    flex: 1,
   },
 });

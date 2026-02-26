@@ -10,7 +10,7 @@ export interface AssignmentCardProps {
   /** Callback when card is pressed */
   onPress?: () => void;
   /** Callback when complete button is pressed */
-  onComplete?: () => void;
+  onComplete?: (completion?: { evidenceVideoUri?: string; notes?: string }) => void;
   /** Whether to show in compact mode */
   compact?: boolean;
 }

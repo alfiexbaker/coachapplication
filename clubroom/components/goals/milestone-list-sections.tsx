@@ -5,7 +5,7 @@
  * CompactMilestoneList — read-only compact view (max 3 items).
  */
 
-import React, { memo } from 'react';
+import React, { memo, useEffect, useState } from 'react';
 import { View, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import Animated, {
@@ -15,6 +15,8 @@ import Animated, {
   withSpring,
   useSharedValue,
   Layout,
+  withSequence,
+  withTiming,
 } from 'react-native-reanimated';
 
 import { ThemedText } from '@/components/themed-text';
@@ -55,6 +57,7 @@ export const MilestoneItem = memo(function MilestoneItem({
   const { colors: palette } = useTheme();
 
   const scale = useSharedValue(1);
+  const [showCelebrate, setShowCelebrate] = useState(false);
 
   const animatedStyle = useAnimatedStyle(() => ({
     transform: [{ scale: scale.value }],
@@ -69,6 +72,17 @@ export const MilestoneItem = memo(function MilestoneItem({
   const handlePressOut = () => {
     scale.value = withSpring(1, { damping: 15 });
   };
+
+  useEffect(() => {
+    if (!milestone.isCompleted) return;
+    scale.value = withSequence(
+      withTiming(1.08, { duration: 140 }),
+      withTiming(1, { duration: 180 }),
+    );
+    setShowCelebrate(true);
+    const timeoutId = setTimeout(() => setShowCelebrate(false), 1400);
+    return () => clearTimeout(timeoutId);
+  }, [milestone.id, milestone.isCompleted, scale]);
 
   return (
     <Animated.View
@@ -87,6 +101,11 @@ export const MilestoneItem = memo(function MilestoneItem({
         accessibilityLabel={`Toggle milestone ${milestone.title}`}
         accessibilityState={{ selected: milestone.isCompleted, disabled: !editable || loading }}
       >
+        {showCelebrate ? (
+          <View style={styles.celebrateBubble} pointerEvents="none">
+            <ThemedText style={styles.celebrateEmoji}>🎉</ThemedText>
+          </View>
+        ) : null}
         <View
           style={[
             styles.checkbox,
@@ -179,6 +198,7 @@ export const CompactMilestoneList = memo(function CompactMilestoneList({
 
 const styles = StyleSheet.create({
   milestoneItem: {
+    position: 'relative',
     alignItems: 'center',
     paddingVertical: Spacing.sm,
     paddingHorizontal: Spacing.xs,
@@ -208,6 +228,15 @@ const styles = StyleSheet.create({
   },
   deleteButton: {
     padding: Spacing.xs,
+  },
+  celebrateBubble: {
+    position: 'absolute',
+    top: -6,
+    right: Spacing.sm,
+    zIndex: 2,
+  },
+  celebrateEmoji: {
+    fontSize: scaleFont(18),
   },
   compactContainer: {
     gap: Spacing.xxs,

@@ -281,6 +281,12 @@ export interface AssignedDrill {
   notes?: string;
   /** Optional feedback from the athlete upon completion */
   athleteFeedback?: string;
+  /** Whether coach requires video evidence before completion */
+  requiresEvidence?: boolean;
+  /** Optional evidence video submitted by athlete */
+  evidenceVideoUri?: string;
+  /** Optional notes submitted with completion evidence */
+  evidenceNotes?: string;
   /** Number of repetitions or sets required */
   repetitions?: number;
   /** Priority level (1 = highest) */

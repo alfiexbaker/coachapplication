@@ -1,4 +1,4 @@
-import { memo, useCallback, useEffect, useMemo } from 'react';
+import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import Animated, {
@@ -20,6 +20,7 @@ import { Radii, Spacing, Typography, withAlpha } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
 import type { DailyChallengeDefinition } from '@/constants/daily-challenges';
 import { HapticPatterns } from '@/utils/haptics';
+import { apiClient } from '@/services/api-client';
 
 interface DailyChallengeBannerProps {
   challenge: DailyChallengeDefinition | null;
@@ -48,11 +49,36 @@ export const DailyChallengeBanner = memo(function DailyChallengeBanner({
   const { colors } = useTheme();
   const pulseScale = useSharedValue(1);
   const checkScale = useSharedValue(0);
+  const [playEntrance, setPlayEntrance] = useState(false);
+  const lastChallengeIdRef = useRef<string | null>(null);
 
   const categoryColor = challenge ? (CORNER_COLORS[challenge.category as keyof typeof CORNER_COLORS] ?? colors.tint) : colors.tint;
   const categoryIcon = challenge ? (CATEGORY_ICONS[challenge.category] ?? 'flash-outline') : 'flash-outline';
 
   useEffect(() => {
+    let active = true;
+    const hydrateAnimationState = async () => {
+      if (!challenge?.id) return;
+      if (lastChallengeIdRef.current !== challenge.id) {
+        lastChallengeIdRef.current = challenge.id;
+      }
+      const seen = await apiClient.get<boolean>(`CHALLENGE_ANIMATION_SEEN_${challenge.id}`, false);
+      if (!active) return;
+      if (!seen) {
+        setPlayEntrance(true);
+        await apiClient.set(`CHALLENGE_ANIMATION_SEEN_${challenge.id}`, true);
+      } else {
+        setPlayEntrance(false);
+      }
+    };
+    void hydrateAnimationState();
+    return () => {
+      active = false;
+    };
+  }, [challenge?.id]);
+
+  useEffect(() => {
+    if (!challenge) return;
     if (!isCompleted) {
       pulseScale.value = withRepeat(
         withSequence(
@@ -69,7 +95,7 @@ export const DailyChallengeBanner = memo(function DailyChallengeBanner({
         withTiming(1, { duration: 120 }),
       );
     }
-  }, [checkScale, isCompleted, pulseScale]);
+  }, [challenge, checkScale, isCompleted, pulseScale]);
 
   const iconStyle = useAnimatedStyle(() => ({
     transform: [{ scale: isCompleted ? checkScale.value : pulseScale.value }],
@@ -89,7 +115,7 @@ export const DailyChallengeBanner = memo(function DailyChallengeBanner({
   if (!challenge) return null;
 
   return (
-    <Animated.View entering={FadeInDown.duration(400).springify()}>
+    <Animated.View entering={playEntrance ? FadeInDown.duration(400).springify() : undefined}>
       <Clickable
         onPress={handleComplete}
         disabled={isCompleted}

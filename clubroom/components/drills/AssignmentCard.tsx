@@ -1,6 +1,8 @@
 import { Ionicons } from '@expo/vector-icons';
-import { StyleSheet, View } from 'react-native';
+import { Alert, Modal, StyleSheet, TextInput, View } from 'react-native';
 import { Image } from 'expo-image';
+import * as ImagePicker from 'expo-image-picker';
+import { useCallback, useState } from 'react';
 
 import { DifficultyBadge } from './DifficultyBadge';
 import { AssignmentCardCompact } from './assignment-card-compact';
@@ -17,6 +19,9 @@ import { useTheme } from '@/hooks/useTheme';
 import { drillService } from '@/services/drill-service';
 import { scaleFont } from '@/utils/scale';
 import { Row } from '@/components/primitives';
+import { Column } from '@/components/primitives/column';
+import { Button } from '@/components/primitives/button';
+import { VideoPlayer } from './VideoPlayer';
 
 // ─── Re-export ──────────────────────────────────────────────────────────────
 
@@ -31,6 +36,10 @@ export function AssignmentCard({
   compact = false,
 }: AssignmentCardProps) {
   const { colors: palette } = useTheme();
+  const [showEvidenceModal, setShowEvidenceModal] = useState(false);
+  const [evidenceUri, setEvidenceUri] = useState<string | null>(assignment.evidenceVideoUri ?? null);
+  const [completionNotes, setCompletionNotes] = useState(assignment.evidenceNotes ?? '');
+  const [submittingEvidence, setSubmittingEvidence] = useState(false);
 
   if (compact) {
     return (
@@ -44,6 +53,39 @@ export function AssignmentCard({
   const categoryInfo = drill ? drillService.getCategoryInfo(drill.category) : null;
   const hasVideo = Boolean(drill?.videoUrl);
   const statusColor = getStatusColor(assignment, palette, isOverdue, isDueSoon);
+  const requiresEvidence = Boolean(assignment.requiresEvidence);
+
+  const handlePickEvidence = useCallback(async () => {
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Videos,
+      quality: 0.8,
+    });
+    if (!result.canceled && result.assets.length > 0) {
+      setEvidenceUri(result.assets[0].uri);
+    }
+  }, []);
+
+  const handleCompletePress = useCallback(async () => {
+    if (requiresEvidence) {
+      setShowEvidenceModal(true);
+      return;
+    }
+    onComplete?.();
+  }, [onComplete, requiresEvidence]);
+
+  const handleSubmitEvidence = useCallback(async () => {
+    if (!evidenceUri) {
+      Alert.alert('Evidence Required', 'Please upload a video before submitting.');
+      return;
+    }
+    setSubmittingEvidence(true);
+    try {
+      await Promise.resolve(onComplete?.({ evidenceVideoUri: evidenceUri, notes: completionNotes.trim() || undefined }));
+      setShowEvidenceModal(false);
+    } finally {
+      setSubmittingEvidence(false);
+    }
+  }, [completionNotes, evidenceUri, onComplete]);
 
   return (
     <SurfaceCard style={styles.card} onPress={onPress}>
@@ -168,6 +210,20 @@ export function AssignmentCard({
             </Row>
           )}
 
+          {requiresEvidence && !assignment.isCompleted ? (
+            <Row
+              style={[
+                styles.evidenceHint,
+                { backgroundColor: withAlpha(palette.warning, 0.09), borderColor: withAlpha(palette.warning, 0.25) },
+              ]}
+            >
+              <Ionicons name="videocam-outline" size={14} color={palette.warning} />
+              <ThemedText style={[styles.evidenceHintText, { color: palette.warning }]}>
+                Video evidence required
+              </ThemedText>
+            </Row>
+          ) : null}
+
           {/* Complete button */}
           {!assignment.isCompleted && onComplete && (
             <Clickable
@@ -176,12 +232,72 @@ export function AssignmentCard({
             >
               <Ionicons name="checkmark" size={18} color={palette.onPrimary} />
               <ThemedText style={[styles.completeButtonText, { color: palette.onPrimary }]}>
-                Mark Complete
+                {requiresEvidence ? 'Submit Completion' : 'Mark Complete'}
               </ThemedText>
             </Clickable>
           )}
         </View>
       </View>
+
+      <Modal
+        visible={showEvidenceModal}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setShowEvidenceModal(false)}
+      >
+        <View style={[styles.modalBackdrop, { backgroundColor: withAlpha(palette.background, 0.9) }]}>
+          <SurfaceCard style={styles.modalCard}>
+            <Column gap="sm">
+              <ThemedText type="defaultSemiBold">Submit Evidence</ThemedText>
+              {evidenceUri ? (
+                <VideoPlayer videoUrl={evidenceUri} height={180} />
+              ) : (
+                <Button variant="secondary" onPress={handlePickEvidence}>
+                  Choose Video Evidence
+                </Button>
+              )}
+              {evidenceUri ? (
+                <Button variant="secondary" onPress={handlePickEvidence}>
+                  Replace Video
+                </Button>
+              ) : null}
+              <TextInput
+                value={completionNotes}
+                onChangeText={setCompletionNotes}
+                placeholder="Add notes (optional)"
+                placeholderTextColor={palette.muted}
+                multiline
+                style={[
+                  styles.evidenceNotesInput,
+                  {
+                    color: palette.text,
+                    borderColor: palette.border,
+                    backgroundColor: palette.surface,
+                  },
+                ]}
+                maxLength={300}
+              />
+              <Row gap="xs">
+                <Button
+                  variant="secondary"
+                  onPress={() => setShowEvidenceModal(false)}
+                  style={styles.modalAction}
+                  disabled={submittingEvidence}
+                >
+                  Cancel
+                </Button>
+                <Button
+                  onPress={handleSubmitEvidence}
+                  style={styles.modalAction}
+                  disabled={submittingEvidence}
+                >
+                  {submittingEvidence ? 'Submitting...' : 'Submit'}
+                </Button>
+              </Row>
+            </Column>
+          </SurfaceCard>
+        </View>
+      </Modal>
     </SurfaceCard>
   );
 }
@@ -262,6 +378,17 @@ const styles = StyleSheet.create({
     marginTop: Spacing.xxs,
   },
   repetitionsText: { fontSize: scaleFont(13), fontWeight: '600' },
+  evidenceHint: {
+    alignSelf: 'flex-start',
+    alignItems: 'center',
+    gap: Spacing.xxs,
+    borderWidth: 1,
+    borderRadius: Radii.sm,
+    paddingHorizontal: Spacing.xs,
+    paddingVertical: Spacing.xxs,
+    marginTop: Spacing.xxs,
+  },
+  evidenceHintText: { fontSize: scaleFont(12), fontWeight: '600' },
   completeButton: {
     alignItems: 'center',
     justifyContent: 'center',
@@ -271,4 +398,22 @@ const styles = StyleSheet.create({
     marginTop: Spacing.sm,
   },
   completeButtonText: { fontSize: scaleFont(15), fontWeight: '600' },
+  modalBackdrop: {
+    flex: 1,
+    justifyContent: 'flex-end',
+    padding: Spacing.lg,
+  },
+  modalCard: {
+    padding: Spacing.md,
+  },
+  evidenceNotesInput: {
+    minHeight: 80,
+    borderWidth: 1,
+    borderRadius: Radii.md,
+    padding: Spacing.sm,
+    textAlignVertical: 'top',
+  },
+  modalAction: {
+    flex: 1,
+  },
 });

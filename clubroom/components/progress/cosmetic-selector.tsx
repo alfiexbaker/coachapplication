@@ -1,4 +1,4 @@
-import { memo, useCallback } from 'react';
+import { memo, useCallback, useEffect, useMemo, useState } from 'react';
 import { Alert, StyleSheet, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import Animated, { FadeInDown } from 'react-native-reanimated';
@@ -12,6 +12,7 @@ import { Radii, Spacing, Typography, withAlpha } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
 import type { CardCosmetic, CosmeticId } from '@/hooks/use-card-cosmetics';
 import { HapticPatterns } from '@/utils/haptics';
+import { Button } from '@/components/primitives/button';
 
 interface CosmeticSelectorProps {
   cosmetics: CardCosmetic[];
@@ -25,8 +26,13 @@ export const CosmeticSelector = memo(function CosmeticSelector({
   onSelect,
 }: CosmeticSelectorProps) {
   const { colors } = useTheme();
+  const [previewId, setPreviewId] = useState<CosmeticId>(selectedId);
 
-  const handleSelect = useCallback(
+  useEffect(() => {
+    setPreviewId(selectedId);
+  }, [selectedId]);
+
+  const handlePreviewSelect = useCallback(
     (id: CosmeticId, unlocked: boolean) => {
       if (!unlocked) {
         const lockedCosmetic = cosmetics.find((cosmetic) => cosmetic.id === id);
@@ -39,10 +45,26 @@ export const CosmeticSelector = memo(function CosmeticSelector({
         return;
       }
       void HapticPatterns.tap();
-      onSelect(id);
+      setPreviewId(id);
     },
-    [cosmetics, onSelect],
+    [cosmetics],
   );
+
+  const hasChanges = previewId !== selectedId;
+  const previewCosmetic = useMemo(
+    () => cosmetics.find((cosmetic) => cosmetic.id === previewId) ?? null,
+    [cosmetics, previewId],
+  );
+
+  const handleApply = useCallback(() => {
+    if (!hasChanges) return;
+    void HapticPatterns.tap();
+    onSelect(previewId);
+  }, [hasChanges, onSelect, previewId]);
+
+  const handleReset = useCallback(() => {
+    setPreviewId(selectedId);
+  }, [selectedId]);
 
   return (
     <SurfaceCard style={styles.card}>
@@ -57,9 +79,42 @@ export const CosmeticSelector = memo(function CosmeticSelector({
           <Ionicons name="color-palette-outline" size={20} color={colors.muted} />
         </Row>
 
+        <View
+          style={[
+            styles.previewCard,
+            {
+              borderColor: previewCosmetic
+                ? withAlpha(previewCosmetic.borderColors[0], 0.4)
+                : withAlpha(colors.border, 0.5),
+              backgroundColor: previewCosmetic
+                ? withAlpha(previewCosmetic.borderColors[0], 0.08)
+                : withAlpha(colors.surface, 0.5),
+            },
+          ]}
+        >
+          <Row align="center" justify="between">
+            <Column gap="micro">
+              <ThemedText style={styles.previewLabel}>Preview</ThemedText>
+              <ThemedText style={[styles.previewValue, { color: colors.text }]}>
+                {previewCosmetic?.label ?? 'Selected style'}
+              </ThemedText>
+            </Column>
+            <View
+              style={[
+                styles.previewSwatch,
+                {
+                  backgroundColor: previewCosmetic?.borderColors[0] ?? colors.tint,
+                  borderColor: withAlpha(colors.onPrimary, 0.35),
+                },
+              ]}
+            />
+          </Row>
+        </View>
+
         <Row gap="xs" style={styles.grid}>
           {cosmetics.map((cosmetic, index) => {
             const isSelected = cosmetic.id === selectedId;
+            const isPreview = cosmetic.id === previewId;
             const locked = !cosmetic.unlocked;
 
             return (
@@ -69,7 +124,7 @@ export const CosmeticSelector = memo(function CosmeticSelector({
                 style={styles.itemWrap}
               >
                 <Clickable
-                  onPress={() => handleSelect(cosmetic.id, cosmetic.unlocked)}
+                  onPress={() => handlePreviewSelect(cosmetic.id, cosmetic.unlocked)}
                   accessibilityRole="button"
                   accessibilityLabel={
                     locked
@@ -84,8 +139,10 @@ export const CosmeticSelector = memo(function CosmeticSelector({
                     {
                       borderColor: isSelected
                         ? cosmetic.borderColors[0]
+                        : isPreview
+                        ? cosmetic.borderColors[0]
                         : withAlpha(colors.border, 0.5),
-                      backgroundColor: isSelected
+                      backgroundColor: isSelected || isPreview
                         ? withAlpha(cosmetic.borderColors[0], 0.08)
                         : withAlpha(colors.surface, 0.5),
                     },
@@ -105,6 +162,8 @@ export const CosmeticSelector = memo(function CosmeticSelector({
                       <Ionicons name="lock-closed" size={12} color={colors.muted} />
                     ) : isSelected ? (
                       <Ionicons name="checkmark" size={12} color={colors.onPrimary} />
+                    ) : isPreview ? (
+                      <Ionicons name="eye-outline" size={12} color={colors.onPrimary} />
                     ) : null}
                   </View>
 
@@ -128,6 +187,23 @@ export const CosmeticSelector = memo(function CosmeticSelector({
             );
           })}
         </Row>
+        <Row gap="xs">
+          <Button
+            variant="secondary"
+            onPress={handleReset}
+            disabled={!hasChanges}
+            style={styles.actionButton}
+          >
+            Reset
+          </Button>
+          <Button
+            onPress={handleApply}
+            disabled={!hasChanges}
+            style={styles.actionButton}
+          >
+            Apply
+          </Button>
+        </Row>
       </Column>
     </SurfaceCard>
   );
@@ -146,6 +222,23 @@ const styles = StyleSheet.create({
   },
   grid: {
     flexWrap: 'wrap',
+  },
+  previewCard: {
+    borderWidth: 1,
+    borderRadius: Radii.md,
+    padding: Spacing.sm,
+  },
+  previewLabel: {
+    ...Typography.caption,
+  },
+  previewValue: {
+    ...Typography.bodySmallSemiBold,
+  },
+  previewSwatch: {
+    width: 30,
+    height: 42,
+    borderRadius: Radii.sm,
+    borderWidth: 1,
   },
   itemWrap: {
     width: '30%',
@@ -176,5 +269,8 @@ const styles = StyleSheet.create({
   lockHint: {
     ...Typography.micro,
     fontSize: Typography.micro.fontSize,
+  },
+  actionButton: {
+    flex: 1,
   },
 });

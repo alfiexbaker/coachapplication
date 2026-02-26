@@ -22,7 +22,7 @@ interface MediaStripProps {
 type DisplayItem =
   | { id: string; type: 'photo'; photoIndex: number; thumbnailUri: string; capturedAt: string }
   | { id: string; type: 'video'; thumbnailUri: string; duration: number; capturedAt: string }
-  | { id: string; type: 'overflow'; count: number };
+  | { id: string; type: 'overflow'; count: number; total: number; hiddenStartIndex: number };
 
 type TimelineMediaItem = Extract<DisplayItem, { type: 'photo' | 'video' }>;
 
@@ -92,6 +92,8 @@ export const MediaStrip = memo(function MediaStrip({
         id: 'overflow',
         type: 'overflow',
         count: sorted.length - visible.length,
+        total: sorted.length,
+        hiddenStartIndex: visible.length,
       },
     ];
   }, [maxVisible, sortedPhotos, video]);
@@ -108,8 +110,15 @@ export const MediaStrip = memo(function MediaStrip({
         return;
       }
       onPressOverflow?.();
+      const hiddenTarget = displayItems[item.hiddenStartIndex];
+      if (hiddenTarget?.type === 'photo') {
+        setActivePhotoIndex(hiddenTarget.photoIndex);
+        setPhotoViewerVisible(true);
+      } else if (hiddenTarget?.type === 'video') {
+        setVideoVisible(true);
+      }
     },
-    [onPressOverflow],
+    [displayItems, onPressOverflow],
   );
 
   const renderItem = useCallback(
@@ -130,6 +139,9 @@ export const MediaStrip = memo(function MediaStrip({
             accessibilityRole="button"
           >
             <ThemedText style={styles.overflowText}>+{item.count}</ThemedText>
+            <ThemedText style={[styles.overflowSubtext, { color: colors.muted }]}>
+              of {item.total}
+            </ThemedText>
           </Clickable>
         );
       }
@@ -175,7 +187,22 @@ export const MediaStrip = memo(function MediaStrip({
   );
 
   if (!hasMedia) {
-    return null;
+    return (
+      <Row
+        style={[
+          styles.emptyState,
+          {
+            backgroundColor: withAlpha(colors.surface, 0.7),
+            borderColor: withAlpha(colors.border, 0.6),
+          },
+        ]}
+      >
+        <Ionicons name="images-outline" size={14} color={colors.muted} />
+        <ThemedText style={[styles.emptyStateText, { color: colors.muted }]}>
+          No media yet
+        </ThemedText>
+      </Row>
+    );
   }
 
   return (
@@ -247,5 +274,21 @@ const styles = StyleSheet.create({
   },
   overflowText: {
     ...Typography.bodySmallSemiBold,
+  },
+  overflowSubtext: {
+    ...Typography.micro,
+    marginTop: -2,
+  },
+  emptyState: {
+    alignSelf: 'flex-start',
+    borderWidth: 1,
+    borderRadius: Radii.md,
+    paddingHorizontal: Spacing.sm,
+    paddingVertical: Spacing.xs,
+    gap: Spacing.xs,
+    alignItems: 'center',
+  },
+  emptyStateText: {
+    ...Typography.caption,
   },
 });

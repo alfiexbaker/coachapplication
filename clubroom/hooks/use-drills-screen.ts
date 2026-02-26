@@ -71,13 +71,19 @@ export function useDrillsScreen() {
   }, []);
 
   const handleComplete = useCallback(
-    async (assignment: AssignedDrill) => {
+    async (
+      assignment: AssignedDrill,
+      completion?: { evidenceVideoUri?: string; notes?: string },
+    ) => {
       void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
       try {
         if (assignment.isCompleted) {
           await drillService.uncompleteDrill(assignment.id);
         } else {
-          await drillService.completeDrill(assignment.id);
+          await drillService.completeDrill(assignment.id, {
+            evidenceVideoUri: completion?.evidenceVideoUri,
+            evidenceNotes: completion?.notes,
+          });
         }
         retry();
       } catch (error) {
@@ -118,7 +124,10 @@ export function useDrillsScreen() {
     filteredAssignments: AssignedDrill[];
     handleRefresh: () => void;
     handleAssignmentPress: (assignment: AssignedDrill) => void;
-    handleComplete: (assignment: AssignedDrill) => Promise<void>;
+    handleComplete: (
+      assignment: AssignedDrill,
+      completion?: { evidenceVideoUri?: string; notes?: string },
+    ) => Promise<void>;
     handleTabChange: (tab: TabFilter) => void;
   };
 }
