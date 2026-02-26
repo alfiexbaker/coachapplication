@@ -109,6 +109,8 @@ export default function CreateSquadScreen() {
                 color: palette.text,
               },
             ]}
+
+            maxLength={50}
           />
         </View>
 
@@ -192,6 +194,8 @@ export default function CreateSquadScreen() {
                 color: palette.text,
               },
             ]}
+
+            maxLength={100}
           />
         </View>
 

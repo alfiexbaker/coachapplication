@@ -45,7 +45,9 @@ export const MedicalTagInput = memo(function MedicalTagInput({
           onChangeText={setInputValue}
           onSubmitEditing={handleAdd}
           returnKeyType="done"
-        />
+
+            maxLength={100}
+          />
         <Clickable
           accessibilityLabel="Add medical tag"
           onPress={handleAdd}

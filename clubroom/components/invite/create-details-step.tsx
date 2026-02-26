@@ -98,6 +98,8 @@ export const CreateDetailsStep = memo(function CreateDetailsStep({
             multiline
             numberOfLines={4}
             accessibilityLabel="Notes for parent"
+
+            maxLength={500}
           />
         </Column>
 

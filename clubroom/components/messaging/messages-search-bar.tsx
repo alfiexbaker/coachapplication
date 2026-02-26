@@ -37,7 +37,9 @@ export const MessagesSearchBar = memo(function MessagesSearchBar({
         onChangeText={onChangeText}
         style={[styles.searchInput, { color: palette.text }]}
         accessibilityLabel="Search messages"
-      />
+
+            maxLength={200}
+          />
     </Row>
   );
 });

@@ -64,6 +64,8 @@ function SessionExtrasInner({
             onChangeText={onPriceChange}
             keyboardType="decimal-pad"
             accessibilityLabel="Price in pounds"
+
+            maxLength={10}
           />
         </Row>
         {priceError ? (
@@ -89,6 +91,8 @@ function SessionExtrasInner({
             onChangeText={onAgeMinChange}
             keyboardType="number-pad"
             accessibilityLabel="Minimum age"
+
+            maxLength={10}
           />
           <ThemedText style={styles.ageSeparator}>to</ThemedText>
           <TextInput
@@ -99,6 +103,8 @@ function SessionExtrasInner({
             onChangeText={onAgeMaxChange}
             keyboardType="number-pad"
             accessibilityLabel="Maximum age"
+
+            maxLength={10}
           />
         </Row>
         {ageError ? (

@@ -128,7 +128,9 @@ export const MilestonesSection = memo(function MilestonesSection({
           placeholderTextColor={palette.muted}
           onSubmitEditing={onAddMilestone}
           returnKeyType="done"
-        />
+
+            maxLength={100}
+          />
         <Clickable onPress={onAddMilestone} accessibilityLabel="Add milestone">
           <View style={[styles.addButton, { backgroundColor: palette.tint }]}>
             <Ionicons name="add" size={Components.icon.md} color={palette.surface} />

@@ -84,7 +84,9 @@ export function GoalEditor({ initialData, athleteAge, onSave }: GoalEditorProps)
           onChangeText={setTitle}
           placeholder="e.g. Improve weak-foot passing"
           placeholderTextColor={palette.muted}
-        />
+
+            maxLength={100}
+          />
 
         <ThemedText style={[styles.label, { color: palette.foreground }]}>Description</ThemedText>
         <TextInput
@@ -103,7 +105,9 @@ export function GoalEditor({ initialData, athleteAge, onSave }: GoalEditorProps)
           placeholderTextColor={palette.muted}
           multiline
           textAlignVertical="top"
-        />
+
+            maxLength={500}
+          />
 
         <ThemedText style={[styles.label, { color: palette.foreground }]}>Set By</ThemedText>
         <Row style={styles.roleRow}>

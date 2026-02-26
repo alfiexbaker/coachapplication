@@ -69,6 +69,8 @@ export const SquadDetailsStep = memo(function SquadDetailsStep({
             value={sessionTitle}
             onChangeText={onSessionTitleChange}
             accessibilityLabel="Session title"
+
+            maxLength={100}
           />
         </Column>
 
@@ -99,6 +101,8 @@ export const SquadDetailsStep = memo(function SquadDetailsStep({
             multiline
             numberOfLines={3}
             accessibilityLabel="Session notes"
+
+            maxLength={500}
           />
         </Column>
 

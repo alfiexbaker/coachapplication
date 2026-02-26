@@ -80,7 +80,9 @@ function TagInput({
           onChangeText={setInput}
           onSubmitEditing={addTag}
           returnKeyType="done"
-        />
+
+            maxLength={100}
+          />
         <Clickable
           onPress={addTag}
           style={[styles.tagAddButton, { backgroundColor: withAlpha(palette.tint, 0.09) }]}
@@ -188,6 +190,8 @@ export const DisabilitySelector = React.memo(function DisabilitySelector({
             onChangeText={onDisabilityDescriptionChange}
             multiline
             numberOfLines={2}
+
+            maxLength={500}
           />
 
           <TextInput
@@ -208,6 +212,8 @@ export const DisabilitySelector = React.memo(function DisabilitySelector({
             onChangeText={onSupportRequiredChange}
             multiline
             numberOfLines={2}
+
+            maxLength={500}
           />
 
           <View style={styles.tagField}>
@@ -370,6 +376,8 @@ export const SpecialNeedEntrySection = React.memo(function SpecialNeedEntrySecti
             placeholderTextColor={palette.muted}
             value={snName}
             onChangeText={onSnNameChange}
+
+            maxLength={50}
           />
 
           <TextInput
@@ -380,6 +388,8 @@ export const SpecialNeedEntrySection = React.memo(function SpecialNeedEntrySecti
             onChangeText={onSnDescriptionChange}
             multiline
             numberOfLines={2}
+
+            maxLength={500}
           />
 
           <View style={styles.tagField}>
@@ -435,6 +445,8 @@ export const SpecialNeedEntrySection = React.memo(function SpecialNeedEntrySecti
             onChangeText={onSnParentHintsChange}
             multiline
             numberOfLines={2}
+
+            maxLength={500}
           />
 
           <Row style={styles.addButtonRow}>

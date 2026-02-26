@@ -184,7 +184,9 @@ export const ComposerInputRow = memo(function ComposerInputRow({
           editable={!disabled}
           onFocus={onFocus}
           onBlur={onBlur}
-        />
+
+            maxLength={500}
+          />
       </View>
 
       {/* Send/Voice Button */}

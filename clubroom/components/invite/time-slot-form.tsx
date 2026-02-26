@@ -136,7 +136,9 @@ export const TimeSlotForm = memo(function TimeSlotForm({
                 value={slotLocation}
                 onChangeText={onSlotLocationChange}
                 accessibilityLabel="Location input"
-              />
+
+            maxLength={100}
+          />
             </Column>
           </Row>
           <Clickable

@@ -215,7 +215,9 @@ export const SpecialNeedsForm = React.memo(function SpecialNeedsForm({
               onChangeText={onCommunicationNotesChange}
               multiline
               numberOfLines={3}
-            />
+
+            maxLength={500}
+          />
           </View>
 
           <View style={styles.field}>
@@ -231,7 +233,9 @@ export const SpecialNeedsForm = React.memo(function SpecialNeedsForm({
               onChangeText={onBehavioralNotesChange}
               multiline
               numberOfLines={3}
-            />
+
+            maxLength={500}
+          />
           </View>
         </>
       )}

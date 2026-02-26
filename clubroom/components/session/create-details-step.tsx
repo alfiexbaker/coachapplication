@@ -131,6 +131,8 @@ export const CreateDetailsStep = memo(function CreateDetailsStep({
             value={title}
             onChangeText={onTitleChange}
             accessibilityLabel="Session name"
+
+            maxLength={50}
           />
         </Column>
 
@@ -171,6 +173,8 @@ export const CreateDetailsStep = memo(function CreateDetailsStep({
             multiline
             numberOfLines={3}
             accessibilityLabel="Session description"
+
+            maxLength={500}
           />
         </Column>
 

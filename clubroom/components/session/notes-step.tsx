@@ -88,7 +88,9 @@ export const NotesStep = memo(function NotesStep({
           multiline
           numberOfLines={4}
           accessibilityLabel="Session notes"
-        />
+
+            maxLength={500}
+          />
       </SurfaceCard>
 
       {/* Skills Worked On */}
@@ -172,7 +174,9 @@ export const NotesStep = memo(function NotesStep({
           value={homework}
           onChangeText={onHomeworkChange}
           accessibilityLabel="Homework and practice focus"
-        />
+
+            maxLength={100}
+          />
       </SurfaceCard>
 
       {/* Improvement Focus */}
@@ -194,7 +198,9 @@ export const NotesStep = memo(function NotesStep({
           multiline
           numberOfLines={3}
           accessibilityLabel="Improvement focus"
-        />
+
+            maxLength={500}
+          />
       </SurfaceCard>
     </>
   );

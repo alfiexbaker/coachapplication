@@ -115,7 +115,9 @@ export const ObjectiveModal = memo(function ObjectiveModal({
                   color: palette.foreground,
                 },
               ]}
-            />
+
+            maxLength={500}
+          />
           </Column>
 
           {/* Target Sessions */}
@@ -135,7 +137,9 @@ export const ObjectiveModal = memo(function ObjectiveModal({
                   color: palette.foreground,
                 },
               ]}
-            />
+
+            maxLength={10}
+          />
           </Column>
         </Column>
       </SafeAreaView>

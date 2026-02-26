@@ -90,6 +90,8 @@ export function AthleteNotes({ notes, onAddNote, onDeleteNote }: AthleteNotesPro
             multiline
             numberOfLines={3}
             autoFocus
+
+            maxLength={500}
           />
           <Row justify="end" gap="sm">
             <Clickable

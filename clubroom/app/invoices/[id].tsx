@@ -157,7 +157,9 @@ export default function InvoiceDetailScreen() {
               autoCorrect={false}
               value={c.sendEmail}
               onChangeText={c.setSendEmail}
-            />
+
+            maxLength={100}
+          />
             <Clickable
               style={[
                 styles.sendButton,

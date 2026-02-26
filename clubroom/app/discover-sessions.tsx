@@ -104,6 +104,8 @@ export default function DiscoverSessionsScreen() {
             placeholderTextColor={palette.muted}
             value={c.searchQuery}
             onChangeText={c.setSearchQuery}
+
+            maxLength={100}
           />
           {c.searchQuery.length > 0 && (
             <Clickable accessibilityLabel="Clear search" onPress={c.clearSearch}>

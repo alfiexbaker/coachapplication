@@ -54,7 +54,9 @@ export const SquadInfoCard = memo(function SquadInfoCard({
               onChangeText={onEditNameChange}
               autoFocus
               selectTextOnFocus
-            />
+
+            maxLength={50}
+          />
             <Row gap="xs">
               <Clickable
                 style={[styles.editBtn, { backgroundColor: colors.tint }]}

@@ -163,6 +163,8 @@ export function DrillForm({
             placeholderTextColor={palette.muted}
             value={form.equipment}
             onChangeText={form.setEquipment}
+
+            maxLength={100}
           />
           <ThemedText style={[styles.helperText, { color: palette.muted }]}>
             Separate items with commas
@@ -186,6 +188,8 @@ export function DrillForm({
             placeholderTextColor={palette.muted}
             value={form.tags}
             onChangeText={form.setTags}
+
+            maxLength={100}
           />
           <ThemedText style={[styles.helperText, { color: palette.muted }]}>
             Separate tags with commas

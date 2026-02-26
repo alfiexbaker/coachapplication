@@ -279,7 +279,9 @@ export default function BookCoachScreen() {
               returnKeyType="search"
               style={[styles.searchInput, { color: palette.text }]}
               accessibilityLabel="Search coaches"
-            />
+
+            maxLength={100}
+          />
             {searchQuery.length > 0 ? (
               <Clickable accessibilityLabel="Clear search" onPress={handleClearSearch}>
                 <Ionicons name="close-circle" size={18} color={palette.muted} />

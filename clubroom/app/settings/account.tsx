@@ -78,7 +78,9 @@ export default function AccountSettingsScreen() {
                   autoFocus
                   accessibilityLabel="Email address"
                   accessibilityRole="none"
-                />
+
+            maxLength={100}
+          />
                 <Row justify="flex-end" align="center" gap="md">
                   <Clickable onPress={() => setEditingEmail(false)} accessibilityLabel="Cancel email edit" accessibilityRole="button">
                     <ThemedText style={{ color: colors.muted }}>Cancel</ThemedText>
@@ -113,7 +115,9 @@ export default function AccountSettingsScreen() {
                   placeholder="+44 7XXX XXXXXX"
                   placeholderTextColor={colors.muted}
                   accessibilityLabel="Phone number"
-                />
+
+            maxLength={20}
+          />
                 <Row justify="flex-end" align="center" gap="md">
                   <Clickable onPress={() => setEditingPhone(false)} accessibilityLabel="Cancel phone edit" accessibilityRole="button">
                     <ThemedText style={{ color: colors.muted }}>Cancel</ThemedText>

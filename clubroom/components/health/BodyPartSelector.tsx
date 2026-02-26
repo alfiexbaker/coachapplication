@@ -86,6 +86,8 @@ export function BodyPartSelector({ selectedPart, onSelect }: BodyPartSelectorPro
             autoCapitalize="none"
             autoCorrect={false}
             style={[styles.searchInput, { color: palette.text }]}
+
+            maxLength={100}
           />
           {searchTerm ? (
             <Clickable onPress={() => setSearchTerm('')} accessibilityLabel="Clear search">

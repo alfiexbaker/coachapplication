@@ -566,7 +566,9 @@ function ExistingInviteFlow({
                 value={notes}
                 onChangeText={setNotes}
                 multiline
-              />
+
+            maxLength={500}
+          />
             </SurfaceCard>
           </ScrollView>
 

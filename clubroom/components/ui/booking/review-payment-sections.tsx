@@ -81,7 +81,9 @@ export const PromoCodeCard = React.memo(function PromoCodeCard({
                 { borderColor: colors.border, backgroundColor: colors.card },
               ]}
               accessibilityLabel="Promo code"
-            />
+
+            maxLength={20}
+          />
             <Clickable
               onPress={onApplyPromo}
               disabled={!promoCode.trim()}

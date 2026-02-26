@@ -82,7 +82,9 @@ function SelectionAreaInner({
         onChangeText={onReasonChange}
         placeholder="Reason (optional)"
         placeholderTextColor={colors.border}
-      />
+
+            maxLength={200}
+          />
       <Clickable style={[styles.blockButton, { backgroundColor: colors.error }]} onPress={onBlock}>
         <Ionicons name="close-circle" size={18} color={colors.surface} />
         <Text style={[styles.blockButtonText, { color: colors.surface }]}>Block these dates</Text>

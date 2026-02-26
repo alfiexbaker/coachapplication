@@ -40,7 +40,9 @@ export const InviteManualTab = memo(function InviteManualTab({
           onChangeText={onEmailChange}
           keyboardType="email-address"
           autoCapitalize="none"
-        />
+
+            maxLength={100}
+          />
         <Clickable style={[styles.sendButton, { backgroundColor: colors.tint }]} onPress={onSend}>
           <Ionicons name="send" size={18} color={colors.onPrimary} />
         </Clickable>

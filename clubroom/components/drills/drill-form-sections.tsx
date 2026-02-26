@@ -202,7 +202,9 @@ export const VideoUrlInput = memo(function VideoUrlInput({
           autoCapitalize="none"
           autoCorrect={false}
           keyboardType="url"
-        />
+
+            maxLength={200}
+          />
       </View>
       {error && (
         <ThemedText style={[styles.errorText, { color: palette.error }]}>{error}</ThemedText>

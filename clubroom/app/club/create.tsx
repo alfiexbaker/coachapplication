@@ -303,7 +303,9 @@ function FormInput({
         ]}
         placeholderTextColor={palette.muted}
         {...inputProps}
-      />
+
+            maxLength={100}
+          />
       {errorText ? (
         <ThemedText style={[Typography.caption, { color: palette.error }]}>{errorText}</ThemedText>
       ) : null}

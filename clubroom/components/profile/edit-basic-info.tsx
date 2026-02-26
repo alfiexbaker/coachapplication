@@ -45,7 +45,9 @@ export const EditBasicInfo = memo(function EditBasicInfo({
           placeholderTextColor={colors.muted}
           style={inputStyle}
           accessibilityLabel="Full name"
-        />
+
+            maxLength={50}
+          />
       </View>
 
       <View style={styles.fieldGroup}>
@@ -64,7 +66,9 @@ export const EditBasicInfo = memo(function EditBasicInfo({
           textAlignVertical="top"
           style={[...inputStyle, styles.textArea]}
           accessibilityLabel="Bio"
-        />
+
+            maxLength={20}
+          />
         {userIsCoach && (
           <ThemedText style={styles.helper}>{bio.length} / 500 characters</ThemedText>
         )}

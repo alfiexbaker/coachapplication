@@ -57,7 +57,9 @@ export const AthletesListHeader = React.memo(function AthletesListHeader({
           value={searchQuery}
           onChangeText={onSearchChange}
           accessibilityLabel="Search athletes"
-        />
+
+            maxLength={100}
+          />
         {searchQuery.length > 0 && (
           <Clickable accessibilityLabel="Clear search" onPress={onClearSearch}>
             <Ionicons name="close-circle" size={18} color={colors.muted} />

@@ -136,7 +136,9 @@ export const NoteSearchBar = memo(function NoteSearchBar({
         value={searchQuery}
         onChangeText={onChangeQuery}
         accessibilityLabel="Search notes"
-      />
+
+            maxLength={200}
+          />
       {searchQuery.length > 0 && (
         <Clickable accessibilityLabel="Clear search" onPress={() => onChangeQuery('')}>
           <Ionicons name="close-circle" size={16} color={palette.muted} />

@@ -126,7 +126,9 @@ function TemplateOptionsSectionInner({
               value={location}
               onChangeText={onSetLocation}
               autoFocus
-            />
+
+            maxLength={100}
+          />
           </Row>
         )}
       </View>

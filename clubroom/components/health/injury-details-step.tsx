@@ -76,7 +76,9 @@ export function InjuryDetailsStep({
           multiline
           numberOfLines={4}
           textAlignVertical="top"
-        />
+
+            maxLength={500}
+          />
       </View>
 
       <View style={styles.dateSection}>

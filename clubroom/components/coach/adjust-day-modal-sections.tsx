@@ -103,6 +103,8 @@ export const LocationPicker = memo(function LocationPicker({
             value={location}
             onChangeText={onLocationChange}
             autoFocus
+
+            maxLength={100}
           />
         </Row>
       )}

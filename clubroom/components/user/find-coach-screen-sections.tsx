@@ -71,7 +71,9 @@ export const FindCoachSearchBar = memo(function FindCoachSearchBar({
         keyboardType="default"
         autoCapitalize="characters"
         style={[styles.searchInput, { color: palette.text }]}
-      />
+
+            maxLength={10}
+          />
       {postcode ? (
         <Clickable accessibilityLabel="Clear search" onPress={onClear} hitSlop={8}>
           <Ionicons name="close-circle" size={22} color={palette.icon} />

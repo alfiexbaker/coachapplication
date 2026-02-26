@@ -177,7 +177,9 @@ export default function EditChildSenScreen() {
                 onChangeText={c.onCommunicationNotesChange}
                 multiline
                 numberOfLines={3}
-              />
+
+            maxLength={500}
+          />
             </View>
 
             <View style={styles.field}>
@@ -190,7 +192,9 @@ export default function EditChildSenScreen() {
                 onChangeText={c.onBehavioralNotesChange}
                 multiline
                 numberOfLines={3}
-              />
+
+            maxLength={500}
+          />
             </View>
           </SurfaceCard>
         </ScrollView>

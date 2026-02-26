@@ -86,7 +86,9 @@ export function TimeProposalForm({
           placeholderTextColor={palette.muted}
           value={location}
           onChangeText={setLocation}
-        />
+
+            maxLength={100}
+          />
       </View>
 
       {/* Message */}
@@ -110,7 +112,9 @@ export function TimeProposalForm({
           multiline
           numberOfLines={3}
           textAlignVertical="top"
-        />
+
+            maxLength={500}
+          />
       </View>
 
       <ProposalSummary

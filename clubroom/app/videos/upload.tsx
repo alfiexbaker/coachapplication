@@ -82,7 +82,9 @@ export default function VideoUploadScreen() {
               placeholder="e.g., Dribbling Session — Week 4"
               placeholderTextColor={colors.muted}
               style={[styles.input, { borderColor: colors.border, backgroundColor: colors.card }]}
-            />
+
+            maxLength={100}
+          />
           </View>
           <View style={styles.fieldGroup}>
             <ThemedText style={styles.label}>Description</ThemedText>
@@ -99,7 +101,9 @@ export default function VideoUploadScreen() {
                 styles.textArea,
                 { borderColor: colors.border, backgroundColor: colors.card },
               ]}
-            />
+
+            maxLength={500}
+          />
           </View>
         </SurfaceCard>
 

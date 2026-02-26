@@ -72,6 +72,8 @@ export const AddRecoveryNote = memo(function AddRecoveryNote({
             multiline
             numberOfLines={3}
             textAlignVertical="top"
+
+            maxLength={500}
           />
 
           <View style={styles.progressSection}>

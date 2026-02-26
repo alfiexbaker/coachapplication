@@ -480,7 +480,9 @@ export default function EventRSVPScreen() {
                   multiline
                   numberOfLines={3}
                   textAlignVertical="top"
-                />
+
+            maxLength={500}
+          />
               </View>
             </>
           )}

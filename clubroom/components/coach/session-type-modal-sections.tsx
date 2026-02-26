@@ -154,7 +154,9 @@ export const PriceInput = memo(function PriceInput({ value, onChange, palette }:
           value={value}
           onChangeText={onChange}
           keyboardType="numeric"
-        />
+
+            maxLength={10}
+          />
       </Row>
     </View>
   );

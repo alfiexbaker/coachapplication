@@ -185,6 +185,8 @@ export default function CancelBookingScreen() {
             onChangeText={cancel.setNote}
             multiline
             numberOfLines={4}
+
+            maxLength={500}
           />
         </SurfaceCard>
 

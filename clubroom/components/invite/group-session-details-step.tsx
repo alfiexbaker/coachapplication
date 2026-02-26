@@ -130,6 +130,8 @@ export const GroupSessionDetailsStep = memo(function GroupSessionDetailsStep({
             multiline
             numberOfLines={3}
             accessibilityLabel="Notes for parents"
+
+            maxLength={500}
           />
         </Column>
       </Column>

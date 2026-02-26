@@ -141,7 +141,9 @@ function DiscoverClubHubInner({ userClubs }: DiscoverClubHubProps) {
                 autoCapitalize="characters"
                 accessibilityLabel="Club invite code"
                 style={[styles.inviteText, { color: palette.text }]}
-              />
+
+            maxLength={20}
+          />
             </Row>
             <Clickable
               onPress={handleJoinClub}

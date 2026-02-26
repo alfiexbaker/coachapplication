@@ -114,6 +114,8 @@ export const NameFieldsRow = memo(function NameFieldsRow({
             value={firstName}
             onChangeText={onFirstNameChange}
             autoCapitalize="words"
+
+            maxLength={50}
           />
         </View>
         <View style={styles.halfField}>
@@ -125,6 +127,8 @@ export const NameFieldsRow = memo(function NameFieldsRow({
             value={lastName}
             onChangeText={onLastNameChange}
             autoCapitalize="words"
+
+            maxLength={50}
           />
         </View>
       </Row>
@@ -137,7 +141,9 @@ export const NameFieldsRow = memo(function NameFieldsRow({
           placeholderTextColor={palette.muted}
           value={nickname}
           onChangeText={onNicknameChange}
-        />
+
+            maxLength={50}
+          />
       </View>
     </>
   );

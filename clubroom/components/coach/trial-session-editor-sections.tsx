@@ -76,7 +76,9 @@ export const TrialFormFields = memo(function TrialFormFields({
           keyboardType="decimal-pad"
           placeholder="15"
           placeholderTextColor={palette.muted}
-        />
+
+            maxLength={10}
+          />
       </Row>
 
       <FieldLabel
@@ -93,7 +95,9 @@ export const TrialFormFields = memo(function TrialFormFields({
           keyboardType="decimal-pad"
           placeholder="45"
           placeholderTextColor={palette.muted}
-        />
+
+            maxLength={10}
+          />
       </Row>
 
       <FieldLabel label="Duration" hint="Length of the trial session" palette={palette} />
@@ -105,7 +109,9 @@ export const TrialFormFields = memo(function TrialFormFields({
           keyboardType="number-pad"
           placeholder="60"
           placeholderTextColor={palette.muted}
-        />
+
+            maxLength={10}
+          />
         <ThemedText style={[Typography.body, { color: palette.muted }]}>minutes</ThemedText>
       </Row>
 
@@ -122,7 +128,9 @@ export const TrialFormFields = memo(function TrialFormFields({
           keyboardType="number-pad"
           placeholder="1"
           placeholderTextColor={palette.muted}
-        />
+
+            maxLength={10}
+          />
         <ThemedText style={[Typography.body, { color: palette.muted }]}>session(s)</ThemedText>
       </Row>
 
@@ -140,7 +148,9 @@ export const TrialFormFields = memo(function TrialFormFields({
         placeholder="Describe your trial offering..."
         placeholderTextColor={palette.muted}
         textAlignVertical="top"
-      />
+
+            maxLength={500}
+          />
     </SurfaceCard>
   );
 });

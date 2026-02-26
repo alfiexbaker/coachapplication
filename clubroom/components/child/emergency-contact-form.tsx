@@ -116,7 +116,9 @@ export const EmergencyContactForm = memo(function EmergencyContactForm({
           placeholderTextColor={colors.muted}
           value={name}
           onChangeText={setName}
-        />
+
+            maxLength={50}
+          />
       </View>
 
       <View style={styles.field}>
@@ -127,7 +129,9 @@ export const EmergencyContactForm = memo(function EmergencyContactForm({
           placeholderTextColor={colors.muted}
           value={relationship}
           onChangeText={setRelationship}
-        />
+
+            maxLength={100}
+          />
       </View>
 
       <View style={styles.field}>

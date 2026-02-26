@@ -46,7 +46,9 @@ export const InvitePastSessionsTab = memo(function InvitePastSessionsTab({
           placeholderTextColor={colors.muted}
           value={searchQuery}
           onChangeText={onSearchChange}
-        />
+
+            maxLength={50}
+          />
         {searchQuery ? (
           <Clickable accessibilityLabel="Clear search" onPress={() => onSearchChange('')}>
             <Ionicons name="close-circle" size={20} color={colors.muted} />

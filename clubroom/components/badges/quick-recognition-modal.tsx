@@ -361,7 +361,9 @@ export function QuickRecognitionModal({
                         },
                       ]}
                       accessibilityLabel="Personal note for recognition"
-                    />
+
+            maxLength={500}
+          />
                   </Animated.View>
                 ) : null}
               </Animated.View>

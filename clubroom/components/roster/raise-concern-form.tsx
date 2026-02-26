@@ -89,6 +89,8 @@ export const RaiseConcernForm = React.memo(function RaiseConcernForm({
             numberOfLines={4}
             textAlignVertical="top"
             accessibilityLabel="Concern description"
+
+            maxLength={500}
           />
         </Column>
       </Animated.View>
@@ -116,6 +118,8 @@ export const RaiseConcernForm = React.memo(function RaiseConcernForm({
             numberOfLines={2}
             textAlignVertical="top"
             accessibilityLabel="Action taken"
+
+            maxLength={500}
           />
         </Column>
       </Animated.View>

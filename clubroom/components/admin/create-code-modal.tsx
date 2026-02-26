@@ -137,7 +137,9 @@ export const CreateCodeModal = memo(function CreateCodeModal({
                 { borderColor: palette.border, backgroundColor: palette.card, color: palette.text },
               ]}
               accessibilityLabel="Custom code text"
-            />
+
+            maxLength={20}
+          />
           </Column>
 
           <Column gap="sm">
@@ -153,7 +155,9 @@ export const CreateCodeModal = memo(function CreateCodeModal({
                 { borderColor: palette.border, backgroundColor: palette.card, color: palette.text },
               ]}
               accessibilityLabel="Maximum number of uses"
-            />
+
+            maxLength={10}
+          />
           </Column>
 
           <Clickable

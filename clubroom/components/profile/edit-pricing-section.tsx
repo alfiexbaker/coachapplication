@@ -47,6 +47,8 @@ export const EditPricingSection = memo(function EditPricingSection({
             placeholderTextColor={colors.muted}
             style={inputStyle}
             accessibilityLabel="Minimum price"
+
+            maxLength={10}
           />
         </View>
         <View style={[styles.fieldGroup, styles.priceField]}>
@@ -59,6 +61,8 @@ export const EditPricingSection = memo(function EditPricingSection({
             placeholderTextColor={colors.muted}
             style={inputStyle}
             accessibilityLabel="Maximum price"
+
+            maxLength={10}
           />
         </View>
       </Row>

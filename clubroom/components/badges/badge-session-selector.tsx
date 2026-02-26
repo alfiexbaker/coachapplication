@@ -107,7 +107,9 @@ export const BadgeSessionSelector = memo(function BadgeSessionSelector({
           value={sessionQuery}
           onChangeText={onQueryChange}
           style={[styles.input, { color: colors.foreground }]}
-        />
+
+            maxLength={100}
+          />
       </Row>
 
       <ThemedText style={[Typography.small, { color: colors.muted }]}>

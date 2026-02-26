@@ -100,7 +100,9 @@ export const RosterSearchBar = React.memo(function RosterSearchBar({
           value={searchQuery}
           onChangeText={onSearchChange}
           accessibilityLabel="Search athletes"
-        />
+
+            maxLength={100}
+          />
         {searchQuery.length > 0 ? (
           <Clickable accessibilityLabel="Clear search" onPress={() => onSearchChange('')}>
             <Ionicons name="close-circle" size={18} color={colors.muted} />

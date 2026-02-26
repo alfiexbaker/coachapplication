@@ -117,6 +117,8 @@ function DayEditorVenueSectionInner({
             onSubmitEditing={onAddVenue}
             autoFocus
             returnKeyType="done"
+
+            maxLength={50}
           />
           <Clickable
             onPress={onAddVenue}

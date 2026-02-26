@@ -69,6 +69,8 @@ export const SquadInviteSessionForm = memo(function SquadInviteSessionForm({
             placeholderTextColor={palette.muted}
             value={sessionTitle}
             onChangeText={onTitleChange}
+
+            maxLength={100}
           />
         </View>
         <View style={styles.formRow}>
@@ -166,7 +168,9 @@ export const SquadInviteSessionForm = memo(function SquadInviteSessionForm({
                 placeholderTextColor={palette.muted}
                 value={slotLocation}
                 onChangeText={onSlotLocationChange}
-              />
+
+            maxLength={100}
+          />
             </Column>
             <Clickable
               accessibilityLabel="Add time slot"

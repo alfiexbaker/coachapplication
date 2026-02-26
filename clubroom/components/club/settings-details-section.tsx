@@ -58,7 +58,9 @@ export const SettingsDetailsSection = memo(function SettingsDetailsSection({
               onChangeText={onChange}
               placeholder={placeholder}
               placeholderTextColor={colors.muted}
-            />
+
+            maxLength={100}
+          />
           </View>
         ))}
         <Clickable style={[styles.saveBtn, { backgroundColor: colors.tint }]} onPress={onSave}>

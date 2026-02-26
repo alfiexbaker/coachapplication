@@ -126,6 +126,8 @@ export const ProgressGoalsTab = memo(function ProgressGoalsTab({
             placeholder="What do you want to achieve?"
             placeholderTextColor={colors.muted}
             style={[styles.input, { color: colors.foreground, borderColor: colors.border }]}
+
+            maxLength={100}
           />
           <Row gap="xs" justify="flex-end">
             <Clickable

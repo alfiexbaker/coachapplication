@@ -65,7 +65,9 @@ function AddChildEmergencyStepInner({
           value={emergencyName}
           onChangeText={onEmergencyNameChange}
           autoCapitalize="words"
-        />
+
+            maxLength={50}
+          />
       </View>
 
       <View style={styles.field}>
@@ -77,7 +79,9 @@ function AddChildEmergencyStepInner({
           value={emergencyPhone}
           onChangeText={onEmergencyPhoneChange}
           keyboardType="phone-pad"
-        />
+
+            maxLength={20}
+          />
       </View>
 
       <View style={styles.field}>
@@ -88,7 +92,9 @@ function AddChildEmergencyStepInner({
           placeholderTextColor={palette.muted}
           value={emergencyRelation}
           onChangeText={onEmergencyRelationChange}
-        />
+
+            maxLength={100}
+          />
       </View>
 
       {/* Secondary Contact */}
@@ -105,7 +111,9 @@ function AddChildEmergencyStepInner({
           value={secondaryName}
           onChangeText={onSecondaryNameChange}
           autoCapitalize="words"
-        />
+
+            maxLength={50}
+          />
       </View>
 
       <View style={styles.field}>
@@ -117,7 +125,9 @@ function AddChildEmergencyStepInner({
           value={secondaryPhone}
           onChangeText={onSecondaryPhoneChange}
           keyboardType="phone-pad"
-        />
+
+            maxLength={20}
+          />
       </View>
     </View>
   );

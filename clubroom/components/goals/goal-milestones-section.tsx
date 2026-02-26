@@ -82,7 +82,9 @@ export function GoalMilestonesSection({
           onChangeText={onNewMilestoneChange}
           onSubmitEditing={handleAdd}
           returnKeyType="done"
-        />
+
+            maxLength={100}
+          />
         <Clickable
           accessibilityLabel="Add milestone"
           onPress={handleAdd}

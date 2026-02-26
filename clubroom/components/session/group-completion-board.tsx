@@ -284,7 +284,9 @@ export const GroupCompletionBoard = memo(function GroupCompletionBoard({
               backgroundColor: withAlpha(colors.surface, 0.6),
             },
           ]}
-        />
+
+            maxLength={500}
+          />
         <Clickable
           style={[
             styles.sendButton,

@@ -92,7 +92,9 @@ export const CreateMatchDetails = memo(function CreateMatchDetails({
           placeholderTextColor={colors.muted}
           value={opponent}
           onChangeText={onOpponentChange}
-        />
+
+            maxLength={100}
+          />
       </View>
 
       <View style={styles.fieldGroup}>
@@ -137,7 +139,9 @@ export const CreateMatchDetails = memo(function CreateMatchDetails({
           placeholderTextColor={colors.muted}
           value={venue}
           onChangeText={onVenueChange}
-        />
+
+            maxLength={100}
+          />
       </View>
 
       <View style={styles.fieldGroup}>
@@ -153,7 +157,9 @@ export const CreateMatchDetails = memo(function CreateMatchDetails({
           placeholderTextColor={colors.muted}
           value={address}
           onChangeText={onAddressChange}
-        />
+
+            maxLength={100}
+          />
       </View>
     </View>
   );

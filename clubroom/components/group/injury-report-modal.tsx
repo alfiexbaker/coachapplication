@@ -160,7 +160,9 @@ export const InjuryReportModal = memo(function InjuryReportModal({
               multiline
               numberOfLines={4}
               textAlignVertical="top"
-            />
+
+            maxLength={500}
+          />
           </View>
 
           {/* Info */}

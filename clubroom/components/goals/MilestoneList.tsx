@@ -131,6 +131,8 @@ export function MilestoneList({
             onSubmitEditing={handleAddMilestone}
             returnKeyType="done"
             editable={!isAdding}
+
+            maxLength={100}
           />
           <Clickable
             onPress={handleAddMilestone}

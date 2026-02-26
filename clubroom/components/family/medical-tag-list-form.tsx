@@ -60,7 +60,9 @@ function TagInputSection({
           value={inputValue}
           onChangeText={onInputChange}
           onSubmitEditing={onAdd}
-        />
+
+            maxLength={100}
+          />
         <Clickable
           accessibilityLabel="Add tag"
           onPress={onAdd}

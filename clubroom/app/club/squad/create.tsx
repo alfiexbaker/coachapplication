@@ -127,7 +127,9 @@ export default function CreateSquadScreen() {
               placeholderTextColor={colors.muted}
               value={squadName}
               onChangeText={setSquadName}
-            />
+
+            maxLength={50}
+          />
           </View>
 
           {/* Age Group */}
@@ -211,7 +213,9 @@ export default function CreateSquadScreen() {
               placeholderTextColor={colors.muted}
               value={meetLocation}
               onChangeText={setMeetLocation}
-            />
+
+            maxLength={100}
+          />
           </View>
 
           {/* Focus Tags */}

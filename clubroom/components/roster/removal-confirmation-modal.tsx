@@ -114,7 +114,9 @@ export function RemovalConfirmationModal({
                 onChangeText={setCustomReason}
                 multiline
                 numberOfLines={2}
-              />
+
+            maxLength={500}
+          />
             </View>
           )}
 

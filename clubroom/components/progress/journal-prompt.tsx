@@ -213,7 +213,9 @@ export const JournalPrompt = memo(function JournalPrompt({
             },
           ]}
           multiline
-        />
+
+            maxLength={500}
+          />
 
         <Clickable
           style={[styles.saveButton, { backgroundColor: colors.tint }]}

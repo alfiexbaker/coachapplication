@@ -101,7 +101,9 @@ export function InviteAthleteModal({
               placeholderTextColor={palette.muted}
               value={state.searchQuery}
               onChangeText={state.setSearchQuery}
-            />
+
+            maxLength={100}
+          />
             {state.searchQuery.length > 0 && (
               <Clickable accessibilityLabel="Clear search" onPress={() => state.setSearchQuery('')}>
                 <Ionicons name="close-circle" size={18} color={palette.muted} />

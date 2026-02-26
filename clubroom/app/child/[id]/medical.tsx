@@ -151,7 +151,9 @@ export default function MedicalInfoScreen() {
               placeholderTextColor={colors.muted}
               value={doctorName}
               onChangeText={setDoctorName}
-            />
+
+            maxLength={20}
+          />
           </View>
           <View style={styles.field}>
             <ThemedText style={Typography.bodySmallSemiBold}>Doctor Phone</ThemedText>
@@ -162,7 +164,9 @@ export default function MedicalInfoScreen() {
               value={doctorPhone}
               onChangeText={setDoctorPhone}
               keyboardType="phone-pad"
-            />
+
+            maxLength={20}
+          />
           </View>
         </SurfaceCard>
 
@@ -176,7 +180,9 @@ export default function MedicalInfoScreen() {
               placeholderTextColor={colors.muted}
               value={insuranceProvider}
               onChangeText={setInsuranceProvider}
-            />
+
+            maxLength={100}
+          />
           </View>
           <View style={styles.field}>
             <ThemedText style={Typography.bodySmallSemiBold}>Policy Number</ThemedText>
@@ -186,7 +192,9 @@ export default function MedicalInfoScreen() {
               placeholderTextColor={colors.muted}
               value={insuranceNumber}
               onChangeText={setInsuranceNumber}
-            />
+
+            maxLength={100}
+          />
           </View>
         </SurfaceCard>
 
@@ -200,6 +208,8 @@ export default function MedicalInfoScreen() {
             onChangeText={setNotes}
             multiline
             numberOfLines={4}
+
+            maxLength={500}
           />
         </SurfaceCard>
 

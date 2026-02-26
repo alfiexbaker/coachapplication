@@ -150,7 +150,9 @@ export default function ReportProblemScreen() {
               numberOfLines={6}
               textAlignVertical="top"
               style={[styles.textArea, { color: palette.foreground }]}
-            />
+
+            maxLength={20}
+          />
           </SurfaceCard>
           <ThemedText style={styles.helper}>{description.length} / 500 characters</ThemedText>
         </View>

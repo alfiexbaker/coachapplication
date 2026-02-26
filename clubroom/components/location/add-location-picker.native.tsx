@@ -440,7 +440,9 @@ export default memo(function AddLocationPicker({
                 value={venueName}
                 onChangeText={onChangeVenueName}
                 accessibilityLabel="Venue name"
-              />
+
+            maxLength={50}
+          />
             </Row>
           )}
 

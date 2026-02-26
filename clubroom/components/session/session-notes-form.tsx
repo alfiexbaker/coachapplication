@@ -146,7 +146,9 @@ export function SessionNotesForm({
           value={improvements}
           onChangeText={setImprovements}
           multiline
-        />
+
+            maxLength={500}
+          />
       </View>
 
       <View style={{ gap: Spacing.sm }}>
@@ -158,7 +160,9 @@ export function SessionNotesForm({
           value={homework}
           onChangeText={setHomework}
           multiline
-        />
+
+            maxLength={500}
+          />
       </View>
 
       <View style={{ gap: Spacing.sm }}>

@@ -46,7 +46,9 @@ export const RosterSearchBar = memo(function RosterSearchBar({
         style={[styles.input, { color: colors.text }]}
         accessibilityLabel="Search athletes"
         returnKeyType="search"
-      />
+
+            maxLength={100}
+          />
       {value.length > 0 && (
         <Clickable
           onPress={handleClear}

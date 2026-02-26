@@ -130,7 +130,9 @@ export function ChatInput({
         onChangeText={handleTextChange}
         multiline
         editable={!disabled}
-      />
+
+            maxLength={500}
+          />
       <Clickable
         accessibilityRole="button"
         accessibilityLabel={value ? 'Send message' : 'Record voice message'}

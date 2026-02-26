@@ -139,7 +139,9 @@ export const InviteCounterPropose = memo(function InviteCounterPropose({
                 value={loc}
                 onChangeText={setLoc}
                 accessibilityLabel="Location input"
-              />
+
+            maxLength={100}
+          />
             </Column>
           </Row>
           <Clickable
@@ -168,6 +170,8 @@ export const InviteCounterPropose = memo(function InviteCounterPropose({
             multiline
             numberOfLines={3}
             accessibilityLabel="Note to coach"
+
+            maxLength={500}
           />
         </Column>
       </SurfaceCard>

@@ -127,6 +127,8 @@ export function CreateSessionForm(props: CreateSessionFormProps) {
             value={props.sessionTitle}
             onChangeText={props.onSessionTitleChange}
             accessibilityLabel="Session title"
+
+            maxLength={100}
           />
           {titleError ? (
             <ThemedText style={[styles.errorText, { color: palette.error }]}>{titleError}</ThemedText>
@@ -148,6 +150,8 @@ export function CreateSessionForm(props: CreateSessionFormProps) {
             multiline
             numberOfLines={3}
             accessibilityLabel="Session description"
+
+            maxLength={500}
           />
         </View>
 
@@ -165,7 +169,9 @@ export function CreateSessionForm(props: CreateSessionFormProps) {
               onChangeText={props.onMaxParticipantsChange}
               keyboardType="number-pad"
               accessibilityLabel="Maximum participants"
-            />
+
+            maxLength={10}
+          />
             {participantError ? (
               <ThemedText style={[styles.errorText, { color: palette.error }]}>
                 {participantError}
@@ -186,6 +192,8 @@ export function CreateSessionForm(props: CreateSessionFormProps) {
             value={props.location}
             onChangeText={props.onLocationChange}
             accessibilityLabel="Session location"
+
+            maxLength={100}
           />
           {locationError ? (
             <ThemedText style={[styles.errorText, { color: palette.error }]}>{locationError}</ThemedText>

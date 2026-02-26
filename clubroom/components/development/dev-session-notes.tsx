@@ -58,6 +58,8 @@ export const DevSessionNotes = memo(function DevSessionNotes({
               { color: colors.foreground, backgroundColor: colors.background },
             ]}
             textAlignVertical="top"
+
+            maxLength={500}
           />
         </SurfaceCard>
       </Column>
@@ -82,6 +84,8 @@ export const DevSessionNotes = memo(function DevSessionNotes({
               { color: colors.foreground, backgroundColor: colors.background },
             ]}
             textAlignVertical="top"
+
+            maxLength={500}
           />
         </SurfaceCard>
       </Column>
@@ -106,6 +110,8 @@ export const DevSessionNotes = memo(function DevSessionNotes({
               { color: colors.foreground, backgroundColor: colors.background },
             ]}
             textAlignVertical="top"
+
+            maxLength={500}
           />
         </SurfaceCard>
       </Column>
@@ -133,6 +139,8 @@ export const DevSessionNotes = memo(function DevSessionNotes({
               { color: colors.foreground, backgroundColor: colors.background },
             ]}
             textAlignVertical="top"
+
+            maxLength={500}
           />
         </SurfaceCard>
       </Column>

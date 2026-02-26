@@ -87,7 +87,9 @@ export function SessionJournal({ coachNotes, pastEntries, onSave }: SessionJourn
           placeholderTextColor={palette.muted}
           multiline
           textAlignVertical="top"
-        />
+
+            maxLength={500}
+          />
 
         <ThemedText style={[styles.fieldLabel, { color: palette.foreground }]}>
           How I Felt

@@ -184,7 +184,9 @@ export const GuestCountModal = memo(function GuestCountModal({
               onChangeText={onGuestCountChange}
               keyboardType="number-pad"
               textAlign="center"
-            />
+
+            maxLength={10}
+          />
 
             <Clickable
               accessibilityLabel="Increase guest count"

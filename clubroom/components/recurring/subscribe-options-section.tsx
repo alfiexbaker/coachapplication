@@ -181,7 +181,9 @@ function SubscribeOptionsSectionInner({
           placeholderTextColor={palette.muted}
           value={location}
           onChangeText={onLocationChange}
-        />
+
+            maxLength={100}
+          />
       </View>
 
       {/* End Date */}
@@ -263,7 +265,9 @@ function SubscribeOptionsSectionInner({
           value={notes}
           onChangeText={onNotesChange}
           multiline
-        />
+
+            maxLength={500}
+          />
       </View>
     </>
   );

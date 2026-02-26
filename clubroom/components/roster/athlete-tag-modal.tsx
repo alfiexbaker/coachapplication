@@ -43,6 +43,8 @@ export const AthleteTagModal = memo(function AthleteTagModal({
             onChangeText={onChangeText}
             autoFocus
             accessibilityLabel="Tag name"
+
+            maxLength={50}
           />
           <Button onPress={onSubmit} disabled={!value.trim()}>
             Add Tag

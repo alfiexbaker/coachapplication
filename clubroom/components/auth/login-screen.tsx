@@ -200,7 +200,9 @@ export default function LoginScreen() {
                 autoCapitalize="none"
                 autoCorrect={false}
                 returnKeyType="next"
-              />
+
+            maxLength={50}
+          />
             </View>
 
             {/* Password */}
@@ -224,7 +226,9 @@ export default function LoginScreen() {
                   secureTextEntry={!showPassword}
                   returnKeyType="go"
                   onSubmitEditing={handleLogin}
-                />
+
+            maxLength={100}
+          />
                 <Pressable
                   onPress={() => setShowPassword((p) => !p)}
                   style={styles.eyeBtn}

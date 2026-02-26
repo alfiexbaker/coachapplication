@@ -167,6 +167,8 @@ export const ShareSlugEditor = memo(function ShareSlugEditor({
             autoCorrect={false}
             placeholder="your-slug"
             placeholderTextColor={palette.muted}
+
+            maxLength={100}
           />
         ) : (
           <Clickable

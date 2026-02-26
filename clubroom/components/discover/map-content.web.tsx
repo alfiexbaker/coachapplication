@@ -236,7 +236,9 @@ export default function MapContent(props: MapContentProps) {
               returnKeyType="search"
               style={[styles.searchInput, { color: palette.text }]}
               accessibilityLabel="Search coaches"
-            />
+
+            maxLength={100}
+          />
             {searchQuery.length > 0 ? (
               <Clickable accessibilityLabel="Clear search" onPress={onClearSearch} style={styles.clearSearchBtn}>
                 <Ionicons name="close-circle" size={18} color={palette.muted} />

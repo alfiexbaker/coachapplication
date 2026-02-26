@@ -467,7 +467,9 @@ export const CreateScheduleStep = memo(function CreateScheduleStep({
               onChangeText={onPriceChange}
               keyboardType="number-pad"
               accessibilityLabel="Session price"
-            />
+
+            maxLength={10}
+          />
           </Row>
           <ThemedText style={[styles.hint, { color: priceError ? colors.error : colors.muted }]}>
             {priceError ?? 'Leave empty or set to 0 for free sessions. Whole pounds only (£10-£200 otherwise).'}

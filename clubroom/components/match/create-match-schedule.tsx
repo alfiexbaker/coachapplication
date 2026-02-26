@@ -67,7 +67,9 @@ export const CreateMatchSchedule = memo(function CreateMatchSchedule({
           value={maxPlayers}
           onChangeText={onMaxPlayersChange}
           keyboardType="number-pad"
-        />
+
+            maxLength={10}
+          />
         <ThemedText style={[Typography.caption, { color: colors.muted }]}>
           Maximum number of players for the match day squad
         </ThemedText>
@@ -89,7 +91,9 @@ export const CreateMatchSchedule = memo(function CreateMatchSchedule({
           onChangeText={onNotesChange}
           multiline
           numberOfLines={3}
-        />
+
+            maxLength={500}
+          />
       </View>
     </View>
   );

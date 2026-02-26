@@ -77,7 +77,9 @@ export const EditContactInfo = memo(function EditContactInfo({
           placeholderTextColor={colors.muted}
           style={inputStyle}
           accessibilityLabel="Email address"
-        />
+
+            maxLength={100}
+          />
       </View>
 
       <View style={styles.fieldGroup}>
@@ -91,7 +93,9 @@ export const EditContactInfo = memo(function EditContactInfo({
           placeholderTextColor={colors.muted}
           style={inputStyle}
           accessibilityLabel="Phone number"
-        />
+
+            maxLength={20}
+          />
       </View>
 
       {userIsCoach && (
@@ -106,6 +110,8 @@ export const EditContactInfo = memo(function EditContactInfo({
             placeholderTextColor={colors.muted}
             style={inputStyle}
             accessibilityLabel="Website URL"
+
+            maxLength={200}
           />
         </View>
       )}

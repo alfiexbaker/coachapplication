@@ -98,11 +98,15 @@ export default function EditChildProfileModal() {
 
           <View style={styles.field}>
             <ThemedText style={styles.label}>First Name</ThemedText>
-            <TextInput style={inputStyle} value={c.firstName} onChangeText={c.setFirstName} />
+            <TextInput style={inputStyle} value={c.firstName} onChangeText={c.setFirstName}
+            maxLength={50}
+          />
           </View>
           <View style={styles.field}>
             <ThemedText style={styles.label}>Last Name</ThemedText>
-            <TextInput style={inputStyle} value={c.lastName} onChangeText={c.setLastName} />
+            <TextInput style={inputStyle} value={c.lastName} onChangeText={c.setLastName}
+            maxLength={50}
+          />
           </View>
           <View style={styles.field}>
             <ThemedText style={styles.label}>Nickname</ThemedText>
@@ -112,7 +116,9 @@ export default function EditChildProfileModal() {
               onChangeText={c.setNickname}
               placeholder="Optional"
               placeholderTextColor={palette.muted}
-            />
+
+            maxLength={50}
+          />
           </View>
           <View style={styles.field}>
             <ThemedText style={styles.label}>Date of Birth</ThemedText>
@@ -122,7 +128,9 @@ export default function EditChildProfileModal() {
               onChangeText={c.setDateOfBirth}
               placeholder="YYYY-MM-DD"
               placeholderTextColor={palette.muted}
-            />
+
+            maxLength={100}
+          />
           </View>
 
           <View style={styles.field}>
@@ -243,7 +251,9 @@ export default function EditChildProfileModal() {
               style={inputStyle}
               value={c.emergencyContactName}
               onChangeText={c.setEmergencyContactName}
-            />
+
+            maxLength={50}
+          />
           </View>
           <View style={styles.field}>
             <ThemedText style={styles.label}>Primary Contact Phone</ThemedText>
@@ -252,7 +262,9 @@ export default function EditChildProfileModal() {
               value={c.emergencyContactPhone}
               onChangeText={c.setEmergencyContactPhone}
               keyboardType="phone-pad"
-            />
+
+            maxLength={20}
+          />
           </View>
           <View style={styles.field}>
             <ThemedText style={styles.label}>Primary Contact Relation</ThemedText>
@@ -260,7 +272,9 @@ export default function EditChildProfileModal() {
               style={inputStyle}
               value={c.emergencyContactRelation}
               onChangeText={c.setEmergencyContactRelation}
-            />
+
+            maxLength={100}
+          />
           </View>
           <View style={styles.field}>
             <ThemedText style={styles.label}>Secondary Contact Name</ThemedText>
@@ -270,7 +284,9 @@ export default function EditChildProfileModal() {
               onChangeText={c.setSecondaryEmergencyName}
               placeholder="Optional"
               placeholderTextColor={palette.muted}
-            />
+
+            maxLength={50}
+          />
           </View>
           <View style={styles.field}>
             <ThemedText style={styles.label}>Secondary Contact Phone</ThemedText>
@@ -281,7 +297,9 @@ export default function EditChildProfileModal() {
               keyboardType="phone-pad"
               placeholder="Optional"
               placeholderTextColor={palette.muted}
-            />
+
+            maxLength={20}
+          />
           </View>
         </SurfaceCard>
 
@@ -294,7 +312,9 @@ export default function EditChildProfileModal() {
               value={c.communicationNotes}
               onChangeText={c.setCommunicationNotes}
               multiline
-            />
+
+            maxLength={500}
+          />
           </View>
           <View style={styles.field}>
             <ThemedText style={styles.label}>Behavioral Notes</ThemedText>
@@ -303,7 +323,9 @@ export default function EditChildProfileModal() {
               value={c.behavioralNotes}
               onChangeText={c.setBehavioralNotes}
               multiline
-            />
+
+            maxLength={500}
+          />
           </View>
         </SurfaceCard>
 

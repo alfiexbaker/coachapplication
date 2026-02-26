@@ -75,6 +75,8 @@ export const InviteCodeSection = memo(function InviteCodeSection({
             returnKeyType="go"
             onSubmitEditing={onValidate}
             editable={!inviteValidated}
+
+            maxLength={20}
           />
           <Clickable
             style={({ pressed }) => [
@@ -152,7 +154,9 @@ export const CoachFormFields = memo(function CoachFormFields({
           placeholderTextColor={palette.muted}
           style={inputStyle}
           returnKeyType="next"
-        />
+
+            maxLength={50}
+          />
       </View>
 
       <View style={styles.fieldGroup}>
@@ -166,7 +170,9 @@ export const CoachFormFields = memo(function CoachFormFields({
           placeholderTextColor={palette.muted}
           style={inputStyle}
           returnKeyType="next"
-        />
+
+            maxLength={100}
+          />
       </View>
 
       <View style={styles.fieldGroup}>
@@ -179,7 +185,9 @@ export const CoachFormFields = memo(function CoachFormFields({
           placeholderTextColor={palette.muted}
           style={inputStyle}
           returnKeyType="next"
-        />
+
+            maxLength={20}
+          />
       </View>
 
       <View style={styles.fieldGroup}>
@@ -192,7 +200,9 @@ export const CoachFormFields = memo(function CoachFormFields({
           placeholderTextColor={palette.muted}
           style={inputStyle}
           returnKeyType="next"
-        />
+
+            maxLength={100}
+          />
       </View>
 
       <View style={styles.fieldGroup}>
@@ -206,7 +216,9 @@ export const CoachFormFields = memo(function CoachFormFields({
           style={inputStyle}
           returnKeyType="go"
           onSubmitEditing={onSubmit}
-        />
+
+            maxLength={100}
+          />
       </View>
     </>
   );

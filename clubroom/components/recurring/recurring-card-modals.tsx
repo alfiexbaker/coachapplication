@@ -66,6 +66,8 @@ export const RecurringConfirmModal = memo(function RecurringConfirmModal({
             value={reason}
             onChangeText={onReasonChange}
             multiline
+
+            maxLength={500}
           />
           <Row gap="sm" justify="center">
             <Button variant="outline" onPress={onCancel}>
