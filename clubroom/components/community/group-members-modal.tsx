@@ -115,6 +115,7 @@ function GroupMembersModalInner({
         )}
 
         <FlatList
+        accessibilityRole="list"
           data={sortedMembers}
           keyExtractor={(item) => item.parentId}
           renderItem={renderMemberItem}

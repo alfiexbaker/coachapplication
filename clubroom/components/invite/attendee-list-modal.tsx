@@ -127,6 +127,7 @@ function AttendeeListModalComponent({
             </View>
           ) : (
             <FlatList
+        accessibilityRole="list"
               data={sections}
               keyExtractor={(item) => item.key}
               renderItem={renderSectionItem}

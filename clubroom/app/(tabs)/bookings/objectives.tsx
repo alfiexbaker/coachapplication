@@ -125,6 +125,7 @@ export default function ObjectivesScreen() {
       edges={['bottom']}
     >
       <FlatList
+        accessibilityRole="list"
         data={filteredObjectives}
         keyExtractor={keyExtractor}
         renderItem={renderItem}

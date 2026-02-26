@@ -142,6 +142,7 @@ export default function MediaGalleryScreen() {
               <Column key={group.key} gap="xs">
                 <ThemedText style={styles.monthTitle}>{group.label}</ThemedText>
                 <FlatList
+        accessibilityRole="list"
                   data={group.items}
                   keyExtractor={(item) => item.id}
                   renderItem={renderGalleryItem}

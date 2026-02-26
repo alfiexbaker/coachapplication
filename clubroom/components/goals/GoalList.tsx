@@ -119,6 +119,7 @@ export function GoalList({
 
   return (
     <FlatList
+        accessibilityRole="list"
       data={filteredGoals}
       renderItem={renderGoal}
       keyExtractor={keyExtractor}

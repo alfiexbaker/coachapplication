@@ -98,7 +98,8 @@ export const QuickRateStep = memo(function QuickRateStep({
 }: QuickRateStepProps) {
   const { colors } = useTheme();
   const { width: windowWidth } = useWindowDimensions();
-  const flatListRef = useRef<FlatList<QuickRateAthlete>>(null);
+  const flatListRef = useRef<FlatList<QuickRateAthlete>
+        accessibilityRole="list">(null);
   const previousIndexRef = useRef(currentIndex);
   const cardWidth = useMemo(() => Math.max(windowWidth - Spacing.md * 2, 280), [windowWidth]);
 
@@ -224,6 +225,7 @@ export const QuickRateStep = memo(function QuickRateStep({
       )}
 
       <FlatList
+        accessibilityRole="list"
         ref={flatListRef}
         data={athletes}
         horizontal

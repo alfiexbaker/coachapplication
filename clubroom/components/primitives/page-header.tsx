@@ -1,4 +1,4 @@
-import { ReactNode, useState } from 'react';
+import { ReactNode } from 'react';
 import { ActivityIndicator, View, StyleSheet, type StyleProp, type ViewStyle } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
@@ -120,8 +120,6 @@ export function PageHeader({
 }: PageHeaderProps) {
   const { colors: palette } = useTheme();
   const router = useRouter();
-  const [leftSlotWidth, setLeftSlotWidth] = useState(0);
-  const [rightSlotWidth, setRightSlotWidth] = useState(0);
 
   const handleBackPress = () => {
     const backHandler = onBackPress ?? onBack;
@@ -193,49 +191,32 @@ export function PageHeader({
         )}
       </Row>
     ) : null;
-  const balancedEdgeWidth = Math.max(44, leftSlotWidth, rightSlotWidth);
-  const shouldBalanceEdges = leftSlotWidth > 44 || rightSlotWidth > 44;
-
   if (centerTitle) {
     return (
       <View style={[styles.container, containerStyle]}>
-        <Row align="center" style={styles.centerRow}>
-          <View
-            style={[styles.edgeSlot, shouldBalanceEdges ? { width: balancedEdgeWidth } : undefined]}
-            onLayout={(event) => {
-              const nextWidth = Math.ceil(event.nativeEvent.layout.width);
-              setLeftSlotWidth((prev) => (prev === nextWidth ? prev : nextWidth));
-            }}
-          >
-            {leftNode}
-          </View>
-          <View style={[styles.titleContainer, styles.centerTitleContainer]}>
-            <ThemedText type="title" style={[styles.title, styles.centerTitleText]} numberOfLines={1}>
-              {title}
-            </ThemedText>
-            {subtitle ? (
-              <ThemedText
-                style={[styles.subtitle, styles.centerSubtitleText, { color: palette.muted }]}
-                numberOfLines={1}
-              >
-                {subtitle}
+        <View style={styles.centerHeaderStack}>
+          <View pointerEvents="none" style={styles.centerTitleOverlay}>
+            <View style={[styles.titleContainer, styles.centerTitleContainer]}>
+              <ThemedText type="title" style={[styles.title, styles.centerTitleText]} numberOfLines={1}>
+                {title}
               </ThemedText>
-            ) : null}
+              {subtitle ? (
+                <ThemedText
+                  style={[styles.subtitle, styles.centerSubtitleText, { color: palette.muted }]}
+                  numberOfLines={1}
+                >
+                  {subtitle}
+                </ThemedText>
+              ) : null}
+            </View>
           </View>
-          <View
-            style={[
-              styles.edgeSlot,
-              styles.rightEdgeSlot,
-              shouldBalanceEdges ? { width: balancedEdgeWidth } : undefined,
-            ]}
-            onLayout={(event) => {
-              const nextWidth = Math.ceil(event.nativeEvent.layout.width);
-              setRightSlotWidth((prev) => (prev === nextWidth ? prev : nextWidth));
-            }}
-          >
-            {rightNode}
-          </View>
-        </Row>
+
+          <Row align="center" style={styles.centerRow}>
+            <View style={styles.edgeSlot}>{leftNode}</View>
+            <View style={styles.centerRowSpacer} />
+            <View style={[styles.edgeSlot, styles.rightEdgeSlot]}>{rightNode}</View>
+          </Row>
+        </View>
       </View>
     );
   }
@@ -267,10 +248,28 @@ const styles = StyleSheet.create({
   centerRow: {
     minHeight: 44,
   },
+  centerHeaderStack: {
+    position: 'relative',
+    minHeight: 44,
+    justifyContent: 'center',
+  },
+  centerTitleOverlay: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    top: 0,
+    bottom: 0,
+    justifyContent: 'center',
+    paddingHorizontal: 64,
+  },
+  centerRowSpacer: {
+    flex: 1,
+  },
   edgeSlot: {
     minWidth: 44,
     alignItems: 'center',
     justifyContent: 'center',
+    zIndex: 1,
   },
   rightEdgeSlot: {
     alignItems: 'flex-end',

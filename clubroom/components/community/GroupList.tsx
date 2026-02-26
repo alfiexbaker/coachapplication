@@ -73,6 +73,7 @@ function GroupListComponent({
 
   return (
     <FlatList
+        accessibilityRole="list"
       data={groups}
       keyExtractor={keyExtractor}
       renderItem={renderItem}

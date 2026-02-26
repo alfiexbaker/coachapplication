@@ -140,14 +140,15 @@ export default function LoginScreen() {
   return (
     <View style={[styles.root, { backgroundColor: palette.text }]}>
       <KeyboardAvoidingView
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        keyboardVerticalOffset={Platform.OS === 'ios' ? 100 : 0}
         style={styles.flex}
       >
         <ScrollView
           contentContainerStyle={styles.scroll}
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}
-          bounces={false}
+          bounces
         >
           {/* ── Hero ──────────────────────────────────────────────── */}
           <View style={styles.hero}>

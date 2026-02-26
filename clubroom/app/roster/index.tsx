@@ -132,6 +132,7 @@ export default function RosterScreen() {
 
       {/* Roster List */}
       <FlatList
+        accessibilityRole="list"
         data={roster}
         keyExtractor={(item) => item.id}
         renderItem={renderItem}

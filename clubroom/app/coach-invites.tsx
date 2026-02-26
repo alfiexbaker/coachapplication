@@ -169,6 +169,7 @@ export default function CoachInvitesScreen() {
         onBackPress={() => router.back()}
       />
       <FlatList
+        accessibilityRole="list"
         data={c.invites}
         keyExtractor={(item) => item.id}
         renderItem={renderInvite}

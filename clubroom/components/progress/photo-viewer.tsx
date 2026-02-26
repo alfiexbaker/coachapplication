@@ -39,7 +39,8 @@ export const PhotoViewer = memo(function PhotoViewer({
 }: PhotoViewerProps) {
   const { colors } = useTheme();
   const { width, height } = useWindowDimensions();
-  const listRef = useRef<FlatList<PhotoViewerItem>>(null);
+  const listRef = useRef<FlatList<PhotoViewerItem>
+        accessibilityRole="list">(null);
   const [activeIndex, setActiveIndex] = useState(0);
 
   useEffect(() => {
@@ -107,6 +108,7 @@ export const PhotoViewer = memo(function PhotoViewer({
         ]}
       >
         <FlatList
+        accessibilityRole="list"
           ref={listRef}
           data={photos}
           keyExtractor={(item) => item.uri}

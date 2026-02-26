@@ -87,7 +87,7 @@ export function Chip({
     (event: GestureResponderEvent) => {
       if (disabled) return;
       const now = Date.now();
-      if (now - lastPressRef.current < 300) return;
+      if (now - lastPressRef.current < 150) return;
       lastPressRef.current = now;
       if (Platform.OS !== 'web') void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
       onPress?.(event);

@@ -123,6 +123,7 @@ export function AttendeeList({
       {showFilters && (
         <View style={styles.filtersContainer}>
           <FlatList
+        accessibilityRole="list"
             horizontal
             showsHorizontalScrollIndicator={false}
             data={filterOptions}
@@ -137,6 +138,7 @@ export function AttendeeList({
         <AttendeeEmptyState message={emptyMessage} palette={palette} />
       ) : (
         <FlatList
+        accessibilityRole="list"
           data={filteredData}
           keyExtractor={attendeeKeyExtractor}
           showsVerticalScrollIndicator={false}

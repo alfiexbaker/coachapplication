@@ -33,6 +33,8 @@ export interface AvatarProps {
   size?: AvatarSize;
   /** Show online status indicator */
   online?: boolean;
+  /** Alias for online status indicator */
+  isOnline?: boolean;
   /** Accessible label override */
   accessibilityLabel?: string;
 }
@@ -89,7 +91,7 @@ const INDICATOR_BORDER_MAP: Record<AvatarSize, number> = {
 // Component
 // ---------------------------------------------------------------------------
 
-function AvatarInner({ uri, name, size = 'md', online, accessibilityLabel }: AvatarProps) {
+function AvatarInner({ uri, name, size = 'md', online, isOnline, accessibilityLabel }: AvatarProps) {
   const { colors } = useTheme();
   const [hasError, setHasError] = useState(false);
   const [retryCount, setRetryCount] = useState(0);
@@ -99,10 +101,14 @@ function AvatarInner({ uri, name, size = 'md', online, accessibilityLabel }: Ava
   const indicatorSize = INDICATOR_SIZE_MAP[size];
   const indicatorBorder = INDICATOR_BORDER_MAP[size];
 
+  const isOnlineResolved = isOnline ?? online ?? false;
   const showImage = uri && !hasError;
   const initials = name ? getInitials(name) : '?';
   const resolvedAccessibilityLabel =
-    accessibilityLabel ?? (name ? `${name}'s profile photo` : 'User profile photo');
+    accessibilityLabel ??
+    (name
+      ? `${name}'s profile photo${isOnlineResolved ? ', online' : ''}`
+      : `User profile photo${isOnlineResolved ? ', online' : ''}`);
 
   useEffect(() => {
     if (retryTimeoutRef.current) {
@@ -203,8 +209,9 @@ function AvatarInner({ uri, name, size = 'md', online, accessibilityLabel }: Ava
         </View>
       )}
 
-      {online != null && (
+      {(isOnline != null || online != null) && (
         <View
+          accessible={false}
           style={[
             styles.indicator,
             themedStyles.indicator,
@@ -213,7 +220,7 @@ function AvatarInner({ uri, name, size = 'md', online, accessibilityLabel }: Ava
               height: indicatorSize,
               borderRadius: indicatorSize / 2,
               borderWidth: indicatorBorder,
-              backgroundColor: online ? colors.success : colors.muted,
+              backgroundColor: isOnlineResolved ? colors.success : colors.muted,
             },
           ]}
         />

@@ -111,6 +111,7 @@ export default function InviteCodesScreen() {
         />
       ) : (
         <FlatList
+        accessibilityRole="list"
           data={codes}
           renderItem={renderItem}
           keyExtractor={keyExtractor}

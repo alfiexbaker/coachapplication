@@ -1,12 +1,22 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import {
+  AccessibilityInfo,
   StyleSheet,
   View,
   type DimensionValue,
   type StyleProp,
   type ViewStyle,
 } from 'react-native';
-import Animated, { FadeIn, FadeOut, LinearTransition } from 'react-native-reanimated';
+import Animated, {
+  FadeIn,
+  FadeOut,
+  LinearTransition,
+  cancelAnimation,
+  useAnimatedStyle,
+  useSharedValue,
+  withRepeat,
+  withTiming,
+} from 'react-native-reanimated';
 
 import { Radii, Spacing, withAlpha } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
@@ -31,6 +41,33 @@ export function Skeleton({
   accessibilityLabel = 'Loading content',
 }: SkeletonProps) {
   const { colors: palette, scheme } = useTheme();
+  const [reduceMotion, setReduceMotion] = useState(false);
+  const pulseOpacity = useSharedValue(1);
+
+  useEffect(() => {
+    let isMounted = true;
+    AccessibilityInfo.isReduceMotionEnabled().then((enabled) => {
+      if (isMounted) setReduceMotion(enabled);
+    });
+    const subscription = AccessibilityInfo.addEventListener?.('reduceMotionChanged', setReduceMotion);
+    return () => {
+      isMounted = false;
+      subscription?.remove?.();
+    };
+  }, []);
+
+  useEffect(() => {
+    cancelAnimation(pulseOpacity);
+    if (reduceMotion) {
+      pulseOpacity.value = 1;
+      return;
+    }
+    pulseOpacity.value = withRepeat(withTiming(0.6, { duration: 1000 }), -1, true);
+  }, [pulseOpacity, reduceMotion]);
+
+  const pulseStyle = useAnimatedStyle(() => ({
+    opacity: pulseOpacity.value,
+  }));
 
   return (
     <Animated.View
@@ -48,6 +85,7 @@ export function Skeleton({
           backgroundColor:
             scheme === 'dark' ? withAlpha(palette.border, 0.33) : withAlpha(palette.border, 0.5),
         },
+        pulseStyle,
         style,
       ]}
     />

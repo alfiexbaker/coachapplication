@@ -147,6 +147,7 @@ export default function InvitesScreen() {
       </Row>
 
       <FlatList
+        accessibilityRole="list"
         data={inv.filteredInvites}
         keyExtractor={(item) => item.id}
         renderItem={renderInvite}

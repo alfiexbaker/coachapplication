@@ -120,6 +120,7 @@ export default function ClubHubScreen() {
       horizontalSpacing={0}
     >
       <FlatList<ClubFeedPost>
+        accessibilityRole="list"
         data={hub.feed}
         keyExtractor={feedKeyExtractor}
         renderItem={renderFeedPost}

@@ -112,6 +112,7 @@ function UpcomingEventsCarouselComponent({ invites, onPress }: UpcomingEventsCar
         </ThemedText>
       </View>
       <FlatList
+        accessibilityRole="list"
         data={invites}
         keyExtractor={keyExtractor}
         renderItem={renderItem}

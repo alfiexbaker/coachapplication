@@ -128,6 +128,7 @@ export function InvoiceList({
   return (
     <View style={styles.container}>
       <FlatList
+        accessibilityRole="list"
         data={filteredInvoices}
         keyExtractor={(item) => item.id}
         renderItem={renderItem}

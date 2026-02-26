@@ -123,6 +123,7 @@ export const YourCoachesSection = memo(function YourCoachesSection({
         <SectionHeader icon="people-outline" title="Your Coaches" />
       </View>
       <FlatList
+        accessibilityRole="list"
         data={coaches}
         renderItem={renderCoach}
         keyExtractor={(item) => item.id}

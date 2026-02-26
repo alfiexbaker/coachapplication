@@ -97,6 +97,7 @@ export const BulkMessageSent = memo(function BulkMessageSent({
             Delivery Status
           </ThemedText>
           <FlatList
+        accessibilityRole="list"
             data={recipients}
             renderItem={renderRecipient}
             keyExtractor={(item) => item.id}

@@ -127,6 +127,7 @@ export default function EventsListScreen() {
       {tabs}
 
       <FlatList
+        accessibilityRole="list"
         data={filteredEvents}
         keyExtractor={(item) => item.id}
         renderItem={({ item }) => (

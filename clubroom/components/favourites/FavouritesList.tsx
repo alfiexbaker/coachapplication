@@ -92,6 +92,7 @@ export function FavouritesList({
 
   return (
     <FlatList
+        accessibilityRole="list"
       data={favourites}
       renderItem={renderItem}
       keyExtractor={keyExtractor}

@@ -311,6 +311,7 @@ export default function EarningsScreen() {
   return (
     <SafeAreaView style={[styles.safeArea, { backgroundColor: colors.background }]} edges={['top', 'bottom']}>
       <FlatList
+        accessibilityRole="list"
         data={filteredData}
         renderItem={renderItem}
         keyExtractor={keyExtractor}

@@ -155,6 +155,7 @@ export function RecurringList({
       {showFilters && bookings.length > 0 && (
         <View style={styles.filtersContainer}>
           <FlatList
+        accessibilityRole="list"
             horizontal
             data={FILTER_DATA}
             renderItem={renderFilterChip}
@@ -166,6 +167,7 @@ export function RecurringList({
       )}
 
       <FlatList
+        accessibilityRole="list"
         data={sortedBookings}
         renderItem={renderItem}
         keyExtractor={bookingKeyExtractor}

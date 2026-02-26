@@ -119,6 +119,7 @@ export default function AthletesScreen() {
       />
 
       <FlatList
+        accessibilityRole="list"
         data={filteredAthletes}
         renderItem={({ item }) => renderAthleteCard({ item, upcomingSessions })}
         keyExtractor={keyExtractor}

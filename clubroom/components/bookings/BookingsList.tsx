@@ -175,6 +175,7 @@ export function BookingsList({
 
       {hasItems ? (
         <FlatList
+        accessibilityRole="list"
           data={displayItems}
           keyExtractor={keyExtractor}
           renderItem={renderItem}

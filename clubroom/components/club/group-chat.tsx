@@ -49,7 +49,8 @@ export function GroupChat({
   const { colors: palette } = useTheme();
 
   const [inputText, setInputText] = useState('');
-  const flatListRef = useRef<FlatList<GroupChatMessage>>(null);
+  const flatListRef = useRef<FlatList<GroupChatMessage>
+        accessibilityRole="list">(null);
 
   const handleSend = useCallback(() => {
     const trimmed = inputText.trim();
@@ -80,6 +81,7 @@ export function GroupChat({
       {unreadCount > 0 ? <UnreadBadge count={unreadCount} palette={palette} /> : null}
 
       <FlatList
+        accessibilityRole="list"
         ref={flatListRef}
         data={messages}
         renderItem={renderMessage}

@@ -290,6 +290,7 @@ export default function MapContent(props: MapContentProps) {
 
       {/* Coach list */}
       <FlatList
+        accessibilityRole="list"
         data={coaches}
         keyExtractor={(item) => item.coach.id}
         renderItem={({ item }) => (

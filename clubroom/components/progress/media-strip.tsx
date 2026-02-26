@@ -208,6 +208,7 @@ export const MediaStrip = memo(function MediaStrip({
   return (
     <>
       <FlatList
+        accessibilityRole="list"
         data={displayItems}
         keyExtractor={(item) => item.id}
         renderItem={renderItem}

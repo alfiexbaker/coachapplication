@@ -133,6 +133,7 @@ export function MultiWeekInviteCard({ invite, onResponded }: MultiWeekInviteCard
       />
 
       <FlatList
+        accessibilityRole="list"
         data={weekAcceptances}
         renderItem={renderItem}
         keyExtractor={keyExtractor}

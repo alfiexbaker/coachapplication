@@ -99,6 +99,7 @@ export const StatusFilterBar = memo(function StatusFilterBar({
   return (
     <Row align="center" gap="xs" style={styles.filterContainer}>
       <FlatList
+        accessibilityRole="list"
         horizontal
         data={filterOptions}
         keyExtractor={filterKeyExtractor}

@@ -41,6 +41,7 @@ export const CoachSelectList = memo(function CoachSelectList({
 
   return (
     <FlatList
+        accessibilityRole="list"
       data={coaches}
       keyExtractor={(item) => item.id}
       contentContainerStyle={styles.list}

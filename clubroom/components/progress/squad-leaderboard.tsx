@@ -36,7 +36,7 @@ const CATEGORIES: Record<Category, CategoryConfig> = {
   badges: { label: 'Badges', icon: 'ribbon-outline', key: 'badgeCount', suffix: '' },
 };
 
-const RANK_MEDALS = ['🥇', '🥈', '🥉'];
+const MEDAL_ICON_COLORS = ['warning', 'muted', 'bronze'] as const;
 
 export const SquadLeaderboard = memo(function SquadLeaderboard({
   entries,
@@ -118,7 +118,7 @@ export const SquadLeaderboard = memo(function SquadLeaderboard({
           {ranked.map((entry, index) => {
             const isMe = entry.athleteId === athleteId;
             const value = entry[config.key] as number;
-            const medal = index < 3 ? RANK_MEDALS[index] : null;
+            const medalTone = index < 3 ? MEDAL_ICON_COLORS[index] : null;
             return (
               <Animated.View
                 key={entry.athleteId}
@@ -140,8 +140,19 @@ export const SquadLeaderboard = memo(function SquadLeaderboard({
                   ]}
                 >
                   <View style={styles.rankCol}>
-                    {medal ? (
-                      <ThemedText style={styles.medal}>{medal}</ThemedText>
+                    {medalTone ? (
+                      <Ionicons
+                        name="trophy-outline"
+                        size={Typography.heading.fontSize}
+                        color={
+                          medalTone === 'warning'
+                            ? colors.warning
+                            : medalTone === 'muted'
+                              ? colors.muted
+                              : withAlpha(colors.warning, 0.7)
+                        }
+                        accessibilityLabel={`${index + 1}${index === 0 ? 'st' : index === 1 ? 'nd' : 'rd'} place`}
+                      />
                     ) : (
                       <ThemedText style={[styles.rankNumber, { color: colors.muted }]}>
                         {index + 1}
@@ -232,9 +243,6 @@ const styles = StyleSheet.create({
   rankCol: {
     width: 22,
     alignItems: 'center',
-  },
-  medal: {
-    fontSize: Typography.bodySmall.fontSize,
   },
   rankNumber: {
     ...Typography.caption,

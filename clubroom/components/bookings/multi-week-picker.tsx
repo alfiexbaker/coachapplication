@@ -87,6 +87,7 @@ export function MultiWeekPicker({
 
       {/* Week rows */}
       <FlatList
+        accessibilityRole="list"
         data={weeks}
         renderItem={renderItem}
         keyExtractor={keyExtractor}

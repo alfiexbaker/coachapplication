@@ -155,6 +155,7 @@ export default function PostDetailScreen() {
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       >
         <FlatList<FlatItem>
+        accessibilityRole="list"
           data={p.flatItems}
           renderItem={renderComment}
           keyExtractor={keyExtractor}

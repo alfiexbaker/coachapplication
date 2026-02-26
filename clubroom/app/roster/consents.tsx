@@ -227,6 +227,7 @@ export default function ConsentsScreen() {
       )}
 
       <FlatList
+        accessibilityRole="list"
         data={c.consents}
         keyExtractor={(item) => item.athleteId}
         renderItem={renderItem}

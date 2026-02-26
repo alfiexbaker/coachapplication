@@ -118,6 +118,7 @@ export default function DiscoverSessionsScreen() {
       {/* Type Filter Pills */}
       <View style={styles.filters}>
         <FlatList
+        accessibilityRole="list"
           data={TYPE_FILTERS}
           horizontal
           showsHorizontalScrollIndicator={false}
@@ -150,6 +151,7 @@ export default function DiscoverSessionsScreen() {
       {/* Skill Filter Pills */}
       <View style={styles.filters}>
         <FlatList
+        accessibilityRole="list"
           data={SKILL_FILTERS}
           horizontal
           showsHorizontalScrollIndicator={false}
@@ -181,6 +183,7 @@ export default function DiscoverSessionsScreen() {
 
       {/* Results */}
       <FlatList
+        accessibilityRole="list"
         data={c.filteredOfferings}
         keyExtractor={(item) => item.id}
         renderItem={({ item }) => (
