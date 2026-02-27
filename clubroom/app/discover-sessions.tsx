@@ -13,7 +13,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { Row } from '@/components/primitives/row';
 import { Clickable } from '@/components/primitives/clickable';
 import { PageHeader } from '@/components/primitives/page-header';
-import { SessionOfferingCard } from '@/components/discover/session-offering-card';
+import { SessionOfferingCard } from '@/components/sessions/session-offering-card';
 import { SessionDetailModal } from '@/components/sessions/session-detail-modal';
 import { ThemedText } from '@/components/themed-text';
 import { LoadingState, ErrorState, EmptyState } from '@/components/ui/screen-states';
@@ -191,7 +191,7 @@ export default function DiscoverSessionsScreen() {
         data={c.filteredOfferings}
         keyExtractor={(item) => item.id}
         renderItem={({ item }) => (
-          <SessionOfferingCard offering={item} onPress={c.handleOfferingPress} />
+          <SessionOfferingCard offering={item} onPress={() => c.handleOfferingPress(item)} />
         )}
         contentContainerStyle={styles.list}
         showsVerticalScrollIndicator={false}
