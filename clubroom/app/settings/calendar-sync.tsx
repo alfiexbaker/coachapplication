@@ -1,16 +1,14 @@
 import { ScrollView, StyleSheet, View, ActivityIndicator, RefreshControl } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 
-import { SettingsSection, SettingsToggleRow } from '@/components/settings';
+import { SettingsScreenState, SettingsSection, SettingsToggleRow } from '@/components/settings';
 import { CalendarProviderSelect } from '@/components/calendar/CalendarProviderSelect';
 import { SyncSettingsCard } from '@/components/calendar/SyncSettingsCard';
 import { Button } from '@/components/primitives/button';
 import { PageHeader } from '@/components/primitives/page-header';
 import { ThemedText } from '@/components/themed-text';
 import { Row } from '@/components/primitives/row';
-import { LoadingState, ErrorState } from '@/components/ui/screen-states';
 import { Spacing, Typography } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
 import { useCalendarSync } from '@/hooks/use-calendar-sync';
@@ -35,56 +33,51 @@ export default function CalendarSyncScreen() {
     handleExportAllSessions,
   } = useCalendarSync();
 
+  const header = (
+    <PageHeader
+      title="Calendar Sync"
+      showBack
+      backIcon="arrow-back"
+      onBackPress={() => router.back()}
+      centerTitle
+      right={isSaving ? <ActivityIndicator size="small" color={palette.accent} /> : undefined}
+    />
+  );
+
   if (status === 'loading') {
     return (
-      <SafeAreaView
-        style={[styles.container, { backgroundColor: palette.background }]}
-        edges={['top', 'bottom']}
-      >
-        <PageHeader
-          title="Calendar Sync"
-          showBack
-          backIcon="arrow-back"
-          onBackPress={() => router.back()}
-          centerTitle
-        />
-        <LoadingState variant="form" />
-      </SafeAreaView>
+      <SettingsScreenState
+        colors={palette}
+        header={header}
+        status="loading"
+        errorMessage="Failed to load calendar settings."
+        onRetry={retry}
+        loadingVariant="form"
+      />
     );
   }
 
   if (status === 'error') {
     return (
-      <SafeAreaView
-        style={[styles.container, { backgroundColor: palette.background }]}
-        edges={['top', 'bottom']}
-      >
-        <PageHeader
-          title="Calendar Sync"
-          showBack
-          backIcon="arrow-back"
-          onBackPress={() => router.back()}
-          centerTitle
-        />
-        <ErrorState message={error ?? 'Failed to load calendar settings.'} onRetry={retry} />
-      </SafeAreaView>
+      <SettingsScreenState
+        colors={palette}
+        header={header}
+        status="error"
+        errorMessage={error ?? 'Failed to load calendar settings.'}
+        onRetry={retry}
+        loadingVariant="form"
+      />
     );
   }
 
   return (
-    <SafeAreaView
-      style={[styles.container, { backgroundColor: palette.background }]}
-      edges={['top', 'bottom']}
+    <SettingsScreenState
+      colors={palette}
+      header={header}
+      status="ready"
+      errorMessage="Failed to load calendar settings."
+      onRetry={retry}
     >
-      <PageHeader
-        title="Calendar Sync"
-        showBack
-        backIcon="arrow-back"
-        onBackPress={() => router.back()}
-        centerTitle
-        right={isSaving ? <ActivityIndicator size="small" color={palette.accent} /> : undefined}
-      />
-
       <ScrollView
         contentContainerStyle={styles.content}
         showsVerticalScrollIndicator={false}
@@ -189,16 +182,11 @@ export default function CalendarSyncScreen() {
           </ThemedText>
         </View>
       </ScrollView>
-    </SafeAreaView>
+    </SettingsScreenState>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1 },
-  header: { paddingHorizontal: Spacing.lg, paddingVertical: Spacing.md },
-  headerTitle: { ...Typography.heading },
-  loadingContainer: { flex: 1, justifyContent: 'center', alignItems: 'center', gap: Spacing.md },
-  loadingText: { ...Typography.bodySmall },
   content: { paddingHorizontal: Spacing.lg, paddingBottom: Spacing['3xl'], gap: Spacing.lg },
   exportSection: { padding: Spacing.md, gap: Spacing.md },
   exportDescription: { ...Typography.bodySmall },

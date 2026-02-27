@@ -1,12 +1,12 @@
 import { ScrollView, StyleSheet, View, ActivityIndicator, RefreshControl } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 
+import { SettingsScreenState } from '@/components/settings';
 import { ThemedText } from '@/components/themed-text';
 import { Clickable } from '@/components/primitives/clickable';
 import { Row } from '@/components/primitives/row';
-import { LoadingState, ErrorState } from '@/components/ui/screen-states';
+import { ErrorState } from '@/components/ui/screen-states';
 import {
   QuietHoursSelector,
   ChannelToggle,
@@ -35,37 +35,18 @@ export default function NotificationPreferencesScreen() {
     handleUnmuteCoach,
   } = useNotificationPrefs();
 
-  if (loading && !preferences) {
-    return (
-      <SafeAreaView
-        style={[styles.container, { backgroundColor: colors.background }]}
-        edges={['top', 'bottom']}
-      >
-        <Header colors={colors} updating={false} />
-        <LoadingState variant="list" />
-      </SafeAreaView>
-    );
-  }
-
-  if (status === 'error' && !preferences) {
-    return (
-      <SafeAreaView
-        style={[styles.container, { backgroundColor: colors.background }]}
-        edges={['top', 'bottom']}
-      >
-        <Header colors={colors} updating={false} />
-        <ErrorState message={error ?? 'Failed to load notification preferences.'} onRetry={retry} />
-      </SafeAreaView>
-    );
-  }
+  const shellStatus =
+    loading && !preferences ? 'loading' : status === 'error' && !preferences ? 'error' : 'ready';
 
   return (
-    <SafeAreaView
-      style={[styles.container, { backgroundColor: colors.background }]}
-      edges={['top', 'bottom']}
+    <SettingsScreenState
+      colors={colors}
+      header={<Header colors={colors} updating={shellStatus === 'ready' ? updating : false} />}
+      status={shellStatus}
+      errorMessage={error ?? 'Failed to load notification preferences.'}
+      onRetry={retry}
+      loadingVariant="list"
     >
-      <Header colors={colors} updating={updating} />
-
       <ScrollView
         contentContainerStyle={styles.content}
         showsVerticalScrollIndicator={false}
@@ -145,7 +126,7 @@ export default function NotificationPreferencesScreen() {
           />
         )}
       </ScrollView>
-    </SafeAreaView>
+    </SettingsScreenState>
   );
 }
 
@@ -172,11 +153,8 @@ function Header({
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1 },
   header: { paddingHorizontal: Spacing.lg, paddingVertical: Spacing.md },
   headerTitle: { ...Typography.heading },
-  loadingContainer: { flex: 1, justifyContent: 'center', alignItems: 'center', gap: Spacing.md },
-  loadingText: { ...Typography.bodySmall },
   content: { paddingHorizontal: Spacing.lg, paddingBottom: Spacing['3xl'] },
   section: { marginBottom: Spacing.xl },
   sectionTitle: {
