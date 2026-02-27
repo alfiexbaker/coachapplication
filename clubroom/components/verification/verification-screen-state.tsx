@@ -65,5 +65,10 @@ export function VerificationScreenState({
     );
   }
 
-  return <>{children}</>;
+  return (
+    <SafeAreaView style={{ flex: 1, backgroundColor: colors.background }} edges={['top', 'bottom']}>
+      {header}
+      {children}
+    </SafeAreaView>
+  );
 }

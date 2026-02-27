@@ -1,6 +1,5 @@
 import { ScrollView, StyleSheet, View, RefreshControl } from 'react-native';
 import { router } from 'expo-router';
-import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 
 import { ThemedText } from '@/components/themed-text';
@@ -42,152 +41,140 @@ export default function BackgroundCheckScreen() {
       emptyMessage="Background check data is currently unavailable."
       isEmpty={!status}
     >
-      <SafeAreaView
-        style={[styles.safeArea, { backgroundColor: colors.background }]}
-        edges={['top', 'bottom']}
+      <ScrollView
+        contentContainerStyle={styles.content}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
       >
-        <ScrollView
-          contentContainerStyle={styles.content}
-          refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
-        >
-          <Row align="center" gap="sm">
-            <Clickable onPress={() => router.back()} style={styles.backButton}>
-              <Ionicons name="arrow-back" size={24} color={colors.text} />
-            </Clickable>
-            <ThemedText type="title">Background Check</ThemedText>
-          </Row>
+        <Row align="center" gap="sm">
+          <Clickable onPress={() => router.back()} style={styles.backButton}>
+            <Ionicons name="arrow-back" size={24} color={colors.text} />
+          </Clickable>
+          <ThemedText type="title">Background Check</ThemedText>
+        </Row>
 
-          {isVerified ? (
-            <SurfaceCard style={styles.statusCard}>
-              <View
-                style={[styles.statusIcon, { backgroundColor: withAlpha(colors.success, 0.09) }]}
+        {isVerified ? (
+          <SurfaceCard style={styles.statusCard}>
+            <View style={[styles.statusIcon, { backgroundColor: withAlpha(colors.success, 0.09) }]}>
+              <Ionicons name="shield-checkmark" size={48} color={colors.success} />
+            </View>
+            <ThemedText type="defaultSemiBold" style={styles.statusTitle}>
+              Background Check Complete
+            </ThemedText>
+            <ThemedText style={[styles.statusText, { color: colors.muted }]}>
+              Your enhanced DBS check was completed on{' '}
+              {status?.backgroundCheck.verifiedAt
+                ? new Date(status.backgroundCheck.verifiedAt).toLocaleDateString()
+                : 'N/A'}
+            </ThemedText>
+            {status?.backgroundCheck.expiresAt && (
+              <Row
+                align="center"
+                gap="xs"
+                style={[styles.expiryBadge, { backgroundColor: withAlpha(colors.success, 0.06) }]}
               >
-                <Ionicons name="shield-checkmark" size={48} color={colors.success} />
-              </View>
-              <ThemedText type="defaultSemiBold" style={styles.statusTitle}>
-                Background Check Complete
-              </ThemedText>
-              <ThemedText style={[styles.statusText, { color: colors.muted }]}>
-                Your enhanced DBS check was completed on{' '}
-                {status?.backgroundCheck.verifiedAt
-                  ? new Date(status.backgroundCheck.verifiedAt).toLocaleDateString()
-                  : 'N/A'}
-              </ThemedText>
-              {status?.backgroundCheck.expiresAt && (
-                <Row
-                  align="center"
-                  gap="xs"
-                  style={[styles.expiryBadge, { backgroundColor: withAlpha(colors.success, 0.06) }]}
-                >
-                  <Ionicons name="calendar" size={16} color={colors.success} />
-                  <ThemedText style={{ color: colors.success, ...Typography.small }}>
-                    Valid until {new Date(status.backgroundCheck.expiresAt).toLocaleDateString()}
-                  </ThemedText>
-                </Row>
-              )}
-            </SurfaceCard>
-          ) : isPending ? (
-            <SurfaceCard style={styles.statusCard}>
-              <View
-                style={[styles.statusIcon, { backgroundColor: withAlpha(colors.warning, 0.09) }]}
-              >
-                <Ionicons name="hourglass" size={48} color={colors.warning} />
-              </View>
-              <ThemedText type="defaultSemiBold" style={styles.statusTitle}>
-                Check In Progress
-              </ThemedText>
-              <ThemedText style={[styles.statusText, { color: colors.muted }]}>
-                Your background check is being processed. This typically takes 2-5 business days.
-              </ThemedText>
-              {__DEV__ && (
-                <Clickable
-                  onPress={handleMockApprove}
-                  style={[styles.mockButton, { borderColor: colors.success }]}
-                >
-                  <ThemedText style={{ color: colors.success, fontWeight: '600' }}>
-                    Complete Now (DEV ONLY)
-                  </ThemedText>
-                </Clickable>
-              )}
-            </SurfaceCard>
-          ) : (
-            <>
-              <ThemedText style={{ color: colors.muted }}>
-                Complete an enhanced DBS (Disclosure and Barring Service) check to verify your
-                suitability to work with children and young people.
-              </ThemedText>
+                <Ionicons name="calendar" size={16} color={colors.success} />
+                <ThemedText style={{ color: colors.success, ...Typography.small }}>
+                  Valid until {new Date(status.backgroundCheck.expiresAt).toLocaleDateString()}
+                </ThemedText>
+              </Row>
+            )}
+          </SurfaceCard>
+        ) : isPending ? (
+          <SurfaceCard style={styles.statusCard}>
+            <View style={[styles.statusIcon, { backgroundColor: withAlpha(colors.warning, 0.09) }]}>
+              <Ionicons name="hourglass" size={48} color={colors.warning} />
+            </View>
+            <ThemedText type="defaultSemiBold" style={styles.statusTitle}>
+              Check In Progress
+            </ThemedText>
+            <ThemedText style={[styles.statusText, { color: colors.muted }]}>
+              Your background check is being processed. This typically takes 2-5 business days.
+            </ThemedText>
+            {__DEV__ && (
+              <Clickable onPress={handleMockApprove} style={[styles.mockButton, { borderColor: colors.success }]}>
+                <ThemedText style={{ color: colors.success, fontWeight: '600' }}>
+                  Complete Now (DEV ONLY)
+                </ThemedText>
+              </Clickable>
+            )}
+          </SurfaceCard>
+        ) : (
+          <>
+            <ThemedText style={{ color: colors.muted }}>
+              Complete an enhanced DBS (Disclosure and Barring Service) check to verify your
+              suitability to work with children and young people.
+            </ThemedText>
 
-              <SurfaceCard style={styles.infoCard}>
-                <InfoRow
-                  icon="shield"
-                  title="Enhanced DBS Check"
-                  subtitle="Required for working with children"
-                  colors={colors}
-                />
-                <InfoRow
-                  icon="time"
-                  title="Processing Time"
-                  subtitle="2-5 business days on average"
-                  colors={colors}
-                />
-                <InfoRow
-                  icon="card"
-                  title="Cost"
-                  subtitle="Free for Clubroom coaches (Mock)"
-                  colors={colors}
-                />
-              </SurfaceCard>
+            <SurfaceCard style={styles.infoCard}>
+              <InfoRow
+                icon="shield"
+                title="Enhanced DBS Check"
+                subtitle="Required for working with children"
+                colors={colors}
+              />
+              <InfoRow
+                icon="time"
+                title="Processing Time"
+                subtitle="2-5 business days on average"
+                colors={colors}
+              />
+              <InfoRow
+                icon="card"
+                title="Cost"
+                subtitle="Free for Clubroom coaches (Mock)"
+                colors={colors}
+              />
+            </SurfaceCard>
 
-              <View style={styles.section}>
-                <ThemedText type="defaultSemiBold">How it works</ThemedText>
-                <View style={styles.stepsContainer}>
-                  {BG_CHECK_STEPS.map((step, index) => (
-                    <Row key={step.id} gap="md" style={styles.stepRow}>
-                      <View style={styles.stepIndicator}>
-                        <View style={[styles.stepNumber, { backgroundColor: colors.tint }]}>
-                          <ThemedText style={[styles.stepNumberText, { color: colors.onPrimary }]}>
-                            {step.id}
-                          </ThemedText>
-                        </View>
-                        {index < BG_CHECK_STEPS.length - 1 && (
-                          <View style={[styles.stepLine, { backgroundColor: colors.border }]} />
-                        )}
-                      </View>
-                      <View style={styles.stepContent}>
-                        <ThemedText type="defaultSemiBold">{step.title}</ThemedText>
-                        <ThemedText style={{ color: colors.muted, ...Typography.small }}>
-                          {step.description}
+            <View style={styles.section}>
+              <ThemedText type="defaultSemiBold">How it works</ThemedText>
+              <View style={styles.stepsContainer}>
+                {BG_CHECK_STEPS.map((step, index) => (
+                  <Row key={step.id} gap="md" style={styles.stepRow}>
+                    <View style={styles.stepIndicator}>
+                      <View style={[styles.stepNumber, { backgroundColor: colors.tint }]}>
+                        <ThemedText style={[styles.stepNumberText, { color: colors.onPrimary }]}>
+                          {step.id}
                         </ThemedText>
                       </View>
-                    </Row>
-                  ))}
-                </View>
-              </View>
-
-              <View style={styles.requirements}>
-                <ThemedText type="defaultSemiBold">You will need</ThemedText>
-                {[
-                  'Valid government-issued ID',
-                  'Proof of address (utility bill, bank statement)',
-                  'National Insurance number',
-                  '5 years of address history',
-                ].map((req, i) => (
-                  <Row key={i} align="center" gap="sm">
-                    <Ionicons name="checkmark-circle" size={18} color={colors.success} />
-                    <ThemedText style={{ color: colors.muted, ...Typography.bodySmall, flex: 1 }}>
-                      {req}
-                    </ThemedText>
+                      {index < BG_CHECK_STEPS.length - 1 && (
+                        <View style={[styles.stepLine, { backgroundColor: colors.border }]} />
+                      )}
+                    </View>
+                    <View style={styles.stepContent}>
+                      <ThemedText type="defaultSemiBold">{step.title}</ThemedText>
+                      <ThemedText style={{ color: colors.muted, ...Typography.small }}>
+                        {step.description}
+                      </ThemedText>
+                    </View>
                   </Row>
                 ))}
               </View>
+            </View>
 
-              <Button onPress={handleStartCheck} disabled={submitting}>
-                {submitting ? 'Starting...' : 'Start Background Check'}
-              </Button>
-            </>
-          )}
-        </ScrollView>
-      </SafeAreaView>
+            <View style={styles.requirements}>
+              <ThemedText type="defaultSemiBold">You will need</ThemedText>
+              {[
+                'Valid government-issued ID',
+                'Proof of address (utility bill, bank statement)',
+                'National Insurance number',
+                '5 years of address history',
+              ].map((req, i) => (
+                <Row key={i} align="center" gap="sm">
+                  <Ionicons name="checkmark-circle" size={18} color={colors.success} />
+                  <ThemedText style={{ color: colors.muted, ...Typography.bodySmall, flex: 1 }}>
+                    {req}
+                  </ThemedText>
+                </Row>
+              ))}
+            </View>
+
+            <Button onPress={handleStartCheck} disabled={submitting}>
+              {submitting ? 'Starting...' : 'Start Background Check'}
+            </Button>
+          </>
+        )}
+      </ScrollView>
     </VerificationScreenState>
   );
 }
@@ -215,9 +202,7 @@ function InfoRow({
 }
 
 const styles = StyleSheet.create({
-  safeArea: { flex: 1 },
   content: { padding: Spacing.lg, gap: Spacing.lg },
-  loadingContainer: { flex: 1, justifyContent: 'center', alignItems: 'center' },
   backButton: { padding: Spacing.xs, marginLeft: -Spacing.xs },
   statusCard: { alignItems: 'center', gap: Spacing.sm, paddingVertical: Spacing.xl },
   statusIcon: {

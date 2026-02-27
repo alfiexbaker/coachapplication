@@ -1,7 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { Alert, ScrollView, StyleSheet, View } from 'react-native';
 import { router } from 'expo-router';
-import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 
 import { ThemedText } from '@/components/themed-text';
@@ -85,12 +84,16 @@ export default function InsuranceVerificationScreen() {
   };
 
   return (
-    <SafeAreaView
-      style={[styles.container, { backgroundColor: palette.background }]}
-      edges={['top', 'bottom']}
+    <VerificationScreenState
+      colors={palette}
+      screenStatus="ready"
+      retry={loadStatus}
+      errorMessage="Failed to load insurance status."
+      emptyIcon="document-text-outline"
+      emptyTitle="Insurance unavailable"
+      emptyMessage="Insurance status is currently unavailable."
+      header={header}
     >
-      {header}
-
       <ScrollView
         contentContainerStyle={styles.content}
         showsVerticalScrollIndicator={false}
@@ -171,12 +174,11 @@ export default function InsuranceVerificationScreen() {
           </Row>
         </SurfaceCard>
       </ScrollView>
-    </SafeAreaView>
+    </VerificationScreenState>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1 },
   content: { padding: Spacing.lg, gap: Spacing.lg },
   card: { gap: Spacing.sm },
   statusBadge: {

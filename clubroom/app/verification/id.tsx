@@ -1,6 +1,5 @@
 import { ScrollView, StyleSheet, View, RefreshControl } from 'react-native';
 import { router } from 'expo-router';
-import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 
 import { ThemedText } from '@/components/themed-text';
@@ -47,154 +46,138 @@ export default function IdUploadScreen() {
       emptyMessage="ID verification data is currently unavailable."
       isEmpty={!status}
     >
-      <SafeAreaView
-        style={[styles.safeArea, { backgroundColor: colors.background }]}
-        edges={['top', 'bottom']}
+      <ScrollView
+        contentContainerStyle={styles.content}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
       >
-        <ScrollView
-          contentContainerStyle={styles.content}
-          refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
-        >
-          <Row align="center" gap="sm" style={styles.header}>
-            <Clickable onPress={() => router.back()} style={styles.backButton}>
-              <Ionicons name="arrow-back" size={24} color={colors.text} />
-            </Clickable>
-            <ThemedText type="title">ID Verification</ThemedText>
-          </Row>
+        <Row align="center" gap="sm" style={styles.header}>
+          <Clickable onPress={() => router.back()} style={styles.backButton}>
+            <Ionicons name="arrow-back" size={24} color={colors.text} />
+          </Clickable>
+          <ThemedText type="title">ID Verification</ThemedText>
+        </Row>
 
-          {isVerified ? (
-            <StatusCard
-              icon="checkmark-circle"
-              iconColor={colors.success}
-              title="ID Verified"
-              subtitle={`Your identity has been verified on ${status?.identity.verifiedAt ? new Date(status.identity.verifiedAt).toLocaleDateString() : 'N/A'}`}
-              colors={colors}
-            />
-          ) : isPending ? (
-            <SurfaceCard style={styles.statusCard}>
-              <View
-                style={[styles.statusIcon, { backgroundColor: withAlpha(colors.warning, 0.09) }]}
-              >
-                <Ionicons name="time" size={48} color={colors.warning} />
-              </View>
-              <ThemedText type="defaultSemiBold" style={styles.statusTitle}>
-                Under Review
-              </ThemedText>
-              <ThemedText style={[styles.statusText, { color: colors.muted }]}>
-                Your ID document is being reviewed. This usually takes 1-2 business days.
-              </ThemedText>
-              {__DEV__ && (
-                <Clickable
-                  onPress={handleMockApprove}
-                  style={[styles.mockButton, { borderColor: colors.success }]}
-                >
-                  <ThemedText style={{ color: colors.success, fontWeight: '600' }}>
-                    Approve Now (DEV ONLY)
-                  </ThemedText>
-                </Clickable>
-              )}
-            </SurfaceCard>
-          ) : (
-            <>
-              <ThemedText style={{ color: colors.muted }}>
-                Upload a clear photo of a government-issued ID to verify your identity.
-              </ThemedText>
+        {isVerified ? (
+          <StatusCard
+            icon="checkmark-circle"
+            iconColor={colors.success}
+            title="ID Verified"
+            subtitle={`Your identity has been verified on ${status?.identity.verifiedAt ? new Date(status.identity.verifiedAt).toLocaleDateString() : 'N/A'}`}
+            colors={colors}
+          />
+        ) : isPending ? (
+          <SurfaceCard style={styles.statusCard}>
+            <View style={[styles.statusIcon, { backgroundColor: withAlpha(colors.warning, 0.09) }]}>
+              <Ionicons name="time" size={48} color={colors.warning} />
+            </View>
+            <ThemedText type="defaultSemiBold" style={styles.statusTitle}>
+              Under Review
+            </ThemedText>
+            <ThemedText style={[styles.statusText, { color: colors.muted }]}>
+              Your ID document is being reviewed. This usually takes 1-2 business days.
+            </ThemedText>
+            {__DEV__ && (
+              <Clickable onPress={handleMockApprove} style={[styles.mockButton, { borderColor: colors.success }]}>
+                <ThemedText style={{ color: colors.success, fontWeight: '600' }}>
+                  Approve Now (DEV ONLY)
+                </ThemedText>
+              </Clickable>
+            )}
+          </SurfaceCard>
+        ) : (
+          <>
+            <ThemedText style={{ color: colors.muted }}>
+              Upload a clear photo of a government-issued ID to verify your identity.
+            </ThemedText>
 
-              <View style={styles.section}>
-                <ThemedText type="defaultSemiBold">Select ID Type</ThemedText>
-                <Row gap="sm">
-                  {ID_TYPES.map((type) => (
-                    <Clickable
-                      key={type.id}
-                      onPress={() => setSelectedType(type.id)}
-                      style={[
-                        styles.typeCard,
-                        {
-                          borderColor: selectedType === type.id ? colors.tint : colors.border,
-                          backgroundColor:
-                            selectedType === type.id ? withAlpha(colors.tint, 0.03) : colors.card,
-                        },
-                      ]}
+            <View style={styles.section}>
+              <ThemedText type="defaultSemiBold">Select ID Type</ThemedText>
+              <Row gap="sm">
+                {ID_TYPES.map((type) => (
+                  <Clickable
+                    key={type.id}
+                    onPress={() => setSelectedType(type.id)}
+                    style={[
+                      styles.typeCard,
+                      {
+                        borderColor: selectedType === type.id ? colors.tint : colors.border,
+                        backgroundColor:
+                          selectedType === type.id ? withAlpha(colors.tint, 0.03) : colors.card,
+                      },
+                    ]}
+                  >
+                    <Ionicons
+                      name={type.icon as keyof typeof Ionicons.glyphMap}
+                      size={28}
+                      color={selectedType === type.id ? colors.tint : colors.muted}
+                    />
+                    <ThemedText
+                      style={{
+                        ...Typography.small,
+                        color: selectedType === type.id ? colors.tint : colors.text,
+                        fontWeight: selectedType === type.id ? '600' : '400',
+                      }}
                     >
-                      <Ionicons
-                        name={type.icon as keyof typeof Ionicons.glyphMap}
-                        size={28}
-                        color={selectedType === type.id ? colors.tint : colors.muted}
-                      />
-                      <ThemedText
-                        style={{
-                          ...Typography.small,
-                          color: selectedType === type.id ? colors.tint : colors.text,
-                          fontWeight: selectedType === type.id ? '600' : '400',
-                        }}
-                      >
-                        {type.label}
-                      </ThemedText>
-                    </Clickable>
-                  ))}
-                </Row>
-              </View>
-
-              {selectedType && (
-                <View style={styles.section}>
-                  <ThemedText type="defaultSemiBold">Upload Document</ThemedText>
-                  {uploaded ? (
-                    <SurfaceCard style={styles.uploadedCard}>
-                      <Row align="center" gap="md">
-                        <Ionicons name="document" size={32} color={colors.success} />
-                        <Column flex>
-                          <ThemedText type="defaultSemiBold">Document uploaded</ThemedText>
-                          <ThemedText style={{ color: colors.muted, ...Typography.small }}>
-                            {ID_TYPES.find((t) => t.id === selectedType)?.label}
-                          </ThemedText>
-                        </Column>
-                        <Clickable
-                          accessibilityLabel="Remove uploaded ID"
-                          onPress={() => setUploaded(false)}
-                        >
-                          <Ionicons name="close-circle" size={24} color={colors.muted} />
-                        </Clickable>
-                      </Row>
-                    </SurfaceCard>
-                  ) : (
-                    <Clickable
-                      onPress={handleUpload}
-                      style={[styles.uploadArea, { borderColor: colors.border }]}
-                    >
-                      <Ionicons name="cloud-upload" size={40} color={colors.muted} />
-                      <ThemedText type="defaultSemiBold">Tap to upload</ThemedText>
-                      <ThemedText style={{ color: colors.muted, ...Typography.small }}>
-                        Take a photo or choose from gallery
-                      </ThemedText>
-                    </Clickable>
-                  )}
-                </View>
-              )}
-
-              <View style={styles.requirements}>
-                <ThemedText type="defaultSemiBold">Requirements</ThemedText>
-                {[
-                  'Document must be valid and not expired',
-                  'All text must be clearly readable',
-                  'Photo must show the full document',
-                  'No glare or shadows obscuring information',
-                ].map((req, i) => (
-                  <Row key={i} align="flex-start" gap="sm">
-                    <Ionicons name="checkmark" size={16} color={colors.success} />
-                    <ThemedText style={{ color: colors.muted, ...Typography.small, flex: 1 }}>
-                      {req}
+                      {type.label}
                     </ThemedText>
-                  </Row>
+                  </Clickable>
                 ))}
-              </View>
+              </Row>
+            </View>
 
-              <Button onPress={handleSubmit} disabled={!selectedType || !uploaded || submitting}>
-                {submitting ? 'Submitting...' : 'Submit for Verification'}
-              </Button>
-            </>
-          )}
-        </ScrollView>
-      </SafeAreaView>
+            {selectedType && (
+              <View style={styles.section}>
+                <ThemedText type="defaultSemiBold">Upload Document</ThemedText>
+                {uploaded ? (
+                  <SurfaceCard style={styles.uploadedCard}>
+                    <Row align="center" gap="md">
+                      <Ionicons name="document" size={32} color={colors.success} />
+                      <Column flex>
+                        <ThemedText type="defaultSemiBold">Document uploaded</ThemedText>
+                        <ThemedText style={{ color: colors.muted, ...Typography.small }}>
+                          {ID_TYPES.find((t) => t.id === selectedType)?.label}
+                        </ThemedText>
+                      </Column>
+                      <Clickable accessibilityLabel="Remove uploaded ID" onPress={() => setUploaded(false)}>
+                        <Ionicons name="close-circle" size={24} color={colors.muted} />
+                      </Clickable>
+                    </Row>
+                  </SurfaceCard>
+                ) : (
+                  <Clickable onPress={handleUpload} style={[styles.uploadArea, { borderColor: colors.border }]}>
+                    <Ionicons name="cloud-upload" size={40} color={colors.muted} />
+                    <ThemedText type="defaultSemiBold">Tap to upload</ThemedText>
+                    <ThemedText style={{ color: colors.muted, ...Typography.small }}>
+                      Take a photo or choose from gallery
+                    </ThemedText>
+                  </Clickable>
+                )}
+              </View>
+            )}
+
+            <View style={styles.requirements}>
+              <ThemedText type="defaultSemiBold">Requirements</ThemedText>
+              {[
+                'Document must be valid and not expired',
+                'All text must be clearly readable',
+                'Photo must show the full document',
+                'No glare or shadows obscuring information',
+              ].map((req, i) => (
+                <Row key={i} align="flex-start" gap="sm">
+                  <Ionicons name="checkmark" size={16} color={colors.success} />
+                  <ThemedText style={{ color: colors.muted, ...Typography.small, flex: 1 }}>
+                    {req}
+                  </ThemedText>
+                </Row>
+              ))}
+            </View>
+
+            <Button onPress={handleSubmit} disabled={!selectedType || !uploaded || submitting}>
+              {submitting ? 'Submitting...' : 'Submit for Verification'}
+            </Button>
+          </>
+        )}
+      </ScrollView>
     </VerificationScreenState>
   );
 }
@@ -226,9 +209,7 @@ function StatusCard({
 }
 
 const styles = StyleSheet.create({
-  safeArea: { flex: 1 },
   content: { padding: Spacing.lg, gap: Spacing.lg },
-  loadingContainer: { flex: 1, justifyContent: 'center', alignItems: 'center' },
   header: {},
   backButton: { padding: Spacing.xs, marginLeft: -Spacing.xs },
   statusCard: { alignItems: 'center', gap: Spacing.sm, paddingVertical: Spacing.xl },
