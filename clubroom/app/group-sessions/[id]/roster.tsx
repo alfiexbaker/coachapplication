@@ -4,6 +4,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import Animated, { FadeInDown } from 'react-native-reanimated';
+import type { ReactNode } from 'react';
 
 import { ThemedText } from '@/components/themed-text';
 import { Clickable } from '@/components/primitives/clickable';
@@ -69,13 +70,14 @@ export default function SessionRosterScreen() {
     openInjuryReport,
     submitInjuryReport,
   } = useGroupRoster(id);
+  const renderShell = (content: ReactNode) => (
+    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top', 'bottom']}>
+      {content}
+    </SafeAreaView>
+  );
 
   if (!idParam.valid) {
-    return (
-      <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top', 'bottom']}>
-        <ErrorState message="Invalid session roster link." onRetry={() => router.back()} />
-      </SafeAreaView>
-    );
+    return renderShell(<ErrorState message="Invalid session roster link." onRetry={() => router.back()} />);
   }
 
   const [quickRateAthlete, setQuickRateAthlete] = useState<QuickRateAthlete | null>(null);
@@ -93,49 +95,27 @@ export default function SessionRosterScreen() {
   }, []);
 
   if (status === 'loading') {
-    return (
-      <SafeAreaView
-        style={[styles.container, { backgroundColor: colors.background }]}
-        edges={['top', 'bottom']}
-      >
-        <LoadingState variant="list" />
-      </SafeAreaView>
-    );
+    return renderShell(<LoadingState variant="list" />);
   }
 
   if (status === 'error') {
-    return (
-      <SafeAreaView
-        style={[styles.container, { backgroundColor: colors.background }]}
-        edges={['top', 'bottom']}
-      >
-        <ErrorState message={error?.message || 'Failed to load session roster.'} onRetry={retry} />
-      </SafeAreaView>
-    );
+    return renderShell(<ErrorState message={error?.message || 'Failed to load session roster.'} onRetry={retry} />);
   }
 
   if (status === 'empty' || !session) {
-    return (
-      <SafeAreaView
-        style={[styles.container, { backgroundColor: colors.background }]}
-        edges={['top', 'bottom']}
-      >
-        <EmptyState
-          icon="people-outline"
-          title="Session not found"
-          message="This session could not be loaded."
-          actionLabel="Go Back"
-          onPressAction={() => router.back()}
-        />
-      </SafeAreaView>
+    return renderShell(
+      <EmptyState
+        icon="people-outline"
+        title="Session not found"
+        message="This session could not be loaded."
+        actionLabel="Go Back"
+        onPressAction={() => router.back()}
+      />,
     );
   }
 
-  return (
-    <SafeAreaView
-      style={[styles.container, { backgroundColor: colors.background }]}
-      edges={['top', 'bottom']}
-    >
+  return renderShell(
+    <>
       <Row gap="md" align="center" style={styles.header}>
         <Clickable onPress={() => router.back()} hitSlop={8}>
           <Ionicons name="arrow-back" size={24} color={colors.text} />
@@ -311,7 +291,7 @@ export default function SessionRosterScreen() {
         onSaved={handleQuickRateSaved}
       />
 
-    </SafeAreaView>
+    </>,
   );
 }
 

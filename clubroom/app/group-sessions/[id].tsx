@@ -14,6 +14,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import { RefreshControl, ScrollView, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import type { ReactNode } from 'react';
 
 import { CancellationPolicyCard } from '@/components/booking/cancellation-policy-card';
 import { ChildSelector } from '@/components/group/child-selector';
@@ -94,65 +95,46 @@ export default function GroupSessionDetailScreen() {
   const header = (
     <PageHeader title="Session Details" showBack centerTitle onBackPress={handleBack} />
   );
+  const renderShell = (content: ReactNode) => (
+    <SafeAreaView
+      style={[styles.container, { backgroundColor: colors.background }]}
+      edges={['top', 'bottom']}
+    >
+      {header}
+      {content}
+    </SafeAreaView>
+  );
 
   // -------------------------------------------------------------------------
   // Loading / Error / Empty states
   // -------------------------------------------------------------------------
 
   if (status === 'loading') {
-    return (
-      <SafeAreaView
-        style={[styles.container, { backgroundColor: colors.background }]}
-        edges={['top', 'bottom']}
-      >
-        {header}
-        <LoadingState variant="detail" />
-      </SafeAreaView>
-    );
+    return renderShell(<LoadingState variant="detail" />);
   }
 
   if (!idParam.valid) {
-    return (
-      <SafeAreaView
-        style={[styles.container, { backgroundColor: colors.background }]}
-        edges={['top', 'bottom']}
-      >
-        {header}
-        <ErrorState message="Invalid session link." onRetry={handleBack} />
-      </SafeAreaView>
-    );
+    return renderShell(<ErrorState message="Invalid session link." onRetry={handleBack} />);
   }
 
   if (status === 'error') {
-    return (
-      <SafeAreaView
-        style={[styles.container, { backgroundColor: colors.background }]}
-        edges={['top', 'bottom']}
-      >
-        {header}
-        <ErrorState
-          message={error?.message || 'Failed to load group session details.'}
-          onRetry={retry}
-        />
-      </SafeAreaView>
+    return renderShell(
+      <ErrorState
+        message={error?.message || 'Failed to load group session details.'}
+        onRetry={retry}
+      />,
     );
   }
 
   if (status === 'empty' || !session) {
-    return (
-      <SafeAreaView
-        style={[styles.container, { backgroundColor: colors.background }]}
-        edges={['top', 'bottom']}
-      >
-        {header}
-        <EmptyState
-          icon="calendar-outline"
-          title="Session not found"
-          message="This session may have been removed."
-          actionLabel="Go Back"
-          onPressAction={() => router.back()}
-        />
-      </SafeAreaView>
+    return renderShell(
+      <EmptyState
+        icon="calendar-outline"
+        title="Session not found"
+        message="This session may have been removed."
+        actionLabel="Go Back"
+        onPressAction={() => router.back()}
+      />,
     );
   }
 
@@ -186,12 +168,8 @@ export default function GroupSessionDetailScreen() {
       })
     : null;
 
-  return (
-    <SafeAreaView
-      style={[styles.container, { backgroundColor: colors.background }]}
-      edges={['top', 'bottom']}
-    >
-      {header}
+  return renderShell(
+    <>
       <ScrollView
         style={styles.scroll}
         showsVerticalScrollIndicator={false}
@@ -424,13 +402,13 @@ export default function GroupSessionDetailScreen() {
               ? 'Registering...'
               : isPastRegistrationDeadline
                 ? 'Registration Closed'
-                : canRegisterMore
+              : canRegisterMore
                   ? 'Add Child'
                   : 'Register Now'}
           </Button>
         </Row>
       )}
-    </SafeAreaView>
+    </>,
   );
 }
 
