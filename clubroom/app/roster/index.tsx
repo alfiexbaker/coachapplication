@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, type ReactNode } from 'react';
 import { AccessibleListCell } from '@/components/ui/list-accessibility';
 import { View, StyleSheet, FlatList, RefreshControl } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -81,34 +81,25 @@ export default function RosterScreen() {
   const activeFiltersCount = Object.values(filters).filter(
     (value) => value !== undefined && (Array.isArray(value) ? value.length > 0 : true),
   ).length;
-
-  if (status === 'loading') {
-    return (
-      <SafeAreaView
-        style={[styles.container, { backgroundColor: palette.background }]}
-        edges={['top', 'bottom']}
-      >
-        <LoadingState variant="list" />
-      </SafeAreaView>
-    );
-  }
-
-  if (status === 'error') {
-    return (
-      <SafeAreaView
-        style={[styles.container, { backgroundColor: palette.background }]}
-        edges={['top', 'bottom']}
-      >
-        <ErrorState message={error?.message || 'Failed to load athlete roster.'} onRetry={retry} />
-      </SafeAreaView>
-    );
-  }
-
-  return (
+  const renderShell = (content: ReactNode) => (
     <SafeAreaView
       style={[styles.container, { backgroundColor: palette.background }]}
       edges={['top', 'bottom']}
     >
+      {content}
+    </SafeAreaView>
+  );
+
+  if (status === 'loading') {
+    return renderShell(<LoadingState variant="list" />);
+  }
+
+  if (status === 'error') {
+    return renderShell(<ErrorState message={error?.message || 'Failed to load athlete roster.'} onRetry={retry} />);
+  }
+
+  return renderShell(
+    <>
       <RosterHeader colors={palette} total={stats?.total || 0} onBack={() => router.back()} />
       <RosterStatsRow colors={palette} stats={stats} />
       <RosterSearchBar
@@ -158,7 +149,7 @@ export default function RosterScreen() {
         }
         ItemSeparatorComponent={() => <View style={styles.separator} />}
       />
-    </SafeAreaView>
+    </>,
   );
 }
 
