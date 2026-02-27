@@ -15,6 +15,7 @@ interface VerificationScreenStateProps {
   emptyTitle: string;
   emptyMessage: string;
   isEmpty?: boolean;
+  header?: ReactNode;
   children: ReactNode;
 }
 
@@ -28,11 +29,13 @@ export function VerificationScreenState({
   emptyTitle,
   emptyMessage,
   isEmpty = false,
+  header,
   children,
 }: VerificationScreenStateProps) {
   if (screenStatus === 'loading') {
     return (
       <SafeAreaView style={{ flex: 1, backgroundColor: colors.background }} edges={['top', 'bottom']}>
+        {header}
         <LoadingState variant="detail" />
       </SafeAreaView>
     );
@@ -41,6 +44,7 @@ export function VerificationScreenState({
   if (screenStatus === 'error') {
     return (
       <SafeAreaView style={{ flex: 1, backgroundColor: colors.background }} edges={['top', 'bottom']}>
+        {header}
         <ErrorState message={error?.message || errorMessage} onRetry={retry} />
       </SafeAreaView>
     );
@@ -49,6 +53,7 @@ export function VerificationScreenState({
   if (isEmpty || screenStatus === 'empty') {
     return (
       <SafeAreaView style={{ flex: 1, backgroundColor: colors.background }} edges={['top', 'bottom']}>
+        {header}
         <EmptyState
           icon={emptyIcon}
           title={emptyTitle}

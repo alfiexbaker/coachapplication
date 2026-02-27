@@ -9,7 +9,7 @@ import { SurfaceCard } from '@/components/primitives/surface-card';
 import { PageHeader } from '@/components/primitives/page-header';
 import { Button } from '@/components/primitives/button';
 import { Row } from '@/components/primitives/row';
-import { LoadingState, ErrorState } from '@/components/ui/screen-states';
+import { VerificationScreenState } from '@/components/verification/verification-screen-state';
 import { Spacing, Typography, Radii, withAlpha } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
 import { verificationService } from '@/services/verification-service';
@@ -40,42 +40,31 @@ export default function InsuranceVerificationScreen() {
     loadStatus();
   }, [loadStatus]);
 
-  if (loading) {
-    return (
-      <SafeAreaView
-        style={[styles.container, { backgroundColor: palette.background }]}
-        edges={['top', 'bottom']}
-      >
-        <PageHeader
-          title="Insurance"
-          showBack
-          backIcon="arrow-back"
-          onBackPress={() => router.back()}
-          centerTitle
-        />
-        <LoadingState variant="detail" />
-      </SafeAreaView>
-    );
-  }
+  const header = (
+    <PageHeader
+      title="Insurance"
+      showBack
+      backIcon="arrow-back"
+      onBackPress={() => router.back()}
+      centerTitle
+    />
+  );
 
-  if (loadError || !status) {
+  if (loading || loadError || !status) {
     return (
-      <SafeAreaView
-        style={[styles.container, { backgroundColor: palette.background }]}
-        edges={['top', 'bottom']}
+      <VerificationScreenState
+        colors={palette}
+        screenStatus={loading ? 'loading' : 'error'}
+        error={loadError ? new Error(loadError) : null}
+        retry={loadStatus}
+        errorMessage="Failed to load insurance status."
+        emptyIcon="document-text-outline"
+        emptyTitle="Insurance unavailable"
+        emptyMessage="Insurance status is currently unavailable."
+        header={header}
       >
-        <PageHeader
-          title="Insurance"
-          showBack
-          backIcon="arrow-back"
-          onBackPress={() => router.back()}
-          centerTitle
-        />
-        <ErrorState
-          message={loadError || 'Failed to load insurance status.'}
-          onRetry={loadStatus}
-        />
-      </SafeAreaView>
+        <></>
+      </VerificationScreenState>
     );
   }
 
@@ -100,13 +89,7 @@ export default function InsuranceVerificationScreen() {
       style={[styles.container, { backgroundColor: palette.background }]}
       edges={['top', 'bottom']}
     >
-      <PageHeader
-        title="Insurance"
-        showBack
-        backIcon="arrow-back"
-        onBackPress={() => router.back()}
-        centerTitle
-      />
+      {header}
 
       <ScrollView
         contentContainerStyle={styles.content}
