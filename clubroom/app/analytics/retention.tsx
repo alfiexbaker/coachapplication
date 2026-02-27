@@ -1,5 +1,4 @@
 import { View, StyleSheet, ScrollView, RefreshControl } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 
 import { ThemedText } from '@/components/themed-text';
@@ -7,10 +6,14 @@ import { Clickable } from '@/components/primitives/clickable';
 import { Column } from '@/components/primitives/column';
 import { Row } from '@/components/primitives/row';
 import { SurfaceCard } from '@/components/primitives/surface-card';
-import { AnalyticsStatCard, RetentionCard, CancellationChart } from '@/components/analytics';
+import {
+  AnalyticsScreenState,
+  AnalyticsStatCard,
+  RetentionCard,
+  CancellationChart,
+} from '@/components/analytics';
 import { RetentionFunnel } from '@/components/analytics/retention-funnel';
 import { RetentionRecommendations } from '@/components/analytics/retention-recommendations';
-import { LoadingState, ErrorState, EmptyState } from '@/components/ui/screen-states';
 import { Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
 import { useRetentionAnalytics } from '@/hooks/use-retention-analytics';
@@ -31,150 +34,123 @@ export default function RetentionScreen() {
       </ThemedText>
     </View>
   );
-
-  if (retention.status === 'loading') {
-    return (
-      <SafeAreaView
-        style={[styles.container, { backgroundColor: palette.background }]}
-        edges={['top', 'bottom']}
-      >
-        {header}
-        <LoadingState variant="card" />
-      </SafeAreaView>
-    );
-  }
-
-  if (retention.status === 'error') {
-    return (
-      <SafeAreaView
-        style={[styles.container, { backgroundColor: palette.background }]}
-        edges={['top', 'bottom']}
-      >
-        {header}
-        <ErrorState
-          message={retention.error?.message || 'Failed to load retention analytics.'}
-          onRetry={retention.retry}
-        />
-      </SafeAreaView>
-    );
-  }
-
-  if (retention.status === 'empty' || !retention.retention) {
-    return (
-      <SafeAreaView
-        style={[styles.container, { backgroundColor: palette.background }]}
-        edges={['top', 'bottom']}
-      >
-        {header}
-        <EmptyState
-          icon="people-outline"
-          title="No retention data"
-          message="Retention data appears after you build an active client base."
-          actionLabel="Refresh"
-          onPressAction={retention.onRefresh}
-        />
-      </SafeAreaView>
-    );
-  }
+  const shellStatus =
+    retention.status === 'loading'
+      ? 'loading'
+      : retention.status === 'error'
+        ? 'error'
+        : retention.status === 'empty' || !retention.retention
+          ? 'empty'
+          : 'ready';
 
   return (
-    <SafeAreaView
-      style={[styles.container, { backgroundColor: palette.background }]}
-      edges={['top', 'bottom']}
+    <AnalyticsScreenState
+      colors={palette}
+      status={shellStatus}
+      header={header}
+      renderHeaderInReady
+      errorMessage="Failed to load retention analytics."
+      error={retention.error}
+      onRetry={retention.retry}
+      emptyIcon="people-outline"
+      emptyTitle="No retention data"
+      emptyMessage="Retention data appears after you build an active client base."
+      onEmptyAction={retention.onRefresh}
     >
-      <ScrollView
-        contentContainerStyle={styles.content}
-        refreshControl={
-          <RefreshControl refreshing={retention.refreshing} onRefresh={retention.onRefresh} />
-        }
-        showsVerticalScrollIndicator={false}
-      >
-        {header}
+      {retention.retention ? (
+        <ScrollView
+          contentContainerStyle={styles.content}
+          refreshControl={
+            <RefreshControl refreshing={retention.refreshing} onRefresh={retention.onRefresh} />
+          }
+          showsVerticalScrollIndicator={false}
+        >
+          {header}
 
-        {/* Status badge */}
-        <SurfaceCard style={styles.statusCard}>
-          <Row gap="md" align="center">
-            <View
-              style={[
-                styles.statusIcon,
-                { backgroundColor: withAlpha(retention.retentionStatus.color, 0.12) },
-              ]}
-            >
-              <Ionicons
-                name={retention.retentionStatus.icon}
-                size={28}
-                color={retention.retentionStatus.color}
-              />
-            </View>
-            <Column flex>
-              <ThemedText style={[styles.statusLabel, { color: retention.retentionStatus.color }]}>
-                {retention.retentionStatus.label}
-              </ThemedText>
-              <ThemedText style={Typography.title}>
-                {retention.retention.retentionRate.toFixed(1)}% Retention Rate
-              </ThemedText>
-            </Column>
+          {/* Status badge */}
+          <SurfaceCard style={styles.statusCard}>
+            <Row gap="md" align="center">
+              <View
+                style={[
+                  styles.statusIcon,
+                  { backgroundColor: withAlpha(retention.retentionStatus.color, 0.12) },
+                ]}
+              >
+                <Ionicons
+                  name={retention.retentionStatus.icon}
+                  size={28}
+                  color={retention.retentionStatus.color}
+                />
+              </View>
+              <Column flex>
+                <ThemedText style={[styles.statusLabel, { color: retention.retentionStatus.color }]}>
+                  {retention.retentionStatus.label}
+                </ThemedText>
+                <ThemedText style={Typography.title}>
+                  {retention.retention.retentionRate.toFixed(1)}% Retention Rate
+                </ThemedText>
+              </Column>
+            </Row>
+          </SurfaceCard>
+
+          <Row gap="md">
+            <AnalyticsStatCard
+              label="Active Clients"
+              value={retention.retention.totalActiveClients}
+              icon="people"
+              iconColor={palette.tint}
+            />
+            <AnalyticsStatCard
+              label="Avg Sessions"
+              value={retention.retention.avgSessionsPerClient.toFixed(1)}
+              icon="calendar"
+              iconColor={palette.tint}
+            />
           </Row>
-        </SurfaceCard>
+          <Row gap="md">
+            <AnalyticsStatCard
+              label="New Clients"
+              value={retention.retention.newClients}
+              icon="person-add"
+              iconColor={palette.success}
+            />
+            <AnalyticsStatCard
+              label="Returning"
+              value={retention.retention.returningClients}
+              icon="repeat"
+              iconColor={palette.tint}
+            />
+          </Row>
+          <Row gap="md">
+            <AnalyticsStatCard
+              label="Churn Rate"
+              value={`${retention.retention.churnRate.toFixed(1)}%`}
+              icon="trending-down"
+              iconColor={palette.error}
+            />
+            <AnalyticsStatCard
+              label="Clients Lost"
+              value={retention.retention.clientsLost}
+              icon="person-remove"
+              iconColor={palette.error}
+            />
+          </Row>
 
-        <Row gap="md">
-          <AnalyticsStatCard
-            label="Active Clients"
-            value={retention.retention.totalActiveClients}
-            icon="people"
-            iconColor={palette.tint}
-          />
-          <AnalyticsStatCard
-            label="Avg Sessions"
-            value={retention.retention.avgSessionsPerClient.toFixed(1)}
-            icon="calendar"
-            iconColor={palette.tint}
-          />
-        </Row>
-        <Row gap="md">
-          <AnalyticsStatCard
-            label="New Clients"
-            value={retention.retention.newClients}
-            icon="person-add"
-            iconColor={palette.success}
-          />
-          <AnalyticsStatCard
-            label="Returning"
-            value={retention.retention.returningClients}
-            icon="repeat"
-            iconColor={palette.tint}
-          />
-        </Row>
-        <Row gap="md">
-          <AnalyticsStatCard
-            label="Churn Rate"
-            value={`${retention.retention.churnRate.toFixed(1)}%`}
-            icon="trending-down"
-            iconColor={palette.error}
-          />
-          <AnalyticsStatCard
-            label="Clients Lost"
-            value={retention.retention.clientsLost}
-            icon="person-remove"
-            iconColor={palette.error}
-          />
-        </Row>
+          <RetentionCard metrics={retention.retention} title="Retention Overview" />
+          <RetentionFunnel colors={palette} retention={retention.retention} />
 
-        <RetentionCard metrics={retention.retention} title="Retention Overview" />
-        <RetentionFunnel colors={palette} retention={retention.retention} />
+          {retention.cancellations && retention.cancellations.totalCancellations > 0 && (
+            <CancellationChart stats={retention.cancellations} title="Cancellation Analysis" />
+          )}
 
-        {retention.cancellations && retention.cancellations.totalCancellations > 0 && (
-          <CancellationChart stats={retention.cancellations} title="Cancellation Analysis" />
-        )}
-
-        <RetentionRecommendations colors={palette} />
-      </ScrollView>
-    </SafeAreaView>
+          <RetentionRecommendations colors={palette} />
+        </ScrollView>
+      ) : null}
+    </AnalyticsScreenState>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1 },
   content: {
     flexGrow: 1,
     paddingHorizontal: Spacing.lg,

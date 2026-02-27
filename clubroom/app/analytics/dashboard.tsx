@@ -1,5 +1,4 @@
 import { View, StyleSheet, ScrollView, RefreshControl } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 
@@ -12,10 +11,10 @@ import {
   PeakHoursHeatmap,
   RetentionCard,
   CancellationChart,
+  AnalyticsScreenState,
 } from '@/components/analytics';
 import { AnalyticsTopSkills } from '@/components/analytics/analytics-top-skills';
 import { AnalyticsSessionTypes } from '@/components/analytics/analytics-session-types';
-import { LoadingState, ErrorState, EmptyState } from '@/components/ui/screen-states';
 import { Spacing, Radii, Typography } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
 import { useAnalyticsDashboard, PERIOD_OPTIONS } from '@/hooks/use-analytics-dashboard';
@@ -38,189 +37,161 @@ export default function AnalyticsDashboardScreen() {
       </ThemedText>
     </View>
   );
-
-  if (analytics.status === 'loading') {
-    return (
-      <SafeAreaView
-        style={[styles.container, { backgroundColor: palette.background }]}
-        edges={['top', 'bottom']}
-      >
-        {header}
-        <LoadingState variant="card" />
-      </SafeAreaView>
-    );
-  }
-
-  if (analytics.status === 'error') {
-    return (
-      <SafeAreaView
-        style={[styles.container, { backgroundColor: palette.background }]}
-        edges={['top', 'bottom']}
-      >
-        {header}
-        <ErrorState
-          message={analytics.error?.message || 'Failed to load analytics.'}
-          onRetry={analytics.retry}
-        />
-      </SafeAreaView>
-    );
-  }
-
-  if (analytics.status === 'empty' || !analytics.analytics) {
-    return (
-      <SafeAreaView
-        style={[styles.container, { backgroundColor: palette.background }]}
-        edges={['top', 'bottom']}
-      >
-        {header}
-        <EmptyState
-          icon="analytics-outline"
-          title="No analytics yet"
-          message="Complete sessions to see your coaching insights."
-          actionLabel="Refresh"
-          onPressAction={analytics.onRefresh}
-        />
-      </SafeAreaView>
-    );
-  }
-
+  const shellStatus =
+    analytics.status === 'loading'
+      ? 'loading'
+      : analytics.status === 'error'
+        ? 'error'
+        : analytics.status === 'empty' || !analytics.analytics
+          ? 'empty'
+          : 'ready';
   const dashboard = analytics.analytics;
 
   return (
-    <SafeAreaView
-      style={[styles.container, { backgroundColor: palette.background }]}
-      edges={['top', 'bottom']}
+    <AnalyticsScreenState
+      colors={palette}
+      status={shellStatus}
+      header={header}
+      renderHeaderInReady
+      errorMessage="Failed to load analytics."
+      error={analytics.error}
+      onRetry={analytics.retry}
+      emptyIcon="analytics-outline"
+      emptyTitle="No analytics yet"
+      emptyMessage="Complete sessions to see your coaching insights."
+      onEmptyAction={analytics.onRefresh}
     >
-      <ScrollView
-        contentContainerStyle={styles.content}
-        refreshControl={
-          <RefreshControl refreshing={analytics.refreshing} onRefresh={analytics.onRefresh} />
-        }
-        showsVerticalScrollIndicator={false}
-      >
-        {header}
-        {demoMode ? (
-          <DemoBanner message="Analytics may include demo/mock data in this environment." />
-        ) : null}
+      {dashboard ? (
+        <ScrollView
+          contentContainerStyle={styles.content}
+          refreshControl={
+            <RefreshControl refreshing={analytics.refreshing} onRefresh={analytics.onRefresh} />
+          }
+          showsVerticalScrollIndicator={false}
+        >
+          {header}
+          {demoMode ? (
+            <DemoBanner message="Analytics may include demo/mock data in this environment." />
+          ) : null}
 
-        {/* Period selector */}
-        <Row gap="xs">
-          {PERIOD_OPTIONS.map((option) => (
-            <Clickable
-              key={option.value}
-              onPress={() => analytics.handlePeriodChange(option.value)}
-              style={[
-                styles.periodButton,
-                {
-                  backgroundColor: analytics.period === option.value ? palette.tint : 'transparent',
-                  borderColor: analytics.period === option.value ? palette.tint : palette.border,
-                },
-              ]}
-              accessibilityLabel={`${option.label} period`}
-            >
-              <ThemedText
+          {/* Period selector */}
+          <Row gap="xs">
+            {PERIOD_OPTIONS.map((option) => (
+              <Clickable
+                key={option.value}
+                onPress={() => analytics.handlePeriodChange(option.value)}
                 style={[
-                  styles.periodText,
-                  { color: analytics.period === option.value ? palette.onPrimary : palette.text },
+                  styles.periodButton,
+                  {
+                    backgroundColor: analytics.period === option.value ? palette.tint : 'transparent',
+                    borderColor: analytics.period === option.value ? palette.tint : palette.border,
+                  },
                 ]}
+                accessibilityLabel={`${option.label} period`}
               >
-                {option.label}
-              </ThemedText>
-            </Clickable>
-          ))}
-        </Row>
+                <ThemedText
+                  style={[
+                    styles.periodText,
+                    { color: analytics.period === option.value ? palette.onPrimary : palette.text },
+                  ]}
+                >
+                  {option.label}
+                </ThemedText>
+              </Clickable>
+            ))}
+          </Row>
 
-        {/* Key metrics */}
-        <Row gap="md">
-          <AnalyticsStatCard
-            label="Revenue"
-            value={dashboard.totalRevenue}
-            changePercent={dashboard.revenueChangePercent}
+          {/* Key metrics */}
+          <Row gap="md">
+            <AnalyticsStatCard
+              label="Revenue"
+              value={dashboard.totalRevenue}
+              changePercent={dashboard.revenueChangePercent}
+              trend={dashboard.revenueTrend}
+              icon="cash"
+              iconColor={palette.success}
+              isCurrency
+              onPress={analytics.navigateToRevenue}
+            />
+            <AnalyticsStatCard
+              label="Sessions"
+              value={dashboard.sessions.totalSessions}
+              changePercent={dashboard.sessions.sessionsChangePercent}
+              trend={
+                dashboard.sessions.sessionsChangePercent > 2
+                  ? 'UP'
+                  : dashboard.sessions.sessionsChangePercent < -2
+                    ? 'DOWN'
+                    : 'STABLE'
+              }
+              icon="calendar"
+              iconColor={palette.tint}
+            />
+          </Row>
+          <Row gap="md">
+            <AnalyticsStatCard
+              label="Active Clients"
+              value={dashboard.retention.totalActiveClients}
+              icon="people"
+              iconColor={palette.tint}
+              onPress={analytics.navigateToRetention}
+            />
+            <AnalyticsStatCard
+              label="Avg Rating"
+              value={dashboard.avgRating.toFixed(1)}
+              change={dashboard.ratingChange}
+              trend={
+                dashboard.ratingChange > 0 ? 'UP' : dashboard.ratingChange < 0 ? 'DOWN' : 'STABLE'
+              }
+              icon="star"
+              iconColor={palette.warning}
+            />
+          </Row>
+
+          <RevenueChart
+            data={dashboard.revenueChart}
+            title="Revenue Trend"
+            totalRevenue={dashboard.totalRevenue}
             trend={dashboard.revenueTrend}
-            icon="cash"
-            iconColor={palette.success}
-            isCurrency
+            changePercent={dashboard.revenueChangePercent}
             onPress={analytics.navigateToRevenue}
           />
-          <AnalyticsStatCard
-            label="Sessions"
-            value={dashboard.sessions.totalSessions}
-            changePercent={dashboard.sessions.sessionsChangePercent}
-            trend={
-              dashboard.sessions.sessionsChangePercent > 2
-                ? 'UP'
-                : dashboard.sessions.sessionsChangePercent < -2
-                  ? 'DOWN'
-                  : 'STABLE'
-            }
-            icon="calendar"
-            iconColor={palette.tint}
+          <PeakHoursHeatmap
+            data={dashboard.peakHours}
+            title="Peak Hours"
+            subtitle="When your sessions are scheduled"
+            busiestDay={dashboard.busiestDay}
+            busiestHour={dashboard.busiestHour}
           />
-        </Row>
-        <Row gap="md">
-          <AnalyticsStatCard
-            label="Active Clients"
-            value={dashboard.retention.totalActiveClients}
-            icon="people"
-            iconColor={palette.tint}
+          <RetentionCard
+            metrics={dashboard.retention}
+            title="Client Retention"
             onPress={analytics.navigateToRetention}
           />
-          <AnalyticsStatCard
-            label="Avg Rating"
-            value={dashboard.avgRating.toFixed(1)}
-            change={dashboard.ratingChange}
-            trend={
-              dashboard.ratingChange > 0 ? 'UP' : dashboard.ratingChange < 0 ? 'DOWN' : 'STABLE'
-            }
-            icon="star"
-            iconColor={palette.warning}
-          />
-        </Row>
-
-        <RevenueChart
-          data={dashboard.revenueChart}
-          title="Revenue Trend"
-          totalRevenue={dashboard.totalRevenue}
-          trend={dashboard.revenueTrend}
-          changePercent={dashboard.revenueChangePercent}
-          onPress={analytics.navigateToRevenue}
-        />
-        <PeakHoursHeatmap
-          data={dashboard.peakHours}
-          title="Peak Hours"
-          subtitle="When your sessions are scheduled"
-          busiestDay={dashboard.busiestDay}
-          busiestHour={dashboard.busiestHour}
-        />
-        <RetentionCard
-          metrics={dashboard.retention}
-          title="Client Retention"
-          onPress={analytics.navigateToRetention}
-        />
-        {dashboard.cancellations.totalCancellations > 0 && (
-          <CancellationChart stats={dashboard.cancellations} title="Cancellations" />
-        )}
-        {dashboard.topSkills.length > 0 && (
-          <AnalyticsTopSkills
-            colors={palette}
-            skills={dashboard.topSkills}
-            formatCurrency={analytics.formatCurrency}
-          />
-        )}
-        {dashboard.sessions.bySessionType.length > 0 && (
-          <AnalyticsSessionTypes
-            colors={palette}
-            sessionTypes={dashboard.sessions.bySessionType}
-            formatCurrency={analytics.formatCurrency}
-          />
-        )}
-      </ScrollView>
-    </SafeAreaView>
+          {dashboard.cancellations.totalCancellations > 0 && (
+            <CancellationChart stats={dashboard.cancellations} title="Cancellations" />
+          )}
+          {dashboard.topSkills.length > 0 && (
+            <AnalyticsTopSkills
+              colors={palette}
+              skills={dashboard.topSkills}
+              formatCurrency={analytics.formatCurrency}
+            />
+          )}
+          {dashboard.sessions.bySessionType.length > 0 && (
+            <AnalyticsSessionTypes
+              colors={palette}
+              sessionTypes={dashboard.sessions.bySessionType}
+              formatCurrency={analytics.formatCurrency}
+            />
+          )}
+        </ScrollView>
+      ) : null}
+    </AnalyticsScreenState>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1 },
   content: {
     flexGrow: 1,
     paddingHorizontal: Spacing.lg,
