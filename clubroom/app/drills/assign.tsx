@@ -14,6 +14,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
+import type { ReactNode } from 'react';
 import { Routes } from '@/navigation/routes';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 
@@ -51,56 +52,42 @@ export default function AssignDrillScreen() {
     handleAthleteSelect,
     handleSubmit,
   } = useDrillAssign();
-
-  if (status === 'loading') {
-    return (
-      <SafeAreaView
-        style={[styles.container, { backgroundColor: colors.background }]}
-        edges={['top', 'bottom']}
-      >
-        <LoadingState variant="form" />
-      </SafeAreaView>
-    );
-  }
-
-  if (status === 'error') {
-    return (
-      <SafeAreaView
-        style={[styles.container, { backgroundColor: colors.background }]}
-        edges={['top', 'bottom']}
-      >
-        <ErrorState message={error?.message ?? 'Failed to load drill.'} onRetry={retry} />
-      </SafeAreaView>
-    );
-  }
-
-  if (status === 'empty' || !drill) {
-    return (
-      <SafeAreaView
-        style={[styles.container, { backgroundColor: colors.background }]}
-        edges={['top', 'bottom']}
-      >
-        <ScrollView
-          contentContainerStyle={styles.center}
-          refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
-        >
-          <EmptyState
-            icon="alert-circle-outline"
-            title="No drill selected"
-            message="Select a drill from your library before assigning it."
-            actionLabel="Go to library"
-            onPressAction={() => router.push(Routes.DRILLS_LIBRARY)}
-          />
-        </ScrollView>
-      </SafeAreaView>
-    );
-  }
-
-  return (
+  const renderShell = (content: ReactNode) => (
     <SafeAreaView
       style={[styles.container, { backgroundColor: colors.background }]}
       edges={['top', 'bottom']}
     >
+      {content}
+    </SafeAreaView>
+  );
+
+  if (status === 'loading') {
+    return renderShell(<LoadingState variant="form" />);
+  }
+
+  if (status === 'error') {
+    return renderShell(<ErrorState message={error?.message ?? 'Failed to load drill.'} onRetry={retry} />);
+  }
+
+  if (status === 'empty' || !drill) {
+    return renderShell(
+      <ScrollView
+        contentContainerStyle={styles.center}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
+      >
+        <EmptyState
+          icon="alert-circle-outline"
+          title="No drill selected"
+          message="Select a drill from your library before assigning it."
+          actionLabel="Go to library"
+          onPressAction={() => router.push(Routes.DRILLS_LIBRARY)}
+        />
+      </ScrollView>,
+    );
+  }
+
+  return renderShell(
+    <>
       <PageHeader
         title="Assign Drill"
         showBack
@@ -152,7 +139,7 @@ export default function AssignDrillScreen() {
           </Animated.View>
         </ScrollView>
       </KeyboardAvoidingView>
-    </SafeAreaView>
+    </>,
   );
 }
 

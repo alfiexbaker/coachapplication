@@ -2,6 +2,7 @@ import { useState, useCallback } from 'react';
 import { View, StyleSheet, ScrollView, RefreshControl, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router, useLocalSearchParams } from 'expo-router';
+import type { ReactNode } from 'react';
 import * as Haptics from 'expo-haptics';
 import Animated, { FadeInDown, FadeInUp } from 'react-native-reanimated';
 
@@ -98,48 +99,39 @@ export default function DrillDetailScreen() {
       },
     ]);
   }, [assignment, retry]);
+  const renderShell = (content: ReactNode) => (
+    <SafeAreaView
+      style={[styles.container, { backgroundColor: palette.background }]}
+      edges={['top', 'bottom']}
+    >
+      {content}
+    </SafeAreaView>
+  );
 
   if (status === 'loading') {
-    return (
-      <SafeAreaView
-        style={[styles.container, { backgroundColor: palette.background }]}
-        edges={['top', 'bottom']}
-      >
-        <LoadingState variant="detail" />
-      </SafeAreaView>
-    );
+    return renderShell(<LoadingState variant="detail" />);
   }
 
   if (status === 'error') {
-    return (
-      <SafeAreaView
-        style={[styles.container, { backgroundColor: palette.background }]}
-        edges={['top', 'bottom']}
-      >
-        <ErrorState
-          message={error?.message ?? 'Failed to load drill assignment.'}
-          onRetry={retry}
-        />
-      </SafeAreaView>
+    return renderShell(
+      <ErrorState
+        message={error?.message ?? 'Failed to load drill assignment.'}
+        onRetry={retry}
+      />,
     );
   }
 
   if (status === 'empty' || !assignment || !assignment.drill) {
-    return (
-      <SafeAreaView
-        style={[styles.container, { backgroundColor: palette.background }]}
-        edges={['top', 'bottom']}
-      >
-        <View style={styles.notFoundContainer}>
-          <EmptyState
-            icon="alert-circle-outline"
-            title="Drill not found"
-            message="This assignment may have been removed."
-            actionLabel="Go back"
-            onPressAction={() => router.back()}
-          />
-        </View>
-      </SafeAreaView>
+    return renderShell(
+      <View style={styles.notFoundContainer}>
+        <EmptyState
+          icon="alert-circle-outline"
+          title="Drill not found"
+          message="This assignment may have been removed."
+          actionLabel="Go back"
+          onPressAction={() => router.back()}
+        />
+      </View>,
     );
   }
 
@@ -156,11 +148,8 @@ export default function DrillDetailScreen() {
         ? palette.warning
         : palette.tint;
 
-  return (
-    <SafeAreaView
-      style={[styles.container, { backgroundColor: palette.background }]}
-      edges={['top', 'bottom']}
-    >
+  return renderShell(
+    <>
       <DrillDetailHeader
         colors={palette}
         isCompleted={assignment.isCompleted}
@@ -228,7 +217,7 @@ export default function DrillDetailScreen() {
           />
         </Animated.View>
       </ScrollView>
-    </SafeAreaView>
+    </>,
   );
 }
 
