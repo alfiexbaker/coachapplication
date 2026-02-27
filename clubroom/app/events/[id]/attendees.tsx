@@ -3,6 +3,7 @@ import { Row } from '@/components/primitives/row';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router, useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
+import type { ReactNode } from 'react';
 
 import { Clickable } from '@/components/primitives/clickable';
 import { PageHeader } from '@/components/primitives/page-header';
@@ -38,43 +39,32 @@ export default function EventAttendeesScreen() {
     handleExport,
     handleSendReminder,
   } = useEventAttendees(id);
+  const renderShell = (content: ReactNode) => (
+    <SafeAreaView
+      style={[styles.container, { backgroundColor: colors.background }]}
+      edges={['top', 'bottom']}
+    >
+      {content}
+    </SafeAreaView>
+  );
 
   if (status === 'loading') {
-    return (
-      <SafeAreaView
-        style={[styles.container, { backgroundColor: colors.background }]}
-        edges={['top', 'bottom']}
-      >
-        <LoadingState variant="list" />
-      </SafeAreaView>
-    );
+    return renderShell(<LoadingState variant="list" />);
   }
 
   if (status === 'error') {
-    return (
-      <SafeAreaView
-        style={[styles.container, { backgroundColor: colors.background }]}
-        edges={['top', 'bottom']}
-      >
-        <ErrorState message={error?.message || 'Failed to load attendee data.'} onRetry={retry} />
-      </SafeAreaView>
-    );
+    return renderShell(<ErrorState message={error?.message || 'Failed to load attendee data.'} onRetry={retry} />);
   }
 
   if (status === 'empty' || !event) {
-    return (
-      <SafeAreaView
-        style={[styles.container, { backgroundColor: colors.background }]}
-        edges={['top', 'bottom']}
-      >
-        <EmptyState
-          icon="people-outline"
-          title="Event not found"
-          message="This event could not be loaded."
-          actionLabel="Go Back"
-          onPressAction={() => router.back()}
-        />
-      </SafeAreaView>
+    return renderShell(
+      <EmptyState
+        icon="people-outline"
+        title="Event not found"
+        message="This event could not be loaded."
+        actionLabel="Go Back"
+        onPressAction={() => router.back()}
+      />,
     );
   }
 

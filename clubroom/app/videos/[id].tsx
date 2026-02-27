@@ -3,6 +3,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import Animated, { FadeInDown } from 'react-native-reanimated';
+import type { ReactNode } from 'react';
 
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { Clickable } from '@/components/primitives/clickable';
@@ -45,24 +46,31 @@ export default function VideoDetailScreen() {
     dismissAnnotationModal,
     setCurrentTime,
   } = useVideoDetail(id);
+  const renderShell = ({
+    header,
+    content,
+  }: {
+    header?: ReactNode;
+    content: ReactNode;
+  }) => (
+    <SafeAreaView
+      style={[styles.container, { backgroundColor: colors.background }]}
+      edges={['top', 'bottom']}
+    >
+      {header}
+      {content}
+    </SafeAreaView>
+  );
 
   if (!idParam.valid) {
-    return (
-      <SafeAreaView
-        style={[styles.container, { backgroundColor: colors.background }]}
-        edges={['top', 'bottom']}
-      >
-        <ErrorState message="Invalid video link." onRetry={() => router.back()} />
-      </SafeAreaView>
-    );
+    return renderShell({
+      content: <ErrorState message="Invalid video link." onRetry={() => router.back()} />,
+    });
   }
 
   if (loading) {
-    return (
-      <SafeAreaView
-        style={[styles.container, { backgroundColor: colors.background }]}
-        edges={['top', 'bottom']}
-      >
+    return renderShell({
+      header: (
         <PageHeader
           title="Video"
           showBack
@@ -71,35 +79,27 @@ export default function VideoDetailScreen() {
           centerTitle
           containerStyle={styles.header}
         />
-        <LoadingState variant="detail" />
-      </SafeAreaView>
-    );
+      ),
+      content: <LoadingState variant="detail" />,
+    });
   }
 
   if (status === 'error') {
-    return (
-      <SafeAreaView
-        style={[styles.container, { backgroundColor: colors.background }]}
-        edges={['top', 'bottom']}
-      >
-        <ErrorState message={error?.message ?? 'Failed to load video.'} onRetry={retry} />
-      </SafeAreaView>
-    );
+    return renderShell({
+      content: <ErrorState message={error?.message ?? 'Failed to load video.'} onRetry={retry} />,
+    });
   }
 
   if (status === 'empty' || !video) {
-    return (
-      <SafeAreaView
-        style={[styles.container, { backgroundColor: colors.background }]}
-        edges={['top', 'bottom']}
-      >
+    return renderShell({
+      content: (
         <EmptyState
           icon="videocam-outline"
           title="Video not found"
           message="This video is unavailable."
         />
-      </SafeAreaView>
-    );
+      ),
+    });
   }
 
   return (

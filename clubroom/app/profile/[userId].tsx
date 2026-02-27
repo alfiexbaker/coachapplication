@@ -2,6 +2,7 @@ import { StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router, useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
+import type { ReactNode } from 'react';
 
 import { Button } from '@/components/primitives/button';
 import { Row } from '@/components/primitives/row';
@@ -38,43 +39,32 @@ export default function ProfileScreen() {
     isEmpty: (value) => value === null,
     refetchOnFocus: true,
   });
+  const renderShell = (content: ReactNode) => (
+    <SafeAreaView
+      style={[styles.container, { backgroundColor: colors.background }]}
+      edges={['top', 'bottom']}
+    >
+      {content}
+    </SafeAreaView>
+  );
 
   if (status === 'loading') {
-    return (
-      <SafeAreaView
-        style={[styles.container, { backgroundColor: colors.background }]}
-        edges={['top', 'bottom']}
-      >
-        <LoadingState variant="detail" />
-      </SafeAreaView>
-    );
+    return renderShell(<LoadingState variant="detail" />);
   }
 
   if (status === 'error') {
-    return (
-      <SafeAreaView
-        style={[styles.container, { backgroundColor: colors.background }]}
-        edges={['top', 'bottom']}
-      >
-        <ErrorState message={error?.message ?? 'Failed to load profile.'} onRetry={retry} />
-      </SafeAreaView>
-    );
+    return renderShell(<ErrorState message={error?.message ?? 'Failed to load profile.'} onRetry={retry} />);
   }
 
   if (status === 'empty' || !data) {
-    return (
-      <SafeAreaView
-        style={[styles.container, { backgroundColor: colors.background }]}
-        edges={['top', 'bottom']}
-      >
-        <EmptyState
-          icon="person-outline"
-          title="Profile not found"
-          message="This user could not be loaded."
-          actionLabel="Go back"
-          onPressAction={() => router.back()}
-        />
-      </SafeAreaView>
+    return renderShell(
+      <EmptyState
+        icon="person-outline"
+        title="Profile not found"
+        message="This user could not be loaded."
+        actionLabel="Go back"
+        onPressAction={() => router.back()}
+      />,
     );
   }
 
