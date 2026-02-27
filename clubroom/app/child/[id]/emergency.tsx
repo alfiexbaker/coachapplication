@@ -6,7 +6,6 @@
  */
 
 import { View, ScrollView, StyleSheet, RefreshControl } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 
@@ -15,7 +14,7 @@ import { Column } from '@/components/primitives/column';
 import { ThemedText } from '@/components/themed-text';
 import { Row } from '@/components/primitives/row';
 import { EmptyState } from '@/components/ui/empty-state';
-import { LoadingState, ErrorState } from '@/components/ui/screen-states';
+import { ChildScreenState } from '@/components/child/child-screen-state';
 import { EmergencyContactCard } from '@/components/child/emergency-contact-card';
 import { EmergencyContactForm } from '@/components/child/emergency-contact-form';
 import { Spacing, Radii, Typography } from '@/constants/theme';
@@ -48,44 +47,44 @@ export default function EmergencyContactsScreen() {
 
   if (!childIdParam.valid) {
     return (
-      <SafeAreaView
-        style={[styles.container, { backgroundColor: colors.background }]}
-        edges={['top', 'bottom']}
-      >
-        <ErrorState message="Invalid emergency contacts link." onRetry={() => router.back()} />
-      </SafeAreaView>
+      <ChildScreenState
+        colors={colors}
+        status="error"
+        errorMessage="Invalid emergency contacts link."
+        onRetry={() => router.back()}
+      />
     );
   }
 
   if (loading) {
     return (
-      <SafeAreaView
-        style={[styles.container, { backgroundColor: colors.background }]}
-        edges={['top', 'bottom']}
-      >
-        <LoadingState variant="detail" />
-      </SafeAreaView>
+      <ChildScreenState
+        colors={colors}
+        status="loading"
+        errorMessage="Failed to load emergency contacts."
+        onRetry={retry}
+        loadingVariant="detail"
+      />
     );
   }
 
   if (status === 'error') {
     return (
-      <SafeAreaView
-        style={[styles.container, { backgroundColor: colors.background }]}
-        edges={['top', 'bottom']}
-      >
-        <ErrorState
-          message={error?.message ?? 'Failed to load emergency contacts.'}
-          onRetry={retry}
-        />
-      </SafeAreaView>
+      <ChildScreenState
+        colors={colors}
+        status="error"
+        errorMessage={error?.message ?? 'Failed to load emergency contacts.'}
+        onRetry={retry}
+      />
     );
   }
 
   return (
-    <SafeAreaView
-      style={[styles.container, { backgroundColor: colors.background }]}
-      edges={['top', 'bottom']}
+    <ChildScreenState
+      colors={colors}
+      status="ready"
+      errorMessage="Failed to load emergency contacts."
+      onRetry={retry}
     >
       <ScrollView
         contentContainerStyle={styles.content}
@@ -153,12 +152,11 @@ export default function EmergencyContactsScreen() {
           </Row>
         )}
       </ScrollView>
-    </SafeAreaView>
+    </ChildScreenState>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1 },
   content: { padding: Spacing.lg, gap: Spacing.lg },
   backButton: { padding: Spacing.xs, marginLeft: -Spacing.xs },
   addButton: {

@@ -6,7 +6,6 @@
  */
 
 import { View, ScrollView, StyleSheet, TextInput, RefreshControl } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 
@@ -17,7 +16,7 @@ import { ThemedText } from '@/components/themed-text';
 import { Row } from '@/components/primitives/row';
 import { MedicalTagInput } from '@/components/child/medical-tag-input';
 import { MedicalConsentToggle } from '@/components/child/medical-consent-toggle';
-import { LoadingState, ErrorState } from '@/components/ui/screen-states';
+import { ChildScreenState } from '@/components/child/child-screen-state';
 import { Spacing, Radii, Typography } from '@/constants/theme';
 import { useScreen } from '@/hooks/use-screen';
 import { ok } from '@/types/result';
@@ -62,35 +61,36 @@ export default function MedicalInfoScreen() {
 
   if (loading) {
     return (
-      <SafeAreaView
-        style={[styles.container, { backgroundColor: colors.background }]}
-        edges={['top', 'bottom']}
-      >
-        <LoadingState variant="form" />
-      </SafeAreaView>
+      <ChildScreenState
+        colors={colors}
+        status="loading"
+        errorMessage="Failed to load medical information."
+        onRetry={retry}
+        loadingVariant="form"
+      />
     );
   }
 
   if (status === 'error') {
     return (
-      <SafeAreaView
-        style={[styles.container, { backgroundColor: colors.background }]}
-        edges={['top', 'bottom']}
-      >
-        <ErrorState
-          message={error?.message ?? 'Failed to load medical information.'}
-          onRetry={retry}
-        />
-      </SafeAreaView>
+      <ChildScreenState
+        colors={colors}
+        status="error"
+        errorMessage={error?.message ?? 'Failed to load medical information.'}
+        onRetry={retry}
+        loadingVariant="form"
+      />
     );
   }
 
   const inputStyle = [styles.input, { borderColor: colors.border, color: colors.text }];
 
   return (
-    <SafeAreaView
-      style={[styles.container, { backgroundColor: colors.background }]}
-      edges={['top', 'bottom']}
+    <ChildScreenState
+      colors={colors}
+      status="ready"
+      errorMessage="Failed to load medical information."
+      onRetry={retry}
     >
       <ScrollView
         contentContainerStyle={styles.content}
@@ -233,12 +233,11 @@ export default function MedicalInfoScreen() {
           {saving ? 'Saving...' : 'Save Medical Information'}
         </Button>
       </ScrollView>
-    </SafeAreaView>
+    </ChildScreenState>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1 },
   content: { padding: Spacing.lg, gap: Spacing.lg },
   backButton: { padding: Spacing.xs, marginLeft: -Spacing.xs },
   section: { gap: Spacing.md },
