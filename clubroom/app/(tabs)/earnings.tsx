@@ -1,5 +1,6 @@
 import { StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import type { ReactNode } from 'react';
 
 import EarningsScreen from '../earnings';
 import { useAuth } from '@/hooks/use-auth';
@@ -9,41 +10,30 @@ import { EmptyState, ErrorState, LoadingState } from '@/components/ui/screen-sta
 export default function TabEarningsScreen() {
   const { currentUser, isLoading, error, logout } = useAuth();
   const { colors } = useTheme();
+  const renderShell = (content: ReactNode) => (
+    <SafeAreaView
+      style={[styles.container, { backgroundColor: colors.background }]}
+      edges={['top', 'bottom']}
+    >
+      {content}
+    </SafeAreaView>
+  );
 
   if (isLoading) {
-    return (
-      <SafeAreaView
-        style={[styles.container, { backgroundColor: colors.background }]}
-        edges={['top', 'bottom']}
-      >
-        <LoadingState variant="detail" />
-      </SafeAreaView>
-    );
+    return renderShell(<LoadingState variant="detail" />);
   }
 
   if (error) {
-    return (
-      <SafeAreaView
-        style={[styles.container, { backgroundColor: colors.background }]}
-        edges={['top', 'bottom']}
-      >
-        <ErrorState message={error} onRetry={() => void logout()} />
-      </SafeAreaView>
-    );
+    return renderShell(<ErrorState message={error} onRetry={() => void logout()} />);
   }
 
   if (!currentUser) {
-    return (
-      <SafeAreaView
-        style={[styles.container, { backgroundColor: colors.background }]}
-        edges={['top', 'bottom']}
-      >
-        <EmptyState
-          icon="person-outline"
-          title="Sign in required"
-          message="Please sign in to view earnings."
-        />
-      </SafeAreaView>
+    return renderShell(
+      <EmptyState
+        icon="person-outline"
+        title="Sign in required"
+        message="Please sign in to view earnings."
+      />,
     );
   }
 

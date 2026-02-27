@@ -5,38 +5,34 @@ import { ParentDiscoverScreen } from '@/components/parent/discover-screen';
 import { AdminUsersScreen } from '@/components/admin/users-screen';
 import { StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import type { ReactNode } from 'react';
 import { EmptyState, ErrorState, LoadingState } from '@/components/ui/screen-states';
 import { useTheme } from '@/hooks/useTheme';
 
 export default function IndexScreen() {
   const { currentUser, isLoading, error, logout } = useAuth();
   const { colors: palette } = useTheme();
+  const renderShell = (content: ReactNode) => (
+    <SafeAreaView style={[styles.container, { backgroundColor: palette.background }]}>
+      {content}
+    </SafeAreaView>
+  );
 
   if (isLoading) {
-    return (
-      <SafeAreaView style={[styles.container, { backgroundColor: palette.background }]}>
-        <LoadingState variant="detail" />
-      </SafeAreaView>
-    );
+    return renderShell(<LoadingState variant="detail" />);
   }
 
   if (error) {
-    return (
-      <SafeAreaView style={[styles.container, { backgroundColor: palette.background }]}>
-        <ErrorState message={error} onRetry={() => void logout()} />
-      </SafeAreaView>
-    );
+    return renderShell(<ErrorState message={error} onRetry={() => void logout()} />);
   }
 
   if (!currentUser) {
-    return (
-      <SafeAreaView style={[styles.container, { backgroundColor: palette.background }]}>
-        <EmptyState
-          icon="person-circle-outline"
-          title="No active account"
-          message="Please sign in to continue."
-        />
-      </SafeAreaView>
+    return renderShell(
+      <EmptyState
+        icon="person-circle-outline"
+        title="No active account"
+        message="Please sign in to continue."
+      />,
     );
   }
 
