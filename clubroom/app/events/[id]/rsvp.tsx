@@ -12,6 +12,7 @@ import { Row } from '@/components/primitives/row';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
+import type { ReactNode } from 'react';
 
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { Clickable } from '@/components/primitives/clickable';
@@ -57,16 +58,17 @@ export default function EventRSVPScreen() {
     handleSubmit,
     handleSendReminder,
   } = useEventRSVP(id);
+  const renderShell = (content: ReactNode) => (
+    <SafeAreaView
+      style={[styles.container, { backgroundColor: palette.background }]}
+      edges={['top', 'bottom']}
+    >
+      {content}
+    </SafeAreaView>
+  );
 
   if (!idParam.valid) {
-    return (
-      <SafeAreaView
-        style={[styles.container, { backgroundColor: palette.background }]}
-        edges={['top', 'bottom']}
-      >
-        <ErrorState message="Invalid event RSVP link." onRetry={() => router.back()} />
-      </SafeAreaView>
-    );
+    return renderShell(<ErrorState message="Invalid event RSVP link." onRetry={() => router.back()} />);
   }
 
   const rsvpDeadlineDate =
@@ -110,41 +112,22 @@ export default function EventRSVPScreen() {
   };
 
   if (status === 'loading') {
-    return (
-      <SafeAreaView
-        style={[styles.container, { backgroundColor: palette.background }]}
-        edges={['top', 'bottom']}
-      >
-        <LoadingState variant="detail" />
-      </SafeAreaView>
-    );
+    return renderShell(<LoadingState variant="detail" />);
   }
 
   if (status === 'error') {
-    return (
-      <SafeAreaView
-        style={[styles.container, { backgroundColor: palette.background }]}
-        edges={['top', 'bottom']}
-      >
-        <ErrorState message={error?.message || 'Failed to load RSVP details.'} onRetry={retry} />
-      </SafeAreaView>
-    );
+    return renderShell(<ErrorState message={error?.message || 'Failed to load RSVP details.'} onRetry={retry} />);
   }
 
   if (status === 'empty' || !event) {
-    return (
-      <SafeAreaView
-        style={[styles.container, { backgroundColor: palette.background }]}
-        edges={['top', 'bottom']}
-      >
-        <EmptyState
-          icon="calendar-outline"
-          title="Event not found"
-          message="This event could not be loaded."
-          actionLabel="Go Back"
-          onPressAction={() => router.back()}
-        />
-      </SafeAreaView>
+    return renderShell(
+      <EmptyState
+        icon="calendar-outline"
+        title="Event not found"
+        message="This event could not be loaded."
+        actionLabel="Go Back"
+        onPressAction={() => router.back()}
+      />,
     );
   }
 

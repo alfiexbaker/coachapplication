@@ -4,6 +4,7 @@ import { Row } from '@/components/primitives/row';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
+import type { ReactNode } from 'react';
 
 import { RSVPButtons } from '@/components/event/rsvp-buttons';
 import { EventAttendanceSection } from '@/components/event/event-attendance-section';
@@ -42,6 +43,14 @@ export default function EventDetailScreen() {
     handleCancel,
     toggleAttendees,
   } = useEventDetail(id);
+  const renderShell = (content: ReactNode) => (
+    <SafeAreaView
+      style={[styles.container, { backgroundColor: palette.background }]}
+      edges={['top', 'bottom']}
+    >
+      {content}
+    </SafeAreaView>
+  );
 
   const handleJoinMeeting = async () => {
     if (!event?.meetingLink) return;
@@ -58,52 +67,26 @@ export default function EventDetailScreen() {
   };
 
   if (status === 'loading') {
-    return (
-      <SafeAreaView
-        style={[styles.container, { backgroundColor: palette.background }]}
-        edges={['top', 'bottom']}
-      >
-        <LoadingState variant="detail" />
-      </SafeAreaView>
-    );
+    return renderShell(<LoadingState variant="detail" />);
   }
 
   if (!idParam.valid) {
-    return (
-      <SafeAreaView
-        style={[styles.container, { backgroundColor: palette.background }]}
-        edges={['top', 'bottom']}
-      >
-        <ErrorState message="Invalid event link." onRetry={() => router.back()} />
-      </SafeAreaView>
-    );
+    return renderShell(<ErrorState message="Invalid event link." onRetry={() => router.back()} />);
   }
 
   if (status === 'error') {
-    return (
-      <SafeAreaView
-        style={[styles.container, { backgroundColor: palette.background }]}
-        edges={['top', 'bottom']}
-      >
-        <ErrorState message={error?.message || 'Failed to load event details.'} onRetry={retry} />
-      </SafeAreaView>
-    );
+    return renderShell(<ErrorState message={error?.message || 'Failed to load event details.'} onRetry={retry} />);
   }
 
   if (status === 'empty' || !event) {
-    return (
-      <SafeAreaView
-        style={[styles.container, { backgroundColor: palette.background }]}
-        edges={['top', 'bottom']}
-      >
-        <EmptyState
-          icon="calendar-outline"
-          title="Event not found"
-          message="This event no longer exists or you no longer have access to it."
-          actionLabel="Go Back"
-          onPressAction={() => router.back()}
-        />
-      </SafeAreaView>
+    return renderShell(
+      <EmptyState
+        icon="calendar-outline"
+        title="Event not found"
+        message="This event no longer exists or you no longer have access to it."
+        actionLabel="Go Back"
+        onPressAction={() => router.back()}
+      />,
     );
   }
 
