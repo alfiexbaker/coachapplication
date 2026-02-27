@@ -1,0 +1,57 @@
+import { z } from 'zod';
+import { bookingIdSchema, athleteIdSchema, userIdSchema } from '../common/ids.js';
+
+export const bookingStatusSchema = z.enum([
+  'PENDING',
+  'AWAITING_CONFIRMATION',
+  'CONFIRMED',
+  'AWAITING_COMPLETION',
+  'COMPLETED',
+  'CANCELLED',
+]);
+
+export const createBookingRequestSchema = z.object({
+  coachUserId: userIdSchema,
+  athleteIds: z.array(athleteIdSchema).min(1).max(20),
+  bookedByUserId: userIdSchema,
+  scheduledAt: z.string().datetime(),
+  durationMinutes: z.number().int().min(15).max(480),
+  location: z.string().min(1).max(200),
+  serviceType: z.string().min(1).max(80),
+  sessionTemplateId: z.string().optional(),
+  objectives: z.array(z.string().min(1).max(120)).max(20).default([]),
+  notes: z.string().max(2000).optional(),
+  priceMinor: z.number().int().nonnegative().optional(),
+  currency: z.literal('GBP').default('GBP'),
+  idempotencyKey: z.string().min(8).max(200).optional(),
+});
+
+export const bookingParticipantSchema = z.object({
+  athleteId: athleteIdSchema,
+  guardianUserId: userIdSchema.optional(),
+  status: z.enum(['confirmed', 'pending', 'cancelled']),
+});
+
+export const bookingResponseSchema = z.object({
+  id: bookingIdSchema,
+  coachUserId: userIdSchema,
+  bookedByUserId: userIdSchema.optional(),
+  status: bookingStatusSchema,
+  scheduledAt: z.string().datetime(),
+  durationMinutes: z.number().int(),
+  location: z.string(),
+  serviceType: z.string().optional(),
+  sessionTemplateId: z.string().nullable().optional(),
+  objectives: z.array(z.string()),
+  notes: z.string().nullable().optional(),
+  priceMinor: z.number().int().nullable().optional(),
+  currency: z.string().default('GBP'),
+  participants: z.array(bookingParticipantSchema).default([]),
+  version: z.number().int().nonnegative(),
+  createdAt: z.string().datetime(),
+  updatedAt: z.string().datetime(),
+  cancelledAt: z.string().datetime().nullable().optional(),
+});
+
+export type CreateBookingRequest = z.infer<typeof createBookingRequestSchema>;
+export type BookingResponse = z.infer<typeof bookingResponseSchema>;
