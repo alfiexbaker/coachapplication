@@ -71,6 +71,15 @@ export default function RaiseConcernScreen() {
   const isEscalationRisk =
     severity === 'URGENT' ||
     (severity === 'HIGH' && (type === 'SAFEGUARDING' || type === 'MEDICAL'));
+  const renderShell = (headerAthleteName: string, content: React.ReactNode) => (
+    <SafeAreaView
+      style={[styles.container, { backgroundColor: colors.background }]}
+      edges={['top', 'bottom']}
+    >
+      <RaiseConcernHeader colors={colors} athleteName={headerAthleteName} onBack={() => router.back()} />
+      {content}
+    </SafeAreaView>
+  );
 
   const handleSubmit = useCallback(async () => {
     if (!canSubmit || !type) return;
@@ -132,73 +141,46 @@ export default function RaiseConcernScreen() {
   ]);
 
   if (status === 'loading') {
-    return (
-      <SafeAreaView
-        style={[styles.container, { backgroundColor: colors.background }]}
-        edges={['top', 'bottom']}
-      >
-        <RaiseConcernHeader colors={colors} athleteName="" onBack={() => router.back()} />
-        <LoadingState variant="form" />
-      </SafeAreaView>
-    );
+    return renderShell('', <LoadingState variant="form" />);
   }
 
   if (status === 'error') {
-    return (
-      <SafeAreaView
-        style={[styles.container, { backgroundColor: colors.background }]}
-        edges={['top', 'bottom']}
-      >
-        <RaiseConcernHeader colors={colors} athleteName="" onBack={() => router.back()} />
-        <ErrorState message={error?.message || 'Failed to load athlete details.'} onRetry={retry} />
-      </SafeAreaView>
+    return renderShell(
+      '',
+      <ErrorState message={error?.message || 'Failed to load athlete details.'} onRetry={retry} />,
     );
   }
 
   if (status === 'empty') {
-    return (
-      <SafeAreaView
-        style={[styles.container, { backgroundColor: colors.background }]}
-        edges={['top', 'bottom']}
-      >
-        <RaiseConcernHeader colors={colors} athleteName="" onBack={() => router.back()} />
-        <ErrorState message="Athlete not found in your roster." onRetry={retry} />
-      </SafeAreaView>
-    );
+    return renderShell('', <ErrorState message="Athlete not found in your roster." onRetry={retry} />);
   }
 
-  return (
-    <SafeAreaView
-      style={[styles.container, { backgroundColor: colors.background }]}
-      edges={['top', 'bottom']}
+  return renderShell(
+    athleteName,
+    <ScrollView
+      contentContainerStyle={styles.content}
+      showsVerticalScrollIndicator={false}
+      keyboardShouldPersistTaps="handled"
     >
-      <RaiseConcernHeader colors={colors} athleteName={athleteName} onBack={() => router.back()} />
-
-      <ScrollView
-        contentContainerStyle={styles.content}
-        showsVerticalScrollIndicator={false}
-        keyboardShouldPersistTaps="handled"
-      >
-        <RaiseConcernForm
-          colors={colors}
-          type={type}
-          onTypeChange={setType}
-          severity={severity}
-          onSeverityChange={setSeverity}
-          title={title}
-          onTitleChange={setTitle}
-          description={description}
-          onDescriptionChange={setDescription}
-          actionTaken={actionTaken}
-          onActionTakenChange={setActionTaken}
-          isEscalationRisk={isEscalationRisk}
-          canSubmit={canSubmit}
-          submitting={submitting}
-          onSubmit={handleSubmit}
-        />
-        <View style={styles.bottomSpacer} />
-      </ScrollView>
-    </SafeAreaView>
+      <RaiseConcernForm
+        colors={colors}
+        type={type}
+        onTypeChange={setType}
+        severity={severity}
+        onSeverityChange={setSeverity}
+        title={title}
+        onTitleChange={setTitle}
+        description={description}
+        onDescriptionChange={setDescription}
+        actionTaken={actionTaken}
+        onActionTakenChange={setActionTaken}
+        isEscalationRisk={isEscalationRisk}
+        canSubmit={canSubmit}
+        submitting={submitting}
+        onSubmit={handleSubmit}
+      />
+      <View style={styles.bottomSpacer} />
+    </ScrollView>,
   );
 }
 
