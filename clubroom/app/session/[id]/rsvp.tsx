@@ -1,5 +1,5 @@
-import React, { useState, useCallback } from 'react';
-import { View, ScrollView, StyleSheet, Alert } from 'react-native';
+import React, { useState, useCallback, type ReactNode } from 'react';
+import { View, ScrollView, StyleSheet, Alert, type StyleProp, type ViewStyle } from 'react-native';
 import { useRouter, Stack } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -163,110 +163,99 @@ export default function RSVPScreen() {
       return false;
     }
   };
+  const renderScreen = ({
+    title,
+    content,
+    safeAreaStyle,
+  }: {
+    title: string;
+    content: ReactNode;
+    safeAreaStyle?: StyleProp<ViewStyle>;
+  }) => (
+    <>
+      <Stack.Screen options={{ title }} />
+      <SafeAreaView
+        style={[styles.safeArea, safeAreaStyle, { backgroundColor: colors.background }]}
+        edges={['top', 'bottom']}
+      >
+        {content}
+      </SafeAreaView>
+    </>
+  );
 
   if (status === 'loading') {
-    return (
-      <>
-        <Stack.Screen options={{ title: 'RSVP' }} />
-        <SafeAreaView
-          style={[styles.safeArea, { backgroundColor: colors.background }]}
-          edges={['top', 'bottom']}
-        >
-          <LoadingState variant="detail" />
-        </SafeAreaView>
-      </>
-    );
+    return renderScreen({ title: 'RSVP', content: <LoadingState variant="detail" /> });
   }
 
   if (status === 'error') {
-    return (
-      <>
-        <Stack.Screen options={{ title: 'RSVP' }} />
-        <SafeAreaView
-          style={[styles.safeArea, { backgroundColor: colors.background }]}
-          edges={['top', 'bottom']}
-        >
-          <ErrorState
-            message={error?.message ?? 'Failed to load RSVP data.'}
-            title="Unable to Load RSVP"
-            onRetry={retry}
-          />
-        </SafeAreaView>
-      </>
-    );
+    return renderScreen({
+      title: 'RSVP',
+      content: (
+        <ErrorState
+          message={error?.message ?? 'Failed to load RSVP data.'}
+          title="Unable to Load RSVP"
+          onRetry={retry}
+        />
+      ),
+    });
   }
 
   if (status === 'empty' || !sessionInfo) {
-    return (
-      <>
-        <Stack.Screen options={{ title: 'RSVP' }} />
-        <SafeAreaView
-          style={[styles.safeArea, { backgroundColor: colors.background }]}
-          edges={['top', 'bottom']}
-        >
-          <ErrorState
-            message="This session RSVP could not be found."
-            title="RSVP Not Found"
-            onRetry={retry}
-          />
-        </SafeAreaView>
-      </>
-    );
+    return renderScreen({
+      title: 'RSVP',
+      content: (
+        <ErrorState
+          message="This session RSVP could not be found."
+          title="RSVP Not Found"
+          onRetry={retry}
+        />
+      ),
+    });
   }
 
   if (isCoach) {
-    return (
-      <>
-        <Stack.Screen options={{ title: 'Attendance' }} />
-        <SafeAreaView
-          style={[styles.safeArea, { backgroundColor: colors.background }]}
-          edges={['top', 'bottom']}
+    return renderScreen({
+      title: 'Attendance',
+      content: (
+        <ScrollView
+          style={styles.scrollView}
+          contentContainerStyle={styles.scrollContent}
+          showsVerticalScrollIndicator={false}
         >
-          <ScrollView
-            style={styles.scrollView}
-            contentContainerStyle={styles.scrollContent}
-            showsVerticalScrollIndicator={false}
+          <View
+            style={[
+              styles.sessionCard,
+              { backgroundColor: colors.surface, borderColor: colors.border },
+            ]}
           >
-            <View
-              style={[
-                styles.sessionCard,
-                { backgroundColor: colors.surface, borderColor: colors.border },
-              ]}
-            >
-              <ThemedText style={[styles.cardLabel, { color: colors.muted }]}>Session</ThemedText>
-              <ThemedText style={[styles.cardTitle, { color: colors.text }]}>
-                {sessionInfo.title}
-              </ThemedText>
-              <ThemedText style={[styles.cardMeta, { color: colors.muted }]}>
-                {new Date(sessionInfo.scheduledAt).toLocaleString('en-GB')}
-              </ThemedText>
-              <ThemedText style={[styles.cardMeta, { color: colors.muted }]}>
-                {sessionInfo.location}
-              </ThemedText>
-            </View>
-            <RSVPSummary sessionId={sessionInfo.id} />
-          </ScrollView>
-        </SafeAreaView>
-      </>
-    );
+            <ThemedText style={[styles.cardLabel, { color: colors.muted }]}>Session</ThemedText>
+            <ThemedText style={[styles.cardTitle, { color: colors.text }]}>
+              {sessionInfo.title}
+            </ThemedText>
+            <ThemedText style={[styles.cardMeta, { color: colors.muted }]}>
+              {new Date(sessionInfo.scheduledAt).toLocaleString('en-GB')}
+            </ThemedText>
+            <ThemedText style={[styles.cardMeta, { color: colors.muted }]}>
+              {sessionInfo.location}
+            </ThemedText>
+          </View>
+          <RSVPSummary sessionId={sessionInfo.id} />
+        </ScrollView>
+      ),
+    });
   }
 
   if (!rsvp) {
-    return (
-      <>
-        <Stack.Screen options={{ title: 'RSVP' }} />
-        <SafeAreaView
-          style={[styles.safeArea, { backgroundColor: colors.background }]}
-          edges={['top', 'bottom']}
-        >
-          <ErrorState
-            message="This RSVP may have expired or already been handled."
-            title="RSVP Not Found"
-            onRetry={retry}
-          />
-        </SafeAreaView>
-      </>
-    );
+    return renderScreen({
+      title: 'RSVP',
+      content: (
+        <ErrorState
+          message="This RSVP may have expired or already been handled."
+          title="RSVP Not Found"
+          onRetry={retry}
+        />
+      ),
+    });
   }
 
   if (responded && responseStatus) {
@@ -293,13 +282,11 @@ export default function RSVPScreen() {
 
     const config = statusConfig[responseStatus];
 
-    return (
-      <>
-        <Stack.Screen options={{ title: 'RSVP' }} />
-        <SafeAreaView
-          style={[styles.safeArea, styles.centerContainer, { backgroundColor: colors.background }]}
-          edges={['top', 'bottom']}
-        >
+    return renderScreen({
+      title: 'RSVP',
+      safeAreaStyle: styles.centerContainer,
+      content: (
+        <>
           <Ionicons name={config.icon} size={64} color={config.color} />
           <ThemedText style={[styles.confirmedTitle, { color: config.color }]}>
             {config.label}
@@ -310,36 +297,31 @@ export default function RSVPScreen() {
           <ThemedText style={[styles.confirmedSession, { color: colors.text }]}>
             {sessionInfo.title}
           </ThemedText>
-        </SafeAreaView>
-      </>
-    );
+        </>
+      ),
+    });
   }
 
-  return (
-    <>
-      <Stack.Screen options={{ title: 'RSVP' }} />
-      <SafeAreaView
-        style={[styles.safeArea, { backgroundColor: colors.background }]}
-        edges={['top', 'bottom']}
+  return renderScreen({
+    title: 'RSVP',
+    content: (
+      <ScrollView
+        style={styles.scrollView}
+        contentContainerStyle={styles.scrollContent}
+        showsVerticalScrollIndicator={false}
       >
-        <ScrollView
-          style={styles.scrollView}
-          contentContainerStyle={styles.scrollContent}
-          showsVerticalScrollIndicator={false}
-        >
-          <RSVPFlow
-            sessionId={sessionInfo.id}
-            sessionTitle={sessionInfo.title}
-            sessionDate={sessionInfo.scheduledAt}
-            location={sessionInfo.location}
-            childName={getSessionRsvpChildName(rsvp)}
-            rsvpId={rsvp.id}
-            onRespond={handleRespond}
-          />
-        </ScrollView>
-      </SafeAreaView>
-    </>
-  );
+        <RSVPFlow
+          sessionId={sessionInfo.id}
+          sessionTitle={sessionInfo.title}
+          sessionDate={sessionInfo.scheduledAt}
+          location={sessionInfo.location}
+          childName={getSessionRsvpChildName(rsvp)}
+          rsvpId={rsvp.id}
+          onRespond={handleRespond}
+        />
+      </ScrollView>
+    ),
+  });
 }
 
 const styles = StyleSheet.create({
