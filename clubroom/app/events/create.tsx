@@ -1,6 +1,7 @@
 import { View, StyleSheet, ScrollView, KeyboardAvoidingView, Platform } from 'react-native';
 import { Row } from '@/components/primitives/row';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import type { ReactNode } from 'react';
 
 import { Button } from '@/components/primitives/button';
 import { PageHeader } from '@/components/primitives/page-header';
@@ -38,46 +39,37 @@ export default function CreateEventScreen() {
     goBack,
     handleCreate,
   } = useCreateEvent();
+  const renderShell = (content: ReactNode) => (
+    <SafeAreaView
+      style={[styles.container, { backgroundColor: palette.background }]}
+      edges={['top', 'bottom']}
+    >
+      {content}
+    </SafeAreaView>
+  );
 
   if (status === 'loading') {
-    return (
-      <SafeAreaView
-        style={[styles.container, { backgroundColor: palette.background }]}
-        edges={['top', 'bottom']}
-      >
-        <LoadingState variant="form" />
-      </SafeAreaView>
-    );
+    return renderShell(<LoadingState variant="form" />);
   }
 
   if (status === 'error') {
-    return (
-      <SafeAreaView
-        style={[styles.container, { backgroundColor: palette.background }]}
-        edges={['top', 'bottom']}
-      >
-        <ErrorState
-          message={error?.message || 'Failed to open event creation flow.'}
-          onRetry={retry}
-        />
-      </SafeAreaView>
+    return renderShell(
+      <ErrorState
+        message={error?.message || 'Failed to open event creation flow.'}
+        onRetry={retry}
+      />,
     );
   }
 
   if (status === 'empty') {
-    return (
-      <SafeAreaView
-        style={[styles.container, { backgroundColor: palette.background }]}
-        edges={['top', 'bottom']}
-      >
+    return renderShell(
         <EmptyState
           icon="calendar-outline"
           title="Creation unavailable"
           message="The event creation flow is currently unavailable."
           actionLabel="Retry"
           onPressAction={retry}
-        />
-      </SafeAreaView>
+        />,
     );
   }
 

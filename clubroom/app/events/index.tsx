@@ -3,6 +3,7 @@ import { AccessibleListCell } from '@/components/ui/list-accessibility';
 import { StyleSheet, FlatList, RefreshControl } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
+import type { ReactNode } from 'react';
 import { Routes } from '@/navigation/routes';
 
 import { EventCard } from '@/components/event/event-card';
@@ -73,49 +74,34 @@ export default function EventsListScreen() {
     />
   );
   const tabs = <EventsFilterTabs colors={palette} filter={filter} onChange={setFilter} />;
+  const renderShell = (content: ReactNode) => (
+    <SafeAreaView
+      style={[styles.container, { backgroundColor: palette.background }]}
+      edges={['top', 'bottom']}
+    >
+      {header}
+      {tabs}
+      {content}
+    </SafeAreaView>
+  );
 
   if (status === 'loading') {
-    return (
-      <SafeAreaView
-        style={[styles.container, { backgroundColor: palette.background }]}
-        edges={['top', 'bottom']}
-      >
-        {header}
-        {tabs}
-        <LoadingState variant="list" />
-      </SafeAreaView>
-    );
+    return renderShell(<LoadingState variant="list" />);
   }
 
   if (status === 'error') {
-    return (
-      <SafeAreaView
-        style={[styles.container, { backgroundColor: palette.background }]}
-        edges={['top', 'bottom']}
-      >
-        {header}
-        {tabs}
-        <ErrorState message={error?.message || 'Failed to load events.'} onRetry={retry} />
-      </SafeAreaView>
-    );
+    return renderShell(<ErrorState message={error?.message || 'Failed to load events.'} onRetry={retry} />);
   }
 
   if (status === 'empty') {
-    return (
-      <SafeAreaView
-        style={[styles.container, { backgroundColor: palette.background }]}
-        edges={['top', 'bottom']}
-      >
-        {header}
-        {tabs}
+    return renderShell(
         <EmptyState
           icon="calendar-outline"
           title="No events yet"
           message="No events created yet."
           actionLabel={isCoach ? 'Create Event' : undefined}
           onPressAction={isCoach ? onCreate : undefined}
-        />
-      </SafeAreaView>
+        />,
     );
   }
 
