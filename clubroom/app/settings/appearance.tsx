@@ -5,15 +5,12 @@
  * All state/logic in useAppearance hook.
  */
 
-import { View, ScrollView, StyleSheet } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import { router } from 'expo-router';
+import { View, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
-import { SettingsRow, SettingsToggleRow, SettingsSection } from '@/components/settings';
+import { SettingsFormScreen, SettingsRow, SettingsToggleRow, SettingsSection } from '@/components/settings';
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { Clickable } from '@/components/primitives/clickable';
-import { PageHeader } from '@/components/primitives/page-header';
 import { ThemedText } from '@/components/themed-text';
 import { Row } from '@/components/primitives/row';
 import { Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
@@ -79,103 +76,86 @@ export default function AppearanceSettingsScreen() {
   const c = useAppearance();
 
   return (
-    <SafeAreaView
-      style={[styles.container, { backgroundColor: palette.background }]}
-      edges={['top', 'bottom']}
-    >
-      <PageHeader
-        title="Appearance"
-        showBack
-        backIcon="arrow-back"
-        onBackPress={() => router.back()}
-        centerTitle
-      />
+    <SettingsFormScreen title="Appearance">
+      <View style={styles.section}>
+        <ThemedText style={[styles.sectionTitle, { color: palette.muted }]}>THEME</ThemedText>
+        <Row gap="sm" style={styles.themeGrid}>
+          {THEME_OPTIONS.map((option) => (
+            <ThemeCard
+              key={option.value}
+              option={option}
+              selected={c.selectedTheme === option.value}
+              onSelect={() => c.handleThemeSelect(option.value)}
+            />
+          ))}
+        </Row>
+      </View>
 
-      <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
-        <View style={styles.section}>
-          <ThemedText style={[styles.sectionTitle, { color: palette.muted }]}>THEME</ThemedText>
-          <Row gap="sm" style={styles.themeGrid}>
-            {THEME_OPTIONS.map((option) => (
-              <ThemeCard
-                key={option.value}
-                option={option}
-                selected={c.selectedTheme === option.value}
-                onSelect={() => c.handleThemeSelect(option.value)}
-              />
-            ))}
-          </Row>
-        </View>
+      <SettingsSection title="App Icon">
+        <SettingsRow
+          icon="apps"
+          title="App Icon"
+          value="Default"
+          onPress={c.handleAppIconPress}
+        />
+      </SettingsSection>
 
-        <SettingsSection title="App Icon">
-          <SettingsRow
-            icon="apps"
-            title="App Icon"
-            value="Default"
-            onPress={c.handleAppIconPress}
-          />
-        </SettingsSection>
+      <SettingsSection title="Accessibility">
+        <SettingsToggleRow
+          icon="hand-left"
+          title="Reduce Motion"
+          subtitle="Minimize animations throughout the app"
+          value={c.reducedMotion}
+          onValueChange={c.handleReducedMotion}
+        />
+        <SettingsToggleRow
+          icon="text"
+          title="Large Text"
+          subtitle="Use larger text sizes"
+          value={c.largeText}
+          onValueChange={c.handleLargeText}
+        />
+        <SettingsToggleRow
+          icon="contrast"
+          title="High Contrast"
+          subtitle="Increase color contrast"
+          value={c.highContrast}
+          onValueChange={c.handleHighContrast}
+        />
+      </SettingsSection>
 
-        <SettingsSection title="Accessibility">
-          <SettingsToggleRow
-            icon="hand-left"
-            title="Reduce Motion"
-            subtitle="Minimize animations throughout the app"
-            value={c.reducedMotion}
-            onValueChange={c.handleReducedMotion}
-          />
-          <SettingsToggleRow
-            icon="text"
-            title="Large Text"
-            subtitle="Use larger text sizes"
-            value={c.largeText}
-            onValueChange={c.handleLargeText}
-          />
-          <SettingsToggleRow
-            icon="contrast"
-            title="High Contrast"
-            subtitle="Increase color contrast"
-            value={c.highContrast}
-            onValueChange={c.handleHighContrast}
-          />
-        </SettingsSection>
-
-        <View style={styles.previewSection}>
-          <ThemedText style={[styles.sectionTitle, { color: palette.muted }]}>PREVIEW</ThemedText>
-          <SurfaceCard style={styles.previewCard}>
-            <Row gap="md" align="start" style={styles.previewHeader}>
-              <View style={[styles.previewAvatar, { backgroundColor: palette.accent }]}>
-                <Ionicons name="person" size={20} color={palette.onPrimary} />
-              </View>
-              <View style={styles.previewText}>
-                <ThemedText type="defaultSemiBold">Sample Card Title</ThemedText>
-                <ThemedText style={{ color: palette.muted, ...Typography.small }}>
-                  This is how content looks with your current theme settings.
-                </ThemedText>
-              </View>
-            </Row>
-            <View style={[styles.previewButton, { backgroundColor: palette.accent }]}>
-              <ThemedText style={{ color: palette.onPrimary, fontWeight: '600' }}>
-                Sample Button
+      <View style={styles.previewSection}>
+        <ThemedText style={[styles.sectionTitle, { color: palette.muted }]}>PREVIEW</ThemedText>
+        <SurfaceCard style={styles.previewCard}>
+          <Row gap="md" align="start" style={styles.previewHeader}>
+            <View style={[styles.previewAvatar, { backgroundColor: palette.accent }]}>
+              <Ionicons name="person" size={20} color={palette.onPrimary} />
+            </View>
+            <View style={styles.previewText}>
+              <ThemedText type="defaultSemiBold">Sample Card Title</ThemedText>
+              <ThemedText style={{ color: palette.muted, ...Typography.small }}>
+                This is how content looks with your current theme settings.
               </ThemedText>
             </View>
-          </SurfaceCard>
-        </View>
+          </Row>
+          <View style={[styles.previewButton, { backgroundColor: palette.accent }]}>
+            <ThemedText style={{ color: palette.onPrimary, fontWeight: '600' }}>
+              Sample Button
+            </ThemedText>
+          </View>
+        </SurfaceCard>
+      </View>
 
-        <View style={styles.infoContainer}>
-          <ThemedText style={[styles.infoText, { color: palette.muted }]}>
-            Some settings may require restarting the app to take full effect.
-          </ThemedText>
-        </View>
-      </ScrollView>
-    </SafeAreaView>
+      <View style={styles.infoContainer}>
+        <ThemedText style={[styles.infoText, { color: palette.muted }]}>
+          Some settings may require restarting the app to take full effect.
+        </ThemedText>
+      </View>
+    </SettingsFormScreen>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1 },
-  header: { paddingHorizontal: Spacing.lg, paddingVertical: Spacing.md },
-  headerTitle: { ...Typography.heading },
-  content: { paddingHorizontal: Spacing.lg, paddingBottom: Spacing['3xl'], gap: Spacing.lg },
   section: { gap: Spacing.sm },
   sectionTitle: {
     ...Typography.smallSemiBold,
