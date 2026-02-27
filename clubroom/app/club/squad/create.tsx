@@ -16,6 +16,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
+import type { ReactNode } from 'react';
 
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { Clickable } from '@/components/primitives/clickable';
@@ -49,46 +50,37 @@ export default function CreateSquadScreen() {
     toggleTag,
     handleCreate,
   } = useCreateSquad();
+  const renderShell = (content: ReactNode) => (
+    <SafeAreaView
+      style={[styles.container, { backgroundColor: colors.background }]}
+      edges={['top', 'bottom']}
+    >
+      {content}
+    </SafeAreaView>
+  );
 
   if (status === 'loading') {
-    return (
-      <SafeAreaView
-        style={[styles.container, { backgroundColor: colors.background }]}
-        edges={['top', 'bottom']}
-      >
-        <LoadingState variant="form" />
-      </SafeAreaView>
-    );
+    return renderShell(<LoadingState variant="form" />);
   }
 
   if (status === 'error') {
-    return (
-      <SafeAreaView
-        style={[styles.container, { backgroundColor: colors.background }]}
-        edges={['top', 'bottom']}
-      >
-        <ErrorState
-          message={error?.message || 'Failed to open squad creation flow.'}
-          onRetry={retry}
-        />
-      </SafeAreaView>
+    return renderShell(
+      <ErrorState
+        message={error?.message || 'Failed to open squad creation flow.'}
+        onRetry={retry}
+      />,
     );
   }
 
   if (status === 'empty') {
-    return (
-      <SafeAreaView
-        style={[styles.container, { backgroundColor: colors.background }]}
-        edges={['top', 'bottom']}
-      >
+    return renderShell(
         <EmptyState
           icon="people-outline"
           title="Creation unavailable"
           message="The squad creation flow is currently unavailable."
           actionLabel="Retry"
           onPressAction={retry}
-        />
-      </SafeAreaView>
+        />,
     );
   }
 

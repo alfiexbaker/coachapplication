@@ -6,7 +6,7 @@
  * Sections extracted to components/booking/cancel-*.tsx.
  */
 
-import React from 'react';
+import React, { type ReactNode } from 'react';
 import { ScrollView, StyleSheet, TextInput, View, Switch, RefreshControl } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useLocalSearchParams, router } from 'expo-router';
@@ -30,42 +30,51 @@ export default function CancelBookingScreen() {
   const { id, mode } = useLocalSearchParams<{ id: string; mode?: 'coach' | 'parent' }>();
   const cancel = useBookingCancel(id, mode);
   const palette = cancel.colors;
+  const renderScreen = ({
+    title,
+    onBackPress,
+    content,
+  }: {
+    title: string;
+    onBackPress: () => void;
+    content: ReactNode;
+  }) => (
+    <SafeAreaView
+      style={[styles.container, { backgroundColor: palette.background }]}
+      edges={['top', 'bottom']}
+    >
+      <PageHeader title={title} showBack onBackPress={onBackPress} />
+      {content}
+    </SafeAreaView>
+  );
 
   // Loading
   if (cancel.status === 'loading') {
-    return (
-      <SafeAreaView
-        style={[styles.container, { backgroundColor: palette.background }]}
-        edges={['top', 'bottom']}
-      >
-        <PageHeader title="Cancel Booking" showBack onBackPress={() => router.back()} />
-        <LoadingState variant="detail" />
-      </SafeAreaView>
-    );
+    return renderScreen({
+      title: 'Cancel Booking',
+      onBackPress: () => router.back(),
+      content: <LoadingState variant="detail" />,
+    });
   }
 
   if (cancel.status === 'error') {
-    return (
-      <SafeAreaView
-        style={[styles.container, { backgroundColor: palette.background }]}
-        edges={['top', 'bottom']}
-      >
-        <PageHeader title="Cancel Booking" showBack onBackPress={() => router.back()} />
+    return renderScreen({
+      title: 'Cancel Booking',
+      onBackPress: () => router.back(),
+      content: (
         <ErrorState
           message={cancel.error?.message ?? 'Failed to load booking cancellation details.'}
           onRetry={cancel.retry}
         />
-      </SafeAreaView>
-    );
+      ),
+    });
   }
 
   if (cancel.status === 'empty') {
-    return (
-      <SafeAreaView
-        style={[styles.container, { backgroundColor: palette.background }]}
-        edges={['top', 'bottom']}
-      >
-        <PageHeader title="Cancel Booking" showBack onBackPress={() => router.back()} />
+    return renderScreen({
+      title: 'Cancel Booking',
+      onBackPress: () => router.back(),
+      content: (
         <EmptyState
           icon="calendar-outline"
           title="Booking not found"
@@ -73,18 +82,16 @@ export default function CancelBookingScreen() {
           actionLabel="Go back"
           onPressAction={() => router.back()}
         />
-      </SafeAreaView>
-    );
+      ),
+    });
   }
 
   // Reschedule suggestion step
   if (cancel.step === 'reschedule_suggest') {
-    return (
-      <SafeAreaView
-        style={[styles.container, { backgroundColor: palette.background }]}
-        edges={['top', 'bottom']}
-      >
-        <PageHeader title="Reschedule Instead?" showBack onBackPress={cancel.handleGoBack} />
+    return renderScreen({
+      title: 'Reschedule Instead?',
+      onBackPress: cancel.handleGoBack,
+      content: (
         <CancelRescheduleStep
           isCoach={cancel.isCoach}
           sessionTime={cancel.sessionTime}
@@ -92,8 +99,8 @@ export default function CancelBookingScreen() {
           onPropose={cancel.handleOpenCounterOffer}
           onContinueCancel={() => cancel.setStep('details')}
         />
-      </SafeAreaView>
-    );
+      ),
+    });
   }
 
   // Main details step

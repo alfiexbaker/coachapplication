@@ -10,6 +10,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import Animated, { FadeInDown } from 'react-native-reanimated';
+import type { ReactNode } from 'react';
 
 import { Clickable } from '@/components/primitives/clickable';
 import { PageHeader } from '@/components/primitives/page-header';
@@ -28,46 +29,37 @@ import { useSquadInvite } from '@/hooks/use-squad-invite';
 export default function SquadInviteScreen() {
   const { colors: palette } = useTheme();
   const s = useSquadInvite();
+  const renderShell = (content: ReactNode) => (
+    <SafeAreaView
+      style={[styles.container, { backgroundColor: palette.background }]}
+      edges={['top', 'bottom']}
+    >
+      {content}
+    </SafeAreaView>
+  );
 
   if (s.status === 'loading') {
-    return (
-      <SafeAreaView
-        style={[styles.container, { backgroundColor: palette.background }]}
-        edges={['top', 'bottom']}
-      >
-        <LoadingState variant="detail" />
-      </SafeAreaView>
-    );
+    return renderShell(<LoadingState variant="detail" />);
   }
 
   if (s.status === 'error') {
-    return (
-      <SafeAreaView
-        style={[styles.container, { backgroundColor: palette.background }]}
-        edges={['top', 'bottom']}
-      >
-        <ErrorState
-          message={s.error?.message || 'Failed to load squad invite data.'}
-          onRetry={s.retry}
-        />
-      </SafeAreaView>
+    return renderShell(
+      <ErrorState
+        message={s.error?.message || 'Failed to load squad invite data.'}
+        onRetry={s.retry}
+      />,
     );
   }
 
   if (s.status === 'empty' || !s.squad) {
-    return (
-      <SafeAreaView
-        style={[styles.container, { backgroundColor: palette.background }]}
-        edges={['top', 'bottom']}
-      >
+    return renderShell(
         <EmptyState
           icon="people-outline"
           title="Squad not found"
           message="This squad could not be loaded."
           actionLabel="Go Back"
           onPressAction={() => router.back()}
-        />
-      </SafeAreaView>
+        />,
     );
   }
 
