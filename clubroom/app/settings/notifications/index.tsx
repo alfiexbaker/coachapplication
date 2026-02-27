@@ -1,13 +1,6 @@
 import { useState } from 'react';
-import { ScrollView, StyleSheet, View } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import { router } from 'expo-router';
 
-import { SettingsToggleRow, SettingsSection } from '@/components/settings';
-import { PageHeader } from '@/components/primitives/page-header';
-import { ThemedText } from '@/components/themed-text';
-import { Spacing, Typography } from '@/constants/theme';
-import { useTheme } from '@/hooks/useTheme';
+import { SettingsFormScreen, SettingsToggleRow, SettingsSection } from '@/components/settings';
 import { useAuth } from '@/hooks/use-auth';
 import { useChildContext } from '@/hooks/use-child-context';
 import { createLogger } from '@/utils/logger';
@@ -15,7 +8,6 @@ import { createLogger } from '@/utils/logger';
 const logger = createLogger('NotificationSettings');
 
 export default function NotificationSettingsScreen() {
-  const { colors: palette } = useTheme();
   const { currentUser } = useAuth();
   const { isParent: userHasChildren } = useChildContext();
 
@@ -47,170 +39,126 @@ export default function NotificationSettingsScreen() {
   };
 
   return (
-    <SafeAreaView
-      style={[styles.container, { backgroundColor: palette.background }]}
-      edges={['top', 'bottom']}
+    <SettingsFormScreen
+      title="Notifications"
+      infoText="You can change these settings at any time. Some notifications may still be sent for important account and security updates."
     >
-      <PageHeader
-        title="Notifications"
-        showBack
-        backIcon="arrow-back"
-        onBackPress={() => router.back()}
-        centerTitle
-      />
+      {/* Push Notifications */}
+      <SettingsSection title="Push Notifications">
+        <SettingsToggleRow
+          icon="notifications"
+          title="Enable Push Notifications"
+          subtitle="Receive notifications on this device"
+          value={pushEnabled}
+          onValueChange={(v) => handleToggle('pushEnabled', v, setPushEnabled)}
+        />
+        <SettingsToggleRow
+          icon="alarm"
+          title="Session Reminders"
+          subtitle="Get reminded before your sessions"
+          value={sessionReminders}
+          onValueChange={(v) => handleToggle('sessionReminders', v, setSessionReminders)}
+          disabled={!pushEnabled}
+        />
+        <SettingsToggleRow
+          icon="chatbubble"
+          title="Messages"
+          subtitle="Notifications for new messages"
+          value={messageNotifications}
+          onValueChange={(v) => handleToggle('messageNotifications', v, setMessageNotifications)}
+          disabled={!pushEnabled}
+        />
+        <SettingsToggleRow
+          icon="calendar"
+          title="Booking Updates"
+          subtitle="Changes to your bookings"
+          value={bookingUpdates}
+          onValueChange={(v) => handleToggle('bookingUpdates', v, setBookingUpdates)}
+          disabled={!pushEnabled}
+        />
+      </SettingsSection>
 
-      <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
-        {/* Push Notifications */}
-        <SettingsSection title="Push Notifications">
+      {/* Email Notifications */}
+      <SettingsSection title="Email Notifications">
+        <SettingsToggleRow
+          icon="mail"
+          title="Email Notifications"
+          subtitle="Receive notifications via email"
+          value={emailEnabled}
+          onValueChange={(v) => handleToggle('emailEnabled', v, setEmailEnabled)}
+        />
+        <SettingsToggleRow
+          icon="document-text"
+          title="Session Summaries"
+          subtitle="Get a summary after each session"
+          value={emailSessionSummary}
+          onValueChange={(v) => handleToggle('emailSessionSummary', v, setEmailSessionSummary)}
+          disabled={!emailEnabled}
+        />
+        <SettingsToggleRow
+          icon="newspaper"
+          title="Weekly Digest"
+          subtitle="Weekly summary of your activity"
+          value={emailWeeklyDigest}
+          onValueChange={(v) => handleToggle('emailWeeklyDigest', v, setEmailWeeklyDigest)}
+          disabled={!emailEnabled}
+        />
+        <SettingsToggleRow
+          icon="megaphone"
+          title="Promotions & Updates"
+          subtitle="News, tips, and special offers"
+          value={emailPromotions}
+          onValueChange={(v) => handleToggle('emailPromotions', v, setEmailPromotions)}
+          disabled={!emailEnabled}
+        />
+      </SettingsSection>
+
+      {/* Coach-specific notifications */}
+      {isCoach && (
+        <SettingsSection title="Coach Notifications">
           <SettingsToggleRow
-            icon="notifications"
-            title="Enable Push Notifications"
-            subtitle="Receive notifications on this device"
-            value={pushEnabled}
-            onValueChange={(v) => handleToggle('pushEnabled', v, setPushEnabled)}
+            icon="add-circle"
+            title="New Booking Alerts"
+            subtitle="When someone books a session with you"
+            value={newBookingAlerts}
+            onValueChange={(v) => handleToggle('newBookingAlerts', v, setNewBookingAlerts)}
           />
           <SettingsToggleRow
-            icon="alarm"
-            title="Session Reminders"
-            subtitle="Get reminded before your sessions"
-            value={sessionReminders}
-            onValueChange={(v) => handleToggle('sessionReminders', v, setSessionReminders)}
-            disabled={!pushEnabled}
+            icon="close-circle"
+            title="Cancellation Alerts"
+            subtitle="When a booking is cancelled"
+            value={cancellationAlerts}
+            onValueChange={(v) => handleToggle('cancellationAlerts', v, setCancellationAlerts)}
           />
           <SettingsToggleRow
-            icon="chatbubble"
-            title="Messages"
-            subtitle="Notifications for new messages"
-            value={messageNotifications}
-            onValueChange={(v) => handleToggle('messageNotifications', v, setMessageNotifications)}
-            disabled={!pushEnabled}
-          />
-          <SettingsToggleRow
-            icon="calendar"
-            title="Booking Updates"
-            subtitle="Changes to your bookings"
-            value={bookingUpdates}
-            onValueChange={(v) => handleToggle('bookingUpdates', v, setBookingUpdates)}
-            disabled={!pushEnabled}
+            icon="wallet"
+            title="Earnings Notifications"
+            subtitle="Updates about reconciler changes and payment status"
+            value={payoutNotifications}
+            onValueChange={(v) => handleToggle('payoutNotifications', v, setPayoutNotifications)}
           />
         </SettingsSection>
+      )}
 
-        {/* Email Notifications */}
-        <SettingsSection title="Email Notifications">
+      {/* Parent-specific notifications */}
+      {userHasChildren && (
+        <SettingsSection title="Parent Notifications">
           <SettingsToggleRow
-            icon="mail"
-            title="Email Notifications"
-            subtitle="Receive notifications via email"
-            value={emailEnabled}
-            onValueChange={(v) => handleToggle('emailEnabled', v, setEmailEnabled)}
+            icon="people"
+            title="Child Activity Alerts"
+            subtitle="Updates about your children's sessions"
+            value={childActivityAlerts}
+            onValueChange={(v) => handleToggle('childActivityAlerts', v, setChildActivityAlerts)}
           />
           <SettingsToggleRow
-            icon="document-text"
-            title="Session Summaries"
-            subtitle="Get a summary after each session"
-            value={emailSessionSummary}
-            onValueChange={(v) => handleToggle('emailSessionSummary', v, setEmailSessionSummary)}
-            disabled={!emailEnabled}
-          />
-          <SettingsToggleRow
-            icon="newspaper"
-            title="Weekly Digest"
-            subtitle="Weekly summary of your activity"
-            value={emailWeeklyDigest}
-            onValueChange={(v) => handleToggle('emailWeeklyDigest', v, setEmailWeeklyDigest)}
-            disabled={!emailEnabled}
-          />
-          <SettingsToggleRow
-            icon="megaphone"
-            title="Promotions & Updates"
-            subtitle="News, tips, and special offers"
-            value={emailPromotions}
-            onValueChange={(v) => handleToggle('emailPromotions', v, setEmailPromotions)}
-            disabled={!emailEnabled}
+            icon="trending-up"
+            title="Progress Updates"
+            subtitle="When coaches share progress reports"
+            value={progressUpdates}
+            onValueChange={(v) => handleToggle('progressUpdates', v, setProgressUpdates)}
           />
         </SettingsSection>
-
-        {/* Coach-specific notifications */}
-        {isCoach && (
-          <SettingsSection title="Coach Notifications">
-            <SettingsToggleRow
-              icon="add-circle"
-              title="New Booking Alerts"
-              subtitle="When someone books a session with you"
-              value={newBookingAlerts}
-              onValueChange={(v) => handleToggle('newBookingAlerts', v, setNewBookingAlerts)}
-            />
-            <SettingsToggleRow
-              icon="close-circle"
-              title="Cancellation Alerts"
-              subtitle="When a booking is cancelled"
-              value={cancellationAlerts}
-              onValueChange={(v) => handleToggle('cancellationAlerts', v, setCancellationAlerts)}
-            />
-            <SettingsToggleRow
-              icon="wallet"
-              title="Earnings Notifications"
-              subtitle="Updates about reconciler changes and payment status"
-              value={payoutNotifications}
-              onValueChange={(v) => handleToggle('payoutNotifications', v, setPayoutNotifications)}
-            />
-          </SettingsSection>
-        )}
-
-        {/* Parent-specific notifications */}
-        {userHasChildren && (
-          <SettingsSection title="Parent Notifications">
-            <SettingsToggleRow
-              icon="people"
-              title="Child Activity Alerts"
-              subtitle="Updates about your children's sessions"
-              value={childActivityAlerts}
-              onValueChange={(v) => handleToggle('childActivityAlerts', v, setChildActivityAlerts)}
-            />
-            <SettingsToggleRow
-              icon="trending-up"
-              title="Progress Updates"
-              subtitle="When coaches share progress reports"
-              value={progressUpdates}
-              onValueChange={(v) => handleToggle('progressUpdates', v, setProgressUpdates)}
-            />
-          </SettingsSection>
-        )}
-
-        {/* Info text */}
-        <View style={styles.infoContainer}>
-          <ThemedText style={[styles.infoText, { color: palette.muted }]}>
-            You can change these settings at any time. Some notifications may still be sent for
-            important account and security updates.
-          </ThemedText>
-        </View>
-      </ScrollView>
-    </SafeAreaView>
+      )}
+    </SettingsFormScreen>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
-  header: {
-    paddingHorizontal: Spacing.lg,
-    paddingVertical: Spacing.md,
-  },
-  headerTitle: {
-    ...Typography.heading,
-  },
-  content: {
-    paddingHorizontal: Spacing.lg,
-    paddingBottom: Spacing['3xl'],
-    gap: Spacing.lg,
-  },
-  infoContainer: {
-    paddingHorizontal: Spacing.sm,
-    marginTop: Spacing.sm,
-  },
-  infoText: {
-    ...Typography.small,
-    textAlign: 'center',
-  },
-});
