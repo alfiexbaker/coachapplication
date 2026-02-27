@@ -9,6 +9,7 @@ import { View, StyleSheet, ScrollView, RefreshControl } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import Animated, { FadeInDown } from 'react-native-reanimated';
+import type { ReactNode } from 'react';
 
 import { Clickable } from '@/components/primitives/clickable';
 import { Row } from '@/components/primitives/row';
@@ -25,49 +26,38 @@ import { useEmergencyAccess } from '@/hooks/use-emergency-access';
 export default function EmergencyQuickAccessScreen() {
   const { colors: palette } = useTheme();
   const e = useEmergencyAccess();
+  const renderState = (content: ReactNode) => (
+    <SafeAreaView
+      style={[styles.container, { backgroundColor: palette.background }]}
+      edges={['top', 'bottom']}
+    >
+      <PageHeader title="Emergency Info" showBack centerTitle />
+      {content}
+    </SafeAreaView>
+  );
 
   if (e.status === 'loading') {
-    return (
-      <SafeAreaView
-        style={[styles.container, { backgroundColor: palette.background }]}
-        edges={['top', 'bottom']}
-      >
-        <PageHeader title="Emergency Info" showBack centerTitle />
-        <LoadingState variant="detail" />
-      </SafeAreaView>
-    );
+    return renderState(<LoadingState variant="detail" />);
   }
 
   if (e.status === 'error') {
-    return (
-      <SafeAreaView
-        style={[styles.container, { backgroundColor: palette.background }]}
-        edges={['top', 'bottom']}
-      >
-        <PageHeader title="Emergency Info" showBack centerTitle />
-        <ErrorState
-          message={e.error?.message || 'Could not load emergency information for this athlete.'}
-          onRetry={e.retry}
-        />
-      </SafeAreaView>
+    return renderState(
+      <ErrorState
+        message={e.error?.message || 'Could not load emergency information for this athlete.'}
+        onRetry={e.retry}
+      />,
     );
   }
 
   if (e.status === 'empty' || !e.emergencyData) {
-    return (
-      <SafeAreaView
-        style={[styles.container, { backgroundColor: palette.background }]}
-        edges={['top', 'bottom']}
-      >
-        <PageHeader title="Emergency Info" showBack centerTitle />
-        <EmptyState
-          icon="shield-outline"
-          title="No emergency profile"
-          message="Emergency details have not been set for this athlete yet."
-          actionLabel="Refresh"
-          onPressAction={e.handleRefresh}
-        />
-      </SafeAreaView>
+    return renderState(
+      <EmptyState
+        icon="shield-outline"
+        title="No emergency profile"
+        message="Emergency details have not been set for this athlete yet."
+        actionLabel="Refresh"
+        onPressAction={e.handleRefresh}
+      />,
     );
   }
 
@@ -155,8 +145,6 @@ const styles = StyleSheet.create({
     borderRadius: Radii.pill,
   },
   cachedText: { ...Typography.micro },
-  centerContainer: { flex: 1, justifyContent: 'center', alignItems: 'center', gap: Spacing.md },
-  loadingText: { ...Typography.bodySmall },
   content: { padding: Spacing.lg, gap: Spacing.md },
   bottomSpacer: { height: 40 },
 });
