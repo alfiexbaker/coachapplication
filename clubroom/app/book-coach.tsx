@@ -3,6 +3,7 @@ import { RefreshControl, ScrollView, StyleSheet, TextInput, View } from 'react-n
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
+import type { ReactNode } from 'react';
 
 import { CoachCard, type CoachCardData } from '@/components/coach';
 import { FilterBar } from '@/components/discover/FilterBar';
@@ -162,35 +163,26 @@ export default function BookCoachScreen() {
       params: { filters: JSON.stringify(filters) },
     });
   }, [filters, router]);
+  const renderShell = (content: ReactNode) => (
+    <SafeAreaView
+      style={[styles.container, { backgroundColor: palette.background }]}
+      edges={['top', 'bottom']}
+    >
+      {content}
+    </SafeAreaView>
+  );
 
   if (params.coachId) {
-    return (
-      <SafeAreaView
-        style={[styles.container, { backgroundColor: palette.background }]}
-        edges={['top', 'bottom']}
-      >
-        <LoadingState variant="detail" />
-      </SafeAreaView>
-    );
+    return renderShell(<LoadingState variant="detail" />);
   }
 
   if (status === 'loading') {
-    return (
-      <SafeAreaView
-        style={[styles.container, { backgroundColor: palette.background }]}
-        edges={['top', 'bottom']}
-      >
-        <LoadingState variant="list" />
-      </SafeAreaView>
-    );
+    return renderShell(<LoadingState variant="list" />);
   }
 
   if (status === 'error') {
-    return (
-      <SafeAreaView
-        style={[styles.container, { backgroundColor: palette.background }]}
-        edges={['top', 'bottom']}
-      >
+    return renderShell(
+      <>
         <View style={styles.headerContent}>
           <ThemedText type="title" style={styles.title}>
             Find a Coach
@@ -200,7 +192,7 @@ export default function BookCoachScreen() {
           </ThemedText>
         </View>
         <ErrorState message={error?.message ?? 'Failed to load coaches.'} onRetry={retry} />
-      </SafeAreaView>
+      </>,
     );
   }
 
@@ -346,11 +338,8 @@ export default function BookCoachScreen() {
   );
 
   if (status === 'empty') {
-    return (
-      <SafeAreaView
-        style={[styles.container, { backgroundColor: palette.background }]}
-        edges={['top', 'bottom']}
-      >
+    return renderShell(
+      <>
         {header}
         <EmptyState
           icon="search-outline"
@@ -369,15 +358,12 @@ export default function BookCoachScreen() {
             resultCount={0}
           />
         ) : null}
-      </SafeAreaView>
+      </>,
     );
   }
 
-  return (
-    <SafeAreaView
-      style={[styles.container, { backgroundColor: palette.background }]}
-      edges={['top', 'bottom']}
-    >
+  return renderShell(
+    <>
       <ScrollView
         contentContainerStyle={styles.content}
         refreshControl={
@@ -408,7 +394,7 @@ export default function BookCoachScreen() {
           resultCount={cards.length}
         />
       ) : null}
-    </SafeAreaView>
+    </>,
   );
 }
 

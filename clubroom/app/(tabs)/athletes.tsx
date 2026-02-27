@@ -3,6 +3,7 @@
  */
 
 import React, { useCallback } from 'react';
+import type { ReactNode } from 'react';
 import { StyleSheet, FlatList, RefreshControl } from 'react-native';
 import { router } from 'expo-router';
 import { Routes } from '@/navigation/routes';
@@ -41,6 +42,21 @@ export default function AthletesScreen() {
   const handleInviteAthlete = useCallback(() => {
     router.push(Routes.sessionsCreateIntent({ intent: 'existing', source: 'manual' }));
   }, []);
+  const renderShell = (content: ReactNode) => (
+    <SafeAreaView
+      style={[styles.container, { backgroundColor: colors.background }]}
+      edges={['top', 'bottom']}
+    >
+      {content}
+    </SafeAreaView>
+  );
+  const renderState = (content: ReactNode) =>
+    renderShell(
+      <>
+        <ScreenHeader title="Athletes" subtitle="Manage your roster" bordered />
+        {content}
+      </>,
+    );
 
   const listHeader = useCallback(
     () => (
@@ -58,56 +74,29 @@ export default function AthletesScreen() {
   );
 
   if (status === 'loading') {
-    return (
-      <SafeAreaView
-        style={[styles.container, { backgroundColor: colors.background }]}
-        edges={['top', 'bottom']}
-      >
-        <ScreenHeader title="Athletes" subtitle="Manage your roster" bordered />
-        <LoadingState variant="list" />
-      </SafeAreaView>
-    );
+    return renderState(<LoadingState variant="list" />);
   }
 
   if (status === 'error') {
-    return (
-      <SafeAreaView
-        style={[styles.container, { backgroundColor: colors.background }]}
-        edges={['top', 'bottom']}
-      >
-        <ScreenHeader title="Athletes" subtitle="Manage your roster" bordered />
-        <ErrorState message={error?.message || 'Failed to load athletes'} onRetry={retry} />
-      </SafeAreaView>
+    return renderState(
+      <ErrorState message={error?.message || 'Failed to load athletes'} onRetry={retry} />,
     );
   }
 
   if (status === 'empty') {
-    return (
-      <SafeAreaView
-        style={[styles.container, { backgroundColor: colors.background }]}
-        edges={['top', 'bottom']}
-      >
-        <ScreenHeader
-          title="Athletes"
-          subtitle="Manage your roster"
-          bordered
-        />
-        <EmptyState
-          icon="people-outline"
-          title="No athletes yet"
-          message="Athletes will appear here once they book sessions with you. Invite an athlete to get started."
-          actionLabel="Invite Athlete"
-          onPressAction={handleInviteAthlete}
-        />
-      </SafeAreaView>
+    return renderState(
+      <EmptyState
+        icon="people-outline"
+        title="No athletes yet"
+        message="Athletes will appear here once they book sessions with you. Invite an athlete to get started."
+        actionLabel="Invite Athlete"
+        onPressAction={handleInviteAthlete}
+      />,
     );
   }
 
-  return (
-    <SafeAreaView
-      style={[styles.container, { backgroundColor: colors.background }]}
-      edges={['top', 'bottom']}
-    >
+  return renderShell(
+    <>
       <ScreenHeader
         title="Athletes"
         subtitle={`${roster.length} athletes`}
@@ -133,7 +122,7 @@ export default function AthletesScreen() {
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.tint} />
         }
       />
-    </SafeAreaView>
+    </>,
   );
 }
 

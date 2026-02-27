@@ -6,6 +6,7 @@
  */
 
 import { memo, useCallback, useState, useMemo } from 'react';
+import type { ReactNode } from 'react';
 import { FlatList, StyleSheet, View, RefreshControl, Share, ScrollView } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -262,48 +263,51 @@ export default function EarningsScreen() {
       </View>
     );
   }, [colors, currentUser?.id, currentUser?.name, showPaymentInstructions]);
+  const renderShell = (content: ReactNode) => (
+    <SafeAreaView style={[styles.safeArea, { backgroundColor: colors.background }]} edges={['top', 'bottom']}>
+      {content}
+    </SafeAreaView>
+  );
+  const renderScrollableShell = (content: ReactNode) =>
+    renderShell(
+      <ScrollView
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={styles.content}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.tint} />
+        }
+      >
+        {content}
+      </ScrollView>,
+    );
 
   if (status === 'loading') {
-    return (
-      <SafeAreaView style={[styles.safeArea, { backgroundColor: colors.background }]} edges={['top', 'bottom']}>
-        <LoadingState variant="detail" />
-      </SafeAreaView>
-    );
+    return renderShell(<LoadingState variant="detail" />);
   }
 
   if (status === 'error') {
-    return (
-      <SafeAreaView style={[styles.safeArea, { backgroundColor: colors.background }]} edges={['top', 'bottom']}>
-        <ErrorState message={error?.message || 'Failed to load earnings.'} onRetry={retry} />
-      </SafeAreaView>
+    return renderShell(
+      <ErrorState message={error?.message || 'Failed to load earnings.'} onRetry={retry} />,
     );
   }
 
   if (status === 'empty') {
-    return (
-      <SafeAreaView style={[styles.safeArea, { backgroundColor: colors.background }]} edges={['top', 'bottom']}>
-        <ScrollView
-          showsVerticalScrollIndicator={false}
-          contentContainerStyle={styles.content}
-          refreshControl={
-            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.tint} />
-          }
-        >
-          <View style={styles.listHeader}>
-            <PageHeader
-              title="Earnings"
-              subtitle="Track your session payments"
-              showBack
-            />
-            {renderPaymentInstructionsSection()}
-          </View>
-          <EmptyState
-            icon="cash-outline"
-            title="No earnings yet"
-            message="Complete your first paid session to start tracking earnings."
+    return renderScrollableShell(
+      <>
+        <View style={styles.listHeader}>
+          <PageHeader
+            title="Earnings"
+            subtitle="Track your session payments"
+            showBack
           />
-        </ScrollView>
-      </SafeAreaView>
+          {renderPaymentInstructionsSection()}
+        </View>
+        <EmptyState
+          icon="cash-outline"
+          title="No earnings yet"
+          message="Complete your first paid session to start tracking earnings."
+        />
+      </>,
     );
   }
 
@@ -404,34 +408,32 @@ export default function EarningsScreen() {
     </View>
   );
 
-  return (
-    <SafeAreaView style={[styles.safeArea, { backgroundColor: colors.background }]} edges={['top', 'bottom']}>
-      <FlatList
-        CellRendererComponent={AccessibleListCell}
-        accessibilityRole="list"
-        data={filteredData}
-        renderItem={renderItem}
-        keyExtractor={keyExtractor}
-        contentContainerStyle={styles.content}
-        ListHeaderComponent={listHeader}
-        ListEmptyComponent={
-          <View style={styles.tabEmpty}>
-            <Ionicons name={emptyMessage.icon} size={32} color={colors.muted} />
-            <ThemedText type="defaultSemiBold" style={{ color: colors.muted, textAlign: 'center' }}>
-              {emptyMessage.title}
-            </ThemedText>
-            <ThemedText style={[Typography.caption, { color: colors.muted, textAlign: 'center' }]}>
-              {emptyMessage.message}
-            </ThemedText>
-          </View>
-        }
-        ItemSeparatorComponent={Separator}
-        refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.tint} />
-        }
-        showsVerticalScrollIndicator={false}
-      />
-    </SafeAreaView>
+  return renderShell(
+    <FlatList
+      CellRendererComponent={AccessibleListCell}
+      accessibilityRole="list"
+      data={filteredData}
+      renderItem={renderItem}
+      keyExtractor={keyExtractor}
+      contentContainerStyle={styles.content}
+      ListHeaderComponent={listHeader}
+      ListEmptyComponent={
+        <View style={styles.tabEmpty}>
+          <Ionicons name={emptyMessage.icon} size={32} color={colors.muted} />
+          <ThemedText type="defaultSemiBold" style={{ color: colors.muted, textAlign: 'center' }}>
+            {emptyMessage.title}
+          </ThemedText>
+          <ThemedText style={[Typography.caption, { color: colors.muted, textAlign: 'center' }]}>
+            {emptyMessage.message}
+          </ThemedText>
+        </View>
+      }
+      ItemSeparatorComponent={Separator}
+      refreshControl={
+        <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.tint} />
+      }
+      showsVerticalScrollIndicator={false}
+    />,
   );
 }
 

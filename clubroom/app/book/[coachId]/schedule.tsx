@@ -2,6 +2,7 @@ import { useMemo, useCallback } from 'react';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { ScrollView, StyleSheet, View, RefreshControl } from 'react-native';
 import { router } from 'expo-router';
+import type { ReactNode } from 'react';
 import { Routes } from '@/navigation/routes';
 import { Ionicons } from '@expo/vector-icons';
 
@@ -121,67 +122,71 @@ export default function ScheduleScreen() {
       locationText: selectedSlot?.location,
     });
   }, [slotsForSelectedDate, updateDraft]);
+  const renderShell = ({ content, footer }: { content: ReactNode; footer?: ReactNode }) => (
+    <SafeAreaView
+      style={[styles.safeArea, { backgroundColor: palette.background }]}
+      edges={['top', 'bottom']}
+    >
+      {content}
+      {footer}
+    </SafeAreaView>
+  );
+  const renderWizardState = ({
+    subtitle,
+    content,
+  }: {
+    subtitle: string;
+    content: ReactNode;
+  }) =>
+    renderShell({
+      content: (
+        <>
+          <View style={styles.content}>
+            <BookingWizardHeader
+              title="Choose date & time"
+              subtitle={subtitle}
+              step={2}
+            />
+          </View>
+          {content}
+        </>
+      ),
+    });
 
   if (status === 'loading') {
-    return (
-      <SafeAreaView
-        style={[styles.safeArea, { backgroundColor: palette.background }]}
-        edges={['top', 'bottom']}
-      >
-        <View style={styles.content}>
-          <BookingWizardHeader
-            title="Choose date & time"
-            subtitle="Loading availability..."
-            step={2}
-          />
-        </View>
-        <LoadingState variant="calendar" />
-      </SafeAreaView>
-    );
+    return renderWizardState({
+      subtitle: 'Loading availability...',
+      content: <LoadingState variant="calendar" />,
+    });
   }
 
   if (!coachIdParam.valid) {
-    return (
-      <SafeAreaView
-        style={[styles.safeArea, { backgroundColor: palette.background }]}
-        edges={['top', 'bottom']}
-      >
+    return renderShell({
+      content: (
         <ErrorState
           message="Coach not found"
           description="This booking link is missing a coach."
           onRetry={() => router.back()}
         />
-      </SafeAreaView>
-    );
+      ),
+    });
   }
 
   if (status === 'error') {
-    return (
-      <SafeAreaView
-        style={[styles.safeArea, { backgroundColor: palette.background }]}
-        edges={['top', 'bottom']}
-      >
-        <View style={styles.content}>
-          <BookingWizardHeader
-            title="Choose date & time"
-            subtitle="Something went wrong"
-            step={2}
-          />
-        </View>
+    return renderWizardState({
+      subtitle: 'Something went wrong',
+      content: (
         <ErrorState
           message={error?.message ?? 'Unable to load available times. Please try again.'}
           onRetry={retry}
         />
-      </SafeAreaView>
-    );
+      ),
+    });
   }
 
   if (status === 'empty') {
-    return (
-      <SafeAreaView
-        style={[styles.safeArea, { backgroundColor: palette.background }]}
-        edges={['top', 'bottom']}
-      >
+    return renderShell({
+      content: (
         <ScrollView
           contentContainerStyle={styles.emptyContent}
           refreshControl={
@@ -233,15 +238,12 @@ export default function ScheduleScreen() {
             </Column>
           </Column>
         </ScrollView>
-      </SafeAreaView>
-    );
+      ),
+    });
   }
 
-  return (
-    <SafeAreaView
-      style={[styles.safeArea, { backgroundColor: palette.background }]}
-      edges={['top', 'bottom']}
-    >
+  return renderShell({
+    content: (
       <ScrollView
         contentContainerStyle={styles.content}
         refreshControl={
@@ -296,8 +298,8 @@ export default function ScheduleScreen() {
           ) : null}
         </View>
       </ScrollView>
-
-      {/* CTA Footer */}
+    ),
+    footer: (
       <View style={[styles.footer, { borderTopColor: withAlpha(palette.border, 0.5) }]}>
         <Clickable
           onPress={() => router.push(Routes.bookDetails(coachId))}
@@ -321,8 +323,8 @@ export default function ScheduleScreen() {
           </ThemedText>
         </Clickable>
       </View>
-    </SafeAreaView>
-  );
+    ),
+  });
 }
 
 function formatDate(dateStr: string): string {
