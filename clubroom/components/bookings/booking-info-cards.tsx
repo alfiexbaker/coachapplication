@@ -4,7 +4,7 @@
  * Three small card components that display booking metadata with icon rows.
  */
 
-import React, { memo, useCallback } from 'react';
+import React, { memo, useCallback, useEffect, useMemo, useState } from 'react';
 import { StyleSheet, View, Alert } from 'react-native';
 import { Image } from 'expo-image';
 import { router } from 'expo-router';
@@ -21,6 +21,196 @@ import { useTheme } from '@/hooks/useTheme';
 import { useToast } from '@/components/ui/toast';
 import { createLogger } from '@/utils/logger';
 import { openLocationInMaps } from '@/utils/map-links';
+
+type WeatherTone = 'sunny' | 'cloudy' | 'rainy' | 'storm' | 'snow' | 'unknown';
+
+interface WeatherState {
+  loading: boolean;
+  available: boolean;
+  summary?: string;
+  temperatureText?: string;
+  precipitationText?: string;
+  sourceLabel?: string;
+  tone?: WeatherTone;
+  reason?: string;
+}
+
+interface OpenMeteoGeoResponse {
+  results?: Array<{
+    name: string;
+    country?: string;
+    admin1?: string;
+    latitude: number;
+    longitude: number;
+  }>;
+}
+
+interface OpenMeteoForecastResponse {
+  daily?: {
+    time: string[];
+    weather_code: number[];
+    temperature_2m_max: number[];
+    temperature_2m_min: number[];
+    precipitation_probability_max?: number[];
+  };
+}
+
+const weatherCache = new Map<string, WeatherState>();
+
+const getDateKey = (iso: string): string => {
+  const date = new Date(iso);
+  const year = date.getFullYear();
+  const month = `${date.getMonth() + 1}`.padStart(2, '0');
+  const day = `${date.getDate()}`.padStart(2, '0');
+  return `${year}-${month}-${day}`;
+};
+
+const getDaysUntil = (iso: string): number => {
+  const now = new Date();
+  const target = new Date(iso);
+  const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
+  const startOfTarget = new Date(
+    target.getFullYear(),
+    target.getMonth(),
+    target.getDate(),
+  ).getTime();
+  return Math.round((startOfTarget - startOfToday) / (1000 * 60 * 60 * 24));
+};
+
+const mapWeatherCode = (code: number): { summary: string; icon: keyof typeof Ionicons.glyphMap; tone: WeatherTone } => {
+  if (code === 0) return { summary: 'Clear', icon: 'sunny-outline', tone: 'sunny' };
+  if ([1, 2].includes(code)) return { summary: 'Partly cloudy', icon: 'partly-sunny-outline', tone: 'cloudy' };
+  if (code === 3 || [45, 48].includes(code)) return { summary: 'Cloudy', icon: 'cloud-outline', tone: 'cloudy' };
+  if ([51, 53, 55, 56, 57, 61, 63, 65, 80, 81, 82].includes(code)) {
+    return { summary: 'Rain likely', icon: 'rainy-outline', tone: 'rainy' };
+  }
+  if ([66, 67, 71, 73, 75, 77, 85, 86].includes(code)) {
+    return { summary: 'Snow/ice risk', icon: 'snow-outline', tone: 'snow' };
+  }
+  if ([95, 96, 99].includes(code)) return { summary: 'Thunderstorm risk', icon: 'thunderstorm-outline', tone: 'storm' };
+  return { summary: 'Forecast available', icon: 'cloud-outline', tone: 'unknown' };
+};
+
+const getWeatherToneColor = (tone: WeatherTone, palette: ReturnType<typeof useTheme>['colors']) => {
+  if (tone === 'sunny') return palette.warning;
+  if (tone === 'rainy' || tone === 'storm') return palette.tint;
+  if (tone === 'snow') return palette.info;
+  return palette.muted;
+};
+
+function useBookingWeather(locationLabel: string, bookingStartIso: string): WeatherState {
+  const [state, setState] = useState<WeatherState>({ loading: true, available: false });
+
+  const cacheKey = useMemo(
+    () => `${locationLabel.trim().toLowerCase()}|${getDateKey(bookingStartIso)}`,
+    [bookingStartIso, locationLabel],
+  );
+
+  useEffect(() => {
+    const daysUntil = getDaysUntil(bookingStartIso);
+
+    if (!locationLabel.trim()) {
+      setState({ loading: false, available: false, reason: 'No location set for this booking.' });
+      return;
+    }
+
+    if (daysUntil < 0) {
+      setState({ loading: false, available: false, reason: 'Weather forecast only shows upcoming bookings.' });
+      return;
+    }
+
+    if (daysUntil > 16) {
+      setState({
+        loading: false,
+        available: false,
+        reason: 'Forecast is usually available within 16 days of the session.',
+      });
+      return;
+    }
+
+    const cached = weatherCache.get(cacheKey);
+    if (cached) {
+      setState(cached);
+      return;
+    }
+
+    let cancelled = false;
+
+    const load = async () => {
+      setState({ loading: true, available: false });
+      try {
+        const geoUrl =
+          `https://geocoding-api.open-meteo.com/v1/search?count=1&language=en&format=json&name=${encodeURIComponent(locationLabel)}`;
+        const geoResponse = await fetch(geoUrl);
+        if (!geoResponse.ok) throw new Error('Failed geocoding lookup');
+        const geoData = (await geoResponse.json()) as OpenMeteoGeoResponse;
+        const first = geoData.results?.[0];
+        if (!first) {
+          const unavailable = { loading: false, available: false, reason: 'No weather match found for this location.' };
+          weatherCache.set(cacheKey, unavailable);
+          if (!cancelled) setState(unavailable);
+          return;
+        }
+
+        const forecastUrl =
+          `https://api.open-meteo.com/v1/forecast?latitude=${first.latitude}&longitude=${first.longitude}` +
+          '&daily=weather_code,temperature_2m_max,temperature_2m_min,precipitation_probability_max&forecast_days=16&timezone=auto';
+        const forecastResponse = await fetch(forecastUrl);
+        if (!forecastResponse.ok) throw new Error('Failed forecast lookup');
+        const forecast = (await forecastResponse.json()) as OpenMeteoForecastResponse;
+        const daily = forecast.daily;
+        const targetDateKey = getDateKey(bookingStartIso);
+        const index = daily?.time?.findIndex((date) => date === targetDateKey) ?? -1;
+
+        if (!daily || index < 0) {
+          const unavailable = { loading: false, available: false, reason: 'Forecast for this date is not available yet.' };
+          weatherCache.set(cacheKey, unavailable);
+          if (!cancelled) setState(unavailable);
+          return;
+        }
+
+        const weatherCode = daily.weather_code[index] ?? -1;
+        const maxTemp = daily.temperature_2m_max[index];
+        const minTemp = daily.temperature_2m_min[index];
+        const precip = daily.precipitation_probability_max?.[index];
+        const mapped = mapWeatherCode(weatherCode);
+        const sourceBits = [first.name, first.admin1, first.country].filter(Boolean);
+
+        const loaded: WeatherState = {
+          loading: false,
+          available: true,
+          summary: mapped.summary,
+          temperatureText:
+            Number.isFinite(maxTemp) && Number.isFinite(minTemp)
+              ? `${Math.round(minTemp)}°-${Math.round(maxTemp)}°C`
+              : undefined,
+          precipitationText:
+            typeof precip === 'number' ? `${Math.round(precip)}% rain chance` : undefined,
+          sourceLabel: sourceBits.join(', '),
+          tone: mapped.tone,
+        };
+        weatherCache.set(cacheKey, loaded);
+        if (!cancelled) setState(loaded);
+      } catch {
+        if (!cancelled) {
+          setState({
+            loading: false,
+            available: false,
+            reason: 'Weather forecast is unavailable right now.',
+          });
+        }
+      }
+    };
+
+    void load();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [bookingStartIso, cacheKey, locationLabel]);
+
+  return state;
+}
 
 // ============================================================================
 // DATE & TIME CARD
@@ -154,6 +344,95 @@ export const PaymentCard = memo(function PaymentCard({
           >
             Pay coach directly (outside app). Coach tracks payment in the reconciler.
           </ThemedText>
+        </Column>
+      </Row>
+    </SurfaceCard>
+  );
+});
+
+// ============================================================================
+// WEATHER CARD
+// ============================================================================
+
+interface BookingWeatherCardProps {
+  locationLabel: string;
+  bookingStartIso: string;
+}
+
+export const BookingWeatherCard = memo(function BookingWeatherCard({
+  locationLabel,
+  bookingStartIso,
+}: BookingWeatherCardProps) {
+  const { colors: palette } = useTheme();
+  const weather = useBookingWeather(locationLabel, bookingStartIso);
+
+  const weatherVisual = useMemo(() => {
+    if (!weather.available || !weather.tone) {
+      return {
+        icon: 'partly-sunny-outline' as const,
+        color: palette.muted,
+      };
+    }
+    const toneColor = getWeatherToneColor(weather.tone, palette);
+    const mapped = mapWeatherCode(
+      weather.summary === 'Clear'
+        ? 0
+        : weather.summary === 'Partly cloudy'
+          ? 1
+          : weather.summary === 'Cloudy'
+            ? 3
+            : weather.summary === 'Rain likely'
+              ? 61
+              : weather.summary === 'Thunderstorm risk'
+                ? 95
+                : weather.summary === 'Snow/ice risk'
+                  ? 71
+                  : 3,
+    );
+    return { icon: mapped.icon, color: toneColor };
+  }, [palette, weather.available, weather.summary, weather.tone]);
+
+  return (
+    <SurfaceCard style={styles.card}>
+      <Row gap="md" align="center">
+        <View
+          style={[
+            styles.iconCircle,
+            { backgroundColor: withAlpha(weatherVisual.color, 0.12) },
+          ]}
+        >
+          <Ionicons name={weatherVisual.icon} size={24} color={weatherVisual.color} />
+        </View>
+        <Column gap="xxs" style={styles.flex1}>
+          <ThemedText style={styles.cardTitle}>Weather</ThemedText>
+          {weather.loading ? (
+            <>
+              <ThemedText type="subtitle" style={styles.cardValue}>
+                Loading forecast...
+              </ThemedText>
+              <ThemedText style={styles.cardSubtext}>Checking session-day weather</ThemedText>
+            </>
+          ) : weather.available ? (
+            <>
+              <ThemedText type="subtitle" style={styles.cardValue}>
+                {weather.summary}
+                {weather.temperatureText ? ` · ${weather.temperatureText}` : ''}
+              </ThemedText>
+              <ThemedText style={styles.cardSubtext}>
+                {weather.precipitationText ?? 'Forecast loaded'}
+                {weather.sourceLabel ? ` · ${weather.sourceLabel}` : ''}
+              </ThemedText>
+            </>
+          ) : (
+            <>
+              <ThemedText type="subtitle" style={styles.cardValue}>
+                Forecast unavailable
+              </ThemedText>
+              <ThemedText style={styles.cardSubtext}>
+                {weather.reason ?? 'Could not load weather for this booking date.'}
+              </ThemedText>
+            </>
+          )}
         </Column>
       </Row>
     </SurfaceCard>

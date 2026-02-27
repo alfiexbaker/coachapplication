@@ -1,5 +1,6 @@
 import React, { createContext, useCallback, useContext, useMemo, useRef, useState } from 'react';
 import { StyleSheet, Text } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { Row } from '@/components/primitives/row';
 import { Clickable } from '@/components/primitives/clickable';
 import Animated, { FadeInDown, FadeOutUp } from 'react-native-reanimated';
@@ -10,7 +11,8 @@ import { useTheme } from '@/hooks/useTheme';
 
 // Tab bar height constant for proper positioning
 const TAB_BAR_HEIGHT = 60;
-const UNDO_DURATION = 5000; // 5 seconds for undo
+const DEFAULT_TOAST_DURATION = 4000;
+const UNDO_DURATION = 4000;
 
 interface ToastOptions {
   tone?: 'default' | 'success' | 'error' | 'warning';
@@ -80,7 +82,7 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
         typeof options === 'string' ? { tone: options } : options || {};
 
       const { tone = 'default', action, duration } = resolvedOptions;
-      const effectiveDuration = duration ?? (tone === 'error' ? 5000 : 2500);
+      const effectiveDuration = duration ?? DEFAULT_TOAST_DURATION;
 
       idCounter.current += 1;
       const newToast: QueuedToast = {
@@ -125,6 +127,7 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
         message={current?.message}
         tone={current?.tone}
         action={current?.action}
+        onDismiss={hideToast}
         onActionPress={() => {
           current?.action?.onPress();
           hideToast();
@@ -146,11 +149,13 @@ function Toast({
   message,
   tone = 'default',
   action,
+  onDismiss,
   onActionPress,
 }: {
   message?: string;
   tone?: 'default' | 'success' | 'error' | 'warning';
   action?: { label: string; onPress: () => void };
+  onDismiss?: () => void;
   onActionPress?: () => void;
 }) {
   const { colors: palette, scheme } = useTheme();
@@ -174,7 +179,7 @@ function Toast({
       entering={FadeInDown.springify()}
       exiting={FadeOutUp}
       style={[styles.container, { bottom: bottomPosition }]}
-      pointerEvents={action ? 'box-none' : 'none'}
+      pointerEvents="box-none"
       accessibilityLiveRegion="polite"
       accessibilityRole="alert"
     >
@@ -204,6 +209,17 @@ function Toast({
             <Text style={[styles.actionText, { color: palette.tint }]}>{action.label}</Text>
           </Clickable>
         )}
+        <Clickable
+          onPress={onDismiss}
+          style={({ pressed }) => [
+            styles.dismissButton,
+            { backgroundColor: withAlpha(palette.muted, pressed ? 0.18 : 0.08) },
+          ]}
+          accessibilityRole="button"
+          accessibilityLabel="Dismiss notification"
+        >
+          <Ionicons name="close" size={16} color={palette.muted} />
+        </Clickable>
       </Row>
     </Animated.View>
   );
@@ -231,4 +247,11 @@ const styles = StyleSheet.create({
     borderRadius: Radii.md,
   },
   actionText: { ...Typography.bodySmallSemiBold },
+  dismissButton: {
+    width: 28,
+    height: 28,
+    borderRadius: Radii.pill,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
 });

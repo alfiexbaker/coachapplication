@@ -1,5 +1,4 @@
 import { useCallback, useMemo, useState } from 'react';
-import { AccessibleListCell } from '@/components/ui/list-accessibility';
 import { FlatList, RefreshControl, ScrollView, StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useLocalSearchParams, router } from 'expo-router';
@@ -143,8 +142,7 @@ export default function MediaGalleryScreen() {
               <Column key={group.key} gap="xs">
                 <ThemedText style={styles.monthTitle}>{group.label}</ThemedText>
                 <FlatList
-        CellRendererComponent={AccessibleListCell}
-        accessibilityRole="list"
+                  accessibilityRole="list"
                   data={group.items}
                   keyExtractor={(item) => item.id}
                   renderItem={renderGalleryItem}

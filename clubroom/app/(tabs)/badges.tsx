@@ -158,8 +158,6 @@ export default function UserBadgesScreen() {
           icon="trending-up-outline"
           title="Your journey starts here"
           message="Complete sessions with your coach to start tracking your development."
-          actionLabel="Find a coach"
-          onPressAction={() => router.push(Routes.BOOK_COACH)}
         />
       </PageContainer>
     );

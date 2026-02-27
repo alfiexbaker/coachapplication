@@ -91,19 +91,36 @@ function AthleteCardInner({ athlete, upcomingSession }: AthleteCardProps) {
                 {athlete.status !== 'ACTIVE' && (
                   <View
                     style={[
-                      styles.statusDot,
-                      { backgroundColor: rosterService.getStatusColor(athlete.status) },
+                      styles.statusPill,
+                      {
+                        backgroundColor: withAlpha(
+                          rosterService.getStatusColor(athlete.status),
+                          0.12,
+                        ),
+                      },
                     ]}
-                  />
+                  >
+                    <ThemedText
+                      style={[
+                        styles.statusPillText,
+                        { color: rosterService.getStatusColor(athlete.status) },
+                      ]}
+                    >
+                      {athlete.status.replace('_', ' ')}
+                    </ThemedText>
+                  </View>
                 )}
               </Row>
 
               <Row align="center" gap="xxs" style={styles.metaRow}>
-                <ThemedText style={[styles.metaText, { color: palette.muted }]}>
+                <ThemedText style={[styles.metaText, { color: palette.muted }]} numberOfLines={1}>
                   {athlete.totalSessions} sessions
                 </ThemedText>
                 <ThemedText style={[styles.metaDot, { color: palette.muted }]}>•</ThemedText>
-                <ThemedText style={[styles.metaText, { color: palette.muted }]}>
+                <ThemedText
+                  style={[styles.metaText, { color: palette.muted, flexShrink: 1 }]}
+                  numberOfLines={1}
+                >
                   Last: {formatRelativeDate(athlete.lastSessionDate)}
                 </ThemedText>
               </Row>
@@ -119,13 +136,20 @@ function AthleteCardInner({ athlete, upcomingSession }: AthleteCardProps) {
                     style={[styles.upcomingText, { color: palette.success }]}
                     numberOfLines={1}
                   >
-                    Next: {formatUpcomingDate(upcomingSession.scheduledAt)}
+                    Next session: {formatUpcomingDate(upcomingSession.scheduledAt)}
                   </ThemedText>
                 </Row>
               ) : (
-                <ThemedText style={[styles.noUpcomingText, { color: palette.muted }]}>
-                  No upcoming session
-                </ThemedText>
+                <View
+                  style={[
+                    styles.noUpcomingBadge,
+                    { backgroundColor: withAlpha(palette.muted, 0.08) },
+                  ]}
+                >
+                  <ThemedText style={[styles.noUpcomingText, { color: palette.muted }]}>
+                    No upcoming session
+                  </ThemedText>
+                </View>
               )}
             </View>
             <Ionicons name="chevron-forward" size={18} color={withAlpha(palette.muted, 0.7)} />
@@ -164,6 +188,7 @@ const styles = StyleSheet.create({
     marginHorizontal: Spacing.lg,
     marginTop: Spacing.sm,
     padding: Spacing.md,
+    borderRadius: Radii.xl,
   },
   detailsTap: {
     flex: 1,
@@ -174,9 +199,9 @@ const styles = StyleSheet.create({
     minHeight: 44,
   },
   avatar: {
-    width: 44,
-    height: 44,
-    borderRadius: Radii.xl,
+    width: 46,
+    height: 46,
+    borderRadius: Radii.xl + 1,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -190,19 +215,25 @@ const styles = StyleSheet.create({
   },
   nameRow: {
     minHeight: 24,
+    alignItems: 'center',
   },
   athleteName: {
     ...Typography.subheading,
     flexShrink: 1,
   },
-  statusDot: {
-    width: 8,
-    height: 8,
-    borderRadius: Radii.full,
+  statusPill: {
+    paddingHorizontal: Spacing.xs,
+    paddingVertical: Spacing.micro,
+    borderRadius: Radii.pill,
     flexShrink: 0,
+  },
+  statusPillText: {
+    ...Typography.micro,
+    fontWeight: '700',
   },
   metaRow: {
     minHeight: 20,
+    flexWrap: 'nowrap',
   },
   metaText: {
     ...Typography.small,
@@ -216,20 +247,28 @@ const styles = StyleSheet.create({
     borderRadius: Radii.sm,
     alignSelf: 'flex-start',
     marginTop: Spacing.xxs,
+    maxWidth: '100%',
   },
   upcomingText: {
     ...Typography.caption,
   },
-  noUpcomingText: {
-    ...Typography.caption,
+  noUpcomingBadge: {
+    paddingHorizontal: Spacing.xs,
+    paddingVertical: Spacing.xxs,
+    borderRadius: Radii.sm,
+    alignSelf: 'flex-start',
     marginTop: Spacing.xxs,
   },
+  noUpcomingText: {
+    ...Typography.caption,
+  },
   actionButton: {
-    width: 40,
-    height: 40,
+    width: 42,
+    height: 42,
     borderRadius: Radii.lg,
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 1,
+    marginLeft: Spacing.xs,
   },
 });

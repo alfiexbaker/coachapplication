@@ -43,76 +43,92 @@ export const AthletesListHeader = React.memo(function AthletesListHeader({
 
   return (
     <View style={styles.headerContent}>
-      <Row
+      <View
         style={[
-          styles.searchContainer,
+          styles.controlsPanel,
           { backgroundColor: colors.card, borderColor: colors.border },
         ]}
       >
-        <Ionicons name="search" size={18} color={colors.muted} />
-        <TextInput
-          style={[styles.searchInput, { color: colors.text }]}
-          placeholder="Search athletes..."
-          placeholderTextColor={colors.muted}
-          value={searchQuery}
-          onChangeText={onSearchChange}
-          accessibilityLabel="Search athletes"
-
+        <Row
+          style={[
+            styles.searchContainer,
+            { backgroundColor: colors.background, borderColor: colors.border },
+          ]}
+        >
+          <Ionicons name="search" size={18} color={colors.muted} />
+          <TextInput
+            style={[styles.searchInput, { color: colors.text }]}
+            placeholder="Search athletes..."
+            placeholderTextColor={colors.muted}
+            value={searchQuery}
+            onChangeText={onSearchChange}
+            accessibilityLabel="Search athletes"
             maxLength={100}
           />
-        {searchQuery.length > 0 && (
-          <Clickable accessibilityLabel="Clear search" onPress={onClearSearch}>
-            <Ionicons name="close-circle" size={18} color={colors.muted} />
-          </Clickable>
-        )}
-      </Row>
+          {searchQuery.length > 0 && (
+            <Clickable accessibilityLabel="Clear search" onPress={onClearSearch}>
+              <Ionicons name="close-circle" size={18} color={colors.muted} />
+            </Clickable>
+          )}
+        </Row>
 
-      <Row gap="sm" style={styles.filterRow}>
-        {filterChips.map((chip) => {
-          const selected = filter === chip.id;
-          return (
-            <Clickable
-              key={chip.id}
-              style={[
-                styles.filterChip,
-                {
-                  backgroundColor: selected ? colors.tint : 'transparent',
-                  borderColor: selected ? colors.tint : 'transparent',
-                },
-              ]}
-              onPress={() => onFilterChange(chip.id)}
-              accessibilityLabel={`Filter: ${chip.label}`}
-            >
-              <Row align="center" gap="xxs">
-                <ThemedText
-                  style={[styles.filterText, { color: selected ? colors.onPrimary : colors.text }]}
+        <View
+          style={[
+            styles.filterGroup,
+            { backgroundColor: colors.background, borderColor: colors.border },
+          ]}
+        >
+          <Row gap="xs" style={styles.filterRow}>
+            {filterChips.map((chip) => {
+              const selected = filter === chip.id;
+              return (
+                <Clickable
+                  key={chip.id}
+                  style={[
+                    styles.filterChip,
+                    {
+                      backgroundColor: selected ? colors.tint : 'transparent',
+                      borderColor: selected ? colors.tint : 'transparent',
+                    },
+                  ]}
+                  onPress={() => onFilterChange(chip.id)}
+                  accessibilityLabel={`Filter: ${chip.label}`}
                 >
-                  {chip.label}
-                </ThemedText>
-                {chip.count > 0 && (
-                  <View
-                    style={[
-                      styles.filterCount,
-                      {
-                        backgroundColor: 'transparent',
-                      },
-                    ]}
-                  >
+                  <Row align="center" gap="xxs">
                     <ThemedText
                       style={[
-                        styles.filterCountText,
-                        { color: selected ? colors.onPrimary : colors.muted },
+                        styles.filterText,
+                        { color: selected ? colors.onPrimary : colors.text },
                       ]}
                     >
-                      {chip.count}
+                      {chip.label}
                     </ThemedText>
-                  </View>
-                )}
-              </Row>
-            </Clickable>
-          );
-        })}
-      </Row>
+                    <View
+                      style={[
+                        styles.filterCount,
+                        {
+                          backgroundColor: selected
+                            ? 'transparent'
+                            : colors.card,
+                        },
+                      ]}
+                    >
+                      <ThemedText
+                        style={[
+                          styles.filterCountText,
+                          { color: selected ? colors.onPrimary : colors.muted },
+                        ]}
+                      >
+                        {chip.count}
+                      </ThemedText>
+                    </View>
+                  </Row>
+                </Clickable>
+              );
+            })}
+          </Row>
+        </View>
+      </View>
     </View>
   );
 });
@@ -146,13 +162,19 @@ export const renderAthleteCard = ({
 const styles = StyleSheet.create({
   headerContent: {
     paddingTop: Spacing.sm,
-    gap: Spacing.xs,
+    paddingHorizontal: Spacing.lg,
+    gap: Spacing.sm,
     paddingBottom: Spacing.xs,
+  },
+  controlsPanel: {
+    borderWidth: 1,
+    borderRadius: Radii.xl,
+    padding: Spacing.sm,
+    gap: Spacing.sm,
   },
   searchContainer: {
     alignItems: 'center',
     gap: Spacing.sm,
-    marginHorizontal: Spacing.lg,
     paddingHorizontal: Spacing.md,
     paddingVertical: Spacing.xs,
     borderRadius: Radii.lg,
@@ -164,18 +186,30 @@ const styles = StyleSheet.create({
     paddingVertical: Spacing.xxs,
   },
   filterRow: {
-    paddingHorizontal: Spacing.lg,
+    width: '100%',
+  },
+  filterGroup: {
+    borderWidth: 1,
+    borderRadius: Radii.lg,
+    padding: Spacing.xxs,
   },
   filterChip: {
-    paddingHorizontal: Spacing.md,
-    paddingVertical: Spacing.sm,
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: Spacing.sm,
+    paddingVertical: Spacing.xs,
     borderRadius: Radii.pill,
-    minHeight: 36,
+    borderWidth: 1,
+    minHeight: 40,
   },
   filterText: {
     ...Typography.smallSemiBold,
   },
   filterCount: {
+    minWidth: 18,
+    alignItems: 'center',
+    justifyContent: 'center',
     paddingHorizontal: Spacing.xxs,
     paddingVertical: Spacing.micro,
     borderRadius: Radii.md,

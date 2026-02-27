@@ -209,7 +209,12 @@ function AttentionSectionInner({
                   athleteId: entry.athlete.id,
                   athleteName: entry.athlete.name,
                   needsNotes: entry.needsNotes,
+                  sessionId: entry.prioritySessionId,
                 });
+                if (entry.prioritySessionId) {
+                  router.push(Routes.developmentSession(entry.prioritySessionId));
+                  return;
+                }
                 router.push(Routes.developmentAthlete(entry.athlete.id));
               }}
               style={[styles.rowCard, { borderColor: palette.border }]}
@@ -312,7 +317,7 @@ function RecentSessionsSectionInner({
                   athleteId: session.athleteId,
                   source: 'RecentSessions',
                 });
-                router.push(Routes.developmentSession(session.id));
+                router.push(Routes.developmentAthlete(session.athleteId));
               }}
             >
               <Row style={styles.rowLeft}>

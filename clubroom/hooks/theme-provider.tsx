@@ -50,7 +50,8 @@ function useSystemScheme(): NonNullable<ColorSchemeName> {
 
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
   const systemScheme = useSystemScheme();
-  const [override, setOverride] = useState<NonNullable<ColorSchemeName> | null>(null);
+  // Product default: start in dark mode unless the user explicitly switches.
+  const [override, setOverride] = useState<NonNullable<ColorSchemeName> | null>('dark');
   const colorScheme = override ?? systemScheme;
 
   const value = useMemo(

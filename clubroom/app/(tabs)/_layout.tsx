@@ -6,6 +6,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { HapticTab } from '@/components/haptic-tab';
 import { IconSymbol } from '@/components/ui/icon-symbol';
 import { ErrorBoundary } from '@/components/error-boundary';
+import { RouteAccessGate } from '@/components/auth/route-access-gate';
 import { Typography, Spacing, Shadows, Radii } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
 import { useAuth, type UserRole } from '@/hooks/use-auth';
@@ -14,7 +15,7 @@ import { messagingService } from '@/services/messaging-service';
 import { onTyped, ServiceEvents } from '@/services/event-bus';
 import { useToast } from '@/components/ui/toast';
 import { Routes } from '@/navigation/routes';
-import { useFocusEffect } from '@react-navigation/native';
+import { useFocusEffect, type EventArg } from '@react-navigation/native';
 import { createLogger } from '@/utils/logger';
 
 const logger = createLogger('TabLayout');
@@ -78,7 +79,6 @@ const BASE_HIDDEN_ROUTES = [
   'earnings',
   'badges',
   'roster',
-  'wallet',
 ];
 
 // Hidden from the tab bar does not always mean forbidden.
@@ -90,8 +90,10 @@ const HIDDEN_BUT_ALLOWED_ROUTES = new Set([
   'edit-profile',
   'profile',
   'earnings',
+  'bookings',
   'badges',
   'roster',
+  'club-hub',
 ]);
 
 const ROLE_TAB_CONFIG: Record<UserRole | 'DEFAULT', RoleTabConfig> = {
@@ -239,6 +241,11 @@ export default function TabLayout() {
     () => new Set(hiddenRoutes.filter((route) => !HIDDEN_BUT_ALLOWED_ROUTES.has(route))),
     [hiddenRoutes],
   );
+  const inTabsRouteScope = segments[0] === '(tabs)';
+  const currentTabSegment =
+    inTabsRouteScope && typeof segments[1] === 'string' ? segments[1] : '';
+  const blockedTabSegment =
+    currentTabSegment && restrictedRouteSet.has(currentTabSegment) ? currentTabSegment : null;
 
   useEffect(() => {
     logger.debug('Tab guard config', {
@@ -274,21 +281,28 @@ export default function TabLayout() {
   );
 
   useEffect(() => {
-    const tabSegment = typeof segments[1] === 'string' ? segments[1] : '';
     logger.debug('Segment guard check', {
       segments,
-      tabSegment,
-      isHidden: tabSegment ? hiddenRouteSet.has(tabSegment) : false,
-      isRestricted: tabSegment ? restrictedRouteSet.has(tabSegment) : false,
+      inTabsRouteScope,
+      tabSegment: currentTabSegment,
+      isHidden: currentTabSegment ? hiddenRouteSet.has(currentTabSegment) : false,
+      isRestricted: currentTabSegment ? restrictedRouteSet.has(currentTabSegment) : false,
     });
-    if (!tabSegment) return;
-    if (!restrictedRouteSet.has(tabSegment)) {
+    if (!currentTabSegment) return;
+    if (!restrictedRouteSet.has(currentTabSegment)) {
       lastRestrictedRouteRef.current = null;
       return;
     }
 
-    handleRestrictedRoute(tabSegment);
-  }, [handleRestrictedRoute, hiddenRouteSet, segments]);
+    handleRestrictedRoute(currentTabSegment);
+  }, [
+    currentTabSegment,
+    handleRestrictedRoute,
+    hiddenRouteSet,
+    inTabsRouteScope,
+    restrictedRouteSet,
+    segments,
+  ]);
 
   useFocusEffect(
     useCallback(() => {
@@ -316,6 +330,21 @@ export default function TabLayout() {
     if (count <= 0) return undefined;
     return count > 99 ? '99+' : count;
   };
+
+  const handleTabReselectPress = useCallback(
+    (routeName: string) => (e: EventArg<'tabPress', true>) => {
+      const state = navigation.getState();
+      const focusedRoute = state?.routes?.[state.index ?? 0];
+      const isReselect = focusedRoute?.name === routeName;
+      if (!isReselect) return;
+
+      // Avoid React Navigation's default POP_TO_TOP on tab reselect when the tab
+      // doesn't host a nested stack (dev warning: "POP_TO_TOP was not handled").
+      // Screen hooks still receive tabPress and handle scroll-to-top UX.
+      e.preventDefault();
+    },
+    [navigation],
+  );
 
   const tabBarHeight = 62 + Math.max(insets.bottom, Spacing.sm);
   const tabBarOptions = {
@@ -359,31 +388,45 @@ export default function TabLayout() {
     },
   };
 
+  const handleBlockedTabSegment = useCallback(() => {
+    if (!blockedTabSegment) return;
+    handleRestrictedRoute(blockedTabSegment);
+  }, [blockedTabSegment, handleRestrictedRoute]);
+
   return (
     <ErrorBoundary>
-      <Tabs screenOptions={tabBarOptions}>
-        {roleConfig.primary.map(({ name, title, icon, badge }) => (
-          <Tabs.Screen
-            key={name}
-            name={name}
-            options={{
-              title,
-              tabBarIcon: ({ color }) => <IconSymbol size={22} name={icon} color={color} />,
-              tabBarBadge: getBadgeCount(badge),
-            }}
-          />
-        ))}
+      <RouteAccessGate
+        allowed={!blockedTabSegment}
+        redirectHref={Routes.HOME}
+        onBlocked={blockedTabSegment ? handleBlockedTabSegment : undefined}
+      >
+        <Tabs screenOptions={tabBarOptions}>
+          {roleConfig.primary.map(({ name, title, icon, badge }) => (
+            <Tabs.Screen
+              key={name}
+              name={name}
+              listeners={{
+                tabPress: handleTabReselectPress(name),
+              }}
+              options={{
+                title,
+                tabBarIcon: ({ color }) => <IconSymbol size={22} name={icon} color={color} />,
+                tabBarBadge: getBadgeCount(badge),
+              }}
+            />
+          ))}
 
-        {hiddenRoutes.map((route) => (
-          <Tabs.Screen
-            key={route}
-            name={route}
-            options={{
-              href: null,
-            }}
-          />
-        ))}
-      </Tabs>
+          {hiddenRoutes.map((route) => (
+            <Tabs.Screen
+              key={route}
+              name={route}
+              options={{
+                href: null,
+              }}
+            />
+          ))}
+        </Tabs>
+      </RouteAccessGate>
     </ErrorBoundary>
   );
 }

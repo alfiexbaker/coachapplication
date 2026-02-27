@@ -30,12 +30,21 @@ import {
 } from '@/hooks/use-athlete-analytics';
 import { useRequiredParam } from '@/hooks/use-required-param';
 
+function formatAthleteAnalyticsTitle(label?: string): string {
+  if (!label) return 'Athlete';
+  return label
+    .replace(/[_-]+/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim()
+    .replace(/\b\w/g, (char) => char.toUpperCase());
+}
+
 export default function AthleteAnalyticsScreen() {
   const athleteIdParam = useRequiredParam('athleteId');
   const { colors } = useTheme();
   const athlete = useAthleteAnalytics();
   const fallbackName = athlete.athleteId || 'Athlete';
-  const headerTitle = athlete.analytics?.athleteId || fallbackName;
+  const headerTitle = formatAthleteAnalyticsTitle(athlete.analytics?.athleteId || fallbackName);
   const header = (
     <Row gap="md" align="center" style={styles.header}>
       <Clickable onPress={() => router.back()} hitSlop={8}>
@@ -112,6 +121,30 @@ export default function AthleteAnalyticsScreen() {
 
   const analytics = athlete.analytics;
   const athleteRouteId = athlete.athleteId ?? analytics.athleteId;
+  const hasUsableAnalyticsData =
+    analytics.totalSessions > 0 ||
+    analytics.sessionsThisPeriod > 0 ||
+    analytics.skills.length > 0 ||
+    analytics.activeGoals.length > 0 ||
+    analytics.completedGoals.length > 0;
+
+  if (!hasUsableAnalyticsData) {
+    return (
+      <SafeAreaView
+        style={[styles.container, { backgroundColor: colors.background }]}
+        edges={['top', 'bottom']}
+      >
+        {header}
+        <EmptyState
+          icon="analytics-outline"
+          title="No analytics yet"
+          message="Analytics will appear after completed sessions and tracked progress."
+          actionLabel="Refresh"
+          onPressAction={athlete.onRefresh}
+        />
+      </SafeAreaView>
+    );
+  }
 
   return (
     <SafeAreaView
@@ -120,32 +153,32 @@ export default function AthleteAnalyticsScreen() {
     >
       {header}
 
-      <ScrollView
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        style={{ flexGrow: 0 }}
-        contentContainerStyle={styles.periodsContainer}
-      >
-        {PERIOD_OPTIONS.map((p) => (
-          <Clickable
-            key={p.key}
-            onPress={() => athlete.setPeriod(p.key)}
-            style={[
-              styles.periodChip,
-              { backgroundColor: athlete.period === p.key ? colors.tint : colors.surface },
-            ]}
-          >
-            <ThemedText
+      <View style={styles.periodsContainer}>
+        <Row gap="sm" wrap>
+          {PERIOD_OPTIONS.map((p) => (
+            <Clickable
+              key={p.key}
+              onPress={() => athlete.setPeriod(p.key)}
               style={[
-                Typography.smallSemiBold,
-                { color: athlete.period === p.key ? colors.onPrimary : colors.text },
+                styles.periodChip,
+                { backgroundColor: athlete.period === p.key ? colors.tint : colors.surface },
               ]}
+              accessibilityRole="button"
+              accessibilityLabel={`Show ${p.label} analytics`}
             >
-              {p.label}
-            </ThemedText>
-          </Clickable>
-        ))}
-      </ScrollView>
+              <ThemedText
+                numberOfLines={1}
+                style={[
+                  styles.periodChipText,
+                  { color: athlete.period === p.key ? colors.onPrimary : colors.text },
+                ]}
+              >
+                {p.label}
+              </ThemedText>
+            </Clickable>
+          ))}
+        </Row>
+      </View>
 
       <ScrollView
         contentContainerStyle={styles.content}
@@ -282,11 +315,19 @@ export default function AthleteAnalyticsScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1 },
   header: { paddingHorizontal: Spacing.lg, paddingVertical: Spacing.md },
-  periodsContainer: { paddingHorizontal: Spacing.lg, paddingBottom: Spacing.md, gap: Spacing.sm },
+  periodsContainer: { paddingHorizontal: Spacing.lg, paddingBottom: Spacing.md },
   periodChip: {
+    minHeight: 32,
+    minWidth: 72,
     paddingHorizontal: Spacing.md,
     paddingVertical: Spacing.xs,
     borderRadius: Radii.full,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  periodChipText: {
+    ...Typography.smallSemiBold,
+    textAlign: 'center',
   },
   content: { padding: Spacing.lg, paddingTop: 0 },
   statsGrid: { flexWrap: 'wrap', gap: Spacing.sm, marginBottom: Spacing.md },

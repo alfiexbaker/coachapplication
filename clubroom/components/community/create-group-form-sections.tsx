@@ -5,7 +5,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { Clickable } from '@/components/primitives/clickable';
 import { ThemedText } from '@/components/themed-text';
-import { Radii, Spacing, withAlpha } from '@/constants/theme';
+import { Radii, Spacing, Typography, withAlpha } from '@/constants/theme';
 import type { GroupType } from '@/constants/types';
 import { scaleFont } from '@/utils/scale';
 import type { ThemeColors } from '@/hooks/useTheme';

@@ -13,6 +13,7 @@ import { BookingParentView } from '@/components/bookings/booking-parent-view';
 import {
   DateTimeCard,
   LocationCard,
+  BookingWeatherCard,
   PaymentCard,
   BookingCoachCard,
   BookingAthleteCard,
@@ -220,6 +221,7 @@ export default function SessionDetailScreen() {
           time={formatted.time}
         />
         <LocationCard locationLabel={booking.locationLabel} />
+        <BookingWeatherCard locationLabel={booking.locationLabel} bookingStartIso={booking.start} />
         <PaymentCard showDemoIndicator={!process.env.EXPO_PUBLIC_STRIPE_ENABLED} />
         {booking.coachId && (
           <CancellationPolicyCard coachId={booking.coachId} policy={cancellationPolicy ?? undefined} />

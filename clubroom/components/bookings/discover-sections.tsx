@@ -19,8 +19,8 @@ import { SessionOfferingCard } from '@/components/sessions/session-offering-card
 import { CoachCardCompact } from './coach-card-compact';
 import { Radii, Spacing, Typography, withAlpha } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
-import type {
 import { AccessibleListCell } from '@/components/ui/list-accessibility';
+import type {
   SessionOffering,
   CoachProfile,
   GroupSession,

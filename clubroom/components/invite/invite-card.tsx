@@ -1,4 +1,4 @@
-import React, { memo } from 'react';
+import React, { memo, useMemo, useState } from 'react';
 import { View, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { ThemedText } from '@/components/themed-text';
@@ -52,12 +52,24 @@ export const InviteCard = memo(function InviteCard({
   onRsvp,
 }: InviteCardProps) {
   const { colors: palette } = useTheme();
+  const [showDetails, setShowDetails] = useState(false);
   const isPending = invite.status === 'PENDING';
   const isExpired = new Date(invite.expiresAt) <= new Date();
   const isResponding = respondingTo === invite.id;
   const statusBadge = getStatusBadge(isExpired && isPending ? 'EXPIRED' : invite.status, palette);
   const coachName = getSessionInviteCoachName(invite);
   const athleteNames = getSessionInviteAthleteNames(invite);
+  const firstSlot = invite.proposedSlots[0];
+  const compactSlotSummary = useMemo(() => {
+    if (!firstSlot) return 'No proposed times';
+    const dateLabel = formatInUserTimezone(`${firstSlot.date}T${firstSlot.startTime || '00:00'}`, {
+      weekday: 'short',
+      day: 'numeric',
+      month: 'short',
+    });
+    const extraCount = Math.max(0, invite.proposedSlots.length - 1);
+    return `${dateLabel} ${firstSlot.startTime}${extraCount > 0 ? ` (+${extraCount} more)` : ''}`;
+  }, [firstSlot, invite.proposedSlots.length]);
 
   return (
     <SurfaceCard style={styles.card}>
@@ -112,44 +124,83 @@ export const InviteCard = memo(function InviteCard({
           </View>
         )}
       </Row>
-      {invite.notes && (
-        <ThemedText style={[styles.notes, { color: palette.muted }]} numberOfLines={2}>
-          &quot;{invite.notes}&quot;
-        </ThemedText>
-      )}
-
-      {/* Slots */}
-      <View style={styles.slotsSection}>
-        <ThemedText style={[styles.slotsLabel, { color: palette.muted }]}>
-          Proposed time{invite.proposedSlots.length > 1 ? 's' : ''}:
-        </ThemedText>
-        <Row style={styles.slotsList}>
-          {invite.proposedSlots.slice(0, 3).map((slot, index) => (
-            <Row
-              key={index}
-              style={[
-                styles.slotChip,
-                { backgroundColor: palette.surface, borderColor: palette.border },
-              ]}
-            >
-              <Ionicons name="calendar-outline" size={14} color={palette.icon} />
-              <ThemedText style={styles.slotText}>
-                {formatInUserTimezone(`${slot.date}T${slot.startTime || '00:00'}`, {
-                  weekday: 'short',
-                  day: 'numeric',
-                  month: 'short',
-                })}{' '}
-                {slot.startTime}
+      <Row style={styles.compactInfoRow}>
+        <Row
+          style={[
+            styles.compactSlotPill,
+            { backgroundColor: palette.surface, borderColor: palette.border },
+          ]}
+        >
+          <Ionicons name="calendar-outline" size={14} color={palette.icon} />
+          <ThemedText style={styles.slotText} numberOfLines={1}>
+            {compactSlotSummary}
+          </ThemedText>
+        </Row>
+        {(invite.notes || invite.proposedSlots.length > 1) && (
+          <Clickable
+            onPress={() => setShowDetails((prev) => !prev)}
+            accessibilityRole="button"
+            accessibilityLabel={showDetails ? 'Hide invite details' : 'Show invite details'}
+            style={[
+              styles.detailsToggle,
+              { borderColor: palette.border, backgroundColor: withAlpha(palette.border, 0.12) },
+            ]}
+          >
+            <Row align="center" gap="xxs">
+              <ThemedText style={[styles.detailsToggleText, { color: palette.muted }]}>
+                {showDetails ? 'Hide' : 'Details'}
               </ThemedText>
+              <Ionicons
+                name={showDetails ? 'chevron-up' : 'chevron-down'}
+                size={14}
+                color={palette.muted}
+              />
             </Row>
-          ))}
-          {invite.proposedSlots.length > 3 && (
-            <ThemedText style={[styles.moreSlots, { color: palette.muted }]}>
-              +{invite.proposedSlots.length - 3} more
+          </Clickable>
+        )}
+      </Row>
+
+      {showDetails && (
+        <View style={styles.detailsPanel}>
+          {invite.notes && (
+            <ThemedText style={[styles.notes, { color: palette.muted }]} numberOfLines={3}>
+              &quot;{invite.notes}&quot;
             </ThemedText>
           )}
-        </Row>
-      </View>
+
+          <View style={styles.slotsSection}>
+            <ThemedText style={[styles.slotsLabel, { color: palette.muted }]}>
+              Proposed time{invite.proposedSlots.length > 1 ? 's' : ''}:
+            </ThemedText>
+            <Row style={styles.slotsList}>
+              {invite.proposedSlots.slice(0, 3).map((slot, index) => (
+                <Row
+                  key={index}
+                  style={[
+                    styles.slotChip,
+                    { backgroundColor: palette.surface, borderColor: palette.border },
+                  ]}
+                >
+                  <Ionicons name="calendar-outline" size={14} color={palette.icon} />
+                  <ThemedText style={styles.slotText}>
+                    {formatInUserTimezone(`${slot.date}T${slot.startTime || '00:00'}`, {
+                      weekday: 'short',
+                      day: 'numeric',
+                      month: 'short',
+                    })}{' '}
+                    {slot.startTime}
+                  </ThemedText>
+                </Row>
+              ))}
+              {invite.proposedSlots.length > 3 && (
+                <ThemedText style={[styles.moreSlots, { color: palette.muted }]}>
+                  +{invite.proposedSlots.length - 3} more
+                </ThemedText>
+              )}
+            </Row>
+          </View>
+        </View>
+      )}
 
       {/* Price & Expiry */}
       <Row style={styles.metaRow}>
@@ -262,6 +313,35 @@ const styles = StyleSheet.create({
   },
   focusText: { ...Typography.caption },
   notes: { ...Typography.bodySmall, fontStyle: 'italic' },
+  compactInfoRow: {
+    alignItems: 'center',
+    gap: Spacing.xs,
+  },
+  compactSlotPill: {
+    flex: 1,
+    minHeight: 34,
+    borderWidth: 1,
+    borderRadius: Radii.md,
+    paddingHorizontal: Spacing.sm,
+    paddingVertical: Spacing.xxs,
+    alignItems: 'center',
+    gap: Spacing.xxs,
+  },
+  detailsToggle: {
+    minHeight: 34,
+    borderWidth: 1,
+    borderRadius: Radii.md,
+    paddingHorizontal: Spacing.sm,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  detailsToggleText: {
+    ...Typography.caption,
+    fontWeight: '600',
+  },
+  detailsPanel: {
+    gap: Spacing.xs,
+  },
   slotsSection: { gap: Spacing.xs },
   slotsLabel: { ...Typography.caption },
   slotsList: { flexWrap: 'wrap', gap: Spacing.xs, alignItems: 'center' },

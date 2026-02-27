@@ -155,6 +155,7 @@ export default function FeedScreen() {
     return (
       <PageContainer
         header={<ScreenHeader title="Feed" subtitle="Latest updates" />}
+        scrollable={false}
         gap={0}
         horizontalSpacing={0}
       >
@@ -168,6 +169,7 @@ export default function FeedScreen() {
     return (
       <PageContainer
         header={<ScreenHeader title="Feed" subtitle="Latest updates" />}
+        scrollable={false}
         gap={0}
         horizontalSpacing={0}
       >
@@ -181,6 +183,7 @@ export default function FeedScreen() {
     return (
       <PageContainer
         header={<ScreenHeader title="Feed" subtitle="Latest updates" />}
+        scrollable={false}
         gap={0}
         horizontalSpacing={0}
       >
@@ -197,6 +200,7 @@ export default function FeedScreen() {
   return (
     <PageContainer
       header={<ScreenHeader title="Feed" subtitle="Latest updates" />}
+      scrollable={false}
       gap={0}
       horizontalSpacing={0}
     >

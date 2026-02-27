@@ -19,8 +19,8 @@ import { ThemedText } from '@/components/themed-text';
 import { LoadingState, ErrorState, EmptyState } from '@/components/ui/screen-states';
 import { Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
-import {
 import { AccessibleListCell } from '@/components/ui/list-accessibility';
+import {
   useCoachInvites,
   formatExpiry,
   ROLE_LABELS,

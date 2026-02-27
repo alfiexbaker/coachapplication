@@ -13,8 +13,8 @@ import { LoadingState, ErrorState, EmptyState } from '@/components/ui/screen-sta
 import { Spacing } from '@/constants/theme';
 import type { RosterEntry } from '@/constants/types';
 import { useAthletesScreen } from '@/hooks/use-athletes-screen';
-import {
 import { AccessibleListCell } from '@/components/ui/list-accessibility';
+import {
   AthletesListHeader,
   AthletesSearchEmptyState,
   renderAthleteCard,

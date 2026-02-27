@@ -48,6 +48,7 @@ export interface AthleteWithSessions {
 export interface AthleteRosterEntry extends AthleteWithSessions {
   needsNotes: boolean;
   daysSinceLast: number;
+  prioritySessionId: string | null;
 }
 
 // ---------------------------------------------------------------------------
@@ -195,12 +196,22 @@ export function useCoachDevelopment() {
     const now = Date.now();
     return athletesWithSessions.map((entry) => {
       const athleteSessions = allSessions.filter((s) => s.athleteId === entry.athlete.id);
+      const sortedAthleteSessions = [...athleteSessions].sort(
+        (a, b) => new Date(b.completedAt).getTime() - new Date(a.completedAt).getTime(),
+      );
       const needsNotes = athleteSessions.some((s) => !s.notes || s.notes.trim() === '');
+      const sessionNeedingNotes =
+        sortedAthleteSessions.find((s) => !s.notes || s.notes.trim() === '') ?? null;
       const daysSinceLast = Math.max(
         0,
         Math.round((now - new Date(entry.lastSession).getTime()) / (1000 * 60 * 60 * 24)),
       );
-      return { ...entry, needsNotes, daysSinceLast };
+      return {
+        ...entry,
+        needsNotes,
+        daysSinceLast,
+        prioritySessionId: (sessionNeedingNotes ?? sortedAthleteSessions[0])?.id ?? null,
+      };
     });
   }, [allSessions, athletesWithSessions]);
 

@@ -74,7 +74,7 @@ export function useScreen<T>(options: UseScreenOptions<T>): UseScreenResult<T> {
   const [refreshing, setRefreshing] = useState(false);
 
   // Theme
-  const scheme: ThemeName = useColorScheme() ?? 'light';
+  const scheme: ThemeName = useColorScheme() ?? 'dark';
   const colors = Colors[scheme];
 
   // Track mounted state to avoid state updates after unmount

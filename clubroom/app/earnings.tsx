@@ -6,14 +6,14 @@
  */
 
 import { memo, useCallback, useState, useMemo } from 'react';
-import { FlatList, StyleSheet, View, RefreshControl, Share } from 'react-native';
+import { FlatList, StyleSheet, View, RefreshControl, Share, ScrollView } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 
 import { Row } from '@/components/primitives/row';
 import { Clickable } from '@/components/primitives/clickable';
 import { Button } from '@/components/primitives/button';
-import { ScreenHeader } from '@/components/primitives/screen-header';
+import { PageHeader } from '@/components/primitives/page-header';
 import {
   SessionPaymentItem,
   type PaymentTab,
@@ -56,6 +56,7 @@ export default function EarningsScreen() {
   const { currentUser } = useAuth();
   const [activeTab, setActiveTab] = useState<PaymentTab>('owed');
   const [period, setPeriod] = useState<Period>('all');
+  const [showPaymentInstructions, setShowPaymentInstructions] = useState(false);
 
   const {
     unpaidSessions,
@@ -207,6 +208,61 @@ export default function EarningsScreen() {
     [],
   );
 
+  const renderPaymentInstructionsSection = useCallback(() => {
+    if (!currentUser?.id) return null;
+
+    return (
+      <View style={styles.instructionsSection}>
+        <Clickable
+          onPress={() => setShowPaymentInstructions((prev) => !prev)}
+          accessibilityRole="button"
+          accessibilityLabel={
+            showPaymentInstructions ? 'Hide payment instructions' : 'Show payment instructions'
+          }
+        >
+          <View
+            style={[
+              styles.instructionsToggle,
+              {
+                borderColor: showPaymentInstructions ? colors.tint : colors.border,
+                backgroundColor: showPaymentInstructions
+                  ? withAlpha(colors.tint, 0.06)
+                  : colors.surface,
+              },
+            ]}
+          >
+            <Row align="center" justify="between" gap="sm">
+              <Row align="center" gap="xs" style={styles.instructionsToggleTextWrap}>
+                <Ionicons name="business-outline" size={16} color={colors.tint} />
+                <View style={styles.instructionsToggleTextWrap}>
+                  <ThemedText style={styles.instructionsToggleTitle}>
+                    Payment Instructions
+                  </ThemedText>
+                  <ThemedText style={[Typography.caption, { color: colors.muted }]}>
+                    {showPaymentInstructions ? 'Tap to hide' : 'Set up / copy / share details'}
+                  </ThemedText>
+                </View>
+              </Row>
+              <Ionicons
+                name={showPaymentInstructions ? 'chevron-up' : 'chevron-down'}
+                size={18}
+                color={colors.muted}
+              />
+            </Row>
+          </View>
+        </Clickable>
+
+        {showPaymentInstructions ? (
+          <CoachPaymentInstructionsCard
+            coachId={currentUser.id}
+            coachName={currentUser.name}
+            editable
+          />
+        ) : null}
+      </View>
+    );
+  }, [colors, currentUser?.id, currentUser?.name, showPaymentInstructions]);
+
   if (status === 'loading') {
     return (
       <SafeAreaView style={[styles.safeArea, { backgroundColor: colors.background }]} edges={['top', 'bottom']}>
@@ -226,30 +282,34 @@ export default function EarningsScreen() {
   if (status === 'empty') {
     return (
       <SafeAreaView style={[styles.safeArea, { backgroundColor: colors.background }]} edges={['top', 'bottom']}>
-        <View style={styles.content}>
+        <ScrollView
+          showsVerticalScrollIndicator={false}
+          contentContainerStyle={styles.content}
+          refreshControl={
+            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.tint} />
+          }
+        >
           <View style={styles.listHeader}>
-            <ScreenHeader title="Earnings" subtitle="Track your session payments" />
-            {currentUser?.id ? (
-              <CoachPaymentInstructionsCard
-                coachId={currentUser.id}
-                coachName={currentUser.name}
-                editable
-              />
-            ) : null}
+            <PageHeader
+              title="Earnings"
+              subtitle="Track your session payments"
+              showBack
+            />
+            {renderPaymentInstructionsSection()}
           </View>
           <EmptyState
             icon="cash-outline"
             title="No earnings yet"
             message="Complete your first paid session to start tracking earnings."
           />
-        </View>
+        </ScrollView>
       </SafeAreaView>
     );
   }
 
   const listHeader = (
     <View style={styles.listHeader}>
-      <ScreenHeader title="Earnings" subtitle={subtitle} />
+      <PageHeader title="Earnings" subtitle={subtitle} showBack />
 
       <PaymentSummaryCard
         totalOwed={totalOwed}
@@ -260,13 +320,7 @@ export default function EarningsScreen() {
         writtenOffCount={writtenOffCount}
       />
 
-      {currentUser?.id ? (
-        <CoachPaymentInstructionsCard
-          coachId={currentUser.id}
-          coachName={currentUser.name}
-          editable
-        />
-      ) : null}
+      {renderPaymentInstructionsSection()}
 
       <Row gap="xs" style={styles.tabRow}>
         {TABS.map((tab) => {
@@ -421,5 +475,20 @@ const styles = StyleSheet.create({
   },
   separator: {
     height: StyleSheet.hairlineWidth,
+  },
+  instructionsSection: {
+    gap: Spacing.xs,
+  },
+  instructionsToggle: {
+    borderWidth: 1,
+    borderRadius: Radii.lg,
+    paddingHorizontal: Spacing.sm,
+    paddingVertical: Spacing.sm,
+  },
+  instructionsToggleTextWrap: {
+    flex: 1,
+  },
+  instructionsToggleTitle: {
+    ...Typography.bodySmallSemiBold,
   },
 });

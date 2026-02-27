@@ -11,9 +11,9 @@ import { View, FlatList, RefreshControl, type ListRenderItem } from 'react-nativ
 import { GoalCard } from './GoalCard';
 import type { Goal, GoalStatus, GoalCategory } from '@/constants/types';
 import { useTheme } from '@/hooks/useTheme';
+import { AccessibleListCell } from '@/components/ui/list-accessibility';
 
 import {
-import { AccessibleListCell } from '@/components/ui/list-accessibility';
   GoalListSkeletonInner,
   GoalSectionHeaderInner,
   GoalListEmptyState,

@@ -25,9 +25,9 @@ import {
   getSessionInviteAthleteNames,
   getSessionInviteCoachName,
 } from '@/utils/session-invite-display';
+import { AccessibleListCell } from '@/components/ui/list-accessibility';
 
 import {
-import { AccessibleListCell } from '@/components/ui/list-accessibility';
   WeekSeparator,
   WeekToggleRow,
   InviteHeader,

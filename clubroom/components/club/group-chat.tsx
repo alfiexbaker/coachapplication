@@ -50,9 +50,7 @@ export function GroupChat({
   const { colors: palette } = useTheme();
 
   const [inputText, setInputText] = useState('');
-  const flatListRef = useRef<FlatList<GroupChatMessage>
-        CellRendererComponent={AccessibleListCell}
-        accessibilityRole="list">(null);
+  const flatListRef = useRef<FlatList<GroupChatMessage>>(null);
 
   const handleSend = useCallback(() => {
     const trimmed = inputText.trim();

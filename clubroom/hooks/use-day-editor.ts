@@ -6,7 +6,7 @@ import { PanResponder, Dimensions, Platform } from 'react-native';
 import { useSharedValue, withTiming, runOnJS } from 'react-native-reanimated';
 import * as Haptics from 'expo-haptics';
 
-import type { AvailabilityTemplate, AvailabilityOverride, CoachVenue } from '@/constants/types';
+import type { AvailabilityTemplate, AvailabilityOverride } from '@/constants/types';
 import type { DayEditorScope } from '@/components/coach/day-editor-sheet';
 
 const { height: SCREEN_HEIGHT } = Dimensions.get('window');
@@ -246,14 +246,18 @@ export function useDayEditor({
     onDeleteTemplate(template.id);
   }, [template, onDeleteTemplate]);
 
-  const handleAddVenue = useCallback(() => {
-    if (!newVenueLabel.trim() || !onAddVenue) return;
-    if (Platform.OS !== 'web') void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    onAddVenue(newVenueLabel.trim());
-    setLocation(newVenueLabel.trim());
-    setNewVenueLabel('');
-    setShowAddVenueInput(false);
-  }, [newVenueLabel, onAddVenue]);
+  const handleAddVenue = useCallback(
+    (labelOverride?: string) => {
+      const nextLabel = (labelOverride ?? newVenueLabel).trim();
+      if (!nextLabel || !onAddVenue) return;
+      if (Platform.OS !== 'web') void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+      onAddVenue(nextLabel);
+      setLocation(nextLabel);
+      setNewVenueLabel('');
+      setShowAddVenueInput(false);
+    },
+    [newVenueLabel, onAddVenue],
+  );
 
   const handleScopeChange = useCallback((newScope: DayEditorScope) => {
     if (Platform.OS !== 'web') void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);

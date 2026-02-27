@@ -3,6 +3,7 @@ import {
   ActivityIndicator,
   Keyboard,
   Modal,
+  ScrollView,
   Share,
   StyleSheet,
   TextInput,
@@ -90,7 +91,9 @@ function CoachPaymentInstructionsCardInner({
 
     const text = [
       instructions.payeeName ? `Payee: ${instructions.payeeName}` : null,
-      instructions.bankTransferDetails ? `Bank details:\n${instructions.bankTransferDetails}` : null,
+      instructions.bankTransferDetails
+        ? `Bank details:\n${instructions.bankTransferDetails}`
+        : null,
       instructions.paymentNotes || null,
     ]
       .filter(Boolean)
@@ -138,12 +141,9 @@ function CoachPaymentInstructionsCardInner({
     }
   }, [coachName, instructions, invoice]);
 
-  const updateDraftField = useCallback(
-    (field: keyof CoachPaymentInstructions, value: string) => {
-      setDraft((prev) => (prev ? { ...prev, [field]: value } : prev));
-    },
-    [],
-  );
+  const updateDraftField = useCallback((field: keyof CoachPaymentInstructions, value: string) => {
+    setDraft((prev) => (prev ? { ...prev, [field]: value } : prev));
+  }, []);
 
   const draftIsValid = useMemo(() => {
     if (!draft) return false;
@@ -185,7 +185,9 @@ function CoachPaymentInstructionsCardInner({
               <Clickable onPress={openEdit} accessibilityLabel="Edit payment instructions">
                 <Row align="center" gap="xxs">
                   <Ionicons name="create-outline" size={14} color={colors.tint} />
-                  <ThemedText style={[Typography.caption, { color: colors.tint, fontWeight: '700' }]}>
+                  <ThemedText
+                    style={[Typography.caption, { color: colors.tint, fontWeight: '700' }]}
+                  >
                     {hasInstructions ? 'Edit' : 'Set up'}
                   </ThemedText>
                 </Row>
@@ -194,7 +196,8 @@ function CoachPaymentInstructionsCardInner({
           </Row>
 
           <ThemedText style={[Typography.caption, { color: colors.muted }]}>
-            Payments are made directly to the coach (outside the app). Reconciler reminders and invoice messages use these details.
+            Payments are made directly to the coach (outside the app). Reconciler reminders and
+            invoice messages use these details.
           </ThemedText>
 
           {loading ? (
@@ -216,7 +219,9 @@ function CoachPaymentInstructionsCardInner({
                     },
                   ]}
                 >
-                  <ThemedText style={[Typography.caption, { color: colors.muted }]}>Payee</ThemedText>
+                  <ThemedText style={[Typography.caption, { color: colors.muted }]}>
+                    Payee
+                  </ThemedText>
                   <ThemedText style={[Typography.bodySmall, { color: colors.foreground }]}>
                     {instructions.payeeName}
                   </ThemedText>
@@ -246,7 +251,9 @@ function CoachPaymentInstructionsCardInner({
                     { backgroundColor: colors.surface, borderColor: colors.border },
                   ]}
                 >
-                  <ThemedText style={[Typography.caption, { color: colors.muted }]}>Notes</ThemedText>
+                  <ThemedText style={[Typography.caption, { color: colors.muted }]}>
+                    Notes
+                  </ThemedText>
                   <ThemedText style={[Typography.bodySmall, { color: colors.foreground }]}>
                     {instructions.paymentNotes}
                   </ThemedText>
@@ -266,7 +273,8 @@ function CoachPaymentInstructionsCardInner({
               <Row align="start" gap="xs">
                 <Ionicons name="alert-circle-outline" size={16} color={colors.warning} />
                 <ThemedText style={[Typography.caption, { color: colors.foreground, flex: 1 }]}>
-                  No payment instructions set yet. Add your bank details or transfer instructions so invoice/reminder messages are ready to send.
+                  No payment instructions set yet. Add your bank details or transfer instructions so
+                  invoice/reminder messages are ready to send.
                 </ThemedText>
               </Row>
             </View>
@@ -332,115 +340,135 @@ function CoachPaymentInstructionsCardInner({
             </Clickable>
           </Row>
 
-          <Column gap="sm" style={styles.modalContent}>
-            <Column gap="xxs">
-              <ThemedText style={[Typography.caption, { color: colors.muted }]}>
-                Payee name (optional)
-              </ThemedText>
-              <TextInput
-                value={draft?.payeeName ?? ''}
-                onChangeText={(value) => updateDraftField('payeeName', value)}
-                placeholder="e.g. Alex Smith Coaching"
-                placeholderTextColor={colors.muted}
+          <ScrollView
+            style={styles.modalScroll}
+            contentContainerStyle={styles.modalContent}
+            keyboardShouldPersistTaps="handled"
+            showsVerticalScrollIndicator={false}
+          >
+            <Column gap="sm">
+              <Column gap="xxs">
+                <ThemedText style={[Typography.caption, { color: colors.muted }]}>
+                  Payee name (optional)
+                </ThemedText>
+                <TextInput
+                  value={draft?.payeeName ?? ''}
+                  onChangeText={(value) => updateDraftField('payeeName', value)}
+                  placeholder="e.g. Alex Smith Coaching"
+                  placeholderTextColor={colors.muted}
+                  style={[
+                    styles.input,
+                    {
+                      backgroundColor: colors.surface,
+                      borderColor: colors.border,
+                      color: colors.foreground,
+                    },
+                  ]}
+                  autoCapitalize="words"
+                  returnKeyType="next"
+                  maxLength={maxLengths.payeeName}
+                />
+                <ThemedText style={[Typography.micro, { color: colors.muted }]}>
+                  {(draft?.payeeName ?? '').length}/{maxLengths.payeeName}
+                </ThemedText>
+              </Column>
+
+              <Column gap="xxs">
+                <ThemedText style={[Typography.caption, { color: colors.muted }]}>
+                  Bank details / transfer instructions
+                </ThemedText>
+                <TextInput
+                  value={draft?.bankTransferDetails ?? ''}
+                  onChangeText={(value) => updateDraftField('bankTransferDetails', value)}
+                  placeholder={'Bank name\nSort code: 00-00-00\nAccount number: 12345678'}
+                  placeholderTextColor={colors.muted}
+                  style={[
+                    styles.textArea,
+                    {
+                      backgroundColor: colors.surface,
+                      borderColor: colors.border,
+                      color: colors.foreground,
+                    },
+                  ]}
+                  multiline
+                  textAlignVertical="top"
+                  autoCapitalize="sentences"
+                  maxLength={maxLengths.bankTransferDetails}
+                />
+                <ThemedText style={[Typography.micro, { color: colors.muted }]}>
+                  {(draft?.bankTransferDetails ?? '').length}/{maxLengths.bankTransferDetails}
+                </ThemedText>
+              </Column>
+
+              <Column gap="xxs">
+                <ThemedText style={[Typography.caption, { color: colors.muted }]}>
+                  Payment notes (optional)
+                </ThemedText>
+                <TextInput
+                  value={draft?.paymentNotes ?? ''}
+                  onChangeText={(value) => updateDraftField('paymentNotes', value)}
+                  placeholder="Reference format, due date wording, or what families should do after sending payment"
+                  placeholderTextColor={colors.muted}
+                  style={[
+                    styles.textAreaSmall,
+                    {
+                      backgroundColor: colors.surface,
+                      borderColor: colors.border,
+                      color: colors.foreground,
+                    },
+                  ]}
+                  multiline
+                  textAlignVertical="top"
+                  autoCapitalize="sentences"
+                  maxLength={maxLengths.paymentNotes}
+                />
+                <ThemedText style={[Typography.micro, { color: colors.muted }]}>
+                  {(draft?.paymentNotes ?? '').length}/{maxLengths.paymentNotes}
+                </ThemedText>
+              </Column>
+
+              <View
                 style={[
-                  styles.input,
-                  { backgroundColor: colors.surface, borderColor: colors.border, color: colors.foreground },
+                  styles.helperBox,
+                  {
+                    backgroundColor: withAlpha(colors.tint, 0.04),
+                    borderColor: withAlpha(colors.tint, 0.12),
+                  },
                 ]}
-                autoCapitalize="words"
-                returnKeyType="next"
-                maxLength={maxLengths.payeeName}
-              />
-              <ThemedText style={[Typography.micro, { color: colors.muted }]}>
-                {(draft?.payeeName ?? '').length}/{maxLengths.payeeName}
-              </ThemedText>
-            </Column>
-
-            <Column gap="xxs">
-              <ThemedText style={[Typography.caption, { color: colors.muted }]}>
-                Bank details / transfer instructions
-              </ThemedText>
-              <TextInput
-                value={draft?.bankTransferDetails ?? ''}
-                onChangeText={(value) => updateDraftField('bankTransferDetails', value)}
-                placeholder={'Bank name\nSort code: 00-00-00\nAccount number: 12345678'}
-                placeholderTextColor={colors.muted}
-                style={[
-                  styles.textArea,
-                  { backgroundColor: colors.surface, borderColor: colors.border, color: colors.foreground },
-                ]}
-                multiline
-                textAlignVertical="top"
-                autoCapitalize="sentences"
-                maxLength={maxLengths.bankTransferDetails}
-              />
-              <ThemedText style={[Typography.micro, { color: colors.muted }]}>
-                {(draft?.bankTransferDetails ?? '').length}/{maxLengths.bankTransferDetails}
-              </ThemedText>
-            </Column>
-
-            <Column gap="xxs">
-              <ThemedText style={[Typography.caption, { color: colors.muted }]}>
-                Payment notes (optional)
-              </ThemedText>
-              <TextInput
-                value={draft?.paymentNotes ?? ''}
-                onChangeText={(value) => updateDraftField('paymentNotes', value)}
-                placeholder="Reference format, due date wording, or what families should do after sending payment"
-                placeholderTextColor={colors.muted}
-                style={[
-                  styles.textAreaSmall,
-                  { backgroundColor: colors.surface, borderColor: colors.border, color: colors.foreground },
-                ]}
-                multiline
-                textAlignVertical="top"
-                autoCapitalize="sentences"
-                maxLength={maxLengths.paymentNotes}
-              />
-              <ThemedText style={[Typography.micro, { color: colors.muted }]}>
-                {(draft?.paymentNotes ?? '').length}/{maxLengths.paymentNotes}
-              </ThemedText>
-            </Column>
-
-            <View
-              style={[
-                styles.helperBox,
-                {
-                  backgroundColor: withAlpha(colors.tint, 0.04),
-                  borderColor: withAlpha(colors.tint, 0.12),
-                },
-              ]}
-            >
-              <ThemedText style={[Typography.caption, { color: colors.foreground }]}>
-                Families pay you directly. The app only tracks invoices and reconciler status. Reminder and invoice-message copy will include these details automatically.
-              </ThemedText>
-            </View>
-
-            {!draftIsValid ? (
-              <ThemedText style={[Typography.caption, { color: colors.error }]}>
-                Add bank details or payment notes before saving.
-              </ThemedText>
-            ) : null}
-
-            <Row gap="xs" style={styles.wrapRow}>
-              <Button
-                onPress={closeEdit}
-                variant="outline"
-                style={styles.modalActionButton}
-                accessibilityLabel="Cancel editing payment instructions"
               >
-                Cancel
-              </Button>
-              <Button
-                onPress={handleSave}
-                variant="primary"
-                style={styles.modalActionButton}
-                accessibilityLabel="Save payment instructions"
-                disabled={!draftIsValid || saving}
-              >
-                {saving ? 'Saving…' : 'Save'}
-              </Button>
-            </Row>
-          </Column>
+                <ThemedText style={[Typography.caption, { color: colors.foreground }]}>
+                  Families pay you directly. The app only tracks invoices and reconciler status.
+                  Reminder and invoice-message copy will include these details automatically.
+                </ThemedText>
+              </View>
+
+              {!draftIsValid ? (
+                <ThemedText style={[Typography.caption, { color: colors.error }]}>
+                  Add bank details or payment notes before saving.
+                </ThemedText>
+              ) : null}
+
+              <Row gap="xs" style={styles.wrapRow}>
+                <Button
+                  onPress={closeEdit}
+                  variant="outline"
+                  style={styles.modalActionButton}
+                  accessibilityLabel="Cancel editing payment instructions"
+                >
+                  Cancel
+                </Button>
+                <Button
+                  onPress={handleSave}
+                  variant="primary"
+                  style={styles.modalActionButton}
+                  accessibilityLabel="Save payment instructions"
+                  disabled={!draftIsValid || saving}
+                >
+                  {saving ? 'Saving…' : 'Save'}
+                </Button>
+              </Row>
+            </Column>
+          </ScrollView>
         </View>
       </Modal>
     </>
@@ -479,6 +507,9 @@ const styles = StyleSheet.create({
     paddingBottom: Spacing.sm,
     gap: Spacing.sm,
   },
+  modalScroll: {
+    flex: 1,
+  },
   closeButton: {
     width: 36,
     height: 36,
@@ -488,7 +519,7 @@ const styles = StyleSheet.create({
   },
   modalContent: {
     paddingHorizontal: Spacing.md,
-    paddingBottom: Spacing.lg,
+    paddingBottom: Spacing['2xl'],
   },
   input: {
     borderWidth: 1,

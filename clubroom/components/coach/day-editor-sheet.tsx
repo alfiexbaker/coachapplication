@@ -6,6 +6,7 @@
 import { View, StyleSheet, ScrollView, KeyboardAvoidingView, Platform } from 'react-native';
 import Animated, { useAnimatedStyle } from 'react-native-reanimated';
 import { Ionicons } from '@expo/vector-icons';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Clickable } from '@/components/primitives/clickable';
 import { ThemedText } from '@/components/themed-text';
@@ -70,6 +71,7 @@ export function DayEditorSheet({
   onAddVenue,
 }: DayEditorSheetProps) {
   const { colors: palette } = useTheme();
+  const insets = useSafeAreaInsets();
   const ed = useDayEditor({
     visible,
     onClose,
@@ -127,8 +129,11 @@ export function DayEditorSheet({
           </View>
 
           <ScrollView
+            style={styles.scroll}
             showsVerticalScrollIndicator={false}
-            contentContainerStyle={styles.content}
+            keyboardShouldPersistTaps="handled"
+            keyboardDismissMode={Platform.OS === 'ios' ? 'interactive' : 'on-drag'}
+            contentContainerStyle={[styles.content, { paddingBottom: Spacing.lg }]}
             bounces={false}
           >
             {/* Header */}
@@ -222,8 +227,17 @@ export function DayEditorSheet({
               onNewVenueLabelChange={ed.setNewVenueLabel}
               onAddVenue={ed.handleAddVenue}
             />
+          </ScrollView>
 
-            {/* Save */}
+          <View
+            style={[
+              styles.footer,
+              {
+                borderTopColor: palette.border,
+                paddingBottom: Math.max(insets.bottom + Spacing.xs, Spacing.md),
+              },
+            ]}
+          >
             <Clickable
               onPress={ed.handleSave}
               disabled={!ed.isValid}
@@ -241,7 +255,6 @@ export function DayEditorSheet({
               </ThemedText>
             </Clickable>
 
-            {/* Delete */}
             {template && onDeleteTemplate && (
               <Clickable
                 onPress={ed.handleDelete}
@@ -254,7 +267,7 @@ export function DayEditorSheet({
                 </ThemedText>
               </Clickable>
             )}
-          </ScrollView>
+          </View>
         </KeyboardAvoidingView>
       </Animated.View>
     </View>
@@ -273,7 +286,14 @@ const styles = StyleSheet.create({
   },
   handleArea: { alignItems: 'center', paddingTop: Spacing.sm, paddingBottom: Spacing.xs },
   handle: { width: 36, height: 4, borderRadius: Radii.pill },
-  content: { paddingHorizontal: Spacing.lg, paddingBottom: Spacing.xl + 34, gap: Spacing.md },
+  scroll: { flex: 1 },
+  content: { paddingHorizontal: Spacing.lg, gap: Spacing.md },
+  footer: {
+    borderTopWidth: 1,
+    paddingHorizontal: Spacing.lg,
+    paddingTop: Spacing.sm,
+    gap: Spacing.xs,
+  },
   headerRow: { alignItems: 'center', justifyContent: 'space-between' },
   headerTitle: { ...Typography.title },
   closeBtn: {

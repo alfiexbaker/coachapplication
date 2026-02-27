@@ -182,7 +182,7 @@ export function useObjectives() {
     note,
     targetSessions,
     isParent,
-    isUsingDemoObjectives: data?.isDemoSeeded ?? false,
+    data?.isDemoSeeded,
     selectedChildId,
     currentUser,
     objectives,
