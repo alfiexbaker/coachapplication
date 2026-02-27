@@ -10,7 +10,7 @@ import { Column } from '@/components/primitives/column';
 import { Row } from '@/components/primitives/row';
 import { CredentialCard } from '@/components/verification/credential-card';
 import { CredentialForm } from '@/components/verification/credential-form';
-import { LoadingState, ErrorState, EmptyState } from '@/components/ui/screen-states';
+import { VerificationScreenState } from '@/components/verification/verification-screen-state';
 import { Radii, Spacing, Typography } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
 import { useCredentials } from '@/hooks/use-credentials';
@@ -40,140 +40,116 @@ export default function CredentialsScreen() {
     resetForm,
   } = useCredentials();
 
-  if (screenStatus === 'loading') {
-    return (
-      <SafeAreaView
-        style={[styles.safeArea, { backgroundColor: colors.background }]}
-        edges={['top', 'bottom']}
-      >
-        <LoadingState variant="detail" />
-      </SafeAreaView>
-    );
-  }
-
-  if (screenStatus === 'error') {
-    return (
-      <SafeAreaView
-        style={[styles.safeArea, { backgroundColor: colors.background }]}
-        edges={['top', 'bottom']}
-      >
-        <ErrorState message={error?.message || 'Failed to load credentials.'} onRetry={retry} />
-      </SafeAreaView>
-    );
-  }
-
-  if (screenStatus === 'empty' || !status) {
-    return (
-      <SafeAreaView
-        style={[styles.safeArea, { backgroundColor: colors.background }]}
-        edges={['top', 'bottom']}
-      >
-        <EmptyState
-          icon="ribbon-outline"
-          title="Credentials unavailable"
-          message="Credential data is currently unavailable."
-          actionLabel="Retry"
-          onPressAction={retry}
-        />
-      </SafeAreaView>
-    );
-  }
-
   return (
-    <SafeAreaView style={[styles.safeArea, { backgroundColor: colors.background }]} edges={['top', 'bottom']}>
-      <ScrollView
-        contentContainerStyle={styles.content}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
+    <VerificationScreenState
+      colors={colors}
+      screenStatus={screenStatus}
+      error={error}
+      retry={retry}
+      errorMessage="Failed to load credentials."
+      emptyIcon="ribbon-outline"
+      emptyTitle="Credentials unavailable"
+      emptyMessage="Credential data is currently unavailable."
+      isEmpty={!status}
+    >
+      <SafeAreaView
+        style={[styles.safeArea, { backgroundColor: colors.background }]}
+        edges={['top', 'bottom']}
       >
-        <Row gap="sm" align="center">
-          <Clickable onPress={() => router.back()} style={styles.backButton}>
-            <Ionicons name="arrow-back" size={24} color={colors.text} />
-          </Clickable>
-          <Column flex>
-            <ThemedText type="title">Credentials</ThemedText>
-          </Column>
-          {!showForm && (
-            <Clickable
-              accessibilityLabel="Add credential"
-              onPress={() => setShowForm(true)}
-              style={[styles.addButton, { backgroundColor: colors.tint }]}
-            >
-              <Ionicons name="add" size={20} color={colors.onPrimary} />
+        <ScrollView
+          contentContainerStyle={styles.content}
+          refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
+        >
+          <Row gap="sm" align="center">
+            <Clickable onPress={() => router.back()} style={styles.backButton}>
+              <Ionicons name="arrow-back" size={24} color={colors.text} />
             </Clickable>
-          )}
-        </Row>
-
-        <ThemedText style={{ color: colors.muted }}>
-          Upload your coaching qualifications and certifications to verify your expertise.
-        </ThemedText>
-
-        {credentials.length > 0 && (
-          <Row gap="md">
-            <View style={[styles.statBox, { backgroundColor: colors.card }]}>
-              <ThemedText type="title">{credentials.length}</ThemedText>
-              <ThemedText style={{ color: colors.muted, ...Typography.caption }}>
-                Uploaded
-              </ThemedText>
-            </View>
-            <View style={[styles.statBox, { backgroundColor: colors.card }]}>
-              <ThemedText type="title">{verifiedCount}</ThemedText>
-              <ThemedText style={{ color: colors.muted, ...Typography.caption }}>
-                Verified
-              </ThemedText>
-            </View>
+            <Column flex>
+              <ThemedText type="title">Credentials</ThemedText>
+            </Column>
+            {!showForm && (
+              <Clickable
+                accessibilityLabel="Add credential"
+                onPress={() => setShowForm(true)}
+                style={[styles.addButton, { backgroundColor: colors.tint }]}
+              >
+                <Ionicons name="add" size={20} color={colors.onPrimary} />
+              </Clickable>
+            )}
           </Row>
-        )}
 
-        {showForm ? (
-          <CredentialForm
-            colors={colors}
-            selectedType={selectedType}
-            customName={customName}
-            uploaded={uploaded}
-            submitting={submitting}
-            onSelectType={setSelectedType}
-            onCustomNameChange={setCustomName}
-            onUpload={handleUpload}
-            onRemoveUpload={() => setUploaded(false)}
-            onSubmit={handleSubmit}
-            onClose={resetForm}
-          />
-        ) : credentials.length > 0 ? (
-          <View style={styles.credentialsList}>
-            {credentials.map((credential, index) => (
-              <CredentialCard key={index} credential={credential} index={index} colors={colors} />
-            ))}
-          </View>
-        ) : (
-          <SurfaceCard style={styles.emptyCard}>
-            <Ionicons name="ribbon-outline" size={48} color={colors.muted} />
-            <ThemedText type="defaultSemiBold">No credentials yet</ThemedText>
-            <ThemedText style={{ color: colors.muted, textAlign: 'center' }}>
-              Add your coaching qualifications to build trust with parents
-            </ThemedText>
-            <Clickable
-              onPress={() => setShowForm(true)}
-              style={[styles.emptyButton, { borderColor: colors.tint }]}
-            >
-              <Row align="center" gap="xs">
-                <Ionicons name="add" size={18} color={colors.tint} />
-                <ThemedText style={{ color: colors.tint, fontWeight: '600' }}>
-                  Add Credential
-                </ThemedText>
-              </Row>
-            </Clickable>
-          </SurfaceCard>
-        )}
-
-        <Row gap="sm" style={[styles.infoBox, { backgroundColor: colors.surfaceSecondary }]}>
-          <Ionicons name="information-circle" size={20} color={colors.tint} />
-          <ThemedText style={[styles.infoText, { color: colors.muted }]}>
-            Credentials are reviewed within 1-2 business days. Verified credentials appear on your
-            profile.
+          <ThemedText style={{ color: colors.muted }}>
+            Upload your coaching qualifications and certifications to verify your expertise.
           </ThemedText>
-        </Row>
-      </ScrollView>
-    </SafeAreaView>
+
+          {credentials.length > 0 && (
+            <Row gap="md">
+              <View style={[styles.statBox, { backgroundColor: colors.card }]}>
+                <ThemedText type="title">{credentials.length}</ThemedText>
+                <ThemedText style={{ color: colors.muted, ...Typography.caption }}>
+                  Uploaded
+                </ThemedText>
+              </View>
+              <View style={[styles.statBox, { backgroundColor: colors.card }]}>
+                <ThemedText type="title">{verifiedCount}</ThemedText>
+                <ThemedText style={{ color: colors.muted, ...Typography.caption }}>
+                  Verified
+                </ThemedText>
+              </View>
+            </Row>
+          )}
+
+          {showForm ? (
+            <CredentialForm
+              colors={colors}
+              selectedType={selectedType}
+              customName={customName}
+              uploaded={uploaded}
+              submitting={submitting}
+              onSelectType={setSelectedType}
+              onCustomNameChange={setCustomName}
+              onUpload={handleUpload}
+              onRemoveUpload={() => setUploaded(false)}
+              onSubmit={handleSubmit}
+              onClose={resetForm}
+            />
+          ) : credentials.length > 0 ? (
+            <View style={styles.credentialsList}>
+              {credentials.map((credential, index) => (
+                <CredentialCard key={index} credential={credential} index={index} colors={colors} />
+              ))}
+            </View>
+          ) : (
+            <SurfaceCard style={styles.emptyCard}>
+              <Ionicons name="ribbon-outline" size={48} color={colors.muted} />
+              <ThemedText type="defaultSemiBold">No credentials yet</ThemedText>
+              <ThemedText style={{ color: colors.muted, textAlign: 'center' }}>
+                Add your coaching qualifications to build trust with parents
+              </ThemedText>
+              <Clickable
+                onPress={() => setShowForm(true)}
+                style={[styles.emptyButton, { borderColor: colors.tint }]}
+              >
+                <Row align="center" gap="xs">
+                  <Ionicons name="add" size={18} color={colors.tint} />
+                  <ThemedText style={{ color: colors.tint, fontWeight: '600' }}>
+                    Add Credential
+                  </ThemedText>
+                </Row>
+              </Clickable>
+            </SurfaceCard>
+          )}
+
+          <Row gap="sm" style={[styles.infoBox, { backgroundColor: colors.surfaceSecondary }]}>
+            <Ionicons name="information-circle" size={20} color={colors.tint} />
+            <ThemedText style={[styles.infoText, { color: colors.muted }]}>
+              Credentials are reviewed within 1-2 business days. Verified credentials appear on your
+              profile.
+            </ThemedText>
+          </Row>
+        </ScrollView>
+      </SafeAreaView>
+    </VerificationScreenState>
   );
 }
 
