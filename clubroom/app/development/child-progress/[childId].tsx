@@ -12,6 +12,7 @@ import { View, StyleSheet, ScrollView, RefreshControl, ViewStyle } from 'react-n
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
+import type { ReactNode } from 'react';
 
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { Clickable } from '@/components/primitives/clickable';
@@ -56,87 +57,74 @@ export default function ChildProgressScreen() {
     activeChildId,
     handleSelectChild,
   } = useChildProgress();
+  const renderSwitcher = () =>
+    switcherChildren.length > 1 ? (
+      <View style={styles.switcherWrap}>
+        <ChildSwitcher
+          options={switcherChildren}
+          selectedId={selectedChildId}
+          onSelect={handleSelectChild}
+          activeChildId={activeChildId}
+        />
+      </View>
+    ) : null;
+  const renderShell = ({
+    header,
+    showSwitcher = false,
+    content,
+  }: {
+    header: ReactNode;
+    showSwitcher?: boolean;
+    content: ReactNode;
+  }) => (
+    <SafeAreaView
+      style={[styles.container, { backgroundColor: colors.background }]}
+      edges={['top', 'bottom']}
+    >
+      {header}
+      {showSwitcher ? renderSwitcher() : null}
+      {content}
+    </SafeAreaView>
+  );
+  const progressHeader = (
+    <PageHeader title="Progress" showBack centerTitle onBackPress={() => router.back()} />
+  );
 
   if (!childIdParam.valid) {
-    return (
-      <SafeAreaView
-        style={[styles.container, { backgroundColor: colors.background }]}
-        edges={['top', 'bottom']}
-      >
-        <PageHeader title="Progress" showBack centerTitle onBackPress={() => router.back()} />
-        <ErrorState message="Invalid child progress link." onRetry={() => router.back()} />
-      </SafeAreaView>
-    );
+    return renderShell({
+      header: progressHeader,
+      content: <ErrorState message="Invalid child progress link." onRetry={() => router.back()} />,
+    });
   }
 
   if (loading) {
-    return (
-      <SafeAreaView
-        style={[styles.container, { backgroundColor: colors.background }]}
-        edges={['top', 'bottom']}
-      >
-        <PageHeader title="Progress" showBack centerTitle onBackPress={() => router.back()} />
-        {switcherChildren.length > 1 && (
-          <View style={styles.switcherWrap}>
-            <ChildSwitcher
-              options={switcherChildren}
-              selectedId={selectedChildId}
-              onSelect={handleSelectChild}
-              activeChildId={activeChildId}
-            />
-          </View>
-        )}
-        <LoadingState variant="detail" />
-      </SafeAreaView>
-    );
+    return renderShell({
+      header: progressHeader,
+      showSwitcher: true,
+      content: <LoadingState variant="detail" />,
+    });
   }
 
   if (status === 'error') {
-    return (
-      <SafeAreaView
-        style={[styles.container, { backgroundColor: colors.background }]}
-        edges={['top', 'bottom']}
-      >
-        <PageHeader title="Progress" showBack centerTitle onBackPress={() => router.back()} />
-        {switcherChildren.length > 1 && (
-          <View style={styles.switcherWrap}>
-            <ChildSwitcher
-              options={switcherChildren}
-              selectedId={selectedChildId}
-              onSelect={handleSelectChild}
-              activeChildId={activeChildId}
-            />
-          </View>
-        )}
-        <ErrorState message={error?.message ?? 'Failed to load child progress.'} onRetry={retry} />
-      </SafeAreaView>
-    );
+    return renderShell({
+      header: progressHeader,
+      showSwitcher: true,
+      content: <ErrorState message={error?.message ?? 'Failed to load child progress.'} onRetry={retry} />,
+    });
   }
 
   if (status === 'empty' || !child || !progress) {
-    return (
-      <SafeAreaView
-        style={[styles.container, { backgroundColor: colors.background }]}
-        edges={['top', 'bottom']}
-      >
-        <PageHeader title="Progress" showBack centerTitle onBackPress={() => router.back()} />
-        {switcherChildren.length > 1 && (
-          <View style={styles.switcherWrap}>
-            <ChildSwitcher
-              options={switcherChildren}
-              selectedId={selectedChildId}
-              onSelect={handleSelectChild}
-              activeChildId={activeChildId}
-            />
-          </View>
-        )}
+    return renderShell({
+      header: progressHeader,
+      showSwitcher: true,
+      content: (
         <EmptyState
           icon="person-outline"
           title="Child not found"
           message="We couldn't find this child profile."
         />
-      </SafeAreaView>
-    );
+      ),
+    });
   }
 
   const trend = getTrendInfo(colors);
@@ -162,16 +150,7 @@ export default function ChildProgressScreen() {
       />
 
       {/* Child Switcher — only for parents with 2+ children */}
-      {switcherChildren.length > 1 && (
-        <View style={styles.switcherWrap}>
-          <ChildSwitcher
-            options={switcherChildren}
-            selectedId={selectedChildId}
-            onSelect={handleSelectChild}
-            activeChildId={activeChildId}
-          />
-        </View>
-      )}
+      {renderSwitcher()}
 
       {/* Trend Badge */}
       <View style={styles.trendWrap}>
