@@ -11,6 +11,7 @@ import { router } from 'expo-router';
 import { Routes } from '@/navigation/routes';
 import { Ionicons } from '@expo/vector-icons';
 import Animated, { FadeInDown } from 'react-native-reanimated';
+import type { ReactNode } from 'react';
 
 import { Clickable } from '@/components/primitives/clickable';
 import { Row } from '@/components/primitives/row';
@@ -79,6 +80,28 @@ function StatCard({
 export default function ConsentsScreen() {
   const { colors: palette } = useTheme();
   const c = useConsents();
+  const header = (
+    <Row align="center" gap="md" style={styles.header}>
+      <Clickable onPress={() => router.back()} hitSlop={8}>
+        <Ionicons name="arrow-back" size={24} color={palette.text} />
+      </Clickable>
+      <View style={styles.headerTitle}>
+        <ThemedText type="title">Consent Dashboard</ThemedText>
+        <ThemedText style={[styles.subtitle, { color: palette.muted }]}>
+          Quick view before posting content
+        </ThemedText>
+      </View>
+    </Row>
+  );
+  const renderShell = (content: ReactNode) => (
+    <SafeAreaView
+      style={[styles.container, { backgroundColor: palette.background }]}
+      edges={['top', 'bottom']}
+    >
+      {header}
+      {content}
+    </SafeAreaView>
+  );
 
   const renderItem = ({ item, index }: { item: AthleteConsent; index: number }) => (
     <Animated.View entering={FadeInDown.delay(index * 30).springify()}>
@@ -90,69 +113,15 @@ export default function ConsentsScreen() {
   );
 
   if (c.status === 'loading') {
-    return (
-      <SafeAreaView
-        style={[styles.container, { backgroundColor: palette.background }]}
-        edges={['top', 'bottom']}
-      >
-        <Row align="center" gap="md" style={styles.header}>
-          <Clickable onPress={() => router.back()} hitSlop={8}>
-            <Ionicons name="arrow-back" size={24} color={palette.text} />
-          </Clickable>
-          <View style={styles.headerTitle}>
-            <ThemedText type="title">Consent Dashboard</ThemedText>
-            <ThemedText style={[styles.subtitle, { color: palette.muted }]}>
-              Quick view before posting content
-            </ThemedText>
-          </View>
-        </Row>
-        <LoadingState variant="list" />
-      </SafeAreaView>
-    );
+    return renderShell(<LoadingState variant="list" />);
   }
 
   if (c.status === 'error') {
-    return (
-      <SafeAreaView
-        style={[styles.container, { backgroundColor: palette.background }]}
-        edges={['top', 'bottom']}
-      >
-        <Row align="center" gap="md" style={styles.header}>
-          <Clickable onPress={() => router.back()} hitSlop={8}>
-            <Ionicons name="arrow-back" size={24} color={palette.text} />
-          </Clickable>
-          <View style={styles.headerTitle}>
-            <ThemedText type="title">Consent Dashboard</ThemedText>
-            <ThemedText style={[styles.subtitle, { color: palette.muted }]}>
-              Quick view before posting content
-            </ThemedText>
-          </View>
-        </Row>
-        <ErrorState
-          message={c.error?.message || 'Failed to load consent data.'}
-          onRetry={c.retry}
-        />
-      </SafeAreaView>
-    );
+    return renderShell(<ErrorState message={c.error?.message || 'Failed to load consent data.'} onRetry={c.retry} />);
   }
 
-  return (
-    <SafeAreaView
-      style={[styles.container, { backgroundColor: palette.background }]}
-      edges={['top', 'bottom']}
-    >
-      <Row align="center" gap="md" style={styles.header}>
-        <Clickable onPress={() => router.back()} hitSlop={8}>
-          <Ionicons name="arrow-back" size={24} color={palette.text} />
-        </Clickable>
-        <View style={styles.headerTitle}>
-          <ThemedText type="title">Consent Dashboard</ThemedText>
-          <ThemedText style={[styles.subtitle, { color: palette.muted }]}>
-            Quick view before posting content
-          </ThemedText>
-        </View>
-      </Row>
-
+  return renderShell(
+    <>
       {c.summary && (
         <View style={styles.statsContainer}>
           {[c.consentTypes.slice(0, 2), c.consentTypes.slice(2)].map((row, i) => (
@@ -257,7 +226,7 @@ export default function ConsentsScreen() {
         }
         ItemSeparatorComponent={() => <View style={styles.separator} />}
       />
-    </SafeAreaView>
+    </>,
   );
 }
 
@@ -305,8 +274,4 @@ const styles = StyleSheet.create({
   filtersContainer: { paddingHorizontal: Spacing.lg, marginBottom: Spacing.md },
   listContent: { paddingHorizontal: Spacing.lg, paddingBottom: Spacing.xl },
   separator: { height: Spacing.sm },
-  loadingContainer: { paddingHorizontal: Spacing.lg, gap: Spacing.sm },
-  skeletonCard: { padding: Spacing.md, borderRadius: Radii.md, gap: Spacing.sm },
-  skeletonHeader: {},
-  skeletonInfo: { flex: 1, gap: Spacing.xs },
 });
