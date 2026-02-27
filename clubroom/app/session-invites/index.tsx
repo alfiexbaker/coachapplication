@@ -2,6 +2,7 @@ import { useState, useCallback, useMemo } from 'react';
 import { ScrollView, Alert, RefreshControl, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
+import type { ReactNode } from 'react';
 import { Routes } from '@/navigation/routes';
 import { Ionicons } from '@expo/vector-icons';
 import { useScreen } from '@/hooks/use-screen';
@@ -161,33 +162,24 @@ export default function SessionInvitesScreen() {
 
   const handleChangeMode = useCallback((newMode: ViewMode) => setMode(newMode), []);
   const handleChangeFilter = useCallback((newFilter: FilterMode) => setFilter(newFilter), []);
+  const renderShell = (content: ReactNode) => (
+    <SafeAreaView
+      style={[styles.container, { backgroundColor: colors.background }]}
+      edges={['top', 'bottom']}
+    >
+      {content}
+    </SafeAreaView>
+  );
 
   if (status === 'loading')
-    return (
-      <SafeAreaView
-        style={[styles.container, { backgroundColor: colors.background }]}
-        edges={['top', 'bottom']}
-      >
-        <LoadingState variant="list" />
-      </SafeAreaView>
-    );
+    return renderShell(<LoadingState variant="list" />);
 
   if (status === 'error')
-    return (
-      <SafeAreaView
-        style={[styles.container, { backgroundColor: colors.background }]}
-        edges={['top', 'bottom']}
-      >
-        <ErrorState message={error?.message ?? 'Failed to load invites'} onRetry={retry} />
-      </SafeAreaView>
-    );
+    return renderShell(<ErrorState message={error?.message ?? 'Failed to load invites'} onRetry={retry} />);
 
   if (status === 'empty')
-    return (
-      <SafeAreaView
-        style={[styles.container, { backgroundColor: colors.background }]}
-        edges={['top', 'bottom']}
-      >
+    return renderShell(
+      <>
         <Row gap="md" align="center" paddingH="lg" paddingV="md">
           <Clickable onPress={() => router.back()} hitSlop={8} accessibilityLabel="Go back">
             <Ionicons name="arrow-back" size={24} color={colors.text} />
@@ -215,14 +207,11 @@ export default function SessionInvitesScreen() {
               : 'Session invites from coaches will appear here'
           }
         />
-      </SafeAreaView>
+      </>,
     );
 
-  return (
-    <SafeAreaView
-      style={[styles.container, { backgroundColor: colors.background }]}
-      edges={['top', 'bottom']}
-    >
+  return renderShell(
+    <>
       <Row gap="md" align="center" paddingH="lg" paddingV="md">
         <Clickable onPress={() => router.back()} hitSlop={8} accessibilityLabel="Go back">
           <Ionicons name="arrow-back" size={24} color={colors.text} />
@@ -315,7 +304,7 @@ export default function SessionInvitesScreen() {
           </Column>
         )}
       </ScrollView>
-    </SafeAreaView>
+    </>,
   );
 }
 
