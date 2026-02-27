@@ -9,6 +9,7 @@ import { View, StyleSheet, ScrollView, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
+import type { ReactNode } from 'react';
 
 import { Row } from '@/components/primitives/row';
 import { Clickable } from '@/components/primitives/clickable';
@@ -39,59 +40,43 @@ export default function AddTemplateScreen() {
     refetchOnFocus: true,
   });
   const c = useAddTemplate();
-
-  if (status === 'loading') {
-    return (
-      <SafeAreaView
-        style={[styles.container, { backgroundColor: palette.background }]}
-        edges={['top', 'bottom']}
-      >
-        <PageHeader title="Add Availability" showBack onBackPress={() => router.back()} />
-        <LoadingState variant="form" />
-      </SafeAreaView>
-    );
-  }
-
-  if (status === 'error') {
-    return (
-      <SafeAreaView
-        style={[styles.container, { backgroundColor: palette.background }]}
-        edges={['top', 'bottom']}
-      >
-        <PageHeader title="Add Availability" showBack onBackPress={() => router.back()} />
-        <ErrorState
-          message={error?.message || 'Failed to open add-template flow.'}
-          onRetry={retry}
-        />
-      </SafeAreaView>
-    );
-  }
-
-  if (status === 'empty') {
-    return (
-      <SafeAreaView
-        style={[styles.container, { backgroundColor: palette.background }]}
-        edges={['top', 'bottom']}
-      >
-        <PageHeader title="Add Availability" showBack onBackPress={() => router.back()} />
-        <EmptyState
-          icon="calendar-outline"
-          title="Availability setup unavailable"
-          message="The add-template flow is currently unavailable."
-          actionLabel="Retry"
-          onPressAction={retry}
-        />
-      </SafeAreaView>
-    );
-  }
-
-  return (
+  const renderShell = (content: ReactNode) => (
     <SafeAreaView
       style={[styles.container, { backgroundColor: palette.background }]}
       edges={['top', 'bottom']}
     >
       <PageHeader title="Add Availability" showBack onBackPress={() => router.back()} />
+      {content}
+    </SafeAreaView>
+  );
 
+  if (status === 'loading') {
+    return renderShell(<LoadingState variant="form" />);
+  }
+
+  if (status === 'error') {
+    return renderShell(
+      <ErrorState
+        message={error?.message || 'Failed to open add-template flow.'}
+        onRetry={retry}
+      />,
+    );
+  }
+
+  if (status === 'empty') {
+    return renderShell(
+      <EmptyState
+        icon="calendar-outline"
+        title="Availability setup unavailable"
+        message="The add-template flow is currently unavailable."
+        actionLabel="Retry"
+        onPressAction={retry}
+      />,
+    );
+  }
+
+  return renderShell(
+    <>
       <ScrollView style={styles.content} contentContainerStyle={styles.contentInner}>
         <SurfaceCard style={styles.section}>
           <ThemedText type="subtitle">Day of Week</ThemedText>
@@ -273,7 +258,7 @@ export default function AddTemplateScreen() {
           )}
         </Clickable>
       </View>
-    </SafeAreaView>
+    </>,
   );
 }
 

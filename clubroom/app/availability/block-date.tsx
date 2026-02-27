@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Alert } from 'react-native';
 import { router } from 'expo-router';
+import type { ReactNode } from 'react';
 import { Routes } from '@/navigation/routes';
 
 import { PageHeader } from '@/components/primitives/page-header';
@@ -43,6 +44,12 @@ export default function BlockDateScreen() {
   const [reason, setReason] = useState('personal');
   const [customReason, setCustomReason] = useState('');
   const [saving, setSaving] = useState(false);
+  const renderShell = (content: ReactNode) => (
+    <SafeAreaView style={{ flex: 1, backgroundColor: palette.background }} edges={['top', 'bottom']}>
+      <PageHeader title="Block Date" showBack onBackPress={() => router.back()} />
+      {content}
+    </SafeAreaView>
+  );
 
   const dates = Array.from({ length: 30 }, (_, index) => {
     const date = new Date();
@@ -85,56 +92,40 @@ export default function BlockDateScreen() {
   };
 
   if (status === 'loading') {
-    return (
-      <SafeAreaView style={{ flex: 1, backgroundColor: palette.background }} edges={['top', 'bottom']}>
-        <PageHeader title="Block Date" showBack onBackPress={() => router.back()} />
-        <LoadingState variant="form" />
-      </SafeAreaView>
-    );
+    return renderShell(<LoadingState variant="form" />);
   }
 
   if (status === 'error') {
-    return (
-      <SafeAreaView style={{ flex: 1, backgroundColor: palette.background }} edges={['top', 'bottom']}>
-        <PageHeader title="Block Date" showBack onBackPress={() => router.back()} />
-        <ErrorState message={error?.message || 'Failed to open block-date flow.'} onRetry={retry} />
-      </SafeAreaView>
-    );
+    return renderShell(<ErrorState message={error?.message || 'Failed to open block-date flow.'} onRetry={retry} />);
   }
 
   if (status === 'empty') {
-    return (
-      <SafeAreaView style={{ flex: 1, backgroundColor: palette.background }} edges={['top', 'bottom']}>
-        <PageHeader title="Block Date" showBack onBackPress={() => router.back()} />
-        <EmptyState
-          icon="close-circle-outline"
-          title="Block-date flow unavailable"
-          message="Date blocking is currently unavailable."
-          actionLabel="Retry"
-          onPressAction={retry}
-        />
-      </SafeAreaView>
+    return renderShell(
+      <EmptyState
+        icon="close-circle-outline"
+        title="Block-date flow unavailable"
+        message="Date blocking is currently unavailable."
+        actionLabel="Retry"
+        onPressAction={retry}
+      />,
     );
   }
 
-  return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: palette.background }} edges={['top', 'bottom']}>
-      <PageHeader title="Block Date" showBack onBackPress={() => router.back()} />
-      <BlockDateForm
-        colors={palette}
-        dates={dates}
-        selectedDate={selectedDate}
-        reason={reason}
-        customReason={customReason}
-        saving={saving}
-        reasonOptions={REASON_OPTIONS}
-        formatDate={formatDate}
-        isSameDay={isSameDay}
-        onSelectDate={setSelectedDate}
-        onSelectReason={setReason}
-        onSetCustomReason={setCustomReason}
-        onSave={handleSave}
-      />
-    </SafeAreaView>
+  return renderShell(
+    <BlockDateForm
+      colors={palette}
+      dates={dates}
+      selectedDate={selectedDate}
+      reason={reason}
+      customReason={customReason}
+      saving={saving}
+      reasonOptions={REASON_OPTIONS}
+      formatDate={formatDate}
+      isSameDay={isSameDay}
+      onSelectDate={setSelectedDate}
+      onSelectReason={setReason}
+      onSetCustomReason={setCustomReason}
+      onSave={handleSave}
+    />,
   );
 }

@@ -1,6 +1,7 @@
 import { View, StyleSheet, ScrollView, RefreshControl } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
+import type { ReactNode } from 'react';
 import { Routes } from '@/navigation/routes';
 import { Ionicons } from '@expo/vector-icons';
 
@@ -33,59 +34,43 @@ export default function AvailabilityCalendarScreen() {
   } = useAvailabilityCalendar();
   const handleAddTemplate = () => router.push(Routes.AVAILABILITY_ADD_TEMPLATE);
   const handleBlockDate = () => router.push(Routes.AVAILABILITY_BLOCK_DATE);
-
-  if (status === 'loading') {
-    return (
-      <SafeAreaView
-        style={[styles.container, { backgroundColor: palette.background }]}
-        edges={['top', 'bottom']}
-      >
-        <PageHeader title="Availability Calendar" showBack onBackPress={() => router.back()} />
-        <LoadingState variant="calendar" />
-      </SafeAreaView>
-    );
-  }
-
-  if (status === 'error') {
-    return (
-      <SafeAreaView
-        style={[styles.container, { backgroundColor: palette.background }]}
-        edges={['top', 'bottom']}
-      >
-        <PageHeader title="Availability Calendar" showBack onBackPress={() => router.back()} />
-        <ErrorState
-          message={error?.message || 'Failed to load availability calendar.'}
-          onRetry={retry}
-        />
-      </SafeAreaView>
-    );
-  }
-
-  if (status === 'empty') {
-    return (
-      <SafeAreaView
-        style={[styles.container, { backgroundColor: palette.background }]}
-        edges={['top', 'bottom']}
-      >
-        <PageHeader title="Availability Calendar" showBack onBackPress={() => router.back()} />
-        <EmptyState
-          icon="calendar-outline"
-          title="No availability yet"
-          message="Add your first recurring availability template to start accepting bookings."
-          actionLabel="Add Template"
-          onPressAction={handleAddTemplate}
-        />
-      </SafeAreaView>
-    );
-  }
-
-  return (
+  const renderShell = (content: ReactNode) => (
     <SafeAreaView
       style={[styles.container, { backgroundColor: palette.background }]}
       edges={['top', 'bottom']}
     >
       <PageHeader title="Availability Calendar" showBack onBackPress={() => router.back()} />
+      {content}
+    </SafeAreaView>
+  );
 
+  if (status === 'loading') {
+    return renderShell(<LoadingState variant="calendar" />);
+  }
+
+  if (status === 'error') {
+    return renderShell(
+      <ErrorState
+        message={error?.message || 'Failed to load availability calendar.'}
+        onRetry={retry}
+      />,
+    );
+  }
+
+  if (status === 'empty') {
+    return renderShell(
+      <EmptyState
+        icon="calendar-outline"
+        title="No availability yet"
+        message="Add your first recurring availability template to start accepting bookings."
+        actionLabel="Add Template"
+        onPressAction={handleAddTemplate}
+      />,
+    );
+  }
+
+  return renderShell(
+    <>
       <ScrollView
         style={styles.content}
         contentContainerStyle={styles.contentInner}
@@ -173,7 +158,7 @@ export default function AvailabilityCalendarScreen() {
           </Row>
         </SurfaceCard>
       </ScrollView>
-    </SafeAreaView>
+    </>,
   );
 }
 
