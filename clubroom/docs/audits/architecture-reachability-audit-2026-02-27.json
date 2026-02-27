@@ -1,0 +1,2565 @@
+{
+  "summary": {
+    "generatedAt": "2026-02-27T17:56:28.325Z",
+    "totals": {
+      "allFilesScanned": 1772,
+      "sourceFilesScanned": 1564,
+      "routeFiles": 177,
+      "componentFiles": 885,
+      "reachableSourceFilesFromApp": 1347,
+      "reachableComponentsFromApp": 755,
+      "nonReachableComponents": 130
+    },
+    "componentStatusCounts": {
+      "reachable": 755,
+      "not_reachable_from_app": 42,
+      "unreferenced": 28,
+      "barrel_only_not_reachable": 60
+    },
+    "architectureCounts": {
+      "componentImportsServices": 203,
+      "servicesImportUi": 0,
+      "servicesImportHooks": 0,
+      "hardcodedRoutes": 0,
+      "resultDotOkRefs": 28,
+      "resultDotIsOkRefs": 0,
+      "servicesWithThrowStatements": 4
+    }
+  },
+  "likelyDeadComponents": [
+    {
+      "file": "components/analytics/progress-chart-sections.tsx",
+      "reachableFromApp": false,
+      "status": "not_reachable_from_app",
+      "importerCount": 1,
+      "importers": [
+        "components/analytics/progress-chart.tsx"
+      ],
+      "importerKinds": "component"
+    },
+    {
+      "file": "components/analytics/progress-chart.tsx",
+      "reachableFromApp": false,
+      "status": "unreferenced",
+      "importerCount": 0,
+      "importers": [],
+      "importerKinds": ""
+    },
+    {
+      "file": "components/analytics/session-timeline-sections.tsx",
+      "reachableFromApp": false,
+      "status": "not_reachable_from_app",
+      "importerCount": 1,
+      "importers": [
+        "components/analytics/session-timeline.tsx"
+      ],
+      "importerKinds": "component"
+    },
+    {
+      "file": "components/analytics/session-timeline.tsx",
+      "reachableFromApp": false,
+      "status": "unreferenced",
+      "importerCount": 0,
+      "importers": [],
+      "importerKinds": ""
+    },
+    {
+      "file": "components/athlete/athletes-stats-bar.tsx",
+      "reachableFromApp": false,
+      "status": "unreferenced",
+      "importerCount": 0,
+      "importers": [],
+      "importerKinds": ""
+    },
+    {
+      "file": "components/auth/signup-type-selector-sections.tsx",
+      "reachableFromApp": false,
+      "status": "not_reachable_from_app",
+      "importerCount": 1,
+      "importers": [
+        "components/auth/SignupTypeSelector.tsx"
+      ],
+      "importerKinds": "component"
+    },
+    {
+      "file": "components/auth/SignupTypeSelector.tsx",
+      "reachableFromApp": false,
+      "status": "barrel_only_not_reachable",
+      "importerCount": 1,
+      "importers": [
+        "components/auth/index.ts"
+      ],
+      "importerKinds": "component"
+    },
+    {
+      "file": "components/badges/quick-recognition-modal.tsx",
+      "reachableFromApp": false,
+      "status": "unreferenced",
+      "importerCount": 0,
+      "importers": [],
+      "importerKinds": ""
+    },
+    {
+      "file": "components/badges/recognition-detail-card.tsx",
+      "reachableFromApp": false,
+      "status": "unreferenced",
+      "importerCount": 0,
+      "importers": [],
+      "importerKinds": ""
+    },
+    {
+      "file": "components/bookings/CoachTabNavigation.tsx",
+      "reachableFromApp": false,
+      "status": "barrel_only_not_reachable",
+      "importerCount": 1,
+      "importers": [
+        "components/bookings/index.ts"
+      ],
+      "importerKinds": "component"
+    },
+    {
+      "file": "components/bookings/create-session-date-picker.tsx",
+      "reachableFromApp": false,
+      "status": "not_reachable_from_app",
+      "importerCount": 1,
+      "importers": [
+        "components/bookings/CreateSessionForm.tsx"
+      ],
+      "importerKinds": "component"
+    },
+    {
+      "file": "components/bookings/create-session-extras.tsx",
+      "reachableFromApp": false,
+      "status": "not_reachable_from_app",
+      "importerCount": 1,
+      "importers": [
+        "components/bookings/CreateSessionForm.tsx"
+      ],
+      "importerKinds": "component"
+    },
+    {
+      "file": "components/bookings/create-session-type-selector.tsx",
+      "reachableFromApp": false,
+      "status": "not_reachable_from_app",
+      "importerCount": 1,
+      "importers": [
+        "components/bookings/CreateSessionForm.tsx"
+      ],
+      "importerKinds": "component"
+    },
+    {
+      "file": "components/bookings/CreateSessionForm.tsx",
+      "reachableFromApp": false,
+      "status": "not_reachable_from_app",
+      "importerCount": 2,
+      "importers": [
+        "components/bookings/create-session-type-selector.tsx",
+        "components/bookings/index.ts"
+      ],
+      "importerKinds": "component"
+    },
+    {
+      "file": "components/bookings/QuickActions.tsx",
+      "reachableFromApp": false,
+      "status": "barrel_only_not_reachable",
+      "importerCount": 1,
+      "importers": [
+        "components/bookings/index.ts"
+      ],
+      "importerKinds": "component"
+    },
+    {
+      "file": "components/club/bulk-message-compose.tsx",
+      "reachableFromApp": false,
+      "status": "not_reachable_from_app",
+      "importerCount": 1,
+      "importers": [
+        "components/club/bulk-message.tsx"
+      ],
+      "importerKinds": "component"
+    },
+    {
+      "file": "components/club/bulk-message-sent.tsx",
+      "reachableFromApp": false,
+      "status": "not_reachable_from_app",
+      "importerCount": 1,
+      "importers": [
+        "components/club/bulk-message.tsx"
+      ],
+      "importerKinds": "component"
+    },
+    {
+      "file": "components/club/bulk-message.tsx",
+      "reachableFromApp": false,
+      "status": "not_reachable_from_app",
+      "importerCount": 2,
+      "importers": [
+        "components/club/bulk-message-compose.tsx",
+        "components/club/bulk-message-sent.tsx"
+      ],
+      "importerKinds": "component"
+    },
+    {
+      "file": "components/club/EventsPanel.tsx",
+      "reachableFromApp": false,
+      "status": "barrel_only_not_reachable",
+      "importerCount": 1,
+      "importers": [
+        "components/club/index.ts"
+      ],
+      "importerKinds": "component"
+    },
+    {
+      "file": "components/club/group-chat-sections.tsx",
+      "reachableFromApp": false,
+      "status": "not_reachable_from_app",
+      "importerCount": 1,
+      "importers": [
+        "components/club/group-chat.tsx"
+      ],
+      "importerKinds": "component"
+    },
+    {
+      "file": "components/club/group-chat.tsx",
+      "reachableFromApp": false,
+      "status": "not_reachable_from_app",
+      "importerCount": 1,
+      "importers": [
+        "components/club/group-chat-sections.tsx"
+      ],
+      "importerKinds": "component"
+    },
+    {
+      "file": "components/club/welcome-flow-sections.tsx",
+      "reachableFromApp": false,
+      "status": "not_reachable_from_app",
+      "importerCount": 1,
+      "importers": [
+        "components/club/welcome-flow.tsx"
+      ],
+      "importerKinds": "component"
+    },
+    {
+      "file": "components/club/welcome-flow.tsx",
+      "reachableFromApp": false,
+      "status": "unreferenced",
+      "importerCount": 0,
+      "importers": [],
+      "importerKinds": ""
+    },
+    {
+      "file": "components/coach/adjust-day-modal-sections.tsx",
+      "reachableFromApp": false,
+      "status": "not_reachable_from_app",
+      "importerCount": 1,
+      "importers": [
+        "components/coach/adjust-day-modal.tsx"
+      ],
+      "importerKinds": "component"
+    },
+    {
+      "file": "components/coach/adjust-day-modal.tsx",
+      "reachableFromApp": false,
+      "status": "unreferenced",
+      "importerCount": 0,
+      "importers": [],
+      "importerKinds": ""
+    },
+    {
+      "file": "components/coach/blocked-dates-calendar.tsx",
+      "reachableFromApp": false,
+      "status": "unreferenced",
+      "importerCount": 0,
+      "importers": [],
+      "importerKinds": ""
+    },
+    {
+      "file": "components/coach/blocked-dates-sections.tsx",
+      "reachableFromApp": false,
+      "status": "unreferenced",
+      "importerCount": 0,
+      "importers": [],
+      "importerKinds": ""
+    },
+    {
+      "file": "components/coach/cancellation-policy-cards.tsx",
+      "reachableFromApp": false,
+      "status": "unreferenced",
+      "importerCount": 0,
+      "importers": [],
+      "importerKinds": ""
+    },
+    {
+      "file": "components/coach/review-response-sections.tsx",
+      "reachableFromApp": false,
+      "status": "not_reachable_from_app",
+      "importerCount": 1,
+      "importers": [
+        "components/coach/review-response.tsx"
+      ],
+      "importerKinds": "component"
+    },
+    {
+      "file": "components/coach/review-response.tsx",
+      "reachableFromApp": false,
+      "status": "unreferenced",
+      "importerCount": 0,
+      "importers": [],
+      "importerKinds": ""
+    },
+    {
+      "file": "components/coach/scheduling-option-picker.tsx",
+      "reachableFromApp": false,
+      "status": "unreferenced",
+      "importerCount": 0,
+      "importers": [],
+      "importerKinds": ""
+    },
+    {
+      "file": "components/coach/scheduling-rules-summary.tsx",
+      "reachableFromApp": false,
+      "status": "unreferenced",
+      "importerCount": 0,
+      "importers": [],
+      "importerKinds": ""
+    },
+    {
+      "file": "components/coach/slot-picker-sections.tsx",
+      "reachableFromApp": false,
+      "status": "not_reachable_from_app",
+      "importerCount": 1,
+      "importers": [
+        "components/coach/slot-picker.tsx"
+      ],
+      "importerKinds": "component"
+    },
+    {
+      "file": "components/coach/slot-picker.tsx",
+      "reachableFromApp": false,
+      "status": "not_reachable_from_app",
+      "importerCount": 1,
+      "importers": [
+        "components/invite/create-slots-step.tsx"
+      ],
+      "importerKinds": "component"
+    },
+    {
+      "file": "components/coach/smart-slots-cards.tsx",
+      "reachableFromApp": false,
+      "status": "not_reachable_from_app",
+      "importerCount": 1,
+      "importers": [
+        "components/coach/smart-slots.tsx"
+      ],
+      "importerKinds": "component"
+    },
+    {
+      "file": "components/coach/smart-slots-heatmap.tsx",
+      "reachableFromApp": false,
+      "status": "not_reachable_from_app",
+      "importerCount": 1,
+      "importers": [
+        "components/coach/smart-slots.tsx"
+      ],
+      "importerKinds": "component"
+    },
+    {
+      "file": "components/coach/smart-slots.tsx",
+      "reachableFromApp": false,
+      "status": "unreferenced",
+      "importerCount": 0,
+      "importers": [],
+      "importerKinds": ""
+    },
+    {
+      "file": "components/coach/travel-radius-picker-sections.tsx",
+      "reachableFromApp": false,
+      "status": "not_reachable_from_app",
+      "importerCount": 1,
+      "importers": [
+        "components/coach/travel-radius-picker.tsx"
+      ],
+      "importerKinds": "component"
+    },
+    {
+      "file": "components/coach/travel-radius-picker.tsx",
+      "reachableFromApp": false,
+      "status": "unreferenced",
+      "importerCount": 0,
+      "importers": [],
+      "importerKinds": ""
+    },
+    {
+      "file": "components/community/GroupList.tsx",
+      "reachableFromApp": false,
+      "status": "barrel_only_not_reachable",
+      "importerCount": 1,
+      "importers": [
+        "components/community/index.ts"
+      ],
+      "importerKinds": "component"
+    },
+    {
+      "file": "components/compare/CompareBar.tsx",
+      "reachableFromApp": false,
+      "status": "barrel_only_not_reachable",
+      "importerCount": 1,
+      "importers": [
+        "components/compare/index.ts"
+      ],
+      "importerKinds": "component"
+    },
+    {
+      "file": "components/compare/CompareButton.tsx",
+      "reachableFromApp": false,
+      "status": "barrel_only_not_reachable",
+      "importerCount": 1,
+      "importers": [
+        "components/compare/index.ts"
+      ],
+      "importerKinds": "component"
+    },
+    {
+      "file": "components/consent/ConsentBadge.tsx",
+      "reachableFromApp": false,
+      "status": "barrel_only_not_reachable",
+      "importerCount": 1,
+      "importers": [
+        "components/consent/index.ts"
+      ],
+      "importerKinds": "component"
+    },
+    {
+      "file": "components/development/goal-editor-sections.tsx",
+      "reachableFromApp": false,
+      "status": "not_reachable_from_app",
+      "importerCount": 1,
+      "importers": [
+        "components/development/goal-editor.tsx"
+      ],
+      "importerKinds": "component"
+    },
+    {
+      "file": "components/development/goal-editor.tsx",
+      "reachableFromApp": false,
+      "status": "barrel_only_not_reachable",
+      "importerCount": 1,
+      "importers": [
+        "components/development/index.ts"
+      ],
+      "importerKinds": "component"
+    },
+    {
+      "file": "components/development/progress-report-sections.tsx",
+      "reachableFromApp": false,
+      "status": "not_reachable_from_app",
+      "importerCount": 1,
+      "importers": [
+        "components/development/progress-report.tsx"
+      ],
+      "importerKinds": "component"
+    },
+    {
+      "file": "components/development/progress-report.tsx",
+      "reachableFromApp": false,
+      "status": "barrel_only_not_reachable",
+      "importerCount": 1,
+      "importers": [
+        "components/development/index.ts"
+      ],
+      "importerKinds": "component"
+    },
+    {
+      "file": "components/development/progress-timeline-sections.tsx",
+      "reachableFromApp": false,
+      "status": "not_reachable_from_app",
+      "importerCount": 1,
+      "importers": [
+        "components/development/progress-timeline.tsx"
+      ],
+      "importerKinds": "component"
+    },
+    {
+      "file": "components/development/progress-timeline.tsx",
+      "reachableFromApp": false,
+      "status": "barrel_only_not_reachable",
+      "importerCount": 1,
+      "importers": [
+        "components/development/index.ts"
+      ],
+      "importerKinds": "component"
+    },
+    {
+      "file": "components/development/session-journal-sections.tsx",
+      "reachableFromApp": false,
+      "status": "not_reachable_from_app",
+      "importerCount": 1,
+      "importers": [
+        "components/development/session-journal.tsx"
+      ],
+      "importerKinds": "component"
+    },
+    {
+      "file": "components/development/session-journal.tsx",
+      "reachableFromApp": false,
+      "status": "not_reachable_from_app",
+      "importerCount": 2,
+      "importers": [
+        "components/development/index.ts",
+        "constants/session-journal-seeds.ts"
+      ],
+      "importerKinds": "component,constant"
+    },
+    {
+      "file": "components/development/session-recap-card-sections.tsx",
+      "reachableFromApp": false,
+      "status": "not_reachable_from_app",
+      "importerCount": 1,
+      "importers": [
+        "components/development/session-recap-card.tsx"
+      ],
+      "importerKinds": "component"
+    },
+    {
+      "file": "components/development/session-recap-card.tsx",
+      "reachableFromApp": false,
+      "status": "barrel_only_not_reachable",
+      "importerCount": 1,
+      "importers": [
+        "components/development/index.ts"
+      ],
+      "importerKinds": "component"
+    },
+    {
+      "file": "components/development/skill-radar-chart-sections.tsx",
+      "reachableFromApp": false,
+      "status": "not_reachable_from_app",
+      "importerCount": 1,
+      "importers": [
+        "components/development/skill-radar-sections.tsx"
+      ],
+      "importerKinds": "component"
+    },
+    {
+      "file": "components/development/skill-radar-info-sections.tsx",
+      "reachableFromApp": false,
+      "status": "not_reachable_from_app",
+      "importerCount": 1,
+      "importers": [
+        "components/development/skill-radar-sections.tsx"
+      ],
+      "importerKinds": "component"
+    },
+    {
+      "file": "components/development/skill-radar-sections.tsx",
+      "reachableFromApp": false,
+      "status": "not_reachable_from_app",
+      "importerCount": 1,
+      "importers": [
+        "components/development/skill-radar.tsx"
+      ],
+      "importerKinds": "component"
+    },
+    {
+      "file": "components/development/skill-radar.tsx",
+      "reachableFromApp": false,
+      "status": "not_reachable_from_app",
+      "importerCount": 2,
+      "importers": [
+        "components/development/index.ts",
+        "components/development/skill-radar-chart-sections.tsx"
+      ],
+      "importerKinds": "component"
+    },
+    {
+      "file": "components/event/RSVPButton-sections.tsx",
+      "reachableFromApp": false,
+      "status": "not_reachable_from_app",
+      "importerCount": 1,
+      "importers": [
+        "components/event/RSVPButton.tsx"
+      ],
+      "importerKinds": "component"
+    },
+    {
+      "file": "components/event/RSVPButton.tsx",
+      "reachableFromApp": false,
+      "status": "unreferenced",
+      "importerCount": 0,
+      "importers": [],
+      "importerKinds": ""
+    },
+    {
+      "file": "components/family/children-hub-sections.tsx",
+      "reachableFromApp": false,
+      "status": "unreferenced",
+      "importerCount": 0,
+      "importers": [],
+      "importerKinds": ""
+    },
+    {
+      "file": "components/family/children-quick-actions.tsx",
+      "reachableFromApp": false,
+      "status": "unreferenced",
+      "importerCount": 0,
+      "importers": [],
+      "importerKinds": ""
+    },
+    {
+      "file": "components/favourites/FavouritesList.tsx",
+      "reachableFromApp": false,
+      "status": "barrel_only_not_reachable",
+      "importerCount": 1,
+      "importers": [
+        "components/favourites/index.ts"
+      ],
+      "importerKinds": "component"
+    },
+    {
+      "file": "components/forms/FormButton.tsx",
+      "reachableFromApp": false,
+      "status": "barrel_only_not_reachable",
+      "importerCount": 1,
+      "importers": [
+        "components/forms/index.ts"
+      ],
+      "importerKinds": "component"
+    },
+    {
+      "file": "components/forms/FormInput.tsx",
+      "reachableFromApp": false,
+      "status": "barrel_only_not_reachable",
+      "importerCount": 1,
+      "importers": [
+        "components/forms/index.ts"
+      ],
+      "importerKinds": "component"
+    },
+    {
+      "file": "components/invite/chip-selector.tsx",
+      "reachableFromApp": false,
+      "status": "not_reachable_from_app",
+      "importerCount": 3,
+      "importers": [
+        "components/invite/group-session-details-step.tsx",
+        "components/invite/index.ts",
+        "components/invite/squad-details-step.tsx"
+      ],
+      "importerKinds": "component"
+    },
+    {
+      "file": "components/invite/create-athlete-step.tsx",
+      "reachableFromApp": false,
+      "status": "barrel_only_not_reachable",
+      "importerCount": 1,
+      "importers": [
+        "components/invite/index.ts"
+      ],
+      "importerKinds": "component"
+    },
+    {
+      "file": "components/invite/create-club-step.tsx",
+      "reachableFromApp": false,
+      "status": "barrel_only_not_reachable",
+      "importerCount": 1,
+      "importers": [
+        "components/invite/index.ts"
+      ],
+      "importerKinds": "component"
+    },
+    {
+      "file": "components/invite/create-confirm-step.tsx",
+      "reachableFromApp": false,
+      "status": "barrel_only_not_reachable",
+      "importerCount": 1,
+      "importers": [
+        "components/invite/index.ts"
+      ],
+      "importerKinds": "component"
+    },
+    {
+      "file": "components/invite/create-confirm-summary.tsx",
+      "reachableFromApp": false,
+      "status": "not_reachable_from_app",
+      "importerCount": 2,
+      "importers": [
+        "components/invite/create-confirm-step.tsx",
+        "components/invite/index.ts"
+      ],
+      "importerKinds": "component"
+    },
+    {
+      "file": "components/invite/create-details-step.tsx",
+      "reachableFromApp": false,
+      "status": "barrel_only_not_reachable",
+      "importerCount": 1,
+      "importers": [
+        "components/invite/index.ts"
+      ],
+      "importerKinds": "component"
+    },
+    {
+      "file": "components/invite/create-existing-step.tsx",
+      "reachableFromApp": false,
+      "status": "barrel_only_not_reachable",
+      "importerCount": 1,
+      "importers": [
+        "components/invite/index.ts"
+      ],
+      "importerKinds": "component"
+    },
+    {
+      "file": "components/invite/create-mode-step.tsx",
+      "reachableFromApp": false,
+      "status": "barrel_only_not_reachable",
+      "importerCount": 1,
+      "importers": [
+        "components/invite/index.ts"
+      ],
+      "importerKinds": "component"
+    },
+    {
+      "file": "components/invite/create-slots-step.tsx",
+      "reachableFromApp": false,
+      "status": "barrel_only_not_reachable",
+      "importerCount": 1,
+      "importers": [
+        "components/invite/index.ts"
+      ],
+      "importerKinds": "component"
+    },
+    {
+      "file": "components/invite/create-type-step.tsx",
+      "reachableFromApp": false,
+      "status": "barrel_only_not_reachable",
+      "importerCount": 1,
+      "importers": [
+        "components/invite/index.ts"
+      ],
+      "importerKinds": "component"
+    },
+    {
+      "file": "components/invite/group-confirm-step.tsx",
+      "reachableFromApp": false,
+      "status": "barrel_only_not_reachable",
+      "importerCount": 1,
+      "importers": [
+        "components/invite/index.ts"
+      ],
+      "importerKinds": "component"
+    },
+    {
+      "file": "components/invite/group-preview-step.tsx",
+      "reachableFromApp": false,
+      "status": "barrel_only_not_reachable",
+      "importerCount": 1,
+      "importers": [
+        "components/invite/index.ts"
+      ],
+      "importerKinds": "component"
+    },
+    {
+      "file": "components/invite/group-session-details-step.tsx",
+      "reachableFromApp": false,
+      "status": "barrel_only_not_reachable",
+      "importerCount": 1,
+      "importers": [
+        "components/invite/index.ts"
+      ],
+      "importerKinds": "component"
+    },
+    {
+      "file": "components/invite/group-target-step.tsx",
+      "reachableFromApp": false,
+      "status": "barrel_only_not_reachable",
+      "importerCount": 1,
+      "importers": [
+        "components/invite/index.ts"
+      ],
+      "importerKinds": "component"
+    },
+    {
+      "file": "components/invite/sent-invites-banner.tsx",
+      "reachableFromApp": false,
+      "status": "not_reachable_from_app",
+      "importerCount": 2,
+      "importers": [
+        "components/invite/create-athlete-step.tsx",
+        "components/invite/index.ts"
+      ],
+      "importerKinds": "component"
+    },
+    {
+      "file": "components/invite/squad-confirm-step.tsx",
+      "reachableFromApp": false,
+      "status": "barrel_only_not_reachable",
+      "importerCount": 1,
+      "importers": [
+        "components/invite/index.ts"
+      ],
+      "importerKinds": "component"
+    },
+    {
+      "file": "components/invite/squad-details-step.tsx",
+      "reachableFromApp": false,
+      "status": "barrel_only_not_reachable",
+      "importerCount": 1,
+      "importers": [
+        "components/invite/index.ts"
+      ],
+      "importerKinds": "component"
+    },
+    {
+      "file": "components/invite/squad-members-step.tsx",
+      "reachableFromApp": false,
+      "status": "barrel_only_not_reachable",
+      "importerCount": 1,
+      "importers": [
+        "components/invite/index.ts"
+      ],
+      "importerKinds": "component"
+    },
+    {
+      "file": "components/invite/squad-result-step.tsx",
+      "reachableFromApp": false,
+      "status": "barrel_only_not_reachable",
+      "importerCount": 1,
+      "importers": [
+        "components/invite/index.ts"
+      ],
+      "importerKinds": "component"
+    },
+    {
+      "file": "components/invite/squad-select-step.tsx",
+      "reachableFromApp": false,
+      "status": "barrel_only_not_reachable",
+      "importerCount": 1,
+      "importers": [
+        "components/invite/index.ts"
+      ],
+      "importerKinds": "component"
+    },
+    {
+      "file": "components/invite/time-slot-form.tsx",
+      "reachableFromApp": false,
+      "status": "barrel_only_not_reachable",
+      "importerCount": 1,
+      "importers": [
+        "components/invite/index.ts"
+      ],
+      "importerKinds": "component"
+    },
+    {
+      "file": "components/invite/wizard-footer.tsx",
+      "reachableFromApp": false,
+      "status": "barrel_only_not_reachable",
+      "importerCount": 1,
+      "importers": [
+        "components/invite/index.ts"
+      ],
+      "importerKinds": "component"
+    },
+    {
+      "file": "components/invite/wizard-header.tsx",
+      "reachableFromApp": false,
+      "status": "barrel_only_not_reachable",
+      "importerCount": 1,
+      "importers": [
+        "components/invite/index.ts"
+      ],
+      "importerKinds": "component"
+    },
+    {
+      "file": "components/invite/wizard-nav-buttons.tsx",
+      "reachableFromApp": false,
+      "status": "barrel_only_not_reachable",
+      "importerCount": 1,
+      "importers": [
+        "components/invite/index.ts"
+      ],
+      "importerKinds": "component"
+    },
+    {
+      "file": "components/invite/wizard-step-indicator.tsx",
+      "reachableFromApp": false,
+      "status": "barrel_only_not_reachable",
+      "importerCount": 1,
+      "importers": [
+        "components/invite/index.ts"
+      ],
+      "importerKinds": "component"
+    },
+    {
+      "file": "components/messaging/attachment-picker.tsx",
+      "reachableFromApp": false,
+      "status": "barrel_only_not_reachable",
+      "importerCount": 1,
+      "importers": [
+        "components/messaging/index.ts"
+      ],
+      "importerKinds": "component"
+    },
+    {
+      "file": "components/messaging/attachment-preview.tsx",
+      "reachableFromApp": false,
+      "status": "not_reachable_from_app",
+      "importerCount": 1,
+      "importers": [
+        "components/messaging/attachment-picker.tsx"
+      ],
+      "importerKinds": "component"
+    },
+    {
+      "file": "components/messaging/message-composer-sections.tsx",
+      "reachableFromApp": false,
+      "status": "not_reachable_from_app",
+      "importerCount": 1,
+      "importers": [
+        "components/messaging/message-composer.tsx"
+      ],
+      "importerKinds": "component"
+    },
+    {
+      "file": "components/messaging/message-composer.tsx",
+      "reachableFromApp": false,
+      "status": "barrel_only_not_reachable",
+      "importerCount": 1,
+      "importers": [
+        "components/messaging/index.ts"
+      ],
+      "importerKinds": "component"
+    },
+    {
+      "file": "components/messaging/thread-summary.tsx",
+      "reachableFromApp": false,
+      "status": "barrel_only_not_reachable",
+      "importerCount": 1,
+      "importers": [
+        "components/messaging/index.ts"
+      ],
+      "importerKinds": "component"
+    },
+    {
+      "file": "components/parent/kids-screen.tsx",
+      "reachableFromApp": false,
+      "status": "barrel_only_not_reachable",
+      "importerCount": 1,
+      "importers": [
+        "components/parent/index.ts"
+      ],
+      "importerKinds": "component"
+    },
+    {
+      "file": "components/parent/onboarding-checklist-sections.tsx",
+      "reachableFromApp": false,
+      "status": "not_reachable_from_app",
+      "importerCount": 1,
+      "importers": [
+        "components/parent/onboarding-checklist.tsx"
+      ],
+      "importerKinds": "component"
+    },
+    {
+      "file": "components/parent/onboarding-checklist.tsx",
+      "reachableFromApp": false,
+      "status": "barrel_only_not_reachable",
+      "importerCount": 1,
+      "importers": [
+        "components/parent/index.ts"
+      ],
+      "importerKinds": "component"
+    },
+    {
+      "file": "components/payment/card-form.tsx",
+      "reachableFromApp": false,
+      "status": "barrel_only_not_reachable",
+      "importerCount": 1,
+      "importers": [
+        "components/payment/index.ts"
+      ],
+      "importerKinds": "component"
+    },
+    {
+      "file": "components/payment/card-list-item.tsx",
+      "reachableFromApp": false,
+      "status": "barrel_only_not_reachable",
+      "importerCount": 1,
+      "importers": [
+        "components/payment/index.ts"
+      ],
+      "importerKinds": "component"
+    },
+    {
+      "file": "components/primitives/selection-tile.tsx",
+      "reachableFromApp": false,
+      "status": "unreferenced",
+      "importerCount": 0,
+      "importers": [],
+      "importerKinds": ""
+    },
+    {
+      "file": "components/profile/achievement-badge.tsx",
+      "reachableFromApp": false,
+      "status": "barrel_only_not_reachable",
+      "importerCount": 1,
+      "importers": [
+        "components/profile/index.ts"
+      ],
+      "importerKinds": "component"
+    },
+    {
+      "file": "components/profile/edit-children-section.tsx",
+      "reachableFromApp": false,
+      "status": "unreferenced",
+      "importerCount": 0,
+      "importers": [],
+      "importerKinds": ""
+    },
+    {
+      "file": "components/progress/cosmetic-selector.tsx",
+      "reachableFromApp": false,
+      "status": "unreferenced",
+      "importerCount": 0,
+      "importers": [],
+      "importerKinds": ""
+    },
+    {
+      "file": "components/progress/family-highlights.tsx",
+      "reachableFromApp": false,
+      "status": "unreferenced",
+      "importerCount": 0,
+      "importers": [],
+      "importerKinds": ""
+    },
+    {
+      "file": "components/progress/homework-card.tsx",
+      "reachableFromApp": false,
+      "status": "unreferenced",
+      "importerCount": 0,
+      "importers": [],
+      "importerKinds": ""
+    },
+    {
+      "file": "components/progress/progress-badges-tab.tsx",
+      "reachableFromApp": false,
+      "status": "unreferenced",
+      "importerCount": 0,
+      "importers": [],
+      "importerKinds": ""
+    },
+    {
+      "file": "components/progress/progress-goals-tab.tsx",
+      "reachableFromApp": false,
+      "status": "unreferenced",
+      "importerCount": 0,
+      "importers": [],
+      "importerKinds": ""
+    },
+    {
+      "file": "components/progress/progress-level-banner.tsx",
+      "reachableFromApp": false,
+      "status": "unreferenced",
+      "importerCount": 0,
+      "importers": [],
+      "importerKinds": ""
+    },
+    {
+      "file": "components/progress/squad-leaderboard.tsx",
+      "reachableFromApp": false,
+      "status": "unreferenced",
+      "importerCount": 0,
+      "importers": [],
+      "importerKinds": ""
+    },
+    {
+      "file": "components/review/review-card.tsx",
+      "reachableFromApp": false,
+      "status": "barrel_only_not_reachable",
+      "importerCount": 1,
+      "importers": [
+        "components/review/index.ts"
+      ],
+      "importerKinds": "component"
+    },
+    {
+      "file": "components/roster/athlete-notes.tsx",
+      "reachableFromApp": false,
+      "status": "barrel_only_not_reachable",
+      "importerCount": 1,
+      "importers": [
+        "components/roster/index.ts"
+      ],
+      "importerKinds": "component"
+    },
+    {
+      "file": "components/safety/block-user.tsx",
+      "reachableFromApp": false,
+      "status": "barrel_only_not_reachable",
+      "importerCount": 1,
+      "importers": [
+        "components/safety/index.ts"
+      ],
+      "importerKinds": "component"
+    },
+    {
+      "file": "components/safety/emergency-banner-sections.tsx",
+      "reachableFromApp": false,
+      "status": "not_reachable_from_app",
+      "importerCount": 1,
+      "importers": [
+        "components/safety/emergency-banner.tsx"
+      ],
+      "importerKinds": "component"
+    },
+    {
+      "file": "components/safety/emergency-banner.tsx",
+      "reachableFromApp": false,
+      "status": "barrel_only_not_reachable",
+      "importerCount": 1,
+      "importers": [
+        "components/safety/index.ts"
+      ],
+      "importerKinds": "component"
+    },
+    {
+      "file": "components/safety/medical-card-sections.tsx",
+      "reachableFromApp": false,
+      "status": "not_reachable_from_app",
+      "importerCount": 1,
+      "importers": [
+        "components/safety/medical-card.tsx"
+      ],
+      "importerKinds": "component"
+    },
+    {
+      "file": "components/safety/medical-card.tsx",
+      "reachableFromApp": false,
+      "status": "barrel_only_not_reachable",
+      "importerCount": 1,
+      "importers": [
+        "components/safety/index.ts"
+      ],
+      "importerKinds": "component"
+    },
+    {
+      "file": "components/safety/report-flow-sections.tsx",
+      "reachableFromApp": false,
+      "status": "not_reachable_from_app",
+      "importerCount": 1,
+      "importers": [
+        "components/safety/report-flow.tsx"
+      ],
+      "importerKinds": "component"
+    },
+    {
+      "file": "components/safety/report-flow.tsx",
+      "reachableFromApp": false,
+      "status": "barrel_only_not_reachable",
+      "importerCount": 1,
+      "importers": [
+        "components/safety/index.ts"
+      ],
+      "importerKinds": "component"
+    },
+    {
+      "file": "components/social/social-feed.tsx",
+      "reachableFromApp": false,
+      "status": "barrel_only_not_reachable",
+      "importerCount": 1,
+      "importers": [
+        "components/social/index.ts"
+      ],
+      "importerKinds": "component"
+    },
+    {
+      "file": "components/squad/squad-preview-step.tsx",
+      "reachableFromApp": false,
+      "status": "unreferenced",
+      "importerCount": 0,
+      "importers": [],
+      "importerKinds": ""
+    },
+    {
+      "file": "components/ui/collapsible.tsx",
+      "reachableFromApp": false,
+      "status": "barrel_only_not_reachable",
+      "importerCount": 1,
+      "importers": [
+        "components/ui/index.ts"
+      ],
+      "importerKinds": "component"
+    },
+    {
+      "file": "components/ui/filters/FilterChip.tsx",
+      "reachableFromApp": false,
+      "status": "not_reachable_from_app",
+      "importerCount": 3,
+      "importers": [
+        "components/ui/filters/FilterChipGroup.tsx",
+        "components/ui/filters/FilterSlider.tsx",
+        "components/ui/filters/index.ts"
+      ],
+      "importerKinds": "component"
+    },
+    {
+      "file": "components/ui/filters/FilterChipGroup.tsx",
+      "reachableFromApp": false,
+      "status": "barrel_only_not_reachable",
+      "importerCount": 1,
+      "importers": [
+        "components/ui/filters/index.ts"
+      ],
+      "importerKinds": "component"
+    },
+    {
+      "file": "components/ui/filters/FilterSection.tsx",
+      "reachableFromApp": false,
+      "status": "barrel_only_not_reachable",
+      "importerCount": 1,
+      "importers": [
+        "components/ui/filters/index.ts"
+      ],
+      "importerKinds": "component"
+    },
+    {
+      "file": "components/ui/filters/FilterSlider.tsx",
+      "reachableFromApp": false,
+      "status": "barrel_only_not_reachable",
+      "importerCount": 1,
+      "importers": [
+        "components/ui/filters/index.ts"
+      ],
+      "importerKinds": "component"
+    },
+    {
+      "file": "components/ui/filters/FilterToggle.tsx",
+      "reachableFromApp": false,
+      "status": "barrel_only_not_reachable",
+      "importerCount": 1,
+      "importers": [
+        "components/ui/filters/index.ts"
+      ],
+      "importerKinds": "component"
+    },
+    {
+      "file": "components/ui/filters/useFilter.tsx",
+      "reachableFromApp": false,
+      "status": "barrel_only_not_reachable",
+      "importerCount": 1,
+      "importers": [
+        "components/ui/filters/index.ts"
+      ],
+      "importerKinds": "component"
+    },
+    {
+      "file": "components/ui/message-status.tsx",
+      "reachableFromApp": false,
+      "status": "barrel_only_not_reachable",
+      "importerCount": 1,
+      "importers": [
+        "components/ui/index.ts"
+      ],
+      "importerKinds": "component"
+    },
+    {
+      "file": "components/video/annotation-badge-sections.tsx",
+      "reachableFromApp": false,
+      "status": "not_reachable_from_app",
+      "importerCount": 1,
+      "importers": [
+        "components/video/AnnotationBadge.tsx"
+      ],
+      "importerKinds": "component"
+    },
+    {
+      "file": "components/video/AnnotationBadge.tsx",
+      "reachableFromApp": false,
+      "status": "barrel_only_not_reachable",
+      "importerCount": 1,
+      "importers": [
+        "components/video/index.ts"
+      ],
+      "importerKinds": "component"
+    }
+  ],
+  "architectureFindings": {
+    "componentImportsServices": [
+      {
+        "file": "components/athlete/athlete-emergency-card.tsx",
+        "imports": [
+          "@/services/safety-service",
+          "@/services/safety-service"
+        ]
+      },
+      {
+        "file": "components/athlete/athlete-hero.tsx",
+        "imports": [
+          "@/services/roster-service"
+        ]
+      },
+      {
+        "file": "components/athlete/athlete-overview.tsx",
+        "imports": [
+          "@/services/safety-service",
+          "@/services/child-service"
+        ]
+      },
+      {
+        "file": "components/athlete/athlete-sessions.tsx",
+        "imports": [
+          "@/services/booking-service"
+        ]
+      },
+      {
+        "file": "components/athlete/athlete-special-needs-summary.tsx",
+        "imports": [
+          "@/services/child-service"
+        ]
+      },
+      {
+        "file": "components/athlete/athlete-stats-row.tsx",
+        "imports": [
+          "@/services/roster-service"
+        ]
+      },
+      {
+        "file": "components/athlete/athletes-stats-bar.tsx",
+        "imports": [
+          "@/services/roster-service"
+        ]
+      },
+      {
+        "file": "components/auth/onboarding-step-account-type.tsx",
+        "imports": [
+          "@/services/auth-service"
+        ]
+      },
+      {
+        "file": "components/auth/onboarding-step-athlete.tsx",
+        "imports": [
+          "@/services/auth-service"
+        ]
+      },
+      {
+        "file": "components/auth/onboarding-step-complete.tsx",
+        "imports": [
+          "@/services/auth-service"
+        ]
+      },
+      {
+        "file": "components/auth/onboarding-step-location.tsx",
+        "imports": [
+          "@/services/auth-service"
+        ]
+      },
+      {
+        "file": "components/auth/onboarding-types.ts",
+        "imports": [
+          "@/services/auth-service"
+        ]
+      },
+      {
+        "file": "components/availability/day-editor-venue-section.tsx",
+        "imports": [
+          "@/services/api-client"
+        ]
+      },
+      {
+        "file": "components/badges/badge-card-sections.tsx",
+        "imports": [
+          "@/services/badge-service"
+        ]
+      },
+      {
+        "file": "components/badges/badge-card.tsx",
+        "imports": [
+          "@/services/badge-service"
+        ]
+      },
+      {
+        "file": "components/badges/badge-grid-sections.tsx",
+        "imports": [
+          "@/services/badge-service"
+        ]
+      },
+      {
+        "file": "components/badges/badge-grid.tsx",
+        "imports": [
+          "@/services/badge-service"
+        ]
+      },
+      {
+        "file": "components/badges/child-badge-card.tsx",
+        "imports": [
+          "@/services/badge-service"
+        ]
+      },
+      {
+        "file": "components/badges/quick-recognition-modal.tsx",
+        "imports": [
+          "@/services/badge-service"
+        ]
+      },
+      {
+        "file": "components/bookings/booking-notes-card.tsx",
+        "imports": [
+          "@/services/progress-service"
+        ]
+      },
+      {
+        "file": "components/calendar/CalendarExportButton.tsx",
+        "imports": [
+          "@/services/calendar-service"
+        ]
+      },
+      {
+        "file": "components/club/FeedPost.tsx",
+        "imports": [
+          "@/services/social-feed-service"
+        ]
+      },
+      {
+        "file": "components/club/MatchesPanel.tsx",
+        "imports": [
+          "@/services/match-service"
+        ]
+      },
+      {
+        "file": "components/club/MembersPanel.tsx",
+        "imports": [
+          "@/services/club-service"
+        ]
+      },
+      {
+        "file": "components/club/branding-editor-sections.tsx",
+        "imports": [
+          "@/services/club-service"
+        ]
+      },
+      {
+        "file": "components/club/branding-editor.tsx",
+        "imports": [
+          "@/services/club-service"
+        ]
+      },
+      {
+        "file": "components/club/calendar-event-list.tsx",
+        "imports": [
+          "@/services/club-service"
+        ]
+      },
+      {
+        "file": "components/club/calendar-grid.tsx",
+        "imports": [
+          "@/services/club-service"
+        ]
+      },
+      {
+        "file": "components/club/club-dashboard-widgets.tsx",
+        "imports": [
+          "@/services/club-service"
+        ]
+      },
+      {
+        "file": "components/club/member-profile-card.tsx",
+        "imports": [
+          "@/services/club-service"
+        ]
+      },
+      {
+        "file": "components/club/member-role-management.tsx",
+        "imports": [
+          "@/services/club-service"
+        ]
+      },
+      {
+        "file": "components/club/sessions-panel-sections.tsx",
+        "imports": [
+          "@/services/group-session-service"
+        ]
+      },
+      {
+        "file": "components/club/settings-branding-section.tsx",
+        "imports": [
+          "@/services/club-service"
+        ]
+      },
+      {
+        "file": "components/club/settings-invites-section.tsx",
+        "imports": [
+          "@/services/club-service"
+        ]
+      },
+      {
+        "file": "components/club/settings-members-section.tsx",
+        "imports": [
+          "@/services/club-service"
+        ]
+      },
+      {
+        "file": "components/club/training-card.tsx",
+        "imports": [
+          "@/services/group-session-service"
+        ]
+      },
+      {
+        "file": "components/coach/analytics-screen.tsx",
+        "imports": [
+          "@/services/analytics-service"
+        ]
+      },
+      {
+        "file": "components/coach/availability-tutorial.tsx",
+        "imports": [
+          "@/services/api-client"
+        ]
+      },
+      {
+        "file": "components/coach/coach-detail-about.tsx",
+        "imports": [
+          "@/services/coach-service"
+        ]
+      },
+      {
+        "file": "components/coach/coach-detail-hero.tsx",
+        "imports": [
+          "@/services/coach-service"
+        ]
+      },
+      {
+        "file": "components/coach/coach-detail-reviews.tsx",
+        "imports": [
+          "@/services/coach-service"
+        ]
+      },
+      {
+        "file": "components/coach/coach-detail-sessions.tsx",
+        "imports": [
+          "@/services/coach-service"
+        ]
+      },
+      {
+        "file": "components/coach/onboarding-checklist.tsx",
+        "imports": [
+          "@/services/api-client"
+        ]
+      },
+      {
+        "file": "components/coach/public-profile-about.tsx",
+        "imports": [
+          "@/services/coach-service"
+        ]
+      },
+      {
+        "file": "components/coach/public-profile-credentials.tsx",
+        "imports": [
+          "@/services/coach-service"
+        ]
+      },
+      {
+        "file": "components/coach/public-profile-hero.tsx",
+        "imports": [
+          "@/services/coach-service"
+        ]
+      },
+      {
+        "file": "components/coach/public-profile-reviews.tsx",
+        "imports": [
+          "@/services/coach-service"
+        ]
+      },
+      {
+        "file": "components/coach/public-profile-specialties.tsx",
+        "imports": [
+          "@/services/coach-service"
+        ]
+      },
+      {
+        "file": "components/coach/scheduling-rules-modal.tsx",
+        "imports": [
+          "@/services/scheduling-rules-service"
+        ]
+      },
+      {
+        "file": "components/coach/slot-picker.tsx",
+        "imports": [
+          "@/services/availability-service"
+        ]
+      },
+      {
+        "file": "components/coach/trial-discovery-preview.tsx",
+        "imports": [
+          "@/services/trial-service"
+        ]
+      },
+      {
+        "file": "components/coach/trial-session-editor.tsx",
+        "imports": [
+          "@/services/trial-service"
+        ]
+      },
+      {
+        "file": "components/community/group-members-modal.tsx",
+        "imports": [
+          "@/services/community/community-group-service"
+        ]
+      },
+      {
+        "file": "components/compare/CompareBar.tsx",
+        "imports": [
+          "@/services/comparison-service"
+        ]
+      },
+      {
+        "file": "components/compare/CompareButton.tsx",
+        "imports": [
+          "@/services/comparison-service"
+        ]
+      },
+      {
+        "file": "components/compare/ComparisonTable.tsx",
+        "imports": [
+          "@/services/comparison-service"
+        ]
+      },
+      {
+        "file": "components/consent/ConsentBadge.tsx",
+        "imports": [
+          "@/services/consent-service"
+        ]
+      },
+      {
+        "file": "components/consent/ConsentCard.tsx",
+        "imports": [
+          "@/services/consent-service",
+          "@/services/user-service"
+        ]
+      },
+      {
+        "file": "components/consent/ConsentFilter.tsx",
+        "imports": [
+          "@/services/consent-service"
+        ]
+      },
+      {
+        "file": "components/consent/ConsentGrid.tsx",
+        "imports": [
+          "@/services/consent-service"
+        ]
+      },
+      {
+        "file": "components/development/coach-observation-modal.tsx",
+        "imports": [
+          "@/services/coach-observation-service"
+        ]
+      },
+      {
+        "file": "components/development/dev-special-needs-card.tsx",
+        "imports": [
+          "@/services/child-service"
+        ]
+      },
+      {
+        "file": "components/development/special-needs-accommodations.tsx",
+        "imports": [
+          "@/services/child-service"
+        ]
+      },
+      {
+        "file": "components/development/special-needs-disabilities.tsx",
+        "imports": [
+          "@/services/child-service"
+        ]
+      },
+      {
+        "file": "components/development/special-needs-notes-section.tsx",
+        "imports": [
+          "@/services/child-service"
+        ]
+      },
+      {
+        "file": "components/development/special-needs-observations.tsx",
+        "imports": [
+          "@/services/coach-observation-service"
+        ]
+      },
+      {
+        "file": "components/discover/FilterBar.tsx",
+        "imports": [
+          "@/services/discover-service"
+        ]
+      },
+      {
+        "file": "components/drills/AssignmentCard.tsx",
+        "imports": [
+          "@/services/drill-service"
+        ]
+      },
+      {
+        "file": "components/drills/DifficultyBadge.tsx",
+        "imports": [
+          "@/services/drill-service"
+        ]
+      },
+      {
+        "file": "components/drills/assign-drill-form.tsx",
+        "imports": [
+          "@/services/drill-service"
+        ]
+      },
+      {
+        "file": "components/drills/assignment-card-compact.tsx",
+        "imports": [
+          "@/services/drill-service"
+        ]
+      },
+      {
+        "file": "components/drills/assignment-card-helpers.ts",
+        "imports": [
+          "@/services/drill-service"
+        ]
+      },
+      {
+        "file": "components/drills/challenge-card.tsx",
+        "imports": [
+          "@/services/challenge-service"
+        ]
+      },
+      {
+        "file": "components/drills/drill-card-sections.tsx",
+        "imports": [
+          "@/services/drill-service"
+        ]
+      },
+      {
+        "file": "components/drills/drill-category-filter.tsx",
+        "imports": [
+          "@/services/drill-service"
+        ]
+      },
+      {
+        "file": "components/drills/drill-form-sections.tsx",
+        "imports": [
+          "@/services/drill-service"
+        ]
+      },
+      {
+        "file": "components/earnings/coach-payment-instructions-card.tsx",
+        "imports": [
+          "@/services/coach-payment-instructions-service"
+        ]
+      },
+      {
+        "file": "components/event/CheckInButton.tsx",
+        "imports": [
+          "@/services/event-service"
+        ]
+      },
+      {
+        "file": "components/event/RSVPButton-sections.tsx",
+        "imports": [
+          "@/services/event-service"
+        ]
+      },
+      {
+        "file": "components/event/RSVPButton.tsx",
+        "imports": [
+          "@/services/event-service"
+        ]
+      },
+      {
+        "file": "components/event/attendee-card-sections.tsx",
+        "imports": [
+          "@/services/event-service"
+        ]
+      },
+      {
+        "file": "components/event/check-in-button-sections.tsx",
+        "imports": [
+          "@/services/event-service"
+        ]
+      },
+      {
+        "file": "components/event/create-event-review-step.tsx",
+        "imports": [
+          "@/services/event-service"
+        ]
+      },
+      {
+        "file": "components/event/create-event-type-step.tsx",
+        "imports": [
+          "@/services/event-service"
+        ]
+      },
+      {
+        "file": "components/event/event-athlete-selector.tsx",
+        "imports": [
+          "@/services/club-service"
+        ]
+      },
+      {
+        "file": "components/event/event-card-sections.tsx",
+        "imports": [
+          "@/services/event-service"
+        ]
+      },
+      {
+        "file": "components/event/rsvp-buttons.tsx",
+        "imports": [
+          "@/services/event-service"
+        ]
+      },
+      {
+        "file": "components/family/add-child-basic-step-sections.tsx",
+        "imports": [
+          "@/services/child-service"
+        ]
+      },
+      {
+        "file": "components/family/add-child-basic-step.tsx",
+        "imports": [
+          "@/services/child-service"
+        ]
+      },
+      {
+        "file": "components/family/add-child-medical-step.tsx",
+        "imports": [
+          "@/services/child-service"
+        ]
+      },
+      {
+        "file": "components/family/children-child-card.tsx",
+        "imports": [
+          "@/services/child-service"
+        ]
+      },
+      {
+        "file": "components/family/medical-special-needs-form-sections.tsx",
+        "imports": [
+          "@/services/child-service"
+        ]
+      },
+      {
+        "file": "components/family/medical-special-needs-form.tsx",
+        "imports": [
+          "@/services/child-service"
+        ]
+      },
+      {
+        "file": "components/family/next-session-card.tsx",
+        "imports": [
+          "@/services/family"
+        ]
+      },
+      {
+        "file": "components/family/sharing-invite-modal.tsx",
+        "imports": [
+          "@/services/family"
+        ]
+      },
+      {
+        "file": "components/goals/CategoryBadge.tsx",
+        "imports": [
+          "@/services/progress-service"
+        ]
+      },
+      {
+        "file": "components/goals/GoalCard.tsx",
+        "imports": [
+          "@/services/progress-service"
+        ]
+      },
+      {
+        "file": "components/goals/GoalForm.tsx",
+        "imports": [
+          "@/services/progress-service"
+        ]
+      },
+      {
+        "file": "components/goals/goal-card-sections.tsx",
+        "imports": [
+          "@/services/progress-service"
+        ]
+      },
+      {
+        "file": "components/goals/goal-hero-section.tsx",
+        "imports": [
+          "@/services/progress-service"
+        ]
+      },
+      {
+        "file": "components/goals/goal-meta-card.tsx",
+        "imports": [
+          "@/services/progress-service"
+        ]
+      },
+      {
+        "file": "components/goals/goal-preview-card.tsx",
+        "imports": [
+          "@/services/progress-service"
+        ]
+      },
+      {
+        "file": "components/group/group-session-card.tsx",
+        "imports": [
+          "@/services/group-session-service",
+          "@/services/event-bus"
+        ]
+      },
+      {
+        "file": "components/group/group-session-hero.tsx",
+        "imports": [
+          "@/services/group-session-service"
+        ]
+      },
+      {
+        "file": "components/group/quick-rate-modal.tsx",
+        "imports": [
+          "@/services/progress/progress-skills-service",
+          "@/services/progress/progress-feedback-service"
+        ]
+      },
+      {
+        "file": "components/health/BodyPartSelector.tsx",
+        "imports": [
+          "@/services/injury-service"
+        ]
+      },
+      {
+        "file": "components/health/InjuryCard.tsx",
+        "imports": [
+          "@/services/injury-service"
+        ]
+      },
+      {
+        "file": "components/health/RecoveryTimeline.tsx",
+        "imports": [
+          "@/services/injury-service"
+        ]
+      },
+      {
+        "file": "components/health/body-part-selector-helpers.ts",
+        "imports": [
+          "@/services/injury-service"
+        ]
+      },
+      {
+        "file": "components/health/body-part-selector-sections-main.tsx",
+        "imports": [
+          "@/services/injury-service"
+        ]
+      },
+      {
+        "file": "components/health/health-stats-card.tsx",
+        "imports": [
+          "@/services/injury-service"
+        ]
+      },
+      {
+        "file": "components/health/injury-card-sections.tsx",
+        "imports": [
+          "@/services/injury-service"
+        ]
+      },
+      {
+        "file": "components/health/injury-details-sections.tsx",
+        "imports": [
+          "@/services/injury-service"
+        ]
+      },
+      {
+        "file": "components/health/injury-summary-card.tsx",
+        "imports": [
+          "@/services/injury-service"
+        ]
+      },
+      {
+        "file": "components/health/recovery-timeline-sections.tsx",
+        "imports": [
+          "@/services/injury-service"
+        ]
+      },
+      {
+        "file": "components/health/severity-picker-sections.tsx",
+        "imports": [
+          "@/services/injury-service"
+        ]
+      },
+      {
+        "file": "components/invoices/DownloadButton.tsx",
+        "imports": [
+          "@/services/invoice-service"
+        ]
+      },
+      {
+        "file": "components/invoices/InvoiceCard.tsx",
+        "imports": [
+          "@/services/invoice-service",
+          "@/services/user-service"
+        ]
+      },
+      {
+        "file": "components/invoices/download-button-sections.tsx",
+        "imports": [
+          "@/services/invoice-service"
+        ]
+      },
+      {
+        "file": "components/invoices/invoice-card-sections.tsx",
+        "imports": [
+          "@/services/invoice-service"
+        ]
+      },
+      {
+        "file": "components/invoices/invoice-preview-detail-sections.tsx",
+        "imports": [
+          "@/services/invoice-service"
+        ]
+      },
+      {
+        "file": "components/invoices/invoice-preview-primary-sections.tsx",
+        "imports": [
+          "@/services/invoice-service"
+        ]
+      },
+      {
+        "file": "components/invoices/mark-paid-button.tsx",
+        "imports": [
+          "@/services/invoice-service",
+          "@/services/event-bus"
+        ]
+      },
+      {
+        "file": "components/match/create-match-details.tsx",
+        "imports": [
+          "@/services/match-service"
+        ]
+      },
+      {
+        "file": "components/match/create-match-review.tsx",
+        "imports": [
+          "@/services/match-service"
+        ]
+      },
+      {
+        "file": "components/match/create-match-squad.tsx",
+        "imports": [
+          "@/services/squad-service"
+        ]
+      },
+      {
+        "file": "components/match/lineup-selector-sections.tsx",
+        "imports": [
+          "@/services/match-service"
+        ]
+      },
+      {
+        "file": "components/match/match-availability-stats.tsx",
+        "imports": [
+          "@/services/match-service"
+        ]
+      },
+      {
+        "file": "components/match/match-card-sections.tsx",
+        "imports": [
+          "@/services/match-service"
+        ]
+      },
+      {
+        "file": "components/match/match-card.tsx",
+        "imports": [
+          "@/services/match-service"
+        ]
+      },
+      {
+        "file": "components/match/match-header-card.tsx",
+        "imports": [
+          "@/services/match-service"
+        ]
+      },
+      {
+        "file": "components/match/match-player-list.tsx",
+        "imports": [
+          "@/services/match-service"
+        ]
+      },
+      {
+        "file": "components/messaging/chat-input.tsx",
+        "imports": [
+          "@/services/event-bus"
+        ]
+      },
+      {
+        "file": "components/notification/notification-card.tsx",
+        "imports": [
+          "@/services/notification-service"
+        ]
+      },
+      {
+        "file": "components/notification/notification-day-groups.tsx",
+        "imports": [
+          "@/services/notification-service"
+        ]
+      },
+      {
+        "file": "components/notification/notification-toast.tsx",
+        "imports": [
+          "@/services/notification-service"
+        ]
+      },
+      {
+        "file": "components/notification/notifications-panel.tsx",
+        "imports": [
+          "@/services/notification-service",
+          "@/services/badge-service"
+        ]
+      },
+      {
+        "file": "components/parent/discover-screen-sections.tsx",
+        "imports": [
+          "@/services/child-service"
+        ]
+      },
+      {
+        "file": "components/parent/discover-screen.tsx",
+        "imports": [
+          "@/services/api-client",
+          "@/services/availability-service",
+          "@/services/invite",
+          "@/services/booking-service",
+          "@/services/social-feed-service",
+          "@/services/discover-service"
+        ]
+      },
+      {
+        "file": "components/parent/kids-screen.tsx",
+        "imports": [
+          "@/services/booking-service"
+        ]
+      },
+      {
+        "file": "components/parent/multi-week-invite-card.tsx",
+        "imports": [
+          "@/services/invite/session-invite-service"
+        ]
+      },
+      {
+        "file": "components/parent/onboarding-checklist.tsx",
+        "imports": [
+          "@/services/api-client"
+        ]
+      },
+      {
+        "file": "components/progress/badge-circle.tsx",
+        "imports": [
+          "@/services/badge-service"
+        ]
+      },
+      {
+        "file": "components/progress/badge-detail-modal.tsx",
+        "imports": [
+          "@/services/badge-service"
+        ]
+      },
+      {
+        "file": "components/progress/badge-wall.tsx",
+        "imports": [
+          "@/services/badge-service"
+        ]
+      },
+      {
+        "file": "components/progress/coach-says-card.tsx",
+        "imports": [
+          "@/services/progress-service"
+        ]
+      },
+      {
+        "file": "components/progress/corner-detail-panel.tsx",
+        "imports": [
+          "@/services/progress-service"
+        ]
+      },
+      {
+        "file": "components/progress/daily-challenge-banner.tsx",
+        "imports": [
+          "@/services/api-client"
+        ]
+      },
+      {
+        "file": "components/progress/goals-compact.tsx",
+        "imports": [
+          "@/services/progress-service"
+        ]
+      },
+      {
+        "file": "components/progress/journal-prompt.tsx",
+        "imports": [
+          "@/services/progress/progress-self-assessment-service"
+        ]
+      },
+      {
+        "file": "components/progress/photo-viewer.tsx",
+        "imports": [
+          "@/services/media-service"
+        ]
+      },
+      {
+        "file": "components/progress/progress-badges-section.tsx",
+        "imports": [
+          "@/services/progress-service"
+        ]
+      },
+      {
+        "file": "components/progress/progress-badges-tab.tsx",
+        "imports": [
+          "@/services/badge-service"
+        ]
+      },
+      {
+        "file": "components/progress/progress-dashboard.tsx",
+        "imports": [
+          "@/services/progress-service"
+        ]
+      },
+      {
+        "file": "components/progress/progress-goals-tab.tsx",
+        "imports": [
+          "@/services/progress-service"
+        ]
+      },
+      {
+        "file": "components/progress/progress-level-banner.tsx",
+        "imports": [
+          "@/services/progress-service"
+        ]
+      },
+      {
+        "file": "components/progress/progress-overview-card.tsx",
+        "imports": [
+          "@/services/progress-service"
+        ]
+      },
+      {
+        "file": "components/progress/progress-parent-summary.tsx",
+        "imports": [
+          "@/services/progress-service"
+        ]
+      },
+      {
+        "file": "components/progress/session-feedback-card.tsx",
+        "imports": [
+          "@/services/progress-service"
+        ]
+      },
+      {
+        "file": "components/progress/session-feedback-sections.tsx",
+        "imports": [
+          "@/services/progress-service"
+        ]
+      },
+      {
+        "file": "components/progress/skill-level-card.tsx",
+        "imports": [
+          "@/services/progress-service"
+        ]
+      },
+      {
+        "file": "components/progress/skill-level-grid.tsx",
+        "imports": [
+          "@/services/progress-service"
+        ]
+      },
+      {
+        "file": "components/progress/squad-activity-feed.tsx",
+        "imports": [
+          "@/services/progress/progress-squad-activity-service"
+        ]
+      },
+      {
+        "file": "components/progress/video-player-overlay.tsx",
+        "imports": [
+          "@/services/media-service"
+        ]
+      },
+      {
+        "file": "components/recurring/FrequencyPicker.tsx",
+        "imports": [
+          "@/services/recurring-booking-service"
+        ]
+      },
+      {
+        "file": "components/recurring/RecurringCard.tsx",
+        "imports": [
+          "@/services/recurring-booking-service"
+        ]
+      },
+      {
+        "file": "components/recurring/recurring-card-content.tsx",
+        "imports": [
+          "@/services/recurring-booking-service"
+        ]
+      },
+      {
+        "file": "components/recurring/subscribe-summary.tsx",
+        "imports": [
+          "@/services/recurring-booking-service"
+        ]
+      },
+      {
+        "file": "components/referrals/ShareButton.tsx",
+        "imports": [
+          "@/services/referral-service"
+        ]
+      },
+      {
+        "file": "components/roster/athlete-card.tsx",
+        "imports": [
+          "@/services/roster-service"
+        ]
+      },
+      {
+        "file": "components/roster/athlete-filters.tsx",
+        "imports": [
+          "@/services/roster-service"
+        ]
+      },
+      {
+        "file": "components/roster/athlete-row.tsx",
+        "imports": [
+          "@/services/roster-service"
+        ]
+      },
+      {
+        "file": "components/roster/athlete-status-modal.tsx",
+        "imports": [
+          "@/services/roster-service"
+        ]
+      },
+      {
+        "file": "components/roster/raise-concern-form.tsx",
+        "imports": [
+          "@/services/concern-service"
+        ]
+      },
+      {
+        "file": "components/roster/raise-concern-pickers.tsx",
+        "imports": [
+          "@/services/concern-service"
+        ]
+      },
+      {
+        "file": "components/roster/removal-confirmation-modal.tsx",
+        "imports": [
+          "@/services/roster-service",
+          "@/services/club-service"
+        ]
+      },
+      {
+        "file": "components/roster/removal-confirmation-sections.tsx",
+        "imports": [
+          "@/services/roster-service",
+          "@/services/club-service"
+        ]
+      },
+      {
+        "file": "components/roster/roster-filter-chips.tsx",
+        "imports": [
+          "@/services/roster-service"
+        ]
+      },
+      {
+        "file": "components/roster/roster-screen-sections.tsx",
+        "imports": [
+          "@/services/roster-service"
+        ]
+      },
+      {
+        "file": "components/safety/EmergencyQuickCard.tsx",
+        "imports": [
+          "@/services/safety-service"
+        ]
+      },
+      {
+        "file": "components/safety/block-user.tsx",
+        "imports": [
+          "@/services/block-service"
+        ]
+      },
+      {
+        "file": "components/safety/emergency-details.tsx",
+        "imports": [
+          "@/services/safety-service"
+        ]
+      },
+      {
+        "file": "components/safety/report-flow.tsx",
+        "imports": [
+          "@/services/report-service"
+        ]
+      },
+      {
+        "file": "components/session/badges-step.tsx",
+        "imports": [
+          "@/services/badge-service",
+          "@/services/badge-definitions"
+        ]
+      },
+      {
+        "file": "components/session/rsvp-summary.tsx",
+        "imports": [
+          "@/services/rsvp-service"
+        ]
+      },
+      {
+        "file": "components/session/session-notes-form.tsx",
+        "imports": [
+          "@/services/progress-service"
+        ]
+      },
+      {
+        "file": "components/social/comment-preview.tsx",
+        "imports": [
+          "@/services/comment-service"
+        ]
+      },
+      {
+        "file": "components/social/feed-post-card.tsx",
+        "imports": [
+          "@/services/social-feed-service"
+        ]
+      },
+      {
+        "file": "components/social/session-announcement-card.tsx",
+        "imports": [
+          "@/services/social-feed-service"
+        ]
+      },
+      {
+        "file": "components/squad/SquadMemberSelect.tsx",
+        "imports": [
+          "@/services/invite"
+        ]
+      },
+      {
+        "file": "components/squad/inline-squad-selector.tsx",
+        "imports": [
+          "@/services/squad-service"
+        ]
+      },
+      {
+        "file": "components/squad/squad-add-members.tsx",
+        "imports": [
+          "@/services/club-service"
+        ]
+      },
+      {
+        "file": "components/squad/squad-danger-zone.tsx",
+        "imports": [
+          "@/services/club-service"
+        ]
+      },
+      {
+        "file": "components/squad/squad-member-select-sections.tsx",
+        "imports": [
+          "@/services/invite"
+        ]
+      },
+      {
+        "file": "components/squad/squad-members-card.tsx",
+        "imports": [
+          "@/services/club-service"
+        ]
+      },
+      {
+        "file": "components/squad/squad-picker-sections.tsx",
+        "imports": [
+          "@/services/squad-service"
+        ]
+      },
+      {
+        "file": "components/squad/squad-picker.tsx",
+        "imports": [
+          "@/services/squad-service"
+        ]
+      },
+      {
+        "file": "components/squad/squad-preview-step.tsx",
+        "imports": [
+          "@/services/invite"
+        ]
+      },
+      {
+        "file": "components/user/find-coach-screen.tsx",
+        "imports": [
+          "@/services/discover-service"
+        ]
+      },
+      {
+        "file": "components/video/AnnotationBadge.tsx",
+        "imports": [
+          "@/services/video-service"
+        ]
+      },
+      {
+        "file": "components/video/annotation-badge-sections.tsx",
+        "imports": [
+          "@/services/video-service"
+        ]
+      },
+      {
+        "file": "components/video/video-details-card.tsx",
+        "imports": [
+          "@/services/video-service"
+        ]
+      },
+      {
+        "file": "components/video/video-info-section.tsx",
+        "imports": [
+          "@/services/video-service"
+        ]
+      }
+    ],
+    "servicesImportUi": [],
+    "servicesImportHooks": [],
+    "hardcodedRoutes": [],
+    "resultPatternDrift": {
+      "dotOk": [
+        "app/session/[id]/complete.tsx",
+        "components/bookings/booking-info-cards.tsx",
+        "hooks/use-auth.tsx",
+        "services/academy-service.ts",
+        "services/analytics/analytics-export-service.ts",
+        "services/analytics/analytics-query-service.ts",
+        "services/analytics/analytics-tracking-service.ts",
+        "services/api-client.ts",
+        "services/auth-service.ts",
+        "services/calendar-service.ts",
+        "services/child-service.ts",
+        "services/club-service.ts",
+        "services/counter-offer-service.ts",
+        "services/earnings/earnings-calculator-service.ts",
+        "services/earnings/earnings-report-service.ts",
+        "services/earnings/payout-service.ts",
+        "services/event/event-attendance-service.ts",
+        "services/event/event-crud-service.ts",
+        "services/event/event-rsvp-service.ts",
+        "services/group-session/session-crud-service.ts",
+        "services/invite/session-invite-service.ts",
+        "services/invoice-service.ts",
+        "services/match-service.ts",
+        "services/session-template-service.ts",
+        "services/squad-service.ts",
+        "services/video-service.ts",
+        "constants/booking-types.ts",
+        "constants/relational-demo-seeds.legacy.ts"
+      ],
+      "dotIsOk": [],
+      "serviceThrows": [
+        "services/api-client.ts",
+        "services/event/event-rsvp-service.ts",
+        "services/relational-demo-seed-service.ts",
+        "services/video-service.ts"
+      ]
+    }
+  }
+}
