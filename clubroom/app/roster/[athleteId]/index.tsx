@@ -59,44 +59,33 @@ export default function AthleteProfileScreen() {
     handleRaiseConcern,
     handleRemove,
   } = useAthleteDetail(athleteId);
+  const renderShell = (content: React.ReactNode) => (
+    <SafeAreaView
+      style={[styles.container, { backgroundColor: colors.background }]}
+      edges={['top', 'bottom']}
+    >
+      {content}
+    </SafeAreaView>
+  );
 
   // --- 4 visual states ---
   if (status === 'loading') {
-    return (
-      <SafeAreaView
-        style={[styles.container, { backgroundColor: colors.background }]}
-        edges={['top', 'bottom']}
-      >
-        <LoadingState variant="detail" />
-      </SafeAreaView>
-    );
+    return renderShell(<LoadingState variant="detail" />);
   }
 
   if (status === 'error') {
-    return (
-      <SafeAreaView
-        style={[styles.container, { backgroundColor: colors.background }]}
-        edges={['top', 'bottom']}
-      >
-        <ErrorState message={error?.message || 'Failed to load'} onRetry={retry} />
-      </SafeAreaView>
-    );
+    return renderShell(<ErrorState message={error?.message || 'Failed to load'} onRetry={retry} />);
   }
 
   if (status === 'empty' || !data) {
-    return (
-      <SafeAreaView
-        style={[styles.container, { backgroundColor: colors.background }]}
-        edges={['top', 'bottom']}
-      >
-        <EmptyState
-          icon="person-outline"
-          title="Athlete not found"
-          message="This athlete may have been removed from your roster."
-          actionLabel="Go Back"
-          onPressAction={() => router.back()}
-        />
-      </SafeAreaView>
+    return renderShell(
+      <EmptyState
+        icon="person-outline"
+        title="Athlete not found"
+        message="This athlete may have been removed from your roster."
+        actionLabel="Go Back"
+        onPressAction={() => router.back()}
+      />,
     );
   }
 
@@ -130,11 +119,8 @@ export default function AthleteProfileScreen() {
     }
   };
 
-  return (
-    <SafeAreaView
-      style={[styles.container, { backgroundColor: colors.background }]}
-      edges={['top', 'bottom']}
-    >
+  return renderShell(
+    <>
       <Row gap="md" align="center" style={styles.header}>
         <Clickable onPress={() => router.back()} hitSlop={8} accessibilityLabel="Go back">
           <Ionicons name="arrow-back" size={24} color={colors.text} />
@@ -173,7 +159,7 @@ export default function AthleteProfileScreen() {
         onSubmit={handleAddTagSubmit}
         onClose={closeTagsModal}
       />
-    </SafeAreaView>
+    </>,
   );
 }
 
