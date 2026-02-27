@@ -95,45 +95,37 @@ export default function EventsListScreen() {
 
   if (status === 'empty') {
     return renderShell(
-        <EmptyState
-          icon="calendar-outline"
-          title="No events yet"
-          message="No events created yet."
-          actionLabel={isCoach ? 'Create Event' : undefined}
-          onPressAction={isCoach ? onCreate : undefined}
-        />,
+      <EmptyState
+        icon="calendar-outline"
+        title="No events yet"
+        message="No events created yet."
+        actionLabel={isCoach ? 'Create Event' : undefined}
+        onPressAction={isCoach ? onCreate : undefined}
+      />,
     );
   }
 
-  return (
-    <SafeAreaView
-      style={[styles.container, { backgroundColor: palette.background }]}
-      edges={['top', 'bottom']}
-    >
-      {header}
-      {tabs}
-
-      <FlatList
-        CellRendererComponent={AccessibleListCell}
-        accessibilityRole="list"
-        data={filteredEvents}
-        keyExtractor={(item) => item.id}
-        renderItem={({ item }) => (
-          <EventCard event={item} onPress={() => router.push(Routes.event(item.id))} />
-        )}
-        contentContainerStyle={styles.listContent}
-        showsVerticalScrollIndicator={false}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
-        ListEmptyComponent={
-          <EventsListEmptyState
-            colors={palette}
-            filter={filter}
-            isCoach={isCoach}
-            onCreate={onCreate}
-          />
-        }
-      />
-    </SafeAreaView>
+  return renderShell(
+    <FlatList
+      CellRendererComponent={AccessibleListCell}
+      accessibilityRole="list"
+      data={filteredEvents}
+      keyExtractor={(item) => item.id}
+      renderItem={({ item }) => (
+        <EventCard event={item} onPress={() => router.push(Routes.event(item.id))} />
+      )}
+      contentContainerStyle={styles.listContent}
+      showsVerticalScrollIndicator={false}
+      refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
+      ListEmptyComponent={
+        <EventsListEmptyState
+          colors={palette}
+          filter={filter}
+          isCoach={isCoach}
+          onCreate={onCreate}
+        />
+      }
+    />,
   );
 }
 

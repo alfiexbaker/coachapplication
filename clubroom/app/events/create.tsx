@@ -63,13 +63,13 @@ export default function CreateEventScreen() {
 
   if (status === 'empty') {
     return renderShell(
-        <EmptyState
-          icon="calendar-outline"
-          title="Creation unavailable"
-          message="The event creation flow is currently unavailable."
-          actionLabel="Retry"
-          onPressAction={retry}
-        />,
+      <EmptyState
+        icon="calendar-outline"
+        title="Creation unavailable"
+        message="The event creation flow is currently unavailable."
+        actionLabel="Retry"
+        onPressAction={retry}
+      />,
     );
   }
 
@@ -138,15 +138,11 @@ export default function CreateEventScreen() {
     }
   };
 
-  return (
-    <SafeAreaView
-      style={[styles.container, { backgroundColor: palette.background }]}
-      edges={['top', 'bottom']}
+  return renderShell(
+    <KeyboardAvoidingView
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      style={styles.keyboardView}
     >
-      <KeyboardAvoidingView
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-        style={styles.keyboardView}
-      >
         <PageHeader
           title="Create Event"
           showBack
@@ -201,8 +197,7 @@ export default function CreateEventScreen() {
             </Button>
           )}
         </View>
-      </KeyboardAvoidingView>
-    </SafeAreaView>
+    </KeyboardAvoidingView>,
   );
 }
 

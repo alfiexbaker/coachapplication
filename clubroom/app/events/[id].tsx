@@ -90,15 +90,11 @@ export default function EventDetailScreen() {
     );
   }
 
-  return (
-    <SafeAreaView
-      style={[styles.container, { backgroundColor: palette.background }]}
-      edges={['top', 'bottom']}
+  return renderShell(
+    <ScrollView
+      showsVerticalScrollIndicator={false}
+      refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
     >
-      <ScrollView
-        showsVerticalScrollIndicator={false}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
-      >
         {event.imageUrl && (
           <View style={styles.imageContainer}>
             <Image source={{ uri: event.imageUrl }} style={styles.headerImage} />
@@ -317,8 +313,7 @@ export default function EventDetailScreen() {
             </View>
           )}
         </View>
-      </ScrollView>
-    </SafeAreaView>
+    </ScrollView>,
   );
 }
 
