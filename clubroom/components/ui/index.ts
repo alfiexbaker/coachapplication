@@ -1,4 +1,3 @@
-export * from './collapsible';
 export * from './empty-state';
 export * from './icon-symbol';
 export { LoadingState, ErrorState, EmptyStateScreen } from './screen-states';
@@ -9,4 +8,3 @@ export * from './booking/booking-wizard';
 export * from './booking/calendar-picker';
 export * from './booking/session-type-selector';
 export * from './booking/time-slot-picker';
-export * from './message-status';

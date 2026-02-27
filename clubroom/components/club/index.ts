@@ -10,9 +10,6 @@ export type { SessionsPanelProps } from './SessionsPanel';
 export { MatchesPanel } from './MatchesPanel';
 export type { MatchesPanelProps } from './MatchesPanel';
 
-export { EventCard, EventsPanel } from './EventsPanel';
-export type { EventCardProps, EventsPanelProps } from './EventsPanel';
-
 export { FeedPost } from './FeedPost';
 export type { FeedPostProps } from './FeedPost';
 
