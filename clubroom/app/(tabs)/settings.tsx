@@ -1,6 +1,7 @@
 import { useEffect } from 'react';
 import { ScrollView, StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import type { ReactNode } from 'react';
 
 import { ScreenHeader } from '@/components/primitives/screen-header';
 import { Column } from '@/components/primitives/column';
@@ -31,44 +32,31 @@ export default function SettingsScreen() {
   useEffect(() => {
     logger.debug('Settings screen mounted', { role });
   }, [role]);
+  const renderState = (content: ReactNode) => (
+    <SafeAreaView
+      style={[styles.container, { backgroundColor: palette.background }]}
+      edges={['top', 'bottom']}
+    >
+      <ScreenHeader title="Profile" subtitle="Your account" />
+      {content}
+    </SafeAreaView>
+  );
 
   if (isLoading) {
-    return (
-      <SafeAreaView
-        style={[styles.container, { backgroundColor: palette.background }]}
-        edges={['top', 'bottom']}
-      >
-        <ScreenHeader title="Profile" subtitle="Your account" />
-        <LoadingState variant="form" />
-      </SafeAreaView>
-    );
+    return renderState(<LoadingState variant="form" />);
   }
 
   if (error) {
-    return (
-      <SafeAreaView
-        style={[styles.container, { backgroundColor: palette.background }]}
-        edges={['top', 'bottom']}
-      >
-        <ScreenHeader title="Profile" subtitle="Your account" />
-        <ErrorState message={error} onRetry={() => void logout()} />
-      </SafeAreaView>
-    );
+    return renderState(<ErrorState message={error} onRetry={() => void logout()} />);
   }
 
   if (!currentUser) {
-    return (
-      <SafeAreaView
-        style={[styles.container, { backgroundColor: palette.background }]}
-        edges={['top', 'bottom']}
-      >
-        <ScreenHeader title="Profile" subtitle="Your account" />
-        <EmptyState
-          icon="person-outline"
-          title="Sign in required"
-          message="Please sign in to manage your settings."
-        />
-      </SafeAreaView>
+    return renderState(
+      <EmptyState
+        icon="person-outline"
+        title="Sign in required"
+        message="Please sign in to manage your settings."
+      />,
     );
   }
 

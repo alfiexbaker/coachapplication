@@ -2,6 +2,7 @@ import { useCallback, useRef } from 'react';
 import { RefreshControl, ScrollView, StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
+import type { ReactNode } from 'react';
 import { Routes } from '@/navigation/routes';
 
 import { ScreenHeader } from '@/components/primitives/screen-header';
@@ -39,46 +40,35 @@ export default function MessagesScreen() {
   const handleFindCoaches = useCallback(() => {
     router.push(Routes.MORE);
   }, []);
+  const renderState = (content: ReactNode) => (
+    <SafeAreaView
+      style={[styles.safeArea, { backgroundColor: palette.background }]}
+      edges={['top', 'bottom']}
+    >
+      <ScreenHeader title="Messages" subtitle="Your conversations" />
+      {content}
+    </SafeAreaView>
+  );
 
   if (status === 'loading') {
-    return (
-      <SafeAreaView
-        style={[styles.safeArea, { backgroundColor: palette.background }]}
-        edges={['top', 'bottom']}
-      >
-        <ScreenHeader title="Messages" subtitle="Your conversations" />
-        <LoadingState variant="list" />
-      </SafeAreaView>
-    );
+    return renderState(<LoadingState variant="list" />);
   }
 
   if (status === 'error') {
-    return (
-      <SafeAreaView
-        style={[styles.safeArea, { backgroundColor: palette.background }]}
-        edges={['top', 'bottom']}
-      >
-        <ScreenHeader title="Messages" subtitle="Your conversations" />
-        <ErrorState message={error?.message ?? 'Unable to load conversations'} onRetry={retry} />
-      </SafeAreaView>
+    return renderState(
+      <ErrorState message={error?.message ?? 'Unable to load conversations'} onRetry={retry} />,
     );
   }
 
   if (status === 'empty') {
-    return (
-      <SafeAreaView
-        style={[styles.safeArea, { backgroundColor: palette.background }]}
-        edges={['top', 'bottom']}
-      >
-        <ScreenHeader title="Messages" subtitle="Your conversations" />
+    return renderState(
         <EmptyState
           icon="chatbubbles"
           title="No messages yet"
           message="Start a conversation with a coach or respond to pending requests."
           actionLabel="Find coaches"
           onPressAction={handleFindCoaches}
-        />
-      </SafeAreaView>
+        />,
     );
   }
 

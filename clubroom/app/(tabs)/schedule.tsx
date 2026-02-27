@@ -6,7 +6,7 @@
  * All UI sections are imported sub-components.
  */
 
-import React, { useRef } from 'react';
+import React, { useRef, type ReactNode } from 'react';
 import { RefreshControl, ScrollView, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
@@ -39,29 +39,27 @@ export default function ScheduleScreen() {
   const schedule = useSchedule();
   const sessionsScrollRef = useRef<ScrollView>(null);
   useScrollToTopOnTabReselect(sessionsScrollRef);
+  const renderShell = (content: ReactNode) => (
+    <SafeAreaView
+      style={[styles.container, { backgroundColor: colors.background }]}
+      edges={['top', 'bottom']}
+    >
+      {content}
+    </SafeAreaView>
+  );
 
   // Loading state
   if (schedule.loading) {
-    return (
-      <SafeAreaView
-        style={[styles.container, { backgroundColor: colors.background }]}
-        edges={['top', 'bottom']}
-      >
-        <LoadingState variant="calendar" />
-      </SafeAreaView>
-    );
+    return renderShell(<LoadingState variant="calendar" />);
   }
 
   // Error state
   if (schedule.error) {
-    return (
-      <SafeAreaView
-        style={[styles.container, { backgroundColor: colors.background }]}
-        edges={['top', 'bottom']}
-      >
+    return renderShell(
+      <>
         <ScreenHeader title="Schedule" subtitle="Your upcoming sessions" />
         <ErrorState message={schedule.error} onRetry={schedule.retry} />
-      </SafeAreaView>
+      </>,
     );
   }
 
@@ -71,11 +69,8 @@ export default function ScheduleScreen() {
     schedule.weekData.every((day) => day.sessions.length === 0);
 
   if (isSessionEmpty) {
-    return (
-      <SafeAreaView
-        style={[styles.container, { backgroundColor: colors.background }]}
-        edges={['top', 'bottom']}
-      >
+    return renderShell(
+      <>
         <ScreenHeader
           title="Schedule"
           subtitle="Your upcoming sessions"
@@ -104,7 +99,7 @@ export default function ScheduleScreen() {
             router.push(Routes.sessionsCreateIntent({ intent: 'new', source: 'schedule' }))
           }
         />
-      </SafeAreaView>
+      </>,
     );
   }
 
