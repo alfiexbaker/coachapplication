@@ -8,6 +8,7 @@ import { recurringBookingService } from '../../services/recurring-booking-servic
 import { verificationService } from '../../services/verification-service';
 import { cancellationService } from '../../services/cancellation-service';
 import { counterOfferService } from '../../services/counter-offer-service';
+import { bookingService } from '../../services/booking-service';
 import { apiClient } from '../../services/api-client';
 import { STORAGE_KEYS } from '../../constants/storage-keys';
 
@@ -16,6 +17,7 @@ const RESET_KEYS = [
   STORAGE_KEYS.WAITLIST,
   STORAGE_KEYS.FAVOURITES,
   STORAGE_KEYS.RECURRING_BOOKINGS,
+  STORAGE_KEYS.BOOKINGS,
   STORAGE_KEYS.VERIFICATION,
   STORAGE_KEYS.CANCELLATION_RECORDS,
   STORAGE_KEYS.NO_SHOW_COUNTS,
@@ -162,6 +164,16 @@ test('verificationService.updateVerificationItem emits VERIFICATION_UPDATED', as
 });
 
 test('cancellationService.cancelBooking emits CANCELLATION_RECORDED', async () => {
+  const bookingId = 'booking_cancel_1';
+  const saveResult = await bookingService.saveBookingDirect({
+    id: bookingId,
+    coachId: 'coach_cancel_1',
+    status: 'CONFIRMED',
+    scheduledAt: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
+    location: 'Pitch 1',
+  });
+  assert.strictEqual(saveResult.success, true);
+
   let emitted: EventPayloads[typeof ServiceEvents.CANCELLATION_RECORDED] | undefined;
   const unsub = eventBus.on<EventPayloads[typeof ServiceEvents.CANCELLATION_RECORDED]>(
     ServiceEvents.CANCELLATION_RECORDED,
@@ -170,7 +182,7 @@ test('cancellationService.cancelBooking emits CANCELLATION_RECORDED', async () =
     },
   );
 
-  const recordResult = await cancellationService.cancelBooking('booking_cancel_1', 'parent', {
+  const recordResult = await cancellationService.cancelBooking(bookingId, 'parent', {
     reason: 'schedule_conflict',
     coachId: 'coach_cancel_1',
     familyId: 'family_cancel_1',
@@ -179,7 +191,7 @@ test('cancellationService.cancelBooking emits CANCELLATION_RECORDED', async () =
   unsub();
 
   assert.strictEqual(emitted?.cancellationId, recordResult.success ? recordResult.data.id : '');
-  assert.strictEqual(emitted?.bookingId, 'booking_cancel_1');
+  assert.strictEqual(emitted?.bookingId, bookingId);
   assert.strictEqual(emitted?.cancelledBy, 'parent');
 });
 
