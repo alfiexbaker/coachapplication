@@ -10,6 +10,7 @@ import { View, StyleSheet, ScrollView, RefreshControl, ViewStyle } from 'react-n
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router, useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
+import type { ReactNode } from 'react';
 
 import { ThemedText } from '@/components/themed-text';
 import { Clickable } from '@/components/primitives/clickable';
@@ -29,47 +30,49 @@ export default function CoachProfileScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const { colors: palette } = useScreen<null>({ load: async () => ok(null), isEmpty: () => false });
   const p = useCoachDetail(id);
-
-  if (p.status === 'loading') {
-    return (
-      <SafeAreaView style={[styles.container, { backgroundColor: palette.background }]}>
-        <LoadingState variant="detail" />
-      </SafeAreaView>
-    );
-  }
-
-  if (p.status === 'error') {
-    return (
-      <SafeAreaView style={[styles.container, { backgroundColor: palette.background }]}>
-        <ErrorState
-          message={p.error?.message ?? 'Failed to load coach profile.'}
-          onRetry={p.retry}
-        />
-      </SafeAreaView>
-    );
-  }
-
-  if (p.status === 'empty' || !p.coach) {
-    return (
-      <SafeAreaView style={[styles.container, { backgroundColor: palette.background }]}>
-        <View style={styles.centered}>
-          <EmptyState
-            icon="person-circle-outline"
-            title="Coach not found"
-            message="This coach profile is unavailable."
-            actionLabel="Go back"
-            onPressAction={() => router.back()}
-          />
-        </View>
-      </SafeAreaView>
-    );
-  }
-
-  return (
+  const renderStateShell = (content: ReactNode) => (
+    <SafeAreaView style={[styles.container, { backgroundColor: palette.background }]}>
+      {content}
+    </SafeAreaView>
+  );
+  const renderMainShell = (content: ReactNode) => (
     <SafeAreaView
       style={[styles.container, { backgroundColor: palette.background }]}
       edges={['top', 'bottom']}
     >
+      {content}
+    </SafeAreaView>
+  );
+
+  if (p.status === 'loading') {
+    return renderStateShell(<LoadingState variant="detail" />);
+  }
+
+  if (p.status === 'error') {
+    return renderStateShell(
+      <ErrorState
+        message={p.error?.message ?? 'Failed to load coach profile.'}
+        onRetry={p.retry}
+      />,
+    );
+  }
+
+  if (p.status === 'empty' || !p.coach) {
+    return renderStateShell(
+      <View style={styles.centered}>
+        <EmptyState
+          icon="person-circle-outline"
+          title="Coach not found"
+          message="This coach profile is unavailable."
+          actionLabel="Go back"
+          onPressAction={() => router.back()}
+        />
+      </View>,
+    );
+  }
+
+  return renderMainShell(
+    <>
       <ScrollView
         style={styles.scroll}
         showsVerticalScrollIndicator={false}
@@ -152,7 +155,7 @@ export default function CoachProfileScreen() {
           </Button>
         </Row>
       )}
-    </SafeAreaView>
+    </>,
   );
 }
 
