@@ -1,6 +1,7 @@
 import { useRef } from 'react';
 import { ScrollView, StyleSheet, Switch, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import type { ReactNode } from 'react';
 
 import { PageHeader } from '@/components/primitives/page-header';
 import { SurfaceCard } from '@/components/primitives/surface-card';
@@ -46,35 +47,27 @@ export default function EditChildProfileModal() {
     return key;
   };
 
+  const renderStateShell = (content: ReactNode) => (
+    <SafeAreaView
+      ref={modalRef}
+      accessible
+      accessibilityViewIsModal
+      accessibilityRole="dialog"
+      style={[styles.container, { backgroundColor: palette.background }]}
+      edges={['top']}
+    >
+      <PageHeader title="Edit Child Profile" showBack centerTitle />
+      {content}
+    </SafeAreaView>
+  );
+
   if (c.loading) {
-    return (
-      <SafeAreaView
-        ref={modalRef}
-        accessible
-        accessibilityViewIsModal
-        accessibilityRole="dialog"
-        style={[styles.container, { backgroundColor: palette.background }]}
-        edges={['top']}
-      >
-        <PageHeader title="Edit Child Profile" showBack centerTitle />
-        <LoadingState variant="form" />
-      </SafeAreaView>
-    );
+    return renderStateShell(<LoadingState variant="form" />);
   }
 
   if (c.status === 'error' || !c.child) {
-    return (
-      <SafeAreaView
-        ref={modalRef}
-        accessible
-        accessibilityViewIsModal
-        accessibilityRole="dialog"
-        style={[styles.container, { backgroundColor: palette.background }]}
-        edges={['top']}
-      >
-        <PageHeader title="Edit Child Profile" showBack centerTitle />
-        <ErrorState message={c.error?.message ?? 'Failed to load child profile.'} onRetry={c.retry} />
-      </SafeAreaView>
+    return renderStateShell(
+      <ErrorState message={c.error?.message ?? 'Failed to load child profile.'} onRetry={c.retry} />,
     );
   }
 
