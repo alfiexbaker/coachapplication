@@ -10,6 +10,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 import { Routes } from '@/navigation/routes';
 import { Ionicons } from '@expo/vector-icons';
+import type { ReactNode } from 'react';
 
 import { Clickable } from '@/components/primitives/clickable';
 import { Column } from '@/components/primitives/column';
@@ -26,34 +27,27 @@ export default function GroupSessionsScreen() {
   const { colors } = useTheme();
   const { sessions, status, error, refreshing, onRefresh, retry, filter, setFilter, isCoach, badgeMap, isSingleChild } =
     useGroupSessions();
-
-  if (status === 'loading') {
-    return (
-      <SafeAreaView
-        style={[styles.container, { backgroundColor: colors.background }]}
-        edges={['top', 'bottom']}
-      >
-        <LoadingState variant="list" />
-      </SafeAreaView>
-    );
-  }
-
-  if (status === 'error') {
-    return (
-      <SafeAreaView
-        style={[styles.container, { backgroundColor: colors.background }]}
-        edges={['top', 'bottom']}
-      >
-        <ErrorState message={error?.message || 'Failed to load group sessions.'} onRetry={retry} />
-      </SafeAreaView>
-    );
-  }
-
-  return (
+  const renderShell = (content: ReactNode) => (
     <SafeAreaView
       style={[styles.container, { backgroundColor: colors.background }]}
       edges={['top', 'bottom']}
     >
+      {content}
+    </SafeAreaView>
+  );
+
+  if (status === 'loading') {
+    return renderShell(<LoadingState variant="list" />);
+  }
+
+  if (status === 'error') {
+    return renderShell(
+      <ErrorState message={error?.message || 'Failed to load group sessions.'} onRetry={retry} />,
+    );
+  }
+
+  return renderShell(
+    <>
       <Row gap="md" align="center" style={styles.header}>
         <Clickable onPress={() => router.back()} hitSlop={8}>
           <Ionicons name="arrow-back" size={24} color={colors.text} />
@@ -132,7 +126,7 @@ export default function GroupSessionsScreen() {
           </View>
         )}
       </ScrollView>
-    </SafeAreaView>
+    </>,
   );
 }
 
