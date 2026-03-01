@@ -7,6 +7,7 @@
 
 import { useState, useCallback } from 'react';
 import { ScrollView, StyleSheet } from 'react-native';
+import type { ReactNode } from 'react';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { ErrorBoundary } from '@/components/error-boundary';
@@ -65,55 +66,42 @@ export default function CoachProfileScreen() {
     setSelectedOffering(null);
   }, [setShowDetailModal, setSelectedOffering]);
 
-  // ── Loading state ──
-  if (profileLoading) {
-    return (
+  const renderShell = useCallback(
+    (children: ReactNode) => (
       <SafeAreaView
         style={[styles.safeArea, { backgroundColor: palette.background }]}
         edges={['top', 'bottom']}
       >
         <ScreenHeader title="Coach Profile" subtitle="Your coaching identity" />
-        <LoadingState variant="detail" />
+        {children}
       </SafeAreaView>
-    );
+    ),
+    [palette.background],
+  );
+
+  // ── Loading state ──
+  if (profileLoading) {
+    return renderShell(<LoadingState variant="detail" />);
   }
 
   // ── Error state ──
   if (profileError) {
-    return (
-      <SafeAreaView
-        style={[styles.safeArea, { backgroundColor: palette.background }]}
-        edges={['top', 'bottom']}
-      >
-        <ScreenHeader title="Coach Profile" subtitle="Your coaching identity" />
-        <ErrorState message={profileError} onRetry={loadProfileData} />
-      </SafeAreaView>
-    );
+    return renderShell(<ErrorState message={profileError} onRetry={loadProfileData} />);
   }
 
   if (!currentUser) {
-    return (
-      <SafeAreaView
-        style={[styles.safeArea, { backgroundColor: palette.background }]}
-        edges={['top', 'bottom']}
-      >
-        <ScreenHeader title="Coach Profile" subtitle="Your coaching identity" />
-        <EmptyState
-          icon="person-outline"
-          title="Sign in required"
-          message="Please sign in to view and manage your coach profile."
-        />
-      </SafeAreaView>
+    return renderShell(
+      <EmptyState
+        icon="person-outline"
+        title="Sign in required"
+        message="Please sign in to view and manage your coach profile."
+      />,
     );
   }
 
   // ── Success state ──
-  return (
-    <SafeAreaView
-      style={[styles.safeArea, { backgroundColor: palette.background }]}
-      edges={['top', 'bottom']}
-    >
-      <ScreenHeader title="Coach Profile" subtitle="Your coaching identity" />
+  return renderShell(
+    <>
       <ScrollView showsVerticalScrollIndicator={false}>
         {currentUser?.role === 'COACH' && (
           <ProfileQuickActions
@@ -163,7 +151,7 @@ export default function CoachProfileScreen() {
           onUpdate={refreshOfferings}
         />
       </ScrollView>
-    </SafeAreaView>
+    </>
   );
 }
 
