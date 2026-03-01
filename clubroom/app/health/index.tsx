@@ -3,6 +3,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import Animated, { FadeInDown } from 'react-native-reanimated';
+import type { ReactNode } from 'react';
 
 import { ThemedText } from '@/components/themed-text';
 import { Clickable } from '@/components/primitives/clickable';
@@ -36,37 +37,30 @@ export default function HealthDashboardScreen() {
     handleViewHistory,
     handleInjuryPress,
   } = useHealthHub();
-
-  if (loading) {
-    return (
-      <SafeAreaView
-        style={[styles.container, { backgroundColor: colors.background }]}
-        edges={['top', 'bottom']}
-      >
-        <LoadingState variant="detail" />
-      </SafeAreaView>
-    );
-  }
-
-  if (status === 'error') {
-    return (
-      <SafeAreaView
-        style={[styles.container, { backgroundColor: colors.background }]}
-        edges={['top', 'bottom']}
-      >
-        <ErrorState
-          message={error?.message ?? 'Failed to load health dashboard.'}
-          onRetry={retry}
-        />
-      </SafeAreaView>
-    );
-  }
-
-  return (
+  const renderShell = (content: ReactNode) => (
     <SafeAreaView
       style={[styles.container, { backgroundColor: colors.background }]}
       edges={['top', 'bottom']}
     >
+      {content}
+    </SafeAreaView>
+  );
+
+  if (loading) {
+    return renderShell(<LoadingState variant="detail" />);
+  }
+
+  if (status === 'error') {
+    return renderShell(
+      <ErrorState
+        message={error?.message ?? 'Failed to load health dashboard.'}
+        onRetry={retry}
+      />,
+    );
+  }
+
+  return renderShell(
+    <>
       <Row gap="md" align="center" justify="between" style={styles.header}>
         <Clickable onPress={() => router.back()} hitSlop={8}>
           <Ionicons name="arrow-back" size={24} color={colors.text} />
@@ -176,7 +170,7 @@ export default function HealthDashboardScreen() {
           </Animated.View>
         )}
       </ScrollView>
-    </SafeAreaView>
+    </>,
   );
 }
 
