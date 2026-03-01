@@ -3,6 +3,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { router, Stack } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Routes } from '@/navigation/routes';
+import type { ReactNode } from 'react';
 
 import { Clickable } from '@/components/primitives/clickable';
 import { ThemedText } from '@/components/themed-text';
@@ -64,101 +65,69 @@ export default function ClubDetailScreen() {
     handleToggleMembersSection,
     handleUpdatePhotos,
   } = useClubDetail(id);
+  const renderTopBar = (title: string) => (
+    <Row align="center" style={[styles.topBar, { borderBottomColor: colors.border }]}>
+      <Clickable onPress={handleBackPress} hitSlop={10} accessibilityLabel="Go back">
+        <Ionicons name="arrow-back" size={22} color={colors.foreground} />
+      </Clickable>
+      <ThemedText
+        type="defaultSemiBold"
+        numberOfLines={1}
+        style={[styles.topBarTitle, { color: colors.foreground }]}
+      >
+        {title}
+      </ThemedText>
+      <View style={styles.topBarSpacer} />
+    </Row>
+  );
+  const renderShell = (stackTitle: string, content: ReactNode) => (
+    <>
+      <Stack.Screen options={{ title: stackTitle, headerShown: false }} />
+      <SafeAreaView
+        style={[styles.container, { backgroundColor: colors.background }]}
+        edges={['top', 'bottom']}
+      >
+        {content}
+      </SafeAreaView>
+    </>
+  );
 
   if (!idParam.valid) {
-    return (
-      <>
-        <Stack.Screen options={{ title: 'Club', headerShown: false }} />
-        <SafeAreaView
-          style={[styles.container, { backgroundColor: colors.background }]}
-          edges={['top', 'bottom']}
-        >
-          <ErrorState message="Invalid club link." onRetry={handleBackPress} />
-        </SafeAreaView>
-      </>
-    );
+    return renderShell('Club', <ErrorState message="Invalid club link." onRetry={handleBackPress} />);
   }
 
   if (loading) {
-    return (
+    return renderShell(
+      'Club',
       <>
-        <Stack.Screen options={{ title: 'Club', headerShown: false }} />
-        <SafeAreaView
-          style={[styles.container, { backgroundColor: colors.background }]}
-          edges={['top', 'bottom']}
-        >
-          <Row align="center" style={[styles.topBar, { borderBottomColor: colors.border }]}>
-            <Clickable onPress={handleBackPress} hitSlop={10} accessibilityLabel="Go back">
-              <Ionicons name="arrow-back" size={22} color={colors.foreground} />
-            </Clickable>
-            <ThemedText
-              type="defaultSemiBold"
-              numberOfLines={1}
-              style={[styles.topBarTitle, { color: colors.foreground }]}
-            >
-              Club
-            </ThemedText>
-            <View style={styles.topBarSpacer} />
-          </Row>
-          <LoadingState variant="list" />
-        </SafeAreaView>
-      </>
+        {renderTopBar('Club')}
+        <LoadingState variant="list" />
+      </>,
     );
   }
 
   if (!club) {
-    return (
+    return renderShell(
+      'Club',
       <>
-        <Stack.Screen options={{ title: 'Club', headerShown: false }} />
-        <SafeAreaView
-          style={[styles.container, { backgroundColor: colors.background }]}
-          edges={['top', 'bottom']}
-        >
-          <Row align="center" style={[styles.topBar, { borderBottomColor: colors.border }]}>
-            <Clickable onPress={handleBackPress} hitSlop={10} accessibilityLabel="Go back">
-              <Ionicons name="arrow-back" size={22} color={colors.foreground} />
-            </Clickable>
-            <ThemedText
-              type="defaultSemiBold"
-              numberOfLines={1}
-              style={[styles.topBarTitle, { color: colors.foreground }]}
-            >
-              Club
-            </ThemedText>
-            <View style={styles.topBarSpacer} />
-          </Row>
-          <EmptyState
-            icon="business-outline"
-            title="Club not found"
-            message="This club could not be loaded."
-            actionLabel="Go Back"
-            onPressAction={handleBackPress}
-          />
-        </SafeAreaView>
-      </>
+        {renderTopBar('Club')}
+        <EmptyState
+          icon="business-outline"
+          title="Club not found"
+          message="This club could not be loaded."
+          actionLabel="Go Back"
+          onPressAction={handleBackPress}
+        />
+      </>,
     );
   }
 
   return (
     <>
-      <Stack.Screen options={{ title: club.name, headerShown: false }} />
-      <SafeAreaView
-        style={[styles.container, { backgroundColor: colors.background }]}
-        edges={['top', 'bottom']}
-      >
-        <Row align="center" style={[styles.topBar, { borderBottomColor: colors.border }]}>
-          <Clickable onPress={handleBackPress} hitSlop={10} accessibilityLabel="Go back">
-            <Ionicons name="arrow-back" size={22} color={colors.foreground} />
-          </Clickable>
-          <ThemedText
-            type="defaultSemiBold"
-            numberOfLines={1}
-            style={[styles.topBarTitle, { color: colors.foreground }]}
-          >
-            {club.name}
-          </ThemedText>
-          <View style={styles.topBarSpacer} />
-        </Row>
+      {renderShell(
+        club.name,
+        <>
+        {renderTopBar(club.name)}
         <ScrollView
           showsVerticalScrollIndicator={false}
           contentContainerStyle={{ paddingBottom: Spacing.xl * 2 }}
@@ -331,7 +300,8 @@ export default function ClubDetailScreen() {
             )}
           </View>
         </ScrollView>
-      </SafeAreaView>
+        </>,
+      )}
 
       <RemovalConfirmationModal
         visible={showMemberRemovalModal}
