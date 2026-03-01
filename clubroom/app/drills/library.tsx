@@ -3,6 +3,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import Animated, { FadeInDown } from 'react-native-reanimated';
+import type { ReactNode } from 'react';
 
 import { ThemedText } from '@/components/themed-text';
 import { Clickable } from '@/components/primitives/clickable';
@@ -35,74 +36,47 @@ export default function DrillLibraryScreen() {
     handleCreateDrill,
     handleCategoryChange,
   } = useDrillLibrary();
-
-  if (status === 'loading') {
-    return (
-      <SafeAreaView
-        style={[styles.container, { backgroundColor: colors.background }]}
-        edges={['top', 'bottom']}
-      >
-        <Row justify="space-between" align="center" style={styles.header}>
-          <Row gap="md" align="center">
-            <Clickable onPress={() => router.back()} hitSlop={8}>
-              <Ionicons name="arrow-back" size={24} color={colors.text} />
-            </Clickable>
-            <ThemedText type="title" style={styles.headerTitle}>
-              Drill Library
-            </ThemedText>
-          </Row>
-        </Row>
-        <LoadingState variant="list" />
-      </SafeAreaView>
-    );
-  }
-
-  if (status === 'error') {
-    return (
-      <SafeAreaView
-        style={[styles.container, { backgroundColor: colors.background }]}
-        edges={['top', 'bottom']}
-      >
-        <Row justify="space-between" align="center" style={styles.header}>
-          <Row gap="md" align="center">
-            <Clickable onPress={() => router.back()} hitSlop={8}>
-              <Ionicons name="arrow-back" size={24} color={colors.text} />
-            </Clickable>
-            <ThemedText type="title" style={styles.headerTitle}>
-              Drill Library
-            </ThemedText>
-          </Row>
-        </Row>
-        <ErrorState message={error?.message ?? 'Failed to load drill library.'} onRetry={retry} />
-      </SafeAreaView>
-    );
-  }
-
-  return (
+  const renderShell = (content: ReactNode) => (
     <SafeAreaView
       style={[styles.container, { backgroundColor: colors.background }]}
       edges={['top', 'bottom']}
     >
-      {/* Header */}
-      <Row justify="space-between" align="center" style={styles.header}>
-        <Row gap="md" align="center">
-          <Clickable onPress={() => router.back()} hitSlop={8}>
-            <Ionicons name="arrow-back" size={24} color={colors.text} />
-          </Clickable>
-          <ThemedText type="title" style={styles.headerTitle}>
-            Drill Library
-          </ThemedText>
-        </Row>
-        <Clickable
-          accessibilityLabel="Create drill"
-          onPress={handleCreateDrill}
-          style={[styles.addButton, { backgroundColor: colors.tint }]}
-        >
-          <Ionicons name="add" size={24} color={colors.onPrimary} />
+      {content}
+    </SafeAreaView>
+  );
+  const renderHeader = (trailing?: ReactNode) => (
+    <Row justify="space-between" align="center" style={styles.header}>
+      <Row gap="md" align="center">
+        <Clickable onPress={() => router.back()} hitSlop={8}>
+          <Ionicons name="arrow-back" size={24} color={colors.text} />
         </Clickable>
+        <ThemedText type="title" style={styles.headerTitle}>
+          Drill Library
+        </ThemedText>
       </Row>
+      {trailing}
+    </Row>
+  );
+  const renderScreenShell = (content: ReactNode, trailing?: ReactNode) =>
+    renderShell(
+      <>
+        {renderHeader(trailing)}
+        {content}
+      </>,
+    );
 
-      {/* Search */}
+  if (status === 'loading') {
+    return renderScreenShell(<LoadingState variant="list" />);
+  }
+
+  if (status === 'error') {
+    return renderScreenShell(
+      <ErrorState message={error?.message ?? 'Failed to load drill library.'} onRetry={retry} />,
+    );
+  }
+
+  return renderScreenShell(
+    <>
       <Animated.View entering={FadeInDown.delay(100).springify()} style={styles.searchContainer}>
         <Row
           gap="sm"
@@ -199,7 +173,14 @@ export default function DrillLibraryScreen() {
           </View>
         )}
       </ScrollView>
-    </SafeAreaView>
+    </>,
+    <Clickable
+      accessibilityLabel="Create drill"
+      onPress={handleCreateDrill}
+      style={[styles.addButton, { backgroundColor: colors.tint }]}
+    >
+      <Ionicons name="add" size={24} color={colors.onPrimary} />
+    </Clickable>,
   );
 }
 
