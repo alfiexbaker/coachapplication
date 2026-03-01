@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState, type ReactNode } from 'react';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Alert, ScrollView, StyleSheet, View } from 'react-native';
 import { useLocalSearchParams } from 'expo-router';
@@ -61,37 +61,32 @@ export default function SessionNotesScreen() {
 
     return null;
   }, [error, palette.error, palette.tint, refresh]);
+  const renderShell = (content: ReactNode) => (
+    <SafeAreaView style={{ flex: 1, backgroundColor: palette.background }} edges={['top', 'bottom']}>
+      {content}
+    </SafeAreaView>
+  );
 
   if (loading && !note) {
-    return (
-      <SafeAreaView style={{ flex: 1, backgroundColor: palette.background }} edges={['top', 'bottom']}>
-        <LoadingState variant="form" />
-      </SafeAreaView>
-    );
+    return renderShell(<LoadingState variant="form" />);
   }
 
   if (error && !note) {
-    return (
-      <SafeAreaView style={{ flex: 1, backgroundColor: palette.background }} edges={['top', 'bottom']}>
-        <ErrorState message={error} onRetry={refresh} />
-      </SafeAreaView>
-    );
+    return renderShell(<ErrorState message={error} onRetry={refresh} />);
   }
 
   if (!bookingId) {
-    return (
-      <SafeAreaView style={{ flex: 1, backgroundColor: palette.background }} edges={['top', 'bottom']}>
-        <EmptyState
-          icon="document-text-outline"
-          title="Booking not found"
-          message="Missing booking id for session notes."
-        />
-      </SafeAreaView>
+    return renderShell(
+      <EmptyState
+        icon="document-text-outline"
+        title="Booking not found"
+        message="Missing booking id for session notes."
+      />,
     );
   }
 
-  return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: palette.background }} edges={['top', 'bottom']}>
+  return renderShell(
+    <>
       <ScrollView contentContainerStyle={styles.content}>
         <ThemedText type="title">{isCoach ? 'Session notes' : 'Coach notes'}</ThemedText>
 
@@ -130,7 +125,7 @@ export default function SessionNotesScreen() {
           />
         )}
       </ScrollView>
-    </SafeAreaView>
+    </>,
   );
 }
 
