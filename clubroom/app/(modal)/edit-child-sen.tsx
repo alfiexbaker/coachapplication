@@ -9,6 +9,7 @@ import { useRef } from 'react';
 import { ScrollView, View, StyleSheet, TextInput, KeyboardAvoidingView, Platform } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
+import type { ReactNode } from 'react';
 
 import { ThemedText } from '@/components/themed-text';
 import { Button } from '@/components/primitives/button';
@@ -30,38 +31,30 @@ export default function EditChildSenScreen() {
   const modalRef = useRef<View>(null);
   useFocusTrap(modalRef, 'Edit child special needs modal');
 
+  const renderStateShell = (content: ReactNode) => (
+    <SafeAreaView
+      ref={modalRef}
+      accessible
+      accessibilityViewIsModal
+      accessibilityRole="dialog"
+      style={[styles.container, { backgroundColor: palette.background }]}
+      edges={['top']}
+    >
+      <PageHeader title="Edit SEN" showBack centerTitle />
+      {content}
+    </SafeAreaView>
+  );
+
   if (c.loading) {
-    return (
-      <SafeAreaView
-        ref={modalRef}
-        accessible
-        accessibilityViewIsModal
-        accessibilityRole="dialog"
-        style={[styles.container, { backgroundColor: palette.background }]}
-        edges={['top']}
-      >
-        <PageHeader title="Edit SEN" showBack centerTitle />
-        <LoadingState variant="detail" />
-      </SafeAreaView>
-    );
+    return renderStateShell(<LoadingState variant="detail" />);
   }
 
   if (c.status === 'error' || !c.child) {
-    return (
-      <SafeAreaView
-        ref={modalRef}
-        accessible
-        accessibilityViewIsModal
-        accessibilityRole="dialog"
-        style={[styles.container, { backgroundColor: palette.background }]}
-        edges={['top']}
-      >
-        <PageHeader title="Edit SEN" showBack centerTitle />
-        <ErrorState
-          message={c.error?.message ?? 'Failed to load child profile.'}
-          onRetry={c.retry}
-        />
-      </SafeAreaView>
+    return renderStateShell(
+      <ErrorState
+        message={c.error?.message ?? 'Failed to load child profile.'}
+        onRetry={c.retry}
+      />,
     );
   }
 
