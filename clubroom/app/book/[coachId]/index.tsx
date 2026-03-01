@@ -1,20 +1,18 @@
 import { Redirect, useLocalSearchParams } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import type { ReactNode } from 'react';
 
 export default function BookCoachEntryScreen() {
   const { coachId } = useLocalSearchParams<{ coachId: string }>();
-
-  if (!coachId) {
-    return (
-      <SafeAreaView style={{ flex: 1 }} edges={['top', 'bottom']}>
-        <Redirect href="/book-coach" />
-      </SafeAreaView>
-    );
-  }
-
-  return (
+  const renderShell = (content: ReactNode) => (
     <SafeAreaView style={{ flex: 1 }} edges={['top', 'bottom']}>
-      <Redirect href={`/book/${encodeURIComponent(coachId)}/session-type`} />
+      {content}
     </SafeAreaView>
   );
+
+  if (!coachId) {
+    return renderShell(<Redirect href="/book-coach" />);
+  }
+
+  return renderShell(<Redirect href={`/book/${encodeURIComponent(coachId)}/session-type`} />);
 }
