@@ -1,4 +1,4 @@
-import { useState, useCallback, useMemo } from 'react';
+import { useState, useCallback, useMemo, type ReactNode } from 'react';
 import { View, StyleSheet, ScrollView, RefreshControl, Platform } from 'react-native';
 import { Row } from '@/components/primitives/row';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -103,34 +103,27 @@ export default function ChallengesScreen() {
     (challengeId: string) => submissions.filter((s) => s.challengeId === challengeId),
     [submissions],
   );
-
-  if (status === 'loading') {
-    return (
-      <SafeAreaView
-        style={[styles.container, { backgroundColor: palette.background }]}
-        edges={['top', 'bottom']}
-      >
-        <LoadingState variant="list" />
-      </SafeAreaView>
-    );
-  }
-
-  if (status === 'error') {
-    return (
-      <SafeAreaView
-        style={[styles.container, { backgroundColor: palette.background }]}
-        edges={['top', 'bottom']}
-      >
-        <ErrorState message={error?.message ?? 'Failed to load challenges.'} onRetry={retry} />
-      </SafeAreaView>
-    );
-  }
-
-  return (
+  const renderShell = (content: ReactNode) => (
     <SafeAreaView
       style={[styles.container, { backgroundColor: palette.background }]}
       edges={['top', 'bottom']}
     >
+      {content}
+    </SafeAreaView>
+  );
+
+  if (status === 'loading') {
+    return renderShell(<LoadingState variant="list" />);
+  }
+
+  if (status === 'error') {
+    return renderShell(
+      <ErrorState message={error?.message ?? 'Failed to load challenges.'} onRetry={retry} />,
+    );
+  }
+
+  return renderShell(
+    <>
       <PageHeader
         title="Challenges"
         showBack
@@ -258,7 +251,7 @@ export default function ChallengesScreen() {
           </View>
         )}
       </ScrollView>
-    </SafeAreaView>
+    </>,
   );
 }
 
