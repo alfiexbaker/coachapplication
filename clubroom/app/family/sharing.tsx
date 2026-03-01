@@ -9,6 +9,7 @@ import { View, StyleSheet, ScrollView, RefreshControl } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
+import type { ReactNode } from 'react';
 
 import { Clickable } from '@/components/primitives/clickable';
 import { PageHeader } from '@/components/primitives/page-header';
@@ -52,59 +53,49 @@ export default function FamilySharingScreen() {
     handleRemoveGuardian,
     handleCancelInvite,
   } = useFamilySharing();
-
-  if (status === 'loading') {
-    return (
-      <SafeAreaView
-        style={[styles.container, { backgroundColor: colors.background }]}
-        edges={['top', 'bottom']}
-      >
-        <PageHeader title="Family Sharing" showBack onBackPress={() => router.back()} />
-        <LoadingState variant="detail" />
-      </SafeAreaView>
-    );
-  }
-
-  if (status === 'error') {
-    return (
-      <SafeAreaView
-        style={[styles.container, { backgroundColor: colors.background }]}
-        edges={['top', 'bottom']}
-      >
-        <PageHeader title="Family Sharing" showBack onBackPress={() => router.back()} />
-        <ErrorState
-          message={error?.message || 'Failed to load family sharing settings.'}
-          onRetry={retry}
-        />
-      </SafeAreaView>
-    );
-  }
-
-  if (status === 'empty' || !family) {
-    return (
-      <SafeAreaView
-        style={[styles.container, { backgroundColor: colors.background }]}
-        edges={['top', 'bottom']}
-      >
-        <PageHeader title="Family Sharing" showBack onBackPress={() => router.back()} />
-        <EmptyState
-          icon="people-outline"
-          title="Family account unavailable"
-          message="Set up your family account to invite guardians and share schedule access."
-          actionLabel="Retry"
-          onPressAction={retry}
-        />
-      </SafeAreaView>
-    );
-  }
-
-  return (
+  const renderShell = (content: ReactNode) => (
     <SafeAreaView
       style={[styles.container, { backgroundColor: colors.background }]}
       edges={['top', 'bottom']}
     >
-      <PageHeader title="Family Sharing" showBack onBackPress={() => router.back()} />
+      {content}
+    </SafeAreaView>
+  );
+  const renderScreenShell = (content: ReactNode) =>
+    renderShell(
+      <>
+        <PageHeader title="Family Sharing" showBack onBackPress={() => router.back()} />
+        {content}
+      </>,
+    );
 
+  if (status === 'loading') {
+    return renderScreenShell(<LoadingState variant="detail" />);
+  }
+
+  if (status === 'error') {
+    return renderScreenShell(
+      <ErrorState
+        message={error?.message || 'Failed to load family sharing settings.'}
+        onRetry={retry}
+      />,
+    );
+  }
+
+  if (status === 'empty' || !family) {
+    return renderScreenShell(
+      <EmptyState
+        icon="people-outline"
+        title="Family account unavailable"
+        message="Set up your family account to invite guardians and share schedule access."
+        actionLabel="Retry"
+        onPressAction={retry}
+      />,
+    );
+  }
+
+  return renderScreenShell(
+    <>
       <ScrollView
         style={{ flex: 1 }}
         contentContainerStyle={styles.content}
@@ -166,7 +157,7 @@ export default function FamilySharingScreen() {
         inviting={inviting}
         onSend={handleInvite}
       />
-    </SafeAreaView>
+    </>,
   );
 }
 
