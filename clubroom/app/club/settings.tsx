@@ -3,6 +3,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import Animated, { FadeInDown } from 'react-native-reanimated';
+import type { ReactNode } from 'react';
 
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { Clickable } from '@/components/primitives/clickable';
@@ -57,40 +58,33 @@ export default function ClubSettingsScreen() {
     : SETTINGS_SECTIONS.filter(
         (section) => section.key === 'details' || section.key === 'branding',
       );
-
-  if (loading) {
-    return (
-      <SafeAreaView
-        style={[styles.container, { backgroundColor: colors.background }]}
-        edges={['top', 'bottom']}
-      >
-        <LoadingState variant="form" />
-      </SafeAreaView>
-    );
-  }
-
-  if (!club) {
-    return (
-      <SafeAreaView
-        style={[styles.container, { backgroundColor: colors.background }]}
-        edges={['top', 'bottom']}
-      >
-        <EmptyState
-          icon="settings-outline"
-          title="No club found"
-          message="Join or create a club to manage settings."
-          actionLabel="Go Back"
-          onPressAction={() => router.back()}
-        />
-      </SafeAreaView>
-    );
-  }
-
-  return (
+  const renderShell = (content: ReactNode) => (
     <SafeAreaView
       style={[styles.container, { backgroundColor: colors.background }]}
       edges={['top', 'bottom']}
     >
+      {content}
+    </SafeAreaView>
+  );
+
+  if (loading) {
+    return renderShell(<LoadingState variant="form" />);
+  }
+
+  if (!club) {
+    return renderShell(
+      <EmptyState
+        icon="settings-outline"
+        title="No club found"
+        message="Join or create a club to manage settings."
+        actionLabel="Go Back"
+        onPressAction={() => router.back()}
+      />,
+    );
+  }
+
+  return renderShell(
+    <>
       <PageHeader title="Club Settings" subtitle={club.name} showBack centerTitle />
 
       <Row wrap gap="xs" style={styles.tabsContent}>
@@ -214,7 +208,7 @@ export default function ClubSettingsScreen() {
           </Animated.View>
         )}
       </ScrollView>
-    </SafeAreaView>
+    </>,
   );
 }
 
