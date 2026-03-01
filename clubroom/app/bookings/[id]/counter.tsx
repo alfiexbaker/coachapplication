@@ -9,6 +9,7 @@ import { View, StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Stack } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
+import type { ReactNode } from 'react';
 
 import { ThemedText } from '@/components/themed-text';
 import { Clickable } from '@/components/primitives/clickable';
@@ -21,75 +22,29 @@ import { useCounterOffer } from '@/hooks/use-counter-offer';
 export default function CounterOfferScreen() {
   const { colors: palette } = useTheme();
   const c = useCounterOffer();
-
-  if (c.isLoading) {
-    return (
-      <SafeAreaView style={[styles.container, { backgroundColor: palette.background }]}>
-        <Stack.Screen
-          options={{
-            headerShown: true,
-            headerTitle: 'Propose New Time',
-            headerLeft: () => (
-              <Clickable accessibilityLabel="Close" onPress={c.goBack}>
-                <Ionicons name="close" size={24} color={palette.text} />
-              </Clickable>
-            ),
-          }}
-        />
-        <LoadingState variant="detail" />
-      </SafeAreaView>
-    );
-  }
-
-  if (c.error) {
-    return (
-      <SafeAreaView style={[styles.container, { backgroundColor: palette.background }]}>
-        <Stack.Screen
-          options={{
-            headerShown: true,
-            headerTitle: 'Error',
-            headerLeft: () => (
-              <Clickable accessibilityLabel="Close" onPress={c.goBack}>
-                <Ionicons name="close" size={24} color={palette.text} />
-              </Clickable>
-            ),
-          }}
-        />
-        <ErrorState
-          title="Unable to load booking"
-          message={c.error || 'Booking not found'}
-          onRetry={c.loadBooking}
-        />
-      </SafeAreaView>
-    );
-  }
-
-  if (!c.booking) {
-    return (
-      <SafeAreaView style={[styles.container, { backgroundColor: palette.background }]}>
-        <Stack.Screen
-          options={{
-            headerShown: true,
-            headerTitle: 'Booking Unavailable',
-            headerLeft: () => (
-              <Clickable accessibilityLabel="Close" onPress={c.goBack}>
-                <Ionicons name="close" size={24} color={palette.text} />
-              </Clickable>
-            ),
-          }}
-        />
-        <EmptyState
-          icon="calendar-outline"
-          title="Booking not found"
-          message="This booking no longer exists or is unavailable."
-          actionLabel="Go back"
-          onPressAction={c.goBack}
-        />
-      </SafeAreaView>
-    );
-  }
-
-  return (
+  const renderStateScreen = ({
+    title,
+    content,
+  }: {
+    title: string;
+    content: ReactNode;
+  }) => (
+    <SafeAreaView style={[styles.container, { backgroundColor: palette.background }]}>
+      <Stack.Screen
+        options={{
+          headerShown: true,
+          headerTitle: title,
+          headerLeft: () => (
+            <Clickable accessibilityLabel="Close" onPress={c.goBack}>
+              <Ionicons name="close" size={24} color={palette.text} />
+            </Clickable>
+          ),
+        }}
+      />
+      {content}
+    </SafeAreaView>
+  );
+  const renderMainScreen = (content: ReactNode) => (
     <SafeAreaView
       style={[styles.container, { backgroundColor: palette.background }]}
       edges={['top', 'bottom']}
@@ -109,6 +64,47 @@ export default function CounterOfferScreen() {
           ),
         }}
       />
+      {content}
+    </SafeAreaView>
+  );
+
+  if (c.isLoading) {
+    return renderStateScreen({
+      title: 'Propose New Time',
+      content: <LoadingState variant="detail" />,
+    });
+  }
+
+  if (c.error) {
+    return renderStateScreen({
+      title: 'Error',
+      content: (
+        <ErrorState
+          title="Unable to load booking"
+          message={c.error || 'Booking not found'}
+          onRetry={c.loadBooking}
+        />
+      ),
+    });
+  }
+
+  if (!c.booking) {
+    return renderStateScreen({
+      title: 'Booking Unavailable',
+      content: (
+        <EmptyState
+          icon="calendar-outline"
+          title="Booking not found"
+          message="This booking no longer exists or is unavailable."
+          actionLabel="Go back"
+          onPressAction={c.goBack}
+        />
+      ),
+    });
+  }
+
+  return renderMainScreen(
+    <>
       <View
         style={[
           styles.bookingContext,
@@ -129,7 +125,7 @@ export default function CounterOfferScreen() {
         isLoading={c.isSubmitting}
         submitLabel="Send Proposal"
       />
-    </SafeAreaView>
+    </>,
   );
 }
 

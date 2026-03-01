@@ -14,6 +14,7 @@ import { router, useLocalSearchParams } from 'expo-router';
 import { Routes } from '@/navigation/routes';
 import { Ionicons } from '@expo/vector-icons';
 import Animated, { FadeInDown } from 'react-native-reanimated';
+import type { ReactNode } from 'react';
 import { createLogger } from '@/utils/logger';
 import { useScreen } from '@/hooks/use-screen';
 import { useAuth } from '@/hooks/use-auth';
@@ -347,32 +348,27 @@ export default function SessionInviteDetailScreen() {
 
   const handleSelectSlot = useCallback((i: number) => setSelectedSlot(i), []);
   const handleShowCounter = useCallback(() => setShowCounterPropose(true), []);
+  const renderShell = (content: ReactNode) => (
+    <SafeAreaView style={[s.root, { backgroundColor: colors.background }]} edges={['top', 'bottom']}>
+      {content}
+    </SafeAreaView>
+  );
 
   if (status === 'loading')
-    return (
-      <SafeAreaView style={[s.root, { backgroundColor: colors.background }]} edges={['top', 'bottom']}>
-        <LoadingState variant="detail" />
-      </SafeAreaView>
-    );
+    return renderShell(<LoadingState variant="detail" />);
   if (status === 'error')
-    return (
-      <SafeAreaView style={[s.root, { backgroundColor: colors.background }]} edges={['top', 'bottom']}>
-        <ErrorState message={error?.message ?? 'Failed to load invite'} onRetry={retry} />
-      </SafeAreaView>
-    );
+    return renderShell(<ErrorState message={error?.message ?? 'Failed to load invite'} onRetry={retry} />);
   if (status === 'empty' || !invite)
-    return (
-      <SafeAreaView style={[s.root, { backgroundColor: colors.background }]} edges={['top', 'bottom']}>
-        <EmptyState
-          icon="mail-outline"
-          title="Invite Not Found"
-          message="This invite could not be found. It may have been cancelled or removed."
-        />
-      </SafeAreaView>
+    return renderShell(
+      <EmptyState
+        icon="mail-outline"
+        title="Invite Not Found"
+        message="This invite could not be found. It may have been cancelled or removed."
+      />,
     );
 
-  return (
-    <SafeAreaView style={[s.root, { backgroundColor: colors.background }]} edges={['top', 'bottom']}>
+  return renderShell(
+    <>
       <Row gap="md" align="center" justify="between" paddingH="lg" paddingV="md">
         <Clickable onPress={() => router.back()} hitSlop={8} accessibilityLabel="Go back">
           <Ionicons name="arrow-back" size={24} color={colors.text} />
@@ -563,7 +559,7 @@ export default function SessionInviteDetailScreen() {
         invite={invite}
         selectedSlot={selectedSlot !== null ? invite.proposedSlots[selectedSlot] : null}
       />
-    </SafeAreaView>
+    </>,
   );
 }
 
