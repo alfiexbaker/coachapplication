@@ -2,6 +2,7 @@ import { View, StyleSheet, ScrollView, ActivityIndicator, RefreshControl } from 
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router, useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
+import type { ReactNode } from 'react';
 
 import { PageHeader } from '@/components/primitives/page-header';
 import { SurfaceCard } from '@/components/primitives/surface-card';
@@ -43,56 +44,46 @@ export default function EditTemplateScreen() {
     handleSave,
     handleDelete,
   } = useEditTemplate(id);
-
-  if (status === 'loading') {
-    return (
-      <SafeAreaView
-        style={[styles.container, { backgroundColor: colors.background }]}
-        edges={['top', 'bottom']}
-      >
-        <PageHeader title="Edit Availability" showBack onBackPress={() => router.back()} />
-        <LoadingState variant="detail" />
-      </SafeAreaView>
-    );
-  }
-
-  if (status === 'error') {
-    return (
-      <SafeAreaView
-        style={[styles.container, { backgroundColor: colors.background }]}
-        edges={['top', 'bottom']}
-      >
-        <PageHeader title="Edit Availability" showBack onBackPress={() => router.back()} />
-        <ErrorState message={error?.message || 'Failed to load template.'} onRetry={retry} />
-      </SafeAreaView>
-    );
-  }
-
-  if (status === 'empty' || !template) {
-    return (
-      <SafeAreaView
-        style={[styles.container, { backgroundColor: colors.background }]}
-        edges={['top', 'bottom']}
-      >
-        <PageHeader title="Edit Availability" showBack onBackPress={() => router.back()} />
-        <EmptyState
-          icon="calendar-outline"
-          title="Template not found"
-          message="This availability template may have been deleted."
-          actionLabel="Go Back"
-          onPressAction={() => router.back()}
-        />
-      </SafeAreaView>
-    );
-  }
-
-  return (
+  const renderShell = (content: ReactNode) => (
     <SafeAreaView
       style={[styles.container, { backgroundColor: colors.background }]}
       edges={['top', 'bottom']}
     >
-      <PageHeader title="Edit Availability" showBack onBackPress={() => router.back()} />
+      {content}
+    </SafeAreaView>
+  );
+  const renderScreenShell = (content: ReactNode) =>
+    renderShell(
+      <>
+        <PageHeader title="Edit Availability" showBack onBackPress={() => router.back()} />
+        {content}
+      </>,
+    );
 
+  if (status === 'loading') {
+    return renderScreenShell(<LoadingState variant="detail" />);
+  }
+
+  if (status === 'error') {
+    return renderScreenShell(
+      <ErrorState message={error?.message || 'Failed to load template.'} onRetry={retry} />,
+    );
+  }
+
+  if (status === 'empty' || !template) {
+    return renderScreenShell(
+      <EmptyState
+        icon="calendar-outline"
+        title="Template not found"
+        message="This availability template may have been deleted."
+        actionLabel="Go Back"
+        onPressAction={() => router.back()}
+      />,
+    );
+  }
+
+  return renderScreenShell(
+    <>
       <ScrollView
         style={styles.scroll}
         contentContainerStyle={styles.scrollContent}
@@ -205,7 +196,7 @@ export default function EditTemplateScreen() {
           )}
         </Clickable>
       </View>
-    </SafeAreaView>
+    </>,
   );
 }
 
