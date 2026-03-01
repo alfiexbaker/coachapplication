@@ -5,6 +5,7 @@ import { router, useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { Clickable } from '@/components/primitives/clickable';
 import { apiClient } from '@/services/api-client';
+import { STORAGE_KEYS } from '@/constants/storage-keys';
 
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
@@ -53,7 +54,10 @@ export default function ReportProblemScreen() {
     setSubmitting(true);
     try {
       // Save report to storage
-      const reports = await apiClient.get<Record<string, unknown>[]>('problem_reports', []);
+      const reports = await apiClient.get<Record<string, unknown>[]>(
+        STORAGE_KEYS.PROBLEM_REPORTS,
+        [],
+      );
 
       const newReport = {
         id: `report_${Date.now()}`,
@@ -65,7 +69,7 @@ export default function ReportProblemScreen() {
       };
 
       reports.push(newReport);
-      await apiClient.set('problem_reports', reports);
+      await apiClient.set(STORAGE_KEYS.PROBLEM_REPORTS, reports);
 
       logger.info('Report submitted', { category: selectedCategory, bookingId });
 
@@ -150,9 +154,8 @@ export default function ReportProblemScreen() {
               numberOfLines={6}
               textAlignVertical="top"
               style={[styles.textArea, { color: palette.foreground }]}
-
-            maxLength={20}
-          />
+              maxLength={500}
+            />
           </SurfaceCard>
           <ThemedText style={styles.helper}>{description.length} / 500 characters</ThemedText>
         </View>

@@ -15,6 +15,7 @@ import type {
   FamilyCalendarEvent,
   FamilyMember,
   FavouriteCoach,
+  Injury,
   RosterEntry,
   SessionInvite,
   SessionOffering,
@@ -50,6 +51,10 @@ interface SeedHealthSnapshot {
   coaches: number;
   clubMembers: number;
   coachBookings: number;
+  injuries: number;
+  concerns: number;
+  reports: number;
+  problemReports: number;
 }
 
 export interface EnsureRelationalSeedOptions {
@@ -65,6 +70,237 @@ async function loadRelationalSeedModule(): Promise<RelationalSeedModule> {
     relationalSeedModulePromise = import('@/constants/relational-demo-seeds');
   }
   return relationalSeedModulePromise;
+}
+
+type ConcernSeedRecord = {
+  id: string;
+  coachId: string;
+  athleteId: string;
+  parentId?: string;
+  athleteName: string;
+  type: 'BEHAVIORAL' | 'SAFEGUARDING' | 'MEDICAL' | 'ATTENDANCE' | 'PARENT_COMMUNICATION';
+  severity: 'LOW' | 'MEDIUM' | 'HIGH' | 'URGENT';
+  title: string;
+  description: string;
+  actionTaken?: string;
+  followUpDate?: string;
+  status: 'OPEN' | 'IN_PROGRESS' | 'RESOLVED' | 'ESCALATED';
+  createdAt: string;
+  updatedAt: string;
+  resolvedAt?: string;
+  resolution?: string;
+  escalatedAt?: string;
+  escalationReason?: string;
+  parentNotifiedAt?: string;
+};
+
+type UserReportSeedRecord = {
+  id: string;
+  reportedUserId: string;
+  reportedByUserId: string;
+  type: 'inappropriate' | 'safety_concern' | 'fake_profile' | 'spam' | 'other';
+  description?: string;
+  context: 'profile' | 'message' | 'review';
+  createdAt: string;
+  status: 'pending' | 'reviewed' | 'resolved';
+};
+
+type ProblemReportSeedRecord = {
+  id: string;
+  bookingId: string;
+  category: string;
+  description: string;
+  status: 'pending' | 'reviewed' | 'resolved';
+  createdAt: string;
+};
+
+interface TrustOpsSeedPayload {
+  injuries: Injury[];
+  concerns: ConcernSeedRecord[];
+  reports: UserReportSeedRecord[];
+  problemReports: ProblemReportSeedRecord[];
+}
+
+function isoAt(dayOffset: number, hour: number, minute = 0): string {
+  const d = new Date(Date.now() + dayOffset * 24 * 60 * 60 * 1000);
+  d.setHours(hour, minute, 0, 0);
+  return d.toISOString();
+}
+
+function chooseBookingId(bookings: Booking[], preferredId: string, fallbackIndex: number): string {
+  return bookings.find((booking) => booking.id === preferredId)?.id
+    ?? bookings[fallbackIndex]?.id
+    ?? 'book1';
+}
+
+function buildTrustOpsSeedPayload(bookings: Booking[]): TrustOpsSeedPayload {
+  const safetyBookingId = chooseBookingId(bookings, 'book9_group_user1', 0);
+  const qualityBookingId = chooseBookingId(bookings, 'book2', 1);
+  const resolvedAt = isoAt(-2, 9, 20);
+
+  return {
+    injuries: [
+      {
+        id: 'injury_seed_user1_ankle',
+        userId: 'user1',
+        bodyPart: 'LEFT_ANKLE',
+        description: 'Rolled ankle during finishing drill. Mild swelling with pain on sharp turns.',
+        severity: 'MODERATE',
+        occurredAt: isoAt(-6, 18, 15),
+        expectedRecovery: isoAt(4, 12),
+        status: 'RECOVERING',
+        notes: [
+          {
+            id: 'note_seed_user1_1',
+            injuryId: 'injury_seed_user1_ankle',
+            note: 'Started mobility + band work. Swelling is down.',
+            createdAt: isoAt(-5, 8, 45),
+            createdBy: 'user1',
+            recoveryPercent: 45,
+          },
+        ],
+        recoveryPercent: 45,
+        sharedWithCoach: true,
+        createdAt: isoAt(-6, 18, 45),
+        updatedAt: isoAt(-5, 8, 45),
+      },
+      {
+        id: 'injury_seed_user2_knee',
+        userId: 'user2',
+        bodyPart: 'RIGHT_KNEE',
+        description: 'Knock to right knee in contact drill. Tender but stable.',
+        severity: 'MINOR',
+        occurredAt: isoAt(-3, 17, 30),
+        expectedRecovery: isoAt(3, 12),
+        status: 'ACTIVE',
+        notes: [],
+        recoveryPercent: 10,
+        sharedWithCoach: true,
+        createdAt: isoAt(-3, 17, 50),
+        updatedAt: isoAt(-3, 17, 50),
+      },
+      {
+        id: 'injury_seed_athlete4_thigh',
+        userId: 'athlete_4',
+        bodyPart: 'LEFT_THIGH',
+        description: 'Light thigh strain from sprint repetition.',
+        severity: 'MINOR',
+        occurredAt: isoAt(-12, 19),
+        expectedRecovery: isoAt(-5, 12),
+        status: 'HEALED',
+        notes: [
+          {
+            id: 'note_seed_athlete4_1',
+            injuryId: 'injury_seed_athlete4_thigh',
+            note: 'Completed recovery programme and returned to full training.',
+            createdAt: isoAt(-5, 10),
+            createdBy: 'athlete_4',
+            recoveryPercent: 100,
+          },
+        ],
+        recoveryPercent: 100,
+        sharedWithCoach: true,
+        createdAt: isoAt(-12, 19, 20),
+        updatedAt: isoAt(-5, 10),
+        healedAt: isoAt(-5, 10),
+      },
+    ],
+    concerns: [
+      {
+        id: 'concern_seed_user1_safeguarding',
+        coachId: 'coach1',
+        athleteId: 'user1',
+        parentId: 'user4',
+        athleteName: 'Alfie Barton',
+        type: 'SAFEGUARDING',
+        severity: 'HIGH',
+        title: 'Repeated aggressive contact in drill',
+        description:
+          'Athlete reported repeated aggressive contact from another player during small-sided game.',
+        actionTaken: 'Session paused, separated players, informed safeguarding lead.',
+        followUpDate: isoAt(1, 9),
+        status: 'ESCALATED',
+        createdAt: isoAt(-1, 19, 10),
+        updatedAt: isoAt(-1, 19, 10),
+        escalatedAt: isoAt(-1, 19, 10),
+        escalationReason: 'Safeguarding concern marked High',
+        parentNotifiedAt: isoAt(-1, 19, 20),
+      },
+      {
+        id: 'concern_seed_user2_attendance',
+        coachId: 'coach1',
+        athleteId: 'user2',
+        parentId: 'user4',
+        athleteName: 'Maisie Barton',
+        type: 'ATTENDANCE',
+        severity: 'MEDIUM',
+        title: 'Pattern of late arrivals',
+        description:
+          'Arrived 15+ minutes late to three of last four sessions which impacts warm-up and safety checks.',
+        followUpDate: isoAt(2, 17),
+        status: 'OPEN',
+        createdAt: isoAt(-3, 18, 30),
+        updatedAt: isoAt(-3, 18, 30),
+      },
+      {
+        id: 'concern_seed_athlete4_medical',
+        coachId: 'coach2',
+        athleteId: 'athlete_4',
+        parentId: 'parent_3',
+        athleteName: 'Priya Kapoor',
+        type: 'MEDICAL',
+        severity: 'LOW',
+        title: 'Inhaler reminder needed before high-intensity blocks',
+        description: 'Athlete forgot inhaler check-in once this week. Added reminder before drills.',
+        status: 'RESOLVED',
+        createdAt: isoAt(-8, 16, 45),
+        updatedAt: resolvedAt,
+        resolvedAt,
+        resolution: 'Parent confirmed new pre-session checklist and no recurrence.',
+      },
+    ],
+    reports: [
+      {
+        id: 'report_seed_safety_1',
+        reportedUserId: 'coach3',
+        reportedByUserId: 'user4',
+        type: 'safety_concern',
+        description: 'Parent reported unsafe pitch conditions and no immediate coach response.',
+        context: 'profile',
+        createdAt: isoAt(-2, 20, 15),
+        status: 'pending',
+      },
+      {
+        id: 'report_seed_spam_1',
+        reportedUserId: 'user6',
+        reportedByUserId: 'user5',
+        type: 'spam',
+        description: 'Repeated off-topic promotional messages in direct chat.',
+        context: 'message',
+        createdAt: isoAt(-7, 14, 10),
+        status: 'reviewed',
+      },
+    ],
+    problemReports: [
+      {
+        id: 'problem_report_seed_safety',
+        bookingId: safetyBookingId,
+        category: 'safety',
+        description:
+          'Athlete slipped on unmarked wet area near sideline. Requesting venue safety follow-up.',
+        status: 'pending',
+        createdAt: isoAt(-1, 20),
+      },
+      {
+        id: 'problem_report_seed_quality',
+        bookingId: qualityBookingId,
+        category: 'quality',
+        description: 'Session ended early without clear explanation and missed planned cooldown.',
+        status: 'reviewed',
+        createdAt: isoAt(-4, 11, 30),
+      },
+    ],
+  };
 }
 
 function mergeByKey<T>(existing: T[], seeded: T[], getKey: (item: T) => string): T[] {
@@ -109,6 +345,10 @@ async function getSeedHealthSnapshot(): Promise<SeedHealthSnapshot> {
     coaches,
     clubMembers,
     coachBookings,
+    injuries,
+    concerns,
+    reports,
+    problemReports,
   ] = await Promise.all([
     apiClient.get<string>(STORAGE_KEYS.RELATIONAL_DEMO_SEED_VERSION, ''),
     apiClient.get<User[]>(STORAGE_KEYS.USERS, []),
@@ -123,6 +363,10 @@ async function getSeedHealthSnapshot(): Promise<SeedHealthSnapshot> {
     apiClient.get<CoachDirectoryEntry[]>(COACH_DIRECTORY_KEY, []),
     apiClient.get<ClubMemberSeed[]>(CLUB_MEMBERS_KEY, []),
     apiClient.get<CoachBookingSeed[]>(COACH_BOOKINGS_KEY, []),
+    apiClient.get<Injury[]>(STORAGE_KEYS.INJURIES, []),
+    apiClient.get<ConcernSeedRecord[]>(STORAGE_KEYS.CONCERNS, []),
+    apiClient.get<UserReportSeedRecord[]>(STORAGE_KEYS.REPORTS, []),
+    apiClient.get<ProblemReportSeedRecord[]>(STORAGE_KEYS.PROBLEM_REPORTS, []),
   ]);
 
   const messageCount = Object.values(messagesByThread).reduce(
@@ -144,6 +388,10 @@ async function getSeedHealthSnapshot(): Promise<SeedHealthSnapshot> {
     coaches: coaches.length,
     clubMembers: clubMembers.length,
     coachBookings: coachBookings.length,
+    injuries: injuries.length,
+    concerns: concerns.length,
+    reports: reports.length,
+    problemReports: problemReports.length,
   };
 }
 
@@ -161,13 +409,18 @@ function isHealthy(snapshot: SeedHealthSnapshot, expectedVersion: string): boole
     snapshot.coachReviews >= 1 &&
     snapshot.coaches >= 3 &&
     snapshot.clubMembers >= 4 &&
-    snapshot.coachBookings >= 3
+    snapshot.coachBookings >= 3 &&
+    snapshot.injuries >= 3 &&
+    snapshot.concerns >= 2 &&
+    snapshot.reports >= 1 &&
+    snapshot.problemReports >= 1
   );
 }
 
 async function seedRelationalDemoDataInternal(): Promise<void> {
   const seedModule = await loadRelationalSeedModule();
   const payload = seedModule.buildRelationalDemoSeedPayload();
+  const trustOpsPayload = buildTrustOpsSeedPayload(payload.bookings);
 
   const [
     existingUsers,
@@ -189,6 +442,10 @@ async function seedRelationalDemoDataInternal(): Promise<void> {
     existingFamilyMembers,
     existingFamilyBookings,
     existingCoachBookings,
+    existingInjuries,
+    existingConcerns,
+    existingReports,
+    existingProblemReports,
   ] = await Promise.all([
     apiClient.get<User[]>(STORAGE_KEYS.USERS, []),
     apiClient.get<Booking[]>(STORAGE_KEYS.BOOKINGS, []),
@@ -209,6 +466,10 @@ async function seedRelationalDemoDataInternal(): Promise<void> {
     apiClient.get<FamilyMember[]>(STORAGE_KEYS.FAMILY_MEMBERS, []),
     apiClient.get<FamilyCalendarEvent[]>(STORAGE_KEYS.FAMILY_BOOKINGS, []),
     apiClient.get<CoachBookingSeed[]>(COACH_BOOKINGS_KEY, []),
+    apiClient.get<Injury[]>(STORAGE_KEYS.INJURIES, []),
+    apiClient.get<ConcernSeedRecord[]>(STORAGE_KEYS.CONCERNS, []),
+    apiClient.get<UserReportSeedRecord[]>(STORAGE_KEYS.REPORTS, []),
+    apiClient.get<ProblemReportSeedRecord[]>(STORAGE_KEYS.PROBLEM_REPORTS, []),
   ]);
 
   const users = mergeById(existingUsers, payload.users);
@@ -230,6 +491,10 @@ async function seedRelationalDemoDataInternal(): Promise<void> {
   const familyMembers = mergeById(existingFamilyMembers, payload.familyMembers);
   const familyBookings = mergeById(existingFamilyBookings, payload.familyBookings);
   const coachBookings = mergeById(existingCoachBookings, payload.coachBookings);
+  const injuries = mergeById(existingInjuries, trustOpsPayload.injuries);
+  const concerns = mergeById(existingConcerns, trustOpsPayload.concerns);
+  const reports = mergeById(existingReports, trustOpsPayload.reports);
+  const problemReports = mergeById(existingProblemReports, trustOpsPayload.problemReports);
 
   await Promise.all([
     apiClient.set(STORAGE_KEYS.USERS, users),
@@ -251,6 +516,10 @@ async function seedRelationalDemoDataInternal(): Promise<void> {
     apiClient.set(STORAGE_KEYS.FAMILY_MEMBERS, familyMembers),
     apiClient.set(STORAGE_KEYS.FAMILY_BOOKINGS, familyBookings),
     apiClient.set(COACH_BOOKINGS_KEY, coachBookings),
+    apiClient.set(STORAGE_KEYS.INJURIES, injuries),
+    apiClient.set(STORAGE_KEYS.CONCERNS, concerns),
+    apiClient.set(STORAGE_KEYS.REPORTS, reports),
+    apiClient.set(STORAGE_KEYS.PROBLEM_REPORTS, problemReports),
     apiClient.set(
       STORAGE_KEYS.RELATIONAL_DEMO_SEED_VERSION,
       seedModule.RELATIONAL_DEMO_SEED_VERSION,

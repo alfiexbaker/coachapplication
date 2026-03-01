@@ -454,6 +454,9 @@ export const STORAGE_KEYS = {
   /** User reports (for inappropriate content, safety concerns, etc.) */
   REPORTS: 'clubroom.reports',
 
+  /** Booking issue reports submitted from booking detail/report-problem flow */
+  PROBLEM_REPORTS: 'problem_reports',
+
   /** Coach saved locations */
   SAVED_LOCATIONS: 'coach_saved_locations',
 
