@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, useCallback } from 'react';
+import { useEffect, useRef, useState, useCallback, type ReactNode } from 'react';
 import { Alert, RefreshControl, ScrollView, StyleSheet, View } from 'react-native';
 import * as Clipboard from 'expo-clipboard';
 import * as Haptics from 'expo-haptics';
@@ -189,41 +189,38 @@ export default function ChatScreen() {
       { text: 'Cancel', style: 'cancel' },
     ]);
   };
+  const renderShell = (content: ReactNode) => (
+    <SafeAreaView style={{ flex: 1, backgroundColor: palette.background }} edges={['top', 'bottom']}>
+      {content}
+    </SafeAreaView>
+  );
 
   if (status === 'loading') {
-    return (
-      <SafeAreaView style={{ flex: 1, backgroundColor: palette.background }} edges={['top', 'bottom']}>
-        <LoadingState variant="detail" />
-      </SafeAreaView>
-    );
+    return renderShell(<LoadingState variant="detail" />);
   }
 
   if (status === 'error') {
-    return (
-      <SafeAreaView style={{ flex: 1, backgroundColor: palette.background }} edges={['top', 'bottom']}>
-        <ErrorState message={error?.message ?? 'Unable to load conversation'} onRetry={retry} />
-      </SafeAreaView>
+    return renderShell(
+      <ErrorState message={error?.message ?? 'Unable to load conversation'} onRetry={retry} />,
     );
   }
 
   if (status === 'empty' || !thread) {
-    return (
-      <SafeAreaView style={{ flex: 1, backgroundColor: palette.background }} edges={['top', 'bottom']}>
-        <EmptyState
-          icon="chatbubble-ellipses-outline"
-          title="Conversation not found"
-          message="This conversation is unavailable or was removed."
-          actionLabel="Back to messages"
-          onPressAction={() => router.back()}
-        />
-      </SafeAreaView>
+    return renderShell(
+      <EmptyState
+        icon="chatbubble-ellipses-outline"
+        title="Conversation not found"
+        message="This conversation is unavailable or was removed."
+        actionLabel="Back to messages"
+        onPressAction={() => router.back()}
+      />,
     );
   }
 
   const isGroup = thread.kind === 'group';
 
-  return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: palette.background }} edges={['top', 'bottom']}>
+  return renderShell(
+    <>
       <ChatScreenHeader colors={palette} thread={thread} onBack={() => router.back()} />
       <ChatSafetyBanner
         colors={palette}
@@ -268,7 +265,7 @@ export default function ChatScreen() {
           }
         />
       </View>
-    </SafeAreaView>
+    </>,
   );
 }
 

@@ -2,6 +2,7 @@ import { useState, useCallback } from 'react';
 import { StyleSheet, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useLocalSearchParams, router } from 'expo-router';
+import type { ReactNode } from 'react';
 
 import { GroupChatSection } from '@/components/community/group-chat-section';
 import { GroupManageTab } from '@/components/community/group-manage-tab';
@@ -192,42 +193,44 @@ export default function GroupChatScreen() {
   const handleOpenManageHub = useCallback(() => {
     router.push(Routes.MANAGE);
   }, []);
-
-  if (status === 'loading') {
-    return (
-      <SafeAreaView style={[styles.container, { backgroundColor: palette.background }]}>
-        <LoadingState variant="detail" />
-      </SafeAreaView>
-    );
-  }
-
-  if (status === 'error') {
-    return (
-      <SafeAreaView style={[styles.container, { backgroundColor: palette.background }]}>
-        <ErrorState message={error?.message || 'Failed to load this group.'} onRetry={retry} />
-      </SafeAreaView>
-    );
-  }
-
-  if (status === 'empty' || !group) {
-    return (
-      <SafeAreaView style={[styles.container, { backgroundColor: palette.background }]}>
-        <EmptyState
-          icon="chatbubble-ellipses-outline"
-          title="Group not found"
-          message="This group could not be loaded."
-          actionLabel="Go Back"
-          onPressAction={() => router.back()}
-        />
-      </SafeAreaView>
-    );
-  }
-
-  return (
+  const renderStateShell = (content: ReactNode) => (
+    <SafeAreaView style={[styles.container, { backgroundColor: palette.background }]}>
+      {content}
+    </SafeAreaView>
+  );
+  const renderMainShell = (content: ReactNode) => (
     <SafeAreaView
       style={[styles.container, { backgroundColor: palette.background }]}
       edges={['top', 'bottom']}
     >
+      {content}
+    </SafeAreaView>
+  );
+
+  if (status === 'loading') {
+    return renderStateShell(<LoadingState variant="detail" />);
+  }
+
+  if (status === 'error') {
+    return renderStateShell(
+      <ErrorState message={error?.message || 'Failed to load this group.'} onRetry={retry} />,
+    );
+  }
+
+  if (status === 'empty' || !group) {
+    return renderStateShell(
+      <EmptyState
+        icon="chatbubble-ellipses-outline"
+        title="Group not found"
+        message="This group could not be loaded."
+        actionLabel="Go Back"
+        onPressAction={() => router.back()}
+      />,
+    );
+  }
+
+  return renderMainShell(
+    <>
       <GroupChatHeader
         colors={palette}
         group={group}
@@ -325,7 +328,7 @@ export default function GroupChatScreen() {
         assignableRoles={assignableRoles}
         onRoleChange={handleRoleChange}
       />
-    </SafeAreaView>
+    </>,
   );
 }
 
