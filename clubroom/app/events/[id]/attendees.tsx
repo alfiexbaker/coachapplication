@@ -158,14 +158,6 @@ export default function EventAttendeesScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
-  centered: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    padding: Spacing.lg,
-    gap: Spacing.md,
-  },
-  errorText: { ...Typography.subheading, textAlign: 'center' },
   header: { paddingHorizontal: Spacing.md, paddingVertical: Spacing.sm, borderBottomWidth: 1 },
   checkInSection: { padding: Spacing.md },
   checkInCard: { padding: Spacing.md, gap: Spacing.sm },
