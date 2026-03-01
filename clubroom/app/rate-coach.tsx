@@ -7,6 +7,7 @@
 
 import { StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import type { ReactNode } from 'react';
 
 import { PageHeader } from '@/components/primitives/page-header';
 import { ThemedText } from '@/components/themed-text';
@@ -20,59 +21,50 @@ import { useRateCoach } from '@/hooks/use-rate-coach';
 export default function RateCoachScreen() {
   const { colors: palette } = useTheme();
   const c = useRateCoach();
+  const renderShell = (content: ReactNode) => (
+    <SafeAreaView
+      style={[styles.container, { backgroundColor: palette.background }]}
+      edges={['top', 'bottom']}
+    >
+      {content}
+    </SafeAreaView>
+  );
+  const renderSelectCoachShell = (content: ReactNode) =>
+    renderShell(
+      <>
+        <PageHeader title="Rate a Coach" showBack onBackPress={c.goBack} backIcon="arrow-back" centerTitle />
+        {content}
+      </>,
+    );
 
   if (!c.selectedCoach) {
     if (c.status === 'loading') {
-      return (
-        <SafeAreaView
-          style={[styles.container, { backgroundColor: palette.background }]}
-          edges={['top', 'bottom']}
-        >
-          <PageHeader title="Rate a Coach" showBack onBackPress={c.goBack} backIcon="arrow-back" centerTitle />
-          <LoadingState variant="list" />
-        </SafeAreaView>
-      );
+      return renderSelectCoachShell(<LoadingState variant="list" />);
     }
 
     if (c.status === 'error') {
-      return (
-        <SafeAreaView
-          style={[styles.container, { backgroundColor: palette.background }]}
-          edges={['top', 'bottom']}
-        >
-          <PageHeader title="Rate a Coach" showBack onBackPress={c.goBack} backIcon="arrow-back" centerTitle />
-          <ErrorState
-            message={c.error?.message || 'Failed to load coaches to rate.'}
-            onRetry={c.retry}
-          />
-        </SafeAreaView>
+      return renderSelectCoachShell(
+        <ErrorState
+          message={c.error?.message || 'Failed to load coaches to rate.'}
+          onRetry={c.retry}
+        />,
       );
     }
 
     if (c.status === 'empty') {
-      return (
-        <SafeAreaView
-          style={[styles.container, { backgroundColor: palette.background }]}
-          edges={['top', 'bottom']}
-        >
-          <PageHeader title="Rate a Coach" showBack onBackPress={c.goBack} backIcon="arrow-back" centerTitle />
-          <View style={styles.centerState}>
-            <EmptyState
-              icon="star-outline"
-              title="No coaches to rate yet"
-              message="Complete at least one session to leave your first coach review."
-            />
-          </View>
-        </SafeAreaView>
+      return renderSelectCoachShell(
+        <View style={styles.centerState}>
+          <EmptyState
+            icon="star-outline"
+            title="No coaches to rate yet"
+            message="Complete at least one session to leave your first coach review."
+          />
+        </View>,
       );
     }
 
-    return (
-      <SafeAreaView
-        style={[styles.container, { backgroundColor: palette.background }]}
-        edges={['top', 'bottom']}
-      >
-        <PageHeader title="Rate a Coach" showBack onBackPress={c.goBack} backIcon="arrow-back" centerTitle />
+    return renderSelectCoachShell(
+      <>
         <ThemedText style={[styles.subtitle, { color: palette.muted }]}>
           Select a coach you&apos;ve worked with
         </ThemedText>
@@ -82,15 +74,12 @@ export default function RateCoachScreen() {
           refreshing={c.refreshing}
           onRefresh={c.onRefresh}
         />
-      </SafeAreaView>
+      </>,
     );
   }
 
-  return (
-    <SafeAreaView
-      style={[styles.container, { backgroundColor: palette.background }]}
-      edges={['top', 'bottom']}
-    >
+  return renderShell(
+    <>
       <PageHeader
         title={`Rate ${c.selectedCoach.name}`}
         showBack
@@ -107,7 +96,7 @@ export default function RateCoachScreen() {
         onToggleChip={c.toggleChip}
         onSubmit={c.handleSubmitReview}
       />
-    </SafeAreaView>
+    </>,
   );
 }
 

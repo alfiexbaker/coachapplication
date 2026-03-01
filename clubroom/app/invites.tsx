@@ -10,6 +10,7 @@ import { View, StyleSheet, FlatList, RefreshControl } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
+import type { ReactNode } from 'react';
 
 import { Row } from '@/components/primitives/row';
 import { Clickable } from '@/components/primitives/clickable';
@@ -28,6 +29,20 @@ const ItemSeparator = () => <View style={styles.separator} />;
 export default function InvitesScreen() {
   const { colors: palette } = useTheme();
   const inv = useInvites();
+  const renderShell = (subtitle: string, content: ReactNode) => (
+    <SafeAreaView
+      style={[styles.container, { backgroundColor: palette.background }]}
+      edges={['top', 'bottom']}
+    >
+      <PageHeader
+        title="Session Invites"
+        subtitle={subtitle}
+        showBack
+        onBackPress={() => router.back()}
+      />
+      {content}
+    </SafeAreaView>
+  );
 
   const renderInvite = useCallback(
     ({ item }: { item: SessionInvite }) => (
@@ -49,76 +64,32 @@ export default function InvitesScreen() {
   ];
 
   if (inv.status === 'loading') {
-    return (
-      <SafeAreaView
-        style={[styles.container, { backgroundColor: palette.background }]}
-        edges={['top', 'bottom']}
-      >
-        <PageHeader
-          title="Session Invites"
-          subtitle="Loading invites"
-          showBack
-          onBackPress={() => router.back()}
-        />
-        <LoadingState variant="list" />
-      </SafeAreaView>
-    );
+    return renderShell('Loading invites', <LoadingState variant="list" />);
   }
 
   if (inv.status === 'error') {
-    return (
-      <SafeAreaView
-        style={[styles.container, { backgroundColor: palette.background }]}
-        edges={['top', 'bottom']}
-      >
-        <PageHeader
-          title="Session Invites"
-          subtitle="Unable to load invites"
-          showBack
-          onBackPress={() => router.back()}
-        />
-        <ErrorState message={inv.error?.message || 'Failed to load invites.'} onRetry={inv.retry} />
-      </SafeAreaView>
+    return renderShell(
+      'Unable to load invites',
+      <ErrorState message={inv.error?.message || 'Failed to load invites.'} onRetry={inv.retry} />,
     );
   }
 
   if (inv.status === 'empty') {
-    return (
-      <SafeAreaView
-        style={[styles.container, { backgroundColor: palette.background }]}
-        edges={['top', 'bottom']}
-      >
-        <PageHeader
-          title="Session Invites"
-          subtitle="From your coaches"
-          showBack
-          onBackPress={() => router.back()}
-        />
-        <EmptyState
-          icon="mail-outline"
-          title="No pending invites"
-          message="When coaches invite you to sessions, they will appear here."
-        />
-      </SafeAreaView>
+    return renderShell(
+      'From your coaches',
+      <EmptyState
+        icon="mail-outline"
+        title="No pending invites"
+        message="When coaches invite you to sessions, they will appear here."
+      />,
     );
   }
 
-  return (
-    <SafeAreaView
-      style={[styles.container, { backgroundColor: palette.background }]}
-      edges={['top', 'bottom']}
-    >
-      <PageHeader
-        title="Session Invites"
-        subtitle={
-          inv.pendingCount > 0
-            ? `${inv.pendingCount} pending invite${inv.pendingCount !== 1 ? 's' : ''}`
-            : 'From your coaches'
-        }
-        showBack
-        onBackPress={() => router.back()}
-      />
-
+  return renderShell(
+    inv.pendingCount > 0
+      ? `${inv.pendingCount} pending invite${inv.pendingCount !== 1 ? 's' : ''}`
+      : 'From your coaches',
+    <>
       {/* Tab Filter */}
       <Row gap="xs" style={styles.tabRow}>
         {tabs.map((tab) => (
@@ -191,7 +162,7 @@ export default function InvitesScreen() {
         }
         ItemSeparatorComponent={ItemSeparator}
       />
-    </SafeAreaView>
+    </>,
   );
 }
 
