@@ -11,6 +11,7 @@ import { Stack } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { Clickable } from '@/components/primitives/clickable';
 import { Image } from 'expo-image';
+import type { ReactNode } from 'react';
 
 import { ThemedText } from '@/components/themed-text';
 import { Row } from '@/components/primitives/row';
@@ -24,56 +25,47 @@ import { useSubscribe, type CoachOption } from '@/hooks/use-subscribe';
 export default function SubscribeScreen() {
   const c = useSubscribe();
   const palette = c.colors;
+  const renderShell = (content: ReactNode) => (
+    <SafeAreaView
+      style={[styles.container, { backgroundColor: palette.background }]}
+      edges={['top', 'bottom']}
+    >
+      {content}
+    </SafeAreaView>
+  );
+  const renderCoachSelectionShell = (content: ReactNode) =>
+    renderShell(
+      <>
+        <Stack.Screen options={{ title: 'Select a Coach', headerShown: true }} />
+        {content}
+      </>,
+    );
 
   if (c.status === 'loading') {
-    return (
-      <SafeAreaView
-        style={[styles.container, { backgroundColor: palette.background }]}
-        edges={['top', 'bottom']}
-      >
-        <Stack.Screen options={{ title: 'Select a Coach', headerShown: true }} />
-        <LoadingState variant="list" />
-      </SafeAreaView>
-    );
+    return renderCoachSelectionShell(<LoadingState variant="list" />);
   }
 
   if (c.status === 'error') {
-    return (
-      <SafeAreaView
-        style={[styles.container, { backgroundColor: palette.background }]}
-        edges={['top', 'bottom']}
-      >
-        <Stack.Screen options={{ title: 'Select a Coach', headerShown: true }} />
-        <ErrorState message={c.error?.message ?? 'Failed to load coaches'} onRetry={c.retry} />
-      </SafeAreaView>
+    return renderCoachSelectionShell(
+      <ErrorState message={c.error?.message ?? 'Failed to load coaches'} onRetry={c.retry} />,
     );
   }
 
   if (c.status === 'empty') {
-    return (
-      <SafeAreaView
-        style={[styles.container, { backgroundColor: palette.background }]}
-        edges={['top', 'bottom']}
-      >
-        <Stack.Screen options={{ title: 'Select a Coach', headerShown: true }} />
-        <EmptyState
-          icon="people-outline"
-          title="No coaches available"
-          message="No coaches are available for recurring bookings right now. Pull to refresh and try again."
-          actionLabel="Retry"
-          onPressAction={c.onRefresh}
-        />
-      </SafeAreaView>
+    return renderCoachSelectionShell(
+      <EmptyState
+        icon="people-outline"
+        title="No coaches available"
+        message="No coaches are available for recurring bookings right now. Pull to refresh and try again."
+        actionLabel="Retry"
+        onPressAction={c.onRefresh}
+      />,
     );
   }
 
   if (!c.selectedCoach) {
-    return (
-      <SafeAreaView
-        style={[styles.container, { backgroundColor: palette.background }]}
-        edges={['top', 'bottom']}
-      >
-        <Stack.Screen options={{ title: 'Select a Coach', headerShown: true }} />
+    return renderCoachSelectionShell(
+      <>
         <ThemedView style={styles.header}>
           <ThemedText type="subtitle">Choose Your Coach</ThemedText>
           <ThemedText style={[styles.headerSubtext, { color: palette.muted }]}>
@@ -146,15 +138,12 @@ export default function SubscribeScreen() {
             </SurfaceCard>
           ))}
         </ScrollView>
-      </SafeAreaView>
+      </>,
     );
   }
 
-  return (
-    <SafeAreaView
-      style={[styles.container, { backgroundColor: palette.background }]}
-      edges={['top', 'bottom']}
-    >
+  return renderShell(
+    <>
       <Stack.Screen
         options={{
           title: 'New Subscription',
@@ -186,7 +175,7 @@ export default function SubscribeScreen() {
         onCancel={c.handleCancel}
         submitting={c.submitting}
       />
-    </SafeAreaView>
+    </>,
   );
 }
 

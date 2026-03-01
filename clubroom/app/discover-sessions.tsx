@@ -9,6 +9,7 @@ import { View, StyleSheet, FlatList, TextInput, RefreshControl } from 'react-nat
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
+import type { ReactNode } from 'react';
 
 import { Row } from '@/components/primitives/row';
 import { Clickable } from '@/components/primitives/clickable';
@@ -35,59 +36,43 @@ export default function DiscoverSessionsScreen() {
       onBackPress={() => router.back()}
     />
   );
-
-  if (c.status === 'loading') {
-    return (
-      <SafeAreaView
-        style={[styles.container, { backgroundColor: palette.background }]}
-        edges={['top', 'bottom']}
-      >
-        {header}
-        <LoadingState variant="list" />
-      </SafeAreaView>
-    );
-  }
-
-  if (c.status === 'error') {
-    return (
-      <SafeAreaView
-        style={[styles.container, { backgroundColor: palette.background }]}
-        edges={['top', 'bottom']}
-      >
-        {header}
-        <ErrorState
-          message={c.error?.message || 'Failed to load discover sessions.'}
-          onRetry={c.retry}
-        />
-      </SafeAreaView>
-    );
-  }
-
-  if (c.status === 'empty') {
-    return (
-      <SafeAreaView
-        style={[styles.container, { backgroundColor: palette.background }]}
-        edges={['top', 'bottom']}
-      >
-        {header}
-        <EmptyState
-          icon="search-outline"
-          title="No sessions available"
-          message="There are no active sessions to discover right now. Pull to refresh or check again later."
-          actionLabel="Refresh"
-          onPressAction={c.onRefresh}
-        />
-      </SafeAreaView>
-    );
-  }
-
-  return (
+  const renderShell = (content: ReactNode) => (
     <SafeAreaView
       style={[styles.container, { backgroundColor: palette.background }]}
       edges={['top', 'bottom']}
     >
       {header}
+      {content}
+    </SafeAreaView>
+  );
 
+  if (c.status === 'loading') {
+    return renderShell(<LoadingState variant="list" />);
+  }
+
+  if (c.status === 'error') {
+    return renderShell(
+      <ErrorState
+        message={c.error?.message || 'Failed to load discover sessions.'}
+        onRetry={c.retry}
+      />,
+    );
+  }
+
+  if (c.status === 'empty') {
+    return renderShell(
+      <EmptyState
+        icon="search-outline"
+        title="No sessions available"
+        message="There are no active sessions to discover right now. Pull to refresh or check again later."
+        actionLabel="Refresh"
+        onPressAction={c.onRefresh}
+      />,
+    );
+  }
+
+  return renderShell(
+    <>
       {/* Search Bar */}
       <View style={styles.searchContainer}>
         <Row
@@ -226,7 +211,7 @@ export default function DiscoverSessionsScreen() {
         onClose={c.handleModalClose}
         onUpdate={c.handleModalUpdate}
       />
-    </SafeAreaView>
+    </>,
   );
 }
 
