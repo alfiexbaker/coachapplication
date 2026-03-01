@@ -18,6 +18,7 @@ import { Spacing, Radii, Typography } from '@/constants/theme';
 import { useScreen } from '@/hooks/use-screen';
 import { ok } from '@/types/result';
 import { useDevSession } from '@/hooks/use-dev-session';
+import type { ReactNode } from 'react';
 
 export default function SessionDetailScreen() {
   const { sessionId, prefillFromQuickRate, athleteId } = useLocalSearchParams<{
@@ -85,147 +86,137 @@ export default function SessionDetailScreen() {
     <PageHeader title="Session Feedback" showBack centerTitle onBackPress={() => router.back()} />
   );
 
+  const renderStateShell = (content: ReactNode) => (
+    <SafeAreaView
+      style={[styles.container, { backgroundColor: colors.background }]}
+      edges={['top', 'bottom']}
+    >
+      {header}
+      {content}
+    </SafeAreaView>
+  );
+
   if (!resolvedSessionId) {
-    return (
-      <SafeAreaView
-        style={[styles.container, { backgroundColor: colors.background }]}
-        edges={['top', 'bottom']}
-      >
-        {header}
-        <EmptyState
-          icon="alert-circle-outline"
-          title="Session link is invalid"
-          message="Open this session again from Development."
-        />
-      </SafeAreaView>
+    return renderStateShell(
+      <EmptyState
+        icon="alert-circle-outline"
+        title="Session link is invalid"
+        message="Open this session again from Development."
+      />,
     );
   }
 
   if (loading) {
-    return (
-      <SafeAreaView
-        style={[styles.container, { backgroundColor: colors.background }]}
-        edges={['top', 'bottom']}
-      >
-        {header}
-        <LoadingState variant="form" />
-      </SafeAreaView>
-    );
+    return renderStateShell(<LoadingState variant="form" />);
   }
 
   if (!session || !athlete || !currentUser) {
-    return (
-      <SafeAreaView
-        style={[styles.container, { backgroundColor: colors.background }]}
-        edges={['top', 'bottom']}
-      >
-        {header}
-        <EmptyState
-          icon="document-text-outline"
-          title="Session not found"
-          message="This session could not be loaded."
-        />
-      </SafeAreaView>
+    return renderStateShell(
+      <EmptyState
+        icon="document-text-outline"
+        title="Session not found"
+        message="This session could not be loaded."
+      />,
     );
   }
 
   return (
-      <SafeAreaView
-        style={[styles.container, { backgroundColor: colors.background }]}
-        edges={['top', 'bottom']}
-      >
-        <ScrollView contentContainerStyle={styles.content}>
-          <PageHeader
-            title="Session Feedback"
-            showBack
-            onBackPress={() => router.back()}
-            centerTitle
-            containerStyle={styles.header}
-          />
+    <SafeAreaView
+      style={[styles.container, { backgroundColor: colors.background }]}
+      edges={['top', 'bottom']}
+    >
+      <ScrollView contentContainerStyle={styles.content}>
+        <PageHeader
+          title="Session Feedback"
+          showBack
+          onBackPress={() => router.back()}
+          centerTitle
+          containerStyle={styles.header}
+        />
 
-          <DevSessionInfo
-            athleteName={athlete.name}
-            avatar={athlete.avatar}
-            sessionDate={formatDate(session.completedAt)}
-            sessionBadges={sessionBadges}
-            colors={colors}
-          />
+        <DevSessionInfo
+          athleteName={athlete.name}
+          avatar={athlete.avatar}
+          sessionDate={formatDate(session.completedAt)}
+          sessionBadges={sessionBadges}
+          colors={colors}
+        />
 
-          <DevSessionRatings
-            rating={rating}
-            effortRating={effortRating}
-            onRatingChange={setRating}
-            onEffortChange={setEffortRating}
-            colors={colors}
-          />
+        <DevSessionRatings
+          rating={rating}
+          effortRating={effortRating}
+          onRatingChange={setRating}
+          onEffortChange={setEffortRating}
+          colors={colors}
+        />
 
-          <DevSessionSkills
-            colors={colors}
-            positionsPlayed={positionsPlayed}
-            onPositionToggle={handlePositionToggle}
-            positionalSkills={positionalSkills}
-            characterSkills={characterSkills}
-            positionLabel={positionLabel}
-            previousRatings={previousRatings}
-            subSkillRatings={subSkillRatings}
-            derivedParentAverages={derivedParentAverages}
-            onUpdateSubSkillRating={updateSubSkillRating}
-            onRemoveParentRatings={removeParentRatings}
-          />
+        <DevSessionSkills
+          colors={colors}
+          positionsPlayed={positionsPlayed}
+          onPositionToggle={handlePositionToggle}
+          positionalSkills={positionalSkills}
+          characterSkills={characterSkills}
+          positionLabel={positionLabel}
+          previousRatings={previousRatings}
+          subSkillRatings={subSkillRatings}
+          derivedParentAverages={derivedParentAverages}
+          onUpdateSubSkillRating={updateSubSkillRating}
+          onRemoveParentRatings={removeParentRatings}
+        />
 
-          <DevSessionNotes
-            publicNotes={publicNotes}
-            privateNotes={privateNotes}
-            improvements={improvements}
-            homework={homework}
-            onPublicNotesChange={setPublicNotes}
-            onPrivateNotesChange={setPrivateNotes}
-            onImprovementsChange={setImprovements}
-            onHomeworkChange={setHomework}
-            colors={colors}
-          />
+        <DevSessionNotes
+          publicNotes={publicNotes}
+          privateNotes={privateNotes}
+          improvements={improvements}
+          homework={homework}
+          onPublicNotesChange={setPublicNotes}
+          onPrivateNotesChange={setPrivateNotes}
+          onImprovementsChange={setImprovements}
+          onHomeworkChange={setHomework}
+          colors={colors}
+        />
 
-          <DevSessionMedia
-            videoUrls={videoUrls}
-            imageUrls={imageUrls}
-            onAddVideo={handleAddVideo}
-            onRemoveVideo={handleRemoveVideo}
-            onAddImage={handleAddImage}
-            onRemoveImage={handleRemoveImage}
-            colors={colors}
-          />
+        <DevSessionMedia
+          videoUrls={videoUrls}
+          imageUrls={imageUrls}
+          onAddVideo={handleAddVideo}
+          onRemoveVideo={handleRemoveVideo}
+          onAddImage={handleAddImage}
+          onRemoveImage={handleRemoveImage}
+          colors={colors}
+        />
 
-          <DevSessionVisibility
-            visibility={visibility}
-            onVisibilityChange={setVisibility}
-            colors={colors}
-          />
+        <DevSessionVisibility
+          visibility={visibility}
+          onVisibilityChange={setVisibility}
+          colors={colors}
+        />
 
-          <Clickable
-            onPress={handleSave}
-            disabled={saving}
-            style={({ pressed }) => [
-              styles.saveBtn,
-              { backgroundColor: saving ? colors.muted : colors.tint, opacity: pressed ? 0.8 : 1 },
-            ]}
-          >
-            <Row align="center" justify="center" gap="xs">
-              {saving ? (
+        <Clickable
+          onPress={handleSave}
+          disabled={saving}
+          style={({ pressed }) => [
+            styles.saveBtn,
+            { backgroundColor: saving ? colors.muted : colors.tint, opacity: pressed ? 0.8 : 1 },
+          ]}
+        >
+          <Row align="center" justify="center" gap="xs">
+            {saving ? (
+              <ThemedText style={[Typography.subheading, { color: colors.onPrimary }]}>
+                Saving...
+              </ThemedText>
+            ) : (
+              <>
+                <Ionicons name="checkmark-circle" size={20} color={colors.onPrimary} />
                 <ThemedText style={[Typography.subheading, { color: colors.onPrimary }]}>
-                  Saving...
+                  Save & Submit
                 </ThemedText>
-              ) : (
-                <>
-                  <Ionicons name="checkmark-circle" size={20} color={colors.onPrimary} />
-                  <ThemedText style={[Typography.subheading, { color: colors.onPrimary }]}>
-                    Save & Submit
-                  </ThemedText>
-                </>
-              )}
-            </Row>
-          </Clickable>
-        </ScrollView>
-      </SafeAreaView>
+              </>
+            )}
+          </Row>
+        </Clickable>
+      </ScrollView>
+    </SafeAreaView>
   );
 }
 
