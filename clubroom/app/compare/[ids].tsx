@@ -5,7 +5,7 @@
  * URL format: /compare/coach1,coach2,coach3
  */
 
-import { useCallback, useMemo } from 'react';
+import { useCallback, useMemo, type ReactNode } from 'react';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Alert, Share, StyleSheet, View } from 'react-native';
 import { router, Stack, useLocalSearchParams } from 'expo-router';
@@ -56,104 +56,34 @@ export default function DynamicCompareScreen() {
       Alert.alert('Share', `Share this link: ${shareUrl}`);
     }
   }, [coachIds]);
-
-  if (coachIds.length === 0) {
-    return (
-      <>
-        <Stack.Screen
-          options={{
-            headerShown: true,
-            title: 'Compare Coaches',
-            headerStyle: { backgroundColor: palette.background },
-            headerTintColor: palette.text,
-          }}
-        />
-        <SafeAreaView
-          style={[styles.container, { backgroundColor: palette.background }]}
-          edges={['bottom']}
-        >
-          <View style={styles.errorState}>
-            <View style={[styles.errorIcon, { backgroundColor: palette.surfaceSecondary }]}>
-              <Ionicons name="alert-circle" size={48} color={palette.error} />
-            </View>
-            <ThemedText type="subtitle" style={styles.errorTitle}>
-              Invalid Comparison Link
-            </ThemedText>
-            <ThemedText style={[styles.errorText, { color: palette.muted }]}>
-              No coach IDs were provided in the URL. Please use a valid comparison link.
-            </ThemedText>
-            <Clickable
-              accessibilityLabel="Go back"
-              onPress={() => router.back()}
-              style={({ pressed }) => [
-                styles.backButton,
-                {
-                  backgroundColor: pressed ? palette.tintPressed : palette.tint,
-                },
-              ]}
-            >
-              <Row align="center" gap="xs">
-                <Ionicons name="arrow-back" size={18} color={palette.onPrimary} />
-                <ThemedText style={[styles.backButtonText, { color: palette.onPrimary }]}>
-                  Go Back
-                </ThemedText>
-              </Row>
-            </Clickable>
-          </View>
-        </SafeAreaView>
-      </>
-    );
-  }
-
-  if (coachIds.length > 3) {
-    return (
-      <>
-        <Stack.Screen
-          options={{
-            headerShown: true,
-            title: 'Compare Coaches',
-            headerStyle: { backgroundColor: palette.background },
-            headerTintColor: palette.text,
-          }}
-        />
-        <SafeAreaView
-          style={[styles.container, { backgroundColor: palette.background }]}
-          edges={['bottom']}
-        >
-          <View style={styles.errorState}>
-            <View style={[styles.errorIcon, { backgroundColor: palette.surfaceSecondary }]}>
-              <Ionicons name="warning" size={48} color={palette.warning} />
-            </View>
-            <ThemedText type="subtitle" style={styles.errorTitle}>
-              Too Many Coaches
-            </ThemedText>
-            <ThemedText style={[styles.errorText, { color: palette.muted }]}>
-              You can compare a maximum of 3 coaches at once. Please reduce your selection.
-            </ThemedText>
-            <Clickable
-              accessibilityLabel="Go back"
-              onPress={() => router.back()}
-              style={({ pressed }) => [
-                styles.backButton,
-                {
-                  backgroundColor: pressed ? palette.tintPressed : palette.tint,
-                },
-              ]}
-            >
-              <Row align="center" gap="xs">
-                <Ionicons name="arrow-back" size={18} color={palette.onPrimary} />
-                <ThemedText style={[styles.backButtonText, { color: palette.onPrimary }]}>
-                  Go Back
-                </ThemedText>
-              </Row>
-            </Clickable>
-          </View>
-        </SafeAreaView>
-      </>
-    );
-  }
-
-  return (
+  const renderBackAction = () => (
+    <Clickable
+      accessibilityLabel="Go back"
+      onPress={() => router.back()}
+      style={({ pressed }) => [
+        styles.backButton,
+        {
+          backgroundColor: pressed ? palette.tintPressed : palette.tint,
+        },
+      ]}
+    >
+      <Row align="center" gap="xs">
+        <Ionicons name="arrow-back" size={18} color={palette.onPrimary} />
+        <ThemedText style={[styles.backButtonText, { color: palette.onPrimary }]}>Go Back</ThemedText>
+      </Row>
+    </Clickable>
+  );
+  const renderErrorState = (icon: ReactNode, title: string, message: string) => (
+    <View style={styles.errorState}>
+      <View style={[styles.errorIcon, { backgroundColor: palette.surfaceSecondary }]}>{icon}</View>
+      <ThemedText type="subtitle" style={styles.errorTitle}>
+        {title}
+      </ThemedText>
+      <ThemedText style={[styles.errorText, { color: palette.muted }]}>{message}</ThemedText>
+      {renderBackAction()}
+    </View>
+  );
+  const renderScreen = (content: ReactNode, headerRight?: () => ReactNode) => (
     <>
       <Stack.Screen
         options={{
@@ -161,22 +91,40 @@ export default function DynamicCompareScreen() {
           title: 'Compare Coaches',
           headerStyle: { backgroundColor: palette.background },
           headerTintColor: palette.text,
-          headerRight: () => (
-            <Clickable
-              accessibilityLabel="Share comparison"
-              onPress={handleShare}
-              style={styles.headerButton}
-            >
-              <Ionicons name="share-outline" size={22} color={palette.icon} />
-            </Clickable>
-          ),
+          ...(headerRight ? { headerRight } : {}),
         }}
       />
-
       <SafeAreaView
         style={[styles.container, { backgroundColor: palette.background }]}
         edges={['bottom']}
       >
+        {content}
+      </SafeAreaView>
+    </>
+  );
+
+  if (coachIds.length === 0) {
+    return renderScreen(
+      renderErrorState(
+        <Ionicons name="alert-circle" size={48} color={palette.error} />,
+        'Invalid Comparison Link',
+        'No coach IDs were provided in the URL. Please use a valid comparison link.',
+      ),
+    );
+  }
+
+  if (coachIds.length > 3) {
+    return renderScreen(
+      renderErrorState(
+        <Ionicons name="warning" size={48} color={palette.warning} />,
+        'Too Many Coaches',
+        'You can compare a maximum of 3 coaches at once. Please reduce your selection.',
+      ),
+    );
+  }
+
+  return renderScreen(
+    <>
         {/* Status bar */}
         <Row style={[styles.statusBar, { borderBottomColor: palette.border }]}>
           <Row style={styles.statusInfo}>
@@ -194,8 +142,12 @@ export default function DynamicCompareScreen() {
 
         {/* Comparison table with specific IDs */}
         <ComparisonTable coachIds={coachIds} onCoachRemoved={handleCoachRemoved} />
-      </SafeAreaView>
-    </>
+    </>,
+    () => (
+      <Clickable accessibilityLabel="Share comparison" onPress={handleShare} style={styles.headerButton}>
+        <Ionicons name="share-outline" size={22} color={palette.icon} />
+      </Clickable>
+    ),
   );
 }
 
