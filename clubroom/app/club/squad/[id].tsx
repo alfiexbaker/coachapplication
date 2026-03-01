@@ -9,6 +9,7 @@ import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet } from 'react-na
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router, useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
+import type { ReactNode } from 'react';
 
 import { Clickable } from '@/components/primitives/clickable';
 import { PageHeader } from '@/components/primitives/page-header';
@@ -53,24 +54,22 @@ export default function SquadDetailScreen() {
     confirmDeleteSquad,
     handleInviteSquad,
   } = useSquadDetail(squadId);
+  const renderShell = (content: ReactNode) => (
+    <SafeAreaView
+      style={[styles.container, { backgroundColor: colors.background }]}
+      edges={['top', 'bottom']}
+    >
+      {content}
+    </SafeAreaView>
+  );
 
   if (loading) {
-    return (
-      <SafeAreaView
-        style={[styles.container, { backgroundColor: colors.background }]}
-        edges={['top', 'bottom']}
-      >
-        <LoadingState variant="form" />
-      </SafeAreaView>
-    );
+    return renderShell(<LoadingState variant="form" />);
   }
 
   if (!squad) {
-    return (
-      <SafeAreaView
-        style={[styles.container, { backgroundColor: colors.background }]}
-        edges={['top', 'bottom']}
-      >
+    return renderShell(
+      <>
         <PageHeader title="Squad" showBack centerTitle />
         <EmptyState
           icon="people-outline"
@@ -79,15 +78,12 @@ export default function SquadDetailScreen() {
           actionLabel="Go Back"
           onPressAction={() => router.back()}
         />
-      </SafeAreaView>
+      </>,
     );
   }
 
-  return (
-    <SafeAreaView
-      style={[styles.container, { backgroundColor: colors.background }]}
-      edges={['top', 'bottom']}
-    >
+  return renderShell(
+    <>
       <PageHeader
         title={squad.name}
         showBack
@@ -155,7 +151,7 @@ export default function SquadDetailScreen() {
         onConfirm={confirmRemoveMember}
         onCancel={() => setMemberToRemove(null)}
       />
-    </SafeAreaView>
+    </>,
   );
 }
 
