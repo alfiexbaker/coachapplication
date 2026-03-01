@@ -9,6 +9,7 @@ import { View, ScrollView, StyleSheet, RefreshControl } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
+import type { ReactNode } from 'react';
 
 import { Row } from '@/components/primitives/row';
 import { ThemedText } from '@/components/themed-text';
@@ -23,54 +24,42 @@ import { useMultiWeek } from '@/hooks/use-multi-week';
 export default function MultiWeekScreen() {
   const c = useMultiWeek();
   const palette = c.colors;
-
-  if (c.status === 'loading') {
-    return (
-      <SafeAreaView
-        style={[styles.safeArea, { backgroundColor: palette.background }]}
-        edges={['top', 'bottom']}
-      >
-        <LoadingState variant="list" />
-      </SafeAreaView>
-    );
-  }
-
-  if (c.status === 'error') {
-    return (
-      <SafeAreaView
-        style={[styles.safeArea, { backgroundColor: palette.background }]}
-        edges={['top', 'bottom']}
-      >
-        <ErrorState
-          message={c.error?.message ?? 'Failed to load multi-week availability.'}
-          onRetry={c.retry}
-        />
-      </SafeAreaView>
-    );
-  }
-
-  if (c.status === 'empty') {
-    return (
-      <SafeAreaView
-        style={[styles.safeArea, { backgroundColor: palette.background }]}
-        edges={['top', 'bottom']}
-      >
-        <EmptyState
-          icon="calendar-outline"
-          title="No multi-week slots found"
-          message="This coach has no suitable weekly slots right now. Pull to refresh or choose a single session booking."
-          actionLabel="Retry"
-          onPressAction={c.retry}
-        />
-      </SafeAreaView>
-    );
-  }
-
-  return (
+  const renderShell = (content: ReactNode) => (
     <SafeAreaView
       style={[styles.safeArea, { backgroundColor: palette.background }]}
       edges={['top', 'bottom']}
     >
+      {content}
+    </SafeAreaView>
+  );
+
+  if (c.status === 'loading') {
+    return renderShell(<LoadingState variant="list" />);
+  }
+
+  if (c.status === 'error') {
+    return renderShell(
+      <ErrorState
+        message={c.error?.message ?? 'Failed to load multi-week availability.'}
+        onRetry={c.retry}
+      />,
+    );
+  }
+
+  if (c.status === 'empty') {
+    return renderShell(
+      <EmptyState
+        icon="calendar-outline"
+        title="No multi-week slots found"
+        message="This coach has no suitable weekly slots right now. Pull to refresh or choose a single session booking."
+        actionLabel="Retry"
+        onPressAction={c.retry}
+      />,
+    );
+  }
+
+  return renderShell(
+    <>
       <Row style={[styles.header, { borderBottomColor: palette.border }]}>
         <Clickable onPress={() => router.back()} style={styles.backButton}>
           <Ionicons name="chevron-back" size={24} color={palette.text} />
@@ -149,7 +138,7 @@ export default function MultiWeekScreen() {
           </View>
         </>
       )}
-    </SafeAreaView>
+    </>,
   );
 }
 
