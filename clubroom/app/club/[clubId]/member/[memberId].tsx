@@ -9,6 +9,7 @@ import { StyleSheet, ScrollView } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
+import type { ReactNode } from 'react';
 
 import { ThemedText } from '@/components/themed-text';
 import { SurfaceCard } from '@/components/primitives/surface-card';
@@ -41,54 +42,46 @@ export default function MemberManagementScreen() {
     handleBanMember,
     handleToggleSquad,
   } = useMemberManagement();
-
-  if (status === 'loading') {
-    return (
-      <SafeAreaView
-        style={[styles.container, { backgroundColor: colors.background }]}
-        edges={['top', 'bottom']}
-      >
-        <LoadingState variant="detail" />
-      </SafeAreaView>
-    );
-  }
-
-  if (status === 'error') {
-    return (
-      <SafeAreaView
-        style={[styles.container, { backgroundColor: colors.background }]}
-        edges={['top', 'bottom']}
-      >
-        <ErrorState message={error?.message || 'Failed to load member details.'} onRetry={retry} />
-      </SafeAreaView>
-    );
-  }
-
-  if (status === 'empty' || !member || !club) {
-    return (
-      <SafeAreaView
-        style={[styles.container, { backgroundColor: colors.background }]}
-        edges={['top', 'bottom']}
-      >
-        <PageHeader title="Member" showBack centerTitle />
-        <EmptyState
-          icon="person-outline"
-          title="Member not found"
-          message="This member could not be loaded."
-          actionLabel="Go Back"
-          onPressAction={() => router.back()}
-        />
-      </SafeAreaView>
-    );
-  }
-
-  return (
+  const renderShell = (content: ReactNode) => (
     <SafeAreaView
       style={[styles.container, { backgroundColor: colors.background }]}
       edges={['top', 'bottom']}
     >
-      <PageHeader title="Member" showBack centerTitle />
+      {content}
+    </SafeAreaView>
+  );
+  const renderMemberShell = (content: ReactNode) =>
+    renderShell(
+      <>
+        <PageHeader title="Member" showBack centerTitle />
+        {content}
+      </>,
+    );
 
+  if (status === 'loading') {
+    return renderShell(<LoadingState variant="detail" />);
+  }
+
+  if (status === 'error') {
+    return renderShell(
+      <ErrorState message={error?.message || 'Failed to load member details.'} onRetry={retry} />,
+    );
+  }
+
+  if (status === 'empty' || !member || !club) {
+    return renderMemberShell(
+      <EmptyState
+        icon="person-outline"
+        title="Member not found"
+        message="This member could not be loaded."
+        actionLabel="Go Back"
+        onPressAction={() => router.back()}
+      />,
+    );
+  }
+
+  return renderMemberShell(
+    <>
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
         <MemberProfileCard member={member} />
 
@@ -123,7 +116,7 @@ export default function MemberManagementScreen() {
           </SurfaceCard>
         )}
       </ScrollView>
-    </SafeAreaView>
+    </>,
   );
 }
 
