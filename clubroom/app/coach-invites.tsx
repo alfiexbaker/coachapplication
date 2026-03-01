@@ -10,6 +10,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 import { Routes } from '@/navigation/routes';
 import { Ionicons } from '@expo/vector-icons';
+import type { ReactNode } from 'react';
 
 import { Clickable } from '@/components/primitives/clickable';
 import { Row } from '@/components/primitives/row';
@@ -30,6 +31,26 @@ import {
 export default function CoachInvitesScreen() {
   const { colors: palette } = useTheme();
   const c = useCoachInvites();
+  const renderShell = (content: ReactNode) => (
+    <SafeAreaView
+      style={[styles.container, { backgroundColor: palette.background }]}
+      edges={['top', 'bottom']}
+    >
+      {content}
+    </SafeAreaView>
+  );
+  const renderScreenShell = (content: ReactNode, subtitle: string) =>
+    renderShell(
+      <>
+        <PageHeader
+          title="Club Invites"
+          subtitle={subtitle}
+          showBack
+          onBackPress={() => router.back()}
+        />
+        {content}
+      </>,
+    );
 
   const renderInvite = ({ item: invite }: { item: PendingClubInvite }) => {
     const isResponding = c.respondingTo === invite.id;
@@ -99,88 +120,45 @@ export default function CoachInvitesScreen() {
   };
 
   if (c.status === 'loading') {
-    return (
-      <SafeAreaView
-        style={[styles.container, { backgroundColor: palette.background }]}
-        edges={['top', 'bottom']}
-      >
-        <PageHeader
-          title="Club Invites"
-          subtitle="Checking your invites"
-          showBack
-          onBackPress={() => router.back()}
-        />
-        <LoadingState variant="list" />
-      </SafeAreaView>
-    );
+    return renderScreenShell(<LoadingState variant="list" />, 'Checking your invites');
   }
 
   if (c.status === 'error') {
-    return (
-      <SafeAreaView
-        style={[styles.container, { backgroundColor: palette.background }]}
-        edges={['top', 'bottom']}
-      >
-        <PageHeader
-          title="Club Invites"
-          subtitle="Unable to load invites"
-          showBack
-          onBackPress={() => router.back()}
-        />
-        <ErrorState
-          message={c.error?.message || 'Failed to load club invites.'}
-          onRetry={c.retry}
-        />
-      </SafeAreaView>
+    return renderScreenShell(
+      <ErrorState
+        message={c.error?.message || 'Failed to load club invites.'}
+        onRetry={c.retry}
+      />,
+      'Unable to load invites',
     );
   }
 
   if (c.status === 'empty') {
-    return (
-      <SafeAreaView
-        style={[styles.container, { backgroundColor: palette.background }]}
-        edges={['top', 'bottom']}
-      >
-        <PageHeader
-          title="Club Invites"
-          subtitle="No pending invites"
-          showBack
-          onBackPress={() => router.back()}
-        />
-        <EmptyState
-          icon="shield-outline"
-          title="No pending invites"
-          message="When you enter a club invite code, the invitation will appear here for you to review and accept."
-          actionLabel="Go to Club Hub"
-          onPressAction={() => router.push(Routes.CLUB_HUB)}
-        />
-      </SafeAreaView>
+    return renderScreenShell(
+      <EmptyState
+        icon="shield-outline"
+        title="No pending invites"
+        message="When you enter a club invite code, the invitation will appear here for you to review and accept."
+        actionLabel="Go to Club Hub"
+        onPressAction={() => router.push(Routes.CLUB_HUB)}
+      />,
+      'No pending invites',
     );
   }
 
-  return (
-    <SafeAreaView
-      style={[styles.container, { backgroundColor: palette.background }]}
-      edges={['top', 'bottom']}
-    >
-      <PageHeader
-        title="Club Invites"
-        subtitle={c.pendingCount > 0 ? `${c.pendingCount} pending` : 'No pending invites'}
-        showBack
-        onBackPress={() => router.back()}
-      />
-      <FlatList
-        CellRendererComponent={AccessibleListCell}
-        accessibilityRole="list"
-        data={c.invites}
-        keyExtractor={(item) => item.id}
-        renderItem={renderInvite}
-        contentContainerStyle={styles.list}
-        showsVerticalScrollIndicator={false}
-        refreshControl={<RefreshControl refreshing={c.refreshing} onRefresh={c.handleRefresh} />}
-        ItemSeparatorComponent={() => <View style={styles.separator} />}
-      />
-    </SafeAreaView>
+  return renderScreenShell(
+    <FlatList
+      CellRendererComponent={AccessibleListCell}
+      accessibilityRole="list"
+      data={c.invites}
+      keyExtractor={(item) => item.id}
+      renderItem={renderInvite}
+      contentContainerStyle={styles.list}
+      showsVerticalScrollIndicator={false}
+      refreshControl={<RefreshControl refreshing={c.refreshing} onRefresh={c.handleRefresh} />}
+      ItemSeparatorComponent={() => <View style={styles.separator} />}
+    />,
+    c.pendingCount > 0 ? `${c.pendingCount} pending` : 'No pending invites',
   );
 }
 
