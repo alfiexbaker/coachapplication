@@ -61,61 +61,50 @@ export default function AthleteAnalyticsScreen() {
       </Clickable>
     </Row>
   );
+  const renderShell = (content: ReactNode) => (
+    <SafeAreaView
+      style={[styles.container, { backgroundColor: colors.background }]}
+      edges={['top', 'bottom']}
+    >
+      {content}
+    </SafeAreaView>
+  );
+  const renderScreenShell = (content: ReactNode) =>
+    renderShell(
+      <>
+        {header}
+        {content}
+      </>,
+    );
 
   if (!athleteIdParam.valid) {
-    return (
-      <SafeAreaView
-        style={[styles.container, { backgroundColor: colors.background }]}
-        edges={['top', 'bottom']}
-      >
-        {header}
-        <ErrorState message="Invalid athlete analytics link." onRetry={() => router.back()} />
-      </SafeAreaView>
+    return renderScreenShell(
+      <ErrorState message="Invalid athlete analytics link." onRetry={() => router.back()} />,
     );
   }
 
   if (athlete.status === 'loading') {
-    return (
-      <SafeAreaView
-        style={[styles.container, { backgroundColor: colors.background }]}
-        edges={['top', 'bottom']}
-      >
-        {header}
-        <LoadingState variant="detail" />
-      </SafeAreaView>
-    );
+    return renderScreenShell(<LoadingState variant="detail" />);
   }
 
   if (athlete.status === 'error') {
-    return (
-      <SafeAreaView
-        style={[styles.container, { backgroundColor: colors.background }]}
-        edges={['top', 'bottom']}
-      >
-        {header}
-        <ErrorState
-          message={athlete.error?.message || 'Failed to load athlete analytics.'}
-          onRetry={athlete.retry}
-        />
-      </SafeAreaView>
+    return renderScreenShell(
+      <ErrorState
+        message={athlete.error?.message || 'Failed to load athlete analytics.'}
+        onRetry={athlete.retry}
+      />,
     );
   }
 
   if (athlete.status === 'empty' || !athlete.analytics) {
-    return (
-      <SafeAreaView
-        style={[styles.container, { backgroundColor: colors.background }]}
-        edges={['top', 'bottom']}
-      >
-        {header}
-        <EmptyState
-          icon="analytics-outline"
-          title="No analytics yet"
-          message="Analytics will appear after completed sessions."
-          actionLabel="Refresh"
-          onPressAction={athlete.onRefresh}
-        />
-      </SafeAreaView>
+    return renderScreenShell(
+      <EmptyState
+        icon="analytics-outline"
+        title="No analytics yet"
+        message="Analytics will appear after completed sessions."
+        actionLabel="Refresh"
+        onPressAction={athlete.onRefresh}
+      />,
     );
   }
 
@@ -129,30 +118,19 @@ export default function AthleteAnalyticsScreen() {
     analytics.completedGoals.length > 0;
 
   if (!hasUsableAnalyticsData) {
-    return (
-      <SafeAreaView
-        style={[styles.container, { backgroundColor: colors.background }]}
-        edges={['top', 'bottom']}
-      >
-        {header}
-        <EmptyState
-          icon="analytics-outline"
-          title="No analytics yet"
-          message="Analytics will appear after completed sessions and tracked progress."
-          actionLabel="Refresh"
-          onPressAction={athlete.onRefresh}
-        />
-      </SafeAreaView>
+    return renderScreenShell(
+      <EmptyState
+        icon="analytics-outline"
+        title="No analytics yet"
+        message="Analytics will appear after completed sessions and tracked progress."
+        actionLabel="Refresh"
+        onPressAction={athlete.onRefresh}
+      />,
     );
   }
 
-  return (
-    <SafeAreaView
-      style={[styles.container, { backgroundColor: colors.background }]}
-      edges={['top', 'bottom']}
-    >
-      {header}
-
+  return renderScreenShell(
+    <>
       <View style={styles.periodsContainer}>
         <Row gap="sm" wrap>
           {PERIOD_OPTIONS.map((p) => (
@@ -308,7 +286,7 @@ export default function AthleteAnalyticsScreen() {
 
         <View style={{ height: 40 }} />
       </ScrollView>
-    </SafeAreaView>
+    </>,
   );
 }
 
