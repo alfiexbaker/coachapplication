@@ -15,7 +15,7 @@
  * so I can track athlete progress and provide feedback."
  */
 
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useMemo, useState, type ReactNode } from 'react';
 import { Alert, StyleSheet, ScrollView, KeyboardAvoidingView, Platform, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router, useLocalSearchParams } from 'expo-router';
@@ -290,45 +290,30 @@ export default function SessionCompleteScreen() {
     }
     Alert.alert('Sent', `Message sent to ${result.targetName}.`);
   };
+  const renderScreenShell = (content: ReactNode) => (
+    <SafeAreaView
+      style={[styles.container, { backgroundColor: colors.background }]}
+      edges={['top', 'bottom']}
+    >
+      <PageHeader title="Complete Session" showBack onBackPress={() => router.back()} />
+      {content}
+    </SafeAreaView>
+  );
 
   // ==========================================================================
   // VISUAL STATES
   // ==========================================================================
 
   if (loading) {
-    return (
-      <SafeAreaView
-        style={[styles.container, { backgroundColor: colors.background }]}
-        edges={['top', 'bottom']}
-      >
-        <PageHeader title="Complete Session" showBack onBackPress={() => router.back()} />
-        <LoadingState variant="form" />
-      </SafeAreaView>
-    );
+    return renderScreenShell(<LoadingState variant="form" />);
   }
 
   if (error) {
-    return (
-      <SafeAreaView
-        style={[styles.container, { backgroundColor: colors.background }]}
-        edges={['top', 'bottom']}
-      >
-        <PageHeader title="Complete Session" showBack onBackPress={() => router.back()} />
-        <ErrorState message={error} onRetry={loadSession} />
-      </SafeAreaView>
-    );
+    return renderScreenShell(<ErrorState message={error} onRetry={loadSession} />);
   }
 
   if (!session) {
-    return (
-      <SafeAreaView
-        style={[styles.container, { backgroundColor: colors.background }]}
-        edges={['top', 'bottom']}
-      >
-        <PageHeader title="Complete Session" showBack onBackPress={() => router.back()} />
-        <ErrorState message="Session not found" onRetry={loadSession} />
-      </SafeAreaView>
-    );
+    return renderScreenShell(<ErrorState message="Session not found" onRetry={loadSession} />);
   }
 
   // ==========================================================================
