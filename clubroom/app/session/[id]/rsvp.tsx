@@ -52,13 +52,14 @@ export default function RSVPScreen() {
     responded: boolean;
     responseStatus: 'going' | 'not_going' | 'maybe';
   } | null>(null);
+  const renderShell = (content: ReactNode) => (
+    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top', 'bottom']}>
+      {content}
+    </SafeAreaView>
+  );
 
   if (!sessionIdParam.valid) {
-    return (
-      <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top', 'bottom']}>
-        <ErrorState message="Invalid RSVP link." onRetry={() => router.back()} />
-      </SafeAreaView>
-    );
+    return renderShell(<ErrorState message="Invalid RSVP link." onRetry={() => router.back()} />);
   }
 
   const loadData = useCallback(async () => {

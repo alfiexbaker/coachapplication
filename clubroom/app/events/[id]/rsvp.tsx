@@ -131,11 +131,8 @@ export default function EventRSVPScreen() {
     );
   }
 
-  return (
-    <SafeAreaView
-      style={[styles.container, { backgroundColor: palette.background }]}
-      edges={['top', 'bottom']}
-    >
+  return renderShell(
+    <>
       <PageHeader
         title="RSVP"
         showBack
@@ -501,7 +498,7 @@ export default function EventRSVPScreen() {
           </View>
         )}
       </KeyboardAvoidingView>
-    </SafeAreaView>
+    </>,
   );
 }
 
