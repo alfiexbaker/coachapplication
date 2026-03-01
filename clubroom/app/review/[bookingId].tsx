@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useMemo, useState, type ReactNode } from 'react';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import {
   ScrollView,
@@ -254,82 +254,73 @@ export default function ReviewScreen() {
       month: 'short',
     });
   };
+  const renderShell = (content: ReactNode) => (
+    <SafeAreaView style={{ flex: 1, backgroundColor: palette.background }} edges={['top', 'bottom']}>
+      {content}
+    </SafeAreaView>
+  );
 
   if (status === 'loading') {
-    return (
-      <SafeAreaView style={{ flex: 1, backgroundColor: palette.background }} edges={['top', 'bottom']}>
-        <LoadingState variant="detail" />
-      </SafeAreaView>
-    );
+    return renderShell(<LoadingState variant="detail" />);
   }
 
   if (!bookingIdParam.valid) {
-    return (
-      <SafeAreaView style={{ flex: 1, backgroundColor: palette.background }} edges={['top', 'bottom']}>
-        <ErrorState
-          message="Invalid link"
-          description="The booking review link is missing or invalid."
-          onRetry={() => router.back()}
-        />
-      </SafeAreaView>
+    return renderShell(
+      <ErrorState
+        message="Invalid link"
+        description="The booking review link is missing or invalid."
+        onRetry={() => router.back()}
+      />,
     );
   }
 
   if (status === 'error') {
-    return (
-      <SafeAreaView style={{ flex: 1, backgroundColor: palette.background }} edges={['top', 'bottom']}>
-        <ErrorState
-          message={error?.message || 'Failed to load booking review details.'}
-          onRetry={retry}
-        />
-      </SafeAreaView>
+    return renderShell(
+      <ErrorState
+        message={error?.message || 'Failed to load booking review details.'}
+        onRetry={retry}
+      />,
     );
   }
 
   if (status === 'empty' || !booking) {
-    return (
-      <SafeAreaView style={{ flex: 1, backgroundColor: palette.background }} edges={['top', 'bottom']}>
-        <EmptyState
-          icon="star-outline"
-          title="Booking not found"
-          message="This booking could not be loaded for review."
-          actionLabel="Go Back"
-          onPressAction={() => router.back()}
-        />
-      </SafeAreaView>
+    return renderShell(
+      <EmptyState
+        icon="star-outline"
+        title="Booking not found"
+        message="This booking could not be loaded for review."
+        actionLabel="Go Back"
+        onPressAction={() => router.back()}
+      />,
     );
   }
 
   if (currentUser?.role === 'COACH') {
-    return (
-      <SafeAreaView style={{ flex: 1, backgroundColor: palette.background }} edges={['top', 'bottom']}>
-        <EmptyState
-          icon="star-outline"
-          title="Not available"
-          message="Coach reviews are submitted by athletes or parents after completed sessions."
-          actionLabel="Go Back"
-          onPressAction={() => router.back()}
-        />
-      </SafeAreaView>
+    return renderShell(
+      <EmptyState
+        icon="star-outline"
+        title="Not available"
+        message="Coach reviews are submitted by athletes or parents after completed sessions."
+        actionLabel="Go Back"
+        onPressAction={() => router.back()}
+      />,
     );
   }
 
   if (booking.status !== 'COMPLETED' && !reviewFromStorage) {
-    return (
-      <SafeAreaView style={{ flex: 1, backgroundColor: palette.background }} edges={['top', 'bottom']}>
-        <EmptyState
-          icon="time-outline"
-          title="Review opens after completion"
-          message="You can review this coach once this booking is marked as completed."
-          actionLabel="Go Back"
-          onPressAction={() => router.back()}
-        />
-      </SafeAreaView>
+    return renderShell(
+      <EmptyState
+        icon="time-outline"
+        title="Review opens after completion"
+        message="You can review this coach once this booking is marked as completed."
+        actionLabel="Go Back"
+        onPressAction={() => router.back()}
+      />,
     );
   }
 
-  return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: palette.background }} edges={['top', 'bottom']}>
+  return renderShell(
+    <>
       <ReviewHeader colors={palette} submitted={isSubmitted} onBack={() => router.back()} />
 
       <KeyboardAvoidingView
@@ -361,7 +352,7 @@ export default function ReviewScreen() {
           )}
         </ScrollView>
       </KeyboardAvoidingView>
-    </SafeAreaView>
+    </>,
   );
 }
 
