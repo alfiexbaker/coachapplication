@@ -102,11 +102,8 @@ export default function VideoDetailScreen() {
     });
   }
 
-  return (
-    <SafeAreaView
-      style={[styles.container, { backgroundColor: colors.background }]}
-      edges={['top', 'bottom']}
-    >
+  return renderShell({
+    header: (
       <Row align="center" gap="md" style={styles.header}>
         <Clickable onPress={() => router.back()} hitSlop={8}>
           <Ionicons name="arrow-back" size={24} color={colors.text} />
@@ -126,77 +123,80 @@ export default function VideoDetailScreen() {
           </Clickable>
         )}
       </Row>
-
-      <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
-        <Animated.View entering={FadeInDown.springify()}>
-          <VideoPlayer
-            videoUrl={video.videoUrl}
-            thumbnailUrl={video.thumbnailUrl}
-            duration={video.duration}
-            annotations={video.annotations}
-            onAnnotationPress={handleSeekToAnnotation}
-            onTimeUpdate={handleTimeUpdate}
-          />
-        </Animated.View>
-
-        {isOwner && (
-          <Animated.View entering={FadeInDown.delay(50).springify()}>
-            <QuickAnnotationBar onAdd={handleQuickAnnotation} />
-          </Animated.View>
-        )}
-
-        <Animated.View entering={FadeInDown.delay(100).springify()}>
-          <VideoInfoSection video={video} colors={colors} />
-        </Animated.View>
-
-        {isOwner && (
-          <Animated.View entering={FadeInDown.delay(150).springify()}>
-            <VideoDetailActions
-              colors={colors}
-              visibility={video.visibility}
-              onAddAnnotation={() => {
-                dismissAnnotationModal();
-                handleQuickAnnotation('HIGHLIGHT' as never);
-              }}
-              onToggleVisibility={handleToggleVisibility}
-            />
-          </Animated.View>
-        )}
-
-        <Animated.View entering={FadeInDown.delay(200).springify()}>
-          <SurfaceCard style={styles.annotationsCard}>
-            <AnnotationTimeline
-              annotations={video.annotations}
-              currentTime={currentTime}
+    ),
+    content: (
+      <>
+        <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
+          <Animated.View entering={FadeInDown.springify()}>
+            <VideoPlayer
+              videoUrl={video.videoUrl}
+              thumbnailUrl={video.thumbnailUrl}
               duration={video.duration}
-              onSeek={(timestamp) => setCurrentTime(timestamp)}
+              annotations={video.annotations}
+              onAnnotationPress={handleSeekToAnnotation}
+              onTimeUpdate={handleTimeUpdate}
             />
-          </SurfaceCard>
-        </Animated.View>
+          </Animated.View>
 
-        <Animated.View entering={FadeInDown.delay(250).springify()}>
-          <VideoDetailsCard
-            colors={colors}
-            coachName={video.coachId}
-            createdAt={video.createdAt}
-            fileSize={video.fileSize}
-            sessionId={video.sessionId}
-            onViewSession={(sessionId) => router.push(Routes.developmentSession(sessionId))}
-          />
-        </Animated.View>
+          {isOwner && (
+            <Animated.View entering={FadeInDown.delay(50).springify()}>
+              <QuickAnnotationBar onAdd={handleQuickAnnotation} />
+            </Animated.View>
+          )}
 
-        <View style={styles.bottomSpacer} />
-      </ScrollView>
+          <Animated.View entering={FadeInDown.delay(100).springify()}>
+            <VideoInfoSection video={video} colors={colors} />
+          </Animated.View>
 
-      <AddAnnotationModal
-        visible={showAnnotationModal}
-        onClose={dismissAnnotationModal}
-        onSave={handleSaveAnnotation}
-        currentTime={currentTime}
-        duration={video.duration}
-      />
-    </SafeAreaView>
-  );
+          {isOwner && (
+            <Animated.View entering={FadeInDown.delay(150).springify()}>
+              <VideoDetailActions
+                colors={colors}
+                visibility={video.visibility}
+                onAddAnnotation={() => {
+                  dismissAnnotationModal();
+                  handleQuickAnnotation('HIGHLIGHT' as never);
+                }}
+                onToggleVisibility={handleToggleVisibility}
+              />
+            </Animated.View>
+          )}
+
+          <Animated.View entering={FadeInDown.delay(200).springify()}>
+            <SurfaceCard style={styles.annotationsCard}>
+              <AnnotationTimeline
+                annotations={video.annotations}
+                currentTime={currentTime}
+                duration={video.duration}
+                onSeek={(timestamp) => setCurrentTime(timestamp)}
+              />
+            </SurfaceCard>
+          </Animated.View>
+
+          <Animated.View entering={FadeInDown.delay(250).springify()}>
+            <VideoDetailsCard
+              colors={colors}
+              coachName={video.coachId}
+              createdAt={video.createdAt}
+              fileSize={video.fileSize}
+              sessionId={video.sessionId}
+              onViewSession={(sessionId) => router.push(Routes.developmentSession(sessionId))}
+            />
+          </Animated.View>
+
+          <View style={styles.bottomSpacer} />
+        </ScrollView>
+
+        <AddAnnotationModal
+          visible={showAnnotationModal}
+          onClose={dismissAnnotationModal}
+          onSave={handleSaveAnnotation}
+          currentTime={currentTime}
+          duration={video.duration}
+        />
+      </>
+    ),
+  });
 }
 
 const styles = StyleSheet.create({

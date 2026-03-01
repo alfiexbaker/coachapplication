@@ -70,11 +70,8 @@ export default function ProfileScreen() {
 
   const canOpenCoachProfile = data.role === 'COACH';
 
-  return (
-    <SafeAreaView
-      style={[styles.container, { backgroundColor: colors.background }]}
-      edges={['top', 'bottom']}
-    >
+  return renderShell(
+    <>
       <Row style={styles.header} align="center" justify="between">
         <Clickable onPress={() => router.back()} hitSlop={8} accessibilityLabel="Go back">
           <Ionicons name="arrow-back" size={24} color={colors.text} />
@@ -116,7 +113,7 @@ export default function ProfileScreen() {
           </Button>
         )}
       </View>
-    </SafeAreaView>
+    </>,
   );
 }
 

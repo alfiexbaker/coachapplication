@@ -68,11 +68,8 @@ export default function EventAttendeesScreen() {
     );
   }
 
-  return (
-    <SafeAreaView
-      style={[styles.container, { backgroundColor: colors.background }]}
-      edges={['top', 'bottom']}
-    >
+  return renderShell(
+    <>
       <PageHeader
         title="Attendees"
         subtitle={event.title}
@@ -155,7 +152,7 @@ export default function EventAttendeesScreen() {
           </Clickable>
         </Row>
       )}
-    </SafeAreaView>
+    </>,
   );
 }
 
