@@ -53,22 +53,19 @@ export default function SquadInviteScreen() {
 
   if (s.status === 'empty' || !s.squad) {
     return renderShell(
-        <EmptyState
-          icon="people-outline"
-          title="Squad not found"
-          message="This squad could not be loaded."
-          actionLabel="Go Back"
-          onPressAction={() => router.back()}
-        />,
+      <EmptyState
+        icon="people-outline"
+        title="Squad not found"
+        message="This squad could not be loaded."
+        actionLabel="Go Back"
+        onPressAction={() => router.back()}
+      />,
     );
   }
 
   if (s.viewMode === 'result' && s.inviteResult) {
-    return (
-      <SafeAreaView
-        style={[styles.container, { backgroundColor: palette.background }]}
-        edges={['top', 'bottom']}
-      >
+    return renderShell(
+      <>
         <PageHeader
           title="Invites Sent"
           centerTitle
@@ -90,15 +87,12 @@ export default function SquadInviteScreen() {
             showDetails
           />
         </ScrollView>
-      </SafeAreaView>
+      </>,
     );
   }
 
-  return (
-    <SafeAreaView
-      style={[styles.container, { backgroundColor: palette.background }]}
-      edges={['top', 'bottom']}
-    >
+  return renderShell(
+    <>
       <PageHeader
         title="Invite Squad"
         showBack
@@ -176,7 +170,7 @@ export default function SquadInviteScreen() {
           disabled={!s.canSend}
         />
       </View>
-    </SafeAreaView>
+    </>,
   );
 }
 
