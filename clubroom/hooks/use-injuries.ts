@@ -3,7 +3,8 @@
  * Manages injury loading, status filtering, and navigation.
  */
 
-import { useState, useCallback, useMemo } from 'react';
+import { Alert } from 'react-native';
+import { useState, useCallback, useMemo, useEffect } from 'react';
 import { router } from 'expo-router';
 import { Routes } from '@/navigation/routes';
 import * as Haptics from 'expo-haptics';
@@ -19,36 +20,70 @@ const logger = createLogger('InjuryHistoryScreen');
 
 export type StatusFilter = InjuryStatus | 'ALL';
 
+type SubjectOption = {
+  id: string;
+  name: string;
+  initials: string;
+  colorCode?: string;
+  kind: 'self' | 'child';
+};
+
 export function useInjuries() {
   const { currentUser } = useAuth();
   const { children, activeChildId, setActiveChildId, isParent } = useChildContext();
 
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('ALL');
+  const selfOption = useMemo<SubjectOption | null>(() => {
+    if (!currentUser?.id) return null;
+    const displayName = currentUser.fullName || currentUser.name || 'Myself';
+    return {
+      id: currentUser.id,
+      name: displayName,
+      initials: 'ME',
+      kind: 'self',
+    };
+  }, [currentUser?.fullName, currentUser?.id, currentUser?.name]);
 
-  const selectedChildId = useMemo(() => {
-    if (!isParent || children.length === 0) return null;
-    if (activeChildId && children.some((child) => child.id === activeChildId)) {
-      return activeChildId;
+  const subjectOptions = useMemo<SubjectOption[]>(() => {
+    const childOptions: SubjectOption[] = children.map((child) => ({
+      id: child.id,
+      name: child.name,
+      initials: child.initials,
+      colorCode: child.colorCode,
+      kind: 'child',
+    }));
+
+    if (!selfOption) return childOptions;
+    if (isParent && childOptions.length > 0) return [selfOption, ...childOptions];
+    return [selfOption];
+  }, [children, isParent, selfOption]);
+
+  const [selectedSubjectId, setSelectedSubjectId] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (subjectOptions.length === 0) {
+      if (selectedSubjectId !== null) setSelectedSubjectId(null);
+      return;
     }
-    return children[0]?.id ?? null;
-  }, [activeChildId, children, isParent]);
+    if (selectedSubjectId && subjectOptions.some((option) => option.id === selectedSubjectId)) {
+      return;
+    }
 
-  const selectedChild = useMemo(
-    () => children.find((child) => child.id === selectedChildId) ?? null,
-    [children, selectedChildId],
+    if (activeChildId && subjectOptions.some((option) => option.id === activeChildId)) {
+      setSelectedSubjectId(activeChildId);
+      return;
+    }
+
+    setSelectedSubjectId(subjectOptions[0].id);
+  }, [activeChildId, selectedSubjectId, subjectOptions]);
+
+  const selectedSubject = useMemo(
+    () => subjectOptions.find((option) => option.id === selectedSubjectId) ?? null,
+    [selectedSubjectId, subjectOptions],
   );
 
-  const subjectId = selectedChildId ?? currentUser?.id ?? null;
-  const kidOptions = useMemo(
-    () =>
-      children.map((child) => ({
-        id: child.id,
-        name: child.name,
-        initials: child.initials,
-        colorCode: child.colorCode,
-      })),
-    [children],
-  );
+  const selectedChildId = selectedSubject?.kind === 'child' ? selectedSubject.id : null;
+  const subjectId = selectedSubject?.id ?? null;
 
   const loadInjuries = useCallback(async () => {
     if (!subjectId) {
@@ -108,26 +143,75 @@ export function useInjuries() {
     router.push(Routes.HEALTH_LOG);
   }, [selectedChildId]);
 
-  const handleSelectChild = useCallback(
-    (childId: string) => {
-      void setActiveChildId(childId);
+  const handleSelectSubject = useCallback(
+    (nextSubjectId: string) => {
+      const selectedOption = subjectOptions.find((option) => option.id === nextSubjectId);
+      if (!selectedOption) return;
+
+      setSelectedSubjectId(nextSubjectId);
+      if (selectedOption.kind === 'child') {
+        void setActiveChildId(nextSubjectId);
+      }
     },
-    [setActiveChildId],
+    [setActiveChildId, subjectOptions],
   );
 
-  const handleSelectNextChild = useCallback(() => {
-    if (kidOptions.length <= 1) return;
-    const currentIndex = kidOptions.findIndex((child) => child.id === selectedChildId);
-    const nextIndex = currentIndex >= 0 ? (currentIndex + 1) % kidOptions.length : 0;
-    const nextChildId = kidOptions[nextIndex]?.id ?? kidOptions[0]?.id;
-    if (!nextChildId) return;
-    void setActiveChildId(nextChildId);
-  }, [kidOptions, selectedChildId, setActiveChildId]);
+  const handleSelectNextSubject = useCallback(() => {
+    if (subjectOptions.length <= 1) return;
+    const currentIndex = subjectOptions.findIndex((option) => option.id === selectedSubjectId);
+    const nextIndex = currentIndex >= 0 ? (currentIndex + 1) % subjectOptions.length : 0;
+    const nextSubjectId = subjectOptions[nextIndex]?.id ?? subjectOptions[0]?.id;
+    if (!nextSubjectId) return;
+    handleSelectSubject(nextSubjectId);
+  }, [handleSelectSubject, selectedSubjectId, subjectOptions]);
 
-  const handleEditSelectedChild = useCallback(() => {
-    if (!selectedChildId) return;
-    router.push(Routes.modalEditChildProfile(selectedChildId));
-  }, [selectedChildId]);
+  const handleEditSelectedSubject = useCallback(() => {
+    if (!selectedSubject) return;
+    if (selectedSubject.kind === 'child') {
+      router.push(Routes.modalEditChildProfile(selectedSubject.id));
+      return;
+    }
+    router.push(Routes.EDIT_PROFILE);
+  }, [selectedSubject]);
+
+  const handleQuickHeal = useCallback(
+    (injury: Injury) => {
+      if (injury.status === 'HEALED') return;
+      Alert.alert('Mark as recovered?', 'This injury will move to healed records.', [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Mark recovered',
+          onPress: () => {
+            void (async () => {
+              try {
+                void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+                const updated = await injuryService.markAsHealed(injury.id);
+                if (updated) {
+                  void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+                  onRefresh();
+                  return;
+                }
+                void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+              } catch (markError) {
+                logger.error('Failed to mark injury as recovered', { injuryId: injury.id, error: markError });
+                void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+              }
+            })();
+          },
+        },
+      ]);
+    },
+    [onRefresh],
+  );
+
+  const openInjuries = useMemo(
+    () => injuries.filter((injury) => injury.status === 'ACTIVE' || injury.status === 'RECOVERING'),
+    [injuries],
+  );
+  const healedInjuries = useMemo(
+    () => injuries.filter((injury) => injury.status === 'HEALED'),
+    [injuries],
+  );
 
   return {
     injuries,
@@ -141,16 +225,27 @@ export function useInjuries() {
     handleRefresh,
     retry,
     handleInjuryPress,
+    handleQuickHeal,
     handleFilterChange,
     handleLogInjury,
-    kidOptions,
+    openInjuries,
+    healedInjuries,
+    subjectOptions,
+    selectedSubjectId: selectedSubject?.id ?? undefined,
+    selectedSubjectName: selectedSubject?.name ?? null,
+    selectedSubjectKind: selectedSubject?.kind ?? null,
+    handleSelectSubject,
+    handleSelectNextSubject,
+    handleEditSelectedSubject,
+    // Backward-compatible aliases for older screens using child-oriented naming.
+    kidOptions: subjectOptions,
     selectedChildId: selectedChildId ?? undefined,
-    selectedChildName: selectedChild?.name ?? null,
-    showKidSelector: kidOptions.length > 1,
-    canEditSelectedChild: Boolean(selectedChildId),
-    handleSelectChild,
-    handleSelectNextChild,
-    handleEditSelectedChild,
+    selectedChildName: selectedSubject?.name ?? null,
+    showKidSelector: subjectOptions.length > 1,
+    canEditSelectedChild: Boolean(selectedSubject),
+    handleSelectChild: handleSelectSubject,
+    handleSelectNextChild: handleSelectNextSubject,
+    handleEditSelectedChild: handleEditSelectedSubject,
   } satisfies {
     injuries: Injury[];
     loading: boolean;
@@ -163,9 +258,19 @@ export function useInjuries() {
     handleRefresh: () => void;
     retry: () => void;
     handleInjuryPress: (injury: Injury) => void;
+    handleQuickHeal: (injury: Injury) => void;
     handleFilterChange: (filter: StatusFilter) => void;
     handleLogInjury: () => void;
-    kidOptions: Array<{ id: string; name: string; initials: string; colorCode?: string }>;
+    openInjuries: Injury[];
+    healedInjuries: Injury[];
+    subjectOptions: SubjectOption[];
+    selectedSubjectId: string | undefined;
+    selectedSubjectName: string | null;
+    selectedSubjectKind: 'self' | 'child' | null;
+    handleSelectSubject: (subjectId: string) => void;
+    handleSelectNextSubject: () => void;
+    handleEditSelectedSubject: () => void;
+    kidOptions: SubjectOption[];
     selectedChildId: string | undefined;
     selectedChildName: string | null;
     showKidSelector: boolean;

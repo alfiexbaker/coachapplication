@@ -1,8 +1,10 @@
 /**
- * Injury History Screen
+ * Injury Center Screen
  *
- * Full injury history with status filtering.
- * All state/logic in useInjuries hook.
+ * Command-center view for injury tracking:
+ * - Subject switcher (self/child)
+ * - Fast status metrics
+ * - One-tap recovery actions
  */
 
 import { View, StyleSheet, ScrollView, RefreshControl } from 'react-native';
@@ -21,6 +23,7 @@ import { useScreen } from '@/hooks/use-screen';
 import { ok } from '@/types/result';
 import { useInjuries, type StatusFilter } from '@/hooks/use-injuries';
 import { scaleFont } from '@/utils/scale';
+import { Routes } from '@/navigation/routes';
 
 const FILTERS: {
   value: StatusFilter;
@@ -30,19 +33,39 @@ const FILTERS: {
   { value: 'ALL', label: 'All', colorKey: 'text' },
   { value: 'ACTIVE', label: 'Active', colorKey: 'error' },
   { value: 'RECOVERING', label: 'Recovering', colorKey: 'warning' },
-  { value: 'HEALED', label: 'Healed', colorKey: 'success' },
+  { value: 'HEALED', label: 'Recovered', colorKey: 'success' },
 ];
 
-const EMPTY_ICONS: Record<StatusFilter, string> = {
+const EMPTY_ICONS: Record<StatusFilter, keyof typeof Ionicons.glyphMap> = {
   ALL: 'medical-outline',
   ACTIVE: 'pulse-outline',
   RECOVERING: 'trending-up-outline',
   HEALED: 'checkmark-circle-outline',
 };
 
+function StatPill({
+  label,
+  value,
+  color,
+  tint,
+}: {
+  label: string;
+  value: number;
+  color: string;
+  tint: string;
+}) {
+  return (
+    <View style={[styles.metricCard, { backgroundColor: tint }]}>
+      <ThemedText style={[styles.metricValue, { color }]}>{value}</ThemedText>
+      <ThemedText style={styles.metricLabel}>{label}</ThemedText>
+    </View>
+  );
+}
+
 export default function InjuryHistoryScreen() {
   const { colors: palette } = useScreen<null>({ load: async () => ok(null), isEmpty: () => false });
   const c = useInjuries();
+  const isAllFilter = c.statusFilter === 'ALL';
 
   return (
     <SafeAreaView
@@ -51,11 +74,21 @@ export default function InjuryHistoryScreen() {
     >
       <Row align="center" justify="space-between" style={styles.header}>
         <Row align="center" gap="md" style={styles.headerLeft}>
-          <Clickable onPress={() => router.back()} hitSlop={8}>
+          <Clickable
+            onPress={() => {
+              if (router.canGoBack()) {
+                router.back();
+                return;
+              }
+              router.replace(Routes.HEALTH);
+            }}
+            hitSlop={8}
+            accessibilityLabel="Go back"
+          >
             <Ionicons name="arrow-back" size={24} color={palette.text} />
           </Clickable>
           <ThemedText type="title" style={styles.headerTitle}>
-            Injury History
+            Injury Center
           </ThemedText>
         </Row>
         <Clickable
@@ -63,63 +96,125 @@ export default function InjuryHistoryScreen() {
           onPress={c.handleLogInjury}
           style={[styles.addButton, { backgroundColor: palette.tint }]}
         >
-          <Ionicons name="add" size={24} color={palette.onPrimary} />
+          <Ionicons name="add" size={20} color={palette.onPrimary} />
         </Clickable>
       </Row>
 
-      <View style={[styles.filterContainer, { borderBottomColor: palette.border }]}>
-        {c.canEditSelectedChild && (
+      <View style={[styles.surfaceBlock, { borderBottomColor: palette.border }]}>
+        {c.subjectOptions.length > 0 && (
           <View
             style={[
-              styles.kidCard,
+              styles.subjectCard,
               { backgroundColor: palette.surface, borderColor: palette.border },
             ]}
           >
             <Row align="center" justify="space-between">
               <Row align="center" gap="xs">
                 <Ionicons name="person-circle-outline" size={18} color={palette.tint} />
-                <ThemedText style={[styles.kidLabel, { color: palette.muted }]}>Kid</ThemedText>
-                <ThemedText style={styles.kidName}>{c.selectedChildName ?? 'Selected'}</ThemedText>
+                <ThemedText style={[styles.subjectLabel, { color: palette.muted }]}>For</ThemedText>
+                <ThemedText style={styles.subjectName}>{c.selectedSubjectName ?? 'Selected'}</ThemedText>
               </Row>
               <Row align="center" gap="xs">
-                {c.showKidSelector && (
+                {c.subjectOptions.length > 1 && (
                   <Clickable
-                    onPress={c.handleSelectNextChild}
+                    onPress={c.handleSelectNextSubject}
                     style={[
-                      styles.editKidButton,
-                      {
-                        borderColor: palette.border,
-                        backgroundColor: withAlpha(palette.tint, 0.08),
-                      },
+                      styles.subjectActionButton,
+                      { borderColor: palette.border, backgroundColor: withAlpha(palette.tint, 0.08) },
                     ]}
-                    accessibilityLabel="Switch selected kid"
+                    accessibilityLabel="Switch selected profile"
                   >
                     <Row align="center" gap="xxs">
                       <Ionicons name="swap-horizontal-outline" size={14} color={palette.tint} />
-                      <ThemedText style={[styles.editKidText, { color: palette.tint }]}>Switch</ThemedText>
+                      <ThemedText style={[styles.subjectActionText, { color: palette.tint }]}>
+                        Switch
+                      </ThemedText>
                     </Row>
                   </Clickable>
                 )}
                 <Clickable
-                  onPress={c.handleEditSelectedChild}
+                  onPress={c.handleEditSelectedSubject}
                   style={[
-                    styles.editKidButton,
-                    {
-                      borderColor: palette.border,
-                      backgroundColor: withAlpha(palette.tint, 0.08),
-                    },
+                    styles.subjectActionButton,
+                    { borderColor: palette.border, backgroundColor: withAlpha(palette.tint, 0.08) },
                   ]}
-                  accessibilityLabel="Edit selected kid profile"
+                  accessibilityLabel="Edit selected profile"
                 >
                   <Row align="center" gap="xxs">
                     <Ionicons name="create-outline" size={14} color={palette.tint} />
-                    <ThemedText style={[styles.editKidText, { color: palette.tint }]}>Edit</ThemedText>
+                    <ThemedText style={[styles.subjectActionText, { color: palette.tint }]}>Edit</ThemedText>
                   </Row>
                 </Clickable>
               </Row>
             </Row>
+            {c.subjectOptions.length > 1 && (
+              <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.subjectScroller}>
+                <Row gap="xs">
+                  {c.subjectOptions.map((option) => {
+                    const selected = option.id === c.selectedSubjectId;
+                    return (
+                      <Clickable key={option.id} onPress={() => c.handleSelectSubject(option.id)}>
+                        <Row
+                          align="center"
+                          gap="xs"
+                          style={[
+                            styles.subjectChip,
+                            {
+                              borderColor: selected ? palette.tint : palette.border,
+                              backgroundColor: selected ? withAlpha(palette.tint, 0.12) : palette.background,
+                            },
+                          ]}
+                        >
+                          <View
+                            style={[
+                              styles.subjectDot,
+                              {
+                                backgroundColor:
+                                  option.kind === 'self'
+                                    ? palette.tint
+                                    : option.colorCode || withAlpha(palette.warning, 0.75),
+                              },
+                            ]}
+                          />
+                          <ThemedText
+                            style={[
+                              styles.subjectChipLabel,
+                              { color: selected ? palette.tint : palette.text },
+                            ]}
+                          >
+                            {option.kind === 'self' ? 'Myself' : option.name}
+                          </ThemedText>
+                        </Row>
+                      </Clickable>
+                    );
+                  })}
+                </Row>
+              </ScrollView>
+            )}
           </View>
         )}
+
+        <Row gap="sm" style={styles.metricsRow}>
+          <StatPill
+            label="Active"
+            value={c.counts.ACTIVE}
+            color={palette.error}
+            tint={withAlpha(palette.error, 0.08)}
+          />
+          <StatPill
+            label="Recovering"
+            value={c.counts.RECOVERING}
+            color={palette.warning}
+            tint={withAlpha(palette.warning, 0.1)}
+          />
+          <StatPill
+            label="Recovered"
+            value={c.counts.HEALED}
+            color={palette.success}
+            tint={withAlpha(palette.success, 0.1)}
+          />
+        </Row>
+
         <ScrollView horizontal showsHorizontalScrollIndicator={false}>
           <Row gap="xs" style={styles.filterRow}>
             {FILTERS.map((filter) => {
@@ -149,11 +244,7 @@ export default function InjuryHistoryScreen() {
                     <View
                       style={[
                         styles.filterCount,
-                        {
-                          backgroundColor: isActive
-                            ? withAlpha(palette.onPrimary, 0.2)
-                            : palette.border,
-                        },
+                        { backgroundColor: isActive ? withAlpha(palette.onPrimary, 0.2) : palette.border },
                       ]}
                     >
                       <ThemedText
@@ -181,38 +272,131 @@ export default function InjuryHistoryScreen() {
         {c.loading ? (
           <LoadingState variant="list" />
         ) : c.status === 'error' ? (
-          <ErrorState
-            message={c.error?.message ?? 'Failed to load injury history.'}
-            onRetry={c.retry}
-          />
-        ) : c.filteredInjuries.length === 0 ? (
-          <Animated.View entering={FadeInDown.springify()} style={styles.emptyState}>
-            <View style={[styles.emptyIcon, { backgroundColor: withAlpha(palette.tint, 0.09) }]}>
-              <Ionicons
-                name={EMPTY_ICONS[c.statusFilter] as keyof typeof Ionicons.glyphMap}
-                size={48}
-                color={palette.tint}
-              />
-            </View>
-            <ThemedText type="subtitle" style={styles.emptyTitle}>
-              {c.statusFilter === 'ALL'
-                ? 'No Injuries'
-                : `No ${c.statusFilter.charAt(0) + c.statusFilter.slice(1).toLowerCase()} Injuries`}
-            </ThemedText>
-            <ThemedText style={[styles.emptyText, { color: palette.muted }]}>
-              {c.statusFilter === 'ALL'
-                ? "You haven't logged any injuries yet."
-                : `You don't have any ${c.statusFilter.toLowerCase()} injuries.`}
-            </ThemedText>
-          </Animated.View>
+          <ErrorState message={c.error?.message ?? 'Failed to load injury records.'} onRetry={c.retry} />
         ) : (
-          <Animated.View entering={FadeInDown.springify()}>
-            {c.filteredInjuries.map((injury, index) => (
-              <Animated.View key={injury.id} entering={FadeInDown.delay(index * 50).springify()}>
-                <InjuryCard injury={injury} onPress={() => c.handleInjuryPress(injury)} />
+          <View>
+            {isAllFilter && (
+              <>
+                <Row align="center" justify="space-between" style={styles.sectionHeader}>
+                  <ThemedText type="subtitle">Open cases</ThemedText>
+                  <ThemedText style={[styles.sectionMeta, { color: palette.muted }]}>
+                    {c.openInjuries.length}
+                  </ThemedText>
+                </Row>
+
+                {c.openInjuries.length === 0 ? (
+                  <Animated.View entering={FadeInDown.springify()} style={styles.emptyState}>
+                    <View style={[styles.emptyIcon, { backgroundColor: withAlpha(palette.success, 0.09) }]}>
+                      <Ionicons name="checkmark-circle-outline" size={42} color={palette.success} />
+                    </View>
+                    <ThemedText type="subtitle" style={styles.emptyTitle}>
+                      No open injuries
+                    </ThemedText>
+                    <ThemedText style={[styles.emptyText, { color: palette.muted }]}>
+                      Everything is currently marked recovered.
+                    </ThemedText>
+                  </Animated.View>
+                ) : (
+                  c.openInjuries.map((injury, index) => (
+                    <Animated.View key={injury.id} entering={FadeInDown.delay(index * 40).springify()}>
+                      <InjuryCard injury={injury} onPress={() => c.handleInjuryPress(injury)} />
+                      <Row gap="sm" style={styles.cardActions}>
+                        <Clickable
+                          onPress={() => c.handleInjuryPress(injury)}
+                          style={[
+                            styles.secondaryAction,
+                            { borderColor: palette.border, backgroundColor: palette.surface },
+                          ]}
+                        >
+                          <ThemedText style={[styles.secondaryActionText, { color: palette.text }]}>
+                            Open
+                          </ThemedText>
+                        </Clickable>
+                        <Clickable
+                          onPress={() => c.handleQuickHeal(injury)}
+                          style={[
+                            styles.primaryAction,
+                            { borderColor: palette.success, backgroundColor: withAlpha(palette.success, 0.16) },
+                          ]}
+                        >
+                          <ThemedText style={[styles.primaryActionText, { color: palette.success }]}>
+                            Mark Recovered
+                          </ThemedText>
+                        </Clickable>
+                      </Row>
+                    </Animated.View>
+                  ))
+                )}
+
+                {c.healedInjuries.length > 0 && (
+                  <View style={styles.recoveredBlock}>
+                    <Row align="center" justify="space-between" style={styles.sectionHeader}>
+                      <ThemedText type="subtitle">Recently recovered</ThemedText>
+                      <ThemedText style={[styles.sectionMeta, { color: palette.muted }]}>
+                        {c.healedInjuries.length}
+                      </ThemedText>
+                    </Row>
+                    {c.healedInjuries.slice(0, 5).map((injury, index) => (
+                      <Animated.View
+                        key={injury.id}
+                        entering={FadeInDown.delay((index + c.openInjuries.length) * 30).springify()}
+                      >
+                        <InjuryCard injury={injury} compact onPress={() => c.handleInjuryPress(injury)} />
+                      </Animated.View>
+                    ))}
+                  </View>
+                )}
+              </>
+            )}
+
+            {!isAllFilter && c.filteredInjuries.length === 0 && (
+              <Animated.View entering={FadeInDown.springify()} style={styles.emptyState}>
+                <View style={[styles.emptyIcon, { backgroundColor: withAlpha(palette.tint, 0.09) }]}>
+                  <Ionicons name={EMPTY_ICONS[c.statusFilter]} size={42} color={palette.tint} />
+                </View>
+                <ThemedText type="subtitle" style={styles.emptyTitle}>
+                  No {c.statusFilter.toLowerCase()} injuries
+                </ThemedText>
+                <ThemedText style={[styles.emptyText, { color: palette.muted }]}>
+                  Try another filter or log a new injury.
+                </ThemedText>
               </Animated.View>
-            ))}
-          </Animated.View>
+            )}
+
+            {!isAllFilter &&
+              c.filteredInjuries.length > 0 &&
+              c.filteredInjuries.map((injury, index) => (
+                <Animated.View key={injury.id} entering={FadeInDown.delay(index * 40).springify()}>
+                  <InjuryCard injury={injury} onPress={() => c.handleInjuryPress(injury)} />
+                  {injury.status !== 'HEALED' && (
+                    <Row gap="sm" style={styles.cardActions}>
+                      <Clickable
+                        onPress={() => c.handleInjuryPress(injury)}
+                        style={[
+                          styles.secondaryAction,
+                          { borderColor: palette.border, backgroundColor: palette.surface },
+                        ]}
+                      >
+                        <ThemedText style={[styles.secondaryActionText, { color: palette.text }]}>
+                          Open
+                        </ThemedText>
+                      </Clickable>
+                      <Clickable
+                        onPress={() => c.handleQuickHeal(injury)}
+                        style={[
+                          styles.primaryAction,
+                          { borderColor: palette.success, backgroundColor: withAlpha(palette.success, 0.16) },
+                        ]}
+                      >
+                        <ThemedText style={[styles.primaryActionText, { color: palette.success }]}>
+                          Mark Recovered
+                        </ThemedText>
+                      </Clickable>
+                    </Row>
+                  )}
+                </Animated.View>
+              ))}
+          </View>
         )}
       </ScrollView>
     </SafeAreaView>
@@ -231,12 +415,11 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  filterContainer: {
+  surfaceBlock: {
     paddingVertical: Spacing.sm,
     borderBottomWidth: 1,
-    borderBottomColor: 'transparent',
   },
-  kidCard: {
+  subjectCard: {
     borderWidth: 1,
     borderRadius: Radii.lg,
     padding: Spacing.sm,
@@ -244,20 +427,58 @@ const styles = StyleSheet.create({
     marginHorizontal: Spacing.lg,
     gap: Spacing.xs,
   },
-  kidLabel: {
+  subjectLabel: {
     ...Typography.caption,
   },
-  kidName: {
+  subjectName: {
     ...Typography.bodySmallSemiBold,
   },
-  editKidButton: {
+  subjectActionButton: {
     borderRadius: Radii.pill,
     borderWidth: 1,
     paddingHorizontal: Spacing.sm,
     paddingVertical: Spacing.xxs,
   },
-  editKidText: {
+  subjectActionText: {
     ...Typography.caption,
+  },
+  subjectScroller: {
+    marginTop: Spacing.xs,
+  },
+  subjectChip: {
+    borderWidth: 1,
+    borderRadius: Radii.pill,
+    paddingHorizontal: Spacing.sm,
+    paddingVertical: Spacing.xxs,
+  },
+  subjectDot: {
+    width: 8,
+    height: 8,
+    borderRadius: Radii.pill,
+  },
+  subjectChipLabel: {
+    ...Typography.caption,
+    fontSize: scaleFont(Typography.caption.fontSize),
+    fontWeight: '700',
+  },
+  metricsRow: {
+    marginBottom: Spacing.sm,
+    paddingHorizontal: Spacing.lg,
+  },
+  metricCard: {
+    flex: 1,
+    borderRadius: Radii.md,
+    paddingVertical: Spacing.sm,
+    paddingHorizontal: Spacing.xs,
+    alignItems: 'center',
+  },
+  metricValue: {
+    ...Typography.heading,
+    fontSize: scaleFont(Typography.heading.fontSize),
+  },
+  metricLabel: {
+    ...Typography.caption,
+    marginTop: Spacing.micro,
   },
   filterRow: { paddingHorizontal: Spacing.lg },
   filterTab: {
@@ -281,28 +502,65 @@ const styles = StyleSheet.create({
   scrollContent: {
     paddingHorizontal: Spacing.lg,
     paddingTop: Spacing.md,
-    paddingBottom: Spacing.xl,
+    paddingBottom: Spacing['3xl'],
+  },
+  sectionHeader: {
+    marginBottom: Spacing.xs,
+  },
+  sectionMeta: {
+    ...Typography.caption,
+    fontSize: scaleFont(Typography.caption.fontSize),
+  },
+  cardActions: {
+    marginTop: -Spacing.xs,
+    marginBottom: Spacing.md,
+  },
+  primaryAction: {
+    flex: 1,
+    borderRadius: Radii.pill,
+    borderWidth: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: Spacing.xs,
+  },
+  secondaryAction: {
+    minWidth: 84,
+    borderRadius: Radii.pill,
+    borderWidth: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.xs,
+  },
+  primaryActionText: {
+    ...Typography.bodySmallSemiBold,
+    fontSize: scaleFont(Typography.bodySmallSemiBold.fontSize),
+  },
+  secondaryActionText: {
+    ...Typography.bodySmallSemiBold,
+    fontSize: scaleFont(Typography.bodySmallSemiBold.fontSize),
+  },
+  recoveredBlock: {
+    marginTop: Spacing.sm,
   },
   emptyState: {
     alignItems: 'center',
-    paddingVertical: Spacing['3xl'],
+    paddingVertical: Spacing.xl,
     paddingHorizontal: Spacing.lg,
-    gap: Spacing.md,
+    gap: Spacing.sm,
   },
   emptyIcon: {
-    width: 96,
-    height: 96,
-    borderRadius: Radii['3xl'],
+    width: 82,
+    height: 82,
+    borderRadius: Radii.xl,
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: Spacing.sm,
   },
   emptyTitle: { textAlign: 'center' },
   emptyText: {
     textAlign: 'center',
-    ...Typography.body,
-    fontSize: scaleFont(Typography.body.fontSize),
-    lineHeight: scaleFont(22),
-    maxWidth: 280,
+    ...Typography.bodySmall,
+    fontSize: scaleFont(Typography.bodySmall.fontSize),
+    maxWidth: 260,
   },
 });
