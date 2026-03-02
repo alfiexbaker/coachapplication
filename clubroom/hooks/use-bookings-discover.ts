@@ -25,6 +25,7 @@ import { useChildContext } from '@/hooks/use-child-context';
 import { useScreen } from '@/hooks/use-screen';
 import { createLogger } from '@/utils/logger';
 import { getSessionInviteCoachName } from '@/utils/session-invite-display';
+import { getSessionOfferingHeadcount } from '@/utils/session-offering-capacity';
 import { ok, err, serviceError } from '@/types/result';
 import type {
   SessionOffering,
@@ -125,6 +126,7 @@ export function useBookingsDiscover(): UseBookingsDiscoverResult {
       const isEligible = (offering: SessionOffering): boolean => {
         if (offering.status === 'completed' || offering.status === 'cancelled') return false;
         if (!offering.isRecurring && new Date(offering.scheduledAt) < now) return false;
+        if (getSessionOfferingHeadcount(offering) >= offering.maxParticipants) return false;
         // Age filtering
         if (activeChildId) {
           const child = contextChildren.find((c) => c.id === activeChildId);

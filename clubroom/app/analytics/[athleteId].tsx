@@ -6,6 +6,7 @@
  */
 
 import { View, StyleSheet, ScrollView, RefreshControl } from 'react-native';
+import type { ReactNode } from 'react';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 import { Routes } from '@/navigation/routes';

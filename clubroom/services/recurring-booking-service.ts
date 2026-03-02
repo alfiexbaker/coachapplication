@@ -133,6 +133,12 @@ class RecurringBookingService {
         updatedAt: now,
         generatedBookingIds: [],
         sessionsCompleted: 0,
+        actingAs: params.actingAs,
+        ownerCoachId: params.ownerCoachId,
+        assigneeCoachId: params.assigneeCoachId,
+        createdByUserId: params.createdByUserId,
+        createdByRole: params.createdByRole,
+        clubId: params.clubId,
       };
 
       // Calculate sessions remaining if end date is set
@@ -518,6 +524,12 @@ class RecurringBookingService {
           id: bookingId,
           recurringBookingId: recurringId,
           coachId: recurring.coachId,
+          clubId: recurring.clubId,
+          actingAs: recurring.actingAs,
+          ownerCoachId: recurring.ownerCoachId,
+          assigneeCoachId: recurring.assigneeCoachId,
+          createdByUserId: recurring.createdByUserId,
+          createdByRole: recurring.createdByRole,
           coachName,
           athleteIds: [recurring.athleteId || recurring.userId],
           athleteNames: [athleteName],

@@ -95,6 +95,8 @@ export function useObjectives() {
     setObjectives(data.objectives);
   }, [data]);
 
+  const isUsingDemoObjectives = data?.isDemoSeeded ?? false;
+
   // Parent-specific: child selection
   const children = useMemo<User[]>(() => {
     if (!isParent) return [];
@@ -182,6 +184,7 @@ export function useObjectives() {
     note,
     targetSessions,
     isParent,
+    isUsingDemoObjectives,
     data?.isDemoSeeded,
     selectedChildId,
     currentUser,
@@ -219,6 +222,7 @@ export function useObjectives() {
     selectedChildId,
     setSelectedChildId,
     isParent,
+    isUsingDemoObjectives,
     // Modal state
     showModal,
     editingObjective,

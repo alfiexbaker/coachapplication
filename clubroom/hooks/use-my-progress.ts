@@ -201,7 +201,7 @@ export function useMyProgress() {
     setActiveChildId,
   } = useChildContext();
 
-  const isParentContext = currentUser?.role === 'PARENT';
+  const isParentContext = Boolean(currentUser?.role === 'PARENT' || contextChildren.length > 0);
   const switcherChildren = useMemo<SwitcherChild[]>(
     () =>
       contextChildren.map((child) => ({
@@ -212,6 +212,7 @@ export function useMyProgress() {
       })),
     [contextChildren],
   );
+  const hasMultipleChildren = isParentContext && switcherChildren.length > 1;
 
   const selectedAthleteId = useMemo(() => {
     if (!currentUser) {
@@ -270,13 +271,20 @@ export function useMyProgress() {
 
     try {
       if (currentUser.role !== 'COACH') {
-        if (__DEV__ && selectedAthleteId === 'user1') {
-          await ensureUser1DiamondTestDataSeeded(selectedAthleteId, selectedAthleteName);
-        }
-        if (ENABLE_PROGRESS_DEMO_SEED) {
-          await ensureProgressDemoSeeded(selectedAthleteId, selectedAthleteName);
-        } else {
-          await clearProgressDemoSeedData(selectedAthleteId);
+        try {
+          if (__DEV__ && selectedAthleteId === 'user1') {
+            await ensureUser1DiamondTestDataSeeded();
+          }
+          if (ENABLE_PROGRESS_DEMO_SEED) {
+            await ensureProgressDemoSeeded(selectedAthleteId, selectedAthleteName);
+          } else {
+            await clearProgressDemoSeedData(selectedAthleteId);
+          }
+        } catch (seedError) {
+          logger.warn('Progress demo seed bootstrap failed, continuing with live data load.', {
+            athleteId: selectedAthleteId,
+            error: seedError,
+          });
         }
       }
 
@@ -524,6 +532,20 @@ export function useMyProgress() {
     [isParentContext, setActiveChildId],
   );
 
+  const handleSelectNextChild = useCallback(() => {
+    if (!hasMultipleChildren) {
+      return;
+    }
+
+    const currentIndex = switcherChildren.findIndex((child) => child.id === selectedAthleteId);
+    const nextIndex = currentIndex >= 0 ? (currentIndex + 1) % switcherChildren.length : 0;
+    const nextChildId = switcherChildren[nextIndex]?.id ?? switcherChildren[0]?.id;
+    if (!nextChildId) {
+      return;
+    }
+    void setActiveChildId(nextChildId);
+  }, [hasMultipleChildren, selectedAthleteId, setActiveChildId, switcherChildren]);
+
   const latestCoachBadge = useMemo<CoachBadgeData | null>(() => {
     if (!latestFeedback?.coachId) {
       return null;
@@ -646,11 +668,13 @@ export function useMyProgress() {
     coachFocus,
     familyHighlights,
     isParentContext,
+    hasMultipleChildren,
     switcherChildren,
     selectedAthleteId,
     selectedAthleteName,
     activeChildId: contextActiveChildId,
     handleSelectChild,
+    handleSelectNextChild,
     generateTermlyReport,
     handleRefresh: onRefresh,
   } satisfies {
@@ -689,11 +713,13 @@ export function useMyProgress() {
     coachFocus: ReturnType<typeof useCoachFocus>;
     familyHighlights: FamilyHighlightItem[];
     isParentContext: boolean;
+    hasMultipleChildren: boolean;
     switcherChildren: SwitcherChild[];
     selectedAthleteId: string | null;
     selectedAthleteName: string;
     activeChildId: string | null;
     handleSelectChild: (childId: string) => void;
+    handleSelectNextChild: () => void;
     generateTermlyReport: () => Promise<Result<TermlyProgressReport, ServiceError>>;
     handleRefresh: () => void;
   };

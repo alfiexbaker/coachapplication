@@ -50,8 +50,6 @@ export const styles = StyleSheet.create({
   },
   roleTag: { alignItems: 'center', gap: Spacing.xxs },
   roleText: { fontSize: scaleFont(12) },
-  guestTag: { alignItems: 'center', gap: Spacing.xxs },
-  guestText: { fontSize: scaleFont(12) },
   checkInInfo: {
     alignItems: 'center',
     gap: Spacing.xxs,
@@ -91,6 +89,5 @@ export const styles = StyleSheet.create({
     gap: Spacing.xs,
   },
   compactName: { fontSize: scaleFont(14), flex: 1 },
-  compactGuests: { fontSize: scaleFont(12) },
   compactStatusDot: { width: 8, height: 8, borderRadius: Radii.xs },
 });

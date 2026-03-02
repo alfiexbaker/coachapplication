@@ -1,5 +1,5 @@
 /**
- * AthleteQuickActions — Row of action buttons: Book, Message, Call, More.
+ * AthleteQuickActions — Row of action buttons: Book, Message, Concern, More.
  */
 
 import React, { useCallback } from 'react';
@@ -14,9 +14,9 @@ import { ThemedText } from '@/components/themed-text';
 import { Row } from '@/components/primitives/row';
 import { Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
-import { callPhone, sendEmail, openMessage } from '@/utils/contact-actions';
+import { sendEmail, openMessage } from '@/utils/contact-actions';
 import type { RosterEntry } from '@/constants/types';
-import { getRosterAthleteName, getRosterParentName } from '@/utils/roster-display';
+import { getRosterAthleteName } from '@/utils/roster-display';
 
 interface AthleteQuickActionsProps {
   athlete: RosterEntry;
@@ -27,9 +27,7 @@ interface AthleteQuickActionsProps {
 function AthleteQuickActionsInner({ athlete, onRaiseConcern, onRemove }: AthleteQuickActionsProps) {
   const { colors } = useTheme();
   const athleteName = getRosterAthleteName(athlete);
-  const parentName = getRosterParentName(athlete);
   const parentEmail: string | undefined = undefined;
-  const parentPhone: string | undefined = undefined;
 
   const handleBook = useCallback(() => {
     if (Platform.OS !== 'web') {
@@ -41,14 +39,6 @@ function AthleteQuickActionsInner({ athlete, onRaiseConcern, onRemove }: Athlete
   const handleMessage = useCallback(() => {
     openMessage(athlete.athleteId);
   }, [athlete.athleteId]);
-
-  const handleCall = useCallback(() => {
-    if (parentPhone) {
-      void callPhone(parentPhone, parentName);
-    } else {
-      Alert.alert('No Phone Number', 'No phone number is on file for this parent.');
-    }
-  }, [parentName, parentPhone]);
 
   const handleMore = useCallback(() => {
     if (Platform.OS !== 'web') {
@@ -86,7 +76,7 @@ function AthleteQuickActionsInner({ athlete, onRaiseConcern, onRemove }: Athlete
       onPress: handleMessage,
       primary: false,
     },
-    { icon: 'call-outline' as const, label: 'Call', onPress: handleCall, primary: false },
+    { icon: 'warning-outline' as const, label: 'Concern', onPress: onRaiseConcern, primary: false },
     { icon: 'ellipsis-horizontal' as const, label: 'More', onPress: handleMore, primary: false },
   ];
 

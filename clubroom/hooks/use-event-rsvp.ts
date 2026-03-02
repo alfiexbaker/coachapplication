@@ -35,13 +35,11 @@ export interface UseEventRSVPResult {
   retry: () => void;
   submitting: boolean;
   selectedStatus: RSVPStatus | null;
-  guestCount: number;
   note: string;
   isFull: boolean;
   rsvpClosed: boolean;
   reminderSending: boolean;
   attendeeCounts: { going: number; maybe: number; notGoing: number; totalGuests: number };
-  setGuestCount: (value: number) => void;
   setNote: (value: string) => void;
   handleStatusSelect: (status: RSVPStatus) => void;
   handleSubmit: () => Promise<void>;
@@ -57,7 +55,6 @@ export function useEventRSVP(id: string | undefined): UseEventRSVPResult {
 
   // Form state
   const [selectedStatus, setSelectedStatus] = useState<RSVPStatus | null>(null);
-  const [guestCount, setGuestCount] = useState(0);
   const [note, setNote] = useState('');
 
   const loadData = useCallback(async () => {
@@ -97,32 +94,26 @@ export function useEventRSVP(id: string | undefined): UseEventRSVPResult {
   useEffect(() => {
     if (currentRSVP) {
       setSelectedStatus(currentRSVP.status);
-      setGuestCount(currentRSVP.guestCount);
       setNote(currentRSVP.note || '');
       return;
     }
 
     setSelectedStatus(null);
-    setGuestCount(0);
     setNote('');
   }, [currentRSVP]);
 
   const handleStatusSelect = useCallback((status: RSVPStatus) => {
     setSelectedStatus(status);
-    if (status !== 'GOING') {
-      setGuestCount(0);
-    }
   }, []);
 
   const handleSubmit = useCallback(async () => {
     if (!event || !currentUser || !selectedStatus) return;
 
     if (selectedStatus === 'GOING' && event.maxAttendees) {
-      const { going, totalGuests } = eventService.getAttendeeCounts(event.attendees);
-      const existingFootprint =
-        currentRSVP?.status === 'GOING' ? 1 + (currentRSVP.guestCount ?? 0) : 0;
-      const nextFootprint = 1 + guestCount;
-      const occupiedExcludingCurrent = going + totalGuests - existingFootprint;
+      const { going } = eventService.getAttendeeCounts(event.attendees);
+      const existingFootprint = currentRSVP?.status === 'GOING' ? 1 : 0;
+      const nextFootprint = 1;
+      const occupiedExcludingCurrent = going - existingFootprint;
       if (occupiedExcludingCurrent + nextFootprint > event.maxAttendees) {
         Alert.alert('Event Full', 'This event is now full. Please choose Maybe or Can’t Go.');
         return;
@@ -136,7 +127,7 @@ export function useEventRSVP(id: string | undefined): UseEventRSVPResult {
         userId: currentUser.id,
         userRole: isCoach ? 'COACH' : 'PARENT',
         status: selectedStatus,
-        guestCount: selectedStatus === 'GOING' ? guestCount : 0,
+        guestCount: 0,
         note: note.trim() || undefined,
       });
 
@@ -155,7 +146,7 @@ export function useEventRSVP(id: string | undefined): UseEventRSVPResult {
     } finally {
       setSubmitting(false);
     }
-  }, [event, currentUser, selectedStatus, guestCount, note, isCoach, currentRSVP]);
+  }, [event, currentUser, selectedStatus, note, isCoach, currentRSVP]);
 
   const handleSendReminder = useCallback(async () => {
     if (!event || !isCoach) return;
@@ -183,11 +174,11 @@ export function useEventRSVP(id: string | undefined): UseEventRSVPResult {
     }
   }, [event, isCoach]);
 
-  const isFull = event ? eventService.isEventFull(event) : false;
-  const rsvpClosed = event ? eventService.isRSVPClosed(event) : false;
   const attendeeCounts = event
     ? eventService.getAttendeeCounts(event.attendees)
     : { going: 0, maybe: 0, notGoing: 0, totalGuests: 0 };
+  const isFull = event?.maxAttendees ? attendeeCounts.going >= event.maxAttendees : false;
+  const rsvpClosed = event ? eventService.isRSVPClosed(event) : false;
 
   return {
     event,
@@ -201,13 +192,11 @@ export function useEventRSVP(id: string | undefined): UseEventRSVPResult {
     retry,
     submitting,
     selectedStatus,
-    guestCount,
     note,
     isFull,
     rsvpClosed,
     reminderSending,
     attendeeCounts,
-    setGuestCount,
     setNote,
     handleStatusSelect,
     handleSubmit,

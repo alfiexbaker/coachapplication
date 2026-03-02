@@ -9,6 +9,7 @@ import {
   RefreshControl,
 } from 'react-native';
 import { useLocalSearchParams, router } from 'expo-router';
+import { Routes } from '@/navigation/routes';
 import { useRequiredParam } from '@/hooks/use-required-param';
 
 import { apiClient } from '@/services/api-client';
@@ -268,7 +269,6 @@ export default function ReviewScreen() {
     return renderShell(
       <ErrorState
         message="Invalid link"
-        description="The booking review link is missing or invalid."
         onRetry={() => router.back()}
       />,
     );

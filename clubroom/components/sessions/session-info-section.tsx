@@ -23,6 +23,8 @@ interface SessionInfoSectionProps {
   offering: SessionOffering;
   isMyOffering: boolean;
   registeredCount: number;
+  offPlatformParticipants?: number;
+  totalParticipants?: number;
   sessionAwards: BadgeAward[];
   formatSchedule: () => string;
 }
@@ -31,6 +33,8 @@ function SessionInfoSectionInner({
   offering,
   isMyOffering,
   registeredCount,
+  offPlatformParticipants = 0,
+  totalParticipants,
   sessionAwards,
   formatSchedule,
 }: SessionInfoSectionProps) {
@@ -49,6 +53,8 @@ function SessionInfoSectionInner({
       }
     });
   };
+
+  const headcount = totalParticipants ?? registeredCount + offPlatformParticipants;
 
   return (
     <SurfaceCard style={styles.card}>
@@ -91,7 +97,10 @@ function SessionInfoSectionInner({
         {offering.sessionType === 'group' && (
           <View style={[styles.badge, { backgroundColor: withAlpha(palette.accent, 0.09) }]}>
             <ThemedText style={[styles.badgeText, { color: palette.accent }]}>
-              Group ({registeredCount}/{offering.maxParticipants})
+              Group ({headcount}/{offering.maxParticipants})
+              {isMyOffering && offPlatformParticipants > 0
+                ? ` · +${offPlatformParticipants} off-platform`
+                : ''}
             </ThemedText>
           </View>
         )}

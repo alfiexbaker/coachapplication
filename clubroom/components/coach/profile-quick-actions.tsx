@@ -61,7 +61,7 @@ function ProfileQuickActionsInner({
         </ThemedText>
 
         <QuickAccessItem
-          route={Routes.MORE}
+          route={Routes.ANALYTICS_DASHBOARD}
           icon="analytics"
           iconColor={palette.success}
           title="Analytics & Development"
@@ -79,7 +79,7 @@ function ProfileQuickActionsInner({
         />
 
         <QuickAccessItem
-          route={Routes.SETTINGS}
+          route={Routes.SETTINGS_INDEX}
           icon="settings"
           iconColor={palette.accent}
           title="Settings & Preferences"

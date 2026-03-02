@@ -7,7 +7,7 @@
  */
 
 import { useState, useEffect, useRef } from 'react';
-import NetInfo, { NetInfoState } from '@react-native-community/netinfo';
+import NetInfo, { NetInfoState, NetInfoStateType } from '@react-native-community/netinfo';
 import { emitTyped, ServiceEvents } from '@/services/event-bus';
 import { createLogger } from '@/utils/logger';
 
@@ -23,13 +23,15 @@ export function useConnectionStatus() {
   const [isConnected, setIsConnected] = useState(true);
   const [wasOffline, setWasOffline] = useState(false);
   const [showReconnected, setShowReconnected] = useState(false);
-  const [connectionType, setConnectionType] = useState<NetInfoState['type']>('unknown');
+  const [connectionType, setConnectionType] = useState<NetInfoState['type']>(
+    NetInfoStateType.unknown,
+  );
   const [isExpensive, setIsExpensive] = useState(false);
 
   // Refs to avoid stale closures in the NetInfo listener
   const isConnectedRef = useRef(true);
   const wasOfflineRef = useRef(false);
-  const connectionTypeRef = useRef<NetInfoState['type']>('unknown');
+  const connectionTypeRef = useRef<NetInfoState['type']>(NetInfoStateType.unknown);
   const reconnectedTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Keep refs in sync with state

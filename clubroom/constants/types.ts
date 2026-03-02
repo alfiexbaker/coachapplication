@@ -166,6 +166,7 @@ export type {
   AthleteHighlight,
   TeamInviteCode,
   BookingSummary,
+  SessionOwnershipAuditEvent,
   SessionRegistration,
   SessionOffering,
   AthleteObjective,

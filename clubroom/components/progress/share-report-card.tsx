@@ -81,7 +81,9 @@ export const ShareReportCard = memo(
 
 const styles = StyleSheet.create({
   card: {
-    width: 360,
+    width: '100%',
+    maxWidth: 360,
+    alignSelf: 'center',
     borderRadius: Radii.xl,
     overflow: 'hidden',
   },

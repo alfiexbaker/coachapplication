@@ -13,6 +13,13 @@ Status legend:
 | `/v1/health` | `GET` | `scaffolded` | contract in `@clubroom/shared-contracts` |
 | `/v1/ready` | `GET` | `scaffolded` | DB/storage checks still placeholders |
 | `/v1/meta/version` | `GET` | `scaffolded` | dev metadata only |
+| `/v1/athletes/:athleteId/injuries` | `GET/POST` | `scaffolded` | in-memory scaffold for trust/health endpoint contract verification |
+| `/v1/injuries/:injuryId` | `PATCH` | `scaffolded` | injury status/notes update scaffold |
+| `/v1/athletes/:athleteId/medical` | `GET/PATCH` | `scaffolded` | medical profile scaffold with request/response contract validation |
+| `/v1/athletes/:athleteId/emergency-contacts` | `GET/PATCH` | `scaffolded` | emergency contacts scaffold with stable contact IDs |
+| `/v1/safeguarding/incidents` | `POST` | `scaffolded` | concern ingestion scaffold with incident tracking |
+| `/v1/safeguarding/incidents/:incidentId` | `GET` | `scaffolded` | incident detail scaffold |
+| `/v1/safeguarding/incidents/:incidentId/actions` | `POST` | `scaffolded` | incident action append + status transition scaffold |
 
 ## Identity / Sessions / Auth
 | Route | Method | Status | Contract(s) | AuthZ | UI anchors |
@@ -29,9 +36,12 @@ Status legend:
 | `/v1/families/:familyId/guardians` | `POST` | `planned` | `CreateGuardianInviteRequest` | family admin guardian | `app/family/sharing.tsx` |
 | `/v1/athletes` | `POST` | `planned` | `CreateAthleteRequest` | parent/guardian | `app/(modal)/add-child.tsx` |
 | `/v1/athletes/:athleteId` | `PATCH` | `planned` | `UpdateAthleteRequest` | guardian / athlete self (policy) | `app/(modal)/edit-child-profile.tsx` |
-| `/v1/athletes/:athleteId/medical` | `GET` | `planned` | `MedicalRecordResponse` | guardian + verified coach (scoped) | `app/child/[id]/medical.tsx` |
-| `/v1/athletes/:athleteId/medical` | `PATCH` | `planned` | `UpdateMedicalRecordRequest` | guardian | `app/child/[id]/medical.tsx` |
-| `/v1/athletes/:athleteId/emergency-contacts` | `GET` | `planned` | `EmergencyContactsResponse` | guardian + gated coach | `app/child/[id]/emergency.tsx` |
+| `/v1/athletes/:athleteId/medical` | `GET` | `scaffolded` | `MedicalRecordResponse` | guardian + verified coach (scoped) | `app/child/[id]/medical.tsx` |
+| `/v1/athletes/:athleteId/medical` | `PATCH` | `scaffolded` | `UpdateMedicalRecordRequest` | guardian | `app/child/[id]/medical.tsx` |
+| `/v1/athletes/:athleteId/emergency-contacts` | `GET` | `scaffolded` | `EmergencyContactsResponse` | guardian + gated coach | `app/child/[id]/emergency.tsx` |
+| `/v1/athletes/:athleteId/emergency-contacts` | `PATCH` | `scaffolded` | `UpdateEmergencyContactsRequest` | guardian | `app/child/[id]/emergency.tsx` |
+| `/v1/athletes/:athleteId/injuries` | `GET/POST` | `scaffolded` | `InjuriesResponse`, `CreateInjuryRequest` | athlete self / guardian / scoped coach | `app/health/index.tsx`, `app/health/injuries.tsx` |
+| `/v1/injuries/:injuryId` | `PATCH` | `scaffolded` | `UpdateInjuryRequest` | athlete self / guardian / scoped coach | `app/health/[id].tsx` |
 | `/v1/athletes/:athleteId/consents` | `PUT` | `planned` | `UpsertConsentsRequest` | guardian | family/child consent UIs |
 
 ## Coach / Clubs / Scheduling / Verification
@@ -73,9 +83,20 @@ Status legend:
 | `/v1/invoices/:invoiceId/restore` | `POST` | `planned` | `InvoiceTransitionRequest` | coach/delegated finance | reconciler UI |
 | `/v1/invoices/:invoiceId/reminders` | `POST` | `planned` | `SendInvoiceReminderRequest` | coach/delegated finance | reminder templates |
 
+## Trust / Safeguarding / Ops
+| Route | Method | Status | Contract(s) | AuthZ | UI anchors |
+|---|---|---|---|---|---|
+| `/v1/safeguarding/incidents` | `POST` | `scaffolded` | `CreateSafeguardingIncidentRequest`, `SafeguardingIncidentResponse` | coach/guardian scoped to athlete/booking context | `app/roster/[athleteId]/raise-concern.tsx`, `app/(tabs)/bookings/report-problem.tsx` |
+| `/v1/safeguarding/incidents/:incidentId` | `GET` | `scaffolded` | `SafeguardingIncidentResponse` | assignment/role-restricted safeguarding access | trust follow-up surfaces |
+| `/v1/safeguarding/incidents/:incidentId/actions` | `POST` | `scaffolded` | `CreateSafeguardingActionRequest`, `SafeguardingActionResponse` | safeguarding assignee/admin scope | operations tooling + incident review workflows |
+
 ## Progress / Media / Community / Trust Ops
-- Planned; inventory to be split into dedicated docs as each sprint starts.
-- Start with booking/family/revenue because they drive the most cross-spine data and authz complexity.
+- Contract coverage now captured in spine traceability docs:
+  - `docs/backend-api/traceability/community-growth-v1.md`
+  - `docs/backend-api/traceability/development-analytics-v1.md`
+  - `docs/backend-api/traceability/trust-ops-v1.md`
+  - cross-spine route owner map: `docs/backend-api/traceability/pre-api-critical-routes-owner-map-2026-03-01.md`
+- Keep this file as core `/v1` inventory index; add detailed route rows here as each module is scaffolded.
 
 ## Inventory Rules
 - Every row must eventually include:

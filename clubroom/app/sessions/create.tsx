@@ -33,13 +33,16 @@ import { rosterService } from '@/services/roster-service';
 import { inviteService } from '@/services/invite';
 import { groupSessionService } from '@/services/group-session-service';
 import { academyService } from '@/services/academy-service';
+import { userService } from '@/services/user-service';
 import { apiClient } from '@/services/api-client';
 import { STORAGE_KEYS } from '@/constants/storage-keys';
 import { getRosterAthleteName, getRosterParentName } from '@/utils/roster-display';
-import type { Academy, GroupSession, SessionOffering, TimeSlot } from '@/constants/types';
+import { getSessionOfferingHeadcount } from '@/utils/session-offering-capacity';
+import type { Academy, AcademyMembership, GroupSession, SessionOffering, TimeSlot } from '@/constants/types';
 
 type FlowMode = 'choose' | 'new' | 'existing';
 type ExistingSessionSource = 'offering' | 'group';
+type ExistingSessionScope = 'assigned' | 'club';
 
 type ExistingSessionOption = {
   id: string;
@@ -62,11 +65,39 @@ type InviteAthlete = {
   parentName: string;
 };
 
+type InviteAssigneeOption = {
+  id: string;
+  label: string;
+  role: AcademyMembership['role'];
+};
+
+type AcademyOption = Academy & { membership: AcademyMembership };
+
+const STAFF_ROLE_ORDER: Record<AcademyMembership['role'], number> = {
+  OWNER: 0,
+  ADMIN: 1,
+  HEAD_COACH: 2,
+  COACH: 3,
+  ASSISTANT: 4,
+  MEMBER: 5,
+};
+
 interface ExistingInviteFlowProps {
   forcedIntent: boolean;
   initialAthleteIds: string[];
   initialOfferingId?: string;
   initialDate?: string;
+  initialActingAs?: 'self' | 'club';
+  initialClubId?: string;
+  initialAssigneeCoachId?: string;
+}
+
+function canCreateAsClub(membership: AcademyMembership): boolean {
+  return membership.permissions.includes('CREATE_SESSIONS');
+}
+
+function canPostAsClub(membership: AcademyMembership): boolean {
+  return membership.permissions.includes('POST_AS_ACADEMY');
 }
 
 function toIsoStart(date: string, time: string): string {
@@ -90,9 +121,7 @@ function mapOfferingToExisting(offering: SessionOffering): ExistingSessionOption
   ).padStart(2, '0')}`;
   const duration = offering.duration ?? 60;
   const endTime = addMinutesToTime(startTime, duration);
-  const confirmedCount =
-    offering.registrations?.filter((registration) => registration.status === 'confirmed').length ??
-    0;
+  const confirmedCount = getSessionOfferingHeadcount(offering);
 
   return {
     id: offering.id,
@@ -151,6 +180,9 @@ function ExistingInviteFlow({
   initialAthleteIds,
   initialOfferingId,
   initialDate,
+  initialActingAs,
+  initialClubId,
+  initialAssigneeCoachId,
 }: ExistingInviteFlowProps) {
   const { colors } = useTheme();
   const { currentUser } = useAuth();
@@ -163,9 +195,16 @@ function ExistingInviteFlow({
   const [sessions, setSessions] = useState<ExistingSessionOption[]>([]);
   const [selectedSessionId, setSelectedSessionId] = useState<string | null>(initialOfferingId ?? null);
   const [notes, setNotes] = useState('');
-  const [academies, setAcademies] = useState<Academy[]>([]);
-  const [postingAs, setPostingAs] = useState<'self' | 'club'>('self');
-  const [selectedClubId, setSelectedClubId] = useState<string | null>(null);
+  const [academies, setAcademies] = useState<AcademyOption[]>([]);
+  const [assigneeOptions, setAssigneeOptions] = useState<InviteAssigneeOption[]>([]);
+  const [postingAs, setPostingAs] = useState<'self' | 'club'>(
+    initialActingAs === 'club' ? 'club' : 'self',
+  );
+  const [selectedClubId, setSelectedClubId] = useState<string | null>(initialClubId ?? null);
+  const [assigneeCoachId, setAssigneeCoachId] = useState<string | null>(
+    initialAssigneeCoachId ?? currentUser?.id ?? null,
+  );
+  const [sessionScope, setSessionScope] = useState<ExistingSessionScope>('assigned');
 
   const selectedSession = useMemo(
     () => sessions.find((session) => session.id === selectedSessionId) ?? null,
@@ -177,24 +216,40 @@ function ExistingInviteFlow({
     [academies, selectedClubId],
   );
 
+  const ownerCoachId =
+    postingAs === 'club'
+      ? assigneeCoachId ?? currentUser?.id ?? null
+      : currentUser?.id ?? null;
+  const canPostAsSelectedClub = selectedClub ? canPostAsClub(selectedClub.membership) : false;
+  const selectedAssignee = useMemo(
+    () => assigneeOptions.find((option) => option.id === assigneeCoachId) ?? null,
+    [assigneeCoachId, assigneeOptions],
+  );
+
   const canSend =
     selectedAthleteIds.length > 0 &&
     selectedSession !== null &&
     !submitting &&
-    (postingAs === 'self' || !!selectedClubId);
+    (postingAs === 'self' ||
+      (Boolean(selectedClubId) && Boolean(assigneeCoachId) && canPostAsSelectedClub)) &&
+    Boolean(ownerCoachId);
 
   useEffect(() => {
     let active = true;
 
     const load = async () => {
       if (!currentUser?.id) return;
+      const useClubScope = postingAs === 'club' && sessionScope === 'club' && Boolean(selectedClubId);
+      const sessionOwnerCoachId = ownerCoachId ?? currentUser.id;
 
       setLoading(true);
       try {
-        const [roster, offerings, coachGroupSessions, academyResult] = await Promise.all([
+        const [roster, offerings, scopedGroupSessions, academyResult] = await Promise.all([
           rosterService.getRoster(currentUser.id),
           apiClient.get<SessionOffering[]>(STORAGE_KEYS.SESSION_OFFERINGS, []),
-          groupSessionService.getCoachSessions(currentUser.id),
+          useClubScope && selectedClubId
+            ? groupSessionService.getClubTrainingSessions(selectedClubId)
+            : groupSessionService.getCoachSessions(sessionOwnerCoachId),
           academyService.getUserAcademies(currentUser.id),
         ]);
 
@@ -210,15 +265,18 @@ function ExistingInviteFlow({
 
         const now = new Date();
         const filteredOfferings = offerings
-          .filter(
-            (offering) =>
-              offering.coachId === currentUser.id &&
-              offering.status !== 'cancelled' &&
-              (offering.isRecurring || new Date(offering.scheduledAt) >= now),
-          )
+          .filter((offering) => {
+            if (offering.status === 'cancelled') return false;
+            if (!offering.isRecurring && new Date(offering.scheduledAt) < now) return false;
+            if (getSessionOfferingHeadcount(offering) >= offering.maxParticipants) return false;
+            if (useClubScope && selectedClubId) {
+              return offering.actingAs === 'club' && offering.clubId === selectedClubId;
+            }
+            return offering.coachId === sessionOwnerCoachId;
+          })
           .map(mapOfferingToExisting);
 
-        const filteredGroupSessions = coachGroupSessions
+        const filteredGroupSessions = scopedGroupSessions
           .filter(
             (session) =>
               session.status === 'PUBLISHED' &&
@@ -237,15 +295,31 @@ function ExistingInviteFlow({
         const finalSessions = dateFiltered.length > 0 ? dateFiltered : merged;
         setSessions(finalSessions);
 
-        if (finalSessions.length > 0) {
-          setSelectedSessionId((previous) => previous ?? finalSessions[0].id);
-        }
+        setSelectedSessionId((previous) =>
+          previous && finalSessions.some((session) => session.id === previous)
+            ? previous
+            : finalSessions[0]?.id ?? null,
+        );
 
         if (academyResult.success) {
-          setAcademies(academyResult.data);
-          if (academyResult.data.length === 1) {
-            setSelectedClubId(academyResult.data[0].id);
-          }
+          const eligibleAcademies = academyResult.data.filter((academy) =>
+            canCreateAsClub(academy.membership),
+          );
+          setAcademies(eligibleAcademies);
+          setSelectedClubId((previous) => {
+            if (previous && eligibleAcademies.some((academy) => academy.id === previous)) {
+              return previous;
+            }
+            if (
+              initialClubId &&
+              eligibleAcademies.some((academy) => academy.id === initialClubId)
+            ) {
+              return initialClubId;
+            }
+            return eligibleAcademies[0]?.id ?? null;
+          });
+        } else {
+          setAcademies([]);
         }
       } catch {
         Alert.alert('Error', 'Failed to load session invite data. Pull to retry.');
@@ -261,7 +335,83 @@ function ExistingInviteFlow({
     return () => {
       active = false;
     };
-  }, [currentUser?.id, initialDate]);
+  }, [currentUser?.id, initialClubId, initialDate, ownerCoachId, postingAs, selectedClubId, sessionScope]);
+
+  useEffect(() => {
+    if (postingAs !== 'club') {
+      setAssigneeCoachId(currentUser?.id ?? null);
+      return;
+    }
+    if (!assigneeCoachId) {
+      setAssigneeCoachId(currentUser?.id ?? null);
+    }
+  }, [assigneeCoachId, currentUser?.id, postingAs]);
+
+  useEffect(() => {
+    if (postingAs !== 'club' && sessionScope !== 'assigned') {
+      setSessionScope('assigned');
+    }
+  }, [postingAs, sessionScope]);
+
+  useEffect(() => {
+    let active = true;
+
+    const loadAssignees = async () => {
+      if (!selectedClubId) {
+        setAssigneeOptions([]);
+        setAssigneeCoachId(currentUser?.id ?? null);
+        return;
+      }
+
+      const staffResult = await academyService.getStaff(selectedClubId);
+      if (!active) return;
+      if (!staffResult.success) {
+        setAssigneeOptions([]);
+        return;
+      }
+
+      const staff = staffResult.data.filter((member) => member.status === 'ACTIVE');
+      const ids = staff.map((member) => member.userId);
+      const usersResult = await userService.getUsersByIds(ids);
+      const nameById = new Map<string, string>();
+      if (usersResult.success) {
+        usersResult.data.forEach((user) => {
+          const label = user.name?.trim() || user.id;
+          nameById.set(user.id, label);
+        });
+      }
+
+      const options = staff
+        .map((member) => ({
+          id: member.userId,
+          role: member.role,
+          label: nameById.get(member.userId) ?? member.userId,
+        }))
+        .sort((a, b) => STAFF_ROLE_ORDER[a.role] - STAFF_ROLE_ORDER[b.role]);
+
+      setAssigneeOptions(options);
+      setAssigneeCoachId((previous) => {
+        if (previous && options.some((option) => option.id === previous)) {
+          return previous;
+        }
+        if (
+          initialAssigneeCoachId &&
+          options.some((option) => option.id === initialAssigneeCoachId)
+        ) {
+          return initialAssigneeCoachId;
+        }
+        if (currentUser?.id && options.some((option) => option.id === currentUser.id)) {
+          return currentUser.id;
+        }
+        return options[0]?.id ?? null;
+      });
+    };
+
+    void loadAssignees();
+    return () => {
+      active = false;
+    };
+  }, [currentUser?.id, initialAssigneeCoachId, selectedClubId]);
 
   const toggleAthlete = useCallback((athleteId: string) => {
     setSelectedAthleteIds((previous) =>
@@ -285,6 +435,18 @@ function ExistingInviteFlow({
       Alert.alert('Select club', 'Choose which club you are posting on behalf of.');
       return;
     }
+    if (postingAs === 'club' && !canPostAsSelectedClub) {
+      Alert.alert('Permission required', 'You do not have permission to post invites as this club.');
+      return;
+    }
+    if (postingAs === 'club' && !assigneeCoachId) {
+      Alert.alert('Assign coach', 'Choose a coach owner before sending invites.');
+      return;
+    }
+    if (!ownerCoachId) {
+      Alert.alert('Assign coach', 'Choose a coach owner before sending invites.');
+      return;
+    }
 
     setSubmitting(true);
     try {
@@ -299,6 +461,13 @@ function ExistingInviteFlow({
 
       let sentCount = 0;
       let failedCount = 0;
+      let ownerCoachName = currentUser.name || currentUser.fullName || 'Coach';
+      if (ownerCoachId !== currentUser.id) {
+        const ownerResult = await userService.getUserById(ownerCoachId);
+        if (ownerResult.success) {
+          ownerCoachName = ownerResult.data.name?.trim() || ownerCoachName;
+        }
+      }
 
       for (const athletesForParent of Object.values(groupedByParent)) {
         const parentId = athletesForParent[0]?.parentId;
@@ -310,8 +479,8 @@ function ExistingInviteFlow({
         const result = await inviteService.createInvite(
           athletesForParent.map((athlete) => athlete.id),
           {
-            coachId: currentUser.id,
-            coachName: currentUser.name || currentUser.fullName || 'Coach',
+            coachId: ownerCoachId,
+            coachName: ownerCoachName,
             parentId,
             parentName: athletesForParent[0]?.parentName || 'Parent',
             athleteNames: athletesForParent.map((athlete) => athlete.name),
@@ -320,7 +489,14 @@ function ExistingInviteFlow({
             proposedSlots: [selectedSession.slot],
             sessionType: selectedSession.title,
             focus: selectedSession.focus ?? 'General',
-            notes: notes.trim() || `You're invited to join "${selectedSession.title}"`,
+            notes: [
+              notes.trim() || `You're invited to join "${selectedSession.title}"`,
+              postingAs === 'club' && selectedClub
+                ? `Created by ${currentUser.name || currentUser.fullName || 'Club staff'} on behalf of ${selectedClub.name}. Session owner: ${ownerCoachName}.`
+                : null,
+            ]
+              .filter(Boolean)
+              .join('\n\n'),
             price: selectedSession.price,
             expiresInDays: 7,
             existingSessionId: selectedSession.id,
@@ -361,7 +537,11 @@ function ExistingInviteFlow({
           : `${sentCount} invite(s) sent successfully.`,
         failedCount > 0 ? 'warning' : 'success',
       );
-      router.replace(Routes.groupSession(selectedSession.id));
+      if (selectedSession.source === 'group') {
+        router.replace(Routes.groupSession(selectedSession.id));
+      } else {
+        router.replace(Routes.BOOKINGS);
+      }
     } catch {
       Alert.alert('Error', 'Failed to send invites. Please try again.');
     } finally {
@@ -369,8 +549,11 @@ function ExistingInviteFlow({
     }
   }, [
     athletes,
+    canPostAsSelectedClub,
     currentUser,
     notes,
+    assigneeCoachId,
+    ownerCoachId,
     postingAs,
     selectedAthleteIds,
     selectedClub,
@@ -501,10 +684,111 @@ function ExistingInviteFlow({
                         </Clickable>
                       );
                     })}
+                    <ThemedText style={[styles.helperText, { color: colors.muted }]}>
+                      Assign coach
+                    </ThemedText>
+                    <Row wrap gap="xs">
+                      {assigneeOptions.map((assignee) => {
+                        const selected = assigneeCoachId === assignee.id;
+                        return (
+                          <Clickable
+                            key={assignee.id}
+                            onPress={() => setAssigneeCoachId(assignee.id)}
+                            style={[
+                              styles.assigneeChip,
+                              {
+                                borderColor: selected ? colors.tint : colors.border,
+                                backgroundColor: selected
+                                  ? withAlpha(colors.tint, 0.07)
+                                  : colors.surface,
+                              },
+                            ]}
+                          >
+                            <ThemedText
+                              style={{
+                                color: selected ? colors.tint : colors.text,
+                                ...Typography.smallSemiBold,
+                              }}
+                            >
+                              {assignee.label}
+                            </ThemedText>
+                            <ThemedText style={[styles.helperText, { color: colors.muted }]}>
+                              {assignee.role.replace('_', ' ')}
+                            </ThemedText>
+                          </Clickable>
+                        );
+                      })}
+                    </Row>
+                    <ThemedText style={[styles.helperText, { color: colors.muted }]}>
+                      Session picker scope
+                    </ThemedText>
+                    <Row gap="xs">
+                      <Clickable
+                        onPress={() => setSessionScope('assigned')}
+                        style={[
+                          styles.modeChip,
+                          {
+                            borderColor: sessionScope === 'assigned' ? colors.tint : colors.border,
+                            backgroundColor:
+                              sessionScope === 'assigned'
+                                ? withAlpha(colors.tint, 0.07)
+                                : colors.surface,
+                          },
+                        ]}
+                      >
+                        <ThemedText
+                          style={{
+                            color: sessionScope === 'assigned' ? colors.tint : colors.text,
+                          }}
+                        >
+                          Assigned coach
+                        </ThemedText>
+                      </Clickable>
+                      <Clickable
+                        onPress={() => setSessionScope('club')}
+                        disabled={!selectedClubId}
+                        style={[
+                          styles.modeChip,
+                          {
+                            borderColor: sessionScope === 'club' ? colors.tint : colors.border,
+                            backgroundColor:
+                              sessionScope === 'club'
+                                ? withAlpha(colors.tint, 0.07)
+                                : colors.surface,
+                            opacity: selectedClubId ? 1 : 0.55,
+                          },
+                        ]}
+                      >
+                        <ThemedText
+                          style={{ color: sessionScope === 'club' ? colors.tint : colors.text }}
+                        >
+                          Club-wide
+                        </ThemedText>
+                      </Clickable>
+                    </Row>
                   </Column>
                 )}
               </SurfaceCard>
             )}
+
+            <SurfaceCard style={styles.sectionCard}>
+              <ThemedText type="defaultSemiBold">Ownership summary</ThemedText>
+              <ThemedText style={[styles.helperText, { color: colors.muted }]}>
+                {postingAs === 'club' && selectedClub
+                  ? `Invites are sent on behalf of ${selectedClub.name}.`
+                  : 'Invites are sent from your coach profile.'}
+              </ThemedText>
+              {postingAs === 'club' && (
+                <ThemedText style={[styles.helperText, { color: colors.muted }]}>
+                  Session owner: {selectedAssignee?.label || 'Select a coach'}
+                </ThemedText>
+              )}
+              {postingAs === 'club' && (
+                <ThemedText style={[styles.helperText, { color: colors.muted }]}>
+                  Session picker: {sessionScope === 'club' ? 'Club-wide sessions' : 'Assigned coach sessions'}
+                </ThemedText>
+              )}
+            </SurfaceCard>
 
             <SurfaceCard style={styles.sectionCard}>
               <ThemedText type="defaultSemiBold">Choose session</ThemedText>
@@ -606,35 +890,54 @@ export default function CreateSessionScreen() {
     athleteNames?: string;
     offeringId?: string;
     date?: string;
+    actingAs?: 'self' | 'club';
+    clubId?: string;
+    assigneeCoachId?: string;
   }>();
 
-  const initialIntent = params.intent;
-  const forcedIntent = initialIntent === 'new' || initialIntent === 'existing' || initialIntent === 'invite';
-  const initialMode: FlowMode =
-    initialIntent === 'existing' || initialIntent === 'invite'
-      ? 'existing'
-      : initialIntent === 'new'
-        ? 'new'
-        : 'choose';
+  const normalizedIntent = useMemo(() => {
+    const intent = params.intent;
+    const forcedIntent = intent === 'new' || intent === 'existing' || intent === 'invite';
+    const mode: FlowMode =
+      intent === 'existing' || intent === 'invite'
+        ? 'existing'
+        : intent === 'new'
+          ? 'new'
+          : 'choose';
+    const athleteIds =
+      params.athleteIds
+        ?.split(',')
+        .map((id) => id.trim())
+        .filter((id) => id.length > 0) ?? [];
+    return {
+      forcedIntent,
+      mode,
+      athleteIds,
+      offeringId: params.offeringId,
+      date: params.date,
+      actingAs: params.actingAs,
+      clubId: params.clubId,
+      assigneeCoachId: params.assigneeCoachId,
+    };
+  }, [
+    params.actingAs,
+    params.assigneeCoachId,
+    params.athleteIds,
+    params.clubId,
+    params.date,
+    params.intent,
+    params.offeringId,
+  ]);
 
-  const [mode, setMode] = useState<FlowMode>(initialMode);
+  const [mode, setMode] = useState<FlowMode>(normalizedIntent.mode);
 
   useEffect(() => {
-    setMode(initialMode);
-  }, [initialMode]);
+    setMode(normalizedIntent.mode);
+  }, [normalizedIntent.mode]);
 
   useEffect(() => {
     stepScrollRef.current?.scrollTo({ y: 0, animated: false });
   }, [state.step]);
-
-  const presetAthleteIds = useMemo(
-    () =>
-      params.athleteIds
-        ?.split(',')
-        .map((id) => id.trim())
-        .filter((id) => id.length > 0) ?? [],
-    [params.athleteIds],
-  );
 
   const handleCancel = useCallback(() => router.back(), []);
   const startTemplate = useCallback(
@@ -645,14 +948,25 @@ export default function CreateSessionScreen() {
     },
     [state],
   );
+  const selectedClubName = useMemo(
+    () => state.clubOptions.find((club) => club.id === state.selectedClubId)?.name,
+    [state.clubOptions, state.selectedClubId],
+  );
+  const selectedAssigneeName = useMemo(
+    () => state.assigneeOptions.find((assignee) => assignee.id === state.selectedAssigneeId)?.label,
+    [state.assigneeOptions, state.selectedAssigneeId],
+  );
 
   if (mode === 'existing') {
     return (
       <ExistingInviteFlow
-        forcedIntent={forcedIntent}
-        initialAthleteIds={presetAthleteIds}
-        initialOfferingId={params.offeringId}
-        initialDate={params.date}
+        forcedIntent={normalizedIntent.forcedIntent}
+        initialAthleteIds={normalizedIntent.athleteIds}
+        initialOfferingId={normalizedIntent.offeringId}
+        initialDate={normalizedIntent.date}
+        initialActingAs={normalizedIntent.actingAs}
+        initialClubId={normalizedIntent.clubId}
+        initialAssigneeCoachId={normalizedIntent.assigneeCoachId}
       />
     );
   }
@@ -769,7 +1083,7 @@ export default function CreateSessionScreen() {
   }
 
   const handleBackFromNew = () => {
-    if (!forcedIntent && state.step === 'details') {
+    if (!normalizedIntent.forcedIntent && state.step === 'details') {
       setMode('choose');
       return;
     }
@@ -828,6 +1142,18 @@ export default function CreateSessionScreen() {
               onDescriptionChange={state.setDescription}
               onToggleFocusArea={state.toggleFocusArea}
               onMaxParticipantsChange={state.setMaxParticipants}
+              postingAs={state.postingAs}
+              clubOptions={state.clubOptions.map((club) => ({ id: club.id, name: club.name }))}
+              selectedClubId={state.selectedClubId}
+              assigneeOptions={state.assigneeOptions.map((assignee) => ({
+                id: assignee.id,
+                label: assignee.label,
+                role: assignee.role,
+              }))}
+              selectedAssigneeId={state.selectedAssigneeId}
+              onPostingAsChange={state.setPostingAs}
+              onSelectedClubIdChange={state.setSelectedClubId}
+              onSelectedAssigneeIdChange={state.setSelectedAssigneeId}
             />
           )}
           {state.step === 'schedule' && (
@@ -888,6 +1214,9 @@ export default function CreateSessionScreen() {
               maxParticipants={state.maxParticipants}
               inviteType={state.inviteType}
               defaultMaxParticipants={state.getDefaultMaxParticipants()}
+              postingAs={state.postingAs}
+              selectedClubName={selectedClubName}
+              selectedAssigneeName={selectedAssigneeName}
             />
           )}
           {state.step === 'invite' && (
@@ -1026,6 +1355,13 @@ const styles = StyleSheet.create({
     borderRadius: Radii.md,
     paddingVertical: Spacing.sm,
     paddingHorizontal: Spacing.sm,
+  },
+  assigneeChip: {
+    borderWidth: 1,
+    borderRadius: Radii.md,
+    paddingVertical: Spacing.xs,
+    paddingHorizontal: Spacing.sm,
+    minWidth: 132,
   },
   notesInput: {
     minHeight: 90,

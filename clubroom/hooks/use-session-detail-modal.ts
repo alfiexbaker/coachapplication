@@ -9,16 +9,64 @@ import { apiClient } from '@/services/api-client';
 import { toDateStr } from '@/utils/format';
 import { useAuth } from '@/hooks/use-auth';
 import { useChildContext } from '@/hooks/use-child-context';
+import { academyService } from '@/services/academy-service';
 import { badgeService } from '@/services/badge-service';
 import { bookingService } from '@/services/booking-service';
 import { notificationService } from '@/services/notification-service';
+import { emitTyped, ServiceEvents } from '@/services/event-bus';
 import { STORAGE_KEYS } from '@/constants/storage-keys';
 import type { User } from '@/constants/app-types';
-import type { SessionOffering, BadgeAward } from '@/constants/types';
+import type {
+  AcademyMembership,
+  SessionOffering,
+  BadgeAward,
+  SessionOwnershipAuditEvent,
+} from '@/constants/types';
 import { Routes } from '@/navigation/routes';
 import { createLogger } from '@/utils/logger';
+import {
+  getSessionOfferingHeadcount,
+  getSessionOfferingOffPlatformCount,
+  getSessionOfferingRegisteredCount,
+  isSessionOfferingFull,
+} from '@/utils/session-offering-capacity';
 
 const logger = createLogger('useSessionDetailModal');
+
+const STAFF_ROLE_ORDER: Record<AcademyMembership['role'], number> = {
+  OWNER: 0,
+  ADMIN: 1,
+  HEAD_COACH: 2,
+  COACH: 3,
+  ASSISTANT: 4,
+  MEMBER: 5,
+};
+
+interface OwnershipAssigneeOption {
+  id: string;
+  label: string;
+  role: AcademyMembership['role'];
+}
+
+export interface SessionOwnershipTimelineEntry {
+  id: string;
+  title: string;
+  meta?: string;
+  timestampLabel: string;
+}
+
+function formatTimelineTimestamp(iso?: string): string {
+  if (!iso) return 'Unknown time';
+  const date = new Date(iso);
+  if (Number.isNaN(date.getTime())) return 'Unknown time';
+  return date.toLocaleString('en-GB', {
+    day: 'numeric',
+    month: 'short',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+  });
+}
 
 /** Generate upcoming instances for a recurring session. */
 function getUpcomingInstances(offering: SessionOffering, count: number = 8): Date[] {
@@ -82,6 +130,13 @@ export function useSessionDetailModal(
   const [sessionAwards, setSessionAwards] = useState<BadgeAward[]>([]);
   const [userNameMap, setUserNameMap] = useState<Record<string, string>>({});
   const [showInstanceManagement, setShowInstanceManagement] = useState(false);
+  const [assigneeOptions, setAssigneeOptions] = useState<OwnershipAssigneeOption[]>([]);
+  const [selectedAssigneeId, setSelectedAssigneeId] = useState<string | null>(null);
+  const [canManageClubOwnership, setCanManageClubOwnership] = useState(false);
+  const [reassigningOwnership, setReassigningOwnership] = useState(false);
+  const [draftOffPlatformParticipants, setDraftOffPlatformParticipants] = useState(0);
+  const [savingOffPlatform, setSavingOffPlatform] = useState(false);
+  const [clubNameById, setClubNameById] = useState<Record<string, string>>({});
 
   useEffect(() => {
     if (!visible || !offering) return;
@@ -117,6 +172,108 @@ export function useSessionDetailModal(
     };
   }, [offering, visible]);
 
+  useEffect(() => {
+    if (!visible || !offering) {
+      setDraftOffPlatformParticipants(0);
+      return;
+    }
+    setDraftOffPlatformParticipants(getSessionOfferingOffPlatformCount(offering));
+  }, [offering, visible]);
+
+  useEffect(() => {
+    if (!visible || !offering || !currentUser?.id) {
+      setAssigneeOptions([]);
+      setSelectedAssigneeId(null);
+      setCanManageClubOwnership(false);
+      return;
+    }
+
+    if (offering.actingAs !== 'club' || !offering.clubId) {
+      setAssigneeOptions([]);
+      setSelectedAssigneeId(offering.assigneeCoachId || offering.ownerCoachId || offering.coachId);
+      setCanManageClubOwnership(false);
+      return;
+    }
+
+    let cancelled = false;
+
+    const loadOwnershipContext = async () => {
+      try {
+        const [academiesResult, staffResult, users] = await Promise.all([
+          academyService.getUserAcademies(currentUser.id),
+          academyService.getStaff(offering.clubId as string),
+          apiClient.get<User[]>(STORAGE_KEYS.USERS, []),
+        ]);
+        if (cancelled) return;
+
+        const nameById = new Map<string, string>();
+        users.forEach((user) => {
+          const resolved = user.name?.trim() || user.id;
+          nameById.set(user.id, resolved);
+        });
+
+        if (academiesResult.success) {
+          const names = academiesResult.data.reduce<Record<string, string>>((acc, academy) => {
+            acc[academy.id] = academy.name;
+            return acc;
+          }, {});
+          setClubNameById(names);
+
+          const membership = academiesResult.data.find((academy) => academy.id === offering.clubId)?.membership;
+          const canManageByPermission = Boolean(
+            membership?.permissions.includes('CREATE_SESSIONS') ||
+              membership?.permissions.includes('POST_AS_ACADEMY'),
+          );
+          setCanManageClubOwnership(canManageByPermission);
+        } else {
+          setCanManageClubOwnership(false);
+          setClubNameById({});
+        }
+
+        if (!staffResult.success) {
+          setAssigneeOptions([]);
+          return;
+        }
+
+        const options = staffResult.data
+          .filter((member) => member.status === 'ACTIVE')
+          .map((member) => ({
+            id: member.userId,
+            label: nameById.get(member.userId) || member.userId,
+            role: member.role,
+          }))
+          .sort((a, b) => STAFF_ROLE_ORDER[a.role] - STAFF_ROLE_ORDER[b.role]);
+
+        setAssigneeOptions(options);
+        setSelectedAssigneeId((previous) => {
+          if (previous && options.some((option) => option.id === previous)) {
+            return previous;
+          }
+          const existingOwner = offering.assigneeCoachId || offering.ownerCoachId || offering.coachId;
+          if (existingOwner && options.some((option) => option.id === existingOwner)) {
+            return existingOwner;
+          }
+          return options[0]?.id ?? null;
+        });
+      } catch (error) {
+        if (cancelled) return;
+        logger.warn('Failed to load session ownership context', { offeringId: offering.id, error });
+        setAssigneeOptions([]);
+        setCanManageClubOwnership(false);
+      }
+    };
+
+    void loadOwnershipContext();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [
+    currentUser?.id,
+    offering,
+    visible,
+  ]);
+
   const upcomingInstances = useMemo(() => {
     if (!offering) return [];
     return getUpcomingInstances(offering, 8);
@@ -124,9 +281,27 @@ export function useSessionDetailModal(
 
   const isCoach = currentUser?.role === 'COACH';
   const isMyOffering = offering?.coachId === currentUser?.id;
-  const registeredCount =
-    offering?.registrations.filter((r) => r.status === 'confirmed').length ?? 0;
-  const isFull = registeredCount >= (offering?.maxParticipants ?? 0);
+  const canManageOffering = Boolean(
+    offering &&
+      currentUser &&
+      (offering.coachId === currentUser.id ||
+        (offering.actingAs === 'club' &&
+          (canManageClubOwnership || offering.createdByUserId === currentUser.id))),
+  );
+  const canReassignOwnership = Boolean(
+    offering &&
+      offering.actingAs === 'club' &&
+      offering.clubId &&
+      assigneeOptions.length > 0 &&
+      (canManageClubOwnership || offering.createdByUserId === currentUser?.id),
+  );
+  const ownerCoachId = offering?.assigneeCoachId || offering?.ownerCoachId || offering?.coachId;
+  const ownerCoachName = ownerCoachId ? userNameMap[ownerCoachId] || ownerCoachId : 'Unassigned';
+  const clubLabel = offering?.clubId ? clubNameById[offering.clubId] || offering.clubId : undefined;
+  const registeredCount = offering ? getSessionOfferingRegisteredCount(offering) : 0;
+  const offPlatformParticipants = offering ? getSessionOfferingOffPlatformCount(offering) : 0;
+  const totalParticipants = offering ? getSessionOfferingHeadcount(offering) : 0;
+  const isFull = offering ? isSessionOfferingFull(offering) : false;
 
   const children = useMemo(
     () => contextChildren.map((c) => ({ id: c.id, name: c.name })),
@@ -139,6 +314,81 @@ export function useSessionDetailModal(
         registration.status === 'confirmed' && actorIds.includes(registration.userId),
     ) ?? false;
   const hasMultipleKids = isMultiChild;
+
+  const ownershipTimeline = useMemo<SessionOwnershipTimelineEntry[]>(() => {
+    if (!offering) return [];
+
+    const events = [...(offering.ownershipAuditTrail ?? [])]
+      .sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime());
+
+    const formatAction = (event: SessionOwnershipAuditEvent): SessionOwnershipTimelineEntry => {
+      const actorLabel =
+        event.actorName ||
+        (event.actorUserId ? userNameMap[event.actorUserId] || event.actorUserId : 'Unknown');
+      const roleLabel = event.actorRole ? event.actorRole.replace('_', ' ') : undefined;
+      const toCoach = event.toCoachId ? userNameMap[event.toCoachId] || event.toCoachId : undefined;
+
+      if (event.action === 'CREATED') {
+        return {
+          id: event.id,
+          title: `Created by ${actorLabel}`,
+          meta: roleLabel || event.note,
+          timestampLabel: formatTimelineTimestamp(event.timestamp),
+        };
+      }
+      if (event.action === 'ASSIGNED' || event.action === 'REASSIGNED') {
+        return {
+          id: event.id,
+          title: `Assigned to ${toCoach || 'Unassigned'}`,
+          meta: event.note || roleLabel,
+          timestampLabel: formatTimelineTimestamp(event.timestamp),
+        };
+      }
+      return {
+        id: event.id,
+        title: `Edited by ${actorLabel}`,
+        meta: event.note || roleLabel,
+        timestampLabel: formatTimelineTimestamp(event.timestamp),
+      };
+    };
+
+    if (events.length > 0) {
+      return events.map(formatAction);
+    }
+
+    const fallback: SessionOwnershipTimelineEntry[] = [
+      {
+        id: `fallback_created_${offering.id}`,
+        title: `Created by ${offering.createdByName || (offering.createdByUserId ? userNameMap[offering.createdByUserId] || offering.createdByUserId : 'Unknown')}`,
+        meta: offering.createdByRole ? offering.createdByRole.replace('_', ' ') : undefined,
+        timestampLabel: formatTimelineTimestamp(offering.createdAt),
+      },
+    ];
+
+    if (ownerCoachId) {
+      fallback.push({
+        id: `fallback_assigned_${offering.id}`,
+        title: `Assigned to ${userNameMap[ownerCoachId] || ownerCoachId}`,
+        meta: offering.actingAs === 'club' ? 'Club assignment' : 'Self assignment',
+        timestampLabel: formatTimelineTimestamp(offering.createdAt),
+      });
+    }
+
+    if (offering.updatedAt) {
+      fallback.push({
+        id: `fallback_updated_${offering.id}`,
+        title: `Edited by ${
+          offering.updatedByUserId
+            ? userNameMap[offering.updatedByUserId] || offering.updatedByUserId
+            : 'System'
+        }`,
+        meta: offering.updatedByRole ? offering.updatedByRole.replace('_', ' ') : 'Last update',
+        timestampLabel: formatTimelineTimestamp(offering.updatedAt),
+      });
+    }
+
+    return fallback;
+  }, [offering, ownerCoachId, userNameMap]);
 
   const handleCancelInstance = useCallback(
     async (instanceDate: Date) => {
@@ -287,10 +537,17 @@ export function useSessionDetailModal(
                   const updatedRegistrations = o.registrations.map((reg) =>
                     reg.id === myRegistration.id ? { ...reg, status: 'cancelled' as const } : reg,
                   );
+                  const nextRegisteredCount =
+                    updatedRegistrations.filter((reg) => reg.status === 'confirmed').length;
+                  const nextHeadcount =
+                    nextRegisteredCount + getSessionOfferingOffPlatformCount(o);
                   return {
                     ...o,
                     registrations: updatedRegistrations,
-                    status: o.status === 'full' ? ('active' as const) : o.status,
+                    status:
+                      o.status === 'full'
+                        ? (nextHeadcount >= o.maxParticipants ? 'full' : 'active')
+                        : o.status,
                   };
                 }
                 return o;
@@ -343,6 +600,128 @@ export function useSessionDetailModal(
     );
   }, [offering, onUpdate, onClose]);
 
+  const handleReassignOwnership = useCallback(async () => {
+    if (!offering || !currentUser || !selectedAssigneeId) return;
+    if (!canReassignOwnership) return;
+
+    const previousOwnerId = offering.assigneeCoachId || offering.ownerCoachId || offering.coachId;
+    if (previousOwnerId === selectedAssigneeId) {
+      Alert.alert('No change', 'This session is already assigned to that coach.');
+      return;
+    }
+
+    setReassigningOwnership(true);
+    try {
+      const offerings = await apiClient.get<SessionOffering[]>(STORAGE_KEYS.SESSION_OFFERINGS, []);
+      const nowIso = new Date().toISOString();
+      const actorName = currentUser.fullName || currentUser.name || currentUser.id;
+      const selectedAssigneeLabel =
+        assigneeOptions.find((option) => option.id === selectedAssigneeId)?.label || selectedAssigneeId;
+
+      const updated = offerings.map((entry) => {
+        if (entry.id !== offering.id) return entry;
+
+        const nextAuditTrail: SessionOwnershipAuditEvent[] = [
+          ...(entry.ownershipAuditTrail ?? []),
+          {
+            id: `ownership_${Date.now()}_${selectedAssigneeId}`,
+            action: previousOwnerId ? 'REASSIGNED' : 'ASSIGNED',
+            timestamp: nowIso,
+            actorUserId: currentUser.id,
+            actorName,
+            actorRole: currentUser.role,
+            fromCoachId: previousOwnerId,
+            toCoachId: selectedAssigneeId,
+            note: `Session owner changed to ${selectedAssigneeLabel}`,
+          },
+          {
+            id: `ownership_${Date.now()}_updated`,
+            action: 'UPDATED',
+            timestamp: nowIso,
+            actorUserId: currentUser.id,
+            actorName,
+            actorRole: currentUser.role,
+            toCoachId: selectedAssigneeId,
+            note: 'Ownership edited in session detail',
+          },
+        ];
+
+        return {
+          ...entry,
+          coachId: selectedAssigneeId,
+          ownerCoachId: selectedAssigneeId,
+          assigneeCoachId: selectedAssigneeId,
+          updatedAt: nowIso,
+          updatedByUserId: currentUser.id,
+          updatedByRole: currentUser.role,
+          ownershipAuditTrail: nextAuditTrail,
+        };
+      });
+
+      await apiClient.set(STORAGE_KEYS.SESSION_OFFERINGS, updated);
+      Alert.alert('Updated', `Session reassigned to ${selectedAssigneeLabel}.`);
+      onUpdate?.();
+    } catch (error) {
+      logger.error('Failed to reassign session owner', { offeringId: offering.id, error });
+      Alert.alert('Error', 'Failed to reassign session owner. Please try again.');
+    } finally {
+      setReassigningOwnership(false);
+    }
+  }, [
+    assigneeOptions,
+    canReassignOwnership,
+    currentUser,
+    offering,
+    onUpdate,
+    selectedAssigneeId,
+  ]);
+
+  const handleAdjustOffPlatform = useCallback((delta: number) => {
+    setDraftOffPlatformParticipants((previous) => Math.max(0, previous + delta));
+  }, []);
+
+  const handleSaveOffPlatformParticipants = useCallback(async () => {
+    if (!offering || !currentUser || !canManageOffering) return;
+    const normalizedCount = Math.max(0, Math.floor(draftOffPlatformParticipants || 0));
+    const currentCount = getSessionOfferingOffPlatformCount(offering);
+    if (normalizedCount === currentCount) return;
+
+    setSavingOffPlatform(true);
+    try {
+      const offerings = await apiClient.get<SessionOffering[]>(STORAGE_KEYS.SESSION_OFFERINGS, []);
+      const nowIso = new Date().toISOString();
+      const updatedOfferings = offerings.map((entry) => {
+        if (entry.id !== offering.id) return entry;
+
+        const nextHeadcount = getSessionOfferingRegisteredCount(entry) + normalizedCount;
+        const shouldTrackCapacityStatus = entry.status === 'active' || entry.status === 'full';
+        return {
+          ...entry,
+          offPlatformParticipants: normalizedCount,
+          status: shouldTrackCapacityStatus
+            ? (nextHeadcount >= entry.maxParticipants ? 'full' : 'active')
+            : entry.status,
+          updatedAt: nowIso,
+          updatedByUserId: currentUser.id,
+          updatedByRole: currentUser.role,
+        };
+      });
+
+      await apiClient.set(STORAGE_KEYS.SESSION_OFFERINGS, updatedOfferings);
+      setDraftOffPlatformParticipants(normalizedCount);
+      emitTyped(ServiceEvents.SESSION_UPDATED, {
+        sessionId: offering.id,
+        changes: { offPlatformParticipants: normalizedCount },
+      });
+      onUpdate?.();
+      Alert.alert('Saved', 'Off-platform attendees updated.');
+    } catch {
+      Alert.alert('Error', 'Failed to update off-platform attendees. Please try again.');
+    } finally {
+      setSavingOffPlatform(false);
+    }
+  }, [canManageOffering, currentUser, draftOffPlatformParticipants, offering, onUpdate]);
+
   const handleBook = useCallback(async () => {
     if (!offering || !currentUser) return;
     if (isFull) {
@@ -372,10 +751,13 @@ export function useSessionDetailModal(
       const updatedOfferings = offerings.map((o) => {
         if (o.id === offering.id) {
           const updatedRegistrations = [...o.registrations, newRegistration];
+          const nextHeadcount =
+            updatedRegistrations.filter((registration) => registration.status === 'confirmed').length +
+            getSessionOfferingOffPlatformCount(o);
           return {
             ...o,
             registrations: updatedRegistrations,
-            status: updatedRegistrations.length >= o.maxParticipants ? ('full' as const) : o.status,
+            status: nextHeadcount >= o.maxParticipants ? ('full' as const) : o.status,
           };
         }
         return o;
@@ -424,6 +806,8 @@ export function useSessionDetailModal(
 
   return {
     currentUser,
+    clubLabel,
+    ownerCoachName,
     selectedChildId,
     setSelectedChildId,
     weeksToBook,
@@ -435,7 +819,18 @@ export function useSessionDetailModal(
     upcomingInstances,
     isCoach,
     isMyOffering,
+    canManageOffering,
+    canReassignOwnership,
+    assigneeOptions,
+    selectedAssigneeId,
+    setSelectedAssigneeId,
+    reassigningOwnership,
+    ownershipTimeline,
     registeredCount,
+    offPlatformParticipants,
+    totalParticipants,
+    draftOffPlatformParticipants,
+    savingOffPlatform,
     isFull,
     isRegistered,
     children,
@@ -443,6 +838,9 @@ export function useSessionDetailModal(
     handleCancelInstance,
     handleCancelBooking,
     handleEndSeries,
+    handleReassignOwnership,
+    handleAdjustOffPlatform,
+    handleSaveOffPlatformParticipants,
     handleBook,
     formatSchedule,
   };

@@ -9,7 +9,6 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 
 import { ThemedText } from '@/components/themed-text';
-import { ChildSwitcher } from '@/components/ChildSwitcher';
 import { NotificationBell } from '@/components/ui/notification-bell';
 import { Avatar } from '@/components/ui/primitives/Avatar';
 import { Clickable } from '@/components/primitives/clickable';
@@ -19,7 +18,6 @@ import { Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
 import { useHomeScreen } from '@/hooks/use-home-screen';
 import { Routes } from '@/navigation/routes';
-import { TodayFamilySummary } from './today-family-summary';
 import {
   StatsRow,
   StreakCard,
@@ -40,12 +38,10 @@ export function UserHomeScreen() {
     clubs,
     stats,
     streakInfo,
-    selectedChildId,
-    setSelectedChildId,
+    selectedChild,
+    handleSelectNextChild,
     onRefresh,
     upcomingBookings,
-    familyBookingRows,
-    isMultiChild,
     isParent,
     contextChildren,
   } = useHomeScreen();
@@ -53,9 +49,9 @@ export function UserHomeScreen() {
   if (!currentUser) return null;
 
   const nextSession = upcomingBookings[0];
-  const showFamilySummary = isMultiChild && selectedChildId === null;
   const isNewParent = isParent && contextChildren.length === 0;
-  const singleChild = isParent && contextChildren.length === 1 ? contextChildren[0] : null;
+  const showChildCard = isParent && Boolean(selectedChild);
+  const canSwitchChild = contextChildren.length > 1;
 
   return (
     <SafeAreaView
@@ -85,37 +81,46 @@ export function UserHomeScreen() {
           <NotificationBell size={20} />
         </Row>
 
-        {singleChild ? (
+        {showChildCard && selectedChild ? (
           <SurfaceCard style={[styles.singleChildCard, { borderColor: palette.border }]}>
-            <Row align="center" gap="sm">
-              <Avatar uri={singleChild.avatarUrl} name={singleChild.name} size="md" />
-              <Column flex gap="micro">
-                <ThemedText type="defaultSemiBold" numberOfLines={1}>
-                  {singleChild.name}
-                </ThemedText>
-                <ThemedText style={[styles.singleChildMeta, { color: palette.muted }]}>
-                  {singleChild.age != null ? `Age ${singleChild.age}` : 'Child profile'}
-                </ThemedText>
-              </Column>
-              <Clickable
-                onPress={() => router.push(Routes.MODAL_ADD_CHILD)}
-                accessibilityLabel="Add another child"
-                style={[styles.addChildMiniButton, { backgroundColor: withAlpha(palette.tint, 0.08) }]}
-              >
-                <Ionicons name="person-add-outline" size={16} color={palette.tint} />
-                <ThemedText style={[styles.addChildMiniLabel, { color: palette.tint }]}>
-                  Add Child
-                </ThemedText>
-              </Clickable>
-            </Row>
+            <Column gap="xs">
+              <Row align="center" gap="sm" style={styles.childIdentityRow}>
+                <Avatar uri={selectedChild.avatarUrl} name={selectedChild.name} size="md" />
+                <Column flex gap="micro" style={styles.childIdentityCopy}>
+                  <ThemedText type="defaultSemiBold" numberOfLines={1}>
+                    {selectedChild.name}
+                  </ThemedText>
+                  <ThemedText style={[styles.singleChildMeta, { color: palette.muted }]} numberOfLines={1}>
+                    {selectedChild.age != null ? `Age ${selectedChild.age}` : 'Child profile'}
+                  </ThemedText>
+                </Column>
+              </Row>
+              <Row align="center" gap="xs" style={styles.childActionsRow}>
+                {canSwitchChild && (
+                  <Clickable
+                    onPress={handleSelectNextChild}
+                    accessibilityLabel="Switch selected child"
+                    style={[styles.addChildMiniButton, { backgroundColor: withAlpha(palette.tint, 0.08) }]}
+                  >
+                    <Ionicons name="swap-horizontal-outline" size={16} color={palette.tint} />
+                    <ThemedText style={[styles.addChildMiniLabel, { color: palette.tint }]}>
+                      Switch
+                    </ThemedText>
+                  </Clickable>
+                )}
+                <Clickable
+                  onPress={() => router.push(Routes.MODAL_ADD_CHILD)}
+                  accessibilityLabel="Add another child"
+                  style={[styles.addChildMiniButton, { backgroundColor: withAlpha(palette.tint, 0.08) }]}
+                >
+                  <Ionicons name="person-add-outline" size={16} color={palette.tint} />
+                  <ThemedText style={[styles.addChildMiniLabel, { color: palette.tint }]}>
+                    Add
+                  </ThemedText>
+                </Clickable>
+              </Row>
+            </Column>
           </SurfaceCard>
-        ) : isParent ? (
-          <ChildSwitcher
-            childrenList={contextChildren.map((c) => ({ childId: c.id, childName: c.name }))}
-            selectedId={selectedChildId}
-            onSelect={setSelectedChildId}
-            showAll={isMultiChild}
-          />
         ) : null}
 
         {loading && (
@@ -174,11 +179,7 @@ export function UserHomeScreen() {
         <StatsRow stats={stats} />
         {streakInfo && <StreakCard streakInfo={streakInfo} />}
         <QuickActionsGrid />
-        {showFamilySummary ? (
-          <TodayFamilySummary rows={familyBookingRows} />
-        ) : (
-          <NextSessionCard booking={nextSession} />
-        )}
+        <NextSessionCard booking={nextSession} />
         <RecentBadgesSection badges={recentBadges} />
         <MyClubsSection clubs={clubs} />
       </ScrollView>
@@ -227,16 +228,27 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     padding: Spacing.sm,
   },
+  childIdentityRow: {
+    minWidth: 0,
+  },
+  childIdentityCopy: {
+    minWidth: 0,
+  },
+  childActionsRow: {
+    width: '100%',
+  },
   singleChildMeta: {
     ...Typography.caption,
   },
   addChildMiniButton: {
     minHeight: 36,
+    flex: 1,
     borderRadius: Radii.pill,
     paddingHorizontal: Spacing.sm,
     paddingVertical: Spacing.xxs,
     flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'center',
     gap: Spacing.xxs,
   },
   addChildMiniLabel: {

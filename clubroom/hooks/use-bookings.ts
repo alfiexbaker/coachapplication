@@ -22,8 +22,9 @@ import { useScreen } from '@/hooks/use-screen';
 import { createLogger } from '@/utils/logger';
 import { getSessionInviteCoachName } from '@/utils/session-invite-display';
 import { getBookingAthleteName } from '@/utils/booking-display';
+import { isCoach, isAdmin } from '@/utils/user-helpers';
 import { err, ok, serviceError } from '@/types/result';
-import type { BookingSummary, SessionOffering, SessionInvite } from '@/constants/types';
+import type { BookingSummary, SessionOffering, SessionInvite, RecurringBooking } from '@/constants/types';
 import type { TimeFilter } from '@/components/bookings/BookingsList';
 
 const logger = createLogger('useBookings');
@@ -42,6 +43,7 @@ export interface UseBookingsResult {
   displayItems: (SessionOffering | BookingSummary)[];
   pendingInvitesList: SessionInvite[];
   pendingInvites: number;
+  isCoachUser: boolean;
   userRole: string | undefined;
 
   // State
@@ -92,6 +94,7 @@ export function useBookings(): UseBookingsResult {
   const [showDetailModal, setShowDetailModal] = useState(false);
 
   const userRole = currentUser?.role;
+  const isCoachUser = isCoach(currentUser) || isAdmin(currentUser);
 
   // Load all data
   const loadData = useCallback(async () => {
@@ -111,7 +114,16 @@ export function useBookings(): UseBookingsResult {
         viewerNameById.set(child.id, child.name);
       }
 
+      const recurringBookings = await apiClient.get<RecurringBooking[]>(
+        STORAGE_KEYS.RECURRING_BOOKINGS,
+        [],
+      );
+      const recurringById = new Map(recurringBookings.map((recurring) => [recurring.id, recurring]));
+
       const summaries: BookingSummary[] = bookings.map((booking) => {
+        const recurringSource = booking.recurringBookingId
+          ? recurringById.get(booking.recurringBookingId)
+          : undefined;
         const athleteId = booking.athleteId ?? booking.athleteIds?.[0] ?? '';
         const athleteName = getBookingAthleteName(booking);
         const isSelfBooking = Boolean(currentUser?.id && athleteId && athleteId === currentUser.id);
@@ -135,6 +147,12 @@ export function useBookings(): UseBookingsResult {
           bookedById: booking.bookedById,
           bookedByName: booking.bookedByName,
           audienceLabel,
+          clubId: booking.clubId ?? recurringSource?.clubId,
+          actingAs: booking.actingAs ?? recurringSource?.actingAs,
+          ownerCoachId: booking.ownerCoachId ?? recurringSource?.ownerCoachId,
+          assigneeCoachId: booking.assigneeCoachId ?? recurringSource?.assigneeCoachId,
+          createdByUserId: booking.createdByUserId ?? recurringSource?.createdByUserId,
+          createdByRole: booking.createdByRole ?? recurringSource?.createdByRole,
         };
       });
       logger.debug('Loaded session bookings', { count: summaries.length });
@@ -143,7 +161,7 @@ export function useBookings(): UseBookingsResult {
       logger.debug('Loaded session offerings', { count: offerings.length });
 
       let pendingInvitesList: SessionInvite[] = [];
-      if (currentUser && currentUser.role !== 'COACH') {
+      if (currentUser && !isCoachUser) {
         try {
           const invites = await sessionInviteService.getPendingInvites(currentUser.id);
           pendingInvitesList = invites;
@@ -164,7 +182,7 @@ export function useBookings(): UseBookingsResult {
         serviceError('UNKNOWN', 'Failed to load bookings. Pull down to refresh.', loadError),
       );
     }
-  }, [contextChildren, currentUser, isParent]);
+  }, [contextChildren, currentUser, isCoachUser, isParent]);
 
   const {
     data,
@@ -213,8 +231,13 @@ export function useBookings(): UseBookingsResult {
       offering.status === 'cancelled' ||
       (!offering.isRecurring && new Date(offering.scheduledAt) < now);
 
-    if (userRole === 'COACH') {
-      const myOfferings = sessionOfferings.filter((o) => o.coachId === currentUser?.id);
+    if (isCoachUser) {
+      const myOfferings = sessionOfferings.filter((offering) => {
+        if (!currentUser?.id) return false;
+        if (offering.coachId === currentUser.id) return true;
+        if (offering.actingAs !== 'club') return false;
+        return offering.createdByUserId === currentUser.id;
+      });
       return timeFilter === 'upcoming'
         ? myOfferings.filter((offering) => !isPastOffering(offering))
         : myOfferings.filter((offering) => isPastOffering(offering));
@@ -292,7 +315,7 @@ export function useBookings(): UseBookingsResult {
     sessionBookings,
     sessionOfferings,
     timeFilter,
-    userRole,
+    isCoachUser,
   ]);
 
   // Navigation handlers
@@ -307,7 +330,7 @@ export function useBookings(): UseBookingsResult {
   }, []);
 
   const handleSettingsPress = useCallback(() => {
-    logger.press('SettingsButton', { route: '/(tabs)/settings' });
+    logger.press('SettingsButton', { route: '/settings' });
     router.push(Routes.SETTINGS);
   }, []);
 
@@ -327,8 +350,8 @@ export function useBookings(): UseBookingsResult {
   }, []);
 
   const handleCreateSessionPress = useCallback(() => {
-    logger.press('CreateSessionButton', { route: '/sessions/create' });
-    router.push(Routes.SESSIONS_CREATE);
+    logger.press('CreateSessionButton', { intent: 'new' });
+    router.push(Routes.sessionsCreateIntent({ intent: 'new', source: 'manual' }));
   }, []);
 
   const handleCreateDirectPress = useCallback(() => {
@@ -415,6 +438,7 @@ export function useBookings(): UseBookingsResult {
     displayItems,
     pendingInvitesList,
     pendingInvites,
+    isCoachUser,
     userRole,
     loading,
     error,

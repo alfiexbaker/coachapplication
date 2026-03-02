@@ -38,7 +38,7 @@ export default function MessagesScreen() {
   } = useMessages();
 
   const handleFindCoaches = useCallback(() => {
-    router.push(Routes.MORE);
+    router.push(Routes.DISCOVER_MAP);
   }, []);
   const renderState = (content: ReactNode) => (
     <SafeAreaView

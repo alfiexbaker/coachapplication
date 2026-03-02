@@ -63,11 +63,11 @@ export function BodyPartSelector({ selectedPart, onSelect }: BodyPartSelectorPro
 
   return (
     <ScrollView showsVerticalScrollIndicator={false} style={styles.container}>
-      <BodyDiagram selectedPart={selectedPart} palette={palette} />
+      <BodyDiagram selectedPart={selectedPart} onSelectPart={handlePartSelect} palette={palette} />
 
       <View style={styles.categoriesContainer}>
-        <ThemedText style={[styles.sectionTitle, { color: palette.muted }]}>
-          Select Body Part
+        <ThemedText style={[styles.diagramHint, { color: palette.muted }]}>
+          Tap the body map or pick from the list.
         </ThemedText>
         <Row
           align="center"
@@ -102,16 +102,16 @@ export function BodyPartSelector({ selectedPart, onSelect }: BodyPartSelectorPro
           </ThemedText>
         ) : (
           filteredCategories.map((category) => (
-          <CategoryAccordionItem
-            key={category.id}
-            category={category}
-            isExpanded={expandedCategory === category.id}
-            selectedPart={selectedPart}
-            onCategoryPress={handleCategoryPress}
-            onPartSelect={handlePartSelect}
-            searchTerm={normalizedSearch}
-            palette={palette}
-          />
+            <CategoryAccordionItem
+              key={category.id}
+              category={category}
+              isExpanded={expandedCategory === category.id}
+              selectedPart={selectedPart}
+              onCategoryPress={handleCategoryPress}
+              onPartSelect={handlePartSelect}
+              searchTerm={normalizedSearch}
+              palette={palette}
+            />
           ))
         )}
       </View>

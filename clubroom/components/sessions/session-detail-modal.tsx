@@ -21,6 +21,7 @@ import { SessionInfoSection } from './session-info-section';
 import { SessionRegistrations } from './session-registrations';
 import { SessionInstanceManager } from './session-instance-manager';
 import { SessionBookingOptions } from './session-booking-options';
+import { SessionOwnershipSection } from './session-ownership-section';
 
 interface SessionDetailModalProps {
   visible: boolean;
@@ -40,7 +41,20 @@ export function SessionDetailModal({
     currentUser,
     isCoach,
     isMyOffering,
+    canManageOffering,
+    canReassignOwnership,
+    assigneeOptions,
+    selectedAssigneeId,
+    setSelectedAssigneeId,
+    reassigningOwnership,
+    ownershipTimeline,
+    ownerCoachName,
+    clubLabel,
     registeredCount,
+    offPlatformParticipants,
+    totalParticipants,
+    draftOffPlatformParticipants,
+    savingOffPlatform,
     isFull,
     isRegistered,
     children,
@@ -57,6 +71,9 @@ export function SessionDetailModal({
     handleCancelInstance,
     handleCancelBooking,
     handleEndSeries,
+    handleReassignOwnership,
+    handleAdjustOffPlatform,
+    handleSaveOffPlatformParticipants,
     handleBook,
     formatSchedule,
   } = useSessionDetailModal(visible, offering, onClose, onUpdate);
@@ -89,8 +106,23 @@ export function SessionDetailModal({
             offering={offering}
             isMyOffering={isMyOffering}
             registeredCount={registeredCount}
+            offPlatformParticipants={offPlatformParticipants}
+            totalParticipants={totalParticipants}
             sessionAwards={sessionAwards}
             formatSchedule={formatSchedule}
+          />
+
+          <SessionOwnershipSection
+            actingAs={offering.actingAs}
+            clubLabel={clubLabel}
+            ownerCoachName={ownerCoachName}
+            canReassign={canReassignOwnership}
+            assigneeOptions={assigneeOptions}
+            selectedAssigneeId={selectedAssigneeId}
+            onSelectAssignee={(value) => setSelectedAssigneeId(value)}
+            onReassign={handleReassignOwnership}
+            reassigning={reassigningOwnership}
+            timeline={ownershipTimeline}
           />
 
           {showAttendeeList && (
@@ -101,6 +133,88 @@ export function SessionDetailModal({
               currentUserId={currentUser?.id}
               userNameMap={userNameMap}
             />
+          )}
+
+          {canManageOffering && offering.sessionType === 'group' && (
+            <View
+              style={[
+                styles.offPlatformCard,
+                { borderColor: palette.border, backgroundColor: withAlpha(palette.tint, 0.04) },
+              ]}
+            >
+              <Row align="center" justify="between" gap="sm">
+                <View style={styles.offPlatformInfo}>
+                  <ThemedText type="defaultSemiBold">Off-platform attendees</ThemedText>
+                  <ThemedText style={[styles.offPlatformMeta, { color: palette.muted }]}>
+                    Track walk-ins and offline payments for reconciliation.
+                  </ThemedText>
+                </View>
+                <View
+                  style={[
+                    styles.offPlatformCount,
+                    { backgroundColor: withAlpha(palette.tint, 0.12) },
+                  ]}
+                >
+                  <ThemedText style={[styles.offPlatformCountText, { color: palette.tint }]}>
+                    {draftOffPlatformParticipants}
+                  </ThemedText>
+                </View>
+              </Row>
+
+              <Row gap="xs">
+                <Clickable
+                  onPress={() => handleAdjustOffPlatform(-1)}
+                  disabled={savingOffPlatform || draftOffPlatformParticipants <= 0}
+                  accessibilityLabel="Decrease off-platform attendee count"
+                  style={[
+                    styles.counterButton,
+                    {
+                      borderColor: palette.border,
+                      backgroundColor: palette.surface,
+                      opacity: savingOffPlatform || draftOffPlatformParticipants <= 0 ? 0.55 : 1,
+                    },
+                  ]}
+                >
+                  <Ionicons name="remove" size={18} color={palette.text} />
+                </Clickable>
+
+                <Clickable
+                  onPress={() => handleAdjustOffPlatform(1)}
+                  disabled={savingOffPlatform}
+                  accessibilityLabel="Increase off-platform attendee count"
+                  style={[
+                    styles.counterButton,
+                    {
+                      borderColor: palette.border,
+                      backgroundColor: palette.surface,
+                      opacity: savingOffPlatform ? 0.55 : 1,
+                    },
+                  ]}
+                >
+                  <Ionicons name="add" size={18} color={palette.text} />
+                </Clickable>
+
+                <Clickable
+                  onPress={handleSaveOffPlatformParticipants}
+                  disabled={savingOffPlatform || draftOffPlatformParticipants === offPlatformParticipants}
+                  accessibilityLabel="Save off-platform attendee count"
+                  style={[
+                    styles.offPlatformSaveButton,
+                    {
+                      backgroundColor: palette.tint,
+                      opacity:
+                        savingOffPlatform || draftOffPlatformParticipants === offPlatformParticipants
+                          ? 0.55
+                          : 1,
+                    },
+                  ]}
+                >
+                  <ThemedText style={[styles.offPlatformSaveText, { color: palette.onPrimary }]}>
+                    {savingOffPlatform ? 'Saving...' : 'Save'}
+                  </ThemedText>
+                </Clickable>
+              </Row>
+            </View>
           )}
 
           {isInviteOnlyOffering && (
@@ -182,7 +296,7 @@ export function SessionDetailModal({
         )}
 
         {/* Coach Complete Session footer */}
-        {isMyOffering && registeredCount > 0 && (
+        {isMyOffering && totalParticipants > 0 && (
           <View
             style={[styles.footer, { borderTopColor: palette.border, ...Shadows[scheme].card }]}
           >
@@ -214,6 +328,52 @@ const styles = StyleSheet.create({
   container: { flex: 1 },
   header: { paddingHorizontal: Spacing.md, paddingVertical: Spacing.sm, borderBottomWidth: 1 },
   content: { flex: 1, padding: Spacing.md },
+  offPlatformCard: {
+    borderWidth: 1,
+    borderRadius: Radii.md,
+    padding: Spacing.sm,
+    marginBottom: Spacing.sm,
+    gap: Spacing.sm,
+  },
+  offPlatformInfo: {
+    flex: 1,
+    gap: Spacing.micro,
+  },
+  offPlatformMeta: {
+    fontSize: scaleFont(13),
+  },
+  offPlatformCount: {
+    minWidth: 44,
+    minHeight: 32,
+    borderRadius: Radii.md,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: Spacing.xs,
+  },
+  offPlatformCountText: {
+    fontSize: scaleFont(16),
+    fontWeight: '700',
+  },
+  counterButton: {
+    width: 42,
+    height: 42,
+    borderWidth: 1,
+    borderRadius: Radii.md,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  offPlatformSaveButton: {
+    flex: 1,
+    borderRadius: Radii.md,
+    minHeight: 42,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: Spacing.md,
+  },
+  offPlatformSaveText: {
+    fontSize: scaleFont(13),
+    fontWeight: '700',
+  },
   inviteManageCard: {
     borderWidth: 1,
     borderRadius: Radii.md,

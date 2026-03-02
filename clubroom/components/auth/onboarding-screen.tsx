@@ -143,9 +143,9 @@ function OnboardingScreenInner({ onComplete, onBackToLogin }: OnboardingScreenPr
     return (
       <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
         <View style={[styles.flex, styles.centered]}>
-          <ActivityIndicator size="small" color={colors.primary} />
+          <ActivityIndicator size="small" color={colors.tint} />
           <Spacer size={Spacing.sm} />
-          <ThemedText type="bodySmall">Loading onboarding...</ThemedText>
+          <ThemedText style={Typography.small}>Loading onboarding...</ThemedText>
         </View>
       </SafeAreaView>
     );
@@ -190,7 +190,7 @@ function OnboardingScreenInner({ onComplete, onBackToLogin }: OnboardingScreenPr
         >
           {showResumePrompt ? (
             <SurfaceCard style={styles.resumeCard}>
-              <ThemedText type="body">
+              <ThemedText>
                 Resume your previous onboarding draft
                 {savedDraftTimestamp
                   ? ` (${new Date(savedDraftTimestamp).toLocaleDateString()})`
@@ -198,10 +198,10 @@ function OnboardingScreenInner({ onComplete, onBackToLogin }: OnboardingScreenPr
                 ?
               </ThemedText>
               <Row gap={Spacing.sm} style={styles.resumeActions}>
-                <Button variant="secondary" size="compact" onPress={handleDiscardDraft}>
+                <Button variant="secondary" size="small" onPress={handleDiscardDraft}>
                   Start Fresh
                 </Button>
-                <Button variant="primary" size="compact" onPress={handleResumeDraft}>
+                <Button variant="primary" size="small" onPress={handleResumeDraft}>
                   Resume
                 </Button>
               </Row>

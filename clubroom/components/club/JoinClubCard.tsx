@@ -31,6 +31,10 @@ export function JoinClubCard({ isCoach, onJoin, onCreate }: JoinClubCardProps) {
     router.push(Routes.CLUB_CREATE);
   };
 
+  const handleCodeChange = (value: string) => {
+    setJoinCode(value.replace(/[^A-Za-z0-9]/g, '').toUpperCase());
+  };
+
   return (
     <SurfaceCard style={styles.joinCard}>
       <Row style={styles.joinHeader}>
@@ -173,6 +177,3 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing.sm,
   },
 });
-  const handleCodeChange = (value: string) => {
-    setJoinCode(value.replace(/[^A-Za-z0-9]/g, '').toUpperCase());
-  };

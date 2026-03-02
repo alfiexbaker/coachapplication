@@ -3,3 +3,5 @@ export * from './common/pagination.js';
 export * from './common/ids.js';
 export * from './health/contracts.js';
 export * from './booking/contracts.js';
+export * from './family/contracts.js';
+export * from './trust/contracts.js';

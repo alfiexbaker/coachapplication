@@ -36,6 +36,11 @@ export default function HealthDashboardScreen() {
     handleLogInjury,
     handleViewHistory,
     handleInjuryPress,
+    selectedChildName,
+    showKidSelector,
+    canEditSelectedChild,
+    handleSelectNextChild,
+    handleEditSelectedChild,
   } = useHealthHub();
   const renderShell = (content: ReactNode) => (
     <SafeAreaView
@@ -82,6 +87,53 @@ export default function HealthDashboardScreen() {
         showsVerticalScrollIndicator={false}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />}
       >
+        {canEditSelectedChild && (
+          <View
+            style={[
+              styles.kidCard,
+              { backgroundColor: colors.surface, borderColor: colors.border },
+            ]}
+          >
+            <Row align="center" justify="space-between">
+              <Row align="center" gap="xs">
+                <Ionicons name="person-circle-outline" size={18} color={colors.tint} />
+                <ThemedText style={[styles.kidLabel, { color: colors.muted }]}>Kid</ThemedText>
+                <ThemedText style={styles.kidName}>{selectedChildName ?? 'Selected'}</ThemedText>
+              </Row>
+              <Row align="center" gap="xs">
+                {showKidSelector && (
+                  <Clickable
+                    onPress={handleSelectNextChild}
+                    style={[
+                      styles.editKidButton,
+                      { borderColor: colors.border, backgroundColor: withAlpha(colors.tint, 0.08) },
+                    ]}
+                    accessibilityLabel="Switch selected kid"
+                  >
+                    <Row align="center" gap="xxs">
+                      <Ionicons name="swap-horizontal-outline" size={14} color={colors.tint} />
+                      <ThemedText style={[styles.editKidText, { color: colors.tint }]}>Switch</ThemedText>
+                    </Row>
+                  </Clickable>
+                )}
+                <Clickable
+                  onPress={handleEditSelectedChild}
+                  style={[
+                    styles.editKidButton,
+                    { borderColor: colors.border, backgroundColor: withAlpha(colors.tint, 0.08) },
+                  ]}
+                  accessibilityLabel="Edit selected kid profile"
+                >
+                  <Row align="center" gap="xxs">
+                    <Ionicons name="create-outline" size={14} color={colors.tint} />
+                    <ThemedText style={[styles.editKidText, { color: colors.tint }]}>Edit</ThemedText>
+                  </Row>
+                </Clickable>
+              </Row>
+            </Row>
+          </View>
+        )}
+
         <Animated.View entering={FadeInDown.delay(100).springify()}>
           <HealthStatusCard
             colors={colors}
@@ -186,6 +238,28 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   scrollContent: { paddingHorizontal: Spacing.lg, paddingBottom: Spacing.xl },
+  kidCard: {
+    borderWidth: 1,
+    borderRadius: Radii.lg,
+    padding: Spacing.sm,
+    marginBottom: Spacing.md,
+    gap: Spacing.xs,
+  },
+  kidLabel: {
+    ...Typography.caption,
+  },
+  kidName: {
+    ...Typography.bodySmallSemiBold,
+  },
+  editKidButton: {
+    borderRadius: Radii.pill,
+    borderWidth: 1,
+    paddingHorizontal: Spacing.sm,
+    paddingVertical: Spacing.xxs,
+  },
+  editKidText: {
+    ...Typography.caption,
+  },
   actionsRow: { marginBottom: Spacing.lg },
   actionCard: {
     padding: Spacing.md,

@@ -1,4 +1,4 @@
-import { StyleSheet, ScrollView } from 'react-native';
+import { Alert, StyleSheet, ScrollView } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useLocalSearchParams, router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -19,6 +19,7 @@ import { useScreen } from '@/hooks/use-screen';
 import { ok } from '@/types/result';
 import { useDevSession } from '@/hooks/use-dev-session';
 import type { ReactNode } from 'react';
+import { Routes } from '@/navigation/routes';
 
 export default function SessionDetailScreen() {
   const { sessionId, prefillFromQuickRate, athleteId } = useLocalSearchParams<{
@@ -120,6 +121,15 @@ export default function SessionDetailScreen() {
     );
   }
 
+  const handleRaiseConcern = () => {
+    const targetAthleteId = athlete.id || session.athleteId;
+    if (!targetAthleteId) {
+      Alert.alert('Unable to open concern form', 'Athlete details are missing for this session.');
+      return;
+    }
+    router.push(Routes.rosterAthleteConcern(targetAthleteId));
+  };
+
   return (
     <SafeAreaView
       style={[styles.container, { backgroundColor: colors.background }]}
@@ -193,6 +203,21 @@ export default function SessionDetailScreen() {
         />
 
         <Clickable
+          onPress={handleRaiseConcern}
+          style={({ pressed }) => [
+            styles.concernBtn,
+            { borderColor: colors.error, backgroundColor: colors.surface, opacity: pressed ? 0.85 : 1 },
+          ]}
+        >
+          <Row align="center" justify="center" gap="xs">
+            <Ionicons name="warning-outline" size={18} color={colors.error} />
+            <ThemedText style={[Typography.bodySmallSemiBold, { color: colors.error }]}>
+              Raise Concern
+            </ThemedText>
+          </Row>
+        </Clickable>
+
+        <Clickable
           onPress={handleSave}
           disabled={saving}
           style={({ pressed }) => [
@@ -230,6 +255,11 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing.lg,
     paddingBottom: Spacing['2xl'],
     gap: Spacing.md,
+  },
+  concernBtn: {
+    borderWidth: 1,
+    borderRadius: Radii.lg,
+    padding: Spacing.md,
   },
   saveBtn: { padding: Spacing.md, borderRadius: Radii.lg, marginTop: Spacing.sm },
 });

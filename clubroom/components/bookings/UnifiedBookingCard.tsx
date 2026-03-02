@@ -32,7 +32,11 @@ import {
   DetailedBookingCard,
 } from './unified-booking-sections';
 import { Row } from '@/components/primitives';
-import { getBookingSummaryClientName, getBookingSummaryCoachName } from '@/utils/booking-display';
+import {
+  getBookingOwnershipLabel,
+  getBookingSummaryClientName,
+  getBookingSummaryCoachName,
+} from '@/utils/booking-display';
 
 const logger = createLogger('UnifiedBookingCard');
 
@@ -63,6 +67,7 @@ export function UnifiedBookingCard({
     `https://i.pravatar.cc/100?u=${booking.coachId || 'default'}`;
   const coachName = getBookingSummaryCoachName(booking);
   const childName = getBookingSummaryClientName(booking);
+  const ownershipLabel = getBookingOwnershipLabel(booking);
 
   const handlePress = () => {
     if (onPress) {
@@ -134,6 +139,18 @@ export function UnifiedBookingCard({
             >
               with {coachName}
             </ThemedText>
+            {ownershipLabel ? (
+              <View
+                style={[
+                  styles.ownershipBadge,
+                  { backgroundColor: withAlpha(palette.info, 0.1) },
+                ]}
+              >
+                <ThemedText style={[styles.ownershipText, { color: palette.info }]}>
+                  {ownershipLabel}
+                </ThemedText>
+              </View>
+            ) : null}
 
             {childName && (
               <Row style={styles.childRow}>
@@ -195,6 +212,13 @@ const styles = StyleSheet.create({
   standardContent: { flex: 1, gap: Spacing.micro },
   standardTitle: { ...Typography.subheading },
   standardSubtitle: { ...Typography.bodySmall },
+  ownershipBadge: {
+    alignSelf: 'flex-start',
+    borderRadius: Radii.pill,
+    paddingHorizontal: Spacing.xs,
+    paddingVertical: Spacing.micro,
+  },
+  ownershipText: { ...Typography.micro, fontWeight: '700' },
   standardRight: { alignItems: 'flex-end', gap: Spacing.xxs },
   childRow: {
     alignItems: 'center',

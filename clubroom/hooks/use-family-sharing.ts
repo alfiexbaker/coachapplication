@@ -74,7 +74,9 @@ export function useFamilySharing() {
   const family = data ?? null;
   const normalizedInviteEmail = inviteEmail.trim().toLowerCase();
   const duplicateInvite =
-    family?.pendingInvites.some((invite) => invite.email.toLowerCase() === normalizedInviteEmail) ??
+    family?.pendingInvites.some(
+      (invite) => invite.inviteeEmail.toLowerCase() === normalizedInviteEmail,
+    ) ??
     false;
   const inviteEmailError =
     !inviteEmailTouched || normalizedInviteEmail.length === 0

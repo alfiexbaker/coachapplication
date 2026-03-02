@@ -2,7 +2,9 @@ import { memo, useCallback, useEffect, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
   Keyboard,
+  KeyboardAvoidingView,
   Modal,
+  Platform,
   ScrollView,
   Share,
   StyleSheet,
@@ -11,6 +13,7 @@ import {
 } from 'react-native';
 import * as Clipboard from 'expo-clipboard';
 import { Ionicons } from '@expo/vector-icons';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { Row } from '@/components/primitives/row';
@@ -34,6 +37,8 @@ interface CoachPaymentInstructionsCardProps {
   editable?: boolean;
 }
 
+const MODAL_FOOTER_HEIGHT = 96;
+
 function CoachPaymentInstructionsCardInner({
   coachId,
   coachName,
@@ -41,6 +46,7 @@ function CoachPaymentInstructionsCardInner({
   editable = false,
 }: CoachPaymentInstructionsCardProps) {
   const { colors } = useTheme();
+  const insets = useSafeAreaInsets();
   const { showToast } = useToast();
   const [instructions, setInstructions] = useState<CoachPaymentInstructions | null>(null);
   const [loading, setLoading] = useState(true);
@@ -320,156 +326,180 @@ function CoachPaymentInstructionsCardInner({
       <Modal
         visible={showEditModal}
         animationType="slide"
-        presentationStyle="pageSheet"
+        presentationStyle="fullScreen"
         onRequestClose={closeEdit}
       >
-        <View style={[styles.modalContainer, { backgroundColor: colors.background }]}>
-          <Row align="center" justify="between" style={styles.modalHeader}>
-            <Column gap="xxs" style={styles.flex1}>
-              <ThemedText type="title">Payment Instructions</ThemedText>
-              <ThemedText style={[Typography.caption, { color: colors.muted }]}>
-                Used in reconciler reminders and invoice payment messages
-              </ThemedText>
-            </Column>
-            <Clickable
-              accessibilityLabel="Close payment instructions editor"
-              style={[styles.closeButton, { backgroundColor: colors.surfaceSecondary }]}
-              onPress={closeEdit}
-            >
-              <Ionicons name="close" size={22} color={colors.foreground} />
-            </Clickable>
-          </Row>
-
-          <ScrollView
-            style={styles.modalScroll}
-            contentContainerStyle={styles.modalContent}
-            keyboardShouldPersistTaps="handled"
-            showsVerticalScrollIndicator={false}
+        <SafeAreaView
+          style={[styles.modalContainer, { backgroundColor: colors.background }]}
+          edges={['top', 'bottom']}
+        >
+          <KeyboardAvoidingView
+            behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+            style={styles.modalContainer}
           >
-            <Column gap="sm">
-              <Column gap="xxs">
+            <Row align="center" justify="between" style={styles.modalHeader}>
+              <Column gap="xxs" style={styles.flex1}>
+                <ThemedText type="title">Payment Instructions</ThemedText>
                 <ThemedText style={[Typography.caption, { color: colors.muted }]}>
-                  Payee name (optional)
-                </ThemedText>
-                <TextInput
-                  value={draft?.payeeName ?? ''}
-                  onChangeText={(value) => updateDraftField('payeeName', value)}
-                  placeholder="e.g. Alex Smith Coaching"
-                  placeholderTextColor={colors.muted}
-                  style={[
-                    styles.input,
-                    {
-                      backgroundColor: colors.surface,
-                      borderColor: colors.border,
-                      color: colors.foreground,
-                    },
-                  ]}
-                  autoCapitalize="words"
-                  returnKeyType="next"
-                  maxLength={maxLengths.payeeName}
-                />
-                <ThemedText style={[Typography.micro, { color: colors.muted }]}>
-                  {(draft?.payeeName ?? '').length}/{maxLengths.payeeName}
+                  Used in reconciler reminders and invoice payment messages
                 </ThemedText>
               </Column>
-
-              <Column gap="xxs">
-                <ThemedText style={[Typography.caption, { color: colors.muted }]}>
-                  Bank details / transfer instructions
-                </ThemedText>
-                <TextInput
-                  value={draft?.bankTransferDetails ?? ''}
-                  onChangeText={(value) => updateDraftField('bankTransferDetails', value)}
-                  placeholder={'Bank name\nSort code: 00-00-00\nAccount number: 12345678'}
-                  placeholderTextColor={colors.muted}
-                  style={[
-                    styles.textArea,
-                    {
-                      backgroundColor: colors.surface,
-                      borderColor: colors.border,
-                      color: colors.foreground,
-                    },
-                  ]}
-                  multiline
-                  textAlignVertical="top"
-                  autoCapitalize="sentences"
-                  maxLength={maxLengths.bankTransferDetails}
-                />
-                <ThemedText style={[Typography.micro, { color: colors.muted }]}>
-                  {(draft?.bankTransferDetails ?? '').length}/{maxLengths.bankTransferDetails}
-                </ThemedText>
-              </Column>
-
-              <Column gap="xxs">
-                <ThemedText style={[Typography.caption, { color: colors.muted }]}>
-                  Payment notes (optional)
-                </ThemedText>
-                <TextInput
-                  value={draft?.paymentNotes ?? ''}
-                  onChangeText={(value) => updateDraftField('paymentNotes', value)}
-                  placeholder="Reference format, due date wording, or what families should do after sending payment"
-                  placeholderTextColor={colors.muted}
-                  style={[
-                    styles.textAreaSmall,
-                    {
-                      backgroundColor: colors.surface,
-                      borderColor: colors.border,
-                      color: colors.foreground,
-                    },
-                  ]}
-                  multiline
-                  textAlignVertical="top"
-                  autoCapitalize="sentences"
-                  maxLength={maxLengths.paymentNotes}
-                />
-                <ThemedText style={[Typography.micro, { color: colors.muted }]}>
-                  {(draft?.paymentNotes ?? '').length}/{maxLengths.paymentNotes}
-                </ThemedText>
-              </Column>
-
-              <View
-                style={[
-                  styles.helperBox,
-                  {
-                    backgroundColor: withAlpha(colors.tint, 0.04),
-                    borderColor: withAlpha(colors.tint, 0.12),
-                  },
-                ]}
+              <Clickable
+                accessibilityLabel="Close payment instructions editor"
+                style={[styles.closeButton, { backgroundColor: colors.surfaceSecondary }]}
+                onPress={closeEdit}
               >
-                <ThemedText style={[Typography.caption, { color: colors.foreground }]}>
-                  Families pay you directly. The app only tracks invoices and reconciler status.
-                  Reminder and invoice-message copy will include these details automatically.
-                </ThemedText>
-              </View>
+                <Ionicons name="close" size={22} color={colors.foreground} />
+              </Clickable>
+            </Row>
 
-              {!draftIsValid ? (
-                <ThemedText style={[Typography.caption, { color: colors.error }]}>
-                  Add bank details or payment notes before saving.
-                </ThemedText>
-              ) : null}
+            <ScrollView
+              style={styles.modalScroll}
+              contentContainerStyle={[
+                styles.modalContent,
+                {
+                  paddingBottom:
+                    MODAL_FOOTER_HEIGHT + Math.max(insets.bottom + Spacing.sm, Spacing.xl),
+                },
+              ]}
+              keyboardShouldPersistTaps="handled"
+              keyboardDismissMode={Platform.OS === 'ios' ? 'interactive' : 'on-drag'}
+              showsVerticalScrollIndicator={false}
+            >
+              <Column gap="sm">
+                <Column gap="xxs">
+                  <ThemedText style={[Typography.caption, { color: colors.muted }]}>
+                    Payee name (optional)
+                  </ThemedText>
+                  <TextInput
+                    value={draft?.payeeName ?? ''}
+                    onChangeText={(value) => updateDraftField('payeeName', value)}
+                    placeholder="e.g. Alex Smith Coaching"
+                    placeholderTextColor={colors.muted}
+                    style={[
+                      styles.input,
+                      {
+                        backgroundColor: colors.surface,
+                        borderColor: colors.border,
+                        color: colors.foreground,
+                      },
+                    ]}
+                    autoCapitalize="words"
+                    returnKeyType="next"
+                    maxLength={maxLengths.payeeName}
+                  />
+                  <ThemedText style={[Typography.micro, { color: colors.muted }]}>
+                    {(draft?.payeeName ?? '').length}/{maxLengths.payeeName}
+                  </ThemedText>
+                </Column>
 
-              <Row gap="xs" style={styles.wrapRow}>
-                <Button
-                  onPress={closeEdit}
-                  variant="outline"
-                  style={styles.modalActionButton}
-                  accessibilityLabel="Cancel editing payment instructions"
+                <Column gap="xxs">
+                  <ThemedText style={[Typography.caption, { color: colors.muted }]}>
+                    Bank details / transfer instructions
+                  </ThemedText>
+                  <TextInput
+                    value={draft?.bankTransferDetails ?? ''}
+                    onChangeText={(value) => updateDraftField('bankTransferDetails', value)}
+                    placeholder={'Bank name\nSort code: 00-00-00\nAccount number: 12345678'}
+                    placeholderTextColor={colors.muted}
+                    style={[
+                      styles.textArea,
+                      {
+                        backgroundColor: colors.surface,
+                        borderColor: colors.border,
+                        color: colors.foreground,
+                      },
+                    ]}
+                    multiline
+                    textAlignVertical="top"
+                    autoCapitalize="sentences"
+                    maxLength={maxLengths.bankTransferDetails}
+                  />
+                  <ThemedText style={[Typography.micro, { color: colors.muted }]}>
+                    {(draft?.bankTransferDetails ?? '').length}/{maxLengths.bankTransferDetails}
+                  </ThemedText>
+                </Column>
+
+                <Column gap="xxs">
+                  <ThemedText style={[Typography.caption, { color: colors.muted }]}>
+                    Payment notes (optional)
+                  </ThemedText>
+                  <TextInput
+                    value={draft?.paymentNotes ?? ''}
+                    onChangeText={(value) => updateDraftField('paymentNotes', value)}
+                    placeholder="Reference format, due date wording, or what families should do after sending payment"
+                    placeholderTextColor={colors.muted}
+                    style={[
+                      styles.textAreaSmall,
+                      {
+                        backgroundColor: colors.surface,
+                        borderColor: colors.border,
+                        color: colors.foreground,
+                      },
+                    ]}
+                    multiline
+                    textAlignVertical="top"
+                    autoCapitalize="sentences"
+                    maxLength={maxLengths.paymentNotes}
+                  />
+                  <ThemedText style={[Typography.micro, { color: colors.muted }]}>
+                    {(draft?.paymentNotes ?? '').length}/{maxLengths.paymentNotes}
+                  </ThemedText>
+                </Column>
+
+                <View
+                  style={[
+                    styles.helperBox,
+                    {
+                      backgroundColor: withAlpha(colors.tint, 0.04),
+                      borderColor: withAlpha(colors.tint, 0.12),
+                    },
+                  ]}
                 >
-                  Cancel
-                </Button>
-                <Button
-                  onPress={handleSave}
-                  variant="primary"
-                  style={styles.modalActionButton}
-                  accessibilityLabel="Save payment instructions"
-                  disabled={!draftIsValid || saving}
-                >
-                  {saving ? 'Saving…' : 'Save'}
-                </Button>
-              </Row>
-            </Column>
-          </ScrollView>
-        </View>
+                  <ThemedText style={[Typography.caption, { color: colors.foreground }]}>
+                    Families pay you directly. The app only tracks invoices and reconciler status.
+                    Reminder and invoice-message copy will include these details automatically.
+                  </ThemedText>
+                </View>
+
+                {!draftIsValid ? (
+                  <ThemedText style={[Typography.caption, { color: colors.error }]}>
+                    Add bank details or payment notes before saving.
+                  </ThemedText>
+                ) : null}
+              </Column>
+            </ScrollView>
+
+            <Row
+              gap="xs"
+              style={[
+                styles.modalFooter,
+                {
+                  borderTopColor: colors.border,
+                  paddingBottom: Math.max(insets.bottom + Spacing.xs, Spacing.md),
+                },
+              ]}
+            >
+              <Button
+                onPress={closeEdit}
+                variant="outline"
+                style={styles.modalActionButton}
+                accessibilityLabel="Cancel editing payment instructions"
+              >
+                Cancel
+              </Button>
+              <Button
+                onPress={handleSave}
+                variant="primary"
+                style={styles.modalActionButton}
+                accessibilityLabel="Save payment instructions"
+                disabled={!draftIsValid || saving}
+              >
+                {saving ? 'Saving…' : 'Save'}
+              </Button>
+            </Row>
+          </KeyboardAvoidingView>
+        </SafeAreaView>
       </Modal>
     </>
   );
@@ -519,7 +549,12 @@ const styles = StyleSheet.create({
   },
   modalContent: {
     paddingHorizontal: Spacing.md,
-    paddingBottom: Spacing['2xl'],
+    gap: Spacing.md,
+  },
+  modalFooter: {
+    borderTopWidth: 1,
+    paddingHorizontal: Spacing.md,
+    paddingTop: Spacing.sm,
   },
   input: {
     borderWidth: 1,

@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { ScrollView, StyleSheet, TextInput, View } from 'react-native';
 import { useLocalSearchParams, router } from 'expo-router';
@@ -16,6 +16,7 @@ import { useChildContext } from '@/hooks/use-child-context';
 import { useAuth } from '@/hooks/use-auth';
 import { ok } from '@/types/result';
 import { useBookingFlow } from '@/context/booking-flow-context';
+import { bookingSelfSettingService } from '@/services/booking-self-setting-service';
 import type { User } from '@/constants/app-types';
 
 const LOCATION_OPTIONS = [
@@ -31,6 +32,26 @@ export default function DetailsScreen() {
   const { colors: palette } = useScreen<null>({ load: async () => ok(null), isEmpty: () => false });
   const { children, isMultiChild } = useChildContext();
   const { currentUser } = useAuth();
+  const [allowBookSelf, setAllowBookSelf] = useState(false);
+
+  const hasChildTargets = children.length > 0;
+  const canSelectSelf = !hasChildTargets || allowBookSelf;
+
+  useEffect(() => {
+    if (!currentUser?.id || !hasChildTargets) {
+      setAllowBookSelf(false);
+      return;
+    }
+    let cancelled = false;
+    void bookingSelfSettingService.isEnabled(currentUser.id).then((enabled) => {
+      if (!cancelled) {
+        setAllowBookSelf(enabled);
+      }
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [currentUser?.id, hasChildTargets]);
 
   const childOptions = useMemo(
     () =>
@@ -46,40 +67,62 @@ export default function DetailsScreen() {
   );
 
   const bookingTargets = useMemo<User[]>(() => {
-    const targets = [...childOptions];
-
-    // Parents can always book for themselves as well.
-    if (currentUser && children.length > 0) {
-      targets.unshift({
-        id: currentUser.id,
-        name: 'Myself',
-        email: '',
-        role: 'USER' as const,
-        postcode: '',
-        dateOfBirth: currentUser.dateOfBirth || '',
-      });
+    if (!currentUser) {
+      return childOptions;
     }
 
-    return targets;
-  }, [childOptions, children.length, currentUser]);
+    const selfTarget: User = {
+      id: currentUser.id,
+      name: 'Myself',
+      email: '',
+      role: 'USER' as const,
+      postcode: '',
+      dateOfBirth: currentUser.dateOfBirth || '',
+    };
 
-  // Auto-select single child
-  useEffect(() => {
-    if (children.length === 1 && !draft.childId) {
-      updateDraft({ childId: children[0].id, athleteName: children[0].name });
-    }
-  }, [children, draft.childId, updateDraft]);
+    return canSelectSelf ? [selfTarget, ...childOptions] : childOptions;
+  }, [canSelectSelf, childOptions, currentUser]);
 
-  // Athlete / adult booking flow: no children, so default booking target is self.
+  // Auto-select a target when the draft has none:
+  // - single child: default to child
+  // - self selectable: default to self
+  // - otherwise: default to first child
   useEffect(() => {
-    if (!currentUser || draft.childId || children.length > 0 || currentUser.hasChildren) {
+    if (!currentUser || draft.childId) {
       return;
     }
-    updateDraft({
-      childId: currentUser.id,
-      athleteName: currentUser.name || currentUser.fullName || 'Athlete',
-    });
-  }, [children.length, currentUser, draft.childId, updateDraft]);
+
+    if (children.length === 1) {
+      updateDraft({ childId: children[0].id, athleteName: children[0].name });
+      return;
+    }
+
+    if (canSelectSelf) {
+      updateDraft({
+        childId: currentUser.id,
+        athleteName: currentUser.name || currentUser.fullName || 'Athlete',
+      });
+      return;
+    }
+
+    if (children.length > 0) {
+      updateDraft({ childId: children[0].id, athleteName: children[0].name });
+    }
+  }, [canSelectSelf, children, currentUser, draft.childId, updateDraft]);
+
+  useEffect(() => {
+    if (!currentUser?.id || canSelectSelf) {
+      return;
+    }
+    if (draft.childId !== currentUser.id) {
+      return;
+    }
+    if (children.length > 0) {
+      updateDraft({ childId: children[0].id, athleteName: children[0].name });
+    } else {
+      updateDraft({ childId: undefined, athleteName: undefined });
+    }
+  }, [canSelectSelf, children, currentUser?.id, draft.childId, updateDraft]);
 
   const handleSelectChild = useCallback(
     (targetId: string) => {
@@ -87,7 +130,7 @@ export default function DetailsScreen() {
         return;
       }
 
-      if (targetId === currentUser.id && children.length > 0) {
+      if (targetId === currentUser.id && canSelectSelf) {
         updateDraft({
           childId: currentUser.id,
           athleteName: currentUser.name || currentUser.fullName || 'Athlete',
@@ -98,11 +141,11 @@ export default function DetailsScreen() {
       const child = children.find((c) => c.id === targetId);
       updateDraft({ childId: targetId, athleteName: child?.name });
     },
-    [children, currentUser, updateDraft],
+    [canSelectSelf, children, currentUser, updateDraft],
   );
 
-  const isParentWithoutChildren = Boolean(currentUser?.hasChildren) && children.length === 0;
-  const canContinue = Boolean(draft.childId) && !isParentWithoutChildren;
+  const canContinue =
+    Boolean(draft.childId) && (canSelectSelf || draft.childId !== currentUser?.id);
 
   return (
     <SafeAreaView
@@ -165,10 +208,47 @@ export default function DetailsScreen() {
             autoSelected={!isMultiChild && bookingTargets.length === 1}
           />
         )}
-        {isParentWithoutChildren && (
-          <ThemedText style={{ color: palette.error }}>
-            Add a child profile before booking a session.
-          </ThemedText>
+        {hasChildTargets && !allowBookSelf && (
+          <View
+            style={[
+              styles.settingHintCard,
+              {
+                borderColor: withAlpha(palette.tint, 0.25),
+                backgroundColor: withAlpha(palette.tint, 0.06),
+              },
+            ]}
+          >
+            <ThemedText style={{ color: palette.text }}>
+              Booking for yourself is off.
+            </ThemedText>
+            <Clickable
+              onPress={() => router.push(Routes.SETTINGS)}
+              style={styles.settingHintCta}
+              accessibilityLabel="Open settings"
+            >
+              <ThemedText style={{ color: palette.tint, fontWeight: '700' }}>Open settings</ThemedText>
+            </Clickable>
+          </View>
+        )}
+        {currentUser && (
+          <Clickable
+            onPress={() => router.push(Routes.MODAL_ADD_CHILD)}
+            style={[
+              styles.addChildCta,
+              {
+                borderColor: withAlpha(palette.tint, 0.3),
+                backgroundColor: withAlpha(palette.tint, 0.06),
+              },
+            ]}
+            accessibilityLabel="Add child profile"
+          >
+            <Row align="center" gap="sm">
+              <Ionicons name="add-circle-outline" size={18} color={palette.tint} />
+              <ThemedText style={{ color: palette.tint, fontWeight: '600' }}>
+                Add child profile
+              </ThemedText>
+            </Row>
+          </Clickable>
         )}
       </ScrollView>
       <View style={[styles.footer, { borderTopColor: palette.border }]}>
@@ -206,6 +286,22 @@ const styles = StyleSheet.create({
     padding: Spacing.md,
     minHeight: 120,
     textAlignVertical: 'top',
+  },
+  addChildCta: {
+    borderWidth: 1,
+    borderRadius: Radii.md,
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.sm,
+    alignSelf: 'flex-start',
+  },
+  settingHintCard: {
+    borderWidth: 1,
+    borderRadius: Radii.md,
+    padding: Spacing.sm,
+    gap: Spacing.xs,
+  },
+  settingHintCta: {
+    alignSelf: 'flex-start',
   },
   footer: { padding: Spacing.lg, borderTopWidth: 1 },
   cta: { padding: Spacing.md, borderRadius: Radii.button },

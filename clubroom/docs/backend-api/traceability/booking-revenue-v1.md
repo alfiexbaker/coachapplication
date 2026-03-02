@@ -1,6 +1,18 @@
 # Booking + Revenue V1 Traceability Matrix (UI <-> API <-> Data <-> AuthZ)
 
+**Contract status**: Signed for pre-API freeze (2026-03-01)  
+**Spine**: Booking, Availability & Revenue
+
 This is the first concrete bilateral traceability matrix. It ties real frontend booking/revenue routes/components/services to planned backend endpoints and database tables.
+
+## Backend Dependency Owners
+| Owner key | Module owner scope (planned) |
+|---|---|
+| `booking-core` | `apps/api/modules/booking-core` (wizard, booking lifecycle, cancel/reschedule, booking detail/list) |
+| `group-sessions` | `apps/api/modules/group-sessions` (group session list/detail/register/waitlist) |
+| `invite-orchestration` | `apps/api/modules/invites` (invite list/respond and booking handoff on acceptance) |
+| `events-rsvp` | `apps/api/modules/events` (event RSVP flow) |
+| `revenue-reconciler` | `apps/api/modules/revenue-reconciler` (invoices, summary, state transitions, reminders) |
 
 ## Scope
 Covers:
@@ -70,6 +82,15 @@ Covers:
 | Event RSVP | `app/session/[id]/rsvp.tsx` and event flows | `hooks/use-event-rsvp.ts`, `services/event/event-rsvp-service.ts` | `POST /v1/events/:eventId/rsvp` | `club_events`, `event_rsvps`, `idempotency_keys` | event audience member only | idempotent | `event.rsvp.responded` | handle deadline passed, guest count validation, capacity/waitlist if enabled |
 | Coach invoice list/revenue dashboard | `app/(tabs)/earnings.tsx`, `app/analytics/revenue.tsx` | `services/invoice-service.ts`, `services/earnings/*` | `GET /v1/coaches/me/invoices`, `GET /v1/coaches/me/invoices/summary` | `invoices`, `invoice_events`, `reconciler_entries` | coach self or delegated finance grant | n/a | financial reads optionally audited for sensitive access | filters, overdue badges, totals use server-calculated fields |
 | Reconciler state transitions | earnings/reconciler UI | invoice/reconciler hooks/services | `POST /v1/invoices/:invoiceId/mark-paid|mark-unpaid|write-off|restore` | `invoices`, `invoice_events`, `reconciler_entries`, `idempotency_keys` | coach self / delegated finance only | idempotent; transaction updates invoice + event + reconciler | mandatory financial audit events | optimistic UI okay with rollback on conflict/deny |
+
+## Flow-to-Owner Assignment
+| Flow cluster | Owner key |
+|---|---|
+| coach availability, booking create/read/cancel/reschedule | `booking-core` |
+| group-session list/detail/register/waitlist | `group-sessions` |
+| invite list/respond | `invite-orchestration` |
+| event RSVP | `events-rsvp` |
+| invoices, summary, reconciler transitions | `revenue-reconciler` |
 
 ## Contract Priorities (build first)
 1. `CreateBookingRequest` / `BookingResponse`

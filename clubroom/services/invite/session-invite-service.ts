@@ -396,6 +396,7 @@ export const sessionInviteService = {
       expiresAt: expiresAt.toISOString(),
       createdAt: new Date().toISOString(),
       groupId: input.groupId,
+      existingSessionId: input.existingSessionId,
       isRecurring: input.isRecurring,
       recurrenceWeeks: input.recurrenceWeeks,
       coverImageUrl: input.coverImageUrl,

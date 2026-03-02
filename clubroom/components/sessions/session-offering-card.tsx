@@ -10,6 +10,11 @@ import { SessionOffering } from '@/constants/types';
 import { useTheme } from '@/hooks/useTheme';
 import { getSessionOfferingCoachName } from '@/utils/session-display';
 import { openLocationInMaps } from '@/utils/map-links';
+import {
+  getSessionOfferingHeadcount,
+  getSessionOfferingOffPlatformCount,
+  isSessionOfferingFull,
+} from '@/utils/session-offering-capacity';
 
 import { SessionTypeBadge, SessionFooterBadges } from './session-offering-card-sections';
 
@@ -50,14 +55,21 @@ export function SessionOfferingCard({
     });
   };
 
-  const registeredCount = offering.registrations.filter((r) => r.status === 'confirmed').length;
-  const isFull = registeredCount >= offering.maxParticipants;
-  const capacityText = `${registeredCount}/${offering.maxParticipants}`;
+  const offPlatformCount = getSessionOfferingOffPlatformCount(offering);
+  const totalParticipants = getSessionOfferingHeadcount(offering);
+  const isFull = isSessionOfferingFull(offering);
+  const capacityText = `${totalParticipants}/${offering.maxParticipants}`;
   const viewerAudienceText = offering.viewerAthleteNames?.length
     ? offering.viewerAthleteNames.length <= 2
       ? offering.viewerAthleteNames.join(', ')
       : `${offering.viewerAthleteNames.slice(0, 2).join(', ')} +${offering.viewerAthleteNames.length - 2}`
     : null;
+  const ownershipLabel =
+    offering.actingAs === 'club'
+      ? offering.assigneeCoachId
+        ? 'Assigned by Club'
+        : 'Club-owned'
+      : null;
 
   const formatSchedule = () => {
     if (offering.isRecurring && offering.dayOfWeek !== undefined && offering.timeOfDay) {
@@ -93,6 +105,14 @@ export function SessionOfferingCard({
             <SessionTypeBadge sessionType={offering.sessionType} palette={palette} />
           </Row>
 
+          {ownershipLabel && (
+            <View style={[styles.ownershipBadge, { backgroundColor: withAlpha(palette.info, 0.1) }]}>
+              <ThemedText style={[styles.ownershipText, { color: palette.info }]}>
+                {ownershipLabel}
+              </ThemedText>
+            </View>
+          )}
+
           {showCoach && (
             <ThemedText style={[styles.subtitle, { color: palette.muted }]} numberOfLines={1}>
               with {coachName}
@@ -104,6 +124,15 @@ export function SessionOfferingCard({
               <Ionicons name="person-outline" size={14} color={palette.tint} />
               <ThemedText style={[styles.metaText, { color: palette.tint }]} numberOfLines={1}>
                 For: {viewerAudienceText}
+              </ThemedText>
+            </Row>
+          )}
+
+          {offering.sessionType === 'group' && offPlatformCount > 0 && (
+            <Row align="center" gap="xxs" style={styles.metaRow}>
+              <Ionicons name="person-add-outline" size={14} color={palette.info} />
+              <ThemedText style={[styles.metaText, { color: palette.info }]} numberOfLines={1}>
+                +{offPlatformCount} off-platform
               </ThemedText>
             </Row>
           )}
@@ -147,7 +176,7 @@ export function SessionOfferingCard({
             showCapacity={showCapacity}
             showCoach={showCoach}
             capacityText={capacityText}
-            registeredCount={registeredCount}
+            registeredCount={totalParticipants}
             maxParticipants={offering.maxParticipants}
             price={undefined}
             palette={palette}
@@ -193,6 +222,16 @@ const styles = StyleSheet.create({
   },
   subtitle: {
     ...Typography.bodySmall,
+  },
+  ownershipBadge: {
+    borderRadius: Radii.pill,
+    alignSelf: 'flex-start',
+    paddingHorizontal: Spacing.xs,
+    paddingVertical: Spacing.micro,
+  },
+  ownershipText: {
+    ...Typography.micro,
+    fontWeight: '700',
   },
   metaRow: {
     minWidth: 0,

@@ -439,6 +439,9 @@ export const STORAGE_KEYS = {
   /** Calendar sync settings (per user, key is suffixed with _userId) */
   CALENDAR_SYNC_SETTINGS: 'calendar_sync_settings',
 
+  /** Parent booking preference: allow selecting self as booking target (per user, suffixed with _userId) */
+  ALLOW_BOOK_SELF: 'clubroom.allow_book_self',
+
   /** Offline queue for write operations */
   OFFLINE_QUEUE: 'clubroom.offline_queue',
 

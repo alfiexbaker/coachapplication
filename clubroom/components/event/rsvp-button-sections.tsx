@@ -1,17 +1,13 @@
 import { memo } from 'react';
-import { StyleSheet, TextInput, Modal, View, Keyboard } from 'react-native';
+import { StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
-import { Button } from '@/components/primitives/button';
-import { Clickable } from '@/components/primitives/clickable';
 import { ThemedText } from '@/components/themed-text';
 import { Spacing, Radii, withAlpha } from '@/constants/theme';
 import type { RSVPStatus, EventAttendee } from '@/constants/types';
 import type { ThemeColors } from '@/hooks/useTheme';
 import { scaleFont } from '@/utils/scale';
 import { Row } from '@/components/primitives';
-
-// ─── Helpers ────────────────────────────────────────────────────────────────
 
 export function getButtonStyle(
   status: RSVPStatus,
@@ -50,8 +46,6 @@ export function getIcon(status: RSVPStatus): keyof typeof Ionicons.glyphMap {
   }
 }
 
-// ─── CurrentRSVPStatus ──────────────────────────────────────────────────────
-
 type CurrentRSVPStatusProps = {
   currentRSVP: EventAttendee;
   palette: ThemeColors;
@@ -83,14 +77,11 @@ export const CurrentRSVPStatus = memo(function CurrentRSVPStatus({
         <Ionicons name={getIcon(currentRSVP.status)} size={16} color={statusColor} />
         <ThemedText style={[styles.currentStatusText, { color: statusColor }]}>
           {statusLabel}
-          {currentRSVP.guestCount > 0 && ` (+${currentRSVP.guestCount} guests)`}
         </ThemedText>
       </Row>
     </Row>
   );
 });
-
-// ─── Status Banners ─────────────────────────────────────────────────────────
 
 export const CancelledBanner = memo(function CancelledBanner({
   palette,
@@ -129,112 +120,6 @@ export const FullBanner = memo(function FullBanner({ palette }: { palette: Theme
   );
 });
 
-// ─── GuestCountModal ────────────────────────────────────────────────────────
-
-type GuestCountModalProps = {
-  visible: boolean;
-  guestCount: string;
-  onGuestCountChange: (count: string) => void;
-  onSubmit: () => void;
-  onClose: () => void;
-  palette: ThemeColors;
-};
-
-export const GuestCountModal = memo(function GuestCountModal({
-  visible,
-  guestCount,
-  onGuestCountChange,
-  onSubmit,
-  onClose,
-  palette,
-}: GuestCountModalProps) {
-  return (
-    <Modal
-      visible={visible}
-      transparent
-      animationType="fade"
-      onRequestClose={() => {
-        Keyboard.dismiss();
-        onClose();
-      }}
-    >
-      <Clickable
-        style={[styles.modalOverlay, { backgroundColor: withAlpha(palette.text, 0.5) }]}
-        onPress={() => {
-          Keyboard.dismiss();
-          onClose();
-        }}
-        accessibilityRole="button"
-        accessibilityLabel="Close guest count modal"
-      >
-        <View
-          style={[styles.modalContent, { backgroundColor: palette.surface }]}
-          onStartShouldSetResponder={() => true}
-        >
-          <ThemedText type="subtitle" style={styles.modalTitle}>
-            How many guests?
-          </ThemedText>
-          <ThemedText style={[styles.modalSubtitle, { color: palette.muted }]}>
-            Including yourself, how many people are coming?
-          </ThemedText>
-
-          <Row style={styles.guestCounter}>
-            <Clickable
-              accessibilityLabel="Decrease guest count"
-              onPress={() =>
-                onGuestCountChange(Math.max(0, parseInt(guestCount, 10) - 1).toString())
-              }
-              style={[styles.counterButton, { borderColor: palette.border }]}
-            >
-              <Ionicons name="remove" size={24} color={palette.text} />
-            </Clickable>
-
-            <TextInput
-              style={[styles.guestInput, { color: palette.text, borderColor: palette.border }]}
-              value={guestCount}
-              onChangeText={onGuestCountChange}
-              keyboardType="number-pad"
-              textAlign="center"
-
-            maxLength={10}
-          />
-
-            <Clickable
-              accessibilityLabel="Increase guest count"
-              onPress={() => onGuestCountChange((parseInt(guestCount, 10) + 1).toString())}
-              style={[styles.counterButton, { borderColor: palette.border }]}
-            >
-              <Ionicons name="add" size={24} color={palette.text} />
-            </Clickable>
-          </Row>
-
-          <ThemedText style={[styles.guestHint, { color: palette.muted }]}>
-            Additional guests (not including yourself)
-          </ThemedText>
-
-          <Row style={styles.modalButtons}>
-            <Button
-              variant="outline"
-              onPress={() => {
-                Keyboard.dismiss();
-                onClose();
-              }}
-              style={styles.modalButton}
-            >
-              Cancel
-            </Button>
-            <Button onPress={onSubmit} style={styles.modalButton}>
-              Confirm
-            </Button>
-          </Row>
-        </View>
-      </Clickable>
-    </Modal>
-  );
-});
-
-// ─── Styles ──────────────────────────────────────────────────────────────────
-
 const styles = StyleSheet.create({
   currentStatus: {
     alignItems: 'center',
@@ -248,34 +133,4 @@ const styles = StyleSheet.create({
   banner: { alignItems: 'center', gap: Spacing.xs, padding: Spacing.sm, borderRadius: Radii.md },
   bannerText: { fontSize: scaleFont(14), fontWeight: '600' },
   fullText: { fontSize: scaleFont(14), fontWeight: '500' },
-  modalOverlay: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: Spacing.lg },
-  modalContent: {
-    width: '100%',
-    maxWidth: 360,
-    borderRadius: Radii.lg,
-    padding: Spacing.lg,
-    gap: Spacing.md,
-  },
-  modalTitle: { textAlign: 'center' },
-  modalSubtitle: { textAlign: 'center', fontSize: scaleFont(14) },
-  guestCounter: { alignItems: 'center', justifyContent: 'center', gap: Spacing.md },
-  counterButton: {
-    width: 48,
-    height: 48,
-    borderRadius: Radii.md,
-    borderWidth: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  guestInput: {
-    width: 80,
-    height: 48,
-    borderRadius: Radii.md,
-    borderWidth: 1,
-    fontSize: scaleFont(24),
-    fontWeight: '700',
-  },
-  guestHint: { textAlign: 'center', fontSize: scaleFont(12) },
-  modalButtons: { gap: Spacing.sm, marginTop: Spacing.sm },
-  modalButton: { flex: 1 },
 });

@@ -29,11 +29,16 @@ import {
 } from '@/utils/location-display';
 import { recurringBookingService } from '@/services/recurring-booking-service';
 import { groupSessionService } from '@/services/group-session-service';
+import { academyService } from '@/services/academy-service';
+import { userService } from '@/services/user-service';
 import type {
+  AcademyMembership,
   SessionOffering,
+  SessionOwnershipAuditEvent,
   FootballObjective,
   SessionInviteType,
   TimeSlot,
+  UserRole,
 } from '@/constants/types';
 import {
   type CampLength,
@@ -74,6 +79,22 @@ const MIN_DURATION_MINUTES = 30;
 const MAX_DURATION_MINUTES = 480;
 const MAX_CAMP_DAYS = 14;
 const MAX_SCHEDULE_AHEAD_DAYS = 365;
+const ASSIGNEE_ROLE_ORDER: Record<AcademyMembership['role'], number> = {
+  OWNER: 0,
+  ADMIN: 1,
+  HEAD_COACH: 2,
+  COACH: 3,
+  ASSISTANT: 4,
+  MEMBER: 5,
+};
+
+function canCreateAsClub(membership: AcademyMembership): boolean {
+  return membership.permissions.includes('CREATE_SESSIONS');
+}
+
+function canPostAsClub(membership: AcademyMembership): boolean {
+  return membership.permissions.includes('POST_AS_ACADEMY');
+}
 
 function formatLocalDate(date: Date): string {
   const year = date.getFullYear();
@@ -188,6 +209,18 @@ export interface PastAthlete {
   parentName: string;
 }
 
+export interface ClubOwnerOption {
+  id: string;
+  name: string;
+  membership: AcademyMembership;
+}
+
+export interface SessionAssigneeOption {
+  id: string;
+  label: string;
+  role: AcademyMembership['role'];
+}
+
 export interface CampDailyTime {
   startTime: string;
   endTime: string;
@@ -213,6 +246,11 @@ export interface CreateSessionState {
   description: string;
   focusAreas: FootballObjective[];
   maxParticipants: string;
+  postingAs: 'self' | 'club';
+  selectedClubId: string | null;
+  clubOptions: ClubOwnerOption[];
+  assigneeOptions: SessionAssigneeOption[];
+  selectedAssigneeId: string | null;
 
   // Step 2: Schedule
   recurrence: RecurrenceType;
@@ -244,6 +282,9 @@ export interface CreateSessionActions {
   setDescription: (v: string) => void;
   toggleFocusArea: (area: FootballObjective) => void;
   setMaxParticipants: (v: string) => void;
+  setPostingAs: (v: 'self' | 'club') => void;
+  setSelectedClubId: (v: string | null) => void;
+  setSelectedAssigneeId: (v: string | null) => void;
   setRecurrence: (v: RecurrenceType) => void;
   setSelectedDate: (v: string) => void;
   setCampLength: (v: CampLength) => void;
@@ -277,6 +318,9 @@ export function useCreateSession(): CreateSessionState & CreateSessionActions {
     athleteIds?: string;
     preset?: '1on1' | 'group';
     inviteType?: SessionInviteType;
+    actingAs?: 'self' | 'club';
+    clubId?: string;
+    assigneeCoachId?: string;
   }>();
 
   // Wizard state
@@ -290,6 +334,14 @@ export function useCreateSession(): CreateSessionState & CreateSessionActions {
   const [description, setDescription] = useState('');
   const [focusAreas, setFocusAreas] = useState<FootballObjective[]>([]);
   const [maxParticipants, setMaxParticipants] = useState('');
+  const [postingAs, setPostingAsState] = useState<'self' | 'club'>('self');
+  const [clubOptionsLoaded, setClubOptionsLoaded] = useState(false);
+  const [clubOptions, setClubOptions] = useState<ClubOwnerOption[]>([]);
+  const [selectedClubId, setSelectedClubIdState] = useState<string | null>(null);
+  const [assigneeOptions, setAssigneeOptions] = useState<SessionAssigneeOption[]>([]);
+  const [selectedAssigneeId, setSelectedAssigneeIdState] = useState<string | null>(
+    currentUser?.id ?? null,
+  );
 
   // Step 2
   const [recurrence, setRecurrenceState] = useState<RecurrenceType>('once');
@@ -328,6 +380,10 @@ export function useCreateSession(): CreateSessionState & CreateSessionActions {
     }
     return true;
   }, [selectedDate, sessionType, campLength, campEndDate]);
+  const selectedClubOption = useMemo(
+    () => clubOptions.find((club) => club.id === selectedClubId) ?? null,
+    [clubOptions, selectedClubId],
+  );
 
   const setRecurrence = useCallback(
     (next: RecurrenceType) => {
@@ -362,6 +418,28 @@ export function useCreateSession(): CreateSessionState & CreateSessionActions {
 
   const setPrice = useCallback((value: string) => {
     setPriceState(value.replace(/[^0-9]/g, ''));
+  }, []);
+
+  const setPostingAs = useCallback(
+    (next: 'self' | 'club') => {
+      if (next === 'club') {
+        if (clubOptions.length === 0) return;
+        setPostingAsState('club');
+        setSelectedClubIdState((previous) => previous ?? clubOptions[0]?.id ?? null);
+        return;
+      }
+      setPostingAsState('self');
+      setSelectedAssigneeIdState(currentUser?.id ?? null);
+    },
+    [clubOptions, currentUser?.id],
+  );
+
+  const setSelectedClubId = useCallback((next: string | null) => {
+    setSelectedClubIdState(next);
+  }, []);
+
+  const setSelectedAssigneeId = useCallback((next: string | null) => {
+    setSelectedAssigneeIdState(next);
   }, []);
 
   const setSessionType = useCallback((next: SessionType) => {
@@ -440,6 +518,101 @@ export function useCreateSession(): CreateSessionState & CreateSessionActions {
   }, [currentUser]);
 
   useEffect(() => {
+    let active = true;
+
+    const loadClubOptions = async () => {
+      setClubOptionsLoaded(false);
+      if (!currentUser?.id) {
+        setClubOptions([]);
+        setSelectedClubIdState(null);
+        setClubOptionsLoaded(true);
+        return;
+      }
+
+      const academyResult = await academyService.getUserAcademies(currentUser.id);
+      if (!active) return;
+      if (!academyResult.success) {
+        setClubOptions([]);
+        setSelectedClubIdState(null);
+        setClubOptionsLoaded(true);
+        return;
+      }
+
+      const nextOptions = academyResult.data
+        .filter((club) => canCreateAsClub(club.membership))
+        .map((club) => ({
+          id: club.id,
+          name: club.name,
+          membership: club.membership,
+        }));
+
+      setClubOptions(nextOptions);
+      setSelectedClubIdState((previous) => {
+        if (previous && nextOptions.some((option) => option.id === previous)) {
+          return previous;
+        }
+        return nextOptions[0]?.id ?? null;
+      });
+      setClubOptionsLoaded(true);
+    };
+
+    void loadClubOptions();
+    return () => {
+      active = false;
+    };
+  }, [currentUser?.id]);
+
+  useEffect(() => {
+    let active = true;
+
+    const loadAssignees = async () => {
+      if (!selectedClubId) {
+        setAssigneeOptions([]);
+        setSelectedAssigneeIdState(currentUser?.id ?? null);
+        return;
+      }
+
+      const staffResult = await academyService.getStaff(selectedClubId);
+      if (!active) return;
+      if (!staffResult.success) {
+        setAssigneeOptions([]);
+        return;
+      }
+
+      const staff = staffResult.data.filter((member) => member.status === 'ACTIVE');
+      const usersResult = await userService.getUsersByIds(staff.map((member) => member.userId));
+      const labelById = new Map<string, string>();
+      if (usersResult.success) {
+        usersResult.data.forEach((user) => {
+          labelById.set(user.id, user.name || user.id);
+        });
+      }
+
+      const mapped = staff
+        .map((member) => ({
+          id: member.userId,
+          role: member.role,
+          label: labelById.get(member.userId) ?? member.userId,
+        }))
+        .sort((a, b) => ASSIGNEE_ROLE_ORDER[a.role] - ASSIGNEE_ROLE_ORDER[b.role]);
+
+      setAssigneeOptions(mapped);
+      setSelectedAssigneeIdState((previous) => {
+        if (previous && mapped.some((entry) => entry.id === previous)) return previous;
+        if (currentUser?.id && mapped.some((entry) => entry.id === currentUser.id)) {
+          return currentUser.id;
+        }
+        return mapped[0]?.id ?? null;
+      });
+    };
+
+    void loadAssignees();
+    return () => {
+      active = false;
+    };
+  }, [currentUser?.id, selectedClubId]);
+
+  useEffect(() => {
     const presetAthleteIds = params.athleteIds
       ? params.athleteIds
           .split(',')
@@ -467,7 +640,25 @@ export function useCreateSession(): CreateSessionState & CreateSessionActions {
       setSessionType('small_group');
       setMaxParticipants('4');
     }
-  }, [params.athleteIds, params.inviteType, params.preset]);
+    if (params.clubId) {
+      setSelectedClubIdState(params.clubId);
+    }
+    if (params.assigneeCoachId) {
+      setSelectedAssigneeIdState(params.assigneeCoachId);
+    }
+    if (params.actingAs === 'club') {
+      setPostingAsState('club');
+    } else if (params.actingAs === 'self') {
+      setPostingAsState('self');
+    }
+  }, [
+    params.actingAs,
+    params.assigneeCoachId,
+    params.athleteIds,
+    params.clubId,
+    params.inviteType,
+    params.preset,
+  ]);
 
   useEffect(() => {
     if (!allowedInviteTypes.includes(inviteType)) {
@@ -480,6 +671,31 @@ export function useCreateSession(): CreateSessionState & CreateSessionActions {
       setRecurrenceState(allowedRecurrenceOptions[0]);
     }
   }, [allowedRecurrenceOptions, recurrence]);
+
+  useEffect(() => {
+    if (postingAs !== 'club') {
+      setSelectedAssigneeIdState(currentUser?.id ?? null);
+      return;
+    }
+    if (!clubOptionsLoaded) {
+      return;
+    }
+    if (!selectedClubOption || !canPostAsClub(selectedClubOption.membership)) {
+      setPostingAsState('self');
+      setSelectedAssigneeIdState(currentUser?.id ?? null);
+      return;
+    }
+    if (selectedAssigneeId) return;
+    const defaultAssignee = assigneeOptions.find((entry) => entry.id === currentUser?.id);
+    setSelectedAssigneeIdState(defaultAssignee?.id ?? assigneeOptions[0]?.id ?? null);
+  }, [
+    assigneeOptions,
+    clubOptionsLoaded,
+    currentUser?.id,
+    postingAs,
+    selectedAssigneeId,
+    selectedClubOption,
+  ]);
 
   useEffect(() => {
     if (sessionType !== 'camp' || campLength !== 'multi_day') {
@@ -562,8 +778,14 @@ export function useCreateSession(): CreateSessionState & CreateSessionActions {
 
   const canProceed = useCallback(() => {
     switch (step) {
-      case 'details':
-        return title.trim().length > 0;
+      case 'details': {
+        const ownershipReady =
+          postingAs === 'self' ||
+          (selectedClubOption != null &&
+            canPostAsClub(selectedClubOption.membership) &&
+            Boolean(selectedAssigneeId));
+        return title.trim().length > 0 && ownershipReady;
+      }
       case 'schedule': {
         const hasLocation = location.trim().length > 0 || locationCoordinates !== null;
         if (selectedDate.trim().length === 0 || !hasLocation) {
@@ -600,6 +822,9 @@ export function useCreateSession(): CreateSessionState & CreateSessionActions {
   }, [
     step,
     title,
+    postingAs,
+    selectedAssigneeId,
+    selectedClubOption,
     selectedDate,
     location,
     locationCoordinates,
@@ -691,6 +916,39 @@ export function useCreateSession(): CreateSessionState & CreateSessionActions {
 
       const scheduledAt = `${selectedDate}T${selectedTime}:00`;
       const isRecurring = recurrence !== 'once';
+      const resolvedActingAs = postingAs === 'club' ? 'club' : 'self';
+      const selectedAssignee = assigneeOptions.find((entry) => entry.id === selectedAssigneeId) ?? null;
+      const ownerCoachId = resolvedActingAs === 'club' ? selectedAssigneeId : currentUser.id;
+      const ownerCoachName =
+        resolvedActingAs === 'club'
+          ? selectedAssignee?.label ||
+            currentUser.name ||
+            currentUser.fullName ||
+            'Coach'
+          : currentUser.name || currentUser.fullName || 'Coach';
+      const ownerClubId = resolvedActingAs === 'club' ? selectedClubId ?? undefined : undefined;
+      const creatorRole = (currentUser.role as UserRole | undefined) ?? 'COACH';
+      const creatorDisplayName = currentUser.name || currentUser.fullName || 'Coach';
+      const nowIso = new Date().toISOString();
+
+      if (resolvedActingAs === 'club') {
+        if (!selectedClubOption || !canPostAsClub(selectedClubOption.membership)) {
+          Alert.alert('Select club', 'Choose a club where you can post sessions.');
+          setLoading(false);
+          return;
+        }
+        if (!ownerCoachId) {
+          Alert.alert('Assign coach', 'Choose a coach to own this session.');
+          setLoading(false);
+          return;
+        }
+      }
+
+      if (!ownerCoachId) {
+        Alert.alert('Missing coach', 'Unable to resolve session owner.');
+        setLoading(false);
+        return;
+      }
 
       const sendSelectedAthleteInvites = async (options: {
         proposedSlots: TimeSlot[];
@@ -726,8 +984,9 @@ export function useCreateSession(): CreateSessionState & CreateSessionActions {
           const inviteResult = await sessionInviteService.createInvite(
             athletesForParent.map((athlete) => athlete.id),
             {
-              coachId: currentUser.id,
-              coachName: currentUser.name || currentUser.fullName || 'Coach',
+              coachId: ownerCoachId,
+              coachName: ownerCoachName,
+              clubName: ownerClubId ? selectedClubOption?.name : undefined,
               inviteType,
               athleteNames: athletesForParent.map((athlete) => athlete.name),
               parentId,
@@ -756,16 +1015,6 @@ export function useCreateSession(): CreateSessionState & CreateSessionActions {
 
         return { invitesSent, inviteFailures };
       };
-
-      // Explicit guard: recurring sessions are not yet compatible with closed invite dispatch.
-      if (isRecurring && inviteType === 'CLOSED' && selectedAthletes.length > 0) {
-        Alert.alert(
-          'Not supported yet',
-          'Recurring sessions with closed invites are not supported yet. Create a one-off session or use open invites.',
-        );
-        setLoading(false);
-        return;
-      }
 
       // ---- CAMP PATH ----
       if (sessionType === 'camp') {
@@ -819,8 +1068,15 @@ export function useCreateSession(): CreateSessionState & CreateSessionActions {
         }
 
         const campSession = await groupSessionService.createSession({
-          coachId: currentUser.id,
-          coachName: currentUser.name || currentUser.fullName || 'Coach',
+          coachId: ownerCoachId,
+          coachName: ownerCoachName,
+          clubId: ownerClubId,
+          actingAs: resolvedActingAs,
+          ownerCoachId,
+          assigneeCoachId: resolvedActingAs === 'club' ? ownerCoachId : undefined,
+          createdByUserId: currentUser.id,
+          createdByRole: creatorRole,
+          createdByName: currentUser.name || currentUser.fullName || 'Coach',
           title,
           description: description || 'Football camp session',
           sessionType: 'CAMP',
@@ -917,7 +1173,7 @@ export function useCreateSession(): CreateSessionState & CreateSessionActions {
 
         const result = await recurringBookingService.createRecurring({
           userId: currentUser.id,
-          coachId: currentUser.id,
+          coachId: ownerCoachId,
           athleteId: undefined,
           dayOfWeek: new Date(scheduledAt).getDay() as 0 | 1 | 2 | 3 | 4 | 5 | 6,
           time: selectedTime,
@@ -928,6 +1184,12 @@ export function useCreateSession(): CreateSessionState & CreateSessionActions {
           startDate: new Date(scheduledAt).toISOString(),
           pricePerSession: parsedPrice,
           notes: description || undefined,
+          actingAs: resolvedActingAs,
+          ownerCoachId,
+          assigneeCoachId: resolvedActingAs === 'club' ? ownerCoachId : undefined,
+          createdByUserId: currentUser.id,
+          createdByRole: creatorRole,
+          clubId: ownerClubId,
         });
 
         if (result.success) {
@@ -976,9 +1238,44 @@ export function useCreateSession(): CreateSessionState & CreateSessionActions {
       }
 
       // ---- ONE-OFF PATH (unchanged) ----
+      const ownershipAuditTrail: SessionOwnershipAuditEvent[] = [
+        {
+          id: `ownership_${Date.now()}_created`,
+          action: 'CREATED',
+          timestamp: nowIso,
+          actorUserId: currentUser.id,
+          actorName: creatorDisplayName,
+          actorRole: creatorRole,
+          toCoachId: ownerCoachId,
+          note:
+            resolvedActingAs === 'club'
+              ? `Created on behalf of ${selectedClubOption?.name ?? 'club'}`
+              : 'Created as self',
+        },
+      ];
+      if (resolvedActingAs === 'club') {
+        ownershipAuditTrail.push({
+          id: `ownership_${Date.now()}_assigned`,
+          action: 'ASSIGNED',
+          timestamp: nowIso,
+          actorUserId: currentUser.id,
+          actorName: creatorDisplayName,
+          actorRole: creatorRole,
+          toCoachId: ownerCoachId,
+          note: `Assigned to ${ownerCoachName}`,
+        });
+      }
+
       const newOffering: SessionOffering = {
         id: `session_${Date.now()}`,
-        coachId: currentUser.id,
+        coachId: ownerCoachId,
+        clubId: ownerClubId,
+        actingAs: resolvedActingAs,
+        ownerCoachId,
+        assigneeCoachId: resolvedActingAs === 'club' ? ownerCoachId : undefined,
+        createdByUserId: currentUser.id,
+        createdByRole: creatorRole,
+        createdByName: creatorDisplayName,
         title,
         description: description || undefined,
         sessionType: sessionType === '1on1' ? '1on1' : 'group',
@@ -992,7 +1289,11 @@ export function useCreateSession(): CreateSessionState & CreateSessionActions {
         recurrenceType: 'none',
         status: 'active',
         registrations: [],
-        createdAt: new Date().toISOString(),
+        createdAt: nowIso,
+        updatedAt: nowIso,
+        updatedByUserId: currentUser.id,
+        updatedByRole: creatorRole,
+        ownershipAuditTrail,
         duration: primaryDuration,
         price: parsedPrice,
         footballSkill: focusAreas[0] || undefined,
@@ -1063,6 +1364,11 @@ export function useCreateSession(): CreateSessionState & CreateSessionActions {
   }, [
     currentUser,
     location,
+    postingAs,
+    assigneeOptions,
+    selectedAssigneeId,
+    selectedClubId,
+    selectedClubOption,
     maxParticipants,
     selectedDate,
     selectedTime,
@@ -1097,6 +1403,11 @@ export function useCreateSession(): CreateSessionState & CreateSessionActions {
     description,
     focusAreas,
     maxParticipants,
+    postingAs,
+    selectedClubId,
+    clubOptions,
+    assigneeOptions,
+    selectedAssigneeId,
     recurrence,
     selectedDate,
     campLength,
@@ -1123,6 +1434,9 @@ export function useCreateSession(): CreateSessionState & CreateSessionActions {
     setDescription,
     toggleFocusArea,
     setMaxParticipants,
+    setPostingAs,
+    setSelectedClubId,
+    setSelectedAssigneeId,
     setRecurrence,
     setSelectedDate,
     setCampLength,

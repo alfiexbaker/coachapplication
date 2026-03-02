@@ -8,7 +8,7 @@ import { Spacer } from '@/components/primitives/spacer';
 
 import { Clickable } from '@/components/primitives/clickable';
 import { ThemedText } from '@/components/themed-text';
-import { Spacing, Radii, Typography } from '@/constants/theme';
+import { Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
 import type { Consent, ConsentType } from '@/constants/types';
 
@@ -93,7 +93,7 @@ export const MedicalConsentToggle = memo(function MedicalConsentToggle({
           style={[
             styles.warningBanner,
             {
-              backgroundColor: colors.errorBackground,
+              backgroundColor: withAlpha(colors.error, 0.08),
               borderLeftColor: colors.error,
             },
           ]}

@@ -175,7 +175,14 @@ export default function SessionInviteDetailScreen() {
         return;
       }
       showToast('Invite accepted!', 'success');
-      router.replace(invite.sessionId ? Routes.groupSession(invite.sessionId) : Routes.GROUP_SESSIONS);
+      const acceptedInvite = result.data;
+      if (acceptedInvite.bookingId) {
+        router.replace(Routes.booking(acceptedInvite.bookingId));
+      } else if (acceptedInvite.existingSessionId) {
+        router.replace(Routes.groupSession(acceptedInvite.existingSessionId));
+      } else {
+        router.replace(Routes.GROUP_SESSIONS);
+      }
     } catch (e) {
       logger.error('Failed to accept invite', e);
       Alert.alert('Error', 'Failed to accept invite.');

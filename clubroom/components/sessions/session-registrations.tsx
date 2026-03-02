@@ -8,6 +8,7 @@ import { Ionicons } from '@expo/vector-icons';
 
 import { ThemedText } from '@/components/themed-text';
 import { SurfaceCard } from '@/components/primitives/surface-card';
+import { Clickable } from '@/components/primitives/clickable';
 import { Radii, Spacing, withAlpha } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
 import { scaleFont } from '@/utils/scale';

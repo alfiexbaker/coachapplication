@@ -68,6 +68,58 @@ export default function InjuryHistoryScreen() {
       </Row>
 
       <View style={[styles.filterContainer, { borderBottomColor: palette.border }]}>
+        {c.canEditSelectedChild && (
+          <View
+            style={[
+              styles.kidCard,
+              { backgroundColor: palette.surface, borderColor: palette.border },
+            ]}
+          >
+            <Row align="center" justify="space-between">
+              <Row align="center" gap="xs">
+                <Ionicons name="person-circle-outline" size={18} color={palette.tint} />
+                <ThemedText style={[styles.kidLabel, { color: palette.muted }]}>Kid</ThemedText>
+                <ThemedText style={styles.kidName}>{c.selectedChildName ?? 'Selected'}</ThemedText>
+              </Row>
+              <Row align="center" gap="xs">
+                {c.showKidSelector && (
+                  <Clickable
+                    onPress={c.handleSelectNextChild}
+                    style={[
+                      styles.editKidButton,
+                      {
+                        borderColor: palette.border,
+                        backgroundColor: withAlpha(palette.tint, 0.08),
+                      },
+                    ]}
+                    accessibilityLabel="Switch selected kid"
+                  >
+                    <Row align="center" gap="xxs">
+                      <Ionicons name="swap-horizontal-outline" size={14} color={palette.tint} />
+                      <ThemedText style={[styles.editKidText, { color: palette.tint }]}>Switch</ThemedText>
+                    </Row>
+                  </Clickable>
+                )}
+                <Clickable
+                  onPress={c.handleEditSelectedChild}
+                  style={[
+                    styles.editKidButton,
+                    {
+                      borderColor: palette.border,
+                      backgroundColor: withAlpha(palette.tint, 0.08),
+                    },
+                  ]}
+                  accessibilityLabel="Edit selected kid profile"
+                >
+                  <Row align="center" gap="xxs">
+                    <Ionicons name="create-outline" size={14} color={palette.tint} />
+                    <ThemedText style={[styles.editKidText, { color: palette.tint }]}>Edit</ThemedText>
+                  </Row>
+                </Clickable>
+              </Row>
+            </Row>
+          </View>
+        )}
         <ScrollView horizontal showsHorizontalScrollIndicator={false}>
           <Row gap="xs" style={styles.filterRow}>
             {FILTERS.map((filter) => {
@@ -183,6 +235,29 @@ const styles = StyleSheet.create({
     paddingVertical: Spacing.sm,
     borderBottomWidth: 1,
     borderBottomColor: 'transparent',
+  },
+  kidCard: {
+    borderWidth: 1,
+    borderRadius: Radii.lg,
+    padding: Spacing.sm,
+    marginBottom: Spacing.sm,
+    marginHorizontal: Spacing.lg,
+    gap: Spacing.xs,
+  },
+  kidLabel: {
+    ...Typography.caption,
+  },
+  kidName: {
+    ...Typography.bodySmallSemiBold,
+  },
+  editKidButton: {
+    borderRadius: Radii.pill,
+    borderWidth: 1,
+    paddingHorizontal: Spacing.sm,
+    paddingVertical: Spacing.xxs,
+  },
+  editKidText: {
+    ...Typography.caption,
   },
   filterRow: { paddingHorizontal: Spacing.lg },
   filterTab: {

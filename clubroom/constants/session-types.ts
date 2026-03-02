@@ -6,7 +6,7 @@
  * and bilateral interaction types.
  */
 
-import type { FootballObjective } from './user-types';
+import type { FootballObjective, UserRole } from './user-types';
 
 // ============================================================================
 // SESSION MANAGEMENT TYPES
@@ -247,6 +247,16 @@ export interface BookingSummary {
   start: string;
   status: 'Confirmed' | 'Pending' | 'Needs Completion' | 'Completed' | 'Cancelled';
   locationLabel: string;
+  createdAt?: string;
+  clubId?: string;
+  actingAs?: 'self' | 'club';
+  ownerCoachId?: string;
+  ownerCoachName?: string;
+  assigneeCoachId?: string;
+  assigneeCoachName?: string;
+  createdByUserId?: string;
+  createdByName?: string;
+  createdByRole?: UserRole;
   coach?: {
     name: string;
     photoUrl: string;
@@ -285,10 +295,28 @@ export interface SessionRegistration {
   status: 'confirmed' | 'cancelled' | 'completed';
 }
 
+export interface SessionOwnershipAuditEvent {
+  id: string;
+  action: 'CREATED' | 'ASSIGNED' | 'REASSIGNED' | 'UPDATED';
+  timestamp: string;
+  actorUserId?: string;
+  actorName?: string;
+  actorRole?: UserRole;
+  fromCoachId?: string;
+  toCoachId?: string;
+  note?: string;
+}
+
 export interface SessionOffering {
   id: string;
   coachId: string;
   clubId?: string;
+  actingAs?: 'self' | 'club';
+  ownerCoachId?: string;
+  assigneeCoachId?: string;
+  createdByUserId?: string;
+  createdByRole?: UserRole;
+  createdByName?: string;
   clubScope?: 'club' | 'squad' | 'public';
   squadId?: string;
   inviteType?: SessionInviteType; // OPEN = browsable, CLOSED = invite-only, SQUAD_ONLY = squad members
@@ -309,7 +337,13 @@ export interface SessionOffering {
   status: 'active' | 'cancelled' | 'completed' | 'full';
   visibility?: 'club' | 'public';
   registrations: SessionRegistration[];
+  /** Manual attendees tracked outside Clubroom bookings (walk-ins, cash, etc.) */
+  offPlatformParticipants?: number;
   createdAt: string;
+  updatedAt?: string;
+  updatedByUserId?: string;
+  updatedByRole?: UserRole;
+  ownershipAuditTrail?: SessionOwnershipAuditEvent[];
   duration?: number; // Duration in minutes (default 60)
   price?: number;
   ageMin?: number; // Minimum age (e.g., 10 for U12)
@@ -607,6 +641,12 @@ export interface GroupSession {
   id: string;
   coachId: string;
   clubId?: string;
+  actingAs?: 'self' | 'club';
+  ownerCoachId?: string;
+  assigneeCoachId?: string;
+  createdByUserId?: string;
+  createdByRole?: UserRole;
+  createdByName?: string;
   title: string;
   description: string;
   sessionType: 'CAMP' | 'CLINIC' | 'TEAM_TRAINING' | 'OPEN_SESSION' | 'TRIAL' | 'TRAINING';
@@ -721,6 +761,13 @@ export interface RecurringBooking {
   sessionsCompleted: number;
   /** Number of sessions remaining (if endDate is set) */
   sessionsRemaining?: number;
+  /** Ownership/delegation metadata for club-created recurring programs */
+  actingAs?: 'self' | 'club';
+  ownerCoachId?: string;
+  assigneeCoachId?: string;
+  createdByUserId?: string;
+  createdByRole?: UserRole;
+  clubId?: string;
 }
 
 /**
@@ -740,6 +787,12 @@ export interface CreateRecurringBookingParams {
   endDate?: string;
   pricePerSession?: number;
   notes?: string;
+  actingAs?: 'self' | 'club';
+  ownerCoachId?: string;
+  assigneeCoachId?: string;
+  createdByUserId?: string;
+  createdByRole?: UserRole;
+  clubId?: string;
 }
 
 /**

@@ -17,6 +17,7 @@ import { useToast } from '@/components/ui/toast';
 import { Routes } from '@/navigation/routes';
 import { useFocusEffect, type EventArg } from '@react-navigation/native';
 import { createLogger } from '@/utils/logger';
+import { getRestrictedTabRoutes } from '@/constants/route-access';
 
 const logger = createLogger('TabLayout');
 
@@ -80,21 +81,6 @@ const BASE_HIDDEN_ROUTES = [
   'badges',
   'roster',
 ];
-
-// Hidden from the tab bar does not always mean forbidden.
-// These routes are intentionally opened via deep links / settings / manage actions.
-const HIDDEN_BUT_ALLOWED_ROUTES = new Set([
-  'notifications',
-  'availability',
-  'coach-profile',
-  'edit-profile',
-  'profile',
-  'earnings',
-  'bookings',
-  'badges',
-  'roster',
-  'club-hub',
-]);
 
 const ROLE_TAB_CONFIG: Record<UserRole | 'DEFAULT', RoleTabConfig> = {
   COACH: {
@@ -238,12 +224,13 @@ export default function TabLayout() {
   }, [roleConfig.hidden, currentUser]);
   const hiddenRouteSet = useMemo(() => new Set(hiddenRoutes), [hiddenRoutes]);
   const restrictedRouteSet = useMemo(
-    () => new Set(hiddenRoutes.filter((route) => !HIDDEN_BUT_ALLOWED_ROUTES.has(route))),
-    [hiddenRoutes],
+    () => getRestrictedTabRoutes(userRole, { isParentLike: isParentLikeUser(currentUser) }),
+    [currentUser, userRole],
   );
   const inTabsRouteScope = segments[0] === '(tabs)';
+  const secondarySegment = segments.at(1);
   const currentTabSegment =
-    inTabsRouteScope && typeof segments[1] === 'string' ? segments[1] : '';
+    inTabsRouteScope && typeof secondarySegment === 'string' ? secondarySegment : '';
   const blockedTabSegment =
     currentTabSegment && restrictedRouteSet.has(currentTabSegment) ? currentTabSegment : null;
 
@@ -255,8 +242,9 @@ export default function TabLayout() {
       childCount: currentUser?.children?.length ?? 0,
       isParentLike: isParentLikeUser(currentUser),
       hiddenRoutes,
+      restrictedRoutes: Array.from(restrictedRouteSet),
     });
-  }, [currentUser, hiddenRoutes]);
+  }, [currentUser, hiddenRoutes, restrictedRouteSet]);
 
   const handleRestrictedRoute = useCallback(
     (routeName: string) => {
@@ -273,11 +261,12 @@ export default function TabLayout() {
         hasChildrenFlag: currentUser?.hasChildren,
         childCount: currentUser?.children?.length ?? 0,
         hiddenRoutes,
+        restrictedRoutes: Array.from(restrictedRouteSet),
       });
       router.replace(Routes.HOME);
       showToast('Access restricted', 'error');
     },
-    [currentUser, hiddenRoutes, showToast],
+    [currentUser, hiddenRoutes, restrictedRouteSet, showToast],
   );
 
   useEffect(() => {
@@ -346,6 +335,20 @@ export default function TabLayout() {
     [navigation],
   );
 
+  const handlePrimaryTabPress = useCallback(
+    (routeName: string) => (e: EventArg<'tabPress', true>) => {
+      if (routeName === 'settings') {
+        // Keep the current tab as the underlying page, and stack Settings on top.
+        // This makes one back press return to where the user came from.
+        e.preventDefault();
+        router.push(Routes.SETTINGS_INDEX);
+        return;
+      }
+      handleTabReselectPress(routeName)(e);
+    },
+    [handleTabReselectPress],
+  );
+
   const tabBarHeight = 62 + Math.max(insets.bottom, Spacing.sm);
   const tabBarOptions = {
     tabBarActiveTintColor: palette.tint,
@@ -406,7 +409,7 @@ export default function TabLayout() {
               key={name}
               name={name}
               listeners={{
-                tabPress: handleTabReselectPress(name),
+                tabPress: handlePrimaryTabPress(name),
               }}
               options={{
                 title,

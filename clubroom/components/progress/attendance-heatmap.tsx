@@ -2,6 +2,7 @@ import { memo, useCallback, useMemo, useState } from 'react';
 import { Modal, StyleSheet, View } from 'react-native';
 
 import { Column } from '@/components/primitives/column';
+import { Clickable } from '@/components/primitives/clickable';
 import { Row } from '@/components/primitives/row';
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { ThemedText } from '@/components/themed-text';

@@ -1,0 +1,107 @@
+import { z } from 'zod';
+import {
+  athleteIdSchema,
+  emergencyContactIdSchema,
+  injuryIdSchema,
+  userIdSchema,
+} from '../common/ids.js';
+
+export const injurySeveritySchema = z.enum(['low', 'medium', 'high']);
+export const injuryStatusSchema = z.enum(['active', 'recovering', 'resolved']);
+
+export const createInjuryRequestSchema = z.object({
+  title: z.string().min(1).max(120),
+  type: z.string().min(1).max(80),
+  severity: injurySeveritySchema,
+  reportedAt: z.string().datetime().optional(),
+  expectedRecoveryDate: z.string().datetime().optional(),
+  notes: z.string().max(2000).optional(),
+});
+
+export const updateInjuryRequestSchema = z.object({
+  title: z.string().min(1).max(120).optional(),
+  type: z.string().min(1).max(80).optional(),
+  severity: injurySeveritySchema.optional(),
+  status: injuryStatusSchema.optional(),
+  expectedRecoveryDate: z.string().datetime().nullable().optional(),
+  resolvedAt: z.string().datetime().nullable().optional(),
+  notes: z.string().max(2000).nullable().optional(),
+});
+
+export const injuryRecordSchema = z.object({
+  id: injuryIdSchema,
+  athleteId: athleteIdSchema,
+  title: z.string(),
+  type: z.string(),
+  severity: injurySeveritySchema,
+  status: injuryStatusSchema,
+  reportedAt: z.string().datetime(),
+  expectedRecoveryDate: z.string().datetime().nullable(),
+  resolvedAt: z.string().datetime().nullable(),
+  notes: z.string().nullable(),
+  createdByUserId: userIdSchema,
+  createdAt: z.string().datetime(),
+  updatedAt: z.string().datetime(),
+});
+
+export const injuriesResponseSchema = z.object({
+  athleteId: athleteIdSchema,
+  injuries: z.array(injuryRecordSchema),
+});
+
+export const updateMedicalRecordRequestSchema = z.object({
+  conditions: z.array(z.string().min(1).max(160)).max(30).optional(),
+  allergies: z.array(z.string().min(1).max(160)).max(30).optional(),
+  medications: z.array(z.string().min(1).max(160)).max(30).optional(),
+  emergencyNotes: z.string().max(2000).nullable().optional(),
+  senNotes: z.string().max(2000).nullable().optional(),
+});
+
+export const medicalRecordResponseSchema = z.object({
+  athleteId: athleteIdSchema,
+  conditions: z.array(z.string()),
+  allergies: z.array(z.string()),
+  medications: z.array(z.string()),
+  emergencyNotes: z.string().nullable(),
+  senNotes: z.string().nullable(),
+  updatedAt: z.string().datetime(),
+  updatedByUserId: userIdSchema,
+});
+
+export const emergencyContactInputSchema = z.object({
+  id: emergencyContactIdSchema.optional(),
+  name: z.string().min(1).max(120),
+  relationship: z.string().min(1).max(80),
+  phone: z.string().min(3).max(40),
+  email: z.string().email().optional(),
+});
+
+export const updateEmergencyContactsRequestSchema = z.object({
+  contacts: z.array(emergencyContactInputSchema).max(10),
+});
+
+export const emergencyContactSchema = z.object({
+  id: emergencyContactIdSchema,
+  name: z.string(),
+  relationship: z.string(),
+  phone: z.string(),
+  email: z.string().email().optional(),
+});
+
+export const emergencyContactsResponseSchema = z.object({
+  athleteId: athleteIdSchema,
+  contacts: z.array(emergencyContactSchema),
+  updatedAt: z.string().datetime(),
+  updatedByUserId: userIdSchema,
+});
+
+export type CreateInjuryRequest = z.infer<typeof createInjuryRequestSchema>;
+export type UpdateInjuryRequest = z.infer<typeof updateInjuryRequestSchema>;
+export type InjuryRecord = z.infer<typeof injuryRecordSchema>;
+export type InjuriesResponse = z.infer<typeof injuriesResponseSchema>;
+
+export type UpdateMedicalRecordRequest = z.infer<typeof updateMedicalRecordRequestSchema>;
+export type MedicalRecordResponse = z.infer<typeof medicalRecordResponseSchema>;
+
+export type UpdateEmergencyContactsRequest = z.infer<typeof updateEmergencyContactsRequestSchema>;
+export type EmergencyContactsResponse = z.infer<typeof emergencyContactsResponseSchema>;

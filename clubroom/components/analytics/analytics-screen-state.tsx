@@ -12,7 +12,7 @@ interface AnalyticsScreenStateProps {
   renderHeaderInReady?: boolean;
   loadingVariant?: LoadingVariant;
   errorMessage: string;
-  error?: Error | null;
+  error?: { message?: string } | null;
   onRetry: () => void;
   emptyIcon: string;
   emptyTitle: string;

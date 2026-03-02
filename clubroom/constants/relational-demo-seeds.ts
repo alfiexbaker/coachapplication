@@ -21,7 +21,7 @@ export type {
 } from './relational-demo-seeds.legacy';
 
 export const RELATIONAL_DEMO_SEED_VERSION =
-  '2026-02-21-relational-v6-premium-demo-names';
+  '2026-03-01-relational-v7-offplatform-group-sessions';
 export const CLUB_LIONS_ID = 'club_lions';
 
 type RelationalDemoSeedsLegacyModule = {

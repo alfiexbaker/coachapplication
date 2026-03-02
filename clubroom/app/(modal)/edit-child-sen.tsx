@@ -36,9 +36,9 @@ export default function EditChildSenScreen() {
       ref={modalRef}
       accessible
       accessibilityViewIsModal
-      accessibilityRole="dialog"
+      accessibilityRole="none"
       style={[styles.container, { backgroundColor: palette.background }]}
-      edges={['top']}
+      edges={['top', 'bottom']}
     >
       <PageHeader title="Edit SEN" showBack centerTitle />
       {content}
@@ -63,7 +63,7 @@ export default function EditChildSenScreen() {
       ref={modalRef}
       accessible
       accessibilityViewIsModal
-      accessibilityRole="dialog"
+      accessibilityRole="none"
       style={[styles.container, { backgroundColor: palette.background }]}
       edges={['top', 'bottom']}
     >

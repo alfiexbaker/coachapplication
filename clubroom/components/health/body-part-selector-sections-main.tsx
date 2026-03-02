@@ -16,24 +16,45 @@ import { styles } from './body-part-selector-styles';
 
 interface BodyDiagramProps {
   selectedPart: BodyPart | null;
+  onSelectPart?: (part: BodyPart) => void;
   palette: ThemeColors;
 }
 
-export const BodyDiagram = memo(function BodyDiagram({ selectedPart, palette }: BodyDiagramProps) {
+export const BodyDiagram = memo(function BodyDiagram({
+  selectedPart,
+  onSelectPart,
+  palette,
+}: BodyDiagramProps) {
+  const buildPartProps = (part: BodyPart) => ({
+    disabled: !onSelectPart,
+    onPress: () => onSelectPart?.(part),
+    accessibilityRole: 'button' as const,
+    accessibilityState: { selected: selectedPart === part },
+    accessibilityLabel: `Select ${injuryService.getBodyPartLabel(part)}`,
+  });
+
   return (
     <View style={[styles.bodyDiagram, { backgroundColor: palette.surface }]}>
       <View style={styles.bodyFigure}>
-        <View style={[styles.head, getPartStyle('HEAD', selectedPart, palette)]} />
+        <Clickable
+          {...buildPartProps('HEAD')}
+          style={[styles.head, getPartStyle('HEAD', selectedPart, palette)]}
+        />
         <Row style={styles.torsoContainer}>
-          <View
+          <Clickable
+            {...buildPartProps('LEFT_SHOULDER')}
             style={[
               styles.shoulder,
               styles.leftShoulder,
               getPartStyle('LEFT_SHOULDER', selectedPart, palette),
             ]}
           />
-          <View style={[styles.torso, getPartStyle('CHEST', selectedPart, palette)]} />
-          <View
+          <Clickable
+            {...buildPartProps('CHEST')}
+            style={[styles.torso, getPartStyle('CHEST', selectedPart, palette)]}
+          />
+          <Clickable
+            {...buildPartProps('RIGHT_SHOULDER')}
             style={[
               styles.shoulder,
               styles.rightShoulder,
@@ -42,21 +63,48 @@ export const BodyDiagram = memo(function BodyDiagram({ selectedPart, palette }: 
           />
         </Row>
         <Row style={styles.armsContainer}>
-          <View style={[styles.arm, getPartStyle('LEFT_ARM', selectedPart, palette)]} />
-          <View style={[styles.core, getPartStyle('ABDOMEN', selectedPart, palette)]} />
-          <View style={[styles.arm, getPartStyle('RIGHT_ARM', selectedPart, palette)]} />
+          <Clickable
+            {...buildPartProps('LEFT_ARM')}
+            style={[styles.arm, getPartStyle('LEFT_ARM', selectedPart, palette)]}
+          />
+          <Clickable
+            {...buildPartProps('ABDOMEN')}
+            style={[styles.core, getPartStyle('ABDOMEN', selectedPart, palette)]}
+          />
+          <Clickable
+            {...buildPartProps('RIGHT_ARM')}
+            style={[styles.arm, getPartStyle('RIGHT_ARM', selectedPart, palette)]}
+          />
         </Row>
         <Row style={styles.legsContainer}>
-          <View style={[styles.thigh, getPartStyle('LEFT_THIGH', selectedPart, palette)]} />
-          <View style={[styles.thigh, getPartStyle('RIGHT_THIGH', selectedPart, palette)]} />
+          <Clickable
+            {...buildPartProps('LEFT_THIGH')}
+            style={[styles.thigh, getPartStyle('LEFT_THIGH', selectedPart, palette)]}
+          />
+          <Clickable
+            {...buildPartProps('RIGHT_THIGH')}
+            style={[styles.thigh, getPartStyle('RIGHT_THIGH', selectedPart, palette)]}
+          />
         </Row>
         <Row style={styles.lowerLegsContainer}>
-          <View style={[styles.calf, getPartStyle('LEFT_CALF', selectedPart, palette)]} />
-          <View style={[styles.calf, getPartStyle('RIGHT_CALF', selectedPart, palette)]} />
+          <Clickable
+            {...buildPartProps('LEFT_CALF')}
+            style={[styles.calf, getPartStyle('LEFT_CALF', selectedPart, palette)]}
+          />
+          <Clickable
+            {...buildPartProps('RIGHT_CALF')}
+            style={[styles.calf, getPartStyle('RIGHT_CALF', selectedPart, palette)]}
+          />
         </Row>
         <Row style={styles.feetContainer}>
-          <View style={[styles.foot, getPartStyle('LEFT_FOOT', selectedPart, palette)]} />
-          <View style={[styles.foot, getPartStyle('RIGHT_FOOT', selectedPart, palette)]} />
+          <Clickable
+            {...buildPartProps('LEFT_FOOT')}
+            style={[styles.foot, getPartStyle('LEFT_FOOT', selectedPart, palette)]}
+          />
+          <Clickable
+            {...buildPartProps('RIGHT_FOOT')}
+            style={[styles.foot, getPartStyle('RIGHT_FOOT', selectedPart, palette)]}
+          />
         </Row>
       </View>
       {selectedPart && (

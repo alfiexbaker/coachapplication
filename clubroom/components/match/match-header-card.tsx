@@ -18,7 +18,7 @@ function getResultSummary(match: Match, colors: ReturnType<typeof useTheme>['col
   const theirScore = match.isHome ? match.result.away : match.result.home;
 
   let outcome = 'Draw';
-  let color = colors.warning;
+  let color: string = colors.warning;
   if (ourScore > theirScore) {
     outcome = 'Won';
     color = colors.success;

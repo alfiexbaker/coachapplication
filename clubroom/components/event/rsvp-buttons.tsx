@@ -16,7 +16,6 @@ import {
   CancelledBanner,
   ClosedBanner,
   FullBanner,
-  GuestCountModal,
 } from './rsvp-button-sections';
 import { Row } from '@/components/primitives';
 
@@ -25,7 +24,7 @@ import { Row } from '@/components/primitives';
 interface RSVPButtonsProps {
   event: ClubEvent;
   currentRSVP?: EventAttendee;
-  onRSVP: (status: RSVPStatus, guestCount: number) => Promise<void>;
+  onRSVP: (status: RSVPStatus) => Promise<void>;
   disabled?: boolean;
 }
 
@@ -35,40 +34,17 @@ export function RSVPButtons({ event, currentRSVP, onRSVP, disabled = false }: RS
   const { colors: palette } = useTheme();
 
   const [loading, setLoading] = useState<RSVPStatus | null>(null);
-  const [showGuestModal, setShowGuestModal] = useState(false);
-  const [selectedStatus, setSelectedStatus] = useState<RSVPStatus | null>(null);
-  const [guestCount, setGuestCount] = useState('0');
 
   const isFull = eventService.isEventFull(event);
   const rsvpClosed = eventService.isRSVPClosed(event);
   const isDisabled = disabled || rsvpClosed || (isFull && currentRSVP?.status !== 'GOING');
 
   const handleRSVP = async (status: RSVPStatus) => {
-    if (status === 'GOING' && !currentRSVP) {
-      setSelectedStatus(status);
-      setShowGuestModal(true);
-      return;
-    }
-
     setLoading(status);
     try {
-      await onRSVP(status, currentRSVP?.guestCount || 0);
+      await onRSVP(status);
     } finally {
       setLoading(null);
-    }
-  };
-
-  const handleGuestSubmit = async () => {
-    if (!selectedStatus) return;
-
-    setShowGuestModal(false);
-    setLoading(selectedStatus);
-    try {
-      await onRSVP(selectedStatus, parseInt(guestCount, 10) || 0);
-    } finally {
-      setLoading(null);
-      setGuestCount('0');
-      setSelectedStatus(null);
     }
   };
 
@@ -147,15 +123,6 @@ export function RSVPButtons({ event, currentRSVP, onRSVP, disabled = false }: RS
           );
         })}
       </Row>
-
-      <GuestCountModal
-        visible={showGuestModal}
-        guestCount={guestCount}
-        onGuestCountChange={setGuestCount}
-        onSubmit={handleGuestSubmit}
-        onClose={() => setShowGuestModal(false)}
-        palette={palette}
-      />
     </View>
   );
 }

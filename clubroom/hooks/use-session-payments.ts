@@ -13,9 +13,15 @@ import { useToast } from '@/components/ui/toast';
 import { bookingService } from '@/services/booking';
 import { invoiceService } from '@/services/invoice-service';
 import { rosterService } from '@/services/roster-service';
+import { apiClient } from '@/services/api-client';
 import { ServiceEvents } from '@/services/event-bus';
+import { STORAGE_KEYS } from '@/constants/storage-keys';
+import {
+  getSessionOfferingHeadcount,
+  getSessionOfferingOffPlatformCount,
+} from '@/utils/session-offering-capacity';
 import { ok, err, serviceError } from '@/types/result';
-import type { Booking, Invoice } from '@/constants/types';
+import type { Booking, Invoice, SessionOffering } from '@/constants/types';
 
 export interface SessionPaymentItem {
   booking: Booking;
@@ -42,9 +48,10 @@ export function useSessionPayments() {
 
   const load = useCallback(async () => {
     try {
-      const [bookings, roster] = await Promise.all([
+      const [bookings, roster, offerings] = await Promise.all([
         bookingService.getBookingsForUser(coachId, 'coach'),
         rosterService.getRoster(coachId),
+        apiClient.get<SessionOffering[]>(STORAGE_KEYS.SESSION_OFFERINGS, []),
       ]);
       // Include completed sessions + late-cancelled (inside cancellation window = payment owed)
       const reconcilable = bookings.filter(
@@ -52,6 +59,18 @@ export function useSessionPayments() {
           b.status === 'COMPLETED' ||
           (b.status === 'CANCELLED' && b.cancellationFee && b.cancellationFee > 0),
       );
+      const now = Date.now();
+      const reconcilableOffPlatformOfferings = offerings.filter((offering) => {
+        if (offering.coachId !== coachId) return false;
+        if (offering.sessionType !== 'group') return false;
+        if (offering.status === 'cancelled') return false;
+        const offPlatformCount = getSessionOfferingOffPlatformCount(offering);
+        if (offPlatformCount <= 0) return false;
+
+        const scheduledAt = new Date(offering.scheduledAt).getTime();
+        if (!Number.isFinite(scheduledAt)) return false;
+        return offering.status === 'completed' || scheduledAt <= now;
+      });
 
       // Build athlete name lookup from roster
       const nameMap = new Map<string, string>();
@@ -68,7 +87,29 @@ export function useSessionPayments() {
       let totalCollected = 0;
       let totalWrittenOff = 0;
       let overdueCount = 0;
-      const now = Date.now();
+      const pushItem = (item: SessionPaymentItem) => {
+        const { booking, invoice } = item;
+        if (invoice.status === 'PAID') {
+          paid.push(item);
+          totalCollected += invoice.total;
+          return;
+        }
+        if (invoice.status === 'WRITTEN_OFF') {
+          writtenOff.push(item);
+          totalWrittenOff += invoice.total;
+          return;
+        }
+
+        // Check if overdue (past dueDate or > 14 days since session with no dueDate)
+        const dueDate = invoice.dueDate
+          ? new Date(invoice.dueDate).getTime()
+          : new Date(booking.scheduledAt).getTime() + 14 * 24 * 60 * 60 * 1000;
+        const isOverdue = now > dueDate;
+
+        unpaid.push({ ...item, isOverdue });
+        totalOwed += invoice.total;
+        if (isOverdue) overdueCount++;
+      };
 
       const invoiceAmounts = reconcilable.map((booking) =>
         booking.status === 'CANCELLED'
@@ -141,24 +182,77 @@ export function useSessionPayments() {
           (booking.coachName !== currentUser?.name ? (booking.coachName ?? 'Athlete') : 'Athlete');
 
         const item: SessionPaymentItem = { booking, invoice, athleteName };
+        pushItem(item);
+      }
 
-        if (invoice.status === 'PAID') {
-          paid.push(item);
-          totalCollected += invoice.total;
-        } else if (invoice.status === 'WRITTEN_OFF') {
-          writtenOff.push(item);
-          totalWrittenOff += invoice.total;
-        } else {
-          // Check if overdue (past dueDate or > 14 days since session with no dueDate)
-          const dueDate = invoice.dueDate
-            ? new Date(invoice.dueDate).getTime()
-            : new Date(booking.scheduledAt).getTime() + 14 * 24 * 60 * 60 * 1000;
-          const isOverdue = now > dueDate;
+      for (const offering of reconcilableOffPlatformOfferings) {
+        const offPlatformCount = getSessionOfferingOffPlatformCount(offering);
+        const perParticipantPrice = offering.price ?? 0;
+        const invoiceAmount = perParticipantPrice * offPlatformCount;
+        if (invoiceAmount <= 0) continue;
 
-          unpaid.push({ ...item, isOverdue });
-          totalOwed += invoice.total;
-          if (isOverdue) overdueCount++;
+        const syntheticBookingId = `booking_off_platform_${offering.id}`;
+        const syntheticInvoiceTemplate: Invoice = {
+          id: `inv_off_platform_${offering.id}`,
+          invoiceNumber: `INV-OFF-${offering.id}`,
+          userId: offering.coachId,
+          bookingId: syntheticBookingId,
+          coachId: offering.coachId,
+          athleteId: undefined,
+          sessionDate: offering.scheduledAt,
+          sessionType: `${offering.title} (Off-platform)`,
+          sessionLocation: offering.location,
+          sessionDuration: offering.duration ?? 60,
+          amount: invoiceAmount,
+          tax: 0,
+          taxRate: 0,
+          total: invoiceAmount,
+          currency: 'GBP',
+          status: 'SENT',
+          createdAt: offering.createdAt ?? offering.scheduledAt,
+        };
+
+        const storedInvoice = await invoiceService.getInvoiceByBookingId(syntheticBookingId);
+        let invoice = storedInvoice
+          ? {
+              ...storedInvoice,
+              amount: invoiceAmount,
+              tax: 0,
+              taxRate: 0,
+              total: invoiceAmount,
+              sessionDate: offering.scheduledAt,
+              sessionType: `${offering.title} (Off-platform)`,
+              sessionLocation: offering.location,
+              sessionDuration: offering.duration ?? 60,
+            }
+          : syntheticInvoiceTemplate;
+
+        if (!storedInvoice) {
+          syntheticInvoicesToPersist.push(invoice);
         }
+
+        const syntheticBooking: Booking = {
+          id: syntheticBookingId,
+          coachId: offering.coachId,
+          status: 'COMPLETED',
+          scheduledAt: offering.scheduledAt,
+          location: offering.location,
+          service: offering.title,
+          serviceType: 'group',
+          price: invoiceAmount,
+          isGroupSession: true,
+          maxParticipants: offering.maxParticipants,
+          currentParticipants: getSessionOfferingHeadcount(offering),
+          createdAt: offering.createdAt,
+          groupSessionId: offering.id,
+        };
+
+        const item: SessionPaymentItem = {
+          booking: syntheticBooking,
+          invoice,
+          athleteName: `Off-platform (${offPlatformCount})`,
+        };
+        pushItem(item);
       }
 
       if (syntheticInvoicesToPersist.length > 0) {
@@ -200,6 +294,7 @@ export function useSessionPayments() {
       ServiceEvents.INVOICE_WRITTEN_OFF,
       ServiceEvents.INVOICE_RESTORED,
       ServiceEvents.SESSION_COMPLETED,
+      ServiceEvents.SESSION_UPDATED,
     ],
   });
 

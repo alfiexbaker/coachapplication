@@ -310,6 +310,41 @@ export default function ChildProgressScreen() {
                 </ThemedText>
               </Clickable>
             </Row>
+            <Row gap="sm">
+              <Clickable
+                onPress={() => router.push(Routes.HEALTH)}
+                style={[
+                  styles.profileAction,
+                  { backgroundColor: colors.surface, borderColor: colors.border, borderWidth: 1 },
+                ]}
+              >
+                <ThemedText style={[Typography.bodySmallSemiBold, { color: colors.text }]}>
+                  Health Log
+                </ThemedText>
+              </Clickable>
+              <Clickable
+                onPress={() => selectedChildId && router.push(Routes.childMedical(selectedChildId))}
+                style={[
+                  styles.profileAction,
+                  { backgroundColor: colors.surface, borderColor: colors.border, borderWidth: 1 },
+                ]}
+              >
+                <ThemedText style={[Typography.bodySmallSemiBold, { color: colors.text }]}>
+                  Medical Details
+                </ThemedText>
+              </Clickable>
+              <Clickable
+                onPress={() => selectedChildId && router.push(Routes.childEmergency(selectedChildId))}
+                style={[
+                  styles.profileAction,
+                  { backgroundColor: colors.surface, borderColor: colors.border, borderWidth: 1 },
+                ]}
+              >
+                <ThemedText style={[Typography.bodySmallSemiBold, { color: colors.text }]}>
+                  Emergency Contacts
+                </ThemedText>
+              </Clickable>
+            </Row>
           </View>
         )}
 

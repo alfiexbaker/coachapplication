@@ -103,11 +103,8 @@ export const styles = StyleSheet.create({
   categoriesContainer: {
     paddingBottom: Spacing.lg,
   },
-  sectionTitle: {
+  diagramHint: {
     fontSize: scaleFont(13),
-    fontWeight: '600',
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
     marginBottom: Spacing.sm,
   },
   searchBar: {

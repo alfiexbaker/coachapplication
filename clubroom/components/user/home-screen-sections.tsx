@@ -20,10 +20,17 @@ import { formatTime } from '@/utils/format';
 import type { BadgeAward, Club } from '@/constants/types';
 
 const QUICK_ACTION_DEFS = [
-  { icon: 'search', label: 'Find Coach', route: '/discover/map', primary: true },
-  { icon: 'analytics', label: 'My Progress', route: '/development/my-progress', primary: false },
-  { icon: 'chatbubbles', label: 'Messages', route: '/(tabs)/messages', primary: false },
-  { icon: 'calendar', label: 'Bookings', route: '/(tabs)/bookings', primary: false },
+  { icon: 'search', label: 'Find Coach', route: Routes.DISCOVER_MAP, primary: true },
+  {
+    icon: 'analytics',
+    label: 'My Progress',
+    route: Routes.DEVELOPMENT_MY_PROGRESS,
+    primary: false,
+  },
+  { icon: 'medkit-outline', label: 'Health', route: Routes.HEALTH, primary: false },
+  { icon: 'journal-outline', label: 'Journal', route: Routes.ATHLETE_JOURNAL, primary: false },
+  { icon: 'chatbubbles', label: 'Messages', route: Routes.MESSAGES, primary: false },
+  { icon: 'calendar', label: 'Bookings', route: Routes.BOOKINGS, primary: false },
 ] as const;
 
 const QuickActionTile = memo(function QuickActionTile({
@@ -196,8 +203,8 @@ export const StreakCard = memo(function StreakCard({ streakInfo }: { streakInfo:
 
 // --- QuickActions ---
 export const QuickActionsGrid = memo(function QuickActionsGrid() {
-  const handlePress = useCallback((route: string) => {
-    router.push(route as Href);
+  const handlePress = useCallback((route: Href) => {
+    router.push(route);
   }, []);
   const actions = useMemo(
     () =>

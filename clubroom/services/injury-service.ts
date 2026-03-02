@@ -16,6 +16,8 @@
  */
 
 import { apiClient } from './api-client';
+import { apiFetch } from './api-client';
+import { authService } from './auth-service';
 import { createLogger } from '@/utils/logger';
 import type {
   Injury,
@@ -32,6 +34,161 @@ import type {
 import { STORAGE_KEYS } from '@/constants/storage-keys';
 
 const logger = createLogger('InjuryService');
+
+type ApiInjurySeverity = 'low' | 'medium' | 'high';
+type ApiInjuryStatus = 'active' | 'recovering' | 'resolved';
+
+type ApiInjuryRecord = {
+  id: string;
+  athleteId: string;
+  title: string;
+  type: string;
+  severity: ApiInjurySeverity;
+  status: ApiInjuryStatus;
+  reportedAt: string;
+  expectedRecoveryDate: string | null;
+  resolvedAt: string | null;
+  notes: string | null;
+  createdAt: string;
+  updatedAt: string;
+};
+
+type ApiInjuriesResponse = {
+  athleteId: string;
+  injuries: ApiInjuryRecord[];
+};
+
+const API_SEVERITY_FROM_UI: Record<InjurySeverity, ApiInjurySeverity> = {
+  MINOR: 'low',
+  MODERATE: 'medium',
+  SEVERE: 'high',
+};
+
+const UI_SEVERITY_FROM_API: Record<ApiInjurySeverity, InjurySeverity> = {
+  low: 'MINOR',
+  medium: 'MODERATE',
+  high: 'SEVERE',
+};
+
+const API_STATUS_FROM_UI: Record<InjuryStatus, ApiInjuryStatus> = {
+  ACTIVE: 'active',
+  RECOVERING: 'recovering',
+  HEALED: 'resolved',
+};
+
+const UI_STATUS_FROM_API: Record<ApiInjuryStatus, InjuryStatus> = {
+  active: 'ACTIVE',
+  recovering: 'RECOVERING',
+  resolved: 'HEALED',
+};
+
+const BODY_PART_VALUES: readonly BodyPart[] = [
+  'HEAD',
+  'NECK',
+  'LEFT_SHOULDER',
+  'RIGHT_SHOULDER',
+  'LEFT_ARM',
+  'RIGHT_ARM',
+  'LEFT_ELBOW',
+  'RIGHT_ELBOW',
+  'LEFT_WRIST',
+  'RIGHT_WRIST',
+  'LEFT_HAND',
+  'RIGHT_HAND',
+  'CHEST',
+  'UPPER_BACK',
+  'LOWER_BACK',
+  'ABDOMEN',
+  'LEFT_HIP',
+  'RIGHT_HIP',
+  'LEFT_THIGH',
+  'RIGHT_THIGH',
+  'LEFT_KNEE',
+  'RIGHT_KNEE',
+  'LEFT_CALF',
+  'RIGHT_CALF',
+  'LEFT_ANKLE',
+  'RIGHT_ANKLE',
+  'LEFT_FOOT',
+  'RIGHT_FOOT',
+];
+const BODY_PART_SET = new Set<string>(BODY_PART_VALUES);
+
+function toApiUserId(userId: string): string {
+  return userId.startsWith('usr_') ? userId : `usr_${userId}`;
+}
+
+function toApiAthleteId(userId: string): string {
+  const unprefixed = userId.replace(/^usr_/, '').replace(/^ath_/, '');
+  return `ath_${unprefixed}`;
+}
+
+function fromApiAthleteId(athleteId: string): string {
+  return athleteId.replace(/^ath_/, '');
+}
+
+async function buildApiActorHeaders(targetUserId: string): Promise<Record<string, string>> {
+  const currentUser = await authService.getCurrentUser().catch(() => null);
+  const accountType = currentUser?.accountType ?? 'ATHLETE';
+  const actingRole = accountType.toLowerCase();
+  const actorUserId = toApiUserId(currentUser?.id ?? targetUserId);
+  const targetAthleteId = toApiAthleteId(targetUserId);
+
+  const headers: Record<string, string> = {
+    'x-auth-user-id': actorUserId,
+    'x-auth-roles': actingRole,
+    'x-acting-role': actingRole,
+  };
+
+  if (actingRole === 'coach') {
+    headers['x-coach-athlete-ids'] = targetAthleteId;
+    headers['x-coach-verified'] = '1';
+  }
+  if (actingRole === 'parent') {
+    headers['x-guardian-athlete-ids'] = targetAthleteId;
+  }
+
+  return headers;
+}
+
+function toUiBodyPart(apiType: string): BodyPart {
+  const normalized = apiType.toUpperCase();
+  if (BODY_PART_SET.has(normalized)) {
+    return normalized as BodyPart;
+  }
+  return 'LEFT_ANKLE';
+}
+
+function toUiInjury(apiInjury: ApiInjuryRecord): Injury {
+  const bodyPart = toUiBodyPart(apiInjury.type);
+  const description = apiInjury.notes ?? apiInjury.title;
+  const status = UI_STATUS_FROM_API[apiInjury.status];
+  const recoveryPercent =
+    status === 'HEALED'
+      ? 100
+      : status === 'RECOVERING'
+        ? 60
+        : 0;
+
+  return {
+    id: apiInjury.id,
+    userId: fromApiAthleteId(apiInjury.athleteId),
+    bodyPart,
+    description,
+    severity: UI_SEVERITY_FROM_API[apiInjury.severity],
+    occurredAt: apiInjury.reportedAt,
+    expectedRecovery: apiInjury.expectedRecoveryDate ?? undefined,
+    status,
+    notes: [],
+    recoveryPercent,
+    sharedWithCoach: true,
+    createdAt: apiInjury.createdAt,
+    updatedAt: apiInjury.updatedAt,
+    healedAt: apiInjury.resolvedAt ?? undefined,
+  };
+}
+
+const latestApiInjuriesById = new Map<string, Injury>();
 
 // Mock data for demonstration
 const MOCK_INJURIES: Injury[] = [
@@ -385,6 +542,38 @@ async function logInjury(
   params: LogInjuryInput,
   _userName?: string,
 ): Promise<Injury> {
+  if (!apiClient.isMockMode) {
+    try {
+      const athleteId = toApiAthleteId(userId);
+      const headers = await buildApiActorHeaders(userId);
+      const result = await apiFetch<ApiInjuryRecord>(`/athletes/${athleteId}/injuries`, {
+        method: 'POST',
+        headers,
+        body: JSON.stringify({
+          title: `Injury - ${getBodyPartLabel(params.bodyPart)}`,
+          type: params.bodyPart,
+          severity: API_SEVERITY_FROM_UI[params.severity],
+          reportedAt: params.occurredAt,
+          expectedRecoveryDate: params.expectedRecovery ?? undefined,
+          notes: params.description,
+        }),
+      });
+
+      if (result.success) {
+        const mapped = toUiInjury(result.data);
+        latestApiInjuriesById.set(mapped.id, mapped);
+        return mapped;
+      }
+
+      logger.warn('API injury create failed, falling back to local storage', {
+        userId,
+        error: result.error.message,
+      });
+    } catch (error) {
+      logger.warn('API injury create threw, falling back to local storage', { userId, error });
+    }
+  }
+
   const injuries = await getAllInjuries();
   const now = new Date().toISOString();
 
@@ -424,6 +613,41 @@ async function logInjury(
  * @returns Array of injuries
  */
 async function getUserInjuries(userId: string, includeHealed: boolean = true): Promise<Injury[]> {
+  if (!apiClient.isMockMode) {
+    try {
+      const athleteId = toApiAthleteId(userId);
+      const headers = await buildApiActorHeaders(userId);
+      const result = await apiFetch<ApiInjuriesResponse>(`/athletes/${athleteId}/injuries`, {
+        method: 'GET',
+        headers,
+      });
+
+      if (result.success) {
+        let injuries = result.data.injuries.map(toUiInjury);
+        for (const injury of injuries) {
+          latestApiInjuriesById.set(injury.id, injury);
+        }
+        if (!includeHealed) {
+          injuries = injuries.filter((i) => i.status !== 'HEALED');
+        }
+        return injuries.sort((a, b) => {
+          const statusOrder: Record<InjuryStatus, number> = { ACTIVE: 0, RECOVERING: 1, HEALED: 2 };
+          if (statusOrder[a.status] !== statusOrder[b.status]) {
+            return statusOrder[a.status] - statusOrder[b.status];
+          }
+          return new Date(b.occurredAt).getTime() - new Date(a.occurredAt).getTime();
+        });
+      }
+
+      logger.warn('API injury list failed, falling back to local storage', {
+        userId,
+        error: result.error.message,
+      });
+    } catch (error) {
+      logger.warn('API injury list threw, falling back to local storage', { userId, error });
+    }
+  }
+
   const injuries = await getAllInjuries();
   let filtered = injuries.filter((i) => i.userId === userId);
 
@@ -447,6 +671,13 @@ async function getUserInjuries(userId: string, includeHealed: boolean = true): P
  * @returns The injury or null if not found
  */
 async function getInjuryById(id: string): Promise<Injury | null> {
+  if (!apiClient.isMockMode) {
+    const cached = latestApiInjuriesById.get(id);
+    if (cached) {
+      return cached;
+    }
+  }
+
   const injuries = await getAllInjuries();
   return injuries.find((i) => i.id === id) ?? null;
 }
@@ -458,6 +689,51 @@ async function getInjuryById(id: string): Promise<Injury | null> {
  * @returns The updated injury or null if not found
  */
 async function updateInjury(id: string, updates: UpdateInjuryInput): Promise<Injury | null> {
+  if (!apiClient.isMockMode) {
+    const cached = latestApiInjuriesById.get(id);
+    if (cached) {
+      try {
+        const headers = await buildApiActorHeaders(cached.userId);
+        const result = await apiFetch<ApiInjuryRecord>(`/injuries/${id}`, {
+          method: 'PATCH',
+          headers,
+          body: JSON.stringify({
+            severity:
+              updates.severity !== undefined ? API_SEVERITY_FROM_UI[updates.severity] : undefined,
+            status: updates.status !== undefined ? API_STATUS_FROM_UI[updates.status] : undefined,
+            expectedRecoveryDate:
+              updates.expectedRecovery !== undefined ? updates.expectedRecovery : undefined,
+            notes: updates.description !== undefined ? updates.description : undefined,
+          }),
+        });
+
+        if (result.success) {
+          const mapped = toUiInjury(result.data);
+          if (updates.recoveryPercent !== undefined) {
+            mapped.recoveryPercent = updates.recoveryPercent;
+            if (updates.recoveryPercent >= 100) {
+              mapped.status = 'HEALED';
+            } else if (updates.recoveryPercent > 0 && mapped.status === 'ACTIVE') {
+              mapped.status = 'RECOVERING';
+            }
+          }
+          if (updates.sharedWithCoach !== undefined) {
+            mapped.sharedWithCoach = updates.sharedWithCoach;
+          }
+          latestApiInjuriesById.set(mapped.id, mapped);
+          return mapped;
+        }
+
+        logger.warn('API injury update failed, falling back to local storage', {
+          id,
+          error: result.error.message,
+        });
+      } catch (error) {
+        logger.warn('API injury update threw, falling back to local storage', { id, error });
+      }
+    }
+  }
+
   const injuries = await getAllInjuries();
   const injuryIndex = injuries.findIndex((i) => i.id === id);
 
@@ -506,6 +782,27 @@ async function addRecoveryNote(
   _createdByName?: string,
   recoveryPercent?: number,
 ): Promise<Injury | null> {
+  if (!apiClient.isMockMode) {
+    const cached = latestApiInjuriesById.get(injuryId);
+    if (cached) {
+      const nextDescription = cached.description
+        ? `${cached.description}\n\n[${new Date().toISOString()}] ${note}`
+        : note;
+      return updateInjury(injuryId, {
+        description: nextDescription,
+        recoveryPercent: recoveryPercent ?? cached.recoveryPercent,
+        status:
+          recoveryPercent !== undefined
+            ? recoveryPercent >= 100
+              ? 'HEALED'
+              : recoveryPercent > 0
+                ? 'RECOVERING'
+                : cached.status
+            : cached.status,
+      });
+    }
+  }
+
   const injuries = await getAllInjuries();
   const injuryIndex = injuries.findIndex((i) => i.id === injuryId);
 
@@ -573,6 +870,41 @@ async function markAsHealed(id: string): Promise<Injury | null> {
  * @returns Array of shared injuries
  */
 async function getAthleteInjuries(athleteId: string): Promise<Injury[]> {
+  if (!apiClient.isMockMode) {
+    try {
+      const apiAthleteId = toApiAthleteId(athleteId);
+      const currentUser = await authService.getCurrentUser().catch(() => null);
+      const coachUserId = currentUser?.id ?? 'coach1';
+      const headers: Record<string, string> = {
+        'x-auth-user-id': toApiUserId(coachUserId),
+        'x-auth-roles': 'coach',
+        'x-acting-role': 'coach',
+        'x-coach-athlete-ids': apiAthleteId,
+        'x-coach-verified': '1',
+      };
+      const result = await apiFetch<ApiInjuriesResponse>(`/athletes/${apiAthleteId}/injuries`, {
+        method: 'GET',
+        headers,
+      });
+      if (result.success) {
+        const injuries = result.data.injuries.map(toUiInjury);
+        for (const injury of injuries) {
+          latestApiInjuriesById.set(injury.id, injury);
+        }
+        return injuries.filter((i) => i.sharedWithCoach);
+      }
+      logger.warn('API athlete injuries read failed, falling back to local storage', {
+        athleteId,
+        error: result.error.message,
+      });
+    } catch (error) {
+      logger.warn('API athlete injuries read threw, falling back to local storage', {
+        athleteId,
+        error,
+      });
+    }
+  }
+
   const injuries = await getUserInjuries(athleteId, true);
   return injuries.filter((i) => i.sharedWithCoach);
 }

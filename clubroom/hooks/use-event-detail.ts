@@ -32,7 +32,7 @@ export interface UseEventDetailResult {
   attendeeCounts: { going: number; maybe: number; notGoing: number; totalGuests: number };
   currentRSVP: ReturnType<typeof eventService.getUserRSVP>;
   isCreator: boolean;
-  handleRSVP: (status: RSVPStatus, guestCount: number) => Promise<void>;
+  handleRSVP: (status: RSVPStatus) => Promise<void>;
   handlePublish: () => void;
   handleCancel: () => void;
   toggleAttendees: () => void;
@@ -71,7 +71,7 @@ export function useEventDetail(id: string | undefined): UseEventDetailResult {
   const loading = status === 'loading';
 
   const handleRSVP = useCallback(
-    async (status: RSVPStatus, guestCount: number) => {
+    async (status: RSVPStatus) => {
       if (!event || !currentUser) return;
 
       try {
@@ -81,7 +81,7 @@ export function useEventDetail(id: string | undefined): UseEventDetailResult {
           currentUser.name || 'Unknown',
           isCoach ? 'COACH' : 'PARENT',
           status,
-          guestCount,
+          0,
           currentUser.avatar,
         );
         onRefresh();

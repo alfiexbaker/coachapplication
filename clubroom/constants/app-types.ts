@@ -61,6 +61,12 @@ export type BookingStatus = 'PENDING' | 'AWAITING_CONFIRMATION' | 'CONFIRMED' | 
 export interface Booking {
   id: string;
   coachId: string;
+  clubId?: string;
+  actingAs?: 'self' | 'club';
+  ownerCoachId?: string;
+  assigneeCoachId?: string;
+  createdByUserId?: string;
+  createdByRole?: UserRole;
   athleteIds?: string[]; // The users being coached (supports multiple athletes)
   athleteNames?: string[]; // @deprecated — resolve via athleteIds at display time
   athleteId?: string; // @deprecated — use athleteIds instead

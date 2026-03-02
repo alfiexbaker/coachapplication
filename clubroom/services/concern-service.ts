@@ -9,6 +9,7 @@
  */
 
 import { STORAGE_KEYS } from '@/constants/storage-keys';
+import { apiClient, apiFetch } from './api-client';
 import { BaseService } from './base-service';
 import { emitTyped, ServiceEvents } from './event-bus';
 import { notificationService } from './notification-service';
@@ -17,6 +18,59 @@ import { createLogger } from '@/utils/logger';
 import { type Result, type ServiceError, ok, err, validationError } from '@/types/result';
 
 const logger = createLogger('ConcernService');
+
+type ApiSafeguardingCategory =
+  | 'session_conduct'
+  | 'injury_followup'
+  | 'medical_concern'
+  | 'booking_issue_safety'
+  | 'other';
+type ApiSafeguardingSeverity = 'low' | 'medium' | 'high' | 'critical';
+type ApiSafeguardingStatus = 'open' | 'in_review' | 'closed';
+
+type ApiSafeguardingIncidentResponse = {
+  id: string;
+  athleteId: string | null;
+  bookingId: string | null;
+  category: ApiSafeguardingCategory;
+  severity: ApiSafeguardingSeverity;
+  status: ApiSafeguardingStatus;
+  summary: string;
+  details: string | null;
+  reportedByUserId: string;
+  createdAt: string;
+  updatedAt: string;
+};
+
+const API_CATEGORY_FROM_CONCERN_TYPE: Record<ConcernType, ApiSafeguardingCategory> = {
+  BEHAVIORAL: 'session_conduct',
+  SAFEGUARDING: 'session_conduct',
+  MEDICAL: 'medical_concern',
+  ATTENDANCE: 'other',
+  PARENT_COMMUNICATION: 'other',
+};
+
+const API_SEVERITY_FROM_CONCERN_SEVERITY: Record<ConcernSeverity, ApiSafeguardingSeverity> = {
+  LOW: 'low',
+  MEDIUM: 'medium',
+  HIGH: 'high',
+  URGENT: 'critical',
+};
+
+const CONCERN_STATUS_FROM_API_STATUS: Record<ApiSafeguardingStatus, ConcernStatus> = {
+  open: 'OPEN',
+  in_review: 'IN_PROGRESS',
+  closed: 'RESOLVED',
+};
+
+function toApiAthleteId(athleteId: string): string {
+  const unprefixed = athleteId.replace(/^usr_/, '').replace(/^ath_/, '');
+  return `ath_${unprefixed}`;
+}
+
+function toApiUserId(userId: string): string {
+  return userId.startsWith('usr_') ? userId : `usr_${userId}`;
+}
 
 // ============================================================================
 // TYPES
@@ -117,6 +171,69 @@ class ConcernServiceImpl extends BaseService<AthleteConcern> {
     const escalationReason = autoEscalate
       ? `${CONCERN_TYPE_LABELS[input.type]} concern marked ${CONCERN_SEVERITY_LABELS[input.severity]}`
       : undefined;
+
+    if (!apiClient.isMockMode) {
+      const incidentResult = await apiFetch<ApiSafeguardingIncidentResponse>(
+        '/safeguarding/incidents',
+        {
+          method: 'POST',
+          headers: {
+            'x-auth-user-id': toApiUserId(input.coachId),
+            'x-auth-roles': 'coach',
+            'x-acting-role': 'coach',
+            'x-coach-athlete-ids': toApiAthleteId(input.athleteId),
+            'x-coach-verified': '1',
+          },
+          body: JSON.stringify({
+            athleteId: toApiAthleteId(input.athleteId),
+            category: API_CATEGORY_FROM_CONCERN_TYPE[input.type],
+            severity: API_SEVERITY_FROM_CONCERN_SEVERITY[input.severity],
+            summary: input.title.trim(),
+            details: input.actionTaken
+              ? `${input.description.trim()}\n\nAction taken: ${input.actionTaken.trim()}`
+              : input.description.trim(),
+          }),
+        },
+      );
+
+      if (incidentResult.success) {
+        const incident = incidentResult.data;
+        const concern: AthleteConcern = {
+          id: incident.id,
+          coachId: input.coachId,
+          athleteId: input.athleteId,
+          parentId: input.parentId,
+          athleteName: input.athleteName,
+          type: input.type,
+          severity: input.severity,
+          title: input.title.trim(),
+          description: input.description.trim(),
+          actionTaken: input.actionTaken,
+          followUpDate: input.followUpDate,
+          status: CONCERN_STATUS_FROM_API_STATUS[incident.status],
+          createdAt: incident.createdAt,
+          updatedAt: incident.updatedAt,
+          escalatedAt: autoEscalate ? now : undefined,
+          escalationReason,
+        };
+
+        emitTyped(ServiceEvents.CONCERN_RAISED, {
+          concernId: concern.id,
+          coachId: concern.coachId,
+          athleteId: concern.athleteId,
+          athleteName: concern.athleteName,
+          type: concern.type,
+          severity: concern.severity,
+        });
+        logger.info('Concern raised via API', { id: concern.id, type: input.type });
+        return ok(concern);
+      }
+
+      logger.warn('API concern create failed, falling back to local storage', {
+        athleteId: input.athleteId,
+        error: incidentResult.error.message,
+      });
+    }
 
     const result = await this.create({
       ...input,

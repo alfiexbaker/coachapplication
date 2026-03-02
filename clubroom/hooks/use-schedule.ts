@@ -11,7 +11,7 @@
 
 import { useCallback, useState, useMemo, useEffect } from 'react';
 import { Platform } from 'react-native';
-import { router, useFocusEffect, useLocalSearchParams, type Href } from 'expo-router';
+import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
 import * as Haptics from 'expo-haptics';
 
 import { Routes } from '@/navigation/routes';
@@ -361,10 +361,7 @@ export function useSchedule() {
   );
 
   const handleInviteFromSchedule = useCallback((dateStr: string) => {
-    router.push({
-      pathname: Routes.SESSIONS_CREATE,
-      params: { intent: 'existing', source: 'schedule', date: dateStr },
-    } as Href);
+    router.push(Routes.sessionsCreateIntent({ intent: 'existing', source: 'schedule', date: dateStr }));
   }, []);
 
   const handleOpenSettings = useCallback(() => {

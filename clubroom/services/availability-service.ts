@@ -26,6 +26,7 @@ import { inviteHoldService } from './invite-hold-service';
 import { sessionTemplateService } from './session-template-service';
 import { createLogger } from '@/utils/logger';
 import { toDateStr } from '@/utils/format';
+import { getSessionOfferingHeadcount } from '@/utils/session-offering-capacity';
 import type { Result, ServiceError } from '@/types/result';
 import { ok, err, storageError } from '@/types/result';
 import { userService } from './user-service';
@@ -648,7 +649,7 @@ export const availabilityService = {
       const offeringTime = offering.scheduledAt?.split('T')[1]?.substring(0, 5);
       if (offeringDate === date && offeringTime === startTime) {
         // For session offerings, the slot is occupied
-        count += offering.registrations?.filter((r) => r.status === 'confirmed').length || 1;
+        count += getSessionOfferingHeadcount(offering) || 1;
       }
     }
 
@@ -689,8 +690,7 @@ export const availabilityService = {
             : offering.status?.toUpperCase()) as BookingStatus,
           isGroupSession: offering.sessionType === 'group',
           maxParticipants: offering.maxParticipants,
-          currentParticipants:
-            offering.registrations?.filter((r) => r.status === 'confirmed').length || 0,
+          currentParticipants: getSessionOfferingHeadcount(offering),
           registrations: offering.registrations,
         })),
     );

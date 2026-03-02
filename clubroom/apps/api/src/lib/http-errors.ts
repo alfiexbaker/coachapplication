@@ -27,3 +27,6 @@ export const badRequest = (message: string, details?: unknown) =>
 
 export const forbidden = (message: string = 'Forbidden', details?: unknown) =>
   new ApiProblemError(403, 'AUTH_FORBIDDEN', message, details);
+
+export const notFound = (message: string = 'Resource not found', details?: unknown) =>
+  new ApiProblemError(404, 'RESOURCE_NOT_FOUND', message, details);

@@ -33,7 +33,11 @@ Clubroom currently runs as a frontend MVP with AsyncStorage persistence and no b
 - `API_CONTRACTS_ERRORS_AND_HANDLERS.md`: contracts, endpoint patterns, handlers, error taxonomy, drift prevention
 - `UI_API_BILATERAL_ALIGNMENT.md`: how to keep backend changes aligned to UI routes/components/services/flows
 - `ROUTE_INVENTORY_V1.md`: planned `/v1` endpoint inventory with contract/authz/UI anchors
-- `traceability/booking-revenue-v1.md`: first concrete UI<->API traceability matrix (booking/revenue)
+- `traceability/booking-revenue-v1.md`: booking/availability/revenue spine contract
+- `traceability/community-growth-v1.md`: community/growth spine contract
+- `traceability/development-analytics-v1.md`: development/analytics spine contract
+- `traceability/trust-ops-v1.md`: trust/safety/ops spine contract
+- `traceability/pre-api-critical-routes-owner-map-2026-03-01.md`: cross-spine critical route owner map + smash/check harness
 - `SPRINT_PLAN_OVERVIEW.md`: backend build plan with sequencing and gates
 - `sprints/`: detailed sprint-by-sprint implementation docs
 

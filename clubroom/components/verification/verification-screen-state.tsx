@@ -8,7 +8,7 @@ type ThemeColors = ReturnType<typeof import('@/hooks/useTheme').useTheme>['color
 interface VerificationScreenStateProps {
   colors: ThemeColors;
   screenStatus: string;
-  error?: Error | null;
+  error?: { message?: string } | null;
   retry: () => void;
   errorMessage: string;
   emptyIcon: string;

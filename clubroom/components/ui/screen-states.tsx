@@ -72,6 +72,7 @@ const USER_FACING_CODES: string[] = [
 export function ErrorState({ message, error, onRetry, title }: ErrorStateProps) {
   const { colors } = useTheme();
   const ButtonStyles = createButtonStyles(colors);
+  const debugDetails = error?.details;
 
   return (
     <View style={errorStyles.container}>
@@ -96,18 +97,16 @@ export function ErrorState({ message, error, onRetry, title }: ErrorStateProps) 
         <ThemedText style={ButtonStyles.primaryText}>Try again</ThemedText>
       </Clickable>
 
-      {__DEV__ && error?.details && (
+      {__DEV__ && Boolean(debugDetails) ? (
         <View style={{ marginTop: Spacing.md, width: '90%' }}>
           <ThemedText style={[errorStyles.title, { color: colors.muted }]}>
             Debug Info (Dev Only)
           </ThemedText>
           <ThemedText style={[errorStyles.message, { color: colors.muted, fontFamily: 'monospace' }]}>
-            {typeof error.details === 'string'
-              ? error.details
-              : JSON.stringify(error.details, null, 2)}
+            {typeof debugDetails === 'string' ? debugDetails : JSON.stringify(debugDetails, null, 2)}
           </ThemedText>
         </View>
-      )}
+      ) : null}
     </View>
   );
 }

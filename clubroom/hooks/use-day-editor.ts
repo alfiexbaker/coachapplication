@@ -10,7 +10,8 @@ import type { AvailabilityTemplate, AvailabilityOverride } from '@/constants/typ
 import type { DayEditorScope } from '@/components/coach/day-editor-sheet';
 
 const { height: SCREEN_HEIGHT } = Dimensions.get('window');
-export const SHEET_MAX_HEIGHT = SCREEN_HEIGHT * 0.7;
+export const SHEET_MAX_HEIGHT = Math.min(SCREEN_HEIGHT * 0.84, SCREEN_HEIGHT - 40);
+export const SHEET_FOOTER_HEIGHT = 108;
 
 export const DAYS_FULL = [
   'Sunday',
@@ -58,6 +59,13 @@ interface UseDayEditorParams {
     endTime: string;
     location?: string;
   }) => void;
+  onSaveRepeatedOverride: (data: {
+    date: string;
+    startTime: string;
+    endTime: string;
+    location?: string;
+    repeatWeeks: number;
+  }) => void;
   onDeleteTemplate?: (templateId: string) => void;
   onAddVenue?: (label: string) => void;
 }
@@ -73,6 +81,7 @@ export function useDayEditor({
   defaultScope,
   onSaveRecurring,
   onSaveOverride,
+  onSaveRepeatedOverride,
   onDeleteTemplate,
   onAddVenue,
 }: UseDayEditorParams) {
@@ -84,6 +93,7 @@ export function useDayEditor({
   const [location, setLocation] = useState<string>('');
   const [showAddVenueInput, setShowAddVenueInput] = useState(false);
   const [newVenueLabel, setNewVenueLabel] = useState('');
+  const [repeatWeeks, setRepeatWeeks] = useState(4);
 
   // Animation
   const slideAnim = useSharedValue(SCREEN_HEIGHT);
@@ -121,6 +131,7 @@ export function useDayEditor({
     }
     setShowAddVenueInput(false);
     setNewVenueLabel('');
+    setRepeatWeeks(4);
   }, [visible, template, existingOverride, existingTemplatesForDay, defaultScope]);
 
   // Animate in/out
@@ -198,8 +209,14 @@ export function useDayEditor({
   }, [dateStr]);
 
   const saveLabel = useMemo(() => {
-    return scope === 'recurring' ? `Save for Every ${dayName}` : `Save for This ${dayName}`;
-  }, [scope, dayName]);
+    if (scope === 'recurring') {
+      return `Save for Every ${dayName}`;
+    }
+    if (scope === 'next-n-weeks') {
+      return `Save for ${repeatWeeks} Weeks`;
+    }
+    return `Save for This ${dayName}`;
+  }, [scope, dayName, repeatWeeks]);
 
   const handleStartTimeChange = useCallback(
     (newTime: string) => {
@@ -227,6 +244,14 @@ export function useDayEditor({
       onSaveRecurring({ dayOfWeek, startTime, endTime, location: loc });
     } else if (scope === 'just-this-date' && dateStr) {
       onSaveOverride({ date: dateStr, startTime, endTime, location: loc });
+    } else if (scope === 'next-n-weeks' && dateStr) {
+      onSaveRepeatedOverride({
+        date: dateStr,
+        startTime,
+        endTime,
+        location: loc,
+        repeatWeeks,
+      });
     }
   }, [
     isValid,
@@ -236,8 +261,10 @@ export function useDayEditor({
     endTime,
     location,
     dateStr,
+    repeatWeeks,
     onSaveRecurring,
     onSaveOverride,
+    onSaveRepeatedOverride,
   ]);
 
   const handleDelete = useCallback(() => {
@@ -275,6 +302,8 @@ export function useDayEditor({
     setShowAddVenueInput,
     newVenueLabel,
     setNewVenueLabel,
+    repeatWeeks,
+    setRepeatWeeks,
     slideAnim,
     overlayOpacity,
     panResponder,

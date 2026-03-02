@@ -1,5 +1,20 @@
 import { type Href } from 'expo-router';
 
+export interface SessionsCreateIntentParams {
+  [key: string]: string | undefined;
+  intent: 'new' | 'existing' | 'invite';
+  source?: 'schedule' | 'roster' | 'group_manage' | 'club_manage' | 'session_detail' | 'manual';
+  athleteIds?: string;
+  athleteNames?: string;
+  offeringId?: string;
+  date?: string;
+  preset?: '1on1' | 'group';
+  inviteType?: 'OPEN' | 'CLOSED' | 'SQUAD_ONLY';
+  actingAs?: 'self' | 'club';
+  clubId?: string;
+  assigneeCoachId?: string;
+}
+
 /**
  * Type-safe route builders for all Clubroom navigation.
  *
@@ -21,7 +36,8 @@ export const Routes = {
   FEED: '/(tabs)/feed' as Href,
   BOOKINGS: '/(tabs)/bookings' as Href,
   ATHLETES: '/(tabs)/athletes' as Href,
-  SETTINGS: '/(tabs)/settings' as Href,
+  SETTINGS: '/settings' as Href,
+  SETTINGS_TAB: '/(tabs)/settings' as Href,
   COACH_PROFILE: '/(tabs)/coach-profile' as Href,
   EDIT_PROFILE: '/(tabs)/edit-profile' as Href,
   AVAILABILITY: '/(tabs)/availability' as Href,
@@ -35,6 +51,7 @@ export const Routes = {
   EARNINGS: '/(tabs)/earnings' as Href,
   MESSAGES: '/(tabs)/messages' as Href,
   MANAGE: '/manage' as Href,
+  MANAGE_BOOKINGS: '/manage/bookings' as Href,
   MORE: '/(tabs)/more' as Href,
   NOTIFICATIONS: '/(tabs)/notifications' as Href,
   ROSTER: '/(tabs)/roster' as Href,
@@ -47,6 +64,10 @@ export const Routes = {
   }) as Href,
   BOOKINGS_OBJECTIVES: '/(tabs)/bookings/objectives' as Href,
   BOOKINGS_REPORT_PROBLEM: '/(tabs)/bookings/report-problem' as Href,
+  bookingsReportProblem: (params?: { bookingId?: string }) => ({
+    pathname: '/(tabs)/bookings/report-problem',
+    params: params ?? {},
+  }) as Href,
   BOOKINGS_STATISTICS: '/(tabs)/bookings/statistics' as Href,
   ADMIN_INVITE_CODES: '/(tabs)/admin/invite-codes' as Href,
 
@@ -509,16 +530,7 @@ export const Routes = {
     pathname: '/sessions/create',
     params,
   }) as Href,
-  sessionsCreateIntent: (params: {
-    intent: 'new' | 'existing' | 'invite';
-    source?: 'schedule' | 'roster' | 'group_manage' | 'club_manage' | 'session_detail' | 'manual';
-    athleteIds?: string;
-    athleteNames?: string;
-    offeringId?: string;
-    date?: string;
-    preset?: '1on1' | 'group';
-    inviteType?: 'OPEN' | 'CLOSED' | 'SQUAD_ONLY';
-  }) => ({
+  sessionsCreateIntent: (params: SessionsCreateIntentParams) => ({
     pathname: '/sessions/create',
     params,
   }) as Href,
@@ -576,6 +588,8 @@ export const Routes = {
   SETTINGS_TRAVEL_RADIUS: '/settings/travel-radius' as Href,
   SETTINGS_NOTIFICATIONS: '/settings/notifications' as Href,
   SETTINGS_PRIVACY: '/settings/privacy' as Href,
+  SETTINGS_PRIVACY_POLICY: '/settings/privacy-policy' as Href,
+  SETTINGS_TERMS: '/settings/terms' as Href,
 
   // ─── Skills ────────────────────────────────────────────────────
   SKILLS: '/skills' as Href,

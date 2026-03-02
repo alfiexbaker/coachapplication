@@ -46,13 +46,11 @@ export default function EventRSVPScreen() {
     retry,
     submitting,
     selectedStatus,
-    guestCount,
     note,
     isFull,
     rsvpClosed,
     reminderSending,
     attendeeCounts,
-    setGuestCount,
     setNote,
     handleStatusSelect,
     handleSubmit,
@@ -77,35 +75,10 @@ export default function EventRSVPScreen() {
       : null;
   const isPastDeadline = Boolean(rsvpDeadlineDate && new Date() > rsvpDeadlineDate);
   const isSubmitClosed = rsvpClosed || isPastDeadline;
-  const maxGuestsPerRegistration = 10;
-  const availableGuestCapacity = (() => {
-    if (!event?.maxAttendees) return maxGuestsPerRegistration;
-    const occupied = attendeeCounts.going + attendeeCounts.totalGuests;
-    const currentReservationFootprint =
-      currentRSVP?.status === 'GOING' ? 1 + (currentRSVP.guestCount ?? 0) : 0;
-    const availableIncludingCurrent = Math.max(0, event.maxAttendees - (occupied - currentReservationFootprint));
-    return Math.max(0, Math.min(maxGuestsPerRegistration, availableIncludingCurrent - 1));
-  })();
-  const guestCountError =
-    selectedStatus === 'GOING'
-      ? guestCount < 0
-        ? 'Guest count cannot be negative'
-        : guestCount > maxGuestsPerRegistration
-          ? 'Maximum 10 guests per registration'
-          : guestCount > availableGuestCapacity
-            ? availableGuestCapacity === 0
-              ? 'No remaining spots for additional guests'
-              : `Only ${availableGuestCapacity} guest spot${availableGuestCapacity === 1 ? '' : 's'} available`
-            : null
-      : null;
 
   const handleSubmitWithDeadlineCheck = async () => {
     if (isPastDeadline) {
       showToast('RSVP deadline has passed', 'error');
-      return;
-    }
-    if (guestCountError) {
-      showToast(guestCountError, 'error');
       return;
     }
     await handleSubmit();
@@ -191,7 +164,7 @@ export default function EventRSVPScreen() {
                   >
                     {Math.max(
                       0,
-                      event.maxAttendees - attendeeCounts.going - attendeeCounts.totalGuests,
+                      event.maxAttendees - attendeeCounts.going,
                     )}{' '}
                     / {event.maxAttendees}
                   </ThemedText>
@@ -202,7 +175,7 @@ export default function EventRSVPScreen() {
                       styles.capacityFill,
                       {
                         backgroundColor: isFull ? palette.error : palette.success,
-                        width: `${Math.min(100, ((attendeeCounts.going + attendeeCounts.totalGuests) / event.maxAttendees) * 100)}%`,
+                        width: `${Math.min(100, (attendeeCounts.going / event.maxAttendees) * 100)}%`,
                       },
                     ]}
                   />
@@ -344,7 +317,6 @@ export default function EventRSVPScreen() {
                   ]}
                 >
                   {eventService.formatRSVPStatus(currentRSVP.status)}
-                  {currentRSVP.guestCount > 0 && ` (+${currentRSVP.guestCount} guests)`}
                 </ThemedText>
               </View>
             </Row>
@@ -401,45 +373,6 @@ export default function EventRSVPScreen() {
                 </View>
               </View>
 
-              {selectedStatus === 'GOING' && (
-                <View style={styles.section}>
-                  <ThemedText type="defaultSemiBold" style={styles.sectionTitle}>
-                    Additional guests
-                  </ThemedText>
-                  <ThemedText style={[styles.sectionSubtitle, { color: palette.muted }]}>
-                    Additional people attending with you (e.g. siblings, partner)
-                  </ThemedText>
-                  <Row align="center" justify="center" gap="md" style={styles.guestCounter}>
-                    <Clickable
-                      accessibilityLabel="Decrease guest count"
-                      onPress={() => setGuestCount(Math.max(0, guestCount - 1))}
-                      style={[styles.counterButton, { borderColor: palette.border }]}
-                    >
-                      <Ionicons name="remove" size={24} color={palette.text} />
-                    </Clickable>
-                    <View style={[styles.counterValue, { borderColor: palette.border }]}>
-                      <ThemedText style={styles.counterValueText}>{guestCount}</ThemedText>
-                    </View>
-                    <Clickable
-                      accessibilityLabel="Increase guest count"
-                      onPress={() => setGuestCount(Math.min(maxGuestsPerRegistration, guestCount + 1))}
-                      disabled={guestCount >= Math.min(maxGuestsPerRegistration, availableGuestCapacity)}
-                      style={[styles.counterButton, { borderColor: palette.border }]}
-                    >
-                      <Ionicons name="add" size={24} color={palette.text} />
-                    </Clickable>
-                  </Row>
-                  <ThemedText
-                    style={[
-                      styles.guestHelperText,
-                      { color: guestCountError ? palette.error : palette.muted },
-                    ]}
-                  >
-                    {guestCountError ?? `Up to ${Math.min(maxGuestsPerRegistration, availableGuestCapacity)} additional guests available`}
-                  </ThemedText>
-                </View>
-              )}
-
               <View style={styles.section}>
                 <ThemedText type="defaultSemiBold" style={styles.sectionTitle}>
                   Add a note (optional)
@@ -460,9 +393,8 @@ export default function EventRSVPScreen() {
                   multiline
                   numberOfLines={3}
                   textAlignVertical="top"
-
-            maxLength={500}
-          />
+                  maxLength={500}
+                />
               </View>
             </>
           )}
@@ -477,7 +409,7 @@ export default function EventRSVPScreen() {
           >
             <Button
               onPress={handleSubmitWithDeadlineCheck}
-              disabled={isSubmitClosed || !selectedStatus || submitting || !!guestCountError}
+              disabled={isSubmitClosed || !selectedStatus || submitting}
               style={styles.submitButton}
             >
               {submitting ? (
@@ -552,41 +484,12 @@ const styles = StyleSheet.create({
   },
   section: { gap: Spacing.sm },
   sectionTitle: { ...Typography.body, fontSize: scaleFont(Typography.body.fontSize) },
-  sectionSubtitle: {
-    ...Typography.small,
-    fontSize: scaleFont(Typography.small.fontSize),
-    marginTop: -4,
-  },
   statusOptions: { gap: Spacing.sm },
   statusOption: { padding: Spacing.md, borderRadius: Radii.md, borderWidth: 1.5 },
   statusOptionText: {
     ...Typography.subheading,
     fontSize: scaleFont(Typography.subheading.fontSize),
   },
-  guestCounter: {},
-  guestHelperText: {
-    marginTop: Spacing.xs,
-    textAlign: 'center',
-    ...Typography.caption,
-    fontSize: scaleFont(Typography.caption.fontSize),
-  },
-  counterButton: {
-    width: 48,
-    height: 48,
-    borderRadius: Radii.md,
-    borderWidth: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  counterValue: {
-    width: 80,
-    height: 48,
-    borderRadius: Radii.md,
-    borderWidth: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  counterValueText: { ...Typography.display, fontSize: scaleFont(Typography.display.fontSize) },
   noteInput: {
     borderWidth: 1,
     borderRadius: Radii.md,

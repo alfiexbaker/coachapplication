@@ -21,6 +21,7 @@ import { sessionTemplateService } from '@/services/session-template-service';
 import { apiClient } from '@/services/api-client';
 import { STORAGE_KEYS } from '@/constants/storage-keys';
 import { getRosterAthleteName, getRosterParentName } from '@/utils/roster-display';
+import { getSessionOfferingHeadcount } from '@/utils/session-offering-capacity';
 import type {
   TimeSlot,
   Academy,
@@ -54,7 +55,7 @@ function mapOfferingToExistingSession(offering: SessionOffering): GroupSession {
   const duration = offering.duration ?? 60;
   const end = new Date(safeStart);
   end.setMinutes(end.getMinutes() + duration);
-  const registrations = offering.registrations.filter((reg) => reg.status === 'confirmed').length;
+  const registrations = getSessionOfferingHeadcount(offering);
   const dateLabel = safeStart.toISOString().slice(0, 10);
 
   return {
@@ -376,7 +377,7 @@ export function useCreateInvite(): UseCreateInviteReturn {
   const handleSetSelectedTemplate = useCallback((template: SessionTemplate) => {
     setSelectedTemplate(template);
     setSessionType(template.name);
-    setPrice((prev) => prev || String(template.defaultPrice));
+    setPriceState((prev) => prev || String(template.defaultPrice));
   }, []);
 
   const handleSetInviteMode = useCallback((mode: 'new' | 'existing') => {

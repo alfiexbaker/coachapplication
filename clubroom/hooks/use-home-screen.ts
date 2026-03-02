@@ -105,29 +105,78 @@ export function useHomeScreen() {
     streakLabel: string;
   } | null>(null);
 
+  const fallbackChildId = contextChildren[0]?.id ?? null;
+
   // Local selectedChildId for immediate UI response — initialized from context
-  const [selectedChildId, setSelectedChildIdLocal] = useState<string | null>(
-    () => contextActiveChildId,
-  );
+  const [selectedChildId, setSelectedChildIdLocal] = useState<string | null>(() => {
+    if (contextActiveChildId) return contextActiveChildId;
+    if (isParent && fallbackChildId) return fallbackChildId;
+    return null;
+  });
 
   // Sync from external context changes
   useEffect(() => {
     const unsub = onTyped(ServiceEvents.FAMILY_ACTIVE_CHILD_CHANGED, (payload) => {
-      setSelectedChildIdLocal(payload.childId);
+      if (payload.childId) {
+        setSelectedChildIdLocal(payload.childId);
+        return;
+      }
+      if (isParent && fallbackChildId) {
+        setSelectedChildIdLocal(fallbackChildId);
+        return;
+      }
+      setSelectedChildIdLocal(null);
     });
     return unsub;
-  }, []);
+  }, [fallbackChildId, isParent]);
+
+  useEffect(() => {
+    if (!isParent || !fallbackChildId) {
+      return;
+    }
+    if (selectedChildId && contextChildren.some((child) => child.id === selectedChildId)) {
+      return;
+    }
+
+    setSelectedChildIdLocal(fallbackChildId);
+    if (contextActiveChildId !== fallbackChildId) {
+      void contextSetActiveChildId(fallbackChildId);
+    }
+  }, [
+    contextActiveChildId,
+    contextChildren,
+    contextSetActiveChildId,
+    fallbackChildId,
+    isParent,
+    selectedChildId,
+  ]);
 
   // Handler: update BOTH local and context
   const setSelectedChildId = useCallback(
     (childId: string | null) => {
-      setSelectedChildIdLocal(childId);
-      void contextSetActiveChildId(childId);
+      const resolvedChildId = childId ?? (isParent ? fallbackChildId : null);
+      setSelectedChildIdLocal(resolvedChildId);
+      void contextSetActiveChildId(resolvedChildId);
     },
-    [contextSetActiveChildId],
+    [contextSetActiveChildId, fallbackChildId, isParent],
   );
 
-  const athleteId = selectedChildId || contextChildren[0]?.id || currentUser?.id;
+  const handleSelectNextChild = useCallback(() => {
+    if (!isParent || contextChildren.length <= 1) return;
+
+    const currentIndex = contextChildren.findIndex((child) => child.id === selectedChildId);
+    const nextIndex = currentIndex >= 0 ? (currentIndex + 1) % contextChildren.length : 0;
+    const nextChildId = contextChildren[nextIndex]?.id ?? contextChildren[0]?.id ?? null;
+    if (!nextChildId) return;
+    setSelectedChildId(nextChildId);
+  }, [contextChildren, isParent, selectedChildId, setSelectedChildId]);
+
+  const selectedChild = useMemo(
+    () => contextChildren.find((child) => child.id === selectedChildId) ?? null,
+    [contextChildren, selectedChildId],
+  );
+
+  const athleteId = selectedChildId || fallbackChildId || currentUser?.id;
 
   const loadData = useCallback(async () => {
     if (!athleteId) return;
@@ -150,18 +199,19 @@ export function useHomeScreen() {
         const role = isParent ? 'parent' : 'athlete';
         const bookings = await bookingService.getBookingsForUser(currentUser.id, role);
         const now = Date.now();
+        const selectedFamilyChildId = isParent ? selectedChildId ?? fallbackChildId : null;
         const filteredBookings = bookings
           .filter((booking) => {
             const isFuture = new Date(booking.scheduledAt).getTime() > now;
             const isConfirmed = booking.status === 'CONFIRMED';
-            if (!selectedChildId) {
+            if (!selectedFamilyChildId) {
               return isFuture && isConfirmed;
             }
             return (
               isFuture &&
               isConfirmed &&
-              (booking.athleteId === selectedChildId ||
-                booking.athleteIds?.includes(selectedChildId))
+              (booking.athleteId === selectedFamilyChildId ||
+                booking.athleteIds?.includes(selectedFamilyChildId))
             );
           })
           .sort((a, b) => new Date(a.scheduledAt).getTime() - new Date(b.scheduledAt).getTime());
@@ -176,7 +226,7 @@ export function useHomeScreen() {
     } finally {
       setLoading(false);
     }
-  }, [athleteId, currentUser, selectedChildId, isParent]);
+  }, [athleteId, currentUser, selectedChildId, fallbackChildId, isParent]);
 
   useEffect(() => {
     loadData();
@@ -188,15 +238,6 @@ export function useHomeScreen() {
     setRefreshing(false);
   }, [loadData]);
 
-  // Deduplicated family booking rows for multi-child "All" mode
-  const familyBookingRows = useMemo(
-    () =>
-      isMultiChild && selectedChildId === null
-        ? deduplicateBookings(upcomingBookings, contextChildren)
-        : [],
-    [upcomingBookings, contextChildren, isMultiChild, selectedChildId],
-  );
-
   return {
     currentUser,
     refreshing,
@@ -207,10 +248,11 @@ export function useHomeScreen() {
     stats,
     streakInfo,
     selectedChildId,
+    selectedChild,
     setSelectedChildId,
+    handleSelectNextChild,
     onRefresh,
     upcomingBookings,
-    familyBookingRows,
     isMultiChild,
     isParent,
     contextChildren,

@@ -290,6 +290,27 @@ export default function SessionCompleteScreen() {
     }
     Alert.alert('Sent', `Message sent to ${result.targetName}.`);
   };
+
+  const handleRaiseConcernByRegistration = useCallback(
+    (registrationId: string) => {
+      const athlete = attendance[registrationId];
+      const athleteId = athlete?.registration.userId;
+      if (!athleteId) {
+        Alert.alert('Unable to open', 'Athlete details are missing for this registration.');
+        return;
+      }
+      router.push(Routes.rosterAthleteConcern(athleteId));
+    },
+    [attendance],
+  );
+
+  const handleRaiseConcernByAthlete = useCallback((athleteId: string) => {
+    if (!athleteId) {
+      Alert.alert('Unable to open', 'Athlete details are missing for this action.');
+      return;
+    }
+    router.push(Routes.rosterAthleteConcern(athleteId));
+  }, []);
   const renderScreenShell = (content: ReactNode) => (
     <SafeAreaView
       style={[styles.container, { backgroundColor: colors.background }]}
@@ -358,6 +379,9 @@ export default function SessionCompleteScreen() {
                 onOpenAthlete={(athlete) => {
                   void handlePersonalFeedback(athlete.registrationId);
                 }}
+                onRaiseConcern={(athlete) => {
+                  handleRaiseConcernByAthlete(athlete.athleteId);
+                }}
                 onDone={() => router.back()}
               />
             ) : isGroupCompletion ? (
@@ -375,6 +399,7 @@ export default function SessionCompleteScreen() {
                   onSendGroupMessage={handleSendGroupMessage}
                   onPersonalFeedback={handlePersonalFeedback}
                   onMessage={handleSendMessage}
+                  onRaiseConcern={handleRaiseConcernByRegistration}
                   onAddVideo={addVideo}
                   onRemoveVideo={removeVideo}
                   onAddImage={addImage}

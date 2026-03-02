@@ -11,6 +11,7 @@ import { Routes } from '@/navigation/routes';
 import * as Haptics from 'expo-haptics';
 
 import { useAuth } from '@/hooks/use-auth';
+import { useChildContext } from '@/hooks/use-child-context';
 import { useScreen, type ScreenStatus } from '@/hooks/use-screen';
 import { injuryService } from '@/services/injury-service';
 import type { Injury, InjuryStats } from '@/constants/types';
@@ -21,13 +22,45 @@ const logger = createLogger('useHealthHub');
 
 export function useHealthHub() {
   const { currentUser } = useAuth();
-  const userId = currentUser?.id ?? 'user1';
+  const { children, activeChildId, setActiveChildId, isParent } = useChildContext();
+
+  const selectedChildId = useMemo(() => {
+    if (!isParent || children.length === 0) return null;
+    if (activeChildId && children.some((child) => child.id === activeChildId)) {
+      return activeChildId;
+    }
+    return children[0]?.id ?? null;
+  }, [activeChildId, children, isParent]);
+
+  const selectedChild = useMemo(
+    () => children.find((child) => child.id === selectedChildId) ?? null,
+    [children, selectedChildId],
+  );
+
+  const subjectId = selectedChildId ?? currentUser?.id ?? null;
+  const kidOptions = useMemo(
+    () =>
+      children.map((child) => ({
+        id: child.id,
+        name: child.name,
+        initials: child.initials,
+        colorCode: child.colorCode,
+      })),
+    [children],
+  );
 
   const loadData = useCallback(async () => {
+    if (!subjectId) {
+      return ok<{ injuries: Injury[]; stats: InjuryStats | null }>({
+        injuries: [],
+        stats: null,
+      });
+    }
+
     try {
       const [userInjuries, injuryStats] = await Promise.all([
-        injuryService.getUserInjuries(userId, false),
-        injuryService.getInjuryStats(userId),
+        injuryService.getUserInjuries(subjectId, false),
+        injuryService.getInjuryStats(subjectId),
       ]);
       return ok<{ injuries: Injury[]; stats: InjuryStats | null }>({
         injuries: userInjuries,
@@ -37,14 +70,14 @@ export function useHealthHub() {
       logger.error('Failed to load health data:', error);
       return err(serviceError('UNKNOWN', 'Failed to load health dashboard data.', error));
     }
-  }, [userId]);
+  }, [subjectId]);
 
   const { data, status, error, refreshing, onRefresh, retry } = useScreen<{
     injuries: Injury[];
     stats: InjuryStats | null;
   }>({
     load: loadData,
-    deps: [userId],
+    deps: [subjectId],
     isEmpty: () => false,
     refetchOnFocus: true,
   });
@@ -55,13 +88,38 @@ export function useHealthHub() {
 
   const handleLogInjury = useCallback(() => {
     void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    if (selectedChildId) {
+      router.push({ pathname: '/health/log', params: { childId: selectedChildId } });
+      return;
+    }
     router.push(Routes.HEALTH_LOG);
-  }, []);
+  }, [selectedChildId]);
 
   const handleViewHistory = useCallback(() => {
     void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     router.push(Routes.HEALTH_INJURIES);
   }, []);
+
+  const handleSelectChild = useCallback(
+    (childId: string) => {
+      void setActiveChildId(childId);
+    },
+    [setActiveChildId],
+  );
+
+  const handleSelectNextChild = useCallback(() => {
+    if (kidOptions.length <= 1) return;
+    const currentIndex = kidOptions.findIndex((child) => child.id === selectedChildId);
+    const nextIndex = currentIndex >= 0 ? (currentIndex + 1) % kidOptions.length : 0;
+    const nextChildId = kidOptions[nextIndex]?.id ?? kidOptions[0]?.id;
+    if (!nextChildId) return;
+    void setActiveChildId(nextChildId);
+  }, [kidOptions, selectedChildId, setActiveChildId]);
+
+  const handleEditSelectedChild = useCallback(() => {
+    if (!selectedChildId) return;
+    router.push(Routes.modalEditChildProfile(selectedChildId));
+  }, [selectedChildId]);
 
   const handleInjuryPress = useCallback((injury: Injury) => {
     void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
@@ -95,6 +153,14 @@ export function useHealthHub() {
     handleLogInjury,
     handleViewHistory,
     handleInjuryPress,
+    kidOptions,
+    selectedChildId: selectedChildId ?? undefined,
+    selectedChildName: selectedChild?.name ?? null,
+    showKidSelector: kidOptions.length > 1,
+    canEditSelectedChild: Boolean(selectedChildId),
+    handleSelectChild,
+    handleSelectNextChild,
+    handleEditSelectedChild,
   } satisfies {
     injuries: Injury[];
     stats: InjuryStats | null;
@@ -109,5 +175,13 @@ export function useHealthHub() {
     handleLogInjury: () => void;
     handleViewHistory: () => void;
     handleInjuryPress: (injury: Injury) => void;
+    kidOptions: Array<{ id: string; name: string; initials: string; colorCode?: string }>;
+    selectedChildId: string | undefined;
+    selectedChildName: string | null;
+    showKidSelector: boolean;
+    canEditSelectedChild: boolean;
+    handleSelectChild: (childId: string) => void;
+    handleSelectNextChild: () => void;
+    handleEditSelectedChild: () => void;
   };
 }

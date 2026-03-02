@@ -20,13 +20,13 @@ export async function clearProgressDemoSeedData(
 
 export async function ensureUser1DiamondTestDataSeeded(): Promise<Result<void, ServiceError>> {
   const mod = await loadModule();
-  return mod.ensureUser1DiamondTestDataSeeded();
+  return mod.ensureUser1DiamondTestDataSeeded('user1');
 }
 
 export async function ensureProgressDemoSeeded(
   athleteId: string,
-  options?: Parameters<ProgressDemoSeedModule['ensureProgressDemoSeeded']>[1],
+  athleteName?: Parameters<ProgressDemoSeedModule['ensureProgressDemoSeeded']>[1],
 ): Promise<Result<void, ServiceError>> {
   const mod = await loadModule();
-  return mod.ensureProgressDemoSeeded(athleteId, options);
+  return mod.ensureProgressDemoSeeded(athleteId, athleteName);
 }

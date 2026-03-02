@@ -3,10 +3,10 @@ import { ScrollView } from 'react-native';
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { ThemedText } from '@/components/themed-text';
 import { useTheme } from '@/hooks/useTheme';
-import { Spacing } from '@/constants/theme';
+import { Spacing, Typography } from '@/constants/theme';
 import { Invoice } from '@/constants/types';
 import { ErrorBoundary } from '@/components/error-boundary';
-import { Button } from '@/components/primitives';
+import { Button } from '@/components/primitives/button';
 
 import {
   InvoiceHeader,
@@ -45,7 +45,7 @@ function InvoicePreviewContent({ invoice }: InvoicePreviewProps) {
       {invoice.notes && (
         <SurfaceCard style={styles.card}>
           <ThemedText style={[styles.sectionTitle, { color: palette.muted }]}>NOTES</ThemedText>
-          <ThemedText type="bodySmall">{invoice.notes}</ThemedText>
+          <ThemedText style={Typography.bodySmall}>{invoice.notes}</ThemedText>
         </SurfaceCard>
       )}
 
@@ -76,7 +76,7 @@ export function InvoicePreview({ invoice }: InvoicePreviewProps) {
           </ThemedText>
           <Button
             variant="secondary"
-            size="compact"
+            size="small"
             onPress={reset}
             style={{ marginTop: Spacing.sm }}
           >

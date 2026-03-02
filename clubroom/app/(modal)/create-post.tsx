@@ -44,7 +44,7 @@ export default function CreatePostScreen() {
         ref={modalRef}
         accessible
         accessibilityViewIsModal
-        accessibilityRole="dialog"
+        accessibilityRole="none"
         style={[styles.container, { backgroundColor: palette.background }]}
         edges={['top', 'bottom']}
       >
@@ -81,7 +81,7 @@ export default function CreatePostScreen() {
         ref={modalRef}
         accessible
         accessibilityViewIsModal
-        accessibilityRole="dialog"
+        accessibilityRole="none"
         style={[styles.container, { backgroundColor: palette.background }]}
         edges={['top', 'bottom']}
       >
@@ -132,7 +132,7 @@ export default function CreatePostScreen() {
       ref={modalRef}
       accessible
       accessibilityViewIsModal
-      accessibilityRole="dialog"
+      accessibilityRole="none"
       style={[styles.container, { backgroundColor: palette.background }]}
       edges={['top', 'bottom']}
     >

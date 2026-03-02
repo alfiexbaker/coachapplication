@@ -48,7 +48,7 @@ export function WaitlistBanner({
   return (
     <View
       accessibilityLiveRegion="polite"
-      accessibilityRole="status"
+      accessibilityRole="none"
       style={[
         styles.container,
         { backgroundColor: withAlpha(palette.warning, 0.06), borderColor: palette.warning },

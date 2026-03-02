@@ -20,7 +20,11 @@ import type { ThemeColors } from '@/hooks/useTheme';
 import type { BookingSummary } from '@/constants/types';
 import { formatPrice } from '@/constants/styles';
 import { Row } from '@/components/primitives';
-import { getBookingSummaryClientName, getBookingSummaryCoachName } from '@/utils/booking-display';
+import {
+  getBookingOwnershipLabel,
+  getBookingSummaryClientName,
+  getBookingSummaryCoachName,
+} from '@/utils/booking-display';
 import { styles } from './unified-booking-styles';
 
 // ─── Types ───────────────────────────────────────────────────────────────────
@@ -145,6 +149,7 @@ export const DetailedBookingCard = memo(function DetailedBookingCard({
 }: DetailedBookingCardProps) {
   const coachName = getBookingSummaryCoachName(booking);
   const childName = getBookingSummaryClientName(booking);
+  const ownershipLabel = getBookingOwnershipLabel(booking);
   return (
     <Clickable onPress={onPress}>
       <SurfaceCard style={styles.detailedCard}>
@@ -156,6 +161,18 @@ export const DetailedBookingCard = memo(function DetailedBookingCard({
             <ThemedText style={[styles.detailedSubtitle, { color: palette.muted }]}>
               with {coachName}
             </ThemedText>
+            {ownershipLabel ? (
+              <View
+                style={[
+                  styles.ownershipBadge,
+                  { backgroundColor: withAlpha(palette.info, 0.1) },
+                ]}
+              >
+                <ThemedText style={[styles.ownershipText, { color: palette.info }]}>
+                  {ownershipLabel}
+                </ThemedText>
+              </View>
+            ) : null}
           </View>
           <View style={[styles.statusBadge, { backgroundColor: withAlpha(statusColor, 0.09) }]}>
             <ThemedText style={[styles.statusText, { color: statusColor }]}>

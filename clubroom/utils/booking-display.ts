@@ -13,6 +13,22 @@ export function getBookingSummaryClientName(booking: BookingSummary): string {
   return booking.client?.name || booking.clientId || 'Athlete';
 }
 
+export function getBookingOwnershipLabel(booking: BookingSummary): string | null {
+  if (booking.actingAs !== 'club') {
+    return null;
+  }
+
+  if (booking.assigneeCoachId && booking.ownerCoachId && booking.assigneeCoachId !== booking.ownerCoachId) {
+    return 'Club-assigned';
+  }
+
+  if (booking.assigneeCoachId) {
+    return 'Assigned by Club';
+  }
+
+  return 'Club-owned';
+}
+
 export function getBookingAthleteName(booking: Booking): string {
   const legacyAthleteName = (booking as Booking & { athleteName?: string }).athleteName;
   return (

@@ -6,7 +6,7 @@ import { useState, useMemo, useEffect, useCallback } from 'react';
 import { View, ScrollView, ActivityIndicator } from 'react-native';
 import { Row } from '@/components/primitives/row';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useFocusEffect } from 'expo-router';
+import { router, useFocusEffect } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { ThemedText } from '@/components/themed-text';
 import { withAlpha } from '@/constants/theme';
@@ -24,6 +24,7 @@ import { createLogger } from '@/utils/logger';
 import { toDateStr } from '@/utils/format';
 import type { AvailabilitySlot, SessionInvite, Club } from '@/constants/types';
 import type { Booking } from '@/constants/app-types';
+import { Routes } from '@/navigation/routes';
 import { DiscoverHeader } from './discover-header';
 import { DiscoverClubHub } from './discover-club-hub';
 import { DiscoverReviewPrompt } from './discover-review-prompt';
@@ -217,6 +218,80 @@ export function ParentDiscoverScreen() {
           postcode={postcode}
           onPostcodeChange={setPostcode}
         />
+        <View style={styles.familyEntryPanel}>
+          <Row gap="sm">
+            <Clickable
+              onPress={() => router.push(Routes.FAMILY)}
+              style={[
+                styles.familyEntryTile,
+                {
+                  backgroundColor: withAlpha(palette.tint, 0.08),
+                  borderColor: withAlpha(palette.tint, 0.2),
+                },
+              ]}
+            >
+              <Row align="center" gap="xs">
+                <Ionicons name="people-outline" size={16} color={palette.tint} />
+                <ThemedText style={[styles.familyEntryLabel, { color: palette.tint }]}>
+                  Family Dashboard
+                </ThemedText>
+              </Row>
+            </Clickable>
+            <Clickable
+              onPress={() => router.push(Routes.FAMILY_CALENDAR)}
+              style={[
+                styles.familyEntryTile,
+                {
+                  backgroundColor: palette.surface,
+                  borderColor: palette.border,
+                },
+              ]}
+            >
+              <Row align="center" gap="xs">
+                <Ionicons name="calendar-outline" size={16} color={palette.tint} />
+                <ThemedText style={[styles.familyEntryLabel, { color: palette.text }]}>
+                  Family Calendar
+                </ThemedText>
+              </Row>
+            </Clickable>
+          </Row>
+          <Row gap="sm">
+            <Clickable
+              onPress={() => router.push(Routes.FAMILY_SPENDING)}
+              style={[
+                styles.familyEntryTile,
+                {
+                  backgroundColor: palette.surface,
+                  borderColor: palette.border,
+                },
+              ]}
+            >
+              <Row align="center" gap="xs">
+                <Ionicons name="wallet-outline" size={16} color={palette.tint} />
+                <ThemedText style={[styles.familyEntryLabel, { color: palette.text }]}>
+                  Family Spending
+                </ThemedText>
+              </Row>
+            </Clickable>
+            <Clickable
+              onPress={() => router.push(Routes.HEALTH)}
+              style={[
+                styles.familyEntryTile,
+                {
+                  backgroundColor: palette.surface,
+                  borderColor: palette.border,
+                },
+              ]}
+            >
+              <Row align="center" gap="xs">
+                <Ionicons name="medkit-outline" size={16} color={palette.tint} />
+                <ThemedText style={[styles.familyEntryLabel, { color: palette.text }]}>
+                  Health & Injury
+                </ThemedText>
+              </Row>
+            </Clickable>
+          </Row>
+        </View>
         <DiscoverClubHub userClubs={userClubs} />
         <DiscoverReviewPrompt sessions={completedSessions} onDismiss={dismissReview} />
         {loadingInvites && (

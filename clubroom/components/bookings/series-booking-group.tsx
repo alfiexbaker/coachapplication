@@ -20,6 +20,7 @@ import { ThemedText } from '@/components/themed-text';
 import { Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
 import type { BookingSummary } from '@/constants/types';
+import { getBookingOwnershipLabel } from '@/utils/booking-display';
 
 import { formatBookingDate, SeriesWeekRow } from './series-booking-group-sections';
 import { Row } from '@/components/primitives';
@@ -89,6 +90,7 @@ export const SeriesBookingGroup = memo(function SeriesBookingGroup({
   const cancelledCount = sorted.filter((b) => b.status === 'Cancelled').length;
   const activeCount = totalWeeks - cancelledCount;
   const progress = activeCount > 0 ? completedCount / activeCount : 0;
+  const ownershipLabel = getBookingOwnershipLabel(sorted[0]);
 
   const now = new Date();
   const nextBooking = sorted.find((b) => new Date(b.start) > now && b.status !== 'Cancelled');
@@ -121,6 +123,18 @@ export const SeriesBookingGroup = memo(function SeriesBookingGroup({
             <ThemedText style={[Typography.small, { color: palette.muted }]} numberOfLines={1}>
               {nextLabel}
             </ThemedText>
+            {ownershipLabel ? (
+              <View
+                style={[
+                  styles.ownershipBadge,
+                  { backgroundColor: withAlpha(palette.info, 0.12) },
+                ]}
+              >
+                <ThemedText style={[styles.ownershipText, { color: palette.info }]}>
+                  {ownershipLabel}
+                </ThemedText>
+              </View>
+            ) : null}
           </View>
         </Row>
         <Ionicons name={expanded ? 'chevron-up' : 'chevron-down'} size={20} color={palette.muted} />
@@ -174,6 +188,17 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   headerText: { flex: 1, gap: Spacing.micro },
+  ownershipBadge: {
+    alignSelf: 'flex-start',
+    paddingHorizontal: Spacing.xs,
+    paddingVertical: Spacing.micro,
+    borderRadius: Radii.pill,
+    marginTop: Spacing.xxs,
+  },
+  ownershipText: {
+    ...Typography.micro,
+    fontWeight: '700',
+  },
   progressContainer: { gap: Spacing.xxs },
   progressTrack: { height: 4, borderRadius: Radii.xs, overflow: 'hidden' },
   progressFill: { height: '100%', borderRadius: Radii.xs },

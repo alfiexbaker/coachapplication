@@ -34,6 +34,14 @@ export const styles = StyleSheet.create({
   detailedHeaderContent: { flex: 1, gap: Spacing.micro },
   detailedTitle: { ...Typography.heading },
   detailedSubtitle: { ...Typography.bodySmall },
+  ownershipBadge: {
+    alignSelf: 'flex-start',
+    paddingHorizontal: Spacing.xs,
+    paddingVertical: Spacing.micro,
+    borderRadius: Radii.pill,
+    marginTop: Spacing.micro,
+  },
+  ownershipText: { ...Typography.micro, fontWeight: '700' },
   metaSection: {
     gap: Spacing.xs,
     paddingTop: Spacing.xs,

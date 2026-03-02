@@ -13,6 +13,7 @@ import { Routes } from '@/navigation/routes';
 import { useAuth } from '@/hooks/use-auth';
 import { Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
+import { isCoach, isAdmin } from '@/utils/user-helpers';
 
 interface ManageAction {
   id: string;
@@ -27,9 +28,17 @@ export default function ManageScreen() {
   const { currentUser } = useAuth();
   const { colors } = useTheme();
 
-  const isCoach = currentUser?.role === 'COACH' || currentUser?.role === 'ADMIN';
+  const hasCoachAccess = isCoach(currentUser) || isAdmin(currentUser);
 
   const actions: ManageAction[] = [
+    {
+      id: 'booking-console',
+      title: 'Booking Console',
+      description: 'Create, assign, and monitor sessions from one club-operations surface.',
+      icon: 'layers-outline',
+      colorKey: 'warning',
+      route: Routes.MANAGE_BOOKINGS,
+    },
     {
       id: 'new',
       title: 'Create New Session',
@@ -72,7 +81,7 @@ export default function ManageScreen() {
     },
   ];
 
-  if (!isCoach) {
+  if (!hasCoachAccess) {
     return (
       <PageContainer
         header={<PageHeader title="Manage" subtitle="Coach operations" showBack />}

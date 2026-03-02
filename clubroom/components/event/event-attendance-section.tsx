@@ -28,13 +28,13 @@ export const EventAttendanceSection = memo(function EventAttendanceSection({
   onToggleAttendees,
 }: Props) {
   const { colors: palette } = useTheme();
-  const { going, maybe, notGoing, totalGuests } = attendeeCounts;
+  const { going, maybe, notGoing } = attendeeCounts;
 
   return (
     <View style={styles.section}>
       <Clickable onPress={onToggleAttendees} style={styles.header}>
         <ThemedText type="defaultSemiBold" style={styles.sectionTitle}>
-          Attendance ({going + totalGuests} confirmed)
+          Attendance ({going} confirmed)
         </ThemedText>
         <Ionicons
           name={showAttendees ? 'chevron-up' : 'chevron-down'}
@@ -58,12 +58,6 @@ export const EventAttendanceSection = memo(function EventAttendanceSection({
             Can&apos;t Go
           </ThemedText>
         </View>
-        {totalGuests > 0 && (
-          <View style={[styles.statBox, { backgroundColor: palette.surface }]}>
-            <ThemedText style={styles.statNumber}>+{totalGuests}</ThemedText>
-            <ThemedText style={[styles.statLabel, { color: palette.muted }]}>Guests</ThemedText>
-          </View>
-        )}
       </Row>
 
       {showAttendees && event.attendees.length > 0 && (
@@ -77,11 +71,6 @@ export const EventAttendanceSection = memo(function EventAttendanceSection({
                 </View>
                 <View style={styles.attendeeInfo}>
                   <ThemedText>{attendee.userId}</ThemedText>
-                  {attendee.guestCount > 0 && (
-                    <ThemedText style={[styles.guestCount, { color: palette.muted }]}>
-                      +{attendee.guestCount} guest{attendee.guestCount > 1 ? 's' : ''}
-                    </ThemedText>
-                  )}
                 </View>
                 <View style={[styles.statusDot, { backgroundColor: palette.success }]} />
               </Row>
@@ -126,7 +115,6 @@ const styles = StyleSheet.create({
     fontSize: scaleFont(Typography.bodySmallSemiBold.fontSize),
   },
   attendeeInfo: { flex: 1 },
-  guestCount: { ...Typography.caption, fontSize: scaleFont(Typography.caption.fontSize) },
   statusDot: { width: 8, height: 8, borderRadius: Radii.xs },
   viewAllButton: {
     alignItems: 'center',

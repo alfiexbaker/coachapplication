@@ -13,6 +13,7 @@ import { useScreen, type ScreenStatus } from '@/hooks/use-screen';
 import type { SessionOffering, FootballObjective } from '@/constants/types';
 import { createLogger } from '@/utils/logger';
 import { getSessionOfferingCoachName } from '@/utils/session-display';
+import { getSessionOfferingHeadcount } from '@/utils/session-offering-capacity';
 import { err, ok, serviceError, type ServiceError } from '@/types/result';
 
 const logger = createLogger('DiscoverSessions');
@@ -131,10 +132,8 @@ export function useDiscoverSessions() {
           offering.isRecurring || new Date(offering.scheduledAt).getTime() > now.getTime();
         if (!isFutureOrRecurring) return false;
 
-        const confirmedCount = offering.registrations.filter(
-          (registration) => registration.status === 'confirmed',
-        ).length;
-        if (confirmedCount >= offering.maxParticipants) return false;
+        const headcount = getSessionOfferingHeadcount(offering);
+        if (headcount >= offering.maxParticipants) return false;
 
         const isInvited = offering.invitedAthleteIds?.some((id) => viewerIds.has(id)) ?? false;
         const isOpenSession = offering.inviteType !== 'CLOSED';

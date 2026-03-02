@@ -1,16 +1,18 @@
+import { useCallback, useEffect, useState } from 'react';
 import { Alert, StyleSheet, View } from 'react-native';
 import { Image } from 'expo-image';
 import { router } from 'expo-router';
 import { Routes } from '@/navigation/routes';
 import { Ionicons } from '@expo/vector-icons';
 
-import { SettingsFormScreen, SettingsRow, SettingsSection } from '@/components/settings';
+import { SettingsFormScreen, SettingsRow, SettingsSection, SettingsToggleRow } from '@/components/settings';
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { ThemedText } from '@/components/themed-text';
 import { Row } from '@/components/primitives/row';
 import { Spacing, Components, Typography } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
 import { useSettingsHub } from '@/hooks/use-settings-hub';
+import { bookingSelfSettingService } from '@/services/booking-self-setting-service';
 import { createLogger } from '@/utils/logger';
 
 const logger = createLogger('SettingsHub');
@@ -18,6 +20,38 @@ const logger = createLogger('SettingsHub');
 export default function SettingsHubScreen() {
   const { colors } = useTheme();
   const { currentUser, isCoach, userHasChildren, handleLogout } = useSettingsHub();
+  const [allowBookSelf, setAllowBookSelf] = useState(false);
+
+  useEffect(() => {
+    if (!currentUser?.id || !(userHasChildren || currentUser.hasChildren)) {
+      setAllowBookSelf(false);
+      return;
+    }
+    let cancelled = false;
+    void bookingSelfSettingService.isEnabled(currentUser.id).then((enabled) => {
+      if (!cancelled) {
+        setAllowBookSelf(enabled);
+      }
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [currentUser?.hasChildren, currentUser?.id, userHasChildren]);
+
+  const handleAllowBookSelfChange = useCallback(
+    async (nextValue: boolean) => {
+      if (!currentUser?.id) return;
+      const previousValue = allowBookSelf;
+      setAllowBookSelf(nextValue);
+
+      const success = await bookingSelfSettingService.setEnabled(currentUser.id, nextValue);
+      if (!success) {
+        setAllowBookSelf(previousValue);
+        Alert.alert('Could not save setting', 'Please try again.');
+      }
+    },
+    [allowBookSelf, currentUser?.id],
+  );
 
   return (
     <SettingsFormScreen title="Settings">
@@ -66,6 +100,17 @@ export default function SettingsHubScreen() {
             onPress={() => {
               logger.press('CoachProfile');
               router.push(Routes.COACH_PROFILE);
+            }}
+          />
+        )}
+        {isCoach && (
+          <SettingsRow
+            icon="shield-checkmark"
+            title="Verification"
+            subtitle="Background checks and credentials"
+            onPress={() => {
+              logger.press('Verification');
+              router.push(Routes.VERIFICATION);
             }}
           />
         )}
@@ -121,6 +166,15 @@ export default function SettingsHubScreen() {
             router.push(Routes.SETTINGS_APPEARANCE);
           }}
         />
+        {(userHasChildren || currentUser?.hasChildren) && (
+          <SettingsToggleRow
+            icon="person"
+            title="Allow Booking for Self"
+            subtitle="When enabled, you can choose yourself in booking target selection."
+            value={allowBookSelf}
+            onValueChange={handleAllowBookSelfChange}
+          />
+        )}
         <SettingsRow
           icon="language"
           title="Language"
@@ -178,9 +232,25 @@ export default function SettingsHubScreen() {
           }}
         />
         <SettingsRow
+          icon="document-text"
+          title="Terms of Service"
+          onPress={() => {
+            logger.press('TermsOfService');
+            router.push(Routes.SETTINGS_TERMS);
+          }}
+        />
+        <SettingsRow
+          icon="lock-closed"
+          title="Privacy Policy"
+          onPress={() => {
+            logger.press('PrivacyPolicy');
+            router.push(Routes.SETTINGS_PRIVACY_POLICY);
+          }}
+        />
+        <SettingsRow
           icon="information-circle"
           title="About"
-          subtitle="Version, terms, privacy policy"
+          subtitle="Version information"
           onPress={() => {
             logger.press('About');
             Alert.alert(

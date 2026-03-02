@@ -1,10 +1,12 @@
 import { useState } from 'react';
 import { Alert } from 'react-native';
+import { router } from 'expo-router';
 
 import { SettingsFormScreen, SettingsRow, SettingsToggleRow, SettingsSection } from '@/components/settings';
 import { useTheme } from '@/hooks/useTheme';
 import { useAuth } from '@/hooks/use-auth';
 import { createLogger } from '@/utils/logger';
+import { Routes } from '@/navigation/routes';
 
 const logger = createLogger('PrivacySettings');
 
@@ -162,7 +164,7 @@ export default function PrivacySettingsScreen() {
           title="Privacy Policy"
           onPress={() => {
             logger.press('PrivacyPolicy');
-            Alert.alert('Privacy Policy', 'View our privacy policy at clubroom.app/privacy');
+            router.push(Routes.SETTINGS_PRIVACY_POLICY);
           }}
         />
         <SettingsRow
@@ -170,7 +172,7 @@ export default function PrivacySettingsScreen() {
           title="Terms of Service"
           onPress={() => {
             logger.press('TermsOfService');
-            Alert.alert('Terms of Service', 'View our terms at clubroom.app/terms');
+            router.push(Routes.SETTINGS_TERMS);
           }}
         />
         <SettingsRow

@@ -11,7 +11,7 @@
 import { memo } from 'react';
 import { ScrollView, View } from 'react-native';
 import { Clickable } from '@/components/primitives/clickable';
-import { router, type Href } from 'expo-router';
+import { router } from 'expo-router';
 import { Routes } from '@/navigation/routes';
 import { Ionicons } from '@expo/vector-icons';
 
@@ -168,7 +168,7 @@ export const EmptyFeedNoClubs = memo(function EmptyFeedNoClubs({
         </Clickable>
         <Clickable
           style={[styles.emptyStateButtonOutline, { borderColor: palette.border }]}
-          onPress={() => router.push(isCoach ? '/club/create' : ('/(tabs)/more' as Href))}
+          onPress={() => router.push(isCoach ? '/club/create' : Routes.DISCOVER_MAP)}
         >
           <Ionicons
             name={isCoach ? 'add-circle-outline' : 'search-outline'}

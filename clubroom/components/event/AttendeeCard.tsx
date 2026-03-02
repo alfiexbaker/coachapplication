@@ -27,7 +27,6 @@ export function AttendeeCard({
   const userName = attendance?.userId || rsvp?.userId || 'Unknown';
   const userPhotoUrl = undefined;
   const userRole = attendance?.userRole || rsvp?.userRole || 'PARENT';
-  const guestCount = attendance?.guestsCheckedIn ?? rsvp?.guestCount ?? 0;
   const isCheckedIn = !!attendance;
 
   if (compact) {
@@ -35,7 +34,6 @@ export function AttendeeCard({
       <CompactAttendeeCardInner
         userName={userName}
         userPhotoUrl={userPhotoUrl}
-        guestCount={guestCount}
         showCheckInStatus={showCheckInStatus}
         isCheckedIn={isCheckedIn}
         rsvpStatus={rsvp?.status}
@@ -51,7 +49,6 @@ export function AttendeeCard({
         userName={userName}
         userPhotoUrl={userPhotoUrl}
         userRole={userRole}
-        guestCount={guestCount}
         rsvp={rsvp}
         attendance={attendance}
         showCheckInStatus={showCheckInStatus}

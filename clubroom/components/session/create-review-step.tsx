@@ -49,6 +49,9 @@ interface CreateReviewStepProps {
   maxParticipants: string;
   inviteType: SessionInviteType;
   defaultMaxParticipants: number;
+  postingAs?: 'self' | 'club';
+  selectedClubName?: string;
+  selectedAssigneeName?: string;
 }
 
 function parseTimeToMinutes(time: string): number | null {
@@ -101,6 +104,9 @@ export const CreateReviewStep = memo(function CreateReviewStep({
   maxParticipants,
   inviteType,
   defaultMaxParticipants,
+  postingAs = 'self',
+  selectedClubName,
+  selectedAssigneeName,
 }: CreateReviewStepProps) {
   const typeConfig = useMemo(() => SESSION_TYPES.find((t) => t.key === sessionType), [sessionType]);
   const recurrenceLabel = useMemo(
@@ -228,6 +234,25 @@ export const CreateReviewStep = memo(function CreateReviewStep({
                 <ThemedText style={{ color: colors.muted, ...Typography.caption }}>
                   {scheduleSubLabel}
                 </ThemedText>
+              </Column>
+            </Row>
+
+            <Row align="flex-start" gap="sm">
+              <Ionicons name="briefcase-outline" size={18} color={colors.muted} />
+              <Column>
+                <ThemedText style={[styles.itemLabel, { color: colors.muted }]}>
+                  Ownership
+                </ThemedText>
+                <ThemedText type="defaultSemiBold">
+                  {postingAs === 'club' && selectedClubName
+                    ? `Club: ${selectedClubName}`
+                    : 'Created as self'}
+                </ThemedText>
+                {postingAs === 'club' && selectedAssigneeName ? (
+                  <ThemedText style={{ color: colors.muted, ...Typography.caption }}>
+                    Assigned to {selectedAssigneeName}
+                  </ThemedText>
+                ) : null}
               </Column>
             </Row>
 

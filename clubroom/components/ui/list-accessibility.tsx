@@ -5,7 +5,7 @@ type AccessibleListCellProps = PropsWithChildren<ViewProps>;
 
 export function AccessibleListCell({ children, ...props }: AccessibleListCellProps) {
   return (
-    <View {...props} accessible accessibilityRole="listitem">
+    <View {...props} accessible accessibilityRole="none">
       {children}
     </View>
   );

@@ -53,7 +53,7 @@ export default function RSVPScreen() {
     responseStatus: 'going' | 'not_going' | 'maybe';
   } | null>(null);
   const renderShell = (content: ReactNode) => (
-    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top', 'bottom']}>
+    <SafeAreaView style={[styles.safeArea, { backgroundColor: colors.background }]} edges={['top', 'bottom']}>
       {content}
     </SafeAreaView>
   );

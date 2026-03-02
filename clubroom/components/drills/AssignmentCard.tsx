@@ -227,7 +227,7 @@ export function AssignmentCard({
           {/* Complete button */}
           {!assignment.isCompleted && onComplete && (
             <Clickable
-              onPress={onComplete}
+              onPress={() => onComplete()}
               style={[styles.completeButton, { backgroundColor: palette.tint }]}
             >
               <Ionicons name="checkmark" size={18} color={palette.onPrimary} />

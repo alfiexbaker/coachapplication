@@ -3,8 +3,8 @@ import { Alert, RefreshControl, Share, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 import Animated from 'react-native-reanimated';
+import { Ionicons } from '@expo/vector-icons';
 import { PageHeader } from '@/components/primitives/page-header';
-import { ChildSwitcher } from '@/components/family/child-switcher';
 import { LoadingState, ErrorState, EmptyState } from '@/components/ui/screen-states';
 import { CelebrationOverlay, type CelebrationOverlayRef } from '@/components/celebration-overlay';
 import { ThemedText } from '@/components/themed-text';
@@ -33,6 +33,7 @@ import { Routes } from '@/navigation/routes';
 import { onTyped, ServiceEvents } from '@/services/event-bus';
 import { progressTermlyReportService } from '@/services/progress/progress-termly-report-service';
 import { DemoBanner, isDemoMode } from '@/utils/demo-mode';
+import { Clickable } from '@/components/primitives/clickable';
 
 const TIER_ACCENT: Record<CardTier, string> = {
   bronze: '#B87333',
@@ -41,6 +42,7 @@ const TIER_ACCENT: Record<CardTier, string> = {
   platinum: '#4A90D9',
   diamond: '#E040FB',
 };
+const DEFAULT_FEEDBACK_MEDIA_DIMENSION = 1080;
 
 export default function MyProgressScreen() {
   const { colors, scheme } = useTheme();
@@ -90,10 +92,10 @@ export default function MyProgressScreen() {
     familyHighlights,
     isParentContext,
     switcherChildren,
+    hasMultipleChildren,
     selectedAthleteId,
     selectedAthleteName,
-    activeChildId,
-    handleSelectChild,
+    handleSelectNextChild,
     handleRefresh,
     generateTermlyReport,
     retry,
@@ -141,9 +143,44 @@ export default function MyProgressScreen() {
     };
   }, [colors.info, colors.success, colors.tint, colors.warning, playerCard.tier]);
 
-  const showChildSwitcher =
-    isParentContext && switcherChildren.length > 1 && Boolean(selectedAthleteId);
+  const showChildFocusCard = isParentContext && Boolean(selectedAthleteId);
   const pageTitle = isParentContext ? 'Progress' : 'My Progress';
+  const childFocusCard = showChildFocusCard ? (
+    <View style={styles.childFocusWrap}>
+      <View
+        style={[
+          styles.childFocusCard,
+          {
+            backgroundColor: colors.surface,
+            borderColor: colors.border,
+          },
+        ]}
+      >
+        <Row align="center" justify="space-between">
+          <Row align="center" gap="xs">
+            <Ionicons name="person-circle-outline" size={18} color={colors.tint} />
+            <ThemedText style={[styles.childLabel, { color: colors.muted }]}>Kid</ThemedText>
+            <ThemedText style={styles.childName}>{selectedAthleteName}</ThemedText>
+          </Row>
+          {hasMultipleChildren ? (
+            <Clickable
+              onPress={handleSelectNextChild}
+              style={[
+                styles.childActionButton,
+                { borderColor: colors.border, backgroundColor: withAlpha(colors.tint, 0.08) },
+              ]}
+              accessibilityLabel="Switch selected kid"
+            >
+              <Row align="center" gap="xxs">
+                <Ionicons name="swap-horizontal-outline" size={14} color={colors.tint} />
+                <ThemedText style={[styles.childActionText, { color: colors.tint }]}>Switch</ThemedText>
+              </Row>
+            </Clickable>
+          ) : null}
+        </Row>
+      </View>
+    </View>
+  ) : null;
 
   const handleViewAllFeedback = useCallback(() => {
     if (selectedAthleteId) {
@@ -221,8 +258,8 @@ export default function MyProgressScreen() {
       photos: fallbackPhotoUrls.map((uri, index) => ({
         uri,
         thumbnailUri: uri,
-        width: 1080,
-        height: 1080,
+        width: DEFAULT_FEEDBACK_MEDIA_DIMENSION,
+        height: DEFAULT_FEEDBACK_MEDIA_DIMENSION,
         capturedAt: new Date(
           new Date(latestFeedback.createdAt).getTime() + index * 1000,
         ).toISOString(),
@@ -355,16 +392,7 @@ export default function MyProgressScreen() {
       >
 
         <PageHeader title={pageTitle} showBack centerTitle onBackPress={() => router.back()} />
-        {showChildSwitcher ? (
-          <View style={styles.switcherWrap}>
-            <ChildSwitcher
-              options={switcherChildren}
-              selectedId={selectedAthleteId ?? undefined}
-              onSelect={handleSelectChild}
-              activeChildId={activeChildId}
-            />
-          </View>
-        ) : null}
+        {childFocusCard}
         <LoadingState variant="form" />
       </SafeAreaView>
     );
@@ -378,16 +406,7 @@ export default function MyProgressScreen() {
       >
 
         <PageHeader title={pageTitle} showBack centerTitle onBackPress={() => router.back()} />
-        {showChildSwitcher ? (
-          <View style={styles.switcherWrap}>
-            <ChildSwitcher
-              options={switcherChildren}
-              selectedId={selectedAthleteId ?? undefined}
-              onSelect={handleSelectChild}
-              activeChildId={activeChildId}
-            />
-          </View>
-        ) : null}
+        {childFocusCard}
         <ErrorState message={error?.message ?? 'Unable to load progress.'} onRetry={retry} />
       </SafeAreaView>
     );
@@ -402,16 +421,7 @@ export default function MyProgressScreen() {
       >
 
         <PageHeader title={pageTitle} showBack centerTitle onBackPress={() => router.back()} />
-        {showChildSwitcher ? (
-          <View style={styles.switcherWrap}>
-            <ChildSwitcher
-              options={switcherChildren}
-              selectedId={selectedAthleteId ?? undefined}
-              onSelect={handleSelectChild}
-              activeChildId={activeChildId}
-            />
-          </View>
-        ) : null}
+        {childFocusCard}
         <EmptyState
           icon={isParentWithoutChildren ? 'people-outline' : 'analytics-outline'}
           title={isParentWithoutChildren ? 'No children linked yet' : 'No progress yet'}
@@ -450,16 +460,7 @@ export default function MyProgressScreen() {
     >
       <PageHeader title={pageTitle} showBack centerTitle onBackPress={() => router.back()} />
 
-      {showChildSwitcher ? (
-        <View style={styles.switcherWrap}>
-          <ChildSwitcher
-            options={switcherChildren}
-            selectedId={selectedAthleteId ?? undefined}
-            onSelect={handleSelectChild}
-            activeChildId={activeChildId}
-          />
-        </View>
-      ) : null}
+      {childFocusCard}
 
       <Animated.ScrollView
         ref={scrollRef}
@@ -648,9 +649,29 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
   },
-  switcherWrap: {
+  childFocusWrap: {
     paddingHorizontal: Spacing.md,
     paddingBottom: Spacing.xs,
+  },
+  childFocusCard: {
+    borderWidth: 1,
+    borderRadius: Radii.lg,
+    padding: Spacing.sm,
+  },
+  childLabel: {
+    ...Typography.caption,
+  },
+  childName: {
+    ...Typography.bodySmallSemiBold,
+  },
+  childActionButton: {
+    borderRadius: Radii.pill,
+    borderWidth: 1,
+    paddingHorizontal: Spacing.sm,
+    paddingVertical: Spacing.xxs,
+  },
+  childActionText: {
+    ...Typography.caption,
   },
   content: {
     padding: Spacing.md,

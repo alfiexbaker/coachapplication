@@ -12,10 +12,11 @@ import { Routes } from '@/navigation/routes';
 
 import { apiClient } from '@/services/api-client';
 import { bookingService } from '@/services/booking-service';
+import { STORAGE_KEYS } from '@/constants/storage-keys';
 import { useAuth } from '@/hooks/use-auth';
 import { useScreen, type ScreenStatus } from '@/hooks/use-screen';
 import { useSessionNote } from '@/hooks/use-session-note';
-import type { BookingSummary, Booking } from '@/constants/types';
+import type { BookingSummary, Booking, RecurringBooking } from '@/constants/types';
 import { createLogger } from '@/utils/logger';
 import type { ServiceError } from '@/types/result';
 import { err, ok, serviceError } from '@/types/result';
@@ -60,7 +61,26 @@ const mapBookingStatus = (status: Booking['status']): BookingSummary['status'] =
   return 'Pending';
 };
 
-const toBookingSummary = (booking: Booking, viewerUserId?: string): BookingSummary => {
+const toBookingSummary = (
+  booking: Booking,
+  options?: {
+    viewerUserId?: string;
+    recurringSource?: RecurringBooking;
+    userNameById?: Map<string, string>;
+  },
+): BookingSummary => {
+  const viewerUserId = options?.viewerUserId;
+  const recurringSource = options?.recurringSource;
+  const userNameById = options?.userNameById;
+  const resolveUserLabel = (userId?: string, fallback?: string) => {
+    if (!userId) return fallback;
+    return userNameById?.get(userId) || fallback || userId;
+  };
+
+  const ownerCoachId = booking.ownerCoachId ?? recurringSource?.ownerCoachId;
+  const assigneeCoachId = booking.assigneeCoachId ?? recurringSource?.assigneeCoachId;
+  const createdByUserId = booking.createdByUserId ?? recurringSource?.createdByUserId;
+  const coachDisplayName = resolveUserLabel(booking.coachId, booking.coachName ?? 'Coach');
   const athleteId = booking.athleteId ?? booking.athleteIds?.[0] ?? '';
   const athleteName = getBookingAthleteName(booking);
   const isSelfBooking = Boolean(viewerUserId && athleteId && athleteId === viewerUserId);
@@ -72,8 +92,18 @@ const toBookingSummary = (booking: Booking, viewerUserId?: string): BookingSumma
     start: booking.scheduledAt,
     status: mapBookingStatus(booking.status),
     locationLabel: booking.location,
+    createdAt: booking.createdAt,
+    clubId: booking.clubId ?? recurringSource?.clubId,
+    actingAs: booking.actingAs ?? recurringSource?.actingAs,
+    ownerCoachId,
+    ownerCoachName: resolveUserLabel(ownerCoachId, booking.coachName),
+    assigneeCoachId,
+    assigneeCoachName: resolveUserLabel(assigneeCoachId),
+    createdByUserId,
+    createdByName: resolveUserLabel(createdByUserId, booking.bookedByName),
+    createdByRole: booking.createdByRole ?? recurringSource?.createdByRole,
     coach: {
-      name: booking.coachName ?? 'Coach',
+      name: coachDisplayName ?? 'Coach',
       photoUrl: `https://i.pravatar.cc/100?u=${booking.coachId}`,
     },
     client: {
@@ -98,15 +128,25 @@ export function useBookingDetail(id: string): BookingDetailResult {
     logger.debug('Loading booking', { id });
 
     try {
-      const booking = await bookingService.getBooking(id);
-      if (booking) {
-        return ok<BookingSummary | null>(toBookingSummary(booking, currentUser?.id));
-      }
+      const [serviceBooking, sessionBookings, recurringBookings, users] = await Promise.all([
+        bookingService.getBooking(id),
+        apiClient.get<Booking[]>(STORAGE_KEYS.BOOKINGS, []),
+        apiClient.get<RecurringBooking[]>(STORAGE_KEYS.RECURRING_BOOKINGS, []),
+        apiClient.get<{ id: string; name?: string; fullName?: string }[]>(STORAGE_KEYS.USERS, []),
+      ]);
+      const userNameById = new Map(
+        users.map((user) => [user.id, user.fullName?.trim() || user.name?.trim() || user.id]),
+      );
+      const recurringById = new Map(recurringBookings.map((entry) => [entry.id, entry]));
 
-      const sessionBookings = await apiClient.get<Booking[]>('session_bookings', []);
-      const sessionBooking = sessionBookings.find((entry) => entry.id === id);
-      if (sessionBooking) {
-        return ok<BookingSummary | null>(toBookingSummary(sessionBooking, currentUser?.id));
+      const booking = serviceBooking ?? sessionBookings.find((entry) => entry.id === id) ?? null;
+      if (booking) {
+        const recurringSource = booking.recurringBookingId
+          ? recurringById.get(booking.recurringBookingId)
+          : undefined;
+        return ok<BookingSummary | null>(
+          toBookingSummary(booking, { viewerUserId: currentUser?.id, recurringSource, userNameById }),
+        );
       }
 
       return ok<BookingSummary | null>(null);
@@ -170,8 +210,12 @@ export function useBookingDetail(id: string): BookingDetailResult {
   }, [booking]);
 
   const handleReportProblem = useCallback(() => {
+    if (booking?.id) {
+      router.push(Routes.bookingsReportProblem({ bookingId: booking.id }));
+      return;
+    }
     router.push(Routes.BOOKINGS_REPORT_PROBLEM);
-  }, []);
+  }, [booking?.id]);
 
   const handleRebook = useCallback(() => {
     if (!booking?.coachId) return;

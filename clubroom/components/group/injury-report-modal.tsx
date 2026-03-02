@@ -166,17 +166,15 @@ export const InjuryReportModal = memo(function InjuryReportModal({
               multiline
               numberOfLines={4}
               textAlignVertical="top"
-
-            maxLength={500}
-          />
+              maxLength={500}
+            />
           </View>
 
           {/* Info */}
           <Row style={[styles.info, { backgroundColor: withAlpha(colors.tint, 0.06) }]}>
             <Ionicons name="information-circle" size={20} color={colors.tint} />
             <ThemedText style={[Typography.small, { color: colors.muted, flex: 1 }]}>
-              This injury will be logged to the athlete&apos;s health records and automatically
-              shared with their parent/guardian.
+              Saved to the athlete&apos;s health record and shared with their parent or guardian.
             </ThemedText>
           </Row>
 

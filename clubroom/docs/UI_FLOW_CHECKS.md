@@ -29,6 +29,12 @@ npm run ui:flows:list
 npm run ui:flows:run
 ```
 
+4. Verify login/access only (recommended before full or core runs):
+
+```bash
+npm run ui:flows:preflight
+```
+
 ## Common Commands
 
 - Coach only:
@@ -49,6 +55,30 @@ npm run ui:flows:parent
 npm run ui:flows:athlete
 ```
 
+- Coach core smoke suite:
+
+```bash
+npm run ui:flows:coach-core
+```
+
+- Parent core smoke suite:
+
+```bash
+npm run ui:flows:parent-core
+```
+
+- Athlete core smoke suite:
+
+```bash
+npm run ui:flows:athlete-core
+```
+
+- Trust/safety suite (raise concern, medical/emergency, injuries, journal):
+
+```bash
+npm run ui:flows:trust-core
+```
+
 - Chunked run (example: role `coach`, chunk size 10, run chunk 2):
 
 ```bash
@@ -67,15 +97,21 @@ npm run ui:flows:merge -- --input-dir=/tmp/ui-flow-checks-50 --output-dir=/tmp/u
   - `none`: never fail process exit code.
   - `high`: fail only on high severity findings.
   - `medium`: fail on medium or high findings.
+- `--profile=<name>` / `--profiles=a,b`
+  - `coach-core`, `parent-core`, `athlete-core`, `trust-core`, `pre-api-core`
 - `--retries=N`: retry login/navigation transient failures.
 - `--pause-ms=N`: control wait between steps for slower runners.
 - `--out-dir=/path`: isolate artifacts per job.
+- `--preflight-only`: run only login/access verification.
+- `--skip-preflight`: skip preflight (not recommended for CI smoke).
 
 Environment equivalents:
 
 - `UI_BASE_URL`
 - `UI_FLOW_OUT_DIR`
 - `UI_FLOW_ROLES`
+- `UI_FLOW_PROFILE`
+- `UI_FLOW_PROFILES`
 - `UI_FLOW_CHUNK_SIZE`
 - `UI_FLOW_CHUNK_INDEX`
 - `UI_FLOW_RETRIES`
@@ -93,6 +129,8 @@ Default output dir:
 
 Generated artifacts:
 
+- `preflight.json` and `preflight.md` (access/login readiness per role)
+- `preflight.<role>.png` proof screenshots
 - `report.json` and `report.md` (global run summary)
 - `report.partial.json` (incremental in-progress snapshot)
 - `report.<role>.json` and `report.<role>.md` (per-role summary)
@@ -106,27 +144,18 @@ Merged artifacts (from `ui-flow-merge-reports.mjs`):
 
 ## Recommended CI Matrix
 
-Run one role per job with chunking. Example:
+PR gate (bounded smoke):
 
-- Job A: `--roles=coach --chunk-size=10 --chunk-index=1`
-- Job B: `--roles=coach --chunk-size=10 --chunk-index=2`
-- Job C: `--roles=parent --chunk-size=10 --chunk-index=1`
-- Job D: `--roles=parent --chunk-size=10 --chunk-index=2`
-- Job E: `--roles=athlete --chunk-size=10 --chunk-index=1`
+- Job A: `npm run ui:flows:coach-core`
+- Job B: `npm run ui:flows:parent-core`
+- Job C: `npm run ui:flows:athlete-core`
+- Job D: `npm run ui:flows:trust-core`
 
-Set `--fail-on=high` for PR gating by default.
+Set `--fail-on=high` for PR gating. Keep full role-chunk suites for scheduled/nightly runs.
 
-## GitHub Actions Matrix
+## GitHub Actions Status
 
-Workflow:
-
-```text
-.github/workflows/ui-flow-checks.yml
-```
-
-Behavior:
-
-- Runs role/chunk jobs in parallel with `--fail-on=none` to collect full diagnostics.
-- Uploads per-chunk artifacts for each matrix job.
-- Runs a merge job that combines all chunk reports and enforces `--fail-on=high`.
-- Publishes merged Markdown summary in the job summary and uploads merged artifacts.
+- Workflow: `.github/workflows/ui-flow-smoke.yml`
+- PR + manual dispatch run parallel profile jobs: `coach-core`, `parent-core`, `athlete-core`, `trust-core`.
+- Merge job consolidates artifacts and enforces `--fail-on=high`.
+- Keep full chunked role matrix as optional nightly expansion if deeper diagnostics are needed.

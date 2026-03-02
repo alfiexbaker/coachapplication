@@ -165,7 +165,6 @@ export default function ScheduleScreen() {
       content: (
         <ErrorState
           message="Coach not found"
-          description="This booking link is missing a coach."
           onRetry={() => router.back()}
         />
       ),

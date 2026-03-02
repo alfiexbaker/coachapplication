@@ -227,8 +227,8 @@ export const eventRsvpService = {
    */
   isEventFull(event: ClubEvent): boolean {
     if (!event.maxAttendees) return false;
-    const { going, totalGuests } = this.getAttendeeCounts(event.attendees);
-    return going + totalGuests >= event.maxAttendees;
+    const { going } = this.getAttendeeCounts(event.attendees);
+    return going >= event.maxAttendees;
   },
 
   // ============================================================================

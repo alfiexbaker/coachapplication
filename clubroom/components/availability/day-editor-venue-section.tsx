@@ -6,7 +6,7 @@ import { memo, useCallback, useEffect, useMemo, useState } from 'react';
 import { Alert, Keyboard, Modal, Platform, ScrollView, StyleSheet, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Clickable } from '@/components/primitives/clickable';
 import { ThemedText } from '@/components/themed-text';
@@ -31,6 +31,7 @@ import {
 } from '@/utils/location-presets';
 
 const logger = createLogger('DayEditorVenueSection');
+const LOCATION_MODAL_FOOTER_HEIGHT = 84;
 
 interface DayEditorVenueSectionProps {
   venues: CoachVenue[];
@@ -226,10 +227,13 @@ function DayEditorVenueSectionInner({
       <Modal
         visible={showAddVenueInput}
         animationType="slide"
-        presentationStyle="pageSheet"
+        presentationStyle="fullScreen"
         onRequestClose={closeAddVenueModal}
       >
-        <View style={[styles.modalContainer, { backgroundColor: palette.background }]}>
+        <SafeAreaView
+          style={[styles.modalContainer, { backgroundColor: palette.background }]}
+          edges={['top', 'bottom']}
+        >
           <Row align="center" justify="space-between" style={styles.modalHeader}>
             <ThemedText type="subtitle">Add Location</ThemedText>
             <Clickable
@@ -248,7 +252,11 @@ function DayEditorVenueSectionInner({
             keyboardDismissMode={Platform.OS === 'ios' ? 'interactive' : 'on-drag'}
             contentContainerStyle={[
               styles.modalContent,
-              { paddingBottom: Math.max(insets.bottom + Spacing.lg, Spacing['2xl']) },
+              {
+                paddingBottom:
+                  LOCATION_MODAL_FOOTER_HEIGHT +
+                  Math.max(insets.bottom + Spacing.lg, Spacing['2xl']),
+              },
             ]}
           >
             <AddLocationPicker
@@ -266,7 +274,16 @@ function DayEditorVenueSectionInner({
             />
           </ScrollView>
 
-          <Row gap="xs" style={[styles.actionsRow, { borderTopColor: palette.border }]}>
+          <Row
+            gap="xs"
+            style={[
+              styles.actionsRow,
+              {
+                borderTopColor: palette.border,
+                paddingBottom: Math.max(insets.bottom + Spacing.xs, Spacing.md),
+              },
+            ]}
+          >
             <Clickable
               accessibilityLabel="Cancel add location"
               onPress={closeAddVenueModal}
@@ -302,7 +319,7 @@ function DayEditorVenueSectionInner({
               </ThemedText>
             </Clickable>
           </Row>
-        </View>
+        </SafeAreaView>
       </Modal>
     </>
   );

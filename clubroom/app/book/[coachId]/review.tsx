@@ -16,7 +16,7 @@ import {
 } from '@/components/ui/booking/review-payment-sections';
 import { CancellationPolicyCard } from '@/components/booking/cancellation-policy-card';
 import { EmptyState, ErrorState, LoadingState } from '@/components/ui/screen-states';
-import { Radii, Spacing, Typography } from '@/constants/theme';
+import { Radii, Spacing, Typography, withAlpha } from '@/constants/theme';
 import { useScreen } from '@/hooks/use-screen';
 import { err, ok, serviceError } from '@/types/result';
 import { useBookingFlow } from '@/context/booking-flow-context';
@@ -89,6 +89,12 @@ export default function ReviewScreen() {
   });
   const coach = data?.coach ?? null;
   const cancellationPolicy = data?.cancellationPolicy ?? null;
+  const resolvedCoachId = coachId || draft.coachId;
+  const hasRequiredDraft =
+    Boolean(resolvedCoachId) &&
+    Boolean(coach?.name || draft.coachName) &&
+    Boolean(draft.date && draft.slot) &&
+    Boolean(draft.childId || draft.athleteName);
 
   useEffect(() => {
     if (coach?.name) {
@@ -233,6 +239,11 @@ export default function ReviewScreen() {
           promoDiscount={promoDiscount}
           total={total}
         />
+        {!hasRequiredDraft && (
+          <ThemedText style={[styles.rateNote, { color: palette.warning }]}>
+            Complete session type, schedule, and athlete details before confirmation.
+          </ThemedText>
+        )}
 
         {coach?.minPrice && (
           <ThemedText style={[styles.rateNote, { color: palette.muted }]}>
@@ -243,11 +254,22 @@ export default function ReviewScreen() {
       <View style={[styles.footer, { borderTopColor: palette.border }]}>
         <Clickable
           onPress={() => {
+            if (!resolvedCoachId || !hasRequiredDraft) {
+              return;
+            }
             // Store final price in draft
             updateDraft({ totalPrice: total, price: sessionPrice });
-            router.push(Routes.bookConfirmation(coachId));
+            router.push(Routes.bookConfirmation(resolvedCoachId));
           }}
-          style={[styles.cta, { backgroundColor: palette.tint }]}
+          style={[
+            styles.cta,
+            {
+              backgroundColor: hasRequiredDraft
+                ? palette.tint
+                : withAlpha(palette.tint, 0.45),
+            },
+          ]}
+          disabled={!hasRequiredDraft}
         >
           <Row justify="center" align="center" gap="sm">
             <Ionicons

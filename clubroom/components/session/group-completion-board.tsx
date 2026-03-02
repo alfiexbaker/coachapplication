@@ -23,6 +23,7 @@ interface GroupCompletionBoardProps {
   onSendGroupMessage: () => void;
   onPersonalFeedback: (registrationId: string) => void;
   onMessage: (registrationId: string) => void;
+  onRaiseConcern: (registrationId: string) => void;
   onAddVideo: () => void;
   onRemoveVideo: (index: number) => void;
   onAddImage: () => void;
@@ -66,6 +67,7 @@ export const GroupCompletionBoard = memo(function GroupCompletionBoard({
   onSendGroupMessage,
   onPersonalFeedback,
   onMessage,
+  onRaiseConcern,
   onAddVideo,
   onRemoveVideo,
   onAddImage,
@@ -158,6 +160,22 @@ export const GroupCompletionBoard = memo(function GroupCompletionBoard({
                     <Ionicons name="create-outline" size={12} color={colors.tint} />
                     <ThemedText numberOfLines={1} style={[styles.inlineActionText, { color: colors.tint }]}>
                       Personal feedback
+                    </ThemedText>
+                  </Row>
+                </Clickable>
+                <Clickable
+                  style={[
+                    styles.inlineAction,
+                    {
+                      backgroundColor: withAlpha(colors.error, 0.08),
+                    },
+                  ]}
+                  onPress={() => onRaiseConcern(athlete.registrationId)}
+                >
+                  <Row align="center" justify="center" gap="micro">
+                    <Ionicons name="warning-outline" size={12} color={colors.error} />
+                    <ThemedText numberOfLines={1} style={[styles.inlineActionText, { color: colors.error }]}>
+                      Concern
                     </ThemedText>
                   </Row>
                 </Clickable>

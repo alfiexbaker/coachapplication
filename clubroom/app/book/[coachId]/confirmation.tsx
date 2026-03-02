@@ -17,7 +17,9 @@ import { useBookingFlow } from '@/context/booking-flow-context';
 import { useAuth } from '@/hooks/use-auth';
 import { CancellationPolicyCard } from '@/components/booking/cancellation-policy-card';
 import { bookingService } from '@/services/booking-service';
+import { bookingSelfSettingService } from '@/services/booking-self-setting-service';
 import { cancellationService } from '@/services/cancellation-service';
+import { coachService } from '@/services/coach-service';
 import { createLogger } from '@/utils/logger';
 import { CelebrationOverlay, CelebrationOverlayRef } from '@/components/celebration-overlay';
 
@@ -32,15 +34,37 @@ export default function ConfirmationScreen() {
   const [isCreating, setIsCreating] = useState(false);
   const [bookingId, setBookingId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [resolvedCoachName, setResolvedCoachName] = useState(draft.coachName ?? '');
   const [cancellationPolicy, setCancellationPolicy] = useState<import('@/constants/types').CancellationPolicy | null>(null);
   const celebrationRef = useRef<CelebrationOverlayRef>(null);
+  const resolvedCoachId = coachId || draft.coachId;
   const handleOpenBooking = (id: string) => {
     reset();
-    router.replace(Routes.bookingCancel(id));
+    router.replace(Routes.booking(id));
   };
-  const handleMessageCoach = () => router.push(Routes.chat(coachId || 'new'));
+  const handleMessageCoach = () => router.push(Routes.chat(resolvedCoachId || 'new'));
 
-  const resolvedCoachId = coachId || draft.coachId;
+  useEffect(() => {
+    setResolvedCoachName(draft.coachName ?? '');
+  }, [draft.coachName]);
+
+  useEffect(() => {
+    if (!resolvedCoachId || resolvedCoachName.trim().length > 0) {
+      return;
+    }
+
+    let isMounted = true;
+    void coachService.getCoach(resolvedCoachId).then((result) => {
+      if (!isMounted || !result.success) {
+        return;
+      }
+      setResolvedCoachName(result.data.name ?? '');
+    });
+
+    return () => {
+      isMounted = false;
+    };
+  }, [resolvedCoachId, resolvedCoachName]);
 
   useEffect(() => {
     if (!resolvedCoachId) return;
@@ -73,14 +97,15 @@ export default function ConfirmationScreen() {
       const resolvedCoach = coachId || draft.coachId;
       const resolvedAthleteId = draft.childId || currentUser?.id;
       const resolvedAthleteName = draft.athleteName || currentUser?.name;
+      const coachName = draft.coachName || resolvedCoachName;
 
-      if (!resolvedCoach || !draft.coachName) {
+      if (!resolvedCoach || !coachName) {
         setError('Missing coach information. Please go back and try again.');
         setIsCreating(false);
         return;
       }
       if (!resolvedAthleteId || !resolvedAthleteName) {
-        setError('No child selected. Please go back and select a child.');
+        setError('No booking target selected. Please go back and choose who this session is for.');
         setIsCreating(false);
         return;
       }
@@ -88,6 +113,15 @@ export default function ConfirmationScreen() {
         setError('You must be logged in to book a session.');
         setIsCreating(false);
         return;
+      }
+      const hasChildren = Boolean(currentUser.hasChildren || (currentUser.children?.length ?? 0) > 0);
+      if (hasChildren && resolvedAthleteId === currentUser.id) {
+        const canBookSelf = await bookingSelfSettingService.isEnabled(currentUser.id);
+        if (!canBookSelf) {
+          setError('Booking for yourself is disabled. Enable it in Settings to continue.');
+          setIsCreating(false);
+          return;
+        }
       }
       if (!draft.date || !draft.slot) {
         setError('Missing date or time. Please go back and select a slot.');
@@ -101,11 +135,11 @@ export default function ConfirmationScreen() {
 
       const result = await bookingService.createBooking({
         coachId: resolvedCoach,
-        coachName: draft.coachName,
+        coachName,
         athleteIds: [resolvedAthleteId],
         athleteNames: [resolvedAthleteName],
         bookedById: currentUser.id,
-        bookedByName: currentUser.name || currentUser.fullName || 'Parent',
+        bookedByName: currentUser.name || currentUser.fullName || 'User',
         scheduledAt: `${draft.date}T${draft.slot}:00`,
         duration: draft.duration || 60,
         location: draft.locationText || draft.locationOption || '',
@@ -123,7 +157,7 @@ export default function ConfirmationScreen() {
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
         celebrationRef.current?.celebrate({
           title: 'Booking Confirmed!',
-          subtitle: `Session with ${draft.coachName || 'your coach'} is all set`,
+          subtitle: `Session with ${coachName || 'your coach'} is all set`,
           icon: 'checkmark-circle',
           iconColor: palette.success,
           duration: 2500,

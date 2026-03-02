@@ -48,7 +48,6 @@ export function getRoleLabel(role: string): string {
 interface CompactAttendeeCardInnerProps {
   userName: string;
   userPhotoUrl?: string;
-  guestCount: number;
   showCheckInStatus: boolean;
   isCheckedIn: boolean;
   rsvpStatus?: string;
@@ -59,7 +58,6 @@ interface CompactAttendeeCardInnerProps {
 export const CompactAttendeeCardInner = memo(function CompactAttendeeCardInner({
   userName,
   userPhotoUrl,
-  guestCount,
   showCheckInStatus,
   isCheckedIn,
   rsvpStatus,
@@ -82,11 +80,6 @@ export const CompactAttendeeCardInner = memo(function CompactAttendeeCardInner({
         <ThemedText style={styles.compactName} numberOfLines={1}>
           {userName}
         </ThemedText>
-        {guestCount > 0 && (
-          <ThemedText style={[styles.compactGuests, { color: palette.muted }]}>
-            +{guestCount} guest{guestCount > 1 ? 's' : ''}
-          </ThemedText>
-        )}
       </Row>
 
       {showCheckInStatus && (
@@ -119,7 +112,6 @@ interface AttendeeDetailContentProps {
   userName: string;
   userPhotoUrl?: string;
   userRole: string;
-  guestCount: number;
   rsvp?: EventRSVP;
   attendance?: EventAttendance;
   showCheckInStatus: boolean;
@@ -131,7 +123,6 @@ export const AttendeeDetailContent = memo(function AttendeeDetailContent({
   userName,
   userPhotoUrl,
   userRole,
-  guestCount,
   rsvp,
   attendance,
   showCheckInStatus,
@@ -194,14 +185,6 @@ export const AttendeeDetailContent = memo(function AttendeeDetailContent({
               {getRoleLabel(userRole)}
             </ThemedText>
           </Row>
-          {guestCount > 0 && (
-            <Row style={styles.guestTag}>
-              <Ionicons name="people" size={12} color={palette.muted} />
-              <ThemedText style={[styles.guestText, { color: palette.muted }]}>
-                +{guestCount} guest{guestCount > 1 ? 's' : ''}
-              </ThemedText>
-            </Row>
-          )}
         </Row>
 
         {attendance && (

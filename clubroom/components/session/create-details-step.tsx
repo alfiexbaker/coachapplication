@@ -35,6 +35,14 @@ interface CreateDetailsStepProps {
   onDescriptionChange: (v: string) => void;
   onToggleFocusArea: (area: FootballObjective) => void;
   onMaxParticipantsChange: (v: string) => void;
+  postingAs?: 'self' | 'club';
+  clubOptions?: { id: string; name: string }[];
+  selectedClubId?: string | null;
+  assigneeOptions?: { id: string; label: string; role: string }[];
+  selectedAssigneeId?: string | null;
+  onPostingAsChange?: (v: 'self' | 'club') => void;
+  onSelectedClubIdChange?: (v: string | null) => void;
+  onSelectedAssigneeIdChange?: (v: string | null) => void;
 }
 
 export const CreateDetailsStep = memo(function CreateDetailsStep({
@@ -50,6 +58,14 @@ export const CreateDetailsStep = memo(function CreateDetailsStep({
   onDescriptionChange,
   onToggleFocusArea,
   onMaxParticipantsChange,
+  postingAs = 'self',
+  clubOptions = [],
+  selectedClubId = null,
+  assigneeOptions = [],
+  selectedAssigneeId = null,
+  onPostingAsChange,
+  onSelectedClubIdChange,
+  onSelectedAssigneeIdChange,
 }: CreateDetailsStepProps) {
   const { width } = useWindowDimensions();
   const useSingleColumnTypeCards = width < 360;
@@ -118,6 +134,116 @@ export const CreateDetailsStep = memo(function CreateDetailsStep({
             })}
           </Row>
         </Column>
+
+        {clubOptions.length > 0 &&
+          onPostingAsChange &&
+          onSelectedClubIdChange &&
+          onSelectedAssigneeIdChange && (
+            <Column gap="sm">
+              <ThemedText type="defaultSemiBold" style={styles.label}>
+                Ownership
+              </ThemedText>
+              <Row gap="sm">
+                <Clickable
+                  onPress={() => onPostingAsChange('self')}
+                  style={[
+                    styles.modePill,
+                    {
+                      borderColor: postingAs === 'self' ? colors.tint : colors.border,
+                      backgroundColor:
+                        postingAs === 'self'
+                          ? withAlpha(colors.tint, 0.07)
+                          : colors.surface,
+                    },
+                  ]}
+                >
+                  <ThemedText style={{ color: postingAs === 'self' ? colors.tint : colors.text }}>
+                    As me
+                  </ThemedText>
+                </Clickable>
+                <Clickable
+                  onPress={() => onPostingAsChange('club')}
+                  style={[
+                    styles.modePill,
+                    {
+                      borderColor: postingAs === 'club' ? colors.tint : colors.border,
+                      backgroundColor:
+                        postingAs === 'club'
+                          ? withAlpha(colors.tint, 0.07)
+                          : colors.surface,
+                    },
+                  ]}
+                >
+                  <ThemedText style={{ color: postingAs === 'club' ? colors.tint : colors.text }}>
+                    On behalf of club
+                  </ThemedText>
+                </Clickable>
+              </Row>
+
+              {postingAs === 'club' && (
+                <Column gap="xs">
+                  {clubOptions.map((club) => {
+                    const selected = selectedClubId === club.id;
+                    return (
+                      <Clickable
+                        key={club.id}
+                        onPress={() => onSelectedClubIdChange(club.id)}
+                        style={[
+                          styles.inlineOption,
+                          {
+                            borderColor: selected ? colors.success : colors.border,
+                            backgroundColor: selected
+                              ? withAlpha(colors.success, 0.08)
+                              : colors.surface,
+                          },
+                        ]}
+                      >
+                        <ThemedText style={{ color: selected ? colors.success : colors.text }}>
+                          {club.name}
+                        </ThemedText>
+                      </Clickable>
+                    );
+                  })}
+
+                  <ThemedText style={[styles.caption, { color: colors.muted }]}>
+                    Assign coach
+                  </ThemedText>
+                  <Row wrap gap="xs">
+                    {assigneeOptions.map((assignee) => {
+                      const selected = selectedAssigneeId === assignee.id;
+                      return (
+                        <Clickable
+                          key={assignee.id}
+                          onPress={() => onSelectedAssigneeIdChange(assignee.id)}
+                          style={[
+                            styles.assigneeChip,
+                            {
+                              borderColor: selected ? colors.tint : colors.border,
+                              backgroundColor: selected
+                                ? withAlpha(colors.tint, 0.07)
+                                : colors.surface,
+                            },
+                          ]}
+                        >
+                          <ThemedText
+                            style={{
+                              color: selected ? colors.tint : colors.text,
+                              ...Typography.smallSemiBold,
+                            }}
+                          >
+                            {assignee.label}
+                          </ThemedText>
+                          <ThemedText style={[styles.caption, { color: colors.muted }]}>
+                            {assignee.role.replace('_', ' ')}
+                          </ThemedText>
+                        </Clickable>
+                      );
+                    })}
+                  </Row>
+                </Column>
+              )}
+            </Column>
+          )}
 
         {/* Title */}
         <Column gap="sm">
@@ -243,6 +369,29 @@ const styles = StyleSheet.create({
   },
   typeCardFull: {
     width: '100%',
+  },
+  modePill: {
+    flex: 1,
+    minHeight: 42,
+    borderWidth: 1,
+    borderRadius: Radii.md,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  inlineOption: {
+    borderWidth: 1,
+    borderRadius: Radii.md,
+    minHeight: 42,
+    justifyContent: 'center',
+    paddingHorizontal: Spacing.sm,
+  },
+  assigneeChip: {
+    borderWidth: 1,
+    borderRadius: Radii.md,
+    paddingHorizontal: Spacing.sm,
+    paddingVertical: Spacing.xs,
+    minWidth: 120,
+    gap: Spacing.micro,
   },
   typeIcon: {
     width: 44,

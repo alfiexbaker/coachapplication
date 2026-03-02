@@ -29,6 +29,7 @@ import type {
   FootballObjective,
   RecurringPattern,
   SessionInviteType,
+  UserRole,
 } from '@/constants/types';
 
 const USE_MOCK = api.useMock;
@@ -419,6 +420,12 @@ export interface CreateGroupSessionInput {
   coachName: string;
   coachPhotoUrl?: string;
   clubId?: string;
+  actingAs?: 'self' | 'club';
+  ownerCoachId?: string;
+  assigneeCoachId?: string;
+  createdByUserId?: string;
+  createdByRole?: UserRole;
+  createdByName?: string;
   clubName?: string;
   title: string;
   description: string;
@@ -577,6 +584,12 @@ export const sessionCrudService = {
       id: `gs_${Date.now()}`,
       coachId: input.coachId,
       clubId: input.clubId,
+      actingAs: input.actingAs,
+      ownerCoachId: input.ownerCoachId,
+      assigneeCoachId: input.assigneeCoachId,
+      createdByUserId: input.createdByUserId,
+      createdByRole: input.createdByRole,
+      createdByName: input.createdByName,
       title: input.title,
       description: input.description,
       sessionType: input.sessionType,

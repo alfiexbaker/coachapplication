@@ -6,6 +6,11 @@ const defaultOutDir = process.env.UI_FLOW_OUT_DIR || '/tmp/ui-flow-checks-50';
 const failLevels = ['none', 'high', 'medium'];
 let chromium = null;
 let devices = null;
+const preflightProofPathByRole = {
+  coach: '/schedule',
+  parent: '/family',
+  athlete: '/goals',
+};
 
 const creds = {
   coach: { username: 'coach1', password: 'coach' },
@@ -41,7 +46,13 @@ const flows = [
   { id: 'coach_athletes', role: 'coach', title: 'Coach opens athletes', path: '/athletes' },
   { id: 'coach_feed', role: 'coach', title: 'Coach opens feed', path: '/feed' },
   { id: 'coach_messages', role: 'coach', title: 'Coach opens messages', path: '/messages' },
-  { id: 'coach_bookings', role: 'coach', title: 'Coach opens bookings', path: '/bookings' },
+  {
+    id: 'coach_bookings',
+    role: 'coach',
+    title: 'Coach opens bookings',
+    path: '/bookings',
+    expectPath: '/bookings',
+  },
   { id: 'coach_settings', role: 'coach', title: 'Coach opens settings', path: '/settings' },
   {
     id: 'coach_progress',
@@ -146,12 +157,73 @@ const flows = [
     role: 'coach',
     title: 'Coach opens management hub',
     path: '/manage',
+    expectPath: '/manage',
+  },
+  {
+    id: 'coach_manage_bookings',
+    role: 'coach',
+    title: 'Coach opens booking console',
+    path: '/manage/bookings',
+    expectPath: '/manage/bookings',
+  },
+  {
+    id: 'coach_create_as_club_assigned',
+    role: 'coach',
+    title: 'Coach opens create flow with club-assignment context',
+    path: '/sessions/create?intent=new&source=club_manage&actingAs=club&clubId=academy_1&assigneeCoachId=coach1',
+    expectPath: '/sessions/create',
+  },
+  {
+    id: 'coach_existing_invite_ownership',
+    role: 'coach',
+    title: 'Coach existing-invite flow exposes club ownership and assignee controls',
+    path: '/sessions/create?intent=existing&source=club_manage&actingAs=club&clubId=academy_1&assigneeCoachId=coach1',
+    actions: [
+      { type: 'assertTextVisible', text: 'Invite as', required: true },
+      { type: 'assertTextPresent', text: 'Assign coach', required: true },
+      { type: 'assertTextPresent', text: 'Session picker scope', required: true },
+      { type: 'assertTextPresent', text: 'Club-wide', required: true },
+      { type: 'assertTextPresent', text: 'Ownership summary', required: true },
+    ],
+  },
+  {
+    id: 'coach_schedule_location_modal_actions',
+    role: 'coach',
+    title: 'Coach can open day editor location modal actions',
+    path: '/schedule?segment=availability',
+    actions: [
+      { type: 'clickText', text: 'Add time block', required: true },
+      { type: 'clickButton', name: 'Add new venue', required: true },
+      { type: 'assertTextVisible', text: 'Use Location', required: true },
+    ],
+  },
+  {
+    id: 'coach_earnings_payment_modal_actions',
+    role: 'coach',
+    title: 'Coach can open payment instructions modal save action',
+    path: '/earnings',
+    actions: [
+      {
+        type: 'clickAnyButton',
+        names: ['Show payment instructions', 'Hide payment instructions'],
+        required: false,
+      },
+      { type: 'clickButton', name: 'Edit payment instructions', required: true },
+      { type: 'assertButtonVisible', name: 'Save payment instructions', required: true },
+    ],
   },
   {
     id: 'coach_club_invite_members',
     role: 'coach',
     title: 'Coach opens club invite members',
     path: '/club/invite-members',
+  },
+  {
+    id: 'coach_raise_concern',
+    role: 'coach',
+    title: 'Coach opens raise concern form',
+    path: '/roster/user1/raise-concern',
+    expectPath: '/roster/user1/raise-concern',
   },
   { id: 'coach_rate', role: 'coach', title: 'Coach opens rate screen', path: '/rate-coach' },
 
@@ -230,6 +302,20 @@ const flows = [
     title: 'Parent opens confirmation step',
     path: '/book/coach1/confirmation',
   },
+  {
+    id: 'parent_child_medical',
+    role: 'parent',
+    title: 'Parent opens child medical profile',
+    path: '/child/user1/medical',
+    expectPath: '/child/user1/medical',
+  },
+  {
+    id: 'parent_child_emergency',
+    role: 'parent',
+    title: 'Parent opens child emergency profile',
+    path: '/child/user1/emergency',
+    expectPath: '/child/user1/emergency',
+  },
 
   // Athlete flows
   { id: 'athlete_home', role: 'athlete', title: 'Athlete opens dashboard', path: '/' },
@@ -261,8 +347,113 @@ const flows = [
   },
   { id: 'athlete_favourites', role: 'athlete', title: 'Athlete opens favourites', path: '/favourites' },
   { id: 'athlete_find_coach', role: 'athlete', title: 'Athlete opens find coach', path: '/book-coach' },
+  { id: 'athlete_health', role: 'athlete', title: 'Athlete opens health dashboard', path: '/health' },
+  {
+    id: 'athlete_health_injuries',
+    role: 'athlete',
+    title: 'Athlete opens injury log',
+    path: '/health/injuries',
+    expectPath: '/health/injuries',
+  },
+  {
+    id: 'athlete_journal',
+    role: 'athlete',
+    title: 'Athlete opens journal',
+    path: '/athlete/journal',
+    expectPath: '/athlete/journal',
+  },
   { id: 'athlete_chat_list', role: 'athlete', title: 'Athlete opens chat list', path: '/chat/index' },
 ];
+
+const flowProfiles = {
+  'coach-core': [
+    'coach_home',
+    'coach_schedule',
+    'coach_athletes',
+    'coach_bookings',
+    'coach_progress',
+    'coach_group_sessions',
+    'coach_create_invite_entry',
+    'coach_manage',
+    'coach_manage_bookings',
+    'coach_settings',
+    'coach_raise_concern',
+  ],
+  'parent-core': [
+    'parent_home',
+    'parent_children',
+    'parent_bookings',
+    'parent_family',
+    'parent_book_coach',
+    'parent_progress',
+    'parent_child_progress',
+    'parent_book_flow_start',
+    'parent_book_flow_schedule',
+    'parent_settings',
+    'parent_child_medical',
+    'parent_child_emergency',
+  ],
+  'athlete-core': [
+    'athlete_home',
+    'athlete_bookings',
+    'athlete_progress',
+    'athlete_goals',
+    'athlete_skills',
+    'athlete_badges',
+    'athlete_find_coach',
+    'athlete_settings',
+    'athlete_health',
+    'athlete_health_injuries',
+    'athlete_journal',
+  ],
+  'trust-core': [
+    'coach_raise_concern',
+    'parent_child_medical',
+    'parent_child_emergency',
+    'athlete_health',
+    'athlete_health_injuries',
+    'athlete_journal',
+  ],
+  'pre-api-core': [
+    'coach_home',
+    'coach_schedule',
+    'coach_athletes',
+    'coach_bookings',
+    'coach_progress',
+    'coach_group_sessions',
+    'coach_create_invite_entry',
+    'coach_manage',
+    'coach_manage_bookings',
+    'coach_settings',
+    'coach_raise_concern',
+    'parent_home',
+    'parent_children',
+    'parent_bookings',
+    'parent_family',
+    'parent_book_coach',
+    'parent_progress',
+    'parent_child_progress',
+    'parent_book_flow_start',
+    'parent_book_flow_schedule',
+    'parent_settings',
+    'parent_child_medical',
+    'parent_child_emergency',
+    'athlete_home',
+    'athlete_bookings',
+    'athlete_progress',
+    'athlete_goals',
+    'athlete_skills',
+    'athlete_badges',
+    'athlete_find_coach',
+    'athlete_settings',
+    'athlete_health',
+    'athlete_health_injuries',
+    'athlete_journal',
+  ],
+};
+
+const flowById = new Map(flows.map((flow) => [flow.id, flow]));
+const allowedProfiles = Object.keys(flowProfiles);
 
 function flowFile(flow) {
   return `${flow.role}__${flow.id}.png`;
@@ -293,7 +484,52 @@ function parsePositiveInt(value, flagName) {
   return parsed;
 }
 
+function ensureProfileFlowIdsAreValid() {
+  for (const [profileName, ids] of Object.entries(flowProfiles)) {
+    for (const id of ids) {
+      if (!flowById.has(id)) {
+        throw new Error(`Flow profile "${profileName}" references unknown flow id "${id}"`);
+      }
+    }
+  }
+}
+
+function resolveProfileFlowIds(profileNames) {
+  const profileFlowIds = new Set();
+  for (const profileName of profileNames) {
+    const ids = flowProfiles[profileName] ?? [];
+    for (const id of ids) {
+      profileFlowIds.add(id);
+    }
+  }
+  return profileFlowIds;
+}
+
+function resolveProfileRoles(profileNames) {
+  const roles = new Set();
+  for (const flowId of resolveProfileFlowIds(profileNames)) {
+    const flow = flowById.get(flowId);
+    if (flow) {
+      roles.add(flow.role);
+    }
+  }
+  return Array.from(roles);
+}
+
+function selectFlowsForRun(allFlows, options) {
+  let selected = allFlows.filter((flow) => options.roles.includes(flow.role));
+
+  if (options.profiles.length === 0) {
+    return selected;
+  }
+
+  const selectedFlowIds = resolveProfileFlowIds(options.profiles);
+  selected = selected.filter((flow) => selectedFlowIds.has(flow.id));
+  return selected;
+}
+
 function parseCliOptions(argv) {
+  ensureProfileFlowIdsAreValid();
   const envFailOn = (process.env.UI_FLOW_FAIL_ON || 'high').toLowerCase();
   if (!failLevels.includes(envFailOn)) {
     throw new Error(
@@ -324,10 +560,21 @@ function parseCliOptions(argv) {
       process.env.UI_FLOW_PAUSE_MS !== undefined
         ? parseNonNegativeInt(process.env.UI_FLOW_PAUSE_MS, 'UI_FLOW_PAUSE_MS')
         : 900,
+    skipPreflight: process.env.UI_FLOW_SKIP_PREFLIGHT === '1',
+    preflightOnly: false,
+    profiles: [],
+    rolesExplicit: false,
   };
 
   if (process.env.UI_FLOW_ROLES) {
     options.roles.push(...parseList(process.env.UI_FLOW_ROLES));
+    options.rolesExplicit = true;
+  }
+  if (process.env.UI_FLOW_PROFILES) {
+    options.profiles.push(...parseList(process.env.UI_FLOW_PROFILES));
+  }
+  if (process.env.UI_FLOW_PROFILE) {
+    options.profiles.push(process.env.UI_FLOW_PROFILE.trim().toLowerCase());
   }
 
   for (const arg of argv) {
@@ -343,12 +590,30 @@ function parseCliOptions(argv) {
       options.headless = false;
       continue;
     }
+    if (arg === '--skip-preflight') {
+      options.skipPreflight = true;
+      continue;
+    }
+    if (arg === '--preflight-only') {
+      options.preflightOnly = true;
+      continue;
+    }
     if (arg.startsWith('--roles=')) {
       options.roles.push(...parseList(arg.slice('--roles='.length)));
+      options.rolesExplicit = true;
       continue;
     }
     if (arg.startsWith('--role=')) {
       options.roles.push(arg.slice('--role='.length).trim().toLowerCase());
+      options.rolesExplicit = true;
+      continue;
+    }
+    if (arg.startsWith('--profiles=')) {
+      options.profiles.push(...parseList(arg.slice('--profiles='.length)));
+      continue;
+    }
+    if (arg.startsWith('--profile=')) {
+      options.profiles.push(arg.slice('--profile='.length).trim().toLowerCase());
       continue;
     }
     if (arg.startsWith('--out-dir=')) {
@@ -380,17 +645,35 @@ function parseCliOptions(argv) {
   }
 
   const uniqueRoles = Array.from(new Set(options.roles));
+  const uniqueProfiles = Array.from(new Set(options.profiles));
   const invalidRole = uniqueRoles.find((role) => !allowedRoles.includes(role));
   if (invalidRole) {
     throw new Error(`Invalid role "${invalidRole}". Allowed roles: ${allowedRoles.join(', ')}`);
   }
+  const invalidProfile = uniqueProfiles.find((profile) => !allowedProfiles.includes(profile));
+  if (invalidProfile) {
+    throw new Error(
+      `Invalid profile "${invalidProfile}". Allowed profiles: ${allowedProfiles.join(', ')}`,
+    );
+  }
   if (!failLevels.includes(options.failOn)) {
     throw new Error(`--fail-on must be one of: ${failLevels.join(', ')}`);
   }
+  if (options.preflightOnly && options.skipPreflight) {
+    throw new Error('--preflight-only cannot be used with --skip-preflight');
+  }
+
+  const resolvedRoles =
+    uniqueRoles.length > 0
+      ? uniqueRoles
+      : uniqueProfiles.length > 0 && !options.rolesExplicit
+        ? resolveProfileRoles(uniqueProfiles)
+        : [...allowedRoles];
 
   return {
     ...options,
-    roles: uniqueRoles.length > 0 ? uniqueRoles : [...allowedRoles],
+    profiles: uniqueProfiles,
+    roles: resolvedRoles.length > 0 ? resolvedRoles : [...allowedRoles],
   };
 }
 
@@ -402,11 +685,15 @@ function usageText() {
     '  --list                     Show available roles/flow counts and exit',
     '  --roles=coach,parent       Run only specific roles',
     '  --role=coach               Add one role (repeatable)',
+    `  --profiles=${allowedProfiles.join(',')}  Run named flow profile(s)`,
+    '  --profile=coach-core       Add one named flow profile (repeatable)',
     '  --chunk-size=10            Split each role into chunks of N flows',
     '  --chunk-index=2            Run only chunk N (1-based) for selected role(s)',
     '  --retries=1                Retry login and flow navigation failures N times',
     '  --pause-ms=900             Wait between navigation/action steps in ms',
     '  --fail-on=high             Exit non-zero on: none | high | medium',
+    '  --skip-preflight           Skip login/access preflight checks',
+    '  --preflight-only           Run only login/access preflight checks',
     '  --out-dir=/tmp/path        Output directory for screenshots/reports',
     '  --headed                   Run browser headed (not headless)',
     '',
@@ -414,11 +701,14 @@ function usageText() {
     '  UI_BASE_URL                Base URL (default: http://localhost:8083)',
     '  UI_FLOW_OUT_DIR            Output directory',
     '  UI_FLOW_ROLES              Comma-separated roles',
+    '  UI_FLOW_PROFILES           Comma-separated named profiles',
+    '  UI_FLOW_PROFILE            Single named profile',
     '  UI_FLOW_CHUNK_SIZE         Chunk size',
     '  UI_FLOW_CHUNK_INDEX        Chunk index (1-based)',
     '  UI_FLOW_RETRIES            Retry count',
     '  UI_FLOW_PAUSE_MS           Pause duration',
     '  UI_FLOW_FAIL_ON            none | high | medium',
+    '  UI_FLOW_SKIP_PREFLIGHT=1   Skip login/access preflight',
     '  UI_FLOW_HEADED=1           Headed mode',
   ].join('\n');
 }
@@ -492,6 +782,9 @@ function buildMarkdown(report, title) {
   if (report.meta.roles?.length) {
     markdownLines.push(`- Roles: ${report.meta.roles.join(', ')}`);
   }
+  if (report.meta.profiles?.length) {
+    markdownLines.push(`- Profiles: ${report.meta.profiles.join(', ')}`);
+  }
   if (report.meta.chunkSize) {
     markdownLines.push(`- Chunk size: ${report.meta.chunkSize}`);
   }
@@ -523,9 +816,40 @@ async function writeReportFiles(report, outDir, stem, title) {
   await fs.writeFile(path.join(outDir, `${stem}.md`), buildMarkdown(report, title));
 }
 
+function buildPreflightMarkdown(results) {
+  const lines = [
+    '# UI Flow Access Preflight',
+    '',
+    `- Base URL: ${baseUrl}`,
+    `- Generated: ${new Date().toISOString()}`,
+    '',
+    '## Results',
+    '',
+  ];
+
+  for (const result of results) {
+    lines.push(
+      `- ${result.status === 'ok' ? 'PASS' : 'FAIL'} ${result.role} :: ${result.details.join(' | ')}`,
+    );
+  }
+
+  return `${lines.join('\n')}\n`;
+}
+
+async function writePreflightFiles(outDir, results) {
+  const payload = {
+    baseUrl,
+    generatedAt: new Date().toISOString(),
+    results,
+  };
+  await fs.writeFile(path.join(outDir, 'preflight.json'), JSON.stringify(payload, null, 2));
+  await fs.writeFile(path.join(outDir, 'preflight.md'), buildPreflightMarkdown(results));
+}
+
 async function writePartialReport(allResults, options) {
   const partial = buildReport(allResults, {
     roles: options.roles,
+    profiles: options.profiles,
     chunkSize: options.chunkSize || undefined,
     chunkIndex: options.chunkIndex,
     retries: options.retries,
@@ -580,6 +904,88 @@ async function login(page, role) {
   await page.waitForTimeout(1200);
 }
 
+async function verifyBaseUrlReachable() {
+  try {
+    const response = await fetch(baseUrl, { method: 'GET' });
+    if (!response.ok) {
+      return {
+        ok: false,
+        detail: `base_url_http_${response.status}`,
+      };
+    }
+    return {
+      ok: true,
+      detail: `base_url_http_${response.status}`,
+    };
+  } catch (error) {
+    return {
+      ok: false,
+      detail: `base_url_unreachable:${String(error)}`,
+    };
+  }
+}
+
+async function runAccessPreflight(browser, options) {
+  const baseUrlStatus = await verifyBaseUrlReachable();
+  const results = [];
+  if (!baseUrlStatus.ok) {
+    const failed = options.roles.map((role) => ({
+      role,
+      status: 'failed',
+      details: [baseUrlStatus.detail],
+    }));
+    return failed;
+  }
+
+  for (const role of options.roles) {
+    const context = await browser.newContext({ ...devices['iPhone 13'] });
+    const page = await context.newPage();
+    const details = [baseUrlStatus.detail];
+    let status = 'ok';
+
+    try {
+      const loginAttempts = await loginWithRetry(page, role, options.retries);
+      details.push(`login_attempts:${loginAttempts}`);
+
+      const proofPath = preflightProofPathByRole[role] ?? '/';
+      await page.goto(`${baseUrl}${proofPath}`, {
+        waitUntil: 'domcontentloaded',
+        timeout: 60000,
+      });
+      await page.waitForTimeout(options.pauseMs);
+
+      const loginVisible = await page
+        .getByPlaceholder('e.g. coach')
+        .isVisible()
+        .catch(() => false);
+      if (loginVisible) {
+        throw new Error(`login_form_visible_after_navigation:${proofPath}`);
+      }
+
+      const currentPath = await page.evaluate(() => window.location.pathname);
+      details.push(`proof_path:${proofPath}`);
+      details.push(`current_path:${currentPath}`);
+
+      const screenshotPath = path.join(options.outDir, `preflight.${role}.png`);
+      await page.screenshot({ path: screenshotPath, fullPage: false });
+      details.push(`screenshot:${screenshotPath}`);
+    } catch (error) {
+      status = 'failed';
+      details.push(`preflight_failed:${String(error)}`);
+    } finally {
+      await context.close();
+    }
+
+    results.push({
+      role,
+      status,
+      details,
+    });
+  }
+
+  return results;
+}
+
 async function loginWithRetry(page, role, retries) {
   let lastError = null;
   for (let attempt = 1; attempt <= retries + 1; attempt += 1) {
@@ -604,9 +1010,54 @@ async function runAction(page, action, actionErrors) {
       return;
     }
 
+    if (action.type === 'clickAnyButton') {
+      const names = Array.isArray(action.names) ? action.names : [];
+      for (const name of names) {
+        const locator = page.getByRole('button', { name }).first();
+        if (await locator.isVisible().catch(() => false)) {
+          await locator.click();
+          await page.waitForTimeout(700);
+          return;
+        }
+      }
+      throw new Error(`No matching visible button found: ${names.join(' | ')}`);
+    }
+
     if (action.type === 'clickText') {
       await page.getByText(action.text).first().click();
       await page.waitForTimeout(700);
+      return;
+    }
+
+    if (action.type === 'assertButtonVisible') {
+      const isVisible = await page
+        .getByRole('button', { name: action.name })
+        .first()
+        .isVisible()
+        .catch(() => false);
+      if (!isVisible) {
+        throw new Error(`Button not visible: ${action.name}`);
+      }
+      return;
+    }
+
+    if (action.type === 'assertTextVisible') {
+      const isVisible = await page
+        .getByText(action.text)
+        .first()
+        .isVisible()
+        .catch(() => false);
+      if (!isVisible) {
+        throw new Error(`Text not visible: ${action.text}`);
+      }
+      return;
+    }
+
+    if (action.type === 'assertTextPresent') {
+      const count = await page.getByText(action.text).count().catch(() => 0);
+      if (count < 1) {
+        throw new Error(`Text not present: ${action.text}`);
+      }
       return;
     }
 
@@ -688,8 +1139,16 @@ async function runFlowWithRetry(page, flow, options, currentFlowErrors) {
       await page.waitForTimeout(options.pauseMs);
 
       for (const action of flow.actions ?? []) {
-        // eslint-disable-next-line no-await-in-loop
         await runAction(page, action, actionErrors);
+      }
+
+      if (flow.expectPath) {
+        const currentPath = await page.evaluate(() => window.location.pathname);
+        if (!currentPath.startsWith(flow.expectPath)) {
+          currentFlowErrors.push(
+            `assert:path_expected:${flow.expectPath}:actual:${currentPath}`,
+          );
+        }
       }
 
       const metrics = await collectMetrics(page);
@@ -715,7 +1174,6 @@ async function runFlowWithRetry(page, flow, options, currentFlowErrors) {
       lastIssues = [...currentFlowErrors, ...actionErrors, `navigation_failed:${String(error)}`];
       if (attempt <= options.retries) {
         // Short backoff to ride out transient bundling/network hiccups in local/CI.
-        // eslint-disable-next-line no-await-in-loop
         await page.waitForTimeout(1200 * attempt);
       }
     }
@@ -742,24 +1200,37 @@ async function main() {
   }
   await fs.mkdir(options.outDir, { recursive: true });
 
-  const grouped = flows.reduce((acc, flow) => {
+  const selectedFlows = selectFlowsForRun(flows, options);
+  const grouped = selectedFlows.reduce((acc, flow) => {
     if (!acc[flow.role]) acc[flow.role] = [];
     acc[flow.role].push(flow);
     return acc;
   }, {});
 
   if (options.listOnly) {
+    const allFlowsByRole = flows.reduce((acc, flow) => {
+      acc[flow.role] = (acc[flow.role] ?? 0) + 1;
+      return acc;
+    }, {});
     const byRole = Object.fromEntries(
       allowedRoles.map((role) => [role, grouped[role] ? grouped[role].length : 0]),
+    );
+    const selectedProfileFlowCounts = Object.fromEntries(
+      allowedProfiles.map((profile) => [profile, flowProfiles[profile]?.length ?? 0]),
     );
     console.log(
       JSON.stringify(
         {
           baseUrl,
           availableRoles: allowedRoles,
+          availableProfiles: allowedProfiles,
           selectedRoles: options.roles,
+          selectedProfiles: options.profiles,
           totalFlows: flows.length,
-          flowsByRole: byRole,
+          selectedFlowCount: selectedFlows.length,
+          allFlowsByRole,
+          selectedFlowsByRole: byRole,
+          profileFlowCounts: selectedProfileFlowCounts,
         },
         null,
         2,
@@ -768,12 +1239,59 @@ async function main() {
     return;
   }
 
+  if (selectedFlows.length === 0) {
+    throw new Error(
+      `No flows selected for roles=${options.roles.join(',')} profiles=${options.profiles.join(',') || 'none'}`,
+    );
+  }
+
   await ensurePlaywrightLoaded();
   const browser = await chromium.launch({ headless: options.headless });
   const allResults = [];
   const roleSummaries = [];
 
   try {
+    if (!options.skipPreflight) {
+      console.log(
+        JSON.stringify(
+          {
+            stage: 'preflight:start',
+            baseUrl,
+            roles: options.roles,
+            profiles: options.profiles,
+          },
+          null,
+          2,
+        ),
+      );
+
+      const preflightResults = await runAccessPreflight(browser, options);
+      await writePreflightFiles(options.outDir, preflightResults);
+      const failedPreflight = preflightResults.filter((result) => result.status !== 'ok');
+
+      console.log(
+        JSON.stringify(
+          {
+            stage: 'preflight:done',
+            outDir: options.outDir,
+            results: preflightResults,
+            failed: failedPreflight.length,
+          },
+          null,
+          2,
+        ),
+      );
+
+      if (failedPreflight.length > 0) {
+        process.exitCode = 1;
+        return;
+      }
+
+      if (options.preflightOnly) {
+        return;
+      }
+    }
+
     for (const role of options.roles) {
       const roleFlows = grouped[role] ?? [];
       const chunks = splitIntoChunks(roleFlows, options.chunkSize);
@@ -799,6 +1317,20 @@ async function main() {
         const context = await browser.newContext({ ...devices['iPhone 13'] });
         const page = await context.newPage();
         let currentFlowErrors = [];
+
+        console.log(
+          JSON.stringify(
+            {
+              stage: 'role:start',
+              role,
+              chunk: chunkIdx + 1,
+              chunks: chunks.length,
+              flowCount: chunkFlows.length,
+            },
+            null,
+            2,
+          ),
+        );
 
         page.on('console', (msg) => {
           if (msg.type() === 'error') currentFlowErrors.push(`console:${msg.text()}`);
@@ -834,13 +1366,38 @@ async function main() {
           }
         } else {
           for (const flow of chunkFlows) {
-            // eslint-disable-next-line no-await-in-loop
+            console.log(
+              JSON.stringify(
+                {
+                  stage: 'flow:start',
+                  role,
+                  id: flow.id,
+                  path: flow.path,
+                },
+                null,
+                2,
+              ),
+            );
             const result = await runFlowWithRetry(page, flow, options, currentFlowErrors);
             chunkResults.push(result);
             roleResults.push(result);
             allResults.push(result);
-            // eslint-disable-next-line no-await-in-loop
             await writePartialReport(allResults, options);
+
+            console.log(
+              JSON.stringify(
+                {
+                  stage: 'flow:done',
+                  role,
+                  id: flow.id,
+                  status: result.status,
+                  severity: result.severity,
+                  issues: result.issues ?? [],
+                },
+                null,
+                2,
+              ),
+            );
           }
         }
 
@@ -849,6 +1406,7 @@ async function main() {
         const chunkLabel = `chunk-${chunkIdx + 1}-of-${chunks.length}`;
         const chunkReport = buildReport(chunkResults, {
           roles: [role],
+          profiles: options.profiles,
           role,
           chunkIndex: chunkIdx + 1,
           chunkSize: options.chunkSize || roleFlows.length,
@@ -865,6 +1423,7 @@ async function main() {
 
       const roleReport = buildReport(roleResults, {
         roles: [role],
+        profiles: options.profiles,
         role,
         chunkSize: options.chunkSize || roleFlows.length,
         chunkIndex: options.chunkIndex,
@@ -884,6 +1443,7 @@ async function main() {
 
   const report = buildReport(allResults, {
     roles: options.roles,
+    profiles: options.profiles,
     chunkSize: options.chunkSize || undefined,
     chunkIndex: options.chunkIndex,
     retries: options.retries,

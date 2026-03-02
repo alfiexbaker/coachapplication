@@ -679,7 +679,7 @@ class BookingCrudService {
 
     await notificationService.notifyCoachNewBooking({
       coachId: booking.coachId,
-      parentName: 'Parent',
+      parentName: 'User',
       childName: draft.athleteName || 'Athlete',
       date: formattedDate,
       bookingId: booking.id,

@@ -1,8 +1,9 @@
 import { memo, useCallback, useState } from 'react';
-import { Platform, StyleSheet, View } from 'react-native';
+import { Platform, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import * as Haptics from 'expo-haptics';
+import { router } from 'expo-router';
 
 import { Clickable } from '@/components/primitives/clickable';
 import { Row } from '@/components/primitives/row';
@@ -17,6 +18,7 @@ import { NotificationBell } from '@/components/ui/notification-bell';
 import { Radii, Spacing, Typography, withAlpha } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
 import { useBookings } from '@/hooks/use-bookings';
+import { Routes } from '@/navigation/routes';
 
 type BookingsTab = 'sessions' | 'discover';
 
@@ -26,6 +28,7 @@ export default function BookingsScreen() {
   const {
     displayItems,
     pendingInvitesList,
+    isCoachUser,
     userRole,
     loading,
     error,
@@ -47,8 +50,8 @@ export default function BookingsScreen() {
     handleDeclineInvite,
   } = useBookings();
 
-  const headerRightAction = userRole === 'COACH' ? <NotificationBell size={20} /> : undefined;
-  const isNonCoach = userRole !== 'COACH';
+  const headerRightAction = isCoachUser ? <NotificationBell size={20} /> : undefined;
+  const isNonCoach = !isCoachUser;
 
   // ─── Loading ───────────────────────────────────────────────────
   if (loading) {
@@ -59,12 +62,13 @@ export default function BookingsScreen() {
       >
         <PageHeader
           title="Sessions"
-          subtitle={userRole === 'COACH' ? 'Manage your sessions' : 'Your upcoming sessions'}
+          subtitle={isCoachUser ? 'Manage your sessions' : 'Your upcoming sessions'}
           rightAction={headerRightAction}
         />
         {isNonCoach && (
           <SegmentControl activeTab={activeTab} onTabChange={setActiveTab} />
         )}
+        <BookingsInsightsLinks />
         <LoadingState variant="list" />
       </SafeAreaView>
     );
@@ -79,12 +83,13 @@ export default function BookingsScreen() {
       >
         <PageHeader
           title="Sessions"
-          subtitle={userRole === 'COACH' ? 'Manage your sessions' : 'Your upcoming sessions'}
+          subtitle={isCoachUser ? 'Manage your sessions' : 'Your upcoming sessions'}
           rightAction={headerRightAction}
         />
         {isNonCoach && (
           <SegmentControl activeTab={activeTab} onTabChange={setActiveTab} />
         )}
+        <BookingsInsightsLinks />
         <ErrorState message={error} onRetry={retry} />
       </SafeAreaView>
     );
@@ -103,6 +108,7 @@ export default function BookingsScreen() {
           rightAction={headerRightAction}
         />
         <SegmentControl activeTab={activeTab} onTabChange={setActiveTab} />
+        <BookingsInsightsLinks />
         <DiscoverFeed />
       </SafeAreaView>
     );
@@ -117,25 +123,26 @@ export default function BookingsScreen() {
       >
         <PageHeader
           title="Sessions"
-          subtitle={userRole === 'COACH' ? 'Manage your sessions' : 'Your upcoming sessions'}
+          subtitle={isCoachUser ? 'Manage your sessions' : 'Your upcoming sessions'}
           rightAction={headerRightAction}
         />
         {isNonCoach && (
           <SegmentControl activeTab={activeTab} onTabChange={setActiveTab} />
         )}
-        {userRole === 'COACH' && (
+        <BookingsInsightsLinks />
+        {isCoachUser && (
           <CreatePills onDirectPress={handleCreateDirectPress} onGroupPress={handleCreateGroupPress} />
         )}
         <EmptyState
           icon="calendar-outline"
           title="No bookings yet"
           message={
-            userRole === 'COACH'
+            isCoachUser
               ? 'Your upcoming sessions will appear here once athletes book with you.'
               : 'Find a coach and book your first session to get started.'
           }
-          actionLabel={userRole === 'COACH' ? 'Create Session' : 'Find a Coach'}
-          onPressAction={userRole === 'COACH' ? handleCreateSessionPress : handleFindCoachPress}
+          actionLabel={isCoachUser ? 'Create Session' : 'Find a Coach'}
+          onPressAction={isCoachUser ? handleCreateSessionPress : handleFindCoachPress}
         />
       </SafeAreaView>
     );
@@ -149,15 +156,16 @@ export default function BookingsScreen() {
     >
       <PageHeader
         title="Sessions"
-        subtitle={userRole === 'COACH' ? 'Manage your sessions' : 'Your upcoming sessions'}
+        subtitle={isCoachUser ? 'Manage your sessions' : 'Your upcoming sessions'}
         rightAction={headerRightAction}
       />
 
       {isNonCoach && (
         <SegmentControl activeTab={activeTab} onTabChange={setActiveTab} />
       )}
+      <BookingsInsightsLinks />
 
-      {userRole === 'COACH' && (
+      {isCoachUser && (
         <CreatePills onDirectPress={handleCreateDirectPress} onGroupPress={handleCreateGroupPress} />
       )}
 
@@ -192,6 +200,35 @@ export default function BookingsScreen() {
 }
 
 // ─── Segment Control ──────────────────────────────────────────────
+
+const BookingsInsightsLinks = memo(function BookingsInsightsLinks() {
+  const { colors: palette } = useTheme();
+
+  return (
+    <Row gap="xs" style={styles.insightsRow}>
+      <Clickable
+        onPress={() => router.push(Routes.BOOKINGS_OBJECTIVES)}
+        accessibilityLabel="Open objectives"
+        style={[styles.insightChip, { borderColor: palette.border }]}
+      >
+        <Row align="center" justify="center" gap="xxs">
+          <Ionicons name="flag-outline" size={14} color={palette.tint} />
+          <ThemedText style={[styles.insightText, { color: palette.tint }]}>Objectives</ThemedText>
+        </Row>
+      </Clickable>
+      <Clickable
+        onPress={() => router.push(Routes.BOOKINGS_STATISTICS)}
+        accessibilityLabel="Open statistics"
+        style={[styles.insightChip, { borderColor: palette.border }]}
+      >
+        <Row align="center" justify="center" gap="xxs">
+          <Ionicons name="stats-chart-outline" size={14} color={palette.tint} />
+          <ThemedText style={[styles.insightText, { color: palette.tint }]}>Statistics</ThemedText>
+        </Row>
+      </Clickable>
+    </Row>
+  );
+});
 
 const SegmentControl = memo(function SegmentControl({
   activeTab,
@@ -304,6 +341,24 @@ const styles = StyleSheet.create({
   segmentRow: {
     paddingHorizontal: Spacing.md,
     paddingBottom: Spacing.xs,
+  },
+  insightsRow: {
+    paddingHorizontal: Spacing.md,
+    paddingBottom: Spacing.xs,
+  },
+  insightChip: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    minHeight: 34,
+    borderRadius: Radii.pill,
+    borderWidth: 1,
+    paddingHorizontal: Spacing.sm,
+    paddingVertical: Spacing.xxs,
+  },
+  insightText: {
+    ...Typography.caption,
+    fontWeight: '600',
   },
   segment: {
     flex: 1,

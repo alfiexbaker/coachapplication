@@ -36,13 +36,13 @@ interface WeatherState {
 }
 
 interface OpenMeteoGeoResponse {
-  results?: Array<{
+  results?: {
     name: string;
     country?: string;
     admin1?: string;
     latitude: number;
     longitude: number;
-  }>;
+  }[];
 }
 
 interface OpenMeteoForecastResponse {
@@ -539,6 +539,118 @@ export const BookingAthleteCard = memo(function BookingAthleteCard({
 });
 
 // ============================================================================
+// OWNERSHIP CARD
+// ============================================================================
+
+interface BookingOwnershipCardProps {
+  actingAs?: 'self' | 'club';
+  clubId?: string;
+  ownerCoachName?: string;
+  assigneeCoachName?: string;
+  createdByName?: string;
+  createdByRole?: string;
+  createdAt?: string;
+  bookingStartIso: string;
+}
+
+function formatAuditTimestamp(iso?: string): string {
+  if (!iso) return 'Unknown time';
+  const date = new Date(iso);
+  if (Number.isNaN(date.getTime())) return 'Unknown time';
+  return date.toLocaleString('en-GB', {
+    day: 'numeric',
+    month: 'short',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+  });
+}
+
+export const BookingOwnershipCard = memo(function BookingOwnershipCard({
+  actingAs,
+  clubId,
+  ownerCoachName,
+  assigneeCoachName,
+  createdByName,
+  createdByRole,
+  createdAt,
+  bookingStartIso,
+}: BookingOwnershipCardProps) {
+  const { colors: palette } = useTheme();
+
+  const ownershipMode = actingAs === 'club' ? 'Club-owned' : 'Self-owned';
+  const assignmentLabel =
+    assigneeCoachName && assigneeCoachName !== ownerCoachName
+      ? assigneeCoachName
+      : ownerCoachName;
+  const timelineEntries = useMemo(
+    () => [
+      {
+        id: 'created',
+        label: `Created by ${createdByName || 'Unknown'}`,
+        meta: createdByRole ? createdByRole.replace('_', ' ') : undefined,
+        time: formatAuditTimestamp(createdAt),
+      },
+      {
+        id: 'assigned',
+        label: `Assigned to ${assignmentLabel || 'Unassigned'}`,
+        meta: actingAs === 'club' ? 'Ownership assignment' : 'Self assignment',
+        time: formatAuditTimestamp(createdAt),
+      },
+      {
+        id: 'scheduled',
+        label: 'Scheduled session',
+        meta: 'Booking schedule locked',
+        time: formatAuditTimestamp(bookingStartIso),
+      },
+    ],
+    [actingAs, assignmentLabel, bookingStartIso, createdAt, createdByName, createdByRole],
+  );
+
+  return (
+    <SurfaceCard style={styles.card}>
+      <Row gap="md" align="flex-start">
+        <View style={[styles.iconCircle, { backgroundColor: withAlpha(palette.info, 0.12) }]}>
+          <Ionicons name="briefcase-outline" size={24} color={palette.info} />
+        </View>
+        <Column gap="xxs" style={styles.flex1}>
+          <ThemedText style={styles.cardTitle}>Ownership & Audit</ThemedText>
+          <ThemedText type="subtitle" style={styles.cardValue}>
+            {ownershipMode}
+          </ThemedText>
+          {clubId ? <ThemedText style={styles.cardSubtext}>Club: {clubId}</ThemedText> : null}
+          {ownerCoachName ? (
+            <ThemedText style={styles.cardSubtext}>Session owner: {ownerCoachName}</ThemedText>
+          ) : null}
+          {assigneeCoachName && assigneeCoachName !== ownerCoachName ? (
+            <ThemedText style={styles.cardSubtext}>Assignee: {assigneeCoachName}</ThemedText>
+          ) : null}
+        </Column>
+      </Row>
+
+      <View style={[styles.timelineContainer, { borderColor: palette.border }]}>
+        {timelineEntries.map((entry) => (
+          <Row key={entry.id} align="flex-start" gap="sm" style={styles.timelineRow}>
+            <View style={[styles.timelineDot, { backgroundColor: palette.info }]} />
+            <Column gap="xxs" style={styles.flex1}>
+              <ThemedText style={styles.timelineLabel}>{entry.label}</ThemedText>
+              {entry.meta ? (
+                <ThemedText style={[styles.timelineMeta, { color: palette.muted }]}>
+                  {entry.meta}
+                </ThemedText>
+              ) : null}
+              <ThemedText style={[styles.timelineMeta, { color: palette.muted }]}>
+                {entry.time}
+              </ThemedText>
+            </Column>
+          </Row>
+        ))}
+      </View>
+    </SurfaceCard>
+  );
+});
+
+// ============================================================================
 // STYLES
 // ============================================================================
 
@@ -601,5 +713,27 @@ const styles = StyleSheet.create({
     borderRadius: Radii.xl,
     justifyContent: 'center',
     alignItems: 'center',
+  },
+  timelineContainer: {
+    borderWidth: 1,
+    borderRadius: Radii.md,
+    padding: Spacing.sm,
+    gap: Spacing.sm,
+  },
+  timelineRow: {
+    minHeight: 36,
+  },
+  timelineDot: {
+    width: 8,
+    height: 8,
+    borderRadius: Radii.pill,
+    marginTop: 6,
+  },
+  timelineLabel: {
+    ...Typography.bodySmall,
+    fontWeight: '600',
+  },
+  timelineMeta: {
+    ...Typography.caption,
   },
 });

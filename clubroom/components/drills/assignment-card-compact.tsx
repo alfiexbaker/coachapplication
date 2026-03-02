@@ -35,7 +35,7 @@ export const AssignmentCardCompact = memo(function AssignmentCardCompact({
     <SurfaceCard style={styles.compactCard} onPress={onPress}>
       {/* Completion checkbox */}
       <Clickable
-        onPress={onComplete}
+        onPress={() => onComplete?.()}
         style={
           [
             styles.checkbox,

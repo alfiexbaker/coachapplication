@@ -69,12 +69,12 @@ export const CommunityTabContent = memo(function CommunityTabContent({
     Alert.alert(
       'Join Group',
       `Join "${group.name}"?\n\n` +
-      (group.isPrivate
+      (!group.isPublic
         ? 'Your request will be sent to group admins for approval.'
         : 'You will have immediate access to:\n• Group posts and discussions\n• Member list\n• Event notifications'),
       [
         { text: 'Cancel', style: 'cancel' },
-        { text: group.isPrivate ? 'Request' : 'Join', onPress: () => onJoinGroup(group) },
+        { text: !group.isPublic ? 'Request' : 'Join', onPress: () => onJoinGroup(group) },
       ],
     );
   }, [onJoinGroup]);

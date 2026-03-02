@@ -21,7 +21,6 @@ const logger = createLogger('useHealthDetail');
 
 export function useHealthDetail(id: string | undefined) {
   const { currentUser } = useAuth();
-  const userId = currentUser?.id ?? 'user1';
   const userName = currentUser?.fullName ?? currentUser?.name ?? 'User';
 
   const [injury, setInjury] = useState<Injury | null>(null);
@@ -64,12 +63,13 @@ export function useHealthDetail(id: string | undefined) {
 
   const handleAddNote = useCallback(async () => {
     if (!injury || !noteText.trim()) return;
+    const actorId = currentUser?.id ?? injury.userId;
     setSaving(true);
     try {
       const updated = await injuryService.addRecoveryNote(
         injury.id,
         noteText.trim(),
-        userId,
+        actorId,
         userName,
         noteProgress,
       );
@@ -85,7 +85,7 @@ export function useHealthDetail(id: string | undefined) {
     } finally {
       setSaving(false);
     }
-  }, [injury, noteText, noteProgress, userId, userName]);
+  }, [injury, noteText, noteProgress, currentUser?.id, userName]);
 
   const handleMarkHealed = useCallback(() => {
     if (!injury) return;

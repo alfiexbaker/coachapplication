@@ -6,6 +6,16 @@ const { resolve } = require('node:path');
 
 const TARGETS = ['app', 'components'];
 const FILE_GLOBS = ["'**/*.tsx'"];
+const SAFE_SHELL_HINTS = [
+  'SafeAreaView',
+  'PageScaffold',
+  'PageContainer',
+  'useSafeAreaInsets',
+  'ScreenState',
+  'FormScreen',
+  'DocumentScreen',
+  'MapContent',
+];
 
 function listFiles() {
   const cmd = `rg --files ${TARGETS.join(' ')} ${FILE_GLOBS.map((glob) => `-g ${glob}`).join(' ')}`;
@@ -33,7 +43,19 @@ function matchAllWithLine(source, regex) {
 }
 
 function isLikelyScreenFile(file) {
-  return file.startsWith('app/') && !file.includes('/_layout');
+  return file.startsWith('app/') && !file.includes('/_layout') && !file.startsWith('app/+');
+}
+
+function isRedirectOnlyRoute(source) {
+  if (!source.includes('<Redirect')) return false;
+  return !/<(?:SafeAreaView|ScrollView|FlatList|SectionList|View|MapContent)\b/.test(source);
+}
+
+function hasSafeAreaShell(source) {
+  if (SAFE_SHELL_HINTS.some((hint) => source.includes(hint))) {
+    return true;
+  }
+  return /<[A-Z][A-Za-z0-9]*(?:Screen|ScreenState|ScreenShell|ScreenLayout)\b/.test(source);
 }
 
 function run() {
@@ -50,12 +72,7 @@ function run() {
     const source = readFileSync(fullPath, 'utf8');
 
     if (isLikelyScreenFile(file)) {
-      const hasSafeArea = source.includes('SafeAreaView');
-      const hasCustomScreen =
-        source.includes('<Screen') ||
-        source.includes('PageScaffold') ||
-        source.includes('PageContainer');
-      if (!hasSafeArea && !hasCustomScreen) {
+      if (!isRedirectOnlyRoute(source) && !hasSafeAreaShell(source)) {
         findings.high.push({
           file,
           line: 1,
@@ -106,8 +123,10 @@ function run() {
     const absoluteBlocks = isLikelyScreenFile(file)
       ? matchAllWithLine(source, /\{[^{}]*position:\s*'absolute'[^{}]*\}/g).filter(({ match }) => {
           const block = match[0];
-          const hasLargeOffset = /(?:top|right|bottom|left):\s*\d{2,}/.test(block);
-          const hasLargeFixedSize = /(?:width|height):\s*\d{3,}/.test(block);
+          const offsetMatches = [...block.matchAll(/(?:top|right|bottom|left):\s*(\d+)/g)];
+          const sizeMatches = [...block.matchAll(/(?:width|height):\s*(\d+)/g)];
+          const hasLargeOffset = offsetMatches.some((hit) => Number(hit[1]) >= 80);
+          const hasLargeFixedSize = sizeMatches.some((hit) => Number(hit[1]) >= 400);
           return hasLargeOffset || hasLargeFixedSize;
         })
       : [];

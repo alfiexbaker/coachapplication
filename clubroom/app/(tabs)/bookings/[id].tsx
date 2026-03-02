@@ -17,6 +17,7 @@ import {
   PaymentCard,
   BookingCoachCard,
   BookingAthleteCard,
+  BookingOwnershipCard,
 } from '@/components/bookings/booking-info-cards';
 import { BookingParticipantsCard } from '@/components/bookings/booking-participants-card';
 import { BookingNotesCard, BookingFollowUpsCard } from '@/components/bookings/booking-notes-card';
@@ -130,8 +131,7 @@ export default function SessionDetailScreen() {
         edges={['top', 'bottom']}
       >
         <ErrorState
-          message="Invalid link"
-          description="The booking you are trying to open could not be found."
+          message="Invalid link. The booking you are trying to open could not be found."
           onRetry={handleGoBack}
         />
       </SafeAreaView>
@@ -250,6 +250,16 @@ export default function SessionDetailScreen() {
           bookingId={booking.id}
           coachName={coachName}
           coachPhotoUrl={formatted.coachPhotoUrl}
+        />
+        <BookingOwnershipCard
+          actingAs={booking.actingAs}
+          clubId={booking.clubId}
+          ownerCoachName={booking.ownerCoachName}
+          assigneeCoachName={booking.assigneeCoachName}
+          createdByName={booking.createdByName}
+          createdByRole={booking.createdByRole}
+          createdAt={booking.createdAt}
+          bookingStartIso={booking.start}
         />
         {/* Athlete Card (coach view, 1-on-1 sessions) */}
         {!booking.isGroupSession && booking.clientId && isCoach && (

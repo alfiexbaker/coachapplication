@@ -1,0 +1,2525 @@
+{
+  "generatedAt": "2026-03-01T17:12:01.038Z",
+  "totals": {
+    "routes": 170,
+    "maybeOrphan": 36,
+    "weak": 82,
+    "strong": 88
+  },
+  "maybeOrphan": [
+    {
+      "file": "app/(modal)/create-squad.tsx",
+      "route": "/(modal)/create-squad",
+      "routeNoGroup": "/create-squad",
+      "constNames": [
+        "MODAL_CREATE_SQUAD"
+      ],
+      "constRefs": 0,
+      "literalRefs": 0,
+      "literalFiles": []
+    },
+    {
+      "file": "app/(tabs)/bookings/objectives.tsx",
+      "route": "/(tabs)/bookings/objectives",
+      "routeNoGroup": "/bookings/objectives",
+      "constNames": [
+        "BOOKINGS_OBJECTIVES"
+      ],
+      "constRefs": 0,
+      "literalRefs": 0,
+      "literalFiles": []
+    },
+    {
+      "file": "app/(tabs)/bookings/statistics.tsx",
+      "route": "/(tabs)/bookings/statistics",
+      "routeNoGroup": "/bookings/statistics",
+      "constNames": [
+        "BOOKINGS_STATISTICS"
+      ],
+      "constRefs": 0,
+      "literalRefs": 0,
+      "literalFiles": []
+    },
+    {
+      "file": "app/(tabs)/profile.tsx",
+      "route": "/(tabs)/profile",
+      "routeNoGroup": "/profile",
+      "constNames": [],
+      "constRefs": 0,
+      "literalRefs": 0,
+      "literalFiles": []
+    },
+    {
+      "file": "app/(tabs)/roster.tsx",
+      "route": "/(tabs)/roster",
+      "routeNoGroup": "/roster",
+      "constNames": [
+        "ROSTER",
+        "ROSTER_INDEX"
+      ],
+      "constRefs": 0,
+      "literalRefs": 0,
+      "literalFiles": []
+    },
+    {
+      "file": "app/analytics/dashboard.tsx",
+      "route": "/analytics/dashboard",
+      "routeNoGroup": "/analytics/dashboard",
+      "constNames": [
+        "ANALYTICS_DASHBOARD"
+      ],
+      "constRefs": 0,
+      "literalRefs": 0,
+      "literalFiles": []
+    },
+    {
+      "file": "app/athlete/journal.tsx",
+      "route": "/athlete/journal",
+      "routeNoGroup": "/athlete/journal",
+      "constNames": [
+        "ATHLETE_JOURNAL",
+        "athleteJournal"
+      ],
+      "constRefs": 0,
+      "literalRefs": 0,
+      "literalFiles": []
+    },
+    {
+      "file": "app/availability/edit-template.tsx",
+      "route": "/availability/edit-template",
+      "routeNoGroup": "/availability/edit-template",
+      "constNames": [],
+      "constRefs": 0,
+      "literalRefs": 0,
+      "literalFiles": []
+    },
+    {
+      "file": "app/book/[coachId]/multi-week.tsx",
+      "route": "/book/[coachId]/multi-week",
+      "routeNoGroup": "/book/[coachId]/multi-week",
+      "constNames": [
+        "bookMultiWeek"
+      ],
+      "constRefs": 0,
+      "literalRefs": 0,
+      "literalFiles": []
+    },
+    {
+      "file": "app/bookings/subscribe.tsx",
+      "route": "/bookings/subscribe",
+      "routeNoGroup": "/bookings/subscribe",
+      "constNames": [
+        "BOOKINGS_SUBSCRIBE"
+      ],
+      "constRefs": 0,
+      "literalRefs": 0,
+      "literalFiles": []
+    },
+    {
+      "file": "app/chat/index.tsx",
+      "route": "/chat",
+      "routeNoGroup": "/chat",
+      "constNames": [
+        "chatWithAthlete"
+      ],
+      "constRefs": 0,
+      "literalRefs": 0,
+      "literalFiles": []
+    },
+    {
+      "file": "app/child/[id]/emergency.tsx",
+      "route": "/child/[id]/emergency",
+      "routeNoGroup": "/child/[id]/emergency",
+      "constNames": [
+        "childEmergency"
+      ],
+      "constRefs": 0,
+      "literalRefs": 0,
+      "literalFiles": []
+    },
+    {
+      "file": "app/child/[id]/medical.tsx",
+      "route": "/child/[id]/medical",
+      "routeNoGroup": "/child/[id]/medical",
+      "constNames": [
+        "childMedical"
+      ],
+      "constRefs": 0,
+      "literalRefs": 0,
+      "literalFiles": []
+    },
+    {
+      "file": "app/coach/[id].tsx",
+      "route": "/coach/[id]",
+      "routeNoGroup": "/coach/[id]",
+      "constNames": [
+        "coach"
+      ],
+      "constRefs": 0,
+      "literalRefs": 0,
+      "literalFiles": []
+    },
+    {
+      "file": "app/coach/invite.tsx",
+      "route": "/coach/invite",
+      "routeNoGroup": "/coach/invite",
+      "constNames": [
+        "coachInviteAthlete"
+      ],
+      "constRefs": 0,
+      "literalRefs": 0,
+      "literalFiles": []
+    },
+    {
+      "file": "app/community/index.tsx",
+      "route": "/community",
+      "routeNoGroup": "/community",
+      "constNames": [
+        "COMMUNITY"
+      ],
+      "constRefs": 0,
+      "literalRefs": 0,
+      "literalFiles": []
+    },
+    {
+      "file": "app/compare/index.tsx",
+      "route": "/compare",
+      "routeNoGroup": "/compare",
+      "constNames": [
+        "COMPARE"
+      ],
+      "constRefs": 0,
+      "literalRefs": 0,
+      "literalFiles": []
+    },
+    {
+      "file": "app/drills/challenges.tsx",
+      "route": "/drills/challenges",
+      "routeNoGroup": "/drills/challenges",
+      "constNames": [
+        "DRILLS_CHALLENGES"
+      ],
+      "constRefs": 0,
+      "literalRefs": 0,
+      "literalFiles": []
+    },
+    {
+      "file": "app/events/[id]/rsvp.tsx",
+      "route": "/events/[id]/rsvp",
+      "routeNoGroup": "/events/[id]/rsvp",
+      "constNames": [
+        "eventRsvp"
+      ],
+      "constRefs": 0,
+      "literalRefs": 0,
+      "literalFiles": []
+    },
+    {
+      "file": "app/family/[legacy].tsx",
+      "route": "/family/[legacy]",
+      "routeNoGroup": "/family/[legacy]",
+      "constNames": [],
+      "constRefs": 0,
+      "literalRefs": 0,
+      "literalFiles": []
+    },
+    {
+      "file": "app/favourites/index.tsx",
+      "route": "/favourites",
+      "routeNoGroup": "/favourites",
+      "constNames": [
+        "FAVOURITES"
+      ],
+      "constRefs": 0,
+      "literalRefs": 0,
+      "literalFiles": []
+    },
+    {
+      "file": "app/health/index.tsx",
+      "route": "/health",
+      "routeNoGroup": "/health",
+      "constNames": [
+        "HEALTH"
+      ],
+      "constRefs": 0,
+      "literalRefs": 0,
+      "literalFiles": []
+    },
+    {
+      "file": "app/invoices/index.tsx",
+      "route": "/invoices",
+      "routeNoGroup": "/invoices",
+      "constNames": [
+        "INVOICES"
+      ],
+      "constRefs": 0,
+      "literalRefs": 0,
+      "literalFiles": []
+    },
+    {
+      "file": "app/manage/[legacy].tsx",
+      "route": "/manage/[legacy]",
+      "routeNoGroup": "/manage/[legacy]",
+      "constNames": [],
+      "constRefs": 0,
+      "literalRefs": 0,
+      "literalFiles": []
+    },
+    {
+      "file": "app/payments/index.tsx",
+      "route": "/payments",
+      "routeNoGroup": "/payments",
+      "constNames": [
+        "PAYMENTS"
+      ],
+      "constRefs": 0,
+      "literalRefs": 0,
+      "literalFiles": []
+    },
+    {
+      "file": "app/referrals/invite.tsx",
+      "route": "/referrals/invite",
+      "routeNoGroup": "/referrals/invite",
+      "constNames": [
+        "REFERRALS_INVITE"
+      ],
+      "constRefs": 0,
+      "literalRefs": 0,
+      "literalFiles": []
+    },
+    {
+      "file": "app/roster/index.tsx",
+      "route": "/roster",
+      "routeNoGroup": "/roster",
+      "constNames": [
+        "ROSTER",
+        "ROSTER_INDEX"
+      ],
+      "constRefs": 0,
+      "literalRefs": 0,
+      "literalFiles": []
+    },
+    {
+      "file": "app/roster/consents.tsx",
+      "route": "/roster/consents",
+      "routeNoGroup": "/roster/consents",
+      "constNames": [
+        "ROSTER_CONSENTS"
+      ],
+      "constRefs": 0,
+      "literalRefs": 0,
+      "literalFiles": []
+    },
+    {
+      "file": "app/session/[id]/rsvp.tsx",
+      "route": "/session/[id]/rsvp",
+      "routeNoGroup": "/session/[id]/rsvp",
+      "constNames": [],
+      "constRefs": 0,
+      "literalRefs": 0,
+      "literalFiles": []
+    },
+    {
+      "file": "app/settings/coaching.tsx",
+      "route": "/settings/coaching",
+      "routeNoGroup": "/settings/coaching",
+      "constNames": [
+        "SETTINGS_COACHING"
+      ],
+      "constRefs": 0,
+      "literalRefs": 0,
+      "literalFiles": []
+    },
+    {
+      "file": "app/settings/notifications/preferences.tsx",
+      "route": "/settings/notifications/preferences",
+      "routeNoGroup": "/settings/notifications/preferences",
+      "constNames": [],
+      "constRefs": 0,
+      "literalRefs": 0,
+      "literalFiles": []
+    },
+    {
+      "file": "app/settings/privacy-policy.tsx",
+      "route": "/settings/privacy-policy",
+      "routeNoGroup": "/settings/privacy-policy",
+      "constNames": [],
+      "constRefs": 0,
+      "literalRefs": 0,
+      "literalFiles": []
+    },
+    {
+      "file": "app/settings/terms.tsx",
+      "route": "/settings/terms",
+      "routeNoGroup": "/settings/terms",
+      "constNames": [],
+      "constRefs": 0,
+      "literalRefs": 0,
+      "literalFiles": []
+    },
+    {
+      "file": "app/skills/index.tsx",
+      "route": "/skills",
+      "routeNoGroup": "/skills",
+      "constNames": [
+        "SKILLS"
+      ],
+      "constRefs": 0,
+      "literalRefs": 0,
+      "literalFiles": []
+    },
+    {
+      "file": "app/verification/index.tsx",
+      "route": "/verification",
+      "routeNoGroup": "/verification",
+      "constNames": [
+        "VERIFICATION"
+      ],
+      "constRefs": 0,
+      "literalRefs": 0,
+      "literalFiles": []
+    },
+    {
+      "file": "app/videos/upload.tsx",
+      "route": "/videos/upload",
+      "routeNoGroup": "/videos/upload",
+      "constNames": [
+        "VIDEOS_UPLOAD"
+      ],
+      "constRefs": 0,
+      "literalRefs": 0,
+      "literalFiles": []
+    }
+  ],
+  "weak": [
+    {
+      "file": "app/(modal)/create-squad.tsx",
+      "route": "/(modal)/create-squad",
+      "routeNoGroup": "/create-squad",
+      "constNames": [
+        "MODAL_CREATE_SQUAD"
+      ],
+      "constRefs": 0,
+      "literalRefs": 0,
+      "literalFiles": []
+    },
+    {
+      "file": "app/(tabs)/bookings/objectives.tsx",
+      "route": "/(tabs)/bookings/objectives",
+      "routeNoGroup": "/bookings/objectives",
+      "constNames": [
+        "BOOKINGS_OBJECTIVES"
+      ],
+      "constRefs": 0,
+      "literalRefs": 0,
+      "literalFiles": []
+    },
+    {
+      "file": "app/(tabs)/bookings/statistics.tsx",
+      "route": "/(tabs)/bookings/statistics",
+      "routeNoGroup": "/bookings/statistics",
+      "constNames": [
+        "BOOKINGS_STATISTICS"
+      ],
+      "constRefs": 0,
+      "literalRefs": 0,
+      "literalFiles": []
+    },
+    {
+      "file": "app/(tabs)/profile.tsx",
+      "route": "/(tabs)/profile",
+      "routeNoGroup": "/profile",
+      "constNames": [],
+      "constRefs": 0,
+      "literalRefs": 0,
+      "literalFiles": []
+    },
+    {
+      "file": "app/(tabs)/roster.tsx",
+      "route": "/(tabs)/roster",
+      "routeNoGroup": "/roster",
+      "constNames": [
+        "ROSTER",
+        "ROSTER_INDEX"
+      ],
+      "constRefs": 0,
+      "literalRefs": 0,
+      "literalFiles": []
+    },
+    {
+      "file": "app/analytics/dashboard.tsx",
+      "route": "/analytics/dashboard",
+      "routeNoGroup": "/analytics/dashboard",
+      "constNames": [
+        "ANALYTICS_DASHBOARD"
+      ],
+      "constRefs": 0,
+      "literalRefs": 0,
+      "literalFiles": []
+    },
+    {
+      "file": "app/athlete/journal.tsx",
+      "route": "/athlete/journal",
+      "routeNoGroup": "/athlete/journal",
+      "constNames": [
+        "ATHLETE_JOURNAL",
+        "athleteJournal"
+      ],
+      "constRefs": 0,
+      "literalRefs": 0,
+      "literalFiles": []
+    },
+    {
+      "file": "app/availability/edit-template.tsx",
+      "route": "/availability/edit-template",
+      "routeNoGroup": "/availability/edit-template",
+      "constNames": [],
+      "constRefs": 0,
+      "literalRefs": 0,
+      "literalFiles": []
+    },
+    {
+      "file": "app/book/[coachId]/multi-week.tsx",
+      "route": "/book/[coachId]/multi-week",
+      "routeNoGroup": "/book/[coachId]/multi-week",
+      "constNames": [
+        "bookMultiWeek"
+      ],
+      "constRefs": 0,
+      "literalRefs": 0,
+      "literalFiles": []
+    },
+    {
+      "file": "app/bookings/subscribe.tsx",
+      "route": "/bookings/subscribe",
+      "routeNoGroup": "/bookings/subscribe",
+      "constNames": [
+        "BOOKINGS_SUBSCRIBE"
+      ],
+      "constRefs": 0,
+      "literalRefs": 0,
+      "literalFiles": []
+    },
+    {
+      "file": "app/chat/index.tsx",
+      "route": "/chat",
+      "routeNoGroup": "/chat",
+      "constNames": [
+        "chatWithAthlete"
+      ],
+      "constRefs": 0,
+      "literalRefs": 0,
+      "literalFiles": []
+    },
+    {
+      "file": "app/child/[id]/emergency.tsx",
+      "route": "/child/[id]/emergency",
+      "routeNoGroup": "/child/[id]/emergency",
+      "constNames": [
+        "childEmergency"
+      ],
+      "constRefs": 0,
+      "literalRefs": 0,
+      "literalFiles": []
+    },
+    {
+      "file": "app/child/[id]/medical.tsx",
+      "route": "/child/[id]/medical",
+      "routeNoGroup": "/child/[id]/medical",
+      "constNames": [
+        "childMedical"
+      ],
+      "constRefs": 0,
+      "literalRefs": 0,
+      "literalFiles": []
+    },
+    {
+      "file": "app/coach/[id].tsx",
+      "route": "/coach/[id]",
+      "routeNoGroup": "/coach/[id]",
+      "constNames": [
+        "coach"
+      ],
+      "constRefs": 0,
+      "literalRefs": 0,
+      "literalFiles": []
+    },
+    {
+      "file": "app/coach/invite.tsx",
+      "route": "/coach/invite",
+      "routeNoGroup": "/coach/invite",
+      "constNames": [
+        "coachInviteAthlete"
+      ],
+      "constRefs": 0,
+      "literalRefs": 0,
+      "literalFiles": []
+    },
+    {
+      "file": "app/community/index.tsx",
+      "route": "/community",
+      "routeNoGroup": "/community",
+      "constNames": [
+        "COMMUNITY"
+      ],
+      "constRefs": 0,
+      "literalRefs": 0,
+      "literalFiles": []
+    },
+    {
+      "file": "app/compare/index.tsx",
+      "route": "/compare",
+      "routeNoGroup": "/compare",
+      "constNames": [
+        "COMPARE"
+      ],
+      "constRefs": 0,
+      "literalRefs": 0,
+      "literalFiles": []
+    },
+    {
+      "file": "app/drills/challenges.tsx",
+      "route": "/drills/challenges",
+      "routeNoGroup": "/drills/challenges",
+      "constNames": [
+        "DRILLS_CHALLENGES"
+      ],
+      "constRefs": 0,
+      "literalRefs": 0,
+      "literalFiles": []
+    },
+    {
+      "file": "app/events/[id]/rsvp.tsx",
+      "route": "/events/[id]/rsvp",
+      "routeNoGroup": "/events/[id]/rsvp",
+      "constNames": [
+        "eventRsvp"
+      ],
+      "constRefs": 0,
+      "literalRefs": 0,
+      "literalFiles": []
+    },
+    {
+      "file": "app/family/[legacy].tsx",
+      "route": "/family/[legacy]",
+      "routeNoGroup": "/family/[legacy]",
+      "constNames": [],
+      "constRefs": 0,
+      "literalRefs": 0,
+      "literalFiles": []
+    },
+    {
+      "file": "app/favourites/index.tsx",
+      "route": "/favourites",
+      "routeNoGroup": "/favourites",
+      "constNames": [
+        "FAVOURITES"
+      ],
+      "constRefs": 0,
+      "literalRefs": 0,
+      "literalFiles": []
+    },
+    {
+      "file": "app/health/index.tsx",
+      "route": "/health",
+      "routeNoGroup": "/health",
+      "constNames": [
+        "HEALTH"
+      ],
+      "constRefs": 0,
+      "literalRefs": 0,
+      "literalFiles": []
+    },
+    {
+      "file": "app/invoices/index.tsx",
+      "route": "/invoices",
+      "routeNoGroup": "/invoices",
+      "constNames": [
+        "INVOICES"
+      ],
+      "constRefs": 0,
+      "literalRefs": 0,
+      "literalFiles": []
+    },
+    {
+      "file": "app/manage/[legacy].tsx",
+      "route": "/manage/[legacy]",
+      "routeNoGroup": "/manage/[legacy]",
+      "constNames": [],
+      "constRefs": 0,
+      "literalRefs": 0,
+      "literalFiles": []
+    },
+    {
+      "file": "app/payments/index.tsx",
+      "route": "/payments",
+      "routeNoGroup": "/payments",
+      "constNames": [
+        "PAYMENTS"
+      ],
+      "constRefs": 0,
+      "literalRefs": 0,
+      "literalFiles": []
+    },
+    {
+      "file": "app/referrals/invite.tsx",
+      "route": "/referrals/invite",
+      "routeNoGroup": "/referrals/invite",
+      "constNames": [
+        "REFERRALS_INVITE"
+      ],
+      "constRefs": 0,
+      "literalRefs": 0,
+      "literalFiles": []
+    },
+    {
+      "file": "app/roster/index.tsx",
+      "route": "/roster",
+      "routeNoGroup": "/roster",
+      "constNames": [
+        "ROSTER",
+        "ROSTER_INDEX"
+      ],
+      "constRefs": 0,
+      "literalRefs": 0,
+      "literalFiles": []
+    },
+    {
+      "file": "app/roster/consents.tsx",
+      "route": "/roster/consents",
+      "routeNoGroup": "/roster/consents",
+      "constNames": [
+        "ROSTER_CONSENTS"
+      ],
+      "constRefs": 0,
+      "literalRefs": 0,
+      "literalFiles": []
+    },
+    {
+      "file": "app/session/[id]/rsvp.tsx",
+      "route": "/session/[id]/rsvp",
+      "routeNoGroup": "/session/[id]/rsvp",
+      "constNames": [],
+      "constRefs": 0,
+      "literalRefs": 0,
+      "literalFiles": []
+    },
+    {
+      "file": "app/settings/coaching.tsx",
+      "route": "/settings/coaching",
+      "routeNoGroup": "/settings/coaching",
+      "constNames": [
+        "SETTINGS_COACHING"
+      ],
+      "constRefs": 0,
+      "literalRefs": 0,
+      "literalFiles": []
+    },
+    {
+      "file": "app/settings/notifications/preferences.tsx",
+      "route": "/settings/notifications/preferences",
+      "routeNoGroup": "/settings/notifications/preferences",
+      "constNames": [],
+      "constRefs": 0,
+      "literalRefs": 0,
+      "literalFiles": []
+    },
+    {
+      "file": "app/settings/privacy-policy.tsx",
+      "route": "/settings/privacy-policy",
+      "routeNoGroup": "/settings/privacy-policy",
+      "constNames": [],
+      "constRefs": 0,
+      "literalRefs": 0,
+      "literalFiles": []
+    },
+    {
+      "file": "app/settings/terms.tsx",
+      "route": "/settings/terms",
+      "routeNoGroup": "/settings/terms",
+      "constNames": [],
+      "constRefs": 0,
+      "literalRefs": 0,
+      "literalFiles": []
+    },
+    {
+      "file": "app/skills/index.tsx",
+      "route": "/skills",
+      "routeNoGroup": "/skills",
+      "constNames": [
+        "SKILLS"
+      ],
+      "constRefs": 0,
+      "literalRefs": 0,
+      "literalFiles": []
+    },
+    {
+      "file": "app/verification/index.tsx",
+      "route": "/verification",
+      "routeNoGroup": "/verification",
+      "constNames": [
+        "VERIFICATION"
+      ],
+      "constRefs": 0,
+      "literalRefs": 0,
+      "literalFiles": []
+    },
+    {
+      "file": "app/videos/upload.tsx",
+      "route": "/videos/upload",
+      "routeNoGroup": "/videos/upload",
+      "constNames": [
+        "VIDEOS_UPLOAD"
+      ],
+      "constRefs": 0,
+      "literalRefs": 0,
+      "literalFiles": []
+    },
+    {
+      "file": "app/(modal)/create-post.tsx",
+      "route": "/(modal)/create-post",
+      "routeNoGroup": "/create-post",
+      "constNames": [
+        "MODAL_CREATE_POST"
+      ],
+      "constRefs": 1,
+      "literalRefs": 0,
+      "literalFiles": []
+    },
+    {
+      "file": "app/(modal)/edit-child-profile.tsx",
+      "route": "/(modal)/edit-child-profile",
+      "routeNoGroup": "/edit-child-profile",
+      "constNames": [
+        "MODAL_EDIT_CHILD_PROFILE",
+        "modalEditChildProfile"
+      ],
+      "constRefs": 1,
+      "literalRefs": 0,
+      "literalFiles": []
+    },
+    {
+      "file": "app/(modal)/edit-child-sen.tsx",
+      "route": "/(modal)/edit-child-sen",
+      "routeNoGroup": "/edit-child-sen",
+      "constNames": [
+        "MODAL_EDIT_CHILD_SEN",
+        "modalEditChildSen"
+      ],
+      "constRefs": 1,
+      "literalRefs": 0,
+      "literalFiles": []
+    },
+    {
+      "file": "app/(tabs)/admin/invite-codes.tsx",
+      "route": "/(tabs)/admin/invite-codes",
+      "routeNoGroup": "/admin/invite-codes",
+      "constNames": [
+        "ADMIN_INVITE_CODES"
+      ],
+      "constRefs": 0,
+      "literalRefs": 1,
+      "literalFiles": [
+        {
+          "file": "components/settings/settings-nav-hub.tsx",
+          "count": 1
+        }
+      ]
+    },
+    {
+      "file": "app/analytics/[athleteId]/goals.tsx",
+      "route": "/analytics/[athleteId]/goals",
+      "routeNoGroup": "/analytics/[athleteId]/goals",
+      "constNames": [
+        "analyticsAthleteGoals"
+      ],
+      "constRefs": 1,
+      "literalRefs": 0,
+      "literalFiles": []
+    },
+    {
+      "file": "app/analytics/retention.tsx",
+      "route": "/analytics/retention",
+      "routeNoGroup": "/analytics/retention",
+      "constNames": [
+        "ANALYTICS_RETENTION"
+      ],
+      "constRefs": 1,
+      "literalRefs": 0,
+      "literalFiles": []
+    },
+    {
+      "file": "app/analytics/revenue.tsx",
+      "route": "/analytics/revenue",
+      "routeNoGroup": "/analytics/revenue",
+      "constNames": [
+        "ANALYTICS_REVENUE"
+      ],
+      "constRefs": 1,
+      "literalRefs": 0,
+      "literalFiles": []
+    },
+    {
+      "file": "app/availability/add-template.tsx",
+      "route": "/availability/add-template",
+      "routeNoGroup": "/availability/add-template",
+      "constNames": [
+        "AVAILABILITY_ADD_TEMPLATE"
+      ],
+      "constRefs": 1,
+      "literalRefs": 0,
+      "literalFiles": []
+    },
+    {
+      "file": "app/availability/block-date.tsx",
+      "route": "/availability/block-date",
+      "routeNoGroup": "/availability/block-date",
+      "constNames": [
+        "AVAILABILITY_BLOCK_DATE"
+      ],
+      "constRefs": 1,
+      "literalRefs": 0,
+      "literalFiles": []
+    },
+    {
+      "file": "app/availability/calendar.tsx",
+      "route": "/availability/calendar",
+      "routeNoGroup": "/availability/calendar",
+      "constNames": [
+        "AVAILABILITY_CALENDAR"
+      ],
+      "constRefs": 1,
+      "literalRefs": 0,
+      "literalFiles": []
+    },
+    {
+      "file": "app/book/[coachId]/confirmation.tsx",
+      "route": "/book/[coachId]/confirmation",
+      "routeNoGroup": "/book/[coachId]/confirmation",
+      "constNames": [
+        "bookConfirmation"
+      ],
+      "constRefs": 1,
+      "literalRefs": 0,
+      "literalFiles": []
+    },
+    {
+      "file": "app/book/[coachId]/details.tsx",
+      "route": "/book/[coachId]/details",
+      "routeNoGroup": "/book/[coachId]/details",
+      "constNames": [
+        "bookDetails"
+      ],
+      "constRefs": 1,
+      "literalRefs": 0,
+      "literalFiles": []
+    },
+    {
+      "file": "app/book/[coachId]/review.tsx",
+      "route": "/book/[coachId]/review",
+      "routeNoGroup": "/book/[coachId]/review",
+      "constNames": [
+        "bookReview"
+      ],
+      "constRefs": 1,
+      "literalRefs": 0,
+      "literalFiles": []
+    },
+    {
+      "file": "app/club/[clubId]/calendar.tsx",
+      "route": "/club/[clubId]/calendar",
+      "routeNoGroup": "/club/[clubId]/calendar",
+      "constNames": [
+        "clubCalendar"
+      ],
+      "constRefs": 1,
+      "literalRefs": 0,
+      "literalFiles": []
+    },
+    {
+      "file": "app/club/[clubId]/dashboard.tsx",
+      "route": "/club/[clubId]/dashboard",
+      "routeNoGroup": "/club/[clubId]/dashboard",
+      "constNames": [
+        "clubDashboard"
+      ],
+      "constRefs": 1,
+      "literalRefs": 0,
+      "literalFiles": []
+    },
+    {
+      "file": "app/coach-invites.tsx",
+      "route": "/coach-invites",
+      "routeNoGroup": "/coach-invites",
+      "constNames": [
+        "COACH_INVITES",
+        "coachInvitesWith"
+      ],
+      "constRefs": 1,
+      "literalRefs": 0,
+      "literalFiles": []
+    },
+    {
+      "file": "app/compare/[ids].tsx",
+      "route": "/compare/[ids]",
+      "routeNoGroup": "/compare/[ids]",
+      "constNames": [
+        "compareCoaches"
+      ],
+      "constRefs": 1,
+      "literalRefs": 0,
+      "literalFiles": []
+    },
+    {
+      "file": "app/development/athlete/[athleteId]/special-needs.tsx",
+      "route": "/development/athlete/[athleteId]/special-needs",
+      "routeNoGroup": "/development/athlete/[athleteId]/special-needs",
+      "constNames": [
+        "developmentAthleteSpecialNeeds"
+      ],
+      "constRefs": 1,
+      "literalRefs": 0,
+      "literalFiles": []
+    },
+    {
+      "file": "app/drills/create-challenge.tsx",
+      "route": "/drills/create-challenge",
+      "routeNoGroup": "/drills/create-challenge",
+      "constNames": [
+        "DRILLS_CREATE_CHALLENGE"
+      ],
+      "constRefs": 1,
+      "literalRefs": 0,
+      "literalFiles": []
+    },
+    {
+      "file": "app/drills/library.tsx",
+      "route": "/drills/library",
+      "routeNoGroup": "/drills/library",
+      "constNames": [
+        "DRILLS_LIBRARY"
+      ],
+      "constRefs": 1,
+      "literalRefs": 0,
+      "literalFiles": []
+    },
+    {
+      "file": "app/events/[id]/attendees.tsx",
+      "route": "/events/[id]/attendees",
+      "routeNoGroup": "/events/[id]/attendees",
+      "constNames": [
+        "eventAttendees"
+      ],
+      "constRefs": 1,
+      "literalRefs": 0,
+      "literalFiles": []
+    },
+    {
+      "file": "app/family/sharing.tsx",
+      "route": "/family/sharing",
+      "routeNoGroup": "/family/sharing",
+      "constNames": [
+        "FAMILY_SHARING"
+      ],
+      "constRefs": 0,
+      "literalRefs": 1,
+      "literalFiles": [
+        {
+          "file": "components/settings/settings-nav-hub.tsx",
+          "count": 1
+        }
+      ]
+    },
+    {
+      "file": "app/health/injuries.tsx",
+      "route": "/health/injuries",
+      "routeNoGroup": "/health/injuries",
+      "constNames": [
+        "HEALTH_INJURIES"
+      ],
+      "constRefs": 1,
+      "literalRefs": 0,
+      "literalFiles": []
+    },
+    {
+      "file": "app/invoices/[id].tsx",
+      "route": "/invoices/[id]",
+      "routeNoGroup": "/invoices/[id]",
+      "constNames": [
+        "invoice"
+      ],
+      "constRefs": 1,
+      "literalRefs": 0,
+      "literalFiles": []
+    },
+    {
+      "file": "app/manage/bookings.tsx",
+      "route": "/manage/bookings",
+      "routeNoGroup": "/manage/bookings",
+      "constNames": [
+        "MANAGE_BOOKINGS"
+      ],
+      "constRefs": 1,
+      "literalRefs": 0,
+      "literalFiles": []
+    },
+    {
+      "file": "app/matches/index.tsx",
+      "route": "/matches",
+      "routeNoGroup": "/matches",
+      "constNames": [
+        "MATCHES"
+      ],
+      "constRefs": 1,
+      "literalRefs": 0,
+      "literalFiles": []
+    },
+    {
+      "file": "app/review/create.tsx",
+      "route": "/review/create",
+      "routeNoGroup": "/review/create",
+      "constNames": [
+        "reviewCreate"
+      ],
+      "constRefs": 1,
+      "literalRefs": 0,
+      "literalFiles": []
+    },
+    {
+      "file": "app/roster/[athleteId]/emergency.tsx",
+      "route": "/roster/[athleteId]/emergency",
+      "routeNoGroup": "/roster/[athleteId]/emergency",
+      "constNames": [
+        "rosterAthleteEmergency"
+      ],
+      "constRefs": 1,
+      "literalRefs": 0,
+      "literalFiles": []
+    },
+    {
+      "file": "app/session-notes/[bookingId].tsx",
+      "route": "/session-notes/[bookingId]",
+      "routeNoGroup": "/session-notes/[bookingId]",
+      "constNames": [
+        "sessionNotes"
+      ],
+      "constRefs": 1,
+      "literalRefs": 0,
+      "literalFiles": []
+    },
+    {
+      "file": "app/settings/account.tsx",
+      "route": "/settings/account",
+      "routeNoGroup": "/settings/account",
+      "constNames": [
+        "SETTINGS_ACCOUNT"
+      ],
+      "constRefs": 1,
+      "literalRefs": 0,
+      "literalFiles": []
+    },
+    {
+      "file": "app/settings/appearance.tsx",
+      "route": "/settings/appearance",
+      "routeNoGroup": "/settings/appearance",
+      "constNames": [
+        "SETTINGS_APPEARANCE"
+      ],
+      "constRefs": 1,
+      "literalRefs": 0,
+      "literalFiles": []
+    },
+    {
+      "file": "app/settings/blocked-dates.tsx",
+      "route": "/settings/blocked-dates",
+      "routeNoGroup": "/settings/blocked-dates",
+      "constNames": [
+        "SETTINGS_BLOCKED_DATES"
+      ],
+      "constRefs": 1,
+      "literalRefs": 0,
+      "literalFiles": []
+    },
+    {
+      "file": "app/settings/calendar-sync.tsx",
+      "route": "/settings/calendar-sync",
+      "routeNoGroup": "/settings/calendar-sync",
+      "constNames": [
+        "SETTINGS_CALENDAR_SYNC"
+      ],
+      "constRefs": 1,
+      "literalRefs": 0,
+      "literalFiles": []
+    },
+    {
+      "file": "app/settings/cancellation-policy.tsx",
+      "route": "/settings/cancellation-policy",
+      "routeNoGroup": "/settings/cancellation-policy",
+      "constNames": [
+        "SETTINGS_CANCELLATION_POLICY"
+      ],
+      "constRefs": 1,
+      "literalRefs": 0,
+      "literalFiles": []
+    },
+    {
+      "file": "app/settings/help.tsx",
+      "route": "/settings/help",
+      "routeNoGroup": "/settings/help",
+      "constNames": [
+        "SETTINGS_HELP"
+      ],
+      "constRefs": 1,
+      "literalRefs": 0,
+      "literalFiles": []
+    },
+    {
+      "file": "app/settings/notifications/index.tsx",
+      "route": "/settings/notifications",
+      "routeNoGroup": "/settings/notifications",
+      "constNames": [
+        "SETTINGS_NOTIFICATIONS"
+      ],
+      "constRefs": 1,
+      "literalRefs": 0,
+      "literalFiles": []
+    },
+    {
+      "file": "app/settings/privacy.tsx",
+      "route": "/settings/privacy",
+      "routeNoGroup": "/settings/privacy",
+      "constNames": [
+        "SETTINGS_PRIVACY"
+      ],
+      "constRefs": 1,
+      "literalRefs": 0,
+      "literalFiles": []
+    },
+    {
+      "file": "app/settings/smart-slots.tsx",
+      "route": "/settings/smart-slots",
+      "routeNoGroup": "/settings/smart-slots",
+      "constNames": [
+        "SETTINGS_SMART_SLOTS"
+      ],
+      "constRefs": 1,
+      "literalRefs": 0,
+      "literalFiles": []
+    },
+    {
+      "file": "app/settings/travel-radius.tsx",
+      "route": "/settings/travel-radius",
+      "routeNoGroup": "/settings/travel-radius",
+      "constNames": [
+        "SETTINGS_TRAVEL_RADIUS"
+      ],
+      "constRefs": 1,
+      "literalRefs": 0,
+      "literalFiles": []
+    },
+    {
+      "file": "app/skills/[category].tsx",
+      "route": "/skills/[category]",
+      "routeNoGroup": "/skills/[category]",
+      "constNames": [
+        "skillCategory"
+      ],
+      "constRefs": 1,
+      "literalRefs": 0,
+      "literalFiles": []
+    },
+    {
+      "file": "app/squads/[id]/invite.tsx",
+      "route": "/squads/[id]/invite",
+      "routeNoGroup": "/squads/[id]/invite",
+      "constNames": [
+        "squadInvite"
+      ],
+      "constRefs": 1,
+      "literalRefs": 0,
+      "literalFiles": []
+    },
+    {
+      "file": "app/verification/background.tsx",
+      "route": "/verification/background",
+      "routeNoGroup": "/verification/background",
+      "constNames": [
+        "VERIFICATION_BACKGROUND"
+      ],
+      "constRefs": 1,
+      "literalRefs": 0,
+      "literalFiles": []
+    },
+    {
+      "file": "app/verification/credentials.tsx",
+      "route": "/verification/credentials",
+      "routeNoGroup": "/verification/credentials",
+      "constNames": [
+        "VERIFICATION_CREDENTIALS"
+      ],
+      "constRefs": 1,
+      "literalRefs": 0,
+      "literalFiles": []
+    },
+    {
+      "file": "app/verification/id.tsx",
+      "route": "/verification/id",
+      "routeNoGroup": "/verification/id",
+      "constNames": [
+        "VERIFICATION_ID"
+      ],
+      "constRefs": 1,
+      "literalRefs": 0,
+      "literalFiles": []
+    },
+    {
+      "file": "app/verification/insurance.tsx",
+      "route": "/verification/insurance",
+      "routeNoGroup": "/verification/insurance",
+      "constNames": [
+        "VERIFICATION_INSURANCE"
+      ],
+      "constRefs": 1,
+      "literalRefs": 0,
+      "literalFiles": []
+    },
+    {
+      "file": "app/videos/[id].tsx",
+      "route": "/videos/[id]",
+      "routeNoGroup": "/videos/[id]",
+      "constNames": [
+        "video"
+      ],
+      "constRefs": 1,
+      "literalRefs": 0,
+      "literalFiles": []
+    }
+  ],
+  "topStrong": [
+    {
+      "file": "app/(tabs)/bookings/index.tsx",
+      "route": "/(tabs)/bookings",
+      "routeNoGroup": "/bookings",
+      "constNames": [
+        "BOOKINGS"
+      ],
+      "constRefs": 6,
+      "literalRefs": 13,
+      "literalFiles": [
+        {
+          "file": "services/notification-trigger.ts",
+          "count": 7
+        },
+        {
+          "file": "components/settings/settings-nav-hub.tsx",
+          "count": 4
+        },
+        {
+          "file": "components/user/home-screen-sections.tsx",
+          "count": 1
+        },
+        {
+          "file": "app/review/create.tsx",
+          "count": 1
+        }
+      ]
+    },
+    {
+      "file": "app/sessions/create.tsx",
+      "route": "/sessions/create",
+      "routeNoGroup": "/sessions/create",
+      "constNames": [
+        "SESSIONS_CREATE",
+        "sessionsCreateWith",
+        "sessionsCreateIntent",
+        "sessionsCreateOneToOneForAthlete",
+        "sessionsCreateGroupForAthlete"
+      ],
+      "constRefs": 18,
+      "literalRefs": 0,
+      "literalFiles": []
+    },
+    {
+      "file": "app/(tabs)/club-hub.tsx",
+      "route": "/(tabs)/club-hub",
+      "routeNoGroup": "/club-hub",
+      "constNames": [
+        "CLUB_HUB",
+        "clubHub"
+      ],
+      "constRefs": 13,
+      "literalRefs": 1,
+      "literalFiles": [
+        {
+          "file": "services/notification/notification-sender.ts",
+          "count": 1
+        }
+      ]
+    },
+    {
+      "file": "app/(tabs)/messages.tsx",
+      "route": "/(tabs)/messages",
+      "routeNoGroup": "/messages",
+      "constNames": [
+        "MESSAGES",
+        "messagesWith"
+      ],
+      "constRefs": 6,
+      "literalRefs": 6,
+      "literalFiles": [
+        {
+          "file": "components/settings/settings-nav-hub.tsx",
+          "count": 4
+        },
+        {
+          "file": "constants/notification-types.ts",
+          "count": 1
+        },
+        {
+          "file": "components/user/home-screen-sections.tsx",
+          "count": 1
+        }
+      ]
+    },
+    {
+      "file": "app/book-coach.tsx",
+      "route": "/book-coach",
+      "routeNoGroup": "/book-coach",
+      "constNames": [
+        "BOOK_COACH",
+        "bookCoachWith"
+      ],
+      "constRefs": 9,
+      "literalRefs": 1,
+      "literalFiles": [
+        {
+          "file": "app/book/[coachId]/index.tsx",
+          "count": 1
+        }
+      ]
+    },
+    {
+      "file": "app/(tabs)/bookings/[id].tsx",
+      "route": "/(tabs)/bookings/[id]",
+      "routeNoGroup": "/bookings/[id]",
+      "constNames": [
+        "booking"
+      ],
+      "constRefs": 10,
+      "literalRefs": 0,
+      "literalFiles": []
+    },
+    {
+      "file": "app/badges/index.tsx",
+      "route": "/badges",
+      "routeNoGroup": "/badges",
+      "constNames": [
+        "BADGES",
+        "BADGES_INDEX"
+      ],
+      "constRefs": 4,
+      "literalRefs": 5,
+      "literalFiles": [
+        {
+          "file": "components/settings/settings-nav-hub.tsx",
+          "count": 2
+        },
+        {
+          "file": "constants/notification-types.ts",
+          "count": 1
+        },
+        {
+          "file": "services/notification/notification-sender.ts",
+          "count": 1
+        },
+        {
+          "file": "services/notification-trigger.ts",
+          "count": 1
+        }
+      ]
+    },
+    {
+      "file": "app/(tabs)/badges.tsx",
+      "route": "/(tabs)/badges",
+      "routeNoGroup": "/badges",
+      "constNames": [
+        "BADGES",
+        "BADGES_INDEX"
+      ],
+      "constRefs": 4,
+      "literalRefs": 5,
+      "literalFiles": [
+        {
+          "file": "components/settings/settings-nav-hub.tsx",
+          "count": 2
+        },
+        {
+          "file": "constants/notification-types.ts",
+          "count": 1
+        },
+        {
+          "file": "services/notification/notification-sender.ts",
+          "count": 1
+        },
+        {
+          "file": "services/notification-trigger.ts",
+          "count": 1
+        }
+      ]
+    },
+    {
+      "file": "app/(tabs)/settings.tsx",
+      "route": "/(tabs)/settings",
+      "routeNoGroup": "/settings",
+      "constNames": [
+        "SETTINGS",
+        "SETTINGS_INDEX"
+      ],
+      "constRefs": 2,
+      "literalRefs": 7,
+      "literalFiles": [
+        {
+          "file": "components/coach/onboarding-checklist.tsx",
+          "count": 6
+        },
+        {
+          "file": "hooks/use-bookings.ts",
+          "count": 1
+        }
+      ]
+    },
+    {
+      "file": "app/book/[coachId]/session-type.tsx",
+      "route": "/book/[coachId]/session-type",
+      "routeNoGroup": "/book/[coachId]/session-type",
+      "constNames": [
+        "bookSessionType"
+      ],
+      "constRefs": 8,
+      "literalRefs": 0,
+      "literalFiles": []
+    },
+    {
+      "file": "app/group-sessions/[id].tsx",
+      "route": "/group-sessions/[id]",
+      "routeNoGroup": "/group-sessions/[id]",
+      "constNames": [
+        "groupSession"
+      ],
+      "constRefs": 8,
+      "literalRefs": 0,
+      "literalFiles": []
+    },
+    {
+      "file": "app/group-sessions/index.tsx",
+      "route": "/group-sessions",
+      "routeNoGroup": "/group-sessions",
+      "constNames": [
+        "GROUP_SESSIONS"
+      ],
+      "constRefs": 3,
+      "literalRefs": 5,
+      "literalFiles": [
+        {
+          "file": "services/notification-trigger.ts",
+          "count": 4
+        },
+        {
+          "file": "hooks/use-bookings.ts",
+          "count": 1
+        }
+      ]
+    },
+    {
+      "file": "app/(tabs)/availability.tsx",
+      "route": "/(tabs)/availability",
+      "routeNoGroup": "/availability",
+      "constNames": [
+        "AVAILABILITY"
+      ],
+      "constRefs": 5,
+      "literalRefs": 3,
+      "literalFiles": [
+        {
+          "file": "components/coach/onboarding-checklist.tsx",
+          "count": 2
+        },
+        {
+          "file": "hooks/use-bookings.ts",
+          "count": 1
+        }
+      ]
+    },
+    {
+      "file": "app/settings/index.tsx",
+      "route": "/settings",
+      "routeNoGroup": "/settings",
+      "constNames": [
+        "SETTINGS",
+        "SETTINGS_INDEX"
+      ],
+      "constRefs": 2,
+      "literalRefs": 6,
+      "literalFiles": [
+        {
+          "file": "components/coach/onboarding-checklist.tsx",
+          "count": 6
+        }
+      ]
+    },
+    {
+      "file": "app/(tabs)/schedule.tsx",
+      "route": "/(tabs)/schedule",
+      "routeNoGroup": "/schedule",
+      "constNames": [
+        "SCHEDULE"
+      ],
+      "constRefs": 6,
+      "literalRefs": 1,
+      "literalFiles": [
+        {
+          "file": "app/(tabs)/availability.tsx",
+          "count": 1
+        }
+      ]
+    },
+    {
+      "file": "app/session-invites/index.tsx",
+      "route": "/session-invites",
+      "routeNoGroup": "/session-invites",
+      "constNames": [
+        "SESSION_INVITES"
+      ],
+      "constRefs": 4,
+      "literalRefs": 3,
+      "literalFiles": [
+        {
+          "file": "services/notification-trigger.ts",
+          "count": 3
+        }
+      ]
+    },
+    {
+      "file": "app/development/my-progress.tsx",
+      "route": "/development/my-progress",
+      "routeNoGroup": "/development/my-progress",
+      "constNames": [
+        "DEVELOPMENT_MY_PROGRESS"
+      ],
+      "constRefs": 4,
+      "literalRefs": 3,
+      "literalFiles": [
+        {
+          "file": "services/notification-trigger.ts",
+          "count": 2
+        },
+        {
+          "file": "components/user/home-screen-sections.tsx",
+          "count": 1
+        }
+      ]
+    },
+    {
+      "file": "app/events/[id].tsx",
+      "route": "/events/[id]",
+      "routeNoGroup": "/events/[id]",
+      "constNames": [
+        "event"
+      ],
+      "constRefs": 6,
+      "literalRefs": 0,
+      "literalFiles": []
+    },
+    {
+      "file": "app/(tabs)/edit-profile.tsx",
+      "route": "/(tabs)/edit-profile",
+      "routeNoGroup": "/edit-profile",
+      "constNames": [
+        "EDIT_PROFILE"
+      ],
+      "constRefs": 5,
+      "literalRefs": 1,
+      "literalFiles": [
+        {
+          "file": "components/settings/settings-profile-card.tsx",
+          "count": 1
+        }
+      ]
+    },
+    {
+      "file": "app/(tabs)/earnings.tsx",
+      "route": "/(tabs)/earnings",
+      "routeNoGroup": "/earnings",
+      "constNames": [
+        "EARNINGS"
+      ],
+      "constRefs": 5,
+      "literalRefs": 1,
+      "literalFiles": [
+        {
+          "file": "components/settings/settings-nav-hub.tsx",
+          "count": 1
+        }
+      ]
+    },
+    {
+      "file": "app/chat/[threadId].tsx",
+      "route": "/chat/[threadId]",
+      "routeNoGroup": "/chat/[threadId]",
+      "constNames": [
+        "chat"
+      ],
+      "constRefs": 6,
+      "literalRefs": 0,
+      "literalFiles": []
+    },
+    {
+      "file": "app/development/session/[sessionId].tsx",
+      "route": "/development/session/[sessionId]",
+      "routeNoGroup": "/development/session/[sessionId]",
+      "constNames": [
+        "developmentSession"
+      ],
+      "constRefs": 6,
+      "literalRefs": 0,
+      "literalFiles": []
+    },
+    {
+      "file": "app/discover/map.tsx",
+      "route": "/discover/map",
+      "routeNoGroup": "/discover/map",
+      "constNames": [
+        "DISCOVER_MAP"
+      ],
+      "constRefs": 4,
+      "literalRefs": 2,
+      "literalFiles": [
+        {
+          "file": "components/user/home-screen-sections.tsx",
+          "count": 1
+        },
+        {
+          "file": "app/book-coach.tsx",
+          "count": 1
+        }
+      ]
+    },
+    {
+      "file": "app/club/[id].tsx",
+      "route": "/club/[id]",
+      "routeNoGroup": "/club/[id]",
+      "constNames": [
+        "club"
+      ],
+      "constRefs": 6,
+      "literalRefs": 0,
+      "literalFiles": []
+    },
+    {
+      "file": "app/children/badges/[childId].tsx",
+      "route": "/children/badges/[childId]",
+      "routeNoGroup": "/children/badges/[childId]",
+      "constNames": [
+        "childBadges"
+      ],
+      "constRefs": 5,
+      "literalRefs": 0,
+      "literalFiles": []
+    },
+    {
+      "file": "app/manage/index.tsx",
+      "route": "/manage",
+      "routeNoGroup": "/manage",
+      "constNames": [
+        "MANAGE"
+      ],
+      "constRefs": 3,
+      "literalRefs": 2,
+      "literalFiles": [
+        {
+          "file": "app/manage/[legacy].tsx",
+          "count": 2
+        }
+      ]
+    },
+    {
+      "file": "app/(tabs)/index.tsx",
+      "route": "/(tabs)",
+      "routeNoGroup": "",
+      "constNames": [
+        "HOME",
+        "HOME_INDEX"
+      ],
+      "constRefs": 5,
+      "literalRefs": 0,
+      "literalFiles": []
+    },
+    {
+      "file": "app/earnings.tsx",
+      "route": "/earnings",
+      "routeNoGroup": "/earnings",
+      "constNames": [
+        "EARNINGS"
+      ],
+      "constRefs": 5,
+      "literalRefs": 0,
+      "literalFiles": []
+    },
+    {
+      "file": "app/development/child-progress/[childId].tsx",
+      "route": "/development/child-progress/[childId]",
+      "routeNoGroup": "/development/child-progress/[childId]",
+      "constNames": [
+        "developmentChildProgress"
+      ],
+      "constRefs": 5,
+      "literalRefs": 0,
+      "literalFiles": []
+    },
+    {
+      "file": "app/development/athlete/[athleteId]/index.tsx",
+      "route": "/development/athlete/[athleteId]",
+      "routeNoGroup": "/development/athlete/[athleteId]",
+      "constNames": [
+        "developmentAthlete"
+      ],
+      "constRefs": 5,
+      "literalRefs": 0,
+      "literalFiles": []
+    },
+    {
+      "file": "app/club/squad/create.tsx",
+      "route": "/club/squad/create",
+      "routeNoGroup": "/club/squad/create",
+      "constNames": [
+        "CLUB_SQUAD_CREATE",
+        "clubSquadCreate"
+      ],
+      "constRefs": 5,
+      "literalRefs": 0,
+      "literalFiles": []
+    },
+    {
+      "file": "app/(modal)/post-detail.tsx",
+      "route": "/(modal)/post-detail",
+      "routeNoGroup": "/post-detail",
+      "constNames": [
+        "modalPostDetail"
+      ],
+      "constRefs": 4,
+      "literalRefs": 0,
+      "literalFiles": []
+    },
+    {
+      "file": "app/(modal)/add-child.tsx",
+      "route": "/(modal)/add-child",
+      "routeNoGroup": "/add-child",
+      "constNames": [
+        "MODAL_ADD_CHILD"
+      ],
+      "constRefs": 4,
+      "literalRefs": 0,
+      "literalFiles": []
+    },
+    {
+      "file": "app/events/index.tsx",
+      "route": "/events",
+      "routeNoGroup": "/events",
+      "constNames": [
+        "EVENTS"
+      ],
+      "constRefs": 1,
+      "literalRefs": 3,
+      "literalFiles": [
+        {
+          "file": "services/notification-trigger.ts",
+          "count": 3
+        }
+      ]
+    },
+    {
+      "file": "app/matches/[id].tsx",
+      "route": "/matches/[id]",
+      "routeNoGroup": "/matches/[id]",
+      "constNames": [
+        "match"
+      ],
+      "constRefs": 4,
+      "literalRefs": 0,
+      "literalFiles": []
+    },
+    {
+      "file": "app/matches/create.tsx",
+      "route": "/matches/create",
+      "routeNoGroup": "/matches/create",
+      "constNames": [
+        "MATCHES_CREATE"
+      ],
+      "constRefs": 3,
+      "literalRefs": 1,
+      "literalFiles": [
+        {
+          "file": "app/club/[clubId]/dashboard.tsx",
+          "count": 1
+        }
+      ]
+    },
+    {
+      "file": "app/(tabs)/more.tsx",
+      "route": "/(tabs)/more",
+      "routeNoGroup": "/more",
+      "constNames": [
+        "MORE"
+      ],
+      "constRefs": 2,
+      "literalRefs": 2,
+      "literalFiles": [
+        {
+          "file": "components/social/feed-filters-sections.tsx",
+          "count": 1
+        },
+        {
+          "file": "components/settings/settings-nav-hub.tsx",
+          "count": 1
+        }
+      ]
+    },
+    {
+      "file": "app/(tabs)/feed.tsx",
+      "route": "/(tabs)/feed",
+      "routeNoGroup": "/feed",
+      "constNames": [
+        "FEED"
+      ],
+      "constRefs": 2,
+      "literalRefs": 2,
+      "literalFiles": [
+        {
+          "file": "components/settings/settings-nav-hub.tsx",
+          "count": 2
+        }
+      ]
+    },
+    {
+      "file": "app/session-invites/[id].tsx",
+      "route": "/session-invites/[id]",
+      "routeNoGroup": "/session-invites/[id]",
+      "constNames": [
+        "sessionInvite"
+      ],
+      "constRefs": 4,
+      "literalRefs": 0,
+      "literalFiles": []
+    },
+    {
+      "file": "app/session-invites/group.tsx",
+      "route": "/session-invites/group",
+      "routeNoGroup": "/session-invites/group",
+      "constNames": [
+        "SESSION_INVITES_GROUP"
+      ],
+      "constRefs": 4,
+      "literalRefs": 0,
+      "literalFiles": []
+    },
+    {
+      "file": "app/roster/[athleteId]/add-to-session.tsx",
+      "route": "/roster/[athleteId]/add-to-session",
+      "routeNoGroup": "/roster/[athleteId]/add-to-session",
+      "constNames": [
+        "rosterAthleteAddToSession"
+      ],
+      "constRefs": 4,
+      "literalRefs": 0,
+      "literalFiles": []
+    },
+    {
+      "file": "app/roster/[athleteId]/index.tsx",
+      "route": "/roster/[athleteId]",
+      "routeNoGroup": "/roster/[athleteId]",
+      "constNames": [
+        "rosterAthlete"
+      ],
+      "constRefs": 4,
+      "literalRefs": 0,
+      "literalFiles": []
+    },
+    {
+      "file": "app/club/settings.tsx",
+      "route": "/club/settings",
+      "routeNoGroup": "/club/settings",
+      "constNames": [
+        "CLUB_SETTINGS",
+        "clubSettings"
+      ],
+      "constRefs": 4,
+      "literalRefs": 0,
+      "literalFiles": []
+    },
+    {
+      "file": "app/(modal)/create-club-post.tsx",
+      "route": "/(modal)/create-club-post",
+      "routeNoGroup": "/create-club-post",
+      "constNames": [
+        "MODAL_CREATE_CLUB_POST",
+        "modalCreateClubPost"
+      ],
+      "constRefs": 3,
+      "literalRefs": 0,
+      "literalFiles": []
+    },
+    {
+      "file": "app/events/create.tsx",
+      "route": "/events/create",
+      "routeNoGroup": "/events/create",
+      "constNames": [
+        "EVENTS_CREATE"
+      ],
+      "constRefs": 2,
+      "literalRefs": 1,
+      "literalFiles": [
+        {
+          "file": "app/club/[clubId]/dashboard.tsx",
+          "count": 1
+        }
+      ]
+    },
+    {
+      "file": "app/invites.tsx",
+      "route": "/invites",
+      "routeNoGroup": "/invites",
+      "constNames": [
+        "INVITES"
+      ],
+      "constRefs": 1,
+      "literalRefs": 2,
+      "literalFiles": [
+        {
+          "file": "hooks/use-bookings.ts",
+          "count": 1
+        },
+        {
+          "file": "services/invite/bulk-invite-service.ts",
+          "count": 1
+        }
+      ]
+    },
+    {
+      "file": "app/group-sessions/create.tsx",
+      "route": "/group-sessions/create",
+      "routeNoGroup": "/group-sessions/create",
+      "constNames": [
+        "GROUP_SESSIONS_CREATE"
+      ],
+      "constRefs": 3,
+      "literalRefs": 0,
+      "literalFiles": []
+    },
+    {
+      "file": "app/family/calendar.tsx",
+      "route": "/family/calendar",
+      "routeNoGroup": "/family/calendar",
+      "constNames": [
+        "FAMILY_CALENDAR"
+      ],
+      "constRefs": 3,
+      "literalRefs": 0,
+      "literalFiles": []
+    },
+    {
+      "file": "app/(tabs)/coach-profile.tsx",
+      "route": "/(tabs)/coach-profile",
+      "routeNoGroup": "/coach-profile",
+      "constNames": [
+        "COACH_PROFILE"
+      ],
+      "constRefs": 2,
+      "literalRefs": 1,
+      "literalFiles": [
+        {
+          "file": "components/settings/settings-nav-hub.tsx",
+          "count": 1
+        }
+      ]
+    },
+    {
+      "file": "app/(tabs)/athletes.tsx",
+      "route": "/(tabs)/athletes",
+      "routeNoGroup": "/athletes",
+      "constNames": [
+        "ATHLETES"
+      ],
+      "constRefs": 2,
+      "literalRefs": 1,
+      "literalFiles": [
+        {
+          "file": "components/settings/settings-nav-hub.tsx",
+          "count": 1
+        }
+      ]
+    },
+    {
+      "file": "app/(tabs)/children.tsx",
+      "route": "/(tabs)/children",
+      "routeNoGroup": "/children",
+      "constNames": [
+        "CHILDREN"
+      ],
+      "constRefs": 2,
+      "literalRefs": 1,
+      "literalFiles": [
+        {
+          "file": "components/settings/settings-nav-hub.tsx",
+          "count": 1
+        }
+      ]
+    },
+    {
+      "file": "app/goals/create.tsx",
+      "route": "/goals/create",
+      "routeNoGroup": "/goals/create",
+      "constNames": [
+        "GOALS_CREATE"
+      ],
+      "constRefs": 3,
+      "literalRefs": 0,
+      "literalFiles": []
+    },
+    {
+      "file": "app/development/session-history.tsx",
+      "route": "/development/session-history",
+      "routeNoGroup": "/development/session-history",
+      "constNames": [
+        "DEVELOPMENT_SESSION_HISTORY",
+        "developmentSessionHistory"
+      ],
+      "constRefs": 3,
+      "literalRefs": 0,
+      "literalFiles": []
+    },
+    {
+      "file": "app/session-invites/create.tsx",
+      "route": "/session-invites/create",
+      "routeNoGroup": "/session-invites/create",
+      "constNames": [
+        "SESSION_INVITES_CREATE",
+        "sessionInvitesCreateForOffering"
+      ],
+      "constRefs": 3,
+      "literalRefs": 0,
+      "literalFiles": []
+    },
+    {
+      "file": "app/discover-sessions.tsx",
+      "route": "/discover-sessions",
+      "routeNoGroup": "/discover-sessions",
+      "constNames": [
+        "DISCOVER_SESSIONS"
+      ],
+      "constRefs": 2,
+      "literalRefs": 1,
+      "literalFiles": [
+        {
+          "file": "hooks/use-bookings.ts",
+          "count": 1
+        }
+      ]
+    },
+    {
+      "file": "app/development/badges.tsx",
+      "route": "/development/badges",
+      "routeNoGroup": "/development/badges",
+      "constNames": [
+        "DEVELOPMENT_BADGES",
+        "developmentBadgesHighlight"
+      ],
+      "constRefs": 3,
+      "literalRefs": 0,
+      "literalFiles": []
+    },
+    {
+      "file": "app/roster/[athleteId]/raise-concern.tsx",
+      "route": "/roster/[athleteId]/raise-concern",
+      "routeNoGroup": "/roster/[athleteId]/raise-concern",
+      "constNames": [
+        "rosterAthleteConcern"
+      ],
+      "constRefs": 3,
+      "literalRefs": 0,
+      "literalFiles": []
+    },
+    {
+      "file": "app/club/[clubId]/member/[memberId].tsx",
+      "route": "/club/[clubId]/member/[memberId]",
+      "routeNoGroup": "/club/[clubId]/member/[memberId]",
+      "constNames": [
+        "clubMember"
+      ],
+      "constRefs": 3,
+      "literalRefs": 0,
+      "literalFiles": []
+    },
+    {
+      "file": "app/session/[id]/complete.tsx",
+      "route": "/session/[id]/complete",
+      "routeNoGroup": "/session/[id]/complete",
+      "constNames": [
+        "sessionComplete"
+      ],
+      "constRefs": 2,
+      "literalRefs": 0,
+      "literalFiles": []
+    },
+    {
+      "file": "app/analytics/[athleteId].tsx",
+      "route": "/analytics/[athleteId]",
+      "routeNoGroup": "/analytics/[athleteId]",
+      "constNames": [
+        "analyticsAthlete"
+      ],
+      "constRefs": 2,
+      "literalRefs": 0,
+      "literalFiles": []
+    },
+    {
+      "file": "app/drills/[id].tsx",
+      "route": "/drills/[id]",
+      "routeNoGroup": "/drills/[id]",
+      "constNames": [
+        "drill"
+      ],
+      "constRefs": 2,
+      "literalRefs": 0,
+      "literalFiles": []
+    },
+    {
+      "file": "app/drills/assign.tsx",
+      "route": "/drills/assign",
+      "routeNoGroup": "/drills/assign",
+      "constNames": [
+        "DRILLS_ASSIGN",
+        "drillsAssignWith"
+      ],
+      "constRefs": 2,
+      "literalRefs": 0,
+      "literalFiles": []
+    },
+    {
+      "file": "app/drills/create.tsx",
+      "route": "/drills/create",
+      "routeNoGroup": "/drills/create",
+      "constNames": [
+        "DRILLS_CREATE"
+      ],
+      "constRefs": 2,
+      "literalRefs": 0,
+      "literalFiles": []
+    },
+    {
+      "file": "app/drills/index.tsx",
+      "route": "/drills",
+      "routeNoGroup": "/drills",
+      "constNames": [
+        "DRILLS"
+      ],
+      "constRefs": 0,
+      "literalRefs": 2,
+      "literalFiles": [
+        {
+          "file": "services/notification-trigger.ts",
+          "count": 2
+        }
+      ]
+    },
+    {
+      "file": "app/community/[groupId].tsx",
+      "route": "/community/[groupId]",
+      "routeNoGroup": "/community/[groupId]",
+      "constNames": [
+        "communityGroup"
+      ],
+      "constRefs": 2,
+      "literalRefs": 0,
+      "literalFiles": []
+    },
+    {
+      "file": "app/book/[coachId]/schedule.tsx",
+      "route": "/book/[coachId]/schedule",
+      "routeNoGroup": "/book/[coachId]/schedule",
+      "constNames": [
+        "bookSchedule"
+      ],
+      "constRefs": 2,
+      "literalRefs": 0,
+      "literalFiles": []
+    },
+    {
+      "file": "app/book/[coachId]/index.tsx",
+      "route": "/book/[coachId]",
+      "routeNoGroup": "/book/[coachId]",
+      "constNames": [
+        "bookCoach"
+      ],
+      "constRefs": 2,
+      "literalRefs": 0,
+      "literalFiles": []
+    },
+    {
+      "file": "app/review/[bookingId].tsx",
+      "route": "/review/[bookingId]",
+      "routeNoGroup": "/review/[bookingId]",
+      "constNames": [
+        "review"
+      ],
+      "constRefs": 2,
+      "literalRefs": 0,
+      "literalFiles": []
+    },
+    {
+      "file": "app/profile/[userId].tsx",
+      "route": "/profile/[userId]",
+      "routeNoGroup": "/profile/[userId]",
+      "constNames": [
+        "profile"
+      ],
+      "constRefs": 2,
+      "literalRefs": 0,
+      "literalFiles": []
+    },
+    {
+      "file": "app/coach/[coachId]/public.tsx",
+      "route": "/coach/[coachId]/public",
+      "routeNoGroup": "/coach/[coachId]/public",
+      "constNames": [
+        "coachPublic"
+      ],
+      "constRefs": 2,
+      "literalRefs": 0,
+      "literalFiles": []
+    },
+    {
+      "file": "app/group-sessions/[id]/roster.tsx",
+      "route": "/group-sessions/[id]/roster",
+      "routeNoGroup": "/group-sessions/[id]/roster",
+      "constNames": [
+        "groupSessionRoster"
+      ],
+      "constRefs": 2,
+      "literalRefs": 0,
+      "literalFiles": []
+    },
+    {
+      "file": "app/family/index.tsx",
+      "route": "/family",
+      "routeNoGroup": "/family",
+      "constNames": [
+        "FAMILY"
+      ],
+      "constRefs": 0,
+      "literalRefs": 2,
+      "literalFiles": [
+        {
+          "file": "app/family/[legacy].tsx",
+          "count": 2
+        }
+      ]
+    },
+    {
+      "file": "app/family/spending.tsx",
+      "route": "/family/spending",
+      "routeNoGroup": "/family/spending",
+      "constNames": [
+        "FAMILY_SPENDING"
+      ],
+      "constRefs": 2,
+      "literalRefs": 0,
+      "literalFiles": []
+    },
+    {
+      "file": "app/(tabs)/notifications.tsx",
+      "route": "/(tabs)/notifications",
+      "routeNoGroup": "/notifications",
+      "constNames": [
+        "NOTIFICATIONS"
+      ],
+      "constRefs": 1,
+      "literalRefs": 1,
+      "literalFiles": [
+        {
+          "file": "constants/notification-types.ts",
+          "count": 1
+        }
+      ]
+    },
+    {
+      "file": "app/(tabs)/bookings/report-problem.tsx",
+      "route": "/(tabs)/bookings/report-problem",
+      "routeNoGroup": "/bookings/report-problem",
+      "constNames": [
+        "BOOKINGS_REPORT_PROBLEM"
+      ],
+      "constRefs": 2,
+      "literalRefs": 0,
+      "literalFiles": []
+    },
+    {
+      "file": "app/(tabs)/bookings/session-feedback.tsx",
+      "route": "/(tabs)/bookings/session-feedback",
+      "routeNoGroup": "/bookings/session-feedback",
+      "constNames": [
+        "sessionFeedback"
+      ],
+      "constRefs": 2,
+      "literalRefs": 0,
+      "literalFiles": []
+    },
+    {
+      "file": "app/health/log.tsx",
+      "route": "/health/log",
+      "routeNoGroup": "/health/log",
+      "constNames": [
+        "HEALTH_LOG"
+      ],
+      "constRefs": 2,
+      "literalRefs": 0,
+      "literalFiles": []
+    },
+    {
+      "file": "app/health/[id].tsx",
+      "route": "/health/[id]",
+      "routeNoGroup": "/health/[id]",
+      "constNames": [
+        "healthEntry"
+      ],
+      "constRefs": 2,
+      "literalRefs": 0,
+      "literalFiles": []
+    },
+    {
+      "file": "app/booking/[id]/cancel.tsx",
+      "route": "/booking/[id]/cancel",
+      "routeNoGroup": "/booking/[id]/cancel",
+      "constNames": [
+        "bookingCancel"
+      ],
+      "constRefs": 2,
+      "literalRefs": 0,
+      "literalFiles": []
+    },
+    {
+      "file": "app/goals/[id].tsx",
+      "route": "/goals/[id]",
+      "routeNoGroup": "/goals/[id]",
+      "constNames": [
+        "goal"
+      ],
+      "constRefs": 2,
+      "literalRefs": 0,
+      "literalFiles": []
+    },
+    {
+      "file": "app/goals/index.tsx",
+      "route": "/goals",
+      "routeNoGroup": "/goals",
+      "constNames": [
+        "GOALS"
+      ],
+      "constRefs": 1,
+      "literalRefs": 1,
+      "literalFiles": [
+        {
+          "file": "app/analytics/[athleteId]/goals.tsx",
+          "count": 1
+        }
+      ]
+    },
+    {
+      "file": "app/development/media-gallery.tsx",
+      "route": "/development/media-gallery",
+      "routeNoGroup": "/development/media-gallery",
+      "constNames": [
+        "DEVELOPMENT_MEDIA_GALLERY",
+        "developmentMediaGallery"
+      ],
+      "constRefs": 2,
+      "literalRefs": 0,
+      "literalFiles": []
+    },
+    {
+      "file": "app/bookings/[id]/counter.tsx",
+      "route": "/bookings/[id]/counter",
+      "routeNoGroup": "/bookings/[id]/counter",
+      "constNames": [
+        "bookingsCounter"
+      ],
+      "constRefs": 2,
+      "literalRefs": 0,
+      "literalFiles": []
+    },
+    {
+      "file": "app/rate-coach.tsx",
+      "route": "/rate-coach",
+      "routeNoGroup": "/rate-coach",
+      "constNames": [
+        "RATE_COACH"
+      ],
+      "constRefs": 1,
+      "literalRefs": 1,
+      "literalFiles": [
+        {
+          "file": "hooks/use-bookings.ts",
+          "count": 1
+        }
+      ]
+    },
+    {
+      "file": "app/club/invite-members.tsx",
+      "route": "/club/invite-members",
+      "routeNoGroup": "/club/invite-members",
+      "constNames": [
+        "CLUB_INVITE_MEMBERS"
+      ],
+      "constRefs": 2,
+      "literalRefs": 0,
+      "literalFiles": []
+    },
+    {
+      "file": "app/club/create.tsx",
+      "route": "/club/create",
+      "routeNoGroup": "/club/create",
+      "constNames": [
+        "CLUB_CREATE"
+      ],
+      "constRefs": 1,
+      "literalRefs": 1,
+      "literalFiles": [
+        {
+          "file": "components/social/feed-filters-sections.tsx",
+          "count": 1
+        }
+      ]
+    },
+    {
+      "file": "app/club/training-schedule.tsx",
+      "route": "/club/training-schedule",
+      "routeNoGroup": "/club/training-schedule",
+      "constNames": [
+        "CLUB_TRAINING_SCHEDULE"
+      ],
+      "constRefs": 2,
+      "literalRefs": 0,
+      "literalFiles": []
+    },
+    {
+      "file": "app/club/squad/[id].tsx",
+      "route": "/club/squad/[id]",
+      "routeNoGroup": "/club/squad/[id]",
+      "constNames": [
+        "clubSquad"
+      ],
+      "constRefs": 2,
+      "literalRefs": 0,
+      "literalFiles": []
+    }
+  ]
+}

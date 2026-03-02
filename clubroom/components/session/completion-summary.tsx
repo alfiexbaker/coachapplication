@@ -19,6 +19,7 @@ interface CompletionSummaryProps {
   ratingDurationSeconds?: number;
   athletes: CompletionSummaryAthlete[];
   onOpenAthlete: (athlete: CompletionSummaryAthlete) => void;
+  onRaiseConcern: (athlete: CompletionSummaryAthlete) => void;
   onDone: () => void;
 }
 
@@ -46,6 +47,7 @@ export const CompletionSummary = memo(function CompletionSummary({
   ratingDurationSeconds,
   athletes,
   onOpenAthlete,
+  onRaiseConcern,
   onDone,
 }: CompletionSummaryProps) {
   const { colors } = useTheme();
@@ -105,6 +107,38 @@ export const CompletionSummary = memo(function CompletionSummary({
                 <Row align="center" gap="xxs">
                   <ThemedText style={styles.chipText}>{athlete.athleteName}</ThemedText>
                   <Ionicons name="create-outline" size={14} color={colors.tint} />
+                </Row>
+              </Clickable>
+            ))}
+          </Row>
+        </Column>
+      </SurfaceCard>
+
+      <SurfaceCard style={styles.summaryCard}>
+        <Column gap="sm">
+          <ThemedText style={styles.title}>Need to flag a concern?</ThemedText>
+          <ThemedText style={[styles.subtitle, { color: colors.muted }]}>
+            Send a safeguarding or behavior concern immediately from the same flow.
+          </ThemedText>
+
+          <Row wrap gap="xs">
+            {athletes.map((athlete) => (
+              <Clickable
+                key={`concern-${athlete.registrationId}`}
+                style={[
+                  styles.athleteChip,
+                  {
+                    borderColor: withAlpha(colors.error, 0.35),
+                    backgroundColor: withAlpha(colors.error, 0.07),
+                  },
+                ]}
+                onPress={() => onRaiseConcern(athlete)}
+                accessibilityLabel={`Raise concern for ${athlete.athleteName}`}
+                accessibilityRole="button"
+              >
+                <Row align="center" gap="xxs">
+                  <ThemedText style={styles.chipText}>{athlete.athleteName}</ThemedText>
+                  <Ionicons name="warning-outline" size={14} color={colors.error} />
                 </Row>
               </Clickable>
             ))}
