@@ -3,7 +3,6 @@
  *
  * Command-center view for injury tracking:
  * - Subject switcher (self/child)
- * - Fast status metrics
  * - One-tap recovery actions
  */
 
@@ -42,25 +41,6 @@ const EMPTY_ICONS: Record<StatusFilter, keyof typeof Ionicons.glyphMap> = {
   RECOVERING: 'trending-up-outline',
   HEALED: 'checkmark-circle-outline',
 };
-
-function StatPill({
-  label,
-  value,
-  color,
-  tint,
-}: {
-  label: string;
-  value: number;
-  color: string;
-  tint: string;
-}) {
-  return (
-    <View style={[styles.metricCard, { backgroundColor: tint }]}>
-      <ThemedText style={[styles.metricValue, { color }]}>{value}</ThemedText>
-      <ThemedText style={styles.metricLabel}>{label}</ThemedText>
-    </View>
-  );
-}
 
 export default function InjuryHistoryScreen() {
   const { colors: palette } = useScreen<null>({ load: async () => ok(null), isEmpty: () => false });
@@ -194,27 +174,6 @@ export default function InjuryHistoryScreen() {
           </View>
         )}
 
-        <Row gap="sm" style={styles.metricsRow}>
-          <StatPill
-            label="Active"
-            value={c.counts.ACTIVE}
-            color={palette.error}
-            tint={withAlpha(palette.error, 0.08)}
-          />
-          <StatPill
-            label="Recovering"
-            value={c.counts.RECOVERING}
-            color={palette.warning}
-            tint={withAlpha(palette.warning, 0.1)}
-          />
-          <StatPill
-            label="Recovered"
-            value={c.counts.HEALED}
-            color={palette.success}
-            tint={withAlpha(palette.success, 0.1)}
-          />
-        </Row>
-
         <ScrollView horizontal showsHorizontalScrollIndicator={false}>
           <Row gap="xs" style={styles.filterRow}>
             {FILTERS.map((filter) => {
@@ -239,23 +198,8 @@ export default function InjuryHistoryScreen() {
                         { color: isActive ? palette.onPrimary : palette.text },
                       ]}
                     >
-                      {filter.label}
+                      {filter.label} ({c.counts[filter.value]})
                     </ThemedText>
-                    <View
-                      style={[
-                        styles.filterCount,
-                        { backgroundColor: isActive ? withAlpha(palette.onPrimary, 0.2) : palette.border },
-                      ]}
-                    >
-                      <ThemedText
-                        style={[
-                          styles.filterCountText,
-                          { color: isActive ? palette.onPrimary : palette.muted },
-                        ]}
-                      >
-                        {c.counts[filter.value]}
-                      </ThemedText>
-                    </View>
                   </Row>
                 </Clickable>
               );
@@ -461,25 +405,6 @@ const styles = StyleSheet.create({
     fontSize: scaleFont(Typography.caption.fontSize),
     fontWeight: '700',
   },
-  metricsRow: {
-    marginBottom: Spacing.sm,
-    paddingHorizontal: Spacing.lg,
-  },
-  metricCard: {
-    flex: 1,
-    borderRadius: Radii.md,
-    paddingVertical: Spacing.sm,
-    paddingHorizontal: Spacing.xs,
-    alignItems: 'center',
-  },
-  metricValue: {
-    ...Typography.heading,
-    fontSize: scaleFont(Typography.heading.fontSize),
-  },
-  metricLabel: {
-    ...Typography.caption,
-    marginTop: Spacing.micro,
-  },
   filterRow: { paddingHorizontal: Spacing.lg },
   filterTab: {
     paddingHorizontal: Spacing.md,
@@ -491,14 +416,6 @@ const styles = StyleSheet.create({
     ...Typography.bodySmallSemiBold,
     fontSize: scaleFont(Typography.bodySmallSemiBold.fontSize),
   },
-  filterCount: {
-    paddingHorizontal: Spacing.xxs,
-    paddingVertical: Spacing.micro,
-    borderRadius: Radii.md,
-    minWidth: 20,
-    alignItems: 'center',
-  },
-  filterCountText: { ...Typography.caption, fontSize: scaleFont(Typography.caption.fontSize) },
   scrollContent: {
     paddingHorizontal: Spacing.lg,
     paddingTop: Spacing.md,

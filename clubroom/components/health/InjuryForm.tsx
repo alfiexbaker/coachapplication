@@ -5,7 +5,7 @@
  */
 
 import { useState } from 'react';
-import { View, StyleSheet, Platform } from 'react-native';
+import { View, StyleSheet, Platform, ScrollView } from 'react-native';
 import * as Haptics from 'expo-haptics';
 
 import { ThemedText } from '@/components/themed-text';
@@ -91,12 +91,17 @@ export function InjuryForm({ onSubmit, onCancel, loading = false }: InjuryFormPr
       )}
 
       {step === 'severity' && (
-        <View style={styles.stepContent}>
+        <ScrollView
+          style={styles.stepContent}
+          contentContainerStyle={styles.scrollStepContent}
+          showsVerticalScrollIndicator={false}
+          keyboardShouldPersistTaps="handled"
+        >
           <ThemedText type="subtitle" style={styles.stepTitle}>
             How severe is it?
           </ThemedText>
           <SeverityPicker selectedSeverity={severity} onSelect={setSeverity} />
-        </View>
+        </ScrollView>
       )}
 
       {step === 'details' && (
@@ -162,8 +167,9 @@ export function InjuryForm({ onSubmit, onCancel, loading = false }: InjuryFormPr
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
-  stepContent: { flex: 1, paddingHorizontal: Spacing.lg },
-  stepTitle: { marginBottom: Spacing.md },
+  stepContent: { flex: 1, paddingHorizontal: Spacing.lg, paddingBottom: Spacing.xs },
+  scrollStepContent: { paddingBottom: Spacing.md },
+  stepTitle: { marginBottom: Spacing.xs },
   buttonRow: {
     gap: Spacing.md,
     paddingHorizontal: Spacing.lg,

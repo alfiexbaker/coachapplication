@@ -40,7 +40,7 @@ function SubscribeScheduleSectionInner({
   onFrequencyChange,
   pricePerSession,
 }: Props) {
-  const { colors: palette } = useTheme();
+  const { colors: palette, isDark } = useTheme();
 
   return (
     <>
@@ -100,6 +100,8 @@ function SubscribeScheduleSectionInner({
             mode="time"
             is24Hour={false}
             display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+            textColor={palette.text}
+            themeVariant={isDark ? 'dark' : 'light'}
             onChange={onTimeChange}
           />
         )}

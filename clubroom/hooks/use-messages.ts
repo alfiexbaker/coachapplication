@@ -14,6 +14,7 @@ import { useAuth } from '@/hooks/use-auth';
 import { ScreenStatus, useScreen } from '@/hooks/use-screen';
 import { ServiceEvents } from '@/services/event-bus';
 import { messagingService } from '@/services/messaging-service';
+import { bookingService } from '@/services/booking-service';
 import type { ServiceError } from '@/types/result';
 
 export type ViewMode = 'direct' | 'groups';
@@ -69,7 +70,39 @@ export function useMessages(): UseMessagesResult {
     if (!params.coachId || threadList.length === 0) {
       return;
     }
-    router.push(Routes.chat(threadList[0].id));
+
+    let cancelled = false;
+
+    const openCoachThread = async () => {
+      const directThreads = threadList.filter((thread) => thread.kind !== 'group');
+      if (directThreads.length === 0) return;
+
+      const idHintMatch = directThreads.find((thread) =>
+        thread.id.toLowerCase().includes(params.coachId!.toLowerCase()),
+      );
+      if (idHintMatch) {
+        router.push(Routes.chat(idHintMatch.id));
+        return;
+      }
+
+      const bookings = await bookingService.list();
+      if (cancelled) return;
+
+      const coachBookingIds = new Set(
+        bookings.filter((booking) => booking.coachId === params.coachId).map((booking) => booking.id),
+      );
+      const bookingMatch = directThreads.find((thread) => coachBookingIds.has(thread.bookingId));
+      if (bookingMatch) {
+        router.push(Routes.chat(bookingMatch.id));
+        return;
+      }
+    };
+
+    void openCoachThread();
+
+    return () => {
+      cancelled = true;
+    };
   }, [params.coachId, threadList]);
 
   const filteredThreads = useMemo(() => {

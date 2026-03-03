@@ -53,19 +53,12 @@ export default function ScheduleScreen() {
     }
     try {
       const duration = draft.duration || 60;
-      const slots = draft.sessionTemplateId
-        ? await availabilityService.getInvitableSlots(
-            coachId,
-            dateRange.startDate,
-            dateRange.endDate,
-            draft.sessionTemplateId,
-          )
-        : await availabilityService.getAvailableSlots(
-            coachId,
-            dateRange.startDate,
-            dateRange.endDate,
-            duration,
-          );
+      const slots = await availabilityService.getAvailableSlots(
+        coachId,
+        dateRange.startDate,
+        dateRange.endDate,
+        duration,
+      );
       return ok(slots);
     } catch (loadError) {
       logger.error('Failed to fetch availability:', loadError);
@@ -73,7 +66,7 @@ export default function ScheduleScreen() {
         serviceError('UNKNOWN', 'Unable to load available times. Please try again.', loadError),
       );
     }
-  }, [coachId, dateRange.startDate, dateRange.endDate, draft.duration, draft.sessionTemplateId]);
+  }, [coachId, dateRange.startDate, dateRange.endDate, draft.duration]);
 
   const {
     data,

@@ -34,7 +34,7 @@ export function QuietHoursSelector({
   disabled = false,
   loading = false,
 }: QuietHoursSelectorProps) {
-  const { colors: palette } = useTheme();
+  const { colors: palette, isDark } = useTheme();
 
   const [showStartPicker, setShowStartPicker] = useState(false);
   const [showEndPicker, setShowEndPicker] = useState(false);
@@ -138,6 +138,7 @@ export function QuietHoursSelector({
         onConfirm={handleConfirmStartTime}
         onCancel={handleCancelPicker}
         palette={palette}
+        isDark={isDark}
       />
       <TimePickerModal
         visible={showEndPicker}
@@ -147,6 +148,7 @@ export function QuietHoursSelector({
         onConfirm={handleConfirmEndTime}
         onCancel={handleCancelPicker}
         palette={palette}
+        isDark={isDark}
       />
 
       {/* Android Time Pickers */}

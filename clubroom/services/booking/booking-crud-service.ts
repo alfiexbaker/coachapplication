@@ -48,6 +48,7 @@ const CACHE_MAX_AGE = 30_000;
 export type BookingDraft = {
   sessionType?: string;
   sessionTypeLabel?: string;
+  sessionOfferingId?: string;
   sessionTemplateId?: string;
   participants?: number;
   duration?: number;

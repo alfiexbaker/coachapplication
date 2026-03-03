@@ -55,7 +55,7 @@ function SubscribeOptionsSectionInner({
   onShowEndDatePicker,
   onEndDateChange,
 }: Props) {
-  const { colors: palette } = useTheme();
+  const { colors: palette, isDark } = useTheme();
 
   return (
     <>
@@ -238,6 +238,8 @@ function SubscribeOptionsSectionInner({
                 mode="date"
                 minimumDate={new Date()}
                 display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+                textColor={palette.text}
+                themeVariant={isDark ? 'dark' : 'light'}
                 onChange={onEndDateChange}
               />
             )}

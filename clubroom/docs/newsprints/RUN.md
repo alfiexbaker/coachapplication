@@ -315,4 +315,28 @@ Read docs/newsprints/family-roster/sprint1.md and implement every fix described 
 
 ---
 
-## Total: 37 sprints across 15 categories (~386 items)
+## 16. Results Program UI (4 sprints)
+
+### Sprint 1 — Product Reframe + Premium Visual Foundation
+```
+Read docs/newsprints/results-program-ui/sprint1.md and implement every fix described in it. Follow CLAUDE.md conventions. After ALL fixes, run npx tsc -p tsconfig.test.json. Then spawn a review agent to re-read every file touched and verify: no any types, no hardcoded colors/routes, no raw View+flexDirection, no Pressable, useCallback on handlers, memo on renderItem, GBP not USD, Result uses .success, showToast(msg,tone). Fix anything flagged. Run TSC again. Update docs/newsprints/DONE.md row #38.
+```
+
+### Sprint 2 — Action Engine + Frictionless Execution
+```
+Read docs/newsprints/results-program-ui/sprint2.md and implement every fix described in it. Follow CLAUDE.md conventions. After ALL fixes, run npx tsc -p tsconfig.test.json. Then spawn a review agent to re-read every file touched and verify: no any types, no hardcoded colors/routes, no raw View+flexDirection, no Pressable, useCallback on handlers, memo on renderItem, GBP not USD, Result uses .success, showToast(msg,tone). Fix anything flagged. Run TSC again. Update docs/newsprints/DONE.md row #39.
+```
+
+### Sprint 3 — Coach Command Centre + Intervention Workflows
+```
+Read docs/newsprints/results-program-ui/sprint3.md and implement every fix described in it. Follow CLAUDE.md conventions. After ALL fixes, run npx tsc -p tsconfig.test.json. Then spawn a review agent to re-read every file touched and verify: no any types, no hardcoded colors/routes, no raw View+flexDirection, no Pressable, useCallback on handlers, memo on renderItem, GBP not USD, Result uses .success, showToast(msg,tone). Fix anything flagged. Run TSC again. Update docs/newsprints/DONE.md row #40.
+```
+
+### Sprint 4 — Production Polish, Reliability, and Launch Readiness
+```
+Read docs/newsprints/results-program-ui/sprint4.md and implement every fix described in it. Follow CLAUDE.md conventions. After ALL fixes, run npx tsc -p tsconfig.test.json. Then spawn a review agent to re-read every file touched and verify: no any types, no hardcoded colors/routes, no raw View+flexDirection, no Pressable, useCallback on handlers, memo on renderItem, GBP not USD, Result uses .success, showToast(msg,tone). Fix anything flagged. Run TSC again. Update docs/newsprints/DONE.md row #41.
+```
+
+---
+
+## Total: 41 sprints across 16 categories (~410 items)

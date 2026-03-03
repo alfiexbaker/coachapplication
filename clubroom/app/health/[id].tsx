@@ -154,6 +154,6 @@ const styles = StyleSheet.create({
     fontSize: scaleFont(Typography.smallSemiBold.fontSize),
   },
   scrollContent: { paddingHorizontal: Spacing.lg, paddingBottom: Spacing.xl },
-  actionsSection: { marginTop: Spacing.lg },
-  healedButton: { marginTop: Spacing.sm },
+  actionsSection: { marginTop: Spacing.xs, marginBottom: Spacing.sm },
+  healedButton: { marginTop: 0 },
 });

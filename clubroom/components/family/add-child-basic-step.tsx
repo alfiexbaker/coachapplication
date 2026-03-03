@@ -61,7 +61,7 @@ function AddChildBasicStepInner({
   onPickImage,
   onShowDatePicker,
 }: AddChildBasicStepProps) {
-  const { colors: palette } = useTheme();
+  const { colors: palette, isDark } = useTheme();
 
   return (
     <View style={styles.stepContent}>
@@ -83,6 +83,7 @@ function AddChildBasicStepInner({
         onDateOfBirthChange={onDateOfBirthChange}
         onShowDatePicker={onShowDatePicker}
         palette={palette}
+        isDark={isDark}
       />
 
       <OptionChipGrid

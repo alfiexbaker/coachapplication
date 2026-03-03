@@ -13,14 +13,14 @@ import { Row } from '@/components/primitives';
 
 interface TeamsPanelProps {
   squads: ClubSquad[];
-  isCoach: boolean;
+  canManageTeams: boolean;
   clubId?: string;
 }
 
-export function TeamsPanel({ squads, isCoach, clubId }: TeamsPanelProps) {
+export function TeamsPanel({ squads, canManageTeams, clubId }: TeamsPanelProps) {
   const { colors: palette } = useTheme();
 
-  if (squads.length === 0 && !isCoach) {
+  if (squads.length === 0 && !canManageTeams) {
     return null;
   }
 
@@ -28,7 +28,7 @@ export function TeamsPanel({ squads, isCoach, clubId }: TeamsPanelProps) {
     <View style={styles.container}>
       <Row style={styles.header}>
         <ThemedText type="subtitle">Teams</ThemedText>
-        {isCoach && (
+        {canManageTeams && (
           <Clickable
             style={[styles.addButton, { backgroundColor: withAlpha(palette.tint, 0.09) }]}
             onPress={() =>
@@ -54,7 +54,7 @@ export function TeamsPanel({ squads, isCoach, clubId }: TeamsPanelProps) {
               key={squad.id}
               style={styles.teamCard}
               onPress={() => router.push(Routes.clubSquad(squad.id))}
-              accessibilityLabel={`Manage ${squad.name}`}
+              accessibilityLabel={`${canManageTeams ? 'Manage' : 'View'} ${squad.name}`}
             >
               <View style={[styles.teamIcon, { backgroundColor: withAlpha(palette.tint, 0.09) }]}>
                 <Ionicons name="people" size={24} color={palette.tint} />
@@ -91,7 +91,7 @@ export function TeamsPanel({ squads, isCoach, clubId }: TeamsPanelProps) {
               )}
               <Row style={styles.manageRow}>
                 <ThemedText style={[styles.manageText, { color: palette.tint }]}>
-                  Manage squad
+                  {canManageTeams ? 'Manage squad' : 'View squad'}
                 </ThemedText>
                 <Ionicons name="chevron-forward" size={14} color={palette.tint} />
               </Row>

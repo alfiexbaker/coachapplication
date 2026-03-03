@@ -1,27 +1,34 @@
 import { StyleSheet } from 'react-native';
 
 import { Spacing, Radii } from '@/constants/theme';
-import { scaleFont } from '@/utils/scale';
 
 export const styles = StyleSheet.create({
   container: {
     flex: 1,
+    justifyContent: 'center',
   },
   bodyDiagram: {
     alignItems: 'center',
-    paddingVertical: Spacing.lg,
-    marginBottom: Spacing.md,
-    borderRadius: Radii.lg,
+    justifyContent: 'center',
+    paddingVertical: Spacing.md,
+    paddingHorizontal: Spacing.lg,
+    borderRadius: Radii.xl,
   },
   bodyFigure: {
     alignItems: 'center',
-    width: 120,
+    width: 146,
   },
   head: {
-    width: 40,
-    height: 40,
+    width: 46,
+    height: 46,
     borderRadius: Radii.xl,
-    marginBottom: Spacing.xxs,
+    marginBottom: Spacing.micro,
+  },
+  neck: {
+    width: 20,
+    height: 12,
+    borderRadius: Radii.sm,
+    marginBottom: Spacing.micro,
   },
   torsoContainer: {
     alignItems: 'flex-start',
@@ -29,8 +36,8 @@ export const styles = StyleSheet.create({
     width: '100%',
   },
   shoulder: {
-    width: 20,
-    height: 16,
+    width: 24,
+    height: 18,
     borderRadius: Radii.sm,
   },
   leftShoulder: {
@@ -40,8 +47,8 @@ export const styles = StyleSheet.create({
     marginLeft: -4,
   },
   torso: {
-    width: 48,
-    height: 16,
+    width: 58,
+    height: 18,
     borderRadius: Radii.xs,
   },
   armsContainer: {
@@ -50,24 +57,34 @@ export const styles = StyleSheet.create({
     width: '100%',
   },
   arm: {
-    width: 16,
-    height: 50,
+    width: 20,
+    height: 56,
     borderRadius: Radii.sm,
   },
   core: {
-    width: 44,
-    height: 50,
+    width: 54,
+    height: 56,
     borderRadius: Radii.xs,
-    marginHorizontal: Spacing.micro,
+    marginHorizontal: Spacing.xxs,
   },
   legsContainer: {
     justifyContent: 'center',
     gap: Spacing.xxs,
-    marginTop: Spacing.xxs,
+    marginTop: Spacing.micro,
   },
   thigh: {
-    width: 22,
-    height: 45,
+    width: 24,
+    height: 44,
+    borderRadius: Radii.sm,
+  },
+  kneesContainer: {
+    justifyContent: 'center',
+    gap: Spacing.xxs,
+    marginTop: Spacing.micro,
+  },
+  knee: {
+    width: 24,
+    height: 14,
     borderRadius: Radii.sm,
   },
   lowerLegsContainer: {
@@ -76,8 +93,8 @@ export const styles = StyleSheet.create({
     marginTop: Spacing.micro,
   },
   calf: {
-    width: 18,
-    height: 40,
+    width: 20,
+    height: 38,
     borderRadius: Radii.sm,
   },
   feetContainer: {
@@ -86,77 +103,8 @@ export const styles = StyleSheet.create({
     marginTop: Spacing.micro,
   },
   foot: {
-    width: 24,
-    height: 12,
+    width: 30,
+    height: 10,
     borderRadius: Radii.sm,
-  },
-  selectedLabel: {
-    marginTop: Spacing.md,
-    paddingHorizontal: Spacing.md,
-    paddingVertical: Spacing.xs,
-    borderRadius: Radii.pill,
-  },
-  selectedLabelText: {
-    fontSize: scaleFont(14),
-    fontWeight: '600',
-  },
-  categoriesContainer: {
-    paddingBottom: Spacing.lg,
-  },
-  diagramHint: {
-    fontSize: scaleFont(13),
-    marginBottom: Spacing.sm,
-  },
-  searchBar: {
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-    borderRadius: 12,
-    borderWidth: 1,
-    marginBottom: 8,
-  },
-  searchInput: {
-    flex: 1,
-  },
-  emptyText: {
-    textAlign: 'center',
-    paddingVertical: 20,
-  },
-  categoryItem: {
-    marginBottom: Spacing.xs,
-  },
-  categoryHeader: {
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    padding: Spacing.md,
-    borderRadius: Radii.md,
-    borderWidth: 1,
-  },
-  categoryLeft: {
-    alignItems: 'center',
-    gap: Spacing.sm,
-  },
-  categoryLabel: {
-    fontSize: scaleFont(15),
-    fontWeight: '600',
-  },
-  partsGrid: {
-    flexWrap: 'wrap',
-    padding: Spacing.sm,
-    gap: Spacing.xs,
-    marginTop: Spacing.micro,
-    borderBottomLeftRadius: Radii.md,
-    borderBottomRightRadius: Radii.md,
-  },
-  partItem: {
-    alignItems: 'center',
-    paddingHorizontal: Spacing.sm,
-    paddingVertical: Spacing.xs,
-    borderRadius: Radii.pill,
-    borderWidth: 1,
-    gap: Spacing.xxs,
-  },
-  partLabel: {
-    fontSize: scaleFont(13),
-    fontWeight: '500',
   },
 });

@@ -533,6 +533,30 @@ function getPersonalFeedForCoachInternal(coachId: string): ClubFeedPost[] {
   );
 }
 
+function getFriendFeedInternal(friendIds: string[], filter?: FeedFilter): AggregatedFeedPost[] {
+  if (friendIds.length === 0) return [];
+  const friendSet = new Set(friendIds);
+  const posts = filterPostsByType(
+    clubFeedStore.filter((post) => {
+      if (!post.authorId) return false;
+      if (!friendSet.has(post.authorId)) return false;
+      return (post.feedType === 'PERSONAL' || post.feedType === 'BOTH') && post.postAs === 'self';
+    }),
+    filter,
+  );
+
+  return sortByDateDesc(
+    posts.map((post) => {
+      const club = getClubById(post.clubId);
+      return {
+        ...post,
+        clubName: club?.name || 'Unknown Club',
+        clubBadge: club?.badge,
+      };
+    }),
+  );
+}
+
 function getCombinedFeedForParentInternal(
   parentId: string,
   filter?: FeedFilter,
@@ -754,6 +778,55 @@ class ClubFeedService {
 
   getMembership(userId: string, clubId: string): ClubMembership | undefined {
     return getAllClubMembershipsForUser(userId).find((membership) => membership.clubId === clubId);
+  }
+
+  joinClub(
+    userId: string,
+    inviteCode: string,
+    role: ClubMembership['role'] = 'MEMBER',
+  ): Result<ClubMembership, ServiceError> {
+    const normalizedCode = inviteCode.trim().toUpperCase();
+    if (!normalizedCode) {
+      return err(validationError('Invite code is required'));
+    }
+
+    const targetClub = clubsStore.find(
+      (club) => club.inviteCode.trim().toUpperCase() === normalizedCode,
+    );
+    if (!targetClub) {
+      return err(validationError('Invite code was not found'));
+    }
+
+    const existingMembership = membershipsStore.find(
+      (membership) =>
+        membership.userId === userId &&
+        membership.clubId === targetClub.id &&
+        membership.status === 'active',
+    );
+    if (existingMembership) {
+      return ok(existingMembership);
+    }
+
+    const newMembership: ClubMembership = {
+      clubId: targetClub.id,
+      userId,
+      role,
+      status: 'active',
+      joinSource: 'invite',
+      inviteCode: targetClub.inviteCode,
+      canPostAsClub: CLUB_POSTING_ROLES.includes(role),
+    };
+
+    membershipsStore.push(newMembership);
+    emitTyped(ServiceEvents.CLUB_MEMBER_JOINED, { clubId: targetClub.id, userId });
+    this.logger.info('club_membership_joined', {
+      userId,
+      clubId: targetClub.id,
+      role,
+      inviteCode: targetClub.inviteCode,
+    });
+
+    return ok(newMembership);
   }
 
   leaveClub(userId: string, clubId: string): boolean {
@@ -1002,6 +1075,16 @@ class ClubFeedService {
     this.logger.info('personal_feed_fetched', {
       coachId,
       postCount: posts.length,
+    });
+    return posts;
+  }
+
+  getFriendFeed(friendIds: string[], filter: FeedFilter = 'all'): AggregatedFeedPost[] {
+    const posts = getFriendFeedInternal(friendIds, filter === 'all' ? undefined : filter);
+    this.logger.info('friend_feed_fetched', {
+      friendCount: friendIds.length,
+      postCount: posts.length,
+      filter,
     });
     return posts;
   }

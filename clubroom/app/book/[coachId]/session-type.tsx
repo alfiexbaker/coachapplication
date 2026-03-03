@@ -15,114 +15,175 @@ import { Radii, Spacing, withAlpha } from '@/constants/theme';
 import { useScreen } from '@/hooks/use-screen';
 import { err, ok, serviceError } from '@/types/result';
 import { useBookingFlow } from '@/context/booking-flow-context';
-import { sessionTemplateService } from '@/services/session-template-service';
-import type { SessionTemplate } from '@/constants/session-types';
+import { apiClient } from '@/services/api-client';
+import { STORAGE_KEYS } from '@/constants/storage-keys';
+import type { SessionOffering } from '@/constants/session-types';
+import { getSessionOfferingHeadcount } from '@/utils/session-offering-capacity';
 
-function formatTemplateType(type: SessionTemplate['type']): string {
-  if (type === '1-to-1') return '1-to-1';
-  if (type === 'small-group') return 'Small group';
-  if (type === 'clinic') return 'Clinic';
-  if (type === 'assessment') return 'Assessment';
-  return type;
+function formatOfferingType(type: SessionOffering['sessionType']): string {
+  return type === 'group' ? 'Group session' : '1-to-1 session';
+}
+
+function mapOfferingToDraftType(type: SessionOffering['sessionType']) {
+  return type === 'group' ? 'small-group' : '1-to-1';
+}
+
+function getDuration(offering: SessionOffering): number {
+  return offering.duration ?? 60;
+}
+
+function sortOfferings(offerings: SessionOffering[]): SessionOffering[] {
+  return [...offerings].sort((a, b) => {
+    const typeOrderA = a.sessionType === '1on1' ? 0 : 1;
+    const typeOrderB = b.sessionType === '1on1' ? 0 : 1;
+    if (typeOrderA !== typeOrderB) return typeOrderA - typeOrderB;
+    const priceA = a.price ?? 0;
+    const priceB = b.price ?? 0;
+    if (priceA !== priceB) return priceA - priceB;
+    return a.title.localeCompare(b.title);
+  });
+}
+
+function dedupeOfferings(offerings: SessionOffering[]): SessionOffering[] {
+  const bySignature = new Map<string, SessionOffering>();
+  for (const offering of offerings) {
+    const signature = [
+      offering.title.trim().toLowerCase(),
+      offering.sessionType,
+      getDuration(offering),
+      offering.price ?? 0,
+      offering.maxParticipants,
+    ].join('|');
+    const existing = bySignature.get(signature);
+    if (!existing) {
+      bySignature.set(signature, offering);
+      continue;
+    }
+
+    const existingTime = new Date(existing.scheduledAt).getTime();
+    const currentTime = new Date(offering.scheduledAt).getTime();
+    if (Number.isFinite(currentTime) && (!Number.isFinite(existingTime) || currentTime < existingTime)) {
+      bySignature.set(signature, offering);
+    }
+  }
+  return sortOfferings(Array.from(bySignature.values()));
 }
 
 export default function SessionTypeScreen() {
   const { coachId } = useLocalSearchParams<{ coachId: string }>();
   const { draft, updateDraft } = useBookingFlow();
-  const loadTemplates = useCallback(async () => {
+  const loadOfferings = useCallback(async () => {
     if (!coachId) {
       return err(serviceError('VALIDATION', 'Coach information is missing for booking.'));
     }
 
     try {
-      const templates = await sessionTemplateService.getTemplates(coachId);
-      return ok(templates);
+      const now = Date.now();
+      const offerings = await apiClient.get<SessionOffering[]>(STORAGE_KEYS.SESSION_OFFERINGS, []);
+      const coachOfferings = offerings.filter((offering) => {
+        if (offering.coachId !== coachId) return false;
+        if (offering.status !== 'active') return false;
+
+        const startsAt = new Date(offering.scheduledAt).getTime();
+        const isUpcoming = offering.isRecurring || (Number.isFinite(startsAt) && startsAt >= now);
+        if (!isUpcoming) return false;
+
+        const headcount = getSessionOfferingHeadcount(offering);
+        return headcount < offering.maxParticipants;
+      });
+
+      return ok(dedupeOfferings(coachOfferings));
     } catch (error) {
-      return err(serviceError('UNKNOWN', 'Failed to load coach session types.', error));
+      return err(serviceError('UNKNOWN', 'Failed to load coach offerings.', error));
     }
   }, [coachId]);
 
   const {
-    data: templates,
+    data: offerings,
     status,
     error,
     retry,
     colors: palette,
-  } = useScreen<SessionTemplate[]>({
-    load: loadTemplates,
-    deps: [loadTemplates],
+  } = useScreen<SessionOffering[]>({
+    load: loadOfferings,
+    deps: [loadOfferings],
     isEmpty: () => false,
     refetchOnFocus: true,
   });
 
-  const resolvedTemplates = useMemo(() => templates ?? [], [templates]);
-  const selectedTemplate = useMemo(
-    () => resolvedTemplates.find((template) => template.id === draft.sessionTemplateId),
-    [resolvedTemplates, draft.sessionTemplateId],
+  const resolvedOfferings = useMemo(() => offerings ?? [], [offerings]);
+  const selectedOffering = useMemo(
+    () => resolvedOfferings.find((offering) => offering.id === draft.sessionOfferingId),
+    [resolvedOfferings, draft.sessionOfferingId],
   );
 
   useEffect(() => {
-    if (!coachId || resolvedTemplates.length === 0) return;
-    const currentlySelected = resolvedTemplates.find(
-      (template) => template.id === draft.sessionTemplateId,
+    if (!coachId || resolvedOfferings.length === 0) return;
+    const currentlySelected = resolvedOfferings.find(
+      (offering) => offering.id === draft.sessionOfferingId,
     );
     if (currentlySelected) return;
 
-    const fallback = resolvedTemplates[0];
+    const fallback = resolvedOfferings[0];
+    const duration = getDuration(fallback);
     updateDraft({
       coachId,
-      sessionTemplateId: fallback.id,
-      sessionType: fallback.type,
-      sessionTypeLabel: fallback.name,
-      duration: fallback.duration,
-      price: fallback.defaultPrice,
-      participants: fallback.capacity > 1 ? fallback.capacity : undefined,
+      sessionOfferingId: fallback.id,
+      sessionTemplateId: undefined,
+      sessionType: mapOfferingToDraftType(fallback.sessionType),
+      sessionTypeLabel: fallback.title,
+      duration,
+      price: fallback.price ?? 0,
+      participants: fallback.sessionType === 'group' ? fallback.maxParticipants : undefined,
+      locationText: fallback.location,
     });
-  }, [coachId, draft.sessionTemplateId, resolvedTemplates, updateDraft]);
+  }, [coachId, draft.sessionOfferingId, resolvedOfferings, updateDraft]);
 
-  const templateOptions = useMemo(
+  const offeringOptions = useMemo(
     () =>
-      resolvedTemplates.map((template) => ({
-        id: template.id,
-        title: template.name,
-        priceText: `£${template.defaultPrice}`,
-        description: formatTemplateType(template.type),
-        detailText: `${template.duration} mins · up to ${template.capacity}`,
+      resolvedOfferings.map((offering) => ({
+        id: offering.id,
+        title: offering.title,
+        priceText: offering.price && offering.price > 0 ? `£${offering.price}` : 'Free',
+        description: formatOfferingType(offering.sessionType),
+        detailText: `${getDuration(offering)} mins · up to ${offering.maxParticipants}`,
       })),
-    [resolvedTemplates],
+    [resolvedOfferings],
   );
 
-  const durationOptions = useMemo(() => {
-    const optionSet = new Set<number>([60, 90, 120]);
-    if (selectedTemplate?.duration) optionSet.add(selectedTemplate.duration);
-    if (draft.duration) optionSet.add(draft.duration);
-    return Array.from(optionSet).sort((a, b) => a - b);
-  }, [draft.duration, selectedTemplate?.duration]);
-
-  const handleSelectTemplate = useCallback(
-    (templateId: string) => {
-      const template = resolvedTemplates.find((item) => item.id === templateId);
-      if (!template || !coachId) return;
+  const handleSelectOffering = useCallback(
+    (offeringId: string) => {
+      const offering = resolvedOfferings.find((item) => item.id === offeringId);
+      if (!offering || !coachId) return;
+      const duration = getDuration(offering);
 
       updateDraft({
         coachId,
-        sessionTemplateId: template.id,
-        sessionType: template.type,
-        sessionTypeLabel: template.name,
-        duration: template.duration,
-        price: template.defaultPrice,
-        participants: template.capacity > 1 ? template.capacity : undefined,
+        sessionOfferingId: offering.id,
+        sessionTemplateId: undefined,
+        sessionType: mapOfferingToDraftType(offering.sessionType),
+        sessionTypeLabel: offering.title,
+        duration,
+        price: offering.price ?? 0,
+        participants: offering.sessionType === 'group' ? offering.maxParticipants : undefined,
+        locationText: offering.location,
       });
     },
-    [coachId, resolvedTemplates, updateDraft],
+    [coachId, resolvedOfferings, updateDraft],
   );
 
-  const handleContinue = useCallback(() => {
-    if (!coachId || !draft.sessionTemplateId) return;
-    router.push(Routes.bookSchedule(coachId));
-  }, [coachId, draft.sessionTemplateId]);
+  const handleMessageCoach = useCallback(() => {
+    if (!coachId) return;
+    router.push(Routes.messagesWith({ coachId }));
+  }, [coachId]);
 
-  const canContinue = Boolean(coachId && draft.sessionTemplateId);
+  const handleContinue = useCallback(() => {
+    if (!coachId || !draft.sessionOfferingId) return;
+    router.push(Routes.bookSchedule(coachId));
+  }, [coachId, draft.sessionOfferingId]);
+
+  const canContinue = Boolean(coachId && draft.sessionOfferingId);
+  const fixedDuration = selectedOffering ? getDuration(selectedOffering) : undefined;
 
   return (
     <SafeAreaView
@@ -137,52 +198,48 @@ export default function SessionTypeScreen() {
         />
 
         <SessionTypeSelector
-          selected={draft.sessionTemplateId}
-          onSelect={handleSelectTemplate}
-          options={templateOptions}
+          selected={draft.sessionOfferingId}
+          onSelect={handleSelectOffering}
+          options={offeringOptions}
           loading={status === 'loading'}
         />
 
         {status === 'error' ? (
           <ErrorState
-            message={error?.message ?? 'Could not load session types.'}
+            message={error?.message ?? 'Could not load coach offerings.'}
             onRetry={retry}
           />
         ) : null}
 
-        <View style={{ gap: Spacing.sm }}>
-          <ThemedText type="defaultSemiBold">Duration</ThemedText>
-          <Row style={styles.row}>
-            {durationOptions.map((duration) => {
-              const active = draft.duration === duration;
-              return (
-                <Clickable
-                  key={duration}
-                  style={[
-                    styles.chip,
-                    {
-                      backgroundColor: active ? withAlpha(palette.tint, 0.09) : palette.surface,
-                      borderColor: active ? palette.tint : palette.border,
-                    },
-                  ]}
-                  onPress={() => updateDraft({ duration })}
-                >
-                  <ThemedText style={{ color: active ? palette.tint : palette.text }}>
-                    {duration} mins
-                  </ThemedText>
-                </Clickable>
-              );
-            })}
-          </Row>
-        </View>
+        {fixedDuration ? (
+          <View style={{ gap: Spacing.sm }}>
+            <ThemedText type="defaultSemiBold">Duration</ThemedText>
+            <View
+              style={[
+                styles.fixedDurationCard,
+                {
+                  borderColor: withAlpha(palette.tint, 0.25),
+                  backgroundColor: withAlpha(palette.tint, 0.07),
+                },
+              ]}
+            >
+              <Row align="center" gap="xs">
+                <Ionicons name="time-outline" size={16} color={palette.tint} />
+                <ThemedText style={{ color: palette.tint }}>
+                  {fixedDuration} mins (set by offering)
+                </ThemedText>
+              </Row>
+            </View>
+          </View>
+        ) : null}
 
-        {selectedTemplate && selectedTemplate.capacity > 1 ? (
+        {selectedOffering && selectedOffering.sessionType === 'group' ? (
           <View style={{ gap: Spacing.sm }}>
             <ThemedText type="defaultSemiBold">
-              Participants (max {selectedTemplate.capacity})
+              Participants (max {selectedOffering.maxParticipants})
             </ThemedText>
             <TextInput
-              placeholder={String(selectedTemplate.capacity)}
+              placeholder={String(selectedOffering.maxParticipants)}
               keyboardType="number-pad"
               placeholderTextColor={palette.muted}
               style={[styles.input, { borderColor: palette.border, color: palette.text }]}
@@ -193,7 +250,7 @@ export default function SessionTypeScreen() {
                   updateDraft({ participants: undefined });
                   return;
                 }
-                const clamped = Math.min(parsed, selectedTemplate.capacity);
+                const clamped = Math.min(parsed, selectedOffering.maxParticipants);
                 updateDraft({ participants: clamped });
               }}
             />
@@ -201,6 +258,24 @@ export default function SessionTypeScreen() {
         ) : null}
       </ScrollView>
       <View style={[styles.footer, { borderTopColor: palette.border }]}>
+        <Clickable
+          onPress={handleMessageCoach}
+          style={[
+            styles.secondaryCta,
+            {
+              backgroundColor: withAlpha(palette.tint, 0.06),
+              borderColor: withAlpha(palette.tint, 0.35),
+            },
+          ]}
+          accessibilityLabel="Message coach"
+        >
+          <Row justify="center" align="center" gap="sm">
+            <Ionicons name="chatbubble-ellipses-outline" size={18} color={palette.tint} />
+            <ThemedText style={{ color: palette.tint, fontWeight: '700' }}>
+              Message coach
+            </ThemedText>
+          </Row>
+        </Clickable>
         <Clickable
           onPress={handleContinue}
           style={[
@@ -224,14 +299,18 @@ export default function SessionTypeScreen() {
 const styles = StyleSheet.create({
   safeArea: { flex: 1 },
   content: { padding: Spacing.lg, gap: Spacing.lg },
-  row: { gap: Spacing.sm },
-  chip: {
-    paddingHorizontal: Spacing.md,
+  fixedDurationCard: {
+    borderRadius: Radii.md,
+    borderWidth: 1,
+    paddingHorizontal: Spacing.sm,
     paddingVertical: Spacing.sm,
-    borderRadius: Radii.pill,
-    borderWidth: 1.5,
   },
   input: { borderWidth: 1.5, borderRadius: Radii.md, padding: Spacing.md },
-  footer: { padding: Spacing.lg, borderTopWidth: 1 },
+  footer: { padding: Spacing.lg, borderTopWidth: 1, gap: Spacing.sm },
+  secondaryCta: {
+    padding: Spacing.md,
+    borderRadius: Radii.button,
+    borderWidth: 1.5,
+  },
   cta: { padding: Spacing.md, borderRadius: Radii.button },
 });

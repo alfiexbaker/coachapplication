@@ -11,6 +11,7 @@ import { StyleSheet, View } from 'react-native';
 import { ClubHeader, ClubStatsRow } from '@/components/club/ClubHeader';
 import { ClubAdminActions } from '@/components/club/club-admin-actions';
 import { ClubFeedFilters } from '@/components/club/club-feed-filters';
+import { JoinClubCard } from '@/components/club/JoinClubCard';
 import { MembersPanel } from '@/components/club/MembersPanel';
 import { SessionsPanel } from '@/components/club/SessionsPanel';
 import { MatchesPanel } from '@/components/club/MatchesPanel';
@@ -51,7 +52,15 @@ export const ClubFeedListHeader = memo(function ClubFeedListHeader({
         onToggleMembersSection={onToggleMembers}
       />
 
-      <TeamsPanel squads={hub.squads} isCoach={hub.isCoach} clubId={hub.membership?.clubId} />
+      <View style={styles.section}>
+        <JoinClubCard isCoach={hub.isCoach} onJoin={hub.handleJoinWithCode} />
+      </View>
+
+      <TeamsPanel
+        squads={hub.squads}
+        canManageTeams={hub.canManageTeams}
+        clubId={hub.membership?.clubId}
+      />
       <MatchesPanel matches={hub.upcomingMatches} isCoach={hub.isCoach} />
       <SessionsPanel sessions={hub.trainingSessions} isCoach={hub.isCoach} />
 

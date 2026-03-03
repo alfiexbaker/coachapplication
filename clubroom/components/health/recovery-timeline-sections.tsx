@@ -41,6 +41,13 @@ export const RecoveryProgressCard = memo(function RecoveryProgressCard({
   daysUntilRecovery,
   palette,
 }: RecoveryProgressCardProps) {
+  const progressText =
+    recoveryPercent >= 100 || statusInfo.label.toLowerCase() === 'healed'
+      ? 'Recovered'
+      : recoveryPercent <= 0
+        ? 'Not started'
+        : `${recoveryPercent}%`;
+
   return (
     <SurfaceCard style={styles.progressCard}>
       <Row style={styles.progressHeader}>
@@ -48,8 +55,14 @@ export const RecoveryProgressCard = memo(function RecoveryProgressCard({
           <ThemedText style={[styles.progressLabel, { color: palette.muted }]}>
             Recovery Progress
           </ThemedText>
-          <ThemedText style={[styles.progressValue, { color: statusInfo.color }]}>
-            {recoveryPercent}%
+          <ThemedText
+            style={[
+              styles.progressValue,
+              recoveryPercent <= 0 || recoveryPercent >= 100 ? styles.progressValueZero : undefined,
+              { color: statusInfo.color },
+            ]}
+          >
+            {progressText}
           </ThemedText>
         </View>
         <Row style={[styles.statusBadge, { backgroundColor: withAlpha(statusInfo.color, 0.09) }]}>

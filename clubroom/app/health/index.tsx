@@ -7,12 +7,9 @@ import type { ReactNode } from 'react';
 
 import { ThemedText } from '@/components/themed-text';
 import { Clickable } from '@/components/primitives/clickable';
-import { Button } from '@/components/primitives/button';
 
 import { Row } from '@/components/primitives/row';
 import { InjuryCard } from '@/components/health';
-import { HealthStatusCard } from '@/components/health/health-status-card';
-import { HealthStatsCard } from '@/components/health/health-stats-card';
 import { LoadingState, ErrorState } from '@/components/ui/screen-states';
 import { Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
 import { useScreen } from '@/hooks/use-screen';
@@ -24,17 +21,13 @@ export default function HealthDashboardScreen() {
   const { colors } = useScreen<null>({ load: async () => ok(null), isEmpty: () => false });
   const {
     injuries,
-    stats,
     loading,
     status,
     error,
     refreshing,
-    activeCount,
-    avgRecovery,
     handleRefresh,
     retry,
     handleLogInjury,
-    handleViewHistory,
     handleInjuryPress,
     selectedChildName,
     showKidSelector,
@@ -134,62 +127,15 @@ export default function HealthDashboardScreen() {
           </View>
         )}
 
-        <Animated.View entering={FadeInDown.delay(100).springify()}>
-          <HealthStatusCard
-            colors={colors}
-            injuries={injuries}
-            activeCount={activeCount}
-            avgRecovery={avgRecovery}
-          />
-        </Animated.View>
-
-        <Animated.View entering={FadeInDown.delay(150).springify()} style={styles.actionsRow}>
-          <Row gap="sm">
-            <Clickable onPress={handleLogInjury} style={{ flex: 1 }}>
-              <View
-                style={[
-                  styles.actionCard,
-                  { backgroundColor: colors.surface, borderColor: colors.border },
-                ]}
-              >
-                <View
-                  style={[styles.actionIcon, { backgroundColor: withAlpha(colors.error, 0.09) }]}
-                >
-                  <Ionicons name="add-circle-outline" size={24} color={colors.error} />
-                </View>
-                <ThemedText style={styles.actionLabel}>Log Injury</ThemedText>
-              </View>
-            </Clickable>
-            <Clickable onPress={handleViewHistory} style={{ flex: 1 }}>
-              <View
-                style={[
-                  styles.actionCard,
-                  { backgroundColor: colors.surface, borderColor: colors.border },
-                ]}
-              >
-                <View
-                  style={[styles.actionIcon, { backgroundColor: withAlpha(colors.tint, 0.09) }]}
-                >
-                  <Ionicons name="time-outline" size={24} color={colors.tint} />
-                </View>
-                <ThemedText style={styles.actionLabel}>View History</ThemedText>
-              </View>
-            </Clickable>
-          </Row>
-        </Animated.View>
-
         {injuries.length > 0 && (
           <Animated.View
-            entering={FadeInDown.delay(200).springify()}
+            entering={FadeInDown.delay(100).springify()}
             style={styles.injuriesSection}
           >
             <Row justify="space-between" align="center" style={styles.sectionHeader}>
-              <ThemedText type="subtitle">Current Injuries</ThemedText>
-              <Clickable onPress={handleViewHistory}>
-                <ThemedText style={[styles.seeAllText, { color: colors.tint }]}>See all</ThemedText>
-              </Clickable>
+              <ThemedText type="subtitle">All Injuries</ThemedText>
             </Row>
-            {injuries.slice(0, 3).map((injury) => (
+            {injuries.map((injury) => (
               <InjuryCard
                 key={injury.id}
                 injury={injury}
@@ -199,13 +145,7 @@ export default function HealthDashboardScreen() {
           </Animated.View>
         )}
 
-        {stats && stats.totalInjuries > 0 && (
-          <Animated.View entering={FadeInDown.delay(250).springify()}>
-            <HealthStatsCard colors={colors} stats={stats} />
-          </Animated.View>
-        )}
-
-        {!loading && injuries.length === 0 && stats?.totalInjuries === 0 && (
+        {!loading && injuries.length === 0 && (
           <Animated.View entering={FadeInDown.delay(200).springify()} style={styles.emptyState}>
             <View style={[styles.emptyIcon, { backgroundColor: withAlpha(colors.success, 0.09) }]}>
               <Ionicons name="fitness-outline" size={48} color={colors.success} />
@@ -216,9 +156,6 @@ export default function HealthDashboardScreen() {
             <ThemedText style={[styles.emptyText, { color: colors.muted }]}>
               Track any injuries here to monitor recovery and share status with your coach.
             </ThemedText>
-            <Button onPress={handleLogInjury} style={styles.emptyButton}>
-              Log an Injury
-            </Button>
           </Animated.View>
         )}
       </ScrollView>
@@ -260,31 +197,8 @@ const styles = StyleSheet.create({
   editKidText: {
     ...Typography.caption,
   },
-  actionsRow: { marginBottom: Spacing.lg },
-  actionCard: {
-    padding: Spacing.md,
-    borderRadius: Radii.lg,
-    borderWidth: 1,
-    alignItems: 'center',
-    gap: Spacing.xs,
-  },
-  actionIcon: {
-    width: 44,
-    height: 44,
-    borderRadius: Radii.xl,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  actionLabel: {
-    ...Typography.bodySmallSemiBold,
-    fontSize: scaleFont(Typography.bodySmallSemiBold.fontSize),
-  },
   injuriesSection: { marginBottom: Spacing.lg },
   sectionHeader: { marginBottom: Spacing.sm },
-  seeAllText: {
-    ...Typography.bodySmallSemiBold,
-    fontSize: scaleFont(Typography.bodySmallSemiBold.fontSize),
-  },
   emptyState: {
     alignItems: 'center',
     paddingVertical: Spacing['3xl'],
@@ -307,5 +221,4 @@ const styles = StyleSheet.create({
     lineHeight: scaleFont(22),
     maxWidth: 280,
   },
-  emptyButton: { marginTop: Spacing.sm },
 });

@@ -24,15 +24,19 @@ export function JoinClubCard({ isCoach, onJoin, onCreate }: JoinClubCardProps) {
   const [joinCode, setJoinCode] = useState('');
   const normalizedCode = joinCode.trim().toUpperCase();
   const codeError =
-    normalizedCode.length === 0 ? null : normalizedCode.length !== 6 ? 'Code must be 6 characters (letters and numbers)' : null;
-  const canJoin = normalizedCode.length === 6 && !codeError;
+    normalizedCode.length === 0
+      ? null
+      : normalizedCode.length < 4
+        ? 'Code is too short'
+        : null;
+  const canJoin = normalizedCode.length >= 4 && !codeError;
 
   const handleCreateClub = () => {
     router.push(Routes.CLUB_CREATE);
   };
 
   const handleCodeChange = (value: string) => {
-    setJoinCode(value.replace(/[^A-Za-z0-9]/g, '').toUpperCase());
+    setJoinCode(value.replace(/[^A-Za-z0-9-]/g, '').toUpperCase());
   };
 
   return (
@@ -55,12 +59,12 @@ export function JoinClubCard({ isCoach, onJoin, onCreate }: JoinClubCardProps) {
 
       <Row style={styles.joinForm}>
         <TextInput
-          placeholder="Enter invite code"
+          placeholder="Enter invite code (e.g. LIONS-CLUB)"
           placeholderTextColor={palette.muted}
           value={joinCode}
           onChangeText={handleCodeChange}
           autoCapitalize="characters"
-          maxLength={6}
+          maxLength={24}
           style={[
             styles.input,
             {
@@ -81,7 +85,7 @@ export function JoinClubCard({ isCoach, onJoin, onCreate }: JoinClubCardProps) {
         </Clickable>
       </Row>
       <ThemedText style={[Typography.caption, { color: codeError ? palette.error : palette.muted }]}>
-        {codeError ?? 'Enter the 6-character code from your coach'}
+        {codeError ?? 'Ask your coach for the club invite code'}
       </ThemedText>
 
       {isCoach && (

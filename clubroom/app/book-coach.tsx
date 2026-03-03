@@ -16,6 +16,7 @@ import { EmptyState, ErrorState, LoadingState } from '@/components/ui/screen-sta
 import { Radii, Spacing, Typography, withAlpha } from '@/constants/theme';
 import { useScreen } from '@/hooks/use-screen';
 import { useTheme } from '@/hooks/useTheme';
+import { useAuth } from '@/hooks/use-auth';
 import { Routes } from '@/navigation/routes';
 import { discoverService } from '@/services/discover-service';
 import { ok } from '@/types/result';
@@ -27,7 +28,7 @@ import type {
 } from '@/constants/types';
 
 const DEFAULT_LOCATION = { lat: 51.5074, lng: -0.1278, radiusKm: 25 };
-const ASSUMED_LOCATION_LABEL = 'Shoreditch, London';
+const FALLBACK_LOCATION_LABEL = 'London';
 
 interface FindCoachData {
   results: CoachSearchResult[];
@@ -69,6 +70,7 @@ function toCoachCardData(coach: CoachProfile): CoachCardData {
 
 export default function BookCoachScreen() {
   const { colors: palette } = useTheme();
+  const { currentUser } = useAuth();
   const router = useRouter();
   const params = useLocalSearchParams<{ coachId?: string; filters?: string }>();
 
@@ -163,6 +165,11 @@ export default function BookCoachScreen() {
       params: { filters: JSON.stringify(filters) },
     });
   }, [filters, router]);
+
+  const locationLabel = useMemo(() => {
+    if (currentUser?.postcode) return currentUser.postcode;
+    return FALLBACK_LOCATION_LABEL;
+  }, [currentUser?.postcode]);
   const renderShell = (content: ReactNode) => (
     <SafeAreaView
       style={[styles.container, { backgroundColor: palette.background }]}
@@ -207,10 +214,8 @@ export default function BookCoachScreen() {
           >
             <Ionicons name="arrow-back" size={20} color={palette.text} />
           </Clickable>
-          <Row
-            align="center"
-            justify="center"
-            gap="xs"
+          <Clickable
+            onPress={handleOpenMap}
             style={[
               styles.locationPill,
               {
@@ -218,12 +223,16 @@ export default function BookCoachScreen() {
                 borderColor: withAlpha(palette.tint, 0.18),
               },
             ]}
+            accessibilityLabel="Edit location"
           >
-            <Ionicons name="location" size={14} color={palette.tint} />
-            <ThemedText style={[styles.locationText, { color: palette.tint }]}>
-              {ASSUMED_LOCATION_LABEL}
-            </ThemedText>
-          </Row>
+            <Row align="center" justify="center" gap="xs">
+              <Ionicons name="location" size={14} color={palette.tint} />
+              <ThemedText style={[styles.locationText, { color: palette.tint }]}>
+                {locationLabel}
+              </ThemedText>
+              <Ionicons name="chevron-down" size={14} color={palette.tint} />
+            </Row>
+          </Clickable>
           <Clickable
             onPress={handleOpenMap}
             style={[styles.mapIconButton, { backgroundColor: palette.surface, borderColor: palette.border }]}
@@ -247,7 +256,7 @@ export default function BookCoachScreen() {
             Find a Coach
           </ThemedText>
           <ThemedText style={[styles.subtitle, { color: palette.muted }]}>
-            High-trust coach matches around {ASSUMED_LOCATION_LABEL}.
+            High-trust coach matches around {locationLabel}.
           </ThemedText>
 
           <Row

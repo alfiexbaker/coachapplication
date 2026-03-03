@@ -184,6 +184,7 @@ interface TimePickerModalProps {
   onConfirm: () => void;
   onCancel: () => void;
   palette: ThemeColors;
+  isDark: boolean;
 }
 export const TimePickerModal = memo(function TimePickerModal({
   visible,
@@ -193,6 +194,7 @@ export const TimePickerModal = memo(function TimePickerModal({
   onConfirm,
   onCancel,
   palette,
+  isDark,
 }: TimePickerModalProps) {
   if (!visible || Platform.OS !== 'ios') return null;
   return (
@@ -219,6 +221,8 @@ export const TimePickerModal = memo(function TimePickerModal({
             mode="time"
             display="spinner"
             onChange={onChange}
+            textColor={palette.text}
+            themeVariant={isDark ? 'dark' : 'light'}
             minuteInterval={15}
           />
         </View>

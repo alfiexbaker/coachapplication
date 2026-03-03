@@ -120,14 +120,14 @@ const checks = [
     },
   },
   {
-    id: 'bookings_insights_entrypoints_present',
-    description: 'Bookings screen links to objectives and statistics.',
+    id: 'bookings_insights_entrypoints_removed',
+    description: 'Bookings screen does not expose deprecated objectives/statistics routes.',
     pass: () => {
       const file = readFile('app/(tabs)/bookings/index.tsx');
       return Boolean(
         file &&
-          file.includes('Routes.BOOKINGS_OBJECTIVES') &&
-          file.includes('Routes.BOOKINGS_STATISTICS'),
+          !file.includes('Routes.BOOKINGS_OBJECTIVES') &&
+          !file.includes('Routes.BOOKINGS_STATISTICS'),
       );
     },
   },

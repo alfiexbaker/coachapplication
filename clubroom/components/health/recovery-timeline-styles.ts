@@ -12,6 +12,7 @@ export const styles = StyleSheet.create({
   },
   progressLabel: { fontSize: scaleFont(13), marginBottom: Spacing.micro },
   progressValue: { fontSize: scaleFont(32), fontWeight: '700' },
+  progressValueZero: { fontSize: scaleFont(22) },
   statusBadge: {
     alignItems: 'center',
     paddingHorizontal: Spacing.sm,
@@ -53,7 +54,7 @@ export const styles = StyleSheet.create({
   },
   emptyState: {
     alignItems: 'center',
-    padding: Spacing.xl,
+    padding: Spacing.md,
     borderRadius: Radii.lg,
     gap: Spacing.xs,
   },

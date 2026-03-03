@@ -6,7 +6,7 @@
  */
 
 import React, { memo, useCallback } from 'react';
-import { StyleSheet } from 'react-native';
+import { ScrollView, StyleSheet } from 'react-native';
 import { router } from 'expo-router';
 import { Routes } from '@/navigation/routes';
 
@@ -46,17 +46,24 @@ export const GroupThreadsSection = memo(function GroupThreadsSection({
 
   return (
     <>
-      <Row gap="xs" wrap paddingH="lg" style={styles.filterRow}>
-        {GROUP_FILTER_OPTIONS.map((option) => (
-          <Chip
-            key={option.key}
-            active={groupFilter === option.key}
-            onPress={() => onGroupFilterChange(option.key)}
-          >
-            {option.label}
-          </Chip>
-        ))}
-      </Row>
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        style={styles.filterScroll}
+        contentContainerStyle={styles.filterRow}
+      >
+        <Row gap="xs">
+          {GROUP_FILTER_OPTIONS.map((option) => (
+            <Chip
+              key={option.key}
+              active={groupFilter === option.key}
+              onPress={() => onGroupFilterChange(option.key)}
+            >
+              {option.label}
+            </Chip>
+          ))}
+        </Row>
+      </ScrollView>
       {threads.length === 0 ? (
         <EmptyState
           icon="chatbubbles"
@@ -84,7 +91,10 @@ export const GroupThreadsSection = memo(function GroupThreadsSection({
 });
 
 const styles = StyleSheet.create({
-  filterRow: {
+  filterScroll: {
     marginBottom: Spacing.sm,
+  },
+  filterRow: {
+    paddingHorizontal: Spacing.lg,
   },
 });

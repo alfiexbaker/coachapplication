@@ -62,13 +62,11 @@ export const Routes = {
     pathname: '/(tabs)/bookings/[id]',
     params: { id },
   }) as Href,
-  BOOKINGS_OBJECTIVES: '/(tabs)/bookings/objectives' as Href,
   BOOKINGS_REPORT_PROBLEM: '/(tabs)/bookings/report-problem' as Href,
   bookingsReportProblem: (params?: { bookingId?: string }) => ({
     pathname: '/(tabs)/bookings/report-problem',
     params: params ?? {},
   }) as Href,
-  BOOKINGS_STATISTICS: '/(tabs)/bookings/statistics' as Href,
   ADMIN_INVITE_CODES: '/(tabs)/admin/invite-codes' as Href,
 
   // ─── Modals ────────────────────────────────────────────────────
@@ -337,6 +335,9 @@ export const Routes = {
     params: { highlightBadge: badgeAwardId },
   }) as Href,
   DEVELOPMENT_MY_PROGRESS: '/development/my-progress' as Href,
+  DEVELOPMENT_PROGRESS_LOOP: '/development/progress-loop' as Href,
+  DEVELOPMENT_RESULTS_PROGRAM: '/development/results-program' as Href,
+  RESULTS_PROGRAM: '/results-program' as Href,
   DEVELOPMENT_MEDIA_GALLERY: '/development/media-gallery' as Href,
   DEVELOPMENT_SESSION_HISTORY: '/development/session-history' as Href,
   developmentAthlete: (athleteId: string) => ({
@@ -365,6 +366,16 @@ export const Routes = {
   developmentSessionHistory: (params?: { athleteId?: string }) =>
     ({
       pathname: '/development/session-history',
+      params: params ?? {},
+    }) as Href,
+  developmentProgressLoop: (params?: { athleteId?: string }) =>
+    ({
+      pathname: '/development/progress-loop',
+      params: params ?? {},
+    }) as Href,
+  developmentResultsProgram: (params?: { athleteId?: string }) =>
+    ({
+      pathname: '/development/results-program',
       params: params ?? {},
     }) as Href,
   developmentMediaGallery: (params?: { athleteId?: string }) =>

@@ -115,6 +115,9 @@ export const STORAGE_KEYS = {
   /** Self-reported practice log entries */
   PROGRESS_PRACTICE_LOGS: 'progress.practice_logs',
 
+  /** Actionable coach-assigned practice tasks derived from session feedback homework */
+  PROGRESS_PRACTICE_TASKS: 'progress.practice_tasks',
+
   /** Weekly recap dispatch tracking keyed by parentId+athleteId */
   PROGRESS_WEEKLY_RECAP_NOTIFICATIONS: 'progress.weekly_recap_notifications',
 

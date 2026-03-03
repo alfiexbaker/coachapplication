@@ -24,6 +24,7 @@ import { monthlySummaryService } from './monthly-summary-service';
 import { progressAttendanceService } from './progress-attendance-service';
 import { progressSelfAssessmentService } from './progress-self-assessment-service';
 import { progressPracticeLogService } from './progress-practice-log-service';
+import { progressPracticeTaskService } from './progress-practice-task-service';
 import { progressWeeklyRecapNotificationService } from './progress-weekly-recap-notification-service';
 import { progressSquadActivityService } from './progress-squad-activity-service';
 import { progressTermlyReportService } from './progress-termly-report-service';
@@ -40,6 +41,7 @@ export { monthlySummaryService } from './monthly-summary-service';
 export { progressAttendanceService } from './progress-attendance-service';
 export { progressSelfAssessmentService } from './progress-self-assessment-service';
 export { progressPracticeLogService } from './progress-practice-log-service';
+export { progressPracticeTaskService } from './progress-practice-task-service';
 export { progressWeeklyRecapNotificationService } from './progress-weekly-recap-notification-service';
 export { progressSquadActivityService } from './progress-squad-activity-service';
 export { progressTermlyReportService } from './progress-termly-report-service';
@@ -62,6 +64,17 @@ export type {
   SubmitSelfAssessmentInput,
 } from './progress-self-assessment-service';
 export type { PracticeLogEntry, LogPracticeInput } from './progress-practice-log-service';
+export type {
+  PracticeTask,
+  PracticeTaskRecord,
+  PracticeTaskTiming,
+  PracticeTaskStatus,
+  PracticeTaskRisk,
+  CoachFollowUpActionType,
+  CoachBulkActionResult,
+  TaskViewerRole,
+  CoachFollowUpItem,
+} from './progress-practice-task-service';
 export type {
   SquadActivityFeed,
   SquadActivityItem,
@@ -196,6 +209,19 @@ export const progressService = {
   listPracticeLogsForAthlete: progressPracticeLogService.listAthleteLogs,
   getTodayPracticeLogForAthlete: progressPracticeLogService.getTodayLog,
   logPracticeForAthlete: progressPracticeLogService.logPractice,
+
+  // ==========================================================================
+  // PRACTICE TASK LOOP (from progressPracticeTaskService)
+  // ==========================================================================
+
+  listPracticeTasksForAthlete: progressPracticeTaskService.listTasksForAthlete,
+  setPracticeTaskCompletion: progressPracticeTaskService.setTaskCompletion,
+  updatePracticeTaskDueAt: progressPracticeTaskService.updateTaskDueAt,
+  snoozePracticeTask: progressPracticeTaskService.snoozeTask,
+  markPracticeTasksReviewed: progressPracticeTaskService.markTasksReviewed,
+  recordPracticeCoachFollowUp: progressPracticeTaskService.recordCoachFollowUp,
+  setPracticeRecoveryCheckpoint: progressPracticeTaskService.setRecoveryCheckpoint,
+  listCoachFollowUpQueue: progressPracticeTaskService.listCoachFollowUpQueue,
 
   // ==========================================================================
   // WEEKLY RECAP NOTIFICATIONS (from progressWeeklyRecapNotificationService)

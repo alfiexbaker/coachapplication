@@ -42,7 +42,10 @@ export default function ConfirmationScreen() {
     reset();
     router.replace(Routes.booking(id));
   };
-  const handleMessageCoach = () => router.push(Routes.chat(resolvedCoachId || 'new'));
+  const handleMessageCoach = () => {
+    if (!resolvedCoachId) return;
+    router.push(Routes.messagesWith({ coachId: resolvedCoachId }));
+  };
 
   useEffect(() => {
     setResolvedCoachName(draft.coachName ?? '');

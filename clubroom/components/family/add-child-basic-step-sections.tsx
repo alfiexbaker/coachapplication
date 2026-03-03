@@ -157,6 +157,7 @@ interface DateOfBirthFieldProps {
   onDateOfBirthChange: (date: Date | null) => void;
   onShowDatePicker: (show: boolean) => void;
   palette: ThemeColors;
+  isDark: boolean;
 }
 
 export const DateOfBirthField = memo(function DateOfBirthField({
@@ -165,6 +166,7 @@ export const DateOfBirthField = memo(function DateOfBirthField({
   onDateOfBirthChange,
   onShowDatePicker,
   palette,
+  isDark,
 }: DateOfBirthFieldProps) {
   return (
     <View style={styles.field}>
@@ -188,7 +190,9 @@ export const DateOfBirthField = memo(function DateOfBirthField({
         <DateTimePicker
           value={dateOfBirth || new Date(2015, 0, 1)}
           mode="date"
-          display="spinner"
+          display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+          textColor={palette.text}
+          themeVariant={isDark ? 'dark' : 'light'}
           maximumDate={new Date()}
           minimumDate={new Date(2000, 0, 1)}
           onChange={(event, selectedDate) => {

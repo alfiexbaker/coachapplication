@@ -32,18 +32,6 @@ export default function BookingsLayout() {
           }}
         />
         <Stack.Screen
-          name="objectives"
-          options={{
-            title: 'My Objectives',
-          }}
-        />
-        <Stack.Screen
-          name="statistics"
-          options={{
-            title: 'Progress & Stats',
-          }}
-        />
-        <Stack.Screen
           name="report-problem"
           options={{
             title: 'Report Problem',

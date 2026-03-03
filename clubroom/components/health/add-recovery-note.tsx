@@ -117,7 +117,7 @@ export const AddRecoveryNote = memo(function AddRecoveryNote({
 });
 
 const styles = StyleSheet.create({
-  section: { marginTop: Spacing.lg },
+  section: { marginTop: Spacing.md, marginBottom: Spacing.xs },
   card: { padding: Spacing.md },
   title: { marginBottom: Spacing.md },
   input: {

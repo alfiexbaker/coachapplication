@@ -25,6 +25,7 @@ export const InjurySummaryCard = memo(function InjurySummaryCard({
 }: InjurySummaryCardProps) {
   const severityInfo = injuryService.getSeverityInfo(injury.severity);
   const bodyPartLabel = injuryService.getBodyPartLabel(injury.bodyPart);
+  const injuryName = getInjuryName(injury.description, bodyPartLabel);
 
   return (
     <Animated.View entering={FadeInDown.delay(delay).springify()}>
@@ -39,9 +40,7 @@ export const InjurySummaryCard = memo(function InjurySummaryCard({
             </ThemedText>
           </View>
         </Row>
-        <ThemedText style={[styles.description, { color: colors.muted }]}>
-          {injury.description}
-        </ThemedText>
+        <ThemedText style={[styles.description, { color: colors.muted }]}>{injuryName}</ThemedText>
         <Row gap="md" wrap>
           <Row gap="xxs" align="center">
             <Ionicons name="calendar-outline" size={16} color={colors.muted} />
@@ -62,6 +61,19 @@ export const InjurySummaryCard = memo(function InjurySummaryCard({
     </Animated.View>
   );
 });
+
+function getInjuryName(description: string, bodyPartLabel: string): string {
+  const normalized = description.trim();
+  if (!normalized) return `${bodyPartLabel} injury`;
+
+  const firstSentence = normalized.split(/[.!?]/)[0]?.trim() ?? normalized;
+  const injuryMatch = firstSentence.match(/^(.{1,48}?\binjury\b)/i);
+  if (injuryMatch?.[1]) return injuryMatch[1].trim();
+
+  const words = firstSentence.split(/\s+/).filter(Boolean);
+  if (words.length <= 3) return firstSentence;
+  return words.slice(0, 3).join(' ');
+}
 
 const styles = StyleSheet.create({
   card: { marginBottom: Spacing.lg },

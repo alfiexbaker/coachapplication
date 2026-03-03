@@ -234,6 +234,13 @@ export const ServiceEvents = {
   GOAL_COMPLETED: 'progress:goal_completed',
   POSITION_RECORDED: 'progress:position_recorded',
   JOURNAL_SAVED: 'journal:saved',
+  RESULTS_PROGRAM_OPENED: 'results_program:opened',
+  RESULTS_PROGRAM_FILTER_CHANGED: 'results_program:filter_changed',
+  RESULTS_PROGRAM_TASK_COMPLETED: 'results_program:task_completed',
+  RESULTS_PROGRAM_TASK_RESCHEDULED: 'results_program:task_rescheduled',
+  RESULTS_PROGRAM_MESSAGE_FROM_TASK: 'results_program:message_from_task',
+  RESULTS_PROGRAM_BULK_NUDGE_SENT: 'results_program:bulk_nudge_sent',
+  RESULTS_PLAYBOOK_ACTION_TAPPED: 'results_program:playbook_action_tapped',
 
   // Invite RSVP events
   INVITE_RSVP_RESPONDED: 'invite:rsvp:responded',
@@ -1186,6 +1193,80 @@ export interface EventPayloads {
     coachId: string;
     parentId: string;
     reason: string;
+  };
+  [ServiceEvents.RESULTS_PROGRAM_OPENED]: {
+    userId: string;
+    role: 'coach' | 'parent' | 'athlete';
+    athleteId: string | null;
+    openedAt: string;
+    pendingCount: number;
+    overdueCount: number;
+    queueAthleteCount?: number;
+  };
+  [ServiceEvents.RESULTS_PROGRAM_FILTER_CHANGED]: {
+    userId: string;
+    role: 'coach' | 'parent' | 'athlete';
+    athleteId: string | null;
+    filter: 'all' | 'pending' | 'overdue' | 'done';
+    count: number;
+    pendingCount: number;
+    overdueCount: number;
+    completedCount: number;
+  };
+  [ServiceEvents.RESULTS_PROGRAM_TASK_COMPLETED]: {
+    userId: string;
+    role: 'coach' | 'parent' | 'athlete';
+    athleteId: string | null;
+    taskId: string;
+    coachId: string | null;
+    status: 'completed' | 'reopened';
+    dueAt: string;
+    completedAt: string;
+    wasOverdue: boolean;
+    resolvedWithin48h?: boolean;
+    timeToFirstActionMs?: number;
+  };
+  [ServiceEvents.RESULTS_PROGRAM_TASK_RESCHEDULED]: {
+    userId: string;
+    role: 'coach' | 'parent' | 'athlete';
+    athleteId: string | null;
+    taskId: string;
+    coachId: string | null;
+    previousDueAt: string;
+    nextDueAt: string;
+    action: 'reschedule' | 'snooze';
+    snoozeHours?: number;
+    wasOverdue: boolean;
+    timeToFirstActionMs?: number;
+  };
+  [ServiceEvents.RESULTS_PROGRAM_MESSAGE_FROM_TASK]: {
+    userId: string;
+    role: 'coach' | 'parent' | 'athlete';
+    athleteId: string | null;
+    taskId: string;
+    coachId: string;
+    source: 'task_sheet' | 'coach_playbook';
+    timeToFirstActionMs?: number;
+  };
+  [ServiceEvents.RESULTS_PROGRAM_BULK_NUDGE_SENT]: {
+    userId: string;
+    role: 'coach';
+    lane: 'intervene_now' | 'watch_today' | 'stable';
+    variant: 'overdue' | 'due_soon';
+    athleteCount: number;
+    taskCount: number;
+    updatedCount: number;
+    skippedCount: number;
+    timeToFirstActionMs?: number;
+  };
+  [ServiceEvents.RESULTS_PLAYBOOK_ACTION_TAPPED]: {
+    coachId: string;
+    athleteId: string;
+    risk: 'high' | 'watch' | 'stable';
+    overdueCount: number;
+    dueSoonCount: number;
+    taskCount: number;
+    action: 'message' | 'recovery_checkpoint' | 'history';
   };
 }
 

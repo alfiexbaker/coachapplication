@@ -17,6 +17,7 @@ import { Spacing } from '@/constants/theme';
 import { useAuth } from '@/hooks/use-auth';
 import { useScreen } from '@/hooks/use-screen';
 import { socialFeedService, type AggregatedFeedPost } from '@/services/social-feed-service';
+import { followService } from '@/services/follow-service';
 import { ServiceEvents } from '@/services/event-bus';
 import { ok, err, type Result, type ServiceError } from '@/types/result';
 import type { Club } from '@/constants/types';
@@ -36,6 +37,14 @@ interface FeedData {
   clubs: Club[];
 }
 
+function mergeFeeds(primary: AggregatedFeedPost[], secondary: AggregatedFeedPost[]): AggregatedFeedPost[] {
+  const byId = new Map<string, AggregatedFeedPost>();
+  [...primary, ...secondary].forEach((post) => byId.set(post.id, post));
+  return Array.from(byId.values()).sort(
+    (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
+  );
+}
+
 export default function FeedScreen() {
   const { currentUser } = useAuth();
   const listRef = useRef<FlatList<AggregatedFeedPost>>(null);
@@ -52,9 +61,12 @@ export default function FeedScreen() {
         if (!currentUser?.id) {
           return ok({ feed: [], clubs: [] });
         }
-        const feed = isCoach
+        const baseFeed = isCoach
           ? socialFeedService.getAggregatedFeed(currentUser.id, feedFilter)
           : socialFeedService.getCombinedFeedForParent(currentUser.id, feedFilter);
+        const friendIds = await followService.getFriendIds(currentUser.id);
+        const friendFeed = socialFeedService.getFriendFeed(friendIds, feedFilter);
+        const feed = mergeFeeds(baseFeed, friendFeed);
         const clubs = socialFeedService.getUserClubs(currentUser.id);
         return ok({ feed, clubs });
       } catch {

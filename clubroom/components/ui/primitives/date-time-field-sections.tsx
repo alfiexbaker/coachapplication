@@ -72,6 +72,7 @@ interface IOSPickerModalProps {
   maximumDate?: Date;
   minuteInterval?: 1 | 2 | 3 | 4 | 5 | 6 | 10 | 12 | 15 | 20 | 30;
   colors: ThemeColors;
+  themeVariant: 'light' | 'dark';
 }
 
 export const IOSPickerModal = memo(function IOSPickerModal({
@@ -86,6 +87,7 @@ export const IOSPickerModal = memo(function IOSPickerModal({
   maximumDate,
   minuteInterval,
   colors,
+  themeVariant,
 }: IOSPickerModalProps) {
   if (!visible) return null;
 
@@ -121,6 +123,8 @@ export const IOSPickerModal = memo(function IOSPickerModal({
           mode={mode}
           display="spinner"
           onChange={onChange}
+          textColor={colors.text}
+          themeVariant={themeVariant}
           minimumDate={minimumDate}
           maximumDate={maximumDate}
           minuteInterval={minuteInterval}

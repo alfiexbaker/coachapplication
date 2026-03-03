@@ -79,6 +79,14 @@ async function resolveUserName(userId: string, fallback: string): Promise<string
   return userResult.data.name?.trim() || fallback;
 }
 
+async function resolveFollowActorType(userId: string): Promise<'USER' | 'COACH'> {
+  const userResult = await userService.getUserById(userId);
+  if (!userResult.success) {
+    return 'USER';
+  }
+  return userResult.data.role === 'COACH' || userResult.data.role === 'ADMIN' ? 'COACH' : 'USER';
+}
+
 async function loadFollows(): Promise<Follow[]> {
   try {
     const stored = await apiClient.get<Follow[] | null>(STORAGE_KEYS.FOLLOWS, null);
@@ -254,6 +262,27 @@ export const followService = {
   },
 
   /**
+   * Get accepted "friend" connections (mutual follows).
+   * A friend exists only when both users follow each other.
+   */
+  async getFriendIds(userId: string): Promise<string[]> {
+    const [following, followers] = await Promise.all([this.getFollowing(userId), this.getFollowers(userId)]);
+    const followerIds = new Set(followers.map((f) => f.followerId));
+    return following.map((f) => f.followingId).filter((candidateId) => followerIds.has(candidateId));
+  },
+
+  /**
+   * Check if two users are mutually connected.
+   */
+  async areFriends(userAId: string, userBId: string): Promise<boolean> {
+    const [aFollowsB, bFollowsA] = await Promise.all([
+      this.isFollowing(userAId, userBId),
+      this.isFollowing(userBId, userAId),
+    ]);
+    return aFollowsB && bFollowsA;
+  },
+
+  /**
    * Update notification preferences for a follow relationship
    */
   async updateNotificationPreferences(
@@ -394,18 +423,30 @@ export const followService = {
 
     // If accepted, create the follow relationship
     if (response === 'ACCEPTED') {
-      const [requesterName, targetName] = await Promise.all([
+      const [requesterName, targetName, requesterType, targetType] = await Promise.all([
         resolveUserName(request.requesterId, 'User'),
         resolveUserName(request.targetId, 'Coach'),
+        resolveFollowActorType(request.requesterId),
+        resolveFollowActorType(request.targetId),
       ]);
 
       await this.follow({
         followerId: request.requesterId,
         followerName: requesterName,
-        followerType: 'USER',
+        followerType: requesterType,
         followingId: request.targetId,
         followingName: targetName,
-        followingType: 'COACH',
+        followingType: targetType,
+      });
+
+      // Accepted requests become two-way connections for shared feed visibility.
+      await this.follow({
+        followerId: request.targetId,
+        followerName: targetName,
+        followerType: targetType,
+        followingId: request.requesterId,
+        followingName: requesterName,
+        followingType: requesterType,
       });
 
       // Notify requester

@@ -20,18 +20,19 @@ import { formatTime } from '@/utils/format';
 import type { BadgeAward, Club } from '@/constants/types';
 
 const QUICK_ACTION_DEFS = [
-  { icon: 'search', label: 'Find Coach', route: Routes.DISCOVER_MAP, primary: true },
+  { id: 'find_coach', icon: 'search', label: 'Find Coach', route: Routes.DISCOVER_MAP, primary: true },
   {
+    id: 'my_progress',
     icon: 'analytics',
     label: 'My Progress',
     route: Routes.DEVELOPMENT_MY_PROGRESS,
     primary: false,
   },
-  { icon: 'medkit-outline', label: 'Health', route: Routes.HEALTH, primary: false },
-  { icon: 'journal-outline', label: 'Journal', route: Routes.ATHLETE_JOURNAL, primary: false },
-  { icon: 'chatbubbles', label: 'Messages', route: Routes.MESSAGES, primary: false },
-  { icon: 'calendar', label: 'Bookings', route: Routes.BOOKINGS, primary: false },
+  { id: 'health', icon: 'medkit-outline', label: 'Health', route: Routes.HEALTH, primary: false },
+  { id: 'bookings', icon: 'calendar', label: 'Bookings', route: Routes.BOOKINGS, primary: false },
 ] as const;
+
+type QuickActionId = (typeof QUICK_ACTION_DEFS)[number]['id'];
 
 const QuickActionTile = memo(function QuickActionTile({
   icon,
@@ -45,6 +46,10 @@ const QuickActionTile = memo(function QuickActionTile({
   onPress: () => void;
 }) {
   const { colors: palette } = useTheme();
+  const iconColor = primary ? palette.onPrimary : palette.tint;
+  const iconBackgroundColor = primary
+    ? withAlpha(palette.onPrimary, 0.2)
+    : withAlpha(palette.tint, 0.09);
   return (
     <Clickable
       style={[
@@ -55,29 +60,26 @@ const QuickActionTile = memo(function QuickActionTile({
         },
       ]}
       onPress={onPress}
+      accessibilityLabel={label}
     >
       <View
         style={[
           styles.quickActionIcon,
           {
-            backgroundColor: primary
-              ? withAlpha(palette.onPrimary, 0.2)
-              : withAlpha(palette.tint, 0.09),
+            backgroundColor: iconBackgroundColor,
           },
         ]}
       >
-        <Ionicons
-          name={icon}
-          size={20}
-          color={primary ? palette.onPrimary : palette.tint}
-        />
+        <Ionicons name={icon} size={20} color={iconColor} />
       </View>
-      <ThemedText
-        style={[styles.quickActionLabel, { color: primary ? palette.onPrimary : palette.text }]}
-        numberOfLines={2}
-      >
-        {label}
-      </ThemedText>
+      <Column gap="micro" style={styles.quickActionCopy}>
+        <ThemedText
+          style={[styles.quickActionLabel, { color: primary ? palette.onPrimary : palette.text }]}
+          numberOfLines={2}
+        >
+          {label}
+        </ThemedText>
+      </Column>
     </Clickable>
   );
 });
@@ -206,6 +208,7 @@ export const QuickActionsGrid = memo(function QuickActionsGrid() {
   const handlePress = useCallback((route: Href) => {
     router.push(route);
   }, []);
+
   const actions = useMemo(
     () =>
       QUICK_ACTION_DEFS.map((action) => ({
@@ -218,7 +221,7 @@ export const QuickActionsGrid = memo(function QuickActionsGrid() {
     <Row wrap gap="sm">
       {actions.map((action) => (
         <QuickActionTile
-          key={action.label}
+          key={action.id as QuickActionId}
           icon={action.icon}
           label={action.label}
           primary={action.primary}
@@ -495,6 +498,7 @@ const styles = StyleSheet.create({
     paddingVertical: Spacing.sm,
     borderRadius: Radii.md,
     borderWidth: 1,
+    minHeight: 88,
   },
   quickActionIcon: {
     width: 32,
@@ -502,6 +506,10 @@ const styles = StyleSheet.create({
     borderRadius: Radii.xl,
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  quickActionCopy: {
+    flex: 1,
+    minWidth: 0,
   },
   quickActionLabel: { ...Typography.smallSemiBold, flexShrink: 1 },
   nextSession: { padding: Spacing.md, gap: Spacing.md },

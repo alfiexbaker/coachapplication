@@ -55,9 +55,6 @@ const mapUserRoleToClubRole = (role: string | undefined): ClubRole => {
   return 'MEMBER';
 };
 
-const canPostAsClub = (role: ClubRole) =>
-  role === 'OWNER' || role === 'HEAD_COACH' || role === 'ADMIN' || role === 'COACH';
-
 function buildClubInvites(club: Club | undefined): ClubInvite[] {
   if (!club) return [];
   return [
@@ -100,6 +97,7 @@ export interface ClubHubState {
   canManagePosts: boolean;
   canCreatePosts: boolean;
   canRemoveMembers: boolean;
+  canManageTeams: boolean;
   isCoach: boolean;
 
   // Filter counts
@@ -174,14 +172,15 @@ export function useClubHub(): ClubHubState {
   const handledRouteInviteCodeRef = useRef<string | null>(null);
 
   // ─── Derived permissions ───────────────────────────────────────
-  const canManagePosts = !!(
+  const userIsCoachAccount = currentUser?.role === 'COACH' || currentUser?.role === 'ADMIN';
+  const isTeamStaffRole = !!(
     membership && ['OWNER', 'HEAD_COACH', 'ADMIN', 'COACH'].includes(membership.role)
   );
+  const canManageTeams = !!(membership && ['OWNER', 'HEAD_COACH', 'ADMIN'].includes(membership.role));
+  const canManagePosts = isTeamStaffRole;
   const canCreatePosts = !!membership;
   const canRemoveMembers = !!(membership && clubService.canRemoveMembers(membership.role));
-  const isCoach = !!(
-    membership && ['OWNER', 'HEAD_COACH', 'ADMIN', 'COACH'].includes(membership.role)
-  );
+  const isCoach = isTeamStaffRole || (!membership && userIsCoachAccount);
 
   // ─── Data loaders ──────────────────────────────────────────────
   const loadClubMeta = useCallback(async () => {
@@ -437,16 +436,13 @@ export function useClubHub(): ClubHubState {
       }
 
       const role = mapUserRoleToClubRole(currentUser?.role);
-      const newMembership: ClubMembership = {
-        clubId: targetClub.id,
-        userId: currentUser?.id || 'guest',
-        role,
-        status: 'active',
-        joinSource: 'invite',
-        inviteCode: targetClub.inviteCode,
-        canPostAsClub: canPostAsClub(role),
-      };
-      setMembership(newMembership);
+      const joinResult = socialFeedService.joinClub(currentUser?.id || 'guest', targetClub.inviteCode, role);
+      if (!joinResult.success) {
+        Alert.alert('Unable to join', joinResult.error.message);
+        return;
+      }
+
+      setMembership(joinResult.data);
       setClub(targetClub);
       Alert.alert('Joined club', `You are now part of ${targetClub.name}`);
     },
@@ -571,6 +567,7 @@ export function useClubHub(): ClubHubState {
     canManagePosts,
     canCreatePosts,
     canRemoveMembers,
+    canManageTeams,
     isCoach,
     filterCounts,
     setFeedFilter,

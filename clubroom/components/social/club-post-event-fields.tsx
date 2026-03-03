@@ -1,5 +1,5 @@
 import React, { memo } from 'react';
-import { View, StyleSheet, TextInput } from 'react-native';
+import { View, StyleSheet, TextInput, Platform } from 'react-native';
 import { Clickable } from '@/components/primitives/clickable';
 import { Ionicons } from '@expo/vector-icons';
 import DateTimePicker from '@react-native-community/datetimepicker';
@@ -27,7 +27,7 @@ export const ClubPostEventFields = memo(function ClubPostEventFields({
   onSetDate,
   onChangeLocation,
 }: ClubPostEventFieldsProps) {
-  const { colors: palette } = useTheme();
+  const { colors: palette, isDark } = useTheme();
 
   return (
     <View style={[styles.container, { borderColor: palette.border }]}>
@@ -48,7 +48,9 @@ export const ClubPostEventFields = memo(function ClubPostEventFields({
         <DateTimePicker
           value={eventDate || new Date()}
           mode="date"
-          display="default"
+          display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+          textColor={palette.text}
+          themeVariant={isDark ? 'dark' : 'light'}
           minimumDate={new Date()}
           onChange={(_, selectedDate) => {
             onCloseDatePicker();

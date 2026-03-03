@@ -59,7 +59,7 @@ function DateTimeFieldInner({
   style,
   testID,
 }: DateTimeFieldProps) {
-  const { colors } = useTheme();
+  const { colors, isDark } = useTheme();
   const [showPicker, setShowPicker] = useState(false);
   const [tempDate, setTempDate] = useState<Date | null>(null);
 
@@ -153,6 +153,7 @@ function DateTimeFieldInner({
           maximumDate={maximumDate}
           minuteInterval={minuteInterval}
           colors={colors}
+          themeVariant={isDark ? 'dark' : 'light'}
         />
       )}
 
