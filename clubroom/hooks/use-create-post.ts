@@ -1,6 +1,6 @@
 /**
  * Hook for the Create Post screen.
- * Manages routing logic, personal post form state, and submission.
+ * Manages role-aware routing, personal post form state, and submission.
  */
 
 import { useState, useEffect, useMemo, useCallback } from 'react';
@@ -28,18 +28,29 @@ export const POST_TYPES: PostTypeOption[] = [
   { key: 'event', label: 'Event', icon: 'calendar-outline' },
 ];
 
+const STAFF_POSTING_ROLES: ClubMembership['role'][] = ['OWNER', 'ADMIN', 'HEAD_COACH', 'COACH'];
+
 export function useCreatePost() {
   const { currentUser } = useAuth();
 
+  const memberships = useMemo(
+    () => (currentUser ? clubFeedService.getUserMemberships(currentUser.id) : []),
+    [currentUser],
+  );
   const clubs = useMemo(
     () => (currentUser ? clubFeedService.getUserClubs(currentUser.id) : []),
     [currentUser],
   );
   const membership = useMemo<ClubMembership | undefined>(() => {
-    if (!currentUser?.id || clubs.length === 0) return undefined;
-    return clubFeedService.getMembership(currentUser.id, clubs[0].id);
-  }, [clubs, currentUser?.id]);
+    if (memberships.length === 0) return undefined;
+    return memberships[0];
+  }, [memberships]);
+  const redirectMembership = useMemo<ClubMembership | undefined>(
+    () => memberships.find((candidate) => STAFF_POSTING_ROLES.includes(candidate.role)),
+    [memberships],
+  );
   const isCoach = currentUser?.role === 'COACH' || currentUser?.role === 'ADMIN';
+  const shouldRedirectToClubPost = Boolean(redirectMembership?.clubId);
 
   const [title, setTitle] = useState('');
   const [body, setBody] = useState('');
@@ -52,10 +63,12 @@ export function useCreatePost() {
   const trimmedBody = body.trim();
 
   useEffect(() => {
-    if (membership?.clubId) {
-      router.replace(Routes.modalCreateClubPost({ clubId: membership.clubId, audience: 'club' }));
+    if (redirectMembership?.clubId) {
+      router.replace(
+        Routes.modalCreateClubPost({ clubId: redirectMembership.clubId, audience: 'club' }),
+      );
     }
-  }, [membership?.clubId]);
+  }, [redirectMembership?.clubId]);
 
   const pickImage = useCallback(async () => {
     const result = await ImagePicker.launchImageLibraryAsync({
@@ -109,6 +122,7 @@ export function useCreatePost() {
   const canPost = ((trimmedBody.length >= 10) || imageUri !== null) && !isPosting;
 
   return {
+    shouldRedirectToClubPost,
     membership,
     isCoach,
     title,

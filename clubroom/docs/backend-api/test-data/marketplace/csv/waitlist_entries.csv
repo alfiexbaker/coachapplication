@@ -1,0 +1,2 @@
+athleteId,autoBook,bookingId,coachUserId,createdAt,deletedAt,expiresAt,groupSessionId,id,notes,notifiedAt,position,status,updatedAt,userId,userRespondedAt,userResponse
+ath_a3874b5f-325a-76e9-8ab2-620b11c1c44d,true,,usr_65972cc3-8f9b-7199-b867-7df5b7faf34b,2026-03-02T09:00:00.000Z,,,gse_9f4bc127-c419-7567-bb8b-1a64cf2ec962,wle_001cb1ac-9b59-7ce6-93d3-be9a1990a1b6,Priority waitlist entry.,,1,WAITING,2026-03-02T09:00:00.000Z,usr_f82d545a-1ae7-7fe7-b5ab-81ac6af9478c,,

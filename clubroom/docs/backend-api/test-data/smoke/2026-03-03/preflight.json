@@ -1,0 +1,39 @@
+{
+  "baseUrl": "http://localhost:8083",
+  "generatedAt": "2026-03-03T18:37:43.111Z",
+  "results": [
+    {
+      "role": "coach",
+      "status": "ok",
+      "details": [
+        "base_url_http_200",
+        "login_attempts:1",
+        "proof_path:/schedule",
+        "current_path:/schedule",
+        "screenshot:/tmp/ui-flow-checks-live-smoke-cleared/preflight.coach.png"
+      ]
+    },
+    {
+      "role": "parent",
+      "status": "ok",
+      "details": [
+        "base_url_http_200",
+        "login_attempts:1",
+        "proof_path:/family",
+        "current_path:/family",
+        "screenshot:/tmp/ui-flow-checks-live-smoke-cleared/preflight.parent.png"
+      ]
+    },
+    {
+      "role": "athlete",
+      "status": "ok",
+      "details": [
+        "base_url_http_200",
+        "login_attempts:1",
+        "proof_path:/goals",
+        "current_path:/goals",
+        "screenshot:/tmp/ui-flow-checks-live-smoke-cleared/preflight.athlete.png"
+      ]
+    }
+  ]
+}

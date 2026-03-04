@@ -1,0 +1,615 @@
+{
+  "baseUrl": "http://localhost:8083",
+  "generatedAt": "2026-03-03T18:41:52.330Z",
+  "meta": {
+    "roles": [
+      "coach",
+      "parent",
+      "athlete"
+    ],
+    "profiles": [
+      "coach-core",
+      "parent-core",
+      "athlete-core"
+    ],
+    "chunkIndex": null,
+    "retries": 2,
+    "pauseMs": 900,
+    "failOn": "high",
+    "outDir": "/tmp/ui-flow-checks-live-smoke-cleared"
+  },
+  "totals": {
+    "total": 34,
+    "ok": 34,
+    "failed": 0,
+    "high": 0,
+    "medium": 2,
+    "none": 32
+  },
+  "results": [
+    {
+      "id": "coach_home",
+      "role": "coach",
+      "title": "Coach opens dashboard",
+      "path": "/",
+      "screenshot": "/tmp/ui-flow-checks-live-smoke-cleared/coach__coach_home.png",
+      "status": "ok",
+      "severity": "none",
+      "issues": [],
+      "metrics": {
+        "viewportWidth": 390,
+        "horizontalOverflow": 0,
+        "nestedButtons": 0
+      },
+      "attempts": 1,
+      "durationMs": 9188
+    },
+    {
+      "id": "coach_schedule",
+      "role": "coach",
+      "title": "Coach opens schedule",
+      "path": "/schedule",
+      "screenshot": "/tmp/ui-flow-checks-live-smoke-cleared/coach__coach_schedule.png",
+      "status": "ok",
+      "severity": "none",
+      "issues": [],
+      "metrics": {
+        "viewportWidth": 390,
+        "horizontalOverflow": 0,
+        "nestedButtons": 0
+      },
+      "attempts": 1,
+      "durationMs": 7098
+    },
+    {
+      "id": "coach_athletes",
+      "role": "coach",
+      "title": "Coach opens athletes",
+      "path": "/athletes",
+      "screenshot": "/tmp/ui-flow-checks-live-smoke-cleared/coach__coach_athletes.png",
+      "status": "ok",
+      "severity": "none",
+      "issues": [],
+      "metrics": {
+        "viewportWidth": 390,
+        "horizontalOverflow": 0,
+        "nestedButtons": 0
+      },
+      "attempts": 1,
+      "durationMs": 7459
+    },
+    {
+      "id": "coach_bookings",
+      "role": "coach",
+      "title": "Coach opens bookings",
+      "path": "/bookings",
+      "screenshot": "/tmp/ui-flow-checks-live-smoke-cleared/coach__coach_bookings.png",
+      "status": "ok",
+      "severity": "none",
+      "issues": [],
+      "metrics": {
+        "viewportWidth": 390,
+        "horizontalOverflow": 0,
+        "nestedButtons": 0
+      },
+      "attempts": 1,
+      "durationMs": 5916
+    },
+    {
+      "id": "coach_settings",
+      "role": "coach",
+      "title": "Coach opens settings",
+      "path": "/settings",
+      "screenshot": "/tmp/ui-flow-checks-live-smoke-cleared/coach__coach_settings.png",
+      "status": "ok",
+      "severity": "none",
+      "issues": [],
+      "metrics": {
+        "viewportWidth": 390,
+        "horizontalOverflow": 0,
+        "nestedButtons": 0
+      },
+      "attempts": 1,
+      "durationMs": 6099
+    },
+    {
+      "id": "coach_progress",
+      "role": "coach",
+      "title": "Coach opens development progress",
+      "path": "/development/my-progress",
+      "screenshot": "/tmp/ui-flow-checks-live-smoke-cleared/coach__coach_progress.png",
+      "status": "ok",
+      "severity": "none",
+      "issues": [],
+      "metrics": {
+        "viewportWidth": 390,
+        "horizontalOverflow": 0,
+        "nestedButtons": 0
+      },
+      "attempts": 1,
+      "durationMs": 5878
+    },
+    {
+      "id": "coach_group_sessions",
+      "role": "coach",
+      "title": "Coach opens group sessions",
+      "path": "/group-sessions/index",
+      "screenshot": "/tmp/ui-flow-checks-live-smoke-cleared/coach__coach_group_sessions.png",
+      "status": "ok",
+      "severity": "none",
+      "issues": [],
+      "metrics": {
+        "viewportWidth": 390,
+        "horizontalOverflow": 0,
+        "nestedButtons": 0
+      },
+      "attempts": 1,
+      "durationMs": 6374
+    },
+    {
+      "id": "coach_create_invite_entry",
+      "role": "coach",
+      "title": "Coach opens create/invite hub",
+      "path": "/sessions/create",
+      "screenshot": "/tmp/ui-flow-checks-live-smoke-cleared/coach__coach_create_invite_entry.png",
+      "status": "ok",
+      "severity": "none",
+      "issues": [],
+      "metrics": {
+        "viewportWidth": 390,
+        "horizontalOverflow": 0,
+        "nestedButtons": 0
+      },
+      "attempts": 1,
+      "durationMs": 5979
+    },
+    {
+      "id": "coach_manage",
+      "role": "coach",
+      "title": "Coach opens management hub",
+      "path": "/manage",
+      "screenshot": "/tmp/ui-flow-checks-live-smoke-cleared/coach__coach_manage.png",
+      "status": "ok",
+      "severity": "none",
+      "issues": [],
+      "metrics": {
+        "viewportWidth": 390,
+        "horizontalOverflow": 0,
+        "nestedButtons": 0
+      },
+      "attempts": 1,
+      "durationMs": 6137
+    },
+    {
+      "id": "coach_manage_bookings",
+      "role": "coach",
+      "title": "Coach opens booking console",
+      "path": "/manage/bookings",
+      "screenshot": "/tmp/ui-flow-checks-live-smoke-cleared/coach__coach_manage_bookings.png",
+      "status": "ok",
+      "severity": "none",
+      "issues": [],
+      "metrics": {
+        "viewportWidth": 390,
+        "horizontalOverflow": 0,
+        "nestedButtons": 0
+      },
+      "attempts": 1,
+      "durationMs": 6175
+    },
+    {
+      "id": "coach_raise_concern",
+      "role": "coach",
+      "title": "Coach opens raise concern form",
+      "path": "/roster/user1/raise-concern",
+      "screenshot": "/tmp/ui-flow-checks-live-smoke-cleared/coach__coach_raise_concern.png",
+      "status": "ok",
+      "severity": "none",
+      "issues": [],
+      "metrics": {
+        "viewportWidth": 390,
+        "horizontalOverflow": 0,
+        "nestedButtons": 0
+      },
+      "attempts": 1,
+      "durationMs": 6486
+    },
+    {
+      "id": "parent_home",
+      "role": "parent",
+      "title": "Parent opens dashboard",
+      "path": "/",
+      "screenshot": "/tmp/ui-flow-checks-live-smoke-cleared/parent__parent_home.png",
+      "status": "ok",
+      "severity": "medium",
+      "issues": [
+        "console:In HTML, %s cannot be a descendant of <%s>.\nThis will cause a hydration error.%s <button> button \n\n  ...\n    <RootNavigation>\n      <ThemeProvider value={{dark:true, ...}}>\n        <ToastProvider>\n          <NotificationToastProvider>\n            <NativeStackNavigator>\n            <OfflineBanner>\n            <StatusBar>\n            <View style={[...]}>\n              <AnimatedComponent(View) style={[...]} ref={null} forwardedRef={undefined}>\n                <View nativeID=\"10\" style={[...]} forwardedRef={undefined} ref={function _setComponentRef}>\n                  <div dir={null} ref={function forwardRef} className=\"css-view-g...\" style={{position:\"...\", ...}} ...>\n                    <Clickable onPress={function}>\n                      <Pressable ref={null} onPress={function} onLongPress={undefined} onPressIn={undefined} ...>\n                        <View hitSlop={8} accessibilityLabel={undefined} accessibilityHint={undefined} ...>\n>                         <button\n>                           onKeyDown={function}\n>                           onClick={function onClick}\n>                           onContextMenu={function}\n>                           onBlur={function}\n>                           onFocus={function}\n>                           dir={null}\n>                           ref={function forwardRef}\n>                           role=\"button\"\n>                           tabIndex={0}\n>                           className=\"css-view-g5y9jx r-cursor-1loqt21 r-touchAction-1otgn73\"\n>                           type=\"button\"\n>                         >\n                            ...\n                              <Pressable ref={null} onPress={function} onLongPress={undefined} onPressIn={undefined} ...>\n                                <View hitSlop={8} accessibilityLabel={undefined} accessibilityHint={undefined} ...>\n>                                 <button\n>                                   onKeyDown={function}\n>                                   onClick={function onClick}\n>                                   onContextMenu={function}\n>                                   onBlur={function}\n>                                   onFocus={function}\n>                                   dir={null}\n>                                   ref={function forwardRef}\n>                                   role=\"button\"\n>                                   tabIndex={0}\n>                                   className=\"css-view-g5y9jx r-cursor-1loqt21 r-touchAction-1otgn73\"\n>                                   type=\"button\"\n>                                 >\n          ...\n",
+        "console:<%s> cannot contain a nested %s.\nSee this log for the ancestor stack trace. button <button>"
+      ],
+      "metrics": {
+        "viewportWidth": 390,
+        "horizontalOverflow": 0,
+        "nestedButtons": 0
+      },
+      "attempts": 1,
+      "durationMs": 9548
+    },
+    {
+      "id": "parent_children",
+      "role": "parent",
+      "title": "Parent opens children",
+      "path": "/children",
+      "screenshot": "/tmp/ui-flow-checks-live-smoke-cleared/parent__parent_children.png",
+      "status": "ok",
+      "severity": "none",
+      "issues": [],
+      "metrics": {
+        "viewportWidth": 390,
+        "horizontalOverflow": 0,
+        "nestedButtons": 0
+      },
+      "attempts": 1,
+      "durationMs": 6689
+    },
+    {
+      "id": "parent_bookings",
+      "role": "parent",
+      "title": "Parent opens bookings",
+      "path": "/bookings",
+      "screenshot": "/tmp/ui-flow-checks-live-smoke-cleared/parent__parent_bookings.png",
+      "status": "ok",
+      "severity": "none",
+      "issues": [],
+      "metrics": {
+        "viewportWidth": 390,
+        "horizontalOverflow": 0,
+        "nestedButtons": 0
+      },
+      "attempts": 1,
+      "durationMs": 6268
+    },
+    {
+      "id": "parent_settings",
+      "role": "parent",
+      "title": "Parent opens settings",
+      "path": "/settings",
+      "screenshot": "/tmp/ui-flow-checks-live-smoke-cleared/parent__parent_settings.png",
+      "status": "ok",
+      "severity": "none",
+      "issues": [],
+      "metrics": {
+        "viewportWidth": 390,
+        "horizontalOverflow": 0,
+        "nestedButtons": 0
+      },
+      "attempts": 1,
+      "durationMs": 6086
+    },
+    {
+      "id": "parent_family",
+      "role": "parent",
+      "title": "Parent opens family dashboard",
+      "path": "/family",
+      "screenshot": "/tmp/ui-flow-checks-live-smoke-cleared/parent__parent_family.png",
+      "status": "ok",
+      "severity": "none",
+      "issues": [],
+      "metrics": {
+        "viewportWidth": 390,
+        "horizontalOverflow": 0,
+        "nestedButtons": 0
+      },
+      "attempts": 1,
+      "durationMs": 6087
+    },
+    {
+      "id": "parent_book_coach",
+      "role": "parent",
+      "title": "Parent opens find coach",
+      "path": "/book-coach",
+      "screenshot": "/tmp/ui-flow-checks-live-smoke-cleared/parent__parent_book_coach.png",
+      "status": "ok",
+      "severity": "none",
+      "issues": [],
+      "metrics": {
+        "viewportWidth": 390,
+        "horizontalOverflow": 0,
+        "nestedButtons": 0
+      },
+      "attempts": 1,
+      "durationMs": 5670
+    },
+    {
+      "id": "parent_progress",
+      "role": "parent",
+      "title": "Parent opens my progress",
+      "path": "/development/my-progress",
+      "screenshot": "/tmp/ui-flow-checks-live-smoke-cleared/parent__parent_progress.png",
+      "status": "ok",
+      "severity": "none",
+      "issues": [],
+      "metrics": {
+        "viewportWidth": 390,
+        "horizontalOverflow": 0,
+        "nestedButtons": 0
+      },
+      "attempts": 1,
+      "durationMs": 6705
+    },
+    {
+      "id": "parent_child_progress",
+      "role": "parent",
+      "title": "Parent opens child progress",
+      "path": "/development/child-progress/user1",
+      "screenshot": "/tmp/ui-flow-checks-live-smoke-cleared/parent__parent_child_progress.png",
+      "status": "ok",
+      "severity": "none",
+      "issues": [],
+      "metrics": {
+        "viewportWidth": 390,
+        "horizontalOverflow": 0,
+        "nestedButtons": 0
+      },
+      "attempts": 1,
+      "durationMs": 6627
+    },
+    {
+      "id": "parent_book_flow_start",
+      "role": "parent",
+      "title": "Parent opens book flow home",
+      "path": "/book/coach1",
+      "screenshot": "/tmp/ui-flow-checks-live-smoke-cleared/parent__parent_book_flow_start.png",
+      "status": "ok",
+      "severity": "none",
+      "issues": [],
+      "metrics": {
+        "viewportWidth": 390,
+        "horizontalOverflow": 0,
+        "nestedButtons": 0
+      },
+      "attempts": 1,
+      "durationMs": 7535
+    },
+    {
+      "id": "parent_book_flow_schedule",
+      "role": "parent",
+      "title": "Parent opens schedule step",
+      "path": "/book/coach1/schedule",
+      "screenshot": "/tmp/ui-flow-checks-live-smoke-cleared/parent__parent_book_flow_schedule.png",
+      "status": "ok",
+      "severity": "none",
+      "issues": [],
+      "metrics": {
+        "viewportWidth": 390,
+        "horizontalOverflow": 0,
+        "nestedButtons": 0
+      },
+      "attempts": 1,
+      "durationMs": 7878
+    },
+    {
+      "id": "parent_child_medical",
+      "role": "parent",
+      "title": "Parent opens child medical profile",
+      "path": "/child/user1/medical",
+      "screenshot": "/tmp/ui-flow-checks-live-smoke-cleared/parent__parent_child_medical.png",
+      "status": "ok",
+      "severity": "none",
+      "issues": [],
+      "metrics": {
+        "viewportWidth": 390,
+        "horizontalOverflow": 0,
+        "nestedButtons": 0
+      },
+      "attempts": 1,
+      "durationMs": 6957
+    },
+    {
+      "id": "parent_child_emergency",
+      "role": "parent",
+      "title": "Parent opens child emergency profile",
+      "path": "/child/user1/emergency",
+      "screenshot": "/tmp/ui-flow-checks-live-smoke-cleared/parent__parent_child_emergency.png",
+      "status": "ok",
+      "severity": "none",
+      "issues": [],
+      "metrics": {
+        "viewportWidth": 390,
+        "horizontalOverflow": 0,
+        "nestedButtons": 0
+      },
+      "attempts": 1,
+      "durationMs": 6410
+    },
+    {
+      "id": "athlete_home",
+      "role": "athlete",
+      "title": "Athlete opens dashboard",
+      "path": "/",
+      "screenshot": "/tmp/ui-flow-checks-live-smoke-cleared/athlete__athlete_home.png",
+      "status": "ok",
+      "severity": "medium",
+      "issues": [
+        "console:In HTML, %s cannot be a descendant of <%s>.\nThis will cause a hydration error.%s <button> button \n\n  ...\n    <RootNavigation>\n      <ThemeProvider value={{dark:true, ...}}>\n        <ToastProvider>\n          <NotificationToastProvider>\n            <NativeStackNavigator>\n            <OfflineBanner>\n            <StatusBar>\n            <View style={[...]}>\n              <AnimatedComponent(View) style={[...]} ref={null} forwardedRef={undefined}>\n                <View nativeID=\"6\" style={[...]} forwardedRef={undefined} ref={function _setComponentRef}>\n                  <div dir={null} ref={function forwardRef} className=\"css-view-g...\" style={{position:\"...\", ...}} ...>\n                    <Clickable onPress={function}>\n                      <Pressable ref={null} onPress={function} onLongPress={undefined} onPressIn={undefined} ...>\n                        <View hitSlop={8} accessibilityLabel={undefined} accessibilityHint={undefined} ...>\n>                         <button\n>                           onKeyDown={function}\n>                           onClick={function onClick}\n>                           onContextMenu={function}\n>                           onBlur={function}\n>                           onFocus={function}\n>                           dir={null}\n>                           ref={function forwardRef}\n>                           role=\"button\"\n>                           tabIndex={0}\n>                           className=\"css-view-g5y9jx r-cursor-1loqt21 r-touchAction-1otgn73\"\n>                           type=\"button\"\n>                         >\n                            ...\n                              <Pressable ref={null} onPress={function} onLongPress={undefined} onPressIn={undefined} ...>\n                                <View hitSlop={8} accessibilityLabel={undefined} accessibilityHint={undefined} ...>\n>                                 <button\n>                                   onKeyDown={function}\n>                                   onClick={function onClick}\n>                                   onContextMenu={function}\n>                                   onBlur={function}\n>                                   onFocus={function}\n>                                   dir={null}\n>                                   ref={function forwardRef}\n>                                   role=\"button\"\n>                                   tabIndex={0}\n>                                   className=\"css-view-g5y9jx r-cursor-1loqt21 r-touchAction-1otgn73\"\n>                                   type=\"button\"\n>                                 >\n          ...\n",
+        "console:<%s> cannot contain a nested %s.\nSee this log for the ancestor stack trace. button <button>"
+      ],
+      "metrics": {
+        "viewportWidth": 390,
+        "horizontalOverflow": 0,
+        "nestedButtons": 0
+      },
+      "attempts": 1,
+      "durationMs": 7856
+    },
+    {
+      "id": "athlete_bookings",
+      "role": "athlete",
+      "title": "Athlete opens bookings",
+      "path": "/bookings",
+      "screenshot": "/tmp/ui-flow-checks-live-smoke-cleared/athlete__athlete_bookings.png",
+      "status": "ok",
+      "severity": "none",
+      "issues": [],
+      "metrics": {
+        "viewportWidth": 390,
+        "horizontalOverflow": 0,
+        "nestedButtons": 0
+      },
+      "attempts": 1,
+      "durationMs": 6485
+    },
+    {
+      "id": "athlete_settings",
+      "role": "athlete",
+      "title": "Athlete opens settings",
+      "path": "/settings",
+      "screenshot": "/tmp/ui-flow-checks-live-smoke-cleared/athlete__athlete_settings.png",
+      "status": "ok",
+      "severity": "none",
+      "issues": [],
+      "metrics": {
+        "viewportWidth": 390,
+        "horizontalOverflow": 0,
+        "nestedButtons": 0
+      },
+      "attempts": 1,
+      "durationMs": 5835
+    },
+    {
+      "id": "athlete_progress",
+      "role": "athlete",
+      "title": "Athlete opens my progress",
+      "path": "/development/my-progress",
+      "screenshot": "/tmp/ui-flow-checks-live-smoke-cleared/athlete__athlete_progress.png",
+      "status": "ok",
+      "severity": "none",
+      "issues": [],
+      "metrics": {
+        "viewportWidth": 390,
+        "horizontalOverflow": 0,
+        "nestedButtons": 0
+      },
+      "attempts": 1,
+      "durationMs": 7920
+    },
+    {
+      "id": "athlete_goals",
+      "role": "athlete",
+      "title": "Athlete opens goals",
+      "path": "/goals",
+      "screenshot": "/tmp/ui-flow-checks-live-smoke-cleared/athlete__athlete_goals.png",
+      "status": "ok",
+      "severity": "none",
+      "issues": [],
+      "metrics": {
+        "viewportWidth": 390,
+        "horizontalOverflow": 0,
+        "nestedButtons": 0
+      },
+      "attempts": 1,
+      "durationMs": 7418
+    },
+    {
+      "id": "athlete_skills",
+      "role": "athlete",
+      "title": "Athlete opens skills",
+      "path": "/skills",
+      "screenshot": "/tmp/ui-flow-checks-live-smoke-cleared/athlete__athlete_skills.png",
+      "status": "ok",
+      "severity": "none",
+      "issues": [],
+      "metrics": {
+        "viewportWidth": 390,
+        "horizontalOverflow": 0,
+        "nestedButtons": 0
+      },
+      "attempts": 1,
+      "durationMs": 6745
+    },
+    {
+      "id": "athlete_badges",
+      "role": "athlete",
+      "title": "Athlete opens achievements",
+      "path": "/badges",
+      "screenshot": "/tmp/ui-flow-checks-live-smoke-cleared/athlete__athlete_badges.png",
+      "status": "ok",
+      "severity": "none",
+      "issues": [],
+      "metrics": {
+        "viewportWidth": 390,
+        "horizontalOverflow": 0,
+        "nestedButtons": 0
+      },
+      "attempts": 1,
+      "durationMs": 7164
+    },
+    {
+      "id": "athlete_find_coach",
+      "role": "athlete",
+      "title": "Athlete opens find coach",
+      "path": "/book-coach",
+      "screenshot": "/tmp/ui-flow-checks-live-smoke-cleared/athlete__athlete_find_coach.png",
+      "status": "ok",
+      "severity": "none",
+      "issues": [],
+      "metrics": {
+        "viewportWidth": 390,
+        "horizontalOverflow": 0,
+        "nestedButtons": 0
+      },
+      "attempts": 1,
+      "durationMs": 6439
+    },
+    {
+      "id": "athlete_health",
+      "role": "athlete",
+      "title": "Athlete opens health dashboard",
+      "path": "/health",
+      "screenshot": "/tmp/ui-flow-checks-live-smoke-cleared/athlete__athlete_health.png",
+      "status": "ok",
+      "severity": "none",
+      "issues": [],
+      "metrics": {
+        "viewportWidth": 390,
+        "horizontalOverflow": 0,
+        "nestedButtons": 0
+      },
+      "attempts": 1,
+      "durationMs": 6761
+    },
+    {
+      "id": "athlete_health_injuries",
+      "role": "athlete",
+      "title": "Athlete opens injury log",
+      "path": "/health/injuries",
+      "screenshot": "/tmp/ui-flow-checks-live-smoke-cleared/athlete__athlete_health_injuries.png",
+      "status": "ok",
+      "severity": "none",
+      "issues": [],
+      "metrics": {
+        "viewportWidth": 390,
+        "horizontalOverflow": 0,
+        "nestedButtons": 0
+      },
+      "attempts": 1,
+      "durationMs": 7671
+    },
+    {
+      "id": "athlete_journal",
+      "role": "athlete",
+      "title": "Athlete opens journal",
+      "path": "/athlete/journal",
+      "screenshot": "/tmp/ui-flow-checks-live-smoke-cleared/athlete__athlete_journal.png",
+      "status": "ok",
+      "severity": "none",
+      "issues": [],
+      "metrics": {
+        "viewportWidth": 390,
+        "horizontalOverflow": 0,
+        "nestedButtons": 0
+      },
+      "attempts": 1,
+      "durationMs": 6551
+    }
+  ]
+}

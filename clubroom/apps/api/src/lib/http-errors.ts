@@ -7,6 +7,7 @@ export type ApiErrorCode =
   | 'RESOURCE_NOT_FOUND'
   | 'VERSION_CONFLICT'
   | 'RATE_LIMITED'
+  | 'SERVICE_UNAVAILABLE'
   | 'INTERNAL_ERROR';
 
 export class ApiProblemError extends Error {
@@ -30,3 +31,6 @@ export const forbidden = (message: string = 'Forbidden', details?: unknown) =>
 
 export const notFound = (message: string = 'Resource not found', details?: unknown) =>
   new ApiProblemError(404, 'RESOURCE_NOT_FOUND', message, details);
+
+export const serviceUnavailable = (message: string = 'Service unavailable', details?: unknown) =>
+  new ApiProblemError(503, 'SERVICE_UNAVAILABLE', message, details);

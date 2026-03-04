@@ -18,6 +18,27 @@ npm install
 npm run dev
 ```
 
+## Xcode UI Mode
+
+Use this for an Xcode + iOS Simulator workflow with simple commands:
+
+```bash
+npm run ui:xcode
+```
+
+This boots the simulator, opens Xcode, and runs the app via `expo run:ios`.
+
+Useful follow-up commands:
+
+```bash
+npm run ui:xcode:doctor
+npm run ui:xcode:devices
+npm run ui:xcode:shot -- home
+npm run ui:xcode:record -- booking-flow
+npm run ui:xcode:latest
+npm run ui:xcode:shots
+```
+
 ## Architecture
 
 ```

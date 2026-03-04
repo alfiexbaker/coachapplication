@@ -27,6 +27,7 @@ import { appLifecycleService } from '@/services/app-lifecycle-service';
 import { authService } from '@/services/auth-service';
 import { useTokenExpiryAlert } from '@/hooks/use-token-expiry-alert';
 import { notificationStore } from '@/services/notification';
+import { preApiLiveModeService } from '@/services/pre-api-live-mode-service';
 
 // Lazy-load expo-notifications for deep linking
 let Notifications: typeof import('expo-notifications') | null = null;
@@ -80,6 +81,30 @@ function RootNavigation() {
       appLifecycleService.cleanup();
     };
   }, []);
+
+  useEffect(() => {
+    if (!isAuthenticated || !currentUser) {
+      preApiLiveModeService.stop();
+      return;
+    }
+
+    void preApiLiveModeService.start({
+      userId: currentUser.id,
+      role: currentUser.role,
+      displayName: currentUser.fullName || currentUser.name || currentUser.username,
+    });
+
+    return () => {
+      preApiLiveModeService.stop();
+    };
+  }, [
+    isAuthenticated,
+    currentUser?.id,
+    currentUser?.role,
+    currentUser?.fullName,
+    currentUser?.name,
+    currentUser?.username,
+  ]);
 
   // Deep linking: handle notification taps and initial launch tap.
   useEffect(() => {

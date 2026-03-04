@@ -61,6 +61,7 @@ export function ClubHeader({
   const canShareInvite = ['OWNER', 'ADMIN', 'HEAD_COACH', 'COACH'].includes(membership.role);
   const isOwner = membership.role === 'OWNER';
   const badgeText = club.name?.slice(0, 2).toUpperCase() || 'CL';
+  const showCoverPhotoArea = Boolean(club.coverPhotoUrl || canManage);
 
   const pickImage = useCallback(
     async (type: 'profile' | 'cover') => {
@@ -178,45 +179,47 @@ export function ClubHeader({
   return (
     <>
       {/* Cover Photo */}
-      <Clickable
-        onPress={() => canManage && pickImage('cover')}
-        disabled={!canManage}
-        style={styles.coverPhotoContainer}
-      >
-        {club.coverPhotoUrl ? (
-          <SafeImage
-            source={{ uri: club.coverPhotoUrl }}
-            fallbackIcon="image-outline"
-            fallbackIconSize={48}
-            style={styles.coverPhoto}
-            contentFit="cover"
-          />
-        ) : (
-          <View
-            style={[
-              styles.coverPhotoPlaceholder,
-              { backgroundColor: withAlpha(palette.tint, 0.06) },
-            ]}
-          >
-            {canManage && (
-              <Row style={styles.coverPhotoHint}>
-                <Ionicons name="camera-outline" size={20} color={palette.muted} />
-                <ThemedText style={{ ...Typography.caption, color: palette.muted }}>
-                  Add cover photo
-                </ThemedText>
-              </Row>
-            )}
-          </View>
-        )}
-        {canManage && club.coverPhotoUrl && (
-          <View style={[styles.coverEditBadge, { backgroundColor: palette.surface }]}>
-            <Ionicons name="camera-outline" size={14} color={palette.tint} />
-          </View>
-        )}
-      </Clickable>
+      {showCoverPhotoArea && (
+        <Clickable
+          onPress={() => canManage && pickImage('cover')}
+          disabled={!canManage}
+          style={styles.coverPhotoContainer}
+        >
+          {club.coverPhotoUrl ? (
+            <SafeImage
+              source={{ uri: club.coverPhotoUrl }}
+              fallbackIcon="image-outline"
+              fallbackIconSize={48}
+              style={styles.coverPhoto}
+              contentFit="cover"
+            />
+          ) : (
+            <View
+              style={[
+                styles.coverPhotoPlaceholder,
+                { backgroundColor: withAlpha(palette.tint, 0.06) },
+              ]}
+            >
+              {canManage && (
+                <Row style={styles.coverPhotoHint}>
+                  <Ionicons name="camera-outline" size={20} color={palette.muted} />
+                  <ThemedText style={{ ...Typography.caption, color: palette.muted }}>
+                    Add cover photo
+                  </ThemedText>
+                </Row>
+              )}
+            </View>
+          )}
+          {canManage && club.coverPhotoUrl && (
+            <View style={[styles.coverEditBadge, { backgroundColor: palette.surface }]}>
+              <Ionicons name="camera-outline" size={14} color={palette.tint} />
+            </View>
+          )}
+        </Clickable>
+      )}
 
       {/* Club Info Row */}
-      <Row style={styles.clubHeader}>
+      <Row style={[styles.clubHeader, showCoverPhotoArea ? styles.clubHeaderWithCover : undefined]}>
         <Clickable
           onPress={() => canManage && pickImage('profile')}
           disabled={!canManage}
@@ -293,11 +296,11 @@ export function ClubHeader({
 // ─── Styles ─────────────────────────────────────────────────────────────────
 
 const styles = StyleSheet.create({
-  coverPhotoContainer: { width: '100%', marginBottom: -Spacing.lg },
-  coverPhoto: { width: '100%', height: 140, borderRadius: Radii.md },
+  coverPhotoContainer: { width: '100%', marginBottom: Spacing.sm },
+  coverPhoto: { width: '100%', height: 112, borderRadius: Radii.md },
   coverPhotoPlaceholder: {
     width: '100%',
-    height: 140,
+    height: 112,
     borderRadius: Radii.md,
     alignItems: 'center',
     justifyContent: 'center',
@@ -324,7 +327,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  clubHeader: { alignItems: 'center', gap: Spacing.md, marginTop: Spacing.lg },
+  clubHeader: { alignItems: 'center', gap: Spacing.md },
+  clubHeaderWithCover: { marginTop: 0 },
   clubAvatar: {
     width: 56,
     height: 56,

@@ -1,0 +1,31 @@
+bookingId,createdAt,id,objective,sortOrder
+bok_48cc7cd5-098c-7e0d-833d-26cddbdf3abe,2026-02-06T09:00:00.000Z,boj_8c5896fc-077f-70a9-9a52-de1d500a7fe2,Improve first touch and awareness in transition.,1
+bok_48cc7cd5-098c-7e0d-833d-26cddbdf3abe,2026-02-06T09:00:00.000Z,boj_d6c8a76c-e4e3-7771-a85c-c6b8a1c91ded,Increase confidence in 1v1 situations.,2
+bok_654fdfa8-58fd-7bfc-9567-35fdb38556c2,2026-02-27T09:00:00.000Z,boj_970ca4a8-e718-723a-bcbe-89ac6dfd66b7,Improve body shape before receiving.,1
+bok_f993aa3d-e029-7c1f-8871-4eaa75c41ce4,2026-02-07T09:00:00.000Z,boj_b720a7de-0c51-70fc-9e68-44958973b137,Improve first touch and awareness in transition.,1
+bok_f993aa3d-e029-7c1f-8871-4eaa75c41ce4,2026-02-07T09:00:00.000Z,boj_702ab2a9-1083-7233-8859-e1d64960b502,Increase confidence in 1v1 situations.,2
+bok_a41459a7-eb0a-7555-bf12-b8f493380cf7,2026-02-28T09:00:00.000Z,boj_62614de4-2b40-7ef6-81e0-5ba37be5125b,Improve body shape before receiving.,1
+bok_80dcac27-f9f9-7ae3-affd-e55cdabacd11,2026-02-08T09:00:00.000Z,boj_54ab28f9-a64d-785b-91b5-b80fc8f2a978,Improve first touch and awareness in transition.,1
+bok_80dcac27-f9f9-7ae3-affd-e55cdabacd11,2026-02-08T09:00:00.000Z,boj_8c3ee85a-44ab-7e57-9139-a7885cdf2d03,Increase confidence in 1v1 situations.,2
+bok_b9e42c0c-0f81-728c-8079-de46c857fab7,2026-03-01T09:00:00.000Z,boj_f0edcec6-71ae-733e-aa6a-bf105b8657ed,Improve body shape before receiving.,1
+bok_b38e9438-7055-7831-b9cd-c45fc776bae9,2026-02-09T09:00:00.000Z,boj_bddb4fff-e2eb-7efd-99ae-ced673b7e235,Improve first touch and awareness in transition.,1
+bok_b38e9438-7055-7831-b9cd-c45fc776bae9,2026-02-09T09:00:00.000Z,boj_fff2c457-1127-7e40-a5d3-ae0a1e739141,Increase confidence in 1v1 situations.,2
+bok_8a40f5b9-ca32-79e6-82c0-61e1bf06fa6a,2026-03-02T09:00:00.000Z,boj_25f30f08-0f26-752f-810a-95f452be98ea,Improve body shape before receiving.,1
+bok_7be77dd2-14ff-73bc-8fba-04e2d4943fd0,2026-02-10T09:00:00.000Z,boj_9cbfebd2-85bf-7718-97fd-da30afb3b8e4,Improve first touch and awareness in transition.,1
+bok_7be77dd2-14ff-73bc-8fba-04e2d4943fd0,2026-02-10T09:00:00.000Z,boj_564b80a5-854e-7b39-9be4-d0a62de49d16,Increase confidence in 1v1 situations.,2
+bok_bdbfc633-cd92-724e-a677-aed3971bee6a,2026-03-03T09:00:00.000Z,boj_2ecf696e-cb46-7f5e-8d91-e228f574dcc6,Improve body shape before receiving.,1
+bok_69279ad2-663f-75cb-9cff-33a03586038f,2026-02-11T09:00:00.000Z,boj_93915c82-cb1b-700d-86be-4445bbf821f6,Improve first touch and awareness in transition.,1
+bok_69279ad2-663f-75cb-9cff-33a03586038f,2026-02-11T09:00:00.000Z,boj_a8375a6b-2d6b-7405-ba60-0f267b48b1f4,Increase confidence in 1v1 situations.,2
+bok_1090de8a-a456-7852-9393-ada0a51dc95d,2026-03-04T09:00:00.000Z,boj_473de93a-db46-7b2f-8c4d-f619abfe7b73,Improve body shape before receiving.,1
+bok_4bdb4c48-7a29-7c6d-b51f-c9767657b2c6,2026-02-12T09:00:00.000Z,boj_5dfac4c3-41da-7815-8d79-748dc00d2464,Improve first touch and awareness in transition.,1
+bok_4bdb4c48-7a29-7c6d-b51f-c9767657b2c6,2026-02-12T09:00:00.000Z,boj_484e6c16-28d6-73f7-99a8-944cbe173059,Increase confidence in 1v1 situations.,2
+bok_0451676c-647a-71b3-a478-759ca1367250,2026-03-05T09:00:00.000Z,boj_70f9707c-b2ca-72d5-8b57-9276897c764b,Improve body shape before receiving.,1
+bok_cd7a1276-6d79-764c-ac25-d4db0ad29808,2026-02-13T09:00:00.000Z,boj_690f00a9-6890-724c-9606-a8fbf2f1d4d8,Improve first touch and awareness in transition.,1
+bok_cd7a1276-6d79-764c-ac25-d4db0ad29808,2026-02-13T09:00:00.000Z,boj_cbc19a3d-8837-76e8-b011-c07e43432e7e,Increase confidence in 1v1 situations.,2
+bok_9ed0eefe-5b3a-709a-b7c2-4c30050c1f0a,2026-03-06T09:00:00.000Z,boj_5b45e9df-faca-7067-a054-584f61953be0,Improve body shape before receiving.,1
+bok_a0e31cf2-bb0c-74e1-beb9-b116acf87875,2026-02-14T09:00:00.000Z,boj_b31666ca-2b5d-7d88-9bd7-2b8daa2c10e6,Improve first touch and awareness in transition.,1
+bok_a0e31cf2-bb0c-74e1-beb9-b116acf87875,2026-02-14T09:00:00.000Z,boj_ede5c7fb-e100-7444-bbf1-ef3b67002b3c,Increase confidence in 1v1 situations.,2
+bok_068e34f3-5de6-7894-8861-8b1356414e1a,2026-03-07T09:00:00.000Z,boj_38570016-e4e2-7117-b2b0-bb53cb9a41e1,Improve body shape before receiving.,1
+bok_2c3605e6-7825-7ee5-b4be-1e0d0a40d354,2026-02-15T09:00:00.000Z,boj_5fee7bb8-221a-77de-b186-819cb547c9ac,Improve first touch and awareness in transition.,1
+bok_2c3605e6-7825-7ee5-b4be-1e0d0a40d354,2026-02-15T09:00:00.000Z,boj_9ba1a368-7abb-7803-989b-c49ea2a71305,Increase confidence in 1v1 situations.,2
+bok_1c9f3577-4ef6-72f5-842d-48ebf5b07d19,2026-03-08T09:00:00.000Z,boj_c23b3d1f-5db9-7925-bf44-24fe0146b70f,Improve body shape before receiving.,1

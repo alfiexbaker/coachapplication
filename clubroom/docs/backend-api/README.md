@@ -40,6 +40,8 @@ Clubroom currently runs as a frontend MVP with AsyncStorage persistence and no b
 - `traceability/pre-api-critical-routes-owner-map-2026-03-01.md`: cross-spine critical route owner map + smash/check harness
 - `SPRINT_PLAN_OVERVIEW.md`: backend build plan with sequencing and gates
 - `sprints/`: detailed sprint-by-sprint implementation docs
+- `test-data/README.md`: linked marketplace fixture workflow (CSV + write-back + validation)
+- `PRE_API_LIVE_MODE_PLAYBOOK.md`: pre-REST live-feel runtime and clean cutover path
 
 ## Codebase Anchors (read before backend design work)
 - `/Users/tubton/Desktop/coachapplication/clubroom/docs/SOURCE_OF_TRUTH.md`

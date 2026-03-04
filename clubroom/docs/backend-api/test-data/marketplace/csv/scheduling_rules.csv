@@ -1,0 +1,9 @@
+allowRescheduling,allowSameDayBookings,bufferMinutesDefault,cancellationPolicyId,coachUserId,confirmationMode,createdAt,maxAdvanceBookingDays,maxConcurrentDefault,minimumAdvanceBookingHours,rescheduleDeadlineHours,updatedAt
+true,true,15,cpr_21852228-b4cb-7b5e-b787-e834fca1a922,usr_65972cc3-8f9b-7199-b867-7df5b7faf34b,manual,2025-11-23T09:00:00.000Z,60,1,12,24,2026-03-02T12:00:00.000Z
+true,false,15,cpr_3a52e686-2632-7f38-a1e5-924ab99cf7ee,usr_875ea0c7-79e6-78fe-a60f-c11b7a448cb2,manual,2025-11-25T09:00:00.000Z,60,1,12,24,2026-03-02T13:00:00.000Z
+true,true,15,cpr_71b70a2b-97ab-76c2-9195-e4e84f4526c0,usr_f65e0d95-687e-75b7-8d3a-16781c39c131,manual,2025-11-27T09:00:00.000Z,60,1,12,24,2026-03-02T14:00:00.000Z
+true,false,15,cpr_12afd269-9cd4-737a-a883-6ef04ac1bb58,usr_0d0ea1c7-422b-7faf-bf6f-f721cde0a848,manual,2025-11-29T09:00:00.000Z,60,1,12,24,2026-03-02T15:00:00.000Z
+true,true,15,cpr_69bc29bb-0366-701f-b71a-dd22e4d17a86,usr_7a0772c3-12cd-709c-b704-b238834ec1af,manual,2025-12-01T09:00:00.000Z,60,1,12,24,2026-03-02T16:00:00.000Z
+true,false,15,cpr_0b0113c2-eb85-79e6-a5ed-779fc555e351,usr_c71ed520-3896-7c87-bca7-0c80af2ef76f,manual,2025-12-03T09:00:00.000Z,60,1,12,24,2026-03-02T17:00:00.000Z
+true,true,15,cpr_c0c12d93-dec3-77fa-b66e-9f9d785ab166,usr_68fdf9f0-5cf0-7d35-a2d6-32307fa8a5d4,manual,2025-12-05T09:00:00.000Z,60,1,12,24,2026-03-02T18:00:00.000Z
+true,false,15,cpr_58f56d8d-3bc8-7130-bee9-a6f1001ef7fa,usr_49642b09-6f57-738a-bee2-f2d13aae57b7,manual,2025-12-07T09:00:00.000Z,60,1,12,24,2026-03-02T19:00:00.000Z

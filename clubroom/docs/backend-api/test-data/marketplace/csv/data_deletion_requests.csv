@@ -1,0 +1,2 @@
+cancelledAt,id,metadataJson,reason,requestedAt,requesterUserId,scheduledDeletionAt,status
+,ddr_19c7c354-719c-7ad7-ae71-2b61533aa9a0,"{""exportRequested"":true}",Parent requested account review for data export/deletion.,2026-02-28T09:00:00.000Z,usr_98600b59-b951-7815-8b59-e120d8ef32b1,2026-03-30T09:00:00.000Z,PENDING

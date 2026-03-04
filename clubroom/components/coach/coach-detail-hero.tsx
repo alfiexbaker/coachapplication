@@ -1,5 +1,5 @@
 import React, { memo } from 'react';
-import { View, StyleSheet } from 'react-native';
+import { ActivityIndicator, View, StyleSheet } from 'react-native';
 import { SafeImage } from '@/components/primitives/safe-image';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -16,7 +16,10 @@ interface CoachDetailHeroProps {
   coach: Coach;
   isOwnProfile: boolean;
   isFollowing: boolean;
-  onFollow: () => void;
+  followLabel: string;
+  canFollowAction: boolean;
+  followLoading: boolean;
+  onFollow: () => void | Promise<void>;
   onMessage: () => void;
 }
 
@@ -24,10 +27,23 @@ export const CoachDetailHero = memo(function CoachDetailHero({
   coach,
   isOwnProfile,
   isFollowing,
+  followLabel,
+  canFollowAction,
+  followLoading,
   onFollow,
   onMessage,
 }: CoachDetailHeroProps) {
   const { colors: palette } = useTheme();
+  const isMutedFollowButton = isFollowing || !canFollowAction;
+  const followIcon: keyof typeof Ionicons.glyphMap =
+    followLabel === 'Accept Request'
+      ? 'checkmark-circle'
+      : followLabel === 'Request Sent'
+        ? 'time-outline'
+        : isFollowing
+          ? 'checkmark-done'
+          : 'add';
+  const followTextColor = isMutedFollowButton ? palette.text : palette.onPrimary;
 
   return (
     <>
@@ -121,23 +137,28 @@ export const CoachDetailHero = memo(function CoachDetailHero({
           <Row style={styles.actionButtons}>
             <Clickable
               onPress={onFollow}
+              disabled={!canFollowAction || followLoading}
               style={[
                 styles.followButton,
                 {
-                  backgroundColor: isFollowing ? palette.surface : palette.tint,
-                  borderColor: isFollowing ? palette.border : palette.tint,
+                  backgroundColor: isMutedFollowButton ? palette.surface : palette.tint,
+                  borderColor: isMutedFollowButton ? palette.border : palette.tint,
                 },
               ]}
             >
-              <Ionicons
-                name={isFollowing ? 'checkmark' : 'add'}
-                size={18}
-                color={isFollowing ? palette.text : palette.onPrimary}
-              />
+              {followLoading ? (
+                <ActivityIndicator size="small" color={followTextColor} />
+              ) : (
+                <Ionicons
+                  name={followIcon}
+                  size={18}
+                  color={followTextColor}
+                />
+              )}
               <ThemedText
-                style={{ color: isFollowing ? palette.text : palette.onPrimary, fontWeight: '600' }}
+                style={{ color: followTextColor, fontWeight: '600' }}
               >
-                {isFollowing ? 'Following' : 'Follow'}
+                {followLabel}
               </ThemedText>
             </Clickable>
             <Clickable

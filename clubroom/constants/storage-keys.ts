@@ -448,6 +448,12 @@ export const STORAGE_KEYS = {
   /** Offline queue for write operations */
   OFFLINE_QUEUE: 'clubroom.offline_queue',
 
+  /** Last synthetic activity pulse timestamp in pre-API live mode */
+  PRE_API_LIVE_LAST_PULSE_AT: 'clubroom.pre_api_live.last_pulse_at',
+
+  /** Last user id bootstrapped by pre-API live mode */
+  PRE_API_LIVE_LAST_BOOTSTRAP_USER: 'clubroom.pre_api_live.last_bootstrap_user',
+
   /** Prefix for per-form draft keys (suffix with formId) */
   FORM_DRAFT_PREFIX: 'clubroom.form_draft.',
 

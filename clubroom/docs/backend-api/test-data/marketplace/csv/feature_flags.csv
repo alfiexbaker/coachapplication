@@ -1,0 +1,3 @@
+configJson,createdAt,description,enabledByDefault,id,key,updatedAt
+"{""source"":""seed-kit"",""version"":""2026-03-03-marketplace-v2-edge-coverage""}",2026-02-24T09:00:00.000Z,Enables linked marketplace seed workflows for API testing.,true,flg_6a393d80-9fbc-796a-9e97-32caaf4342a2,marketplace_seed_mode,2026-03-02T09:00:00.000Z
+"{""command"":""seed:marketplace:write-back""}",2026-02-24T09:00:00.000Z,Allows CSV edits to be written back into linked dataset JSON.,true,flg_6c0fabc9-0833-74f6-ba2e-d4fafe7a089d,csv_roundtrip_enabled,2026-03-02T09:00:00.000Z

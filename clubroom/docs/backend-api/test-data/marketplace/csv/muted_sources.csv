@@ -1,0 +1,4 @@
+id,mutedAt,reason,sourceId,sourceType,unmutedAt,userId
+mut_245192ff-b313-7a57-837f-6853017439e0,2026-03-02T09:00:00.000Z,high-volume-thread,thr_89f68602-ae52-7299-b9fc-fe3910a8679d,thread,,usr_197727c3-a2c5-7868-8c57-72b09c97a1d6
+mut_3c372d42-97a5-7e2f-b304-a54cb3eb632c,2026-03-02T09:00:00.000Z,temporary-focus-mode,thr_2989a97a-baa8-760d-8cf2-0bb72bf42006,thread,,usr_1a5c3648-e345-71ff-8951-5d5eab40c8b4
+mut_f7b318d3-b264-7da5-9e35-3ad22c8d6184,2026-03-02T09:00:00.000Z,temporary-focus-mode,thr_9f1912ff-7eb9-7d19-9f9a-dcb08aafd3e6,thread,,usr_197727c3-a2c5-7868-8c57-72b09c97a1d6

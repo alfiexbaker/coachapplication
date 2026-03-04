@@ -1,0 +1,4 @@
+active,authorUserId,createdAt,deletedAt,description,difficulty,id,metadataJson,title,updatedAt
+true,usr_65972cc3-8f9b-7199-b867-7df5b7faf34b,2026-02-01T09:00:00.000Z,,Touch Box Circuit for weekly practice homework.,intermediate,drl_cd56341f-ca78-7a5c-be5b-66b97c542f09,"{""tags"":[""technical"",""homework""]}",Touch Box Circuit,2026-02-26T09:00:00.000Z
+true,usr_875ea0c7-79e6-78fe-a60f-c11b7a448cb2,2026-02-01T09:00:00.000Z,,Scan + Pass Triangle for weekly practice homework.,intermediate,drl_525c02cb-4ae3-7e47-82e2-2f339bf4fc4a,"{""tags"":[""technical"",""homework""]}",Scan + Pass Triangle,2026-02-26T09:00:00.000Z
+true,usr_0d0ea1c7-422b-7faf-bf6f-f721cde0a848,2026-02-01T09:00:00.000Z,,Transition Press Trigger for weekly practice homework.,intermediate,drl_fd4b25c5-c03d-7a2a-8f0f-b9fe16730f68,"{""tags"":[""technical"",""homework""]}",Transition Press Trigger,2026-02-26T09:00:00.000Z

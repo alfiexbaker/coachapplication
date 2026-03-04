@@ -1,0 +1,2 @@
+bookingId,createdAt,id,reason,requestedByUserId,requestType,respondedAt,responseByUserId,responseReason,status,targetScheduledAt,updatedAt
+bok_654fdfa8-58fd-7bfc-9567-35fdb38556c2,2026-03-02T09:00:00.000Z,bcr_19fba9b2-c01a-7008-a49e-dee6c10de305,School event clash.,usr_197727c3-a2c5-7868-8c57-72b09c97a1d6,RESCHEDULE,,,,PENDING,2026-03-11T20:00:00.000Z,2026-03-02T09:00:00.000Z

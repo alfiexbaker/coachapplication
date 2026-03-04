@@ -36,6 +36,7 @@ import {
 } from '@/services/progress/progress-termly-report-service';
 import { progressPositionService } from '@/services/progress/progress-position-service';
 import { createLogger } from '@/utils/logger';
+import { preApiLive } from '@/constants/config';
 import type { BadgeAward } from '@/constants/types';
 import { err, ok, serviceError, type Result, type ServiceError } from '@/types/result';
 import type { PastSession, PlayerCardData, PositionRole, SessionMedia } from '@/types/progress-types';
@@ -47,6 +48,7 @@ import type { Booking } from '@/constants/app-types';
 
 const logger = createLogger('MyProgressScreen');
 const ENABLE_PROGRESS_DEMO_SEED =
+  preApiLive.enabled ||
   process.env.EXPO_PUBLIC_ENABLE_PROGRESS_DEMO_SEED === 'true' ||
   process.env.EXPO_PUBLIC_ENABLE_PROGRESS_DEMO_SEED === '1';
 

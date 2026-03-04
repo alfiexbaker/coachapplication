@@ -113,7 +113,7 @@ export function SessionsPanel({
 const styles = StyleSheet.create({
   trainingCard: {
     marginHorizontal: Spacing.md,
-    marginTop: Spacing.md,
+    marginTop: Spacing.sm,
     gap: Spacing.md,
   },
   trainingSectionHeader: {

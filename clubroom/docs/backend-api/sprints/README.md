@@ -28,3 +28,6 @@ These sprint docs convert the backend blueprint into an implementation sequence 
 - `sprint-09.md` community/messaging/notifications
 - `sprint-10.md` safeguarding/admin/retention/legal holds
 - `sprint-11.md` hardening/performance/recovery/launch gates
+- `sprint-12-marketplace-data-linking.md` linked fixture data + CSV round-trip + API cutover prep
+- `sprint-13-wave-1-p0-endpoints.md` executed P0 endpoint wave implementation against linked fixtures
+- `sprint-14-wave-2-4-endpoints.md` executed P1/P2/P3 endpoint waves with full role smoke coverage

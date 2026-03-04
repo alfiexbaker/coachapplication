@@ -1,0 +1,5 @@
+athleteId,createdAt,createdByUserId,deletedAt,deletedByUserId,id,isCritical,priority,tag,updatedAt,updatedByUserId,version
+ath_7df7ec13-e136-7525-985f-dec069fc983f,2025-12-03T10:00:00.000Z,usr_197727c3-a2c5-7868-8c57-72b09c97a1d6,,,sen_4c743f45-aecf-7ac4-bd4c-18248667cb2e,false,2,ADHD,2026-03-01T11:00:00.000Z,usr_197727c3-a2c5-7868-8c57-72b09c97a1d6,1
+ath_e9ad2c2a-8625-7145-ab43-e0bb4de7a02a,2025-12-09T10:00:00.000Z,usr_2686566f-aa4f-797f-931e-7f3ff0db9b4c,,,sen_6cae31fa-af79-783c-b4d1-02f920f34abd,false,2,Dyslexia,2026-03-02T11:00:00.000Z,usr_2686566f-aa4f-797f-931e-7f3ff0db9b4c,1
+ath_a721680f-2876-7415-a955-a26930fce09d,2025-12-15T10:00:00.000Z,usr_f82d545a-1ae7-7fe7-b5ab-81ac6af9478c,,,sen_1e0d46ce-7f8e-78d6-a222-53443b39d9c3,false,2,ADHD,2026-03-04T11:00:00.000Z,usr_f82d545a-1ae7-7fe7-b5ab-81ac6af9478c,1
+ath_d83cfc4c-3e0c-7e3d-b5fb-a2c416b4b3b2,2025-12-21T10:00:00.000Z,usr_f42e818d-4c5c-71cc-8b03-d3f0227ce128,,,sen_27704277-8a89-7398-9655-176e83a32f24,false,2,Dyslexia,2026-03-05T11:00:00.000Z,usr_f42e818d-4c5c-71cc-8b03-d3f0227ce128,1

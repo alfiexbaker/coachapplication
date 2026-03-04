@@ -79,7 +79,7 @@ export default function CoachProfileScreen() {
         refreshControl={
           <RefreshControl
             refreshing={p.refreshing}
-            onRefresh={p.onRefresh}
+            onRefresh={p.handleRefresh}
             tintColor={palette.tint}
           />
         }
@@ -88,6 +88,9 @@ export default function CoachProfileScreen() {
           coach={p.coach}
           isOwnProfile={p.isOwnProfile}
           isFollowing={p.isFollowing}
+          followLabel={p.followLabel}
+          canFollowAction={p.canFollowAction}
+          followLoading={p.followLoading}
           onFollow={p.handleFollow}
           onMessage={p.handleMessage}
         />

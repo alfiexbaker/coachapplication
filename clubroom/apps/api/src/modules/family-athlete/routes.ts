@@ -4,6 +4,7 @@ import {
   athleteIdSchema,
   createInjuryRequestSchema,
   emergencyContactsResponseSchema,
+  familyIdSchema,
   injuryIdSchema,
   injuriesResponseSchema,
   injuryRecordSchema,
@@ -16,6 +17,7 @@ import {
   type MedicalRecordResponse,
 } from '@clubroom/shared-contracts';
 import { forbidden, notFound } from '../../lib/http-errors.js';
+import { resolveFamilyRepository } from '../../repositories/p0/family-repository.js';
 import {
   assertCanReadAthleteHealth,
   assertCanReadAthleteMedical,
@@ -132,6 +134,24 @@ const defaultEmergencyContacts = (athleteId: string, userId: string): EmergencyC
   });
 
 const familyAthleteRoutes: FastifyPluginAsync = async (app) => {
+  app.get('/families/:familyId', async (request, reply) => {
+    const familyId = familyIdSchema.parse((request.params as { familyId: string }).familyId);
+    const authUserId = ensureAuthUserId(request.auth?.userId);
+    const isClubAdmin =
+      request.auth?.roles.includes('club_admin') || request.auth?.actingRole === 'club_admin';
+
+    const repository = resolveFamilyRepository();
+    const aggregate = await repository.getFamilyAggregate(familyId, authUserId, isClubAdmin);
+
+    return reply.send({
+      family: aggregate.family,
+      memberships: aggregate.memberships,
+      athletes: aggregate.athletes,
+      seedVersion: aggregate.dataVersion,
+      requestId: request.requestId,
+    });
+  });
+
   app.get('/athletes/:athleteId/injuries', async (request, reply) => {
     const athleteId = athleteIdSchema.parse((request.params as { athleteId: string }).athleteId);
     assertCanReadAthleteHealth(request, athleteId);

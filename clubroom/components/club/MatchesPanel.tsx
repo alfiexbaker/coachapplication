@@ -195,7 +195,7 @@ export const MatchesPanel = memo(function MatchesPanel({
 const styles = StyleSheet.create({
   card: {
     marginHorizontal: Spacing.md,
-    marginTop: Spacing.md,
+    marginTop: Spacing.sm,
     gap: Spacing.md,
   },
   sectionHeader: {

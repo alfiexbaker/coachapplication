@@ -121,7 +121,7 @@ export const ClubPillRow = memo(function ClubPillRow({ clubs, palette }: ClubPil
             styles.clubPill,
             { backgroundColor: palette.surface, borderColor: palette.border },
           ]}
-          onPress={() => router.push(Routes.CLUB_HUB)}
+          onPress={() => router.push(Routes.MY_CLUBS)}
         >
           <ThemedText style={[styles.clubPillMore, { color: palette.muted }]}>
             +{clubs.length - 3} more
@@ -159,7 +159,7 @@ export const EmptyFeedNoClubs = memo(function EmptyFeedNoClubs({
       <Row gap="sm" style={styles.emptyStateActions}>
         <Clickable
           style={[styles.emptyStateButton, { backgroundColor: palette.tint }]}
-          onPress={() => router.push(Routes.CLUB_HUB)}
+          onPress={() => router.push(Routes.MY_CLUBS)}
         >
           <Ionicons name="shield-outline" size={18} color={palette.onPrimary} />
           <ThemedText style={[styles.emptyButtonLabel, { color: palette.onPrimary }]}>

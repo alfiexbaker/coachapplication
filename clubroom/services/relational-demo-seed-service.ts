@@ -1,4 +1,5 @@
 import type { Booking, Session, User } from '@/constants/app-types';
+import { api, preApiLive } from '@/constants/config';
 import type {
   AppReviewRecord,
   ChildProfileSeed,
@@ -22,10 +23,12 @@ import type {
   SquadMember,
 } from '@/constants/types';
 import { apiClient } from '@/services/api-client';
+import { emitTyped, ServiceEvents } from '@/services/event-bus';
 import { createLogger } from '@/utils/logger';
 
 const logger = createLogger('RelationalDemoSeedService');
 const ENABLE_RELATIONAL_DEMO_SEED =
+  (api.useMock && preApiLive.enabled) ||
   process.env.EXPO_PUBLIC_ENABLE_RELATIONAL_DEMO_SEED === 'true' ||
   process.env.EXPO_PUBLIC_ENABLE_RELATIONAL_DEMO_SEED === '1' ||
   process.env.NODE_ENV === 'test';
@@ -42,6 +45,7 @@ interface SeedHealthSnapshot {
   users: number;
   bookings: number;
   offerings: number;
+  childrenProfiles: number;
   invites: number;
   coachSessions: number;
   roster: number;
@@ -50,11 +54,17 @@ interface SeedHealthSnapshot {
   coachReviews: number;
   coaches: number;
   clubMembers: number;
+  uniqueOfferingCoaches: number;
   coachBookings: number;
   injuries: number;
   concerns: number;
   reports: number;
   problemReports: number;
+  hasUser1Kids: boolean;
+  hasParentNoKids: boolean;
+  hasClubLinkedUser: boolean;
+  hasUnlinkedUser: boolean;
+  hasDenseCoachOfferingCoverage: boolean;
 }
 
 export interface EnsureRelationalSeedOptions {
@@ -336,6 +346,7 @@ async function getSeedHealthSnapshot(): Promise<SeedHealthSnapshot> {
     users,
     bookings,
     offerings,
+    childrenProfiles,
     invites,
     coachSessions,
     roster,
@@ -354,6 +365,7 @@ async function getSeedHealthSnapshot(): Promise<SeedHealthSnapshot> {
     apiClient.get<User[]>(STORAGE_KEYS.USERS, []),
     apiClient.get<Booking[]>(STORAGE_KEYS.BOOKINGS, []),
     apiClient.get<SessionOffering[]>(STORAGE_KEYS.SESSION_OFFERINGS, []),
+    apiClient.get<ChildProfileSeed[]>(STORAGE_KEYS.CHILDREN_PROFILES, []),
     apiClient.get<SessionInvite[]>(STORAGE_KEYS.SESSION_INVITES, []),
     apiClient.get<Session[]>(STORAGE_KEYS.COACH_SESSIONS, []),
     apiClient.get<RosterEntry[]>(STORAGE_KEYS.ROSTER, []),
@@ -373,12 +385,24 @@ async function getSeedHealthSnapshot(): Promise<SeedHealthSnapshot> {
     (sum, messages) => sum + messages.length,
     0,
   );
+  const offeringCoachIds = new Set(offerings.map((offering) => offering.coachId).filter(Boolean));
+  const clubMemberUserIds = new Set(clubMembers.map((member) => member.userId));
+  const hasUser1Kids = childrenProfiles.some((profile) => profile.parentId === 'user1');
+  const hasParentNoKids =
+    users.some((user) => user.id === 'parent_nokids') &&
+    !childrenProfiles.some((profile) => profile.parentId === 'parent_nokids');
+  const hasClubLinkedUser = clubMembers.some((member) => member.userId === 'user_club_linked');
+  const hasUnlinkedUser =
+    users.some((user) => user.id === 'user_no_kids') &&
+    !clubMemberUserIds.has('user_no_kids');
+  const hasDenseCoachOfferingCoverage = offeringCoachIds.size >= 7 && offerings.length >= 14;
 
   return {
     version,
     users: users.length,
     bookings: bookings.length,
     offerings: offerings.length,
+    childrenProfiles: childrenProfiles.length,
     invites: invites.length,
     coachSessions: coachSessions.length,
     roster: roster.length,
@@ -387,33 +411,46 @@ async function getSeedHealthSnapshot(): Promise<SeedHealthSnapshot> {
     coachReviews: coachReviews.length,
     coaches: coaches.length,
     clubMembers: clubMembers.length,
+    uniqueOfferingCoaches: offeringCoachIds.size,
     coachBookings: coachBookings.length,
     injuries: injuries.length,
     concerns: concerns.length,
     reports: reports.length,
     problemReports: problemReports.length,
+    hasUser1Kids,
+    hasParentNoKids,
+    hasClubLinkedUser,
+    hasUnlinkedUser,
+    hasDenseCoachOfferingCoverage,
   };
 }
 
 function isHealthy(snapshot: SeedHealthSnapshot, expectedVersion: string): boolean {
   return (
     snapshot.version === expectedVersion &&
-    snapshot.users >= 10 &&
-    snapshot.bookings >= 10 &&
-    snapshot.offerings >= 3 &&
+    snapshot.users >= 16 &&
+    snapshot.bookings >= 16 &&
+    snapshot.offerings >= 14 &&
+    snapshot.childrenProfiles >= 8 &&
     snapshot.invites >= 4 &&
     snapshot.coachSessions >= 6 &&
     snapshot.roster >= 4 &&
     snapshot.messageCount >= 4 &&
     snapshot.reviews >= 2 &&
     snapshot.coachReviews >= 1 &&
-    snapshot.coaches >= 3 &&
+    snapshot.coaches >= 8 &&
     snapshot.clubMembers >= 4 &&
+    snapshot.uniqueOfferingCoaches >= 7 &&
     snapshot.coachBookings >= 3 &&
     snapshot.injuries >= 3 &&
     snapshot.concerns >= 2 &&
     snapshot.reports >= 1 &&
-    snapshot.problemReports >= 1
+    snapshot.problemReports >= 1 &&
+    snapshot.hasUser1Kids &&
+    snapshot.hasParentNoKids &&
+    snapshot.hasClubLinkedUser &&
+    snapshot.hasUnlinkedUser &&
+    snapshot.hasDenseCoachOfferingCoverage
   );
 }
 
@@ -525,6 +562,19 @@ async function seedRelationalDemoDataInternal(): Promise<void> {
       seedModule.RELATIONAL_DEMO_SEED_VERSION,
     ),
   ]);
+
+  const emittedParents = new Set<string>();
+  for (const profile of payload.childrenProfiles) {
+    if (!profile.parentId || emittedParents.has(profile.parentId)) {
+      continue;
+    }
+    emitTyped(ServiceEvents.CHILD_PROFILES_UPDATED, {
+      parentId: profile.parentId,
+      action: 'updated',
+      childId: profile.id,
+    });
+    emittedParents.add(profile.parentId);
+  }
 }
 
 export async function ensureRelationalDemoSeeded(

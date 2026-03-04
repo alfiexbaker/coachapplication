@@ -1,0 +1,2 @@
+dryRun,errorText,finishedAt,id,retentionPolicyId,startedAt,status,summaryJson
+true,,2026-03-02T13:30:00.000Z,rtr_f0b08edb-d1cb-724c-86bc-847cc8f174ab,rtp_7cd99a0c-62bf-7b04-929e-ba058b978ef6,2026-03-02T13:00:00.000Z,COMPLETED,"{""eligibleRows"":0,""archivedRows"":0}"

@@ -3,10 +3,14 @@
   "version": "0.1.0",
   "private": true,
   "type": "module",
+  "main": "src/index.ts",
+  "types": "src/index.ts",
   "scripts": {
     "prisma:generate": "prisma generate",
     "prisma:migrate:dev": "prisma migrate dev",
-    "prisma:validate": "prisma validate"
+    "prisma:validate": "prisma validate",
+    "prisma:db:push": "prisma db push",
+    "seed:p0:import": "node ./scripts/import-marketplace-p0-seed.mjs"
   },
   "dependencies": {
     "@prisma/client": "^6.5.0"

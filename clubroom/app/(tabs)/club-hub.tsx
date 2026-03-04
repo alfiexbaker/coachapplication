@@ -6,7 +6,7 @@
  * ClubFeedListHeader (composed list header above feed posts).
  */
 
-import { useCallback, memo } from 'react';
+import { useCallback, memo, useEffect } from 'react';
 import { FlatList, StyleSheet, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
@@ -34,6 +34,11 @@ const HEADER_PROPS = { title: 'Club Hub', subtitle: 'Your clubs and communities'
 export default function ClubHubScreen() {
   const hub = useClubHub();
   const { showMembersSection, setShowMembersSection, handleConfirmMemberRemoval } = hub;
+
+  useEffect(() => {
+    if (!hub.membership?.clubId || hub.isTeamStaff) return;
+    router.replace(Routes.club(hub.membership.clubId));
+  }, [hub.isTeamStaff, hub.membership?.clubId]);
 
   const feedKeyExtractor = useCallback((item: ClubFeedPost) => item.id, []);
 
@@ -80,6 +85,15 @@ export default function ClubHubScreen() {
     return (
       <PageContainer header={<ScreenHeader {...HEADER_PROPS} />} gap={0} horizontalSpacing={0}>
         <ClubNoMembership isCoach={hub.isCoach} onJoin={hub.handleJoinWithCode} />
+      </PageContainer>
+    );
+  }
+
+  // ─── Member redirect ─────────────────────────────────────────
+  if (!hub.isTeamStaff) {
+    return (
+      <PageContainer header={<ScreenHeader {...HEADER_PROPS} />} gap={0} horizontalSpacing={0}>
+        <LoadingState variant="detail" />
       </PageContainer>
     );
   }

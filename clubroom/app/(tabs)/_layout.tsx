@@ -215,13 +215,7 @@ export default function TabLayout() {
 
   const userRole = currentUser?.role ?? 'DEFAULT';
   const roleConfig = ROLE_TAB_CONFIG[userRole] ?? ROLE_TAB_CONFIG.DEFAULT;
-  const hiddenRoutes = useMemo(() => {
-    const baseHidden = roleConfig.hidden ?? [];
-    if (!isParentLikeUser(currentUser)) {
-      return baseHidden;
-    }
-    return baseHidden.filter((route) => route !== 'children');
-  }, [roleConfig.hidden, currentUser]);
+  const hiddenRoutes = useMemo(() => roleConfig.hidden ?? [], [roleConfig.hidden]);
   const hiddenRouteSet = useMemo(() => new Set(hiddenRoutes), [hiddenRoutes]);
   const restrictedRouteSet = useMemo(
     () => getRestrictedTabRoutes(userRole, { isParentLike: isParentLikeUser(currentUser) }),

@@ -30,7 +30,7 @@ export default function ClubDetailScreen() {
       router.back();
       return;
     }
-    router.replace(Routes.CLUB_HUB);
+    router.replace(Routes.MY_CLUBS);
   };
   const {
     loading,

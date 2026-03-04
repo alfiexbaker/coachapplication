@@ -1,0 +1,4 @@
+active,category,code,createdAt,description,id,name,updatedAt
+true,Commitment,CONSISTENT_ATTENDER,2025-09-04T09:00:00.000Z,Consistent Attender awarded when milestone criteria are met.,abd_0c5d6972-e04e-70ed-a46f-f9fa358952cc,Consistent Attender,2026-02-11T09:00:00.000Z
+true,Leadership,TRAINING_LEADER,2025-09-04T09:00:00.000Z,Training Leader awarded when milestone criteria are met.,abd_0c0a71c2-70a8-75da-af6a-f3a2a6bb5c37,Training Leader,2026-02-11T09:00:00.000Z
+true,Development,SKILL_BREAKTHROUGH,2025-09-04T09:00:00.000Z,Skill Breakthrough awarded when milestone criteria are met.,abd_8bac73e3-b9de-789c-ac72-86a91769fe31,Skill Breakthrough,2026-02-11T09:00:00.000Z

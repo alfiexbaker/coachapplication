@@ -98,6 +98,7 @@ export interface ClubHubState {
   canCreatePosts: boolean;
   canRemoveMembers: boolean;
   canManageTeams: boolean;
+  isTeamStaff: boolean;
   isCoach: boolean;
 
   // Filter counts
@@ -178,7 +179,7 @@ export function useClubHub(): ClubHubState {
   );
   const canManageTeams = !!(membership && ['OWNER', 'HEAD_COACH', 'ADMIN'].includes(membership.role));
   const canManagePosts = isTeamStaffRole;
-  const canCreatePosts = !!membership;
+  const canCreatePosts = isTeamStaffRole;
   const canRemoveMembers = !!(membership && clubService.canRemoveMembers(membership.role));
   const isCoach = isTeamStaffRole || (!membership && userIsCoachAccount);
 
@@ -568,6 +569,7 @@ export function useClubHub(): ClubHubState {
     canCreatePosts,
     canRemoveMembers,
     canManageTeams,
+    isTeamStaff: isTeamStaffRole,
     isCoach,
     filterCounts,
     setFeedFilter,

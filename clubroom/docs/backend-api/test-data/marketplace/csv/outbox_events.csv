@@ -1,0 +1,3 @@
+aggregateId,aggregateType,attempts,createdAt,eventType,id,lastError,nextAttemptAt,payloadJson,processedAt,status,updatedAt
+bok_654fdfa8-58fd-7bfc-9567-35fdb38556c2,booking,0,2026-03-03T09:00:00.000Z,BOOKING_CONFIRMED,obx_f5d8798f-8fb5-7368-bdec-aded1e9103f2,,2026-03-03T10:00:00.000Z,"{""bookingId"":""bok_654fdfa8-58fd-7bfc-9567-35fdb38556c2"",""coachUserId"":""usr_65972cc3-8f9b-7199-b867-7df5b7faf34b""}",,PENDING,2026-03-03T09:00:00.000Z
+inv_6b9aaeff-d79b-7b60-91ff-74db4ca4bb68,invite,0,2026-03-03T09:00:00.000Z,INVITE_ACCEPTED,obx_c9403c5c-ec24-776e-8734-0a0bb8a030e2,,2026-03-03T11:00:00.000Z,"{""inviteId"":""inv_6b9aaeff-d79b-7b60-91ff-74db4ca4bb68"",""athleteId"":""ath_7df7ec13-e136-7525-985f-dec069fc983f""}",,PENDING,2026-03-03T09:00:00.000Z

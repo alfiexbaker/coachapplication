@@ -24,7 +24,7 @@ function DiscoverClubHubInner({ userClubs }: DiscoverClubHubProps) {
   const { colors: palette } = useTheme();
   const [clubInviteCode, setClubInviteCode] = useState('');
   const openClubHub = useCallback(() => {
-    router.push(Routes.CLUB_HUB);
+    router.push(Routes.MY_CLUBS);
   }, []);
   const openClub = useCallback((clubId: string) => {
     router.push(Routes.club(clubId));

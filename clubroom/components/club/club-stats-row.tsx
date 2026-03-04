@@ -82,7 +82,7 @@ export const ClubStatsRow = memo(function ClubStatsRow({
 
 const styles = StyleSheet.create({
   statsRow: {
-    paddingVertical: Spacing.md,
+    paddingVertical: Spacing.sm,
     marginHorizontal: Spacing.md,
     borderTopWidth: 1,
     borderBottomWidth: 1,

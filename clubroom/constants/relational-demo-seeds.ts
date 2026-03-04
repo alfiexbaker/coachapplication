@@ -8,6 +8,7 @@ import type {
   AppReviewRecord,
   RelationalDemoSeedPayload,
 } from './relational-demo-seeds.legacy';
+import { buildRelationalDemoSeedPayload as buildRelationalDemoSeedPayloadLegacy } from './relational-demo-seeds.legacy';
 
 export type {
   RateCoachStoredReview,
@@ -21,24 +22,9 @@ export type {
 } from './relational-demo-seeds.legacy';
 
 export const RELATIONAL_DEMO_SEED_VERSION =
-  '2026-03-01-relational-v7-offplatform-group-sessions';
+  '2026-03-03-relational-v8-edge-coverage';
 export const CLUB_LIONS_ID = 'club_lions';
 
-type RelationalDemoSeedsLegacyModule = {
-  buildRelationalDemoSeedPayload: () => RelationalDemoSeedPayload;
-};
-
-let legacyModule: RelationalDemoSeedsLegacyModule | null = null;
-
-function loadLegacyModule(): RelationalDemoSeedsLegacyModule {
-  if (legacyModule) {
-    return legacyModule;
-  }
-
-  legacyModule = require('./relational-demo-seeds.legacy') as RelationalDemoSeedsLegacyModule;
-  return legacyModule;
-}
-
 export function buildRelationalDemoSeedPayload(): RelationalDemoSeedPayload {
-  return loadLegacyModule().buildRelationalDemoSeedPayload();
+  return buildRelationalDemoSeedPayloadLegacy();
 }

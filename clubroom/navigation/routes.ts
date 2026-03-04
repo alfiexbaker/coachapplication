@@ -254,6 +254,7 @@ export const Routes = {
 
   // ─── Club ──────────────────────────────────────────────────────
   CLUB_CREATE: '/club/create' as Href,
+  MY_CLUBS: '/club/my-clubs' as Href,
   CLUB_INVITE_MEMBERS: '/club/invite-members' as Href,
   CLUB_SETTINGS: '/club/settings' as Href,
   clubSettings: (params?: { clubId?: string; section?: string }) => ({
@@ -337,6 +338,7 @@ export const Routes = {
   DEVELOPMENT_MY_PROGRESS: '/development/my-progress' as Href,
   DEVELOPMENT_PROGRESS_LOOP: '/development/progress-loop' as Href,
   DEVELOPMENT_RESULTS_PROGRAM: '/development/results-program' as Href,
+  DEVELOPMENT_SEED_HEALTH: '/development/seed-health' as Href,
   RESULTS_PROGRAM: '/results-program' as Href,
   DEVELOPMENT_MEDIA_GALLERY: '/development/media-gallery' as Href,
   DEVELOPMENT_SESSION_HISTORY: '/development/session-history' as Href,
@@ -382,6 +384,11 @@ export const Routes = {
     ({
       pathname: '/development/media-gallery',
       params: params ?? {},
+    }) as Href,
+  developmentSeedHealth: () =>
+    ({
+      pathname: '/development/seed-health',
+      params: {},
     }) as Href,
 
   // ─── Discover ──────────────────────────────────────────────────

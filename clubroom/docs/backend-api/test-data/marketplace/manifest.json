@@ -1,0 +1,3259 @@
+{
+  "version": "2026-03-03-marketplace-v2-edge-coverage",
+  "generatedAt": "2026-03-03T19:29:05.691Z",
+  "tableOrder": [
+    "users",
+    "userProfiles",
+    "userRoleMemberships",
+    "userDevices",
+    "authSessions",
+    "idempotencyKeys",
+    "families",
+    "familyMemberships",
+    "athletes",
+    "guardianChildLinks",
+    "childEmergencyContacts",
+    "childMedicalRecords",
+    "childSenTags",
+    "childConsents",
+    "coachProfiles",
+    "coachLocations",
+    "coachingOfferings",
+    "availabilityTemplates",
+    "availabilityOverrides",
+    "schedulingRules",
+    "cancellationPolicyRules",
+    "clubs",
+    "clubMemberships",
+    "squads",
+    "squadMemberships",
+    "mediaObjects",
+    "coachVerifications",
+    "verificationDocuments",
+    "bookings",
+    "bookingParticipants",
+    "bookingObjectives",
+    "bookingStatusEvents",
+    "bookingChangeRequests",
+    "recurringSeries",
+    "groupSessions",
+    "groupSessionRegistrations",
+    "waitlistEntries",
+    "invites",
+    "inviteTargets",
+    "clubEvents",
+    "eventRsvps",
+    "attendanceRecords",
+    "invoices",
+    "invoiceLineItems",
+    "invoiceEvents",
+    "reconcilerEntries",
+    "paymentInstructionTemplates",
+    "paymentReminders",
+    "sessionNotes",
+    "sessionFeedback",
+    "goals",
+    "goalMilestones",
+    "skillDefinitions",
+    "athleteSkillAssessments",
+    "badgeDefinitions",
+    "athleteBadges",
+    "drills",
+    "drillAssignments",
+    "assignmentSubmissions",
+    "uploadSessions",
+    "malwareScanResults",
+    "videos",
+    "videoAnnotations",
+    "communityGroups",
+    "communityGroupMemberships",
+    "posts",
+    "postComments",
+    "postReactions",
+    "messageThreads",
+    "messageParticipants",
+    "messages",
+    "messageReceipts",
+    "notifications",
+    "notificationPreferences",
+    "mutedSources",
+    "quietHours",
+    "accessGrants",
+    "accessGrantScopes",
+    "safeguardingIncidents",
+    "safeguardingIncidentActions",
+    "auditEvents",
+    "securityEvents",
+    "retentionPolicies",
+    "retentionRuns",
+    "legalHolds",
+    "dataDeletionRequests",
+    "featureFlags",
+    "featureFlagOverrides",
+    "outboxEvents"
+  ],
+  "tables": {
+    "users": {
+      "csvFile": "csv/users.csv",
+      "primaryKey": "id",
+      "columns": [
+        "accountStatus",
+        "authProvider",
+        "authProviderSubject",
+        "avatarUrl",
+        "createdAt",
+        "deletedAt",
+        "email",
+        "id",
+        "locale",
+        "name",
+        "timeZone",
+        "tokenEpoch",
+        "updatedAt"
+      ],
+      "typeHints": {
+        "accountStatus": "string",
+        "authProvider": "string",
+        "authProviderSubject": "string",
+        "avatarUrl": "string",
+        "createdAt": "string",
+        "deletedAt": "string",
+        "email": "string",
+        "id": "string",
+        "locale": "string",
+        "name": "string",
+        "timeZone": "string",
+        "tokenEpoch": "number",
+        "updatedAt": "string"
+      },
+      "nullable": [
+        "deletedAt"
+      ]
+    },
+    "userProfiles": {
+      "csvFile": "csv/user_profiles.csv",
+      "primaryKey": "userId",
+      "columns": [
+        "bio",
+        "createdAt",
+        "dateOfBirth",
+        "phoneE164",
+        "postcode",
+        "updatedAt",
+        "userId"
+      ],
+      "typeHints": {
+        "bio": "string",
+        "createdAt": "string",
+        "dateOfBirth": "string",
+        "phoneE164": "string",
+        "postcode": "string",
+        "updatedAt": "string",
+        "userId": "string"
+      },
+      "nullable": []
+    },
+    "userRoleMemberships": {
+      "csvFile": "csv/user_role_memberships.csv",
+      "primaryKey": "id",
+      "columns": [
+        "active",
+        "clubId",
+        "createdAt",
+        "id",
+        "revokedAt",
+        "role",
+        "source",
+        "updatedAt",
+        "userId"
+      ],
+      "typeHints": {
+        "active": "boolean",
+        "clubId": "string",
+        "createdAt": "string",
+        "id": "string",
+        "revokedAt": "string",
+        "role": "string",
+        "source": "string",
+        "updatedAt": "string",
+        "userId": "string"
+      },
+      "nullable": [
+        "clubId",
+        "revokedAt"
+      ]
+    },
+    "userDevices": {
+      "csvFile": "csv/user_devices.csv",
+      "primaryKey": "id",
+      "columns": [
+        "createdAt",
+        "deviceLabel",
+        "id",
+        "lastSeenAt",
+        "platform",
+        "pushToken",
+        "revokedAt",
+        "updatedAt",
+        "userId"
+      ],
+      "typeHints": {
+        "createdAt": "string",
+        "deviceLabel": "string",
+        "id": "string",
+        "lastSeenAt": "string",
+        "platform": "string",
+        "pushToken": "string",
+        "revokedAt": "string",
+        "updatedAt": "string",
+        "userId": "string"
+      },
+      "nullable": [
+        "revokedAt"
+      ]
+    },
+    "authSessions": {
+      "csvFile": "csv/auth_sessions.csv",
+      "primaryKey": "id",
+      "columns": [
+        "createdAt",
+        "expiresAt",
+        "id",
+        "ipHash",
+        "issuedAt",
+        "jwtId",
+        "lastSeenAt",
+        "refreshTokenId",
+        "revokedAt",
+        "revokeReason",
+        "updatedAt",
+        "userAgent",
+        "userDeviceId",
+        "userId"
+      ],
+      "typeHints": {
+        "createdAt": "string",
+        "expiresAt": "string",
+        "id": "string",
+        "ipHash": "string",
+        "issuedAt": "string",
+        "jwtId": "string",
+        "lastSeenAt": "string",
+        "refreshTokenId": "string",
+        "revokedAt": "string",
+        "revokeReason": "string",
+        "updatedAt": "string",
+        "userAgent": "string",
+        "userDeviceId": "string",
+        "userId": "string"
+      },
+      "nullable": [
+        "revokedAt",
+        "revokeReason"
+      ]
+    },
+    "idempotencyKeys": {
+      "csvFile": "csv/idempotency_keys.csv",
+      "primaryKey": "id",
+      "columns": [
+        "createdAt",
+        "endpointKey",
+        "expiresAt",
+        "id",
+        "idempotencyKey",
+        "requestHash",
+        "responseBodyJson",
+        "responseStatus",
+        "userId"
+      ],
+      "typeHints": {
+        "createdAt": "string",
+        "endpointKey": "string",
+        "expiresAt": "string",
+        "id": "string",
+        "idempotencyKey": "string",
+        "requestHash": "string",
+        "responseBodyJson": "json",
+        "responseStatus": "number",
+        "userId": "string"
+      },
+      "nullable": []
+    },
+    "families": {
+      "csvFile": "csv/families.csv",
+      "primaryKey": "id",
+      "columns": [
+        "createdAt",
+        "createdByUserId",
+        "deletedAt",
+        "deletedByUserId",
+        "id",
+        "name",
+        "primaryGuardianUserId",
+        "updatedAt",
+        "updatedByUserId",
+        "version"
+      ],
+      "typeHints": {
+        "createdAt": "string",
+        "createdByUserId": "string",
+        "deletedAt": "string",
+        "deletedByUserId": "string",
+        "id": "string",
+        "name": "string",
+        "primaryGuardianUserId": "string",
+        "updatedAt": "string",
+        "updatedByUserId": "string",
+        "version": "number"
+      },
+      "nullable": [
+        "deletedAt",
+        "deletedByUserId"
+      ]
+    },
+    "familyMemberships": {
+      "csvFile": "csv/family_memberships.csv",
+      "primaryKey": "id",
+      "columns": [
+        "childAccessAthleteIds",
+        "createdAt",
+        "createdByUserId",
+        "deletedAt",
+        "deletedByUserId",
+        "familyId",
+        "id",
+        "permissions",
+        "relationshipLabel",
+        "role",
+        "updatedAt",
+        "updatedByUserId",
+        "userId",
+        "version"
+      ],
+      "typeHints": {
+        "childAccessAthleteIds": "json",
+        "createdAt": "string",
+        "createdByUserId": "string",
+        "deletedAt": "string",
+        "deletedByUserId": "string",
+        "familyId": "string",
+        "id": "string",
+        "permissions": "json",
+        "relationshipLabel": "string",
+        "role": "string",
+        "updatedAt": "string",
+        "updatedByUserId": "string",
+        "userId": "string",
+        "version": "number"
+      },
+      "nullable": [
+        "deletedAt",
+        "deletedByUserId"
+      ]
+    },
+    "athletes": {
+      "csvFile": "csv/athletes.csv",
+      "primaryKey": "id",
+      "columns": [
+        "avatarUrl",
+        "createdAt",
+        "createdByUserId",
+        "dateOfBirth",
+        "deletedAt",
+        "deletedByUserId",
+        "displayName",
+        "id",
+        "status",
+        "updatedAt",
+        "updatedByUserId",
+        "userId",
+        "version"
+      ],
+      "typeHints": {
+        "avatarUrl": "string",
+        "createdAt": "string",
+        "createdByUserId": "string",
+        "dateOfBirth": "string",
+        "deletedAt": "string",
+        "deletedByUserId": "string",
+        "displayName": "string",
+        "id": "string",
+        "status": "string",
+        "updatedAt": "string",
+        "updatedByUserId": "string",
+        "userId": "string",
+        "version": "number"
+      },
+      "nullable": [
+        "deletedAt",
+        "deletedByUserId",
+        "userId"
+      ]
+    },
+    "guardianChildLinks": {
+      "csvFile": "csv/guardian_child_links.csv",
+      "primaryKey": "id",
+      "columns": [
+        "athleteId",
+        "createdAt",
+        "createdByUserId",
+        "deletedAt",
+        "deletedByUserId",
+        "familyId",
+        "guardianUserId",
+        "id",
+        "isPrimary",
+        "relationshipType",
+        "updatedAt",
+        "updatedByUserId",
+        "version"
+      ],
+      "typeHints": {
+        "athleteId": "string",
+        "createdAt": "string",
+        "createdByUserId": "string",
+        "deletedAt": "string",
+        "deletedByUserId": "string",
+        "familyId": "string",
+        "guardianUserId": "string",
+        "id": "string",
+        "isPrimary": "boolean",
+        "relationshipType": "string",
+        "updatedAt": "string",
+        "updatedByUserId": "string",
+        "version": "number"
+      },
+      "nullable": [
+        "deletedAt",
+        "deletedByUserId"
+      ]
+    },
+    "childEmergencyContacts": {
+      "csvFile": "csv/child_emergency_contacts.csv",
+      "primaryKey": "id",
+      "columns": [
+        "athleteId",
+        "canPickup",
+        "createdAt",
+        "createdByUserId",
+        "deletedAt",
+        "deletedByUserId",
+        "email",
+        "id",
+        "isPrimary",
+        "name",
+        "phoneE164",
+        "relationshipLabel",
+        "updatedAt",
+        "updatedByUserId",
+        "version"
+      ],
+      "typeHints": {
+        "athleteId": "string",
+        "canPickup": "boolean",
+        "createdAt": "string",
+        "createdByUserId": "string",
+        "deletedAt": "string",
+        "deletedByUserId": "string",
+        "email": "string",
+        "id": "string",
+        "isPrimary": "boolean",
+        "name": "string",
+        "phoneE164": "string",
+        "relationshipLabel": "string",
+        "updatedAt": "string",
+        "updatedByUserId": "string",
+        "version": "number"
+      },
+      "nullable": [
+        "deletedAt",
+        "deletedByUserId"
+      ]
+    },
+    "childMedicalRecords": {
+      "csvFile": "csv/child_medical_records.csv",
+      "primaryKey": "id",
+      "columns": [
+        "allergies",
+        "athleteId",
+        "conditions",
+        "createdAt",
+        "createdByUserId",
+        "doctorName",
+        "doctorPhoneE164",
+        "effectiveFrom",
+        "effectiveTo",
+        "id",
+        "insuranceNumber",
+        "insuranceProvider",
+        "isCurrent",
+        "medications",
+        "notesEncrypted",
+        "restrictions",
+        "updatedAt",
+        "updatedByUserId",
+        "version"
+      ],
+      "typeHints": {
+        "allergies": "json",
+        "athleteId": "string",
+        "conditions": "json",
+        "createdAt": "string",
+        "createdByUserId": "string",
+        "doctorName": "string",
+        "doctorPhoneE164": "string",
+        "effectiveFrom": "string",
+        "effectiveTo": "string",
+        "id": "string",
+        "insuranceNumber": "string",
+        "insuranceProvider": "string",
+        "isCurrent": "boolean",
+        "medications": "json",
+        "notesEncrypted": "string",
+        "restrictions": "json",
+        "updatedAt": "string",
+        "updatedByUserId": "string",
+        "version": "number"
+      },
+      "nullable": [
+        "effectiveTo"
+      ]
+    },
+    "childSenTags": {
+      "csvFile": "csv/child_sen_tags.csv",
+      "primaryKey": "id",
+      "columns": [
+        "athleteId",
+        "createdAt",
+        "createdByUserId",
+        "deletedAt",
+        "deletedByUserId",
+        "id",
+        "isCritical",
+        "priority",
+        "tag",
+        "updatedAt",
+        "updatedByUserId",
+        "version"
+      ],
+      "typeHints": {
+        "athleteId": "string",
+        "createdAt": "string",
+        "createdByUserId": "string",
+        "deletedAt": "string",
+        "deletedByUserId": "string",
+        "id": "string",
+        "isCritical": "boolean",
+        "priority": "number",
+        "tag": "string",
+        "updatedAt": "string",
+        "updatedByUserId": "string",
+        "version": "number"
+      },
+      "nullable": [
+        "deletedAt",
+        "deletedByUserId"
+      ]
+    },
+    "childConsents": {
+      "csvFile": "csv/child_consents.csv",
+      "primaryKey": "id",
+      "columns": [
+        "athleteId",
+        "consentType",
+        "createdAt",
+        "expiresAt",
+        "granted",
+        "grantedAt",
+        "grantedByUserId",
+        "id",
+        "metadataJson",
+        "revokedAt",
+        "supersededById"
+      ],
+      "typeHints": {
+        "athleteId": "string",
+        "consentType": "string",
+        "createdAt": "string",
+        "expiresAt": "string",
+        "granted": "boolean",
+        "grantedAt": "string",
+        "grantedByUserId": "string",
+        "id": "string",
+        "metadataJson": "json",
+        "revokedAt": "string",
+        "supersededById": "string"
+      },
+      "nullable": [
+        "revokedAt",
+        "supersededById"
+      ]
+    },
+    "coachProfiles": {
+      "csvFile": "csv/coach_profiles.csv",
+      "primaryKey": "userId",
+      "columns": [
+        "bio",
+        "createdAt",
+        "currency",
+        "dbsChecked",
+        "deletedAt",
+        "qualifications",
+        "sessionRateMinor",
+        "specialties",
+        "updatedAt",
+        "userId",
+        "yearsExperience"
+      ],
+      "typeHints": {
+        "bio": "string",
+        "createdAt": "string",
+        "currency": "string",
+        "dbsChecked": "boolean",
+        "deletedAt": "string",
+        "qualifications": "json",
+        "sessionRateMinor": "number",
+        "specialties": "json",
+        "updatedAt": "string",
+        "userId": "string",
+        "yearsExperience": "number"
+      },
+      "nullable": [
+        "deletedAt"
+      ]
+    },
+    "coachLocations": {
+      "csvFile": "csv/coach_locations.csv",
+      "primaryKey": "id",
+      "columns": [
+        "addressText",
+        "coachUserId",
+        "createdAt",
+        "createdByUserId",
+        "deletedAt",
+        "deletedByUserId",
+        "id",
+        "isDefault",
+        "label",
+        "latLngJson",
+        "updatedAt",
+        "updatedByUserId",
+        "version"
+      ],
+      "typeHints": {
+        "addressText": "string",
+        "coachUserId": "string",
+        "createdAt": "string",
+        "createdByUserId": "string",
+        "deletedAt": "string",
+        "deletedByUserId": "string",
+        "id": "string",
+        "isDefault": "boolean",
+        "label": "string",
+        "latLngJson": "json",
+        "updatedAt": "string",
+        "updatedByUserId": "string",
+        "version": "number"
+      },
+      "nullable": [
+        "deletedAt",
+        "deletedByUserId"
+      ]
+    },
+    "coachingOfferings": {
+      "csvFile": "csv/coaching_offerings.csv",
+      "primaryKey": "id",
+      "columns": [
+        "active",
+        "capacity",
+        "coachUserId",
+        "createdAt",
+        "createdByUserId",
+        "currency",
+        "defaultLocation",
+        "deletedAt",
+        "deletedByUserId",
+        "description",
+        "durationMinutes",
+        "id",
+        "priceMinor",
+        "serviceType",
+        "title",
+        "updatedAt",
+        "updatedByUserId",
+        "version"
+      ],
+      "typeHints": {
+        "active": "boolean",
+        "capacity": "number",
+        "coachUserId": "string",
+        "createdAt": "string",
+        "createdByUserId": "string",
+        "currency": "string",
+        "defaultLocation": "string",
+        "deletedAt": "string",
+        "deletedByUserId": "string",
+        "description": "string",
+        "durationMinutes": "number",
+        "id": "string",
+        "priceMinor": "number",
+        "serviceType": "string",
+        "title": "string",
+        "updatedAt": "string",
+        "updatedByUserId": "string",
+        "version": "number"
+      },
+      "nullable": [
+        "deletedAt",
+        "deletedByUserId"
+      ]
+    },
+    "availabilityTemplates": {
+      "csvFile": "csv/availability_templates.csv",
+      "primaryKey": "id",
+      "columns": [
+        "active",
+        "coachUserId",
+        "createdAt",
+        "createdByUserId",
+        "dayOfWeek",
+        "deletedAt",
+        "deletedByUserId",
+        "endTimeLocal",
+        "id",
+        "location",
+        "maxConcurrent",
+        "startTimeLocal",
+        "updatedAt",
+        "updatedByUserId",
+        "version"
+      ],
+      "typeHints": {
+        "active": "boolean",
+        "coachUserId": "string",
+        "createdAt": "string",
+        "createdByUserId": "string",
+        "dayOfWeek": "number",
+        "deletedAt": "string",
+        "deletedByUserId": "string",
+        "endTimeLocal": "string",
+        "id": "string",
+        "location": "string",
+        "maxConcurrent": "number",
+        "startTimeLocal": "string",
+        "updatedAt": "string",
+        "updatedByUserId": "string",
+        "version": "number"
+      },
+      "nullable": [
+        "deletedAt",
+        "deletedByUserId"
+      ]
+    },
+    "availabilityOverrides": {
+      "csvFile": "csv/availability_overrides.csv",
+      "primaryKey": "id",
+      "columns": [
+        "coachUserId",
+        "createdAt",
+        "createdByUserId",
+        "deletedAt",
+        "deletedByUserId",
+        "endTimeLocal",
+        "id",
+        "isBlocked",
+        "overrideDate",
+        "reason",
+        "startTimeLocal",
+        "updatedAt",
+        "updatedByUserId",
+        "version"
+      ],
+      "typeHints": {
+        "coachUserId": "string",
+        "createdAt": "string",
+        "createdByUserId": "string",
+        "deletedAt": "string",
+        "deletedByUserId": "string",
+        "endTimeLocal": "string",
+        "id": "string",
+        "isBlocked": "boolean",
+        "overrideDate": "string",
+        "reason": "string",
+        "startTimeLocal": "string",
+        "updatedAt": "string",
+        "updatedByUserId": "string",
+        "version": "number"
+      },
+      "nullable": [
+        "deletedAt",
+        "deletedByUserId",
+        "endTimeLocal",
+        "startTimeLocal"
+      ]
+    },
+    "schedulingRules": {
+      "csvFile": "csv/scheduling_rules.csv",
+      "primaryKey": "coachUserId",
+      "columns": [
+        "allowRescheduling",
+        "allowSameDayBookings",
+        "bufferMinutesDefault",
+        "cancellationPolicyId",
+        "coachUserId",
+        "confirmationMode",
+        "createdAt",
+        "maxAdvanceBookingDays",
+        "maxConcurrentDefault",
+        "minimumAdvanceBookingHours",
+        "rescheduleDeadlineHours",
+        "updatedAt"
+      ],
+      "typeHints": {
+        "allowRescheduling": "boolean",
+        "allowSameDayBookings": "boolean",
+        "bufferMinutesDefault": "number",
+        "cancellationPolicyId": "string",
+        "coachUserId": "string",
+        "confirmationMode": "string",
+        "createdAt": "string",
+        "maxAdvanceBookingDays": "number",
+        "maxConcurrentDefault": "number",
+        "minimumAdvanceBookingHours": "number",
+        "rescheduleDeadlineHours": "number",
+        "updatedAt": "string"
+      },
+      "nullable": []
+    },
+    "cancellationPolicyRules": {
+      "csvFile": "csv/cancellation_policy_rules.csv",
+      "primaryKey": "id",
+      "columns": [
+        "active",
+        "appliesToNoShow",
+        "coachUserId",
+        "createdAt",
+        "createdByUserId",
+        "currency",
+        "deletedAt",
+        "deletedByUserId",
+        "feeMinor",
+        "id",
+        "name",
+        "noticeHoursMin",
+        "refundPercent",
+        "sortOrder",
+        "updatedAt",
+        "updatedByUserId",
+        "version"
+      ],
+      "typeHints": {
+        "active": "boolean",
+        "appliesToNoShow": "boolean",
+        "coachUserId": "string",
+        "createdAt": "string",
+        "createdByUserId": "string",
+        "currency": "string",
+        "deletedAt": "string",
+        "deletedByUserId": "string",
+        "feeMinor": "number",
+        "id": "string",
+        "name": "string",
+        "noticeHoursMin": "number",
+        "refundPercent": "number",
+        "sortOrder": "number",
+        "updatedAt": "string",
+        "updatedByUserId": "string",
+        "version": "number"
+      },
+      "nullable": [
+        "deletedAt",
+        "deletedByUserId",
+        "feeMinor"
+      ]
+    },
+    "clubs": {
+      "csvFile": "csv/clubs.csv",
+      "primaryKey": "id",
+      "columns": [
+        "createdAt",
+        "createdByUserId",
+        "deletedAt",
+        "deletedByUserId",
+        "id",
+        "name",
+        "slug",
+        "updatedAt",
+        "updatedByUserId",
+        "version",
+        "visibility"
+      ],
+      "typeHints": {
+        "createdAt": "string",
+        "createdByUserId": "string",
+        "deletedAt": "string",
+        "deletedByUserId": "string",
+        "id": "string",
+        "name": "string",
+        "slug": "string",
+        "updatedAt": "string",
+        "updatedByUserId": "string",
+        "version": "number",
+        "visibility": "string"
+      },
+      "nullable": [
+        "deletedAt",
+        "deletedByUserId"
+      ]
+    },
+    "clubMemberships": {
+      "csvFile": "csv/club_memberships.csv",
+      "primaryKey": "id",
+      "columns": [
+        "active",
+        "clubId",
+        "createdAt",
+        "createdByUserId",
+        "deletedAt",
+        "deletedByUserId",
+        "id",
+        "role",
+        "updatedAt",
+        "updatedByUserId",
+        "userId",
+        "version"
+      ],
+      "typeHints": {
+        "active": "boolean",
+        "clubId": "string",
+        "createdAt": "string",
+        "createdByUserId": "string",
+        "deletedAt": "string",
+        "deletedByUserId": "string",
+        "id": "string",
+        "role": "string",
+        "updatedAt": "string",
+        "updatedByUserId": "string",
+        "userId": "string",
+        "version": "number"
+      },
+      "nullable": [
+        "deletedAt",
+        "deletedByUserId"
+      ]
+    },
+    "squads": {
+      "csvFile": "csv/squads.csv",
+      "primaryKey": "id",
+      "columns": [
+        "ageBandLabel",
+        "clubId",
+        "createdAt",
+        "createdByUserId",
+        "deletedAt",
+        "deletedByUserId",
+        "id",
+        "name",
+        "ownerCoachUserId",
+        "updatedAt",
+        "updatedByUserId",
+        "version"
+      ],
+      "typeHints": {
+        "ageBandLabel": "string",
+        "clubId": "string",
+        "createdAt": "string",
+        "createdByUserId": "string",
+        "deletedAt": "string",
+        "deletedByUserId": "string",
+        "id": "string",
+        "name": "string",
+        "ownerCoachUserId": "string",
+        "updatedAt": "string",
+        "updatedByUserId": "string",
+        "version": "number"
+      },
+      "nullable": [
+        "deletedAt",
+        "deletedByUserId"
+      ]
+    },
+    "squadMemberships": {
+      "csvFile": "csv/squad_memberships.csv",
+      "primaryKey": "id",
+      "columns": [
+        "athleteId",
+        "createdAt",
+        "createdByUserId",
+        "deletedAt",
+        "deletedByUserId",
+        "id",
+        "squadId",
+        "status",
+        "updatedAt",
+        "updatedByUserId",
+        "version"
+      ],
+      "typeHints": {
+        "athleteId": "string",
+        "createdAt": "string",
+        "createdByUserId": "string",
+        "deletedAt": "string",
+        "deletedByUserId": "string",
+        "id": "string",
+        "squadId": "string",
+        "status": "string",
+        "updatedAt": "string",
+        "updatedByUserId": "string",
+        "version": "number"
+      },
+      "nullable": [
+        "deletedAt",
+        "deletedByUserId"
+      ]
+    },
+    "mediaObjects": {
+      "csvFile": "csv/media_objects.csv",
+      "primaryKey": "id",
+      "columns": [
+        "bucketName",
+        "consentRequired",
+        "contentType",
+        "createdAt",
+        "createdByUserId",
+        "deletedAt",
+        "deletedByUserId",
+        "durationMs",
+        "heightPx",
+        "id",
+        "kind",
+        "metadataJson",
+        "originalFileName",
+        "ownerUserId",
+        "sha256Hex",
+        "sizeBytes",
+        "status",
+        "storageKey",
+        "updatedAt",
+        "updatedByUserId",
+        "version",
+        "visibilityScope",
+        "widthPx"
+      ],
+      "typeHints": {
+        "bucketName": "string",
+        "consentRequired": "boolean",
+        "contentType": "string",
+        "createdAt": "string",
+        "createdByUserId": "string",
+        "deletedAt": "string",
+        "deletedByUserId": "string",
+        "durationMs": "number",
+        "heightPx": "number",
+        "id": "string",
+        "kind": "string",
+        "metadataJson": "json",
+        "originalFileName": "string",
+        "ownerUserId": "string",
+        "sha256Hex": "string",
+        "sizeBytes": "number",
+        "status": "string",
+        "storageKey": "string",
+        "updatedAt": "string",
+        "updatedByUserId": "string",
+        "version": "number",
+        "visibilityScope": "string",
+        "widthPx": "number"
+      },
+      "nullable": [
+        "deletedAt",
+        "deletedByUserId",
+        "durationMs",
+        "heightPx",
+        "widthPx"
+      ]
+    },
+    "coachVerifications": {
+      "csvFile": "csv/coach_verifications.csv",
+      "primaryKey": "id",
+      "columns": [
+        "coachUserId",
+        "createdAt",
+        "createdByUserId",
+        "expiresAt",
+        "id",
+        "notes",
+        "reviewedAt",
+        "reviewedByUserId",
+        "status",
+        "updatedAt",
+        "updatedByUserId",
+        "verificationType",
+        "version"
+      ],
+      "typeHints": {
+        "coachUserId": "string",
+        "createdAt": "string",
+        "createdByUserId": "string",
+        "expiresAt": "string",
+        "id": "string",
+        "notes": "string",
+        "reviewedAt": "string",
+        "reviewedByUserId": "string",
+        "status": "string",
+        "updatedAt": "string",
+        "updatedByUserId": "string",
+        "verificationType": "string",
+        "version": "number"
+      },
+      "nullable": []
+    },
+    "verificationDocuments": {
+      "csvFile": "csv/verification_documents.csv",
+      "primaryKey": "id",
+      "columns": [
+        "coachVerificationId",
+        "createdAt",
+        "fileLabel",
+        "id",
+        "mediaObjectId"
+      ],
+      "typeHints": {
+        "coachVerificationId": "string",
+        "createdAt": "string",
+        "fileLabel": "string",
+        "id": "string",
+        "mediaObjectId": "string"
+      },
+      "nullable": []
+    },
+    "bookings": {
+      "csvFile": "csv/bookings.csv",
+      "primaryKey": "id",
+      "columns": [
+        "bookedByUserId",
+        "cancellationFeeMinor",
+        "cancelledAt",
+        "cancelledByUserId",
+        "cancelReason",
+        "clubId",
+        "coachingOfferingId",
+        "coachUserId",
+        "confirmationMode",
+        "confirmedAt",
+        "createdAt",
+        "createdByUserId",
+        "currency",
+        "deletedAt",
+        "deletedByUserId",
+        "durationMinutes",
+        "groupSessionId",
+        "id",
+        "location",
+        "notes",
+        "objectivesJson",
+        "priceMinor",
+        "recurringSeriesId",
+        "scheduledAt",
+        "seriesIndex",
+        "serviceType",
+        "status",
+        "updatedAt",
+        "updatedByUserId",
+        "version"
+      ],
+      "typeHints": {
+        "bookedByUserId": "string",
+        "cancellationFeeMinor": "number",
+        "cancelledAt": "string",
+        "cancelledByUserId": "string",
+        "cancelReason": "string",
+        "clubId": "string",
+        "coachingOfferingId": "string",
+        "coachUserId": "string",
+        "confirmationMode": "string",
+        "confirmedAt": "string",
+        "createdAt": "string",
+        "createdByUserId": "string",
+        "currency": "string",
+        "deletedAt": "string",
+        "deletedByUserId": "string",
+        "durationMinutes": "number",
+        "groupSessionId": "string",
+        "id": "string",
+        "location": "string",
+        "notes": "string",
+        "objectivesJson": "json",
+        "priceMinor": "number",
+        "recurringSeriesId": "string",
+        "scheduledAt": "string",
+        "seriesIndex": "string",
+        "serviceType": "string",
+        "status": "string",
+        "updatedAt": "string",
+        "updatedByUserId": "string",
+        "version": "number"
+      },
+      "nullable": [
+        "cancellationFeeMinor",
+        "cancelledAt",
+        "cancelledByUserId",
+        "cancelReason",
+        "deletedAt",
+        "deletedByUserId",
+        "groupSessionId",
+        "recurringSeriesId",
+        "seriesIndex"
+      ]
+    },
+    "bookingParticipants": {
+      "csvFile": "csv/booking_participants.csv",
+      "primaryKey": "id",
+      "columns": [
+        "athleteId",
+        "bookingId",
+        "createdAt",
+        "createdByUserId",
+        "deletedAt",
+        "deletedByUserId",
+        "guardianUserId",
+        "id",
+        "status",
+        "updatedAt",
+        "updatedByUserId",
+        "version"
+      ],
+      "typeHints": {
+        "athleteId": "string",
+        "bookingId": "string",
+        "createdAt": "string",
+        "createdByUserId": "string",
+        "deletedAt": "string",
+        "deletedByUserId": "string",
+        "guardianUserId": "string",
+        "id": "string",
+        "status": "string",
+        "updatedAt": "string",
+        "updatedByUserId": "string",
+        "version": "number"
+      },
+      "nullable": [
+        "deletedAt",
+        "deletedByUserId"
+      ]
+    },
+    "bookingObjectives": {
+      "csvFile": "csv/booking_objectives.csv",
+      "primaryKey": "id",
+      "columns": [
+        "bookingId",
+        "createdAt",
+        "id",
+        "objective",
+        "sortOrder"
+      ],
+      "typeHints": {
+        "bookingId": "string",
+        "createdAt": "string",
+        "id": "string",
+        "objective": "string",
+        "sortOrder": "number"
+      },
+      "nullable": []
+    },
+    "bookingStatusEvents": {
+      "csvFile": "csv/booking_status_events.csv",
+      "primaryKey": "id",
+      "columns": [
+        "actorUserId",
+        "bookingId",
+        "fromStatus",
+        "id",
+        "metadataJson",
+        "occurredAt",
+        "reason",
+        "requestId",
+        "toStatus"
+      ],
+      "typeHints": {
+        "actorUserId": "string",
+        "bookingId": "string",
+        "fromStatus": "string",
+        "id": "string",
+        "metadataJson": "json",
+        "occurredAt": "string",
+        "reason": "string",
+        "requestId": "string",
+        "toStatus": "string"
+      },
+      "nullable": []
+    },
+    "bookingChangeRequests": {
+      "csvFile": "csv/booking_change_requests.csv",
+      "primaryKey": "id",
+      "columns": [
+        "bookingId",
+        "createdAt",
+        "id",
+        "reason",
+        "requestedByUserId",
+        "requestType",
+        "respondedAt",
+        "responseByUserId",
+        "responseReason",
+        "status",
+        "targetScheduledAt",
+        "updatedAt"
+      ],
+      "typeHints": {
+        "bookingId": "string",
+        "createdAt": "string",
+        "id": "string",
+        "reason": "string",
+        "requestedByUserId": "string",
+        "requestType": "string",
+        "respondedAt": "string",
+        "responseByUserId": "string",
+        "responseReason": "string",
+        "status": "string",
+        "targetScheduledAt": "string",
+        "updatedAt": "string"
+      },
+      "nullable": [
+        "respondedAt",
+        "responseByUserId",
+        "responseReason"
+      ]
+    },
+    "recurringSeries": {
+      "csvFile": "csv/recurring_series.csv",
+      "primaryKey": "id",
+      "columns": [
+        "athleteId",
+        "bookedByUserId",
+        "coachUserId",
+        "createdAt",
+        "createdByUserId",
+        "dayOfWeek",
+        "deletedAt",
+        "deletedByUserId",
+        "endDate",
+        "frequency",
+        "id",
+        "notes",
+        "startDate",
+        "status",
+        "timeLocal",
+        "updatedAt",
+        "updatedByUserId",
+        "version"
+      ],
+      "typeHints": {
+        "athleteId": "string",
+        "bookedByUserId": "string",
+        "coachUserId": "string",
+        "createdAt": "string",
+        "createdByUserId": "string",
+        "dayOfWeek": "number",
+        "deletedAt": "string",
+        "deletedByUserId": "string",
+        "endDate": "string",
+        "frequency": "string",
+        "id": "string",
+        "notes": "string",
+        "startDate": "string",
+        "status": "string",
+        "timeLocal": "string",
+        "updatedAt": "string",
+        "updatedByUserId": "string",
+        "version": "number"
+      },
+      "nullable": [
+        "deletedAt",
+        "deletedByUserId"
+      ]
+    },
+    "groupSessions": {
+      "csvFile": "csv/group_sessions.csv",
+      "primaryKey": "id",
+      "columns": [
+        "ageMax",
+        "ageMin",
+        "clubId",
+        "coachUserId",
+        "createdAt",
+        "createdByUserId",
+        "currency",
+        "currentParticipants",
+        "deletedAt",
+        "deletedByUserId",
+        "description",
+        "equipmentJson",
+        "focusJson",
+        "id",
+        "inviteType",
+        "isVirtual",
+        "location",
+        "maxParticipants",
+        "pricePerParticipantMinor",
+        "recurringSeriesId",
+        "registrationDeadlineAt",
+        "scheduleJson",
+        "sessionType",
+        "skillLevel",
+        "squadId",
+        "status",
+        "title",
+        "updatedAt",
+        "updatedByUserId",
+        "version",
+        "waitlistCount",
+        "waitlistEnabled"
+      ],
+      "typeHints": {
+        "ageMax": "number",
+        "ageMin": "number",
+        "clubId": "string",
+        "coachUserId": "string",
+        "createdAt": "string",
+        "createdByUserId": "string",
+        "currency": "string",
+        "currentParticipants": "number",
+        "deletedAt": "string",
+        "deletedByUserId": "string",
+        "description": "string",
+        "equipmentJson": "json",
+        "focusJson": "json",
+        "id": "string",
+        "inviteType": "string",
+        "isVirtual": "boolean",
+        "location": "string",
+        "maxParticipants": "number",
+        "pricePerParticipantMinor": "number",
+        "recurringSeriesId": "string",
+        "registrationDeadlineAt": "string",
+        "scheduleJson": "json",
+        "sessionType": "string",
+        "skillLevel": "string",
+        "squadId": "string",
+        "status": "string",
+        "title": "string",
+        "updatedAt": "string",
+        "updatedByUserId": "string",
+        "version": "number",
+        "waitlistCount": "number",
+        "waitlistEnabled": "boolean"
+      },
+      "nullable": [
+        "deletedAt",
+        "deletedByUserId",
+        "recurringSeriesId"
+      ]
+    },
+    "groupSessionRegistrations": {
+      "csvFile": "csv/group_session_registrations.csv",
+      "primaryKey": "id",
+      "columns": [
+        "athleteId",
+        "createdByUserId",
+        "deletedAt",
+        "deletedByUserId",
+        "groupSessionId",
+        "id",
+        "notes",
+        "paidAt",
+        "parentUserId",
+        "registeredAt",
+        "status",
+        "updatedAt",
+        "updatedByUserId",
+        "version"
+      ],
+      "typeHints": {
+        "athleteId": "string",
+        "createdByUserId": "string",
+        "deletedAt": "string",
+        "deletedByUserId": "string",
+        "groupSessionId": "string",
+        "id": "string",
+        "notes": "string",
+        "paidAt": "string",
+        "parentUserId": "string",
+        "registeredAt": "string",
+        "status": "string",
+        "updatedAt": "string",
+        "updatedByUserId": "string",
+        "version": "number"
+      },
+      "nullable": [
+        "deletedAt",
+        "deletedByUserId",
+        "paidAt"
+      ]
+    },
+    "waitlistEntries": {
+      "csvFile": "csv/waitlist_entries.csv",
+      "primaryKey": "id",
+      "columns": [
+        "athleteId",
+        "autoBook",
+        "bookingId",
+        "coachUserId",
+        "createdAt",
+        "deletedAt",
+        "expiresAt",
+        "groupSessionId",
+        "id",
+        "notes",
+        "notifiedAt",
+        "position",
+        "status",
+        "updatedAt",
+        "userId",
+        "userRespondedAt",
+        "userResponse"
+      ],
+      "typeHints": {
+        "athleteId": "string",
+        "autoBook": "boolean",
+        "bookingId": "string",
+        "coachUserId": "string",
+        "createdAt": "string",
+        "deletedAt": "string",
+        "expiresAt": "string",
+        "groupSessionId": "string",
+        "id": "string",
+        "notes": "string",
+        "notifiedAt": "string",
+        "position": "number",
+        "status": "string",
+        "updatedAt": "string",
+        "userId": "string",
+        "userRespondedAt": "string",
+        "userResponse": "string"
+      },
+      "nullable": [
+        "bookingId",
+        "deletedAt",
+        "expiresAt",
+        "notifiedAt",
+        "userRespondedAt",
+        "userResponse"
+      ]
+    },
+    "invites": {
+      "csvFile": "csv/invites.csv",
+      "primaryKey": "id",
+      "columns": [
+        "bookingId",
+        "clubId",
+        "createdAt",
+        "eventId",
+        "expiresAt",
+        "groupSessionId",
+        "id",
+        "inviteType",
+        "message",
+        "metadataJson",
+        "revokedAt",
+        "senderUserId",
+        "status",
+        "updatedAt"
+      ],
+      "typeHints": {
+        "bookingId": "string",
+        "clubId": "string",
+        "createdAt": "string",
+        "eventId": "string",
+        "expiresAt": "string",
+        "groupSessionId": "string",
+        "id": "string",
+        "inviteType": "string",
+        "message": "string",
+        "metadataJson": "json",
+        "revokedAt": "string",
+        "senderUserId": "string",
+        "status": "string",
+        "updatedAt": "string"
+      },
+      "nullable": [
+        "bookingId",
+        "eventId",
+        "revokedAt"
+      ]
+    },
+    "inviteTargets": {
+      "csvFile": "csv/invite_targets.csv",
+      "primaryKey": "id",
+      "columns": [
+        "createdAt",
+        "id",
+        "inviteId",
+        "respondedAt",
+        "responsePayloadJson",
+        "status",
+        "targetAthleteId",
+        "targetFamilyId",
+        "targetUserId",
+        "updatedAt"
+      ],
+      "typeHints": {
+        "createdAt": "string",
+        "id": "string",
+        "inviteId": "string",
+        "respondedAt": "string",
+        "responsePayloadJson": "json",
+        "status": "string",
+        "targetAthleteId": "string",
+        "targetFamilyId": "string",
+        "targetUserId": "string",
+        "updatedAt": "string"
+      },
+      "nullable": [
+        "respondedAt",
+        "responsePayloadJson"
+      ]
+    },
+    "clubEvents": {
+      "csvFile": "csv/club_events.csv",
+      "primaryKey": "id",
+      "columns": [
+        "clubId",
+        "createdAt",
+        "createdByUserId",
+        "creatorUserId",
+        "deletedAt",
+        "deletedByUserId",
+        "description",
+        "endsAt",
+        "guestLimit",
+        "id",
+        "location",
+        "metadataJson",
+        "rsvpDeadlineAt",
+        "startsAt",
+        "status",
+        "title",
+        "updatedAt",
+        "updatedByUserId",
+        "version",
+        "visibility"
+      ],
+      "typeHints": {
+        "clubId": "string",
+        "createdAt": "string",
+        "createdByUserId": "string",
+        "creatorUserId": "string",
+        "deletedAt": "string",
+        "deletedByUserId": "string",
+        "description": "string",
+        "endsAt": "string",
+        "guestLimit": "number",
+        "id": "string",
+        "location": "string",
+        "metadataJson": "json",
+        "rsvpDeadlineAt": "string",
+        "startsAt": "string",
+        "status": "string",
+        "title": "string",
+        "updatedAt": "string",
+        "updatedByUserId": "string",
+        "version": "number",
+        "visibility": "string"
+      },
+      "nullable": [
+        "deletedAt",
+        "deletedByUserId"
+      ]
+    },
+    "eventRsvps": {
+      "csvFile": "csv/event_rsvps.csv",
+      "primaryKey": "id",
+      "columns": [
+        "clubEventId",
+        "createdAt",
+        "guestCount",
+        "id",
+        "notes",
+        "respondedAt",
+        "status",
+        "updatedAt",
+        "userId"
+      ],
+      "typeHints": {
+        "clubEventId": "string",
+        "createdAt": "string",
+        "guestCount": "number",
+        "id": "string",
+        "notes": "string",
+        "respondedAt": "string",
+        "status": "string",
+        "updatedAt": "string",
+        "userId": "string"
+      },
+      "nullable": [
+        "notes"
+      ]
+    },
+    "attendanceRecords": {
+      "csvFile": "csv/attendance_records.csv",
+      "primaryKey": "id",
+      "columns": [
+        "athleteId",
+        "bookingId",
+        "createdAt",
+        "effortRating",
+        "focusAreasJson",
+        "groupSessionId",
+        "id",
+        "notes",
+        "recordedAt",
+        "recordedByUserId",
+        "status",
+        "updatedAt"
+      ],
+      "typeHints": {
+        "athleteId": "string",
+        "bookingId": "string",
+        "createdAt": "string",
+        "effortRating": "number",
+        "focusAreasJson": "json",
+        "groupSessionId": "string",
+        "id": "string",
+        "notes": "string",
+        "recordedAt": "string",
+        "recordedByUserId": "string",
+        "status": "string",
+        "updatedAt": "string"
+      },
+      "nullable": [
+        "bookingId",
+        "groupSessionId"
+      ]
+    },
+    "invoices": {
+      "csvFile": "csv/invoices.csv",
+      "primaryKey": "id",
+      "columns": [
+        "athleteId",
+        "billingAddress",
+        "bookingId",
+        "coachBusinessEmail",
+        "coachBusinessName",
+        "coachUserId",
+        "createdAt",
+        "createdByUserId",
+        "currency",
+        "deletedAt",
+        "deletedByUserId",
+        "dueDate",
+        "id",
+        "invoiceNumber",
+        "notes",
+        "paidAt",
+        "payerUserId",
+        "sentAt",
+        "sessionDate",
+        "sessionDurationMinutes",
+        "sessionLocation",
+        "sessionType",
+        "status",
+        "subtotalMinor",
+        "taxMinor",
+        "taxRatePercent",
+        "totalMinor",
+        "updatedAt",
+        "updatedByUserId",
+        "version",
+        "voidedAt",
+        "voidReason"
+      ],
+      "typeHints": {
+        "athleteId": "string",
+        "billingAddress": "string",
+        "bookingId": "string",
+        "coachBusinessEmail": "string",
+        "coachBusinessName": "string",
+        "coachUserId": "string",
+        "createdAt": "string",
+        "createdByUserId": "string",
+        "currency": "string",
+        "deletedAt": "string",
+        "deletedByUserId": "string",
+        "dueDate": "string",
+        "id": "string",
+        "invoiceNumber": "string",
+        "notes": "string",
+        "paidAt": "string",
+        "payerUserId": "string",
+        "sentAt": "string",
+        "sessionDate": "string",
+        "sessionDurationMinutes": "number",
+        "sessionLocation": "string",
+        "sessionType": "string",
+        "status": "string",
+        "subtotalMinor": "number",
+        "taxMinor": "number",
+        "taxRatePercent": "number",
+        "totalMinor": "number",
+        "updatedAt": "string",
+        "updatedByUserId": "string",
+        "version": "number",
+        "voidedAt": "string",
+        "voidReason": "string"
+      },
+      "nullable": [
+        "deletedAt",
+        "deletedByUserId",
+        "paidAt",
+        "voidedAt",
+        "voidReason"
+      ]
+    },
+    "invoiceLineItems": {
+      "csvFile": "csv/invoice_line_items.csv",
+      "primaryKey": "id",
+      "columns": [
+        "createdAt",
+        "description",
+        "id",
+        "invoiceId",
+        "lineSubtotalMinor",
+        "quantity",
+        "sortOrder",
+        "taxMinor",
+        "taxRatePercent",
+        "totalMinor",
+        "unitAmountMinor",
+        "updatedAt"
+      ],
+      "typeHints": {
+        "createdAt": "string",
+        "description": "string",
+        "id": "string",
+        "invoiceId": "string",
+        "lineSubtotalMinor": "number",
+        "quantity": "number",
+        "sortOrder": "number",
+        "taxMinor": "number",
+        "taxRatePercent": "number",
+        "totalMinor": "number",
+        "unitAmountMinor": "number",
+        "updatedAt": "string"
+      },
+      "nullable": []
+    },
+    "invoiceEvents": {
+      "csvFile": "csv/invoice_events.csv",
+      "primaryKey": "id",
+      "columns": [
+        "actorUserId",
+        "eventType",
+        "id",
+        "invoiceId",
+        "metadataJson",
+        "occurredAt",
+        "reason",
+        "requestId"
+      ],
+      "typeHints": {
+        "actorUserId": "string",
+        "eventType": "string",
+        "id": "string",
+        "invoiceId": "string",
+        "metadataJson": "json",
+        "occurredAt": "string",
+        "reason": "string",
+        "requestId": "string"
+      },
+      "nullable": []
+    },
+    "reconcilerEntries": {
+      "csvFile": "csv/reconciler_entries.csv",
+      "primaryKey": "id",
+      "columns": [
+        "coachUserId",
+        "createdAt",
+        "createdByUserId",
+        "id",
+        "internalNote",
+        "invoiceId",
+        "state",
+        "updatedAt",
+        "updatedByUserId",
+        "version"
+      ],
+      "typeHints": {
+        "coachUserId": "string",
+        "createdAt": "string",
+        "createdByUserId": "string",
+        "id": "string",
+        "internalNote": "string",
+        "invoiceId": "string",
+        "state": "string",
+        "updatedAt": "string",
+        "updatedByUserId": "string",
+        "version": "number"
+      },
+      "nullable": []
+    },
+    "paymentInstructionTemplates": {
+      "csvFile": "csv/payment_instruction_templates.csv",
+      "primaryKey": "id",
+      "columns": [
+        "bodyTemplate",
+        "coachUserId",
+        "createdAt",
+        "createdByUserId",
+        "deletedAt",
+        "deletedByUserId",
+        "id",
+        "isDefault",
+        "name",
+        "updatedAt",
+        "updatedByUserId",
+        "version"
+      ],
+      "typeHints": {
+        "bodyTemplate": "string",
+        "coachUserId": "string",
+        "createdAt": "string",
+        "createdByUserId": "string",
+        "deletedAt": "string",
+        "deletedByUserId": "string",
+        "id": "string",
+        "isDefault": "boolean",
+        "name": "string",
+        "updatedAt": "string",
+        "updatedByUserId": "string",
+        "version": "number"
+      },
+      "nullable": [
+        "deletedAt",
+        "deletedByUserId"
+      ]
+    },
+    "paymentReminders": {
+      "csvFile": "csv/payment_reminders.csv",
+      "primaryKey": "id",
+      "columns": [
+        "channel",
+        "deliveryStatus",
+        "id",
+        "invoiceId",
+        "messageSnapshot",
+        "metadataJson",
+        "recipientUserId",
+        "sentAt",
+        "sentByUserId"
+      ],
+      "typeHints": {
+        "channel": "string",
+        "deliveryStatus": "string",
+        "id": "string",
+        "invoiceId": "string",
+        "messageSnapshot": "string",
+        "metadataJson": "json",
+        "recipientUserId": "string",
+        "sentAt": "string",
+        "sentByUserId": "string"
+      },
+      "nullable": []
+    },
+    "sessionNotes": {
+      "csvFile": "csv/session_notes.csv",
+      "primaryKey": "id",
+      "columns": [
+        "athleteId",
+        "bookingId",
+        "coachUserId",
+        "createdAt",
+        "createdByUserId",
+        "deletedAt",
+        "deletedByUserId",
+        "groupSessionId",
+        "id",
+        "metadataJson",
+        "noteText",
+        "privateNotesEncrypted",
+        "updatedAt",
+        "updatedByUserId",
+        "version",
+        "visibility"
+      ],
+      "typeHints": {
+        "athleteId": "string",
+        "bookingId": "string",
+        "coachUserId": "string",
+        "createdAt": "string",
+        "createdByUserId": "string",
+        "deletedAt": "string",
+        "deletedByUserId": "string",
+        "groupSessionId": "string",
+        "id": "string",
+        "metadataJson": "json",
+        "noteText": "string",
+        "privateNotesEncrypted": "string",
+        "updatedAt": "string",
+        "updatedByUserId": "string",
+        "version": "number",
+        "visibility": "string"
+      },
+      "nullable": [
+        "deletedAt",
+        "deletedByUserId",
+        "groupSessionId",
+        "privateNotesEncrypted"
+      ]
+    },
+    "sessionFeedback": {
+      "csvFile": "csv/session_feedback.csv",
+      "primaryKey": "id",
+      "columns": [
+        "athleteId",
+        "authorUserId",
+        "bookingId",
+        "createdAt",
+        "deletedAt",
+        "id",
+        "privateCommentEncrypted",
+        "publicComment",
+        "rating",
+        "updatedAt",
+        "visibility"
+      ],
+      "typeHints": {
+        "athleteId": "string",
+        "authorUserId": "string",
+        "bookingId": "string",
+        "createdAt": "string",
+        "deletedAt": "string",
+        "id": "string",
+        "privateCommentEncrypted": "string",
+        "publicComment": "string",
+        "rating": "number",
+        "updatedAt": "string",
+        "visibility": "string"
+      },
+      "nullable": [
+        "deletedAt",
+        "privateCommentEncrypted"
+      ]
+    },
+    "goals": {
+      "csvFile": "csv/goals.csv",
+      "primaryKey": "id",
+      "columns": [
+        "athleteId",
+        "category",
+        "createdAt",
+        "createdByUserId",
+        "creatorUserId",
+        "deletedAt",
+        "deletedByUserId",
+        "id",
+        "notes",
+        "ownerUserId",
+        "status",
+        "targetDate",
+        "title",
+        "updatedAt",
+        "updatedByUserId",
+        "version"
+      ],
+      "typeHints": {
+        "athleteId": "string",
+        "category": "string",
+        "createdAt": "string",
+        "createdByUserId": "string",
+        "creatorUserId": "string",
+        "deletedAt": "string",
+        "deletedByUserId": "string",
+        "id": "string",
+        "notes": "string",
+        "ownerUserId": "string",
+        "status": "string",
+        "targetDate": "string",
+        "title": "string",
+        "updatedAt": "string",
+        "updatedByUserId": "string",
+        "version": "number"
+      },
+      "nullable": [
+        "deletedAt",
+        "deletedByUserId",
+        "ownerUserId"
+      ]
+    },
+    "goalMilestones": {
+      "csvFile": "csv/goal_milestones.csv",
+      "primaryKey": "id",
+      "columns": [
+        "completedAt",
+        "createdAt",
+        "createdByUserId",
+        "deletedAt",
+        "deletedByUserId",
+        "dueDate",
+        "goalId",
+        "id",
+        "sortOrder",
+        "status",
+        "title",
+        "updatedAt",
+        "updatedByUserId",
+        "version"
+      ],
+      "typeHints": {
+        "completedAt": "string",
+        "createdAt": "string",
+        "createdByUserId": "string",
+        "deletedAt": "string",
+        "deletedByUserId": "string",
+        "dueDate": "string",
+        "goalId": "string",
+        "id": "string",
+        "sortOrder": "number",
+        "status": "string",
+        "title": "string",
+        "updatedAt": "string",
+        "updatedByUserId": "string",
+        "version": "number"
+      },
+      "nullable": [
+        "completedAt",
+        "deletedAt",
+        "deletedByUserId"
+      ]
+    },
+    "skillDefinitions": {
+      "csvFile": "csv/skill_definitions.csv",
+      "primaryKey": "id",
+      "columns": [
+        "active",
+        "category",
+        "code",
+        "createdAt",
+        "description",
+        "id",
+        "name",
+        "updatedAt"
+      ],
+      "typeHints": {
+        "active": "boolean",
+        "category": "string",
+        "code": "string",
+        "createdAt": "string",
+        "description": "string",
+        "id": "string",
+        "name": "string",
+        "updatedAt": "string"
+      },
+      "nullable": []
+    },
+    "athleteSkillAssessments": {
+      "csvFile": "csv/athlete_skill_assessments.csv",
+      "primaryKey": "id",
+      "columns": [
+        "assessedAt",
+        "assessorUserId",
+        "athleteId",
+        "bookingId",
+        "createdAt",
+        "id",
+        "notes",
+        "score",
+        "skillDefinitionId"
+      ],
+      "typeHints": {
+        "assessedAt": "string",
+        "assessorUserId": "string",
+        "athleteId": "string",
+        "bookingId": "string",
+        "createdAt": "string",
+        "id": "string",
+        "notes": "string",
+        "score": "number",
+        "skillDefinitionId": "string"
+      },
+      "nullable": []
+    },
+    "badgeDefinitions": {
+      "csvFile": "csv/badge_definitions.csv",
+      "primaryKey": "id",
+      "columns": [
+        "active",
+        "category",
+        "code",
+        "createdAt",
+        "description",
+        "id",
+        "name",
+        "updatedAt"
+      ],
+      "typeHints": {
+        "active": "boolean",
+        "category": "string",
+        "code": "string",
+        "createdAt": "string",
+        "description": "string",
+        "id": "string",
+        "name": "string",
+        "updatedAt": "string"
+      },
+      "nullable": []
+    },
+    "athleteBadges": {
+      "csvFile": "csv/athlete_badges.csv",
+      "primaryKey": "id",
+      "columns": [
+        "athleteId",
+        "awardedAt",
+        "awardedByUserId",
+        "badgeDefinitionId",
+        "bookingId",
+        "createdAt",
+        "id",
+        "note"
+      ],
+      "typeHints": {
+        "athleteId": "string",
+        "awardedAt": "string",
+        "awardedByUserId": "string",
+        "badgeDefinitionId": "string",
+        "bookingId": "string",
+        "createdAt": "string",
+        "id": "string",
+        "note": "string"
+      },
+      "nullable": []
+    },
+    "drills": {
+      "csvFile": "csv/drills.csv",
+      "primaryKey": "id",
+      "columns": [
+        "active",
+        "authorUserId",
+        "createdAt",
+        "deletedAt",
+        "description",
+        "difficulty",
+        "id",
+        "metadataJson",
+        "title",
+        "updatedAt"
+      ],
+      "typeHints": {
+        "active": "boolean",
+        "authorUserId": "string",
+        "createdAt": "string",
+        "deletedAt": "string",
+        "description": "string",
+        "difficulty": "string",
+        "id": "string",
+        "metadataJson": "json",
+        "title": "string",
+        "updatedAt": "string"
+      },
+      "nullable": [
+        "deletedAt"
+      ]
+    },
+    "drillAssignments": {
+      "csvFile": "csv/drill_assignments.csv",
+      "primaryKey": "id",
+      "columns": [
+        "athleteId",
+        "coachUserId",
+        "createdAt",
+        "createdByUserId",
+        "deletedAt",
+        "drillId",
+        "dueDate",
+        "id",
+        "instructions",
+        "requiresEvidence",
+        "status",
+        "title",
+        "updatedAt",
+        "updatedByUserId",
+        "version"
+      ],
+      "typeHints": {
+        "athleteId": "string",
+        "coachUserId": "string",
+        "createdAt": "string",
+        "createdByUserId": "string",
+        "deletedAt": "string",
+        "drillId": "string",
+        "dueDate": "string",
+        "id": "string",
+        "instructions": "string",
+        "requiresEvidence": "boolean",
+        "status": "string",
+        "title": "string",
+        "updatedAt": "string",
+        "updatedByUserId": "string",
+        "version": "number"
+      },
+      "nullable": [
+        "deletedAt"
+      ]
+    },
+    "assignmentSubmissions": {
+      "csvFile": "csv/assignment_submissions.csv",
+      "primaryKey": "id",
+      "columns": [
+        "athleteId",
+        "createdAt",
+        "drillAssignmentId",
+        "id",
+        "mediaObjectId",
+        "notes",
+        "status",
+        "submittedAt",
+        "submittedByUserId",
+        "updatedAt"
+      ],
+      "typeHints": {
+        "athleteId": "string",
+        "createdAt": "string",
+        "drillAssignmentId": "string",
+        "id": "string",
+        "mediaObjectId": "string",
+        "notes": "string",
+        "status": "string",
+        "submittedAt": "string",
+        "submittedByUserId": "string",
+        "updatedAt": "string"
+      },
+      "nullable": []
+    },
+    "uploadSessions": {
+      "csvFile": "csv/upload_sessions.csv",
+      "primaryKey": "id",
+      "columns": [
+        "completedAt",
+        "createdAt",
+        "expectedContentType",
+        "expectedMaxBytes",
+        "id",
+        "mediaObjectId",
+        "metadataJson",
+        "requesterUserId",
+        "status",
+        "targetResourceId",
+        "targetResourceType",
+        "updatedAt",
+        "uploadUrlExpiresAt"
+      ],
+      "typeHints": {
+        "completedAt": "string",
+        "createdAt": "string",
+        "expectedContentType": "string",
+        "expectedMaxBytes": "number",
+        "id": "string",
+        "mediaObjectId": "string",
+        "metadataJson": "json",
+        "requesterUserId": "string",
+        "status": "string",
+        "targetResourceId": "string",
+        "targetResourceType": "string",
+        "updatedAt": "string",
+        "uploadUrlExpiresAt": "string"
+      },
+      "nullable": []
+    },
+    "malwareScanResults": {
+      "csvFile": "csv/malware_scan_results.csv",
+      "primaryKey": "id",
+      "columns": [
+        "createdAt",
+        "detailsJson",
+        "id",
+        "mediaObjectId",
+        "scannedAt",
+        "scanner",
+        "verdict"
+      ],
+      "typeHints": {
+        "createdAt": "string",
+        "detailsJson": "json",
+        "id": "string",
+        "mediaObjectId": "string",
+        "scannedAt": "string",
+        "scanner": "string",
+        "verdict": "string"
+      },
+      "nullable": []
+    },
+    "videos": {
+      "csvFile": "csv/videos.csv",
+      "primaryKey": "id",
+      "columns": [
+        "athleteId",
+        "coachUserId",
+        "createdAt",
+        "createdByUserId",
+        "deletedAt",
+        "description",
+        "id",
+        "mediaObjectId",
+        "sourceContextId",
+        "sourceContextType",
+        "title",
+        "updatedAt",
+        "updatedByUserId",
+        "version"
+      ],
+      "typeHints": {
+        "athleteId": "string",
+        "coachUserId": "string",
+        "createdAt": "string",
+        "createdByUserId": "string",
+        "deletedAt": "string",
+        "description": "string",
+        "id": "string",
+        "mediaObjectId": "string",
+        "sourceContextId": "string",
+        "sourceContextType": "string",
+        "title": "string",
+        "updatedAt": "string",
+        "updatedByUserId": "string",
+        "version": "number"
+      },
+      "nullable": [
+        "deletedAt"
+      ]
+    },
+    "videoAnnotations": {
+      "csvFile": "csv/video_annotations.csv",
+      "primaryKey": "id",
+      "columns": [
+        "authorUserId",
+        "color",
+        "createdAt",
+        "createdByUserId",
+        "deletedAt",
+        "id",
+        "text",
+        "timestampMs",
+        "updatedAt",
+        "updatedByUserId",
+        "version",
+        "videoId"
+      ],
+      "typeHints": {
+        "authorUserId": "string",
+        "color": "string",
+        "createdAt": "string",
+        "createdByUserId": "string",
+        "deletedAt": "string",
+        "id": "string",
+        "text": "string",
+        "timestampMs": "number",
+        "updatedAt": "string",
+        "updatedByUserId": "string",
+        "version": "number",
+        "videoId": "string"
+      },
+      "nullable": [
+        "deletedAt"
+      ]
+    },
+    "communityGroups": {
+      "csvFile": "csv/community_groups.csv",
+      "primaryKey": "id",
+      "columns": [
+        "clubId",
+        "createdAt",
+        "createdByUserId",
+        "deletedAt",
+        "deletedByUserId",
+        "description",
+        "id",
+        "name",
+        "ownerUserId",
+        "updatedAt",
+        "updatedByUserId",
+        "version",
+        "visibility"
+      ],
+      "typeHints": {
+        "clubId": "string",
+        "createdAt": "string",
+        "createdByUserId": "string",
+        "deletedAt": "string",
+        "deletedByUserId": "string",
+        "description": "string",
+        "id": "string",
+        "name": "string",
+        "ownerUserId": "string",
+        "updatedAt": "string",
+        "updatedByUserId": "string",
+        "version": "number",
+        "visibility": "string"
+      },
+      "nullable": [
+        "deletedAt",
+        "deletedByUserId"
+      ]
+    },
+    "communityGroupMemberships": {
+      "csvFile": "csv/community_group_memberships.csv",
+      "primaryKey": "id",
+      "columns": [
+        "active",
+        "communityGroupId",
+        "createdAt",
+        "createdByUserId",
+        "deletedAt",
+        "id",
+        "role",
+        "updatedAt",
+        "updatedByUserId",
+        "userId",
+        "version"
+      ],
+      "typeHints": {
+        "active": "boolean",
+        "communityGroupId": "string",
+        "createdAt": "string",
+        "createdByUserId": "string",
+        "deletedAt": "string",
+        "id": "string",
+        "role": "string",
+        "updatedAt": "string",
+        "updatedByUserId": "string",
+        "userId": "string",
+        "version": "number"
+      },
+      "nullable": [
+        "deletedAt"
+      ]
+    },
+    "posts": {
+      "csvFile": "csv/posts.csv",
+      "primaryKey": "id",
+      "columns": [
+        "attachmentsJson",
+        "authorUserId",
+        "clubId",
+        "commentsCount",
+        "communityGroupId",
+        "content",
+        "createdAt",
+        "createdByUserId",
+        "deletedAt",
+        "deletedByUserId",
+        "id",
+        "reactionsCount",
+        "updatedAt",
+        "updatedByUserId",
+        "version",
+        "visibility"
+      ],
+      "typeHints": {
+        "attachmentsJson": "json",
+        "authorUserId": "string",
+        "clubId": "string",
+        "commentsCount": "number",
+        "communityGroupId": "string",
+        "content": "string",
+        "createdAt": "string",
+        "createdByUserId": "string",
+        "deletedAt": "string",
+        "deletedByUserId": "string",
+        "id": "string",
+        "reactionsCount": "number",
+        "updatedAt": "string",
+        "updatedByUserId": "string",
+        "version": "number",
+        "visibility": "string"
+      },
+      "nullable": [
+        "deletedAt",
+        "deletedByUserId"
+      ]
+    },
+    "postComments": {
+      "csvFile": "csv/post_comments.csv",
+      "primaryKey": "id",
+      "columns": [
+        "authorUserId",
+        "content",
+        "createdAt",
+        "deletedAt",
+        "id",
+        "isDeleted",
+        "parentCommentId",
+        "postId",
+        "updatedAt"
+      ],
+      "typeHints": {
+        "authorUserId": "string",
+        "content": "string",
+        "createdAt": "string",
+        "deletedAt": "string",
+        "id": "string",
+        "isDeleted": "boolean",
+        "parentCommentId": "string",
+        "postId": "string",
+        "updatedAt": "string"
+      },
+      "nullable": [
+        "deletedAt",
+        "parentCommentId"
+      ]
+    },
+    "postReactions": {
+      "csvFile": "csv/post_reactions.csv",
+      "primaryKey": "id",
+      "columns": [
+        "createdAt",
+        "id",
+        "postId",
+        "reaction",
+        "userId"
+      ],
+      "typeHints": {
+        "createdAt": "string",
+        "id": "string",
+        "postId": "string",
+        "reaction": "string",
+        "userId": "string"
+      },
+      "nullable": []
+    },
+    "messageThreads": {
+      "csvFile": "csv/message_threads.csv",
+      "primaryKey": "id",
+      "columns": [
+        "bookingId",
+        "clubId",
+        "communityGroupId",
+        "createdAt",
+        "createdByUserId",
+        "deletedAt",
+        "groupSessionId",
+        "id",
+        "lastMessageAt",
+        "threadType",
+        "title",
+        "updatedAt",
+        "updatedByUserId",
+        "version"
+      ],
+      "typeHints": {
+        "bookingId": "string",
+        "clubId": "string",
+        "communityGroupId": "string",
+        "createdAt": "string",
+        "createdByUserId": "string",
+        "deletedAt": "string",
+        "groupSessionId": "string",
+        "id": "string",
+        "lastMessageAt": "string",
+        "threadType": "string",
+        "title": "string",
+        "updatedAt": "string",
+        "updatedByUserId": "string",
+        "version": "number"
+      },
+      "nullable": [
+        "bookingId",
+        "clubId",
+        "communityGroupId",
+        "deletedAt",
+        "groupSessionId",
+        "title"
+      ]
+    },
+    "messageParticipants": {
+      "csvFile": "csv/message_participants.csv",
+      "primaryKey": "id",
+      "columns": [
+        "id",
+        "joinedAt",
+        "lastReadAt",
+        "leftAt",
+        "messageThreadId",
+        "muted",
+        "role",
+        "userId"
+      ],
+      "typeHints": {
+        "id": "string",
+        "joinedAt": "string",
+        "lastReadAt": "string",
+        "leftAt": "string",
+        "messageThreadId": "string",
+        "muted": "boolean",
+        "role": "string",
+        "userId": "string"
+      },
+      "nullable": [
+        "leftAt"
+      ]
+    },
+    "messages": {
+      "csvFile": "csv/messages.csv",
+      "primaryKey": "id",
+      "columns": [
+        "attachmentsJson",
+        "content",
+        "createdAt",
+        "deletedAt",
+        "editedAt",
+        "id",
+        "messageThreadId",
+        "senderUserId",
+        "updatedAt"
+      ],
+      "typeHints": {
+        "attachmentsJson": "json",
+        "content": "string",
+        "createdAt": "string",
+        "deletedAt": "string",
+        "editedAt": "string",
+        "id": "string",
+        "messageThreadId": "string",
+        "senderUserId": "string",
+        "updatedAt": "string"
+      },
+      "nullable": [
+        "deletedAt",
+        "editedAt"
+      ]
+    },
+    "messageReceipts": {
+      "csvFile": "csv/message_receipts.csv",
+      "primaryKey": "id",
+      "columns": [
+        "createdAt",
+        "deliveredAt",
+        "id",
+        "messageId",
+        "readAt",
+        "updatedAt",
+        "userId"
+      ],
+      "typeHints": {
+        "createdAt": "string",
+        "deliveredAt": "string",
+        "id": "string",
+        "messageId": "string",
+        "readAt": "string",
+        "updatedAt": "string",
+        "userId": "string"
+      },
+      "nullable": [
+        "readAt"
+      ]
+    },
+    "notifications": {
+      "csvFile": "csv/notifications.csv",
+      "primaryKey": "id",
+      "columns": [
+        "body",
+        "createdAt",
+        "deepLink",
+        "dismissedAt",
+        "id",
+        "metadataJson",
+        "readAt",
+        "sourceId",
+        "sourceType",
+        "status",
+        "title",
+        "type",
+        "updatedAt",
+        "userId"
+      ],
+      "typeHints": {
+        "body": "string",
+        "createdAt": "string",
+        "deepLink": "string",
+        "dismissedAt": "string",
+        "id": "string",
+        "metadataJson": "json",
+        "readAt": "string",
+        "sourceId": "string",
+        "sourceType": "string",
+        "status": "string",
+        "title": "string",
+        "type": "string",
+        "updatedAt": "string",
+        "userId": "string"
+      },
+      "nullable": [
+        "dismissedAt",
+        "readAt"
+      ]
+    },
+    "notificationPreferences": {
+      "csvFile": "csv/notification_preferences.csv",
+      "primaryKey": "userId",
+      "columns": [
+        "createdAt",
+        "emailEnabled",
+        "pushEnabled",
+        "settingsJson",
+        "smsEnabled",
+        "updatedAt",
+        "userId"
+      ],
+      "typeHints": {
+        "createdAt": "string",
+        "emailEnabled": "boolean",
+        "pushEnabled": "boolean",
+        "settingsJson": "json",
+        "smsEnabled": "boolean",
+        "updatedAt": "string",
+        "userId": "string"
+      },
+      "nullable": []
+    },
+    "mutedSources": {
+      "csvFile": "csv/muted_sources.csv",
+      "primaryKey": "id",
+      "columns": [
+        "id",
+        "mutedAt",
+        "reason",
+        "sourceId",
+        "sourceType",
+        "unmutedAt",
+        "userId"
+      ],
+      "typeHints": {
+        "id": "string",
+        "mutedAt": "string",
+        "reason": "string",
+        "sourceId": "string",
+        "sourceType": "string",
+        "unmutedAt": "string",
+        "userId": "string"
+      },
+      "nullable": [
+        "unmutedAt"
+      ]
+    },
+    "quietHours": {
+      "csvFile": "csv/quiet_hours.csv",
+      "primaryKey": "userId",
+      "columns": [
+        "createdAt",
+        "enabled",
+        "endTimeLocal",
+        "startTimeLocal",
+        "timeZone",
+        "updatedAt",
+        "userId"
+      ],
+      "typeHints": {
+        "createdAt": "string",
+        "enabled": "boolean",
+        "endTimeLocal": "string",
+        "startTimeLocal": "string",
+        "timeZone": "string",
+        "updatedAt": "string",
+        "userId": "string"
+      },
+      "nullable": []
+    },
+    "accessGrants": {
+      "csvFile": "csv/access_grants.csv",
+      "primaryKey": "id",
+      "columns": [
+        "constraintsJson",
+        "createdAt",
+        "expiresAt",
+        "granteeUserId",
+        "grantorUserId",
+        "id",
+        "metadataJson",
+        "resourceId",
+        "resourceType",
+        "revokedAt",
+        "revokedByUserId",
+        "revokeReason",
+        "updatedAt"
+      ],
+      "typeHints": {
+        "constraintsJson": "json",
+        "createdAt": "string",
+        "expiresAt": "string",
+        "granteeUserId": "string",
+        "grantorUserId": "string",
+        "id": "string",
+        "metadataJson": "json",
+        "resourceId": "string",
+        "resourceType": "string",
+        "revokedAt": "string",
+        "revokedByUserId": "string",
+        "revokeReason": "string",
+        "updatedAt": "string"
+      },
+      "nullable": [
+        "revokedAt",
+        "revokedByUserId",
+        "revokeReason"
+      ]
+    },
+    "accessGrantScopes": {
+      "csvFile": "csv/access_grant_scopes.csv",
+      "primaryKey": "id",
+      "columns": [
+        "accessGrantId",
+        "createdAt",
+        "id",
+        "scope"
+      ],
+      "typeHints": {
+        "accessGrantId": "string",
+        "createdAt": "string",
+        "id": "string",
+        "scope": "string"
+      },
+      "nullable": []
+    },
+    "safeguardingIncidents": {
+      "csvFile": "csv/safeguarding_incidents.csv",
+      "primaryKey": "id",
+      "columns": [
+        "assignedToUserId",
+        "athleteId",
+        "closedAt",
+        "clubId",
+        "createdAt",
+        "deletedAt",
+        "detailsEncrypted",
+        "id",
+        "occurredAt",
+        "reportedByUserId",
+        "severity",
+        "status",
+        "summary",
+        "title",
+        "updatedAt"
+      ],
+      "typeHints": {
+        "assignedToUserId": "string",
+        "athleteId": "string",
+        "closedAt": "string",
+        "clubId": "string",
+        "createdAt": "string",
+        "deletedAt": "string",
+        "detailsEncrypted": "string",
+        "id": "string",
+        "occurredAt": "string",
+        "reportedByUserId": "string",
+        "severity": "string",
+        "status": "string",
+        "summary": "string",
+        "title": "string",
+        "updatedAt": "string"
+      },
+      "nullable": [
+        "closedAt",
+        "deletedAt"
+      ]
+    },
+    "safeguardingIncidentActions": {
+      "csvFile": "csv/safeguarding_incident_actions.csv",
+      "primaryKey": "id",
+      "columns": [
+        "actionType",
+        "actorUserId",
+        "id",
+        "metadataJson",
+        "note",
+        "occurredAt",
+        "safeguardingIncidentId"
+      ],
+      "typeHints": {
+        "actionType": "string",
+        "actorUserId": "string",
+        "id": "string",
+        "metadataJson": "json",
+        "note": "string",
+        "occurredAt": "string",
+        "safeguardingIncidentId": "string"
+      },
+      "nullable": []
+    },
+    "auditEvents": {
+      "csvFile": "csv/audit_events.csv",
+      "primaryKey": "id",
+      "columns": [
+        "actingRole",
+        "action",
+        "actorUserId",
+        "id",
+        "ipHash",
+        "metadataJson",
+        "occurredAt",
+        "requestId",
+        "resourceId",
+        "resourceType",
+        "result",
+        "sensitiveRead",
+        "subjectUserId"
+      ],
+      "typeHints": {
+        "actingRole": "string",
+        "action": "string",
+        "actorUserId": "string",
+        "id": "string",
+        "ipHash": "string",
+        "metadataJson": "json",
+        "occurredAt": "string",
+        "requestId": "string",
+        "resourceId": "string",
+        "resourceType": "string",
+        "result": "string",
+        "sensitiveRead": "boolean",
+        "subjectUserId": "string"
+      },
+      "nullable": []
+    },
+    "securityEvents": {
+      "csvFile": "csv/security_events.csv",
+      "primaryKey": "id",
+      "columns": [
+        "eventType",
+        "id",
+        "message",
+        "metadataJson",
+        "occurredAt",
+        "requestId",
+        "sessionId",
+        "severity",
+        "userId"
+      ],
+      "typeHints": {
+        "eventType": "string",
+        "id": "string",
+        "message": "string",
+        "metadataJson": "json",
+        "occurredAt": "string",
+        "requestId": "string",
+        "sessionId": "string",
+        "severity": "string",
+        "userId": "string"
+      },
+      "nullable": [
+        "sessionId",
+        "userId"
+      ]
+    },
+    "retentionPolicies": {
+      "csvFile": "csv/retention_policies.csv",
+      "primaryKey": "id",
+      "columns": [
+        "active",
+        "allowHardDelete",
+        "archiveBeforeDelete",
+        "configJson",
+        "createdAt",
+        "id",
+        "legalHoldAware",
+        "retentionDays",
+        "tableName",
+        "updatedAt"
+      ],
+      "typeHints": {
+        "active": "boolean",
+        "allowHardDelete": "boolean",
+        "archiveBeforeDelete": "boolean",
+        "configJson": "json",
+        "createdAt": "string",
+        "id": "string",
+        "legalHoldAware": "boolean",
+        "retentionDays": "number",
+        "tableName": "string",
+        "updatedAt": "string"
+      },
+      "nullable": []
+    },
+    "retentionRuns": {
+      "csvFile": "csv/retention_runs.csv",
+      "primaryKey": "id",
+      "columns": [
+        "dryRun",
+        "errorText",
+        "finishedAt",
+        "id",
+        "retentionPolicyId",
+        "startedAt",
+        "status",
+        "summaryJson"
+      ],
+      "typeHints": {
+        "dryRun": "boolean",
+        "errorText": "string",
+        "finishedAt": "string",
+        "id": "string",
+        "retentionPolicyId": "string",
+        "startedAt": "string",
+        "status": "string",
+        "summaryJson": "json"
+      },
+      "nullable": [
+        "errorText"
+      ]
+    },
+    "legalHolds": {
+      "csvFile": "csv/legal_holds.csv",
+      "primaryKey": "id",
+      "columns": [
+        "id",
+        "metadataJson",
+        "placedAt",
+        "placedByUserId",
+        "reason",
+        "releasedAt",
+        "releasedByUserId",
+        "scopeId",
+        "scopeType"
+      ],
+      "typeHints": {
+        "id": "string",
+        "metadataJson": "json",
+        "placedAt": "string",
+        "placedByUserId": "string",
+        "reason": "string",
+        "releasedAt": "string",
+        "releasedByUserId": "string",
+        "scopeId": "string",
+        "scopeType": "string"
+      },
+      "nullable": [
+        "releasedAt",
+        "releasedByUserId"
+      ]
+    },
+    "dataDeletionRequests": {
+      "csvFile": "csv/data_deletion_requests.csv",
+      "primaryKey": "id",
+      "columns": [
+        "cancelledAt",
+        "id",
+        "metadataJson",
+        "reason",
+        "requestedAt",
+        "requesterUserId",
+        "scheduledDeletionAt",
+        "status"
+      ],
+      "typeHints": {
+        "cancelledAt": "string",
+        "id": "string",
+        "metadataJson": "json",
+        "reason": "string",
+        "requestedAt": "string",
+        "requesterUserId": "string",
+        "scheduledDeletionAt": "string",
+        "status": "string"
+      },
+      "nullable": [
+        "cancelledAt"
+      ]
+    },
+    "featureFlags": {
+      "csvFile": "csv/feature_flags.csv",
+      "primaryKey": "id",
+      "columns": [
+        "configJson",
+        "createdAt",
+        "description",
+        "enabledByDefault",
+        "id",
+        "key",
+        "updatedAt"
+      ],
+      "typeHints": {
+        "configJson": "json",
+        "createdAt": "string",
+        "description": "string",
+        "enabledByDefault": "boolean",
+        "id": "string",
+        "key": "string",
+        "updatedAt": "string"
+      },
+      "nullable": []
+    },
+    "featureFlagOverrides": {
+      "csvFile": "csv/feature_flag_overrides.csv",
+      "primaryKey": "id",
+      "columns": [
+        "configJson",
+        "createdAt",
+        "createdByUserId",
+        "deletedAt",
+        "enabled",
+        "featureFlagId",
+        "id",
+        "scopeId",
+        "scopeType",
+        "updatedAt",
+        "updatedByUserId",
+        "version"
+      ],
+      "typeHints": {
+        "configJson": "json",
+        "createdAt": "string",
+        "createdByUserId": "string",
+        "deletedAt": "string",
+        "enabled": "boolean",
+        "featureFlagId": "string",
+        "id": "string",
+        "scopeId": "string",
+        "scopeType": "string",
+        "updatedAt": "string",
+        "updatedByUserId": "string",
+        "version": "number"
+      },
+      "nullable": [
+        "deletedAt"
+      ]
+    },
+    "outboxEvents": {
+      "csvFile": "csv/outbox_events.csv",
+      "primaryKey": "id",
+      "columns": [
+        "aggregateId",
+        "aggregateType",
+        "attempts",
+        "createdAt",
+        "eventType",
+        "id",
+        "lastError",
+        "nextAttemptAt",
+        "payloadJson",
+        "processedAt",
+        "status",
+        "updatedAt"
+      ],
+      "typeHints": {
+        "aggregateId": "string",
+        "aggregateType": "string",
+        "attempts": "number",
+        "createdAt": "string",
+        "eventType": "string",
+        "id": "string",
+        "lastError": "string",
+        "nextAttemptAt": "string",
+        "payloadJson": "json",
+        "processedAt": "string",
+        "status": "string",
+        "updatedAt": "string"
+      },
+      "nullable": [
+        "lastError",
+        "processedAt"
+      ]
+    }
+  }
+}

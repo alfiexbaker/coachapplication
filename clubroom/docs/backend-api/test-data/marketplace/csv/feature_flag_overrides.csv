@@ -1,0 +1,2 @@
+configJson,createdAt,createdByUserId,deletedAt,enabled,featureFlagId,id,scopeId,scopeType,updatedAt,updatedByUserId,version
+"{""region"":""local""}",2026-03-01T09:00:00.000Z,usr_ef3f51b6-47e4-7036-bfdd-d80b40324559,,true,flg_6a393d80-9fbc-796a-9e97-32caaf4342a2,fov_de73ddea-3443-77f0-a74c-6d29892cc0ee,development,env,2026-03-02T09:00:00.000Z,usr_ef3f51b6-47e4-7036-bfdd-d80b40324559,1

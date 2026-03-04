@@ -1,0 +1,5 @@
+channel,deliveryStatus,id,invoiceId,messageSnapshot,metadataJson,recipientUserId,sentAt,sentByUserId
+in_app,sent,pmr_a474ab1d-2261-74fb-8bcd-cc52da426681,invc_1a167462-100c-7508-b16c-091c1e76850e,Reminder: invoice INV-2026-1002 is due.,"{""source"":""seed""}",usr_197727c3-a2c5-7868-8c57-72b09c97a1d6,2026-03-01T09:00:00.000Z,usr_65972cc3-8f9b-7199-b867-7df5b7faf34b
+in_app,sent,pmr_b8b06b77-119b-7abc-8866-0351ceb1a24f,invc_056e5d1f-33c1-7e96-a156-621fa79aa10b,Reminder: invoice INV-2026-1004 is due.,"{""source"":""seed""}",usr_2686566f-aa4f-797f-931e-7f3ff0db9b4c,2026-03-01T09:00:00.000Z,usr_875ea0c7-79e6-78fe-a60f-c11b7a448cb2
+in_app,sent,pmr_552ef579-cab5-74da-a31b-cd0eb5065395,invc_ecd61455-a537-7e61-850c-02d2969bdedf,Reminder: invoice INV-2026-1006 is due.,"{""source"":""seed""}",usr_310b08f5-c053-77f7-a41e-5de5b8f9ddd0,2026-03-01T09:00:00.000Z,usr_0d0ea1c7-422b-7faf-bf6f-f721cde0a848
+in_app,sent,pmr_12fc1558-efb8-7532-b84d-0bd549d5d5ec,invc_016cbfd1-b325-75b8-bf23-ab22a8768b25,Reminder: invoice INV-2026-1008 is due.,"{""source"":""seed""}",usr_f82d545a-1ae7-7fe7-b5ab-81ac6af9478c,2026-03-01T09:00:00.000Z,usr_f65e0d95-687e-75b7-8d3a-16781c39c131

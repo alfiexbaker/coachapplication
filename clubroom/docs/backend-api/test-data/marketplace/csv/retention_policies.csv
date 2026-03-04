@@ -1,0 +1,3 @@
+active,allowHardDelete,archiveBeforeDelete,configJson,createdAt,id,legalHoldAware,retentionDays,tableName,updatedAt
+true,false,true,"{""partitioning"":""monthly""}",2025-12-03T09:00:00.000Z,rtp_7cd99a0c-62bf-7b04-929e-ba058b978ef6,true,2555,audit_events,2026-03-01T09:00:00.000Z
+true,false,true,"{""archiveOnlyUnread"":false}",2025-12-03T09:00:00.000Z,rtp_9eb26990-41b7-78b6-8537-ffc411ddbb26,true,365,notifications,2026-03-01T09:00:00.000Z

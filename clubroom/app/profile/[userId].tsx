@@ -1,4 +1,5 @@
-import { StyleSheet, View } from 'react-native';
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import { Alert, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router, useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -12,12 +13,20 @@ import { EmptyState, ErrorState, LoadingState } from '@/components/ui/screen-sta
 import { Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
 import { useScreen } from '@/hooks/use-screen';
 import { userService } from '@/services/user-service';
+import { followService } from '@/services/follow-service';
+import { useAuth } from '@/hooks/use-auth';
 import { Routes } from '@/navigation/routes';
 import type { User } from '@/constants/types';
 import { err, ok, serviceError } from '@/types/result';
 
+type FriendState = 'self' | 'none' | 'outgoing_pending' | 'incoming_pending' | 'friends';
+
 export default function ProfileScreen() {
   const { userId } = useLocalSearchParams<{ userId: string }>();
+  const { currentUser } = useAuth();
+  const [friendState, setFriendState] = useState<FriendState>('none');
+  const [incomingRequestId, setIncomingRequestId] = useState<string | null>(null);
+  const [friendActionLoading, setFriendActionLoading] = useState(false);
 
   const { data, status, error, retry, colors } = useScreen<User | null>({
     load: async () => {
@@ -47,13 +56,119 @@ export default function ProfileScreen() {
       {content}
     </SafeAreaView>
   );
+  const canOpenCoachProfile = data?.role === 'COACH';
+  const canManageConnection = Boolean(currentUser?.id && data?.id && currentUser.id !== data.id);
+
+  const loadFriendState = useCallback(
+    async (targetId: string) => {
+      if (!currentUser?.id || currentUser.id === targetId) {
+        setFriendState('self');
+        setIncomingRequestId(null);
+        return;
+      }
+
+      const [isFriends, requestsForTarget, requestsForCurrent] = await Promise.all([
+        followService.areFriends(currentUser.id, targetId),
+        followService.getPendingRequests(targetId),
+        followService.getPendingRequests(currentUser.id),
+      ]);
+
+      if (isFriends) {
+        setFriendState('friends');
+        setIncomingRequestId(null);
+        return;
+      }
+
+      const incomingRequest = requestsForCurrent.find((request) => request.requesterId === targetId);
+      if (incomingRequest) {
+        setFriendState('incoming_pending');
+        setIncomingRequestId(incomingRequest.id);
+        return;
+      }
+
+      const hasOutgoingRequest = requestsForTarget.some(
+        (request) => request.requesterId === currentUser.id,
+      );
+      if (hasOutgoingRequest) {
+        setFriendState('outgoing_pending');
+        setIncomingRequestId(null);
+        return;
+      }
+
+      setFriendState('none');
+      setIncomingRequestId(null);
+    },
+    [currentUser?.id],
+  );
+
+  useEffect(() => {
+    if (!data?.id || status !== 'success') return;
+
+    void loadFriendState(data.id).catch(() => {
+      setFriendState('none');
+      setIncomingRequestId(null);
+    });
+  }, [data?.id, loadFriendState, status]);
+
+  const friendButtonLabel = useMemo(() => {
+    if (friendActionLoading) return 'Updating...';
+    if (friendState === 'friends') return 'Friends';
+    if (friendState === 'outgoing_pending') return 'Request Sent';
+    if (friendState === 'incoming_pending') return 'Accept Friend Request';
+    return 'Send Friend Request';
+  }, [friendActionLoading, friendState]);
+
+  const canTriggerFriendAction =
+    !friendActionLoading &&
+    canManageConnection &&
+    (friendState === 'none' || (friendState === 'incoming_pending' && Boolean(incomingRequestId)));
+
+  const handleFriendAction = useCallback(async () => {
+    if (!currentUser?.id || !data?.id || !canManageConnection || friendActionLoading) return;
+
+    setFriendActionLoading(true);
+    try {
+      if (friendState === 'incoming_pending' && incomingRequestId) {
+        await followService.respondToRequest(incomingRequestId, 'ACCEPTED');
+      } else if (friendState === 'none') {
+        await followService.sendFollowRequest({
+          requesterId: currentUser.id,
+          requesterName: currentUser.fullName || currentUser.name || currentUser.username || 'User',
+          targetId: data.id,
+          targetName: data.name || 'User',
+        });
+      } else {
+        return;
+      }
+
+      await loadFriendState(data.id);
+    } catch {
+      Alert.alert('Unable to update request', 'Please try again in a moment.');
+    } finally {
+      setFriendActionLoading(false);
+    }
+  }, [
+    canManageConnection,
+    currentUser?.fullName,
+    currentUser?.id,
+    currentUser?.name,
+    currentUser?.username,
+    data?.id,
+    data?.name,
+    friendActionLoading,
+    friendState,
+    incomingRequestId,
+    loadFriendState,
+  ]);
 
   if (status === 'loading') {
     return renderShell(<LoadingState variant="detail" />);
   }
 
   if (status === 'error') {
-    return renderShell(<ErrorState message={error?.message ?? 'Failed to load profile.'} onRetry={retry} />);
+    return renderShell(
+      <ErrorState message={error?.message ?? 'Failed to load profile.'} onRetry={retry} />,
+    );
   }
 
   if (status === 'empty' || !data) {
@@ -67,8 +182,6 @@ export default function ProfileScreen() {
       />,
     );
   }
-
-  const canOpenCoachProfile = data.role === 'COACH';
 
   return renderShell(
     <>
@@ -106,6 +219,16 @@ export default function ProfileScreen() {
       </View>
 
       <View style={styles.actions}>
+        {canManageConnection && (
+          <Button
+            onPress={handleFriendAction}
+            disabled={!canTriggerFriendAction}
+            variant={friendState === 'none' ? 'outline' : 'secondary'}
+            accessibilityLabel={friendButtonLabel}
+          >
+            {friendButtonLabel}
+          </Button>
+        )}
         <Button onPress={() => router.push(Routes.chat(data.id))}>Message</Button>
         {canOpenCoachProfile && (
           <Button onPress={() => router.push(Routes.coachPublic(data.id))} variant="secondary">

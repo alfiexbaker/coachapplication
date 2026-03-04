@@ -43,6 +43,7 @@ app-example
 
 # Screenshots (reference only, not code)
 screenshots/
+/.ui-shots/
 
 # generated native folders
 /ios

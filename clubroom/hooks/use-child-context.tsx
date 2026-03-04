@@ -260,8 +260,10 @@ export function ChildProvider({ children: reactChildren }: ChildProviderProps) {
 
       if (!mountedRef.current) return;
 
+      const profilesForReconciliation = isParentUser ? profiles : [];
+
       // Reconcile
-      const reconciled = reconcileChildren(childRefs, profiles);
+      const reconciled = reconcileChildren(childRefs, profilesForReconciliation);
       const withMembership = attachMembershipData(reconciled, squads, squadMembers);
       setChildInfos(withMembership);
 
@@ -288,7 +290,7 @@ export function ChildProvider({ children: reactChildren }: ChildProviderProps) {
         setLoading(false);
       }
     }
-  }, [userId, childRefs]);
+  }, [childRefs, isParentUser, userId]);
 
   // Load on mount and when user changes
   useEffect(() => {

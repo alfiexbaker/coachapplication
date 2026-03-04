@@ -104,6 +104,10 @@ export default function FeedScreen() {
     router.push(Routes.modalPostDetail(postId));
   }, []);
 
+  const handleCreatePost = useCallback(() => {
+    router.push(Routes.MODAL_CREATE_POST);
+  }, []);
+
   const handleSharePost = useCallback(
     async (postId: string) => {
       const post = feedByIdRef.current.get(postId);
@@ -143,7 +147,7 @@ export default function FeedScreen() {
   const keyExtractor = useCallback((item: AggregatedFeedPost) => item.id, []);
 
   const renderFeedHeader = useCallback(() => (
-    <>
+    <View style={styles.feedHeader}>
       {clubs.length > 0 && (
         <View style={styles.clubsSection}>
           <ClubHubCard clubs={clubs} />
@@ -152,7 +156,7 @@ export default function FeedScreen() {
       {(feed.length > 0 || clubs.length > 0) && (
         <FeedFilters activeFilter={feedFilter} onFilterChange={setFeedFilter} />
       )}
-    </>
+    </View>
   ), [clubs, feed.length, feedFilter]);
 
   const renderFeedEmpty = useCallback(
@@ -161,12 +165,19 @@ export default function FeedScreen() {
   );
 
   const renderSeparator = useCallback(() => <View style={styles.feedItemSeparator} />, []);
+  const header = (
+    <ScreenHeader
+      title="Feed"
+      subtitle="Latest updates"
+      action={{ icon: 'add', label: 'Post', onPress: handleCreatePost }}
+    />
+  );
 
   // ─── Loading ───────────────────────────────────────────────────
   if (status === 'loading') {
     return (
       <PageContainer
-        header={<ScreenHeader title="Feed" subtitle="Latest updates" />}
+        header={header}
         scrollable={false}
         gap={0}
         horizontalSpacing={0}
@@ -180,7 +191,7 @@ export default function FeedScreen() {
   if (status === 'error') {
     return (
       <PageContainer
-        header={<ScreenHeader title="Feed" subtitle="Latest updates" />}
+        header={header}
         scrollable={false}
         gap={0}
         horizontalSpacing={0}
@@ -194,7 +205,7 @@ export default function FeedScreen() {
   if (status === 'empty') {
     return (
       <PageContainer
-        header={<ScreenHeader title="Feed" subtitle="Latest updates" />}
+        header={header}
         scrollable={false}
         gap={0}
         horizontalSpacing={0}
@@ -202,7 +213,7 @@ export default function FeedScreen() {
         <EmptyState
           icon="newspaper-outline"
           title="No posts yet"
-          message="Join a club or follow coaches to see posts in your feed."
+          message="Connect with friends or join a club to see posts in your feed."
         />
       </PageContainer>
     );
@@ -211,7 +222,7 @@ export default function FeedScreen() {
   // ─── Success ───────────────────────────────────────────────────
   return (
     <PageContainer
-      header={<ScreenHeader title="Feed" subtitle="Latest updates" />}
+      header={header}
       scrollable={false}
       gap={0}
       horizontalSpacing={0}
@@ -256,18 +267,18 @@ const styles = StyleSheet.create({
   scrollContent: {
     paddingBottom: Spacing.xl * 2,
   },
+  feedHeader: {
+    paddingTop: Spacing.xs,
+    paddingBottom: Spacing.sm,
+    gap: Spacing.sm,
+  },
   clubsSection: {
     paddingHorizontal: Spacing.md,
-    paddingTop: Spacing.sm,
-  },
-  feedSection: {
-    padding: Spacing.md,
-    gap: Spacing.md,
   },
   feedCardRow: {
     paddingHorizontal: Spacing.md,
   },
   feedItemSeparator: {
-    height: Spacing.md,
+    height: Spacing.sm,
   },
 });

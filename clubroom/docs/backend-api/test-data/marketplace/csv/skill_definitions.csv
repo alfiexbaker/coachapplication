@@ -1,0 +1,6 @@
+active,category,code,createdAt,description,id,name,updatedAt
+true,Technical,FIRST_TOUCH,2025-09-04T09:00:00.000Z,First Touch definition for seeded marketplace testing.,skd_7cd9616e-c48d-798c-97de-91cd5068df62,First Touch,2026-02-01T09:00:00.000Z
+true,Technical,PASSING,2025-09-04T09:00:00.000Z,Passing definition for seeded marketplace testing.,skd_38fd3ddd-16e4-7245-a603-4a141c4bcc7a,Passing,2026-02-01T09:00:00.000Z
+true,Technical,SHOOTING,2025-09-04T09:00:00.000Z,Shooting definition for seeded marketplace testing.,skd_81ebd1b9-6b29-724d-8406-622dd01f77b6,Shooting,2026-02-01T09:00:00.000Z
+true,Tactical,POSITIONING,2025-09-04T09:00:00.000Z,Positioning definition for seeded marketplace testing.,skd_32e5101d-fbc0-7384-92b0-0836ed0924a5,Positioning,2026-02-01T09:00:00.000Z
+true,Mental,COMMUNICATION,2025-09-04T09:00:00.000Z,Communication definition for seeded marketplace testing.,skd_efc246cc-6af4-736d-9b2e-3bb1cf37d4d4,Communication,2026-02-01T09:00:00.000Z

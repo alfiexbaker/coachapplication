@@ -24,6 +24,7 @@ enum RoleCode {
   coach
   parent
   athlete
+  member
   club_admin
   club_staff
   support

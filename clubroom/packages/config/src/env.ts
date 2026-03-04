@@ -1,5 +1,17 @@
 import { z } from 'zod';
 
+const boolish = z.preprocess((value) => {
+  if (value === undefined || value === null || value === '') return undefined;
+  if (typeof value === 'boolean') return value;
+  if (typeof value === 'number') return value !== 0;
+  if (typeof value === 'string') {
+    const normalized = value.trim().toLowerCase();
+    if (['1', 'true', 'yes', 'on'].includes(normalized)) return true;
+    if (['0', 'false', 'no', 'off'].includes(normalized)) return false;
+  }
+  return value;
+}, z.boolean());
+
 const envSchema = z.object({
   NODE_ENV: z.enum(['development', 'test', 'production']).default('development'),
   API_HOST: z.string().default('127.0.0.1'),
@@ -13,6 +25,12 @@ const envSchema = z.object({
   S3_ENDPOINT: z.string().url().optional(),
   S3_BUCKET_PRIVATE: z.string().optional(),
   S3_REGION: z.string().optional(),
+
+  API_MARKETPLACE_SEED_ENABLED: boolish.default(false),
+  API_DATA_BACKEND: z.enum(['seed', 'db']).default('seed'),
+  API_MARKETPLACE_SEED_OUTPUT_DIR: z
+    .string()
+    .default('docs/backend-api/test-data/marketplace'),
 
   LOG_LEVEL: z.enum(['fatal', 'error', 'warn', 'info', 'debug', 'trace']).default('info'),
 });

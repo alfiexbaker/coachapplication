@@ -11,7 +11,6 @@ import { StyleSheet, View } from 'react-native';
 import { ClubHeader, ClubStatsRow } from '@/components/club/ClubHeader';
 import { ClubAdminActions } from '@/components/club/club-admin-actions';
 import { ClubFeedFilters } from '@/components/club/club-feed-filters';
-import { JoinClubCard } from '@/components/club/JoinClubCard';
 import { MembersPanel } from '@/components/club/MembersPanel';
 import { SessionsPanel } from '@/components/club/SessionsPanel';
 import { MatchesPanel } from '@/components/club/MatchesPanel';
@@ -31,7 +30,7 @@ export const ClubFeedListHeader = memo(function ClubFeedListHeader({
 }: ClubFeedListHeaderProps) {
   return (
     <>
-      <View style={styles.section}>
+      <View style={styles.headerSection}>
         <ClubHeader
           club={hub.club!}
           membership={hub.membership!}
@@ -51,10 +50,6 @@ export const ClubFeedListHeader = memo(function ClubFeedListHeader({
         showMembersSection={hub.showMembersSection}
         onToggleMembersSection={onToggleMembers}
       />
-
-      <View style={styles.section}>
-        <JoinClubCard isCoach={hub.isCoach} onJoin={hub.handleJoinWithCode} />
-      </View>
 
       <TeamsPanel
         squads={hub.squads}
@@ -89,6 +84,10 @@ export const ClubFeedListHeader = memo(function ClubFeedListHeader({
 });
 
 const styles = StyleSheet.create({
-  section: { padding: Spacing.md },
+  headerSection: {
+    paddingHorizontal: Spacing.md,
+    paddingTop: Spacing.xs,
+    paddingBottom: Spacing.sm,
+  },
   carouselSection: { paddingVertical: Spacing.sm },
 });

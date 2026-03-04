@@ -28,6 +28,9 @@ This plan translates the approved architecture into buildable sprints for a new 
 - `Sprint 09`: Community, messaging, notifications, referrals
 - `Sprint 10`: Safeguarding, admin/support, retention/legal holds
 - `Sprint 11`: Hardening, performance, recovery, launch gates
+- `Sprint 12`: Linked marketplace fixture data + CSV round-trip + integration cutover prep
+- `Sprint 13`: Wave 1 (`P0`) endpoint implementation on linked fixture runtime
+- `Sprint 14`: Wave 2-4 (`P1/P2/P3`) endpoint implementation + role smoke completion
 
 ## Delivery Principles (all sprints)
 - Contracts first, handlers second

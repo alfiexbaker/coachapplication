@@ -41,8 +41,8 @@ export const GroupThreadsSection = memo(function GroupThreadsSection({
   onThreadPress,
 }: GroupThreadsSectionProps) {
   const handleEmptyAction = useCallback(() => {
-    router.push(Routes.CLUB_HUB);
-  }, []);
+    router.push(isCoach ? Routes.CLUB_HUB : Routes.MY_CLUBS);
+  }, [isCoach]);
 
   return (
     <>

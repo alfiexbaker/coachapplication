@@ -4,10 +4,11 @@ import { Radii, Spacing, Typography } from '@/constants/theme';
 
 export const styles = StyleSheet.create({
   filterScroll: {
-    marginTop: Spacing.md,
+    marginTop: 0,
   },
   filterContainer: {
     paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.xxs,
     gap: Spacing.xs,
   },
   filterTab: {

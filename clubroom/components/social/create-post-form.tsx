@@ -85,7 +85,7 @@ export const CreatePostForm = memo(function CreatePostForm({
         >
           <Ionicons name="close" size={24} color={palette.foreground} />
         </Clickable>
-        <ThemedText type="defaultSemiBold">New Personal Post</ThemedText>
+        <ThemedText type="defaultSemiBold">New Friend Post</ThemedText>
         <Clickable
           onPress={onPost}
           disabled={!canPost}
@@ -127,9 +127,9 @@ export const CreatePostForm = memo(function CreatePostForm({
           >
             <Ionicons name="person-circle-outline" size={24} color={palette.success} />
             <Column flex>
-              <ThemedText type="defaultSemiBold">Personal Feed</ThemedText>
+              <ThemedText type="defaultSemiBold">Friend Feed</ThemedText>
               <ThemedText style={{ color: palette.muted, ...Typography.caption }}>
-                Visible to parents who have had sessions with you
+                Visible to friends you connect with (parents and coaches)
               </ThemedText>
             </Column>
           </Row>
@@ -193,7 +193,7 @@ export const CreatePostForm = memo(function CreatePostForm({
           <View style={styles.section}>
             <TextInput
               style={[styles.bodyInput, { color: palette.text }]}
-              placeholder="Share an update, tip, or recap with your athletes..."
+              placeholder="Share a clip, result, or progress update..."
               placeholderTextColor={palette.muted}
               value={body}
               onChangeText={onBodyChange}
@@ -203,7 +203,7 @@ export const CreatePostForm = memo(function CreatePostForm({
               maxLength={1000}
             />
             <ThemedText style={[styles.bodyHelper, { color: bodyError ? palette.error : palette.muted }]}>
-              {bodyError ?? 'Share updates, tips, or celebration with your club'}
+              {bodyError ?? 'Share progress, clips, and milestones with your friends'}
             </ThemedText>
           </View>
 
@@ -220,7 +220,7 @@ export const CreatePostForm = memo(function CreatePostForm({
               <Ionicons name="shield-checkmark" size={18} color={palette.warning} />
               <Column flex>
                 <ThemedText style={[Typography.caption, { color: palette.warning }]}>
-                  Ensure you have photo/video consent for any athletes visible in this image
+                  Ensure you have consent from anyone visible before posting media
                 </ThemedText>
               </Column>
             </Row>

@@ -100,6 +100,16 @@ export const api = {
   useMock: getBool('USE_MOCK', true),
 } as const;
 
+/**
+ * Pre-API "live feel" runtime controls.
+ * Keeps mock mode but continuously hydrates/refreshes realistic activity.
+ */
+export const preApiLive = {
+  enabled: getBool('PRE_API_LIVE_MODE', isDevelopment),
+  seedOnAuth: getBool('PRE_API_LIVE_SEED_ON_AUTH', true),
+  pulseIntervalMs: Math.max(getNumber('PRE_API_LIVE_PULSE_INTERVAL_MS', 45000), 15000),
+} as const;
+
 // -----------------------------------------------------------------------------
 // Authentication Configuration
 // -----------------------------------------------------------------------------
@@ -192,6 +202,7 @@ export const config = {
   isDebug,
   features,
   api,
+  preApiLive,
   auth,
   storage,
   analytics,

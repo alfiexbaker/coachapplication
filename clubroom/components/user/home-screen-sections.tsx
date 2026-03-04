@@ -395,7 +395,7 @@ export const MyClubsSection = memo(function MyClubsSection({ clubs }: { clubs: C
         <ThemedText type="defaultSemiBold" style={styles.sectionTitle}>
           My Clubs
         </ThemedText>
-        <Clickable onPress={() => router.push(Routes.CLUB_HUB)}>
+        <Clickable onPress={() => router.push(Routes.MY_CLUBS)}>
           <ThemedText style={{ ...Typography.small, color: palette.tint }}>View All</ThemedText>
         </Clickable>
       </Row>

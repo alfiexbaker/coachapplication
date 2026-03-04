@@ -1,0 +1,2 @@
+constraintsJson,createdAt,expiresAt,granteeUserId,grantorUserId,id,metadataJson,resourceId,resourceType,revokedAt,revokedByUserId,revokeReason,updatedAt
+"{""athleteId"":""ath_7df7ec13-e136-7525-985f-dec069fc983f""}",2026-02-28T09:00:00.000Z,2026-05-02T09:00:00.000Z,usr_f65e0d95-687e-75b7-8d3a-16781c39c131,usr_65972cc3-8f9b-7199-b867-7df5b7faf34b,grt_fb50556e-6a5e-7001-a373-812c28de9303,"{""reason"":""Coach shadowing handover""}",snt_c50b3a78-3959-7ab7-9ab2-ee6541c24cf1,session_note,,,,2026-02-28T09:00:00.000Z

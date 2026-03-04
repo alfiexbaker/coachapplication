@@ -123,12 +123,12 @@ function formatNextSession(dateStr: string): string {
 
 const styles = StyleSheet.create({
   container: {
-    paddingVertical: Spacing.md,
+    paddingVertical: Spacing.sm,
   },
   header: {
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: Spacing.lg,
+    paddingHorizontal: Spacing.md,
     marginBottom: Spacing.sm,
   },
   addButton: {
@@ -140,7 +140,7 @@ const styles = StyleSheet.create({
   },
   addButtonText: { ...Typography.smallSemiBold },
   scrollContent: {
-    paddingHorizontal: Spacing.lg,
+    paddingHorizontal: Spacing.md,
     gap: Spacing.sm,
   },
   teamCard: {
@@ -181,7 +181,7 @@ const styles = StyleSheet.create({
   },
   manageText: { ...Typography.micro },
   emptyCard: {
-    marginHorizontal: Spacing.lg,
+    marginHorizontal: Spacing.md,
     padding: Spacing.lg,
     alignItems: 'center',
     gap: Spacing.sm,
