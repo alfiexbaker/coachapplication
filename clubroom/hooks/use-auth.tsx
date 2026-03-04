@@ -282,6 +282,18 @@ const DEMO_USERS: DemoUser[] = [
         relationshipType: 'PARENT_CHILD',
         addedAt: '2020-01-01',
       },
+      {
+        childId: 'child_user1_a',
+        childName: 'Freya Barton',
+        relationshipType: 'PARENT_CHILD',
+        addedAt: '2024-01-01',
+      },
+      {
+        childId: 'child_user1_b',
+        childName: 'Luca Barton',
+        relationshipType: 'PARENT_CHILD',
+        addedAt: '2024-01-01',
+      },
     ],
   },
   {
@@ -918,7 +930,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
 
     // Reset navigation back to the login screen
-    router.dismissAll();
     router.replace(Routes.ROOT);
   }, [currentUser]);
 

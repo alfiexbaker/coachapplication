@@ -151,7 +151,13 @@ export const eventRsvpService = {
 
       // Trigger RSVP notification to event creator (coach)
       const displayName = userName?.trim() || (await resolveUserName(userId, 'A parent'));
-      await notificationTriggers.eventRsvp(displayName, event.title, status, event.createdBy);
+      if (event.createdBy?.trim()) {
+        await notificationTriggers.eventRsvp(displayName, event.title, status, event.createdBy);
+      } else {
+        logger.warn('Event RSVP notification skipped: missing event creator recipient', {
+          eventId: event.id,
+        });
+      }
 
       return ok(attendee);
     }

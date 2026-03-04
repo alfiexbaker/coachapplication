@@ -10,6 +10,7 @@ import { api } from '@/constants/config';
 import { STORAGE_KEYS } from '@/constants/storage-keys';
 import { createLogger } from '@/utils/logger';
 import { notificationTriggers } from '../notification-trigger';
+import { userService } from '../user-service';
 import { familyPermissionService } from './family-permission-service';
 import { emitTyped, ServiceEvents } from '@/services/event-bus';
 import {
@@ -346,8 +347,28 @@ class FamilyRelationshipService {
       await this.saveAccounts(accounts);
     }
 
-    // Send notification
-    await notificationTriggers.guardianInvited(account?.name || 'Family');
+    // Send notification to the invitee when they already have an account.
+    const inviteeLookup = await userService.searchUsers(inviteeEmail);
+    if (inviteeLookup.success) {
+      const normalizedEmail = inviteeEmail.toLowerCase();
+      const inviteeUser = inviteeLookup.data.find(
+        (user) => user.email.trim().toLowerCase() === normalizedEmail,
+      );
+      if (inviteeUser?.id) {
+        await notificationTriggers.guardianInvited(account?.name || 'Family', inviteeUser.id);
+      } else {
+        logger.debug('guardian_invite_notification_skipped_no_recipient', {
+          familyId,
+          inviteeEmail: normalizedEmail,
+        });
+      }
+    } else {
+      logger.warn('guardian_invite_notification_lookup_failed', {
+        familyId,
+        inviteeEmail,
+        error: inviteeLookup.error,
+      });
+    }
 
     logger.success('GuardianInvited', { familyId, inviteeEmail, role });
 

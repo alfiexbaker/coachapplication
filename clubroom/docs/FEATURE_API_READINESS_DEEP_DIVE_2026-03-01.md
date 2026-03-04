@@ -3,9 +3,24 @@
 **Date:** 2026-03-01  
 **Repo:** `/Users/tubton/Desktop/coachapplication/clubroom`
 
-## 1) Straight Verdict
+> ## Update (2026-03-04)
+>
+> This document contains March 1 baseline numbers. Use the values below as the current state.
+>
+> - UI flow runner: **80/80 flows executed, 0 high, 1 medium**
+> - Routable public surfaces: **169 normalized route paths** (`183` route files in `app/`)
+> - Exact-path flow coverage: **34/169 (~20.1%)**
+> - Static UI audit: **pass** (no static layout risk findings)
+> - Main app typecheck: **failing (4 errors)**
+> - API `/v1` handlers implemented in `apps/api`: **40**
+> - API package quality gates: `npm --prefix apps/api run typecheck` and `npm --prefix apps/api run test` **pass** (`26` tests)
+> - API auth/runtime status: still uses `auth-placeholder` and seed/db gating (`API_DATA_BACKEND`)
+>
+> Current full reference: `docs/FULL_AUDIT_2026-03-04.md`.
 
-**Not ready for API cutover yet.**
+## 1) Straight Verdict (March 1 Baseline)
+
+**Not ready for API cutover yet** (baseline result; see 2026-03-04 update above for latest metrics).
 
 The app is strong on visible flow execution for core role journeys, but backend/API implementation is still early scaffold stage.
 

@@ -31,6 +31,7 @@ describe('userService', () => {
   beforeEach(async () => {
     await apiClient.remove(STORAGE_KEYS.USERS);
     await apiClient.remove(STORAGE_KEYS.AUTH_USER);
+    await apiClient.remove(STORAGE_KEYS.CHILDREN_PROFILES);
     eventBus.clearAll();
   });
 
@@ -62,6 +63,28 @@ describe('userService', () => {
     if (result.success) return;
 
     assert.equal(result.error.code, 'NOT_FOUND');
+  });
+
+  it('resolves child profiles as users when users storage has no child record', async () => {
+    await apiClient.set(STORAGE_KEYS.USERS, USERS_SEED);
+    await apiClient.set(STORAGE_KEYS.CHILDREN_PROFILES, [
+      {
+        id: 'child_generated_1',
+        firstName: 'Freya',
+        lastName: 'Barton',
+        nickname: 'F',
+        dateOfBirth: '2014-02-11',
+      },
+    ]);
+
+    const result = await userService.getUserById('child_generated_1');
+
+    assert.equal(result.success, true);
+    if (!result.success) return;
+    assert.equal(result.data.id, 'child_generated_1');
+    assert.equal(result.data.name, 'F');
+    assert.equal(result.data.role, 'USER');
+    assert.equal(result.data.dateOfBirth, '2014-02-11');
   });
 
   it('resolves canonical account aliases (coach1 -> coach-1)', async () => {

@@ -18,19 +18,12 @@ import {
 } from './discover-sections';
 import { ChildSwitcher, type SwitcherChild } from '@/components/family/child-switcher';
 import { LoadingState, ErrorState, EmptyState } from '@/components/ui/screen-states';
-import { SessionDetailModal } from '@/components/sessions/session-detail-modal';
 import { Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
 import { useChildContext } from '@/hooks/use-child-context';
 import { useBookingsDiscover } from '@/hooks/use-bookings-discover';
-import type { SessionOffering } from '@/constants/types';
-import { useState } from 'react';
 
-interface DiscoverFeedProps {
-  /** externally controlled — not used here but needed for refresh coordination */
-}
-
-export const DiscoverFeed = memo(function DiscoverFeed(_props: DiscoverFeedProps) {
+export const DiscoverFeed = memo(function DiscoverFeed() {
   const { colors: palette } = useTheme();
   const {
     children: contextChildren,
@@ -54,26 +47,10 @@ export const DiscoverFeed = memo(function DiscoverFeed(_props: DiscoverFeedProps
     handleAcceptInvite,
     handleDeclineInvite,
     handleCoachPress,
+    handleOfferingPress,
     handleGroupSessionPress,
     handleFindCoachPress,
   } = useBookingsDiscover();
-
-  const [selectedOffering, setSelectedOffering] = useState<SessionOffering | null>(null);
-  const [showDetailModal, setShowDetailModal] = useState(false);
-
-  const handleOfferingPress = useCallback((offering: SessionOffering) => {
-    setSelectedOffering(offering);
-    setShowDetailModal(true);
-  }, []);
-
-  const handleModalClose = useCallback(() => {
-    setShowDetailModal(false);
-    setSelectedOffering(null);
-  }, []);
-
-  const handleModalUpdate = useCallback(() => {
-    onRefresh();
-  }, [onRefresh]);
 
   const handleChildSelect = useCallback(
     (childId: string) => {
@@ -128,73 +105,51 @@ export const DiscoverFeed = memo(function DiscoverFeed(_props: DiscoverFeedProps
     : [];
 
   return (
-    <>
-      <ScrollView
-        style={styles.scroll}
-        contentContainerStyle={styles.content}
-        showsVerticalScrollIndicator={false}
-        refreshControl={
-          <RefreshControl
-            refreshing={refreshing}
-            onRefresh={onRefresh}
-            tintColor={palette.tint}
+    <ScrollView
+      style={styles.scroll}
+      contentContainerStyle={styles.content}
+      showsVerticalScrollIndicator={false}
+      refreshControl={
+        <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={palette.tint} />
+      }
+    >
+      {/* Child switcher */}
+      {isParent && isMultiChild && (
+        <View style={styles.childSwitcher}>
+          <ChildSwitcher
+            options={switcherOptions}
+            selectedId={activeChildId ?? undefined}
+            onSelect={handleChildSelect}
+            activeChildId={activeChildId}
           />
-        }
-      >
-        {/* Child switcher */}
-        {isParent && isMultiChild && (
-          <View style={styles.childSwitcher}>
-            <ChildSwitcher
-              options={switcherOptions}
-              selectedId={activeChildId ?? undefined}
-              onSelect={handleChildSelect}
-              activeChildId={activeChildId}
-            />
-          </View>
-        )}
+        </View>
+      )}
 
-        <Column gap="md">
-          {/* 1. Action Required — Pending Invites */}
-          <PendingInvitesSection
-            invites={pendingInvites}
-            onAccept={handleAcceptInvite}
-            onDecline={handleDeclineInvite}
-          />
+      <Column gap="md">
+        {/* 1. Action Required — Pending Invites */}
+        <PendingInvitesSection
+          invites={pendingInvites}
+          onAccept={handleAcceptInvite}
+          onDecline={handleDeclineInvite}
+        />
 
-          {/* 2. This Week */}
-          <ThisWeekSection
-            offerings={thisWeekOfferings}
-            onOfferingPress={handleOfferingPress}
-          />
+        {/* 2. This Week */}
+        <ThisWeekSection offerings={thisWeekOfferings} onOfferingPress={handleOfferingPress} />
 
-          {/* 3. Your Coaches */}
-          <YourCoachesSection
-            coaches={familiarCoaches}
-            onCoachPress={handleCoachPress}
-            onFindCoachPress={handleFindCoachPress}
-          />
+        {/* 3. Your Coaches */}
+        <YourCoachesSection
+          coaches={familiarCoaches}
+          onCoachPress={handleCoachPress}
+          onFindCoachPress={handleFindCoachPress}
+        />
 
-          {/* 4. Club Training */}
-          <ClubTrainingSection
-            sessions={clubSessions}
-            onSessionPress={handleGroupSessionPress}
-          />
+        {/* 4. Club Training */}
+        <ClubTrainingSection sessions={clubSessions} onSessionPress={handleGroupSessionPress} />
 
-          {/* 5. Open Sessions */}
-          <OpenSessionsSection
-            offerings={openSessions}
-            onOfferingPress={handleOfferingPress}
-          />
-        </Column>
-      </ScrollView>
-
-      <SessionDetailModal
-        visible={showDetailModal}
-        offering={selectedOffering}
-        onClose={handleModalClose}
-        onUpdate={handleModalUpdate}
-      />
-    </>
+        {/* 5. Open Sessions */}
+        <OpenSessionsSection offerings={openSessions} onOfferingPress={handleOfferingPress} />
+      </Column>
+    </ScrollView>
   );
 });
 

@@ -141,6 +141,7 @@ export interface PentagonData {
   attributes: PentagonAttribute[];
   universalSkills: UniversalSkillRating[];
   deltas: Record<string, number>;
+  sessionCount: number;
   sessionSnapshots: Array<{
     id: string;
     label: string;

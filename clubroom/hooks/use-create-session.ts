@@ -1266,8 +1266,11 @@ export function useCreateSession(): CreateSessionState & CreateSessionActions {
         });
       }
 
+      const newOfferingId = `session_${Date.now()}`;
       const newOffering: SessionOffering = {
-        id: `session_${Date.now()}`,
+        id: newOfferingId,
+        source: 'direct',
+        sourceEntityId: newOfferingId,
         coachId: ownerCoachId,
         clubId: ownerClubId,
         actingAs: resolvedActingAs,

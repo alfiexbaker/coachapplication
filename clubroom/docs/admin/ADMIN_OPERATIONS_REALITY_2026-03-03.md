@@ -3,11 +3,28 @@
 Date: 2026-03-03
 Scope: actual app behavior in this repo (routes + services + storage), not desired-state only.
 
+## Update: 2026-03-04
+
+Latest engineering audit (`docs/FULL_AUDIT_2026-03-04.md`) confirms:
+
+- `app/` route files: **183**
+- service files: **133**
+- test files: **199**
+- API `/v1` handlers in `apps/api`: **40**
+- role flow runner: **80/80 pass** (no failed flows; 1 medium console finding)
+
+Admin-specific reality is still fundamentally unchanged from 2026-03-03:
+
+- no unified internal support/moderation/fraud console
+- no immutable audit ledger operating in production path
+- no break-glass + step-up workflow implementation
+- API auth remains placeholder scaffold (`auth-placeholder`) pending production authn/authz hardening
+
 ## 1) What The App Actually Does Today
 
 At runtime, Clubroom is a multi-role app with broad product coverage and mock/local persistence:
-- 181 route files under `app/`
-- 132 service files under `services/`
+- 183 route files under `app/`
+- 133 service files under `services/`
 - 146 centralized storage keys in `constants/storage-keys.ts`
 - Primary persistence via `apiClient` + AsyncStorage keys
 
@@ -154,4 +171,3 @@ into a case-based operations console with strict staff role separation and immut
 Related planning docs:
 - `docs/admin/sprints/README.md`
 - `docs/admin/sprints/sprint-00.md` ... `sprint-09.md`
-

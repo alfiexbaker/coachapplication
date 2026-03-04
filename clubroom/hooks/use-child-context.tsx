@@ -260,10 +260,8 @@ export function ChildProvider({ children: reactChildren }: ChildProviderProps) {
 
       if (!mountedRef.current) return;
 
-      const profilesForReconciliation = isParentUser ? profiles : [];
-
       // Reconcile
-      const reconciled = reconcileChildren(childRefs, profilesForReconciliation);
+      const reconciled = reconcileChildren(childRefs, profiles);
       const withMembership = attachMembershipData(reconciled, squads, squadMembers);
       setChildInfos(withMembership);
 

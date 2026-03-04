@@ -22,6 +22,8 @@ import { apiClient } from '../api-client';
 import { api } from '@/constants/config';
 import { STORAGE_KEYS } from '@/constants/storage-keys';
 import type {
+  GroupSession,
+  SessionOffering,
   SessionInvite,
   SessionInviteType,
   TimeSlot,
@@ -233,6 +235,58 @@ async function resolveInviteTemplateContext(invite: SessionInvite): Promise<{
     sessionTemplateName: template.name,
     objectives: templateObjectives.length > 0 ? templateObjectives : fallbackObjectives,
   };
+}
+
+interface InviteLineageContext {
+  sessionSource?: 'direct' | 'event' | 'group';
+  sessionSourceEntityId?: string;
+  clubId?: string;
+  actingAs?: 'self' | 'club';
+  ownerCoachId?: string;
+  assigneeCoachId?: string;
+  createdByUserId?: string;
+  createdByRole?: SessionOffering['createdByRole'];
+}
+
+async function resolveInviteLineageContext(invite: SessionInvite): Promise<InviteLineageContext> {
+  if (!invite.existingSessionId) {
+    return {};
+  }
+
+  const [offerings, groupSessions] = await Promise.all([
+    apiClient.get<SessionOffering[]>(STORAGE_KEYS.SESSION_OFFERINGS, []),
+    apiClient.get<GroupSession[]>(STORAGE_KEYS.GROUP_SESSIONS, []),
+  ]);
+
+  const linkedOffering = offerings.find((offering) => offering.id === invite.existingSessionId);
+  if (linkedOffering) {
+    return {
+      sessionSource: linkedOffering.source ?? 'direct',
+      sessionSourceEntityId: linkedOffering.sourceEntityId ?? linkedOffering.id,
+      clubId: linkedOffering.clubId,
+      actingAs: linkedOffering.actingAs,
+      ownerCoachId: linkedOffering.ownerCoachId,
+      assigneeCoachId: linkedOffering.assigneeCoachId,
+      createdByUserId: linkedOffering.createdByUserId,
+      createdByRole: linkedOffering.createdByRole,
+    };
+  }
+
+  const linkedGroupSession = groupSessions.find((session) => session.id === invite.existingSessionId);
+  if (linkedGroupSession) {
+    return {
+      sessionSource: 'group',
+      sessionSourceEntityId: linkedGroupSession.id,
+      clubId: linkedGroupSession.clubId,
+      actingAs: linkedGroupSession.actingAs,
+      ownerCoachId: linkedGroupSession.ownerCoachId,
+      assigneeCoachId: linkedGroupSession.assigneeCoachId,
+      createdByUserId: linkedGroupSession.createdByUserId,
+      createdByRole: linkedGroupSession.createdByRole,
+    };
+  }
+
+  return {};
 }
 
 export async function loadFromStorage(): Promise<SessionInvite[]> {
@@ -541,7 +595,10 @@ export const sessionInviteService = {
         const [startHour, startMin] = startTime.split(':').map(Number);
         const [endHour, endMin] = endTime.split(':').map(Number);
         const durationMinutes = endHour * 60 + endMin - (startHour * 60 + startMin);
-        const templateContext = await resolveInviteTemplateContext(invite);
+        const [templateContext, lineageContext] = await Promise.all([
+          resolveInviteTemplateContext(invite),
+          resolveInviteLineageContext(invite),
+        ]);
 
         const bookingResult = await bookingService.createBooking({
           coachId: invite.coachId,
@@ -558,6 +615,14 @@ export const sessionInviteService = {
           serviceType: invite.sessionType,
           sessionTemplateId: invite.sessionTemplateId,
           sessionTemplateName: templateContext.sessionTemplateName,
+          sessionSource: lineageContext.sessionSource,
+          sessionSourceEntityId: lineageContext.sessionSourceEntityId,
+          clubId: lineageContext.clubId,
+          actingAs: lineageContext.actingAs,
+          ownerCoachId: lineageContext.ownerCoachId,
+          assigneeCoachId: lineageContext.assigneeCoachId,
+          createdByUserId: lineageContext.createdByUserId,
+          createdByRole: lineageContext.createdByRole,
           objectives: templateContext.objectives,
           price: invite.price,
           notes: invite.notes,
@@ -891,7 +956,10 @@ export const sessionInviteService = {
       const [startHour, startMin] = startTime.split(':').map(Number);
       const [endHour, endMin] = endTime.split(':').map(Number);
       const durationMinutes = endHour * 60 + endMin - (startHour * 60 + startMin);
-      const templateContext = await resolveInviteTemplateContext(invite);
+      const [templateContext, lineageContext] = await Promise.all([
+        resolveInviteTemplateContext(invite),
+        resolveInviteLineageContext(invite),
+      ]);
 
       const bookingResult = await bookingService.createBooking({
         coachId: invite.coachId,
@@ -908,6 +976,14 @@ export const sessionInviteService = {
         serviceType: invite.sessionType,
         sessionTemplateId: invite.sessionTemplateId,
         sessionTemplateName: templateContext.sessionTemplateName,
+        sessionSource: lineageContext.sessionSource,
+        sessionSourceEntityId: lineageContext.sessionSourceEntityId,
+        clubId: lineageContext.clubId,
+        actingAs: lineageContext.actingAs,
+        ownerCoachId: lineageContext.ownerCoachId,
+        assigneeCoachId: lineageContext.assigneeCoachId,
+        createdByUserId: lineageContext.createdByUserId,
+        createdByRole: lineageContext.createdByRole,
         objectives: templateContext.objectives,
         price: invite.price,
         notes: invite.notes,
@@ -1160,6 +1236,7 @@ export const sessionInviteService = {
     ]);
     const acceptedWeeks = weekAcceptances.filter((w) => w.accepted);
     const declinedWeeks = weekAcceptances.filter((w) => !w.accepted);
+    const lineageContext = await resolveInviteLineageContext(invite);
 
     if (acceptedWeeks.length === 0) {
       // Decline the entire invite
@@ -1186,6 +1263,14 @@ export const sessionInviteService = {
       location: acceptedWeeks[0].location ?? 'Coach preferred location',
       patternLabel: `${acceptedWeeks.length} of ${weekAcceptances.length} weeks`,
       sessionInviteId: invite.id,
+      sessionSource: lineageContext.sessionSource,
+      sessionSourceEntityId: lineageContext.sessionSourceEntityId,
+      clubId: lineageContext.clubId,
+      actingAs: lineageContext.actingAs,
+      ownerCoachId: lineageContext.ownerCoachId,
+      assigneeCoachId: lineageContext.assigneeCoachId,
+      createdByUserId: lineageContext.createdByUserId,
+      createdByRole: lineageContext.createdByRole,
       notes: invite.notes,
     });
 

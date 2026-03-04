@@ -29,15 +29,20 @@ import { useTheme } from '@/hooks/useTheme';
 import { useBookingDetail } from '@/hooks/use-booking-detail';
 import { useAuth } from '@/hooks/use-auth';
 import { cancellationService } from '@/services/cancellation-service';
-import { apiClient } from '@/services/api-client';
-import { getBookingSummaryClientName, getBookingSummaryCoachName } from '@/utils/booking-display';
+import { invoiceService } from '@/services/invoice-service';
+import {
+  getBookingStatusLabel,
+  getBookingSummaryClientName,
+  getBookingSummaryCoachName,
+} from '@/utils/booking-display';
 import { Routes } from '@/navigation/routes';
 import { useRequiredParam } from '@/hooks/use-required-param';
+import { getStoredCoachReviews, isReviewForBookingByUser } from '@/services/review-sync-service';
 
-interface StoredReview {
-  bookingId?: string;
-  userId?: string;
-  parentId?: string;
+interface PaymentSnapshot {
+  amount: number | null;
+  invoiceStatus: 'DRAFT' | 'SENT' | 'PAID' | 'VOID' | 'WRITTEN_OFF' | 'NONE';
+  dueDate?: string;
 }
 
 export default function SessionDetailScreen() {
@@ -60,8 +65,13 @@ export default function SessionDetailScreen() {
   } = useBookingDetail(bookingId);
   const coachName = booking ? getBookingSummaryCoachName(booking) : 'Coach';
   const childName = booking ? getBookingSummaryClientName(booking) : 'Athlete';
+  const statusLabel = booking ? getBookingStatusLabel(booking.status, { isCoachView: isCoach }) : '';
   const [cancellationPolicy, setCancellationPolicy] = useState<import('@/constants/types').CancellationPolicy | null>(null);
   const [hasSubmittedReview, setHasSubmittedReview] = useState(false);
+  const [paymentSnapshot, setPaymentSnapshot] = useState<PaymentSnapshot>({
+    amount: null,
+    invoiceStatus: 'NONE',
+  });
 
   const handleGoBack = useCallback(() => router.back(), []);
 
@@ -82,6 +92,39 @@ export default function SessionDetailScreen() {
     };
   }, [booking?.coachId]);
 
+  useEffect(() => {
+    const fallbackAmount = typeof booking?.price === 'number' ? booking.price : null;
+    if (!booking?.id) {
+      setPaymentSnapshot({ amount: fallbackAmount, invoiceStatus: 'NONE' });
+      return;
+    }
+
+    let isMounted = true;
+    void invoiceService
+      .getInvoiceByBookingId(booking.id)
+      .then((invoice) => {
+        if (!isMounted) return;
+        if (!invoice) {
+          setPaymentSnapshot({ amount: fallbackAmount, invoiceStatus: 'NONE' });
+          return;
+        }
+        setPaymentSnapshot({
+          amount: typeof invoice.total === 'number' ? invoice.total : fallbackAmount,
+          invoiceStatus: invoice.status,
+          dueDate: invoice.dueDate,
+        });
+      })
+      .catch(() => {
+        if (isMounted) {
+          setPaymentSnapshot({ amount: fallbackAmount, invoiceStatus: 'NONE' });
+        }
+      });
+
+    return () => {
+      isMounted = false;
+    };
+  }, [booking?.id, booking?.price]);
+
   const loadReviewStatus = useCallback(async () => {
     if (!bookingId || isCoach || booking?.status !== 'Completed') {
       setHasSubmittedReview(false);
@@ -89,15 +132,9 @@ export default function SessionDetailScreen() {
     }
 
     try {
-      const reviews = await apiClient.get<StoredReview[]>('coach_reviews', []);
+      const reviews = await getStoredCoachReviews();
       const alreadyReviewed = reviews.some((review) => {
-        if (review.bookingId !== bookingId) return false;
-        if (!currentUser?.id) return true;
-        return (
-          review.userId === currentUser.id ||
-          review.parentId === currentUser.id ||
-          (!review.userId && !review.parentId)
-        );
+        return isReviewForBookingByUser(review, bookingId, currentUser?.id);
       });
       setHasSubmittedReview(alreadyReviewed);
     } catch {
@@ -191,7 +228,7 @@ export default function SessionDetailScreen() {
             <ThemedText type="title" style={styles.flex1} numberOfLines={1}>
               {booking.service}
             </ThemedText>
-            <StatusBadge status={booking.status} />
+            <StatusBadge status={booking.status} label={statusLabel} />
           </Row>
         </ThemedView>
 
@@ -222,7 +259,13 @@ export default function SessionDetailScreen() {
         />
         <LocationCard locationLabel={booking.locationLabel} />
         <BookingWeatherCard locationLabel={booking.locationLabel} bookingStartIso={booking.start} />
-        <PaymentCard showDemoIndicator={!process.env.EXPO_PUBLIC_STRIPE_ENABLED} />
+        <PaymentCard
+          amount={paymentSnapshot.amount}
+          invoiceStatus={paymentSnapshot.invoiceStatus}
+          dueDate={paymentSnapshot.dueDate}
+          isCoachView={isCoach}
+          onPressAction={isCoach ? () => router.push(Routes.EARNINGS) : handlers.messageCoach}
+        />
         {booking.coachId && (
           <CancellationPolicyCard coachId={booking.coachId} policy={cancellationPolicy ?? undefined} />
         )}
@@ -251,16 +294,18 @@ export default function SessionDetailScreen() {
           coachName={coachName}
           coachPhotoUrl={formatted.coachPhotoUrl}
         />
-        <BookingOwnershipCard
-          actingAs={booking.actingAs}
-          clubId={booking.clubId}
-          ownerCoachName={booking.ownerCoachName}
-          assigneeCoachName={booking.assigneeCoachName}
-          createdByName={booking.createdByName}
-          createdByRole={booking.createdByRole}
-          createdAt={booking.createdAt}
-          bookingStartIso={booking.start}
-        />
+        {isCoach ? (
+          <BookingOwnershipCard
+            actingAs={booking.actingAs}
+            clubId={booking.clubId}
+            ownerCoachName={booking.ownerCoachName}
+            assigneeCoachName={booking.assigneeCoachName}
+            createdByName={booking.createdByName}
+            createdByRole={booking.createdByRole}
+            createdAt={booking.createdAt}
+            bookingStartIso={booking.start}
+          />
+        ) : null}
         {/* Athlete Card (coach view, 1-on-1 sessions) */}
         {!booking.isGroupSession && booking.clientId && isCoach && (
           <BookingAthleteCard

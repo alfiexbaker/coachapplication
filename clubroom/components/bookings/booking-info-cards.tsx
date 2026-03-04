@@ -21,6 +21,7 @@ import { useTheme } from '@/hooks/useTheme';
 import { useToast } from '@/components/ui/toast';
 import { createLogger } from '@/utils/logger';
 import { openLocationInMaps } from '@/utils/map-links';
+import { coachService } from '@/services/coach-service';
 
 type WeatherTone = 'sunny' | 'cloudy' | 'rainy' | 'storm' | 'snow' | 'unknown';
 
@@ -313,10 +314,79 @@ export const LocationCard = memo(function LocationCard({ locationLabel }: Locati
 
 export const PaymentCard = memo(function PaymentCard({
   showDemoIndicator = false,
+  amount = null,
+  invoiceStatus = 'NONE',
+  dueDate,
+  isCoachView = false,
+  onPressAction,
 }: {
   showDemoIndicator?: boolean;
+  amount?: number | null;
+  invoiceStatus?: 'DRAFT' | 'SENT' | 'PAID' | 'VOID' | 'WRITTEN_OFF' | 'NONE';
+  dueDate?: string;
+  isCoachView?: boolean;
+  onPressAction?: () => void;
 }) {
   const { colors: palette } = useTheme();
+  const amountLabel =
+    typeof amount === 'number' && Number.isFinite(amount)
+      ? `£${amount.toFixed(2)}`
+      : 'Amount TBC';
+  const dueDateLabel = useMemo(() => {
+    if (!dueDate) return null;
+    const parsed = new Date(dueDate);
+    if (Number.isNaN(parsed.getTime())) return null;
+    return parsed.toLocaleDateString('en-GB', {
+      day: 'numeric',
+      month: 'short',
+      year: 'numeric',
+    });
+  }, [dueDate]);
+  const statusMeta = useMemo(() => {
+    if (invoiceStatus === 'PAID') {
+      return {
+        label: 'Paid',
+        tone: palette.success,
+      };
+    }
+    if (invoiceStatus === 'SENT') {
+      return {
+        label: 'Awaiting payment',
+        tone: palette.warning,
+      };
+    }
+    if (invoiceStatus === 'DRAFT') {
+      return {
+        label: 'Draft invoice',
+        tone: palette.info,
+      };
+    }
+    if (invoiceStatus === 'VOID' || invoiceStatus === 'WRITTEN_OFF') {
+      return {
+        label: 'Not collectible',
+        tone: palette.muted,
+      };
+    }
+    return {
+      label: 'Direct payment',
+      tone: palette.tint,
+    };
+  }, [invoiceStatus, palette.info, palette.muted, palette.success, palette.tint, palette.warning]);
+  const helperText = useMemo(() => {
+    if (invoiceStatus === 'PAID') {
+      return isCoachView
+        ? 'Marked paid in your reconciler.'
+        : 'Marked paid by your coach.';
+    }
+    if (isCoachView) {
+      return 'Families pay you directly. Track status in your earnings reconciler.';
+    }
+    if (dueDateLabel) {
+      return `Pay coach directly using shared details. Due by ${dueDateLabel}.`;
+    }
+    return 'Pay coach directly using the details they shared.';
+  }, [dueDateLabel, invoiceStatus, isCoachView]);
+  const actionLabel = onPressAction ? (isCoachView ? 'Open reconciler' : 'Message coach') : null;
 
   return (
     <SurfaceCard style={styles.card}>
@@ -334,18 +404,47 @@ export const PaymentCard = memo(function PaymentCard({
         <Column gap="xxs" style={styles.flex1}>
           <ThemedText style={styles.cardTitle}>Payment</ThemedText>
           <ThemedText type="subtitle" style={styles.cardValue}>
-            £65.00
+            {amountLabel}
           </ThemedText>
+          <View
+            style={[
+              styles.paymentStatusPill,
+              { backgroundColor: withAlpha(statusMeta.tone, 0.12) },
+            ]}
+          >
+            <ThemedText style={[styles.paymentStatusText, { color: statusMeta.tone }]}>
+              {statusMeta.label}
+            </ThemedText>
+          </View>
           <ThemedText
             style={[
               styles.cardSubtext,
               { color: showDemoIndicator ? palette.warning : palette.muted },
             ]}
           >
-            Pay coach directly (outside app). Coach tracks payment in the reconciler.
+            {helperText}
           </ThemedText>
         </Column>
       </Row>
+      {actionLabel ? (
+        <Clickable
+          onPress={onPressAction}
+          style={[
+            styles.paymentActionButton,
+            { backgroundColor: withAlpha(palette.tint, 0.08), borderColor: withAlpha(palette.tint, 0.22) },
+          ]}
+          accessibilityLabel={actionLabel}
+        >
+          <Ionicons
+            name={isCoachView ? 'wallet-outline' : 'chatbubble-ellipses-outline'}
+            size={16}
+            color={palette.tint}
+          />
+          <ThemedText style={[styles.paymentActionText, { color: palette.tint }]}>
+            {actionLabel}
+          </ThemedText>
+        </Clickable>
+      ) : null}
     </SurfaceCard>
   );
 });
@@ -459,6 +558,8 @@ export const BookingCoachCard = memo(function BookingCoachCard({
 }: CoachCardProps) {
   const { colors: palette } = useTheme();
   const { showToast } = useToast();
+  const [coachRating, setCoachRating] = useState<number | null>(null);
+  const [coachReviewCount, setCoachReviewCount] = useState<number | null>(null);
 
   const handlePress = useCallback(() => {
     if (!coachId) {
@@ -468,6 +569,42 @@ export const BookingCoachCard = memo(function BookingCoachCard({
     }
     router.push(Routes.profile(coachId));
   }, [bookingId, coachId, showToast]);
+
+  useEffect(() => {
+    if (!coachId) {
+      setCoachRating(null);
+      setCoachReviewCount(null);
+      return;
+    }
+
+    let isMounted = true;
+    void Promise.all([coachService.getCoach(coachId), coachService.getCoachReviews(coachId)])
+      .then(([coachResult, reviewsResult]) => {
+        if (!isMounted) return;
+
+        const reviews = reviewsResult.success ? reviewsResult.data : [];
+        const averageFromReviews =
+          reviews.length > 0
+            ? Math.round((reviews.reduce((sum, review) => sum + review.rating, 0) / reviews.length) * 10) / 10
+            : null;
+        const countFromReviews = reviews.length > 0 ? reviews.length : null;
+
+        const fallbackRating = coachResult.success ? coachResult.data.rating : null;
+        const fallbackCount = coachResult.success ? coachResult.data.reviewCount : null;
+
+        setCoachRating(averageFromReviews ?? fallbackRating);
+        setCoachReviewCount(countFromReviews ?? fallbackCount);
+      })
+      .catch(() => {
+        if (!isMounted) return;
+        setCoachRating(null);
+        setCoachReviewCount(null);
+      });
+
+    return () => {
+      isMounted = false;
+    };
+  }, [coachId]);
 
   return (
     <Clickable onPress={handlePress} accessibilityLabel={`View ${coachName} profile`}>
@@ -485,7 +622,13 @@ export const BookingCoachCard = memo(function BookingCoachCard({
             </ThemedText>
             <Row gap="xxs" align="center">
               <Ionicons name="star" size={14} color={palette.warning} />
-              <ThemedText style={styles.ratingText}>4.9 &middot; 127 reviews</ThemedText>
+              <ThemedText style={styles.ratingText}>
+                {typeof coachRating === 'number' && typeof coachReviewCount === 'number'
+                  ? coachReviewCount > 0
+                    ? `${coachRating.toFixed(1)} · ${coachReviewCount} review${coachReviewCount === 1 ? '' : 's'}`
+                    : 'No reviews yet'
+                  : 'Loading rating...'}
+              </ThemedText>
             </Row>
           </Column>
           <Ionicons name="chevron-forward" size={20} color={palette.muted} />
@@ -680,6 +823,30 @@ const styles = StyleSheet.create({
     marginBottom: Spacing.xxs,
   },
   demoBadgeText: { ...Typography.caption, fontWeight: '600' },
+  paymentStatusPill: {
+    alignSelf: 'flex-start',
+    paddingHorizontal: Spacing.xs,
+    paddingVertical: Spacing.micro,
+    borderRadius: Radii.pill,
+  },
+  paymentStatusText: {
+    ...Typography.caption,
+    fontWeight: '700',
+  },
+  paymentActionButton: {
+    alignSelf: 'flex-start',
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.xs,
+    borderWidth: 1,
+    borderRadius: Radii.pill,
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.xs,
+  },
+  paymentActionText: {
+    ...Typography.bodySmall,
+    fontWeight: '700',
+  },
   mapPreview: {
     height: 120,
     borderRadius: Radii.md,

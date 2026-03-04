@@ -213,6 +213,7 @@ export function usePentagonData(
         attributes,
         universalSkills,
         deltas,
+        sessionCount: positionFeedback.length,
         sessionSnapshots: snapshots,
         comparisonLabel,
       },

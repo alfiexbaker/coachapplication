@@ -1,5 +1,5 @@
 import { memo } from 'react';
-import { StyleSheet, View } from 'react-native';
+import { Pressable, StyleSheet, View } from 'react-native';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 
 import { Row } from '@/components/primitives/row';
@@ -65,28 +65,28 @@ function MessageBubbleComponent({
     <Animated.View
       entering={FadeInDown.delay(50).duration(400).springify()}
       style={[styles.wrapper, isOwnMessage ? styles.alignRight : styles.alignLeft]}
-      onTouchEnd={(e) => {
-        if (e.nativeEvent.touches.length === 0 && onLongPress) {
-          // fallback gesture for long-press equivalent on web
-          onLongPress();
-        }
-      }}
     >
       {showSenderLabel && senderLabel ? (
         <ThemedText style={[styles.senderLabel, { color: palette.muted }]}>
           {senderLabel}
         </ThemedText>
       ) : null}
-      <View style={[styles.bubble, { backgroundColor: bubbleColor }]}>
-        <ThemedText style={[styles.body, { color: textColor }]}>{message.body}</ThemedText>
-        {message.attachments?.map((attachment) => (
-          <AttachmentCard
-            key={attachment.id}
-            title={attachment.title}
-            subtitle={attachment.subtitle}
-          />
-        ))}
-      </View>
+      <Pressable
+        delayLongPress={550}
+        onLongPress={onLongPress}
+        disabled={!onLongPress}
+      >
+        <View style={[styles.bubble, { backgroundColor: bubbleColor }]}>
+          <ThemedText style={[styles.body, { color: textColor }]}>{message.body}</ThemedText>
+          {message.attachments?.map((attachment) => (
+            <AttachmentCard
+              key={attachment.id}
+              title={attachment.title}
+              subtitle={attachment.subtitle}
+            />
+          ))}
+        </View>
+      </Pressable>
       <Row
         align="center"
         gap="xs"

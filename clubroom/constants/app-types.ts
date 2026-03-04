@@ -92,6 +92,8 @@ export interface Booking {
   start?: string;
   price?: number;
   serviceType?: string;
+  sessionSource?: 'direct' | 'event' | 'group';
+  sessionSourceEntityId?: string;
   sessionTemplateId?: string;
   sessionTemplateName?: string;
   objectives?: string[];

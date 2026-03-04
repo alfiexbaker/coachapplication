@@ -14,8 +14,6 @@ export * from './invite-person-card';
 export * from './invite-details-card';
 export * from './invite-type-card';
 export * from './invite-slot-list';
-export * from './invite-counter-propose';
-export * from './invite-counter-display';
 export * from './invite-action-bar';
 export * from './invite-list-card';
 export * from './invite-filter-bar';

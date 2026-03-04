@@ -11,7 +11,7 @@ import { useTheme } from '@/hooks/useTheme';
 
 // Tab bar height constant for proper positioning
 const TAB_BAR_HEIGHT = 60;
-const DEFAULT_TOAST_DURATION = 4000;
+const DEFAULT_TOAST_DURATION = 2800;
 const UNDO_DURATION = 4000;
 
 interface ToastOptions {

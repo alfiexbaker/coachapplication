@@ -1,7 +1,5 @@
 import { useCallback } from 'react';
 import { Alert } from 'react-native';
-import { router } from 'expo-router';
-import { Routes } from '@/navigation/routes';
 
 import { useAuth } from '@/hooks/use-auth';
 import { useChildContext } from '@/hooks/use-child-context';
@@ -26,7 +24,6 @@ export function useSettingsHub() {
           logger.press('ConfirmLogout', { userId: currentUser?.id });
           await logout();
           logger.info('Logout complete - returning to login screen');
-          router.replace(Routes.ROOT);
         },
       },
     ]);

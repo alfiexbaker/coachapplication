@@ -21,7 +21,6 @@ import { PageHeader } from '@/components/primitives/page-header';
 import { CancelRefundPreview } from '@/components/booking/cancel-refund-preview';
 import { CancelPolicyTiers } from '@/components/booking/cancel-policy-tiers';
 import { CancelReasonPicker } from '@/components/booking/cancel-reason-picker';
-import { CancelRescheduleStep } from '@/components/booking/cancel-reschedule-step';
 import { EmptyState, ErrorState, LoadingState } from '@/components/ui/screen-states';
 import { Radii, Spacing, Typography, withAlpha } from '@/constants/theme';
 import { useBookingCancel } from '@/hooks/use-booking-cancel';
@@ -81,23 +80,6 @@ export default function CancelBookingScreen() {
           message="This booking could not be loaded. It may have been removed or already cancelled."
           actionLabel="Go back"
           onPressAction={() => router.back()}
-        />
-      ),
-    });
-  }
-
-  // Reschedule suggestion step
-  if (cancel.step === 'reschedule_suggest') {
-    return renderScreen({
-      title: 'Reschedule Instead?',
-      onBackPress: cancel.handleGoBack,
-      content: (
-        <CancelRescheduleStep
-          isCoach={cancel.isCoach}
-          sessionTime={cancel.sessionTime}
-          sessionTitle={cancel.sessionTitle}
-          onPropose={cancel.handleOpenCounterOffer}
-          onContinueCancel={() => cancel.setStep('details')}
         />
       ),
     });
@@ -227,34 +209,6 @@ export default function CancelBookingScreen() {
           </Row>
         </SurfaceCard>
 
-        {/* Reschedule CTA */}
-        <Clickable
-          onPress={cancel.handleRescheduleSuggest}
-          style={[
-            styles.rescheduleCta,
-            { borderColor: palette.tint, backgroundColor: withAlpha(palette.tint, 0.02) },
-          ]}
-        >
-          <Row align="center" gap="sm">
-            <View
-              style={[styles.rescheduleIcon, { backgroundColor: withAlpha(palette.tint, 0.09) }]}
-            >
-              <Ionicons name="swap-horizontal" size={20} color={palette.tint} />
-            </View>
-            <View style={styles.rescheduleText}>
-              <ThemedText
-                type="defaultSemiBold"
-                style={{ color: palette.tint, ...Typography.bodySmall }}
-              >
-                Reschedule instead?
-              </ThemedText>
-              <ThemedText style={[styles.rescheduleDesc, { color: palette.muted }]}>
-                Move to a different time instead of cancelling
-              </ThemedText>
-            </View>
-            <Ionicons name="chevron-forward" size={20} color={palette.tint} />
-          </Row>
-        </Clickable>
       </ScrollView>
 
       {/* Footer */}
@@ -338,16 +292,6 @@ const styles = StyleSheet.create({
   },
   waitlistTextWrap: { flex: 1 },
   waitlistHelper: { ...Typography.caption, marginTop: 1 },
-  rescheduleCta: { padding: Spacing.sm, borderRadius: Radii.card, borderWidth: 1.5 },
-  rescheduleIcon: {
-    width: 36,
-    height: 36,
-    borderRadius: Radii.xl,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  rescheduleText: { flex: 1 },
-  rescheduleDesc: { ...Typography.caption, marginTop: 1 },
   footer: {
     padding: Spacing.md,
     borderTopWidth: 1,

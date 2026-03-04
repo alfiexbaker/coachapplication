@@ -219,8 +219,8 @@ export const PositionPentagon = memo(function PositionPentagon({
     [orderedAttributes],
   );
   const sessionCount = useMemo(
-    () => data.sessionSnapshots.filter((snapshot) => snapshot.id !== 'current').length,
-    [data.sessionSnapshots],
+    () => Math.max(0, data.sessionCount ?? 0),
+    [data.sessionCount],
   );
 
   return (

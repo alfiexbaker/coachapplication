@@ -16,20 +16,50 @@ import { useScreen } from '@/hooks/use-screen';
 import { err, ok, serviceError } from '@/types/result';
 import { useBookingFlow } from '@/context/booking-flow-context';
 import { apiClient } from '@/services/api-client';
+import { bookingStepAnalyticsService } from '@/services/booking/booking-step-analytics-service';
 import { STORAGE_KEYS } from '@/constants/storage-keys';
 import type { SessionOffering } from '@/constants/session-types';
 import { getSessionOfferingHeadcount } from '@/utils/session-offering-capacity';
+import { accountIdsMatch } from '@/utils/account-id';
+import {
+  buildBookingDraftPatchFromOffering,
+  getOfferingDuration,
+} from '@/utils/booking-draft-prefill';
+import { useChildContext } from '@/hooks/use-child-context';
+import { useAuth } from '@/hooks/use-auth';
 
-function formatOfferingType(type: SessionOffering['sessionType']): string {
-  return type === 'group' ? 'Group session' : '1-to-1 session';
+function formatOfferingCategory(offering: SessionOffering): string {
+  if (offering.sessionType === '1on1') {
+    return '1-to-1 Training';
+  }
+  if (offering.maxParticipants <= 6) {
+    return 'Small Group Training';
+  }
+  return 'Group Training';
 }
 
-function mapOfferingToDraftType(type: SessionOffering['sessionType']) {
-  return type === 'group' ? 'small-group' : '1-to-1';
+function formatCapacityLabel(offering: SessionOffering): string {
+  return offering.sessionType === '1on1' ? '1 athlete' : `up to ${offering.maxParticipants}`;
 }
 
-function getDuration(offering: SessionOffering): number {
-  return offering.duration ?? 60;
+function formatAgeBand(offering: SessionOffering): string | null {
+  if (typeof offering.ageMin === 'number' && typeof offering.ageMax === 'number') {
+    return `Ages ${offering.ageMin}-${offering.ageMax}`;
+  }
+  if (typeof offering.ageMin === 'number') {
+    return `Ages ${offering.ageMin}+`;
+  }
+  if (typeof offering.ageMax === 'number') {
+    return `Ages up to ${offering.ageMax}`;
+  }
+  return null;
+}
+
+function formatOfferingLocation(offering: SessionOffering): string {
+  if (offering.venueName) {
+    return `${offering.venueName} · ${offering.location}`;
+  }
+  return offering.location;
 }
 
 function sortOfferings(offerings: SessionOffering[]): SessionOffering[] {
@@ -44,18 +74,23 @@ function sortOfferings(offerings: SessionOffering[]): SessionOffering[] {
   });
 }
 
-function dedupeOfferings(offerings: SessionOffering[]): SessionOffering[] {
+function dedupeOfferings(offerings: SessionOffering[], preferredOfferingId?: string): SessionOffering[] {
   const bySignature = new Map<string, SessionOffering>();
   for (const offering of offerings) {
     const signature = [
       offering.title.trim().toLowerCase(),
       offering.sessionType,
-      getDuration(offering),
+      getOfferingDuration(offering),
       offering.price ?? 0,
       offering.maxParticipants,
     ].join('|');
     const existing = bySignature.get(signature);
     if (!existing) {
+      bySignature.set(signature, offering);
+      continue;
+    }
+
+    if (preferredOfferingId && offering.id === preferredOfferingId) {
       bySignature.set(signature, offering);
       continue;
     }
@@ -70,8 +105,31 @@ function dedupeOfferings(offerings: SessionOffering[]): SessionOffering[] {
 }
 
 export default function SessionTypeScreen() {
-  const { coachId } = useLocalSearchParams<{ coachId: string }>();
+  const { coachId, offeringId, childId, source, weeks } = useLocalSearchParams<{
+    coachId: string;
+    offeringId?: string;
+    childId?: string;
+    weeks?: string;
+    source?: string;
+  }>();
+  const { children } = useChildContext();
+  const { currentUser } = useAuth();
   const { draft, updateDraft } = useBookingFlow();
+  const preselectedChild = useMemo(() => {
+    if (!childId) return null;
+    if (currentUser?.id && childId === currentUser.id) {
+      return {
+        id: currentUser.id,
+        name: currentUser.name || currentUser.fullName || 'Athlete',
+      };
+    }
+    const matchedChild = children.find((child) => child.id === childId);
+    if (!matchedChild) return null;
+    return {
+      id: matchedChild.id,
+      name: matchedChild.name,
+    };
+  }, [childId, children, currentUser?.fullName, currentUser?.id, currentUser?.name]);
   const loadOfferings = useCallback(async () => {
     if (!coachId) {
       return err(serviceError('VALIDATION', 'Coach information is missing for booking.'));
@@ -81,7 +139,7 @@ export default function SessionTypeScreen() {
       const now = Date.now();
       const offerings = await apiClient.get<SessionOffering[]>(STORAGE_KEYS.SESSION_OFFERINGS, []);
       const coachOfferings = offerings.filter((offering) => {
-        if (offering.coachId !== coachId) return false;
+        if (!accountIdsMatch(offering.coachId, coachId)) return false;
         if (offering.status !== 'active') return false;
 
         const startsAt = new Date(offering.scheduledAt).getTime();
@@ -92,11 +150,11 @@ export default function SessionTypeScreen() {
         return headcount < offering.maxParticipants;
       });
 
-      return ok(dedupeOfferings(coachOfferings));
-    } catch (error) {
-      return err(serviceError('UNKNOWN', 'Failed to load coach offerings.', error));
+      return ok(dedupeOfferings(coachOfferings, offeringId));
+    } catch (loadError) {
+      return err(serviceError('UNKNOWN', 'Failed to load coach offerings.', loadError));
     }
-  }, [coachId]);
+  }, [coachId, offeringId]);
 
   const {
     data: offerings,
@@ -124,20 +182,44 @@ export default function SessionTypeScreen() {
     );
     if (currentlySelected) return;
 
-    const fallback = resolvedOfferings[0];
-    const duration = getDuration(fallback);
+    const preferred =
+      (offeringId ? resolvedOfferings.find((offering) => offering.id === offeringId) : undefined) ??
+      resolvedOfferings[0];
+    if (!preferred) return;
+
+    updateDraft(
+      buildBookingDraftPatchFromOffering({
+        coachId,
+        offering: preferred,
+        child: preselectedChild,
+        entrySource: source,
+      }),
+    );
+  }, [
+    coachId,
+    draft.sessionOfferingId,
+    offeringId,
+    preselectedChild,
+    resolvedOfferings,
+    source,
+    updateDraft,
+  ]);
+
+  useEffect(() => {
+    if (!preselectedChild) return;
+    if (draft.childId === preselectedChild.id && draft.athleteName === preselectedChild.name) {
+      return;
+    }
     updateDraft({
-      coachId,
-      sessionOfferingId: fallback.id,
-      sessionTemplateId: undefined,
-      sessionType: mapOfferingToDraftType(fallback.sessionType),
-      sessionTypeLabel: fallback.title,
-      duration,
-      price: fallback.price ?? 0,
-      participants: fallback.sessionType === 'group' ? fallback.maxParticipants : undefined,
-      locationText: fallback.location,
+      childId: preselectedChild.id,
+      athleteName: preselectedChild.name,
     });
-  }, [coachId, draft.sessionOfferingId, resolvedOfferings, updateDraft]);
+  }, [
+    draft.athleteName,
+    draft.childId,
+    preselectedChild,
+    updateDraft,
+  ]);
 
   const offeringOptions = useMemo(
     () =>
@@ -145,8 +227,10 @@ export default function SessionTypeScreen() {
         id: offering.id,
         title: offering.title,
         priceText: offering.price && offering.price > 0 ? `£${offering.price}` : 'Free',
-        description: formatOfferingType(offering.sessionType),
-        detailText: `${getDuration(offering)} mins · up to ${offering.maxParticipants}`,
+        categoryLabel: formatOfferingCategory(offering),
+        description: offering.description || formatOfferingCategory(offering),
+        detailText: `${getOfferingDuration(offering)} mins · ${formatCapacityLabel(offering)}`,
+        metaText: [formatOfferingLocation(offering), formatAgeBand(offering)].filter(Boolean).join(' · '),
       })),
     [resolvedOfferings],
   );
@@ -155,21 +239,16 @@ export default function SessionTypeScreen() {
     (offeringId: string) => {
       const offering = resolvedOfferings.find((item) => item.id === offeringId);
       if (!offering || !coachId) return;
-      const duration = getDuration(offering);
-
-      updateDraft({
-        coachId,
-        sessionOfferingId: offering.id,
-        sessionTemplateId: undefined,
-        sessionType: mapOfferingToDraftType(offering.sessionType),
-        sessionTypeLabel: offering.title,
-        duration,
-        price: offering.price ?? 0,
-        participants: offering.sessionType === 'group' ? offering.maxParticipants : undefined,
-        locationText: offering.location,
-      });
+      updateDraft(
+        buildBookingDraftPatchFromOffering({
+          coachId,
+          offering,
+          child: preselectedChild,
+          entrySource: source,
+        }),
+      );
     },
-    [coachId, resolvedOfferings, updateDraft],
+    [coachId, preselectedChild, resolvedOfferings, source, updateDraft],
   );
 
   const handleMessageCoach = useCallback(() => {
@@ -177,13 +256,96 @@ export default function SessionTypeScreen() {
     router.push(Routes.messagesWith({ coachId }));
   }, [coachId]);
 
+  const requestedWeeks = useMemo(() => {
+    const parsed = Number.parseInt(weeks ?? '', 10);
+    return Number.isFinite(parsed) && parsed > 1 ? parsed : 1;
+  }, [weeks]);
+  const handleBack = useCallback(() => {
+    void bookingStepAnalyticsService.track({
+      step: 'type',
+      status: 'abandoned',
+      failure_code: 'back_navigation',
+      source,
+      role: currentUser?.role,
+      currentUserId: currentUser?.id,
+      hasChildren: currentUser?.hasChildren,
+      actingAs: draft.actingAs,
+      draft,
+    });
+    router.back();
+  }, [source, currentUser?.role, currentUser?.id, currentUser?.hasChildren, draft]);
+
   const handleContinue = useCallback(() => {
-    if (!coachId || !draft.sessionOfferingId) return;
-    router.push(Routes.bookSchedule(coachId));
-  }, [coachId, draft.sessionOfferingId]);
+    if (!coachId) {
+      void bookingStepAnalyticsService.track({
+        step: 'type',
+        status: 'validation_fail',
+        failure_code: 'missing_coach_id',
+        source,
+        role: currentUser?.role,
+        currentUserId: currentUser?.id,
+        hasChildren: currentUser?.hasChildren,
+        actingAs: draft.actingAs,
+        draft,
+      });
+      return;
+    }
+
+    if (!draft.sessionOfferingId) {
+      void bookingStepAnalyticsService.track({
+        step: 'type',
+        status: 'validation_fail',
+        failure_code: 'missing_session_offering',
+        source,
+        role: currentUser?.role,
+        currentUserId: currentUser?.id,
+        hasChildren: currentUser?.hasChildren,
+        actingAs: draft.actingAs,
+        draft,
+      });
+      return;
+    }
+
+    void bookingStepAnalyticsService.track({
+      step: 'type',
+      status: 'success',
+      source,
+      role: currentUser?.role,
+      currentUserId: currentUser?.id,
+      hasChildren: currentUser?.hasChildren,
+      actingAs: draft.actingAs,
+      draft,
+    });
+
+    if (selectedOffering?.isRecurring && requestedWeeks > 1) {
+      router.push(Routes.bookMultiWeek(coachId));
+      return;
+    }
+    if (!draft.date || !draft.slot) {
+      router.push(Routes.bookSchedule(coachId));
+      return;
+    }
+    if (!draft.childId) {
+      router.push(Routes.bookDetails(coachId));
+      return;
+    }
+    router.push(Routes.bookReview(coachId));
+  }, [
+    coachId,
+    draft.childId,
+    draft.date,
+    draft.sessionOfferingId,
+    draft.slot,
+    requestedWeeks,
+    selectedOffering?.isRecurring,
+    source,
+    currentUser?.role,
+    currentUser?.id,
+    currentUser?.hasChildren,
+  ]);
 
   const canContinue = Boolean(coachId && draft.sessionOfferingId);
-  const fixedDuration = selectedOffering ? getDuration(selectedOffering) : undefined;
+  const fixedDuration = selectedOffering ? getOfferingDuration(selectedOffering) : undefined;
 
   return (
     <SafeAreaView
@@ -195,6 +357,7 @@ export default function SessionTypeScreen() {
           title="Book a session"
           subtitle="Pick what this coach offers"
           step={1}
+          onBack={handleBack}
         />
 
         <SessionTypeSelector
@@ -227,6 +390,28 @@ export default function SessionTypeScreen() {
                 <Ionicons name="time-outline" size={16} color={palette.tint} />
                 <ThemedText style={{ color: palette.tint }}>
                   {fixedDuration} mins (set by offering)
+                </ThemedText>
+              </Row>
+            </View>
+          </View>
+        ) : null}
+
+        {selectedOffering ? (
+          <View style={{ gap: Spacing.sm }}>
+            <ThemedText type="defaultSemiBold">Preset location</ThemedText>
+            <View
+              style={[
+                styles.fixedDurationCard,
+                {
+                  borderColor: withAlpha(palette.tint, 0.25),
+                  backgroundColor: withAlpha(palette.tint, 0.07),
+                },
+              ]}
+            >
+              <Row align="center" gap="xs">
+                <Ionicons name="location-outline" size={16} color={palette.tint} />
+                <ThemedText style={{ color: palette.tint }}>
+                  {formatOfferingLocation(selectedOffering)}
                 </ThemedText>
               </Row>
             </View>

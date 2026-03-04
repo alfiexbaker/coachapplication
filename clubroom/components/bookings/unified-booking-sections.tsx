@@ -21,11 +21,11 @@ import type { BookingSummary } from '@/constants/types';
 import { formatPrice } from '@/constants/styles';
 import { Row } from '@/components/primitives';
 import {
-  getBookingOwnershipLabel,
   getBookingSummaryClientName,
   getBookingSummaryCoachName,
 } from '@/utils/booking-display';
 import { styles } from './unified-booking-styles';
+import { BookingOwnershipBlock } from '@/components/bookings/booking-ownership-block';
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -58,8 +58,12 @@ export function getBookingStatusColor(status: string, palette: ThemeColors): str
       return palette.success;
     case 'Pending':
       return palette.warning;
+    case 'Needs Completion':
+      return palette.warning;
     case 'Completed':
       return palette.muted;
+    case 'Cancelled':
+      return palette.error;
     default:
       return palette.muted;
   }
@@ -97,6 +101,7 @@ export const CompactBookingCard = memo(function CompactBookingCard({
             <ThemedText style={[styles.compactMeta, { color: palette.muted }]} numberOfLines={1}>
               {coachName} · {day}
             </ThemedText>
+            <BookingOwnershipBlock booking={booking} compact />
             {booking.locationLabel ? (
               <Row style={styles.locationRow}>
                 <Ionicons name="location-outline" size={12} color={palette.tint} />
@@ -123,6 +128,7 @@ interface DetailedBookingCardProps {
   extendedBooking: ExtendedBooking;
   coachPhotoUrl: string;
   statusColor: string;
+  statusLabel: string;
   full: string;
   time: string;
   isCoach: boolean;
@@ -138,6 +144,7 @@ export const DetailedBookingCard = memo(function DetailedBookingCard({
   extendedBooking,
   coachPhotoUrl,
   statusColor,
+  statusLabel,
   full,
   time,
   isCoach,
@@ -149,7 +156,6 @@ export const DetailedBookingCard = memo(function DetailedBookingCard({
 }: DetailedBookingCardProps) {
   const coachName = getBookingSummaryCoachName(booking);
   const childName = getBookingSummaryClientName(booking);
-  const ownershipLabel = getBookingOwnershipLabel(booking);
   return (
     <Clickable onPress={onPress}>
       <SurfaceCard style={styles.detailedCard}>
@@ -161,22 +167,11 @@ export const DetailedBookingCard = memo(function DetailedBookingCard({
             <ThemedText style={[styles.detailedSubtitle, { color: palette.muted }]}>
               with {coachName}
             </ThemedText>
-            {ownershipLabel ? (
-              <View
-                style={[
-                  styles.ownershipBadge,
-                  { backgroundColor: withAlpha(palette.info, 0.1) },
-                ]}
-              >
-                <ThemedText style={[styles.ownershipText, { color: palette.info }]}>
-                  {ownershipLabel}
-                </ThemedText>
-              </View>
-            ) : null}
+            <BookingOwnershipBlock booking={booking} />
           </View>
           <View style={[styles.statusBadge, { backgroundColor: withAlpha(statusColor, 0.09) }]}>
             <ThemedText style={[styles.statusText, { color: statusColor }]}>
-              {booking.status}
+              {statusLabel}
             </ThemedText>
           </View>
         </Row>

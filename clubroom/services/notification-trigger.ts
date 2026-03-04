@@ -11,13 +11,13 @@
 import { notificationService } from './notification-service';
 import { generateId } from '@/utils/generate-id';
 import { createLogger } from '@/utils/logger';
-import { type Result, type ServiceError, ok, err } from '@/types/result';
+import { type Result, type ServiceError, ok, err, validationError } from '@/types/result';
 
 const logger = createLogger('NotificationTrigger');
 
 export type NotifiableAction = {
   type: string;
-  recipientId?: string;
+  recipientId: string;
   recipientRole: 'coach' | 'parent' | 'athlete';
   title: string;
   body: string;
@@ -51,6 +51,12 @@ function mapToNotificationType(
  */
 export async function triggerNotification(action: NotifiableAction): Promise<Result<void, ServiceError>> {
   try {
+    const recipientId = action.recipientId?.trim();
+    if (!recipientId) {
+      logger.warn('Notification skipped: missing recipientId', { type: action.type });
+      return err(validationError('Notification recipientId is required'));
+    }
+
     const notificationType = mapToNotificationType(action.type);
 
     await notificationService.create({
@@ -58,14 +64,18 @@ export async function triggerNotification(action: NotifiableAction): Promise<Res
       type: notificationType,
       title: action.title,
       body: action.body,
-      recipientId: action.recipientId,
+      recipientId,
       recipientRole: action.recipientRole === 'athlete' ? undefined : action.recipientRole,
       deepLink: action.deepLink,
       data: action.data,
       read: false,
     });
 
-    logger.info('Notification triggered', { type: action.type, recipient: action.recipientRole });
+    logger.info('Notification triggered', {
+      type: action.type,
+      recipient: action.recipientRole,
+      recipientId,
+    });
     return ok(undefined);
   } catch (error) {
     logger.error('Failed to trigger notification', { type: action.type, error });
@@ -84,7 +94,7 @@ export async function triggerNotification(action: NotifiableAction): Promise<Res
 
 export const notificationTriggers = {
   // --- Drill Service ---
-  drillAssigned(coachName: string, drillName: string, athleteName: string, recipientId?: string) {
+  drillAssigned(coachName: string, drillName: string, athleteName: string, recipientId: string) {
     return triggerNotification({
       type: 'drill_assigned',
       recipientRole: 'parent',
@@ -95,7 +105,7 @@ export const notificationTriggers = {
     });
   },
 
-  drillCompleted(athleteName: string, drillName: string, recipientId?: string) {
+  drillCompleted(athleteName: string, drillName: string, recipientId: string) {
     return triggerNotification({
       type: 'drill_completed',
       recipientRole: 'coach',
@@ -107,7 +117,7 @@ export const notificationTriggers = {
   },
 
   // --- Event Service ---
-  eventCreated(eventName: string, eventDate: string, recipientId?: string) {
+  eventCreated(eventName: string, eventDate: string, recipientId: string) {
     return triggerNotification({
       type: 'event_created',
       recipientRole: 'parent',
@@ -118,7 +128,7 @@ export const notificationTriggers = {
     });
   },
 
-  eventCancelled(eventName: string, recipientId?: string) {
+  eventCancelled(eventName: string, recipientId: string) {
     return triggerNotification({
       type: 'event_cancelled',
       recipientRole: 'parent',
@@ -129,7 +139,7 @@ export const notificationTriggers = {
     });
   },
 
-  eventRsvp(parentName: string, eventName: string, response: string, recipientId?: string) {
+  eventRsvp(parentName: string, eventName: string, response: string, recipientId: string) {
     return triggerNotification({
       type: 'event_rsvp',
       recipientRole: 'coach',
@@ -141,7 +151,7 @@ export const notificationTriggers = {
   },
 
   // --- Group Session Service ---
-  groupSessionCreated(sessionTitle: string, dateTime: string, recipientId?: string) {
+  groupSessionCreated(sessionTitle: string, dateTime: string, recipientId: string) {
     return triggerNotification({
       type: 'group_session_created',
       recipientRole: 'parent',
@@ -152,7 +162,7 @@ export const notificationTriggers = {
     });
   },
 
-  groupSessionCancelled(sessionTitle: string, recipientId?: string) {
+  groupSessionCancelled(sessionTitle: string, recipientId: string) {
     return triggerNotification({
       type: 'group_session_cancelled',
       recipientRole: 'parent',
@@ -163,7 +173,7 @@ export const notificationTriggers = {
     });
   },
 
-  groupRegistered(athleteName: string, sessionTitle: string, recipientId?: string) {
+  groupRegistered(athleteName: string, sessionTitle: string, recipientId: string) {
     return triggerNotification({
       type: 'group_registered',
       recipientRole: 'coach',
@@ -174,7 +184,7 @@ export const notificationTriggers = {
     });
   },
 
-  groupCancelledRegistration(athleteName: string, sessionTitle: string, recipientId?: string) {
+  groupCancelledRegistration(athleteName: string, sessionTitle: string, recipientId: string) {
     return triggerNotification({
       type: 'group_cancelled_registration',
       recipientRole: 'coach',
@@ -186,7 +196,7 @@ export const notificationTriggers = {
   },
 
   // --- Family Service ---
-  guardianRemoved(familyName: string, recipientId?: string) {
+  guardianRemoved(familyName: string, recipientId: string) {
     return triggerNotification({
       type: 'guardian_removed',
       recipientRole: 'parent',
@@ -196,7 +206,7 @@ export const notificationTriggers = {
     });
   },
 
-  guardianPermissionsUpdated(recipientId?: string) {
+  guardianPermissionsUpdated(recipientId: string) {
     return triggerNotification({
       type: 'permissions_updated',
       recipientRole: 'parent',
@@ -206,7 +216,7 @@ export const notificationTriggers = {
     });
   },
 
-  guardianInvited(familyName: string, recipientId?: string) {
+  guardianInvited(familyName: string, recipientId: string) {
     return triggerNotification({
       type: 'guardian_invited',
       recipientRole: 'parent',
@@ -216,7 +226,7 @@ export const notificationTriggers = {
     });
   },
 
-  guardianJoined(userName: string, recipientId?: string) {
+  guardianJoined(userName: string, recipientId: string) {
     return triggerNotification({
       type: 'guardian_invited',
       recipientRole: 'parent',
@@ -227,7 +237,7 @@ export const notificationTriggers = {
   },
 
   // --- Booking Service ---
-  bookingConfirmed(coachName: string, dateTime: string, recipientId?: string) {
+  bookingConfirmed(coachName: string, dateTime: string, recipientId: string) {
     return triggerNotification({
       type: 'booking_confirmed',
       recipientRole: 'parent',
@@ -242,7 +252,7 @@ export const notificationTriggers = {
     cancelledByName: string,
     dateTime: string,
     recipientRole: 'coach' | 'parent',
-    recipientId?: string,
+    recipientId: string,
   ) {
     return triggerNotification({
       type: 'booking_cancelled',
@@ -255,7 +265,7 @@ export const notificationTriggers = {
   },
 
   // --- Invite Service ---
-  inviteAccepted(parentName: string, athleteName: string, recipientId?: string) {
+  inviteAccepted(parentName: string, athleteName: string, recipientId: string) {
     return triggerNotification({
       type: 'invite_accepted',
       recipientRole: 'coach',
@@ -266,7 +276,7 @@ export const notificationTriggers = {
     });
   },
 
-  inviteDeclined(parentName: string, athleteName: string, reason: string, recipientId?: string) {
+  inviteDeclined(parentName: string, athleteName: string, reason: string, recipientId: string) {
     return triggerNotification({
       type: 'invite_declined',
       recipientRole: 'coach',
@@ -277,7 +287,7 @@ export const notificationTriggers = {
     });
   },
 
-  inviteReceived(coachName: string, athleteName: string, recipientId?: string) {
+  inviteReceived(coachName: string, athleteName: string, recipientId: string) {
     return triggerNotification({
       type: 'invite_received',
       recipientRole: 'parent',
@@ -289,7 +299,7 @@ export const notificationTriggers = {
   },
 
   // --- Session Completion ---
-  sessionCompleted(coachName: string, athleteName: string, recipientId?: string) {
+  sessionCompleted(coachName: string, athleteName: string, recipientId: string) {
     return triggerNotification({
       type: 'session_completed',
       recipientRole: 'parent',
@@ -300,7 +310,7 @@ export const notificationTriggers = {
     });
   },
 
-  reviewPrompt(coachName: string, athleteName: string, recipientId?: string) {
+  reviewPrompt(coachName: string, athleteName: string, recipientId: string) {
     return triggerNotification({
       type: 'review_prompt',
       recipientRole: 'parent',
@@ -311,7 +321,7 @@ export const notificationTriggers = {
     });
   },
 
-  selfAssessmentPrompt(athleteName: string, recipientId?: string) {
+  selfAssessmentPrompt(athleteName: string, recipientId: string) {
     return triggerNotification({
       type: 'self_assessment_prompt',
       recipientRole: 'athlete',
@@ -322,7 +332,7 @@ export const notificationTriggers = {
     });
   },
 
-  weeklyProgressRecap(athleteName: string, body: string, recipientId?: string) {
+  weeklyProgressRecap(athleteName: string, body: string, recipientId: string) {
     return triggerNotification({
       type: 'weekly_progress_recap',
       recipientRole: 'parent',
@@ -334,7 +344,7 @@ export const notificationTriggers = {
   },
 
   // --- Badge Service ---
-  badgeEarned(athleteName: string, badgeName: string, recipientId?: string) {
+  badgeEarned(athleteName: string, badgeName: string, recipientId: string) {
     return triggerNotification({
       type: 'badge_earned',
       recipientRole: 'parent',
@@ -353,7 +363,7 @@ export const notificationTriggers = {
   },
 
   // --- No-Show ---
-  noShowMarked(athleteName: string, sessionDate: string, recipientId?: string) {
+  noShowMarked(athleteName: string, sessionDate: string, recipientId: string) {
     return triggerNotification({
       type: 'no_show_marked',
       recipientRole: 'parent',
@@ -369,7 +379,7 @@ export const notificationTriggers = {
     coachName: string,
     originalDate: string,
     newDate: string,
-    recipientId?: string,
+    recipientId: string,
   ) {
     return triggerNotification({
       type: 'reschedule_request',
@@ -382,7 +392,7 @@ export const notificationTriggers = {
   },
 
   // --- Waitlist ---
-  slotFreed(coachName: string, dateTime: string, recipientId?: string) {
+  slotFreed(coachName: string, dateTime: string, recipientId: string) {
     return triggerNotification({
       type: 'slot_freed',
       recipientRole: 'parent',

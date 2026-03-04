@@ -4,34 +4,26 @@
  */
 
 import { useState, useCallback } from 'react';
-import { Alert } from 'react-native';
 import { router } from 'expo-router';
 import { apiClient } from '@/services/api-client';
 import { useAuth } from '@/hooks/use-auth';
+import { useAppAlert } from '@/components/ui/app-alert';
 import { useScreen, type ScreenStatus } from '@/hooks/use-screen';
 import type { Booking } from '@/constants/app-types';
 import type { SessionOffering } from '@/constants/session-types';
+import { STORAGE_KEYS } from '@/constants/storage-keys';
 import { createLogger } from '@/utils/logger';
 import { getSessionOfferingCoachName } from '@/utils/session-display';
 import { err, ok, serviceError, type ServiceError } from '@/types/result';
+import {
+  appendCoachReview,
+  getStoredCoachReviews,
+  type StoredCoachReview,
+} from '@/services/review-sync-service';
 
 const logger = createLogger('RateCoachScreen');
 
 /** Stored review shape (superset of display-only CoachReview from user-types) */
-interface StoredReview {
-  id: string;
-  coachId: string;
-  coachName?: string;
-  userId?: string;
-  userName: string;
-  parentName: string;
-  rating: number;
-  text: string;
-  content: string;
-  createdAt: string;
-  sessionDate: string;
-}
-
 export interface CoachToRate {
   id: string;
   name: string;
@@ -85,6 +77,7 @@ export interface UseRateCoachResult {
 
 export function useRateCoach() {
   const { currentUser } = useAuth();
+  const { showAlert } = useAppAlert();
 
   const [selectedCoach, setSelectedCoach] = useState<CoachToRate | null>(null);
   const [rating, setRating] = useState(0);
@@ -97,9 +90,9 @@ export function useRateCoach() {
     }
 
     try {
-      const bookings = await apiClient.get<Booking[]>('session_bookings', []);
-      const offerings = await apiClient.get<SessionOffering[]>('session_offerings', []);
-      const reviews = await apiClient.get<StoredReview[]>('coach_reviews', []);
+      const bookings = await apiClient.get<Booking[]>(STORAGE_KEYS.BOOKINGS, []);
+      const offerings = await apiClient.get<SessionOffering[]>(STORAGE_KEYS.SESSION_OFFERINGS, []);
+      const reviews = await getStoredCoachReviews();
       const reviewedCoachIds = new Set(reviews.map((r) => r.coachId));
 
       const coachMap = new Map<string, CoachToRate>();
@@ -175,21 +168,21 @@ export function useRateCoach() {
     if (submitting) return;
     setSubmitting(true);
     if (!selectedCoach || rating === 0) {
-      Alert.alert('Missing Rating', 'Please select a star rating');
+      showAlert('Missing Rating', 'Please select a star rating');
       setSubmitting(false);
       return;
     }
     try {
-      const reviews = await apiClient.get<StoredReview[]>('coach_reviews', []);
+      const reviews = await getStoredCoachReviews();
       const existingReview = reviews.find(
         (review) => review.coachId === selectedCoach.id && review.userId === (currentUser?.id ?? ''),
       );
       if (existingReview) {
-        Alert.alert('Review already submitted', 'You already submitted a review for this coach.');
+        showAlert('Review already submitted', 'You already submitted a review for this coach.');
         return;
       }
       const userName = currentUser?.fullName || currentUser?.username || 'Anonymous';
-      const newReview: StoredReview = {
+      const newReview: StoredCoachReview = {
         id: `review_${Date.now()}`,
         coachId: selectedCoach.id,
         coachName: selectedCoach.name,
@@ -202,19 +195,18 @@ export function useRateCoach() {
         createdAt: new Date().toISOString(),
         sessionDate: new Date().toISOString(),
       };
-      reviews.push(newReview);
-      await apiClient.set('coach_reviews', reviews);
+      await appendCoachReview(newReview);
       logger.info('Review submitted', { coachId: selectedCoach.id, rating });
-      Alert.alert('Review Submitted', `Thank you for rating ${selectedCoach.name}!`, [
+      showAlert('Review Submitted', `Thank you for rating ${selectedCoach.name}!`, [
         { text: 'OK', onPress: () => router.back() },
       ]);
     } catch (error) {
       logger.error('Failed to submit review', error);
-      Alert.alert('Error', 'Failed to submit review. Please try again.');
+      showAlert('Error', 'Failed to submit review. Please try again.');
     } finally {
       setSubmitting(false);
     }
-  }, [selectedCoach, rating, reviewText, currentUser, submitting]);
+  }, [selectedCoach, rating, reviewText, currentUser, showAlert, submitting]);
 
   const toggleChip = useCallback((label: string) => {
     setReviewText((prev) => {

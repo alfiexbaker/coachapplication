@@ -26,6 +26,7 @@ import { userService } from '@/services/user-service';
 import { earningsService } from '@/services/earnings';
 import { emitTyped, ServiceEvents } from '@/services/event-bus';
 import { notificationTriggers } from '@/services/notification-trigger';
+import { Routes } from '@/navigation/routes';
 import { useAuth } from '@/hooks/use-auth';
 import { generateId } from '@/utils/generate-id';
 import { createLogger } from '@/utils/logger';
@@ -614,7 +615,11 @@ export function useSessionCompletion(sessionId: string | undefined) {
     if (activeSteps.indexOf(currentStep) > 0) {
       goToPrevStep();
     } else {
-      router.back();
+      if (router.canGoBack()) {
+        router.back();
+        return;
+      }
+      router.replace(Routes.SCHEDULE);
     }
   }, [activeSteps, currentStep, goToPrevStep]);
 
@@ -933,14 +938,35 @@ export function useSessionCompletion(sessionId: string | undefined) {
           athleteName: athleteNamesList.join(', '),
         });
 
-        // 8. Trigger parent notification
-        const athleteNamesDisplay = athleteNamesList.join(', ') || 'Athlete';
+        // 8. Trigger parent/guardian notifications scoped by recipient.
+        const recipientToAthletes = new Map<string, string[]>();
+        for (const athleteId of athleteIds) {
+          const recipientId = parentByAthleteId[athleteId]?.parentId || athleteId;
+          if (!recipientId) continue;
+          const athleteName = participantNames[athleteId] || athleteId || 'Athlete';
+          const existingAthletes = recipientToAthletes.get(recipientId) || [];
+          existingAthletes.push(athleteName);
+          recipientToAthletes.set(recipientId, existingAthletes);
+        }
 
-        void notificationTriggers.sessionCompleted(coachName, athleteNamesDisplay);
+        if (recipientToAthletes.size === 0) {
+          logger.warn('Session completion notifications skipped: no recipients', {
+            sessionId: session.id,
+            athleteIds,
+          });
+        }
+
+        recipientToAthletes.forEach((athletesForRecipient, recipientId) => {
+          const athleteNamesDisplay = athletesForRecipient.join(', ') || 'Athlete';
+          void notificationTriggers.sessionCompleted(coachName, athleteNamesDisplay, recipientId);
+        });
 
         // 9. Queue review prompt (delayed to avoid collision)
         reviewPromptTimerRef.current = setTimeout(() => {
-          void notificationTriggers.reviewPrompt(coachName, athleteNamesDisplay);
+          recipientToAthletes.forEach((athletesForRecipient, recipientId) => {
+            const athleteNamesDisplay = athletesForRecipient.join(', ') || 'Athlete';
+            void notificationTriggers.reviewPrompt(coachName, athleteNamesDisplay, recipientId);
+          });
         }, 2000);
 
         const badgesAwarded = attendanceValues.reduce((sum, athlete) => sum + athlete.badges.length, 0);

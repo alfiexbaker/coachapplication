@@ -172,7 +172,7 @@ export function useScreen<T>(options: UseScreenOptions<T>): UseScreenResult<T> {
 
     const unsubscribers = events.map((event) =>
       onTyped(event, () => {
-        void fetchData();
+        void fetchData('silent');
       }),
     );
 

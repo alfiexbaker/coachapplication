@@ -20,6 +20,8 @@ import { inviteService as sessionInviteService } from '@/services/invite';
 import { bookingService } from '@/services/booking-service';
 import { socialFeedService } from '@/services/social-feed-service';
 import { discoverService } from '@/services/discover-service';
+import { STORAGE_KEYS } from '@/constants/storage-keys';
+import { getStoredCoachReviews } from '@/services/review-sync-service';
 import { createLogger } from '@/utils/logger';
 import { toDateStr } from '@/utils/format';
 import type { AvailabilitySlot, SessionInvite, Club } from '@/constants/types';
@@ -39,12 +41,6 @@ import {
 } from './discover-screen-sections';
 const logger = createLogger('ParentDiscoverScreen');
 const nextAvailableCache: Record<string, { slot: AvailabilitySlot | null; timestamp: number }> = {};
-
-interface StoredReview {
-  bookingId?: string;
-  userId?: string;
-  parentId?: string;
-}
 
 export function ParentDiscoverScreen() {
   const { colors: palette } = useTheme();
@@ -94,8 +90,8 @@ export function ParentDiscoverScreen() {
     try {
       const [bookings, dismissed, reviews] = await Promise.all([
         bookingService.getBookingsForUser(currentUser.id, 'parent'),
-        apiClient.get<Record<string, number>>('dismissed_reviews', {}),
-        apiClient.get<StoredReview[]>('coach_reviews', []),
+        apiClient.get<Record<string, number>>(STORAGE_KEYS.DISMISSED_REVIEW_PROMPTS, {}),
+        getStoredCoachReviews(),
       ]);
       const now = Date.now(),
         DAY = 86_400_000;
@@ -124,9 +120,12 @@ export function ParentDiscoverScreen() {
   }, [currentUser?.id]);
   const dismissReview = useCallback(async (bookingId: string) => {
     try {
-      const map = await apiClient.get<Record<string, number>>('dismissed_reviews', {});
+      const map = await apiClient.get<Record<string, number>>(
+        STORAGE_KEYS.DISMISSED_REVIEW_PROMPTS,
+        {},
+      );
       map[map[bookingId] ? `${bookingId}_second` : bookingId] = Date.now();
-      await apiClient.set('dismissed_reviews', map);
+      await apiClient.set(STORAGE_KEYS.DISMISSED_REVIEW_PROMPTS, map);
       setCompletedSessions((prev) => prev.filter((b) => b.id !== bookingId));
     } catch (e) {
       logger.error('Failed to dismiss review', e);

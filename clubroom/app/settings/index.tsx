@@ -20,6 +20,7 @@ const logger = createLogger('SettingsHub');
 export default function SettingsHubScreen() {
   const { colors } = useTheme();
   const { currentUser, isCoach, userHasChildren, handleLogout } = useSettingsHub();
+  const canManageChildren = Boolean(currentUser && !isCoach && currentUser.role !== 'ADMIN');
   const [allowBookSelf, setAllowBookSelf] = useState(false);
 
   useEffect(() => {
@@ -125,11 +126,15 @@ export default function SettingsHubScreen() {
             }}
           />
         )}
-        {(userHasChildren || currentUser?.hasChildren) && (
+        {canManageChildren && (
           <SettingsRow
             icon="people"
             title="Children"
-            subtitle="Manage your children's profiles"
+            subtitle={
+              userHasChildren || currentUser?.hasChildren
+                ? "Manage your children's profiles"
+                : 'Add and manage child profiles'
+            }
             onPress={() => {
               logger.press('ChildrenManagement');
               router.push(Routes.CHILDREN);

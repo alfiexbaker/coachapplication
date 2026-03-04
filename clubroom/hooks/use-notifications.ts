@@ -6,6 +6,7 @@ import { err, ok, serviceError } from '@/types/result';
 import { createLogger } from '@/utils/logger';
 import type { NotificationType } from '@/constants/types';
 import { useToast } from '@/components/ui/toast';
+import { useAuth } from '@/hooks/use-auth';
 
 export type NotificationFilter =
   | 'all'
@@ -53,6 +54,7 @@ interface NotificationScreenData {
  */
 export function useNotifications(options: UseNotificationsOptions = {}): UseNotificationsResult {
   const { filter: initialFilter = 'all', autoRefresh = true, refreshInterval = 30000 } = options;
+  const { currentUser } = useAuth();
 
   const [currentFilter, setFilter] = useState<NotificationFilter>(initialFilter);
   const [actionError, setActionError] = useState<Error | null>(null);
@@ -66,24 +68,29 @@ export function useNotifications(options: UseNotificationsOptions = {}): UseNoti
       }
 
       const allNotifications = allNotificationsResult.data;
+      const visibleNotifications = allNotifications.filter((notification) => {
+        if (!notification.recipientId) return true;
+        if (!currentUser?.id) return false;
+        return notification.recipientId === currentUser.id;
+      });
 
       // Filter by type if not 'all'
-      let filtered = allNotifications;
+      let filtered = visibleNotifications;
       if (currentFilter !== 'all') {
-        filtered = allNotifications.filter(
+        filtered = visibleNotifications.filter(
           (n: ExtendedNotificationItem) => n.type === currentFilter,
         );
       }
 
-      // Calculate unread count from all notifications (not filtered)
-      const unread = allNotifications.filter((n: ExtendedNotificationItem) => !n.read).length;
+      // Calculate unread count from visible notifications (not filtered by tab).
+      const unread = visibleNotifications.filter((n: ExtendedNotificationItem) => !n.read).length;
 
       return ok({ notifications: filtered, unreadCount: unread });
     } catch (loadError) {
       logger.error('Failed to fetch notifications', { error: loadError, currentFilter });
       return err(serviceError('UNKNOWN', 'Failed to fetch notifications', loadError));
     }
-  }, [currentFilter]);
+  }, [currentFilter, currentUser?.id]);
 
   const {
     data,
@@ -237,16 +244,17 @@ export function useNotifications(options: UseNotificationsOptions = {}): UseNoti
  */
 export function useNotificationCount(): number {
   const [count, setCount] = useState(0);
+  const { currentUser } = useAuth();
 
   const fetchCount = useCallback(async () => {
-    const unreadCountResult = await notificationService.getUnreadCount();
+    const unreadCountResult = await notificationService.getUnreadCount(currentUser?.id);
     if (!unreadCountResult.success) {
       logger.error('Failed to fetch notification count', { error: unreadCountResult.error });
       return;
     }
 
     setCount(unreadCountResult.data);
-  }, []);
+  }, [currentUser?.id]);
 
   useEffect(() => {
     fetchCount();

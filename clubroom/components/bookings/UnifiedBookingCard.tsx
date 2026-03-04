@@ -33,10 +33,11 @@ import {
 } from './unified-booking-sections';
 import { Row } from '@/components/primitives';
 import {
-  getBookingOwnershipLabel,
+  getBookingStatusLabel,
   getBookingSummaryClientName,
   getBookingSummaryCoachName,
 } from '@/utils/booking-display';
+import { BookingOwnershipBlock } from '@/components/bookings/booking-ownership-block';
 
 const logger = createLogger('UnifiedBookingCard');
 
@@ -61,13 +62,13 @@ export function UnifiedBookingCard({
 
   const isCoach = currentUser?.role === 'COACH';
   const statusColor = getBookingStatusColor(booking.status, palette);
+  const statusLabel = getBookingStatusLabel(booking.status, { isCoachView: isCoach });
   const { day, time, full } = formatBookingDateTime(booking.start);
   const coachPhotoUrl =
     extendedBooking.coach?.photoUrl ||
     `https://i.pravatar.cc/100?u=${booking.coachId || 'default'}`;
   const coachName = getBookingSummaryCoachName(booking);
   const childName = getBookingSummaryClientName(booking);
-  const ownershipLabel = getBookingOwnershipLabel(booking);
 
   const handlePress = () => {
     if (onPress) {
@@ -110,6 +111,7 @@ export function UnifiedBookingCard({
         extendedBooking={extendedBooking}
         coachPhotoUrl={coachPhotoUrl}
         statusColor={statusColor}
+        statusLabel={statusLabel}
         full={full}
         time={time}
         isCoach={isCoach}
@@ -139,18 +141,7 @@ export function UnifiedBookingCard({
             >
               with {coachName}
             </ThemedText>
-            {ownershipLabel ? (
-              <View
-                style={[
-                  styles.ownershipBadge,
-                  { backgroundColor: withAlpha(palette.info, 0.1) },
-                ]}
-              >
-                <ThemedText style={[styles.ownershipText, { color: palette.info }]}>
-                  {ownershipLabel}
-                </ThemedText>
-              </View>
-            ) : null}
+            <BookingOwnershipBlock booking={booking} />
 
             {childName && (
               <Row style={styles.childRow}>
@@ -184,7 +175,7 @@ export function UnifiedBookingCard({
           <View style={styles.standardRight}>
             <View style={[styles.statusBadge, { backgroundColor: withAlpha(statusColor, 0.09) }]}>
               <ThemedText style={[styles.statusText, { color: statusColor }]}>
-                {booking.status}
+                {statusLabel}
               </ThemedText>
             </View>
             <Ionicons name="chevron-forward" size={18} color={palette.muted} />
@@ -212,13 +203,6 @@ const styles = StyleSheet.create({
   standardContent: { flex: 1, gap: Spacing.micro },
   standardTitle: { ...Typography.subheading },
   standardSubtitle: { ...Typography.bodySmall },
-  ownershipBadge: {
-    alignSelf: 'flex-start',
-    borderRadius: Radii.pill,
-    paddingHorizontal: Spacing.xs,
-    paddingVertical: Spacing.micro,
-  },
-  ownershipText: { ...Typography.micro, fontWeight: '700' },
   standardRight: { alignItems: 'flex-end', gap: Spacing.xxs },
   childRow: {
     alignItems: 'center',

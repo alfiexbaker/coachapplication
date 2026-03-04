@@ -369,6 +369,7 @@ export const counterOfferService = {
               resolveUserName(resolvedNegotiation.athleteId, 'Athlete'),
               resolveUserName(resolvedNegotiation.parentId, 'Parent'),
             ]);
+            const originalBooking = await bookingService.getBooking(offer.bookingId);
 
             const bookingResult = await bookingService.createBooking({
               coachId: resolvedNegotiation.coachId,
@@ -382,6 +383,14 @@ export const counterOfferService = {
               location: offer.proposedTime.location || 'Coach preferred location',
               service: 'Rescheduled Session',
               serviceType: '1-on-1',
+              sessionSource: originalBooking?.sessionSource,
+              sessionSourceEntityId: originalBooking?.sessionSourceEntityId,
+              clubId: originalBooking?.clubId,
+              actingAs: originalBooking?.actingAs,
+              ownerCoachId: originalBooking?.ownerCoachId,
+              assigneeCoachId: originalBooking?.assigneeCoachId,
+              createdByUserId: originalBooking?.createdByUserId,
+              createdByRole: originalBooking?.createdByRole,
             });
 
             if (bookingResult.success) {

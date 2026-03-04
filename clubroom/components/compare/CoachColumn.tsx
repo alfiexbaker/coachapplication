@@ -36,7 +36,11 @@ export function CoachColumn({ coach, bestValues, onRemove, onBook }: CoachColumn
   const { colors: palette } = useTheme();
 
   const handleViewProfile = useCallback(() => {
-    router.push(Routes.bookSessionType(coach.coachId));
+    router.push(
+      Routes.bookCoach(coach.coachId, {
+        source: 'comparison',
+      }),
+    );
   }, [coach.coachId]);
 
   const handleRemove = useCallback(() => {

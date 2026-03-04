@@ -22,9 +22,16 @@ import { useTheme } from '@/hooks/useTheme';
 import { useScreen } from '@/hooks/use-screen';
 import { err, ok, serviceError } from '@/types/result';
 import { useBookingFlow } from '@/context/booking-flow-context';
+import { useAuth } from '@/hooks/use-auth';
 import { availabilityService } from '@/services/availability-service';
+import { bookingStepAnalyticsService } from '@/services/booking/booking-step-analytics-service';
 import type { AvailabilitySlot } from '@/constants/types';
 import { useRequiredParam } from '@/hooks/use-required-param';
+import { BOOKING_LOCATION_OPTIONS } from '@/constants/booking-flow';
+import { apiClient } from '@/services/api-client';
+import { STORAGE_KEYS } from '@/constants/storage-keys';
+import type { SessionOffering } from '@/constants/session-types';
+import { getFixedScheduleFromOffering } from '@/utils/booking-draft-prefill';
 
 const logger = createLogger('ScheduleScreen');
 
@@ -32,7 +39,40 @@ export default function ScheduleScreen() {
   const coachIdParam = useRequiredParam('coachId');
   const coachId = coachIdParam.valid ? coachIdParam.value : '';
   const { draft, updateDraft } = useBookingFlow();
+  const { currentUser } = useAuth();
   const { scheme } = useTheme();
+
+  const selectedOffering = useScreen<SessionOffering | null>({
+    load: async () => {
+      if (!draft.sessionOfferingId) {
+        return ok<SessionOffering | null>(null);
+      }
+      const offerings = await apiClient.get<SessionOffering[]>(STORAGE_KEYS.SESSION_OFFERINGS, []);
+      return ok(offerings.find((offering) => offering.id === draft.sessionOfferingId) ?? null);
+    },
+    deps: [draft.sessionOfferingId],
+    isEmpty: () => false,
+    refetchOnFocus: true,
+  }).data;
+  const fixedOfferingSchedule = useMemo(
+    () => (selectedOffering ? getFixedScheduleFromOffering(selectedOffering) : null),
+    [selectedOffering],
+  );
+  const normalizedEntrySource = draft.entrySource?.trim().toLowerCase() ?? '';
+  const scheduleLockedFromDraft = Boolean(
+    (normalizedEntrySource.startsWith('discover') ||
+      normalizedEntrySource.startsWith('session_detail_modal') ||
+      normalizedEntrySource.startsWith('favourites')) &&
+      draft.sessionOfferingId &&
+      draft.date &&
+      draft.slot,
+  );
+  const scheduleLockedFromOffering = Boolean(
+    fixedOfferingSchedule &&
+      draft.date === fixedOfferingSchedule.date &&
+      draft.slot === fixedOfferingSchedule.slot,
+  );
+  const scheduleLocked = scheduleLockedFromOffering || scheduleLockedFromDraft;
 
   // Calculate date range (next 14 days)
   const dateRange = useMemo(() => {
@@ -110,11 +150,83 @@ export default function ScheduleScreen() {
 
   const handleSlotSelect = useCallback((slotTime: string) => {
     const selectedSlot = slotsForSelectedDate.find((s) => s.startTime === slotTime);
-    updateDraft({
+    const patch: Parameters<typeof updateDraft>[0] = {
       slot: slotTime,
-      locationText: selectedSlot?.location,
-    });
+    };
+    if (selectedSlot?.location) {
+      patch.locationOption = BOOKING_LOCATION_OPTIONS.COACH_PRESET;
+      patch.locationText = selectedSlot.location;
+    }
+    updateDraft(patch);
   }, [slotsForSelectedDate, updateDraft]);
+  const handleBack = useCallback(() => {
+    void bookingStepAnalyticsService.track({
+      step: 'schedule',
+      status: 'abandoned',
+      failure_code: 'back_navigation',
+      role: currentUser?.role,
+      currentUserId: currentUser?.id,
+      hasChildren: currentUser?.hasChildren,
+      actingAs: draft.actingAs,
+      draft,
+    });
+    router.back();
+  }, [currentUser?.role, currentUser?.id, currentUser?.hasChildren, draft]);
+
+  const handleContinue = useCallback(() => {
+    if (!coachId) {
+      void bookingStepAnalyticsService.track({
+        step: 'schedule',
+        status: 'validation_fail',
+        failure_code: 'missing_coach_id',
+        role: currentUser?.role,
+        currentUserId: currentUser?.id,
+        hasChildren: currentUser?.hasChildren,
+        actingAs: draft.actingAs,
+        draft,
+      });
+      return;
+    }
+
+    if (!draft.date) {
+      void bookingStepAnalyticsService.track({
+        step: 'schedule',
+        status: 'validation_fail',
+        failure_code: 'missing_date',
+        role: currentUser?.role,
+        currentUserId: currentUser?.id,
+        hasChildren: currentUser?.hasChildren,
+        actingAs: draft.actingAs,
+        draft,
+      });
+      return;
+    }
+
+    if (!draft.slot) {
+      void bookingStepAnalyticsService.track({
+        step: 'schedule',
+        status: 'validation_fail',
+        failure_code: 'missing_slot',
+        role: currentUser?.role,
+        currentUserId: currentUser?.id,
+        hasChildren: currentUser?.hasChildren,
+        actingAs: draft.actingAs,
+        draft,
+      });
+      return;
+    }
+
+    void bookingStepAnalyticsService.track({
+      step: 'schedule',
+      status: 'success',
+      role: currentUser?.role,
+      currentUserId: currentUser?.id,
+      hasChildren: currentUser?.hasChildren,
+      actingAs: draft.actingAs,
+      draft,
+    });
+    router.push(Routes.bookDetails(coachId));
+  }, [coachId, currentUser?.role, currentUser?.id, currentUser?.hasChildren, draft, router]);
   const renderShell = ({ content, footer }: { content: ReactNode; footer?: ReactNode }) => (
     <SafeAreaView
       style={[styles.safeArea, { backgroundColor: palette.background }]}
@@ -139,6 +251,7 @@ export default function ScheduleScreen() {
               title="Choose date & time"
               subtitle={subtitle}
               step={2}
+              onBack={handleBack}
             />
           </View>
           {content}
@@ -160,6 +273,62 @@ export default function ScheduleScreen() {
           message="Coach not found"
           onRetry={() => router.back()}
         />
+      ),
+    });
+  }
+
+  if (scheduleLocked && draft.date && draft.slot) {
+    return renderShell({
+      content: (
+        <ScrollView contentContainerStyle={styles.content}>
+          <BookingWizardHeader
+            title="Choose date & time"
+            subtitle="Time locked from selected session listing"
+            step={2}
+            onBack={handleBack}
+          />
+          <View
+            style={[
+              styles.placeholderCard,
+              {
+                backgroundColor: withAlpha(palette.tint, 0.06),
+                borderColor: withAlpha(palette.tint, 0.25),
+              },
+            ]}
+          >
+            <Ionicons name="lock-closed-outline" size={22} color={palette.tint} />
+            <Column flex gap="micro">
+              <ThemedText style={styles.placeholderTitle}>This listing has a fixed schedule</ThemedText>
+              <ThemedText style={[styles.placeholderText, { color: palette.muted }]}>
+                {formatDate(draft.date)} at {draft.slot}
+              </ThemedText>
+              {draft.locationText ? (
+                <ThemedText style={[styles.placeholderText, { color: palette.muted }]}>
+                  {draft.locationText}
+                </ThemedText>
+              ) : null}
+            </Column>
+          </View>
+        </ScrollView>
+      ),
+      footer: (
+        <View style={[styles.footer, { borderTopColor: withAlpha(palette.border, 0.5) }]}>
+          <Clickable
+            onPress={handleContinue}
+            style={[
+              styles.cta,
+              {
+                backgroundColor: palette.tint,
+                ...Shadows[scheme].subtle,
+              },
+            ]}
+            accessibilityLabel="Continue to booking details"
+          >
+            <ThemedText style={[styles.ctaText, { color: palette.onPrimary }]}>
+              Continue
+            </ThemedText>
+          </Clickable>
+        </View>
       ),
     });
   }
@@ -189,6 +358,7 @@ export default function ScheduleScreen() {
             title="Choose date & time"
             subtitle="No availability in the next 2 weeks"
             step={2}
+            onBack={handleBack}
           />
 
           {/* Custom empty state — not the generic one */}
@@ -250,6 +420,7 @@ export default function ScheduleScreen() {
               : 'Only available slots are shown'
           }
           step={2}
+          onBack={handleBack}
         />
         <CalendarPicker
           selectedDate={draft.date}
@@ -294,7 +465,7 @@ export default function ScheduleScreen() {
     footer: (
       <View style={[styles.footer, { borderTopColor: withAlpha(palette.border, 0.5) }]}>
         <Clickable
-          onPress={() => router.push(Routes.bookDetails(coachId))}
+          onPress={handleContinue}
           style={[
             styles.cta,
             {

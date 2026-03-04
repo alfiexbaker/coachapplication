@@ -15,7 +15,7 @@ import { Row } from '@/components/primitives/row';
 import { Clickable } from '@/components/primitives/clickable';
 import { PageHeader } from '@/components/primitives/page-header';
 import { SessionOfferingCard } from '@/components/sessions/session-offering-card';
-import { SessionDetailModal } from '@/components/sessions/session-detail-modal';
+import { PendingInvitesSection } from '@/components/bookings/pending-invites-section';
 import { ThemedText } from '@/components/themed-text';
 import { LoadingState, ErrorState, EmptyState } from '@/components/ui/screen-states';
 import { Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
@@ -46,7 +46,7 @@ export default function DiscoverSessionsScreen() {
     </SafeAreaView>
   );
 
-  if (c.status === 'loading') {
+  if (c.loading) {
     return renderShell(<LoadingState variant="list" />);
   }
 
@@ -73,6 +73,12 @@ export default function DiscoverSessionsScreen() {
 
   return renderShell(
     <>
+      <PendingInvitesSection
+        invites={c.pendingInvites}
+        onAccept={c.handleAcceptInvite}
+        onDecline={c.handleDeclineInvite}
+      />
+
       {/* Search Bar */}
       <View style={styles.searchContainer}>
         <Row
@@ -203,13 +209,6 @@ export default function DiscoverSessionsScreen() {
           </View>
         }
         ItemSeparatorComponent={() => <View style={styles.separator} />}
-      />
-
-      <SessionDetailModal
-        visible={c.showDetailModal}
-        offering={c.selectedOffering}
-        onClose={c.handleModalClose}
-        onUpdate={c.handleModalUpdate}
       />
     </>,
   );

@@ -2,7 +2,7 @@
  * InviteStatusBanner — Displays the current status of a session invite.
  *
  * Shows a colored banner with an icon and text describing the invite status
- * (Pending, Accepted, Declined, Expired, Countered).
+ * (Pending, Accepted, Declined, Expired, Maybe).
  */
 
 import React, { memo } from 'react';
@@ -27,7 +27,7 @@ const STATUS_CONFIG: Record<InviteStatus, { label: string; icon: string }> = {
   ACCEPTED: { label: 'Session Confirmed', icon: 'checkmark-circle' },
   DECLINED: { label: 'Invite Declined', icon: 'close-circle' },
   EXPIRED: { label: 'Invite Expired', icon: 'time' },
-  COUNTERED: { label: 'Counter Proposal Sent', icon: 'swap-horizontal' },
+  COUNTERED: { label: 'Awaiting Response', icon: 'hourglass' },
   MAYBE: { label: 'Maybe Attending', icon: 'help-circle' },
 };
 
@@ -40,7 +40,7 @@ function getStatusColors(status: InviteStatus, colors: ThemeColors) {
     case 'EXPIRED':
       return { bg: colors.background, text: colors.muted };
     case 'COUNTERED':
-      return { bg: withAlpha(colors.info, 0.12), text: colors.info };
+      return { bg: withAlpha(colors.warning, 0.12), text: colors.warning };
     case 'MAYBE':
     case 'PENDING':
     default:

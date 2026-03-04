@@ -17,14 +17,12 @@ import { useAuth } from '@/hooks/use-auth';
 import { ok } from '@/types/result';
 import { useBookingFlow } from '@/context/booking-flow-context';
 import { bookingSelfSettingService } from '@/services/booking-self-setting-service';
+import { bookingStepAnalyticsService } from '@/services/booking/booking-step-analytics-service';
 import type { User } from '@/constants/app-types';
-
-const LOCATION_OPTIONS = [
-  'Coach preferred location',
-  'My location',
-  'Neutral venue',
-  'Virtual session',
-];
+import {
+  BOOKING_LOCATION_OPTION_LIST,
+  BOOKING_LOCATION_OPTIONS,
+} from '@/constants/booking-flow';
 
 export default function DetailsScreen() {
   const { coachId } = useLocalSearchParams<{ coachId: string }>();
@@ -33,6 +31,10 @@ export default function DetailsScreen() {
   const { children, isMultiChild } = useChildContext();
   const { currentUser } = useAuth();
   const [allowBookSelf, setAllowBookSelf] = useState(false);
+  const hasPresetLocation = Boolean(draft.locationText?.trim());
+  const isCoachPresetLocation =
+    draft.locationOption === BOOKING_LOCATION_OPTIONS.COACH_PRESET && hasPresetLocation;
+  const lockPresetLocation = Boolean(draft.sessionOfferingId) && hasPresetLocation;
 
   const hasChildTargets = children.length > 0;
   const canSelectSelf = !hasChildTargets || allowBookSelf;
@@ -52,6 +54,12 @@ export default function DetailsScreen() {
       cancelled = true;
     };
   }, [currentUser?.id, hasChildTargets]);
+
+  useEffect(() => {
+    if ((!draft.locationOption && draft.locationText?.trim()) || lockPresetLocation) {
+      updateDraft({ locationOption: BOOKING_LOCATION_OPTIONS.COACH_PRESET });
+    }
+  }, [draft.locationOption, draft.locationText, lockPresetLocation, updateDraft]);
 
   const childOptions = useMemo(
     () =>
@@ -143,6 +151,74 @@ export default function DetailsScreen() {
     },
     [canSelectSelf, children, currentUser, updateDraft],
   );
+  const handleBack = useCallback(() => {
+    void bookingStepAnalyticsService.track({
+      step: 'details',
+      status: 'abandoned',
+      failure_code: 'back_navigation',
+      role: currentUser?.role,
+      currentUserId: currentUser?.id,
+      hasChildren: currentUser?.hasChildren,
+      actingAs: draft.actingAs,
+      draft,
+    });
+    router.back();
+  }, [currentUser?.role, currentUser?.id, currentUser?.hasChildren, draft]);
+
+  const handleContinue = useCallback(() => {
+    if (!coachId) {
+      void bookingStepAnalyticsService.track({
+        step: 'details',
+        status: 'validation_fail',
+        failure_code: 'missing_coach_id',
+        role: currentUser?.role,
+        currentUserId: currentUser?.id,
+        hasChildren: currentUser?.hasChildren,
+        actingAs: draft.actingAs,
+        draft,
+      });
+      return;
+    }
+
+    if (!draft.childId) {
+      void bookingStepAnalyticsService.track({
+        step: 'details',
+        status: 'validation_fail',
+        failure_code: 'missing_booking_target',
+        role: currentUser?.role,
+        currentUserId: currentUser?.id,
+        hasChildren: currentUser?.hasChildren,
+        actingAs: draft.actingAs,
+        draft,
+      });
+      return;
+    }
+
+    if (!canSelectSelf && currentUser?.id && draft.childId === currentUser.id) {
+      void bookingStepAnalyticsService.track({
+        step: 'details',
+        status: 'validation_fail',
+        failure_code: 'self_booking_disabled',
+        role: currentUser?.role,
+        currentUserId: currentUser?.id,
+        hasChildren: currentUser?.hasChildren,
+        actingAs: draft.actingAs,
+        draft,
+      });
+      return;
+    }
+
+    void bookingStepAnalyticsService.track({
+      step: 'details',
+      status: 'success',
+      role: currentUser?.role,
+      currentUserId: currentUser?.id,
+      hasChildren: currentUser?.hasChildren,
+      actingAs: draft.actingAs,
+      draft,
+    });
+    router.push(Routes.bookReview(coachId));
+  }, [canSelectSelf, coachId, currentUser, draft, router]);
 
   const canContinue =
     Boolean(draft.childId) && (canSelectSelf || draft.childId !== currentUser?.id);
@@ -157,35 +233,87 @@ export default function DetailsScreen() {
           title="Add details"
           subtitle="Tell your coach what you need"
           step={3}
+          onBack={handleBack}
         />
 
         <View style={{ gap: Spacing.sm }}>
           <ThemedText type="defaultSemiBold">Location</ThemedText>
-          {LOCATION_OPTIONS.map((option) => {
-            const active = draft.locationOption === option;
-            return (
-              <Clickable
-                key={option}
-                onPress={() => updateDraft({ locationOption: option })}
-                style={[
-                  styles.option,
-                  {
-                    backgroundColor: active ? withAlpha(palette.tint, 0.07) : palette.surface,
-                    borderColor: active ? palette.tint : palette.border,
-                  },
-                ]}
-              >
-                <ThemedText>{option}</ThemedText>
-              </Clickable>
-            );
-          })}
-          <TextInput
-            placeholder="Add address or Zoom link"
-            placeholderTextColor={palette.muted}
-            style={[styles.input, { borderColor: palette.border, color: palette.text }]}
-            value={draft.locationText}
-            onChangeText={(text) => updateDraft({ locationText: text })}
-          />
+          {lockPresetLocation ? (
+            <View
+              style={[
+                styles.settingHintCard,
+                {
+                  borderColor: withAlpha(palette.tint, 0.25),
+                  backgroundColor: withAlpha(palette.tint, 0.06),
+                },
+              ]}
+            >
+              <Row align="center" gap="xs">
+                <Ionicons name="location-outline" size={16} color={palette.tint} />
+                <ThemedText style={{ color: palette.text }}>
+                  {draft.locationText}
+                </ThemedText>
+              </Row>
+              <ThemedText style={{ color: palette.muted }}>
+                Venue locked from this session listing.
+              </ThemedText>
+            </View>
+          ) : (
+            <>
+              {BOOKING_LOCATION_OPTION_LIST.map((option) => {
+                const active = draft.locationOption === option;
+                const disabled =
+                  option === BOOKING_LOCATION_OPTIONS.COACH_PRESET && !draft.locationText?.trim();
+                return (
+                  <Clickable
+                    key={option}
+                    onPress={() => {
+                      if (disabled) return;
+                      updateDraft({ locationOption: option });
+                    }}
+                    style={[
+                      styles.option,
+                      {
+                        backgroundColor: active ? withAlpha(palette.tint, 0.07) : palette.surface,
+                        borderColor: active ? palette.tint : palette.border,
+                        opacity: disabled ? 0.45 : 1,
+                      },
+                    ]}
+                    disabled={disabled}
+                  >
+                    <ThemedText>{option}</ThemedText>
+                  </Clickable>
+                );
+              })}
+              <TextInput
+                placeholder={
+                  draft.locationOption === BOOKING_LOCATION_OPTIONS.VIRTUAL
+                    ? 'Add meeting link or app'
+                    : 'Add address or meeting point'
+                }
+                placeholderTextColor={palette.muted}
+                style={[styles.input, { borderColor: palette.border, color: palette.text }]}
+                value={draft.locationText}
+                onChangeText={(text) => updateDraft({ locationText: text })}
+                editable={!isCoachPresetLocation}
+              />
+              {isCoachPresetLocation && (
+                <View
+                  style={[
+                    styles.settingHintCard,
+                    {
+                      borderColor: withAlpha(palette.tint, 0.25),
+                      backgroundColor: withAlpha(palette.tint, 0.06),
+                    },
+                  ]}
+                >
+                  <ThemedText style={{ color: palette.text }}>
+                    Venue is preset from this coach offering/slot.
+                  </ThemedText>
+                </View>
+              )}
+            </>
+          )}
         </View>
 
         <View style={{ gap: Spacing.sm }}>
@@ -253,7 +381,7 @@ export default function DetailsScreen() {
       </ScrollView>
       <View style={[styles.footer, { borderTopColor: palette.border }]}>
         <Clickable
-          onPress={() => router.push(Routes.bookReview(coachId))}
+          onPress={handleContinue}
           style={[
             styles.cta,
             {

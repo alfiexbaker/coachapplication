@@ -625,9 +625,19 @@ export const sessionCrudService = {
       sessionsCache.push(newSession);
       await saveSessions(sessionsCache);
 
-      // Trigger notification for group session creation
+      // Trigger notification for parent-created sessions only when a recipient is known.
       const firstDate = newSession.schedule[0]?.date || 'TBD';
-      await notificationTriggers.groupSessionCreated(newSession.title, firstDate);
+      const creatorRole = (newSession.createdByRole ?? '').toUpperCase();
+      if (
+        newSession.createdByUserId &&
+        (creatorRole === 'USER' || creatorRole === 'PARENT')
+      ) {
+        await notificationTriggers.groupSessionCreated(
+          newSession.title,
+          firstDate,
+          newSession.createdByUserId,
+        );
+      }
 
       return newSession;
     }
@@ -748,8 +758,14 @@ export const sessionCrudService = {
       session.status = 'CANCELLED';
       await saveSessions(sessionsCache);
 
-      // Trigger notification for group session cancellation
-      await notificationTriggers.groupSessionCancelled(session.title);
+      // Notify only parents who already have RSVPs for this session.
+      const rsvps = await rsvpService.getForSession(sessionId);
+      const recipientIds = [...new Set(rsvps.map((rsvp) => rsvp.userId).filter(Boolean))];
+      await Promise.all(
+        recipientIds.map((recipientId) =>
+          notificationTriggers.groupSessionCancelled(session.title, recipientId),
+        ),
+      );
 
       return ok(session);
     }

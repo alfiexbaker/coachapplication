@@ -28,6 +28,15 @@ interface AuthUserRecord {
   accountType?: unknown;
 }
 
+interface ChildProfileRecord {
+  id?: unknown;
+  firstName?: unknown;
+  lastName?: unknown;
+  nickname?: unknown;
+  photoUrl?: unknown;
+  dateOfBirth?: unknown;
+}
+
 function normalizeUserRole(rawRole: unknown, rawAccountType: unknown): User['role'] {
   const candidate = (
     typeof rawRole === 'string'
@@ -80,16 +89,60 @@ function mapAuthUserToUser(authUser: AuthUserRecord): User | null {
   };
 }
 
+function mapChildProfileToUser(profile: ChildProfileRecord): User | null {
+  if (typeof profile.id !== 'string' || profile.id.length === 0) {
+    return null;
+  }
+
+  const firstName = typeof profile.firstName === 'string' ? profile.firstName.trim() : '';
+  const lastName = typeof profile.lastName === 'string' ? profile.lastName.trim() : '';
+  const nickname = typeof profile.nickname === 'string' ? profile.nickname.trim() : '';
+  const fullName = [firstName, lastName].filter(Boolean).join(' ').trim();
+
+  return {
+    id: profile.id,
+    name: nickname || fullName || firstName || 'Young Athlete',
+    email: '',
+    postcode: '',
+    dateOfBirth: typeof profile.dateOfBirth === 'string' ? profile.dateOfBirth : '',
+    avatar: typeof profile.photoUrl === 'string' ? profile.photoUrl : undefined,
+    role: 'USER',
+  };
+}
+
 class UserService {
   private async loadUsers(): Promise<User[]> {
-    const users = await apiClient.get<User[]>(STORAGE_KEYS.USERS, []);
-    if (users.length > 0) {
-      return users;
+    const [users, authUser, childProfiles] = await Promise.all([
+      apiClient.get<User[]>(STORAGE_KEYS.USERS, []),
+      apiClient.get<AuthUserRecord | null>(STORAGE_KEYS.AUTH_USER, null),
+      apiClient.get<ChildProfileRecord[]>(STORAGE_KEYS.CHILDREN_PROFILES, []),
+    ]);
+
+    const usersById = new Map<string, User>();
+
+    for (const user of users) {
+      usersById.set(normalizeAccountId(user.id), user);
     }
 
-    const authUser = await apiClient.get<AuthUserRecord | null>(STORAGE_KEYS.AUTH_USER, null);
-    const mappedUser = authUser ? mapAuthUserToUser(authUser) : null;
-    return mappedUser ? [mappedUser] : [];
+    const mappedAuthUser = authUser ? mapAuthUserToUser(authUser) : null;
+    if (mappedAuthUser) {
+      const key = normalizeAccountId(mappedAuthUser.id);
+      if (!usersById.has(key)) {
+        usersById.set(key, mappedAuthUser);
+      }
+    }
+
+    for (const childProfile of childProfiles) {
+      const mappedChild = mapChildProfileToUser(childProfile);
+      if (!mappedChild) continue;
+
+      const key = normalizeAccountId(mappedChild.id);
+      if (!usersById.has(key)) {
+        usersById.set(key, mappedChild);
+      }
+    }
+
+    return Array.from(usersById.values());
   }
 
   async getUserById(id: string): Promise<Result<User, ServiceError>> {

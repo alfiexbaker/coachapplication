@@ -19,13 +19,37 @@ import { useScreen } from '@/hooks/use-screen';
 import { useTheme } from '@/hooks/useTheme';
 import { Routes } from '@/navigation/routes';
 import { discoverService } from '@/services/discover-service';
+import { apiClient } from '@/services/api-client';
+import { STORAGE_KEYS } from '@/constants/storage-keys';
 import { ok } from '@/types/result';
 import type { MapScreenData } from '@/components/discover/map-content-types';
-import type { CoachSearchFilters } from '@/constants/types';
+import type { CoachSearchFilters, SessionOffering } from '@/constants/types';
+import { getSessionOfferingHeadcount } from '@/utils/session-offering-capacity';
+import { accountIdsMatch } from '@/utils/account-id';
+import { getFixedScheduleFromOffering } from '@/utils/booking-draft-prefill';
 
 // ─── Constants ─────────────────────────────────────────────────────────────
 
 const DEFAULT_LOCATION = { lat: 51.5074, lng: -0.1278, radiusKm: 10 };
+
+function selectPreferredOffering(offerings: SessionOffering[], coachId: string): SessionOffering | null {
+  const now = Date.now();
+  return (
+    offerings
+      .filter((offering) => accountIdsMatch(offering.coachId, coachId))
+      .filter((offering) => offering.status === 'active')
+      .filter((offering) => {
+        const startsAt = new Date(offering.scheduledAt).getTime();
+        return offering.isRecurring || (Number.isFinite(startsAt) && startsAt >= now);
+      })
+      .filter((offering) => getSessionOfferingHeadcount(offering) < offering.maxParticipants)
+      .sort((a, b) => {
+        const aDate = getFixedScheduleFromOffering(a)?.date ?? a.scheduledAt;
+        const bDate = getFixedScheduleFromOffering(b)?.date ?? b.scheduledAt;
+        return new Date(aDate).getTime() - new Date(bDate).getTime();
+      })[0] ?? null
+  );
+}
 
 // ─── Screen ────────────────────────────────────────────────────────────────
 
@@ -95,7 +119,22 @@ export default function MapScreen() {
 
   const handleBookCoach = useCallback(
     (coachId: string) => {
-      router.push(Routes.bookSessionType(coachId));
+      void (async () => {
+        let offeringId: string | undefined;
+        try {
+          const offerings = await apiClient.get<SessionOffering[]>(STORAGE_KEYS.SESSION_OFFERINGS, []);
+          offeringId = selectPreferredOffering(offerings, coachId)?.id;
+        } catch {
+          offeringId = undefined;
+        }
+
+        router.push(
+          Routes.bookCoach(coachId, {
+            source: 'discover_map',
+            offeringId,
+          }),
+        );
+      })();
     },
     [router],
   );

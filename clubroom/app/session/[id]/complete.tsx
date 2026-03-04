@@ -198,6 +198,13 @@ export default function SessionCompleteScreen() {
       Object.values(effectiveQuickRateByAthleteId).filter((rating) => Boolean(rating.badgeId)).length,
     [effectiveQuickRateByAthleteId],
   );
+  const handleExit = useCallback(() => {
+    if (router.canGoBack()) {
+      router.back();
+      return;
+    }
+    router.replace(Routes.SCHEDULE);
+  }, []);
 
   const handleSendGroupMessage = async () => {
     const sent = await sendGroupBroadcast(groupMessage);
@@ -316,7 +323,7 @@ export default function SessionCompleteScreen() {
       style={[styles.container, { backgroundColor: colors.background }]}
       edges={['top', 'bottom']}
     >
-      <PageHeader title="Complete Session" showBack onBackPress={() => router.back()} />
+      <PageHeader title="Complete Session" showBack onBackPress={handleExit} />
       {content}
     </SafeAreaView>
   );
@@ -382,7 +389,7 @@ export default function SessionCompleteScreen() {
                 onRaiseConcern={(athlete) => {
                   handleRaiseConcernByAthlete(athlete.athleteId);
                 }}
-                onDone={() => router.back()}
+                onDone={handleExit}
               />
             ) : isGroupCompletion ? (
               <>

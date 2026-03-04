@@ -13,18 +13,21 @@ export function BookingWizardHeader({
   title,
   subtitle,
   step,
+  onBack,
 }: {
   title: string;
   subtitle: string;
   step: number;
+  onBack?: () => void;
 }) {
   const { colors: palette } = useTheme();
+  const handleBack = onBack ?? (() => router.back());
   return (
     <View style={styles.headerWrap}>
       {/* Back + Step indicator row */}
       <Row align="center" justify="between">
         <Clickable
-          onPress={() => router.back()}
+          onPress={handleBack}
           style={[styles.backButton, { backgroundColor: withAlpha(palette.muted, 0.06) }]}
           accessibilityLabel="Go back"
           accessibilityRole="button"

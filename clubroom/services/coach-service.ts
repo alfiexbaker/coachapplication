@@ -12,12 +12,27 @@ import { ok, err, notFound, storageError } from '@/types/result';
 import { accountIdsMatch } from '@/utils/account-id';
 import { STORAGE_KEYS } from '@/constants/storage-keys';
 import { normalizeLegacyMockDates } from '@/utils/mock-date-normalizer';
+import { appendCoachReview, type StoredCoachReview } from '@/services/review-sync-service';
 
 const logger = createLogger('CoachService');
 
 // Storage keys (inline until added to storage-keys.ts)
 const COACHES_KEY = STORAGE_KEYS.COACH_DIRECTORY;
-const COACH_REVIEWS_KEY = 'clubroom.coach_reviews';
+const COACH_REVIEWS_KEY = STORAGE_KEYS.COACH_PUBLIC_REVIEWS;
+
+interface RateCoachReviewRecord {
+  id: string;
+  coachId: string;
+  userName?: string;
+  parentName?: string;
+  userId?: string;
+  parentId?: string;
+  rating: number;
+  text?: string;
+  content?: string;
+  sessionType?: string;
+  createdAt: string;
+}
 
 // Simplified Coach type for public profiles
 export interface Coach {
@@ -211,6 +226,33 @@ const MOCK_REVIEWS: PublicReview[] = normalizeLegacyMockDates([
 // SERVICE METHODS
 // ============================================================================
 
+function toPublicReview(review: RateCoachReviewRecord): PublicReview {
+  return {
+    id: review.id,
+    coachId: review.coachId,
+    reviewerName:
+      review.parentName?.trim() ||
+      review.userName?.trim() ||
+      'Parent',
+    reviewerId: review.userId || review.parentId,
+    rating: review.rating,
+    comment: review.text?.trim() || review.content?.trim(),
+    sessionType: review.sessionType,
+    createdAt: review.createdAt,
+  };
+}
+
+function dedupePublicReviews(reviews: PublicReview[]): PublicReview[] {
+  const seen = new Set<string>();
+  const result: PublicReview[] = [];
+  for (const review of reviews) {
+    if (!review.id || seen.has(review.id)) continue;
+    seen.add(review.id);
+    result.push(review);
+  }
+  return result;
+}
+
 export const coachService = {
   /**
    * Get a single coach by ID
@@ -266,8 +308,19 @@ export const coachService = {
   async getCoachReviews(coachId: string): Promise<Result<PublicReview[], ServiceError>> {
     logger.info('Getting coach reviews', { coachId });
     try {
-      const reviews = await apiClient.get<PublicReview[]>(COACH_REVIEWS_KEY, MOCK_REVIEWS);
-      const coachReviews = reviews.filter((r) => accountIdsMatch(r.coachId, coachId));
+      const [publicReviews, rateCoachReviews] = await Promise.all([
+        apiClient.get<PublicReview[]>(COACH_REVIEWS_KEY, MOCK_REVIEWS),
+        apiClient.get<RateCoachReviewRecord[]>(STORAGE_KEYS.RATE_COACH_REVIEWS, []),
+      ]);
+      const merged = dedupePublicReviews([
+        ...publicReviews,
+        ...rateCoachReviews.map(toPublicReview),
+      ]);
+      const coachReviews = merged
+        .filter((r) => accountIdsMatch(r.coachId, coachId))
+        .sort(
+          (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
+        );
       return ok(coachReviews);
     } catch (error) {
       logger.error('Failed to get coach reviews', error);
@@ -290,25 +343,29 @@ export const coachService = {
     logger.info('Submitting review', { coachId, rating: review.rating });
     try {
       const coaches = await apiClient.get<Coach[]>(COACHES_KEY, MOCK_COACHES);
-      const reviews = await apiClient.get<PublicReview[]>(COACH_REVIEWS_KEY, MOCK_REVIEWS);
       const canonicalCoachId =
         coaches.find((coach) => accountIdsMatch(coach.id, coachId))?.id ?? coachId;
-
-      const newReview: PublicReview = {
-        id: `review-${Date.now()}`,
+      const createdAt = new Date().toISOString();
+      const reviewId = `review-${Date.now()}`;
+      const storedReview: StoredCoachReview = {
+        id: reviewId,
         coachId: canonicalCoachId,
-        reviewerName: 'You',
-        reviewerId: 'current-user',
+        coachName: coaches.find((coach) => coach.id === canonicalCoachId)?.name,
+        userId: 'current-user',
+        parentId: 'current-user',
+        userName: 'You',
+        parentName: 'You',
         rating: review.rating,
-        comment: review.comment,
+        text: review.comment?.trim() || '',
+        content: review.comment?.trim() || '',
         sessionType: review.sessionType,
-        createdAt: new Date().toISOString(),
+        createdAt,
+        sessionDate: createdAt,
+        bookingId: review.sessionId,
       };
 
-      reviews.unshift(newReview);
-      await apiClient.set(COACH_REVIEWS_KEY, reviews);
-
-      return ok(newReview);
+      await appendCoachReview(storedReview);
+      return ok(toPublicReview(storedReview));
     } catch (error) {
       logger.error('Failed to submit review', error);
       return err(storageError('Failed to submit review'));

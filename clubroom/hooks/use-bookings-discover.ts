@@ -5,14 +5,14 @@
  * and suggested coaches. Applies per-child filtering when activeChildId is set.
  */
 
-import { useCallback, useMemo } from 'react';
+import { useCallback, useRef } from 'react';
 import { router } from 'expo-router';
-import { Alert } from 'react-native';
 import { Routes } from '@/navigation/routes';
 
+import { useAppAlert } from '@/components/ui/app-alert';
 import { bookingService } from '@/services/booking';
+import { eventService } from '@/services/event';
 import { inviteService as sessionInviteService } from '@/services/invite';
-import { groupSessionService } from '@/services/group-session';
 import { discoverService } from '@/services/discover-service';
 // Note: discoverService.getSuggestedCoaches() exists but we deliberately
 // don't surface coach rankings — marketplace fairness concern.
@@ -23,15 +23,26 @@ import { STORAGE_KEYS } from '@/constants/storage-keys';
 import { useAuth } from '@/hooks/use-auth';
 import { useChildContext } from '@/hooks/use-child-context';
 import { useScreen } from '@/hooks/use-screen';
+import { useBookingFlow } from '@/context/booking-flow-context';
 import { createLogger } from '@/utils/logger';
 import { getSessionInviteCoachName } from '@/utils/session-invite-display';
 import { getSessionOfferingHeadcount } from '@/utils/session-offering-capacity';
+import { buildBookingDraftPatchFromOffering } from '@/utils/booking-draft-prefill';
+import {
+  canViewerSeeEvent,
+  extractGroupSessionIdFromOfferingId,
+  isGroupSessionRelevantToViewer,
+  mapEventToOffering,
+  mapGroupSessionToOffering,
+  normalizeSessionOfferingSource,
+} from '@/utils/session-offering-projections';
 import { ok, err, serviceError } from '@/types/result';
 import type {
   SessionOffering,
   SessionInvite,
   CoachProfile,
   GroupSession,
+  GroupRegistration,
 } from '@/constants/types';
 
 const logger = createLogger('useBookingsDiscover');
@@ -67,12 +78,23 @@ export interface UseBookingsDiscoverResult {
 }
 
 export function useBookingsDiscover(): UseBookingsDiscoverResult {
+  const { showAlert } = useAppAlert();
   const { currentUser } = useAuth();
+  const { updateDraft } = useBookingFlow();
   const { children: contextChildren, activeChildId, isParent } = useChildContext();
+  const seedEnsuredRef = useRef(false);
+
+  const ensureSeedOnce = useCallback(async () => {
+    if (seedEnsuredRef.current) {
+      return;
+    }
+    await ensureRelationalDemoSeeded();
+    seedEnsuredRef.current = true;
+  }, []);
 
   const loadData = useCallback(async () => {
     try {
-      await ensureRelationalDemoSeeded();
+      await ensureSeedOnce();
 
       const userId = currentUser?.id ?? '';
 
@@ -86,21 +108,98 @@ export function useBookingsDiscover(): UseBookingsDiscoverResult {
         }
       }
 
-      // --- All session offerings ---
-      const allOfferings = await apiClient.get<SessionOffering[]>(
-        STORAGE_KEYS.SESSION_OFFERINGS,
-        [],
+      // --- All session offerings + group projections ---
+      const [storedOfferings, groupSessions, groupRegistrations] = await Promise.all([
+        apiClient.get<SessionOffering[]>(STORAGE_KEYS.SESSION_OFFERINGS, []),
+        apiClient.get<GroupSession[]>(STORAGE_KEYS.GROUP_SESSIONS, []),
+        apiClient.get<GroupRegistration[]>(STORAGE_KEYS.GROUP_REGISTRATIONS, []),
+      ]);
+      const normalizedStoredOfferings = storedOfferings.map(normalizeSessionOfferingSource);
+
+      const scopedChildren = isParent
+        ? contextChildren.filter((child) => !activeChildId || child.id === activeChildId)
+        : contextChildren;
+      const viewerIds = new Set<string>();
+      if (userId) viewerIds.add(userId);
+      for (const child of scopedChildren) {
+        viewerIds.add(child.id);
+      }
+      const childClubIds = new Set<string>();
+      for (const child of scopedChildren) {
+        for (const clubId of child.clubIds) {
+          childClubIds.add(clubId);
+        }
+      }
+
+      const registrationsBySessionId = new Map<string, GroupRegistration[]>();
+      for (const registration of groupRegistrations) {
+        if (!registrationsBySessionId.has(registration.sessionId)) {
+          registrationsBySessionId.set(registration.sessionId, []);
+        }
+        registrationsBySessionId.get(registration.sessionId)!.push(registration);
+      }
+
+      const isCoachUser = currentUser?.role === 'COACH' || currentUser?.role === 'ADMIN';
+      const relevantGroupSessions = groupSessions.filter((session) => {
+        const sessionRegistrations = registrationsBySessionId.get(session.id) ?? [];
+        return isGroupSessionRelevantToViewer({
+          session,
+          sessionRegistrations,
+          viewerIds,
+          childClubIds,
+          currentUserId: userId || undefined,
+          isCoachUser,
+        });
+      });
+
+      const projectedGroupOfferings = relevantGroupSessions
+        .map((session) =>
+          mapGroupSessionToOffering(
+            session,
+            registrationsBySessionId.get(session.id) ?? [],
+            new Date(),
+          ),
+        )
+        .filter((offering): offering is SessionOffering => offering !== null);
+
+      const eventClubIds = new Set<string>(childClubIds);
+      for (const offering of normalizedStoredOfferings) {
+        if (offering.clubId) {
+          eventClubIds.add(offering.clubId);
+        }
+      }
+      const clubEventsResults = await Promise.all(
+        Array.from(eventClubIds).map(async (clubId) => {
+          try {
+            return await eventService.getAllClubEvents(clubId);
+          } catch (eventError) {
+            logger.warn('Failed to load club events for discover', {
+              clubId,
+              error: eventError,
+            });
+            return [];
+          }
+        }),
       );
+      const eventOfferings = clubEventsResults
+        .flat()
+        .filter((event) => canViewerSeeEvent(event, viewerIds, isCoachUser, isParent, userId))
+        .map(mapEventToOffering);
+
+      const allOfferingsById = new Map<string, SessionOffering>();
+      for (const offering of normalizedStoredOfferings) {
+        allOfferingsById.set(offering.id, offering);
+      }
+      for (const offering of projectedGroupOfferings) {
+        allOfferingsById.set(offering.id, offering);
+      }
+      for (const offering of eventOfferings) {
+        allOfferingsById.set(offering.id, offering);
+      }
+      const allOfferings = Array.from(allOfferingsById.values());
 
       // --- Past bookings → familiar coach IDs ---
       const bookings = await bookingService.list();
-      const viewerIds = new Set<string>();
-      if (userId) viewerIds.add(userId);
-      if (isParent) {
-        for (const child of contextChildren) {
-          viewerIds.add(child.id);
-        }
-      }
       const familiarCoachIds = new Set<string>();
       for (const booking of bookings) {
         const athleteId = booking.athleteId ?? booking.athleteIds?.[0] ?? '';
@@ -150,23 +249,14 @@ export function useBookingsDiscover(): UseBookingsDiscoverResult {
         return o.inviteType === 'OPEN';
       });
 
-      // --- Club training sessions ---
-      let clubSessions: GroupSession[] = [];
-      const childClubIds = new Set<string>();
-      for (const child of contextChildren) {
-        if (activeChildId && child.id !== activeChildId) continue;
-        for (const clubId of child.clubIds) {
-          childClubIds.add(clubId);
-        }
-      }
-      for (const clubId of childClubIds) {
-        try {
-          const sessions = await groupSessionService.getClubTrainingSessions(clubId);
-          clubSessions.push(...sessions);
-        } catch (e) {
-          logger.error('Failed to load club sessions', { clubId, error: e });
-        }
-      }
+      // --- Club sessions (broad scope, not training-only) ---
+      const clubSessions = relevantGroupSessions
+        .filter((session) => Boolean(session.clubId))
+        .sort((a, b) => {
+          const aDate = a.schedule[0]?.date || '';
+          const bDate = b.schedule[0]?.date || '';
+          return aDate.localeCompare(bDate);
+        });
 
       return ok<DiscoverData>({
         pendingInvites,
@@ -181,7 +271,7 @@ export function useBookingsDiscover(): UseBookingsDiscoverResult {
         serviceError('UNKNOWN', 'Failed to load discover data. Pull down to refresh.', loadError),
       );
     }
-  }, [currentUser, contextChildren, isParent, activeChildId]);
+  }, [currentUser, contextChildren, isParent, activeChildId, ensureSeedOnce]);
 
   const {
     data,
@@ -213,7 +303,7 @@ export function useBookingsDiscover(): UseBookingsDiscoverResult {
   const familiarCoaches = data?.familiarCoaches ?? [];
   const clubSessions = data?.clubSessions ?? [];
   const openSessions = data?.openSessions ?? [];
-  const loading = status === 'loading';
+  const loading = status === 'loading' && data === null;
   const error =
     status === 'error'
       ? (screenError?.message ?? 'Failed to load discover data. Pull down to refresh.')
@@ -239,7 +329,7 @@ export function useBookingsDiscover(): UseBookingsDiscoverResult {
   const handleDeclineInvite = useCallback(
     (invite: SessionInvite) => {
       const coachName = getSessionInviteCoachName(invite);
-      Alert.alert('Decline Invite?', `Decline the session invite from ${coachName}?`, [
+      showAlert('Decline Invite?', `Decline the session invite from ${coachName}?`, [
         { text: 'Cancel', style: 'cancel' },
         {
           text: 'Decline',
@@ -256,17 +346,112 @@ export function useBookingsDiscover(): UseBookingsDiscoverResult {
         },
       ]);
     },
-    [onRefresh],
+    [onRefresh, showAlert],
   );
 
   const handleCoachPress = useCallback((coachId: string) => {
     logger.press('DiscoverCoachCard', { coachId });
-    router.push(Routes.bookSessionType(coachId));
-  }, []);
+    const preferredOffering = [...thisWeekOfferings, ...openSessions]
+      .filter((offering) => offering.coachId === coachId)
+      .sort((a, b) => {
+        const aTime = new Date(a.scheduledAt).getTime();
+        const bTime = new Date(b.scheduledAt).getTime();
+        if (Number.isFinite(aTime) && Number.isFinite(bTime)) {
+          return aTime - bTime;
+        }
+        if (Number.isFinite(aTime)) return -1;
+        if (Number.isFinite(bTime)) return 1;
+        return a.id.localeCompare(b.id);
+      })[0];
+    const prefillChild = (() => {
+      if (activeChildId) {
+        const activeChild = contextChildren.find((child) => child.id === activeChildId);
+        if (activeChild) {
+          return { id: activeChild.id, name: activeChild.name };
+        }
+      }
+      if (contextChildren.length === 1) {
+        return { id: contextChildren[0].id, name: contextChildren[0].name };
+      }
+      if (contextChildren.length === 0 && currentUser?.id) {
+        return {
+          id: currentUser.id,
+          name: currentUser.name || currentUser.fullName || 'Athlete',
+        };
+      }
+      return null;
+    })();
 
-  const handleOfferingPress = useCallback((_offering: SessionOffering) => {
-    // Handled by parent via callback — offering detail modal
-  }, []);
+    if (preferredOffering) {
+      updateDraft(
+        buildBookingDraftPatchFromOffering({
+          coachId,
+          offering: preferredOffering,
+          child: prefillChild,
+          entrySource: 'discover_feed',
+        }),
+      );
+    }
+
+    router.push(
+      Routes.bookCoach(coachId, {
+        offeringId: preferredOffering?.id,
+        source: 'discover_feed',
+        childId: activeChildId || undefined,
+      }),
+    );
+  }, [activeChildId, contextChildren, currentUser?.fullName, currentUser?.id, currentUser?.name, openSessions, thisWeekOfferings, updateDraft]);
+
+  const handleOfferingPress = useCallback((offering: SessionOffering) => {
+    const normalizedOffering = normalizeSessionOfferingSource(offering);
+    logger.press('DiscoverOffering', {
+      offeringId: normalizedOffering.id,
+      coachId: normalizedOffering.coachId,
+      source: normalizedOffering.source,
+    });
+    if (normalizedOffering.source === 'group') {
+      const groupSessionId =
+        normalizedOffering.sourceEntityId ??
+        extractGroupSessionIdFromOfferingId(normalizedOffering.id);
+      if (groupSessionId) {
+        router.push(Routes.groupSession(groupSessionId));
+        return;
+      }
+    }
+    const prefillChild = (() => {
+      if (activeChildId) {
+        const activeChild = contextChildren.find((child) => child.id === activeChildId);
+        if (activeChild) {
+          return { id: activeChild.id, name: activeChild.name };
+        }
+      }
+      if (contextChildren.length === 1) {
+        return { id: contextChildren[0].id, name: contextChildren[0].name };
+      }
+      if (contextChildren.length === 0 && currentUser?.id) {
+        return {
+          id: currentUser.id,
+          name: currentUser.name || currentUser.fullName || 'Athlete',
+        };
+      }
+      return null;
+    })();
+    updateDraft(
+      buildBookingDraftPatchFromOffering({
+        coachId: normalizedOffering.coachId,
+        offering: normalizedOffering,
+        child: prefillChild,
+        entrySource: 'discover_feed',
+      }),
+    );
+    router.push(
+      Routes.bookCoach(normalizedOffering.coachId, {
+        offeringId: normalizedOffering.id,
+        source: 'discover_feed',
+        childId: activeChildId || undefined,
+      }),
+    );
+  }, [activeChildId, contextChildren, currentUser?.fullName, currentUser?.id, currentUser?.name, updateDraft]);
 
   const handleGroupSessionPress = useCallback((sessionId: string) => {
     logger.press('DiscoverGroupSession', { sessionId });
@@ -275,7 +460,7 @@ export function useBookingsDiscover(): UseBookingsDiscoverResult {
 
   const handleFindCoachPress = useCallback(() => {
     logger.press('DiscoverFindCoach');
-    router.push(Routes.HOME_INDEX);
+    router.push(Routes.DISCOVER_MAP);
   }, []);
 
   return {

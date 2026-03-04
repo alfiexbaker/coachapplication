@@ -3,12 +3,11 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import {
   ScrollView,
   StyleSheet,
-  Alert,
   KeyboardAvoidingView,
   Platform,
   RefreshControl,
 } from 'react-native';
-import { useLocalSearchParams, router } from 'expo-router';
+import { router } from 'expo-router';
 import { Routes } from '@/navigation/routes';
 import { useRequiredParam } from '@/hooks/use-required-param';
 
@@ -28,6 +27,14 @@ import {
 } from '@/components/review/review-screen-sections';
 import { LoadingState, ErrorState, EmptyState } from '@/components/ui/screen-states';
 import { useToast } from '@/components/ui/toast';
+import { useAppAlert } from '@/components/ui/app-alert';
+import { STORAGE_KEYS } from '@/constants/storage-keys';
+import {
+  appendCoachReview,
+  getStoredCoachReviews,
+  isReviewForBookingByUser,
+  type StoredCoachReview,
+} from '@/services/review-sync-service';
 
 const logger = createLogger('ReviewScreen');
 let _reviewSubmitLock: Promise<void> = Promise.resolve();
@@ -42,23 +49,6 @@ function withReviewSubmitLock<T>(fn: () => Promise<T>): Promise<T> {
   return prev.then(fn).finally(() => release());
 }
 
-interface StoredReview {
-  id: string;
-  coachId: string;
-  coachName?: string;
-  parentName?: string;
-  userName?: string;
-  userId?: string;
-  parentId?: string;
-  rating: number;
-  text: string;
-  content: string;
-  createdAt: string;
-  sessionDate: string;
-  bookingId?: string;
-  categories?: Record<string, number>;
-}
-
 interface BookingInfo {
   id: string;
   coachId: string;
@@ -66,21 +56,7 @@ interface BookingInfo {
   service: string;
   scheduledAt: string;
   status: Booking['status'];
-  existingReview: StoredReview | null;
-}
-
-function isReviewForBookingByUser(
-  review: StoredReview,
-  bookingId: string,
-  currentUserId?: string,
-): boolean {
-  if (review.bookingId !== bookingId) return false;
-  if (!currentUserId) return true;
-  return (
-    review.userId === currentUserId ||
-    review.parentId === currentUserId ||
-    (!review.userId && !review.parentId)
-  );
+  existingReview: StoredCoachReview | null;
 }
 
 export default function ReviewScreen() {
@@ -89,6 +65,7 @@ export default function ReviewScreen() {
   const { colors: palette } = useTheme();
   const { currentUser } = useAuth();
   const { showToast } = useToast();
+  const { showAlert } = useAppAlert();
   const [submitted, setSubmitted] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submittedReview, setSubmittedReview] = useState<{
@@ -103,8 +80,8 @@ export default function ReviewScreen() {
 
     try {
       const [bookings, reviews] = await Promise.all([
-        apiClient.get<Booking[]>('session_bookings', []),
-        apiClient.get<StoredReview[]>('coach_reviews', []),
+        apiClient.get<Booking[]>(STORAGE_KEYS.BOOKINGS, []),
+        getStoredCoachReviews(),
       ]);
       const found = bookings.find((entry) => entry.id === bookingId);
       if (!found) {
@@ -171,17 +148,17 @@ export default function ReviewScreen() {
 
       try {
         if (!booking || !bookingId) {
-          Alert.alert('Missing booking', 'This session could not be reviewed.');
+          showAlert('Missing booking', 'This session could not be reviewed.');
           return;
         }
 
         if (booking.status !== 'COMPLETED') {
-          Alert.alert('Not ready yet', 'You can review a coach once the session is completed.');
+          showAlert('Not ready yet', 'You can review a coach once the session is completed.');
           return;
         }
 
         const persistedReview = await withReviewSubmitLock(async () => {
-          const reviews = await apiClient.get<StoredReview[]>('coach_reviews', []);
+          const reviews = await getStoredCoachReviews();
           const alreadyReviewed = reviews.find((review) =>
             isReviewForBookingByUser(review, bookingId, currentUser?.id),
           );
@@ -193,7 +170,7 @@ export default function ReviewScreen() {
           const reviewerName =
             currentUser?.fullName || currentUser?.name || currentUser?.username || 'Anonymous';
 
-          const newReview: StoredReview = {
+          const newReview: StoredCoachReview = {
             id: `review_${Date.now()}`,
             bookingId,
             coachId: booking.coachId,
@@ -210,7 +187,7 @@ export default function ReviewScreen() {
             sessionDate: booking.scheduledAt ?? new Date().toISOString(),
           };
 
-          await apiClient.set('coach_reviews', [...reviews, newReview]);
+          await appendCoachReview(newReview);
           return { review: newReview, alreadyExisted: false as const };
         });
 
@@ -220,7 +197,7 @@ export default function ReviewScreen() {
             rating: persistedReview.review.rating,
             text: persistedReview.review.text || persistedReview.review.content || '',
           });
-          Alert.alert('Review already submitted', 'You already reviewed this session.');
+          showAlert('Review already submitted', 'You already reviewed this session.');
           return;
         }
 
@@ -235,16 +212,26 @@ export default function ReviewScreen() {
           text: persistedReview.review.text || persistedReview.review.content || '',
         });
         setSubmitted(true);
-        showToast('Review submitted!', 'success');
+        showToast('Review submitted', { tone: 'success', duration: 1600 });
         router.replace(Routes.booking(bookingId));
       } catch (submitError) {
         logger.error('Failed to submit review', submitError);
-        Alert.alert('Error', 'Failed to submit review. Please try again.');
+        showAlert('Error', 'Failed to submit review. Please try again.');
       } finally {
         setIsSubmitting(false);
       }
     },
-    [isSubmitting, booking, bookingId, currentUser?.id, currentUser?.fullName, currentUser?.name, currentUser?.username, showToast],
+    [
+      isSubmitting,
+      booking,
+      bookingId,
+      currentUser?.id,
+      currentUser?.fullName,
+      currentUser?.name,
+      currentUser?.username,
+      showAlert,
+      showToast,
+    ],
   );
 
   const formatDate = (dateString?: string) => {

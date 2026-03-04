@@ -1,19 +1,37 @@
 /**
  * Hook for the Discover Sessions screen.
- * Manages offerings data, search, filters, and modal state.
+ * Manages offerings data, search/filters, and routes selections into booking flow.
  */
 
 import { useState, useMemo, useCallback } from 'react';
+import { router } from 'expo-router';
+import { Routes } from '@/navigation/routes';
+import { useAppAlert } from '@/components/ui/app-alert';
 import { apiClient } from '@/services/api-client';
 import { bookingService } from '@/services/booking';
 import { inviteService } from '@/services/invite';
+import { STORAGE_KEYS } from '@/constants/storage-keys';
 import { useAuth } from '@/hooks/use-auth';
 import { useChildContext } from '@/hooks/use-child-context';
 import { useScreen, type ScreenStatus } from '@/hooks/use-screen';
-import type { SessionOffering, FootballObjective } from '@/constants/types';
+import { useBookingFlow } from '@/context/booking-flow-context';
+import type {
+  SessionOffering,
+  FootballObjective,
+  GroupSession,
+  GroupRegistration,
+  SessionInvite,
+} from '@/constants/types';
 import { createLogger } from '@/utils/logger';
 import { getSessionOfferingCoachName } from '@/utils/session-display';
 import { getSessionOfferingHeadcount } from '@/utils/session-offering-capacity';
+import { getSessionInviteCoachName } from '@/utils/session-invite-display';
+import {
+  extractGroupSessionIdFromOfferingId,
+  normalizeSessionOfferingSource,
+  mapGroupSessionToOffering,
+} from '@/utils/session-offering-projections';
+import { buildBookingDraftPatchFromOffering } from '@/utils/booking-draft-prefill';
 import { err, ok, serviceError, type ServiceError } from '@/types/result';
 
 const logger = createLogger('DiscoverSessions');
@@ -36,6 +54,7 @@ export const TYPE_FILTERS = [
 
 interface DiscoverSessionsData {
   offerings: SessionOffering[];
+  pendingInvites: SessionInvite[];
 }
 
 export interface UseDiscoverSessionsResult {
@@ -49,26 +68,28 @@ export interface UseDiscoverSessionsResult {
   skillFilter: FootballObjective | '';
   typeFilter: '1on1' | 'group' | '';
   filteredOfferings: SessionOffering[];
-  selectedOffering: SessionOffering | null;
-  showDetailModal: boolean;
+  pendingInvites: SessionInvite[];
   setSearchQuery: (value: string) => void;
   setSkillFilter: (value: FootballObjective | '') => void;
   setTypeFilter: (value: '1on1' | 'group' | '') => void;
   clearSearch: () => void;
   handleOfferingPress: (offering: SessionOffering) => void;
-  handleModalClose: () => void;
-  handleModalUpdate: () => void;
+  handleAcceptInvite: (
+    invite: SessionInvite,
+    selectedSlot?: SessionInvite['proposedSlots'][0],
+  ) => Promise<void>;
+  handleDeclineInvite: (invite: SessionInvite) => void;
 }
 
 export function useDiscoverSessions() {
+  const { showAlert } = useAppAlert();
   const { currentUser } = useAuth();
-  const { children: contextChildren, isParent } = useChildContext();
+  const { updateDraft } = useBookingFlow();
+  const { children: contextChildren, isParent, activeChildId } = useChildContext();
 
   const [searchQuery, setSearchQuery] = useState('');
   const [skillFilter, setSkillFilter] = useState<FootballObjective | ''>('');
   const [typeFilter, setTypeFilter] = useState<'1on1' | 'group' | ''>('');
-  const [selectedOffering, setSelectedOffering] = useState<SessionOffering | null>(null);
-  const [showDetailModal, setShowDetailModal] = useState(false);
 
   const loadOfferings = useCallback(async () => {
     try {
@@ -82,18 +103,47 @@ export function useDiscoverSessions() {
         }
       }
 
-      const [allOfferings, allBookings, pendingInvites] = await Promise.all([
-        apiClient.get<SessionOffering[]>('session_offerings', []),
-        bookingService.list(),
-        currentUser && currentUser.role !== 'COACH'
-          ? inviteService.getPendingInvites(currentUser.id)
-          : Promise.resolve([]),
-      ]);
+      const [storedOfferings, groupSessions, groupRegistrations, allBookings, pendingInvites] =
+        await Promise.all([
+          apiClient.get<SessionOffering[]>(STORAGE_KEYS.SESSION_OFFERINGS, []),
+          apiClient.get<GroupSession[]>(STORAGE_KEYS.GROUP_SESSIONS, []),
+          apiClient.get<GroupRegistration[]>(STORAGE_KEYS.GROUP_REGISTRATIONS, []),
+          bookingService.list(),
+          currentUser && currentUser.role !== 'COACH'
+            ? inviteService.getPendingInvites(currentUser.id)
+            : Promise.resolve([]),
+        ]);
+      const normalizedStoredOfferings = storedOfferings.map(normalizeSessionOfferingSource);
+      const groupRegistrationsBySessionId = new Map<string, GroupRegistration[]>();
+      for (const registration of groupRegistrations) {
+        if (!groupRegistrationsBySessionId.has(registration.sessionId)) {
+          groupRegistrationsBySessionId.set(registration.sessionId, []);
+        }
+        groupRegistrationsBySessionId.get(registration.sessionId)!.push(registration);
+      }
+      const projectedGroupOfferings = groupSessions
+        .filter((session) => session.status !== 'DRAFT')
+        .map((session) =>
+          mapGroupSessionToOffering(
+            session,
+            groupRegistrationsBySessionId.get(session.id) ?? [],
+            new Date(),
+          ),
+        )
+        .filter((offering): offering is SessionOffering => offering !== null);
+      const offeringsById = new Map<string, SessionOffering>();
+      for (const offering of normalizedStoredOfferings) {
+        offeringsById.set(offering.id, offering);
+      }
+      for (const offering of projectedGroupOfferings) {
+        offeringsById.set(offering.id, offering);
+      }
+      const allOfferingsMerged = Array.from(offeringsById.values());
 
       const familiarCoachIds = new Set<string>();
       const familiarClubIds = new Set<string>();
 
-      for (const offering of allOfferings) {
+      for (const offering of allOfferingsMerged) {
         const hasLinkedRegistration = offering.registrations.some(
           (registration) =>
             registration.status === 'confirmed' && viewerIds.has(registration.userId),
@@ -124,7 +174,7 @@ export function useDiscoverSessions() {
       }
 
       const now = new Date();
-      const available = allOfferings.filter((offering) => {
+      const available = allOfferingsMerged.filter((offering) => {
         if (offering.status !== 'active') return false;
         if (offering.coachId === currentUser?.id) return false;
 
@@ -144,8 +194,8 @@ export function useDiscoverSessions() {
         return coachLinked || clubLinked || isInvited;
       });
 
-      logger.debug('Loaded offerings', { count: available.length });
-      return ok<DiscoverSessionsData>({ offerings: available });
+      logger.debug('Loaded offerings', { count: available.length, pendingInvites: pendingInvites.length });
+      return ok<DiscoverSessionsData>({ offerings: available, pendingInvites });
     } catch (loadError) {
       logger.error('Failed to load offerings', loadError);
       return err(
@@ -156,20 +206,21 @@ export function useDiscoverSessions() {
         ),
       );
     }
-  }, [currentUser]);
+  }, [contextChildren, currentUser, isParent]);
 
   const { data, status, error, refreshing, onRefresh, retry } = useScreen<DiscoverSessionsData>({
     load: loadOfferings,
     deps: [currentUser?.id],
-    isEmpty: (value) => value.offerings.length === 0,
+    isEmpty: (value) => value.offerings.length === 0 && value.pendingInvites.length === 0,
     refetchOnFocus: true,
   });
 
-  const offerings = data?.offerings ?? [];
-  const loading = status === 'loading';
+  const offerings = data?.offerings;
+  const pendingInvites = data?.pendingInvites ?? [];
+  const loading = status === 'loading' && !data;
 
   const filteredOfferings = useMemo(() => {
-    let filtered = offerings;
+    let filtered = offerings ?? [];
     if (searchQuery.trim()) {
       const query = searchQuery.toLowerCase();
       filtered = filtered.filter(
@@ -188,18 +239,96 @@ export function useDiscoverSessions() {
   }, [offerings, searchQuery, skillFilter, typeFilter]);
 
   const handleOfferingPress = useCallback((offering: SessionOffering) => {
-    setSelectedOffering(offering);
-    setShowDetailModal(true);
-  }, []);
+    const normalizedOffering = normalizeSessionOfferingSource(offering);
+    logger.press('DiscoverSessionsOffering', {
+      offeringId: normalizedOffering.id,
+      coachId: normalizedOffering.coachId,
+      source: normalizedOffering.source,
+    });
+    if (normalizedOffering.source === 'group') {
+      const groupSessionId =
+        normalizedOffering.sourceEntityId ??
+        extractGroupSessionIdFromOfferingId(normalizedOffering.id);
+      if (groupSessionId) {
+        router.push(Routes.groupSession(groupSessionId));
+        return;
+      }
+    }
+    const prefillChild = (() => {
+      if (activeChildId) {
+        const activeChild = contextChildren.find((child) => child.id === activeChildId);
+        if (activeChild) {
+          return { id: activeChild.id, name: activeChild.name };
+        }
+      }
+      if (contextChildren.length === 1) {
+        return { id: contextChildren[0].id, name: contextChildren[0].name };
+      }
+      if (contextChildren.length === 0 && currentUser?.id) {
+        return {
+          id: currentUser.id,
+          name: currentUser.name || currentUser.fullName || 'Athlete',
+        };
+      }
+      return null;
+    })();
+    updateDraft(
+      buildBookingDraftPatchFromOffering({
+        coachId: normalizedOffering.coachId,
+        offering: normalizedOffering,
+        child: prefillChild,
+        entrySource: 'discover_sessions',
+      }),
+    );
+    router.push(
+      Routes.bookCoach(normalizedOffering.coachId, {
+        offeringId: normalizedOffering.id,
+        source: 'discover_sessions',
+        childId: activeChildId || undefined,
+      }),
+    );
+  }, [activeChildId, contextChildren, currentUser?.fullName, currentUser?.id, currentUser?.name, updateDraft]);
 
-  const handleModalClose = useCallback(() => {
-    setShowDetailModal(false);
-    setSelectedOffering(null);
-  }, []);
+  const handleAcceptInvite = useCallback(
+    async (invite: SessionInvite, selectedSlot?: SessionInvite['proposedSlots'][0]) => {
+      const slot = selectedSlot ?? invite.proposedSlots[0];
+      if (!slot) {
+        return;
+      }
+      const result = await inviteService.respondToInvite({
+        inviteId: invite.id,
+        response: 'ACCEPTED',
+        selectedSlot: slot,
+      });
+      if (result.success) {
+        onRefresh();
+      }
+    },
+    [onRefresh],
+  );
 
-  const handleModalUpdate = useCallback(() => {
-    onRefresh();
-  }, [onRefresh]);
+  const handleDeclineInvite = useCallback(
+    (invite: SessionInvite) => {
+      const coachName = getSessionInviteCoachName(invite);
+      showAlert('Decline Invite?', `Decline the session invite from ${coachName}?`, [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Decline',
+          style: 'destructive',
+          onPress: async () => {
+            const result = await inviteService.respondToInvite({
+              inviteId: invite.id,
+              response: 'DECLINED',
+            });
+            if (result.success) {
+              onRefresh();
+            }
+          },
+        },
+      ]);
+    },
+    [onRefresh, showAlert],
+  );
   const clearSearch = useCallback(() => {
     setSearchQuery('');
   }, []);
@@ -215,15 +344,14 @@ export function useDiscoverSessions() {
     skillFilter,
     typeFilter,
     filteredOfferings,
-    selectedOffering,
-    showDetailModal,
+    pendingInvites,
     setSearchQuery,
     setSkillFilter,
     setTypeFilter,
     clearSearch,
     handleOfferingPress,
-    handleModalClose,
-    handleModalUpdate,
+    handleAcceptInvite,
+    handleDeclineInvite,
   } satisfies UseDiscoverSessionsResult;
 }
 

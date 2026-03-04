@@ -36,7 +36,7 @@ function statusCfg(status: string, c: ThemeColors) {
     ACCEPTED: { bg: withAlpha(c.success, 0.15), text: c.success, icon: 'checkmark-circle-outline' },
     DECLINED: { bg: withAlpha(c.error, 0.15), text: c.error, icon: 'close-circle-outline' },
     EXPIRED: { bg: withAlpha(c.muted, 0.12), text: c.muted, icon: 'time-outline' },
-    COUNTERED: { bg: withAlpha(c.info, 0.15), text: c.info, icon: 'swap-horizontal-outline' },
+    COUNTERED: { bg: withAlpha(c.warning, 0.15), text: c.warning, icon: 'hourglass-outline' },
   };
   return (
     m[status] ?? { bg: withAlpha(c.warning, 0.15), text: c.warning, icon: 'hourglass-outline' }
@@ -63,7 +63,7 @@ function typeCfg(t: SessionInviteType, c: ThemeColors) {
 }
 
 function expiryText(inv: SessionInvite): string | null {
-  if (inv.status !== 'PENDING') return null;
+  if (inv.status !== 'PENDING' && inv.status !== 'COUNTERED') return null;
   const diff = new Date(inv.expiresAt).getTime() - Date.now();
   if (diff <= 0) return 'Expired';
   const d = Math.floor(diff / 864e5),
@@ -153,7 +153,8 @@ export const InviteListCard = memo(function InviteListCard({
   }, [onDismiss]);
 
   const expired = new Date(invite.expiresAt) < new Date();
-  const status = expired && invite.status === 'PENDING' ? 'EXPIRED' : invite.status;
+  const isPending = invite.status === 'PENDING' || invite.status === 'COUNTERED';
+  const status = expired && isPending ? 'EXPIRED' : isPending ? 'PENDING' : invite.status;
   const sc = statusCfg(status, colors);
   const coachName = getSessionInviteCoachName(invite);
   const athleteNames = getSessionInviteAthleteNames(invite);

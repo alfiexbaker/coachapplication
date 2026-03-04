@@ -83,6 +83,7 @@ export function SessionDetailModal({
   const isInviteOnlyOffering = isMyOffering && offering.inviteType === 'CLOSED';
   const invitedAthleteCount = offering.invitedAthleteIds?.length ?? 0;
   const showAttendeeList = offering.sessionType === 'group' && (isMyOffering || isRegistered);
+  const showOwnershipSection = isCoach || canManageOffering;
 
   return (
     <Modal
@@ -112,18 +113,20 @@ export function SessionDetailModal({
             formatSchedule={formatSchedule}
           />
 
-          <SessionOwnershipSection
-            actingAs={offering.actingAs}
-            clubLabel={clubLabel}
-            ownerCoachName={ownerCoachName}
-            canReassign={canReassignOwnership}
-            assigneeOptions={assigneeOptions}
-            selectedAssigneeId={selectedAssigneeId}
-            onSelectAssignee={(value) => setSelectedAssigneeId(value)}
-            onReassign={handleReassignOwnership}
-            reassigning={reassigningOwnership}
-            timeline={ownershipTimeline}
-          />
+          {showOwnershipSection ? (
+            <SessionOwnershipSection
+              actingAs={offering.actingAs}
+              clubLabel={clubLabel}
+              ownerCoachName={ownerCoachName}
+              canReassign={canReassignOwnership}
+              assigneeOptions={assigneeOptions}
+              selectedAssigneeId={selectedAssigneeId}
+              onSelectAssignee={(value) => setSelectedAssigneeId(value)}
+              onReassign={handleReassignOwnership}
+              reassigning={reassigningOwnership}
+              timeline={ownershipTimeline}
+            />
+          ) : null}
 
           {showAttendeeList && (
             <SessionRegistrations
@@ -275,7 +278,7 @@ export function SessionDetailModal({
           )}
         </ScrollView>
 
-        {/* Book Now footer */}
+        {/* Continue Booking footer */}
         {!isCoach && !isRegistered && (
           <View
             style={[styles.footer, { borderTopColor: palette.border, ...Shadows[scheme].card }]}
@@ -289,7 +292,7 @@ export function SessionDetailModal({
               ]}
             >
               <ThemedText style={[styles.bookButtonText, { color: palette.onPrimary }]}>
-                {isFull ? 'Session Full' : 'Book Now'}
+                {isFull ? 'Session Full' : 'Continue Booking'}
               </ThemedText>
             </Clickable>
           </View>

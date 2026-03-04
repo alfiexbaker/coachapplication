@@ -1,5 +1,5 @@
 import { useState, useCallback, useMemo } from 'react';
-import { ScrollView, Alert, RefreshControl, StyleSheet, View } from 'react-native';
+import { ScrollView, RefreshControl, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 import type { ReactNode } from 'react';
@@ -20,6 +20,7 @@ import { ServiceEvents } from '@/services/event-bus';
 import { isCoach } from '@/utils/user-helpers';
 import { useChildContext } from '@/hooks/use-child-context';
 import type { SessionInvite } from '@/constants/types';
+import { useAppAlert } from '@/components/ui/app-alert';
 import {
   getSessionInviteAthleteNames,
   getSessionInviteCoachName,
@@ -31,6 +32,7 @@ type FilterMode = 'all' | 'pending' | 'responded';
 
 export default function SessionInvitesScreen() {
   const { currentUser } = useAuth();
+  const { showAlert } = useAppAlert();
   const userIsCoach = isCoach(currentUser);
   const { isParent: userHasChildren, isMultiChild, getChildById } = useChildContext();
   const [mode, setMode] = useState<ViewMode>(userIsCoach ? 'sent' : 'received');
@@ -58,8 +60,10 @@ export default function SessionInvitesScreen() {
 
   const pendingCount = useMemo(() => {
     if (!invites) return 0;
-    return invites.filter((i) => i.status === 'PENDING' && new Date(i.expiresAt) > new Date())
-      .length;
+    return invites.filter((i) => {
+      const isPending = i.status === 'PENDING' || i.status === 'COUNTERED';
+      return isPending && new Date(i.expiresAt) > new Date();
+    }).length;
   }, [invites]);
 
   const filteredInvites = useMemo(() => {
@@ -67,8 +71,11 @@ export default function SessionInvitesScreen() {
     return invites.filter((invite) => {
       if (filter === 'all') return true;
       if (filter === 'pending')
-        return invite.status === 'PENDING' && new Date(invite.expiresAt) > new Date();
-      if (filter === 'responded') return invite.status !== 'PENDING';
+        return (
+          (invite.status === 'PENDING' || invite.status === 'COUNTERED') &&
+          new Date(invite.expiresAt) > new Date()
+        );
+      if (filter === 'responded') return invite.status !== 'PENDING' && invite.status !== 'COUNTERED';
       return true;
     });
   }, [invites, filter]);
@@ -85,7 +92,7 @@ export default function SessionInvitesScreen() {
   const handleQuickDecline = useCallback(
     async (invite: SessionInvite) => {
       const coachName = getSessionInviteCoachName(invite);
-      Alert.alert(
+      showAlert(
         'Decline Invite',
         `Are you sure you want to decline the session invite from Coach ${coachName}?`,
         [
@@ -99,23 +106,23 @@ export default function SessionInvitesScreen() {
                   inviteId: invite.id,
                   response: 'DECLINED',
                 });
-                Alert.alert('Done', 'Invite declined. The coach has been notified.');
+                showAlert('Done', 'Invite declined. The coach has been notified.');
                 onRefresh();
               } catch {
-                Alert.alert('Error', 'Failed to decline invite. Please try again.');
+                showAlert('Error', 'Failed to decline invite. Please try again.');
               }
             },
           },
         ],
       );
     },
-    [onRefresh],
+    [onRefresh, showAlert],
   );
 
   const handleCancelInvite = useCallback(
     async (invite: SessionInvite) => {
       const athleteNames = getSessionInviteAthleteNames(invite);
-      Alert.alert(
+      showAlert(
         'Cancel Invite',
         `Are you sure you want to cancel this invite to ${athleteNames.join(', ')}?`,
         [
@@ -126,22 +133,22 @@ export default function SessionInvitesScreen() {
             onPress: async () => {
               try {
                 await sessionInviteService.cancelInvite(invite.id);
-                Alert.alert('Done', 'Invite cancelled.');
+                showAlert('Done', 'Invite cancelled.');
                 onRefresh();
               } catch {
-                Alert.alert('Error', 'Failed to cancel invite. Please try again.');
+                showAlert('Error', 'Failed to cancel invite. Please try again.');
               }
             },
           },
         ],
       );
     },
-    [onRefresh],
+    [onRefresh, showAlert],
   );
 
   const handleDismissInvite = useCallback(
     async (invite: SessionInvite) => {
-      Alert.alert('Remove Invite', 'Remove this invite from your list?', [
+      showAlert('Remove Invite', 'Remove this invite from your list?', [
         { text: 'Keep', style: 'cancel' },
         {
           text: 'Remove',
@@ -151,13 +158,13 @@ export default function SessionInvitesScreen() {
               await sessionInviteService.dismissInvite(invite.id);
               onRefresh();
             } catch {
-              Alert.alert('Error', 'Failed to remove invite. Please try again.');
+              showAlert('Error', 'Failed to remove invite. Please try again.');
             }
           },
         },
       ]);
     },
-    [onRefresh],
+    [onRefresh, showAlert],
   );
 
   const handleChangeMode = useCallback((newMode: ViewMode) => setMode(newMode), []);

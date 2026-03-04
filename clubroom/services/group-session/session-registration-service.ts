@@ -629,6 +629,14 @@ export const sessionRegistrationService = {
               location: session.location,
               service: session.title,
               serviceType: 'GROUP_SESSION',
+              sessionSource: 'group',
+              sessionSourceEntityId: session.id,
+              clubId: session.clubId,
+              actingAs: session.actingAs,
+              ownerCoachId: session.ownerCoachId,
+              assigneeCoachId: session.assigneeCoachId,
+              createdByUserId: session.createdByUserId,
+              createdByRole: session.createdByRole,
               price: session.pricePerParticipant,
             });
             if (bookingResult.success) {

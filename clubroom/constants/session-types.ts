@@ -244,6 +244,9 @@ export interface WeekAcceptance {
 export interface BookingSummary {
   id: string;
   service: string;
+  price?: number;
+  sessionSource?: 'direct' | 'event' | 'group';
+  sessionSourceEntityId?: string;
   start: string;
   status: 'Confirmed' | 'Pending' | 'Needs Completion' | 'Completed' | 'Cancelled';
   locationLabel: string;
@@ -307,8 +310,12 @@ export interface SessionOwnershipAuditEvent {
   note?: string;
 }
 
+export type SessionOfferingSource = 'direct' | 'event' | 'group';
+
 export interface SessionOffering {
   id: string;
+  source?: SessionOfferingSource;
+  sourceEntityId?: string;
   coachId: string;
   clubId?: string;
   actingAs?: 'self' | 'club';

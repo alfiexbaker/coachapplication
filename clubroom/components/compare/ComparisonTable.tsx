@@ -81,7 +81,11 @@ export function ComparisonTable({ coachIds, onCoachRemoved }: ComparisonTablePro
   );
 
   const handleBook = useCallback((coachId: string) => {
-    router.push(Routes.bookSessionType(coachId));
+    router.push(
+      Routes.bookCoach(coachId, {
+        source: 'comparison',
+      }),
+    );
   }, []);
 
   if (isLoading) {

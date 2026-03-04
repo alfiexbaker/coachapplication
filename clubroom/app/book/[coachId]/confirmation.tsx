@@ -17,9 +17,12 @@ import { useBookingFlow } from '@/context/booking-flow-context';
 import { useAuth } from '@/hooks/use-auth';
 import { CancellationPolicyCard } from '@/components/booking/cancellation-policy-card';
 import { bookingService } from '@/services/booking-service';
+import { bookingStepAnalyticsService } from '@/services/booking/booking-step-analytics-service';
 import { bookingSelfSettingService } from '@/services/booking-self-setting-service';
 import { cancellationService } from '@/services/cancellation-service';
 import { coachService } from '@/services/coach-service';
+import { academyService } from '@/services/academy-service';
+import { userService } from '@/services/user-service';
 import { createLogger } from '@/utils/logger';
 import { CelebrationOverlay, CelebrationOverlayRef } from '@/components/celebration-overlay';
 
@@ -35,9 +38,26 @@ export default function ConfirmationScreen() {
   const [bookingId, setBookingId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [resolvedCoachName, setResolvedCoachName] = useState(draft.coachName ?? '');
+  const [clubLabel, setClubLabel] = useState<string | null>(null);
+  const [assigneeLabel, setAssigneeLabel] = useState<string | null>(null);
   const [cancellationPolicy, setCancellationPolicy] = useState<import('@/constants/types').CancellationPolicy | null>(null);
   const celebrationRef = useRef<CelebrationOverlayRef>(null);
   const resolvedCoachId = coachId || draft.coachId;
+  const trackConfirmStep = (
+    status: 'success' | 'validation_fail' | 'conflict_fail' | 'abandoned',
+    failureCode?: string,
+  ) => {
+    void bookingStepAnalyticsService.track({
+      step: 'confirm',
+      status,
+      failure_code: failureCode,
+      role: currentUser?.role,
+      currentUserId: currentUser?.id,
+      hasChildren: currentUser?.hasChildren,
+      actingAs: draft.actingAs,
+      draft,
+    });
+  };
   const handleOpenBooking = (id: string) => {
     reset();
     router.replace(Routes.booking(id));
@@ -45,6 +65,12 @@ export default function ConfirmationScreen() {
   const handleMessageCoach = () => {
     if (!resolvedCoachId) return;
     router.push(Routes.messagesWith({ coachId: resolvedCoachId }));
+  };
+  const handleBack = () => {
+    if (!bookingId && !isCreating) {
+      trackConfirmStep('abandoned', 'back_navigation');
+    }
+    router.back();
   };
 
   useEffect(() => {
@@ -86,6 +112,44 @@ export default function ConfirmationScreen() {
     };
   }, [resolvedCoachId]);
 
+  useEffect(() => {
+    if (!draft.clubId) {
+      setClubLabel(null);
+      return;
+    }
+    let cancelled = false;
+    void academyService.getAcademy(draft.clubId).then((result) => {
+      if (cancelled) return;
+      if (result.success && result.data?.name) {
+        setClubLabel(result.data.name);
+      } else {
+        setClubLabel(draft.clubId ?? null);
+      }
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [draft.clubId]);
+
+  useEffect(() => {
+    if (!draft.assigneeCoachId) {
+      setAssigneeLabel(null);
+      return;
+    }
+    let cancelled = false;
+    void userService.getUserById(draft.assigneeCoachId).then((result) => {
+      if (cancelled) return;
+      if (result.success) {
+        setAssigneeLabel(result.data.name?.trim() || draft.assigneeCoachId || null);
+      } else {
+        setAssigneeLabel(draft.assigneeCoachId ?? null);
+      }
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [draft.assigneeCoachId]);
+
   const handleViewBooking = async () => {
     if (bookingId) {
       // Booking already created, just navigate
@@ -103,16 +167,19 @@ export default function ConfirmationScreen() {
       const coachName = draft.coachName || resolvedCoachName;
 
       if (!resolvedCoach || !coachName) {
+        trackConfirmStep('validation_fail', 'missing_coach_context');
         setError('Missing coach information. Please go back and try again.');
         setIsCreating(false);
         return;
       }
       if (!resolvedAthleteId || !resolvedAthleteName) {
+        trackConfirmStep('validation_fail', 'missing_booking_target');
         setError('No booking target selected. Please go back and choose who this session is for.');
         setIsCreating(false);
         return;
       }
       if (!currentUser?.id) {
+        trackConfirmStep('validation_fail', 'missing_current_user');
         setError('You must be logged in to book a session.');
         setIsCreating(false);
         return;
@@ -121,12 +188,14 @@ export default function ConfirmationScreen() {
       if (hasChildren && resolvedAthleteId === currentUser.id) {
         const canBookSelf = await bookingSelfSettingService.isEnabled(currentUser.id);
         if (!canBookSelf) {
+          trackConfirmStep('validation_fail', 'self_booking_disabled');
           setError('Booking for yourself is disabled. Enable it in Settings to continue.');
           setIsCreating(false);
           return;
         }
       }
       if (!draft.date || !draft.slot) {
+        trackConfirmStep('validation_fail', !draft.date ? 'missing_date' : 'missing_slot');
         setError('Missing date or time. Please go back and select a slot.');
         setIsCreating(false);
         return;
@@ -148,12 +217,21 @@ export default function ConfirmationScreen() {
         location: draft.locationText || draft.locationOption || '',
         service: serviceLabel,
         serviceType,
+        sessionSource: draft.sessionSource,
+        sessionSourceEntityId: draft.sessionSourceEntityId,
+        clubId: draft.clubId,
+        actingAs: draft.actingAs,
+        ownerCoachId: draft.ownerCoachId,
+        assigneeCoachId: draft.assigneeCoachId,
+        createdByUserId: draft.createdByUserId,
+        createdByRole: draft.createdByRole,
         objectives: draft.objectives,
         price: draft.price,
         notes: draft.notes,
       });
 
       if (result.success && result.data) {
+        trackConfirmStep('success');
         setBookingId(result.data.id);
 
         // Trigger celebration with haptics
@@ -171,6 +249,14 @@ export default function ConfirmationScreen() {
           handleOpenBooking(result.data!.id);
         }, 2600);
       } else {
+        const resultCode = !result.success ? result.error?.code : undefined;
+        const status =
+          resultCode === 'CONFLICT'
+            ? 'conflict_fail'
+            : resultCode === 'VALIDATION'
+              ? 'validation_fail'
+              : 'conflict_fail';
+        trackConfirmStep(status, (resultCode || 'booking_create_failed').toLowerCase());
         setError(
           result.success
             ? 'Failed to create booking.'
@@ -179,6 +265,7 @@ export default function ConfirmationScreen() {
         );
       }
     } catch (err) {
+      trackConfirmStep('conflict_fail', 'unexpected_error');
       logger.error('Error creating booking', err);
       setError('An unexpected error occurred. Please try again.');
     } finally {
@@ -196,6 +283,7 @@ export default function ConfirmationScreen() {
           title="Booking placed"
           subtitle="Your coach will confirm within 24 hours"
           step={5}
+          onBack={handleBack}
         />
 
         <View
@@ -210,9 +298,10 @@ export default function ConfirmationScreen() {
         <View style={{ gap: Spacing.sm }}>
           <ThemedText type="defaultSemiBold">{"What's next"}</ThemedText>
           <ThemedText style={{ color: palette.muted }}>
-            Your booking request is in. Once your coach confirms, payment is made directly to the
-            coach (outside the app) using the details they share. You can message your coach anytime
-            or add this to your calendar.
+            {draft.actingAs === 'club'
+              ? `Your booking request is in via ${clubLabel || 'the club'}. Payment details are shared in your session thread once confirmed.`
+              : 'Your booking request is in. Payment details are shared by your coach once confirmed.'}{' '}
+            You can message your coach anytime or add this to your calendar.
           </ThemedText>
         </View>
 
@@ -230,6 +319,22 @@ export default function ConfirmationScreen() {
               {draft.slot || 'No time selected'}
             </ThemedText>
           </Row>
+          {draft.actingAs === 'club' ? (
+            <Row align="center" gap="sm">
+              <Ionicons name="business-outline" size={18} color={palette.muted} />
+              <ThemedText style={{ color: palette.text }}>
+                Booked via {clubLabel || draft.clubId || 'Club'}
+              </ThemedText>
+            </Row>
+          ) : null}
+          {draft.actingAs === 'club' ? (
+            <Row align="center" gap="sm">
+              <Ionicons name="person-outline" size={18} color={palette.muted} />
+              <ThemedText style={{ color: palette.text }}>
+                Delivered by {assigneeLabel || resolvedCoachName || draft.coachName || 'Coach'}
+              </ThemedText>
+            </Row>
+          ) : null}
           {draft.locationText && (
             <Row align="center" gap="sm">
               <Ionicons name="location-outline" size={18} color={palette.muted} />

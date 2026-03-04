@@ -71,3 +71,13 @@ If a sprint introduces a regression (breaks something that worked before), log i
 | Date | Sprint | Regression | Severity | Fixed In |
 |------|--------|-----------|----------|----------|
 | — | — | — | — | — |
+
+---
+
+## Operational Audit Snapshots
+
+These are post-sprint reality checks (not sprint rows) to track current runtime health.
+
+| Date | Scope | Result | Notes |
+|------|-------|--------|-------|
+| 2026-03-04 | Full engineering audit (`docs/FULL_AUDIT_2026-03-04.md`) | PARTIAL / BLOCKED | `80/80` role flows pass; `gate:pre-api-placement` `13/13` pass; static UI audit pass; app `typecheck` fails (4 errors in progress-loop files); `test:safety` has 1 failing assertion; API package typecheck/tests pass (`26` tests). |

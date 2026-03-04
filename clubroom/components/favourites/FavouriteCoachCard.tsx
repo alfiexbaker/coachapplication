@@ -57,7 +57,11 @@ export const FavouriteCoachCard = memo(function FavouriteCoachCard({
 
   const handlePress = useCallback(() => {
     // Navigate to coach profile
-    router.push(Routes.bookCoachWith(favourite.coachId));
+    router.push(
+      Routes.bookCoach(favourite.coachId, {
+        source: 'favourites_profile',
+      }),
+    );
   }, [router, favourite.coachId]);
 
   const handleBook = useCallback(() => {
@@ -65,7 +69,11 @@ export const FavouriteCoachCard = memo(function FavouriteCoachCard({
       onBook(favourite.coachId);
     } else {
       // Default: navigate to booking flow
-      router.push(Routes.bookSessionType(favourite.coachId));
+      router.push(
+        Routes.bookCoach(favourite.coachId, {
+          source: 'favourites',
+        }),
+      );
     }
   }, [onBook, favourite.coachId, router]);
 

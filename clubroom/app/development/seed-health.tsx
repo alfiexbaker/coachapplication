@@ -253,7 +253,7 @@ async function loadSeedHealthSnapshot(): Promise<Result<SeedHealthSnapshot, Serv
         .filter((coachId): coachId is string => Boolean(coachId)),
     );
     const clubMemberUserIds = new Set(clubMembers.map((member) => member.userId));
-    const hasUser1Kids = childrenProfiles.some((profile) => profile.parentId === 'user1');
+    const hasUser1NoKids = !childrenProfiles.some((profile) => profile.parentId === 'user1');
     const hasParentNoKids =
       users.some((user) => user.id === 'parent_nokids')
       && !childrenProfiles.some((profile) => profile.parentId === 'parent_nokids');
@@ -305,7 +305,7 @@ async function loadSeedHealthSnapshot(): Promise<Result<SeedHealthSnapshot, Serv
         { label: 'Coach reviews', count: coachReviews.length },
       ]),
       buildSection('edge_cases', 'Edge Case Coverage', [
-        { label: 'User1 has kids', count: hasUser1Kids ? 1 : 0 },
+        { label: 'User1 has no kids', count: hasUser1NoKids ? 1 : 0 },
         { label: 'Parent account with no kids', count: hasParentNoKids ? 1 : 0 },
         { label: 'Club-linked user exists', count: hasClubLinkedUser ? 1 : 0 },
         { label: 'Unlinked user exists', count: hasUnlinkedUser ? 1 : 0 },

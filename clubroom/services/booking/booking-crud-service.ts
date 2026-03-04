@@ -46,9 +46,12 @@ const ENFORCE_DBS_SAFEGUARDING_GATE =
 const CACHE_MAX_AGE = 30_000;
 
 export type BookingDraft = {
+  entrySource?: string;
   sessionType?: string;
   sessionTypeLabel?: string;
   sessionOfferingId?: string;
+  sessionSource?: 'direct' | 'event' | 'group';
+  sessionSourceEntityId?: string;
   sessionTemplateId?: string;
   participants?: number;
   duration?: number;
@@ -63,6 +66,12 @@ export type BookingDraft = {
   totalPrice?: number;
   coachId?: string;
   coachName?: string;
+  clubId?: string;
+  actingAs?: 'self' | 'club';
+  ownerCoachId?: string;
+  assigneeCoachId?: string;
+  createdByUserId?: string;
+  createdByRole?: Booking['createdByRole'];
   athleteId?: string;
   athleteName?: string;
   objectives?: string[];
@@ -82,6 +91,14 @@ export interface CreateBookingParams {
   serviceType: string;
   sessionTemplateId?: string;
   sessionTemplateName?: string;
+  sessionSource?: 'direct' | 'event' | 'group';
+  sessionSourceEntityId?: string;
+  clubId?: string;
+  actingAs?: 'self' | 'club';
+  ownerCoachId?: string;
+  assigneeCoachId?: string;
+  createdByUserId?: string;
+  createdByRole?: Booking['createdByRole'];
   objectives?: string[];
   price?: number; // Base price per athlete
   notes?: string;
@@ -321,12 +338,20 @@ class BookingCrudService {
         await notificationTriggers.bookingCancelled('Parent', date, 'coach', booking.coachId);
       } else {
         // Notify parent when coach cancels
-        await notificationTriggers.bookingCancelled(
-          booking.coachName || 'Coach',
-          date,
-          'parent',
-          booking.bookedById,
-        );
+        const parentRecipientId = booking.bookedById || booking.athleteId;
+        if (parentRecipientId) {
+          await notificationTriggers.bookingCancelled(
+            booking.coachName || 'Coach',
+            date,
+            'parent',
+            parentRecipientId,
+          );
+        } else {
+          logger.warn('Cancellation notification skipped: missing parent recipient', {
+            bookingId: booking.id,
+            coachId: booking.coachId,
+          });
+        }
       }
 
       // Emit typed event for cross-service reactions
@@ -450,6 +475,14 @@ class BookingCrudService {
       serviceType,
       sessionTemplateId,
       sessionTemplateName,
+      sessionSource,
+      sessionSourceEntityId,
+      clubId,
+      actingAs,
+      ownerCoachId,
+      assigneeCoachId,
+      createdByUserId,
+      createdByRole,
       objectives,
       price,
       notes,
@@ -515,6 +548,14 @@ class BookingCrudService {
       serviceType,
       ...(sessionTemplateId ? { sessionTemplateId } : {}),
       ...(sessionTemplateName ? { sessionTemplateName } : {}),
+      ...(sessionSource ? { sessionSource } : {}),
+      ...(sessionSourceEntityId ? { sessionSourceEntityId } : {}),
+      ...(clubId ? { clubId } : {}),
+      ...(actingAs ? { actingAs } : {}),
+      ...(ownerCoachId ? { ownerCoachId } : {}),
+      ...(assigneeCoachId ? { assigneeCoachId } : {}),
+      ...(createdByUserId ? { createdByUserId } : {}),
+      ...(createdByRole ? { createdByRole } : {}),
       objectives: objectives || [],
       price: totalPrice,
       isSharedSession,
@@ -651,6 +692,16 @@ class BookingCrudService {
       service: draft.sessionTypeLabel || draft.sessionType || 'Session',
       serviceType: draft.sessionType || '1-to-1',
       ...(draft.sessionTemplateId ? { sessionTemplateId: draft.sessionTemplateId } : {}),
+      ...(draft.sessionSource ? { sessionSource: draft.sessionSource } : {}),
+      ...(draft.sessionSourceEntityId
+        ? { sessionSourceEntityId: draft.sessionSourceEntityId }
+        : {}),
+      ...(draft.clubId ? { clubId: draft.clubId } : {}),
+      ...(draft.actingAs ? { actingAs: draft.actingAs } : {}),
+      ...(draft.ownerCoachId ? { ownerCoachId: draft.ownerCoachId } : {}),
+      ...(draft.assigneeCoachId ? { assigneeCoachId: draft.assigneeCoachId } : {}),
+      ...(draft.createdByUserId ? { createdByUserId: draft.createdByUserId } : {}),
+      ...(draft.createdByRole ? { createdByRole: draft.createdByRole } : {}),
       objectives: draft.objectives || [],
       price: draft.price || 0,
       notes: draft.notes || '',

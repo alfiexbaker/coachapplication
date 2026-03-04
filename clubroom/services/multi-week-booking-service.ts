@@ -49,6 +49,14 @@ export interface CreateSeriesParams {
   location: string;
   patternLabel: string;
   sessionInviteId?: string;
+  sessionSource?: 'direct' | 'event' | 'group';
+  sessionSourceEntityId?: string;
+  clubId?: string;
+  actingAs?: 'self' | 'club';
+  ownerCoachId?: string;
+  assigneeCoachId?: string;
+  createdByUserId?: string;
+  createdByRole?: Booking['createdByRole'];
   notes?: string;
 }
 
@@ -114,6 +122,14 @@ class MultiWeekBookingService {
       location,
       patternLabel,
       sessionInviteId,
+      sessionSource,
+      sessionSourceEntityId,
+      clubId,
+      actingAs,
+      ownerCoachId,
+      assigneeCoachId,
+      createdByUserId,
+      createdByRole,
       notes,
     } = params;
 
@@ -150,6 +166,14 @@ class MultiWeekBookingService {
         location,
         service: sessionType,
         serviceType: sessionType,
+        ...(sessionSource ? { sessionSource } : {}),
+        ...(sessionSourceEntityId ? { sessionSourceEntityId } : {}),
+        ...(clubId ? { clubId } : {}),
+        ...(actingAs ? { actingAs } : {}),
+        ...(ownerCoachId ? { ownerCoachId } : {}),
+        ...(assigneeCoachId ? { assigneeCoachId } : {}),
+        ...(createdByUserId ? { createdByUserId } : {}),
+        ...(createdByRole ? { createdByRole } : {}),
         objectives: focus ? [focus] : [],
         price: pricePerSession ?? 0,
         notes: notes ?? '',

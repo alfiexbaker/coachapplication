@@ -38,7 +38,6 @@ interface SessionInviteCardProps {
   onPress: () => void;
   onAccept?: (selectedSlot?: TimeSlot) => void;
   onDecline?: (reason?: DeclineReasonResult) => void;
-  onCounterPropose?: () => void;
   compact?: boolean;
   showSlotSelector?: boolean;
   slotTakenError?: string | null;
@@ -51,7 +50,6 @@ function SessionInviteCardComponent({
   onPress,
   onAccept,
   onDecline,
-  onCounterPropose,
   compact = false,
   slotTakenError = null,
   acceptLoading = false,
@@ -63,7 +61,8 @@ function SessionInviteCardComponent({
 
   const statusColors = getStatusColors(palette);
   const isExpired = new Date(invite.expiresAt) < new Date();
-  const status = isExpired && invite.status === 'PENDING' ? 'EXPIRED' : invite.status;
+  const isPending = invite.status === 'PENDING' || invite.status === 'COUNTERED';
+  const status = isExpired && isPending ? 'EXPIRED' : isPending ? 'PENDING' : invite.status;
   const statusConfig = statusColors[status] || statusColors.PENDING;
   const canRespond = status === 'PENDING';
   const coachName = getSessionInviteCoachName(invite);
@@ -254,7 +253,6 @@ function SessionInviteCardComponent({
         <InviteActions
           onAccept={handleAccept}
           onDecline={() => setShowDeclineSheet(true)}
-          onCounterPropose={onCounterPropose}
           acceptDisabled={invite.proposedSlots.length > 1 && selectedSlotIndex === null}
           acceptLoading={acceptLoading}
         />

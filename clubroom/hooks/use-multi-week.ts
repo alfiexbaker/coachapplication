@@ -4,10 +4,13 @@
  */
 
 import { useState, useEffect, useCallback, useMemo } from 'react';
-import { Alert, Platform } from 'react-native';
+import { Platform } from 'react-native';
 import { useLocalSearchParams, router } from 'expo-router';
 import * as Haptics from 'expo-haptics';
+import { useAppAlert } from '@/components/ui/app-alert';
+import { useBookingFlow } from '@/context/booking-flow-context';
 import { useAuth } from '@/hooks/use-auth';
+import { useChildContext } from '@/hooks/use-child-context';
 import { useScreen } from '@/hooks/use-screen';
 import { availabilityService } from '@/services/availability-service';
 import { multiWeekBookingService } from '@/services/multi-week-booking-service';
@@ -22,17 +25,47 @@ export const WEEKS_TO_SHOW = 8;
 const DAY_NAMES = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
 export function useMultiWeek() {
-  const { coachId } = useLocalSearchParams<{ coachId: string }>();
+  const { coachId, weeks: weeksParam } = useLocalSearchParams<{ coachId: string; weeks?: string }>();
+  const { showAlert } = useAppAlert();
   const { currentUser } = useAuth();
+  const { children } = useChildContext();
+  const { draft } = useBookingFlow();
 
   const [submitting, setSubmitting] = useState(false);
   const [selectedWeeks, setSelectedWeeks] = useState<Set<string>>(new Set());
   const [showConfirmation, setShowConfirmation] = useState(false);
 
-  const coachName = 'Coach';
-  const sessionType = '1:1 Session';
-  const defaultPrice = 60;
-  const defaultDuration = 60;
+  const coachName = draft.coachName || 'Coach';
+  const sessionType = draft.sessionTypeLabel || draft.sessionType || 'Session';
+  const sessionPrice = typeof draft.price === 'number' ? draft.price : 0;
+  const sessionDuration = draft.duration ?? 60;
+  const requestedWeeks = useMemo(() => {
+    const parsed = Number.parseInt(weeksParam ?? '', 10);
+    return Number.isFinite(parsed) && parsed > 0 ? parsed : 0;
+  }, [weeksParam]);
+  const selectedAthlete = useMemo(() => {
+    const targetId = draft.childId;
+    if (targetId) {
+      if (currentUser?.id && targetId === currentUser.id) {
+        return {
+          id: currentUser.id,
+          name: draft.athleteName || currentUser.name || currentUser.fullName || 'Athlete',
+        };
+      }
+      const child = children.find((candidate) => candidate.id === targetId);
+      if (child) {
+        return { id: child.id, name: child.name };
+      }
+      return { id: targetId, name: draft.athleteName || 'Athlete' };
+    }
+    if (currentUser?.id) {
+      return {
+        id: currentUser.id,
+        name: draft.athleteName || currentUser.name || currentUser.fullName || 'Athlete',
+      };
+    }
+    return null;
+  }, [children, currentUser, draft.athleteName, draft.childId]);
 
   const loadWeeks = useCallback(async () => {
     if (!coachId) {
@@ -46,7 +79,7 @@ export function useMultiWeek() {
         coachId,
         toDateStr(today),
         toDateStr(endDate),
-        defaultDuration,
+        sessionDuration,
       );
 
       const weekMap = new Map<string, WeekRow>();
@@ -67,7 +100,7 @@ export function useMultiWeek() {
             startTime: slot.startTime,
             endTime: slot.endTime,
             location: slot.location ?? '',
-            price: defaultPrice,
+            price: sessionPrice,
             available: slot.isAvailable,
             unavailableReason: !slot.isAvailable ? 'Fully booked' : undefined,
           });
@@ -83,7 +116,7 @@ export function useMultiWeek() {
       logger.error('Failed to load weeks', loadError);
       return err(serviceError('UNKNOWN', 'Failed to load multi-week availability.', loadError));
     }
-  }, [coachId, defaultDuration, defaultPrice]);
+  }, [coachId, sessionDuration, sessionPrice]);
 
   const { data, status, error, refreshing, onRefresh, retry, colors } = useScreen<WeekRow[]>({
     load: loadWeeks,
@@ -91,15 +124,17 @@ export function useMultiWeek() {
     isEmpty: (rows) => rows.length === 0,
     refetchOnFocus: true,
   });
-  const weeks = data ?? [];
+  const weekRows = useMemo(() => data ?? [], [data]);
 
   useEffect(() => {
-    if (weeks.length === 0) {
+    if (weekRows.length === 0) {
       setSelectedWeeks(new Set());
       return;
     }
-    setSelectedWeeks(new Set(weeks.filter((week) => week.available).map((week) => week.weekDate)));
-  }, [weeks]);
+    const availableWeeks = weekRows.filter((week) => week.available).map((week) => week.weekDate);
+    const initialSelectionCount = requestedWeeks > 0 ? requestedWeeks : 1;
+    setSelectedWeeks(new Set(availableWeeks.slice(0, initialSelectionCount)));
+  }, [requestedWeeks, weekRows]);
 
   const handleToggleWeek = useCallback((weekDate: string) => {
     setSelectedWeeks((prev) => {
@@ -111,8 +146,8 @@ export function useMultiWeek() {
   }, []);
 
   const selectedWeekRows = useMemo(
-    () => weeks.filter((w) => selectedWeeks.has(w.weekDate)),
-    [weeks, selectedWeeks],
+    () => weekRows.filter((w) => selectedWeeks.has(w.weekDate)),
+    [weekRows, selectedWeeks],
   );
   const primaryLocation = useMemo(() => selectedWeekRows[0]?.location ?? '', [selectedWeekRows]);
 
@@ -126,36 +161,53 @@ export function useMultiWeek() {
 
   const handleConfirm = useCallback(async () => {
     if (!coachId || !currentUser) return;
+    if (!selectedAthlete?.id || !selectedAthlete.name) {
+      showAlert('Missing athlete', 'Please choose who this booking is for.');
+      return;
+    }
+    if (selectedWeekRows.length === 0) {
+      showAlert('No weeks selected', 'Select at least one week before confirming.');
+      return;
+    }
     setSubmitting(true);
     try {
       const result = await multiWeekBookingService.createSeries({
         createdById: currentUser.id,
-        createdByName: currentUser.name ?? 'Parent',
+        createdByName: currentUser.name || currentUser.fullName || 'Parent',
         coachId,
         coachName,
-        athleteIds: [currentUser.id],
-        athleteNames: [currentUser.name ?? 'Athlete'],
+        athleteIds: [selectedAthlete.id],
+        athleteNames: [selectedAthlete.name],
         sessionType,
-        pricePerSession: defaultPrice,
+        pricePerSession: sessionPrice,
         selectedWeeks: selectedWeekRows.map((w) => w.weekDate),
-        startTime: selectedWeekRows[0]?.startTime ?? '10:00',
-        duration: defaultDuration,
-        location: primaryLocation,
+        startTime: selectedWeekRows[0]?.startTime ?? draft.slot ?? '10:00',
+        duration: sessionDuration,
+        location: primaryLocation || draft.locationText || '',
         patternLabel: `${selectedWeekRows.length} weeks`,
+        sessionSource: draft.sessionSource,
+        sessionSourceEntityId: draft.sessionSourceEntityId,
+        clubId: draft.clubId,
+        actingAs: draft.actingAs,
+        ownerCoachId: draft.ownerCoachId,
+        assigneeCoachId: draft.assigneeCoachId,
+        createdByUserId: draft.createdByUserId,
+        createdByRole: draft.createdByRole,
+        notes: draft.notes,
       });
       if (result.success) {
         if (Platform.OS !== 'web') Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-        Alert.alert(
+        showAlert(
           'Booking Confirmed',
           `${selectedWeekRows.length} sessions booked successfully!`,
           [{ text: 'OK', onPress: () => router.back() }],
         );
       } else {
-        Alert.alert('Booking Failed', result.error.message);
+        showAlert('Booking Failed', result.error.message);
       }
     } catch (error) {
       logger.error('Failed to create series', error);
-      Alert.alert('Error', 'Something went wrong. Please try again.');
+      showAlert('Error', 'Something went wrong. Please try again.');
     } finally {
       setSubmitting(false);
     }
@@ -163,11 +215,24 @@ export function useMultiWeek() {
     coachId,
     currentUser,
     coachName,
+    draft.actingAs,
+    draft.assigneeCoachId,
+    draft.clubId,
+    draft.createdByRole,
+    draft.createdByUserId,
+    draft.locationText,
+    draft.notes,
+    draft.ownerCoachId,
+    draft.sessionSource,
+    draft.sessionSourceEntityId,
+    draft.slot,
+    selectedAthlete,
+    sessionPrice,
     sessionType,
-    defaultPrice,
     selectedWeekRows,
-    defaultDuration,
+    sessionDuration,
     primaryLocation,
+    showAlert,
   ]);
 
   return {
@@ -180,7 +245,7 @@ export function useMultiWeek() {
     colors,
     loading: status === 'loading',
     submitting,
-    weeks,
+    weeks: weekRows,
     selectedWeeks,
     showConfirmation,
     coachName,

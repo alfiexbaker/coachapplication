@@ -18,6 +18,7 @@ import { ErrorBoundary } from '@/components/error-boundary';
 import { createLogger } from '@/utils/logger';
 import { ThemeProvider as AppThemeProvider } from '@/hooks/theme-provider';
 import { NotificationToastProvider } from '@/components/notification/notification-toast';
+import { AppAlertProvider } from '@/components/ui/app-alert';
 import { ToastProvider } from '@/components/ui/toast';
 import { OfflineBanner } from '@/components/ui/offline-banner';
 import { pushNotificationService } from '@/services/push-notification-service';
@@ -160,11 +161,13 @@ function RootNavigation() {
     <NavigationThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
       {isAuthenticated ? (
         <ToastProvider>
-          <NotificationToastProvider>
-            <Stack screenOptions={{ headerShown: false }} />
-            <OfflineBanner />
-            <StatusBar style={colorScheme === 'dark' ? 'light' : 'dark'} />
-          </NotificationToastProvider>
+          <AppAlertProvider>
+            <NotificationToastProvider>
+              <Stack screenOptions={{ headerShown: false }} />
+              <OfflineBanner />
+              <StatusBar style={colorScheme === 'dark' ? 'light' : 'dark'} />
+            </NotificationToastProvider>
+          </AppAlertProvider>
         </ToastProvider>
       ) : (
         <>

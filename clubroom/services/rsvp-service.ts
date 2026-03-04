@@ -20,7 +20,7 @@
  */
 
 import { apiClient } from './api-client';
-import type { SessionRsvp } from '@/constants/types';
+import type { GroupSession, SessionRsvp } from '@/constants/types';
 import { notificationTriggers } from './notification-trigger';
 import { createLogger } from '@/utils/logger';
 import { type Result, type ServiceError, ok, err, notFound } from '@/types/result';
@@ -105,6 +105,12 @@ async function resolveRsvpDisplayName(rsvp: SessionRsvp): Promise<string> {
   return displayName || 'A parent';
 }
 
+async function resolveSessionCoachId(sessionId: string): Promise<string | null> {
+  const sessions = await apiClient.get<GroupSession[]>(STORAGE_KEYS.GROUP_SESSIONS, []);
+  const session = sessions.find((candidate) => candidate.id === sessionId);
+  return session?.coachId || null;
+}
+
 // ---------------------------------------------------------------------------
 // Service
 // ---------------------------------------------------------------------------
@@ -181,7 +187,20 @@ export const rsvpService = {
       status === 'going' ? 'going' : status === 'not_going' ? 'not going' : 'maybe';
 
     // Notify coach of response
-    await notificationTriggers.eventRsvp(displayName, rsvp.sessionId, statusLabel);
+    const coachRecipientId = await resolveSessionCoachId(rsvp.sessionId);
+    if (coachRecipientId) {
+      await notificationTriggers.eventRsvp(
+        displayName,
+        rsvp.sessionId,
+        statusLabel,
+        coachRecipientId,
+      );
+    } else {
+      logger.warn('RSVP response notification skipped: missing coach recipient', {
+        rsvpId,
+        sessionId: rsvp.sessionId,
+      });
+    }
 
     logger.info('RSVP responded', {
       rsvpId,

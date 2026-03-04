@@ -23,6 +23,12 @@ const STATUS_TONE_MAP: Record<BookingStatus, BadgeTone> = {
   Cancelled: 'error',
 };
 
-export function StatusBadge({ status }: { status: BookingStatus }) {
-  return <Badge label={status} tone={STATUS_TONE_MAP[status]} variant="outlined" size="md" />;
+export function StatusBadge({
+  status,
+  label,
+}: {
+  status: BookingStatus;
+  label?: string;
+}) {
+  return <Badge label={label ?? status} tone={STATUS_TONE_MAP[status]} variant="outlined" size="md" />;
 }

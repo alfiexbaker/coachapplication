@@ -20,6 +20,7 @@
 import { apiClient } from './api-client';
 import { STORAGE_KEYS } from '@/constants/storage-keys';
 import { notificationTriggers } from './notification-trigger';
+import { childService } from './child-service';
 import { userService } from './user-service';
 import { createLogger } from '../utils/logger';
 import { toDateStr } from '@/utils/format';
@@ -454,7 +455,9 @@ async function assignDrill(
     assignedByName?.trim() ? Promise.resolve(assignedByName) : resolveUserName(assignedBy, 'Coach'),
     athleteName?.trim() ? Promise.resolve(athleteName) : resolveUserName(athleteId, 'Athlete'),
   ]);
-  await notificationTriggers.drillAssigned(coachDisplayName, drill.title, athleteDisplayName);
+  const athleteChildProfile = await childService.getChild(athleteId);
+  const recipientId = athleteChildProfile?.parentId || athleteId;
+  await notificationTriggers.drillAssigned(coachDisplayName, drill.title, athleteDisplayName, recipientId);
 
   return ok(newAssignment);
 }

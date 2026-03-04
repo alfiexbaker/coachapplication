@@ -20,11 +20,16 @@ import { Radii, Spacing, Typography, withAlpha } from '@/constants/theme';
 import { useScreen } from '@/hooks/use-screen';
 import { err, ok, serviceError } from '@/types/result';
 import { useBookingFlow } from '@/context/booking-flow-context';
+import { useAuth } from '@/hooks/use-auth';
+import { bookingStepAnalyticsService } from '@/services/booking/booking-step-analytics-service';
 import { coachService } from '@/services/coach-service';
 import type { Coach } from '@/services/coach-service';
 import { schedulingRulesService } from '@/services/scheduling-rules-service';
 import type { CancellationPolicy } from '@/constants/types';
 import { createLogger } from '@/utils/logger';
+import { BOOKING_LOCATION_OPTIONS } from '@/constants/booking-flow';
+import { academyService } from '@/services/academy-service';
+import { userService } from '@/services/user-service';
 
 const logger = createLogger('BookingReview');
 
@@ -37,10 +42,13 @@ interface ReviewLoadData {
 export default function ReviewScreen() {
   const { coachId } = useLocalSearchParams<{ coachId: string }>();
   const { draft, updateDraft } = useBookingFlow();
+  const { currentUser } = useAuth();
   const [promoCode, setPromoCode] = useState('');
   const [promoApplied, setPromoApplied] = useState(false);
   const [promoDiscount, setPromoDiscount] = useState(0);
   const [promoError, setPromoError] = useState<string | null>(null);
+  const [clubLabel, setClubLabel] = useState<string | null>(null);
+  const [assigneeLabel, setAssigneeLabel] = useState<string | null>(null);
 
   const loadCoach = useCallback(async () => {
     if (!coachId) {
@@ -102,9 +110,60 @@ export default function ReviewScreen() {
     }
   }, [coach?.name, updateDraft]);
 
+  useEffect(() => {
+    if (!draft.clubId) {
+      setClubLabel(null);
+      return;
+    }
+    let cancelled = false;
+    void academyService.getAcademy(draft.clubId).then((result) => {
+      if (cancelled) return;
+      if (result.success && result.data?.name) {
+        setClubLabel(result.data.name);
+      } else {
+        setClubLabel(draft.clubId ?? null);
+      }
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [draft.clubId]);
+
+  useEffect(() => {
+    if (!draft.assigneeCoachId) {
+      setAssigneeLabel(null);
+      return;
+    }
+    let cancelled = false;
+    void userService.getUserById(draft.assigneeCoachId).then((result) => {
+      if (cancelled) return;
+      if (result.success) {
+        setAssigneeLabel(result.data.name?.trim() || draft.assigneeCoachId || null);
+      } else {
+        setAssigneeLabel(draft.assigneeCoachId ?? null);
+      }
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [draft.assigneeCoachId]);
+
   const sessionPrice = draft.price ?? coach?.minPrice ?? 60;
   const subtotal = sessionPrice;
   const total = Math.max(0, subtotal - promoDiscount);
+  const locationSummary = (() => {
+    const locationText = draft.locationText?.trim();
+    if (!locationText) {
+      return draft.locationOption || 'Coach preferred location';
+    }
+    if (
+      draft.locationOption &&
+      draft.locationOption !== BOOKING_LOCATION_OPTIONS.COACH_PRESET
+    ) {
+      return `${draft.locationOption} · ${locationText}`;
+    }
+    return locationText;
+  })();
 
   // Handle promo code application
   const handleApplyPromo = () => {
@@ -133,6 +192,72 @@ export default function ReviewScreen() {
     setPromoDiscount(0);
     setPromoError(null);
   };
+  const handleBack = useCallback(() => {
+    void bookingStepAnalyticsService.track({
+      step: 'review',
+      status: 'abandoned',
+      failure_code: 'back_navigation',
+      role: currentUser?.role,
+      currentUserId: currentUser?.id,
+      hasChildren: currentUser?.hasChildren,
+      actingAs: draft.actingAs,
+      draft,
+    });
+    router.back();
+  }, [currentUser?.role, currentUser?.id, currentUser?.hasChildren, draft]);
+
+  const handleContinue = useCallback(() => {
+    if (!resolvedCoachId) {
+      void bookingStepAnalyticsService.track({
+        step: 'review',
+        status: 'validation_fail',
+        failure_code: 'missing_coach_id',
+        role: currentUser?.role,
+        currentUserId: currentUser?.id,
+        hasChildren: currentUser?.hasChildren,
+        actingAs: draft.actingAs,
+        draft,
+      });
+      return;
+    }
+
+    if (!hasRequiredDraft) {
+      void bookingStepAnalyticsService.track({
+        step: 'review',
+        status: 'validation_fail',
+        failure_code: 'incomplete_booking_draft',
+        role: currentUser?.role,
+        currentUserId: currentUser?.id,
+        hasChildren: currentUser?.hasChildren,
+        actingAs: draft.actingAs,
+        draft,
+      });
+      return;
+    }
+
+    void bookingStepAnalyticsService.track({
+      step: 'review',
+      status: 'success',
+      role: currentUser?.role,
+      currentUserId: currentUser?.id,
+      hasChildren: currentUser?.hasChildren,
+      actingAs: draft.actingAs,
+      draft,
+    });
+
+    updateDraft({ totalPrice: total, price: sessionPrice });
+    router.push(Routes.bookConfirmation(resolvedCoachId));
+  }, [
+    currentUser?.role,
+    currentUser?.id,
+    currentUser?.hasChildren,
+    draft,
+    hasRequiredDraft,
+    resolvedCoachId,
+    sessionPrice,
+    total,
+    updateDraft,
+  ]);
 
   if (status === 'loading') {
     return (
@@ -189,12 +314,22 @@ export default function ReviewScreen() {
       >
         <BookingWizardHeader
           title="Review booking"
-          subtitle="Confirm details and direct payment info"
+          subtitle="Confirm details and payment arrangement"
           step={4}
+          onBack={handleBack}
         />
 
         <View style={[styles.card, { borderColor: palette.border }]}>
           <SummaryRow label="Coach" value={coach?.name || draft.coachName || 'Coach'} />
+          {draft.actingAs === 'club' ? (
+            <SummaryRow label="Booked via" value={clubLabel || draft.clubId || 'Club'} />
+          ) : null}
+          {draft.actingAs === 'club' ? (
+            <SummaryRow
+              label="Delivered by"
+              value={assigneeLabel || coach?.name || draft.coachName || 'Coach'}
+            />
+          ) : null}
           <SummaryRow label="Date" value={draft.date || 'Pick a date'} />
           <SummaryRow label="Time" value={draft.slot || 'Pick a slot'} />
           <SummaryRow
@@ -202,7 +337,7 @@ export default function ReviewScreen() {
             value={draft.sessionTypeLabel || draft.sessionType || 'Select type'}
           />
           <SummaryRow label="Duration" value={`${draft.duration || 60} mins`} />
-          <SummaryRow label="Location" value={draft.locationOption || 'Coach preferred location'} />
+          <SummaryRow label="Location" value={locationSummary} />
           {draft.athleteName && <SummaryRow label="Athlete" value={draft.athleteName} />}
         </View>
 
@@ -210,7 +345,7 @@ export default function ReviewScreen() {
           colors={palette}
           paymentMethod={
             (draft as unknown as Record<string, string>).paymentMethod ||
-            'Pay coach directly after confirmation (bank transfer or agreed method)'
+            'Payment arranged directly with your coach after confirmation.'
           }
         />
 
@@ -253,14 +388,7 @@ export default function ReviewScreen() {
       </ScrollView>
       <View style={[styles.footer, { borderTopColor: palette.border }]}>
         <Clickable
-          onPress={() => {
-            if (!resolvedCoachId || !hasRequiredDraft) {
-              return;
-            }
-            // Store final price in draft
-            updateDraft({ totalPrice: total, price: sessionPrice });
-            router.push(Routes.bookConfirmation(resolvedCoachId));
-          }}
+          onPress={handleContinue}
           style={[
             styles.cta,
             {

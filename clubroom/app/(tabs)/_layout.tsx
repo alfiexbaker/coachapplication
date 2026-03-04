@@ -257,7 +257,7 @@ export default function TabLayout() {
         hiddenRoutes,
         restrictedRoutes: Array.from(restrictedRouteSet),
       });
-      router.replace(Routes.HOME);
+      router.replace(Routes.HOME_INDEX);
       showToast('Access restricted', 'error');
     },
     [currentUser, hiddenRoutes, restrictedRouteSet, showToast],
@@ -394,7 +394,7 @@ export default function TabLayout() {
     <ErrorBoundary>
       <RouteAccessGate
         allowed={!blockedTabSegment}
-        redirectHref={Routes.HOME}
+        redirectHref={Routes.HOME_INDEX}
         onBlocked={blockedTabSegment ? handleBlockedTabSegment : undefined}
       >
         <Tabs screenOptions={tabBarOptions}>

@@ -172,14 +172,12 @@ export const SlotDisplay = memo(function SlotDisplay({ slots }: SlotDisplayProps
 interface InviteActionsProps {
   onAccept: () => void;
   onDecline: () => void;
-  onCounterPropose?: () => void;
   acceptDisabled: boolean;
   acceptLoading: boolean;
 }
 export const InviteActions = memo(function InviteActions({
   onAccept,
   onDecline,
-  onCounterPropose,
   acceptDisabled,
   acceptLoading,
 }: InviteActionsProps) {
@@ -195,17 +193,6 @@ export const InviteActions = memo(function InviteActions({
           <ThemedText style={styles.actionText}>Decline</ThemedText>
         </Row>
       </Clickable>
-      {onCounterPropose && (
-        <Clickable
-          style={[styles.actionButton, styles.counterButton, { borderColor: palette.tint }]}
-          onPress={onCounterPropose}
-        >
-          <Row align="center" justify="center" gap="xs" flex>
-            <Ionicons name="swap-horizontal-outline" size={16} color={palette.tint} />
-            <ThemedText style={[styles.actionText, { color: palette.tint }]}>Counter</ThemedText>
-          </Row>
-        </Clickable>
-      )}
       <Clickable
         disabled={acceptDisabled || acceptLoading}
         style={[
@@ -289,7 +276,6 @@ const styles = StyleSheet.create({
   actionsRow: { marginTop: Spacing.xs },
   actionButton: { flex: 1, paddingVertical: Spacing.sm, borderRadius: Radii.md },
   declineButton: { borderWidth: 1 },
-  counterButton: { borderWidth: 1 },
   acceptButton: {},
   actionText: { ...Typography.bodySmallSemiBold },
   expiryRow: { marginTop: Spacing.xs },

@@ -34,7 +34,7 @@ function getStatusBadge(
     case 'DECLINED':
       return { text: 'Declined', color: palette.error };
     case 'COUNTERED':
-      return { text: 'Counter Sent', color: palette.warning };
+      return { text: 'Pending', color: palette.tint };
     case 'EXPIRED':
       return { text: 'Expired', color: palette.muted };
     case 'MAYBE':
@@ -53,7 +53,7 @@ export const InviteCard = memo(function InviteCard({
 }: InviteCardProps) {
   const { colors: palette } = useTheme();
   const [showDetails, setShowDetails] = useState(false);
-  const isPending = invite.status === 'PENDING';
+  const isPending = invite.status === 'PENDING' || invite.status === 'COUNTERED';
   const isExpired = new Date(invite.expiresAt) <= new Date();
   const isResponding = respondingTo === invite.id;
   const statusBadge = getStatusBadge(isExpired && isPending ? 'EXPIRED' : invite.status, palette);

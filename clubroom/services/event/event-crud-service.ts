@@ -15,6 +15,7 @@ import { apiClient } from '../api-client';
 import { api } from '@/constants/config';
 import { STORAGE_KEYS } from '@/constants/storage-keys';
 import { notificationTriggers } from '../notification-trigger';
+import { clubService, type ClubMember } from '../club-service';
 import { createLogger } from '@/utils/logger';
 import { toDateStr } from '@/utils/format';
 import { type Result, type ServiceError, ok, err, notFound } from '@/types/result';
@@ -166,6 +167,92 @@ const MOCK_EVENTS: ClubEvent[] = [
 
 let eventsCache: ClubEvent[] = [...MOCK_EVENTS];
 
+const CLUB_STAFF_ROLES = new Set(['OWNER', 'ADMIN', 'HEAD_COACH', 'COACH']);
+
+function isActiveMember(member: ClubMember): boolean {
+  return member.status === 'active';
+}
+
+function isStaffMember(member: ClubMember): boolean {
+  return CLUB_STAFF_ROLES.has(member.role);
+}
+
+function memberMatchesAudience(member: ClubMember, event: ClubEvent): boolean {
+  switch (event.targetAudience) {
+    case 'COACHES':
+      return isStaffMember(member);
+    case 'PARENTS':
+    case 'ATHLETES':
+    case 'SQUAD':
+      return !isStaffMember(member);
+    case 'ALL':
+    default:
+      return true;
+  }
+}
+
+function memberMatchesSquads(member: ClubMember, squadIds?: string[]): boolean {
+  if (!squadIds || squadIds.length === 0) {
+    return true;
+  }
+  const memberSquads = member.squadIds ?? [];
+  return memberSquads.some((squadId) => squadIds.includes(squadId));
+}
+
+async function getNotificationRecipientIds(
+  event: ClubEvent,
+  options?: { squadIds?: string[] },
+): Promise<string[]> {
+  const scopedSquadIds = options?.squadIds ?? event.squadIds;
+  try {
+    const members = await clubService.getMembers(event.clubId);
+    return members
+      .filter((member) => isActiveMember(member))
+      .filter((member) => member.userId !== event.createdBy)
+      .filter((member) => memberMatchesAudience(member, event))
+      .filter((member) => memberMatchesSquads(member, scopedSquadIds))
+      .map((member) => member.userId);
+  } catch (error) {
+    logger.error('Failed to resolve event notification recipients', {
+      eventId: event.id,
+      clubId: event.clubId,
+      error,
+    });
+    return [];
+  }
+}
+
+async function notifyEventCreatedRecipients(
+  event: ClubEvent,
+  options?: { squadIds?: string[] },
+): Promise<void> {
+  const recipientIds = await getNotificationRecipientIds(event, options);
+  if (recipientIds.length === 0) {
+    logger.info('No recipients for event created notification', { eventId: event.id });
+    return;
+  }
+  await Promise.allSettled(
+    recipientIds.map((recipientId) =>
+      notificationTriggers.eventCreated(event.title, event.date, recipientId),
+    ),
+  );
+}
+
+async function notifyEventCancelledRecipients(event: ClubEvent): Promise<void> {
+  const recipientIds = await getNotificationRecipientIds(event, {
+    squadIds: event.squadIds,
+  });
+  if (recipientIds.length === 0) {
+    logger.info('No recipients for event cancelled notification', { eventId: event.id });
+    return;
+  }
+  await Promise.allSettled(
+    recipientIds.map((recipientId) =>
+      notificationTriggers.eventCancelled(event.title, recipientId),
+    ),
+  );
+}
+
 // ============================================================================
 // SHARED PERSISTENCE HELPERS (used by other event sub-services)
 // ============================================================================
@@ -267,9 +354,6 @@ export const eventCrudService = {
       eventsCache.push(newEvent);
       await saveEvents(eventsCache);
 
-      // Trigger notification for event creation
-      await notificationTriggers.eventCreated(newEvent.title, newEvent.date);
-
       return newEvent;
     }
 
@@ -313,8 +397,7 @@ export const eventCrudService = {
       event.status = 'CANCELLED';
       await saveEvents(eventsCache);
 
-      // Trigger notification for event cancellation
-      await notificationTriggers.eventCancelled(event.title);
+      await notifyEventCancelledRecipients(event);
 
       return ok(event);
     }
@@ -375,8 +458,14 @@ export const eventCrudService = {
    */
   async inviteClub(eventId: string): Promise<void> {
     if (USE_MOCK) {
-      // In a real app, this would send notifications to all club members
-      logger.info('Inviting all club members to event', { eventId });
+      eventsCache = await loadEvents();
+      const event = eventsCache.find((e) => e.id === eventId);
+      if (!event) {
+        logger.warn('Cannot invite club members for missing event', { eventId });
+        return;
+      }
+      await notifyEventCreatedRecipients(event);
+      logger.info('Invited club members to event', { eventId });
       return;
     }
 
@@ -397,6 +486,9 @@ export const eventCrudService = {
       if (event) {
         event.squadIds = squadIds;
         await saveEvents(eventsCache);
+        await notifyEventCreatedRecipients(event, { squadIds });
+      } else {
+        logger.warn('Cannot invite squads for missing event', { eventId, squadIds });
       }
       logger.info('Inviting squads to event', { eventId, squadIds });
       return;

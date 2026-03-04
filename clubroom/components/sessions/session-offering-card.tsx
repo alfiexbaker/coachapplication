@@ -1,5 +1,5 @@
 import { Ionicons } from '@expo/vector-icons';
-import { Alert, StyleSheet, View, type GestureResponderEvent } from 'react-native';
+import { StyleSheet, View, type GestureResponderEvent } from 'react-native';
 import { Row } from '@/components/primitives/row';
 
 import { SurfaceCard } from '@/components/primitives/surface-card';
@@ -8,11 +8,11 @@ import { Clickable } from '@/components/primitives/clickable';
 import { Radii, Spacing, Typography, withAlpha } from '@/constants/theme';
 import { SessionOffering } from '@/constants/types';
 import { useTheme } from '@/hooks/useTheme';
+import { useAppAlert } from '@/components/ui/app-alert';
 import { getSessionOfferingCoachName } from '@/utils/session-display';
 import { openLocationInMaps } from '@/utils/map-links';
 import {
   getSessionOfferingHeadcount,
-  getSessionOfferingOffPlatformCount,
   isSessionOfferingFull,
 } from '@/utils/session-offering-capacity';
 
@@ -39,6 +39,7 @@ export function SessionOfferingCard({
   showCapacity = true,
 }: SessionOfferingCardProps) {
   const { colors: palette } = useTheme();
+  const { showAlert } = useAppAlert();
   const coachName = getSessionOfferingCoachName(offering);
   const locationLabel = offering.venueName
     ? `${offering.venueName} · ${offering.location}`
@@ -50,12 +51,11 @@ export function SessionOfferingCard({
       coordinates: offering.locationCoordinates,
     }).then((opened) => {
       if (!opened) {
-        Alert.alert('Error', 'Could not open maps application.');
+        showAlert('Error', 'Could not open maps application.');
       }
     });
   };
 
-  const offPlatformCount = getSessionOfferingOffPlatformCount(offering);
   const totalParticipants = getSessionOfferingHeadcount(offering);
   const isFull = isSessionOfferingFull(offering);
   const capacityText = `${totalParticipants}/${offering.maxParticipants}`;
@@ -64,12 +64,15 @@ export function SessionOfferingCard({
       ? offering.viewerAthleteNames.join(', ')
       : `${offering.viewerAthleteNames.slice(0, 2).join(', ')} +${offering.viewerAthleteNames.length - 2}`
     : null;
+  const isClubOwned = offering.actingAs === 'club';
   const ownershipLabel =
-    offering.actingAs === 'club'
+    !showCoach && isClubOwned
       ? offering.assigneeCoachId
         ? 'Assigned by Club'
         : 'Club-owned'
       : null;
+  const ownerLabel = offering.ownerCoachId || coachName;
+  const assigneeLabel = offering.assigneeCoachId || null;
 
   const formatSchedule = () => {
     if (offering.isRecurring && offering.dayOfWeek !== undefined && offering.timeOfDay) {
@@ -112,6 +115,32 @@ export function SessionOfferingCard({
               </ThemedText>
             </View>
           )}
+          {isClubOwned ? (
+            <View
+              style={[
+                styles.ownershipBlock,
+                {
+                  backgroundColor: withAlpha(palette.info, 0.08),
+                  borderColor: withAlpha(palette.info, 0.22),
+                },
+              ]}
+            >
+              <Row align="center" gap="xxs">
+                <Ionicons name="business-outline" size={12} color={palette.info} />
+                <ThemedText style={[styles.ownershipText, { color: palette.info }]}>
+                  Club: {offering.clubId || 'Club session'}
+                </ThemedText>
+              </Row>
+              <ThemedText style={[styles.metaText, { color: palette.text }]} numberOfLines={1}>
+                Delivered by {assigneeLabel || coachName}
+              </ThemedText>
+              {assigneeLabel && assigneeLabel !== ownerLabel ? (
+                <ThemedText style={[styles.metaText, { color: palette.muted }]} numberOfLines={1}>
+                  Owner {ownerLabel}
+                </ThemedText>
+              ) : null}
+            </View>
+          ) : null}
 
           {showCoach && (
             <ThemedText style={[styles.subtitle, { color: palette.muted }]} numberOfLines={1}>
@@ -124,15 +153,6 @@ export function SessionOfferingCard({
               <Ionicons name="person-outline" size={14} color={palette.tint} />
               <ThemedText style={[styles.metaText, { color: palette.tint }]} numberOfLines={1}>
                 For: {viewerAudienceText}
-              </ThemedText>
-            </Row>
-          )}
-
-          {offering.sessionType === 'group' && offPlatformCount > 0 && (
-            <Row align="center" gap="xxs" style={styles.metaRow}>
-              <Ionicons name="person-add-outline" size={14} color={palette.info} />
-              <ThemedText style={[styles.metaText, { color: palette.info }]} numberOfLines={1}>
-                +{offPlatformCount} off-platform
               </ThemedText>
             </Row>
           )}
@@ -228,6 +248,13 @@ const styles = StyleSheet.create({
     alignSelf: 'flex-start',
     paddingHorizontal: Spacing.xs,
     paddingVertical: Spacing.micro,
+  },
+  ownershipBlock: {
+    borderWidth: 1,
+    borderRadius: Radii.md,
+    paddingHorizontal: Spacing.xs,
+    paddingVertical: Spacing.xxs,
+    gap: Spacing.micro,
   },
   ownershipText: {
     ...Typography.micro,

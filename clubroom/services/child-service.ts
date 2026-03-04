@@ -15,6 +15,8 @@ import { type Result, type ServiceError, ok, err, notFound, storageError } from 
 import { emitTyped, ServiceEvents } from './event-bus';
 import type { PositionRole } from '@/types/progress-types';
 import { normalizeLegacyMockDates } from '@/utils/mock-date-normalizer';
+import type { User } from '@/constants/app-types';
+import { accountIdsMatch } from '@/utils/account-id';
 
 import { STORAGE_KEYS } from '@/constants/storage-keys';
 
@@ -305,6 +307,62 @@ async function saveToStorage(data: ChildProfile[]): Promise<Result<void, Service
   }
 }
 
+function toChildDisplayName(child: ChildProfile): string {
+  const fullName = `${child.firstName} ${child.lastName}`.trim();
+  return child.nickname?.trim() || fullName || child.firstName || 'Young Athlete';
+}
+
+async function upsertChildUserRecord(child: ChildProfile): Promise<void> {
+  try {
+    const users = await apiClient.get<User[]>(STORAGE_KEYS.USERS, []);
+    const existingIndex = users.findIndex((user) => accountIdsMatch(user.id, child.id));
+
+    if (existingIndex >= 0) {
+      const existing = users[existingIndex];
+      users[existingIndex] = {
+        ...existing,
+        id: existing.id,
+        name: existing.name || toChildDisplayName(child),
+        email: existing.email || '',
+        postcode: existing.postcode || '',
+        dateOfBirth: existing.dateOfBirth || child.dateOfBirth || '',
+        role: existing.role || 'USER',
+        avatar: existing.avatar || child.photoUrl,
+      };
+    } else {
+      users.push({
+        id: child.id,
+        name: toChildDisplayName(child),
+        email: '',
+        postcode: '',
+        dateOfBirth: child.dateOfBirth || '',
+        role: 'USER',
+        avatar: child.photoUrl,
+      });
+    }
+
+    await apiClient.set(STORAGE_KEYS.USERS, users);
+  } catch (error) {
+    logger.warn('Failed to sync child user record', { childId: child.id, error });
+  }
+}
+
+async function removeGeneratedChildUserRecord(childId: string): Promise<void> {
+  if (!childId.startsWith('child_')) {
+    return;
+  }
+
+  try {
+    const users = await apiClient.get<User[]>(STORAGE_KEYS.USERS, []);
+    const filteredUsers = users.filter((user) => !accountIdsMatch(user.id, childId));
+    if (filteredUsers.length !== users.length) {
+      await apiClient.set(STORAGE_KEYS.USERS, filteredUsers);
+    }
+  } catch (error) {
+    logger.warn('Failed to remove generated child user record', { childId, error });
+  }
+}
+
 // ============================================================================
 // UTILITY FUNCTIONS
 // ============================================================================
@@ -398,6 +456,7 @@ export const childService = {
       childrenCache = await loadFromStorage();
       childrenCache.push(newChild);
       await saveToStorage(childrenCache);
+      await upsertChildUserRecord(newChild);
       emitTyped(ServiceEvents.CHILD_PROFILES_UPDATED, { parentId, action: 'created', childId: newChild.id });
       return newChild;
     }
@@ -434,6 +493,7 @@ export const childService = {
       };
 
       await saveToStorage(childrenCache);
+      await upsertChildUserRecord(childrenCache[index]);
 
       const updatedFields = Object.keys(updates);
       emitTyped(ServiceEvents.CHILD_PROFILES_UPDATED, { parentId: childrenCache[index].parentId, action: 'updated', childId });
@@ -476,6 +536,7 @@ export const childService = {
       const deletedChild = childrenCache.find((c) => c.id === childId);
       childrenCache = childrenCache.filter((c) => c.id !== childId);
       await saveToStorage(childrenCache);
+      await removeGeneratedChildUserRecord(childId);
       if (deletedChild) {
         emitTyped(ServiceEvents.CHILD_PROFILES_UPDATED, { parentId: deletedChild.parentId, action: 'deleted', childId });
       }

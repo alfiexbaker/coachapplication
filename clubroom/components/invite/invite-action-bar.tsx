@@ -1,7 +1,7 @@
 /**
  * InviteActionBar — Sticky bottom action bar for invite responses.
  *
- * Shows Accept/Decline/Counter buttons for recipients,
+ * Shows Accept/Decline buttons for recipients,
  * or RSVP buttons for non-recipient observers.
  */
 
@@ -19,14 +19,12 @@ interface InviteActionBarProps {
   canRespond: boolean;
   isOwner: boolean;
   status: string;
-  showCounterPropose: boolean;
   responding: boolean;
   selectedSlot: number | null;
   currentRsvpStatus: 'going' | 'maybe' | 'cant_go' | null;
   colors: ThemeColors;
   onAccept: () => void;
   onDecline: () => void;
-  onShowCounter: () => void;
   onRsvp: (status: 'going' | 'maybe' | 'cant_go') => void;
 }
 
@@ -34,18 +32,16 @@ export const InviteActionBar = memo(function InviteActionBar({
   canRespond,
   isOwner,
   status,
-  showCounterPropose,
   responding,
   selectedSlot,
   currentRsvpStatus,
   colors,
   onAccept,
   onDecline,
-  onShowCounter,
   onRsvp,
 }: InviteActionBarProps) {
-  // Recipient action buttons (Accept/Decline/Counter)
-  if (canRespond && !showCounterPropose) {
+  // Recipient action buttons (Accept/Decline)
+  if (canRespond) {
     const needsSlotSelection = selectedSlot === null;
     return (
       <View style={[styles.footer, { borderTopColor: colors.border }]}>
@@ -62,15 +58,6 @@ export const InviteActionBar = memo(function InviteActionBar({
             style={[styles.declineButton, { borderColor: colors.border }]}
           >
             <ThemedText style={{ ...Typography.bodySemiBold }}>Decline</ThemedText>
-          </Clickable>
-          <Clickable
-            onPress={onShowCounter}
-            accessibilityLabel="Counter propose alternative times"
-            style={[styles.counterButton, { borderColor: colors.tint }]}
-          >
-            <ThemedText style={{ color: colors.tint, ...Typography.bodySemiBold }}>
-              Counter
-            </ThemedText>
           </Clickable>
           <Clickable
             onPress={onAccept}
@@ -122,16 +109,8 @@ const styles = StyleSheet.create({
     borderWidth: 1.5,
     minHeight: 44,
   },
-  counterButton: {
-    flex: 1,
-    paddingVertical: Spacing.md,
-    alignItems: 'center',
-    borderRadius: Radii.md,
-    borderWidth: 1.5,
-    minHeight: 44,
-  },
   acceptButton: {
-    flex: 2,
+    flex: 1,
     paddingVertical: Spacing.md,
     alignItems: 'center',
     justifyContent: 'center',

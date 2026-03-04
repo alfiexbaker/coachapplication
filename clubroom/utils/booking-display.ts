@@ -39,3 +39,35 @@ export function getBookingAthleteName(booking: Booking): string {
     'Athlete'
   );
 }
+
+export function getBookingClubOwnershipContext(
+  booking: Pick<
+    Booking,
+    'actingAs' | 'clubId' | 'coachId' | 'coachName' | 'ownerCoachId' | 'assigneeCoachId'
+  >,
+): { clubLabel: string; deliveredBy: string; owner?: string } | null {
+  if (booking.actingAs !== 'club') {
+    return null;
+  }
+
+  const coachFallback = booking.coachName || booking.coachId || 'Coach';
+  const owner = booking.ownerCoachId || coachFallback;
+  const deliveredBy = booking.assigneeCoachId || coachFallback;
+  const hasSeparateOwner = owner && deliveredBy && owner !== deliveredBy;
+
+  return {
+    clubLabel: booking.clubId ? `Club: ${booking.clubId}` : 'Club session',
+    deliveredBy,
+    ...(hasSeparateOwner ? { owner } : {}),
+  };
+}
+
+export function getBookingStatusLabel(
+  status: BookingSummary['status'],
+  options?: { isCoachView?: boolean },
+): string {
+  if (status === 'Needs Completion' && !options?.isCoachView) {
+    return 'Coach Review Pending';
+  }
+  return status;
+}

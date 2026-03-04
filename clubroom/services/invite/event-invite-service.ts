@@ -96,6 +96,7 @@ export const eventInviteService = {
       venue: input.venue,
       isVirtual: input.isVirtual || false,
       targetAudience: 'SQUAD',
+      squadIds: input.squadIds,
       maxAttendees: input.maxAttendees,
       price: input.price || 0,
       currency: 'GBP',

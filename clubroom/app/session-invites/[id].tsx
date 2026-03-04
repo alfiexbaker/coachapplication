@@ -3,7 +3,6 @@
 import { useState, useCallback, useMemo, useEffect } from 'react';
 import {
   ScrollView,
-  Alert,
   KeyboardAvoidingView,
   Platform,
   StyleSheet,
@@ -34,20 +33,19 @@ import { InvitePersonCard } from '@/components/invite/invite-person-card';
 import { InviteDetailsCard } from '@/components/invite/invite-details-card';
 import { InviteTypeCard } from '@/components/invite/invite-type-card';
 import { InviteSlotList } from '@/components/invite/invite-slot-list';
-import { InviteCounterPropose } from '@/components/invite/invite-counter-propose';
-import { InviteCounterDisplay } from '@/components/invite/invite-counter-display';
 import { InviteActionBar } from '@/components/invite/invite-action-bar';
 import { InviteRsvpStats } from '@/components/invite/invite-rsvp-stats';
 import { InviteChildHeader } from '@/components/invite/invite-child-header';
 import { Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
 import { useToast } from '@/components/ui/toast';
+import { useAppAlert } from '@/components/ui/app-alert';
 import {
   inviteService as sessionInviteService,
   inviteRsvpService,
   inviteShareService,
 } from '@/services/invite';
 import { ServiceEvents } from '@/services/event-bus';
-import type { TimeSlot, InviteRsvpResponse } from '@/constants/types';
+import type { InviteRsvpResponse } from '@/constants/types';
 import {
   getSessionInviteAthleteNames,
   getSessionInviteCoachName,
@@ -61,6 +59,7 @@ export default function SessionInviteDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const { currentUser } = useAuth();
   const { showToast } = useToast();
+  const { showAlert } = useAppAlert();
   const { isMultiChild, getChildById } = useChildContext();
   const {
     data: invite,
@@ -86,7 +85,6 @@ export default function SessionInviteDetailScreen() {
 
   const [selectedSlot, setSelectedSlot] = useState<number | null>(null);
   const [showPaymentModal, setShowPaymentModal] = useState(false);
-  const [showCounterPropose, setShowCounterPropose] = useState(false);
   const [showAttendeeModal, setShowAttendeeModal] = useState(false);
   const [responding, setResponding] = useState(false);
   const [rsvpResponses, setRsvpResponses] = useState<InviteRsvpResponse[]>([]);
@@ -105,6 +103,7 @@ export default function SessionInviteDetailScreen() {
   );
   const derivedStatus = useMemo(() => {
     if (!invite) return 'PENDING';
+    if (invite.status === 'COUNTERED') return 'PENDING';
     return new Date(invite.expiresAt) < new Date() && invite.status === 'PENDING'
       ? 'EXPIRED'
       : invite.status;
@@ -171,7 +170,7 @@ export default function SessionInviteDetailScreen() {
       });
       setShowPaymentModal(false);
       if (!result.success) {
-        Alert.alert('Booking Failed', result.error?.message ?? 'Could not create the booking.');
+        showAlert('Booking Failed', result.error?.message ?? 'Could not create the booking.');
         return;
       }
       showToast('Invite accepted!', 'success');
@@ -185,15 +184,15 @@ export default function SessionInviteDetailScreen() {
       }
     } catch (e) {
       logger.error('Failed to accept invite', e);
-      Alert.alert('Error', 'Failed to accept invite.');
+      showAlert('Error', 'Failed to accept invite.');
     } finally {
       setResponding(false);
     }
-  }, [invite, selectedSlot, showToast]);
+  }, [invite, selectedSlot, showAlert, showToast]);
 
   const handleAccept = useCallback(async () => {
     if (!invite || selectedSlot === null) {
-      Alert.alert('Select a time', 'Please select one of the proposed time slots');
+      showAlert('Select a time', 'Please select one of the proposed time slots');
       return;
     }
     if (invite.price && invite.price > 0) {
@@ -201,10 +200,10 @@ export default function SessionInviteDetailScreen() {
       return;
     }
     await confirmAcceptance();
-  }, [invite, selectedSlot, confirmAcceptance]);
+  }, [invite, selectedSlot, confirmAcceptance, showAlert]);
 
   const handleDecline = useCallback(() => {
-    Alert.alert('Decline Invite', 'Are you sure you want to decline this session invite?', [
+    showAlert('Decline Invite', 'Are you sure you want to decline this session invite?', [
       { text: 'Cancel', style: 'cancel' },
       {
         text: 'Decline',
@@ -217,7 +216,7 @@ export default function SessionInviteDetailScreen() {
               inviteId: invite.id,
               response: 'DECLINED',
             });
-            Alert.alert('Declined', 'The invite has been declined.', [
+            showAlert('Declined', 'The invite has been declined.', [
               { text: 'OK', onPress: () => router.back() },
             ]);
           } catch (e) {
@@ -228,10 +227,10 @@ export default function SessionInviteDetailScreen() {
         },
       },
     ]);
-  }, [invite]);
+  }, [invite, showAlert]);
 
   const handleCancel = useCallback(() => {
-    Alert.alert('Cancel Invite', 'Are you sure you want to cancel this invite?', [
+    showAlert('Cancel Invite', 'Are you sure you want to cancel this invite?', [
       { text: 'No', style: 'cancel' },
       {
         text: 'Yes, Cancel',
@@ -240,7 +239,7 @@ export default function SessionInviteDetailScreen() {
           if (!invite) return;
           try {
             await sessionInviteService.cancelInvite(invite.id);
-            Alert.alert('Cancelled', 'The invite has been cancelled.', [
+            showAlert('Cancelled', 'The invite has been cancelled.', [
               { text: 'OK', onPress: () => router.back() },
             ]);
           } catch (e) {
@@ -249,56 +248,7 @@ export default function SessionInviteDetailScreen() {
         },
       },
     ]);
-  }, [invite]);
-
-  const handleCounterPropose = useCallback(
-    async (slots: TimeSlot[], note: string) => {
-      if (!invite) return;
-      setResponding(true);
-      try {
-        await sessionInviteService.respondToInvite({
-          inviteId: invite.id,
-          response: 'COUNTERED',
-          counterProposal: slots,
-          counterNote: note || undefined,
-        });
-        Alert.alert(
-          'Counter Proposal Sent',
-          'Your alternative times have been sent to the coach.',
-          [{ text: 'OK', onPress: () => router.back() }],
-        );
-      } catch (e) {
-        logger.error('Failed to send counter proposal', e);
-        Alert.alert('Error', 'Failed to send counter proposal.');
-      } finally {
-        setResponding(false);
-      }
-    },
-    [invite],
-  );
-
-  const handleAcceptCounter = useCallback(
-    async (slot: TimeSlot) => {
-      if (!invite) return;
-      setResponding(true);
-      try {
-        const result = await sessionInviteService.acceptCounterProposal(invite.id, slot);
-        if (!result.success) {
-          Alert.alert('Booking Failed', result.error?.message ?? 'Could not create the booking.');
-          return;
-        }
-        Alert.alert('Accepted!', 'The session has been confirmed with the proposed time.', [
-          { text: 'OK', onPress: () => router.back() },
-        ]);
-      } catch (e) {
-        logger.error('Failed to accept counter proposal', e);
-        Alert.alert('Error', 'Failed to accept counter proposal.');
-      } finally {
-        setResponding(false);
-      }
-    },
-    [invite],
-  );
+  }, [invite, showAlert]);
 
   const handleShare = useCallback(async () => {
     if (!invite) return;
@@ -326,7 +276,7 @@ export default function SessionInviteDetailScreen() {
         currentUser.avatar,
       );
       if (!result.success) {
-        Alert.alert('Could not RSVP', result.error.message);
+        showAlert('Could not RSVP', result.error.message);
         return;
       }
       setCurrentRsvpStatus(rs);
@@ -338,7 +288,7 @@ export default function SessionInviteDetailScreen() {
       if (responsesResult.success) setRsvpResponses(responsesResult.data);
       if (countsResult.success) setRsvpCounts(countsResult.data);
     },
-    [invite, currentUser],
+    [invite, currentUser, showAlert],
   );
 
   const handleSendReminder = useCallback(async () => {
@@ -346,15 +296,14 @@ export default function SessionInviteDetailScreen() {
 
     const result = await sessionInviteService.sendInviteReminder(invite.id);
     if (!result.success) {
-      Alert.alert('Reminder not sent', result.error.message);
+      showAlert('Reminder not sent', result.error.message);
       return;
     }
 
-    Alert.alert('Reminder sent', "We've nudged the parent to respond to this invite.");
-  }, [invite]);
+    showAlert('Reminder sent', "We've nudged the parent to respond to this invite.");
+  }, [invite, showAlert]);
 
   const handleSelectSlot = useCallback((i: number) => setSelectedSlot(i), []);
-  const handleShowCounter = useCallback(() => setShowCounterPropose(true), []);
   const renderShell = (content: ReactNode) => (
     <SafeAreaView style={[s.root, { backgroundColor: colors.background }]} edges={['top', 'bottom']}>
       {content}
@@ -415,7 +364,6 @@ export default function SessionInviteDetailScreen() {
                 | 'ACCEPTED'
                 | 'DECLINED'
                 | 'EXPIRED'
-                | 'COUNTERED'
                 | 'MAYBE'
             }
             colors={colors}
@@ -484,22 +432,6 @@ export default function SessionInviteDetailScreen() {
             colors={colors}
             onSelectSlot={handleSelectSlot}
           />
-          {canRespond && showCounterPropose && (
-            <InviteCounterPropose
-              colors={colors}
-              onClose={() => setShowCounterPropose(false)}
-              onSubmit={handleCounterPropose}
-              responding={responding}
-            />
-          )}
-          {derivedStatus === 'COUNTERED' && isOwner && invite.counterProposal && (
-            <InviteCounterDisplay
-              counterProposal={invite.counterProposal}
-              counterNote={invite.counterNote}
-              colors={colors}
-              onAcceptCounter={handleAcceptCounter}
-            />
-          )}
           {derivedStatus === 'PENDING' && (
             <Animated.View entering={FadeInDown.delay(300).springify()}>
               <Row
@@ -543,14 +475,12 @@ export default function SessionInviteDetailScreen() {
         canRespond={canRespond}
         isOwner={!!isOwner}
         status={derivedStatus}
-        showCounterPropose={showCounterPropose}
         responding={responding}
         selectedSlot={selectedSlot}
         currentRsvpStatus={currentRsvpStatus}
         colors={colors}
         onAccept={handleAccept}
         onDecline={handleDecline}
-        onShowCounter={handleShowCounter}
         onRsvp={handleRsvp}
       />
       <AttendeeListModal

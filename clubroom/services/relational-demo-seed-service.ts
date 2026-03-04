@@ -60,7 +60,7 @@ interface SeedHealthSnapshot {
   concerns: number;
   reports: number;
   problemReports: number;
-  hasUser1Kids: boolean;
+  hasUser1NoKids: boolean;
   hasParentNoKids: boolean;
   hasClubLinkedUser: boolean;
   hasUnlinkedUser: boolean;
@@ -387,7 +387,7 @@ async function getSeedHealthSnapshot(): Promise<SeedHealthSnapshot> {
   );
   const offeringCoachIds = new Set(offerings.map((offering) => offering.coachId).filter(Boolean));
   const clubMemberUserIds = new Set(clubMembers.map((member) => member.userId));
-  const hasUser1Kids = childrenProfiles.some((profile) => profile.parentId === 'user1');
+  const hasUser1NoKids = !childrenProfiles.some((profile) => profile.parentId === 'user1');
   const hasParentNoKids =
     users.some((user) => user.id === 'parent_nokids') &&
     !childrenProfiles.some((profile) => profile.parentId === 'parent_nokids');
@@ -417,7 +417,7 @@ async function getSeedHealthSnapshot(): Promise<SeedHealthSnapshot> {
     concerns: concerns.length,
     reports: reports.length,
     problemReports: problemReports.length,
-    hasUser1Kids,
+    hasUser1NoKids,
     hasParentNoKids,
     hasClubLinkedUser,
     hasUnlinkedUser,
@@ -446,7 +446,6 @@ function isHealthy(snapshot: SeedHealthSnapshot, expectedVersion: string): boole
     snapshot.concerns >= 2 &&
     snapshot.reports >= 1 &&
     snapshot.problemReports >= 1 &&
-    snapshot.hasUser1Kids &&
     snapshot.hasParentNoKids &&
     snapshot.hasClubLinkedUser &&
     snapshot.hasUnlinkedUser &&

@@ -155,7 +155,16 @@ function CompletionCardInner({ bookings }: { bookings: Booking[] }) {
                 {dateStr}
               </ThemedText>
             </View>
-            <Ionicons name="chevron-forward" size={18} color={palette.muted} />
+            <View
+              style={[
+                styles.completionActionChip,
+                { backgroundColor: withAlpha(palette.tint, 0.1) },
+              ]}
+            >
+              <ThemedText style={[styles.completionActionText, { color: palette.tint }]}>
+                Complete
+              </ThemedText>
+            </View>
           </Clickable>
         );
       })}

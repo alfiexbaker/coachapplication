@@ -1,23 +1,24 @@
 /**
  * UserHomeScreen — Sections: StatsRow, StreakCard, QuickActions, NextSession, RecentBadges, MyClubs.
  */
-import { memo, useCallback, useMemo } from 'react';
-import { View, StyleSheet, ScrollView } from 'react-native';
-import { Row } from '@/components/primitives/row';
 import { Column } from '@/components/primitives/column';
+import { Row } from '@/components/primitives/row';
+import { Routes } from '@/navigation/routes';
 import { Ionicons } from '@expo/vector-icons';
 import { router, type Href } from 'expo-router';
-import { Routes } from '@/navigation/routes';
+import { memo, useCallback, useMemo } from 'react';
+import { ScrollView, StyleSheet, View } from 'react-native';
 
-import { SurfaceCard } from '@/components/primitives/surface-card';
-import { Clickable } from '@/components/primitives/clickable';
 import { Chip } from '@/components/primitives/chip';
+import { Clickable } from '@/components/primitives/clickable';
+import { SurfaceCard } from '@/components/primitives/surface-card';
 import { ThemedText } from '@/components/themed-text';
-import { Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
-import { useTheme } from '@/hooks/useTheme';
-import { formatDate } from '@/hooks/use-home-screen';
-import { formatTime } from '@/utils/format';
+import { Radii, Spacing, Typography, withAlpha } from '@/constants/theme';
 import type { BadgeAward, Club } from '@/constants/types';
+import { formatDate } from '@/hooks/use-home-screen';
+import { useTheme } from '@/hooks/useTheme';
+import { getBookingClubOwnershipContext } from '@/utils/booking-display';
+import { formatTime } from '@/utils/format';
 
 const QUICK_ACTION_DEFS = [
   { id: 'find_coach', icon: 'search', label: 'Find Coach', route: Routes.DISCOVER_MAP, primary: true },
@@ -70,7 +71,7 @@ const QuickActionTile = memo(function QuickActionTile({
           },
         ]}
       >
-        <Ionicons name={icon} size={20} color={iconColor} />
+        <Ionicons name={icon} size={18} color={iconColor} />
       </View>
       <Column gap="micro" style={styles.quickActionCopy}>
         <ThemedText
@@ -236,6 +237,11 @@ export const QuickActionsGrid = memo(function QuickActionsGrid() {
 interface Booking {
   id: string;
   coachName?: string;
+  coachId?: string;
+  actingAs?: 'self' | 'club';
+  clubId?: string;
+  ownerCoachId?: string;
+  assigneeCoachId?: string;
   scheduledAt: string;
   location: string;
   status: string;
@@ -284,6 +290,7 @@ export const NextSessionCard = memo(function NextSessionCard({ booking }: { book
       </SurfaceCard>
     );
   }
+  const ownershipContext = getBookingClubOwnershipContext(booking);
   return (
     <SurfaceCard style={styles.nextSession} onPress={() => router.push(Routes.booking(booking.id))}>
       <Row align="center" gap="sm">
@@ -306,6 +313,35 @@ export const NextSessionCard = memo(function NextSessionCard({ booking }: { book
         <Ionicons name="chevron-forward" size={18} color={palette.muted} />
       </Row>
       <View style={styles.sessionDetails}>
+        {ownershipContext ? (
+          <View
+            style={[
+              styles.ownershipBlock,
+              {
+                backgroundColor: withAlpha(palette.info, 0.08),
+                borderColor: withAlpha(palette.info, 0.22),
+              },
+            ]}
+          >
+            <Row align="center" gap="xxs">
+              <Ionicons name="business-outline" size={12} color={palette.info} />
+              <ThemedText style={[styles.ownershipLabel, { color: palette.info }]}>
+                {ownershipContext.clubLabel}
+              </ThemedText>
+            </Row>
+            <ThemedText style={[styles.ownershipMeta, { color: palette.text }]} numberOfLines={1}>
+              Delivered by {ownershipContext.deliveredBy}
+            </ThemedText>
+            {ownershipContext.owner ? (
+              <ThemedText
+                style={[styles.ownershipMeta, { color: palette.muted }]}
+                numberOfLines={1}
+              >
+                Owner {ownershipContext.owner}
+              </ThemedText>
+            ) : null}
+          </View>
+        ) : null}
         <Row align="center" gap="sm">
           <Ionicons name="calendar-outline" size={16} color={palette.muted} />
           <ThemedText style={{ color: palette.muted }} numberOfLines={1}>
@@ -495,14 +531,14 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: Spacing.xs,
     paddingHorizontal: Spacing.xs,
-    paddingVertical: Spacing.sm,
+    paddingVertical: Spacing.xxs,
     borderRadius: Radii.md,
     borderWidth: 1,
-    minHeight: 88,
+    minHeight: 64,
   },
   quickActionIcon: {
-    width: 32,
-    height: 32,
+    width: 28,
+    height: 28,
     borderRadius: Radii.xl,
     alignItems: 'center',
     justifyContent: 'center',
@@ -525,6 +561,21 @@ const styles = StyleSheet.create({
   },
   coachName: { ...Typography.subheading },
   sessionDetails: { gap: Spacing.xs, marginLeft: 44 + Spacing.sm },
+  ownershipBlock: {
+    borderWidth: 1,
+    borderRadius: Radii.md,
+    paddingHorizontal: Spacing.xs,
+    paddingVertical: Spacing.xxs,
+    gap: Spacing.micro,
+  },
+  ownershipLabel: {
+    ...Typography.micro,
+    fontWeight: '700',
+    letterSpacing: 0.2,
+  },
+  ownershipMeta: {
+    ...Typography.micro,
+  },
   sessionDetail: {
     /* layout moved to Row */
   },

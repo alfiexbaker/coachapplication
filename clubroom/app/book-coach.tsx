@@ -82,7 +82,11 @@ export default function BookCoachScreen() {
 
   useEffect(() => {
     if (!params.coachId) return;
-    router.replace(Routes.bookSessionType(params.coachId));
+    router.replace(
+      Routes.bookCoach(params.coachId, {
+        source: 'discover_search',
+      }),
+    );
   }, [params.coachId, router]);
 
   useEffect(() => {
@@ -387,7 +391,13 @@ export default function BookCoachScreen() {
               coach={coach}
               variant="discovery"
               index={index}
-              onBookNow={() => router.push(Routes.bookSessionType(coach.id))}
+              onBookNow={() =>
+                router.push(
+                  Routes.bookCoach(coach.id, {
+                    source: 'discover_search',
+                  }),
+                )
+              }
             />
           ))}
         </View>

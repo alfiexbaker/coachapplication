@@ -12,6 +12,8 @@ export interface SessionTypeOption {
   priceText: string;
   description: string;
   detailText?: string;
+  categoryLabel?: string;
+  metaText?: string;
 }
 
 export function SessionTypeSelector({
@@ -53,29 +55,44 @@ export function SessionTypeSelector({
 
   return (
     <View style={styles.list}>
-      {options.map((opt) => {
+      {options.map((opt, index) => {
+        const previousCategory = index > 0 ? options[index - 1]?.categoryLabel : undefined;
+        const showCategoryLabel =
+          Boolean(opt.categoryLabel) && opt.categoryLabel !== previousCategory;
         const active = selected === opt.id;
         return (
-          <Clickable
-            key={opt.id}
-            style={[
-              styles.card,
-              {
-                borderColor: active ? palette.tint : palette.border,
-                backgroundColor: active ? withAlpha(palette.tint, 0.06) : palette.surface,
-              },
-            ]}
-            onPress={() => onSelect(opt.id)}
-          >
-            <Row justify="between" align="center">
-              <ThemedText type="defaultSemiBold">{opt.title}</ThemedText>
-              <ThemedText style={{ color: palette.muted }}>{opt.priceText}</ThemedText>
-            </Row>
-            <ThemedText style={{ color: palette.muted }}>{opt.description}</ThemedText>
-            {opt.detailText ? (
-              <ThemedText style={{ color: palette.muted }}>{opt.detailText}</ThemedText>
+          <View key={opt.id} style={styles.optionGroup}>
+            {showCategoryLabel ? (
+              <ThemedText style={[styles.categoryLabel, { color: palette.muted }]}>
+                {opt.categoryLabel}
+              </ThemedText>
             ) : null}
-          </Clickable>
+            <Clickable
+              style={[
+                styles.card,
+                {
+                  borderColor: active ? palette.tint : palette.border,
+                  backgroundColor: active ? withAlpha(palette.tint, 0.06) : palette.surface,
+                },
+              ]}
+              onPress={() => onSelect(opt.id)}
+            >
+              <Row justify="between" align="center">
+                <ThemedText type="defaultSemiBold">{opt.title}</ThemedText>
+                <ThemedText style={{ color: palette.muted }}>{opt.priceText}</ThemedText>
+              </Row>
+              <ThemedText style={{ color: palette.muted }}>{opt.description}</ThemedText>
+              {opt.detailText ? (
+                <ThemedText style={{ color: palette.muted }}>{opt.detailText}</ThemedText>
+              ) : null}
+              {opt.metaText ? (
+                <Row align="center" gap="xs" style={styles.metaRow}>
+                  <Ionicons name="location-outline" size={14} color={palette.muted} />
+                  <ThemedText style={{ color: palette.muted }}>{opt.metaText}</ThemedText>
+                </Row>
+              ) : null}
+            </Clickable>
+          </View>
         );
       })}
     </View>
@@ -91,6 +108,18 @@ const styles = StyleSheet.create({
     borderRadius: Radii.lg,
     borderWidth: 1.5,
     gap: Spacing.xs / 2,
+  },
+  optionGroup: {
+    gap: Spacing.xs / 2,
+  },
+  categoryLabel: {
+    fontSize: 12,
+    fontWeight: '700',
+    letterSpacing: 0.2,
+    textTransform: 'uppercase',
+  },
+  metaRow: {
+    marginTop: 2,
   },
   emptyCard: {
     padding: Spacing.md,

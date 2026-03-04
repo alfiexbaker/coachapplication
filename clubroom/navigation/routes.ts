@@ -15,6 +15,13 @@ export interface SessionsCreateIntentParams {
   assigneeCoachId?: string;
 }
 
+export interface BookingFlowEntryOptions {
+  offeringId?: string;
+  source?: string;
+  childId?: string;
+  weeks?: string;
+}
+
 /**
  * Type-safe route builders for all Clubroom navigation.
  *
@@ -154,9 +161,9 @@ export const Routes = {
 
   // ─── Book ──────────────────────────────────────────────────────
   BOOK_COACH: '/book-coach' as Href,
-  bookCoachWith: (coachId: string) => ({
-    pathname: '/book-coach',
-    params: { coachId },
+  bookCoachWith: (coachId: string, options?: BookingFlowEntryOptions) => ({
+    pathname: '/book/[coachId]',
+    params: { coachId, ...(options ?? {}) },
   }) as Href,
   CONFIRM_BOOKING: '/confirm-booking' as Href,
   confirmBookingWith: (params: {
@@ -175,9 +182,12 @@ export const Routes = {
     pathname: '/confirm-booking',
     params,
   }) as Href,
-  bookSessionType: (coachId: string) => ({
+  bookSessionType: (
+    coachId: string,
+    options?: BookingFlowEntryOptions,
+  ) => ({
     pathname: '/book/[coachId]/session-type',
-    params: { coachId },
+    params: { coachId, ...(options ?? {}) },
   }) as Href,
   bookSchedule: (coachId: string) => ({
     pathname: '/book/[coachId]/schedule',
@@ -195,9 +205,9 @@ export const Routes = {
     pathname: '/book/[coachId]/confirmation',
     params: { coachId },
   }) as Href,
-  bookCoach: (coachId: string) => ({
+  bookCoach: (coachId: string, options?: BookingFlowEntryOptions) => ({
     pathname: '/book/[coachId]',
-    params: { coachId },
+    params: { coachId, ...(options ?? {}) },
   }) as Href,
   bookMultiWeek: (coachId: string) => ({
     pathname: '/book/[coachId]/multi-week',
@@ -211,10 +221,6 @@ export const Routes = {
   }) as Href,
   bookingsNegotiate: (id: string) => ({
     pathname: '/bookings/[id]/negotiate',
-    params: { id },
-  }) as Href,
-  bookingsCounter: (id: string) => ({
-    pathname: '/bookings/[id]/counter',
     params: { id },
   }) as Href,
   BOOKINGS_SUBSCRIBE: '/bookings/subscribe' as Href,

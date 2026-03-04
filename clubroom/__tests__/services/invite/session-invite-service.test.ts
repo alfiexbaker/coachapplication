@@ -6,6 +6,8 @@ import { STORAGE_KEYS } from '@/constants/storage-keys';
 import { sessionInviteService } from '@/services/invite/session-invite-service';
 import { POC_ACCOUNT_IDS } from '@/constants/poc-accounts';
 import type { Result, ServiceError } from '@/types/result';
+import type { Booking } from '@/constants/app-types';
+import type { GroupSession, SessionOffering } from '@/constants/types';
 
 function expectOk<T>(result: Result<T, ServiceError>): T {
   assert.equal(result.success, true);
@@ -24,6 +26,9 @@ describe('sessionInviteService', () => {
     seq = 0;
     await apiClient.set(STORAGE_KEYS.SESSION_INVITES, []);
     await apiClient.set(STORAGE_KEYS.INVITE_SLOT_HOLDS, []);
+    await apiClient.set(STORAGE_KEYS.BOOKINGS, []);
+    await apiClient.set(STORAGE_KEYS.SESSION_OFFERINGS, []);
+    await apiClient.set(STORAGE_KEYS.GROUP_SESSIONS, []);
     await sessionInviteService.clearCache();
   });
 
@@ -108,5 +113,144 @@ describe('sessionInviteService', () => {
     assert.ok(byParent.length >= 1);
     assert.ok(byCoach.some((invite) => invite.id === created.id));
     assert.ok(byParent.some((invite) => invite.id === created.id));
+  });
+
+  it('accepting invite linked to offering propagates source lineage to created booking', async () => {
+    const linkedOffering: SessionOffering = {
+      id: 'offering_lineage_1',
+      source: 'event',
+      sourceEntityId: 'event_1',
+      coachId: 'coach_lineage_1',
+      clubId: 'club_lineage',
+      actingAs: 'club',
+      ownerCoachId: 'coach_owner',
+      assigneeCoachId: 'coach_assignee',
+      createdByUserId: 'admin_creator',
+      createdByRole: 'ADMIN',
+      title: 'Club Showcase',
+      description: 'Linked event offering',
+      sessionType: 'group',
+      maxParticipants: 20,
+      location: 'Main Arena',
+      scheduledAt: '2030-01-20T10:00:00.000Z',
+      isRecurring: false,
+      recurrenceType: 'none',
+      status: 'active',
+      registrations: [],
+      createdAt: '2030-01-01T09:00:00.000Z',
+    };
+    await apiClient.set(STORAGE_KEYS.SESSION_OFFERINGS, [linkedOffering]);
+
+    const slot = {
+      date: '2030-01-20',
+      startTime: '10:00',
+      endTime: '11:00',
+      location: 'Main Arena',
+    };
+    const invite = expectOk(
+      await sessionInviteService.createInvite('athlete_lineage_1', {
+        coachId: 'coach_lineage_1',
+        coachName: 'Coach Lineage',
+        parentId: 'parent_lineage_1',
+        parentName: 'Parent Lineage',
+        athleteNames: 'Athlete Lineage',
+        proposedSlots: [],
+        sessionType: 'Group Session',
+        focus: 'Passing',
+        existingSessionId: linkedOffering.id,
+      }),
+    );
+
+    const accepted = expectOk(
+      await sessionInviteService.respondToInvite({
+        inviteId: invite.id,
+        response: 'ACCEPTED',
+        selectedSlot: slot,
+      }),
+    );
+    assert.equal(accepted.status, 'ACCEPTED');
+    assert.ok(accepted.bookingId);
+
+    const bookings = await apiClient.get<Booking[]>(STORAGE_KEYS.BOOKINGS, []);
+    const created = bookings.find((booking) => booking.id === accepted.bookingId);
+    assert.ok(created);
+    assert.equal(created?.sessionSource, 'event');
+    assert.equal(created?.sessionSourceEntityId, 'event_1');
+    assert.equal(created?.clubId, 'club_lineage');
+    assert.equal(created?.actingAs, 'club');
+    assert.equal(created?.ownerCoachId, 'coach_owner');
+    assert.equal(created?.assigneeCoachId, 'coach_assignee');
+    assert.equal(created?.createdByUserId, 'admin_creator');
+    assert.equal(created?.createdByRole, 'ADMIN');
+  });
+
+  it('accepting invite linked to group session infers group source lineage', async () => {
+    const linkedGroupSession: GroupSession = {
+      id: 'gs_lineage_1',
+      coachId: 'coach_group_1',
+      clubId: 'club_group_1',
+      actingAs: 'club',
+      ownerCoachId: 'coach_owner_group',
+      assigneeCoachId: 'coach_assignee_group',
+      createdByUserId: 'manager_group',
+      createdByRole: 'ADMIN',
+      title: 'U14 Training',
+      description: 'Weekly block',
+      sessionType: 'TRAINING',
+      schedule: [{ date: '2030-01-21', startTime: '18:00', endTime: '19:00' }],
+      maxParticipants: 18,
+      currentParticipants: 10,
+      waitlistEnabled: true,
+      waitlistCount: 0,
+      pricePerParticipant: 15,
+      currency: 'GBP',
+      location: 'Club Pitch',
+      isVirtual: false,
+      status: 'PUBLISHED',
+      createdAt: '2030-01-01T09:00:00.000Z',
+    };
+    await apiClient.set(STORAGE_KEYS.GROUP_SESSIONS, [linkedGroupSession]);
+
+    const slot = {
+      date: '2030-01-21',
+      startTime: '18:00',
+      endTime: '19:00',
+      location: 'Club Pitch',
+    };
+    const invite = expectOk(
+      await sessionInviteService.createInvite('athlete_group_1', {
+        coachId: 'coach_group_1',
+        coachName: 'Coach Group',
+        parentId: 'parent_group_1',
+        parentName: 'Parent Group',
+        athleteNames: 'Athlete Group',
+        proposedSlots: [],
+        sessionType: 'Training Session',
+        focus: 'Defending',
+        existingSessionId: linkedGroupSession.id,
+      }),
+    );
+
+    const accepted = expectOk(
+      await sessionInviteService.respondToInvite({
+        inviteId: invite.id,
+        response: 'ACCEPTED',
+        selectedSlot: slot,
+      }),
+    );
+    assert.equal(accepted.status, 'ACCEPTED');
+    assert.ok(accepted.bookingId);
+
+    const bookings = await apiClient.get<Booking[]>(STORAGE_KEYS.BOOKINGS, []);
+    const created = bookings.find((booking) => booking.id === accepted.bookingId);
+    assert.ok(created);
+    assert.equal(created?.sessionSource, 'group');
+    assert.equal(created?.sessionSourceEntityId, linkedGroupSession.id);
+    assert.equal(created?.clubId, linkedGroupSession.clubId);
+    assert.equal(created?.actingAs, linkedGroupSession.actingAs);
+    assert.equal(created?.ownerCoachId, linkedGroupSession.ownerCoachId);
+    assert.equal(created?.assigneeCoachId, linkedGroupSession.assigneeCoachId);
+    assert.equal(created?.createdByUserId, linkedGroupSession.createdByUserId);
+    assert.equal(created?.createdByRole, linkedGroupSession.createdByRole);
   });
 });

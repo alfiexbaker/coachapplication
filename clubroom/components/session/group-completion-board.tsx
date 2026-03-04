@@ -146,7 +146,7 @@ export const GroupCompletionBoard = memo(function GroupCompletionBoard({
                 </Row>
               </Row>
 
-              <Row gap="xs" style={styles.actionsRow}>
+              <View style={styles.actionsRow}>
                 <Clickable
                   style={[
                     styles.inlineAction,
@@ -157,8 +157,8 @@ export const GroupCompletionBoard = memo(function GroupCompletionBoard({
                   onPress={() => onPersonalFeedback(athlete.registrationId)}
                 >
                   <Row align="center" justify="center" gap="micro">
-                    <Ionicons name="create-outline" size={12} color={colors.tint} />
-                    <ThemedText numberOfLines={1} style={[styles.inlineActionText, { color: colors.tint }]}>
+                    <Ionicons name="create-outline" size={13} color={colors.tint} />
+                    <ThemedText style={[styles.inlineActionText, { color: colors.tint }]}>
                       Personal feedback
                     </ThemedText>
                   </Row>
@@ -173,8 +173,8 @@ export const GroupCompletionBoard = memo(function GroupCompletionBoard({
                   onPress={() => onRaiseConcern(athlete.registrationId)}
                 >
                   <Row align="center" justify="center" gap="micro">
-                    <Ionicons name="warning-outline" size={12} color={colors.error} />
-                    <ThemedText numberOfLines={1} style={[styles.inlineActionText, { color: colors.error }]}>
+                    <Ionicons name="warning-outline" size={13} color={colors.error} />
+                    <ThemedText style={[styles.inlineActionText, { color: colors.error }]}>
                       Concern
                     </ThemedText>
                   </Row>
@@ -189,13 +189,13 @@ export const GroupCompletionBoard = memo(function GroupCompletionBoard({
                   onPress={() => onMessage(athlete.registrationId)}
                 >
                   <Row align="center" justify="center" gap="micro">
-                    <Ionicons name="chatbubble-ellipses-outline" size={12} color={colors.icon} />
-                    <ThemedText numberOfLines={1} style={[styles.inlineActionText, { color: colors.icon }]}>
+                    <Ionicons name="chatbubble-ellipses-outline" size={13} color={colors.icon} />
+                    <ThemedText style={[styles.inlineActionText, { color: colors.icon }]}>
                       Message
                     </ThemedText>
                   </Row>
                 </Clickable>
-              </Row>
+              </View>
             </View>
           ))}
         </View>
@@ -400,19 +400,23 @@ const styles = StyleSheet.create({
   },
   actionsRow: {
     width: '100%',
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: Spacing.xs,
   },
   inlineAction: {
-    flex: 1,
+    flexGrow: 1,
+    flexBasis: '48%',
     borderRadius: Radii.pill,
     paddingHorizontal: Spacing.sm,
-    paddingVertical: Spacing.xxs,
-    minHeight: 32,
+    paddingVertical: Spacing.xs,
+    minHeight: 34,
     alignItems: 'center',
     justifyContent: 'center',
   },
   inlineActionText: {
     ...Typography.caption,
-    letterSpacing: -0.1,
+    letterSpacing: 0,
   },
   mediaCountText: {
     ...Typography.caption,

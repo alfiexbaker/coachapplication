@@ -50,7 +50,7 @@ describe('user1 home data smoke', () => {
     await Promise.all(RESET_KEYS.map((key) => apiClient.remove(key)));
   });
 
-  it('seeds non-empty progress and upcoming bookings for both user1 child profiles', async () => {
+  it('seeds non-empty progress and upcoming bookings for both seeded child profiles', async () => {
     await ensureRelationalDemoSeeded({ force: true });
 
     const kidASeed = await ensureProgressDemoSeeded('child_user1_a', 'Kid F');
@@ -64,7 +64,7 @@ describe('user1 home data smoke', () => {
       progressService.getAthleteProgress('child_user1_b', 'parent'),
       badgeService.listAwardsForAthlete('child_user1_a'),
       badgeService.listAwardsForAthlete('child_user1_b'),
-      bookingService.getBookingsForUser('user1', 'parent'),
+      bookingService.getBookingsForUser('user4', 'parent'),
       apiClient.get<User[]>(STORAGE_KEYS.USERS, []),
       apiClient.get<ChildProfileRecord[]>(STORAGE_KEYS.CHILDREN_PROFILES, []),
     ]);
@@ -92,8 +92,8 @@ describe('user1 home data smoke', () => {
         booking.athleteId === 'child_user1_b' || booking.athleteIds?.includes('child_user1_b'),
     );
 
-    assert.equal(hasUpcomingForKidA, true, 'user1 should have upcoming confirmed booking for child_user1_a');
-    assert.equal(hasUpcomingForKidB, true, 'user1 should have upcoming confirmed booking for child_user1_b');
+    assert.equal(hasUpcomingForKidA, true, 'parent1 should have upcoming confirmed booking for child_user1_a');
+    assert.equal(hasUpcomingForKidB, true, 'parent1 should have upcoming confirmed booking for child_user1_b');
 
     const userIds = new Set(users.map((user) => user.id));
     assert.equal(userIds.has('user1'), true);
@@ -101,12 +101,14 @@ describe('user1 home data smoke', () => {
     assert.equal(userIds.has('user_club_linked'), true);
     assert.equal(userIds.has('parent_nokids'), true);
 
-    const hasUser1Kids = childProfiles.some((profile) => profile.parentId === 'user1');
+    const hasUser1NoKids = !childProfiles.some((profile) => profile.parentId === 'user1');
+    const hasUser4Kids = childProfiles.some((profile) => profile.parentId === 'user4');
     const hasNoKidsProfileForParentNoKids = childProfiles.some(
       (profile) => profile.parentId === 'parent_nokids',
     );
 
-    assert.equal(hasUser1Kids, true, 'user1 should have linked child profiles');
+    assert.equal(hasUser1NoKids, true, 'user1 should not have linked child profiles');
+    assert.equal(hasUser4Kids, true, 'parent1 should have linked child profiles');
     assert.equal(
       hasNoKidsProfileForParentNoKids,
       false,

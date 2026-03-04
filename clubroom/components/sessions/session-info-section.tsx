@@ -98,9 +98,6 @@ function SessionInfoSectionInner({
           <View style={[styles.badge, { backgroundColor: withAlpha(palette.accent, 0.09) }]}>
             <ThemedText style={[styles.badgeText, { color: palette.accent }]}>
               Group ({headcount}/{offering.maxParticipants})
-              {isMyOffering && offPlatformParticipants > 0
-                ? ` · +${offPlatformParticipants} off-platform`
-                : ''}
             </ThemedText>
           </View>
         )}

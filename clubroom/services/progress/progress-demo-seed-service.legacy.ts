@@ -161,7 +161,8 @@ function pickCoach(index: number): DemoCoach {
 
 function buildSeedFeedback(athleteId: string, athleteName: string): SessionFeedback[] {
   const base = hashValue(athleteId);
-  const timelines = [2, 6, 12, 20];
+  const timelines = [2, 5, 8, 12, 16, 21, 28, 36];
+  const seededPositions: PositionRole[] = ['MID', 'MID', 'ATT', 'MID', 'DEF', 'MID', 'ATT', 'MID'];
 
   return timelines.map((days, index) => {
     const coach = pickCoach(index);
@@ -206,6 +207,7 @@ function buildSeedFeedback(athleteId: string, athleteName: string): SessionFeedb
       overallPerformance: 3 + ((base + index + 1) % 3),
       videoClipUrls: [],
       visibility: 'athlete',
+      positionPlayed: seededPositions[index] ?? 'MID',
     };
   });
 }

@@ -27,6 +27,7 @@ describe('notification-trigger', () => {
     test('creates a notification in the store', async () => {
       await triggerNotification({
         type: 'booking_confirmed',
+        recipientId: 'user_parent_1',
         recipientRole: 'parent',
         title: 'Booking Confirmed',
         body: 'Your session is booked',
@@ -40,6 +41,7 @@ describe('notification-trigger', () => {
     test('maps booking-related types correctly', async () => {
       await triggerNotification({
         type: 'session_completed',
+        recipientId: 'user_parent_1',
         recipientRole: 'parent',
         title: 'Session Done',
         body: 'Session has been completed',
@@ -56,6 +58,7 @@ describe('notification-trigger', () => {
     test('maps message-related types correctly', async () => {
       await triggerNotification({
         type: 'new_message',
+        recipientId: 'coach_1',
         recipientRole: 'coach',
         title: 'New Message',
         body: 'You have a new message',
@@ -72,6 +75,7 @@ describe('notification-trigger', () => {
     test('maps badge-related types correctly', async () => {
       await triggerNotification({
         type: 'badge_earned',
+        recipientId: 'user_parent_1',
         recipientRole: 'parent',
         title: 'Badge Earned',
         body: 'New badge!',
@@ -88,6 +92,7 @@ describe('notification-trigger', () => {
     test('maps review-related types correctly', async () => {
       await triggerNotification({
         type: 'new_review',
+        recipientId: 'coach_1',
         recipientRole: 'coach',
         title: 'New Review',
         body: 'You received a review',
@@ -104,6 +109,7 @@ describe('notification-trigger', () => {
     test('maps payment-related types correctly', async () => {
       await triggerNotification({
         type: 'payment_received',
+        recipientId: 'coach_1',
         recipientRole: 'coach',
         title: 'Payment',
         body: 'Payment received',
@@ -120,6 +126,7 @@ describe('notification-trigger', () => {
     test('falls back to reminder for unknown types', async () => {
       await triggerNotification({
         type: 'some_unknown_action',
+        recipientId: 'user_parent_1',
         recipientRole: 'parent',
         title: 'Reminder',
         body: 'Something happened',
@@ -145,6 +152,7 @@ describe('notification-trigger', () => {
         // Should not throw
         await triggerNotification({
           type: 'booking_confirmed',
+          recipientId: 'user_parent_1',
           recipientRole: 'parent',
           title: 'Test',
           body: 'Test',
@@ -160,7 +168,12 @@ describe('notification-trigger', () => {
   // ---------------------------------------------------------------------------
   describe('notificationTriggers.drill*', () => {
     test('drillAssigned creates parent notification', async () => {
-      await notificationTriggers.drillAssigned('Coach Sarah', 'Passing Drill', 'Liam');
+      await notificationTriggers.drillAssigned(
+        'Coach Sarah',
+        'Passing Drill',
+        'Liam',
+        'user_parent_1',
+      );
 
       const notifications = await apiClient.get<Array<{ title: string; body: string }>>(
         STORAGE_KEYS.NOTIFICATIONS,
@@ -173,7 +186,7 @@ describe('notification-trigger', () => {
     });
 
     test('drillCompleted creates coach notification', async () => {
-      await notificationTriggers.drillCompleted('Liam', 'Finishing Drill');
+      await notificationTriggers.drillCompleted('Liam', 'Finishing Drill', 'coach_1');
 
       const notifications = await apiClient.get<Array<{ title: string; body: string }>>(
         STORAGE_KEYS.NOTIFICATIONS,
@@ -190,7 +203,7 @@ describe('notification-trigger', () => {
   // ---------------------------------------------------------------------------
   describe('notificationTriggers.event*', () => {
     test('eventCreated includes event name and date', async () => {
-      await notificationTriggers.eventCreated('Summer Camp', '15th July');
+      await notificationTriggers.eventCreated('Summer Camp', '15th July', 'user_parent_1');
 
       const notifications = await apiClient.get<Array<{ body: string }>>(
         STORAGE_KEYS.NOTIFICATIONS,
@@ -202,7 +215,7 @@ describe('notification-trigger', () => {
     });
 
     test('eventCancelled includes event name', async () => {
-      await notificationTriggers.eventCancelled('Winter Cup');
+      await notificationTriggers.eventCancelled('Winter Cup', 'user_parent_1');
 
       const notifications = await apiClient.get<Array<{ body: string }>>(
         STORAGE_KEYS.NOTIFICATIONS,
@@ -213,7 +226,7 @@ describe('notification-trigger', () => {
     });
 
     test('eventRsvp includes parent and response', async () => {
-      await notificationTriggers.eventRsvp('Jane', 'Training Day', 'attending');
+      await notificationTriggers.eventRsvp('Jane', 'Training Day', 'attending', 'coach_1');
 
       const notifications = await apiClient.get<Array<{ body: string }>>(
         STORAGE_KEYS.NOTIFICATIONS,
@@ -230,7 +243,7 @@ describe('notification-trigger', () => {
   // ---------------------------------------------------------------------------
   describe('notificationTriggers.booking*', () => {
     test('bookingConfirmed creates notification with coach and date', async () => {
-      await notificationTriggers.bookingConfirmed('Coach Reuben', 'Mon 20th at 3pm');
+      await notificationTriggers.bookingConfirmed('Coach Reuben', 'Mon 20th at 3pm', 'user_parent_1');
 
       const notifications = await apiClient.get<Array<{ title: string; body: string }>>(
         STORAGE_KEYS.NOTIFICATIONS,
@@ -242,7 +255,12 @@ describe('notification-trigger', () => {
     });
 
     test('bookingCancelled creates notification with details', async () => {
-      await notificationTriggers.bookingCancelled('Parent Jane', 'Wed 22nd', 'parent');
+      await notificationTriggers.bookingCancelled(
+        'Parent Jane',
+        'Wed 22nd',
+        'parent',
+        'user_parent_1',
+      );
 
       const notifications = await apiClient.get<Array<{ body: string }>>(
         STORAGE_KEYS.NOTIFICATIONS,
@@ -259,7 +277,7 @@ describe('notification-trigger', () => {
   // ---------------------------------------------------------------------------
   describe('notificationTriggers.invite*', () => {
     test('inviteAccepted notifies coach', async () => {
-      await notificationTriggers.inviteAccepted('Jane Smith', 'Liam');
+      await notificationTriggers.inviteAccepted('Jane Smith', 'Liam', 'coach_1');
 
       const notifications = await apiClient.get<Array<{ body: string }>>(
         STORAGE_KEYS.NOTIFICATIONS,
@@ -271,7 +289,12 @@ describe('notification-trigger', () => {
     });
 
     test('inviteDeclined includes reason', async () => {
-      await notificationTriggers.inviteDeclined('Jane', 'Liam', 'Schedule conflict');
+      await notificationTriggers.inviteDeclined(
+        'Jane',
+        'Liam',
+        'Schedule conflict',
+        'coach_1',
+      );
 
       const notifications = await apiClient.get<Array<{ body: string }>>(
         STORAGE_KEYS.NOTIFICATIONS,
@@ -282,7 +305,7 @@ describe('notification-trigger', () => {
     });
 
     test('inviteReceived notifies parent', async () => {
-      await notificationTriggers.inviteReceived('Coach Sarah', 'Liam');
+      await notificationTriggers.inviteReceived('Coach Sarah', 'Liam', 'user_parent_1');
 
       const notifications = await apiClient.get<Array<{ body: string }>>(
         STORAGE_KEYS.NOTIFICATIONS,
@@ -299,7 +322,7 @@ describe('notification-trigger', () => {
   // ---------------------------------------------------------------------------
   describe('notificationTriggers.badge and session', () => {
     test('badgeEarned creates notification', async () => {
-      await notificationTriggers.badgeEarned('Liam', 'Golden Boot');
+      await notificationTriggers.badgeEarned('Liam', 'Golden Boot', 'user_parent_1');
 
       const notifications = await apiClient.get<Array<{ title: string; body: string }>>(
         STORAGE_KEYS.NOTIFICATIONS,
@@ -311,7 +334,7 @@ describe('notification-trigger', () => {
     });
 
     test('sessionCompleted creates notification', async () => {
-      await notificationTriggers.sessionCompleted('Coach Aiden', 'Liam');
+      await notificationTriggers.sessionCompleted('Coach Aiden', 'Liam', 'user_parent_1');
 
       const notifications = await apiClient.get<Array<{ body: string }>>(
         STORAGE_KEYS.NOTIFICATIONS,
@@ -323,7 +346,7 @@ describe('notification-trigger', () => {
     });
 
     test('noShowMarked creates notification', async () => {
-      await notificationTriggers.noShowMarked('Liam', '15th March');
+      await notificationTriggers.noShowMarked('Liam', '15th March', 'user_parent_1');
 
       const notifications = await apiClient.get<Array<{ body: string }>>(
         STORAGE_KEYS.NOTIFICATIONS,
@@ -355,7 +378,7 @@ describe('notification-trigger', () => {
   // ---------------------------------------------------------------------------
   describe('notificationTriggers.groupSession*', () => {
     test('groupSessionCreated includes title and date', async () => {
-      await notificationTriggers.groupSessionCreated('U12 Training', 'Sat 10am');
+      await notificationTriggers.groupSessionCreated('U12 Training', 'Sat 10am', 'user_parent_1');
 
       const notifications = await apiClient.get<Array<{ body: string }>>(
         STORAGE_KEYS.NOTIFICATIONS,
@@ -367,7 +390,7 @@ describe('notification-trigger', () => {
     });
 
     test('groupRegistered includes athlete and session', async () => {
-      await notificationTriggers.groupRegistered('Liam', 'U12 Training');
+      await notificationTriggers.groupRegistered('Liam', 'U12 Training', 'coach_1');
 
       const notifications = await apiClient.get<Array<{ body: string }>>(
         STORAGE_KEYS.NOTIFICATIONS,

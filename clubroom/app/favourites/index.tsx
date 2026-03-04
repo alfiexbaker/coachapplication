@@ -109,7 +109,11 @@ export default function FavouritesScreen() {
 
   const handleBook = useCallback((coachId: string) => {
     void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-    router.push(Routes.bookSessionType(coachId));
+    router.push(
+      Routes.bookCoach(coachId, {
+        source: 'favourites',
+      }),
+    );
   }, []);
 
   const handleDiscoverCoaches = useCallback(() => {

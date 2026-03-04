@@ -1,10 +1,27 @@
 # Clubroom — Single Source of Truth
 
-**Last Updated**: 2026-02-17 (full codebase audit)
+**Last Updated**: 2026-03-04 (full engineering audit refresh)
 **Project**: Clubroom — football coaching marketplace + family development tracker
-**Status**: Frontend MVP, AsyncStorage persistence, mock data layer, no backend API yet
+**Status**: Frontend-heavy product with live flow coverage, seed-backed API runtime implemented, production hardening in progress
 
 ---
+
+## Current Build Health Snapshot (Verified 2026-03-04)
+
+- UI role flow execution: **80/80 passed** (`coach 36`, `parent 26`, `athlete 18`)
+- Flow severities: **0 high**, **1 medium** (nested button/hydration warning on coach home)
+- Pre-API placement gate: **13/13 pass**
+- Static UI audit: **pass** (no static layout risk findings)
+- Main app typecheck: **failing (4 TS errors)**
+- Safety suite: **failing (1 assertion)**
+- API package typecheck/tests: **pass** (`26` tests)
+
+## Primary Reference Docs (Current)
+
+- `docs/FULL_AUDIT_2026-03-04.md`
+- `docs/FEATURE_API_READINESS_DEEP_DIVE_2026-03-01.md`
+- `docs/admin/ADMIN_OPERATIONS_REALITY_2026-03-03.md`
+- `docs/newsprints/DONE.md`
 
 ## Vision
 
@@ -16,7 +33,7 @@ Clubroom connects football coaches with families. Coaches manage their business 
 
 ---
 
-## What Each Role Can Actually Do (Verified Feb 2026)
+## What Each Role Can Actually Do (Verified 2026-03-04)
 
 ### COACH (95 screens, ~53% of app)
 
@@ -112,7 +129,7 @@ Clubroom connects football coaches with families. Coaches manage their business 
 - Spending/transactions (calculated from mock bookings)
 - Session invites, waitlist entries
 
-**No backend API exists yet.** Everything goes through `apiClient` → AsyncStorage.
+`apiClient` still powers the app in mock/local mode, but a backend package now exists at `apps/api` with `/v1` endpoints and seed-backed runtime adapters.
 
 ---
 
@@ -121,13 +138,13 @@ Clubroom connects football coaches with families. Coaches manage their business 
 | What | Reality |
 |------|---------|
 | Framework | Expo 54 / React Native 0.81 / React 19 / TypeScript 5.9 |
-| Routing | Expo Router 6, file-based, **199 route files** |
-| Services | **129 files** across **12 split modules** + single-file services |
+| Routing | Expo Router 6, file-based, **183 route files** |
+| Services | **133 service files** (including consolidated modules) |
 | Events | `event-bus.ts` — **83 typed events** with typed payloads |
 | Storage keys | `storage-keys.ts` — **120 keys** organized by domain |
-| Tests | Node.js built-in runner (`node --test`) — **171 test files** |
-| Components | **927 .tsx files** across 57 feature directories |
-| Hooks | **155 hooks** (9 infrastructure + 146 feature-specific) |
+| Tests | Node.js built-in runner (`node --test`) — **199 test files** |
+| Components | **736 component `.tsx` files** |
+| Hooks | **167 hooks** |
 | UI Primitives | 15 layout/atomic components + 12 infrastructure (states, toast, skeleton) |
 | Design tokens | Colors, Typography (12 variants), Spacing (9 sizes), Radii, Shadows, Components |
 
@@ -156,7 +173,7 @@ Clubroom connects football coaches with families. Coaches manage their business 
 3. **Role-based navigation** — Coach/Parent/Athlete see different tabs
 4. **Objectives on every booking** — powers progress analytics
 5. **Result<T, ServiceError>** — Rust-inspired, zero exceptions
-6. **No backend** — AsyncStorage mock layer, API planned
+6. **Dual runtime phase** — seed-backed API exists; app still supports mock/local mode while db-backed API migration continues
 
 ---
 
@@ -173,11 +190,12 @@ Clubroom connects football coaches with families. Coaches manage their business 
 
 | Doc | Purpose |
 |-----|---------|
-| `docs/USER-STORIES.md` | Feature map with build status (✅/❌/🔨/💤) |
-| `docs/SPINE_CATEGORIES.md` | 4 product spines with guidance |
+| `docs/FULL_AUDIT_2026-03-04.md` | Adversarial full audit with risk-ranked findings and flow matrix |
+| `docs/FEATURE_API_READINESS_DEEP_DIVE_2026-03-01.md` | API readiness deep dive and cutover strategy |
+| `docs/admin/ADMIN_OPERATIONS_REALITY_2026-03-03.md` | Admin operations current-state reality and gaps |
 | `docs/UI_ACTION_TENETS.md` | UI interaction principles |
 | `docs/UI_RELIABILITY_AUDIT.md` | UI reliability findings |
-| `docs/sprints/` | Sprint history (completed + reference) |
+| `docs/newsprints/` | Sprint execution history (completed + reference) |
 | `README.md` | Project setup and overview |
 
 ---
@@ -201,4 +219,4 @@ Clubroom connects football coaches with families. Coaches manage their business 
 
 ---
 
-*This document was verified against the actual codebase on 2026-02-17. Every number is fact-checked.*
+*This document was refreshed against actual code and test/audit outputs on 2026-03-04.*

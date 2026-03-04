@@ -164,6 +164,9 @@ export const STORAGE_KEYS = {
   /** Analytics data for coaches */
   COACH_ANALYTICS: 'coach_analytics',
 
+  /** Booking wizard step analytics events (transition + failure instrumentation) */
+  BOOKING_STEP_ANALYTICS_EVENTS: 'clubroom.booking_step_analytics_events',
+
   // ============================================================================
   // NOTIFICATIONS DOMAIN
   // ============================================================================
@@ -422,6 +425,15 @@ export const STORAGE_KEYS = {
 
   /** Coach/session reviews */
   REVIEWS: 'clubroom.reviews',
+
+  /** Booking-linked coach reviews submitted by parents/athletes (legacy key, still active in UI flows) */
+  RATE_COACH_REVIEWS: 'coach_reviews',
+
+  /** Public coach review feed used by coach profile surfaces */
+  COACH_PUBLIC_REVIEWS: 'clubroom.coach_reviews',
+
+  /** Dismissed review prompt timestamps (per booking) */
+  DISMISSED_REVIEW_PROMPTS: 'dismissed_reviews',
 
   /** Badge awards and achievements */
   BADGE_AWARDS: 'clubroom.badge_awards',

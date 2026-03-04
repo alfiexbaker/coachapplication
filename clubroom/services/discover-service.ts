@@ -20,13 +20,22 @@ import type {
   FootballObjective,
   TrainingFormat,
 } from '@/constants/types';
+import type { SessionOffering } from '@/constants/session-types';
+import type { CoachDirectoryEntry } from '@/constants/relational-demo-seeds';
 import { apiClient } from './api-client';
 import { STORAGE_KEYS } from '@/constants/storage-keys';
+import { api, preApiLive } from '@/constants/config';
+import { ensureRelationalDemoSeeded } from '@/services/relational-demo-seed-service';
+import { getSessionOfferingHeadcount } from '@/utils/session-offering-capacity';
 import { createLogger } from '@/utils/logger';
 import { type Result, type ServiceError, ok, err, storageError } from '@/types/result';
 const logger = createLogger('DiscoverService');
 
 const MAX_RECENT_SEARCHES = 10;
+const DAY_MS = 24 * 60 * 60 * 1000;
+const DISCOVER_DEFAULT_LOCATION = { lat: 51.5074, lng: -0.1278 };
+const DISCOVER_DEFAULT_FOCUS: FootballObjective[] = ['Passing', 'Dribbling'];
+const COACH_DIRECTORY_KEY = STORAGE_KEYS.COACH_DIRECTORY;
 
 // Phase 2: keep discover data local to the service (no mock-data import dependency).
 const importedCoachProfiles: CoachProfile[] = [];
@@ -305,8 +314,249 @@ function calculateRelevanceScore(
   return Math.max(0, Math.min(100, score));
 }
 
+type CoachOfferingSummary = {
+  bookableCount: number;
+  minPrice: number | null;
+  maxPrice: number | null;
+  nextAvailability: string | null;
+  formats: Set<TrainingFormat>;
+};
+
+const FOCUS_ALIASES: Record<string, FootballObjective> = {
+  dribbling: 'Dribbling',
+  passing: 'Passing',
+  defending: 'Defending',
+  finishing: 'Finishing',
+  goalkeeping: 'Goalkeeping',
+  conditioning: 'Conditioning',
+  'first touch': 'Passing',
+  movement: 'Finishing',
+  positioning: 'Defending',
+  composure: 'Passing',
+  confidence: 'Conditioning',
+  transition: 'Defending',
+  'decision making': 'Passing',
+  pressing: 'Defending',
+  'recovery runs': 'Conditioning',
+  assessment: 'Conditioning',
+};
+
+function normalizeCoachFocuses(rawFocuses: string[] | undefined): FootballObjective[] {
+  if (!Array.isArray(rawFocuses) || rawFocuses.length === 0) {
+    return [...DISCOVER_DEFAULT_FOCUS];
+  }
+
+  const normalized = new Set<FootballObjective>();
+  for (const focus of rawFocuses) {
+    const key = focus.trim().toLowerCase();
+    const mapped = FOCUS_ALIASES[key];
+    if (mapped) {
+      normalized.add(mapped);
+    }
+  }
+
+  return normalized.size > 0 ? Array.from(normalized) : [...DISCOVER_DEFAULT_FOCUS];
+}
+
+function toSessionFormat(offering: SessionOffering): TrainingFormat {
+  return offering.sessionType === 'group' ? 'Small group' : 'In-person';
+}
+
+function isBookableOffering(offering: SessionOffering, now: number): boolean {
+  if (offering.status !== 'active') return false;
+
+  const startsAtMs = new Date(offering.scheduledAt).getTime();
+  const isUpcoming = offering.isRecurring || (Number.isFinite(startsAtMs) && startsAtMs >= now);
+  if (!isUpcoming) return false;
+
+  return getSessionOfferingHeadcount(offering) < offering.maxParticipants;
+}
+
+function buildCoachOfferingSummaryMap(
+  offerings: SessionOffering[],
+): Map<string, CoachOfferingSummary> {
+  const now = Date.now();
+  const summaries = new Map<string, CoachOfferingSummary>();
+
+  for (const offering of offerings) {
+    if (!offering.coachId) continue;
+
+    const existing = summaries.get(offering.coachId) ?? {
+      bookableCount: 0,
+      minPrice: null,
+      maxPrice: null,
+      nextAvailability: null,
+      formats: new Set<TrainingFormat>(),
+    };
+
+    if (isBookableOffering(offering, now)) {
+      existing.bookableCount += 1;
+      existing.formats.add(toSessionFormat(offering));
+
+      if (typeof offering.price === 'number' && Number.isFinite(offering.price) && offering.price > 0) {
+        existing.minPrice =
+          existing.minPrice === null ? offering.price : Math.min(existing.minPrice, offering.price);
+        existing.maxPrice =
+          existing.maxPrice === null ? offering.price : Math.max(existing.maxPrice, offering.price);
+      }
+
+      const startsAtMs = new Date(offering.scheduledAt).getTime();
+      if (Number.isFinite(startsAtMs)) {
+        if (!existing.nextAvailability) {
+          existing.nextAvailability = offering.scheduledAt;
+        } else {
+          const currentMs = new Date(existing.nextAvailability).getTime();
+          if (!Number.isFinite(currentMs) || startsAtMs < currentMs) {
+            existing.nextAvailability = offering.scheduledAt;
+          }
+        }
+      }
+    }
+
+    summaries.set(offering.coachId, existing);
+  }
+
+  return summaries;
+}
+
+function mapBadgeTone(label: string): 'success' | 'warning' | 'default' {
+  const lower = label.toLowerCase();
+  if (lower.includes('premium')) return 'warning';
+  if (lower.includes('verified') || lower.includes('background') || lower.includes('dbs') || lower.includes('top rated')) {
+    return 'success';
+  }
+  return 'default';
+}
+
+function mapDirectoryCoachToProfile(
+  entry: CoachDirectoryEntry,
+  summary: CoachOfferingSummary | undefined,
+): CoachProfile {
+  const minPrice = summary?.minPrice ?? entry.minPrice ?? 35;
+  const maxPrice = summary?.maxPrice ?? entry.maxPrice ?? Math.max(minPrice + 20, minPrice);
+  const nextAvailability =
+    summary?.nextAvailability ?? entry.nextAvailable ?? new Date(Date.now() + DAY_MS * 2).toISOString();
+  const sessionFormats: TrainingFormat[] =
+    summary && summary.formats.size > 0 ? Array.from(summary.formats) : ['In-person'];
+  const focuses = normalizeCoachFocuses(entry.footballFocuses);
+  const shortBio = (entry.bio ?? '').trim();
+
+  return {
+    id: entry.id,
+    fullName: entry.name,
+    primarySport: 'Football',
+    sports: ['Football'],
+    city: entry.location?.city ?? 'London',
+    state: entry.location?.state ?? 'Greater London',
+    distanceMiles:
+      typeof entry.distance === 'number' && Number.isFinite(entry.distance)
+        ? entry.distance
+        : 5,
+    rating: {
+      average: entry.rating,
+      reviewCount: entry.reviewCount,
+    },
+    priceRange: {
+      min: minPrice,
+      max: maxPrice,
+      unitLabel: 'per session',
+    },
+    sessionRate: minPrice,
+    nextAvailability,
+    badges: (entry.badges ?? []).map((label, index) => ({
+      id: `badge_${entry.id}_${index}`,
+      label,
+      tone: mapBadgeTone(label),
+    })),
+    sessionFormats,
+    shortBio: shortBio.length > 0 ? shortBio : `${entry.name} is currently taking bookings.`,
+    profilePhotoUrl: entry.profilePhotoUrl ?? `https://i.pravatar.cc/300?u=${entry.id}`,
+    coverPhotoUrl: entry.coverPhotoUrl,
+    footballFocuses: focuses,
+    location: {
+      lat: entry.location?.lat ?? DISCOVER_DEFAULT_LOCATION.lat,
+      lng: entry.location?.lng ?? DISCOVER_DEFAULT_LOCATION.lng,
+    },
+    bio: entry.bio,
+    joinedDate: entry.joinedAt ?? new Date(Date.now() - DAY_MS * 180).toISOString(),
+    totalSessions: entry.totalSessions,
+    experiences: [],
+    certifications: [],
+    posts: [],
+    photoGallery: [],
+    videoGallery: [],
+    languages: [{ id: 'lang_en', name: 'English', proficiency: 'Native' }],
+    achievements: entry.qualifications ?? [],
+  };
+}
+
 class DiscoverService {
   private coaches: CoachProfile[] = MOCK_DISCOVERY_COACHES;
+  private forceMockData = process.env.NODE_ENV === 'test';
+  private lastHydratedAt = 0;
+  private hydrationInFlight: Promise<void> | null = null;
+  private readonly hydrationTtlMs = 15_000;
+
+  private async ensureDataset(): Promise<void> {
+    if (this.forceMockData) {
+      return;
+    }
+
+    const now = Date.now();
+    if (now - this.lastHydratedAt < this.hydrationTtlMs) {
+      return;
+    }
+
+    if (this.hydrationInFlight) {
+      return this.hydrationInFlight;
+    }
+
+    this.hydrationInFlight = this.hydrateFromStorage();
+    try {
+      await this.hydrationInFlight;
+    } finally {
+      this.hydrationInFlight = null;
+    }
+  }
+
+  private async hydrateFromStorage(): Promise<void> {
+    try {
+      if (api.useMock && preApiLive.enabled) {
+        await ensureRelationalDemoSeeded();
+      }
+
+      const [directory, offerings] = await Promise.all([
+        apiClient.get<CoachDirectoryEntry[]>(COACH_DIRECTORY_KEY, []),
+        apiClient.get<SessionOffering[]>(STORAGE_KEYS.SESSION_OFFERINGS, []),
+      ]);
+
+      if (directory.length === 0) {
+        return;
+      }
+
+      const summaryByCoachId = buildCoachOfferingSummaryMap(offerings);
+      const mapped = directory.map((entry) =>
+        mapDirectoryCoachToProfile(entry, summaryByCoachId.get(entry.id)),
+      );
+      const bookable = mapped.filter(
+        (coach) => (summaryByCoachId.get(coach.id)?.bookableCount ?? 0) > 0,
+      );
+      const resolved = bookable.length > 0 ? bookable : mapped;
+
+      if (resolved.length > 0) {
+        this.coaches = resolved;
+        logger.info('discover_storage_dataset_loaded', {
+          coachCount: resolved.length,
+          sourceCoachCount: directory.length,
+          offerings: offerings.length,
+        });
+      }
+    } catch (error) {
+      logger.warn('discover_storage_hydration_failed', { error });
+    } finally {
+      this.lastHydratedAt = Date.now();
+    }
+  }
 
   /**
    * Search coaches with comprehensive filtering
@@ -317,6 +567,7 @@ class DiscoverService {
     pageSize: number = 20,
   ): Promise<Result<CoachSearchResponse, ServiceError>> {
     try {
+      await this.ensureDataset();
       let results = [...this.coaches];
 
       // Apply text search
@@ -454,6 +705,7 @@ class DiscoverService {
     radiusKm: number = 10,
   ): Promise<Result<CoachSearchResult[], ServiceError>> {
     try {
+      await this.ensureDataset();
       const results = this.coaches
         .map((coach) => {
           const distanceKm = calculateDistance(lat, lng, coach.location.lat, coach.location.lng);
@@ -480,6 +732,7 @@ class DiscoverService {
     currentFilters: CoachSearchFilters = {},
   ): Promise<Result<FilterOptions, ServiceError>> {
     try {
+      await this.ensureDataset();
       // Get all coaches that match current filters (except the filter being counted)
       const matchingCoaches = this.coaches.filter((coach) => {
         if (currentFilters.query && !matchesQuery(coach, currentFilters.query)) return false;
@@ -602,6 +855,7 @@ class DiscoverService {
    */
   async getSuggestedCoaches(userId: string): Promise<Result<SuggestedCoach[], ServiceError>> {
     try {
+      await this.ensureDataset();
       // For demo, return a mix of suggestions
       const suggestions: SuggestedCoach[] = [];
 
@@ -713,6 +967,7 @@ class DiscoverService {
    */
   async getCoachById(coachId: string): Promise<Result<CoachProfile | null, ServiceError>> {
     try {
+      await this.ensureDataset();
       return ok(this.coaches.find((c) => c.id === coachId) ?? null);
     } catch (error) {
       logger.error('Failed to get coach by id', { coachId, error });
@@ -725,6 +980,7 @@ class DiscoverService {
    */
   async getAllCoaches(): Promise<Result<CoachProfile[], ServiceError>> {
     try {
+      await this.ensureDataset();
       return ok(this.coaches);
     } catch (error) {
       logger.error('Failed to get all coaches', error);
@@ -783,6 +1039,8 @@ class DiscoverService {
   async resetToMockData(): Promise<Result<void, ServiceError>> {
     try {
       this.coaches = [...MOCK_DISCOVERY_COACHES];
+      this.forceMockData = true;
+      this.lastHydratedAt = 0;
       const clearResult = await this.clearRecentSearches();
       if (!clearResult.success) {
         return clearResult;

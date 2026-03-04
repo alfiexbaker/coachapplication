@@ -6,7 +6,6 @@
 import { useState, useMemo, useCallback } from 'react';
 import { Alert } from 'react-native';
 import { router } from 'expo-router';
-import { Routes } from '@/navigation/routes';
 import * as Haptics from 'expo-haptics';
 import { useScreen } from '@/hooks/use-screen';
 import { bookingService } from '@/services/booking-service';
@@ -20,7 +19,7 @@ import { err, ok, serviceError } from '@/types/result';
 
 const logger = createLogger('CancelBookingScreen');
 
-export type FlowStep = 'details' | 'reschedule_suggest' | 'confirm';
+export type FlowStep = 'details';
 
 export interface CancellationReason {
   key: string;
@@ -238,21 +237,9 @@ export function useBookingCancel(id: string, mode?: string) {
     }
   }, [id, isCoach, reason, filteredReasons, refundCalc, athleteName, notifyWaitlist]);
 
-  const handleRescheduleSuggest = useCallback(() => {
-    setStep('reschedule_suggest');
-  }, []);
-
-  const handleOpenCounterOffer = useCallback(() => {
-    router.push(Routes.bookingsCounter(id));
-  }, [id]);
-
   const handleGoBack = useCallback(() => {
-    if (step === 'reschedule_suggest' || step === 'confirm') {
-      setStep('details');
-    } else {
-      router.back();
-    }
-  }, [step]);
+    router.back();
+  }, []);
 
   const effectivePolicy = policy || schedulingRulesService.getDefaultCancellationPolicy();
   const sortedTiers = useMemo(
@@ -289,8 +276,6 @@ export function useBookingCancel(id: string, mode?: string) {
     filteredReasons,
     canProceed,
     handleCancel,
-    handleRescheduleSuggest,
-    handleOpenCounterOffer,
     handleGoBack,
   };
 }
