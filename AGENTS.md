@@ -2,6 +2,18 @@
 
 These notes cover the entire repository. They are meant to maximize how we (you + Codex) work together, emphasizing psychology and collaboration over strict coding rules.
 
+## Mandatory Startup Protocol (Every Task)
+- Read `clubroom/CODEX.md` first, then `clubroom/docs/SOURCE_OF_TRUTH.md`, then relevant sprint docs.
+- Treat `clubroom/CODEX.md` as the implementation and quality baseline for:
+  - architecture standards
+  - UI interaction standards (including in-app alerts over native popups)
+  - verification gates
+  - git commit discipline
+- If guidance conflicts, resolve in this order:
+  1. User instruction in current thread
+  2. `clubroom/CODEX.md`
+  3. `clubroom/docs/SOURCE_OF_TRUTH.md` and active sprint docs
+
 ## How to get the best outcomes
 - **Anchor to the vision**: Before changing code, reread `docs/SOURCE_OF_TRUTH.md` and sprint plans. Frame every change as an extension of something that already exists—avoid inventing net-new features when you can build on current flows.
 - **Think in spines**: Map work to the four product spines (Community, Booking/Revenue, Development, Trust/Ops) to keep crossover clear and avoid duplicated flows.
