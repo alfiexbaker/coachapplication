@@ -336,7 +336,7 @@ export function useSchedule() {
   const handleSessionPress = useCallback(
     (session: SessionData) => {
       haptic();
-      router.push(Routes.booking(session.id));
+      router.push(Routes.booking(session.id, { returnTo: Routes.SCHEDULE as string }));
     },
     [haptic],
   );

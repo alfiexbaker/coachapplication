@@ -7,6 +7,7 @@ import { HapticTab } from '@/components/haptic-tab';
 import { IconSymbol } from '@/components/ui/icon-symbol';
 import { ErrorBoundary } from '@/components/error-boundary';
 import { RouteAccessGate } from '@/components/auth/route-access-gate';
+import { BookingFlowProvider } from '@/context/booking-flow-context';
 import { Typography, Spacing, Shadows, Radii } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
 import { useAuth, type UserRole } from '@/hooks/use-auth';
@@ -392,38 +393,40 @@ export default function TabLayout() {
 
   return (
     <ErrorBoundary>
-      <RouteAccessGate
-        allowed={!blockedTabSegment}
-        redirectHref={Routes.HOME_INDEX}
-        onBlocked={blockedTabSegment ? handleBlockedTabSegment : undefined}
-      >
-        <Tabs screenOptions={tabBarOptions}>
-          {roleConfig.primary.map(({ name, title, icon, badge }) => (
-            <Tabs.Screen
-              key={name}
-              name={name}
-              listeners={{
-                tabPress: handlePrimaryTabPress(name),
-              }}
-              options={{
-                title,
-                tabBarIcon: ({ color }) => <IconSymbol size={22} name={icon} color={color} />,
-                tabBarBadge: getBadgeCount(badge),
-              }}
-            />
-          ))}
+      <BookingFlowProvider>
+        <RouteAccessGate
+          allowed={!blockedTabSegment}
+          redirectHref={Routes.HOME_INDEX}
+          onBlocked={blockedTabSegment ? handleBlockedTabSegment : undefined}
+        >
+          <Tabs screenOptions={tabBarOptions}>
+            {roleConfig.primary.map(({ name, title, icon, badge }) => (
+              <Tabs.Screen
+                key={name}
+                name={name}
+                listeners={{
+                  tabPress: handlePrimaryTabPress(name),
+                }}
+                options={{
+                  title,
+                  tabBarIcon: ({ color }) => <IconSymbol size={22} name={icon} color={color} />,
+                  tabBarBadge: getBadgeCount(badge),
+                }}
+              />
+            ))}
 
-          {hiddenRoutes.map((route) => (
-            <Tabs.Screen
-              key={route}
-              name={route}
-              options={{
-                href: null,
-              }}
-            />
-          ))}
-        </Tabs>
-      </RouteAccessGate>
+            {hiddenRoutes.map((route) => (
+              <Tabs.Screen
+                key={route}
+                name={route}
+                options={{
+                  href: null,
+                }}
+              />
+            ))}
+          </Tabs>
+        </RouteAccessGate>
+      </BookingFlowProvider>
     </ErrorBoundary>
   );
 }

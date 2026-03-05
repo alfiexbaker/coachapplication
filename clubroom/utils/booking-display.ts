@@ -41,10 +41,9 @@ export function getBookingAthleteName(booking: Booking): string {
 }
 
 export function getBookingClubOwnershipContext(
-  booking: Pick<
-    Booking,
-    'actingAs' | 'clubId' | 'coachId' | 'coachName' | 'ownerCoachId' | 'assigneeCoachId'
-  >,
+  booking: Pick<Booking, 'actingAs' | 'clubId' | 'coachName' | 'ownerCoachId' | 'assigneeCoachId'> & {
+    coachId?: string;
+  },
 ): { clubLabel: string; deliveredBy: string; owner?: string } | null {
   if (booking.actingAs !== 'club') {
     return null;
@@ -67,7 +66,7 @@ export function getBookingStatusLabel(
   options?: { isCoachView?: boolean },
 ): string {
   if (status === 'Needs Completion' && !options?.isCoachView) {
-    return 'Coach Review Pending';
+    return 'Review Pending';
   }
   return status;
 }

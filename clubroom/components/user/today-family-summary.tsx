@@ -39,7 +39,7 @@ export const TodayFamilySummary = memo(function TodayFamilySummary({
   const { colors: palette } = useTheme();
 
   const handleRowPress = useCallback((booking: Booking) => {
-    router.push(Routes.booking(booking.id) as Href);
+    router.push(Routes.booking(booking.id, { returnTo: Routes.HOME as string }) as Href);
   }, []);
 
   if (rows.length === 0) {

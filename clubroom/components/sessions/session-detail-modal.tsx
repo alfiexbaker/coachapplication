@@ -58,9 +58,11 @@ export function SessionDetailModal({
     isFull,
     isRegistered,
     children,
+    bookableChildren,
     hasMultipleKids,
-    selectedChildId,
-    setSelectedChildId,
+    selectedChildIds,
+    toggleSelectedChildId,
+    canAddAnotherChild,
     weeksToBook,
     setWeeksToBook,
     sessionAwards,
@@ -266,11 +268,12 @@ export function SessionDetailModal({
           {!isCoach && (
             <SessionBookingOptions
               isRegistered={isRegistered}
+              canAddAnotherChild={canAddAnotherChild}
               isRecurring={offering.isRecurring ?? false}
               hasMultipleKids={hasMultipleKids}
-              childOptions={children}
-              selectedChildId={selectedChildId}
-              onSelectChild={setSelectedChildId}
+              childOptions={bookableChildren}
+              selectedChildIds={selectedChildIds}
+              onToggleChild={toggleSelectedChildId}
               weeksToBook={weeksToBook}
               onSetWeeks={setWeeksToBook}
               onCancelBooking={handleCancelBooking}
@@ -279,7 +282,7 @@ export function SessionDetailModal({
         </ScrollView>
 
         {/* Continue Booking footer */}
-        {!isCoach && !isRegistered && (
+        {!isCoach && (!isRegistered || canAddAnotherChild) && (
           <View
             style={[styles.footer, { borderTopColor: palette.border, ...Shadows[scheme].card }]}
           >
@@ -292,7 +295,15 @@ export function SessionDetailModal({
               ]}
             >
               <ThemedText style={[styles.bookButtonText, { color: palette.onPrimary }]}>
-                {isFull ? 'Session Full' : 'Continue Booking'}
+                {isFull
+                  ? 'Session Full'
+                  : isRegistered && canAddAnotherChild
+                    ? selectedChildIds.length > 1
+                      ? `Add ${selectedChildIds.length} children`
+                      : 'Add another child'
+                    : selectedChildIds.length > 1
+                      ? `Continue (${selectedChildIds.length} children)`
+                      : 'Continue Booking'}
               </ThemedText>
             </Clickable>
           </View>

@@ -27,6 +27,7 @@ import {
 } from '@/utils/booking-draft-prefill';
 import { useChildContext } from '@/hooks/use-child-context';
 import { useAuth } from '@/hooks/use-auth';
+import { hasAccountChildren } from '@/utils/booking-self-capability';
 
 function formatOfferingCategory(offering: SessionOffering): string {
   if (offering.sessionType === '1on1') {
@@ -115,6 +116,10 @@ export default function SessionTypeScreen() {
   const { children } = useChildContext();
   const { currentUser } = useAuth();
   const { draft, updateDraft } = useBookingFlow();
+  const accountHasChildren = hasAccountChildren({
+    contextChildCount: children.length,
+    accountChildRefCount: currentUser?.children?.length ?? 0,
+  });
   const preselectedChild = useMemo(() => {
     if (!childId) return null;
     if (currentUser?.id && childId === currentUser.id) {
@@ -268,12 +273,12 @@ export default function SessionTypeScreen() {
       source,
       role: currentUser?.role,
       currentUserId: currentUser?.id,
-      hasChildren: currentUser?.hasChildren,
+      hasChildren: accountHasChildren,
       actingAs: draft.actingAs,
       draft,
     });
     router.back();
-  }, [source, currentUser?.role, currentUser?.id, currentUser?.hasChildren, draft]);
+  }, [accountHasChildren, source, currentUser?.role, currentUser?.id, draft]);
 
   const handleContinue = useCallback(() => {
     if (!coachId) {
@@ -284,7 +289,7 @@ export default function SessionTypeScreen() {
         source,
         role: currentUser?.role,
         currentUserId: currentUser?.id,
-        hasChildren: currentUser?.hasChildren,
+        hasChildren: accountHasChildren,
         actingAs: draft.actingAs,
         draft,
       });
@@ -299,7 +304,7 @@ export default function SessionTypeScreen() {
         source,
         role: currentUser?.role,
         currentUserId: currentUser?.id,
-        hasChildren: currentUser?.hasChildren,
+        hasChildren: accountHasChildren,
         actingAs: draft.actingAs,
         draft,
       });
@@ -312,7 +317,7 @@ export default function SessionTypeScreen() {
       source,
       role: currentUser?.role,
       currentUserId: currentUser?.id,
-      hasChildren: currentUser?.hasChildren,
+      hasChildren: accountHasChildren,
       actingAs: draft.actingAs,
       draft,
     });
@@ -341,7 +346,7 @@ export default function SessionTypeScreen() {
     source,
     currentUser?.role,
     currentUser?.id,
-    currentUser?.hasChildren,
+    accountHasChildren,
   ]);
 
   const canContinue = Boolean(coachId && draft.sessionOfferingId);

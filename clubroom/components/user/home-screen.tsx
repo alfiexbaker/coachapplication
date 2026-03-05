@@ -39,19 +39,29 @@ export function UserHomeScreen() {
     stats,
     streakInfo,
     selectedChild,
-    handleSelectNextChild,
+    isViewingSelfProfile,
+    canSelfSwitchProfile,
+    handleToggleSelfChildProfile,
     onRefresh,
     upcomingBookings,
-    isParent,
+    hasChildProfiles,
     contextChildren,
   } = useHomeScreen();
 
   if (!currentUser) return null;
 
   const nextSession = upcomingBookings[0];
-  const isNewParent = isParent && contextChildren.length === 0;
-  const showChildCard = isParent && Boolean(selectedChild);
-  const canSwitchChild = contextChildren.length > 1;
+  const hasChildReferences = (currentUser.children?.length ?? 0) > 0;
+  const isNewParent = hasChildReferences && !hasChildProfiles && contextChildren.length === 0;
+  const showChildCard = Boolean(selectedChild);
+  const profileName = isViewingSelfProfile
+    ? currentUser.name || currentUser.fullName || 'You'
+    : selectedChild?.name || 'Child';
+  const profileMeta = isViewingSelfProfile
+    ? 'Your profile'
+    : selectedChild?.age != null
+      ? `Age ${selectedChild.age}`
+      : 'Child profile';
 
   return (
     <SafeAreaView
@@ -85,40 +95,34 @@ export function UserHomeScreen() {
           <SurfaceCard style={[styles.singleChildCard, { borderColor: palette.border }]}>
             <Column gap="xs">
               <Row align="center" gap="sm" style={styles.childIdentityRow}>
-                <Avatar uri={selectedChild.avatarUrl} name={selectedChild.name} size="md" />
+                <Avatar
+                  uri={isViewingSelfProfile ? undefined : selectedChild.avatarUrl}
+                  name={profileName}
+                  size="md"
+                />
                 <Column flex gap="micro" style={styles.childIdentityCopy}>
                   <ThemedText type="defaultSemiBold" numberOfLines={1}>
-                    {selectedChild.name}
+                    {profileName}
                   </ThemedText>
                   <ThemedText style={[styles.singleChildMeta, { color: palette.muted }]} numberOfLines={1}>
-                    {selectedChild.age != null ? `Age ${selectedChild.age}` : 'Child profile'}
+                    {profileMeta}
                   </ThemedText>
                 </Column>
               </Row>
-              <Row align="center" gap="xs" style={styles.childActionsRow}>
-                {canSwitchChild && (
-                  <Clickable
-                    onPress={handleSelectNextChild}
-                    accessibilityLabel="Switch selected child"
-                    style={[styles.addChildMiniButton, { backgroundColor: withAlpha(palette.tint, 0.08) }]}
-                  >
-                    <Ionicons name="swap-horizontal-outline" size={16} color={palette.tint} />
-                    <ThemedText style={[styles.addChildMiniLabel, { color: palette.tint }]}>
-                      Switch
-                    </ThemedText>
-                  </Clickable>
-                )}
+              {canSelfSwitchProfile && (
                 <Clickable
-                  onPress={() => router.push(Routes.MODAL_ADD_CHILD)}
-                  accessibilityLabel="Add another child"
+                  onPress={handleToggleSelfChildProfile}
+                  accessibilityLabel="Switch between your profile and active child"
                   style={[styles.addChildMiniButton, { backgroundColor: withAlpha(palette.tint, 0.08) }]}
                 >
-                  <Ionicons name="person-add-outline" size={16} color={palette.tint} />
+                  <Ionicons name="swap-horizontal-outline" size={16} color={palette.tint} />
                   <ThemedText style={[styles.addChildMiniLabel, { color: palette.tint }]}>
-                    Add
+                    {isViewingSelfProfile
+                      ? `Switch to ${selectedChild.name}`
+                      : `Switch to ${(currentUser.name || currentUser.fullName || 'You').split(' ')[0]}`}
                   </ThemedText>
                 </Clickable>
-              </Row>
+              )}
             </Column>
           </SurfaceCard>
         ) : null}
@@ -233,9 +237,6 @@ const styles = StyleSheet.create({
   },
   childIdentityCopy: {
     minWidth: 0,
-  },
-  childActionsRow: {
-    width: '100%',
   },
   singleChildMeta: {
     ...Typography.caption,

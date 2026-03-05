@@ -353,18 +353,6 @@ export function useBookingsDiscover(): UseBookingsDiscoverResult {
 
   const handleCoachPress = useCallback((coachId: string) => {
     logger.press('DiscoverCoachCard', { coachId });
-    const preferredOffering = [...thisWeekOfferings, ...openSessions]
-      .filter((offering) => offering.coachId === coachId)
-      .sort((a, b) => {
-        const aTime = new Date(a.scheduledAt).getTime();
-        const bTime = new Date(b.scheduledAt).getTime();
-        if (Number.isFinite(aTime) && Number.isFinite(bTime)) {
-          return aTime - bTime;
-        }
-        if (Number.isFinite(aTime)) return -1;
-        if (Number.isFinite(bTime)) return 1;
-        return a.id.localeCompare(b.id);
-      })[0];
     const prefillChild = (() => {
       if (activeChildId) {
         const activeChild = contextChildren.find((child) => child.id === activeChildId);
@@ -384,25 +372,39 @@ export function useBookingsDiscover(): UseBookingsDiscoverResult {
       return null;
     })();
 
-    if (preferredOffering) {
-      updateDraft(
-        buildBookingDraftPatchFromOffering({
-          coachId,
-          offering: preferredOffering,
-          child: prefillChild,
-          entrySource: 'discover_feed',
-        }),
-      );
-    }
+    updateDraft({
+      coachId,
+      entrySource: 'discover_feed_coach',
+      childId: prefillChild?.id,
+      athleteName: prefillChild?.name,
+      sessionOfferingId: undefined,
+      sessionSource: undefined,
+      sessionSourceEntityId: undefined,
+      sessionTemplateId: undefined,
+      date: undefined,
+      slot: undefined,
+      duration: undefined,
+      sessionType: undefined,
+      sessionTypeLabel: undefined,
+      locationOption: undefined,
+      locationText: undefined,
+      price: undefined,
+      participants: undefined,
+    });
 
+    logger.debug('Discover coach routing decision', {
+      coachId,
+      source: 'discover_feed_coach',
+      target: 'session_list_first',
+      hasActiveChildId: Boolean(activeChildId),
+    });
     router.push(
       Routes.bookCoach(coachId, {
-        offeringId: preferredOffering?.id,
-        source: 'discover_feed',
+        source: 'discover_feed_coach',
         childId: activeChildId || undefined,
       }),
     );
-  }, [activeChildId, contextChildren, currentUser?.fullName, currentUser?.id, currentUser?.name, openSessions, thisWeekOfferings, updateDraft]);
+  }, [activeChildId, contextChildren, currentUser?.fullName, currentUser?.id, currentUser?.name, updateDraft]);
 
   const handleOfferingPress = useCallback((offering: SessionOffering) => {
     const normalizedOffering = normalizeSessionOfferingSource(offering);

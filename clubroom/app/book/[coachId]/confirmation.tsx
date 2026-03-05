@@ -15,6 +15,7 @@ import { useScreen } from '@/hooks/use-screen';
 import { ok } from '@/types/result';
 import { useBookingFlow } from '@/context/booking-flow-context';
 import { useAuth } from '@/hooks/use-auth';
+import { useChildContext } from '@/hooks/use-child-context';
 import { CancellationPolicyCard } from '@/components/booking/cancellation-policy-card';
 import { bookingService } from '@/services/booking-service';
 import { bookingStepAnalyticsService } from '@/services/booking/booking-step-analytics-service';
@@ -25,6 +26,7 @@ import { academyService } from '@/services/academy-service';
 import { userService } from '@/services/user-service';
 import { createLogger } from '@/utils/logger';
 import { CelebrationOverlay, CelebrationOverlayRef } from '@/components/celebration-overlay';
+import { hasAccountChildren } from '@/utils/booking-self-capability';
 
 const logger = createLogger('ConfirmationScreen');
 
@@ -33,6 +35,11 @@ export default function ConfirmationScreen() {
   const { colors: palette } = useScreen<null>({ load: async () => ok(null), isEmpty: () => false });
   const { draft, reset } = useBookingFlow();
   const { currentUser } = useAuth();
+  const { children } = useChildContext();
+  const accountHasChildren = hasAccountChildren({
+    contextChildCount: children.length,
+    accountChildRefCount: currentUser?.children?.length ?? 0,
+  });
 
   const [isCreating, setIsCreating] = useState(false);
   const [bookingId, setBookingId] = useState<string | null>(null);
@@ -53,14 +60,14 @@ export default function ConfirmationScreen() {
       failure_code: failureCode,
       role: currentUser?.role,
       currentUserId: currentUser?.id,
-      hasChildren: currentUser?.hasChildren,
+      hasChildren: accountHasChildren,
       actingAs: draft.actingAs,
       draft,
     });
   };
   const handleOpenBooking = (id: string) => {
     reset();
-    router.replace(Routes.booking(id));
+    router.replace(Routes.booking(id, { returnTo: Routes.BOOKINGS as string }));
   };
   const handleMessageCoach = () => {
     if (!resolvedCoachId) return;
@@ -162,9 +169,25 @@ export default function ConfirmationScreen() {
 
     try {
       const resolvedCoach = coachId || draft.coachId;
-      const resolvedAthleteId = draft.childId || currentUser?.id;
-      const resolvedAthleteName = draft.athleteName || currentUser?.name;
       const coachName = draft.coachName || resolvedCoachName;
+      const selectedAthleteIds = (
+        draft.childIds?.length
+          ? draft.childIds
+          : draft.childId
+            ? [draft.childId]
+            : currentUser?.id
+              ? [currentUser.id]
+              : []
+      ).filter((id, index, source) => Boolean(id) && source.indexOf(id) === index);
+      const selectedAthleteNames = selectedAthleteIds.map((athleteId) => {
+        if (currentUser?.id && athleteId === currentUser.id) {
+          return currentUser.name || currentUser.fullName || 'Athlete';
+        }
+        const child = children.find(
+          (candidate) => candidate.id === athleteId || candidate.referenceId === athleteId,
+        );
+        return child?.name || draft.athleteName || 'Athlete';
+      });
 
       if (!resolvedCoach || !coachName) {
         trackConfirmStep('validation_fail', 'missing_coach_context');
@@ -172,7 +195,7 @@ export default function ConfirmationScreen() {
         setIsCreating(false);
         return;
       }
-      if (!resolvedAthleteId || !resolvedAthleteName) {
+      if (selectedAthleteIds.length === 0 || selectedAthleteNames.length === 0) {
         trackConfirmStep('validation_fail', 'missing_booking_target');
         setError('No booking target selected. Please go back and choose who this session is for.');
         setIsCreating(false);
@@ -184,8 +207,7 @@ export default function ConfirmationScreen() {
         setIsCreating(false);
         return;
       }
-      const hasChildren = Boolean(currentUser.hasChildren || (currentUser.children?.length ?? 0) > 0);
-      if (hasChildren && resolvedAthleteId === currentUser.id) {
+      if (accountHasChildren && selectedAthleteIds.includes(currentUser.id)) {
         const canBookSelf = await bookingSelfSettingService.isEnabled(currentUser.id);
         if (!canBookSelf) {
           trackConfirmStep('validation_fail', 'self_booking_disabled');
@@ -208,8 +230,8 @@ export default function ConfirmationScreen() {
       const result = await bookingService.createBooking({
         coachId: resolvedCoach,
         coachName,
-        athleteIds: [resolvedAthleteId],
-        athleteNames: [resolvedAthleteName],
+        athleteIds: selectedAthleteIds,
+        athleteNames: selectedAthleteNames,
         bookedById: currentUser.id,
         bookedByName: currentUser.name || currentUser.fullName || 'User',
         scheduledAt: `${draft.date}T${draft.slot}:00`,
@@ -217,8 +239,9 @@ export default function ConfirmationScreen() {
         location: draft.locationText || draft.locationOption || '',
         service: serviceLabel,
         serviceType,
+        sessionOfferingId: draft.sessionOfferingId,
         sessionSource: draft.sessionSource,
-        sessionSourceEntityId: draft.sessionSourceEntityId,
+        sessionSourceEntityId: draft.sessionSourceEntityId || draft.sessionOfferingId,
         clubId: draft.clubId,
         actingAs: draft.actingAs,
         ownerCoachId: draft.ownerCoachId,

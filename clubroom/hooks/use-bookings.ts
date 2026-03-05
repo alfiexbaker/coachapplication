@@ -111,6 +111,9 @@ interface BookingsScreenData {
   pendingInvitesList: SessionInvite[];
 }
 
+// Keep the most recent bookings payload so tab remounts do not flash loading.
+let lastBookingsSnapshot: BookingsScreenData | null = null;
+
 export function useBookings(): UseBookingsResult {
   const { currentUser } = useAuth();
   const { children: contextChildren } = useChildContext();
@@ -399,11 +402,18 @@ export function useBookings(): UseBookingsResult {
     refetchOnFocus: true,
   });
 
-  const sessionBookings = data?.sessionBookings;
-  const sessionOfferings = data?.sessionOfferings;
-  const pendingInvitesList = data?.pendingInvitesList ?? [];
+  useEffect(() => {
+    if (data) {
+      lastBookingsSnapshot = data;
+    }
+  }, [data]);
+
+  const resolvedData = data ?? lastBookingsSnapshot;
+  const sessionBookings = resolvedData?.sessionBookings;
+  const sessionOfferings = resolvedData?.sessionOfferings;
+  const pendingInvitesList = resolvedData?.pendingInvitesList ?? [];
   const pendingInvites = pendingInvitesList.length;
-  const loading = status === 'loading' && data === null;
+  const loading = status === 'loading' && resolvedData === null;
   const error =
     status === 'error'
       ? (screenError?.message ?? 'Failed to load bookings. Pull down to refresh.')

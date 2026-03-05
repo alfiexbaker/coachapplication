@@ -23,6 +23,11 @@ import {
   BOOKING_LOCATION_OPTION_LIST,
   BOOKING_LOCATION_OPTIONS,
 } from '@/constants/booking-flow';
+import {
+  canBookForSelf,
+  hasAccountChildren,
+  resolveAccountChildCount,
+} from '@/utils/booking-self-capability';
 
 export default function DetailsScreen() {
   const { coachId } = useLocalSearchParams<{ coachId: string }>();
@@ -36,11 +41,23 @@ export default function DetailsScreen() {
     draft.locationOption === BOOKING_LOCATION_OPTIONS.COACH_PRESET && hasPresetLocation;
   const lockPresetLocation = Boolean(draft.sessionOfferingId) && hasPresetLocation;
 
-  const hasChildTargets = children.length > 0;
-  const canSelectSelf = !hasChildTargets || allowBookSelf;
+  const accountChildCount = resolveAccountChildCount({
+    contextChildCount: children.length,
+    accountChildRefCount: currentUser?.children?.length ?? 0,
+  });
+  const accountHasChildren = hasAccountChildren({
+    contextChildCount: children.length,
+    accountChildRefCount: currentUser?.children?.length ?? 0,
+  });
+  const hasSelectableChildren = children.length > 0;
+  const canSelectSelf = canBookForSelf({
+    contextChildCount: hasSelectableChildren ? children.length : 0,
+    accountChildRefCount: hasSelectableChildren ? (currentUser?.children?.length ?? 0) : 0,
+    allowBookSelf: hasSelectableChildren ? allowBookSelf : true,
+  });
 
   useEffect(() => {
-    if (!currentUser?.id || !hasChildTargets) {
+    if (!currentUser?.id || !accountHasChildren) {
       setAllowBookSelf(false);
       return;
     }
@@ -53,7 +70,7 @@ export default function DetailsScreen() {
     return () => {
       cancelled = true;
     };
-  }, [currentUser?.id, hasChildTargets]);
+  }, [accountHasChildren, currentUser?.id]);
 
   useEffect(() => {
     if ((!draft.locationOption && draft.locationText?.trim()) || lockPresetLocation) {
@@ -158,12 +175,12 @@ export default function DetailsScreen() {
       failure_code: 'back_navigation',
       role: currentUser?.role,
       currentUserId: currentUser?.id,
-      hasChildren: currentUser?.hasChildren,
+      hasChildren: accountHasChildren,
       actingAs: draft.actingAs,
       draft,
     });
     router.back();
-  }, [currentUser?.role, currentUser?.id, currentUser?.hasChildren, draft]);
+  }, [accountHasChildren, currentUser?.role, currentUser?.id, draft]);
 
   const handleContinue = useCallback(() => {
     if (!coachId) {
@@ -173,7 +190,7 @@ export default function DetailsScreen() {
         failure_code: 'missing_coach_id',
         role: currentUser?.role,
         currentUserId: currentUser?.id,
-        hasChildren: currentUser?.hasChildren,
+        hasChildren: accountHasChildren,
         actingAs: draft.actingAs,
         draft,
       });
@@ -187,7 +204,7 @@ export default function DetailsScreen() {
         failure_code: 'missing_booking_target',
         role: currentUser?.role,
         currentUserId: currentUser?.id,
-        hasChildren: currentUser?.hasChildren,
+        hasChildren: accountHasChildren,
         actingAs: draft.actingAs,
         draft,
       });
@@ -201,7 +218,7 @@ export default function DetailsScreen() {
         failure_code: 'self_booking_disabled',
         role: currentUser?.role,
         currentUserId: currentUser?.id,
-        hasChildren: currentUser?.hasChildren,
+        hasChildren: accountHasChildren,
         actingAs: draft.actingAs,
         draft,
       });
@@ -213,12 +230,12 @@ export default function DetailsScreen() {
       status: 'success',
       role: currentUser?.role,
       currentUserId: currentUser?.id,
-      hasChildren: currentUser?.hasChildren,
+      hasChildren: accountHasChildren,
       actingAs: draft.actingAs,
       draft,
     });
     router.push(Routes.bookReview(coachId));
-  }, [canSelectSelf, coachId, currentUser, draft, router]);
+  }, [accountHasChildren, canSelectSelf, coachId, currentUser, draft, router]);
 
   const canContinue =
     Boolean(draft.childId) && (canSelectSelf || draft.childId !== currentUser?.id);
@@ -336,7 +353,7 @@ export default function DetailsScreen() {
             autoSelected={!isMultiChild && bookingTargets.length === 1}
           />
         )}
-        {hasChildTargets && !allowBookSelf && (
+        {hasSelectableChildren && accountChildCount > 0 && !allowBookSelf && (
           <View
             style={[
               styles.settingHintCard,

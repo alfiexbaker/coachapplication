@@ -339,4 +339,28 @@ Read docs/newsprints/results-program-ui/sprint4.md and implement every fix descr
 
 ---
 
-## Total: 41 sprints across 16 categories (~410 items)
+## 17. Architecture Hardening (4 sprints)
+
+### Sprint 1 — Release Gates + Baseline Lock
+```
+Read docs/newsprints/architecture-hardening/sprint1-release-gates-and-baseline.md and implement every fix described in it. Follow CLAUDE.md conventions. After ALL fixes, run npx tsc -p tsconfig.test.json. Then run npm run test:safety and npm run gate:release-core. Then spawn a review agent to re-read every file touched and verify: no any types, no hardcoded colors/routes, no raw View+flexDirection, no Pressable, useCallback on handlers, memo on renderItem, GBP not USD, Result uses .success, showToast(msg,tone), and architecture budget check has no regression. Fix anything flagged. Run all gates again. Update docs/newsprints/DONE.md by adding a new row for Architecture Hardening Sprint 1.
+```
+
+### Sprint 2 — Layering + Decoupling Core Flows
+```
+Read docs/newsprints/architecture-hardening/sprint2-layering-and-decoupling-core-flows.md and implement every fix described in it. Follow CLAUDE.md conventions. After ALL fixes, run npm run gate:release-core and rerun architecture audit. Then spawn a review agent to re-read every file touched and verify: no any types, no hardcoded colors/routes, no raw View+flexDirection, no Pressable, useCallback on handlers, memo on renderItem, GBP not USD, Result uses .success, showToast(msg,tone), and no new component->service imports outside the exception register. Fix anything flagged. Run gates again. Update docs/newsprints/DONE.md by adding a new row for Architecture Hardening Sprint 2.
+```
+
+### Sprint 3 — State Contracts + Platform Integrity
+```
+Read docs/newsprints/architecture-hardening/sprint3-state-contracts-and-platform-integrity.md and implement every fix described in it. Follow CLAUDE.md conventions. After ALL fixes, run npm run gate:release-core plus targeted booking/invite/notification tests. Then spawn a review agent to re-read every file touched and verify: no any types, no hardcoded colors/routes, no raw View+flexDirection, no Pressable, useCallback on handlers, memo on renderItem, GBP not USD, Result uses .success, showToast(msg,tone), notification recipient contracts are enforced, and booking analytics contract fields are complete. Fix anything flagged. Run gates again. Update docs/newsprints/DONE.md by adding a new row for Architecture Hardening Sprint 3.
+```
+
+### Sprint 4 — Google-Grade Readiness + Operability
+```
+Read docs/newsprints/architecture-hardening/sprint4-google-grade-readiness-and-operability.md and implement every fix described in it. Follow CLAUDE.md conventions. After ALL fixes, run npm run gate:release-core, architecture audit, and reliability/ops checks defined in the sprint. Then spawn a review agent to re-read every file touched and verify: no any types, no hardcoded colors/routes, no raw View+flexDirection, no Pressable, useCallback on handlers, memo on renderItem, GBP not USD, Result uses .success, showToast(msg,tone), dependency rules are CI-enforced, idempotency/recovery tests pass, and scorecard evidence is complete. Fix anything flagged. Run gates again. Update docs/newsprints/DONE.md by adding a new row for Architecture Hardening Sprint 4.
+```
+
+---
+
+## Total: 45 sprints across 17 categories (~450 items)

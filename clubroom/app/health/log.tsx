@@ -5,7 +5,7 @@
  * Guides user through body part selection, severity, and details.
  */
 
-import { useState, useCallback, useMemo, useEffect } from 'react';
+import { useState, useCallback, useMemo } from 'react';
 import { StyleSheet, KeyboardAvoidingView, Platform, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router, useLocalSearchParams } from 'expo-router';
@@ -37,7 +37,7 @@ export default function LogInjuryScreen() {
   const { colors: palette } = useScreen<null>({ load: async () => ok(null), isEmpty: () => false });
   const { currentUser } = useAuth();
   const { childId: childIdParam } = useLocalSearchParams<{ childId?: string | string[] }>();
-  const { children, activeChildId, setActiveChildId, isParent } = useChildContext();
+  const { children, profileMode, profileSubjectId } = useChildContext();
 
   const [loading, setLoading] = useState(false);
 
@@ -46,56 +46,41 @@ export default function LogInjuryScreen() {
     [childIdParam],
   );
 
-  const selectedChildId = useMemo(() => {
-    if (!isParent || children.length === 0) return null;
+  const selectedSubjectId = useMemo(() => {
     if (requestedChildId && children.some((child) => child.id === requestedChildId)) {
       return requestedChildId;
     }
-    if (activeChildId && children.some((child) => child.id === activeChildId)) {
-      return activeChildId;
+    if (profileMode === 'self' && currentUser?.id) {
+      return currentUser.id;
     }
-    return children[0]?.id ?? null;
-  }, [activeChildId, children, isParent, requestedChildId]);
+    if (
+      profileMode === 'child' &&
+      profileSubjectId &&
+      children.some((child) => child.id === profileSubjectId)
+    ) {
+      return profileSubjectId;
+    }
+    if (profileSubjectId && children.some((child) => child.id === profileSubjectId)) {
+      return profileSubjectId;
+    }
+    if (children.length > 0) return children[0]?.id ?? null;
+    return currentUser?.id ?? null;
+  }, [children, currentUser?.id, profileMode, profileSubjectId, requestedChildId]);
+
+  const selectedChildId = useMemo(
+    () => (selectedSubjectId && children.some((child) => child.id === selectedSubjectId) ? selectedSubjectId : null),
+    [children, selectedSubjectId],
+  );
 
   const selectedChild = useMemo(
     () => children.find((child) => child.id === selectedChildId) ?? null,
     [children, selectedChildId],
   );
-
-  const userId = selectedChildId ?? currentUser?.id ?? null;
-  const userName = selectedChild?.name ?? currentUser?.fullName ?? currentUser?.name ?? 'User';
-  const kidOptions = useMemo(
-    () =>
-      children.map((child) => ({
-        id: child.id,
-        name: child.name,
-        initials: child.initials,
-        colorCode: child.colorCode,
-      })),
-    [children],
-  );
-
-  useEffect(() => {
-    if (!selectedChildId || selectedChildId === activeChildId) return;
-    void setActiveChildId(selectedChildId);
-  }, [activeChildId, selectedChildId, setActiveChildId]);
-
-  const handleSelectChild = useCallback(
-    (childId: string) => {
-      void setActiveChildId(childId);
-    },
-    [setActiveChildId],
-  );
-
-  const handleSelectNextChild = useCallback(() => {
-    if (kidOptions.length <= 1) return;
-    const currentIndex = kidOptions.findIndex((child) => child.id === selectedChildId);
-    const nextIndex = currentIndex >= 0 ? (currentIndex + 1) % kidOptions.length : 0;
-    const nextChildId = kidOptions[nextIndex]?.id ?? kidOptions[0]?.id;
-    if (!nextChildId) return;
-    handleSelectChild(nextChildId);
-  }, [handleSelectChild, kidOptions, selectedChildId]);
-
+  const selectedSubjectKind: 'self' | 'child' = selectedChildId ? 'child' : 'self';
+  const selectedSubjectName =
+    selectedChild?.name ?? currentUser?.fullName ?? currentUser?.name ?? 'User';
+  const userId = selectedSubjectId;
+  const userName = selectedSubjectName;
   const handleEditSelectedChild = useCallback(() => {
     if (!selectedChildId) return;
     router.push(Routes.modalEditChildProfile(selectedChildId));
@@ -149,7 +134,7 @@ export default function LogInjuryScreen() {
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         keyboardVerticalOffset={100}
       >
-        {Boolean(selectedChildId) && (
+        {Boolean(selectedSubjectId) && (
           <View
             style={[
               styles.kidCard,
@@ -159,13 +144,15 @@ export default function LogInjuryScreen() {
             <Row align="center" justify="space-between">
               <Row align="center" gap="xs">
                 <Ionicons name="person-circle-outline" size={18} color={palette.tint} />
-                <ThemedText style={[styles.kidLabel, { color: palette.muted }]}>Kid</ThemedText>
-                <ThemedText style={styles.kidName}>{selectedChild?.name ?? 'Selected'}</ThemedText>
+                {selectedSubjectKind === 'child' ? (
+                  <ThemedText style={[styles.kidLabel, { color: palette.muted }]}>Kid</ThemedText>
+                ) : null}
+                <ThemedText style={styles.kidName}>{selectedSubjectName}</ThemedText>
               </Row>
-              <Row align="center" gap="xs">
-                {kidOptions.length > 1 && (
+              {selectedSubjectKind === 'child' ? (
+                <Row align="center" gap="xs">
                   <Clickable
-                    onPress={handleSelectNextChild}
+                    onPress={handleEditSelectedChild}
                     style={[
                       styles.editKidButton,
                       {
@@ -173,31 +160,15 @@ export default function LogInjuryScreen() {
                         backgroundColor: withAlpha(palette.tint, 0.08),
                       },
                     ]}
-                    accessibilityLabel="Switch selected kid"
+                    accessibilityLabel="Edit selected kid profile"
                   >
                     <Row align="center" gap="xxs">
-                      <Ionicons name="swap-horizontal-outline" size={14} color={palette.tint} />
-                      <ThemedText style={[styles.editKidText, { color: palette.tint }]}>Switch</ThemedText>
+                      <Ionicons name="create-outline" size={14} color={palette.tint} />
+                      <ThemedText style={[styles.editKidText, { color: palette.tint }]}>Edit</ThemedText>
                     </Row>
                   </Clickable>
-                )}
-                <Clickable
-                  onPress={handleEditSelectedChild}
-                  style={[
-                    styles.editKidButton,
-                    {
-                      borderColor: palette.border,
-                      backgroundColor: withAlpha(palette.tint, 0.08),
-                    },
-                  ]}
-                  accessibilityLabel="Edit selected kid profile"
-                >
-                  <Row align="center" gap="xxs">
-                    <Ionicons name="create-outline" size={14} color={palette.tint} />
-                    <ThemedText style={[styles.editKidText, { color: palette.tint }]}>Edit</ThemedText>
-                  </Row>
-                </Clickable>
-              </Row>
+                </Row>
+              ) : null}
             </Row>
           </View>
         )}

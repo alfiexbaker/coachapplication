@@ -232,6 +232,8 @@ export function ChildProvider({ children: reactChildren }: ChildProviderProps) {
   const { currentUser } = useAuth();
   const [childInfos, setChildInfos] = useState<ChildInfo[]>([]);
   const [activeChildId, setActiveChildIdState] = useState<string | null>(null);
+  const [profileModeState, setProfileModeState] = useState<'self' | 'child'>('child');
+  const [profileChildIdState, setProfileChildIdState] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const mountedRef = useRef(true);
 
@@ -299,6 +301,17 @@ export function ChildProvider({ children: reactChildren }: ChildProviderProps) {
     };
   }, [loadChildren]);
 
+  useEffect(() => {
+    if (!userId) {
+      setProfileModeState('child');
+      setProfileChildIdState(null);
+      return;
+    }
+    // App-session scoped profile mode should reset when account changes.
+    setProfileModeState('child');
+    setProfileChildIdState(null);
+  }, [userId]);
+
   // Subscribe to profile changes (create/update/delete)
   useEffect(() => {
     const unsub = onTyped(ServiceEvents.CHILD_PROFILES_UPDATED, () => {
@@ -322,6 +335,10 @@ export function ChildProvider({ children: reactChildren }: ChildProviderProps) {
     async (childId: string | null) => {
       // Optimistic update
       setActiveChildIdState(childId);
+      if (childId) {
+        setProfileModeState('child');
+        setProfileChildIdState(childId);
+      }
 
       const childInfo = childId
         ? childInfos.find((c) => c.id === childId)
@@ -362,6 +379,14 @@ export function ChildProvider({ children: reactChildren }: ChildProviderProps) {
     [childByRefIdMap],
   );
 
+  const resolveValidChildId = useCallback(
+    (candidate: string | null | undefined): string | null => {
+      if (!candidate) return null;
+      return childByIdMap.has(candidate) ? candidate : null;
+    },
+    [childByIdMap],
+  );
+
   const familyAthleteIds = useMemo(
     () => new Set(childInfos.map((c) => c.referenceId)),
     [childInfos],
@@ -374,6 +399,169 @@ export function ChildProvider({ children: reactChildren }: ChildProviderProps) {
 
   const isMultiChild = childInfos.length >= 2;
 
+  const profileResolution = useMemo(() => {
+    const validProfileChildId = resolveValidChildId(profileChildIdState);
+    const validActiveChildId = resolveValidChildId(activeChildId);
+
+    if (profileModeState === 'self') {
+      if (userId) {
+        return {
+          mode: 'self' as const,
+          subjectId: userId,
+          fallbackReason: null as string | null,
+        };
+      }
+
+      const fallbackChildId =
+        validProfileChildId ?? validActiveChildId ?? childInfos[0]?.id ?? null;
+      if (fallbackChildId) {
+        return {
+          mode: 'child' as const,
+          subjectId: fallbackChildId,
+          fallbackReason: 'missing_user_fallback_child',
+        };
+      }
+
+      return {
+        mode: 'self' as const,
+        subjectId: null,
+        fallbackReason: 'missing_user_context',
+      };
+    }
+
+    const childId = validProfileChildId ?? validActiveChildId ?? childInfos[0]?.id ?? null;
+    if (childId) {
+      return {
+        mode: 'child' as const,
+        subjectId: childId,
+        fallbackReason: validProfileChildId ? null : 'invalid_child_scope_fallback',
+      };
+    }
+
+    if (userId) {
+      return {
+        mode: 'self' as const,
+        subjectId: userId,
+        fallbackReason: 'no_children_fallback_self',
+      };
+    }
+
+    return {
+      mode: 'child' as const,
+      subjectId: null,
+      fallbackReason: 'missing_user_context',
+    };
+  }, [activeChildId, childInfos, profileChildIdState, profileModeState, resolveValidChildId, userId]);
+
+  const setProfileScope = useCallback(
+    async (next: { mode: 'self' | 'child'; childId?: string | null }) => {
+      const previousMode = profileModeState;
+      let nextMode: 'self' | 'child' = next.mode;
+      let subjectId: string | null = null;
+      let fallbackReason: string | null = null;
+
+      if (next.mode === 'self') {
+        if (userId) {
+          setProfileModeState('self');
+          if (next.childId) {
+            setProfileChildIdState(next.childId);
+          }
+          subjectId = userId;
+        } else {
+          const fallbackChildId =
+            resolveValidChildId(next.childId) ??
+            resolveValidChildId(profileChildIdState) ??
+            resolveValidChildId(activeChildId) ??
+            childInfos[0]?.id ??
+            null;
+          if (fallbackChildId) {
+            nextMode = 'child';
+            subjectId = fallbackChildId;
+            fallbackReason = 'missing_user_fallback_child';
+            setProfileModeState('child');
+            setProfileChildIdState(fallbackChildId);
+            if (activeChildId !== fallbackChildId) {
+              await setActiveChildId(fallbackChildId);
+            }
+          } else {
+            setProfileModeState('self');
+            setProfileChildIdState(null);
+            subjectId = null;
+            fallbackReason = 'missing_user_context';
+          }
+        }
+      } else {
+        const resolvedChildId =
+          resolveValidChildId(next.childId) ??
+          resolveValidChildId(profileChildIdState) ??
+          resolveValidChildId(activeChildId) ??
+          childInfos[0]?.id ??
+          null;
+
+        if (resolvedChildId) {
+          nextMode = 'child';
+          subjectId = resolvedChildId;
+          setProfileModeState('child');
+          setProfileChildIdState(resolvedChildId);
+          if (activeChildId !== resolvedChildId) {
+            await setActiveChildId(resolvedChildId);
+          }
+        } else if (userId) {
+          nextMode = 'self';
+          subjectId = userId;
+          fallbackReason = 'no_children_fallback_self';
+          setProfileModeState('self');
+          setProfileChildIdState(null);
+        } else {
+          nextMode = 'child';
+          subjectId = null;
+          fallbackReason = 'missing_user_context';
+          setProfileModeState('child');
+          setProfileChildIdState(null);
+        }
+      }
+
+      logger.debug('Profile scope updated', {
+        previousMode,
+        requestedMode: next.mode,
+        nextMode,
+        subjectId,
+        fallbackReason,
+        requestedChildId: next.childId ?? null,
+      });
+    },
+    [
+      activeChildId,
+      childInfos,
+      profileChildIdState,
+      profileModeState,
+      resolveValidChildId,
+      setActiveChildId,
+      userId,
+    ],
+  );
+
+  useEffect(() => {
+    if (!profileResolution.fallbackReason) {
+      return;
+    }
+    logger.debug('Profile scope fallback applied', {
+      mode: profileResolution.mode,
+      subjectId: profileResolution.subjectId,
+      fallbackReason: profileResolution.fallbackReason,
+      activeChildId,
+      profileChildIdState,
+      profileModeState,
+    });
+  }, [
+    activeChildId,
+    profileChildIdState,
+    profileModeState,
+    profileResolution.fallbackReason,
+    profileResolution.mode,
+    profileResolution.subjectId,
+  ]);
+
   const refresh = useCallback(async () => {
     await loadChildren();
   }, [loadChildren]);
@@ -384,6 +572,9 @@ export function ChildProvider({ children: reactChildren }: ChildProviderProps) {
       activeChildId,
       activeChild,
       setActiveChildId,
+      profileMode: profileResolution.mode,
+      profileSubjectId: profileResolution.subjectId,
+      setProfileScope,
       isMultiChild,
       isParent: isParentUser || childInfos.length > 0,
       getChildById,
@@ -397,6 +588,9 @@ export function ChildProvider({ children: reactChildren }: ChildProviderProps) {
       activeChildId,
       activeChild,
       setActiveChildId,
+      profileResolution.mode,
+      profileResolution.subjectId,
+      setProfileScope,
       isMultiChild,
       isParentUser,
       getChildById,

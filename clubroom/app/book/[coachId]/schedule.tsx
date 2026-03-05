@@ -23,6 +23,7 @@ import { useScreen } from '@/hooks/use-screen';
 import { err, ok, serviceError } from '@/types/result';
 import { useBookingFlow } from '@/context/booking-flow-context';
 import { useAuth } from '@/hooks/use-auth';
+import { useChildContext } from '@/hooks/use-child-context';
 import { availabilityService } from '@/services/availability-service';
 import { bookingStepAnalyticsService } from '@/services/booking/booking-step-analytics-service';
 import type { AvailabilitySlot } from '@/constants/types';
@@ -32,6 +33,7 @@ import { apiClient } from '@/services/api-client';
 import { STORAGE_KEYS } from '@/constants/storage-keys';
 import type { SessionOffering } from '@/constants/session-types';
 import { getFixedScheduleFromOffering } from '@/utils/booking-draft-prefill';
+import { hasAccountChildren } from '@/utils/booking-self-capability';
 
 const logger = createLogger('ScheduleScreen');
 
@@ -40,7 +42,12 @@ export default function ScheduleScreen() {
   const coachId = coachIdParam.valid ? coachIdParam.value : '';
   const { draft, updateDraft } = useBookingFlow();
   const { currentUser } = useAuth();
+  const { children } = useChildContext();
   const { scheme } = useTheme();
+  const accountHasChildren = hasAccountChildren({
+    contextChildCount: children.length,
+    accountChildRefCount: currentUser?.children?.length ?? 0,
+  });
 
   const selectedOffering = useScreen<SessionOffering | null>({
     load: async () => {
@@ -166,12 +173,12 @@ export default function ScheduleScreen() {
       failure_code: 'back_navigation',
       role: currentUser?.role,
       currentUserId: currentUser?.id,
-      hasChildren: currentUser?.hasChildren,
+      hasChildren: accountHasChildren,
       actingAs: draft.actingAs,
       draft,
     });
     router.back();
-  }, [currentUser?.role, currentUser?.id, currentUser?.hasChildren, draft]);
+  }, [accountHasChildren, currentUser?.role, currentUser?.id, draft]);
 
   const handleContinue = useCallback(() => {
     if (!coachId) {
@@ -181,7 +188,7 @@ export default function ScheduleScreen() {
         failure_code: 'missing_coach_id',
         role: currentUser?.role,
         currentUserId: currentUser?.id,
-        hasChildren: currentUser?.hasChildren,
+        hasChildren: accountHasChildren,
         actingAs: draft.actingAs,
         draft,
       });
@@ -195,7 +202,7 @@ export default function ScheduleScreen() {
         failure_code: 'missing_date',
         role: currentUser?.role,
         currentUserId: currentUser?.id,
-        hasChildren: currentUser?.hasChildren,
+        hasChildren: accountHasChildren,
         actingAs: draft.actingAs,
         draft,
       });
@@ -209,7 +216,7 @@ export default function ScheduleScreen() {
         failure_code: 'missing_slot',
         role: currentUser?.role,
         currentUserId: currentUser?.id,
-        hasChildren: currentUser?.hasChildren,
+        hasChildren: accountHasChildren,
         actingAs: draft.actingAs,
         draft,
       });
@@ -221,12 +228,12 @@ export default function ScheduleScreen() {
       status: 'success',
       role: currentUser?.role,
       currentUserId: currentUser?.id,
-      hasChildren: currentUser?.hasChildren,
+      hasChildren: accountHasChildren,
       actingAs: draft.actingAs,
       draft,
     });
     router.push(Routes.bookDetails(coachId));
-  }, [coachId, currentUser?.role, currentUser?.id, currentUser?.hasChildren, draft, router]);
+  }, [accountHasChildren, coachId, currentUser?.role, currentUser?.id, draft, router]);
   const renderShell = ({ content, footer }: { content: ReactNode; footer?: ReactNode }) => (
     <SafeAreaView
       style={[styles.safeArea, { backgroundColor: palette.background }]}

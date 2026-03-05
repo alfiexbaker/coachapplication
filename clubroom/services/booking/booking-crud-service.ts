@@ -14,6 +14,7 @@
  */
 
 import { Booking } from '@/constants/app-types';
+import type { SessionOffering } from '@/constants/types';
 import { availabilityService } from '../availability-service';
 import { verificationService } from '../verification-service';
 import { notificationService } from '../notification-service';
@@ -25,11 +26,13 @@ import { toDateStr } from '@/utils/format';
 import { emitTyped, ServiceEvents } from '@/services/event-bus';
 import { blockService } from '@/services/block-service';
 import { progressAttendanceService } from '@/services/progress/progress-attendance-service';
+import { getSessionOfferingHeadcount } from '@/utils/session-offering-capacity';
 import {
   type Result,
   type ServiceError,
   ok,
   err,
+  conflictError,
   notFound,
   validationError,
   storageError,
@@ -89,6 +92,7 @@ export interface CreateBookingParams {
   location: string;
   service: string;
   serviceType: string;
+  sessionOfferingId?: string;
   sessionTemplateId?: string;
   sessionTemplateName?: string;
   sessionSource?: 'direct' | 'event' | 'group';
@@ -457,6 +461,88 @@ class BookingCrudService {
     }
   }
 
+  private getBookingAthleteIds(booking: Booking): string[] {
+    return Array.from(
+      new Set(
+        [booking.athleteId, ...(booking.athleteIds ?? [])].filter(
+          (value): value is string => Boolean(value && value.trim().length > 0),
+        ),
+      ),
+    );
+  }
+
+  private getDuplicateLinkedSessionAthleteIds(
+    bookings: Booking[],
+    linkedSessionEntityId: string,
+    athleteIds: string[],
+  ): string[] {
+    const targetAthleteIds = new Set(athleteIds);
+    const duplicates = new Set<string>();
+
+    for (const booking of bookings) {
+      if (booking.status === 'CANCELLED') continue;
+      if (booking.sessionSourceEntityId !== linkedSessionEntityId) continue;
+      for (const athleteId of this.getBookingAthleteIds(booking)) {
+        if (targetAthleteIds.has(athleteId)) {
+          duplicates.add(athleteId);
+        }
+      }
+    }
+
+    return Array.from(duplicates);
+  }
+
+  private async validateLinkedSessionCapacity(params: {
+    linkedSessionEntityId: string;
+    athleteIds: string[];
+    existingBookings: Booking[];
+  }): Promise<{ valid: boolean; reason?: string; offeringId?: string | null }> {
+    const offerings = await apiClient.get<SessionOffering[]>(STORAGE_KEYS.SESSION_OFFERINGS, []);
+    const offering =
+      offerings.find((candidate) => candidate.id === params.linkedSessionEntityId) ??
+      offerings.find((candidate) => candidate.sourceEntityId === params.linkedSessionEntityId);
+
+    if (!offering) {
+      return { valid: true, offeringId: null };
+    }
+
+    const linkedAthleteIds = new Set<string>();
+    for (const registration of offering.registrations) {
+      if (registration.status === 'confirmed' && registration.userId) {
+        linkedAthleteIds.add(registration.userId);
+      }
+    }
+
+    const linkedEntityIds = new Set<string>([
+      params.linkedSessionEntityId,
+      offering.id,
+      offering.sourceEntityId ?? '',
+    ]);
+
+    for (const booking of params.existingBookings) {
+      if (booking.status === 'CANCELLED') continue;
+      if (!booking.sessionSourceEntityId || !linkedEntityIds.has(booking.sessionSourceEntityId)) {
+        continue;
+      }
+      for (const athleteId of this.getBookingAthleteIds(booking)) {
+        linkedAthleteIds.add(athleteId);
+      }
+    }
+
+    const additionalAthletes = params.athleteIds.filter((athleteId) => !linkedAthleteIds.has(athleteId)).length;
+    const projectedHeadcount =
+      Math.max(getSessionOfferingHeadcount(offering), linkedAthleteIds.size) + additionalAthletes;
+    if (projectedHeadcount > offering.maxParticipants) {
+      return {
+        valid: false,
+        reason: 'This session is full. Please choose another session.',
+        offeringId: offering.id,
+      };
+    }
+
+    return { valid: true, offeringId: offering.id };
+  }
+
   /**
    * Create a new booking with validation and notifications
    */
@@ -473,6 +559,7 @@ class BookingCrudService {
       location,
       service,
       serviceType,
+      sessionOfferingId,
       sessionTemplateId,
       sessionTemplateName,
       sessionSource,
@@ -513,10 +600,65 @@ class BookingCrudService {
     const date = scheduledAt.split('T')[0];
     const time = scheduledAt.split('T')[1]?.substring(0, 5) || '10:00';
 
-    // Validate against availability (skip when booking is created from an accepted invite)
-    if (!params.skipAvailabilityValidation) {
+    const linkedSessionEntityId = sessionSourceEntityId || sessionOfferingId || null;
+    const validationPath = linkedSessionEntityId
+      ? 'linked_session_skip_hours'
+      : 'adhoc_validate_hours';
+    logger.debug('Booking validation path', {
+      validation_path: validationPath,
+      sessionSource: sessionSource ?? null,
+      sessionSourceEntityId: linkedSessionEntityId,
+      actingAs: actingAs ?? 'self',
+      failure_code: null,
+    });
+
+    const existingBookings = await this.loadFromStorage();
+    if (linkedSessionEntityId) {
+      const duplicateAthleteIds = this.getDuplicateLinkedSessionAthleteIds(
+        existingBookings,
+        linkedSessionEntityId,
+        athleteIds,
+      );
+      if (duplicateAthleteIds.length > 0) {
+        logger.debug('Booking validation path', {
+          validation_path: validationPath,
+          sessionSource: sessionSource ?? null,
+          sessionSourceEntityId: linkedSessionEntityId,
+          actingAs: actingAs ?? 'self',
+          failure_code: 'linked_session_duplicate_athlete',
+        });
+        return err(conflictError('This athlete is already booked for this session.'));
+      }
+
+      const capacityValidation = await this.validateLinkedSessionCapacity({
+        linkedSessionEntityId,
+        athleteIds,
+        existingBookings,
+      });
+      if (!capacityValidation.valid) {
+        logger.debug('Booking validation path', {
+          validation_path: validationPath,
+          sessionSource: sessionSource ?? null,
+          sessionSourceEntityId: linkedSessionEntityId,
+          actingAs: actingAs ?? 'self',
+          failure_code: 'linked_session_capacity_full',
+          offeringId: capacityValidation.offeringId ?? null,
+        });
+        return err(conflictError(capacityValidation.reason || 'This session is full.'));
+      }
+    }
+
+    // Validate against availability (skip for linked existing sessions and explicit trusted flows)
+    if (!linkedSessionEntityId && !params.skipAvailabilityValidation) {
       const validation = await this.validateBooking(coachId, date, time, duration);
       if (!validation.valid) {
+        logger.debug('Booking validation path', {
+          validation_path: validationPath,
+          sessionSource: sessionSource ?? null,
+          sessionSourceEntityId: linkedSessionEntityId,
+          actingAs: actingAs ?? 'self',
+          failure_code: 'coach_hours_or_slot_unavailable',
+        });
         return err(validationError(validation.reason || 'Booking validation failed'));
       }
     }
@@ -549,7 +691,7 @@ class BookingCrudService {
       ...(sessionTemplateId ? { sessionTemplateId } : {}),
       ...(sessionTemplateName ? { sessionTemplateName } : {}),
       ...(sessionSource ? { sessionSource } : {}),
-      ...(sessionSourceEntityId ? { sessionSourceEntityId } : {}),
+      ...(linkedSessionEntityId ? { sessionSourceEntityId: linkedSessionEntityId } : {}),
       ...(clubId ? { clubId } : {}),
       ...(actingAs ? { actingAs } : {}),
       ...(ownerCoachId ? { ownerCoachId } : {}),
@@ -566,7 +708,7 @@ class BookingCrudService {
 
     // Save to bookings storage
     try {
-      const bookings = await this.loadFromStorage();
+      const bookings = [...existingBookings];
       bookings.push(newBooking as Booking);
       const saveResult = await this.saveToStorage(bookings);
       if (!saveResult.success) {

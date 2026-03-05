@@ -20,11 +20,12 @@ interface Child {
 
 interface SessionBookingOptionsProps {
   isRegistered: boolean;
+  canAddAnotherChild: boolean;
   isRecurring: boolean;
   hasMultipleKids: boolean;
   childOptions: Child[];
-  selectedChildId: string;
-  onSelectChild: (id: string) => void;
+  selectedChildIds: string[];
+  onToggleChild: (id: string) => void;
   weeksToBook: number;
   onSetWeeks: (weeks: number) => void;
   onCancelBooking: () => void;
@@ -32,74 +33,88 @@ interface SessionBookingOptionsProps {
 
 function SessionBookingOptionsInner({
   isRegistered,
+  canAddAnotherChild,
   isRecurring,
   hasMultipleKids,
   childOptions,
-  selectedChildId,
-  onSelectChild,
+  selectedChildIds,
+  onToggleChild,
   weeksToBook,
   onSetWeeks,
   onCancelBooking,
 }: SessionBookingOptionsProps) {
   const { colors: palette } = useTheme();
 
-  if (isRegistered) {
-    return (
-      <SurfaceCard style={[styles.card, { backgroundColor: withAlpha(palette.success, 0.09) }]}>
-        <Row align="start" gap={12}>
-          <Ionicons name="checkmark-circle" size={24} color={palette.success} />
-          <View style={styles.registeredInfo}>
-            <ThemedText style={[styles.registeredText, { color: palette.success }]}>
-              Registered for this session
-            </ThemedText>
-            <Clickable
-              style={[
-                styles.cancelBookingButton,
-                {
-                  borderColor: withAlpha(palette.error, 0.35),
-                  backgroundColor: withAlpha(palette.error, 0.08),
-                },
-              ]}
-              onPress={onCancelBooking}
-              accessibilityRole="button"
-              accessibilityLabel="Cancel booking"
-            >
-              <Row align="center" justify="center" gap="xxs">
-                <Ionicons name="close-circle-outline" size={14} color={palette.error} />
-                <ThemedText style={[styles.cancelBookingText, { color: palette.error }]}>
-                  Cancel Booking
-                </ThemedText>
-              </Row>
-            </Clickable>
-          </View>
-        </Row>
-      </SurfaceCard>
-    );
-  }
+  const shouldShowChildSelector =
+    childOptions.length > 0 && (hasMultipleKids || !isRegistered || canAddAnotherChild);
 
   return (
     <>
-      {hasMultipleKids && (
+      {isRegistered && (
+        <SurfaceCard style={[styles.card, { backgroundColor: withAlpha(palette.success, 0.09) }]}>
+          <Row align="start" gap={12}>
+            <Ionicons name="checkmark-circle" size={24} color={palette.success} />
+            <View style={styles.registeredInfo}>
+              <ThemedText style={[styles.registeredText, { color: palette.success }]}>
+                Registered for this session
+              </ThemedText>
+              {canAddAnotherChild ? (
+                <ThemedText style={[styles.registeredSubtext, { color: palette.muted }]}>
+                  You can add another child from your family below.
+                </ThemedText>
+              ) : null}
+            </View>
+          </Row>
+        </SurfaceCard>
+      )}
+
+      {isRegistered && (
+        <Clickable
+          style={[
+            styles.cancelBookingButton,
+            {
+              borderColor: withAlpha(palette.error, 0.35),
+              backgroundColor: withAlpha(palette.error, 0.08),
+            },
+          ]}
+          onPress={onCancelBooking}
+          accessibilityRole="button"
+          accessibilityLabel="Cancel booking"
+        >
+          <Row align="center" justify="center" gap="xxs">
+            <Ionicons name="close-circle-outline" size={14} color={palette.error} />
+            <ThemedText style={[styles.cancelBookingText, { color: palette.error }]}>
+              Cancel this booking
+            </ThemedText>
+          </Row>
+        </Clickable>
+      )}
+
+      {shouldShowChildSelector && (
         <SurfaceCard style={styles.card}>
-          <ThemedText type="subtitle">Book for:</ThemedText>
+          <ThemedText type="subtitle">
+            {isRegistered && canAddAnotherChild ? 'Add another child:' : 'Book for:'}
+          </ThemedText>
           {childOptions.map((child) => (
             <Clickable
               key={child.id}
-              onPress={() => onSelectChild(child.id)}
+              onPress={() => onToggleChild(child.id)}
               style={[
                 styles.childOption,
                 {
                   backgroundColor:
-                    selectedChildId === child.id ? withAlpha(palette.tint, 0.09) : palette.card,
-                  borderColor: selectedChildId === child.id ? palette.tint : palette.border,
+                    selectedChildIds.includes(child.id)
+                      ? withAlpha(palette.tint, 0.09)
+                      : palette.card,
+                  borderColor: selectedChildIds.includes(child.id) ? palette.tint : palette.border,
                 },
               ]}
             >
               <Row align="center" gap={12}>
                 <Ionicons
-                  name={selectedChildId === child.id ? 'radio-button-on' : 'radio-button-off'}
+                  name={selectedChildIds.includes(child.id) ? 'checkbox' : 'square-outline'}
                   size={20}
-                  color={selectedChildId === child.id ? palette.tint : palette.icon}
+                  color={selectedChildIds.includes(child.id) ? palette.tint : palette.icon}
                 />
                 <ThemedText>{child.name}</ThemedText>
               </Row>
@@ -162,14 +177,18 @@ const styles = StyleSheet.create({
     letterSpacing: -0.3,
     lineHeight: scaleFont(23),
   },
+  registeredSubtext: {
+    fontSize: scaleFont(13),
+    lineHeight: scaleFont(18),
+  },
   cancelBookingButton: {
-    alignSelf: 'flex-start',
-    marginTop: Spacing.micro,
+    marginBottom: Spacing.sm,
     borderWidth: 1,
-    borderRadius: Radii.pill,
-    minHeight: 34,
+    borderRadius: Radii.md,
+    minHeight: 42,
     paddingHorizontal: Spacing.sm,
     justifyContent: 'center',
+    alignItems: 'center',
   },
   cancelBookingText: { fontSize: scaleFont(14), fontWeight: '600' },
 });

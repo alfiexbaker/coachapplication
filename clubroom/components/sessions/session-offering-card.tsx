@@ -58,6 +58,10 @@ export function SessionOfferingCard({
   const totalParticipants = getSessionOfferingHeadcount(offering);
   const isFull = isSessionOfferingFull(offering);
   const capacityText = `${totalParticipants}/${offering.maxParticipants}`;
+  const priceLabel =
+    offering.price !== undefined && offering.price > 0
+      ? `£${offering.price.toFixed(2)}`
+      : null;
   const viewerAudienceText = offering.viewerAthleteNames?.length
     ? offering.viewerAthleteNames.length <= 2
       ? offering.viewerAthleteNames.join(', ')
@@ -203,8 +207,10 @@ export function SessionOfferingCard({
         </View>
 
         <View style={styles.trailing}>
-          {offering.price !== undefined && offering.price > 0 ? (
-            <ThemedText style={styles.price}>£{offering.price}</ThemedText>
+          {priceLabel ? (
+            <ThemedText style={styles.price} numberOfLines={1}>
+              {priceLabel}
+            </ThemedText>
           ) : null}
           <Ionicons name="chevron-forward" size={18} color={palette.muted} />
         </View>
@@ -277,10 +283,13 @@ const styles = StyleSheet.create({
     alignItems: 'flex-end',
     justifyContent: 'space-between',
     minHeight: 56,
+    minWidth: 74,
     gap: Spacing.xxs,
+    flexShrink: 0,
   },
   price: {
-    ...Typography.heading,
-    lineHeight: Typography.heading.fontSize,
+    ...Typography.subheading,
+    fontWeight: '700',
+    lineHeight: Typography.subheading.lineHeight,
   },
 });

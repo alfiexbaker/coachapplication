@@ -135,7 +135,7 @@ export function buildBookingDraftPatchFromOffering({
     coachId,
     sessionOfferingId: offering.id,
     sessionSource: offering.source ?? 'direct',
-    sessionSourceEntityId: offering.sourceEntityId,
+    sessionSourceEntityId: offering.sourceEntityId ?? offering.id,
     sessionTemplateId: undefined,
     sessionType: mapOfferingToDraftType(offering.sessionType),
     sessionTypeLabel: offering.title,

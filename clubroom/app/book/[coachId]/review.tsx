@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useMemo } from 'react';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { ScrollView, StyleSheet, View, RefreshControl } from 'react-native';
 import { useLocalSearchParams, router } from 'expo-router';
@@ -21,6 +21,7 @@ import { useScreen } from '@/hooks/use-screen';
 import { err, ok, serviceError } from '@/types/result';
 import { useBookingFlow } from '@/context/booking-flow-context';
 import { useAuth } from '@/hooks/use-auth';
+import { useChildContext } from '@/hooks/use-child-context';
 import { bookingStepAnalyticsService } from '@/services/booking/booking-step-analytics-service';
 import { coachService } from '@/services/coach-service';
 import type { Coach } from '@/services/coach-service';
@@ -30,9 +31,9 @@ import { createLogger } from '@/utils/logger';
 import { BOOKING_LOCATION_OPTIONS } from '@/constants/booking-flow';
 import { academyService } from '@/services/academy-service';
 import { userService } from '@/services/user-service';
+import { hasAccountChildren } from '@/utils/booking-self-capability';
 
 const logger = createLogger('BookingReview');
-
 
 interface ReviewLoadData {
   coach: Coach | null;
@@ -43,6 +44,7 @@ export default function ReviewScreen() {
   const { coachId } = useLocalSearchParams<{ coachId: string }>();
   const { draft, updateDraft } = useBookingFlow();
   const { currentUser } = useAuth();
+  const { children } = useChildContext();
   const [promoCode, setPromoCode] = useState('');
   const [promoApplied, setPromoApplied] = useState(false);
   const [promoDiscount, setPromoDiscount] = useState(0);
@@ -98,11 +100,16 @@ export default function ReviewScreen() {
   const coach = data?.coach ?? null;
   const cancellationPolicy = data?.cancellationPolicy ?? null;
   const resolvedCoachId = coachId || draft.coachId;
+  const selectedAthleteCount = draft.childIds?.length ?? (draft.childId ? 1 : 0);
+  const accountHasChildren = hasAccountChildren({
+    contextChildCount: children.length,
+    accountChildRefCount: currentUser?.children?.length ?? 0,
+  });
   const hasRequiredDraft =
     Boolean(resolvedCoachId) &&
     Boolean(coach?.name || draft.coachName) &&
     Boolean(draft.date && draft.slot) &&
-    Boolean(draft.childId || draft.athleteName);
+    Boolean(selectedAthleteCount > 0 || draft.athleteName);
 
   useEffect(() => {
     if (coach?.name) {
@@ -164,6 +171,26 @@ export default function ReviewScreen() {
     }
     return locationText;
   })();
+  const reviewDateLabel = useMemo(() => {
+    if (!draft.date) return 'Pick a date';
+    const parsed = new Date(`${draft.date}T12:00:00`);
+    if (Number.isNaN(parsed.getTime())) return draft.date;
+    return parsed.toLocaleDateString('en-GB', {
+      weekday: 'short',
+      day: 'numeric',
+      month: 'short',
+      year: 'numeric',
+    });
+  }, [draft.date]);
+  const reviewTimeLabel = useMemo(() => {
+    if (!draft.slot) return 'Pick a slot';
+    const parsed = new Date(`1970-01-01T${draft.slot}:00`);
+    if (Number.isNaN(parsed.getTime())) return draft.slot;
+    return parsed.toLocaleTimeString('en-GB', {
+      hour: 'numeric',
+      minute: '2-digit',
+    });
+  }, [draft.slot]);
 
   // Handle promo code application
   const handleApplyPromo = () => {
@@ -199,12 +226,12 @@ export default function ReviewScreen() {
       failure_code: 'back_navigation',
       role: currentUser?.role,
       currentUserId: currentUser?.id,
-      hasChildren: currentUser?.hasChildren,
+      hasChildren: accountHasChildren,
       actingAs: draft.actingAs,
       draft,
     });
     router.back();
-  }, [currentUser?.role, currentUser?.id, currentUser?.hasChildren, draft]);
+  }, [accountHasChildren, currentUser?.role, currentUser?.id, draft]);
 
   const handleContinue = useCallback(() => {
     if (!resolvedCoachId) {
@@ -214,7 +241,7 @@ export default function ReviewScreen() {
         failure_code: 'missing_coach_id',
         role: currentUser?.role,
         currentUserId: currentUser?.id,
-        hasChildren: currentUser?.hasChildren,
+        hasChildren: accountHasChildren,
         actingAs: draft.actingAs,
         draft,
       });
@@ -228,7 +255,7 @@ export default function ReviewScreen() {
         failure_code: 'incomplete_booking_draft',
         role: currentUser?.role,
         currentUserId: currentUser?.id,
-        hasChildren: currentUser?.hasChildren,
+        hasChildren: accountHasChildren,
         actingAs: draft.actingAs,
         draft,
       });
@@ -240,7 +267,7 @@ export default function ReviewScreen() {
       status: 'success',
       role: currentUser?.role,
       currentUserId: currentUser?.id,
-      hasChildren: currentUser?.hasChildren,
+      hasChildren: accountHasChildren,
       actingAs: draft.actingAs,
       draft,
     });
@@ -250,7 +277,7 @@ export default function ReviewScreen() {
   }, [
     currentUser?.role,
     currentUser?.id,
-    currentUser?.hasChildren,
+    accountHasChildren,
     draft,
     hasRequiredDraft,
     resolvedCoachId,
@@ -330,15 +357,19 @@ export default function ReviewScreen() {
               value={assigneeLabel || coach?.name || draft.coachName || 'Coach'}
             />
           ) : null}
-          <SummaryRow label="Date" value={draft.date || 'Pick a date'} />
-          <SummaryRow label="Time" value={draft.slot || 'Pick a slot'} />
+          <SummaryRow label="Date" value={reviewDateLabel} />
+          <SummaryRow label="Time" value={reviewTimeLabel} />
           <SummaryRow
             label="Session"
             value={draft.sessionTypeLabel || draft.sessionType || 'Select type'}
           />
           <SummaryRow label="Duration" value={`${draft.duration || 60} mins`} />
           <SummaryRow label="Location" value={locationSummary} />
-          {draft.athleteName && <SummaryRow label="Athlete" value={draft.athleteName} />}
+          {selectedAthleteCount > 1 ? (
+            <SummaryRow label="Athletes" value={`${selectedAthleteCount} selected`} />
+          ) : draft.athleteName ? (
+            <SummaryRow label="Athlete" value={draft.athleteName} />
+          ) : null}
         </View>
 
         <PaymentMethodCard

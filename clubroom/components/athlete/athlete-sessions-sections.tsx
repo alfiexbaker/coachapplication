@@ -37,7 +37,8 @@ export const SessionItem = React.memo(function SessionItem({ session, isPast }: 
 
   const handlePress = useCallback(() => {
     if (Platform.OS !== 'web') void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    router.push(Routes.booking(session.id));
+    const returnTo = Routes.ATHLETES as string;
+    router.push(Routes.booking(session.id, { returnTo }));
   }, [session.id]);
 
   const needsNotes = isPast && !session.notes;

@@ -95,23 +95,6 @@ export default function InjuryHistoryScreen() {
                 <ThemedText style={styles.subjectName}>{c.selectedSubjectName ?? 'Selected'}</ThemedText>
               </Row>
               <Row align="center" gap="xs">
-                {c.subjectOptions.length > 1 && (
-                  <Clickable
-                    onPress={c.handleSelectNextSubject}
-                    style={[
-                      styles.subjectActionButton,
-                      { borderColor: palette.border, backgroundColor: withAlpha(palette.tint, 0.08) },
-                    ]}
-                    accessibilityLabel="Switch selected profile"
-                  >
-                    <Row align="center" gap="xxs">
-                      <Ionicons name="swap-horizontal-outline" size={14} color={palette.tint} />
-                      <ThemedText style={[styles.subjectActionText, { color: palette.tint }]}>
-                        Switch
-                      </ThemedText>
-                    </Row>
-                  </Clickable>
-                )}
                 <Clickable
                   onPress={c.handleEditSelectedSubject}
                   style={[
@@ -127,50 +110,6 @@ export default function InjuryHistoryScreen() {
                 </Clickable>
               </Row>
             </Row>
-            {c.subjectOptions.length > 1 && (
-              <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.subjectScroller}>
-                <Row gap="xs">
-                  {c.subjectOptions.map((option) => {
-                    const selected = option.id === c.selectedSubjectId;
-                    return (
-                      <Clickable key={option.id} onPress={() => c.handleSelectSubject(option.id)}>
-                        <Row
-                          align="center"
-                          gap="xs"
-                          style={[
-                            styles.subjectChip,
-                            {
-                              borderColor: selected ? palette.tint : palette.border,
-                              backgroundColor: selected ? withAlpha(palette.tint, 0.12) : palette.background,
-                            },
-                          ]}
-                        >
-                          <View
-                            style={[
-                              styles.subjectDot,
-                              {
-                                backgroundColor:
-                                  option.kind === 'self'
-                                    ? palette.tint
-                                    : option.colorCode || withAlpha(palette.warning, 0.75),
-                              },
-                            ]}
-                          />
-                          <ThemedText
-                            style={[
-                              styles.subjectChipLabel,
-                              { color: selected ? palette.tint : palette.text },
-                            ]}
-                          >
-                            {option.kind === 'self' ? 'Myself' : option.name}
-                          </ThemedText>
-                        </Row>
-                      </Clickable>
-                    );
-                  })}
-                </Row>
-              </ScrollView>
-            )}
           </View>
         )}
 
@@ -385,25 +324,6 @@ const styles = StyleSheet.create({
   },
   subjectActionText: {
     ...Typography.caption,
-  },
-  subjectScroller: {
-    marginTop: Spacing.xs,
-  },
-  subjectChip: {
-    borderWidth: 1,
-    borderRadius: Radii.pill,
-    paddingHorizontal: Spacing.sm,
-    paddingVertical: Spacing.xxs,
-  },
-  subjectDot: {
-    width: 8,
-    height: 8,
-    borderRadius: Radii.pill,
-  },
-  subjectChipLabel: {
-    ...Typography.caption,
-    fontSize: scaleFont(Typography.caption.fontSize),
-    fontWeight: '700',
   },
   filterRow: { paddingHorizontal: Spacing.lg },
   filterTab: {

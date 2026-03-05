@@ -3,7 +3,7 @@
  * Coach scheduling rules editor modal with chip selectors, toggles, and cancellation policy.
  */
 import { useState, useEffect, useCallback } from 'react';
-import { View, StyleSheet, Modal, ScrollView, Alert, Platform, Keyboard } from 'react-native';
+import { View, StyleSheet, Modal, ScrollView, Platform, Keyboard } from 'react-native';
 import * as Haptics from 'expo-haptics';
 
 import { Clickable } from '@/components/primitives/clickable';

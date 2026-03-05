@@ -80,7 +80,7 @@ export function useFamilyDashboard() {
   }, []);
 
   const handleSessionPress = useCallback((session: FamilyCalendarEvent) => {
-    router.push(Routes.booking(session.id));
+    router.push(Routes.booking(session.id, { returnTo: Routes.FAMILY as string }));
   }, []);
 
   const navigateToCalendar = useCallback(() => {

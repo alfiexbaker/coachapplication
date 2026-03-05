@@ -22,7 +22,6 @@ import { getSessionOfferingHeadcount } from '@/utils/session-offering-capacity';
 import { hasAccountChildren } from '@/utils/booking-self-capability';
 
 const logger = createLogger('BookCoachEntryScreen');
-const FAST_TRACK_SOURCES = ['discover', 'session_detail_modal'];
 
 function getAvailableCoachOfferings(
   allOfferings: SessionOffering[],
@@ -148,6 +147,14 @@ export default function BookCoachEntryScreen() {
         trackStep('type', 'validation_fail', failureCode);
       }
       const fallbackChildId = preselectedChild?.id;
+      logger.debug('Book entry routing fallback', {
+        coachId,
+        source: source ?? null,
+        offeringId: offeringId ?? null,
+        offeringIdPresent: Boolean(offeringId),
+        resolvedTarget: 'session_list_first',
+        failureCode: failureCode ?? null,
+      });
       router.replace(
         Routes.bookSessionType(coachId, {
           offeringId,
@@ -159,11 +166,15 @@ export default function BookCoachEntryScreen() {
     };
 
     const bootstrap = async () => {
-      const normalizedSource = source?.toLowerCase();
-      const shouldFastTrack =
-        Boolean(offeringId) ||
-        (typeof normalizedSource === 'string' &&
-          FAST_TRACK_SOURCES.some((prefix) => normalizedSource.startsWith(prefix)));
+      const shouldFastTrack = Boolean(offeringId);
+      logger.debug('Book entry routing decision', {
+        coachId,
+        source: source ?? null,
+        offeringId: offeringId ?? null,
+        offeringIdPresent: Boolean(offeringId),
+        draftOfferingId: draft.sessionOfferingId ?? null,
+        resolvedTarget: shouldFastTrack ? 'offering_fast_track' : 'session_list_first',
+      });
       if (!shouldFastTrack) {
         fallbackToSessionType();
         return;

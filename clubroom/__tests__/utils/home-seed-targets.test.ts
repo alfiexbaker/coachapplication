@@ -26,7 +26,7 @@ function makeChild(id: string, name: string): ChildInfo {
 describe('buildHomeSeedTargets', () => {
   it('prioritizes selected child and includes all children once for parent context', () => {
     const targets = buildHomeSeedTargets({
-      isParent: true,
+      hasChildProfiles: true,
       selectedChildId: 'child_b',
       fallbackChildId: 'child_a',
       contextChildren: [makeChild('child_a', 'Kid A'), makeChild('child_b', 'Kid B')],
@@ -44,7 +44,7 @@ describe('buildHomeSeedTargets', () => {
 
   it('falls back to fallback child id when parent context has no loaded child profiles', () => {
     const targets = buildHomeSeedTargets({
-      isParent: true,
+      hasChildProfiles: true,
       selectedChildId: null,
       fallbackChildId: 'child_fallback',
       contextChildren: [],
@@ -57,7 +57,7 @@ describe('buildHomeSeedTargets', () => {
 
   it('uses current user for athlete context', () => {
     const targets = buildHomeSeedTargets({
-      isParent: false,
+      hasChildProfiles: false,
       selectedChildId: null,
       fallbackChildId: null,
       contextChildren: [makeChild('child_unused', 'Kid U')],
@@ -70,7 +70,7 @@ describe('buildHomeSeedTargets', () => {
 
   it('returns no targets when athlete context has no user id', () => {
     const targets = buildHomeSeedTargets({
-      isParent: false,
+      hasChildProfiles: false,
       selectedChildId: null,
       fallbackChildId: null,
       contextChildren: [],

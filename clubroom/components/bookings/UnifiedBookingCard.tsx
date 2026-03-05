@@ -75,7 +75,7 @@ export function UnifiedBookingCard({
       onPress();
     } else {
       logger.press('BookingCard', { bookingId: booking.id, variant });
-      router.push(Routes.booking(booking.id));
+      router.push(Routes.booking(booking.id, { returnTo: Routes.BOOKINGS as string }));
     }
   };
 

@@ -22,6 +22,11 @@ export interface BookingFlowEntryOptions {
   weeks?: string;
 }
 
+export interface BookingDetailRouteOptions {
+  returnTo?: string;
+  source?: string;
+}
+
 /**
  * Type-safe route builders for all Clubroom navigation.
  *
@@ -65,9 +70,9 @@ export const Routes = {
   SCHEDULE: '/(tabs)/schedule' as Href,
 
   // ─── Tab sub-routes (dynamic) ─────────────────────────────────
-  booking: (id: string) => ({
+  booking: (id: string, options?: BookingDetailRouteOptions) => ({
     pathname: '/(tabs)/bookings/[id]',
-    params: { id },
+    params: { id, ...(options ?? {}) },
   }) as Href,
   BOOKINGS_REPORT_PROBLEM: '/(tabs)/bookings/report-problem' as Href,
   bookingsReportProblem: (params?: { bookingId?: string }) => ({

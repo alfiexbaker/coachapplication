@@ -97,7 +97,9 @@ export function useFamilyCalendar() {
     if ((event as FamilyCalendarEvent & { type?: string }).type === 'EVENT') {
       router.push(Routes.event(event.id));
     } else {
-      router.push(Routes.booking(event.id));
+      router.push(
+        Routes.booking(event.id, { returnTo: Routes.FAMILY_CALENDAR as string }),
+      );
     }
   }, []);
 

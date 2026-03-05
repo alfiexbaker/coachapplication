@@ -6,7 +6,7 @@
  */
 
 import { useCallback, useMemo } from 'react';
-import { router } from 'expo-router';
+import { router, useLocalSearchParams } from 'expo-router';
 import { Routes } from '@/navigation/routes';
 import * as Haptics from 'expo-haptics';
 
@@ -22,32 +22,58 @@ const logger = createLogger('useHealthHub');
 
 export function useHealthHub() {
   const { currentUser } = useAuth();
-  const { children, activeChildId, setActiveChildId, isParent } = useChildContext();
+  const { subjectId: subjectIdParam, childId: childIdParam } = useLocalSearchParams<{
+    subjectId?: string | string[];
+    childId?: string | string[];
+  }>();
+  const { children, profileMode, profileSubjectId } = useChildContext();
 
-  const selectedChildId = useMemo(() => {
-    if (!isParent || children.length === 0) return null;
-    if (activeChildId && children.some((child) => child.id === activeChildId)) {
-      return activeChildId;
+  const explicitSubjectId = useMemo(() => {
+    const raw = subjectIdParam ?? childIdParam;
+    if (!raw) return null;
+    return Array.isArray(raw) ? raw[0] ?? null : raw;
+  }, [childIdParam, subjectIdParam]);
+
+  const selectedSubjectId = useMemo(() => {
+    const isValidSubject = (value: string | null | undefined): value is string => {
+      if (!value) return false;
+      if (currentUser?.id && value === currentUser.id) return true;
+      return children.some((child) => child.id === value);
+    };
+
+    if (isValidSubject(explicitSubjectId)) {
+      return explicitSubjectId;
     }
-    return children[0]?.id ?? null;
-  }, [activeChildId, children, isParent]);
+    if (profileMode === 'self' && currentUser?.id) {
+      return currentUser.id;
+    }
+    if (isValidSubject(profileSubjectId)) {
+      return profileSubjectId;
+    }
+    if (children.length > 0) {
+      return children[0].id;
+    }
+    return currentUser?.id ?? null;
+  }, [children, currentUser?.id, explicitSubjectId, profileMode, profileSubjectId]);
+
+  const selectedChildId = useMemo(
+    () => (children.some((child) => child.id === selectedSubjectId) ? selectedSubjectId : null),
+    [children, selectedSubjectId],
+  );
 
   const selectedChild = useMemo(
     () => children.find((child) => child.id === selectedChildId) ?? null,
     [children, selectedChildId],
   );
+  const selectedSubjectName = useMemo(() => {
+    if (selectedChild?.name) return selectedChild.name;
+    if (currentUser?.fullName) return currentUser.fullName;
+    if (currentUser?.name) return currentUser.name;
+    return null;
+  }, [currentUser?.fullName, currentUser?.name, selectedChild?.name]);
+  const selectedSubjectKind = selectedChildId ? 'child' : 'self';
 
-  const subjectId = selectedChildId ?? currentUser?.id ?? null;
-  const kidOptions = useMemo(
-    () =>
-      children.map((child) => ({
-        id: child.id,
-        name: child.name,
-        initials: child.initials,
-        colorCode: child.colorCode,
-      })),
-    [children],
-  );
+  const subjectId = selectedSubjectId ?? null;
 
   const loadData = useCallback(async () => {
     if (!subjectId) {
@@ -86,22 +112,6 @@ export function useHealthHub() {
     router.push(Routes.HEALTH_LOG);
   }, [selectedChildId]);
 
-  const handleSelectChild = useCallback(
-    (childId: string) => {
-      void setActiveChildId(childId);
-    },
-    [setActiveChildId],
-  );
-
-  const handleSelectNextChild = useCallback(() => {
-    if (kidOptions.length <= 1) return;
-    const currentIndex = kidOptions.findIndex((child) => child.id === selectedChildId);
-    const nextIndex = currentIndex >= 0 ? (currentIndex + 1) % kidOptions.length : 0;
-    const nextChildId = kidOptions[nextIndex]?.id ?? kidOptions[0]?.id;
-    if (!nextChildId) return;
-    void setActiveChildId(nextChildId);
-  }, [kidOptions, selectedChildId, setActiveChildId]);
-
   const handleEditSelectedChild = useCallback(() => {
     if (!selectedChildId) return;
     router.push(Routes.modalEditChildProfile(selectedChildId));
@@ -122,13 +132,11 @@ export function useHealthHub() {
     retry,
     handleLogInjury,
     handleInjuryPress,
-    kidOptions,
     selectedChildId: selectedChildId ?? undefined,
     selectedChildName: selectedChild?.name ?? null,
-    showKidSelector: kidOptions.length > 1,
+    selectedSubjectName,
+    selectedSubjectKind,
     canEditSelectedChild: Boolean(selectedChildId),
-    handleSelectChild,
-    handleSelectNextChild,
     handleEditSelectedChild,
   } satisfies {
     injuries: Injury[];
@@ -140,13 +148,11 @@ export function useHealthHub() {
     retry: () => void;
     handleLogInjury: () => void;
     handleInjuryPress: (injury: Injury) => void;
-    kidOptions: Array<{ id: string; name: string; initials: string; colorCode?: string }>;
     selectedChildId: string | undefined;
     selectedChildName: string | null;
-    showKidSelector: boolean;
+    selectedSubjectName: string | null;
+    selectedSubjectKind: 'self' | 'child';
     canEditSelectedChild: boolean;
-    handleSelectChild: (childId: string) => void;
-    handleSelectNextChild: () => void;
     handleEditSelectedChild: () => void;
   };
 }

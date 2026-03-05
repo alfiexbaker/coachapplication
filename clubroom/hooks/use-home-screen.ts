@@ -8,6 +8,7 @@ import { badgeService } from '@/services/badge-service';
 import { socialFeedService } from '@/services/social-feed-service';
 import { progressService } from '@/services/progress-service';
 import { bookingService } from '@/services/booking-service';
+import { bookingSelfSettingService } from '@/services/booking-self-setting-service';
 import { ensureProgressDemoSeeded } from '@/services/progress/progress-demo-seed-lazy-service';
 import { ensureRelationalDemoSeeded } from '@/services/relational-demo-seed-service';
 import { onTyped, ServiceEvents } from '@/services/event-bus';
@@ -28,7 +29,7 @@ interface HomeSeedTarget {
 }
 
 interface BuildHomeSeedTargetsInput {
-  isParent: boolean;
+  hasChildProfiles: boolean;
   selectedChildId: string | null;
   fallbackChildId: string | null;
   contextChildren: ChildInfo[];
@@ -49,7 +50,7 @@ export function buildHomeSeedTargets(input: BuildHomeSeedTargetsInput): HomeSeed
     }
   };
 
-  if (input.isParent) {
+  if (input.hasChildProfiles) {
     const preferredChildId = input.selectedChildId ?? input.fallbackChildId;
     setTarget(preferredChildId, 'Child');
     for (const child of input.contextChildren) {
@@ -132,7 +133,9 @@ export function useHomeScreen() {
     children: contextChildren,
     activeChildId: contextActiveChildId,
     setActiveChildId: contextSetActiveChildId,
-    isParent,
+    profileMode,
+    profileSubjectId,
+    setProfileScope,
     isMultiChild,
   } = useChildContext();
 
@@ -143,6 +146,7 @@ export function useHomeScreen() {
   const [clubs, setClubs] = useState<Club[]>([]);
   const [upcomingBookings, setUpcomingBookings] = useState<Booking[]>([]);
   const [stats, setStats] = useState({ sessions: 0, badges: 0, level: 1 });
+  const [bookSelfEnabled, setBookSelfEnabled] = useState(false);
   const [streakInfo, setStreakInfo] = useState<{
     currentStreak: number;
     nextMilestone: number;
@@ -151,11 +155,12 @@ export function useHomeScreen() {
   } | null>(null);
 
   const fallbackChildId = contextChildren[0]?.id ?? null;
+  const hasChildProfiles = contextChildren.length > 0;
 
   // Local selectedChildId for immediate UI response — initialized from context
   const [selectedChildId, setSelectedChildIdLocal] = useState<string | null>(() => {
     if (contextActiveChildId) return contextActiveChildId;
-    if (isParent && fallbackChildId) return fallbackChildId;
+    if (fallbackChildId) return fallbackChildId;
     return null;
   });
 
@@ -166,17 +171,17 @@ export function useHomeScreen() {
         setSelectedChildIdLocal(payload.childId);
         return;
       }
-      if (isParent && fallbackChildId) {
+      if (fallbackChildId) {
         setSelectedChildIdLocal(fallbackChildId);
         return;
       }
       setSelectedChildIdLocal(null);
     });
     return unsub;
-  }, [fallbackChildId, isParent]);
+  }, [fallbackChildId]);
 
   useEffect(() => {
-    if (!isParent || !fallbackChildId) {
+    if (!fallbackChildId) {
       return;
     }
     if (selectedChildId && contextChildren.some((child) => child.id === selectedChildId)) {
@@ -192,36 +197,150 @@ export function useHomeScreen() {
     contextChildren,
     contextSetActiveChildId,
     fallbackChildId,
-    isParent,
     selectedChildId,
   ]);
 
   // Handler: update BOTH local and context
   const setSelectedChildId = useCallback(
     (childId: string | null) => {
-      const resolvedChildId = childId ?? (isParent ? fallbackChildId : null);
+      const resolvedChildId = childId ?? fallbackChildId ?? null;
       setSelectedChildIdLocal(resolvedChildId);
       void contextSetActiveChildId(resolvedChildId);
+      if (resolvedChildId) {
+        void setProfileScope({ mode: 'child', childId: resolvedChildId });
+      }
     },
-    [contextSetActiveChildId, fallbackChildId, isParent],
+    [contextSetActiveChildId, fallbackChildId, setProfileScope],
   );
 
   const handleSelectNextChild = useCallback(() => {
-    if (!isParent || contextChildren.length <= 1) return;
+    if (contextChildren.length <= 1) return;
 
     const currentIndex = contextChildren.findIndex((child) => child.id === selectedChildId);
     const nextIndex = currentIndex >= 0 ? (currentIndex + 1) % contextChildren.length : 0;
     const nextChildId = contextChildren[nextIndex]?.id ?? contextChildren[0]?.id ?? null;
     if (!nextChildId) return;
     setSelectedChildId(nextChildId);
-  }, [contextChildren, isParent, selectedChildId, setSelectedChildId]);
+  }, [contextChildren, selectedChildId, setSelectedChildId]);
 
   const selectedChild = useMemo(
     () => contextChildren.find((child) => child.id === selectedChildId) ?? null,
     [contextChildren, selectedChildId],
   );
+  const isViewingSelfProfile = profileMode === 'self';
+  const canSelfSwitchProfile = Boolean(hasChildProfiles && selectedChild && bookSelfEnabled);
 
-  const athleteId = selectedChildId || fallbackChildId || currentUser?.id;
+  useEffect(() => {
+    if (!currentUser?.id) {
+      setBookSelfEnabled(false);
+      logger.debug('Home self-book switch disabled: missing current user', {
+        currentUserId: currentUser?.id,
+      });
+      return;
+    }
+
+    let cancelled = false;
+    void bookingSelfSettingService.isEnabled(currentUser.id).then((enabled) => {
+      if (cancelled) return;
+      setBookSelfEnabled(enabled);
+      logger.debug('Home self-book setting loaded', {
+        currentUserId: currentUser.id,
+        enabled,
+        hasChildProfiles,
+        selectedChildId,
+      });
+      if (!enabled && hasChildProfiles && profileMode === 'self') {
+        const fallbackChild = selectedChildId ?? fallbackChildId;
+        void setProfileScope({ mode: 'child', childId: fallbackChild });
+      }
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [currentUser?.id, fallbackChildId, hasChildProfiles, profileMode, selectedChildId, setProfileScope]);
+
+  useEffect(() => {
+    if (profileMode !== 'child') {
+      return;
+    }
+    const fallbackChild = selectedChildId ?? fallbackChildId;
+    if (!fallbackChild || profileSubjectId === fallbackChild) {
+      return;
+    }
+    void setProfileScope({ mode: 'child', childId: fallbackChild });
+  }, [fallbackChildId, profileMode, profileSubjectId, selectedChildId, setProfileScope]);
+
+  useEffect(() => {
+    if (hasChildProfiles && !canSelfSwitchProfile && isViewingSelfProfile) {
+      logger.debug('Home self profile reset because switching is unavailable', {
+        canSelfSwitchProfile,
+        isViewingSelfProfile,
+        bookSelfEnabled,
+        selectedChildId,
+      });
+      const fallbackChild = selectedChildId ?? fallbackChildId;
+      void setProfileScope({ mode: 'child', childId: fallbackChild });
+    }
+  }, [
+    bookSelfEnabled,
+    canSelfSwitchProfile,
+    fallbackChildId,
+    hasChildProfiles,
+    isViewingSelfProfile,
+    selectedChildId,
+    setProfileScope,
+  ]);
+
+  const handleToggleSelfChildProfile = useCallback(() => {
+    if (!canSelfSwitchProfile) return;
+    const nextMode: 'self' | 'child' = isViewingSelfProfile ? 'child' : 'self';
+    logger.press('HomeProfileSwitchPressed', {
+      currentMode: isViewingSelfProfile ? 'self' : 'child',
+      nextMode,
+      selectedChildId,
+      selectedChildName: selectedChild?.name,
+      bookSelfEnabled,
+    });
+    if (nextMode === 'self') {
+      void setProfileScope({ mode: 'self' });
+      return;
+    }
+    void setProfileScope({ mode: 'child', childId: selectedChildId ?? fallbackChildId });
+  }, [
+    bookSelfEnabled,
+    canSelfSwitchProfile,
+    fallbackChildId,
+    isViewingSelfProfile,
+    selectedChild?.name,
+    selectedChildId,
+    setProfileScope,
+  ]);
+
+  useEffect(() => {
+    logger.debug('Home profile switch snapshot', {
+      currentUserId: currentUser?.id,
+      hasChildProfiles,
+      selectedChildId,
+      selectedChildName: selectedChild?.name,
+      bookSelfEnabled,
+      canSelfSwitchProfile,
+      isViewingSelfProfile,
+      profileMode,
+      profileSubjectId,
+    });
+  }, [
+    bookSelfEnabled,
+    canSelfSwitchProfile,
+    currentUser?.id,
+    hasChildProfiles,
+    isViewingSelfProfile,
+    profileMode,
+    profileSubjectId,
+    selectedChild?.name,
+    selectedChildId,
+  ]);
+
+  const athleteId = profileSubjectId || selectedChildId || fallbackChildId || currentUser?.id;
 
   const loadData = useCallback(async () => {
     if (!athleteId) return;
@@ -232,7 +351,7 @@ export function useHomeScreen() {
           await ensureRelationalDemoSeeded();
 
           const seedTargets = buildHomeSeedTargets({
-            isParent,
+            hasChildProfiles,
             selectedChildId,
             fallbackChildId,
             contextChildren,
@@ -260,7 +379,8 @@ export function useHomeScreen() {
       setRecentBadges(badges.slice(0, 3));
       const userClubs = socialFeedService.getUserClubs(currentUser?.id || '');
       setClubs(userClubs);
-      const viewerRole = isParent ? 'parent' : 'athlete';
+      const viewerRole =
+        hasChildProfiles && profileMode === 'child' ? 'parent' : 'athlete';
       const progress = await progressService.getAthleteProgress(athleteId, viewerRole);
       setStats({
         sessions: progress.totalSessions,
@@ -271,14 +391,32 @@ export function useHomeScreen() {
       setStreakInfo(streak);
 
       if (currentUser?.id) {
-        const role = isParent ? 'parent' : 'athlete';
+        const role = hasChildProfiles ? 'parent' : 'athlete';
         const bookings = await bookingService.getBookingsForUser(currentUser.id, role);
         const now = Date.now();
-        const selectedFamilyChildId = isParent ? selectedChildId ?? fallbackChildId : null;
+        const profileChildId =
+          profileMode === 'child' &&
+          profileSubjectId &&
+          contextChildren.some((child) => child.id === profileSubjectId)
+            ? profileSubjectId
+            : null;
+        const selectedFamilyChildId =
+          hasChildProfiles && profileMode === 'child'
+            ? profileChildId ?? selectedChildId ?? fallbackChildId
+            : null;
+        const selfAthleteId = currentUser.id;
         const filteredBookings = bookings
           .filter((booking) => {
             const isFuture = new Date(booking.scheduledAt).getTime() > now;
             const isConfirmed = booking.status === 'CONFIRMED';
+            if (hasChildProfiles && isViewingSelfProfile) {
+              return (
+                isFuture &&
+                isConfirmed &&
+                (booking.athleteId === selfAthleteId ||
+                  booking.athleteIds?.includes(selfAthleteId))
+              );
+            }
             if (!selectedFamilyChildId) {
               return isFuture && isConfirmed;
             }
@@ -301,7 +439,17 @@ export function useHomeScreen() {
     } finally {
       setLoading(false);
     }
-  }, [athleteId, contextChildren, currentUser, selectedChildId, fallbackChildId, isParent]);
+  }, [
+    athleteId,
+    contextChildren,
+    currentUser,
+    fallbackChildId,
+    hasChildProfiles,
+    isViewingSelfProfile,
+    profileMode,
+    profileSubjectId,
+    selectedChildId,
+  ]);
 
   useEffect(() => {
     loadData();
@@ -322,14 +470,17 @@ export function useHomeScreen() {
     clubs,
     stats,
     streakInfo,
+    isViewingSelfProfile,
+    canSelfSwitchProfile,
     selectedChildId,
     selectedChild,
     setSelectedChildId,
     handleSelectNextChild,
+    handleToggleSelfChildProfile,
     onRefresh,
     upcomingBookings,
     isMultiChild,
-    isParent,
+    hasChildProfiles,
     contextChildren,
   };
 }

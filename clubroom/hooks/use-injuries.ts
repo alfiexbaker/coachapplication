@@ -3,8 +3,8 @@
  * Manages injury loading, status filtering, and navigation.
  */
 
-import { useState, useCallback, useMemo, useEffect } from 'react';
-import { router } from 'expo-router';
+import { useState, useCallback, useMemo } from 'react';
+import { router, useLocalSearchParams } from 'expo-router';
 import { Routes } from '@/navigation/routes';
 import * as Haptics from 'expo-haptics';
 import { useAuth } from '@/hooks/use-auth';
@@ -30,7 +30,11 @@ type SubjectOption = {
 
 export function useInjuries() {
   const { currentUser } = useAuth();
-  const { children, activeChildId } = useChildContext();
+  const { children, profileMode, profileSubjectId } = useChildContext();
+  const { subjectId: subjectIdParam, childId: childIdParam } = useLocalSearchParams<{
+    subjectId?: string | string[];
+    childId?: string | string[];
+  }>();
 
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('ALL');
   const selfOption = useMemo<SubjectOption | null>(() => {
@@ -53,31 +57,35 @@ export function useInjuries() {
       kind: 'child',
     }));
 
-    if (childOptions.length > 0) {
+    if (!selfOption) {
       return childOptions;
     }
-    if (!selfOption) return [];
-    return [selfOption];
+    return [selfOption, ...childOptions];
   }, [children, selfOption]);
 
-  const [selectedSubjectId, setSelectedSubjectId] = useState<string | null>(null);
+  const explicitSubjectId = useMemo(() => {
+    const raw = subjectIdParam ?? childIdParam;
+    if (!raw) return null;
+    return Array.isArray(raw) ? raw[0] ?? null : raw;
+  }, [childIdParam, subjectIdParam]);
 
-  useEffect(() => {
-    if (subjectOptions.length === 0) {
-      if (selectedSubjectId !== null) setSelectedSubjectId(null);
-      return;
-    }
-    if (selectedSubjectId && subjectOptions.some((option) => option.id === selectedSubjectId)) {
-      return;
-    }
+  const selectedSubjectId = useMemo(() => {
+    const isValid = (value: string | null | undefined): value is string => {
+      if (!value) return false;
+      return subjectOptions.some((option) => option.id === value);
+    };
 
-    if (activeChildId && subjectOptions.some((option) => option.id === activeChildId)) {
-      setSelectedSubjectId(activeChildId);
-      return;
+    if (isValid(explicitSubjectId)) {
+      return explicitSubjectId;
     }
-
-    setSelectedSubjectId(subjectOptions[0].id);
-  }, [activeChildId, selectedSubjectId, subjectOptions]);
+    if (profileMode === 'self' && currentUser?.id && isValid(currentUser.id)) {
+      return currentUser.id;
+    }
+    if (isValid(profileSubjectId)) {
+      return profileSubjectId;
+    }
+    return subjectOptions[0]?.id ?? null;
+  }, [currentUser?.id, explicitSubjectId, profileMode, profileSubjectId, subjectOptions]);
 
   const selectedSubject = useMemo(
     () => subjectOptions.find((option) => option.id === selectedSubjectId) ?? null,
@@ -146,22 +154,15 @@ export function useInjuries() {
   }, [selectedChildId]);
 
   const handleSelectSubject = useCallback(
-    (nextSubjectId: string) => {
-      const selectedOption = subjectOptions.find((option) => option.id === nextSubjectId);
-      if (!selectedOption) return;
-      setSelectedSubjectId(nextSubjectId);
+    (_nextSubjectId: string) => {
+      // Subject is inherited from Home profile scope for this subflow.
     },
-    [subjectOptions],
+    [],
   );
 
   const handleSelectNextSubject = useCallback(() => {
-    if (subjectOptions.length <= 1) return;
-    const currentIndex = subjectOptions.findIndex((option) => option.id === selectedSubjectId);
-    const nextIndex = currentIndex >= 0 ? (currentIndex + 1) % subjectOptions.length : 0;
-    const nextSubjectId = subjectOptions[nextIndex]?.id ?? subjectOptions[0]?.id;
-    if (!nextSubjectId) return;
-    handleSelectSubject(nextSubjectId);
-  }, [handleSelectSubject, selectedSubjectId, subjectOptions]);
+    // Subject is inherited from Home profile scope for this subflow.
+  }, []);
 
   const handleEditSelectedSubject = useCallback(() => {
     if (!selectedSubject) return;

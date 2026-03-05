@@ -73,6 +73,22 @@ export interface ChildContextValue {
   /** Set the active child. Pass null for "All" mode. Persists to storage + emits event. */
   setActiveChildId: (childId: string | null) => Promise<void>;
 
+  /** Sticky profile mode used by Home -> Progress/Health flows. */
+  profileMode: 'self' | 'child';
+
+  /** Resolved profile subject id for the current profile mode. */
+  profileSubjectId: string | null;
+
+  /**
+   * Set profile scope for downstream screens.
+   * - mode=self resolves to current user
+   * - mode=child resolves to valid child, with safe fallback
+   */
+  setProfileScope: (next: {
+    mode: 'self' | 'child';
+    childId?: string | null;
+  }) => Promise<void>;
+
   /** True if parent has 2+ children */
   isMultiChild: boolean;
 

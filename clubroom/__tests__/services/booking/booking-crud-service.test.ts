@@ -5,12 +5,35 @@ import { bookingCrudService } from '@/services/booking/booking-crud-service';
 import { apiClient } from '@/services/api-client';
 import { STORAGE_KEYS } from '@/constants/storage-keys';
 import { onTyped, ServiceEvents } from '@/services/event-bus';
+import type { SessionOffering } from '@/constants/types';
+
+function makeSessionOffering(
+  overrides: Partial<SessionOffering> & { id: string; coachId: string; title: string },
+): SessionOffering {
+  const { id, coachId, title, ...rest } = overrides;
+  return {
+    id,
+    coachId,
+    title,
+    sessionType: 'group',
+    maxParticipants: 12,
+    location: 'Test Pitch',
+    scheduledAt: '2026-03-10T18:00:00.000Z',
+    isRecurring: false,
+    recurrenceType: 'none',
+    status: 'active',
+    registrations: [],
+    createdAt: '2026-03-01T00:00:00.000Z',
+    ...rest,
+  };
+}
 
 describe('BookingCrudService', () => {
   beforeEach(async () => {
     // Clear storage and reset draft
     await apiClient.remove(STORAGE_KEYS.BOOKINGS);
     await apiClient.remove(STORAGE_KEYS.COACH_SESSIONS);
+    await apiClient.remove(STORAGE_KEYS.SESSION_OFFERINGS);
     await apiClient.remove(STORAGE_KEYS.PROGRESS_SELF_ASSESSMENT_PROMPTS);
     await apiClient.remove(STORAGE_KEYS.PROGRESS_SELF_ASSESSMENTS);
     await apiClient.remove(STORAGE_KEYS.SESSION_JOURNAL);
@@ -182,6 +205,163 @@ describe('BookingCrudService', () => {
         }
       } finally {
         apiClientMutable.set = originalSet;
+      }
+    });
+
+    it('should allow linked-session bookings outside coach hours', async () => {
+      const coachId = 'coach-linked-hours';
+      await apiClient.set(STORAGE_KEYS.SESSION_OFFERINGS, [
+        makeSessionOffering({
+          id: 'offering_linked_hours',
+          coachId,
+          title: 'Linked Session',
+          source: 'direct',
+          sourceEntityId: 'offering_linked_hours',
+        }),
+      ]);
+
+      const result = await bookingCrudService.createBooking({
+        coachId,
+        coachName: 'Coach Linked',
+        athleteIds: ['athlete-linked-hours'],
+        athleteNames: ['Athlete Linked'],
+        bookedById: 'parent-linked-hours',
+        bookedByName: 'Parent Linked',
+        scheduledAt: '2026-01-01T03:00:00.000Z',
+        duration: 60,
+        location: 'Pitch 1',
+        service: 'Linked Session',
+        serviceType: 'GROUP',
+        sessionSource: 'direct',
+        sessionSourceEntityId: 'offering_linked_hours',
+      });
+
+      assert.equal(result.success, true);
+    });
+
+    it('should reject ad-hoc bookings outside coach hours', async () => {
+      const result = await bookingCrudService.createBooking({
+        coachId: 'coach-adhoc-hours',
+        coachName: 'Coach Adhoc',
+        athleteIds: ['athlete-adhoc-hours'],
+        athleteNames: ['Athlete Adhoc'],
+        bookedById: 'parent-adhoc-hours',
+        bookedByName: 'Parent Adhoc',
+        scheduledAt: '2026-01-01T03:00:00.000Z',
+        duration: 60,
+        location: 'Pitch 2',
+        service: 'Adhoc Session',
+        serviceType: 'COACHING',
+      });
+
+      assert.equal(result.success, false);
+      if (!result.success) {
+        assert.equal(result.error.code, 'VALIDATION');
+      }
+    });
+
+    it('should block duplicate athlete booking on same linked session', async () => {
+      const coachId = 'coach-linked-duplicate';
+      const sessionEntityId = 'offering_linked_duplicate';
+      await apiClient.set(STORAGE_KEYS.SESSION_OFFERINGS, [
+        makeSessionOffering({
+          id: sessionEntityId,
+          coachId,
+          title: 'Linked Duplicate Session',
+          source: 'direct',
+          sourceEntityId: sessionEntityId,
+        }),
+      ]);
+
+      const first = await bookingCrudService.createBooking({
+        coachId,
+        coachName: 'Coach Duplicate',
+        athleteIds: ['athlete-dup-1'],
+        athleteNames: ['Athlete Dup'],
+        bookedById: 'parent-dup',
+        bookedByName: 'Parent Dup',
+        scheduledAt: '2026-01-02T03:00:00.000Z',
+        duration: 60,
+        location: 'Pitch 3',
+        service: 'Linked Session',
+        serviceType: 'GROUP',
+        sessionSource: 'direct',
+        sessionSourceEntityId: sessionEntityId,
+      });
+      assert.equal(first.success, true);
+
+      const duplicate = await bookingCrudService.createBooking({
+        coachId,
+        coachName: 'Coach Duplicate',
+        athleteIds: ['athlete-dup-1'],
+        athleteNames: ['Athlete Dup'],
+        bookedById: 'parent-dup',
+        bookedByName: 'Parent Dup',
+        scheduledAt: '2026-01-02T03:00:00.000Z',
+        duration: 60,
+        location: 'Pitch 3',
+        service: 'Linked Session',
+        serviceType: 'GROUP',
+        sessionSource: 'direct',
+        sessionSourceEntityId: sessionEntityId,
+      });
+
+      assert.equal(duplicate.success, false);
+      if (!duplicate.success) {
+        assert.equal(duplicate.error.code, 'CONFLICT');
+      }
+    });
+
+    it('should block linked-session bookings when capacity is exceeded', async () => {
+      const coachId = 'coach-linked-capacity';
+      const sessionEntityId = 'offering_linked_capacity';
+      await apiClient.set(STORAGE_KEYS.SESSION_OFFERINGS, [
+        makeSessionOffering({
+          id: sessionEntityId,
+          coachId,
+          title: 'Linked Capacity Session',
+          source: 'direct',
+          sourceEntityId: sessionEntityId,
+          maxParticipants: 1,
+        }),
+      ]);
+
+      const first = await bookingCrudService.createBooking({
+        coachId,
+        coachName: 'Coach Capacity',
+        athleteIds: ['athlete-cap-1'],
+        athleteNames: ['Athlete Cap 1'],
+        bookedById: 'parent-cap',
+        bookedByName: 'Parent Cap',
+        scheduledAt: '2026-01-03T03:00:00.000Z',
+        duration: 60,
+        location: 'Pitch 4',
+        service: 'Linked Session',
+        serviceType: 'GROUP',
+        sessionSource: 'direct',
+        sessionSourceEntityId: sessionEntityId,
+      });
+      assert.equal(first.success, true);
+
+      const overflow = await bookingCrudService.createBooking({
+        coachId,
+        coachName: 'Coach Capacity',
+        athleteIds: ['athlete-cap-2'],
+        athleteNames: ['Athlete Cap 2'],
+        bookedById: 'parent-cap',
+        bookedByName: 'Parent Cap',
+        scheduledAt: '2026-01-03T03:00:00.000Z',
+        duration: 60,
+        location: 'Pitch 4',
+        service: 'Linked Session',
+        serviceType: 'GROUP',
+        sessionSource: 'direct',
+        sessionSourceEntityId: sessionEntityId,
+      });
+
+      assert.equal(overflow.success, false);
+      if (!overflow.success) {
+        assert.equal(overflow.error.code, 'CONFLICT');
       }
     });
   });

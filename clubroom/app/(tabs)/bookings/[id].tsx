@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { RefreshControl, ScrollView, StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { router, useFocusEffect } from 'expo-router';
+import { router, useFocusEffect, useLocalSearchParams, type Href } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 
 import { ThemedText } from '@/components/themed-text';
@@ -48,6 +48,8 @@ interface PaymentSnapshot {
 export default function SessionDetailScreen() {
   const bookingIdParam = useRequiredParam('id');
   const bookingId = bookingIdParam.valid ? bookingIdParam.value : '';
+  const detailParams = useLocalSearchParams<{ returnTo?: string }>();
+  const returnTo = typeof detailParams.returnTo === 'string' ? detailParams.returnTo.trim() : '';
   const { colors: palette } = useTheme();
   const { currentUser } = useAuth();
   const {
@@ -73,7 +75,17 @@ export default function SessionDetailScreen() {
     invoiceStatus: 'NONE',
   });
 
-  const handleGoBack = useCallback(() => router.back(), []);
+  const handleGoBack = useCallback(() => {
+    if (returnTo) {
+      router.replace(returnTo as Href);
+      return;
+    }
+    if (router.canGoBack()) {
+      router.back();
+      return;
+    }
+    router.replace(Routes.BOOKINGS);
+  }, [returnTo]);
 
   useEffect(() => {
     if (!booking?.coachId) return;
@@ -232,25 +244,6 @@ export default function SessionDetailScreen() {
           </Row>
         </ThemedView>
 
-        {!isCoach && (
-          <ThemedView
-            style={[
-              styles.audienceChip,
-              {
-                backgroundColor: withAlpha(palette.tint, 0.08),
-                borderColor: withAlpha(palette.tint, 0.22),
-              },
-            ]}
-          >
-            <Row align="center" gap="xs">
-              <Ionicons name="person-outline" size={16} color={palette.tint} />
-              <ThemedText style={[styles.audienceChipText, { color: palette.tint }]}>
-                For: {childName}
-              </ThemedText>
-            </Row>
-          </ThemedView>
-        )}
-
         {/* Info Cards */}
         <DateTimeCard
           weekday={formatted.weekday}
@@ -316,7 +309,7 @@ export default function SessionDetailScreen() {
         )}
 
         {/* Participants (group sessions) */}
-        {booking.isGroupSession && booking.participants && booking.participants.length > 0 && (
+        {isCoach && booking.isGroupSession && booking.participants && booking.participants.length > 0 && (
           <BookingParticipantsCard
             participants={booking.participants}
             currentParticipants={booking.currentParticipants}
@@ -430,15 +423,6 @@ const styles = StyleSheet.create({
   backRow: { marginTop: Spacing.xs },
   backBtn: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center' },
   flex1: { flex: 1 },
-  audienceChip: {
-    borderWidth: 1,
-    borderRadius: Radii.md,
-    paddingHorizontal: Spacing.md,
-    paddingVertical: Spacing.sm,
-  },
-  audienceChipText: {
-    fontWeight: '700',
-  },
   reviewCard: {
     borderWidth: 1,
     borderRadius: Radii.lg,

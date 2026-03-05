@@ -25,6 +25,7 @@ interface MyClubsData {
   clubs: ReturnType<typeof socialFeedService.getUserClubs>;
   memberships: ClubMembership[];
 }
+type UserClub = MyClubsData['clubs'][number];
 
 function roleLabel(role: ClubMembership['role']): string {
   if (role === 'HEAD_COACH') return 'Head Coach';
@@ -72,6 +73,71 @@ export default function MyClubsScreen() {
     (data?.memberships ?? []).forEach((membership) => map.set(membership.clubId, membership));
     return map;
   }, [data?.memberships]);
+  const staffClubs = useMemo(
+    () => clubs.filter((club) => isStaffMembership(membershipByClubId.get(club.id)?.role)),
+    [clubs, membershipByClubId],
+  );
+  const memberClubs = useMemo(
+    () => clubs.filter((club) => !isStaffMembership(membershipByClubId.get(club.id)?.role)),
+    [clubs, membershipByClubId],
+  );
+
+  const renderClubCard = useCallback(
+    (club: UserClub) => {
+      const membership = membershipByClubId.get(club.id);
+      return (
+        <SurfaceCard
+          key={club.id}
+          style={styles.clubCard}
+          onPress={() =>
+            router.push(
+              isStaffMembership(membership?.role)
+                ? Routes.clubHub({ clubId: club.id })
+                : Routes.club(club.id),
+            )
+          }
+        >
+          <View
+            style={[
+              styles.clubBadge,
+              { backgroundColor: withAlpha(colors.tint, 0.09) },
+            ]}
+          >
+            <ThemedText style={[styles.clubBadgeText, { color: colors.tint }]}>
+              {club.badge || club.name.slice(0, 2).toUpperCase()}
+            </ThemedText>
+          </View>
+
+          <View style={styles.clubBody}>
+            <ThemedText type="defaultSemiBold" numberOfLines={1}>
+              {club.name}
+            </ThemedText>
+            <ThemedText style={[styles.metaText, { color: colors.muted }]} numberOfLines={1}>
+              {[club.city, `${club.memberCount} members`].filter(Boolean).join(' · ')}
+            </ThemedText>
+            {membership ? (
+              <View
+                style={[
+                  styles.rolePill,
+                  { borderColor: withAlpha(colors.tint, 0.3), backgroundColor: withAlpha(colors.tint, 0.08) },
+                ]}
+              >
+                <ThemedText style={[styles.rolePillText, { color: colors.tint }]}>
+                  {roleLabel(membership.role)}
+                </ThemedText>
+              </View>
+            ) : null}
+          </View>
+
+          <Row align="center" gap="xxs">
+            <ThemedText style={[styles.openLabel, { color: colors.tint }]}>Open</ThemedText>
+            <Ionicons name="chevron-forward" size={16} color={colors.tint} />
+          </Row>
+        </SurfaceCard>
+      );
+    },
+    [colors.muted, colors.tint, membershipByClubId],
+  );
 
   const handleJoin = useCallback(
     (code: string) => {
@@ -148,59 +214,22 @@ export default function MyClubsScreen() {
         />
       ) : (
         <View style={styles.list}>
-          {clubs.map((club) => {
-            const membership = membershipByClubId.get(club.id);
-            return (
-              <SurfaceCard
-                key={club.id}
-                style={styles.clubCard}
-                onPress={() =>
-                  router.push(
-                    isStaffMembership(membership?.role)
-                      ? Routes.clubHub({ clubId: club.id })
-                      : Routes.club(club.id),
-                  )
-                }
-              >
-                <View
-                  style={[
-                    styles.clubBadge,
-                    { backgroundColor: withAlpha(colors.tint, 0.09) },
-                  ]}
-                >
-                  <ThemedText style={[styles.clubBadgeText, { color: colors.tint }]}>
-                    {club.badge || club.name.slice(0, 2).toUpperCase()}
-                  </ThemedText>
-                </View>
-
-                <View style={styles.clubBody}>
-                  <ThemedText type="defaultSemiBold" numberOfLines={1}>
-                    {club.name}
-                  </ThemedText>
-                  <ThemedText style={[styles.metaText, { color: colors.muted }]} numberOfLines={1}>
-                    {[club.city, `${club.memberCount} members`].filter(Boolean).join(' · ')}
-                  </ThemedText>
-                  {membership ? (
-                    <View
-                      style={[
-                        styles.rolePill,
-                        { borderColor: withAlpha(colors.tint, 0.3), backgroundColor: withAlpha(colors.tint, 0.08) },
-                      ]}
-                    >
-                      <ThemedText style={[styles.rolePillText, { color: colors.tint }]}>
-                        {roleLabel(membership.role)}
-                      </ThemedText>
-                    </View>
-                  ) : null}
-                </View>
-
-                <Row align="center" gap="xxs">
-                  <ThemedText style={[styles.openLabel, { color: colors.tint }]}>Open</ThemedText>
-                  <Ionicons name="chevron-forward" size={16} color={colors.tint} />
-                </Row>
-              </SurfaceCard>
-            );
-          })}
+          {staffClubs.length > 0 ? (
+            <View style={styles.sectionBlock}>
+              <ThemedText style={[styles.sectionHeading, { color: colors.muted }]}>
+                Clubs You Manage
+              </ThemedText>
+              <View style={styles.list}>{staffClubs.map(renderClubCard)}</View>
+            </View>
+          ) : null}
+          {memberClubs.length > 0 ? (
+            <View style={styles.sectionBlock}>
+              <ThemedText style={[styles.sectionHeading, { color: colors.muted }]}>
+                {staffClubs.length > 0 ? 'Clubs You Follow' : 'Your Clubs'}
+              </ThemedText>
+              <View style={styles.list}>{memberClubs.map(renderClubCard)}</View>
+            </View>
+          ) : null}
         </View>
       )}
     </PageContainer>
@@ -213,6 +242,14 @@ const styles = StyleSheet.create({
   },
   list: {
     gap: Spacing.sm,
+  },
+  sectionBlock: {
+    gap: Spacing.xs,
+  },
+  sectionHeading: {
+    ...Typography.caption,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
   },
   clubCard: {
     flexDirection: 'row',

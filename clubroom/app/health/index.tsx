@@ -29,10 +29,9 @@ export default function HealthDashboardScreen() {
     retry,
     handleLogInjury,
     handleInjuryPress,
-    selectedChildName,
-    showKidSelector,
+    selectedSubjectName,
+    selectedSubjectKind,
     canEditSelectedChild,
-    handleSelectNextChild,
     handleEditSelectedChild,
   } = useHealthHub();
   const renderShell = (content: ReactNode) => (
@@ -80,7 +79,7 @@ export default function HealthDashboardScreen() {
         showsVerticalScrollIndicator={false}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />}
       >
-        {canEditSelectedChild && (
+        {selectedSubjectName && (
           <View
             style={[
               styles.kidCard,
@@ -90,39 +89,28 @@ export default function HealthDashboardScreen() {
             <Row align="center" justify="space-between">
               <Row align="center" gap="xs">
                 <Ionicons name="person-circle-outline" size={18} color={colors.tint} />
-                <ThemedText style={[styles.kidLabel, { color: colors.muted }]}>Kid</ThemedText>
-                <ThemedText style={styles.kidName}>{selectedChildName ?? 'Selected'}</ThemedText>
+                {selectedSubjectKind === 'child' ? (
+                  <ThemedText style={[styles.kidLabel, { color: colors.muted }]}>Kid</ThemedText>
+                ) : null}
+                <ThemedText style={styles.kidName}>{selectedSubjectName}</ThemedText>
               </Row>
-              <Row align="center" gap="xs">
-                {showKidSelector && (
+              {canEditSelectedChild ? (
+                <Row align="center" gap="xs">
                   <Clickable
-                    onPress={handleSelectNextChild}
+                    onPress={handleEditSelectedChild}
                     style={[
                       styles.editKidButton,
                       { borderColor: colors.border, backgroundColor: withAlpha(colors.tint, 0.08) },
                     ]}
-                    accessibilityLabel="Switch selected kid"
+                    accessibilityLabel="Edit selected kid profile"
                   >
                     <Row align="center" gap="xxs">
-                      <Ionicons name="swap-horizontal-outline" size={14} color={colors.tint} />
-                      <ThemedText style={[styles.editKidText, { color: colors.tint }]}>Switch</ThemedText>
+                      <Ionicons name="create-outline" size={14} color={colors.tint} />
+                      <ThemedText style={[styles.editKidText, { color: colors.tint }]}>Edit</ThemedText>
                     </Row>
                   </Clickable>
-                )}
-                <Clickable
-                  onPress={handleEditSelectedChild}
-                  style={[
-                    styles.editKidButton,
-                    { borderColor: colors.border, backgroundColor: withAlpha(colors.tint, 0.08) },
-                  ]}
-                  accessibilityLabel="Edit selected kid profile"
-                >
-                  <Row align="center" gap="xxs">
-                    <Ionicons name="create-outline" size={14} color={colors.tint} />
-                    <ThemedText style={[styles.editKidText, { color: colors.tint }]}>Edit</ThemedText>
-                  </Row>
-                </Clickable>
-              </Row>
+                </Row>
+              ) : null}
             </Row>
           </View>
         )}

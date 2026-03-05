@@ -142,6 +142,7 @@ export default function MyProgressScreen() {
     };
   }, [colors.info, colors.success, colors.tint, colors.warning, playerCard.tier]);
 
+  const isSelfSubject = Boolean(currentUser?.id && selectedAthleteId === currentUser.id);
   const showChildFocusCard = isParentContext && Boolean(selectedAthleteId);
   const pageTitle = isParentContext ? 'Progress' : 'My Progress';
   const childFocusCard = showChildFocusCard ? (
@@ -158,7 +159,9 @@ export default function MyProgressScreen() {
         <Row align="center" justify="space-between">
           <Row align="center" gap="xs">
             <Ionicons name="person-circle-outline" size={18} color={colors.tint} />
-            <ThemedText style={[styles.childLabel, { color: colors.muted }]}>Kid</ThemedText>
+            {!isSelfSubject ? (
+              <ThemedText style={[styles.childLabel, { color: colors.muted }]}>Kid</ThemedText>
+            ) : null}
             <ThemedText style={styles.childName}>{selectedAthleteName}</ThemedText>
           </Row>
         </Row>
