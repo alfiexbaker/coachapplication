@@ -80,21 +80,15 @@ export default function DrillDetailScreen() {
 
   const handleUncomplete = useCallback(async () => {
     if (!assignment) return;
-    uiFeedback.alert('Mark as Incomplete?', 'This will move the drill back to your pending list.', [
-      { text: 'Cancel', style: 'cancel' },
-      {
-        text: 'Mark Incomplete',
-        onPress: async () => {
-          void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-          try {
-            await drillService.uncompleteDrill(assignment.id);
-            retry();
-          } catch (error) {
-            logger.error('Failed to uncomplete drill:', error);
-          }
-        },
-      },
-    ]);
+    void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    try {
+      await drillService.uncompleteDrill(assignment.id);
+      retry();
+      uiFeedback.showToast('Drill moved back to your pending list.', 'success');
+    } catch (error) {
+      logger.error('Failed to uncomplete drill:', error);
+      uiFeedback.showToast('Failed to update drill status. Please try again.', 'error');
+    }
   }, [assignment, retry]);
   const renderShell = (content: ReactNode) => (
     <SafeAreaView

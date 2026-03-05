@@ -10,7 +10,7 @@ Date: 2026-03-05
    - `hooks/theme-provider.tsx`
 3. Added explicit accessibility label on notifications bell action:
    - `components/ui/notification-bell.tsx`
-4. Ran strict WS3 audit and converted first five non-decision popup batches to toast-first behavior:
+4. Ran strict WS3 audit and converted first six non-decision popup batches to toast-first behavior:
    - `hooks/use-create-match.ts` (2 callsites)
    - `hooks/use-create-session.ts` (2 callsites)
    - `hooks/use-drill-assign.ts` (1 callsite)
@@ -30,29 +30,31 @@ Date: 2026-03-05
    - `hooks/use-help-screen.ts` (1 callsite)
    - `components/recurring/RecurringCard.tsx` (1 callsite)
    - `components/coach/session-type-modal.tsx` (1 callsite)
+   - `app/drills/[id].tsx` (1 callsite)
+   - `components/referrals/ShareButton.tsx` (1 callsite)
 5. Cleared unrelated typecheck blocker in club feed filter counts:
    - `hooks/use-club-detail.ts` (`video` key added to `filterCounts` with typed map)
 6. Post-conversion alert baseline:
-   - `uiFeedback.alert(...)`: `98` (from `123` at sprint start, `534` sprint baseline)
-   - `uiFeedback.showToast(...)`: `392` (from `380`)
+   - `uiFeedback.alert(...)`: `96` (from `123` at sprint start, `534` sprint baseline)
+   - `uiFeedback.showToast(...)`: `394` (from `380`)
    - native `Alert.*`: `0`
 
 ## Verification run in this step
 
 - `npm run typecheck` -> PASS
 - `npm run lint:ui-actions` -> PASS
-- `npm run audit:alerts` -> PASS (`native Alert: 0`, `uiFeedback.alert: 98`, `uiFeedback.prompt: 1`, `uiFeedback.showToast: 392`)
+- `npm run audit:alerts` -> PASS (`native Alert: 0`, `uiFeedback.alert: 96`, `uiFeedback.prompt: 1`, `uiFeedback.showToast: 394`)
 - `npm run ui:flows:coach-core -- --fail-on=none` -> PASS (`11/11`, `0` medium, `0` high)
 
 ## Current state
 
 - `FM-7.1`: DONE (coach-home nested-button warning cleared).
-- `FM-7.2`: IN PROGRESS (five strict toast conversion batches complete; remaining alerts require decision-point audit).
+- `FM-7.2`: IN PROGRESS (six strict toast conversion batches complete; remaining alerts require decision-point audit).
 
 ## Next exact action
 
-1. Continue WS3 audit of remaining `98` `uiFeedback.alert(...)` callsites and classify each as:
+1. Continue WS3 audit of remaining `96` `uiFeedback.alert(...)` callsites and classify each as:
    - true decision point (keep)
    - non-decision informational popup (convert to toast/inline)
-2. Convert next high-confidence non-decision batch (remaining non-destructive confirms currently `23` callsites) and keep explicit justifications for any retained confirms.
+2. Convert next high-confidence non-decision batch (remaining non-destructive confirms currently `21` callsites) and keep explicit justifications for any retained confirms.
 3. Re-run `audit:alerts` + targeted flow checks and commit next atomic slice.

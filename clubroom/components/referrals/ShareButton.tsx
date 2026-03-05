@@ -18,7 +18,6 @@ import { createLogger } from '@/utils/logger';
 import { referralService } from '@/services/referral-service';
 import { useTheme } from '@/hooks/useTheme';
 import { useToast } from '@/components/ui/toast';
-import { uiFeedback } from '@/services/ui-feedback';
 
 // Re-export extracted components for backward compat
 export { SharePreview } from './share-button-sections';
@@ -102,14 +101,8 @@ export function ShareButton({
       }
     } catch (error) {
       logger.error('Share error', error);
-      uiFeedback.alert(
-        'Share Failed',
-        'Would you like to copy the link instead?',
-        [
-          { text: 'Cancel', style: 'cancel', onPress: () => onShareComplete?.(false) },
-          { text: 'Copy Link', onPress: handleCopyLink },
-        ],
-      );
+      showToast('Share failed. Copied referral link instead.', 'warning');
+      void handleCopyLink();
     }
   }, [code, userName, creditAmount, customMessage, onShare, onShareComplete, handleCopyLink, showToast]);
 
