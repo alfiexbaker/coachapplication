@@ -39,19 +39,7 @@ export default function PrivacySettingsScreen() {
 
   const handleDownloadData = () => {
     logger.press('DownloadData');
-    uiFeedback.alert(
-      'Download Your Data',
-      "We'll prepare a copy of your data and email it to you within 48 hours.",
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Request Download',
-          onPress: () => {
-            uiFeedback.showToast("You'll receive an email when your data is ready.", 'success');
-          },
-        },
-      ],
-    );
+    uiFeedback.showToast("Download requested. You'll receive an email within 48 hours.", 'success');
   };
 
   const handleManageBlockedUsers = () => {

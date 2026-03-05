@@ -9,7 +9,6 @@ import { useNotifications } from '@/hooks/use-notifications';
 import { useToast } from '@/components/ui/toast';
 import { NotificationsPanel } from '@/components/notification/notifications-panel';
 import { NotificationsActionsBar } from '@/components/notification/notifications-actions-bar';
-import { uiFeedback } from '@/services/ui-feedback';
 
 // Re-export NotificationsPanel for backward compatibility
 export { NotificationsPanel } from '@/components/notification/notifications-panel';
@@ -51,18 +50,6 @@ export default function NotificationsScreen() {
         setMarkingAllRead(false);
       }
     };
-
-    if (unreadCount > 20) {
-      uiFeedback.alert(
-        'Mark all as read?',
-        `This will mark ${unreadCount} notifications as read.`,
-        [
-          { text: 'Cancel', style: 'cancel' },
-          { text: 'Mark All Read', onPress: () => void performMarkAllRead() },
-        ],
-      );
-      return;
-    }
 
     await performMarkAllRead();
   }, [markAllAsRead, unreadCount, markingAllRead, showToast]);

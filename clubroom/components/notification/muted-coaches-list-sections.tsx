@@ -9,7 +9,6 @@ import { Row } from '@/components/primitives/row';
 import { Radii, Spacing, Typography, withAlpha } from '@/constants/theme';
 import type { MutedCoach } from '@/constants/types';
 import type { useTheme } from '@/hooks/useTheme';
-import { uiFeedback } from '@/services/ui-feedback';
 
 type ThemeColors = ReturnType<typeof useTheme>['colors'];
 
@@ -50,17 +49,6 @@ export const MutedCoachRow = memo(function MutedCoachRow({
   isLast,
   palette,
 }: MutedCoachRowProps) {
-  const handleUnmute = () => {
-    uiFeedback.alert(
-      'Unmute Coach',
-      `Are you sure you want to unmute ${coach.coachName}? You will start receiving notifications from them again.`,
-      [
-        { text: 'Cancel', style: 'cancel' },
-        { text: 'Unmute', onPress: () => onUnmute(coach.coachId) },
-      ],
-    );
-  };
-
   return (
     <Row
       align="center"
@@ -99,7 +87,7 @@ export const MutedCoachRow = memo(function MutedCoachRow({
         )}
       </View>
       <Clickable
-        onPress={handleUnmute}
+        onPress={() => onUnmute(coach.coachId)}
         disabled={disabled || loading}
         style={[styles.unmuteButton, { backgroundColor: withAlpha(palette.error, 0.09) }]}
       >

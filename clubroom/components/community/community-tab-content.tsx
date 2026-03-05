@@ -1,4 +1,4 @@
-import React, { memo, useCallback } from 'react';
+import React, { memo } from 'react';
 import { View, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { ParentGroupCard } from '@/components/community/ParentGroupCard';
@@ -11,7 +11,6 @@ import { scaleFont } from '@/utils/scale';
 import type { ParentGroup } from '@/constants/types';
 import type { TabType } from '@/hooks/use-community-hub';
 import { Row } from '@/components/primitives';
-import { uiFeedback } from '@/services/ui-feedback';
 
 interface CommunityTabContentProps {
   tab: TabType;
@@ -66,20 +65,6 @@ export const CommunityTabContent = memo(function CommunityTabContent({
 }: CommunityTabContentProps) {
   const { colors: palette } = useTheme();
 
-  const handleJoinGroup = useCallback((group: ParentGroup) => {
-    uiFeedback.alert(
-      'Join Group',
-      `Join "${group.name}"?\n\n` +
-      (!group.isPublic
-        ? 'Your request will be sent to group admins for approval.'
-        : 'You will have immediate access to:\n• Group posts and discussions\n• Member list\n• Event notifications'),
-      [
-        { text: 'Cancel', style: 'cancel' },
-        { text: !group.isPublic ? 'Request' : 'Join', onPress: () => onJoinGroup(group) },
-      ],
-    );
-  }, [onJoinGroup]);
-
   if (loading) {
     return (
       <View style={styles.loadingContainer}>
@@ -127,7 +112,7 @@ export const CommunityTabContent = memo(function CommunityTabContent({
       {publicGroups.map((group) => (
         <SurfaceCard key={group.id} style={styles.discoverCard}>
           <ParentGroupCard group={group} compact />
-          <Button variant="secondary" onPress={() => handleJoinGroup(group)} style={styles.joinButton}>
+          <Button variant="secondary" onPress={() => onJoinGroup(group)} style={styles.joinButton}>
             <Row style={styles.joinButtonContent}>
               <Ionicons name="add" size={18} color={palette.text} />
               <ThemedText style={styles.joinButtonText}>Join</ThemedText>

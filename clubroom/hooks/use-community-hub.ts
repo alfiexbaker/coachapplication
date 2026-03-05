@@ -136,6 +136,12 @@ export function useCommunityHub(): UseCommunityHubResult {
           uiFeedback.showToast(result.error.message);
           return;
         }
+        uiFeedback.showToast(
+          group.isPublic
+            ? `Joined "${group.name}".`
+            : `Request sent to join "${group.name}".`,
+          'success',
+        );
         onRefresh();
       } catch (error) {
         logger.error('Failed to join group:', error);

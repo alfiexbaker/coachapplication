@@ -95,24 +95,15 @@ export function useEventDetail(id: string | undefined): UseEventDetailResult {
 
   const handlePublish = useCallback(async () => {
     if (!event) return;
-
-    uiFeedback.alert('Publish Event', 'This will notify all club members about this event.', [
-      { text: 'Cancel', style: 'cancel' },
-      {
-        text: 'Publish',
-        onPress: async () => {
-          try {
-            await eventService.publishEvent(event.id);
-            await eventService.inviteClub(event.id);
-            onRefresh();
-            uiFeedback.showToast('Event published and members notified!', 'success');
-          } catch (error) {
-            logger.error('Failed to publish:', error);
-            uiFeedback.showToast('Failed to publish event.', 'error');
-          }
-        },
-      },
-    ]);
+    try {
+      await eventService.publishEvent(event.id);
+      await eventService.inviteClub(event.id);
+      onRefresh();
+      uiFeedback.showToast('Event published and members notified!', 'success');
+    } catch (error) {
+      logger.error('Failed to publish:', error);
+      uiFeedback.showToast('Failed to publish event.', 'error');
+    }
   }, [event, onRefresh]);
 
   const handleCancel = useCallback(async () => {

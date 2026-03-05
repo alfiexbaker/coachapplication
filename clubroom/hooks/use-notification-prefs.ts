@@ -173,6 +173,7 @@ export function useNotificationPrefs() {
         }
 
         setPreferencesOverride(updatedResult.data);
+        showToast('Coach unmuted', 'success');
       } catch (updateError) {
         setActionError('Failed to unmute coach');
         logger.error('Failed to unmute coach', { updateError });
@@ -180,7 +181,7 @@ export function useNotificationPrefs() {
         setUpdating(false);
       }
     },
-    [preferences, userId],
+    [preferences, userId, showToast],
   );
 
   const error =
