@@ -109,48 +109,50 @@ export function NotificationToastProvider({ children }: { children: React.ReactN
     <>
       {children}
       <Animated.View style={[styles.container, { top: insets.top + 10 }, containerAnimStyle]}>
-        <Clickable onPress={handlePress}>
-          <Row
-            align="center"
-            gap="sm"
-            style={[
-              styles.toast,
-              {
-                backgroundColor: palette.surface,
-                borderColor: palette.border,
-                ...Shadows[scheme].card,
-              },
-            ]}
+        <Row
+          align="center"
+          gap="sm"
+          style={[
+            styles.toast,
+            {
+              backgroundColor: palette.surface,
+              borderColor: palette.border,
+              ...Shadows[scheme].card,
+            },
+          ]}
+        >
+          <Clickable
+            onPress={handlePress}
+            style={styles.mainAction}
+            accessibilityLabel={toast.notification.title}
           >
-            {/* Icon */}
-            <View
-              style={[styles.iconContainer, { backgroundColor: withAlpha(palette.tint, 0.09) }]}
-            >
-              <Ionicons
-                name={icon as keyof typeof Ionicons.glyphMap}
-                size={20}
-                color={palette.tint}
-              />
-            </View>
-
-            {/* Content */}
-            <View style={styles.content}>
-              <ThemedText type="defaultSemiBold" numberOfLines={1} style={styles.title}>
-                {toast.notification.title}
-              </ThemedText>
-              <ThemedText style={[styles.body, { color: palette.muted }]} numberOfLines={2}>
-                {toast.notification.body}
-              </ThemedText>
-            </View>
-
-            {/* Close button */}
-            <Clickable onPress={hideToast}>
-              <View style={styles.closeButton}>
-                <Ionicons name="close" size={18} color={palette.muted} />
+            <Row align="center" gap="sm">
+              <View
+                style={[styles.iconContainer, { backgroundColor: withAlpha(palette.tint, 0.09) }]}
+              >
+                <Ionicons
+                  name={icon as keyof typeof Ionicons.glyphMap}
+                  size={20}
+                  color={palette.tint}
+                />
               </View>
-            </Clickable>
-          </Row>
-        </Clickable>
+              <View style={styles.content}>
+                <ThemedText type="defaultSemiBold" numberOfLines={1} style={styles.title}>
+                  {toast.notification.title}
+                </ThemedText>
+                <ThemedText style={[styles.body, { color: palette.muted }]} numberOfLines={2}>
+                  {toast.notification.body}
+                </ThemedText>
+              </View>
+            </Row>
+          </Clickable>
+
+          <Clickable onPress={hideToast} accessibilityLabel="Dismiss notification toast">
+            <View style={styles.closeButton}>
+              <Ionicons name="close" size={18} color={palette.muted} />
+            </View>
+          </Clickable>
+        </Row>
       </Animated.View>
     </>
   );
@@ -173,41 +175,43 @@ export function NotificationToast({
   const icon = ICONS[notification.type] || 'notifications';
 
   return (
-    <Clickable onPress={onPress}>
-      <Row
-        align="center"
-        gap="sm"
-        style={[
-          styles.toast,
-          {
-            backgroundColor: palette.surface,
-            borderColor: palette.border,
-            ...Shadows[scheme].card,
-          },
-        ]}
-      >
-        <View style={[styles.iconContainer, { backgroundColor: withAlpha(palette.tint, 0.09) }]}>
-          <Ionicons name={icon as keyof typeof Ionicons.glyphMap} size={20} color={palette.tint} />
-        </View>
+    <Row
+      align="center"
+      gap="sm"
+      style={[
+        styles.toast,
+        {
+          backgroundColor: palette.surface,
+          borderColor: palette.border,
+          ...Shadows[scheme].card,
+        },
+      ]}
+    >
+      <Clickable onPress={onPress} style={styles.mainAction} accessibilityLabel={notification.title}>
+        <Row align="center" gap="sm">
+          <View style={[styles.iconContainer, { backgroundColor: withAlpha(palette.tint, 0.09) }]}>
+            <Ionicons name={icon as keyof typeof Ionicons.glyphMap} size={20} color={palette.tint} />
+          </View>
 
-        <View style={styles.content}>
-          <ThemedText type="defaultSemiBold" numberOfLines={1} style={styles.title}>
-            {notification.title}
-          </ThemedText>
-          <ThemedText style={[styles.body, { color: palette.muted }]} numberOfLines={2}>
-            {notification.body}
-          </ThemedText>
-        </View>
+          <View style={styles.content}>
+            <ThemedText type="defaultSemiBold" numberOfLines={1} style={styles.title}>
+              {notification.title}
+            </ThemedText>
+            <ThemedText style={[styles.body, { color: palette.muted }]} numberOfLines={2}>
+              {notification.body}
+            </ThemedText>
+          </View>
+        </Row>
+      </Clickable>
 
-        {onDismiss && (
-          <Clickable onPress={onDismiss}>
-            <View style={styles.closeButton}>
-              <Ionicons name="close" size={18} color={palette.muted} />
-            </View>
-          </Clickable>
-        )}
-      </Row>
-    </Clickable>
+      {onDismiss && (
+        <Clickable onPress={onDismiss} accessibilityLabel="Dismiss notification toast">
+          <View style={styles.closeButton}>
+            <Ionicons name="close" size={18} color={palette.muted} />
+          </View>
+        </Clickable>
+      )}
+    </Row>
   );
 }
 
@@ -223,6 +227,9 @@ const styles = StyleSheet.create({
     padding: Spacing.md,
     borderRadius: Radii.lg,
     borderWidth: 1,
+  },
+  mainAction: {
+    flex: 1,
   },
   iconContainer: {
     width: 40,

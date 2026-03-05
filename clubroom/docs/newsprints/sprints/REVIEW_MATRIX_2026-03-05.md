@@ -11,10 +11,10 @@ Legend:
 
 | ID | Sprint item | As described? | Better now? | Evidence snapshot | Remaining |
 |---|---|---|---|---|---|
-| FM-7.1 | Remove nested-button hydration warning | NO | YES | `sprint6-closeout.md` still reports `1` medium finding | Eliminate `nested <button>` composition path and re-run flow matrix |
+| FM-7.1 | Remove nested-button hydration warning | YES | YES | `npm run ui:flows:coach-core -- --fail-on=none` => `0` medium (`coach_home` clean) after notification-toast composition fix | Keep flow matrix green in CI/local |
 | FM-7.2 | Reduce remaining non-decision alert popups | PARTIAL | YES | `npm run audit:alerts` => `uiFeedback.alert: 123` (down from 534 baseline) | Strict WS3 pass to keep only true decision dialogs |
 | FM-7.3 | Permission denial/recovery checks | PARTIAL | YES | WS4 permission guidance pass documented in closeout | Add explicit deterministic flow assertions for deny/recover paths |
-| FM-7.4 | Matrix stability with base-url/runtime hardening | PARTIAL | YES | `ui-flow-checks-50.mjs` includes localhost -> `127.0.0.1` fallback | Ensure runtime is up in local/CI; preflight still fails without running server |
+| FM-7.4 | Matrix stability with base-url/runtime hardening | PARTIAL | YES | Local runtime + preflight now passes when server is active on `:8083`; coach-core profile also clean | Wire same reliability in CI and remaining profiles |
 
 ## Architecture hardening
 

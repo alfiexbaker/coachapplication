@@ -32,7 +32,7 @@ export function NotificationBell({ size = 24, color }: NotificationBellProps) {
   };
 
   return (
-    <Clickable onPress={handlePress}>
+    <Clickable onPress={handlePress} accessibilityLabel="Open notifications">
       <View style={styles.container}>
         <Ionicons name="notifications-outline" size={size} color={iconColor} />
         {unreadCount > 0 && (

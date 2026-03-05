@@ -8,8 +8,8 @@ Scope rule: active/planned work only. Historical completed details remain in sou
 
 | ID | Work | Spine(s) | Status | Source |
 |---|---|---|---|---|
-| FM-7.1 | Remove recurring web hydration warning (`nested <button>` from `Clickable` composition on coach home) | Booking/Revenue + Community | OPEN | `docs/newsprints/forms-modals/sprint6-closeout.md` |
-| FM-7.2 | Strict WS3 audit of remaining `uiFeedback.alert(...)` and convert non-decision cases to `uiFeedback.showToast(...)` | All spines | OPEN | `docs/newsprints/forms-modals/sprint6-closeout.md` |
+| FM-7.1 | Remove recurring web hydration warning (`nested <button>` from `Clickable` composition on coach home) | Booking/Revenue + Community | DONE (2026-03-05) | `docs/newsprints/forms-modals/sprint6-closeout.md` |
+| FM-7.2 | Strict WS3 audit of remaining `uiFeedback.alert(...)` and convert non-decision cases to `uiFeedback.showToast(...)` | All spines | IN PROGRESS | `docs/newsprints/forms-modals/sprint6-closeout.md` |
 | FM-7.3 | Add explicit permission denial/recovery flow checks (location/camera/media) | Trust/Ops + Development | OPEN | `docs/newsprints/forms-modals/sprint6-closeout.md` |
 | FM-7.4 | Keep role/device matrix green with stable runtime/base-url behavior in local + CI | Development | OPEN | `docs/newsprints/forms-modals/sprint6-closeout.md` |
 

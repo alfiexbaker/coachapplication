@@ -24,14 +24,14 @@ function useSystemScheme(): NonNullable<ColorSchemeName> {
 
   // On web, also listen to prefers-color-scheme media query
   const [webScheme, setWebScheme] = useState<NonNullable<ColorSchemeName>>(() => {
-    if (Platform.OS === 'web' && window) {
+    if (Platform.OS === 'web' && typeof window !== 'undefined') {
       return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
     }
     return rnScheme ?? 'dark';
   });
 
   useEffect(() => {
-    if (Platform.OS !== 'web' || !window) {
+    if (Platform.OS !== 'web' || typeof window === 'undefined') {
       return;
     }
     const mq = window.matchMedia('(prefers-color-scheme: dark)');
