@@ -13,11 +13,14 @@ Canonical sprint reference:
   - `npm run audit:alerts`
   - `npm run audit:ui`
 - QA matrix status:
-  - `ui:flows:preflight` blocked by unreachable local server (`http://localhost:8083`).
+  - `ui:flows:preflight` pass
+  - `ui:flows:trust-core` pass (`6/6`, `0` high)
+  - `ui:flows:pre-api-core` pass (`34/34`, `0` high)
   - `test:bookings` pass
   - `test:messaging` pass
   - `test:safety` pass
 - Typecheck blocker previously noted in `booking-crud-service.ts` is no longer active in current state.
+- `ui:flows` script now auto-falls back from `localhost` to `127.0.0.1` for base URL reachability checks.
 
 ## Completed in this pass
 

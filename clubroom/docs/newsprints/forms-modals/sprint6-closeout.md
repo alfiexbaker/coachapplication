@@ -6,8 +6,7 @@
 ## Closure Summary
 
 Sprint 6 engineering goals are complete for alert migration hardening and WS4 permission guidance consistency.
-
-Remaining closure items are now QA/environment waivers, not implementation gaps.
+Sprint 6 closure verification now passes with local UI flow runtime active.
 
 ## WS4 Final Pass Completed
 
@@ -39,8 +38,9 @@ Alert metrics at closeout:
 ### QA matrix / flow coverage
 
 - `npm run ui:flows:list` -> pass (80 role flows enumerated)
-- `npm run ui:flows:preflight` -> blocked
-  - failure: base URL unreachable at `http://localhost:8083` for coach/parent/athlete
+- `npm run ui:flows:preflight` -> pass (coach/parent/athlete preflight all ok with local web runtime)
+- `npm run ui:flows:trust-core` -> pass (`6/6`, `0` failed, `0` high, `1` medium)
+- `npm run ui:flows:pre-api-core` -> pass (`34/34`, `0` failed, `0` high, `1` medium)
 - `npm run test:bookings` -> pass
 - `npm run test:messaging` -> pass
 - `npm run test:safety` -> pass
@@ -55,13 +55,11 @@ Previously reported unrelated blocker in `services/booking/booking-crud-service.
 
 ## Formal Waiver Proposal
 
-To close Sprint 6 immediately, record these waivers:
-
-1. `ui:flows` role/device preflight blocked by local runtime availability (`http://localhost:8083` not running).
+No mandatory Sprint 6 waivers remain.
 
 ## Sprint 7 Candidate Goals
 
-1. Resolve the trust/home route regression (`Journal` quick action assertion) and re-run `test:safety`.
-2. Run full role/device matrix with app server up (`ui:flows:coach`, `ui:flows:parent`, `ui:flows:athlete`, `ui:flows:trust-core`).
-3. Reduce remaining `uiFeedback.alert(...)` decision surfaces with strict decision-vs-information audit and refactors where appropriate.
-4. Add targeted e2e checks for permission denial/recovery paths touched in WS4.
+1. Remove recurring medium-severity web hydration warning (`nested <button>` stack in `Clickable` composition).
+2. Reduce remaining `uiFeedback.alert(...)` decision surfaces with strict decision-vs-information audit and refactors where appropriate.
+3. Add targeted e2e checks for permission denial/recovery paths touched in WS4.
+4. Keep role/device matrix green in CI by keeping local base URL and preflight startup stable.

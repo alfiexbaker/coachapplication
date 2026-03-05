@@ -1,7 +1,7 @@
 import fs from 'node:fs/promises';
 import path from 'node:path';
 
-const baseUrl = process.env.UI_BASE_URL || 'http://localhost:8083';
+let baseUrl = process.env.UI_BASE_URL || 'http://localhost:8083';
 const defaultOutDir = process.env.UI_FLOW_OUT_DIR || '/tmp/ui-flow-checks-50';
 const failLevels = ['none', 'high', 'medium'];
 let chromium = null;
@@ -905,22 +905,42 @@ async function login(page, role) {
 }
 
 async function verifyBaseUrlReachable() {
-  try {
-    const response = await fetch(baseUrl, { method: 'GET' });
-    if (!response.ok) {
-      return {
-        ok: false,
-        detail: `base_url_http_${response.status}`,
-      };
-    }
+  const tryFetch = async (url) => {
+    const response = await fetch(url, { method: 'GET' });
     return {
-      ok: true,
+      ok: response.ok,
       detail: `base_url_http_${response.status}`,
+      url,
     };
+  };
+
+  try {
+    return await tryFetch(baseUrl);
   } catch (error) {
+    // Some environments resolve localhost to an address the dev server is not bound to.
+    // Auto-fallback to 127.0.0.1 for local runs so preflight remains stable.
+    try {
+      const url = new URL(baseUrl);
+      if (url.hostname === 'localhost') {
+        const fallbackUrl = `${url.protocol}//127.0.0.1${url.port ? `:${url.port}` : ''}`;
+        const fallback = await tryFetch(fallbackUrl);
+        if (fallback.ok) {
+          baseUrl = fallbackUrl;
+          return {
+            ok: true,
+            detail: `${fallback.detail};base_url_fallback:${fallbackUrl}`,
+            url: fallbackUrl,
+          };
+        }
+      }
+    } catch {
+      // Ignore URL parse or fallback errors and return the original failure below.
+    }
+
     return {
       ok: false,
       detail: `base_url_unreachable:${String(error)}`,
+      url: baseUrl,
     };
   }
 }
