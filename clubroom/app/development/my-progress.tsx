@@ -198,7 +198,7 @@ export default function MyProgressScreen() {
 
   const handleAskCoachAboutThis = useCallback(() => {
     if (!isParentContext || !selectedAthleteId) {
-      uiFeedback.alert('Coach messaging unavailable', 'Switch to a child profile to contact a coach.');
+      uiFeedback.showToast('Switch to a child profile to contact a coach.');
       return;
     }
 
@@ -354,7 +354,7 @@ export default function MyProgressScreen() {
   const handleShareTermlyReport = useCallback(async () => {
     const reportResult = await generateTermlyReport();
     if (!reportResult.success) {
-      uiFeedback.alert('Unable to generate report', reportResult.error.message);
+      uiFeedback.showToast(reportResult.error.message, 'error');
       return;
     }
 
@@ -364,7 +364,7 @@ export default function MyProgressScreen() {
         message: progressTermlyReportService.buildShareMessage(reportResult.data),
       });
     } catch {
-      uiFeedback.alert('Share failed', 'Could not share the termly report right now.');
+      uiFeedback.showToast('Could not share the termly report right now.', 'error');
     }
   }, [generateTermlyReport, selectedAthleteName]);
 

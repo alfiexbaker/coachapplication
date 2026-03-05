@@ -85,10 +85,7 @@ export default function RaiseConcernScreen() {
   const handleSubmit = useCallback(async () => {
     if (!canSubmit || !type) return;
     if (isEscalationRisk && actionTaken.trim().length < 8) {
-      uiFeedback.alert(
-        'Action required',
-        'For high-risk concerns, include immediate action taken before submitting.',
-      );
+      uiFeedback.showToast('For high-risk concerns, include immediate action taken before submitting.', 'error');
       return;
     }
 
@@ -119,11 +116,11 @@ export default function RaiseConcernScreen() {
           [{ text: 'OK', onPress: () => router.back() }],
         );
       } else {
-        uiFeedback.alert('Error', result.error.message);
+        uiFeedback.showToast(result.error.message, 'error');
       }
     } catch (submitError) {
       logger.error('Failed to submit concern', submitError);
-      uiFeedback.alert('Error', 'Failed to submit concern. Please try again.');
+      uiFeedback.showToast('Failed to submit concern. Please try again.', 'error');
     } finally {
       setSubmitting(false);
     }

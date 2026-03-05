@@ -109,7 +109,7 @@ export default function TrialSessionEditor({ onSave, onBack }: TrialSessionEdito
         description,
       });
       if (error) {
-        uiFeedback.alert('Validation Error', error);
+        uiFeedback.showToast(error, 'error');
         return;
       }
     }

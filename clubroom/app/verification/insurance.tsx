@@ -77,9 +77,9 @@ export default function InsuranceVerificationScreen() {
     const result = await verificationService.mockApproveVerification(COACH_ID, 'insurance');
     if (result.success) {
       setStatus(result.data);
-      uiFeedback.alert('Success', 'Insurance verification approved.');
+      uiFeedback.showToast('Insurance verification approved.', 'success');
     } else {
-      uiFeedback.alert('Error', result.error.message);
+      uiFeedback.showToast(result.error.message, 'error');
     }
     setSubmitting(false);
   };

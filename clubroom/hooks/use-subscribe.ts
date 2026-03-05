@@ -118,11 +118,11 @@ export function useSubscribe() {
           ],
         );
       } else {
-        uiFeedback.alert('Error', result.error?.message || 'Failed to create subscription.');
+        uiFeedback.showToast(result.error?.message || 'Failed to create subscription.', 'error');
       }
     } catch (error) {
       logger.error('Failed to create subscription', error);
-      uiFeedback.alert('Error', 'An unexpected error occurred. Please try again.');
+      uiFeedback.showToast('An unexpected error occurred. Please try again.', 'error');
     } finally {
       setSubmitting(false);
     }

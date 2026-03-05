@@ -66,29 +66,26 @@ export function useVideoDetail(id: string | undefined) {
     async (annotation: Omit<VideoAnnotation, 'id'>) => {
       if (!video) return;
       if (annotation.timestamp < 0) {
-        uiFeedback.alert('Invalid Timestamp', 'Timestamp cannot be negative.');
+        uiFeedback.showToast('Timestamp cannot be negative.', 'error');
         return;
       }
       if (annotation.timestamp > video.duration) {
         const mins = Math.floor(video.duration / 60);
         const secs = Math.floor(video.duration % 60);
-        uiFeedback.alert(
-          'Invalid Timestamp',
-          `Timestamp cannot exceed ${mins}:${secs.toString().padStart(2, '0')}.`,
-        );
+        uiFeedback.showToast(`Timestamp cannot exceed ${mins}:${secs.toString().padStart(2, '0')}.`, 'error');
         return;
       }
       if (!annotation.label.trim()) {
-        uiFeedback.alert('Missing Label', 'Please enter a label for this annotation.');
+        uiFeedback.showToast('Please enter a label for this annotation.', 'error');
         return;
       }
       if ((annotation.note?.trim().length ?? 0) > 500) {
-        uiFeedback.alert('Annotation Too Long', 'Maximum note length is 500 characters.');
+        uiFeedback.showToast('Maximum note length is 500 characters.');
         return;
       }
       const duplicateTimestamp = video.annotations.some((entry) => entry.timestamp === annotation.timestamp);
       if (duplicateTimestamp) {
-        uiFeedback.alert('Duplicate Timestamp', 'An annotation already exists at this timestamp.');
+        uiFeedback.showToast('An annotation already exists at this timestamp.');
         return;
       }
       await videoService.addAnnotation(
@@ -121,10 +118,10 @@ export function useVideoDetail(id: string | undefined) {
     try {
       if (video.visibility === 'PRIVATE') {
         await videoService.shareVideo(video.id, ['parent_1']);
-        uiFeedback.alert('Shared', 'Video has been shared with parents.');
+        uiFeedback.showToast('Video has been shared with parents.');
       } else {
         await videoService.makePrivate(video.id);
-        uiFeedback.alert('Made Private', 'Video is now private.');
+        uiFeedback.showToast('Video is now private.');
       }
       await loadVideo();
     } catch (error) {

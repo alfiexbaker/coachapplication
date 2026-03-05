@@ -50,7 +50,7 @@ export function SessionOfferingCard({
       coordinates: offering.locationCoordinates,
     }).then((opened) => {
       if (!opened) {
-        uiFeedback.alert('Error', 'Could not open maps application.');
+        uiFeedback.showToast('Could not open maps application.', 'error');
       }
     });
   };

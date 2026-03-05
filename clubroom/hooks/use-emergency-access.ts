@@ -70,9 +70,9 @@ export function useEmergencyAccess() {
             const url = `tel:${phone.replace(/\s+/g, '')}`;
             const canOpen = await Linking.canOpenURL(url);
             if (canOpen) await Linking.openURL(url);
-            else uiFeedback.alert('Error', 'Unable to make phone calls on this device');
+            else uiFeedback.showToast('Unable to make phone calls on this device', 'error');
           } catch {
-            uiFeedback.alert('Error', 'Failed to initiate call');
+            uiFeedback.showToast('Failed to initiate call', 'error');
           }
         },
       },
@@ -95,7 +95,7 @@ export function useEmergencyAccess() {
               const canOpen = await Linking.canOpenURL(url);
               if (canOpen) await Linking.openURL(url);
             } catch {
-              uiFeedback.alert('Error', 'Failed to initiate call');
+              uiFeedback.showToast('Failed to initiate call', 'error');
             }
           },
         },

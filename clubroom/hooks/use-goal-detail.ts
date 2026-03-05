@@ -100,7 +100,7 @@ export function useGoalDetail() {
         }
       } catch (error) {
         logger.error('Failed to toggle milestone', error);
-        uiFeedback.alert('Error', 'Failed to update milestone. Please try again.');
+        uiFeedback.showToast('Failed to update milestone. Please try again.', 'error');
       }
     },
     [goal, triggerCelebration],
@@ -117,7 +117,7 @@ export function useGoalDetail() {
         }
       } catch (error) {
         logger.error('Failed to add milestone', error);
-        uiFeedback.alert('Error', 'Failed to add milestone. Please try again.');
+        uiFeedback.showToast('Failed to add milestone. Please try again.', 'error');
       }
     },
     [goal],
@@ -131,7 +131,7 @@ export function useGoalDetail() {
         if (updatedGoal) setGoal(updatedGoal);
       } catch (error) {
         logger.error('Failed to delete milestone', error);
-        uiFeedback.alert('Error', 'Failed to delete milestone. Please try again.');
+        uiFeedback.showToast('Failed to delete milestone. Please try again.', 'error');
       }
     },
     [goal],
@@ -149,7 +149,7 @@ export function useGoalDetail() {
         }
       } catch (error) {
         logger.error('Failed to update goal status', error);
-        uiFeedback.alert('Error', 'Failed to update goal. Please try again.');
+        uiFeedback.showToast('Failed to update goal. Please try again.', 'error');
       }
     },
     [goal, triggerCelebration],
@@ -172,7 +172,7 @@ export function useGoalDetail() {
               router.back();
             } catch (error) {
               logger.error('Failed to delete goal', error);
-              uiFeedback.alert('Error', 'Failed to delete goal. Please try again.');
+              uiFeedback.showToast('Failed to delete goal. Please try again.', 'error');
             }
           },
         },

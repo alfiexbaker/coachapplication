@@ -76,7 +76,7 @@ export default function DrillDetailScreen() {
       );
     } catch (error) {
       logger.error('Failed to complete drill:', error);
-      uiFeedback.alert('Error', 'Failed to mark drill as complete. Please try again.');
+      uiFeedback.showToast('Failed to mark drill as complete. Please try again.', 'error');
     } finally {
       setCompleting(false);
     }

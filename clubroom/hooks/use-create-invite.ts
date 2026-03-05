@@ -490,7 +490,7 @@ export function useCreateInvite(): UseCreateInviteReturn {
     if (!currentUser) return;
     if (selectedAthletes.length === 0) return;
     if (priceError) {
-      uiFeedback.alert('Invalid price', priceError);
+      uiFeedback.showToast(priceError, 'error');
       return;
     }
 
@@ -616,7 +616,7 @@ export function useCreateInvite(): UseCreateInviteReturn {
       );
     } catch (error) {
       logger.error('Failed to create invite', error);
-      uiFeedback.alert('Error', 'Failed to send invite. Please try again.');
+      uiFeedback.showToast('Failed to send invite. Please try again.', 'error');
     } finally {
       setLoading(false);
     }

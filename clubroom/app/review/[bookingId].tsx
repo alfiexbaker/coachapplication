@@ -147,12 +147,12 @@ export default function ReviewScreen() {
 
       try {
         if (!booking || !bookingId) {
-          uiFeedback.alert('Missing booking', 'This session could not be reviewed.');
+          uiFeedback.showToast('This session could not be reviewed.', 'error');
           return;
         }
 
         if (booking.status !== 'COMPLETED') {
-          uiFeedback.alert('Not ready yet', 'You can review a coach once the session is completed.');
+          uiFeedback.showToast('You can review a coach once the session is completed.');
           return;
         }
 
@@ -196,7 +196,7 @@ export default function ReviewScreen() {
             rating: persistedReview.review.rating,
             text: persistedReview.review.text || persistedReview.review.content || '',
           });
-          uiFeedback.alert('Review already submitted', 'You already reviewed this session.');
+          uiFeedback.showToast('You already reviewed this session.');
           return;
         }
 
@@ -215,7 +215,7 @@ export default function ReviewScreen() {
         router.replace(Routes.booking(bookingId, { returnTo: Routes.BOOKINGS as string }));
       } catch (submitError) {
         logger.error('Failed to submit review', submitError);
-        uiFeedback.alert('Error', 'Failed to submit review. Please try again.');
+        uiFeedback.showToast('Failed to submit review. Please try again.', 'error');
       } finally {
         setIsSubmitting(false);
       }

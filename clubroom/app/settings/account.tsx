@@ -135,13 +135,13 @@ export default function AccountSettingsScreen() {
           icon="logo-google"
           title="Google"
           value="Not connected"
-          onPress={() => uiFeedback.alert('Coming Soon', 'Google sign-in coming soon')}
+          onPress={() => uiFeedback.showToast('Google sign-in coming soon')}
         />
         <SettingsRow
           icon="logo-apple"
           title="Apple"
           value="Not connected"
-          onPress={() => uiFeedback.alert('Coming Soon', 'Apple sign-in coming soon')}
+          onPress={() => uiFeedback.showToast('Apple sign-in coming soon')}
         />
       </SettingsSection>
 

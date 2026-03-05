@@ -172,7 +172,7 @@ export function useCoachDetail(coachId: string | undefined) {
 
       await loadConnectionState();
     } catch {
-      uiFeedback.alert('Unable to update request', 'Please try again in a moment.');
+      uiFeedback.showToast('Please try again in a moment.', 'error');
     } finally {
       setFollowLoading(false);
     }

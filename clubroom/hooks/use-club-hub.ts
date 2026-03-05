@@ -413,14 +413,14 @@ export function useClubHub(): ClubHubState {
     (code: string) => {
       const trimmedCode = code.trim().toUpperCase();
       if (!trimmedCode) {
-        uiFeedback.alert('Enter invite code', 'Paste the club code shared with you.');
+        uiFeedback.showToast('Paste the club code shared with you.');
         return;
       }
       const targetClub = knownClubs.find(
         (candidate) => candidate.inviteCode.toUpperCase() === trimmedCode,
       );
       if (!targetClub) {
-        uiFeedback.alert('Code not found', 'Check the code or request a new one from the club admin.');
+        uiFeedback.showToast('Check the code or request a new one from the club admin.', 'error');
         return;
       }
 
@@ -440,13 +440,13 @@ export function useClubHub(): ClubHubState {
       const role = mapUserRoleToClubRole(currentUser?.role);
       const joinResult = socialFeedService.joinClub(currentUser?.id || 'guest', targetClub.inviteCode, role);
       if (!joinResult.success) {
-        uiFeedback.alert('Unable to join', joinResult.error.message);
+        uiFeedback.showToast(joinResult.error.message, 'error');
         return;
       }
 
       setMembership(joinResult.data);
       setClub(targetClub);
-      uiFeedback.alert('Joined club', `You are now part of ${targetClub.name}`);
+      uiFeedback.showToast(`You are now part of ${targetClub.name}`);
     },
     [currentUser, knownClubs],
   );
@@ -479,7 +479,7 @@ export function useClubHub(): ClubHubState {
 
   const handleRemoveMember = useCallback((member: ClubMember) => {
     if (!clubService.canBeRemoved(member.role)) {
-      uiFeedback.alert('Cannot remove owner', 'The club owner cannot be removed.');
+      uiFeedback.showToast('The club owner cannot be removed.', 'error');
       return;
     }
     setSelectedMemberForRemoval(member);

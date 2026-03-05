@@ -58,7 +58,7 @@ export default function CreateGoalScreen() {
           setGoal(data);
         } catch (error) {
           logger.error('Failed to load goal', error);
-          uiFeedback.alert('Error', 'Failed to load goal for editing.');
+          uiFeedback.showToast('Failed to load goal for editing.', 'error');
           router.back();
         } finally {
           setInitialLoading(false);
@@ -108,12 +108,9 @@ export default function CreateGoalScreen() {
         }
       } catch (error) {
         logger.error('Failed to save goal', error);
-        uiFeedback.alert(
-          'Error',
-          isEditing
+        uiFeedback.showToast(isEditing
             ? 'Failed to update goal. Please try again.'
-            : 'Failed to create goal. Please try again.',
-        );
+            : 'Failed to create goal. Please try again.', 'error');
       } finally {
         setLoading(false);
       }

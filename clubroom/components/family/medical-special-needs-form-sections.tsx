@@ -36,12 +36,12 @@ function TagInput({
   const addTag = useCallback(() => {
     const trimmed = input.trim();
     if (tags.length >= MAX_TAGS) {
-      uiFeedback.alert('Limit reached', `Maximum ${MAX_TAGS} tags allowed.`);
+      uiFeedback.showToast(`Maximum ${MAX_TAGS} tags allowed.`);
       return;
     }
     const duplicate = tags.find((tag) => tag.toLowerCase() === trimmed.toLowerCase());
     if (trimmed && duplicate) {
-      uiFeedback.alert('Already added', `"${duplicate}" is already in the list.`);
+      uiFeedback.showToast(`"${duplicate}" is already in the list.`);
       setInput('');
       return;
     }

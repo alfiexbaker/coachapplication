@@ -120,7 +120,7 @@ export default function FeedScreen() {
           title: post.title,
         });
       } catch {
-        uiFeedback.alert('Unable to share', 'Try again in a moment.');
+        uiFeedback.showToast('Try again in a moment.', 'error');
       }
     },
     [],

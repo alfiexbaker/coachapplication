@@ -32,16 +32,16 @@ export default function SessionNotesScreen() {
 
   const handleSubmit = async (data: SessionNoteFields) => {
     if (!isCoach) {
-      uiFeedback.alert('Read-only', 'Only coaches can submit session notes.');
+      uiFeedback.showToast('Only coaches can submit session notes.');
       return;
     }
 
     try {
       await persist(data);
       setMode('view');
-      uiFeedback.alert('Notes saved', 'Parents can now see these inside booking details.');
+      uiFeedback.showToast('Parents can now see these inside booking details.', 'success');
     } catch {
-      uiFeedback.alert('Save failed', 'Please retry in a moment.');
+      uiFeedback.showToast('Please retry in a moment.', 'error');
     }
   };
 

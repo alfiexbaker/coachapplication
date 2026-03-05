@@ -110,12 +110,12 @@ export const GoalsCompact = memo(function GoalsCompact({
 
   const handleCreateGoal = async () => {
     if (!athleteId || !actorId) {
-      uiFeedback.alert('Unable to create goal', 'Athlete context is not available.');
+      uiFeedback.showToast('Athlete context is not available.', 'error');
       return;
     }
     const title = newGoalTitle.trim();
     if (!title) {
-      uiFeedback.alert('Goal title required', 'Add a goal title to continue.');
+      uiFeedback.showToast('Add a goal title to continue.', 'error');
       return;
     }
 
@@ -137,7 +137,7 @@ export const GoalsCompact = memo(function GoalsCompact({
       setShowCreate(false);
       onRefresh?.();
     } catch (error) {
-      uiFeedback.alert('Error', 'Failed to create goal. Please try again.');
+      uiFeedback.showToast('Failed to create goal. Please try again.', 'error');
     } finally {
       setIsSubmitting(false);
     }

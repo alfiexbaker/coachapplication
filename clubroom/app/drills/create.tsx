@@ -71,7 +71,7 @@ export default function CreateDrillScreen() {
         ]);
       } catch (error) {
         logger.error('Failed to create drill:', error);
-        uiFeedback.alert('Error', 'Failed to create drill. Please try again.');
+        uiFeedback.showToast('Failed to create drill. Please try again.', 'error');
       } finally {
         setIsSubmitting(false);
       }

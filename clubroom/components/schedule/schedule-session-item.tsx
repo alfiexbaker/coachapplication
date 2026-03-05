@@ -36,7 +36,7 @@ export const ScheduleSessionItem = memo(function ScheduleSessionItem({ session, 
 
       void openLocationInMaps({ location: session.location }).then((opened) => {
         if (!opened) {
-          uiFeedback.alert('Error', 'Could not open maps application.');
+          uiFeedback.showToast('Could not open maps application.', 'error');
         }
       });
     },

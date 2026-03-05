@@ -122,7 +122,7 @@ export function useDrillAssign() {
 
   const handleSubmit = useCallback(async () => {
     if (!drill || !selectedAthlete) {
-      uiFeedback.alert('Missing Information', 'Please select a drill and athlete.');
+      uiFeedback.showToast('Please select a drill and athlete.', 'error');
       return;
     }
     const reps = Number.parseInt(repetitions, 10);
@@ -130,7 +130,7 @@ export function useDrillAssign() {
       setRepetitionsError(
         Number.isNaN(reps) || reps < 1 ? 'Minimum 1 rep' : 'Maximum 50 reps recommended for youth athletes',
       );
-      uiFeedback.alert('Invalid repetitions', 'Reps must be between 1 and 50.');
+      uiFeedback.showToast('Reps must be between 1 and 50.', 'error');
       return;
     }
     void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
@@ -150,7 +150,7 @@ export function useDrillAssign() {
         },
       );
       if (!assignmentResult.success) {
-        uiFeedback.alert('Error', assignmentResult.error.message);
+        uiFeedback.showToast(assignmentResult.error.message, 'error');
         return;
       }
       uiFeedback.alert(
@@ -172,7 +172,7 @@ export function useDrillAssign() {
       );
     } catch (error) {
       logger.error('Failed to assign drill', error);
-      uiFeedback.alert('Error', 'Failed to assign drill. Please try again.');
+      uiFeedback.showToast('Failed to assign drill. Please try again.', 'error');
     } finally {
       setSubmitting(false);
     }

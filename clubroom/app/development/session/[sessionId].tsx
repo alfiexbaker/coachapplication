@@ -125,7 +125,7 @@ export default function SessionDetailScreen() {
   const handleRaiseConcern = () => {
     const targetAthleteId = athlete.id || session.athleteId;
     if (!targetAthleteId) {
-      uiFeedback.alert('Unable to open concern form', 'Athlete details are missing for this session.');
+      uiFeedback.showToast('Athlete details are missing for this session.', 'error');
       return;
     }
     router.push(Routes.rosterAthleteConcern(targetAthleteId));

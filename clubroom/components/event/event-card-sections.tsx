@@ -37,7 +37,7 @@ function ExpandableVenueText({
   const isLong = venue.trim().length > 50;
   const handleLongPress = useCallback(() => {
     if (isLong) {
-      uiFeedback.alert('Venue', venue);
+      uiFeedback.showToast(venue);
     }
   }, [isLong, venue]);
 

@@ -54,23 +54,23 @@ export function AddAnnotationModal({
 
   const handleSave = async () => {
     if (timestamp < 0) {
-      uiFeedback.alert('Invalid Timestamp', 'Timestamp cannot be negative.');
+      uiFeedback.showToast('Timestamp cannot be negative.', 'error');
       return;
     }
     if (timestamp > duration) {
-      uiFeedback.alert('Invalid Timestamp', `Timestamp cannot exceed ${formatTime(duration)}.`);
+      uiFeedback.showToast(`Timestamp cannot exceed ${formatTime(duration)}.`, 'error');
       return;
     }
     if (!label.trim()) {
-      uiFeedback.alert('Missing Label', 'Please enter a label for this annotation.');
+      uiFeedback.showToast('Please enter a label for this annotation.', 'error');
       return;
     }
     if (label.trim().length > 50) {
-      uiFeedback.alert('Label Too Long', 'Maximum label length is 50 characters.');
+      uiFeedback.showToast('Maximum label length is 50 characters.');
       return;
     }
     if (note.trim().length > 500) {
-      uiFeedback.alert('Note Too Long', 'Maximum note length is 500 characters.');
+      uiFeedback.showToast('Maximum note length is 500 characters.');
       return;
     }
     setSaving(true);
@@ -79,7 +79,7 @@ export function AddAnnotationModal({
       handleClose();
     } catch (error) {
       logger.error('Failed to save annotation', error);
-      uiFeedback.alert('Error', 'Failed to save annotation. Please try again.');
+      uiFeedback.showToast('Failed to save annotation. Please try again.', 'error');
     } finally {
       setSaving(false);
     }

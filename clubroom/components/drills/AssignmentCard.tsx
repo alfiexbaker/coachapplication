@@ -76,7 +76,7 @@ export function AssignmentCard({
 
   const handleSubmitEvidence = useCallback(async () => {
     if (!evidenceUri) {
-      uiFeedback.alert('Evidence Required', 'Please upload a video before submitting.');
+      uiFeedback.showToast('Please upload a video before submitting.', 'error');
       return;
     }
     setSubmittingEvidence(true);

@@ -166,7 +166,7 @@ export function useRateCoach() {
     if (submitting) return;
     setSubmitting(true);
     if (!selectedCoach || rating === 0) {
-      uiFeedback.alert('Missing Rating', 'Please select a star rating');
+      uiFeedback.showToast('Please select a star rating', 'error');
       setSubmitting(false);
       return;
     }
@@ -176,7 +176,7 @@ export function useRateCoach() {
         (review) => review.coachId === selectedCoach.id && review.userId === (currentUser?.id ?? ''),
       );
       if (existingReview) {
-        uiFeedback.alert('Review already submitted', 'You already submitted a review for this coach.');
+        uiFeedback.showToast('You already submitted a review for this coach.');
         return;
       }
       const userName = currentUser?.fullName || currentUser?.username || 'Anonymous';
@@ -200,7 +200,7 @@ export function useRateCoach() {
       ]);
     } catch (error) {
       logger.error('Failed to submit review', error);
-      uiFeedback.alert('Error', 'Failed to submit review. Please try again.');
+      uiFeedback.showToast('Failed to submit review. Please try again.', 'error');
     } finally {
       setSubmitting(false);
     }

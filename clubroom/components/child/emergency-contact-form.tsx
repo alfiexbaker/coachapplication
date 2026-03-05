@@ -82,7 +82,7 @@ export const EmergencyContactForm = memo(function EmergencyContactForm({
     if (email.trim() && !validateEmail(email)) errors.push('Email address is invalid');
 
     if (errors.length > 0) {
-      uiFeedback.alert('Validation Error', errors.join('\n'));
+      uiFeedback.showToast(errors.join('\n'), 'error');
       return;
     }
 

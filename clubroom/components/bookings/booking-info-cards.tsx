@@ -263,7 +263,7 @@ export const LocationCard = memo(function LocationCard({ locationLabel }: Locati
   const handleOpenMap = useCallback(() => {
     void openLocationInMaps({ location: locationLabel }).then((opened) => {
       if (!opened) {
-        uiFeedback.alert('Error', 'Could not open maps application.');
+        uiFeedback.showToast('Could not open maps application.', 'error');
       }
     });
   }, [locationLabel]);

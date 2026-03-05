@@ -58,15 +58,12 @@ export function VideoUpload({
         const fileSizeBytes = asset.fileSize || 0;
 
         if (durationSecs > maxDurationSeconds) {
-          uiFeedback.alert(
-            'Video Too Long',
-            `Maximum video duration is ${Math.floor(maxDurationSeconds / 60)} minutes.`,
-          );
+          uiFeedback.showToast(`Maximum video duration is ${Math.floor(maxDurationSeconds / 60)} minutes.`);
           return;
         }
 
         if (fileSizeBytes > maxFileSizeMB * 1024 * 1024) {
-          uiFeedback.alert('File Too Large', `Maximum file size is ${maxFileSizeMB} MB.`);
+          uiFeedback.showToast(`Maximum file size is ${maxFileSizeMB} MB.`);
           return;
         }
 
@@ -80,7 +77,7 @@ export function VideoUpload({
       }
     } catch (error) {
       logger.error('Failed to pick video', error);
-      uiFeedback.alert('Error', 'Failed to select video. Please try again.');
+      uiFeedback.showToast('Failed to select video. Please try again.', 'error');
     }
   };
 
@@ -88,7 +85,7 @@ export function VideoUpload({
     try {
       const permission = await ImagePicker.requestCameraPermissionsAsync();
       if (!permission.granted) {
-        uiFeedback.alert('Permission Required', 'Camera access is needed to record videos.');
+        uiFeedback.showToast('Camera access is needed to record videos.', 'error');
         return;
       }
 
@@ -110,7 +107,7 @@ export function VideoUpload({
       }
     } catch (error) {
       logger.error('Failed to record video', error);
-      uiFeedback.alert('Error', 'Failed to record video. Please try again.');
+      uiFeedback.showToast('Failed to record video. Please try again.', 'error');
     }
   };
 
@@ -164,10 +161,10 @@ export function VideoUpload({
       onProgress?.(0);
     } catch (error) {
       if (error instanceof Error && error.message === 'UPLOAD_CANCELLED') {
-        uiFeedback.alert('Upload Cancelled', 'Video upload was cancelled.');
+        uiFeedback.showToast('Video upload was cancelled.', 'success');
       } else {
         logger.error('Failed during upload simulation', error);
-        uiFeedback.alert('Upload Failed', 'Failed to upload video. Please try again.');
+        uiFeedback.showToast('Failed to upload video. Please try again.', 'error');
       }
     } finally {
       abortControllerRef.current = null;

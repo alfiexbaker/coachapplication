@@ -232,7 +232,7 @@ export function useBookingCancel(id: string, mode?: string) {
       });
     } catch (error) {
       logger.error('Failed to cancel booking', error);
-      uiFeedback.alert('Error', 'Failed to cancel booking. Please try again.');
+      uiFeedback.showToast('Failed to cancel booking. Please try again.', 'error');
     } finally {
       setProcessing(false);
     }

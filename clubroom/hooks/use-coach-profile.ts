@@ -307,7 +307,7 @@ export function useCoachProfile(): UseCoachProfileResult {
         }
       } catch (error) {
         logger.error('Failed to update live status:', error);
-        uiFeedback.alert('Error', 'Failed to update your status. Please try again.');
+        uiFeedback.showToast('Failed to update your status. Please try again.', 'error');
       } finally {
         setLiveLoading(false);
       }

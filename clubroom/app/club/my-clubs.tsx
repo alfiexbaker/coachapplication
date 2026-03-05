@@ -76,13 +76,13 @@ export default function MyClubsScreen() {
   const handleJoin = useCallback(
     (code: string) => {
       if (!currentUser?.id) {
-        uiFeedback.alert('Sign in required', 'Please sign in to join a club.');
+        uiFeedback.showToast('Please sign in to join a club.', 'error');
         return;
       }
       const joinRole = mapUserRoleToClubRole(currentUser.role);
       const result = socialFeedService.joinClub(currentUser.id, code, joinRole);
       if (!result.success) {
-        uiFeedback.alert('Unable to join', result.error.message);
+        uiFeedback.showToast(result.error.message, 'error');
         return;
       }
 

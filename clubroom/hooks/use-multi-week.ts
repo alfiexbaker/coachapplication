@@ -161,11 +161,11 @@ export function useMultiWeek() {
   const handleConfirm = useCallback(async () => {
     if (!coachId || !currentUser) return;
     if (!selectedAthlete?.id || !selectedAthlete.name) {
-      uiFeedback.alert('Missing athlete', 'Please choose who this booking is for.');
+      uiFeedback.showToast('Please choose who this booking is for.', 'error');
       return;
     }
     if (selectedWeekRows.length === 0) {
-      uiFeedback.alert('No weeks selected', 'Select at least one week before confirming.');
+      uiFeedback.showToast('Select at least one week before confirming.');
       return;
     }
     setSubmitting(true);
@@ -202,11 +202,11 @@ export function useMultiWeek() {
           [{ text: 'OK', onPress: () => router.back() }],
         );
       } else {
-        uiFeedback.alert('Booking Failed', result.error.message);
+        uiFeedback.showToast(result.error.message, 'error');
       }
     } catch (error) {
       logger.error('Failed to create series', error);
-      uiFeedback.alert('Error', 'Something went wrong. Please try again.');
+      uiFeedback.showToast('Something went wrong. Please try again.', 'error');
     } finally {
       setSubmitting(false);
     }

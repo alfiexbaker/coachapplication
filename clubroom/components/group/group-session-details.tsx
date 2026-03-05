@@ -41,7 +41,7 @@ export const GroupSessionDetails = memo(function GroupSessionDetails({
       coordinates: session.locationCoordinates,
     }).then((opened) => {
       if (!opened) {
-        uiFeedback.alert('Error', 'Could not open maps application.');
+        uiFeedback.showToast('Could not open maps application.', 'error');
       }
     });
   };

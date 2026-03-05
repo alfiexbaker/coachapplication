@@ -74,15 +74,15 @@ export function useCreateSquad() {
 
   const handleCreate = useCallback(async () => {
     if (!squadName.trim()) {
-      uiFeedback.alert('Error', 'Please enter a squad name');
+      uiFeedback.showToast('Please enter a squad name', 'error');
       return;
     }
     if (!selectedAgeGroup) {
-      uiFeedback.alert('Error', 'Please select an age group');
+      uiFeedback.showToast('Please select an age group', 'error');
       return;
     }
     if (!selectedLevel) {
-      uiFeedback.alert('Error', 'Please select a level');
+      uiFeedback.showToast('Please select a level', 'error');
       return;
     }
 
@@ -102,7 +102,7 @@ export function useCreateSquad() {
         { text: 'OK', onPress: () => router.back() },
       ]);
     } catch {
-      uiFeedback.alert('Error', 'Failed to create squad. Please try again.');
+      uiFeedback.showToast('Failed to create squad. Please try again.', 'error');
     } finally {
       setIsSubmitting(false);
     }

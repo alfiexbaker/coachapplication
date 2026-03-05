@@ -101,16 +101,16 @@ export function useFamilySharing() {
     if (!family || !currentUser) return;
     const email = inviteEmail.trim().toLowerCase();
     if (!email) {
-      uiFeedback.alert('Error', 'Please enter an email address');
+      uiFeedback.showToast('Please enter an email address', 'error');
       return;
     }
     setInviteEmailTouched(true);
     if (duplicateInvite) {
-      uiFeedback.alert('Error', 'This email has already been invited');
+      uiFeedback.showToast('This email has already been invited', 'error');
       return;
     }
     if (!EMAIL_REGEX.test(email)) {
-      uiFeedback.alert('Error', 'Please enter a valid email address');
+      uiFeedback.showToast('Please enter a valid email address', 'error');
       return;
     }
     setInviting(true);
@@ -126,17 +126,14 @@ export function useFamilySharing() {
         [],
         inviteMessage.trim() || undefined,
       );
-      uiFeedback.alert(
-        'Invitation Sent',
-        `An invitation has been sent to ${email}. They'll receive instructions to join your family account.`,
-      );
+      uiFeedback.showToast(`An invitation has been sent to ${email}. They'll receive instructions to join your family account.`, 'success');
       setShowInviteModal(false);
       resetInviteForm();
       onRefresh();
       logger.success('InviteSent', { email, role: inviteRole });
     } catch (error: unknown) {
       logger.error('Failed to send invite', error);
-      uiFeedback.alert('Error', error instanceof Error ? error.message : 'Failed to send invitation');
+      uiFeedback.showToast(error instanceof Error ? error.message : 'Failed to send invitation', 'error');
     } finally {
       setInviting(false);
     }
@@ -168,16 +165,10 @@ export function useFamilySharing() {
             onPress: async () => {
               try {
                 await familyService.removeGuardian(family.id, currentUser.id, guardian.id);
-                uiFeedback.alert(
-                  'Removed',
-                  `${guardianLabel} has been removed from your family account.`,
-                );
+                uiFeedback.showToast(`${guardianLabel} has been removed from your family account.`);
                 onRefresh();
               } catch (error: unknown) {
-                uiFeedback.alert(
-                  'Error',
-                  error instanceof Error ? error.message : 'Failed to remove guardian',
-                );
+                uiFeedback.showToast(error instanceof Error ? error.message : 'Failed to remove guardian', 'error');
               }
             },
           },
@@ -200,10 +191,7 @@ export function useFamilySharing() {
               await familyService.cancelInvite(family.id, currentUser.id, inviteId);
               onRefresh();
             } catch (error: unknown) {
-              uiFeedback.alert(
-                'Error',
-                error instanceof Error ? error.message : 'Failed to cancel invitation',
-              );
+              uiFeedback.showToast(error instanceof Error ? error.message : 'Failed to cancel invitation', 'error');
             }
           },
         },

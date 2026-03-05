@@ -144,7 +144,7 @@ export default function ProfileScreen() {
 
       await loadFriendState(data.id);
     } catch {
-      uiFeedback.alert('Unable to update request', 'Please try again in a moment.');
+      uiFeedback.showToast('Please try again in a moment.', 'error');
     } finally {
       setFriendActionLoading(false);
     }

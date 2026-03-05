@@ -54,7 +54,7 @@ export default function SettingsHubScreen() {
       const success = await bookingSelfSettingService.setEnabled(currentUser.id, nextValue);
       if (!success) {
         setAllowBookSelf(previousValue);
-        uiFeedback.alert('Could not save setting', 'Please try again.');
+        uiFeedback.showToast('Please try again.');
       }
     },
     [allowBookSelf, currentUser?.id],
@@ -192,7 +192,7 @@ export default function SettingsHubScreen() {
           value="English (UK)"
           onPress={() => {
             logger.press('Language');
-            uiFeedback.alert('Language', 'Additional languages not available');
+            uiFeedback.showToast('Additional languages not available');
           }}
         />
       </SettingsSection>
@@ -213,7 +213,7 @@ export default function SettingsHubScreen() {
           subtitle="Password and account protection"
           onPress={() => {
             logger.press('Security');
-            uiFeedback.alert('Coming Soon', 'Security settings coming in Sprint 2');
+            uiFeedback.showToast('Security settings coming in Sprint 2');
           }}
         />
       </SettingsSection>

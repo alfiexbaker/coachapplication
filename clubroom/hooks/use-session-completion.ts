@@ -548,7 +548,7 @@ export function useSessionCompletion(sessionId: string | undefined) {
     try {
       const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
       if (status !== 'granted') {
-        uiFeedback.alert('Permission needed', 'Please allow photo library access.');
+        uiFeedback.showToast('Please allow photo library access.', 'warning');
         return;
       }
 
@@ -563,7 +563,7 @@ export function useSessionCompletion(sessionId: string | undefined) {
       }
     } catch (error) {
       logger.error('Failed to add image', error);
-      uiFeedback.alert('Error', 'Unable to add photo right now.');
+      uiFeedback.showToast('Unable to add photo right now.', 'error');
     }
   }, []);
 
@@ -571,7 +571,7 @@ export function useSessionCompletion(sessionId: string | undefined) {
     try {
       const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
       if (status !== 'granted') {
-        uiFeedback.alert('Permission needed', 'Please allow video library access.');
+        uiFeedback.showToast('Please allow video library access.', 'warning');
         return;
       }
 
@@ -586,7 +586,7 @@ export function useSessionCompletion(sessionId: string | undefined) {
       }
     } catch (error) {
       logger.error('Failed to add video', error);
-      uiFeedback.alert('Error', 'Unable to add video right now.');
+      uiFeedback.showToast('Unable to add video right now.', 'error');
     }
   }, []);
 
@@ -1016,7 +1016,7 @@ export function useSessionCompletion(sessionId: string | undefined) {
       } catch (err) {
         logger.error('Failed to complete session', err);
         if (isMountedRef.current) {
-          uiFeedback.alert('Error', 'Failed to complete session. Please try again.');
+          uiFeedback.showToast('Failed to complete session. Please try again.', 'error');
         }
         return null;
       } finally {

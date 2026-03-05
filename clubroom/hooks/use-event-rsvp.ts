@@ -116,7 +116,7 @@ export function useEventRSVP(id: string | undefined): UseEventRSVPResult {
       const nextFootprint = 1;
       const occupiedExcludingCurrent = going - existingFootprint;
       if (occupiedExcludingCurrent + nextFootprint > event.maxAttendees) {
-        uiFeedback.alert('Event Full', 'This event is now full. Please choose Maybe or Can’t Go.');
+        uiFeedback.showToast('This event is now full. Please choose Maybe or Can’t Go.');
         return;
       }
     }
@@ -143,7 +143,7 @@ export function useEventRSVP(id: string | undefined): UseEventRSVPResult {
         error instanceof Error && /maximum capacity|event has reached maximum capacity/i.test(error.message)
           ? 'This event is full. Please update your RSVP without selecting Going.'
           : 'Failed to save your response. Please try again.';
-      uiFeedback.alert('Error', message);
+      uiFeedback.showToast(message, 'error');
     } finally {
       setSubmitting(false);
     }
@@ -156,20 +156,17 @@ export function useEventRSVP(id: string | undefined): UseEventRSVPResult {
     try {
       const result = await eventService.sendReminderToMaybes(event.id);
       if (!result.success) {
-        uiFeedback.alert('Reminder failed', result.error.message);
+        uiFeedback.showToast(result.error.message, 'error');
         return;
       }
 
       const sentCount = result.data;
-      uiFeedback.alert(
-        sentCount > 0 ? 'Reminders sent' : 'No reminders needed',
-        sentCount > 0
+      uiFeedback.showToast(sentCount > 0
           ? `Reminder sent to ${sentCount} attendee${sentCount === 1 ? '' : 's'} marked as maybe.`
-          : 'There are no maybe responses to remind right now.',
-      );
+          : 'There are no maybe responses to remind right now.');
     } catch (sendError) {
       logger.error('Failed to send RSVP reminders:', sendError);
-      uiFeedback.alert('Reminder failed', 'Could not send reminders. Please try again.');
+      uiFeedback.showToast('Could not send reminders. Please try again.', 'error');
     } finally {
       setReminderSending(false);
     }

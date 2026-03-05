@@ -161,7 +161,7 @@ export default function RSVPScreen() {
       );
       return true;
     } catch {
-      uiFeedback.alert('Error', 'Failed to submit your response. Please try again.');
+      uiFeedback.showToast('Failed to submit your response. Please try again.', 'error');
       return false;
     }
   };

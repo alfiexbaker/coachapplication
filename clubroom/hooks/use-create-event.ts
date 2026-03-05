@@ -195,7 +195,7 @@ export function useCreateEvent() {
         }
       } catch (error) {
         logger.error('Failed to create event:', error);
-        uiFeedback.alert('Error', 'Failed to create event. Please try again.');
+        uiFeedback.showToast('Failed to create event. Please try again.', 'error');
       } finally {
         setLoading(false);
       }

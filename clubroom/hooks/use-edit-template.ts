@@ -91,7 +91,7 @@ export function useEditTemplate(id: string | undefined) {
   const handleSave = useCallback(async () => {
     if (!currentUser?.id || !template) return;
     if (startTime >= endTime) {
-      uiFeedback.alert('Invalid Time', 'End time must be after start time');
+      uiFeedback.showToast('End time must be after start time', 'error');
       return;
     }
     setSaving(true);
@@ -112,7 +112,7 @@ export function useEditTemplate(id: string | undefined) {
       logger.success('TemplateUpdated', { templateId: template.id });
     } catch (error) {
       logger.error('Failed to update template', error);
-      uiFeedback.alert('Error', 'Failed to update template');
+      uiFeedback.showToast('Failed to update template', 'error');
     } finally {
       setSaving(false);
     }
@@ -128,10 +128,10 @@ export function useEditTemplate(id: string | undefined) {
         onPress: async () => {
           try {
             await availabilityService.deleteTemplate(template.id);
-            uiFeedback.alert('Deleted', 'Template removed');
+            uiFeedback.showToast('Template removed', 'success');
             router.back();
           } catch {
-            uiFeedback.alert('Error', 'Failed to delete template');
+            uiFeedback.showToast('Failed to delete template', 'error');
           }
         },
       },

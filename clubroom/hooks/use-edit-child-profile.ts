@@ -99,11 +99,11 @@ export function useEditChildProfile() {
 
   const validate = useCallback(() => {
     if (!firstName.trim() || !lastName.trim()) {
-      uiFeedback.alert('Required Fields', 'Please enter first and last name.');
+      uiFeedback.showToast('Please enter first and last name.', 'error');
       return false;
     }
     if (!emergencyContactName.trim() || !emergencyContactPhone.trim() || !emergencyContactRelation.trim()) {
-      uiFeedback.alert('Required Fields', 'Please complete the primary emergency contact.');
+      uiFeedback.showToast('Please complete the primary emergency contact.', 'error');
       return false;
     }
     return true;
@@ -157,7 +157,7 @@ export function useEditChildProfile() {
 
       const result = await childService.updateChild(child.id, updates);
       if (!result.success) {
-        uiFeedback.alert('Error', 'Failed to save profile. Please try again.');
+        uiFeedback.showToast('Failed to save profile. Please try again.', 'error');
         return;
       }
       uiFeedback.alert('Saved', 'Child profile updated.', [{ text: 'OK', onPress: () => router.back() }]);

@@ -83,7 +83,7 @@ export default function SessionFeedbackScreen() {
         router.replace(Routes.developmentSession(sessionId));
       } catch (error) {
         logger.error('Failed to create session', error);
-        uiFeedback.alert('Error', 'Failed to create session. Please try again.');
+        uiFeedback.showToast('Failed to create session. Please try again.', 'error');
         router.back();
       }
     };

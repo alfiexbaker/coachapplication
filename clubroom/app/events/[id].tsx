@@ -58,12 +58,12 @@ export default function EventDetailScreen() {
     try {
       const supported = await Linking.canOpenURL(event.meetingLink);
       if (!supported) {
-        uiFeedback.alert('Cannot open link', 'This meeting link is not supported on this device.');
+        uiFeedback.showToast('This meeting link is not supported on this device.', 'error');
         return;
       }
       await Linking.openURL(event.meetingLink);
     } catch {
-      uiFeedback.alert('Unable to join', 'Try opening the meeting link again.');
+      uiFeedback.showToast('Try opening the meeting link again.', 'error');
     }
   };
 

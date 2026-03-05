@@ -82,7 +82,7 @@ export default function AthleteDetailScreen() {
         primaryPosition: positionDraft ?? null,
       });
       if (!result.success) {
-        uiFeedback.alert('Could not save', result.error.message);
+        uiFeedback.showToast(result.error.message);
         return;
       }
       setEditingPosition(false);

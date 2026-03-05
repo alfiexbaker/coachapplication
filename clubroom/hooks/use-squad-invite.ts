@@ -169,7 +169,7 @@ export function useSquadInvite() {
 
   const addTimeSlot = useCallback(() => {
     if (!slotDate || !slotStartTime || !slotEndTime) {
-      uiFeedback.alert('Missing fields', 'Please fill in date, start time, and end time');
+      uiFeedback.showToast('Please fill in date, start time, and end time', 'error');
       return;
     }
 
@@ -232,7 +232,7 @@ export function useSquadInvite() {
 
       if (!result.success) {
         logger.error('Failed to send bulk invites:', result.error);
-        uiFeedback.alert('Error', result.error.message || 'Failed to send invites. Please try again.');
+        uiFeedback.showToast(result.error.message || 'Failed to send invites. Please try again.', 'error');
         setViewMode('form');
         return;
       }
@@ -241,7 +241,7 @@ export function useSquadInvite() {
       setViewMode('result');
     } catch (sendError) {
       logger.error('Failed to send bulk invites:', sendError);
-      uiFeedback.alert('Error', 'Failed to send invites. Please try again.');
+      uiFeedback.showToast('Failed to send invites. Please try again.', 'error');
       setViewMode('form');
     } finally {
       setSendingInvites(false);

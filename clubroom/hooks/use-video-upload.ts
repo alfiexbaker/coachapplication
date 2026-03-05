@@ -49,15 +49,15 @@ export function useVideoUpload() {
 
   const handleSubmit = useCallback(async () => {
     if (!videoData) {
-      uiFeedback.alert('No Video', 'Please select a video to upload.');
+      uiFeedback.showToast('Please select a video to upload.');
       return;
     }
     if (!title.trim()) {
-      uiFeedback.alert('Missing Title', 'Please enter a title for your video.');
+      uiFeedback.showToast('Please enter a title for your video.', 'error');
       return;
     }
     if (!currentUser) {
-      uiFeedback.alert('Error', 'You must be logged in to upload videos.');
+      uiFeedback.showToast('You must be logged in to upload videos.', 'error');
       return;
     }
 
@@ -95,7 +95,7 @@ export function useVideoUpload() {
       ]);
     } catch (error) {
       logger.error('Failed to upload video', error);
-      uiFeedback.alert('Upload Failed', 'There was an error uploading your video. Please try again.');
+      uiFeedback.showToast('There was an error uploading your video. Please try again.', 'error');
     } finally {
       setUploading(false);
     }

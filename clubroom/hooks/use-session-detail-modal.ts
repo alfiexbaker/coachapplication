@@ -761,17 +761,14 @@ export function useSessionDetailModal(
                 }
 
                 const notifiedCount = Math.max(0, registeredParticipants.length - failedNotifications);
-                uiFeedback.alert(
-                  'Cancelled',
-                  registeredParticipants.length > 0
+                uiFeedback.showToast(registeredParticipants.length > 0
                     ? failedNotifications > 0
                       ? `Session on ${formattedDate} has been cancelled. ${notifiedCount} of ${registeredParticipants.length} athletes were notified.`
                       : `Session on ${formattedDate} has been cancelled. All ${registeredParticipants.length} athletes were notified.`
-                    : `Session on ${formattedDate} has been cancelled.`,
-                );
+                    : `Session on ${formattedDate} has been cancelled.`, 'success');
                 onUpdate?.();
               } catch {
-                uiFeedback.alert('Error', 'Failed to cancel session. Please try again.');
+                uiFeedback.showToast('Failed to cancel session. Please try again.', 'error');
               }
             },
           },
@@ -799,10 +796,7 @@ export function useSessionDetailModal(
         offeringId: offering.id,
         scheduledAt: offering.scheduledAt,
       });
-      uiFeedback.alert(
-        'Cancellation unavailable',
-        'Only upcoming bookings can be cancelled. This session has already started or finished.',
-      );
+      uiFeedback.showToast('Only upcoming bookings can be cancelled. This session has already started or finished.');
       return;
     }
 
@@ -811,7 +805,7 @@ export function useSessionDetailModal(
         offeringId: offering.id,
         actorIds: Array.from(actorIdSet),
       });
-      uiFeedback.alert('No active booking', 'We could not find a confirmed booking to cancel.');
+      uiFeedback.showToast('We could not find a confirmed booking to cancel.');
       return;
     }
 
@@ -905,14 +899,11 @@ export function useSessionDetailModal(
                 registrationId: myRegistration.id,
                 registrationUserId: myRegistration.userId,
               });
-              uiFeedback.alert(
-                'Booking Cancelled',
-                'Your booking has been cancelled. The coach has been notified.',
-              );
+              uiFeedback.showToast('Your booking has been cancelled. The coach has been notified.', 'success');
               onUpdate?.();
               onClose();
             } catch {
-              uiFeedback.alert('Error', 'Failed to cancel booking. Please try again.');
+              uiFeedback.showToast('Failed to cancel booking. Please try again.', 'error');
             }
           },
         },
@@ -940,11 +931,11 @@ export function useSessionDetailModal(
                 return o;
               });
               await apiClient.set('session_offerings', updatedOfferings);
-              uiFeedback.alert('Series Ended', 'All future sessions have been cancelled.');
+              uiFeedback.showToast('All future sessions have been cancelled.');
               onUpdate?.();
               onClose();
             } catch {
-              uiFeedback.alert('Error', 'Failed to end series. Please try again.');
+              uiFeedback.showToast('Failed to end series. Please try again.', 'error');
             }
           },
         },
@@ -958,7 +949,7 @@ export function useSessionDetailModal(
 
     const previousOwnerId = offering.assigneeCoachId || offering.ownerCoachId || offering.coachId;
     if (previousOwnerId === selectedAssigneeId) {
-      uiFeedback.alert('No change', 'This session is already assigned to that coach.');
+      uiFeedback.showToast('This session is already assigned to that coach.');
       return;
     }
 
@@ -1011,11 +1002,11 @@ export function useSessionDetailModal(
       });
 
       await apiClient.set(STORAGE_KEYS.SESSION_OFFERINGS, updated);
-      uiFeedback.alert('Updated', `Session reassigned to ${selectedAssigneeLabel}.`);
+      uiFeedback.showToast(`Session reassigned to ${selectedAssigneeLabel}.`, 'success');
       onUpdate?.();
     } catch (error) {
       logger.error('Failed to reassign session owner', { offeringId: offering.id, error });
-      uiFeedback.alert('Error', 'Failed to reassign session owner. Please try again.');
+      uiFeedback.showToast('Failed to reassign session owner. Please try again.', 'error');
     } finally {
       setReassigningOwnership(false);
     }
@@ -1089,9 +1080,9 @@ export function useSessionDetailModal(
         changes: { offPlatformParticipants: normalizedCount },
       });
       onUpdate?.();
-      uiFeedback.alert('Saved', 'Off-platform attendees updated.');
+      uiFeedback.showToast('Off-platform attendees updated.', 'success');
     } catch {
-      uiFeedback.alert('Error', 'Failed to update off-platform attendees. Please try again.');
+      uiFeedback.showToast('Failed to update off-platform attendees. Please try again.', 'error');
     } finally {
       setSavingOffPlatform(false);
     }
@@ -1114,7 +1105,7 @@ export function useSessionDetailModal(
     if (!offering || !currentUser) return;
     if (isFull) {
       logger.debug('Handle book blocked - session is full', { offeringId: offering.id });
-      uiFeedback.alert('Session Full', 'This session is currently full.');
+      uiFeedback.showToast('This session is currently full.');
       return;
     }
     if (bookableChildren.length > 0 && selectedChildIds.length === 0) {
@@ -1122,12 +1113,9 @@ export function useSessionDetailModal(
         offeringId: offering.id,
         bookableChildIds: bookableChildren.map((child) => child.id),
       });
-      uiFeedback.alert(
-        'Select child',
-        isRegistered
+      uiFeedback.showToast(isRegistered
           ? 'Select at least one additional child to book.'
-          : 'Please select at least one child to book for.',
-      );
+          : 'Please select at least one child to book for.');
       return;
     }
 

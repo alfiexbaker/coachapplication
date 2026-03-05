@@ -68,10 +68,7 @@ export function ClubHeader({
     async (type: 'profile' | 'cover') => {
       const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
       if (!permissionResult.granted) {
-        uiFeedback.alert(
-          'Permission required',
-          'Please allow access to your photo library to change the club photo.',
-        );
+        uiFeedback.showToast('Please allow access to your photo library to change the club photo.', 'error');
         return;
       }
       const result = await ImagePicker.launchImageLibraryAsync({
@@ -98,7 +95,7 @@ export function ClubHeader({
         title: `Join ${club.name}`,
       });
     } catch {
-      uiFeedback.alert('Error', 'Failed to share invite code');
+      uiFeedback.showToast('Failed to share invite code', 'error');
     }
   }, [club.name, club.inviteCode]);
 

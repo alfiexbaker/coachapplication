@@ -47,7 +47,7 @@ function MarkPaidButtonInner({ invoiceId, bookingId, onSuccess, variant = 'prima
               }
 
               if (!targetInvoiceId) {
-                uiFeedback.alert('No Invoice', 'No invoice found for this booking.');
+                uiFeedback.showToast('No invoice found for this booking.');
                 return;
               }
 
@@ -60,10 +60,10 @@ function MarkPaidButtonInner({ invoiceId, bookingId, onSuccess, variant = 'prima
                 });
                 onSuccess?.();
               } else {
-                uiFeedback.alert('Error', 'Failed to mark invoice as paid.');
+                uiFeedback.showToast('Failed to mark invoice as paid.', 'error');
               }
             } catch {
-              uiFeedback.alert('Error', 'Something went wrong. Please try again.');
+              uiFeedback.showToast('Something went wrong. Please try again.', 'error');
             } finally {
               setLoading(false);
             }

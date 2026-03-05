@@ -169,7 +169,7 @@ export default function SessionInviteDetailScreen() {
       });
       setShowPaymentModal(false);
       if (!result.success) {
-        uiFeedback.alert('Booking Failed', result.error?.message ?? 'Could not create the booking.');
+        uiFeedback.showToast(result.error?.message ?? 'Could not create the booking.', 'error');
         return;
       }
       showToast('Invite accepted!', 'success');
@@ -185,7 +185,7 @@ export default function SessionInviteDetailScreen() {
       }
     } catch (e) {
       logger.error('Failed to accept invite', e);
-      uiFeedback.alert('Error', 'Failed to accept invite.');
+      uiFeedback.showToast('Failed to accept invite.', 'error');
     } finally {
       setResponding(false);
     }
@@ -193,7 +193,7 @@ export default function SessionInviteDetailScreen() {
 
   const handleAccept = useCallback(async () => {
     if (!invite || selectedSlot === null) {
-      uiFeedback.alert('Select a time', 'Please select one of the proposed time slots');
+      uiFeedback.showToast('Please select one of the proposed time slots');
       return;
     }
     if (invite.price && invite.price > 0) {
@@ -277,7 +277,7 @@ export default function SessionInviteDetailScreen() {
         currentUser.avatar,
       );
       if (!result.success) {
-        uiFeedback.alert('Could not RSVP', result.error.message);
+        uiFeedback.showToast(result.error.message);
         return;
       }
       setCurrentRsvpStatus(rs);
@@ -297,11 +297,11 @@ export default function SessionInviteDetailScreen() {
 
     const result = await sessionInviteService.sendInviteReminder(invite.id);
     if (!result.success) {
-      uiFeedback.alert('Reminder not sent', result.error.message);
+      uiFeedback.showToast(result.error.message, 'success');
       return;
     }
 
-    uiFeedback.alert('Reminder sent', "We've nudged the parent to respond to this invite.");
+    uiFeedback.showToast("We've nudged the parent to respond to this invite.", 'success');
   }, [invite]);
 
   const handleSelectSlot = useCallback((i: number) => setSelectedSlot(i), []);

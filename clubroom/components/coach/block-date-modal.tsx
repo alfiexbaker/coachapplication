@@ -151,7 +151,7 @@ export function BlockDateModal({
       onClose();
     } catch (error) {
       logger.error('Failed to block dates:', error);
-      uiFeedback.alert('Error', 'Failed to block dates. Please try again.');
+      uiFeedback.showToast('Failed to block dates. Please try again.', 'error');
     } finally {
       setSaving(false);
     }

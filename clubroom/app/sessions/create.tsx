@@ -316,7 +316,7 @@ function ExistingInviteFlow({
           setAcademies([]);
         }
       } catch {
-        uiFeedback.alert('Error', 'Failed to load session invite data. Pull to retry.');
+        uiFeedback.showToast('Failed to load session invite data. Pull to retry.', 'error');
       } finally {
         if (active) {
           setLoading(false);
@@ -426,19 +426,19 @@ function ExistingInviteFlow({
   const handleSubmit = useCallback(async () => {
     if (!currentUser || !selectedSession) return;
     if (postingAs === 'club' && !selectedClub) {
-      uiFeedback.alert('Select club', 'Choose which club you are posting on behalf of.');
+      uiFeedback.showToast('Choose which club you are posting on behalf of.');
       return;
     }
     if (postingAs === 'club' && !canPostAsSelectedClub) {
-      uiFeedback.alert('Permission required', 'You do not have permission to post invites as this club.');
+      uiFeedback.showToast('You do not have permission to post invites as this club.', 'error');
       return;
     }
     if (postingAs === 'club' && !assigneeCoachId) {
-      uiFeedback.alert('Assign coach', 'Choose a coach owner before sending invites.');
+      uiFeedback.showToast('Choose a coach owner before sending invites.');
       return;
     }
     if (!ownerCoachId) {
-      uiFeedback.alert('Assign coach', 'Choose a coach owner before sending invites.');
+      uiFeedback.showToast('Choose a coach owner before sending invites.');
       return;
     }
 
@@ -537,7 +537,7 @@ function ExistingInviteFlow({
         router.replace(Routes.BOOKINGS);
       }
     } catch {
-      uiFeedback.alert('Error', 'Failed to send invites. Please try again.');
+      uiFeedback.showToast('Failed to send invites. Please try again.', 'error');
     } finally {
       setSubmitting(false);
     }

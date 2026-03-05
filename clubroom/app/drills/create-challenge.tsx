@@ -72,7 +72,7 @@ export default function CreateChallengeScreen() {
       router.back();
     } catch (err) {
       logger.error('Failed to create challenge', err);
-      uiFeedback.alert('Error', 'Failed to create challenge. Please try again.');
+      uiFeedback.showToast('Failed to create challenge. Please try again.', 'error');
     } finally {
       setCreating(false);
     }
@@ -144,7 +144,7 @@ export default function CreateChallengeScreen() {
           </Row>
           <Clickable
             onPress={() =>
-              uiFeedback.alert('Coming Soon', 'Video upload will be available in a future update.')
+              uiFeedback.showToast('Video upload will be available in a future update.')
             }
           >
             <View

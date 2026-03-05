@@ -261,7 +261,7 @@ export function useAvailabilityWizard({
       onComplete();
     } catch (error) {
       logger.error('Failed to save templates', error);
-      uiFeedback.alert('Error', 'Failed to save availability. Please try again.');
+      uiFeedback.showToast('Failed to save availability. Please try again.', 'error');
     } finally {
       setSaving(false);
     }

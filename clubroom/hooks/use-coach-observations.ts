@@ -72,7 +72,7 @@ export function useCoachObservations(athleteId: string) {
         if (editingObservation) {
           const result = await coachObservationService.updateObservation(editingObservation.id, data);
           if (!result.success) {
-            uiFeedback.alert('Error', 'Failed to update observation. Please try again.');
+            uiFeedback.showToast('Failed to update observation. Please try again.', 'error');
             return;
           }
         } else {
@@ -83,14 +83,14 @@ export function useCoachObservations(athleteId: string) {
             ...data,
           });
           if (!result.success) {
-            uiFeedback.alert('Error', 'Failed to save observation. Please try again.');
+            uiFeedback.showToast('Failed to save observation. Please try again.', 'error');
             return;
           }
         }
         hideModal();
       } catch (error) {
         logger.error('save_observation_failed', { error });
-        uiFeedback.alert('Error', 'Something went wrong. Please try again.');
+        uiFeedback.showToast('Something went wrong. Please try again.', 'error');
       } finally {
         setSaving(false);
       }
@@ -108,7 +108,7 @@ export function useCoachObservations(athleteId: string) {
           onPress: async () => {
             const result = await coachObservationService.deleteObservation(observationId);
             if (!result.success) {
-              uiFeedback.alert('Error', 'Failed to delete observation. Please try again.');
+              uiFeedback.showToast('Failed to delete observation. Please try again.', 'error');
             }
           },
         },

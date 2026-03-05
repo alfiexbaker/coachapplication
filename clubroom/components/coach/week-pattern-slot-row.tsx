@@ -54,10 +54,7 @@ function SlotRowInner(props: WeekPatternSlotRowProps) {
     onPress();
   }, [onPress]);
   const handleOverrideInfo = useCallback(() => {
-    uiFeedback.alert(
-      'One-time override',
-      'This yellow dot means the normal weekly slot was overridden for a specific date.',
-    );
+    uiFeedback.showToast('This yellow dot means the normal weekly slot was overridden for a specific date.');
   }, []);
 
   const rowStyle: ViewStyle = {

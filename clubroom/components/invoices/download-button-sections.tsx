@@ -74,12 +74,12 @@ export const DownloadOnlyButtonInner = memo(function DownloadOnlyButtonInner({
     try {
       const result = await invoiceService.downloadInvoice(invoice.id);
       if (result) {
-        uiFeedback.alert('Downloaded', `${invoice.invoiceNumber} saved.`);
+        uiFeedback.showToast(`${invoice.invoiceNumber} saved.`);
       } else {
-        uiFeedback.alert('Download Failed', 'Could not download the invoice. Please try again.');
+        uiFeedback.showToast('Could not download the invoice. Please try again.', 'error');
       }
     } catch {
-      uiFeedback.alert('Download Failed', 'Something went wrong. Check your connection and try again.');
+      uiFeedback.showToast('Something went wrong. Check your connection and try again.', 'error');
     } finally {
       setDownloading(false);
     }
@@ -118,7 +118,7 @@ export const ShareOnlyButtonInner = memo(function ShareOnlyButtonInner({
     try {
       await invoiceService.shareInvoice(invoice.id);
     } catch {
-      uiFeedback.alert('Error', 'Could not share the invoice.');
+      uiFeedback.showToast('Could not share the invoice.', 'error');
     } finally {
       setSharing(false);
     }

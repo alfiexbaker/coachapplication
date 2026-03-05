@@ -150,14 +150,11 @@ export function useInviteSessionFlow({
         athleteIds: selectedAthletes.map((a) => a.id),
         isNew: false,
       });
-      uiFeedback.alert(
-        'Athletes Invited',
-        `${selectedAthletes.length} athlete${selectedAthletes.length !== 1 ? 's' : ''} added to ${selectedSession.title || 'session'}.`,
-      );
+      uiFeedback.showToast(`${selectedAthletes.length} athlete${selectedAthletes.length !== 1 ? 's' : ''} added to ${selectedSession.title || 'session'}.`);
       handleClose();
     } catch (error) {
       logger.error('Failed to add athletes to session', error);
-      uiFeedback.alert('Error', 'Failed to add athletes. Please try again.');
+      uiFeedback.showToast('Failed to add athletes. Please try again.', 'error');
     }
   }, [selectedSession, selectedAthletes, onComplete]);
 

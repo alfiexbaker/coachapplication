@@ -142,7 +142,7 @@ export function useEditChildSen() {
           { text: 'OK', onPress: () => router.back() },
         ]);
       } else {
-        uiFeedback.alert('Error', 'Failed to save. Please try again.');
+        uiFeedback.showToast('Failed to save. Please try again.', 'error');
       }
     } finally {
       setSaving(false);

@@ -188,10 +188,7 @@ export function useBookingDetail(id: string): BookingDetailResult {
   const handleCancelBooking = useCallback(() => {
     if (!booking) return;
     if (!canCancelBooking) {
-      uiFeedback.alert(
-        'Cancellation unavailable',
-        'Only upcoming bookings can be cancelled. Past or completed sessions cannot be cancelled.',
-      );
+      uiFeedback.showToast('Only upcoming bookings can be cancelled. Past or completed sessions cannot be cancelled.');
       return;
     }
     router.push(Routes.bookingCancel(booking.id, isCoach ? 'coach' : 'parent'));
@@ -202,7 +199,7 @@ export function useBookingDetail(id: string): BookingDetailResult {
       { text: 'Back', style: 'cancel' },
       {
         text: 'Process Refund',
-        onPress: () => uiFeedback.alert('Success', 'Refund processed successfully'),
+        onPress: () => uiFeedback.showToast('Refund processed successfully', 'success'),
       },
     ]);
   }, []);

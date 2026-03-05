@@ -281,7 +281,7 @@ export function useGroupSession() {
           currentUser.id,
         );
         if (!result.success) {
-          uiFeedback.alert('Error', result.error.message || 'Failed to register. Please try again.');
+          uiFeedback.showToast(result.error.message || 'Failed to register. Please try again.', 'error');
           return;
         }
 
@@ -299,17 +299,14 @@ export function useGroupSession() {
         onRefresh();
 
         if (result.data.status === 'WAITLISTED') {
-          uiFeedback.alert(
-            'Waitlisted',
-            "You've been added to the waitlist. We'll notify you when a spot opens.",
-          );
+          uiFeedback.showToast("You've been added to the waitlist. We'll notify you when a spot opens.");
         } else {
           const name = children.find((c) => c.id === athleteId)?.name;
-          uiFeedback.alert('Registered', name ? `${name} is registered!` : 'Registration successful!');
+          uiFeedback.showToast(name ? `${name} is registered!` : 'Registration successful!');
         }
       } catch (regError) {
         logger.error('Failed to register:', regError);
-        uiFeedback.alert('Error', 'Failed to register. Please try again.');
+        uiFeedback.showToast('Failed to register. Please try again.', 'error');
       } finally {
         setRegistering(false);
       }
@@ -321,7 +318,7 @@ export function useGroupSession() {
   const handleRegister = useCallback(() => {
     if (!session || !currentUser) return;
     if (isDeadlinePassed) {
-      uiFeedback.alert('Registration Closed', 'The registration deadline for this session has passed.');
+      uiFeedback.showToast('The registration deadline for this session has passed.', 'warning');
       return;
     }
 
@@ -331,13 +328,13 @@ export function useGroupSession() {
       : currentUser.id;
 
     if (!athleteId) {
-      uiFeedback.alert('Select Child', 'Please select which child to register.');
+      uiFeedback.showToast('Please select which child to register.');
       return;
     }
 
     // Check if already registered
     if (registeredChildIds.has(athleteId)) {
-      uiFeedback.alert('Already Registered', 'This child is already registered for this session.');
+      uiFeedback.showToast('This child is already registered for this session.');
       return;
     }
 
@@ -399,13 +396,13 @@ export function useGroupSession() {
                   target.registration.id,
                 );
                 if (!result.success) {
-                  uiFeedback.alert('Error', result.error.message || 'Failed to cancel registration.');
+                  uiFeedback.showToast(result.error.message || 'Failed to cancel registration.', 'error');
                   return;
                 }
                 onRefresh();
               } catch (cancelError) {
                 logger.error('Failed to cancel registration:', cancelError);
-                uiFeedback.alert('Error', 'Failed to cancel registration. Please try again.');
+                uiFeedback.showToast('Failed to cancel registration. Please try again.', 'error');
               }
             },
           },
@@ -420,7 +417,7 @@ export function useGroupSession() {
     async (familyReg: FamilyRegistration, buttonStatus: ButtonGroupStatus) => {
       // Deadline guard — block responses after deadline
       if (isDeadlinePassed) {
-        uiFeedback.alert('Deadline Passed', 'The RSVP deadline for this session has passed.');
+        uiFeedback.showToast('The RSVP deadline for this session has passed.', 'warning');
         return;
       }
 
@@ -470,7 +467,7 @@ export function useGroupSession() {
           try {
             const result = await groupSessionService.cancelSession(session.id);
             if (!result.success) {
-              uiFeedback.alert('Error', result.error.message || 'Failed to cancel session.');
+              uiFeedback.showToast(result.error.message || 'Failed to cancel session.', 'error');
               return;
             }
             // Clean up RSVPs
@@ -478,7 +475,7 @@ export function useGroupSession() {
             router.back();
           } catch (cancelErr) {
             logger.error('Failed to cancel:', cancelErr);
-            uiFeedback.alert('Error', 'Failed to cancel session.');
+            uiFeedback.showToast('Failed to cancel session.', 'error');
           }
         },
       },
@@ -490,9 +487,9 @@ export function useGroupSession() {
     if (!session) return;
     try {
       await rsvpService.sendReminder(session.id);
-      uiFeedback.alert('Reminders Sent', `Sent to ${rsvpCounts.pending} non-responder${rsvpCounts.pending !== 1 ? 's' : ''}.`);
+      uiFeedback.showToast(`Sent to ${rsvpCounts.pending} non-responder${rsvpCounts.pending !== 1 ? 's' : ''}.`, 'success');
     } catch {
-      uiFeedback.alert('Error', 'Failed to send reminders.');
+      uiFeedback.showToast('Failed to send reminders.', 'error');
     }
   }, [session, rsvpCounts.pending]);
 

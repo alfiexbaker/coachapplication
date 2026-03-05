@@ -43,12 +43,12 @@ export default function ReportProblemScreen() {
 
   const handleSubmit = async () => {
     if (!selectedCategory || !description.trim()) {
-      uiFeedback.alert('Missing Information', 'Please select a category and provide a description');
+      uiFeedback.showToast('Please select a category and provide a description', 'error');
       return;
     }
 
     if (description.trim().length < 10) {
-      uiFeedback.alert('Description Too Short', 'Please provide more details about the issue');
+      uiFeedback.showToast('Please provide more details about the issue');
       return;
     }
 
@@ -81,7 +81,7 @@ export default function ReportProblemScreen() {
       );
     } catch (error) {
       logger.error('Failed to submit report', error);
-      uiFeedback.alert('Error', 'Failed to submit report. Please try again.');
+      uiFeedback.showToast('Failed to submit report. Please try again.', 'error');
     } finally {
       setSubmitting(false);
     }

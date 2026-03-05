@@ -78,7 +78,7 @@ export function useAthleteAnalytics() {
         onRefresh();
       } else {
         logger.error('Failed to complete milestone:', result.error);
-        uiFeedback.alert('Unable to update goal', result.error.message);
+        uiFeedback.showToast(result.error.message, 'error');
       }
     },
     [onRefresh],
@@ -93,7 +93,7 @@ export function useAthleteAnalytics() {
         title: `${athleteLabel} Progress Report`,
       });
     } catch {
-      uiFeedback.alert('Error', 'Failed to share progress report.');
+      uiFeedback.showToast('Failed to share progress report.', 'error');
     }
   }, [analytics]);
 

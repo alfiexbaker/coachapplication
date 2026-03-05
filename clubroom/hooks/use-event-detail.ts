@@ -87,7 +87,7 @@ export function useEventDetail(id: string | undefined): UseEventDetailResult {
         onRefresh();
       } catch (error) {
         logger.error('Failed to RSVP:', error);
-        uiFeedback.alert('Error', 'Failed to save your response. Please try again.');
+        uiFeedback.showToast('Failed to save your response. Please try again.', 'error');
       }
     },
     [event, currentUser, isCoach, onRefresh],
@@ -105,10 +105,10 @@ export function useEventDetail(id: string | undefined): UseEventDetailResult {
             await eventService.publishEvent(event.id);
             await eventService.inviteClub(event.id);
             onRefresh();
-            uiFeedback.alert('Success', 'Event published and members notified!');
+            uiFeedback.showToast('Event published and members notified!', 'success');
           } catch (error) {
             logger.error('Failed to publish:', error);
-            uiFeedback.alert('Error', 'Failed to publish event.');
+            uiFeedback.showToast('Failed to publish event.', 'error');
           }
         },
       },
@@ -129,7 +129,7 @@ export function useEventDetail(id: string | undefined): UseEventDetailResult {
             onRefresh();
           } catch (error) {
             logger.error('Failed to cancel:', error);
-            uiFeedback.alert('Error', 'Failed to cancel event.');
+            uiFeedback.showToast('Failed to cancel event.', 'error');
           }
         },
       },

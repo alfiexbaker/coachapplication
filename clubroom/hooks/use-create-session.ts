@@ -1239,7 +1239,7 @@ export function useCreateSession(): CreateSessionState & CreateSessionActions {
             ],
           );
         } else {
-          uiFeedback.alert('Error', result.error.message || 'Failed to create recurring session.');
+          uiFeedback.showToast(result.error.message || 'Failed to create recurring session.', 'error');
         }
 
         setLoading(false);
@@ -1369,7 +1369,7 @@ export function useCreateSession(): CreateSessionState & CreateSessionActions {
       ]);
     } catch (error) {
       logger.error('Failed to create session:', error);
-      uiFeedback.alert('Error', 'Failed to create session. Please try again.');
+      uiFeedback.showToast('Failed to create session. Please try again.', 'error');
     } finally {
       setLoading(false);
     }

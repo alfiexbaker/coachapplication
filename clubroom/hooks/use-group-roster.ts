@@ -224,13 +224,13 @@ export function useGroupRoster(sessionId: string | undefined) {
       try {
         const result = await groupSessionService.markAttendance(registration.id, date, attended);
         if (!result.success) {
-          uiFeedback.alert('Error', result.error.message || 'Failed to update attendance.');
+          uiFeedback.showToast(result.error.message || 'Failed to update attendance.', 'error');
           return;
         }
         onRefresh();
       } catch (error) {
         logger.error('Failed to mark attendance:', error);
-        uiFeedback.alert('Error', 'Failed to update attendance.');
+        uiFeedback.showToast('Failed to update attendance.', 'error');
       }
     },
     [session, onRefresh],
@@ -250,13 +250,13 @@ export function useGroupRoster(sessionId: string | undefined) {
               try {
                 const result = await groupSessionService.cancelRegistration(registration.id);
                 if (!result.success) {
-                  uiFeedback.alert('Error', result.error.message || 'Failed to cancel registration.');
+                  uiFeedback.showToast(result.error.message || 'Failed to cancel registration.', 'error');
                   return;
                 }
                 onRefresh();
               } catch (error) {
                 logger.error('Failed to cancel registration:', error);
-                uiFeedback.alert('Error', 'Failed to cancel registration.');
+                uiFeedback.showToast('Failed to cancel registration.', 'error');
               }
             },
           },
@@ -315,19 +315,16 @@ export function useGroupRoster(sessionId: string | undefined) {
         }
 
         if (result && !result.success) {
-          uiFeedback.alert(
-            'Error',
-            result.error.message || 'Failed to save roll call. Please try again.',
-          );
+          uiFeedback.showToast(result.error.message || 'Failed to save roll call. Please try again.', 'error');
           return;
         }
       }
       onRefresh();
       setShowRollCall(false);
-      uiFeedback.alert('Success', 'Roll call saved successfully!');
+      uiFeedback.showToast('Roll call saved successfully!', 'success');
     } catch (error) {
       logger.error('Failed to save roll call:', error);
-      uiFeedback.alert('Error', 'Failed to save roll call. Please try again.');
+      uiFeedback.showToast('Failed to save roll call. Please try again.', 'error');
     }
   }, [session, rollCallAttendance, onRefresh]);
 
@@ -342,7 +339,7 @@ export function useGroupRoster(sessionId: string | undefined) {
 
   const submitInjuryReport = useCallback(async () => {
     if (!selectedParticipant || !injuryBodyPart || !injuryDescription.trim()) {
-      uiFeedback.alert('Missing Information', 'Please select a body part and provide a description.');
+      uiFeedback.showToast('Please select a body part and provide a description.', 'error');
       return;
     }
     setSavingInjury(true);
@@ -361,13 +358,10 @@ export function useGroupRoster(sessionId: string | undefined) {
       );
       void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       setShowInjuryReport(false);
-      uiFeedback.alert(
-        'Injury Reported',
-        `Injury logged for ${getGroupRegistrationAthleteName(selectedParticipant)}. The athlete can track their recovery in the Health section.`,
-      );
+      uiFeedback.showToast(`Injury logged for ${getGroupRegistrationAthleteName(selectedParticipant)}. The athlete can track their recovery in the Health section.`);
     } catch (error) {
       logger.error('Failed to report injury:', error);
-      uiFeedback.alert('Error', 'Failed to report injury. Please try again.');
+      uiFeedback.showToast('Failed to report injury. Please try again.', 'error');
     } finally {
       setSavingInjury(false);
     }

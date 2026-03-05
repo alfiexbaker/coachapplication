@@ -86,7 +86,7 @@ export function CheckInButton({
       await onCheckIn(checkInInput);
     } catch (error) {
       logger.error('Check-in failed', error);
-      uiFeedback.alert('Check-in Failed', 'Please try again.');
+      uiFeedback.showToast('Please try again.', 'error');
     } finally {
       setLoading(false);
     }
@@ -106,7 +106,7 @@ export function CheckInButton({
             await onUndoCheckIn();
           } catch (error) {
             logger.error('Undo check-in failed', error);
-            uiFeedback.alert('Failed', 'Please try again.');
+            uiFeedback.showToast('Please try again.', 'error');
           } finally {
             setLoading(false);
           }

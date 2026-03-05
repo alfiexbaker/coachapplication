@@ -164,7 +164,7 @@ export function useRecurringTemplateForm({
       onClose();
     } catch (error) {
       logger.error('Failed to save template:', error);
-      uiFeedback.alert('Error', 'Failed to save availability. Please try again.');
+      uiFeedback.showToast('Failed to save availability. Please try again.', 'error');
     } finally {
       setSaving(false);
     }
@@ -182,13 +182,13 @@ export function useRecurringTemplateForm({
 
   const handleSave = useCallback(async () => {
     if (selectedDays.length === 0) {
-      uiFeedback.alert('Select Days', 'Please select at least one day');
+      uiFeedback.showToast('Please select at least one day');
       return;
     }
     const [startHour, startMin] = startTime.split(':').map(Number);
     const [endHour, endMin] = endTime.split(':').map(Number);
     if (endHour * 60 + endMin <= startHour * 60 + startMin) {
-      uiFeedback.alert('Invalid times', 'End time must be after start time');
+      uiFeedback.showToast('End time must be after start time', 'error');
       return;
     }
 

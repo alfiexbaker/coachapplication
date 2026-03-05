@@ -56,7 +56,7 @@ export function useAccountSettings() {
           text: 'Send',
           onPress: () => {
             setEditingEmail(false);
-            uiFeedback.alert('Success', 'Verification email sent!');
+            uiFeedback.showToast('Verification email sent!', 'success');
           },
         },
       ],
@@ -66,7 +66,7 @@ export function useAccountSettings() {
   const handleSavePhone = useCallback(() => {
     logger.press('SavePhone', { phone });
     setEditingPhone(false);
-    uiFeedback.alert('Success', 'Phone number updated!');
+    uiFeedback.showToast('Phone number updated!', 'success');
   }, [phone]);
 
   const handleChangePassword = useCallback(() => {
@@ -75,7 +75,7 @@ export function useAccountSettings() {
       { text: 'Cancel', style: 'cancel' },
       {
         text: 'Send Link',
-        onPress: () => uiFeedback.alert('Success', 'Password reset link sent to your email.'),
+        onPress: () => uiFeedback.showToast('Password reset link sent to your email.', 'success'),
       },
     ]);
   }, []);
@@ -118,10 +118,7 @@ export function useAccountSettings() {
               scheduledDeletionAt: deletionDate.toISOString(),
             });
 
-            uiFeedback.alert(
-              'Deletion Scheduled',
-              `Your account will be deleted on ${deletionDate.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}. You can cancel anytime before then.`,
-            );
+            uiFeedback.showToast(`Your account will be deleted on ${deletionDate.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}. You can cancel anytime before then.`);
           },
         },
       ],
@@ -146,7 +143,7 @@ export function useAccountSettings() {
     });
 
     logger.info('Account deletion cancelled', { userId: currentUser.id });
-    uiFeedback.alert('Deletion Cancelled', 'Your account will not be deleted.');
+    uiFeedback.showToast('Your account will not be deleted.', 'success');
   }, [currentUser?.id, deletionRequest]);
 
   const handleDeactivateAccount = useCallback(() => {
@@ -159,7 +156,7 @@ export function useAccountSettings() {
         {
           text: 'Deactivate',
           onPress: async () => {
-            uiFeedback.alert('Success', 'Your account has been deactivated.');
+            uiFeedback.showToast('Your account has been deactivated.', 'success');
             await logout();
             router.replace(Routes.ROOT);
           },

@@ -52,16 +52,13 @@ export function ReviewForm({ onSubmit, isCoachView, submitting = false }: Review
 
     // Validate rating
     if (rating === 0) {
-      uiFeedback.alert('Missing Rating', 'Please select an overall rating');
+      uiFeedback.showToast('Please select an overall rating', 'error');
       return;
     }
 
     // Validate review text
     if (text.trim().length > 0 && text.trim().length < MIN_REVIEW_LENGTH) {
-      uiFeedback.alert(
-        'Review Too Short',
-        `Please write at least ${MIN_REVIEW_LENGTH} characters or leave it empty`,
-      );
+      uiFeedback.showToast(`Please write at least ${MIN_REVIEW_LENGTH} characters or leave it empty`);
       return;
     }
 

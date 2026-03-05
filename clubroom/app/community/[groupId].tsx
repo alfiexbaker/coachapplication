@@ -98,14 +98,14 @@ export default function GroupChatScreen() {
         messageText,
       );
       if (!sendResult.success) {
-        uiFeedback.alert('Send Failed', sendResult.error.message);
+        uiFeedback.showToast(sendResult.error.message, 'error');
         setInputValue(messageText);
         return;
       }
       onRefresh();
     } catch (sendError) {
       logger.error('Failed to send message:', sendError);
-      uiFeedback.alert('Send Failed', 'Could not send your message. Please try again.');
+      uiFeedback.showToast('Could not send your message. Please try again.', 'error');
       setInputValue(messageText);
     } finally {
       setSending(false);
@@ -123,12 +123,12 @@ export default function GroupChatScreen() {
             if (!groupId) return;
             const leaveResult = await communityService.leaveGroup(groupId, parentId);
             if (!leaveResult.success) {
-              uiFeedback.alert('Error', leaveResult.error.message);
+              uiFeedback.showToast(leaveResult.error.message, 'error');
               return;
             }
             router.back();
           } catch (leaveError) {
-            uiFeedback.alert('Error', String(leaveError));
+            uiFeedback.showToast(String(leaveError), 'error');
           }
         },
       },
@@ -165,14 +165,14 @@ export default function GroupChatScreen() {
           newRole,
         });
         if (!result.success) {
-          uiFeedback.alert('Error', result.error.message);
+          uiFeedback.showToast(result.error.message, 'error');
           return;
         }
         setShowRolePickerModal(false);
         setSelectedMember(null);
         onRefresh();
       } catch (changeError) {
-        uiFeedback.alert('Error', String(changeError));
+        uiFeedback.showToast(String(changeError), 'error');
       }
     },
     [selectedMember, groupId, parentId, onRefresh],

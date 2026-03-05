@@ -56,7 +56,7 @@ export const AthleteEmergencyCard = React.memo(function AthleteEmergencyCard({
               await Linking.openURL(telUrl);
               logger.info('Emergency contact called', { contactId: contact.id });
             } else {
-              uiFeedback.alert('Cannot Make Call', 'This device cannot make phone calls');
+              uiFeedback.showToast('This device cannot make phone calls', 'error');
             }
           },
         },

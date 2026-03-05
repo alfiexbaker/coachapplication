@@ -44,7 +44,7 @@ export function AvailabilityResponse({
     try {
       await onRespond(status, note || undefined);
     } catch {
-      uiFeedback.alert('Error', 'Failed to submit response. Please try again.');
+      uiFeedback.showToast('Failed to submit response. Please try again.', 'error');
     }
   };
 

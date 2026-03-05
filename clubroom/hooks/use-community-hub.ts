@@ -110,7 +110,7 @@ export function useCommunityHub(): UseCommunityHubResult {
           isPublic: data.isPublic,
         });
         if (!result.success) {
-          uiFeedback.alert('Could not create group', result.error.message);
+          uiFeedback.showToast(result.error.message);
           return;
         }
         setShowCreateModal(false);
@@ -133,13 +133,13 @@ export function useCommunityHub(): UseCommunityHubResult {
           isCoach: isCoachUser,
         });
         if (!result.success) {
-          uiFeedback.alert('Could not join', result.error.message);
+          uiFeedback.showToast(result.error.message);
           return;
         }
         onRefresh();
       } catch (error) {
         logger.error('Failed to join group:', error);
-        uiFeedback.alert('Error', 'Failed to join group. Please try again.');
+        uiFeedback.showToast('Failed to join group. Please try again.', 'error');
       }
     },
     [parentId, parentName, isCoachUser, onRefresh],

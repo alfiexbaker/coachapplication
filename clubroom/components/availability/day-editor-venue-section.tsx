@@ -127,7 +127,7 @@ function DayEditorVenueSectionInner({
     const venueLabel = (newVenueLabel.trim() || fallbackLabel).trim();
 
     if (!venueLabel) {
-      uiFeedback.alert('Add location', 'Search a location on the map, then name the venue.');
+      uiFeedback.showToast('Search a location on the map, then name the venue.');
       return;
     }
 

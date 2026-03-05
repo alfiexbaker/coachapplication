@@ -95,7 +95,7 @@ export default function ChatScreen() {
     const senderLabel = postingAs ? `You (${postingAs})` : 'You';
     const sendResult = await messagingService.sendMessage(threadId, body, 'parent', senderLabel);
     if (!sendResult.success) {
-      uiFeedback.alert('Unable to send message', sendResult.error.message);
+      uiFeedback.showToast(sendResult.error.message, 'error');
       return;
     }
     if (thread?.id) {

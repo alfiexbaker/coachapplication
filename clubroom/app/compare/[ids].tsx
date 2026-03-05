@@ -54,7 +54,7 @@ export default function DynamicCompareScreen() {
       });
     } catch (error) {
       logger.error('Failed to share', error);
-      uiFeedback.alert('Share', `Share this link: ${shareUrl}`);
+      uiFeedback.showToast(`Share this link: ${shareUrl}`);
     }
   }, [coachIds]);
   const renderBackAction = () => (

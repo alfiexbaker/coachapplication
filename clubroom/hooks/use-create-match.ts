@@ -83,27 +83,27 @@ export function useCreateMatch() {
     switch (step) {
       case 'details':
         if (!opponent.trim()) {
-          uiFeedback.alert('Missing Information', 'Please enter the opponent name.');
+          uiFeedback.showToast('Please enter the opponent name.', 'error');
           return false;
         }
         if (!venue.trim()) {
-          uiFeedback.alert('Missing Information', 'Please enter the venue.');
+          uiFeedback.showToast('Please enter the venue.', 'error');
           return false;
         }
         return true;
       case 'schedule':
         if (!date.trim()) {
-          uiFeedback.alert('Missing Information', 'Please enter the match date.');
+          uiFeedback.showToast('Please enter the match date.', 'error');
           return false;
         }
         if (!kickoffTime.trim()) {
-          uiFeedback.alert('Missing Information', 'Please enter the kickoff time.');
+          uiFeedback.showToast('Please enter the kickoff time.', 'error');
           return false;
         }
         return true;
       case 'squad':
         if (!selectedSquadId) {
-          uiFeedback.alert('Missing Information', 'Please select a squad.');
+          uiFeedback.showToast('Please select a squad.', 'error');
           return false;
         }
         return true;
@@ -180,7 +180,7 @@ export function useCreateMatch() {
       }
     } catch (error) {
       logger.error('Failed to create match:', error);
-      uiFeedback.alert('Error', 'Failed to create match. Please try again.');
+      uiFeedback.showToast('Failed to create match. Please try again.', 'error');
     } finally {
       setIsSubmitting(false);
     }

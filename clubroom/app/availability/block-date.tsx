@@ -68,7 +68,7 @@ export default function BlockDateScreen() {
     const reasonText =
       reason === 'other' ? customReason : REASON_OPTIONS.find((r) => r.key === reason)?.label;
     if (reason === 'other' && !customReason.trim()) {
-      uiFeedback.alert('Reason Required', 'Please enter a reason for blocking this date');
+      uiFeedback.showToast('Please enter a reason for blocking this date', 'error');
       return;
     }
 
@@ -86,7 +86,7 @@ export default function BlockDateScreen() {
       logger.success('DateBlocked', { date: selectedDate.toISOString(), reason: reasonText });
     } catch (saveError) {
       logger.error('Failed to block date', saveError);
-      uiFeedback.alert('Error', 'Failed to block date');
+      uiFeedback.showToast('Failed to block date', 'error');
     } finally {
       setSaving(false);
     }

@@ -97,15 +97,15 @@ export function useMatchDetail() {
         const result = await matchService.setLineup({ matchId: match.id, lineup });
         if (!result.success) {
           logger.error('Failed to set lineup:', result.error);
-          uiFeedback.alert('Error', 'Failed to set lineup. Please try again.');
+          uiFeedback.showToast('Failed to set lineup. Please try again.', 'error');
           return;
         }
         onRefresh();
         setShowLineupSelector(false);
-        uiFeedback.alert('Lineup Set', 'The lineup has been confirmed and players notified.');
+        uiFeedback.showToast('The lineup has been confirmed and players notified.');
       } catch (error) {
         logger.error('Failed to set lineup:', error);
-        uiFeedback.alert('Error', 'Failed to set lineup. Please try again.');
+        uiFeedback.showToast('Failed to set lineup. Please try again.', 'error');
       } finally {
         setIsSubmitting(false);
       }
@@ -152,19 +152,19 @@ export function useMatchDetail() {
             if (!score || !match) return;
             const [home, away] = score.split('-').map(Number);
             if (isNaN(home) || isNaN(away)) {
-              uiFeedback.alert('Invalid Score', 'Please enter a valid score like 3-1');
+              uiFeedback.showToast('Please enter a valid score like 3-1', 'error');
               return;
             }
             try {
               const result = await matchService.recordResult(match.id, { home, away });
               if (!result.success) {
-                uiFeedback.alert('Error', 'Failed to record result.');
+                uiFeedback.showToast('Failed to record result.', 'error');
                 return;
               }
               onRefresh();
-              uiFeedback.alert('Result Recorded', 'The match result has been saved.');
+              uiFeedback.showToast('The match result has been saved.');
             } catch {
-              uiFeedback.alert('Error', 'Failed to record result.');
+              uiFeedback.showToast('Failed to record result.', 'error');
             }
           },
         },
@@ -187,12 +187,12 @@ export function useMatchDetail() {
             try {
               const result = await matchService.cancelMatch(match.id);
               if (!result.success) {
-                uiFeedback.alert('Error', 'Failed to cancel match.');
+                uiFeedback.showToast('Failed to cancel match.', 'error');
                 return;
               }
               onRefresh();
             } catch {
-              uiFeedback.alert('Error', 'Failed to cancel match.');
+              uiFeedback.showToast('Failed to cancel match.', 'error');
             }
           },
         },

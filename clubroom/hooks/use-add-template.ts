@@ -54,7 +54,7 @@ export function useAddTemplate() {
   const handleSave = useCallback(async () => {
     if (!currentUser?.id) return;
     if (startTime >= endTime) {
-      uiFeedback.alert('Invalid Time', 'End time must be after start time');
+      uiFeedback.showToast('End time must be after start time', 'error');
       return;
     }
 
@@ -76,10 +76,7 @@ export function useAddTemplate() {
       });
 
       if (overlappingTemplate) {
-        uiFeedback.alert(
-          'Overlapping Availability',
-          `This overlaps with an existing block (${overlappingTemplate.startTime}-${overlappingTemplate.endTime}). Choose a different time or make the blocks adjacent.`,
-        );
+        uiFeedback.showToast(`This overlaps with an existing block (${overlappingTemplate.startTime}-${overlappingTemplate.endTime}). Choose a different time or make the blocks adjacent.`);
         return;
       }
 
@@ -98,7 +95,7 @@ export function useAddTemplate() {
       logger.success('TemplateAdded', { dayOfWeek, startTime, endTime });
     } catch (error) {
       logger.error('Failed to add template', error);
-      uiFeedback.alert('Error', 'Failed to add availability template');
+      uiFeedback.showToast('Failed to add availability template', 'error');
     } finally {
       setSaving(false);
     }

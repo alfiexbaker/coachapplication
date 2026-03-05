@@ -58,15 +58,15 @@ export function useInvoiceDetail() {
     try {
       const result = await invoiceService.sendInvoice(invoice.id, sendEmail.trim());
       if (result.success) {
-        uiFeedback.alert('Invoice Sent', `Invoice sent to ${sendEmail}`);
+        uiFeedback.showToast(`Invoice sent to ${sendEmail}`, 'success');
         setShowSendModal(false);
         setSendEmail('');
         onRefresh();
       } else {
-        uiFeedback.alert('Failed', result.error || 'Could not send invoice');
+        uiFeedback.showToast(result.error || 'Could not send invoice', 'error');
       }
     } catch {
-      uiFeedback.alert('Error', 'An error occurred while sending the invoice');
+      uiFeedback.showToast('An error occurred while sending the invoice', 'error');
     } finally {
       setActionLoading(false);
     }
@@ -84,7 +84,7 @@ export function useInvoiceDetail() {
             await invoiceService.markAsPaid(invoice.id);
             onRefresh();
           } catch {
-            uiFeedback.alert('Error', 'Failed to update invoice');
+            uiFeedback.showToast('Failed to update invoice', 'error');
           } finally {
             setActionLoading(false);
           }
@@ -109,7 +109,7 @@ export function useInvoiceDetail() {
               await invoiceService.voidInvoice(invoice.id, 'Voided by user');
               onRefresh();
             } catch {
-              uiFeedback.alert('Error', 'Failed to void invoice');
+              uiFeedback.showToast('Failed to void invoice', 'error');
             } finally {
               setActionLoading(false);
             }

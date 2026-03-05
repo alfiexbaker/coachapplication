@@ -29,7 +29,7 @@ function LocationMapPreviewComponent({ location, coordinates }: LocationMapPrevi
   const handleGetDirections = useCallback(() => {
     void openLocationInMaps({ location, coordinates }).then((opened) => {
       if (!opened) {
-        uiFeedback.alert('Error', 'Could not open maps application.');
+        uiFeedback.showToast('Could not open maps application.', 'error');
       }
     });
   }, [coordinates, location]);

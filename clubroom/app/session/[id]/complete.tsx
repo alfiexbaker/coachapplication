@@ -210,11 +210,11 @@ export default function SessionCompleteScreen() {
   const handleSendGroupMessage = async () => {
     const sent = await sendGroupBroadcast(groupMessage);
     if (!sent) {
-      uiFeedback.alert('Add a message', 'Write a group update before sending.');
+      uiFeedback.showToast('Write a group update before sending.');
       return;
     }
     setGroupMessage('');
-    uiFeedback.alert('Sent', 'Update pushed to the group thread.');
+    uiFeedback.showToast('Update pushed to the group thread.', 'success');
   };
 
   const handlePersonalFeedback = useCallback(
@@ -293,10 +293,10 @@ export default function SessionCompleteScreen() {
   const handleSendMessage = async (registrationId: string) => {
     const result = await sendMessageParent(registrationId);
     if (!result.ok) {
-      uiFeedback.alert('Unable to message', result.reason || 'Message could not be sent.');
+      uiFeedback.showToast(result.reason || 'Message could not be sent.', 'error');
       return;
     }
-    uiFeedback.alert('Sent', `Message sent to ${result.targetName}.`);
+    uiFeedback.showToast(`Message sent to ${result.targetName}.`, 'success');
   };
 
   const handleRaiseConcernByRegistration = useCallback(
@@ -304,7 +304,7 @@ export default function SessionCompleteScreen() {
       const athlete = attendance[registrationId];
       const athleteId = athlete?.registration.userId;
       if (!athleteId) {
-        uiFeedback.alert('Unable to open', 'Athlete details are missing for this registration.');
+        uiFeedback.showToast('Athlete details are missing for this registration.', 'error');
         return;
       }
       router.push(Routes.rosterAthleteConcern(athleteId));
@@ -314,7 +314,7 @@ export default function SessionCompleteScreen() {
 
   const handleRaiseConcernByAthlete = useCallback((athleteId: string) => {
     if (!athleteId) {
-      uiFeedback.alert('Unable to open', 'Athlete details are missing for this action.');
+      uiFeedback.showToast('Athlete details are missing for this action.', 'error');
       return;
     }
     router.push(Routes.rosterAthleteConcern(athleteId));

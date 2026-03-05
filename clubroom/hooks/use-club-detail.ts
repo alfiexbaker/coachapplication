@@ -222,7 +222,7 @@ export function useClubDetail(clubId: string | undefined) {
 
   const handleRemoveMember = useCallback((member: ClubMember) => {
     if (!clubService.canBeRemoved(member.role)) {
-      uiFeedback.alert('Cannot remove owner', 'The club owner cannot be removed.');
+      uiFeedback.showToast('The club owner cannot be removed.', 'error');
       return;
     }
     setSelectedMemberForRemoval(member);

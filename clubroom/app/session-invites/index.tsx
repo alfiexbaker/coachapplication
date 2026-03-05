@@ -105,10 +105,10 @@ export default function SessionInvitesScreen() {
                   inviteId: invite.id,
                   response: 'DECLINED',
                 });
-                uiFeedback.alert('Done', 'Invite declined. The coach has been notified.');
+                uiFeedback.showToast('Invite declined. The coach has been notified.', 'success');
                 onRefresh();
               } catch {
-                uiFeedback.alert('Error', 'Failed to decline invite. Please try again.');
+                uiFeedback.showToast('Failed to decline invite. Please try again.', 'error');
               }
             },
           },
@@ -132,10 +132,10 @@ export default function SessionInvitesScreen() {
             onPress: async () => {
               try {
                 await sessionInviteService.cancelInvite(invite.id);
-                uiFeedback.alert('Done', 'Invite cancelled.');
+                uiFeedback.showToast('Invite cancelled.', 'success');
                 onRefresh();
               } catch {
-                uiFeedback.alert('Error', 'Failed to cancel invite. Please try again.');
+                uiFeedback.showToast('Failed to cancel invite. Please try again.', 'error');
               }
             },
           },
@@ -157,7 +157,7 @@ export default function SessionInvitesScreen() {
               await sessionInviteService.dismissInvite(invite.id);
               onRefresh();
             } catch {
-              uiFeedback.alert('Error', 'Failed to remove invite. Please try again.');
+              uiFeedback.showToast('Failed to remove invite. Please try again.', 'error');
             }
           },
         },

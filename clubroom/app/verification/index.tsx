@@ -112,12 +112,12 @@ export default function VerificationHubScreen() {
               item={status.email}
               onPress={() =>
                 status.email.status === 'VERIFIED'
-                  ? uiFeedback.alert('Email Verified', 'Your email is already verified.')
+                  ? uiFeedback.showToast('Your email is already verified.', 'success')
                   : uiFeedback.alert('Verify Email', 'We will send a verification code to your email address.', [
                       { text: 'Cancel', style: 'cancel' },
                       {
                         text: 'Send Code',
-                        onPress: () => uiFeedback.alert('Code Sent', 'Check your inbox for the verification code.'),
+                        onPress: () => uiFeedback.showToast('Check your inbox for the verification code.', 'success'),
                       },
                     ])
               }
@@ -131,12 +131,12 @@ export default function VerificationHubScreen() {
               item={status.phone}
               onPress={() =>
                 status.phone.status === 'VERIFIED'
-                  ? uiFeedback.alert('Phone Verified', 'Your phone number is already verified.')
+                  ? uiFeedback.showToast('Your phone number is already verified.', 'success')
                   : uiFeedback.alert('Verify Phone', 'We will send an SMS verification code to your phone.', [
                       { text: 'Cancel', style: 'cancel' },
                       {
                         text: 'Send SMS',
-                        onPress: () => uiFeedback.alert('Code Sent', 'Check your messages for the verification code.'),
+                        onPress: () => uiFeedback.showToast('Check your messages for the verification code.', 'success'),
                       },
                     ])
               }
@@ -188,7 +188,7 @@ export default function VerificationHubScreen() {
               item={status.insurance}
               onPress={() =>
                 status.insurance.status === 'VERIFIED'
-                  ? uiFeedback.alert('Insurance Verified', 'Your insurance documents are verified and up to date.')
+                  ? uiFeedback.showToast('Your insurance documents are verified and up to date.', 'success')
                   : uiFeedback.alert(
                       'Upload Insurance',
                       'Upload your public liability insurance certificate to get verified.',

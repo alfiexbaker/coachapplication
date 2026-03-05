@@ -65,7 +65,7 @@ export function useReferralInvite() {
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
     } catch {
-      uiFeedback.alert('Error', 'Failed to copy code');
+      uiFeedback.showToast('Failed to copy code', 'error');
     }
   }, [referralCode]);
 
@@ -78,7 +78,7 @@ export function useReferralInvite() {
       setLinkCopied(true);
       setTimeout(() => setLinkCopied(false), 2000);
     } catch {
-      uiFeedback.alert('Error', 'Failed to copy link');
+      uiFeedback.showToast('Failed to copy link', 'error');
     }
   }, [referralCode]);
 

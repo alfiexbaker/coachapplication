@@ -86,13 +86,13 @@ export function useCalendarSync() {
           setSettingsOverride(previousSettings);
           const message = result.error || 'Failed to save settings';
           setActionError(message);
-          uiFeedback.alert('Error', message);
+          uiFeedback.showToast(message, 'error');
         }
       } catch (saveError) {
         logger.error('Failed to save settings', saveError);
         setSettingsOverride(previousSettings);
         setActionError('Failed to save settings. Please try again.');
-        uiFeedback.alert('Error', 'Failed to save settings. Please try again.');
+        uiFeedback.showToast('Failed to save settings. Please try again.', 'error');
       } finally {
         setIsSaving(false);
       }
@@ -160,7 +160,7 @@ export function useCalendarSync() {
       }
 
       if (allEvents.length === 0) {
-        uiFeedback.alert('No Sessions', 'You have no upcoming sessions to export.');
+        uiFeedback.showToast('You have no upcoming sessions to export.');
         return;
       }
 
@@ -168,14 +168,14 @@ export function useCalendarSync() {
       if (!result.success || !result.filePath) {
         const message = result.error || 'Failed to export sessions.';
         setActionError(message);
-        uiFeedback.alert('Export Failed', message);
+        uiFeedback.showToast(message, 'error');
         return;
       }
 
       const isAvailable = await (await import('expo-sharing')).isAvailableAsync();
       if (!isAvailable) {
         setActionError('Sharing is not available on this device');
-        uiFeedback.alert('Export Failed', 'Sharing is not available on this device');
+        uiFeedback.showToast('Sharing is not available on this device', 'error');
         return;
       }
 
@@ -187,7 +187,7 @@ export function useCalendarSync() {
     } catch (exportError) {
       logger.error('Failed to export sessions', exportError);
       setActionError('Failed to export sessions. Please try again.');
-      uiFeedback.alert('Error', 'Failed to export sessions. Please try again.');
+      uiFeedback.showToast('Failed to export sessions. Please try again.', 'error');
     } finally {
       setIsExporting(false);
     }

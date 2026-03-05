@@ -56,12 +56,12 @@ export function DownloadButton({
         );
         onDownloadComplete?.(true);
       } else {
-        uiFeedback.alert('Download Failed', 'Could not download the invoice. Please try again.');
+        uiFeedback.showToast('Could not download the invoice. Please try again.', 'error');
         onDownloadComplete?.(false);
       }
     } catch (error) {
       logger.error('Download error', error);
-      uiFeedback.alert('Download Failed', 'An error occurred while downloading the invoice.');
+      uiFeedback.showToast('An error occurred while downloading the invoice.', 'error');
       onDownloadComplete?.(false);
     } finally {
       setDownloading(false);
@@ -75,11 +75,11 @@ export function DownloadButton({
     try {
       const success = await invoiceService.shareInvoice(invoice.id);
       if (!success) {
-        uiFeedback.alert('Share Failed', 'Could not share the invoice. Please try again.');
+        uiFeedback.showToast('Could not share the invoice. Please try again.', 'error');
       }
     } catch (error) {
       logger.error('Share error', error);
-      uiFeedback.alert('Share Failed', 'An error occurred while sharing the invoice.');
+      uiFeedback.showToast('An error occurred while sharing the invoice.', 'error');
     } finally {
       setSharing(false);
     }

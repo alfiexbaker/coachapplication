@@ -66,10 +66,7 @@ export function LineupSelector({ match, onSetLineup, isLoading }: LineupSelector
         setReserves((prev) => prev.filter((p) => p.athleteId !== player.athleteId));
       } else {
         if (selectedForLineup.length >= match.maxPlayers) {
-          uiFeedback.alert(
-            'Squad Full',
-            `Maximum ${match.maxPlayers} players allowed. Remove a player first or add to reserves.`,
-          );
+          uiFeedback.showToast(`Maximum ${match.maxPlayers} players allowed. Remove a player first or add to reserves.`);
           return;
         }
         setSelectedForLineup((prev) => [...prev, { ...player, isReserve: false }]);
@@ -80,7 +77,7 @@ export function LineupSelector({ match, onSetLineup, isLoading }: LineupSelector
 
   const handleSubmitLineup = useCallback(async () => {
     if (selectedForLineup.length === 0) {
-      uiFeedback.alert('No Players Selected', 'Please select at least one player for the lineup.');
+      uiFeedback.showToast('Please select at least one player for the lineup.');
       return;
     }
 

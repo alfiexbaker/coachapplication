@@ -66,12 +66,12 @@ export function CalendarExportButton({
       } else {
         const errorMsg = result.error || 'Failed to export to calendar';
         onExportError?.(errorMsg);
-        uiFeedback.alert('Export Failed', errorMsg);
+        uiFeedback.showToast(errorMsg, 'error');
       }
     } catch (error) {
       const errorMsg = error instanceof Error ? error.message : 'Export failed';
       onExportError?.(errorMsg);
-      uiFeedback.alert('Export Failed', errorMsg);
+      uiFeedback.showToast(errorMsg, 'error');
     } finally {
       setIsExporting(false);
     }

@@ -487,7 +487,7 @@ export function useDevSession({
       ]);
     } catch (error) {
       logger.error('Failed to save session', error);
-      uiFeedback.alert('Error', 'Failed to save session. Please try again.');
+      uiFeedback.showToast('Failed to save session. Please try again.', 'error');
     } finally {
       setSaving(false);
     }
@@ -579,7 +579,7 @@ export function useDevSession({
     try {
       const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
       if (status !== 'granted') {
-        uiFeedback.alert('Permission needed', 'Please allow access to your photos');
+        uiFeedback.showToast('Please allow access to your photos', 'warning');
         return;
       }
       const result = await ImagePicker.launchImageLibraryAsync({
@@ -591,7 +591,7 @@ export function useDevSession({
         setImageUrls((prev) => [...prev, result.assets[0].uri]);
     } catch (error) {
       logger.error('Failed to pick image', error);
-      uiFeedback.alert('Error', 'Failed to pick image');
+      uiFeedback.showToast('Failed to pick image', 'error');
     }
   }, []);
 
@@ -603,7 +603,7 @@ export function useDevSession({
     try {
       const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
       if (status !== 'granted') {
-        uiFeedback.alert('Permission needed', 'Please allow access to your videos');
+        uiFeedback.showToast('Please allow access to your videos', 'warning');
         return;
       }
 
@@ -618,7 +618,7 @@ export function useDevSession({
       }
     } catch (error) {
       logger.error('Failed to pick video', error);
-      uiFeedback.alert('Error', 'Failed to pick video');
+      uiFeedback.showToast('Failed to pick video', 'error');
     }
   }, []);
 

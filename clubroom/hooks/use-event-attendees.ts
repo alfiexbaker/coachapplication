@@ -110,7 +110,7 @@ export function useEventAttendees(id: string | undefined): UseEventAttendeesResu
         onRefresh();
       } catch (checkInError) {
         logger.error('Failed to check in attendee', checkInError);
-        uiFeedback.alert('Check-in failed', 'Could not complete check-in. Please try again.');
+        uiFeedback.showToast('Could not complete check-in. Please try again.', 'error');
       }
     },
     [onRefresh],
@@ -123,7 +123,7 @@ export function useEventAttendees(id: string | undefined): UseEventAttendeesResu
       onRefresh();
     } catch (undoError) {
       logger.error('Failed to undo check-in', undoError);
-      uiFeedback.alert('Undo failed', 'Could not undo check-in. Please try again.');
+      uiFeedback.showToast('Could not undo check-in. Please try again.', 'error');
     }
   }, [id, currentUser, onRefresh]);
 
@@ -153,7 +153,7 @@ export function useEventAttendees(id: string | undefined): UseEventAttendeesResu
       nonResponders > 0
         ? [
             { text: 'Cancel', style: 'cancel' },
-            { text: 'Send', onPress: () => uiFeedback.alert('Sent', 'Reminders have been sent') },
+            { text: 'Send', onPress: () => uiFeedback.showToast('Reminders have been sent', 'success') },
           ]
         : [{ text: 'OK' }],
     );

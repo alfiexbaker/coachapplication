@@ -85,10 +85,7 @@ export function useInvites() {
           selectedSlot,
         });
         if (!result.success) {
-          uiFeedback.alert(
-            'Booking Failed',
-            result.error?.message ?? 'Could not create the booking. Please try again.',
-          );
+          uiFeedback.showToast(result.error?.message ?? 'Could not create the booking. Please try again.', 'error');
           logger.error('Invite acceptance failed', {
             inviteId: invite.id,
             error: result.error?.message,
@@ -103,7 +100,7 @@ export function useInvites() {
         );
         onRefresh();
       } catch {
-        uiFeedback.alert('Error', 'Failed to accept invite. Please try again.');
+        uiFeedback.showToast('Failed to accept invite. Please try again.', 'error');
       } finally {
         setRespondingTo(null);
       }
@@ -131,7 +128,7 @@ export function useInvites() {
                 });
                 onRefresh();
               } catch {
-                uiFeedback.alert('Error', 'Failed to decline invite.');
+                uiFeedback.showToast('Failed to decline invite.', 'error');
               } finally {
                 setRespondingTo(null);
               }
@@ -174,12 +171,12 @@ export function useInvites() {
           currentUser.avatar,
         );
         if (!result.success) {
-          uiFeedback.alert('Error', result.error.message);
+          uiFeedback.showToast(result.error.message, 'error');
           return;
         }
         onRefresh();
       } catch {
-        uiFeedback.alert('Error', 'Failed to respond. Please try again.');
+        uiFeedback.showToast('Failed to respond. Please try again.', 'error');
       }
     },
     [currentUser, onRefresh],

@@ -141,7 +141,7 @@ export function useCoachInvites() {
         onRefresh();
       } catch (error) {
         logger.error('Failed to accept invite', error);
-        uiFeedback.alert('Error', 'Failed to accept invite. Please try again.');
+        uiFeedback.showToast('Failed to accept invite. Please try again.', 'error');
       } finally {
         setRespondingTo(null);
       }
@@ -176,7 +176,7 @@ export function useCoachInvites() {
                 onRefresh();
               } catch (error) {
                 logger.error('Failed to decline invite', error);
-                uiFeedback.alert('Error', 'Failed to decline invite.');
+                uiFeedback.showToast('Failed to decline invite.', 'error');
               } finally {
                 setRespondingTo(null);
               }

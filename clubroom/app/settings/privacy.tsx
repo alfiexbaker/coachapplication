@@ -47,7 +47,7 @@ export default function PrivacySettingsScreen() {
         {
           text: 'Request Download',
           onPress: () => {
-            uiFeedback.alert('Request Sent', "You'll receive an email when your data is ready.");
+            uiFeedback.showToast("You'll receive an email when your data is ready.", 'success');
           },
         },
       ],
@@ -56,7 +56,7 @@ export default function PrivacySettingsScreen() {
 
   const handleManageBlockedUsers = () => {
     logger.press('ManageBlockedUsers');
-    uiFeedback.alert('Blocked Users', "You haven't blocked any users yet.");
+    uiFeedback.showToast("You haven't blocked any users yet.");
   };
 
   return (
@@ -181,7 +181,7 @@ export default function PrivacySettingsScreen() {
           title="Cookie Policy"
           onPress={() => {
             logger.press('CookiePolicy');
-            uiFeedback.alert('Cookie Policy', 'View our cookie policy at clubroom.app/cookies');
+            uiFeedback.showToast('View our cookie policy at clubroom.app/cookies');
           }}
         />
       </SettingsSection>

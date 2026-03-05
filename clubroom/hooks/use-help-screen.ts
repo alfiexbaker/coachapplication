@@ -55,7 +55,7 @@ export function useHelpScreen() {
       { text: 'Email', onPress: () => Linking.openURL('mailto:support@clubroom.app') },
       {
         text: 'Live Chat',
-        onPress: () => uiFeedback.alert('Coming Soon', 'Live chat support coming soon!'),
+        onPress: () => uiFeedback.showToast('Live chat support coming soon!'),
       },
       { text: 'Cancel', style: 'cancel' },
     ]);
@@ -89,7 +89,7 @@ export function useHelpScreen() {
     logger.press('RateApp');
     uiFeedback.alert('Rate Clubroom', "Enjoying the app? We'd love your rating on the App Store!", [
       { text: 'Not Now', style: 'cancel' },
-      { text: 'Rate Now', onPress: () => uiFeedback.alert('Thank You!', 'Thanks for rating Clubroom!') },
+      { text: 'Rate Now', onPress: () => uiFeedback.showToast('Thanks for rating Clubroom!') },
     ]);
   }, []);
 
@@ -100,17 +100,17 @@ export function useHelpScreen() {
 
   const handleVideoTutorials = useCallback(() => {
     logger.press('VideoTutorials');
-    uiFeedback.alert('Coming Soon', 'Video tutorials coming soon!');
+    uiFeedback.showToast('Video tutorials coming soon!');
   }, []);
 
   const handleCommunityForum = useCallback(() => {
     logger.press('CommunityForum');
-    uiFeedback.alert('Coming Soon', 'Community forum coming soon!');
+    uiFeedback.showToast('Community forum coming soon!');
   }, []);
 
   const handleShareApp = useCallback(() => {
     logger.press('ShareApp');
-    uiFeedback.alert('Share', 'Share functionality coming soon!');
+    uiFeedback.showToast('Share functionality coming soon!');
   }, []);
 
   return {

@@ -144,19 +144,16 @@ export const ReminderButton = memo(function ReminderButton({
 
   const handlePress = async () => {
     if (pendingCount === 0) {
-      uiFeedback.alert('All Responded', 'Everyone has already responded to this session.');
+      uiFeedback.showToast('Everyone has already responded to this session.');
       return;
     }
 
     setSending(true);
     try {
       await sendReminder(sessionId);
-      uiFeedback.alert(
-        'Reminders Sent',
-        `Reminder sent to ${pendingCount} parent${pendingCount !== 1 ? 's' : ''}.`,
-      );
+      uiFeedback.showToast(`Reminder sent to ${pendingCount} parent${pendingCount !== 1 ? 's' : ''}.`, 'success');
     } catch {
-      uiFeedback.alert('Error', 'Failed to send reminders. Please try again.');
+      uiFeedback.showToast('Failed to send reminders. Please try again.', 'error');
     } finally {
       setSending(false);
     }

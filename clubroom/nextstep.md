@@ -5,6 +5,11 @@ Canonical sprint reference:
 
 ## Completed in this pass
 
+- Sprint 6 WS2 bulk conversion pass (toast-first):
+  - Converted `uiFeedback.alert(title, message)` callsites (two-arg, non-button flows) to `uiFeedback.showToast(message, tone)` via AST-safe codemod.
+  - Confirmation/action-sheet paths (alerts with button arrays) were intentionally left unchanged.
+  - Scope: `107` files updated across `app`, `hooks`, and `components`.
+  - Conversion volume: `342` alert callsites migrated in this pass.
 - Sprint 6 P0 inline feedback slice implemented:
   - `hooks/use-add-child.ts` now uses inline `validationMessage` state instead of required-field popups; success/error save outcomes now use toast.
   - `app/(modal)/add-child.tsx` now renders `StatusBanner` for cross-field blocking validation.
@@ -51,9 +56,9 @@ Canonical sprint reference:
 - `npm run audit:ui` -> PASS
 - `npm run audit:alerts` -> PASS
   - Native Alert calls: `0`
-  - `uiFeedback.alert` calls: `499`
+  - `uiFeedback.alert` calls: `157`
   - `uiFeedback.prompt` calls: `1`
-  - `uiFeedback.showToast` calls: `3`
+  - `uiFeedback.showToast` calls: `345`
 
 ## Immediate next tasks
 
