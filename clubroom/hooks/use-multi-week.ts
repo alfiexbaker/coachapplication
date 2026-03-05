@@ -196,11 +196,8 @@ export function useMultiWeek() {
       });
       if (result.success) {
         if (Platform.OS !== 'web') Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-        uiFeedback.alert(
-          'Booking Confirmed',
-          `${selectedWeekRows.length} sessions booked successfully!`,
-          [{ text: 'OK', onPress: () => router.back() }],
-        );
+        uiFeedback.showToast(`${selectedWeekRows.length} sessions booked successfully!`, 'success');
+router.back();
       } else {
         uiFeedback.showToast(result.error.message, 'error');
       }

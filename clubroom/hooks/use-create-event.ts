@@ -155,11 +155,8 @@ export function useCreateEvent() {
             price: parseFloat(form.price) || 0,
             maxAttendees: form.maxAttendees ? parseInt(form.maxAttendees, 10) : undefined,
           });
-          uiFeedback.alert(
-            'Event Created!',
-            `${form.title} created and ${result.inviteResult.successful} invite${result.inviteResult.successful !== 1 ? 's' : ''} sent to squad members.`,
-            [{ text: 'OK', onPress: () => router.replace(Routes.event(result.event.id)) }],
-          );
+          uiFeedback.showToast(`${form.title} created and ${result.inviteResult.successful} invite${result.inviteResult.successful !== 1 ? 's' : ''} sent to squad members.`, 'success');
+router.replace(Routes.event(result.event.id));
         } else {
           const input: CreateEventInput = {
             clubId: DEFAULT_CLUB_ID,

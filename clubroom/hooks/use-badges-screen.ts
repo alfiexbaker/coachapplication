@@ -149,17 +149,9 @@ export function useBadgesScreen() {
   const handleBadgePress = useCallback((badge: AllBadgeWithProgress) => {
     logger.press('BadgeCard', { badgeId: badge.id, isUnlocked: badge.isUnlocked });
     if (badge.isUnlocked) {
-      uiFeedback.alert(
-        badge.label,
-        `${badge.description || 'Milestone achieved.'}\n\nEarned: ${badge.earnedAt ? new Date(badge.earnedAt).toLocaleDateString() : 'Recently'}${badge.awardedBy ? `\nRecognised by: ${badge.awardedBy}` : ''}`,
-        [{ text: 'Close', style: 'cancel' }],
-      );
+      uiFeedback.showToast(`${badge.description || 'Milestone achieved.'}\n\nEarned: ${badge.earnedAt ? new Date(badge.earnedAt).toLocaleDateString() : 'Recently'}${badge.awardedBy ? `\nRecognised by: ${badge.awardedBy}` : ''}`);
     } else {
-      uiFeedback.alert(
-        badge.label,
-        `${badge.description || 'Keep going to reach this milestone.'}\n\nProgress: ${badge.progressLabel}`,
-        [{ text: 'Got it', style: 'cancel' }],
-      );
+      uiFeedback.showToast(`${badge.description || 'Keep going to reach this milestone.'}\n\nProgress: ${badge.progressLabel}`);
     }
   }, []);
 

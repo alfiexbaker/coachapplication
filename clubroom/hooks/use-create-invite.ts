@@ -607,13 +607,10 @@ export function useCreateInvite(): UseCreateInviteReturn {
         await apiClient.set(STORAGE_KEYS.SESSION_OFFERINGS, updatedOfferings);
       }
 
-      uiFeedback.alert(
-        failedCount === 0 ? 'Invite Sent' : 'Invite Partially Sent',
-        failedCount === 0
+      uiFeedback.showToast(failedCount === 0
           ? `Invites sent to ${sentCount} athlete${sentCount === 1 ? '' : 's'}.`
-          : `${sentCount} sent, ${failedCount} failed. Try sending the failed invites again.`,
-        [{ text: 'OK', onPress: () => router.replace(Routes.GROUP_SESSIONS) }],
-      );
+          : `${sentCount} sent, ${failedCount} failed. Try sending the failed invites again.`);
+router.replace(Routes.GROUP_SESSIONS);
     } catch (error) {
       logger.error('Failed to create invite', error);
       uiFeedback.showToast('Failed to send invite. Please try again.', 'error');

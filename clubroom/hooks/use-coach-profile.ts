@@ -289,11 +289,7 @@ export function useCoachProfile(): UseCoachProfileResult {
   const handleGoLiveToggle = useCallback(
     async (value: boolean) => {
       if (!canGoLive && value) {
-        uiFeedback.alert(
-          'Complete Your Profile',
-          'You need to complete at least 80% of your profile before going live.',
-          [{ text: 'OK' }],
-        );
+        uiFeedback.showToast('You need to complete at least 80% of your profile before going live.');
         return;
       }
       setLiveLoading(true);
@@ -301,9 +297,7 @@ export function useCoachProfile(): UseCoachProfileResult {
         await new Promise((resolve) => setTimeout(resolve, 500));
         setIsLive(value);
         if (value) {
-          uiFeedback.alert("You're Live!", 'Athletes can now discover and book sessions with you.', [
-            { text: 'Great!' },
-          ]);
+          uiFeedback.showToast('Athletes can now discover and book sessions with you.', 'success');
         }
       } catch (error) {
         logger.error('Failed to update live status:', error);

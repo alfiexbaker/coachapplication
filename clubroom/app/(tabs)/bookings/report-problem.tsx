@@ -74,11 +74,8 @@ export default function ReportProblemScreen() {
 
       logger.info('Report submitted', { category: selectedCategory, bookingId });
 
-      uiFeedback.alert(
-        'Report Submitted',
-        'Thank you for your feedback. We will review your report within 24 hours.',
-        [{ text: 'OK', onPress: () => router.back() }],
-      );
+      uiFeedback.showToast('Thank you for your feedback. We will review your report within 24 hours.', 'success');
+router.back();
     } catch (error) {
       logger.error('Failed to submit report', error);
       uiFeedback.showToast('Failed to submit report. Please try again.', 'error');

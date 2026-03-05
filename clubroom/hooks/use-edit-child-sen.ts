@@ -138,9 +138,8 @@ export function useEditChildSen() {
         behavioralNotes: behavioralNotes.trim() || undefined,
       });
       if (result.success) {
-        uiFeedback.alert('Saved', 'SEN information updated.', [
-          { text: 'OK', onPress: () => router.back() },
-        ]);
+        uiFeedback.showToast('SEN information updated.', 'success');
+router.back();
       } else {
         uiFeedback.showToast('Failed to save. Please try again.', 'error');
       }

@@ -107,16 +107,8 @@ export function useSubscribe() {
     try {
       const result = await recurringBookingService.createRecurring(formParams);
       if (result.success) {
-        uiFeedback.alert(
-          'Subscription Created',
-          'Your recurring sessions are on your schedule.',
-          [
-            {
-              text: 'View Schedule',
-              onPress: () => router.replace(Routes.SCHEDULE),
-            },
-          ],
-        );
+        uiFeedback.showToast('Your recurring sessions are on your schedule.', 'success');
+router.replace(Routes.SCHEDULE);
       } else {
         uiFeedback.showToast(result.error?.message || 'Failed to create subscription.', 'error');
       }

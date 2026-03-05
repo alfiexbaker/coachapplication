@@ -1228,16 +1228,8 @@ export function useCreateSession(): CreateSessionState & CreateSessionActions {
               ? ` ${invitesSent} invite${invitesSent === 1 ? '' : 's'} sent${inviteFailures > 0 ? `, ${inviteFailures} failed.` : '.'}`
               : '';
 
-          uiFeedback.alert(
-            'Session Created!',
-            `Your next 4 sessions are on your schedule.${inviteSummary}`,
-            [
-              {
-                text: 'View Schedule',
-                onPress: () => router.replace(Routes.SCHEDULE),
-              },
-            ],
-          );
+          uiFeedback.showToast(`Your next 4 sessions are on your schedule.${inviteSummary}`, 'success');
+router.replace(Routes.SCHEDULE);
         } else {
           uiFeedback.showToast(result.error.message || 'Failed to create recurring session.', 'error');
         }

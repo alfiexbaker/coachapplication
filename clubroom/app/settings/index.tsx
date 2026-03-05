@@ -264,11 +264,7 @@ export default function SettingsHubScreen() {
           subtitle="Version information"
           onPress={() => {
             logger.press('About');
-            uiFeedback.alert(
-              'Clubroom',
-              'Version 1.0.0\n\nBuilt with care for athletes, coaches, and parents.',
-              [{ text: 'OK' }],
-            );
+            uiFeedback.showToast('Version 1.0.0\n\nBuilt with care for athletes, coaches, and parents.');
           }}
         />
       </SettingsSection>

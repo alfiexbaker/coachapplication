@@ -133,11 +133,8 @@ export function useCoachInvites() {
         );
         await apiClient.set(`${STORAGE_KEYS.PENDING_CLUB_INVITES}_${currentUser.id}`, updated);
         logger.info('Accepted club invite', { clubId: invite.clubId, role: invite.role });
-        uiFeedback.alert(
-          'Welcome!',
-          `You've joined ${invite.clubName} as ${ROLE_LABELS[invite.role]}.`,
-          [{ text: 'Go to Club', onPress: () => router.push(Routes.club(invite.clubId)) }],
-        );
+        uiFeedback.showToast(`You've joined ${invite.clubName} as ${ROLE_LABELS[invite.role]}.`);
+router.push(Routes.club(invite.clubId));
         onRefresh();
       } catch (error) {
         logger.error('Failed to accept invite', error);

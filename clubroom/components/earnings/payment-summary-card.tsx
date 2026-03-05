@@ -36,15 +36,11 @@ function PaymentSummaryCardInner({
   const formatGBP = (amount: number) => `\u00A3${amount.toFixed(2)}`;
 
   const handleWriteOffInfo = useCallback(() => {
-    uiFeedback.alert(
-      'What does "written off" mean?',
-      'Written-off sessions are payments you\'ve decided not to chase. Common reasons:\n\n' +
+    uiFeedback.showToast('Written-off sessions are payments you\'ve decided not to chase. Common reasons:\n\n' +
         '\u2022 Athlete cancelled last minute\n' +
         '\u2022 Payment was waived as a favour\n' +
         '\u2022 Unable to collect after multiple reminders\n\n' +
-        'You can restore a written-off session back to "owed" at any time.',
-      [{ text: 'Got it' }],
-    );
+        'You can restore a written-off session back to "owed" at any time.');
   }, []);
 
   const totalBilled = totalOwed + totalCollected + totalWrittenOff;

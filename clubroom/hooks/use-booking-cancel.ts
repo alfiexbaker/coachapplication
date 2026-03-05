@@ -200,27 +200,18 @@ export function useBookingCancel(id: string, mode?: string) {
       void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
 
       if (isCoach) {
-        uiFeedback.alert(
-          'Session Cancelled',
-          `The session has been cancelled and ${athleteName}'s parent has been notified.${
+        uiFeedback.showToast(`The session has been cancelled and ${athleteName}'s parent has been notified.${
             refundCalc.netRefundAmount > 0
               ? ` A refund of \u00A3${refundCalc.netRefundAmount.toFixed(2)} will be processed.`
               : ''
-          }`,
-          [{ text: 'OK', onPress: () => router.back() }],
-        );
+          }`, 'success');
+router.back();
       } else if (refundCalc.netRefundAmount > 0) {
-        uiFeedback.alert(
-          'Booking Cancelled',
-          `Your booking has been cancelled. A refund of \u00A3${refundCalc.netRefundAmount.toFixed(2)} will be processed within 5-7 business days.`,
-          [{ text: 'OK', onPress: () => router.back() }],
-        );
+        uiFeedback.showToast(`Your booking has been cancelled. A refund of \u00A3${refundCalc.netRefundAmount.toFixed(2)} will be processed within 5-7 business days.`, 'success');
+router.back();
       } else {
-        uiFeedback.alert(
-          'Booking Cancelled',
-          'Your booking has been cancelled. The coach has been notified.',
-          [{ text: 'OK', onPress: () => router.back() }],
-        );
+        uiFeedback.showToast('Your booking has been cancelled. The coach has been notified.', 'success');
+router.back();
       }
 
       logger.success('BookingCancelled', {

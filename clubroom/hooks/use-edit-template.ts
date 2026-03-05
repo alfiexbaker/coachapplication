@@ -106,9 +106,8 @@ export function useEditTemplate(id: string | undefined) {
         maxConcurrent: maxSlots,
         bufferMinutes,
       });
-      uiFeedback.alert('Template Updated', 'Your availability has been updated', [
-        { text: 'OK', onPress: () => router.back() },
-      ]);
+      uiFeedback.showToast('Your availability has been updated', 'success');
+router.back();
       logger.success('TemplateUpdated', { templateId: template.id });
     } catch (error) {
       logger.error('Failed to update template', error);

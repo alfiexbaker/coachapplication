@@ -49,11 +49,7 @@ export function DownloadButton({
     try {
       const result = await invoiceService.downloadInvoice(invoice.id);
       if (result) {
-        uiFeedback.alert(
-          'Invoice Downloaded',
-          `${invoice.invoiceNumber} has been saved to your device.`,
-          [{ text: 'OK' }],
-        );
+        uiFeedback.showToast(`${invoice.invoiceNumber} has been saved to your device.`);
         onDownloadComplete?.(true);
       } else {
         uiFeedback.showToast('Could not download the invoice. Please try again.', 'error');

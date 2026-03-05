@@ -135,11 +135,7 @@ export function useEventAttendees(id: string | undefined): UseEventAttendeesResu
   const handleExport = useCallback(() => {
     logger.press('ExportAttendees', { eventId: id });
     const names = attendance.map((a) => a.userId).join('\n');
-    uiFeedback.alert(
-      'Attendee List',
-      `${attendance.length} checked in:\n\n${names || 'No attendees yet'}`,
-      [{ text: 'OK' }],
-    );
+    uiFeedback.showToast(`${attendance.length} checked in:\n\n${names || 'No attendees yet'}`);
   }, [id, attendance]);
 
   const handleSendReminder = useCallback(() => {

@@ -43,11 +43,7 @@ export const EmergencyContactInline = memo(function EmergencyContactInline({
       if (onViewDetails) {
         onViewDetails();
       } else {
-        uiFeedback.alert(
-          'Emergency Contact',
-          `${contact.name}\n${contact.phone}\n${contact.relationship}`,
-          [{ text: 'OK' }],
-        );
+        uiFeedback.showToast(`${contact.name}\n${contact.phone}\n${contact.relationship}`);
       }
       return;
     }

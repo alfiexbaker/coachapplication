@@ -217,9 +217,8 @@ export default function SessionInviteDetailScreen() {
               inviteId: invite.id,
               response: 'DECLINED',
             });
-            uiFeedback.alert('Declined', 'The invite has been declined.', [
-              { text: 'OK', onPress: () => router.back() },
-            ]);
+            uiFeedback.showToast('The invite has been declined.');
+router.back();
           } catch (e) {
             logger.error('Failed to decline invite', e);
           } finally {
@@ -240,9 +239,8 @@ export default function SessionInviteDetailScreen() {
           if (!invite) return;
           try {
             await sessionInviteService.cancelInvite(invite.id);
-            uiFeedback.alert('Cancelled', 'The invite has been cancelled.', [
-              { text: 'OK', onPress: () => router.back() },
-            ]);
+            uiFeedback.showToast('The invite has been cancelled.', 'success');
+router.back();
           } catch (e) {
             logger.error('Failed to cancel invite', e);
           }

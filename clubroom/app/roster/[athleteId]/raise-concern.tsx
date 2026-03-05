@@ -108,13 +108,10 @@ export default function RaiseConcernScreen() {
           await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
         }
         const escalated = result.data.status === 'ESCALATED';
-        uiFeedback.alert(
-          escalated ? 'Concern Escalated' : 'Concern Recorded',
-          escalated
+        uiFeedback.showToast(escalated
             ? `Your concern about ${athleteName} has been escalated for urgent follow-up.`
-            : `Your concern about ${athleteName} has been recorded.`,
-          [{ text: 'OK', onPress: () => router.back() }],
-        );
+            : `Your concern about ${athleteName} has been recorded.`);
+router.back();
       } else {
         uiFeedback.showToast(result.error.message, 'error');
       }

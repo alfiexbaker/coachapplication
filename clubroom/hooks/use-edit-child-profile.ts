@@ -160,7 +160,8 @@ export function useEditChildProfile() {
         uiFeedback.showToast('Failed to save profile. Please try again.', 'error');
         return;
       }
-      uiFeedback.alert('Saved', 'Child profile updated.', [{ text: 'OK', onPress: () => router.back() }]);
+      uiFeedback.showToast('Child profile updated.', 'success');
+router.back();
     } finally {
       setSaving(false);
     }

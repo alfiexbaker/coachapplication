@@ -89,9 +89,8 @@ export function useAddTemplate() {
         maxConcurrent: maxSlots,
         bufferMinutes,
       });
-      uiFeedback.alert('Template Added', 'Your availability has been updated', [
-        { text: 'OK', onPress: () => router.back() },
-      ]);
+      uiFeedback.showToast('Your availability has been updated');
+router.back();
       logger.success('TemplateAdded', { dayOfWeek, startTime, endTime });
     } catch (error) {
       logger.error('Failed to add template', error);

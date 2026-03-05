@@ -93,11 +93,7 @@ export function useInvites() {
           return;
         }
         const coachName = getSessionInviteCoachName(invite);
-        uiFeedback.alert(
-          'Booking Confirmed',
-          `Session with ${coachName} on ${new Date(selectedSlot.date).toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long' })} at ${selectedSlot.startTime} has been booked.`,
-          [{ text: 'Great!' }],
-        );
+        uiFeedback.showToast(`Session with ${coachName} on ${new Date(selectedSlot.date).toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long' })} at ${selectedSlot.startTime} has been booked.`, 'success');
         onRefresh();
       } catch {
         uiFeedback.showToast('Failed to accept invite. Please try again.', 'error');

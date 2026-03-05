@@ -98,9 +98,8 @@ export function useCreateSquad() {
         skillLevel: selectedLevel,
         focusAreas: selectedTags,
       });
-      uiFeedback.alert('Squad Created', `${newSquad.name} has been created successfully!`, [
-        { text: 'OK', onPress: () => router.back() },
-      ]);
+      uiFeedback.showToast(`${newSquad.name} has been created successfully!`, 'success');
+router.back();
     } catch {
       uiFeedback.showToast('Failed to create squad. Please try again.', 'error');
     } finally {

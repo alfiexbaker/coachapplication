@@ -69,11 +69,7 @@ export default function DrillDetailScreen() {
       retry();
       setShowFeedbackInput(false);
       setFeedback('');
-      uiFeedback.alert(
-        'Drill Completed!',
-        'Great work on completing this drill. Keep up the momentum!',
-        [{ text: 'OK' }],
-      );
+      uiFeedback.showToast('Great work on completing this drill. Keep up the momentum!', 'success');
     } catch (error) {
       logger.error('Failed to complete drill:', error);
       uiFeedback.showToast('Failed to mark drill as complete. Please try again.', 'error');

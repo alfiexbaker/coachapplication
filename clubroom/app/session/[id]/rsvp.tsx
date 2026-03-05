@@ -147,18 +147,8 @@ export default function RSVPScreen() {
         maybe: 'maybe attending',
       };
 
-      uiFeedback.alert(
-        'Response Recorded',
-        `You've confirmed ${getSessionRsvpChildName(rsvp)} is ${statusLabels[status]}.`,
-        [
-          {
-            text: 'Done',
-            onPress: () => {
-              if (router.canGoBack()) router.back();
-            },
-          },
-        ],
-      );
+      uiFeedback.showToast(`You've confirmed ${getSessionRsvpChildName(rsvp)} is ${statusLabels[status]}.`);
+if (router.canGoBack()) router.back();
       return true;
     } catch {
       uiFeedback.showToast('Failed to submit your response. Please try again.', 'error');

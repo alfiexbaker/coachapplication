@@ -482,9 +482,8 @@ export function useDevSession({
         skillCount: skillRatings.length,
         fourCorners,
       });
-      uiFeedback.alert('Success', 'Session notes saved. Parents can now see the feedback.', [
-        { text: 'OK', onPress: () => router.back() },
-      ]);
+      uiFeedback.showToast('Session notes saved. Parents can now see the feedback.', 'success');
+router.back();
     } catch (error) {
       logger.error('Failed to save session', error);
       uiFeedback.showToast('Failed to save session. Please try again.', 'error');

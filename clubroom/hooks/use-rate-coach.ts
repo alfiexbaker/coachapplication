@@ -195,9 +195,8 @@ export function useRateCoach() {
       };
       await appendCoachReview(newReview);
       logger.info('Review submitted', { coachId: selectedCoach.id, rating });
-      uiFeedback.alert('Review Submitted', `Thank you for rating ${selectedCoach.name}!`, [
-        { text: 'OK', onPress: () => router.back() },
-      ]);
+      uiFeedback.showToast(`Thank you for rating ${selectedCoach.name}!`, 'success');
+router.back();
     } catch (error) {
       logger.error('Failed to submit review', error);
       uiFeedback.showToast('Failed to submit review. Please try again.', 'error');

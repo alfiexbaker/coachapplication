@@ -132,11 +132,8 @@ export function useEventRSVP(id: string | undefined): UseEventRSVPResult {
         note: note.trim() || undefined,
       });
 
-      uiFeedback.alert(
-        'RSVP Submitted',
-        `Your response has been saved: ${eventService.formatRSVPStatus(selectedStatus)}`,
-        [{ text: 'OK', onPress: () => router.back() }],
-      );
+      uiFeedback.showToast(`Your response has been saved: ${eventService.formatRSVPStatus(selectedStatus)}`, 'success');
+router.back();
     } catch (error) {
       logger.error('Failed to submit RSVP:', error);
       const message =

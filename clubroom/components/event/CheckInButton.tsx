@@ -59,11 +59,7 @@ export function CheckInButton({
     setLoading(true);
     try {
       if (requireLocation && !currentLocation) {
-        uiFeedback.alert(
-          'Location Required',
-          'Please enable location access to check in to this event.',
-          [{ text: 'OK' }],
-        );
+        uiFeedback.showToast('Please enable location access to check in to this event.', 'error');
         setLoading(false);
         return;
       }

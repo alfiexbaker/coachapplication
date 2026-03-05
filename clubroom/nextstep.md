@@ -5,6 +5,11 @@ Canonical sprint reference:
 
 ## Completed in this pass
 
+- Sprint 6 WS2 refinement pass (single-action alert cleanup):
+  - Converted remaining single-button `uiFeedback.alert(..., [{ text: 'OK' | 'Done' | ... }])` patterns to `uiFeedback.showToast(...)`.
+  - Where a single alert button only triggered navigation/action (for example `router.back()` / `router.replace(...)`), preserved behavior by executing the action directly after toast.
+  - Intentionally preserved session-expiry blocking alert flow in `hooks/use-token-expiry-alert.ts` (explicit modal options + forced logout path).
+  - Scope: `29` files updated, `34` alert callsites migrated in this pass.
 - Sprint 6 WS2 bulk conversion pass (toast-first):
   - Converted `uiFeedback.alert(title, message)` callsites (two-arg, non-button flows) to `uiFeedback.showToast(message, tone)` via AST-safe codemod.
   - Confirmation/action-sheet paths (alerts with button arrays) were intentionally left unchanged.
@@ -56,9 +61,9 @@ Canonical sprint reference:
 - `npm run audit:ui` -> PASS
 - `npm run audit:alerts` -> PASS
   - Native Alert calls: `0`
-  - `uiFeedback.alert` calls: `157`
+  - `uiFeedback.alert` calls: `123`
   - `uiFeedback.prompt` calls: `1`
-  - `uiFeedback.showToast` calls: `345`
+  - `uiFeedback.showToast` calls: `379`
 
 ## Immediate next tasks
 
