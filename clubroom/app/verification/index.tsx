@@ -113,13 +113,7 @@ export default function VerificationHubScreen() {
               onPress={() =>
                 status.email.status === 'VERIFIED'
                   ? uiFeedback.showToast('Your email is already verified.', 'success')
-                  : uiFeedback.alert('Verify Email', 'We will send a verification code to your email address.', [
-                      { text: 'Cancel', style: 'cancel' },
-                      {
-                        text: 'Send Code',
-                        onPress: () => uiFeedback.showToast('Check your inbox for the verification code.', 'success'),
-                      },
-                    ])
+                  : uiFeedback.showToast('Check your inbox for the verification code.', 'success')
               }
             />
             <View style={[styles.divider, { backgroundColor: palette.border }]} />
@@ -132,13 +126,7 @@ export default function VerificationHubScreen() {
               onPress={() =>
                 status.phone.status === 'VERIFIED'
                   ? uiFeedback.showToast('Your phone number is already verified.', 'success')
-                  : uiFeedback.alert('Verify Phone', 'We will send an SMS verification code to your phone.', [
-                      { text: 'Cancel', style: 'cancel' },
-                      {
-                        text: 'Send SMS',
-                        onPress: () => uiFeedback.showToast('Check your messages for the verification code.', 'success'),
-                      },
-                    ])
+                  : uiFeedback.showToast('Check your messages for the verification code.', 'success')
               }
             />
             <View style={[styles.divider, { backgroundColor: palette.border }]} />
@@ -189,17 +177,7 @@ export default function VerificationHubScreen() {
               onPress={() =>
                 status.insurance.status === 'VERIFIED'
                   ? uiFeedback.showToast('Your insurance documents are verified and up to date.', 'success')
-                  : uiFeedback.alert(
-                      'Upload Insurance',
-                      'Upload your public liability insurance certificate to get verified.',
-                      [
-                        { text: 'Cancel', style: 'cancel' },
-                        {
-                          text: 'Upload',
-                          onPress: () => router.push(Routes.VERIFICATION_INSURANCE),
-                        },
-                      ],
-                    )
+                  : router.push(Routes.VERIFICATION_INSURANCE)
               }
             />
           </SurfaceCard>

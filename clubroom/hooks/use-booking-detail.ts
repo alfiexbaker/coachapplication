@@ -214,14 +214,11 @@ export function useBookingDetail(id: string): BookingDetailResult {
       router.push(Routes.messagesWith({ coachId: booking.coachId }));
     };
 
-    uiFeedback.alert(
-      'Request a new time',
-      'Reschedule proposals are removed. Use chat to agree a new session time.',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        { text: 'Open chat', onPress: openChat },
-      ],
+    uiFeedback.showToast(
+      'Reschedule proposals are removed. Opening chat to agree a new session time.',
+      'warning',
     );
+    openChat();
   }, [booking, isCoach]);
 
   const handleReportProblem = useCallback(() => {

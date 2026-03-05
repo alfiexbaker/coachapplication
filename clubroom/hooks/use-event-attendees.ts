@@ -145,13 +145,9 @@ export function useEventAttendees(id: string | undefined): UseEventAttendeesResu
       uiFeedback.showToast('Everyone has already responded!');
       return;
     }
-    uiFeedback.alert(
-      'Send Reminder',
-      `Send reminder to ${nonResponders} people who haven't responded?`,
-      [
-        { text: 'Cancel', style: 'cancel' },
-        { text: 'Send', onPress: () => uiFeedback.showToast('Reminders have been sent', 'success') },
-      ],
+    uiFeedback.showToast(
+      `Reminder sent to ${nonResponders} attendee${nonResponders === 1 ? '' : 's'}.`,
+      'success',
     );
   }, [id, rsvps]);
 

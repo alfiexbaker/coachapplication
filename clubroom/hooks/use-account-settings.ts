@@ -47,20 +47,8 @@ export function useAccountSettings() {
 
   const handleSaveEmail = useCallback(() => {
     logger.press('SaveEmail', { email });
-    uiFeedback.alert(
-      'Verify Email',
-      `We'll send a verification email to ${email}. Please check your inbox.`,
-      [
-        { text: 'Cancel', style: 'cancel', onPress: () => setEditingEmail(false) },
-        {
-          text: 'Send',
-          onPress: () => {
-            setEditingEmail(false);
-            uiFeedback.showToast('Verification email sent!', 'success');
-          },
-        },
-      ],
-    );
+    setEditingEmail(false);
+    uiFeedback.showToast('Verification email sent!', 'success');
   }, [email]);
 
   const handleSavePhone = useCallback(() => {
@@ -71,13 +59,7 @@ export function useAccountSettings() {
 
   const handleChangePassword = useCallback(() => {
     logger.press('ChangePassword');
-    uiFeedback.alert('Change Password', "We'll send you a password reset link to your email.", [
-      { text: 'Cancel', style: 'cancel' },
-      {
-        text: 'Send Link',
-        onPress: () => uiFeedback.showToast('Password reset link sent to your email.', 'success'),
-      },
-    ]);
+    uiFeedback.showToast('Password reset link sent to your email.', 'success');
   }, []);
 
   const handleDeleteAccount = useCallback(() => {
