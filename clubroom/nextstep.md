@@ -1,5 +1,8 @@
 # Next Step Handoff (2026-03-05)
 
+Canonical sprint reference:
+- `docs/newsprints/forms-modals/sprint6-inline-feedback-hardening.md`
+
 ## Completed in this pass
 
 - Implemented central feedback bridge: `services/ui-feedback.ts`.
@@ -54,4 +57,3 @@
    - Booking/invites/session-management
    - Verification/account/privacy
    - Group/community actions
-
