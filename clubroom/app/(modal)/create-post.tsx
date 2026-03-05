@@ -60,6 +60,7 @@ export default function CreatePostScreen() {
         body={p.body}
         postType={p.postType}
         imageUri={p.imageUri}
+        videoUri={p.videoUri}
         eventDate={p.eventDate}
         eventLocation={p.eventLocation}
         showDatePicker={p.showDatePicker}

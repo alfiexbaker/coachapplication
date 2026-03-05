@@ -36,6 +36,7 @@ import { Spacing, Radii, Typography, Shadows, withAlpha } from '@/constants/them
 import { useTheme } from '@/hooks/useTheme';
 import { useCreateClubPost } from '@/hooks/use-create-club-post';
 import { useFocusTrap } from '@/hooks/use-focus-trap';
+import { VideoPlayer } from '@/components/drills/VideoPlayer';
 
 export default function CreateClubPostScreen() {
   const { colors: palette, scheme } = useTheme();
@@ -180,12 +181,16 @@ export default function CreateClubPostScreen() {
             />
           </View>
 
-          {/* Image preview */}
-          {p.imageUri && (
+          {/* Media preview */}
+          {(p.imageUri || p.videoUri) && (
             <View style={styles.imageSection}>
-              <Image source={{ uri: p.imageUri }} style={styles.imagePreview} />
+              {p.videoUri ? (
+                <VideoPlayer videoUrl={p.videoUri} height={200} />
+              ) : (
+                <Image source={{ uri: p.imageUri! }} style={styles.imagePreview} />
+              )}
               <Clickable
-                accessibilityLabel="Close"
+                accessibilityLabel="Remove media"
                 style={[
                   styles.removeImageButton,
                   { backgroundColor: palette.background, ...Shadows[scheme].subtle },
@@ -241,6 +246,9 @@ export default function CreateClubPostScreen() {
       >
         <Clickable style={styles.toolbarButton} onPress={p.pickImage}>
           <Ionicons name="image-outline" size={22} color={palette.tint} />
+        </Clickable>
+        <Clickable style={styles.toolbarButton} onPress={p.pickImage}>
+          <Ionicons name="videocam-outline" size={22} color={palette.tint} />
         </Clickable>
         <Clickable style={styles.toolbarButton} onPress={() => p.setPostType('event')}>
           <Ionicons

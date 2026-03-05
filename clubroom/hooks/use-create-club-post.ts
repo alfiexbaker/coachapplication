@@ -41,6 +41,12 @@ export const POST_TYPES: PostTypeOption[] = [
     description: 'Share photos with the club',
   },
   {
+    key: 'video',
+    label: 'Video',
+    icon: 'videocam-outline',
+    description: 'Share videos with the club',
+  },
+  {
     key: 'event',
     label: 'Event',
     icon: 'calendar-outline',
@@ -52,6 +58,7 @@ const CLUB_POSTING_ROLES: ClubMembership['role'][] = ['OWNER', 'ADMIN', 'HEAD_CO
 
 export function useCreateClubPost(clubId: string | undefined) {
   const { currentUser } = useAuth();
+  const isCoach = currentUser?.role === 'COACH' || currentUser?.role === 'ADMIN';
 
   const userClubs = useMemo(
     () => (currentUser?.id ? clubFeedService.getUserClubs(currentUser.id) : []),
@@ -67,10 +74,10 @@ export function useCreateClubPost(clubId: string | undefined) {
     return clubFeedService.getMembership(currentUser.id, resolvedClubId);
   }, [resolvedClubId, currentUser?.id]);
   const canPostAsClub = Boolean(
-    membership &&
-      (membership.canPostAsClub === true || CLUB_POSTING_ROLES.includes(membership.role)),
+    isCoach
+      && membership
+      && (membership.canPostAsClub === true || CLUB_POSTING_ROLES.includes(membership.role)),
   );
-  const isCoach = currentUser?.role === 'COACH' || currentUser?.role === 'ADMIN';
   const personalAudienceEstimate = Math.max(
     0,
     Math.round((club?.memberCount ?? 0) * 0.35),
@@ -81,6 +88,7 @@ export function useCreateClubPost(clubId: string | undefined) {
   const [postType, setPostType] = useState<ClubPostType>('general');
   const [postAs, setPostAs] = useState<'self' | 'club'>('self');
   const [imageUri, setImageUri] = useState<string | null>(null);
+  const [videoUri, setVideoUri] = useState<string | null>(null);
   const [eventDate, setEventDate] = useState<Date | null>(null);
   const [eventLocation, setEventLocation] = useState('');
   const [showDatePicker, setShowDatePicker] = useState(false);
@@ -166,6 +174,11 @@ export function useCreateClubPost(clubId: string | undefined) {
     }
   }, [postAs, feedType]);
   useEffect(() => {
+    if (!canPostAsClub && postAs !== 'self') {
+      setPostAs('self');
+    }
+  }, [canPostAsClub, postAs]);
+  useEffect(() => {
     if (feedType !== 'CLUB' && audienceType !== 'club') {
       setAudienceType('club');
       setSelectedSquadId(null);
@@ -197,18 +210,28 @@ export function useCreateClubPost(clubId: string | undefined) {
 
   const pickImage = useCallback(async () => {
     const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.Images,
-      allowsEditing: true,
-      aspect: [16, 9],
+      mediaTypes: ImagePicker.MediaTypeOptions.All,
+      allowsEditing: false,
       quality: 0.8,
     });
     if (!result.canceled) {
-      setImageUri(result.assets[0].uri);
-      setPostType((prev) => (prev !== 'photo' ? 'photo' : prev));
+      const media = result.assets[0];
+      if (media.type === 'video') {
+        setVideoUri(media.uri);
+        setImageUri(null);
+        setPostType('video');
+      } else {
+        setImageUri(media.uri);
+        setVideoUri(null);
+        setPostType('photo');
+      }
     }
   }, []);
 
-  const removeImage = useCallback(() => setImageUri(null), []);
+  const removeImage = useCallback(() => {
+    setImageUri(null);
+    setVideoUri(null);
+  }, []);
 
   const handleSetPostAs = useCallback(
     (value: 'self' | 'club') => {
@@ -238,7 +261,7 @@ export function useCreateClubPost(clubId: string | undefined) {
   );
 
   const handlePost = useCallback(async () => {
-    if (!body.trim() && !imageUri) return;
+    if (!body.trim() && !imageUri && !videoUri) return;
     if (!currentUser || !resolvedClubId || !membership) return;
     if (feedType === 'CLUB' && audienceType === 'squad' && !selectedSquadId) return;
     if (Platform.OS !== 'web') Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
@@ -250,11 +273,14 @@ export function useCreateClubPost(clubId: string | undefined) {
         const result = await clubFeedService.createCoachPost({
           coachId: currentUser.id,
           coachName: currentUser.fullName || currentUser.username || 'Unknown',
-          title: title.trim() || (postType === 'photo' ? 'Photo' : 'Update'),
+          title:
+            title.trim() ||
+            (postType === 'photo' ? 'Photo' : postType === 'video' ? 'Video' : 'Update'),
           body: body.trim(),
           postType,
           feedType,
           imageUrl: imageUri || undefined,
+          videoUrl: videoUri || undefined,
           eventId: postType === 'event' ? selectedEventId || undefined : undefined,
           eventDate: eventDate?.toISOString(),
           eventLocation: eventLocation.trim() || undefined,
@@ -273,7 +299,9 @@ export function useCreateClubPost(clubId: string | undefined) {
             postAs === 'club' && club
               ? club.name
               : currentUser.fullName || currentUser.username || 'Unknown',
-          title: title.trim() || (postType === 'photo' ? 'Photo' : 'Update'),
+          title:
+            title.trim() ||
+            (postType === 'photo' ? 'Photo' : postType === 'video' ? 'Video' : 'Update'),
           body: body.trim(),
           postType,
           postAs,
@@ -282,6 +310,7 @@ export function useCreateClubPost(clubId: string | undefined) {
           audienceLabel: finalAudienceLabel,
           squadId: audienceType === 'squad' ? selectedSquadId || undefined : undefined,
           imageUrl: imageUri || undefined,
+          videoUrl: videoUri || undefined,
           eventId: postType === 'event' ? selectedEventId || undefined : undefined,
           eventDate: eventDate?.toISOString(),
           eventLocation: eventLocation.trim() || undefined,
@@ -301,6 +330,7 @@ export function useCreateClubPost(clubId: string | undefined) {
   }, [
     body,
     imageUri,
+    videoUri,
     currentUser,
     resolvedClubId,
     membership,
@@ -321,7 +351,7 @@ export function useCreateClubPost(clubId: string | undefined) {
   const hasAudienceTarget =
     feedType !== 'CLUB' || audienceType !== 'squad' || Boolean(selectedSquadId);
   const canPost =
-    (body.trim().length > 0 || imageUri !== null) &&
+    (body.trim().length > 0 || imageUri !== null || videoUri !== null) &&
     !!resolvedClubId &&
     !!membership &&
     hasAudienceTarget &&
@@ -352,6 +382,7 @@ export function useCreateClubPost(clubId: string | undefined) {
     postAs,
     setPostAs: handleSetPostAs,
     imageUri,
+    videoUri,
     pickImage,
     removeImage,
     eventDate,

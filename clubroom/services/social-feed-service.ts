@@ -33,6 +33,7 @@ type CreateClubPostInput = {
   audienceLabel?: string;
   feedType?: FeedType;
   imageUrl?: string;
+  videoUrl?: string;
   attachments?: string[];
   eventId?: string;
   eventDate?: string;
@@ -49,6 +50,7 @@ type CreateCoachPostInput = {
   postType?: ClubPostType;
   feedType?: FeedType;
   imageUrl?: string;
+  videoUrl?: string;
   eventId?: string;
   eventDate?: string;
   eventLocation?: string;
@@ -603,8 +605,8 @@ class ClubFeedService {
     }
 
     const body = input.body.trim();
-    if (!body && !input.imageUrl) {
-      return err(validationError('Post must have content or an image'));
+    if (!body && !input.imageUrl && !input.videoUrl) {
+      return err(validationError('Post must have content, a photo, or a video'));
     }
 
     const membership = this.getMembership(input.authorId, input.clubId);
@@ -637,7 +639,7 @@ class ClubFeedService {
 
     const post = addClubFeedPostInternal({
       clubId: input.clubId,
-      title: input.title || (input.postType === 'photo' ? 'Photo' : 'Update'),
+      title: input.title || (input.postType === 'photo' ? 'Photo' : input.postType === 'video' ? 'Video' : 'Update'),
       body,
       audience: input.audience || 'club',
       audienceLabel,
@@ -646,6 +648,7 @@ class ClubFeedService {
       postType: input.postType || 'general',
       feedType,
       imageUrl: input.imageUrl,
+      videoUrl: input.videoUrl,
       attachments: input.attachments,
       eventId: input.eventId,
       eventDate: input.eventDate,
@@ -1168,8 +1171,8 @@ class ClubFeedService {
 
   createCoachPost(input: CreateCoachPostInput): Result<ClubFeedPost, ServiceError> {
     const body = input.body.trim();
-    if (!body && !input.imageUrl) {
-      return err(validationError('Post must have content or an image'));
+    if (!body && !input.imageUrl && !input.videoUrl) {
+      return err(validationError('Post must have content, a photo, or a video'));
     }
 
     const feedType: FeedType = input.feedType || 'PERSONAL';
@@ -1202,7 +1205,7 @@ class ClubFeedService {
 
     const post = addClubFeedPostInternal({
       clubId,
-      title: input.title || (input.postType === 'photo' ? 'Photo' : 'Update'),
+      title: input.title || (input.postType === 'photo' ? 'Photo' : input.postType === 'video' ? 'Video' : 'Update'),
       body,
       audience: 'club',
       audienceLabel,
@@ -1211,6 +1214,7 @@ class ClubFeedService {
       postType: input.postType || 'general',
       feedType,
       imageUrl: input.imageUrl,
+      videoUrl: input.videoUrl,
       eventId: input.eventId,
       eventDate: input.eventDate,
       eventLocation: input.eventLocation,

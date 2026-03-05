@@ -1,11 +1,13 @@
 import React, { memo } from 'react';
 import { View, StyleSheet } from 'react-native';
+import { Image } from 'expo-image';
 import { Clickable } from '@/components/primitives/clickable';
 import { Ionicons } from '@expo/vector-icons';
 import { Row } from '@/components/primitives/row';
 import { ThemedText } from '@/components/themed-text';
 import { Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
+import { VideoPlayer } from '@/components/drills/VideoPlayer';
 
 interface PostDetailCardProps {
   authorName: string;
@@ -13,6 +15,8 @@ interface PostDetailCardProps {
   title: string | undefined;
   content: string;
   createdAt: string;
+  imageUrl?: string;
+  videoUrl?: string;
   liked: boolean;
   likeCount: number;
   commentCount: number;
@@ -25,6 +29,8 @@ export const PostDetailCard = memo(function PostDetailCard({
   title,
   content,
   createdAt,
+  imageUrl,
+  videoUrl,
   liked,
   likeCount,
   commentCount,
@@ -59,6 +65,8 @@ export const PostDetailCard = memo(function PostDetailCard({
       </Row>
       {title && <ThemedText style={styles.postTitle}>{title}</ThemedText>}
       <ThemedText style={styles.postContent}>{content}</ThemedText>
+      {imageUrl ? <Image source={{ uri: imageUrl }} style={styles.postImage} contentFit="cover" /> : null}
+      {!imageUrl && videoUrl ? <VideoPlayer videoUrl={videoUrl} height={220} title={title || 'Video'} /> : null}
       <Row gap="md" style={[styles.actions, { borderTopColor: palette.border }]}>
         <Clickable style={styles.actionButton} onPress={onLike} hitSlop={8}>
           <Ionicons
@@ -103,6 +111,11 @@ const styles = StyleSheet.create({
   timestamp: { ...Typography.caption, marginTop: Spacing.micro },
   postTitle: { ...Typography.heading },
   postContent: { ...Typography.body },
+  postImage: {
+    width: '100%',
+    height: 220,
+    borderRadius: Radii.md,
+  },
   actions: { paddingTop: Spacing.xs, borderTopWidth: 1 },
   actionButton: { flexDirection: 'row', alignItems: 'center', gap: Spacing.xxs, minHeight: 44 },
   actionButtonView: { minHeight: 44 },

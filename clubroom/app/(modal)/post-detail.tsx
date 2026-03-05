@@ -95,6 +95,8 @@ export default function PostDetailScreen() {
       title={p.postTitle}
       content={p.postContent}
       createdAt={p.postCreatedAt}
+      imageUrl={p.postImageUrl}
+      videoUrl={p.postVideoUrl}
       liked={p.liked}
       likeCount={p.likeCount}
       commentCount={p.totalCommentCount}

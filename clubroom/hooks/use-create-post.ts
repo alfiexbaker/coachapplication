@@ -24,6 +24,7 @@ export type PostTypeOption = {
 export const POST_TYPES: PostTypeOption[] = [
   { key: 'general', label: 'Update', icon: 'create-outline' },
   { key: 'photo', label: 'Photo', icon: 'images-outline' },
+  { key: 'video', label: 'Video', icon: 'videocam-outline' },
   { key: 'announcement', label: 'Announcement', icon: 'megaphone-outline' },
   { key: 'event', label: 'Event', icon: 'calendar-outline' },
 ];
@@ -56,6 +57,7 @@ export function useCreatePost() {
   const [body, setBody] = useState('');
   const [postType, setPostType] = useState<ClubPostType>('general');
   const [imageUri, setImageUri] = useState<string | null>(null);
+  const [videoUri, setVideoUri] = useState<string | null>(null);
   const [eventDate, setEventDate] = useState<Date | null>(null);
   const [eventLocation, setEventLocation] = useState('');
   const [showDatePicker, setShowDatePicker] = useState(false);
@@ -72,18 +74,28 @@ export function useCreatePost() {
 
   const pickImage = useCallback(async () => {
     const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.Images,
-      allowsEditing: true,
-      aspect: [16, 9],
+      mediaTypes: ImagePicker.MediaTypeOptions.All,
+      allowsEditing: false,
       quality: 0.8,
     });
     if (!result.canceled) {
-      setImageUri(result.assets[0].uri);
-      if (postType !== 'photo') setPostType('photo');
+      const media = result.assets[0];
+      if (media.type === 'video') {
+        setVideoUri(media.uri);
+        setImageUri(null);
+        if (postType !== 'video') setPostType('video');
+      } else {
+        setImageUri(media.uri);
+        setVideoUri(null);
+        if (postType !== 'photo') setPostType('photo');
+      }
     }
   }, [postType]);
 
-  const removeImage = useCallback(() => setImageUri(null), []);
+  const removeImage = useCallback(() => {
+    setImageUri(null);
+    setVideoUri(null);
+  }, []);
 
   const handlePostTypeChange = useCallback((type: ClubPostType) => {
     setPostType(type);
@@ -91,7 +103,7 @@ export function useCreatePost() {
   }, []);
 
   const handlePersonalPost = useCallback(async () => {
-    if ((!trimmedBody && !imageUri) || !currentUser) return;
+    if ((!trimmedBody && !imageUri && !videoUri) || !currentUser) return;
     if (trimmedBody && trimmedBody.length < 10) return;
     if (Platform.OS !== 'web') Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
 
@@ -100,11 +112,14 @@ export function useCreatePost() {
       const result = await clubFeedService.createCoachPost({
         coachId: currentUser.id,
         coachName: currentUser.fullName || currentUser.username || 'Unknown',
-        title: title.trim() || (postType === 'photo' ? 'Photo' : 'Update'),
+        title:
+          title.trim() ||
+          (postType === 'photo' ? 'Photo' : postType === 'video' ? 'Video' : 'Update'),
         body: trimmedBody,
         postType,
         feedType: 'PERSONAL',
         imageUrl: imageUri || undefined,
+        videoUrl: videoUri || undefined,
         eventDate: eventDate?.toISOString(),
         eventLocation: eventLocation.trim() || undefined,
         clubId: clubs[0]?.id,
@@ -117,9 +132,9 @@ export function useCreatePost() {
     } finally {
       setIsPosting(false);
     }
-  }, [trimmedBody, body, imageUri, currentUser, title, postType, eventDate, eventLocation, clubs]);
+  }, [trimmedBody, body, imageUri, videoUri, currentUser, title, postType, eventDate, eventLocation, clubs]);
 
-  const canPost = ((trimmedBody.length >= 10) || imageUri !== null) && !isPosting;
+  const canPost = ((trimmedBody.length >= 10) || imageUri !== null || videoUri !== null) && !isPosting;
 
   return {
     shouldRedirectToClubPost,
@@ -131,6 +146,7 @@ export function useCreatePost() {
     setBody,
     postType,
     imageUri,
+    videoUri,
     eventDate,
     setEventDate,
     eventLocation,

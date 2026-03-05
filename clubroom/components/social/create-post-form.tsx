@@ -19,12 +19,14 @@ import { Spacing, Radii, Typography, Shadows, withAlpha } from '@/constants/them
 import { useTheme } from '@/hooks/useTheme';
 import { POST_TYPES } from '@/hooks/use-create-post';
 import type { ClubPostType } from '@/constants/types';
+import { VideoPlayer } from '@/components/drills/VideoPlayer';
 
 interface CreatePostFormProps {
   title: string;
   body: string;
   postType: ClubPostType;
   imageUri: string | null;
+  videoUri: string | null;
   eventDate: Date | null;
   eventLocation: string;
   showDatePicker: boolean;
@@ -48,6 +50,7 @@ export const CreatePostForm = memo(function CreatePostForm({
   body,
   postType,
   imageUri,
+  videoUri,
   eventDate,
   eventLocation,
   showDatePicker,
@@ -208,7 +211,7 @@ export const CreatePostForm = memo(function CreatePostForm({
           </View>
 
           {/* Consent reminder for media posts */}
-          {imageUri && (
+          {(imageUri || videoUri) && (
             <Row
               align="center"
               gap="xs"
@@ -227,11 +230,15 @@ export const CreatePostForm = memo(function CreatePostForm({
           )}
 
           {/* Image preview */}
-          {imageUri && (
+          {(imageUri || videoUri) && (
             <View style={styles.imageSection}>
-              <Image source={{ uri: imageUri }} style={styles.imagePreview} />
+              {videoUri ? (
+                <VideoPlayer videoUrl={videoUri} height={220} />
+              ) : (
+                <Image source={{ uri: imageUri! }} style={styles.imagePreview} />
+              )}
               <Clickable
-                accessibilityLabel="Close"
+                accessibilityLabel="Remove media"
                 style={[
                   styles.removeImageButton,
                   { backgroundColor: palette.background, ...Shadows[scheme].subtle },

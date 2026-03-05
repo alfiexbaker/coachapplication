@@ -150,10 +150,10 @@ export interface ClubInvite {
   remainingUses: number;
 }
 
-export type ClubPostType = 'announcement' | 'photo' | 'event' | 'general' | 'achievement' | 'session' | 'match' | 'session_announcement';
+export type ClubPostType = 'announcement' | 'photo' | 'video' | 'event' | 'general' | 'achievement' | 'session' | 'match' | 'session_announcement';
 
 /** Filter for club/social feed queries. */
-export type FeedFilter = 'all' | 'announcement' | 'photo' | 'event' | 'achievement' | 'session' | 'match' | 'session_announcement';
+export type FeedFilter = 'all' | 'announcement' | 'photo' | 'video' | 'event' | 'achievement' | 'session' | 'match' | 'session_announcement';
 
 /** Where a post appears: personal coach feed, club feed, or both. */
 export type FeedType = 'PERSONAL' | 'CLUB' | 'BOTH';
@@ -174,6 +174,7 @@ export interface ClubFeedPost {
   badgeAwarded?: string;
   attachments?: string[];
   imageUrl?: string;
+  videoUrl?: string;
   reactionCount?: number;
   commentCount?: number;
   isPinned?: boolean;

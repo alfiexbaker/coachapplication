@@ -232,7 +232,7 @@ describe('ClubFeedService.createCoachPost', () => {
       if (result.success) return;
 
       assert.equal(result.error.code, 'VALIDATION');
-      assert.equal(result.error.message, 'Post must have content or an image');
+      assert.equal(result.error.message, 'Post must have content, a photo, or a video');
     });
 
     test('should return validation error when body is only whitespace and no imageUrl', () => {
@@ -247,7 +247,7 @@ describe('ClubFeedService.createCoachPost', () => {
       if (result.success) return;
 
       assert.equal(result.error.code, 'VALIDATION');
-      assert.equal(result.error.message, 'Post must have content or an image');
+      assert.equal(result.error.message, 'Post must have content, a photo, or a video');
     });
   });
 

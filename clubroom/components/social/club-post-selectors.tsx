@@ -165,7 +165,7 @@ export const PostTypeSelector = memo(function PostTypeSelector({
       <ScrollView
         horizontal
         showsHorizontalScrollIndicator={false}
-        contentContainerStyle={styles.row}
+        contentContainerStyle={styles.eventRow}
       >
         {POST_TYPES.map((type) => (
           <Clickable
@@ -389,7 +389,7 @@ export const EventAttachSelector = memo(function EventAttachSelector({
       <ScrollView
         horizontal
         showsHorizontalScrollIndicator={false}
-        contentContainerStyle={styles.row}
+        contentContainerStyle={styles.eventRow}
       >
         {events.map((event) => {
           const isSelected = selectedEventId === event.id;
@@ -429,7 +429,7 @@ export const EventAttachSelector = memo(function EventAttachSelector({
 const styles = StyleSheet.create({
   section: { paddingHorizontal: Spacing.md, paddingTop: Spacing.md },
   eventHeader: {
-    marginBottom: Spacing.xs,
+    marginBottom: Spacing.sm,
   },
   sectionLabel: {
     ...Typography.caption,
@@ -442,6 +442,7 @@ const styles = StyleSheet.create({
     marginBottom: Spacing.xs,
   },
   row: { flexDirection: 'row', flexWrap: 'wrap', gap: Spacing.xs },
+  eventRow: { flexDirection: 'row', gap: Spacing.md, paddingBottom: Spacing.sm },
   chip: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -481,12 +482,12 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   eventOption: {
-    minWidth: 220,
+    minWidth: 232,
     borderWidth: 1,
     borderRadius: Radii.md,
-    paddingVertical: Spacing.sm,
+    paddingVertical: Spacing.lg,
     paddingHorizontal: Spacing.md,
-    gap: Spacing.xxs,
+    gap: Spacing.xs,
   },
   eventTitle: {
     ...Typography.smallSemiBold,

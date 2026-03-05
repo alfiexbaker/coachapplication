@@ -16,6 +16,7 @@ export type FeedFilter =
   | 'all'
   | 'announcement'
   | 'photo'
+  | 'video'
   | 'event'
   | 'achievement'
   | 'session_announcement';

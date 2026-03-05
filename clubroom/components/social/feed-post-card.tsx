@@ -15,6 +15,7 @@ import { CommentPreview } from './comment-preview';
 import { OriginBadge } from './feed-post-origin-badge';
 import { FeedPostActions } from './feed-post-actions';
 import { useTheme } from '@/hooks/useTheme';
+import { VideoPlayer } from '@/components/drills/VideoPlayer';
 
 import { PostHeader, EventDetailsCard, AttachmentChips } from './feed-post-card-sections';
 
@@ -91,6 +92,13 @@ function FeedPostCardInner({ post, onLike, onComment, onShare }: FeedPostCardPro
             contentFit="cover"
             accessibilityRole="image"
             accessibilityLabel={`Photo posted by ${authorName}${post.title ? `: ${post.title}` : ''}`}
+          />
+        )}
+        {!post.imageUrl && post.videoUrl && (
+          <VideoPlayer
+            videoUrl={post.videoUrl}
+            height={220}
+            title={post.title || 'Video'}
           />
         )}
 

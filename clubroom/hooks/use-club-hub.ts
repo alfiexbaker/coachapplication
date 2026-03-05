@@ -41,12 +41,13 @@ import { uiFeedback } from '@/services/ui-feedback';
 
 const logger = createLogger('ClubHub');
 
-export type FeedFilter = 'all' | 'announcement' | 'photo' | 'event';
+export type FeedFilter = 'all' | 'announcement' | 'photo' | 'video' | 'event';
 
 export const FEED_FILTERS: { key: FeedFilter; label: string; icon: string }[] = [
   { key: 'all', label: 'All', icon: 'grid-outline' },
   { key: 'announcement', label: 'Announcements', icon: 'megaphone-outline' },
   { key: 'photo', label: 'Photos', icon: 'images-outline' },
+  { key: 'video', label: 'Videos', icon: 'videocam-outline' },
   { key: 'event', label: 'Events', icon: 'calendar-outline' },
 ];
 
@@ -364,6 +365,7 @@ export function useClubHub(): ClubHubState {
       all: allPosts.length,
       announcement: allPosts.filter((p) => p.postType === 'announcement').length,
       photo: allPosts.filter((p) => p.postType === 'photo').length,
+      video: allPosts.filter((p) => p.postType === 'video').length,
       event: allPosts.filter((p) => p.postType === 'event').length,
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps -- feed triggers recomputation when posts are modified

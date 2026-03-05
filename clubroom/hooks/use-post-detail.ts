@@ -29,6 +29,8 @@ export interface NormalizedPost {
   createdAt: string;
   likes: string[];
   reactionCount: number;
+  imageUrl?: string;
+  videoUrl?: string;
 }
 
 function normalizePost(post: Post | ClubFeedPost): NormalizedPost {
@@ -41,6 +43,8 @@ function normalizePost(post: Post | ClubFeedPost): NormalizedPost {
       createdAt: post.createdAt,
       likes: [],
       reactionCount: 'reactionCount' in post ? (post.reactionCount ?? 0) : 0,
+      imageUrl: post.imageUrl,
+      videoUrl: post.videoUrl,
     };
   }
   return {
@@ -51,6 +55,7 @@ function normalizePost(post: Post | ClubFeedPost): NormalizedPost {
     createdAt: post.createdAt,
     likes: 'likes' in post ? post.likes : [],
     reactionCount: 'likes' in post ? post.likes.length : 0,
+    imageUrl: post.images?.[0],
   };
 }
 
@@ -239,6 +244,8 @@ export function usePostDetail() {
   const postContent = normalized?.content ?? '';
   const postTitle = normalized?.title;
   const postCreatedAt = normalized?.createdAt ?? '';
+  const postImageUrl = normalized?.imageUrl;
+  const postVideoUrl = normalized?.videoUrl;
   const initials = postAuthorAvatar?.slice(0, 2) ?? postAuthorName.slice(0, 2).toUpperCase();
   const error =
     actionError ??
@@ -253,6 +260,8 @@ export function usePostDetail() {
     postContent,
     postTitle,
     postCreatedAt,
+    postImageUrl,
+    postVideoUrl,
     initials,
     currentUser,
     flatItems,
@@ -283,6 +292,8 @@ export function usePostDetail() {
     postContent: string;
     postTitle: string | undefined;
     postCreatedAt: string;
+    postImageUrl: string | undefined;
+    postVideoUrl: string | undefined;
     initials: string;
     currentUser: ReturnType<typeof useAuth>['currentUser'];
     flatItems: FlatItem[];

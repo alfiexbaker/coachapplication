@@ -2,6 +2,7 @@
  * useMyProgress — data + derived state for the rebuilt continuous My Progress scroll.
  */
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useLocalSearchParams } from 'expo-router';
 
 import { apiClient } from '@/services/api-client';
 import { useAuth } from '@/hooks/use-auth';
@@ -201,7 +202,11 @@ export function useMyProgress() {
     children: contextChildren,
     activeChildId: contextActiveChildId,
     setActiveChildId,
+    profileMode,
+    profileSubjectId,
+    setProfileScope,
   } = useChildContext();
+  const { athleteId: athleteIdParam } = useLocalSearchParams<{ athleteId?: string | string[] }>();
 
   const isParentContext = Boolean(currentUser?.role === 'PARENT' || contextChildren.length > 0);
   const switcherChildren = useMemo<SwitcherChild[]>(
@@ -216,15 +221,50 @@ export function useMyProgress() {
   );
   const hasMultipleChildren = isParentContext && switcherChildren.length > 1;
 
+  const explicitAthleteId = useMemo(() => {
+    if (!athleteIdParam) return null;
+    return Array.isArray(athleteIdParam) ? athleteIdParam[0] ?? null : athleteIdParam;
+  }, [athleteIdParam]);
+
+  const isExplicitAthleteIdValid = useMemo(() => {
+    if (!explicitAthleteId || !currentUser?.id) return false;
+    if (explicitAthleteId === currentUser.id) return true;
+    return contextChildren.some((child) => child.id === explicitAthleteId);
+  }, [contextChildren, currentUser?.id, explicitAthleteId]);
+
   const selectedAthleteId = useMemo(() => {
     if (!currentUser) {
       return null;
     }
+    if (isExplicitAthleteIdValid && explicitAthleteId) {
+      return explicitAthleteId;
+    }
+
+    if (profileMode === 'self') {
+      return currentUser.id;
+    }
+
+    if (
+      profileMode === 'child'
+      && profileSubjectId
+      && contextChildren.some((child) => child.id === profileSubjectId)
+    ) {
+      return profileSubjectId;
+    }
+
+    if (profileSubjectId) {
+      const isSelf = profileSubjectId === currentUser.id;
+      const isChild = contextChildren.some((child) => child.id === profileSubjectId);
+      if (isSelf || isChild) {
+        return profileSubjectId;
+      }
+    }
+
     if (!isParentContext) {
       return currentUser.id;
     }
     if (contextChildren.length === 0) {
-      return null;
+      return currentUser.id;
     }
     if (contextChildren.length === 1) {
       return contextChildren[0].id;
@@ -233,23 +273,61 @@ export function useMyProgress() {
       return contextActiveChildId;
     }
     return contextChildren[0].id;
-  }, [contextActiveChildId, contextChildren, currentUser, isParentContext]);
+  }, [
+    contextActiveChildId,
+    contextChildren,
+    currentUser,
+    explicitAthleteId,
+    isExplicitAthleteIdValid,
+    isParentContext,
+    profileMode,
+    profileSubjectId,
+  ]);
 
   const selectedChild = useMemo(
     () => contextChildren.find((child) => child.id === selectedAthleteId) ?? null,
     [contextChildren, selectedAthleteId],
   );
 
-  const selectedAthleteName = isParentContext
-    ? selectedChild?.name ?? 'Child'
-    : currentUser?.name || 'Me';
+  const selectedAthleteName =
+    currentUser?.id && selectedAthleteId === currentUser.id
+      ? currentUser.name || currentUser.fullName || 'Me'
+      : selectedChild?.name ?? currentUser?.name ?? 'Child';
 
   useEffect(() => {
-    if (!isParentContext || !selectedAthleteId || contextActiveChildId === selectedAthleteId) {
+    if (!selectedAthleteId || !currentUser?.id) {
       return;
     }
-    void setActiveChildId(selectedAthleteId);
-  }, [contextActiveChildId, isParentContext, selectedAthleteId, setActiveChildId]);
+
+    const isSelf = selectedAthleteId === currentUser.id;
+    if (isSelf) {
+      if (profileMode !== 'self') {
+        void setProfileScope({ mode: 'self' });
+      }
+      return;
+    }
+
+    const isChild = contextChildren.some((child) => child.id === selectedAthleteId);
+    if (!isChild) {
+      return;
+    }
+
+    if (contextActiveChildId !== selectedAthleteId) {
+      void setActiveChildId(selectedAthleteId);
+    }
+    if (profileMode !== 'child' || profileSubjectId !== selectedAthleteId) {
+      void setProfileScope({ mode: 'child', childId: selectedAthleteId });
+    }
+  }, [
+    contextActiveChildId,
+    contextChildren,
+    currentUser?.id,
+    profileMode,
+    profileSubjectId,
+    selectedAthleteId,
+    setActiveChildId,
+    setProfileScope,
+  ]);
 
   const loadData = useCallback(async () => {
     if (!currentUser?.id) {
@@ -530,8 +608,9 @@ export function useMyProgress() {
         return;
       }
       void setActiveChildId(childId);
+      void setProfileScope({ mode: 'child', childId });
     },
-    [isParentContext, setActiveChildId],
+    [isParentContext, setActiveChildId, setProfileScope],
   );
 
   const handleSelectNextChild = useCallback(() => {
@@ -546,7 +625,8 @@ export function useMyProgress() {
       return;
     }
     void setActiveChildId(nextChildId);
-  }, [hasMultipleChildren, selectedAthleteId, setActiveChildId, switcherChildren]);
+    void setProfileScope({ mode: 'child', childId: nextChildId });
+  }, [hasMultipleChildren, selectedAthleteId, setActiveChildId, setProfileScope, switcherChildren]);
 
   const latestCoachBadge = useMemo<CoachBadgeData | null>(() => {
     if (!latestFeedback?.coachId) {
