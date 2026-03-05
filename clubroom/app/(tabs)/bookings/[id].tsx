@@ -1,7 +1,7 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { RefreshControl, ScrollView, StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { router, useFocusEffect, useLocalSearchParams, type Href } from 'expo-router';
+import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 
 import { ThemedText } from '@/components/themed-text';
@@ -38,6 +38,7 @@ import {
 import { Routes } from '@/navigation/routes';
 import { useRequiredParam } from '@/hooks/use-required-param';
 import { getStoredCoachReviews, isReviewForBookingByUser } from '@/services/review-sync-service';
+import { resolveDeepLink } from '@/utils/deep-link';
 
 interface PaymentSnapshot {
   amount: number | null;
@@ -45,11 +46,33 @@ interface PaymentSnapshot {
   dueDate?: string;
 }
 
+const ALLOWED_RETURN_TO_PATHS = new Set<string>([
+  Routes.BOOKINGS as string,
+  Routes.FAMILY as string,
+  Routes.FAMILY_CALENDAR as string,
+  Routes.SCHEDULE as string,
+  Routes.MANAGE_BOOKINGS as string,
+  Routes.SESSION_INVITES as string,
+]);
+
+function resolveAllowedReturnTo(raw: string | undefined): string | null {
+  if (!raw) return null;
+  const normalized = resolveDeepLink(raw);
+  if (!normalized || typeof normalized !== 'string') {
+    return null;
+  }
+  const path = normalized.split('?')[0] ?? normalized;
+  return ALLOWED_RETURN_TO_PATHS.has(path) ? normalized : null;
+}
+
 export default function SessionDetailScreen() {
   const bookingIdParam = useRequiredParam('id');
   const bookingId = bookingIdParam.valid ? bookingIdParam.value : '';
   const detailParams = useLocalSearchParams<{ returnTo?: string }>();
-  const returnTo = typeof detailParams.returnTo === 'string' ? detailParams.returnTo.trim() : '';
+  const safeReturnTo = useMemo(() => {
+    const raw = typeof detailParams.returnTo === 'string' ? detailParams.returnTo.trim() : '';
+    return resolveAllowedReturnTo(raw);
+  }, [detailParams.returnTo]);
   const { colors: palette } = useTheme();
   const { currentUser } = useAuth();
   const {
@@ -76,8 +99,8 @@ export default function SessionDetailScreen() {
   });
 
   const handleGoBack = useCallback(() => {
-    if (returnTo) {
-      router.replace(returnTo as Href);
+    if (safeReturnTo) {
+      router.replace(safeReturnTo);
       return;
     }
     if (router.canGoBack()) {
@@ -85,7 +108,7 @@ export default function SessionDetailScreen() {
       return;
     }
     router.replace(Routes.BOOKINGS);
-  }, [returnTo]);
+  }, [safeReturnTo]);
 
   useEffect(() => {
     if (!booking?.coachId) return;
