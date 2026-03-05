@@ -4,7 +4,7 @@
  */
 
 import { useState, useEffect, useCallback } from 'react';
-import { Alert } from 'react-native';
+
 import { router, useLocalSearchParams } from 'expo-router';
 import { Routes } from '@/navigation/routes';
 import { apiClient } from '@/services/api-client';
@@ -15,6 +15,7 @@ import { STORAGE_KEYS } from '@/constants/storage-keys';
 import { createLogger } from '@/utils/logger';
 import { err, ok, serviceError, type ServiceError } from '@/types/result';
 import type { ClubRole } from '@/constants/types';
+import { uiFeedback } from '@/services/ui-feedback';
 
 const logger = createLogger('CoachInvitesScreen');
 
@@ -132,7 +133,7 @@ export function useCoachInvites() {
         );
         await apiClient.set(`${STORAGE_KEYS.PENDING_CLUB_INVITES}_${currentUser.id}`, updated);
         logger.info('Accepted club invite', { clubId: invite.clubId, role: invite.role });
-        Alert.alert(
+        uiFeedback.alert(
           'Welcome!',
           `You've joined ${invite.clubName} as ${ROLE_LABELS[invite.role]}.`,
           [{ text: 'Go to Club', onPress: () => router.push(Routes.club(invite.clubId)) }],
@@ -140,7 +141,7 @@ export function useCoachInvites() {
         onRefresh();
       } catch (error) {
         logger.error('Failed to accept invite', error);
-        Alert.alert('Error', 'Failed to accept invite. Please try again.');
+        uiFeedback.alert('Error', 'Failed to accept invite. Please try again.');
       } finally {
         setRespondingTo(null);
       }
@@ -150,7 +151,7 @@ export function useCoachInvites() {
 
   const handleDecline = useCallback(
     (invite: PendingClubInvite) => {
-      Alert.alert(
+      uiFeedback.alert(
         'Decline Invite',
         `Are you sure you want to decline the invitation to join ${invite.clubName}?`,
         [
@@ -175,7 +176,7 @@ export function useCoachInvites() {
                 onRefresh();
               } catch (error) {
                 logger.error('Failed to decline invite', error);
-                Alert.alert('Error', 'Failed to decline invite.');
+                uiFeedback.alert('Error', 'Failed to decline invite.');
               } finally {
                 setRespondingTo(null);
               }

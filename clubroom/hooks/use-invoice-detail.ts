@@ -4,7 +4,7 @@
  */
 
 import { useCallback, useState } from 'react';
-import { Alert } from 'react-native';
+
 import { useLocalSearchParams, router } from 'expo-router';
 import { useAuth } from '@/hooks/use-auth';
 import { useScreen } from '@/hooks/use-screen';
@@ -12,6 +12,7 @@ import { invoiceService } from '@/services/invoice-service';
 import { createLogger } from '@/utils/logger';
 import { err, ok, serviceError, type ServiceError } from '@/types/result';
 import type { Invoice } from '@/constants/types';
+import { uiFeedback } from '@/services/ui-feedback';
 
 const logger = createLogger('InvoiceDetailScreen');
 
@@ -57,15 +58,15 @@ export function useInvoiceDetail() {
     try {
       const result = await invoiceService.sendInvoice(invoice.id, sendEmail.trim());
       if (result.success) {
-        Alert.alert('Invoice Sent', `Invoice sent to ${sendEmail}`);
+        uiFeedback.alert('Invoice Sent', `Invoice sent to ${sendEmail}`);
         setShowSendModal(false);
         setSendEmail('');
         onRefresh();
       } else {
-        Alert.alert('Failed', result.error || 'Could not send invoice');
+        uiFeedback.alert('Failed', result.error || 'Could not send invoice');
       }
     } catch {
-      Alert.alert('Error', 'An error occurred while sending the invoice');
+      uiFeedback.alert('Error', 'An error occurred while sending the invoice');
     } finally {
       setActionLoading(false);
     }
@@ -73,7 +74,7 @@ export function useInvoiceDetail() {
 
   const handleMarkPaid = useCallback(async () => {
     if (!invoice) return;
-    Alert.alert('Mark as Paid', 'Are you sure you want to mark this invoice as paid?', [
+    uiFeedback.alert('Mark as Paid', 'Are you sure you want to mark this invoice as paid?', [
       { text: 'Cancel', style: 'cancel' },
       {
         text: 'Mark Paid',
@@ -83,7 +84,7 @@ export function useInvoiceDetail() {
             await invoiceService.markAsPaid(invoice.id);
             onRefresh();
           } catch {
-            Alert.alert('Error', 'Failed to update invoice');
+            uiFeedback.alert('Error', 'Failed to update invoice');
           } finally {
             setActionLoading(false);
           }
@@ -94,7 +95,7 @@ export function useInvoiceDetail() {
 
   const handleVoidInvoice = useCallback(async () => {
     if (!invoice) return;
-    Alert.alert(
+    uiFeedback.alert(
       'Void Invoice',
       'Are you sure you want to void this invoice? This cannot be undone.',
       [
@@ -108,7 +109,7 @@ export function useInvoiceDetail() {
               await invoiceService.voidInvoice(invoice.id, 'Voided by user');
               onRefresh();
             } catch {
-              Alert.alert('Error', 'Failed to void invoice');
+              uiFeedback.alert('Error', 'Failed to void invoice');
             } finally {
               setActionLoading(false);
             }

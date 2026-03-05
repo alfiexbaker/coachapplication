@@ -6,7 +6,7 @@
  */
 
 import { memo, useState, useCallback, useEffect, useMemo, type ComponentProps } from 'react';
-import { View, StyleSheet, TextInput, Modal, ScrollView, Switch, Alert, Keyboard } from 'react-native';
+import { View, StyleSheet, TextInput, Modal, ScrollView, Switch, Keyboard } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
 type IconName = ComponentProps<typeof Ionicons>['name'];
@@ -22,6 +22,7 @@ import {
   type CoachObservation,
   type ObservationCategory,
 } from '@/services/coach-observation-service';
+import { uiFeedback } from '@/services/ui-feedback';
 
 interface CoachObservationModalProps {
   visible: boolean;
@@ -87,7 +88,7 @@ export const CoachObservationModal = memo(function CoachObservationModal({
       closeNow();
       return;
     }
-    Alert.alert(
+    uiFeedback.alert(
       'Discard Changes?',
       'You have unsaved observations. Are you sure you want to close?',
       [

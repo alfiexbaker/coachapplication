@@ -5,7 +5,7 @@
  */
 
 import React, { memo, useMemo } from 'react';
-import { Alert, View, StyleSheet } from 'react-native';
+import { View, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import Animated, { FadeInRight } from 'react-native-reanimated';
 
@@ -26,6 +26,7 @@ import {
   SESSION_TYPES,
   RECURRENCE_OPTIONS,
 } from './create-session-types';
+import { uiFeedback } from '@/services/ui-feedback';
 
 interface CreateReviewStepProps {
   colors: ThemeColors;
@@ -180,7 +181,7 @@ export const CreateReviewStep = memo(function CreateReviewStep({
   const handleOpenMap = () => {
     void openLocationInMaps({ location, coordinates: locationCoordinates }).then((opened) => {
       if (!opened) {
-        Alert.alert('Error', 'Could not open maps application.');
+        uiFeedback.alert('Error', 'Could not open maps application.');
       }
     });
   };

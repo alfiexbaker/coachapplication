@@ -1,5 +1,5 @@
 import React, { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Modal, ScrollView, StyleSheet, View, Alert, Keyboard } from 'react-native';
+import { Modal, ScrollView, StyleSheet, View, Keyboard } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 
@@ -16,6 +16,7 @@ import { progressFeedbackService } from '@/services/progress/progress-feedback-s
 import { LoadingState } from '@/components/ui/screen-states';
 import { useToast } from '@/components/ui/toast';
 import { createLogger } from '@/utils/logger';
+import { uiFeedback } from '@/services/ui-feedback';
 
 const logger = createLogger('QuickRateModal');
 
@@ -158,7 +159,7 @@ export const QuickRateModal = memo(function QuickRateModal({
       closeNow();
       return;
     }
-    Alert.alert('Discard Ratings?', 'You have unsaved ratings. Are you sure you want to close?', [
+    uiFeedback.alert('Discard Ratings?', 'You have unsaved ratings. Are you sure you want to close?', [
       { text: 'Keep Editing', style: 'cancel' },
       { text: 'Discard', style: 'destructive', onPress: closeNow },
     ]);

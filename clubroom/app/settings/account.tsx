@@ -1,5 +1,5 @@
 import { useMemo } from 'react';
-import { Alert, StyleSheet, TextInput, View } from 'react-native';
+import { StyleSheet, TextInput, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
 import { SettingsFormScreen, SettingsRow, SettingsSection } from '@/components/settings';
@@ -11,6 +11,7 @@ import { Row } from '@/components/primitives/row';
 import { Spacing, Radii, Typography } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
 import { useAccountSettings } from '@/hooks/use-account-settings';
+import { uiFeedback } from '@/services/ui-feedback';
 
 export default function AccountSettingsScreen() {
   const { colors } = useTheme();
@@ -134,13 +135,13 @@ export default function AccountSettingsScreen() {
           icon="logo-google"
           title="Google"
           value="Not connected"
-          onPress={() => Alert.alert('Coming Soon', 'Google sign-in coming soon')}
+          onPress={() => uiFeedback.alert('Coming Soon', 'Google sign-in coming soon')}
         />
         <SettingsRow
           icon="logo-apple"
           title="Apple"
           value="Not connected"
-          onPress={() => Alert.alert('Coming Soon', 'Apple sign-in coming soon')}
+          onPress={() => uiFeedback.alert('Coming Soon', 'Apple sign-in coming soon')}
         />
       </SettingsSection>
 

@@ -5,7 +5,7 @@
  */
 
 import React, { memo, useCallback, useEffect, useMemo, useState } from 'react';
-import { StyleSheet, View, Alert } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 import { Image } from 'expo-image';
 import { router } from 'expo-router';
 import { Routes } from '@/navigation/routes';
@@ -22,6 +22,7 @@ import { useToast } from '@/components/ui/toast';
 import { createLogger } from '@/utils/logger';
 import { openLocationInMaps } from '@/utils/map-links';
 import { coachService } from '@/services/coach-service';
+import { uiFeedback } from '@/services/ui-feedback';
 
 type WeatherTone = 'sunny' | 'cloudy' | 'rainy' | 'storm' | 'snow' | 'unknown';
 
@@ -262,7 +263,7 @@ export const LocationCard = memo(function LocationCard({ locationLabel }: Locati
   const handleOpenMap = useCallback(() => {
     void openLocationInMaps({ location: locationLabel }).then((opened) => {
       if (!opened) {
-        Alert.alert('Error', 'Could not open maps application.');
+        uiFeedback.alert('Error', 'Could not open maps application.');
       }
     });
   }, [locationLabel]);

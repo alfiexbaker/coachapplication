@@ -6,7 +6,7 @@
  */
 
 import { useState, useCallback } from 'react';
-import { Alert } from 'react-native';
+
 import { router, useFocusEffect } from 'expo-router';
 import * as Haptics from 'expo-haptics';
 
@@ -16,6 +16,7 @@ import type { Injury } from '@/constants/types';
 import { createLogger } from '@/utils/logger';
 import type { ScreenStatus } from '@/hooks/use-screen';
 import { serviceError, type ServiceError } from '@/types/result';
+import { uiFeedback } from '@/services/ui-feedback';
 
 const logger = createLogger('useHealthDetail');
 
@@ -89,7 +90,7 @@ export function useHealthDetail(id: string | undefined) {
 
   const handleMarkHealed = useCallback(() => {
     if (!injury) return;
-    Alert.alert('Mark as Healed', 'Are you sure this injury has fully healed?', [
+    uiFeedback.alert('Mark as Healed', 'Are you sure this injury has fully healed?', [
       { text: 'Cancel', style: 'cancel' },
       {
         text: 'Yes, Healed',

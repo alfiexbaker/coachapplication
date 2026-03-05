@@ -1,5 +1,5 @@
 import { useCallback, useMemo, useState, type Dispatch, type SetStateAction } from 'react';
-import { Alert } from 'react-native';
+
 import { router, useLocalSearchParams } from 'expo-router';
 
 import {
@@ -12,6 +12,7 @@ import {
 import { useScreen } from '@/hooks/use-screen';
 import { err, ok, serviceError, type ServiceError } from '@/types/result';
 import type { PositionRole } from '@/types/progress-types';
+import { uiFeedback } from '@/services/ui-feedback';
 
 const GENDER_OPTIONS: Gender[] = ['MALE', 'FEMALE', 'OTHER', 'PREFER_NOT_TO_SAY'];
 const RELATIONSHIP_OPTIONS: Relationship[] = ['SON', 'DAUGHTER', 'WARD', 'GRANDCHILD', 'OTHER'];
@@ -98,11 +99,11 @@ export function useEditChildProfile() {
 
   const validate = useCallback(() => {
     if (!firstName.trim() || !lastName.trim()) {
-      Alert.alert('Required Fields', 'Please enter first and last name.');
+      uiFeedback.alert('Required Fields', 'Please enter first and last name.');
       return false;
     }
     if (!emergencyContactName.trim() || !emergencyContactPhone.trim() || !emergencyContactRelation.trim()) {
-      Alert.alert('Required Fields', 'Please complete the primary emergency contact.');
+      uiFeedback.alert('Required Fields', 'Please complete the primary emergency contact.');
       return false;
     }
     return true;
@@ -156,10 +157,10 @@ export function useEditChildProfile() {
 
       const result = await childService.updateChild(child.id, updates);
       if (!result.success) {
-        Alert.alert('Error', 'Failed to save profile. Please try again.');
+        uiFeedback.alert('Error', 'Failed to save profile. Please try again.');
         return;
       }
-      Alert.alert('Saved', 'Child profile updated.', [{ text: 'OK', onPress: () => router.back() }]);
+      uiFeedback.alert('Saved', 'Child profile updated.', [{ text: 'OK', onPress: () => router.back() }]);
     } finally {
       setSaving(false);
     }

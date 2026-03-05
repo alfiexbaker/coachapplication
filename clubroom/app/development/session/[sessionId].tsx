@@ -1,4 +1,4 @@
-import { Alert, StyleSheet, ScrollView } from 'react-native';
+import { StyleSheet, ScrollView } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useLocalSearchParams, router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -20,6 +20,7 @@ import { ok } from '@/types/result';
 import { useDevSession } from '@/hooks/use-dev-session';
 import type { ReactNode } from 'react';
 import { Routes } from '@/navigation/routes';
+import { uiFeedback } from '@/services/ui-feedback';
 
 export default function SessionDetailScreen() {
   const { sessionId, prefillFromQuickRate, athleteId } = useLocalSearchParams<{
@@ -124,7 +125,7 @@ export default function SessionDetailScreen() {
   const handleRaiseConcern = () => {
     const targetAthleteId = athlete.id || session.athleteId;
     if (!targetAthleteId) {
-      Alert.alert('Unable to open concern form', 'Athlete details are missing for this session.');
+      uiFeedback.alert('Unable to open concern form', 'Athlete details are missing for this session.');
       return;
     }
     router.push(Routes.rosterAthleteConcern(targetAthleteId));

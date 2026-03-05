@@ -6,7 +6,7 @@
  */
 
 import { useState, useCallback, useEffect, useMemo, useRef } from 'react';
-import { Alert } from 'react-native';
+
 import { router } from 'expo-router';
 
 import { FOOTBALL_OBJECTIVES } from '@/constants/booking-types';
@@ -24,6 +24,7 @@ import { childService } from '@/services/child-service';
 import { discoverService } from '@/services/discover-service';
 import { generateId } from '@/utils/generate-id';
 import { createLogger } from '@/utils/logger';
+import { uiFeedback } from '@/services/ui-feedback';
 
 const logger = createLogger('EditProfile');
 
@@ -445,7 +446,7 @@ export function useEditProfile() {
 
   const saveExperience = useCallback(() => {
     if (!experienceDraft.title || !experienceDraft.organization || !experienceDraft.startDate) {
-      Alert.alert('Missing Information', 'Please add a role title, organisation, and start date.');
+      uiFeedback.alert('Missing Information', 'Please add a role title, organisation, and start date.');
       return;
     }
     setExperiences((prev) => {
@@ -469,7 +470,7 @@ export function useEditProfile() {
 
   const saveLanguage = useCallback(() => {
     if (!languageDraft.name) {
-      Alert.alert('Missing Information', 'Please add a language name to continue.');
+      uiFeedback.alert('Missing Information', 'Please add a language name to continue.');
       return;
     }
     setLanguages((prev) => {
@@ -504,7 +505,7 @@ export function useEditProfile() {
 
   const saveCertification = useCallback(() => {
     if (!certificationDraft.name || !certificationDraft.issuer || !certificationDraft.issueDate) {
-      Alert.alert(
+      uiFeedback.alert(
         'Missing Information',
         'Please add a certification name, issuer, and issue date.',
       );
@@ -550,12 +551,12 @@ export function useEditProfile() {
     setIsSaving(true);
     try {
       if (userIsCoach && priceRangeError) {
-        Alert.alert('Invalid pricing', priceRangeError);
+        uiFeedback.alert('Invalid pricing', priceRangeError);
         return;
       }
       if (userIsCoach) {
         if (!coach) {
-          Alert.alert('Profile unavailable', 'Coach profile is still loading. Please try again.');
+          uiFeedback.alert('Profile unavailable', 'Coach profile is still loading. Please try again.');
           return;
         }
 
@@ -580,7 +581,7 @@ export function useEditProfile() {
         logger.info('Coach profile payload ready for API sync', payload);
       } else {
         if (!user) {
-          Alert.alert('Profile unavailable', 'User profile is still loading. Please try again.');
+          uiFeedback.alert('Profile unavailable', 'User profile is still loading. Please try again.');
           return;
         }
 
@@ -593,7 +594,7 @@ export function useEditProfile() {
         }
       }
 
-      Alert.alert('Success', 'Profile updated successfully', [
+      uiFeedback.alert('Success', 'Profile updated successfully', [
         { text: 'OK', onPress: () => router.back() },
       ]);
     } finally {
@@ -626,7 +627,7 @@ export function useEditProfile() {
 
   // ── Image picker ───────────────────────────────────────────────
   const pickImage = useCallback((type: 'profile' | 'cover') => {
-    Alert.alert(
+    uiFeedback.alert(
       `Change ${type === 'profile' ? 'Profile' : 'Cover'} Photo`,
       'Choose how you want to select a photo',
       [

@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { Alert, ScrollView, StyleSheet, View } from 'react-native';
+import { ScrollView, StyleSheet, View } from 'react-native';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 
@@ -13,6 +13,7 @@ import { Spacing, Typography, Radii, withAlpha } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
 import { verificationService } from '@/services/verification-service';
 import type { VerificationStatus } from '@/constants/types';
+import { uiFeedback } from '@/services/ui-feedback';
 
 const COACH_ID = 'coach1';
 
@@ -76,9 +77,9 @@ export default function InsuranceVerificationScreen() {
     const result = await verificationService.mockApproveVerification(COACH_ID, 'insurance');
     if (result.success) {
       setStatus(result.data);
-      Alert.alert('Success', 'Insurance verification approved.');
+      uiFeedback.alert('Success', 'Insurance verification approved.');
     } else {
-      Alert.alert('Error', result.error.message);
+      uiFeedback.alert('Error', result.error.message);
     }
     setSubmitting(false);
   };

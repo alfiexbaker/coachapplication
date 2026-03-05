@@ -6,7 +6,6 @@
  */
 
 import { useCallback } from 'react';
-import { Alert } from 'react-native';
 
 import { useAuth } from '@/hooks/use-auth';
 import { useChildContext } from '@/hooks/use-child-context';
@@ -18,6 +17,7 @@ import { err, ok, serviceError } from '@/types/result';
 import { createLogger } from '@/utils/logger';
 import type { BadgeAward } from '@/constants/types';
 import type { Session } from '@/constants/app-types';
+import { uiFeedback } from '@/services/ui-feedback';
 
 const logger = createLogger('useChildrenHub');
 
@@ -160,7 +160,7 @@ export function useChildrenHub() {
       const child = resolved.children.find((c) => c.id === childId);
       const displayName = child?.nickname || child?.firstName || 'this child';
 
-      Alert.alert(
+      uiFeedback.alert(
         'Remove Child',
         `Are you sure you want to remove ${displayName} from your account? This cannot be undone.`,
         [

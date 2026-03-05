@@ -5,7 +5,7 @@
  */
 
 import { memo, useCallback } from 'react';
-import { Alert, StyleSheet, View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Column } from '@/components/primitives/column';
 import { Row } from '@/components/primitives/row';
@@ -15,6 +15,7 @@ import { ThemedText } from '@/components/themed-text';
 import { Radii, Spacing, Typography, withAlpha } from '@/constants/theme';
 import type { EmergencyContact } from '@/constants/types';
 import { useTheme } from '@/hooks/useTheme';
+import { uiFeedback } from '@/services/ui-feedback';
 
 // ---------------------------------------------------------------------------
 // EmergencyContactInline
@@ -42,7 +43,7 @@ export const EmergencyContactInline = memo(function EmergencyContactInline({
       if (onViewDetails) {
         onViewDetails();
       } else {
-        Alert.alert(
+        uiFeedback.alert(
           'Emergency Contact',
           `${contact.name}\n${contact.phone}\n${contact.relationship}`,
           [{ text: 'OK' }],
@@ -52,7 +53,7 @@ export const EmergencyContactInline = memo(function EmergencyContactInline({
     }
 
     // During active session — confirm before calling
-    Alert.alert(
+    uiFeedback.alert(
       'Call Emergency Contact?',
       `This will call ${contact.name} (${contact.relationship}) at ${contact.phone}.`,
       [

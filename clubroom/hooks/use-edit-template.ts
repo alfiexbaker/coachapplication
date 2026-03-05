@@ -6,7 +6,7 @@
  */
 
 import { useState, useEffect, useCallback } from 'react';
-import { Alert } from 'react-native';
+
 import { router } from 'expo-router';
 
 import { useAuth } from '@/hooks/use-auth';
@@ -15,6 +15,7 @@ import { availabilityService } from '@/services/availability-service';
 import type { AvailabilityTemplate } from '@/constants/types';
 import { createLogger } from '@/utils/logger';
 import { err, ok, serviceError, type ServiceError } from '@/types/result';
+import { uiFeedback } from '@/services/ui-feedback';
 
 const logger = createLogger('useEditTemplate');
 
@@ -90,7 +91,7 @@ export function useEditTemplate(id: string | undefined) {
   const handleSave = useCallback(async () => {
     if (!currentUser?.id || !template) return;
     if (startTime >= endTime) {
-      Alert.alert('Invalid Time', 'End time must be after start time');
+      uiFeedback.alert('Invalid Time', 'End time must be after start time');
       return;
     }
     setSaving(true);
@@ -105,13 +106,13 @@ export function useEditTemplate(id: string | undefined) {
         maxConcurrent: maxSlots,
         bufferMinutes,
       });
-      Alert.alert('Template Updated', 'Your availability has been updated', [
+      uiFeedback.alert('Template Updated', 'Your availability has been updated', [
         { text: 'OK', onPress: () => router.back() },
       ]);
       logger.success('TemplateUpdated', { templateId: template.id });
     } catch (error) {
       logger.error('Failed to update template', error);
-      Alert.alert('Error', 'Failed to update template');
+      uiFeedback.alert('Error', 'Failed to update template');
     } finally {
       setSaving(false);
     }
@@ -119,7 +120,7 @@ export function useEditTemplate(id: string | undefined) {
 
   const handleDelete = useCallback(() => {
     if (!template) return;
-    Alert.alert('Delete Template', 'Are you sure you want to delete this availability slot?', [
+    uiFeedback.alert('Delete Template', 'Are you sure you want to delete this availability slot?', [
       { text: 'Cancel', style: 'cancel' },
       {
         text: 'Delete',
@@ -127,10 +128,10 @@ export function useEditTemplate(id: string | undefined) {
         onPress: async () => {
           try {
             await availabilityService.deleteTemplate(template.id);
-            Alert.alert('Deleted', 'Template removed');
+            uiFeedback.alert('Deleted', 'Template removed');
             router.back();
           } catch {
-            Alert.alert('Error', 'Failed to delete template');
+            uiFeedback.alert('Error', 'Failed to delete template');
           }
         },
       },

@@ -1,14 +1,6 @@
 import { memo, useCallback, useMemo } from 'react';
 import {
-  View,
-  StyleSheet,
-  ScrollView,
-  TextInput,
-  ActivityIndicator,
-  Modal,
-  Alert,
-  Keyboard,
-} from 'react-native';
+  View, StyleSheet, ScrollView, TextInput, ActivityIndicator, Modal, Keyboard } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 
@@ -21,6 +13,7 @@ import { ROLE_INFO } from '@/hooks/use-family-sharing';
 import { RELATIONSHIP_OPTIONS } from '@/services/family';
 import type { GuardianRole } from '@/constants/types';
 import { Row, Column } from '@/components/primitives';
+import { uiFeedback } from '@/services/ui-feedback';
 
 interface SharingInviteModalProps {
   visible: boolean;
@@ -81,7 +74,7 @@ export const SharingInviteModal = memo(function SharingInviteModal({
       closeNow();
       return;
     }
-    Alert.alert('Discard Invite?', 'You have an unsent invite. Are you sure you want to close?', [
+    uiFeedback.alert('Discard Invite?', 'You have an unsent invite. Are you sure you want to close?', [
       { text: 'Keep Editing', style: 'cancel' },
       { text: 'Discard', style: 'destructive', onPress: closeNow },
     ]);

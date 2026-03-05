@@ -1,5 +1,5 @@
 import { useCallback, useMemo } from 'react';
-import { Alert, StyleSheet, View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 
@@ -19,6 +19,7 @@ import { Routes } from '@/navigation/routes';
 import { socialFeedService } from '@/services/social-feed-service';
 import type { ClubMembership } from '@/constants/types';
 import { ok } from '@/types/result';
+import { uiFeedback } from '@/services/ui-feedback';
 
 interface MyClubsData {
   clubs: ReturnType<typeof socialFeedService.getUserClubs>;
@@ -75,13 +76,13 @@ export default function MyClubsScreen() {
   const handleJoin = useCallback(
     (code: string) => {
       if (!currentUser?.id) {
-        Alert.alert('Sign in required', 'Please sign in to join a club.');
+        uiFeedback.alert('Sign in required', 'Please sign in to join a club.');
         return;
       }
       const joinRole = mapUserRoleToClubRole(currentUser.role);
       const result = socialFeedService.joinClub(currentUser.id, code, joinRole);
       if (!result.success) {
-        Alert.alert('Unable to join', result.error.message);
+        uiFeedback.alert('Unable to join', result.error.message);
         return;
       }
 

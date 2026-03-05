@@ -7,7 +7,7 @@
  * — identical data quality to Quick Rate.
  */
 import { useState, useEffect, useCallback, useMemo } from 'react';
-import { Alert } from 'react-native';
+
 import { router } from 'expo-router';
 import * as ImagePicker from 'expo-image-picker';
 import { apiClient } from '@/services/api-client';
@@ -28,6 +28,7 @@ import { STORAGE_KEYS } from '@/constants/storage-keys';
 import { buildFeedbackPrefillFromQuickRate } from '@/utils/feedback-prefill';
 import type { Session, BadgeAward } from '@/constants/types';
 import type { QuickRateInput } from '@/types/progress-types';
+import { uiFeedback } from '@/services/ui-feedback';
 
 const logger = createLogger('SessionDetailScreen');
 
@@ -481,12 +482,12 @@ export function useDevSession({
         skillCount: skillRatings.length,
         fourCorners,
       });
-      Alert.alert('Success', 'Session notes saved. Parents can now see the feedback.', [
+      uiFeedback.alert('Success', 'Session notes saved. Parents can now see the feedback.', [
         { text: 'OK', onPress: () => router.back() },
       ]);
     } catch (error) {
       logger.error('Failed to save session', error);
-      Alert.alert('Error', 'Failed to save session. Please try again.');
+      uiFeedback.alert('Error', 'Failed to save session. Please try again.');
     } finally {
       setSaving(false);
     }
@@ -578,7 +579,7 @@ export function useDevSession({
     try {
       const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
       if (status !== 'granted') {
-        Alert.alert('Permission needed', 'Please allow access to your photos');
+        uiFeedback.alert('Permission needed', 'Please allow access to your photos');
         return;
       }
       const result = await ImagePicker.launchImageLibraryAsync({
@@ -590,7 +591,7 @@ export function useDevSession({
         setImageUrls((prev) => [...prev, result.assets[0].uri]);
     } catch (error) {
       logger.error('Failed to pick image', error);
-      Alert.alert('Error', 'Failed to pick image');
+      uiFeedback.alert('Error', 'Failed to pick image');
     }
   }, []);
 
@@ -602,7 +603,7 @@ export function useDevSession({
     try {
       const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
       if (status !== 'granted') {
-        Alert.alert('Permission needed', 'Please allow access to your videos');
+        uiFeedback.alert('Permission needed', 'Please allow access to your videos');
         return;
       }
 
@@ -617,7 +618,7 @@ export function useDevSession({
       }
     } catch (error) {
       logger.error('Failed to pick video', error);
-      Alert.alert('Error', 'Failed to pick video');
+      uiFeedback.alert('Error', 'Failed to pick video');
     }
   }, []);
 

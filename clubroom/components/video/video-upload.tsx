@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { View, StyleSheet, Alert } from 'react-native';
+import { View, StyleSheet } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 import { useSharedValue, withTiming } from 'react-native-reanimated';
 
@@ -12,6 +12,7 @@ import {
   RequirementsList,
   type SelectedVideo,
 } from './video-upload-sections';
+import { uiFeedback } from '@/services/ui-feedback';
 
 const logger = createLogger('VideoUpload');
 
@@ -57,7 +58,7 @@ export function VideoUpload({
         const fileSizeBytes = asset.fileSize || 0;
 
         if (durationSecs > maxDurationSeconds) {
-          Alert.alert(
+          uiFeedback.alert(
             'Video Too Long',
             `Maximum video duration is ${Math.floor(maxDurationSeconds / 60)} minutes.`,
           );
@@ -65,7 +66,7 @@ export function VideoUpload({
         }
 
         if (fileSizeBytes > maxFileSizeMB * 1024 * 1024) {
-          Alert.alert('File Too Large', `Maximum file size is ${maxFileSizeMB} MB.`);
+          uiFeedback.alert('File Too Large', `Maximum file size is ${maxFileSizeMB} MB.`);
           return;
         }
 
@@ -79,7 +80,7 @@ export function VideoUpload({
       }
     } catch (error) {
       logger.error('Failed to pick video', error);
-      Alert.alert('Error', 'Failed to select video. Please try again.');
+      uiFeedback.alert('Error', 'Failed to select video. Please try again.');
     }
   };
 
@@ -87,7 +88,7 @@ export function VideoUpload({
     try {
       const permission = await ImagePicker.requestCameraPermissionsAsync();
       if (!permission.granted) {
-        Alert.alert('Permission Required', 'Camera access is needed to record videos.');
+        uiFeedback.alert('Permission Required', 'Camera access is needed to record videos.');
         return;
       }
 
@@ -109,7 +110,7 @@ export function VideoUpload({
       }
     } catch (error) {
       logger.error('Failed to record video', error);
-      Alert.alert('Error', 'Failed to record video. Please try again.');
+      uiFeedback.alert('Error', 'Failed to record video. Please try again.');
     }
   };
 
@@ -163,10 +164,10 @@ export function VideoUpload({
       onProgress?.(0);
     } catch (error) {
       if (error instanceof Error && error.message === 'UPLOAD_CANCELLED') {
-        Alert.alert('Upload Cancelled', 'Video upload was cancelled.');
+        uiFeedback.alert('Upload Cancelled', 'Video upload was cancelled.');
       } else {
         logger.error('Failed during upload simulation', error);
-        Alert.alert('Upload Failed', 'Failed to upload video. Please try again.');
+        uiFeedback.alert('Upload Failed', 'Failed to upload video. Please try again.');
       }
     } finally {
       abortControllerRef.current = null;

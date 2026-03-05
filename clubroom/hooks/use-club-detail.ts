@@ -3,7 +3,7 @@
  * Manages club data, feed, members, events, squads, invites, and member removal flow.
  */
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { Alert, Share } from 'react-native';
+import { Share } from 'react-native';
 import { router } from 'expo-router';
 import { Routes } from '@/navigation/routes';
 import { useAuth } from '@/hooks/use-auth';
@@ -25,6 +25,7 @@ import { socialFeedService } from '@/services/social-feed-service';
 import { apiClient } from '@/services/api-client';
 import { STORAGE_KEYS } from '@/constants/storage-keys';
 import { onTyped, ServiceEvents } from '@/services/event-bus';
+import { uiFeedback } from '@/services/ui-feedback';
 
 const logger = createLogger('ClubDetail');
 
@@ -221,7 +222,7 @@ export function useClubDetail(clubId: string | undefined) {
 
   const handleRemoveMember = useCallback((member: ClubMember) => {
     if (!clubService.canBeRemoved(member.role)) {
-      Alert.alert('Cannot remove owner', 'The club owner cannot be removed.');
+      uiFeedback.alert('Cannot remove owner', 'The club owner cannot be removed.');
       return;
     }
     setSelectedMemberForRemoval(member);
@@ -275,7 +276,7 @@ export function useClubDetail(clubId: string | undefined) {
   );
 
   const handleLeaveClub = useCallback(() => {
-    Alert.alert('Leave club', 'Are you sure you want to leave this club?', [
+    uiFeedback.alert('Leave club', 'Are you sure you want to leave this club?', [
       { text: 'Cancel', style: 'cancel' },
       {
         text: 'Leave',

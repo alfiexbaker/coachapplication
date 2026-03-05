@@ -6,7 +6,7 @@
  */
 
 import { useCallback, useState } from 'react';
-import { View, StyleSheet, TextInput, Alert, Platform } from 'react-native';
+import { View, StyleSheet, TextInput, Platform } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import Animated, { FadeInLeft } from 'react-native-reanimated';
@@ -19,6 +19,7 @@ import { useTheme } from '@/hooks/useTheme';
 import { scaleFont } from '@/utils/scale';
 import { MilestoneItem, CompactMilestoneList } from './milestone-list-sections';
 import { Row } from '@/components/primitives';
+import { uiFeedback } from '@/services/ui-feedback';
 
 interface MilestoneListProps {
   milestones: GoalMilestone[];
@@ -67,7 +68,7 @@ export function MilestoneList({
     (milestone: GoalMilestone) => {
       if (!editable || loading) return;
 
-      Alert.alert('Delete Milestone', `Are you sure you want to delete "${milestone.title}"?`, [
+      uiFeedback.alert('Delete Milestone', `Are you sure you want to delete "${milestone.title}"?`, [
         { text: 'Cancel', style: 'cancel' },
         {
           text: 'Delete',

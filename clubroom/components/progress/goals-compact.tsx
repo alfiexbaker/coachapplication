@@ -1,5 +1,5 @@
 import { memo, useEffect, useMemo, useState } from 'react';
-import { Alert, StyleSheet, TextInput, View } from 'react-native';
+import { StyleSheet, TextInput, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import Animated, {
   useAnimatedStyle,
@@ -16,6 +16,7 @@ import { Radii, Spacing, Typography, withAlpha } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
 import { progressService } from '@/services/progress-service';
 import type { Goal } from '@/constants/types';
+import { uiFeedback } from '@/services/ui-feedback';
 
 interface GoalsCompactProps {
   activeGoals: Goal[];
@@ -109,12 +110,12 @@ export const GoalsCompact = memo(function GoalsCompact({
 
   const handleCreateGoal = async () => {
     if (!athleteId || !actorId) {
-      Alert.alert('Unable to create goal', 'Athlete context is not available.');
+      uiFeedback.alert('Unable to create goal', 'Athlete context is not available.');
       return;
     }
     const title = newGoalTitle.trim();
     if (!title) {
-      Alert.alert('Goal title required', 'Add a goal title to continue.');
+      uiFeedback.alert('Goal title required', 'Add a goal title to continue.');
       return;
     }
 
@@ -136,7 +137,7 @@ export const GoalsCompact = memo(function GoalsCompact({
       setShowCreate(false);
       onRefresh?.();
     } catch (error) {
-      Alert.alert('Error', 'Failed to create goal. Please try again.');
+      uiFeedback.alert('Error', 'Failed to create goal. Please try again.');
     } finally {
       setIsSubmitting(false);
     }
@@ -148,7 +149,7 @@ export const GoalsCompact = memo(function GoalsCompact({
       setNewGoalTitle('');
       return;
     }
-    Alert.alert('Discard Goal?', 'You have an unsaved goal. Are you sure you want to cancel?', [
+    uiFeedback.alert('Discard Goal?', 'You have an unsaved goal. Are you sure you want to cancel?', [
       { text: 'Keep Editing', style: 'cancel' },
       {
         text: 'Discard',

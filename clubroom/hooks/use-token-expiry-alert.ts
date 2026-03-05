@@ -1,8 +1,8 @@
 import { useEffect, useRef } from 'react';
-import { Alert } from 'react-native';
 
 import { onTyped, ServiceEvents } from '@/services/event-bus';
 import { useAuth } from '@/hooks/use-auth';
+import { uiFeedback } from '@/services/ui-feedback';
 
 export function useTokenExpiryAlert(): void {
   const { logout } = useAuth();
@@ -13,7 +13,7 @@ export function useTokenExpiryAlert(): void {
       if (alertOpenRef.current) return;
       alertOpenRef.current = true;
 
-      Alert.alert(
+      uiFeedback.alert(
         'Session Expired',
         'Your session expired while the app was closed. Please log in again.',
         [

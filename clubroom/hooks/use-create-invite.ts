@@ -6,7 +6,7 @@
  */
 
 import { useState, useEffect, useCallback } from 'react';
-import { Alert } from 'react-native';
+
 import { router, useLocalSearchParams } from 'expo-router';
 import * as ImagePicker from 'expo-image-picker';
 
@@ -37,6 +37,7 @@ import type { ThemeColors } from '@/hooks/useTheme';
 import type { ThemeName } from '@/constants/theme';
 import { Routes } from '@/navigation/routes';
 import { useUnsavedChangesWarning } from '@/hooks/use-unsaved-changes-warning';
+import { uiFeedback } from '@/services/ui-feedback';
 
 const logger = createLogger('useCreateInvite');
 
@@ -489,7 +490,7 @@ export function useCreateInvite(): UseCreateInviteReturn {
     if (!currentUser) return;
     if (selectedAthletes.length === 0) return;
     if (priceError) {
-      Alert.alert('Invalid price', priceError);
+      uiFeedback.alert('Invalid price', priceError);
       return;
     }
 
@@ -606,7 +607,7 @@ export function useCreateInvite(): UseCreateInviteReturn {
         await apiClient.set(STORAGE_KEYS.SESSION_OFFERINGS, updatedOfferings);
       }
 
-      Alert.alert(
+      uiFeedback.alert(
         failedCount === 0 ? 'Invite Sent' : 'Invite Partially Sent',
         failedCount === 0
           ? `Invites sent to ${sentCount} athlete${sentCount === 1 ? '' : 's'}.`
@@ -615,7 +616,7 @@ export function useCreateInvite(): UseCreateInviteReturn {
       );
     } catch (error) {
       logger.error('Failed to create invite', error);
-      Alert.alert('Error', 'Failed to send invite. Please try again.');
+      uiFeedback.alert('Error', 'Failed to send invite. Please try again.');
     } finally {
       setLoading(false);
     }

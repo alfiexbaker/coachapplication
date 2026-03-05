@@ -16,7 +16,7 @@
  */
 
 import { useCallback, useMemo, useState, type ReactNode } from 'react';
-import { Alert, StyleSheet, ScrollView, KeyboardAvoidingView, Platform, View } from 'react-native';
+import { StyleSheet, ScrollView, KeyboardAvoidingView, Platform, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router, useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -52,6 +52,7 @@ import {
 } from '@/components/session';
 import { CompletionStepIndicator } from '@/components/session/completion-step-indicator';
 import { WizardNavButtons } from '@/components/session/wizard-nav-buttons';
+import { uiFeedback } from '@/services/ui-feedback';
 
 const logger = createLogger('SessionComplete');
 
@@ -209,11 +210,11 @@ export default function SessionCompleteScreen() {
   const handleSendGroupMessage = async () => {
     const sent = await sendGroupBroadcast(groupMessage);
     if (!sent) {
-      Alert.alert('Add a message', 'Write a group update before sending.');
+      uiFeedback.alert('Add a message', 'Write a group update before sending.');
       return;
     }
     setGroupMessage('');
-    Alert.alert('Sent', 'Update pushed to the group thread.');
+    uiFeedback.alert('Sent', 'Update pushed to the group thread.');
   };
 
   const handlePersonalFeedback = useCallback(
@@ -292,10 +293,10 @@ export default function SessionCompleteScreen() {
   const handleSendMessage = async (registrationId: string) => {
     const result = await sendMessageParent(registrationId);
     if (!result.ok) {
-      Alert.alert('Unable to message', result.reason || 'Message could not be sent.');
+      uiFeedback.alert('Unable to message', result.reason || 'Message could not be sent.');
       return;
     }
-    Alert.alert('Sent', `Message sent to ${result.targetName}.`);
+    uiFeedback.alert('Sent', `Message sent to ${result.targetName}.`);
   };
 
   const handleRaiseConcernByRegistration = useCallback(
@@ -303,7 +304,7 @@ export default function SessionCompleteScreen() {
       const athlete = attendance[registrationId];
       const athleteId = athlete?.registration.userId;
       if (!athleteId) {
-        Alert.alert('Unable to open', 'Athlete details are missing for this registration.');
+        uiFeedback.alert('Unable to open', 'Athlete details are missing for this registration.');
         return;
       }
       router.push(Routes.rosterAthleteConcern(athleteId));
@@ -313,7 +314,7 @@ export default function SessionCompleteScreen() {
 
   const handleRaiseConcernByAthlete = useCallback((athleteId: string) => {
     if (!athleteId) {
-      Alert.alert('Unable to open', 'Athlete details are missing for this action.');
+      uiFeedback.alert('Unable to open', 'Athlete details are missing for this action.');
       return;
     }
     router.push(Routes.rosterAthleteConcern(athleteId));

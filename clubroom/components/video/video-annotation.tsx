@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { View, StyleSheet, TextInput, Modal, ScrollView, Alert, Keyboard } from 'react-native';
+import { View, StyleSheet, TextInput, Modal, ScrollView, Keyboard } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
 import { Clickable } from '@/components/primitives/clickable';
@@ -10,6 +10,7 @@ import { createLogger } from '@/utils/logger';
 import type { VideoAnnotation, VideoAnnotationType } from '@/constants/types';
 import { useTheme } from '@/hooks/useTheme';
 import { ANNOTATION_TYPES, formatTime } from './video-annotation-helpers';
+import { uiFeedback } from '@/services/ui-feedback';
 
 // ─── Re-exports ─────────────────────────────────────────────────────────────
 
@@ -53,23 +54,23 @@ export function AddAnnotationModal({
 
   const handleSave = async () => {
     if (timestamp < 0) {
-      Alert.alert('Invalid Timestamp', 'Timestamp cannot be negative.');
+      uiFeedback.alert('Invalid Timestamp', 'Timestamp cannot be negative.');
       return;
     }
     if (timestamp > duration) {
-      Alert.alert('Invalid Timestamp', `Timestamp cannot exceed ${formatTime(duration)}.`);
+      uiFeedback.alert('Invalid Timestamp', `Timestamp cannot exceed ${formatTime(duration)}.`);
       return;
     }
     if (!label.trim()) {
-      Alert.alert('Missing Label', 'Please enter a label for this annotation.');
+      uiFeedback.alert('Missing Label', 'Please enter a label for this annotation.');
       return;
     }
     if (label.trim().length > 50) {
-      Alert.alert('Label Too Long', 'Maximum label length is 50 characters.');
+      uiFeedback.alert('Label Too Long', 'Maximum label length is 50 characters.');
       return;
     }
     if (note.trim().length > 500) {
-      Alert.alert('Note Too Long', 'Maximum note length is 500 characters.');
+      uiFeedback.alert('Note Too Long', 'Maximum note length is 500 characters.');
       return;
     }
     setSaving(true);
@@ -78,7 +79,7 @@ export function AddAnnotationModal({
       handleClose();
     } catch (error) {
       logger.error('Failed to save annotation', error);
-      Alert.alert('Error', 'Failed to save annotation. Please try again.');
+      uiFeedback.alert('Error', 'Failed to save annotation. Please try again.');
     } finally {
       setSaving(false);
     }

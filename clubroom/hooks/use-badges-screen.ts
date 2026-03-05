@@ -4,13 +4,14 @@
  */
 
 import { useMemo, useState, useCallback } from 'react';
-import { Alert } from 'react-native';
+
 import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '@/hooks/use-auth';
 import { useScreen, type ScreenStatus } from '@/hooks/use-screen';
 import { badgeService, AllBadgeWithProgress } from '@/services/badge-service';
 import { createLogger } from '@/utils/logger';
 import { err, ok, serviceError, type ServiceError } from '@/types/result';
+import { uiFeedback } from '@/services/ui-feedback';
 
 const logger = createLogger('BadgesScreen');
 
@@ -148,13 +149,13 @@ export function useBadgesScreen() {
   const handleBadgePress = useCallback((badge: AllBadgeWithProgress) => {
     logger.press('BadgeCard', { badgeId: badge.id, isUnlocked: badge.isUnlocked });
     if (badge.isUnlocked) {
-      Alert.alert(
+      uiFeedback.alert(
         badge.label,
         `${badge.description || 'Milestone achieved.'}\n\nEarned: ${badge.earnedAt ? new Date(badge.earnedAt).toLocaleDateString() : 'Recently'}${badge.awardedBy ? `\nRecognised by: ${badge.awardedBy}` : ''}`,
         [{ text: 'Close', style: 'cancel' }],
       );
     } else {
-      Alert.alert(
+      uiFeedback.alert(
         badge.label,
         `${badge.description || 'Keep going to reach this milestone.'}\n\nProgress: ${badge.progressLabel}`,
         [{ text: 'Got it', style: 'cancel' }],

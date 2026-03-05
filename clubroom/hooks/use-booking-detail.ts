@@ -13,7 +13,6 @@ import { apiClient } from '@/services/api-client';
 import { bookingService } from '@/services/booking-service';
 import { STORAGE_KEYS } from '@/constants/storage-keys';
 import { useAuth } from '@/hooks/use-auth';
-import { useAppAlert } from '@/components/ui/app-alert';
 import { useScreen, type ScreenStatus } from '@/hooks/use-screen';
 import { useSessionNote } from '@/hooks/use-session-note';
 import type { BookingSummary, Booking, RecurringBooking } from '@/constants/types';
@@ -21,6 +20,7 @@ import { createLogger } from '@/utils/logger';
 import type { ServiceError } from '@/types/result';
 import { err, ok, serviceError } from '@/types/result';
 import { getBookingAthleteName } from '@/utils/booking-display';
+import { uiFeedback } from '@/services/ui-feedback';
 
 const logger = createLogger('useBookingDetail');
 
@@ -123,7 +123,6 @@ const toBookingSummary = (
 
 export function useBookingDetail(id: string): BookingDetailResult {
   const { currentUser } = useAuth();
-  const { showAlert } = useAppAlert();
   const isCoach = currentUser?.role === 'COACH';
 
   const sessionNote = useSessionNote(id);
@@ -189,24 +188,24 @@ export function useBookingDetail(id: string): BookingDetailResult {
   const handleCancelBooking = useCallback(() => {
     if (!booking) return;
     if (!canCancelBooking) {
-      showAlert(
+      uiFeedback.alert(
         'Cancellation unavailable',
         'Only upcoming bookings can be cancelled. Past or completed sessions cannot be cancelled.',
       );
       return;
     }
     router.push(Routes.bookingCancel(booking.id, isCoach ? 'coach' : 'parent'));
-  }, [booking, canCancelBooking, isCoach, showAlert]);
+  }, [booking, canCancelBooking, isCoach]);
 
   const handleRefund = useCallback(() => {
-    showAlert('Issue Refund', 'Process a refund for this booking?', [
+    uiFeedback.alert('Issue Refund', 'Process a refund for this booking?', [
       { text: 'Back', style: 'cancel' },
       {
         text: 'Process Refund',
-        onPress: () => showAlert('Success', 'Refund processed successfully'),
+        onPress: () => uiFeedback.alert('Success', 'Refund processed successfully'),
       },
     ]);
-  }, [showAlert]);
+  }, []);
 
   const handleReschedule = useCallback(() => {
     if (!booking) return;
@@ -218,7 +217,7 @@ export function useBookingDetail(id: string): BookingDetailResult {
       router.push(Routes.messagesWith({ coachId: booking.coachId }));
     };
 
-    showAlert(
+    uiFeedback.alert(
       'Request a new time',
       'Reschedule proposals are removed. Use chat to agree a new session time.',
       [
@@ -226,7 +225,7 @@ export function useBookingDetail(id: string): BookingDetailResult {
         { text: 'Open chat', onPress: openChat },
       ],
     );
-  }, [booking, isCoach, showAlert]);
+  }, [booking, isCoach]);
 
   const handleReportProblem = useCallback(() => {
     if (booking?.id) {

@@ -7,7 +7,6 @@ import { useState, useEffect, useCallback, useMemo } from 'react';
 import { Platform } from 'react-native';
 import { useLocalSearchParams, router } from 'expo-router';
 import * as Haptics from 'expo-haptics';
-import { useAppAlert } from '@/components/ui/app-alert';
 import { useBookingFlow } from '@/context/booking-flow-context';
 import { useAuth } from '@/hooks/use-auth';
 import { useChildContext } from '@/hooks/use-child-context';
@@ -18,6 +17,7 @@ import { toDateStr } from '@/utils/format';
 import { createLogger } from '@/utils/logger';
 import { err, ok, serviceError } from '@/types/result';
 import type { WeekRow } from '@/components/bookings/multi-week-picker';
+import { uiFeedback } from '@/services/ui-feedback';
 
 const logger = createLogger('MultiWeekScreen');
 
@@ -26,7 +26,6 @@ const DAY_NAMES = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
 export function useMultiWeek() {
   const { coachId, weeks: weeksParam } = useLocalSearchParams<{ coachId: string; weeks?: string }>();
-  const { showAlert } = useAppAlert();
   const { currentUser } = useAuth();
   const { children } = useChildContext();
   const { draft } = useBookingFlow();
@@ -162,11 +161,11 @@ export function useMultiWeek() {
   const handleConfirm = useCallback(async () => {
     if (!coachId || !currentUser) return;
     if (!selectedAthlete?.id || !selectedAthlete.name) {
-      showAlert('Missing athlete', 'Please choose who this booking is for.');
+      uiFeedback.alert('Missing athlete', 'Please choose who this booking is for.');
       return;
     }
     if (selectedWeekRows.length === 0) {
-      showAlert('No weeks selected', 'Select at least one week before confirming.');
+      uiFeedback.alert('No weeks selected', 'Select at least one week before confirming.');
       return;
     }
     setSubmitting(true);
@@ -197,17 +196,17 @@ export function useMultiWeek() {
       });
       if (result.success) {
         if (Platform.OS !== 'web') Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-        showAlert(
+        uiFeedback.alert(
           'Booking Confirmed',
           `${selectedWeekRows.length} sessions booked successfully!`,
           [{ text: 'OK', onPress: () => router.back() }],
         );
       } else {
-        showAlert('Booking Failed', result.error.message);
+        uiFeedback.alert('Booking Failed', result.error.message);
       }
     } catch (error) {
       logger.error('Failed to create series', error);
-      showAlert('Error', 'Something went wrong. Please try again.');
+      uiFeedback.alert('Error', 'Something went wrong. Please try again.');
     } finally {
       setSubmitting(false);
     }
@@ -232,7 +231,6 @@ export function useMultiWeek() {
     selectedWeekRows,
     sessionDuration,
     primaryLocation,
-    showAlert,
   ]);
 
   return {

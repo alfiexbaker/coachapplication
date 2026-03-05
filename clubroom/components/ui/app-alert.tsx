@@ -1,4 +1,4 @@
-import React, { createContext, useCallback, useContext, useMemo, useRef, useState } from 'react';
+import React, { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import { Ionicons } from '@expo/vector-icons';
 import { Modal, StyleSheet, View } from 'react-native';
 
@@ -7,6 +7,7 @@ import { SurfaceCard } from '@/components/primitives/surface-card';
 import { ThemedText } from '@/components/themed-text';
 import { Radii, Shadows, Spacing, Typography, withAlpha } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
+import { registerAlertPresenter } from '@/services/ui-feedback';
 
 export type AppAlertButtonStyle = 'default' | 'cancel' | 'destructive';
 
@@ -32,6 +33,9 @@ interface QueuedAlert {
 }
 
 type AppAlertContextValue = {
+  /**
+   * @deprecated Prefer toast for informational feedback and confirm() for blocking decisions.
+   */
   showAlert: (title: string, message?: string, buttons?: AppAlertButton[]) => void;
   confirm: (options: AppAlertConfirmOptions) => Promise<boolean>;
 };
@@ -118,6 +122,13 @@ export function AppAlertProvider({ children }: { children: React.ReactNode }) {
     }),
     [confirm, showAlert],
   );
+
+  useEffect(() => {
+    return registerAlertPresenter({
+      show: (title, message, buttons) => showAlert(title, message, buttons),
+      confirm: (options) => confirm(options),
+    });
+  }, [confirm, showAlert]);
 
   return (
     <AppAlertContext.Provider value={value}>

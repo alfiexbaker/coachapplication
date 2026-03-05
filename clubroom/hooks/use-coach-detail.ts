@@ -3,7 +3,6 @@
  * Manages coach data, reviews, follow state, tabs, refresh.
  */
 
-import { Alert } from 'react-native';
 import { useState, useCallback, useEffect, useMemo } from 'react';
 import { Dimensions } from 'react-native';
 import { router } from 'expo-router';
@@ -14,6 +13,7 @@ import { coachService, type Coach, type PublicReview } from '@/services/coach-se
 import { followService } from '@/services/follow-service';
 import { createLogger } from '@/utils/logger';
 import { combineResults, err, ok, serviceError, type ServiceError } from '@/types/result';
+import { uiFeedback } from '@/services/ui-feedback';
 
 const logger = createLogger('CoachProfileScreen');
 
@@ -172,7 +172,7 @@ export function useCoachDetail(coachId: string | undefined) {
 
       await loadConnectionState();
     } catch {
-      Alert.alert('Unable to update request', 'Please try again in a moment.');
+      uiFeedback.alert('Unable to update request', 'Please try again in a moment.');
     } finally {
       setFollowLoading(false);
     }

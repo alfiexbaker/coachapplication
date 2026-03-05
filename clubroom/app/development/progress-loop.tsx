@@ -1,14 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import {
-  Alert,
-  FlatList,
-  type ListRenderItemInfo,
-  Platform,
-  RefreshControl,
-  ScrollView,
-  StyleSheet,
-  View,
-} from 'react-native';
+import { FlatList, type ListRenderItemInfo, Platform, RefreshControl, ScrollView, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router, useLocalSearchParams } from 'expo-router';
 import Animated, { LinearTransition } from 'react-native-reanimated';
@@ -56,6 +47,7 @@ import {
   type CoachQueueLaneKey,
 } from '@/utils/progress-task-time';
 import { runResultsProgramTaskAction } from '@/utils/results-program-action-router';
+import { uiFeedback } from '@/services/ui-feedback';
 
 const FILTER_OPTIONS: Array<{ id: ProgressLoopFilter; label: string }> = [
   { id: 'pending', label: 'Pending' },
@@ -872,7 +864,7 @@ export default function ResultsProgramScreen() {
   );
 
   const runBulkWithConfirm = useCallback((title: string, message: string, run: () => Promise<void>) => {
-    Alert.alert(title, message, [
+    uiFeedback.alert(title, message, [
       {
         text: 'Cancel',
         style: 'cancel',

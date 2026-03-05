@@ -3,7 +3,7 @@
  * Also includes the "Add time block" sub-row.
  */
 import { memo, useCallback } from 'react';
-import { View, StyleSheet, Platform, Alert, type ViewStyle, useWindowDimensions } from 'react-native';
+import { View, StyleSheet, Platform, type ViewStyle, useWindowDimensions } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 
@@ -12,6 +12,7 @@ import { ThemedText } from '@/components/themed-text';
 import { Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
 import { Row } from '@/components/primitives';
+import { uiFeedback } from '@/services/ui-feedback';
 
 export interface SlotRowData {
   dayLabel: string;
@@ -53,7 +54,7 @@ function SlotRowInner(props: WeekPatternSlotRowProps) {
     onPress();
   }, [onPress]);
   const handleOverrideInfo = useCallback(() => {
-    Alert.alert(
+    uiFeedback.alert(
       'One-time override',
       'This yellow dot means the normal weekly slot was overridden for a specific date.',
     );

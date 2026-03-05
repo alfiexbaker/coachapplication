@@ -6,7 +6,7 @@
  */
 
 import { useState, useCallback, useEffect } from 'react';
-import { Alert } from 'react-native';
+
 import { router } from 'expo-router';
 
 import { useAuth } from '@/hooks/use-auth';
@@ -15,6 +15,7 @@ import { eventService } from '@/services/event-service';
 import type { ClubEvent, EventRSVP, RSVPStatus } from '@/constants/types';
 import { createLogger } from '@/utils/logger';
 import { err, ok, serviceError, type ServiceError } from '@/types/result';
+import { uiFeedback } from '@/services/ui-feedback';
 
 const logger = createLogger('useEventRSVP');
 
@@ -115,7 +116,7 @@ export function useEventRSVP(id: string | undefined): UseEventRSVPResult {
       const nextFootprint = 1;
       const occupiedExcludingCurrent = going - existingFootprint;
       if (occupiedExcludingCurrent + nextFootprint > event.maxAttendees) {
-        Alert.alert('Event Full', 'This event is now full. Please choose Maybe or Can’t Go.');
+        uiFeedback.alert('Event Full', 'This event is now full. Please choose Maybe or Can’t Go.');
         return;
       }
     }
@@ -131,7 +132,7 @@ export function useEventRSVP(id: string | undefined): UseEventRSVPResult {
         note: note.trim() || undefined,
       });
 
-      Alert.alert(
+      uiFeedback.alert(
         'RSVP Submitted',
         `Your response has been saved: ${eventService.formatRSVPStatus(selectedStatus)}`,
         [{ text: 'OK', onPress: () => router.back() }],
@@ -142,7 +143,7 @@ export function useEventRSVP(id: string | undefined): UseEventRSVPResult {
         error instanceof Error && /maximum capacity|event has reached maximum capacity/i.test(error.message)
           ? 'This event is full. Please update your RSVP without selecting Going.'
           : 'Failed to save your response. Please try again.';
-      Alert.alert('Error', message);
+      uiFeedback.alert('Error', message);
     } finally {
       setSubmitting(false);
     }
@@ -155,12 +156,12 @@ export function useEventRSVP(id: string | undefined): UseEventRSVPResult {
     try {
       const result = await eventService.sendReminderToMaybes(event.id);
       if (!result.success) {
-        Alert.alert('Reminder failed', result.error.message);
+        uiFeedback.alert('Reminder failed', result.error.message);
         return;
       }
 
       const sentCount = result.data;
-      Alert.alert(
+      uiFeedback.alert(
         sentCount > 0 ? 'Reminders sent' : 'No reminders needed',
         sentCount > 0
           ? `Reminder sent to ${sentCount} attendee${sentCount === 1 ? '' : 's'} marked as maybe.`
@@ -168,7 +169,7 @@ export function useEventRSVP(id: string | undefined): UseEventRSVPResult {
       );
     } catch (sendError) {
       logger.error('Failed to send RSVP reminders:', sendError);
-      Alert.alert('Reminder failed', 'Could not send reminders. Please try again.');
+      uiFeedback.alert('Reminder failed', 'Could not send reminders. Please try again.');
     } finally {
       setReminderSending(false);
     }

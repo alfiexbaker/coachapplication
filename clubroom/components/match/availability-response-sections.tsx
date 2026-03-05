@@ -7,7 +7,7 @@
  */
 
 import React, { memo } from 'react';
-import { StyleSheet, View, Alert } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 import { Clickable } from '@/components/primitives/clickable';
 import { Ionicons } from '@expo/vector-icons';
 
@@ -18,6 +18,7 @@ import { Radii, Spacing, Typography, withAlpha } from '@/constants/theme';
 import type { ThemeColors } from '@/hooks/useTheme';
 import type { Match, MatchPlayer } from '@/constants/types';
 import { getMatchPlayerAthleteName } from '@/utils/match-display';
+import { uiFeedback } from '@/services/ui-feedback';
 
 // ─── MatchInfoCard ──────────────────────────────────────────────────────────
 
@@ -200,7 +201,7 @@ export const RespondedCard = memo(function RespondedCard({
       <Clickable
         style={[styles.changeButton, { borderColor: palette.border }]}
         onPress={() => {
-          Alert.alert('Change Response', 'Are you sure you want to change your response?', [
+          uiFeedback.alert('Change Response', 'Are you sure you want to change your response?', [
             { text: 'Cancel', style: 'cancel' },
             {
               text: isAvailable ? 'Mark Unavailable' : 'Mark Available',

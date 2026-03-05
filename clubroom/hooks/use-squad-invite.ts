@@ -4,7 +4,7 @@
  */
 
 import { useState, useEffect, useMemo, useCallback } from 'react';
-import { Alert } from 'react-native';
+
 import { router, useLocalSearchParams } from 'expo-router';
 
 import { Routes } from '@/navigation/routes';
@@ -22,6 +22,7 @@ import type {
   SquadSessionInvite,
   SquadInviteHistoryEntry,
 } from '@/constants/types';
+import { uiFeedback } from '@/services/ui-feedback';
 
 const logger = createLogger('SquadInviteScreen');
 
@@ -168,7 +169,7 @@ export function useSquadInvite() {
 
   const addTimeSlot = useCallback(() => {
     if (!slotDate || !slotStartTime || !slotEndTime) {
-      Alert.alert('Missing fields', 'Please fill in date, start time, and end time');
+      uiFeedback.alert('Missing fields', 'Please fill in date, start time, and end time');
       return;
     }
 
@@ -231,7 +232,7 @@ export function useSquadInvite() {
 
       if (!result.success) {
         logger.error('Failed to send bulk invites:', result.error);
-        Alert.alert('Error', result.error.message || 'Failed to send invites. Please try again.');
+        uiFeedback.alert('Error', result.error.message || 'Failed to send invites. Please try again.');
         setViewMode('form');
         return;
       }
@@ -240,7 +241,7 @@ export function useSquadInvite() {
       setViewMode('result');
     } catch (sendError) {
       logger.error('Failed to send bulk invites:', sendError);
-      Alert.alert('Error', 'Failed to send invites. Please try again.');
+      uiFeedback.alert('Error', 'Failed to send invites. Please try again.');
       setViewMode('form');
     } finally {
       setSendingInvites(false);

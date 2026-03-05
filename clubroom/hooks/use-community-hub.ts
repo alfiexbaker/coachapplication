@@ -4,7 +4,7 @@
  */
 
 import { useState, useCallback, type Dispatch, type SetStateAction } from 'react';
-import { Alert } from 'react-native';
+
 import { router } from 'expo-router';
 import { Routes } from '@/navigation/routes';
 import { useAuth } from '@/hooks/use-auth';
@@ -15,6 +15,7 @@ import type { ParentGroup } from '@/constants/types';
 import type { CreateGroupFormData } from '@/components/community/CreateGroupForm';
 import { useScreen, type ScreenStatus } from '@/hooks/use-screen';
 import { err, ok, serviceError, type ServiceError } from '@/types/result';
+import { uiFeedback } from '@/services/ui-feedback';
 
 const logger = createLogger('CommunityHubScreen');
 
@@ -109,7 +110,7 @@ export function useCommunityHub(): UseCommunityHubResult {
           isPublic: data.isPublic,
         });
         if (!result.success) {
-          Alert.alert('Could not create group', result.error.message);
+          uiFeedback.alert('Could not create group', result.error.message);
           return;
         }
         setShowCreateModal(false);
@@ -132,13 +133,13 @@ export function useCommunityHub(): UseCommunityHubResult {
           isCoach: isCoachUser,
         });
         if (!result.success) {
-          Alert.alert('Could not join', result.error.message);
+          uiFeedback.alert('Could not join', result.error.message);
           return;
         }
         onRefresh();
       } catch (error) {
         logger.error('Failed to join group:', error);
-        Alert.alert('Error', 'Failed to join group. Please try again.');
+        uiFeedback.alert('Error', 'Failed to join group. Please try again.');
       }
     },
     [parentId, parentName, isCoachUser, onRefresh],

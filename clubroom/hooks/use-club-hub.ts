@@ -7,7 +7,7 @@
  */
 
 import { useEffect, useMemo, useState, useCallback, useRef } from 'react';
-import { Alert, Share } from 'react-native';
+import { Share } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 import { Routes } from '@/navigation/routes';
 
@@ -37,6 +37,7 @@ import { socialFeedService } from '@/services/social-feed-service';
 import { onTyped, ServiceEvents } from '@/services/event-bus';
 import { inviteService as sessionInviteService } from '@/services/invite';
 import { createLogger } from '@/utils/logger';
+import { uiFeedback } from '@/services/ui-feedback';
 
 const logger = createLogger('ClubHub');
 
@@ -412,14 +413,14 @@ export function useClubHub(): ClubHubState {
     (code: string) => {
       const trimmedCode = code.trim().toUpperCase();
       if (!trimmedCode) {
-        Alert.alert('Enter invite code', 'Paste the club code shared with you.');
+        uiFeedback.alert('Enter invite code', 'Paste the club code shared with you.');
         return;
       }
       const targetClub = knownClubs.find(
         (candidate) => candidate.inviteCode.toUpperCase() === trimmedCode,
       );
       if (!targetClub) {
-        Alert.alert('Code not found', 'Check the code or request a new one from the club admin.');
+        uiFeedback.alert('Code not found', 'Check the code or request a new one from the club admin.');
         return;
       }
 
@@ -439,13 +440,13 @@ export function useClubHub(): ClubHubState {
       const role = mapUserRoleToClubRole(currentUser?.role);
       const joinResult = socialFeedService.joinClub(currentUser?.id || 'guest', targetClub.inviteCode, role);
       if (!joinResult.success) {
-        Alert.alert('Unable to join', joinResult.error.message);
+        uiFeedback.alert('Unable to join', joinResult.error.message);
         return;
       }
 
       setMembership(joinResult.data);
       setClub(targetClub);
-      Alert.alert('Joined club', `You are now part of ${targetClub.name}`);
+      uiFeedback.alert('Joined club', `You are now part of ${targetClub.name}`);
     },
     [currentUser, knownClubs],
   );
@@ -459,7 +460,7 @@ export function useClubHub(): ClubHubState {
   }, [routeInviteCode, membership, currentUser?.id, knownClubs.length, handleJoinWithCode]);
 
   const handleLeaveClub = useCallback(() => {
-    Alert.alert('Club options', 'What would you like to do?', [
+    uiFeedback.alert('Club options', 'What would you like to do?', [
       { text: 'Cancel', style: 'cancel' },
       {
         text: 'Leave club',
@@ -478,7 +479,7 @@ export function useClubHub(): ClubHubState {
 
   const handleRemoveMember = useCallback((member: ClubMember) => {
     if (!clubService.canBeRemoved(member.role)) {
-      Alert.alert('Cannot remove owner', 'The club owner cannot be removed.');
+      uiFeedback.alert('Cannot remove owner', 'The club owner cannot be removed.');
       return;
     }
     setSelectedMemberForRemoval(member);

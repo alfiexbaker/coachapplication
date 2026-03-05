@@ -1,10 +1,10 @@
 import { useCallback } from 'react';
-import { Alert } from 'react-native';
 
 import { useAuth } from '@/hooks/use-auth';
 import { useChildContext } from '@/hooks/use-child-context';
 import { isCoach as checkIsCoach } from '@/utils/user-helpers';
 import { createLogger } from '@/utils/logger';
+import { uiFeedback } from '@/services/ui-feedback';
 
 const logger = createLogger('useSettingsHub');
 
@@ -12,10 +12,11 @@ export function useSettingsHub() {
   const { currentUser, logout } = useAuth();
 
   const isCoach = checkIsCoach(currentUser);
-  const { isParent: userHasChildren } = useChildContext();
+  const { children } = useChildContext();
+  const childCount = children.length;
 
   const handleLogout = useCallback(() => {
-    Alert.alert('Sign Out', 'Are you sure you want to sign out?', [
+    uiFeedback.alert('Sign Out', 'Are you sure you want to sign out?', [
       { text: 'Cancel', style: 'cancel' },
       {
         text: 'Sign Out',
@@ -29,5 +30,5 @@ export function useSettingsHub() {
     ]);
   }, [currentUser, logout]);
 
-  return { currentUser, isCoach, userHasChildren, handleLogout };
+  return { currentUser, isCoach, childCount, handleLogout };
 }

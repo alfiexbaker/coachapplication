@@ -6,7 +6,7 @@
  */
 
 import { useState, useEffect, useCallback } from 'react';
-import { Alert } from 'react-native';
+
 import { router } from 'expo-router';
 
 import { apiClient } from '@/services/api-client';
@@ -17,6 +17,7 @@ import type { SessionOffering, ClubFeedPost, CoachProfile } from '@/constants/ty
 import { useAuth } from '@/hooks/use-auth';
 import { Routes } from '@/navigation/routes';
 import { createLogger } from '@/utils/logger';
+import { uiFeedback } from '@/services/ui-feedback';
 
 const logger = createLogger('CoachProfile');
 
@@ -288,7 +289,7 @@ export function useCoachProfile(): UseCoachProfileResult {
   const handleGoLiveToggle = useCallback(
     async (value: boolean) => {
       if (!canGoLive && value) {
-        Alert.alert(
+        uiFeedback.alert(
           'Complete Your Profile',
           'You need to complete at least 80% of your profile before going live.',
           [{ text: 'OK' }],
@@ -300,13 +301,13 @@ export function useCoachProfile(): UseCoachProfileResult {
         await new Promise((resolve) => setTimeout(resolve, 500));
         setIsLive(value);
         if (value) {
-          Alert.alert("You're Live!", 'Athletes can now discover and book sessions with you.', [
+          uiFeedback.alert("You're Live!", 'Athletes can now discover and book sessions with you.', [
             { text: 'Great!' },
           ]);
         }
       } catch (error) {
         logger.error('Failed to update live status:', error);
-        Alert.alert('Error', 'Failed to update your status. Please try again.');
+        uiFeedback.alert('Error', 'Failed to update your status. Please try again.');
       } finally {
         setLiveLoading(false);
       }

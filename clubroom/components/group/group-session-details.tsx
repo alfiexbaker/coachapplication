@@ -1,5 +1,5 @@
 import { memo } from 'react';
-import { Alert, View, StyleSheet } from 'react-native';
+import { View, StyleSheet } from 'react-native';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import Animated, { FadeInDown } from 'react-native-reanimated';
@@ -15,6 +15,7 @@ import type { GroupSession } from '@/constants/types';
 import { getGroupSessionCoachName } from '@/utils/group-display';
 import { Routes } from '@/navigation/routes';
 import { openLocationInMaps } from '@/utils/map-links';
+import { uiFeedback } from '@/services/ui-feedback';
 
 interface GroupSessionDetailsProps {
   session: GroupSession;
@@ -40,7 +41,7 @@ export const GroupSessionDetails = memo(function GroupSessionDetails({
       coordinates: session.locationCoordinates,
     }).then((opened) => {
       if (!opened) {
-        Alert.alert('Error', 'Could not open maps application.');
+        uiFeedback.alert('Error', 'Could not open maps application.');
       }
     });
   };

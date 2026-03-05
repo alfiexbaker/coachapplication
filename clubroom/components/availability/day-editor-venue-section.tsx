@@ -3,7 +3,7 @@
  * Reuses the same AddLocationPicker flow used in session creation.
  */
 import { memo, useCallback, useEffect, useMemo, useState } from 'react';
-import { Alert, Keyboard, Modal, Platform, ScrollView, StyleSheet, View } from 'react-native';
+import { Keyboard, Modal, Platform, ScrollView, StyleSheet, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -29,6 +29,7 @@ import {
   deriveLocationLabel,
   parseStoredLocationPresets,
 } from '@/utils/location-presets';
+import { uiFeedback } from '@/services/ui-feedback';
 
 const logger = createLogger('DayEditorVenueSection');
 const LOCATION_MODAL_FOOTER_HEIGHT = 84;
@@ -126,7 +127,7 @@ function DayEditorVenueSectionInner({
     const venueLabel = (newVenueLabel.trim() || fallbackLabel).trim();
 
     if (!venueLabel) {
-      Alert.alert('Add location', 'Search a location on the map, then name the venue.');
+      uiFeedback.alert('Add location', 'Search a location on the map, then name the venue.');
       return;
     }
 

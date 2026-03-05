@@ -4,7 +4,7 @@
  */
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { Alert, Platform } from 'react-native';
+import { Platform } from 'react-native';
 import { useLocalSearchParams } from 'expo-router';
 import * as Haptics from 'expo-haptics';
 import { useAuth } from '@/hooks/use-auth';
@@ -16,6 +16,7 @@ import type { Post } from '@/constants/social-types';
 import type { ClubFeedPost } from '@/constants/club-types';
 import type { CommentThread, ThreadedComment } from '@/constants/comment-types';
 import { err, ok, serviceError, type ServiceError } from '@/types/result';
+import { uiFeedback } from '@/services/ui-feedback';
 
 const logger = createLogger('PostDetail');
 
@@ -189,7 +190,7 @@ export function usePostDetail() {
   const handleDeleteComment = useCallback(
     async (commentId: string) => {
       if (!currentUser) return;
-      Alert.alert('Delete Comment', 'Are you sure you want to delete this comment?', [
+      uiFeedback.alert('Delete Comment', 'Are you sure you want to delete this comment?', [
         { text: 'Cancel', style: 'cancel' },
         {
           text: 'Delete',

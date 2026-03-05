@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { ScrollView, StyleSheet, TextInput, View, Alert } from 'react-native';
+import { ScrollView, StyleSheet, TextInput, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Row } from '@/components/primitives/row';
 import { ThemedText } from '@/components/themed-text';
@@ -7,6 +7,7 @@ import { RatingStars } from './rating-stars';
 import { Radii, Spacing, Typography } from '@/constants/theme';
 import { Clickable } from '@/components/primitives/clickable';
 import { useTheme } from '@/hooks/useTheme';
+import { uiFeedback } from '@/services/ui-feedback';
 
 const MAX_REVIEW_LENGTH = 500;
 const MIN_REVIEW_LENGTH = 10;
@@ -51,13 +52,13 @@ export function ReviewForm({ onSubmit, isCoachView, submitting = false }: Review
 
     // Validate rating
     if (rating === 0) {
-      Alert.alert('Missing Rating', 'Please select an overall rating');
+      uiFeedback.alert('Missing Rating', 'Please select an overall rating');
       return;
     }
 
     // Validate review text
     if (text.trim().length > 0 && text.trim().length < MIN_REVIEW_LENGTH) {
-      Alert.alert(
+      uiFeedback.alert(
         'Review Too Short',
         `Please write at least ${MIN_REVIEW_LENGTH} characters or leave it empty`,
       );

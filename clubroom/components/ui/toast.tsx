@@ -1,4 +1,4 @@
-import React, { createContext, useCallback, useContext, useMemo, useRef, useState } from 'react';
+import React, { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import { StyleSheet, Text } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Row } from '@/components/primitives/row';
@@ -8,6 +8,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Radii, Spacing, Typography, withAlpha, Shadows } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
+import { registerToastPresenter } from '@/services/ui-feedback';
 
 // Tab bar height constant for proper positioning
 const TAB_BAR_HEIGHT = 60;
@@ -119,6 +120,14 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
     () => ({ showToast, showUndoToast, hideToast }),
     [showToast, showUndoToast, hideToast],
   );
+
+  useEffect(() => {
+    return registerToastPresenter({
+      showToast: (message, tone = 'default') => {
+        showToast(message, tone);
+      },
+    });
+  }, [showToast]);
 
   return (
     <ToastContext.Provider value={value}>

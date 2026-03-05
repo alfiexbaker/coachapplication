@@ -6,7 +6,7 @@
  */
 
 import React, { useState, useCallback } from 'react';
-import { View, StyleSheet, ScrollView, Alert, Platform } from 'react-native';
+import { View, StyleSheet, ScrollView, Platform } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router, useLocalSearchParams } from 'expo-router';
 import * as Haptics from 'expo-haptics';
@@ -23,6 +23,7 @@ import { getRosterAthleteName } from '@/utils/roster-display';
 import { err, ok, serviceError } from '@/types/result';
 import { RaiseConcernHeader } from '@/components/roster/raise-concern-header';
 import { RaiseConcernForm } from '@/components/roster/raise-concern-form';
+import { uiFeedback } from '@/services/ui-feedback';
 
 const logger = createLogger('RaiseConcern');
 
@@ -84,7 +85,7 @@ export default function RaiseConcernScreen() {
   const handleSubmit = useCallback(async () => {
     if (!canSubmit || !type) return;
     if (isEscalationRisk && actionTaken.trim().length < 8) {
-      Alert.alert(
+      uiFeedback.alert(
         'Action required',
         'For high-risk concerns, include immediate action taken before submitting.',
       );
@@ -110,7 +111,7 @@ export default function RaiseConcernScreen() {
           await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
         }
         const escalated = result.data.status === 'ESCALATED';
-        Alert.alert(
+        uiFeedback.alert(
           escalated ? 'Concern Escalated' : 'Concern Recorded',
           escalated
             ? `Your concern about ${athleteName} has been escalated for urgent follow-up.`
@@ -118,11 +119,11 @@ export default function RaiseConcernScreen() {
           [{ text: 'OK', onPress: () => router.back() }],
         );
       } else {
-        Alert.alert('Error', result.error.message);
+        uiFeedback.alert('Error', result.error.message);
       }
     } catch (submitError) {
       logger.error('Failed to submit concern', submitError);
-      Alert.alert('Error', 'Failed to submit concern. Please try again.');
+      uiFeedback.alert('Error', 'Failed to submit concern. Please try again.');
     } finally {
       setSubmitting(false);
     }

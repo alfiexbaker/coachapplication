@@ -4,7 +4,7 @@
  */
 
 import React, { memo, useCallback } from 'react';
-import { Alert, StyleSheet, type GestureResponderEvent } from 'react-native';
+import { StyleSheet, type GestureResponderEvent } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
 import { Clickable } from '@/components/primitives/clickable';
@@ -16,6 +16,7 @@ import { useTheme } from '@/hooks/useTheme';
 import type { SessionData } from './schedule-types';
 import { RsvpMiniBar } from '@/components/group/rsvp-mini-bar';
 import { openLocationInMaps } from '@/utils/map-links';
+import { uiFeedback } from '@/services/ui-feedback';
 
 interface Props {
   session: SessionData;
@@ -35,7 +36,7 @@ export const ScheduleSessionItem = memo(function ScheduleSessionItem({ session, 
 
       void openLocationInMaps({ location: session.location }).then((opened) => {
         if (!opened) {
-          Alert.alert('Error', 'Could not open maps application.');
+          uiFeedback.alert('Error', 'Could not open maps application.');
         }
       });
     },

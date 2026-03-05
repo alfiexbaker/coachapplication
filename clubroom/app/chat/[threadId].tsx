@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, useCallback, type ReactNode } from 'react';
-import { Alert, RefreshControl, ScrollView, StyleSheet, View } from 'react-native';
+import { RefreshControl, ScrollView, StyleSheet, View } from 'react-native';
 import * as Clipboard from 'expo-clipboard';
 import * as Haptics from 'expo-haptics';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -21,6 +21,7 @@ import { onTyped, emitTyped, ServiceEvents } from '@/services/event-bus';
 import { messagingService } from '@/services/messaging-service';
 import { ChatMessage, ChatThreadSummary } from '@/constants/types';
 import { combineResults, err, ok, validationError } from '@/types/result';
+import { uiFeedback } from '@/services/ui-feedback';
 
 type ChatScreenData = {
   thread: ChatThreadSummary | null;
@@ -94,7 +95,7 @@ export default function ChatScreen() {
     const senderLabel = postingAs ? `You (${postingAs})` : 'You';
     const sendResult = await messagingService.sendMessage(threadId, body, 'parent', senderLabel);
     if (!sendResult.success) {
-      Alert.alert('Unable to send message', sendResult.error.message);
+      uiFeedback.alert('Unable to send message', sendResult.error.message);
       return;
     }
     if (thread?.id) {
@@ -168,7 +169,7 @@ export default function ChatScreen() {
 
   const onLongPressMessage = (message: ChatMessage) => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-    Alert.alert('Message options', 'Choose an action', [
+    uiFeedback.alert('Message options', 'Choose an action', [
       {
         text: 'Copy',
         onPress: async () => {

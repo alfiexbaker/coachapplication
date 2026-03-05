@@ -41,6 +41,7 @@
     "test": "npm run test:snapshots",
     "format:check": "prettier --check 'app/**/*.tsx' 'components/**/*.tsx' 'services/**/*.ts' 'hooks/**/*.ts'",
     "lint:ui-actions": "node ./scripts/lint-ui-actions.js",
+    "audit:alerts": "node ./scripts/audit-alert-usage.js",
     "audit:ui": "node ./scripts/audit-ui.js",
     "audit:architecture": "node ./scripts/architecture-reachability-audit.js",
     "gate:pre-api-placement": "node ./scripts/pre-api-placement-gate.js",

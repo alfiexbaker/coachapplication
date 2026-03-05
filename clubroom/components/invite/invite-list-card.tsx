@@ -1,7 +1,7 @@
 /** InviteListCard — Memoized invite card for the invites list screen. */
 
 import React, { memo, useCallback } from 'react';
-import { Alert, StyleSheet, View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 import { SurfaceCard } from '@/components/primitives/surface-card';
@@ -16,6 +16,7 @@ import {
   getSessionInviteCoachName,
 } from '@/utils/session-invite-display';
 import { formatInUserTimezone } from '@/utils/timezone';
+import { uiFeedback } from '@/services/ui-feedback';
 
 type ViewMode = 'sent' | 'received';
 
@@ -123,7 +124,7 @@ export const InviteListCard = memo(function InviteListCard({
 }: InviteListCardProps) {
   const handleCancel = useCallback(() => {
     const recipientName = getSessionInviteAthleteNames(invite).join(', ') || 'recipient';
-    Alert.alert(
+    uiFeedback.alert(
       'Cancel Invite',
       `Cancel the pending invite to ${recipientName}?`,
       [
@@ -138,7 +139,7 @@ export const InviteListCard = memo(function InviteListCard({
   }, [invite, onCancel]);
 
   const handleDismiss = useCallback(() => {
-    Alert.alert(
+    uiFeedback.alert(
       'Remove Invite',
       'Remove this invite from your list?',
       [

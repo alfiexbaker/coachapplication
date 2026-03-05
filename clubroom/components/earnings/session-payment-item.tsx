@@ -6,7 +6,7 @@
  */
 
 import { memo, useState, useCallback, useMemo } from 'react';
-import { Alert, View, StyleSheet } from 'react-native';
+import { View, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
 import { Row } from '@/components/primitives/row';
@@ -17,6 +17,7 @@ import { ThemedText } from '@/components/themed-text';
 import { Spacing, Radii, Typography, Components, withAlpha } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
 import type { SessionPaymentItem as SessionPaymentItemType } from '@/hooks/use-session-payments';
+import { uiFeedback } from '@/services/ui-feedback';
 
 export type PaymentTab = 'owed' | 'paid' | 'written_off';
 
@@ -50,7 +51,7 @@ function SessionPaymentItemInner({
   }, []);
 
   const handleMarkPaid = useCallback(() => {
-    Alert.alert(
+    uiFeedback.alert(
       'Confirm payment',
       `Mark ${amount} from ${athleteName} as paid?`,
       [
@@ -67,7 +68,7 @@ function SessionPaymentItemInner({
   }, [onMarkPaid, invoice.id, amount, athleteName]);
 
   const handleMarkUnpaid = useCallback(() => {
-    Alert.alert(
+    uiFeedback.alert(
       'Undo payment?',
       `Move ${amount} from ${athleteName} back to owed?`,
       [
@@ -85,7 +86,7 @@ function SessionPaymentItemInner({
   }, [onMarkUnpaid, invoice.id, amount, athleteName]);
 
   const handleWriteOff = useCallback(() => {
-    Alert.alert(
+    uiFeedback.alert(
       'Write off payment?',
       `Stop chasing ${amount} from ${athleteName}? You can restore this later.`,
       [

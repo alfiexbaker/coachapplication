@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState, type ReactNode } from 'react';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Alert, ScrollView, StyleSheet, View } from 'react-native';
+import { ScrollView, StyleSheet, View } from 'react-native';
 import { useLocalSearchParams } from 'expo-router';
 
 import { SessionNotesForm } from '@/components/session/session-notes-form';
@@ -15,6 +15,7 @@ import { useSessionNote } from '@/hooks/use-session-note';
 import { SessionNoteFields } from '@/services/progress-service';
 import { ok } from '@/types/result';
 import { useAuth } from '@/hooks/use-auth';
+import { uiFeedback } from '@/services/ui-feedback';
 
 export default function SessionNotesScreen() {
   const { bookingId: bookingIdParam } = useLocalSearchParams<{ bookingId?: string | string[] }>();
@@ -31,16 +32,16 @@ export default function SessionNotesScreen() {
 
   const handleSubmit = async (data: SessionNoteFields) => {
     if (!isCoach) {
-      Alert.alert('Read-only', 'Only coaches can submit session notes.');
+      uiFeedback.alert('Read-only', 'Only coaches can submit session notes.');
       return;
     }
 
     try {
       await persist(data);
       setMode('view');
-      Alert.alert('Notes saved', 'Parents can now see these inside booking details.');
+      uiFeedback.alert('Notes saved', 'Parents can now see these inside booking details.');
     } catch {
-      Alert.alert('Save failed', 'Please retry in a moment.');
+      uiFeedback.alert('Save failed', 'Please retry in a moment.');
     }
   };
 

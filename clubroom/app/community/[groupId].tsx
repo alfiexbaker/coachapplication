@@ -1,5 +1,5 @@
 import { useState, useCallback } from 'react';
-import { StyleSheet, Alert } from 'react-native';
+import { StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useLocalSearchParams, router } from 'expo-router';
 import type { ReactNode } from 'react';
@@ -24,6 +24,7 @@ import { communityGroupService } from '@/services/community/community-group-serv
 import { ServiceEvents } from '@/services/event-bus';
 import { createLogger } from '@/utils/logger';
 import { Routes } from '@/navigation/routes';
+import { uiFeedback } from '@/services/ui-feedback';
 
 const logger = createLogger('GroupChatScreen');
 
@@ -97,14 +98,14 @@ export default function GroupChatScreen() {
         messageText,
       );
       if (!sendResult.success) {
-        Alert.alert('Send Failed', sendResult.error.message);
+        uiFeedback.alert('Send Failed', sendResult.error.message);
         setInputValue(messageText);
         return;
       }
       onRefresh();
     } catch (sendError) {
       logger.error('Failed to send message:', sendError);
-      Alert.alert('Send Failed', 'Could not send your message. Please try again.');
+      uiFeedback.alert('Send Failed', 'Could not send your message. Please try again.');
       setInputValue(messageText);
     } finally {
       setSending(false);
@@ -112,7 +113,7 @@ export default function GroupChatScreen() {
   }, [groupId, inputValue, sending, parentId, parentName, onRefresh]);
 
   const handleLeaveGroup = useCallback(() => {
-    Alert.alert('Leave Group', 'Are you sure you want to leave this group?', [
+    uiFeedback.alert('Leave Group', 'Are you sure you want to leave this group?', [
       { text: 'Cancel', style: 'cancel' },
       {
         text: 'Leave',
@@ -122,12 +123,12 @@ export default function GroupChatScreen() {
             if (!groupId) return;
             const leaveResult = await communityService.leaveGroup(groupId, parentId);
             if (!leaveResult.success) {
-              Alert.alert('Error', leaveResult.error.message);
+              uiFeedback.alert('Error', leaveResult.error.message);
               return;
             }
             router.back();
           } catch (leaveError) {
-            Alert.alert('Error', String(leaveError));
+            uiFeedback.alert('Error', String(leaveError));
           }
         },
       },
@@ -164,14 +165,14 @@ export default function GroupChatScreen() {
           newRole,
         });
         if (!result.success) {
-          Alert.alert('Error', result.error.message);
+          uiFeedback.alert('Error', result.error.message);
           return;
         }
         setShowRolePickerModal(false);
         setSelectedMember(null);
         onRefresh();
       } catch (changeError) {
-        Alert.alert('Error', String(changeError));
+        uiFeedback.alert('Error', String(changeError));
       }
     },
     [selectedMember, groupId, parentId, onRefresh],

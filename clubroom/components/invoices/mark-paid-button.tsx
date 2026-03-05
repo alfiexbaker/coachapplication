@@ -5,13 +5,14 @@
  */
 
 import { memo, useState, useCallback } from 'react';
-import { Alert, ActivityIndicator } from 'react-native';
+import { ActivityIndicator } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
 import { Button } from '@/components/primitives/button';
 import { invoiceService } from '@/services/invoice-service';
 import { emitTyped, ServiceEvents } from '@/services/event-bus';
 import { useTheme } from '@/hooks/useTheme';
+import { uiFeedback } from '@/services/ui-feedback';
 
 interface MarkPaidButtonProps {
   invoiceId?: string;
@@ -25,7 +26,7 @@ function MarkPaidButtonInner({ invoiceId, bookingId, onSuccess, variant = 'prima
   const [loading, setLoading] = useState(false);
 
   const handlePress = useCallback(() => {
-    Alert.alert(
+    uiFeedback.alert(
       'Mark as Paid',
       'Confirm this invoice has been paid?',
       [
@@ -46,7 +47,7 @@ function MarkPaidButtonInner({ invoiceId, bookingId, onSuccess, variant = 'prima
               }
 
               if (!targetInvoiceId) {
-                Alert.alert('No Invoice', 'No invoice found for this booking.');
+                uiFeedback.alert('No Invoice', 'No invoice found for this booking.');
                 return;
               }
 
@@ -59,10 +60,10 @@ function MarkPaidButtonInner({ invoiceId, bookingId, onSuccess, variant = 'prima
                 });
                 onSuccess?.();
               } else {
-                Alert.alert('Error', 'Failed to mark invoice as paid.');
+                uiFeedback.alert('Error', 'Failed to mark invoice as paid.');
               }
             } catch {
-              Alert.alert('Error', 'Something went wrong. Please try again.');
+              uiFeedback.alert('Error', 'Something went wrong. Please try again.');
             } finally {
               setLoading(false);
             }

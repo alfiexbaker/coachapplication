@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { Alert, StyleSheet, View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router, useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -18,6 +18,7 @@ import { useAuth } from '@/hooks/use-auth';
 import { Routes } from '@/navigation/routes';
 import type { User } from '@/constants/types';
 import { err, ok, serviceError } from '@/types/result';
+import { uiFeedback } from '@/services/ui-feedback';
 
 type FriendState = 'self' | 'none' | 'outgoing_pending' | 'incoming_pending' | 'friends';
 
@@ -143,7 +144,7 @@ export default function ProfileScreen() {
 
       await loadFriendState(data.id);
     } catch {
-      Alert.alert('Unable to update request', 'Please try again in a moment.');
+      uiFeedback.alert('Unable to update request', 'Please try again in a moment.');
     } finally {
       setFriendActionLoading(false);
     }

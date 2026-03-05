@@ -1,5 +1,5 @@
 import React, { useCallback } from 'react';
-import { View, StyleSheet, Platform, Linking, Alert } from 'react-native';
+import { View, StyleSheet, Platform, Linking } from 'react-native';
 import { router } from 'expo-router';
 import { Routes } from '@/navigation/routes';
 import { Ionicons } from '@expo/vector-icons';
@@ -17,6 +17,7 @@ import { safetyService } from '@/services/safety-service';
 import { createLogger } from '@/utils/logger';
 import type { RosterEntry, EmergencyContact } from '@/constants/types';
 import type { AthleteEmergencyQuickView } from '@/services/safety-service';
+import { uiFeedback } from '@/services/ui-feedback';
 
 const logger = createLogger('AthleteEmergencyCard');
 
@@ -38,7 +39,7 @@ export const AthleteEmergencyCard = React.memo(function AthleteEmergencyCard({
     const phoneNumber = contact.phone.replace(/\s/g, '');
     const telUrl = `tel:${phoneNumber}`;
 
-    Alert.alert(
+    uiFeedback.alert(
       'Call Emergency Contact',
       `Call ${contact.name} at ${contact.phone}?`,
       [
@@ -55,7 +56,7 @@ export const AthleteEmergencyCard = React.memo(function AthleteEmergencyCard({
               await Linking.openURL(telUrl);
               logger.info('Emergency contact called', { contactId: contact.id });
             } else {
-              Alert.alert('Cannot Make Call', 'This device cannot make phone calls');
+              uiFeedback.alert('Cannot Make Call', 'This device cannot make phone calls');
             }
           },
         },

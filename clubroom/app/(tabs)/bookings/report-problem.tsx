@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Alert, ScrollView, StyleSheet, TextInput, View } from 'react-native';
+import { ScrollView, StyleSheet, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router, useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -14,6 +14,7 @@ import { Row } from '@/components/primitives/row';
 import { Radii, Spacing, Typography, withAlpha } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
 import { createLogger } from '@/utils/logger';
+import { uiFeedback } from '@/services/ui-feedback';
 
 const logger = createLogger('ReportProblem');
 
@@ -42,12 +43,12 @@ export default function ReportProblemScreen() {
 
   const handleSubmit = async () => {
     if (!selectedCategory || !description.trim()) {
-      Alert.alert('Missing Information', 'Please select a category and provide a description');
+      uiFeedback.alert('Missing Information', 'Please select a category and provide a description');
       return;
     }
 
     if (description.trim().length < 10) {
-      Alert.alert('Description Too Short', 'Please provide more details about the issue');
+      uiFeedback.alert('Description Too Short', 'Please provide more details about the issue');
       return;
     }
 
@@ -73,14 +74,14 @@ export default function ReportProblemScreen() {
 
       logger.info('Report submitted', { category: selectedCategory, bookingId });
 
-      Alert.alert(
+      uiFeedback.alert(
         'Report Submitted',
         'Thank you for your feedback. We will review your report within 24 hours.',
         [{ text: 'OK', onPress: () => router.back() }],
       );
     } catch (error) {
       logger.error('Failed to submit report', error);
-      Alert.alert('Error', 'Failed to submit report. Please try again.');
+      uiFeedback.alert('Error', 'Failed to submit report. Please try again.');
     } finally {
       setSubmitting(false);
     }

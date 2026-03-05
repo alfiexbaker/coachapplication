@@ -4,7 +4,7 @@
  */
 
 import { useState, useMemo, useCallback } from 'react';
-import { Alert } from 'react-native';
+
 import { router } from 'expo-router';
 import * as Haptics from 'expo-haptics';
 import { useScreen } from '@/hooks/use-screen';
@@ -16,6 +16,7 @@ import { createLogger } from '@/utils/logger';
 import type { Ionicons } from '@expo/vector-icons';
 import { getBookingAthleteName } from '@/utils/booking-display';
 import { err, ok, serviceError } from '@/types/result';
+import { uiFeedback } from '@/services/ui-feedback';
 
 const logger = createLogger('CancelBookingScreen');
 
@@ -199,7 +200,7 @@ export function useBookingCancel(id: string, mode?: string) {
       void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
 
       if (isCoach) {
-        Alert.alert(
+        uiFeedback.alert(
           'Session Cancelled',
           `The session has been cancelled and ${athleteName}'s parent has been notified.${
             refundCalc.netRefundAmount > 0
@@ -209,13 +210,13 @@ export function useBookingCancel(id: string, mode?: string) {
           [{ text: 'OK', onPress: () => router.back() }],
         );
       } else if (refundCalc.netRefundAmount > 0) {
-        Alert.alert(
+        uiFeedback.alert(
           'Booking Cancelled',
           `Your booking has been cancelled. A refund of \u00A3${refundCalc.netRefundAmount.toFixed(2)} will be processed within 5-7 business days.`,
           [{ text: 'OK', onPress: () => router.back() }],
         );
       } else {
-        Alert.alert(
+        uiFeedback.alert(
           'Booking Cancelled',
           'Your booking has been cancelled. The coach has been notified.',
           [{ text: 'OK', onPress: () => router.back() }],
@@ -231,7 +232,7 @@ export function useBookingCancel(id: string, mode?: string) {
       });
     } catch (error) {
       logger.error('Failed to cancel booking', error);
-      Alert.alert('Error', 'Failed to cancel booking. Please try again.');
+      uiFeedback.alert('Error', 'Failed to cancel booking. Please try again.');
     } finally {
       setProcessing(false);
     }

@@ -42,7 +42,7 @@ export const ResultsProgramHero = memo(function ResultsProgramHero({
 }: ResultsProgramHeroProps) {
   const { colors, scheme } = useTheme();
 
-  const gradientColors =
+  const gradientColors: readonly [string, string, string] =
     scheme === 'dark'
       ? [withAlpha(colors.tint, 0.24), withAlpha(colors.background, 0.9), colors.background]
       : [withAlpha(colors.tint, 0.16), withAlpha(colors.background, 0.96), colors.background];

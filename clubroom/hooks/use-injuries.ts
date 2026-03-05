@@ -3,7 +3,6 @@
  * Manages injury loading, status filtering, and navigation.
  */
 
-import { Alert } from 'react-native';
 import { useState, useCallback, useMemo, useEffect } from 'react';
 import { router } from 'expo-router';
 import { Routes } from '@/navigation/routes';
@@ -15,6 +14,7 @@ import { injuryService } from '@/services/injury-service';
 import { createLogger } from '@/utils/logger';
 import type { Injury, InjuryStatus } from '@/constants/types';
 import { err, ok, serviceError, type ServiceError } from '@/types/result';
+import { uiFeedback } from '@/services/ui-feedback';
 
 const logger = createLogger('InjuryHistoryScreen');
 
@@ -30,7 +30,7 @@ type SubjectOption = {
 
 export function useInjuries() {
   const { currentUser } = useAuth();
-  const { children, activeChildId, setActiveChildId, isParent } = useChildContext();
+  const { children, activeChildId } = useChildContext();
 
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('ALL');
   const selfOption = useMemo<SubjectOption | null>(() => {
@@ -53,10 +53,12 @@ export function useInjuries() {
       kind: 'child',
     }));
 
-    if (!selfOption) return childOptions;
-    if (isParent && childOptions.length > 0) return [selfOption, ...childOptions];
+    if (childOptions.length > 0) {
+      return childOptions;
+    }
+    if (!selfOption) return [];
     return [selfOption];
-  }, [children, isParent, selfOption]);
+  }, [children, selfOption]);
 
   const [selectedSubjectId, setSelectedSubjectId] = useState<string | null>(null);
 
@@ -147,13 +149,9 @@ export function useInjuries() {
     (nextSubjectId: string) => {
       const selectedOption = subjectOptions.find((option) => option.id === nextSubjectId);
       if (!selectedOption) return;
-
       setSelectedSubjectId(nextSubjectId);
-      if (selectedOption.kind === 'child') {
-        void setActiveChildId(nextSubjectId);
-      }
     },
-    [setActiveChildId, subjectOptions],
+    [subjectOptions],
   );
 
   const handleSelectNextSubject = useCallback(() => {
@@ -177,7 +175,7 @@ export function useInjuries() {
   const handleQuickHeal = useCallback(
     (injury: Injury) => {
       if (injury.status === 'HEALED') return;
-      Alert.alert('Mark as recovered?', 'This injury will move to healed records.', [
+      uiFeedback.alert('Mark as recovered?', 'This injury will move to healed records.', [
         { text: 'Cancel', style: 'cancel' },
         {
           text: 'Mark recovered',

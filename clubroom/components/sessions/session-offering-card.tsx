@@ -8,7 +8,6 @@ import { Clickable } from '@/components/primitives/clickable';
 import { Radii, Spacing, Typography, withAlpha } from '@/constants/theme';
 import { SessionOffering } from '@/constants/types';
 import { useTheme } from '@/hooks/useTheme';
-import { useAppAlert } from '@/components/ui/app-alert';
 import { getSessionOfferingCoachName } from '@/utils/session-display';
 import { openLocationInMaps } from '@/utils/map-links';
 import {
@@ -17,6 +16,7 @@ import {
 } from '@/utils/session-offering-capacity';
 
 import { SessionTypeBadge, SessionFooterBadges } from './session-offering-card-sections';
+import { uiFeedback } from '@/services/ui-feedback';
 
 // Re-export extracted components for backward compat
 export { SessionTypeBadge, SessionFooterBadges } from './session-offering-card-sections';
@@ -39,7 +39,6 @@ export function SessionOfferingCard({
   showCapacity = true,
 }: SessionOfferingCardProps) {
   const { colors: palette } = useTheme();
-  const { showAlert } = useAppAlert();
   const coachName = getSessionOfferingCoachName(offering);
   const locationLabel = offering.venueName
     ? `${offering.venueName} · ${offering.location}`
@@ -51,7 +50,7 @@ export function SessionOfferingCard({
       coordinates: offering.locationCoordinates,
     }).then((opened) => {
       if (!opened) {
-        showAlert('Error', 'Could not open maps application.');
+        uiFeedback.alert('Error', 'Could not open maps application.');
       }
     });
   };

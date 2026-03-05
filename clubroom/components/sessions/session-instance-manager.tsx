@@ -2,7 +2,7 @@
  * SessionInstanceManager — Coach view: manage upcoming recurring instances + end series.
  */
 import { memo, useCallback } from 'react';
-import { Alert, StyleSheet, View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 import { Row } from '@/components/primitives/row';
 import { Clickable } from '@/components/primitives/clickable';
 import { Ionicons } from '@expo/vector-icons';
@@ -12,6 +12,7 @@ import { SurfaceCard } from '@/components/primitives/surface-card';
 import { Radii, Spacing, withAlpha } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
 import { scaleFont } from '@/utils/scale';
+import { uiFeedback } from '@/services/ui-feedback';
 
 interface SessionInstanceManagerProps {
   showInstanceManagement: boolean;
@@ -36,7 +37,7 @@ function SessionInstanceManagerInner({
       day: 'numeric',
       month: 'short',
     });
-    Alert.alert(
+    uiFeedback.alert(
       'Cancel Session',
       `Cancel the session on ${dateStr}? Registered participants will be notified.`,
       [
@@ -51,7 +52,7 @@ function SessionInstanceManagerInner({
   }, [onCancelInstance]);
 
   const handleEndSeries = useCallback(() => {
-    Alert.alert(
+    uiFeedback.alert(
       'End Recurring Series',
       `This will cancel all ${upcomingInstances.length} upcoming session${upcomingInstances.length !== 1 ? 's' : ''} in this series. This cannot be undone.`,
       [

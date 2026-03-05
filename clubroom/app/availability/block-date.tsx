@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Alert } from 'react-native';
+
 import { router } from 'expo-router';
 import type { ReactNode } from 'react';
 import { Routes } from '@/navigation/routes';
@@ -15,6 +15,7 @@ import { createLogger } from '@/utils/logger';
 import { toDateStr } from '@/utils/format';
 import { BlockDateForm } from '@/components/availability/block-date-form';
 import { useToast } from '@/components/ui/toast';
+import { uiFeedback } from '@/services/ui-feedback';
 
 const logger = createLogger('BlockDate');
 
@@ -67,7 +68,7 @@ export default function BlockDateScreen() {
     const reasonText =
       reason === 'other' ? customReason : REASON_OPTIONS.find((r) => r.key === reason)?.label;
     if (reason === 'other' && !customReason.trim()) {
-      Alert.alert('Reason Required', 'Please enter a reason for blocking this date');
+      uiFeedback.alert('Reason Required', 'Please enter a reason for blocking this date');
       return;
     }
 
@@ -85,7 +86,7 @@ export default function BlockDateScreen() {
       logger.success('DateBlocked', { date: selectedDate.toISOString(), reason: reasonText });
     } catch (saveError) {
       logger.error('Failed to block date', saveError);
-      Alert.alert('Error', 'Failed to block date');
+      uiFeedback.alert('Error', 'Failed to block date');
     } finally {
       setSaving(false);
     }

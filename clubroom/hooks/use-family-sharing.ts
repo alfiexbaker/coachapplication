@@ -2,7 +2,7 @@
  * useFamilySharing — All state, data loading, and handlers for the Family Sharing screen.
  */
 import { useState, useCallback } from 'react';
-import { Alert } from 'react-native';
+
 import { useAuth } from '@/hooks/use-auth';
 import { useScreen } from '@/hooks/use-screen';
 import { familyService } from '@/services/family';
@@ -14,6 +14,7 @@ import type {
   GuardianRole,
   GuardianPermission,
 } from '@/constants/types';
+import { uiFeedback } from '@/services/ui-feedback';
 
 const logger = createLogger('FamilySharing');
 const EMAIL_REGEX = /^(?!\.)(?!.*\.\.)([A-Za-z0-9._%+-]+)@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$/;
@@ -100,16 +101,16 @@ export function useFamilySharing() {
     if (!family || !currentUser) return;
     const email = inviteEmail.trim().toLowerCase();
     if (!email) {
-      Alert.alert('Error', 'Please enter an email address');
+      uiFeedback.alert('Error', 'Please enter an email address');
       return;
     }
     setInviteEmailTouched(true);
     if (duplicateInvite) {
-      Alert.alert('Error', 'This email has already been invited');
+      uiFeedback.alert('Error', 'This email has already been invited');
       return;
     }
     if (!EMAIL_REGEX.test(email)) {
-      Alert.alert('Error', 'Please enter a valid email address');
+      uiFeedback.alert('Error', 'Please enter a valid email address');
       return;
     }
     setInviting(true);
@@ -125,7 +126,7 @@ export function useFamilySharing() {
         [],
         inviteMessage.trim() || undefined,
       );
-      Alert.alert(
+      uiFeedback.alert(
         'Invitation Sent',
         `An invitation has been sent to ${email}. They'll receive instructions to join your family account.`,
       );
@@ -135,7 +136,7 @@ export function useFamilySharing() {
       logger.success('InviteSent', { email, role: inviteRole });
     } catch (error: unknown) {
       logger.error('Failed to send invite', error);
-      Alert.alert('Error', error instanceof Error ? error.message : 'Failed to send invitation');
+      uiFeedback.alert('Error', error instanceof Error ? error.message : 'Failed to send invitation');
     } finally {
       setInviting(false);
     }
@@ -156,7 +157,7 @@ export function useFamilySharing() {
     (guardian: FamilyGuardian) => {
       if (!family || !currentUser) return;
       const guardianLabel = guardian.userId || 'Guardian';
-      Alert.alert(
+      uiFeedback.alert(
         'Remove Guardian',
         `Are you sure you want to remove ${guardianLabel} from your family account? They will no longer be able to access your children's information.`,
         [
@@ -167,13 +168,13 @@ export function useFamilySharing() {
             onPress: async () => {
               try {
                 await familyService.removeGuardian(family.id, currentUser.id, guardian.id);
-                Alert.alert(
+                uiFeedback.alert(
                   'Removed',
                   `${guardianLabel} has been removed from your family account.`,
                 );
                 onRefresh();
               } catch (error: unknown) {
-                Alert.alert(
+                uiFeedback.alert(
                   'Error',
                   error instanceof Error ? error.message : 'Failed to remove guardian',
                 );
@@ -189,7 +190,7 @@ export function useFamilySharing() {
   const handleCancelInvite = useCallback(
     (inviteId: string, email: string) => {
       if (!family || !currentUser) return;
-      Alert.alert('Cancel Invitation', `Cancel the invitation to ${email}?`, [
+      uiFeedback.alert('Cancel Invitation', `Cancel the invitation to ${email}?`, [
         { text: 'Keep', style: 'cancel' },
         {
           text: 'Cancel Invite',
@@ -199,7 +200,7 @@ export function useFamilySharing() {
               await familyService.cancelInvite(family.id, currentUser.id, inviteId);
               onRefresh();
             } catch (error: unknown) {
-              Alert.alert(
+              uiFeedback.alert(
                 'Error',
                 error instanceof Error ? error.message : 'Failed to cancel invitation',
               );

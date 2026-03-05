@@ -1,5 +1,5 @@
 import { useState, useMemo, useCallback } from 'react';
-import { StyleSheet, View, ScrollView, Alert } from 'react-native';
+import { StyleSheet, View, ScrollView } from 'react-native';
 
 import { ThemedText } from '@/components/themed-text';
 import { Row } from '@/components/primitives/row';
@@ -12,6 +12,7 @@ import {
   DisabledPlayerRow,
   SubmitLineupButton,
 } from './lineup-selector-sections';
+import { uiFeedback } from '@/services/ui-feedback';
 
 interface LineupSelectorProps {
   match: Match;
@@ -65,7 +66,7 @@ export function LineupSelector({ match, onSetLineup, isLoading }: LineupSelector
         setReserves((prev) => prev.filter((p) => p.athleteId !== player.athleteId));
       } else {
         if (selectedForLineup.length >= match.maxPlayers) {
-          Alert.alert(
+          uiFeedback.alert(
             'Squad Full',
             `Maximum ${match.maxPlayers} players allowed. Remove a player first or add to reserves.`,
           );
@@ -79,7 +80,7 @@ export function LineupSelector({ match, onSetLineup, isLoading }: LineupSelector
 
   const handleSubmitLineup = useCallback(async () => {
     if (selectedForLineup.length === 0) {
-      Alert.alert('No Players Selected', 'Please select at least one player for the lineup.');
+      uiFeedback.alert('No Players Selected', 'Please select at least one player for the lineup.');
       return;
     }
 

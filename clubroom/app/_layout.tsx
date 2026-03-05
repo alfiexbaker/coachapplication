@@ -19,6 +19,8 @@ import { createLogger } from '@/utils/logger';
 import { ThemeProvider as AppThemeProvider } from '@/hooks/theme-provider';
 import { NotificationToastProvider } from '@/components/notification/notification-toast';
 import { AppAlertProvider } from '@/components/ui/app-alert';
+import { AppActionSheetProvider } from '@/components/ui/action-sheet';
+import { AppPromptProvider } from '@/components/ui/input-sheet';
 import { ToastProvider } from '@/components/ui/toast';
 import { OfflineBanner } from '@/components/ui/offline-banner';
 import { pushNotificationService } from '@/services/push-notification-service';
@@ -162,11 +164,15 @@ function RootNavigation() {
       {isAuthenticated ? (
         <ToastProvider>
           <AppAlertProvider>
-            <NotificationToastProvider>
-              <Stack screenOptions={{ headerShown: false }} />
-              <OfflineBanner />
-              <StatusBar style={colorScheme === 'dark' ? 'light' : 'dark'} />
-            </NotificationToastProvider>
+            <AppActionSheetProvider>
+              <AppPromptProvider>
+                <NotificationToastProvider>
+                  <Stack screenOptions={{ headerShown: false }} />
+                  <OfflineBanner />
+                  <StatusBar style={colorScheme === 'dark' ? 'light' : 'dark'} />
+                </NotificationToastProvider>
+              </AppPromptProvider>
+            </AppActionSheetProvider>
           </AppAlertProvider>
         </ToastProvider>
       ) : (

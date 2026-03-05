@@ -6,7 +6,7 @@
  */
 
 import { useCallback } from 'react';
-import { Share, StyleSheet, Alert, Platform, ViewStyle } from 'react-native';
+import { Share, StyleSheet, Platform, ViewStyle } from 'react-native';
 import * as Haptics from 'expo-haptics';
 import { Ionicons } from '@expo/vector-icons';
 
@@ -18,6 +18,7 @@ import { createLogger } from '@/utils/logger';
 import { referralService } from '@/services/referral-service';
 import { useTheme } from '@/hooks/useTheme';
 import { useToast } from '@/components/ui/toast';
+import { uiFeedback } from '@/services/ui-feedback';
 
 // Re-export extracted components for backward compat
 export { SharePreview } from './share-button-sections';
@@ -101,7 +102,7 @@ export function ShareButton({
       }
     } catch (error) {
       logger.error('Share error', error);
-      Alert.alert(
+      uiFeedback.alert(
         'Share Failed',
         'Would you like to copy the link instead?',
         [

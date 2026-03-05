@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { Alert, StyleSheet } from 'react-native';
+import { StyleSheet } from 'react-native';
 import { router } from 'expo-router';
 
 import { PageContainer } from '@/components/primitives/page-container';
@@ -24,6 +24,7 @@ import { PositionSelector } from '@/components/session/position-selector';
 import { childService } from '@/services/child-service';
 import type { PositionRole } from '@/types/progress-types';
 import { useRequiredParam } from '@/hooks/use-required-param';
+import { uiFeedback } from '@/services/ui-feedback';
 
 export default function AthleteDetailScreen() {
   const athleteIdParam = useRequiredParam('athleteId');
@@ -81,7 +82,7 @@ export default function AthleteDetailScreen() {
         primaryPosition: positionDraft ?? null,
       });
       if (!result.success) {
-        Alert.alert('Could not save', result.error.message);
+        uiFeedback.alert('Could not save', result.error.message);
         return;
       }
       setEditingPosition(false);

@@ -32,6 +32,12 @@ export interface StatusBannerProps {
   variant?: StatusBannerVariant;
   /** Ionicons icon name (defaults based on variant) */
   icon?: keyof typeof Ionicons.glyphMap;
+  /** Optional primary action */
+  action?: {
+    label: string;
+    onPress: () => void;
+    accessibilityLabel?: string;
+  };
   /** Show dismiss button and handle dismissal */
   onDismiss?: () => void;
 }
@@ -80,7 +86,7 @@ function getVariantConfig(variant: StatusBannerVariant, palette: ThemeColors): V
 // Component
 // ---------------------------------------------------------------------------
 
-function StatusBannerInner({ message, variant = 'info', icon, onDismiss }: StatusBannerProps) {
+function StatusBannerInner({ message, variant = 'info', icon, action, onDismiss }: StatusBannerProps) {
   const { colors } = useTheme();
   const config = useMemo(() => getVariantConfig(variant, colors), [variant, colors]);
   const iconName = icon ?? config.icon;
@@ -92,6 +98,17 @@ function StatusBannerInner({ message, variant = 'info', icon, onDismiss }: Statu
       <Text style={[styles.message, { color: config.text }]} numberOfLines={3}>
         {message}
       </Text>
+
+      {action ? (
+        <Clickable
+          accessibilityRole="button"
+          accessibilityLabel={action.accessibilityLabel ?? action.label}
+          onPress={action.onPress}
+          style={[styles.actionButton, { borderColor: withAlpha(config.text, 0.34) }]}
+        >
+          <Text style={[styles.actionText, { color: config.text }]}>{action.label}</Text>
+        </Clickable>
+      ) : null}
 
       {onDismiss ? (
         <Clickable
@@ -128,5 +145,15 @@ const styles = StyleSheet.create({
   },
   dismissButton: {
     padding: Spacing.xxs,
+  },
+  actionButton: {
+    borderWidth: 1,
+    borderRadius: Radii.pill,
+    paddingHorizontal: Spacing.xs,
+    paddingVertical: 2,
+  },
+  actionText: {
+    ...Typography.micro,
+    fontWeight: '600',
   },
 });

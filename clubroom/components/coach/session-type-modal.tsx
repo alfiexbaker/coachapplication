@@ -1,14 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import {
-  View,
-  StyleSheet,
-  Modal,
-  TextInput,
-  Alert,
-  KeyboardAvoidingView,
-  Platform,
-  Keyboard,
-} from 'react-native';
+  View, StyleSheet, Modal, TextInput, KeyboardAvoidingView, Platform, Keyboard } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import { Clickable } from '@/components/primitives/clickable';
@@ -24,6 +16,7 @@ import {
   PriceInput,
 } from './session-type-modal-sections';
 import { Row } from '@/components/primitives';
+import { uiFeedback } from '@/services/ui-feedback';
 interface SessionTypeModalProps {
   visible: boolean;
   onClose: () => void;
@@ -100,7 +93,7 @@ export function SessionTypeModal({
     onClose();
   };
   const handleDelete = () => {
-    Alert.alert(`Delete "${name}"?`, "This won't affect existing bookings or invites.", [
+    uiFeedback.alert(`Delete "${name}"?`, "This won't affect existing bookings or invites.", [
       { text: 'Cancel', style: 'cancel' },
       {
         text: 'Delete',
@@ -114,7 +107,7 @@ export function SessionTypeModal({
   };
   const handleTypeSelect = (key: SessionType) => {
     if ((key === '1-to-1' || key === 'assessment') && capacity > 1) {
-      Alert.alert(
+      uiFeedback.alert(
         'Change session type?',
         'Changing to 1-to-1/assessment will set capacity to 1 player.',
         [

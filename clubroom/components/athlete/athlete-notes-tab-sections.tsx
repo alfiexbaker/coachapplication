@@ -1,5 +1,5 @@
 import React, { memo, useCallback } from 'react';
-import { View, StyleSheet, TextInput, Alert, Platform } from 'react-native';
+import { View, StyleSheet, TextInput, Platform } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 
@@ -12,6 +12,7 @@ import { Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
 import type { ThemeColors } from '@/hooks/useTheme';
 import type { RosterNote, FootballObjective } from '@/constants/types';
 import { COACHING_FOCUSES } from '@/constants/football-registry';
+import { uiFeedback } from '@/services/ui-feedback';
 
 export const FOCUS_OPTIONS: FootballObjective[] = COACHING_FOCUSES;
 interface NoteCardProps {
@@ -22,7 +23,7 @@ interface NoteCardProps {
 
 export const NoteCard = memo(function NoteCard({ note, onDelete, palette }: NoteCardProps) {
   const handleDelete = useCallback(() => {
-    Alert.alert('Delete Note', 'Are you sure you want to delete this note?', [
+    uiFeedback.alert('Delete Note', 'Are you sure you want to delete this note?', [
       { text: 'Cancel', style: 'cancel' },
       {
         text: 'Delete',

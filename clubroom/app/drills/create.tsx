@@ -6,7 +6,7 @@
  */
 
 import { useState, useCallback } from 'react';
-import { StyleSheet, Alert } from 'react-native';
+import { StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 import { Routes } from '@/navigation/routes';
@@ -22,6 +22,7 @@ import { useAuth } from '@/hooks/use-auth';
 import { drillService } from '@/services/drill-service';
 import { scaleFont } from '@/utils/scale';
 import { createLogger } from '@/utils/logger';
+import { uiFeedback } from '@/services/ui-feedback';
 
 const logger = createLogger('CreateDrillScreen');
 
@@ -49,7 +50,7 @@ export default function CreateDrillScreen() {
       try {
         const newDrill = await drillService.createDrill(coachId, coachName, values);
 
-        Alert.alert('Drill Created!', `"${newDrill.title}" has been added to your library.`, [
+        uiFeedback.alert('Drill Created!', `"${newDrill.title}" has been added to your library.`, [
           {
             text: 'Create Another',
             onPress: () => {
@@ -70,7 +71,7 @@ export default function CreateDrillScreen() {
         ]);
       } catch (error) {
         logger.error('Failed to create drill:', error);
-        Alert.alert('Error', 'Failed to create drill. Please try again.');
+        uiFeedback.alert('Error', 'Failed to create drill. Please try again.');
       } finally {
         setIsSubmitting(false);
       }
@@ -84,7 +85,7 @@ export default function CreateDrillScreen() {
   const handleCancel = useCallback(() => {
     void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
 
-    Alert.alert('Discard Changes?', 'Your drill will not be saved.', [
+    uiFeedback.alert('Discard Changes?', 'Your drill will not be saved.', [
       { text: 'Keep Editing', style: 'cancel' },
       {
         text: 'Discard',

@@ -2,7 +2,7 @@
  * useDrillAssign — All state, data loading, and handlers for the Assign Drill screen.
  */
 import { useState, useCallback } from 'react';
-import { Alert } from 'react-native';
+
 import { router, useLocalSearchParams } from 'expo-router';
 import * as Haptics from 'expo-haptics';
 import { useAuth } from '@/hooks/use-auth';
@@ -13,6 +13,7 @@ import { createLogger } from '@/utils/logger';
 import type { Drill, RosterEntry } from '@/constants/types';
 import { getRosterAthleteName } from '@/utils/roster-display';
 import { err, ok, serviceError, type ServiceError } from '@/types/result';
+import { uiFeedback } from '@/services/ui-feedback';
 
 const logger = createLogger('AssignDrillScreen');
 
@@ -121,7 +122,7 @@ export function useDrillAssign() {
 
   const handleSubmit = useCallback(async () => {
     if (!drill || !selectedAthlete) {
-      Alert.alert('Missing Information', 'Please select a drill and athlete.');
+      uiFeedback.alert('Missing Information', 'Please select a drill and athlete.');
       return;
     }
     const reps = Number.parseInt(repetitions, 10);
@@ -129,7 +130,7 @@ export function useDrillAssign() {
       setRepetitionsError(
         Number.isNaN(reps) || reps < 1 ? 'Minimum 1 rep' : 'Maximum 50 reps recommended for youth athletes',
       );
-      Alert.alert('Invalid repetitions', 'Reps must be between 1 and 50.');
+      uiFeedback.alert('Invalid repetitions', 'Reps must be between 1 and 50.');
       return;
     }
     void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
@@ -149,10 +150,10 @@ export function useDrillAssign() {
         },
       );
       if (!assignmentResult.success) {
-        Alert.alert('Error', assignmentResult.error.message);
+        uiFeedback.alert('Error', assignmentResult.error.message);
         return;
       }
-      Alert.alert(
+      uiFeedback.alert(
         'Drill Assigned!',
         `"${drill.title}" has been assigned to ${selectedAthlete.name}.`,
         [
@@ -171,7 +172,7 @@ export function useDrillAssign() {
       );
     } catch (error) {
       logger.error('Failed to assign drill', error);
-      Alert.alert('Error', 'Failed to assign drill. Please try again.');
+      uiFeedback.alert('Error', 'Failed to assign drill. Please try again.');
     } finally {
       setSubmitting(false);
     }

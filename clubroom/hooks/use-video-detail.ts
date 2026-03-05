@@ -6,7 +6,7 @@
  */
 
 import { useState, useEffect, useCallback } from 'react';
-import { Alert, Share } from 'react-native';
+import { Share } from 'react-native';
 import { router } from 'expo-router';
 
 import { useAuth } from '@/hooks/use-auth';
@@ -15,6 +15,7 @@ import type { SessionVideo, VideoAnnotation, VideoAnnotationType } from '@/const
 import { createLogger } from '@/utils/logger';
 import type { ScreenStatus } from '@/hooks/use-screen';
 import { serviceError, type ServiceError } from '@/types/result';
+import { uiFeedback } from '@/services/ui-feedback';
 
 const logger = createLogger('useVideoDetail');
 
@@ -65,29 +66,29 @@ export function useVideoDetail(id: string | undefined) {
     async (annotation: Omit<VideoAnnotation, 'id'>) => {
       if (!video) return;
       if (annotation.timestamp < 0) {
-        Alert.alert('Invalid Timestamp', 'Timestamp cannot be negative.');
+        uiFeedback.alert('Invalid Timestamp', 'Timestamp cannot be negative.');
         return;
       }
       if (annotation.timestamp > video.duration) {
         const mins = Math.floor(video.duration / 60);
         const secs = Math.floor(video.duration % 60);
-        Alert.alert(
+        uiFeedback.alert(
           'Invalid Timestamp',
           `Timestamp cannot exceed ${mins}:${secs.toString().padStart(2, '0')}.`,
         );
         return;
       }
       if (!annotation.label.trim()) {
-        Alert.alert('Missing Label', 'Please enter a label for this annotation.');
+        uiFeedback.alert('Missing Label', 'Please enter a label for this annotation.');
         return;
       }
       if ((annotation.note?.trim().length ?? 0) > 500) {
-        Alert.alert('Annotation Too Long', 'Maximum note length is 500 characters.');
+        uiFeedback.alert('Annotation Too Long', 'Maximum note length is 500 characters.');
         return;
       }
       const duplicateTimestamp = video.annotations.some((entry) => entry.timestamp === annotation.timestamp);
       if (duplicateTimestamp) {
-        Alert.alert('Duplicate Timestamp', 'An annotation already exists at this timestamp.');
+        uiFeedback.alert('Duplicate Timestamp', 'An annotation already exists at this timestamp.');
         return;
       }
       await videoService.addAnnotation(
@@ -120,10 +121,10 @@ export function useVideoDetail(id: string | undefined) {
     try {
       if (video.visibility === 'PRIVATE') {
         await videoService.shareVideo(video.id, ['parent_1']);
-        Alert.alert('Shared', 'Video has been shared with parents.');
+        uiFeedback.alert('Shared', 'Video has been shared with parents.');
       } else {
         await videoService.makePrivate(video.id);
-        Alert.alert('Made Private', 'Video is now private.');
+        uiFeedback.alert('Made Private', 'Video is now private.');
       }
       await loadVideo();
     } catch (error) {
@@ -133,7 +134,7 @@ export function useVideoDetail(id: string | undefined) {
 
   const handleDelete = useCallback(() => {
     if (!video) return;
-    Alert.alert(
+    uiFeedback.alert(
       'Delete Video',
       'Are you sure you want to delete this video? This cannot be undone.',
       [

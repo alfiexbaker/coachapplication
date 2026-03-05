@@ -1,5 +1,5 @@
 import React, { useState, useCallback } from 'react';
-import { Alert, View, StyleSheet, TextInput } from 'react-native';
+import { View, StyleSheet, TextInput } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
 import { ThemedText } from '@/components/themed-text';
@@ -14,6 +14,7 @@ import {
   SPECIAL_NEEDS_CATEGORIES,
 } from '@/services/child-service';
 import { Row } from '@/components/primitives';
+import { uiFeedback } from '@/services/ui-feedback';
 
 const MAX_TAGS = 10;
 
@@ -35,12 +36,12 @@ function TagInput({
   const addTag = useCallback(() => {
     const trimmed = input.trim();
     if (tags.length >= MAX_TAGS) {
-      Alert.alert('Limit reached', `Maximum ${MAX_TAGS} tags allowed.`);
+      uiFeedback.alert('Limit reached', `Maximum ${MAX_TAGS} tags allowed.`);
       return;
     }
     const duplicate = tags.find((tag) => tag.toLowerCase() === trimmed.toLowerCase());
     if (trimmed && duplicate) {
-      Alert.alert('Already added', `"${duplicate}" is already in the list.`);
+      uiFeedback.alert('Already added', `"${duplicate}" is already in the list.`);
       setInput('');
       return;
     }

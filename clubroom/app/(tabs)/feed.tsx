@@ -6,7 +6,7 @@
  */
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Alert, FlatList, RefreshControl, Share, StyleSheet, View } from 'react-native';
+import { FlatList, RefreshControl, Share, StyleSheet, View } from 'react-native';
 import { router } from 'expo-router';
 import { Routes } from '@/navigation/routes';
 
@@ -31,6 +31,7 @@ import {
 } from '@/components/social/feed-filters';
 import { useScrollToTopOnTabReselect } from '@/hooks/use-scroll-to-top-on-tab-reselect';
 import { AccessibleListCell } from '@/components/ui/list-accessibility';
+import { uiFeedback } from '@/services/ui-feedback';
 
 interface FeedData {
   feed: AggregatedFeedPost[];
@@ -119,7 +120,7 @@ export default function FeedScreen() {
           title: post.title,
         });
       } catch {
-        Alert.alert('Unable to share', 'Try again in a moment.');
+        uiFeedback.alert('Unable to share', 'Try again in a moment.');
       }
     },
     [],

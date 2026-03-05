@@ -5,7 +5,7 @@
  */
 
 import { useState, useCallback } from 'react';
-import { Alert } from 'react-native';
+
 import { router, useLocalSearchParams } from 'expo-router';
 
 import {
@@ -17,6 +17,7 @@ import { useScreen } from '@/hooks/use-screen';
 import { useAuth } from '@/hooks/use-auth';
 import { ok, err, serviceError, type ServiceError } from '@/types/result';
 import { ServiceEvents } from '@/services/event-bus';
+import { uiFeedback } from '@/services/ui-feedback';
 
 export function useEditChildSen() {
   const { childId } = useLocalSearchParams<{ childId: string }>();
@@ -137,11 +138,11 @@ export function useEditChildSen() {
         behavioralNotes: behavioralNotes.trim() || undefined,
       });
       if (result.success) {
-        Alert.alert('Saved', 'SEN information updated.', [
+        uiFeedback.alert('Saved', 'SEN information updated.', [
           { text: 'OK', onPress: () => router.back() },
         ]);
       } else {
-        Alert.alert('Error', 'Failed to save. Please try again.');
+        uiFeedback.alert('Error', 'Failed to save. Please try again.');
       }
     } finally {
       setSaving(false);

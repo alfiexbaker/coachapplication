@@ -1,5 +1,5 @@
 import { useState, useCallback, useEffect } from 'react';
-import { Alert } from 'react-native';
+
 import { router } from 'expo-router';
 import { Routes } from '@/navigation/routes';
 
@@ -9,6 +9,7 @@ import { STORAGE_KEYS } from '@/constants/storage-keys';
 import { emitTyped, ServiceEvents } from '@/services/event-bus';
 import { generateId } from '@/utils/generate-id';
 import { createLogger } from '@/utils/logger';
+import { uiFeedback } from '@/services/ui-feedback';
 
 const logger = createLogger('useAccountSettings');
 
@@ -46,7 +47,7 @@ export function useAccountSettings() {
 
   const handleSaveEmail = useCallback(() => {
     logger.press('SaveEmail', { email });
-    Alert.alert(
+    uiFeedback.alert(
       'Verify Email',
       `We'll send a verification email to ${email}. Please check your inbox.`,
       [
@@ -55,7 +56,7 @@ export function useAccountSettings() {
           text: 'Send',
           onPress: () => {
             setEditingEmail(false);
-            Alert.alert('Success', 'Verification email sent!');
+            uiFeedback.alert('Success', 'Verification email sent!');
           },
         },
       ],
@@ -65,23 +66,23 @@ export function useAccountSettings() {
   const handleSavePhone = useCallback(() => {
     logger.press('SavePhone', { phone });
     setEditingPhone(false);
-    Alert.alert('Success', 'Phone number updated!');
+    uiFeedback.alert('Success', 'Phone number updated!');
   }, [phone]);
 
   const handleChangePassword = useCallback(() => {
     logger.press('ChangePassword');
-    Alert.alert('Change Password', "We'll send you a password reset link to your email.", [
+    uiFeedback.alert('Change Password', "We'll send you a password reset link to your email.", [
       { text: 'Cancel', style: 'cancel' },
       {
         text: 'Send Link',
-        onPress: () => Alert.alert('Success', 'Password reset link sent to your email.'),
+        onPress: () => uiFeedback.alert('Success', 'Password reset link sent to your email.'),
       },
     ]);
   }, []);
 
   const handleDeleteAccount = useCallback(() => {
     logger.press('DeleteAccount');
-    Alert.alert(
+    uiFeedback.alert(
       'Delete Account',
       'Are you sure you want to delete your account?\n\n\u2022 Your account will be scheduled for deletion in 30 days\n\u2022 You can cancel anytime during this period\n\u2022 After 30 days, all data will be permanently deleted',
       [
@@ -117,7 +118,7 @@ export function useAccountSettings() {
               scheduledDeletionAt: deletionDate.toISOString(),
             });
 
-            Alert.alert(
+            uiFeedback.alert(
               'Deletion Scheduled',
               `Your account will be deleted on ${deletionDate.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}. You can cancel anytime before then.`,
             );
@@ -145,12 +146,12 @@ export function useAccountSettings() {
     });
 
     logger.info('Account deletion cancelled', { userId: currentUser.id });
-    Alert.alert('Deletion Cancelled', 'Your account will not be deleted.');
+    uiFeedback.alert('Deletion Cancelled', 'Your account will not be deleted.');
   }, [currentUser?.id, deletionRequest]);
 
   const handleDeactivateAccount = useCallback(() => {
     logger.press('DeactivateAccount');
-    Alert.alert(
+    uiFeedback.alert(
       'Deactivate Account',
       'Your account will be hidden and you can reactivate it later by logging in.',
       [
@@ -158,7 +159,7 @@ export function useAccountSettings() {
         {
           text: 'Deactivate',
           onPress: async () => {
-            Alert.alert('Success', 'Your account has been deactivated.');
+            uiFeedback.alert('Success', 'Your account has been deactivated.');
             await logout();
             router.replace(Routes.ROOT);
           },

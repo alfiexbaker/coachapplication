@@ -1,5 +1,5 @@
 import React, { memo, useCallback } from 'react';
-import { View, StyleSheet, Alert } from 'react-native';
+import { View, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { ParentGroupCard } from '@/components/community/ParentGroupCard';
 import { Button } from '@/components/primitives/button';
@@ -11,6 +11,7 @@ import { scaleFont } from '@/utils/scale';
 import type { ParentGroup } from '@/constants/types';
 import type { TabType } from '@/hooks/use-community-hub';
 import { Row } from '@/components/primitives';
+import { uiFeedback } from '@/services/ui-feedback';
 
 interface CommunityTabContentProps {
   tab: TabType;
@@ -66,7 +67,7 @@ export const CommunityTabContent = memo(function CommunityTabContent({
   const { colors: palette } = useTheme();
 
   const handleJoinGroup = useCallback((group: ParentGroup) => {
-    Alert.alert(
+    uiFeedback.alert(
       'Join Group',
       `Join "${group.name}"?\n\n` +
       (!group.isPublic

@@ -2,7 +2,7 @@
  * SessionInfoSection — Session details card: title, schedule, location, meta badges, awards.
  */
 import { memo } from 'react';
-import { Alert, StyleSheet, View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 import { Row } from '@/components/primitives/row';
 import { Clickable } from '@/components/primitives/clickable';
 import { Ionicons } from '@expo/vector-icons';
@@ -18,6 +18,7 @@ import { scaleFont } from '@/utils/scale';
 import type { SessionOffering, BadgeAward } from '@/constants/types';
 import { getSessionOfferingCoachName } from '@/utils/session-display';
 import { openLocationInMaps } from '@/utils/map-links';
+import { uiFeedback } from '@/services/ui-feedback';
 
 interface SessionInfoSectionProps {
   offering: SessionOffering;
@@ -49,7 +50,7 @@ function SessionInfoSectionInner({
       coordinates: offering.locationCoordinates,
     }).then((opened) => {
       if (!opened) {
-        Alert.alert('Error', 'Could not open maps application.');
+        uiFeedback.alert('Error', 'Could not open maps application.');
       }
     });
   };

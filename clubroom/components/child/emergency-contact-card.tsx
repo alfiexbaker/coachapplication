@@ -1,5 +1,5 @@
 import { memo, useCallback } from 'react';
-import { Alert, View, StyleSheet } from 'react-native';
+import { View, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
 import { SurfaceCard } from '@/components/primitives/surface-card';
@@ -11,6 +11,7 @@ import { Column } from '@/components/primitives/column';
 import { Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
 import type { EmergencyContact } from '@/constants/types';
+import { uiFeedback } from '@/services/ui-feedback';
 
 interface EmergencyContactCardProps {
   contact: EmergencyContact;
@@ -28,7 +29,7 @@ export const EmergencyContactCard = memo(function EmergencyContactCard({
   const { colors } = useTheme();
 
   const handleDelete = useCallback(() => {
-    Alert.alert(
+    uiFeedback.alert(
       'Delete Emergency Contact',
       `Remove ${contact.name} (${contact.relationship}) as emergency contact?\n\nThis is critical safety information and should only be deleted if no longer accurate.`,
       [

@@ -1,5 +1,5 @@
 import { memo, useCallback } from 'react';
-import { View, StyleSheet, Alert, Platform } from 'react-native';
+import { View, StyleSheet, Platform } from 'react-native';
 import * as Haptics from 'expo-haptics';
 import { Ionicons } from '@expo/vector-icons';
 import { Column } from '@/components/primitives/column';
@@ -11,6 +11,7 @@ import { ThemedText } from '@/components/themed-text';
 import { Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
 import type { Consent, ConsentType } from '@/constants/types';
+import { uiFeedback } from '@/services/ui-feedback';
 
 const CONSENT_LABELS: Record<ConsentType, { title: string; description: string }> = {
   PHOTO: { title: 'Photography', description: 'Allow photos to be taken during sessions' },
@@ -39,7 +40,7 @@ export const MedicalConsentToggle = memo(function MedicalConsentToggle({
 
     // Confirmation dialog when toggling OFF emergency treatment
     if (!newValue && consent.type === 'EMERGENCY_TREATMENT') {
-      Alert.alert(
+      uiFeedback.alert(
         'Remove Emergency Treatment Consent',
         'Are you sure you want to remove permission for emergency medical treatment?\n\nWithout this consent, coaches cannot authorize emergency medical care for your child during sessions.',
         [

@@ -2,13 +2,14 @@
  * useInviteSessionFlow — Multi-step invite flow state management.
  */
 import { useState, useEffect, useCallback } from 'react';
-import { Alert } from 'react-native';
+
 import { router } from 'expo-router';
 import { Routes } from '@/navigation/routes';
 import * as Haptics from 'expo-haptics';
 import { apiClient } from '@/services/api-client';
 import { createLogger } from '@/utils/logger';
 import type { Athlete } from '@/hooks/use-invite-athletes';
+import { uiFeedback } from '@/services/ui-feedback';
 
 const logger = createLogger('InviteSessionFlow');
 
@@ -75,7 +76,7 @@ export function useInviteSessionFlow({
       }
       setIsNewSession(false);
       if (upcomingSessions.length === 0) {
-        Alert.alert(
+        uiFeedback.alert(
           'No Upcoming Sessions',
           "You don't have any upcoming sessions. Would you like to create a new one?",
           [
@@ -149,14 +150,14 @@ export function useInviteSessionFlow({
         athleteIds: selectedAthletes.map((a) => a.id),
         isNew: false,
       });
-      Alert.alert(
+      uiFeedback.alert(
         'Athletes Invited',
         `${selectedAthletes.length} athlete${selectedAthletes.length !== 1 ? 's' : ''} added to ${selectedSession.title || 'session'}.`,
       );
       handleClose();
     } catch (error) {
       logger.error('Failed to add athletes to session', error);
-      Alert.alert('Error', 'Failed to add athletes. Please try again.');
+      uiFeedback.alert('Error', 'Failed to add athletes. Please try again.');
     }
   }, [selectedSession, selectedAthletes, onComplete]);
 

@@ -2,7 +2,7 @@
  * useClubSettings — All state, data loading, and handlers for the Club Settings screen.
  */
 import { useState, useEffect, useCallback, useMemo } from 'react';
-import { Alert, Share } from 'react-native';
+import { Share } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 import * as Clipboard from 'expo-clipboard';
 import { Routes } from '@/navigation/routes';
@@ -14,6 +14,7 @@ import { socialFeedService } from '@/services/social-feed-service';
 import { onTyped, ServiceEvents } from '@/services/event-bus';
 import type { Club, ClubSquad, ClubRole } from '@/constants/types';
 import { createLogger } from '@/utils/logger';
+import { uiFeedback } from '@/services/ui-feedback';
 
 const logger = createLogger('ClubSettings');
 
@@ -260,7 +261,7 @@ export function useClubSettings() {
       return;
     }
     const clubName = club?.name || 'this club';
-    Alert.alert(
+    uiFeedback.alert(
       'Delete Club',
       `This will permanently delete "${clubName}" and all associated data:\n\n• All members will be removed\n• Training schedules deleted\n• Posts and events removed\n• This cannot be undone\n\nAre you sure?`,
       [
@@ -270,7 +271,7 @@ export function useClubSettings() {
           style: 'destructive',
           onPress: () => {
             // Second confirmation
-            Alert.alert(
+            uiFeedback.alert(
               'Final Confirmation',
               `Type DELETE in your head and confirm: permanently delete "${clubName}"?`,
               [
@@ -302,7 +303,7 @@ export function useClubSettings() {
       const target = inviteCodes.find((invite) => invite.code === code);
       if (!target) return;
 
-      Alert.alert('Delete invite code?', `${code} will stop working immediately.`, [
+      uiFeedback.alert('Delete invite code?', `${code} will stop working immediately.`, [
         { text: 'Cancel', style: 'cancel' },
         {
           text: 'Delete',

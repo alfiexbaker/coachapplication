@@ -6,7 +6,7 @@
  */
 
 import { useReducer, useState, useEffect, useCallback } from 'react';
-import { Alert } from 'react-native';
+
 import { router } from 'expo-router';
 import { Routes } from '@/navigation/routes';
 
@@ -16,6 +16,7 @@ import { squadService } from '@/services/squad-service';
 import { inviteService as bulkInviteService } from '@/services/invite';
 import { createLogger } from '@/utils/logger';
 import type { ClubEventType, EventTargetAudience, ClubSquad } from '@/constants/types';
+import { uiFeedback } from '@/services/ui-feedback';
 
 const logger = createLogger('useCreateEvent');
 const DEFAULT_CLUB_ID = 'club_lions';
@@ -154,7 +155,7 @@ export function useCreateEvent() {
             price: parseFloat(form.price) || 0,
             maxAttendees: form.maxAttendees ? parseInt(form.maxAttendees, 10) : undefined,
           });
-          Alert.alert(
+          uiFeedback.alert(
             'Event Created!',
             `${form.title} created and ${result.inviteResult.successful} invite${result.inviteResult.successful !== 1 ? 's' : ''} sent to squad members.`,
             [{ text: 'OK', onPress: () => router.replace(Routes.event(result.event.id)) }],
@@ -194,7 +195,7 @@ export function useCreateEvent() {
         }
       } catch (error) {
         logger.error('Failed to create event:', error);
-        Alert.alert('Error', 'Failed to create event. Please try again.');
+        uiFeedback.alert('Error', 'Failed to create event. Please try again.');
       } finally {
         setLoading(false);
       }

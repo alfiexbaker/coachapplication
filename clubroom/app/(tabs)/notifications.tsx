@@ -1,5 +1,5 @@
 import { useCallback, useState } from 'react';
-import { Alert } from 'react-native';
+
 import { StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -9,6 +9,7 @@ import { useNotifications } from '@/hooks/use-notifications';
 import { useToast } from '@/components/ui/toast';
 import { NotificationsPanel } from '@/components/notification/notifications-panel';
 import { NotificationsActionsBar } from '@/components/notification/notifications-actions-bar';
+import { uiFeedback } from '@/services/ui-feedback';
 
 // Re-export NotificationsPanel for backward compatibility
 export { NotificationsPanel } from '@/components/notification/notifications-panel';
@@ -52,7 +53,7 @@ export default function NotificationsScreen() {
     };
 
     if (unreadCount > 20) {
-      Alert.alert(
+      uiFeedback.alert(
         'Mark all as read?',
         `This will mark ${unreadCount} notifications as read.`,
         [

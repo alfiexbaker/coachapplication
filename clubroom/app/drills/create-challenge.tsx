@@ -7,7 +7,7 @@
  */
 
 import { useState, useCallback } from 'react';
-import { View, StyleSheet, ScrollView, TextInput, Alert, Platform } from 'react-native';
+import { View, StyleSheet, ScrollView, TextInput, Platform } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -23,6 +23,7 @@ import { ok } from '@/types/result';
 import { useAuth } from '@/hooks/use-auth';
 import { challengeService } from '@/services/challenge-service';
 import { createLogger } from '@/utils/logger';
+import { uiFeedback } from '@/services/ui-feedback';
 
 const logger = createLogger('CreateChallengeScreen');
 
@@ -71,7 +72,7 @@ export default function CreateChallengeScreen() {
       router.back();
     } catch (err) {
       logger.error('Failed to create challenge', err);
-      Alert.alert('Error', 'Failed to create challenge. Please try again.');
+      uiFeedback.alert('Error', 'Failed to create challenge. Please try again.');
     } finally {
       setCreating(false);
     }
@@ -143,7 +144,7 @@ export default function CreateChallengeScreen() {
           </Row>
           <Clickable
             onPress={() =>
-              Alert.alert('Coming Soon', 'Video upload will be available in a future update.')
+              uiFeedback.alert('Coming Soon', 'Video upload will be available in a future update.')
             }
           >
             <View

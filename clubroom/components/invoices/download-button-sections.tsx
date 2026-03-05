@@ -7,7 +7,7 @@
  */
 
 import React, { memo, useState, useCallback } from 'react';
-import { StyleSheet, ActivityIndicator, Alert } from 'react-native';
+import { StyleSheet, ActivityIndicator } from 'react-native';
 import { Clickable } from '@/components/primitives/clickable';
 import { Ionicons } from '@expo/vector-icons';
 
@@ -15,6 +15,7 @@ import { Spacing, Radii } from '@/constants/theme';
 import { Invoice } from '@/constants/types';
 import { invoiceService } from '@/services/invoice-service';
 import type { ThemeColors } from '@/hooks/useTheme';
+import { uiFeedback } from '@/services/ui-feedback';
 
 // ─── Size Helpers ────────────────────────────────────────────────────────────
 
@@ -73,12 +74,12 @@ export const DownloadOnlyButtonInner = memo(function DownloadOnlyButtonInner({
     try {
       const result = await invoiceService.downloadInvoice(invoice.id);
       if (result) {
-        Alert.alert('Downloaded', `${invoice.invoiceNumber} saved.`);
+        uiFeedback.alert('Downloaded', `${invoice.invoiceNumber} saved.`);
       } else {
-        Alert.alert('Download Failed', 'Could not download the invoice. Please try again.');
+        uiFeedback.alert('Download Failed', 'Could not download the invoice. Please try again.');
       }
     } catch {
-      Alert.alert('Download Failed', 'Something went wrong. Check your connection and try again.');
+      uiFeedback.alert('Download Failed', 'Something went wrong. Check your connection and try again.');
     } finally {
       setDownloading(false);
     }
@@ -117,7 +118,7 @@ export const ShareOnlyButtonInner = memo(function ShareOnlyButtonInner({
     try {
       await invoiceService.shareInvoice(invoice.id);
     } catch {
-      Alert.alert('Error', 'Could not share the invoice.');
+      uiFeedback.alert('Error', 'Could not share the invoice.');
     } finally {
       setSharing(false);
     }

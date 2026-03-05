@@ -1,5 +1,5 @@
 import { memo, useCallback } from 'react';
-import { Alert, StyleSheet } from 'react-native';
+import { StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
 import { Clickable } from '@/components/primitives/clickable';
@@ -10,6 +10,7 @@ import { Column } from '@/components/primitives/column';
 import { Spacing, Radii, Typography } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
 import type { FamilyAccount } from '@/constants/types';
+import { uiFeedback } from '@/services/ui-feedback';
 
 interface SharingPendingInvitesProps {
   invites: NonNullable<FamilyAccount['pendingInvites']>;
@@ -23,7 +24,7 @@ export const SharingPendingInvites = memo(function SharingPendingInvites({
   const { colors } = useTheme();
 
   const handleCancel = useCallback((inviteId: string, email: string) => {
-    Alert.alert(
+    uiFeedback.alert(
       'Cancel Invite',
       `Cancel the pending invite to ${email}? They will no longer be able to accept.`,
       [

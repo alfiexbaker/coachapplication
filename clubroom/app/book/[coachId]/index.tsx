@@ -19,6 +19,7 @@ import {
   type BookingPrefillChild,
 } from '@/utils/booking-draft-prefill';
 import { getSessionOfferingHeadcount } from '@/utils/session-offering-capacity';
+import { hasAccountChildren } from '@/utils/booking-self-capability';
 
 const logger = createLogger('BookCoachEntryScreen');
 const FAST_TRACK_SOURCES = ['discover', 'session_detail_modal'];
@@ -56,6 +57,10 @@ export default function BookCoachEntryScreen() {
   const { children, loading: childrenLoading } = useChildContext();
   const { currentUser, isLoading: authLoading } = useAuth();
   const { draft, updateDraft } = useBookingFlow();
+  const accountHasChildren = hasAccountChildren({
+    contextChildCount: children.length,
+    accountChildRefCount: currentUser?.children?.length ?? 0,
+  });
   const bootKeyRef = useRef<string>('');
   const trackStep = (
     step: 'type' | 'schedule' | 'details',
@@ -69,7 +74,7 @@ export default function BookCoachEntryScreen() {
       source,
       role: currentUser?.role,
       currentUserId: currentUser?.id,
-      hasChildren: currentUser?.hasChildren,
+      hasChildren: accountHasChildren,
       actingAs: draft.actingAs,
       draft: {
         entrySource: draft.entrySource,
@@ -157,7 +162,7 @@ export default function BookCoachEntryScreen() {
       const normalizedSource = source?.toLowerCase();
       const shouldFastTrack =
         Boolean(offeringId) ||
-        (Boolean(normalizedSource) &&
+        (typeof normalizedSource === 'string' &&
           FAST_TRACK_SOURCES.some((prefix) => normalizedSource.startsWith(prefix)));
       if (!shouldFastTrack) {
         fallbackToSessionType();

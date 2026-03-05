@@ -4,7 +4,7 @@
  */
 
 import { useState, useCallback } from 'react';
-import { Alert, Platform } from 'react-native';
+import { Platform } from 'react-native';
 import { router } from 'expo-router';
 import * as Haptics from 'expo-haptics';
 import { Routes } from '@/navigation/routes';
@@ -18,6 +18,7 @@ import { ok, err, storageError, type Result, type ServiceError } from '@/types/r
 import type { RosterEntry, FootballObjective } from '@/constants/types';
 import { createLogger } from '@/utils/logger';
 import { getRosterAthleteName } from '@/utils/roster-display';
+import { uiFeedback } from '@/services/ui-feedback';
 
 const logger = createLogger('AthleteProfile');
 
@@ -99,7 +100,7 @@ export function useAthleteDetail(athleteId: string) {
   const handleDeleteNote = useCallback(
     async (noteId: string) => {
       if (!data?.entry) return;
-      Alert.alert('Delete Note', 'Are you sure?', [
+      uiFeedback.alert('Delete Note', 'Are you sure?', [
         { text: 'Cancel', style: 'cancel' },
         {
           text: 'Delete',
@@ -145,7 +146,7 @@ export function useAthleteDetail(athleteId: string) {
   const handleRemove = useCallback(() => {
     if (!data?.entry) return;
     const athleteName = getRosterAthleteName(data.entry);
-    Alert.alert(
+    uiFeedback.alert(
       'Remove Athlete',
       `Are you sure you want to remove ${athleteName} from your roster?`,
       [

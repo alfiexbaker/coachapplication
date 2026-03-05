@@ -3,7 +3,7 @@
  */
 
 import { memo, useCallback } from 'react';
-import { View, StyleSheet, Alert } from 'react-native';
+import { View, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
 import { SurfaceCard } from '@/components/primitives/surface-card';
@@ -12,6 +12,7 @@ import { Row } from '@/components/primitives/row';
 import { ThemedText } from '@/components/themed-text';
 import { Spacing, Typography, withAlpha, Radii } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
+import { uiFeedback } from '@/services/ui-feedback';
 
 interface PaymentSummaryCardProps {
   totalOwed: number;
@@ -35,7 +36,7 @@ function PaymentSummaryCardInner({
   const formatGBP = (amount: number) => `\u00A3${amount.toFixed(2)}`;
 
   const handleWriteOffInfo = useCallback(() => {
-    Alert.alert(
+    uiFeedback.alert(
       'What does "written off" mean?',
       'Written-off sessions are payments you\'ve decided not to chase. Common reasons:\n\n' +
         '\u2022 Athlete cancelled last minute\n' +

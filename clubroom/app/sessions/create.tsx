@@ -1,13 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import {
-  Alert,
-  KeyboardAvoidingView,
-  Platform,
-  ScrollView,
-  StyleSheet,
-  TextInput,
-  View,
-} from 'react-native';
+import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router, useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -39,6 +31,7 @@ import { STORAGE_KEYS } from '@/constants/storage-keys';
 import { getRosterAthleteName, getRosterParentName } from '@/utils/roster-display';
 import { getSessionOfferingHeadcount } from '@/utils/session-offering-capacity';
 import type { Academy, AcademyMembership, GroupSession, SessionOffering, TimeSlot } from '@/constants/types';
+import { uiFeedback } from '@/services/ui-feedback';
 
 type FlowMode = 'choose' | 'new' | 'existing';
 type ExistingSessionSource = 'offering' | 'group';
@@ -322,7 +315,7 @@ function ExistingInviteFlow({
           setAcademies([]);
         }
       } catch {
-        Alert.alert('Error', 'Failed to load session invite data. Pull to retry.');
+        uiFeedback.alert('Error', 'Failed to load session invite data. Pull to retry.');
       } finally {
         if (active) {
           setLoading(false);
@@ -432,19 +425,19 @@ function ExistingInviteFlow({
   const handleSubmit = useCallback(async () => {
     if (!currentUser || !selectedSession) return;
     if (postingAs === 'club' && !selectedClub) {
-      Alert.alert('Select club', 'Choose which club you are posting on behalf of.');
+      uiFeedback.alert('Select club', 'Choose which club you are posting on behalf of.');
       return;
     }
     if (postingAs === 'club' && !canPostAsSelectedClub) {
-      Alert.alert('Permission required', 'You do not have permission to post invites as this club.');
+      uiFeedback.alert('Permission required', 'You do not have permission to post invites as this club.');
       return;
     }
     if (postingAs === 'club' && !assigneeCoachId) {
-      Alert.alert('Assign coach', 'Choose a coach owner before sending invites.');
+      uiFeedback.alert('Assign coach', 'Choose a coach owner before sending invites.');
       return;
     }
     if (!ownerCoachId) {
-      Alert.alert('Assign coach', 'Choose a coach owner before sending invites.');
+      uiFeedback.alert('Assign coach', 'Choose a coach owner before sending invites.');
       return;
     }
 
@@ -543,7 +536,7 @@ function ExistingInviteFlow({
         router.replace(Routes.BOOKINGS);
       }
     } catch {
-      Alert.alert('Error', 'Failed to send invites. Please try again.');
+      uiFeedback.alert('Error', 'Failed to send invites. Please try again.');
     } finally {
       setSubmitting(false);
     }

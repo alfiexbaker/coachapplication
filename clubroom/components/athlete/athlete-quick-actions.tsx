@@ -3,7 +3,7 @@
  */
 
 import React, { useCallback } from 'react';
-import { StyleSheet, Alert, Platform } from 'react-native';
+import { StyleSheet, Platform } from 'react-native';
 import { router } from 'expo-router';
 import { Routes } from '@/navigation/routes';
 import { Ionicons } from '@expo/vector-icons';
@@ -17,6 +17,7 @@ import { useTheme } from '@/hooks/useTheme';
 import { sendEmail, openMessage } from '@/utils/contact-actions';
 import type { RosterEntry } from '@/constants/types';
 import { getRosterAthleteName } from '@/utils/roster-display';
+import { uiFeedback } from '@/services/ui-feedback';
 
 interface AthleteQuickActionsProps {
   athlete: RosterEntry;
@@ -44,7 +45,7 @@ function AthleteQuickActionsInner({ athlete, onRaiseConcern, onRemove }: Athlete
     if (Platform.OS !== 'web') {
       void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     }
-    Alert.alert(athleteName, undefined, [
+    uiFeedback.alert(athleteName, undefined, [
       { text: 'Cancel', style: 'cancel' },
       {
         text: 'View Analytics',

@@ -9,7 +9,6 @@
  */
 
 import { useState, useMemo, useCallback, useEffect } from 'react';
-import { Alert } from 'react-native';
 
 import { useAuth } from '@/hooks/use-auth';
 import { useChildContext } from '@/hooks/use-child-context';
@@ -20,6 +19,7 @@ import type { AthleteObjective, FootballObjective } from '@/constants/types';
 import type { User } from '@/constants/app-types';
 import { err, ok, serviceError, type ServiceError } from '@/types/result';
 import { COACHING_FOCUSES } from '@/constants/football-registry';
+import { uiFeedback } from '@/services/ui-feedback';
 
 export const FOOTBALL_OBJECTIVES: FootballObjective[] = COACHING_FOCUSES;
 
@@ -193,7 +193,7 @@ export function useObjectives() {
 
   const deleteObjective = useCallback(
     (id: string) => {
-      Alert.alert('Delete Goal', 'Remove this goal from your list?', [
+      uiFeedback.alert('Delete Goal', 'Remove this goal from your list?', [
         { text: 'Cancel', style: 'cancel' },
         {
           text: 'Delete',

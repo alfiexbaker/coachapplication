@@ -1,5 +1,5 @@
 import React, { memo, useState } from 'react';
-import { StyleSheet, View, ActivityIndicator, Alert } from 'react-native';
+import { StyleSheet, View, ActivityIndicator } from 'react-native';
 import { Clickable } from '@/components/primitives/clickable';
 import { Ionicons } from '@expo/vector-icons';
 import { Row } from '@/components/primitives/row';
@@ -8,6 +8,7 @@ import { ThemedText } from '@/components/themed-text';
 import { Spacing, Radii, Typography, Components, withAlpha } from '@/constants/theme';
 import type { ThemeColors } from '@/hooks/useTheme';
 import type { SessionRsvp } from '@/constants/types';
+import { uiFeedback } from '@/services/ui-feedback';
 
 // --- Helpers ----------------------------------------------------------------
 
@@ -143,19 +144,19 @@ export const ReminderButton = memo(function ReminderButton({
 
   const handlePress = async () => {
     if (pendingCount === 0) {
-      Alert.alert('All Responded', 'Everyone has already responded to this session.');
+      uiFeedback.alert('All Responded', 'Everyone has already responded to this session.');
       return;
     }
 
     setSending(true);
     try {
       await sendReminder(sessionId);
-      Alert.alert(
+      uiFeedback.alert(
         'Reminders Sent',
         `Reminder sent to ${pendingCount} parent${pendingCount !== 1 ? 's' : ''}.`,
       );
     } catch {
-      Alert.alert('Error', 'Failed to send reminders. Please try again.');
+      uiFeedback.alert('Error', 'Failed to send reminders. Please try again.');
     } finally {
       setSending(false);
     }

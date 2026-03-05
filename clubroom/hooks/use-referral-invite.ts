@@ -4,7 +4,7 @@
  */
 
 import { useState, useCallback } from 'react';
-import { Alert } from 'react-native';
+
 import * as Clipboard from 'expo-clipboard';
 import * as Haptics from 'expo-haptics';
 import { useAuth } from '@/hooks/use-auth';
@@ -13,6 +13,7 @@ import { referralService } from '@/services/referral-service';
 import { createLogger } from '@/utils/logger';
 import { err, ok, serviceError, type ServiceError } from '@/types/result';
 import type { ReferralCode } from '@/constants/types';
+import { uiFeedback } from '@/services/ui-feedback';
 
 const logger = createLogger('ReferralInviteScreen');
 
@@ -64,7 +65,7 @@ export function useReferralInvite() {
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
     } catch {
-      Alert.alert('Error', 'Failed to copy code');
+      uiFeedback.alert('Error', 'Failed to copy code');
     }
   }, [referralCode]);
 
@@ -77,7 +78,7 @@ export function useReferralInvite() {
       setLinkCopied(true);
       setTimeout(() => setLinkCopied(false), 2000);
     } catch {
-      Alert.alert('Error', 'Failed to copy link');
+      uiFeedback.alert('Error', 'Failed to copy link');
     }
   }, [referralCode]);
 

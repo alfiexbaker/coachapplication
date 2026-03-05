@@ -4,7 +4,7 @@
  */
 
 import { useCallback } from 'react';
-import { Linking, Alert } from 'react-native';
+import { Linking } from 'react-native';
 import { useLocalSearchParams } from 'expo-router';
 import * as Haptics from 'expo-haptics';
 import { createLogger } from '@/utils/logger';
@@ -14,6 +14,7 @@ import { safetyService, AthleteEmergencyQuickView } from '@/services/safety-serv
 import { rosterService } from '@/services/roster-service';
 import { getRosterAthleteName } from '@/utils/roster-display';
 import { err, ok, serviceError, type ServiceError } from '@/types/result';
+import { uiFeedback } from '@/services/ui-feedback';
 
 const logger = createLogger('EmergencyQuickAccessScreen');
 
@@ -60,7 +61,7 @@ export function useEmergencyAccess() {
 
   const handleCallContact = useCallback(async (phone: string, name: string) => {
     await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-    Alert.alert('Call Emergency Contact', `Call ${name} at ${phone}?`, [
+    uiFeedback.alert('Call Emergency Contact', `Call ${name} at ${phone}?`, [
       { text: 'Cancel', style: 'cancel' },
       {
         text: 'Call',
@@ -69,9 +70,9 @@ export function useEmergencyAccess() {
             const url = `tel:${phone.replace(/\s+/g, '')}`;
             const canOpen = await Linking.canOpenURL(url);
             if (canOpen) await Linking.openURL(url);
-            else Alert.alert('Error', 'Unable to make phone calls on this device');
+            else uiFeedback.alert('Error', 'Unable to make phone calls on this device');
           } catch {
-            Alert.alert('Error', 'Failed to initiate call');
+            uiFeedback.alert('Error', 'Failed to initiate call');
           }
         },
       },
@@ -81,7 +82,7 @@ export function useEmergencyAccess() {
   const handleCallDoctor = useCallback(async () => {
     if (!emergencyData?.doctorPhone) return;
     await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-    Alert.alert(
+    uiFeedback.alert(
       'Call Doctor',
       `Call ${emergencyData.doctorName || 'Doctor'} at ${emergencyData.doctorPhone}?`,
       [
@@ -94,7 +95,7 @@ export function useEmergencyAccess() {
               const canOpen = await Linking.canOpenURL(url);
               if (canOpen) await Linking.openURL(url);
             } catch {
-              Alert.alert('Error', 'Failed to initiate call');
+              uiFeedback.alert('Error', 'Failed to initiate call');
             }
           },
         },

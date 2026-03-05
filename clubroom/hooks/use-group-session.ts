@@ -1,7 +1,6 @@
 import { useState, useCallback, useEffect, useMemo } from 'react';
 import { router } from 'expo-router';
 
-import { useAppAlert } from '@/components/ui/app-alert';
 import { useAuth } from '@/hooks/use-auth';
 import { useChildContext } from '@/hooks/use-child-context';
 import { useScreen } from '@/hooks/use-screen';
@@ -13,6 +12,7 @@ import { createLogger } from '@/utils/logger';
 import { useRequiredParam } from '@/hooks/use-required-param';
 import { err, ok, serviceError } from '@/types/result';
 import type { GroupSession, GroupRegistration, SessionRsvp, CancellationPolicy } from '@/constants/types';
+import { uiFeedback } from '@/services/ui-feedback';
 
 const logger = createLogger('GroupSessionDetailScreen');
 
@@ -83,7 +83,6 @@ function toButtonStatus(s: string): ButtonGroupStatus | null {
 export function useGroupSession() {
   const idParam = useRequiredParam('id');
   const id = idParam.valid ? idParam.value : '';
-  const { showAlert } = useAppAlert();
   const { currentUser } = useAuth();
   const {
     children: contextChildren,
@@ -282,7 +281,7 @@ export function useGroupSession() {
           currentUser.id,
         );
         if (!result.success) {
-          showAlert('Error', result.error.message || 'Failed to register. Please try again.');
+          uiFeedback.alert('Error', result.error.message || 'Failed to register. Please try again.');
           return;
         }
 
@@ -300,29 +299,29 @@ export function useGroupSession() {
         onRefresh();
 
         if (result.data.status === 'WAITLISTED') {
-          showAlert(
+          uiFeedback.alert(
             'Waitlisted',
             "You've been added to the waitlist. We'll notify you when a spot opens.",
           );
         } else {
           const name = children.find((c) => c.id === athleteId)?.name;
-          showAlert('Registered', name ? `${name} is registered!` : 'Registration successful!');
+          uiFeedback.alert('Registered', name ? `${name} is registered!` : 'Registration successful!');
         }
       } catch (regError) {
         logger.error('Failed to register:', regError);
-        showAlert('Error', 'Failed to register. Please try again.');
+        uiFeedback.alert('Error', 'Failed to register. Please try again.');
       } finally {
         setRegistering(false);
       }
     },
-    [children, currentUser, onRefresh, session, showAlert],
+    [children, currentUser, onRefresh, session],
   );
 
   /** Register a child (or self) for this session + auto-create RSVP as "going" */
   const handleRegister = useCallback(() => {
     if (!session || !currentUser) return;
     if (isDeadlinePassed) {
-      showAlert('Registration Closed', 'The registration deadline for this session has passed.');
+      uiFeedback.alert('Registration Closed', 'The registration deadline for this session has passed.');
       return;
     }
 
@@ -332,13 +331,13 @@ export function useGroupSession() {
       : currentUser.id;
 
     if (!athleteId) {
-      showAlert('Select Child', 'Please select which child to register.');
+      uiFeedback.alert('Select Child', 'Please select which child to register.');
       return;
     }
 
     // Check if already registered
     if (registeredChildIds.has(athleteId)) {
-      showAlert('Already Registered', 'This child is already registered for this session.');
+      uiFeedback.alert('Already Registered', 'This child is already registered for this session.');
       return;
     }
 
@@ -358,7 +357,7 @@ export function useGroupSession() {
       ? `${athleteName} will join the waitlist for "${session.title}" (${sessionDateLabel}${sessionTimeLabel ? ` · ${sessionTimeLabel}` : ''}).`
       : `${athleteName} will be registered for "${session.title}" (${sessionDateLabel}${sessionTimeLabel ? ` · ${sessionTimeLabel}` : ''}) at ${sessionPriceLabel}.`;
 
-    showAlert(title, body, [
+    uiFeedback.alert(title, body, [
       { text: 'Cancel', style: 'cancel' },
       {
         text: isJoiningWaitlist ? 'Join Waitlist' : 'Continue',
@@ -376,7 +375,6 @@ export function useGroupSession() {
     registeredChildIds,
     selectedChildId,
     session,
-    showAlert,
   ]);
 
   /** Cancel a specific registration */
@@ -387,7 +385,7 @@ export function useGroupSession() {
 
       const label = children.length > 0 ? `${target.childName}'s registration` : 'your registration';
 
-      showAlert(
+      uiFeedback.alert(
         'Cancel Registration',
         `Are you sure you want to cancel ${label} for "${session.title}"?`,
         [
@@ -401,20 +399,20 @@ export function useGroupSession() {
                   target.registration.id,
                 );
                 if (!result.success) {
-                  showAlert('Error', result.error.message || 'Failed to cancel registration.');
+                  uiFeedback.alert('Error', result.error.message || 'Failed to cancel registration.');
                   return;
                 }
                 onRefresh();
               } catch (cancelError) {
                 logger.error('Failed to cancel registration:', cancelError);
-                showAlert('Error', 'Failed to cancel registration. Please try again.');
+                uiFeedback.alert('Error', 'Failed to cancel registration. Please try again.');
               }
             },
           },
         ],
       );
     },
-    [session, myRegistrations, children, onRefresh, showAlert],
+    [session, myRegistrations, children, onRefresh],
   );
 
   /** Respond to RSVP for a specific family registration */
@@ -422,7 +420,7 @@ export function useGroupSession() {
     async (familyReg: FamilyRegistration, buttonStatus: ButtonGroupStatus) => {
       // Deadline guard — block responses after deadline
       if (isDeadlinePassed) {
-        showAlert('Deadline Passed', 'The RSVP deadline for this session has passed.');
+        uiFeedback.alert('Deadline Passed', 'The RSVP deadline for this session has passed.');
         return;
       }
 
@@ -456,14 +454,14 @@ export function useGroupSession() {
         setResponding(false);
       }
     },
-    [session, currentUser, onRefresh, isDeadlinePassed, showAlert],
+    [session, currentUser, onRefresh, isDeadlinePassed],
   );
 
   /** Coach cancels the entire session */
   const handleCancel = useCallback(async () => {
     if (!session) return;
 
-    showAlert('Cancel Session', 'Are you sure you want to cancel this session? All registrations will be cancelled.', [
+    uiFeedback.alert('Cancel Session', 'Are you sure you want to cancel this session? All registrations will be cancelled.', [
       { text: 'No', style: 'cancel' },
       {
         text: 'Yes, Cancel',
@@ -472,7 +470,7 @@ export function useGroupSession() {
           try {
             const result = await groupSessionService.cancelSession(session.id);
             if (!result.success) {
-              showAlert('Error', result.error.message || 'Failed to cancel session.');
+              uiFeedback.alert('Error', result.error.message || 'Failed to cancel session.');
               return;
             }
             // Clean up RSVPs
@@ -480,23 +478,23 @@ export function useGroupSession() {
             router.back();
           } catch (cancelErr) {
             logger.error('Failed to cancel:', cancelErr);
-            showAlert('Error', 'Failed to cancel session.');
+            uiFeedback.alert('Error', 'Failed to cancel session.');
           }
         },
       },
     ]);
-  }, [session, showAlert]);
+  }, [session]);
 
   /** Coach sends RSVP reminders to non-responders */
   const handleSendReminder = useCallback(async () => {
     if (!session) return;
     try {
       await rsvpService.sendReminder(session.id);
-      showAlert('Reminders Sent', `Sent to ${rsvpCounts.pending} non-responder${rsvpCounts.pending !== 1 ? 's' : ''}.`);
+      uiFeedback.alert('Reminders Sent', `Sent to ${rsvpCounts.pending} non-responder${rsvpCounts.pending !== 1 ? 's' : ''}.`);
     } catch {
-      showAlert('Error', 'Failed to send reminders.');
+      uiFeedback.alert('Error', 'Failed to send reminders.');
     }
-  }, [session, rsvpCounts.pending, showAlert]);
+  }, [session, rsvpCounts.pending]);
 
   return {
     id,

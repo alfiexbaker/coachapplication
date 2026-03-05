@@ -1,5 +1,5 @@
 import React, { memo, useCallback } from 'react';
-import { Alert, StyleSheet, View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 
@@ -12,6 +12,7 @@ import { Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
 import { Routes } from '@/navigation/routes';
 import { clubService, type ClubMember } from '@/services/club-service';
 import type { ThemeColors } from '@/hooks/useTheme';
+import { uiFeedback } from '@/services/ui-feedback';
 
 /**
  * Formats a name for privacy: coaches see full names, parents see "First L." for
@@ -52,7 +53,7 @@ export const SquadMembersCard = memo(function SquadMembersCard({
   onRemove,
 }: SquadMembersCardProps) {
   const handleRemove = useCallback((member: ClubMember) => {
-    Alert.alert(
+    uiFeedback.alert(
       'Remove Squad Member',
       `Remove ${member.userName} from this squad?`,
       [

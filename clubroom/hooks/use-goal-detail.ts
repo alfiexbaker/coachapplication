@@ -2,7 +2,7 @@
  * useGoalDetail — All state, data loading, handlers, and celebration logic for the Goal Detail screen.
  */
 import { useState, useCallback, useRef } from 'react';
-import { Alert } from 'react-native';
+
 import { router, useLocalSearchParams, useFocusEffect } from 'expo-router';
 import * as Haptics from 'expo-haptics';
 import {
@@ -18,6 +18,7 @@ import { createLogger } from '@/utils/logger';
 import type { Goal, GoalStatus } from '@/constants/types';
 import type { ScreenStatus } from '@/hooks/use-screen';
 import { serviceError, type ServiceError } from '@/types/result';
+import { uiFeedback } from '@/services/ui-feedback';
 
 const logger = createLogger('GoalDetailScreen');
 
@@ -99,7 +100,7 @@ export function useGoalDetail() {
         }
       } catch (error) {
         logger.error('Failed to toggle milestone', error);
-        Alert.alert('Error', 'Failed to update milestone. Please try again.');
+        uiFeedback.alert('Error', 'Failed to update milestone. Please try again.');
       }
     },
     [goal, triggerCelebration],
@@ -116,7 +117,7 @@ export function useGoalDetail() {
         }
       } catch (error) {
         logger.error('Failed to add milestone', error);
-        Alert.alert('Error', 'Failed to add milestone. Please try again.');
+        uiFeedback.alert('Error', 'Failed to add milestone. Please try again.');
       }
     },
     [goal],
@@ -130,7 +131,7 @@ export function useGoalDetail() {
         if (updatedGoal) setGoal(updatedGoal);
       } catch (error) {
         logger.error('Failed to delete milestone', error);
-        Alert.alert('Error', 'Failed to delete milestone. Please try again.');
+        uiFeedback.alert('Error', 'Failed to delete milestone. Please try again.');
       }
     },
     [goal],
@@ -148,7 +149,7 @@ export function useGoalDetail() {
         }
       } catch (error) {
         logger.error('Failed to update goal status', error);
-        Alert.alert('Error', 'Failed to update goal. Please try again.');
+        uiFeedback.alert('Error', 'Failed to update goal. Please try again.');
       }
     },
     [goal, triggerCelebration],
@@ -156,7 +157,7 @@ export function useGoalDetail() {
 
   const handleDelete = useCallback(() => {
     if (!goal) return;
-    Alert.alert(
+    uiFeedback.alert(
       'Delete Goal',
       `Are you sure you want to delete "${goal.title}"? This action cannot be undone.`,
       [
@@ -171,7 +172,7 @@ export function useGoalDetail() {
               router.back();
             } catch (error) {
               logger.error('Failed to delete goal', error);
-              Alert.alert('Error', 'Failed to delete goal. Please try again.');
+              uiFeedback.alert('Error', 'Failed to delete goal. Please try again.');
             }
           },
         },

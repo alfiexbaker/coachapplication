@@ -6,7 +6,6 @@
  */
 
 import { useState, useEffect, useCallback, useMemo } from 'react';
-import { Alert } from 'react-native';
 
 import { useAuth } from '@/hooks/use-auth';
 import { useScreen, type ScreenStatus } from '@/hooks/use-screen';
@@ -17,6 +16,7 @@ import { eventService } from '@/services/event';
 import { createLogger } from '@/utils/logger';
 import type { CalendarSyncSettings, CalendarProvider, CalendarEvent } from '@/constants/types';
 import { err, ok, serviceError, type ServiceError } from '@/types/result';
+import { uiFeedback } from '@/services/ui-feedback';
 
 const logger = createLogger('useCalendarSync');
 
@@ -86,13 +86,13 @@ export function useCalendarSync() {
           setSettingsOverride(previousSettings);
           const message = result.error || 'Failed to save settings';
           setActionError(message);
-          Alert.alert('Error', message);
+          uiFeedback.alert('Error', message);
         }
       } catch (saveError) {
         logger.error('Failed to save settings', saveError);
         setSettingsOverride(previousSettings);
         setActionError('Failed to save settings. Please try again.');
-        Alert.alert('Error', 'Failed to save settings. Please try again.');
+        uiFeedback.alert('Error', 'Failed to save settings. Please try again.');
       } finally {
         setIsSaving(false);
       }
@@ -160,7 +160,7 @@ export function useCalendarSync() {
       }
 
       if (allEvents.length === 0) {
-        Alert.alert('No Sessions', 'You have no upcoming sessions to export.');
+        uiFeedback.alert('No Sessions', 'You have no upcoming sessions to export.');
         return;
       }
 
@@ -168,14 +168,14 @@ export function useCalendarSync() {
       if (!result.success || !result.filePath) {
         const message = result.error || 'Failed to export sessions.';
         setActionError(message);
-        Alert.alert('Export Failed', message);
+        uiFeedback.alert('Export Failed', message);
         return;
       }
 
       const isAvailable = await (await import('expo-sharing')).isAvailableAsync();
       if (!isAvailable) {
         setActionError('Sharing is not available on this device');
-        Alert.alert('Export Failed', 'Sharing is not available on this device');
+        uiFeedback.alert('Export Failed', 'Sharing is not available on this device');
         return;
       }
 
@@ -187,7 +187,7 @@ export function useCalendarSync() {
     } catch (exportError) {
       logger.error('Failed to export sessions', exportError);
       setActionError('Failed to export sessions. Please try again.');
-      Alert.alert('Error', 'Failed to export sessions. Please try again.');
+      uiFeedback.alert('Error', 'Failed to export sessions. Please try again.');
     } finally {
       setIsExporting(false);
     }

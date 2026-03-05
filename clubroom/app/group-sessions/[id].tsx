@@ -375,7 +375,11 @@ export default function GroupSessionDetailScreen() {
           )}
 
           {isCoach && (
-            <GroupSessionCoachActions sessionId={id} rosterCount={roster.length} onCancel={handleCancel} />
+            <GroupSessionCoachActions
+              sessionId={id}
+              rosterCount={roster?.length ?? 0}
+              onCancel={handleCancel}
+            />
           )}
         </View>
       </ScrollView>

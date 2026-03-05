@@ -6,7 +6,6 @@
  */
 
 import { useState, useCallback } from 'react';
-import { Alert } from 'react-native';
 
 import { useAuth } from '@/hooks/use-auth';
 import { useScreen, type ScreenStatus } from '@/hooks/use-screen';
@@ -14,6 +13,7 @@ import { eventService } from '@/services/event-service';
 import type { ClubEvent, RSVPStatus } from '@/constants/types';
 import { createLogger } from '@/utils/logger';
 import { err, ok, serviceError, type ServiceError } from '@/types/result';
+import { uiFeedback } from '@/services/ui-feedback';
 
 const logger = createLogger('useEventDetail');
 
@@ -87,7 +87,7 @@ export function useEventDetail(id: string | undefined): UseEventDetailResult {
         onRefresh();
       } catch (error) {
         logger.error('Failed to RSVP:', error);
-        Alert.alert('Error', 'Failed to save your response. Please try again.');
+        uiFeedback.alert('Error', 'Failed to save your response. Please try again.');
       }
     },
     [event, currentUser, isCoach, onRefresh],
@@ -96,7 +96,7 @@ export function useEventDetail(id: string | undefined): UseEventDetailResult {
   const handlePublish = useCallback(async () => {
     if (!event) return;
 
-    Alert.alert('Publish Event', 'This will notify all club members about this event.', [
+    uiFeedback.alert('Publish Event', 'This will notify all club members about this event.', [
       { text: 'Cancel', style: 'cancel' },
       {
         text: 'Publish',
@@ -105,10 +105,10 @@ export function useEventDetail(id: string | undefined): UseEventDetailResult {
             await eventService.publishEvent(event.id);
             await eventService.inviteClub(event.id);
             onRefresh();
-            Alert.alert('Success', 'Event published and members notified!');
+            uiFeedback.alert('Success', 'Event published and members notified!');
           } catch (error) {
             logger.error('Failed to publish:', error);
-            Alert.alert('Error', 'Failed to publish event.');
+            uiFeedback.alert('Error', 'Failed to publish event.');
           }
         },
       },
@@ -118,7 +118,7 @@ export function useEventDetail(id: string | undefined): UseEventDetailResult {
   const handleCancel = useCallback(async () => {
     if (!event) return;
 
-    Alert.alert('Cancel Event', 'Are you sure you want to cancel this event?', [
+    uiFeedback.alert('Cancel Event', 'Are you sure you want to cancel this event?', [
       { text: 'No', style: 'cancel' },
       {
         text: 'Yes, Cancel',
@@ -129,7 +129,7 @@ export function useEventDetail(id: string | undefined): UseEventDetailResult {
             onRefresh();
           } catch (error) {
             logger.error('Failed to cancel:', error);
-            Alert.alert('Error', 'Failed to cancel event.');
+            uiFeedback.alert('Error', 'Failed to cancel event.');
           }
         },
       },

@@ -1,4 +1,4 @@
-import { Alert, ScrollView, StyleSheet, View, RefreshControl } from 'react-native';
+import { ScrollView, StyleSheet, View, RefreshControl } from 'react-native';
 import { router } from 'expo-router';
 import { Routes } from '@/navigation/routes';
 import { Ionicons } from '@expo/vector-icons';
@@ -13,6 +13,7 @@ import { VerificationScreenState } from '@/components/verification/verification-
 import { Radii, Spacing, Typography } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
 import { useVerificationHub } from '@/hooks/use-verification-hub';
+import { uiFeedback } from '@/services/ui-feedback';
 
 export default function VerificationHubScreen() {
   const { colors: palette } = useTheme();
@@ -111,12 +112,12 @@ export default function VerificationHubScreen() {
               item={status.email}
               onPress={() =>
                 status.email.status === 'VERIFIED'
-                  ? Alert.alert('Email Verified', 'Your email is already verified.')
-                  : Alert.alert('Verify Email', 'We will send a verification code to your email address.', [
+                  ? uiFeedback.alert('Email Verified', 'Your email is already verified.')
+                  : uiFeedback.alert('Verify Email', 'We will send a verification code to your email address.', [
                       { text: 'Cancel', style: 'cancel' },
                       {
                         text: 'Send Code',
-                        onPress: () => Alert.alert('Code Sent', 'Check your inbox for the verification code.'),
+                        onPress: () => uiFeedback.alert('Code Sent', 'Check your inbox for the verification code.'),
                       },
                     ])
               }
@@ -130,12 +131,12 @@ export default function VerificationHubScreen() {
               item={status.phone}
               onPress={() =>
                 status.phone.status === 'VERIFIED'
-                  ? Alert.alert('Phone Verified', 'Your phone number is already verified.')
-                  : Alert.alert('Verify Phone', 'We will send an SMS verification code to your phone.', [
+                  ? uiFeedback.alert('Phone Verified', 'Your phone number is already verified.')
+                  : uiFeedback.alert('Verify Phone', 'We will send an SMS verification code to your phone.', [
                       { text: 'Cancel', style: 'cancel' },
                       {
                         text: 'Send SMS',
-                        onPress: () => Alert.alert('Code Sent', 'Check your messages for the verification code.'),
+                        onPress: () => uiFeedback.alert('Code Sent', 'Check your messages for the verification code.'),
                       },
                     ])
               }
@@ -187,8 +188,8 @@ export default function VerificationHubScreen() {
               item={status.insurance}
               onPress={() =>
                 status.insurance.status === 'VERIFIED'
-                  ? Alert.alert('Insurance Verified', 'Your insurance documents are verified and up to date.')
-                  : Alert.alert(
+                  ? uiFeedback.alert('Insurance Verified', 'Your insurance documents are verified and up to date.')
+                  : uiFeedback.alert(
                       'Upload Insurance',
                       'Upload your public liability insurance certificate to get verified.',
                       [

@@ -1,5 +1,5 @@
 import React, { memo } from 'react';
-import { StyleSheet, View, Alert } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 import { Image } from 'expo-image';
 import { Ionicons } from '@expo/vector-icons';
 
@@ -9,6 +9,7 @@ import { Row } from '@/components/primitives/row';
 import { Radii, Spacing, Typography, withAlpha } from '@/constants/theme';
 import type { MutedCoach } from '@/constants/types';
 import type { useTheme } from '@/hooks/useTheme';
+import { uiFeedback } from '@/services/ui-feedback';
 
 type ThemeColors = ReturnType<typeof useTheme>['colors'];
 
@@ -50,7 +51,7 @@ export const MutedCoachRow = memo(function MutedCoachRow({
   palette,
 }: MutedCoachRowProps) {
   const handleUnmute = () => {
-    Alert.alert(
+    uiFeedback.alert(
       'Unmute Coach',
       `Are you sure you want to unmute ${coach.coachName}? You will start receiving notifications from them again.`,
       [

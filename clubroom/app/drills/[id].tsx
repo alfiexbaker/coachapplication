@@ -1,5 +1,5 @@
 import { useState, useCallback } from 'react';
-import { View, StyleSheet, ScrollView, RefreshControl, Alert } from 'react-native';
+import { View, StyleSheet, ScrollView, RefreshControl } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router, useLocalSearchParams } from 'expo-router';
 import type { ReactNode } from 'react';
@@ -23,6 +23,7 @@ import { useScreen } from '@/hooks/use-screen';
 import { err, ok, serviceError } from '@/types/result';
 import { drillService } from '@/services/drill-service';
 import { createLogger } from '@/utils/logger';
+import { uiFeedback } from '@/services/ui-feedback';
 
 const logger = createLogger('DrillDetailScreen');
 
@@ -68,14 +69,14 @@ export default function DrillDetailScreen() {
       retry();
       setShowFeedbackInput(false);
       setFeedback('');
-      Alert.alert(
+      uiFeedback.alert(
         'Drill Completed!',
         'Great work on completing this drill. Keep up the momentum!',
         [{ text: 'OK' }],
       );
     } catch (error) {
       logger.error('Failed to complete drill:', error);
-      Alert.alert('Error', 'Failed to mark drill as complete. Please try again.');
+      uiFeedback.alert('Error', 'Failed to mark drill as complete. Please try again.');
     } finally {
       setCompleting(false);
     }
@@ -83,7 +84,7 @@ export default function DrillDetailScreen() {
 
   const handleUncomplete = useCallback(async () => {
     if (!assignment) return;
-    Alert.alert('Mark as Incomplete?', 'This will move the drill back to your pending list.', [
+    uiFeedback.alert('Mark as Incomplete?', 'This will move the drill back to your pending list.', [
       { text: 'Cancel', style: 'cancel' },
       {
         text: 'Mark Incomplete',

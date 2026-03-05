@@ -1,5 +1,5 @@
 import React, { useState, useCallback, type ReactNode } from 'react';
-import { View, ScrollView, StyleSheet, Alert, type StyleProp, type ViewStyle } from 'react-native';
+import { View, ScrollView, StyleSheet, type StyleProp, type ViewStyle } from 'react-native';
 import { useRouter, Stack } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -17,6 +17,7 @@ import type { SessionRsvp } from '@/constants/types';
 import { err, ok, serviceError } from '@/types/result';
 import { getSessionRsvpChildName } from '@/utils/session-rsvp-display';
 import { useOptionalParam, useRequiredParam } from '@/hooks/use-required-param';
+import { uiFeedback } from '@/services/ui-feedback';
 
 interface SessionInfo {
   id: string;
@@ -146,7 +147,7 @@ export default function RSVPScreen() {
         maybe: 'maybe attending',
       };
 
-      Alert.alert(
+      uiFeedback.alert(
         'Response Recorded',
         `You've confirmed ${getSessionRsvpChildName(rsvp)} is ${statusLabels[status]}.`,
         [
@@ -160,7 +161,7 @@ export default function RSVPScreen() {
       );
       return true;
     } catch {
-      Alert.alert('Error', 'Failed to submit your response. Please try again.');
+      uiFeedback.alert('Error', 'Failed to submit your response. Please try again.');
       return false;
     }
   };

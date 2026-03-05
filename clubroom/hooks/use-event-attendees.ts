@@ -1,5 +1,5 @@
 import { useState, useCallback } from 'react';
-import { Alert } from 'react-native';
+
 import { router } from 'expo-router';
 import { Routes } from '@/navigation/routes';
 
@@ -15,6 +15,7 @@ import type {
   CheckInInput,
 } from '@/constants/types';
 import { err, ok, serviceError, type ServiceError } from '@/types/result';
+import { uiFeedback } from '@/services/ui-feedback';
 
 const logger = createLogger('useEventAttendees');
 
@@ -109,7 +110,7 @@ export function useEventAttendees(id: string | undefined): UseEventAttendeesResu
         onRefresh();
       } catch (checkInError) {
         logger.error('Failed to check in attendee', checkInError);
-        Alert.alert('Check-in failed', 'Could not complete check-in. Please try again.');
+        uiFeedback.alert('Check-in failed', 'Could not complete check-in. Please try again.');
       }
     },
     [onRefresh],
@@ -122,7 +123,7 @@ export function useEventAttendees(id: string | undefined): UseEventAttendeesResu
       onRefresh();
     } catch (undoError) {
       logger.error('Failed to undo check-in', undoError);
-      Alert.alert('Undo failed', 'Could not undo check-in. Please try again.');
+      uiFeedback.alert('Undo failed', 'Could not undo check-in. Please try again.');
     }
   }, [id, currentUser, onRefresh]);
 
@@ -134,7 +135,7 @@ export function useEventAttendees(id: string | undefined): UseEventAttendeesResu
   const handleExport = useCallback(() => {
     logger.press('ExportAttendees', { eventId: id });
     const names = attendance.map((a) => a.userId).join('\n');
-    Alert.alert(
+    uiFeedback.alert(
       'Attendee List',
       `${attendance.length} checked in:\n\n${names || 'No attendees yet'}`,
       [{ text: 'OK' }],
@@ -144,7 +145,7 @@ export function useEventAttendees(id: string | undefined): UseEventAttendeesResu
   const handleSendReminder = useCallback(() => {
     logger.press('SendReminder', { eventId: id });
     const nonResponders = rsvps.filter((r) => r.status === 'MAYBE').length;
-    Alert.alert(
+    uiFeedback.alert(
       'Send Reminder',
       nonResponders > 0
         ? `Send reminder to ${nonResponders} people who haven't responded?`
@@ -152,7 +153,7 @@ export function useEventAttendees(id: string | undefined): UseEventAttendeesResu
       nonResponders > 0
         ? [
             { text: 'Cancel', style: 'cancel' },
-            { text: 'Send', onPress: () => Alert.alert('Sent', 'Reminders have been sent') },
+            { text: 'Send', onPress: () => uiFeedback.alert('Sent', 'Reminders have been sent') },
           ]
         : [{ text: 'OK' }],
     );

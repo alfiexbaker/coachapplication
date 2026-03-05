@@ -6,7 +6,7 @@
  */
 
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
-import { Alert, Platform } from 'react-native';
+import { Platform } from 'react-native';
 import { router } from 'expo-router';
 import * as Haptics from 'expo-haptics';
 import * as ImagePicker from 'expo-image-picker';
@@ -40,6 +40,7 @@ import type { ChatMessage, RosterEntry } from '@/constants/types';
 import type { BadgeDefinitionWithStats } from '@/services/badge-service';
 import type { AttendanceStatus as StepAttendanceStatus } from '@/components/session/attendance-step';
 import type { QuickRateInput } from '@/types/progress-types';
+import { uiFeedback } from '@/services/ui-feedback';
 
 const logger = createLogger('SessionComplete');
 
@@ -547,7 +548,7 @@ export function useSessionCompletion(sessionId: string | undefined) {
     try {
       const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
       if (status !== 'granted') {
-        Alert.alert('Permission needed', 'Please allow photo library access.');
+        uiFeedback.alert('Permission needed', 'Please allow photo library access.');
         return;
       }
 
@@ -562,7 +563,7 @@ export function useSessionCompletion(sessionId: string | undefined) {
       }
     } catch (error) {
       logger.error('Failed to add image', error);
-      Alert.alert('Error', 'Unable to add photo right now.');
+      uiFeedback.alert('Error', 'Unable to add photo right now.');
     }
   }, []);
 
@@ -570,7 +571,7 @@ export function useSessionCompletion(sessionId: string | undefined) {
     try {
       const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
       if (status !== 'granted') {
-        Alert.alert('Permission needed', 'Please allow video library access.');
+        uiFeedback.alert('Permission needed', 'Please allow video library access.');
         return;
       }
 
@@ -585,7 +586,7 @@ export function useSessionCompletion(sessionId: string | undefined) {
       }
     } catch (error) {
       logger.error('Failed to add video', error);
-      Alert.alert('Error', 'Unable to add video right now.');
+      uiFeedback.alert('Error', 'Unable to add video right now.');
     }
   }, []);
 
@@ -1015,7 +1016,7 @@ export function useSessionCompletion(sessionId: string | undefined) {
       } catch (err) {
         logger.error('Failed to complete session', err);
         if (isMountedRef.current) {
-          Alert.alert('Error', 'Failed to complete session. Please try again.');
+          uiFeedback.alert('Error', 'Failed to complete session. Please try again.');
         }
         return null;
       } finally {

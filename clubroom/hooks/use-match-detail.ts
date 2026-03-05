@@ -2,7 +2,7 @@
  * useMatchDetail — All state, data loading, and handlers for the Match Detail screen.
  */
 import { useState, useCallback } from 'react';
-import { Alert } from 'react-native';
+
 import { router, useLocalSearchParams } from 'expo-router';
 import { useAuth } from '@/hooks/use-auth';
 import { useScreen, type ScreenStatus } from '@/hooks/use-screen';
@@ -10,6 +10,7 @@ import { matchService } from '@/services/match-service';
 import { createLogger } from '@/utils/logger';
 import { err, ok, serviceError, type ServiceError } from '@/types/result';
 import type { Match } from '@/constants/types';
+import { uiFeedback } from '@/services/ui-feedback';
 
 const logger = createLogger('MatchDetailScreen');
 
@@ -96,15 +97,15 @@ export function useMatchDetail() {
         const result = await matchService.setLineup({ matchId: match.id, lineup });
         if (!result.success) {
           logger.error('Failed to set lineup:', result.error);
-          Alert.alert('Error', 'Failed to set lineup. Please try again.');
+          uiFeedback.alert('Error', 'Failed to set lineup. Please try again.');
           return;
         }
         onRefresh();
         setShowLineupSelector(false);
-        Alert.alert('Lineup Set', 'The lineup has been confirmed and players notified.');
+        uiFeedback.alert('Lineup Set', 'The lineup has been confirmed and players notified.');
       } catch (error) {
         logger.error('Failed to set lineup:', error);
-        Alert.alert('Error', 'Failed to set lineup. Please try again.');
+        uiFeedback.alert('Error', 'Failed to set lineup. Please try again.');
       } finally {
         setIsSubmitting(false);
       }
@@ -140,7 +141,7 @@ export function useMatchDetail() {
   );
 
   const handleRecordResult = useCallback(() => {
-    Alert.prompt(
+    uiFeedback.prompt(
       'Record Result',
       'Enter the final score (home-away, e.g., 3-1)',
       [
@@ -151,19 +152,19 @@ export function useMatchDetail() {
             if (!score || !match) return;
             const [home, away] = score.split('-').map(Number);
             if (isNaN(home) || isNaN(away)) {
-              Alert.alert('Invalid Score', 'Please enter a valid score like 3-1');
+              uiFeedback.alert('Invalid Score', 'Please enter a valid score like 3-1');
               return;
             }
             try {
               const result = await matchService.recordResult(match.id, { home, away });
               if (!result.success) {
-                Alert.alert('Error', 'Failed to record result.');
+                uiFeedback.alert('Error', 'Failed to record result.');
                 return;
               }
               onRefresh();
-              Alert.alert('Result Recorded', 'The match result has been saved.');
+              uiFeedback.alert('Result Recorded', 'The match result has been saved.');
             } catch {
-              Alert.alert('Error', 'Failed to record result.');
+              uiFeedback.alert('Error', 'Failed to record result.');
             }
           },
         },
@@ -173,7 +174,7 @@ export function useMatchDetail() {
   }, [match, onRefresh]);
 
   const handleCancelMatch = useCallback(() => {
-    Alert.alert(
+    uiFeedback.alert(
       'Cancel Match',
       'Are you sure you want to cancel this match? All players will be notified.',
       [
@@ -186,12 +187,12 @@ export function useMatchDetail() {
             try {
               const result = await matchService.cancelMatch(match.id);
               if (!result.success) {
-                Alert.alert('Error', 'Failed to cancel match.');
+                uiFeedback.alert('Error', 'Failed to cancel match.');
                 return;
               }
               onRefresh();
             } catch {
-              Alert.alert('Error', 'Failed to cancel match.');
+              uiFeedback.alert('Error', 'Failed to cancel match.');
             }
           },
         },

@@ -6,7 +6,7 @@
  */
 
 import { useState, useCallback, useEffect } from 'react';
-import { StyleSheet, Alert } from 'react-native';
+import { StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router, useLocalSearchParams } from 'expo-router';
 import { Routes } from '@/navigation/routes';
@@ -28,6 +28,7 @@ import { useAuth } from '@/hooks/use-auth';
 import { useChildContext } from '@/hooks/use-child-context';
 import { progressService } from '@/services/progress-service';
 import { scaleFont } from '@/utils/scale';
+import { uiFeedback } from '@/services/ui-feedback';
 
 const logger = createLogger('CreateGoalScreen');
 
@@ -57,7 +58,7 @@ export default function CreateGoalScreen() {
           setGoal(data);
         } catch (error) {
           logger.error('Failed to load goal', error);
-          Alert.alert('Error', 'Failed to load goal for editing.');
+          uiFeedback.alert('Error', 'Failed to load goal for editing.');
           router.back();
         } finally {
           setInitialLoading(false);
@@ -107,7 +108,7 @@ export default function CreateGoalScreen() {
         }
       } catch (error) {
         logger.error('Failed to save goal', error);
-        Alert.alert(
+        uiFeedback.alert(
           'Error',
           isEditing
             ? 'Failed to update goal. Please try again.'

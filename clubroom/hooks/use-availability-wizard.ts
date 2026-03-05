@@ -2,13 +2,14 @@
  * useAvailabilityWizard — State, handlers, and computed values for AvailabilitySetupWizard.
  */
 import { useState, useCallback, useMemo } from 'react';
-import { Alert, Platform } from 'react-native';
+import { Platform } from 'react-native';
 import * as Haptics from 'expo-haptics';
 
 import { availabilityService } from '@/services/availability-service';
 import { createLogger } from '@/utils/logger';
 import type { AvailabilityTemplate } from '@/constants/types';
 import type { SessionTemplate } from '@/constants/session-types';
+import { uiFeedback } from '@/services/ui-feedback';
 
 const logger = createLogger('AvailabilitySetupWizard');
 
@@ -209,7 +210,7 @@ export function useAvailabilityWizard({
 
           if (totalConflicts > 0) {
             const proceed = await new Promise<boolean>((resolve) => {
-              Alert.alert(
+              uiFeedback.alert(
                 'Appointments on Removed Days',
                 `You have ${totalConflicts} appointment${totalConflicts !== 1 ? 's' : ''} on days you're removing. Existing appointments won't be cancelled, but no new ones can be booked.`,
                 [
@@ -260,7 +261,7 @@ export function useAvailabilityWizard({
       onComplete();
     } catch (error) {
       logger.error('Failed to save templates', error);
-      Alert.alert('Error', 'Failed to save availability. Please try again.');
+      uiFeedback.alert('Error', 'Failed to save availability. Please try again.');
     } finally {
       setSaving(false);
     }

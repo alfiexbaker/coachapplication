@@ -1,4 +1,4 @@
-import { Platform, ActionSheetIOS, Alert, StyleSheet, View } from 'react-native';
+import { Platform, ActionSheetIOS, StyleSheet, View } from 'react-native';
 import { Clickable } from '@/components/primitives/clickable';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
@@ -12,6 +12,7 @@ import { clubService, type ClubMember } from '@/services/club-service';
 import { useTheme } from '@/hooks/useTheme';
 import { Row } from '@/components/primitives';
 import { Column } from '@/components/primitives/column';
+import { uiFeedback } from '@/services/ui-feedback';
 
 export interface MemberRowProps {
   member: ClubMember;
@@ -45,7 +46,7 @@ export function MemberRow({ member, canRemove, onRemove, onPress }: MemberRowPro
         },
       );
     } else {
-      Alert.alert(member.userName, clubService.formatRole(member.role), [
+      uiFeedback.alert(member.userName, clubService.formatRole(member.role), [
         { text: 'Cancel', style: 'cancel' },
         {
           text: 'Remove from Club',

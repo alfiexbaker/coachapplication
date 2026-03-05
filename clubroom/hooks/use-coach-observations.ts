@@ -4,7 +4,7 @@
  */
 
 import { useState, useCallback, useEffect } from 'react';
-import { Alert } from 'react-native';
+
 import {
   coachObservationService,
   type CoachObservation,
@@ -13,6 +13,7 @@ import {
 import { useAuth } from '@/hooks/use-auth';
 import { onTyped, ServiceEvents } from '@/services/event-bus';
 import { createLogger } from '@/utils/logger';
+import { uiFeedback } from '@/services/ui-feedback';
 
 const logger = createLogger('useCoachObservations');
 
@@ -71,7 +72,7 @@ export function useCoachObservations(athleteId: string) {
         if (editingObservation) {
           const result = await coachObservationService.updateObservation(editingObservation.id, data);
           if (!result.success) {
-            Alert.alert('Error', 'Failed to update observation. Please try again.');
+            uiFeedback.alert('Error', 'Failed to update observation. Please try again.');
             return;
           }
         } else {
@@ -82,14 +83,14 @@ export function useCoachObservations(athleteId: string) {
             ...data,
           });
           if (!result.success) {
-            Alert.alert('Error', 'Failed to save observation. Please try again.');
+            uiFeedback.alert('Error', 'Failed to save observation. Please try again.');
             return;
           }
         }
         hideModal();
       } catch (error) {
         logger.error('save_observation_failed', { error });
-        Alert.alert('Error', 'Something went wrong. Please try again.');
+        uiFeedback.alert('Error', 'Something went wrong. Please try again.');
       } finally {
         setSaving(false);
       }
@@ -99,7 +100,7 @@ export function useCoachObservations(athleteId: string) {
 
   const deleteObservation = useCallback(
     async (observationId: string) => {
-      Alert.alert('Delete Observation', 'Are you sure you want to delete this observation?', [
+      uiFeedback.alert('Delete Observation', 'Are you sure you want to delete this observation?', [
         { text: 'Cancel', style: 'cancel' },
         {
           text: 'Delete',
@@ -107,7 +108,7 @@ export function useCoachObservations(athleteId: string) {
           onPress: async () => {
             const result = await coachObservationService.deleteObservation(observationId);
             if (!result.success) {
-              Alert.alert('Error', 'Failed to delete observation. Please try again.');
+              uiFeedback.alert('Error', 'Failed to delete observation. Please try again.');
             }
           },
         },

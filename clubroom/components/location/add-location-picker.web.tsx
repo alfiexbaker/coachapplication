@@ -1,5 +1,5 @@
 import { memo, useCallback, useEffect, useMemo, useState } from 'react';
-import { ActivityIndicator, Alert, ScrollView, StyleSheet, TextInput, View } from 'react-native';
+import { ActivityIndicator, ScrollView, StyleSheet, TextInput, View } from 'react-native';
 import * as Location from 'expo-location';
 import { Ionicons } from '@expo/vector-icons';
 
@@ -15,6 +15,7 @@ import {
   findMatchingLocationPreset,
 } from '@/utils/location-presets';
 import type { AddLocationPickerProps, LocationCoordinates } from './add-location-picker.types';
+import { uiFeedback } from '@/services/ui-feedback';
 
 function normalizeLocation(value: string): string {
   return value.trim();
@@ -56,7 +57,7 @@ export default memo(function AddLocationPickerWeb({
       const normalized = normalizeLocation(query);
       if (normalized.length < 3) {
         if (!options?.silent) {
-          Alert.alert('Add a location', 'Enter at least 3 characters to search an address.');
+          uiFeedback.alert('Add a location', 'Enter at least 3 characters to search an address.');
         }
         return false;
       }
@@ -67,7 +68,7 @@ export default memo(function AddLocationPickerWeb({
         if (matches.length === 0) {
           onChangeCoordinates(null);
           if (!options?.silent) {
-            Alert.alert('Address not found', 'Try adding city or postcode for a better match.');
+            uiFeedback.alert('Address not found', 'Try adding city or postcode for a better match.');
           }
           return false;
         }
@@ -80,7 +81,7 @@ export default memo(function AddLocationPickerWeb({
       } catch {
         onChangeCoordinates(null);
         if (!options?.silent) {
-          Alert.alert('Search failed', 'Could not search this location right now.');
+          uiFeedback.alert('Search failed', 'Could not search this location right now.');
         }
         return false;
       } finally {
@@ -125,11 +126,11 @@ export default memo(function AddLocationPickerWeb({
   const handleSavePreset = useCallback(() => {
     if (!onSavePreset) return;
     if (normalizedValue.length < 3) {
-      Alert.alert('Add a location first', 'Search for an address, then save this preset.');
+      uiFeedback.alert('Add a location first', 'Search for an address, then save this preset.');
       return;
     }
     if (!coordinates) {
-      Alert.alert('Pin required', 'Use Find first so this preset stores exact coordinates.');
+      uiFeedback.alert('Pin required', 'Use Find first so this preset stores exact coordinates.');
       return;
     }
 

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { StyleSheet, Alert, ActivityIndicator } from 'react-native';
+import { StyleSheet, ActivityIndicator } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
 import { Clickable } from '@/components/primitives/clickable';
@@ -8,6 +8,7 @@ import { Radii, Spacing, Typography, withAlpha } from '@/constants/theme';
 import { calendarService } from '@/services/calendar-service';
 import type { Booking } from '@/constants/app-types';
 import { useTheme } from '@/hooks/useTheme';
+import { uiFeedback } from '@/services/ui-feedback';
 
 export interface CalendarExportButtonProps {
   /** Single booking to export */
@@ -65,12 +66,12 @@ export function CalendarExportButton({
       } else {
         const errorMsg = result.error || 'Failed to export to calendar';
         onExportError?.(errorMsg);
-        Alert.alert('Export Failed', errorMsg);
+        uiFeedback.alert('Export Failed', errorMsg);
       }
     } catch (error) {
       const errorMsg = error instanceof Error ? error.message : 'Export failed';
       onExportError?.(errorMsg);
-      Alert.alert('Export Failed', errorMsg);
+      uiFeedback.alert('Export Failed', errorMsg);
     } finally {
       setIsExporting(false);
     }

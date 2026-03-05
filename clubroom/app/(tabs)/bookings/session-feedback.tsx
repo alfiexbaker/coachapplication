@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from 'react';
-import { StyleSheet, Alert } from 'react-native';
+import { StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router, useLocalSearchParams } from 'expo-router';
 import { Routes } from '@/navigation/routes';
@@ -10,6 +10,7 @@ import { FootballObjective, Booking } from '@/constants/types';
 import { useTheme } from '@/hooks/useTheme';
 import { useAuth } from '@/hooks/use-auth';
 import { createLogger } from '@/utils/logger';
+import { uiFeedback } from '@/services/ui-feedback';
 
 const logger = createLogger('SessionFeedbackScreen');
 
@@ -82,7 +83,7 @@ export default function SessionFeedbackScreen() {
         router.replace(Routes.developmentSession(sessionId));
       } catch (error) {
         logger.error('Failed to create session', error);
-        Alert.alert('Error', 'Failed to create session. Please try again.');
+        uiFeedback.alert('Error', 'Failed to create session. Please try again.');
         router.back();
       }
     };

@@ -1,4 +1,4 @@
-import { View, StyleSheet, ScrollView, RefreshControl, Alert, Linking } from 'react-native';
+import { View, StyleSheet, ScrollView, RefreshControl, Linking } from 'react-native';
 import { Image } from 'expo-image';
 import { Row } from '@/components/primitives/row';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -19,6 +19,7 @@ import { useEventDetail } from '@/hooks/use-event-detail';
 import { useRequiredParam } from '@/hooks/use-required-param';
 import { eventService } from '@/services/event-service';
 import { scaleFont } from '@/utils/scale';
+import { uiFeedback } from '@/services/ui-feedback';
 
 export default function EventDetailScreen() {
   const { colors: palette } = useTheme();
@@ -57,12 +58,12 @@ export default function EventDetailScreen() {
     try {
       const supported = await Linking.canOpenURL(event.meetingLink);
       if (!supported) {
-        Alert.alert('Cannot open link', 'This meeting link is not supported on this device.');
+        uiFeedback.alert('Cannot open link', 'This meeting link is not supported on this device.');
         return;
       }
       await Linking.openURL(event.meetingLink);
     } catch {
-      Alert.alert('Unable to join', 'Try opening the meeting link again.');
+      uiFeedback.alert('Unable to join', 'Try opening the meeting link again.');
     }
   };
 

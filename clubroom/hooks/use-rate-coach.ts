@@ -7,7 +7,6 @@ import { useState, useCallback } from 'react';
 import { router } from 'expo-router';
 import { apiClient } from '@/services/api-client';
 import { useAuth } from '@/hooks/use-auth';
-import { useAppAlert } from '@/components/ui/app-alert';
 import { useScreen, type ScreenStatus } from '@/hooks/use-screen';
 import type { Booking } from '@/constants/app-types';
 import type { SessionOffering } from '@/constants/session-types';
@@ -20,6 +19,7 @@ import {
   getStoredCoachReviews,
   type StoredCoachReview,
 } from '@/services/review-sync-service';
+import { uiFeedback } from '@/services/ui-feedback';
 
 const logger = createLogger('RateCoachScreen');
 
@@ -77,8 +77,6 @@ export interface UseRateCoachResult {
 
 export function useRateCoach() {
   const { currentUser } = useAuth();
-  const { showAlert } = useAppAlert();
-
   const [selectedCoach, setSelectedCoach] = useState<CoachToRate | null>(null);
   const [rating, setRating] = useState(0);
   const [reviewText, setReviewText] = useState('');
@@ -168,7 +166,7 @@ export function useRateCoach() {
     if (submitting) return;
     setSubmitting(true);
     if (!selectedCoach || rating === 0) {
-      showAlert('Missing Rating', 'Please select a star rating');
+      uiFeedback.alert('Missing Rating', 'Please select a star rating');
       setSubmitting(false);
       return;
     }
@@ -178,7 +176,7 @@ export function useRateCoach() {
         (review) => review.coachId === selectedCoach.id && review.userId === (currentUser?.id ?? ''),
       );
       if (existingReview) {
-        showAlert('Review already submitted', 'You already submitted a review for this coach.');
+        uiFeedback.alert('Review already submitted', 'You already submitted a review for this coach.');
         return;
       }
       const userName = currentUser?.fullName || currentUser?.username || 'Anonymous';
@@ -197,16 +195,16 @@ export function useRateCoach() {
       };
       await appendCoachReview(newReview);
       logger.info('Review submitted', { coachId: selectedCoach.id, rating });
-      showAlert('Review Submitted', `Thank you for rating ${selectedCoach.name}!`, [
+      uiFeedback.alert('Review Submitted', `Thank you for rating ${selectedCoach.name}!`, [
         { text: 'OK', onPress: () => router.back() },
       ]);
     } catch (error) {
       logger.error('Failed to submit review', error);
-      showAlert('Error', 'Failed to submit review. Please try again.');
+      uiFeedback.alert('Error', 'Failed to submit review. Please try again.');
     } finally {
       setSubmitting(false);
     }
-  }, [selectedCoach, rating, reviewText, currentUser, showAlert, submitting]);
+  }, [selectedCoach, rating, reviewText, currentUser, submitting]);
 
   const toggleChip = useCallback((label: string) => {
     setReviewText((prev) => {

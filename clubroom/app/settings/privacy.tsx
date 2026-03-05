@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Alert } from 'react-native';
+
 import { router } from 'expo-router';
 
 import { SettingsFormScreen, SettingsRow, SettingsToggleRow, SettingsSection } from '@/components/settings';
@@ -7,6 +7,7 @@ import { useTheme } from '@/hooks/useTheme';
 import { useAuth } from '@/hooks/use-auth';
 import { createLogger } from '@/utils/logger';
 import { Routes } from '@/navigation/routes';
+import { uiFeedback } from '@/services/ui-feedback';
 
 const logger = createLogger('PrivacySettings');
 
@@ -38,7 +39,7 @@ export default function PrivacySettingsScreen() {
 
   const handleDownloadData = () => {
     logger.press('DownloadData');
-    Alert.alert(
+    uiFeedback.alert(
       'Download Your Data',
       "We'll prepare a copy of your data and email it to you within 48 hours.",
       [
@@ -46,7 +47,7 @@ export default function PrivacySettingsScreen() {
         {
           text: 'Request Download',
           onPress: () => {
-            Alert.alert('Request Sent', "You'll receive an email when your data is ready.");
+            uiFeedback.alert('Request Sent', "You'll receive an email when your data is ready.");
           },
         },
       ],
@@ -55,7 +56,7 @@ export default function PrivacySettingsScreen() {
 
   const handleManageBlockedUsers = () => {
     logger.press('ManageBlockedUsers');
-    Alert.alert('Blocked Users', "You haven't blocked any users yet.");
+    uiFeedback.alert('Blocked Users', "You haven't blocked any users yet.");
   };
 
   return (
@@ -180,7 +181,7 @@ export default function PrivacySettingsScreen() {
           title="Cookie Policy"
           onPress={() => {
             logger.press('CookiePolicy');
-            Alert.alert('Cookie Policy', 'View our cookie policy at clubroom.app/cookies');
+            uiFeedback.alert('Cookie Policy', 'View our cookie policy at clubroom.app/cookies');
           }}
         />
       </SettingsSection>

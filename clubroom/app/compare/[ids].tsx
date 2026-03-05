@@ -7,7 +7,7 @@
 
 import { useCallback, useMemo, type ReactNode } from 'react';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Alert, Share, StyleSheet, View } from 'react-native';
+import { Share, StyleSheet, View } from 'react-native';
 import { router, Stack, useLocalSearchParams } from 'expo-router';
 import { Routes } from '@/navigation/routes';
 import { Ionicons } from '@expo/vector-icons';
@@ -20,6 +20,7 @@ import { Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
 import { useScreen } from '@/hooks/use-screen';
 import { ok } from '@/types/result';
 import { createLogger } from '@/utils/logger';
+import { uiFeedback } from '@/services/ui-feedback';
 
 const logger = createLogger('CompareScreen');
 
@@ -53,7 +54,7 @@ export default function DynamicCompareScreen() {
       });
     } catch (error) {
       logger.error('Failed to share', error);
-      Alert.alert('Share', `Share this link: ${shareUrl}`);
+      uiFeedback.alert('Share', `Share this link: ${shareUrl}`);
     }
   }, [coachIds]);
   const renderBackAction = () => (

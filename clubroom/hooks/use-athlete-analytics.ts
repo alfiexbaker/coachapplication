@@ -2,13 +2,14 @@
  * useAthleteAnalytics — All state, data loading, and handlers for the Athlete Analytics screen.
  */
 import { useState, useCallback } from 'react';
-import { Share, Alert } from 'react-native';
+import { Share } from 'react-native';
 import { useRequiredParam } from '@/hooks/use-required-param';
 import { analyticsService, type AnalyticsPeriod } from '@/services/analytics-service';
 import { useScreen, type ScreenStatus } from '@/hooks/use-screen';
 import { createLogger } from '@/utils/logger';
 import type { AthleteAnalytics } from '@/constants/types';
 import { err, ok, validationError, type ServiceError } from '@/types/result';
+import { uiFeedback } from '@/services/ui-feedback';
 
 const logger = createLogger('AthleteAnalyticsScreen');
 
@@ -77,7 +78,7 @@ export function useAthleteAnalytics() {
         onRefresh();
       } else {
         logger.error('Failed to complete milestone:', result.error);
-        Alert.alert('Unable to update goal', result.error.message);
+        uiFeedback.alert('Unable to update goal', result.error.message);
       }
     },
     [onRefresh],
@@ -92,7 +93,7 @@ export function useAthleteAnalytics() {
         title: `${athleteLabel} Progress Report`,
       });
     } catch {
-      Alert.alert('Error', 'Failed to share progress report.');
+      uiFeedback.alert('Error', 'Failed to share progress report.');
     }
   }, [analytics]);
 

@@ -2,7 +2,7 @@
  * useCreateMatch — All state, validation, and handlers for the Create Match wizard.
  */
 import { useState, useEffect, useCallback } from 'react';
-import { Alert } from 'react-native';
+
 import { router } from 'expo-router';
 import { Routes } from '@/navigation/routes';
 import { useAuth } from '@/hooks/use-auth';
@@ -11,6 +11,7 @@ import type { MatchType, ClubSquad } from '@/constants/types';
 import { matchService } from '@/services/match-service';
 import { squadService } from '@/services/squad-service';
 import { inviteService as bulkInviteService } from '@/services/invite';
+import { uiFeedback } from '@/services/ui-feedback';
 
 const logger = createLogger('CreateMatchScreen');
 const DEFAULT_CLUB_ID = 'club_lions';
@@ -82,27 +83,27 @@ export function useCreateMatch() {
     switch (step) {
       case 'details':
         if (!opponent.trim()) {
-          Alert.alert('Missing Information', 'Please enter the opponent name.');
+          uiFeedback.alert('Missing Information', 'Please enter the opponent name.');
           return false;
         }
         if (!venue.trim()) {
-          Alert.alert('Missing Information', 'Please enter the venue.');
+          uiFeedback.alert('Missing Information', 'Please enter the venue.');
           return false;
         }
         return true;
       case 'schedule':
         if (!date.trim()) {
-          Alert.alert('Missing Information', 'Please enter the match date.');
+          uiFeedback.alert('Missing Information', 'Please enter the match date.');
           return false;
         }
         if (!kickoffTime.trim()) {
-          Alert.alert('Missing Information', 'Please enter the kickoff time.');
+          uiFeedback.alert('Missing Information', 'Please enter the kickoff time.');
           return false;
         }
         return true;
       case 'squad':
         if (!selectedSquadId) {
-          Alert.alert('Missing Information', 'Please select a squad.');
+          uiFeedback.alert('Missing Information', 'Please select a squad.');
           return false;
         }
         return true;
@@ -144,7 +145,7 @@ export function useCreateMatch() {
           matchType,
           notes: notes || undefined,
         });
-        Alert.alert(
+        uiFeedback.alert(
           'Match Created!',
           `${title} created and ${result.inviteResult.successful} availability request${result.inviteResult.successful !== 1 ? 's' : ''} sent to squad members.`,
           [
@@ -172,14 +173,14 @@ export function useCreateMatch() {
           maxPlayers: parseInt(maxPlayers, 10) || 14,
           notes: notes || undefined,
         });
-        Alert.alert('Match Created!', `${title} has been created.`, [
+        uiFeedback.alert('Match Created!', `${title} has been created.`, [
           { text: 'View Match', onPress: () => router.replace(Routes.match(match.id)) },
           { text: 'Done', onPress: () => router.back() },
         ]);
       }
     } catch (error) {
       logger.error('Failed to create match:', error);
-      Alert.alert('Error', 'Failed to create match. Please try again.');
+      uiFeedback.alert('Error', 'Failed to create match. Please try again.');
     } finally {
       setIsSubmitting(false);
     }

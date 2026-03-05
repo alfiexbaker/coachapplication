@@ -172,7 +172,9 @@ export const TaskDetailSheet = memo(function TaskDetailSheet({
       ]}
     >
       {!task ? (
-        <BottomSheetView style={styles.sheetContent} />
+        <BottomSheetView style={styles.sheetContent}>
+          <View />
+        </BottomSheetView>
       ) : (
         <BottomSheetView style={styles.sheetContent}>
           <Column gap="sm">
@@ -211,7 +213,6 @@ export const TaskDetailSheet = memo(function TaskDetailSheet({
                     backgroundColor: withAlpha(colors.warning, 0.1),
                   },
                 ]}
-                accessibilityLiveRegion="polite"
               >
                 <Ionicons name="sync-outline" size={14} color={colors.warning} />
                 <ThemedText style={[styles.syncBannerText, { color: colors.warning }]}>

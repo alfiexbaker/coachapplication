@@ -5,11 +5,10 @@
  * modal state, and all navigation/action handlers.
  */
 
-import { useState, useCallback, useMemo, useRef } from 'react';
+import { useState, useCallback, useMemo, useRef, useEffect } from 'react';
 import { router } from 'expo-router';
 import { Routes } from '@/navigation/routes';
 
-import { useAppAlert } from '@/components/ui/app-alert';
 import { bookingService } from '@/services/booking';
 import { eventService } from '@/services/event';
 import { inviteService as sessionInviteService } from '@/services/invite';
@@ -44,6 +43,7 @@ import type {
   RecurringBooking,
 } from '@/constants/types';
 import type { TimeFilter } from '@/components/bookings/BookingsList';
+import { uiFeedback } from '@/services/ui-feedback';
 
 const logger = createLogger('useBookings');
 
@@ -112,16 +112,17 @@ interface BookingsScreenData {
 }
 
 export function useBookings(): UseBookingsResult {
-  const { showAlert } = useAppAlert();
   const { currentUser } = useAuth();
-  const { children: contextChildren, isParent } = useChildContext();
+  const { children: contextChildren } = useChildContext();
   const [timeFilter, setTimeFilter] = useState<TimeFilter>('upcoming');
   const [selectedOffering, setSelectedOffering] = useState<SessionOffering | null>(null);
   const [showDetailModal, setShowDetailModal] = useState(false);
   const seedEnsuredRef = useRef(false);
+  const loadCycleRef = useRef(0);
 
   const userRole = currentUser?.role;
   const isCoachUser = isCoach(currentUser) || isAdmin(currentUser);
+  const hasChildProfiles = contextChildren.length > 0;
 
   const ensureSeedOnce = useCallback(async () => {
     if (seedEnsuredRef.current) {
@@ -133,20 +134,36 @@ export function useBookings(): UseBookingsResult {
 
   // Load all data
   const loadData = useCallback(async () => {
+    const loadId = ++loadCycleRef.current;
+    logger.debug('Load cycle start', {
+      loadId,
+      userId: currentUser?.id,
+      role: currentUser?.role,
+      isCoachUser,
+      hasChildProfiles,
+      childCount: contextChildren.length,
+      childIds: contextChildren.map((child) => child.id),
+      childReferenceIds: contextChildren.map((child) => child.referenceId),
+      childProfileIds: contextChildren.map((child) => child.profileId).filter(Boolean),
+    });
     try {
       await ensureSeedOnce();
+      logger.debug('Seed ensured for load cycle', {
+        loadId,
+        seedEnsured: seedEnsuredRef.current,
+      });
 
       const bookings = await bookingService.list();
       const viewerNameById = new Map<string, string>();
       if (currentUser?.id) {
-        const selfLabel =
-          isParent && contextChildren.length > 0
-            ? 'You'
-            : currentUser.name || currentUser.fullName || 'You';
-        viewerNameById.set(currentUser.id, selfLabel);
+        viewerNameById.set(currentUser.id, 'You');
       }
       for (const child of contextChildren) {
         viewerNameById.set(child.id, child.name);
+        viewerNameById.set(child.referenceId, child.name);
+        if (child.profileId) {
+          viewerNameById.set(child.profileId, child.name);
+        }
       }
 
       const recurringBookings = await apiClient.get<RecurringBooking[]>(
@@ -192,7 +209,15 @@ export function useBookings(): UseBookingsResult {
           createdByRole: booking.createdByRole ?? recurringSource?.createdByRole,
         };
       });
-      logger.debug('Loaded session bookings', { count: summaries.length });
+      const bookingStatusCounts = summaries.reduce<Record<string, number>>((acc, booking) => {
+        acc[booking.status] = (acc[booking.status] || 0) + 1;
+        return acc;
+      }, {});
+      logger.debug('Loaded session bookings', {
+        loadId,
+        count: summaries.length,
+        statusCounts: bookingStatusCounts,
+      });
 
       const baseOfferingsRaw = await apiClient.get<SessionOffering[]>(
         STORAGE_KEYS.SESSION_OFFERINGS,
@@ -225,7 +250,16 @@ export function useBookings(): UseBookingsResult {
       }
       for (const child of contextChildren) {
         viewerIds.add(child.id);
+        viewerIds.add(child.referenceId);
+        if (child.profileId) {
+          viewerIds.add(child.profileId);
+        }
       }
+      logger.debug('Viewer identity scope resolved', {
+        loadId,
+        viewerIds: Array.from(viewerIds),
+        viewerNameMapSize: viewerNameById.size,
+      });
       const childClubIds = new Set<string>();
       for (const child of contextChildren) {
         for (const clubId of child.clubIds) {
@@ -246,7 +280,7 @@ export function useBookings(): UseBookingsResult {
       const eventOfferings = clubEventsResults
         .flat()
         .filter((event) =>
-          canViewerSeeEvent(event, viewerIds, isCoachUser, isParent, currentUser?.id),
+          canViewerSeeEvent(event, viewerIds, isCoachUser, hasChildProfiles, currentUser?.id),
         )
         .map(mapEventToOffering);
 
@@ -291,11 +325,19 @@ export function useBookings(): UseBookingsResult {
         offeringsById.set(groupOffering.id, groupOffering);
       }
       const offerings = Array.from(offeringsById.values());
+      const offeringsBySource = offerings.reduce<Record<string, number>>((acc, offering) => {
+        const source = offering.source || 'unknown';
+        acc[source] = (acc[source] || 0) + 1;
+        return acc;
+      }, {});
       logger.debug('Loaded session offerings', {
+        loadId,
         count: offerings.length,
         baseOfferings: baseOfferings.length,
         eventOfferings: eventOfferings.length,
         groupSessionOfferings: groupSessionOfferings.length,
+        offeringsBySource,
+        sampleOfferingIds: offerings.slice(0, 8).map((offering) => offering.id),
       });
 
       let pendingInvitesList: SessionInvite[] = [];
@@ -303,24 +345,34 @@ export function useBookings(): UseBookingsResult {
         try {
           const invites = await sessionInviteService.getPendingInvites(currentUser.id);
           pendingInvitesList = invites;
-          logger.debug('Loaded pending invites', { count: invites.length });
+          logger.debug('Loaded pending invites', {
+            loadId,
+            count: invites.length,
+            inviteIds: invites.slice(0, 8).map((invite) => invite.id),
+          });
         } catch (inviteErr) {
-          logger.error('Failed to load pending invites', inviteErr);
+          logger.error('Failed to load pending invites', { loadId, error: inviteErr });
         }
       }
 
+      logger.debug('Load cycle complete', {
+        loadId,
+        bookings: summaries.length,
+        offerings: offerings.length,
+        pendingInvites: pendingInvitesList.length,
+      });
       return ok<BookingsScreenData>({
         sessionBookings: summaries,
         sessionOfferings: offerings,
         pendingInvitesList,
       });
     } catch (loadError) {
-      logger.error('Failed to load bookings data', loadError);
+      logger.error('Failed to load bookings data', { loadId, error: loadError });
       return err(
         serviceError('UNKNOWN', 'Failed to load bookings. Pull down to refresh.', loadError),
       );
     }
-  }, [contextChildren, currentUser, isCoachUser, isParent, ensureSeedOnce]);
+  }, [contextChildren, currentUser, isCoachUser, hasChildProfiles, ensureSeedOnce]);
 
   const {
     data,
@@ -382,16 +434,18 @@ export function useBookings(): UseBookingsResult {
     const viewerNameById = new Map<string, string>();
     if (currentUser?.id) {
       viewerIds.add(currentUser.id);
-      const selfLabel =
-        isParent && contextChildren.length > 0
-          ? 'You'
-          : currentUser.name || currentUser.fullName || 'You';
-      viewerNameById.set(currentUser.id, selfLabel);
+      viewerNameById.set(currentUser.id, 'You');
     }
-    if (isParent) {
-      for (const child of contextChildren) {
-        viewerIds.add(child.id);
-        viewerNameById.set(child.id, child.name);
+    for (const child of contextChildren) {
+      viewerIds.add(child.id);
+      viewerIds.add(child.referenceId);
+      if (child.profileId) {
+        viewerIds.add(child.profileId);
+      }
+      viewerNameById.set(child.id, child.name);
+      viewerNameById.set(child.referenceId, child.name);
+      if (child.profileId) {
+        viewerNameById.set(child.profileId, child.name);
       }
     }
 
@@ -406,7 +460,7 @@ export function useBookings(): UseBookingsResult {
       const viewerAthleteNames = Array.from(
         new Set(
           matchingRegistrations.map((registration) => {
-            if (isParent && currentUser?.id && registration.userId === currentUser.id) {
+            if (currentUser?.id && registration.userId === currentUser.id) {
               return 'You';
             }
             if (registration.userName?.trim()) {
@@ -446,11 +500,31 @@ export function useBookings(): UseBookingsResult {
     currentUser?.fullName,
     currentUser?.id,
     currentUser?.name,
-    isParent,
     sessionBookings,
     sessionOfferings,
     timeFilter,
     isCoachUser,
+  ]);
+  useEffect(() => {
+    const offeringCount = displayItems.filter((item): item is SessionOffering => 'registrations' in item).length;
+    const bookingCount = displayItems.length - offeringCount;
+    logger.debug('Display items updated', {
+      timeFilter,
+      total: displayItems.length,
+      offeringCount,
+      bookingCount,
+      pendingInvites,
+      isCoachUser,
+      showDetailModal,
+      selectedOfferingId: selectedOffering?.id,
+    });
+  }, [
+    displayItems,
+    isCoachUser,
+    pendingInvites,
+    selectedOffering?.id,
+    showDetailModal,
+    timeFilter,
   ]);
 
   // Navigation handlers
@@ -506,46 +580,84 @@ export function useBookings(): UseBookingsResult {
 
   const handleOfferingPress = useCallback((offering: SessionOffering) => {
     const normalizedOffering = normalizeSessionOfferingSource(offering);
+    logger.press('OfferingCardPressed', {
+      offeringId: normalizedOffering.id,
+      source: normalizedOffering.source,
+      sourceEntityId: normalizedOffering.sourceEntityId,
+      coachId: normalizedOffering.coachId,
+      clubId: normalizedOffering.clubId,
+      status: normalizedOffering.status,
+      sessionType: normalizedOffering.sessionType,
+    });
     if (normalizedOffering.source === 'group') {
       const groupSessionId =
         normalizedOffering.sourceEntityId ??
         extractGroupSessionIdFromOfferingId(normalizedOffering.id) ??
         normalizedOffering.id.replace(GROUP_SESSION_OFFERING_PREFIX, '');
       if (groupSessionId) {
+        logger.debug('Routing to group session screen from bookings list', {
+          offeringId: normalizedOffering.id,
+          groupSessionId,
+        });
         router.push(Routes.groupSession(groupSessionId));
         return;
       }
     }
+    logger.debug('Opening session detail modal from bookings list', {
+      offeringId: normalizedOffering.id,
+      source: normalizedOffering.source,
+      sourceEntityId: normalizedOffering.sourceEntityId,
+    });
     setSelectedOffering(normalizedOffering);
     setShowDetailModal(true);
   }, []);
 
   const handleModalClose = useCallback(() => {
+    logger.debug('Session detail modal closed from bookings list', {
+      selectedOfferingId: selectedOffering?.id,
+      hadModalOpen: showDetailModal,
+    });
     setShowDetailModal(false);
     setSelectedOffering(null);
-  }, []);
+  }, [selectedOffering?.id, showDetailModal]);
 
   const handleModalUpdate = useCallback(() => {
+    logger.debug('Session detail modal requested bookings refresh');
     onRefresh();
   }, [onRefresh]);
   const processingInviteIdsRef = useRef<Set<string>>(new Set());
 
   const handleAcceptInvite = useCallback(
     async (invite: SessionInvite, selectedSlot?: SessionInvite['proposedSlots'][0]) => {
-      if (processingInviteIdsRef.current.has(invite.id)) return;
+      if (processingInviteIdsRef.current.has(invite.id)) {
+        logger.debug('Invite accept skipped - already processing', { inviteId: invite.id });
+        return;
+      }
       processingInviteIdsRef.current.add(invite.id);
       const slot = selectedSlot || invite.proposedSlots[0];
+      logger.action('AcceptInvite', {
+        inviteId: invite.id,
+        coachId: invite.coachId,
+        selectedSlotDate: slot?.date,
+        selectedSlotStart: slot?.startTime,
+      });
       try {
         const result = await sessionInviteService.respondToInvite({
           inviteId: invite.id,
           response: 'ACCEPTED',
           selectedSlot: slot,
         });
+        logger.debug('Invite accept response', {
+          inviteId: invite.id,
+          success: result.success,
+          errorCode: result.success ? undefined : result.error.code,
+        });
         if (result.success) {
           onRefresh();
         }
       } finally {
         processingInviteIdsRef.current.delete(invite.id);
+        logger.debug('Invite accept processing cleared', { inviteId: invite.id });
       }
     },
     [onRefresh],
@@ -554,30 +666,40 @@ export function useBookings(): UseBookingsResult {
   const handleDeclineInvite = useCallback(
     (invite: SessionInvite) => {
       const coachName = getSessionInviteCoachName(invite);
-      showAlert('Decline Invite?', `Decline the session invite from ${coachName}?`, [
+      uiFeedback.alert('Decline Invite?', `Decline the session invite from ${coachName}?`, [
         { text: 'Cancel', style: 'cancel' },
         {
           text: 'Decline',
           style: 'destructive',
           onPress: async () => {
-            if (processingInviteIdsRef.current.has(invite.id)) return;
+            if (processingInviteIdsRef.current.has(invite.id)) {
+              logger.debug('Invite decline skipped - already processing', { inviteId: invite.id });
+              return;
+            }
             processingInviteIdsRef.current.add(invite.id);
+            logger.action('DeclineInvite', { inviteId: invite.id, coachId: invite.coachId });
             try {
               const result = await sessionInviteService.respondToInvite({
                 inviteId: invite.id,
                 response: 'DECLINED',
+              });
+              logger.debug('Invite decline response', {
+                inviteId: invite.id,
+                success: result.success,
+                errorCode: result.success ? undefined : result.error.code,
               });
               if (result.success) {
                 onRefresh();
               }
             } finally {
               processingInviteIdsRef.current.delete(invite.id);
+              logger.debug('Invite decline processing cleared', { inviteId: invite.id });
             }
           },
         },
       ]);
     },
-    [onRefresh, showAlert],
+    [onRefresh],
   );
 
   return {

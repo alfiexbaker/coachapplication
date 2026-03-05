@@ -1,5 +1,5 @@
 import { useMemo, useState, useCallback } from 'react';
-import { StyleSheet, View, Share, Alert, ActivityIndicator } from 'react-native';
+import { StyleSheet, View, Share, ActivityIndicator } from 'react-native';
 import { SafeImage } from '@/components/primitives/safe-image';
 import { Clickable } from '@/components/primitives/clickable';
 import { Ionicons } from '@expo/vector-icons';
@@ -14,6 +14,7 @@ import { useTheme } from '@/hooks/useTheme';
 import { ClubHeaderMenu, type ClubMenuItem } from './club-header-menu';
 import { Row } from '@/components/primitives';
 import { Column } from '@/components/primitives/column';
+import { uiFeedback } from '@/services/ui-feedback';
 
 // ─── Re-exports ─────────────────────────────────────────────────────────────
 
@@ -67,7 +68,7 @@ export function ClubHeader({
     async (type: 'profile' | 'cover') => {
       const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
       if (!permissionResult.granted) {
-        Alert.alert(
+        uiFeedback.alert(
           'Permission required',
           'Please allow access to your photo library to change the club photo.',
         );
@@ -97,7 +98,7 @@ export function ClubHeader({
         title: `Join ${club.name}`,
       });
     } catch {
-      Alert.alert('Error', 'Failed to share invite code');
+      uiFeedback.alert('Error', 'Failed to share invite code');
     }
   }, [club.name, club.inviteCode]);
 
@@ -108,7 +109,7 @@ export function ClubHeader({
 
   const handleLeaveClub = useCallback(() => {
     setShowMenu(false);
-    Alert.alert('Leave Club', `Are you sure you want to leave ${club.name}?`, [
+    uiFeedback.alert('Leave Club', `Are you sure you want to leave ${club.name}?`, [
       { text: 'Cancel', style: 'cancel' },
       { text: 'Leave', style: 'destructive', onPress: onLeave },
     ]);
@@ -116,7 +117,7 @@ export function ClubHeader({
 
   const handleDeleteClub = useCallback(() => {
     setShowMenu(false);
-    Alert.alert(
+    uiFeedback.alert(
       'Delete Club',
       `This will permanently delete "${club.name}" and all associated data. This cannot be undone.`,
       [

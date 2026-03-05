@@ -4,7 +4,6 @@
 import { useEffect, useState, useMemo, useCallback } from 'react';
 import { router } from 'expo-router';
 
-import { useAppAlert } from '@/components/ui/app-alert';
 import { apiClient } from '@/services/api-client';
 import { toDateStr } from '@/utils/format';
 import { useAuth } from '@/hooks/use-auth';
@@ -32,6 +31,8 @@ import {
   getSessionOfferingRegisteredCount,
   isSessionOfferingFull,
 } from '@/utils/session-offering-capacity';
+import { extractGroupSessionIdFromOfferingId } from '@/utils/session-offering-projections';
+import { uiFeedback } from '@/services/ui-feedback';
 
 const logger = createLogger('useSessionDetailModal');
 
@@ -121,15 +122,11 @@ export function useSessionDetailModal(
   onClose: () => void,
   onUpdate?: () => void,
 ) {
-  const { showAlert } = useAppAlert();
   const { currentUser } = useAuth();
   const { updateDraft } = useBookingFlow();
-  const {
-    children: contextChildren,
-    familyAthleteIds,
-    isMultiChild,
-  } = useChildContext();
-  const [selectedChildId, setSelectedChildId] = useState('');
+  const { children: contextChildren } = useChildContext();
+  const [selectedChildIds, setSelectedChildIds] = useState<string[]>([]);
+  const [linkedBookingAthleteIds, setLinkedBookingAthleteIds] = useState<string[]>([]);
   const [weeksToBook, setWeeksToBook] = useState(1);
   const [sessionAwards, setSessionAwards] = useState<BadgeAward[]>([]);
   const [userNameMap, setUserNameMap] = useState<Record<string, string>>({});
@@ -146,11 +143,35 @@ export function useSessionDetailModal(
     if (!visible || !offering) return;
 
     let cancelled = false;
+    logger.debug('Session detail modal open cycle start', {
+      offeringId: offering.id,
+      offeringSource: offering.source,
+      offeringSourceEntityId: offering.sourceEntityId,
+      offeringStatus: offering.status,
+      sessionType: offering.sessionType,
+      currentUserId: currentUser?.id,
+      currentUserRole: currentUser?.role,
+      childCount: contextChildren.length,
+      childIds: contextChildren.map((child) => child.id),
+      childReferenceIds: contextChildren.map((child) => child.referenceId),
+      childProfileIds: contextChildren.map((child) => child.profileId).filter(Boolean),
+    });
     setShowInstanceManagement(false);
-    setSelectedChildId('');
+    setSelectedChildIds([]);
+    logger.debug('Reset modal transient state', {
+      offeringId: offering.id,
+      selectedChildIds: [],
+      showInstanceManagement: false,
+    });
 
     badgeService.listAwardsForSession(offering.id).then((awards) => {
-      if (!cancelled) setSessionAwards(awards);
+      if (!cancelled) {
+        setSessionAwards(awards);
+        logger.debug('Loaded session awards for modal', {
+          offeringId: offering.id,
+          awardCount: awards.length,
+        });
+      }
     });
 
     apiClient
@@ -166,6 +187,10 @@ export function useSessionDetailModal(
           return acc;
         }, {});
         setUserNameMap(nextMap);
+        logger.debug('Loaded user name map for session modal', {
+          offeringId: offering.id,
+          mapSize: Object.keys(nextMap).length,
+        });
       })
       .catch(() => {
         if (!cancelled) setUserNameMap({});
@@ -173,8 +198,9 @@ export function useSessionDetailModal(
 
     return () => {
       cancelled = true;
+      logger.debug('Session detail modal open cycle cleanup', { offeringId: offering.id });
     };
-  }, [offering, visible]);
+  }, [contextChildren, currentUser?.id, currentUser?.role, offering, visible]);
 
   useEffect(() => {
     if (!visible || !offering) {
@@ -308,16 +334,296 @@ export function useSessionDetailModal(
   const isFull = offering ? isSessionOfferingFull(offering) : false;
 
   const children = useMemo(
-    () => contextChildren.map((c) => ({ id: c.id, name: c.name })),
+    () =>
+      contextChildren.map((child) => ({
+        id: child.id,
+        name: child.name,
+        fullName: child.fullName,
+        referenceId: child.referenceId,
+        profileId: child.profileId,
+      })),
     [contextChildren],
   );
-  const actorIds = useMemo(() => Array.from(familyAthleteIds), [familyAthleteIds]);
+  const actorIdSet = useMemo(() => {
+    const ids = new Set<string>();
+    if (currentUser?.id) {
+      ids.add(currentUser.id);
+    }
+    for (const child of children) {
+      ids.add(child.id);
+      if (child.referenceId) {
+        ids.add(child.referenceId);
+      }
+      if (child.profileId) {
+        ids.add(child.profileId);
+      }
+    }
+    return ids;
+  }, [children, currentUser?.id]);
+  useEffect(() => {
+    if (!visible || !offering) return;
+    logger.debug('Resolved actor identity scope for session modal', {
+      offeringId: offering.id,
+      actorIds: Array.from(actorIdSet),
+      childCount: children.length,
+    });
+  }, [actorIdSet, children.length, offering, visible]);
+  useEffect(() => {
+    if (!visible || !offering) {
+      setLinkedBookingAthleteIds([]);
+      return;
+    }
+
+    let cancelled = false;
+    const directEntityIds = new Set<string>();
+    directEntityIds.add(offering.id);
+    if (offering.sourceEntityId) {
+      directEntityIds.add(offering.sourceEntityId);
+    }
+
+    const groupSessionIds = new Set<string>();
+    const inferredGroupSessionId = extractGroupSessionIdFromOfferingId(offering.id);
+    if (inferredGroupSessionId) {
+      groupSessionIds.add(inferredGroupSessionId);
+    }
+    if (offering.source === 'group' && offering.sourceEntityId) {
+      groupSessionIds.add(offering.sourceEntityId);
+    }
+
+    const loadLinkedBookings = async () => {
+      try {
+        const bookings = await bookingService.list();
+        if (cancelled) return;
+
+        const matchedAthleteIds = new Set<string>();
+        const matchedBookingDetails: {
+          bookingId: string;
+          status: string;
+          sessionSource?: string;
+          sessionSourceEntityId?: string;
+          groupSessionId?: string;
+          athleteId?: string;
+          athleteIds?: string[];
+          bookedById?: string;
+          reason: 'actor_athlete' | 'booked_by_actor';
+        }[] = [];
+        let linkedBookingCount = 0;
+        let skippedNotLinkedCount = 0;
+        let skippedNotActorCount = 0;
+        for (const booking of bookings) {
+          if (booking.status === 'CANCELLED') continue;
+
+          const linkedToOffering =
+            (booking.sessionSourceEntityId
+              ? directEntityIds.has(booking.sessionSourceEntityId)
+              : false) ||
+            (booking.groupSessionId ? groupSessionIds.has(booking.groupSessionId) : false) ||
+            (booking.sessionSource === 'group' && booking.sessionSourceEntityId
+              ? groupSessionIds.has(booking.sessionSourceEntityId)
+              : false);
+          if (!linkedToOffering) {
+            skippedNotLinkedCount += 1;
+            continue;
+          }
+          linkedBookingCount += 1;
+
+          const bookingAthleteIds = new Set<string>();
+          if (booking.athleteId) {
+            bookingAthleteIds.add(booking.athleteId);
+          }
+          for (const athleteId of booking.athleteIds ?? []) {
+            bookingAthleteIds.add(athleteId);
+          }
+
+          const hasActorAthlete = Array.from(bookingAthleteIds).some((id) => actorIdSet.has(id));
+          const bookedByActor = booking.bookedById ? actorIdSet.has(booking.bookedById) : false;
+          if (!hasActorAthlete && !bookedByActor) {
+            skippedNotActorCount += 1;
+            continue;
+          }
+
+          if (bookingAthleteIds.size === 0) {
+            if (booking.bookedById) {
+              matchedAthleteIds.add(booking.bookedById);
+            }
+            matchedBookingDetails.push({
+              bookingId: booking.id,
+              status: booking.status,
+              sessionSource: booking.sessionSource,
+              sessionSourceEntityId: booking.sessionSourceEntityId,
+              groupSessionId: booking.groupSessionId,
+              athleteId: booking.athleteId,
+              athleteIds: booking.athleteIds,
+              bookedById: booking.bookedById,
+              reason: 'booked_by_actor',
+            });
+            continue;
+          }
+
+          for (const athleteId of bookingAthleteIds) {
+            matchedAthleteIds.add(athleteId);
+          }
+          matchedBookingDetails.push({
+            bookingId: booking.id,
+            status: booking.status,
+            sessionSource: booking.sessionSource,
+            sessionSourceEntityId: booking.sessionSourceEntityId,
+            groupSessionId: booking.groupSessionId,
+            athleteId: booking.athleteId,
+            athleteIds: booking.athleteIds,
+            bookedById: booking.bookedById,
+            reason: hasActorAthlete ? 'actor_athlete' : 'booked_by_actor',
+          });
+        }
+
+        setLinkedBookingAthleteIds(Array.from(matchedAthleteIds));
+        logger.debug('Linked bookings resolved for session modal', {
+          offeringId: offering.id,
+          directEntityIds: Array.from(directEntityIds),
+          groupSessionIds: Array.from(groupSessionIds),
+          actorIds: Array.from(actorIdSet),
+          scannedBookings: bookings.length,
+          linkedBookingCount,
+          skippedNotLinkedCount,
+          skippedNotActorCount,
+          matchedAthleteIds: Array.from(matchedAthleteIds),
+          matchedBookingDetails,
+        });
+      } catch {
+        if (!cancelled) {
+          setLinkedBookingAthleteIds([]);
+        }
+        logger.warn('Failed to resolve linked bookings for session modal', {
+          offeringId: offering.id,
+          directEntityIds: Array.from(directEntityIds),
+          groupSessionIds: Array.from(groupSessionIds),
+          actorIds: Array.from(actorIdSet),
+        });
+      }
+    };
+
+    void loadLinkedBookings();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [actorIdSet, offering, visible]);
+
+  const linkedBookingAthleteIdSet = useMemo(
+    () => new Set(linkedBookingAthleteIds),
+    [linkedBookingAthleteIds],
+  );
+  const confirmedActorRegistrations = useMemo(
+    () =>
+      offering?.registrations.filter(
+        (registration) => registration.status === 'confirmed' && actorIdSet.has(registration.userId),
+      ) ?? [],
+    [actorIdSet, offering?.registrations],
+  );
+  const registeredChildIdSet = useMemo(() => {
+    const childIds = new Set<string>();
+    for (const child of children) {
+      const isRegisteredForChild = confirmedActorRegistrations.some(
+        (registration) =>
+          registration.userId === child.id ||
+          registration.userId === child.referenceId ||
+          registration.userId === child.profileId,
+      ) || linkedBookingAthleteIdSet.has(child.id) ||
+      linkedBookingAthleteIdSet.has(child.referenceId) ||
+      (child.profileId ? linkedBookingAthleteIdSet.has(child.profileId) : false);
+      if (isRegisteredForChild) {
+        childIds.add(child.id);
+      }
+    }
+    return childIds;
+  }, [children, confirmedActorRegistrations, linkedBookingAthleteIdSet]);
   const isRegistered =
-    offering?.registrations.some(
-      (registration) =>
-        registration.status === 'confirmed' && actorIds.includes(registration.userId),
-    ) ?? false;
-  const hasMultipleKids = isMultiChild;
+    confirmedActorRegistrations.length > 0 ||
+    linkedBookingAthleteIds.some((athleteId) => actorIdSet.has(athleteId));
+  const bookableChildren = useMemo(() => {
+    if (children.length === 0) {
+      return [];
+    }
+    if (!isRegistered) {
+      return children;
+    }
+    return children.filter((child) => !registeredChildIdSet.has(child.id));
+  }, [children, isRegistered, registeredChildIdSet]);
+  const canAddAnotherChild = isRegistered && bookableChildren.length > 0 && !isFull;
+  const hasMultipleKids = children.length > 1;
+  useEffect(() => {
+    if (!visible || !offering) return;
+    logger.debug('Booking CTA decision snapshot', {
+      offeringId: offering.id,
+      offeringStatus: offering.status,
+      isRegistered,
+      isFull,
+      canAddAnotherChild,
+      hasMultipleKids,
+      childCount: children.length,
+      bookableChildIds: bookableChildren.map((child) => child.id),
+      selectedChildIds,
+      confirmedRegistrationCount: confirmedActorRegistrations.length,
+      confirmedRegistrationUserIds: confirmedActorRegistrations.map((registration) => registration.userId),
+      linkedBookingAthleteIds,
+      registeredChildIds: Array.from(registeredChildIdSet),
+      actorIds: Array.from(actorIdSet),
+    });
+  }, [
+    actorIdSet,
+    bookableChildren,
+    canAddAnotherChild,
+    children.length,
+    confirmedActorRegistrations,
+    hasMultipleKids,
+    isFull,
+    isRegistered,
+    linkedBookingAthleteIds,
+    offering,
+    registeredChildIdSet,
+    selectedChildIds,
+    visible,
+  ]);
+
+  useEffect(() => {
+    if (!visible || !offering) {
+      setSelectedChildIds([]);
+      return;
+    }
+    setSelectedChildIds((previous) => {
+      const normalized = previous.filter((childId) =>
+        bookableChildren.some((child) => child.id === childId),
+      );
+      if (normalized.length > 0) {
+        return normalized;
+      }
+      if (bookableChildren.length === 1) {
+        return [bookableChildren[0].id];
+      }
+      return [];
+    });
+  }, [bookableChildren, offering, visible]);
+
+  const toggleSelectedChildId = useCallback(
+    (childId: string) => {
+      logger.debug('Toggle child selection in session modal', {
+        offeringId: offering?.id,
+        childId,
+        beforeSelectedChildIds: selectedChildIds,
+        hasMultipleKids,
+      });
+      setSelectedChildIds((previous) => {
+        if (!hasMultipleKids) {
+          return [childId];
+        }
+        if (previous.includes(childId)) {
+          return previous.filter((id) => id !== childId);
+        }
+        return [...previous, childId];
+      });
+    },
+    [hasMultipleKids, offering?.id, selectedChildIds],
+  );
 
   const ownershipTimeline = useMemo<SessionOwnershipTimelineEntry[]>(() => {
     if (!offering) return [];
@@ -404,7 +710,7 @@ export function useSessionDetailModal(
         month: 'long',
       });
 
-      showAlert(
+      uiFeedback.alert(
         'Cancel Session',
         `Cancel the session on ${formattedDate}? Athletes will be notified.`,
         [
@@ -455,7 +761,7 @@ export function useSessionDetailModal(
                 }
 
                 const notifiedCount = Math.max(0, registeredParticipants.length - failedNotifications);
-                showAlert(
+                uiFeedback.alert(
                   'Cancelled',
                   registeredParticipants.length > 0
                     ? failedNotifications > 0
@@ -465,40 +771,62 @@ export function useSessionDetailModal(
                 );
                 onUpdate?.();
               } catch {
-                showAlert('Error', 'Failed to cancel session. Please try again.');
+                uiFeedback.alert('Error', 'Failed to cancel session. Please try again.');
               }
             },
           },
         ],
       );
     },
-    [offering, onUpdate, showAlert],
+    [offering, onUpdate],
   );
 
   const handleCancelBooking = useCallback(async () => {
+    logger.action('CancelBookingAttempt', {
+      offeringId: offering?.id,
+      currentUserId: currentUser?.id,
+      selectedChildIds,
+      confirmedActorRegistrations: confirmedActorRegistrations.map((registration) => ({
+        registrationId: registration.id,
+        userId: registration.userId,
+        status: registration.status,
+      })),
+    });
     if (!offering || !currentUser) return;
     const offeringStartTime = new Date(offering.scheduledAt).getTime();
     if (!Number.isFinite(offeringStartTime) || offeringStartTime <= Date.now()) {
-      showAlert(
+      logger.debug('Cancel booking blocked - session already started or completed', {
+        offeringId: offering.id,
+        scheduledAt: offering.scheduledAt,
+      });
+      uiFeedback.alert(
         'Cancellation unavailable',
         'Only upcoming bookings can be cancelled. This session has already started or finished.',
       );
       return;
     }
 
-    const confirmedActorRegistrations = offering.registrations.filter(
-      (registration) =>
-        registration.status === 'confirmed' && actorIds.includes(registration.userId),
-    );
-
     if (confirmedActorRegistrations.length === 0) {
-      showAlert('No active booking', 'We could not find a confirmed booking to cancel.');
+      logger.debug('Cancel booking blocked - no confirmed registrations for actor scope', {
+        offeringId: offering.id,
+        actorIds: Array.from(actorIdSet),
+      });
+      uiFeedback.alert('No active booking', 'We could not find a confirmed booking to cancel.');
       return;
     }
 
+    const selectedChildId = selectedChildIds[0];
+    const selectedChild = selectedChildId
+      ? children.find((child) => child.id === selectedChildId)
+      : undefined;
     const myRegistration =
       (selectedChildId
-        ? confirmedActorRegistrations.find((registration) => registration.userId === selectedChildId)
+        ? confirmedActorRegistrations.find(
+            (registration) =>
+              registration.userId === selectedChild?.id ||
+              registration.userId === selectedChild?.referenceId ||
+              registration.userId === selectedChild?.profileId,
+          )
         : undefined) ?? confirmedActorRegistrations[0];
 
     try {
@@ -517,15 +845,30 @@ export function useSessionDetailModal(
       });
 
       if (linkedBooking) {
+        logger.debug('Cancel booking routed to booking cancel flow', {
+          offeringId: offering.id,
+          linkedBookingId: linkedBooking.id,
+          linkedGroupRegistrationId: linkedBooking.groupRegistrationId,
+          registrationId: myRegistration.id,
+          registrationUserId: myRegistration.userId,
+        });
         onClose();
         router.push(Routes.bookingCancel(linkedBooking.id, 'parent'));
         return;
       }
+      logger.debug('No linked booking found; falling back to registration-level cancellation', {
+        offeringId: offering.id,
+        registrationId: myRegistration.id,
+        registrationUserId: myRegistration.userId,
+      });
     } catch {
+      logger.warn('Booking lookup failed during cancellation; using registration fallback', {
+        offeringId: offering.id,
+      });
       // Fall through to registration-level cancellation when booking lookup is unavailable.
     }
 
-    showAlert(
+    uiFeedback.alert(
       'Cancel Booking',
       `Are you sure you want to cancel your booking for "${offering.title}"? The coach will be notified.`,
       [
@@ -557,24 +900,29 @@ export function useSessionDetailModal(
                 return o;
               });
               await apiClient.set('session_offerings', updatedOfferings);
-              showAlert(
+              logger.debug('Registration-level cancellation persisted', {
+                offeringId: offering.id,
+                registrationId: myRegistration.id,
+                registrationUserId: myRegistration.userId,
+              });
+              uiFeedback.alert(
                 'Booking Cancelled',
                 'Your booking has been cancelled. The coach has been notified.',
               );
               onUpdate?.();
               onClose();
             } catch {
-              showAlert('Error', 'Failed to cancel booking. Please try again.');
+              uiFeedback.alert('Error', 'Failed to cancel booking. Please try again.');
             }
           },
         },
       ],
     );
-  }, [offering, currentUser, selectedChildId, actorIds, onUpdate, onClose, showAlert]);
+  }, [actorIdSet, children, confirmedActorRegistrations, currentUser, offering, onClose, onUpdate, selectedChildIds]);
 
   const handleEndSeries = useCallback(async () => {
     if (!offering) return;
-    showAlert(
+    uiFeedback.alert(
       'End Recurring Series',
       'This will cancel all future sessions. Athletes will be notified. Are you sure?',
       [
@@ -592,17 +940,17 @@ export function useSessionDetailModal(
                 return o;
               });
               await apiClient.set('session_offerings', updatedOfferings);
-              showAlert('Series Ended', 'All future sessions have been cancelled.');
+              uiFeedback.alert('Series Ended', 'All future sessions have been cancelled.');
               onUpdate?.();
               onClose();
             } catch {
-              showAlert('Error', 'Failed to end series. Please try again.');
+              uiFeedback.alert('Error', 'Failed to end series. Please try again.');
             }
           },
         },
       ],
     );
-  }, [offering, onUpdate, onClose, showAlert]);
+  }, [offering, onUpdate, onClose]);
 
   const handleReassignOwnership = useCallback(async () => {
     if (!offering || !currentUser || !selectedAssigneeId) return;
@@ -610,7 +958,7 @@ export function useSessionDetailModal(
 
     const previousOwnerId = offering.assigneeCoachId || offering.ownerCoachId || offering.coachId;
     if (previousOwnerId === selectedAssigneeId) {
-      showAlert('No change', 'This session is already assigned to that coach.');
+      uiFeedback.alert('No change', 'This session is already assigned to that coach.');
       return;
     }
 
@@ -663,11 +1011,11 @@ export function useSessionDetailModal(
       });
 
       await apiClient.set(STORAGE_KEYS.SESSION_OFFERINGS, updated);
-      showAlert('Updated', `Session reassigned to ${selectedAssigneeLabel}.`);
+      uiFeedback.alert('Updated', `Session reassigned to ${selectedAssigneeLabel}.`);
       onUpdate?.();
     } catch (error) {
       logger.error('Failed to reassign session owner', { offeringId: offering.id, error });
-      showAlert('Error', 'Failed to reassign session owner. Please try again.');
+      uiFeedback.alert('Error', 'Failed to reassign session owner. Please try again.');
     } finally {
       setReassigningOwnership(false);
     }
@@ -678,14 +1026,31 @@ export function useSessionDetailModal(
     offering,
     onUpdate,
     selectedAssigneeId,
-    showAlert,
   ]);
 
   const handleAdjustOffPlatform = useCallback((delta: number) => {
-    setDraftOffPlatformParticipants((previous) => Math.max(0, previous + delta));
-  }, []);
+    setDraftOffPlatformParticipants((previous) => {
+      const next = Math.max(0, previous + delta);
+      logger.debug('Adjusted off-platform draft participant count', {
+        offeringId: offering?.id,
+        delta,
+        previousDraftOffPlatformParticipants: previous,
+        nextDraftOffPlatformParticipants: next,
+      });
+      return next;
+    });
+  }, [offering?.id]);
 
   const handleSaveOffPlatformParticipants = useCallback(async () => {
+    logger.action('SaveOffPlatformParticipantsAttempt', {
+      offeringId: offering?.id,
+      currentUserId: currentUser?.id,
+      canManageOffering,
+      draftOffPlatformParticipants,
+      currentPersistedOffPlatformParticipants: offering
+        ? getSessionOfferingOffPlatformCount(offering)
+        : undefined,
+    });
     if (!offering || !currentUser || !canManageOffering) return;
     const normalizedCount = Math.max(0, Math.floor(draftOffPlatformParticipants || 0));
     const currentCount = getSessionOfferingOffPlatformCount(offering);
@@ -714,44 +1079,82 @@ export function useSessionDetailModal(
 
       await apiClient.set(STORAGE_KEYS.SESSION_OFFERINGS, updatedOfferings);
       setDraftOffPlatformParticipants(normalizedCount);
+      logger.debug('Saved off-platform participants', {
+        offeringId: offering.id,
+        previousCount: currentCount,
+        nextCount: normalizedCount,
+      });
       emitTyped(ServiceEvents.SESSION_UPDATED, {
         sessionId: offering.id,
         changes: { offPlatformParticipants: normalizedCount },
       });
       onUpdate?.();
-      showAlert('Saved', 'Off-platform attendees updated.');
+      uiFeedback.alert('Saved', 'Off-platform attendees updated.');
     } catch {
-      showAlert('Error', 'Failed to update off-platform attendees. Please try again.');
+      uiFeedback.alert('Error', 'Failed to update off-platform attendees. Please try again.');
     } finally {
       setSavingOffPlatform(false);
     }
-  }, [canManageOffering, currentUser, draftOffPlatformParticipants, offering, onUpdate, showAlert]);
+  }, [canManageOffering, currentUser, draftOffPlatformParticipants, offering, onUpdate]);
 
   const handleBook = useCallback(async () => {
+    logger.action('SessionDetailContinueBookingPressed', {
+      offeringId: offering?.id,
+      currentUserId: currentUser?.id,
+      currentUserRole: currentUser?.role,
+      isFull,
+      isRegistered,
+      canAddAnotherChild,
+      hasMultipleKids,
+      selectedChildIds,
+      bookableChildIds: bookableChildren.map((child) => child.id),
+      linkedBookingAthleteIds,
+      actorIds: Array.from(actorIdSet),
+    });
     if (!offering || !currentUser) return;
     if (isFull) {
-      showAlert('Session Full', 'This session is currently full.');
+      logger.debug('Handle book blocked - session is full', { offeringId: offering.id });
+      uiFeedback.alert('Session Full', 'This session is currently full.');
       return;
     }
-    if (hasMultipleKids && !selectedChildId) {
-      showAlert('Select Child', 'Please select which child to book for.');
+    if (bookableChildren.length > 0 && selectedChildIds.length === 0) {
+      logger.debug('Handle book blocked - no child selected', {
+        offeringId: offering.id,
+        bookableChildIds: bookableChildren.map((child) => child.id),
+      });
+      uiFeedback.alert(
+        'Select child',
+        isRegistered
+          ? 'Select at least one additional child to book.'
+          : 'Please select at least one child to book for.',
+      );
       return;
     }
 
-    const singleChildId = children.length === 1 ? children[0].id : undefined;
-    const preselectedChildId = hasMultipleKids
-      ? selectedChildId || undefined
-      : singleChildId ?? undefined;
-    const prefillChild = preselectedChildId
+    const selectedIds = (
+      bookableChildren.length > 0
+        ? selectedChildIds
+        : currentUser?.id
+          ? [currentUser.id]
+          : []
+    ).filter((id, index, source) => source.indexOf(id) === index);
+
+    const prefillChildren = selectedIds
+      .map((childId) => {
+        if (currentUser?.id && childId === currentUser.id) {
+          return {
+            id: currentUser.id,
+            name: currentUser.name || currentUser.fullName || 'Athlete',
+          };
+        }
+        const matchedChild = children.find((child) => child.id === childId);
+        return matchedChild ? { id: matchedChild.id, name: matchedChild.name } : null;
+      })
+      .filter((child): child is { id: string; name: string } => child !== null);
+
+    const prefillChild = prefillChildren[0]
       ? (() => {
-          if (currentUser.id === preselectedChildId) {
-            return {
-              id: currentUser.id,
-              name: currentUser.name || currentUser.fullName || 'Athlete',
-            };
-          }
-          const matchedChild = children.find((child) => child.id === preselectedChildId);
-          return matchedChild ? { id: matchedChild.id, name: matchedChild.name } : null;
+          return prefillChildren[0];
         })()
       : children.length === 0
         ? {
@@ -761,32 +1164,56 @@ export function useSessionDetailModal(
         : null;
 
     updateDraft(
-      buildBookingDraftPatchFromOffering({
-        coachId: offering.coachId,
-        offering,
-        child: prefillChild,
-        entrySource: 'session_detail_modal',
-      }),
+      {
+        ...buildBookingDraftPatchFromOffering({
+          coachId: offering.coachId,
+          offering,
+          child: prefillChild,
+          entrySource: 'session_detail_modal',
+        }),
+        childId: prefillChild?.id,
+        childIds: prefillChildren.length > 0 ? prefillChildren.map((child) => child.id) : undefined,
+        athleteName:
+          prefillChildren.length > 1 ? `${prefillChildren.length} athletes` : prefillChild?.name,
+      },
     );
+    logger.debug('Booking draft updated from session detail modal', {
+      offeringId: offering.id,
+      coachId: offering.coachId,
+      prefillChildId: prefillChild?.id,
+      prefillChildName: prefillChild?.name,
+      prefillChildIds: prefillChildren.map((child) => child.id),
+      weeksToBook: offering.isRecurring ? weeksToBook : undefined,
+    });
 
     onClose();
+    logger.debug('Navigating to booking flow from session detail modal', {
+      offeringId: offering.id,
+      coachId: offering.coachId,
+      childId: prefillChild?.id,
+      weeks: offering.isRecurring ? String(weeksToBook) : undefined,
+    });
     router.push(
       Routes.bookCoach(offering.coachId, {
         offeringId: offering.id,
         source: 'session_detail_modal',
-        childId: preselectedChildId,
+        childId: prefillChild?.id,
         weeks: offering.isRecurring ? String(weeksToBook) : undefined,
       }),
     );
   }, [
+    bookableChildren,
     children,
     currentUser,
+    actorIdSet,
+    canAddAnotherChild,
     hasMultipleKids,
+    isRegistered,
     isFull,
+    linkedBookingAthleteIds,
     offering,
     onClose,
-    selectedChildId,
-    showAlert,
+    selectedChildIds,
     updateDraft,
     weeksToBook,
   ]);
@@ -812,8 +1239,8 @@ export function useSessionDetailModal(
     currentUser,
     clubLabel,
     ownerCoachName,
-    selectedChildId,
-    setSelectedChildId,
+    selectedChildIds,
+    toggleSelectedChildId,
     weeksToBook,
     setWeeksToBook,
     sessionAwards,
@@ -837,7 +1264,9 @@ export function useSessionDetailModal(
     savingOffPlatform,
     isFull,
     isRegistered,
+    canAddAnotherChild,
     children,
+    bookableChildren,
     hasMultipleKids,
     handleCancelInstance,
     handleCancelBooking,

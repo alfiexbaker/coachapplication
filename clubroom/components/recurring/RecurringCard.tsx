@@ -3,7 +3,7 @@
  * Displays a recurring booking subscription with pause/resume/cancel actions.
  */
 import { useState, useCallback, memo } from 'react';
-import { StyleSheet, Alert } from 'react-native';
+import { StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
 import { SurfaceCard } from '@/components/primitives/surface-card';
@@ -21,6 +21,7 @@ import {
   getRecurringCoachName,
   getRecurringUserName,
 } from '@/utils/recurring-display';
+import { uiFeedback } from '@/services/ui-feedback';
 
 interface RecurringCardProps {
   recurring: RecurringBooking;
@@ -77,7 +78,7 @@ export const RecurringCard = memo(function RecurringCard({
 
   const handleResume = useCallback(() => {
     if (!onResume) return;
-    Alert.alert(
+    uiFeedback.alert(
       'Resume Subscription',
       `Are you sure you want to resume your ${getFrequencyLabel(recurring.frequency).toLowerCase()} sessions with ${coachName}?`,
       [

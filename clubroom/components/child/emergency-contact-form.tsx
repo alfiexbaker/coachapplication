@@ -1,5 +1,5 @@
 import { memo, useState, useCallback } from 'react';
-import { View, StyleSheet, TextInput, Alert } from 'react-native';
+import { View, StyleSheet, TextInput } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
 import { SurfaceCard } from '@/components/primitives/surface-card';
@@ -11,6 +11,7 @@ import { Spacing, Radii, Typography } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
 import type { EmergencyContact } from '@/constants/types';
 import { Row, Column } from '@/components/primitives';
+import { uiFeedback } from '@/services/ui-feedback';
 
 /** Validates UK mobile (+447/07) and landline (+44[1-3]/0[1-3]) numbers */
 function validateUKPhone(phone: string): boolean {
@@ -81,7 +82,7 @@ export const EmergencyContactForm = memo(function EmergencyContactForm({
     if (email.trim() && !validateEmail(email)) errors.push('Email address is invalid');
 
     if (errors.length > 0) {
-      Alert.alert('Validation Error', errors.join('\n'));
+      uiFeedback.alert('Validation Error', errors.join('\n'));
       return;
     }
 

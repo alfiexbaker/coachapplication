@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type ComponentRef } from 'react';
-import { Alert, RefreshControl, Share, StyleSheet, View } from 'react-native';
+import { RefreshControl, Share, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 import Animated from 'react-native-reanimated';
@@ -34,6 +34,7 @@ import { onTyped, ServiceEvents } from '@/services/event-bus';
 import { progressTermlyReportService } from '@/services/progress/progress-termly-report-service';
 import { DemoBanner, isDemoMode } from '@/utils/demo-mode';
 import { Clickable } from '@/components/primitives/clickable';
+import { uiFeedback } from '@/services/ui-feedback';
 
 const TIER_ACCENT: Record<CardTier, string> = {
   bronze: '#B87333',
@@ -92,10 +93,8 @@ export default function MyProgressScreen() {
     familyHighlights,
     isParentContext,
     switcherChildren,
-    hasMultipleChildren,
     selectedAthleteId,
     selectedAthleteName,
-    handleSelectNextChild,
     handleRefresh,
     generateTermlyReport,
     retry,
@@ -162,21 +161,6 @@ export default function MyProgressScreen() {
             <ThemedText style={[styles.childLabel, { color: colors.muted }]}>Kid</ThemedText>
             <ThemedText style={styles.childName}>{selectedAthleteName}</ThemedText>
           </Row>
-          {hasMultipleChildren ? (
-            <Clickable
-              onPress={handleSelectNextChild}
-              style={[
-                styles.childActionButton,
-                { borderColor: colors.border, backgroundColor: withAlpha(colors.tint, 0.08) },
-              ]}
-              accessibilityLabel="Switch selected kid"
-            >
-              <Row align="center" gap="xxs">
-                <Ionicons name="swap-horizontal-outline" size={14} color={colors.tint} />
-                <ThemedText style={[styles.childActionText, { color: colors.tint }]}>Switch</ThemedText>
-              </Row>
-            </Clickable>
-          ) : null}
         </Row>
       </View>
     </View>
@@ -214,12 +198,12 @@ export default function MyProgressScreen() {
 
   const handleAskCoachAboutThis = useCallback(() => {
     if (!isParentContext || !selectedAthleteId) {
-      Alert.alert('Coach messaging unavailable', 'Switch to a child profile to contact a coach.');
+      uiFeedback.alert('Coach messaging unavailable', 'Switch to a child profile to contact a coach.');
       return;
     }
 
     if (!latestFeedback?.coachId) {
-      Alert.alert(
+      uiFeedback.alert(
         'No coach to message yet',
         'Complete a session first to message the coach about this progress update.',
         [
@@ -370,7 +354,7 @@ export default function MyProgressScreen() {
   const handleShareTermlyReport = useCallback(async () => {
     const reportResult = await generateTermlyReport();
     if (!reportResult.success) {
-      Alert.alert('Unable to generate report', reportResult.error.message);
+      uiFeedback.alert('Unable to generate report', reportResult.error.message);
       return;
     }
 
@@ -380,7 +364,7 @@ export default function MyProgressScreen() {
         message: progressTermlyReportService.buildShareMessage(reportResult.data),
       });
     } catch {
-      Alert.alert('Share failed', 'Could not share the termly report right now.');
+      uiFeedback.alert('Share failed', 'Could not share the termly report right now.');
     }
   }, [generateTermlyReport, selectedAthleteName]);
 
@@ -663,15 +647,6 @@ const styles = StyleSheet.create({
   },
   childName: {
     ...Typography.bodySmallSemiBold,
-  },
-  childActionButton: {
-    borderRadius: Radii.pill,
-    borderWidth: 1,
-    paddingHorizontal: Spacing.sm,
-    paddingVertical: Spacing.xxs,
-  },
-  childActionText: {
-    ...Typography.caption,
   },
   content: {
     padding: Spacing.md,

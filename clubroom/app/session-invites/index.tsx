@@ -20,19 +20,18 @@ import { ServiceEvents } from '@/services/event-bus';
 import { isCoach } from '@/utils/user-helpers';
 import { useChildContext } from '@/hooks/use-child-context';
 import type { SessionInvite } from '@/constants/types';
-import { useAppAlert } from '@/components/ui/app-alert';
 import {
   getSessionInviteAthleteNames,
   getSessionInviteCoachName,
   resolveInviteChildLabel,
 } from '@/utils/session-invite-display';
+import { uiFeedback } from '@/services/ui-feedback';
 
 type ViewMode = 'sent' | 'received';
 type FilterMode = 'all' | 'pending' | 'responded';
 
 export default function SessionInvitesScreen() {
   const { currentUser } = useAuth();
-  const { showAlert } = useAppAlert();
   const userIsCoach = isCoach(currentUser);
   const { isParent: userHasChildren, isMultiChild, getChildById } = useChildContext();
   const [mode, setMode] = useState<ViewMode>(userIsCoach ? 'sent' : 'received');
@@ -92,7 +91,7 @@ export default function SessionInvitesScreen() {
   const handleQuickDecline = useCallback(
     async (invite: SessionInvite) => {
       const coachName = getSessionInviteCoachName(invite);
-      showAlert(
+      uiFeedback.alert(
         'Decline Invite',
         `Are you sure you want to decline the session invite from Coach ${coachName}?`,
         [
@@ -106,23 +105,23 @@ export default function SessionInvitesScreen() {
                   inviteId: invite.id,
                   response: 'DECLINED',
                 });
-                showAlert('Done', 'Invite declined. The coach has been notified.');
+                uiFeedback.alert('Done', 'Invite declined. The coach has been notified.');
                 onRefresh();
               } catch {
-                showAlert('Error', 'Failed to decline invite. Please try again.');
+                uiFeedback.alert('Error', 'Failed to decline invite. Please try again.');
               }
             },
           },
         ],
       );
     },
-    [onRefresh, showAlert],
+    [onRefresh],
   );
 
   const handleCancelInvite = useCallback(
     async (invite: SessionInvite) => {
       const athleteNames = getSessionInviteAthleteNames(invite);
-      showAlert(
+      uiFeedback.alert(
         'Cancel Invite',
         `Are you sure you want to cancel this invite to ${athleteNames.join(', ')}?`,
         [
@@ -133,22 +132,22 @@ export default function SessionInvitesScreen() {
             onPress: async () => {
               try {
                 await sessionInviteService.cancelInvite(invite.id);
-                showAlert('Done', 'Invite cancelled.');
+                uiFeedback.alert('Done', 'Invite cancelled.');
                 onRefresh();
               } catch {
-                showAlert('Error', 'Failed to cancel invite. Please try again.');
+                uiFeedback.alert('Error', 'Failed to cancel invite. Please try again.');
               }
             },
           },
         ],
       );
     },
-    [onRefresh, showAlert],
+    [onRefresh],
   );
 
   const handleDismissInvite = useCallback(
     async (invite: SessionInvite) => {
-      showAlert('Remove Invite', 'Remove this invite from your list?', [
+      uiFeedback.alert('Remove Invite', 'Remove this invite from your list?', [
         { text: 'Keep', style: 'cancel' },
         {
           text: 'Remove',
@@ -158,13 +157,13 @@ export default function SessionInvitesScreen() {
               await sessionInviteService.dismissInvite(invite.id);
               onRefresh();
             } catch {
-              showAlert('Error', 'Failed to remove invite. Please try again.');
+              uiFeedback.alert('Error', 'Failed to remove invite. Please try again.');
             }
           },
         },
       ]);
     },
-    [onRefresh, showAlert],
+    [onRefresh],
   );
 
   const handleChangeMode = useCallback((newMode: ViewMode) => setMode(newMode), []);

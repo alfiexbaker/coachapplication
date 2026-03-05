@@ -2,7 +2,7 @@
  * useMemberManagement — All state, data loading, and handlers for the Member Management screen.
  */
 import { useState, useCallback } from 'react';
-import { Alert } from 'react-native';
+
 import { router, useLocalSearchParams } from 'expo-router';
 import { useAuth } from '@/hooks/use-auth';
 import { useToast } from '@/components/ui/toast';
@@ -14,6 +14,7 @@ import type { Club, ClubSquad, ClubRole } from '@/constants/types';
 import { useScreen, type ScreenStatus } from '@/hooks/use-screen';
 import { ServiceEvents } from '@/services/event-bus';
 import { err, ok, serviceError, type ServiceError } from '@/types/result';
+import { uiFeedback } from '@/services/ui-feedback';
 
 const logger = createLogger('MemberManagement');
 
@@ -144,7 +145,7 @@ export function useMemberManagement(): UseMemberManagementResult {
 
   const handleRemoveMember = useCallback(() => {
     if (!member) return;
-    Alert.alert(
+    uiFeedback.alert(
       'Remove Member',
       `Are you sure you want to remove ${member.userName} from ${club?.name || 'this club'}?`,
       [
@@ -175,7 +176,7 @@ export function useMemberManagement(): UseMemberManagementResult {
 
   const handleBanMember = useCallback(() => {
     if (!member) return;
-    Alert.alert(
+    uiFeedback.alert(
       'Ban Member',
       `This will permanently ban ${member.userName} from ${club?.name || 'this club'}. They will not be able to rejoin.`,
       [

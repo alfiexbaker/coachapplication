@@ -4,11 +4,12 @@
  */
 
 import { useState, useCallback, useMemo } from 'react';
-import { Alert } from 'react-native';
+
 import { router, useLocalSearchParams } from 'expo-router';
 import { useAuth } from '@/hooks/use-auth';
 import { squadService } from '@/services/squad-service';
 import { socialFeedService } from '@/services/social-feed-service';
+import { uiFeedback } from '@/services/ui-feedback';
 
 export const AGE_GROUPS = [
   { label: 'U8', min: 5, max: 8 },
@@ -73,15 +74,15 @@ export function useCreateSquad() {
 
   const handleCreate = useCallback(async () => {
     if (!squadName.trim()) {
-      Alert.alert('Error', 'Please enter a squad name');
+      uiFeedback.alert('Error', 'Please enter a squad name');
       return;
     }
     if (!selectedAgeGroup) {
-      Alert.alert('Error', 'Please select an age group');
+      uiFeedback.alert('Error', 'Please select an age group');
       return;
     }
     if (!selectedLevel) {
-      Alert.alert('Error', 'Please select a level');
+      uiFeedback.alert('Error', 'Please select a level');
       return;
     }
 
@@ -97,11 +98,11 @@ export function useCreateSquad() {
         skillLevel: selectedLevel,
         focusAreas: selectedTags,
       });
-      Alert.alert('Squad Created', `${newSquad.name} has been created successfully!`, [
+      uiFeedback.alert('Squad Created', `${newSquad.name} has been created successfully!`, [
         { text: 'OK', onPress: () => router.back() },
       ]);
     } catch {
-      Alert.alert('Error', 'Failed to create squad. Please try again.');
+      uiFeedback.alert('Error', 'Failed to create squad. Please try again.');
     } finally {
       setIsSubmitting(false);
     }

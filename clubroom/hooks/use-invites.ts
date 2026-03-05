@@ -4,7 +4,7 @@
  */
 
 import { useState, useCallback } from 'react';
-import { Alert } from 'react-native';
+
 import { useAuth } from '@/hooks/use-auth';
 import { useScreen } from '@/hooks/use-screen';
 import { inviteService as sessionInviteService, inviteRsvpService } from '@/services/invite';
@@ -12,6 +12,7 @@ import type { SessionInvite, TimeSlot } from '@/constants/types';
 import { createLogger } from '@/utils/logger';
 import { getSessionInviteCoachName } from '@/utils/session-invite-display';
 import { err, ok, serviceError, type ServiceError } from '@/types/result';
+import { uiFeedback } from '@/services/ui-feedback';
 
 const logger = createLogger('InvitesScreen');
 
@@ -84,7 +85,7 @@ export function useInvites() {
           selectedSlot,
         });
         if (!result.success) {
-          Alert.alert(
+          uiFeedback.alert(
             'Booking Failed',
             result.error?.message ?? 'Could not create the booking. Please try again.',
           );
@@ -95,14 +96,14 @@ export function useInvites() {
           return;
         }
         const coachName = getSessionInviteCoachName(invite);
-        Alert.alert(
+        uiFeedback.alert(
           'Booking Confirmed',
           `Session with ${coachName} on ${new Date(selectedSlot.date).toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long' })} at ${selectedSlot.startTime} has been booked.`,
           [{ text: 'Great!' }],
         );
         onRefresh();
       } catch {
-        Alert.alert('Error', 'Failed to accept invite. Please try again.');
+        uiFeedback.alert('Error', 'Failed to accept invite. Please try again.');
       } finally {
         setRespondingTo(null);
       }
@@ -113,7 +114,7 @@ export function useInvites() {
   const handleDeclineInvite = useCallback(
     (invite: SessionInvite) => {
       const coachName = getSessionInviteCoachName(invite);
-      Alert.alert(
+      uiFeedback.alert(
         'Decline Invite',
         `Are you sure you want to decline this invite from ${coachName}?`,
         [
@@ -130,7 +131,7 @@ export function useInvites() {
                 });
                 onRefresh();
               } catch {
-                Alert.alert('Error', 'Failed to decline invite.');
+                uiFeedback.alert('Error', 'Failed to decline invite.');
               } finally {
                 setRespondingTo(null);
               }
@@ -148,7 +149,7 @@ export function useInvites() {
         handleAcceptInvite(invite, invite.proposedSlots[0]);
         return;
       }
-      Alert.alert('Select Time Slot', 'Choose a time that works for you:', [
+      uiFeedback.alert('Select Time Slot', 'Choose a time that works for you:', [
         ...invite.proposedSlots.map((slot) => ({
           text: `${new Date(slot.date).toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' })} at ${slot.startTime}`,
           onPress: () => handleAcceptInvite(invite, slot),
@@ -173,12 +174,12 @@ export function useInvites() {
           currentUser.avatar,
         );
         if (!result.success) {
-          Alert.alert('Error', result.error.message);
+          uiFeedback.alert('Error', result.error.message);
           return;
         }
         onRefresh();
       } catch {
-        Alert.alert('Error', 'Failed to respond. Please try again.');
+        uiFeedback.alert('Error', 'Failed to respond. Please try again.');
       }
     },
     [currentUser, onRefresh],

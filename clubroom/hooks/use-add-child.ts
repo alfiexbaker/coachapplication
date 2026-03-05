@@ -4,7 +4,7 @@
  */
 
 import { useState, useCallback, useMemo, useEffect, useRef } from 'react';
-import { Alert } from 'react-native';
+
 import { router } from 'expo-router';
 import * as ImagePicker from 'expo-image-picker';
 import { toDateStr } from '@/utils/format';
@@ -19,6 +19,7 @@ import {
 } from '@/services/child-service';
 import { apiClient } from '@/services/api-client';
 import { STORAGE_KEYS } from '@/constants/storage-keys';
+import { uiFeedback } from '@/services/ui-feedback';
 
 export type Step = 'basic' | 'special_needs' | 'medical' | 'emergency' | 'consents';
 
@@ -316,7 +317,7 @@ export function useAddChild() {
         return;
       }
 
-      Alert.alert(
+      uiFeedback.alert(
         'Resume draft?',
         'You have an unfinished child registration. Continue where you left off?',
         [
@@ -520,14 +521,14 @@ export function useAddChild() {
           }
         }
         if (errors.length > 0) {
-          Alert.alert('Required Fields', errors.join('\n'));
+          uiFeedback.alert('Required Fields', errors.join('\n'));
           return false;
         }
         return true;
       }
       case 'special_needs':
         if (hasSpecialNeeds === null) {
-          Alert.alert(
+          uiFeedback.alert(
             'Required',
             'Please indicate if your child has any special needs or disabilities',
           );
@@ -557,7 +558,7 @@ export function useAddChild() {
           }
         }
         if (errors.length > 0) {
-          Alert.alert('Required Fields', errors.join('\n'));
+          uiFeedback.alert('Required Fields', errors.join('\n'));
           return false;
         }
         return true;
@@ -625,11 +626,11 @@ export function useAddChild() {
       );
       await clearDraft();
 
-      Alert.alert('Success', `${firstName}'s profile has been created!`, [
+      uiFeedback.alert('Success', `${firstName}'s profile has been created!`, [
         { text: 'OK', onPress: () => router.back() },
       ]);
     } catch {
-      Alert.alert('Error', 'Failed to create child profile. Please try again.');
+      uiFeedback.alert('Error', 'Failed to create child profile. Please try again.');
     } finally {
       setSaving(false);
     }

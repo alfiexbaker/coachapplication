@@ -3,7 +3,7 @@
  * Manages roster list, filtering, roll call, and injury reporting.
  */
 import { useState, useMemo, useCallback } from 'react';
-import { Alert } from 'react-native';
+
 import * as Haptics from 'expo-haptics';
 import { createLogger } from '@/utils/logger';
 import { useScreen, type ScreenStatus } from '@/hooks/use-screen';
@@ -13,6 +13,7 @@ import { injuryService } from '@/services/injury-service';
 import { err, ok, serviceError, type ServiceError } from '@/types/result';
 import type { GroupSession, GroupRegistration, SessionRsvp, BodyPart, InjurySeverity } from '@/constants/types';
 import { getGroupRegistrationAthleteName } from '@/utils/group-display';
+import { uiFeedback } from '@/services/ui-feedback';
 
 const logger = createLogger('SessionRosterScreen');
 
@@ -223,13 +224,13 @@ export function useGroupRoster(sessionId: string | undefined) {
       try {
         const result = await groupSessionService.markAttendance(registration.id, date, attended);
         if (!result.success) {
-          Alert.alert('Error', result.error.message || 'Failed to update attendance.');
+          uiFeedback.alert('Error', result.error.message || 'Failed to update attendance.');
           return;
         }
         onRefresh();
       } catch (error) {
         logger.error('Failed to mark attendance:', error);
-        Alert.alert('Error', 'Failed to update attendance.');
+        uiFeedback.alert('Error', 'Failed to update attendance.');
       }
     },
     [session, onRefresh],
@@ -237,7 +238,7 @@ export function useGroupRoster(sessionId: string | undefined) {
 
   const handleCancelRegistration = useCallback(
     async (registration: GroupRegistration) => {
-      Alert.alert(
+      uiFeedback.alert(
         'Cancel Registration',
         `Remove ${getGroupRegistrationAthleteName(registration)} from this session?`,
         [
@@ -249,13 +250,13 @@ export function useGroupRoster(sessionId: string | undefined) {
               try {
                 const result = await groupSessionService.cancelRegistration(registration.id);
                 if (!result.success) {
-                  Alert.alert('Error', result.error.message || 'Failed to cancel registration.');
+                  uiFeedback.alert('Error', result.error.message || 'Failed to cancel registration.');
                   return;
                 }
                 onRefresh();
               } catch (error) {
                 logger.error('Failed to cancel registration:', error);
-                Alert.alert('Error', 'Failed to cancel registration.');
+                uiFeedback.alert('Error', 'Failed to cancel registration.');
               }
             },
           },
@@ -314,7 +315,7 @@ export function useGroupRoster(sessionId: string | undefined) {
         }
 
         if (result && !result.success) {
-          Alert.alert(
+          uiFeedback.alert(
             'Error',
             result.error.message || 'Failed to save roll call. Please try again.',
           );
@@ -323,10 +324,10 @@ export function useGroupRoster(sessionId: string | undefined) {
       }
       onRefresh();
       setShowRollCall(false);
-      Alert.alert('Success', 'Roll call saved successfully!');
+      uiFeedback.alert('Success', 'Roll call saved successfully!');
     } catch (error) {
       logger.error('Failed to save roll call:', error);
-      Alert.alert('Error', 'Failed to save roll call. Please try again.');
+      uiFeedback.alert('Error', 'Failed to save roll call. Please try again.');
     }
   }, [session, rollCallAttendance, onRefresh]);
 
@@ -341,7 +342,7 @@ export function useGroupRoster(sessionId: string | undefined) {
 
   const submitInjuryReport = useCallback(async () => {
     if (!selectedParticipant || !injuryBodyPart || !injuryDescription.trim()) {
-      Alert.alert('Missing Information', 'Please select a body part and provide a description.');
+      uiFeedback.alert('Missing Information', 'Please select a body part and provide a description.');
       return;
     }
     setSavingInjury(true);
@@ -360,13 +361,13 @@ export function useGroupRoster(sessionId: string | undefined) {
       );
       void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       setShowInjuryReport(false);
-      Alert.alert(
+      uiFeedback.alert(
         'Injury Reported',
         `Injury logged for ${getGroupRegistrationAthleteName(selectedParticipant)}. The athlete can track their recovery in the Health section.`,
       );
     } catch (error) {
       logger.error('Failed to report injury:', error);
-      Alert.alert('Error', 'Failed to report injury. Please try again.');
+      uiFeedback.alert('Error', 'Failed to report injury. Please try again.');
     } finally {
       setSavingInjury(false);
     }

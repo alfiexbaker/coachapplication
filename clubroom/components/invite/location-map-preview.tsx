@@ -6,7 +6,7 @@
  */
 
 import { memo, useCallback } from 'react';
-import { View, StyleSheet, Alert } from 'react-native';
+import { View, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
 import { SurfaceCard } from '@/components/primitives/surface-card';
@@ -16,6 +16,7 @@ import { Spacing, Radii, Typography } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
 import { Row } from '@/components/primitives';
 import { openLocationInMaps } from '@/utils/map-links';
+import { uiFeedback } from '@/services/ui-feedback';
 
 interface LocationMapPreviewProps {
   location: string;
@@ -28,7 +29,7 @@ function LocationMapPreviewComponent({ location, coordinates }: LocationMapPrevi
   const handleGetDirections = useCallback(() => {
     void openLocationInMaps({ location, coordinates }).then((opened) => {
       if (!opened) {
-        Alert.alert('Error', 'Could not open maps application.');
+        uiFeedback.alert('Error', 'Could not open maps application.');
       }
     });
   }, [coordinates, location]);

@@ -27,7 +27,6 @@ import {
 } from '@/components/review/review-screen-sections';
 import { LoadingState, ErrorState, EmptyState } from '@/components/ui/screen-states';
 import { useToast } from '@/components/ui/toast';
-import { useAppAlert } from '@/components/ui/app-alert';
 import { STORAGE_KEYS } from '@/constants/storage-keys';
 import {
   appendCoachReview,
@@ -35,6 +34,7 @@ import {
   isReviewForBookingByUser,
   type StoredCoachReview,
 } from '@/services/review-sync-service';
+import { uiFeedback } from '@/services/ui-feedback';
 
 const logger = createLogger('ReviewScreen');
 let _reviewSubmitLock: Promise<void> = Promise.resolve();
@@ -65,7 +65,6 @@ export default function ReviewScreen() {
   const { colors: palette } = useTheme();
   const { currentUser } = useAuth();
   const { showToast } = useToast();
-  const { showAlert } = useAppAlert();
   const [submitted, setSubmitted] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submittedReview, setSubmittedReview] = useState<{
@@ -148,12 +147,12 @@ export default function ReviewScreen() {
 
       try {
         if (!booking || !bookingId) {
-          showAlert('Missing booking', 'This session could not be reviewed.');
+          uiFeedback.alert('Missing booking', 'This session could not be reviewed.');
           return;
         }
 
         if (booking.status !== 'COMPLETED') {
-          showAlert('Not ready yet', 'You can review a coach once the session is completed.');
+          uiFeedback.alert('Not ready yet', 'You can review a coach once the session is completed.');
           return;
         }
 
@@ -197,7 +196,7 @@ export default function ReviewScreen() {
             rating: persistedReview.review.rating,
             text: persistedReview.review.text || persistedReview.review.content || '',
           });
-          showAlert('Review already submitted', 'You already reviewed this session.');
+          uiFeedback.alert('Review already submitted', 'You already reviewed this session.');
           return;
         }
 
@@ -213,10 +212,10 @@ export default function ReviewScreen() {
         });
         setSubmitted(true);
         showToast('Review submitted', { tone: 'success', duration: 1600 });
-        router.replace(Routes.booking(bookingId));
+        router.replace(Routes.booking(bookingId, { returnTo: Routes.BOOKINGS as string }));
       } catch (submitError) {
         logger.error('Failed to submit review', submitError);
-        showAlert('Error', 'Failed to submit review. Please try again.');
+        uiFeedback.alert('Error', 'Failed to submit review. Please try again.');
       } finally {
         setIsSubmitting(false);
       }
@@ -229,7 +228,6 @@ export default function ReviewScreen() {
       currentUser?.fullName,
       currentUser?.name,
       currentUser?.username,
-      showAlert,
       showToast,
     ],
   );

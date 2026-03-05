@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
-import { Alert, StyleSheet, View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 import { Image } from 'expo-image';
 import { router } from 'expo-router';
 import { Routes } from '@/navigation/routes';
@@ -14,17 +14,23 @@ import { useTheme } from '@/hooks/useTheme';
 import { useSettingsHub } from '@/hooks/use-settings-hub';
 import { bookingSelfSettingService } from '@/services/booking-self-setting-service';
 import { createLogger } from '@/utils/logger';
+import { hasAccountChildren } from '@/utils/booking-self-capability';
+import { uiFeedback } from '@/services/ui-feedback';
 
 const logger = createLogger('SettingsHub');
 
 export default function SettingsHubScreen() {
   const { colors } = useTheme();
-  const { currentUser, isCoach, userHasChildren, handleLogout } = useSettingsHub();
+  const { currentUser, isCoach, childCount, handleLogout } = useSettingsHub();
   const canManageChildren = Boolean(currentUser && !isCoach && currentUser.role !== 'ADMIN');
   const [allowBookSelf, setAllowBookSelf] = useState(false);
+  const accountHasChildren = hasAccountChildren({
+    contextChildCount: childCount,
+    accountChildRefCount: currentUser?.children?.length ?? 0,
+  });
 
   useEffect(() => {
-    if (!currentUser?.id || !(userHasChildren || currentUser.hasChildren)) {
+    if (!currentUser?.id || !accountHasChildren) {
       setAllowBookSelf(false);
       return;
     }
@@ -37,7 +43,7 @@ export default function SettingsHubScreen() {
     return () => {
       cancelled = true;
     };
-  }, [currentUser?.hasChildren, currentUser?.id, userHasChildren]);
+  }, [accountHasChildren, currentUser?.id]);
 
   const handleAllowBookSelfChange = useCallback(
     async (nextValue: boolean) => {
@@ -48,7 +54,7 @@ export default function SettingsHubScreen() {
       const success = await bookingSelfSettingService.setEnabled(currentUser.id, nextValue);
       if (!success) {
         setAllowBookSelf(previousValue);
-        Alert.alert('Could not save setting', 'Please try again.');
+        uiFeedback.alert('Could not save setting', 'Please try again.');
       }
     },
     [allowBookSelf, currentUser?.id],
@@ -131,7 +137,7 @@ export default function SettingsHubScreen() {
             icon="people"
             title="Children"
             subtitle={
-              userHasChildren || currentUser?.hasChildren
+              accountHasChildren
                 ? "Manage your children's profiles"
                 : 'Add and manage child profiles'
             }
@@ -171,7 +177,7 @@ export default function SettingsHubScreen() {
             router.push(Routes.SETTINGS_APPEARANCE);
           }}
         />
-        {(userHasChildren || currentUser?.hasChildren) && (
+        {accountHasChildren && (
           <SettingsToggleRow
             icon="person"
             title="Allow Booking for Self"
@@ -186,7 +192,7 @@ export default function SettingsHubScreen() {
           value="English (UK)"
           onPress={() => {
             logger.press('Language');
-            Alert.alert('Language', 'Additional languages not available');
+            uiFeedback.alert('Language', 'Additional languages not available');
           }}
         />
       </SettingsSection>
@@ -207,7 +213,7 @@ export default function SettingsHubScreen() {
           subtitle="Password and account protection"
           onPress={() => {
             logger.press('Security');
-            Alert.alert('Coming Soon', 'Security settings coming in Sprint 2');
+            uiFeedback.alert('Coming Soon', 'Security settings coming in Sprint 2');
           }}
         />
       </SettingsSection>
@@ -258,7 +264,7 @@ export default function SettingsHubScreen() {
           subtitle="Version information"
           onPress={() => {
             logger.press('About');
-            Alert.alert(
+            uiFeedback.alert(
               'Clubroom',
               'Version 1.0.0\n\nBuilt with care for athletes, coaches, and parents.',
               [{ text: 'OK' }],

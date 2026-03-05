@@ -1,5 +1,5 @@
 import { Ionicons } from '@expo/vector-icons';
-import { Alert, Modal, StyleSheet, TextInput, View, Keyboard } from 'react-native';
+import { Modal, StyleSheet, TextInput, View, Keyboard } from 'react-native';
 import { Image } from 'expo-image';
 import * as ImagePicker from 'expo-image-picker';
 import { useCallback, useState } from 'react';
@@ -22,6 +22,7 @@ import { Row } from '@/components/primitives';
 import { Column } from '@/components/primitives/column';
 import { Button } from '@/components/primitives/button';
 import { VideoPlayer } from './VideoPlayer';
+import { uiFeedback } from '@/services/ui-feedback';
 
 // ─── Re-export ──────────────────────────────────────────────────────────────
 
@@ -75,7 +76,7 @@ export function AssignmentCard({
 
   const handleSubmitEvidence = useCallback(async () => {
     if (!evidenceUri) {
-      Alert.alert('Evidence Required', 'Please upload a video before submitting.');
+      uiFeedback.alert('Evidence Required', 'Please upload a video before submitting.');
       return;
     }
     setSubmittingEvidence(true);

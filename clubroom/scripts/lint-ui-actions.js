@@ -4,7 +4,7 @@ const { execSync } = require('node:child_process');
 const { readFileSync } = require('node:fs');
 const { resolve } = require('node:path');
 
-const TARGETS = ['app', 'components'];
+const TARGETS = ['app', 'hooks', 'components'];
 const FILE_GLOBS = ["'**/*.tsx'"];
 
 const CHECKS = [
@@ -20,7 +20,13 @@ const CHECKS = [
     name: 'empty onRetry handler',
     regex: /onRetry\s*=\s*\{\s*\([^)]*\)\s*=>\s*\{\s*\}\s*\}/g,
   },
+  {
+    name: 'native Alert usage',
+    regex: /Alert\.(alert|prompt)\s*\(/g,
+  },
 ];
+
+const NATIVE_ALERT_EXCEPTION_TAG = 'native-alert-exception';
 
 function listFiles() {
   const cmd = `rg --files ${TARGETS.join(' ')} ${FILE_GLOBS.map((glob) => `-g ${glob}`).join(' ')}`;
@@ -48,6 +54,14 @@ function run() {
       check.regex.lastIndex = 0;
       let match = check.regex.exec(source);
       while (match) {
+        if (check.name === 'native Alert usage') {
+          const line = getLineNumber(source, match.index);
+          const lineText = source.split('\n')[line - 1] || '';
+          if (lineText.includes(NATIVE_ALERT_EXCEPTION_TAG)) {
+            match = check.regex.exec(source);
+            continue;
+          }
+        }
         failures.push({
           file,
           line: getLineNumber(source, match.index),

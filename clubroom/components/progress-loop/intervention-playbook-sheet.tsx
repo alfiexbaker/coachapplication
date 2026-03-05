@@ -91,7 +91,9 @@ export const InterventionPlaybookSheet = memo(function InterventionPlaybookSheet
       ]}
     >
       {!row ? (
-        <BottomSheetView style={styles.content} />
+        <BottomSheetView style={styles.content}>
+          <View />
+        </BottomSheetView>
       ) : (
         <BottomSheetView style={styles.content}>
           <Column gap="sm">

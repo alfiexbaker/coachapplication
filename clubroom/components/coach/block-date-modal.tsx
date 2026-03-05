@@ -3,7 +3,7 @@
  * Coach blocks time off: single day, date range, or holiday presets.
  */
 import { useState, useEffect, useCallback } from 'react';
-import { View, StyleSheet, Modal, ScrollView, Alert, Platform, Keyboard } from 'react-native';
+import { View, StyleSheet, Modal, ScrollView, Platform, Keyboard } from 'react-native';
 import * as Haptics from 'expo-haptics';
 
 import { Clickable } from '@/components/primitives/clickable';
@@ -22,6 +22,7 @@ import {
   BlockSummary,
 } from './block-date-sections';
 import { Row } from '@/components/primitives';
+import { uiFeedback } from '@/services/ui-feedback';
 
 const logger = createLogger('BlockDateModal');
 
@@ -150,7 +151,7 @@ export function BlockDateModal({
       onClose();
     } catch (error) {
       logger.error('Failed to block dates:', error);
-      Alert.alert('Error', 'Failed to block dates. Please try again.');
+      uiFeedback.alert('Error', 'Failed to block dates. Please try again.');
     } finally {
       setSaving(false);
     }
@@ -162,7 +163,7 @@ export function BlockDateModal({
       ? startDate.toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'short' })
       : `${dayCount} days`;
 
-    Alert.alert(
+    uiFeedback.alert(
       'Block Time Off',
       `Block ${dateLabel}? Any existing bookings on ${dayCount === 1 ? 'this date' : 'these dates'} may need to be rescheduled.`,
       [
@@ -198,7 +199,7 @@ export function BlockDateModal({
       closeNow();
       return;
     }
-    Alert.alert(
+    uiFeedback.alert(
       'Discard Block?',
       'You have unsaved changes. Are you sure you want to close?',
       [

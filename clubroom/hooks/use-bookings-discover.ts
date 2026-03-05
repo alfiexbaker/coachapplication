@@ -9,7 +9,6 @@ import { useCallback, useRef } from 'react';
 import { router } from 'expo-router';
 import { Routes } from '@/navigation/routes';
 
-import { useAppAlert } from '@/components/ui/app-alert';
 import { bookingService } from '@/services/booking';
 import { eventService } from '@/services/event';
 import { inviteService as sessionInviteService } from '@/services/invite';
@@ -44,6 +43,7 @@ import type {
   GroupSession,
   GroupRegistration,
 } from '@/constants/types';
+import { uiFeedback } from '@/services/ui-feedback';
 
 const logger = createLogger('useBookingsDiscover');
 
@@ -78,10 +78,9 @@ export interface UseBookingsDiscoverResult {
 }
 
 export function useBookingsDiscover(): UseBookingsDiscoverResult {
-  const { showAlert } = useAppAlert();
   const { currentUser } = useAuth();
   const { updateDraft } = useBookingFlow();
-  const { children: contextChildren, activeChildId, isParent } = useChildContext();
+  const { children: contextChildren, activeChildId } = useChildContext();
   const seedEnsuredRef = useRef(false);
 
   const ensureSeedOnce = useCallback(async () => {
@@ -116,9 +115,10 @@ export function useBookingsDiscover(): UseBookingsDiscoverResult {
       ]);
       const normalizedStoredOfferings = storedOfferings.map(normalizeSessionOfferingSource);
 
-      const scopedChildren = isParent
-        ? contextChildren.filter((child) => !activeChildId || child.id === activeChildId)
-        : contextChildren;
+      const scopedChildren = contextChildren.filter(
+        (child) => !activeChildId || child.id === activeChildId,
+      );
+      const hasChildProfiles = contextChildren.length > 0;
       const viewerIds = new Set<string>();
       if (userId) viewerIds.add(userId);
       for (const child of scopedChildren) {
@@ -183,7 +183,9 @@ export function useBookingsDiscover(): UseBookingsDiscoverResult {
       );
       const eventOfferings = clubEventsResults
         .flat()
-        .filter((event) => canViewerSeeEvent(event, viewerIds, isCoachUser, isParent, userId))
+        .filter((event) =>
+          canViewerSeeEvent(event, viewerIds, isCoachUser, hasChildProfiles, userId),
+        )
         .map(mapEventToOffering);
 
       const allOfferingsById = new Map<string, SessionOffering>();
@@ -271,7 +273,7 @@ export function useBookingsDiscover(): UseBookingsDiscoverResult {
         serviceError('UNKNOWN', 'Failed to load discover data. Pull down to refresh.', loadError),
       );
     }
-  }, [currentUser, contextChildren, isParent, activeChildId, ensureSeedOnce]);
+  }, [currentUser, contextChildren, activeChildId, ensureSeedOnce]);
 
   const {
     data,
@@ -329,7 +331,7 @@ export function useBookingsDiscover(): UseBookingsDiscoverResult {
   const handleDeclineInvite = useCallback(
     (invite: SessionInvite) => {
       const coachName = getSessionInviteCoachName(invite);
-      showAlert('Decline Invite?', `Decline the session invite from ${coachName}?`, [
+      uiFeedback.alert('Decline Invite?', `Decline the session invite from ${coachName}?`, [
         { text: 'Cancel', style: 'cancel' },
         {
           text: 'Decline',
@@ -346,7 +348,7 @@ export function useBookingsDiscover(): UseBookingsDiscoverResult {
         },
       ]);
     },
-    [onRefresh, showAlert],
+    [onRefresh],
   );
 
   const handleCoachPress = useCallback((coachId: string) => {

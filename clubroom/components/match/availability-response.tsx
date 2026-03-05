@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { StyleSheet, View, TextInput, Alert } from 'react-native';
+import { StyleSheet, View, TextInput } from 'react-native';
 import { Clickable } from '@/components/primitives/clickable';
 import { Ionicons } from '@expo/vector-icons';
 
@@ -11,6 +11,7 @@ import { useTheme } from '@/hooks/useTheme';
 import type { Match, MatchPlayer } from '@/constants/types';
 import { SelectedCard, RespondedCard, MatchInfoCard } from './availability-response-sections';
 import { getMatchPlayerAthleteName } from '@/utils/match-display';
+import { uiFeedback } from '@/services/ui-feedback';
 
 interface AvailabilityResponseProps {
   match: Match;
@@ -43,7 +44,7 @@ export function AvailabilityResponse({
     try {
       await onRespond(status, note || undefined);
     } catch {
-      Alert.alert('Error', 'Failed to submit response. Please try again.');
+      uiFeedback.alert('Error', 'Failed to submit response. Please try again.');
     }
   };
 

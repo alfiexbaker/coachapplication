@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { StyleSheet, ActivityIndicator, Alert } from 'react-native';
+import { StyleSheet, ActivityIndicator } from 'react-native';
 import { Clickable } from '@/components/primitives/clickable';
 import { Ionicons } from '@expo/vector-icons';
 
@@ -18,6 +18,7 @@ import {
   DownloadOnlyButtonInner,
   ShareOnlyButtonInner,
 } from './download-button-sections';
+import { uiFeedback } from '@/services/ui-feedback';
 
 const logger = createLogger('DownloadButton');
 
@@ -48,19 +49,19 @@ export function DownloadButton({
     try {
       const result = await invoiceService.downloadInvoice(invoice.id);
       if (result) {
-        Alert.alert(
+        uiFeedback.alert(
           'Invoice Downloaded',
           `${invoice.invoiceNumber} has been saved to your device.`,
           [{ text: 'OK' }],
         );
         onDownloadComplete?.(true);
       } else {
-        Alert.alert('Download Failed', 'Could not download the invoice. Please try again.');
+        uiFeedback.alert('Download Failed', 'Could not download the invoice. Please try again.');
         onDownloadComplete?.(false);
       }
     } catch (error) {
       logger.error('Download error', error);
-      Alert.alert('Download Failed', 'An error occurred while downloading the invoice.');
+      uiFeedback.alert('Download Failed', 'An error occurred while downloading the invoice.');
       onDownloadComplete?.(false);
     } finally {
       setDownloading(false);
@@ -74,11 +75,11 @@ export function DownloadButton({
     try {
       const success = await invoiceService.shareInvoice(invoice.id);
       if (!success) {
-        Alert.alert('Share Failed', 'Could not share the invoice. Please try again.');
+        uiFeedback.alert('Share Failed', 'Could not share the invoice. Please try again.');
       }
     } catch (error) {
       logger.error('Share error', error);
-      Alert.alert('Share Failed', 'An error occurred while sharing the invoice.');
+      uiFeedback.alert('Share Failed', 'An error occurred while sharing the invoice.');
     } finally {
       setSharing(false);
     }

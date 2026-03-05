@@ -5,6 +5,8 @@ export * from './skeleton';
 export * from './status-badge';
 export * from './toast';
 export * from './app-alert';
+export * from './action-sheet';
+export * from './input-sheet';
 export * from './booking/booking-wizard';
 export * from './booking/calendar-picker';
 export * from './booking/session-type-selector';

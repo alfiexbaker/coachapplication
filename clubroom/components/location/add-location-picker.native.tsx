@@ -1,5 +1,5 @@
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { ActivityIndicator, Alert, ScrollView, StyleSheet, TextInput, View } from 'react-native';
+import { ActivityIndicator, ScrollView, StyleSheet, TextInput, View } from 'react-native';
 import MapView, { Marker, type MapPressEvent, type Region } from 'react-native-maps';
 import * as Location from 'expo-location';
 import { Ionicons } from '@expo/vector-icons';
@@ -16,6 +16,7 @@ import {
   findMatchingLocationPreset,
 } from '@/utils/location-presets';
 import type { AddLocationPickerProps, LocationCoordinates } from './add-location-picker.types';
+import { uiFeedback } from '@/services/ui-feedback';
 
 const DEFAULT_COORDINATES: LocationCoordinates = {
   latitude: 51.5246,
@@ -151,7 +152,7 @@ export default memo(function AddLocationPicker({
       const normalized = normalizeLocation(query);
       if (normalized.length < 3) {
         if (!options?.silent) {
-          Alert.alert('Add a location', 'Enter at least 3 characters to search an address.');
+          uiFeedback.alert('Add a location', 'Enter at least 3 characters to search an address.');
         }
         return false;
       }
@@ -162,7 +163,7 @@ export default memo(function AddLocationPicker({
         if (matches.length === 0) {
           onChangeCoordinates(null);
           if (!options?.silent) {
-            Alert.alert('Address not found', 'Try adding city or postcode for a better match.');
+            uiFeedback.alert('Address not found', 'Try adding city or postcode for a better match.');
           }
           return false;
         }
@@ -177,7 +178,7 @@ export default memo(function AddLocationPicker({
       } catch {
         onChangeCoordinates(null);
         if (!options?.silent) {
-          Alert.alert('Search failed', 'Could not search this location right now.');
+          uiFeedback.alert('Search failed', 'Could not search this location right now.');
         }
         return false;
       } finally {
@@ -190,7 +191,7 @@ export default memo(function AddLocationPicker({
   const handleUseCurrentLocation = useCallback(async () => {
     // S-40: Privacy warning before using GPS
     const proceed = await new Promise<boolean>((resolve) => {
-      Alert.alert(
+      uiFeedback.alert(
         'Location Privacy',
         'Your current location will be used to set the session venue. This location may be visible to session participants. Are you sure?',
         [
@@ -206,7 +207,7 @@ export default memo(function AddLocationPicker({
       const permission = await Location.requestForegroundPermissionsAsync();
       if (permission.status !== 'granted') {
         // S-45: Location permission recovery — guide user to Settings
-        Alert.alert(
+        uiFeedback.alert(
           'Location Permission Needed',
           'Location access is required to pin your current spot. You can enable it in your device Settings.',
           [
@@ -234,7 +235,7 @@ export default memo(function AddLocationPicker({
       focusMap(nextCoordinates);
       await reverseGeocode(nextCoordinates);
     } catch {
-      Alert.alert('Unable to get location', 'Check signal and try again.');
+      uiFeedback.alert('Unable to get location', 'Check signal and try again.');
     } finally {
       setIsLocating(false);
     }
@@ -292,11 +293,11 @@ export default memo(function AddLocationPicker({
   const handleSavePreset = useCallback(() => {
     if (!onSavePreset) return;
     if (normalizedValue.length < 3) {
-      Alert.alert('Add a location first', 'Search or drop a pin, then save this preset.');
+      uiFeedback.alert('Add a location first', 'Search or drop a pin, then save this preset.');
       return;
     }
     if (!coordinates) {
-      Alert.alert('Pin required', 'Drop a pin or use Find so this location saves exactly.');
+      uiFeedback.alert('Pin required', 'Drop a pin or use Find so this location saves exactly.');
       return;
     }
 

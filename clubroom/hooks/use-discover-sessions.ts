@@ -6,7 +6,6 @@
 import { useState, useMemo, useCallback } from 'react';
 import { router } from 'expo-router';
 import { Routes } from '@/navigation/routes';
-import { useAppAlert } from '@/components/ui/app-alert';
 import { apiClient } from '@/services/api-client';
 import { bookingService } from '@/services/booking';
 import { inviteService } from '@/services/invite';
@@ -33,6 +32,7 @@ import {
 } from '@/utils/session-offering-projections';
 import { buildBookingDraftPatchFromOffering } from '@/utils/booking-draft-prefill';
 import { err, ok, serviceError, type ServiceError } from '@/types/result';
+import { uiFeedback } from '@/services/ui-feedback';
 
 const logger = createLogger('DiscoverSessions');
 
@@ -82,10 +82,9 @@ export interface UseDiscoverSessionsResult {
 }
 
 export function useDiscoverSessions() {
-  const { showAlert } = useAppAlert();
   const { currentUser } = useAuth();
   const { updateDraft } = useBookingFlow();
-  const { children: contextChildren, isParent, activeChildId } = useChildContext();
+  const { children: contextChildren, activeChildId } = useChildContext();
 
   const [searchQuery, setSearchQuery] = useState('');
   const [skillFilter, setSkillFilter] = useState<FootballObjective | ''>('');
@@ -97,9 +96,11 @@ export function useDiscoverSessions() {
       if (currentUser?.id) {
         viewerIds.add(currentUser.id);
       }
-      if (isParent) {
-        for (const child of contextChildren) {
-          viewerIds.add(child.id);
+      for (const child of contextChildren) {
+        viewerIds.add(child.id);
+        viewerIds.add(child.referenceId);
+        if (child.profileId) {
+          viewerIds.add(child.profileId);
         }
       }
 
@@ -206,7 +207,7 @@ export function useDiscoverSessions() {
         ),
       );
     }
-  }, [contextChildren, currentUser, isParent]);
+  }, [contextChildren, currentUser]);
 
   const { data, status, error, refreshing, onRefresh, retry } = useScreen<DiscoverSessionsData>({
     load: loadOfferings,
@@ -310,7 +311,7 @@ export function useDiscoverSessions() {
   const handleDeclineInvite = useCallback(
     (invite: SessionInvite) => {
       const coachName = getSessionInviteCoachName(invite);
-      showAlert('Decline Invite?', `Decline the session invite from ${coachName}?`, [
+      uiFeedback.alert('Decline Invite?', `Decline the session invite from ${coachName}?`, [
         { text: 'Cancel', style: 'cancel' },
         {
           text: 'Decline',
@@ -327,7 +328,7 @@ export function useDiscoverSessions() {
         },
       ]);
     },
-    [onRefresh, showAlert],
+    [onRefresh],
   );
   const clearSearch = useCallback(() => {
     setSearchQuery('');

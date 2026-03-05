@@ -1,5 +1,5 @@
 import { useState, useCallback } from 'react';
-import { Alert } from 'react-native';
+
 import { router } from 'expo-router';
 import { Routes } from '@/navigation/routes';
 
@@ -7,6 +7,7 @@ import { useAuth } from '@/hooks/use-auth';
 import { videoService } from '@/services/video-service';
 import { createLogger } from '@/utils/logger';
 import type { VideoVisibility } from '@/constants/types';
+import { uiFeedback } from '@/services/ui-feedback';
 
 const logger = createLogger('useVideoUpload');
 
@@ -48,15 +49,15 @@ export function useVideoUpload() {
 
   const handleSubmit = useCallback(async () => {
     if (!videoData) {
-      Alert.alert('No Video', 'Please select a video to upload.');
+      uiFeedback.alert('No Video', 'Please select a video to upload.');
       return;
     }
     if (!title.trim()) {
-      Alert.alert('Missing Title', 'Please enter a title for your video.');
+      uiFeedback.alert('Missing Title', 'Please enter a title for your video.');
       return;
     }
     if (!currentUser) {
-      Alert.alert('Error', 'You must be logged in to upload videos.');
+      uiFeedback.alert('Error', 'You must be logged in to upload videos.');
       return;
     }
 
@@ -80,7 +81,7 @@ export function useVideoUpload() {
         await videoService.shareVideo(newVideo.id, []);
       }
       logger.info('Video uploaded successfully', { videoId: newVideo.id });
-      Alert.alert('Success', 'Video uploaded successfully!', [
+      uiFeedback.alert('Success', 'Video uploaded successfully!', [
         { text: 'View Video', onPress: () => router.replace(Routes.video(newVideo.id)) },
         {
           text: 'Upload Another',
@@ -94,7 +95,7 @@ export function useVideoUpload() {
       ]);
     } catch (error) {
       logger.error('Failed to upload video', error);
-      Alert.alert('Upload Failed', 'There was an error uploading your video. Please try again.');
+      uiFeedback.alert('Upload Failed', 'There was an error uploading your video. Please try again.');
     } finally {
       setUploading(false);
     }

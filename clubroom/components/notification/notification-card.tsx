@@ -1,4 +1,4 @@
-import { Alert, View, StyleSheet } from 'react-native';
+import { View, StyleSheet } from 'react-native';
 import { useCallback } from 'react';
 import Animated, {
   Extrapolate,
@@ -20,6 +20,7 @@ import { ExtendedNotificationItem } from '@/services/notification-service';
 import { navigateToDeepLink } from '@/utils/deep-link';
 import { NotificationDesign } from './notification-design';
 import { useToast } from '@/components/ui/toast';
+import { uiFeedback } from '@/services/ui-feedback';
 
 const logger = createLogger('NotificationCard');
 
@@ -194,7 +195,7 @@ export function NotificationCard({
             onMute
               ? () => {
                   swipeableMethods.close();
-                  Alert.alert(
+                  uiFeedback.alert(
                     'Mute similar notifications?',
                     'This will mute this notification type from your preferences until you turn it back on in Notification Preferences.',
                     [
@@ -209,7 +210,7 @@ export function NotificationCard({
             onDelete
               ? () => {
                   swipeableMethods.close();
-                  Alert.alert(
+                  uiFeedback.alert(
                     'Delete Notification',
                     'Delete this notification?',
                     [

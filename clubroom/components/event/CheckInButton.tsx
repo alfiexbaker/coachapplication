@@ -1,5 +1,4 @@
 import { useState, useCallback } from 'react';
-import { Alert } from 'react-native';
 
 import type { ClubEvent, EventAttendance, CheckInInput } from '@/constants/types';
 import { useTheme } from '@/hooks/useTheme';
@@ -7,6 +6,7 @@ import { createLogger } from '@/utils/logger';
 import { eventService } from '@/services/event-service';
 
 import { CheckInUnavailable, CheckedInBadge, CheckInAction } from './check-in-button-sections';
+import { uiFeedback } from '@/services/ui-feedback';
 
 const logger = createLogger('CheckInButton');
 
@@ -59,7 +59,7 @@ export function CheckInButton({
     setLoading(true);
     try {
       if (requireLocation && !currentLocation) {
-        Alert.alert(
+        uiFeedback.alert(
           'Location Required',
           'Please enable location access to check in to this event.',
           [{ text: 'OK' }],
@@ -86,7 +86,7 @@ export function CheckInButton({
       await onCheckIn(checkInInput);
     } catch (error) {
       logger.error('Check-in failed', error);
-      Alert.alert('Check-in Failed', 'Please try again.');
+      uiFeedback.alert('Check-in Failed', 'Please try again.');
     } finally {
       setLoading(false);
     }
@@ -95,7 +95,7 @@ export function CheckInButton({
   const handleUndoCheckIn = useCallback(async () => {
     if (!onUndoCheckIn || loading) return;
 
-    Alert.alert('Undo Check-in', 'Are you sure you want to undo your check-in?', [
+    uiFeedback.alert('Undo Check-in', 'Are you sure you want to undo your check-in?', [
       { text: 'Cancel', style: 'cancel' },
       {
         text: 'Undo',
@@ -106,7 +106,7 @@ export function CheckInButton({
             await onUndoCheckIn();
           } catch (error) {
             logger.error('Undo check-in failed', error);
-            Alert.alert('Failed', 'Please try again.');
+            uiFeedback.alert('Failed', 'Please try again.');
           } finally {
             setLoading(false);
           }

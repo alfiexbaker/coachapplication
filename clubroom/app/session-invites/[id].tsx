@@ -38,7 +38,6 @@ import { InviteRsvpStats } from '@/components/invite/invite-rsvp-stats';
 import { InviteChildHeader } from '@/components/invite/invite-child-header';
 import { Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
 import { useToast } from '@/components/ui/toast';
-import { useAppAlert } from '@/components/ui/app-alert';
 import {
   inviteService as sessionInviteService,
   inviteRsvpService,
@@ -52,6 +51,7 @@ import {
 } from '@/utils/session-invite-display';
 import { useChildContext } from '@/hooks/use-child-context';
 import { formatInUserTimezone } from '@/utils/timezone';
+import { uiFeedback } from '@/services/ui-feedback';
 
 const logger = createLogger('SessionInviteDetailScreen');
 
@@ -59,7 +59,6 @@ export default function SessionInviteDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const { currentUser } = useAuth();
   const { showToast } = useToast();
-  const { showAlert } = useAppAlert();
   const { isMultiChild, getChildById } = useChildContext();
   const {
     data: invite,
@@ -170,13 +169,15 @@ export default function SessionInviteDetailScreen() {
       });
       setShowPaymentModal(false);
       if (!result.success) {
-        showAlert('Booking Failed', result.error?.message ?? 'Could not create the booking.');
+        uiFeedback.alert('Booking Failed', result.error?.message ?? 'Could not create the booking.');
         return;
       }
       showToast('Invite accepted!', 'success');
       const acceptedInvite = result.data;
       if (acceptedInvite.bookingId) {
-        router.replace(Routes.booking(acceptedInvite.bookingId));
+        router.replace(
+          Routes.booking(acceptedInvite.bookingId, { returnTo: Routes.BOOKINGS as string }),
+        );
       } else if (acceptedInvite.existingSessionId) {
         router.replace(Routes.groupSession(acceptedInvite.existingSessionId));
       } else {
@@ -184,15 +185,15 @@ export default function SessionInviteDetailScreen() {
       }
     } catch (e) {
       logger.error('Failed to accept invite', e);
-      showAlert('Error', 'Failed to accept invite.');
+      uiFeedback.alert('Error', 'Failed to accept invite.');
     } finally {
       setResponding(false);
     }
-  }, [invite, selectedSlot, showAlert, showToast]);
+  }, [invite, selectedSlot, showToast]);
 
   const handleAccept = useCallback(async () => {
     if (!invite || selectedSlot === null) {
-      showAlert('Select a time', 'Please select one of the proposed time slots');
+      uiFeedback.alert('Select a time', 'Please select one of the proposed time slots');
       return;
     }
     if (invite.price && invite.price > 0) {
@@ -200,10 +201,10 @@ export default function SessionInviteDetailScreen() {
       return;
     }
     await confirmAcceptance();
-  }, [invite, selectedSlot, confirmAcceptance, showAlert]);
+  }, [invite, selectedSlot, confirmAcceptance]);
 
   const handleDecline = useCallback(() => {
-    showAlert('Decline Invite', 'Are you sure you want to decline this session invite?', [
+    uiFeedback.alert('Decline Invite', 'Are you sure you want to decline this session invite?', [
       { text: 'Cancel', style: 'cancel' },
       {
         text: 'Decline',
@@ -216,7 +217,7 @@ export default function SessionInviteDetailScreen() {
               inviteId: invite.id,
               response: 'DECLINED',
             });
-            showAlert('Declined', 'The invite has been declined.', [
+            uiFeedback.alert('Declined', 'The invite has been declined.', [
               { text: 'OK', onPress: () => router.back() },
             ]);
           } catch (e) {
@@ -227,10 +228,10 @@ export default function SessionInviteDetailScreen() {
         },
       },
     ]);
-  }, [invite, showAlert]);
+  }, [invite]);
 
   const handleCancel = useCallback(() => {
-    showAlert('Cancel Invite', 'Are you sure you want to cancel this invite?', [
+    uiFeedback.alert('Cancel Invite', 'Are you sure you want to cancel this invite?', [
       { text: 'No', style: 'cancel' },
       {
         text: 'Yes, Cancel',
@@ -239,7 +240,7 @@ export default function SessionInviteDetailScreen() {
           if (!invite) return;
           try {
             await sessionInviteService.cancelInvite(invite.id);
-            showAlert('Cancelled', 'The invite has been cancelled.', [
+            uiFeedback.alert('Cancelled', 'The invite has been cancelled.', [
               { text: 'OK', onPress: () => router.back() },
             ]);
           } catch (e) {
@@ -248,7 +249,7 @@ export default function SessionInviteDetailScreen() {
         },
       },
     ]);
-  }, [invite, showAlert]);
+  }, [invite]);
 
   const handleShare = useCallback(async () => {
     if (!invite) return;
@@ -276,7 +277,7 @@ export default function SessionInviteDetailScreen() {
         currentUser.avatar,
       );
       if (!result.success) {
-        showAlert('Could not RSVP', result.error.message);
+        uiFeedback.alert('Could not RSVP', result.error.message);
         return;
       }
       setCurrentRsvpStatus(rs);
@@ -288,7 +289,7 @@ export default function SessionInviteDetailScreen() {
       if (responsesResult.success) setRsvpResponses(responsesResult.data);
       if (countsResult.success) setRsvpCounts(countsResult.data);
     },
-    [invite, currentUser, showAlert],
+    [invite, currentUser],
   );
 
   const handleSendReminder = useCallback(async () => {
@@ -296,12 +297,12 @@ export default function SessionInviteDetailScreen() {
 
     const result = await sessionInviteService.sendInviteReminder(invite.id);
     if (!result.success) {
-      showAlert('Reminder not sent', result.error.message);
+      uiFeedback.alert('Reminder not sent', result.error.message);
       return;
     }
 
-    showAlert('Reminder sent', "We've nudged the parent to respond to this invite.");
-  }, [invite, showAlert]);
+    uiFeedback.alert('Reminder sent', "We've nudged the parent to respond to this invite.");
+  }, [invite]);
 
   const handleSelectSlot = useCallback((i: number) => setSelectedSlot(i), []);
   const renderShell = (content: ReactNode) => (

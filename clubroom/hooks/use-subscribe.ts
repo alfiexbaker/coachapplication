@@ -4,7 +4,7 @@
  */
 
 import { useState, useEffect, useMemo, useCallback } from 'react';
-import { Alert } from 'react-native';
+
 import { router, useLocalSearchParams } from 'expo-router';
 import { Routes } from '@/navigation/routes';
 import { useAuth } from '@/hooks/use-auth';
@@ -15,6 +15,7 @@ import { discoverService } from '@/services/discover-service';
 import { createLogger } from '@/utils/logger';
 import type { CreateRecurringBookingParams, CoachProfile } from '@/constants/types';
 import { ok } from '@/types/result';
+import { uiFeedback } from '@/services/ui-feedback';
 
 const logger = createLogger('SubscribeScreen');
 
@@ -106,7 +107,7 @@ export function useSubscribe() {
     try {
       const result = await recurringBookingService.createRecurring(formParams);
       if (result.success) {
-        Alert.alert(
+        uiFeedback.alert(
           'Subscription Created',
           'Your recurring sessions are on your schedule.',
           [
@@ -117,11 +118,11 @@ export function useSubscribe() {
           ],
         );
       } else {
-        Alert.alert('Error', result.error?.message || 'Failed to create subscription.');
+        uiFeedback.alert('Error', result.error?.message || 'Failed to create subscription.');
       }
     } catch (error) {
       logger.error('Failed to create subscription', error);
-      Alert.alert('Error', 'An unexpected error occurred. Please try again.');
+      uiFeedback.alert('Error', 'An unexpected error occurred. Please try again.');
     } finally {
       setSubmitting(false);
     }

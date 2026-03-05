@@ -6,7 +6,7 @@
  */
 
 import React, { memo, useCallback, useState } from 'react';
-import { Alert, View } from 'react-native';
+import { View } from 'react-native';
 import { Image } from 'expo-image';
 import { Ionicons } from '@expo/vector-icons';
 
@@ -20,6 +20,7 @@ import { Row } from '@/components/primitives';
 import { Clickable } from '@/components/primitives/clickable';
 import { formatEventDate } from './event-card-helpers';
 import { styles } from './event-card-styles';
+import { uiFeedback } from '@/services/ui-feedback';
 
 function ExpandableVenueText({
   venue,
@@ -36,7 +37,7 @@ function ExpandableVenueText({
   const isLong = venue.trim().length > 50;
   const handleLongPress = useCallback(() => {
     if (isLong) {
-      Alert.alert('Venue', venue);
+      uiFeedback.alert('Venue', venue);
     }
   }, [isLong, venue]);
 

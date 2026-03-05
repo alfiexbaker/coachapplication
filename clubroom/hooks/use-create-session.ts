@@ -6,7 +6,7 @@
  */
 
 import { useState, useEffect, useCallback, useMemo } from 'react';
-import { Alert } from 'react-native';
+
 import { router, useLocalSearchParams } from 'expo-router';
 import { Routes } from '@/navigation/routes';
 
@@ -48,6 +48,7 @@ import {
   WIZARD_STEPS,
   SESSION_TYPES,
 } from '@/components/session/create-session-types';
+import { uiFeedback } from '@/services/ui-feedback';
 
 const logger = createLogger('CreateSession');
 
@@ -894,12 +895,12 @@ export function useCreateSession(): CreateSessionState & CreateSessionActions {
       const parsedPrice = parseSessionPrice(price);
 
       if (!isWithinScheduleWindow(selectedDate) || (campRangeEnd && !isWithinScheduleWindow(campRangeEnd))) {
-        Alert.alert('Invalid date', 'Date must be within 1 year.');
+        uiFeedback.alert('Invalid date', 'Date must be within 1 year.');
         setLoading(false);
         return;
       }
       if (priceError) {
-        Alert.alert('Invalid price', priceError);
+        uiFeedback.alert('Invalid price', priceError);
         setLoading(false);
         return;
       }
@@ -909,7 +910,7 @@ export function useCreateSession(): CreateSessionState & CreateSessionActions {
 
       const primaryDuration = durationBetweenTimes(selectedTime, selectedEndTime);
       if (!isValidTimeWindow(selectedTime, selectedEndTime)) {
-        Alert.alert('Invalid time range', 'End time must be after start time (30 min to 8 hours).');
+        uiFeedback.alert('Invalid time range', 'End time must be after start time (30 min to 8 hours).');
         setLoading(false);
         return;
       }
@@ -933,19 +934,19 @@ export function useCreateSession(): CreateSessionState & CreateSessionActions {
 
       if (resolvedActingAs === 'club') {
         if (!selectedClubOption || !canPostAsClub(selectedClubOption.membership)) {
-          Alert.alert('Select club', 'Choose a club where you can post sessions.');
+          uiFeedback.alert('Select club', 'Choose a club where you can post sessions.');
           setLoading(false);
           return;
         }
         if (!ownerCoachId) {
-          Alert.alert('Assign coach', 'Choose a coach to own this session.');
+          uiFeedback.alert('Assign coach', 'Choose a coach to own this session.');
           setLoading(false);
           return;
         }
       }
 
       if (!ownerCoachId) {
-        Alert.alert('Missing coach', 'Unable to resolve session owner.');
+        uiFeedback.alert('Missing coach', 'Unable to resolve session owner.');
         setLoading(false);
         return;
       }
@@ -1019,24 +1020,24 @@ export function useCreateSession(): CreateSessionState & CreateSessionActions {
       // ---- CAMP PATH ----
       if (sessionType === 'camp') {
         if (!selectedDate || !campRangeEnd) {
-          Alert.alert('Missing schedule', 'Select a camp start date and end date.');
+          uiFeedback.alert('Missing schedule', 'Select a camp start date and end date.');
           setLoading(false);
           return;
         }
         if (campRangeEnd < selectedDate) {
-          Alert.alert('Invalid date range', 'Camp end date must be on or after start date.');
+          uiFeedback.alert('Invalid date range', 'Camp end date must be on or after start date.');
           setLoading(false);
           return;
         }
 
         const campDates = buildCampDates(selectedDate, campRangeEnd);
         if (!campDates) {
-          Alert.alert('Camp too long', 'Camp range cannot exceed 14 days.');
+          uiFeedback.alert('Camp too long', 'Camp range cannot exceed 14 days.');
           setLoading(false);
           return;
         }
         if (campDates.length === 0) {
-          Alert.alert('Invalid schedule', 'Unable to build camp schedule. Check your dates.');
+          uiFeedback.alert('Invalid schedule', 'Unable to build camp schedule. Check your dates.');
           setLoading(false);
           return;
         }
@@ -1059,7 +1060,7 @@ export function useCreateSession(): CreateSessionState & CreateSessionActions {
 
         const invalidSlot = slots.find((slot) => !isValidTimeWindow(slot.startTime, slot.endTime));
         if (invalidSlot) {
-          Alert.alert(
+          uiFeedback.alert(
             'Invalid camp day time',
             `Check time range for ${invalidSlot.date}. End time must be after start time.`,
           );
@@ -1119,7 +1120,7 @@ export function useCreateSession(): CreateSessionState & CreateSessionActions {
             ? ` ${invitesSent} invite${invitesSent === 1 ? '' : 's'} sent${inviteFailures > 0 ? `, ${inviteFailures} failed.` : '.'}`
             : '';
 
-        Alert.alert(
+        uiFeedback.alert(
           'Camp Created!',
           `"${title}" scheduled across ${campDates.length} day${campDates.length === 1 ? '' : 's'}.${inviteSummary}`,
           [
@@ -1219,7 +1220,7 @@ export function useCreateSession(): CreateSessionState & CreateSessionActions {
               ? ` ${invitesSent} invite${invitesSent === 1 ? '' : 's'} sent${inviteFailures > 0 ? `, ${inviteFailures} failed.` : '.'}`
               : '';
 
-          Alert.alert(
+          uiFeedback.alert(
             'Session Created!',
             `Your next 4 sessions are on your schedule.${inviteSummary}`,
             [
@@ -1230,7 +1231,7 @@ export function useCreateSession(): CreateSessionState & CreateSessionActions {
             ],
           );
         } else {
-          Alert.alert('Error', result.error.message || 'Failed to create recurring session.');
+          uiFeedback.alert('Error', result.error.message || 'Failed to create recurring session.');
         }
 
         setLoading(false);
@@ -1331,7 +1332,7 @@ export function useCreateSession(): CreateSessionState & CreateSessionActions {
           ? ` ${invitesSent} invite${invitesSent === 1 ? '' : 's'} sent${inviteFailures > 0 ? `, ${inviteFailures} failed.` : '.'}`
           : '';
 
-      Alert.alert('Session Created!', `"${title}" has been created successfully.${inviteSummary}`, [
+      uiFeedback.alert('Session Created!', `"${title}" has been created successfully.${inviteSummary}`, [
         {
           text: 'View Schedule',
           onPress: () => router.replace(Routes.SCHEDULE),
@@ -1360,7 +1361,7 @@ export function useCreateSession(): CreateSessionState & CreateSessionActions {
       ]);
     } catch (error) {
       logger.error('Failed to create session:', error);
-      Alert.alert('Error', 'Failed to create session. Please try again.');
+      uiFeedback.alert('Error', 'Failed to create session. Please try again.');
     } finally {
       setLoading(false);
     }

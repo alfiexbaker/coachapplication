@@ -6,14 +6,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import {
-  View,
-  StyleSheet,
-  ScrollView,
-  Switch,
-  ActivityIndicator,
-  Alert,
-  ViewStyle,
-} from 'react-native';
+  View, StyleSheet, ScrollView, Switch, ActivityIndicator, ViewStyle } from 'react-native';
 
 import { ThemedText } from '@/components/themed-text';
 import { SurfaceCard } from '@/components/primitives/surface-card';
@@ -27,6 +20,7 @@ import { TrialDiscoveryPreview } from './trial-discovery-preview';
 
 import { validateTrialForm, TrialFormFields } from './trial-session-editor-sections';
 import { Row, Column } from '@/components/primitives';
+import { uiFeedback } from '@/services/ui-feedback';
 
 // Re-export extracted components for backward compat
 export { validateTrialForm, TrialFormFields } from './trial-session-editor-sections';
@@ -85,7 +79,7 @@ export default function TrialSessionEditor({ onSave, onBack }: TrialSessionEdito
 
   const handleToggleEnabled = useCallback((newValue: boolean) => {
     if (newValue) {
-      Alert.alert(
+      uiFeedback.alert(
         'Publish Trial Session',
         'Your trial session will be visible to:\n\n• New clients in discovery\n• On your public profile\n• In booking flows\n\nMake sure pricing and details are correct.',
         [
@@ -94,7 +88,7 @@ export default function TrialSessionEditor({ onSave, onBack }: TrialSessionEdito
         ],
       );
     } else {
-      Alert.alert(
+      uiFeedback.alert(
         'Hide Trial Session',
         'Your trial session will be hidden from:\n\n• Discovery search\n• Your public profile\n• New client booking flows\n\nExisting trial bookings will continue.',
         [
@@ -115,7 +109,7 @@ export default function TrialSessionEditor({ onSave, onBack }: TrialSessionEdito
         description,
       });
       if (error) {
-        Alert.alert('Validation Error', error);
+        uiFeedback.alert('Validation Error', error);
         return;
       }
     }

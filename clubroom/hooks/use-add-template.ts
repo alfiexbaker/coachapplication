@@ -4,11 +4,12 @@
  */
 
 import { useState, useCallback } from 'react';
-import { Alert } from 'react-native';
+
 import { router } from 'expo-router';
 import { useAuth } from '@/hooks/use-auth';
 import { availabilityService } from '@/services/availability-service';
 import { createLogger } from '@/utils/logger';
+import { uiFeedback } from '@/services/ui-feedback';
 
 const logger = createLogger('AddTemplate');
 
@@ -53,7 +54,7 @@ export function useAddTemplate() {
   const handleSave = useCallback(async () => {
     if (!currentUser?.id) return;
     if (startTime >= endTime) {
-      Alert.alert('Invalid Time', 'End time must be after start time');
+      uiFeedback.alert('Invalid Time', 'End time must be after start time');
       return;
     }
 
@@ -75,7 +76,7 @@ export function useAddTemplate() {
       });
 
       if (overlappingTemplate) {
-        Alert.alert(
+        uiFeedback.alert(
           'Overlapping Availability',
           `This overlaps with an existing block (${overlappingTemplate.startTime}-${overlappingTemplate.endTime}). Choose a different time or make the blocks adjacent.`,
         );
@@ -91,13 +92,13 @@ export function useAddTemplate() {
         maxConcurrent: maxSlots,
         bufferMinutes,
       });
-      Alert.alert('Template Added', 'Your availability has been updated', [
+      uiFeedback.alert('Template Added', 'Your availability has been updated', [
         { text: 'OK', onPress: () => router.back() },
       ]);
       logger.success('TemplateAdded', { dayOfWeek, startTime, endTime });
     } catch (error) {
       logger.error('Failed to add template', error);
-      Alert.alert('Error', 'Failed to add availability template');
+      uiFeedback.alert('Error', 'Failed to add availability template');
     } finally {
       setSaving(false);
     }

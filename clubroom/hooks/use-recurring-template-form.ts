@@ -2,12 +2,13 @@
  * useRecurringTemplateForm — Form state, validation, and handlers for RecurringTemplateModal.
  */
 import { useState, useEffect, useCallback } from 'react';
-import { Alert, Platform } from 'react-native';
+import { Platform } from 'react-native';
 import * as Haptics from 'expo-haptics';
 
 import { createLogger } from '@/utils/logger';
 import type { AvailabilityTemplate } from '@/constants/types';
 import type { SessionTemplate } from '@/constants/session-types';
+import { uiFeedback } from '@/services/ui-feedback';
 
 const logger = createLogger('RecurringTemplateModal');
 
@@ -163,7 +164,7 @@ export function useRecurringTemplateForm({
       onClose();
     } catch (error) {
       logger.error('Failed to save template:', error);
-      Alert.alert('Error', 'Failed to save availability. Please try again.');
+      uiFeedback.alert('Error', 'Failed to save availability. Please try again.');
     } finally {
       setSaving(false);
     }
@@ -181,13 +182,13 @@ export function useRecurringTemplateForm({
 
   const handleSave = useCallback(async () => {
     if (selectedDays.length === 0) {
-      Alert.alert('Select Days', 'Please select at least one day');
+      uiFeedback.alert('Select Days', 'Please select at least one day');
       return;
     }
     const [startHour, startMin] = startTime.split(':').map(Number);
     const [endHour, endMin] = endTime.split(':').map(Number);
     if (endHour * 60 + endMin <= startHour * 60 + startMin) {
-      Alert.alert('Invalid times', 'End time must be after start time');
+      uiFeedback.alert('Invalid times', 'End time must be after start time');
       return;
     }
 
@@ -201,7 +202,7 @@ export function useRecurringTemplateForm({
     if (locationChanged && onCheckLocationDrift) {
       const drift = await onCheckLocationDrift(editingTemplate!.dayOfWeek, newLocation!);
       if (drift && drift.affectedCount > 0) {
-        Alert.alert(
+        uiFeedback.alert(
           'Location Changed',
           `You have ${drift.affectedCount} upcoming booking${drift.affectedCount !== 1 ? 's' : ''} at ${drift.oldLocation} on ${DAYS[editingTemplate!.dayOfWeek]}s. Change them to ${newLocation}?`,
           [
@@ -235,7 +236,7 @@ export function useRecurringTemplateForm({
 
   const handleDelete = useCallback(async () => {
     if (!editingTemplate || !onDelete) return;
-    Alert.alert('Delete Slot', 'Are you sure you want to delete this availability slot?', [
+    uiFeedback.alert('Delete Slot', 'Are you sure you want to delete this availability slot?', [
       { text: 'Cancel', style: 'cancel' },
       {
         text: 'Delete',

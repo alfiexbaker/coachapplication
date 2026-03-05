@@ -2,13 +2,14 @@
  * useBlockedDates — State, effects, handlers for BlockedDatesEditor.
  */
 import { useState, useEffect, useCallback } from 'react';
-import { Alert } from 'react-native';
+
 import { apiClient } from '@/services/api-client';
 import { generateId } from '@/utils/generate-id';
 import { STORAGE_KEYS } from '@/constants/storage-keys';
 import { createLogger } from '@/utils/logger';
 import { toDateStr } from '@/utils/format';
 import type { Booking } from '@/constants/app-types';
+import { uiFeedback } from '@/services/ui-feedback';
 
 const logger = createLogger('BlockedDatesEditor');
 
@@ -211,7 +212,7 @@ export function useBlockedDates(
     const { start, end } = getWeekRange();
     const conflicts = await getBookingsInRange(coachId, start, end);
     if (conflicts.count > 0) {
-      Alert.alert(
+      uiFeedback.alert(
         'Bookings exist this week',
         `You have ${conflicts.count} booking${conflicts.count > 1 ? 's' : ''} this week. Blocking will not cancel them. Continue?`,
         [
@@ -226,7 +227,7 @@ export function useBlockedDates(
 
   const handleRemoveBlock = useCallback(
     (blockId: string) => {
-      Alert.alert('Remove blocked dates?', 'Sessions will be bookable again for these dates.', [
+      uiFeedback.alert('Remove blocked dates?', 'Sessions will be bookable again for these dates.', [
         { text: 'Cancel', style: 'cancel' },
         {
           text: 'Remove',

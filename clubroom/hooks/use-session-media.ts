@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Alert, Platform } from 'react-native';
+import { Platform } from 'react-native';
 import * as FileSystem from 'expo-file-system/legacy';
 import * as ImageManipulator from 'expo-image-manipulator';
 import * as ImagePicker from 'expo-image-picker';
@@ -8,6 +8,7 @@ import * as VideoThumbnails from 'expo-video-thumbnails';
 import { mediaService } from '@/services/media-service';
 import { createLogger } from '@/utils/logger';
 import type { PhotoAsset, VideoAsset } from '@/types/progress-types';
+import { uiFeedback } from '@/services/ui-feedback';
 
 const logger = createLogger('UseSessionMedia');
 
@@ -156,7 +157,7 @@ export function useSessionMedia({ sessionId, athleteId, coachId }: UseSessionMed
   const takePhoto = useCallback(async () => {
     if (isUploadingPhotosRef.current) return;
     if (photos.length >= MAX_PHOTOS) {
-      Alert.alert('Limit reached', 'Maximum 3 photos per session.');
+      uiFeedback.alert('Limit reached', 'Maximum 3 photos per session.');
       return;
     }
 
@@ -182,7 +183,7 @@ export function useSessionMedia({ sessionId, athleteId, coachId }: UseSessionMed
         await persistMedia(nextPhotos, video);
       } catch (error) {
         logger.error('Failed to select photo from library', error);
-        Alert.alert('Capture failed', 'Unable to save photo. Please try again.');
+        uiFeedback.alert('Capture failed', 'Unable to save photo. Please try again.');
       } finally {
         isUploadingPhotosRef.current = false;
       }
@@ -195,12 +196,12 @@ export function useSessionMedia({ sessionId, athleteId, coachId }: UseSessionMed
 
   const recordVideo = useCallback(async () => {
     if (video && MAX_VIDEOS === 1) {
-      Alert.alert('Limit reached', 'Maximum 1 video per session.');
+      uiFeedback.alert('Limit reached', 'Maximum 1 video per session.');
       return;
     }
 
     if (Platform.OS === 'web') {
-      Alert.alert('Mobile only', 'Video recording is available on mobile devices.');
+      uiFeedback.alert('Mobile only', 'Video recording is available on mobile devices.');
       return;
     }
 
@@ -217,20 +218,20 @@ export function useSessionMedia({ sessionId, athleteId, coachId }: UseSessionMed
       isUploadingPhotosRef.current = true;
       try {
         if (photos.length >= MAX_PHOTOS) {
-          Alert.alert('Limit reached', 'Maximum 3 photos per session.');
+          uiFeedback.alert('Limit reached', 'Maximum 3 photos per session.');
           return;
         }
         const photoAsset = await processPhotoAsset(payload);
         const nextPhotos = [...photos, photoAsset];
         if (nextPhotos.length > MAX_PHOTOS) {
-          Alert.alert('Limit reached', 'Maximum 3 photos per session.');
+          uiFeedback.alert('Limit reached', 'Maximum 3 photos per session.');
           return;
         }
         setPhotos(nextPhotos);
         await persistMedia(nextPhotos, video);
       } catch (error) {
         logger.error('Failed to process captured photo', error);
-        Alert.alert('Capture failed', 'Unable to save photo. Please try again.');
+        uiFeedback.alert('Capture failed', 'Unable to save photo. Please try again.');
       } finally {
         isUploadingPhotosRef.current = false;
         closeCamera();
@@ -247,7 +248,7 @@ export function useSessionMedia({ sessionId, athleteId, coachId }: UseSessionMed
         await persistMedia(photos, videoAsset);
       } catch (error) {
         logger.error('Failed to process captured video', error);
-        Alert.alert('Capture failed', 'Unable to save video. Please try again.');
+        uiFeedback.alert('Capture failed', 'Unable to save video. Please try again.');
       } finally {
         closeCamera();
       }
