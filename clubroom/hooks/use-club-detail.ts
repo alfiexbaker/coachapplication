@@ -29,12 +29,13 @@ import { uiFeedback } from '@/services/ui-feedback';
 
 const logger = createLogger('ClubDetail');
 
-export type FeedFilter = 'all' | 'announcement' | 'photo' | 'event';
+export type FeedFilter = 'all' | 'announcement' | 'photo' | 'video' | 'event';
 
 export const CLUB_FEED_FILTERS: { key: FeedFilter; label: string; icon: string }[] = [
   { key: 'all', label: 'All', icon: 'grid-outline' },
   { key: 'announcement', label: 'Announcements', icon: 'megaphone-outline' },
   { key: 'photo', label: 'Photos', icon: 'images-outline' },
+  { key: 'video', label: 'Videos', icon: 'videocam-outline' },
   { key: 'event', label: 'Events', icon: 'calendar-outline' },
 ];
 
@@ -305,13 +306,14 @@ export function useClubDetail(clubId: string | undefined) {
     setClub((prev) => (prev ? { ...prev, ...updates } : prev));
   }, []);
 
-  const filterCounts = useMemo(() => {
+  const filterCounts = useMemo<Partial<Record<FeedFilter, number>>>(() => {
     if (!clubId) return {};
     const allPosts = socialFeedService.getFeed(clubId, 'all');
     return {
       all: allPosts.length,
       announcement: allPosts.filter((p) => p.postType === 'announcement').length,
       photo: allPosts.filter((p) => p.postType === 'photo').length,
+      video: allPosts.filter((p) => p.postType === 'video').length,
       event: allPosts.filter((p) => p.postType === 'event').length,
     };
   }, [clubId]);
