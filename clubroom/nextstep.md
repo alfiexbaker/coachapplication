@@ -5,6 +5,18 @@ Canonical sprint reference:
 
 ## Completed in this pass
 
+- Sprint 6 P0 inline feedback slice implemented:
+  - `hooks/use-add-child.ts` now uses inline `validationMessage` state instead of required-field popups; success/error save outcomes now use toast.
+  - `app/(modal)/add-child.tsx` now renders `StatusBanner` for cross-field blocking validation.
+  - `hooks/use-create-session.ts` now exposes `validationMessage` + `clearValidationMessage`; schedule/ownership validation paths now set inline banner state (instead of popup alerts).
+  - `app/sessions/create.tsx` now renders `StatusBanner` for session-creation validation failures.
+  - `components/location/add-location-picker.native.tsx` and `components/location/add-location-picker.web.tsx` now render inline validation errors for search/save failures (no popup default for those cases). Native also adds explicit "Open Settings" recovery action after permission denial.
+  - `hooks/use-edit-profile.ts` now uses inline modal validation messages (experience/language/certification), page-level `formMessage`, and toast for successful save.
+  - `app/(tabs)/edit-profile.tsx` now renders top `StatusBanner` and passes modal validation messages into profile modal sections.
+  - Profile modal sections updated to render inline `modalError` copy:
+    - `components/profile/edit-experience-section.tsx`
+    - `components/profile/edit-languages-section.tsx`
+    - `components/profile/edit-certifications-section.tsx`
 - Implemented central feedback bridge: `services/ui-feedback.ts`.
 - Added in-app action sheet provider: `components/ui/action-sheet.tsx`.
 - Added in-app prompt/input sheet provider: `components/ui/input-sheet.tsx`.
@@ -39,9 +51,9 @@ Canonical sprint reference:
 - `npm run audit:ui` -> PASS
 - `npm run audit:alerts` -> PASS
   - Native Alert calls: `0`
-  - `uiFeedback.alert` calls: `534`
+  - `uiFeedback.alert` calls: `499`
   - `uiFeedback.prompt` calls: `1`
-  - `uiFeedback.showToast` calls: `0`
+  - `uiFeedback.showToast` calls: `3`
 
 ## Immediate next tasks
 

@@ -26,6 +26,7 @@ interface EditCertificationsSectionProps {
   onDraftChange: React.Dispatch<React.SetStateAction<CoachCertification>>;
   onSave: () => void;
   onCloseModal: () => void;
+  modalError?: string | null;
 }
 
 export const EditCertificationsSection = memo(function EditCertificationsSection({
@@ -38,6 +39,7 @@ export const EditCertificationsSection = memo(function EditCertificationsSection
   onDraftChange,
   onSave,
   onCloseModal,
+  modalError,
 }: EditCertificationsSectionProps) {
   const inputStyle = [
     styles.input,
@@ -188,6 +190,11 @@ export const EditCertificationsSection = memo(function EditCertificationsSection
               contentContainerStyle={styles.modalContent}
               showsVerticalScrollIndicator={false}
             >
+              {modalError ? (
+                <ThemedText style={[styles.errorText, { color: colors.error }]} accessibilityRole="alert">
+                  {modalError}
+                </ThemedText>
+              ) : null}
               <View style={styles.fieldGroup}>
                 <ThemedText style={styles.label}>Certification Name</ThemedText>
                 <TextInput
@@ -306,6 +313,7 @@ const styles = StyleSheet.create({
   },
   inlineField: { flex: 1 },
   helper: { ...Typography.caption, opacity: 0.6 },
+  errorText: { ...Typography.caption },
   primaryButton: {
     marginTop: Spacing.sm,
     paddingVertical: Spacing.md,

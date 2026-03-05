@@ -21,6 +21,7 @@ import { CreateReviewStep } from '@/components/session/create-review-step';
 import { CreateInviteStep } from '@/components/session/create-invite-step';
 import { CreateFooterBar } from '@/components/session/create-footer-bar';
 import { Routes } from '@/navigation/routes';
+import { StatusBanner } from '@/components/ui/primitives/StatusBanner';
 import { rosterService } from '@/services/roster-service';
 import { inviteService } from '@/services/invite';
 import { groupSessionService } from '@/services/group-session-service';
@@ -1121,6 +1122,13 @@ export default function CreateSessionScreen() {
           showsVerticalScrollIndicator={false}
           keyboardShouldPersistTaps="handled"
         >
+          {state.validationMessage ? (
+            <StatusBanner
+              variant="error"
+              message={state.validationMessage}
+              onDismiss={state.clearValidationMessage}
+            />
+          ) : null}
           {state.step === 'details' && (
             <CreateDetailsStep
               colors={colors}

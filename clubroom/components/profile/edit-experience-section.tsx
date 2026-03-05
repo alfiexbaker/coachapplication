@@ -26,6 +26,7 @@ interface EditExperienceSectionProps {
   onDraftChange: React.Dispatch<React.SetStateAction<CoachExperience>>;
   onSave: () => void;
   onCloseModal: () => void;
+  modalError?: string | null;
 }
 
 export const EditExperienceSection = memo(function EditExperienceSection({
@@ -38,6 +39,7 @@ export const EditExperienceSection = memo(function EditExperienceSection({
   onDraftChange,
   onSave,
   onCloseModal,
+  modalError,
 }: EditExperienceSectionProps) {
   const inputStyle = [
     styles.input,
@@ -183,6 +185,11 @@ export const EditExperienceSection = memo(function EditExperienceSection({
               contentContainerStyle={styles.modalContent}
               showsVerticalScrollIndicator={false}
             >
+              {modalError ? (
+                <ThemedText style={[styles.errorText, { color: colors.error }]} accessibilityRole="alert">
+                  {modalError}
+                </ThemedText>
+              ) : null}
               <View style={styles.fieldGroup}>
                 <ThemedText style={styles.label}>Role / Title</ThemedText>
                 <TextInput
@@ -326,6 +333,7 @@ const styles = StyleSheet.create({
   textArea: { minHeight: 100, paddingTop: Spacing.sm },
   inlineField: { flex: 1 },
   helper: { ...Typography.caption, opacity: 0.6 },
+  errorText: { ...Typography.caption },
   primaryButton: {
     marginTop: Spacing.sm,
     paddingVertical: Spacing.md,

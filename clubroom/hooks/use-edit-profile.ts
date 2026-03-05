@@ -5,7 +5,7 @@
  * for both coach and parent profile editing flows.
  */
 
-import { useState, useCallback, useEffect, useMemo, useRef } from 'react';
+import { useState, useCallback, useEffect, useMemo, useRef, type SetStateAction } from 'react';
 
 import { router } from 'expo-router';
 
@@ -293,6 +293,7 @@ export function useEditProfile() {
   const [languages, setLanguages] = useState<CoachLanguage[]>([]);
   const [certifications, setCertifications] = useState<CoachCertification[]>([]);
   const [socialLinks, setSocialLinks] = useState<SocialLinks>({});
+  const [formMessage, setFormMessage] = useState<string | null>(null);
 
   const sanitizePriceInput = useCallback((value: string) => value.replace(/[^0-9]/g, ''), []);
   const parseOptionalInt = useCallback((value: string) => {
@@ -320,16 +321,52 @@ export function useEditProfile() {
   }, [sanitizePriceInput]);
 
   // ── Modal drafts ───────────────────────────────────────────────
-  const [experienceDraft, setExperienceDraft] = useState<CoachExperience>(createBlankExperience());
-  const [isExperienceModalVisible, setExperienceModalVisible] = useState(false);
-  const [languageDraft, setLanguageDraft] = useState<CoachLanguage>(createBlankLanguage());
-  const [isLanguageModalVisible, setLanguageModalVisible] = useState(false);
-  const [certificationDraft, setCertificationDraft] = useState<CoachCertification>(
+  const [experienceDraft, setExperienceDraftState] = useState<CoachExperience>(createBlankExperience());
+  const [isExperienceModalVisible, setExperienceModalVisibleState] = useState(false);
+  const [languageDraft, setLanguageDraftState] = useState<CoachLanguage>(createBlankLanguage());
+  const [isLanguageModalVisible, setLanguageModalVisibleState] = useState(false);
+  const [certificationDraft, setCertificationDraftState] = useState<CoachCertification>(
     createBlankCertification(),
   );
-  const [isCertificationModalVisible, setCertificationModalVisible] = useState(false);
+  const [isCertificationModalVisible, setCertificationModalVisibleState] = useState(false);
+  const [experienceValidationMessage, setExperienceValidationMessage] = useState<string | null>(null);
+  const [languageValidationMessage, setLanguageValidationMessage] = useState<string | null>(null);
+  const [certificationValidationMessage, setCertificationValidationMessage] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
   const isSavingRef = useRef(false);
+  const clearFormMessage = useCallback(() => {
+    setFormMessage(null);
+  }, []);
+  const setExperienceDraft = useCallback((value: SetStateAction<CoachExperience>) => {
+    setExperienceValidationMessage(null);
+    setExperienceDraftState(value);
+  }, []);
+  const setLanguageDraft = useCallback((value: SetStateAction<CoachLanguage>) => {
+    setLanguageValidationMessage(null);
+    setLanguageDraftState(value);
+  }, []);
+  const setCertificationDraft = useCallback((value: SetStateAction<CoachCertification>) => {
+    setCertificationValidationMessage(null);
+    setCertificationDraftState(value);
+  }, []);
+  const setExperienceModalVisible = useCallback((visible: boolean) => {
+    if (!visible) {
+      setExperienceValidationMessage(null);
+    }
+    setExperienceModalVisibleState(visible);
+  }, []);
+  const setLanguageModalVisible = useCallback((visible: boolean) => {
+    if (!visible) {
+      setLanguageValidationMessage(null);
+    }
+    setLanguageModalVisibleState(visible);
+  }, []);
+  const setCertificationModalVisible = useCallback((visible: boolean) => {
+    if (!visible) {
+      setCertificationValidationMessage(null);
+    }
+    setCertificationModalVisibleState(visible);
+  }, []);
 
   const retryLoad = useCallback(() => {
     setReloadKey((value) => value + 1);
@@ -440,15 +477,17 @@ export function useEditProfile() {
 
   // ── Experience handlers ────────────────────────────────────────
   const openExperienceModal = useCallback((experience?: CoachExperience) => {
-    setExperienceDraft(experience ? { ...experience } : createBlankExperience());
+    setExperienceValidationMessage(null);
+    setExperienceDraftState(experience ? { ...experience } : createBlankExperience());
     setExperienceModalVisible(true);
-  }, []);
+  }, [setExperienceModalVisible]);
 
   const saveExperience = useCallback(() => {
     if (!experienceDraft.title || !experienceDraft.organization || !experienceDraft.startDate) {
-      uiFeedback.alert('Missing Information', 'Please add a role title, organisation, and start date.');
+      setExperienceValidationMessage('Please add a role title, organisation, and start date.');
       return;
     }
+    setExperienceValidationMessage(null);
     setExperiences((prev) => {
       const exists = prev.some((exp) => exp.id === experienceDraft.id);
       return exists
@@ -456,7 +495,7 @@ export function useEditProfile() {
         : [experienceDraft, ...prev];
     });
     setExperienceModalVisible(false);
-  }, [experienceDraft]);
+  }, [experienceDraft, setExperienceModalVisible]);
 
   const removeExperience = useCallback((id: string) => {
     setExperiences((prev) => prev.filter((exp) => exp.id !== id));
@@ -464,15 +503,17 @@ export function useEditProfile() {
 
   // ── Language handlers ──────────────────────────────────────────
   const openLanguageModal = useCallback((language?: CoachLanguage) => {
-    setLanguageDraft(language ? { ...language } : createBlankLanguage());
+    setLanguageValidationMessage(null);
+    setLanguageDraftState(language ? { ...language } : createBlankLanguage());
     setLanguageModalVisible(true);
-  }, []);
+  }, [setLanguageModalVisible]);
 
   const saveLanguage = useCallback(() => {
     if (!languageDraft.name) {
-      uiFeedback.alert('Missing Information', 'Please add a language name to continue.');
+      setLanguageValidationMessage('Please add a language name to continue.');
       return;
     }
+    setLanguageValidationMessage(null);
     setLanguages((prev) => {
       const exists = prev.some((lang) => lang.id === languageDraft.id);
       return exists
@@ -480,7 +521,7 @@ export function useEditProfile() {
         : [...prev, languageDraft];
     });
     setLanguageModalVisible(false);
-  }, [languageDraft]);
+  }, [languageDraft, setLanguageModalVisible]);
 
   const removeLanguage = useCallback((id: string) => {
     setLanguages((prev) => prev.filter((lang) => lang.id !== id));
@@ -499,18 +540,19 @@ export function useEditProfile() {
 
   // ── Certification handlers ─────────────────────────────────────
   const openCertificationModal = useCallback((certification?: CoachCertification) => {
-    setCertificationDraft(certification ? { ...certification } : createBlankCertification());
+    setCertificationValidationMessage(null);
+    setCertificationDraftState(certification ? { ...certification } : createBlankCertification());
     setCertificationModalVisible(true);
-  }, []);
+  }, [setCertificationModalVisible]);
 
   const saveCertification = useCallback(() => {
     if (!certificationDraft.name || !certificationDraft.issuer || !certificationDraft.issueDate) {
-      uiFeedback.alert(
-        'Missing Information',
+      setCertificationValidationMessage(
         'Please add a certification name, issuer, and issue date.',
       );
       return;
     }
+    setCertificationValidationMessage(null);
     setCertifications((prev) => {
       const exists = prev.some((cert) => cert.id === certificationDraft.id);
       return exists
@@ -518,7 +560,7 @@ export function useEditProfile() {
         : [certificationDraft, ...prev];
     });
     setCertificationModalVisible(false);
-  }, [certificationDraft]);
+  }, [certificationDraft, setCertificationModalVisible]);
 
   const removeCertification = useCallback((id: string) => {
     setCertifications((prev) => prev.filter((cert) => cert.id !== id));
@@ -549,14 +591,15 @@ export function useEditProfile() {
     if (isSavingRef.current) return;
     isSavingRef.current = true;
     setIsSaving(true);
+    setFormMessage(null);
     try {
       if (userIsCoach && priceRangeError) {
-        uiFeedback.alert('Invalid pricing', priceRangeError);
+        setFormMessage(priceRangeError);
         return;
       }
       if (userIsCoach) {
         if (!coach) {
-          uiFeedback.alert('Profile unavailable', 'Coach profile is still loading. Please try again.');
+          setFormMessage('Coach profile is still loading. Please try again.');
           return;
         }
 
@@ -581,7 +624,7 @@ export function useEditProfile() {
         logger.info('Coach profile payload ready for API sync', payload);
       } else {
         if (!user) {
-          uiFeedback.alert('Profile unavailable', 'User profile is still loading. Please try again.');
+          setFormMessage('User profile is still loading. Please try again.');
           return;
         }
 
@@ -594,9 +637,8 @@ export function useEditProfile() {
         }
       }
 
-      uiFeedback.alert('Success', 'Profile updated successfully', [
-        { text: 'OK', onPress: () => router.back() },
-      ]);
+      uiFeedback.showToast('Profile updated successfully', 'success');
+      router.back();
     } finally {
       isSavingRef.current = false;
       setIsSaving(false);
@@ -622,7 +664,6 @@ export function useEditProfile() {
     children,
     primaryPosition,
     priceRangeError,
-    isSaving,
   ]);
 
   // ── Image picker ───────────────────────────────────────────────
@@ -648,6 +689,8 @@ export function useEditProfile() {
     user,
     initializing,
     loadError,
+    formMessage,
+    clearFormMessage,
     retryLoad,
     // Common
     fullName,
@@ -683,6 +726,7 @@ export function useEditProfile() {
     openExperienceModal,
     saveExperience,
     removeExperience,
+    experienceValidationMessage,
     experienceDraft,
     setExperienceDraft,
     isExperienceModalVisible,
@@ -693,6 +737,7 @@ export function useEditProfile() {
     saveLanguage,
     removeLanguage,
     quickAddLanguage,
+    languageValidationMessage,
     languageDraft,
     setLanguageDraft,
     isLanguageModalVisible,
@@ -704,6 +749,7 @@ export function useEditProfile() {
     openCertificationModal,
     saveCertification,
     removeCertification,
+    certificationValidationMessage,
     certificationDraft,
     setCertificationDraft,
     isCertificationModalVisible,

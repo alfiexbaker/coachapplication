@@ -1,5 +1,5 @@
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { ActivityIndicator, ScrollView, StyleSheet, TextInput, View } from 'react-native';
+import { ActivityIndicator, Linking, ScrollView, StyleSheet, TextInput, View } from 'react-native';
 import MapView, { Marker, type MapPressEvent, type Region } from 'react-native-maps';
 import * as Location from 'expo-location';
 import { Ionicons } from '@expo/vector-icons';
@@ -85,6 +85,8 @@ export default memo(function AddLocationPicker({
   const [isResolvingAddress, setIsResolvingAddress] = useState(false);
   const [isLocating, setIsLocating] = useState(false);
   const [savedFeedback, setSavedFeedback] = useState(false);
+  const [inlineError, setInlineError] = useState<string | null>(null);
+  const [permissionDenied, setPermissionDenied] = useState(false);
 
   const coordinatesKey = coordinates
     ? `${coordinates.latitude.toFixed(6)}:${coordinates.longitude.toFixed(6)}`
@@ -152,7 +154,7 @@ export default memo(function AddLocationPicker({
       const normalized = normalizeLocation(query);
       if (normalized.length < 3) {
         if (!options?.silent) {
-          uiFeedback.alert('Add a location', 'Enter at least 3 characters to search an address.');
+          setInlineError('Enter at least 3 characters to search an address.');
         }
         return false;
       }
@@ -163,7 +165,7 @@ export default memo(function AddLocationPicker({
         if (matches.length === 0) {
           onChangeCoordinates(null);
           if (!options?.silent) {
-            uiFeedback.alert('Address not found', 'Try adding city or postcode for a better match.');
+            setInlineError('Address not found. Try adding city or postcode for a better match.');
           }
           return false;
         }
@@ -174,11 +176,13 @@ export default memo(function AddLocationPicker({
         };
         onChangeCoordinates(nextCoordinates);
         focusMap(nextCoordinates);
+        setInlineError(null);
+        setPermissionDenied(false);
         return true;
       } catch {
         onChangeCoordinates(null);
         if (!options?.silent) {
-          uiFeedback.alert('Search failed', 'Could not search this location right now.');
+          setInlineError('Could not search this location right now.');
         }
         return false;
       } finally {
@@ -206,20 +210,9 @@ export default memo(function AddLocationPicker({
     try {
       const permission = await Location.requestForegroundPermissionsAsync();
       if (permission.status !== 'granted') {
-        // S-45: Location permission recovery — guide user to Settings
-        uiFeedback.alert(
-          'Location Permission Needed',
-          'Location access is required to pin your current spot. You can enable it in your device Settings.',
-          [
-            { text: 'Cancel', style: 'cancel' },
-            {
-              text: 'Open Settings',
-              onPress: () => {
-                // expo-location handles the Linking to settings internally on iOS
-                void Location.requestForegroundPermissionsAsync();
-              },
-            },
-          ],
+        setPermissionDenied(true);
+        setInlineError(
+          'Location access is required to pin your current spot. Enable it in device settings.',
         );
         return;
       }
@@ -234,8 +227,11 @@ export default memo(function AddLocationPicker({
       onChangeCoordinates(nextCoordinates);
       focusMap(nextCoordinates);
       await reverseGeocode(nextCoordinates);
+      setInlineError(null);
+      setPermissionDenied(false);
     } catch {
-      uiFeedback.alert('Unable to get location', 'Check signal and try again.');
+      setPermissionDenied(false);
+      setInlineError('Unable to get location. Check signal and try again.');
     } finally {
       setIsLocating(false);
     }
@@ -265,6 +261,8 @@ export default memo(function AddLocationPicker({
         onChangeValue(preset.address);
         onChangeCoordinates(preset.coordinates ?? null);
       }
+      setInlineError(null);
+      setPermissionDenied(false);
 
       if (preset.coordinates) {
         focusMap(preset.coordinates);
@@ -283,6 +281,8 @@ export default memo(function AddLocationPicker({
   const handleTextChange = useCallback(
     (nextValue: string) => {
       onChangeValue(nextValue);
+      setInlineError(null);
+      setPermissionDenied(false);
       if (coordinates && nextValue.trim() !== value.trim()) {
         onChangeCoordinates(null);
       }
@@ -293,11 +293,11 @@ export default memo(function AddLocationPicker({
   const handleSavePreset = useCallback(() => {
     if (!onSavePreset) return;
     if (normalizedValue.length < 3) {
-      uiFeedback.alert('Add a location first', 'Search or drop a pin, then save this preset.');
+      setInlineError('Search or drop a pin, then save this preset.');
       return;
     }
     if (!coordinates) {
-      uiFeedback.alert('Pin required', 'Drop a pin or use Find so this location saves exactly.');
+      setInlineError('Drop a pin or use Find so this location saves exactly.');
       return;
     }
 
@@ -307,6 +307,8 @@ export default memo(function AddLocationPicker({
       coordinates,
     });
     setSavedFeedback(true);
+    setInlineError(null);
+    setPermissionDenied(false);
   }, [coordinates, normalizedValue, onSavePreset, selectedPreset?.label, venueName]);
 
   const selectedPrimaryLabel =
@@ -490,6 +492,24 @@ export default memo(function AddLocationPicker({
               )}
             </Clickable>
           </Row>
+          {inlineError ? (
+            <ThemedText style={[styles.errorText, { color: palette.error }]} accessibilityRole="alert">
+              {inlineError}
+            </ThemedText>
+          ) : null}
+          {permissionDenied ? (
+            <Clickable
+              onPress={() => {
+                void Linking.openSettings();
+              }}
+              accessibilityLabel="Open settings"
+              style={[styles.settingsBtn, { borderColor: palette.error }]}
+            >
+              <ThemedText style={[styles.settingsBtnText, { color: palette.error }]}>
+                Open Settings
+              </ThemedText>
+            </Clickable>
+          ) : null}
 
           <Row gap="sm">
             <Clickable
@@ -715,6 +735,22 @@ const styles = StyleSheet.create({
   },
   searchBtnText: {
     ...Typography.smallSemiBold,
+  },
+  errorText: {
+    ...Typography.caption,
+  },
+  settingsBtn: {
+    minHeight: 34,
+    borderWidth: 1,
+    borderRadius: Radii.pill,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: Spacing.sm,
+    alignSelf: 'flex-start',
+  },
+  settingsBtnText: {
+    ...Typography.caption,
+    fontWeight: '600',
   },
   actionBtn: {
     flex: 1,

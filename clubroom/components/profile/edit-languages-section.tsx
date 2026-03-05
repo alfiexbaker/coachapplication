@@ -28,6 +28,7 @@ interface EditLanguagesSectionProps {
   onDraftChange: React.Dispatch<React.SetStateAction<CoachLanguage>>;
   onSave: () => void;
   onCloseModal: () => void;
+  modalError?: string | null;
 }
 
 export const EditLanguagesSection = memo(function EditLanguagesSection({
@@ -43,6 +44,7 @@ export const EditLanguagesSection = memo(function EditLanguagesSection({
   onDraftChange,
   onSave,
   onCloseModal,
+  modalError,
 }: EditLanguagesSectionProps) {
   const inputStyle = [
     styles.input,
@@ -174,6 +176,11 @@ export const EditLanguagesSection = memo(function EditLanguagesSection({
               </Clickable>
             </Row>
             <View style={styles.modalContent}>
+              {modalError ? (
+                <ThemedText style={[styles.errorText, { color: colors.error }]} accessibilityRole="alert">
+                  {modalError}
+                </ThemedText>
+              ) : null}
               <View style={styles.fieldGroup}>
                 <ThemedText style={styles.label}>Language</ThemedText>
                 <TextInput
@@ -290,6 +297,7 @@ const styles = StyleSheet.create({
     paddingVertical: Spacing.sm,
     ...Typography.subheading,
   },
+  errorText: { ...Typography.caption },
   primaryButton: {
     marginTop: Spacing.sm,
     paddingVertical: Spacing.md,

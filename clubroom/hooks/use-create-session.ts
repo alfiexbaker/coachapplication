@@ -240,6 +240,7 @@ export interface CreateSessionState {
   step: WizardStep;
   currentStepIndex: number;
   loading: boolean;
+  validationMessage: string | null;
 
   // Step 1: Details
   sessionType: SessionType;
@@ -302,6 +303,7 @@ export interface CreateSessionActions {
   setPrice: (v: string) => void;
   setInviteType: (v: SessionInviteType) => void;
   toggleAthleteSelection: (id: string) => void;
+  clearValidationMessage: () => void;
   goNext: () => void;
   goBack: () => void;
   canProceed: () => boolean;
@@ -327,6 +329,7 @@ export function useCreateSession(): CreateSessionState & CreateSessionActions {
   // Wizard state
   const [step, setStep] = useState<WizardStep>('details');
   const [loading, setLoading] = useState(false);
+  const [validationMessage, setValidationMessage] = useState<string | null>(null);
   const [savedLocations, setSavedLocations] = useState<CoachLocationPreset[]>([]);
 
   // Step 1
@@ -362,6 +365,9 @@ export function useCreateSession(): CreateSessionState & CreateSessionActions {
   const [inviteType, setInviteTypeState] = useState<SessionInviteType>('CLOSED');
   const [selectedAthletes, setSelectedAthletes] = useState<string[]>([]);
   const [pastAthletes, setPastAthletes] = useState<PastAthlete[]>([]);
+  const clearValidationMessage = useCallback(() => {
+    setValidationMessage(null);
+  }, []);
 
   const currentStepIndex = WIZARD_STEPS.indexOf(step);
   const allowedRecurrenceOptions = ALLOWED_RECURRENCE_BY_TYPE[sessionType];
@@ -845,17 +851,19 @@ export function useCreateSession(): CreateSessionState & CreateSessionActions {
   const goNext = useCallback(() => {
     const nextIndex = currentStepIndex + 1;
     if (nextIndex < WIZARD_STEPS.length) {
+      clearValidationMessage();
       setStep(WIZARD_STEPS[nextIndex]);
     }
-  }, [currentStepIndex]);
+  }, [clearValidationMessage, currentStepIndex]);
 
   const goBack = useCallback(() => {
+    clearValidationMessage();
     if (currentStepIndex > 0) {
       setStep(WIZARD_STEPS[currentStepIndex - 1]);
     } else {
       router.back();
     }
-  }, [currentStepIndex]);
+  }, [clearValidationMessage, currentStepIndex]);
 
   // --------------------------------------------------------------------------
   // FORM ACTIONS
@@ -881,6 +889,7 @@ export function useCreateSession(): CreateSessionState & CreateSessionActions {
     if (!currentUser) return;
 
     setLoading(true);
+    clearValidationMessage();
     try {
       const resolvedLocation = getDisplayLocationLabel(location, locationCoordinates);
       const normalizedVenueName = venueName.trim() || undefined;
@@ -895,12 +904,12 @@ export function useCreateSession(): CreateSessionState & CreateSessionActions {
       const parsedPrice = parseSessionPrice(price);
 
       if (!isWithinScheduleWindow(selectedDate) || (campRangeEnd && !isWithinScheduleWindow(campRangeEnd))) {
-        uiFeedback.alert('Invalid date', 'Date must be within 1 year.');
+        setValidationMessage('Date must be within 1 year.');
         setLoading(false);
         return;
       }
       if (priceError) {
-        uiFeedback.alert('Invalid price', priceError);
+        setValidationMessage(priceError);
         setLoading(false);
         return;
       }
@@ -910,7 +919,7 @@ export function useCreateSession(): CreateSessionState & CreateSessionActions {
 
       const primaryDuration = durationBetweenTimes(selectedTime, selectedEndTime);
       if (!isValidTimeWindow(selectedTime, selectedEndTime)) {
-        uiFeedback.alert('Invalid time range', 'End time must be after start time (30 min to 8 hours).');
+        setValidationMessage('End time must be after start time (30 min to 8 hours).');
         setLoading(false);
         return;
       }
@@ -934,19 +943,19 @@ export function useCreateSession(): CreateSessionState & CreateSessionActions {
 
       if (resolvedActingAs === 'club') {
         if (!selectedClubOption || !canPostAsClub(selectedClubOption.membership)) {
-          uiFeedback.alert('Select club', 'Choose a club where you can post sessions.');
+          setValidationMessage('Choose a club where you can post sessions.');
           setLoading(false);
           return;
         }
         if (!ownerCoachId) {
-          uiFeedback.alert('Assign coach', 'Choose a coach to own this session.');
+          setValidationMessage('Choose a coach to own this session.');
           setLoading(false);
           return;
         }
       }
 
       if (!ownerCoachId) {
-        uiFeedback.alert('Missing coach', 'Unable to resolve session owner.');
+        setValidationMessage('Unable to resolve session owner.');
         setLoading(false);
         return;
       }
@@ -1020,24 +1029,24 @@ export function useCreateSession(): CreateSessionState & CreateSessionActions {
       // ---- CAMP PATH ----
       if (sessionType === 'camp') {
         if (!selectedDate || !campRangeEnd) {
-          uiFeedback.alert('Missing schedule', 'Select a camp start date and end date.');
+          setValidationMessage('Select a camp start date and end date.');
           setLoading(false);
           return;
         }
         if (campRangeEnd < selectedDate) {
-          uiFeedback.alert('Invalid date range', 'Camp end date must be on or after start date.');
+          setValidationMessage('Camp end date must be on or after start date.');
           setLoading(false);
           return;
         }
 
         const campDates = buildCampDates(selectedDate, campRangeEnd);
         if (!campDates) {
-          uiFeedback.alert('Camp too long', 'Camp range cannot exceed 14 days.');
+          setValidationMessage('Camp range cannot exceed 14 days.');
           setLoading(false);
           return;
         }
         if (campDates.length === 0) {
-          uiFeedback.alert('Invalid schedule', 'Unable to build camp schedule. Check your dates.');
+          setValidationMessage('Unable to build camp schedule. Check your dates.');
           setLoading(false);
           return;
         }
@@ -1060,8 +1069,7 @@ export function useCreateSession(): CreateSessionState & CreateSessionActions {
 
         const invalidSlot = slots.find((slot) => !isValidTimeWindow(slot.startTime, slot.endTime));
         if (invalidSlot) {
-          uiFeedback.alert(
-            'Invalid camp day time',
+          setValidationMessage(
             `Check time range for ${invalidSlot.date}. End time must be after start time.`,
           );
           setLoading(false);
@@ -1366,6 +1374,7 @@ export function useCreateSession(): CreateSessionState & CreateSessionActions {
       setLoading(false);
     }
   }, [
+    clearValidationMessage,
     currentUser,
     location,
     postingAs,
@@ -1402,6 +1411,7 @@ export function useCreateSession(): CreateSessionState & CreateSessionActions {
     step,
     currentStepIndex,
     loading,
+    validationMessage,
     sessionType,
     title,
     description,
@@ -1457,6 +1467,7 @@ export function useCreateSession(): CreateSessionState & CreateSessionActions {
     setPrice,
     setInviteType,
     toggleAthleteSelection,
+    clearValidationMessage,
     goNext,
     goBack,
     canProceed,

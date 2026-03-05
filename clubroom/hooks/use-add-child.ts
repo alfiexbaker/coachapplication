@@ -88,6 +88,7 @@ export function useAddChild() {
   const [currentStep, setCurrentStep] = useState<Step>('basic');
   const [saving, setSaving] = useState(false);
   const [showDatePicker, setShowDatePicker] = useState(false);
+  const [validationMessage, setValidationMessage] = useState<string | null>(null);
 
   // Step 1: Basic Info
   const [firstName, setFirstName] = useState('');
@@ -150,6 +151,9 @@ export function useAddChild() {
   const stepIndex = STEPS.indexOf(currentStep);
   const isFirstStep = stepIndex === 0;
   const isLastStep = stepIndex === STEPS.length - 1;
+  const clearValidationMessage = useCallback(() => {
+    setValidationMessage(null);
+  }, []);
 
   const buildDraft = useCallback(
     (): AddChildDraft => ({
@@ -521,19 +525,20 @@ export function useAddChild() {
           }
         }
         if (errors.length > 0) {
-          uiFeedback.alert('Required Fields', errors.join('\n'));
+          setValidationMessage(errors.join('\n'));
           return false;
         }
+        setValidationMessage(null);
         return true;
       }
       case 'special_needs':
         if (hasSpecialNeeds === null) {
-          uiFeedback.alert(
-            'Required',
-            'Please indicate if your child has any special needs or disabilities',
+          setValidationMessage(
+            'Please indicate if your child has any special needs or disabilities.',
           );
           return false;
         }
+        setValidationMessage(null);
         return true;
       case 'emergency': {
         const errors: string[] = [];
@@ -558,12 +563,14 @@ export function useAddChild() {
           }
         }
         if (errors.length > 0) {
-          uiFeedback.alert('Required Fields', errors.join('\n'));
+          setValidationMessage(errors.join('\n'));
           return false;
         }
+        setValidationMessage(null);
         return true;
       }
       default:
+        setValidationMessage(null);
         return true;
     }
   }, [
@@ -581,15 +588,21 @@ export function useAddChild() {
   ]);
 
   const goNext = useCallback(() => {
-    if (validateStep() && !isLastStep) setCurrentStep(STEPS[stepIndex + 1]);
-  }, [validateStep, isLastStep, stepIndex]);
+    if (validateStep() && !isLastStep) {
+      clearValidationMessage();
+      setCurrentStep(STEPS[stepIndex + 1]);
+    }
+  }, [validateStep, isLastStep, stepIndex, clearValidationMessage]);
   const goBack = useCallback(() => {
+    clearValidationMessage();
     if (!isFirstStep) setCurrentStep(STEPS[stepIndex - 1]);
     else router.back();
-  }, [isFirstStep, stepIndex]);
+  }, [clearValidationMessage, isFirstStep, stepIndex]);
 
   const handleSave = useCallback(async () => {
-    if (!validateStep() || !currentUser?.id) return;
+    if (!currentUser?.id) return;
+    if (!validateStep()) return;
+    clearValidationMessage();
     setSaving(true);
     try {
       const createdChild = await childService.createChild(currentUser.id, {
@@ -626,15 +639,15 @@ export function useAddChild() {
       );
       await clearDraft();
 
-      uiFeedback.alert('Success', `${firstName}'s profile has been created!`, [
-        { text: 'OK', onPress: () => router.back() },
-      ]);
+      uiFeedback.showToast(`${firstName}'s profile has been created!`, 'success');
+      router.back();
     } catch {
-      uiFeedback.alert('Error', 'Failed to create child profile. Please try again.');
+      uiFeedback.showToast('Failed to create child profile. Please try again.', 'error');
     } finally {
       setSaving(false);
     }
   }, [
+    clearValidationMessage,
     validateStep,
     currentUser,
     firstName,
@@ -832,10 +845,12 @@ export function useAddChild() {
     isFirstStep,
     isLastStep,
     saving,
+    validationMessage,
     firstName,
     goNext,
     goBack,
     handleSave,
+    clearValidationMessage,
     basicProps,
     medicalProps,
     emergencyProps,

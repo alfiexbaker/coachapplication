@@ -15,6 +15,7 @@ import { EditLanguagesSection } from '@/components/profile/edit-languages-sectio
 import { EditCertificationsSection } from '@/components/profile/edit-certifications-section';
 import { PositionSelector } from '@/components/session/position-selector';
 import { EmptyState, ErrorState, LoadingState } from '@/components/ui/screen-states';
+import { StatusBanner } from '@/components/ui/primitives/StatusBanner';
 import { ThemedText } from '@/components/themed-text';
 import { Spacing, Typography } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
@@ -124,6 +125,13 @@ export default function EditProfileScreen() {
           contentContainerStyle={styles.scrollContent}
           keyboardShouldPersistTaps="handled"
         >
+          {profile.formMessage ? (
+            <StatusBanner
+              variant="error"
+              message={profile.formMessage}
+              onDismiss={profile.clearFormMessage}
+            />
+          ) : null}
           <EditPhotoSection
             colors={colors}
             userIsCoach={profile.userIsCoach}
@@ -192,6 +200,7 @@ export default function EditProfileScreen() {
                 onDraftChange={profile.setExperienceDraft}
                 onSave={profile.saveExperience}
                 onCloseModal={() => profile.setExperienceModalVisible(false)}
+                modalError={profile.experienceValidationMessage}
               />
 
               <EditLanguagesSection
@@ -207,6 +216,7 @@ export default function EditProfileScreen() {
                 onDraftChange={profile.setLanguageDraft}
                 onSave={profile.saveLanguage}
                 onCloseModal={() => profile.setLanguageModalVisible(false)}
+                modalError={profile.languageValidationMessage}
               />
 
               <SurfaceCard style={styles.section}>
@@ -226,6 +236,7 @@ export default function EditProfileScreen() {
                 onDraftChange={profile.setCertificationDraft}
                 onSave={profile.saveCertification}
                 onCloseModal={() => profile.setCertificationModalVisible(false)}
+                modalError={profile.certificationValidationMessage}
               />
             </>
           )}

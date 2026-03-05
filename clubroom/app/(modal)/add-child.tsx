@@ -24,6 +24,7 @@ import { Radii, Spacing, Typography } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
 import { useAddChild, STEPS, STEP_TITLES } from '@/hooks/use-add-child';
 import { useFocusTrap } from '@/hooks/use-focus-trap';
+import { StatusBanner } from '@/components/ui/primitives/StatusBanner';
 
 export default function AddChildScreen() {
   const { colors: palette } = useTheme();
@@ -109,6 +110,13 @@ export default function AddChildScreen() {
           showsVerticalScrollIndicator={false}
           keyboardShouldPersistTaps="handled"
         >
+          {c.validationMessage ? (
+            <StatusBanner
+              variant="error"
+              message={c.validationMessage}
+              onDismiss={c.clearValidationMessage}
+            />
+          ) : null}
           {renderStep()}
         </ScrollView>
       </KeyboardAvoidingView>

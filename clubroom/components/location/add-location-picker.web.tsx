@@ -15,7 +15,6 @@ import {
   findMatchingLocationPreset,
 } from '@/utils/location-presets';
 import type { AddLocationPickerProps, LocationCoordinates } from './add-location-picker.types';
-import { uiFeedback } from '@/services/ui-feedback';
 
 function normalizeLocation(value: string): string {
   return value.trim();
@@ -36,6 +35,7 @@ export default memo(function AddLocationPickerWeb({
   const [isEditorOpen, setIsEditorOpen] = useState(false);
   const [isSearching, setIsSearching] = useState(false);
   const [savedFeedback, setSavedFeedback] = useState(false);
+  const [inlineError, setInlineError] = useState<string | null>(null);
 
   const normalizedValue = normalizeLocation(value);
   const presetLocations = useMemo(
@@ -57,7 +57,7 @@ export default memo(function AddLocationPickerWeb({
       const normalized = normalizeLocation(query);
       if (normalized.length < 3) {
         if (!options?.silent) {
-          uiFeedback.alert('Add a location', 'Enter at least 3 characters to search an address.');
+          setInlineError('Enter at least 3 characters to search an address.');
         }
         return false;
       }
@@ -68,7 +68,7 @@ export default memo(function AddLocationPickerWeb({
         if (matches.length === 0) {
           onChangeCoordinates(null);
           if (!options?.silent) {
-            uiFeedback.alert('Address not found', 'Try adding city or postcode for a better match.');
+            setInlineError('Address not found. Try adding city or postcode for a better match.');
           }
           return false;
         }
@@ -77,11 +77,12 @@ export default memo(function AddLocationPickerWeb({
           longitude: matches[0].longitude,
         };
         onChangeCoordinates(nextCoordinates);
+        setInlineError(null);
         return true;
       } catch {
         onChangeCoordinates(null);
         if (!options?.silent) {
-          uiFeedback.alert('Search failed', 'Could not search this location right now.');
+          setInlineError('Could not search this location right now.');
         }
         return false;
       } finally {
@@ -99,6 +100,7 @@ export default memo(function AddLocationPickerWeb({
         onChangeValue(preset.address);
         onChangeCoordinates(preset.coordinates ?? null);
       }
+      setInlineError(null);
 
       if (preset.coordinates) {
         setIsEditorOpen(false);
@@ -116,6 +118,7 @@ export default memo(function AddLocationPickerWeb({
   const handleTextChange = useCallback(
     (nextValue: string) => {
       onChangeValue(nextValue);
+      setInlineError(null);
       if (coordinates && nextValue.trim() !== value.trim()) {
         onChangeCoordinates(null);
       }
@@ -126,11 +129,11 @@ export default memo(function AddLocationPickerWeb({
   const handleSavePreset = useCallback(() => {
     if (!onSavePreset) return;
     if (normalizedValue.length < 3) {
-      uiFeedback.alert('Add a location first', 'Search for an address, then save this preset.');
+      setInlineError('Search for an address, then save this preset.');
       return;
     }
     if (!coordinates) {
-      uiFeedback.alert('Pin required', 'Use Find first so this preset stores exact coordinates.');
+      setInlineError('Use Find first so this preset stores exact coordinates.');
       return;
     }
 
@@ -140,6 +143,7 @@ export default memo(function AddLocationPickerWeb({
       coordinates,
     });
     setSavedFeedback(true);
+    setInlineError(null);
   }, [coordinates, normalizedValue, onSavePreset, selectedPreset?.label, venueName]);
 
   const selectedPrimaryLabel =
@@ -323,6 +327,11 @@ export default memo(function AddLocationPickerWeb({
               )}
             </Clickable>
           </Row>
+          {inlineError ? (
+            <ThemedText style={[styles.errorText, { color: palette.error }]} accessibilityRole="alert">
+              {inlineError}
+            </ThemedText>
+          ) : null}
 
           <View
             style={[
@@ -474,6 +483,9 @@ const styles = StyleSheet.create({
   },
   searchBtnText: {
     ...Typography.smallSemiBold,
+  },
+  errorText: {
+    ...Typography.caption,
   },
   placeholder: {
     borderWidth: 1,
