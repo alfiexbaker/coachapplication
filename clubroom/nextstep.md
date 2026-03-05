@@ -16,7 +16,7 @@ Canonical sprint reference:
   - `ui:flows:preflight` blocked by unreachable local server (`http://localhost:8083`).
   - `test:bookings` pass
   - `test:messaging` pass
-  - `test:safety` has 1 unrelated trust/home route assertion failure.
+  - `test:safety` pass
 - Typecheck blocker previously noted in `booking-crud-service.ts` is no longer active in current state.
 
 ## Completed in this pass

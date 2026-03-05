@@ -43,10 +43,7 @@ Alert metrics at closeout:
   - failure: base URL unreachable at `http://localhost:8083` for coach/parent/athlete
 - `npm run test:bookings` -> pass
 - `npm run test:messaging` -> pass
-- `npm run test:safety` -> fail (1 unrelated assertion)
-  - failing test: `Trust/Ops end-flow readiness`
-  - case: `home/profile surfaces expose health and injury entry points`
-  - assertion: `Athlete home quick actions should include Journal route`
+- `npm run test:safety` -> pass
 
 Additional trust/community/invite verification:
 
@@ -61,7 +58,6 @@ Previously reported unrelated blocker in `services/booking/booking-crud-service.
 To close Sprint 6 immediately, record these waivers:
 
 1. `ui:flows` role/device preflight blocked by local runtime availability (`http://localhost:8083` not running).
-2. `test:safety` has one unrelated trust/home route assertion failure outside sprint scope.
 
 ## Sprint 7 Candidate Goals
 
