@@ -78,26 +78,14 @@ export default function TrialSessionEditor({ onSave, onBack }: TrialSessionEdito
   }, [coachId]);
 
   const handleToggleEnabled = useCallback((newValue: boolean) => {
-    if (newValue) {
-      uiFeedback.alert(
-        'Publish Trial Session',
-        'Your trial session will be visible to:\n\n• New clients in discovery\n• On your public profile\n• In booking flows\n\nMake sure pricing and details are correct.',
-        [
-          { text: 'Cancel', style: 'cancel' },
-          { text: 'Publish', onPress: () => setEnabled(true) },
-        ],
-      );
-    } else {
-      uiFeedback.alert(
-        'Hide Trial Session',
-        'Your trial session will be hidden from:\n\n• Discovery search\n• Your public profile\n• New client booking flows\n\nExisting trial bookings will continue.',
-        [
-          { text: 'Cancel', style: 'cancel' },
-          { text: 'Hide', onPress: () => setEnabled(false) },
-        ],
-      );
-    }
-  }, []);
+    setEnabled(newValue);
+    showToast(
+      newValue
+        ? 'Trial session enabled. Save to publish it.'
+        : 'Trial session hidden. Save to apply changes.',
+      'success',
+    );
+  }, [showToast]);
 
   const handleSave = useCallback(async () => {
     if (enabled) {

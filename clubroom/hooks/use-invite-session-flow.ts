@@ -76,20 +76,9 @@ export function useInviteSessionFlow({
       }
       setIsNewSession(false);
       if (upcomingSessions.length === 0) {
-        uiFeedback.alert(
-          'No Upcoming Sessions',
-          "You don't have any upcoming sessions. Would you like to create a new one?",
-          [
-            { text: 'Cancel', style: 'cancel' },
-            {
-              text: 'Create New',
-              onPress: () => {
-                setIsNewSession(true);
-                setStep('select-athletes');
-              },
-            },
-          ],
-        );
+        uiFeedback.showToast('No upcoming sessions found. Starting new session invite flow.', 'warning');
+        setIsNewSession(true);
+        setStep('select-athletes');
       } else {
         setStep('select-session');
       }

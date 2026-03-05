@@ -87,10 +87,7 @@ export function useHelpScreen() {
 
   const handleRateApp = useCallback(() => {
     logger.press('RateApp');
-    uiFeedback.alert('Rate Clubroom', "Enjoying the app? We'd love your rating on the App Store!", [
-      { text: 'Not Now', style: 'cancel' },
-      { text: 'Rate Now', onPress: () => uiFeedback.showToast('Thanks for rating Clubroom!') },
-    ]);
+    uiFeedback.showToast('Thanks for rating Clubroom!');
   }, []);
 
   const handleHelpCenter = useCallback(() => {
