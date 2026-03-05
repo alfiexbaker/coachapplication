@@ -141,17 +141,17 @@ export function useEventAttendees(id: string | undefined): UseEventAttendeesResu
   const handleSendReminder = useCallback(() => {
     logger.press('SendReminder', { eventId: id });
     const nonResponders = rsvps.filter((r) => r.status === 'MAYBE').length;
+    if (nonResponders === 0) {
+      uiFeedback.showToast('Everyone has already responded!');
+      return;
+    }
     uiFeedback.alert(
       'Send Reminder',
-      nonResponders > 0
-        ? `Send reminder to ${nonResponders} people who haven't responded?`
-        : 'Everyone has already responded!',
-      nonResponders > 0
-        ? [
-            { text: 'Cancel', style: 'cancel' },
-            { text: 'Send', onPress: () => uiFeedback.showToast('Reminders have been sent', 'success') },
-          ]
-        : [{ text: 'OK' }],
+      `Send reminder to ${nonResponders} people who haven't responded?`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        { text: 'Send', onPress: () => uiFeedback.showToast('Reminders have been sent', 'success') },
+      ],
     );
   }, [id, rsvps]);
 

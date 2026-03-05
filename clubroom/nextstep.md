@@ -5,6 +5,21 @@ Canonical sprint reference:
 
 ## Completed in this pass
 
+- Sprint 6 WS3 strict audit pass:
+  - Audited all remaining `uiFeedback.alert(...)` callsites by button structure/intent.
+  - Converted final leftover non-decision popup branch in `hooks/use-event-attendees.ts`:
+    - when no non-responders remain, now uses toast instead of modal alert.
+    - reminder confirm path (`Cancel` / `Send`) remains an explicit decision alert.
+  - Remaining alert inventory after audit:
+    - `123` total alerts
+    - `115` two-button decision dialogs
+    - `6` three-button choice dialogs
+    - `1` five-option action dialog
+    - `1` intentional blocking session-expiry dialog (`hooks/use-token-expiry-alert.ts`)
+  - Verification note for this pass:
+    - `npm run typecheck` is currently failing on a pre-existing unrelated booking service error:
+      - `services/booking/booking-crud-service.ts` (`SessionRegistration.athleteId` typing)
+    - `lint:ui-actions`, `audit:alerts`, and `audit:ui` still pass.
 - Sprint 6 WS2 refinement pass (single-action alert cleanup):
   - Converted remaining single-button `uiFeedback.alert(..., [{ text: 'OK' | 'Done' | ... }])` patterns to `uiFeedback.showToast(...)`.
   - Where a single alert button only triggered navigation/action (for example `router.back()` / `router.replace(...)`), preserved behavior by executing the action directly after toast.
@@ -63,7 +78,7 @@ Canonical sprint reference:
   - Native Alert calls: `0`
   - `uiFeedback.alert` calls: `123`
   - `uiFeedback.prompt` calls: `1`
-  - `uiFeedback.showToast` calls: `379`
+  - `uiFeedback.showToast` calls: `380`
 
 ## Immediate next tasks
 
