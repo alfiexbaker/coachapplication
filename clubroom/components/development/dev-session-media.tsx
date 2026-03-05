@@ -6,6 +6,7 @@ import { SurfaceCard } from '@/components/primitives/surface-card';
 import { Clickable } from '@/components/primitives/clickable';
 import { Column } from '@/components/primitives/column';
 import { Row } from '@/components/primitives/row';
+import { StatusBanner } from '@/components/ui/primitives/StatusBanner';
 import { Spacing, Typography } from '@/constants/theme';
 import type { ThemeColors } from '@/hooks/useTheme';
 
@@ -17,6 +18,9 @@ export interface DevSessionMediaProps {
   onAddImage: () => void;
   onRemoveImage: (index: number) => void;
   colors: ThemeColors;
+  mediaPermissionMessage?: string | null;
+  onOpenMediaSettings?: () => void;
+  onDismissMediaPermission?: () => void;
 }
 
 export const DevSessionMedia = memo(function DevSessionMedia({
@@ -27,9 +31,28 @@ export const DevSessionMedia = memo(function DevSessionMedia({
   onAddImage,
   onRemoveImage,
   colors,
+  mediaPermissionMessage,
+  onOpenMediaSettings,
+  onDismissMediaPermission,
 }: DevSessionMediaProps) {
   return (
     <Column gap="md">
+      {mediaPermissionMessage ? (
+        <StatusBanner
+          variant="warning"
+          message={mediaPermissionMessage}
+          action={
+            onOpenMediaSettings
+              ? {
+                  label: 'Open Settings',
+                  onPress: onOpenMediaSettings,
+                }
+              : undefined
+          }
+          onDismiss={onDismissMediaPermission}
+        />
+      ) : null}
+
       {/* Videos */}
       <Column gap="sm">
         <Row justify="space-between" align="center">

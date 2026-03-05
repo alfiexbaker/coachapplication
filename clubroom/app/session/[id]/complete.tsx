@@ -87,6 +87,7 @@ export default function SessionCompleteScreen() {
     setImprovements,
     videoUrls,
     imageUrls,
+    mediaPermissionMessage,
     shareNotesWithParents,
     setShareNotesWithParents,
     shareAttendance,
@@ -111,6 +112,8 @@ export default function SessionCompleteScreen() {
     addVideo,
     removeImage,
     removeVideo,
+    openMediaSettings,
+    clearMediaPermissionMessage,
     toggleBadge,
     goToNextStep,
     goToPrevStep,
@@ -412,6 +415,9 @@ export default function SessionCompleteScreen() {
                   onRemoveVideo={removeVideo}
                   onAddImage={addImage}
                   onRemoveImage={removeImage}
+                  mediaPermissionMessage={mediaPermissionMessage}
+                  onOpenMediaSettings={openMediaSettings}
+                  onDismissMediaPermission={clearMediaPermissionMessage}
                 />
 
                 <NotesStep

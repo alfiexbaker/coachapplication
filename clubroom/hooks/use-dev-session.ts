@@ -7,6 +7,7 @@
  * — identical data quality to Quick Rate.
  */
 import { useState, useEffect, useCallback, useMemo } from 'react';
+import { Linking } from 'react-native';
 
 import { router } from 'expo-router';
 import * as ImagePicker from 'expo-image-picker';
@@ -125,6 +126,7 @@ export function useDevSession({
   const [homework, setHomework] = useState('');
   const [videoUrls, setVideoUrls] = useState<string[]>([]);
   const [imageUrls, setImageUrls] = useState<string[]>([]);
+  const [mediaPermissionMessage, setMediaPermissionMessage] = useState<string | null>(null);
   const [visibility, setVisibility] = useState<FeedbackVisibility>('parent');
 
   // Previous ratings from SKILL_LEVELS (for trend indicators)
@@ -578,9 +580,13 @@ router.back();
     try {
       const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
       if (status !== 'granted') {
+        setMediaPermissionMessage(
+          'Photo and video library access is required to attach media. Enable it in Settings.',
+        );
         uiFeedback.showToast('Please allow access to your photos', 'warning');
         return;
       }
+      setMediaPermissionMessage(null);
       const result = await ImagePicker.launchImageLibraryAsync({
         mediaTypes: ImagePicker.MediaTypeOptions.Images,
         allowsMultipleSelection: false,
@@ -602,9 +608,13 @@ router.back();
     try {
       const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
       if (status !== 'granted') {
+        setMediaPermissionMessage(
+          'Photo and video library access is required to attach media. Enable it in Settings.',
+        );
         uiFeedback.showToast('Please allow access to your videos', 'warning');
         return;
       }
+      setMediaPermissionMessage(null);
 
       const result = await ImagePicker.launchImageLibraryAsync({
         mediaTypes: ImagePicker.MediaTypeOptions.Videos,
@@ -623,6 +633,12 @@ router.back();
 
   const handleRemoveVideo = useCallback((index: number) => {
     setVideoUrls((prev) => prev.filter((_, i) => i !== index));
+  }, []);
+  const openMediaSettings = useCallback(() => {
+    void Linking.openSettings();
+  }, []);
+  const clearMediaPermissionMessage = useCallback(() => {
+    setMediaPermissionMessage(null);
   }, []);
   const handleBadgeAwarded = useCallback((award: BadgeAward) => {
     setSessionBadges((prev) => [award, ...prev]);
@@ -664,6 +680,7 @@ router.back();
     setHomework,
     videoUrls,
     imageUrls,
+    mediaPermissionMessage,
     visibility,
     setVisibility,
     showBadgeModal,
@@ -681,6 +698,8 @@ router.back();
     handleRemoveImage,
     handleAddVideo,
     handleRemoveVideo,
+    openMediaSettings,
+    clearMediaPermissionMessage,
     handleBadgeAwarded,
     handleOpenBadgeModal,
     handleCloseBadgeModal,

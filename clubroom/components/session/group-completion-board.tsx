@@ -6,6 +6,7 @@ import { Clickable } from '@/components/primitives/clickable';
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { Row } from '@/components/primitives/row';
 import { ThemedText } from '@/components/themed-text';
+import { StatusBanner } from '@/components/ui/primitives/StatusBanner';
 import { Components, Radii, Spacing, Typography, withAlpha } from '@/constants/theme';
 import type { ThemeColors } from '@/hooks/useTheme';
 import type { AttendanceStatus, AthleteAttendanceData } from './attendance-step';
@@ -28,6 +29,9 @@ interface GroupCompletionBoardProps {
   onRemoveVideo: (index: number) => void;
   onAddImage: () => void;
   onRemoveImage: (index: number) => void;
+  mediaPermissionMessage?: string | null;
+  onOpenMediaSettings?: () => void;
+  onDismissMediaPermission?: () => void;
 }
 
 const ATTENDANCE_STATUS_OPTIONS: AttendanceStatus[] = ['present', 'absent'];
@@ -72,6 +76,9 @@ export const GroupCompletionBoard = memo(function GroupCompletionBoard({
   onRemoveVideo,
   onAddImage,
   onRemoveImage,
+  mediaPermissionMessage,
+  onOpenMediaSettings,
+  onDismissMediaPermission,
 }: GroupCompletionBoardProps) {
   const canSendGroupMessage = groupMessage.trim().length > 0;
 
@@ -230,6 +237,22 @@ export const GroupCompletionBoard = memo(function GroupCompletionBoard({
             </Row>
           </Clickable>
         </Row>
+
+        {mediaPermissionMessage ? (
+          <StatusBanner
+            variant="warning"
+            message={mediaPermissionMessage}
+            action={
+              onOpenMediaSettings
+                ? {
+                    label: 'Open Settings',
+                    onPress: onOpenMediaSettings,
+                  }
+                : undefined
+            }
+            onDismiss={onDismissMediaPermission}
+          />
+        ) : null}
 
         {videoUrls.length === 0 && imageUrls.length === 0 ? (
           <View style={[styles.emptyMediaState, { borderColor: colors.border }]}>

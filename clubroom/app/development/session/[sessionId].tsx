@@ -56,6 +56,7 @@ export default function SessionDetailScreen() {
     setHomework,
     videoUrls,
     imageUrls,
+    mediaPermissionMessage,
     visibility,
     setVisibility,
     sessionBadges,
@@ -67,6 +68,8 @@ export default function SessionDetailScreen() {
     handleRemoveImage,
     handleAddVideo,
     handleRemoveVideo,
+    openMediaSettings,
+    clearMediaPermissionMessage,
     formatDate,
     positionsPlayed,
     handlePositionToggle,
@@ -195,6 +198,9 @@ export default function SessionDetailScreen() {
           onAddImage={handleAddImage}
           onRemoveImage={handleRemoveImage}
           colors={colors}
+          mediaPermissionMessage={mediaPermissionMessage}
+          onOpenMediaSettings={openMediaSettings}
+          onDismissMediaPermission={clearMediaPermissionMessage}
         />
 
         <DevSessionVisibility

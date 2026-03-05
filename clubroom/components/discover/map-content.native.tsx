@@ -8,7 +8,7 @@
  */
 
 import { memo, useCallback, useEffect, useRef, useState } from 'react';
-import { Platform, StyleSheet, TextInput, View } from 'react-native';
+import { Linking, Platform, StyleSheet, TextInput, View } from 'react-native';
 import MapView, { Marker, type Region } from 'react-native-maps';
 import ClusteredMapView from 'react-native-map-clustering';
 import BottomSheet, { BottomSheetFlatList } from '@gorhom/bottom-sheet';
@@ -24,6 +24,7 @@ import { Row } from '@/components/primitives/row';
 import { Column } from '@/components/primitives/column';
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { ThemedText } from '@/components/themed-text';
+import { StatusBanner } from '@/components/ui/primitives/StatusBanner';
 import { FilterBar } from '@/components/discover/FilterBar';
 import { FilterModal } from '@/components/discover/FilterModal';
 import { Radii, Shadows, Spacing, Typography, withAlpha } from '@/constants/theme';
@@ -143,6 +144,7 @@ const SearchHeader = memo(function SearchHeader({
   onBack,
   onToggleView,
   filterBar,
+  permissionBanner,
 }: {
   searchQuery: string;
   onSearchChange: (v: string) => void;
@@ -151,6 +153,7 @@ const SearchHeader = memo(function SearchHeader({
   onBack: () => void;
   onToggleView: () => void;
   filterBar?: React.ReactNode;
+  permissionBanner?: React.ReactNode;
 }) {
   const { colors: palette, scheme } = useTheme();
   const insets = useSafeAreaInsets();
@@ -224,6 +227,7 @@ const SearchHeader = memo(function SearchHeader({
         </Clickable>
       </Row>
       {filterBar}
+      {permissionBanner ? <View style={styles.permissionBanner}>{permissionBanner}</View> : null}
     </View>
   );
 });
@@ -378,6 +382,7 @@ export default function MapContent(props: MapContentProps) {
   const [userLocation, setUserLocation] = useState<{ latitude: number; longitude: number } | null>(null);
   const [showRedoSearch, setShowRedoSearch] = useState(false);
   const [sheetExpanded, setSheetExpanded] = useState(false);
+  const [locationPermissionMessage, setLocationPermissionMessage] = useState<string | null>(null);
 
   const mapRef = useRef<MapView>(null);
   const sheetRef = useRef<BottomSheet>(null);
@@ -388,7 +393,13 @@ export default function MapContent(props: MapContentProps) {
     (async () => {
       try {
         const { status } = await Location.requestForegroundPermissionsAsync();
-        if (status !== 'granted') return;
+        if (status !== 'granted') {
+          setLocationPermissionMessage(
+            'Location access helps center the map around you. Enable it in Settings to use recenter.',
+          );
+          return;
+        }
+        setLocationPermissionMessage(null);
         const loc = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
         const coords = { latitude: loc.coords.latitude, longitude: loc.coords.longitude };
         setUserLocation(coords);
@@ -525,6 +536,21 @@ export default function MapContent(props: MapContentProps) {
         onClearSearch={onClearSearch}
         onBack={onBack}
         onToggleView={onToggleView}
+        permissionBanner={
+          locationPermissionMessage ? (
+            <StatusBanner
+              variant="warning"
+              message={locationPermissionMessage}
+              action={{
+                label: 'Open Settings',
+                onPress: () => {
+                  void Linking.openSettings();
+                },
+              }}
+              onDismiss={() => setLocationPermissionMessage(null)}
+            />
+          ) : null
+        }
         filterBar={
           filterOptions ? (
             <FilterBar
@@ -625,6 +651,9 @@ const styles = StyleSheet.create({
     zIndex: 10,
     paddingHorizontal: Spacing.sm,
     paddingBottom: Spacing.xs,
+  },
+  permissionBanner: {
+    marginTop: Spacing.xs,
   },
   headerBtn: {
     width: 44,

@@ -1,5 +1,5 @@
 import { useMemo, useState, useCallback } from 'react';
-import { StyleSheet, View, Share, ActivityIndicator } from 'react-native';
+import { StyleSheet, View, Share, ActivityIndicator, Linking } from 'react-native';
 import { SafeImage } from '@/components/primitives/safe-image';
 import { Clickable } from '@/components/primitives/clickable';
 import { Ionicons } from '@expo/vector-icons';
@@ -15,6 +15,7 @@ import { ClubHeaderMenu, type ClubMenuItem } from './club-header-menu';
 import { Row } from '@/components/primitives';
 import { Column } from '@/components/primitives/column';
 import { uiFeedback } from '@/services/ui-feedback';
+import { StatusBanner } from '@/components/ui/primitives/StatusBanner';
 
 // ─── Re-exports ─────────────────────────────────────────────────────────────
 
@@ -42,6 +43,7 @@ export function ClubHeader({
   const { colors: palette } = useTheme();
   const [showMenu, setShowMenu] = useState(false);
   const [uploadingPhoto, setUploadingPhoto] = useState(false);
+  const [photoPermissionMessage, setPhotoPermissionMessage] = useState<string | null>(null);
 
   const roleLabel = useMemo(() => {
     switch (membership.role) {
@@ -68,9 +70,13 @@ export function ClubHeader({
     async (type: 'profile' | 'cover') => {
       const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
       if (!permissionResult.granted) {
-        uiFeedback.showToast('Please allow access to your photo library to change the club photo.', 'error');
+        setPhotoPermissionMessage(
+          'Photo library access is needed to update club photos. Enable it in Settings to continue.',
+        );
+        uiFeedback.showToast('Photo library access is needed to update club photos.', 'warning');
         return;
       }
+      setPhotoPermissionMessage(null);
       const result = await ImagePicker.launchImageLibraryAsync({
         mediaTypes: ImagePicker.MediaTypeOptions.Images,
         allowsEditing: true,
@@ -277,6 +283,22 @@ export function ClubHeader({
         </Clickable>
       </Row>
 
+      {photoPermissionMessage ? (
+        <View style={styles.permissionBanner}>
+          <StatusBanner
+            variant="warning"
+            message={photoPermissionMessage}
+            action={{
+              label: 'Open Settings',
+              onPress: () => {
+                void Linking.openSettings();
+              },
+            }}
+            onDismiss={() => setPhotoPermissionMessage(null)}
+          />
+        </View>
+      ) : null}
+
       {/* Menu Modal */}
       <ClubHeaderMenu
         visible={showMenu}
@@ -327,6 +349,9 @@ const styles = StyleSheet.create({
   },
   clubHeader: { alignItems: 'center', gap: Spacing.md },
   clubHeaderWithCover: { marginTop: 0 },
+  permissionBanner: {
+    marginTop: Spacing.sm,
+  },
   clubAvatar: {
     width: 56,
     height: 56,

@@ -6,7 +6,7 @@
  */
 
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
-import { Platform } from 'react-native';
+import { Linking, Platform } from 'react-native';
 import { router } from 'expo-router';
 import * as Haptics from 'expo-haptics';
 import * as ImagePicker from 'expo-image-picker';
@@ -146,6 +146,7 @@ export function useSessionCompletion(sessionId: string | undefined) {
   const [availableBadges, setAvailableBadges] = useState<BadgeDefinitionWithStats[]>([]);
   const [videoUrls, setVideoUrls] = useState<string[]>([]);
   const [imageUrls, setImageUrls] = useState<string[]>([]);
+  const [mediaPermissionMessage, setMediaPermissionMessage] = useState<string | null>(null);
 
   // Step navigation
   const [currentStep, setCurrentStep] = useState<CompletionStep>('attendance');
@@ -548,9 +549,13 @@ export function useSessionCompletion(sessionId: string | undefined) {
     try {
       const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
       if (status !== 'granted') {
+        setMediaPermissionMessage(
+          'Photo and video library access is required to attach media. Enable it in Settings.',
+        );
         uiFeedback.showToast('Please allow photo library access.', 'warning');
         return;
       }
+      setMediaPermissionMessage(null);
 
       const result = await ImagePicker.launchImageLibraryAsync({
         mediaTypes: ImagePicker.MediaTypeOptions.Images,
@@ -571,9 +576,13 @@ export function useSessionCompletion(sessionId: string | undefined) {
     try {
       const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
       if (status !== 'granted') {
+        setMediaPermissionMessage(
+          'Photo and video library access is required to attach media. Enable it in Settings.',
+        );
         uiFeedback.showToast('Please allow video library access.', 'warning');
         return;
       }
+      setMediaPermissionMessage(null);
 
       const result = await ImagePicker.launchImageLibraryAsync({
         mediaTypes: ImagePicker.MediaTypeOptions.Videos,
@@ -596,6 +605,14 @@ export function useSessionCompletion(sessionId: string | undefined) {
 
   const removeVideo = useCallback((index: number) => {
     setVideoUrls((prev) => prev.filter((_, i) => i !== index));
+  }, []);
+
+  const openMediaSettings = useCallback(() => {
+    void Linking.openSettings();
+  }, []);
+
+  const clearMediaPermissionMessage = useCallback(() => {
+    setMediaPermissionMessage(null);
   }, []);
 
   const goToNextStep = useCallback(() => {
@@ -1126,6 +1143,7 @@ export function useSessionCompletion(sessionId: string | undefined) {
     setImprovements,
     videoUrls,
     imageUrls,
+    mediaPermissionMessage,
     shareNotesWithParents,
     setShareNotesWithParents,
     shareAttendance,
@@ -1159,6 +1177,8 @@ export function useSessionCompletion(sessionId: string | undefined) {
     addVideo,
     removeImage,
     removeVideo,
+    openMediaSettings,
+    clearMediaPermissionMessage,
     toggleBadge,
     goToNextStep,
     goToPrevStep,

@@ -1,11 +1,12 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { View, StyleSheet } from 'react-native';
+import { Linking, View, StyleSheet } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 import { useSharedValue, withTiming } from 'react-native-reanimated';
 
 import { Spacing } from '@/constants/theme';
 import { createLogger } from '@/utils/logger';
 import { useTheme } from '@/hooks/useTheme';
+import { StatusBanner } from '@/components/ui/primitives/StatusBanner';
 import {
   VideoPickerCards,
   VideoPreviewCard,
@@ -40,6 +41,7 @@ export function VideoUpload({
   const [selectedVideo, setSelectedVideo] = useState<SelectedVideo | null>(null);
   const [uploading, setUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
+  const [permissionMessage, setPermissionMessage] = useState<string | null>(null);
   const abortControllerRef = useRef<AbortController | null>(null);
 
   const progressWidth = useSharedValue(0);
@@ -51,6 +53,7 @@ export function VideoUpload({
         quality: 1,
         allowsEditing: false,
       });
+      setPermissionMessage(null);
 
       if (!result.canceled && result.assets.length > 0) {
         const asset = result.assets[0];
@@ -85,9 +88,13 @@ export function VideoUpload({
     try {
       const permission = await ImagePicker.requestCameraPermissionsAsync();
       if (!permission.granted) {
+        setPermissionMessage(
+          'Camera access is needed to record videos. Enable it in Settings to continue.',
+        );
         uiFeedback.showToast('Camera access is needed to record videos.', 'error');
         return;
       }
+      setPermissionMessage(null);
 
       const result = await ImagePicker.launchCameraAsync({
         mediaTypes: ImagePicker.MediaTypeOptions.Videos,
@@ -201,6 +208,19 @@ export function VideoUpload({
           palette={palette}
         />
       )}
+      {permissionMessage ? (
+        <StatusBanner
+          variant="warning"
+          message={permissionMessage}
+          action={{
+            label: 'Open Settings',
+            onPress: () => {
+              void Linking.openSettings();
+            },
+          }}
+          onDismiss={() => setPermissionMessage(null)}
+        />
+      ) : null}
 
       <RequirementsList
         maxDurationSeconds={maxDurationSeconds}

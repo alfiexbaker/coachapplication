@@ -2,6 +2,22 @@
 
 Canonical sprint reference:
 - `docs/newsprints/forms-modals/sprint6-inline-feedback-hardening.md`
+- `docs/newsprints/forms-modals/sprint6-closeout.md` (closure + waiver log)
+
+## Sprint 6 Closeout Status (Latest)
+
+- WS4 permission-guidance consistency pass completed across remaining permission-heavy flows.
+- Verification gates currently passing:
+  - `npm run typecheck`
+  - `npm run lint:ui-actions`
+  - `npm run audit:alerts`
+  - `npm run audit:ui`
+- QA matrix status:
+  - `ui:flows:preflight` blocked by unreachable local server (`http://localhost:8083`).
+  - `test:bookings` pass
+  - `test:messaging` pass
+  - `test:safety` has 1 unrelated trust/home route assertion failure.
+- Typecheck blocker previously noted in `booking-crud-service.ts` is no longer active in current state.
 
 ## Completed in this pass
 
