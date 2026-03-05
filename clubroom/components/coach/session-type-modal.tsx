@@ -107,20 +107,9 @@ export function SessionTypeModal({
   };
   const handleTypeSelect = (key: SessionType) => {
     if ((key === '1-to-1' || key === 'assessment') && capacity > 1) {
-      uiFeedback.alert(
-        'Change session type?',
-        'Changing to 1-to-1/assessment will set capacity to 1 player.',
-        [
-          { text: 'Cancel', style: 'cancel' },
-          {
-            text: 'Change',
-            onPress: () => {
-              setType(key);
-              setCapacity(1);
-            },
-          },
-        ],
-      );
+      setType(key);
+      setCapacity(1);
+      uiFeedback.showToast('Capacity set to 1 for 1-to-1/assessment session types.', 'warning');
       return;
     }
     setType(key);

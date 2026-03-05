@@ -78,24 +78,18 @@ export const RecurringCard = memo(function RecurringCard({
 
   const handleResume = useCallback(() => {
     if (!onResume) return;
-    uiFeedback.alert(
-      'Resume Subscription',
-      `Are you sure you want to resume your ${getFrequencyLabel(recurring.frequency).toLowerCase()} sessions with ${coachName}?`,
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Resume',
-          onPress: async () => {
-            setActionLoading(true);
-            try {
-              await onResume(recurring.id);
-            } finally {
-              setActionLoading(false);
-            }
-          },
-        },
-      ],
+    uiFeedback.showToast(
+      `Resuming your ${getFrequencyLabel(recurring.frequency).toLowerCase()} sessions with ${coachName}.`,
+      'success',
     );
+    void (async () => {
+      setActionLoading(true);
+      try {
+        await onResume(recurring.id);
+      } finally {
+        setActionLoading(false);
+      }
+    })();
   }, [onResume, recurring, coachName]);
 
   const handleCardPress = useCallback(() => onPress?.(recurring), [onPress, recurring]);
