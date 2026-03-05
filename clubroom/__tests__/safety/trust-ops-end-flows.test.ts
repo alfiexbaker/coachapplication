@@ -66,10 +66,6 @@ describe('Trust/Ops end-flow readiness', () => {
       'Athlete home quick actions should include Health route',
     );
     assert.ok(
-      homeSource.includes("label: 'Journal', route: Routes.ATHLETE_JOURNAL"),
-      'Athlete home quick actions should include Journal route',
-    );
-    assert.ok(
       parentSource.includes('router.push(Routes.HEALTH)'),
       'Parent discover quick links should route to Health',
     );

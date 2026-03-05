@@ -30,7 +30,6 @@ const QUICK_ACTION_DEFS = [
     primary: false,
   },
   { id: 'health', icon: 'medkit-outline', label: 'Health', route: Routes.HEALTH, primary: false },
-  { id: 'journal', icon: 'book-outline', label: 'Journal', route: Routes.ATHLETE_JOURNAL, primary: false },
   { id: 'bookings', icon: 'calendar', label: 'Bookings', route: Routes.BOOKINGS, primary: false },
 ] as const;
 
