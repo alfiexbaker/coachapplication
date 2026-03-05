@@ -3,7 +3,7 @@
  */
 import { useState, useCallback } from 'react';
 
-import { router, useLocalSearchParams } from 'expo-router';
+import { useLocalSearchParams } from 'expo-router';
 import * as Haptics from 'expo-haptics';
 import { useAuth } from '@/hooks/use-auth';
 import { useScreen, type ScreenStatus } from '@/hooks/use-screen';
@@ -153,23 +153,12 @@ export function useDrillAssign() {
         uiFeedback.showToast(assignmentResult.error.message, 'error');
         return;
       }
-      uiFeedback.alert(
-        'Drill Assigned!',
-        `"${drill.title}" has been assigned to ${selectedAthlete.name}.`,
-        [
-          {
-            text: 'Assign Another',
-            onPress: () => {
-              setSelectedAthlete(null);
-              setNotes('');
-              setRepetitionsState('1');
-              setRepetitionsError(null);
-              setPriority(2);
-            },
-          },
-          { text: 'Done', onPress: () => router.back() },
-        ],
-      );
+      uiFeedback.showToast(`"${drill.title}" has been assigned to ${selectedAthlete.name}.`, 'success');
+      setSelectedAthlete(null);
+      setNotes('');
+      setRepetitionsState('1');
+      setRepetitionsError(null);
+      setPriority(2);
     } catch (error) {
       logger.error('Failed to assign drill', error);
       uiFeedback.showToast('Failed to assign drill. Please try again.', 'error');

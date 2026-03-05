@@ -1128,37 +1128,11 @@ export function useCreateSession(): CreateSessionState & CreateSessionActions {
             ? ` ${invitesSent} invite${invitesSent === 1 ? '' : 's'} sent${inviteFailures > 0 ? `, ${inviteFailures} failed.` : '.'}`
             : '';
 
-        uiFeedback.alert(
-          'Camp Created!',
+        uiFeedback.showToast(
           `"${title}" scheduled across ${campDates.length} day${campDates.length === 1 ? '' : 's'}.${inviteSummary}`,
-          [
-            {
-              text: 'View Schedule',
-              onPress: () => router.replace(Routes.SCHEDULE),
-            },
-            {
-              text: 'Create Another',
-              onPress: () => {
-                setStep('details');
-                setSessionType('1on1');
-                setTitle('');
-                setDescription('');
-                setPrice('');
-                setSelectedDate('');
-                setCampLength('single_day');
-                setCampEndDate('');
-                setSelectedTime('10:00');
-                setSelectedEndTime('11:00');
-                setUseCampDailyTimes(false);
-                setCampDailyTimes({});
-                setFocusAreas([]);
-                setVenueName('');
-                setInviteTypeState('CLOSED');
-                setSelectedAthletes([]);
-              },
-            },
-          ],
+          'success',
         );
+        router.replace(Routes.SCHEDULE);
 
         setLoading(false);
         return;
@@ -1332,33 +1306,8 @@ router.replace(Routes.SCHEDULE);
           ? ` ${invitesSent} invite${invitesSent === 1 ? '' : 's'} sent${inviteFailures > 0 ? `, ${inviteFailures} failed.` : '.'}`
           : '';
 
-      uiFeedback.alert('Session Created!', `"${title}" has been created successfully.${inviteSummary}`, [
-        {
-          text: 'View Schedule',
-          onPress: () => router.replace(Routes.SCHEDULE),
-        },
-        {
-          text: 'Create Another',
-          onPress: () => {
-            setStep('details');
-            setSessionType('1on1');
-            setTitle('');
-            setDescription('');
-            setPrice('');
-            setSelectedDate('');
-            setCampLength('single_day');
-            setCampEndDate('');
-            setSelectedTime('10:00');
-            setSelectedEndTime('11:00');
-            setUseCampDailyTimes(false);
-            setCampDailyTimes({});
-            setFocusAreas([]);
-            setVenueName('');
-            setInviteTypeState('CLOSED');
-            setSelectedAthletes([]);
-          },
-        },
-      ]);
+      uiFeedback.showToast(`"${title}" has been created successfully.${inviteSummary}`, 'success');
+      router.replace(Routes.SCHEDULE);
     } catch (error) {
       logger.error('Failed to create session:', error);
       uiFeedback.showToast('Failed to create session. Please try again.', 'error');

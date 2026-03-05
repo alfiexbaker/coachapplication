@@ -81,18 +81,8 @@ export function useVideoUpload() {
         await videoService.shareVideo(newVideo.id, []);
       }
       logger.info('Video uploaded successfully', { videoId: newVideo.id });
-      uiFeedback.alert('Success', 'Video uploaded successfully!', [
-        { text: 'View Video', onPress: () => router.replace(Routes.video(newVideo.id)) },
-        {
-          text: 'Upload Another',
-          onPress: () => {
-            setVideoData(null);
-            setTitle('');
-            setDescription('');
-            setUploadProgress(0);
-          },
-        },
-      ]);
+      uiFeedback.showToast('Video uploaded successfully!', 'success');
+      router.replace(Routes.video(newVideo.id));
     } catch (error) {
       logger.error('Failed to upload video', error);
       uiFeedback.showToast('There was an error uploading your video. Please try again.', 'error');

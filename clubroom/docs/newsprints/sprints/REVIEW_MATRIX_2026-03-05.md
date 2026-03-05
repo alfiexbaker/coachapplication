@@ -12,7 +12,7 @@ Legend:
 | ID | Sprint item | As described? | Better now? | Evidence snapshot | Remaining |
 |---|---|---|---|---|---|
 | FM-7.1 | Remove nested-button hydration warning | YES | YES | `npm run ui:flows:coach-core -- --fail-on=none` => `0` medium (`coach_home` clean) after notification-toast composition fix | Keep flow matrix green in CI/local |
-| FM-7.2 | Reduce remaining non-decision alert popups | PARTIAL | YES | `npm run audit:alerts` => `uiFeedback.alert: 123` (down from 534 baseline) | Strict WS3 pass to keep only true decision dialogs |
+| FM-7.2 | Reduce remaining non-decision alert popups | PARTIAL | YES | `npm run audit:alerts` => `uiFeedback.alert: 116` (down from 534 baseline) after converting 7 success popups to toast-first flows | Strict WS3 pass to keep only true decision dialogs |
 | FM-7.3 | Permission denial/recovery checks | PARTIAL | YES | WS4 permission guidance pass documented in closeout | Add explicit deterministic flow assertions for deny/recover paths |
 | FM-7.4 | Matrix stability with base-url/runtime hardening | PARTIAL | YES | Local runtime + preflight now passes when server is active on `:8083`; coach-core profile also clean | Wire same reliability in CI and remaining profiles |
 
@@ -50,9 +50,7 @@ Legend:
 
 ## Command evidence run in this review pass
 
-- `npm run audit:alerts` => PASS (`native Alert: 0`, `uiFeedback.alert: 123`, `prompt: 1`, `showToast: 380`)
-- `npm run lint:ui-actions` => PASS
 - `npm run typecheck` => PASS
-- `npm run test:safety` => PASS (`73/73`)
-- `npm run gate:pre-api-placement` => PASS (`13/13`)
-- `npm run ui:flows:preflight` => FAIL (local runtime not reachable at `http://localhost:8083`)
+- `npm run lint:ui-actions` => PASS
+- `npm run audit:alerts` => PASS (`native Alert: 0`, `uiFeedback.alert: 116`, `prompt: 1`, `showToast: 387`)
+- `npm run ui:flows:coach-core -- --fail-on=none` => PASS (`11/11`, `0` medium, `0` high)

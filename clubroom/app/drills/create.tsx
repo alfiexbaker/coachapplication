@@ -9,7 +9,6 @@ import { useState, useCallback } from 'react';
 import { StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
-import { Routes } from '@/navigation/routes';
 import * as Haptics from 'expo-haptics';
 
 import { PageHeader } from '@/components/primitives/page-header';
@@ -50,25 +49,8 @@ export default function CreateDrillScreen() {
       try {
         const newDrill = await drillService.createDrill(coachId, coachName, values);
 
-        uiFeedback.alert('Drill Created!', `"${newDrill.title}" has been added to your library.`, [
-          {
-            text: 'Create Another',
-            onPress: () => {
-              // Reset form by navigating to same page
-              router.replace(Routes.DRILLS_CREATE);
-            },
-          },
-          {
-            text: 'Assign Now',
-            onPress: () => {
-              router.replace(Routes.drillsAssignWith(newDrill.id));
-            },
-          },
-          {
-            text: 'Done',
-            onPress: () => router.back(),
-          },
-        ]);
+        uiFeedback.showToast(`"${newDrill.title}" has been added to your library.`, 'success');
+        router.back();
       } catch (error) {
         logger.error('Failed to create drill:', error);
         uiFeedback.showToast('Failed to create drill. Please try again.', 'error');

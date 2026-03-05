@@ -145,14 +145,11 @@ export function useCreateMatch() {
           matchType,
           notes: notes || undefined,
         });
-        uiFeedback.alert(
-          'Match Created!',
+        uiFeedback.showToast(
           `${title} created and ${result.inviteResult.successful} availability request${result.inviteResult.successful !== 1 ? 's' : ''} sent to squad members.`,
-          [
-            { text: 'View Match', onPress: () => router.replace(Routes.match(result.match.id)) },
-            { text: 'Done', onPress: () => router.back() },
-          ],
+          'success',
         );
+        router.replace(Routes.match(result.match.id));
       } else {
         const match = await matchService.createMatch({
           clubId: DEFAULT_CLUB_ID,
@@ -173,10 +170,8 @@ export function useCreateMatch() {
           maxPlayers: parseInt(maxPlayers, 10) || 14,
           notes: notes || undefined,
         });
-        uiFeedback.alert('Match Created!', `${title} has been created.`, [
-          { text: 'View Match', onPress: () => router.replace(Routes.match(match.id)) },
-          { text: 'Done', onPress: () => router.back() },
-        ]);
+        uiFeedback.showToast(`${title} has been created.`, 'success');
+        router.replace(Routes.match(match.id));
       }
     } catch (error) {
       logger.error('Failed to create match:', error);
