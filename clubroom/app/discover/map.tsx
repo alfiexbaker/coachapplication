@@ -14,20 +14,48 @@ import { View, StyleSheet } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 
 import MapContent from '@/components/discover/map-content';
+import { STORAGE_KEYS } from '@/constants/storage-keys';
 import { LoadingState, ErrorState, EmptyState } from '@/components/ui/screen-states';
 import { useScreen } from '@/hooks/use-screen';
 import { useTheme } from '@/hooks/useTheme';
 import { Routes } from '@/navigation/routes';
+import { apiClient } from '@/services/api-client';
 import { discoverService } from '@/services/discover-service';
+import { accountIdsMatch } from '@/utils/account-id';
+import { getFixedScheduleFromOffering } from '@/utils/booking-draft-prefill';
 import { createLogger } from '@/utils/logger';
+import { getSessionOfferingHeadcount } from '@/utils/session-offering-capacity';
 import { ok } from '@/types/result';
 import type { MapScreenData } from '@/components/discover/map-content-types';
-import type { CoachSearchFilters } from '@/constants/types';
+import type { CoachSearchFilters, SessionOffering } from '@/constants/types';
 
 // ─── Constants ─────────────────────────────────────────────────────────────
 
 const DEFAULT_LOCATION = { lat: 51.5074, lng: -0.1278, radiusKm: 10 };
 const logger = createLogger('DiscoverMapScreen');
+
+function selectPreferredOffering(
+  offerings: SessionOffering[],
+  coachId: string,
+): SessionOffering | null {
+  const now = Date.now();
+
+  return (
+    offerings
+      .filter((offering) => accountIdsMatch(offering.coachId, coachId))
+      .filter((offering) => offering.status === 'active')
+      .filter((offering) => {
+        const startsAt = new Date(offering.scheduledAt).getTime();
+        return offering.isRecurring || (Number.isFinite(startsAt) && startsAt >= now);
+      })
+      .filter((offering) => getSessionOfferingHeadcount(offering) < offering.maxParticipants)
+      .sort((a, b) => {
+        const aDate = getFixedScheduleFromOffering(a)?.date ?? a.scheduledAt;
+        const bDate = getFixedScheduleFromOffering(b)?.date ?? b.scheduledAt;
+        return new Date(aDate).getTime() - new Date(bDate).getTime();
+      })[0] ?? null
+  );
+}
 
 // ─── Screen ────────────────────────────────────────────────────────────────
 
@@ -97,16 +125,29 @@ export default function MapScreen() {
 
   const handleBookCoach = useCallback(
     (coachId: string) => {
-      logger.debug('Discover map routing decision', {
-        coachId,
-        source: 'discover_map_coach',
-        target: 'session_list_first',
-      });
-      router.push(
-        Routes.bookCoach(coachId, {
+      void (async () => {
+        let offeringId: string | undefined;
+        try {
+          const offerings = await apiClient.get<SessionOffering[]>(STORAGE_KEYS.SESSION_OFFERINGS, []);
+          offeringId = selectPreferredOffering(offerings, coachId)?.id;
+        } catch {
+          offeringId = undefined;
+        }
+
+        logger.debug('Discover map routing decision', {
+          coachId,
           source: 'discover_map_coach',
-        }),
-      );
+          target: offeringId ? 'offering_fast_track' : 'session_list_first',
+          offeringId: offeringId ?? null,
+        });
+
+        router.push(
+          Routes.bookCoach(coachId, {
+            source: 'discover_map_coach',
+            offeringId,
+          }),
+        );
+      })();
     },
     [router],
   );
