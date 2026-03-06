@@ -45,28 +45,34 @@ function AthleteQuickActionsInner({ athlete, onRaiseConcern, onRemove }: Athlete
     if (Platform.OS !== 'web') {
       void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     }
-    uiFeedback.alert(athleteName, undefined, [
-      { text: 'Cancel', style: 'cancel' },
-      {
-        text: 'View Analytics',
-        onPress: () => router.push(Routes.analyticsAthlete(athlete.athleteId)),
-      },
-      {
-        text: 'Raise Concern',
-        onPress: onRaiseConcern,
-      },
-      {
-        text: 'Email Parent',
-        onPress: () => {
-          if (parentEmail) void sendEmail(parentEmail);
-        },
-      },
-      {
-        text: 'Remove from Roster',
-        style: 'destructive',
-        onPress: onRemove,
-      },
-    ]);
+    void (async () => {
+      const selected = await uiFeedback.choose({
+        title: athleteName,
+        options: [
+          { id: 'analytics', label: 'View Analytics' },
+          { id: 'concern', label: 'Raise Concern' },
+          { id: 'email_parent', label: 'Email Parent' },
+          { id: 'remove_roster', label: 'Remove from Roster', destructive: true },
+        ],
+        cancelText: 'Cancel',
+      });
+
+      if (selected === 'analytics') {
+        router.push(Routes.analyticsAthlete(athlete.athleteId));
+        return;
+      }
+      if (selected === 'concern') {
+        onRaiseConcern();
+        return;
+      }
+      if (selected === 'email_parent') {
+        if (parentEmail) void sendEmail(parentEmail);
+        return;
+      }
+      if (selected === 'remove_roster') {
+        onRemove();
+      }
+    })();
   }, [athlete.athleteId, athleteName, onRaiseConcern, onRemove, parentEmail]);
 
   const actions = [

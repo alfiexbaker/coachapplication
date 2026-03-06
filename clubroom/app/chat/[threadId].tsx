@@ -169,26 +169,30 @@ export default function ChatScreen() {
 
   const onLongPressMessage = (message: ChatMessage) => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-    uiFeedback.alert('Message options', 'Choose an action', [
-      {
-        text: 'Copy',
-        onPress: async () => {
-          await Clipboard.setStringAsync(message.body);
-          Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-        },
-      },
-      {
-        text: 'Delete',
-        style: 'destructive',
-        onPress: async () => {
-          if (!threadId) return;
-          await messagingService.deleteMessage(threadId, message.id);
-          Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-          onRefresh();
-        },
-      },
-      { text: 'Cancel', style: 'cancel' },
-    ]);
+    void (async () => {
+      const selected = await uiFeedback.choose({
+        title: 'Message options',
+        message: 'Choose an action',
+        options: [
+          { id: 'copy', label: 'Copy' },
+          { id: 'delete', label: 'Delete', destructive: true },
+        ],
+        cancelText: 'Cancel',
+      });
+
+      if (selected === 'copy') {
+        await Clipboard.setStringAsync(message.body);
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+        return;
+      }
+
+      if (selected === 'delete') {
+        if (!threadId) return;
+        await messagingService.deleteMessage(threadId, message.id);
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+        onRefresh();
+      }
+    })();
   };
   const renderShell = (content: ReactNode) => (
     <SafeAreaView style={{ flex: 1, backgroundColor: palette.background }} edges={['top', 'bottom']}>

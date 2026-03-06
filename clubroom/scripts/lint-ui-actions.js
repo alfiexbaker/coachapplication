@@ -24,6 +24,10 @@ const CHECKS = [
     name: 'native Alert usage',
     regex: /Alert\.(alert|prompt)\s*\(/g,
   },
+  {
+    name: 'uiFeedback.alert without explicit action buttons',
+    regex: /uiFeedback\.alert\s*\(\s*[^,\n()]+(?:\([^)]*\))?\s*,\s*[^,\n()]+(?:\([^)]*\))?\s*\)/g,
+  },
 ];
 
 const NATIVE_ALERT_EXCEPTION_TAG = 'native-alert-exception';
@@ -62,6 +66,7 @@ function run() {
             continue;
           }
         }
+
         failures.push({
           file,
           line: getLineNumber(source, match.index),

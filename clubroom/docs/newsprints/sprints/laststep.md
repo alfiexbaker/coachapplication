@@ -58,3 +58,32 @@ Date: 2026-03-05
    - non-decision informational popup (convert to toast/inline)
 2. Convert next high-confidence non-decision batch (remaining non-destructive confirms currently `21` callsites) and keep explicit justifications for any retained confirms.
 3. Re-run `audit:alerts` + targeted flow checks and commit next atomic slice.
+
+---
+
+## Update: 2026-03-06
+
+1. Converted multi-option popup menus to explicit action-sheet API (`uiFeedback.choose`) in:
+   - `hooks/use-help-screen.ts`
+   - `hooks/use-invites.ts` (slot picker)
+   - `app/chat/[threadId].tsx` (message long-press actions)
+   - `components/athlete/athlete-quick-actions.tsx` (More menu)
+   - `hooks/use-recurring-template-form.ts` (location drift branching)
+2. Added explicit feedback APIs in `services/ui-feedback.ts`:
+   - `uiFeedback.choose(...)`
+   - `uiFeedback.confirm(...)`
+3. Strengthened `scripts/lint-ui-actions.js`:
+   - Added guard for `uiFeedback.alert(...)` calls without explicit button arrays.
+4. Strict alert classification report generated:
+   - `docs/newsprints/sprints/SPRINT6_ALERT_AUDIT_2026-03-06.md`
+   - Remaining `uiFeedback.alert(...)` callsites all classified as decision points.
+5. Current baseline:
+   - `uiFeedback.alert(...)`: `88` (from `96`)
+   - `uiFeedback.showToast(...)`: `396`
+   - native `Alert.*`: `0`
+
+### Verification (2026-03-06)
+
+- `npm run test:compile` -> PASS
+- `node scripts/lint-ui-actions.js` -> PASS
+- `npm run audit:alerts` -> PASS (`native Alert: 0`, `uiFeedback.alert: 88`, `uiFeedback.prompt: 1`, `uiFeedback.showToast: 396`)

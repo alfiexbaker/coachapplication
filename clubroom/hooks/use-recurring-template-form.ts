@@ -202,22 +202,28 @@ export function useRecurringTemplateForm({
     if (locationChanged && onCheckLocationDrift) {
       const drift = await onCheckLocationDrift(editingTemplate!.dayOfWeek, newLocation!);
       if (drift && drift.affectedCount > 0) {
-        uiFeedback.alert(
-          'Location Changed',
-          `You have ${drift.affectedCount} upcoming booking${drift.affectedCount !== 1 ? 's' : ''} at ${drift.oldLocation} on ${DAYS[editingTemplate!.dayOfWeek]}s. Change them to ${newLocation}?`,
-          [
-            { text: 'Cancel', style: 'cancel' },
-            { text: 'Keep Original', onPress: () => doSaveAll() },
-            {
-              text: 'Update All',
-              onPress: async () => {
-                if (onUpdateBookingLocations)
-                  await onUpdateBookingLocations(drift.affectedBookingIds, newLocation!);
-                await doSaveAll();
-              },
-            },
-          ],
-        );
+        void (async () => {
+          const selected = await uiFeedback.choose({
+            title: 'Location Changed',
+            message: `You have ${drift.affectedCount} upcoming booking${drift.affectedCount !== 1 ? 's' : ''} at ${drift.oldLocation} on ${DAYS[editingTemplate!.dayOfWeek]}s. Change them to ${newLocation}?`,
+            options: [
+              { id: 'keep_original', label: 'Keep Original' },
+              { id: 'update_all', label: 'Update All' },
+            ],
+            cancelText: 'Cancel',
+          });
+
+          if (selected === 'keep_original') {
+            await doSaveAll();
+            return;
+          }
+          if (selected === 'update_all') {
+            if (onUpdateBookingLocations) {
+              await onUpdateBookingLocations(drift.affectedBookingIds, newLocation!);
+            }
+            await doSaveAll();
+          }
+        })();
         return;
       }
     }

@@ -198,6 +198,50 @@ export const uiFeedback = {
     showToastMessage(message, tone);
   },
 
+  async confirm(options: {
+    title: string;
+    message?: string;
+    confirmText?: string;
+    cancelText?: string;
+    destructive?: boolean;
+  }): Promise<boolean> {
+    if (alertPresenter) {
+      return alertPresenter.confirm(options);
+    }
+
+    if (actionSheetPresenter) {
+      const selected = await actionSheetPresenter.choose({
+        title: options.title,
+        message: options.message,
+        options: [
+          {
+            id: 'confirm',
+            label: options.confirmText ?? 'Confirm',
+            destructive: options.destructive,
+          },
+        ],
+        cancelText: options.cancelText ?? 'Cancel',
+      });
+      return selected === 'confirm';
+    }
+
+    fallbackLog('confirm');
+    return false;
+  },
+
+  async choose(options: {
+    title?: string;
+    message?: string;
+    options: FeedbackActionOption[];
+    cancelText?: string;
+  }): Promise<string | null> {
+    if (actionSheetPresenter) {
+      return actionSheetPresenter.choose(options);
+    }
+    fallbackLog('choose');
+    return null;
+  },
+
   alert(
     title: string,
     message?: string,

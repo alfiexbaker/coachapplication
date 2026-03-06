@@ -142,13 +142,23 @@ export function useInvites() {
         handleAcceptInvite(invite, invite.proposedSlots[0]);
         return;
       }
-      uiFeedback.alert('Select Time Slot', 'Choose a time that works for you:', [
-        ...invite.proposedSlots.map((slot) => ({
-          text: `${new Date(slot.date).toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' })} at ${slot.startTime}`,
-          onPress: () => handleAcceptInvite(invite, slot),
-        })),
-        { text: 'Cancel', style: 'cancel' as const },
-      ]);
+      void (async () => {
+        const selected = await uiFeedback.choose({
+          title: 'Select Time Slot',
+          message: 'Choose a time that works for you:',
+          options: invite.proposedSlots.map((slot, index) => ({
+            id: String(index),
+            label: `${new Date(slot.date).toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' })} at ${slot.startTime}`,
+          })),
+          cancelText: 'Cancel',
+        });
+
+        if (selected === null) return;
+        const slotIndex = Number.parseInt(selected, 10);
+        const slot = invite.proposedSlots[slotIndex];
+        if (!slot) return;
+        await handleAcceptInvite(invite, slot);
+      })();
     },
     [handleAcceptInvite],
   );

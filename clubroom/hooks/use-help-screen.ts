@@ -51,14 +51,25 @@ export function useHelpScreen() {
 
   const handleContactSupport = useCallback(() => {
     logger.press('ContactSupport');
-    uiFeedback.alert('Contact Support', 'How would you like to reach us?', [
-      { text: 'Email', onPress: () => Linking.openURL('mailto:support@clubroom.app') },
-      {
-        text: 'Live Chat',
-        onPress: () => uiFeedback.showToast('Live chat support coming soon!'),
-      },
-      { text: 'Cancel', style: 'cancel' },
-    ]);
+    void (async () => {
+      const selected = await uiFeedback.choose({
+        title: 'Contact Support',
+        message: 'How would you like to reach us?',
+        options: [
+          { id: 'email', label: 'Email' },
+          { id: 'chat', label: 'Live Chat' },
+        ],
+        cancelText: 'Cancel',
+      });
+
+      if (selected === 'email') {
+        await Linking.openURL('mailto:support@clubroom.app');
+        return;
+      }
+      if (selected === 'chat') {
+        uiFeedback.showToast('Live chat support coming soon!');
+      }
+    })();
   }, []);
 
   const handleReportProblem = useCallback(() => {
@@ -68,21 +79,25 @@ export function useHelpScreen() {
 
   const handleSendFeedback = useCallback(() => {
     logger.press('SendFeedback');
-    uiFeedback.alert(
-      'Send Feedback',
-      'Your feedback helps us improve Clubroom. What would you like to share?',
-      [
-        {
-          text: 'Feature Request',
-          onPress: () => Linking.openURL('mailto:feedback@clubroom.app?subject=Feature%20Request'),
-        },
-        {
-          text: 'General Feedback',
-          onPress: () => Linking.openURL('mailto:feedback@clubroom.app?subject=General%20Feedback'),
-        },
-        { text: 'Cancel', style: 'cancel' },
-      ],
-    );
+    void (async () => {
+      const selected = await uiFeedback.choose({
+        title: 'Send Feedback',
+        message: 'Your feedback helps us improve Clubroom. What would you like to share?',
+        options: [
+          { id: 'feature', label: 'Feature Request' },
+          { id: 'general', label: 'General Feedback' },
+        ],
+        cancelText: 'Cancel',
+      });
+
+      if (selected === 'feature') {
+        await Linking.openURL('mailto:feedback@clubroom.app?subject=Feature%20Request');
+        return;
+      }
+      if (selected === 'general') {
+        await Linking.openURL('mailto:feedback@clubroom.app?subject=General%20Feedback');
+      }
+    })();
   }, []);
 
   const handleRateApp = useCallback(() => {
