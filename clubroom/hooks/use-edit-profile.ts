@@ -668,14 +668,10 @@ export function useEditProfile() {
 
   // ── Image picker ───────────────────────────────────────────────
   const pickImage = useCallback((type: 'profile' | 'cover') => {
-    uiFeedback.alert(
-      `Change ${type === 'profile' ? 'Profile' : 'Cover'} Photo`,
-      'Choose how you want to select a photo',
-      [
-        { text: 'Take Photo', onPress: () => logger.info(`Camera selected for ${type}`) },
-        { text: 'Choose from Library', onPress: () => logger.info(`Library selected for ${type}`) },
-        { text: 'Cancel', style: 'cancel' },
-      ],
+    logger.info(`Photo picker requested for ${type}`);
+    uiFeedback.showToast(
+      `${type === 'profile' ? 'Profile' : 'Cover'} photo picker coming soon.`,
+      'default',
     );
   }, []);
 
