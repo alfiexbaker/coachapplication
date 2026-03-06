@@ -6,32 +6,19 @@ import { uiFeedback } from '@/services/ui-feedback';
 
 export function useTokenExpiryAlert(): void {
   const { logout } = useAuth();
-  const alertOpenRef = useRef(false);
+  const handlingExpiryRef = useRef(false);
 
   useEffect(() => {
     const unsubscribe = onTyped(ServiceEvents.TOKEN_EXPIRED_BACKGROUND, () => {
-      if (alertOpenRef.current) return;
-      alertOpenRef.current = true;
-
-      uiFeedback.alert(
-        'Session Expired',
-        'Your session expired while the app was closed. Please log in again.',
-        [
-          {
-            text: 'OK',
-            onPress: () => {
-              alertOpenRef.current = false;
-              void logout();
-            },
-          },
-        ],
-        {
-          cancelable: false,
-          onDismiss: () => {
-            alertOpenRef.current = false;
-          },
-        },
+      if (handlingExpiryRef.current) return;
+      handlingExpiryRef.current = true;
+      uiFeedback.showToast(
+        'Session expired while the app was closed. Please log in again.',
+        'error',
       );
+      void logout().finally(() => {
+        handlingExpiryRef.current = false;
+      });
     });
 
     return unsubscribe;
