@@ -156,7 +156,7 @@ export default function SettingsHubScreen() {
           subtitle="Push, email, and session reminders"
           onPress={() => {
             logger.press('NotificationSettings');
-            router.push(Routes.SETTINGS_NOTIFICATIONS);
+            router.push(Routes.SETTINGS_NOTIFICATION_PREFERENCES);
           }}
         />
         <SettingsRow

@@ -18,14 +18,21 @@ import {
 import { useAuth } from '@/hooks/use-auth';
 import { useScreen, type ScreenStatus } from '@/hooks/use-screen';
 import { schedulingRulesService } from '@/services/scheduling-rules-service';
+import { coachTravelService, type CoachTravelSettings } from '@/services/coach-travel-service';
+import { apiClient } from '@/services/api-client';
+import { STORAGE_KEYS } from '@/constants/storage-keys';
 import type { CoachSchedulingRules } from '@/constants/types';
 import { err, ok, type ServiceError } from '@/types/result';
+import type { BlockedDateRange } from '@/hooks/use-blocked-dates';
 
 export function useCoachingSettings() {
   const { currentUser } = useAuth();
   const coachId = currentUser?.id ?? '';
 
   const [rules, setRules] = useState<CoachSchedulingRules | null>(null);
+  const [travelSettings, setTravelSettings] = useState<CoachTravelSettings | null>(null);
+  const [blockedDateCount, setBlockedDateCount] = useState(0);
+  const [policySummary, setPolicySummary] = useState('Standard cancellation policy');
   const [saveError, setSaveError] = useState<string | null>(null);
 
   // Toast state
@@ -67,6 +74,27 @@ export function useCoachingSettings() {
       setSaveError(null);
     }
   }, [data]);
+
+  useEffect(() => {
+    if (!coachId) return;
+    void (async () => {
+      const [travelResult, policyResult, blockedMap] = await Promise.all([
+        coachTravelService.getSettings(coachId),
+        schedulingRulesService.getCancellationPolicy(coachId),
+        apiClient.get<Record<string, BlockedDateRange[]>>(STORAGE_KEYS.BLOCKED_DATES, {}),
+      ]);
+
+      if (travelResult.success) {
+        setTravelSettings(travelResult.data);
+      }
+      if (policyResult.success) {
+        setPolicySummary(
+          schedulingRulesService.getCancellationPolicySummary(policyResult.data),
+        );
+      }
+      setBlockedDateCount((blockedMap[coachId] ?? []).length);
+    })();
+  }, [coachId]);
 
   // Show "Saved" toast
   const flashSaved = useCallback(() => {
@@ -140,6 +168,9 @@ export function useCoachingSettings() {
     onRefresh,
     retry,
     rules,
+    travelSettings,
+    blockedDateCount,
+    policySummary,
     showSaved,
     toastOpacity,
     update,
@@ -152,6 +183,9 @@ export function useCoachingSettings() {
     onRefresh: () => void;
     retry: () => void;
     rules: CoachSchedulingRules | null;
+    travelSettings: CoachTravelSettings | null;
+    blockedDateCount: number;
+    policySummary: string;
     showSaved: boolean;
     toastOpacity: SharedValue<number>;
     update: <K extends keyof CoachSchedulingRules>(key: K, value: CoachSchedulingRules[K]) => void;

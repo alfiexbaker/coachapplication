@@ -1,87 +1,86 @@
-import { StyleSheet, View } from 'react-native';
+import { RefreshControl, ScrollView, StyleSheet, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
+import { Clickable } from '@/components/primitives/clickable';
 import { SettingsFormScreen } from '@/components/settings';
-import { ThemedText } from '@/components/themed-text';
 import { SurfaceCard } from '@/components/primitives/surface-card';
+import { ThemedText } from '@/components/themed-text';
 import { Row } from '@/components/primitives/row';
-import { Spacing, Typography } from '@/constants/theme';
+import { Spacing, Typography, withAlpha } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
-
-const POLICY_TIERS = [
-  {
-    label: 'More than 24 hours before',
-    refund: '100% refund',
-    example: 'e.g. For a 2pm Monday session, cancel by 2pm Sunday for a full refund.',
-    icon: 'checkmark-circle' as const,
-    color: 'success' as const,
-  },
-  {
-    label: '12–24 hours before',
-    refund: '50% refund',
-    example: 'e.g. For a 2pm Monday session, cancelling at 6pm Sunday means a 50% charge.',
-    icon: 'alert-circle' as const,
-    color: 'warning' as const,
-  },
-  {
-    label: 'Less than 12 hours before',
-    refund: 'No refund',
-    example: 'e.g. For a 2pm Monday session, cancelling after 2am Monday means full charge.',
-    icon: 'close-circle' as const,
-    color: 'error' as const,
-  },
-];
+import { useCancellationPolicySettings } from '@/hooks/use-cancellation-policy-settings';
 
 export default function CancellationPolicyScreen() {
   const { colors: palette } = useTheme();
+  const { policy, templates, loading, error, refreshing, onRefresh, saving, applyTemplate, summary } =
+    useCancellationPolicySettings();
+
+  if (!policy && loading) {
+    return (
+      <SettingsFormScreen title="Cancellation Policy">
+        <View />
+      </SettingsFormScreen>
+    );
+  }
 
   return (
-    <SettingsFormScreen title="Cancellation Policy">
-      <ThemedText style={[styles.description, { color: palette.muted }]}>
-        Your cancellation policy is shown to parents when they book a session. This helps set clear
-        expectations and protects your time.
-      </ThemedText>
-
-      <SurfaceCard style={styles.card}>
-        <ThemedText type="defaultSemiBold" style={styles.sectionTitle}>
-          Standard Policy
-        </ThemedText>
-        {POLICY_TIERS.map((tier, index) => (
-          <View key={tier.label}>
-            {index > 0 && <View style={[styles.divider, { backgroundColor: palette.border }]} />}
-            <Row align="center" gap="sm" style={styles.tierRow}>
-              <Ionicons name={tier.icon} size={22} color={palette[tier.color]} />
-              <View style={styles.tierText}>
-                <ThemedText type="defaultSemiBold">{tier.label}</ThemedText>
-                <ThemedText style={{ color: palette.muted }}>{tier.refund}</ThemedText>
-                <ThemedText style={[Typography.caption, { color: palette.muted, fontStyle: 'italic' }]}>
-                  {tier.example}
-                </ThemedText>
-              </View>
-            </Row>
-          </View>
-        ))}
-      </SurfaceCard>
-
-      <SurfaceCard style={styles.card}>
-        <Row gap="sm" align="flex-start">
-          <Ionicons name="information-circle" size={20} color={palette.tint} />
-          <ThemedText style={[styles.infoText, { color: palette.muted }]}>
-            Custom cancellation policies will be available in a future update. For now, the standard
-            policy applies to all your sessions.
+    <SettingsFormScreen
+      title="Cancellation Policy"
+      infoText={error ?? 'This policy is shown during booking and used when refund eligibility is calculated.'}
+    >
+      <ScrollView
+        showsVerticalScrollIndicator={false}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={palette.accent} />}
+      >
+        <SurfaceCard style={styles.card}>
+          <ThemedText type="defaultSemiBold">Current policy</ThemedText>
+          <ThemedText style={{ color: palette.muted }}>{summary}</ThemedText>
+          <ThemedText style={[Typography.small, { color: palette.muted }]}>
+            Minimum notice: {policy?.minimumNoticeHours ?? 0}h
           </ThemedText>
-        </Row>
-      </SurfaceCard>
+        </SurfaceCard>
+
+        <View style={styles.section}>
+          {Object.entries(templates).map(([key, template]) => {
+            const selected = policy?.name === template.name;
+            return (
+              <Clickable
+                key={key}
+                onPress={() => void applyTemplate(key as keyof typeof templates)}
+                style={[
+                  styles.optionCard,
+                  {
+                    borderColor: selected ? palette.tint : palette.border,
+                    backgroundColor: selected ? withAlpha(palette.tint, 0.08) : palette.card,
+                    opacity: saving ? 0.7 : 1,
+                  },
+                ]}
+              >
+                <Row justify="space-between" align="center" style={styles.optionHeader}>
+                  <View style={styles.optionText}>
+                    <ThemedText type="defaultSemiBold">{template.name}</ThemedText>
+                    <ThemedText style={{ color: palette.muted }}>{template.description}</ThemedText>
+                  </View>
+                  {selected ? <Ionicons name="checkmark-circle" size={20} color={palette.tint} /> : null}
+                </Row>
+                {template.tiers.map((tier) => (
+                  <ThemedText key={`${key}-${tier.hoursBeforeSession}`} style={[Typography.small, { color: palette.muted }]}>
+                    {tier.refundPercentage}% refund from {tier.hoursBeforeSession}h before
+                  </ThemedText>
+                ))}
+              </Clickable>
+            );
+          })}
+        </View>
+      </ScrollView>
     </SettingsFormScreen>
   );
 }
 
 const styles = StyleSheet.create({
-  description: { ...Typography.body },
-  card: { gap: Spacing.sm },
-  sectionTitle: { marginBottom: Spacing.xxs },
-  tierRow: { paddingVertical: Spacing.xs },
-  tierText: { flex: 1, gap: Spacing.micro },
-  divider: { height: 1, marginLeft: 38 },
-  infoText: { flex: 1, ...Typography.small },
+  card: { gap: Spacing.xs },
+  section: { gap: Spacing.md, marginTop: Spacing.md },
+  optionCard: { gap: Spacing.xs, borderWidth: 1, borderRadius: 16, padding: Spacing.md },
+  optionHeader: { marginBottom: Spacing.xs },
+  optionText: { flex: 1, gap: Spacing.micro },
 });

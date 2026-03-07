@@ -10,6 +10,7 @@ import { emitTyped, ServiceEvents } from '@/services/event-bus';
 import { generateId } from '@/utils/generate-id';
 import { createLogger } from '@/utils/logger';
 import { uiFeedback } from '@/services/ui-feedback';
+import { userService } from '@/services/user-service';
 
 const logger = createLogger('useAccountSettings');
 
@@ -45,17 +46,40 @@ export function useAccountSettings() {
     })();
   }, [currentUser?.id]);
 
-  const handleSaveEmail = useCallback(() => {
+  const handleSaveEmail = useCallback(async () => {
+    if (!currentUser?.id) return;
     logger.press('SaveEmail', { email });
+    const result = await userService.updateUserProfile(currentUser.id, { email: email.trim() });
+    if (!result.success) {
+      uiFeedback.showToast(result.error.message, 'error');
+      return;
+    }
+    await apiClient.set(STORAGE_KEYS.AUTH_USER, {
+      ...currentUser,
+      email: result.data.email,
+    });
     setEditingEmail(false);
     uiFeedback.showToast('Verification email sent!', 'success');
-  }, [email]);
+  }, [currentUser, email]);
 
-  const handleSavePhone = useCallback(() => {
+  const handleSavePhone = useCallback(async () => {
+    if (!currentUser?.id) return;
     logger.press('SavePhone', { phone });
+    const nextPhone = phone.trim();
+    const result = await userService.updateUserProfile(currentUser.id, {
+      phone: nextPhone,
+    });
+    if (!result.success) {
+      uiFeedback.showToast(result.error.message, 'error');
+      return;
+    }
+    await apiClient.set(STORAGE_KEYS.AUTH_USER, {
+      ...currentUser,
+      phone: nextPhone,
+    });
     setEditingPhone(false);
     uiFeedback.showToast('Phone number updated!', 'success');
-  }, [phone]);
+  }, [currentUser, phone]);
 
   const handleChangePassword = useCallback(() => {
     logger.press('ChangePassword');

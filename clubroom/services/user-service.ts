@@ -10,9 +10,9 @@ import { blockService } from './block-service';
 
 const logger = createLogger('UserService');
 
-type UserChanges = Partial<
-  Pick<User, 'name' | 'avatar' | 'postcode' | 'dateOfBirth' | 'email' | 'role'>
->;
+type UserChanges = Partial<Pick<User, 'name' | 'avatar' | 'postcode' | 'dateOfBirth' | 'email' | 'role'>> & {
+  phone?: string;
+};
 
 interface AuthUserRecord {
   id?: unknown;

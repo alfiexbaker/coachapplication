@@ -1,178 +1,174 @@
-import { useState } from 'react';
-
+import { ActivityIndicator, View } from 'react-native';
 import { router } from 'expo-router';
 
 import { SettingsFormScreen, SettingsRow, SettingsToggleRow, SettingsSection } from '@/components/settings';
 import { useTheme } from '@/hooks/useTheme';
-import { useAuth } from '@/hooks/use-auth';
 import { createLogger } from '@/utils/logger';
 import { Routes } from '@/navigation/routes';
 import { uiFeedback } from '@/services/ui-feedback';
+import { usePrivacySettings } from '@/hooks/use-privacy-settings';
 
 const logger = createLogger('PrivacySettings');
 
 export default function PrivacySettingsScreen() {
   const { colors: palette } = useTheme();
-  const { currentUser } = useAuth();
+  const {
+    settings,
+    blockedUsersCount,
+    isCoach,
+    loading,
+    error,
+    savingKey,
+    toggle,
+  } = usePrivacySettings();
 
-  // Visibility settings
-  const [profileVisible, setProfileVisible] = useState(true);
-  const [showLocation, setShowLocation] = useState(true);
-  const [showOnlineStatus, setShowOnlineStatus] = useState(true);
-  const [showActivityStatus, setShowActivityStatus] = useState(false);
+  if (loading || !settings) {
+    return (
+      <SettingsFormScreen title="Privacy">
+        <ActivityIndicator color={palette.accent} />
+      </SettingsFormScreen>
+    );
+  }
 
-  // Data sharing settings
-  const [shareAnalytics, setShareAnalytics] = useState(true);
-  const [personalizedAds, setPersonalizedAds] = useState(false);
-  const [shareWithPartners, setShareWithPartners] = useState(false);
-
-  // Coach-specific
-  const [showEarnings, setShowEarnings] = useState(false);
-  const [showClientList, setShowClientList] = useState(false);
-
-  const isCoach = currentUser?.role === 'COACH';
-
-  const handleToggle = (name: string, value: boolean, setter: (v: boolean) => void) => {
-    logger.debug(`Toggle ${name}`, { newValue: value });
-    setter(value);
-  };
-
-  const handleDownloadData = () => {
-    logger.press('DownloadData');
-    uiFeedback.showToast("Download requested. You'll receive an email within 48 hours.", 'success');
-  };
-
-  const handleManageBlockedUsers = () => {
-    logger.press('ManageBlockedUsers');
-    uiFeedback.showToast("You haven't blocked any users yet.");
+  const handleToggle = <K extends keyof typeof settings>(key: K, value: (typeof settings)[K]) => {
+    logger.debug(`Toggle ${String(key)}`, { newValue: value });
+    void toggle(key, value);
   };
 
   return (
     <SettingsFormScreen
       title="Privacy"
-      infoText="Your privacy is important to us. We only collect data necessary to provide and improve our services."
+      infoText={error ?? 'Privacy settings are saved to your account and applied across profile and discovery surfaces.'}
     >
-      {/* Profile Visibility */}
       <SettingsSection title="Profile Visibility">
         <SettingsToggleRow
           icon="eye"
           title="Public Profile"
           subtitle="Allow others to find and view your profile"
-          value={profileVisible}
-          onValueChange={(v) => handleToggle('profileVisible', v, setProfileVisible)}
+          value={settings.profileVisible}
+          disabled={savingKey === 'profileVisible'}
+          onValueChange={(value) => handleToggle('profileVisible', value)}
         />
         <SettingsToggleRow
           icon="location"
           title="Show Location"
           subtitle="Display your city and distance to others"
-          value={showLocation}
-          onValueChange={(v) => handleToggle('showLocation', v, setShowLocation)}
+          value={settings.showLocation}
+          disabled={savingKey === 'showLocation'}
+          onValueChange={(value) => handleToggle('showLocation', value)}
         />
         <SettingsToggleRow
           icon="ellipse"
           iconColor={palette.success}
           title="Online Status"
           subtitle="Show when you're active in the app"
-          value={showOnlineStatus}
-          onValueChange={(v) => handleToggle('showOnlineStatus', v, setShowOnlineStatus)}
+          value={settings.showOnlineStatus}
+          disabled={savingKey === 'showOnlineStatus'}
+          onValueChange={(value) => handleToggle('showOnlineStatus', value)}
         />
         <SettingsToggleRow
           icon="pulse"
           title="Activity Status"
           subtitle="Show recent activity on your profile"
-          value={showActivityStatus}
-          onValueChange={(v) => handleToggle('showActivityStatus', v, setShowActivityStatus)}
+          value={settings.showActivityStatus}
+          disabled={savingKey === 'showActivityStatus'}
+          onValueChange={(value) => handleToggle('showActivityStatus', value)}
         />
       </SettingsSection>
 
-      {/* Coach-specific visibility */}
-      {isCoach && (
+      {isCoach ? (
         <SettingsSection title="Coach Profile">
           <SettingsToggleRow
             icon="wallet"
             title="Show Earnings"
             subtitle="Display your earnings publicly"
-            value={showEarnings}
-            onValueChange={(v) => handleToggle('showEarnings', v, setShowEarnings)}
+            value={settings.showEarnings}
+            disabled={savingKey === 'showEarnings'}
+            onValueChange={(value) => handleToggle('showEarnings', value)}
           />
           <SettingsToggleRow
             icon="people"
             title="Show Client Count"
             subtitle="Display number of clients you've coached"
-            value={showClientList}
-            onValueChange={(v) => handleToggle('showClientList', v, setShowClientList)}
+            value={settings.showClientList}
+            disabled={savingKey === 'showClientList'}
+            onValueChange={(value) => handleToggle('showClientList', value)}
           />
         </SettingsSection>
-      )}
+      ) : null}
 
-      {/* Data & Analytics */}
       <SettingsSection title="Data & Analytics">
         <SettingsToggleRow
           icon="analytics"
           title="Share Analytics"
           subtitle="Help improve the app with usage data"
-          value={shareAnalytics}
-          onValueChange={(v) => handleToggle('shareAnalytics', v, setShareAnalytics)}
+          value={settings.shareAnalytics}
+          disabled={savingKey === 'shareAnalytics'}
+          onValueChange={(value) => handleToggle('shareAnalytics', value)}
         />
         <SettingsToggleRow
           icon="megaphone"
           title="Personalized Ads"
           subtitle="Allow personalized advertising"
-          value={personalizedAds}
-          onValueChange={(v) => handleToggle('personalizedAds', v, setPersonalizedAds)}
+          value={settings.personalizedAds}
+          disabled={savingKey === 'personalizedAds'}
+          onValueChange={(value) => handleToggle('personalizedAds', value)}
         />
         <SettingsToggleRow
           icon="share-social"
           title="Share with Partners"
           subtitle="Share data with trusted partners"
-          value={shareWithPartners}
-          onValueChange={(v) => handleToggle('shareWithPartners', v, setShareWithPartners)}
+          value={settings.shareWithPartners}
+          disabled={savingKey === 'shareWithPartners'}
+          onValueChange={(value) => handleToggle('shareWithPartners', value)}
         />
       </SettingsSection>
 
-      {/* Your Data */}
       <SettingsSection title="Your Data">
         <SettingsRow
           icon="download"
           title="Download Your Data"
           subtitle="Get a copy of your information"
-          onPress={handleDownloadData}
+          onPress={() => {
+            logger.press('DownloadData');
+            uiFeedback.showToast("Download requested. You'll receive an email within 48 hours.", 'success');
+          }}
         />
         <SettingsRow
           icon="ban"
           title="Blocked Users"
           subtitle="Manage users you've blocked"
-          onPress={handleManageBlockedUsers}
+          value={blockedUsersCount > 0 ? String(blockedUsersCount) : 'None'}
+          onPress={() => {
+            logger.press('ManageBlockedUsers');
+            router.push(Routes.SETTINGS_BLOCKED_USERS);
+          }}
         />
       </SettingsSection>
 
-      {/* Legal */}
       <SettingsSection title="Legal">
         <SettingsRow
           icon="document-text"
           title="Privacy Policy"
-          onPress={() => {
-            logger.press('PrivacyPolicy');
-            router.push(Routes.SETTINGS_PRIVACY_POLICY);
-          }}
+          onPress={() => router.push(Routes.SETTINGS_PRIVACY_POLICY)}
         />
         <SettingsRow
           icon="document"
           title="Terms of Service"
-          onPress={() => {
-            logger.press('TermsOfService');
-            router.push(Routes.SETTINGS_TERMS);
-          }}
+          onPress={() => router.push(Routes.SETTINGS_TERMS)}
         />
         <SettingsRow
           icon="shield"
           title="Cookie Policy"
-          onPress={() => {
-            logger.press('CookiePolicy');
-            uiFeedback.showToast('View our cookie policy at clubroom.app/cookies');
-          }}
+          onPress={() => uiFeedback.showToast('View our cookie policy at clubroom.app/cookies')}
         />
       </SettingsSection>
+
+      {savingKey ? (
+        <View>
+          <ActivityIndicator color={palette.accent} />
+        </View>
+      ) : null}
     </SettingsFormScreen>
   );
 }

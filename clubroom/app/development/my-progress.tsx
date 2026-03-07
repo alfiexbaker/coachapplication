@@ -32,7 +32,6 @@ import { useScrollAnimations, useSectionRevealStyle } from '@/hooks/use-scroll-a
 import { Routes } from '@/navigation/routes';
 import { onTyped, ServiceEvents } from '@/services/event-bus';
 import { progressTermlyReportService } from '@/services/progress/progress-termly-report-service';
-import { DemoBanner, isDemoMode } from '@/utils/demo-mode';
 import { Clickable } from '@/components/primitives/clickable';
 import { uiFeedback } from '@/services/ui-feedback';
 
@@ -47,7 +46,6 @@ const DEFAULT_FEEDBACK_MEDIA_DIMENSION = 1080;
 
 export default function MyProgressScreen() {
   const { colors, scheme } = useTheme();
-  const demoMode = isDemoMode();
   const celebrationRef = useRef<CelebrationOverlayRef>(null);
   const scrollRef = useRef<ComponentRef<typeof Animated.ScrollView>>(null);
   const levelUpRef = useRef<LevelUpCeremonyRef>(null);
@@ -508,9 +506,6 @@ export default function MyProgressScreen() {
           style={playerCardStyle}
           onLayout={scrollAnimations.createSectionLayoutHandler('player-card')}
         >
-          {demoMode ? (
-            <DemoBanner message="Player card presentation may include demo/generated progress values in this environment." />
-          ) : null}
           <View style={styles.cardStage}>
             <LinearGradient
               colors={[

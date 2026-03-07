@@ -176,6 +176,8 @@ export const STORAGE_KEYS = {
 
   /** Notification preferences per user */
   NOTIFICATION_PREFERENCES: 'clubroom.notification_preferences',
+  /** Privacy settings per user */
+  PRIVACY_SETTINGS: 'clubroom.privacy_settings',
   /** One-time route alias migration for persisted notification deep links */
   NOTIFICATION_ROUTE_ALIAS_MIGRATION_V1: 'clubroom.notification_route_alias_migration_v1',
 
@@ -213,6 +215,8 @@ export const STORAGE_KEYS = {
 
   /** Coach direct-payment instructions used by invoices/reconciler reminders */
   COACH_PAYMENT_INSTRUCTIONS: 'clubroom.coach_payment_instructions',
+  /** Coach travel radius and discovery preferences */
+  COACH_TRAVEL_SETTINGS: 'clubroom.coach_travel_settings',
 
   /** Promotional codes */
   PROMO_CODES: 'clubroom.promo_codes',
@@ -316,6 +320,15 @@ export const STORAGE_KEYS = {
 
   /** Club membership data */
   CLUB_MEMBERS: 'club_members',
+
+  /** Club organization records */
+  CLUBS: 'clubroom.clubs',
+
+  /** Club membership records for feed/hub features */
+  CLUB_MEMBERSHIPS: 'clubroom.club_memberships',
+
+  /** Club invite code lifecycle records */
+  CLUB_INVITE_CODES: 'clubroom.club_invite_codes',
 
   /** Club member removal records */
   CLUB_MEMBER_REMOVALS: 'club_member_removals',

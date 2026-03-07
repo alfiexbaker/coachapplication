@@ -29,6 +29,9 @@ export default function CoachingSettingsScreen() {
     onRefresh,
     retry,
     rules,
+    travelSettings,
+    blockedDateCount,
+    policySummary,
     showSaved,
     toastOpacity,
     update,
@@ -145,7 +148,7 @@ export default function CoachingSettingsScreen() {
           <View style={[styles.card, { backgroundColor: colors.surface }, Shadows[scheme].card]}>
             <NavigationRow
               label="Cancellation policy"
-              value="Standard"
+              value={policySummary}
               onPress={() => router.push(Routes.SETTINGS_CANCELLATION_POLICY)}
               icon="shield-checkmark-outline"
             />
@@ -156,13 +159,18 @@ export default function CoachingSettingsScreen() {
           <View style={[styles.card, { backgroundColor: colors.surface }, Shadows[scheme].card]}>
             <NavigationRow
               label="Travel radius"
-              value={`${currentUser?.postcode ?? 'Set postcode'}`}
+              value={
+                travelSettings
+                  ? `${travelSettings.radiusMiles}mi from ${currentUser?.postcode ?? 'postcode'}`
+                  : `${currentUser?.postcode ?? 'Set postcode'}`
+              }
               onPress={() => router.push(Routes.SETTINGS_TRAVEL_RADIUS)}
               icon="location-outline"
             />
             <Separator />
             <NavigationRow
               label="Blocked dates"
+              value={blockedDateCount > 0 ? `${blockedDateCount}` : undefined}
               onPress={() => router.push(Routes.SETTINGS_BLOCKED_DATES)}
               icon="calendar-outline"
             />

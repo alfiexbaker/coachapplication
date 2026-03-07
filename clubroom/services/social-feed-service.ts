@@ -1,6 +1,7 @@
 import type {
   Club,
   ClubFeedPost,
+  ClubInvite,
   ClubMembership,
   ClubPostType,
   FeedFilter,
@@ -18,6 +19,8 @@ import {
 import { createLogger } from '@/utils/logger';
 import { emitTyped, ServiceEvents } from '@/services/event-bus';
 import { notificationService } from './notification-service';
+import { apiClient } from './api-client';
+import { STORAGE_KEYS } from '@/constants/storage-keys';
 
 type CreateClubPostInput = {
   clubId: string;
@@ -391,6 +394,14 @@ const SEED_FEED_POSTS: ClubFeedPost[] = [
 let clubsStore: Club[] = [...SEED_CLUBS];
 let membershipsStore: ClubMembership[] = [...SEED_MEMBERSHIPS];
 let clubFeedStore: ClubFeedPost[] = [...SEED_FEED_POSTS];
+let clubInvitesStore: ClubInvite[] = SEED_CLUBS.map((club) => ({
+  code: club.inviteCode,
+  clubId: club.id,
+  createdBy: club.ownerId,
+  role: 'MEMBER',
+  expiresAt: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString(),
+  remainingUses: 999,
+}));
 const userReactions: Map<string, Set<string>> = new Map();
 const CLUB_POSTING_ROLES: ClubMembership['role'][] = ['OWNER', 'ADMIN', 'HEAD_COACH', 'COACH'];
 
@@ -598,6 +609,41 @@ const MOCK_CLUB_MEMBERS: Record<string, string[]> = {
 
 class ClubFeedService {
   private logger = createLogger('ClubFeedService');
+  private hydrationPromise: Promise<void> | null = null;
+
+  constructor() {
+    void this.ensureHydrated();
+  }
+
+  private async ensureHydrated(): Promise<void> {
+    if (!this.hydrationPromise) {
+      this.hydrationPromise = (async () => {
+        clubsStore = await apiClient.get<Club[]>(STORAGE_KEYS.CLUBS, clubsStore);
+        membershipsStore = await apiClient.get<ClubMembership[]>(
+          STORAGE_KEYS.CLUB_MEMBERSHIPS,
+          membershipsStore,
+        );
+        clubInvitesStore = await apiClient.get<ClubInvite[]>(
+          STORAGE_KEYS.CLUB_INVITE_CODES,
+          clubInvitesStore,
+        );
+      })();
+    }
+
+    await this.hydrationPromise;
+  }
+
+  private async persistClubs(): Promise<void> {
+    await apiClient.set(STORAGE_KEYS.CLUBS, clubsStore);
+  }
+
+  private async persistMemberships(): Promise<void> {
+    await apiClient.set(STORAGE_KEYS.CLUB_MEMBERSHIPS, membershipsStore);
+  }
+
+  private async persistInviteCodes(): Promise<void> {
+    await apiClient.set(STORAGE_KEYS.CLUB_INVITE_CODES, clubInvitesStore);
+  }
 
   createPost(input: CreateClubPostInput): Result<ClubFeedPost, ServiceError> {
     if (!input.clubId) {
@@ -775,6 +821,16 @@ class ClubFeedService {
     return getUserClubsInternal(userId);
   }
 
+  async getClub(clubId: string): Promise<Club | undefined> {
+    await this.ensureHydrated();
+    return getClubById(clubId);
+  }
+
+  async getInviteCodes(clubId: string): Promise<ClubInvite[]> {
+    await this.ensureHydrated();
+    return clubInvitesStore.filter((invite) => invite.clubId === clubId);
+  }
+
   getUserMemberships(userId: string): ClubMembership[] {
     return getAllClubMembershipsForUser(userId);
   }
@@ -821,6 +877,7 @@ class ClubFeedService {
     };
 
     membershipsStore.push(newMembership);
+    void this.persistMemberships();
     emitTyped(ServiceEvents.CLUB_MEMBER_JOINED, { clubId: targetClub.id, userId });
     this.logger.info('club_membership_joined', {
       userId,
@@ -841,9 +898,125 @@ class ClubFeedService {
       return false;
     }
     membershipsStore.splice(membershipIndex, 1);
+    void this.persistMemberships();
     emitTyped(ServiceEvents.CLUB_MEMBER_LEFT, { clubId, userId });
     this.logger.info('club_membership_left', { userId, clubId });
     return true;
+  }
+
+  async updateClubDetails(
+    clubId: string,
+    changes: Pick<Club, 'name' | 'tagline' | 'city'>,
+  ): Promise<Result<Club, ServiceError>> {
+    await this.ensureHydrated();
+
+    const clubIndex = clubsStore.findIndex((club) => club.id === clubId);
+    if (clubIndex === -1) {
+      return err(validationError('Club not found'));
+    }
+
+    const updatedClub: Club = {
+      ...clubsStore[clubIndex],
+      name: changes.name.trim(),
+      tagline: (changes.tagline || '').trim(),
+      city: changes.city.trim(),
+    };
+    clubsStore[clubIndex] = updatedClub;
+    await this.persistClubs();
+    return ok(updatedClub);
+  }
+
+  async generateInviteCode(
+    clubId: string,
+    createdBy: string,
+    role: ClubMembership['role'],
+  ): Promise<Result<ClubInvite, ServiceError>> {
+    await this.ensureHydrated();
+
+    const club = getClubById(clubId);
+    if (!club) {
+      return err(validationError('Club not found'));
+    }
+
+    const nextInvite: ClubInvite = {
+      code: `${(club.name.slice(0, 4).toUpperCase() || 'CLUB')}-${generateId('invite').slice(-4).toUpperCase()}`,
+      clubId,
+      createdBy,
+      role,
+      expiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
+      remainingUses: role === 'MEMBER' ? 999 : 10,
+    };
+
+    clubInvitesStore = [
+      ...clubInvitesStore.filter(
+        (invite) => !(invite.clubId === clubId && invite.role === nextInvite.role),
+      ),
+      nextInvite,
+    ];
+
+    if (role === 'MEMBER') {
+      clubsStore = clubsStore.map((candidate) =>
+        candidate.id === clubId ? { ...candidate, inviteCode: nextInvite.code } : candidate,
+      );
+      await this.persistClubs();
+    }
+
+    await this.persistInviteCodes();
+    return ok(nextInvite);
+  }
+
+  async deleteInviteCode(clubId: string, code: string): Promise<Result<ClubInvite[], ServiceError>> {
+    await this.ensureHydrated();
+
+    const targetInvite = clubInvitesStore.find(
+      (invite) => invite.clubId === clubId && invite.code === code,
+    );
+    if (!targetInvite) {
+      return err(validationError('Invite code not found'));
+    }
+
+    clubInvitesStore = clubInvitesStore.filter(
+      (invite) => !(invite.clubId === clubId && invite.code === code),
+    );
+
+    if (targetInvite.role === 'MEMBER') {
+      const fallbackInvite: ClubInvite = {
+        ...targetInvite,
+        code: `${(getClubById(clubId)?.name.slice(0, 4).toUpperCase() || 'CLUB')}-${generateId('invite').slice(-4).toUpperCase()}`,
+        expiresAt: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString(),
+        remainingUses: 999,
+      };
+      clubInvitesStore.push(fallbackInvite);
+      clubsStore = clubsStore.map((club) =>
+        club.id === clubId ? { ...club, inviteCode: fallbackInvite.code } : club,
+      );
+      await this.persistClubs();
+    }
+
+    await this.persistInviteCodes();
+    return ok(clubInvitesStore.filter((invite) => invite.clubId === clubId));
+  }
+
+  async deleteClub(clubId: string): Promise<Result<boolean, ServiceError>> {
+    await this.ensureHydrated();
+
+    const exists = clubsStore.some((club) => club.id === clubId);
+    if (!exists) {
+      return err(validationError('Club not found'));
+    }
+
+    clubsStore = clubsStore.filter((club) => club.id !== clubId);
+    membershipsStore = membershipsStore.filter((membership) => membership.clubId !== clubId);
+    clubFeedStore = clubFeedStore.filter((post) => post.clubId !== clubId);
+    clubInvitesStore = clubInvitesStore.filter((invite) => invite.clubId !== clubId);
+
+    await Promise.all([
+      this.persistClubs(),
+      this.persistMemberships(),
+      this.persistInviteCodes(),
+    ]);
+
+    return ok(true);
   }
 
   addPost(input: {

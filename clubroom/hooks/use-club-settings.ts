@@ -37,18 +37,21 @@ export const SETTINGS_SECTIONS: { key: SettingsSection; icon: string; label: str
   { key: 'danger', icon: 'warning-outline', label: 'Danger' },
 ];
 
-function buildInviteCodes(club: Club | null): InviteCodeItem[] {
+function buildInviteCodes(
+  club: Club | null,
+  invites: Array<{
+    code: string;
+    role: ClubRole;
+    remainingUses: number;
+    expiresAt: string;
+  }>,
+): InviteCodeItem[] {
   if (!club) return [];
 
-  return [
-    {
-      code: club.inviteCode,
-      role: 'MEMBER',
-      remainingUses: 999,
-      expiresAt: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString(),
-      isPrimary: true,
-    },
-  ];
+  return invites.map((invite) => ({
+    ...invite,
+    isPrimary: invite.code === club.inviteCode,
+  }));
 }
 
 export function useClubSettings() {
@@ -112,23 +115,27 @@ export function useClubSettings() {
       return;
     }
 
-    setLoading(true);
+      setLoading(true);
     try {
-      const clubData = knownClubs.find((candidate) => candidate.id === clubId) || null;
+      const clubData =
+        (await socialFeedService.getClub(clubId)) ??
+        knownClubs.find((candidate) => candidate.id === clubId) ??
+        null;
       setClub(clubData);
       setEditName(clubData?.name || '');
       setEditTagline(clubData?.tagline || '');
       setEditCity(clubData?.city || '');
 
-      const [squadData, memberData, brandingData] = await Promise.all([
+      const [squadData, memberData, brandingData, inviteData] = await Promise.all([
         squadService.getSquads(clubId),
         clubService.getMembers(clubId),
         clubService.getBranding(clubId),
+        socialFeedService.getInviteCodes(clubId),
       ]);
 
       setSquads(squadData);
       setMembers(memberData);
-      setInviteCodes(buildInviteCodes(clubData));
+      setInviteCodes(buildInviteCodes(clubData, inviteData));
       setBrandingDraft(brandingData);
       logger.debug('ClubSettingsLoaded', { clubId, memberCount: memberData.length });
     } catch (error) {
@@ -183,39 +190,48 @@ export function useClubSettings() {
   );
 
   const handleGenerateCode = useCallback(
-    (role: ClubRole) => {
+    async (role: ClubRole) => {
       if (!canManageClub) {
         showToast('Only club admins can generate invite codes', 'error');
         return;
       }
-      const prefix = club?.name.slice(0, 4).toUpperCase() || 'CLUB';
-      const suffix = crypto.randomUUID().slice(0, 4).toUpperCase();
-      const newCode = `${prefix}-${suffix}`;
-      setInviteCodes((prev) => [
-        ...prev,
-        {
-          code: newCode,
-          role,
-          remainingUses: 10,
-          expiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
-          isPrimary: false,
-        },
-      ]);
+      if (!clubId || !currentUser?.id) return;
+
+      const result = await socialFeedService.generateInviteCode(clubId, currentUser.id, role);
+      if (!result.success) {
+        showToast(result.error.message, 'error');
+        return;
+      }
+
+      const nextInvites = await socialFeedService.getInviteCodes(clubId);
+      const updatedClub = (await socialFeedService.getClub(clubId)) ?? club;
+      setClub(updatedClub);
+      setInviteCodes(buildInviteCodes(updatedClub, nextInvites));
       showToast(`New ${role.toLowerCase()} invite code created`, 'success');
-      logger.action('GenerateInviteCode', { role, code: newCode });
+      logger.action('GenerateInviteCode', { role, code: result.data.code });
     },
-    [canManageClub, club?.name, showToast],
+    [canManageClub, club, clubId, currentUser?.id, showToast],
   );
 
-  const handleSaveDetails = useCallback(() => {
+  const handleSaveDetails = useCallback(async () => {
     if (!club) return;
     if (!canManageClub) {
       showToast('Only club admins can edit club details', 'error');
       return;
     }
+    const result = await socialFeedService.updateClubDetails(club.id, {
+      name: editName,
+      tagline: editTagline,
+      city: editCity,
+    });
+    if (!result.success) {
+      showToast(result.error.message, 'error');
+      return;
+    }
+    setClub(result.data);
     showToast('Club details saved', 'success');
     logger.action('SaveClubDetails', { name: editName, city: editCity });
-  }, [canManageClub, club, editName, editCity, showToast]);
+  }, [canManageClub, club, editCity, editName, editTagline, showToast]);
 
   const handleBrandingChange = useCallback((updates: Partial<ClubBranding>) => {
     setBrandingDraft((previous) => (previous ? { ...previous, ...updates } : previous));
@@ -279,7 +295,13 @@ export function useClubSettings() {
                 {
                   text: 'Delete Forever',
                   style: 'destructive',
-                  onPress: () => {
+                  onPress: async () => {
+                    if (!clubId) return;
+                    const result = await socialFeedService.deleteClub(clubId);
+                    if (!result.success) {
+                      showToast(result.error.message, 'error');
+                      return;
+                    }
                     logger.action('DeleteClub', { clubId });
                     showToast('Club deleted', 'success');
                     router.replace(Routes.CLUB_HUB);
@@ -308,37 +330,24 @@ export function useClubSettings() {
         {
           text: 'Delete',
           style: 'destructive',
-          onPress: () => {
-            setInviteCodes((previous) => {
-              const remaining = previous.filter((invite) => invite.code !== code);
-              if (!target.isPrimary) {
-                return remaining;
-              }
+          onPress: async () => {
+            if (!clubId) return;
+            const result = await socialFeedService.deleteInviteCode(clubId, code);
+            if (!result.success) {
+              showToast(result.error.message, 'error');
+              return;
+            }
 
-              // Keep a primary code available if the default is deleted.
-              if (remaining.length === 0) {
-                const fallbackCode = `${club?.name.slice(0, 4).toUpperCase() || 'CLUB'}-${crypto.randomUUID().slice(0, 4).toUpperCase()}`;
-                return [
-                  {
-                    code: fallbackCode,
-                    role: 'MEMBER',
-                    remainingUses: 999,
-                    expiresAt: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString(),
-                    isPrimary: true,
-                  },
-                ];
-              }
-
-              return remaining.map((invite, idx) => ({ ...invite, isPrimary: idx === 0 }));
-            });
-
+            const updatedClub = await socialFeedService.getClub(clubId);
+            setClub(updatedClub ?? club);
+            setInviteCodes(buildInviteCodes(updatedClub ?? club, result.data));
             showToast('Invite code deleted', 'success');
             logger.action('DeleteInviteCode', { code });
           },
         },
       ]);
     },
-    [canManageClub, club?.name, inviteCodes, showToast],
+    [canManageClub, club, clubId, inviteCodes, showToast],
   );
 
   return {

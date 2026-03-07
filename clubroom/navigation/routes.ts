@@ -539,6 +539,10 @@ export const Routes = {
     pathname: '/roster/[athleteId]/emergency',
     params: { athleteId },
   }) as Href,
+  rosterAthleteHealth: (athleteId: string) => ({
+    pathname: '/roster/[athleteId]/health',
+    params: { athleteId },
+  }) as Href,
   rosterAthleteAddToSession: (athleteId: string, athleteName?: string) => ({
     pathname: '/roster/[athleteId]/add-to-session',
     params: athleteName ? { athleteId, athleteName } : { athleteId },
@@ -612,10 +616,12 @@ export const Routes = {
   SETTINGS_CANCELLATION_POLICY: '/settings/cancellation-policy' as Href,
   SETTINGS_COACHING: '/settings/coaching' as Href,
   SETTINGS_BLOCKED_DATES: '/settings/blocked-dates' as Href,
+  SETTINGS_BLOCKED_USERS: '/settings/blocked-users' as Href,
   SETTINGS_HELP: '/settings/help' as Href,
   SETTINGS_SMART_SLOTS: '/settings/smart-slots' as Href,
   SETTINGS_TRAVEL_RADIUS: '/settings/travel-radius' as Href,
   SETTINGS_NOTIFICATIONS: '/settings/notifications' as Href,
+  SETTINGS_NOTIFICATION_PREFERENCES: '/settings/notifications/preferences' as Href,
   SETTINGS_PRIVACY: '/settings/privacy' as Href,
   SETTINGS_PRIVACY_POLICY: '/settings/privacy-policy' as Href,
   SETTINGS_TERMS: '/settings/terms' as Href,
