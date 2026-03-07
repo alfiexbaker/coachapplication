@@ -38,7 +38,8 @@ export function useHealthDetail(id: string | undefined) {
     setError(null);
     setLoading(true);
     try {
-      const data = await injuryService.getInjuryById(id);
+      const actorId = currentUser?.id ?? '';
+      const data = actorId ? await injuryService.getInjuryByIdForActor(id, actorId) : null;
       setInjury(data);
       if (data) setNoteProgress(data.recoveryPercent);
     } catch (loadError) {
@@ -49,7 +50,7 @@ export function useHealthDetail(id: string | undefined) {
       setLoading(false);
       setRefreshing(false);
     }
-  }, [id]);
+  }, [currentUser?.id, id]);
 
   useFocusEffect(
     useCallback(() => {
@@ -67,7 +68,8 @@ export function useHealthDetail(id: string | undefined) {
     const actorId = currentUser?.id ?? injury.userId;
     setSaving(true);
     try {
-      const updated = await injuryService.addRecoveryNote(
+      const updated = await injuryService.addRecoveryNoteForActor(
+        actorId,
         injury.id,
         noteText.trim(),
         actorId,
@@ -97,7 +99,8 @@ export function useHealthDetail(id: string | undefined) {
         onPress: async () => {
           setSaving(true);
           try {
-            const updated = await injuryService.markAsHealed(injury.id);
+            const actorId = currentUser?.id ?? injury.userId;
+            const updated = await injuryService.markAsHealedForActor(actorId, injury.id);
             if (updated) {
               setInjury(updated);
               void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
@@ -110,7 +113,7 @@ export function useHealthDetail(id: string | undefined) {
         },
       },
     ]);
-  }, [injury]);
+  }, [currentUser?.id, injury]);
 
   const cancelAddNote = useCallback(() => {
     setShowAddNote(false);

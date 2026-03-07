@@ -17,6 +17,8 @@ import { EmptyState, ErrorState, LoadingState } from '@/components/ui/screen-sta
 import { Spacing } from '@/constants/theme';
 import { useScreen } from '@/hooks/use-screen';
 import { useAuth } from '@/hooks/use-auth';
+import { useBlockUserAction } from '@/hooks/use-block-user-action';
+import { Routes } from '@/navigation/routes';
 import { onTyped, emitTyped, ServiceEvents } from '@/services/event-bus';
 import { messagingService } from '@/services/messaging-service';
 import { ChatMessage, ChatThreadSummary } from '@/constants/types';
@@ -30,6 +32,7 @@ type ChatScreenData = {
 
 export default function ChatScreen() {
   const { currentUser } = useAuth();
+  const { blockUser } = useBlockUserAction();
   const { threadId, prefill } = useLocalSearchParams<{ threadId: string; prefill?: string }>();
   const [showSafetyBanner, setShowSafetyBanner] = useState(true);
   const [postingAs, setPostingAs] = useState<string | undefined>();
@@ -194,6 +197,43 @@ export default function ChatScreen() {
       }
     })();
   };
+
+  const handleThreadMenu = useCallback(() => {
+    if (!thread) return;
+
+    void (async () => {
+      const options: Array<{ id: string; label: string; destructive?: boolean }> = [
+        { id: 'blocked-users', label: 'View blocked users' },
+      ];
+      if (thread.kind === 'direct' && thread.counterpartyUserId) {
+        options.unshift({
+          id: 'block-contact',
+          label: `Block ${thread.title || 'contact'}`,
+          destructive: true,
+        });
+      }
+
+      const selected = await uiFeedback.choose({
+        title: thread.title || 'Conversation options',
+        message: 'Choose an action',
+        options,
+        cancelText: 'Cancel',
+      });
+
+      if (selected === 'block-contact' && thread.counterpartyUserId) {
+        const blocked = await blockUser(thread.counterpartyUserId, thread.title || 'contact', () => {
+          router.back();
+        });
+        if (blocked) {
+          return;
+        }
+      }
+
+      if (selected === 'blocked-users') {
+        router.push(Routes.SETTINGS_BLOCKED_USERS);
+      }
+    })();
+  }, [blockUser, thread]);
   const renderShell = (content: ReactNode) => (
     <SafeAreaView style={{ flex: 1, backgroundColor: palette.background }} edges={['top', 'bottom']}>
       {content}
@@ -226,7 +266,12 @@ export default function ChatScreen() {
 
   return renderShell(
     <>
-      <ChatScreenHeader colors={palette} thread={thread} onBack={() => router.back()} />
+      <ChatScreenHeader
+        colors={palette}
+        thread={thread}
+        onBack={() => router.back()}
+        onOpenMenu={handleThreadMenu}
+      />
       <ChatSafetyBanner
         colors={palette}
         showSafetyBanner={showSafetyBanner}

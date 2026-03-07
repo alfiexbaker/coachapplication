@@ -95,6 +95,14 @@ export default function CoachProfileScreen() {
           onMessage={p.handleMessage}
         />
 
+        {!p.isOwnProfile ? (
+          <View style={styles.profileActions}>
+            <Button onPress={() => void p.handleBlock()} variant="outline">
+              Block Coach
+            </Button>
+          </View>
+        ) : null}
+
         {/* Tabs */}
         <Row style={[styles.tabBar, { borderBottomColor: palette.border }]}>
           {COACH_TABS.map((tab) => (
@@ -173,6 +181,10 @@ const styles = StyleSheet.create({
   },
   scroll: {
     flex: 1,
+  },
+  profileActions: {
+    paddingHorizontal: Spacing.lg,
+    paddingTop: Spacing.md,
   },
   tabBar: { borderBottomWidth: 1, marginTop: Spacing.md },
   tab: { flex: 1, paddingVertical: Spacing.md },

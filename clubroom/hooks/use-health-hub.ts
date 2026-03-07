@@ -83,7 +83,8 @@ export function useHealthHub() {
     }
 
     try {
-      const userInjuries = await injuryService.getUserInjuries(subjectId, true);
+      const actorId = currentUser?.id ?? subjectId;
+      const userInjuries = await injuryService.getUserInjuriesForActor(actorId, subjectId, true);
       return ok<{ injuries: Injury[] }>({
         injuries: userInjuries,
       });
@@ -91,7 +92,7 @@ export function useHealthHub() {
       logger.error('Failed to load health data:', error);
       return err(serviceError('UNKNOWN', 'Failed to load health dashboard data.', error));
     }
-  }, [subjectId]);
+  }, [currentUser?.id, subjectId]);
 
   const { data, status, error, refreshing, onRefresh, retry } = useScreen<{ injuries: Injury[] }>({
     load: loadData,

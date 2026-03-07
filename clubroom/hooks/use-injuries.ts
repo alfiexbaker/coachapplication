@@ -30,7 +30,7 @@ type SubjectOption = {
 
 export function useInjuries() {
   const { currentUser } = useAuth();
-  const { children, profileMode, profileSubjectId } = useChildContext();
+  const { children, profileMode, profileSubjectId, setProfileScope } = useChildContext();
   const { subjectId: subjectIdParam, childId: childIdParam } = useLocalSearchParams<{
     subjectId?: string | string[];
     childId?: string | string[];
@@ -101,7 +101,8 @@ export function useInjuries() {
     }
 
     try {
-      const userInjuries = await injuryService.getUserInjuries(subjectId, true);
+      const actorId = currentUser?.id ?? subjectId;
+      const userInjuries = await injuryService.getUserInjuriesForActor(actorId, subjectId, true);
       return ok<{ injuries: Injury[] }>({ injuries: userInjuries });
     } catch (error) {
       logger.error('Failed to load injuries:', error);
@@ -154,15 +155,30 @@ export function useInjuries() {
   }, [selectedChildId]);
 
   const handleSelectSubject = useCallback(
-    (_nextSubjectId: string) => {
-      // Subject is inherited from Home profile scope for this subflow.
+    (nextSubjectId: string) => {
+      const nextOption = subjectOptions.find((option) => option.id === nextSubjectId);
+      if (!nextOption) return;
+      void setProfileScope(
+        nextOption.kind === 'self'
+          ? { mode: 'self' }
+          : { mode: 'child', childId: nextOption.id },
+      );
     },
-    [],
+    [setProfileScope, subjectOptions],
   );
 
   const handleSelectNextSubject = useCallback(() => {
-    // Subject is inherited from Home profile scope for this subflow.
-  }, []);
+    if (subjectOptions.length <= 1 || !selectedSubjectId) return;
+    const currentIndex = subjectOptions.findIndex((option) => option.id === selectedSubjectId);
+    const nextOption = subjectOptions[(currentIndex + 1) % subjectOptions.length];
+    if (nextOption) {
+      void setProfileScope(
+        nextOption.kind === 'self'
+          ? { mode: 'self' }
+          : { mode: 'child', childId: nextOption.id },
+      );
+    }
+  }, [selectedSubjectId, setProfileScope, subjectOptions]);
 
   const handleEditSelectedSubject = useCallback(() => {
     if (!selectedSubject) return;
@@ -184,7 +200,8 @@ export function useInjuries() {
             void (async () => {
               try {
                 void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-                const updated = await injuryService.markAsHealed(injury.id);
+                const actorId = currentUser?.id ?? injury.userId;
+                const updated = await injuryService.markAsHealedForActor(actorId, injury.id);
                 if (updated) {
                   void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
                   onRefresh();
@@ -200,7 +217,7 @@ export function useInjuries() {
         },
       ]);
     },
-    [onRefresh],
+    [currentUser?.id, onRefresh],
   );
 
   const openInjuries = useMemo(

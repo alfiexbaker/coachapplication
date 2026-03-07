@@ -21,11 +21,19 @@ import { uiFeedback } from '@/services/ui-feedback';
 
 interface AthleteQuickActionsProps {
   athlete: RosterEntry;
+  onOpenHealth: () => void;
   onRaiseConcern: () => void;
+  onBlockFamily: () => void;
   onRemove: () => void;
 }
 
-function AthleteQuickActionsInner({ athlete, onRaiseConcern, onRemove }: AthleteQuickActionsProps) {
+function AthleteQuickActionsInner({
+  athlete,
+  onOpenHealth,
+  onRaiseConcern,
+  onBlockFamily,
+  onRemove,
+}: AthleteQuickActionsProps) {
   const { colors } = useTheme();
   const athleteName = getRosterAthleteName(athlete);
   const parentEmail: string | undefined = undefined;
@@ -49,14 +57,20 @@ function AthleteQuickActionsInner({ athlete, onRaiseConcern, onRemove }: Athlete
       const selected = await uiFeedback.choose({
         title: athleteName,
         options: [
+          { id: 'health', label: 'View Health' },
           { id: 'analytics', label: 'View Analytics' },
           { id: 'concern', label: 'Raise Concern' },
+          { id: 'block_family', label: 'Block Family Contact', destructive: true },
           { id: 'email_parent', label: 'Email Parent' },
           { id: 'remove_roster', label: 'Remove from Roster', destructive: true },
         ],
         cancelText: 'Cancel',
       });
 
+      if (selected === 'health') {
+        onOpenHealth();
+        return;
+      }
       if (selected === 'analytics') {
         router.push(Routes.analyticsAthlete(athlete.athleteId));
         return;
@@ -69,11 +83,15 @@ function AthleteQuickActionsInner({ athlete, onRaiseConcern, onRemove }: Athlete
         if (parentEmail) void sendEmail(parentEmail);
         return;
       }
+      if (selected === 'block_family') {
+        onBlockFamily();
+        return;
+      }
       if (selected === 'remove_roster') {
         onRemove();
       }
     })();
-  }, [athlete.athleteId, athleteName, onRaiseConcern, onRemove, parentEmail]);
+  }, [athlete.athleteId, athleteName, onBlockFamily, onOpenHealth, onRaiseConcern, onRemove, parentEmail]);
 
   const actions = [
     { icon: 'add-circle-outline' as const, label: 'Book', onPress: handleBook, primary: true },
@@ -83,12 +101,13 @@ function AthleteQuickActionsInner({ athlete, onRaiseConcern, onRemove }: Athlete
       onPress: handleMessage,
       primary: false,
     },
+    { icon: 'medkit-outline' as const, label: 'Health', onPress: onOpenHealth, primary: false },
     { icon: 'warning-outline' as const, label: 'Concern', onPress: onRaiseConcern, primary: false },
     { icon: 'ellipsis-horizontal' as const, label: 'More', onPress: handleMore, primary: false },
   ];
 
   return (
-    <Row gap="sm" style={styles.container}>
+    <Row gap="sm" style={styles.container} wrap>
       {actions.map((action) => (
         <Clickable
           key={action.label}
@@ -124,7 +143,8 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing.xs,
   },
   actionButton: {
-    flex: 1,
+    flexGrow: 1,
+    flexBasis: '31%',
     alignItems: 'center',
     justifyContent: 'center',
     gap: Spacing.xxs,

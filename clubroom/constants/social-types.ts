@@ -108,6 +108,7 @@ export interface ChatMessage {
 export interface ChatThreadSummary {
   id: string;
   kind?: 'direct' | 'group';
+  counterpartyUserId?: string;
   groupType?: 'club' | 'squad' | 'class' | 'announcement';
   bookingId: string;
   serviceName: string;

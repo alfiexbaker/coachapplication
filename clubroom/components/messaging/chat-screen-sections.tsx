@@ -14,12 +14,14 @@ type HeaderProps = {
   colors: ThemeColors;
   thread: ChatThreadSummary;
   onBack: () => void;
+  onOpenMenu?: () => void;
 };
 
 export const ChatScreenHeader = React.memo(function ChatScreenHeader({
   colors,
   thread,
   onBack,
+  onOpenMenu,
 }: HeaderProps) {
   const isGroup = thread.kind === 'group';
   const headerTitle = thread.title || thread.serviceName || 'Conversation';
@@ -46,6 +48,11 @@ export const ChatScreenHeader = React.memo(function ChatScreenHeader({
         <Chip dense>
           {thread.groupType === 'club' ? 'Club' : thread.groupType === 'squad' ? 'Squad' : 'Class'}
         </Chip>
+      ) : null}
+      {onOpenMenu ? (
+        <Clickable onPress={onOpenMenu} style={styles.backButton} accessibilityLabel="Open conversation options">
+          <Ionicons name="ellipsis-horizontal" size={22} color={colors.text} />
+        </Clickable>
       ) : null}
     </Row>
   );

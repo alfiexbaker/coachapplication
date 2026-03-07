@@ -10,6 +10,7 @@ import * as Haptics from 'expo-haptics';
 import { Routes } from '@/navigation/routes';
 import { useScreen } from '@/hooks/use-screen';
 import { useAuth } from '@/hooks/use-auth';
+import { useBlockUserAction } from '@/hooks/use-block-user-action';
 import { rosterService } from '@/services/roster-service';
 import { safetyService, type AthleteEmergencyQuickView } from '@/services/safety-service';
 import { childService, type ChildProfile } from '@/services/child-service';
@@ -32,6 +33,7 @@ export interface AthleteProfileData {
 
 export function useAthleteDetail(athleteId: string) {
   const { currentUser } = useAuth();
+  const { blockUser } = useBlockUserAction();
   const coachId = currentUser?.id || 'coach_1';
 
   const [activeTab, setActiveTab] = useState<TabId>('overview');
@@ -143,6 +145,20 @@ export function useAthleteDetail(athleteId: string) {
     router.push(Routes.rosterAthleteConcern(athleteId));
   }, [athleteId]);
 
+  const handleOpenHealth = useCallback(() => {
+    router.push(Routes.rosterAthleteHealth(athleteId));
+  }, [athleteId]);
+
+  const handleBlockFamily = useCallback(async () => {
+    if (!data?.entry?.parentId) {
+      uiFeedback.showToast('No family contact is linked to this athlete.', 'error');
+      return;
+    }
+
+    const familyLabel = data.entry.parentName?.trim() || `${getRosterAthleteName(data.entry)}'s family`;
+    await blockUser(data.entry.parentId, familyLabel);
+  }, [blockUser, data?.entry]);
+
   const handleRemove = useCallback(() => {
     if (!data?.entry) return;
     const athleteName = getRosterAthleteName(data.entry);
@@ -194,7 +210,9 @@ export function useAthleteDetail(athleteId: string) {
     handleTagRemove,
     handleTagAdd,
     handleAddTagSubmit,
+    handleOpenHealth,
     handleRaiseConcern,
+    handleBlockFamily,
     handleRemove,
   };
 }

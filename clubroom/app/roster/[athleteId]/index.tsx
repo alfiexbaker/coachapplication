@@ -56,7 +56,9 @@ export default function AthleteProfileScreen() {
     handleTagRemove,
     handleTagAdd,
     handleAddTagSubmit,
+    handleOpenHealth,
     handleRaiseConcern,
+    handleBlockFamily,
     handleRemove,
   } = useAthleteDetail(athleteId);
   const renderShell = (content: React.ReactNode) => (
@@ -139,7 +141,9 @@ export default function AthleteProfileScreen() {
         <AthleteHero athlete={entry} onStatusPress={openStatusModal} />
         <AthleteQuickActions
           athlete={entry}
+          onOpenHealth={handleOpenHealth}
           onRaiseConcern={handleRaiseConcern}
+          onBlockFamily={handleBlockFamily}
           onRemove={handleRemove}
         />
         <AthleteTabBar activeTab={activeTab} onTabPress={setActiveTab} />

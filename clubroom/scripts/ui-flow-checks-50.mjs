@@ -225,6 +225,13 @@ const flows = [
     path: '/roster/user1/raise-concern',
     expectPath: '/roster/user1/raise-concern',
   },
+  {
+    id: 'coach_health_review',
+    role: 'coach',
+    title: 'Coach opens athlete health review',
+    path: '/roster/user1/health',
+    expectPath: '/roster/user1/health',
+  },
   { id: 'coach_rate', role: 'coach', title: 'Coach opens rate screen', path: '/rate-coach' },
 
   // Parent flows

@@ -13,6 +13,7 @@ const DEFAULT_THREADS: ChatThreadSummary[] = [
   {
     id: 'thread_tom_coach1',
     kind: 'direct',
+    counterpartyUserId: 'coach1',
     bookingId: 'book1',
     title: 'Jess Okafor',
     subtitle: 'Alfie Barton',
@@ -28,6 +29,7 @@ const DEFAULT_THREADS: ChatThreadSummary[] = [
   {
     id: 'thread_emma_coach2',
     kind: 'direct',
+    counterpartyUserId: 'coach2',
     bookingId: 'book2',
     title: 'Reuben Carr',
     subtitle: 'Maisie Barton',

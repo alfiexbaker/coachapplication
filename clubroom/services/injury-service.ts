@@ -682,6 +682,50 @@ async function getInjuryById(id: string): Promise<Injury | null> {
   return injuries.find((i) => i.id === id) ?? null;
 }
 
+async function canActorAccessSubject(actorUserId: string, subjectUserId: string): Promise<boolean> {
+  if (actorUserId === subjectUserId) {
+    return true;
+  }
+
+  const authUser = await apiClient.get<Record<string, unknown> | null>(STORAGE_KEYS.AUTH_USER, null);
+  const rawChildren = Array.isArray(authUser?.children) ? authUser.children : [];
+  const childIds = new Set(
+    rawChildren
+      .map((child) => (typeof child === 'object' && child && 'childId' in child ? child.childId : null))
+      .filter((childId): childId is string => typeof childId === 'string'),
+  );
+  return childIds.has(subjectUserId);
+}
+
+async function getUserInjuriesForActor(
+  actorUserId: string,
+  subjectUserId: string,
+  includeHealed: boolean = true,
+): Promise<Injury[]> {
+  const canAccess = await canActorAccessSubject(actorUserId, subjectUserId);
+  if (!canAccess) {
+    logger.warn('injury_access_denied_subject', { actorUserId, subjectUserId });
+    return [];
+  }
+
+  return getUserInjuries(subjectUserId, includeHealed);
+}
+
+async function getInjuryByIdForActor(id: string, actorUserId: string): Promise<Injury | null> {
+  const injury = await getInjuryById(id);
+  if (!injury) {
+    return null;
+  }
+
+  const canAccess = await canActorAccessSubject(actorUserId, injury.userId);
+  if (!canAccess) {
+    logger.warn('injury_access_denied_detail', { actorUserId, injuryId: id, subjectUserId: injury.userId });
+    return null;
+  }
+
+  return injury;
+}
+
 /**
  * Update an existing injury
  * @param id - The injury ID
@@ -764,6 +808,19 @@ async function updateInjury(id: string, updates: UpdateInjuryInput): Promise<Inj
   });
 
   return updatedInjury;
+}
+
+async function updateInjuryForActor(
+  actorUserId: string,
+  id: string,
+  updates: UpdateInjuryInput,
+): Promise<Injury | null> {
+  const injury = await getInjuryByIdForActor(id, actorUserId);
+  if (!injury) {
+    return null;
+  }
+
+  return updateInjury(id, updates);
 }
 
 /**
@@ -851,6 +908,22 @@ async function addRecoveryNote(
   return injury;
 }
 
+async function addRecoveryNoteForActor(
+  actorUserId: string,
+  injuryId: string,
+  note: string,
+  createdBy: string,
+  createdByName?: string,
+  recoveryPercent?: number,
+): Promise<Injury | null> {
+  const injury = await getInjuryByIdForActor(injuryId, actorUserId);
+  if (!injury) {
+    return null;
+  }
+
+  return addRecoveryNote(injury.id, note, createdBy, createdByName, recoveryPercent);
+}
+
 /**
  * Mark an injury as healed
  * @param id - The injury ID
@@ -861,6 +934,15 @@ async function markAsHealed(id: string): Promise<Injury | null> {
     status: 'HEALED',
     recoveryPercent: 100,
   });
+}
+
+async function markAsHealedForActor(actorUserId: string, id: string): Promise<Injury | null> {
+  const injury = await getInjuryByIdForActor(id, actorUserId);
+  if (!injury) {
+    return null;
+  }
+
+  return markAsHealed(id);
 }
 
 /**
@@ -1047,10 +1129,15 @@ export const injuryService = {
   // CRUD operations
   logInjury,
   getUserInjuries,
+  getUserInjuriesForActor,
   getInjuryById,
+  getInjuryByIdForActor,
   updateInjury,
+  updateInjuryForActor,
   addRecoveryNote,
+  addRecoveryNoteForActor,
   markAsHealed,
+  markAsHealedForActor,
 
   // Coach view
   getAthleteInjuries,

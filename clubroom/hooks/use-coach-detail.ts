@@ -11,6 +11,7 @@ import { useAuth } from '@/hooks/use-auth';
 import { useScreen, type ScreenStatus } from '@/hooks/use-screen';
 import { coachService, type Coach, type PublicReview } from '@/services/coach-service';
 import { followService } from '@/services/follow-service';
+import { blockService } from '@/services/block-service';
 import { createLogger } from '@/utils/logger';
 import { combineResults, err, ok, serviceError, type ServiceError } from '@/types/result';
 import { uiFeedback } from '@/services/ui-feedback';
@@ -196,6 +197,29 @@ export function useCoachDetail(coachId: string | undefined) {
     void loadConnectionState();
   }, [loadConnectionState, onRefresh]);
 
+  const handleBlock = useCallback(async () => {
+    if (!coachId || !currentUser?.id || isOwnProfile) return;
+
+    const confirmed = await uiFeedback.confirm({
+      title: `Block ${coach?.name || 'this coach'}?`,
+      message: 'They will no longer be able to message you or appear in your discovery and booking surfaces where blocking is enforced.',
+      confirmText: 'Block coach',
+      cancelText: 'Cancel',
+      destructive: true,
+    });
+
+    if (!confirmed) return;
+
+    const result = await blockService.blockUser(currentUser.id, coachId);
+    if (!result.success) {
+      uiFeedback.showToast(result.error.message || 'Failed to block coach.', 'error');
+      return;
+    }
+
+    uiFeedback.showToast(`${coach?.name || 'Coach'} has been blocked.`, 'success');
+    router.back();
+  }, [coach?.name, coachId, currentUser?.id, isOwnProfile]);
+
   return {
     coach,
     reviews,
@@ -216,6 +240,7 @@ export function useCoachDetail(coachId: string | undefined) {
     handleFollow,
     handleBook,
     handleMessage,
+    handleBlock,
   } satisfies {
     coach: Coach | null;
     reviews: PublicReview[];
@@ -236,5 +261,6 @@ export function useCoachDetail(coachId: string | undefined) {
     handleFollow: () => Promise<void>;
     handleBook: () => void;
     handleMessage: () => void;
+    handleBlock: () => Promise<void>;
   };
 }
