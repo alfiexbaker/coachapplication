@@ -291,7 +291,12 @@ class BookingCrudService {
     return updatedBooking;
   }
 
-  async cancel(id: string, reason: string, cancelledBy: 'coach' | 'parent' = 'parent') {
+  async cancel(
+    id: string,
+    reason: string,
+    cancelledBy: 'coach' | 'parent' = 'parent',
+    options?: { allowPastBooking?: boolean },
+  ) {
     const bookings = await this.loadFromStorage();
     const booking = bookings.find((b) => b.id === id);
     if (!booking) {
@@ -300,7 +305,7 @@ class BookingCrudService {
     }
 
     const sessionStart = new Date(booking.scheduledAt).getTime();
-    if (!Number.isFinite(sessionStart) || sessionStart <= Date.now()) {
+    if (!options?.allowPastBooking && (!Number.isFinite(sessionStart) || sessionStart <= Date.now())) {
       logger.warn('Cancellation blocked for past booking', { bookingId: id, cancelledBy });
       return undefined;
     }
@@ -817,70 +822,46 @@ class BookingCrudService {
     }
 
     const scheduledAt = `${draft.date || toDateStr(new Date())}T${draft.slot || '10:00'}:00`;
+    const athleteIds = draft.childIds || [draft.athleteId];
+    const athleteNames = draft.athleteName ? athleteIds.map(() => draft.athleteName as string) : ['Athlete'];
+    const bookedById = draft.createdByUserId || draft.athleteId;
 
-    // Create booking through the centralized createBooking method
-    // Note: We use saveBookingDirect to bypass validation for draft flow (legacy compatibility)
-    const booking = {
-      id: apiClient.generateId('draft'),
+    if (!bookedById) {
+      return err(validationError('Cannot create booking: missing booking owner'));
+    }
+
+    const result = await this.createBooking({
       coachId: draft.coachId,
       coachName: draft.coachName,
-      athleteIds: draft.childIds || [draft.athleteId!],
-      athleteId: draft.athleteId!, // Backwards compatibility
-      bookedById: draft.athleteId!, // Use athleteId as bookedById (parent booking for their child)
+      athleteIds: athleteIds.filter((value): value is string => Boolean(value)),
+      athleteNames,
+      bookedById,
+      bookedByName: draft.athleteName || 'User',
       scheduledAt,
-      status: 'PENDING' as const,
       duration: draft.duration || 60,
       location: draft.locationText || 'Coach preferred venue',
       service: draft.sessionTypeLabel || draft.sessionType || 'Session',
       serviceType: draft.sessionType || '1-to-1',
-      ...(draft.sessionTemplateId ? { sessionTemplateId: draft.sessionTemplateId } : {}),
-      ...(draft.sessionSource ? { sessionSource: draft.sessionSource } : {}),
-      ...(draft.sessionSourceEntityId
-        ? { sessionSourceEntityId: draft.sessionSourceEntityId }
-        : {}),
-      ...(draft.clubId ? { clubId: draft.clubId } : {}),
-      ...(draft.actingAs ? { actingAs: draft.actingAs } : {}),
-      ...(draft.ownerCoachId ? { ownerCoachId: draft.ownerCoachId } : {}),
-      ...(draft.assigneeCoachId ? { assigneeCoachId: draft.assigneeCoachId } : {}),
-      ...(draft.createdByUserId ? { createdByUserId: draft.createdByUserId } : {}),
-      ...(draft.createdByRole ? { createdByRole: draft.createdByRole } : {}),
+      sessionTemplateId: draft.sessionTemplateId,
+      sessionSource: draft.sessionSource,
+      sessionSourceEntityId: draft.sessionSourceEntityId,
+      clubId: draft.clubId,
+      actingAs: draft.actingAs,
+      ownerCoachId: draft.ownerCoachId,
+      assigneeCoachId: draft.assigneeCoachId,
+      createdByUserId: draft.createdByUserId,
+      createdByRole: draft.createdByRole,
       objectives: draft.objectives || [],
       price: draft.price || 0,
       notes: draft.notes || '',
-      createdAt: new Date().toISOString(),
-      isSharedSession: (draft.childIds?.length || 1) > 1,
-    };
-
-    // DBS safeguarding gate (fail-closed)
-    const dbsResult = await this.validateDbsGate(
-      booking.coachId,
-      booking.athleteIds,
-      booking.bookedById ?? '',
-    );
-    if (!dbsResult.success) return dbsResult;
-
-    // Save directly (draft flow skips availability validation only, not DBS)
-    const result = await this.saveBookingDirect(booking);
-
-    if (!result.success) {
-      return err(storageError(result.error || 'Failed to create booking from draft'));
-    }
-
-    // Notify coach of new booking
-    const formattedDate = draft.date
-      ? new Date(draft.date).toLocaleDateString('en-GB', { month: 'short', day: 'numeric' })
-      : 'upcoming date';
-
-    await notificationService.notifyCoachNewBooking({
-      coachId: booking.coachId,
-      parentName: 'User',
-      childName: draft.athleteName || 'Athlete',
-      date: formattedDate,
-      bookingId: booking.id,
+      skipAvailabilityValidation: true,
     });
 
-    this.resetDraft();
-    return ok(booking as Booking);
+    if (result.success) {
+      this.resetDraft();
+    }
+
+    return result;
   }
 
   /**

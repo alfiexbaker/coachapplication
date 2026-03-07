@@ -200,6 +200,7 @@ export interface CoachProfile {
   city: string;
   state: string;
   distanceMiles: number;
+  travelRadius?: number;
   rating: {
     average: number;
     reviewCount: number;
@@ -213,6 +214,8 @@ export interface CoachProfile {
   nextAvailability: string;
   badges: CoachBadge[];
   sessionFormats: TrainingFormat[];
+  acceptsTravelSessions?: boolean;
+  acceptsRemoteSessions?: boolean;
   shortBio: string;
   profilePhotoUrl: string;
   coverPhotoUrl?: string;

@@ -316,10 +316,19 @@ class MultiWeekBookingService {
 
     // Cancel each individual booking
     for (const bookingId of series.bookingIds) {
-      try {
-        await bookingCrudService.cancel(bookingId, reason ?? 'Series cancelled');
-      } catch (error) {
-        logger.error(`Failed to cancel booking ${bookingId} in series`, error);
+      const cancelledBooking = await bookingCrudService.cancel(
+        bookingId,
+        reason ?? 'Series cancelled',
+        'parent',
+        { allowPastBooking: true },
+      );
+      if (!cancelledBooking) {
+        logger.error('Failed to cancel booking in series', {
+          bookingId,
+          seriesId,
+          reason,
+        });
+        return err(storageError(`Failed to cancel booking ${bookingId} in series`));
       }
     }
 

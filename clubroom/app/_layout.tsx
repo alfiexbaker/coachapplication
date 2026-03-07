@@ -31,6 +31,7 @@ import { authService } from '@/services/auth-service';
 import { useTokenExpiryAlert } from '@/hooks/use-token-expiry-alert';
 import { notificationStore } from '@/services/notification';
 import { preApiLiveModeService } from '@/services/pre-api-live-mode-service';
+import { BookingFlowProvider } from '@/context/booking-flow-context';
 
 // Lazy-load expo-notifications for deep linking
 let Notifications: typeof import('expo-notifications') | null = null;
@@ -166,11 +167,13 @@ function RootNavigation() {
           <AppAlertProvider>
             <AppActionSheetProvider>
               <AppPromptProvider>
-                <NotificationToastProvider>
-                  <Stack screenOptions={{ headerShown: false }} />
-                  <OfflineBanner />
-                  <StatusBar style={colorScheme === 'dark' ? 'light' : 'dark'} />
-                </NotificationToastProvider>
+                <BookingFlowProvider>
+                  <NotificationToastProvider>
+                    <Stack screenOptions={{ headerShown: false }} />
+                    <OfflineBanner />
+                    <StatusBar style={colorScheme === 'dark' ? 'light' : 'dark'} />
+                  </NotificationToastProvider>
+                </BookingFlowProvider>
               </AppPromptProvider>
             </AppActionSheetProvider>
           </AppAlertProvider>

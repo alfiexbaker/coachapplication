@@ -26,6 +26,7 @@ import { apiClient } from './api-client';
 import { STORAGE_KEYS } from '@/constants/storage-keys';
 import { api, preApiLive } from '@/constants/config';
 import { ensureRelationalDemoSeeded } from '@/services/relational-demo-seed-service';
+import { coachTravelService } from '@/services/coach-travel-service';
 import { getSessionOfferingHeadcount } from '@/utils/session-offering-capacity';
 import { createLogger } from '@/utils/logger';
 import { type Result, type ServiceError, ok, err, storageError } from '@/types/result';
@@ -314,6 +315,35 @@ function calculateRelevanceScore(
   return Math.max(0, Math.min(100, score));
 }
 
+function milesToKm(miles: number): number {
+  return miles * 1.60934;
+}
+
+function canCoachServeDistance(
+  coach: CoachProfile,
+  distanceKm: number,
+  filters: CoachSearchFilters,
+): boolean {
+  const requestedFormats = filters.formats ?? [];
+  const remoteRequested = requestedFormats.includes('Virtual');
+  const coachTravelRadiusKm = milesToKm(coach.travelRadius ?? 10);
+  const canTravel =
+    coach.acceptsTravelSessions !== false &&
+    coach.sessionFormats.includes('In-person') &&
+    distanceKm <= coachTravelRadiusKm;
+
+  if (requestedFormats.length === 0) {
+    return canTravel;
+  }
+
+  const canRemote =
+    coach.acceptsRemoteSessions === true &&
+    coach.sessionFormats.includes('Virtual') &&
+    remoteRequested;
+
+  return canTravel || canRemote;
+}
+
 type CoachOfferingSummary = {
   bookableCount: number;
   minPrice: number | null;
@@ -431,6 +461,9 @@ function mapBadgeTone(label: string): 'success' | 'warning' | 'default' {
 function mapDirectoryCoachToProfile(
   entry: CoachDirectoryEntry,
   summary: CoachOfferingSummary | undefined,
+  travelRadius?: number,
+  acceptsTravelSessions: boolean = true,
+  acceptsRemoteSessions: boolean = false,
 ): CoachProfile {
   const minPrice = summary?.minPrice ?? entry.minPrice ?? 35;
   const maxPrice = summary?.maxPrice ?? entry.maxPrice ?? Math.max(minPrice + 20, minPrice);
@@ -452,6 +485,7 @@ function mapDirectoryCoachToProfile(
       typeof entry.distance === 'number' && Number.isFinite(entry.distance)
         ? entry.distance
         : 5,
+    travelRadius: travelRadius ?? 10,
     rating: {
       average: entry.rating,
       reviewCount: entry.reviewCount,
@@ -469,6 +503,8 @@ function mapDirectoryCoachToProfile(
       tone: mapBadgeTone(label),
     })),
     sessionFormats,
+    acceptsTravelSessions,
+    acceptsRemoteSessions,
     shortBio: shortBio.length > 0 ? shortBio : `${entry.name} is currently taking bookings.`,
     profilePhotoUrl: entry.profilePhotoUrl ?? `https://i.pravatar.cc/300?u=${entry.id}`,
     coverPhotoUrl: entry.coverPhotoUrl,
@@ -525,18 +561,35 @@ class DiscoverService {
         await ensureRelationalDemoSeeded();
       }
 
-      const [directory, offerings] = await Promise.all([
+      const [directory, offerings, travelSettings] = await Promise.all([
         apiClient.get<CoachDirectoryEntry[]>(COACH_DIRECTORY_KEY, []),
         apiClient.get<SessionOffering[]>(STORAGE_KEYS.SESSION_OFFERINGS, []),
+        apiClient.get<
+          Array<{
+            coachId: string;
+            radiusMiles: number;
+            acceptsTravelSessions: boolean;
+            acceptsRemoteSessions: boolean;
+          }>
+        >(STORAGE_KEYS.COACH_TRAVEL_SETTINGS, []),
       ]);
 
       if (directory.length === 0) {
         return;
       }
 
+      const travelSettingsByCoachId = new Map(
+        travelSettings.map((setting) => [setting.coachId, setting]),
+      );
       const summaryByCoachId = buildCoachOfferingSummaryMap(offerings);
       const mapped = directory.map((entry) =>
-        mapDirectoryCoachToProfile(entry, summaryByCoachId.get(entry.id)),
+        mapDirectoryCoachToProfile(
+          entry,
+          summaryByCoachId.get(entry.id),
+          travelSettingsByCoachId.get(entry.id)?.radiusMiles,
+          travelSettingsByCoachId.get(entry.id)?.acceptsTravelSessions ?? true,
+          travelSettingsByCoachId.get(entry.id)?.acceptsRemoteSessions ?? false,
+        ),
       );
       const bookable = mapped.filter(
         (coach) => (summaryByCoachId.get(coach.id)?.bookableCount ?? 0) > 0,
@@ -627,6 +680,11 @@ class DiscoverService {
           return { coach, distanceKm };
         });
 
+        resultsWithDistance = resultsWithDistance.filter(({ coach, distanceKm }) => {
+          if (distanceKm === undefined) return true;
+          return canCoachServeDistance(coach, distanceKm, filters);
+        });
+
         // Filter by radius
         if (filters.distance) {
           resultsWithDistance = resultsWithDistance.filter(
@@ -637,7 +695,12 @@ class DiscoverService {
 
       // Calculate relevance scores and create search results
       const searchResults: CoachSearchResult[] = resultsWithDistance.map((r) => ({
-        coach: r.coach,
+        coach: r.distanceKm !== undefined
+          ? {
+              ...r.coach,
+              distanceMiles: Number((r.distanceKm / 1.60934).toFixed(1)),
+            }
+          : r.coach,
         relevanceScore: calculateRelevanceScore(r.coach, filters, r.distanceKm),
         distanceKm: r.distanceKm,
         matchedTerms: filters.query
@@ -710,12 +773,16 @@ class DiscoverService {
         .map((coach) => {
           const distanceKm = calculateDistance(lat, lng, coach.location.lat, coach.location.lng);
           return {
-            coach,
+            coach: {
+              ...coach,
+              distanceMiles: Number((distanceKm / 1.60934).toFixed(1)),
+            },
             relevanceScore: calculateRelevanceScore(coach, {}, distanceKm),
             distanceKm,
           };
         })
         .filter((r) => r.distanceKm <= radiusKm)
+        .filter((r) => canCoachServeDistance(r.coach, r.distanceKm, {}))
         .sort((a, b) => a.distanceKm - b.distanceKm);
 
       return ok(results);

@@ -1,4 +1,4 @@
-import { memo } from 'react';
+import { memo, useEffect, useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
@@ -7,6 +7,7 @@ import { ThemedText } from '@/components/themed-text';
 import { Radii, Spacing, Typography, withAlpha } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
 import type { BookingSummary } from '@/constants/types';
+import { academyService } from '@/services/academy-service';
 
 interface BookingOwnershipBlockProps {
   booking: BookingSummary;
@@ -15,12 +16,33 @@ interface BookingOwnershipBlockProps {
 
 function BookingOwnershipBlockInner({ booking, compact = false }: BookingOwnershipBlockProps) {
   const { colors: palette } = useTheme();
+  const [clubLabel, setClubLabel] = useState<string | null>(booking.clubId ?? null);
+
+  useEffect(() => {
+    if (booking.actingAs !== 'club' || !booking.clubId) {
+      setClubLabel(null);
+      return;
+    }
+
+    let cancelled = false;
+    void academyService.getAcademy(booking.clubId).then((result) => {
+      if (cancelled) return;
+      if (result.success && result.data?.name) {
+        setClubLabel(result.data.name);
+      } else {
+        setClubLabel(booking.clubId ?? null);
+      }
+    });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [booking.clubId]);
 
   if (booking.actingAs !== 'club') {
     return null;
   }
 
-  const clubLabel = booking.clubId ? `Club: ${booking.clubId}` : 'Club session';
   const ownerLabel = booking.ownerCoachName || booking.ownerCoachId || null;
   const assigneeLabel = booking.assigneeCoachName || booking.assigneeCoachId || null;
   const deliveryLabel = assigneeLabel || ownerLabel;
@@ -39,7 +61,7 @@ function BookingOwnershipBlockInner({ booking, compact = false }: BookingOwnersh
       <Row align="center" gap="xxs">
         <Ionicons name="business-outline" size={compact ? 11 : 12} color={palette.info} />
         <ThemedText style={[compact ? styles.labelCompact : styles.label, { color: palette.info }]}>
-          {clubLabel}
+          {clubLabel ? `Club: ${clubLabel}` : 'Club session'}
         </ThemedText>
       </Row>
 
