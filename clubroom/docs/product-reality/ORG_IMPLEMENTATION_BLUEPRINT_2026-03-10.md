@@ -85,19 +85,63 @@ Goal:
 
 - let the org owner choose `COACH_OWNED` or `ORG_OWNED`
 
+Current runtime reality:
+
+- the live settings entry point is `app/club/settings.tsx`
+- the state and handlers are in `hooks/use-club-settings.ts`
+- club entity reads and writes currently flow through `services/social-feed-service.ts`
+- `academy` routes still exist in `navigation/routes.ts`, but there is no real `app/academy/*` settings route tree to build on
+
+So Phase 3 should start on the current club settings surface and only later migrate to a unified org path.
+
 Work:
 
-1. Add owner-facing org setting UI.
-2. Restrict edit access to owner or explicitly authorized admin.
-3. Persist the chosen commercial mode through the active org service.
-4. Show current mode in org settings with plain-language explanation.
-5. Add migration/default behavior for existing orgs:
+1. Add a `Commercial` section to the current club settings surface.
+2. Restrict edit access to `OWNER` in V1.
+3. Keep `ADMIN` and `HEAD_COACH` read-only for this setting until explicit delegated billing permissions exist.
+4. Persist the chosen commercial mode through the live club/org source of truth, not a parallel academy-only path.
+5. Show current mode in org settings with plain-language explanation.
+6. Add a confirmation step before mode changes because this is a business rule, not a cosmetic setting.
+7. Add migration/default behavior for existing orgs:
    - default current orgs to `COACH_OWNED`
+8. Make mode changes prospective only:
+   - existing bookings keep their stored relationship truth
+   - only new org-created sessions and bookings use the updated mode
+9. Emit an explicit event and log entry when the commercial mode changes.
+10. Keep copy honest about money reality:
+   - do not imply real in-app payouts
+   - explain billing responsibility and reconciliation ownership only
 
 Required surfaces:
 
-- current academy-backed org settings path
+- `app/club/settings.tsx`
+- `hooks/use-club-settings.ts`
+- `services/social-feed-service.ts`
 - later club/org unified settings path
+
+Why `OWNER` only in V1:
+
+- current `ClubMembership` does not model an explicit billing or commercial-settings permission
+- the repo can represent broad role access, but not "authorized admin for billing rules" as a durable permission bit
+- pretending that authorization exists would create fake trust boundaries
+
+Phase 3 acceptance criteria:
+
+1. the commercial mode is visible in current club settings
+2. only `OWNER` can change it
+3. `ADMIN` and `HEAD_COACH` can see it but cannot edit it
+4. changing mode requires a plain-language confirmation
+5. changing mode does not rewrite existing bookings
+6. the setting survives reload and is returned by the same service path that powers club settings today
+7. the copy does not mention payouts, withdrawals, or card processing that do not exist yet
+
+Phase 3 verification:
+
+- targeted test for club/org commercial mode persistence
+- targeted test for owner-only edit access
+- `npm run typecheck`
+- booking review smoke for both `COACH_OWNED` and `ORG_OWNED`
+- manual check that switching mode only affects new bookings
 
 ### Phase 4: Booking And Session Propagation
 
