@@ -1,8 +1,8 @@
-# Sprint 05 - Club And Academy Operating Model
+# Sprint 08 - Org Surface Migration And Academy Cleanup
 
 ## Objective
 
-Eliminate the current club/academy ambiguity and make organization operations one coherent product story.
+Migrate current club-facing surfaces and academy leftovers to the chosen org model without leaving ghost routes or mixed language behind.
 
 ## Why This Sprint Exists
 
@@ -17,19 +17,14 @@ That is model drift.
 
 ## Scope
 
-1. Decide whether academy is a real first-class surface or not.
-2. If yes:
-   - define the route tree
-   - define the role model
-   - define the permissions
-3. If no:
-   - remove academy route signaling
-   - standardize on one org concept across docs and navigation
-4. Make org operator language consistent across:
+1. Remove or replace academy route signaling that no longer matches the chosen org model.
+2. Standardize on one org concept across docs, navigation, hooks, and services.
+3. Make org operator language consistent across:
    - club hub
    - club settings
    - manage bookings
    - session ownership/assignment flows
+4. Define the migration order for service names, route builders, and role copy.
 
 ## Acceptance Criteria
 
@@ -46,5 +41,5 @@ That is model drift.
 
 ## Discussion Needed
 
-- whether academy deserves a dedicated commercial surface
-- whether org operators should be a distinct role or a scoped permission layer on existing roles
+- whether legacy `club` labels remain in customer-facing UX or move to `organization`
+- whether any `academy` wording survives only as brand language inside org profile settings

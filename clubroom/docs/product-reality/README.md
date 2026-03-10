@@ -12,10 +12,14 @@ Its job is not to repeat old sprint docs. Its job is to answer:
 ## Read Order
 
 1. `PRODUCT_REALITY_AUDIT_2026-03-10.md`
-2. `ROLE_FLOW_MATRIX_2026-03-10.md`
-3. `OPEN_DECISIONS_2026-03-10.md`
-4. `sprints/BACKLOG.md`
-5. the relevant sprint doc in `sprints/`
+2. `ORG_PYRAMID_MODEL_2026-03-10.md`
+3. `ORG_MARKET_BASELINE_2026-03-10.md`
+4. `ORG_PERMISSION_AND_VISIBILITY_MATRIX_2026-03-10.md`
+5. `ORG_USER_JOURNEYS_2026-03-10.md`
+6. `ROLE_FLOW_MATRIX_2026-03-10.md`
+7. `OPEN_DECISIONS_2026-03-10.md`
+8. `sprints/BACKLOG.md`
+9. the relevant sprint doc in `sprints/`
 
 ## Why This Exists
 

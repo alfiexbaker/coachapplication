@@ -1,4 +1,4 @@
-# Sprint 02 - Relationship Model And Blocking Integrity
+# Sprint 03 - Relationship Model And Blocking Integrity
 
 ## Objective
 
@@ -26,16 +26,17 @@ That is too many models for a coaching marketplace, and blocking does not fully 
 
 ## Macro Decisions To Discuss
 
-1. Should coach connections ever use `friend` language?
-2. Is user-to-user friendship a real product feature, or should the app use simpler asymmetric relationships?
-3. What should blocking do to existing follows, requests, and feed visibility?
+1. Is user-to-user friendship a real product feature anywhere, or should the app use simpler asymmetric relationships by default?
+2. What trust threshold unlocks `Message` after `Follow Coach`, `Save Coach`, or `Request Contact`?
+3. What should blocking do to existing follows, saves, requests, and feed visibility?
 
 ## Scope
 
-1. Decide coach-facing relationship vocabulary.
-2. Decide whether symmetric friendship remains anywhere in the product.
+1. Apply the chosen coach-facing relationship vocabulary.
+2. Decide whether symmetric friendship remains anywhere else in the product.
 3. Make block behavior explicit across:
    - follow requests
+   - saved coaches
    - accepted follows
    - feed eligibility
    - messaging access

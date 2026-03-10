@@ -3,17 +3,13 @@
 Date: 2026-03-10
 Purpose: macro product questions that should be discussed before implementation sprints lock in the wrong shape.
 
-## 1. Coach Relationship Model
-
-Question:
-
-- should coach discovery and connection use `follow`, `save`, `request contact`, or `friend` semantics?
+## 1. Coach Relationship Model (Planning Locked)
 
 Current problem:
 
 - coach surfaces currently use friend language through the follow service
 
-Recommendation:
+Decision:
 
 - keep `friend` out of coach-facing marketplace surfaces
 - use a professional relationship model:
@@ -37,20 +33,28 @@ Recommendation:
 - treat social as asymmetric by default
 - only introduce true peer friendship where it is explicitly a product goal and safe
 
-## 3. Club vs Academy Model
-
-Question:
-
-- should academy be a real first-class role and route tree, or should all org management collapse into one club/organization model?
+## 3. Org Model (Planning Locked)
 
 Current problem:
 
 - route constants and planning language imply a separate academy product, but the shipped route tree does not
+- the real business need is a top-down organization pyramid, not a branded club page
 
-Recommendation:
+Decision:
 
-- choose one model and remove the other from navigation and docs
-- default recommendation: one org model, one operator model, no ghost academy tree
+- one org model
+- hierarchy:
+  - Owner
+  - Admin / Ops
+  - Head Coach / Director
+  - Coach
+  - Assistant
+- `academy` can remain a label or org subtype later, but not a separate ghost architecture now
+
+Open sub-decisions:
+
+- can coaches operate independently while inside an org
+- does the org own the money by default
 
 ## 4. Coach Access To Athlete Health
 
@@ -111,7 +115,7 @@ Current problem:
 Recommendation:
 
 - default product ordering for the next planning cycle:
-  1. coach business + booking trust
+  1. org operating model + coach business + booking trust
   2. family/athlete development trust
   3. org operations
   4. social/community as supporting layer, not governing model
