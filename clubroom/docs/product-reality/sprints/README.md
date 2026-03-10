@@ -14,13 +14,15 @@ Start here:
 4. `../ORG_RELATIONSHIP_MODEL_2026-03-10.md`
 5. `../ORG_SCOPE_AND_SPRINT_REVIEW_2026-03-10.md`
 6. `../POC_COMPLETENESS_2026-03-10.md`
-7. `../ORG_IMPLEMENTATION_BLUEPRINT_2026-03-10.md`
-8. `../ORG_MARKET_BASELINE_2026-03-10.md`
-9. `../ORG_PERMISSION_AND_VISIBILITY_MATRIX_2026-03-10.md`
-10. `../ORG_USER_JOURNEYS_2026-03-10.md`
-11. `../OPEN_DECISIONS_2026-03-10.md`
-12. `BACKLOG.md`
-13. the highest-priority sprint that is unblocked by macro decisions
+7. `../PRE_API_COMPLETENESS_REVIEW_2026-03-10.md`
+8. `../ORG_IMPLEMENTATION_BLUEPRINT_2026-03-10.md`
+9. `../ORG_MARKET_BASELINE_2026-03-10.md`
+10. `../ORG_PERMISSION_AND_VISIBILITY_MATRIX_2026-03-10.md`
+11. `../ORG_USER_JOURNEYS_2026-03-10.md`
+12. `../OPEN_DECISIONS_2026-03-10.md`
+13. `../progress.md`
+14. `BACKLOG.md`
+15. the highest-priority sprint that is unblocked by macro decisions
 
 ## Rules
 
@@ -45,4 +47,5 @@ Every sprint in this folder must answer:
 
 - `PR-03` through `PR-07` are the org-core runtime spine.
 - `PR-11` through `PR-15` are the complete-POC layer.
+- `PR-16` through `PR-20` are the coach/user-first and pre-API closure layer.
 - `PR-08` through `PR-10` are still important, but they are not the shortest path to a complete demoable org POC.
