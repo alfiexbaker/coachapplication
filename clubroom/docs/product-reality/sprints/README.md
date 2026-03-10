@@ -12,17 +12,19 @@ Start here:
 2. `../FUNDAMENTAL_PRODUCT_AND_ARCHITECTURE_REVIEW_2026-03-10.md`
 3. `../ORG_PYRAMID_MODEL_2026-03-10.md`
 4. `../ORG_RELATIONSHIP_MODEL_2026-03-10.md`
-5. `../ORG_IMPLEMENTATION_BLUEPRINT_2026-03-10.md`
-6. `../ORG_MARKET_BASELINE_2026-03-10.md`
-7. `../ORG_PERMISSION_AND_VISIBILITY_MATRIX_2026-03-10.md`
-8. `../ORG_USER_JOURNEYS_2026-03-10.md`
-9. `../OPEN_DECISIONS_2026-03-10.md`
-10. `BACKLOG.md`
-11. the highest-priority sprint that is unblocked by macro decisions
+5. `../ORG_SCOPE_AND_SPRINT_REVIEW_2026-03-10.md`
+6. `../ORG_IMPLEMENTATION_BLUEPRINT_2026-03-10.md`
+7. `../ORG_MARKET_BASELINE_2026-03-10.md`
+8. `../ORG_PERMISSION_AND_VISIBILITY_MATRIX_2026-03-10.md`
+9. `../ORG_USER_JOURNEYS_2026-03-10.md`
+10. `../OPEN_DECISIONS_2026-03-10.md`
+11. `BACKLOG.md`
+12. the highest-priority sprint that is unblocked by macro decisions
 
 ## Rules
 
 - Do not delete old sprint stacks until the new planning layer is approved.
+- `archive/` contains superseded sprint drafts that should not drive current implementation.
 - Retire stale findings before they become sprint scope.
 - Separate:
   - implementation problems
