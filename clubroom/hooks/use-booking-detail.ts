@@ -196,13 +196,11 @@ export function useBookingDetail(id: string): BookingDetailResult {
   }, [booking, canCancelBooking, isCoach]);
 
   const handleRefund = useCallback(() => {
-    uiFeedback.alert('Issue Refund', 'Process a refund for this booking?', [
-      { text: 'Back', style: 'cancel' },
-      {
-        text: 'Process Refund',
-        onPress: () => uiFeedback.showToast('Refund processed successfully', 'success'),
-      },
-    ]);
+    uiFeedback.alert(
+      'Handle Billing Issue',
+      'Clubroom does not process refunds in-app. Resolve any refund or payment adjustment directly with the family and update your reconciler once it is settled.',
+      [{ text: 'OK' }],
+    );
   }, []);
 
   const handleReschedule = useCallback(() => {

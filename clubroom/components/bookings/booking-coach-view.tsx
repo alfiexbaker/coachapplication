@@ -133,7 +133,7 @@ function BookingCoachViewInner({
           }
         >
           <Ionicons name="cash-outline" size={18} color={palette.foreground} />
-          <ThemedText style={styles.secondaryButtonText}>Refund</ThemedText>
+          <ThemedText style={styles.secondaryButtonText}>Billing Issue</ThemedText>
         </Clickable>
       </Row>
 

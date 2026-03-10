@@ -338,9 +338,9 @@ export default function ConfirmationScreen() {
           <ThemedText style={{ color: palette.muted }}>
             {draft.actingAs === 'club'
               ? relationshipContext.commercialMode === 'ORG_OWNED'
-                ? `Your booking request is in with ${relationshipContext.bookedWithLabel}. Billing and refunds are handled by ${relationshipContext.billingLabel} once confirmed.`
-                : `Your booking request is in via ${relationshipContext.organizationLabel || 'the organization'}. Payment details are shared by ${relationshipContext.billingLabel} once confirmed.`
-              : `Your booking request is in. Payment details are shared by ${relationshipContext.billingLabel} once confirmed.`}{' '}
+                ? `Your booking request is in with ${relationshipContext.bookedWithLabel}. ${relationshipContext.paymentSummary}`
+                : `Your booking request is in via ${relationshipContext.organizationLabel || 'the organization'}. ${relationshipContext.paymentSummary}`
+              : `Your booking request is in. ${relationshipContext.paymentSummary}`}{' '}
             You can message your coach anytime or add this to your calendar.
           </ThemedText>
         </View>

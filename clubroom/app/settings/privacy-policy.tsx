@@ -7,15 +7,15 @@ const PRIVACY_POLICY_SECTIONS: LegalDocumentSection[] = [
   },
   {
     title: '2. Information We Collect',
-    body: 'We collect information you provide directly, including: your name, email address, phone number, and profile information; payment and billing details; child information provided by parents or guardians; coaching qualifications and verification documents; messages and communications within the platform; session feedback and reviews.',
+    body: 'We collect information you provide directly, including: your name, email address, phone number, and profile information; billing references and payment instructions shared in the app; child information provided by parents or guardians; coaching qualifications and verification documents; messages and communications within the platform; session feedback and reviews.',
   },
   {
     title: '3. How We Use Your Information',
-    body: 'We use the information we collect to: provide and maintain the Service; process bookings and payments; facilitate communication between parents and coaches; verify coach identities and qualifications; send notifications about bookings and updates; improve and personalise your experience; comply with legal obligations and safeguarding requirements.',
+    body: 'We use the information we collect to: provide and maintain the Service; manage bookings, invoicing, and payment tracking; facilitate communication between parents and coaches; verify coach identities and qualifications; send notifications about bookings and updates; improve and personalise your experience; comply with legal obligations and safeguarding requirements.',
   },
   {
     title: '4. Data Sharing',
-    body: 'We may share your information with: coaches or parents as necessary to facilitate bookings; payment processors to handle transactions; service providers who assist in operating the platform; law enforcement or regulatory bodies when required by law; other parties with your explicit consent. We do not sell your personal information to third parties.',
+    body: 'We may share your information with: coaches, organizations, or parents as necessary to facilitate bookings and payment coordination; service providers who assist in operating the platform; law enforcement or regulatory bodies when required by law; other parties with your explicit consent. We do not sell your personal information to third parties.',
   },
   {
     title: "5. Children's Privacy",

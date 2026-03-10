@@ -90,7 +90,7 @@ export function getBookingRelationshipContext(input: {
       deliveredByLabel,
       billingLabel: organizationLabel,
       commercialMode,
-      paymentSummary: `Billing and refunds are handled by ${organizationLabel} once the booking is confirmed.`,
+      paymentSummary: `Payment instructions are shared by ${organizationLabel} outside the app once the booking is confirmed. Billing questions and any refund decisions are handled by ${organizationLabel}.`,
     };
   }
 
@@ -100,7 +100,7 @@ export function getBookingRelationshipContext(input: {
     deliveredByLabel,
     billingLabel: deliveredByLabel,
     commercialMode,
-    paymentSummary: `Payment is handled directly with ${deliveredByLabel} once the booking is confirmed.`,
+    paymentSummary: `Payment is arranged directly with ${deliveredByLabel} outside the app once the booking is confirmed. Billing questions and any refund decisions are handled by ${deliveredByLabel}.`,
   };
 }
 

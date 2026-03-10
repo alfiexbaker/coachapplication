@@ -32,7 +32,7 @@ export const FAQ_ITEMS: FAQItem[] = [
   {
     question: 'How do payments work?',
     answer:
-      'Payments are processed securely through our platform. Parents pay when booking, and coaches receive payouts weekly to their connected bank account.',
+      'Clubroom does not process payments in-app. Once a booking is confirmed, the coach or organization responsible for billing shares payment instructions, and payment status can then be tracked in the reconciler.',
   },
   {
     question: 'How do I update my availability?',

@@ -15,7 +15,7 @@ const TERMS_SECTIONS: LegalDocumentSection[] = [
   },
   {
     title: '4. Bookings and Payments',
-    body: 'All session bookings are subject to coach availability and confirmation. Payments are processed securely through our platform. Cancellation policies vary by coach and are displayed at the time of booking. Refunds are handled in accordance with the applicable cancellation policy.',
+    body: 'All session bookings are subject to coach availability and confirmation. Clubroom does not process payments in-app. Payment is arranged outside the app with the coach or organization responsible for billing. Cancellation policies vary by coach and are displayed at the time of booking. Any refund decisions follow the applicable cancellation policy and the off-app payment arrangement.',
   },
   {
     title: '5. Coach Responsibilities',
@@ -23,7 +23,7 @@ const TERMS_SECTIONS: LegalDocumentSection[] = [
   },
   {
     title: '6. Prohibited Conduct',
-    body: 'You agree not to: use the Service for any unlawful purpose; harass, abuse, or harm other users; create fake or misleading profiles; attempt to circumvent the platform for direct payments; upload harmful or inappropriate content; or interfere with the operation of the Service.',
+    body: 'You agree not to: use the Service for any unlawful purpose; harass, abuse, or harm other users; create fake or misleading profiles; misuse Clubroom booking, invoicing, or payment-tracking features; upload harmful or inappropriate content; or interfere with the operation of the Service.',
   },
   {
     title: '7. Intellectual Property',
