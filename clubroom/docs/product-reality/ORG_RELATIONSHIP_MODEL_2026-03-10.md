@@ -91,6 +91,26 @@ Clubroom should let the `Owner` choose the commercial mode for the organization.
 
 But the system must still be strict about what that means.
 
+## Current Financial Truth
+
+This is important:
+
+- Clubroom does not currently have real in-app payment processing or real payout rails in the shipped product flow
+- current finance behavior is primarily invoice plus direct-to-coach payment instructions plus reconciler state
+- current payout and withdrawal service surfaces are mock/demo infrastructure, not production-truth money movement
+
+Current code evidence:
+
+- `app/earnings.tsx` is explicitly a cash reconciliation screen
+- `services/coach-payment-instructions-service.ts` says payment is made directly to the coach outside the app
+- `services/earnings/payout-service.ts` and `services/earnings/earnings-report-service.ts` are still mock-backed
+
+So:
+
+- `Org-Owned` and `Coach-Owned` are currently planning and architecture rules
+- they are not yet a shipped payment-processor capability
+- any future org finance build must preserve this distinction between current truth and target state
+
 ## Recommended V1 Rule
 
 Use an org-level commercial setting.
@@ -294,6 +314,28 @@ Example:
 4. Split coach earnings between org payouts and independent revenue.
 5. Add owner/org finance and staffing views.
 6. Only after that, consider advanced hybrid org modes.
+
+## Important Language Rule
+
+Until real money rails exist, avoid implying that Clubroom currently performs actual payouts.
+
+Current-truth language should use terms like:
+
+- `payment tracking`
+- `reconciliation`
+- `owed`
+- `paid`
+- `written off`
+- `billing owner`
+- `refund responsibility`
+
+Future-state architecture can still use:
+
+- `payout obligations`
+- `org-owned revenue`
+- `coach payouts`
+
+But those should be clearly marked as target-state finance behavior, not already shipped money movement.
 
 ## Working Product Rule
 

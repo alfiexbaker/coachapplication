@@ -9,14 +9,15 @@ They are the new planning set for fixing what is currently not right in the prod
 Start here:
 
 1. `../PRODUCT_REALITY_AUDIT_2026-03-10.md`
-2. `../ORG_PYRAMID_MODEL_2026-03-10.md`
-3. `../ORG_RELATIONSHIP_MODEL_2026-03-10.md`
-4. `../ORG_MARKET_BASELINE_2026-03-10.md`
-5. `../ORG_PERMISSION_AND_VISIBILITY_MATRIX_2026-03-10.md`
-6. `../ORG_USER_JOURNEYS_2026-03-10.md`
-7. `../OPEN_DECISIONS_2026-03-10.md`
-8. `BACKLOG.md`
-9. the highest-priority sprint that is unblocked by macro decisions
+2. `../FUNDAMENTAL_PRODUCT_AND_ARCHITECTURE_REVIEW_2026-03-10.md`
+3. `../ORG_PYRAMID_MODEL_2026-03-10.md`
+4. `../ORG_RELATIONSHIP_MODEL_2026-03-10.md`
+5. `../ORG_MARKET_BASELINE_2026-03-10.md`
+6. `../ORG_PERMISSION_AND_VISIBILITY_MATRIX_2026-03-10.md`
+7. `../ORG_USER_JOURNEYS_2026-03-10.md`
+8. `../OPEN_DECISIONS_2026-03-10.md`
+9. `BACKLOG.md`
+10. the highest-priority sprint that is unblocked by macro decisions
 
 ## Rules
 

@@ -11,6 +11,7 @@ Right now some repo-critical scripts depend on `rg`. In this environment:
 - `audit:alerts` silently reports false zeroes
 - `lint:ui-actions` fails
 - `audit:ui` fails
+- `test:invoices` currently misquotes its glob and can fail to discover tests even when invoice tests exist
 
 That means the team can believe a surface is clean when the tool never really ran.
 
@@ -23,11 +24,13 @@ That means the team can believe a surface is clean when the tool never really ra
    - fixed findings
    - stale findings
    - current open findings
+5. Repair broken top-level test commands whose shell patterns prevent real test execution.
 
 ## Acceptance Criteria
 
 - `audit:alerts` cannot return false zeroes when required dependencies are absent.
 - `lint:ui-actions` and `audit:ui` either run successfully in repo-default environments or fail with explicit dependency guidance.
+- `test:invoices` runs real invoice tests from the normal repo command, not a broken glob.
 - `README.md` no longer points at missing primary docs.
 - this new planning folder remains aligned to current code, not old snapshots.
 

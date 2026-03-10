@@ -138,6 +138,23 @@ If Clubroom wants to compete for real football businesses, the org model has to 
 
 That means the current "club hub + memberships + posting permissions" layer is not enough on its own.
 
+## Current Finance Reality Vs Target Finance
+
+Current shipped finance reality is still:
+
+- invoice generation
+- direct-to-coach payment instructions
+- off-app payment tracking
+- reconciler state such as owed, paid, and written off
+
+Current shipped finance reality is not yet:
+
+- real payment processor integration
+- real org payout rails
+- real platform-managed withdrawals
+
+So when this document talks about org-owned money visibility or payout rules, treat that as target architecture and product definition, not as already-shipped runtime truth.
+
 ## Recommended Data Spine
 
 The org should sit above:
