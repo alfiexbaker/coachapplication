@@ -111,3 +111,19 @@ Do not build more org language without building the operating surfaces behind it
 Do not build more money language without preserving current finance honesty.
 
 Do not build more role names without giving those roles distinct responsibilities in product.
+
+## Important Follow-On
+
+This org-core sprint spine is still not the whole POC.
+
+For complete POC coverage, also see:
+
+- `POC_COMPLETENESS_2026-03-10.md`
+
+That follow-on layer adds:
+
+- org setup and onboarding
+- programs and recurring registration
+- communications and handoffs
+- owner reporting
+- golden-path demo readiness

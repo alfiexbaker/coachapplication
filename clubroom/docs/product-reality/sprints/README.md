@@ -13,13 +13,14 @@ Start here:
 3. `../ORG_PYRAMID_MODEL_2026-03-10.md`
 4. `../ORG_RELATIONSHIP_MODEL_2026-03-10.md`
 5. `../ORG_SCOPE_AND_SPRINT_REVIEW_2026-03-10.md`
-6. `../ORG_IMPLEMENTATION_BLUEPRINT_2026-03-10.md`
-7. `../ORG_MARKET_BASELINE_2026-03-10.md`
-8. `../ORG_PERMISSION_AND_VISIBILITY_MATRIX_2026-03-10.md`
-9. `../ORG_USER_JOURNEYS_2026-03-10.md`
-10. `../OPEN_DECISIONS_2026-03-10.md`
-11. `BACKLOG.md`
-12. the highest-priority sprint that is unblocked by macro decisions
+6. `../POC_COMPLETENESS_2026-03-10.md`
+7. `../ORG_IMPLEMENTATION_BLUEPRINT_2026-03-10.md`
+8. `../ORG_MARKET_BASELINE_2026-03-10.md`
+9. `../ORG_PERMISSION_AND_VISIBILITY_MATRIX_2026-03-10.md`
+10. `../ORG_USER_JOURNEYS_2026-03-10.md`
+11. `../OPEN_DECISIONS_2026-03-10.md`
+12. `BACKLOG.md`
+13. the highest-priority sprint that is unblocked by macro decisions
 
 ## Rules
 
@@ -39,3 +40,9 @@ Every sprint in this folder must answer:
 1. what user truth is being fixed
 2. what misleading surface is being removed or made real
 3. which acceptance criteria prove the product is more believable afterward
+
+## Phase Rule
+
+- `PR-03` through `PR-07` are the org-core runtime spine.
+- `PR-11` through `PR-15` are the complete-POC layer.
+- `PR-08` through `PR-10` are still important, but they are not the shortest path to a complete demoable org POC.
