@@ -129,4 +129,27 @@ describe('bookingService (real facade)', () => {
     assert.equal(athleteBookings.length, 1);
     assert.equal(athleteBookings[0]?.athleteId, 'athlete-04');
   });
+
+  it('persists org commercial ownership metadata on org-managed bookings', async () => {
+    const result = await bookingService.createBooking(
+      createParams('06', {
+        clubId: 'academy-001',
+        actingAs: 'club',
+        commercialMode: 'ORG_OWNED',
+        ownerCoachId: 'owner-01',
+        assigneeCoachId: 'coach-06-assigned',
+        createdByUserId: 'owner-01',
+      }),
+    );
+
+    assert.equal(result.success, true);
+    if (!result.success) return;
+
+    assert.equal(result.data.clubId, 'academy-001');
+    assert.equal(result.data.actingAs, 'club');
+    assert.equal(result.data.commercialMode, 'ORG_OWNED');
+    assert.equal(result.data.ownerCoachId, 'owner-01');
+    assert.equal(result.data.assigneeCoachId, 'coach-06-assigned');
+    assert.equal(result.data.createdByUserId, 'owner-01');
+  });
 });

@@ -1,5 +1,14 @@
 import type { Booking } from '@/constants/app-types';
-import type { BookingSummary } from '@/constants/types';
+import type { BookingSummary, OrganizationCommercialMode } from '@/constants/types';
+
+export interface BookingRelationshipContext {
+  organizationLabel: string | null;
+  bookedWithLabel: string;
+  deliveredByLabel: string;
+  billingLabel: string;
+  commercialMode: OrganizationCommercialMode;
+  paymentSummary: string;
+}
 
 export function getBookingSummaryCoachName(booking: BookingSummary): string {
   return booking.coach?.name || booking.coachId || 'Coach';
@@ -58,6 +67,40 @@ export function getBookingClubOwnershipContext(
     clubLabel: booking.clubId ? `Club: ${booking.clubId}` : 'Club session',
     deliveredBy,
     ...(hasSeparateOwner ? { owner } : {}),
+  };
+}
+
+export function getBookingRelationshipContext(input: {
+  actingAs?: 'self' | 'club';
+  organizationLabel?: string | null;
+  coachLabel?: string | null;
+  deliveredByLabel?: string | null;
+  commercialMode?: OrganizationCommercialMode | null;
+}): BookingRelationshipContext {
+  const coachLabel = input.coachLabel?.trim() || 'Coach';
+  const deliveredByLabel = input.deliveredByLabel?.trim() || coachLabel;
+  const organizationLabel =
+    input.actingAs === 'club' ? input.organizationLabel?.trim() || 'Organization' : null;
+  const commercialMode = input.commercialMode ?? 'COACH_OWNED';
+
+  if (organizationLabel && commercialMode === 'ORG_OWNED') {
+    return {
+      organizationLabel,
+      bookedWithLabel: organizationLabel,
+      deliveredByLabel,
+      billingLabel: organizationLabel,
+      commercialMode,
+      paymentSummary: `Billing and refunds are handled by ${organizationLabel} once the booking is confirmed.`,
+    };
+  }
+
+  return {
+    organizationLabel,
+    bookedWithLabel: deliveredByLabel,
+    deliveredByLabel,
+    billingLabel: deliveredByLabel,
+    commercialMode,
+    paymentSummary: `Payment is handled directly with ${deliveredByLabel} once the booking is confirmed.`,
   };
 }
 

@@ -8,6 +8,8 @@
 // CLUB & SQUAD SYSTEM
 // ============================================================================
 
+export type OrganizationCommercialMode = 'COACH_OWNED' | 'ORG_OWNED';
+
 export type ClubRole = 'OWNER' | 'ADMIN' | 'HEAD_COACH' | 'COACH' | 'MEMBER';
 
 export interface Club {
@@ -25,6 +27,7 @@ export interface Club {
   squadCount: number;
   ownerId: string;
   inviteCode: string;
+  commercialMode?: OrganizationCommercialMode;
 }
 
 export interface ClubMembership {
@@ -235,6 +238,7 @@ export interface Academy {
   isPublic: boolean;
   requiresApproval: boolean;
   ownerId: string;
+  commercialMode?: OrganizationCommercialMode;
   createdAt: string;
   rating?: {
     average: number;

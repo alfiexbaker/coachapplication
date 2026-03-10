@@ -19,6 +19,7 @@ import type {
   AcademyMembership,
   AcademyInvite,
   AcademyPermission,
+  OrganizationCommercialMode,
   SportCategory,
   FootballObjective,
 } from '@/constants/types';
@@ -65,6 +66,7 @@ const MOCK_ACADEMIES: Academy[] = normalizeLegacyMockDates([
     isPublic: true,
     requiresApproval: false,
     ownerId: 'coach1',
+    commercialMode: 'COACH_OWNED',
     createdAt: '2024-06-15T10:00:00Z',
     rating: {
       average: 4.8,
@@ -89,6 +91,7 @@ const MOCK_ACADEMIES: Academy[] = normalizeLegacyMockDates([
     isPublic: true,
     requiresApproval: true,
     ownerId: 'coach_2',
+    commercialMode: 'COACH_OWNED',
     createdAt: '2025-01-10T14:00:00Z',
     rating: {
       average: 4.9,
@@ -357,6 +360,7 @@ export const academyService = {
         isPublic: true,
         requiresApproval: false,
         ownerId: input.ownerId,
+        commercialMode: 'COACH_OWNED',
         createdAt: new Date().toISOString(),
         sports: input.sports || ['Football'],
         specialties: input.specialties || [],
@@ -452,6 +456,28 @@ export const academyService = {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(settings),
+    });
+    return ok(await response.json());
+  },
+
+  async updateCommercialMode(
+    academyId: string,
+    commercialMode: OrganizationCommercialMode,
+  ): Promise<Result<Academy, ServiceError>> {
+    if (USE_MOCK) {
+      academiesCache = await loadAcademies();
+      const academy = academiesCache.find((candidate) => candidate.id === academyId);
+      if (!academy) return err(notFound('Academy', academyId));
+
+      academy.commercialMode = commercialMode;
+      await saveAcademies(academiesCache);
+      return ok(academy);
+    }
+
+    const response = await fetch(`/api/academies/${academyId}/commercial-mode`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ commercialMode }),
     });
     return ok(await response.json());
   },

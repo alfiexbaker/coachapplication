@@ -1,5 +1,6 @@
 import type { Goal } from './skill-types';
 import type { UserRole, SkillLevel } from './user-types';
+import type { OrganizationCommercialMode } from './club-types';
 
 // Core User Types - re-exported from user-types (single source of truth)
 export type { UserRole, SkillLevel } from './user-types';
@@ -63,6 +64,7 @@ export interface Booking {
   coachId: string;
   clubId?: string;
   actingAs?: 'self' | 'club';
+  commercialMode?: OrganizationCommercialMode;
   ownerCoachId?: string;
   assigneeCoachId?: string;
   createdByUserId?: string;

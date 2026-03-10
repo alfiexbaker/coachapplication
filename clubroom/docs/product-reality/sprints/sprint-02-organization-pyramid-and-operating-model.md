@@ -59,7 +59,8 @@ This is fundamental. It is not a later "club enhancement".
 3. A user-journey doc for owner, ops, head coach, coach, parent, and athlete.
 4. A market-baseline doc showing what real org buyers already expect.
 5. An explicit org relationship model.
-6. A migration view showing how current club and academy surfaces should evolve.
+6. An implementation blueprint that turns the model into an execution order.
+7. A migration view showing how current club and academy surfaces should evolve.
 
 ## Acceptance Criteria
 

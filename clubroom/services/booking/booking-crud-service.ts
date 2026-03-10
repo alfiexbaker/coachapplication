@@ -14,7 +14,7 @@
  */
 
 import { Booking } from '@/constants/app-types';
-import type { SessionOffering } from '@/constants/types';
+import type { OrganizationCommercialMode, SessionOffering } from '@/constants/types';
 import { availabilityService } from '../availability-service';
 import { verificationService } from '../verification-service';
 import { notificationService } from '../notification-service';
@@ -71,6 +71,7 @@ export type BookingDraft = {
   coachName?: string;
   clubId?: string;
   actingAs?: 'self' | 'club';
+  commercialMode?: OrganizationCommercialMode;
   ownerCoachId?: string;
   assigneeCoachId?: string;
   createdByUserId?: string;
@@ -99,6 +100,7 @@ export interface CreateBookingParams {
   sessionSourceEntityId?: string;
   clubId?: string;
   actingAs?: 'self' | 'club';
+  commercialMode?: OrganizationCommercialMode;
   ownerCoachId?: string;
   assigneeCoachId?: string;
   createdByUserId?: string;
@@ -571,6 +573,7 @@ class BookingCrudService {
       sessionSourceEntityId,
       clubId,
       actingAs,
+      commercialMode,
       ownerCoachId,
       assigneeCoachId,
       createdByUserId,
@@ -699,6 +702,7 @@ class BookingCrudService {
       ...(linkedSessionEntityId ? { sessionSourceEntityId: linkedSessionEntityId } : {}),
       ...(clubId ? { clubId } : {}),
       ...(actingAs ? { actingAs } : {}),
+      ...(commercialMode ? { commercialMode } : {}),
       ...(ownerCoachId ? { ownerCoachId } : {}),
       ...(assigneeCoachId ? { assigneeCoachId } : {}),
       ...(createdByUserId ? { createdByUserId } : {}),
@@ -847,6 +851,7 @@ class BookingCrudService {
       sessionSourceEntityId: draft.sessionSourceEntityId,
       clubId: draft.clubId,
       actingAs: draft.actingAs,
+      commercialMode: draft.commercialMode,
       ownerCoachId: draft.ownerCoachId,
       assigneeCoachId: draft.assigneeCoachId,
       createdByUserId: draft.createdByUserId,

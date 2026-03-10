@@ -1,11 +1,11 @@
 #!/usr/bin/env node
 
-const { execSync } = require('node:child_process');
 const { readFileSync } = require('node:fs');
 const { resolve } = require('node:path');
 
+const { listFiles: listFilesFromTree } = require('./file-scan-utils');
+
 const TARGETS = ['app', 'components'];
-const FILE_GLOBS = ["'**/*.tsx'"];
 const SAFE_SHELL_HINTS = [
   'SafeAreaView',
   'PageScaffold',
@@ -18,9 +18,7 @@ const SAFE_SHELL_HINTS = [
 ];
 
 function listFiles() {
-  const cmd = `rg --files ${TARGETS.join(' ')} ${FILE_GLOBS.map((glob) => `-g ${glob}`).join(' ')}`;
-  const output = execSync(cmd, { encoding: 'utf8' }).trim();
-  return output ? output.split('\n') : [];
+  return listFilesFromTree(TARGETS, { extensions: ['.tsx'] });
 }
 
 function lineForIndex(source, index) {

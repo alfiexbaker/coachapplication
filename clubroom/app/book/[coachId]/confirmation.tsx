@@ -27,6 +27,8 @@ import { userService } from '@/services/user-service';
 import { createLogger } from '@/utils/logger';
 import { CelebrationOverlay, CelebrationOverlayRef } from '@/components/celebration-overlay';
 import { hasAccountChildren } from '@/utils/booking-self-capability';
+import { getBookingRelationshipContext } from '@/utils/booking-display';
+import type { OrganizationCommercialMode } from '@/constants/types';
 
 const logger = createLogger('ConfirmationScreen');
 
@@ -47,6 +49,9 @@ export default function ConfirmationScreen() {
   const [resolvedCoachName, setResolvedCoachName] = useState(draft.coachName ?? '');
   const [clubLabel, setClubLabel] = useState<string | null>(null);
   const [assigneeLabel, setAssigneeLabel] = useState<string | null>(null);
+  const [commercialMode, setCommercialMode] = useState<OrganizationCommercialMode | null>(
+    draft.commercialMode ?? null,
+  );
   const [cancellationPolicy, setCancellationPolicy] = useState<import('@/constants/types').CancellationPolicy | null>(null);
   const celebrationRef = useRef<CelebrationOverlayRef>(null);
   const resolvedCoachId = coachId || draft.coachId;
@@ -129,8 +134,10 @@ export default function ConfirmationScreen() {
       if (cancelled) return;
       if (result.success && result.data?.name) {
         setClubLabel(result.data.name);
+        setCommercialMode(result.data.commercialMode ?? 'COACH_OWNED');
       } else {
         setClubLabel(draft.clubId ?? null);
+        setCommercialMode('COACH_OWNED');
       }
     });
     return () => {
@@ -156,6 +163,13 @@ export default function ConfirmationScreen() {
       cancelled = true;
     };
   }, [draft.assigneeCoachId]);
+  const relationshipContext = getBookingRelationshipContext({
+    actingAs: draft.actingAs,
+    organizationLabel: clubLabel,
+    coachLabel: resolvedCoachName || draft.coachName || 'Coach',
+    deliveredByLabel: assigneeLabel || resolvedCoachName || draft.coachName || 'Coach',
+    commercialMode,
+  });
 
   const handleViewBooking = async () => {
     if (bookingId) {
@@ -244,6 +258,7 @@ export default function ConfirmationScreen() {
         sessionSourceEntityId: draft.sessionSourceEntityId || draft.sessionOfferingId,
         clubId: draft.clubId,
         actingAs: draft.actingAs,
+        commercialMode: commercialMode ?? draft.commercialMode,
         ownerCoachId: draft.ownerCoachId,
         assigneeCoachId: draft.assigneeCoachId,
         createdByUserId: draft.createdByUserId,
@@ -322,8 +337,10 @@ export default function ConfirmationScreen() {
           <ThemedText type="defaultSemiBold">{"What's next"}</ThemedText>
           <ThemedText style={{ color: palette.muted }}>
             {draft.actingAs === 'club'
-              ? `Your booking request is in via ${clubLabel || 'the club'}. Payment details are shared in your session thread once confirmed.`
-              : 'Your booking request is in. Payment details are shared by your coach once confirmed.'}{' '}
+              ? relationshipContext.commercialMode === 'ORG_OWNED'
+                ? `Your booking request is in with ${relationshipContext.bookedWithLabel}. Billing and refunds are handled by ${relationshipContext.billingLabel} once confirmed.`
+                : `Your booking request is in via ${relationshipContext.organizationLabel || 'the organization'}. Payment details are shared by ${relationshipContext.billingLabel} once confirmed.`
+              : `Your booking request is in. Payment details are shared by ${relationshipContext.billingLabel} once confirmed.`}{' '}
             You can message your coach anytime or add this to your calendar.
           </ThemedText>
         </View>
@@ -346,18 +363,30 @@ export default function ConfirmationScreen() {
             <Row align="center" gap="sm">
               <Ionicons name="business-outline" size={18} color={palette.muted} />
               <ThemedText style={{ color: palette.text }}>
-                Booked via {clubLabel || draft.clubId || 'Club'}
+                Organization {relationshipContext.organizationLabel || clubLabel || draft.clubId || 'Organization'}
               </ThemedText>
             </Row>
           ) : null}
+          <Row align="center" gap="sm">
+            <Ionicons name="receipt-outline" size={18} color={palette.muted} />
+            <ThemedText style={{ color: palette.text }}>
+              Booked with {relationshipContext.bookedWithLabel}
+            </ThemedText>
+          </Row>
           {draft.actingAs === 'club' ? (
             <Row align="center" gap="sm">
               <Ionicons name="person-outline" size={18} color={palette.muted} />
               <ThemedText style={{ color: palette.text }}>
-                Delivered by {assigneeLabel || resolvedCoachName || draft.coachName || 'Coach'}
+                Delivered by {relationshipContext.deliveredByLabel}
               </ThemedText>
             </Row>
           ) : null}
+          <Row align="center" gap="sm">
+            <Ionicons name="card-outline" size={18} color={palette.muted} />
+            <ThemedText style={{ color: palette.text }}>
+              Billing {relationshipContext.billingLabel}
+            </ThemedText>
+          </Row>
           {draft.locationText && (
             <Row align="center" gap="sm">
               <Ionicons name="location-outline" size={18} color={palette.muted} />

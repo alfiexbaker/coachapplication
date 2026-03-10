@@ -1,28 +1,39 @@
 #!/usr/bin/env node
 
-const { execSync } = require('node:child_process');
+const { readFileSync } = require('node:fs');
+const { resolve } = require('node:path');
 
-function runCount(command) {
-  try {
-    const output = execSync(command, { encoding: 'utf8', stdio: ['pipe', 'pipe', 'pipe'] }).trim();
-    return Number.parseInt(output, 10) || 0;
-  } catch {
-    return 0;
+const { listFiles } = require('./file-scan-utils');
+
+const TARGETS = ['app', 'hooks', 'components'];
+const FILES = listFiles(TARGETS, { extensions: ['.ts', '.tsx'] });
+
+function countMatches(regex) {
+  let total = 0;
+
+  for (const file of FILES) {
+    const source = readFileSync(resolve(file), 'utf8');
+    regex.lastIndex = 0;
+    let match = regex.exec(source);
+    while (match) {
+      total += 1;
+      match = regex.exec(source);
+    }
   }
+
+  return total;
 }
 
-const nativeAlerts = runCount(
-  `rg -n "Alert\\\\.(alert|prompt)" app hooks components | wc -l | tr -d ' '`,
-);
-const promptCount = runCount(`rg -n "uiFeedback\\\\.prompt\\(" app hooks components | wc -l | tr -d ' '`);
-const alertCount = runCount(`rg -n "uiFeedback\\\\.alert\\(" app hooks components | wc -l | tr -d ' '`);
-const toastCount = runCount(`rg -n "uiFeedback\\\\.showToast\\(" app hooks components | wc -l | tr -d ' '`);
+const nativeAlerts = countMatches(/Alert\.(alert|prompt)\s*\(/g);
+const chooseCount = countMatches(/uiFeedback\.choose\s*\(/g);
+const alertCount = countMatches(/uiFeedback\.alert\s*\(/g);
+const toastCount = countMatches(/uiFeedback\.showToast\s*\(/g);
 
 console.log('Alert Usage Audit');
 console.log('=================');
 console.log(`Native Alert calls      : ${nativeAlerts}`);
 console.log(`uiFeedback.alert calls  : ${alertCount}`);
-console.log(`uiFeedback.prompt calls : ${promptCount}`);
+console.log(`uiFeedback.choose calls : ${chooseCount}`);
 console.log(`uiFeedback.showToast    : ${toastCount}`);
 
 if (nativeAlerts > 0) {
@@ -31,4 +42,3 @@ if (nativeAlerts > 0) {
 }
 
 console.log('\nPass: no native Alert usage detected.');
-

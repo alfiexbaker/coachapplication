@@ -1,11 +1,11 @@
 #!/usr/bin/env node
 
-const { execSync } = require('node:child_process');
 const { readFileSync } = require('node:fs');
 const { resolve } = require('node:path');
 
+const { listFiles: listFilesFromTree } = require('./file-scan-utils');
+
 const TARGETS = ['app', 'hooks', 'components'];
-const FILE_GLOBS = ["'**/*.tsx'"];
 
 const CHECKS = [
   {
@@ -33,9 +33,7 @@ const CHECKS = [
 const NATIVE_ALERT_EXCEPTION_TAG = 'native-alert-exception';
 
 function listFiles() {
-  const cmd = `rg --files ${TARGETS.join(' ')} ${FILE_GLOBS.map((glob) => `-g ${glob}`).join(' ')}`;
-  const output = execSync(cmd, { encoding: 'utf8' }).trim();
-  return output ? output.split('\n') : [];
+  return listFilesFromTree(TARGETS, { extensions: ['.tsx'] });
 }
 
 function getLineNumber(source, index) {

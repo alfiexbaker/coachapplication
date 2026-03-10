@@ -98,6 +98,7 @@ const toBookingSummary = (
     createdAt: booking.createdAt,
     clubId: booking.clubId ?? recurringSource?.clubId,
     actingAs: booking.actingAs ?? recurringSource?.actingAs,
+    commercialMode: booking.commercialMode ?? recurringSource?.commercialMode,
     ownerCoachId,
     ownerCoachName: resolveUserLabel(ownerCoachId, booking.coachName),
     assigneeCoachId,

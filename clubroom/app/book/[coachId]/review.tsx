@@ -26,12 +26,13 @@ import { bookingStepAnalyticsService } from '@/services/booking/booking-step-ana
 import { coachService } from '@/services/coach-service';
 import type { Coach } from '@/services/coach-service';
 import { schedulingRulesService } from '@/services/scheduling-rules-service';
-import type { CancellationPolicy } from '@/constants/types';
+import type { CancellationPolicy, OrganizationCommercialMode } from '@/constants/types';
 import { createLogger } from '@/utils/logger';
 import { BOOKING_LOCATION_OPTIONS } from '@/constants/booking-flow';
 import { academyService } from '@/services/academy-service';
 import { userService } from '@/services/user-service';
 import { hasAccountChildren } from '@/utils/booking-self-capability';
+import { getBookingRelationshipContext } from '@/utils/booking-display';
 
 const logger = createLogger('BookingReview');
 
@@ -51,6 +52,9 @@ export default function ReviewScreen() {
   const [promoError, setPromoError] = useState<string | null>(null);
   const [clubLabel, setClubLabel] = useState<string | null>(null);
   const [assigneeLabel, setAssigneeLabel] = useState<string | null>(null);
+  const [commercialMode, setCommercialMode] = useState<OrganizationCommercialMode | null>(
+    draft.commercialMode ?? null,
+  );
 
   const loadCoach = useCallback(async () => {
     if (!coachId) {
@@ -127,14 +131,20 @@ export default function ReviewScreen() {
       if (cancelled) return;
       if (result.success && result.data?.name) {
         setClubLabel(result.data.name);
+        const nextCommercialMode = result.data.commercialMode ?? 'COACH_OWNED';
+        setCommercialMode(nextCommercialMode);
+        if (draft.commercialMode !== nextCommercialMode) {
+          updateDraft({ commercialMode: nextCommercialMode });
+        }
       } else {
         setClubLabel(draft.clubId ?? null);
+        setCommercialMode('COACH_OWNED');
       }
     });
     return () => {
       cancelled = true;
     };
-  }, [draft.clubId]);
+  }, [draft.clubId, draft.commercialMode, updateDraft]);
 
   useEffect(() => {
     if (!draft.assigneeCoachId) {
@@ -191,6 +201,17 @@ export default function ReviewScreen() {
       minute: '2-digit',
     });
   }, [draft.slot]);
+  const relationshipContext = useMemo(
+    () =>
+      getBookingRelationshipContext({
+        actingAs: draft.actingAs,
+        organizationLabel: clubLabel,
+        coachLabel: coach?.name || draft.coachName || 'Coach',
+        deliveredByLabel: assigneeLabel || coach?.name || draft.coachName || 'Coach',
+        commercialMode,
+      }),
+    [assigneeLabel, clubLabel, coach?.name, commercialMode, draft.actingAs, draft.coachName],
+  );
 
   // Handle promo code application
   const handleApplyPromo = () => {
@@ -347,16 +368,17 @@ export default function ReviewScreen() {
         />
 
         <View style={[styles.card, { borderColor: palette.border }]}>
-          <SummaryRow label="Coach" value={coach?.name || draft.coachName || 'Coach'} />
-          {draft.actingAs === 'club' ? (
-            <SummaryRow label="Booked via" value={clubLabel || draft.clubId || 'Club'} />
+          <SummaryRow label="Booked with" value={relationshipContext.bookedWithLabel} />
+          {relationshipContext.organizationLabel ? (
+            <SummaryRow label="Organization" value={relationshipContext.organizationLabel} />
           ) : null}
           {draft.actingAs === 'club' ? (
             <SummaryRow
               label="Delivered by"
-              value={assigneeLabel || coach?.name || draft.coachName || 'Coach'}
+              value={relationshipContext.deliveredByLabel}
             />
           ) : null}
+          <SummaryRow label="Billing" value={relationshipContext.billingLabel} />
           <SummaryRow label="Date" value={reviewDateLabel} />
           <SummaryRow label="Time" value={reviewTimeLabel} />
           <SummaryRow
@@ -374,10 +396,7 @@ export default function ReviewScreen() {
 
         <PaymentMethodCard
           colors={palette}
-          paymentMethod={
-            (draft as unknown as Record<string, string>).paymentMethod ||
-            'Payment arranged directly with your coach after confirmation.'
-          }
+          paymentMethod={relationshipContext.paymentSummary}
         />
 
         <PromoCodeCard

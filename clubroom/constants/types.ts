@@ -120,6 +120,7 @@ export type {
 // CLUB TYPES
 // ============================================================================
 export type {
+  OrganizationCommercialMode,
   ClubRole,
   Club,
   ClubMembership,

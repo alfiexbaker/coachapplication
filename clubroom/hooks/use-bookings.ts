@@ -206,6 +206,7 @@ export function useBookings(): UseBookingsResult {
           audienceLabel,
           clubId: booking.clubId ?? recurringSource?.clubId,
           actingAs: booking.actingAs ?? recurringSource?.actingAs,
+          commercialMode: booking.commercialMode ?? recurringSource?.commercialMode,
           ownerCoachId: booking.ownerCoachId ?? recurringSource?.ownerCoachId,
           assigneeCoachId: booking.assigneeCoachId ?? recurringSource?.assigneeCoachId,
           createdByUserId: booking.createdByUserId ?? recurringSource?.createdByUserId,

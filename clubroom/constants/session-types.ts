@@ -7,6 +7,7 @@
  */
 
 import type { FootballObjective, UserRole } from './user-types';
+import type { OrganizationCommercialMode } from './club-types';
 
 // ============================================================================
 // SESSION MANAGEMENT TYPES
@@ -253,6 +254,7 @@ export interface BookingSummary {
   createdAt?: string;
   clubId?: string;
   actingAs?: 'self' | 'club';
+  commercialMode?: OrganizationCommercialMode;
   ownerCoachId?: string;
   ownerCoachName?: string;
   assigneeCoachId?: string;
@@ -770,6 +772,7 @@ export interface RecurringBooking {
   sessionsRemaining?: number;
   /** Ownership/delegation metadata for club-created recurring programs */
   actingAs?: 'self' | 'club';
+  commercialMode?: OrganizationCommercialMode;
   ownerCoachId?: string;
   assigneeCoachId?: string;
   createdByUserId?: string;
@@ -795,6 +798,7 @@ export interface CreateRecurringBookingParams {
   pricePerSession?: number;
   notes?: string;
   actingAs?: 'self' | 'club';
+  commercialMode?: OrganizationCommercialMode;
   ownerCoachId?: string;
   assigneeCoachId?: string;
   createdByUserId?: string;
