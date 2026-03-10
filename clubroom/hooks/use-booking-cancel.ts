@@ -200,14 +200,20 @@ export function useBookingCancel(id: string, mode?: string) {
       void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
 
       if (isCoach) {
-        uiFeedback.showToast(`The session has been cancelled and ${athleteName}'s parent has been notified.${
+        uiFeedback.showToast(
+          `The session has been cancelled and ${athleteName}'s parent has been notified.${
             refundCalc.netRefundAmount > 0
-              ? ` A refund of \u00A3${refundCalc.netRefundAmount.toFixed(2)} will be processed.`
+              ? ` If payment has already been made, arrange any \u00A3${refundCalc.netRefundAmount.toFixed(2)} adjustment directly and update your reconciler.`
               : ''
-          }`, 'success');
+          }`,
+          'success',
+        );
 router.back();
       } else if (refundCalc.netRefundAmount > 0) {
-        uiFeedback.showToast(`Your booking has been cancelled. A refund of \u00A3${refundCalc.netRefundAmount.toFixed(2)} will be processed within 5-7 business days.`, 'success');
+        uiFeedback.showToast(
+          `Your booking has been cancelled. If payment has already been made, the coach or organization will confirm any \u00A3${refundCalc.netRefundAmount.toFixed(2)} adjustment directly outside the app.`,
+          'success',
+        );
 router.back();
       } else {
         uiFeedback.showToast('Your booking has been cancelled. The coach has been notified.', 'success');

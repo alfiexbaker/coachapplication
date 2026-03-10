@@ -221,7 +221,7 @@ export default function CancelBookingScreen() {
         <View style={styles.footerContent}>
           {cancel.refundCalc && cancel.refundCalc.netRefundAmount > 0 && !cancel.isCoach && (
             <ThemedText style={[styles.footerRefund, { color: palette.muted }]}>
-              Refund: {'\u00A3'}
+              Estimated adjustment: {'\u00A3'}
               {cancel.refundCalc.netRefundAmount.toFixed(2)}
             </ThemedText>
           )}

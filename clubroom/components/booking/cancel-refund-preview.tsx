@@ -31,7 +31,7 @@ export const CancelRefundPreview = memo(function CancelRefundPreview({
           color={refundCalc?.isEligible ? palette.success : palette.error}
         />
         <ThemedText type="subtitle" style={styles.title}>
-          {isCoach ? 'Refund to Parent' : 'Refund Preview'}
+          {isCoach ? 'Billing Adjustment Estimate' : 'Cancellation Outcome Estimate'}
         </ThemedText>
       </Row>
 
@@ -48,7 +48,7 @@ export const CancelRefundPreview = memo(function CancelRefundPreview({
             ]}
           >
             <ThemedText style={[styles.label, { color: palette.muted }]}>
-              {isCoach ? 'Parent receives' : "You'll receive"}
+              {isCoach ? 'Estimate to return or credit' : 'Estimated amount to be returned or credited'}
             </ThemedText>
             <ThemedText
               type="title"
@@ -78,7 +78,7 @@ export const CancelRefundPreview = memo(function CancelRefundPreview({
             </Row>
             <Row style={styles.row}>
               <ThemedText style={{ color: palette.muted }}>
-                Refund ({refundCalc.refundPercentage}%)
+                Policy return ({refundCalc.refundPercentage}%)
               </ThemedText>
               <ThemedText>
                 {'\u00A3'}
@@ -95,7 +95,7 @@ export const CancelRefundPreview = memo(function CancelRefundPreview({
               </Row>
             )}
             <Row style={[styles.row, styles.total, { borderTopColor: palette.border }]}>
-              <ThemedText type="defaultSemiBold">Net refund</ThemedText>
+              <ThemedText type="defaultSemiBold">Estimated adjustment</ThemedText>
               <ThemedText type="defaultSemiBold" style={{ color: palette.success }}>
                 {'\u00A3'}
                 {refundCalc.netRefundAmount.toFixed(2)}
@@ -106,7 +106,7 @@ export const CancelRefundPreview = memo(function CancelRefundPreview({
           <Row style={[styles.timeNotice, { backgroundColor: withAlpha(palette.warning, 0.06) }]}>
             <Ionicons name="time-outline" size={18} color={palette.warning} />
             <ThemedText style={[styles.timeText, { color: palette.warning }]}>
-              {formatTimeUntil(refundCalc.hoursUntilSession)} until session
+              {formatTimeUntil(refundCalc.hoursUntilSession)} until session. Final payment handling happens outside the app.
             </ThemedText>
           </Row>
         </>
