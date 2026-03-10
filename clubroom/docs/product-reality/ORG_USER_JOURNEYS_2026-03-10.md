@@ -26,6 +26,7 @@ What feels wrong today:
 - org control is split between `club` and `academy` language
 - session assignment flows still carry `academyService` assumptions
 - there is no first-class owner console above the coach-level experience
+- the product does not yet let Johnny explicitly choose whether the org or the coach owns the money
 
 ## 2. Admin / Ops Journey
 
@@ -49,6 +50,7 @@ What feels wrong today:
 - the app has management capability, but not yet as a clean org-operations surface
 - money ownership is still ambiguous
 - some settings and support actions are scattered across club and coach surfaces
+- the parent-facing booking story does not yet make the billing owner explicit
 
 ## 3. Head Coach / Director Journey
 
@@ -93,6 +95,7 @@ What feels wrong today:
 
 - coach tooling is strong, but some relationship copy still reads like social networking
 - org-owned versus self-owned work is not explained clearly enough
+- earnings do not yet cleanly separate org payouts from independent revenue
 
 ## 5. Parent Journey In An Org Context
 
@@ -115,6 +118,7 @@ What feels wrong today:
 
 - org ownership and coach assignment rules are not explicit in the booking story
 - relationship language is still partly social rather than professional
+- billing owner and support owner are not yet stated clearly enough during booking
 
 ## 6. Athlete Journey In An Org Context
 

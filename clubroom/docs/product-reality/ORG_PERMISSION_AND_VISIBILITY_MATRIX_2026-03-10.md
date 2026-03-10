@@ -96,10 +96,24 @@ Should not see:
 ## Operating Rules
 
 1. Assignment controls visibility.
-2. Org ownership controls financial visibility.
+2. Commercial mode controls financial visibility.
 3. Safety context should be granted on a need-to-know basis.
 4. Coaching quality oversight belongs above the individual coach.
 5. Assistant access should default to narrower than coach access.
+
+## Commercial Mode Consequences
+
+### If org is `Org-Owned`
+
+- owner and authorized ops can see org revenue, balances, and coach payout obligations
+- coaches see payout or credit for org work, not primary customer revenue
+- parent support and refunds route to the organization
+
+### If org is `Coach-Owned`
+
+- coaches see direct revenue for their coach-owned org work
+- owner visibility is narrower and should not imply full control over coach-earned funds
+- parent billing language must make the coach the commercial owner
 
 ## Product Consequence
 

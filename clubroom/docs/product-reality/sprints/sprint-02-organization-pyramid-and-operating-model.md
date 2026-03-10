@@ -44,10 +44,12 @@ This is fundamental. It is not a later "club enhancement".
    - who delivers the session
    - who can reassign it
 5. Define money rules:
+   - how org commercial mode works
    - who charges the family
    - who receives funds
    - who pays the coach
-6. Define whether coaches can also operate independently while belonging to an org.
+   - who owns refunds and support
+6. Define how coaches can operate independently while belonging to one or more orgs.
 7. Define how current club and academy concepts map into the new model.
 
 ## Deliverables
@@ -56,16 +58,18 @@ This is fundamental. It is not a later "club enhancement".
 2. A permission and visibility matrix.
 3. A user-journey doc for owner, ops, head coach, coach, parent, and athlete.
 4. A market-baseline doc showing what real org buyers already expect.
-5. A commercial ownership model.
+5. An explicit org relationship model.
 6. A migration view showing how current club and academy surfaces should evolve.
 
 ## Acceptance Criteria
 
 - the team can explain the org model in one page without contradictions
 - every org-owned session can answer:
+  - who the family is booking with
   - who owns it
   - who delivers it
   - who gets paid
+  - who owes support and refunds
   - who can reassign it
   - who can see it
 - current club and academy ambiguity is resolved at the planning level
@@ -90,10 +94,13 @@ This is fundamental. It is not a later "club enhancement".
 
 ## Macro Decisions Required
 
-1. Can a coach belong to multiple orgs and still run an independent book of business?
-2. In the default org flow, does the organization own the money and pay coaches out?
+Resolved for planning:
+
+1. A coach can belong to multiple orgs and still run an independent book of business.
+2. The org owner chooses the org commercial mode.
 
 Working premise already chosen:
 
 - `academy` is not a separate runtime architecture for this planning cycle
 - if it survives, it survives as label or org subtype, not as a second ghost product
+- V1 should use one commercial mode per org, not per-session overrides

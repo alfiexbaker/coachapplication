@@ -1,7 +1,7 @@
 # Org Pyramid Model
 
 Date: 2026-03-10
-Status: working direction for discussion
+Status: planning direction locked unless a later decision reopens it
 
 ## Core Thesis
 
@@ -193,51 +193,43 @@ Suggested hierarchy:
 - no financial control
 - limited or masked sensitive data unless policy requires otherwise
 
-## Payment Model Options
+## Commercial Ownership
 
-This is the most important org decision after permissions.
+The owner should choose the commercial mode for the organization.
 
-### Option A: Org owns the customer relationship and pays coaches out
+Recommended V1 rule:
 
-Meaning:
+- org chooses one commercial mode at org settings
+- org-created sessions inherit that mode
+- coaches may still run independent business outside the org
+- no per-session commercial override in V1
+
+Supported commercial modes:
+
+### Mode A: Org-Owned
 
 - parent pays the organization
 - the organization pays the coach
-- the owner can see all revenue, margins, and payouts
+- the owner can see revenue, margins, and payouts
 
-Pros:
+### Mode B: Coach-Owned
 
-- strongest business-control model
-- best fit for `Johnny's Coaching LTD`
-- easiest path to centralized reporting and payroll-style operations
+- parent pays the coach directly
+- the org acts as umbrella, network, or operating context
+- the coach remains primary commercial owner
 
-Cons:
+The key requirement is not just supporting both modes.
 
-- more finance complexity
-- stronger compliance and payout requirements
+It is making the choice explicit in:
 
-### Option B: Coach-owned sales inside an org umbrella
+- booking review
+- confirmation
+- refunds
+- support ownership
+- coach earnings
+- org reporting
 
-Meaning:
-
-- coach may own some customer relationships directly
-- org may assign or endorse the coach but not own every transaction
-
-Pros:
-
-- easier for hybrid collectives
-- aligns with marketplace roots
-
-Cons:
-
-- much messier ownership, reporting, and payment logic
-- more ambiguity for parents and ops
-
-### Recommended Direction
-
-Default to Option A for org-owned sessions.
-
-If hybrid coach-owned business is needed later, model it explicitly as a second commercial mode, not as accidental ambiguity.
+For the full relationship model, see `ORG_RELATIONSHIP_MODEL_2026-03-10.md`.
 
 ## Product Principle
 

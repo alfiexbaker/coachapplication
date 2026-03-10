@@ -53,8 +53,14 @@ Decision:
 
 Open sub-decisions:
 
-- can coaches operate independently while inside an org
-- does the org own the money by default
+- whether V1 supports only org-level commercial mode or also per-session overrides
+
+Working rule now:
+
+- coaches can operate independently while inside an org
+- the org owner chooses the org's commercial mode
+- commercial mode should be explicit in booking, payouts, refunds, and reporting
+- no per-session commercial override in V1 unless a later sprint proves it is necessary
 
 ## 4. Coach Access To Athlete Health
 
