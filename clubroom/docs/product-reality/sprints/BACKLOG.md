@@ -30,8 +30,8 @@ Updated: 2026-03-10
 | ID | Sprint | Priority | Status | Why |
 |---|---|---|---|---|
 | PR-01 | `sprint-01-truth-guardrails-and-audit-honesty.md` | P0 | DONE | Repo-critical audit and test signals now run honestly without the old false-green tooling issue |
-| PR-02 | `sprint-02-organization-pyramid-and-operating-model.md` | P0 | IN PROGRESS | The org hierarchy and commercial model are defined; the first booking-truth slice is in code and the next execution order is now tighter |
-| PR-03 | `sprint-03-commercial-mode-and-booking-truth.md` | P0 | OPEN | The owner must be able to set the org commercial rule in the live settings path and families must see the consequence clearly |
+| PR-02 | `sprint-02-organization-pyramid-and-operating-model.md` | P0 | DONE | The org hierarchy, permission matrix, relationship model, journeys, and implementation blueprint are now locked |
+| PR-03 | `sprint-03-commercial-mode-and-booking-truth.md` | P0 | DONE | The owner can set commercial mode in live club settings, and booking review/detail surfaces now show booking, billing, and support ownership honestly |
 | PR-04 | `sprint-04-org-assignment-and-staffing-console.md` | P0 | OPEN | The owner/admin needs a real operating console for staffing, assignment, and reassignment |
 | PR-05 | `sprint-05-head-coach-oversight-and-tasking.md` | P0 | OPEN | The middle of the pyramid needs a real runtime job, not only a role label |
 | PR-06 | `sprint-06-coach-work-split-and-earnings-realism.md` | P1 | OPEN | Coaches must be able to separate org work from independent work without fake payout language |

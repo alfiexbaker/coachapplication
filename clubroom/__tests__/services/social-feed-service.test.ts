@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 
 import { onTyped, ServiceEvents } from '@/services/event-bus';
-import { clubFeedService } from '@/services/social-feed-service';
+import { clubFeedService, socialFeedService } from '@/services/social-feed-service';
 
 let testIdSeq = 0;
 
@@ -59,5 +59,30 @@ describe('clubFeedService', () => {
   it('returns empty personal feed for coach with no posts (empty path)', () => {
     const feed = clubFeedService.getPersonalFeed(nextId('coach_none'));
     assert.deepEqual(feed, []);
+  });
+
+  it('persists commercial mode updates for live clubs', async () => {
+    const clubId = 'club_lions';
+    const original = await socialFeedService.getClub(clubId);
+
+    assert.ok(original);
+    if (!original) return;
+
+    const nextMode = original.commercialMode === 'ORG_OWNED' ? 'COACH_OWNED' : 'ORG_OWNED';
+
+    try {
+      const updated = await socialFeedService.updateClubCommercialMode(clubId, nextMode);
+      assert.equal(updated.success, true);
+      if (!updated.success) return;
+
+      assert.equal(updated.data.commercialMode, nextMode);
+      assert.equal(updated.data.name, original.name);
+
+      const reloaded = await socialFeedService.getClub(clubId);
+      assert.equal(reloaded?.commercialMode, nextMode);
+      assert.equal(reloaded?.ownerId, original.ownerId);
+    } finally {
+      await socialFeedService.updateClubCommercialMode(clubId, original.commercialMode ?? 'COACH_OWNED');
+    }
   });
 });

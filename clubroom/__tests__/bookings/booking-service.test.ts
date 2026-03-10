@@ -6,6 +6,7 @@ import { apiClient } from '@/services/api-client';
 import { bookingService } from '@/services/booking-service';
 import type { CreateBookingParams } from '@/services/booking-service';
 import { onTyped, ServiceEvents } from '@/services/event-bus';
+import { socialFeedService } from '@/services/social-feed-service';
 
 function createParams(id: string, overrides: Partial<CreateBookingParams> = {}): CreateBookingParams {
   return {
@@ -151,5 +152,40 @@ describe('bookingService (real facade)', () => {
     assert.equal(result.data.ownerCoachId, 'owner-01');
     assert.equal(result.data.assigneeCoachId, 'coach-06-assigned');
     assert.equal(result.data.createdByUserId, 'owner-01');
+  });
+
+  it('does not rewrite existing booking ownership when club commercial mode changes later', async () => {
+    const clubId = 'club_lions';
+    const originalClub = await socialFeedService.getClub(clubId);
+
+    assert.ok(originalClub);
+    if (!originalClub) return;
+
+    const created = await bookingService.createBooking(
+      createParams('07', {
+        clubId,
+        actingAs: 'club',
+        commercialMode: 'COACH_OWNED',
+        ownerCoachId: 'owner-07',
+        assigneeCoachId: 'coach-07-assigned',
+        createdByUserId: 'owner-07',
+      }),
+    );
+
+    assert.equal(created.success, true);
+    if (!created.success) return;
+
+    try {
+      await socialFeedService.updateClubCommercialMode(clubId, 'ORG_OWNED');
+
+      const stored = await bookingService.getBooking(created.data.id);
+      assert.equal(stored?.commercialMode, 'COACH_OWNED');
+      assert.equal(stored?.assigneeCoachId, 'coach-07-assigned');
+    } finally {
+      await socialFeedService.updateClubCommercialMode(
+        clubId,
+        originalClub.commercialMode ?? 'COACH_OWNED',
+      );
+    }
   });
 });

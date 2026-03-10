@@ -18,3 +18,5 @@ export type { JoinClubCardProps } from './JoinClubCard';
 
 export { BrandingEditor } from './branding-editor';
 export type { BrandingEditorProps } from './branding-editor';
+
+export { SettingsCommercialSection } from './settings-commercial-section';

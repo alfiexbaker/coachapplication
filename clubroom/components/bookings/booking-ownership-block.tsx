@@ -1,4 +1,4 @@
-import { memo, useEffect, useState } from 'react';
+import { memo, useEffect, useMemo, useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
@@ -7,7 +7,11 @@ import { ThemedText } from '@/components/themed-text';
 import { Radii, Spacing, Typography, withAlpha } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
 import type { BookingSummary } from '@/constants/types';
-import { academyService } from '@/services/academy-service';
+import { socialFeedService } from '@/services/social-feed-service';
+import {
+  getBookingRelationshipContext,
+  getBookingSummaryCoachName,
+} from '@/utils/booking-display';
 
 interface BookingOwnershipBlockProps {
   booking: BookingSummary;
@@ -16,37 +20,58 @@ interface BookingOwnershipBlockProps {
 
 function BookingOwnershipBlockInner({ booking, compact = false }: BookingOwnershipBlockProps) {
   const { colors: palette } = useTheme();
-  const [clubLabel, setClubLabel] = useState<string | null>(booking.clubId ?? null);
+  const [organizationLabel, setOrganizationLabel] = useState<string | null>(booking.clubId ?? null);
 
   useEffect(() => {
     if (booking.actingAs !== 'club' || !booking.clubId) {
-      setClubLabel(null);
+      setOrganizationLabel(null);
       return;
     }
 
     let cancelled = false;
-    void academyService.getAcademy(booking.clubId).then((result) => {
+    void socialFeedService.getClub(booking.clubId).then((club) => {
       if (cancelled) return;
-      if (result.success && result.data?.name) {
-        setClubLabel(result.data.name);
+      if (club?.name) {
+        setOrganizationLabel(club.name);
       } else {
-        setClubLabel(booking.clubId ?? null);
+        setOrganizationLabel(booking.clubId ?? null);
       }
     });
 
     return () => {
       cancelled = true;
     };
-  }, [booking.clubId]);
+  }, [booking.actingAs, booking.clubId]);
 
   if (booking.actingAs !== 'club') {
     return null;
   }
 
-  const ownerLabel = booking.ownerCoachName || booking.ownerCoachId || null;
-  const assigneeLabel = booking.assigneeCoachName || booking.assigneeCoachId || null;
-  const deliveryLabel = assigneeLabel || ownerLabel;
-  const hasSeparateOwner = ownerLabel && assigneeLabel && ownerLabel !== assigneeLabel;
+  const coachLabel = booking.ownerCoachName || getBookingSummaryCoachName(booking);
+  const deliveryLabel = booking.assigneeCoachName || booking.assigneeCoachId || coachLabel;
+  const relationshipContext = useMemo(
+    () =>
+      getBookingRelationshipContext({
+        actingAs: booking.actingAs,
+        organizationLabel,
+        coachLabel,
+        deliveredByLabel: deliveryLabel,
+        commercialMode: booking.commercialMode,
+      }),
+    [booking.actingAs, booking.commercialMode, coachLabel, deliveryLabel, organizationLabel],
+  );
+  const detailRows = compact
+    ? [
+        `Booked with ${relationshipContext.bookedWithLabel}`,
+        `Billing ${relationshipContext.billingLabel}`,
+      ]
+    : [
+        organizationLabel ? `Organization: ${organizationLabel}` : null,
+        `Booked with ${relationshipContext.bookedWithLabel}`,
+        `Delivered by ${relationshipContext.deliveredByLabel}`,
+        `Billing ${relationshipContext.billingLabel}`,
+        `Support ${relationshipContext.supportLabel}`,
+      ].filter((row): row is string => Boolean(row));
 
   return (
     <View
@@ -61,27 +86,21 @@ function BookingOwnershipBlockInner({ booking, compact = false }: BookingOwnersh
       <Row align="center" gap="xxs">
         <Ionicons name="business-outline" size={compact ? 11 : 12} color={palette.info} />
         <ThemedText style={[compact ? styles.labelCompact : styles.label, { color: palette.info }]}>
-          {clubLabel ? `Club: ${clubLabel}` : 'Club session'}
+          Club booking
         </ThemedText>
       </Row>
-
-      {deliveryLabel ? (
+      {detailRows.map((row) => (
         <ThemedText
-          style={[compact ? styles.metaCompact : styles.meta, { color: palette.text }]}
-          numberOfLines={1}
+          key={row}
+          style={[
+            compact ? styles.metaCompact : styles.meta,
+            { color: row.startsWith('Organization') ? palette.muted : palette.text },
+          ]}
+          numberOfLines={compact ? 1 : 2}
         >
-          Delivered by {deliveryLabel}
+          {row}
         </ThemedText>
-      ) : null}
-
-      {hasSeparateOwner ? (
-        <ThemedText
-          style={[compact ? styles.metaCompact : styles.meta, { color: palette.muted }]}
-          numberOfLines={1}
-        >
-          Owner {ownerLabel}
-        </ThemedText>
-      ) : null}
+      ))}
     </View>
   );
 }

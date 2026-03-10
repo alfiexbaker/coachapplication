@@ -16,6 +16,7 @@ import { SettingsInvitesSection } from '@/components/club/settings-invites-secti
 import { SettingsSquadsSection } from '@/components/club/settings-squads-section';
 import { SettingsMembersSection } from '@/components/club/settings-members-section';
 import { SettingsBrandingSection } from '@/components/club/settings-branding-section';
+import { SettingsCommercialSection } from '@/components/club/settings-commercial-section';
 import { Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
 import { useClubSettings, SETTINGS_SECTIONS } from '@/hooks/use-club-settings';
@@ -31,6 +32,7 @@ export default function ClubSettingsScreen() {
     membership,
     inviteCodes,
     canManageClub,
+    canEditCommercialMode,
     loading,
     activeSection,
     setActiveSection,
@@ -42,11 +44,13 @@ export default function ClubSettingsScreen() {
     setEditCity,
     brandingDraft,
     isSavingBranding,
+    isSavingCommercialMode,
     handleCopyCode,
     handleShareCode,
     handleGenerateCode,
     handleDeleteCode,
     handleSaveDetails,
+    handleUpdateCommercialMode,
     handleBrandingChange,
     handleSaveBranding,
     handleCreateSquad,
@@ -157,6 +161,16 @@ export default function ClubSettingsScreen() {
             isSaving={isSavingBranding}
             onChange={handleBrandingChange}
             onSave={handleSaveBranding}
+          />
+        )}
+        {activeSection === 'commercial' && (
+          <SettingsCommercialSection
+            colors={colors}
+            commercialMode={club.commercialMode ?? 'COACH_OWNED'}
+            canEditCommercialMode={canEditCommercialMode}
+            isSaving={isSavingCommercialMode}
+            viewerRole={membership?.role}
+            onSelectMode={handleUpdateCommercialMode}
           />
         )}
         {activeSection === 'invites' && (

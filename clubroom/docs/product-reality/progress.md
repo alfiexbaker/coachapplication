@@ -7,7 +7,7 @@ Purpose: keep a live record of what has been decided, what has been completed, a
 
 - planning foundation: strong
 - org model direction: locked
-- first runtime org slice: started
+- first runtime org slices: landed in live settings and booking detail
 - complete pre-API POC plan: not fully complete until the coach/user-first and pre-API closure sprints are included
 
 ## Locked Decisions
@@ -35,6 +35,9 @@ Purpose: keep a live record of what has been decided, what has been completed, a
 - phase 3 scope tightened to match real runtime surfaces
 - audit/tooling truth fixes landed
 - first booking-flow commercial-mode slice landed
+- owner-controlled commercial mode landed in live club settings
+- booking detail and booking cards now show booked with / delivered by / billing / support truth
+- UI audit false-positive for re-export routes removed
 - active sprint stack reworked around operator reality
 - complete-POC layer added
 - pre-API completeness review added
@@ -45,8 +48,9 @@ Purpose: keep a live record of what has been decided, what has been completed, a
 | Sprint | Status | Notes |
 |---|---|---|
 | PR-01 | Done | truth guardrails fixed |
-| PR-02 | In progress | planning complete, first runtime slice landed |
-| PR-03 to PR-07 | Open | org-core runtime spine |
+| PR-02 | Done | org operating model, permissions, journeys, and blueprint are defined |
+| PR-03 | Done | owner commercial mode now works in live club settings and booking detail truth is visible |
+| PR-04 to PR-07 | Open | org-core runtime spine after commercial truth |
 | PR-11 to PR-15 | Open | complete-POC layer |
 | PR-16 to PR-20 | Open | coach/user-first and pre-API closure layer |
 | PR-08 to PR-10 | Open | important cleanup/hardening after core proof |
@@ -71,7 +75,7 @@ For the product to behave like `Johnny's Coaching LTD`, all of these must become
 
 ## Current Next Step
 
-- implement `PR-03` commercial mode in the live club settings path
+- implement `PR-04` org assignment and staffing console
 
 ## Read Next
 

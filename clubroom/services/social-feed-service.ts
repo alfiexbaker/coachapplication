@@ -6,6 +6,7 @@ import type {
   ClubPostType,
   FeedFilter,
   FeedType,
+  OrganizationCommercialMode,
 } from '@/constants/types';
 import { generateId } from '@/utils/generate-id';
 import {
@@ -83,6 +84,7 @@ const SEED_CLUBS: Club[] = [
     squadCount: 3,
     ownerId: 'coach1',
     inviteCode: 'LIONS-CLUB',
+    commercialMode: 'COACH_OWNED',
   },
   {
     id: 'club_eagles',
@@ -98,6 +100,7 @@ const SEED_CLUBS: Club[] = [
     squadCount: 2,
     ownerId: 'coach2',
     inviteCode: 'EAGLES-JOIN',
+    commercialMode: 'COACH_OWNED',
   },
   {
     id: 'club_warriors',
@@ -113,6 +116,7 @@ const SEED_CLUBS: Club[] = [
     squadCount: 5,
     ownerId: 'coach3',
     inviteCode: 'WARRIORS-2026',
+    commercialMode: 'COACH_OWNED',
   },
   {
     id: 'club_phoenix',
@@ -128,6 +132,7 @@ const SEED_CLUBS: Club[] = [
     squadCount: 3,
     ownerId: 'coach2',
     inviteCode: 'PHOENIX-JOIN',
+    commercialMode: 'COACH_OWNED',
   },
   {
     id: 'club_united',
@@ -143,6 +148,7 @@ const SEED_CLUBS: Club[] = [
     squadCount: 6,
     ownerId: 'admin',
     inviteCode: 'NLU-FAMILY',
+    commercialMode: 'COACH_OWNED',
   },
 ];
 
@@ -923,6 +929,27 @@ class ClubFeedService {
     };
     clubsStore[clubIndex] = updatedClub;
     await this.persistClubs();
+    return ok(updatedClub);
+  }
+
+  async updateClubCommercialMode(
+    clubId: string,
+    commercialMode: OrganizationCommercialMode,
+  ): Promise<Result<Club, ServiceError>> {
+    await this.ensureHydrated();
+
+    const clubIndex = clubsStore.findIndex((club) => club.id === clubId);
+    if (clubIndex === -1) {
+      return err(validationError('Club not found'));
+    }
+
+    const updatedClub: Club = {
+      ...clubsStore[clubIndex],
+      commercialMode,
+    };
+    clubsStore[clubIndex] = updatedClub;
+    await this.persistClubs();
+    this.logger.info('club_commercial_mode_updated', { clubId, commercialMode });
     return ok(updatedClub);
   }
 

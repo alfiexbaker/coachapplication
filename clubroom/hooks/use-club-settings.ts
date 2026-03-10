@@ -12,13 +12,21 @@ import { clubService, type ClubBranding, type ClubMember } from '@/services/club
 import { squadService } from '@/services/squad-service';
 import { socialFeedService } from '@/services/social-feed-service';
 import { onTyped, ServiceEvents } from '@/services/event-bus';
-import type { Club, ClubSquad, ClubRole } from '@/constants/types';
+import type { Club, ClubSquad, ClubRole, OrganizationCommercialMode } from '@/constants/types';
 import { createLogger } from '@/utils/logger';
 import { uiFeedback } from '@/services/ui-feedback';
+import { canEditClubCommercialMode } from '@/utils/organization-commercial-mode';
 
 const logger = createLogger('ClubSettings');
 
-export type SettingsSection = 'details' | 'branding' | 'invites' | 'squads' | 'members' | 'danger';
+export type SettingsSection =
+  | 'details'
+  | 'branding'
+  | 'commercial'
+  | 'invites'
+  | 'squads'
+  | 'members'
+  | 'danger';
 
 export interface InviteCodeItem {
   code: string;
@@ -31,6 +39,7 @@ export interface InviteCodeItem {
 export const SETTINGS_SECTIONS: { key: SettingsSection; icon: string; label: string }[] = [
   { key: 'details', icon: 'information-circle-outline', label: 'Details' },
   { key: 'branding', icon: 'color-palette-outline', label: 'Branding' },
+  { key: 'commercial', icon: 'briefcase-outline', label: 'Commercial' },
   { key: 'invites', icon: 'mail-outline', label: 'Invites' },
   { key: 'squads', icon: 'layers-outline', label: 'Squads' },
   { key: 'members', icon: 'people-outline', label: 'Members' },
@@ -86,6 +95,7 @@ export function useClubSettings() {
   const canManageClub = membership
     ? ['OWNER', 'ADMIN', 'HEAD_COACH'].includes(membership.role)
     : false;
+  const canEditCommercialMode = canEditClubCommercialMode(membership?.role);
 
   const [club, setClub] = useState<Club | null>(null);
   const [squads, setSquads] = useState<ClubSquad[]>([]);
@@ -103,6 +113,7 @@ export function useClubSettings() {
   const [editCity, setEditCity] = useState('');
   const [brandingDraft, setBrandingDraft] = useState<ClubBranding | null>(null);
   const [isSavingBranding, setIsSavingBranding] = useState(false);
+  const [isSavingCommercialMode, setIsSavingCommercialMode] = useState(false);
 
   const loadData = useCallback(async () => {
     if (!clubId) {
@@ -115,7 +126,7 @@ export function useClubSettings() {
       return;
     }
 
-      setLoading(true);
+    setLoading(true);
     try {
       const clubData =
         (await socialFeedService.getClub(clubId)) ??
@@ -232,6 +243,54 @@ export function useClubSettings() {
     showToast('Club details saved', 'success');
     logger.action('SaveClubDetails', { name: editName, city: editCity });
   }, [canManageClub, club, editCity, editName, editTagline, showToast]);
+
+  const handleUpdateCommercialMode = useCallback(
+    async (nextMode: OrganizationCommercialMode) => {
+      if (!club) return;
+      if (!canManageClub) {
+        showToast('Only club leaders can view commercial settings', 'error');
+        return;
+      }
+      if (!canEditCommercialMode) {
+        showToast('Only the club owner can change billing responsibility', 'error');
+        return;
+      }
+
+      const currentMode = club.commercialMode ?? 'COACH_OWNED';
+      if (nextMode === currentMode || isSavingCommercialMode) {
+        return;
+      }
+
+      const confirmed = await uiFeedback.confirm({
+        title: 'Change billing responsibility?',
+        message:
+          nextMode === 'ORG_OWNED'
+            ? 'New club bookings will be shown as booked with, billed by, and supported by the organization. Existing bookings keep their current ownership.'
+            : 'New club bookings will be shown as booked with, billed by, and supported by the assigned coach. Existing bookings keep their current ownership.',
+        confirmText: 'Update mode',
+        cancelText: 'Keep current mode',
+      });
+      if (!confirmed) {
+        return;
+      }
+
+      setIsSavingCommercialMode(true);
+      try {
+        const result = await socialFeedService.updateClubCommercialMode(club.id, nextMode);
+        if (!result.success) {
+          showToast(result.error.message, 'error');
+          return;
+        }
+
+        setClub(result.data);
+        showToast('Commercial responsibility updated for new club bookings', 'success');
+        logger.action('UpdateClubCommercialMode', { clubId: club.id, commercialMode: nextMode });
+      } finally {
+        setIsSavingCommercialMode(false);
+      }
+    },
+    [canEditCommercialMode, canManageClub, club, isSavingCommercialMode, showToast],
+  );
 
   const handleBrandingChange = useCallback((updates: Partial<ClubBranding>) => {
     setBrandingDraft((previous) => (previous ? { ...previous, ...updates } : previous));
@@ -358,6 +417,7 @@ export function useClubSettings() {
     inviteCodes,
     membership,
     canManageClub,
+    canEditCommercialMode,
     loading,
     activeSection,
     setActiveSection,
@@ -369,11 +429,13 @@ export function useClubSettings() {
     setEditCity,
     brandingDraft,
     isSavingBranding,
+    isSavingCommercialMode,
     handleCopyCode,
     handleShareCode,
     handleGenerateCode,
     handleDeleteCode,
     handleSaveDetails,
+    handleUpdateCommercialMode,
     handleBrandingChange,
     handleSaveBranding,
     handleCreateSquad,

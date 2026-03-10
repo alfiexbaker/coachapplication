@@ -22,7 +22,7 @@ import { bookingStepAnalyticsService } from '@/services/booking/booking-step-ana
 import { bookingSelfSettingService } from '@/services/booking-self-setting-service';
 import { cancellationService } from '@/services/cancellation-service';
 import { coachService } from '@/services/coach-service';
-import { academyService } from '@/services/academy-service';
+import { socialFeedService } from '@/services/social-feed-service';
 import { userService } from '@/services/user-service';
 import { createLogger } from '@/utils/logger';
 import { CelebrationOverlay, CelebrationOverlayRef } from '@/components/celebration-overlay';
@@ -130,11 +130,11 @@ export default function ConfirmationScreen() {
       return;
     }
     let cancelled = false;
-    void academyService.getAcademy(draft.clubId).then((result) => {
+    void socialFeedService.getClub(draft.clubId).then((club) => {
       if (cancelled) return;
-      if (result.success && result.data?.name) {
-        setClubLabel(result.data.name);
-        setCommercialMode(result.data.commercialMode ?? 'COACH_OWNED');
+      if (club?.name) {
+        setClubLabel(club.name);
+        setCommercialMode(club.commercialMode ?? 'COACH_OWNED');
       } else {
         setClubLabel(draft.clubId ?? null);
         setCommercialMode('COACH_OWNED');

@@ -30,7 +30,9 @@ import { useBookingDetail } from '@/hooks/use-booking-detail';
 import { useAuth } from '@/hooks/use-auth';
 import { cancellationService } from '@/services/cancellation-service';
 import { invoiceService } from '@/services/invoice-service';
+import { socialFeedService } from '@/services/social-feed-service';
 import {
+  getBookingRelationshipContext,
   getBookingStatusLabel,
   getBookingSummaryClientName,
   getBookingSummaryCoachName,
@@ -93,6 +95,7 @@ export default function SessionDetailScreen() {
   const statusLabel = booking ? getBookingStatusLabel(booking.status, { isCoachView: isCoach }) : '';
   const [cancellationPolicy, setCancellationPolicy] = useState<import('@/constants/types').CancellationPolicy | null>(null);
   const [hasSubmittedReview, setHasSubmittedReview] = useState(false);
+  const [organizationLabel, setOrganizationLabel] = useState<string | null>(null);
   const [paymentSnapshot, setPaymentSnapshot] = useState<PaymentSnapshot>({
     amount: null,
     invoiceStatus: 'NONE',
@@ -160,6 +163,23 @@ export default function SessionDetailScreen() {
     };
   }, [booking?.id, booking?.price]);
 
+  useEffect(() => {
+    if (booking?.actingAs !== 'club' || !booking.clubId) {
+      setOrganizationLabel(null);
+      return;
+    }
+
+    let isMounted = true;
+    void socialFeedService.getClub(booking.clubId).then((club) => {
+      if (!isMounted) return;
+      setOrganizationLabel(club?.name || booking.clubId || null);
+    });
+
+    return () => {
+      isMounted = false;
+    };
+  }, [booking?.actingAs, booking?.clubId]);
+
   const loadReviewStatus = useCallback(async () => {
     if (!bookingId || isCoach || booking?.status !== 'Completed') {
       setHasSubmittedReview(false);
@@ -187,6 +207,23 @@ export default function SessionDetailScreen() {
     if (!bookingId || isCoach) return;
     router.push(Routes.review(bookingId));
   }, [bookingId, isCoach]);
+  const relationshipContext = useMemo(() => {
+    if (!booking) return null;
+    return getBookingRelationshipContext({
+      actingAs: booking.actingAs,
+      organizationLabel,
+      coachLabel: coachName,
+      deliveredByLabel: booking.assigneeCoachName || coachName,
+      commercialMode: booking.commercialMode,
+    });
+  }, [booking, coachName, organizationLabel]);
+  const paymentHelperText = useMemo(() => {
+    if (!relationshipContext) return undefined;
+    if (isCoach) {
+      return `Billing is handled by ${relationshipContext.billingLabel} outside the app. Track invoice status in your reconciler.`;
+    }
+    return relationshipContext.paymentSummary;
+  }, [isCoach, relationshipContext]);
 
   if (status === 'loading') {
     return (
@@ -281,6 +318,7 @@ export default function SessionDetailScreen() {
           dueDate={paymentSnapshot.dueDate}
           isCoachView={isCoach}
           onPressAction={isCoach ? () => router.push(Routes.EARNINGS) : handlers.messageCoach}
+          helperTextOverride={paymentHelperText}
         />
         {booking.coachId && (
           <CancellationPolicyCard coachId={booking.coachId} policy={cancellationPolicy ?? undefined} />
@@ -298,8 +336,10 @@ export default function SessionDetailScreen() {
             <Row align="start" gap="xs">
               <Ionicons name="information-circle-outline" size={18} color={palette.warning} />
               <ThemedText style={[styles.noticeText, { color: palette.text }]}>
-                Free cancellation is unavailable within 24 hours of the session. Contact your coach
-                to discuss options.
+                Free cancellation is unavailable within 24 hours of the session.{' '}
+                {booking.actingAs === 'club' && booking.commercialMode === 'ORG_OWNED'
+                  ? 'Contact the organization to discuss options.'
+                  : 'Contact your coach to discuss options.'}
               </ThemedText>
             </Row>
           </ThemedView>
@@ -310,18 +350,7 @@ export default function SessionDetailScreen() {
           coachName={coachName}
           coachPhotoUrl={formatted.coachPhotoUrl}
         />
-        {isCoach ? (
-          <BookingOwnershipCard
-            actingAs={booking.actingAs}
-            clubId={booking.clubId}
-            ownerCoachName={booking.ownerCoachName}
-            assigneeCoachName={booking.assigneeCoachName}
-            createdByName={booking.createdByName}
-            createdByRole={booking.createdByRole}
-            createdAt={booking.createdAt}
-            bookingStartIso={booking.start}
-          />
-        ) : null}
+        <BookingOwnershipCard booking={booking} coachLabel={coachName} showAuditTrail={isCoach} />
         {/* Athlete Card (coach view, 1-on-1 sessions) */}
         {!booking.isGroupSession && booking.clientId && isCoach && (
           <BookingAthleteCard

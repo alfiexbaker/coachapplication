@@ -29,7 +29,7 @@ import { schedulingRulesService } from '@/services/scheduling-rules-service';
 import type { CancellationPolicy, OrganizationCommercialMode } from '@/constants/types';
 import { createLogger } from '@/utils/logger';
 import { BOOKING_LOCATION_OPTIONS } from '@/constants/booking-flow';
-import { academyService } from '@/services/academy-service';
+import { socialFeedService } from '@/services/social-feed-service';
 import { userService } from '@/services/user-service';
 import { hasAccountChildren } from '@/utils/booking-self-capability';
 import { getBookingRelationshipContext } from '@/utils/booking-display';
@@ -127,11 +127,11 @@ export default function ReviewScreen() {
       return;
     }
     let cancelled = false;
-    void academyService.getAcademy(draft.clubId).then((result) => {
+    void socialFeedService.getClub(draft.clubId).then((club) => {
       if (cancelled) return;
-      if (result.success && result.data?.name) {
-        setClubLabel(result.data.name);
-        const nextCommercialMode = result.data.commercialMode ?? 'COACH_OWNED';
+      if (club?.name) {
+        setClubLabel(club.name);
+        const nextCommercialMode = club.commercialMode ?? 'COACH_OWNED';
         setCommercialMode(nextCommercialMode);
         if (draft.commercialMode !== nextCommercialMode) {
           updateDraft({ commercialMode: nextCommercialMode });

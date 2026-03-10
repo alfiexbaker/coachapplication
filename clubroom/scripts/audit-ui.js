@@ -49,6 +49,11 @@ function isRedirectOnlyRoute(source) {
   return !/<(?:SafeAreaView|ScrollView|FlatList|SectionList|View|MapContent)\b/.test(source);
 }
 
+function isReExportOnlyRoute(source) {
+  const trimmed = source.trim();
+  return /^export\s+\{\s*default\s*\}\s+from\s+['"][^'"]+['"];?$/.test(trimmed);
+}
+
 function hasSafeAreaShell(source) {
   if (SAFE_SHELL_HINTS.some((hint) => source.includes(hint))) {
     return true;
@@ -70,7 +75,7 @@ function run() {
     const source = readFileSync(fullPath, 'utf8');
 
     if (isLikelyScreenFile(file)) {
-      if (!isRedirectOnlyRoute(source) && !hasSafeAreaShell(source)) {
+      if (!isRedirectOnlyRoute(source) && !isReExportOnlyRoute(source) && !hasSafeAreaShell(source)) {
         findings.high.push({
           file,
           line: 1,

@@ -22,7 +22,14 @@ import { useToast } from '@/components/ui/toast';
 import { createLogger } from '@/utils/logger';
 import { openLocationInMaps } from '@/utils/map-links';
 import { coachService } from '@/services/coach-service';
+import { socialFeedService } from '@/services/social-feed-service';
 import { uiFeedback } from '@/services/ui-feedback';
+import type { BookingSummary } from '@/constants/types';
+import {
+  getBookingRelationshipContext,
+  getBookingSummaryCoachName,
+} from '@/utils/booking-display';
+import { formatCommercialModeLabel } from '@/utils/organization-commercial-mode';
 
 type WeatherTone = 'sunny' | 'cloudy' | 'rainy' | 'storm' | 'snow' | 'unknown';
 
@@ -320,6 +327,7 @@ export const PaymentCard = memo(function PaymentCard({
   dueDate,
   isCoachView = false,
   onPressAction,
+  helperTextOverride,
 }: {
   showDemoIndicator?: boolean;
   amount?: number | null;
@@ -327,6 +335,7 @@ export const PaymentCard = memo(function PaymentCard({
   dueDate?: string;
   isCoachView?: boolean;
   onPressAction?: () => void;
+  helperTextOverride?: string;
 }) {
   const { colors: palette } = useTheme();
   const amountLabel =
@@ -374,6 +383,9 @@ export const PaymentCard = memo(function PaymentCard({
     };
   }, [invoiceStatus, palette.info, palette.muted, palette.success, palette.tint, palette.warning]);
   const helperText = useMemo(() => {
+    if (helperTextOverride?.trim()) {
+      return helperTextOverride;
+    }
     if (invoiceStatus === 'PAID') {
       return isCoachView
         ? 'Marked paid in your reconciler.'
@@ -386,7 +398,7 @@ export const PaymentCard = memo(function PaymentCard({
       return `Pay coach directly using shared details. Due by ${dueDateLabel}.`;
     }
     return 'Pay coach directly using the details they shared.';
-  }, [dueDateLabel, invoiceStatus, isCoachView]);
+  }, [dueDateLabel, helperTextOverride, invoiceStatus, isCoachView]);
   const actionLabel = onPressAction ? (isCoachView ? 'Open reconciler' : 'Message coach') : null;
 
   return (
@@ -687,14 +699,9 @@ export const BookingAthleteCard = memo(function BookingAthleteCard({
 // ============================================================================
 
 interface BookingOwnershipCardProps {
-  actingAs?: 'self' | 'club';
-  clubId?: string;
-  ownerCoachName?: string;
-  assigneeCoachName?: string;
-  createdByName?: string;
-  createdByRole?: string;
-  createdAt?: string;
-  bookingStartIso: string;
+  booking: BookingSummary;
+  coachLabel?: string;
+  showAuditTrail?: boolean;
 }
 
 function formatAuditTimestamp(iso?: string): string {
@@ -711,45 +718,95 @@ function formatAuditTimestamp(iso?: string): string {
 }
 
 export const BookingOwnershipCard = memo(function BookingOwnershipCard({
-  actingAs,
-  clubId,
-  ownerCoachName,
-  assigneeCoachName,
-  createdByName,
-  createdByRole,
-  createdAt,
-  bookingStartIso,
+  booking,
+  coachLabel,
+  showAuditTrail = false,
 }: BookingOwnershipCardProps) {
   const { colors: palette } = useTheme();
-
-  const ownershipMode = actingAs === 'club' ? 'Club-owned' : 'Self-owned';
-  const assignmentLabel =
-    assigneeCoachName && assigneeCoachName !== ownerCoachName
-      ? assigneeCoachName
-      : ownerCoachName;
+  const [organizationLabel, setOrganizationLabel] = useState<string | null>(booking.clubId ?? null);
+  const resolvedCoachLabel = coachLabel || booking.ownerCoachName || getBookingSummaryCoachName(booking);
+  const deliveryLabel =
+    booking.assigneeCoachName || booking.assigneeCoachId || resolvedCoachLabel;
+  const relationshipContext = useMemo(
+    () =>
+      getBookingRelationshipContext({
+        actingAs: booking.actingAs,
+        organizationLabel,
+        coachLabel: resolvedCoachLabel,
+        deliveredByLabel: deliveryLabel,
+        commercialMode: booking.commercialMode,
+      }),
+    [
+      booking.actingAs,
+      booking.commercialMode,
+      deliveryLabel,
+      organizationLabel,
+      resolvedCoachLabel,
+    ],
+  );
+  const ownershipMode =
+    booking.actingAs === 'club'
+      ? `${formatCommercialModeLabel(booking.commercialMode)} club booking`
+      : 'Independent coach booking';
+  const relationshipRows = useMemo(
+    () =>
+      [
+        organizationLabel ? { label: 'Organization', value: organizationLabel } : null,
+        { label: 'Booked with', value: relationshipContext.bookedWithLabel },
+        { label: 'Delivered by', value: relationshipContext.deliveredByLabel },
+        { label: 'Billing handled by', value: relationshipContext.billingLabel },
+        { label: 'Support handled by', value: relationshipContext.supportLabel },
+        booking.ownerCoachName &&
+        booking.ownerCoachName !== relationshipContext.deliveredByLabel &&
+        booking.ownerCoachName !== relationshipContext.bookedWithLabel
+          ? { label: 'Session owner', value: booking.ownerCoachName }
+          : null,
+      ].filter((entry): entry is { label: string; value: string } => Boolean(entry)),
+    [booking.ownerCoachName, organizationLabel, relationshipContext],
+  );
   const timelineEntries = useMemo(
     () => [
       {
         id: 'created',
-        label: `Created by ${createdByName || 'Unknown'}`,
-        meta: createdByRole ? createdByRole.replace('_', ' ') : undefined,
-        time: formatAuditTimestamp(createdAt),
+        label: `Created by ${booking.createdByName || 'Unknown'}`,
+        meta: booking.createdByRole ? booking.createdByRole.replace('_', ' ') : undefined,
+        time: formatAuditTimestamp(booking.createdAt),
       },
       {
         id: 'assigned',
-        label: `Assigned to ${assignmentLabel || 'Unassigned'}`,
-        meta: actingAs === 'club' ? 'Ownership assignment' : 'Self assignment',
-        time: formatAuditTimestamp(createdAt),
+        label: `Delivered by ${relationshipContext.deliveredByLabel}`,
+        meta:
+          booking.actingAs === 'club'
+            ? `Billing: ${relationshipContext.billingLabel}`
+            : 'Independent coach booking',
+        time: formatAuditTimestamp(booking.createdAt),
       },
       {
         id: 'scheduled',
         label: 'Scheduled session',
         meta: 'Booking schedule locked',
-        time: formatAuditTimestamp(bookingStartIso),
+        time: formatAuditTimestamp(booking.start),
       },
     ],
-    [actingAs, assignmentLabel, bookingStartIso, createdAt, createdByName, createdByRole],
+    [booking.actingAs, booking.createdAt, booking.createdByName, booking.createdByRole, booking.start, relationshipContext.billingLabel, relationshipContext.deliveredByLabel],
   );
+
+  useEffect(() => {
+    if (booking.actingAs !== 'club' || !booking.clubId) {
+      setOrganizationLabel(null);
+      return;
+    }
+
+    let cancelled = false;
+    void socialFeedService.getClub(booking.clubId).then((club) => {
+      if (cancelled) return;
+      setOrganizationLabel(club?.name || booking.clubId || null);
+    });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [booking.actingAs, booking.clubId]);
 
   return (
     <SurfaceCard style={styles.card}>
@@ -758,38 +815,47 @@ export const BookingOwnershipCard = memo(function BookingOwnershipCard({
           <Ionicons name="briefcase-outline" size={24} color={palette.info} />
         </View>
         <Column gap="xxs" style={styles.flex1}>
-          <ThemedText style={styles.cardTitle}>Ownership & Audit</ThemedText>
+          <ThemedText style={styles.cardTitle}>
+            {showAuditTrail ? 'Ownership & Audit' : 'Who Handles This Booking'}
+          </ThemedText>
           <ThemedText type="subtitle" style={styles.cardValue}>
             {ownershipMode}
           </ThemedText>
-          {clubId ? <ThemedText style={styles.cardSubtext}>Club: {clubId}</ThemedText> : null}
-          {ownerCoachName ? (
-            <ThemedText style={styles.cardSubtext}>Session owner: {ownerCoachName}</ThemedText>
-          ) : null}
-          {assigneeCoachName && assigneeCoachName !== ownerCoachName ? (
-            <ThemedText style={styles.cardSubtext}>Assignee: {assigneeCoachName}</ThemedText>
-          ) : null}
+          <ThemedText style={styles.cardSubtext}>{relationshipContext.paymentSummary}</ThemedText>
         </Column>
       </Row>
 
-      <View style={[styles.timelineContainer, { borderColor: palette.border }]}>
-        {timelineEntries.map((entry) => (
-          <Row key={entry.id} align="flex-start" gap="sm" style={styles.timelineRow}>
-            <View style={[styles.timelineDot, { backgroundColor: palette.info }]} />
-            <Column gap="xxs" style={styles.flex1}>
-              <ThemedText style={styles.timelineLabel}>{entry.label}</ThemedText>
-              {entry.meta ? (
-                <ThemedText style={[styles.timelineMeta, { color: palette.muted }]}>
-                  {entry.meta}
-                </ThemedText>
-              ) : null}
-              <ThemedText style={[styles.timelineMeta, { color: palette.muted }]}>
-                {entry.time}
-              </ThemedText>
-            </Column>
-          </Row>
+      <View style={[styles.relationshipContainer, { borderColor: palette.border }]}>
+        {relationshipRows.map((entry) => (
+          <View key={entry.label} style={styles.relationshipRow}>
+            <ThemedText style={[styles.timelineMeta, { color: palette.muted }]}>
+              {entry.label}
+            </ThemedText>
+            <ThemedText style={styles.timelineLabel}>{entry.value}</ThemedText>
+          </View>
         ))}
       </View>
+
+      {showAuditTrail ? (
+        <View style={[styles.timelineContainer, { borderColor: palette.border }]}>
+          {timelineEntries.map((entry) => (
+            <Row key={entry.id} align="flex-start" gap="sm" style={styles.timelineRow}>
+              <View style={[styles.timelineDot, { backgroundColor: palette.info }]} />
+              <Column gap="xxs" style={styles.flex1}>
+                <ThemedText style={styles.timelineLabel}>{entry.label}</ThemedText>
+                {entry.meta ? (
+                  <ThemedText style={[styles.timelineMeta, { color: palette.muted }]}>
+                    {entry.meta}
+                  </ThemedText>
+                ) : null}
+                <ThemedText style={[styles.timelineMeta, { color: palette.muted }]}>
+                  {entry.time}
+                </ThemedText>
+              </Column>
+            </Row>
+          ))}
+        </View>
+      ) : null}
     </SurfaceCard>
   );
 });
@@ -875,6 +941,15 @@ const styles = StyleSheet.create({
   mapText: { ...Typography.caption },
   avatar: { width: 48, height: 48, borderRadius: Radii.xl },
   ratingText: { ...Typography.caption, opacity: 0.6 },
+  relationshipContainer: {
+    borderWidth: 1,
+    borderRadius: Radii.md,
+    padding: Spacing.sm,
+    gap: Spacing.sm,
+  },
+  relationshipRow: {
+    gap: Spacing.micro,
+  },
   actionIconButton: {
     width: 40,
     height: 40,
