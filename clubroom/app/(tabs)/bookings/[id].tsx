@@ -10,6 +10,7 @@ import { StatusBadge } from '@/components/ui/status-badge';
 import { EmptyState, ErrorState, LoadingState } from '@/components/ui/screen-states';
 import { BookingCoachView } from '@/components/bookings/booking-coach-view';
 import { BookingParentView } from '@/components/bookings/booking-parent-view';
+import { BookingTrustCard } from '@/components/bookings/booking-trust-card';
 import {
   DateTimeCard,
   LocationCard,
@@ -337,9 +338,7 @@ export default function SessionDetailScreen() {
               <Ionicons name="information-circle-outline" size={18} color={palette.warning} />
               <ThemedText style={[styles.noticeText, { color: palette.text }]}>
                 Free cancellation is unavailable within 24 hours of the session.{' '}
-                {booking.actingAs === 'club' && booking.commercialMode === 'ORG_OWNED'
-                  ? 'Contact the organization to discuss options.'
-                  : 'Contact your coach to discuss options.'}
+                Contact {relationshipContext?.supportLabel || 'support'} to discuss options.
               </ThemedText>
             </Row>
           </ThemedView>
@@ -351,6 +350,7 @@ export default function SessionDetailScreen() {
           coachPhotoUrl={formatted.coachPhotoUrl}
         />
         <BookingOwnershipCard booking={booking} coachLabel={coachName} showAuditTrail={isCoach} />
+        {!isCoach && relationshipContext ? <BookingTrustCard relationshipContext={relationshipContext} /> : null}
         {/* Athlete Card (coach view, 1-on-1 sessions) */}
         {!booking.isGroupSession && booking.clientId && isCoach && (
           <BookingAthleteCard
@@ -461,6 +461,8 @@ export default function SessionDetailScreen() {
             onReschedule={handlers.reschedule}
             onRebook={handlers.rebook}
             canCancelBooking={canCancelBooking}
+            messageLabel="Message delivery coach"
+            reportProblemLabel={relationshipContext?.reportProblemLabel}
           />
         )}
       </ScrollView>

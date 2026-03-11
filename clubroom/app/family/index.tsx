@@ -131,6 +131,20 @@ export default function FamilyDashboardScreen() {
         />
       </Animated.View>
 
+      <Animated.View entering={FadeInDown.delay(115).springify()}>
+        <SurfaceCard style={styles.trustCard}>
+          <Row align="center" gap="sm">
+            <Ionicons name="shield-checkmark-outline" size={18} color={palette.info} />
+            <ThemedText type="defaultSemiBold">Family trust</ThemedText>
+          </Row>
+          <ThemedText style={[Typography.bodySmall, { color: palette.muted }]}>
+            Open any booking to see who handles support and coach changes. Child details stay
+            limited to the assigned coach and supervising club staff only when they need to
+            support delivery, safety, or a problem.
+          </ThemedText>
+        </SurfaceCard>
+      </Animated.View>
+
       {/* Recognition Summary */}
       {childRecognitions.length > 0 && (
         <Animated.View entering={FadeInDown.delay(125).springify()}>
@@ -212,5 +226,6 @@ const styles = StyleSheet.create({
   statCard: { flex: 1, alignItems: 'center', padding: Spacing.md, gap: Spacing.xxs },
   section: { gap: Spacing.sm },
   membersList: { gap: Spacing.sm },
+  trustCard: { gap: Spacing.sm },
   ctaButton: { paddingVertical: Spacing.md, borderRadius: Spacing.sm },
 });

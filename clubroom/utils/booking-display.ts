@@ -9,6 +9,11 @@ export interface BookingRelationshipContext {
   supportLabel: string;
   commercialMode: OrganizationCommercialMode;
   paymentSummary: string;
+  supportSummary: string;
+  reassignmentSummary: string;
+  visibilitySummary: string;
+  sharedHealthSummary: string;
+  reportProblemLabel: string;
 }
 
 export function getBookingSummaryCoachName(booking: BookingSummary): string {
@@ -93,6 +98,28 @@ export function getBookingRelationshipContext(input: {
       supportLabel: organizationLabel,
       commercialMode,
       paymentSummary: `Payment instructions are shared by ${organizationLabel} outside the app once the booking is confirmed. Billing questions and any payment adjustments are handled by ${organizationLabel}.`,
+      supportSummary: `${organizationLabel} is responsible for booking support, billing questions, and delivery issues for this session.`,
+      reassignmentSummary: `If the delivery coach changes, ${organizationLabel} is responsible for telling you and handling the handoff.`,
+      visibilitySummary: `Your child's booking details are visible to ${deliveredByLabel} and supervising ${organizationLabel} staff when they need to support delivery or resolve a problem.`,
+      sharedHealthSummary: `Any shared health information should stay limited to ${deliveredByLabel} and supervising ${organizationLabel} staff when safety or delivery support requires it.`,
+      reportProblemLabel: 'Report to organization',
+    };
+  }
+
+  if (organizationLabel) {
+    return {
+      organizationLabel,
+      bookedWithLabel: deliveredByLabel,
+      deliveredByLabel,
+      billingLabel: deliveredByLabel,
+      supportLabel: deliveredByLabel,
+      commercialMode,
+      paymentSummary: `Payment is arranged directly with ${deliveredByLabel} outside the app once the booking is confirmed. Billing questions and any payment adjustments are handled by ${deliveredByLabel}.`,
+      supportSummary: `${deliveredByLabel} is your main contact for booking support and payment follow-up, even though this session sits under ${organizationLabel}.`,
+      reassignmentSummary: `If ${organizationLabel} needs to move this session to another coach, ${deliveredByLabel} or ${organizationLabel} should tell you before the handoff.`,
+      visibilitySummary: `Your child's booking details are visible to ${deliveredByLabel} and supervising ${organizationLabel} staff when they need to support delivery or resolve a problem.`,
+      sharedHealthSummary: `Any shared health information should stay limited to ${deliveredByLabel} and supervising ${organizationLabel} staff when safety or delivery support requires it.`,
+      reportProblemLabel: 'Report booking issue',
     };
   }
 
@@ -104,6 +131,11 @@ export function getBookingRelationshipContext(input: {
     supportLabel: deliveredByLabel,
     commercialMode,
     paymentSummary: `Payment is arranged directly with ${deliveredByLabel} outside the app once the booking is confirmed. Billing questions and any payment adjustments are handled by ${deliveredByLabel}.`,
+    supportSummary: `${deliveredByLabel} is responsible for booking support, payment follow-up, and delivery issues for this session.`,
+    reassignmentSummary: `If this session needs to change, ${deliveredByLabel} should tell you directly before anything is reassigned.`,
+    visibilitySummary: `Your child's booking details are visible to ${deliveredByLabel} for this active booking.`,
+    sharedHealthSummary: `Any shared health information should stay limited to ${deliveredByLabel} when it is needed for safety.`,
+    reportProblemLabel: 'Report problem',
   };
 }
 

@@ -15,6 +15,8 @@ interface BookingParentViewProps {
   onReschedule?: () => void;
   onRebook?: () => void;
   canCancelBooking: boolean;
+  messageLabel?: string;
+  reportProblemLabel?: string;
 }
 
 function BookingParentViewInner({
@@ -25,6 +27,8 @@ function BookingParentViewInner({
   onReschedule,
   onRebook,
   canCancelBooking,
+  messageLabel = 'Message delivery coach',
+  reportProblemLabel = 'Report problem',
 }: BookingParentViewProps) {
   const { colors: palette } = useTheme();
   const isPending = bookingStatus === 'Pending';
@@ -46,7 +50,7 @@ function BookingParentViewInner({
       >
         <Ionicons name="chatbubble" size={20} color={palette.onPrimary} />
         <ThemedText style={[styles.primaryButtonText, { color: palette.onPrimary }]}>
-          Message Coach
+          {messageLabel}
         </ThemedText>
       </Clickable>
 
@@ -95,7 +99,7 @@ function BookingParentViewInner({
         }
       >
         <Ionicons name="warning-outline" size={20} color={palette.foreground} />
-        <ThemedText style={styles.secondaryButtonText}>Report Problem</ThemedText>
+        <ThemedText style={styles.secondaryButtonText}>{reportProblemLabel}</ThemedText>
       </Clickable>
 
       {(isCompleted || isCancelled) && onRebook ? (

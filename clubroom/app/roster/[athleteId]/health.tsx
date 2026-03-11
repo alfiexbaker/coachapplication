@@ -70,7 +70,9 @@ export default function CoachAthleteHealthScreen() {
             <View style={styles.summaryCopy}>
               <ThemedText type="defaultSemiBold">Coach view</ThemedText>
               <ThemedText style={{ color: colors.muted }}>
-                Shared injuries, recovery notes, and current return-to-play status.
+                Shared injuries, recovery notes, and current return-to-play status only. Family-only
+                notes stay outside this coach view unless they are needed for safety or a delivery
+                handoff.
               </ThemedText>
             </View>
             <View style={[styles.summaryBadge, { backgroundColor: withAlpha(colors.tint, 0.08) }]}>

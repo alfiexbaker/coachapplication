@@ -18,6 +18,9 @@ describe('getBookingRelationshipContext', () => {
     assert.equal(result.billingLabel, 'Johnny Coaching LTD');
     assert.equal(result.supportLabel, 'Johnny Coaching LTD');
     assert.match(result.paymentSummary, /Johnny Coaching LTD/);
+    assert.match(result.reassignmentSummary, /Johnny Coaching LTD/);
+    assert.match(result.visibilitySummary, /supervising Johnny Coaching LTD staff/);
+    assert.equal(result.reportProblemLabel, 'Report to organization');
   });
 
   it('describes coach-owned club bookings with coach billing and support', () => {
@@ -33,5 +36,21 @@ describe('getBookingRelationshipContext', () => {
     assert.equal(result.billingLabel, 'Coach Sarah');
     assert.equal(result.supportLabel, 'Coach Sarah');
     assert.match(result.paymentSummary, /Coach Sarah/);
+    assert.match(result.supportSummary, /Johnny Coaching LTD/);
+    assert.match(result.sharedHealthSummary, /supervising Johnny Coaching LTD staff/);
+    assert.equal(result.reportProblemLabel, 'Report booking issue');
+  });
+
+  it('keeps independent bookings scoped to the assigned coach', () => {
+    const result = getBookingRelationshipContext({
+      actingAs: 'self',
+      coachLabel: 'Coach Sarah',
+      deliveredByLabel: 'Coach Sarah',
+    });
+
+    assert.equal(result.supportLabel, 'Coach Sarah');
+    assert.match(result.visibilitySummary, /Coach Sarah/);
+    assert.match(result.sharedHealthSummary, /Coach Sarah/);
+    assert.equal(result.reportProblemLabel, 'Report problem');
   });
 });

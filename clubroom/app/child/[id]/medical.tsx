@@ -109,6 +109,17 @@ export default function MedicalInfoScreen() {
           Keep medical information up to date for the safety of your child during sessions.
         </ThemedText>
 
+        <SurfaceCard style={styles.noticeCard}>
+          <Row gap="sm" align="start">
+            <Ionicons name="shield-checkmark-outline" size={18} color={colors.tint} />
+            <ThemedText style={[styles.noticeText, { color: colors.muted }]}>
+              This information is shared for active coaching and safety only. Assigned coaches can
+              view the relevant medical snapshot for active bookings, and supervising club staff
+              should only see it when they need to support delivery, a handoff, or an emergency.
+            </ThemedText>
+          </Row>
+        </SurfaceCard>
+
         <SurfaceCard style={styles.section}>
           <ThemedText type="defaultSemiBold">Health Conditions</ThemedText>
           <MedicalTagInput
@@ -240,6 +251,11 @@ export default function MedicalInfoScreen() {
 const styles = StyleSheet.create({
   content: { padding: Spacing.lg, gap: Spacing.lg },
   backButton: { padding: Spacing.xs, marginLeft: -Spacing.xs },
+  noticeCard: { padding: Spacing.md },
+  noticeText: {
+    flex: 1,
+    ...Typography.bodySmall,
+  },
   section: { gap: Spacing.md },
   field: { gap: Spacing.xs },
   input: { borderWidth: 1.5, borderRadius: Radii.md, padding: Spacing.sm, ...Typography.body },

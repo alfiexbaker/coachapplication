@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { ScrollView, StyleSheet, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router, useLocalSearchParams } from 'expo-router';
@@ -6,6 +6,8 @@ import { Ionicons } from '@expo/vector-icons';
 import { Clickable } from '@/components/primitives/clickable';
 import { apiClient } from '@/services/api-client';
 import { STORAGE_KEYS } from '@/constants/storage-keys';
+import { bookingService } from '@/services/booking-service';
+import { socialFeedService } from '@/services/social-feed-service';
 
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
@@ -15,6 +17,7 @@ import { Radii, Spacing, Typography, withAlpha } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
 import { createLogger } from '@/utils/logger';
 import { uiFeedback } from '@/services/ui-feedback';
+import { getBookingRelationshipContext } from '@/utils/booking-display';
 
 const logger = createLogger('ReportProblem');
 
@@ -40,6 +43,69 @@ export default function ReportProblemScreen() {
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [description, setDescription] = useState('');
   const [submitting, setSubmitting] = useState(false);
+  const [supportContext, setSupportContext] = useState<{
+    supportLabel: string;
+    helperText: string;
+    reviewCopy: string;
+  } | null>(null);
+
+  useEffect(() => {
+    if (!bookingId) {
+      setSupportContext(null);
+      return;
+    }
+
+    let cancelled = false;
+
+    void (async () => {
+      const booking = await bookingService.getBooking(bookingId);
+      if (!booking || cancelled) {
+        if (!cancelled) {
+          setSupportContext(null);
+        }
+        return;
+      }
+
+      let organizationLabel: string | null = booking.clubId ?? null;
+      if (booking.actingAs === 'club' && booking.clubId) {
+        const club = await socialFeedService.getClub(booking.clubId);
+        if (!cancelled) {
+          organizationLabel = club?.name || booking.clubId;
+        }
+      }
+
+      if (cancelled) return;
+
+      const deliveryLabel = booking.coachName || booking.assigneeCoachId || booking.coachId || 'Coach';
+      const relationshipContext = getBookingRelationshipContext({
+        actingAs: booking.actingAs,
+        organizationLabel,
+        coachLabel: booking.coachName || booking.coachId || 'Coach',
+        deliveredByLabel: deliveryLabel,
+        commercialMode: booking.commercialMode,
+      });
+
+      setSupportContext({
+        supportLabel: relationshipContext.supportLabel,
+        helperText: relationshipContext.supportSummary,
+        reviewCopy:
+          relationshipContext.organizationLabel && relationshipContext.commercialMode === 'ORG_OWNED'
+            ? `${relationshipContext.supportLabel} will review this report and coordinate the follow-up.`
+            : `${relationshipContext.supportLabel} will review this report and handle the next step with you.`,
+      });
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [bookingId]);
+
+  const headerCopy = useMemo(() => {
+    if (!supportContext) {
+      return 'Help us improve by reporting any issues with your session';
+    }
+    return `Report a session issue to ${supportContext.supportLabel}`;
+  }, [supportContext]);
 
   const handleSubmit = async () => {
     if (!selectedCategory || !description.trim()) {
@@ -74,8 +140,13 @@ export default function ReportProblemScreen() {
 
       logger.info('Report submitted', { category: selectedCategory, bookingId });
 
-      uiFeedback.showToast('Thank you for your feedback. We will review your report within 24 hours.', 'success');
-router.back();
+      uiFeedback.showToast(
+        supportContext
+          ? `Thanks. ${supportContext.supportLabel} will review your report within 24 hours.`
+          : 'Thank you for your feedback. We will review your report within 24 hours.',
+        'success',
+      );
+      router.back();
     } catch (error) {
       logger.error('Failed to submit report', error);
       uiFeedback.showToast('Failed to submit report. Please try again.', 'error');
@@ -93,9 +164,18 @@ router.back();
         {/* Header */}
         <ThemedView style={styles.header}>
           <ThemedText type="subtitle" style={styles.subtitle}>
-            Help us improve by reporting any issues with your session
+            {headerCopy}
           </ThemedText>
         </ThemedView>
+
+        {supportContext ? (
+          <SurfaceCard style={[styles.infoBox, { backgroundColor: palette.border }]}>
+            <Row align="start" gap="sm">
+              <Ionicons name="shield-checkmark-outline" size={20} color={palette.foreground} />
+              <ThemedText style={styles.infoText}>{supportContext.helperText}</ThemedText>
+            </Row>
+          </SurfaceCard>
+        ) : null}
 
         {/* Category Selection */}
         <View style={styles.section}>
@@ -163,7 +243,8 @@ router.back();
           <Row align="start" gap="sm">
             <Ionicons name="information-circle" size={20} color={palette.foreground} />
             <ThemedText style={styles.infoText}>
-              Reports are reviewed within 24 hours. Serious issues will be addressed immediately.
+              {supportContext?.reviewCopy ||
+                'Reports are reviewed within 24 hours. Serious issues will be addressed immediately.'}
             </ThemedText>
           </Row>
         </SurfaceCard>
