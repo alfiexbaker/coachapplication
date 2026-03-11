@@ -841,6 +841,16 @@ class ClubFeedService {
     return getAllClubMembershipsForUser(userId);
   }
 
+  async getUserMembershipsHydrated(userId: string): Promise<ClubMembership[]> {
+    await this.ensureHydrated();
+    return getAllClubMembershipsForUser(userId);
+  }
+
+  async getClubMemberships(clubId: string): Promise<ClubMembership[]> {
+    await this.ensureHydrated();
+    return membershipsStore.filter((membership) => membership.clubId === clubId);
+  }
+
   getMembership(userId: string, clubId: string): ClubMembership | undefined {
     return getAllClubMembershipsForUser(userId).find((membership) => membership.clubId === clubId);
   }

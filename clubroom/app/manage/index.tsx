@@ -33,8 +33,8 @@ export default function ManageScreen() {
   const actions: ManageAction[] = [
     {
       id: 'booking-console',
-      title: 'Booking Console',
-      description: 'Create, assign, and monitor sessions from one club-operations surface.',
+      title: 'Staffing Console',
+      description: 'Assign, reassign, and monitor club-owned sessions from one operations surface.',
       icon: 'layers-outline',
       colorKey: 'warning',
       route: Routes.MANAGE_BOOKINGS,
@@ -98,12 +98,12 @@ export default function ManageScreen() {
     );
   }
 
-  return (
-    <PageContainer
-      header={
-        <PageHeader title="Manage" subtitle="Club operations and session controls" showBack />
-      }
-    >
+    return (
+      <PageContainer
+        header={
+          <PageHeader title="Manage" subtitle="Club operations and session controls" showBack />
+        }
+      >
       {actions.map((action) => {
         const color = colors[action.colorKey];
         return (
@@ -136,7 +136,8 @@ export default function ManageScreen() {
       <SurfaceCard style={[styles.hintCard, { borderColor: colors.border }]}>
         <ThemedText style={styles.hintTitle}>Coach workflow</ThemedText>
         <ThemedText style={[styles.hintText, { color: colors.muted }]}>
-          Start from Create or Invite Session, then choose whether to book new or add to existing.
+          Start with Staffing Console for club-owned work, or jump straight into Create / Invite for
+          individual coach flows.
         </ThemedText>
       </SurfaceCard>
     </PageContainer>

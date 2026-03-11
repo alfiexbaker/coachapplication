@@ -37,6 +37,8 @@ Purpose: keep a live record of what has been decided, what has been completed, a
 - first booking-flow commercial-mode slice landed
 - owner-controlled commercial mode landed in live club settings
 - booking detail and booking cards now show booked with / delivered by / billing / support truth
+- owner/admin staffing console now shows staff, unassigned work, assigned work, and assignment controls on the live manage route
+- org reassignment now propagates into linked booking delivery truth
 - UI audit false-positive for re-export routes removed
 - active sprint stack reworked around operator reality
 - complete-POC layer added
@@ -50,7 +52,8 @@ Purpose: keep a live record of what has been decided, what has been completed, a
 | PR-01 | Done | truth guardrails fixed |
 | PR-02 | Done | org operating model, permissions, journeys, and blueprint are defined |
 | PR-03 | Done | owner commercial mode now works in live club settings and booking detail truth is visible |
-| PR-04 to PR-07 | Open | org-core runtime spine after commercial truth |
+| PR-04 | Done | owner/admin staffing console and assignment propagation now exist on the live manage route |
+| PR-05 to PR-07 | Open | org-core runtime spine after staffing control |
 | PR-11 to PR-15 | Open | complete-POC layer |
 | PR-16 to PR-20 | Open | coach/user-first and pre-API closure layer |
 | PR-08 to PR-10 | Open | important cleanup/hardening after core proof |
@@ -75,7 +78,7 @@ For the product to behave like `Johnny's Coaching LTD`, all of these must become
 
 ## Current Next Step
 
-- implement `PR-04` org assignment and staffing console
+- implement `PR-05` head coach oversight and tasking
 
 ## Read Next
 
