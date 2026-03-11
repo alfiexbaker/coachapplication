@@ -43,6 +43,8 @@ Purpose: keep a live record of what has been decided, what has been completed, a
 - coach bookings, schedule, and earnings now split org-assigned work from independent work with honest reconciler vs direct-revenue language
 - family-facing booking detail, problem reporting, and child-health copy now make support ownership, handoffs, and scoped visibility explicit for org work
 - owner setup now creates clubs, sets commercial mode, seeds first staff invites, and routes into concrete setup-complete next steps
+- recurring and program-based offers now present explicit capacity, ownership, and registration truth across create and family registration flows
+- org reassignment and support reporting now trigger explicit in-app handoff notifications for staff and families
 - product-reality sprint docs were rebuilt as a minimal current queue after the docs cleanup
 - UI audit false-positive for re-export routes removed
 - active sprint stack reworked around operator reality
@@ -62,8 +64,9 @@ Purpose: keep a live record of what has been decided, what has been completed, a
 | PR-06 | Done | coach bookings, schedule, and earnings now separate org-assigned work from independent work with honest money labels |
 | PR-07 | Done | family-facing support ownership, reassignment trust, and scoped child/health visibility now render in the live parent flow |
 | PR-11 | Done | owners can now create a club, set commercial mode, invite first staff, and route into setup-complete next steps |
-| PR-12 | Open | programs, recurring registration, and family-facing capacity/ownership truth are now the active runtime layer |
-| PR-13 to PR-15 | Open | remaining complete-POC layer |
+| PR-12 | Done | programs, recurring registration, and family-facing capacity/ownership truth now render as a coherent offer model |
+| PR-13 | Done | org reassignment and support issues now trigger explicit handoff notifications and support routing |
+| PR-14 to PR-15 | Open | remaining complete-POC layer |
 | PR-16 to PR-20 | Open | coach/user-first and pre-API closure layer |
 | PR-08 to PR-10 | Open | important cleanup/hardening after core proof |
 
@@ -83,7 +86,7 @@ For the product to behave like `Johnny's Coaching LTD`, all of these must become
 
 ## Current Next Step
 
-- implement `PR-12` programs, packages, and recurring registration
+- implement `PR-14` owner dashboard, reporting, and finance view
 
 ## Read Next
 

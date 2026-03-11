@@ -21,8 +21,10 @@ if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental
 
 export const NOTIFICATION_TYPE_LABELS: Record<NotificationType, string> = {
   BOOKING_RECEIVED: 'New Booking Requests',
+  BOOKING_HANDOFF: 'Booking Handoffs',
   BOOKING_CONFIRMED: 'Booking Confirmations',
   BOOKING_CANCELLED: 'Booking Cancellations',
+  SUPPORT_UPDATE: 'Support Updates',
   SESSION_REMINDER: 'Session Reminders',
   MESSAGE_RECEIVED: 'New Messages',
   SESSION_INVITE: 'Session Invites',

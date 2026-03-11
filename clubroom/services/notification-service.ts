@@ -142,6 +142,20 @@ class NotificationService {
     return notificationSenderService.notifyCoachSessionReminder(params);
   }
 
+  async notifyCoachBookingHandoff(params: {
+    coachId: string;
+    title: string;
+    date: string;
+    bookingId?: string;
+    organizationLabel: string;
+    actorName: string;
+    previousCoachName?: string;
+    nextCoachName?: string;
+    messageVariant: 'assigned_to_you' | 'moved_away';
+  }): Promise<Result<void, ServiceError>> {
+    return notificationSenderService.notifyCoachBookingHandoff(params);
+  }
+
   // ============================================================================
   // PARENT NOTIFICATION TRIGGERS
   // ============================================================================
@@ -207,6 +221,31 @@ class NotificationService {
     clubId: string;
   }): Promise<Result<void, ServiceError>> {
     return notificationSenderService.notifyParentClubPost(params);
+  }
+
+  async notifyParentBookingHandoff(params: {
+    parentId: string;
+    bookingId: string;
+    athleteLabel: string;
+    previousCoachName?: string;
+    nextCoachName: string;
+    organizationLabel: string;
+    date: string;
+    supportLabel: string;
+  }): Promise<Result<void, ServiceError>> {
+    return notificationSenderService.notifyParentBookingHandoff(params);
+  }
+
+  async notifySupportIssueReported(params: {
+    recipientId: string;
+    bookingId: string;
+    category: string;
+    title: string;
+    date: string;
+    supportLabel: string;
+    descriptionPreview?: string;
+  }): Promise<Result<void, ServiceError>> {
+    return notificationSenderService.notifySupportIssueReported(params);
   }
 
   // ============================================================================

@@ -13,6 +13,7 @@ import { apiClient } from '@/services/api-client';
 import { emitTyped, ServiceEvents } from '@/services/event-bus';
 import { socialFeedService } from '@/services/social-feed-service';
 import { userService } from '@/services/user-service';
+import { bookingCommunicationsService } from '@/services/booking-communications-service';
 import { getSessionOfferingHeadcount } from '@/utils/session-offering-capacity';
 import {
   canManageClubAssignments,
@@ -361,6 +362,7 @@ class OrgStaffingService {
       }
 
       const updatedBookingIds: string[] = [];
+      const updatedLinkedBookings: Booking[] = [];
       const nextBookings = bookings.map((booking) => {
         if (booking.actingAs !== 'club' || booking.clubId !== params.clubId) {
           return booking;
@@ -377,6 +379,7 @@ class OrgStaffingService {
           ownerCoachId: params.assigneeCoachId,
           assigneeCoachId: params.assigneeCoachId,
         };
+        updatedLinkedBookings.push(nextBooking);
 
         emitTyped(ServiceEvents.BOOKING_UPDATED, {
           bookingId: booking.id,
@@ -395,6 +398,17 @@ class OrgStaffingService {
         apiClient.set(STORAGE_KEYS.SESSION_OFFERINGS, nextOfferings),
         apiClient.set(STORAGE_KEYS.BOOKINGS, nextBookings),
       ]);
+
+      await bookingCommunicationsService.notifyAssignmentChange({
+        clubId: params.clubId,
+        offering: updatedOffering,
+        updatedBookings: updatedLinkedBookings,
+        actorName,
+        previousAssigneeId: previousAssigneeId || undefined,
+        previousAssigneeName: previousAssigneeId || undefined,
+        nextAssigneeId: params.assigneeCoachId,
+        nextAssigneeName: selectedAssigneeName,
+      });
 
       emitTyped(ServiceEvents.SESSION_UPDATED, {
         sessionId: offering.id,

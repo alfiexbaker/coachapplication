@@ -18,6 +18,7 @@ import { useTheme } from '@/hooks/useTheme';
 import { createLogger } from '@/utils/logger';
 import { uiFeedback } from '@/services/ui-feedback';
 import { getBookingRelationshipContext } from '@/utils/booking-display';
+import { bookingCommunicationsService } from '@/services/booking-communications-service';
 
 const logger = createLogger('ReportProblem');
 
@@ -120,6 +121,8 @@ export default function ReportProblemScreen() {
 
     setSubmitting(true);
     try {
+      const booking = bookingId ? await bookingService.getBooking(bookingId) : null;
+
       // Save report to storage
       const reports = await apiClient.get<Record<string, unknown>[]>(
         STORAGE_KEYS.PROBLEM_REPORTS,
@@ -137,6 +140,14 @@ export default function ReportProblemScreen() {
 
       reports.push(newReport);
       await apiClient.set(STORAGE_KEYS.PROBLEM_REPORTS, reports);
+
+      if (booking) {
+        await bookingCommunicationsService.notifySupportIssueReported({
+          booking,
+          category: selectedCategory,
+          description: description.trim(),
+        });
+      }
 
       logger.info('Report submitted', { category: selectedCategory, bookingId });
 

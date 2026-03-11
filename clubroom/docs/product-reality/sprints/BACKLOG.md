@@ -37,9 +37,9 @@ Updated: 2026-03-11
 | PR-06 | `coach-work-split-and-earnings-realism` | P1 | DONE | Coach bookings, schedule, and earnings now split org work from independent work with honest money labels |
 | PR-07 | `family-trust-and-support-ownership` | P1 | DONE | Parents can now see support ownership, coach-change responsibility, and scoped child/health visibility in live family flows |
 | PR-11 | `sprint-11-org-setup-and-onboarding.md` | P1 | DONE | Owners can now create a club, set commercial mode, invite first staff, and route into concrete next steps |
-| PR-12 | `sprint-12-programs-packages-and-recurring-registration.md` | P1 | CURRENT | Real coaching businesses need programs and recurring registration, not only one-off sessions |
-| PR-13 | `communications-notifications-and-handoffs` | P1 | OPEN | Org reassignment and support flows are not believable without clear notifications and handoffs |
-| PR-14 | `owner-dashboard-reporting-and-finance-view` | P1 | OPEN | Owners still need a true top-of-pyramid view of staffing, delivery, and finance state |
+| PR-12 | `sprint-12-programs-packages-and-recurring-registration.md` | P1 | DONE | Real coaching businesses now present recurring/program registration and ownership truth, not only one-off sessions |
+| PR-13 | `sprint-13-communications-notifications-and-handoffs.md` | P1 | DONE | Org reassignment and support flows now trigger role-aware in-app notifications and explicit handoffs |
+| PR-14 | `owner-dashboard-reporting-and-finance-view` | P1 | CURRENT | Owners still need a true top-of-pyramid view of staffing, delivery, and finance state |
 | PR-16 | `coach-discovery-profile-and-conversion` | P1 | OPEN | A coach/user-first POC still needs a believable discovery-to-booking conversion surface |
 | PR-17 | `booking-lifecycle-and-parent-operations` | P1 | OPEN | Parents need the post-booking lifecycle to feel real, not only the initial checkout |
 | PR-18 | `session-delivery-feedback-and-rebooking-loop` | P1 | OPEN | The product still needs a believable full coaching loop after delivery, not only booking and management |

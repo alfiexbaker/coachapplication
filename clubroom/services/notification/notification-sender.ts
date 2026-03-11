@@ -230,6 +230,39 @@ class NotificationSenderService {
     });
   }
 
+  async notifyCoachBookingHandoff(params: {
+    coachId: string;
+    title: string;
+    date: string;
+    bookingId?: string;
+    organizationLabel: string;
+    actorName: string;
+    previousCoachName?: string;
+    nextCoachName?: string;
+    messageVariant: 'assigned_to_you' | 'moved_away';
+  }): Promise<Result<void, ServiceError>> {
+    const body =
+      params.messageVariant === 'assigned_to_you'
+        ? `${params.actorName} assigned "${params.title}" on ${params.date} to you for ${params.organizationLabel}.${params.previousCoachName ? ` Delivery was previously with ${params.previousCoachName}.` : ''}`
+        : `${params.actorName} reassigned "${params.title}" on ${params.date} to ${params.nextCoachName || 'another coach'} for ${params.organizationLabel}.`;
+
+    return this.send({
+      id: `notif_handoff_coach_${Date.now()}`,
+      type: 'booking',
+      notificationType: 'BOOKING_HANDOFF',
+      title: params.messageVariant === 'assigned_to_you' ? 'New Club Assignment' : 'Assignment Reassigned',
+      body,
+      recipientId: params.coachId,
+      recipientRole: 'coach',
+      deepLink: params.bookingId ? `/bookings/${params.bookingId}` : undefined,
+      data: {
+        bookingId: params.bookingId || '',
+        organizationLabel: params.organizationLabel,
+      },
+      timeLabel: 'Just now',
+    });
+  }
+
   // ============================================================================
   // PARENT NOTIFICATIONS
   // ============================================================================
@@ -422,6 +455,59 @@ class NotificationSenderService {
       recipientRole: 'parent',
       deepLink: `/club-hub`,
       data: { postId: params.postId, clubId: params.clubId, clubName: params.clubName },
+      timeLabel: 'Just now',
+    });
+  }
+
+  async notifyParentBookingHandoff(params: {
+    parentId: string;
+    bookingId: string;
+    athleteLabel: string;
+    previousCoachName?: string;
+    nextCoachName: string;
+    organizationLabel: string;
+    date: string;
+    supportLabel: string;
+  }): Promise<Result<void, ServiceError>> {
+    return this.send({
+      id: `notif_handoff_parent_${Date.now()}`,
+      type: 'booking',
+      notificationType: 'BOOKING_HANDOFF',
+      title: 'Coach Updated',
+      body: `${params.athleteLabel}'s session on ${params.date} is now with ${params.nextCoachName}${params.previousCoachName ? ` instead of ${params.previousCoachName}` : ''}. Support stays with ${params.supportLabel}${params.supportLabel !== params.organizationLabel ? ` under ${params.organizationLabel}` : ''}.`,
+      recipientId: params.parentId,
+      recipientRole: 'parent',
+      deepLink: `/bookings/${params.bookingId}`,
+      data: {
+        bookingId: params.bookingId,
+        nextCoachName: params.nextCoachName,
+      },
+      timeLabel: 'Just now',
+    });
+  }
+
+  async notifySupportIssueReported(params: {
+    recipientId: string;
+    bookingId: string;
+    category: string;
+    title: string;
+    date: string;
+    supportLabel: string;
+    descriptionPreview?: string;
+  }): Promise<Result<void, ServiceError>> {
+    return this.send({
+      id: `notif_support_${Date.now()}`,
+      type: 'message',
+      notificationType: 'SUPPORT_UPDATE',
+      title: 'New Support Issue',
+      body: `${params.supportLabel} needs to review a ${params.category} report for "${params.title}" on ${params.date}.${params.descriptionPreview ? ` ${params.descriptionPreview}` : ''}`,
+      recipientId: params.recipientId,
+      recipientRole: 'coach',
+      deepLink: `/bookings/${params.bookingId}`,
+      data: {
+        bookingId: params.bookingId,
+        category: params.category,
+      },
       timeLabel: 'Just now',
     });
   }
