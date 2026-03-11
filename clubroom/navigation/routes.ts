@@ -266,8 +266,17 @@ export const Routes = {
 
   // ─── Club ──────────────────────────────────────────────────────
   CLUB_CREATE: '/club/create' as Href,
+  CLUB_SETUP_COMPLETE: '/club/setup-complete' as Href,
+  clubSetupComplete: (params: { clubId: string; inviteCode?: string; inviteRole?: string }) => ({
+    pathname: '/club/setup-complete',
+    params,
+  }) as Href,
   MY_CLUBS: '/club/my-clubs' as Href,
   CLUB_INVITE_MEMBERS: '/club/invite-members' as Href,
+  clubInviteMembers: (params?: { clubId?: string }) => ({
+    pathname: '/club/invite-members',
+    params: params ?? {},
+  }) as Href,
   CLUB_SETTINGS: '/club/settings' as Href,
   clubSettings: (params?: { clubId?: string; section?: string }) => ({
     pathname: '/club/settings',

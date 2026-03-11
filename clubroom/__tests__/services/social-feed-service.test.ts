@@ -85,4 +85,35 @@ describe('clubFeedService', () => {
       await socialFeedService.updateClubCommercialMode(clubId, original.commercialMode ?? 'COACH_OWNED');
     }
   });
+
+  it('creates a club with owner membership, commercial mode, and bootstrap invite codes', async () => {
+    const ownerId = nextId('owner');
+    const result = await socialFeedService.createClub({
+      ownerId,
+      name: `Setup FC ${nextId('club')}`,
+      city: 'London',
+      country: 'UK',
+      badge: 'SFC',
+      commercialMode: 'ORG_OWNED',
+      firstStaffRole: 'HEAD_COACH',
+    });
+
+    assert.equal(result.success, true);
+    if (!result.success) return;
+
+    assert.equal(result.data.club.ownerId, ownerId);
+    assert.equal(result.data.club.commercialMode, 'ORG_OWNED');
+    assert.equal(result.data.membership.role, 'OWNER');
+    assert.equal(result.data.primaryInvite.role, 'MEMBER');
+    assert.equal(result.data.firstStaffInvite?.role, 'HEAD_COACH');
+
+    const reloadedClub = await socialFeedService.getClub(result.data.club.id);
+    const ownerMembership = socialFeedService.getMembership(ownerId, result.data.club.id);
+    const inviteCodes = await socialFeedService.getInviteCodes(result.data.club.id);
+
+    assert.equal(reloadedClub?.inviteCode, result.data.primaryInvite.code);
+    assert.equal(ownerMembership?.role, 'OWNER');
+    assert.ok(inviteCodes.some((invite) => invite.role === 'MEMBER'));
+    assert.ok(inviteCodes.some((invite) => invite.role === 'HEAD_COACH'));
+  });
 });

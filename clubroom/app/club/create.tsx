@@ -29,6 +29,31 @@ import { LoadingState, ErrorState, EmptyState } from '@/components/ui/screen-sta
 import { useScreen } from '@/hooks/use-screen';
 import { ok } from '@/types/result';
 import { useCreateClub, CLUB_FEATURES } from '@/hooks/use-create-club';
+import { COMMERCIAL_MODE_CHOICES } from '@/utils/organization-commercial-mode';
+import { ORGANIZATION_ROLE_LABELS } from '@/contracts/club-governance';
+
+const FIRST_STAFF_ROLE_OPTIONS = [
+  {
+    value: 'COACH' as const,
+    label: ORGANIZATION_ROLE_LABELS.COACH,
+    note: 'Invite your first delivery coach',
+  },
+  {
+    value: 'HEAD_COACH' as const,
+    label: ORGANIZATION_ROLE_LABELS.HEAD_COACH,
+    note: 'Invite someone to oversee standards and staffing',
+  },
+  {
+    value: 'ADMIN' as const,
+    label: ORGANIZATION_ROLE_LABELS.ADMIN,
+    note: 'Invite someone to help run operations',
+  },
+  {
+    value: 'NONE' as const,
+    label: 'Skip for now',
+    note: 'Create the club first and invite staff later',
+  },
+] as const;
 
 export default function CreateClubScreen() {
   const {
@@ -54,6 +79,10 @@ export default function CreateClubScreen() {
     setCountry,
     badge,
     handleBadgeChange,
+    commercialMode,
+    setCommercialMode,
+    firstStaffRole,
+    setFirstStaffRole,
     isSubmitting,
     isValid,
     handleCreate,
@@ -188,6 +217,88 @@ export default function CreateClubScreen() {
             />
           </View>
 
+          <SurfaceCard style={styles.setupCard}>
+            <ThemedText type="defaultSemiBold" style={styles.sectionLabel}>
+              Billing Setup
+            </ThemedText>
+            <ThemedText style={[Typography.small, { color: palette.muted }]}>
+              Choose who families are booking and billing with for new club sessions.
+            </ThemedText>
+            <View style={styles.choiceList}>
+              {COMMERCIAL_MODE_CHOICES.map((option) => {
+                const isSelected = option.value === commercialMode;
+                return (
+                  <Clickable
+                    key={option.value}
+                    style={[
+                      styles.choiceCard,
+                      {
+                        borderColor: isSelected ? palette.tint : palette.border,
+                        backgroundColor: isSelected
+                          ? withAlpha(palette.tint, 0.08)
+                          : palette.surface,
+                      },
+                    ]}
+                    onPress={() => setCommercialMode(option.value)}
+                  >
+                    <Row align="center" justify="between" gap="sm">
+                      <View style={styles.choiceCopy}>
+                        <ThemedText type="defaultSemiBold">{option.title}</ThemedText>
+                        <ThemedText style={[Typography.small, { color: palette.muted }]}>
+                          {option.summary}
+                        </ThemedText>
+                      </View>
+                      {isSelected ? (
+                        <Ionicons name="checkmark-circle" size={20} color={palette.tint} />
+                      ) : null}
+                    </Row>
+                  </Clickable>
+                );
+              })}
+            </View>
+          </SurfaceCard>
+
+          <SurfaceCard style={styles.setupCard}>
+            <ThemedText type="defaultSemiBold" style={styles.sectionLabel}>
+              First Staff Invite
+            </ThemedText>
+            <ThemedText style={[Typography.small, { color: palette.muted }]}>
+              Generate the first staff invite code during setup or skip it for now.
+            </ThemedText>
+            <View style={styles.choiceList}>
+              {FIRST_STAFF_ROLE_OPTIONS.map((option) => {
+                const isSelected = option.value === firstStaffRole;
+                return (
+                  <Clickable
+                    key={option.value}
+                    style={[
+                      styles.choiceCard,
+                      {
+                        borderColor: isSelected ? palette.tint : palette.border,
+                        backgroundColor: isSelected
+                          ? withAlpha(palette.tint, 0.08)
+                          : palette.surface,
+                      },
+                    ]}
+                    onPress={() => setFirstStaffRole(option.value)}
+                  >
+                    <Row align="center" justify="between" gap="sm">
+                      <View style={styles.choiceCopy}>
+                        <ThemedText type="defaultSemiBold">{option.label}</ThemedText>
+                        <ThemedText style={[Typography.small, { color: palette.muted }]}>
+                          {option.note}
+                        </ThemedText>
+                      </View>
+                      {isSelected ? (
+                        <Ionicons name="checkmark-circle" size={20} color={palette.tint} />
+                      ) : null}
+                    </Row>
+                  </Clickable>
+                );
+              })}
+            </View>
+          </SurfaceCard>
+
           {/* Preview */}
           <SurfaceCard style={styles.previewCard}>
             <ThemedText type="defaultSemiBold" style={Typography.small}>
@@ -212,6 +323,12 @@ export default function CreateClubScreen() {
                 ) : null}
                 <ThemedText style={[Typography.caption, { color: palette.muted }]}>
                   {previewLocation}
+                </ThemedText>
+                <ThemedText style={[Typography.caption, { color: palette.muted }]}>
+                  {
+                    COMMERCIAL_MODE_CHOICES.find((option) => option.value === commercialMode)
+                      ?.title
+                  }
                 </ThemedText>
               </Column>
             </Row>
@@ -320,7 +437,15 @@ const styles = StyleSheet.create({
   infoTitle: { ...Typography.heading, textAlign: 'center' },
   infoText: { textAlign: 'center', ...Typography.bodySmall },
   formSection: { gap: Spacing.md },
+  setupCard: { gap: Spacing.sm },
   sectionLabel: { ...Typography.subheading, marginBottom: Spacing.xs },
+  choiceList: { gap: Spacing.sm },
+  choiceCard: {
+    borderWidth: 1,
+    borderRadius: Radii.md,
+    padding: Spacing.md,
+  },
+  choiceCopy: { flex: 1, gap: Spacing.xxs },
   inputGroup: { gap: Spacing.xs },
   input: {
     borderWidth: 1,

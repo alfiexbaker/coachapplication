@@ -21,6 +21,6 @@ Use the other files here only when the task is specifically about org hierarchy,
 
 ## Working Rules
 
-- This folder is analysis, not the active execution queue.
-- `docs/newsprints/` holds current implementation priority.
+- This folder is primarily analysis plus the retained product-reality execution queue.
+- `progress.md` and `sprints/` hold the current implementation priority for this planning stack.
 - If a dated analysis doc is disproved by current code, patch it or delete it.

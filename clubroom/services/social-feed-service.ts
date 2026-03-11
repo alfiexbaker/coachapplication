@@ -62,12 +62,39 @@ type CreateCoachPostInput = {
   clubName?: string;
 };
 
+export interface CreateClubInput {
+  ownerId: string;
+  name: string;
+  city: string;
+  country?: string;
+  tagline?: string;
+  badge?: string;
+  commercialMode?: OrganizationCommercialMode;
+  firstStaffRole?: Exclude<ClubMembership['role'], 'OWNER' | 'MEMBER'> | null;
+}
+
+export interface CreateClubResult {
+  club: Club;
+  membership: ClubMembership;
+  primaryInvite: ClubInvite;
+  firstStaffInvite?: ClubInvite;
+}
+
 export type AggregatedFeedPost = ClubFeedPost & {
   clubName: string;
   clubBadge?: string;
 };
 
 const NOW = Date.now();
+
+function buildInviteCode(seed: string): string {
+  const prefix = seed
+    .replace(/[^a-zA-Z]/g, '')
+    .slice(0, 5)
+    .toUpperCase() || 'CLUB';
+  const suffix = generateId('invite').slice(-4).toUpperCase();
+  return `${prefix}-${suffix}`;
+}
 
 const SEED_CLUBS: Club[] = [
   {
@@ -940,6 +967,108 @@ class ClubFeedService {
     clubsStore[clubIndex] = updatedClub;
     await this.persistClubs();
     return ok(updatedClub);
+  }
+
+  async createClub(input: CreateClubInput): Promise<Result<CreateClubResult, ServiceError>> {
+    await this.ensureHydrated();
+
+    const name = input.name.trim();
+    const city = input.city.trim();
+    const country = (input.country || 'UK').trim();
+    const tagline = input.tagline?.trim();
+    const badge = (input.badge || name.slice(0, 3)).trim().toUpperCase().slice(0, 4);
+
+    if (!input.ownerId.trim()) {
+      return err(validationError('Owner is required'));
+    }
+    if (name.length < 3) {
+      return err(validationError('Club name must be at least 3 characters'));
+    }
+    if (city.length < 2) {
+      return err(validationError('City is required'));
+    }
+
+    const duplicate = clubsStore.find(
+      (club) => club.ownerId === input.ownerId && club.name.trim().toLowerCase() === name.toLowerCase(),
+    );
+    if (duplicate) {
+      return err(validationError('You already have a club with this name'));
+    }
+
+    const clubId = generateId('club');
+    const primaryInvite: ClubInvite = {
+      code: buildInviteCode(name),
+      clubId,
+      createdBy: input.ownerId,
+      role: 'MEMBER',
+      expiresAt: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString(),
+      remainingUses: 999,
+    };
+
+    const club: Club = {
+      id: clubId,
+      name,
+      city,
+      country,
+      badge: badge || undefined,
+      tagline: tagline || undefined,
+      memberCount: 1,
+      coachCount: 1,
+      squadCount: 0,
+      ownerId: input.ownerId,
+      inviteCode: primaryInvite.code,
+      commercialMode: input.commercialMode ?? 'COACH_OWNED',
+    };
+
+    const membership: ClubMembership = {
+      clubId,
+      userId: input.ownerId,
+      role: 'OWNER',
+      status: 'active',
+      joinSource: 'created',
+      inviteCode: primaryInvite.code,
+      canPostAsClub: true,
+    };
+
+    const invites: ClubInvite[] = [primaryInvite];
+    if (input.firstStaffRole) {
+      invites.push({
+        code: buildInviteCode(`${name}${input.firstStaffRole}`),
+        clubId,
+        createdBy: input.ownerId,
+        role: input.firstStaffRole,
+        expiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
+        remainingUses: 10,
+      });
+    }
+
+    clubsStore = [club, ...clubsStore];
+    membershipsStore = [membership, ...membershipsStore];
+    clubInvitesStore = [
+      ...invites,
+      ...clubInvitesStore.filter((invite) => invite.clubId !== clubId),
+    ];
+
+    await Promise.all([
+      this.persistClubs(),
+      this.persistMemberships(),
+      this.persistInviteCodes(),
+    ]);
+
+    emitTyped(ServiceEvents.CLUB_MEMBER_JOINED, { clubId, userId: input.ownerId });
+    this.logger.info('club_created', {
+      clubId,
+      ownerId: input.ownerId,
+      commercialMode: club.commercialMode,
+      firstStaffRole: input.firstStaffRole ?? null,
+    });
+
+    return ok({
+      club,
+      membership,
+      primaryInvite,
+      firstStaffInvite: invites.find((invite) => invite.role === input.firstStaffRole),
+    });
   }
 
   async updateClubCommercialMode(

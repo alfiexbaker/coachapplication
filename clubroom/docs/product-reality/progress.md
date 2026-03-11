@@ -41,6 +41,8 @@ Purpose: keep a live record of what has been decided, what has been completed, a
 - org reassignment now propagates into linked booking delivery truth
 - head coach oversight now exists on the live manage route with scoped completion health, athlete watchlists, standards, and explicit follow-up tasking
 - coach bookings, schedule, and earnings now split org-assigned work from independent work with honest reconciler vs direct-revenue language
+- family-facing booking detail, problem reporting, and child-health copy now make support ownership, handoffs, and scoped visibility explicit for org work
+- product-reality sprint docs were rebuilt as a minimal current queue after the docs cleanup
 - UI audit false-positive for re-export routes removed
 - active sprint stack reworked around operator reality
 - complete-POC layer added
@@ -57,8 +59,9 @@ Purpose: keep a live record of what has been decided, what has been completed, a
 | PR-04 | Done | owner/admin staffing console and assignment propagation now exist on the live manage route |
 | PR-05 | Done | head coach oversight, scoped review, and standards/tasking now exist on the live manage route |
 | PR-06 | Done | coach bookings, schedule, and earnings now separate org-assigned work from independent work with honest money labels |
-| PR-07 | Open | family-facing org trust and support ownership are the next org-core runtime layer |
-| PR-11 to PR-15 | Open | complete-POC layer |
+| PR-07 | Done | family-facing support ownership, reassignment trust, and scoped child/health visibility now render in the live parent flow |
+| PR-11 | Open | org setup and onboarding are now the next complete-POC runtime layer |
+| PR-12 to PR-15 | Open | remaining complete-POC layer |
 | PR-16 to PR-20 | Open | coach/user-first and pre-API closure layer |
 | PR-08 to PR-10 | Open | important cleanup/hardening after core proof |
 
@@ -67,23 +70,22 @@ Purpose: keep a live record of what has been decided, what has been completed, a
 For the product to behave like `Johnny's Coaching LTD`, all of these must become real:
 
 1. coach split between org work and independent work
-2. family support ownership
-3. org setup flow
-4. recurring/program offers
-5. owner dashboard
-6. coach discovery and conversion path
-7. booking lifecycle and parent operations
-8. session completion to progress to rebooking loop
-9. stable seeded demo scenarios
-10. pre-API stability and flow bar
+2. org setup flow
+3. recurring/program offers
+4. owner dashboard
+5. coach discovery and conversion path
+6. booking lifecycle and parent operations
+7. session completion to progress to rebooking loop
+8. stable seeded demo scenarios
+9. pre-API stability and flow bar
 
 ## Current Next Step
 
-- implement `PR-07` family trust and support ownership
+- implement `PR-11` org setup and onboarding
 
 ## Read Next
 
 - `POC_COMPLETENESS_2026-03-10.md`
 - `PRE_API_COMPLETENESS_REVIEW_2026-03-10.md`
 - `OPEN_DECISIONS_2026-03-10.md`
-- `../newsprints/sprints/BACKLOG.md`
+- `sprints/BACKLOG.md`

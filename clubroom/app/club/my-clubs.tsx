@@ -205,7 +205,13 @@ export default function MyClubsScreen() {
         <EmptyState
           icon="people-outline"
           title="No clubs yet"
-          message="Join a club with an invite code to see updates and sessions."
+          message={
+            isCoachAccount
+              ? 'Create your first club or join one with an invite code.'
+              : 'Join a club with an invite code to see updates and sessions.'
+          }
+          actionLabel={isCoachAccount ? 'Create Club' : undefined}
+          onPressAction={isCoachAccount ? () => router.push(Routes.CLUB_CREATE) : undefined}
         />
       ) : (
         <View style={styles.list}>
