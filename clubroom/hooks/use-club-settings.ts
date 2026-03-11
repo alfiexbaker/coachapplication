@@ -16,6 +16,11 @@ import type { Club, ClubSquad, ClubRole, OrganizationCommercialMode } from '@/co
 import { createLogger } from '@/utils/logger';
 import { uiFeedback } from '@/services/ui-feedback';
 import { canEditClubCommercialMode } from '@/utils/organization-commercial-mode';
+import {
+  ORGANIZATION_ROLE_LABELS,
+  canManageClubMembers,
+  compareOrganizationRoles,
+} from '@/contracts/club-governance';
 
 const logger = createLogger('ClubSettings');
 
@@ -57,10 +62,16 @@ function buildInviteCodes(
 ): InviteCodeItem[] {
   if (!club) return [];
 
-  return invites.map((invite) => ({
-    ...invite,
-    isPrimary: invite.code === club.inviteCode,
-  }));
+  return invites
+    .map((invite) => ({
+      ...invite,
+      isPrimary: invite.code === club.inviteCode,
+    }))
+    .sort(
+      (left, right) =>
+        Number(right.isPrimary) - Number(left.isPrimary)
+        || compareOrganizationRoles(left.role, right.role),
+    );
 }
 
 export function useClubSettings() {
@@ -92,9 +103,7 @@ export function useClubSettings() {
   const clubId = paramClubId || userClubs[0]?.id;
   const membership =
     currentUser?.id && clubId ? socialFeedService.getMembership(currentUser.id, clubId) : undefined;
-  const canManageClub = membership
-    ? ['OWNER', 'ADMIN', 'HEAD_COACH'].includes(membership.role)
-    : false;
+  const canManageClub = canManageClubMembers(membership?.role);
   const canEditCommercialMode = canEditClubCommercialMode(membership?.role);
 
   const [club, setClub] = useState<Club | null>(null);
@@ -203,7 +212,7 @@ export function useClubSettings() {
   const handleGenerateCode = useCallback(
     async (role: ClubRole) => {
       if (!canManageClub) {
-        showToast('Only club admins can generate invite codes', 'error');
+        showToast('Only club leaders can generate invite codes', 'error');
         return;
       }
       if (!clubId || !currentUser?.id) return;
@@ -218,7 +227,7 @@ export function useClubSettings() {
       const updatedClub = (await socialFeedService.getClub(clubId)) ?? club;
       setClub(updatedClub);
       setInviteCodes(buildInviteCodes(updatedClub, nextInvites));
-      showToast(`New ${role.toLowerCase()} invite code created`, 'success');
+      showToast(`New ${ORGANIZATION_ROLE_LABELS[role]} invite code created`, 'success');
       logger.action('GenerateInviteCode', { role, code: result.data.code });
     },
     [canManageClub, club, clubId, currentUser?.id, showToast],
@@ -227,7 +236,7 @@ export function useClubSettings() {
   const handleSaveDetails = useCallback(async () => {
     if (!club) return;
     if (!canManageClub) {
-      showToast('Only club admins can edit club details', 'error');
+      showToast('Only club leaders can edit club details', 'error');
       return;
     }
     const result = await socialFeedService.updateClubDetails(club.id, {
@@ -248,7 +257,7 @@ export function useClubSettings() {
     async (nextMode: OrganizationCommercialMode) => {
       if (!club) return;
       if (!canManageClub) {
-        showToast('Only club leaders can view commercial settings', 'error');
+        showToast('Only club leaders can manage commercial settings', 'error');
         return;
       }
       if (!canEditCommercialMode) {

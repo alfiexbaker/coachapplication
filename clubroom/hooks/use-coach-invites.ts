@@ -16,6 +16,7 @@ import { createLogger } from '@/utils/logger';
 import { err, ok, serviceError, type ServiceError } from '@/types/result';
 import type { ClubRole } from '@/constants/types';
 import { uiFeedback } from '@/services/ui-feedback';
+import { ORGANIZATION_ROLE_LABELS } from '@/contracts/club-governance';
 
 const logger = createLogger('CoachInvitesScreen');
 
@@ -33,11 +34,8 @@ export interface PendingClubInvite {
 }
 
 export const ROLE_LABELS: Record<ClubRole, string> = {
-  OWNER: 'Owner',
+  ...ORGANIZATION_ROLE_LABELS,
   ADMIN: 'Administrator',
-  HEAD_COACH: 'Head Coach',
-  COACH: 'Coach',
-  MEMBER: 'Member',
 };
 
 interface CoachInvitesData {

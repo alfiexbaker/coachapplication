@@ -30,12 +30,26 @@ import { createLogger } from '@/utils/logger';
 import { emitTyped, ServiceEvents } from './event-bus';
 import { api } from '@/constants/config';
 import { normalizeLegacyMockDates } from '@/utils/mock-date-normalizer';
-
 import { STORAGE_KEYS } from '@/constants/storage-keys';
+import {
+  ORGANIZATION_ROLE_LABELS,
+  canManageClubMembers,
+  canManageClubRole,
+  getAssignableClubRoles,
+} from '@/contracts/club-governance';
 
 const logger = createLogger('ClubService');
 
 const USE_MOCK = api.useMock;
+
+const ROLE_COLORS: Record<ClubRole, string> = {
+  OWNER: '#7C3AED',
+  ADMIN: '#2563EB',
+  HEAD_COACH: '#16A34A',
+  COACH: '#0891B2',
+  ASSISTANT: '#D97706',
+  MEMBER: '#6B7280',
+};
 
 // ============================================================================
 // BRANDING TYPES
@@ -575,7 +589,7 @@ export const clubService = {
    * Check if user can remove members (must be OWNER, ADMIN, or HEAD_COACH)
    */
   canRemoveMembers(userRole: ClubRole): boolean {
-    return ['OWNER', 'ADMIN', 'HEAD_COACH'].includes(userRole);
+    return canManageClubMembers(userRole);
   },
 
   /**
@@ -792,30 +806,14 @@ export const clubService = {
    * Check if a role can manage another role (hierarchy check)
    */
   canManageRole(managerRole: ClubRole, targetRole: ClubRole): boolean {
-    const hierarchy: Record<ClubRole, number> = {
-      OWNER: 5,
-      ADMIN: 4,
-      HEAD_COACH: 3,
-      COACH: 2,
-      MEMBER: 1,
-    };
-    return hierarchy[managerRole] > hierarchy[targetRole];
+    return canManageClubRole(managerRole, targetRole);
   },
 
   /**
    * Get the list of roles a manager can assign to a target
    */
   getAssignableRoles(managerRole: ClubRole): ClubRole[] {
-    const hierarchy: Record<ClubRole, number> = {
-      OWNER: 5,
-      ADMIN: 4,
-      HEAD_COACH: 3,
-      COACH: 2,
-      MEMBER: 1,
-    };
-    const managerLevel = hierarchy[managerRole];
-    const allRoles: ClubRole[] = ['ADMIN', 'HEAD_COACH', 'COACH', 'MEMBER'];
-    return allRoles.filter((role) => hierarchy[role] < managerLevel);
+    return getAssignableClubRoles(managerRole);
   },
 
   /**
@@ -836,28 +834,14 @@ export const clubService = {
    * Format role for display
    */
   formatRole(role: ClubRole): string {
-    const labels: Record<ClubRole, string> = {
-      OWNER: 'Owner',
-      ADMIN: 'Admin',
-      HEAD_COACH: 'Head Coach',
-      COACH: 'Coach',
-      MEMBER: 'Member',
-    };
-    return labels[role] || role;
+    return ORGANIZATION_ROLE_LABELS[role] || role;
   },
 
   /**
    * Get role color
    */
   getRoleColor(role: ClubRole): string {
-    const colors: Record<ClubRole, string> = {
-      OWNER: '#7C3AED',
-      ADMIN: '#2563EB',
-      HEAD_COACH: '#16A34A',
-      COACH: '#0891B2',
-      MEMBER: '#6B7280',
-    };
-    return colors[role] || '#6B7280';
+    return ROLE_COLORS[role] || '#6B7280';
   },
 
   // ============================================================================

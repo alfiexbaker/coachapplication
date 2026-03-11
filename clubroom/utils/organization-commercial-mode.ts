@@ -1,4 +1,9 @@
 import type { ClubRole, OrganizationCommercialMode } from '@/constants/types';
+import {
+  canEditClubCommercialMode as canEditCommercialModeFromGovernance,
+  canViewClubCommercialMode as canViewCommercialModeFromGovernance,
+  formatOrganizationCommercialModeLabel,
+} from '@/contracts/club-governance';
 
 export interface CommercialModeChoice {
   value: OrganizationCommercialMode;
@@ -23,15 +28,15 @@ export const COMMERCIAL_MODE_CHOICES: CommercialModeChoice[] = [
 ];
 
 export function canViewClubCommercialMode(role?: ClubRole | null): boolean {
-  return role === 'OWNER' || role === 'ADMIN' || role === 'HEAD_COACH';
+  return canViewCommercialModeFromGovernance(role);
 }
 
 export function canEditClubCommercialMode(role?: ClubRole | null): boolean {
-  return role === 'OWNER';
+  return canEditCommercialModeFromGovernance(role);
 }
 
 export function formatCommercialModeLabel(
   commercialMode?: OrganizationCommercialMode | null,
 ): string {
-  return commercialMode === 'ORG_OWNED' ? 'Organization-owned' : 'Coach-owned';
+  return formatOrganizationCommercialModeLabel(commercialMode);
 }

@@ -12,6 +12,7 @@
     "hooks/**/*.ts",
     "hooks/**/*.tsx",
     "constants/**/*.ts",
+    "contracts/**/*.ts",
     "types/**/*.ts",
     "utils/**/*.ts",
     "navigation/**/*.ts"

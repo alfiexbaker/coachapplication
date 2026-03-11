@@ -14,6 +14,7 @@ import {
   COMMERCIAL_MODE_CHOICES,
   formatCommercialModeLabel,
 } from '@/utils/organization-commercial-mode';
+import { formatOrganizationRoleLabel } from '@/contracts/club-governance';
 
 interface SettingsCommercialSectionProps {
   colors: ThemeColors;
@@ -25,7 +26,7 @@ interface SettingsCommercialSectionProps {
 }
 
 function formatRole(role?: ClubRole): string {
-  return role ? role.replace('_', ' ') : 'Member';
+  return formatOrganizationRoleLabel(role);
 }
 
 export const SettingsCommercialSection = memo(function SettingsCommercialSection({

@@ -20,6 +20,11 @@ import { socialFeedService } from '@/services/social-feed-service';
 import type { ClubMembership } from '@/constants/types';
 import { ok } from '@/types/result';
 import { uiFeedback } from '@/services/ui-feedback';
+import {
+  formatOrganizationRoleLabel,
+  isClubStaffRole,
+  parseOrganizationRole,
+} from '@/contracts/club-governance';
 
 interface MyClubsData {
   clubs: ReturnType<typeof socialFeedService.getUserClubs>;
@@ -27,22 +32,12 @@ interface MyClubsData {
 }
 type UserClub = MyClubsData['clubs'][number];
 
-function roleLabel(role: ClubMembership['role']): string {
-  if (role === 'HEAD_COACH') return 'Head Coach';
-  if (role === 'COACH') return 'Coach';
-  if (role === 'OWNER') return 'Owner';
-  if (role === 'ADMIN') return 'Admin';
-  return 'Member';
-}
-
 function mapUserRoleToClubRole(role: string | undefined): ClubMembership['role'] {
-  if (role === 'ADMIN') return 'ADMIN';
-  if (role === 'COACH') return 'COACH';
-  return 'MEMBER';
+  return parseOrganizationRole(role) ?? 'MEMBER';
 }
 
 function isStaffMembership(role: ClubMembership['role'] | undefined): boolean {
-  return role === 'OWNER' || role === 'HEAD_COACH' || role === 'ADMIN' || role === 'COACH';
+  return role ? isClubStaffRole(role) : false;
 }
 
 export default function MyClubsScreen() {
@@ -123,7 +118,7 @@ export default function MyClubsScreen() {
                 ]}
               >
                 <ThemedText style={[styles.rolePillText, { color: colors.tint }]}>
-                  {roleLabel(membership.role)}
+                  {formatOrganizationRoleLabel(membership.role)}
                 </ThemedText>
               </View>
             ) : null}

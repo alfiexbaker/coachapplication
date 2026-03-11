@@ -5,10 +5,15 @@ Purpose: provide one short canonical rules file for how club actors relate to ea
 
 ## Canonical Sources
 
+- `contracts/club-governance.ts`
+- `packages/shared-contracts/src/club/contracts.ts`
+- `packages/shared-contracts/src/club/policy.ts`
 - `docs/product-reality/ORG_RELATIONSHIP_MODEL_2026-03-10.md`
 - `docs/product-reality/ORG_PERMISSION_AND_VISIBILITY_MATRIX_2026-03-10.md`
 - `docs/backend-api/AUTHZ_AUDIT_AND_SECURITY.md`
 - `docs/SOURCE_OF_TRUTH.md`
+
+Read the shared contract first when you need executable role logic. Use this doc to understand intent and product rules, not to re-derive permission code by hand.
 
 ## Actors
 

@@ -19,11 +19,13 @@ import { squadService } from '@/services/squad-service';
 import { err, ok, storageError, type Result, type ServiceError, unauthorized, validationError } from '@/types/result';
 import { accountIdsMatch } from '@/utils/account-id';
 import { createLogger } from '@/utils/logger';
+import {
+  isClubOversightRole,
+  isClubStaffRole,
+} from '@/contracts/club-governance';
 
 const logger = createLogger('OrgHeadCoachService');
 
-const OVERSIGHT_ROLES = new Set<ClubRole>(['OWNER', 'ADMIN', 'HEAD_COACH']);
-const STAFF_ROLES = new Set<ClubRole>(['OWNER', 'ADMIN', 'HEAD_COACH', 'COACH']);
 const TASK_TYPES = new Set<HeadCoachTaskType>(['required_follow_up', 'session_note_expectation']);
 
 export type HeadCoachScopeType = 'club' | 'assigned_squads';
@@ -150,14 +152,6 @@ interface ViewerContext {
   clubMembers: ClubMember[];
   squads: ClubSquad[];
   squadsById: Map<string, ClubSquad>;
-}
-
-function isOversightRole(role: ClubRole): boolean {
-  return OVERSIGHT_ROLES.has(role);
-}
-
-function isStaffRole(role: ClubRole): boolean {
-  return STAFF_ROLES.has(role);
 }
 
 function parseTime(value?: string | null): number {
@@ -331,7 +325,7 @@ class OrgHeadCoachService {
         (membership) =>
           accountIdsMatch(membership.userId, viewerUserId) && membership.status === 'active',
       );
-      if (!viewerMembership || !isOversightRole(viewerMembership.role)) {
+      if (!viewerMembership || !isClubOversightRole(viewerMembership.role)) {
         return err(unauthorized('Only owners, admins, and head coaches can access oversight'));
       }
 
@@ -501,7 +495,7 @@ class OrgHeadCoachService {
         .sort(sortCompletionQueue);
 
       const activeStaff = context.clubMembers.filter(
-        (member) => member.status === 'active' && isStaffRole(member.role),
+        (member) => member.status === 'active' && isClubStaffRole(member.role),
       );
 
       const baseCoachIds = new Set(
@@ -659,7 +653,10 @@ class OrgHeadCoachService {
       const context = contextResult.data;
 
       const coach = context.clubMembers.find(
-        (member) => accountIdsMatch(member.userId, params.coachId) && member.status === 'active' && isStaffRole(member.role),
+        (member) =>
+          accountIdsMatch(member.userId, params.coachId)
+          && member.status === 'active'
+          && isClubStaffRole(member.role),
       );
       if (!coach) {
         return err(validationError('Selected coach is not active staff in this club'));

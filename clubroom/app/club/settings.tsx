@@ -21,6 +21,7 @@ import { Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
 import { useClubSettings, SETTINGS_SECTIONS } from '@/hooks/use-club-settings';
 import { Routes } from '@/navigation/routes';
+import { formatOrganizationRoleLabel } from '@/contracts/club-governance';
 
 export default function ClubSettingsScreen() {
   const { colors } = useTheme();
@@ -125,7 +126,7 @@ export default function ClubSettingsScreen() {
             </ThemedText>
             <ThemedText style={[Typography.small, { color: colors.muted }]}>
               {membership
-                ? `Your role: ${membership.role.replace('_', ' ')}. Use Club Hub for membership actions.`
+                ? `Your role: ${formatOrganizationRoleLabel(membership.role)}. Use Club Hub for membership actions.`
                 : 'You are not a manager in this club. Use Club Hub to join, leave, or switch clubs.'}
             </ThemedText>
             <Clickable
@@ -177,6 +178,7 @@ export default function ClubSettingsScreen() {
           <SettingsInvitesSection
             inviteCodes={inviteCodes}
             colors={colors}
+            viewerRole={membership?.role}
             onCopy={handleCopyCode}
             onShare={handleShareCode}
             onGenerate={handleGenerateCode}

@@ -5,3 +5,6 @@ export * from './health/contracts.js';
 export * from './booking/contracts.js';
 export * from './family/contracts.js';
 export * from './trust/contracts.js';
+export * from './club/definitions.js';
+export * from './club/contracts.js';
+export * from './club/policy.js';

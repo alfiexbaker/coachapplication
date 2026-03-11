@@ -84,6 +84,11 @@
     "__tests__/badges/**/*.tsx",
     "__tests__/hooks/**/*.ts",
     "__tests__/integration/**/*.ts",
-    "__tests__/contracts/**/*.ts"
+    "__tests__/contracts/**/*.ts",
+    "contracts/**/*.ts"
+  ],
+  "exclude": [
+    "node_modules",
+    ".tmp-tests"
   ]
 }

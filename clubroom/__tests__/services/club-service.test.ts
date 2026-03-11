@@ -213,6 +213,7 @@ describe('clubService', () => {
   describe('canRemoveMembers', () => {
     test('OWNER can remove', () => assert.equal(clubService.canRemoveMembers('OWNER'), true));
     test('ADMIN can remove', () => assert.equal(clubService.canRemoveMembers('ADMIN'), true));
+    test('HEAD_COACH can remove', () => assert.equal(clubService.canRemoveMembers('HEAD_COACH'), true));
     test('MEMBER cannot remove', () => assert.strictEqual(clubService.canRemoveMembers('MEMBER'), false));
   });
 
@@ -229,8 +230,7 @@ describe('clubService', () => {
   describe('getAssignableRoles', () => {
     test('OWNER can assign all below', () => {
       const roles = clubService.getAssignableRoles('OWNER');
-      assert.ok(roles.includes('ADMIN'));
-      assert.ok(roles.includes('MEMBER'));
+      assert.deepEqual(roles, ['ADMIN', 'HEAD_COACH', 'COACH', 'ASSISTANT', 'MEMBER']);
     });
   });
 
@@ -247,6 +247,7 @@ describe('clubService', () => {
   describe('formatRole', () => {
     test('formats known roles', () => {
       assert.equal(clubService.formatRole('HEAD_COACH'), 'Head Coach');
+      assert.equal(clubService.formatRole('ASSISTANT'), 'Assistant');
       assert.equal(clubService.formatRole('MEMBER'), 'Member');
     });
   });

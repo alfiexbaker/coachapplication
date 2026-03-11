@@ -4,13 +4,18 @@
  * Club, squad, membership, club feed, and academy types.
  */
 
+import type {
+  OrganizationCommercialMode,
+  OrganizationRole,
+} from '@/contracts/club-governance';
+import type { SportCategory, FootballObjective } from './user-types';
+
 // ============================================================================
 // CLUB & SQUAD SYSTEM
 // ============================================================================
 
-export type OrganizationCommercialMode = 'COACH_OWNED' | 'ORG_OWNED';
-
-export type ClubRole = 'OWNER' | 'ADMIN' | 'HEAD_COACH' | 'COACH' | 'MEMBER';
+export type ClubRole = OrganizationRole;
+export type { OrganizationCommercialMode };
 
 export interface Club {
   id: string;
@@ -206,8 +211,6 @@ export interface ClubFeedPost {
 // ACADEMY / SCHOOL SYSTEM
 // ============================================================================
 
-import type { SportCategory, FootballObjective } from './user-types';
-
 export type AcademyPermission =
   | 'MANAGE_STAFF'
   | 'MANAGE_SETTINGS'
@@ -252,7 +255,7 @@ export interface AcademyMembership {
   id: string;
   academyId: string;
   userId: string;
-  role: 'OWNER' | 'ADMIN' | 'HEAD_COACH' | 'COACH' | 'ASSISTANT' | 'MEMBER';
+  role: OrganizationRole;
   permissions: AcademyPermission[];
   status: 'ACTIVE' | 'PENDING' | 'SUSPENDED';
   joinedAt: string;

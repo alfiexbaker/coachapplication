@@ -185,6 +185,24 @@ describe('p0 core routes', () => {
       },
     });
     assert.equal(clubs.statusCode, 200);
+    const clubsPayload = clubs.json() as {
+      clubs: Array<{
+        id?: string;
+        viewerMembership?: { userId?: string; role?: string } | null;
+        viewerGovernance: { role: string | null; canManageAssignments: boolean };
+      }>;
+    };
+    const visibleClub = clubsPayload.clubs.find(
+      (club) => club.viewerMembership?.userId === coachUserId,
+    );
+    assert.ok(visibleClub, 'expected a visible club membership for the seeded coach');
+    assert.equal(typeof visibleClub?.viewerGovernance.canManageAssignments, 'boolean');
+    if (visibleClub?.viewerMembership?.role === 'club_admin') {
+      assert.equal(visibleClub.viewerGovernance.role, 'ADMIN');
+    }
+    if (visibleClub?.viewerMembership?.role === 'coach') {
+      assert.equal(visibleClub.viewerGovernance.role, 'COACH');
+    }
   });
 
   it('creates bookings and lists them for the booked-by user', async () => {

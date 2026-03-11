@@ -14,10 +14,9 @@ import {
 import { socialFeedService } from '@/services/social-feed-service';
 import type { ClubMembership, ClubRole } from '@/constants/types';
 import { createLogger } from '@/utils/logger';
+import { isClubOversightRole } from '@/contracts/club-governance';
 
 const logger = createLogger('useHeadCoachOversight');
-
-const ELIGIBLE_ROLES = new Set<ClubRole>(['OWNER', 'ADMIN', 'HEAD_COACH']);
 
 interface OversightClubOption {
   id: string;
@@ -26,7 +25,7 @@ interface OversightClubOption {
 }
 
 function isEligibleMembership(membership: ClubMembership): boolean {
-  return membership.status === 'active' && ELIGIBLE_ROLES.has(membership.role);
+  return membership.status === 'active' && isClubOversightRole(membership.role);
 }
 
 export function useHeadCoachOversight() {

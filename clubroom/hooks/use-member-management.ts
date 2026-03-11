@@ -18,13 +18,6 @@ import { uiFeedback } from '@/services/ui-feedback';
 
 const logger = createLogger('MemberManagement');
 
-const mapUserRoleToClubRole = (role: string | undefined): ClubRole | null => {
-  if (role === 'ADMIN') return 'ADMIN';
-  if (role === 'COACH') return 'COACH';
-  if (role === 'USER') return 'MEMBER';
-  return null;
-};
-
 interface MemberManagementData {
   member: ClubMember | null;
   club: Club | null;
@@ -65,7 +58,7 @@ export function useMemberManagement(): UseMemberManagementResult {
         member: null,
         club: null,
         squads: [],
-        currentUserRole: mapUserRoleToClubRole(currentUser?.role),
+        currentUserRole: null,
       });
     }
 
@@ -77,12 +70,14 @@ export function useMemberManagement(): UseMemberManagementResult {
         : undefined;
       const memberData = await clubService.getMember(clubId, memberId);
       const squads = await squadService.getSquads(clubId);
+      const viewerMembership =
+        currentUser?.id ? socialFeedService.getMembership(currentUser.id, clubId) : undefined;
 
       return ok<MemberManagementData>({
         member: memberData,
         club: clubData || null,
         squads,
-        currentUserRole: mapUserRoleToClubRole(currentUser?.role),
+        currentUserRole: viewerMembership?.role ?? null,
       });
     } catch (loadError) {
       logger.error('Failed to load member data', loadError);
@@ -90,11 +85,11 @@ export function useMemberManagement(): UseMemberManagementResult {
         serviceError('UNKNOWN', 'Failed to load member data. Pull down to refresh.', loadError),
       );
     }
-  }, [clubId, memberId, currentUser?.id, currentUser?.role]);
+  }, [clubId, memberId, currentUser?.id]);
 
   const { data, status, error, refreshing, onRefresh, retry } = useScreen<MemberManagementData>({
     load: loadData,
-    deps: [clubId, memberId, currentUser?.id, currentUser?.role],
+    deps: [clubId, memberId, currentUser?.id],
     events: [
       ServiceEvents.CLUB_MEMBER_JOINED,
       ServiceEvents.CLUB_MEMBER_LEFT,
@@ -108,7 +103,9 @@ export function useMemberManagement(): UseMemberManagementResult {
   const member = data?.member ?? null;
   const club = data?.club ?? null;
   const squads = data?.squads ?? [];
-  const currentUserRole = data?.currentUserRole ?? mapUserRoleToClubRole(currentUser?.role);
+  const currentUserRole =
+    data?.currentUserRole
+    ?? (currentUser?.id && clubId ? socialFeedService.getMembership(currentUser.id, clubId)?.role ?? null : null);
   const loading = status === 'loading';
 
   const canManage = currentUserRole

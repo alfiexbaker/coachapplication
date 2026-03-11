@@ -4,6 +4,7 @@ import { beforeEach, describe, it } from 'node:test';
 import { STORAGE_KEYS } from '@/constants/storage-keys';
 import { apiClient } from '@/services/api-client';
 import { orgStaffingService } from '@/services/org-staffing-service';
+import { socialFeedService } from '@/services/social-feed-service';
 import type { Booking, SessionOffering, User } from '@/constants/types';
 
 function makeOffering(id: string, overrides: Partial<SessionOffering> = {}): SessionOffering {
@@ -197,7 +198,7 @@ describe('orgStaffingService', () => {
     assert.equal(updatedBooking?.assigneeCoachId, 'coach2');
   });
 
-  it('blocks reassignment when the actor is not an owner or admin', async () => {
+  it('blocks reassignment when the actor does not have club assignment authority', async () => {
     await apiClient.set(STORAGE_KEYS.USERS, [
       {
         id: 'coach2',
@@ -228,5 +229,53 @@ describe('orgStaffingService', () => {
     if (result.success) return;
 
     assert.equal(result.error.code, 'UNAUTHORIZED');
+  });
+
+  it('allows active head coaches to assign club work', async () => {
+    const joinResult = socialFeedService.joinClub('coach3', 'LIONS-CLUB', 'HEAD_COACH');
+    assert.equal(joinResult.success, true);
+
+    await apiClient.set(STORAGE_KEYS.USERS, [
+      {
+        id: 'coach2',
+        name: 'Jess Okafor',
+        email: 'jess@example.com',
+        postcode: '',
+        dateOfBirth: '1986-01-01',
+        role: 'COACH',
+      },
+      {
+        id: 'coach3',
+        name: 'Rita Walsh',
+        email: 'rita@example.com',
+        postcode: '',
+        dateOfBirth: '1984-01-01',
+        role: 'COACH',
+      },
+    ] satisfies User[]);
+    await apiClient.set(STORAGE_KEYS.SESSION_OFFERINGS, [
+      makeOffering('offering_head_coach', {
+        coachId: 'coach1',
+        ownerCoachId: 'coach1',
+        assigneeCoachId: 'coach1',
+      }),
+    ]);
+
+    const result = await orgStaffingService.assignOffering({
+      clubId: 'club_lions',
+      offeringId: 'offering_head_coach',
+      assigneeCoachId: 'coach2',
+      actorUserId: 'coach3',
+      actorRole: 'COACH',
+    });
+
+    assert.equal(result.success, true);
+    if (!result.success) return;
+
+    const storedOfferings = await apiClient.get<SessionOffering[]>(STORAGE_KEYS.SESSION_OFFERINGS, []);
+    const updatedOffering = storedOfferings.find((offering) => offering.id === 'offering_head_coach');
+
+    assert.equal(updatedOffering?.assigneeCoachId, 'coach2');
+    assert.equal(updatedOffering?.ownerCoachId, 'coach2');
   });
 });

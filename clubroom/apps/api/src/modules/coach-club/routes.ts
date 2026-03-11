@@ -1,4 +1,5 @@
 import type { FastifyPluginAsync } from 'fastify';
+import { getClubGovernanceSnapshot, parseOrganizationRole } from '@clubroom/shared-contracts';
 import { forbidden, notFound } from '../../lib/http-errors.js';
 import { getMarketplaceSeedStore } from '../../lib/marketplace-seed-store.js';
 
@@ -147,9 +148,13 @@ const coachClubRoutes: FastifyPluginAsync = async (app) => {
       const clubId = asString(club.id);
       const memberships = clubMemberships.filter((row) => asString(row.clubId) === clubId);
       const clubSquads = squads.filter((row) => asString(row.clubId) === clubId);
+      const viewerMembership = memberships.find((row) => asString(row.userId) === authUserId) ?? null;
+      const viewerRole = parseOrganizationRole(asString(viewerMembership?.role));
       return {
         ...club,
         memberships,
+        viewerMembership,
+        viewerGovernance: getClubGovernanceSnapshot(viewerRole),
         squads: clubSquads,
       };
     });

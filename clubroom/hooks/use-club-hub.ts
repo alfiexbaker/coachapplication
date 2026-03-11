@@ -38,6 +38,7 @@ import { onTyped, ServiceEvents } from '@/services/event-bus';
 import { inviteService as sessionInviteService } from '@/services/invite';
 import { createLogger } from '@/utils/logger';
 import { uiFeedback } from '@/services/ui-feedback';
+import { parseOrganizationRole } from '@/contracts/club-governance';
 
 const logger = createLogger('ClubHub');
 
@@ -52,9 +53,7 @@ export const FEED_FILTERS: { key: FeedFilter; label: string; icon: string }[] = 
 ];
 
 const mapUserRoleToClubRole = (role: string | undefined): ClubRole => {
-  if (role === 'ADMIN') return 'ADMIN';
-  if (role === 'COACH') return 'COACH';
-  return 'MEMBER';
+  return parseOrganizationRole(role) ?? 'MEMBER';
 };
 
 function buildClubInvites(club: Club | undefined): ClubInvite[] {

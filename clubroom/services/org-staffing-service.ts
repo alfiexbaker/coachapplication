@@ -14,11 +14,15 @@ import { emitTyped, ServiceEvents } from '@/services/event-bus';
 import { socialFeedService } from '@/services/social-feed-service';
 import { userService } from '@/services/user-service';
 import { getSessionOfferingHeadcount } from '@/utils/session-offering-capacity';
+import {
+  canManageClubAssignments,
+  compareOrganizationRoles,
+  formatOrganizationRoleLabel,
+  isClubStaffRole,
+} from '@/contracts/club-governance';
 
 const logger = createLogger('OrgStaffingService');
 
-const STAFF_ROLES: ClubRole[] = ['OWNER', 'ADMIN', 'HEAD_COACH', 'COACH'];
-const ASSIGNMENT_MANAGER_ROLES = new Set<ClubRole>(['OWNER', 'ADMIN']);
 const ACTIVE_OFFERING_STATUSES = new Set<SessionOffering['status']>(['active', 'full']);
 
 export interface OrgStaffMember {
@@ -93,27 +97,16 @@ function getAssignableCoachId(offering: SessionOffering): string | null {
   return offering.assigneeCoachId || offering.ownerCoachId || offering.coachId || null;
 }
 
-function isStaffRole(role: ClubRole): boolean {
-  return STAFF_ROLES.includes(role);
-}
-
 function canPostAsClubMembership(membership: ClubMembership): boolean {
-  return membership.canPostAsClub === true || isStaffRole(membership.role);
+  return membership.canPostAsClub === true || isClubStaffRole(membership.role);
 }
 
 function isAssignmentManager(membership: ClubMembership): boolean {
-  return ASSIGNMENT_MANAGER_ROLES.has(membership.role);
+  return canManageClubAssignments(membership.role);
 }
 
 function sortMembers(a: OrgStaffMember, b: OrgStaffMember): number {
-  const roleOrder: Record<ClubRole, number> = {
-    OWNER: 0,
-    ADMIN: 1,
-    HEAD_COACH: 2,
-    COACH: 3,
-    MEMBER: 4,
-  };
-  return roleOrder[a.role] - roleOrder[b.role] || a.label.localeCompare(b.label);
+  return compareOrganizationRoles(a.role, b.role) || a.label.localeCompare(b.label);
 }
 
 function toWorkItem(
@@ -172,7 +165,7 @@ class OrgStaffingService {
         return err(unauthorized('You are not an active member of this club'));
       }
 
-      const staffMemberships = memberships.filter((membership) => isStaffRole(membership.role));
+      const staffMemberships = memberships.filter((membership) => isClubStaffRole(membership.role));
       const userIds = Array.from(
         new Set([
           ...staffMemberships.map((membership) => membership.userId),
@@ -230,7 +223,7 @@ class OrgStaffingService {
             label: userNameById.get(membership.userId) || membership.userId,
             role: membership.role,
             status: membership.status,
-            canTakeAssignments: membership.status === 'active' && membership.role !== 'MEMBER',
+            canTakeAssignments: membership.status === 'active' && isClubStaffRole(membership.role),
             assignedToday: assignedOfferings.filter((offering) => isTodayOffering(offering)).length,
             upcomingLoad: assignedOfferings.length,
             nextSessionAt: assignedOfferings[0]?.scheduledAt,
@@ -291,14 +284,21 @@ class OrgStaffingService {
         (membership) => membership.userId === params.actorUserId && membership.status === 'active',
       );
       if (!actorMembership || !isAssignmentManager(actorMembership)) {
-        return err(unauthorized('Only owners and admins can assign club work'));
+        return err(unauthorized('Only owners, admins, and head coaches can assign club work'));
       }
 
       const assigneeMembership = memberships.find(
         (membership) => membership.userId === params.assigneeCoachId && membership.status === 'active',
       );
-      if (!assigneeMembership || !isStaffRole(assigneeMembership.role)) {
-        return err(validationError('Selected coach is not active staff in this club'));
+      if (!assigneeMembership) {
+        return err(validationError('Selected staff member is not active in this club'));
+      }
+      if (!isClubStaffRole(assigneeMembership.role)) {
+        return err(
+          validationError(
+            `Selected ${formatOrganizationRoleLabel(assigneeMembership.role)} is not eligible for club staffing assignments`,
+          ),
+        );
       }
 
       const offeringIndex = offerings.findIndex((entry) => entry.id === params.offeringId);

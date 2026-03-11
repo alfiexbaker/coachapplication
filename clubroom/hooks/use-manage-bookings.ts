@@ -11,6 +11,7 @@ import { createLogger } from '@/utils/logger';
 import { uiFeedback } from '@/services/ui-feedback';
 import { useToast } from '@/components/ui/toast';
 import { onTyped, ServiceEvents } from '@/services/event-bus';
+import { formatOrganizationRoleLabel } from '@/contracts/club-governance';
 
 const logger = createLogger('useManageBookings');
 
@@ -39,7 +40,7 @@ function canPostAsClub(membership: ClubMembership): boolean {
 }
 
 function toRoleLabel(role: ClubRole): string {
-  return role.replace('_', ' ');
+  return formatOrganizationRoleLabel(role);
 }
 
 function formatDateTimeLabel(iso: string): string {

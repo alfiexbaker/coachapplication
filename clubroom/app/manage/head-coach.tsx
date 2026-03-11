@@ -22,9 +22,10 @@ import type {
   HeadCoachWatchlistItem,
 } from '@/services/org-head-coach-service';
 import { isAdmin, isCoach } from '@/utils/user-helpers';
+import { formatOrganizationRoleLabel } from '@/contracts/club-governance';
 
 function formatRole(role?: ClubRole | null): string {
-  return role ? role.replace('_', ' ') : 'No role';
+  return role ? formatOrganizationRoleLabel(role) : 'No role';
 }
 
 function formatDateLabel(iso?: string | null): string {

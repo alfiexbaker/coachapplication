@@ -13,6 +13,7 @@ describe('organization-commercial-mode', () => {
     assert.equal(canEditClubCommercialMode('ADMIN'), false);
     assert.equal(canEditClubCommercialMode('HEAD_COACH'), false);
     assert.equal(canEditClubCommercialMode('COACH'), false);
+    assert.equal(canEditClubCommercialMode('ASSISTANT'), false);
     assert.equal(canEditClubCommercialMode('MEMBER'), false);
   });
 
@@ -21,6 +22,7 @@ describe('organization-commercial-mode', () => {
     assert.equal(canViewClubCommercialMode('ADMIN'), true);
     assert.equal(canViewClubCommercialMode('HEAD_COACH'), true);
     assert.equal(canViewClubCommercialMode('COACH'), false);
+    assert.equal(canViewClubCommercialMode('ASSISTANT'), false);
   });
 
   it('formats commercial mode labels for settings copy', () => {

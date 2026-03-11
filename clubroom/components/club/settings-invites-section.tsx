@@ -12,10 +12,15 @@ import { clubService } from '@/services/club-service';
 import type { ThemeColors } from '@/hooks/useTheme';
 import type { ClubRole } from '@/constants/types';
 import type { InviteCodeItem } from '@/hooks/use-club-settings';
+import {
+  ORGANIZATION_ROLE_LABELS,
+  getAssignableClubRoles,
+} from '@/contracts/club-governance';
 
 interface SettingsInvitesSectionProps {
   inviteCodes: InviteCodeItem[];
   colors: ThemeColors;
+  viewerRole?: ClubRole;
   onCopy: (code: string) => void;
   onShare: (code: string, role: string) => void;
   onGenerate: (role: ClubRole) => void;
@@ -25,11 +30,15 @@ interface SettingsInvitesSectionProps {
 export const SettingsInvitesSection = memo(function SettingsInvitesSection({
   inviteCodes,
   colors,
+  viewerRole,
   onCopy,
   onShare,
   onGenerate,
   onDelete,
 }: SettingsInvitesSectionProps) {
+  const inviteRoles =
+    viewerRole ? getAssignableClubRoles(viewerRole) : (['MEMBER'] as ClubRole[]);
+
   return (
     <Animated.View entering={FadeInDown.springify()}>
       <SurfaceCard style={styles.card}>
@@ -102,16 +111,16 @@ export const SettingsInvitesSection = memo(function SettingsInvitesSection({
           </Row>
         ))}
 
-        <Row gap="sm">
-          {(['COACH', 'MEMBER'] as ClubRole[]).map((role) => (
+        <Row gap="sm" wrap>
+          {inviteRoles.map((role) => (
             <Clickable
               key={role}
-              style={[styles.genBtn, { flex: 1, borderColor: colors.border }]}
+              style={[styles.genBtn, { borderColor: colors.border }]}
               onPress={() => onGenerate(role)}
             >
               <Ionicons name="add" size={18} color={colors.tint} />
               <ThemedText style={{ color: colors.tint, fontWeight: '600' }}>
-                {role === 'COACH' ? 'Coach' : 'Member'} Invite
+                {ORGANIZATION_ROLE_LABELS[role]} Invite
               </ThemedText>
             </Clickable>
           ))}

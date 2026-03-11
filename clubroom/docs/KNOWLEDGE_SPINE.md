@@ -18,6 +18,8 @@ Purpose: give humans and agents a short, canonical read path into the repo witho
 ## Deep Sources To Trust
 
 - Product truth: `docs/SOURCE_OF_TRUTH.md`
+- Machine-readable club governance: `contracts/club-governance.ts`
+- Shared source for API/app governance rules: `packages/shared-contracts/src/club/contracts.ts`, `packages/shared-contracts/src/club/policy.ts`
 - Backend architecture: `docs/backend-api/ARCHITECTURE_BLUEPRINT.md`
 - Data model: `docs/backend-api/DATA_MODEL_AND_IDENTIFIERS.md`
 - AuthZ and security: `docs/backend-api/AUTHZ_AUDIT_AND_SECURITY.md`
@@ -43,6 +45,7 @@ Purpose: give humans and agents a short, canonical read path into the repo witho
 ## How To Use This
 
 - Start here when you need fast repo context.
+- For club roles, permissions, or relationship logic, read the machine-readable governance source before the prose rules doc.
 - Do not load every linked doc for every task. Pick the one domain map that matches the work.
 - Drop into the linked deep docs when you need exact contracts or sprint history.
 - Update these spine files when repo reality changes, especially when a canonical import path or runtime contract changes.

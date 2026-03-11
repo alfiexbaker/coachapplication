@@ -15,9 +15,10 @@ import { Radii, Spacing, Typography, withAlpha } from '@/constants/theme';
 import { isCoach, isAdmin } from '@/utils/user-helpers';
 import type { ClubRole } from '@/constants/types';
 import type { OrgStaffMember, OrgWorkItem } from '@/services/org-staffing-service';
+import { formatOrganizationRoleLabel } from '@/contracts/club-governance';
 
 function formatRole(role?: ClubRole | null): string {
-  return role ? role.replace('_', ' ') : 'No role';
+  return role ? formatOrganizationRoleLabel(role) : 'No role';
 }
 
 function formatDateTimeLabel(iso?: string): string {
@@ -200,7 +201,7 @@ export default function ManageBookingsScreen() {
               <ThemedText style={styles.sectionTitle}>Read-only staffing view</ThemedText>
               <ThemedText style={[styles.hint, { color: colors.muted }]}>
                 Your {formatRole(consoleState.selectedClubRole)} role can view staffing state here,
-                but only owners and admins can assign or reassign org work.
+                but only owners, admins, and head coaches can assign or reassign org work.
               </ThemedText>
             </View>
           </Row>
