@@ -71,7 +71,8 @@ Purpose: keep a live record of what has been decided, what has been completed, a
 | PR-14 | Done | owner dashboard now shows live staffing, delivery, support, and finance state from real org services |
 | PR-15 | Open | remaining complete-POC layer |
 | PR-16 | Done | coach discovery and profile now read like a professional conversion path with contact/block trust intact |
-| PR-17 to PR-20 | Open | coach/user-first and pre-API closure layer |
+| PR-17 | Done | recurring parent operations now have a live management surface, booking back-links, and cancellation integrity for future generated sessions |
+| PR-18 to PR-20 | Open | coach/user-first and pre-API closure layer |
 | PR-08 to PR-10 | Open | important cleanup/hardening after core proof |
 
 ## What Still Needs To Be True
@@ -90,7 +91,7 @@ For the product to behave like `Johnny's Coaching LTD`, all of these must become
 
 ## Current Next Step
 
-- implement `PR-17` booking lifecycle and parent operations
+- implement `PR-18` session delivery, feedback, and rebooking loop
 
 ## Read Next
 

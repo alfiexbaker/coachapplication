@@ -53,6 +53,7 @@ const ALLOWED_RETURN_TO_PATHS = new Set<string>([
   Routes.BOOKINGS as string,
   Routes.FAMILY as string,
   Routes.FAMILY_CALENDAR as string,
+  Routes.FAMILY_RECURRING as string,
   Routes.SCHEDULE as string,
   Routes.MANAGE_BOOKINGS as string,
   Routes.SESSION_INVITES as string,
@@ -460,6 +461,9 @@ export default function SessionDetailScreen() {
             onReportProblem={handlers.reportProblem}
             onReschedule={handlers.reschedule}
             onRebook={handlers.rebook}
+            onManageRecurring={
+              booking.recurringBookingId ? handlers.manageRecurring : undefined
+            }
             canCancelBooking={canCancelBooking}
             messageLabel="Message delivery coach"
             reportProblemLabel={relationshipContext?.reportProblemLabel}

@@ -45,6 +45,7 @@ export default function FamilyCalendarScreen() {
   const { isMultiChild, getChildById } = useChildContext();
   const handleBookSession = () => router.push(Routes.BOOK_COACH);
   const handleViewSpending = () => router.push(Routes.FAMILY_SPENDING);
+  const handleRecurringPlans = () => router.push(Routes.FAMILY_RECURRING);
 
   if (status === 'loading') {
     return (
@@ -174,17 +175,31 @@ export default function FamilyCalendarScreen() {
             </Row>
           </Clickable>
           <Clickable
-            onPress={handleViewSpending}
+            onPress={handleRecurringPlans}
             style={[styles.actionButtonSecondary, { borderColor: palette.border }]}
           >
             <Row align="center" justify="center" gap="xs">
-              <Ionicons name="wallet-outline" size={20} color={palette.tint} />
+              <Ionicons name="repeat-outline" size={20} color={palette.tint} />
               <ThemedText style={[Typography.bodySemiBold, { color: palette.tint }]}>
-                View Spending
+                Recurring Plans
               </ThemedText>
             </Row>
           </Clickable>
         </Row>
+      </Animated.View>
+
+      <Animated.View entering={FadeInDown.delay(250).springify()}>
+        <Clickable
+          onPress={handleViewSpending}
+          style={[styles.fullWidthAction, { borderColor: palette.border }]}
+        >
+          <Row align="center" justify="center" gap="xs">
+            <Ionicons name="wallet-outline" size={20} color={palette.tint} />
+            <ThemedText style={[Typography.bodySemiBold, { color: palette.tint }]}>
+              View Spending
+            </ThemedText>
+          </Row>
+        </Clickable>
       </Animated.View>
     </PageContainer>
   );
@@ -205,6 +220,11 @@ const styles = StyleSheet.create({
   actionButton: { flex: 1, paddingVertical: Spacing.md, borderRadius: Radii.lg },
   actionButtonSecondary: {
     flex: 1,
+    paddingVertical: Spacing.md,
+    borderRadius: Radii.lg,
+    borderWidth: 1.5,
+  },
+  fullWidthAction: {
     paddingVertical: Spacing.md,
     borderRadius: Radii.lg,
     borderWidth: 1.5,

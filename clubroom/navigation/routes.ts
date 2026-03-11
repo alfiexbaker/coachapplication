@@ -464,8 +464,13 @@ export const Routes = {
   // ─── Family ────────────────────────────────────────────────────
   FAMILY: '/family' as Href,
   FAMILY_CALENDAR: '/family/calendar' as Href,
+  FAMILY_RECURRING: '/family/recurring' as Href,
   FAMILY_SHARING: '/family/sharing' as Href,
   FAMILY_SPENDING: '/family/spending' as Href,
+  familyRecurring: (params?: { recurringId?: string }) => ({
+    pathname: '/family/recurring',
+    params: params ?? {},
+  }) as Href,
 
   // ─── Goals ─────────────────────────────────────────────────────
   GOALS: '/goals' as Href,

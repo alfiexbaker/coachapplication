@@ -246,6 +246,7 @@ export interface BookingSummary {
   id: string;
   service: string;
   price?: number;
+  recurringBookingId?: string;
   sessionSource?: 'direct' | 'event' | 'group';
   sessionSourceEntityId?: string;
   start: string;
@@ -725,13 +726,16 @@ export interface RecurringBooking {
   /** ID of the user who created the subscription */
   userId: string;
   /** Name of the user for display purposes */
+  userName?: string;
   /** ID of the coach being booked */
   coachId: string;
   /** Name of the coach for display purposes */
+  coachName?: string;
   /** Avatar URL of the coach */
   /** Athlete ID if booking for a child/athlete */
   athleteId?: string;
   /** Athlete name for display purposes */
+  athleteName?: string;
   /** Day of the week (0-6, Sunday-Saturday) */
   dayOfWeek: 0 | 1 | 2 | 3 | 4 | 5 | 6;
   /** Time of the session in HH:mm format */

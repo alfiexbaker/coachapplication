@@ -14,6 +14,7 @@ interface BookingParentViewProps {
   onReportProblem: () => void;
   onReschedule?: () => void;
   onRebook?: () => void;
+  onManageRecurring?: () => void;
   canCancelBooking: boolean;
   messageLabel?: string;
   reportProblemLabel?: string;
@@ -26,6 +27,7 @@ function BookingParentViewInner({
   onReportProblem,
   onReschedule,
   onRebook,
+  onManageRecurring,
   canCancelBooking,
   messageLabel = 'Message delivery coach',
   reportProblemLabel = 'Report problem',
@@ -85,6 +87,22 @@ function BookingParentViewInner({
         >
           <Ionicons name="calendar-outline" size={20} color={palette.foreground} />
           <ThemedText style={styles.secondaryButtonText}>Request Reschedule</ThemedText>
+        </Clickable>
+      ) : null}
+
+      {onManageRecurring ? (
+        <Clickable
+          onPress={onManageRecurring}
+          style={({ pressed }) =>
+            [
+              styles.secondaryButton,
+              { borderColor: palette.border },
+              pressed && { backgroundColor: palette.border, opacity: 0.7 },
+            ].filter(Boolean) as ViewStyle[]
+          }
+        >
+          <Ionicons name="repeat-outline" size={20} color={palette.foreground} />
+          <ThemedText style={styles.secondaryButtonText}>Manage Recurring Plan</ThemedText>
         </Clickable>
       ) : null}
 

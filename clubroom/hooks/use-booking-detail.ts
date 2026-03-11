@@ -42,6 +42,7 @@ export interface BookingDetailResult {
     reschedule: () => void;
     reportProblem: () => void;
     rebook: () => void;
+    manageRecurring: () => void;
   };
   canCancelBooking: boolean;
   formatted: {
@@ -90,6 +91,7 @@ const toBookingSummary = (
     id: booking.id,
     service: booking.service ?? 'Session',
     price: booking.price,
+    recurringBookingId: booking.recurringBookingId,
     sessionSource: booking.sessionSource,
     sessionSourceEntityId: booking.sessionSourceEntityId,
     start: booking.scheduledAt,
@@ -233,6 +235,11 @@ export function useBookingDetail(id: string): BookingDetailResult {
     router.push(Routes.bookSchedule(booking.coachId));
   }, [booking?.coachId]);
 
+  const handleManageRecurring = useCallback(() => {
+    if (!booking?.recurringBookingId) return;
+    router.push(Routes.familyRecurring({ recurringId: booking.recurringBookingId }));
+  }, [booking?.recurringBookingId]);
+
   // Pre-format date values for rendering
   const formatted = booking
     ? (() => {
@@ -266,6 +273,7 @@ export function useBookingDetail(id: string): BookingDetailResult {
       reschedule: handleReschedule,
       reportProblem: handleReportProblem,
       rebook: handleRebook,
+      manageRecurring: handleManageRecurring,
     },
     canCancelBooking,
     formatted,

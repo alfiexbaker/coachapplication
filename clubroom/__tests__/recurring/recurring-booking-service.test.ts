@@ -14,7 +14,10 @@ import {
   getFrequencyLabel,
   getStatusLabel,
 } from '../../services/recurring-booking-service';
+import { apiClient } from '../../services/api-client';
+import { STORAGE_KEYS } from '../../constants/storage-keys';
 import type {
+  Booking,
   CreateRecurringBookingParams,
   RecurrenceFrequency,
 } from '../../constants/types';
@@ -254,6 +257,76 @@ test('cancelRecurring cancels an active subscription', async () => {
   assert.strictEqual(cancelResult.data.status, 'CANCELLED');
   assert.ok(cancelResult.data.cancelledAt);
   assert.strictEqual(cancelResult.data.cancellationReason, 'No longer needed');
+});
+
+test('cancelRecurring cancels future generated booking instances but keeps past ones intact', async () => {
+  await recurringBookingService.clearAll();
+  await apiClient.set(STORAGE_KEYS.BOOKINGS, []);
+
+  const createResult = await recurringBookingService.createRecurring(mockCreateParams);
+  const recurring = createResult.data;
+  assert.ok(recurring, 'Should create recurring booking');
+
+  const futureStart = new Date(Date.now() + 4 * 24 * 60 * 60 * 1000).toISOString();
+  const pastStart = new Date(Date.now() - 4 * 24 * 60 * 60 * 1000).toISOString();
+  const linkedBookings: Booking[] = [
+    {
+      id: 'booking_future_1',
+      recurringBookingId: recurring.id,
+      coachId: recurring.coachId,
+      athleteId: recurring.athleteId || recurring.userId,
+      athleteIds: [recurring.athleteId || recurring.userId],
+      bookedById: recurring.userId,
+      bookedByName: 'Parent One',
+      coachName: 'Coach One',
+      athleteNames: ['Child One'],
+      scheduledAt: futureStart,
+      duration: recurring.duration,
+      location: recurring.location,
+      service: recurring.sessionType,
+      serviceType: recurring.sessionType,
+      status: 'CONFIRMED',
+      createdAt: new Date().toISOString(),
+      isRecurringGenerated: true,
+    },
+    {
+      id: 'booking_past_1',
+      recurringBookingId: recurring.id,
+      coachId: recurring.coachId,
+      athleteId: recurring.athleteId || recurring.userId,
+      athleteIds: [recurring.athleteId || recurring.userId],
+      bookedById: recurring.userId,
+      bookedByName: 'Parent One',
+      coachName: 'Coach One',
+      athleteNames: ['Child One'],
+      scheduledAt: pastStart,
+      duration: recurring.duration,
+      location: recurring.location,
+      service: recurring.sessionType,
+      serviceType: recurring.sessionType,
+      status: 'CONFIRMED',
+      createdAt: new Date().toISOString(),
+      isRecurringGenerated: true,
+    },
+  ];
+  await apiClient.set(STORAGE_KEYS.BOOKINGS, linkedBookings);
+  await apiClient.set(STORAGE_KEYS.RECURRING_BOOKINGS, [
+    {
+      ...recurring,
+      generatedBookingIds: linkedBookings.map((booking) => booking.id),
+    },
+  ]);
+
+  const cancelResult = await recurringBookingService.cancelRecurring(recurring.id, 'Family change');
+  assert.strictEqual(cancelResult.success, true);
+
+  const storedBookings = await apiClient.get<Booking[]>(STORAGE_KEYS.BOOKINGS, []);
+  const futureBooking = storedBookings.find((booking) => booking.id === 'booking_future_1');
+  const pastBooking = storedBookings.find((booking) => booking.id === 'booking_past_1');
+
+  assert.strictEqual(futureBooking?.status, 'CANCELLED');
+  assert.strictEqual(futureBooking?.cancellationReason, 'Family change');
+  assert.strictEqual(pastBooking?.status, 'CONFIRMED');
 });
 
 test('cancelRecurring fails for already cancelled subscription', async () => {

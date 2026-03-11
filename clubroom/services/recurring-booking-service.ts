@@ -77,6 +77,57 @@ class RecurringBookingService {
     return apiClient.get<RecurringBooking[]>(STORAGE_KEYS.RECURRING_BOOKINGS, []);
   }
 
+  private async cancelFutureGeneratedBookings(
+    recurring: RecurringBooking,
+    reason?: string,
+  ): Promise<number> {
+    if (recurring.generatedBookingIds.length === 0) {
+      return 0;
+    }
+
+    const bookings = await apiClient.get<Booking[]>(STORAGE_KEYS.BOOKINGS, []);
+    const now = Date.now();
+    let cancelledCount = 0;
+
+    const updatedBookings = bookings.map((booking) => {
+      if (
+        booking.recurringBookingId !== recurring.id ||
+        !recurring.generatedBookingIds.includes(booking.id) ||
+        booking.status === 'CANCELLED' ||
+        booking.status === 'COMPLETED'
+      ) {
+        return booking;
+      }
+
+      const scheduledAtMs = new Date(booking.scheduledAt).getTime();
+      if (!Number.isFinite(scheduledAtMs) || scheduledAtMs < now) {
+        return booking;
+      }
+
+      cancelledCount += 1;
+      emitTyped(ServiceEvents.BOOKING_CANCELLED, {
+        bookingId: booking.id,
+        userId: booking.bookedById || recurring.userId,
+        coachId: booking.coachId,
+        reason,
+        cancelledBy: 'parent',
+      });
+
+      return {
+        ...booking,
+        status: 'CANCELLED' as const,
+        cancellationReason: reason || 'Recurring plan cancelled',
+        cancelledAt: new Date().toISOString(),
+      };
+    });
+
+    if (cancelledCount > 0) {
+      await apiClient.set(STORAGE_KEYS.BOOKINGS, updatedBookings);
+    }
+
+    return cancelledCount;
+  }
+
   /**
    * Get all recurring bookings from storage
    */
@@ -288,12 +339,14 @@ class RecurringBookingService {
 
       bookings[index] = updated;
       await apiClient.set(STORAGE_KEYS.RECURRING_BOOKINGS, bookings);
+      const cancelledGeneratedCount = await this.cancelFutureGeneratedBookings(updated, reason);
 
       logger.info('recurring_booking_cancelled', {
         id: recurringId,
         userId: booking.userId,
         coachId: booking.coachId,
         reason,
+        cancelledGeneratedCount,
       });
       emitTyped(ServiceEvents.RECURRING_CANCELLED, {
         recurringId: updated.id,
