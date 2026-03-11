@@ -1,6 +1,6 @@
 # Product Reality Progress
 
-Date: 2026-03-10
+Date: 2026-03-11
 Purpose: keep a live record of what has been decided, what has been completed, and what still needs to happen.
 
 ## Status
@@ -39,6 +39,7 @@ Purpose: keep a live record of what has been decided, what has been completed, a
 - booking detail and booking cards now show booked with / delivered by / billing / support truth
 - owner/admin staffing console now shows staff, unassigned work, assigned work, and assignment controls on the live manage route
 - org reassignment now propagates into linked booking delivery truth
+- head coach oversight now exists on the live manage route with scoped completion health, athlete watchlists, standards, and explicit follow-up tasking
 - UI audit false-positive for re-export routes removed
 - active sprint stack reworked around operator reality
 - complete-POC layer added
@@ -53,7 +54,8 @@ Purpose: keep a live record of what has been decided, what has been completed, a
 | PR-02 | Done | org operating model, permissions, journeys, and blueprint are defined |
 | PR-03 | Done | owner commercial mode now works in live club settings and booking detail truth is visible |
 | PR-04 | Done | owner/admin staffing console and assignment propagation now exist on the live manage route |
-| PR-05 to PR-07 | Open | org-core runtime spine after staffing control |
+| PR-05 | Done | head coach oversight, scoped review, and standards/tasking now exist on the live manage route |
+| PR-06 to PR-07 | Open | coach work split and family-facing org trust are the next org-core runtime layers |
 | PR-11 to PR-15 | Open | complete-POC layer |
 | PR-16 to PR-20 | Open | coach/user-first and pre-API closure layer |
 | PR-08 to PR-10 | Open | important cleanup/hardening after core proof |
@@ -62,23 +64,20 @@ Purpose: keep a live record of what has been decided, what has been completed, a
 
 For the product to behave like `Johnny's Coaching LTD`, all of these must become real:
 
-1. owner commercial control
-2. owner/admin assignment and reassignment
-3. head coach oversight
-4. coach split between org work and independent work
-5. family support ownership
-6. org setup flow
-7. recurring/program offers
-8. owner dashboard
-9. coach discovery and conversion path
-10. booking lifecycle and parent operations
-11. session completion to progress to rebooking loop
-12. stable seeded demo scenarios
-13. pre-API stability and flow bar
+1. coach split between org work and independent work
+2. family support ownership
+3. org setup flow
+4. recurring/program offers
+5. owner dashboard
+6. coach discovery and conversion path
+7. booking lifecycle and parent operations
+8. session completion to progress to rebooking loop
+9. stable seeded demo scenarios
+10. pre-API stability and flow bar
 
 ## Current Next Step
 
-- implement `PR-05` head coach oversight and tasking
+- implement `PR-06` coach work split and earnings realism
 
 ## Read Next
 

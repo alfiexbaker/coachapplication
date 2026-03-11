@@ -219,6 +219,8 @@ export const ServiceEvents = {
   CLUB_MEMBER_JOINED: 'club:member:joined',
   CLUB_MEMBER_LEFT: 'club:member:left',
   CLUB_POST_CREATED: 'club:post:created',
+  ORG_HEAD_COACH_TASK_UPDATED: 'org:head_coach:task_updated',
+  ORG_HEAD_COACH_STANDARD_UPDATED: 'org:head_coach:standard_updated',
 
   // Community group events
   GROUP_MEMBER_JOINED: 'community:group:member_joined',
@@ -776,6 +778,21 @@ export interface EventPayloads {
     clubId: string;
     postId: string;
     authorId: string;
+  };
+  [ServiceEvents.ORG_HEAD_COACH_TASK_UPDATED]: {
+    clubId: string;
+    taskId: string;
+    coachId: string;
+    actorUserId: string;
+    action: 'created' | 'completed' | 'reopened';
+    type: 'required_follow_up' | 'session_note_expectation';
+  };
+  [ServiceEvents.ORG_HEAD_COACH_STANDARD_UPDATED]: {
+    clubId: string;
+    standardId: string;
+    actorUserId: string;
+    action: 'created' | 'toggled';
+    active: boolean;
   };
 
   // Community group events

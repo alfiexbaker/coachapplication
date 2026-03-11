@@ -1,6 +1,6 @@
 # Product Reality Backlog
 
-Updated: 2026-03-10
+Updated: 2026-03-11
 
 ## Order
 
@@ -33,7 +33,7 @@ Updated: 2026-03-10
 | PR-02 | `sprint-02-organization-pyramid-and-operating-model.md` | P0 | DONE | The org hierarchy, permission matrix, relationship model, journeys, and implementation blueprint are now locked |
 | PR-03 | `sprint-03-commercial-mode-and-booking-truth.md` | P0 | DONE | The owner can set commercial mode in live club settings, and booking review/detail surfaces now show booking, billing, and support ownership honestly |
 | PR-04 | `sprint-04-org-assignment-and-staffing-console.md` | P0 | DONE | The live manage route now shows staff, unassigned org work, assigned org work, and owner/admin reassignment with booking propagation |
-| PR-05 | `sprint-05-head-coach-oversight-and-tasking.md` | P0 | OPEN | The middle of the pyramid needs a real runtime job, not only a role label |
+| PR-05 | `sprint-05-head-coach-oversight-and-tasking.md` | P0 | DONE | The live manage route now gives head coaches a scoped oversight surface with completion health, athlete watchlists, standards, and explicit tasking |
 | PR-06 | `sprint-06-coach-work-split-and-earnings-realism.md` | P1 | OPEN | Coaches must be able to separate org work from independent work without fake payout language |
 | PR-07 | `sprint-07-family-trust-and-support-ownership.md` | P1 | OPEN | Parents need clear ownership, support, and visibility rules once org delivery changes |
 | PR-11 | `sprint-11-org-setup-and-onboarding.md` | P1 | OPEN | A complete POC needs a believable first-run owner setup path, not only preconfigured org state |

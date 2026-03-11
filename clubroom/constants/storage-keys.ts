@@ -127,6 +127,12 @@ export const STORAGE_KEYS = {
   /** Squad leaderboard cache */
   SQUAD_LEADERBOARD: 'progress.squad_leaderboard',
 
+  /** Head coach standards checklist records for org oversight */
+  ORG_HEAD_COACH_STANDARDS: 'org.head_coach_standards',
+
+  /** Head coach follow-up and note expectation tasks for org oversight */
+  ORG_HEAD_COACH_TASKS: 'org.head_coach_tasks',
+
   /** Homework completion tracking keyed by feedbackId */
   HOMEWORK_COMPLETION: 'progress.homework_completion',
 

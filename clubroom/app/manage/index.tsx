@@ -40,6 +40,14 @@ export default function ManageScreen() {
       route: Routes.MANAGE_BOOKINGS,
     },
     {
+      id: 'head-coach-oversight',
+      title: 'Head Coach Oversight',
+      description: 'Review completion health, athlete watchlists, and delivery standards in one scoped view.',
+      icon: 'shield-checkmark-outline',
+      colorKey: 'success',
+      route: Routes.MANAGE_HEAD_COACH,
+    },
+    {
       id: 'new',
       title: 'Create New Session',
       description: 'Build a fresh session flow with schedule, pricing, and invite steps.',
@@ -136,8 +144,8 @@ export default function ManageScreen() {
       <SurfaceCard style={[styles.hintCard, { borderColor: colors.border }]}>
         <ThemedText style={styles.hintTitle}>Coach workflow</ThemedText>
         <ThemedText style={[styles.hintText, { color: colors.muted }]}>
-          Start with Staffing Console for club-owned work, or jump straight into Create / Invite for
-          individual coach flows.
+          Start with Staffing Console for allocation, Head Coach Oversight for standards and follow-up,
+          or jump straight into Create / Invite for individual coach flows.
         </ThemedText>
       </SurfaceCard>
     </PageContainer>

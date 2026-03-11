@@ -64,6 +64,7 @@ export const Routes = {
   MESSAGES: '/(tabs)/messages' as Href,
   MANAGE: '/manage' as Href,
   MANAGE_BOOKINGS: '/manage/bookings' as Href,
+  MANAGE_HEAD_COACH: '/manage/head-coach' as Href,
   MORE: '/(tabs)/more' as Href,
   NOTIFICATIONS: '/(tabs)/notifications' as Href,
   ROSTER: '/(tabs)/roster' as Href,
