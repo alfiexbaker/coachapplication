@@ -7,11 +7,13 @@ Purpose: give humans and agents a short, canonical read path into the repo witho
 
 1. `docs/SOURCE_OF_TRUTH.md`
 2. `docs/KNOWLEDGE_SPINE.md`
-3. `docs/architecture/runtime-modes.md`
-4. `docs/architecture/service-ownership-map.md`
-5. `docs/architecture/entity-relationship-map.md`
-6. `docs/trust/auth-and-permission-boundaries.md`
-7. `docs/ui/loading-error-empty-state-matrix.md`
+3. Read one domain doc for the task, not all of them by default:
+   - `docs/architecture/runtime-modes.md`
+   - `docs/architecture/service-ownership-map.md`
+   - `docs/architecture/entity-relationship-map.md`
+   - `docs/architecture/club-relationship-rules.md`
+   - `docs/trust/auth-and-permission-boundaries.md`
+   - `docs/ui/loading-error-empty-state-matrix.md`
 
 ## Deep Sources To Trust
 
@@ -28,6 +30,7 @@ Purpose: give humans and agents a short, canonical read path into the repo witho
 - Which runtime mode the app is really in
 - Which service entrypoints are canonical today
 - How the core data relationships fit together
+- How club roles, ownership, and visibility are supposed to work
 - Where auth, authz, and trust boundaries are enforced today
 - Which loading, error, and empty-state patterns are the UI default
 
@@ -40,5 +43,6 @@ Purpose: give humans and agents a short, canonical read path into the repo witho
 ## How To Use This
 
 - Start here when you need fast repo context.
+- Do not load every linked doc for every task. Pick the one domain map that matches the work.
 - Drop into the linked deep docs when you need exact contracts or sprint history.
 - Update these spine files when repo reality changes, especially when a canonical import path or runtime contract changes.
