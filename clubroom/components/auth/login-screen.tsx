@@ -72,7 +72,7 @@ export default function LoginScreen() {
   const handleLogin = useCallback(async () => {
     setLocalError(null);
     if (!username.trim() || !password.trim()) {
-      setLocalError('Please enter username and password');
+      setLocalError('Please enter your email or username and password');
       return;
     }
     setSubmitting(true);
@@ -125,10 +125,11 @@ export default function LoginScreen() {
     return (
       <Suspense fallback={lazyFallback}>
         <LazyCoachSignupScreen
-          onSignupComplete={(data: { fullName: string; email: string; phone: string; password: string; inviteCode: string; schoolId: string; schoolName: string }) => {
+          signupError={error}
+          onSignupComplete={async (data: { fullName: string; email: string; phone: string; password: string; inviteCode: string; schoolId: string; schoolName: string }) => {
             // registerCoach calls setCurrentUser which makes isAuthenticated=true,
             // triggering RootNavigation to swap LoginScreen for the authenticated Stack.
-            registerCoach(data);
+            await registerCoach(data);
           }}
           onBackToLogin={() => setScreenMode('login')}
         />
@@ -182,9 +183,9 @@ export default function LoginScreen() {
               Sign in or create your account.
             </ThemedText>
 
-            {/* Username */}
+            {/* Email / username */}
             <View style={styles.fieldWrap}>
-              <ThemedText style={[styles.label, { color: palette.muted }]}>Username</ThemedText>
+              <ThemedText style={[styles.label, { color: palette.muted }]}>Email or username</ThemedText>
               <TextInput
                 style={[
                   styles.input,
@@ -196,14 +197,13 @@ export default function LoginScreen() {
                 ]}
                 value={username}
                 onChangeText={handleUsernameChange}
-                placeholder="e.g. coach"
+                placeholder="e.g. coach1 or amelia.shaw@clubroom.demo"
                 placeholderTextColor={withAlpha(palette.text, 0.35)}
                 autoCapitalize="none"
                 autoCorrect={false}
                 returnKeyType="next"
-
-            maxLength={50}
-          />
+                maxLength={80}
+              />
             </View>
 
             {/* Password */}
@@ -227,9 +227,8 @@ export default function LoginScreen() {
                   secureTextEntry={!showPassword}
                   returnKeyType="go"
                   onSubmitEditing={handleLogin}
-
-            maxLength={100}
-          />
+                  maxLength={100}
+                />
                 <Pressable
                   onPress={() => setShowPassword((p) => !p)}
                   style={styles.eyeBtn}
@@ -250,7 +249,7 @@ export default function LoginScreen() {
               </View>
             ) : (
               <ThemedText style={[styles.hint, { color: palette.muted }]}>
-                Credentials are case-insensitive.
+                Dev auth accepts either the seeded username or the seeded email.
               </ThemedText>
             )}
 

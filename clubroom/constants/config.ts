@@ -95,7 +95,7 @@ export const isFeatureEnabled = (flag: FeatureFlag): boolean => features[flag];
 // -----------------------------------------------------------------------------
 
 export const api = {
-  baseUrl: getEnv('API_URL', 'http://localhost:3000/api/v1'),
+  baseUrl: getEnv('API_URL', 'http://localhost:4000'),
   timeout: getNumber('API_TIMEOUT', 30000),
   useMock: getBool('USE_MOCK', true),
 } as const;

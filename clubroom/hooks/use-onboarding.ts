@@ -252,7 +252,7 @@ export function useOnboarding({ onComplete, onBackToLogin }: UseOnboardingOption
     }
   }, []);
 
-  const next = useCallback(() => {
+  const next = useCallback(async () => {
     const validationError = validateStep(state);
     if (validationError) {
       dispatch({ type: 'SET_ERROR', error: validationError });
@@ -290,18 +290,24 @@ export function useOnboarding({ onComplete, onBackToLogin }: UseOnboardingOption
         childrenCount: state.accountType === 'PARENT' ? state.childrenCount : undefined,
       };
 
-      const success = registerFromOnboarding(data);
-      dispatch({ type: 'SET_SUBMITTING', value: false });
+      try {
+        const success = await registerFromOnboarding(data);
 
-      if (success) {
-        void apiClient.remove(STORAGE_KEYS.ONBOARDING_PROGRESS).catch((error) => {
-          logger.warn('Failed to clear onboarding draft after completion', error);
-        });
-        setShowResumePrompt(false);
-        setSavedDraftTimestamp(null);
-        dispatch({ type: 'SET_STEP', step: 'complete' });
-      } else {
-        dispatch({ type: 'SET_ERROR', error: 'Registration failed. Email may already be in use.' });
+        if (success) {
+          void apiClient.remove(STORAGE_KEYS.ONBOARDING_PROGRESS).catch((error) => {
+            logger.warn('Failed to clear onboarding draft after completion', error);
+          });
+          setShowResumePrompt(false);
+          setSavedDraftTimestamp(null);
+          dispatch({ type: 'SET_STEP', step: 'complete' });
+        } else {
+          dispatch({ type: 'SET_ERROR', error: 'Registration failed. Email may already be in use.' });
+        }
+      } catch (error) {
+        logger.error('Unexpected onboarding registration failure', error);
+        dispatch({ type: 'SET_ERROR', error: 'Registration failed. Please try again.' });
+      } finally {
+        dispatch({ type: 'SET_SUBMITTING', value: false });
       }
       return;
     }

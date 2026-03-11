@@ -12,11 +12,11 @@ export const Endpoints = {
   // AUTH
   // ──────────────────────────────────────────
   auth: {
-    login: () => `/api/auth/login`,
-    register: () => `/api/auth/register`,
-    refresh: () => `/api/auth/refresh`,
-    revoke: () => `/api/auth/revoke`,
-    me: () => `/api/auth/me`,
+    login: () => `/v1/auth/login`,
+    register: () => `/v1/auth/register`,
+    refresh: () => `/v1/auth/refresh`,
+    revoke: () => `/v1/auth/revoke`,
+    me: () => `/v1/auth/me`,
   },
 
   // ──────────────────────────────────────────

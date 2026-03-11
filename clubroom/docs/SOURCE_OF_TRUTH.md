@@ -42,10 +42,13 @@ Clubs manage staff, squads, visibility, and operating relationships.
 - Shared governance and contract code exists in:
   - `contracts/club-governance.ts`
   - `packages/shared-contracts/src/club/`
-- The biggest seam still not finished is auth:
-  - frontend auth still expects `/api/auth/*`
-  - backend runtime is built around `/v1/*`
-  - API auth remains scaffold-first, not production-complete
+- Auth transport is now aligned for local development:
+  - frontend auth calls `/v1/auth/*`
+  - backend runtime exposes matching `/v1/auth/*` routes
+  - bearer dev-session tokens are accepted by the API auth plugin
+- The biggest trust seam still not finished is production identity:
+  - API auth is still scaffold-first and seed-backed
+  - sensitive family, medical, booking, and safeguarding flows are not yet backend-authoritative by default
 
 ## Product Spines
 

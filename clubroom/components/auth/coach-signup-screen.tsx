@@ -16,8 +16,9 @@ import {
 } from './coach-signup-sections';
 
 interface CoachSignupScreenProps {
-  onSignupComplete: (data: CoachSignupData) => void;
+  onSignupComplete: (data: CoachSignupData) => void | Promise<void>;
   onBackToLogin: () => void;
+  signupError?: string | null;
 }
 
 export interface CoachSignupData {
@@ -33,6 +34,7 @@ export interface CoachSignupData {
 export default function CoachSignupScreen({
   onSignupComplete,
   onBackToLogin,
+  signupError,
 }: CoachSignupScreenProps) {
   const { colors: palette } = useTheme();
 
@@ -92,7 +94,7 @@ export default function CoachSignupScreen({
       return;
     }
 
-    onSignupComplete({
+    void onSignupComplete({
       fullName,
       email,
       phone,
@@ -170,9 +172,9 @@ export default function CoachSignupScreen({
                   onSubmit={handleSubmit}
                   palette={palette}
                 />
-                {formError ? (
+                {formError || signupError ? (
                   <ThemedText style={{ color: palette.error, opacity: 0.9 }}>
-                    {formError}
+                    {formError || signupError}
                   </ThemedText>
                 ) : null}
                 <SignupSubmitButton

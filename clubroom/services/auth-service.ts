@@ -12,6 +12,7 @@ import { createLogger } from '@/utils/logger';
 import { generateId, generateMockToken } from '@/utils/generate-id';
 import { STORAGE_KEYS } from '@/constants/storage-keys';
 import { emitTyped, onTyped, ServiceEvents } from '@/services/event-bus';
+import { api as apiConfig } from '@/constants/config';
 import {
   type Result,
   type ServiceError,
@@ -26,8 +27,32 @@ import {
 
 const logger = createLogger('AuthService');
 
-const USE_MOCK = process.env.EXPO_PUBLIC_USE_MOCK !== 'false'; // defaults to true
-const API_URL = process.env.EXPO_PUBLIC_API_URL || 'http://localhost:3000';
+const USE_MOCK = apiConfig.useMock;
+
+function normalizeApiOrigin(rawUrl?: string): string {
+  const fallback = 'http://localhost:4000';
+  if (!rawUrl || !rawUrl.trim()) {
+    return fallback;
+  }
+
+  const trimmed = rawUrl.trim().replace(/\/+$/, '');
+  return trimmed.replace(/\/api\/v1$|\/v1$/i, '');
+}
+
+const API_URL = normalizeApiOrigin(process.env.EXPO_PUBLIC_API_URL || apiConfig.baseUrl);
+
+const AUTH_ENDPOINTS = {
+  login: '/v1/auth/login',
+  register: '/v1/auth/register',
+  refresh: '/v1/auth/refresh',
+  logout: '/v1/auth/logout',
+  revoke: '/v1/auth/revoke',
+  me: '/v1/auth/me',
+  forgotPassword: '/v1/auth/forgot-password',
+  resetPassword: '/v1/auth/reset-password',
+  verifyEmail: '/v1/auth/verify-email',
+  checkEmail: '/v1/auth/check-email',
+} as const;
 
 // ============================================================================
 // TYPE DEFINITIONS
@@ -66,6 +91,8 @@ export interface UserProfile {
   email: string;
   phone?: string;
   accountType: AccountType;
+  appRole?: 'COACH' | 'USER' | 'ADMIN';
+  roles?: string[];
 
   // Basic info
   firstName: string;
@@ -87,6 +114,13 @@ export interface UserProfile {
 
   // For parents
   childrenCount?: number;
+  hasChildren?: boolean;
+  children?: Array<{
+    childId: string;
+    childName: string;
+    relationshipType: 'PARENT_CHILD' | 'GUARDIAN';
+    addedAt: string;
+  }>;
 
   // For coaches
   isOrganization?: boolean;
@@ -230,7 +264,7 @@ export const authService = {
       return this._mockLogin(email, password);
     }
 
-    const result = await apiFetch<{ user: UserProfile; tokens: AuthTokens }>('/api/auth/login', {
+    const result = await apiFetch<{ user: UserProfile; tokens: AuthTokens }>(AUTH_ENDPOINTS.login, {
       method: 'POST',
       body: JSON.stringify({ email, password }),
     });
@@ -266,7 +300,7 @@ export const authService = {
       return this._mockRegister(input);
     }
 
-    const result = await apiFetch<{ user: UserProfile; tokens: AuthTokens }>('/api/auth/register', {
+    const result = await apiFetch<{ user: UserProfile; tokens: AuthTokens }>(AUTH_ENDPOINTS.register, {
       method: 'POST',
       body: JSON.stringify(input),
     });
@@ -321,7 +355,7 @@ export const authService = {
       return err(unauthorized('No refresh token available'));
     }
 
-    const result = await apiFetch<{ tokens: AuthTokens }>('/api/auth/refresh', {
+    const result = await apiFetch<{ tokens: AuthTokens }>(AUTH_ENDPOINTS.refresh, {
       method: 'POST',
       body: JSON.stringify({ refreshToken: currentTokens.refreshToken }),
     });
@@ -342,7 +376,7 @@ export const authService = {
       try {
         const tokens = await this.getTokens();
         if (tokens) {
-          await apiFetch('/api/auth/logout', {
+          await apiFetch(AUTH_ENDPOINTS.logout, {
             method: 'POST',
             headers: { Authorization: `Bearer ${tokens.accessToken}` },
           });
@@ -365,10 +399,11 @@ export const authService = {
       const tokens = await this.getTokens();
       const storedUser = await apiClient.get<UserProfile | null>(STORAGE_KEYS.AUTH_USER, null);
 
-      if (!tokens || !storedUser) {
+      if (!tokens) {
         return { isAuthenticated: false, user: null, tokens: null };
       }
 
+      let activeTokens = tokens;
       if (tokens.expiresAt < Date.now()) {
         logger.info('Token expired, attempting refresh');
         const refreshResult = await this.refreshToken();
@@ -377,13 +412,33 @@ export const authService = {
           await this.logout();
           return { isAuthenticated: false, user: null, tokens: null };
         }
-        currentUser = storedUser;
-        return { isAuthenticated: true, user: storedUser, tokens: refreshResult.data };
+        activeTokens = refreshResult.data;
       }
 
-      currentUser = storedUser;
-      logger.success('Auth state restored', { userId: storedUser.id });
-      return { isAuthenticated: true, user: storedUser, tokens };
+      if (USE_MOCK) {
+        if (!storedUser) {
+          return { isAuthenticated: false, user: null, tokens: null };
+        }
+
+        currentUser = storedUser;
+        logger.success('Auth state restored', { userId: storedUser.id });
+        return { isAuthenticated: true, user: storedUser, tokens: activeTokens };
+      }
+
+      const meResult = await apiFetch<{ user: UserProfile }>(AUTH_ENDPOINTS.me, {
+        method: 'GET',
+        headers: { Authorization: `Bearer ${activeTokens.accessToken}` },
+      });
+      if (!meResult.success) {
+        logger.warn('Auth me lookup failed during auth check', { error: meResult.error.message });
+        await this.logout();
+        return { isAuthenticated: false, user: null, tokens: null };
+      }
+
+      await apiClient.set(STORAGE_KEYS.AUTH_USER, meResult.data.user);
+      currentUser = meResult.data.user;
+      logger.success('Auth state restored from API', { userId: meResult.data.user.id });
+      return { isAuthenticated: true, user: meResult.data.user, tokens: activeTokens };
     } catch (error) {
       logger.error('Auth check failed', error);
       return { isAuthenticated: false, user: null, tokens: null };
@@ -437,7 +492,7 @@ export const authService = {
       return;
     }
 
-    await apiFetch('/api/auth/forgot-password', {
+    await apiFetch(AUTH_ENDPOINTS.forgotPassword, {
       method: 'POST',
       body: JSON.stringify({ email }),
     });
@@ -451,7 +506,7 @@ export const authService = {
       return;
     }
 
-    const result = await apiFetch('/api/auth/reset-password', {
+    const result = await apiFetch(AUTH_ENDPOINTS.resetPassword, {
       method: 'POST',
       body: JSON.stringify({ token, newPassword }),
     });
@@ -476,6 +531,23 @@ export const authService = {
       if (stored) {
         currentUser = stored;
         return currentUser;
+      }
+
+      if (!USE_MOCK) {
+        const tokens = await this.getTokens();
+        if (!tokens?.accessToken) {
+          return null;
+        }
+
+        const meResult = await apiFetch<{ user: UserProfile }>(AUTH_ENDPOINTS.me, {
+          method: 'GET',
+          headers: { Authorization: `Bearer ${tokens.accessToken}` },
+        });
+        if (meResult.success) {
+          currentUser = meResult.data.user;
+          await apiClient.set(STORAGE_KEYS.AUTH_USER, currentUser);
+          return currentUser;
+        }
       }
     } catch (error) {
       logger.error('Failed to get current user', error);
@@ -511,7 +583,7 @@ export const authService = {
     }
 
     const tokens = await this.getTokens();
-    const result = await apiFetch<{ user: UserProfile }>('/api/users/me', {
+    const result = await apiFetch<{ user: UserProfile }>(AUTH_ENDPOINTS.me, {
       method: 'PATCH',
       headers: tokens ? { Authorization: `Bearer ${tokens.accessToken}` } : {},
       body: JSON.stringify(updates),
@@ -595,7 +667,7 @@ export const authService = {
     }
 
     const tokens = await this.getTokens();
-    const fetchResult = await apiFetch('/api/auth/verify-email', {
+    const fetchResult = await apiFetch<{ user?: UserProfile }>(AUTH_ENDPOINTS.verifyEmail, {
       method: 'POST',
       headers: tokens ? { Authorization: `Bearer ${tokens.accessToken}` } : {},
       body: JSON.stringify({ code }),
@@ -603,6 +675,12 @@ export const authService = {
 
     if (!fetchResult.success) {
       return err(fetchResult.error);
+    }
+
+    if (fetchResult.data.user) {
+      await apiClient.set(STORAGE_KEYS.AUTH_USER, fetchResult.data.user);
+      currentUser = fetchResult.data.user;
+      return ok({ user: fetchResult.data.user });
     }
 
     return this.updateProfile({ isVerified: true });
@@ -615,7 +693,7 @@ export const authService = {
     }
 
     const result = await apiFetch<{ available: boolean }>(
-      `/api/auth/check-email?email=${encodeURIComponent(email)}`,
+      `${AUTH_ENDPOINTS.checkEmail}?email=${encodeURIComponent(email)}`,
     );
     return result.success ? result.data.available : true;
   },
@@ -763,7 +841,7 @@ export const authService = {
       return err(unauthorized('No active session to revoke'));
     }
 
-    const result = await apiFetch<void>('/api/auth/revoke', {
+    const result = await apiFetch<void>(AUTH_ENDPOINTS.revoke, {
       method: 'POST',
       headers: { Authorization: `Bearer ${tokens.accessToken}` },
       body: JSON.stringify({ refreshToken: tokens.refreshToken }),

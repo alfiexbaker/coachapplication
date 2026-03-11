@@ -71,6 +71,6 @@ Validated reality:
 
 ## Validation Notes
 
-- The frontend auth client currently calls `/api/auth/*`.
-- The backend app currently registers `/v1/*` modules and does not expose matching auth route modules in the current tree.
-- This mismatch should be treated as an active integration gap, not as a hidden feature.
+- The frontend auth client now calls `/v1/auth/*`.
+- The backend app exposes matching `/v1/auth/*` routes and accepts bearer dev-session tokens.
+- This closes the transport mismatch, but it does not mean production identity, session revocation, or backend authorization are complete.

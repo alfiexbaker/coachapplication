@@ -64,19 +64,19 @@ Target behavior:
 
 ## Validated Repo Reality
 
-Current validated seam mismatches:
+Current validated runtime state:
 
-- `constants/config.ts` defaults `api.baseUrl` to `http://localhost:3000/api/v1`
-- `services/auth-service.ts` defaults `API_URL` to `http://localhost:3000`
-- `services/auth-service.ts` calls `/api/auth/*`
+- `constants/config.ts` defaults `api.baseUrl` to `http://localhost:4000`
+- `services/auth-service.ts` derives its API origin from that config and calls `/v1/auth/*`
 - `packages/config/src/env.ts` defaults the API server to port `4000`
-- `apps/api/src/app.ts` registers `/v1/*` route modules, not `/api/auth/*`
+- `apps/api/src/app.ts` registers `/v1/*` route modules, including auth
+- `apps/api/src/plugins/auth-placeholder.ts` accepts bearer dev-session tokens and legacy scaffold headers
 
 Implication:
 
-- The real API path is not fully contract-aligned yet.
-- Treat frontend mock mode plus pre-API live mode as the stable local truth today.
-- Treat backend `/v1` routes as a real package that still needs auth and endpoint alignment before it becomes the default app runtime.
+- The auth transport seam is now contract-aligned for local development.
+- Mock mode plus pre-API live mode is still the stable default for non-auth app flows.
+- Backend `/v1` routes are real, but production auth and broader endpoint migration still need follow-through before the API becomes the default app runtime.
 
 ## Safe Working Rules
 

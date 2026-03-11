@@ -1,5 +1,6 @@
 import fp from 'fastify-plugin';
 import type { FastifyPluginAsync } from 'fastify';
+import { resolveDevSessionFromBearerToken } from '../lib/dev-auth.js';
 
 /**
  * Temporary auth context plugin for scaffolding.
@@ -28,6 +29,24 @@ const authPlaceholderPlugin: FastifyPluginAsync = async (app) => {
       typeof request.headers['x-acting-role'] === 'string'
         ? request.headers['x-acting-role']
         : undefined;
+    const authorizationHeader =
+      typeof request.headers.authorization === 'string' ? request.headers.authorization : '';
+    const bearerToken = authorizationHeader.startsWith('Bearer ')
+      ? authorizationHeader.slice('Bearer '.length).trim()
+      : '';
+    const bearerSession = bearerToken ? resolveDevSessionFromBearerToken(bearerToken) : null;
+
+    if (bearerSession) {
+      request.auth = {
+        userId: bearerSession.userId,
+        roles: bearerSession.roles,
+        actingRole:
+          actingRole && bearerSession.roles.includes(actingRole) ? actingRole : bearerSession.roles[0],
+        sessionId: bearerSession.sessionId,
+      };
+      return;
+    }
+
     const headerUserId = validUserId(request.headers['x-auth-user-id']);
     const headerRoles = parseCsvHeader(request.headers['x-auth-roles']);
 

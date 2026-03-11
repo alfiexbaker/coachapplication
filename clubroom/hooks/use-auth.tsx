@@ -14,13 +14,14 @@ import type { CoachSignupData } from '@/components/auth/coach-signup-screen';
 import type { User } from '@/constants/app-types';
 import type { ChildReference, StaffMember } from '@/constants/types';
 import type { UserRole, SimplifiedUserType } from '@/constants/user-types';
-import type { OnboardingData, AccountType } from '@/services/auth-service';
+import type { OnboardingData, AccountType, UserProfile } from '@/services/auth-service';
 import { authService } from '@/services/auth-service';
 import { apiClient } from '@/services/api-client';
 import { ensureCoachSessionsSeeded } from '@/services/coach-session-seed-service';
 import { STORAGE_KEYS } from '@/constants/storage-keys';
 import { generateId } from '@/utils/generate-id';
 import { createLogger } from '@/utils/logger';
+import { api as apiConfig } from '@/constants/config';
 
 const logger = createLogger('useAuth');
 
@@ -31,6 +32,7 @@ type DemoUser = Omit<User, 'role'> & {
   username: string;
   password: string;
   fullName?: string;
+  bio?: string;
   addressLine?: string;
   schoolId?: string;
   schoolName?: string;
@@ -635,6 +637,105 @@ const DEMO_USERS: DemoUser[] = [
   },
 ];
 
+const API_DEV_USERS: DemoUser[] = [
+  {
+    id: 'usr_65972cc3-8f9b-7199-b867-7df5b7faf34b',
+    username: 'coach1',
+    password: 'coach',
+    role: 'COACH',
+    type: 'COACH',
+    fullName: 'Amelia Shaw',
+    name: 'Amelia Shaw',
+    email: 'amelia.shaw@clubroom.demo',
+    postcode: 'SW1A 1AA',
+    dateOfBirth: '2001-07-12',
+    isLive: true,
+  },
+  {
+    id: 'usr_197727c3-a2c5-7868-8c57-72b09c97a1d6',
+    username: 'parent1',
+    password: 'user',
+    role: 'USER',
+    type: 'USER',
+    fullName: 'Olivia Barton',
+    name: 'Olivia Barton',
+    email: 'olivia.barton@clubroom.demo',
+    postcode: 'SW1A 1AA',
+    dateOfBirth: '1987-03-18',
+    hasChildren: true,
+  },
+  {
+    id: 'usr_b5998f06-1720-7001-bb01-8d3c253de429',
+    username: 'athlete1',
+    password: 'user',
+    role: 'USER',
+    type: 'USER',
+    fullName: 'Alex Barton',
+    name: 'Alex Barton',
+    email: 'alex.barton@clubroom.demo',
+    postcode: 'SW1A 1AA',
+    dateOfBirth: '2011-02-18',
+  },
+  {
+    id: 'usr_ef3f51b6-47e4-7036-bfdd-d80b40324559',
+    username: 'admin1',
+    password: 'admin',
+    role: 'ADMIN',
+    type: 'USER',
+    fullName: 'Clara Finch',
+    name: 'Clara Finch',
+    email: 'clara.finch@clubroom.demo',
+    postcode: 'N5 2RT',
+    dateOfBirth: '1984-04-17',
+    isSystemAdmin: true,
+  },
+];
+
+function resolveApiLoginEmail(identifier: string): string {
+  const normalized = identifier.trim().toLowerCase();
+  if (normalized.includes('@')) {
+    return normalized;
+  }
+  const match = API_DEV_USERS.find((user) => user.username.toLowerCase() === normalized);
+  return match?.email?.toLowerCase() ?? normalized;
+}
+
+function mapAuthProfileToDemoUser(user: UserProfile, password = ''): DemoUser {
+  const fullName = `${user.firstName} ${user.lastName}`.trim();
+  const normalizedRoles = user.roles ?? [];
+  const derivedRole: UserRole =
+    user.appRole === 'ADMIN'
+      ? 'ADMIN'
+      : user.appRole === 'COACH'
+        ? 'COACH'
+        : 'USER';
+
+  return {
+    id: user.id,
+    username: user.email.split('@')[0]?.toLowerCase() || user.id,
+    password,
+    role: derivedRole,
+    type: derivedRole === 'COACH' ? 'COACH' : 'USER',
+    fullName,
+    name: fullName,
+    email: user.email,
+    postcode: user.postcode || '',
+    dateOfBirth: user.dateOfBirth || '1990-01-01',
+    avatar: user.photoUrl,
+    addressLine: user.addressLine,
+    children: user.children,
+    hasChildren: user.hasChildren ?? (user.childrenCount ?? 0) > 0,
+    childrenCount: user.childrenCount,
+    skillLevel: user.skillLevel,
+    position: user.position,
+    isOrganization: user.isOrganization,
+    organizationName: user.organizationName,
+    isLive: user.isLive,
+    bio: user.bio,
+    isSystemAdmin: normalizedRoles.includes('club_admin') || normalizedRoles.includes('security_admin'),
+  };
+}
+
 function mapDemoUserToUserRecord(user: DemoUser): User {
   return {
     id: user.id,
@@ -651,10 +752,10 @@ type AuthContextValue = {
   currentUser: DemoUser | null;
   isAuthenticated: boolean;
   isLoading: boolean;
-  login: (username: string, password: string) => boolean;
+  login: (username: string, password: string) => Promise<boolean>;
   logout: () => Promise<void>;
-  registerCoach: (data: CoachSignupData) => boolean;
-  registerFromOnboarding: (data: OnboardingData) => boolean;
+  registerCoach: (data: CoachSignupData) => Promise<boolean>;
+  registerFromOnboarding: (data: OnboardingData) => Promise<boolean>;
   forgotPassword: (email: string) => Promise<void>;
   error: string | null;
   availableUsers: DemoUser[];
@@ -668,8 +769,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [isLoading, setIsLoading] = useState(true);
   const isAuthenticatingRef = useRef(false);
   const [registeredUsers, setRegisteredUsers] = useState<DemoUser[]>(DEMO_USERS);
+  const activeUsers = apiConfig.useMock ? registeredUsers : API_DEV_USERS;
 
   useEffect(() => {
+    if (!apiConfig.useMock) {
+      return;
+    }
+
     let mounted = true;
 
     const syncUserDirectory = async () => {
@@ -706,14 +812,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       try {
         const authState = await authService.checkAuth();
         if (mounted && authState.isAuthenticated && authState.user) {
-          // Try to find matching demo user for backwards compatibility
-          const demoMatch = registeredUsers.find(
-            (u) => u.email?.toLowerCase() === authState.user!.email.toLowerCase(),
-          );
-          if (demoMatch) {
+          const restoredUser = apiConfig.useMock
+            ? registeredUsers.find((u) => u.email?.toLowerCase() === authState.user!.email.toLowerCase())
+            : mapAuthProfileToDemoUser(authState.user);
+          if (restoredUser) {
             await ensureCoachSessionsSeeded();
-            setCurrentUser(demoMatch);
-            logger.success('Session restored from storage', { userId: demoMatch.id });
+            setCurrentUser(restoredUser);
+            logger.success('Session restored from storage', { userId: restoredUser.id });
           }
         }
       } catch (err) {
@@ -733,59 +838,79 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [registeredUsers]);
 
   const login = useCallback(
-    (username: string, password: string) => {
+    async (username: string, password: string) => {
       if (isAuthenticatingRef.current) return false;
       isAuthenticatingRef.current = true;
       try {
-      const normalizedUsername = username.trim().toLowerCase();
-      logger.info('Login attempt', { username: normalizedUsername });
+        const normalizedUsername = username.trim().toLowerCase();
+        logger.info('Login attempt', { username: normalizedUsername, mode: apiConfig.useMock ? 'mock' : 'api' });
 
-      const match = registeredUsers.find(
-        (user) =>
-          user.username.toLowerCase() === normalizedUsername && user.password === password.trim(),
-      );
+        if (!apiConfig.useMock) {
+          const email = resolveApiLoginEmail(normalizedUsername);
+          const result = await authService.login(email, password.trim());
+          if (!result.success) {
+            logger.warn('API login failed', { email, error: result.error.message });
+            setError(result.error.message);
+            return false;
+          }
 
-      if (match) {
-        logger.success('Login successful', {
-          username: match.username,
-          role: match.role,
-          userId: match.id,
-        });
-        setCurrentUser(match);
-        setError(null);
-        void ensureCoachSessionsSeeded().catch((seedError) => {
-          logger.error('Failed to seed coach sessions after login', seedError);
-        });
+          const mappedUser = mapAuthProfileToDemoUser(result.data.user, password.trim());
+          setCurrentUser(mappedUser);
+          setError(null);
+          await ensureCoachSessionsSeeded();
+          logger.success('API login successful', {
+            email,
+            role: mappedUser.role,
+            userId: mappedUser.id,
+          });
+          return true;
+        }
 
-        const now = Date.now();
-        const sessionUser = {
-          id: match.id,
-          fullName: match.fullName || match.name || match.username,
-          email: match.email || `${match.username}@demo.clubroom.app`,
-          role: match.role,
-          joinedDate: new Date().toISOString(),
-        };
-        const sessionTokens = {
-          accessToken: `demo_access_${match.id}_${now}`,
-          refreshToken: `demo_refresh_${match.id}_${now}`,
-          expiresAt: now + 7 * 24 * 60 * 60 * 1000,
-        };
+        const match = registeredUsers.find(
+          (user) =>
+            user.username.toLowerCase() === normalizedUsername && user.password === password.trim(),
+        );
 
-        // Persist demo sessions without calling authService.login to avoid duplicate credential warnings.
-        void Promise.all([
-          apiClient.set(STORAGE_KEYS.AUTH_USER, sessionUser),
-          apiClient.set(STORAGE_KEYS.AUTH_TOKENS, sessionTokens),
-          apiClient.set(STORAGE_KEYS.AUTH_TOKEN, sessionTokens.accessToken),
-        ]).catch((persistError) => {
-          logger.error('Failed to persist demo auth session', persistError);
-        });
+        if (match) {
+          logger.success('Login successful', {
+            username: match.username,
+            role: match.role,
+            userId: match.id,
+          });
+          setCurrentUser(match);
+          setError(null);
+          void ensureCoachSessionsSeeded().catch((seedError) => {
+            logger.error('Failed to seed coach sessions after login', seedError);
+          });
 
-        return true;
-      }
+          const now = Date.now();
+          const sessionUser = {
+            id: match.id,
+            fullName: match.fullName || match.name || match.username,
+            email: match.email || `${match.username}@demo.clubroom.app`,
+            role: match.role,
+            joinedDate: new Date().toISOString(),
+          };
+          const sessionTokens = {
+            accessToken: `demo_access_${match.id}_${now}`,
+            refreshToken: `demo_refresh_${match.id}_${now}`,
+            expiresAt: now + 7 * 24 * 60 * 60 * 1000,
+          };
 
-      logger.warn('Login failed: Invalid credentials', { username: normalizedUsername });
-      setError('Invalid username or password.');
-      return false;
+          void Promise.all([
+            apiClient.set(STORAGE_KEYS.AUTH_USER, sessionUser),
+            apiClient.set(STORAGE_KEYS.AUTH_TOKENS, sessionTokens),
+            apiClient.set(STORAGE_KEYS.AUTH_TOKEN, sessionTokens.accessToken),
+          ]).catch((persistError) => {
+            logger.error('Failed to persist demo auth session', persistError);
+          });
+
+          return true;
+        }
+
+        logger.warn('Login failed: Invalid credentials', { username: normalizedUsername });
+        setError('Invalid username or password.');
+        return false;
       } finally {
         isAuthenticatingRef.current = false;
       }
@@ -794,10 +919,35 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   );
 
   const registerCoach = useCallback(
-    (data: CoachSignupData) => {
+    async (data: CoachSignupData) => {
       // Generate username from email
       const username = data.email.split('@')[0].toLowerCase();
       logger.info('Coach registration attempt', { username, email: data.email });
+
+      if (!apiConfig.useMock) {
+        const result = await authService.register({
+          email: data.email,
+          password: data.password,
+          phone: data.phone,
+          accountType: 'COACH',
+          firstName: data.fullName.trim().split(/\s+/)[0] || data.fullName,
+          lastName: data.fullName.trim().split(/\s+/).slice(1).join(' ') || 'Coach',
+          inviteCode: data.inviteCode,
+          isOrganization: false,
+        });
+        if (!result.success) {
+          setError(result.error.message);
+          return false;
+        }
+
+        const mappedUser = mapAuthProfileToDemoUser(result.data.user, data.password);
+        setCurrentUser(mappedUser);
+        setError(null);
+        if (mappedUser.role === 'COACH') {
+          await ensureCoachSessionsSeeded();
+        }
+        return true;
+      }
 
       // Check if username already exists
       if (registeredUsers.find((user) => user.username === username)) {
@@ -828,13 +978,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setRegisteredUsers((prev) => [...prev, newUser]);
       setCurrentUser(newUser);
       setError(null);
+      if (newUser.role === 'COACH') {
+        await ensureCoachSessionsSeeded();
+      }
       return true;
     },
     [registeredUsers],
   );
 
   const registerFromOnboarding = useCallback(
-    (data: OnboardingData) => {
+    async (data: OnboardingData) => {
       // Generate username from email
       const username = data.email.split('@')[0].toLowerCase();
       logger.info('Onboarding registration attempt', {
@@ -842,6 +995,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         email: data.email,
         accountType: data.accountType,
       });
+
+      if (!apiConfig.useMock) {
+        const result = await authService.completeOnboarding(data);
+        if (!result.success) {
+          setError(result.error.message);
+          return false;
+        }
+
+        const mappedUser = mapAuthProfileToDemoUser(result.data.user, data.password);
+        setCurrentUser(mappedUser);
+        setError(null);
+        if (mappedUser.role === 'COACH') {
+          await ensureCoachSessionsSeeded();
+        }
+        return true;
+      }
 
       // Check if email already exists
       if (registeredUsers.find((user) => user.email?.toLowerCase() === data.email.toLowerCase())) {
@@ -895,6 +1064,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setRegisteredUsers((prev) => [...prev, newUser]);
       setCurrentUser(newUser);
       setError(null);
+      if (newUser.role === 'COACH') {
+        await ensureCoachSessionsSeeded();
+      }
       return true;
     },
     [registeredUsers],
@@ -949,13 +1121,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       registerFromOnboarding,
       forgotPassword,
       error,
-      availableUsers: registeredUsers,
+      availableUsers: activeUsers,
     }),
     [
+      activeUsers,
       currentUser,
       error,
       isLoading,
-      registeredUsers,
       login,
       logout,
       registerCoach,
