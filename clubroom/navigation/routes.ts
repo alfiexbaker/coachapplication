@@ -69,6 +69,10 @@ export const Routes = {
   NOTIFICATIONS: '/(tabs)/notifications' as Href,
   ROSTER: '/(tabs)/roster' as Href,
   SCHEDULE: '/(tabs)/schedule' as Href,
+  manage: (params?: { clubId?: string }) => ({
+    pathname: '/manage',
+    params: params ?? {},
+  }) as Href,
 
   // ─── Tab sub-routes (dynamic) ─────────────────────────────────
   booking: (id: string, options?: BookingDetailRouteOptions) => ({

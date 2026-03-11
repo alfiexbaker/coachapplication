@@ -39,8 +39,8 @@ Updated: 2026-03-11
 | PR-11 | `sprint-11-org-setup-and-onboarding.md` | P1 | DONE | Owners can now create a club, set commercial mode, invite first staff, and route into concrete next steps |
 | PR-12 | `sprint-12-programs-packages-and-recurring-registration.md` | P1 | DONE | Real coaching businesses now present recurring/program registration and ownership truth, not only one-off sessions |
 | PR-13 | `sprint-13-communications-notifications-and-handoffs.md` | P1 | DONE | Org reassignment and support flows now trigger role-aware in-app notifications and explicit handoffs |
-| PR-14 | `owner-dashboard-reporting-and-finance-view` | P1 | CURRENT | Owners still need a true top-of-pyramid view of staffing, delivery, and finance state |
-| PR-16 | `coach-discovery-profile-and-conversion` | P1 | OPEN | A coach/user-first POC still needs a believable discovery-to-booking conversion surface |
+| PR-14 | `owner-dashboard-reporting-and-finance-view` | P1 | DONE | Owners now have a live org dashboard that links staffing, delivery, support, and reconciler finance truth |
+| PR-16 | `coach-discovery-profile-and-conversion` | P1 | CURRENT | A coach/user-first POC still needs a believable discovery-to-booking conversion surface |
 | PR-17 | `booking-lifecycle-and-parent-operations` | P1 | OPEN | Parents need the post-booking lifecycle to feel real, not only the initial checkout |
 | PR-18 | `session-delivery-feedback-and-rebooking-loop` | P1 | OPEN | The product still needs a believable full coaching loop after delivery, not only booking and management |
 | PR-19 | `seeded-scenarios-and-role-entry-control` | P1 | OPEN | Pre-API demos need coherent seeded stories and clean role entry points |

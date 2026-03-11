@@ -221,6 +221,7 @@ export const ServiceEvents = {
   CLUB_POST_CREATED: 'club:post:created',
   ORG_HEAD_COACH_TASK_UPDATED: 'org:head_coach:task_updated',
   ORG_HEAD_COACH_STANDARD_UPDATED: 'org:head_coach:standard_updated',
+  PROBLEM_REPORT_CREATED: 'problem_report:created',
 
   // Community group events
   GROUP_MEMBER_JOINED: 'community:group:member_joined',
@@ -793,6 +794,11 @@ export interface EventPayloads {
     actorUserId: string;
     action: 'created' | 'toggled';
     active: boolean;
+  };
+  [ServiceEvents.PROBLEM_REPORT_CREATED]: {
+    reportId: string;
+    bookingId: string;
+    clubId?: string;
   };
 
   // Community group events

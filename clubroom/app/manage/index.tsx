@@ -1,6 +1,6 @@
 import { StyleSheet, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { router, type Href } from 'expo-router';
+import { router, type Href, useLocalSearchParams } from 'expo-router';
 
 import { PageContainer } from '@/components/primitives/page-container';
 import { PageHeader } from '@/components/primitives/page-header';
@@ -27,10 +27,24 @@ interface ManageAction {
 export default function ManageScreen() {
   const { currentUser } = useAuth();
   const { colors } = useTheme();
+  const { clubId } = useLocalSearchParams<{ clubId?: string }>();
 
   const hasCoachAccess = isCoach(currentUser) || isAdmin(currentUser);
 
-  const actions: ManageAction[] = [
+  const dashboardAction: ManageAction[] = clubId
+    ? [
+        {
+          id: 'owner-dashboard',
+          title: 'Owner Dashboard',
+          description: 'Return to the live org snapshot, finance state, and delivery risks.',
+          icon: 'speedometer-outline',
+          colorKey: 'accent',
+          route: Routes.clubDashboard(clubId),
+        },
+      ]
+    : [];
+
+  const baseActions: ManageAction[] = [
     {
       id: 'booking-console',
       title: 'Staffing Console',
@@ -89,6 +103,8 @@ export default function ManageScreen() {
     },
   ];
 
+  const actions: ManageAction[] = [...dashboardAction, ...baseActions];
+
   if (!hasCoachAccess) {
     return (
       <PageContainer
@@ -142,10 +158,11 @@ export default function ManageScreen() {
       })}
 
       <SurfaceCard style={[styles.hintCard, { borderColor: colors.border }]}>
-        <ThemedText style={styles.hintTitle}>Coach workflow</ThemedText>
+        <ThemedText style={styles.hintTitle}>Operating workflow</ThemedText>
         <ThemedText style={[styles.hintText, { color: colors.muted }]}>
-          Start with Staffing Console for allocation, Head Coach Oversight for standards and follow-up,
-          or jump straight into Create / Invite for individual coach flows.
+          Start with the owner dashboard for current org state, use Staffing Console for allocation,
+          Head Coach Oversight for standards and follow-up, then move into Create / Invite for live
+          session work.
         </ThemedText>
       </SurfaceCard>
     </PageContainer>

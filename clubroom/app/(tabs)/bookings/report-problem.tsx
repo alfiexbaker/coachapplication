@@ -7,6 +7,7 @@ import { Clickable } from '@/components/primitives/clickable';
 import { apiClient } from '@/services/api-client';
 import { STORAGE_KEYS } from '@/constants/storage-keys';
 import { bookingService } from '@/services/booking-service';
+import { emitTyped, ServiceEvents } from '@/services/event-bus';
 import { socialFeedService } from '@/services/social-feed-service';
 
 import { ThemedText } from '@/components/themed-text';
@@ -140,6 +141,11 @@ export default function ReportProblemScreen() {
 
       reports.push(newReport);
       await apiClient.set(STORAGE_KEYS.PROBLEM_REPORTS, reports);
+      emitTyped(ServiceEvents.PROBLEM_REPORT_CREATED, {
+        reportId: newReport.id,
+        bookingId: newReport.bookingId,
+        clubId: booking?.clubId,
+      });
 
       if (booking) {
         await bookingCommunicationsService.notifySupportIssueReported({
