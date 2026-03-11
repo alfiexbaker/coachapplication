@@ -1,31 +1,17 @@
-# Sprint Workspace (Canonical)
+# Sprint Workspace
 
-This folder is the canonical, structured workspace for active sprint planning and execution.
+This folder is the only retained execution workspace.
+It is not an archive and it is not a link farm.
 
 ## Files
 
-- `BACKLOG.md`: prioritized planned work only (no historical done rows).
-- `INSTRUCTIONS.md`: execution rules for running a sprint and closing it cleanly.
-- `REVIEW_MATRIX_2026-03-05.md`: qualitative review of existing sprint docs and current truth status.
-- `laststep.md`: latest handoff and current checkpoint.
+- `BACKLOG.md`: current queued work only
+- `INSTRUCTIONS.md`: execution rules for active work
+- `laststep.md`: current handoff and latest checkpoint
 
-## Source Linkage
+## Working Rules
 
-This workspace is linked from:
-- `docs/newsprints/DONE.md` (entrypoint)
-
-And references detailed source sprint docs under:
-- `docs/newsprints/forms-modals/`
-- `docs/newsprints/architecture-hardening/`
-- `docs/newsprints/booking-sessions/`
-- `docs/newsprints/pre-api/`
-
-## Intent
-
-Keep this folder small, current, and operational:
-- one backlog
-- one instruction set
-- one current handoff
-- one review matrix
-
-Historical completion detail should stay in git history and per-sprint closeout docs.
+- Keep this folder small.
+- Keep every item tied to current repo truth.
+- Do not reintroduce deleted sprint packs or dead audit links.
+- Use git history for old completion detail.

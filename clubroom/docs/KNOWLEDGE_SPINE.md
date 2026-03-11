@@ -1,51 +1,59 @@
 # Knowledge Spine
 
 Validated: 2026-03-11
-Purpose: give humans and agents a short, canonical read path into the repo without duplicating the deeper source docs.
+Purpose: give humans and agents a short read path into the real repo.
 
-## Read Order
+## Use This After `docs/START_HERE.md`
 
-1. `docs/SOURCE_OF_TRUTH.md`
-2. `docs/KNOWLEDGE_SPINE.md`
-3. Read one domain doc for the task, not all of them by default:
-   - `docs/architecture/runtime-modes.md`
-   - `docs/architecture/service-ownership-map.md`
-   - `docs/architecture/entity-relationship-map.md`
-   - `docs/architecture/club-relationship-rules.md`
-   - `docs/trust/auth-and-permission-boundaries.md`
-   - `docs/ui/loading-error-empty-state-matrix.md`
+1. Read `docs/SOURCE_OF_TRUTH.md`
+2. Read this file
+3. Pick one domain doc, not the whole tree
+
+## Domain Routing
+
+Runtime mode and mock versus API behavior:
+- `docs/architecture/runtime-modes.md`
+- `docs/backend-api/PRE_API_LIVE_MODE_PLAYBOOK.md`
+
+Canonical service ownership and entrypoints:
+- `docs/architecture/service-ownership-map.md`
+
+Core relationships and entity model:
+- `docs/architecture/entity-relationship-map.md`
+
+Club roles, permissions, delegation, and visibility:
+- `contracts/club-governance.ts`
+- `docs/architecture/club-relationship-rules.md`
+
+Auth, authz, and trust boundaries:
+- `docs/trust/auth-and-permission-boundaries.md`
+- `docs/backend-api/AUTHZ_AUDIT_AND_SECURITY.md`
+
+UI loading, empty, and error state expectations:
+- `docs/ui/loading-error-empty-state-matrix.md`
+
+API design and current route inventory:
+- `docs/backend-api/README.md`
+- `docs/backend-api/ROUTE_INVENTORY_V1.md`
+
+Org and commercial-model analysis:
+- `docs/product-reality/README.md`
+
+Active implementation queue:
+- `docs/newsprints/README.md`
 
 ## Deep Sources To Trust
 
 - Product truth: `docs/SOURCE_OF_TRUTH.md`
-- Machine-readable club governance: `contracts/club-governance.ts`
-- Shared source for API/app governance rules: `packages/shared-contracts/src/club/contracts.ts`, `packages/shared-contracts/src/club/policy.ts`
+- Club governance source: `contracts/club-governance.ts`
+- Shared club contracts and policy: `packages/shared-contracts/src/club/contracts.ts`, `packages/shared-contracts/src/club/policy.ts`
 - Backend architecture: `docs/backend-api/ARCHITECTURE_BLUEPRINT.md`
 - Data model: `docs/backend-api/DATA_MODEL_AND_IDENTIFIERS.md`
-- AuthZ and security: `docs/backend-api/AUTHZ_AUDIT_AND_SECURITY.md`
-- Pre-API runtime: `docs/backend-api/PRE_API_LIVE_MODE_PLAYBOOK.md`
-- Org relationship model: `docs/product-reality/ORG_RELATIONSHIP_MODEL_2026-03-10.md`
-- Org permission model: `docs/product-reality/ORG_PERMISSION_AND_VISIBILITY_MATRIX_2026-03-10.md`
+- Authz and security: `docs/backend-api/AUTHZ_AUDIT_AND_SECURITY.md`
 
-## What This Spine Covers
+## Working Rules
 
-- Which runtime mode the app is really in
-- Which service entrypoints are canonical today
-- How the core data relationships fit together
-- How club roles, ownership, and visibility are supposed to work
-- Where auth, authz, and trust boundaries are enforced today
-- Which loading, error, and empty-state patterns are the UI default
-
-## Validation Notes
-
-- The repo guidance mentions top-level `services/invite-service.ts` and `services/family-service.ts`, but those files are not present in the current tree.
-- The validated unified entrypoints are `services/invite/index.ts` and `services/family/index.ts`.
-- The backend package is real and testable, but auth is still scaffolded and not yet aligned with the frontend auth client.
-
-## How To Use This
-
-- Start here when you need fast repo context.
-- For club roles, permissions, or relationship logic, read the machine-readable governance source before the prose rules doc.
-- Do not load every linked doc for every task. Pick the one domain map that matches the work.
-- Drop into the linked deep docs when you need exact contracts or sprint history.
-- Update these spine files when repo reality changes, especially when a canonical import path or runtime contract changes.
+- Do not read every linked doc by default.
+- For club authority questions, use the executable governance source before prose.
+- For API work, tie every decision back to real UI consumers.
+- Update this spine when a canonical path or runtime contract changes.

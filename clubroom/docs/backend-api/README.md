@@ -1,78 +1,69 @@
-# Backend API Documentation Pack (Codebase-Aligned)
+# Backend API Documentation Pack
 
-This folder captures the backend/API blueprint for Clubroom and ties it to the current frontend codebase.
+This folder captures the retained backend/API design docs that still match the current repo.
 
-The goal is not just to design an API in isolation. The goal is to make backend work systematically traceable to:
-- actual routes in `app/`
-- actual UI components in `components/`
-- actual service/domain boundaries in `services/`
-- product intent in `docs/SOURCE_OF_TRUTH.md`
-- bug/flow history in `docs/newsprints/`
+The goal is not to design an API in isolation.
+The goal is to keep backend work traceable to:
+- real routes in `app/`
+- real components and hooks
+- real service boundaries
+- current product truth in `docs/SOURCE_OF_TRUTH.md`
+- current club governance policy in `contracts/club-governance.ts`
 
-## Why this exists now
-Clubroom currently runs as a frontend MVP with AsyncStorage persistence and no backend API. These docs define a secure, low-cost, production-ready backend path that preserves current product behavior and improves correctness (authz, audit, retention, idempotency, conflict handling).
+## Current Reality
 
-## Working Assumptions Locked In
-- REST API with typed shared contracts (`zod`) in same monorepo
+- A real Fastify API exists under `apps/api`.
+- The Expo app still supports mock and pre-API live modes.
+- Shared contracts and governance sources already exist in the monorepo.
+- The biggest unresolved integration seam is auth and session alignment between frontend and API.
+
+## Working Assumptions
+
+- REST API under `/v1`
 - Postgres + Prisma
 - Fastify + TypeScript
-- Auth0 for authn; API-owned authz (RBAC + delegated permissions + resource grants)
-- S3-compatible private object storage with signed URLs
-- `/v1` versioning from day one
-- Internal-only API in phase 1
-- Chat is the only real-time feature in phase 1
-- No in-app payments in v1 (reconciler/direct-to-coach), future payment integration preserved
-- No hard delete for safeguarding/payment/audit records
-- Global append-only audit trail for actions/changes + sensitive reads
+- app-owned authz with delegated permissions and resource grants
+- private object storage with signed URLs
+- no in-app payments in v1
+- no hard delete for safeguarding, payment, or audit records
+- sensitive writes and reads must be auditable
 
 ## File Guide
-- `TECH_STACK.md`: cost-conscious secure infra + runtime choices
-- `ARCHITECTURE_BLUEPRINT.md`: modular monolith, package layout, domain boundaries, request lifecycle
-- `DATA_MODEL_AND_IDENTIFIERS.md`: tables, relationships, PK/FK conventions, ID strategy, data format standards
-- `AUTHZ_AUDIT_AND_SECURITY.md`: RBAC + delegated grants + resource sharing + audit/retention model
-- `API_CONTRACTS_ERRORS_AND_HANDLERS.md`: contracts, endpoint patterns, handlers, error taxonomy, drift prevention
-- `UI_API_BILATERAL_ALIGNMENT.md`: how to keep backend changes aligned to UI routes/components/services/flows
-- `ROUTE_INVENTORY_V1.md`: planned `/v1` endpoint inventory with contract/authz/UI anchors
-- `traceability/booking-revenue-v1.md`: booking/availability/revenue spine contract
-- `traceability/community-growth-v1.md`: community/growth spine contract
-- `traceability/development-analytics-v1.md`: development/analytics spine contract
-- `traceability/trust-ops-v1.md`: trust/safety/ops spine contract
-- `traceability/pre-api-critical-routes-owner-map-2026-03-01.md`: cross-spine critical route owner map + smash/check harness
-- `SPRINT_PLAN_OVERVIEW.md`: backend build plan with sequencing and gates
-- `sprints/`: detailed sprint-by-sprint implementation docs
-- `test-data/README.md`: linked marketplace fixture workflow (CSV + write-back + validation)
-- `PRE_API_LIVE_MODE_PLAYBOOK.md`: pre-REST live-feel runtime and clean cutover path
 
-## Codebase Anchors (read before backend design work)
-- `/Users/tubton/Desktop/coachapplication/clubroom/docs/SOURCE_OF_TRUTH.md`
-- `/Users/tubton/Desktop/coachapplication/clubroom/types/result.ts`
-- `/Users/tubton/Desktop/coachapplication/clubroom/navigation/routes.ts`
-- `/Users/tubton/Desktop/coachapplication/clubroom/constants/storage-keys.ts`
-- `/Users/tubton/Desktop/coachapplication/clubroom/services/base-service.ts`
-- `/Users/tubton/Desktop/coachapplication/clubroom/services/event-bus.ts`
+- `TECH_STACK.md`: runtime and infra choices
+- `ARCHITECTURE_BLUEPRINT.md`: module boundaries and request lifecycle
+- `DATA_MODEL_AND_IDENTIFIERS.md`: identifiers, tables, and data rules
+- `AUTHZ_AUDIT_AND_SECURITY.md`: authz, grants, audit, and retention
+- `API_CONTRACTS_ERRORS_AND_HANDLERS.md`: contract and handler conventions
+- `UI_API_BILATERAL_ALIGNMENT.md`: how API work maps back to UI
+- `ROUTE_INVENTORY_V1.md`: current and planned `/v1` endpoint inventory
+- `PRE_API_LIVE_MODE_PLAYBOOK.md`: current mock/live-mode behavior and cutover notes
+- `test-data/README.md`: fixture workflow
 
-## Existing Audit Infrastructure (use it)
-From `package.json`, these scripts already support systematic review:
+## Read Before Backend Work
+
+- `CODEX.md`
+- `CHATGPT.md`
+- `docs/START_HERE.md`
+- `docs/SOURCE_OF_TRUTH.md`
+- `contracts/club-governance.ts`
+- `navigation/routes.ts`
+- `services/base-service.ts`
+- `services/event-bus.ts`
+
+## Useful Verification
+
+- `npm --prefix apps/api run typecheck`
+- `npm --prefix apps/api run test`
+- `npm run typecheck`
 - `npm run audit:architecture`
-- `npm run audit:ui`
-- `npm run ui:flows:list`
-- `npm run ui:flows:run`
-- role-specific UI flow runs (`coach`, `parent`, `athlete`)
+- role-specific UI flow runs when the API change affects user flows
 
-Treat these as pre-backend alignment tools. They reduce the risk of implementing endpoints that do not map to real screens or miss critical flows.
+If a script is blocked by missing local tooling, record that honestly.
 
-## How to Keep This Pack Updated
-When adding/changing backend design decisions, update at least:
-1. `ARCHITECTURE_BLUEPRINT.md` or `DATA_MODEL_AND_IDENTIFIERS.md` (if schema/domain changes)
-2. `AUTHZ_AUDIT_AND_SECURITY.md` (if permissions/access patterns change)
-3. `UI_API_BILATERAL_ALIGNMENT.md` (if UI/API mapping changes)
-4. relevant `sprints/sprint-XX.md` (if plan sequencing/scope changes)
+## How To Keep This Pack Updated
 
-## Future Monorepo Target (planned)
-This repo is currently single-app. The backend plan assumes migration toward:
-- `apps/mobile` (current Expo app)
-- `apps/api` (Fastify service)
-- `packages/shared-contracts` (`zod` DTOs + enums + error codes)
-- `packages/db` (Prisma schema/migrations/client)
-- `packages/authz` (policies/grant evaluation)
-- `packages/config` (env schemas / config)
+When backend reality changes, update at least:
+1. `ROUTE_INVENTORY_V1.md`
+2. `UI_API_BILATERAL_ALIGNMENT.md`
+3. the relevant deep doc for schema, authz, or runtime behavior

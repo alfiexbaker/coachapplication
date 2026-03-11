@@ -83,7 +83,7 @@ For the product to behave like `Johnny's Coaching LTD`, all of these must become
 
 ## Read Next
 
-- `ORG_SCOPE_AND_SPRINT_REVIEW_2026-03-10.md`
 - `POC_COMPLETENESS_2026-03-10.md`
 - `PRE_API_COMPLETENESS_REVIEW_2026-03-10.md`
-- `sprints/BACKLOG.md`
+- `OPEN_DECISIONS_2026-03-10.md`
+- `../newsprints/sprints/BACKLOG.md`

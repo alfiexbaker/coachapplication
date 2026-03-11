@@ -91,12 +91,12 @@ Status legend:
 | `/v1/safeguarding/incidents/:incidentId/actions` | `POST` | `scaffolded` | `CreateSafeguardingActionRequest`, `SafeguardingActionResponse` | safeguarding assignee/admin scope | operations tooling + incident review workflows |
 
 ## Progress / Media / Community / Trust Ops
-- Contract coverage now captured in spine traceability docs:
-  - `docs/backend-api/traceability/community-growth-v1.md`
-  - `docs/backend-api/traceability/development-analytics-v1.md`
-  - `docs/backend-api/traceability/trust-ops-v1.md`
-  - cross-spine route owner map: `docs/backend-api/traceability/pre-api-critical-routes-owner-map-2026-03-01.md`
-- Keep this file as core `/v1` inventory index; add detailed route rows here as each module is scaffolded.
+
+Keep this file as the core `/v1` inventory index.
+When these modules expand, add route rows here and update:
+- `docs/backend-api/UI_API_BILATERAL_ALIGNMENT.md`
+- `docs/backend-api/AUTHZ_AUDIT_AND_SECURITY.md`
+- `docs/backend-api/API_CONTRACTS_ERRORS_AND_HANDLERS.md`
 
 ## Inventory Rules
 - Every row must eventually include:

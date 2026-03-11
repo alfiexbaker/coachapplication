@@ -5,13 +5,11 @@ Scope: actual app behavior in this repo (routes + services + storage), not desir
 
 ## Update: 2026-03-04
 
-Latest engineering audit (`docs/FULL_AUDIT_2026-03-04.md`) confirms:
+Latest retained validation confirms:
 
-- `app/` route files: **183**
-- service files: **133**
-- test files: **199**
-- API `/v1` handlers in `apps/api`: **40**
-- role flow runner: **80/80 pass** (no failed flows; 1 medium console finding)
+- the Expo app remains a broad multi-role runtime
+- the Fastify API package at `apps/api` is real and testable
+- API auth still uses placeholder scaffold logic pending production auth hardening
 
 Admin-specific reality is still fundamentally unchanged from 2026-03-03:
 
@@ -168,6 +166,7 @@ This codebase already contains many admin-relevant building blocks in services a
 but they are fragmented across product surfaces. The highest-value move is to unify these
 into a case-based operations console with strict staff role separation and immutable auditability.
 
-Related planning docs:
-- `docs/admin/sprints/README.md`
-- `docs/admin/sprints/sprint-00.md` ... `sprint-09.md`
+Related retained docs:
+- `docs/trust/auth-and-permission-boundaries.md`
+- `docs/backend-api/AUTHZ_AUDIT_AND_SECURITY.md`
+- `docs/backend-api/ARCHITECTURE_BLUEPRINT.md`

@@ -37,7 +37,8 @@ For each endpoint, document:
 - `components/` (UI surfaces)
 - `services/` (current behavior and business logic hints)
 - `docs/SOURCE_OF_TRUTH.md` (role capabilities + spines)
-- `docs/newsprints/` (bug history and edge cases)
+- `docs/trust/auth-and-permission-boundaries.md`
+- `docs/ui/loading-error-empty-state-matrix.md`
 
 ## Existing Automation/Audit Inputs (use before claiming full coverage)
 From `package.json`:
@@ -48,12 +49,6 @@ From `package.json`:
 - `npm run ui:flows:coach`
 - `npm run ui:flows:parent`
 - `npm run ui:flows:athlete`
-
-Existing outputs:
-- `docs/audits/architecture-reachability-audit-2026-02-26.json`
-- `docs/audits/component-reachability-2026-02-26.csv`
-- `docs/audits/architecture-hardening-report-2026-02-26.md`
-- `docs/audits/architecture-hardening-action-plan-2026-02-26.md`
 
 ## Traceability Matrix Template (copy per feature/domain)
 Use this table for every significant API feature.
@@ -137,7 +132,7 @@ No single manual pass is enough. Use a layered process:
 1. Run audit scripts and collect outputs
 2. Build/update route inventory from `app/` + `navigation/routes.ts`
 3. Map core flows to services and endpoints (traceability matrix)
-4. Review high-risk flows from `docs/newsprints/` (booking, safeguarding, offline, financial, social)
+4. Review high-risk flows from retained trust, UI-state, and product-reality docs
 5. Verify authz/audit/contract/test coverage per mapped endpoint
 6. Track gaps explicitly (do not imply full coverage if only partial)
 

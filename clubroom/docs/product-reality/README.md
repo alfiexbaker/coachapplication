@@ -1,60 +1,26 @@
 # Product Reality Planning
 
-This folder is the current planning lane for product-truth work.
+This folder is the retained analysis pack for product truth, org structure, and commercial-model decisions.
 
-Its job is not to repeat old sprint docs. Its job is to answer:
-
-- what the product actually is today
-- where the experience is believable vs fake-complete
-- which gaps are implementation bugs vs product-definition problems
-- which decisions need discussion before code should move
+Its job is to answer:
+- what the product really is today
+- where the runtime is believable versus scaffold-first
+- which issues are product-model problems rather than implementation bugs
 
 ## Read Order
 
 1. `PRODUCT_REALITY_AUDIT_2026-03-10.md`
 2. `FUNDAMENTAL_PRODUCT_AND_ARCHITECTURE_REVIEW_2026-03-10.md`
-3. `ORG_PYRAMID_MODEL_2026-03-10.md`
-4. `ORG_RELATIONSHIP_MODEL_2026-03-10.md`
-5. `ORG_SCOPE_AND_SPRINT_REVIEW_2026-03-10.md`
-6. `POC_COMPLETENESS_2026-03-10.md`
-7. `PRE_API_COMPLETENESS_REVIEW_2026-03-10.md`
-8. `ORG_IMPLEMENTATION_BLUEPRINT_2026-03-10.md`
-9. `ORG_MARKET_BASELINE_2026-03-10.md`
-10. `ORG_PERMISSION_AND_VISIBILITY_MATRIX_2026-03-10.md`
-11. `ORG_USER_JOURNEYS_2026-03-10.md`
-12. `ROLE_FLOW_MATRIX_2026-03-10.md`
-13. `OPEN_DECISIONS_2026-03-10.md`
-14. `progress.md`
-15. `sprints/BACKLOG.md`
-16. the relevant sprint doc in `sprints/`
+3. `ORG_RELATIONSHIP_MODEL_2026-03-10.md`
+4. `ORG_PERMISSION_AND_VISIBILITY_MATRIX_2026-03-10.md`
+5. `ORG_IMPLEMENTATION_BLUEPRINT_2026-03-10.md`
+6. `OPEN_DECISIONS_2026-03-10.md`
+7. `progress.md`
 
-## Why This Exists
+Use the other files here only when the task is specifically about org hierarchy, commercial ownership, or user journeys.
 
-The existing sprint stack is broad but fragmented:
+## Working Rules
 
-- `docs/newsprints/` for frontend/product execution
-- `docs/admin/sprints/` for internal operations
-- `docs/backend-api/sprints/` for backend execution
-
-That structure is useful for implementation history, but it is not sharp enough for the current question:
-what is not right in the product, in real user terms?
-
-## Archive Policy
-
-Existing sprint folders were intentionally not deleted.
-
-Reason:
-
-- they contain useful execution history
-- they may still be the right source for narrow implementation work
-- deleting them before the new planning model is approved would destroy context
-
-Until a deliberate cleanup pass happens, treat the old sprint stacks as reference/archive and this folder as the active planning layer for product-reality work.
-
-## Planning Principles
-
-- Start from user attempts, not components.
-- Prefer "this feels false/misleading" over "this file is messy".
-- Retire stale findings once code proves they are fixed.
-- Separate macro product decisions from straightforward implementation debt.
-- Use one backlog here, not parallel trackers inside this folder.
+- This folder is analysis, not the active execution queue.
+- `docs/newsprints/` holds current implementation priority.
+- If a dated analysis doc is disproved by current code, patch it or delete it.

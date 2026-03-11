@@ -58,7 +58,7 @@ Current codebase size in this checkout:
 - services: `138`
 - test files: `203`
 
-Fresh architecture audit (`docs/audits/architecture-hardening-report-2026-03-10.md`) reports:
+Fresh architecture scan in that review reported:
 
 - reachable components: `726`
 - non-reachable components: `12`
