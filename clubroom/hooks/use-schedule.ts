@@ -26,6 +26,10 @@ import { createLogger } from '@/utils/logger';
 import { toDateStr } from '@/utils/format';
 import { useAuth } from '@/hooks/use-auth';
 import { useScreen } from '@/hooks/use-screen';
+import {
+  getCoachWorkContextDisplay,
+  type CoachBusinessFilter,
+} from '@/utils/coach-business-context';
 import type {
   AvailabilityTemplate,
   AvailabilityOverride,
@@ -74,6 +78,7 @@ export function useSchedule() {
   const [overrides, setOverrides] = useState<AvailabilityOverride[]>([]);
   const [selectedDayIndex, setSelectedDayIndex] = useState<number | null>(null);
   const [weekOffset, setWeekOffset] = useState(0);
+  const [businessFilter, setBusinessFilter] = useState<CoachBusinessFilter>('all');
 
   // Availability segment state
   const [showRulesModal, setShowRulesModal] = useState(false);
@@ -217,7 +222,7 @@ export function useSchedule() {
   );
 
   // Build week data
-  const weekData = useMemo((): DayData[] => {
+  const baseWeekData = useMemo((): DayData[] => {
     const today = new Date();
     const todayStr = toDateStr(today);
     const currentDay = today.getDay();
@@ -245,12 +250,16 @@ export function useSchedule() {
           const startDate = new Date(b.scheduledAt);
           const endDate = new Date(startDate);
           endDate.setMinutes(endDate.getMinutes() + (b.duration || 60));
+          const workContext = getCoachWorkContextDisplay(b);
 
           daySessions.push({
             id: b.id,
             title: b.service || 'Session',
             time: startDate.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' }),
             endTime: endDate.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' }),
+            businessContext: workContext.context,
+            businessLabel: workContext.label,
+            businessDetail: workContext.detail,
             athleteName: b.athleteId || b.athleteIds?.[0] || 'Athlete',
             location: b.location,
             status: b.status === 'CONFIRMED' ? 'confirmed' : 'pending',
@@ -268,12 +277,16 @@ export function useSchedule() {
           const startDate = new Date(o.scheduledAt);
           const endDate = new Date(startDate);
           endDate.setMinutes(endDate.getMinutes() + (o.duration || 60));
+          const workContext = getCoachWorkContextDisplay(o);
 
           daySessions.push({
             id: o.id,
             title: o.title,
             time: startDate.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' }),
             endTime: endDate.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' }),
+            businessContext: workContext.context,
+            businessLabel: workContext.label,
+            businessDetail: workContext.detail,
             athleteCount: o.registrations?.filter((r) => r.status === 'confirmed').length || 0,
             location: o.location,
             status: 'confirmed',
@@ -306,6 +319,29 @@ export function useSchedule() {
       };
     });
   }, [templates, bookings, offerings, blockedDates, overrides, weekOffset]);
+
+  const businessCounts = useMemo<Record<CoachBusinessFilter, number>>(() => {
+    const sessions = baseWeekData.flatMap((day) => day.sessions);
+    return {
+      all: sessions.length,
+      org: sessions.filter((session) => session.businessContext === 'org').length,
+      independent: sessions.filter((session) => session.businessContext === 'independent').length,
+    };
+  }, [baseWeekData]);
+
+  const weekData = useMemo(
+    () =>
+      baseWeekData.map((day) => ({
+        ...day,
+        sessions:
+          businessFilter === 'all'
+            ? day.sessions
+            : day.sessions.filter((session) => session.businessContext === businessFilter),
+      })),
+    [baseWeekData, businessFilter],
+  );
+
+  const overallWeekSessionCount = businessCounts.all;
 
   const todayData = weekData.find((d) => d.isToday) ?? null;
   const todaySessions = todayData?.sessions || [];
@@ -382,6 +418,14 @@ export function useSchedule() {
     (s: Segment) => {
       haptic();
       setSegment(s);
+    },
+    [haptic],
+  );
+
+  const handleBusinessFilterChange = useCallback(
+    (filter: CoachBusinessFilter) => {
+      haptic();
+      setBusinessFilter(filter);
     },
     [haptic],
   );
@@ -643,6 +687,9 @@ export function useSchedule() {
     onRefresh,
     retry: () => retry(),
     segment,
+    businessFilter,
+    businessCounts,
+    overallWeekSessionCount,
     weekData,
     todayData,
     todaySessions,
@@ -675,6 +722,7 @@ export function useSchedule() {
 
     // Handlers — Sessions segment
     handleSegmentChange,
+    handleBusinessFilterChange,
     handleDayPress,
     handleSessionPress,
     handleAdjustDay,

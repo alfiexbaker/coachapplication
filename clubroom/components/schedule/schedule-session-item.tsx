@@ -101,6 +101,33 @@ export const ScheduleSessionItem = memo(function ScheduleSessionItem({ session, 
             </ThemedText>
           </Row>
         )}
+        <Row
+          align="center"
+          gap="micro"
+          style={[
+            styles.contextBadge,
+            {
+              backgroundColor:
+                session.businessContext === 'org'
+                  ? withAlpha(colors.info, 0.1)
+                  : withAlpha(colors.tint, 0.1),
+            },
+          ]}
+        >
+          <Ionicons
+            name={session.businessContext === 'org' ? 'business-outline' : 'briefcase-outline'}
+            size={10}
+            color={session.businessContext === 'org' ? colors.info : colors.tint}
+          />
+          <ThemedText
+            style={[
+              styles.badgeText,
+              { color: session.businessContext === 'org' ? colors.info : colors.tint },
+            ]}
+          >
+            {session.businessLabel}
+          </ThemedText>
+        </Row>
         {session.isGroupSession && session.rsvpCounts && (
           <RsvpMiniBar counts={session.rsvpCounts} compact />
         )}
@@ -160,5 +187,11 @@ const styles = StyleSheet.create({
     borderRadius: Radii.sm,
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  contextBadge: {
+    alignSelf: 'flex-start',
+    paddingHorizontal: Spacing.xs,
+    paddingVertical: Spacing.micro,
+    borderRadius: Radii.sm,
   },
 });

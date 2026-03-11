@@ -4,6 +4,7 @@
 
 import type { AvailabilityTemplate, AvailabilityOverride, CoachSchedulingRules, CoachVenue, Booking, SessionOffering } from '@/constants/types';
 import type { SessionTemplate } from '@/constants/session-types';
+import type { CoachBusinessContext, CoachBusinessFilter } from '@/utils/coach-business-context';
 
 export type Segment = 'sessions' | 'availability';
 
@@ -26,6 +27,9 @@ export interface SessionData {
   title: string;
   time: string;
   endTime: string;
+  businessContext: CoachBusinessContext;
+  businessLabel: string;
+  businessDetail: string;
   athleteName?: string;
   athleteCount?: number;
   location?: string;
@@ -39,6 +43,8 @@ export interface SessionData {
   /** Whether this is a group session (vs 1-on-1 booking). */
   isGroupSession?: boolean;
 }
+
+export type ScheduleBusinessFilter = CoachBusinessFilter;
 
 export interface DayEditorConfig {
   dayOfWeek: 0 | 1 | 2 | 3 | 4 | 5 | 6;

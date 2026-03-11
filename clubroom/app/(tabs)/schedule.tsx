@@ -26,6 +26,7 @@ import { ScheduleDayDetail } from '@/components/schedule/schedule-day-detail';
 import { ScheduleQuickActions } from '@/components/schedule/schedule-quick-actions';
 import { ScheduleRulesSummary } from '@/components/schedule/schedule-rules-summary';
 import { ScheduleAvailabilitySegment } from '@/components/schedule/schedule-availability-segment';
+import { CoachBusinessFilterRow } from '@/components/coach/coach-business-filter-row';
 
 import { DayEditorSheet } from '@/components/coach/day-editor-sheet';
 import { TimeOffSheet } from '@/components/coach/time-off-sheet';
@@ -66,7 +67,7 @@ export default function ScheduleScreen() {
   const isSessionEmpty =
     schedule.segment === 'sessions' &&
     schedule.weekOffset === 0 &&
-    schedule.weekData.every((day) => day.sessions.length === 0);
+    schedule.overallWeekSessionCount === 0;
 
   if (isSessionEmpty) {
     return renderShell(
@@ -148,6 +149,12 @@ export default function ScheduleScreen() {
             />
           }
         >
+          <CoachBusinessFilterRow
+            value={schedule.businessFilter}
+            onChange={schedule.handleBusinessFilterChange}
+            counts={schedule.businessCounts}
+          />
+
           <ScheduleQuickActions />
 
           {schedule.todayData && schedule.weekOffset === 0 && (
@@ -173,6 +180,7 @@ export default function ScheduleScreen() {
           {schedule.selectedDay && (
             <ScheduleDayDetail
               day={schedule.selectedDay}
+              businessFilter={schedule.businessFilter}
               onSessionPress={schedule.handleSessionPress}
               onAdjustDay={schedule.handleAdjustDay}
               onCreateSession={schedule.handleInviteFromSchedule}

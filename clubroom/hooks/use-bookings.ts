@@ -33,6 +33,10 @@ import {
   mapGroupSessionToOffering,
   normalizeSessionOfferingSource,
 } from '@/utils/session-offering-projections';
+import {
+  matchesCoachBusinessFilter,
+  type CoachBusinessFilter,
+} from '@/utils/coach-business-context';
 import { err, ok, serviceError } from '@/types/result';
 import type {
   BookingSummary,
@@ -66,10 +70,14 @@ function isOffPlatformAudienceLabel(label: string): boolean {
 export interface UseBookingsResult {
   // Data
   displayItems: (SessionOffering | BookingSummary)[];
+  totalVisibleItemCount: number;
+  overallVisibleItemCount: number;
   pendingInvitesList: SessionInvite[];
   pendingInvites: number;
   isCoachUser: boolean;
   userRole: string | undefined;
+  businessFilter: CoachBusinessFilter;
+  businessCounts: Record<CoachBusinessFilter, number>;
 
   // State
   loading: boolean;
@@ -81,6 +89,7 @@ export interface UseBookingsResult {
 
   // Setters
   setTimeFilter: (filter: TimeFilter) => void;
+  setBusinessFilter: (filter: CoachBusinessFilter) => void;
 
   // Handlers
   handleRateCoachPress: () => void;
@@ -118,6 +127,7 @@ export function useBookings(): UseBookingsResult {
   const { currentUser } = useAuth();
   const { children: contextChildren } = useChildContext();
   const [timeFilter, setTimeFilter] = useState<TimeFilter>('upcoming');
+  const [businessFilter, setBusinessFilter] = useState<CoachBusinessFilter>('all');
   const [selectedOffering, setSelectedOffering] = useState<SessionOffering | null>(null);
   const [showDetailModal, setShowDetailModal] = useState(false);
   const seedEnsuredRef = useRef(false);
@@ -436,9 +446,14 @@ export function useBookings(): UseBookingsResult {
       const myOfferings = (sessionOfferings ?? []).filter((offering) =>
         isOfferingVisibleToCoachUser(offering, currentUser?.id),
       );
-      return timeFilter === 'upcoming'
-        ? myOfferings.filter((offering) => !isPastOffering(offering))
-        : myOfferings.filter((offering) => isPastOffering(offering));
+      const timeWindowOfferings =
+        timeFilter === 'upcoming'
+          ? myOfferings.filter((offering) => !isPastOffering(offering))
+          : myOfferings.filter((offering) => isPastOffering(offering));
+
+      return timeWindowOfferings.filter((offering) =>
+        matchesCoachBusinessFilter(offering, businessFilter),
+      );
     }
 
     const viewerIds = new Set<string>();
@@ -515,12 +530,55 @@ export function useBookings(): UseBookingsResult {
     sessionOfferings,
     timeFilter,
     isCoachUser,
+    businessFilter,
   ]);
+
+  const businessCounts = useMemo<Record<CoachBusinessFilter, number>>(() => {
+    if (!isCoachUser) {
+      const count = displayItems.length;
+      return { all: count, org: 0, independent: 0 };
+    }
+
+    const myOfferings = (sessionOfferings ?? []).filter((offering) =>
+      isOfferingVisibleToCoachUser(offering, currentUser?.id),
+    );
+    const now = new Date();
+    const isPastOffering = (offering: SessionOffering) =>
+      offering.status === 'completed' ||
+      offering.status === 'cancelled' ||
+      (!offering.isRecurring && new Date(offering.scheduledAt) < now);
+    const timeWindowOfferings =
+      timeFilter === 'upcoming'
+        ? myOfferings.filter((offering) => !isPastOffering(offering))
+        : myOfferings.filter((offering) => isPastOffering(offering));
+
+    return {
+      all: timeWindowOfferings.length,
+      org: timeWindowOfferings.filter((offering) => matchesCoachBusinessFilter(offering, 'org'))
+        .length,
+      independent: timeWindowOfferings.filter((offering) =>
+        matchesCoachBusinessFilter(offering, 'independent'),
+      ).length,
+    };
+  }, [currentUser?.id, displayItems.length, isCoachUser, sessionOfferings, timeFilter]);
+
+  const overallVisibleItemCount = useMemo(() => {
+    if (isCoachUser) {
+      return (sessionOfferings ?? []).filter((offering) =>
+        isOfferingVisibleToCoachUser(offering, currentUser?.id),
+      ).length;
+    }
+
+    return displayItems.length;
+  }, [currentUser?.id, displayItems.length, isCoachUser, sessionOfferings]);
+
+  const totalVisibleItemCount = isCoachUser ? businessCounts.all : displayItems.length;
   useEffect(() => {
     const offeringCount = displayItems.filter((item): item is SessionOffering => 'registrations' in item).length;
     const bookingCount = displayItems.length - offeringCount;
     logger.debug('Display items updated', {
       timeFilter,
+      businessFilter,
       total: displayItems.length,
       offeringCount,
       bookingCount,
@@ -536,6 +594,7 @@ export function useBookings(): UseBookingsResult {
     selectedOffering?.id,
     showDetailModal,
     timeFilter,
+    businessFilter,
   ]);
 
   // Navigation handlers
@@ -715,10 +774,14 @@ export function useBookings(): UseBookingsResult {
 
   return {
     displayItems,
+    totalVisibleItemCount,
+    overallVisibleItemCount,
     pendingInvitesList,
     pendingInvites,
     isCoachUser,
     userRole,
+    businessFilter,
+    businessCounts,
     loading,
     error,
     refreshing,
@@ -726,6 +789,7 @@ export function useBookings(): UseBookingsResult {
     showDetailModal,
     selectedOffering,
     setTimeFilter,
+    setBusinessFilter,
     handleRateCoachPress,
     handleCalendarPress,
     handleSettingsPress,

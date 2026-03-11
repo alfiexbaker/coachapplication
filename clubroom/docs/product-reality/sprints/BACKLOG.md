@@ -34,7 +34,7 @@ Updated: 2026-03-11
 | PR-03 | `sprint-03-commercial-mode-and-booking-truth.md` | P0 | DONE | The owner can set commercial mode in live club settings, and booking review/detail surfaces now show booking, billing, and support ownership honestly |
 | PR-04 | `sprint-04-org-assignment-and-staffing-console.md` | P0 | DONE | The live manage route now shows staff, unassigned org work, assigned org work, and owner/admin reassignment with booking propagation |
 | PR-05 | `sprint-05-head-coach-oversight-and-tasking.md` | P0 | DONE | The live manage route now gives head coaches a scoped oversight surface with completion health, athlete watchlists, standards, and explicit tasking |
-| PR-06 | `sprint-06-coach-work-split-and-earnings-realism.md` | P1 | OPEN | Coaches must be able to separate org work from independent work without fake payout language |
+| PR-06 | `sprint-06-coach-work-split-and-earnings-realism.md` | P1 | DONE | Coach bookings, schedule, and earnings now split org work from independent work with honest reconciler vs direct-revenue language |
 | PR-07 | `sprint-07-family-trust-and-support-ownership.md` | P1 | OPEN | Parents need clear ownership, support, and visibility rules once org delivery changes |
 | PR-11 | `sprint-11-org-setup-and-onboarding.md` | P1 | OPEN | A complete POC needs a believable first-run owner setup path, not only preconfigured org state |
 | PR-12 | `sprint-12-programs-packages-and-recurring-registration.md` | P1 | OPEN | Real coaching businesses need programs and recurring registration, not only one-off sessions |

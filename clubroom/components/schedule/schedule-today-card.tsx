@@ -84,7 +84,8 @@ export const ScheduleTodayCard = memo(function ScheduleTodayCard({
                   {nextSession.athleteName || nextSession.title}
                 </ThemedText>
                 <ThemedText style={[styles.nextMeta, { color: colors.muted }]} numberOfLines={1}>
-                  {nextSession.time} · {nextSession.location || 'Location TBD'}
+                  {nextSession.businessLabel} · {nextSession.time} ·{' '}
+                  {nextSession.location || 'Location TBD'}
                 </ThemedText>
               </Column>
               <View style={[styles.countdown, { backgroundColor: colors.tint }]}>

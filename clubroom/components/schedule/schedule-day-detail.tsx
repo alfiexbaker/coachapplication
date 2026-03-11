@@ -16,10 +16,11 @@ import { Center } from '@/components/primitives/center';
 import { Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
 import { ScheduleSessionItem } from './schedule-session-item';
-import type { DayData, SessionData } from './schedule-types';
+import type { DayData, SessionData, ScheduleBusinessFilter } from './schedule-types';
 
 interface Props {
   day: DayData;
+  businessFilter?: ScheduleBusinessFilter;
   onSessionPress: (session: SessionData) => void;
   onAdjustDay: (dateStr: string) => void;
   onCreateSession?: (dateStr: string) => void;
@@ -27,6 +28,7 @@ interface Props {
 
 export const ScheduleDayDetail = memo(function ScheduleDayDetail({
   day,
+  businessFilter = 'all',
   onSessionPress,
   onAdjustDay,
 }: Props) {
@@ -90,7 +92,11 @@ export const ScheduleDayDetail = memo(function ScheduleDayDetail({
             <Ionicons name="calendar-outline" size={32} color={colors.muted} />
             <ThemedText style={[styles.emptyText, { color: colors.muted }]}>
               {day.availabilitySlots > 0
-                ? 'Available but no bookings yet'
+                ? businessFilter === 'org'
+                  ? 'Available, but no org work is scheduled here'
+                  : businessFilter === 'independent'
+                    ? 'Available, but no independent work is scheduled here'
+                    : 'Available but no bookings yet'
                 : 'No availability set for this day'}
             </ThemedText>
             {null}

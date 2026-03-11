@@ -21,6 +21,7 @@ import {
 } from '@/components/earnings/session-payment-item';
 import { PaymentSummaryCard } from '@/components/earnings/payment-summary-card';
 import { CoachPaymentInstructionsCard } from '@/components/earnings/coach-payment-instructions-card';
+import { CoachBusinessFilterRow } from '@/components/coach/coach-business-filter-row';
 import { ThemedText } from '@/components/themed-text';
 import { AccessibleListCell } from '@/components/ui/list-accessibility';
 import { LoadingState, ErrorState, EmptyState } from '@/components/ui/screen-states';
@@ -30,8 +31,10 @@ import { useAuth } from '@/hooks/use-auth';
 import { coachPaymentInstructionsService } from '@/services/coach-payment-instructions-service';
 import {
   useSessionPayments,
+  type PaymentBusinessSummary,
   type SessionPaymentItem as SessionPaymentItemType,
 } from '@/hooks/use-session-payments';
+import type { CoachBusinessFilter } from '@/utils/coach-business-context';
 
 const Separator = memo(function Separator() {
   const { colors } = useTheme();
@@ -57,6 +60,7 @@ export default function EarningsScreen() {
   const { currentUser } = useAuth();
   const [activeTab, setActiveTab] = useState<PaymentTab>('owed');
   const [period, setPeriod] = useState<Period>('all');
+  const [businessFilter, setBusinessFilter] = useState<CoachBusinessFilter>('all');
   const [showPaymentInstructions, setShowPaymentInstructions] = useState(false);
 
   const {
@@ -70,6 +74,8 @@ export default function EarningsScreen() {
     paidCount,
     writtenOffCount,
     overdueCount,
+    orgSummary,
+    independentSummary,
     handleMarkPaid,
     handleMarkUnpaid,
     handleWriteOff,
@@ -92,8 +98,22 @@ export default function EarningsScreen() {
     }
   }, [activeTab, unpaidSessions, paidSessions, writtenOffSessions]);
 
+  const businessCounts = useMemo(
+    () => ({
+      all: activeData.length,
+      org: activeData.filter((item) => item.businessContext === 'org').length,
+      independent: activeData.filter((item) => item.businessContext === 'independent').length,
+    }),
+    [activeData],
+  );
+
   const filteredData = useMemo(() => {
-    if (period === 'all') return activeData;
+    const businessScopedData =
+      businessFilter === 'all'
+        ? activeData
+        : activeData.filter((item) => item.businessContext === businessFilter);
+
+    if (period === 'all') return businessScopedData;
 
     const now = new Date();
     const startOfWeek = new Date(now);
@@ -104,10 +124,116 @@ export default function EarningsScreen() {
     const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
     const cutoff = period === 'week' ? startOfWeek : startOfMonth;
 
-    return activeData.filter(
+    return businessScopedData.filter(
       (item) => new Date(item.booking.scheduledAt).getTime() >= cutoff.getTime(),
     );
-  }, [activeData, period]);
+  }, [activeData, businessFilter, period]);
+
+  const visibleOverdueItems = useMemo(
+    () => filteredData.filter((item) => item.isOverdue),
+    [filteredData],
+  );
+
+  const activeSummary = useMemo<PaymentBusinessSummary | null>(() => {
+    if (businessFilter === 'org') return orgSummary;
+    if (businessFilter === 'independent') return independentSummary;
+    return null;
+  }, [businessFilter, independentSummary, orgSummary]);
+
+  const summaryTitle = useMemo(() => {
+    if (businessFilter === 'org') return 'Org Delivery Summary';
+    if (businessFilter === 'independent') return 'Independent Revenue Summary';
+    return 'Payment Summary';
+  }, [businessFilter]);
+
+  const summaryNote = useMemo(() => {
+    if (businessFilter === 'org') {
+      if (orgSummary.creditOwed > 0 || orgSummary.creditCollected > 0) {
+        return 'Org-owned work is tracked as reconciler credit until real payout rails exist.';
+      }
+      return 'Club-routed work stays separate from your independent direct revenue.';
+    }
+    if (businessFilter === 'independent') {
+      return 'This view only counts direct client revenue you manage yourself.';
+    }
+    return 'Org-assigned work stays split from independent client revenue.';
+  }, [businessFilter, orgSummary.creditCollected, orgSummary.creditOwed]);
+
+  const summaryBreakdown = useMemo(() => {
+    if (businessFilter !== 'all') return undefined;
+
+    const orgTotal = orgSummary.totalOwed + orgSummary.totalCollected + orgSummary.totalWrittenOff;
+    const independentTotal =
+      independentSummary.totalOwed +
+      independentSummary.totalCollected +
+      independentSummary.totalWrittenOff;
+
+    return [
+      {
+        key: 'org',
+        label: 'Org-assigned work',
+        detail:
+          orgSummary.creditOwed > 0 || orgSummary.creditCollected > 0
+            ? `£${orgSummary.creditOwed.toFixed(2)} reconciler due · £${orgSummary.directOwed.toFixed(2)} coach-collected open`
+            : 'Club work tracked separately from independent revenue',
+        amount: orgTotal,
+      },
+      {
+        key: 'independent',
+        label: 'Independent work',
+        detail: 'Direct clients you bill outside the app',
+        amount: independentTotal,
+      },
+    ].filter((item) => item.amount > 0);
+  }, [
+    businessFilter,
+    independentSummary.totalCollected,
+    independentSummary.totalOwed,
+    independentSummary.totalWrittenOff,
+    orgSummary.creditCollected,
+    orgSummary.creditOwed,
+    orgSummary.directOwed,
+    orgSummary.totalCollected,
+    orgSummary.totalOwed,
+    orgSummary.totalWrittenOff,
+  ]);
+
+  const summaryMetrics = useMemo(() => {
+    if (!activeSummary) {
+      return {
+        totalOwed,
+        totalCollected,
+        totalWrittenOff,
+        unpaidCount,
+        paidCount,
+        writtenOffCount,
+      };
+    }
+
+    return {
+      totalOwed: activeSummary.totalOwed,
+      totalCollected: activeSummary.totalCollected,
+      totalWrittenOff: activeSummary.totalWrittenOff,
+      unpaidCount: activeSummary.unpaidCount,
+      paidCount: activeSummary.paidCount,
+      writtenOffCount: activeSummary.writtenOffCount,
+    };
+  }, [
+    activeSummary,
+    paidCount,
+    totalCollected,
+    totalOwed,
+    totalWrittenOff,
+    unpaidCount,
+    writtenOffCount,
+  ]);
+
+  const overdueBadgeCount =
+    businessFilter === 'org'
+      ? orgSummary.overdueCount
+      : businessFilter === 'independent'
+        ? independentSummary.overdueCount
+        : overdueCount;
 
   const handleSendReminder = useCallback(
     async (item: SessionPaymentItemType) => {
@@ -138,7 +264,7 @@ export default function EarningsScreen() {
   );
 
   const handleRemindAllOverdue = useCallback(async () => {
-    const overdueItems = unpaidSessions.filter((s) => s.isOverdue);
+    const overdueItems = visibleOverdueItems;
     if (overdueItems.length === 0) return;
 
     const result = await coachPaymentInstructionsService.getCoachPaymentInstructions(
@@ -163,31 +289,75 @@ export default function EarningsScreen() {
     } catch {
       // User cancelled
     }
-  }, [currentUser?.id, currentUser?.name, unpaidSessions]);
+  }, [currentUser?.id, currentUser?.name, visibleOverdueItems]);
 
   const subtitle = useMemo(() => {
-    if (overdueCount > 0) {
-      return `${overdueCount} overdue \u2014 chase payments`;
+    const summaryOverdueCount = activeSummary?.overdueCount ?? overdueCount;
+    const summaryOwed = activeSummary?.totalOwed ?? totalOwed;
+    const summaryCollected = activeSummary?.totalCollected ?? totalCollected;
+    const summaryUnpaidCount = activeSummary?.unpaidCount ?? unpaidCount;
+    const summaryPaidCount = activeSummary?.paidCount ?? paidCount;
+
+    if (summaryOverdueCount > 0) {
+      return `${summaryOverdueCount} overdue \u2014 chase payments`;
     }
-    if (unpaidCount > 0) {
-      return `\u00A3${totalOwed.toFixed(2)} outstanding`;
+    if (summaryUnpaidCount > 0) {
+      return `\u00A3${summaryOwed.toFixed(2)} outstanding`;
     }
-    if (paidCount > 0) {
-      return `\u00A3${totalCollected.toFixed(2)} collected`;
+    if (summaryPaidCount > 0) {
+      return `\u00A3${summaryCollected.toFixed(2)} collected`;
+    }
+    if (businessFilter === 'org') {
+      return 'Track club-assigned delivery and reconciler state';
+    }
+    if (businessFilter === 'independent') {
+      return 'Track direct client revenue';
     }
     return 'Track your session payments';
-  }, [overdueCount, unpaidCount, paidCount, totalOwed, totalCollected]);
+  }, [activeSummary, businessFilter, overdueCount, paidCount, totalCollected, totalOwed, unpaidCount]);
 
   const emptyMessage = useMemo(() => {
     switch (activeTab) {
       case 'owed':
-        return { icon: 'checkmark-circle-outline' as const, title: 'All caught up!', message: 'No outstanding payments right now.' };
+        return {
+          icon: 'checkmark-circle-outline' as const,
+          title:
+            businessFilter === 'org'
+              ? 'No org payments due'
+              : businessFilter === 'independent'
+                ? 'No independent payments due'
+                : 'All caught up!',
+          message:
+            businessFilter === 'org'
+              ? 'No outstanding org-assigned work is waiting on payment right now.'
+              : businessFilter === 'independent'
+                ? 'No outstanding independent payments right now.'
+                : 'No outstanding payments right now.',
+        };
       case 'paid':
-        return { icon: 'cash-outline' as const, title: 'No payments collected yet', message: 'Payments will appear here once you mark sessions as paid.' };
+        return {
+          icon: 'cash-outline' as const,
+          title:
+            businessFilter === 'org'
+              ? 'No org payments reconciled yet'
+              : businessFilter === 'independent'
+                ? 'No independent payments collected yet'
+                : 'No payments collected yet',
+          message: 'Payments will appear here once you mark sessions as paid.',
+        };
       case 'written_off':
-        return { icon: 'close-circle-outline' as const, title: 'No written-off sessions', message: 'Sessions you write off will appear here.' };
+        return {
+          icon: 'close-circle-outline' as const,
+          title:
+            businessFilter === 'org'
+              ? 'No org work written off'
+              : businessFilter === 'independent'
+                ? 'No independent sessions written off'
+                : 'No written-off sessions',
+          message: 'Sessions you write off will appear here.',
+        };
     }
-  }, [activeTab]);
+  }, [activeTab, businessFilter]);
 
   const renderItem = useCallback(
     ({ item }: { item: SessionPaymentItemType }) => (
@@ -316,12 +486,15 @@ export default function EarningsScreen() {
       <PageHeader title="Earnings" subtitle={subtitle} showBack />
 
       <PaymentSummaryCard
-        totalOwed={totalOwed}
-        totalCollected={totalCollected}
-        unpaidCount={unpaidCount}
-        paidCount={paidCount}
-        totalWrittenOff={totalWrittenOff}
-        writtenOffCount={writtenOffCount}
+        title={summaryTitle}
+        note={summaryNote}
+        totalOwed={summaryMetrics.totalOwed}
+        totalCollected={summaryMetrics.totalCollected}
+        unpaidCount={summaryMetrics.unpaidCount}
+        paidCount={summaryMetrics.paidCount}
+        totalWrittenOff={summaryMetrics.totalWrittenOff}
+        writtenOffCount={summaryMetrics.writtenOffCount}
+        breakdownItems={summaryBreakdown}
       />
 
       {renderPaymentInstructionsSection()}
@@ -351,10 +524,10 @@ export default function EarningsScreen() {
                   >
                     {tab.label}{count > 0 ? ` (${count})` : ''}
                   </ThemedText>
-                  {tab.key === 'owed' && overdueCount > 0 && (
+                  {tab.key === 'owed' && overdueBadgeCount > 0 && (
                     <View style={[styles.overdueDot, { backgroundColor: colors.error }]}>
                       <ThemedText style={[Typography.micro, { color: colors.onError, fontWeight: '700' }]}>
-                        {overdueCount}
+                        {overdueBadgeCount}
                       </ThemedText>
                     </View>
                   )}
@@ -364,6 +537,12 @@ export default function EarningsScreen() {
           );
         })}
       </Row>
+
+      <CoachBusinessFilterRow
+        value={businessFilter}
+        onChange={setBusinessFilter}
+        counts={businessCounts}
+      />
 
       <Row gap="xs" style={{ marginTop: Spacing.xs }}>
         {PERIODS.map((p) => {
@@ -393,15 +572,15 @@ export default function EarningsScreen() {
         })}
       </Row>
 
-      {activeTab === 'owed' && overdueCount > 0 && (
+      {activeTab === 'owed' && visibleOverdueItems.length > 0 && (
         <Row style={{ marginTop: Spacing.xs }}>
           <Button
             onPress={handleRemindAllOverdue}
             variant="outline"
             style={{ minHeight: Components.buttonCompact.height }}
-            accessibilityLabel={`Send reminder for ${overdueCount} overdue payments`}
+            accessibilityLabel={`Send reminder for ${visibleOverdueItems.length} overdue payments`}
           >
-            Remind All Overdue ({overdueCount})
+            Remind All Overdue ({visibleOverdueItems.length})
           </Button>
         </Row>
       )}

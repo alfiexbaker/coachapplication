@@ -8,12 +8,14 @@ import { Clickable } from '@/components/primitives/clickable';
 import { Radii, Spacing, Typography, withAlpha } from '@/constants/theme';
 import { SessionOffering } from '@/constants/types';
 import { useTheme } from '@/hooks/useTheme';
+import { useAuth } from '@/hooks/use-auth';
 import { getSessionOfferingCoachName } from '@/utils/session-display';
 import { openLocationInMaps } from '@/utils/map-links';
 import {
   getSessionOfferingHeadcount,
   isSessionOfferingFull,
 } from '@/utils/session-offering-capacity';
+import { getCoachWorkContextDisplay } from '@/utils/coach-business-context';
 
 import { SessionTypeBadge, SessionFooterBadges } from './session-offering-card-sections';
 import { uiFeedback } from '@/services/ui-feedback';
@@ -39,6 +41,7 @@ export function SessionOfferingCard({
   showCapacity = true,
 }: SessionOfferingCardProps) {
   const { colors: palette } = useTheme();
+  const { currentUser } = useAuth();
   const coachName = getSessionOfferingCoachName(offering);
   const locationLabel = offering.venueName
     ? `${offering.venueName} · ${offering.location}`
@@ -68,6 +71,8 @@ export function SessionOfferingCard({
       : `${offering.viewerAthleteNames.slice(0, 2).join(', ')} +${offering.viewerAthleteNames.length - 2}`
     : null;
   const isClubOwned = offering.actingAs === 'club';
+  const isCoachViewer = currentUser?.role === 'COACH';
+  const workContext = getCoachWorkContextDisplay(offering);
   const ownershipLabel =
     !showCoach && isClubOwned
       ? offering.assigneeCoachId
@@ -142,6 +147,26 @@ export function SessionOfferingCard({
                   Owner {ownerLabel}
                 </ThemedText>
               ) : null}
+            </View>
+          ) : !showCoach && isCoachViewer ? (
+            <View
+              style={[
+                styles.ownershipBlock,
+                {
+                  backgroundColor: withAlpha(palette.tint, 0.08),
+                  borderColor: withAlpha(palette.tint, 0.18),
+                },
+              ]}
+            >
+              <Row align="center" gap="xxs">
+                <Ionicons name="briefcase-outline" size={12} color={palette.tint} />
+                <ThemedText style={[styles.ownershipText, { color: palette.tint }]}>
+                  {workContext.label}
+                </ThemedText>
+              </Row>
+              <ThemedText style={[styles.metaText, { color: palette.text }]} numberOfLines={1}>
+                {workContext.detail}
+              </ThemedText>
             </View>
           ) : null}
 

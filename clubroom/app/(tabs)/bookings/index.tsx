@@ -25,6 +25,7 @@ export default function BookingsScreen() {
   const [activeTab, setActiveTab] = useState<BookingsTab>('sessions');
   const {
     displayItems,
+    overallVisibleItemCount,
     pendingInvitesList,
     isCoachUser,
     userRole,
@@ -32,9 +33,12 @@ export default function BookingsScreen() {
     error,
     refreshing,
     timeFilter,
+    businessFilter,
+    businessCounts,
     showDetailModal,
     selectedOffering,
     setTimeFilter,
+    setBusinessFilter,
     handleCreateSessionPress,
     handleCreateDirectPress,
     handleCreateGroupPress,
@@ -110,7 +114,14 @@ export default function BookingsScreen() {
   }
 
   // ─── Empty (My Sessions tab) ──────────────────────────────────
-  if (displayItems.length === 0 && pendingInvitesList.length === 0) {
+  if (overallVisibleItemCount === 0 && pendingInvitesList.length === 0) {
+    const coachEmptyMessage =
+      businessFilter === 'org'
+        ? 'Your upcoming org-assigned sessions will appear here once the club books work to you.'
+        : businessFilter === 'independent'
+          ? 'Your upcoming independent sessions will appear here once direct clients book with you.'
+          : 'Your upcoming sessions will appear here once athletes book with you.';
+
     return (
       <SafeAreaView
         style={[styles.container, { backgroundColor: palette.background }]}
@@ -132,7 +143,7 @@ export default function BookingsScreen() {
           title="No bookings yet"
           message={
             isCoachUser
-              ? 'Your upcoming sessions will appear here once athletes book with you.'
+              ? coachEmptyMessage
               : 'Find a coach and book your first session to get started.'
           }
           actionLabel={isCoachUser ? 'Create Session' : 'Find a Coach'}
@@ -175,6 +186,9 @@ export default function BookingsScreen() {
         timeFilter={timeFilter}
         onTimeFilterChange={setTimeFilter}
         userRole={userRole}
+        businessFilter={businessFilter}
+        onBusinessFilterChange={setBusinessFilter}
+        businessCounts={businessCounts}
         onOfferingPress={handleOfferingPress}
         onFindCoachPress={handleFindCoachPress}
         onCreateSessionPress={handleCreateSessionPress}

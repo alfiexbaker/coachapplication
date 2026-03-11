@@ -1,4 +1,4 @@
-import { memo, useEffect, useMemo, useState } from 'react';
+import { memo, useEffect, useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
@@ -6,8 +6,10 @@ import { Row } from '@/components/primitives/row';
 import { ThemedText } from '@/components/themed-text';
 import { Radii, Spacing, Typography, withAlpha } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
+import { useAuth } from '@/hooks/use-auth';
 import type { BookingSummary } from '@/constants/types';
 import { socialFeedService } from '@/services/social-feed-service';
+import { getCoachWorkContextDisplay } from '@/utils/coach-business-context';
 import {
   getBookingRelationshipContext,
   getBookingSummaryCoachName,
@@ -20,7 +22,9 @@ interface BookingOwnershipBlockProps {
 
 function BookingOwnershipBlockInner({ booking, compact = false }: BookingOwnershipBlockProps) {
   const { colors: palette } = useTheme();
+  const { currentUser } = useAuth();
   const [organizationLabel, setOrganizationLabel] = useState<string | null>(booking.clubId ?? null);
+  const showIndependentCoachLabel = currentUser?.role === 'COACH';
 
   useEffect(() => {
     if (booking.actingAs !== 'club' || !booking.clubId) {
@@ -44,22 +48,46 @@ function BookingOwnershipBlockInner({ booking, compact = false }: BookingOwnersh
   }, [booking.actingAs, booking.clubId]);
 
   if (booking.actingAs !== 'club') {
-    return null;
+    if (!showIndependentCoachLabel) {
+      return null;
+    }
+
+    const workContext = getCoachWorkContextDisplay(booking);
+
+    return (
+      <View
+        style={[
+          styles.block,
+          {
+            backgroundColor: withAlpha(palette.tint, 0.08),
+            borderColor: withAlpha(palette.tint, 0.18),
+          },
+        ]}
+      >
+        <Row align="center" gap="xxs">
+          <Ionicons name="briefcase-outline" size={compact ? 11 : 12} color={palette.tint} />
+          <ThemedText
+            style={[compact ? styles.labelCompact : styles.label, { color: palette.tint }]}
+          >
+            {workContext.label}
+          </ThemedText>
+        </Row>
+        <ThemedText style={[compact ? styles.metaCompact : styles.meta, { color: palette.text }]}>
+          {workContext.detail}
+        </ThemedText>
+      </View>
+    );
   }
 
   const coachLabel = booking.ownerCoachName || getBookingSummaryCoachName(booking);
   const deliveryLabel = booking.assigneeCoachName || booking.assigneeCoachId || coachLabel;
-  const relationshipContext = useMemo(
-    () =>
-      getBookingRelationshipContext({
-        actingAs: booking.actingAs,
-        organizationLabel,
-        coachLabel,
-        deliveredByLabel: deliveryLabel,
-        commercialMode: booking.commercialMode,
-      }),
-    [booking.actingAs, booking.commercialMode, coachLabel, deliveryLabel, organizationLabel],
-  );
+  const relationshipContext = getBookingRelationshipContext({
+    actingAs: booking.actingAs,
+    organizationLabel,
+    coachLabel,
+    deliveredByLabel: deliveryLabel,
+    commercialMode: booking.commercialMode,
+  });
   const detailRows = compact
     ? [
         `Booked with ${relationshipContext.bookedWithLabel}`,

@@ -20,6 +20,13 @@ import {
   getSessionOfferingHeadcount,
   getSessionOfferingOffPlatformCount,
 } from '@/utils/session-offering-capacity';
+import {
+  getCoachBusinessContext,
+  getCoachMoneyContext,
+  getCoachMoneyContextDisplay,
+  type CoachBusinessContext,
+  type CoachMoneyContext,
+} from '@/utils/coach-business-context';
 import { ok, err, serviceError } from '@/types/result';
 import type { Booking, Invoice, SessionOffering } from '@/constants/types';
 
@@ -27,7 +34,25 @@ export interface SessionPaymentItem {
   booking: Booking;
   invoice: Invoice;
   athleteName: string;
+  businessContext: CoachBusinessContext;
+  moneyContext: CoachMoneyContext;
+  moneyLabel: string;
+  moneyDetail: string;
   isOverdue?: boolean;
+}
+
+export interface PaymentBusinessSummary {
+  totalOwed: number;
+  totalCollected: number;
+  totalWrittenOff: number;
+  unpaidCount: number;
+  paidCount: number;
+  writtenOffCount: number;
+  overdueCount: number;
+  directOwed: number;
+  directCollected: number;
+  creditOwed: number;
+  creditCollected: number;
 }
 
 interface SessionPaymentsData {
@@ -38,6 +63,24 @@ interface SessionPaymentsData {
   totalCollected: number;
   totalWrittenOff: number;
   overdueCount: number;
+  orgSummary: PaymentBusinessSummary;
+  independentSummary: PaymentBusinessSummary;
+}
+
+function createPaymentBusinessSummary(): PaymentBusinessSummary {
+  return {
+    totalOwed: 0,
+    totalCollected: 0,
+    totalWrittenOff: 0,
+    unpaidCount: 0,
+    paidCount: 0,
+    writtenOffCount: 0,
+    overdueCount: 0,
+    directOwed: 0,
+    directCollected: 0,
+    creditOwed: 0,
+    creditCollected: 0,
+  };
 }
 
 export function useSessionPayments() {
@@ -83,20 +126,34 @@ export function useSessionPayments() {
       const unpaid: SessionPaymentItem[] = [];
       const paid: SessionPaymentItem[] = [];
       const writtenOff: SessionPaymentItem[] = [];
+      const orgSummary = createPaymentBusinessSummary();
+      const independentSummary = createPaymentBusinessSummary();
       let totalOwed = 0;
       let totalCollected = 0;
       let totalWrittenOff = 0;
       let overdueCount = 0;
+      const getSummaryForContext = (context: CoachBusinessContext) =>
+        context === 'org' ? orgSummary : independentSummary;
       const pushItem = (item: SessionPaymentItem) => {
         const { booking, invoice } = item;
+        const summary = getSummaryForContext(item.businessContext);
         if (invoice.status === 'PAID') {
           paid.push(item);
           totalCollected += invoice.total;
+          summary.totalCollected += invoice.total;
+          summary.paidCount += 1;
+          if (item.moneyContext === 'org_credit') {
+            summary.creditCollected += invoice.total;
+          } else {
+            summary.directCollected += invoice.total;
+          }
           return;
         }
         if (invoice.status === 'WRITTEN_OFF') {
           writtenOff.push(item);
           totalWrittenOff += invoice.total;
+          summary.totalWrittenOff += invoice.total;
+          summary.writtenOffCount += 1;
           return;
         }
 
@@ -108,7 +165,15 @@ export function useSessionPayments() {
 
         unpaid.push({ ...item, isOverdue });
         totalOwed += invoice.total;
+        summary.totalOwed += invoice.total;
+        summary.unpaidCount += 1;
+        if (item.moneyContext === 'org_credit') {
+          summary.creditOwed += invoice.total;
+        } else {
+          summary.directOwed += invoice.total;
+        }
         if (isOverdue) overdueCount++;
+        if (isOverdue) summary.overdueCount += 1;
       };
 
       const invoiceAmounts = reconcilable.map((booking) =>
@@ -181,7 +246,16 @@ export function useSessionPayments() {
           nameMap.get(booking.athleteId ?? '') ??
           (booking.coachName !== currentUser?.name ? (booking.coachName ?? 'Athlete') : 'Athlete');
 
-        const item: SessionPaymentItem = { booking, invoice, athleteName };
+        const moneyDisplay = getCoachMoneyContextDisplay(booking);
+        const item: SessionPaymentItem = {
+          booking,
+          invoice,
+          athleteName,
+          businessContext: getCoachBusinessContext(booking),
+          moneyContext: getCoachMoneyContext(booking),
+          moneyLabel: moneyDisplay.label,
+          moneyDetail: moneyDisplay.detail,
+        };
         pushItem(item);
       }
 
@@ -234,6 +308,12 @@ export function useSessionPayments() {
         const syntheticBooking: Booking = {
           id: syntheticBookingId,
           coachId: offering.coachId,
+          clubId: offering.clubId,
+          actingAs: offering.actingAs,
+          ownerCoachId: offering.ownerCoachId,
+          assigneeCoachId: offering.assigneeCoachId,
+          createdByUserId: offering.createdByUserId,
+          createdByRole: offering.createdByRole,
           status: 'COMPLETED',
           scheduledAt: offering.scheduledAt,
           location: offering.location,
@@ -247,10 +327,15 @@ export function useSessionPayments() {
           groupSessionId: offering.id,
         };
 
+        const moneyDisplay = getCoachMoneyContextDisplay(syntheticBooking);
         const item: SessionPaymentItem = {
           booking: syntheticBooking,
           invoice,
           athleteName: `Off-platform (${offPlatformCount})`,
+          businessContext: getCoachBusinessContext(syntheticBooking),
+          moneyContext: getCoachMoneyContext(syntheticBooking),
+          moneyLabel: moneyDisplay.label,
+          moneyDetail: moneyDisplay.detail,
         };
         pushItem(item);
       }
@@ -272,7 +357,17 @@ export function useSessionPayments() {
       paid.sort(sortByDate);
       writtenOff.sort(sortByDate);
 
-      return ok<SessionPaymentsData>({ unpaid, paid, writtenOff, totalOwed, totalCollected, totalWrittenOff, overdueCount });
+      return ok<SessionPaymentsData>({
+        unpaid,
+        paid,
+        writtenOff,
+        totalOwed,
+        totalCollected,
+        totalWrittenOff,
+        overdueCount,
+        orgSummary,
+        independentSummary,
+      });
     } catch {
       return err(serviceError('UNKNOWN', 'Failed to load session payments'));
     }
@@ -305,6 +400,8 @@ export function useSessionPayments() {
   const totalCollected = data?.totalCollected ?? 0;
   const totalWrittenOff = data?.totalWrittenOff ?? 0;
   const overdueCount = data?.overdueCount ?? 0;
+  const orgSummary = data?.orgSummary ?? createPaymentBusinessSummary();
+  const independentSummary = data?.independentSummary ?? createPaymentBusinessSummary();
 
   const handleMarkPaid = useCallback(async (invoiceId: string) => {
     if (processingInvoiceIdsRef.current.has(invoiceId)) return;
@@ -359,6 +456,8 @@ export function useSessionPayments() {
     paidCount: paidSessions.length,
     writtenOffCount: writtenOffSessions.length,
     overdueCount,
+    orgSummary,
+    independentSummary,
     handleMarkPaid,
     handleMarkUnpaid,
     handleWriteOff,

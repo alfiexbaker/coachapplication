@@ -13,6 +13,8 @@ import { BookingSummary, SessionOffering } from '@/constants/types';
 import { useTheme } from '@/hooks/useTheme';
 import { Row } from '@/components/primitives';
 import { getBookingSummaryCoachName } from '@/utils/booking-display';
+import { CoachBusinessFilterRow } from '@/components/coach/coach-business-filter-row';
+import type { CoachBusinessFilter } from '@/utils/coach-business-context';
 
 export type TimeFilter = 'upcoming' | 'past';
 
@@ -24,6 +26,9 @@ export interface BookingsListProps {
   onOfferingPress: (offering: SessionOffering) => void;
   onFindCoachPress: () => void;
   onCreateSessionPress: () => void;
+  businessFilter?: CoachBusinessFilter;
+  onBusinessFilterChange?: (filter: CoachBusinessFilter) => void;
+  businessCounts?: Partial<Record<CoachBusinessFilter, number>>;
   refreshing?: boolean;
   onRefresh?: () => void;
 }
@@ -42,6 +47,9 @@ export function BookingsList({
   onOfferingPress,
   onFindCoachPress,
   onCreateSessionPress,
+  businessFilter = 'all',
+  onBusinessFilterChange,
+  businessCounts,
   refreshing = false,
   onRefresh,
 }: BookingsListProps) {
@@ -174,6 +182,15 @@ export function BookingsList({
         </Clickable>
       </Row>
 
+      {isCoach && onBusinessFilterChange ? (
+        <CoachBusinessFilterRow
+          value={businessFilter}
+          onChange={onBusinessFilterChange}
+          counts={businessCounts}
+          style={styles.filterRow}
+        />
+      ) : null}
+
       {hasItems ? (
         <FlatList
         CellRendererComponent={AccessibleListCell}
@@ -202,8 +219,16 @@ export function BookingsList({
             message={
               isCoach
                 ? timeFilter === 'upcoming'
-                  ? 'Create your first session offering'
-                  : 'No past sessions yet'
+                  ? businessFilter === 'org'
+                    ? 'No upcoming org assignments in this view'
+                    : businessFilter === 'independent'
+                      ? 'No upcoming independent sessions in this view'
+                      : 'Create your first session offering'
+                  : businessFilter === 'org'
+                    ? 'No past org assignments yet'
+                    : businessFilter === 'independent'
+                      ? 'No past independent sessions yet'
+                      : 'No past sessions yet'
                 : timeFilter === 'upcoming'
                   ? 'Book your first coaching session'
                   : 'No past sessions yet'

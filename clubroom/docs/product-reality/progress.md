@@ -40,6 +40,7 @@ Purpose: keep a live record of what has been decided, what has been completed, a
 - owner/admin staffing console now shows staff, unassigned work, assigned work, and assignment controls on the live manage route
 - org reassignment now propagates into linked booking delivery truth
 - head coach oversight now exists on the live manage route with scoped completion health, athlete watchlists, standards, and explicit follow-up tasking
+- coach bookings, schedule, and earnings now split org-assigned work from independent work with honest reconciler vs direct-revenue language
 - UI audit false-positive for re-export routes removed
 - active sprint stack reworked around operator reality
 - complete-POC layer added
@@ -55,7 +56,8 @@ Purpose: keep a live record of what has been decided, what has been completed, a
 | PR-03 | Done | owner commercial mode now works in live club settings and booking detail truth is visible |
 | PR-04 | Done | owner/admin staffing console and assignment propagation now exist on the live manage route |
 | PR-05 | Done | head coach oversight, scoped review, and standards/tasking now exist on the live manage route |
-| PR-06 to PR-07 | Open | coach work split and family-facing org trust are the next org-core runtime layers |
+| PR-06 | Done | coach bookings, schedule, and earnings now separate org-assigned work from independent work with honest money labels |
+| PR-07 | Open | family-facing org trust and support ownership are the next org-core runtime layer |
 | PR-11 to PR-15 | Open | complete-POC layer |
 | PR-16 to PR-20 | Open | coach/user-first and pre-API closure layer |
 | PR-08 to PR-10 | Open | important cleanup/hardening after core proof |
@@ -77,7 +79,7 @@ For the product to behave like `Johnny's Coaching LTD`, all of these must become
 
 ## Current Next Step
 
-- implement `PR-06` coach work split and earnings realism
+- implement `PR-07` family trust and support ownership
 
 ## Read Next
 

@@ -175,6 +175,36 @@ function SessionPaymentItemInner({
                 {booking.service}
               </ThemedText>
             ) : null}
+            <Row
+              align="center"
+              gap="micro"
+              style={[
+                styles.contextBadge,
+                {
+                  backgroundColor:
+                    item.businessContext === 'org'
+                      ? withAlpha(colors.info, 0.1)
+                      : withAlpha(colors.tint, 0.1),
+                },
+              ]}
+            >
+              <Ionicons
+                name={item.businessContext === 'org' ? 'business-outline' : 'briefcase-outline'}
+                size={10}
+                color={item.businessContext === 'org' ? colors.info : colors.tint}
+              />
+              <ThemedText
+                style={[
+                  styles.badgeText,
+                  { color: item.businessContext === 'org' ? colors.info : colors.tint },
+                ]}
+              >
+                {item.moneyLabel}
+              </ThemedText>
+            </Row>
+            <ThemedText style={[Typography.micro, { color: colors.muted }]} numberOfLines={2}>
+              {item.moneyDetail}
+            </ThemedText>
             <ThemedText style={[Typography.caption, { color: colors.muted }]}>
               {dateLabel} at {timeLabel}
             </ThemedText>
@@ -310,5 +340,11 @@ const styles = StyleSheet.create({
   actionButton: {
     minHeight: Components.button.height,
     paddingHorizontal: Spacing.sm,
+  },
+  contextBadge: {
+    alignSelf: 'flex-start' as const,
+    paddingHorizontal: Spacing.xs,
+    paddingVertical: Spacing.micro,
+    borderRadius: Radii.sm,
   },
 });

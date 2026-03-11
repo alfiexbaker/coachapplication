@@ -15,21 +15,32 @@ import { useTheme } from '@/hooks/useTheme';
 import { uiFeedback } from '@/services/ui-feedback';
 
 interface PaymentSummaryCardProps {
+  title?: string;
+  note?: string;
   totalOwed: number;
   totalCollected: number;
   unpaidCount: number;
   paidCount: number;
   totalWrittenOff?: number;
   writtenOffCount?: number;
+  breakdownItems?: Array<{
+    key: string;
+    label: string;
+    detail: string;
+    amount: number;
+  }>;
 }
 
 function PaymentSummaryCardInner({
+  title = 'Payment Summary',
+  note,
   totalOwed,
   totalCollected,
   unpaidCount,
   paidCount,
   totalWrittenOff = 0,
   writtenOffCount = 0,
+  breakdownItems,
 }: PaymentSummaryCardProps) {
   const { colors } = useTheme();
 
@@ -52,7 +63,7 @@ function PaymentSummaryCardInner({
     <SurfaceCard>
       <Row align="center" gap="sm" style={styles.header}>
         <Ionicons name="cash-outline" size={20} color={colors.tint} />
-        <ThemedText type="defaultSemiBold">Payment Summary</ThemedText>
+        <ThemedText type="defaultSemiBold">{title}</ThemedText>
       </Row>
 
       <Row gap="md" style={styles.splitRow}>
@@ -89,6 +100,22 @@ function PaymentSummaryCardInner({
         </Clickable>
       )}
 
+      {breakdownItems && breakdownItems.length > 0 && (
+        <View style={[styles.breakdown, { borderTopColor: colors.border }]}>
+          {breakdownItems.map((item) => (
+            <Row key={item.key} align="center" justify="between" style={styles.breakdownRow}>
+              <View style={styles.breakdownText}>
+                <ThemedText style={styles.breakdownLabel}>{item.label}</ThemedText>
+                <ThemedText style={[Typography.micro, { color: colors.muted }]}>
+                  {item.detail}
+                </ThemedText>
+              </View>
+              <ThemedText style={styles.breakdownAmount}>{formatGBP(item.amount)}</ThemedText>
+            </Row>
+          ))}
+        </View>
+      )}
+
       {totalBilled > 0 && (
         <Row align="center" gap="xs" style={styles.collectionRow}>
           <Ionicons
@@ -101,6 +128,15 @@ function PaymentSummaryCardInner({
           </ThemedText>
         </Row>
       )}
+
+      {note ? (
+        <Row align="center" gap="xs" style={styles.noteRow}>
+          <Ionicons name="information-circle-outline" size={14} color={colors.muted} />
+          <ThemedText style={[Typography.caption, { color: colors.muted, flex: 1 }]}>
+            {note}
+          </ThemedText>
+        </Row>
+      ) : null}
     </SurfaceCard>
   );
 }
@@ -125,6 +161,28 @@ const styles = StyleSheet.create({
     paddingTop: Spacing.xs,
   },
   collectionRow: {
+    marginTop: Spacing.sm,
+  },
+  breakdown: {
+    marginTop: Spacing.sm,
+    borderTopWidth: 1,
+    paddingTop: Spacing.sm,
+    gap: Spacing.sm,
+  },
+  breakdownRow: {
+    gap: Spacing.sm,
+  },
+  breakdownText: {
+    flex: 1,
+  },
+  breakdownLabel: {
+    ...Typography.caption,
+    fontWeight: '700',
+  },
+  breakdownAmount: {
+    ...Typography.bodySmallSemiBold,
+  },
+  noteRow: {
     marginTop: Spacing.sm,
   },
 });
