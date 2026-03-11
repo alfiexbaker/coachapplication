@@ -71,12 +71,7 @@ function DiscoverCoachListInner({
           key={coach.id}
           onPress={() => {
             logger.press('CoachCard', { coachId: coach.id, selectedChildId });
-            router.push(
-              Routes.bookCoach(coach.id, {
-                source: 'discover_coach_list',
-                childId: selectedChildId,
-              }),
-            );
+            router.push(Routes.coach(coach.id));
           }}
           style={({ pressed }) => [styles.coachCard, { opacity: pressed ? 0.7 : 1 }]}
         >
@@ -149,6 +144,15 @@ function DiscoverCoachListInner({
                 ))}
               </Row>
             )}
+
+            <Row align="center" justify="space-between">
+              <ThemedText style={[styles.profilePrompt, { color: palette.muted }]}>
+                Open profile, then request contact or book.
+              </ThemedText>
+              <ThemedText style={[styles.profileLink, { color: palette.tint }]}>
+                View Profile
+              </ThemedText>
+            </Row>
           </SurfaceCard>
         </Clickable>
       ))}
@@ -185,4 +189,6 @@ const styles = StyleSheet.create({
     borderWidth: 1,
   },
   focusText: { ...Typography.caption },
+  profilePrompt: { ...Typography.caption },
+  profileLink: { ...Typography.caption, fontWeight: '600' },
 });

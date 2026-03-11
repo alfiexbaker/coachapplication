@@ -46,6 +46,7 @@ Purpose: keep a live record of what has been decided, what has been completed, a
 - recurring and program-based offers now present explicit capacity, ownership, and registration truth across create and family registration flows
 - org reassignment and support reporting now trigger explicit in-app handoff notifications for staff and families
 - the club dashboard is now an owner control surface with staffing risk, completion pressure, support issues, and honest org finance state linked into live operating flows
+- coach discovery, profile, and favourites surfaces now use professional conversion language, profile-first entry, and blocked/contact-safe CTAs
 - product-reality sprint docs were rebuilt as a minimal current queue after the docs cleanup
 - UI audit false-positive for re-export routes removed
 - active sprint stack reworked around operator reality
@@ -69,7 +70,8 @@ Purpose: keep a live record of what has been decided, what has been completed, a
 | PR-13 | Done | org reassignment and support issues now trigger explicit handoff notifications and support routing |
 | PR-14 | Done | owner dashboard now shows live staffing, delivery, support, and finance state from real org services |
 | PR-15 | Open | remaining complete-POC layer |
-| PR-16 to PR-20 | Open | coach/user-first and pre-API closure layer |
+| PR-16 | Done | coach discovery and profile now read like a professional conversion path with contact/block trust intact |
+| PR-17 to PR-20 | Open | coach/user-first and pre-API closure layer |
 | PR-08 to PR-10 | Open | important cleanup/hardening after core proof |
 
 ## What Still Needs To Be True
@@ -88,7 +90,7 @@ For the product to behave like `Johnny's Coaching LTD`, all of these must become
 
 ## Current Next Step
 
-- implement `PR-16` coach discovery, profile, and conversion
+- implement `PR-17` booking lifecycle and parent operations
 
 ## Read Next
 

@@ -36,7 +36,7 @@ export function InlineFavouriteIcon({
   const { colors: palette } = useTheme();
 
   return (
-    <Clickable onPress={onPress} accessibilityLabel="Remove from favourites" disabled={loading}>
+    <Clickable onPress={onPress} accessibilityLabel="Remove from saved coaches" disabled={loading}>
       <Ionicons
         name={isFavourite ? 'heart' : 'heart-outline'}
         size={size}

@@ -47,7 +47,7 @@ export const FavouriteCoachCard = memo(function FavouriteCoachCard({
 }: FavouriteCoachCardProps) {
   const router = useRouter();
   const { colors } = useTheme();
-  const coachName = favourite.coachId;
+  const coachName = favourite.note?.trim() || favourite.coachId;
   const coachInitials = coachName
     .split(' ')
     .map((part) => part[0])
@@ -57,11 +57,7 @@ export const FavouriteCoachCard = memo(function FavouriteCoachCard({
 
   const handlePress = useCallback(() => {
     // Navigate to coach profile
-    router.push(
-      Routes.bookCoach(favourite.coachId, {
-        source: 'favourites_profile',
-      }),
-    );
+    router.push(Routes.coach(favourite.coachId));
   }, [router, favourite.coachId]);
 
   const handleBook = useCallback(() => {
@@ -126,7 +122,7 @@ export const FavouriteCoachCard = memo(function FavouriteCoachCard({
                 <ThemedText style={[styles.profileButtonText, { color: colors.tint }]}>View Profile</ThemedText>
               </Clickable>
               <Button onPress={handleBook} variant="primary" style={styles.bookButton}>
-                Book Now
+                Book
               </Button>
             </Row>
           </View>

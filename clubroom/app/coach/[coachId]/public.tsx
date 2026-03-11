@@ -89,6 +89,7 @@ export default function PublicCoachProfileScreen() {
           onShare={profile.openShareSheet}
           onBook={profile.handleBook}
           onMessage={profile.handleMessage}
+          isBlocked={profile.isBlocked}
         />
 
         {/* Tab Bar */}

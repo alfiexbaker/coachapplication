@@ -91,12 +91,34 @@ export default function CoachProfileScreen() {
           followLabel={p.followLabel}
           canFollowAction={p.canFollowAction}
           followLoading={p.followLoading}
+          followIconName={p.relationshipDisplay.relationshipIcon as keyof typeof Ionicons.glyphMap}
+          contactLabel={p.relationshipDisplay.contactLabel}
+          profileSummary={p.relationshipDisplay.profileSummary}
+          isBlocked={p.isBlocked}
           onFollow={p.handleFollow}
           onMessage={p.handleMessage}
         />
 
         {!p.isOwnProfile ? (
           <View style={styles.profileActions}>
+            <View
+              style={[
+                styles.businessCard,
+                {
+                  backgroundColor: palette.surface,
+                  borderColor: palette.border,
+                },
+              ]}
+            >
+              <ThemedText style={styles.businessTitle}>How to work with this coach</ThemedText>
+              <ThemedText style={[styles.businessBody, { color: palette.muted }]}>
+                Review the profile first, save or follow if you want to keep this coach in your shortlist,
+                request contact when you need to confirm fit or logistics, then move into booking.
+              </ThemedText>
+              <ThemedText style={[styles.businessBody, { color: palette.muted }]}>
+                {p.relationshipDisplay.contactDetail}
+              </ThemedText>
+            </View>
             <Button onPress={() => void p.handleBlock()} variant="outline">
               Block Coach
             </Button>
@@ -161,7 +183,7 @@ export default function CoachProfileScreen() {
               £{p.coach.minPrice}
             </ThemedText>
           </View>
-          <Button onPress={p.handleBook} style={{ flex: 1 }}>
+          <Button onPress={p.handleBook} style={{ flex: 1 }} disabled={p.isBlocked}>
             Book Session
           </Button>
         </Row>
@@ -185,6 +207,19 @@ const styles = StyleSheet.create({
   profileActions: {
     paddingHorizontal: Spacing.lg,
     paddingTop: Spacing.md,
+    gap: Spacing.sm,
+  },
+  businessCard: {
+    borderWidth: 1,
+    borderRadius: 16,
+    padding: Spacing.md,
+    gap: Spacing.xs,
+  },
+  businessTitle: {
+    ...Typography.bodySemiBold,
+  },
+  businessBody: {
+    ...Typography.bodySmall,
   },
   tabBar: { borderBottomWidth: 1, marginTop: Spacing.md },
   tab: { flex: 1, paddingVertical: Spacing.md },

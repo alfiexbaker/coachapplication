@@ -18,6 +18,7 @@ interface PublicProfileHeroProps {
   onShare: () => void;
   onBook: () => void;
   onMessage: () => void;
+  isBlocked?: boolean;
 }
 
 export const PublicProfileHero = memo(function PublicProfileHero({
@@ -25,6 +26,7 @@ export const PublicProfileHero = memo(function PublicProfileHero({
   onShare,
   onBook,
   onMessage,
+  isBlocked = false,
 }: PublicProfileHeroProps) {
   const { colors: palette } = useTheme();
   const stars = renderStars(coach.rating, palette.rating);
@@ -137,14 +139,21 @@ export const PublicProfileHero = memo(function PublicProfileHero({
             ))}
           </Row>
         ) : null}
+        <ThemedText style={[Typography.bodySmall, { color: palette.muted }]}>
+          Business profile first: review fit, request contact if you need to confirm details, then
+          book when ready.
+        </ThemedText>
         <Row style={styles.ctaRow}>
           <Clickable
             onPress={onBook}
-            style={[styles.bookButton, { backgroundColor: palette.tint }]}
+            style={[
+              styles.bookButton,
+              { backgroundColor: isBlocked ? palette.border : palette.tint },
+            ]}
           >
             <Ionicons name="calendar-outline" size={Components.icon.md} color={palette.surface} />
             <ThemedText style={[Typography.bodySemiBold, { color: palette.surface }]}>
-              Book a Session
+              {isBlocked ? 'Booking unavailable' : 'Book a Session'}
             </ThemedText>
           </Clickable>
           <Clickable
@@ -152,6 +161,9 @@ export const PublicProfileHero = memo(function PublicProfileHero({
             style={[styles.messageButton, { borderColor: palette.border }]}
           >
             <Ionicons name="chatbubble-outline" size={Components.icon.md} color={palette.text} />
+            <ThemedText style={[Typography.caption, { color: palette.text }]}>
+              {isBlocked ? 'Contact unavailable' : 'Request Contact'}
+            </ThemedText>
           </Clickable>
         </Row>
       </View>
@@ -229,11 +241,13 @@ const styles = StyleSheet.create({
     borderRadius: Components.button.borderRadius,
   },
   messageButton: {
-    width: Components.button.height,
+    minWidth: Components.button.height,
     height: Components.button.height,
     borderRadius: Radii.md,
     borderWidth: 1.5,
     alignItems: 'center',
     justifyContent: 'center',
+    gap: Spacing.xxs,
+    paddingHorizontal: Spacing.sm,
   },
 });

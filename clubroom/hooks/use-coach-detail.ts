@@ -15,6 +15,10 @@ import { blockService } from '@/services/block-service';
 import { createLogger } from '@/utils/logger';
 import { combineResults, err, ok, serviceError, type ServiceError } from '@/types/result';
 import { uiFeedback } from '@/services/ui-feedback';
+import {
+  getCoachRelationshipDisplay,
+  type CoachConnectionState,
+} from '@/utils/coach-conversion';
 
 const logger = createLogger('CoachProfileScreen');
 
@@ -34,8 +38,6 @@ interface CoachDetailData {
   reviews: PublicReview[];
 }
 
-type CoachConnectionState = 'self' | 'none' | 'outgoing_pending' | 'incoming_pending' | 'friends';
-
 export function useCoachDetail(coachId: string | undefined) {
   const { currentUser } = useAuth();
 
@@ -43,6 +45,7 @@ export function useCoachDetail(coachId: string | undefined) {
   const [connectionState, setConnectionState] = useState<CoachConnectionState>('none');
   const [incomingRequestId, setIncomingRequestId] = useState<string | null>(null);
   const [followLoading, setFollowLoading] = useState(false);
+  const [isBlocked, setIsBlocked] = useState(false);
 
   const isOwnProfile = currentUser?.id === coachId;
 
@@ -50,14 +53,17 @@ export function useCoachDetail(coachId: string | undefined) {
     if (!coachId || !currentUser?.id || isOwnProfile) {
       setConnectionState('self');
       setIncomingRequestId(null);
+      setIsBlocked(false);
       return;
     }
 
-    const [isFriends, requestsForCoach, requestsForCurrent] = await Promise.all([
+    const [isFriends, requestsForCoach, requestsForCurrent, blockedResult] = await Promise.all([
       followService.areFriends(currentUser.id, coachId),
       followService.getPendingRequests(coachId),
       followService.getPendingRequests(currentUser.id),
+      blockService.isBlocked(currentUser.id, coachId),
     ]);
+    setIsBlocked(blockedResult.success ? blockedResult.data : false);
 
     if (isFriends) {
       setConnectionState('friends');
@@ -133,28 +139,31 @@ export function useCoachDetail(coachId: string | undefined) {
     () =>
       !followLoading &&
       !isOwnProfile &&
+      !isBlocked &&
       (connectionState === 'none' ||
         (connectionState === 'incoming_pending' && Boolean(incomingRequestId))),
-    [connectionState, followLoading, incomingRequestId, isOwnProfile],
+    [connectionState, followLoading, incomingRequestId, isBlocked, isOwnProfile],
   );
   const followLabel = useMemo(() => {
     if (followLoading) return 'Updating...';
-    if (connectionState === 'friends') return 'Friends';
-    if (connectionState === 'outgoing_pending') return 'Request Sent';
-    if (connectionState === 'incoming_pending') return 'Accept Request';
-    return 'Add Friend';
-  }, [connectionState, followLoading]);
+    return getCoachRelationshipDisplay(connectionState, { blocked: isBlocked }).relationshipLabel;
+  }, [connectionState, followLoading, isBlocked]);
   const isFollowing = connectionState === 'friends';
+  const relationshipDisplay = useMemo(
+    () => getCoachRelationshipDisplay(connectionState, { blocked: isBlocked }),
+    [connectionState, isBlocked],
+  );
 
   useEffect(() => {
     void loadConnectionState().catch(() => {
       setConnectionState('none');
       setIncomingRequestId(null);
+      setIsBlocked(false);
     });
   }, [loadConnectionState]);
 
   const handleFollow = useCallback(async () => {
-    if (!coachId || !currentUser?.id || !canFollowAction || followLoading) return;
+    if (!coachId || !currentUser?.id || !canFollowAction || followLoading || isBlocked) return;
 
     setFollowLoading(true);
     try {
@@ -190,8 +199,20 @@ export function useCoachDetail(coachId: string | undefined) {
     incomingRequestId,
     loadConnectionState,
   ]);
-  const handleBook = useCallback(() => router.push(Routes.bookCoach(coachId!)), [coachId]);
-  const handleMessage = useCallback(() => router.push(Routes.chat(`coach-${coachId}`)), [coachId]);
+  const handleBook = useCallback(() => {
+    if (isBlocked) {
+      uiFeedback.showToast('Booking is unavailable while this coach is blocked.', 'error');
+      return;
+    }
+    router.push(Routes.bookCoach(coachId!));
+  }, [coachId, isBlocked]);
+  const handleMessage = useCallback(() => {
+    if (isBlocked) {
+      uiFeedback.showToast('Contact is unavailable while this coach is blocked.', 'error');
+      return;
+    }
+    router.push(Routes.chat(`coach-${coachId}`));
+  }, [coachId, isBlocked]);
   const handleRefresh = useCallback(() => {
     onRefresh();
     void loadConnectionState();
@@ -236,6 +257,8 @@ export function useCoachDetail(coachId: string | undefined) {
     canFollowAction,
     followLoading,
     isOwnProfile,
+    isBlocked,
+    relationshipDisplay,
     handleRefresh,
     handleFollow,
     handleBook,
@@ -257,6 +280,8 @@ export function useCoachDetail(coachId: string | undefined) {
     canFollowAction: boolean;
     followLoading: boolean;
     isOwnProfile: boolean;
+    isBlocked: boolean;
+    relationshipDisplay: ReturnType<typeof getCoachRelationshipDisplay>;
     handleRefresh: () => void;
     handleFollow: () => Promise<void>;
     handleBook: () => void;

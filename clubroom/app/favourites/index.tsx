@@ -140,7 +140,7 @@ export default function FavouritesScreen() {
             <Ionicons name="arrow-back" size={24} color={palette.text} />
           </Clickable>
           <ThemedText type="title" style={styles.headerTitle}>
-            Favourites
+            Saved Coaches
           </ThemedText>
         </Row>
         {favourites.length > 0 && (
@@ -220,8 +220,8 @@ export default function FavouritesScreen() {
           <Animated.View entering={FadeInDown.delay(100).springify()} style={styles.emptyContainer}>
             <EmptyState
               icon="heart-outline"
-              title="No Favourites Yet"
-              message="Save coaches you love for quick access and easy re-booking. Tap the heart icon on any coach profile to add them here."
+              title="No Saved Coaches Yet"
+              message="Save coaches you want to compare, contact, or rebook. Use the heart on coach discovery and profile surfaces to keep your shortlist here."
               actionLabel="Discover Coaches"
               onPressAction={handleDiscoverCoaches}
             />

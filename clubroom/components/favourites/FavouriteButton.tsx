@@ -110,11 +110,11 @@ export function FavouriteButton({
 
   const accessibilityLabel = coachName
     ? isFavourite
-      ? `Remove ${coachName} from favourites`
-      : `Add ${coachName} to favourites`
+      ? `Remove ${coachName} from saved coaches`
+      : `Save ${coachName}`
     : isFavourite
-      ? 'Remove from favourites'
-      : 'Add to favourites';
+      ? 'Remove from saved coaches'
+      : 'Save coach';
 
   return (
     <AnimatedClickable

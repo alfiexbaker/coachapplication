@@ -19,6 +19,10 @@ interface CoachDetailHeroProps {
   followLabel: string;
   canFollowAction: boolean;
   followLoading: boolean;
+  followIconName: keyof typeof Ionicons.glyphMap;
+  contactLabel: string;
+  profileSummary: string;
+  isBlocked: boolean;
   onFollow: () => void | Promise<void>;
   onMessage: () => void;
 }
@@ -30,19 +34,15 @@ export const CoachDetailHero = memo(function CoachDetailHero({
   followLabel,
   canFollowAction,
   followLoading,
+  followIconName,
+  contactLabel,
+  profileSummary,
+  isBlocked,
   onFollow,
   onMessage,
 }: CoachDetailHeroProps) {
   const { colors: palette } = useTheme();
   const isMutedFollowButton = isFollowing || !canFollowAction;
-  const followIcon: keyof typeof Ionicons.glyphMap =
-    followLabel === 'Accept Request'
-      ? 'checkmark-circle'
-      : followLabel === 'Request Sent'
-        ? 'time-outline'
-        : isFollowing
-          ? 'checkmark-done'
-          : 'add';
   const followTextColor = isMutedFollowButton ? palette.text : palette.onPrimary;
 
   return (
@@ -133,11 +133,14 @@ export const CoachDetailHero = memo(function CoachDetailHero({
             </ThemedText>
           </View>
         </Row>
+        <ThemedText style={[styles.summaryText, { color: palette.muted }]}>
+          {profileSummary}
+        </ThemedText>
         {!isOwnProfile && (
           <Row style={styles.actionButtons}>
             <Clickable
               onPress={onFollow}
-              disabled={!canFollowAction || followLoading}
+              disabled={!canFollowAction || followLoading || isBlocked}
               style={[
                 styles.followButton,
                 {
@@ -150,7 +153,7 @@ export const CoachDetailHero = memo(function CoachDetailHero({
                 <ActivityIndicator size="small" color={followTextColor} />
               ) : (
                 <Ionicons
-                  name={followIcon}
+                  name={followIconName}
                   size={18}
                   color={followTextColor}
                 />
@@ -163,9 +166,13 @@ export const CoachDetailHero = memo(function CoachDetailHero({
             </Clickable>
             <Clickable
               onPress={onMessage}
+              accessibilityLabel={contactLabel}
               style={[styles.messageButton, { borderColor: palette.border }]}
             >
               <Ionicons name="chatbubble-outline" size={18} color={palette.text} />
+              <ThemedText style={[styles.messageButtonText, { color: palette.text }]}>
+                {contactLabel}
+              </ThemedText>
             </Clickable>
           </Row>
         )}
@@ -220,6 +227,7 @@ const styles = StyleSheet.create({
   statDivider: { width: 1, height: 30 },
   starsRow: { gap: Spacing.micro },
   actionButtons: { gap: Spacing.sm, marginTop: Spacing.sm },
+  summaryText: { ...Typography.bodySmall },
   followButton: {
     flex: 1,
     alignItems: 'center',
@@ -230,11 +238,14 @@ const styles = StyleSheet.create({
     borderWidth: 1.5,
   },
   messageButton: {
-    width: 44,
+    minWidth: 44,
     height: 44,
     borderRadius: Radii.md,
     borderWidth: 1.5,
     alignItems: 'center',
     justifyContent: 'center',
+    gap: Spacing.xxs,
+    paddingHorizontal: Spacing.sm,
   },
+  messageButtonText: { ...Typography.caption, fontWeight: '600' },
 });

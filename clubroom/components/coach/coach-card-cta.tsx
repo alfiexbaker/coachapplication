@@ -55,7 +55,7 @@ export function FavouriteButton({
   const buttonSize = size === 'lg' ? 36 : size === 'sm' ? 28 : 32;
 
   return (
-    <Clickable onPress={onPress} accessibilityLabel="Toggle favourite" disabled={loading}>
+    <Clickable onPress={onPress} accessibilityLabel="Save coach" disabled={loading}>
       <View
         style={[
           styles.favouriteButton,

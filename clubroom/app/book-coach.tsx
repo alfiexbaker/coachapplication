@@ -391,6 +391,7 @@ export default function BookCoachScreen() {
               coach={coach}
               variant="discovery"
               index={index}
+              onPress={() => router.push(Routes.coach(coach.id))}
               onBookNow={() =>
                 router.push(
                   Routes.bookCoach(coach.id, {

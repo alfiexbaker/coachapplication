@@ -12,6 +12,9 @@ import type { Ionicons } from '@expo/vector-icons';
 import { useScreen, type ScreenStatus } from '@/hooks/use-screen';
 import { combineResults, err, ok, serviceError, type ServiceError } from '@/types/result';
 import { createLogger } from '@/utils/logger';
+import { useAuth } from '@/hooks/use-auth';
+import { blockService } from '@/services/block-service';
+import { uiFeedback } from '@/services/ui-feedback';
 
 const logger = createLogger('PublicProfileScreen');
 
@@ -92,6 +95,7 @@ interface PublicProfileData {
 }
 
 export function usePublicProfile(coachId: string) {
+  const { currentUser } = useAuth();
   const [activeTab, setActiveTab] = useState<ProfileTabId>('about');
   const [showShareSheet, setShowShareSheet] = useState(false);
 
@@ -139,14 +143,33 @@ export function usePublicProfile(coachId: string) {
 
   const coach = data?.coach ?? null;
   const reviews = data?.reviews ?? [];
+  const blockedStatus = useScreen<boolean>({
+    load: async () => {
+      if (!coachId || !currentUser?.id) {
+        return ok(false);
+      }
+      return blockService.isBlocked(currentUser.id, coachId);
+    },
+    deps: [coachId, currentUser?.id],
+    isEmpty: () => false,
+  });
+  const isBlocked = blockedStatus.data ?? false;
 
   const handleBook = useCallback(() => {
+    if (isBlocked) {
+      uiFeedback.showToast('Booking is unavailable while this coach is blocked.', 'error');
+      return;
+    }
     router.push(Routes.bookCoach(coachId));
-  }, [coachId]);
+  }, [coachId, isBlocked]);
 
   const handleMessage = useCallback(() => {
+    if (isBlocked) {
+      uiFeedback.showToast('Contact is unavailable while this coach is blocked.', 'error');
+      return;
+    }
     router.push(Routes.chat(`coach-${coachId}`));
-  }, [coachId]);
+  }, [coachId, isBlocked]);
 
   const openShareSheet = useCallback(() => setShowShareSheet(true), []);
   const closeShareSheet = useCallback(() => setShowShareSheet(false), []);
@@ -171,6 +194,7 @@ export function usePublicProfile(coachId: string) {
     handleBook,
     handleMessage,
     profileUrl,
+    isBlocked,
   } satisfies {
     coach: Coach | null;
     reviews: PublicReview[];
@@ -189,5 +213,6 @@ export function usePublicProfile(coachId: string) {
     handleBook: () => void;
     handleMessage: () => void;
     profileUrl: string;
+    isBlocked: boolean;
   };
 }
