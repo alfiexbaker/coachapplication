@@ -29,6 +29,32 @@ describe('sessionCrudService', () => {
       assert.equal(session.title, 'Test Training');
       assert.equal(session.status, 'DRAFT');
     });
+
+    test('preserves org ownership context on club-created group sessions', async () => {
+      const session = await sessionCrudService.createSession({
+        coachId: 'coach_1',
+        coachName: 'Coach Test',
+        clubId: 'club_1',
+        actingAs: 'club',
+        commercialMode: 'ORG_OWNED',
+        ownerCoachId: 'coach_owner_1',
+        assigneeCoachId: 'coach_assigned_1',
+        title: 'Club Program',
+        description: 'A club-owned recurring block',
+        sessionType: 'TRAINING',
+        maxParticipants: 18,
+        pricePerParticipant: 15,
+        currency: 'GBP',
+        location: 'Training Ground',
+        schedule: [{ date: '2026-06-22', startTime: '18:00', endTime: '19:00' }],
+      });
+
+      assert.equal(session.actingAs, 'club');
+      assert.equal(session.commercialMode, 'ORG_OWNED');
+      assert.equal(session.clubId, 'club_1');
+      assert.equal(session.ownerCoachId, 'coach_owner_1');
+      assert.equal(session.assigneeCoachId, 'coach_assigned_1');
+    });
   });
 
   describe('getSession', () => {

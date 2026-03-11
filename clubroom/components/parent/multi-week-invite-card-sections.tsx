@@ -111,6 +111,7 @@ export const WeekToggleRow = memo(function WeekToggleRow({
 
 interface InviteHeaderProps {
   coachName: string;
+  clubName?: string;
   sessionType: string;
   focus: string;
   totalWeeks: number;
@@ -119,6 +120,7 @@ interface InviteHeaderProps {
 
 export const InviteHeader = memo(function InviteHeader({
   coachName,
+  clubName,
   sessionType,
   focus,
   totalWeeks,
@@ -141,10 +143,10 @@ export const InviteHeader = memo(function InviteHeader({
       </Row>
       <View style={styles.headerContent}>
         <ThemedText type="defaultSemiBold">
-          Coach {coachFirstName} - {totalWeeks} Weeks
+          Recurring program with Coach {coachFirstName}
         </ThemedText>
         <ThemedText style={[Typography.small, { color: palette.muted }]}>
-          {sessionType} - {focus}
+          {clubName ? `${clubName} · ` : ''}{sessionType} · {focus} · {totalWeeks} week{totalWeeks !== 1 ? 's' : ''}
         </ThemedText>
       </View>
     </Row>

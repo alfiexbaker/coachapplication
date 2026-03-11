@@ -42,6 +42,7 @@ Purpose: keep a live record of what has been decided, what has been completed, a
 - head coach oversight now exists on the live manage route with scoped completion health, athlete watchlists, standards, and explicit follow-up tasking
 - coach bookings, schedule, and earnings now split org-assigned work from independent work with honest reconciler vs direct-revenue language
 - family-facing booking detail, problem reporting, and child-health copy now make support ownership, handoffs, and scoped visibility explicit for org work
+- owner setup now creates clubs, sets commercial mode, seeds first staff invites, and routes into concrete setup-complete next steps
 - product-reality sprint docs were rebuilt as a minimal current queue after the docs cleanup
 - UI audit false-positive for re-export routes removed
 - active sprint stack reworked around operator reality
@@ -60,8 +61,9 @@ Purpose: keep a live record of what has been decided, what has been completed, a
 | PR-05 | Done | head coach oversight, scoped review, and standards/tasking now exist on the live manage route |
 | PR-06 | Done | coach bookings, schedule, and earnings now separate org-assigned work from independent work with honest money labels |
 | PR-07 | Done | family-facing support ownership, reassignment trust, and scoped child/health visibility now render in the live parent flow |
-| PR-11 | Open | org setup and onboarding are now the next complete-POC runtime layer |
-| PR-12 to PR-15 | Open | remaining complete-POC layer |
+| PR-11 | Done | owners can now create a club, set commercial mode, invite first staff, and route into setup-complete next steps |
+| PR-12 | Open | programs, recurring registration, and family-facing capacity/ownership truth are now the active runtime layer |
+| PR-13 to PR-15 | Open | remaining complete-POC layer |
 | PR-16 to PR-20 | Open | coach/user-first and pre-API closure layer |
 | PR-08 to PR-10 | Open | important cleanup/hardening after core proof |
 
@@ -81,7 +83,7 @@ For the product to behave like `Johnny's Coaching LTD`, all of these must become
 
 ## Current Next Step
 
-- implement `PR-11` org setup and onboarding
+- implement `PR-12` programs, packages, and recurring registration
 
 ## Read Next
 

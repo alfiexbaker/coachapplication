@@ -33,6 +33,7 @@ import { academyService } from '@/services/academy-service';
 import { userService } from '@/services/user-service';
 import type {
   AcademyMembership,
+  OrganizationCommercialMode,
   SessionOffering,
   SessionOwnershipAuditEvent,
   FootballObjective,
@@ -213,6 +214,7 @@ export interface PastAthlete {
 export interface ClubOwnerOption {
   id: string;
   name: string;
+  commercialMode?: OrganizationCommercialMode;
   membership: AcademyMembership;
 }
 
@@ -391,6 +393,13 @@ export function useCreateSession(): CreateSessionState & CreateSessionActions {
     () => clubOptions.find((club) => club.id === selectedClubId) ?? null,
     [clubOptions, selectedClubId],
   );
+  const selectedCommercialMode = useMemo<OrganizationCommercialMode | undefined>(
+    () =>
+      postingAs === 'club'
+        ? (selectedClubOption?.commercialMode ?? 'COACH_OWNED')
+        : undefined,
+    [postingAs, selectedClubOption?.commercialMode],
+  );
 
   const setRecurrence = useCallback(
     (next: RecurrenceType) => {
@@ -550,6 +559,7 @@ export function useCreateSession(): CreateSessionState & CreateSessionActions {
         .map((club) => ({
           id: club.id,
           name: club.name,
+          commercialMode: club.commercialMode,
           membership: club.membership,
         }));
 
@@ -1081,6 +1091,7 @@ export function useCreateSession(): CreateSessionState & CreateSessionActions {
           coachName: ownerCoachName,
           clubId: ownerClubId,
           actingAs: resolvedActingAs,
+          commercialMode: selectedCommercialMode,
           ownerCoachId,
           assigneeCoachId: resolvedActingAs === 'club' ? ownerCoachId : undefined,
           createdByUserId: currentUser.id,
@@ -1168,6 +1179,7 @@ export function useCreateSession(): CreateSessionState & CreateSessionActions {
           pricePerSession: parsedPrice,
           notes: description || undefined,
           actingAs: resolvedActingAs,
+          commercialMode: selectedCommercialMode,
           ownerCoachId,
           assigneeCoachId: resolvedActingAs === 'club' ? ownerCoachId : undefined,
           createdByUserId: currentUser.id,
@@ -1249,6 +1261,7 @@ router.replace(Routes.SCHEDULE);
         coachId: ownerCoachId,
         clubId: ownerClubId,
         actingAs: resolvedActingAs,
+        commercialMode: selectedCommercialMode,
         ownerCoachId,
         assigneeCoachId: resolvedActingAs === 'club' ? ownerCoachId : undefined,
         createdByUserId: currentUser.id,
@@ -1323,6 +1336,7 @@ router.replace(Routes.SCHEDULE);
     selectedAssigneeId,
     selectedClubId,
     selectedClubOption,
+    selectedCommercialMode,
     maxParticipants,
     selectedDate,
     selectedTime,

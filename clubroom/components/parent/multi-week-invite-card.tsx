@@ -110,11 +110,16 @@ export function MultiWeekInviteCard({ invite, onResponded }: MultiWeekInviteCard
     <SurfaceCard style={styles.card}>
       <InviteHeader
         coachName={coachName}
+        clubName={invite.clubName}
         sessionType={invite.sessionType}
         focus={invite.focus}
         totalWeeks={totalCount}
         palette={palette}
       />
+
+      <ThemedText style={[Typography.small, { color: palette.muted }]}>
+        You are selecting which dates to join in this recurring program. Accepted weeks will be booked as part of the same training block.
+      </ThemedText>
 
       <Row align="center" gap="xs">
         <Ionicons name="person-outline" size={16} color={palette.muted} />

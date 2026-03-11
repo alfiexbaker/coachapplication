@@ -321,6 +321,7 @@ export interface SessionOffering {
   coachId: string;
   clubId?: string;
   actingAs?: 'self' | 'club';
+  commercialMode?: OrganizationCommercialMode;
   ownerCoachId?: string;
   assigneeCoachId?: string;
   createdByUserId?: string;
@@ -651,6 +652,7 @@ export interface GroupSession {
   coachId: string;
   clubId?: string;
   actingAs?: 'self' | 'club';
+  commercialMode?: OrganizationCommercialMode;
   ownerCoachId?: string;
   assigneeCoachId?: string;
   createdByUserId?: string;

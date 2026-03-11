@@ -134,6 +134,7 @@ class RecurringBookingService {
         generatedBookingIds: [],
         sessionsCompleted: 0,
         actingAs: params.actingAs,
+        commercialMode: params.commercialMode,
         ownerCoachId: params.ownerCoachId,
         assigneeCoachId: params.assigneeCoachId,
         createdByUserId: params.createdByUserId,

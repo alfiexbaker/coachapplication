@@ -23,6 +23,7 @@ interface FamilyRegistrationCardProps {
   familyReg: FamilyRegistration;
   isActive: boolean;
   showChildName: boolean;
+  statusDetail?: string;
   responding: boolean;
   onRsvpRespond: (status: 'going' | 'maybe' | 'cant_go') => void;
   onUnregister: () => void;
@@ -33,6 +34,7 @@ function FamilyRegistrationCardComponent({
   familyReg,
   isActive,
   showChildName,
+  statusDetail,
   responding,
   onRsvpRespond,
   onUnregister,
@@ -60,7 +62,9 @@ function FamilyRegistrationCardComponent({
           <ThemedText style={[Typography.small, { color: colors.muted }]}>
             {isWaitlisted
               ? "We'll notify you when a spot opens"
-              : showChildName
+              : statusDetail
+                ? statusDetail
+                : showChildName
                 ? statusLabel
                 : `Since ${new Date(familyReg.registration.registeredAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}`}
           </ThemedText>

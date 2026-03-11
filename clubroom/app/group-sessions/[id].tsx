@@ -41,6 +41,7 @@ import { groupSessionService } from '@/services/group-session-service';
 import { calendarService } from '@/services/calendar-service';
 import { CalendarExportButton } from '@/components/calendar/CalendarExportButton';
 import { getGroupSessionClubLabel } from '@/utils/group-display';
+import { getGroupSessionOfferDisplay } from '@/utils/session-offer-display';
 import { formatInUserTimezone } from '@/utils/timezone';
 import { useRequiredParam } from '@/hooks/use-required-param';
 
@@ -144,6 +145,7 @@ export default function GroupSessionDetailScreen() {
 
   const capacityColor = isFull ? colors.error : spotsLeft <= 3 ? colors.warning : colors.success;
   const clubLabel = getGroupSessionClubLabel(session);
+  const offerDisplay = getGroupSessionOfferDisplay(session);
   const isCancelled = session.status === 'CANCELLED';
   const isCompleted = session.status === 'COMPLETED';
   const isPastRegistrationDeadline = Boolean(
@@ -227,6 +229,7 @@ export default function GroupSessionDetailScreen() {
                     familyReg={fr}
                     isActive={isActive}
                     showChildName={false}
+                    statusDetail={offerDisplay.registrationLabel}
                     responding={responding}
                     onRsvpRespond={(s) => handleRsvpRespond(fr, s)}
                     onUnregister={() => handleUnregister(fr)}
@@ -292,6 +295,7 @@ export default function GroupSessionDetailScreen() {
                     familyReg={fr}
                     isActive={isActive}
                     showChildName={false}
+                    statusDetail={offerDisplay.registrationLabel}
                     responding={responding}
                     onRsvpRespond={(s) => handleRsvpRespond(fr, s)}
                     onUnregister={() => handleUnregister(fr)}

@@ -15,7 +15,8 @@ import { Clickable } from '@/components/primitives/clickable';
 import { Row, Column } from '@/components/primitives';
 import { Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
 import type { ThemeColors } from '@/hooks/useTheme';
-import type { FootballObjective } from '@/constants/types';
+import type { FootballObjective, OrganizationCommercialMode } from '@/constants/types';
+import { formatCommercialModeLabel } from '@/utils/organization-commercial-mode';
 import {
   type SessionType,
   SESSION_TYPES,
@@ -36,7 +37,7 @@ interface CreateDetailsStepProps {
   onToggleFocusArea: (area: FootballObjective) => void;
   onMaxParticipantsChange: (v: string) => void;
   postingAs?: 'self' | 'club';
-  clubOptions?: { id: string; name: string }[];
+  clubOptions?: { id: string; name: string; commercialMode?: OrganizationCommercialMode }[];
   selectedClubId?: string | null;
   assigneeOptions?: { id: string; label: string; role: string }[];
   selectedAssigneeId?: string | null;
@@ -201,6 +202,11 @@ export const CreateDetailsStep = memo(function CreateDetailsStep({
                         <ThemedText style={{ color: selected ? colors.success : colors.text }}>
                           {club.name}
                         </ThemedText>
+                        {selected && club.commercialMode ? (
+                          <ThemedText style={[styles.caption, { color: colors.muted }]}>
+                            Billing mode: {formatCommercialModeLabel(club.commercialMode)}
+                          </ThemedText>
+                        ) : null}
                       </Clickable>
                     );
                   })}

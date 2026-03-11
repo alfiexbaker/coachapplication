@@ -85,6 +85,26 @@ test('createRecurring creates a new recurring booking', async () => {
   assert.deepStrictEqual(result.data.generatedBookingIds, []);
 });
 
+test('createRecurring preserves org ownership context when booking on behalf of a club', async () => {
+  await recurringBookingService.clearAll();
+
+  const result = await recurringBookingService.createRecurring({
+    ...mockCreateParams,
+    actingAs: 'club',
+    commercialMode: 'ORG_OWNED',
+    clubId: 'club_1',
+    ownerCoachId: 'coach_owner_1',
+    assigneeCoachId: 'coach_assigned_1',
+  });
+
+  assert.strictEqual(result.success, true, 'Creation should succeed');
+  assert.strictEqual(result.data?.actingAs, 'club');
+  assert.strictEqual(result.data?.commercialMode, 'ORG_OWNED');
+  assert.strictEqual(result.data?.clubId, 'club_1');
+  assert.strictEqual(result.data?.ownerCoachId, 'coach_owner_1');
+  assert.strictEqual(result.data?.assigneeCoachId, 'coach_assigned_1');
+});
+
 test('list returns all recurring bookings', async () => {
   // Clear and seed
   await recurringBookingService.clearAll();

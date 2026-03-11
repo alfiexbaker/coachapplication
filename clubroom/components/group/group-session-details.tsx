@@ -12,10 +12,15 @@ import { Column } from '@/components/primitives/column';
 import { Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
 import type { GroupSession } from '@/constants/types';
-import { getGroupSessionCoachName } from '@/utils/group-display';
+import { getGroupSessionClubLabel, getGroupSessionCoachName } from '@/utils/group-display';
 import { Routes } from '@/navigation/routes';
 import { openLocationInMaps } from '@/utils/map-links';
 import { uiFeedback } from '@/services/ui-feedback';
+import {
+  getGroupSessionOfferDisplay,
+  getOfferCapacityDisplay,
+  getProgramOwnershipDisplay,
+} from '@/utils/session-offer-display';
 
 interface GroupSessionDetailsProps {
   session: GroupSession;
@@ -29,6 +34,21 @@ export const GroupSessionDetails = memo(function GroupSessionDetails({
 }: GroupSessionDetailsProps) {
   const { colors } = useTheme();
   const coachName = getGroupSessionCoachName(session);
+  const clubLabel = getGroupSessionClubLabel(session);
+  const offerDisplay = getGroupSessionOfferDisplay(session);
+  const capacityDisplay = getOfferCapacityDisplay({
+    maxParticipants: session.maxParticipants,
+    currentParticipants: session.currentParticipants,
+    waitlistEnabled: session.waitlistEnabled,
+    waitlistCount: session.waitlistCount,
+  });
+  const ownershipDisplay = getProgramOwnershipDisplay({
+    actingAs: session.actingAs,
+    commercialMode: session.commercialMode,
+    organizationLabel: clubLabel,
+    coachLabel: coachName,
+    deliveredByLabel: coachName,
+  });
   // S-39: Non-participants see only area name, not full address
   const locationLabel = isRegistered
     ? (session.venueName
@@ -85,6 +105,31 @@ export const GroupSessionDetails = memo(function GroupSessionDetails({
               </View>
             </Row>
           ))}
+        </SurfaceCard>
+      </Animated.View>
+
+      <Animated.View entering={FadeInDown.delay(175).springify()}>
+        <SurfaceCard style={styles.card}>
+          <ThemedText type="defaultSemiBold">Registration</ThemedText>
+          <Row gap="xs" align="center">
+            <Ionicons name="layers-outline" size={16} color={colors.muted} />
+            <ThemedText style={{ color: colors.muted }}>{offerDisplay.label}</ThemedText>
+          </Row>
+          <ThemedText style={[Typography.bodySmall, { color: colors.muted }]}>
+            {offerDisplay.summary}
+          </ThemedText>
+          <Row gap="xs" align="center">
+            <Ionicons name="people-outline" size={16} color={colors.muted} />
+            <ThemedText style={{ color: colors.muted }}>
+              {capacityDisplay.capacityLabel}. {capacityDisplay.availabilityLabel}
+            </ThemedText>
+          </Row>
+          <Row gap="xs" align="center">
+            <Ionicons name="shield-checkmark-outline" size={16} color={colors.muted} />
+            <ThemedText style={{ color: colors.muted }}>
+              Booked with {ownershipDisplay.bookedWithLabel}. Billing {ownershipDisplay.billingLabel}. Support {ownershipDisplay.supportLabel}.
+            </ThemedText>
+          </Row>
         </SurfaceCard>
       </Animated.View>
 

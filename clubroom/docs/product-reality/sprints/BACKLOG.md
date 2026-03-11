@@ -36,8 +36,8 @@ Updated: 2026-03-11
 | PR-05 | `head-coach-oversight-and-tasking` | P0 | DONE | The live manage route now gives head coaches scoped oversight, standards, and tasking |
 | PR-06 | `coach-work-split-and-earnings-realism` | P1 | DONE | Coach bookings, schedule, and earnings now split org work from independent work with honest money labels |
 | PR-07 | `family-trust-and-support-ownership` | P1 | DONE | Parents can now see support ownership, coach-change responsibility, and scoped child/health visibility in live family flows |
-| PR-11 | `sprint-11-org-setup-and-onboarding.md` | P1 | CURRENT | A complete POC still needs a believable first-run owner setup path, not only preconfigured org state |
-| PR-12 | `programs-packages-and-recurring-registration` | P1 | OPEN | Real coaching businesses need programs and recurring registration, not only one-off sessions |
+| PR-11 | `sprint-11-org-setup-and-onboarding.md` | P1 | DONE | Owners can now create a club, set commercial mode, invite first staff, and route into concrete next steps |
+| PR-12 | `sprint-12-programs-packages-and-recurring-registration.md` | P1 | CURRENT | Real coaching businesses need programs and recurring registration, not only one-off sessions |
 | PR-13 | `communications-notifications-and-handoffs` | P1 | OPEN | Org reassignment and support flows are not believable without clear notifications and handoffs |
 | PR-14 | `owner-dashboard-reporting-and-finance-view` | P1 | OPEN | Owners still need a true top-of-pyramid view of staffing, delivery, and finance state |
 | PR-16 | `coach-discovery-profile-and-conversion` | P1 | OPEN | A coach/user-first POC still needs a believable discovery-to-booking conversion surface |

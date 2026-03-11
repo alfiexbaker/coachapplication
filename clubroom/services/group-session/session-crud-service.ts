@@ -27,6 +27,7 @@ import type {
   GroupSession,
   GroupSessionSchedule,
   FootballObjective,
+  OrganizationCommercialMode,
   RecurringPattern,
   SessionInviteType,
   UserRole,
@@ -421,6 +422,7 @@ export interface CreateGroupSessionInput {
   coachPhotoUrl?: string;
   clubId?: string;
   actingAs?: 'self' | 'club';
+  commercialMode?: OrganizationCommercialMode;
   ownerCoachId?: string;
   assigneeCoachId?: string;
   createdByUserId?: string;
@@ -585,6 +587,7 @@ export const sessionCrudService = {
       coachId: input.coachId,
       clubId: input.clubId,
       actingAs: input.actingAs,
+      commercialMode: input.commercialMode,
       ownerCoachId: input.ownerCoachId,
       assigneeCoachId: input.assigneeCoachId,
       createdByUserId: input.createdByUserId,

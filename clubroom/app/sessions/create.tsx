@@ -33,6 +33,7 @@ import { getRosterAthleteName, getRosterParentName } from '@/utils/roster-displa
 import { getSessionOfferingHeadcount } from '@/utils/session-offering-capacity';
 import type { Academy, AcademyMembership, GroupSession, SessionOffering, TimeSlot } from '@/constants/types';
 import { uiFeedback } from '@/services/ui-feedback';
+import type { OrganizationCommercialMode } from '@/constants/types';
 
 type FlowMode = 'choose' | 'new' | 'existing';
 type ExistingSessionSource = 'offering' | 'group';
@@ -946,6 +947,10 @@ export default function CreateSessionScreen() {
     () => state.clubOptions.find((club) => club.id === state.selectedClubId)?.name,
     [state.clubOptions, state.selectedClubId],
   );
+  const selectedClubCommercialMode = useMemo<OrganizationCommercialMode | undefined>(
+    () => state.clubOptions.find((club) => club.id === state.selectedClubId)?.commercialMode,
+    [state.clubOptions, state.selectedClubId],
+  );
   const selectedAssigneeName = useMemo(
     () => state.assigneeOptions.find((assignee) => assignee.id === state.selectedAssigneeId)?.label,
     [state.assigneeOptions, state.selectedAssigneeId],
@@ -1217,6 +1222,7 @@ export default function CreateSessionScreen() {
               defaultMaxParticipants={state.getDefaultMaxParticipants()}
               postingAs={state.postingAs}
               selectedClubName={selectedClubName}
+              selectedClubCommercialMode={selectedClubCommercialMode}
               selectedAssigneeName={selectedAssigneeName}
             />
           )}

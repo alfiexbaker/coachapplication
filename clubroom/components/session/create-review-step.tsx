@@ -19,6 +19,7 @@ import type { FootballObjective, SessionInviteType } from '@/constants/types';
 import type { CampDailyTime } from '@/hooks/use-create-session';
 import { openLocationInMaps } from '@/utils/map-links';
 import { getDisplayLocationLabel } from '@/utils/location-display';
+import { getDraftSessionOfferDisplay, getOfferCapacityDisplay, getProgramOwnershipDisplay } from '@/utils/session-offer-display';
 import {
   type CampLength,
   type SessionType,
@@ -27,6 +28,7 @@ import {
   RECURRENCE_OPTIONS,
 } from './create-session-types';
 import { uiFeedback } from '@/services/ui-feedback';
+import type { OrganizationCommercialMode } from '@/constants/types';
 
 interface CreateReviewStepProps {
   colors: ThemeColors;
@@ -52,6 +54,7 @@ interface CreateReviewStepProps {
   defaultMaxParticipants: number;
   postingAs?: 'self' | 'club';
   selectedClubName?: string;
+  selectedClubCommercialMode?: OrganizationCommercialMode;
   selectedAssigneeName?: string;
 }
 
@@ -107,6 +110,7 @@ export const CreateReviewStep = memo(function CreateReviewStep({
   defaultMaxParticipants,
   postingAs = 'self',
   selectedClubName,
+  selectedClubCommercialMode,
   selectedAssigneeName,
 }: CreateReviewStepProps) {
   const typeConfig = useMemo(() => SESSION_TYPES.find((t) => t.key === sessionType), [sessionType]);
@@ -156,6 +160,33 @@ export const CreateReviewStep = memo(function CreateReviewStep({
     selectedTime,
     useCampDailyTimes,
   ]);
+  const offerDisplay = useMemo(
+    () =>
+      getDraftSessionOfferDisplay({
+        sessionType,
+        recurrence,
+        maxParticipants: Number.parseInt(String(participants), 10) || defaultMaxParticipants,
+      }),
+    [defaultMaxParticipants, participants, recurrence, sessionType],
+  );
+  const capacityDisplay = useMemo(
+    () =>
+      getOfferCapacityDisplay({
+        maxParticipants: Number.parseInt(String(participants), 10) || defaultMaxParticipants,
+      }),
+    [defaultMaxParticipants, participants],
+  );
+  const ownershipDisplay = useMemo(
+    () =>
+      getProgramOwnershipDisplay({
+        actingAs: postingAs,
+        commercialMode: selectedClubCommercialMode,
+        organizationLabel: selectedClubName,
+        coachLabel: selectedAssigneeName,
+        deliveredByLabel: selectedAssigneeName,
+      }),
+    [postingAs, selectedAssigneeName, selectedClubCommercialMode, selectedClubName],
+  );
 
   const perDaySummary = useMemo(() => {
     if (!isCamp || campLength !== 'multi_day' || !useCampDailyTimes) return [];
@@ -239,6 +270,19 @@ export const CreateReviewStep = memo(function CreateReviewStep({
             </Row>
 
             <Row align="flex-start" gap="sm">
+              <Ionicons name="layers-outline" size={18} color={colors.muted} />
+              <Column>
+                <ThemedText style={[styles.itemLabel, { color: colors.muted }]}>
+                  Offer Type
+                </ThemedText>
+                <ThemedText type="defaultSemiBold">{offerDisplay.label}</ThemedText>
+                <ThemedText style={{ color: colors.muted, ...Typography.caption }}>
+                  {offerDisplay.summary}
+                </ThemedText>
+              </Column>
+            </Row>
+
+            <Row align="flex-start" gap="sm">
               <Ionicons name="briefcase-outline" size={18} color={colors.muted} />
               <Column>
                 <ThemedText style={[styles.itemLabel, { color: colors.muted }]}>
@@ -254,6 +298,34 @@ export const CreateReviewStep = memo(function CreateReviewStep({
                     Assigned to {selectedAssigneeName}
                   </ThemedText>
                 ) : null}
+              </Column>
+            </Row>
+
+            <Row align="flex-start" gap="sm">
+              <Ionicons name="people-outline" size={18} color={colors.muted} />
+              <Column>
+                <ThemedText style={[styles.itemLabel, { color: colors.muted }]}>
+                  Registration & Capacity
+                </ThemedText>
+                <ThemedText type="defaultSemiBold">{capacityDisplay.capacityLabel}</ThemedText>
+                <ThemedText style={{ color: colors.muted, ...Typography.caption }}>
+                  {offerDisplay.registrationLabel} {capacityDisplay.availabilityLabel}
+                </ThemedText>
+              </Column>
+            </Row>
+
+            <Row align="flex-start" gap="sm">
+              <Ionicons name="shield-checkmark-outline" size={18} color={colors.muted} />
+              <Column>
+                <ThemedText style={[styles.itemLabel, { color: colors.muted }]}>
+                  Family-facing ownership
+                </ThemedText>
+                <ThemedText type="defaultSemiBold">
+                  Booked with {ownershipDisplay.bookedWithLabel}
+                </ThemedText>
+                <ThemedText style={{ color: colors.muted, ...Typography.caption }}>
+                  Billing {ownershipDisplay.billingLabel}. Support {ownershipDisplay.supportLabel}.
+                </ThemedText>
               </Column>
             </Row>
 
