@@ -42,8 +42,8 @@ Updated: 2026-03-11
 | PR-14 | `owner-dashboard-reporting-and-finance-view` | P1 | DONE | Owners now have a live org dashboard that links staffing, delivery, support, and reconciler finance truth |
 | PR-16 | `coach-discovery-profile-and-conversion` | P1 | DONE | Coach discovery and profile now present a profile-first professional conversion path with honest contact and block behavior |
 | PR-17 | `booking-lifecycle-and-parent-operations` | P1 | DONE | Parents can now manage recurring plans from family flows and cancellation updates future generated sessions truthfully |
-| PR-18 | `session-delivery-feedback-and-rebooking-loop` | P1 | CURRENT | The product still needs a believable full coaching loop after delivery, not only booking and management |
-| PR-19 | `seeded-scenarios-and-role-entry-control` | P1 | OPEN | Pre-API demos need coherent seeded stories and clean role entry points |
+| PR-18 | `session-delivery-feedback-and-rebooking-loop` | P1 | DONE | Booking detail now closes the post-session loop with coach completion entry and parent-facing outcome summary linked into progress |
+| PR-19 | `seeded-scenarios-and-role-entry-control` | P1 | CURRENT | Pre-API demos need coherent seeded stories and clean role entry points |
 | PR-15 | `poc-demo-readiness-and-golden-paths` | P1 | OPEN | A complete POC still needs final golden-path walkthroughs and rough-edge removal |
 | PR-20 | `pre-api-stability-performance-and-flow-bar` | P1 | OPEN | The pre-API POC still needs an explicit stability and performance bar on hot flows |
 | PR-08 | `relationship-model-and-blocking-integrity` | P2 | OPEN | Relationship language and block integrity still need a final cleanup pass after the main loops are believable |

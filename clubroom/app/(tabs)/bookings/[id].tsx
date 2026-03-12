@@ -9,6 +9,7 @@ import { ThemedView } from '@/components/themed-view';
 import { StatusBadge } from '@/components/ui/status-badge';
 import { EmptyState, ErrorState, LoadingState } from '@/components/ui/screen-states';
 import { BookingCoachView } from '@/components/bookings/booking-coach-view';
+import { BookingDeliveryOutcomeCard } from '@/components/bookings/booking-delivery-outcome-card';
 import { BookingParentView } from '@/components/bookings/booking-parent-view';
 import { BookingTrustCard } from '@/components/bookings/booking-trust-card';
 import {
@@ -42,6 +43,7 @@ import { Routes } from '@/navigation/routes';
 import { useRequiredParam } from '@/hooks/use-required-param';
 import { getStoredCoachReviews, isReviewForBookingByUser } from '@/services/review-sync-service';
 import { resolveDeepLink } from '@/utils/deep-link';
+import { buildBookingDeliverySummary } from '@/utils/booking-delivery';
 
 interface PaymentSnapshot {
   amount: number | null;
@@ -89,8 +91,10 @@ export default function SessionDetailScreen() {
     isCoach,
     canCancelBooking,
     sessionNote,
+    deliveryFeedback,
     handlers,
     formatted,
+    canCompleteSession,
   } = useBookingDetail(bookingId);
   const coachName = booking ? getBookingSummaryCoachName(booking) : 'Coach';
   const childName = booking ? getBookingSummaryClientName(booking) : 'Athlete';
@@ -226,6 +230,18 @@ export default function SessionDetailScreen() {
     }
     return relationshipContext.paymentSummary;
   }, [isCoach, relationshipContext]);
+  const deliverySummary = useMemo(
+    () =>
+      buildBookingDeliverySummary({
+        feedback: deliveryFeedback,
+        note: sessionNote.note,
+      }),
+    [deliveryFeedback, sessionNote.note],
+  );
+  const handleOpenChildProgress = useCallback(() => {
+    if (!booking?.clientId) return;
+    router.push(Routes.developmentChildProgress(booking.clientId, { tab: 'feedback' }));
+  }, [booking?.clientId]);
 
   if (status === 'loading') {
     return (
@@ -452,6 +468,8 @@ export default function SessionDetailScreen() {
             onRefund={handlers.refund}
             onCancelBooking={handlers.cancelBooking}
             canCancelBooking={canCancelBooking}
+            onCompleteSession={handlers.completeSession}
+            canCompleteSession={canCompleteSession}
           />
         ) : (
           <BookingParentView
@@ -469,6 +487,14 @@ export default function SessionDetailScreen() {
             reportProblemLabel={relationshipContext?.reportProblemLabel}
           />
         )}
+
+        {!isCoach && booking.status === 'Completed' && deliverySummary ? (
+          <BookingDeliveryOutcomeCard
+            childName={childName}
+            summary={deliverySummary}
+            onOpenProgress={booking.clientId ? handleOpenChildProgress : undefined}
+          />
+        ) : null}
       </ScrollView>
     </SafeAreaView>
   );

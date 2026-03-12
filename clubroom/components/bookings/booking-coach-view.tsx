@@ -20,6 +20,8 @@ interface BookingCoachViewProps {
   onRefund: () => void;
   onCancelBooking: () => void;
   canCancelBooking: boolean;
+  onCompleteSession?: () => void;
+  canCompleteSession?: boolean;
   onMarkAsPaid?: () => void;
 }
 
@@ -30,6 +32,8 @@ function BookingCoachViewInner({
   onRefund,
   onCancelBooking,
   canCancelBooking,
+  onCompleteSession,
+  canCompleteSession = false,
   onMarkAsPaid,
 }: BookingCoachViewProps) {
   const { colors: palette } = useTheme();
@@ -91,18 +95,47 @@ function BookingCoachViewInner({
 
   return (
     <View style={styles.actions}>
+      {canCompleteSession && onCompleteSession ? (
+        <Clickable
+          onPress={onCompleteSession}
+          style={({ pressed }) =>
+            [
+              styles.primaryButton,
+              { backgroundColor: palette.tint },
+              pressed && { opacity: 0.8 },
+            ].filter(Boolean) as ViewStyle[]
+          }
+        >
+          <Ionicons name="checkmark-circle-outline" size={20} color={palette.onPrimary} />
+          <ThemedText style={[styles.primaryButtonText, { color: palette.onPrimary }]}>
+            Complete Session
+          </ThemedText>
+        </Clickable>
+      ) : null}
+
       <Clickable
         onPress={onMessageClient}
         style={({ pressed }) =>
           [
-            styles.primaryButton,
-            { backgroundColor: palette.tint },
-            pressed && { opacity: 0.8 },
+            canCompleteSession ? styles.secondaryButton : styles.primaryButton,
+            canCompleteSession
+              ? { borderColor: palette.border }
+              : { backgroundColor: palette.tint },
+            pressed && (canCompleteSession ? { backgroundColor: palette.border, opacity: 0.7 } : { opacity: 0.8 }),
           ].filter(Boolean) as ViewStyle[]
         }
       >
-        <Ionicons name="chatbubble" size={20} color={palette.onPrimary} />
-        <ThemedText style={[styles.primaryButtonText, { color: palette.onPrimary }]}>
+        <Ionicons
+          name="chatbubble"
+          size={20}
+          color={canCompleteSession ? palette.foreground : palette.onPrimary}
+        />
+        <ThemedText
+          style={[
+            styles.primaryButtonText,
+            { color: canCompleteSession ? palette.foreground : palette.onPrimary },
+          ]}
+        >
           Message Client
         </ThemedText>
       </Clickable>

@@ -5,7 +5,7 @@
  * Provides all action handlers (message, cancel, refund, reschedule, report).
  */
 
-import { useCallback } from 'react';
+import { useCallback, useState } from 'react';
 import { router } from 'expo-router';
 import { Routes } from '@/navigation/routes';
 
@@ -21,6 +21,9 @@ import type { ServiceError } from '@/types/result';
 import { err, ok, serviceError } from '@/types/result';
 import { getBookingAthleteName } from '@/utils/booking-display';
 import { uiFeedback } from '@/services/ui-feedback';
+import type { SessionFeedback } from '@/services/progress-service';
+import { progressService } from '@/services/progress-service';
+import { canCoachCompleteBooking } from '@/utils/booking-delivery';
 
 const logger = createLogger('useBookingDetail');
 
@@ -35,6 +38,7 @@ export interface BookingDetailResult {
   retry: () => void;
   isCoach: boolean;
   sessionNote: ReturnType<typeof useSessionNote>;
+  deliveryFeedback: SessionFeedback | null;
   handlers: {
     messageCoach: () => void;
     cancelBooking: () => void;
@@ -43,8 +47,10 @@ export interface BookingDetailResult {
     reportProblem: () => void;
     rebook: () => void;
     manageRecurring: () => void;
+    completeSession: () => void;
   };
   canCancelBooking: boolean;
+  canCompleteSession: boolean;
   formatted: {
     weekday: string;
     dateStr: string;
@@ -130,6 +136,8 @@ export function useBookingDetail(id: string): BookingDetailResult {
 
   const sessionNote = useSessionNote(id);
 
+  const [deliveryFeedback, setDeliveryFeedback] = useState<SessionFeedback | null>(null);
+
   const loadBooking = useCallback(async () => {
     logger.debug('Loading booking', { id });
 
@@ -150,17 +158,24 @@ export function useBookingDetail(id: string): BookingDetailResult {
         const recurringSource = booking.recurringBookingId
           ? recurringById.get(booking.recurringBookingId)
           : undefined;
+        const feedback = await progressService.getSessionFeedback(
+          booking.id,
+          isCoach ? 'coach' : 'parent',
+        );
+        setDeliveryFeedback(feedback);
         return ok<BookingSummary | null>(
           toBookingSummary(booking, { viewerUserId: currentUser?.id, recurringSource, userNameById }),
         );
       }
 
+      setDeliveryFeedback(null);
       return ok<BookingSummary | null>(null);
     } catch (loadError) {
       logger.error('Failed to load booking', loadError);
+      setDeliveryFeedback(null);
       return err(serviceError('UNKNOWN', 'Failed to load booking details.', loadError));
     }
-  }, [currentUser?.id, id]);
+  }, [currentUser?.id, id, isCoach]);
 
   const { data, status, error, refreshing, onRefresh, retry } = useScreen<BookingSummary | null>({
     load: loadBooking,
@@ -182,6 +197,12 @@ export function useBookingDetail(id: string): BookingDetailResult {
     booking.status !== 'Cancelled' &&
     booking.status !== 'Completed' &&
     booking.status !== 'Needs Completion';
+  const canCompleteSession =
+    isCoach &&
+    canCoachCompleteBooking({
+      status: booking?.status,
+      start: booking?.start,
+    });
 
   const handleMessageCoach = useCallback(() => {
     if (!booking) return;
@@ -240,6 +261,11 @@ export function useBookingDetail(id: string): BookingDetailResult {
     router.push(Routes.familyRecurring({ recurringId: booking.recurringBookingId }));
   }, [booking?.recurringBookingId]);
 
+  const handleCompleteSession = useCallback(() => {
+    if (!booking?.id || !canCompleteSession) return;
+    router.push(Routes.sessionComplete(booking.id));
+  }, [booking?.id, canCompleteSession]);
+
   // Pre-format date values for rendering
   const formatted = booking
     ? (() => {
@@ -266,6 +292,7 @@ export function useBookingDetail(id: string): BookingDetailResult {
     retry,
     isCoach,
     sessionNote,
+    deliveryFeedback,
     handlers: {
       messageCoach: handleMessageCoach,
       cancelBooking: handleCancelBooking,
@@ -274,8 +301,10 @@ export function useBookingDetail(id: string): BookingDetailResult {
       reportProblem: handleReportProblem,
       rebook: handleRebook,
       manageRecurring: handleManageRecurring,
+      completeSession: handleCompleteSession,
     },
     canCancelBooking,
+    canCompleteSession,
     formatted,
   };
 }
