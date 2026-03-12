@@ -29,6 +29,8 @@ import { ThemedText } from '@/components/themed-text';
 import { Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
 import { useAuth } from '@/hooks/use-auth';
+import { buildDemoRoleEntries } from '@/utils/demo-role-entry';
+import { DemoRoleEntryCard } from './login-screen-sections';
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 
@@ -101,8 +103,26 @@ export default function LoginScreen() {
     [],
   );
 
+  const handleRoleEntry = useCallback(
+    async (entry: { username: string; password: string }) => {
+      if (submitting) return;
+      setLocalError(null);
+      setUsername(entry.username);
+      setPassword(entry.password);
+      setSubmitting(true);
+      try {
+        await login(entry.username, entry.password);
+      } finally {
+        setSubmitting(false);
+      }
+    },
+    [login, submitting],
+  );
+
   const isDesktop = screenWidth >= 980;
   const canSubmit = username.trim().length > 0 && password.trim().length > 0 && !submitting;
+  const demoRoleEntries = buildDemoRoleEntries(availableUsers);
+  const showRoleEntry = __DEV__ || availableUsers.length > 0;
   const lazyFallback = (
     <View style={[styles.lazyFallback, { backgroundColor: palette.surface }]}>
       <ThemedText style={[styles.hint, { color: palette.muted }]}>Loading...</ThemedText>
@@ -272,6 +292,25 @@ export default function LoginScreen() {
             {/* Divider */}
             <View style={[styles.divider, { backgroundColor: withAlpha(palette.text, 0.08) }]} />
 
+            {showRoleEntry && demoRoleEntries.length > 0 ? (
+              <View style={styles.roleEntrySection}>
+                <ThemedText style={styles.sectionTitle}>Demo role entry</ThemedText>
+                <ThemedText style={[styles.hint, { color: palette.muted }]}>
+                  Start from a named seeded story instead of remembering credentials.
+                </ThemedText>
+                <View style={styles.roleEntryGrid}>
+                  {demoRoleEntries.map((entry) => (
+                    <DemoRoleEntryCard
+                      key={entry.id}
+                      entry={entry}
+                      palette={palette}
+                      onPress={() => void handleRoleEntry(entry)}
+                    />
+                  ))}
+                </View>
+              </View>
+            ) : null}
+
             {/* Create account / Invite code */}
             <Pressable
               onPress={() => setScreenMode('signup')}
@@ -428,6 +467,15 @@ const styles = StyleSheet.create({
   },
   btnLabel: { ...Typography.bodySemiBold },
   divider: { height: StyleSheet.hairlineWidth },
+  roleEntrySection: {
+    gap: Spacing.sm,
+  },
+  sectionTitle: {
+    ...Typography.bodySemiBold,
+  },
+  roleEntryGrid: {
+    gap: Spacing.sm,
+  },
   secondaryBtn: {
     height: 44,
     borderRadius: Radii.lg,

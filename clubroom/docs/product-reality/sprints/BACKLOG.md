@@ -1,6 +1,6 @@
 # Product Reality Backlog
 
-Updated: 2026-03-11
+Updated: 2026-03-12
 
 ## Order
 
@@ -43,8 +43,8 @@ Updated: 2026-03-11
 | PR-16 | `coach-discovery-profile-and-conversion` | P1 | DONE | Coach discovery and profile now present a profile-first professional conversion path with honest contact and block behavior |
 | PR-17 | `booking-lifecycle-and-parent-operations` | P1 | DONE | Parents can now manage recurring plans from family flows and cancellation updates future generated sessions truthfully |
 | PR-18 | `session-delivery-feedback-and-rebooking-loop` | P1 | DONE | Booking detail now closes the post-session loop with coach completion entry and parent-facing outcome summary linked into progress |
-| PR-19 | `seeded-scenarios-and-role-entry-control` | P1 | CURRENT | Pre-API demos need coherent seeded stories and clean role entry points |
-| PR-15 | `poc-demo-readiness-and-golden-paths` | P1 | OPEN | A complete POC still needs final golden-path walkthroughs and rough-edge removal |
+| PR-19 | `seeded-scenarios-and-role-entry-control` | P1 | DONE | Login now exposes named seeded role-entry stories instead of relying on remembered raw credentials |
+| PR-15 | `poc-demo-readiness-and-golden-paths` | P1 | CURRENT | A complete POC still needs final golden-path walkthroughs and rough-edge removal |
 | PR-20 | `pre-api-stability-performance-and-flow-bar` | P1 | OPEN | The pre-API POC still needs an explicit stability and performance bar on hot flows |
 | PR-08 | `relationship-model-and-blocking-integrity` | P2 | OPEN | Relationship language and block integrity still need a final cleanup pass after the main loops are believable |
 | PR-09 | `account-auth-and-admin-ops-honesty` | P2 | OPEN | Lifecycle, auth, and internal ops still need an honest launch posture |

@@ -91,7 +91,7 @@ For the product to behave like `Johnny's Coaching LTD`, all of these must become
 
 ## Current Next Step
 
-- implement `PR-19` seeded scenarios and role entry control
+- implement `PR-15` POC demo readiness and golden paths
 
 ## Read Next
 
