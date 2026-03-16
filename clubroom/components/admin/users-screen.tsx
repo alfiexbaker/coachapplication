@@ -9,10 +9,14 @@ import { hasChildren } from '@/utils/user-helpers';
 import { useTheme } from '@/hooks/useTheme';
 import { useAuth } from '@/hooks/use-auth';
 import { Row } from '@/components/primitives';
+import { router } from 'expo-router';
+import { DemoWalkthroughCard } from '@/components/ui/demo-walkthrough-card';
+import { buildPrimaryDemoWalkthrough } from '@/utils/demo-walkthrough';
 
 export function AdminUsersScreen() {
   const { colors: palette } = useTheme();
-  const { availableUsers } = useAuth();
+  const { availableUsers, currentUser } = useAuth();
+  const walkthrough = buildPrimaryDemoWalkthrough({ user: currentUser });
 
   const userCounts = {
     coaches: availableUsers.filter((user) => user.role === 'COACH').length,
@@ -60,6 +64,13 @@ export function AdminUsersScreen() {
             <ThemedText style={[styles.statLabel, { color: palette.muted }]}>Parents</ThemedText>
           </SurfaceCard>
         </Row>
+
+        {walkthrough ? (
+          <DemoWalkthroughCard
+            walkthrough={walkthrough}
+            onPressStep={(step) => router.push(step.route)}
+          />
+        ) : null}
       </ScrollView>
     </SafeAreaView>
   );

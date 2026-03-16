@@ -8,10 +8,12 @@ import { Clickable } from '@/components/primitives/clickable';
 import { Row } from '@/components/primitives/row';
 import { ThemedText } from '@/components/themed-text';
 import { EmptyState, ErrorState, LoadingState } from '@/components/ui/screen-states';
+import { DemoWalkthroughCard } from '@/components/ui/demo-walkthrough-card';
 import { Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
 import { useClubDashboard } from '@/hooks/use-club-dashboard';
 import { Routes } from '@/navigation/routes';
+import { buildOwnerDemoWalkthrough } from '@/utils/demo-walkthrough';
 import type {
   OwnerDashboardSupportIssue,
   OwnerDashboardSummary,
@@ -229,6 +231,7 @@ export default function DashboardScreen() {
   const { colors } = useTheme();
   const { clubId, dashboard, status, error, retry, refreshing, onRefresh, navigateTo } =
     useClubDashboard();
+  const walkthrough = buildOwnerDemoWalkthrough(clubId);
 
   if (status === 'loading') {
     return (
@@ -273,6 +276,7 @@ export default function DashboardScreen() {
       onRefresh={onRefresh}
       gap={Spacing.md}
     >
+      <DemoWalkthroughCard walkthrough={walkthrough} onPressStep={(step) => navigateTo(step.route)} />
       <SnapshotCopy summary={dashboard.summary} />
 
       <View style={styles.metricGrid}>

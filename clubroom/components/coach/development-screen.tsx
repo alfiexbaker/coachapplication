@@ -6,9 +6,12 @@ import { ThemedText } from '@/components/themed-text';
 import { PageContainer } from '@/components/primitives/page-container';
 import { PageHeader } from '@/components/primitives/page-header';
 import { NotificationBell } from '@/components/ui/notification-bell';
+import { DemoWalkthroughCard } from '@/components/ui/demo-walkthrough-card';
 import { Spacing } from '@/constants/theme';
+import { router } from 'expo-router';
 
 import { useCoachDevelopment } from '@/hooks/use-coach-development';
+import { buildPrimaryDemoWalkthrough } from '@/utils/demo-walkthrough';
 import {
   QuickActions,
   CompletionCard,
@@ -37,6 +40,8 @@ export function CoachDevelopmentScreen() {
     );
   }
 
+  const walkthrough = buildPrimaryDemoWalkthrough({ user: currentUser });
+
   return (
     <PageContainer
       gap={Spacing.md}
@@ -48,6 +53,12 @@ export function CoachDevelopmentScreen() {
         />
       }
     >
+      {walkthrough ? (
+        <DemoWalkthroughCard
+          walkthrough={walkthrough}
+          onPressStep={(step) => router.push(step.route)}
+        />
+      ) : null}
       <QuickActions />
       <CompletionCard bookings={awaitingCompletion} />
       <AttentionSection athletes={attentionAthletes} logger={logger} />

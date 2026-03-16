@@ -18,6 +18,8 @@ import { Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
 import { useHomeScreen } from '@/hooks/use-home-screen';
 import { Routes } from '@/navigation/routes';
+import { DemoWalkthroughCard } from '@/components/ui/demo-walkthrough-card';
+import { buildPrimaryDemoWalkthrough } from '@/utils/demo-walkthrough';
 import {
   StatsRow,
   StreakCard,
@@ -54,6 +56,10 @@ export function UserHomeScreen() {
   const hasChildReferences = (currentUser.children?.length ?? 0) > 0;
   const isNewParent = hasChildReferences && !hasChildProfiles && contextChildren.length === 0;
   const showChildCard = Boolean(selectedChild);
+  const walkthrough = buildPrimaryDemoWalkthrough({
+    user: currentUser,
+    hasChildProfiles,
+  });
   const profileName = isViewingSelfProfile
     ? currentUser.name || currentUser.fullName || 'You'
     : selectedChild?.name || 'Child';
@@ -178,6 +184,13 @@ export function UserHomeScreen() {
               </Clickable>
             </Column>
           </SurfaceCard>
+        ) : null}
+
+        {walkthrough ? (
+          <DemoWalkthroughCard
+            walkthrough={walkthrough}
+            onPressStep={(step) => router.push(step.route)}
+          />
         ) : null}
 
         <StatsRow stats={stats} />
