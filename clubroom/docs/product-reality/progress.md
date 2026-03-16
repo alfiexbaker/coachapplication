@@ -46,6 +46,8 @@ Purpose: keep a live record of what has been decided, what has been completed, a
 - recurring and program-based offers now present explicit capacity, ownership, and registration truth across create and family registration flows
 - org reassignment and support reporting now trigger explicit in-app handoff notifications for staff and families
 - the club dashboard is now an owner control surface with staffing risk, completion pressure, support issues, and honest org finance state linked into live operating flows
+- seeded role entry now exposes explicit story starts for owner, coach, parent, athlete, and admin demo paths
+- the pre-API verification bar now includes owner dashboard, coach earnings, and family recurring hot flows
 - coach discovery, profile, and favourites surfaces now use professional conversion language, profile-first entry, and blocked/contact-safe CTAs
 - product-reality sprint docs were rebuilt as a minimal current queue after the docs cleanup
 - UI audit false-positive for re-export routes removed
@@ -69,11 +71,12 @@ Purpose: keep a live record of what has been decided, what has been completed, a
 | PR-12 | Done | programs, recurring registration, and family-facing capacity/ownership truth now render as a coherent offer model |
 | PR-13 | Done | org reassignment and support issues now trigger explicit handoff notifications and support routing |
 | PR-14 | Done | owner dashboard now shows live staffing, delivery, support, and finance state from real org services |
-| PR-15 | Open | remaining complete-POC layer |
+| PR-15 | Done | complete-POC walkthrough layer landed on real role surfaces |
 | PR-16 | Done | coach discovery and profile now read like a professional conversion path with contact/block trust intact |
 | PR-17 | Done | recurring parent operations now have a live management surface, booking back-links, and cancellation integrity for future generated sessions |
 | PR-18 | Done | booking detail now closes the post-session loop with coach completion entry and a parent-facing session outcome linked into child progress |
-| PR-19 to PR-20 | Open | coach/user-first and pre-API closure layer |
+| PR-19 | Done | seeded role entry now exposes explicit story starts including owner ops |
+| PR-20 | Done | hidden owner entry and missing pre-API flow-bar coverage are now closed on the demo hot paths |
 | PR-08 to PR-10 | Open | important cleanup/hardening after core proof |
 
 ## What Still Needs To Be True
@@ -91,7 +94,7 @@ For the product to behave like `Johnny's Coaching LTD`, all of these must become
 
 ## Current Next Step
 
-- implement `PR-20` pre-API stability, performance, and flow bar
+- pre-API POC sprint spine is complete; next optional cleanup is `PR-08` relationship model and blocking integrity
 
 ## Read Next
 

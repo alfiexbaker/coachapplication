@@ -7,6 +7,7 @@
  */
 
 import { Suspense, lazy, useCallback, useEffect, useState } from 'react';
+import { router } from 'expo-router';
 import {
   KeyboardAvoidingView,
   Platform,
@@ -104,7 +105,7 @@ export default function LoginScreen() {
   );
 
   const handleRoleEntry = useCallback(
-    async (entry: { username: string; password: string }) => {
+    async (entry: { username: string; password: string; initialRoute?: unknown }) => {
       if (submitting) return;
       setLocalError(null);
       setUsername(entry.username);
@@ -112,6 +113,9 @@ export default function LoginScreen() {
       setSubmitting(true);
       try {
         await login(entry.username, entry.password);
+        if (entry.initialRoute) {
+          router.replace(entry.initialRoute as never);
+        }
       } finally {
         setSubmitting(false);
       }

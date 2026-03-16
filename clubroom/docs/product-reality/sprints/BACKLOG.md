@@ -1,6 +1,6 @@
 # Product Reality Backlog
 
-Updated: 2026-03-12
+Updated: 2026-03-16
 
 ## Order
 
@@ -45,7 +45,7 @@ Updated: 2026-03-12
 | PR-18 | `session-delivery-feedback-and-rebooking-loop` | P1 | DONE | Booking detail now closes the post-session loop with coach completion entry and parent-facing outcome summary linked into progress |
 | PR-19 | `seeded-scenarios-and-role-entry-control` | P1 | DONE | Login now exposes named seeded role-entry stories instead of relying on remembered raw credentials |
 | PR-15 | `poc-demo-readiness-and-golden-paths` | P1 | DONE | The main role surfaces now expose explicit seeded walkthrough guidance on the real product routes |
-| PR-20 | `pre-api-stability-performance-and-flow-bar` | P1 | CURRENT | The pre-API POC still needs an explicit stability and performance bar on hot flows |
-| PR-08 | `relationship-model-and-blocking-integrity` | P2 | OPEN | Relationship language and block integrity still need a final cleanup pass after the main loops are believable |
+| PR-20 | `pre-api-stability-performance-and-flow-bar` | P1 | DONE | Owner entry and the pre-API verification bar now cover the seeded hot paths more honestly |
+| PR-08 | `relationship-model-and-blocking-integrity` | P2 | CURRENT | Relationship language and block integrity still need a final cleanup pass after the main loops are believable |
 | PR-09 | `account-auth-and-admin-ops-honesty` | P2 | OPEN | Lifecycle, auth, and internal ops still need an honest launch posture |
 | PR-10 | `org-surface-migration-and-naming-cleanup` | P2 | OPEN | The repo still has club and org naming drift that should only be cleaned once the runtime model is actually working |
