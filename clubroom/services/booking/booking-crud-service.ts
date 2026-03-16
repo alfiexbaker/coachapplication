@@ -24,7 +24,7 @@ import { notificationTriggers } from '../notification-trigger';
 import { createLogger } from '@/utils/logger';
 import { toDateStr } from '@/utils/format';
 import { emitTyped, ServiceEvents } from '@/services/event-bus';
-import { blockService } from '@/services/block-service';
+import { blockService, getBlockActionMessage } from '@/services/block-service';
 import { progressAttendanceService } from '@/services/progress/progress-attendance-service';
 import { getSessionOfferingHeadcount } from '@/utils/session-offering-capacity';
 import {
@@ -589,18 +589,18 @@ class BookingCrudService {
     }
 
     // Check if coach/booker have blocked each other
-    const blockedResult = await blockService.isBlocked(coachId, bookedById);
-    if (blockedResult.success && blockedResult.data) {
+    const blockedResult = await blockService.getBlockStatus(bookedById, coachId);
+    if (blockedResult.success && blockedResult.data.blocked) {
       logger.warn('Booking blocked due to block relationship', { coachId, bookedById });
       emitTyped(ServiceEvents.USER_ACTION_BLOCKED, {
-        blockerId: bookedById,
-        blockedId: coachId,
+        blockerId: blockedResult.data.blockerId ?? bookedById,
+        blockedId: blockedResult.data.blockedId ?? coachId,
         action: 'create_booking',
         timestamp: new Date().toISOString(),
       });
       return err({
         code: 'CONFLICT',
-        message: 'Cannot create booking with this user',
+        message: getBlockActionMessage('booking'),
       });
     }
 

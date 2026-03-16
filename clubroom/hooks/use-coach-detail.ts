@@ -66,7 +66,7 @@ export function useCoachDetail(coachId: string | undefined) {
     setIsBlocked(blockedResult.success ? blockedResult.data : false);
 
     if (isFriends) {
-      setConnectionState('friends');
+      setConnectionState('following');
       setIncomingRequestId(null);
       return;
     }
@@ -148,7 +148,7 @@ export function useCoachDetail(coachId: string | undefined) {
     if (followLoading) return 'Updating...';
     return getCoachRelationshipDisplay(connectionState, { blocked: isBlocked }).relationshipLabel;
   }, [connectionState, followLoading, isBlocked]);
-  const isFollowing = connectionState === 'friends';
+  const isFollowing = connectionState === 'following';
   const relationshipDisplay = useMemo(
     () => getCoachRelationshipDisplay(connectionState, { blocked: isBlocked }),
     [connectionState, isBlocked],

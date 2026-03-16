@@ -5,7 +5,7 @@ import { notificationService } from './notification-service';
 import { createLogger } from '@/utils/logger';
 import { emitTyped, ServiceEvents } from './event-bus';
 import { type Result, type ServiceError, ok, err, storageError, notFound } from '@/types/result';
-import { blockService } from './block-service';
+import { blockService, getBlockActionMessage } from './block-service';
 
 const logger = createLogger('MessagingService');
 
@@ -209,21 +209,21 @@ export class MessagingService {
 
       // Check if users have blocked each other
       if (senderUserId && recipientUserId) {
-        const blockedResult = await blockService.isBlocked(senderUserId, recipientUserId);
-        if (blockedResult.success && blockedResult.data) {
+        const blockedResult = await blockService.getBlockStatus(senderUserId, recipientUserId);
+        if (blockedResult.success && blockedResult.data.blocked) {
           logger.warn('Message blocked due to block relationship', {
             senderUserId,
             recipientUserId,
           });
           emitTyped(ServiceEvents.USER_ACTION_BLOCKED, {
-            blockerId: senderUserId,
-            blockedId: recipientUserId,
+            blockerId: blockedResult.data.blockerId ?? senderUserId,
+            blockedId: blockedResult.data.blockedId ?? recipientUserId,
             action: 'send_message',
             timestamp: new Date().toISOString(),
           });
           return err({
             code: 'CONFLICT' as const,
-            message: 'Cannot send message to this user',
+            message: getBlockActionMessage('messaging'),
           });
         }
       }

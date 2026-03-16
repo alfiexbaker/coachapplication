@@ -19,6 +19,25 @@ interface BlockedUsersMap {
   [userId: string]: string[];
 }
 
+export type BlockRelationship =
+  | 'none'
+  | 'blocked_by_actor'
+  | 'blocked_by_target'
+  | 'mutual';
+
+export interface BlockStatus {
+  relationship: BlockRelationship;
+  blocked: boolean;
+  blockerId: string | null;
+  blockedId: string | null;
+}
+
+export function getBlockActionMessage(action: 'booking' | 'messaging'): string {
+  return action === 'booking'
+    ? 'Booking is unavailable because one side has blocked the other.'
+    : 'Messaging is unavailable because one side has blocked the other.';
+}
+
 export const blockService = {
   /**
    * Block a user. The blocked user will not be able to message, invite,
@@ -76,12 +95,54 @@ export const blockService = {
    * Check whether userId has blocked targetId, or vice versa.
    */
   async isBlocked(userId: string, targetId: string): Promise<Result<boolean, ServiceError>> {
+    const statusResult = await this.getBlockStatus(userId, targetId);
+    if (!statusResult.success) {
+      return err(statusResult.error);
+    }
+    return ok(statusResult.data.blocked);
+  },
+
+  async getBlockStatus(userId: string, targetId: string): Promise<Result<BlockStatus, ServiceError>> {
     try {
       const allBlocked = await apiClient.get<BlockedUsersMap>(STORAGE_KEYS.BLOCKED_USERS, {});
       const blockedByUser = allBlocked[userId] || [];
       const blockedByTarget = allBlocked[targetId] || [];
+      const userBlockedTarget = blockedByUser.includes(targetId);
+      const targetBlockedUser = blockedByTarget.includes(userId);
 
-      return ok(blockedByUser.includes(targetId) || blockedByTarget.includes(userId));
+      if (userBlockedTarget && targetBlockedUser) {
+        return ok({
+          relationship: 'mutual',
+          blocked: true,
+          blockerId: userId,
+          blockedId: targetId,
+        });
+      }
+
+      if (userBlockedTarget) {
+        return ok({
+          relationship: 'blocked_by_actor',
+          blocked: true,
+          blockerId: userId,
+          blockedId: targetId,
+        });
+      }
+
+      if (targetBlockedUser) {
+        return ok({
+          relationship: 'blocked_by_target',
+          blocked: true,
+          blockerId: targetId,
+          blockedId: userId,
+        });
+      }
+
+      return ok({
+        relationship: 'none',
+        blocked: false,
+        blockerId: null,
+        blockedId: null,
+      });
     } catch (error) {
       logger.error('Failed to check blocked status', { userId, targetId, error });
       return err(storageError('Failed to check blocked status'));

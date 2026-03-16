@@ -116,4 +116,41 @@ describe('blockService', () => {
       assert.equal(result, false);
     });
   });
+
+  describe('getBlockStatus', () => {
+    test('returns blocked_by_actor when actor blocked target', async () => {
+      const actor = uid();
+      const target = uid();
+      expectOk(await blockService.blockUser(actor, target));
+
+      const status = expectOk(await blockService.getBlockStatus(actor, target));
+      assert.equal(status.relationship, 'blocked_by_actor');
+      assert.equal(status.blocked, true);
+      assert.equal(status.blockerId, actor);
+      assert.equal(status.blockedId, target);
+    });
+
+    test('returns blocked_by_target when target blocked actor', async () => {
+      const actor = uid();
+      const target = uid();
+      expectOk(await blockService.blockUser(target, actor));
+
+      const status = expectOk(await blockService.getBlockStatus(actor, target));
+      assert.equal(status.relationship, 'blocked_by_target');
+      assert.equal(status.blocked, true);
+      assert.equal(status.blockerId, target);
+      assert.equal(status.blockedId, actor);
+    });
+
+    test('returns mutual when both sides blocked each other', async () => {
+      const actor = uid();
+      const target = uid();
+      expectOk(await blockService.blockUser(actor, target));
+      expectOk(await blockService.blockUser(target, actor));
+
+      const status = expectOk(await blockService.getBlockStatus(actor, target));
+      assert.equal(status.relationship, 'mutual');
+      assert.equal(status.blocked, true);
+    });
+  });
 });

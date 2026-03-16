@@ -1,7 +1,7 @@
 /**
  * Create Post Screen
  *
- * Routes staff users to the club composer while keeping personal friend posting
+ * Routes staff users to the club composer while keeping personal posting
  * available for parents/users from anywhere.
  */
 

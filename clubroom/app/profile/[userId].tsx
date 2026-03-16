@@ -20,14 +20,14 @@ import type { User } from '@/constants/types';
 import { err, ok, serviceError } from '@/types/result';
 import { uiFeedback } from '@/services/ui-feedback';
 
-type FriendState = 'self' | 'none' | 'outgoing_pending' | 'incoming_pending' | 'friends';
+type ConnectionState = 'self' | 'none' | 'outgoing_pending' | 'incoming_pending' | 'following';
 
 export default function ProfileScreen() {
   const { userId } = useLocalSearchParams<{ userId: string }>();
   const { currentUser } = useAuth();
-  const [friendState, setFriendState] = useState<FriendState>('none');
+  const [connectionState, setConnectionState] = useState<ConnectionState>('none');
   const [incomingRequestId, setIncomingRequestId] = useState<string | null>(null);
-  const [friendActionLoading, setFriendActionLoading] = useState(false);
+  const [connectionActionLoading, setConnectionActionLoading] = useState(false);
 
   const { data, status, error, retry, colors } = useScreen<User | null>({
     load: async () => {
@@ -60,10 +60,10 @@ export default function ProfileScreen() {
   const canOpenCoachProfile = data?.role === 'COACH';
   const canManageConnection = Boolean(currentUser?.id && data?.id && currentUser.id !== data.id);
 
-  const loadFriendState = useCallback(
+  const loadConnectionState = useCallback(
     async (targetId: string) => {
       if (!currentUser?.id || currentUser.id === targetId) {
-        setFriendState('self');
+        setConnectionState('self');
         setIncomingRequestId(null);
         return;
       }
@@ -75,14 +75,14 @@ export default function ProfileScreen() {
       ]);
 
       if (isFriends) {
-        setFriendState('friends');
+        setConnectionState('following');
         setIncomingRequestId(null);
         return;
       }
 
       const incomingRequest = requestsForCurrent.find((request) => request.requesterId === targetId);
       if (incomingRequest) {
-        setFriendState('incoming_pending');
+        setConnectionState('incoming_pending');
         setIncomingRequestId(incomingRequest.id);
         return;
       }
@@ -91,12 +91,12 @@ export default function ProfileScreen() {
         (request) => request.requesterId === currentUser.id,
       );
       if (hasOutgoingRequest) {
-        setFriendState('outgoing_pending');
+        setConnectionState('outgoing_pending');
         setIncomingRequestId(null);
         return;
       }
 
-      setFriendState('none');
+      setConnectionState('none');
       setIncomingRequestId(null);
     },
     [currentUser?.id],
@@ -105,33 +105,34 @@ export default function ProfileScreen() {
   useEffect(() => {
     if (!data?.id || status !== 'success') return;
 
-    void loadFriendState(data.id).catch(() => {
-      setFriendState('none');
+    void loadConnectionState(data.id).catch(() => {
+      setConnectionState('none');
       setIncomingRequestId(null);
     });
-  }, [data?.id, loadFriendState, status]);
+  }, [data?.id, loadConnectionState, status]);
 
-  const friendButtonLabel = useMemo(() => {
-    if (friendActionLoading) return 'Updating...';
-    if (friendState === 'friends') return 'Friends';
-    if (friendState === 'outgoing_pending') return 'Request Sent';
-    if (friendState === 'incoming_pending') return 'Accept Friend Request';
-    return 'Send Friend Request';
-  }, [friendActionLoading, friendState]);
+  const connectionButtonLabel = useMemo(() => {
+    if (connectionActionLoading) return 'Updating...';
+    if (connectionState === 'following') return 'Following';
+    if (connectionState === 'outgoing_pending') return 'Follow requested';
+    if (connectionState === 'incoming_pending') return 'Review follow';
+    return 'Follow';
+  }, [connectionActionLoading, connectionState]);
 
-  const canTriggerFriendAction =
-    !friendActionLoading &&
+  const canTriggerConnectionAction =
+    !connectionActionLoading &&
     canManageConnection &&
-    (friendState === 'none' || (friendState === 'incoming_pending' && Boolean(incomingRequestId)));
+    (connectionState === 'none' ||
+      (connectionState === 'incoming_pending' && Boolean(incomingRequestId)));
 
-  const handleFriendAction = useCallback(async () => {
-    if (!currentUser?.id || !data?.id || !canManageConnection || friendActionLoading) return;
+  const handleConnectionAction = useCallback(async () => {
+    if (!currentUser?.id || !data?.id || !canManageConnection || connectionActionLoading) return;
 
-    setFriendActionLoading(true);
+    setConnectionActionLoading(true);
     try {
-      if (friendState === 'incoming_pending' && incomingRequestId) {
+      if (connectionState === 'incoming_pending' && incomingRequestId) {
         await followService.respondToRequest(incomingRequestId, 'ACCEPTED');
-      } else if (friendState === 'none') {
+      } else if (connectionState === 'none') {
         await followService.sendFollowRequest({
           requesterId: currentUser.id,
           requesterName: currentUser.fullName || currentUser.name || currentUser.username || 'User',
@@ -142,11 +143,11 @@ export default function ProfileScreen() {
         return;
       }
 
-      await loadFriendState(data.id);
+      await loadConnectionState(data.id);
     } catch {
       uiFeedback.showToast('Please try again in a moment.', 'error');
     } finally {
-      setFriendActionLoading(false);
+      setConnectionActionLoading(false);
     }
   }, [
     canManageConnection,
@@ -156,10 +157,10 @@ export default function ProfileScreen() {
     currentUser?.username,
     data?.id,
     data?.name,
-    friendActionLoading,
-    friendState,
+    connectionActionLoading,
+    connectionState,
     incomingRequestId,
-    loadFriendState,
+    loadConnectionState,
   ]);
 
   if (status === 'loading') {
@@ -222,12 +223,12 @@ export default function ProfileScreen() {
       <View style={styles.actions}>
         {canManageConnection && (
           <Button
-            onPress={handleFriendAction}
-            disabled={!canTriggerFriendAction}
-            variant={friendState === 'none' ? 'outline' : 'secondary'}
-            accessibilityLabel={friendButtonLabel}
+            onPress={handleConnectionAction}
+            disabled={!canTriggerConnectionAction}
+            variant={connectionState === 'none' ? 'outline' : 'secondary'}
+            accessibilityLabel={connectionButtonLabel}
           >
-            {friendButtonLabel}
+            {connectionButtonLabel}
           </Button>
         )}
         <Button onPress={() => router.push(Routes.chat(data.id))}>Message</Button>

@@ -88,7 +88,7 @@ export const CreatePostForm = memo(function CreatePostForm({
         >
           <Ionicons name="close" size={24} color={palette.foreground} />
         </Clickable>
-        <ThemedText type="defaultSemiBold">New Friend Post</ThemedText>
+        <ThemedText type="defaultSemiBold">New Personal Post</ThemedText>
         <Clickable
           onPress={onPost}
           disabled={!canPost}
@@ -130,9 +130,9 @@ export const CreatePostForm = memo(function CreatePostForm({
           >
             <Ionicons name="person-circle-outline" size={24} color={palette.success} />
             <Column flex>
-              <ThemedText type="defaultSemiBold">Friend Feed</ThemedText>
+              <ThemedText type="defaultSemiBold">Personal Feed</ThemedText>
               <ThemedText style={{ color: palette.muted, ...Typography.caption }}>
-                Visible to friends you connect with (parents and coaches)
+                Visible to people following your personal updates, including parents and coaches
               </ThemedText>
             </Column>
           </Row>
@@ -206,7 +206,7 @@ export const CreatePostForm = memo(function CreatePostForm({
               maxLength={1000}
             />
             <ThemedText style={[styles.bodyHelper, { color: bodyError ? palette.error : palette.muted }]}>
-              {bodyError ?? 'Share progress, clips, and milestones with your friends'}
+              {bodyError ?? 'Share progress, clips, and milestones with people following your updates'}
             </ThemedText>
           </View>
 

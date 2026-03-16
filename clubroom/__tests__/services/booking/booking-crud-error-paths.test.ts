@@ -5,6 +5,7 @@ import { bookingCrudService } from '@/services/booking/booking-crud-service';
 import { apiClient } from '@/services/api-client';
 import { STORAGE_KEYS } from '@/constants/storage-keys';
 import { onTyped, ServiceEvents } from '@/services/event-bus';
+import { blockService } from '@/services/block-service';
 
 /** Helper to create a valid booking params object with overrides. */
 function makeParams(overrides: Record<string, unknown> = {}) {
@@ -33,6 +34,7 @@ describe('BookingCrudService — error paths', () => {
     await apiClient.remove(STORAGE_KEYS.PROGRESS_SELF_ASSESSMENT_PROMPTS);
     await apiClient.remove(STORAGE_KEYS.PROGRESS_SELF_ASSESSMENTS);
     await apiClient.remove(STORAGE_KEYS.SESSION_JOURNAL);
+    await apiClient.remove(STORAGE_KEYS.BLOCKED_USERS);
     bookingCrudService.resetDraft();
   });
 
@@ -140,6 +142,28 @@ describe('BookingCrudService — error paths', () => {
       assert.equal(events.length, 0, 'BOOKING_CREATED should not fire on validation failure');
     } finally {
       unsub();
+    }
+  });
+
+  it('should return a block-specific conflict error when booking is blocked', async () => {
+    const coachId = 'coach_blocked';
+    const bookedById = 'parent_blocked';
+    await blockService.blockUser(bookedById, coachId);
+
+    const result = await bookingCrudService.createBooking(
+      makeParams({
+        coachId,
+        bookedById,
+      }),
+    );
+
+    assert.equal(result.success, false);
+    if (!result.success) {
+      assert.equal(result.error.code, 'CONFLICT');
+      assert.equal(
+        result.error.message,
+        'Booking is unavailable because one side has blocked the other.',
+      );
     }
   });
 });

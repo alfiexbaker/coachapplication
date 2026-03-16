@@ -3,7 +3,7 @@ export type CoachConnectionState =
   | 'none'
   | 'outgoing_pending'
   | 'incoming_pending'
-  | 'friends';
+  | 'following';
 
 export interface CoachRelationshipDisplay {
   relationshipLabel: string;
@@ -36,7 +36,7 @@ export function getCoachRelationshipDisplay(
         contactDetail: 'Use your coach inbox to manage incoming enquiries.',
         profileSummary: 'This profile is your public business surface for discovery and booking.',
       };
-    case 'friends':
+    case 'following':
       return {
         relationshipLabel: 'Following',
         relationshipIcon: 'checkmark-circle-outline',

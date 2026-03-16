@@ -48,6 +48,8 @@ Purpose: keep a live record of what has been decided, what has been completed, a
 - the club dashboard is now an owner control surface with staffing risk, completion pressure, support issues, and honest org finance state linked into live operating flows
 - seeded role entry now exposes explicit story starts for owner, coach, parent, athlete, and admin demo paths
 - the pre-API verification bar now includes owner dashboard, coach earnings, and family recurring hot flows
+- blocking now resolves through a shared direction-aware status contract, and booking/messaging use one blocked-action language
+- remaining personal-feed `friend` copy has been replaced with personal/following language
 - coach discovery, profile, and favourites surfaces now use professional conversion language, profile-first entry, and blocked/contact-safe CTAs
 - product-reality sprint docs were rebuilt as a minimal current queue after the docs cleanup
 - UI audit false-positive for re-export routes removed
@@ -77,7 +79,8 @@ Purpose: keep a live record of what has been decided, what has been completed, a
 | PR-18 | Done | booking detail now closes the post-session loop with coach completion entry and a parent-facing session outcome linked into child progress |
 | PR-19 | Done | seeded role entry now exposes explicit story starts including owner ops |
 | PR-20 | Done | hidden owner entry and missing pre-API flow-bar coverage are now closed on the demo hot paths |
-| PR-08 to PR-10 | Open | important cleanup/hardening after core proof |
+| PR-08 | Done | relationship and block integrity now use shared semantics and removed the last live friend-language leaks on core personal-feed surfaces |
+| PR-09 to PR-10 | Open | important cleanup/hardening after core proof |
 
 ## What Still Needs To Be True
 
@@ -94,7 +97,7 @@ For the product to behave like `Johnny's Coaching LTD`, all of these must become
 
 ## Current Next Step
 
-- pre-API POC sprint spine is complete; next optional cleanup is `PR-08` relationship model and blocking integrity
+- next optional cleanup is `PR-09` account, auth, and admin ops honesty
 
 ## Read Next
 

@@ -13,7 +13,7 @@ describe('coach conversion relationship display', () => {
   });
 
   it('shows blocked-state copy that disables contact and booking intent', () => {
-    const display = getCoachRelationshipDisplay('friends', { blocked: true });
+    const display = getCoachRelationshipDisplay('following', { blocked: true });
 
     assert.equal(display.relationshipLabel, 'Coach blocked');
     assert.equal(display.contactLabel, 'Contact unavailable');

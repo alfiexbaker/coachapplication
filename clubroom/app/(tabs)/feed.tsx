@@ -214,7 +214,7 @@ export default function FeedScreen() {
         <EmptyState
           icon="newspaper-outline"
           title="No posts yet"
-          message="Connect with friends or join a club to see posts in your feed."
+          message="Follow coaches, share personal updates, or join a club to see posts in your feed."
         />
       </PageContainer>
     );
