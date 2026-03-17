@@ -140,6 +140,11 @@ Reason:
   - seeded family demo entry now starts at the real runtime home
   - the old parent-discover home surface was removed as dead code
   - `Family Dashboard` is now explicitly framed as `Family Overview`
+- `VS-02` is now in progress:
+  - `Family Overview` is reduced to shortcuts, upcoming sessions, child progress entry, and trust context
+  - family spending is now framed as `Spending Records` instead of a chart-led finance destination
+  - dead family summary components were removed with the screen change
+  - `Manage` remains the next sub-cut because some coach/head-coach flows still use it as a club-context bridge
 
 ### VS-01 Relationship-First Entry And Family Spine
 
@@ -163,6 +168,21 @@ Acceptance:
 - `Family Dashboard` becomes a thin gateway or stops being primary
 
 ### VS-02 Cut Duplicate Summary Surfaces
+
+Status:
+
+- `IN PROGRESS` on 2026-03-17
+
+Progress in this slice:
+
+- removed family overview stats, recognition-first UI, and next-session spotlighting
+- reduced family overview to action-first family entry points
+- rewrote family spending into records plus child totals instead of charts and filters
+- deleted the now-dead family chart and recognition components
+
+Remaining before this sprint is fully closed:
+
+- merge `Manage` into owner dashboard actions once club-context routing is explicit enough not to strand coach/head-coach flows
 
 Objective:
 

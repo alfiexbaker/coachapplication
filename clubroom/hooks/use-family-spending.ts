@@ -1,62 +1,43 @@
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useMemo } from 'react';
 
 import { useAuth } from '@/hooks/use-auth';
 import { useScreen } from '@/hooks/use-screen';
-import { familyService, type FamilySpending } from '@/services/family';
+import { familyService, type FamilyMember, type FamilySpending } from '@/services/family';
 import { createLogger } from '@/utils/logger';
+import {
+  buildFamilyMemberNameMap,
+  buildRecentSpendingRecords,
+  buildSpendingLedgerItems,
+} from '@/utils/family-spending-helpers';
 import { err, ok, serviceError, type ServiceError } from '@/types/result';
 
 const logger = createLogger('FamilySpendingScreen');
 
-export type DateRangeFilter = '1m' | '3m' | '6m' | '1y' | 'all';
-
-export const DATE_FILTER_LABELS: Record<DateRangeFilter, string> = {
-  '1m': '1 Month',
-  '3m': '3 Months',
-  '6m': '6 Months',
-  '1y': '1 Year',
-  all: 'All Time',
-};
-
-export const DATE_FILTERS: DateRangeFilter[] = ['1m', '3m', '6m', '1y', 'all'];
-
-type SpendingSummary = {
-  totalSpent: number;
-  thisMonth: number;
-  lastMonth: number;
-  currency: string;
-  trend: 'up' | 'down' | 'stable';
-  trendPercent: number;
-};
-
 interface FamilySpendingData {
+  members: FamilyMember[];
   spending: FamilySpending[];
-  spendingSummary: SpendingSummary | null;
 }
 
 export function useFamilySpending() {
   const { currentUser } = useAuth();
 
-  const [dateFilter, setDateFilter] = useState<DateRangeFilter>('3m');
-
   const loadData = useCallback(async () => {
     if (!currentUser?.id) {
       return ok<FamilySpendingData>({
+        members: [],
         spending: [],
-        spendingSummary: null,
       });
     }
 
     try {
-      const [spendingData, , summaryData] = await Promise.all([
-        familyService.getFamilySpending(currentUser.id),
+      const [membersData, spendingData] = await Promise.all([
         familyService.getFamilyMembers(currentUser.id),
-        familyService.getFamilySpendingSummary(currentUser.id),
+        familyService.getFamilySpending(currentUser.id),
       ]);
 
       return ok<FamilySpendingData>({
+        members: membersData,
         spending: spendingData,
-        spendingSummary: summaryData,
       });
     } catch (error) {
       logger.error('Failed to load spending data:', error);
@@ -71,42 +52,18 @@ export function useFamilySpending() {
     refetchOnFocus: true,
   });
 
+  const members = data?.members ?? [];
   const spending = data?.spending ?? [];
-  const spendingSummary = data?.spendingSummary ?? null;
-
-  const handleDateFilterChange = useCallback((filter: DateRangeFilter) => {
-    setDateFilter(filter);
-  }, []);
-
-  const getMonthsToShow = useCallback((): number => {
-    switch (dateFilter) {
-      case '1m':
-        return 1;
-      case '3m':
-        return 3;
-      case '6m':
-        return 6;
-      case '1y':
-        return 12;
-      default:
-        return 6;
-    }
-  }, [dateFilter]);
+  const memberNameMap = useMemo(() => buildFamilyMemberNameMap(members), [members]);
 
   const recentTransactions = useMemo(
-    () =>
-      spending
-        .flatMap((s) =>
-          (s.monthlyBreakdown || []).slice(0, 1).map((mb) => ({
-            childName: s.childId,
-            colorCode: s.colorCode,
-            month: mb.month,
-            amount: mb.amount,
-            sessionCount: mb.sessionCount,
-          })),
-        )
-        .slice(0, 5),
-    [spending],
+    () => buildRecentSpendingRecords(spending, memberNameMap),
+    [spending, memberNameMap],
+  );
+
+  const ledgerItems = useMemo(
+    () => buildSpendingLedgerItems(spending, memberNameMap),
+    [spending, memberNameMap],
   );
 
   return {
@@ -116,11 +73,7 @@ export function useFamilySpending() {
     refreshing,
     onRefresh,
     retry,
-    spending,
-    dateFilter,
-    spendingSummary,
-    handleDateFilterChange,
-    getMonthsToShow,
     recentTransactions,
+    ledgerItems,
   };
 }

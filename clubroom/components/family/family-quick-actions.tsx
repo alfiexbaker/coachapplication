@@ -30,7 +30,7 @@ export const FamilyQuickActions = memo(function FamilyQuickActions({
         <View style={styles.text}>
           <ThemedText type="defaultSemiBold">Family Calendar</ThemedText>
           <ThemedText style={[Typography.small, { color: palette.muted }]}>
-            All sessions in one view
+            Run the live family week
           </ThemedText>
         </View>
         <Ionicons name="chevron-forward" size={20} color={palette.muted} />
@@ -41,12 +41,12 @@ export const FamilyQuickActions = memo(function FamilyQuickActions({
         style={[styles.card, { backgroundColor: withAlpha(palette.success, 0.06) }]}
       >
         <View style={[styles.icon, { backgroundColor: palette.success }]}>
-          <Ionicons name="wallet" size={24} color={palette.onPrimary} />
+          <Ionicons name="receipt-outline" size={24} color={palette.onPrimary} />
         </View>
         <View style={styles.text}>
-          <ThemedText type="defaultSemiBold">Spending Overview</ThemedText>
+          <ThemedText type="defaultSemiBold">Spending Records</ThemedText>
           <ThemedText style={[Typography.small, { color: palette.muted }]}>
-            Track costs by child
+            Review recent booked-session costs
           </ThemedText>
         </View>
         <Ionicons name="chevron-forward" size={20} color={palette.muted} />

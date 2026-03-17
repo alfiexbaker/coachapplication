@@ -11,9 +11,11 @@ import { Spacing, Radii, Typography } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
 
 interface Transaction {
+  childId: string;
   childName: string;
   colorCode: string;
   month: string;
+  monthLabel: string;
   amount: number;
   sessionCount: number;
 }
@@ -35,37 +37,44 @@ export const SpendingTransactions = memo(function SpendingTransactions({
     <SurfaceCard style={styles.card}>
       <Row align="center" justify="space-between">
         <ThemedText type="defaultSemiBold" style={Typography.bodySmall}>
-          Recent Sessions
+          Recent Booking Records
         </ThemedText>
         <Clickable onPress={handleViewAll}>
           <ThemedText style={[Typography.smallSemiBold, { color: colors.tint }]}>
-            View All
+            Open Calendar
           </ThemedText>
         </Clickable>
       </Row>
       <View style={{ gap: Spacing.sm }}>
-        {transactions.map((item, index) => (
-          <Row
-            key={`${item.childName}-${item.month}-${index}`}
-            align="center"
-            justify="space-between"
-            style={styles.item}
-          >
-            <Row gap="sm" align="center">
-              <View style={[styles.dot, { backgroundColor: item.colorCode }]} />
-              <View style={{ gap: Spacing.micro }}>
-                <ThemedText style={Typography.bodySmall}>{item.childName}</ThemedText>
-                <ThemedText style={[Typography.caption, { color: colors.muted }]}>
-                  {item.sessionCount} sessions
-                </ThemedText>
-              </View>
+        {transactions.length === 0 ? (
+          <ThemedText style={[Typography.caption, { color: colors.muted }]}>
+            Recent records appear here after your family books sessions.
+          </ThemedText>
+        ) : (
+          transactions.map((item) => (
+            <Row
+              key={`${item.childId}-${item.month}`}
+              align="center"
+              justify="space-between"
+              style={styles.item}
+            >
+              <Row gap="sm" align="center">
+                <View style={[styles.dot, { backgroundColor: item.colorCode }]} />
+                <View style={{ gap: Spacing.micro }}>
+                  <ThemedText style={Typography.bodySmall}>{item.childName}</ThemedText>
+                  <ThemedText style={[Typography.caption, { color: colors.muted }]}>
+                    {item.monthLabel} · {item.sessionCount} session
+                    {item.sessionCount === 1 ? '' : 's'}
+                  </ThemedText>
+                </View>
+              </Row>
+              <ThemedText type="defaultSemiBold" style={Typography.bodySmall}>
+                {'\u00A3'}
+                {item.amount.toFixed(2)}
+              </ThemedText>
             </Row>
-            <ThemedText type="defaultSemiBold" style={Typography.bodySmall}>
-              {'\u00A3'}
-              {item.amount.toFixed(2)}
-            </ThemedText>
-          </Row>
-        ))}
+          ))
+        )}
       </View>
     </SurfaceCard>
   );
