@@ -1,9 +1,13 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { router } from 'expo-router';
+import { router, useLocalSearchParams } from 'expo-router';
 
 import { useAuth } from '@/hooks/use-auth';
 import { socialFeedService } from '@/services/social-feed-service';
-import { orgStaffingService, type OrgStaffMember, type OrgWorkItem } from '@/services/org-staffing-service';
+import {
+  orgStaffingService,
+  type OrgStaffMember,
+  type OrgWorkItem,
+} from '@/services/org-staffing-service';
 import { inviteService } from '@/services/invite';
 import { Routes } from '@/navigation/routes';
 import type { ClubMembership, ClubRole } from '@/constants/types';
@@ -60,6 +64,8 @@ function formatDateTimeLabel(iso: string): string {
 export function useManageBookings() {
   const { currentUser } = useAuth();
   const { showToast } = useToast();
+  const { clubId: routeClubId } = useLocalSearchParams<{ clubId?: string }>();
+  const requestedClubId = typeof routeClubId === 'string' ? routeClubId : null;
 
   const [loading, setLoading] = useState(true);
   const [clubs, setClubs] = useState<ClubOption[]>([]);
@@ -96,8 +102,8 @@ export function useManageBookings() {
         source: 'club_manage',
         preset: params.preset,
         actingAs: postingAs,
-        clubId: postingAs === 'club' ? selectedClubId ?? undefined : undefined,
-        assigneeCoachId: postingAs === 'club' ? selectedAssigneeId ?? undefined : undefined,
+        clubId: postingAs === 'club' ? (selectedClubId ?? undefined) : undefined,
+        assigneeCoachId: postingAs === 'club' ? (selectedAssigneeId ?? undefined) : undefined,
       }),
     [postingAs, selectedAssigneeId, selectedClubId],
   );
@@ -136,7 +142,9 @@ export function useManageBookings() {
       const nextSelectedClubId =
         selectedClubId && nextClubs.some((club) => club.id === selectedClubId)
           ? selectedClubId
-          : nextClubs[0]?.id ?? null;
+          : requestedClubId && nextClubs.some((club) => club.id === requestedClubId)
+            ? requestedClubId
+            : (nextClubs[0]?.id ?? null);
 
       setClubs(nextClubs);
       setSelectedClubId(nextSelectedClubId);
@@ -156,7 +164,10 @@ export function useManageBookings() {
         return;
       }
 
-      const staffingResult = await orgStaffingService.getConsoleData(nextSelectedClubId, currentUser.id);
+      const staffingResult = await orgStaffingService.getConsoleData(
+        nextSelectedClubId,
+        currentUser.id,
+      );
       if (!staffingResult.success) {
         logger.warn('Failed to load staffing console', {
           clubId: nextSelectedClubId,
@@ -168,7 +179,9 @@ export function useManageBookings() {
         setAssigneeChoices([]);
         setSelectedAssigneeId(postingAs === 'club' ? null : currentUser.id);
         setCanManageAssignments(false);
-        setSelectedClubRole(nextClubs.find((club) => club.id === nextSelectedClubId)?.membership.role ?? null);
+        setSelectedClubRole(
+          nextClubs.find((club) => club.id === nextSelectedClubId)?.membership.role ?? null,
+        );
         setActiveOrgSessionCount(0);
         setAssignedTodayCount(0);
         setUnassignedCount(0);
@@ -211,7 +224,7 @@ export function useManageBookings() {
     } finally {
       setLoading(false);
     }
-  }, [currentUser?.id, postingAs, selectedClubId]);
+  }, [currentUser?.id, postingAs, requestedClubId, selectedClubId]);
 
   useEffect(() => {
     void loadConsole();

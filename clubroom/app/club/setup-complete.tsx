@@ -58,14 +58,18 @@ const NEXT_STEPS = [
     title: 'Check the operations path',
     body: 'Use the staffing and booking management surfaces the owner will rely on next.',
     icon: 'git-network-outline' as const,
-    action: () => router.push(Routes.MANAGE_BOOKINGS),
+    action: (clubId: string) => router.push(Routes.manageBookings({ clubId })),
     actionLabel: 'Open manage bookings',
   },
 ] as const;
 
 export default function ClubSetupCompleteScreen() {
   const { colors } = useTheme();
-  const params = useLocalSearchParams<{ clubId?: string; inviteCode?: string; inviteRole?: string }>();
+  const params = useLocalSearchParams<{
+    clubId?: string;
+    inviteCode?: string;
+    inviteRole?: string;
+  }>();
   const clubId = typeof params.clubId === 'string' ? params.clubId : '';
   const inviteCode = typeof params.inviteCode === 'string' ? params.inviteCode : '';
   const inviteRole = typeof params.inviteRole === 'string' ? params.inviteRole : '';
@@ -118,7 +122,10 @@ export default function ClubSetupCompleteScreen() {
 
   if (loading) {
     return (
-      <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top', 'bottom']}>
+      <SafeAreaView
+        style={[styles.container, { backgroundColor: colors.background }]}
+        edges={['top', 'bottom']}
+      >
         <LoadingState variant="detail" />
       </SafeAreaView>
     );
@@ -126,7 +133,10 @@ export default function ClubSetupCompleteScreen() {
 
   if (error || !club) {
     return (
-      <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top', 'bottom']}>
+      <SafeAreaView
+        style={[styles.container, { backgroundColor: colors.background }]}
+        edges={['top', 'bottom']}
+      >
         <PageHeader title="Club Setup" showBack centerTitle />
         <ErrorState
           message={error ?? 'Club setup details could not be loaded.'}
@@ -137,7 +147,10 @@ export default function ClubSetupCompleteScreen() {
   }
 
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top', 'bottom']}>
+    <SafeAreaView
+      style={[styles.container, { backgroundColor: colors.background }]}
+      edges={['top', 'bottom']}
+    >
       <PageHeader title="Club Setup" centerTitle />
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
         <SurfaceCard style={styles.heroCard}>
@@ -148,15 +161,17 @@ export default function ClubSetupCompleteScreen() {
             {club.name} is ready
           </ThemedText>
           <ThemedText style={[styles.heroCopy, { color: colors.muted }]}>
-            The club now exists with {formatCommercialModeLabel(club.commercialMode)} booking language.
-            Finish the first-run setup below so owners and staff do not need hidden knowledge.
+            The club now exists with {formatCommercialModeLabel(club.commercialMode)} booking
+            language. Finish the first-run setup below so owners and staff do not need hidden
+            knowledge.
           </ThemedText>
         </SurfaceCard>
 
         <SurfaceCard style={styles.summaryCard}>
           <ThemedText type="defaultSemiBold">Setup snapshot</ThemedText>
           <ThemedText style={[Typography.bodySmall, { color: colors.muted }]}>
-            Base details: {club.city}{club.country ? `, ${club.country}` : ''}
+            Base details: {club.city}
+            {club.country ? `, ${club.country}` : ''}
           </ThemedText>
           <ThemedText style={[Typography.bodySmall, { color: colors.muted }]}>
             Billing mode: {formatCommercialModeLabel(club.commercialMode)}

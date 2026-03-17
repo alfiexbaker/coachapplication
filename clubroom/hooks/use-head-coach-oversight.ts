@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useLocalSearchParams } from 'expo-router';
 
 import { useToast } from '@/components/ui/toast';
 import { useAuth } from '@/hooks/use-auth';
@@ -31,6 +32,8 @@ function isEligibleMembership(membership: ClubMembership): boolean {
 export function useHeadCoachOversight() {
   const { currentUser } = useAuth();
   const { showToast } = useToast();
+  const { clubId: routeClubId } = useLocalSearchParams<{ clubId?: string }>();
+  const requestedClubId = typeof routeClubId === 'string' ? routeClubId : null;
 
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -79,7 +82,9 @@ export function useHeadCoachOversight() {
         const nextSelectedClubId =
           selectedClubId && nextClubs.some((club) => club.id === selectedClubId)
             ? selectedClubId
-            : nextClubs[0]?.id ?? null;
+            : requestedClubId && nextClubs.some((club) => club.id === requestedClubId)
+              ? requestedClubId
+              : (nextClubs[0]?.id ?? null);
 
         setClubs(nextClubs);
         setSelectedClubId(nextSelectedClubId);
@@ -111,7 +116,7 @@ export function useHeadCoachOversight() {
         setRefreshing(false);
       }
     },
-    [currentUser?.id, selectedClubId],
+    [currentUser?.id, requestedClubId, selectedClubId],
   );
 
   useEffect(() => {
@@ -173,11 +178,7 @@ export function useHeadCoachOversight() {
   }, [loadOversight, selectedClubId]);
 
   const runMutation = useCallback(
-    async (
-      key: string,
-      action: () => Promise<boolean>,
-      failureMessage: string,
-    ) => {
+    async (key: string, action: () => Promise<boolean>, failureMessage: string) => {
       setMutatingKey(key);
       try {
         const success = await action();
@@ -268,10 +269,7 @@ export function useHeadCoachOversight() {
             showToast(result.error.message, 'error');
             return false;
           }
-          showToast(
-            nextStatus === 'done' ? 'Task marked complete' : 'Task reopened',
-            'success',
-          );
+          showToast(nextStatus === 'done' ? 'Task marked complete' : 'Task reopened', 'success');
           await loadOversight('refresh');
           return true;
         },
@@ -296,10 +294,7 @@ export function useHeadCoachOversight() {
             showToast(result.error.message, 'error');
             return false;
           }
-          showToast(
-            result.data.active ? 'Standard activated' : 'Standard paused',
-            'success',
-          );
+          showToast(result.data.active ? 'Standard activated' : 'Standard paused', 'success');
           await loadOversight('refresh');
           return true;
         },
@@ -340,7 +335,8 @@ export function useHeadCoachOversight() {
   );
 
   const selectedClubRole = useMemo(
-    () => data?.viewerMembership.role ?? clubs.find((club) => club.id === selectedClubId)?.role ?? null,
+    () =>
+      data?.viewerMembership.role ?? clubs.find((club) => club.id === selectedClubId)?.role ?? null,
     [clubs, data?.viewerMembership.role, selectedClubId],
   );
 

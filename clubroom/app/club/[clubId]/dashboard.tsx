@@ -18,7 +18,10 @@ import type {
   OwnerDashboardSupportIssue,
   OwnerDashboardSummary,
 } from '@/services/org-owner-dashboard-service';
-import type { HeadCoachCoachHealth, HeadCoachCompletionItem } from '@/services/org-head-coach-service';
+import type {
+  HeadCoachCoachHealth,
+  HeadCoachCompletionItem,
+} from '@/services/org-head-coach-service';
 import type { OrgWorkItem } from '@/services/org-staffing-service';
 
 function formatDateLabel(iso?: string): string {
@@ -134,10 +137,12 @@ function CoachHealthRow(props: { item: HeadCoachCoachHealth; onPress: () => void
           <View style={styles.rowBody}>
             <ThemedText style={styles.rowTitle}>{props.item.coachName}</ThemedText>
             <ThemedText style={[styles.rowMeta, { color: colors.muted }]}>
-              {props.item.overdueCompletionCount} overdue completion · {props.item.overdueFollowUpCount} overdue follow-up
+              {props.item.overdueCompletionCount} overdue completion ·{' '}
+              {props.item.overdueFollowUpCount} overdue follow-up
             </ThemedText>
             <ThemedText style={[styles.rowMeta, { color: colors.muted }]}>
-              {props.item.openTaskCount} open task{props.item.openTaskCount === 1 ? '' : 's'} · {props.item.watchAthleteCount} watch athlete
+              {props.item.openTaskCount} open task{props.item.openTaskCount === 1 ? '' : 's'} ·{' '}
+              {props.item.watchAthleteCount} watch athlete
               {props.item.watchAthleteCount === 1 ? '' : 's'}
             </ThemedText>
           </View>
@@ -276,7 +281,10 @@ export default function DashboardScreen() {
       onRefresh={onRefresh}
       gap={Spacing.md}
     >
-      <DemoWalkthroughCard walkthrough={walkthrough} onPressStep={(step) => navigateTo(step.route)} />
+      <DemoWalkthroughCard
+        walkthrough={walkthrough}
+        onPressStep={(step) => navigateTo(step.route)}
+      />
       <SnapshotCopy summary={dashboard.summary} />
 
       <View style={styles.metricGrid}>
@@ -317,18 +325,27 @@ export default function DashboardScreen() {
         />
         <Row style={styles.financeMetrics}>
           <View style={styles.financeMetric}>
-            <ThemedText style={styles.financeValue}>GBP {dashboard.finance.openTotal.toFixed(2)}</ThemedText>
-            <ThemedText style={[styles.financeLabel, { color: colors.muted }]}>Open obligations</ThemedText>
+            <ThemedText style={styles.financeValue}>
+              GBP {dashboard.finance.openTotal.toFixed(2)}
+            </ThemedText>
+            <ThemedText style={[styles.financeLabel, { color: colors.muted }]}>
+              Open obligations
+            </ThemedText>
           </View>
           <View style={styles.financeMetric}>
-            <ThemedText style={styles.financeValue}>GBP {dashboard.finance.collectedTotal.toFixed(2)}</ThemedText>
-            <ThemedText style={[styles.financeLabel, { color: colors.muted }]}>Collected</ThemedText>
+            <ThemedText style={styles.financeValue}>
+              GBP {dashboard.finance.collectedTotal.toFixed(2)}
+            </ThemedText>
+            <ThemedText style={[styles.financeLabel, { color: colors.muted }]}>
+              Collected
+            </ThemedText>
           </View>
         </Row>
         <ThemedText style={[styles.financeNote, { color: colors.muted }]}>
           GBP {dashboard.finance.orgCreditOpen.toFixed(2)} org credit open · GBP{' '}
           {dashboard.finance.coachCollectedOpen.toFixed(2)} coach-collected open ·{' '}
-          {dashboard.finance.overdueCount} overdue item{dashboard.finance.overdueCount === 1 ? '' : 's'}
+          {dashboard.finance.overdueCount} overdue item
+          {dashboard.finance.overdueCount === 1 ? '' : 's'}
         </ThemedText>
         <ThemedText style={[styles.financeNote, { color: colors.muted }]}>
           {dashboard.finance.note}
@@ -344,13 +361,49 @@ export default function DashboardScreen() {
           title="Staffing Console"
           description="Assign coaches, inspect unassigned work, and rebalance current delivery."
           icon="layers-outline"
-          onPress={() => navigateTo(Routes.manage({ clubId }))}
+          onPress={() => navigateTo(Routes.manageBookings({ clubId }))}
         />
         <ActionLink
           title="Head Coach Oversight"
           description="Review completion pressure, watch athletes, and coach standards."
           icon="shield-checkmark-outline"
-          onPress={() => navigateTo(Routes.MANAGE_HEAD_COACH)}
+          onPress={() => navigateTo(Routes.manageHeadCoach({ clubId }))}
+        />
+        <ActionLink
+          title="Create New Session"
+          description="Open the org session flow with this club already set as the operating context."
+          icon="sparkles-outline"
+          onPress={() =>
+            navigateTo(
+              Routes.sessionsCreateIntent({
+                intent: 'new',
+                source: 'club_manage',
+                actingAs: 'club',
+                clubId,
+              }),
+            )
+          }
+        />
+        <ActionLink
+          title="Invite To Existing Session"
+          description="Add athletes into already-published club sessions without leaving the org workflow."
+          icon="paper-plane-outline"
+          onPress={() =>
+            navigateTo(
+              Routes.sessionsCreateIntent({
+                intent: 'existing',
+                source: 'club_manage',
+                actingAs: 'club',
+                clubId,
+              }),
+            )
+          }
+        />
+        <ActionLink
+          title="Invite Inbox"
+          description="Review pending invite responses and move back into live session work."
+          icon="mail-open-outline"
+          onPress={() => navigateTo(Routes.SESSION_INVITES)}
         />
         <ActionLink
           title="Earnings Reconciler"
@@ -378,7 +431,7 @@ export default function DashboardScreen() {
               <UnassignedRow
                 key={item.offeringId}
                 item={item}
-                onPress={() => navigateTo(Routes.manage({ clubId }))}
+                onPress={() => navigateTo(Routes.manageBookings({ clubId }))}
               />
             ))
         ) : (
@@ -413,17 +466,17 @@ export default function DashboardScreen() {
           title="Delivery health"
           caption="Use these links to move from summary into coach-level follow-up."
         />
-        {dashboard.coachHealth.length > 0 ? (
-          dashboard.coachHealth
-            .slice(0, 3)
-            .map((item) => (
-              <CoachHealthRow
-                key={item.coachId}
-                item={item}
-                onPress={() => navigateTo(Routes.MANAGE_HEAD_COACH)}
-              />
-            ))
-        ) : null}
+        {dashboard.coachHealth.length > 0
+          ? dashboard.coachHealth
+              .slice(0, 3)
+              .map((item) => (
+                <CoachHealthRow
+                  key={item.coachId}
+                  item={item}
+                  onPress={() => navigateTo(Routes.manageHeadCoach({ clubId }))}
+                />
+              ))
+          : null}
         {dashboard.completionQueue.length > 0 ? (
           dashboard.completionQueue
             .slice(0, 3)
@@ -431,7 +484,7 @@ export default function DashboardScreen() {
               <CompletionRow
                 key={item.bookingId}
                 item={item}
-                onPress={() => navigateTo(Routes.MANAGE_HEAD_COACH)}
+                onPress={() => navigateTo(Routes.manageHeadCoach({ clubId }))}
               />
             ))
         ) : (

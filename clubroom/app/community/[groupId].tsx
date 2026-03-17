@@ -192,8 +192,8 @@ export default function GroupChatScreen() {
   }, [group?.clubId]);
 
   const handleOpenManageHub = useCallback(() => {
-    router.push(Routes.MANAGE);
-  }, []);
+    router.push(group?.clubId ? Routes.manage({ clubId: group.clubId }) : Routes.MANAGE);
+  }, [group?.clubId]);
   const renderStateShell = (content: ReactNode) => (
     <SafeAreaView style={[styles.container, { backgroundColor: palette.background }]}>
       {content}

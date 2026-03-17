@@ -44,7 +44,8 @@ export function buildPrimaryDemoWalkthrough(
     return {
       id: 'admin_ops',
       title: 'Admin walkthrough',
-      subtitle: 'Check seeded users, invite controls, and system notifications from one support path.',
+      subtitle:
+        'Check seeded users, invite controls, and system notifications from one support path.',
       steps: [
         {
           id: 'admin_users',
@@ -89,7 +90,8 @@ export function buildPrimaryDemoWalkthrough(
         {
           id: 'coach_manage',
           title: 'Review operations surfaces',
-          description: 'Jump into staffing and oversight tools when the coach also works inside a club.',
+          description:
+            'Jump into staffing and oversight tools when the coach also works inside a club.',
           route: Routes.MANAGE,
         },
       ],
@@ -139,7 +141,8 @@ export function buildPrimaryDemoWalkthrough(
       {
         id: 'athlete_goals',
         title: 'Review goals',
-        description: 'Check that current goals and progress entries tell a coherent training story.',
+        description:
+          'Check that current goals and progress entries tell a coherent training story.',
         route: Routes.GOALS,
       },
       {
@@ -161,25 +164,27 @@ export function buildOwnerDemoWalkthrough(clubId: string): DemoWalkthrough {
       {
         id: 'owner_dashboard',
         title: 'Stay on org snapshot',
-        description: 'Use this screen as the live top-level view of staffing, support, and finance risk.',
+        description:
+          'Use this screen as the live top-level view of staffing, support, and finance risk.',
         route: Routes.clubDashboard(clubId),
       },
       {
         id: 'owner_staffing',
         title: 'Open staffing console',
         description: 'Resolve unassigned sessions and verify reassignment behavior on live work.',
-        route: Routes.MANAGE_BOOKINGS,
+        route: Routes.manageBookings({ clubId }),
       },
       {
         id: 'owner_standards',
         title: 'Open head coach oversight',
         description: 'Check overdue completion, follow-up, and watch-athlete supervision.',
-        route: Routes.MANAGE_HEAD_COACH,
+        route: Routes.manageHeadCoach({ clubId }),
       },
       {
         id: 'owner_finance',
         title: 'Open reconciler view',
-        description: 'Review current org obligations without pretending payout rails already exist.',
+        description:
+          'Review current org obligations without pretending payout rails already exist.',
         route: Routes.EARNINGS,
       },
     ],

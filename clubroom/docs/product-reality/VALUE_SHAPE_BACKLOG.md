@@ -49,8 +49,8 @@ Higher rank means:
 
 3. Merge manage into owner operations
    Recommendation: `MERGE`
-   Status: `NEXT` after the 2026-03-17 family summary reduction
-   Feature change: fold `Manage` into owner dashboard actions instead of maintaining a separate operations index
+   Status: `DONE` on 2026-03-17
+   Feature change: fold owner `Manage` entry into owner dashboard actions and keep `/manage` only as a coach/head-coach bridge when club context is ambiguous
    Why it matters: owners already get the real value from the dashboard, staffing, and oversight; the index just adds another home
    Affected roles: owner, head coach, coach
 
