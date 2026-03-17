@@ -1,6 +1,6 @@
 # Value Shape Master
 
-Updated: 2026-03-16
+Updated: 2026-03-17
 Purpose: make one canonical product-shape cleanup plan from the current value audit, code review, and docs triage.
 
 ## What This File Is
@@ -40,17 +40,20 @@ If it keeps adding social/dashboard breadth around that core, it will feel busy 
 Repo verification run during this pass:
 
 - `npm run typecheck` -> PASS
+- `npm run test:compile` -> PASS
+- targeted value-shape utility tests -> PASS (`9/9`)
 - `npm run audit:architecture` -> PASS
+- `npm run ui:flows:parent-core` -> BLOCKED by local Playwright/Chromium launch failure in this environment
 - `npm --prefix apps/api run test` -> PASS (`29/29`)
 - `npm --prefix apps/api run typecheck` -> FAIL in the current worktree
 
 Architecture audit output:
 
 - route files: `187`
-- component files: `743`
-- reachable components: `730`
+- component files: `737`
+- reachable components: `724`
 - non-reachable components: `13`
-- component -> service imports: `222`
+- component -> service imports: `220`
 - services importing UI: `0`
 - services importing hooks: `0`
 - hardcoded routes: `0`
@@ -129,7 +132,20 @@ Reason:
 
 ## Sprint Shape
 
+## Current Progress
+
+- `VS-01` is now landed:
+  - parent-like users now land on the family calendar from the tab home
+  - the first parent-like tab now reads `Family`
+  - seeded family demo entry now starts at the real runtime home
+  - the old parent-discover home surface was removed as dead code
+  - `Family Dashboard` is now explicitly framed as `Family Overview`
+
 ### VS-01 Relationship-First Entry And Family Spine
+
+Status:
+
+- `DONE` on 2026-03-17
 
 Objective:
 

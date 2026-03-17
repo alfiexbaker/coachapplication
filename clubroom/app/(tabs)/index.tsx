@@ -1,13 +1,15 @@
 import { useAuth } from '@/hooks/use-auth';
 import { CoachDevelopmentScreen } from '@/components/coach/development-screen';
+import { FamilyCalendarScreen } from '@/components/family/family-calendar-screen';
+import { NotificationBell } from '@/components/ui/notification-bell';
 import { UserHomeScreen } from '@/components/user/home-screen';
-import { ParentDiscoverScreen } from '@/components/parent/discover-screen';
 import { AdminUsersScreen } from '@/components/admin/users-screen';
 import { StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import type { ReactNode } from 'react';
 import { EmptyState, ErrorState, LoadingState } from '@/components/ui/screen-states';
 import { useTheme } from '@/hooks/useTheme';
+import { isParentLikeUser } from '@/utils/user-helpers';
 
 export default function IndexScreen() {
   const { currentUser, isLoading, error, logout } = useAuth();
@@ -36,14 +38,22 @@ export default function IndexScreen() {
     );
   }
 
-  // Route to appropriate screen based on role
+  if (isParentLikeUser(currentUser)) {
+    return (
+      <FamilyCalendarScreen
+        headerTitle="Family"
+        headerSubtitle="Run your family week"
+        showBack={false}
+        rightAction={<NotificationBell size={20} />}
+      />
+    );
+  }
+
   switch (currentUser?.role) {
     case 'COACH':
       return <CoachDevelopmentScreen />;
     case 'USER':
       return <UserHomeScreen />;
-    case 'PARENT':
-      return <ParentDiscoverScreen />;
     case 'ADMIN':
       return <AdminUsersScreen />;
     default:

@@ -18,6 +18,7 @@ import { Routes } from '@/navigation/routes';
 import { useFocusEffect, type EventArg } from '@react-navigation/native';
 import { createLogger } from '@/utils/logger';
 import { getRestrictedTabRoutes } from '@/constants/route-access';
+import { isParentLikeUser } from '@/utils/user-helpers';
 
 const logger = createLogger('TabLayout');
 
@@ -50,10 +51,6 @@ export const isAdmin = (user: UserWithSimplifiedFields | null): boolean => {
 
 export const isAcceptingBookings = (user: UserWithSimplifiedFields | null): boolean => {
   return isCoach(user) && user?.isLive !== false;
-};
-
-export const isParentLikeUser = (user: UserWithSimplifiedFields | null): boolean => {
-  return Boolean(user?.role === 'PARENT' || user?.hasChildren || (user?.children?.length ?? 0) > 0);
 };
 
 type BadgeType = 'messages' | 'notifications';
@@ -214,12 +211,31 @@ export default function TabLayout() {
   }, [loadMessageCount, scheduleMessageCountRefresh]);
 
   const userRole = currentUser?.role ?? 'DEFAULT';
-  const roleConfig = ROLE_TAB_CONFIG[userRole] ?? ROLE_TAB_CONFIG.DEFAULT;
+  const parentLikeUser = isParentLikeUser(currentUser);
+  const baseRoleConfig = ROLE_TAB_CONFIG[userRole] ?? ROLE_TAB_CONFIG.DEFAULT;
+  const roleConfig = useMemo(() => {
+    if (!parentLikeUser || (userRole !== 'USER' && userRole !== 'PARENT')) {
+      return baseRoleConfig;
+    }
+
+    return {
+      ...baseRoleConfig,
+      primary: baseRoleConfig.primary.map((tab) =>
+        tab.name === 'index'
+          ? {
+              ...tab,
+              title: 'Family',
+              icon: 'person.2.fill' as React.ComponentProps<typeof IconSymbol>['name'],
+            }
+          : tab,
+      ),
+    };
+  }, [baseRoleConfig, parentLikeUser, userRole]);
   const hiddenRoutes = useMemo(() => roleConfig.hidden ?? [], [roleConfig.hidden]);
   const hiddenRouteSet = useMemo(() => new Set(hiddenRoutes), [hiddenRoutes]);
   const restrictedRouteSet = useMemo(
-    () => getRestrictedTabRoutes(userRole, { isParentLike: isParentLikeUser(currentUser) }),
-    [currentUser, userRole],
+    () => getRestrictedTabRoutes(userRole, { isParentLike: parentLikeUser }),
+    [parentLikeUser, userRole],
   );
   const inTabsRouteScope = segments[0] === '(tabs)';
   const secondarySegment = segments.at(1);
@@ -234,11 +250,11 @@ export default function TabLayout() {
       type: currentUser?.type,
       hasChildrenFlag: currentUser?.hasChildren,
       childCount: currentUser?.children?.length ?? 0,
-      isParentLike: isParentLikeUser(currentUser),
+      isParentLike: parentLikeUser,
       hiddenRoutes,
       restrictedRoutes: Array.from(restrictedRouteSet),
     });
-  }, [currentUser, hiddenRoutes, restrictedRouteSet]);
+  }, [currentUser, hiddenRoutes, parentLikeUser, restrictedRouteSet]);
 
   const handleRestrictedRoute = useCallback(
     (routeName: string) => {

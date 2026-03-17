@@ -35,6 +35,7 @@ Higher rank means:
 
 1. Family home reset
 Recommendation: `PROMOTE`
+Status: `DONE` on 2026-03-17
 Feature change: make `Family Calendar` the default parent home and stop routing parent-like users into the generic `USER` home
 Why it matters: this fixes the biggest feature-ownership error in the app and aligns family relationships, bookings, recurring plans, and trust
 Affected roles: parent, family, athlete

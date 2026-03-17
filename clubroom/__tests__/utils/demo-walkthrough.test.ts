@@ -17,8 +17,9 @@ test('buildPrimaryDemoWalkthrough returns family walkthrough for users with chil
   assert.equal(walkthrough?.id, 'family_ops');
   assert.deepEqual(
     walkthrough?.steps.map((step) => step.id),
-    ['family_dashboard', 'family_recurring', 'family_bookings'],
+    ['family_home', 'family_recurring', 'family_bookings'],
   );
+  assert.equal(walkthrough?.steps[0]?.route, '/(tabs)/index');
 });
 
 test('buildPrimaryDemoWalkthrough returns athlete walkthrough for solo users', () => {

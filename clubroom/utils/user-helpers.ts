@@ -7,6 +7,8 @@ type UserWithCapabilities = {
   role?: string;
   type?: 'USER' | 'COACH';
   children?: { childId: string; childName: string }[];
+  hasChildren?: boolean;
+  childrenCount?: number;
   skillLevel?: string;
   isOrganization?: boolean;
   isLive?: boolean;
@@ -17,7 +19,18 @@ type UserWithCapabilities = {
  * Check if user has children (can book on behalf of kids)
  */
 export const hasChildren = (user: UserWithCapabilities | null | undefined): boolean => {
-  return Boolean(user?.children && user.children.length > 0);
+  return Boolean(
+    user?.hasChildren ||
+      (user?.childrenCount ?? 0) > 0 ||
+      (user?.children?.length ?? 0) > 0,
+  );
+};
+
+/**
+ * Check if user should experience parent/family flows.
+ */
+export const isParentLikeUser = (user: UserWithCapabilities | null | undefined): boolean => {
+  return Boolean(user?.role === 'PARENT' || hasChildren(user));
 };
 
 /**

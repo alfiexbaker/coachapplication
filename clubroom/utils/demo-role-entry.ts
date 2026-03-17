@@ -64,7 +64,7 @@ const ROLE_ENTRY_DEFINITIONS: RoleEntryDefinition[] = [
     description: 'Enter as a parent with children, bookings, and family operations already seeded.',
     usernames: ['parent1'],
     roleLabel: 'PARENT',
-    initialRoute: Routes.FAMILY,
+    initialRoute: Routes.HOME_INDEX,
     match: (user) =>
       user.role === 'USER' &&
       (Boolean(user.hasChildren) || (user.children?.length ?? 0) > 0),

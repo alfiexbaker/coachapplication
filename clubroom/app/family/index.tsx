@@ -1,5 +1,5 @@
 /**
- * Family Dashboard Screen
+ * Family Overview Screen
  *
  * Main overview for parents: children, upcoming sessions,
  * quick access to calendar and spending.
@@ -47,12 +47,13 @@ export default function FamilyDashboardScreen() {
     navigateToRecognitions,
   } = useFamilyDashboard();
   const handleBookSession = () => router.push(Routes.BOOK_COACH);
+  const header = (
+    <PageHeader title="Family Overview" subtitle="Children, sessions, and trust at a glance" />
+  );
 
   if (status === 'loading') {
     return (
-      <PageContainer
-        header={<PageHeader title="Family Dashboard" subtitle="Manage your children's sessions" />}
-      >
+      <PageContainer header={header}>
         <LoadingState variant="detail" />
       </PageContainer>
     );
@@ -60,9 +61,7 @@ export default function FamilyDashboardScreen() {
 
   if (status === 'error') {
     return (
-      <PageContainer
-        header={<PageHeader title="Family Dashboard" subtitle="Manage your children's sessions" />}
-      >
+      <PageContainer header={header}>
         <ErrorState
           message={error?.message || 'Failed to load family dashboard.'}
           onRetry={retry}
@@ -73,9 +72,7 @@ export default function FamilyDashboardScreen() {
 
   if (status === 'empty') {
     return (
-      <PageContainer
-        header={<PageHeader title="Family Dashboard" subtitle="Manage your children's sessions" />}
-      >
+      <PageContainer header={header}>
         <EmptyState
           icon="people-outline"
           title="No family data yet"
@@ -88,12 +85,7 @@ export default function FamilyDashboardScreen() {
   }
 
   return (
-    <PageContainer
-      header={<PageHeader title="Family Dashboard" subtitle="Manage your children's sessions" />}
-      gap={Spacing.md}
-      refreshing={refreshing}
-      onRefresh={onRefresh}
-    >
+    <PageContainer header={header} gap={Spacing.md} refreshing={refreshing} onRefresh={onRefresh}>
       {/* Overview Stats */}
       {overview && (
         <Animated.View entering={FadeInDown.delay(50).springify()}>

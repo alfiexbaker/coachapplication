@@ -1,7 +1,7 @@
 import type { Href } from 'expo-router';
 
 import { Routes } from '@/navigation/routes';
-import { hasChildren, isAdmin, isCoach } from '@/utils/user-helpers';
+import { isAdmin, isCoach, isParentLikeUser } from '@/utils/user-helpers';
 
 type DemoWalkthroughUser = {
   role?: string;
@@ -96,17 +96,18 @@ export function buildPrimaryDemoWalkthrough(
     };
   }
 
-  if (hasChildren(user) || hasChildProfiles) {
+  if (isParentLikeUser(user) || hasChildProfiles) {
     return {
       id: 'family_ops',
       title: 'Family walkthrough',
-      subtitle: 'Follow the parent story from family overview to recurring and booking trust.',
+      subtitle: 'Follow the parent story from family calendar to recurring and booking trust.',
       steps: [
         {
-          id: 'family_dashboard',
-          title: 'Open family overview',
-          description: 'Review the seeded children, upcoming sessions, and trust framing.',
-          route: Routes.FAMILY,
+          id: 'family_home',
+          title: 'Open family home',
+          description:
+            'Start on the live family calendar so the week, child filters, and booking load are visible immediately.',
+          route: Routes.HOME_INDEX,
         },
         {
           id: 'family_recurring',
