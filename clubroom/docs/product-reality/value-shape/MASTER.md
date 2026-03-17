@@ -1,6 +1,6 @@
 # Value Shape Master
 
-Updated: 2026-03-17
+Updated: 2026-03-18
 Purpose: make one canonical product-shape cleanup plan from the current value audit, code review, and docs triage.
 
 ## What This File Is
@@ -41,11 +41,10 @@ Repo verification run during this pass:
 
 - `npm run typecheck` -> PASS
 - `npm run test:compile` -> PASS
-- targeted value-shape utility tests -> PASS (`9/9`)
+- targeted coach-conversion utility test -> PASS (`2/2`)
 - `npm run audit:architecture` -> PASS
-- `npm run ui:flows:parent-core` -> BLOCKED by local Playwright/Chromium launch failure in this environment
-- `npm --prefix apps/api run test` -> PASS (`29/29`)
-- `npm --prefix apps/api run typecheck` -> PASS
+- `npm run ui:flows:coach-core` -> BLOCKED because `http://localhost:8083` was unreachable in local preflight
+- API tests and API typecheck were not re-run in this slice
 
 Architecture audit output:
 
@@ -85,11 +84,11 @@ These surfaces currently dilute the core:
 - `app/family/index.tsx`: duplicated dashboard summaries before action
 - `app/family/spending.tsx`: chart-first and low-action
 - `app/manage/index.tsx`: another operations index on top of stronger owner/manage destinations
-- `app/(tabs)/feed.tsx`: still merges social friend-feed logic into the main runtime
+- `app/community/index.tsx` and `app/community/[groupId].tsx`: community groups still sit as a social-product residue rather than a clear booking or coordination surface
 - `app/payments/index.tsx`: pure redirect, not a real feature
 - `hooks/use-help-screen.ts`: multiple "coming soon" actions
 - `hooks/use-account-settings.ts`: lifecycle flows still contain placeholder semantics
-- `hooks/use-coach-detail.ts` and `app/profile/[userId].tsx`: relationship model still leans on friend/follow semantics
+- `app/(tabs)/coach-profile.tsx` and `hooks/use-coach-profile.ts`: still belong below schedule, delivery, and earnings even after the language cleanup
 
 ## Docs Triage
 
@@ -141,6 +140,12 @@ Reason:
   - dead family summary components were removed with the screen change
   - owner dashboard now routes straight into staffing, oversight, session launch, and invite work without bouncing through `/manage`
   - `/manage` remains only as a coach/head-coach bridge when the app does not know which club context to open first
+- `VS-03` is now in progress:
+  - feed is no longer a primary tab for coach, parent-like, athlete-like, or admin users
+  - the main updates surface no longer merges friend-feed content into the booking-and-club runtime
+  - coach detail and generic profile CTAs now use connection language instead of friend/follow wording
+  - coach-owned profile content now reads like updates and network context rather than follower energy
+  - community group routes still exist as secondary surfaces and remain the next cut in this track
 
 ### VS-01 Relationship-First Entry And Family Spine
 
@@ -194,6 +199,18 @@ Acceptance:
 - owner and family users reach real work in one step
 
 ### VS-03 Professionalize Discovery, Feed, And Relationships
+
+Status:
+
+- `IN PROGRESS` on 2026-03-18
+
+Progress in this slice:
+
+- removed feed from primary tab navigation so sessions, messages, and profile carry the main runtime weight
+- reframed `Feed` as `Updates` with club-and-coach relationship copy instead of social-feed copy
+- removed extra friend-feed merging from the main updates surface
+- replaced follow/friend wording on coach detail and generic profiles with connection language
+- kept community-group cleanup open rather than pretending the social residue is fully gone
 
 Objective:
 

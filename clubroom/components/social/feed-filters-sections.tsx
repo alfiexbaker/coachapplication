@@ -150,12 +150,12 @@ export const EmptyFeedNoClubs = memo(function EmptyFeedNoClubs({
         <Ionicons name="newspaper-outline" size={32} color={palette.tint} />
       </View>
       <ThemedText type="defaultSemiBold" style={styles.emptyTitle}>
-        Your feed is empty
+        No updates yet
       </ThemedText>
       <ThemedText style={[styles.emptyDescription, { color: palette.muted }]}>
         {isCoach
-          ? 'Join a club or create your own to share updates'
-          : 'Join a club or follow coaches to see updates here'}
+          ? 'Join or create a club to publish matchday, session, and club updates.'
+          : 'Join a club or book with a coach to keep club notices and session updates in one place.'}
       </ThemedText>
       <Row gap="sm" style={styles.emptyStateActions}>
         <Clickable
@@ -196,13 +196,19 @@ export const EmptyFeedFiltered = memo(function EmptyFeedFiltered({
   filter,
   palette,
 }: EmptyFeedFilteredProps) {
+  const filterLabel =
+    filter === 'session_announcement'
+      ? 'session updates'
+      : (FEED_FILTERS.find((candidate) => candidate.key === filter)?.label.toLowerCase() ??
+        'updates');
+
   return (
     <View style={styles.emptyStateContainer}>
       <View style={[styles.emptyStateIcon, { backgroundColor: withAlpha(palette.muted, 0.09) }]}>
         <Ionicons name="document-text-outline" size={28} color={palette.muted} />
       </View>
       <ThemedText style={[styles.emptyNoPostsText, { color: palette.muted }]}>
-        {filter === 'all' ? 'No posts yet' : `No ${filter}s yet`}
+        {filter === 'all' ? 'No updates yet' : `No ${filterLabel} yet`}
       </ThemedText>
     </View>
   );

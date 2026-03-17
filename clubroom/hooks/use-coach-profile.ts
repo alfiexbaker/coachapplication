@@ -1,7 +1,7 @@
 /**
  * useCoachProfile — State + data loading for the Coach Profile screen.
  *
- * Manages profile data, following state, feed posts, session offerings,
+ * Manages profile data, connection state, profile updates, session offerings,
  * go-live toggle, and profile completion checks.
  */
 
@@ -170,12 +170,12 @@ export function useCoachProfile(): UseCoachProfileResult {
   const [profileLoading, setProfileLoading] = useState(true);
   const [profileError, setProfileError] = useState<string | null>(null);
 
-  // Following state
+  // Connection state
   const [isFollowing, setIsFollowing] = useState(false);
   const [followerCount, setFollowerCount] = useState(0);
   const [followLoading, setFollowLoading] = useState(false);
 
-  // Feed posts state
+  // Profile updates state
   const [feedPosts, setFeedPosts] = useState<NormalizedPost[]>([]);
   const [feedLoading, setFeedLoading] = useState(true);
 
@@ -240,7 +240,7 @@ export function useCoachProfile(): UseCoachProfileResult {
     loadProfileData();
   }, [loadProfileData]);
 
-  // ── Load feed posts ──
+  // ── Load profile updates ──
   const loadFeedPosts = useCallback(() => {
     setFeedLoading(true);
     try {
@@ -257,7 +257,7 @@ export function useCoachProfile(): UseCoachProfileResult {
     loadFeedPosts();
   }, [loadFeedPosts]);
 
-  // ── Follow toggle ──
+  // ── Connection toggle ──
   const handleFollowToggle = useCallback(async () => {
     if (!currentUser || followLoading) return;
     setFollowLoading(true);
@@ -289,7 +289,9 @@ export function useCoachProfile(): UseCoachProfileResult {
   const handleGoLiveToggle = useCallback(
     async (value: boolean) => {
       if (!canGoLive && value) {
-        uiFeedback.showToast('You need to complete at least 80% of your profile before going live.');
+        uiFeedback.showToast(
+          'You need to complete at least 80% of your profile before going live.',
+        );
         return;
       }
       setLiveLoading(true);

@@ -20,7 +20,7 @@ import type { User } from '@/constants/types';
 import { err, ok, serviceError } from '@/types/result';
 import { uiFeedback } from '@/services/ui-feedback';
 
-type ConnectionState = 'self' | 'none' | 'outgoing_pending' | 'incoming_pending' | 'following';
+type ConnectionState = 'self' | 'none' | 'outgoing_pending' | 'incoming_pending' | 'connected';
 
 export default function ProfileScreen() {
   const { userId } = useLocalSearchParams<{ userId: string }>();
@@ -75,12 +75,14 @@ export default function ProfileScreen() {
       ]);
 
       if (isFriends) {
-        setConnectionState('following');
+        setConnectionState('connected');
         setIncomingRequestId(null);
         return;
       }
 
-      const incomingRequest = requestsForCurrent.find((request) => request.requesterId === targetId);
+      const incomingRequest = requestsForCurrent.find(
+        (request) => request.requesterId === targetId,
+      );
       if (incomingRequest) {
         setConnectionState('incoming_pending');
         setIncomingRequestId(incomingRequest.id);
@@ -113,10 +115,10 @@ export default function ProfileScreen() {
 
   const connectionButtonLabel = useMemo(() => {
     if (connectionActionLoading) return 'Updating...';
-    if (connectionState === 'following') return 'Following';
-    if (connectionState === 'outgoing_pending') return 'Follow requested';
-    if (connectionState === 'incoming_pending') return 'Review follow';
-    return 'Follow';
+    if (connectionState === 'connected') return 'Connected';
+    if (connectionState === 'outgoing_pending') return 'Request sent';
+    if (connectionState === 'incoming_pending') return 'Review request';
+    return 'Connect';
   }, [connectionActionLoading, connectionState]);
 
   const canTriggerConnectionAction =

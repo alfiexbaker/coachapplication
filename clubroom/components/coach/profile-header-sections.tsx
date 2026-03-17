@@ -3,8 +3,8 @@
  *
  * CoverSection — cover photo with fallback.
  * AvatarSection — profile photo with optional camera edit button.
- * ProfileStatsRow — sessions / followers / rating / reviews stats.
- * FollowButton — follow/unfollow toggle with loading state.
+ * ProfileStatsRow — sessions / network / rating / reviews stats.
+ * FollowButton — connection toggle with loading state.
  * BadgesRow — coach badges (success/warning/tint tones).
  * EditProfileButton — edit profile CTA for coaches.
  */
@@ -109,7 +109,7 @@ export const ProfileStatsRow = memo(function ProfileStatsRow({
       </View>
       <View style={styles.statItem}>
         <ThemedText type="subtitle">{followerCount}</ThemedText>
-        <ThemedText style={styles.statLabel}>Followers</ThemedText>
+        <ThemedText style={styles.statLabel}>Network</ThemedText>
       </View>
       <View style={styles.statItem}>
         <ThemedText type="subtitle">{rating.average.toFixed(1)}</ThemedText>
@@ -164,7 +164,7 @@ export const FollowButton = memo(function FollowButton({
               { color: isFollowing ? palette.tint : palette.surface },
             ]}
           >
-            {isFollowing ? 'Following' : 'Follow'}
+            {isFollowing ? 'Connected' : 'Connect'}
           </ThemedText>
         </>
       )}

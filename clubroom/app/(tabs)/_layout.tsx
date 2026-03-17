@@ -85,15 +85,19 @@ const ROLE_TAB_CONFIG: Record<UserRole | 'DEFAULT', RoleTabConfig> = {
       { name: 'index', title: 'Home', icon: 'house.fill', badge: 'notifications' },
       { name: 'schedule', title: 'Schedule', icon: 'calendar.badge.clock' },
       { name: 'athletes', title: 'Athletes', icon: 'person.2.fill' },
-      { name: 'feed', title: 'Feed', icon: 'newspaper.fill' },
+      {
+        name: 'messages',
+        title: 'Messages',
+        icon: 'bubble.left.and.bubble.right.fill',
+        badge: 'messages',
+      },
       { name: 'settings', title: 'Profile', icon: 'gearshape.fill' },
     ],
-    hidden: [...BASE_HIDDEN_ROUTES, 'more', 'messages', 'children', 'bookings', 'club-hub'],
+    hidden: [...BASE_HIDDEN_ROUTES, 'more', 'feed', 'children', 'bookings', 'club-hub'],
   },
   USER: {
     primary: [
       { name: 'index', title: 'Home', icon: 'house.fill', badge: 'notifications' },
-      { name: 'feed', title: 'Feed', icon: 'newspaper.fill' },
       { name: 'bookings', title: 'Sessions', icon: 'calendar.badge.clock' },
       {
         name: 'messages',
@@ -103,12 +107,11 @@ const ROLE_TAB_CONFIG: Record<UserRole | 'DEFAULT', RoleTabConfig> = {
       },
       { name: 'settings', title: 'Profile', icon: 'gearshape.fill' },
     ],
-    hidden: [...BASE_HIDDEN_ROUTES, 'club-hub', 'more', 'schedule', 'athletes', 'children'],
+    hidden: [...BASE_HIDDEN_ROUTES, 'club-hub', 'more', 'schedule', 'athletes', 'children', 'feed'],
   },
   PARENT: {
     primary: [
       { name: 'index', title: 'Home', icon: 'house.fill', badge: 'notifications' },
-      { name: 'feed', title: 'Feed', icon: 'newspaper.fill' },
       { name: 'bookings', title: 'Sessions', icon: 'calendar.badge.clock' },
       {
         name: 'messages',
@@ -118,13 +121,12 @@ const ROLE_TAB_CONFIG: Record<UserRole | 'DEFAULT', RoleTabConfig> = {
       },
       { name: 'settings', title: 'Profile', icon: 'gearshape.fill' },
     ],
-    hidden: [...BASE_HIDDEN_ROUTES, 'club-hub', 'more', 'schedule', 'athletes', 'children'],
+    hidden: [...BASE_HIDDEN_ROUTES, 'club-hub', 'more', 'schedule', 'athletes', 'children', 'feed'],
   },
   ADMIN: {
     primary: [
       { name: 'index', title: 'Users', icon: 'person.2.fill', badge: 'notifications' },
       { name: 'bookings', title: 'Bookings', icon: 'calendar.badge.clock' },
-      { name: 'feed', title: 'Feed', icon: 'newspaper.fill' },
       {
         name: 'messages',
         title: 'Messages',
@@ -133,13 +135,12 @@ const ROLE_TAB_CONFIG: Record<UserRole | 'DEFAULT', RoleTabConfig> = {
       },
       { name: 'settings', title: 'Settings', icon: 'gearshape.fill' },
     ],
-    hidden: [...BASE_HIDDEN_ROUTES, 'more', 'club-hub', 'schedule', 'athletes', 'children'],
+    hidden: [...BASE_HIDDEN_ROUTES, 'more', 'club-hub', 'schedule', 'athletes', 'children', 'feed'],
   },
   DEFAULT: {
     primary: [
       { name: 'index', title: 'Home', icon: 'house.fill', badge: 'notifications' },
       { name: 'bookings', title: 'Bookings', icon: 'calendar.badge.clock' },
-      { name: 'feed', title: 'Feed', icon: 'newspaper.fill' },
       {
         name: 'messages',
         title: 'Messages',
@@ -148,7 +149,7 @@ const ROLE_TAB_CONFIG: Record<UserRole | 'DEFAULT', RoleTabConfig> = {
       },
       { name: 'settings', title: 'Settings', icon: 'gearshape.fill' },
     ],
-    hidden: [...BASE_HIDDEN_ROUTES, 'more', 'club-hub', 'schedule', 'athletes', 'children'],
+    hidden: [...BASE_HIDDEN_ROUTES, 'more', 'club-hub', 'schedule', 'athletes', 'children', 'feed'],
   },
 };
 
@@ -187,7 +188,10 @@ export default function TabLayout() {
     void loadMessageCount();
 
     const unsubscribeMessageSent = onTyped(ServiceEvents.MESSAGE_SENT, scheduleMessageCountRefresh);
-    const unsubscribeMessageEdited = onTyped(ServiceEvents.MESSAGE_EDITED, scheduleMessageCountRefresh);
+    const unsubscribeMessageEdited = onTyped(
+      ServiceEvents.MESSAGE_EDITED,
+      scheduleMessageCountRefresh,
+    );
     const unsubscribeMessageDeleted = onTyped(
       ServiceEvents.MESSAGE_DELETED,
       scheduleMessageCountRefresh,
@@ -196,7 +200,10 @@ export default function TabLayout() {
       ServiceEvents.MESSAGES_MARKED_READ,
       scheduleMessageCountRefresh,
     );
-    const unsubscribeThreadOpened = onTyped(ServiceEvents.THREAD_OPENED, scheduleMessageCountRefresh);
+    const unsubscribeThreadOpened = onTyped(
+      ServiceEvents.THREAD_OPENED,
+      scheduleMessageCountRefresh,
+    );
 
     return () => {
       if (messageCountRefreshTimerRef.current) {

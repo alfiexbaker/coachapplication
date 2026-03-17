@@ -110,10 +110,10 @@ export default function CoachProfileScreen() {
                 },
               ]}
             >
-              <ThemedText style={styles.businessTitle}>How to work with this coach</ThemedText>
+              <ThemedText style={styles.businessTitle}>How this relationship works</ThemedText>
               <ThemedText style={[styles.businessBody, { color: palette.muted }]}>
-                Review the profile first, save or follow if you want to keep this coach in your shortlist,
-                request contact when you need to confirm fit or logistics, then move into booking.
+                Review the profile first, connect if you want to keep this coach in your network,
+                message when you need to confirm fit or logistics, then move into booking.
               </ThemedText>
               <ThemedText style={[styles.businessBody, { color: palette.muted }]}>
                 {p.relationshipDisplay.contactDetail}

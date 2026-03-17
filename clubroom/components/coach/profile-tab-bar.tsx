@@ -18,7 +18,7 @@ export interface ProfileTabsProps {
 }
 
 const TABS: { key: TabType; label: string }[] = [
-  { key: 'posts', label: 'Posts' },
+  { key: 'posts', label: 'Updates' },
   { key: 'about', label: 'About' },
   { key: 'sessions', label: 'Sessions' },
   { key: 'photos', label: 'Photos' },

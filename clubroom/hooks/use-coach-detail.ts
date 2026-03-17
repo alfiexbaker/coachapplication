@@ -1,6 +1,6 @@
 /**
  * Hook for the Coach Detail / Public Coach Profile screen (app/coach/[id].tsx).
- * Manages coach data, reviews, follow state, tabs, refresh.
+ * Manages coach data, reviews, connection state, tabs, and refresh.
  */
 
 import { useState, useCallback, useEffect, useMemo } from 'react';
@@ -15,10 +15,7 @@ import { blockService } from '@/services/block-service';
 import { createLogger } from '@/utils/logger';
 import { combineResults, err, ok, serviceError, type ServiceError } from '@/types/result';
 import { uiFeedback } from '@/services/ui-feedback';
-import {
-  getCoachRelationshipDisplay,
-  type CoachConnectionState,
-} from '@/utils/coach-conversion';
+import { getCoachRelationshipDisplay, type CoachConnectionState } from '@/utils/coach-conversion';
 
 const logger = createLogger('CoachProfileScreen');
 
@@ -66,7 +63,7 @@ export function useCoachDetail(coachId: string | undefined) {
     setIsBlocked(blockedResult.success ? blockedResult.data : false);
 
     if (isFriends) {
-      setConnectionState('following');
+      setConnectionState('connected');
       setIncomingRequestId(null);
       return;
     }
@@ -148,7 +145,7 @@ export function useCoachDetail(coachId: string | undefined) {
     if (followLoading) return 'Updating...';
     return getCoachRelationshipDisplay(connectionState, { blocked: isBlocked }).relationshipLabel;
   }, [connectionState, followLoading, isBlocked]);
-  const isFollowing = connectionState === 'following';
+  const isFollowing = connectionState === 'connected';
   const relationshipDisplay = useMemo(
     () => getCoachRelationshipDisplay(connectionState, { blocked: isBlocked }),
     [connectionState, isBlocked],
@@ -223,7 +220,8 @@ export function useCoachDetail(coachId: string | undefined) {
 
     const confirmed = await uiFeedback.confirm({
       title: `Block ${coach?.name || 'this coach'}?`,
-      message: 'They will no longer be able to message you or appear in your discovery and booking surfaces where blocking is enforced.',
+      message:
+        'They will no longer be able to message you or appear in your discovery and booking surfaces where blocking is enforced.',
       confirmText: 'Block coach',
       cancelText: 'Cancel',
       destructive: true,

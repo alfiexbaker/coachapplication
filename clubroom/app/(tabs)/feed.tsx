@@ -1,5 +1,5 @@
 /**
- * FeedScreen — Aggregated social feed from all clubs.
+ * UpdatesScreen — club and coach updates tied to active relationships.
  *
  * Uses useScreen() for data loading with proper 4-state pattern.
  * Sub-components: FeedPostCard, FeedFilters, ClubHubCard, EmptyFeedState.
@@ -17,7 +17,6 @@ import { Spacing } from '@/constants/theme';
 import { useAuth } from '@/hooks/use-auth';
 import { useScreen } from '@/hooks/use-screen';
 import { socialFeedService, type AggregatedFeedPost } from '@/services/social-feed-service';
-import { followService } from '@/services/follow-service';
 import { ServiceEvents } from '@/services/event-bus';
 import { ok, err, type Result, type ServiceError } from '@/types/result';
 import type { Club } from '@/constants/types';
@@ -38,14 +37,6 @@ interface FeedData {
   clubs: Club[];
 }
 
-function mergeFeeds(primary: AggregatedFeedPost[], secondary: AggregatedFeedPost[]): AggregatedFeedPost[] {
-  const byId = new Map<string, AggregatedFeedPost>();
-  [...primary, ...secondary].forEach((post) => byId.set(post.id, post));
-  return Array.from(byId.values()).sort(
-    (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
-  );
-}
-
 export default function FeedScreen() {
   const { currentUser } = useAuth();
   const listRef = useRef<FlatList<AggregatedFeedPost>>(null);
@@ -62,16 +53,13 @@ export default function FeedScreen() {
         if (!currentUser?.id) {
           return ok({ feed: [], clubs: [] });
         }
-        const baseFeed = isCoach
+        const feed = isCoach
           ? socialFeedService.getAggregatedFeed(currentUser.id, feedFilter)
           : socialFeedService.getCombinedFeedForParent(currentUser.id, feedFilter);
-        const friendIds = await followService.getFriendIds(currentUser.id);
-        const friendFeed = socialFeedService.getFriendFeed(friendIds, feedFilter);
-        const feed = mergeFeeds(baseFeed, friendFeed);
         const clubs = socialFeedService.getUserClubs(currentUser.id);
         return ok({ feed, clubs });
       } catch {
-        return err({ code: 'UNKNOWN' as const, message: 'Failed to load feed' });
+        return err({ code: 'UNKNOWN' as const, message: 'Failed to load updates' });
       }
     },
     deps: [currentUser?.id, feedFilter, isCoach],
@@ -109,22 +97,19 @@ export default function FeedScreen() {
     router.push(Routes.MODAL_CREATE_POST);
   }, []);
 
-  const handleSharePost = useCallback(
-    async (postId: string) => {
-      const post = feedByIdRef.current.get(postId);
-      if (!post) return;
+  const handleSharePost = useCallback(async (postId: string) => {
+    const post = feedByIdRef.current.get(postId);
+    if (!post) return;
 
-      try {
-        await Share.share({
-          message: `${post.title}\n\n${post.body}`,
-          title: post.title,
-        });
-      } catch {
-        uiFeedback.showToast('Try again in a moment.', 'error');
-      }
-    },
-    [],
-  );
+    try {
+      await Share.share({
+        message: `${post.title}\n\n${post.body}`,
+        title: post.title,
+      });
+    } catch {
+      uiFeedback.showToast('Try again in a moment.', 'error');
+    }
+  }, []);
 
   const handleLoadMore = useCallback(() => {
     if (!hasMoreFeed) return;
@@ -147,18 +132,21 @@ export default function FeedScreen() {
 
   const keyExtractor = useCallback((item: AggregatedFeedPost) => item.id, []);
 
-  const renderFeedHeader = useCallback(() => (
-    <View style={styles.feedHeader}>
-      {clubs.length > 0 && (
-        <View style={styles.clubsSection}>
-          <ClubHubCard clubs={clubs} />
-        </View>
-      )}
-      {(feed.length > 0 || clubs.length > 0) && (
-        <FeedFilters activeFilter={feedFilter} onFilterChange={setFeedFilter} />
-      )}
-    </View>
-  ), [clubs, feed.length, feedFilter]);
+  const renderFeedHeader = useCallback(
+    () => (
+      <View style={styles.feedHeader}>
+        {clubs.length > 0 && (
+          <View style={styles.clubsSection}>
+            <ClubHubCard clubs={clubs} />
+          </View>
+        )}
+        {(feed.length > 0 || clubs.length > 0) && (
+          <FeedFilters activeFilter={feedFilter} onFilterChange={setFeedFilter} />
+        )}
+      </View>
+    ),
+    [clubs, feed.length, feedFilter],
+  );
 
   const renderFeedEmpty = useCallback(
     () => <EmptyFeedState hasClubs={clubs.length > 0} filter={feedFilter} isCoach={isCoach} />,
@@ -168,21 +156,16 @@ export default function FeedScreen() {
   const renderSeparator = useCallback(() => <View style={styles.feedItemSeparator} />, []);
   const header = (
     <ScreenHeader
-      title="Feed"
-      subtitle="Latest updates"
-      action={{ icon: 'add', label: 'Post', onPress: handleCreatePost }}
+      title="Updates"
+      subtitle="Club notices and coach activity"
+      action={isCoach ? { icon: 'add', label: 'Update', onPress: handleCreatePost } : undefined}
     />
   );
 
   // ─── Loading ───────────────────────────────────────────────────
   if (status === 'loading') {
     return (
-      <PageContainer
-        header={header}
-        scrollable={false}
-        gap={0}
-        horizontalSpacing={0}
-      >
+      <PageContainer header={header} scrollable={false} gap={0} horizontalSpacing={0}>
         <LoadingState variant="list" />
       </PageContainer>
     );
@@ -191,13 +174,8 @@ export default function FeedScreen() {
   // ─── Error ─────────────────────────────────────────────────────
   if (status === 'error') {
     return (
-      <PageContainer
-        header={header}
-        scrollable={false}
-        gap={0}
-        horizontalSpacing={0}
-      >
-        <ErrorState message={error?.message ?? 'Failed to load feed'} onRetry={retry} />
+      <PageContainer header={header} scrollable={false} gap={0} horizontalSpacing={0}>
+        <ErrorState message={error?.message ?? 'Failed to load updates'} onRetry={retry} />
       </PageContainer>
     );
   }
@@ -205,16 +183,11 @@ export default function FeedScreen() {
   // ─── Empty ─────────────────────────────────────────────────────
   if (status === 'empty') {
     return (
-      <PageContainer
-        header={header}
-        scrollable={false}
-        gap={0}
-        horizontalSpacing={0}
-      >
+      <PageContainer header={header} scrollable={false} gap={0} horizontalSpacing={0}>
         <EmptyState
           icon="newspaper-outline"
-          title="No posts yet"
-          message="Follow coaches, share personal updates, or join a club to see posts in your feed."
+          title="No updates yet"
+          message="Club notices, session updates, and coach activity will appear here once your clubs and bookings are active."
         />
       </PageContainer>
     );
@@ -222,12 +195,7 @@ export default function FeedScreen() {
 
   // ─── Success ───────────────────────────────────────────────────
   return (
-    <PageContainer
-      header={header}
-      scrollable={false}
-      gap={0}
-      horizontalSpacing={0}
-    >
+    <PageContainer header={header} scrollable={false} gap={0} horizontalSpacing={0}>
       <FlatList
         ref={listRef}
         CellRendererComponent={AccessibleListCell}

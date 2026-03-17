@@ -1,5 +1,5 @@
 /**
- * ProfileTabPosts — Posts tab content for coach profile.
+ * ProfileTabPosts — updates tab content for coach profile.
  */
 import React from 'react';
 import { View, ActivityIndicator, StyleSheet } from 'react-native';
@@ -49,7 +49,7 @@ function ProfileTabPostsInner({
         >
           <Ionicons name="add-circle" size={24} color={palette.tint} />
           <ThemedText style={[styles.createPostText, { color: palette.muted }]}>
-            Share an update...
+            Share a coaching update...
           </ThemedText>
         </Clickable>
       )}
@@ -87,7 +87,9 @@ function ProfileTabPostsInner({
             style={{ marginBottom: Spacing.sm }}
           />
           <ThemedText style={styles.emptyStateText}>
-            {userRole === 'COACH' ? 'No posts yet' : `${coachName} hasn\u2019t posted yet`}
+            {userRole === 'COACH'
+              ? 'No updates yet'
+              : `${coachName} hasn\u2019t shared any updates yet`}
           </ThemedText>
           {userRole === 'COACH' && onComposePress && (
             <Clickable
@@ -95,7 +97,7 @@ function ProfileTabPostsInner({
               onPress={onComposePress}
             >
               <ThemedText style={[styles.emptyStateCtaText, { color: palette.onPrimary }]}>
-                Create your first post
+                Create your first update
               </ThemedText>
             </Clickable>
           )}

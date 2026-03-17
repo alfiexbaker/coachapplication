@@ -1,5 +1,5 @@
 /**
- * Coach Profile Screen — Coach's identity, posts, sessions, followers.
+ * Coach Profile Screen — coach identity, updates, sessions, and public network signals.
  *
  * State + logic: hooks/use-coach-profile.ts
  * Sub-components: components/coach/profile-*.tsx (pre-existing)
@@ -72,7 +72,7 @@ export default function CoachProfileScreen() {
         style={[styles.safeArea, { backgroundColor: palette.background }]}
         edges={['top', 'bottom']}
       >
-        <ScreenHeader title="Coach Profile" subtitle="Your coaching identity" />
+        <ScreenHeader title="Coach Profile" subtitle="Your public booking surface" />
         {children}
       </SafeAreaView>
     ),
@@ -151,7 +151,7 @@ export default function CoachProfileScreen() {
           onUpdate={refreshOfferings}
         />
       </ScrollView>
-    </>
+    </>,
   );
 }
 

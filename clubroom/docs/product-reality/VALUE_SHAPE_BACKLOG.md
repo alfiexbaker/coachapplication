@@ -2,7 +2,7 @@
 
 Canonical synthesis: `value-shape/MASTER.md`
 
-Updated: 2026-03-17
+Updated: 2026-03-18
 Purpose: ranked cleanup queue based on feature value, relationship clarity, and removal of duplicated or low-value surfaces
 
 ## Product Frame
@@ -92,8 +92,10 @@ Higher rank means:
 
 10. Demote feed across the product
     Recommendation: `DEMOTE`
+    Status: `PARTIAL` on 2026-03-18
     Feature change: move feed out of the center of role navigation
     Why it matters: feed does not carry the main jobs for any role and still mixes in friend-style logic
+    Progress note: feed no longer sits in the primary tab bar for coach, parent-like, athlete-like, or admin users; the remaining updates surface is now secondary
     Affected roles: coach, parent, athlete, owner
 
 11. Remove family spending charts as a primary feature
@@ -159,8 +161,10 @@ Higher rank means:
 
 21. Tighten discovery around professional coaching relationships
     Recommendation: `REWRITE`
+    Status: `PARTIAL` on 2026-03-18
     Feature change: keep discovery, public profiles, and in-bookings relationship expansion, but remove friend/follower/social cues where they are not directly helping booking conversion
     Why it matters: the product should establish professional coaching relationships, not act like a social network
+    Progress note: coach detail and generic profile flows now use connection language, but community-group cleanup is still open
     Affected roles: coach, parent, athlete
 
 ## Additional Structural Actions
