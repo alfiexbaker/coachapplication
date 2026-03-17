@@ -45,7 +45,7 @@ Repo verification run during this pass:
 - `npm run audit:architecture` -> PASS
 - `npm run ui:flows:parent-core` -> BLOCKED by local Playwright/Chromium launch failure in this environment
 - `npm --prefix apps/api run test` -> PASS (`29/29`)
-- `npm --prefix apps/api run typecheck` -> FAIL in the current worktree
+- `npm --prefix apps/api run typecheck` -> PASS
 
 Architecture audit output:
 
@@ -59,11 +59,6 @@ Architecture audit output:
 - hardcoded routes: `0`
 - `.ok` result-pattern drift: `28`
 - services with `throw`: `4`
-
-Current typecheck break is not abstract debt. It is a live shared-contract/export issue:
-
-- `packages/shared-contracts/src/index.ts` now exports NodeNext-incompatible extensionless paths
-- API routes and repositories now fail on missing exports from `@clubroom/shared-contracts`
 
 Documentation reality:
 
