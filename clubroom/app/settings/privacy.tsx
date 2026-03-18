@@ -2,16 +2,19 @@ import { ActivityIndicator, View } from 'react-native';
 import { router } from 'expo-router';
 
 import { SettingsFormScreen, SettingsRow, SettingsToggleRow, SettingsSection } from '@/components/settings';
+import { useAuth } from '@/hooks/use-auth';
 import { useTheme } from '@/hooks/useTheme';
 import { createLogger } from '@/utils/logger';
 import { Routes } from '@/navigation/routes';
-import { uiFeedback } from '@/services/ui-feedback';
 import { usePrivacySettings } from '@/hooks/use-privacy-settings';
+import { buildMailtoUrl, openExternalUrl } from '@/utils/external-url';
 
 const logger = createLogger('PrivacySettings');
+const SUPPORT_EMAIL = 'support@clubroom.app';
 
 export default function PrivacySettingsScreen() {
   const { colors: palette } = useTheme();
+  const { currentUser } = useAuth();
   const {
     settings,
     blockedUsersCount,
@@ -127,11 +130,22 @@ export default function PrivacySettingsScreen() {
       <SettingsSection title="Your Data">
         <SettingsRow
           icon="download"
-          title="Download Your Data"
-          subtitle="Get a copy of your information"
+          title="Request Data Export"
+          subtitle="Support handles exports by email in this build"
           onPress={() => {
             logger.press('DownloadData');
-            uiFeedback.showToast("Download requested. You'll receive an email within 48 hours.", 'success');
+            void openExternalUrl(
+              buildMailtoUrl(SUPPORT_EMAIL, {
+                subject: 'Clubroom data export request',
+                body: [
+                  'I would like a copy of my Clubroom account data.',
+                  '',
+                  `Account: ${currentUser?.id ?? 'unknown'}`,
+                  `Email on file: ${currentUser?.email ?? 'not set'}`,
+                ].join('\n'),
+              }),
+              'Could not open your email app right now.',
+            );
           }}
         />
         <SettingsRow
@@ -159,8 +173,9 @@ export default function PrivacySettingsScreen() {
         />
         <SettingsRow
           icon="shield"
-          title="Cookie Policy"
-          onPress={() => uiFeedback.showToast('View our cookie policy at clubroom.app/cookies')}
+          title="Cookie & Tracking"
+          subtitle="Covered in the privacy policy for this build"
+          onPress={() => router.push(Routes.SETTINGS_PRIVACY_POLICY)}
         />
       </SettingsSection>
 

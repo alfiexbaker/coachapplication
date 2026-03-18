@@ -1,30 +1,18 @@
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback } from 'react';
 
-import { router } from 'expo-router';
-import { Routes } from '@/navigation/routes';
-
-import { useAuth } from '@/hooks/use-auth';
 import { apiClient } from '@/services/api-client';
 import { STORAGE_KEYS } from '@/constants/storage-keys';
-import { emitTyped, ServiceEvents } from '@/services/event-bus';
-import { generateId } from '@/utils/generate-id';
+import { useAuth } from '@/hooks/use-auth';
 import { createLogger } from '@/utils/logger';
 import { uiFeedback } from '@/services/ui-feedback';
 import { userService } from '@/services/user-service';
+import { buildMailtoUrl, openExternalUrl } from '@/utils/external-url';
 
 const logger = createLogger('useAccountSettings');
-
-export interface AccountDeletionRequest {
-  id: string;
-  userId: string;
-  requestedAt: string;
-  scheduledDeletionAt: string;
-  status: 'pending' | 'cancelled' | 'completed';
-  cancelledAt?: string;
-}
+const SUPPORT_EMAIL = 'support@clubroom.app';
 
 export function useAccountSettings() {
-  const { currentUser, logout } = useAuth();
+  const { currentUser } = useAuth();
 
   const [editingEmail, setEditingEmail] = useState(false);
   const [editingPhone, setEditingPhone] = useState(false);
@@ -32,38 +20,31 @@ export function useAccountSettings() {
   const [phone, setPhone] = useState(
     (currentUser as unknown as Record<string, string>)?.phone || '',
   );
-  const [deletionRequest, setDeletionRequest] = useState<AccountDeletionRequest | null>(null);
-
-  // Check for existing deletion request on mount
-  useEffect(() => {
-    if (!currentUser?.id) return;
-    void (async () => {
-      const key = `${STORAGE_KEYS.ACCOUNT_DELETION_PREFIX}${currentUser.id}`;
-      const existing = await apiClient.get<AccountDeletionRequest>(key, null as unknown as AccountDeletionRequest);
-      if (existing && existing.status === 'pending') {
-        setDeletionRequest(existing);
-      }
-    })();
-  }, [currentUser?.id]);
 
   const handleSaveEmail = useCallback(async () => {
     if (!currentUser?.id) return;
+
     logger.press('SaveEmail', { email });
     const result = await userService.updateUserProfile(currentUser.id, { email: email.trim() });
     if (!result.success) {
       uiFeedback.showToast(result.error.message, 'error');
       return;
     }
+
     await apiClient.set(STORAGE_KEYS.AUTH_USER, {
       ...currentUser,
       email: result.data.email,
     });
     setEditingEmail(false);
-    uiFeedback.showToast('Verification email sent!', 'success');
+    uiFeedback.showToast(
+      'Email updated. Verification stays managed separately from this field in the current build.',
+      'success',
+    );
   }, [currentUser, email]);
 
   const handleSavePhone = useCallback(async () => {
     if (!currentUser?.id) return;
+
     logger.press('SavePhone', { phone });
     const nextPhone = phone.trim();
     const result = await userService.updateUserProfile(currentUser.id, {
@@ -73,103 +54,95 @@ export function useAccountSettings() {
       uiFeedback.showToast(result.error.message, 'error');
       return;
     }
+
     await apiClient.set(STORAGE_KEYS.AUTH_USER, {
       ...currentUser,
       phone: nextPhone,
     });
     setEditingPhone(false);
-    uiFeedback.showToast('Phone number updated!', 'success');
+    uiFeedback.showToast(
+      'Phone number updated. Any verification review is handled separately from this field.',
+      'success',
+    );
   }, [currentUser, phone]);
 
   const handleChangePassword = useCallback(() => {
     logger.press('ChangePassword');
-    uiFeedback.showToast('Password reset link sent to your email.', 'success');
-  }, []);
+
+    const body = [
+      'I need help resetting the password for my Clubroom account.',
+      '',
+      `Account: ${currentUser?.id ?? 'unknown'}`,
+      `Email on file: ${email.trim() || currentUser?.email || 'not set'}`,
+    ].join('\n');
+
+    void openExternalUrl(
+      buildMailtoUrl(SUPPORT_EMAIL, {
+        subject: 'Clubroom password reset request',
+        body,
+      }),
+      'Could not open your email app right now.',
+    );
+  }, [currentUser?.email, currentUser?.id, email]);
+
+  const handleRequestLifecycleSupport = useCallback(
+    (mode: 'pause' | 'close') => {
+      const subject =
+        mode === 'pause'
+          ? 'Clubroom account pause request'
+          : 'Clubroom account closure request';
+      const intro =
+        mode === 'pause'
+          ? 'I would like support to pause my Clubroom account.'
+          : 'I would like support to close my Clubroom account.';
+      const body = [
+        intro,
+        '',
+        `Account: ${currentUser?.id ?? 'unknown'}`,
+        `Email on file: ${email.trim() || currentUser?.email || 'not set'}`,
+      ].join('\n');
+
+      void openExternalUrl(
+        buildMailtoUrl(SUPPORT_EMAIL, {
+          subject,
+          body,
+        }),
+        'Could not open your email app right now.',
+      );
+    },
+    [currentUser?.email, currentUser?.id, email],
+  );
 
   const handleDeleteAccount = useCallback(() => {
     logger.press('DeleteAccount');
     uiFeedback.alert(
-      'Delete Account',
-      'Are you sure you want to delete your account?\n\n\u2022 Your account will be scheduled for deletion in 30 days\n\u2022 You can cancel anytime during this period\n\u2022 After 30 days, all data will be permanently deleted',
+      'Request Account Closure',
+      'Account closure is handled by support in this build. We will open an email draft so you can send the request with the correct account details.',
       [
         { text: 'Cancel', style: 'cancel' },
         {
-          text: 'Delete Account',
+          text: 'Continue',
           style: 'destructive',
-          onPress: async () => {
-            if (!currentUser?.id) return;
-            const deletionDate = new Date();
-            deletionDate.setDate(deletionDate.getDate() + 30);
-
-            const request: AccountDeletionRequest = {
-              id: generateId('del'),
-              userId: currentUser.id,
-              requestedAt: new Date().toISOString(),
-              scheduledDeletionAt: deletionDate.toISOString(),
-              status: 'pending',
-            };
-
-            const key = `${STORAGE_KEYS.ACCOUNT_DELETION_PREFIX}${currentUser.id}`;
-            await apiClient.set(key, request);
-            setDeletionRequest(request);
-
-            emitTyped(ServiceEvents.ACCOUNT_DELETION_REQUESTED, {
-              userId: currentUser.id,
-              requestedAt: request.requestedAt,
-              scheduledDeletionAt: request.scheduledDeletionAt,
-            });
-
-            logger.info('Account deletion scheduled', {
-              userId: currentUser.id,
-              scheduledDeletionAt: deletionDate.toISOString(),
-            });
-
-            uiFeedback.showToast(`Your account will be deleted on ${deletionDate.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}. You can cancel anytime before then.`);
-          },
+          onPress: () => handleRequestLifecycleSupport('close'),
         },
       ],
     );
-  }, [currentUser?.id]);
-
-  const handleCancelDeletion = useCallback(async () => {
-    if (!currentUser?.id || !deletionRequest) return;
-    const key = `${STORAGE_KEYS.ACCOUNT_DELETION_PREFIX}${currentUser.id}`;
-    const cancelledAt = new Date().toISOString();
-    const updated: AccountDeletionRequest = {
-      ...deletionRequest,
-      status: 'cancelled',
-      cancelledAt,
-    };
-    await apiClient.set(key, updated);
-    setDeletionRequest(null);
-
-    emitTyped(ServiceEvents.ACCOUNT_DELETION_CANCELLED, {
-      userId: currentUser.id,
-      cancelledAt,
-    });
-
-    logger.info('Account deletion cancelled', { userId: currentUser.id });
-    uiFeedback.showToast('Your account will not be deleted.', 'success');
-  }, [currentUser?.id, deletionRequest]);
+  }, [handleRequestLifecycleSupport]);
 
   const handleDeactivateAccount = useCallback(() => {
     logger.press('DeactivateAccount');
     uiFeedback.alert(
-      'Deactivate Account',
-      'Your account will be hidden and you can reactivate it later by logging in.',
+      'Request Account Pause',
+      'Temporary account pausing is handled by support in this build. We will open an email draft so you can request it.',
       [
         { text: 'Cancel', style: 'cancel' },
         {
-          text: 'Deactivate',
-          onPress: async () => {
-            uiFeedback.showToast('Your account has been deactivated.', 'success');
-            await logout();
-            router.replace(Routes.ROOT);
-          },
+          text: 'Continue',
+          onPress: () => handleRequestLifecycleSupport('pause'),
         },
       ],
     );
-  }, [logout]);
+  }, [handleRequestLifecycleSupport]);
 
   return {
     currentUser,
@@ -177,7 +150,6 @@ export function useAccountSettings() {
     editingPhone,
     email,
     phone,
-    deletionRequest,
     setEditingEmail,
     setEditingPhone,
     setEmail,
@@ -186,7 +158,6 @@ export function useAccountSettings() {
     handleSavePhone,
     handleChangePassword,
     handleDeleteAccount,
-    handleCancelDeletion,
     handleDeactivateAccount,
   };
 }

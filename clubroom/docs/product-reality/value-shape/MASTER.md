@@ -28,7 +28,6 @@ The weak part is not lack of features. It is too much product mass around the us
 
 - generic home dashboards
 - social/feed/community weight
-- placeholder settings/help actions
 - duplicate operations entrypoints
 - summary-heavy finance and family surfaces
 
@@ -37,14 +36,14 @@ If it keeps adding social/dashboard breadth around that core, it will feel busy 
 
 ## Verified Signals
 
-Repo verification run during this pass:
+Repo verification currently confirmed for this tracker:
 
 - `npm run typecheck` -> PASS
 - `npm run test:compile` -> PASS
-- targeted coach-conversion utility test -> PASS (`2/2`)
+- `node --require ./scripts/test-register.js --test .tmp-tests/__tests__/services/verification-service.test.js` -> PASS (`3/3`)
+- `npm --prefix apps/api run typecheck` -> PASS
 - `npm run audit:architecture` -> PASS
 - `npm run ui:flows:coach-core` -> BLOCKED because `http://localhost:8083` was unreachable in local preflight
-- API tests and API typecheck were not re-run in this slice
 
 Architecture audit output:
 
@@ -85,8 +84,6 @@ These surfaces currently dilute the core:
 - `app/family/spending.tsx`: chart-first and low-action
 - `app/manage/index.tsx`: another operations index on top of stronger owner/manage destinations
 - `app/payments/index.tsx`: pure redirect, not a real feature
-- `hooks/use-help-screen.ts`: multiple "coming soon" actions
-- `hooks/use-account-settings.ts`: lifecycle flows still contain placeholder semantics
 - `app/(tabs)/coach-profile.tsx` and `hooks/use-coach-profile.ts`: still belong below schedule, delivery, and earnings even after the language cleanup
 
 ## Docs Triage
@@ -119,7 +116,6 @@ Reason:
 
 ### Needs Refresh Or Demotion
 
-- `README.md`: references docs that do not exist in this checkout
 - `docs/newsprints/*` and `docs/product-reality/*` both act like active queues; keep `newsprints` as engineering execution and use this file for product-shape cleanup
 - generated `docs/audits/*` output from scripts should be treated as transient artifacts, not canonical planning docs
 
@@ -146,6 +142,15 @@ Reason:
   - coach-owned profile content now reads like updates and network context rather than follower energy
   - the old community hub now reads as a private groups surface for coordination work
   - public group discovery and join mechanics are no longer given product weight in the dedicated groups route
+- `VS-04` is now landed:
+  - help, account, privacy, and verification surfaces no longer pretend to complete actions that do not exist
+  - password reset, lifecycle, and data-export requests now open support-assisted email flows instead of fake success toasts
+  - email and phone verification status remain visible but are no longer presented as tappable in-app completion paths
+  - verification status now resolves from the signed-in coach instead of the hardcoded demo account
+- `VS-05` is now landed:
+  - the insurance verification route now uses a dedicated hook instead of reaching directly into the service layer
+  - the active account/help cleanup hooks are materially smaller than the placeholder-heavy versions they replaced
+  - `README.md` now points only at current retained docs and no longer references deleted files
 
 ### VS-01 Relationship-First Entry And Family Spine
 
@@ -232,6 +237,17 @@ Acceptance:
 
 ### VS-04 Trust And Account Honesty
 
+Status:
+
+- `DONE` on 2026-03-18
+
+Progress in this slice:
+
+- replaced placeholder help actions with real support email and share flows
+- made account password, pause, closure, and data-export actions support-assisted instead of fake completion toasts
+- removed fake email and phone verification actions while keeping their status visible
+- fixed verification loading so coach trust state resolves from the signed-in account instead of the hardcoded demo coach
+
 Objective:
 
 - make trust-sensitive surfaces honest about what is real, incomplete, or unavailable
@@ -249,6 +265,17 @@ Acceptance:
 - settings/help surfaces stop lowering confidence
 
 ### VS-05 Code-Health And Docs Integrity
+
+Status:
+
+- `DONE` on 2026-03-18
+
+Progress in this slice:
+
+- extracted the insurance verification view-model into a dedicated hook so the route no longer talks to the verification service directly
+- shrank the active help/account cleanup hooks while removing placeholder lifecycle logic
+- refreshed `README.md` to point only at current retained docs and removed deleted doc references
+- kept app and API verification gates aligned so README and tracker claims are testable again
 
 Objective:
 

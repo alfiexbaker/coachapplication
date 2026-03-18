@@ -18,10 +18,6 @@ export default function HelpSettingsScreen() {
     handleContactSupport,
     handleReportProblem,
     handleSendFeedback,
-    handleRateApp,
-    handleHelpCenter,
-    handleVideoTutorials,
-    handleCommunityForum,
     handleShareApp,
   } = useHelpScreen();
 
@@ -32,7 +28,7 @@ export default function HelpSettingsScreen() {
           icon="chatbubbles"
           iconColor={colors.success}
           title="Contact Support"
-          subtitle="Chat with our support team"
+          subtitle="Open an email to the support team"
           onPress={handleContactSupport}
         />
         <SettingsRow
@@ -66,39 +62,11 @@ export default function HelpSettingsScreen() {
         </View>
       </View>
 
-      <SettingsSection title="Resources">
-        <SettingsRow
-          icon="book"
-          title="Help Center"
-          subtitle="Browse articles and guides"
-          onPress={handleHelpCenter}
-        />
-        <SettingsRow
-          icon="videocam"
-          title="Video Tutorials"
-          subtitle="Learn how to use Clubroom"
-          onPress={handleVideoTutorials}
-        />
-        <SettingsRow
-          icon="newspaper"
-          title="Community Forum"
-          subtitle="Connect with other users"
-          onPress={handleCommunityForum}
-        />
-      </SettingsSection>
-
-      <SettingsSection title="Support Us">
-        <SettingsRow
-          icon="star"
-          iconColor={colors.warning}
-          title="Rate Clubroom"
-          subtitle="Share your experience on the App Store"
-          onPress={handleRateApp}
-        />
+      <SettingsSection title="Share">
         <SettingsRow
           icon="share-social"
           title="Share Clubroom"
-          subtitle="Invite friends to join"
+          subtitle="Send a quick intro to another coach or parent"
           onPress={handleShareApp}
         />
       </SettingsSection>
@@ -114,7 +82,7 @@ export default function HelpSettingsScreen() {
               Email us at support@clubroom.app
             </ThemedText>
             <ThemedText style={[styles.contactText, { color: colors.muted }]}>
-              Response time: Within 24 hours
+              Support is handled by email in this build.
             </ThemedText>
           </View>
         </Row>
@@ -122,7 +90,7 @@ export default function HelpSettingsScreen() {
 
       <View style={styles.debugInfo}>
         <ThemedText style={[styles.debugText, { color: colors.muted }]}>
-          App Version: 1.0.0 | User ID: {currentUser?.id || 'N/A'}
+          App Version: 1.0.0 | Support ref: {currentUser?.id || 'N/A'}
         </ThemedText>
       </View>
     </SettingsFormScreen>

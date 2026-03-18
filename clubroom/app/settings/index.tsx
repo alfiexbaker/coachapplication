@@ -93,7 +93,7 @@ export default function SettingsHubScreen() {
         <SettingsRow
           icon="person"
           title="Account"
-          subtitle="Email, password, delete account"
+          subtitle="Email, password, and account requests"
           onPress={() => {
             logger.press('AccountSettings');
             router.push(Routes.SETTINGS_ACCOUNT);
@@ -190,10 +190,8 @@ export default function SettingsHubScreen() {
           icon="language"
           title="Language"
           value="English (UK)"
-          onPress={() => {
-            logger.press('Language');
-            uiFeedback.showToast('Additional languages not available');
-          }}
+          subtitle="Additional languages are not available in this build"
+          showChevron={false}
         />
       </SettingsSection>
 
@@ -210,10 +208,10 @@ export default function SettingsHubScreen() {
         <SettingsRow
           icon="lock-closed"
           title="Security"
-          subtitle="Password and account protection"
+          subtitle="Password resets and lifecycle requests are handled from Account"
           onPress={() => {
             logger.press('Security');
-            uiFeedback.showToast('Security settings coming in Sprint 2');
+            router.push(Routes.SETTINGS_ACCOUNT);
           }}
         />
       </SettingsSection>
@@ -261,11 +259,9 @@ export default function SettingsHubScreen() {
         <SettingsRow
           icon="information-circle"
           title="About"
-          subtitle="Version information"
-          onPress={() => {
-            logger.press('About');
-            uiFeedback.showToast('Version 1.0.0\n\nBuilt with care for athletes, coaches, and parents.');
-          }}
+          subtitle="Current build information"
+          value="v1.0.0"
+          showChevron={false}
         />
       </SettingsSection>
 

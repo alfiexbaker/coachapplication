@@ -7,11 +7,12 @@
 
 import { useState, useCallback } from 'react';
 
+import { useAuth } from '@/hooks/use-auth';
 import { useScreen, type ScreenStatus } from '@/hooks/use-screen';
 import { verificationService } from '@/services/verification-service';
 import type { VerificationStatus } from '@/constants/types';
 import { createLogger } from '@/utils/logger';
-import type { ServiceError } from '@/types/result';
+import { err, serviceError, type ServiceError } from '@/types/result';
 
 const logger = createLogger('useCredentials');
 
@@ -23,8 +24,6 @@ export const CREDENTIAL_TYPES = [
   { id: 'safeguarding', label: 'Safeguarding Certificate', category: 'Child Safety' },
   { id: 'other', label: 'Other Qualification', category: 'Other' },
 ] as const;
-
-const COACH_ID = 'coach1';
 
 export interface UseCredentialsResult {
   status: VerificationStatus | null;
@@ -51,6 +50,8 @@ export interface UseCredentialsResult {
 }
 
 export function useCredentials() {
+  const { currentUser } = useAuth();
+  const coachId = currentUser?.id ?? null;
   const [submitting, setSubmitting] = useState(false);
   const [showForm, setShowForm] = useState(false);
   const [selectedType, setSelectedType] = useState<string | null>(null);
@@ -58,12 +59,16 @@ export function useCredentials() {
   const [uploaded, setUploaded] = useState(false);
 
   const loadStatus = useCallback(async () => {
-    const result = await verificationService.getStatus(COACH_ID);
+    if (!coachId) {
+      return err(serviceError('UNAUTHORIZED', 'Sign in as a coach to view verification status.'));
+    }
+
+    const result = await verificationService.getStatus(coachId);
     if (!result.success) {
       logger.error('Failed to load verification status:', result.error);
     }
     return result;
-  }, []);
+  }, [coachId]);
 
   const {
     data: status,
@@ -85,7 +90,7 @@ export function useCredentials() {
   }, []);
 
   const handleSubmit = useCallback(async () => {
-    if (!selectedType || !uploaded) return;
+    if (!selectedType || !uploaded || !coachId) return;
 
     const credentialLabel =
       selectedType === 'other'
@@ -95,7 +100,7 @@ export function useCredentials() {
     setSubmitting(true);
     try {
       const result = await verificationService.submitCredential(
-        COACH_ID,
+        coachId,
         `mock://credential-${selectedType}.pdf`,
         credentialLabel,
       );
@@ -113,7 +118,7 @@ export function useCredentials() {
     } finally {
       setSubmitting(false);
     }
-  }, [selectedType, uploaded, customName, onRefresh]);
+  }, [coachId, selectedType, uploaded, customName, onRefresh]);
 
   const resetForm = useCallback(() => {
     setShowForm(false);

@@ -1,5 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
-import { ScrollView, StyleSheet, View } from 'react-native';
+import { ScrollView, StyleSheet, View, RefreshControl } from 'react-native';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 
@@ -11,34 +10,22 @@ import { Row } from '@/components/primitives/row';
 import { VerificationScreenState } from '@/components/verification/verification-screen-state';
 import { Spacing, Typography, Radii, withAlpha } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
-import { verificationService } from '@/services/verification-service';
-import type { VerificationStatus } from '@/constants/types';
-import { uiFeedback } from '@/services/ui-feedback';
-
-const COACH_ID = 'coach1';
+import { useInsuranceVerification } from '@/hooks/use-insurance-verification';
 
 export default function InsuranceVerificationScreen() {
   const { colors: palette } = useTheme();
-  const [status, setStatus] = useState<VerificationStatus | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [loadError, setLoadError] = useState<string | null>(null);
-  const [submitting, setSubmitting] = useState(false);
-
-  const loadStatus = useCallback(async () => {
-    setLoading(true);
-    setLoadError(null);
-    const result = await verificationService.getStatus(COACH_ID);
-    if (result.success) {
-      setStatus(result.data);
-    } else {
-      setLoadError(result.error.message);
-    }
-    setLoading(false);
-  }, []);
-
-  useEffect(() => {
-    loadStatus();
-  }, [loadStatus]);
+  const {
+    status,
+    screenStatus,
+    error,
+    refreshing,
+    onRefresh,
+    retry,
+    submitting,
+    isVerified,
+    isPending,
+    handleUpload,
+  } = useInsuranceVerification();
 
   const header = (
     <PageHeader
@@ -50,54 +37,23 @@ export default function InsuranceVerificationScreen() {
     />
   );
 
-  if (loading || loadError || !status) {
-    return (
-      <VerificationScreenState
-        colors={palette}
-        screenStatus={loading ? 'loading' : 'error'}
-        error={loadError ? new Error(loadError) : null}
-        retry={loadStatus}
-        errorMessage="Failed to load insurance status."
-        emptyIcon="document-text-outline"
-        emptyTitle="Insurance unavailable"
-        emptyMessage="Insurance status is currently unavailable."
-        header={header}
-      >
-        <></>
-      </VerificationScreenState>
-    );
-  }
-
-  const insurance = status.insurance;
-  const isVerified = insurance?.status === 'VERIFIED';
-  const isPending = insurance?.status === 'PENDING';
-
-  const handleUpload = async () => {
-    setSubmitting(true);
-    const result = await verificationService.mockApproveVerification(COACH_ID, 'insurance');
-    if (result.success) {
-      setStatus(result.data);
-      uiFeedback.showToast('Insurance verification approved.', 'success');
-    } else {
-      uiFeedback.showToast(result.error.message, 'error');
-    }
-    setSubmitting(false);
-  };
-
   return (
     <VerificationScreenState
       colors={palette}
-      screenStatus="ready"
-      retry={loadStatus}
+      screenStatus={screenStatus}
+      error={error}
+      retry={retry}
       errorMessage="Failed to load insurance status."
       emptyIcon="document-text-outline"
       emptyTitle="Insurance unavailable"
       emptyMessage="Insurance status is currently unavailable."
       header={header}
+      isEmpty={!status}
     >
       <ScrollView
         contentContainerStyle={styles.content}
         showsVerticalScrollIndicator={false}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
       >
         <SurfaceCard style={styles.card}>
           <Row gap="sm" align="center">

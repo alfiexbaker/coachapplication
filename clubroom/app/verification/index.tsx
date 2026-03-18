@@ -13,7 +13,6 @@ import { VerificationScreenState } from '@/components/verification/verification-
 import { Radii, Spacing, Typography } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
 import { useVerificationHub } from '@/hooks/use-verification-hub';
-import { uiFeedback } from '@/services/ui-feedback';
 
 export default function VerificationHubScreen() {
   const { colors: palette } = useTheme();
@@ -108,26 +107,24 @@ export default function VerificationHubScreen() {
               colors={palette}
               icon="mail"
               title="Email"
-              description="Verify your email address"
-              item={status.email}
-              onPress={() =>
+              description={
                 status.email.status === 'VERIFIED'
-                  ? uiFeedback.showToast('Your email is already verified.', 'success')
-                  : uiFeedback.showToast('Check your inbox for the verification code.', 'success')
+                  ? 'Verified on your current sign-in email'
+                  : 'Email verification is not available in-app yet'
               }
+              item={status.email}
             />
             <View style={[styles.divider, { backgroundColor: palette.border }]} />
             <VerificationItemRow
               colors={palette}
               icon="call"
               title="Phone"
-              description="Verify your phone number"
-              item={status.phone}
-              onPress={() =>
+              description={
                 status.phone.status === 'VERIFIED'
-                  ? uiFeedback.showToast('Your phone number is already verified.', 'success')
-                  : uiFeedback.showToast('Check your messages for the verification code.', 'success')
+                  ? 'Verified phone number on file'
+                  : 'Phone verification is managed outside the app in this build'
               }
+              item={status.phone}
             />
             <View style={[styles.divider, { backgroundColor: palette.border }]} />
             <VerificationItemRow
@@ -174,11 +171,7 @@ export default function VerificationHubScreen() {
               title="Insurance"
               description="Public liability insurance"
               item={status.insurance}
-              onPress={() =>
-                status.insurance.status === 'VERIFIED'
-                  ? uiFeedback.showToast('Your insurance documents are verified and up to date.', 'success')
-                  : router.push(Routes.VERIFICATION_INSURANCE)
-              }
+              onPress={() => router.push(Routes.VERIFICATION_INSURANCE)}
             />
           </SurfaceCard>
         </View>

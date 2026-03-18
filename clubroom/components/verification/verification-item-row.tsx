@@ -15,7 +15,7 @@ interface VerificationItemRowProps {
   title: string;
   description: string;
   item: VerificationItem;
-  onPress: () => void;
+  onPress?: () => void;
 }
 
 function getStatusIcon(status: string, colors: ThemeColors) {
@@ -44,7 +44,7 @@ export const VerificationItemRow = memo(function VerificationItemRow({
   const statusIcon = getStatusIcon(item.status, colors);
 
   return (
-    <Clickable onPress={onPress}>
+    <Clickable onPress={onPress} disabled={!onPress}>
       <Row gap="sm" align="center" style={styles.row}>
         <View style={[styles.iconContainer, { backgroundColor: withAlpha(colors.tint, 0.06) }]}>
           <Ionicons name={icon as keyof typeof Ionicons.glyphMap} size={20} color={colors.tint} />
@@ -61,7 +61,7 @@ export const VerificationItemRow = memo(function VerificationItemRow({
             size={22}
             color={statusIcon.color}
           />
-          <Ionicons name="chevron-forward" size={18} color={colors.muted} />
+          {onPress ? <Ionicons name="chevron-forward" size={18} color={colors.muted} /> : null}
         </Row>
       </Row>
     </Clickable>

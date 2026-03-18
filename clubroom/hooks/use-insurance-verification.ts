@@ -1,31 +1,16 @@
 import { useCallback, useState } from 'react';
-import { router } from 'expo-router';
 
 import { useAuth } from '@/hooks/use-auth';
 import { useScreen, type ScreenStatus } from '@/hooks/use-screen';
 import { verificationService } from '@/services/verification-service';
+import { uiFeedback } from '@/services/ui-feedback';
 import { createLogger } from '@/utils/logger';
 import type { VerificationStatus } from '@/constants/types';
 import { err, serviceError, type ServiceError } from '@/types/result';
 
-const logger = createLogger('useBackgroundCheck');
+const logger = createLogger('useInsuranceVerification');
 
-export const BG_CHECK_STEPS = [
-  {
-    id: 1,
-    title: 'Provide Details',
-    description: 'Enter your personal information for the background check',
-  },
-  {
-    id: 2,
-    title: 'Consent & ID Verification',
-    description: 'Confirm your identity and provide consent for the check',
-  },
-  { id: 3, title: 'Review & Submit', description: 'The check is processed by our trusted partner' },
-  { id: 4, title: 'Receive Results', description: 'Certificate issued upon successful completion' },
-];
-
-export interface UseBackgroundCheckResult {
+export interface UseInsuranceVerificationResult {
   status: VerificationStatus | null;
   loading: boolean;
   screenStatus: ScreenStatus;
@@ -36,11 +21,10 @@ export interface UseBackgroundCheckResult {
   submitting: boolean;
   isVerified: boolean;
   isPending: boolean;
-  handleStartCheck: () => Promise<void>;
-  handleMockApprove: () => Promise<void>;
+  handleUpload: () => Promise<void>;
 }
 
-export function useBackgroundCheck() {
+export function useInsuranceVerification() {
   const { currentUser } = useAuth();
   const coachId = currentUser?.id ?? null;
   const [submitting, setSubmitting] = useState(false);
@@ -72,45 +56,28 @@ export function useBackgroundCheck() {
 
   const loading = screenStatus === 'loading';
 
-  const handleStartCheck = useCallback(async () => {
+  const handleUpload = useCallback(async () => {
     if (!coachId) return;
 
     setSubmitting(true);
     try {
-      const result = await verificationService.startBackgroundCheck(coachId);
+      const result = await verificationService.mockApproveVerification(coachId, 'insurance');
       if (result.success) {
         onRefresh();
+        uiFeedback.showToast('Insurance verification approved.', 'success');
       } else {
-        logger.error('Failed to start background check:', result.error);
+        uiFeedback.showToast(result.error.message, 'error');
       }
     } catch (error) {
-      logger.error('Failed to start background check:', error);
+      logger.error('Failed to verify insurance:', error);
+      uiFeedback.showToast('Failed to verify insurance.', 'error');
     } finally {
       setSubmitting(false);
     }
   }, [coachId, onRefresh]);
 
-  const handleMockApprove = useCallback(async () => {
-    if (!coachId) return;
-
-    setSubmitting(true);
-    try {
-      const result = await verificationService.mockApproveVerification(coachId, 'backgroundCheck');
-      if (result.success) {
-        onRefresh();
-        router.back();
-      } else {
-        logger.error('Failed to approve:', result.error);
-      }
-    } catch (error) {
-      logger.error('Failed to approve:', error);
-    } finally {
-      setSubmitting(false);
-    }
-  }, [coachId, onRefresh]);
-
-  const isVerified = status?.backgroundCheck.status === 'VERIFIED';
-  const isPending = status?.backgroundCheck.status === 'PENDING';
+  const isVerified = status?.insurance.status === 'VERIFIED';
+  const isPending = status?.insurance.status === 'PENDING';
 
   return {
     status: status ?? null,
@@ -123,7 +90,6 @@ export function useBackgroundCheck() {
     submitting,
     isVerified,
     isPending,
-    handleStartCheck,
-    handleMockApprove,
-  } satisfies UseBackgroundCheckResult;
+    handleUpload,
+  } satisfies UseInsuranceVerificationResult;
 }

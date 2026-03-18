@@ -1,12 +1,15 @@
 import { useState, useCallback } from 'react';
-import { Linking } from 'react-native';
+import { Share } from 'react-native';
 import { router } from 'expo-router';
 import { Routes } from '@/navigation/routes';
 import { useAuth } from '@/hooks/use-auth';
 import { createLogger } from '@/utils/logger';
 import { uiFeedback } from '@/services/ui-feedback';
+import { buildMailtoUrl, openExternalUrl } from '@/utils/external-url';
 
 const logger = createLogger('useHelpScreen');
+const SUPPORT_EMAIL = 'support@clubroom.app';
+const FEEDBACK_EMAIL = 'feedback@clubroom.app';
 
 export interface FAQItem {
   question: string;
@@ -17,7 +20,7 @@ export const FAQ_ITEMS: FAQItem[] = [
   {
     question: 'How do I book a session?',
     answer:
-      'Navigate to the Discover tab, find a coach you like, and tap "Book Session". Follow the steps to select a date, time, and session type.',
+      'Open Bookings, switch to Discover if needed, then choose a coach or session and follow the booking steps.',
   },
   {
     question: 'How do I cancel a booking?',
@@ -51,26 +54,19 @@ export function useHelpScreen() {
 
   const handleContactSupport = useCallback(() => {
     logger.press('ContactSupport');
-    void (async () => {
-      const selected = await uiFeedback.choose({
-        title: 'Contact Support',
-        message: 'How would you like to reach us?',
-        options: [
-          { id: 'email', label: 'Email' },
-          { id: 'chat', label: 'Live Chat' },
-        ],
-        cancelText: 'Cancel',
-      });
-
-      if (selected === 'email') {
-        await Linking.openURL('mailto:support@clubroom.app');
-        return;
-      }
-      if (selected === 'chat') {
-        uiFeedback.showToast('Live chat support coming soon!');
-      }
-    })();
-  }, []);
+    const body = [
+      'Describe the issue you need help with.',
+      '',
+      `Account: ${currentUser?.id ?? 'unknown'}`,
+    ].join('\n');
+    void openExternalUrl(
+      buildMailtoUrl(SUPPORT_EMAIL, {
+        subject: 'Clubroom support request',
+        body,
+      }),
+      'Could not open your email app right now.',
+    );
+  }, [currentUser?.id]);
 
   const handleReportProblem = useCallback(() => {
     logger.press('ReportProblem');
@@ -91,38 +87,36 @@ export function useHelpScreen() {
       });
 
       if (selected === 'feature') {
-        await Linking.openURL('mailto:feedback@clubroom.app?subject=Feature%20Request');
+        await openExternalUrl(
+          buildMailtoUrl(FEEDBACK_EMAIL, {
+            subject: 'Clubroom feature request',
+            body: `Account: ${currentUser?.id ?? 'unknown'}\n\nWhat would you like Clubroom to do?`,
+          }),
+          'Could not open your email app right now.',
+        );
         return;
       }
       if (selected === 'general') {
-        await Linking.openURL('mailto:feedback@clubroom.app?subject=General%20Feedback');
+        await openExternalUrl(
+          buildMailtoUrl(FEEDBACK_EMAIL, {
+            subject: 'Clubroom feedback',
+            body: `Account: ${currentUser?.id ?? 'unknown'}\n\nTell us what is working and what is not.`,
+          }),
+          'Could not open your email app right now.',
+        );
       }
     })();
-  }, []);
-
-  const handleRateApp = useCallback(() => {
-    logger.press('RateApp');
-    uiFeedback.showToast('Thanks for rating Clubroom!');
-  }, []);
-
-  const handleHelpCenter = useCallback(() => {
-    logger.press('HelpCenter');
-    Linking.openURL('https://help.clubroom.app');
-  }, []);
-
-  const handleVideoTutorials = useCallback(() => {
-    logger.press('VideoTutorials');
-    uiFeedback.showToast('Video tutorials coming soon!');
-  }, []);
-
-  const handleCommunityForum = useCallback(() => {
-    logger.press('CommunityForum');
-    uiFeedback.showToast('Community forum coming soon!');
-  }, []);
+  }, [currentUser?.id]);
 
   const handleShareApp = useCallback(() => {
     logger.press('ShareApp');
-    uiFeedback.showToast('Share functionality coming soon!');
+    void Share.share({
+      message:
+        'Clubroom helps coaches, parents, athletes, and clubs stay coordinated around football sessions.',
+    }).catch((error) => {
+      logger.error('Failed to share app', error);
+      uiFeedback.showToast('Could not open the share sheet right now.', 'error');
+    });
   }, []);
 
   return {
@@ -132,10 +126,6 @@ export function useHelpScreen() {
     handleContactSupport,
     handleReportProblem,
     handleSendFeedback,
-    handleRateApp,
-    handleHelpCenter,
-    handleVideoTutorials,
-    handleCommunityForum,
     handleShareApp,
   };
 }

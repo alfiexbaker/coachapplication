@@ -1,13 +1,13 @@
 import { useCallback } from 'react';
 
 import { useScreen, type ScreenStatus } from '@/hooks/use-screen';
+import { useAuth } from '@/hooks/use-auth';
 import { verificationService } from '@/services/verification-service';
 import { createLogger } from '@/utils/logger';
 import type { VerificationStatus, VerificationItem } from '@/constants/types';
-import type { ServiceError } from '@/types/result';
+import { err, serviceError, type ServiceError } from '@/types/result';
 
 const logger = createLogger('useVerificationHub');
-const COACH_ID = 'coach1';
 
 export interface UseVerificationHubResult {
   status: VerificationStatus | null;
@@ -24,13 +24,20 @@ export interface UseVerificationHubResult {
 }
 
 export function useVerificationHub() {
+  const { currentUser } = useAuth();
+  const coachId = currentUser?.id ?? null;
+
   const loadStatus = useCallback(async () => {
-    const result = await verificationService.getStatus(COACH_ID);
+    if (!coachId) {
+      return err(serviceError('UNAUTHORIZED', 'Sign in as a coach to view verification status.'));
+    }
+
+    const result = await verificationService.getStatus(coachId);
     if (!result.success) {
       logger.error('Failed to load verification status:', result.error);
     }
     return result;
-  }, []);
+  }, [coachId]);
 
   const {
     data: status,

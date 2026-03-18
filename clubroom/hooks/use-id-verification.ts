@@ -1,14 +1,14 @@
 import { useCallback, useState } from 'react';
 import { router } from 'expo-router';
 
+import { useAuth } from '@/hooks/use-auth';
 import { useScreen, type ScreenStatus } from '@/hooks/use-screen';
 import { verificationService } from '@/services/verification-service';
 import { createLogger } from '@/utils/logger';
 import type { VerificationStatus } from '@/constants/types';
-import type { ServiceError } from '@/types/result';
+import { err, serviceError, type ServiceError } from '@/types/result';
 
 const logger = createLogger('useIdVerification');
-const COACH_ID = 'coach1';
 
 export const ID_TYPES = [
   { id: 'passport', label: 'Passport', icon: 'book' },
@@ -37,17 +37,23 @@ export interface UseIdVerificationResult {
 }
 
 export function useIdVerification() {
+  const { currentUser } = useAuth();
+  const coachId = currentUser?.id ?? null;
   const [submitting, setSubmitting] = useState(false);
   const [selectedType, setSelectedType] = useState<string | null>(null);
   const [uploaded, setUploaded] = useState(false);
 
   const loadStatus = useCallback(async () => {
-    const result = await verificationService.getStatus(COACH_ID);
+    if (!coachId) {
+      return err(serviceError('UNAUTHORIZED', 'Sign in as a coach to view verification status.'));
+    }
+
+    const result = await verificationService.getStatus(coachId);
     if (!result.success) {
       logger.error('Failed to load verification status:', result.error);
     }
     return result;
-  }, []);
+  }, [coachId]);
 
   const {
     data: status,
@@ -70,11 +76,11 @@ export function useIdVerification() {
   }, [selectedType]);
 
   const handleSubmit = useCallback(async () => {
-    if (!selectedType || !uploaded) return;
+    if (!selectedType || !uploaded || !coachId) return;
     setSubmitting(true);
     try {
       const result = await verificationService.submitIdVerification(
-        COACH_ID,
+        coachId,
         `mock://id-document-${selectedType}.jpg`,
       );
       if (result.success) {
@@ -88,12 +94,13 @@ export function useIdVerification() {
     } finally {
       setSubmitting(false);
     }
-  }, [selectedType, uploaded, onRefresh]);
+  }, [coachId, selectedType, uploaded, onRefresh]);
 
   const handleMockApprove = useCallback(async () => {
+    if (!coachId) return;
     setSubmitting(true);
     try {
-      const result = await verificationService.mockApproveVerification(COACH_ID, 'identity');
+      const result = await verificationService.mockApproveVerification(coachId, 'identity');
       if (result.success) {
         onRefresh();
         router.back();
@@ -105,7 +112,7 @@ export function useIdVerification() {
     } finally {
       setSubmitting(false);
     }
-  }, [onRefresh]);
+  }, [coachId, onRefresh]);
 
   const isVerified = status?.identity.status === 'VERIFIED';
   const isPending = status?.identity.status === 'PENDING';

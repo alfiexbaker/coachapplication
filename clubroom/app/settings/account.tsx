@@ -11,7 +11,6 @@ import { Row } from '@/components/primitives/row';
 import { Spacing, Radii, Typography } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
 import { useAccountSettings } from '@/hooks/use-account-settings';
-import { uiFeedback } from '@/services/ui-feedback';
 
 export default function AccountSettingsScreen() {
   const { colors } = useTheme();
@@ -21,7 +20,6 @@ export default function AccountSettingsScreen() {
     editingPhone,
     email,
     phone,
-    deletionRequest,
     setEditingEmail,
     setEditingPhone,
     setEmail,
@@ -30,7 +28,6 @@ export default function AccountSettingsScreen() {
     handleSavePhone,
     handleChangePassword,
     handleDeleteAccount,
-    handleCancelDeletion,
     handleDeactivateAccount,
   } = useAccountSettings();
   const memberSinceLabel = useMemo(() => {
@@ -125,25 +122,23 @@ export default function AccountSettingsScreen() {
         <SettingsRow
           icon="key"
           title="Change Password"
-          subtitle="Update your account password"
+          subtitle="Open a support email to request a reset"
           onPress={handleChangePassword}
         />
       </SettingsSection>
 
-      <SettingsSection title="Connected Accounts">
-        <SettingsRow
-          icon="logo-google"
-          title="Google"
-          value="Not connected"
-          onPress={() => uiFeedback.showToast('Google sign-in coming soon')}
-        />
-        <SettingsRow
-          icon="logo-apple"
-          title="Apple"
-          value="Not connected"
-          onPress={() => uiFeedback.showToast('Apple sign-in coming soon')}
-        />
-      </SettingsSection>
+      <SurfaceCard style={styles.honestyCard}>
+        <Row gap="sm" align="flex-start">
+          <Ionicons name="information-circle" size={18} color={colors.tint} />
+          <View style={styles.honestyCopy}>
+            <ThemedText type="defaultSemiBold">Contact details vs verification</ThemedText>
+            <ThemedText style={[styles.honestyText, { color: colors.muted }]}>
+              Updating your email or phone changes the account details stored in the app. Verification
+              status is reviewed separately and is not re-run from this screen.
+            </ThemedText>
+          </View>
+        </Row>
+      </SurfaceCard>
 
       <SettingsSection title="Account Information">
         <View style={styles.infoCard}>
@@ -158,57 +153,20 @@ export default function AccountSettingsScreen() {
         </View>
       </SettingsSection>
 
-      {deletionRequest && deletionRequest.status === 'pending' && (
-        <SurfaceCard style={[styles.deletionBanner, { borderColor: colors.error }]}>
-          <Row align="center" gap="sm">
-            <Ionicons name="warning" size={24} color={colors.error} />
-            <ThemedText type="defaultSemiBold" style={{ color: colors.error }}>
-              Account Deletion Scheduled
-            </ThemedText>
-          </Row>
-          <ThemedText style={[Typography.body, { marginTop: Spacing.xs }]}>
-            Your account will be deleted on{' '}
-            {new Date(deletionRequest.scheduledDeletionAt).toLocaleDateString('en-GB', {
-              day: 'numeric',
-              month: 'short',
-              year: 'numeric',
-            })}
-            .
-          </ThemedText>
-          <ThemedText style={[Typography.caption, { color: colors.muted, marginTop: Spacing.xxs }]}>
-            {Math.max(
-              0,
-              Math.ceil(
-                (new Date(deletionRequest.scheduledDeletionAt).getTime() - Date.now()) /
-                  (1000 * 60 * 60 * 24),
-              ),
-            )}{' '}
-            days remaining to cancel
-          </ThemedText>
-          <Button
-            onPress={handleCancelDeletion}
-            variant="primary"
-            style={{ marginTop: Spacing.md }}
-          >
-            Cancel Deletion
-          </Button>
-        </SurfaceCard>
-      )}
-
       <SettingsSection title="Danger Zone">
         <SurfaceCard style={[styles.dangerCard, { borderColor: colors.error }]}>
           <SettingsRow
             icon="pause-circle"
-            title="Deactivate Account"
-            subtitle="Temporarily hide your account"
+            title="Request Account Pause"
+            subtitle="Support can temporarily disable your access"
             onPress={handleDeactivateAccount}
             iconColor={colors.warning}
           />
           <View style={[styles.divider, { backgroundColor: colors.border }]} />
           <SettingsRow
             icon="trash"
-            title="Delete Account"
-            subtitle="Permanently delete all your data"
+            title="Request Account Closure"
+            subtitle="Support will handle account closure manually"
             onPress={handleDeleteAccount}
             destructive
           />
@@ -218,7 +176,8 @@ export default function AccountSettingsScreen() {
       <Row gap="sm" align="flex-start" style={styles.warningContainer}>
         <Ionicons name="warning" size={16} color={colors.warning} />
         <ThemedText style={[styles.warningText, { color: colors.muted }]}>
-          Deleting your account schedules a 30-day grace period. After that, all data is permanently removed.
+          Account pause and closure requests are support-assisted in this build so the lifecycle
+          action is logged against the correct account.
         </ThemedText>
       </Row>
     </SettingsFormScreen>
@@ -255,9 +214,11 @@ const styles = StyleSheet.create({
   inputCard: { padding: 0 },
   editContainer: { padding: Spacing.md, gap: Spacing.md },
   input: { height: 48, borderRadius: Radii.md, paddingHorizontal: Spacing.md, ...Typography.body },
+  honestyCard: { marginBottom: Spacing.xs },
+  honestyCopy: { flex: 1, gap: Spacing.xxs },
+  honestyText: { ...Typography.small },
   infoCard: { gap: Spacing.md, paddingHorizontal: Spacing.sm },
   infoLabel: { ...Typography.bodySmall },
-  deletionBanner: { borderWidth: 2, marginBottom: Spacing.md },
   dangerCard: { padding: 0, borderWidth: 1 },
   divider: { height: 1, marginHorizontal: Spacing.sm },
   warningContainer: { paddingHorizontal: Spacing.sm, marginTop: Spacing.sm },
