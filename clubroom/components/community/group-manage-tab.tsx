@@ -90,7 +90,7 @@ function GroupManageTabInner({
     actions.push({
       id: 'open-club',
       title: 'Open Club Hub',
-      description: 'Jump into one place for club feed, settings, branding, and members.',
+      description: 'Jump into club operations, settings, branding, and members.',
       icon: 'shield-outline',
       color: palette.icon,
       onPress: onOpenClub,

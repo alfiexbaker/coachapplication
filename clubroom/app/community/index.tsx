@@ -1,11 +1,11 @@
 /**
- * Community Hub Screen
+ * Groups Screen
  *
- * Tab-based hub for parent groups and group discovery.
- * All state/logic in useCommunityHub hook. Tab content extracted to component.
+ * Secondary hub for private coordination groups.
+ * All state/logic lives in useCommunityHub.
  */
 
-import { StyleSheet, ScrollView, RefreshControl, Modal, ViewStyle } from 'react-native';
+import { StyleSheet, ScrollView, RefreshControl, Modal } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -20,12 +20,6 @@ import { useTheme } from '@/hooks/useTheme';
 import { LoadingState, ErrorState, EmptyState } from '@/components/ui/screen-states';
 import { useCommunityHub } from '@/hooks/use-community-hub';
 import { scaleFont } from '@/utils/scale';
-import type { TabType } from '@/hooks/use-community-hub';
-
-const TABS: { key: TabType; label: string; icon: keyof typeof Ionicons.glyphMap }[] = [
-  { key: 'groups', label: 'My Groups', icon: 'chatbubbles-outline' },
-  { key: 'discover', label: 'Discover', icon: 'compass-outline' },
-];
 
 export default function CommunityHubScreen() {
   const { colors: palette } = useTheme();
@@ -43,50 +37,16 @@ export default function CommunityHubScreen() {
             <Ionicons name="arrow-back" size={24} color={palette.text} />
           </Clickable>
           <ThemedText type="title" style={styles.headerTitle}>
-            Community
+            Groups
           </ThemedText>
         </Row>
         <Clickable
-          accessibilityLabel="Create community group"
+          accessibilityLabel="Create private group"
           onPress={() => c.setShowCreateModal(true)}
           style={[styles.addButton, { backgroundColor: palette.tint }]}
         >
           <Ionicons name="add" size={24} color={palette.onPrimary} />
         </Clickable>
-      </Row>
-
-      {/* Tabs */}
-      <Row style={[styles.tabsContainer, { borderBottomColor: palette.border }]}>
-        {TABS.map((tab) => (
-          <Clickable
-            key={tab.key}
-            onPress={() => c.setActiveTab(tab.key)}
-            style={
-              [
-                styles.tab,
-                c.activeTab === tab.key
-                  ? { borderBottomColor: palette.tint, borderBottomWidth: 2 }
-                  : undefined,
-              ].filter(Boolean) as ViewStyle[]
-            }
-          >
-            <Row align="center" justify="center" gap="xxs">
-              <Ionicons
-                name={tab.icon}
-                size={20}
-                color={c.activeTab === tab.key ? palette.tint : palette.muted}
-              />
-              <ThemedText
-                style={[
-                  styles.tabLabel,
-                  { color: c.activeTab === tab.key ? palette.tint : palette.muted },
-                ]}
-              >
-                {tab.label}
-              </ThemedText>
-            </Row>
-          </Clickable>
-        ))}
       </Row>
 
       {/* Content */}
@@ -99,28 +59,21 @@ export default function CommunityHubScreen() {
         {c.status === 'loading' ? (
           <LoadingState variant="list" />
         ) : c.status === 'error' ? (
-          <ErrorState
-            message={c.error?.message || 'Failed to load community hub.'}
-            onRetry={c.retry}
-          />
+          <ErrorState message={c.error?.message || 'Failed to load groups.'} onRetry={c.retry} />
         ) : c.status === 'empty' ? (
           <EmptyState
             icon="chatbubbles-outline"
-            title="No community activity yet"
-            message="Create a group to start conversations and discover other groups."
+            title="No groups yet"
+            message="Private squad, club, and session groups appear here when they are relevant. Create one only when you need a focused coordination thread."
             actionLabel="Create Group"
             onPressAction={() => c.setShowCreateModal(true)}
           />
         ) : (
           <CommunityTabContent
-            tab={c.activeTab}
             loading={false}
             myGroups={c.myGroups}
-            publicGroups={c.publicGroups}
-            parentId={c.parentId}
             onCreateGroup={() => c.setShowCreateModal(true)}
             onGroupPress={c.handleGroupPress}
-            onJoinGroup={c.handleJoinGroup}
           />
         )}
       </ScrollView>
@@ -135,7 +88,7 @@ export default function CommunityHubScreen() {
         <SafeAreaView style={[styles.modalContainer, { backgroundColor: palette.background }]}>
           <Row style={[styles.modalHeader, { borderBottomColor: palette.border }]}>
             <ThemedText type="title" style={styles.modalTitle}>
-              Create Group
+              Create Private Group
             </ThemedText>
             <Clickable onPress={() => c.setShowCreateModal(false)}>
               <Ionicons name="close" size={24} color={palette.text} />
@@ -169,9 +122,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  tabsContainer: { borderBottomWidth: 1, paddingHorizontal: Spacing.lg },
-  tab: { flex: 1, paddingVertical: Spacing.sm, marginBottom: -1 },
-  tabLabel: { ...Typography.smallSemiBold, fontSize: scaleFont(Typography.smallSemiBold.fontSize) },
   scrollView: { flex: 1 },
   scrollContent: { flexGrow: 1 },
   modalContainer: { flex: 1 },

@@ -166,7 +166,7 @@ export function ClubHeader({
       ? [
           {
             icon: 'people-outline' as const,
-            label: 'Create Group',
+            label: 'Create Squad',
             onPress: handleCreateGroup,
             color: palette.text,
           },

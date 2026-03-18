@@ -14,7 +14,7 @@ import { Radii, Spacing } from '@/constants/theme';
 import type { GroupType } from '@/constants/types';
 import { scaleFont } from '@/utils/scale';
 import { useTheme } from '@/hooks/useTheme';
-import { GroupTypeSelector, PrivacySelector } from './create-group-form-sections';
+import { GroupTypeSelector } from './create-group-form-sections';
 import { Row } from '@/components/primitives';
 
 // ─── Types ──────────────────────────────────────────────────────────────────
@@ -29,7 +29,6 @@ export interface CreateGroupFormData {
   name: string;
   description: string;
   type: GroupType;
-  isPublic: boolean;
 }
 
 // ─── Component ──────────────────────────────────────────────────────────────
@@ -40,7 +39,6 @@ export function CreateGroupForm({ onSubmit, onCancel, loading = false }: CreateG
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
   const [type, setType] = useState<GroupType>('GENERAL');
-  const [isPublic, setIsPublic] = useState(true);
   const [errors, setErrors] = useState<{ name?: string; description?: string }>({});
 
   const validate = useCallback((): boolean => {
@@ -64,9 +62,9 @@ export function CreateGroupForm({ onSubmit, onCancel, loading = false }: CreateG
 
   const handleSubmit = useCallback(() => {
     if (validate()) {
-      onSubmit({ name: name.trim(), description: description.trim(), type, isPublic });
+      onSubmit({ name: name.trim(), description: description.trim(), type });
     }
-  }, [name, description, type, isPublic, validate, onSubmit]);
+  }, [name, description, type, validate, onSubmit]);
 
   return (
     <KeyboardAvoidingView
@@ -78,6 +76,11 @@ export function CreateGroupForm({ onSubmit, onCancel, loading = false }: CreateG
         contentContainerStyle={styles.content}
         showsVerticalScrollIndicator={false}
       >
+        <ThemedText style={[styles.helperText, { color: palette.muted }]}>
+          Groups created here stay private by default. Use them for session logistics, squad
+          coordination, or focused parent handoffs.
+        </ThemedText>
+
         {/* Group Name */}
         <View style={styles.section}>
           <ThemedText type="defaultSemiBold" style={styles.label}>
@@ -92,7 +95,7 @@ export function CreateGroupForm({ onSubmit, onCancel, loading = false }: CreateG
                 color: palette.text,
               },
             ]}
-            placeholder="Enter group name"
+            placeholder="e.g., Tuesday Finishing Parents"
             placeholderTextColor={palette.muted}
             value={name}
             onChangeText={setName}
@@ -123,7 +126,7 @@ export function CreateGroupForm({ onSubmit, onCancel, loading = false }: CreateG
                 color: palette.text,
               },
             ]}
-            placeholder="What's this group about?"
+            placeholder="What will this group coordinate?"
             placeholderTextColor={palette.muted}
             value={description}
             onChangeText={setDescription}
@@ -155,19 +158,6 @@ export function CreateGroupForm({ onSubmit, onCancel, loading = false }: CreateG
             palette={palette}
           />
         </View>
-
-        {/* Privacy */}
-        <View style={styles.section}>
-          <ThemedText type="defaultSemiBold" style={styles.label}>
-            Privacy
-          </ThemedText>
-          <PrivacySelector
-            isPublic={isPublic}
-            onToggle={setIsPublic}
-            disabled={loading}
-            palette={palette}
-          />
-        </View>
       </ScrollView>
 
       {/* Action Buttons */}
@@ -193,6 +183,7 @@ const styles = StyleSheet.create({
   container: { flex: 1 },
   scrollView: { flex: 1 },
   content: { padding: Spacing.lg, gap: Spacing.lg },
+  helperText: { fontSize: scaleFont(13), lineHeight: scaleFont(18) },
   section: { gap: Spacing.xs },
   label: { fontSize: scaleFont(15), marginBottom: Spacing.xxs },
   input: {

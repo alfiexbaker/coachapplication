@@ -9,18 +9,12 @@ import { Spacing, Typography, withAlpha, Radii } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
 import { scaleFont } from '@/utils/scale';
 import type { ParentGroup } from '@/constants/types';
-import type { TabType } from '@/hooks/use-community-hub';
-import { Row } from '@/components/primitives';
 
 interface CommunityTabContentProps {
-  tab: TabType;
   loading: boolean;
   myGroups: ParentGroup[];
-  publicGroups: ParentGroup[];
-  parentId: string;
   onCreateGroup: () => void;
   onGroupPress: (group: ParentGroup) => void;
-  onJoinGroup: (group: ParentGroup) => void;
 }
 
 const EmptyState = ({
@@ -54,14 +48,10 @@ const EmptyState = ({
 };
 
 export const CommunityTabContent = memo(function CommunityTabContent({
-  tab,
   loading,
   myGroups,
-  publicGroups,
-  parentId,
   onCreateGroup,
   onGroupPress,
-  onJoinGroup,
 }: CommunityTabContentProps) {
   const { colors: palette } = useTheme();
 
@@ -73,52 +63,28 @@ export const CommunityTabContent = memo(function CommunityTabContent({
     );
   }
 
-  if (tab === 'groups') {
-    if (myGroups.length === 0) {
-      return (
-        <EmptyState
-          icon="chatbubbles-outline"
-          title="No Groups Yet"
-          message="Join or create a group to connect with other parents."
-          action={{ label: 'Create Group', onPress: onCreateGroup }}
-        />
-      );
-    }
-    return (
-      <View style={styles.listContainer}>
-        {myGroups.map((group) => (
-          <ParentGroupCard key={group.id} group={group} onPress={() => onGroupPress(group)} />
-        ))}
-      </View>
-    );
-  }
-
-  // discover tab
-  if (publicGroups.length === 0) {
+  if (myGroups.length === 0) {
     return (
       <EmptyState
-        icon="compass-outline"
-        title="No Groups to Discover"
-        message="All public groups have been joined. Create your own group!"
+        icon="chatbubbles-outline"
+        title="No groups yet"
+        message="Squad, club, and session groups appear here once you are invited. Create one only when you need a focused coordination thread."
         action={{ label: 'Create Group', onPress: onCreateGroup }}
       />
     );
   }
+
   return (
     <View style={styles.listContainer}>
-      <ThemedText style={[styles.discoverHint, { color: palette.muted }]}>
-        Public groups you can join
-      </ThemedText>
-      {publicGroups.map((group) => (
-        <SurfaceCard key={group.id} style={styles.discoverCard}>
-          <ParentGroupCard group={group} compact />
-          <Button variant="secondary" onPress={() => onJoinGroup(group)} style={styles.joinButton}>
-            <Row style={styles.joinButtonContent}>
-              <Ionicons name="add" size={18} color={palette.text} />
-              <ThemedText style={styles.joinButtonText}>Join</ThemedText>
-            </Row>
-          </Button>
-        </SurfaceCard>
+      <SurfaceCard style={styles.introCard}>
+        <ThemedText type="subtitle">Private coordination groups</ThemedText>
+        <ThemedText style={[styles.introText, { color: palette.muted }]}>
+          Use groups for squad logistics, session updates, and parent handoffs without turning
+          them into a main discovery surface.
+        </ThemedText>
+      </SurfaceCard>
+      {myGroups.map((group) => (
+        <ParentGroupCard key={group.id} group={group} onPress={() => onGroupPress(group)} />
       ))}
     </View>
   );
@@ -155,16 +121,12 @@ const styles = StyleSheet.create({
     fontSize: scaleFont(Typography.body.fontSize),
   },
   emptyButton: { marginTop: Spacing.sm },
-  discoverHint: {
+  introCard: {
+    gap: Spacing.xs,
+    marginBottom: Spacing.xs,
+  },
+  introText: {
     ...Typography.small,
     fontSize: scaleFont(Typography.small.fontSize),
-    marginBottom: Spacing.sm,
-  },
-  discoverCard: { marginBottom: Spacing.sm, gap: Spacing.sm },
-  joinButton: { marginTop: Spacing.xs },
-  joinButtonContent: { alignItems: 'center', gap: Spacing.xxs },
-  joinButtonText: {
-    ...Typography.bodySmallSemiBold,
-    fontSize: scaleFont(Typography.bodySmallSemiBold.fontSize),
   },
 });

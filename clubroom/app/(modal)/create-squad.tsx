@@ -26,7 +26,7 @@ export default function CreateSquadScreen() {
   const { colors: palette } = useTheme();
   const c = useCreateSquad();
   const modalRef = useRef<View>(null);
-  useFocusTrap(modalRef, 'Create group modal');
+  useFocusTrap(modalRef, 'Create squad modal');
 
   if (!c.club) {
     return (
@@ -39,7 +39,7 @@ export default function CreateSquadScreen() {
         edges={['top', 'bottom']}
       >
         <PageHeader
-          title="Create Group"
+          title="Create Squad"
           showBack
           backIcon="close"
           onBackPress={() => router.back()}
@@ -63,7 +63,7 @@ export default function CreateSquadScreen() {
       edges={['top', 'bottom']}
     >
       <PageHeader
-        title="Create Group"
+        title="Create Squad"
         subtitle={c.club.name}
         showBack
         backIcon="close"
@@ -94,7 +94,7 @@ export default function CreateSquadScreen() {
       <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
         <View style={styles.section}>
           <ThemedText type="defaultSemiBold" style={styles.sectionTitle}>
-            Group Name
+            Squad Name
           </ThemedText>
           <TextInput
             value={c.squadName}

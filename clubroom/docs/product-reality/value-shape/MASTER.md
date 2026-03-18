@@ -84,7 +84,6 @@ These surfaces currently dilute the core:
 - `app/family/index.tsx`: duplicated dashboard summaries before action
 - `app/family/spending.tsx`: chart-first and low-action
 - `app/manage/index.tsx`: another operations index on top of stronger owner/manage destinations
-- `app/community/index.tsx` and `app/community/[groupId].tsx`: community groups still sit as a social-product residue rather than a clear booking or coordination surface
 - `app/payments/index.tsx`: pure redirect, not a real feature
 - `hooks/use-help-screen.ts`: multiple "coming soon" actions
 - `hooks/use-account-settings.ts`: lifecycle flows still contain placeholder semantics
@@ -140,12 +139,13 @@ Reason:
   - dead family summary components were removed with the screen change
   - owner dashboard now routes straight into staffing, oversight, session launch, and invite work without bouncing through `/manage`
   - `/manage` remains only as a coach/head-coach bridge when the app does not know which club context to open first
-- `VS-03` is now in progress:
+- `VS-03` is now landed:
   - feed is no longer a primary tab for coach, parent-like, athlete-like, or admin users
   - the main updates surface no longer merges friend-feed content into the booking-and-club runtime
   - coach detail and generic profile CTAs now use connection language instead of friend/follow wording
   - coach-owned profile content now reads like updates and network context rather than follower energy
-  - community group routes still exist as secondary surfaces and remain the next cut in this track
+  - the old community hub now reads as a private groups surface for coordination work
+  - public group discovery and join mechanics are no longer given product weight in the dedicated groups route
 
 ### VS-01 Relationship-First Entry And Family Spine
 
@@ -202,7 +202,7 @@ Acceptance:
 
 Status:
 
-- `IN PROGRESS` on 2026-03-18
+- `DONE` on 2026-03-18
 
 Progress in this slice:
 
@@ -210,7 +210,9 @@ Progress in this slice:
 - reframed `Feed` as `Updates` with club-and-coach relationship copy instead of social-feed copy
 - removed extra friend-feed merging from the main updates surface
 - replaced follow/friend wording on coach detail and generic profiles with connection language
-- kept community-group cleanup open rather than pretending the social residue is fully gone
+- reframed the old `Community` route as a private `Groups` directory for coordination work
+- removed public discovery/join framing from the dedicated groups hub
+- cleaned group-versus-squad wording so club structure does not masquerade as generic community
 
 Objective:
 
