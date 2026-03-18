@@ -15,8 +15,9 @@ Status legend:
 | `/v1/meta/version` | `GET` | `scaffolded` | dev metadata only |
 | `/v1/athletes/:athleteId/injuries` | `GET/POST` | `scaffolded` | in-memory scaffold for trust/health endpoint contract verification |
 | `/v1/injuries/:injuryId` | `PATCH` | `scaffolded` | injury status/notes update scaffold |
-| `/v1/athletes/:athleteId/medical` | `GET/PATCH` | `scaffolded` | medical profile scaffold with request/response contract validation |
-| `/v1/athletes/:athleteId/emergency-contacts` | `GET/PATCH` | `scaffolded` | emergency contacts scaffold with stable contact IDs |
+| `/v1/athletes/:athleteId/medical` | `GET/PATCH` | `scaffolded` | medical profile scaffold with doctor, insurance, restriction, and notes fields |
+| `/v1/athletes/:athleteId/emergency-contacts` | `GET/PATCH` | `scaffolded` | emergency contacts scaffold with stable contact IDs, primary contact, and pickup flags |
+| `/v1/athletes/:athleteId/consents` | `GET/PUT` | `scaffolded` | consent record scaffold covering photo, video, social, and emergency treatment flags |
 | `/v1/safeguarding/incidents` | `POST` | `scaffolded` | concern ingestion scaffold with incident tracking |
 | `/v1/safeguarding/incidents/:incidentId` | `GET` | `scaffolded` | incident detail scaffold |
 | `/v1/safeguarding/incidents/:incidentId/actions` | `POST` | `scaffolded` | incident action append + status transition scaffold |
@@ -36,13 +37,14 @@ Status legend:
 | `/v1/families/:familyId/guardians` | `POST` | `planned` | `CreateGuardianInviteRequest` | family admin guardian | `app/family/sharing.tsx` |
 | `/v1/athletes` | `POST` | `planned` | `CreateAthleteRequest` | parent/guardian | `app/(modal)/add-child.tsx` |
 | `/v1/athletes/:athleteId` | `PATCH` | `planned` | `UpdateAthleteRequest` | guardian / athlete self (policy) | `app/(modal)/edit-child-profile.tsx` |
-| `/v1/athletes/:athleteId/medical` | `GET` | `scaffolded` | `MedicalRecordResponse` | guardian + verified coach (scoped) | `app/child/[id]/medical.tsx` |
-| `/v1/athletes/:athleteId/medical` | `PATCH` | `scaffolded` | `UpdateMedicalRecordRequest` | guardian | `app/child/[id]/medical.tsx` |
-| `/v1/athletes/:athleteId/emergency-contacts` | `GET` | `scaffolded` | `EmergencyContactsResponse` | guardian + gated coach | `app/child/[id]/emergency.tsx` |
-| `/v1/athletes/:athleteId/emergency-contacts` | `PATCH` | `scaffolded` | `UpdateEmergencyContactsRequest` | guardian | `app/child/[id]/emergency.tsx` |
+| `/v1/athletes/:athleteId/medical` | `GET` | `scaffolded` | `MedicalRecordResponse` | guardian + verified coach (scoped) | `app/child/[id]/medical.tsx`, `services/family/family-health-service.ts` |
+| `/v1/athletes/:athleteId/medical` | `PATCH` | `scaffolded` | `UpdateMedicalRecordRequest` | guardian | `app/child/[id]/medical.tsx`, `services/family/family-health-service.ts` |
+| `/v1/athletes/:athleteId/emergency-contacts` | `GET` | `scaffolded` | `EmergencyContactsResponse` | guardian + gated coach | `app/child/[id]/emergency.tsx`, `services/family/family-health-service.ts` |
+| `/v1/athletes/:athleteId/emergency-contacts` | `PATCH` | `scaffolded` | `UpdateEmergencyContactsRequest` | guardian | `app/child/[id]/emergency.tsx`, `services/family/family-health-service.ts` |
 | `/v1/athletes/:athleteId/injuries` | `GET/POST` | `scaffolded` | `InjuriesResponse`, `CreateInjuryRequest` | athlete self / guardian / scoped coach | `app/health/index.tsx`, `app/health/injuries.tsx` |
 | `/v1/injuries/:injuryId` | `PATCH` | `scaffolded` | `UpdateInjuryRequest` | athlete self / guardian / scoped coach | `app/health/[id].tsx` |
-| `/v1/athletes/:athleteId/consents` | `PUT` | `planned` | `UpsertConsentsRequest` | guardian | family/child consent UIs |
+| `/v1/athletes/:athleteId/consents` | `GET` | `scaffolded` | `ConsentsResponse` | guardian + verified coach (scoped) | `app/child/[id]/medical.tsx`, `services/family/family-health-service.ts` |
+| `/v1/athletes/:athleteId/consents` | `PUT` | `scaffolded` | `UpsertConsentsRequest`, `ConsentsResponse` | guardian | family/child consent UIs, `services/family/family-health-service.ts` |
 
 ## Coach / Clubs / Scheduling / Verification
 | Route | Method | Status | Contract(s) | AuthZ | UI anchors |

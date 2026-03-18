@@ -1,6 +1,6 @@
 # Service Ownership Map
 
-Validated: 2026-03-11
+Validated: 2026-03-18
 Purpose: identify the service entrypoints that are safe to build on and call out legacy or split surfaces that still exist on disk.
 
 ## Canonical Rules
@@ -30,7 +30,8 @@ Purpose: identify the service entrypoints that are safe to build on and call out
 ### Family and guardian access
 
 - Validated entrypoint: `services/family/index.ts`
-- Exposes `familyService`, `familyMemberService`, `familyRelationshipService`, `familyPermissionService`
+- Exposes `familyService`, `familyMemberService`, `familyHealthService`, `familyRelationshipService`, `familyPermissionService`
+- `familyHealthService` is the canonical path for athlete medical, emergency contacts, and consent records
 - Validation note: top-level `services/family-service.ts` is not present in the current repo
 
 ### Invites

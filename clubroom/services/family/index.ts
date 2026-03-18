@@ -5,6 +5,7 @@
  * The original monolithic familyService is split into focused services:
  *
  * - familyMemberService: Child/member CRUD, bookings, calendar, spending, progress, overview
+ * - familyHealthService: Child medical, emergency contacts, and consent records
  * - familyRelationshipService: Guardian management & invites
  * - familyPermissionService: Authorization checks and access control
  *
@@ -14,6 +15,7 @@
 
 // Export individual services
 export { familyMemberService, CHILD_COLORS } from './family-member-service';
+export { familyHealthService } from './family-health-service';
 export {
   familyRelationshipService,
   DEFAULT_ROLE_PERMISSIONS,
@@ -27,6 +29,7 @@ export * from './types';
 
 // Import for facade
 import { familyMemberService } from './family-member-service';
+import { familyHealthService } from './family-health-service';
 import { familyRelationshipService } from './family-relationship-service';
 import { familyPermissionService } from './family-permission-service';
 import { createLogger } from '@/utils/logger';
@@ -38,7 +41,7 @@ void logger;
  * Backward-compatible facade that delegates to focused services.
  * Use individual services for new code.
  *
- * @deprecated Use individual services: familyMemberService, familyRelationshipService, familyPermissionService
+ * @deprecated Use individual services: familyMemberService, familyHealthService, familyRelationshipService, familyPermissionService
  */
 export const familyService = {
   // ==========================================================================
@@ -83,6 +86,15 @@ export const familyService = {
   // ==========================================================================
   getFamilyAccount: familyRelationshipService.getFamilyAccount.bind(familyRelationshipService),
   getGuardians: familyRelationshipService.getGuardians.bind(familyRelationshipService),
+
+  // ==========================================================================
+  // FAMILY HEALTH (from familyHealthService)
+  // ==========================================================================
+  getEmergencyInfo: familyHealthService.getEmergencyInfo.bind(familyHealthService),
+  updateMedicalInfo: familyHealthService.updateMedicalInfo.bind(familyHealthService),
+  updateEmergencyContacts:
+    familyHealthService.updateEmergencyContacts.bind(familyHealthService),
+  updateConsents: familyHealthService.updateConsents.bind(familyHealthService),
 
   // ==========================================================================
   // FAMILY SHARING - PERMISSIONS (from familyPermissionService)

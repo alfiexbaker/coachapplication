@@ -53,6 +53,11 @@ export const updateMedicalRecordRequestSchema = z.object({
   conditions: z.array(z.string().min(1).max(160)).max(30).optional(),
   allergies: z.array(z.string().min(1).max(160)).max(30).optional(),
   medications: z.array(z.string().min(1).max(160)).max(30).optional(),
+  restrictions: z.array(z.string().min(1).max(160)).max(30).optional(),
+  doctorName: z.string().max(120).nullable().optional(),
+  doctorPhone: z.string().max(40).nullable().optional(),
+  insuranceProvider: z.string().max(120).nullable().optional(),
+  insuranceNumber: z.string().max(120).nullable().optional(),
   emergencyNotes: z.string().max(2000).nullable().optional(),
   senNotes: z.string().max(2000).nullable().optional(),
 });
@@ -62,6 +67,11 @@ export const medicalRecordResponseSchema = z.object({
   conditions: z.array(z.string()),
   allergies: z.array(z.string()),
   medications: z.array(z.string()),
+  restrictions: z.array(z.string()),
+  doctorName: z.string().nullable(),
+  doctorPhone: z.string().nullable(),
+  insuranceProvider: z.string().nullable(),
+  insuranceNumber: z.string().nullable(),
   emergencyNotes: z.string().nullable(),
   senNotes: z.string().nullable(),
   updatedAt: z.string().datetime(),
@@ -74,6 +84,8 @@ export const emergencyContactInputSchema = z.object({
   relationship: z.string().min(1).max(80),
   phone: z.string().min(3).max(40),
   email: z.string().email().optional(),
+  isPrimary: z.boolean().optional(),
+  canPickup: z.boolean().optional(),
 });
 
 export const updateEmergencyContactsRequestSchema = z.object({
@@ -86,11 +98,39 @@ export const emergencyContactSchema = z.object({
   relationship: z.string(),
   phone: z.string(),
   email: z.string().email().optional(),
+  isPrimary: z.boolean(),
+  canPickup: z.boolean(),
 });
 
 export const emergencyContactsResponseSchema = z.object({
   athleteId: athleteIdSchema,
   contacts: z.array(emergencyContactSchema),
+  updatedAt: z.string().datetime(),
+  updatedByUserId: userIdSchema,
+});
+
+export const consentTypeSchema = z.enum([
+  'PHOTO',
+  'VIDEO',
+  'SOCIAL_MEDIA',
+  'EMERGENCY_TREATMENT',
+]);
+
+export const consentRecordSchema = z.object({
+  type: consentTypeSchema,
+  granted: z.boolean(),
+  grantedAt: z.string().datetime().optional(),
+  grantedBy: z.string().max(120),
+  expiryAt: z.string().datetime().optional(),
+});
+
+export const upsertConsentsRequestSchema = z.object({
+  consents: z.array(consentRecordSchema).max(10),
+});
+
+export const consentsResponseSchema = z.object({
+  athleteId: athleteIdSchema,
+  consents: z.array(consentRecordSchema),
   updatedAt: z.string().datetime(),
   updatedByUserId: userIdSchema,
 });
@@ -105,3 +145,8 @@ export type MedicalRecordResponse = z.infer<typeof medicalRecordResponseSchema>;
 
 export type UpdateEmergencyContactsRequest = z.infer<typeof updateEmergencyContactsRequestSchema>;
 export type EmergencyContactsResponse = z.infer<typeof emergencyContactsResponseSchema>;
+
+export type ConsentType = z.infer<typeof consentTypeSchema>;
+export type ConsentRecord = z.infer<typeof consentRecordSchema>;
+export type UpsertConsentsRequest = z.infer<typeof upsertConsentsRequestSchema>;
+export type ConsentsResponse = z.infer<typeof consentsResponseSchema>;

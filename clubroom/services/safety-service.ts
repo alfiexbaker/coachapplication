@@ -10,6 +10,7 @@ import { STORAGE_KEYS } from '@/constants/storage-keys';
 import { createLogger } from '@/utils/logger';
 import { type Result, type ServiceError, ok, err, storageError } from '@/types/result';
 import { normalizeLegacyMockDates } from '@/utils/mock-date-normalizer';
+import { familyHealthService } from '@/services/family';
 
 const logger = createLogger('SafetyService');
 const CACHE_TTL_MS = 30 * 60 * 1000; // 30 minutes
@@ -245,6 +246,10 @@ class SafetyService {
     requestorId?: string,
     requestorRole?: 'coach' | 'parent' | 'admin',
   ): Promise<Result<EmergencyInfo, ServiceError>> {
+    if (!apiClient.isMockMode) {
+      return familyHealthService.getEmergencyInfo(athleteId);
+    }
+
     try {
       // Access control when credentials are provided
       if (requestorId && requestorRole) {
@@ -362,6 +367,30 @@ class SafetyService {
     athleteId: string,
     update: Partial<Omit<EmergencyInfo, 'athleteId' | 'updatedAt'>>,
   ): Promise<Result<EmergencyInfo, ServiceError>> {
+    if (!apiClient.isMockMode) {
+      const currentResult = await familyHealthService.getEmergencyInfo(athleteId);
+      if (!currentResult.success) {
+        return currentResult;
+      }
+
+      const current = currentResult.data;
+      let nextResult: Result<EmergencyInfo, ServiceError> = ok(current);
+
+      if (update.medical) {
+        nextResult = await familyHealthService.updateMedicalInfo(athleteId, update.medical);
+        if (!nextResult.success) return nextResult;
+      }
+      if (update.contacts) {
+        nextResult = await familyHealthService.updateEmergencyContacts(athleteId, update.contacts);
+        if (!nextResult.success) return nextResult;
+      }
+      if (update.consents) {
+        nextResult = await familyHealthService.updateConsents(athleteId, update.consents);
+      }
+
+      return nextResult;
+    }
+
     try {
       return ok(await this.updateEmergencyInfoValue(athleteId, update));
     } catch (error) {
@@ -377,6 +406,28 @@ class SafetyService {
     athleteId: string,
     contact: Omit<EmergencyContact, 'id'>,
   ): Promise<Result<EmergencyInfo, ServiceError>> {
+    if (!apiClient.isMockMode) {
+      const infoResult = await familyHealthService.getEmergencyInfo(athleteId);
+      if (!infoResult.success) {
+        return infoResult;
+      }
+
+      const info = infoResult.data;
+      const newContact: EmergencyContact = {
+        ...contact,
+        id: `contact_${Date.now()}`,
+      };
+
+      if (newContact.isPrimary) {
+        info.contacts = info.contacts.map((existing) => ({ ...existing, isPrimary: false }));
+      }
+      if (info.contacts.length === 0) {
+        newContact.isPrimary = true;
+      }
+
+      return familyHealthService.updateEmergencyContacts(athleteId, [...info.contacts, newContact]);
+    }
+
     try {
       const info = await this.getEmergencyInfoValue(athleteId);
       const newContact: EmergencyContact = {
@@ -413,6 +464,24 @@ class SafetyService {
     contactId: string,
     update: Partial<Omit<EmergencyContact, 'id'>>,
   ): Promise<Result<EmergencyInfo, ServiceError>> {
+    if (!apiClient.isMockMode) {
+      const infoResult = await familyHealthService.getEmergencyInfo(athleteId);
+      if (!infoResult.success) {
+        return infoResult;
+      }
+
+      let contacts = infoResult.data.contacts.map((contact) =>
+        contact.id === contactId ? { ...contact, ...update } : contact,
+      );
+      if (update.isPrimary) {
+        contacts = contacts.map((contact) =>
+          contact.id === contactId ? contact : { ...contact, isPrimary: false },
+        );
+      }
+
+      return familyHealthService.updateEmergencyContacts(athleteId, contacts);
+    }
+
     try {
       const info = await this.getEmergencyInfoValue(athleteId);
 
@@ -437,6 +506,20 @@ class SafetyService {
     athleteId: string,
     contactId: string,
   ): Promise<Result<EmergencyInfo, ServiceError>> {
+    if (!apiClient.isMockMode) {
+      const infoResult = await familyHealthService.getEmergencyInfo(athleteId);
+      if (!infoResult.success) {
+        return infoResult;
+      }
+
+      const contacts = infoResult.data.contacts.filter((contact) => contact.id !== contactId);
+      if (contacts.length > 0 && !contacts.some((contact) => contact.isPrimary)) {
+        contacts[0] = { ...contacts[0], isPrimary: true };
+      }
+
+      return familyHealthService.updateEmergencyContacts(athleteId, contacts);
+    }
+
     try {
       const info = await this.getEmergencyInfoValue(athleteId);
       const contacts = info.contacts.filter((c) => c.id !== contactId);
@@ -460,6 +543,10 @@ class SafetyService {
     athleteId: string,
     medical: Partial<MedicalInfo>,
   ): Promise<Result<EmergencyInfo, ServiceError>> {
+    if (!apiClient.isMockMode) {
+      return familyHealthService.updateMedicalInfo(athleteId, medical);
+    }
+
     try {
       const info = await this.getEmergencyInfoValue(athleteId);
       return ok(
@@ -483,6 +570,35 @@ class SafetyService {
     grantedBy: string,
     durationMonths = 12,
   ): Promise<Result<EmergencyInfo, ServiceError>> {
+    if (!apiClient.isMockMode) {
+      const infoResult = await familyHealthService.getEmergencyInfo(athleteId);
+      if (!infoResult.success) {
+        return infoResult;
+      }
+
+      let expiryAt: string | undefined;
+      if (granted) {
+        const expiryDate = new Date();
+        expiryDate.setDate(1);
+        expiryDate.setMonth(expiryDate.getMonth() + durationMonths);
+        expiryAt = expiryDate.toISOString();
+      }
+
+      const consents = infoResult.data.consents.map((consent) =>
+        consent.type === type
+          ? {
+              ...consent,
+              granted,
+              grantedBy,
+              grantedAt: granted ? new Date().toISOString() : undefined,
+              expiryAt,
+            }
+          : consent,
+      );
+
+      return familyHealthService.updateConsents(athleteId, consents);
+    }
+
     try {
       const info = await this.getEmergencyInfoValue(athleteId);
 
@@ -521,7 +637,11 @@ class SafetyService {
     athleteId: string,
   ): Promise<Result<EmergencyContact | null, ServiceError>> {
     try {
-      const info = await this.getEmergencyInfoValue(athleteId);
+      const infoResult = await this.getEmergencyInfo(athleteId);
+      if (!infoResult.success) {
+        return err(infoResult.error);
+      }
+      const info = infoResult.data;
       return ok(info.contacts.find((c) => c.isPrimary) ?? info.contacts[0] ?? null);
     } catch (error) {
       logger.error('Failed to get primary contact', { athleteId, error });
@@ -534,7 +654,11 @@ class SafetyService {
    */
   async hasAlerts(athleteId: string): Promise<Result<boolean, ServiceError>> {
     try {
-      const info = await this.getEmergencyInfoValue(athleteId);
+      const infoResult = await this.getEmergencyInfo(athleteId);
+      if (!infoResult.success) {
+        return err(infoResult.error);
+      }
+      const info = infoResult.data;
       return ok(
         info.medical.allergies.length > 0 ||
           info.medical.conditions.length > 0 ||
@@ -554,7 +678,11 @@ class SafetyService {
     type: ConsentType,
   ): Promise<Result<Consent | null, ServiceError>> {
     try {
-      const info = await this.getEmergencyInfoValue(athleteId);
+      const infoResult = await this.getEmergencyInfo(athleteId);
+      if (!infoResult.success) {
+        return err(infoResult.error);
+      }
+      const info = infoResult.data;
       return ok(info.consents.find((c) => c.type === type) ?? null);
     } catch (error) {
       logger.error('Failed to get consent', { athleteId, type, error });
@@ -567,7 +695,11 @@ class SafetyService {
    */
   async isComplete(athleteId: string): Promise<Result<boolean, ServiceError>> {
     try {
-      const info = await this.getEmergencyInfoValue(athleteId);
+      const infoResult = await this.getEmergencyInfo(athleteId);
+      if (!infoResult.success) {
+        return err(infoResult.error);
+      }
+      const info = infoResult.data;
       const hasContact = info.contacts.length > 0;
       const hasEmergencyConsent = info.consents.find(
         (c) => c.type === 'EMERGENCY_TREATMENT',
@@ -584,7 +716,11 @@ class SafetyService {
    */
   async getCompletionPercentage(athleteId: string): Promise<Result<number, ServiceError>> {
     try {
-      const info = await this.getEmergencyInfoValue(athleteId);
+      const infoResult = await this.getEmergencyInfo(athleteId);
+      if (!infoResult.success) {
+        return err(infoResult.error);
+      }
+      const info = infoResult.data;
       let completed = 0;
       const total = 4; // contacts, medical, consents (emergency treatment), doctor info
 

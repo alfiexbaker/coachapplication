@@ -2,6 +2,8 @@ import crypto from 'node:crypto';
 import type { FastifyPluginAsync } from 'fastify';
 import {
   athleteIdSchema,
+  consentsResponseSchema,
+  consentTypeSchema,
   createInjuryRequestSchema,
   emergencyContactsResponseSchema,
   familyIdSchema,
@@ -9,9 +11,11 @@ import {
   injuriesResponseSchema,
   injuryRecordSchema,
   medicalRecordResponseSchema,
+  upsertConsentsRequestSchema,
   updateEmergencyContactsRequestSchema,
   updateInjuryRequestSchema,
   updateMedicalRecordRequestSchema,
+  type ConsentsResponse,
   type EmergencyContactsResponse,
   type InjuryRecord,
   type MedicalRecordResponse,
@@ -29,6 +33,7 @@ const injuriesByAthleteId = new Map<string, InjuryRecord[]>();
 const injuriesById = new Map<string, InjuryRecord>();
 const medicalByAthleteId = new Map<string, MedicalRecordResponse>();
 const emergencyContactsByAthleteId = new Map<string, EmergencyContactsResponse>();
+const consentsByAthleteId = new Map<string, ConsentsResponse>();
 
 const isoNow = () => new Date().toISOString();
 const newId = (prefix: string) => `${prefix}_${crypto.randomUUID()}`;
@@ -81,6 +86,11 @@ medicalByAthleteId.set(
     conditions: ['asthma'],
     allergies: ['nuts'],
     medications: ['inhaler'],
+    restrictions: ['Carry inhaler pitch-side'],
+    doctorName: 'Dr. Patel',
+    doctorPhone: '+442071234567',
+    insuranceProvider: 'Bupa',
+    insuranceNumber: 'BUPA-12345',
     emergencyNotes: 'Carry inhaler on match days.',
     senNotes: null,
     updatedAt: seedNow,
@@ -99,6 +109,45 @@ emergencyContactsByAthleteId.set(
         relationship: 'parent',
         phone: '+447700900100',
         email: 'chris.barton@email.com',
+        isPrimary: true,
+        canPickup: true,
+      },
+    ],
+    updatedAt: seedNow,
+    updatedByUserId: 'usr_parent1',
+  }),
+);
+
+consentsByAthleteId.set(
+  'ath_user1',
+  consentsResponseSchema.parse({
+    athleteId: 'ath_user1',
+    consents: [
+      {
+        type: 'PHOTO',
+        granted: true,
+        grantedAt: '2026-02-20T10:00:00.000Z',
+        grantedBy: 'Chris Barton',
+        expiryAt: '2027-02-01T00:00:00.000Z',
+      },
+      {
+        type: 'VIDEO',
+        granted: true,
+        grantedAt: '2026-02-20T10:00:00.000Z',
+        grantedBy: 'Chris Barton',
+        expiryAt: '2027-02-01T00:00:00.000Z',
+      },
+      {
+        type: 'SOCIAL_MEDIA',
+        granted: false,
+        grantedBy: '',
+      },
+      {
+        type: 'EMERGENCY_TREATMENT',
+        granted: true,
+        grantedAt: '2026-02-20T10:00:00.000Z',
+        grantedBy: 'Chris Barton',
+        expiryAt: '2027-02-01T00:00:00.000Z',
       },
     ],
     updatedAt: seedNow,
@@ -119,6 +168,11 @@ const defaultMedicalRecord = (athleteId: string, userId: string): MedicalRecordR
     conditions: [],
     allergies: [],
     medications: [],
+    restrictions: [],
+    doctorName: null,
+    doctorPhone: null,
+    insuranceProvider: null,
+    insuranceNumber: null,
     emergencyNotes: null,
     senNotes: null,
     updatedAt: isoNow(),
@@ -132,6 +186,55 @@ const defaultEmergencyContacts = (athleteId: string, userId: string): EmergencyC
     updatedAt: isoNow(),
     updatedByUserId: userId,
   });
+
+const defaultConsents = (athleteId: string, userId: string): ConsentsResponse =>
+  consentsResponseSchema.parse({
+    athleteId,
+    consents: consentTypeSchema.options.map((type) => ({
+      type,
+      granted: false,
+      grantedBy: '',
+    })),
+    updatedAt: isoNow(),
+    updatedByUserId: userId,
+  });
+
+function normalizeEmergencyContacts(
+  contacts: Array<{
+    id?: string;
+    name: string;
+    relationship: string;
+    phone: string;
+    email?: string;
+    isPrimary?: boolean;
+    canPickup?: boolean;
+  }>,
+) {
+  const normalized = contacts.map((contact, index) => ({
+    ...contact,
+    id: contact.id ?? newId('emc'),
+    isPrimary: contact.isPrimary ?? index === 0,
+    canPickup: contact.canPickup ?? false,
+  }));
+
+  const primaryCount = normalized.filter((contact) => contact.isPrimary).length;
+  if (normalized.length > 0 && primaryCount === 0) {
+    normalized[0] = { ...normalized[0], isPrimary: true };
+  }
+
+  if (primaryCount > 1) {
+    let foundPrimary = false;
+    for (let index = 0; index < normalized.length; index += 1) {
+      if (normalized[index].isPrimary && !foundPrimary) {
+        foundPrimary = true;
+        continue;
+      }
+      normalized[index] = { ...normalized[index], isPrimary: false };
+    }
+  }
+
+  return normalized;
+}
 
 const familyAthleteRoutes: FastifyPluginAsync = async (app) => {
   app.get('/families/:familyId', async (request, reply) => {
@@ -252,6 +355,13 @@ const familyAthleteRoutes: FastifyPluginAsync = async (app) => {
     const updated = medicalRecordResponseSchema.parse({
       ...current,
       ...body,
+      restrictions: body.restrictions !== undefined ? body.restrictions : current.restrictions,
+      doctorName: body.doctorName !== undefined ? body.doctorName : current.doctorName,
+      doctorPhone: body.doctorPhone !== undefined ? body.doctorPhone : current.doctorPhone,
+      insuranceProvider:
+        body.insuranceProvider !== undefined ? body.insuranceProvider : current.insuranceProvider,
+      insuranceNumber:
+        body.insuranceNumber !== undefined ? body.insuranceNumber : current.insuranceNumber,
       emergencyNotes: body.emergencyNotes !== undefined ? body.emergencyNotes : current.emergencyNotes,
       senNotes: body.senNotes !== undefined ? body.senNotes : current.senNotes,
       updatedAt: isoNow(),
@@ -281,15 +391,44 @@ const familyAthleteRoutes: FastifyPluginAsync = async (app) => {
 
     const updated = emergencyContactsResponseSchema.parse({
       athleteId,
-      contacts: body.contacts.map((contact) => ({
-        ...contact,
-        id: contact.id ?? newId('emc'),
-      })),
+      contacts: normalizeEmergencyContacts(body.contacts),
       updatedAt: isoNow(),
       updatedByUserId: userId,
     });
 
     emergencyContactsByAthleteId.set(athleteId, updated);
+    return reply.send(updated);
+  });
+
+  app.get('/athletes/:athleteId/consents', async (request, reply) => {
+    const athleteId = athleteIdSchema.parse((request.params as { athleteId: string }).athleteId);
+    assertCanReadAthleteMedical(request, athleteId);
+    const userId = ensureAuthUserId(request.auth?.userId);
+    const record = consentsByAthleteId.get(athleteId) ?? defaultConsents(athleteId, userId);
+    if (!consentsByAthleteId.has(athleteId)) {
+      consentsByAthleteId.set(athleteId, record);
+    }
+    return reply.send(record);
+  });
+
+  app.put('/athletes/:athleteId/consents', async (request, reply) => {
+    const athleteId = athleteIdSchema.parse((request.params as { athleteId: string }).athleteId);
+    assertCanWriteAthleteMedical(request, athleteId);
+    const body = upsertConsentsRequestSchema.parse(request.body);
+    const userId = ensureAuthUserId(request.auth?.userId);
+    const byType = new Map(body.consents.map((consent) => [consent.type, consent]));
+
+    const updated = consentsResponseSchema.parse({
+      athleteId,
+      consents: consentTypeSchema.options.map((type) => {
+        const next = byType.get(type);
+        return next ?? { type, granted: false, grantedBy: '' };
+      }),
+      updatedAt: isoNow(),
+      updatedByUserId: userId,
+    });
+
+    consentsByAthleteId.set(athleteId, updated);
     return reply.send(updated);
   });
 };

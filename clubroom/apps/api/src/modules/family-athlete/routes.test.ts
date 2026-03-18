@@ -61,7 +61,7 @@ describe('family-athlete routes', () => {
     assert.equal(updated.notes, 'Cleared to play');
   });
 
-  it('upserts and reads medical and emergency contacts', async () => {
+  it('upserts and reads medical, emergency contacts, and consents', async () => {
     const athleteId = 'ath_user2';
     const guardianHeaders = {
       'x-auth-user-id': 'usr_parent1',
@@ -77,6 +77,12 @@ describe('family-athlete routes', () => {
       payload: {
         conditions: ['asthma'],
         allergies: ['peanuts'],
+        medications: ['inhaler'],
+        restrictions: ['Warm up before sprinting'],
+        doctorName: 'Dr. Kim',
+        doctorPhone: '+442071234568',
+        insuranceProvider: 'AXA',
+        insuranceNumber: 'AXA-778899',
         emergencyNotes: 'Carry inhaler at all sessions',
       },
     });
@@ -85,11 +91,23 @@ describe('family-athlete routes', () => {
       athleteId: string;
       conditions: string[];
       allergies: string[];
+      medications: string[];
+      restrictions: string[];
+      doctorName: string | null;
+      doctorPhone: string | null;
+      insuranceProvider: string | null;
+      insuranceNumber: string | null;
       emergencyNotes: string | null;
     };
     assert.equal(medicalPayload.athleteId, athleteId);
     assert.deepEqual(medicalPayload.conditions, ['asthma']);
     assert.deepEqual(medicalPayload.allergies, ['peanuts']);
+    assert.deepEqual(medicalPayload.medications, ['inhaler']);
+    assert.deepEqual(medicalPayload.restrictions, ['Warm up before sprinting']);
+    assert.equal(medicalPayload.doctorName, 'Dr. Kim');
+    assert.equal(medicalPayload.doctorPhone, '+442071234568');
+    assert.equal(medicalPayload.insuranceProvider, 'AXA');
+    assert.equal(medicalPayload.insuranceNumber, 'AXA-778899');
     assert.equal(medicalPayload.emergencyNotes, 'Carry inhaler at all sessions');
 
     const emergency = await app.inject({
@@ -103,6 +121,8 @@ describe('family-athlete routes', () => {
             relationship: 'parent',
             phone: '+447700900100',
             email: 'parent.one@example.com',
+            isPrimary: true,
+            canPickup: true,
           },
         ],
       },
@@ -110,12 +130,14 @@ describe('family-athlete routes', () => {
     assert.equal(emergency.statusCode, 200);
     const emergencyPayload = emergency.json() as {
       athleteId: string;
-      contacts: Array<{ id: string; name: string }>;
+      contacts: Array<{ id: string; name: string; isPrimary: boolean; canPickup: boolean }>;
     };
     assert.equal(emergencyPayload.athleteId, athleteId);
     assert.equal(emergencyPayload.contacts.length, 1);
     assert.match(emergencyPayload.contacts[0].id, /^emc_/);
     assert.equal(emergencyPayload.contacts[0].name, 'Parent One');
+    assert.equal(emergencyPayload.contacts[0].isPrimary, true);
+    assert.equal(emergencyPayload.contacts[0].canPickup, true);
 
     const getEmergency = await app.inject({
       method: 'GET',
@@ -125,6 +147,62 @@ describe('family-athlete routes', () => {
     assert.equal(getEmergency.statusCode, 200);
     const persisted = getEmergency.json() as { contacts: Array<{ name: string }> };
     assert.equal(persisted.contacts[0]?.name, 'Parent One');
+
+    const consents = await app.inject({
+      method: 'PUT',
+      url: `/v1/athletes/${athleteId}/consents`,
+      headers: guardianHeaders,
+      payload: {
+        consents: [
+          {
+            type: 'PHOTO',
+            granted: true,
+            grantedAt: '2026-03-18T10:00:00.000Z',
+            grantedBy: 'Parent One',
+            expiryAt: '2027-03-01T00:00:00.000Z',
+          },
+          {
+            type: 'VIDEO',
+            granted: false,
+            grantedBy: '',
+          },
+          {
+            type: 'SOCIAL_MEDIA',
+            granted: false,
+            grantedBy: '',
+          },
+          {
+            type: 'EMERGENCY_TREATMENT',
+            granted: true,
+            grantedAt: '2026-03-18T10:00:00.000Z',
+            grantedBy: 'Parent One',
+            expiryAt: '2027-03-01T00:00:00.000Z',
+          },
+        ],
+      },
+    });
+    assert.equal(consents.statusCode, 200);
+    const consentPayload = consents.json() as {
+      athleteId: string;
+      consents: Array<{ type: string; granted: boolean; grantedBy: string }>;
+    };
+    assert.equal(consentPayload.athleteId, athleteId);
+    assert.equal(consentPayload.consents.length, 4);
+    assert.equal(consentPayload.consents.find((consent) => consent.type === 'PHOTO')?.granted, true);
+
+    const getConsents = await app.inject({
+      method: 'GET',
+      url: `/v1/athletes/${athleteId}/consents`,
+      headers: guardianHeaders,
+    });
+    assert.equal(getConsents.statusCode, 200);
+    const persistedConsents = getConsents.json() as {
+      consents: Array<{ type: string; granted: boolean }>;
+    };
+    assert.equal(
+      persistedConsents.consents.find((consent) => consent.type === 'EMERGENCY_TREATMENT')?.granted,
+      true,
+    );
   });
 
   it('denies medical reads for unverified coaches and denies non-guardian writes', async () => {
