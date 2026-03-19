@@ -26,7 +26,9 @@ import { toDateStr } from '@/utils/format';
 import { emitTyped, ServiceEvents } from '@/services/event-bus';
 import { blockService, getBlockActionMessage } from '@/services/block-service';
 import { progressAttendanceService } from '@/services/progress/progress-attendance-service';
+import { authService } from '@/services/auth-service';
 import { getSessionOfferingHeadcount } from '@/utils/session-offering-capacity';
+import { normalizeAccountId } from '@/utils/account-id';
 import { bookingAuthorityService } from './booking-authority-service';
 import {
   type Result,
@@ -48,6 +50,25 @@ const ENFORCE_DBS_SAFEGUARDING_GATE =
 
 /** Maximum age (ms) before cache is considered stale. */
 const CACHE_MAX_AGE = 30_000;
+
+function normalizeBookingActorId(id: string): string {
+  return normalizeAccountId(id.replace(/^usr_/, '').replace(/^ath_/, ''));
+}
+
+function canUseApiBookingCreate(
+  currentUser: Awaited<ReturnType<typeof authService.getCurrentUser>>,
+  bookedById: string,
+): boolean {
+  if (!currentUser?.id) {
+    return false;
+  }
+
+  if (currentUser.roles?.includes('club_admin')) {
+    return true;
+  }
+
+  return normalizeBookingActorId(currentUser.id) === normalizeBookingActorId(bookedById);
+}
 
 export type BookingDraft = {
   entrySource?: string;
@@ -775,10 +796,75 @@ class BookingCrudService {
     const basePrice = price || 0;
     const totalPrice = basePrice * athleteIds.length;
     const isSharedSession = athleteIds.length > 1;
+    const createdAt = new Date().toISOString();
+    let authoritativeCreate:
+      | {
+          id: string;
+          status: Booking['status'];
+          scheduledAt: string;
+          createdAt: string;
+          serviceType?: string;
+          sessionTemplateId?: string | null;
+          objectives: string[];
+          notes?: string | null;
+          priceMinor?: number | null;
+        }
+      | null = null;
+
+    if (!apiClient.isMockMode) {
+      const currentUser = await authService.getCurrentUser();
+      if (canUseApiBookingCreate(currentUser, bookedById)) {
+        const createViaApiResult = await bookingAuthorityService.createBooking({
+          coachId,
+          athleteIds,
+          bookedById,
+          scheduledAt,
+          duration,
+          location,
+          serviceType,
+          ...(sessionTemplateId ? { sessionTemplateId } : {}),
+          objectives: objectives || [],
+          notes,
+          totalPrice,
+        });
+
+        if (!createViaApiResult.success) {
+          logger.error('Failed to create booking via API', {
+            coachId,
+            bookedById,
+            athleteIds,
+            error: createViaApiResult.error.message,
+          });
+          return err(createViaApiResult.error);
+        }
+
+        authoritativeCreate = {
+          id: createViaApiResult.data.id,
+          status: createViaApiResult.data.status,
+          scheduledAt: createViaApiResult.data.scheduledAt,
+          createdAt: createViaApiResult.data.createdAt,
+          serviceType: createViaApiResult.data.serviceType,
+          sessionTemplateId: createViaApiResult.data.sessionTemplateId,
+          objectives: createViaApiResult.data.objectives,
+          notes: createViaApiResult.data.notes,
+          priceMinor: createViaApiResult.data.priceMinor,
+        };
+      } else {
+        logger.debug('Skipping API booking create for delegated actor', {
+          coachId,
+          bookedById,
+          athleteIds,
+          currentUserId: currentUser?.id ?? null,
+          actingAs: actingAs ?? 'self',
+          createdByUserId: createdByUserId ?? null,
+          createdByRole: createdByRole ?? null,
+        });
+      }
+    }
 
     // Create the booking
     const newBooking = {
-      id: apiClient.generateId('booking'),
+      id: authoritativeCreate?.id ?? apiClient.generateId('booking'),
       coachId,
       coachName,
       athleteIds,
@@ -786,12 +872,12 @@ class BookingCrudService {
       athleteId: athleteIds[0], // Backwards compatibility: first athlete
       bookedById,
       bookedByName,
-      scheduledAt,
-      status: 'CONFIRMED',
+      scheduledAt: authoritativeCreate?.scheduledAt ?? scheduledAt,
+      status: authoritativeCreate?.status ?? 'CONFIRMED',
       duration,
       location,
       service,
-      serviceType,
+      serviceType: authoritativeCreate?.serviceType ?? serviceType,
       ...(sessionTemplateId ? { sessionTemplateId } : {}),
       ...(sessionTemplateName ? { sessionTemplateName } : {}),
       ...(sessionSource ? { sessionSource } : {}),
@@ -803,11 +889,14 @@ class BookingCrudService {
       ...(assigneeCoachId ? { assigneeCoachId } : {}),
       ...(createdByUserId ? { createdByUserId } : {}),
       ...(createdByRole ? { createdByRole } : {}),
-      objectives: objectives || [],
-      price: totalPrice,
+      objectives: authoritativeCreate?.objectives ?? (objectives || []),
+      price:
+        typeof authoritativeCreate?.priceMinor === 'number'
+          ? authoritativeCreate.priceMinor / 100
+          : totalPrice,
       isSharedSession,
-      notes: notes || '',
-      createdAt: new Date().toISOString(),
+      notes: authoritativeCreate?.notes ?? (notes || ''),
+      createdAt: authoritativeCreate?.createdAt ?? createdAt,
       sessionInviteId, // Link to session invite if created from one
     };
 

@@ -15,8 +15,9 @@ Purpose: identify the service entrypoints that are safe to build on and call out
 
 - `services/booking-service.ts` -> facade to `services/booking/index.ts`
 - `services/booking/index.ts` -> booking CRUD, status, search, analytics
-- `services/booking/booking-authority-service.ts` -> canonical `/v1` booking mutation bridge for non-mock authority slices such as cancellation and reopen
+- `services/booking/booking-authority-service.ts` -> canonical `/v1` booking mutation bridge for non-mock direct create, cancel, and reopen slices
 - Booking creation rule: use `bookingService.createBooking()`
+  - Current rule: direct create goes API-first only when the signed-in actor is the real `bookedBy` user or a `club_admin`; delegated coach-mediated create still falls back through the local mirror path until backend authz widens
 
 ### Progress and development
 

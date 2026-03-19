@@ -39,8 +39,31 @@ interface ApiBookingResponse {
   cancelledAt?: string | null;
 }
 
+interface CreateApiBookingInput {
+  coachId: string;
+  athleteIds: string[];
+  bookedById: string;
+  scheduledAt: string;
+  duration: number;
+  location: string;
+  serviceType: string;
+  sessionTemplateId?: string;
+  objectives?: string[];
+  notes?: string;
+  totalPrice?: number;
+}
+
 function toApiUserId(userId: string): string {
   return userId.startsWith('usr_') ? userId : `usr_${userId.replace(/^ath_/, '')}`;
+}
+
+function toApiAthleteId(athleteId: string): string {
+  return athleteId.startsWith('ath_') ? athleteId : `ath_${athleteId.replace(/^usr_/, '')}`;
+}
+
+function toApiScheduledAt(scheduledAt: string): string {
+  const parsed = new Date(scheduledAt);
+  return Number.isNaN(parsed.getTime()) ? scheduledAt : parsed.toISOString();
 }
 
 function deriveActingRole(
@@ -76,6 +99,48 @@ async function resolveBookingAccessHeaders(): Promise<Result<Record<string, stri
 }
 
 class BookingAuthorityService {
+  async createBooking(
+    input: CreateApiBookingInput,
+  ): Promise<Result<ApiBookingResponse, ServiceError>> {
+    const headersResult = await resolveBookingAccessHeaders();
+    if (!headersResult.success) {
+      return headersResult;
+    }
+
+    const result = await apiFetch<ApiBookingResponse>('/v1/bookings', {
+      method: 'POST',
+      headers: headersResult.data,
+      body: JSON.stringify({
+        coachUserId: toApiUserId(input.coachId),
+        athleteIds: input.athleteIds.map((athleteId) => toApiAthleteId(athleteId)),
+        bookedByUserId: toApiUserId(input.bookedById),
+        scheduledAt: toApiScheduledAt(input.scheduledAt),
+        durationMinutes: input.duration,
+        location: input.location,
+        serviceType: input.serviceType,
+        ...(input.sessionTemplateId ? { sessionTemplateId: input.sessionTemplateId } : {}),
+        objectives: input.objectives ?? [],
+        ...(input.notes ? { notes: input.notes } : {}),
+        ...(typeof input.totalPrice === 'number'
+          ? { priceMinor: Math.max(0, Math.round(input.totalPrice * 100)) }
+          : {}),
+        currency: 'GBP',
+      }),
+    });
+
+    if (!result.success) {
+      logger.error('Failed to create booking via API', {
+        coachId: input.coachId,
+        bookedById: input.bookedById,
+        athleteIds: input.athleteIds,
+        error: result.error,
+      });
+      return err(result.error);
+    }
+
+    return result;
+  }
+
   async cancelBooking(
     bookingId: string,
     input: { reason: string; note?: string },

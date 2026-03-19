@@ -2,10 +2,13 @@ import { describe, it, beforeEach } from 'node:test';
 import assert from 'node:assert/strict';
 
 import { bookingCrudService } from '@/services/booking/booking-crud-service';
+import { authService } from '@/services/auth-service';
 import { apiClient } from '@/services/api-client';
 import { STORAGE_KEYS } from '@/constants/storage-keys';
 import { onTyped, ServiceEvents } from '@/services/event-bus';
+import { bookingAuthorityService } from '@/services/booking/booking-authority-service';
 import type { SessionOffering } from '@/constants/types';
+import { ok } from '@/types/result';
 
 function makeSessionOffering(
   overrides: Partial<SessionOffering> & { id: string; coachId: string; title: string },
@@ -96,6 +99,179 @@ describe('BookingCrudService', () => {
       assert.ok(result.data.id);
       assert.equal(result.data.coachId, params.coachId);
       assert.equal(result.data.status, 'CONFIRMED');
+    });
+
+    it('should create booking via API in non-mock mode when actor matches bookedBy', async () => {
+      const originalIsMockMode = Object.getOwnPropertyDescriptor(apiClient, 'isMockMode');
+      const originalGetCurrentUser = authService.getCurrentUser;
+      const originalCreateViaApi = bookingAuthorityService.createBooking;
+      const apiCalls: Array<Record<string, unknown>> = [];
+
+      Object.defineProperty(apiClient, 'isMockMode', {
+        configurable: true,
+        get: () => false,
+      });
+      authService.getCurrentUser = async () => ({
+        id: 'usr_parent-api-create',
+        email: 'parent@example.com',
+        accountType: 'PARENT',
+        firstName: 'Test',
+        lastName: 'Parent',
+        isVerified: false,
+        onboardingComplete: true,
+        createdAt: '2026-03-18T00:00:00.000Z',
+        updatedAt: '2026-03-18T00:00:00.000Z',
+        roles: ['parent'],
+      });
+      bookingAuthorityService.createBooking = async (
+        input,
+      ) => {
+        apiCalls.push(input as unknown as Record<string, unknown>);
+        return ok({
+          id: 'bok_api_create_1',
+          coachUserId: 'usr_coach_api_create',
+          bookedByUserId: 'usr_parent-api-create',
+          status: 'CONFIRMED',
+          scheduledAt: '2030-01-10T10:00:00.000Z',
+          durationMinutes: 60,
+          location: 'API Test Field',
+          serviceType: 'COACHING',
+          sessionTemplateId: null,
+          objectives: ['Finishing'],
+          notes: 'Created through API',
+          priceMinor: 8400,
+          currency: 'GBP',
+          participants: [
+            {
+              athleteId: 'ath_api_create_1',
+              guardianUserId: 'usr_parent-api-create',
+              status: 'confirmed',
+            },
+            {
+              athleteId: 'ath_api_create_2',
+              guardianUserId: 'usr_parent-api-create',
+              status: 'confirmed',
+            },
+          ],
+          version: 1,
+          createdAt: '2026-03-18T12:00:00.000Z',
+          updatedAt: '2026-03-18T12:00:00.000Z',
+          cancelledAt: null,
+        });
+      };
+
+      try {
+        const result = await bookingCrudService.createBooking({
+          coachId: 'coach-api-create',
+          coachName: 'API Coach',
+          athleteIds: ['athlete-api-create-1', 'athlete-api-create-2'],
+          athleteNames: ['Athlete One', 'Athlete Two'],
+          bookedById: 'parent-api-create',
+          bookedByName: 'API Parent',
+          scheduledAt: '2030-01-10T10:00:00',
+          duration: 60,
+          location: 'API Test Field',
+          service: '1-on-1 Coaching',
+          serviceType: 'COACHING',
+          objectives: ['Finishing'],
+          price: 42,
+          notes: 'Created through API',
+          skipAvailabilityValidation: true,
+        });
+
+        assert.ok(result.success);
+        if (!result.success) return;
+
+        assert.equal(apiCalls.length, 1);
+        assert.equal(result.data.id, 'bok_api_create_1');
+        assert.equal(result.data.scheduledAt, '2030-01-10T10:00:00.000Z');
+        assert.equal(result.data.price, 84);
+
+        const stored = await apiClient.get<Array<{ id: string }>>(STORAGE_KEYS.BOOKINGS, []);
+        assert.equal(stored.length, 1);
+        assert.equal(stored[0]?.id, 'bok_api_create_1');
+      } finally {
+        authService.getCurrentUser = originalGetCurrentUser;
+        bookingAuthorityService.createBooking = originalCreateViaApi;
+        if (originalIsMockMode) {
+          Object.defineProperty(apiClient, 'isMockMode', originalIsMockMode);
+        }
+      }
+    });
+
+    it('should keep delegated booking creation on the local path when actor cannot satisfy backend authz', async () => {
+      const originalIsMockMode = Object.getOwnPropertyDescriptor(apiClient, 'isMockMode');
+      const originalGetCurrentUser = authService.getCurrentUser;
+      const originalCreateViaApi = bookingAuthorityService.createBooking;
+      let apiCallCount = 0;
+
+      Object.defineProperty(apiClient, 'isMockMode', {
+        configurable: true,
+        get: () => false,
+      });
+      authService.getCurrentUser = async () => ({
+        id: 'usr_coach-delegated-create',
+        email: 'coach@example.com',
+        accountType: 'COACH',
+        firstName: 'Delegated',
+        lastName: 'Coach',
+        isVerified: true,
+        onboardingComplete: true,
+        createdAt: '2026-03-18T00:00:00.000Z',
+        updatedAt: '2026-03-18T00:00:00.000Z',
+        roles: ['coach'],
+      });
+      bookingAuthorityService.createBooking = async () => {
+        apiCallCount += 1;
+        return ok({
+          id: 'bok_should_not_be_used',
+          coachUserId: 'usr_coach-delegated-create',
+          bookedByUserId: 'usr_parent-delegated-create',
+          status: 'CONFIRMED',
+          scheduledAt: '2030-01-11T11:00:00.000Z',
+          durationMinutes: 60,
+          location: 'Delegated Test Field',
+          serviceType: 'COACHING',
+          objectives: [],
+          currency: 'GBP',
+          participants: [],
+          version: 1,
+          createdAt: '2026-03-18T12:00:00.000Z',
+          updatedAt: '2026-03-18T12:00:00.000Z',
+          cancelledAt: null,
+        });
+      };
+
+      try {
+        const result = await bookingCrudService.createBooking({
+          coachId: 'coach-delegated-create',
+          coachName: 'Delegated Coach',
+          athleteIds: ['athlete-delegated-create'],
+          athleteNames: ['Delegated Athlete'],
+          bookedById: 'parent-delegated-create',
+          bookedByName: 'Delegated Parent',
+          scheduledAt: '2030-01-11T11:00:00.000Z',
+          duration: 60,
+          location: 'Delegated Test Field',
+          service: '1-on-1 Coaching',
+          serviceType: 'COACHING',
+          createdByRole: 'COACH',
+          createdByUserId: 'coach-delegated-create',
+          skipAvailabilityValidation: true,
+        });
+
+        assert.ok(result.success);
+        if (!result.success) return;
+
+        assert.equal(apiCallCount, 0);
+        assert.match(result.data.id, /^booking_/);
+      } finally {
+        authService.getCurrentUser = originalGetCurrentUser;
+        bookingAuthorityService.createBooking = originalCreateViaApi;
+        if (originalIsMockMode) {
+          Object.defineProperty(apiClient, 'isMockMode', originalIsMockMode);
+        }
+      }
     });
 
     it('should return err() when scheduledAt is missing', async () => {

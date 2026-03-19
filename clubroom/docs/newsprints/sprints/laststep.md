@@ -4,29 +4,36 @@ Date: 2026-03-18
 
 ## What Was Just Done
 
-1. Added `ReopenBookingRequest` to `packages/shared-contracts/src/booking/contracts.ts` and scaffolded `POST /v1/bookings/:bookingId/reopen` in `apps/api/src/modules/booking/routes.ts`.
-2. Extended `apps/api/src/repositories/p0/booking-repository.ts` so seed and db modes both enforce booking ownership before reopening and restore the last active status for upcoming cancelled bookings.
-3. Added reopen coverage in `apps/api/src/modules/p0-core/routes.test.ts` and local booking service coverage in `__tests__/services/booking/booking-crud-service.test.ts` plus `__tests__/bookings/booking-service.test.ts`.
-4. Extended `services/booking/booking-authority-service.ts` and `services/booking/booking-crud-service.ts` so non-mock reopening uses `/v1` before mirroring the restored booking state into local app storage.
-5. Replaced the booking-detail reschedule action with a real reopen action in `hooks/use-booking-detail.ts`, `components/bookings/booking-coach-view.tsx`, `components/bookings/booking-parent-view.tsx`, and `app/(tabs)/bookings/[id].tsx`.
-6. Removed dead reschedule-request artifacts and updated runtime docs so the booking lifecycle now points to cancel/reopen instead of reschedule proposals.
+1. Extended `services/booking/booking-authority-service.ts` with a real `createBooking()` bridge to `POST /v1/bookings`, including actor headers, user and athlete ID normalization, ISO scheduling, and GBP minor-unit price conversion.
+2. Rewired `services/booking/booking-crud-service.ts` so non-mock direct booking creation is API-first before mirroring the result into local app storage.
+3. Kept the create rule explicit instead of pretending wider authority exists:
+   - use `/v1/bookings` only when the signed-in actor is the real `bookedBy` user or a `club_admin`
+   - keep delegated or coach-mediated booking creation on the existing local path for now
+4. Exposed the API create bridge through `services/booking/index.ts` and added app-side coverage in `__tests__/services/booking/booking-crud-service.test.ts`.
+5. Updated runtime docs so `/v1/bookings` is now marked scaffolded and the rule boundary is recorded in the product and architecture docs.
 
 ## Verification Run In This Step
 
 - `npm run typecheck` -> PASS
 - `npm run test:compile` -> PASS
 - `npm --prefix apps/api run typecheck` -> PASS
-- `npm --prefix apps/api run test` -> PASS (`30/30`)
+- `node --require ./scripts/test-register.js --test .tmp-tests/__tests__/services/booking/booking-crud-service.test.js .tmp-tests/__tests__/bookings/booking-service.test.js` -> PASS (`38/38`)
 
 ## Current State
 
-- Family medical, safeguarding incident creation, and booking cancel/reopen flows are backend-authoritative in non-mock mode.
-- The backend implementation is still scaffold/in-memory, but the app now uses the `/v1` contract for these trust-critical writes instead of pretending they are local-only.
-- `API-01` remains active; booking creation still needs the same backend-authoritative treatment.
+- Family medical, safeguarding incident creation, direct booking creation, and booking cancel/reopen flows are backend-authoritative in non-mock mode.
+- The app still mirrors authoritative booking writes into local storage because booking reads are not fully `/v1`-backed yet.
+- The current booking create rule is intentionally narrow:
+  - parent or athlete creating for themselves routes through `/v1/bookings`
+  - `club_admin` can also route through `/v1/bookings`
+  - delegated coach-created bookings for a parent still stay local until backend authz can model actor versus booker cleanly
+- `API-01` remains active because delegated booking creation and wider booking read/change flows are not finished.
 - The worktree is expected to contain transient untracked audit artifacts under `docs/audits/`.
 
 ## Next Exact Action
 
-1. Rewire direct booking creation through `/v1/bookings` in non-mock mode so `bookingService.createBooking()` is backend-authoritative instead of storage-first.
-2. Preserve mock-mode behavior while adding route/service verification before widening backend-authoritative booking creation to invite-acceptance and recurring generation paths.
-3. Keep the booking detail UI honest by avoiding any new in-app change-request flow unless there is a real backend contract behind it.
+1. Widen booking authority so delegated flows can move off the local path without lying about who the actor is:
+   - invite acceptance
+   - linked group-session registration
+   - coach-mediated create flows such as counter-offer acceptance
+2. After that, move booking reads onto `/v1/bookings` and `/v1/bookings/:bookingId` so the local storage mirror becomes compatibility state instead of the effective source of truth.
