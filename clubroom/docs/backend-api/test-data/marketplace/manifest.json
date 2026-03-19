@@ -796,7 +796,6 @@
       "csvFile": "csv/scheduling_rules.csv",
       "primaryKey": "coachUserId",
       "columns": [
-        "allowRescheduling",
         "allowSameDayBookings",
         "bufferMinutesDefault",
         "cancellationPolicyId",
@@ -806,11 +805,9 @@
         "maxAdvanceBookingDays",
         "maxConcurrentDefault",
         "minimumAdvanceBookingHours",
-        "rescheduleDeadlineHours",
         "updatedAt"
       ],
       "typeHints": {
-        "allowRescheduling": "boolean",
         "allowSameDayBookings": "boolean",
         "bufferMinutesDefault": "number",
         "cancellationPolicyId": "string",
@@ -820,7 +817,6 @@
         "maxAdvanceBookingDays": "number",
         "maxConcurrentDefault": "number",
         "minimumAdvanceBookingHours": "number",
-        "rescheduleDeadlineHours": "number",
         "updatedAt": "string"
       },
       "nullable": []

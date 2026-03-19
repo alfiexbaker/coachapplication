@@ -91,8 +91,6 @@ export function SchedulingRulesModal({
   const [maxAdvanceDays, setMaxAdvanceDays] = useState(30);
   const [bufferMinutes, setBufferMinutes] = useState(15);
   const [allowSameDayBookings, setAllowSameDayBookings] = useState(true);
-  const [allowRescheduling, setAllowRescheduling] = useState(true);
-  const [rescheduleDeadlineHours, setRescheduleDeadlineHours] = useState(24);
   const [cancellationPreset, setCancellationPreset] = useState<CancellationPreset>('standard');
   const [cancellationTiers, setCancellationTiers] = useState<RefundTier[]>(
     schedulingRulesService.getDefaultCancellationPolicy().tiers,
@@ -113,8 +111,6 @@ export function SchedulingRulesModal({
         setMaxAdvanceDays(data.maxAdvanceBookingDays);
         setBufferMinutes(data.bufferMinutesDefault);
         setAllowSameDayBookings(data.allowSameDayBookings);
-        setAllowRescheduling(data.allowRescheduling);
-        setRescheduleDeadlineHours(data.rescheduleDeadlineHours);
       } else {
         logger.error('Failed to load coach scheduling rules', dataResult.error);
         setLoadError(dataResult.error.message || 'Failed to load booking rules.');
@@ -156,8 +152,6 @@ export function SchedulingRulesModal({
           bufferMinutesDefault: bufferMinutes,
           maxConcurrentDefault: 1,
           allowSameDayBookings,
-          allowRescheduling,
-          rescheduleDeadlineHours,
         }),
         schedulingRulesService.setCancellationPolicy(
           coachId,
@@ -192,8 +186,6 @@ export function SchedulingRulesModal({
     maxAdvanceDays,
     bufferMinutes,
     allowSameDayBookings,
-    allowRescheduling,
-    rescheduleDeadlineHours,
     cancellationPreset,
     cancellationTiers,
     onSaved,
@@ -280,11 +272,7 @@ export function SchedulingRulesModal({
 
             <ToggleCard
               allowSameDayBookings={allowSameDayBookings}
-              allowRescheduling={allowRescheduling}
-              rescheduleDeadlineHours={rescheduleDeadlineHours}
               onSameDayChange={setAllowSameDayBookings}
-              onRescheduleChange={setAllowRescheduling}
-              onDeadlineChange={setRescheduleDeadlineHours}
             />
 
             <CancellationSection

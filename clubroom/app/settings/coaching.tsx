@@ -119,28 +119,6 @@ export default function CoachingSettingsScreen() {
               onValueChange={(v) => update('allowSameDayBookings', v)}
               helperText="Let parents book sessions today"
             />
-            <Separator />
-            <ToggleRow
-              label="Allow rescheduling"
-              value={rules.allowRescheduling}
-              onValueChange={(v) => update('allowRescheduling', v)}
-              helperText="Let parents move confirmed sessions"
-            />
-            {rules.allowRescheduling && (
-              <>
-                <Separator />
-                <Stepper
-                  label="Reschedule deadline"
-                  value={rules.rescheduleDeadlineHours}
-                  onValueChange={(v) => update('rescheduleDeadlineHours', v)}
-                  min={1}
-                  max={48}
-                  step={1}
-                  suffix="h"
-                  helperText="Minimum hours before session to reschedule"
-                />
-              </>
-            )}
           </View>
 
           {/* Cancellation Policy */}

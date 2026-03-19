@@ -1111,8 +1111,6 @@ function buildLinkedDataset() {
       bufferMinutesDefault: 15,
       maxConcurrentDefault: 1,
       allowSameDayBookings: index % 2 === 0,
-      allowRescheduling: true,
-      rescheduleDeadlineHours: 24,
       confirmationMode: 'manual',
       cancellationPolicyId: deterministicId('cpr', `${coach.slug}-standard`),
       createdAt,

@@ -5,7 +5,6 @@
  * - Minimum advance booking notice
  * - Maximum advance booking window
  * - Buffer time between sessions
- * - Rescheduling rules
  * - Cancellation policies and refund calculations
  *
  * USER STORY:
@@ -47,8 +46,6 @@ const DEFAULT_RULES: Omit<CoachSchedulingRules, 'id' | 'coachId' | 'createdAt' |
   maxConcurrentDefault: 1,
   allowSameDayBookings: false,
   cancellationPolicyId: undefined,
-  allowRescheduling: true,
-  rescheduleDeadlineHours: 24,
 };
 
 /**
@@ -177,8 +174,6 @@ export const SCHEDULING_PRESETS = {
       minimumAdvanceBookingHours: 2,
       maxAdvanceBookingDays: 60,
       allowSameDayBookings: true,
-      allowRescheduling: true,
-      rescheduleDeadlineHours: 2,
     },
   },
   standard: {
@@ -188,8 +183,6 @@ export const SCHEDULING_PRESETS = {
       minimumAdvanceBookingHours: 24,
       maxAdvanceBookingDays: 30,
       allowSameDayBookings: false,
-      allowRescheduling: true,
-      rescheduleDeadlineHours: 24,
     },
   },
   strict: {
@@ -199,8 +192,6 @@ export const SCHEDULING_PRESETS = {
       minimumAdvanceBookingHours: 48,
       maxAdvanceBookingDays: 14,
       allowSameDayBookings: false,
-      allowRescheduling: true,
-      rescheduleDeadlineHours: 48,
     },
   },
   professional: {
@@ -210,8 +201,6 @@ export const SCHEDULING_PRESETS = {
       minimumAdvanceBookingHours: 72,
       maxAdvanceBookingDays: 60,
       allowSameDayBookings: false,
-      allowRescheduling: true,
-      rescheduleDeadlineHours: 72,
     },
   },
 };
@@ -465,43 +454,6 @@ class SchedulingRulesService {
   }
 
   /**
-   * Validate a proposed reschedule
-   */
-  async validateReschedule(
-    coachId: string,
-    originalTime: Date,
-    newTime: Date,
-  ): Promise<Result<BookingValidation, ServiceError>> {
-    try {
-      const rules = await this.getCoachRulesValue(coachId);
-      const now = new Date();
-
-      // Check if rescheduling is allowed
-      if (!rules.allowRescheduling) {
-        return ok({
-          isValid: false,
-          errorMessage: 'This coach does not allow rescheduling',
-        });
-      }
-
-      // Check reschedule deadline
-      const hoursUntilOriginal = (originalTime.getTime() - now.getTime()) / (1000 * 60 * 60);
-      if (hoursUntilOriginal < rules.rescheduleDeadlineHours) {
-        return ok({
-          isValid: false,
-          errorMessage: `Rescheduling must be done at least ${rules.rescheduleDeadlineHours} hours before the original session`,
-        });
-      }
-
-      // Validate the new time
-      return this.validateBookingTime(coachId, newTime);
-    } catch (error) {
-      logger.error('Failed to validate reschedule', { coachId, originalTime, newTime, error });
-      return err(storageError('Failed to validate reschedule'));
-    }
-  }
-
-  /**
    * Format rules for display
    */
   formatRulesForDisplay(rules: CoachSchedulingRules): string[] {
@@ -519,12 +471,6 @@ class SchedulingRulesService {
     }
 
     items.push(`Book up to ${rules.maxAdvanceBookingDays} days ahead`);
-
-    if (rules.allowRescheduling) {
-      items.push(`Reschedule ${rules.rescheduleDeadlineHours}+ hours before`);
-    } else {
-      items.push('No rescheduling');
-    }
 
     return items;
   }

@@ -51,6 +51,7 @@ Clubs manage staff, squads, visibility, and operating relationships.
   - API auth is still scaffold-first and seed-backed
   - family medical, safeguarding incident creation, direct booking creation, booking cancel/reopen, and group-session registration now use `/v1` in non-mock mode
   - booking changes are intentionally `cancel` or `reopen`; the old counter-offer and invite counter workflow has been removed from the runtime product surface
+  - coach scheduling rules no longer advertise a separate reschedule policy; bookings now change by cancellation and rebooking/reopening instead of negotiation
   - the remaining delegated booking seam is the broader session-invite acceptance/read model plus wider booking reads/change flows, which are still not backend-authoritative by default
 
 ## Product Spines

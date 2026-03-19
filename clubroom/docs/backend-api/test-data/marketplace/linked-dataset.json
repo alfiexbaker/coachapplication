@@ -4546,7 +4546,6 @@
     ],
     "schedulingRules": [
       {
-        "allowRescheduling": true,
         "allowSameDayBookings": true,
         "bufferMinutesDefault": 15,
         "cancellationPolicyId": "cpr_21852228-b4cb-7b5e-b787-e834fca1a922",
@@ -4556,11 +4555,9 @@
         "maxAdvanceBookingDays": 60,
         "maxConcurrentDefault": 1,
         "minimumAdvanceBookingHours": 12,
-        "rescheduleDeadlineHours": 24,
         "updatedAt": "2026-03-02T12:00:00.000Z"
       },
       {
-        "allowRescheduling": true,
         "allowSameDayBookings": false,
         "bufferMinutesDefault": 15,
         "cancellationPolicyId": "cpr_3a52e686-2632-7f38-a1e5-924ab99cf7ee",
@@ -4570,11 +4567,9 @@
         "maxAdvanceBookingDays": 60,
         "maxConcurrentDefault": 1,
         "minimumAdvanceBookingHours": 12,
-        "rescheduleDeadlineHours": 24,
         "updatedAt": "2026-03-02T13:00:00.000Z"
       },
       {
-        "allowRescheduling": true,
         "allowSameDayBookings": true,
         "bufferMinutesDefault": 15,
         "cancellationPolicyId": "cpr_71b70a2b-97ab-76c2-9195-e4e84f4526c0",
@@ -4584,11 +4579,9 @@
         "maxAdvanceBookingDays": 60,
         "maxConcurrentDefault": 1,
         "minimumAdvanceBookingHours": 12,
-        "rescheduleDeadlineHours": 24,
         "updatedAt": "2026-03-02T14:00:00.000Z"
       },
       {
-        "allowRescheduling": true,
         "allowSameDayBookings": false,
         "bufferMinutesDefault": 15,
         "cancellationPolicyId": "cpr_12afd269-9cd4-737a-a883-6ef04ac1bb58",
@@ -4598,11 +4591,9 @@
         "maxAdvanceBookingDays": 60,
         "maxConcurrentDefault": 1,
         "minimumAdvanceBookingHours": 12,
-        "rescheduleDeadlineHours": 24,
         "updatedAt": "2026-03-02T15:00:00.000Z"
       },
       {
-        "allowRescheduling": true,
         "allowSameDayBookings": true,
         "bufferMinutesDefault": 15,
         "cancellationPolicyId": "cpr_69bc29bb-0366-701f-b71a-dd22e4d17a86",
@@ -4612,11 +4603,9 @@
         "maxAdvanceBookingDays": 60,
         "maxConcurrentDefault": 1,
         "minimumAdvanceBookingHours": 12,
-        "rescheduleDeadlineHours": 24,
         "updatedAt": "2026-03-02T16:00:00.000Z"
       },
       {
-        "allowRescheduling": true,
         "allowSameDayBookings": false,
         "bufferMinutesDefault": 15,
         "cancellationPolicyId": "cpr_0b0113c2-eb85-79e6-a5ed-779fc555e351",
@@ -4626,11 +4615,9 @@
         "maxAdvanceBookingDays": 60,
         "maxConcurrentDefault": 1,
         "minimumAdvanceBookingHours": 12,
-        "rescheduleDeadlineHours": 24,
         "updatedAt": "2026-03-02T17:00:00.000Z"
       },
       {
-        "allowRescheduling": true,
         "allowSameDayBookings": true,
         "bufferMinutesDefault": 15,
         "cancellationPolicyId": "cpr_c0c12d93-dec3-77fa-b66e-9f9d785ab166",
@@ -4640,11 +4627,9 @@
         "maxAdvanceBookingDays": 60,
         "maxConcurrentDefault": 1,
         "minimumAdvanceBookingHours": 12,
-        "rescheduleDeadlineHours": 24,
         "updatedAt": "2026-03-02T18:00:00.000Z"
       },
       {
-        "allowRescheduling": true,
         "allowSameDayBookings": false,
         "bufferMinutesDefault": 15,
         "cancellationPolicyId": "cpr_58f56d8d-3bc8-7130-bee9-a6f1001ef7fa",
@@ -4654,7 +4639,6 @@
         "maxAdvanceBookingDays": 60,
         "maxConcurrentDefault": 1,
         "minimumAdvanceBookingHours": 12,
-        "rescheduleDeadlineHours": 24,
         "updatedAt": "2026-03-02T19:00:00.000Z"
       }
     ],

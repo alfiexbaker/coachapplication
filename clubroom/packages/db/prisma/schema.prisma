@@ -649,8 +649,6 @@ model SchedulingRule {
   bufferMinutesDefault          Int      @default(15)
   maxConcurrentDefault          Int      @default(1)
   allowSameDayBookings          Boolean  @default(false)
-  allowRescheduling             Boolean  @default(true)
-  rescheduleDeadlineHours       Int      @default(24)
   confirmationMode              String   @default("manual") // auto/manual
   cancellationPolicyId          String?
   createdAt                     DateTime @default(now())

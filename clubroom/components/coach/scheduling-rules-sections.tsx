@@ -17,14 +17,6 @@ import { Row, Column } from '@/components/primitives';
 import type { RefundTier } from '@/constants/types';
 import { styles } from './scheduling-rules-section-styles';
 
-// Modal-specific compact constants
-const MODAL_RESCHEDULE_OPTIONS = [
-  { value: 2, label: '2h before' },
-  { value: 6, label: '6h before' },
-  { value: 24, label: '24h before' },
-  { value: 48, label: '48h before' },
-];
-
 export const CANCELLATION_TIMEFRAMES = [24, 12, 2, 0] as const;
 
 // ---------------------------------------------------------------------------
@@ -124,16 +116,12 @@ function ChipSectionInner({
 export const ChipSection = memo(ChipSectionInner);
 
 // ---------------------------------------------------------------------------
-// ToggleCard — Same-day bookings + rescheduling toggles
+// ToggleCard — Same-day booking toggle
 // ---------------------------------------------------------------------------
 
 interface ToggleCardProps {
   allowSameDayBookings: boolean;
-  allowRescheduling: boolean;
-  rescheduleDeadlineHours: number;
   onSameDayChange: (v: boolean) => void;
-  onRescheduleChange: (v: boolean) => void;
-  onDeadlineChange: (v: number) => void;
 }
 
 function ToggleCardInner(p: ToggleCardProps) {
@@ -164,52 +152,6 @@ function ToggleCardInner(p: ToggleCardProps) {
           thumbColor={palette.surface}
         />
       </Row>
-      <Divider spacing={Spacing.md} />
-      <Row style={styles.toggleRow}>
-        <Row style={styles.toggleInfo}>
-          <View style={[styles.toggleIcon, { backgroundColor: withAlpha(palette.tint, 0.09) }]}>
-            <Ionicons name="swap-horizontal-outline" size={16} color={palette.tint} />
-          </View>
-          <Column flex>
-            <ThemedText type="defaultSemiBold" style={{ ...Typography.bodySmall }}>
-              Allow Rescheduling
-            </ThemedText>
-            <ThemedText style={[styles.toggleHint, { color: palette.muted }]}>
-              Let athletes change booking time
-            </ThemedText>
-          </Column>
-        </Row>
-        <Switch
-          value={p.allowRescheduling}
-          onValueChange={(v) => {
-            if (Platform.OS !== 'web') void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-            p.onRescheduleChange(v);
-          }}
-          trackColor={{ false: palette.border, true: palette.tint }}
-          thumbColor={palette.surface}
-        />
-      </Row>
-      {p.allowRescheduling && (
-        <>
-          <Divider spacing={Spacing.md} />
-          <View style={styles.rescheduleSection}>
-            <ThemedText style={[styles.rescheduleLabel, { color: palette.muted }]}>
-              Reschedule deadline:
-            </ThemedText>
-            <Row style={styles.rescheduleChips}>
-              {MODAL_RESCHEDULE_OPTIONS.map((opt) => (
-                <OptionChip
-                  key={opt.value}
-                  label={opt.label}
-                  isSelected={p.rescheduleDeadlineHours === opt.value}
-                  onPress={() => p.onDeadlineChange(opt.value)}
-                  compact
-                />
-              ))}
-            </Row>
-          </View>
-        </>
-      )}
     </SurfaceCard>
   );
 }

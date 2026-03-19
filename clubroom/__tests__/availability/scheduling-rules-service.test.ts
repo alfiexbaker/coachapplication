@@ -21,7 +21,7 @@ describe('schedulingRulesService', () => {
     assert.equal(result.data.coachId, 'coach-rules-1');
     assert.equal(result.data.minimumAdvanceBookingHours, 24);
     assert.equal(result.data.maxAdvanceBookingDays, 30);
-    assert.equal(result.data.allowRescheduling, true);
+    assert.equal(result.data.allowSameDayBookings, false);
   });
 
   it('updates rules and validates booking window', async () => {

@@ -41,8 +41,6 @@ describe('schedulingRulesService', () => {
       assert.equal(rules.allowSameDayBookings, false);
       assert.equal(rules.bufferMinutesDefault, 15);
       assert.equal(rules.maxConcurrentDefault, 1);
-      assert.equal(rules.allowRescheduling, true);
-      assert.equal(rules.rescheduleDeadlineHours, 24);
     });
 
     test('returns saved rules after update', async () => {

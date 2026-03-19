@@ -553,10 +553,6 @@ export interface CoachSchedulingRules {
   allowSameDayBookings: boolean;
   /** Cancellation policy ID for this coach */
   cancellationPolicyId?: string;
-  /** Whether clients can reschedule bookings */
-  allowRescheduling: boolean;
-  /** Maximum hours before session that rescheduling is allowed */
-  rescheduleDeadlineHours: number;
   createdAt: string;
   updatedAt: string;
 }

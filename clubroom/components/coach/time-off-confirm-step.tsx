@@ -86,7 +86,7 @@ function TimeOffConfirmStepInner({
             </ThemedText>
           )}
           <ThemedText style={[styles.conflictNote, { color: palette.muted }]}>
-            You may need to cancel or reschedule these sessions.
+            You may need to cancel or rebook these sessions.
           </ThemedText>
         </SurfaceCard>
       ) : (

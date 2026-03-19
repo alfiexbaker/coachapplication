@@ -83,7 +83,7 @@ export const PERMISSION_DESCRIPTIONS: Record<
   },
   BOOK_SESSIONS: {
     label: 'Book Sessions',
-    description: 'Book, reschedule, and cancel sessions',
+    description: 'Book, cancel, and rebook sessions',
   },
   MANAGE_PAYMENTS: {
     label: 'Manage Payments',

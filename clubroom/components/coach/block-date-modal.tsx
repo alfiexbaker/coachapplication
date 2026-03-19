@@ -165,7 +165,7 @@ export function BlockDateModal({
 
     uiFeedback.alert(
       'Block Time Off',
-      `Block ${dateLabel}? Any existing bookings on ${dayCount === 1 ? 'this date' : 'these dates'} may need to be rescheduled.`,
+      `Block ${dateLabel}? Any existing bookings on ${dayCount === 1 ? 'this date' : 'these dates'} may need to be cancelled or rebooked.`,
       [
         { text: 'Cancel', style: 'cancel' },
         {
