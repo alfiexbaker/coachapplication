@@ -81,7 +81,6 @@ In short:
 | Attendance and check-in | check-in, attendance status, and role-aware attendance view | events have attendance; sessions have roster and attendance; match attendance is thinner | Partial |
 | Attendance export and reporting | downloadable history and club-level reporting | not a first-class export/reporting surface | Missing |
 | Activity-linked payments | paid events, paid programs, and club charges tie back to the activity | event price exists, but collection and reconciliation are weak | Missing |
-| Volunteer and task management | assign setup, transport, kit, snack, duty roles | no activity tasking layer | Missing |
 | Match integration | matches appear and behave as activities in the same spine | match logic exists outside `ClubActivity` | Partial |
 | Recap workflow | every completed activity can produce a recap, media, and next steps | some updates and progress links exist, not unified | Partial |
 
@@ -140,6 +139,72 @@ In short:
 | Observability | Expo plus API errors are traceable in production | Sentry not fully wired | Missing |
 | Performance discipline | heavy screens stay smooth and stable | uneven today | Partial |
 | Honest runtime states | no fake completion, no dead controls, no mock-looking defaults | improved, but not fully cleaned | Partial |
+
+## First Launch Cut
+
+This is the smallest believable feature set for the first serious launch.
+
+### Must-have for first launch
+
+#### Club OS
+
+- dedicated `Activities` center for club users
+- shared activity spine for event, training, and match
+- filters for event, training, match, upcoming, completed
+- event workspace with overview, responses, attendance, reminders, and recap
+- match visibility inside the same activity spine
+- paid activity support at least at a basic collection or invoice-link level
+
+#### Marketplace
+
+- strong coach storefront
+- clear club storefront
+- fast booking entry
+- family-aware booking with clear ownership
+- rebook and repeat-session loop
+- reviews and proof layer
+- clear pricing, cancellation, and support ownership
+
+#### Football Home
+
+- role-aware home surface
+- fixtures and results modules
+- club and coach updates tied to real football objects
+- activity highlights
+- progress highlights on home
+
+#### Development
+
+- session completion and feedback
+- skills and progress tracking
+- badges
+- health and recovery visibility
+- basic video/media feedback that is stable enough to trust
+
+#### Trust and quality
+
+- production-grade auth path or an explicit pre-production gate if not live yet
+- backend-owned sensitive booking and invite flows
+- club-safe permissions
+- Sentry and release observability
+- smoothness pass on home, activities, bookings, club, and profile
+
+### Important for launch if time allows
+
+- recurring activity series management
+- event files and attachments
+- club program offer pages
+- coach insight posts as a structured content type
+- richer home ranking and featured cards
+- development-to-marketplace loop
+
+### Not required for first launch
+
+- volunteer-task management for events
+- deep attendance export and reporting
+- locality-aware football map discovery
+- advanced commerce and revenue analytics by activity type
+- broad creator-media ecosystem beyond club, coach, and activity content
 
 ## What We Already Have That Matters
 
@@ -203,7 +268,6 @@ Missing or too weak:
 
 - event-native thread or comments
 - files and attachments around the event
-- event-native tasking and volunteer assignment
 - club-level overview and filters that feel operational
 - attendance export/reporting depth
 - waitlist and promotion for events
