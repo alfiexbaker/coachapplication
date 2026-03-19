@@ -61,7 +61,7 @@ function SessionInviteCardComponent({
 
   const statusColors = getStatusColors(palette);
   const isExpired = new Date(invite.expiresAt) < new Date();
-  const isPending = invite.status === 'PENDING' || invite.status === 'COUNTERED';
+  const isPending = invite.status === 'PENDING';
   const status = isExpired && isPending ? 'EXPIRED' : isPending ? 'PENDING' : invite.status;
   const statusConfig = statusColors[status] || statusColors.PENDING;
   const canRespond = status === 'PENDING';

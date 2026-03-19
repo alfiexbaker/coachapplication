@@ -70,11 +70,12 @@ Status legend:
 | `/v1/bookings/:bookingId` | `PATCH` | `planned` | `UpdateBookingRequest`, `BookingResponse` | scoped actors + version | booking detail + admin tools |
 | `/v1/bookings/:bookingId/cancel` | `POST` | `scaffolded` | `CancelBookingRequest`, `BookingResponse` | parent/athlete/coach tied to booking participants or delivery coach | `app/booking/[id]/cancel.tsx`, `hooks/use-booking-cancel.ts`, `services/booking/booking-authority-service.ts` |
 | `/v1/bookings/:bookingId/reopen` | `POST` | `scaffolded` | `ReopenBookingRequest`, `BookingResponse` | parent/athlete/coach tied to booking participants or delivery coach | `app/(tabs)/bookings/[id].tsx`, `hooks/use-booking-detail.ts`, `services/booking/booking-authority-service.ts` |
-| `/v1/group-sessions` | `GET/POST` | `planned` | `GroupSession*` | read visibility / coach create | `app/group-sessions/index.tsx`, `app/group-sessions/create.tsx` |
-| `/v1/group-sessions/:id/register` | `POST` | `planned` | `RegisterGroupSessionRequest` | parent/athlete | `hooks/use-group-session.ts`, `use-group-sessions.ts` |
+| `/v1/group-sessions` | `GET` | `scaffolded` | `GroupSession*` | read visibility for coach, participant guardian/athlete, invited target, or `club_admin` | `app/group-sessions/index.tsx`, `hooks/use-group-sessions.ts` |
+| `/v1/group-sessions` | `POST` | `planned` | `GroupSession*` | coach create | `app/group-sessions/create.tsx` |
+| `/v1/group-sessions/:id/register` | `POST` | `scaffolded` | `RegisterGroupSessionRequest`, `RegisterGroupSessionResponse` | athlete self, guardian of athlete, or `club_admin` acting on behalf | `hooks/use-group-session.ts`, `services/group-session/session-registration-service.ts` |
 | `/v1/group-sessions/:id/waitlist` | `POST` | `planned` | `JoinWaitlistRequest` | parent/athlete | group session detail + waitlist banner |
-| `/v1/invites/:inviteId/respond` | `POST` | `planned` | `InviteResponseRequest` | invite target only | `app/invites.tsx`, `hooks/use-invites.ts` |
-| `/v1/events/:eventId/rsvp` | `POST` | `planned` | `EventRsvpRequest` | event audience member | `hooks/use-event-rsvp.ts` |
+| `/v1/invites/:inviteId/respond` | `POST` | `scaffolded` | `InviteResponseRequest`, `InviteResponseResult` | invite target only | `app/session-invites/*`, `services/invite/session-invite-service.ts` |
+| `/v1/events/:eventId/rsvp` | `POST` | `scaffolded` | `EventRsvpRequest` | event audience member | `hooks/use-event-rsvp.ts` |
 
 ## Revenue / Reconciler
 | Route | Method | Status | Contract(s) | AuthZ | UI anchors |

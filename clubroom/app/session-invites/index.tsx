@@ -60,7 +60,7 @@ export default function SessionInvitesScreen() {
   const pendingCount = useMemo(() => {
     if (!invites) return 0;
     return invites.filter((i) => {
-      const isPending = i.status === 'PENDING' || i.status === 'COUNTERED';
+      const isPending = i.status === 'PENDING';
       return isPending && new Date(i.expiresAt) > new Date();
     }).length;
   }, [invites]);
@@ -69,12 +69,10 @@ export default function SessionInvitesScreen() {
     if (!invites) return [];
     return invites.filter((invite) => {
       if (filter === 'all') return true;
-      if (filter === 'pending')
-        return (
-          (invite.status === 'PENDING' || invite.status === 'COUNTERED') &&
-          new Date(invite.expiresAt) > new Date()
-        );
-      if (filter === 'responded') return invite.status !== 'PENDING' && invite.status !== 'COUNTERED';
+      if (filter === 'pending') {
+        return invite.status === 'PENDING' && new Date(invite.expiresAt) > new Date();
+      }
+      if (filter === 'responded') return invite.status !== 'PENDING';
       return true;
     });
   }, [invites, filter]);

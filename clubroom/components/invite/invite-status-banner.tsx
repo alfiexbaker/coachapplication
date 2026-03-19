@@ -15,7 +15,7 @@ import { Row } from '@/components/primitives/row';
 import { Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
 import type { ThemeColors } from '@/hooks/useTheme';
 
-type InviteStatus = 'PENDING' | 'ACCEPTED' | 'DECLINED' | 'EXPIRED' | 'COUNTERED' | 'MAYBE';
+type InviteStatus = 'PENDING' | 'ACCEPTED' | 'DECLINED' | 'EXPIRED' | 'MAYBE';
 
 interface InviteStatusBannerProps {
   status: InviteStatus;
@@ -27,7 +27,6 @@ const STATUS_CONFIG: Record<InviteStatus, { label: string; icon: string }> = {
   ACCEPTED: { label: 'Session Confirmed', icon: 'checkmark-circle' },
   DECLINED: { label: 'Invite Declined', icon: 'close-circle' },
   EXPIRED: { label: 'Invite Expired', icon: 'time' },
-  COUNTERED: { label: 'Awaiting Response', icon: 'hourglass' },
   MAYBE: { label: 'Maybe Attending', icon: 'help-circle' },
 };
 
@@ -39,8 +38,6 @@ function getStatusColors(status: InviteStatus, colors: ThemeColors) {
       return { bg: withAlpha(colors.error, 0.12), text: colors.error };
     case 'EXPIRED':
       return { bg: colors.background, text: colors.muted };
-    case 'COUNTERED':
-      return { bg: withAlpha(colors.warning, 0.12), text: colors.warning };
     case 'MAYBE':
     case 'PENDING':
     default:

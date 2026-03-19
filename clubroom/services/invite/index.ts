@@ -73,8 +73,6 @@ export const inviteService = {
   getPendingInvites: sessionInviteService.getPendingInvites.bind(sessionInviteService),
   getInviteHistory: sessionInviteService.getInviteHistory.bind(sessionInviteService),
   getInvite: sessionInviteService.getInvite.bind(sessionInviteService),
-  getCounteredInvites: sessionInviteService.getCounteredInvites.bind(sessionInviteService),
-  acceptCounterProposal: sessionInviteService.acceptCounterProposal.bind(sessionInviteService),
   getInvitesForParent: sessionInviteService.getInvitesForParent.bind(sessionInviteService),
 
   // INVITE TYPE FILTERING

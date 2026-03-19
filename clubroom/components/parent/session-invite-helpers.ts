@@ -10,7 +10,6 @@ export function getStatusColors(palette: ThemeColors) {
     ACCEPTED: { bg: withAlpha(palette.success, 0.12), text: palette.success, icon: 'checkmark-circle-outline' },
     DECLINED: { bg: withAlpha(palette.error, 0.12), text: palette.error, icon: 'close-circle-outline' },
     EXPIRED: { bg: palette.background, text: palette.muted, icon: 'time-outline' },
-    COUNTERED: { bg: withAlpha(palette.warning, 0.12), text: palette.warning, icon: 'hourglass-outline' },
   } as Record<string, { bg: string; text: string; icon: string }>;
 }
 

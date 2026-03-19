@@ -5,19 +5,20 @@
  * waitlist management, roster queries, and attendance marking.
  *
  * API Integration Notes:
- * - POST /api/group-sessions/:id/register - Register athlete
+ * - POST /v1/group-sessions/:id/register - Register athlete in non-mock mode
  * - POST /api/group-sessions/:id/waitlist - Join waitlist
  * - DELETE /api/registrations/:id - Cancel registration
  * - GET /api/group-sessions/:id/roster - Get participants
  * - PATCH /api/registrations/:id/attendance - Mark attendance
  */
 
-import { apiClient } from '../api-client';
+import { authService } from '../auth-service';
+import { apiClient, apiFetch } from '../api-client';
 import { api } from '@/constants/config';
 import { STORAGE_KEYS } from '@/constants/storage-keys';
 import { notificationTriggers } from '../notification-trigger';
 import { createLogger } from '@/utils/logger';
-import { type Result, type ServiceError, ok, err, notFound } from '@/types/result';
+import { type Result, type ServiceError, ok, err, notFound, serviceError } from '@/types/result';
 import { emitTyped, ServiceEvents } from '../event-bus';
 import { bookingCrudService } from '../booking';
 import { userService } from '../user-service';
@@ -26,6 +27,66 @@ import { loadSessions, saveSessions } from './session-crud-service';
 
 const USE_MOCK = api.useMock;
 const logger = createLogger('SessionRegistrationService');
+
+type ActingRole = 'coach' | 'parent' | 'athlete' | 'club_admin';
+
+interface ApiGroupRegistrationResponse {
+  registration: {
+    id: string;
+    sessionId: string;
+    athleteId: string;
+    parentUserId: string;
+    status: GroupRegistration['status'];
+    registeredAt: string;
+    paidAt?: string | null;
+    notes?: string | null;
+  };
+  booking?: {
+    id: string;
+  } | null;
+  sessionStatus: GroupSession['status'] | string;
+  requestId: string;
+}
+
+function toApiUserId(userId: string): string {
+  return userId.startsWith('usr_') ? userId : `usr_${userId.replace(/^ath_/, '')}`;
+}
+
+function toApiAthleteId(athleteId: string): string {
+  return athleteId.startsWith('ath_') ? athleteId : `ath_${athleteId.replace(/^usr_/, '')}`;
+}
+
+function deriveActingRole(
+  user: Awaited<ReturnType<typeof authService.getCurrentUser>>,
+): ActingRole {
+  if (user?.roles?.includes('club_admin')) {
+    return 'club_admin';
+  }
+  if (user?.accountType === 'COACH') {
+    return 'coach';
+  }
+  if (user?.accountType === 'PARENT') {
+    return 'parent';
+  }
+  return 'athlete';
+}
+
+async function resolveRegistrationAccessHeaders(): Promise<Result<Record<string, string>, ServiceError>> {
+  const currentUser = await authService.getCurrentUser();
+  if (!currentUser?.id) {
+    return err(serviceError('UNAUTHORIZED', 'Sign in to register for sessions.'));
+  }
+
+  const actingRole = deriveActingRole(currentUser);
+  const roles = new Set(currentUser.roles ?? []);
+  roles.add(actingRole);
+
+  return ok({
+    'x-auth-user-id': toApiUserId(currentUser.id),
+    'x-auth-roles': Array.from(roles).join(','),
+    'x-acting-role': actingRole,
+  });
+}
 
 // ============================================================================
 // MOCK REGISTRATION DATA
@@ -671,12 +732,77 @@ export const sessionRegistrationService = {
       });
     }
 
-    const response = await fetch(`/api/group-sessions/${sessionId}/register`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ athleteId, parentId }),
-    });
-    return ok(await response.json());
+    const headersResult = await resolveRegistrationAccessHeaders();
+    if (!headersResult.success) {
+      return headersResult;
+    }
+
+    const result = await apiFetch<ApiGroupRegistrationResponse>(
+      `/v1/group-sessions/${sessionId}/register`,
+      {
+        method: 'POST',
+        headers: headersResult.data,
+        body: JSON.stringify({
+          athleteId: toApiAthleteId(athleteId),
+          parentUserId: toApiUserId(parentId),
+        }),
+      },
+    );
+    if (!result.success) {
+      logger.error('Failed to register group session via API', {
+        sessionId,
+        athleteId,
+        parentId,
+        error: result.error.message,
+      });
+      return err(result.error);
+    }
+
+    const authoritative = result.data.registration;
+    const mirroredRegistration: GroupRegistration = {
+      id: authoritative.id,
+      sessionId,
+      athleteId,
+      parentId,
+      status: authoritative.status,
+      registeredAt: authoritative.registeredAt,
+      ...(authoritative.paidAt ? { paidAt: authoritative.paidAt } : {}),
+      attendedDates: [],
+      ...(authoritative.notes ? { notes: authoritative.notes } : {}),
+    };
+
+    const registrations = await loadRegistrations();
+    const existingIndex = registrations.findIndex((entry) => entry.id === mirroredRegistration.id);
+    if (existingIndex >= 0) {
+      registrations[existingIndex] = mirroredRegistration;
+    } else {
+      registrations.push(mirroredRegistration);
+    }
+    await saveRegistrations(registrations);
+
+    const sessions = await loadSessions();
+    const sessionIndex = sessions.findIndex((entry) => entry.id === sessionId);
+    if (sessionIndex >= 0) {
+      const existingSession = sessions[sessionIndex];
+      const nextParticipants = registrations.filter(
+        (entry) =>
+          entry.sessionId === sessionId
+          && (entry.status === 'REGISTERED' || entry.status === 'ATTENDED'),
+      ).length;
+      const nextWaitlist = registrations.filter(
+        (entry) => entry.sessionId === sessionId && entry.status === 'WAITLISTED',
+      ).length;
+
+      sessions[sessionIndex] = {
+        ...existingSession,
+        currentParticipants: nextParticipants,
+        waitlistCount: nextWaitlist,
+        status: result.data.sessionStatus as GroupSession['status'],
+      };
+      await saveSessions(sessions);
+    }
+
+    return ok(mirroredRegistration);
   },
 
   /**

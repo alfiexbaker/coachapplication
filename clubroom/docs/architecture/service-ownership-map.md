@@ -17,7 +17,7 @@ Purpose: identify the service entrypoints that are safe to build on and call out
 - `services/booking/index.ts` -> booking CRUD, status, search, analytics
 - `services/booking/booking-authority-service.ts` -> canonical `/v1` booking mutation bridge for non-mock direct create, cancel, and reopen slices
 - Booking creation rule: use `bookingService.createBooking()`
-  - Current rule: direct create goes API-first only when the signed-in actor is the real `bookedBy` user or a `club_admin`; delegated coach-mediated create still falls back through the local mirror path until backend authz widens
+  - Current rule: direct create goes API-first only when the signed-in actor is the real `bookedBy` user or a `club_admin`; the remaining wider invite-mediated create model is still transitional until backend authz widens
 
 ### Progress and development
 
@@ -46,6 +46,8 @@ Purpose: identify the service entrypoints that are safe to build on and call out
 
 - Validated entrypoint: `services/invite/index.ts`
 - Exposes `inviteService` plus session, squad, bulk, match, event, RSVP, and sharing invite surfaces
+- Runtime rule: session invites no longer support counter-proposal negotiation; the product surface is accept or decline
+- Validation note: the broader session-invite read/write model is still transitional and not fully aligned to `/v1`
 - Validation note: top-level `services/invite-service.ts` is not present in the current repo
 
 ### Scheduling rules and cancellation
@@ -67,6 +69,7 @@ Purpose: identify the service entrypoints that are safe to build on and call out
 
 - `services/group-session/index.ts`
 - Use for group session CRUD, scheduling, registration, and display
+- `services/group-session/session-registration-service.ts` is the current `/v1/group-sessions/:id/register` bridge in non-mock mode
 
 ### Notifications
 

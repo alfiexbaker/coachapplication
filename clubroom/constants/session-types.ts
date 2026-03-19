@@ -447,13 +447,11 @@ export interface SessionInvite {
   notes?: string;
   price?: number;
   duration?: number; // Duration in minutes (from session template)
-  status: 'PENDING' | 'ACCEPTED' | 'DECLINED' | 'EXPIRED' | 'COUNTERED' | 'MAYBE';
+  status: 'PENDING' | 'ACCEPTED' | 'DECLINED' | 'EXPIRED' | 'MAYBE';
   expiresAt: string;
   createdAt: string;
   respondedAt?: string;
   selectedSlot?: TimeSlot; // The slot chosen when accepting
-  counterProposal?: TimeSlot[];
-  counterNote?: string;
   existingSessionId?: string; // Links invite to an already published session offering
   groupId?: string; // Links invites that were sent as part of a group/bulk send
   bookingId?: string; // Link to created booking (bidirectional)

@@ -7,14 +7,14 @@
  * FLOW:
  * 1. COACH: Selects athlete(s) -> Picks time slots -> Sends invite
  * 2. PARENT: Gets notification -> Opens invites -> Sees invite card
- * 3. PARENT: Accepts (picks slot) / Declines / Counter-proposes
+ * 3. PARENT: Accepts (picks slot) / Declines
  * 4. COACH: Gets notification of response -> Booking created if accepted
  *
  * API Integration Notes:
  * - POST /api/session-invites - Create invite
  * - GET /api/session-invites?coachId=X - Coach's sent invites
  * - GET /api/session-invites?parentId=X - Parent's received invites
- * - PATCH /api/session-invites/:id/respond - Accept/decline/counter
+ * - PATCH /api/session-invites/:id/respond - Accept/decline
  * - WebSocket event: session_invite_received
  */
 
@@ -81,10 +81,8 @@ export interface CreateInviteInput {
 
 export interface RespondToInviteInput {
   inviteId: string;
-  response: 'ACCEPTED' | 'DECLINED' | 'COUNTERED';
+  response: 'ACCEPTED' | 'DECLINED';
   selectedSlot?: TimeSlot;
-  counterProposal?: TimeSlot[];
-  counterNote?: string;
 }
 
 // ============================================================================
@@ -559,7 +557,6 @@ export const sessionInviteService = {
    * Respond to an invite (parent action)
    * - ACCEPTED: Creates a booking automatically via bookingService and notifies coach
    * - DECLINED: Notifies coach
-   * - COUNTERED: Sends alternative times back to coach
    */
   async respondToInvite(input: RespondToInviteInput): Promise<Result<SessionInvite, ServiceError>> {
     if (USE_MOCK) {
@@ -690,44 +687,23 @@ export const sessionInviteService = {
         return ok(invitesCache[index]);
       }
 
-      // DECLINED and COUNTERED: set status immediately (existing behavior)
+      // DECLINED: set status immediately after hold cleanup and coach notification.
       invitesCache[index] = {
         ...invite,
         status: input.response,
         respondedAt: new Date().toISOString(),
         selectedSlot: input.selectedSlot,
-        counterProposal: input.counterProposal,
-        counterNote: input.counterNote,
       };
 
       await saveToStorage(invitesCache);
 
-      if (input.response === 'DECLINED') {
-        // Release all holds
-        await inviteHoldService.releaseHoldsForInvite(invite.id);
-        await notificationSenderService.notifyCoachInviteDeclined({
-          coachId: invite.coachId,
-          parentName,
-          childName: athleteDisplay,
-          inviteId: invite.id,
-        });
-      } else if (input.response === 'COUNTERED') {
-        // Release original holds (counter slots aren't held until coach accepts)
-        await inviteHoldService.releaseHoldsForInvite(invite.id);
-        await notificationStore.create({
-          id: apiClient.generateId('notif'),
-          type: 'booking',
-          notificationType: 'SESSION_INVITE_RESPONSE',
-          title: 'Counter Proposal Received',
-          body: `${parentName} proposed alternative times for ${athleteDisplay}. ${input.counterNote || ''}`,
-          timeLabel: 'Just now',
-          read: false,
-          recipientId: invite.coachId,
-          recipientRole: 'coach',
-          deepLink: `/session-invites/${invite.id}`,
-          data: { inviteId: invite.id },
-        });
-      }
+      await inviteHoldService.releaseHoldsForInvite(invite.id);
+      await notificationSenderService.notifyCoachInviteDeclined({
+        coachId: invite.coachId,
+        parentName,
+        childName: athleteDisplay,
+        inviteId: invite.id,
+      });
 
       return ok(invitesCache[index]);
     }
@@ -915,158 +891,6 @@ export const sessionInviteService = {
     const response = await fetch(`/api/session-invites/${inviteId}`);
     if (!response.ok) return null;
     return response.json();
-  },
-
-  /**
-   * Get countered invites that need coach attention
-   */
-  async getCounteredInvites(coachId: string): Promise<SessionInvite[]> {
-    const invites = await this.getCoachInvites(coachId);
-    return invites.filter((inv) => inv.status === 'COUNTERED');
-  },
-
-  /**
-   * Accept a counter proposal (coach action)
-   */
-  async acceptCounterProposal(
-    inviteId: string,
-    selectedSlot: TimeSlot,
-  ): Promise<Result<SessionInvite, ServiceError>> {
-    if (USE_MOCK) {
-      invitesCache = await loadFromStorage();
-      const index = invitesCache.findIndex((inv) => inv.id === inviteId);
-
-      if (index === -1) {
-        return err(serviceError('NOT_FOUND', `Invite not found: ${inviteId}`));
-      }
-
-      const invite = invitesCache[index];
-      const [coachName, parentName, athleteNames] = await Promise.all([
-        resolveUserName(invite.coachId, 'Coach'),
-        resolveUserName(invite.parentId, 'Parent'),
-        resolveAthleteNames(invite.athleteIds),
-      ]);
-
-      // CRITICAL FIX: Create booking FIRST, before changing invite status.
-      const scheduledAt = `${selectedSlot.date}T${selectedSlot.startTime}:00`;
-      const endTime = selectedSlot.endTime;
-      const startTime = selectedSlot.startTime;
-
-      // Calculate duration in minutes from start and end time
-      const [startHour, startMin] = startTime.split(':').map(Number);
-      const [endHour, endMin] = endTime.split(':').map(Number);
-      const durationMinutes = endHour * 60 + endMin - (startHour * 60 + startMin);
-      const [templateContext, lineageContext] = await Promise.all([
-        resolveInviteTemplateContext(invite),
-        resolveInviteLineageContext(invite),
-      ]);
-
-      const bookingResult = await bookingService.createBooking({
-        coachId: invite.coachId,
-        coachName,
-        athleteIds: invite.athleteIds,
-        athleteNames:
-          athleteNames.length > 0 ? athleteNames : invite.athleteIds.map(() => 'Athlete'),
-        bookedById: invite.parentId,
-        bookedByName: parentName,
-        scheduledAt,
-        duration: durationMinutes > 0 ? durationMinutes : 60,
-        location: selectedSlot.location || 'Coach preferred location',
-        service: invite.sessionType,
-        serviceType: invite.sessionType,
-        sessionTemplateId: invite.sessionTemplateId,
-        sessionTemplateName: templateContext.sessionTemplateName,
-        sessionSource: lineageContext.sessionSource,
-        sessionSourceEntityId: lineageContext.sessionSourceEntityId,
-        clubId: lineageContext.clubId,
-        actingAs: lineageContext.actingAs,
-        ownerCoachId: lineageContext.ownerCoachId,
-        assigneeCoachId: lineageContext.assigneeCoachId,
-        createdByUserId: lineageContext.createdByUserId,
-        createdByRole: lineageContext.createdByRole,
-        objectives: templateContext.objectives,
-        price: invite.price,
-        notes: invite.notes,
-        sessionInviteId: invite.id, // Link booking to invite
-        skipAvailabilityValidation: true, // Counter-proposal accepted by coach, skip validation
-      });
-
-      if (!bookingResult.success) {
-        // Booking failed — do NOT change invite status
-        const reason = bookingResult.error?.message ?? 'Booking creation failed';
-        logger.error('Booking creation failed during counter-proposal acceptance', {
-          inviteId,
-          reason,
-        });
-
-        emitTyped(ServiceEvents.INVITE_BOOKING_FAILED, {
-          inviteId,
-          coachId: invite.coachId,
-          parentId: invite.parentId,
-          reason,
-        });
-
-        return err(serviceError('CONFLICT', reason));
-      }
-
-      // Booking succeeded — NOW set invite to ACCEPTED with bookingId
-      invitesCache[index] = {
-        ...invite,
-        status: 'ACCEPTED',
-        selectedSlot,
-        respondedAt: new Date().toISOString(),
-        bookingId: bookingResult.data.id,
-      };
-
-      await saveToStorage(invitesCache);
-
-      logger.info('Booking created from counter-proposal', {
-        bookingId: bookingResult.data.id,
-        inviteId,
-      });
-
-      emitTyped(ServiceEvents.INVITE_ACCEPTED, {
-        inviteId,
-        bookingId: bookingResult.data.id,
-        coachId: invite.coachId,
-        parentId: invite.parentId,
-        athleteIds: invite.athleteIds,
-        selectedSlot: {
-          date: selectedSlot.date,
-          startTime: selectedSlot.startTime,
-          endTime: selectedSlot.endTime,
-          location: selectedSlot.location,
-        },
-      });
-
-      // Create notification for parent
-      const notification: ExtendedNotificationItem = {
-        id: apiClient.generateId('notif'),
-        type: 'booking',
-        notificationType: 'SESSION_INVITE_RESPONSE',
-        title: 'Counter Proposal Accepted!',
-        body: athleteNames.length > 0
-          ? `Coach ${coachName.split(' ')[0]} accepted your proposed time for ${athleteNames.join(' + ')}. Session confirmed!`
-          : `Coach ${coachName.split(' ')[0]} accepted your proposed time. Session confirmed!`,
-        timeLabel: 'Just now',
-        read: false,
-        recipientId: invite.parentId,
-        recipientRole: 'parent',
-        deepLink: `/bookings/${bookingResult.data.id}`,
-        data: { inviteId, bookingId: bookingResult.data.id },
-      };
-
-      await notificationStore.create(notification);
-
-      return ok(invitesCache[index]);
-    }
-
-    const response = await fetch(`/api/session-invites/${inviteId}/accept-counter`, {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ selectedSlot }),
-    });
-    return ok(await response.json());
   },
 
   /**

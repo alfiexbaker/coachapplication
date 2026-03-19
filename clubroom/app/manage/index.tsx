@@ -125,7 +125,7 @@ export default function ManageScreen() {
       {
         id: 'invites',
         title: 'Invite Inbox',
-        description: 'Track pending invites, counters, and responses.',
+        description: 'Track pending invites and responses.',
         icon: 'mail-open-outline',
         colorKey: 'warning',
         route: Routes.SESSION_INVITES,

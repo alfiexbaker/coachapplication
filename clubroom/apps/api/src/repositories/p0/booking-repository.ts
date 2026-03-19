@@ -14,8 +14,8 @@ import { getPrismaClientOrThrow, shouldUseDbFixtureFallback } from '../../lib/pr
 import { normalizeForJson } from './normalize.js';
 import { badRequest, forbidden, notFound } from '../../lib/http-errors.js';
 
-type SeedRow = Record<string, unknown>;
-type SeedTables = Record<string, SeedRow[]>;
+export type SeedRow = Record<string, unknown>;
+export type SeedTables = Record<string, SeedRow[]>;
 
 const asRows = (value: unknown): SeedRow[] => (Array.isArray(value) ? (value as SeedRow[]) : []);
 const asString = (value: unknown): string | undefined => (typeof value === 'string' ? value : undefined);
@@ -215,13 +215,14 @@ function resolveSeedReopenStatus(tables: SeedTables, bookingId: string): Booking
   return normalizeReopenStatus(asString(latestCancelEvent?.fromStatus));
 }
 
-function createBookingInSeedTables(params: {
+export function createBookingInSeedTables(params: {
   tables: SeedTables;
   authUserId: string;
   requestId: string;
   body: CreateBookingRequest;
+  bookingRowOverrides?: Partial<SeedRow>;
 }): BookingResponse {
-  const { tables, authUserId, requestId, body } = params;
+  const { tables, authUserId, requestId, body, bookingRowOverrides } = params;
   const bookings = asRows(tables.bookings);
   const participants = asRows(tables.bookingParticipants);
   const objectives = asRows(tables.bookingObjectives);
@@ -264,6 +265,7 @@ function createBookingInSeedTables(params: {
     updatedAt: now,
     deletedAt: null,
     deletedByUserId: null,
+    ...bookingRowOverrides,
   });
 
   const participantRows = body.athleteIds.map((athleteId) => {

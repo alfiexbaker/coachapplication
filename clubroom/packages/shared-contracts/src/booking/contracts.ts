@@ -35,6 +35,18 @@ export const reopenBookingRequestSchema = z.object({
   note: z.string().max(1000).optional(),
 });
 
+export const inviteSelectedSlotSchema = z.object({
+  date: z.string().min(1).max(40),
+  startTime: z.string().min(1).max(20),
+  endTime: z.string().min(1).max(20),
+  location: z.string().max(200).optional(),
+});
+
+export const inviteResponseRequestSchema = z.object({
+  response: z.enum(['ACCEPTED', 'DECLINED']),
+  selectedSlot: inviteSelectedSlotSchema.optional(),
+});
+
 export const bookingParticipantSchema = z.object({
   athleteId: athleteIdSchema,
   guardianUserId: userIdSchema.optional(),
@@ -62,7 +74,58 @@ export const bookingResponseSchema = z.object({
   cancelledAt: z.string().datetime().nullable().optional(),
 });
 
+export const inviteResponseResultSchema = z.object({
+  inviteId: z.string().min(1),
+  response: z.enum(['ACCEPTED', 'DECLINED']),
+  status: z.enum(['ACCEPTED', 'DECLINED']),
+  targetStatus: z.enum(['ACCEPTED', 'DECLINED']),
+  respondedAt: z.string().datetime(),
+  selectedSlot: inviteSelectedSlotSchema.optional(),
+  registrationId: z.string().nullable().optional(),
+  registrationStatus: z.enum(['REGISTERED', 'WAITLISTED']).nullable().optional(),
+  booking: bookingResponseSchema.nullable().optional(),
+  requestId: z.string(),
+});
+
+export const registerGroupSessionRequestSchema = z.object({
+  athleteId: athleteIdSchema,
+  parentUserId: userIdSchema.optional(),
+});
+
+export const groupSessionRegistrationStatusSchema = z.enum([
+  'REGISTERED',
+  'WAITLISTED',
+  'CANCELLED',
+  'ATTENDED',
+  'NO_SHOW',
+]);
+
+export const groupSessionRegistrationResponseSchema = z.object({
+  id: z.string().min(1),
+  sessionId: z.string().min(1),
+  athleteId: athleteIdSchema,
+  parentUserId: userIdSchema,
+  status: groupSessionRegistrationStatusSchema,
+  registeredAt: z.string().datetime(),
+  paidAt: z.string().datetime().nullable().optional(),
+  notes: z.string().nullable().optional(),
+});
+
+export const registerGroupSessionResponseSchema = z.object({
+  registration: groupSessionRegistrationResponseSchema,
+  booking: bookingResponseSchema.nullable().optional(),
+  sessionStatus: z.string().min(1),
+  requestId: z.string(),
+});
+
 export type CreateBookingRequest = z.infer<typeof createBookingRequestSchema>;
 export type CancelBookingRequest = z.infer<typeof cancelBookingRequestSchema>;
 export type ReopenBookingRequest = z.infer<typeof reopenBookingRequestSchema>;
 export type BookingResponse = z.infer<typeof bookingResponseSchema>;
+export type InviteResponseRequest = z.infer<typeof inviteResponseRequestSchema>;
+export type InviteResponseResult = z.infer<typeof inviteResponseResultSchema>;
+export type RegisterGroupSessionRequest = z.infer<typeof registerGroupSessionRequestSchema>;
+export type GroupSessionRegistrationResponse = z.infer<
+  typeof groupSessionRegistrationResponseSchema
+>;
+export type RegisterGroupSessionResponse = z.infer<typeof registerGroupSessionResponseSchema>;

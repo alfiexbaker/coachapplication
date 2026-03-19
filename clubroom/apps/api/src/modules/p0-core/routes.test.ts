@@ -11,6 +11,7 @@ type SeedTables = Record<string, SeedRow[]>;
 
 const asRows = (value: unknown): SeedRow[] => (Array.isArray(value) ? (value as SeedRow[]) : []);
 const asString = (value: unknown): string | undefined => (typeof value === 'string' ? value : undefined);
+const asNumber = (value: unknown): number | undefined => (typeof value === 'number' ? value : undefined);
 
 function resolveDatasetPath(): string {
   const primary = path.resolve(process.cwd(), 'docs/backend-api/test-data/marketplace/linked-dataset.json');
@@ -401,8 +402,20 @@ describe('p0 core routes', () => {
       },
     });
     assert.equal(inviteResponse.statusCode, 200);
-    const invitePayload = inviteResponse.json() as { status: string };
+    const invitePayload = inviteResponse.json() as {
+      status: string;
+      registrationId?: string | null;
+      registrationStatus?: string | null;
+      booking?: { id: string; status: string } | null;
+    };
     assert.equal(invitePayload.status, 'ACCEPTED');
+    assert.equal(typeof invitePayload.registrationId, 'string');
+    assert.ok(['REGISTERED', 'WAITLISTED'].includes(invitePayload.registrationStatus ?? ''));
+    if (invitePayload.registrationStatus === 'REGISTERED' && invitePayload.booking) {
+      assert.match(invitePayload.booking?.id ?? '', /^bok_/);
+    } else if (invitePayload.registrationStatus === 'WAITLISTED') {
+      assert.equal(invitePayload.booking ?? null, null);
+    }
 
     const memberClubMembership = asRows(tables.clubMemberships)[0];
     assert.ok(memberClubMembership, 'expected seeded club membership');
@@ -429,5 +442,83 @@ describe('p0 core routes', () => {
     const rsvpPayload = rsvp.json() as { rsvp: { status: string; guestCount: number } };
     assert.equal(rsvpPayload.rsvp.status, 'GOING');
     assert.equal(rsvpPayload.rsvp.guestCount, 1);
+  });
+
+  it('registers a visible athlete for a group session and creates a linked booking', async () => {
+    const tables = loadTables();
+    const guardianLinks = asRows(tables.guardianChildLinks);
+    const sessions = asRows(tables.groupSessions);
+    const registrations = asRows(tables.groupSessionRegistrations);
+
+    let selection:
+      | {
+          parentUserId: string;
+          athleteId: string;
+          sessionId: string;
+        }
+      | undefined;
+
+    for (const guardianLink of guardianLinks) {
+      const parentUserId = asString(guardianLink.guardianUserId);
+      const athleteId = asString(guardianLink.athleteId);
+      if (!parentUserId || !athleteId) {
+        continue;
+      }
+
+      for (const session of sessions) {
+        const sessionId = asString(session.id);
+        const currentParticipants = asNumber(session.currentParticipants) ?? 0;
+        const maxParticipants = asNumber(session.maxParticipants) ?? 0;
+        const alreadyRegistered = registrations.some(
+          (row) =>
+            asString(row.groupSessionId) === sessionId
+            && asString(row.athleteId) === athleteId
+            && asString(row.status) !== 'CANCELLED',
+        );
+
+        if (sessionId && currentParticipants < maxParticipants && !alreadyRegistered) {
+          selection = { parentUserId, athleteId, sessionId };
+          break;
+        }
+      }
+
+      if (selection) {
+        break;
+      }
+    }
+
+    assert.ok(selection, 'expected a visible athlete/session pair with available capacity');
+
+    const response = await app.inject({
+      method: 'POST',
+      url: `/v1/group-sessions/${selection?.sessionId}/register`,
+      headers: {
+        'x-auth-user-id': selection?.parentUserId,
+        'x-auth-roles': rolesForUser(tables, selection?.parentUserId ?? '').join(',') || 'parent',
+        'x-acting-role': rolesForUser(tables, selection?.parentUserId ?? '')[0] ?? 'parent',
+      },
+      payload: {
+        athleteId: selection?.athleteId,
+        parentUserId: selection?.parentUserId,
+      },
+    });
+
+    assert.equal(response.statusCode, 200);
+    const payload = response.json() as {
+      registration: {
+        athleteId: string;
+        parentUserId: string;
+        status: string;
+      };
+      booking?: { id: string; status: string } | null;
+      sessionStatus: string;
+    };
+
+    assert.equal(payload.registration.athleteId, selection?.athleteId);
+    assert.equal(payload.registration.parentUserId, selection?.parentUserId);
+    assert.equal(payload.registration.status, 'REGISTERED');
+    assert.ok(['PUBLISHED', 'FULL'].includes(payload.sessionStatus));
+    assert.match(payload.booking?.id ?? '', /^bok_/);
+    assert.equal(payload.booking?.status, 'CONFIRMED');
   });
 });

@@ -17,11 +17,11 @@ If a statement here conflicts with an old audit or sprint note, trust this file 
 
 ## Current Verified Health
 
-Verified during recent `API-01` slices on 2026-03-18:
+Verified during recent `API-01` slices on 2026-03-19:
 - `npm run typecheck` -> PASS
 - `npm run test:compile` -> PASS
 - `npm --prefix apps/api run typecheck` -> PASS
-- `npm --prefix apps/api run test` -> PASS (`30/30`)
+- `npm --prefix apps/api run test` -> PASS (`31/31`)
 
 Not re-run in this pass:
 - full UI flow suites
@@ -49,9 +49,9 @@ Clubs manage staff, squads, visibility, and operating relationships.
   - bearer dev-session tokens are accepted by the API auth plugin
 - The biggest trust seam still not finished is production identity:
   - API auth is still scaffold-first and seed-backed
-  - family medical, safeguarding incident creation, direct booking creation, and booking cancel/reopen flows now use `/v1` in non-mock mode
-  - booking changes are intentionally `cancel` or `reopen`; the old counter-offer negotiation path has been removed
-  - delegated booking creation, wider booking reads/change flows, and broader trust/ops workflows are still not backend-authoritative by default
+  - family medical, safeguarding incident creation, direct booking creation, booking cancel/reopen, and group-session registration now use `/v1` in non-mock mode
+  - booking changes are intentionally `cancel` or `reopen`; the old counter-offer and invite counter workflow has been removed from the runtime product surface
+  - the remaining delegated booking seam is the broader session-invite acceptance/read model plus wider booking reads/change flows, which are still not backend-authoritative by default
 
 ## Product Spines
 
@@ -97,14 +97,14 @@ Real enough to build on:
 
 Still transitional:
 - auth and session contract between app and API
-- authoritative backend ownership for delegated booking creation, booking read/change flows, and broader trust/ops data
+- authoritative backend ownership for the broader session-invite model, booking read/change flows, and broader trust/ops data
 - observability across app plus API
 - some local audit scripts that depend on missing shell tooling
 
 ## Highest-Value Priorities
 
 1. Unify frontend auth and backend `/v1` authz.
-2. Finish backend-authoritative cutover for the remaining sensitive domains, especially delegated booking creation, booking read/change flows, and trust/ops follow-through.
+2. Finish backend-authoritative cutover for the remaining sensitive domains, especially the session-invite model, booking read/change flows, and trust/ops follow-through.
 3. Wire Sentry across Expo native, Expo web, and `apps/api`.
 4. Make repo-critical quality scripts honest when local tooling is missing.
 5. Keep docs thin and update them when runtime truth changes.

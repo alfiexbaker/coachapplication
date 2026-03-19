@@ -5,10 +5,16 @@ import {
   bookingIdSchema,
   cancelBookingRequestSchema,
   createBookingRequestSchema,
+  inviteResponseRequestSchema,
   reopenBookingRequestSchema,
+  registerGroupSessionRequestSchema,
 } from '@clubroom/shared-contracts';
-import { forbidden, notFound } from '../../lib/http-errors.js';
-import { resolveBookingRepository } from '../../repositories/p0/booking-repository.js';
+import { badRequest, forbidden, notFound } from '../../lib/http-errors.js';
+import {
+  createBookingInSeedTables,
+  resolveBookingRepository,
+  type SeedTables,
+} from '../../repositories/p0/booking-repository.js';
 import { getMarketplaceSeedStore } from '../../lib/marketplace-seed-store.js';
 
 type SeedRow = Record<string, unknown>;
@@ -19,10 +25,6 @@ const asNumber = (value: unknown): number | undefined => (typeof value === 'numb
 const isoNow = () => new Date().toISOString();
 const newId = (prefix: string) => `${prefix}_${crypto.randomUUID()}`;
 
-const inviteResponseRequestSchema = z.object({
-  response: z.enum(['ACCEPTED', 'DECLINED']),
-});
-
 const eventRsvpRequestSchema = z.object({
   status: z.enum(['GOING', 'MAYBE', 'NOT_GOING']),
   guestCount: z.number().int().min(0).max(10).optional(),
@@ -32,6 +34,160 @@ const eventRsvpRequestSchema = z.object({
 const groupSessionQuerySchema = z.object({
   status: z.string().optional(),
 });
+
+function isClubAdminAuth(auth: { roles?: string[]; actingRole?: string } | undefined): boolean {
+  return Boolean(auth?.roles?.includes('club_admin') || auth?.actingRole === 'club_admin');
+}
+
+function normalizeSessionStatusForCapacity(current: number, max: number): 'PUBLISHED' | 'FULL' {
+  return current >= max ? 'FULL' : 'PUBLISHED';
+}
+
+function resolveAthleteUserId(sessionTables: SeedTables, athleteId: string): string | null {
+  const athlete = asRows(sessionTables.athletes).find(
+    (row) => asString(row.id) === athleteId,
+  );
+  return asString(athlete?.userId) ?? null;
+}
+
+function canRegisterAthlete(params: {
+  tables: SeedTables;
+  authUserId: string;
+  athleteId: string;
+  isClubAdmin: boolean;
+}): boolean {
+  if (params.isClubAdmin) {
+    return true;
+  }
+
+  const athleteUserId = resolveAthleteUserId(params.tables, params.athleteId);
+  if (athleteUserId === params.authUserId) {
+    return true;
+  }
+
+  return asRows(params.tables.guardianChildLinks).some(
+    (row) =>
+      asString(row.athleteId) === params.athleteId
+      && asString(row.guardianUserId) === params.authUserId,
+  );
+}
+
+function getScheduleWindow(session: SeedRow): { startsAt: string; durationMinutes: number } {
+  const schedule = asRows(session.scheduleJson);
+  const firstWindow = schedule[0];
+  const startsAt = asString(firstWindow?.startsAt);
+  const endsAt = asString(firstWindow?.endsAt);
+  const startTime = startsAt ? Date.parse(startsAt) : Number.NaN;
+  const endTime = endsAt ? Date.parse(endsAt) : Number.NaN;
+  const durationMinutes =
+    Number.isFinite(startTime) && Number.isFinite(endTime) && endTime > startTime
+      ? Math.max(15, Math.round((endTime - startTime) / 60000))
+      : 60;
+
+  return {
+    startsAt: startsAt ?? isoNow(),
+    durationMinutes,
+  };
+}
+
+function registerAthleteInSeedGroupSession(params: {
+  tables: SeedTables;
+  session: SeedRow;
+  athleteId: string;
+  authUserId: string;
+  bookedByUserId: string;
+  requestId: string;
+  note: string;
+}) {
+  const { tables, session, athleteId, authUserId, bookedByUserId, requestId, note } = params;
+  const registrations = asRows(tables.groupSessionRegistrations);
+  const sessionId = asString(session.id);
+  if (!sessionId) {
+    throw notFound('Group session is missing an id');
+  }
+
+  const activeRegistration = registrations.find(
+    (row) =>
+      asString(row.groupSessionId) === sessionId
+      && asString(row.athleteId) === athleteId
+      && asString(row.status) !== 'CANCELLED',
+  );
+
+  if (activeRegistration) {
+    return {
+      registration: activeRegistration,
+      booking: null,
+    };
+  }
+
+  const currentParticipants = asNumber(session.currentParticipants) ?? 0;
+  const maxParticipants = asNumber(session.maxParticipants) ?? 0;
+  const waitlistEnabled = Boolean(session.waitlistEnabled);
+  const isFull = maxParticipants > 0 && currentParticipants >= maxParticipants;
+
+  if (isFull && !waitlistEnabled) {
+    throw badRequest('Group session is full');
+  }
+
+  const now = isoNow();
+  const status = isFull ? 'WAITLISTED' : 'REGISTERED';
+  const registration: SeedRow = {
+    id: newId('gsr'),
+    groupSessionId: sessionId,
+    athleteId,
+    parentUserId: bookedByUserId,
+    status,
+    paidAt: isFull ? null : now,
+    notes: note,
+    createdByUserId: authUserId,
+    updatedByUserId: authUserId,
+    version: 1,
+    registeredAt: now,
+    updatedAt: now,
+    deletedAt: null,
+    deletedByUserId: null,
+  };
+  registrations.push(registration);
+
+  let booking = null;
+  if (isFull) {
+    session.waitlistCount = (asNumber(session.waitlistCount) ?? 0) + 1;
+  } else {
+    const updatedParticipants = currentParticipants + 1;
+    session.currentParticipants = updatedParticipants;
+    session.status = normalizeSessionStatusForCapacity(updatedParticipants, maxParticipants);
+    const { startsAt, durationMinutes } = getScheduleWindow(session);
+    booking = createBookingInSeedTables({
+      tables,
+      authUserId,
+      requestId,
+      body: createBookingRequestSchema.parse({
+        coachUserId: asString(session.coachUserId),
+        athleteIds: [athleteId],
+        bookedByUserId,
+        scheduledAt: startsAt,
+        durationMinutes,
+        location: asString(session.location) ?? 'Club training ground',
+        serviceType: asString(session.sessionType) ?? 'group_session',
+        objectives: asRows(session.focusJson)
+          .map((value) => asString(value))
+          .filter((value): value is string => Boolean(value)),
+        notes: note,
+        priceMinor: asNumber(session.pricePerParticipantMinor) ?? 0,
+        currency: asString(session.currency) ?? 'GBP',
+      }),
+      bookingRowOverrides: {
+        groupSessionId: sessionId,
+        clubId: asString(session.clubId) ?? null,
+      },
+    });
+  }
+
+  return {
+    registration,
+    booking,
+  };
+}
 
 const bookingRoutes: FastifyPluginAsync = async (app) => {
   app.get('/bookings', async (request, reply) => {
@@ -200,6 +356,65 @@ const bookingRoutes: FastifyPluginAsync = async (app) => {
     });
   });
 
+  app.post('/group-sessions/:sessionId/register', async (request, reply) => {
+    const authUserId = request.auth?.userId;
+    if (!authUserId) {
+      throw forbidden('Authenticated user is required');
+    }
+
+    const sessionId = asString((request.params as { sessionId?: string } | undefined)?.sessionId);
+    if (!sessionId) {
+      throw notFound('Group session id is required');
+    }
+
+    const body = registerGroupSessionRequestSchema.parse(request.body);
+    const isClubAdmin = isClubAdminAuth(request.auth);
+    if (!isClubAdmin && body.parentUserId && body.parentUserId !== authUserId) {
+      throw forbidden('parentUserId must match authenticated user');
+    }
+
+    const store = getMarketplaceSeedStore();
+    const session = asRows(store.tables.groupSessions).find((row) => asString(row.id) === sessionId);
+    if (!session) {
+      throw notFound('Group session not found', { sessionId });
+    }
+
+    if (!canRegisterAthlete({
+      tables: store.tables,
+      authUserId,
+      athleteId: body.athleteId,
+      isClubAdmin,
+    })) {
+      throw forbidden('Authenticated user cannot register this athlete');
+    }
+
+    const result = registerAthleteInSeedGroupSession({
+      tables: store.tables,
+      session,
+      athleteId: body.athleteId,
+      authUserId,
+      bookedByUserId: body.parentUserId ?? authUserId,
+      requestId: request.requestId,
+      note: 'Registered via /v1/group-sessions/:sessionId/register',
+    });
+
+    return reply.send({
+      registration: {
+        id: asString(result.registration.id),
+        sessionId,
+        athleteId: asString(result.registration.athleteId),
+        parentUserId: asString(result.registration.parentUserId),
+        status: asString(result.registration.status),
+        registeredAt: asString(result.registration.registeredAt),
+        paidAt: asString(result.registration.paidAt) ?? null,
+        notes: asString(result.registration.notes) ?? null,
+      },
+      booking: result.booking,
+      sessionStatus: asString(session.status) ?? 'PUBLISHED',
+      requestId: request.requestId,
+    });
+  });
+
   app.post('/invites/:inviteId/respond', async (request, reply) => {
     const authUserId = request.auth?.userId;
     if (!authUserId) {
@@ -215,7 +430,6 @@ const bookingRoutes: FastifyPluginAsync = async (app) => {
     const store = getMarketplaceSeedStore();
     const invites = asRows(store.tables.invites);
     const targets = asRows(store.tables.inviteTargets);
-    const registrations = asRows(store.tables.groupSessionRegistrations);
     const invite = invites.find((row) => asString(row.id) === inviteId);
     if (!invite) {
       throw notFound('Invite not found', { inviteId });
@@ -229,48 +443,47 @@ const bookingRoutes: FastifyPluginAsync = async (app) => {
     }
 
     const now = isoNow();
+    let registrationId: string | null = null;
+    let registrationStatus: 'REGISTERED' | 'WAITLISTED' | null = null;
+    let booking = null;
+    const groupSessionId = asString(invite.groupSessionId);
+    const targetAthleteId = asString(target.targetAthleteId);
+    if (body.response === 'ACCEPTED' && groupSessionId && targetAthleteId) {
+      const session = asRows(store.tables.groupSessions).find(
+        (row) => asString(row.id) === groupSessionId,
+      );
+      if (!session) {
+        throw notFound('Linked group session not found', { groupSessionId });
+      }
+
+      const registrationResult = registerAthleteInSeedGroupSession({
+        tables: store.tables,
+        session,
+        athleteId: targetAthleteId,
+        authUserId,
+        bookedByUserId: authUserId,
+        requestId: request.requestId,
+        note: 'Accepted via /v1/invites/:inviteId/respond',
+      });
+
+      registrationId = asString(registrationResult.registration.id) ?? null;
+      registrationStatus =
+        (asString(registrationResult.registration.status) as 'REGISTERED' | 'WAITLISTED' | undefined)
+        ?? null;
+      booking = registrationResult.booking;
+      invite.bookingId = booking?.id ?? null;
+    }
+
     target.status = body.response;
     target.respondedAt = now;
     target.responsePayloadJson = {
       response: body.response.toLowerCase(),
       source: 'api-runtime',
+      ...(body.selectedSlot ? { selectedSlot: body.selectedSlot } : {}),
     };
     target.updatedAt = now;
     invite.status = body.response;
     invite.updatedAt = now;
-
-    let registrationId: string | null = null;
-    const groupSessionId = asString(invite.groupSessionId);
-    const targetAthleteId = asString(target.targetAthleteId);
-    if (body.response === 'ACCEPTED' && groupSessionId && targetAthleteId) {
-      const existingRegistration = registrations.find(
-        (row) =>
-          asString(row.groupSessionId) === groupSessionId
-          && asString(row.athleteId) === targetAthleteId
-          && asString(row.parentUserId) === authUserId,
-      );
-      if (existingRegistration) {
-        registrationId = asString(existingRegistration.id) ?? null;
-      } else {
-        registrationId = newId('gsr');
-        registrations.push({
-          id: registrationId,
-          groupSessionId,
-          athleteId: targetAthleteId,
-          parentUserId: authUserId,
-          status: 'REGISTERED',
-          paidAt: null,
-          notes: 'Accepted via /v1/invites/:inviteId/respond',
-          createdByUserId: authUserId,
-          updatedByUserId: authUserId,
-          version: 1,
-          registeredAt: now,
-          updatedAt: now,
-          deletedAt: null,
-          deletedByUserId: null,
-        });
-      }
-    }
 
     return reply.send({
       inviteId,
@@ -278,7 +491,10 @@ const bookingRoutes: FastifyPluginAsync = async (app) => {
       status: asString(invite.status) ?? body.response,
       targetStatus: asString(target.status) ?? body.response,
       respondedAt: now,
+      selectedSlot: body.selectedSlot,
       registrationId,
+      registrationStatus,
+      booking,
       requestId: request.requestId,
     });
   });

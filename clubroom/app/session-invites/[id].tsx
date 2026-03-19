@@ -102,7 +102,6 @@ export default function SessionInviteDetailScreen() {
   );
   const derivedStatus = useMemo(() => {
     if (!invite) return 'PENDING';
-    if (invite.status === 'COUNTERED') return 'PENDING';
     return new Date(invite.expiresAt) < new Date() && invite.status === 'PENDING'
       ? 'EXPIRED'
       : invite.status;
