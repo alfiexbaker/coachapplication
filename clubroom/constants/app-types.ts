@@ -115,6 +115,7 @@ export interface Booking {
   cancelledBy?: string;                    // userId who cancelled
   cancelledAt?: string;                    // when cancelled
   cancelReason?: string;                   // reason for cancellation
+  statusBeforeCancellation?: BookingStatus; // active status to restore if reopened
   cancellationFee?: number;                // amount owed for late cancellation
   // Multi-week series fields
   seriesId?: string;                       // ID of the BookingSeries this booking belongs to

@@ -101,6 +101,32 @@ class BookingAuthorityService {
 
     return result;
   }
+
+  async reopenBooking(
+    bookingId: string,
+    input: { note?: string } = {},
+  ): Promise<Result<ApiBookingResponse, ServiceError>> {
+    const headersResult = await resolveBookingAccessHeaders();
+    if (!headersResult.success) {
+      return headersResult;
+    }
+
+    const result = await apiFetch<ApiBookingResponse>(`/v1/bookings/${bookingId}/reopen`, {
+      method: 'POST',
+      headers: headersResult.data,
+      body: JSON.stringify(input),
+    });
+
+    if (!result.success) {
+      logger.error('Failed to reopen booking via API', {
+        bookingId,
+        error: result.error,
+      });
+      return err(result.error);
+    }
+
+    return result;
+  }
 }
 
 export const bookingAuthorityService = new BookingAuthorityService();

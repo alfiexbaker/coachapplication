@@ -347,6 +347,7 @@ class BookingCrudService {
             cancelledBy,
             cancelledAt: new Date().toISOString(),
             cancelReason: reason,
+            statusBeforeCancellation: b.status,
           }
         : b,
     );
@@ -402,6 +403,75 @@ class BookingCrudService {
     }
 
     return updated.find((b) => b.id === id);
+  }
+
+  async reopen(
+    id: string,
+    reopenedBy: 'coach' | 'parent' = 'parent',
+    options?: { allowPastBooking?: boolean; note?: string },
+  ) {
+    const bookings = await this.loadFromStorage();
+    const booking = bookings.find((entry) => entry.id === id);
+    if (!booking) {
+      logger.warn('Booking not found for reopen', { bookingId: id, reopenedBy });
+      return undefined;
+    }
+
+    const sessionStart = new Date(booking.scheduledAt).getTime();
+    if (!options?.allowPastBooking && (!Number.isFinite(sessionStart) || sessionStart <= Date.now())) {
+      logger.warn('Reopen blocked for past booking', { bookingId: id, reopenedBy });
+      return undefined;
+    }
+
+    if (booking.status !== 'CANCELLED') {
+      logger.warn('Reopen blocked for non-cancelled booking', {
+        bookingId: id,
+        status: booking.status,
+        reopenedBy,
+      });
+      return undefined;
+    }
+
+    let restoredStatus = booking.statusBeforeCancellation ?? 'CONFIRMED';
+    if (!apiClient.isMockMode) {
+      const reopenResult = await bookingAuthorityService.reopenBooking(id, {
+        ...(options?.note ? { note: options.note } : {}),
+      });
+      if (!reopenResult.success) {
+        logger.error('Failed to reopen booking via API', {
+          bookingId: id,
+          reopenedBy,
+          error: reopenResult.error.message,
+        });
+        return undefined;
+      }
+      restoredStatus = reopenResult.data.status;
+    }
+
+    const updated = bookings.map((entry) =>
+      entry.id === id
+        ? {
+            ...entry,
+            status: restoredStatus,
+            cancellationReason: undefined,
+            cancelledBy: undefined,
+            cancelledAt: undefined,
+            cancelReason: undefined,
+            statusBeforeCancellation: undefined,
+          }
+        : entry,
+    );
+    const saveResult = await this.saveToStorage(updated);
+    if (!saveResult.success) {
+      logger.error('Failed to reopen booking', {
+        bookingId: id,
+        reopenedBy,
+        error: saveResult.error.message,
+      });
+      return undefined;
+    }
+
+    return updated.find((entry) => entry.id === id);
   }
 
   /**

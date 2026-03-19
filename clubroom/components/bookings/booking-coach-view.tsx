@@ -16,7 +16,7 @@ import { getBookingSummaryClientName } from '@/utils/booking-display';
 interface BookingCoachViewProps {
   booking: BookingSummary;
   onMessageClient: () => void;
-  onReschedule: () => void;
+  onReopenBooking?: () => void;
   onRefund: () => void;
   onCancelBooking: () => void;
   canCancelBooking: boolean;
@@ -28,7 +28,7 @@ interface BookingCoachViewProps {
 function BookingCoachViewInner({
   booking,
   onMessageClient,
-  onReschedule,
+  onReopenBooking,
   onRefund,
   onCancelBooking,
   canCancelBooking,
@@ -140,35 +140,51 @@ function BookingCoachViewInner({
         </ThemedText>
       </Clickable>
 
-      <Row style={styles.buttonRow}>
-        <Clickable
-          onPress={onReschedule}
-          style={({ pressed }) =>
-            [
-              styles.halfButton,
-              { borderColor: palette.border },
-              pressed && { backgroundColor: palette.border, opacity: 0.7 },
-            ].filter(Boolean) as ViewStyle[]
-          }
-        >
-          <Ionicons name="calendar-outline" size={18} color={palette.foreground} />
-          <ThemedText style={styles.secondaryButtonText}>Reschedule</ThemedText>
-        </Clickable>
+      {onReopenBooking ? (
+        <Row style={styles.buttonRow}>
+          <Clickable
+            onPress={onReopenBooking}
+            style={({ pressed }) =>
+              [
+                styles.halfButton,
+                { borderColor: palette.border },
+                pressed && { backgroundColor: palette.border, opacity: 0.7 },
+              ].filter(Boolean) as ViewStyle[]
+            }
+          >
+            <Ionicons name="refresh-circle-outline" size={18} color={palette.foreground} />
+            <ThemedText style={styles.secondaryButtonText}>Reopen Booking</ThemedText>
+          </Clickable>
 
+          <Clickable
+            onPress={onRefund}
+            style={({ pressed }) =>
+              [
+                styles.halfButton,
+                { borderColor: palette.border },
+                pressed && { backgroundColor: palette.border, opacity: 0.7 },
+              ].filter(Boolean) as ViewStyle[]
+            }
+          >
+            <Ionicons name="cash-outline" size={18} color={palette.foreground} />
+            <ThemedText style={styles.secondaryButtonText}>Billing Issue</ThemedText>
+          </Clickable>
+        </Row>
+      ) : (
         <Clickable
           onPress={onRefund}
           style={({ pressed }) =>
             [
-              styles.halfButton,
+              styles.secondaryButton,
               { borderColor: palette.border },
               pressed && { backgroundColor: palette.border, opacity: 0.7 },
             ].filter(Boolean) as ViewStyle[]
           }
         >
-          <Ionicons name="cash-outline" size={18} color={palette.foreground} />
+          <Ionicons name="cash-outline" size={20} color={palette.foreground} />
           <ThemedText style={styles.secondaryButtonText}>Billing Issue</ThemedText>
         </Clickable>
-      </Row>
+      )}
 
       {canCancelBooking ? (
         <Clickable

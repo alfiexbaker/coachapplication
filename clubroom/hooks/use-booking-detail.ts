@@ -2,7 +2,7 @@
  * useBookingDetail — Data loading and handlers for the booking detail screen.
  *
  * Loads a BookingSummary by ID from mock data or apiClient storage.
- * Provides all action handlers (message, cancel, refund, reschedule, report).
+ * Provides all action handlers (message, cancel, reopen, refund, report).
  */
 
 import { useCallback, useState } from 'react';
@@ -42,14 +42,15 @@ export interface BookingDetailResult {
   handlers: {
     messageCoach: () => void;
     cancelBooking: () => void;
+    reopenBooking: () => void;
     refund: () => void;
-    reschedule: () => void;
     reportProblem: () => void;
     rebook: () => void;
     manageRecurring: () => void;
     completeSession: () => void;
   };
   canCancelBooking: boolean;
+  canReopenBooking: boolean;
   canCompleteSession: boolean;
   formatted: {
     weekday: string;
@@ -193,6 +194,7 @@ export function useBookingDetail(id: string): BookingDetailResult {
     booking.status !== 'Cancelled' &&
     booking.status !== 'Completed' &&
     booking.status !== 'Needs Completion';
+  const canReopenBooking = !!booking && isFutureBooking && booking.status === 'Cancelled';
   const canCompleteSession =
     isCoach &&
     canCoachCompleteBooking({
@@ -222,22 +224,39 @@ export function useBookingDetail(id: string): BookingDetailResult {
     );
   }, []);
 
-  const handleReschedule = useCallback(() => {
+  const handleReopenBooking = useCallback(async () => {
     if (!booking) return;
-    const openChat = () => {
-      if (isCoach) {
-        router.push(Routes.MESSAGES);
-        return;
-      }
-      router.push(Routes.messagesWith({ coachId: booking.coachId }));
-    };
+    if (!canReopenBooking) {
+      uiFeedback.showToast('Only upcoming cancelled bookings can be reopened.', 'warning');
+      return;
+    }
+
+    const confirmed = await uiFeedback.confirm({
+      title: isCoach ? 'Reopen Session?' : 'Reopen Booking?',
+      message: isCoach
+        ? 'This will restore the appointment and notify the family that the slot is active again.'
+        : 'This will restore the cancelled appointment and put it back on your bookings list.',
+      confirmText: 'Reopen',
+      cancelText: 'Keep Cancelled',
+    });
+    if (!confirmed) {
+      return;
+    }
+
+    const reopenedBooking = await bookingService.reopen(booking.id, isCoach ? 'coach' : 'parent');
+    if (!reopenedBooking) {
+      uiFeedback.showToast('We could not reopen this booking. Try again from the bookings list.', 'error');
+      return;
+    }
 
     uiFeedback.showToast(
-      'Reschedule proposals are removed. Opening chat to agree a new session time.',
-      'warning',
+      isCoach
+        ? 'The session is active again and the family can see it in bookings.'
+        : 'Your booking is active again.',
+      'success',
     );
-    openChat();
-  }, [booking, isCoach]);
+    onRefresh();
+  }, [booking, canReopenBooking, isCoach, onRefresh]);
 
   const handleReportProblem = useCallback(() => {
     if (booking?.id) {
@@ -292,14 +311,15 @@ export function useBookingDetail(id: string): BookingDetailResult {
     handlers: {
       messageCoach: handleMessageCoach,
       cancelBooking: handleCancelBooking,
+      reopenBooking: handleReopenBooking,
       refund: handleRefund,
-      reschedule: handleReschedule,
       reportProblem: handleReportProblem,
       rebook: handleRebook,
       manageRecurring: handleManageRecurring,
       completeSession: handleCompleteSession,
     },
     canCancelBooking,
+    canReopenBooking,
     canCompleteSession,
     formatted,
   };

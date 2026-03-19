@@ -31,6 +31,10 @@ export const cancelBookingRequestSchema = z.object({
   note: z.string().max(1000).optional(),
 });
 
+export const reopenBookingRequestSchema = z.object({
+  note: z.string().max(1000).optional(),
+});
+
 export const bookingParticipantSchema = z.object({
   athleteId: athleteIdSchema,
   guardianUserId: userIdSchema.optional(),
@@ -60,4 +64,5 @@ export const bookingResponseSchema = z.object({
 
 export type CreateBookingRequest = z.infer<typeof createBookingRequestSchema>;
 export type CancelBookingRequest = z.infer<typeof cancelBookingRequestSchema>;
+export type ReopenBookingRequest = z.infer<typeof reopenBookingRequestSchema>;
 export type BookingResponse = z.infer<typeof bookingResponseSchema>;

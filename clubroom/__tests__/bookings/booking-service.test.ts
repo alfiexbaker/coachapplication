@@ -94,6 +94,21 @@ describe('bookingService (real facade)', () => {
     assert.equal(cancelled?.cancellationReason, 'COACH');
   });
 
+  it('reopens a cancelled booking through facade', async () => {
+    const created = await bookingService.createBooking(createParams('03-reopen'));
+    assert.equal(created.success, true);
+    if (!created.success) return;
+
+    const cancelled = await bookingService.cancel(created.data.id, 'PARENT', 'parent');
+    assert.ok(cancelled);
+
+    const reopened = await bookingService.reopen(created.data.id, 'parent');
+
+    assert.ok(reopened);
+    assert.equal(reopened?.status, 'CONFIRMED');
+    assert.equal(reopened?.cancelledAt, undefined);
+  });
+
   it('does not cancel past bookings', async () => {
     const created = await bookingService.createBooking(
       createParams('03-past', { scheduledAt: '2025-01-10T10:00:00.000Z' }),

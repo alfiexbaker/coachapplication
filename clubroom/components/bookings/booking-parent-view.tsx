@@ -12,7 +12,7 @@ interface BookingParentViewProps {
   onMessageCoach: () => void;
   onCancelBooking: () => void;
   onReportProblem: () => void;
-  onReschedule?: () => void;
+  onReopenBooking?: () => void;
   onRebook?: () => void;
   onManageRecurring?: () => void;
   canCancelBooking: boolean;
@@ -25,7 +25,7 @@ function BookingParentViewInner({
   onMessageCoach,
   onCancelBooking,
   onReportProblem,
-  onReschedule,
+  onReopenBooking,
   onRebook,
   onManageRecurring,
   canCancelBooking,
@@ -74,19 +74,21 @@ function BookingParentViewInner({
         </Clickable>
       ) : null}
 
-      {isConfirmed && onReschedule ? (
+      {isCancelled && onReopenBooking ? (
         <Clickable
-          onPress={onReschedule}
+          onPress={onReopenBooking}
           style={({ pressed }) =>
             [
-              styles.secondaryButton,
-              { borderColor: palette.border },
-              pressed && { backgroundColor: palette.border, opacity: 0.7 },
+              styles.primaryButton,
+              { backgroundColor: palette.tint },
+              pressed && { opacity: 0.8 },
             ].filter(Boolean) as ViewStyle[]
           }
         >
-          <Ionicons name="calendar-outline" size={20} color={palette.foreground} />
-          <ThemedText style={styles.secondaryButtonText}>Request Reschedule</ThemedText>
+          <Ionicons name="refresh-circle-outline" size={20} color={palette.onPrimary} />
+          <ThemedText style={[styles.primaryButtonText, { color: palette.onPrimary }]}>
+            Reopen Booking
+          </ThemedText>
         </Clickable>
       ) : null}
 
@@ -120,7 +122,7 @@ function BookingParentViewInner({
         <ThemedText style={styles.secondaryButtonText}>{reportProblemLabel}</ThemedText>
       </Clickable>
 
-      {(isCompleted || isCancelled) && onRebook ? (
+      {(isCompleted || (isCancelled && !onReopenBooking)) && onRebook ? (
         <Clickable
           onPress={onRebook}
           style={({ pressed }) =>

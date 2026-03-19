@@ -5,6 +5,7 @@ import {
   type BookingResponse,
   type CancelBookingRequest,
   type CreateBookingRequest,
+  type ReopenBookingRequest,
 } from '@clubroom/shared-contracts';
 import { getApiDataBackend } from '../../lib/data-backend.js';
 import { getMarketplaceSeedStore } from '../../lib/marketplace-seed-store.js';
@@ -41,6 +42,13 @@ export interface CancelBookingParams {
   body: CancelBookingRequest;
 }
 
+export interface ReopenBookingParams {
+  authUserId: string;
+  requestId: string;
+  bookingId: string;
+  body: ReopenBookingRequest;
+}
+
 export interface ListBookingsResult {
   bookings: BookingResponse[];
   dataVersion: string | null;
@@ -50,6 +58,7 @@ export interface BookingRepository {
   listVisibleBookings(params: ListBookingsParams): Promise<ListBookingsResult>;
   createBooking(params: CreateBookingParams): Promise<BookingResponse>;
   cancelBooking(params: CancelBookingParams): Promise<BookingResponse>;
+  reopenBooking(params: ReopenBookingParams): Promise<BookingResponse>;
 }
 
 function isSupportedBookingStatus(status: string): boolean {
@@ -175,6 +184,35 @@ function mapSeedBookingsFromTables(
   });
 
   return visible.map((booking) => mapSeedBookingRow(tables, booking, participantRowsByBooking));
+}
+
+function normalizeReopenStatus(status: string | undefined): BookingStatusCode {
+  if (status) {
+    const normalized = status.toUpperCase();
+    if (
+      normalized !== 'CANCELLED'
+      && normalized !== 'COMPLETED'
+      && isSupportedBookingStatus(normalized)
+    ) {
+      return normalized as BookingStatusCode;
+    }
+  }
+  return 'CONFIRMED';
+}
+
+function resolveSeedReopenStatus(tables: SeedTables, bookingId: string): BookingStatusCode {
+  const latestCancelEvent = asRows(tables.bookingStatusEvents)
+    .filter(
+      (event) =>
+        asString(event.bookingId) === bookingId
+        && asString(event.toStatus)?.toUpperCase() === 'CANCELLED',
+    )
+    .sort(
+      (a, b) =>
+        Date.parse(asString(b.occurredAt) ?? '') - Date.parse(asString(a.occurredAt) ?? ''),
+    )[0];
+
+  return normalizeReopenStatus(asString(latestCancelEvent?.fromStatus));
 }
 
 function createBookingInSeedTables(params: {
@@ -369,6 +407,67 @@ class SeedBookingRepository implements BookingRepository {
       toStatus: 'CANCELLED',
       actorUserId: params.authUserId,
       reason: params.body.reason,
+      metadataJson: {
+        note: params.body.note ?? null,
+        source: 'api-runtime',
+      },
+      requestId: params.requestId,
+      occurredAt: now,
+    });
+
+    return mapSeedBookingRow(store.tables, booking, participantRowsByBooking);
+  }
+
+  async reopenBooking(params: ReopenBookingParams): Promise<BookingResponse> {
+    const store = getMarketplaceSeedStore();
+    const bookings = asRows(store.tables.bookings);
+    const statusEvents = asRows(store.tables.bookingStatusEvents);
+    const participantRowsByBooking = getParticipantRowsByBooking(store.tables);
+    const athleteUserIdsByAthleteId = getAthleteUserIdsByAthleteId(store.tables);
+    const booking = bookings.find((row) => asString(row.id) === params.bookingId);
+
+    if (!booking) {
+      throw notFound('Booking not found', { bookingId: params.bookingId });
+    }
+    if (
+      !canUserAccessSeedBooking(
+        store.tables,
+        booking,
+        params.authUserId,
+        participantRowsByBooking,
+        athleteUserIdsByAthleteId,
+      )
+    ) {
+      throw forbidden('Booking does not belong to authenticated user');
+    }
+
+    const currentStatus = asString(booking.status)?.toUpperCase();
+    if (currentStatus !== 'CANCELLED') {
+      throw badRequest('Only cancelled bookings can be reopened');
+    }
+
+    const scheduledAt = Date.parse(asString(booking.scheduledAt) ?? '');
+    if (!Number.isFinite(scheduledAt) || scheduledAt <= Date.now()) {
+      throw badRequest('Only upcoming cancelled bookings can be reopened');
+    }
+
+    const restoredStatus = resolveSeedReopenStatus(store.tables, params.bookingId);
+    const now = isoNow();
+    booking.status = restoredStatus;
+    booking.cancelledByUserId = null;
+    booking.cancelledAt = null;
+    booking.cancelReason = null;
+    booking.updatedByUserId = params.authUserId;
+    booking.updatedAt = now;
+    booking.version = (asNumber(booking.version) ?? 1) + 1;
+
+    statusEvents.push({
+      id: newId('bse'),
+      bookingId: params.bookingId,
+      fromStatus: 'CANCELLED',
+      toStatus: restoredStatus,
+      actorUserId: params.authUserId,
+      reason: 'Booking reopened',
       metadataJson: {
         note: params.body.note ?? null,
         source: 'api-runtime',
@@ -685,6 +784,127 @@ class DbBookingRepository implements BookingRepository {
         toStatus: 'CANCELLED',
         actorUserId: params.authUserId,
         reason: params.body.reason,
+        metadataJson: {
+          note: params.body.note ?? null,
+          source: 'api-db-runtime',
+        },
+        requestId: params.requestId,
+        occurredAt: now,
+      },
+    });
+
+    return normalizeForJson(
+      bookingResponseSchema.parse({
+        id: updated.id,
+        coachUserId: updated.coachUserId,
+        bookedByUserId: updated.bookedByUserId ?? undefined,
+        status: updated.status,
+        scheduledAt: updated.scheduledAt.toISOString(),
+        durationMinutes: updated.durationMinutes,
+        location: updated.location,
+        serviceType: updated.serviceType ?? undefined,
+        sessionTemplateId: null,
+        objectives: booking.objectives
+          .sort((a, b) => a.sortOrder - b.sortOrder)
+          .map((objective) => objective.objective),
+        notes: updated.notes ?? null,
+        priceMinor: updated.priceMinor ?? null,
+        currency: updated.currency,
+        participants: booking.participants.map((participant) => ({
+          athleteId: participant.athleteId,
+          guardianUserId: participant.guardianUserId ?? undefined,
+          status: participant.status as 'confirmed' | 'pending' | 'cancelled',
+        })),
+        version: Number(updated.version),
+        createdAt: updated.createdAt.toISOString(),
+        updatedAt: updated.updatedAt.toISOString(),
+        cancelledAt: updated.cancelledAt?.toISOString() ?? null,
+      }),
+    );
+  }
+
+  async reopenBooking(params: ReopenBookingParams): Promise<BookingResponse> {
+    if (shouldUseDbFixtureFallback()) {
+      const seedRepository = new SeedBookingRepository();
+      return seedRepository.reopenBooking({
+        ...params,
+        requestId: params.requestId,
+        authUserId: params.authUserId,
+        body: params.body,
+      });
+    }
+
+    const prisma = getPrismaClientOrThrow();
+    const booking = await prisma.booking.findUnique({
+      where: { id: params.bookingId },
+      include: {
+        participants: {
+          include: {
+            athlete: {
+              select: { userId: true },
+            },
+          },
+        },
+        objectives: true,
+      },
+    });
+
+    if (!booking) {
+      throw notFound('Booking not found', { bookingId: params.bookingId });
+    }
+
+    const hasAccess =
+      booking.coachUserId === params.authUserId
+      || booking.bookedByUserId === params.authUserId
+      || booking.participants.some(
+        (participant) =>
+          participant.guardianUserId === params.authUserId
+          || participant.athlete.userId === params.authUserId,
+      );
+    if (!hasAccess) {
+      throw forbidden('Booking does not belong to authenticated user');
+    }
+
+    if (booking.status !== 'CANCELLED') {
+      throw badRequest('Only cancelled bookings can be reopened');
+    }
+    if (booking.scheduledAt.getTime() <= Date.now()) {
+      throw badRequest('Only upcoming cancelled bookings can be reopened');
+    }
+
+    const latestCancelEvent = await prisma.bookingStatusEvent.findFirst({
+      where: {
+        bookingId: params.bookingId,
+        toStatus: 'CANCELLED',
+      },
+      orderBy: {
+        occurredAt: 'desc',
+      },
+    });
+    const restoredStatus = normalizeReopenStatus(latestCancelEvent?.fromStatus ?? undefined);
+    const now = new Date();
+    const updated = await prisma.booking.update({
+      where: { id: params.bookingId },
+      data: {
+        status: restoredStatus,
+        cancelledByUserId: null,
+        cancelledAt: null,
+        cancelReason: null,
+        updatedByUserId: params.authUserId,
+        version: {
+          increment: 1,
+        },
+      },
+    });
+
+    await prisma.bookingStatusEvent.create({
+      data: {
+        id: newId('bse'),
+        bookingId: params.bookingId,
+        fromStatus: 'CANCELLED',
+        toStatus: restoredStatus,
+        actorUserId: params.authUserId,
+        reason: 'Booking reopened',
         metadataJson: {
           note: params.body.note ?? null,
           source: 'api-db-runtime',

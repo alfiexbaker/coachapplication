@@ -63,7 +63,7 @@ These are minimum flows that must be traced before backend cutover by spine.
 ### Booking / Revenue
 - coach availability templates + overrides
 - direct booking wizard (parent and athlete variants)
-- booking review/confirmation/cancel/reschedule
+- booking review/confirmation/cancel/reopen
 - group session registration + waitlist
 - recurring booking flows
 - invoice generation + reconciler actions (paid/unpaid/write-off/restore)

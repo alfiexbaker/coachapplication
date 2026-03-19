@@ -673,4 +673,61 @@ describe('BookingCrudService', () => {
       }
     });
   });
+
+  describe('reopen', () => {
+    it('should restore a cancelled booking to its prior active status', async () => {
+      const createResult = await bookingCrudService.createBooking({
+        coachId: 'coach-' + Math.random().toString(36).slice(2),
+        coachName: 'Test Coach',
+        athleteIds: ['athlete-' + Math.random().toString(36).slice(2)],
+        athleteNames: ['Test Athlete'],
+        bookedById: 'parent-' + Math.random().toString(36).slice(2),
+        bookedByName: 'Test Parent',
+        scheduledAt: new Date(Date.now() + 86400000).toISOString(),
+        duration: 60,
+        location: 'Test Field',
+        service: '1-on-1',
+        serviceType: 'COACHING',
+        skipAvailabilityValidation: true,
+      });
+
+      assert.ok(createResult.success);
+      const cancelResult = await bookingCrudService.cancel(
+        createResult.data.id,
+        'Schedule conflict',
+        'coach',
+      );
+
+      assert.ok(cancelResult);
+      const reopenResult = await bookingCrudService.reopen(createResult.data.id, 'coach');
+
+      assert.ok(reopenResult);
+      assert.equal(reopenResult.status, 'CONFIRMED');
+      assert.equal(reopenResult.cancelReason, undefined);
+      assert.equal(reopenResult.cancelledAt, undefined);
+      assert.equal(reopenResult.statusBeforeCancellation, undefined);
+    });
+
+    it('should return undefined when reopening a non-cancelled booking', async () => {
+      const createResult = await bookingCrudService.createBooking({
+        coachId: 'coach-' + Math.random().toString(36).slice(2),
+        coachName: 'Test Coach',
+        athleteIds: ['athlete-' + Math.random().toString(36).slice(2)],
+        athleteNames: ['Test Athlete'],
+        bookedById: 'parent-' + Math.random().toString(36).slice(2),
+        bookedByName: 'Test Parent',
+        scheduledAt: new Date(Date.now() + 86400000).toISOString(),
+        duration: 60,
+        location: 'Test Field',
+        service: '1-on-1',
+        serviceType: 'COACHING',
+        skipAvailabilityValidation: true,
+      });
+
+      assert.ok(createResult.success);
+      const reopenResult = await bookingCrudService.reopen(createResult.data.id, 'parent');
+
+      assert.equal(reopenResult, undefined);
+    });
+  });
 });

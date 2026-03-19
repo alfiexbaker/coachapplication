@@ -5,6 +5,7 @@ import {
   bookingIdSchema,
   cancelBookingRequestSchema,
   createBookingRequestSchema,
+  reopenBookingRequestSchema,
 } from '@clubroom/shared-contracts';
 import { forbidden, notFound } from '../../lib/http-errors.js';
 import { resolveBookingRepository } from '../../repositories/p0/booking-repository.js';
@@ -90,6 +91,28 @@ const bookingRoutes: FastifyPluginAsync = async (app) => {
 
     const repository = resolveBookingRepository();
     const response = await repository.cancelBooking({
+      authUserId,
+      requestId: request.requestId,
+      bookingId,
+      body,
+    });
+
+    return reply.send(response);
+  });
+
+  app.post('/bookings/:bookingId/reopen', async (request, reply) => {
+    const authUserId = request.auth?.userId;
+    if (!authUserId) {
+      throw forbidden('Authenticated user is required');
+    }
+
+    const bookingId = bookingIdSchema.parse(
+      (request.params as { bookingId?: string } | undefined)?.bookingId,
+    );
+    const body = reopenBookingRequestSchema.parse(request.body ?? {});
+
+    const repository = resolveBookingRepository();
+    const response = await repository.reopenBooking({
       authUserId,
       requestId: request.requestId,
       bookingId,

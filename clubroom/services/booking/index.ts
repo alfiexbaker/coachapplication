@@ -60,9 +60,11 @@ export const bookingService = {
   getBooking: bookingCrudService.getBooking.bind(bookingCrudService),
   getById: bookingCrudService.getById.bind(bookingCrudService),
   cancelBookingViaApi: bookingAuthorityService.cancelBooking.bind(bookingAuthorityService),
+  reopenBookingViaApi: bookingAuthorityService.reopenBooking.bind(bookingAuthorityService),
   updateBooking: bookingCrudService.updateBooking.bind(bookingCrudService),
   updateStatus: bookingCrudService.updateStatus.bind(bookingCrudService),
   cancel: bookingCrudService.cancel.bind(bookingCrudService),
+  reopen: bookingCrudService.reopen.bind(bookingCrudService),
   validateBooking: bookingCrudService.validateBooking.bind(bookingCrudService),
   createBooking: bookingCrudService.createBooking.bind(bookingCrudService),
   createBookingNotifications:

@@ -21,7 +21,7 @@ Verified during recent `API-01` slices on 2026-03-18:
 - `npm run typecheck` -> PASS
 - `npm run test:compile` -> PASS
 - `npm --prefix apps/api run typecheck` -> PASS
-- `npm --prefix apps/api run test` -> PASS (`29/29`)
+- `npm --prefix apps/api run test` -> PASS (`30/30`)
 
 Not re-run in this pass:
 - full UI flow suites
@@ -49,8 +49,8 @@ Clubs manage staff, squads, visibility, and operating relationships.
   - bearer dev-session tokens are accepted by the API auth plugin
 - The biggest trust seam still not finished is production identity:
   - API auth is still scaffold-first and seed-backed
-  - family medical, safeguarding incident creation, and booking cancellation now use `/v1` in non-mock mode
-  - booking creation/reschedule authority and wider trust/ops workflows are still not backend-authoritative by default
+  - family medical, safeguarding incident creation, and booking cancel/reopen flows now use `/v1` in non-mock mode
+  - booking creation authority and wider trust/ops workflows are still not backend-authoritative by default
 
 ## Product Spines
 

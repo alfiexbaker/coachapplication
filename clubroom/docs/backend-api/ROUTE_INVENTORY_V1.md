@@ -14,6 +14,7 @@ Status legend:
 | `/v1/ready` | `GET` | `scaffolded` | DB/storage checks still placeholders |
 | `/v1/meta/version` | `GET` | `scaffolded` | dev metadata only |
 | `/v1/bookings/:bookingId/cancel` | `POST` | `scaffolded` | booking cancellation scaffold with actor ownership enforcement and idempotent cancelled response |
+| `/v1/bookings/:bookingId/reopen` | `POST` | `scaffolded` | booking reopen scaffold restores the last active status for upcoming cancelled bookings |
 | `/v1/athletes/:athleteId/injuries` | `GET/POST` | `scaffolded` | in-memory scaffold for trust/health endpoint contract verification |
 | `/v1/injuries/:injuryId` | `PATCH` | `scaffolded` | injury status/notes update scaffold |
 | `/v1/athletes/:athleteId/medical` | `GET/PATCH` | `scaffolded` | medical profile scaffold with doctor, insurance, restriction, and notes fields |
@@ -67,7 +68,7 @@ Status legend:
 | `/v1/bookings/:bookingId` | `GET` | `planned` | `BookingResponse` | participants/guardian/coach | `app/(tabs)/bookings/[id].tsx` |
 | `/v1/bookings/:bookingId` | `PATCH` | `planned` | `UpdateBookingRequest`, `BookingResponse` | scoped actors + version | booking detail + admin tools |
 | `/v1/bookings/:bookingId/cancel` | `POST` | `scaffolded` | `CancelBookingRequest`, `BookingResponse` | parent/athlete/coach tied to booking participants or delivery coach | `app/booking/[id]/cancel.tsx`, `hooks/use-booking-cancel.ts`, `services/booking/booking-authority-service.ts` |
-| `/v1/bookings/:bookingId/reschedule-request` | `POST` | `planned` | `CreateBookingChangeRequest` | participant/guardian/coach | booking detail + chat template UX |
+| `/v1/bookings/:bookingId/reopen` | `POST` | `scaffolded` | `ReopenBookingRequest`, `BookingResponse` | parent/athlete/coach tied to booking participants or delivery coach | `app/(tabs)/bookings/[id].tsx`, `hooks/use-booking-detail.ts`, `services/booking/booking-authority-service.ts` |
 | `/v1/group-sessions` | `GET/POST` | `planned` | `GroupSession*` | read visibility / coach create | `app/group-sessions/index.tsx`, `app/group-sessions/create.tsx` |
 | `/v1/group-sessions/:id/register` | `POST` | `planned` | `RegisterGroupSessionRequest` | parent/athlete | `hooks/use-group-session.ts`, `use-group-sessions.ts` |
 | `/v1/group-sessions/:id/waitlist` | `POST` | `planned` | `JoinWaitlistRequest` | parent/athlete | group session detail + waitlist banner |

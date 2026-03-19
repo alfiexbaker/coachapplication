@@ -136,7 +136,7 @@ Use this order consistently.
 
 ## Idempotency (required on write endpoints)
 ### Where required
-- booking create/cancel/reschedule
+- booking create/cancel/reopen
 - RSVP responses
 - invite accept/decline
 - mark paid/unpaid/write-off/restore

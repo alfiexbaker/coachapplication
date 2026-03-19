@@ -90,6 +90,7 @@ export default function SessionDetailScreen() {
     retry,
     isCoach,
     canCancelBooking,
+    canReopenBooking,
     sessionNote,
     deliveryFeedback,
     handlers,
@@ -464,7 +465,7 @@ export default function SessionDetailScreen() {
           <BookingCoachView
             booking={booking}
             onMessageClient={handlers.messageCoach}
-            onReschedule={handlers.reschedule}
+            onReopenBooking={canReopenBooking ? handlers.reopenBooking : undefined}
             onRefund={handlers.refund}
             onCancelBooking={handlers.cancelBooking}
             canCancelBooking={canCancelBooking}
@@ -477,7 +478,7 @@ export default function SessionDetailScreen() {
             onMessageCoach={handlers.messageCoach}
             onCancelBooking={handlers.cancelBooking}
             onReportProblem={handlers.reportProblem}
-            onReschedule={handlers.reschedule}
+            onReopenBooking={canReopenBooking ? handlers.reopenBooking : undefined}
             onRebook={handlers.rebook}
             onManageRecurring={
               booking.recurringBookingId ? handlers.manageRecurring : undefined

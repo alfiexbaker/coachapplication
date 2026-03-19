@@ -15,7 +15,7 @@ Purpose: identify the service entrypoints that are safe to build on and call out
 
 - `services/booking-service.ts` -> facade to `services/booking/index.ts`
 - `services/booking/index.ts` -> booking CRUD, status, search, analytics
-- `services/booking/booking-authority-service.ts` -> canonical `/v1` booking mutation bridge for non-mock authority slices such as cancellation
+- `services/booking/booking-authority-service.ts` -> canonical `/v1` booking mutation bridge for non-mock authority slices such as cancellation and reopen
 - Booking creation rule: use `bookingService.createBooking()`
 
 ### Progress and development

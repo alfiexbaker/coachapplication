@@ -205,7 +205,7 @@ describe('p0 core routes', () => {
     }
   });
 
-  it('creates, cancels, and lists bookings for the booked-by user', async () => {
+  it('creates, cancels, reopens, and lists bookings for the booked-by user', async () => {
     const tables = loadTables();
     const guardianLink = asRows(tables.guardianChildLinks)[0];
     assert.ok(guardianLink, 'expected seeded guardian-child link');
@@ -292,6 +292,40 @@ describe('p0 core routes', () => {
     });
     assert.equal(cancelledAgain.statusCode, 200);
     assert.equal((cancelledAgain.json() as { status: string }).status, 'CANCELLED');
+
+    const reopened = await app.inject({
+      method: 'POST',
+      url: `/v1/bookings/${created.id}/reopen`,
+      headers: {
+        'x-auth-user-id': bookedByUserId,
+        'x-auth-roles': rolesForUser(tables, bookedByUserId).join(',') || 'parent',
+        'x-acting-role': rolesForUser(tables, bookedByUserId)[0] ?? 'parent',
+      },
+      payload: {
+        note: 'Keeping the original slot after all.',
+      },
+    });
+    assert.equal(reopened.statusCode, 200);
+    const reopenedPayload = reopened.json() as {
+      id: string;
+      status: string;
+      cancelledAt: string | null;
+    };
+    assert.equal(reopenedPayload.id, created.id);
+    assert.equal(reopenedPayload.status, 'CONFIRMED');
+    assert.equal(reopenedPayload.cancelledAt, null);
+
+    const reopenedAgain = await app.inject({
+      method: 'POST',
+      url: `/v1/bookings/${created.id}/reopen`,
+      headers: {
+        'x-auth-user-id': bookedByUserId,
+        'x-auth-roles': rolesForUser(tables, bookedByUserId).join(',') || 'parent',
+        'x-acting-role': rolesForUser(tables, bookedByUserId)[0] ?? 'parent',
+      },
+      payload: {},
+    });
+    assert.equal(reopenedAgain.statusCode, 400);
   });
 
   it('denies booking cancellation for an unrelated actor', async () => {
