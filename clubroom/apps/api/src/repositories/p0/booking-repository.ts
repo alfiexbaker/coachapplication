@@ -3,6 +3,7 @@ import {
   bookingResponseSchema,
   bookingStatusSchema,
   type BookingResponse,
+  type CancelBookingRequest,
   type CreateBookingRequest,
 } from '@clubroom/shared-contracts';
 import { getApiDataBackend } from '../../lib/data-backend.js';
@@ -10,6 +11,7 @@ import { getMarketplaceSeedStore } from '../../lib/marketplace-seed-store.js';
 import { getDbFixtureStore } from '../../lib/db-fixture-store.js';
 import { getPrismaClientOrThrow, shouldUseDbFixtureFallback } from '../../lib/prisma-runtime.js';
 import { normalizeForJson } from './normalize.js';
+import { badRequest, forbidden, notFound } from '../../lib/http-errors.js';
 
 type SeedRow = Record<string, unknown>;
 type SeedTables = Record<string, SeedRow[]>;
@@ -32,6 +34,13 @@ export interface CreateBookingParams {
   body: CreateBookingRequest;
 }
 
+export interface CancelBookingParams {
+  authUserId: string;
+  requestId: string;
+  bookingId: string;
+  body: CancelBookingRequest;
+}
+
 export interface ListBookingsResult {
   bookings: BookingResponse[];
   dataVersion: string | null;
@@ -40,34 +49,27 @@ export interface ListBookingsResult {
 export interface BookingRepository {
   listVisibleBookings(params: ListBookingsParams): Promise<ListBookingsResult>;
   createBooking(params: CreateBookingParams): Promise<BookingResponse>;
+  cancelBooking(params: CancelBookingParams): Promise<BookingResponse>;
 }
 
 function isSupportedBookingStatus(status: string): boolean {
   return bookingStatusSchema.safeParse(status).success;
 }
 
-function mapSeedBookingsFromTables(
-  tables: SeedTables,
-  authUserId: string,
-  statusFilter?: string,
-): BookingResponse[] {
-  const bookings = asRows(tables.bookings);
-  const participants = asRows(tables.bookingParticipants);
-  const objectives = asRows(tables.bookingObjectives);
+function getAthleteUserIdsByAthleteId(tables: SeedTables): Map<string, string | undefined> {
   const athletes = asRows(tables.athletes);
-  const normalizedStatus = statusFilter?.toUpperCase();
-  if (normalizedStatus && !isSupportedBookingStatus(normalizedStatus)) {
-    return [];
-  }
-
-  const athleteUserIdsByAthleteId = new Map(
+  return new Map(
     athletes
       .map((row) => [asString(row.id), asString(row.userId)] as const)
       .filter(([id]) => Boolean(id))
       .map(([id, userId]) => [id as string, userId]),
   );
+}
 
+function getParticipantRowsByBooking(tables: SeedTables): Map<string, SeedRow[]> {
+  const participants = asRows(tables.bookingParticipants);
   const participantRowsByBooking = new Map<string, SeedRow[]>();
+
   for (const participant of participants) {
     const bookingId = asString(participant.bookingId);
     if (!bookingId) {
@@ -78,60 +80,101 @@ function mapSeedBookingsFromTables(
     participantRowsByBooking.set(bookingId, existing);
   }
 
+  return participantRowsByBooking;
+}
+
+function getObjectiveValuesForBooking(tables: SeedTables, bookingId: string): string[] {
+  return asRows(tables.bookingObjectives)
+    .filter((objective) => asString(objective.bookingId) === bookingId)
+    .sort((a, b) => (asNumber(a.sortOrder) ?? 0) - (asNumber(b.sortOrder) ?? 0))
+    .map((objective) => asString(objective.objective))
+    .filter((objective): objective is string => Boolean(objective));
+}
+
+function canUserAccessSeedBooking(
+  tables: SeedTables,
+  booking: SeedRow,
+  authUserId: string,
+  participantRowsByBooking = getParticipantRowsByBooking(tables),
+  athleteUserIdsByAthleteId = getAthleteUserIdsByAthleteId(tables),
+): boolean {
+  if (asString(booking.coachUserId) === authUserId || asString(booking.bookedByUserId) === authUserId) {
+    return true;
+  }
+
+  const bookingParticipants = participantRowsByBooking.get(asString(booking.id) ?? '') ?? [];
+  return bookingParticipants.some((participant) => {
+    if (asString(participant.guardianUserId) === authUserId) {
+      return true;
+    }
+    const athleteId = asString(participant.athleteId);
+    return Boolean(athleteId && athleteUserIdsByAthleteId.get(athleteId) === authUserId);
+  });
+}
+
+function mapSeedBookingRow(
+  tables: SeedTables,
+  booking: SeedRow,
+  participantRowsByBooking = getParticipantRowsByBooking(tables),
+): BookingResponse {
+  const bookingId = asString(booking.id) ?? '';
+  const bookingParticipants = (participantRowsByBooking.get(bookingId) ?? []).map((participant) => ({
+    athleteId: asString(participant.athleteId) ?? '',
+    guardianUserId: asString(participant.guardianUserId),
+    status: (asString(participant.status) ?? 'pending').toLowerCase(),
+  }));
+
+  return bookingResponseSchema.parse({
+    id: bookingId,
+    coachUserId: asString(booking.coachUserId),
+    bookedByUserId: asString(booking.bookedByUserId),
+    status: asString(booking.status),
+    scheduledAt: asString(booking.scheduledAt),
+    durationMinutes: asNumber(booking.durationMinutes) ?? 60,
+    location: asString(booking.location) ?? 'TBD',
+    serviceType: asString(booking.serviceType) ?? 'one_to_one',
+    sessionTemplateId: null,
+    objectives: getObjectiveValuesForBooking(tables, bookingId),
+    notes: asString(booking.notes) ?? null,
+    priceMinor: asNumber(booking.priceMinor) ?? null,
+    currency: asString(booking.currency) ?? 'GBP',
+    participants: bookingParticipants,
+    version: asNumber(booking.version) ?? 1,
+    createdAt: asString(booking.createdAt) ?? isoNow(),
+    updatedAt: asString(booking.updatedAt) ?? isoNow(),
+    cancelledAt: asString(booking.cancelledAt) ?? null,
+  });
+}
+
+function mapSeedBookingsFromTables(
+  tables: SeedTables,
+  authUserId: string,
+  statusFilter?: string,
+): BookingResponse[] {
+  const bookings = asRows(tables.bookings);
+  const normalizedStatus = statusFilter?.toUpperCase();
+  if (normalizedStatus && !isSupportedBookingStatus(normalizedStatus)) {
+    return [];
+  }
+
+  const athleteUserIdsByAthleteId = getAthleteUserIdsByAthleteId(tables);
+  const participantRowsByBooking = getParticipantRowsByBooking(tables);
+
   const visible = bookings.filter((booking) => {
     const bookingStatus = asString(booking.status)?.toUpperCase();
     if (normalizedStatus && bookingStatus !== normalizedStatus) {
       return false;
     }
-
-    if (asString(booking.coachUserId) === authUserId || asString(booking.bookedByUserId) === authUserId) {
-      return true;
-    }
-
-    const bookingParticipants = participantRowsByBooking.get(asString(booking.id) ?? '') ?? [];
-    return bookingParticipants.some((participant) => {
-      if (asString(participant.guardianUserId) === authUserId) {
-        return true;
-      }
-      const athleteId = asString(participant.athleteId);
-      return Boolean(athleteId && athleteUserIdsByAthleteId.get(athleteId) === authUserId);
-    });
+    return canUserAccessSeedBooking(
+      tables,
+      booking,
+      authUserId,
+      participantRowsByBooking,
+      athleteUserIdsByAthleteId,
+    );
   });
 
-  return visible.map((booking) => {
-    const bookingId = asString(booking.id) ?? '';
-    const bookingParticipants = (participantRowsByBooking.get(bookingId) ?? []).map((participant) => ({
-      athleteId: asString(participant.athleteId) ?? '',
-      guardianUserId: asString(participant.guardianUserId),
-      status: (asString(participant.status) ?? 'pending').toLowerCase(),
-    }));
-    const bookingObjectives = objectives
-      .filter((objective) => asString(objective.bookingId) === bookingId)
-      .sort((a, b) => (asNumber(a.sortOrder) ?? 0) - (asNumber(b.sortOrder) ?? 0))
-      .map((objective) => asString(objective.objective))
-      .filter((objective): objective is string => Boolean(objective));
-
-    return bookingResponseSchema.parse({
-      id: bookingId,
-      coachUserId: asString(booking.coachUserId),
-      bookedByUserId: asString(booking.bookedByUserId),
-      status: asString(booking.status),
-      scheduledAt: asString(booking.scheduledAt),
-      durationMinutes: asNumber(booking.durationMinutes) ?? 60,
-      location: asString(booking.location) ?? 'TBD',
-      serviceType: asString(booking.serviceType) ?? 'one_to_one',
-      sessionTemplateId: null,
-      objectives: bookingObjectives,
-      notes: asString(booking.notes) ?? null,
-      priceMinor: asNumber(booking.priceMinor) ?? null,
-      currency: asString(booking.currency) ?? 'GBP',
-      participants: bookingParticipants,
-      version: asNumber(booking.version) ?? 1,
-      createdAt: asString(booking.createdAt) ?? isoNow(),
-      updatedAt: asString(booking.updatedAt) ?? isoNow(),
-      cancelledAt: asString(booking.cancelledAt) ?? null,
-    });
-  });
+  return visible.map((booking) => mapSeedBookingRow(tables, booking, participantRowsByBooking));
 }
 
 function createBookingInSeedTables(params: {
@@ -272,6 +315,69 @@ class SeedBookingRepository implements BookingRepository {
       requestId: params.requestId,
       body: params.body,
     });
+  }
+
+  async cancelBooking(params: CancelBookingParams): Promise<BookingResponse> {
+    const store = getMarketplaceSeedStore();
+    const bookings = asRows(store.tables.bookings);
+    const statusEvents = asRows(store.tables.bookingStatusEvents);
+    const participantRowsByBooking = getParticipantRowsByBooking(store.tables);
+    const athleteUserIdsByAthleteId = getAthleteUserIdsByAthleteId(store.tables);
+    const booking = bookings.find((row) => asString(row.id) === params.bookingId);
+
+    if (!booking) {
+      throw notFound('Booking not found', { bookingId: params.bookingId });
+    }
+    if (
+      !canUserAccessSeedBooking(
+        store.tables,
+        booking,
+        params.authUserId,
+        participantRowsByBooking,
+        athleteUserIdsByAthleteId,
+      )
+    ) {
+      throw forbidden('Booking does not belong to authenticated user');
+    }
+
+    const currentStatus = asString(booking.status)?.toUpperCase();
+    if (currentStatus === 'CANCELLED') {
+      return mapSeedBookingRow(store.tables, booking, participantRowsByBooking);
+    }
+    if (currentStatus === 'COMPLETED') {
+      throw badRequest('Completed bookings cannot be cancelled');
+    }
+
+    const scheduledAt = Date.parse(asString(booking.scheduledAt) ?? '');
+    if (!Number.isFinite(scheduledAt) || scheduledAt <= Date.now()) {
+      throw badRequest('Only upcoming bookings can be cancelled');
+    }
+
+    const now = isoNow();
+    booking.status = 'CANCELLED';
+    booking.cancelledByUserId = params.authUserId;
+    booking.cancelledAt = now;
+    booking.cancelReason = params.body.reason;
+    booking.updatedByUserId = params.authUserId;
+    booking.updatedAt = now;
+    booking.version = (asNumber(booking.version) ?? 1) + 1;
+
+    statusEvents.push({
+      id: newId('bse'),
+      bookingId: params.bookingId,
+      fromStatus: currentStatus,
+      toStatus: 'CANCELLED',
+      actorUserId: params.authUserId,
+      reason: params.body.reason,
+      metadataJson: {
+        note: params.body.note ?? null,
+        source: 'api-runtime',
+      },
+      requestId: params.requestId,
+      occurredAt: now,
+    });
+
+    return mapSeedBookingRow(store.tables, booking, participantRowsByBooking);
   }
 }
 
@@ -471,6 +577,149 @@ class DbBookingRepository implements BookingRepository {
         createdAt: nowIsoString,
         updatedAt: nowIsoString,
         cancelledAt: null,
+      }),
+    );
+  }
+
+  async cancelBooking(params: CancelBookingParams): Promise<BookingResponse> {
+    if (shouldUseDbFixtureFallback()) {
+      const store = getDbFixtureStore();
+      const seedRepository = new SeedBookingRepository();
+      return seedRepository.cancelBooking({
+        ...params,
+        requestId: params.requestId,
+        authUserId: params.authUserId,
+        body: params.body,
+      });
+    }
+
+    const prisma = getPrismaClientOrThrow();
+    const booking = await prisma.booking.findUnique({
+      where: { id: params.bookingId },
+      include: {
+        participants: {
+          include: {
+            athlete: {
+              select: { userId: true },
+            },
+          },
+        },
+        objectives: true,
+      },
+    });
+
+    if (!booking) {
+      throw notFound('Booking not found', { bookingId: params.bookingId });
+    }
+
+    const hasAccess =
+      booking.coachUserId === params.authUserId
+      || booking.bookedByUserId === params.authUserId
+      || booking.participants.some(
+        (participant) =>
+          participant.guardianUserId === params.authUserId
+          || participant.athlete.userId === params.authUserId,
+      );
+    if (!hasAccess) {
+      throw forbidden('Booking does not belong to authenticated user');
+    }
+
+    if (booking.status === 'CANCELLED') {
+      return normalizeForJson(
+        bookingResponseSchema.parse({
+          id: booking.id,
+          coachUserId: booking.coachUserId,
+          bookedByUserId: booking.bookedByUserId ?? undefined,
+          status: booking.status,
+          scheduledAt: booking.scheduledAt.toISOString(),
+          durationMinutes: booking.durationMinutes,
+          location: booking.location,
+          serviceType: booking.serviceType ?? undefined,
+          sessionTemplateId: null,
+          objectives: booking.objectives
+            .sort((a, b) => a.sortOrder - b.sortOrder)
+            .map((objective) => objective.objective),
+          notes: booking.notes ?? null,
+          priceMinor: booking.priceMinor ?? null,
+          currency: booking.currency,
+          participants: booking.participants.map((participant) => ({
+            athleteId: participant.athleteId,
+            guardianUserId: participant.guardianUserId ?? undefined,
+            status: participant.status as 'confirmed' | 'pending' | 'cancelled',
+          })),
+          version: Number(booking.version),
+          createdAt: booking.createdAt.toISOString(),
+          updatedAt: booking.updatedAt.toISOString(),
+          cancelledAt: booking.cancelledAt?.toISOString() ?? null,
+        }),
+      );
+    }
+
+    if (booking.status === 'COMPLETED') {
+      throw badRequest('Completed bookings cannot be cancelled');
+    }
+    if (booking.scheduledAt.getTime() <= Date.now()) {
+      throw badRequest('Only upcoming bookings can be cancelled');
+    }
+
+    const now = new Date();
+    const updated = await prisma.booking.update({
+      where: { id: params.bookingId },
+      data: {
+        status: 'CANCELLED',
+        cancelledByUserId: params.authUserId,
+        cancelledAt: now,
+        cancelReason: params.body.reason,
+        updatedByUserId: params.authUserId,
+        version: {
+          increment: 1,
+        },
+      },
+    });
+
+    await prisma.bookingStatusEvent.create({
+      data: {
+        id: newId('bse'),
+        bookingId: params.bookingId,
+        fromStatus: booking.status,
+        toStatus: 'CANCELLED',
+        actorUserId: params.authUserId,
+        reason: params.body.reason,
+        metadataJson: {
+          note: params.body.note ?? null,
+          source: 'api-db-runtime',
+        },
+        requestId: params.requestId,
+        occurredAt: now,
+      },
+    });
+
+    return normalizeForJson(
+      bookingResponseSchema.parse({
+        id: updated.id,
+        coachUserId: updated.coachUserId,
+        bookedByUserId: updated.bookedByUserId ?? undefined,
+        status: updated.status,
+        scheduledAt: updated.scheduledAt.toISOString(),
+        durationMinutes: updated.durationMinutes,
+        location: updated.location,
+        serviceType: updated.serviceType ?? undefined,
+        sessionTemplateId: null,
+        objectives: booking.objectives
+          .sort((a, b) => a.sortOrder - b.sortOrder)
+          .map((objective) => objective.objective),
+        notes: updated.notes ?? null,
+        priceMinor: updated.priceMinor ?? null,
+        currency: updated.currency,
+        participants: booking.participants.map((participant) => ({
+          athleteId: participant.athleteId,
+          guardianUserId: participant.guardianUserId ?? undefined,
+          status: participant.status as 'confirmed' | 'pending' | 'cancelled',
+        })),
+        version: Number(updated.version),
+        createdAt: updated.createdAt.toISOString(),
+        updatedAt: updated.updatedAt.toISOString(),
+        cancelledAt: updated.cancelledAt?.toISOString() ?? null,
       }),
     );
   }

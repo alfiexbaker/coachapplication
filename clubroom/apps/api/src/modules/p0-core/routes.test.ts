@@ -205,7 +205,7 @@ describe('p0 core routes', () => {
     }
   });
 
-  it('creates bookings and lists them for the booked-by user', async () => {
+  it('creates, cancels, and lists bookings for the booked-by user', async () => {
     const tables = loadTables();
     const guardianLink = asRows(tables.guardianChildLinks)[0];
     assert.ok(guardianLink, 'expected seeded guardian-child link');
@@ -254,6 +254,96 @@ describe('p0 core routes', () => {
     assert.equal(listed.statusCode, 200);
     const listedPayload = listed.json() as { bookings: Array<{ id: string }> };
     assert.equal(listedPayload.bookings.some((booking) => booking.id === created.id), true);
+
+    const cancelled = await app.inject({
+      method: 'POST',
+      url: `/v1/bookings/${created.id}/cancel`,
+      headers: {
+        'x-auth-user-id': bookedByUserId,
+        'x-auth-roles': rolesForUser(tables, bookedByUserId).join(',') || 'parent',
+        'x-acting-role': rolesForUser(tables, bookedByUserId)[0] ?? 'parent',
+      },
+      payload: {
+        reason: 'Schedule change',
+        note: 'Need to move the session to next week.',
+      },
+    });
+    assert.equal(cancelled.statusCode, 200);
+    const cancelledPayload = cancelled.json() as {
+      id: string;
+      status: string;
+      cancelledAt: string | null;
+    };
+    assert.equal(cancelledPayload.id, created.id);
+    assert.equal(cancelledPayload.status, 'CANCELLED');
+    assert.equal(typeof cancelledPayload.cancelledAt, 'string');
+
+    const cancelledAgain = await app.inject({
+      method: 'POST',
+      url: `/v1/bookings/${created.id}/cancel`,
+      headers: {
+        'x-auth-user-id': bookedByUserId,
+        'x-auth-roles': rolesForUser(tables, bookedByUserId).join(',') || 'parent',
+        'x-acting-role': rolesForUser(tables, bookedByUserId)[0] ?? 'parent',
+      },
+      payload: {
+        reason: 'Schedule change',
+      },
+    });
+    assert.equal(cancelledAgain.statusCode, 200);
+    assert.equal((cancelledAgain.json() as { status: string }).status, 'CANCELLED');
+  });
+
+  it('denies booking cancellation for an unrelated actor', async () => {
+    const tables = loadTables();
+    const guardianLink = asRows(tables.guardianChildLinks)[0];
+    assert.ok(guardianLink, 'expected seeded guardian-child link');
+    const bookedByUserId = asString(guardianLink.guardianUserId) as string;
+    const athleteId = asString(guardianLink.athleteId) as string;
+    const coachOffering = asRows(tables.coachingOfferings)[0];
+    assert.ok(coachOffering, 'expected seeded coaching offering');
+    const coachUserId = asString(coachOffering.coachUserId) as string;
+    const outsiderCoach = asRows(tables.coachProfiles).find(
+      (row) => asString(row.userId) !== coachUserId,
+    );
+    assert.ok(outsiderCoach, 'expected a different seeded coach');
+    const outsiderUserId = asString(outsiderCoach.userId) as string;
+
+    const create = await app.inject({
+      method: 'POST',
+      url: '/v1/bookings',
+      headers: {
+        'x-auth-user-id': bookedByUserId,
+        'x-auth-roles': rolesForUser(tables, bookedByUserId).join(',') || 'parent',
+        'x-acting-role': rolesForUser(tables, bookedByUserId)[0] ?? 'parent',
+      },
+      payload: {
+        coachUserId,
+        athleteIds: [athleteId],
+        bookedByUserId,
+        scheduledAt: new Date(Date.now() + 48 * 60 * 60 * 1000).toISOString(),
+        durationMinutes: 60,
+        location: 'Cancellation Authz Test Pitch',
+        serviceType: 'one_to_one',
+        objectives: ['First touch'],
+      },
+    });
+    assert.equal(create.statusCode, 201);
+    const created = create.json() as { id: string };
+
+    const denied = await app.inject({
+      method: 'POST',
+      url: `/v1/bookings/${created.id}/cancel`,
+      headers: {
+        'x-auth-user-id': outsiderUserId,
+        'x-auth-roles': rolesForUser(tables, outsiderUserId).join(',') || 'coach',
+        'x-acting-role': rolesForUser(tables, outsiderUserId)[0] ?? 'coach',
+      },
+      payload: {
+        reason: 'Not my booking',
+      },
+    });
+    assert.equal(denied.statusCode, 403);
   });
 
   it('responds to invites and creates/updates event RSVPs', async () => {

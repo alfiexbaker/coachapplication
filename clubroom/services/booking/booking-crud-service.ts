@@ -27,6 +27,7 @@ import { emitTyped, ServiceEvents } from '@/services/event-bus';
 import { blockService, getBlockActionMessage } from '@/services/block-service';
 import { progressAttendanceService } from '@/services/progress/progress-attendance-service';
 import { getSessionOfferingHeadcount } from '@/utils/session-offering-capacity';
+import { bookingAuthorityService } from './booking-authority-service';
 import {
   type Result,
   type ServiceError,
@@ -297,7 +298,7 @@ class BookingCrudService {
     id: string,
     reason: string,
     cancelledBy: 'coach' | 'parent' = 'parent',
-    options?: { allowPastBooking?: boolean },
+    options?: { allowPastBooking?: boolean; note?: string },
   ) {
     const bookings = await this.loadFromStorage();
     const booking = bookings.find((b) => b.id === id);
@@ -321,8 +322,33 @@ class BookingCrudService {
       return undefined;
     }
 
+    if (!apiClient.isMockMode) {
+      const cancelResult = await bookingAuthorityService.cancelBooking(id, {
+        reason,
+        ...(options?.note ? { note: options.note } : {}),
+      });
+      if (!cancelResult.success) {
+        logger.error('Failed to cancel booking via API', {
+          bookingId: id,
+          reason,
+          cancelledBy,
+          error: cancelResult.error.message,
+        });
+        return undefined;
+      }
+    }
+
     const updated = bookings.map((b) =>
-      b.id === id ? { ...b, status: 'CANCELLED' as const, cancellationReason: reason } : b,
+      b.id === id
+        ? {
+            ...b,
+            status: 'CANCELLED' as const,
+            cancellationReason: reason,
+            cancelledBy,
+            cancelledAt: new Date().toISOString(),
+            cancelReason: reason,
+          }
+        : b,
     );
     const saveResult = await this.saveToStorage(updated);
     if (!saveResult.success) {

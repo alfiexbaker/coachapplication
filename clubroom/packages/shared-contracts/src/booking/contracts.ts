@@ -26,6 +26,11 @@ export const createBookingRequestSchema = z.object({
   idempotencyKey: z.string().min(8).max(200).optional(),
 });
 
+export const cancelBookingRequestSchema = z.object({
+  reason: z.string().min(1).max(200),
+  note: z.string().max(1000).optional(),
+});
+
 export const bookingParticipantSchema = z.object({
   athleteId: athleteIdSchema,
   guardianUserId: userIdSchema.optional(),
@@ -54,4 +59,5 @@ export const bookingResponseSchema = z.object({
 });
 
 export type CreateBookingRequest = z.infer<typeof createBookingRequestSchema>;
+export type CancelBookingRequest = z.infer<typeof cancelBookingRequestSchema>;
 export type BookingResponse = z.infer<typeof bookingResponseSchema>;

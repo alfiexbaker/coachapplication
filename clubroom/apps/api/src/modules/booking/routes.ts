@@ -2,6 +2,8 @@ import crypto from 'node:crypto';
 import type { FastifyPluginAsync } from 'fastify';
 import { z } from 'zod';
 import {
+  bookingIdSchema,
+  cancelBookingRequestSchema,
   createBookingRequestSchema,
 } from '@clubroom/shared-contracts';
 import { forbidden, notFound } from '../../lib/http-errors.js';
@@ -73,6 +75,28 @@ const bookingRoutes: FastifyPluginAsync = async (app) => {
       body,
     });
     return reply.status(201).send(response);
+  });
+
+  app.post('/bookings/:bookingId/cancel', async (request, reply) => {
+    const authUserId = request.auth?.userId;
+    if (!authUserId) {
+      throw forbidden('Authenticated user is required');
+    }
+
+    const bookingId = bookingIdSchema.parse(
+      (request.params as { bookingId?: string } | undefined)?.bookingId,
+    );
+    const body = cancelBookingRequestSchema.parse(request.body);
+
+    const repository = resolveBookingRepository();
+    const response = await repository.cancelBooking({
+      authUserId,
+      requestId: request.requestId,
+      bookingId,
+      body,
+    });
+
+    return reply.send(response);
   });
 
   app.get('/group-sessions', async (request, reply) => {

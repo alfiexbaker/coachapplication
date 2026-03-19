@@ -14,6 +14,7 @@
  */
 
 // Re-export individual services for direct use
+export { bookingAuthorityService } from './booking-authority-service';
 export { bookingCrudService } from './booking-crud-service';
 export { bookingStatusService } from './booking-status-service';
 export { bookingSearchService } from './booking-search-service';
@@ -22,6 +23,7 @@ export { bookingSearchService } from './booking-search-service';
 export type { BookingDraft, CreateBookingParams } from './booking-crud-service';
 
 // Import services for the unified facade
+import { bookingAuthorityService } from './booking-authority-service';
 import { bookingCrudService } from './booking-crud-service';
 import { bookingStatusService } from './booking-status-service';
 import { bookingSearchService } from './booking-search-service';
@@ -57,6 +59,7 @@ export const bookingService = {
   list: bookingCrudService.list.bind(bookingCrudService),
   getBooking: bookingCrudService.getBooking.bind(bookingCrudService),
   getById: bookingCrudService.getById.bind(bookingCrudService),
+  cancelBookingViaApi: bookingAuthorityService.cancelBooking.bind(bookingAuthorityService),
   updateBooking: bookingCrudService.updateBooking.bind(bookingCrudService),
   updateStatus: bookingCrudService.updateStatus.bind(bookingCrudService),
   cancel: bookingCrudService.cancel.bind(bookingCrudService),

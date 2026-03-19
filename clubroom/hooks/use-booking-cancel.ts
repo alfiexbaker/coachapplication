@@ -188,7 +188,9 @@ export function useBookingCancel(id: string, mode?: string) {
 
     setProcessing(true);
     try {
-      const cancelledBooking = await bookingService.cancel(id, reasonLabel, isCoach ? 'coach' : 'parent');
+      const cancelledBooking = await bookingService.cancel(id, reasonLabel, isCoach ? 'coach' : 'parent', {
+        note: note.trim() || undefined,
+      });
       if (!cancelledBooking) {
         throw new Error('Cancellation failed');
       }
@@ -233,7 +235,7 @@ router.back();
     } finally {
       setProcessing(false);
     }
-  }, [id, isCoach, reason, filteredReasons, refundCalc, athleteName, notifyWaitlist]);
+  }, [id, isCoach, reason, filteredReasons, refundCalc, athleteName, notifyWaitlist, note]);
 
   const handleGoBack = useCallback(() => {
     router.back();

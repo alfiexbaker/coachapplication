@@ -187,13 +187,9 @@ export function useBookingDetail(id: string): BookingDetailResult {
   const booking = data ?? undefined;
   const bookingStartMs = booking ? new Date(booking.start).getTime() : Number.NaN;
   const isFutureBooking = Number.isFinite(bookingStartMs) ? bookingStartMs > Date.now() : false;
-  const hoursUntilBooking = Number.isFinite(bookingStartMs)
-    ? (bookingStartMs - Date.now()) / (1000 * 60 * 60)
-    : Number.NaN;
   const canCancelBooking =
     !!booking &&
     isFutureBooking &&
-    hoursUntilBooking > 24 &&
     booking.status !== 'Cancelled' &&
     booking.status !== 'Completed' &&
     booking.status !== 'Needs Completion';
