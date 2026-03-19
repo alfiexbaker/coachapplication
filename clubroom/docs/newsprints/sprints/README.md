@@ -7,6 +7,7 @@ It is not an archive and it is not a link farm.
 
 - `BACKLOG.md`: current queued work only
 - `INSTRUCTIONS.md`: execution rules for active work
+- `LAUNCH_PLAN.md`: first-launch sprint breakdown for launch backlog items
 - `laststep.md`: current handoff and latest checkpoint
 
 ## Working Rules

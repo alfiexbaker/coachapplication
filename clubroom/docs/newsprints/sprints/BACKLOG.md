@@ -11,11 +11,23 @@ Rule: active and current work only.
 | OBS-01 | Wire Sentry across Expo native, Expo web, and `apps/api` with release tagging and source maps | Development + Trust/Safety/Ops | OPEN | `docs/SOURCE_OF_TRUTH.md`, `docs/backend-api/README.md` |
 | DX-01 | Fix repo-critical audit and lint scripts so missing shell tooling cannot produce false green signals | Development | OPEN | `docs/product-reality/PRODUCT_REALITY_AUDIT_2026-03-10.md` |
 | GOV-01 | Keep club governance as the shared authority for UI and API authorization decisions | Booking/Revenue + Trust/Safety/Ops | OPEN | `contracts/club-governance.ts`, `docs/architecture/club-relationship-rules.md` |
+| LAUNCH-01 | Build a first-class `Activities` center that unifies event, training, and match reads for club users | Community/Growth + Booking/Revenue | OPEN | `docs/newsprints/sprints/LAUNCH_PLAN.md`, `docs/architecture/club-activity-model.md` |
+| LAUNCH-02 | Turn club events into real workspaces with responses, reminders, attendance, and recap publishing | Community/Growth + Booking/Revenue | OPEN | `docs/newsprints/sprints/LAUNCH_PLAN.md`, `app/events/[id].tsx`, `services/event/index.ts` |
+| LAUNCH-03 | Add reviews and proof as a first-launch marketplace trust layer | Booking/Revenue + Development/Analytics | OPEN | `docs/newsprints/sprints/LAUNCH_PLAN.md`, `docs/SOURCE_OF_TRUTH.md` |
+| LAUNCH-04 | Tighten coach and club storefront conversion, ownership clarity, and rebook flows | Booking/Revenue + Community/Growth | OPEN | `docs/newsprints/sprints/LAUNCH_PLAN.md`, `app/(tabs)/coach-profile.tsx`, `app/club/[id].tsx` |
+| LAUNCH-05 | Build the first football-home layer with fixtures, results, activity highlights, and progress highlights | Community/Growth + Development/Analytics | OPEN | `docs/newsprints/sprints/LAUNCH_PLAN.md`, `app/(tabs)/index.tsx`, `app/(tabs)/feed.tsx` |
+| LAUNCH-06 | Run a launch-critical smoothness pass across home, activities, bookings, club, and profile surfaces | Development + Trust/Safety/Ops | OPEN | `docs/newsprints/sprints/LAUNCH_PLAN.md`, `docs/SOURCE_OF_TRUTH.md` |
 
 ## Execution Order
 
 1. `API-01`
 2. `AUTH-02`
 3. `OBS-01`
-4. `DX-01`
-5. `GOV-01` as follow-through on the first three items
+4. `LAUNCH-01`
+5. `LAUNCH-02`
+6. `LAUNCH-03`
+7. `LAUNCH-04`
+8. `LAUNCH-05`
+9. `LAUNCH-06`
+10. `DX-01`
+11. `GOV-01` as follow-through on the first three items and launch items

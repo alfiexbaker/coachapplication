@@ -206,6 +206,91 @@ This is the smallest believable feature set for the first serious launch.
 - advanced commerce and revenue analytics by activity type
 - broad creator-media ecosystem beyond club, coach, and activity content
 
+## First Launch Implementation Backlog
+
+This is the actual implementation cut for first launch, in dependency order.
+
+| ID | Work | What ships | Depends on |
+|---|---|---|---|
+| `LAUNCH-01` | Activities center | dedicated `Activities` route, shared activity feed for event/training/match, core filters, agenda view, `ClubActivity` support for `Match` | `API-01`, `AUTH-02` |
+| `LAUNCH-02` | Event workspace | event overview, responses, reminders, attendance, recap publishing, club-safe event management actions | `LAUNCH-01` |
+| `LAUNCH-03` | Reviews and proof | post-session review flow, storefront review blocks, proof modules tied to outcomes and progress | `API-01` |
+| `LAUNCH-04` | Storefront and booking conversion | stronger coach and club storefronts, clearer ownership, faster booking entry, rebook loop, pricing/support clarity | `LAUNCH-03` |
+| `LAUNCH-05` | Football home basics | role-aware home modules, fixtures/results, activity highlights, progress highlights, football-first ranking instead of generic feed-first layout | `LAUNCH-01` |
+| `LAUNCH-06` | Launch smoothness and release quality | Sentry, heavy-screen performance pass, glitch audit, media stability pass, refresh-policy cleanup on launch-critical surfaces | `OBS-01` |
+
+### `LAUNCH-01` Activities center
+
+Must ship:
+
+- `/activities` or equivalent primary route for club users
+- event, training, and match cards in one surface
+- filters for all, upcoming, completed, events, training, matches
+- date-grouped agenda mode
+- activity cards that show subtype, audience, participation mode, and cost
+- entry points from club page and club hub into the activities surface
+
+### `LAUNCH-02` Event workspace
+
+Must ship:
+
+- event overview
+- response list
+- reminder actions
+- attendance/check-in view
+- recap or summary publish action
+- role-aware publish/cancel/manage controls
+
+Explicitly not required for first launch:
+
+- volunteer tasking
+- advanced file workflows
+- deep exports
+
+### `LAUNCH-03` Reviews and proof
+
+Must ship:
+
+- structured post-session review capture
+- review display on coach profiles
+- review and proof blocks on club or program offer surfaces where relevant
+- links between outcomes, progress, and visible proof
+
+This is launch-critical because:
+
+- reviews are part of marketplace trust, not optional polish
+
+### `LAUNCH-04` Storefront and booking conversion
+
+Must ship:
+
+- stronger coach profile hero and offer summary
+- clearer club offer surfaces
+- explicit independent vs club-owned relationship language
+- fast booking CTA path
+- clear rebook path after completion
+- clear cancellation, support, and pricing truth
+
+### `LAUNCH-05` Football home basics
+
+Must ship:
+
+- role-aware home modules
+- fixtures and recent results module
+- upcoming activities module
+- club and coach update highlights linked to football objects
+- progress highlight module for parent and athlete roles
+
+### `LAUNCH-06` Launch smoothness and release quality
+
+Must ship:
+
+- Sentry wired across Expo and API
+- club, activities, bookings, profile, and home screens reviewed for refresh churn
+- list virtualization on heavy launch-critical surfaces
+- image and video fallback cleanup
+- explicit pre-launch QA pass for coach, parent, athlete, and club routes
+
 ## What We Already Have That Matters
 
 These are real strengths and should be preserved, not rewritten away:
