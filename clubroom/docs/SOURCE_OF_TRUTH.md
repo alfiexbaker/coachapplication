@@ -61,6 +61,8 @@ Clubs manage staff, squads, visibility, and operating relationships.
   - followed personal posts
   - club-linked updates
   - club pills that open the full per-club feed on the club page
+- Personal profile pages now expose a user's own update history instead of relying only on the shared `Updates` tab.
+- Club detail pages now lead with the club update feed, with schedule and member-management support surfaces following underneath.
 
 ## Product Spines
 

@@ -19,6 +19,8 @@ interface PostData {
   comments: number;
   mediaUrls?: string[];
   mediaType?: string;
+  clubName?: string;
+  clubBadge?: string;
 }
 
 interface ProfileTabPostsProps {
@@ -49,7 +51,7 @@ function ProfileTabPostsInner({
         >
           <Ionicons name="add-circle" size={24} color={palette.tint} />
           <ThemedText style={[styles.createPostText, { color: palette.muted }]}>
-            Share a coaching update...
+            Post update
           </ThemedText>
         </Clickable>
       )}

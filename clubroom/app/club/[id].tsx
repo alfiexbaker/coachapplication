@@ -1,4 +1,4 @@
-import { RefreshControl, ScrollView, StyleSheet, View } from 'react-native';
+import { FlatList, RefreshControl, ScrollView, StyleSheet, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { router, Stack } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -19,6 +19,7 @@ import { Radii, Spacing, Typography, withAlpha } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
 import { useClubDetail, CLUB_FEED_FILTERS } from '@/hooks/use-club-detail';
 import { useRequiredParam } from '@/hooks/use-required-param';
+import type { ClubFeedPost } from '@/constants/types';
 import type { MemberRemovalReason } from '@/services/club-service';
 
 export default function ClubDetailScreen() {
@@ -90,6 +91,154 @@ export default function ClubDetailScreen() {
       </SafeAreaView>
     </>
   );
+  const activeFilterLabel =
+    CLUB_FEED_FILTERS.find((filter) => filter.key === feedFilter)?.label.toLowerCase() ?? 'updates';
+  const renderFeedPost = ({ item }: { item: ClubFeedPost }) => (
+    <View style={styles.feedPostItem}>
+      <FeedPost
+        post={item}
+        canPin={canManagePosts}
+        onPinToggle={handlePinToggle}
+        onLike={handleLikePost}
+        onComment={handleCommentPost}
+        onShare={handleSharePost}
+      />
+    </View>
+  );
+  const renderFeedHeader = () => (
+    <>
+      {membership && (
+        <View style={styles.headerSection}>
+          <ClubHeader
+            club={club!}
+            membership={membership}
+            onLeave={handleLeaveClub}
+            onUpdatePhotos={handleUpdatePhotos}
+          />
+        </View>
+      )}
+
+      <ClubDetailStats
+        memberCount={members.length || club!.memberCount}
+        squadCount={squads.length}
+        activityCount={clubActivities.length}
+        inviteCount={invites.length}
+        canExpand={canRemoveMembers}
+        isExpanded={showMembersSection}
+        onToggleMembers={handleToggleMembersSection}
+        colors={colors}
+      />
+
+      {canCreatePosts && (
+        <Row gap="sm" style={styles.actionRow}>
+          <Clickable
+            style={[styles.actionBtn, { backgroundColor: colors.tint, flex: 1 }]}
+            onPress={() => router.push(Routes.modalCreateClubPost({ clubId: id }))}
+          >
+            <Row align="center" justify="center" gap="xs">
+              <Ionicons name="create-outline" size={18} color={colors.onPrimary} />
+              <ThemedText style={[Typography.smallSemiBold, { color: colors.onPrimary }]}>
+                New Post
+              </ThemedText>
+            </Row>
+          </Clickable>
+          {canManagePosts && (
+            <Clickable
+              style={[styles.actionBtn, { backgroundColor: colors.success, flex: 1 }]}
+              onPress={() => router.push(Routes.EVENTS_CREATE)}
+            >
+              <Row align="center" justify="center" gap="xs">
+                <Ionicons name="calendar-outline" size={18} color={colors.onPrimary} />
+                <ThemedText style={[Typography.smallSemiBold, { color: colors.onPrimary }]}>
+                  Create Event
+                </ThemedText>
+              </Row>
+            </Clickable>
+          )}
+        </Row>
+      )}
+
+      <View style={styles.updatesSection}>
+        <ThemedText type="defaultSemiBold" style={styles.updatesTitle}>
+          Updates
+        </ThemedText>
+      </View>
+
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        style={styles.filterScroll}
+        contentContainerStyle={styles.filterScrollContent}
+      >
+        {CLUB_FEED_FILTERS.map((filter) => (
+          <Clickable
+            key={filter.key}
+            style={[
+              styles.filterTab,
+              { borderColor: feedFilter === filter.key ? colors.tint : colors.border },
+              feedFilter === filter.key && { backgroundColor: withAlpha(colors.tint, 0.09) },
+            ]}
+            onPress={() => setFeedFilter(filter.key)}
+          >
+            <Row align="center" gap="xs">
+              <Ionicons
+                name={filter.icon as keyof typeof Ionicons.glyphMap}
+                size={16}
+                color={feedFilter === filter.key ? colors.tint : colors.muted}
+              />
+              <ThemedText
+                style={[
+                  Typography.smallSemiBold,
+                  { color: feedFilter === filter.key ? colors.tint : colors.muted },
+                ]}
+              >
+                {filter.label}
+              </ThemedText>
+              {(filterCounts[filter.key] ?? 0) > 0 && (
+                <View
+                  style={[
+                    styles.filterCount,
+                    { backgroundColor: feedFilter === filter.key ? colors.tint : colors.muted },
+                  ]}
+                >
+                  <ThemedText style={[Typography.caption, { color: colors.onPrimary }]}>
+                    {filterCounts[filter.key]}
+                  </ThemedText>
+                </View>
+              )}
+            </Row>
+          </Clickable>
+        ))}
+      </ScrollView>
+    </>
+  );
+  const renderFeedFooter = () => (
+    <>
+      <ClubActivitiesPanel
+        activities={clubActivities}
+        isCoach={!!canManagePosts}
+        maxItems={4}
+        showCreateActions={false}
+      />
+
+      {showMembersSection && canRemoveMembers && (
+        <MembersPanel
+          members={members}
+          canRemoveMembers={canRemoveMembers}
+          onRemoveMember={handleRemoveMember}
+          clubId={id}
+        />
+      )}
+    </>
+  );
+  const renderEmptyFeed = () => (
+    <View style={styles.emptyFeed}>
+      <Ionicons name="newspaper-outline" size={48} color={colors.muted} />
+      <ThemedText style={{ color: colors.muted, textAlign: 'center' }}>
+        {feedFilter === 'all' ? 'No updates yet.' : `No ${activeFilterLabel} updates.`}
+      </ThemedText>
+    </View>
+  );
 
   if (!idParam.valid) {
     return renderShell('Club', <ErrorState message="Invalid club link." onRetry={handleBackPress} />);
@@ -126,160 +275,25 @@ export default function ClubDetailScreen() {
       {renderShell(
         club.name,
         <>
-        {renderTopBar(club.name)}
-        <ScrollView
-          showsVerticalScrollIndicator={false}
-          contentContainerStyle={{ paddingBottom: Spacing.xl * 2 }}
-          refreshControl={
-            <RefreshControl
-              refreshing={refreshing}
-              onRefresh={onRefresh}
-              tintColor={colors.tint}
-              colors={[colors.tint]}
-            />
-          }
-        >
-          {membership && (
-            <View style={{ padding: Spacing.md }}>
-              <ClubHeader
-                club={club}
-                membership={membership}
-                onLeave={handleLeaveClub}
-                onUpdatePhotos={handleUpdatePhotos}
+          {renderTopBar(club.name)}
+          <FlatList
+            data={feed}
+            renderItem={renderFeedPost}
+            keyExtractor={(item) => item.id}
+            ListHeaderComponent={renderFeedHeader}
+            ListFooterComponent={renderFeedFooter}
+            ListEmptyComponent={renderEmptyFeed}
+            showsVerticalScrollIndicator={false}
+            contentContainerStyle={styles.listContent}
+            refreshControl={
+              <RefreshControl
+                refreshing={refreshing}
+                onRefresh={onRefresh}
+                tintColor={colors.tint}
+                colors={[colors.tint]}
               />
-            </View>
-          )}
-
-          <ClubDetailStats
-            memberCount={members.length || club.memberCount}
-            squadCount={squads.length}
-            activityCount={clubActivities.length}
-            inviteCount={invites.length}
-            canExpand={canRemoveMembers}
-            isExpanded={showMembersSection}
-            onToggleMembers={handleToggleMembersSection}
-            colors={colors}
+            }
           />
-
-          {showMembersSection && canRemoveMembers && (
-            <MembersPanel
-              members={members}
-              canRemoveMembers={canRemoveMembers}
-              onRemoveMember={handleRemoveMember}
-              clubId={id}
-            />
-          )}
-
-          <ClubActivitiesPanel
-            activities={clubActivities}
-            isCoach={!!canManagePosts}
-            maxItems={4}
-            showCreateActions={false}
-          />
-
-          {canCreatePosts && (
-            <Row gap="sm" style={{ paddingHorizontal: Spacing.md, paddingTop: Spacing.md }}>
-              <Clickable
-                style={[styles.actionBtn, { backgroundColor: colors.tint, flex: 1 }]}
-                onPress={() => router.push(Routes.modalCreateClubPost({ clubId: id }))}
-              >
-                <Row align="center" justify="center" gap="xs">
-                  <Ionicons name="create-outline" size={18} color={colors.onPrimary} />
-                  <ThemedText style={[Typography.smallSemiBold, { color: colors.onPrimary }]}>
-                    New Post
-                  </ThemedText>
-                </Row>
-              </Clickable>
-              {canManagePosts && (
-                <Clickable
-                  style={[styles.actionBtn, { backgroundColor: colors.success, flex: 1 }]}
-                  onPress={() => router.push(Routes.EVENTS_CREATE)}
-                >
-                  <Row align="center" justify="center" gap="xs">
-                    <Ionicons name="calendar-outline" size={18} color={colors.onPrimary} />
-                    <ThemedText style={[Typography.smallSemiBold, { color: colors.onPrimary }]}>
-                      Create Event
-                    </ThemedText>
-                  </Row>
-                </Clickable>
-              )}
-            </Row>
-          )}
-
-          {/* Feed filter tabs */}
-          <ScrollView
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            style={{ marginTop: Spacing.md }}
-            contentContainerStyle={{ paddingHorizontal: Spacing.md, gap: Spacing.xs }}
-          >
-            {CLUB_FEED_FILTERS.map((filter) => (
-              <Clickable
-                key={filter.key}
-                style={[
-                  styles.filterTab,
-                  { borderColor: feedFilter === filter.key ? colors.tint : colors.border },
-                  feedFilter === filter.key && { backgroundColor: withAlpha(colors.tint, 0.09) },
-                ]}
-                onPress={() => setFeedFilter(filter.key)}
-              >
-                <Row align="center" gap="xs">
-                  <Ionicons
-                    name={filter.icon as keyof typeof Ionicons.glyphMap}
-                    size={16}
-                    color={feedFilter === filter.key ? colors.tint : colors.muted}
-                  />
-                  <ThemedText
-                    style={[
-                      Typography.smallSemiBold,
-                      { color: feedFilter === filter.key ? colors.tint : colors.muted },
-                    ]}
-                  >
-                    {filter.label}
-                  </ThemedText>
-                  {(filterCounts[filter.key] ?? 0) > 0 && (
-                    <View
-                      style={[
-                        styles.filterCount,
-                        { backgroundColor: feedFilter === filter.key ? colors.tint : colors.muted },
-                      ]}
-                    >
-                      <ThemedText style={[Typography.caption, { color: colors.onPrimary }]}>
-                        {filterCounts[filter.key]}
-                      </ThemedText>
-                    </View>
-                  )}
-                </Row>
-              </Clickable>
-            ))}
-          </ScrollView>
-
-          {/* Feed */}
-          <View style={{ padding: Spacing.md, gap: Spacing.md }}>
-            {feed.length > 0 ? (
-              feed.map((post) => (
-                <FeedPost
-                  key={post.id}
-                  post={post}
-                  canPin={canManagePosts}
-                  onPinToggle={handlePinToggle}
-                  onLike={handleLikePost}
-                  onComment={handleCommentPost}
-                  onShare={handleSharePost}
-                />
-              ))
-            ) : (
-              <View style={styles.emptyFeed}>
-                <Ionicons name="newspaper-outline" size={48} color={colors.muted} />
-                <ThemedText style={{ color: colors.muted, textAlign: 'center' }}>
-                  {feedFilter === 'all'
-                    ? 'No posts yet. Be the first to share!'
-                    : `No ${feedFilter} posts yet.`}
-                </ThemedText>
-              </View>
-            )}
-          </View>
-        </ScrollView>
         </>,
       )}
 
@@ -311,7 +325,32 @@ const styles = StyleSheet.create({
   topBarSpacer: {
     width: 22,
   },
+  listContent: {
+    paddingBottom: Spacing.xl * 2,
+  },
+  headerSection: {
+    padding: Spacing.md,
+  },
   actionBtn: { paddingVertical: Spacing.sm, borderRadius: Radii.md },
+  actionRow: {
+    paddingHorizontal: Spacing.md,
+    paddingTop: Spacing.md,
+  },
+  updatesSection: {
+    paddingHorizontal: Spacing.md,
+    paddingTop: Spacing.lg,
+    paddingBottom: Spacing.sm,
+  },
+  updatesTitle: {
+    ...Typography.subheading,
+  },
+  filterScroll: {
+    marginBottom: Spacing.sm,
+  },
+  filterScrollContent: {
+    paddingHorizontal: Spacing.md,
+    gap: Spacing.xs,
+  },
   filterTab: {
     paddingHorizontal: Spacing.md,
     paddingVertical: Spacing.sm,
@@ -324,6 +363,10 @@ const styles = StyleSheet.create({
     borderRadius: Radii.md,
     minWidth: 20,
     alignItems: 'center',
+  },
+  feedPostItem: {
+    paddingHorizontal: Spacing.md,
+    paddingBottom: Spacing.md,
   },
   emptyFeed: { alignItems: 'center', padding: Spacing.xl, gap: Spacing.md },
 });

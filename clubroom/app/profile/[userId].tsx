@@ -1,10 +1,11 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { StyleSheet, View } from 'react-native';
+import { FlatList, RefreshControl, Share, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router, useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import type { ReactNode } from 'react';
 
+import { ProfilePostCard } from '@/components/coach/profile-post-card';
 import { Button } from '@/components/primitives/button';
 import { Row } from '@/components/primitives/row';
 import { Clickable } from '@/components/primitives/clickable';
@@ -14,6 +15,8 @@ import { Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
 import { useScreen } from '@/hooks/use-screen';
 import { userService } from '@/services/user-service';
 import { followService } from '@/services/follow-service';
+import { ServiceEvents } from '@/services/event-bus';
+import { socialFeedService, type AggregatedFeedPost } from '@/services/social-feed-service';
 import { useAuth } from '@/hooks/use-auth';
 import { Routes } from '@/navigation/routes';
 import type { User } from '@/constants/types';
@@ -29,7 +32,7 @@ export default function ProfileScreen() {
   const [incomingRequestId, setIncomingRequestId] = useState<string | null>(null);
   const [connectionActionLoading, setConnectionActionLoading] = useState(false);
 
-  const { data, status, error, retry, colors } = useScreen<User | null>({
+  const { data, status, error, retry, refreshing, onRefresh, colors } = useScreen<User | null>({
     load: async () => {
       if (!userId) {
         return err(serviceError('VALIDATION', 'Missing user id.'));
@@ -49,6 +52,25 @@ export default function ProfileScreen() {
     isEmpty: (value) => value === null,
     refetchOnFocus: true,
   });
+  const {
+    data: postsData,
+    status: postsStatus,
+    error: postsError,
+    refreshing: postsRefreshing,
+    onRefresh: onRefreshPosts,
+    retry: retryPosts,
+  } = useScreen<AggregatedFeedPost[]>({
+    load: async () => {
+      if (!userId || !data?.id) {
+        return ok([]);
+      }
+
+      return ok(socialFeedService.getFollowingFeed([data.id], 'all'));
+    },
+    deps: [userId, data?.id],
+    events: [ServiceEvents.COACH_POST_CREATED],
+    refetchOnFocus: true,
+  });
   const renderShell = (content: ReactNode) => (
     <SafeAreaView
       style={[styles.container, { backgroundColor: colors.background }]}
@@ -59,6 +81,8 @@ export default function ProfileScreen() {
   );
   const canOpenCoachProfile = data?.role === 'COACH';
   const canManageConnection = Boolean(currentUser?.id && data?.id && currentUser.id !== data.id);
+  const canMessage = Boolean(currentUser?.id && data?.id && currentUser.id !== data.id);
+  const posts = useMemo(() => postsData ?? [], [postsData]);
 
   const loadConnectionState = useCallback(
     async (targetId: string) => {
@@ -165,6 +189,138 @@ export default function ProfileScreen() {
     loadConnectionState,
   ]);
 
+  const handleRefresh = useCallback(() => {
+    onRefresh();
+    onRefreshPosts();
+  }, [onRefresh, onRefreshPosts]);
+
+  const handleLikePost = useCallback(
+    (postId: string) => {
+      if (!currentUser?.id) return;
+      socialFeedService.toggleReaction(postId, currentUser.id);
+      onRefreshPosts();
+    },
+    [currentUser?.id, onRefreshPosts],
+  );
+
+  const handleCommentPost = useCallback((postId: string) => {
+    router.push(Routes.modalPostDetail(postId));
+  }, []);
+
+  const handleSharePost = useCallback(
+    async (postId: string) => {
+      const post = posts.find((candidate) => candidate.id === postId);
+      if (!post) return;
+
+      try {
+        await Share.share({
+          title: post.title,
+          message: `${post.title}\n\n${post.body}`,
+        });
+      } catch {
+        uiFeedback.showToast('Try again in a moment.', 'error');
+      }
+    },
+    [posts],
+  );
+
+  const renderUpdatesHeader = useCallback(
+    () => (
+      <>
+        <View style={[styles.card, { borderColor: colors.border, backgroundColor: colors.surface }]}>
+          <View style={[styles.avatar, { backgroundColor: withAlpha(colors.tint, 0.12) }]}>
+            <ThemedText style={[styles.avatarText, { color: colors.tint }]}>
+              {(data?.name || 'U').slice(0, 1).toUpperCase()}
+            </ThemedText>
+          </View>
+          <ThemedText type="heading">{data?.name}</ThemedText>
+          <ThemedText style={[styles.role, { color: colors.muted }]}>{data?.role}</ThemedText>
+
+          <View style={styles.meta}>
+            <Row align="center" gap="xs">
+              <Ionicons name="mail-outline" size={16} color={colors.muted} />
+              <ThemedText style={[styles.metaText, { color: colors.text }]}>
+                {data?.email || 'No email provided'}
+              </ThemedText>
+            </Row>
+            <Row align="center" gap="xs">
+              <Ionicons name="location-outline" size={16} color={colors.muted} />
+              <ThemedText style={[styles.metaText, { color: colors.text }]}>
+                {data?.postcode || 'No location provided'}
+              </ThemedText>
+            </Row>
+          </View>
+        </View>
+
+        <View style={styles.actions}>
+          {canManageConnection && (
+            <Button
+              onPress={handleConnectionAction}
+              disabled={!canTriggerConnectionAction}
+              variant={connectionState === 'none' ? 'outline' : 'secondary'}
+              accessibilityLabel={connectionButtonLabel}
+            >
+              {connectionButtonLabel}
+            </Button>
+          )}
+          {canMessage ? (
+            <Button onPress={() => router.push(Routes.chat(data!.id))}>Message</Button>
+          ) : null}
+          {canOpenCoachProfile && (
+            <Button onPress={() => router.push(Routes.coachPublic(data!.id))} variant="secondary">
+              View Coach Profile
+            </Button>
+          )}
+        </View>
+
+        <View style={styles.updatesHeader}>
+          <ThemedText type="defaultSemiBold" style={styles.updatesTitle}>
+            Updates
+          </ThemedText>
+        </View>
+      </>
+    ),
+    [
+      canManageConnection,
+      canMessage,
+      canOpenCoachProfile,
+      canTriggerConnectionAction,
+      colors.border,
+      colors.muted,
+      colors.surface,
+      colors.text,
+      colors.tint,
+      connectionButtonLabel,
+      connectionState,
+      data,
+      handleConnectionAction,
+    ],
+  );
+
+  const renderPost = useCallback(
+    ({ item }: { item: AggregatedFeedPost }) => (
+      <View style={styles.postItem}>
+        <ProfilePostCard
+          post={{
+            id: item.id,
+            content: item.body,
+            createdAt: item.createdAt,
+            likes: item.reactionCount ?? 0,
+            comments: item.commentCount ?? 0,
+            mediaUrls: item.imageUrl ? [item.imageUrl] : undefined,
+            mediaType: item.imageUrl ? 'photo' : undefined,
+          }}
+          coachName={data?.name || 'User'}
+          contextLabel={item.clubName}
+          onLikePress={handleLikePost}
+          onCommentPress={handleCommentPost}
+          onSharePress={handleSharePost}
+        />
+      </View>
+    ),
+    [data?.name, handleCommentPost, handleLikePost, handleSharePost],
+  );
+
   if (status === 'loading') {
     return renderShell(<LoadingState variant="detail" />);
   }
@@ -196,50 +352,38 @@ export default function ProfileScreen() {
         <ThemedText type="title">Profile</ThemedText>
         <View style={styles.headerSpacer} />
       </Row>
-
-      <View style={[styles.card, { borderColor: colors.border, backgroundColor: colors.surface }]}>
-        <View style={[styles.avatar, { backgroundColor: withAlpha(colors.tint, 0.12) }]}>
-          <ThemedText style={[styles.avatarText, { color: colors.tint }]}>
-            {(data.name || 'U').slice(0, 1).toUpperCase()}
-          </ThemedText>
-        </View>
-        <ThemedText type="heading">{data.name}</ThemedText>
-        <ThemedText style={[styles.role, { color: colors.muted }]}>{data.role}</ThemedText>
-
-        <View style={styles.meta}>
-          <Row align="center" gap="xs">
-            <Ionicons name="mail-outline" size={16} color={colors.muted} />
-            <ThemedText style={[styles.metaText, { color: colors.text }]}>
-              {data.email || 'No email provided'}
-            </ThemedText>
-          </Row>
-          <Row align="center" gap="xs">
-            <Ionicons name="location-outline" size={16} color={colors.muted} />
-            <ThemedText style={[styles.metaText, { color: colors.text }]}>
-              {data.postcode || 'No location provided'}
-            </ThemedText>
-          </Row>
-        </View>
-      </View>
-
-      <View style={styles.actions}>
-        {canManageConnection && (
-          <Button
-            onPress={handleConnectionAction}
-            disabled={!canTriggerConnectionAction}
-            variant={connectionState === 'none' ? 'outline' : 'secondary'}
-            accessibilityLabel={connectionButtonLabel}
-          >
-            {connectionButtonLabel}
-          </Button>
-        )}
-        <Button onPress={() => router.push(Routes.chat(data.id))}>Message</Button>
-        {canOpenCoachProfile && (
-          <Button onPress={() => router.push(Routes.coachPublic(data.id))} variant="secondary">
-            View Coach Profile
-          </Button>
-        )}
-      </View>
+      <FlatList
+        data={posts}
+        renderItem={renderPost}
+        keyExtractor={(item) => item.id}
+        ListHeaderComponent={renderUpdatesHeader}
+        ListEmptyComponent={
+          postsStatus === 'loading' ? (
+            <LoadingState variant="list" />
+          ) : postsStatus === 'error' ? (
+            <ErrorState
+              message={postsError?.message ?? 'Failed to load updates.'}
+              onRetry={retryPosts}
+            />
+          ) : (
+            <EmptyState
+              icon="newspaper-outline"
+              title="No updates yet"
+              message={`${data.name} has not shared any updates yet.`}
+            />
+          )
+        }
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing || postsRefreshing}
+            onRefresh={handleRefresh}
+            tintColor={colors.tint}
+            colors={[colors.tint]}
+          />
+        }
+        contentContainerStyle={styles.listContent}
+        showsVerticalScrollIndicator={false}
+      />
     </>,
   );
 }
@@ -253,6 +397,9 @@ const styles = StyleSheet.create({
   headerSpacer: {
     width: 24,
     height: 24,
+  },
+  listContent: {
+    paddingBottom: Spacing.xl * 2,
   },
   card: {
     marginHorizontal: Spacing.lg,
@@ -290,5 +437,17 @@ const styles = StyleSheet.create({
     marginTop: Spacing.lg,
     marginHorizontal: Spacing.lg,
     gap: Spacing.sm,
+  },
+  updatesHeader: {
+    marginTop: Spacing.xl,
+    marginHorizontal: Spacing.lg,
+    marginBottom: Spacing.sm,
+  },
+  updatesTitle: {
+    ...Typography.subheading,
+  },
+  postItem: {
+    paddingHorizontal: Spacing.lg,
+    paddingBottom: Spacing.md,
   },
 });

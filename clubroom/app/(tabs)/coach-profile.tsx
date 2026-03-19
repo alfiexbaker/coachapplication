@@ -56,7 +56,12 @@ export default function CoachProfileScreen() {
 
   const renderPostCard = useCallback(
     (post: NormalizedPost) => (
-      <ProfilePostCard post={post} coachName={coach.fullName} coachAvatar={coach.profilePhotoUrl} />
+      <ProfilePostCard
+        post={post}
+        coachName={coach.fullName}
+        coachAvatar={coach.profilePhotoUrl}
+        contextLabel={post.clubName}
+      />
     ),
     [coach.fullName, coach.profilePhotoUrl],
   );
@@ -72,7 +77,7 @@ export default function CoachProfileScreen() {
         style={[styles.safeArea, { backgroundColor: palette.background }]}
         edges={['top', 'bottom']}
       >
-        <ScreenHeader title="Coach Profile" subtitle="Your public booking surface" />
+        <ScreenHeader title="Coach Profile" />
         {children}
       </SafeAreaView>
     ),

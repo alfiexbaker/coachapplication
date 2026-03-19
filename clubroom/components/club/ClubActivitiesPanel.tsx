@@ -91,14 +91,11 @@ export const ClubActivitiesPanel = memo(function ClubActivitiesPanel({
   return (
     <SurfaceCard style={styles.card}>
       <Row justify="between" align="center" gap="md">
-        <Column flex gap="xxs">
+        <Column flex>
           <Row align="center" gap="sm">
             <Ionicons name="calendar" size={20} color={colors.tint} />
-            <ThemedText type="defaultSemiBold">Club Activities</ThemedText>
+            <ThemedText type="defaultSemiBold">Schedule</ThemedText>
           </Row>
-          <ThemedText style={[Typography.caption, { color: colors.muted }]}>
-            Events and training now sit in one linked club schedule.
-          </ThemedText>
         </Column>
 
         {isCoach && showCreateActions && (

@@ -79,6 +79,7 @@ export function useClubDetail(clubId: string | undefined) {
   const [club, setClub] = useState<Club | undefined>();
   const [membership, setMembership] = useState<ClubMembership | undefined>();
   const [feed, setFeed] = useState<ClubFeedPost[]>([]);
+  const [allFeed, setAllFeed] = useState<ClubFeedPost[]>([]);
   const [feedFilter, setFeedFilter] = useState<FeedFilter>('all');
   const [clubActivitySessions, setClubActivitySessions] = useState<GroupSession[]>([]);
   const [squads, setSquads] = useState<ClubSquad[]>([]);
@@ -138,9 +139,12 @@ export function useClubDetail(clubId: string | undefined) {
   const loadFeed = useCallback(() => {
     if (!clubId) {
       setFeed([]);
+      setAllFeed([]);
       return;
     }
-    setFeed(socialFeedService.getFeed(clubId, feedFilter));
+    const nextAllFeed = socialFeedService.getFeed(clubId, 'all');
+    setAllFeed(nextAllFeed);
+    setFeed(feedFilter === 'all' ? nextAllFeed : socialFeedService.getFeed(clubId, feedFilter));
   }, [clubId, feedFilter]);
 
   const loadMembers = useCallback(async () => {
@@ -328,15 +332,14 @@ export function useClubDetail(clubId: string | undefined) {
 
   const filterCounts = useMemo<Partial<Record<FeedFilter, number>>>(() => {
     if (!clubId) return {};
-    const allPosts = socialFeedService.getFeed(clubId, 'all');
     return {
-      all: allPosts.length,
-      announcement: allPosts.filter((p) => p.postType === 'announcement').length,
-      photo: allPosts.filter((p) => p.postType === 'photo').length,
-      video: allPosts.filter((p) => p.postType === 'video').length,
-      event: allPosts.filter((p) => p.postType === 'event').length,
+      all: allFeed.length,
+      announcement: allFeed.filter((p) => p.postType === 'announcement').length,
+      photo: allFeed.filter((p) => p.postType === 'photo').length,
+      video: allFeed.filter((p) => p.postType === 'video').length,
+      event: allFeed.filter((p) => p.postType === 'event').length,
     };
-  }, [clubId]);
+  }, [allFeed, clubId]);
 
   return {
     club,

@@ -49,6 +49,8 @@ export interface ProfileTabContentProps {
       comments: number;
       mediaUrls?: string[];
       mediaType?: string;
+      clubName?: string;
+      clubBadge?: string;
     }[];
     photoGallery?: string[];
   };
@@ -62,6 +64,8 @@ export interface ProfileTabContentProps {
     comments: number;
     mediaUrls?: string[];
     mediaType?: string;
+    clubName?: string;
+    clubBadge?: string;
   }[];
   feedLoading?: boolean;
   onComposePress?: () => void;
@@ -74,6 +78,8 @@ export interface ProfileTabContentProps {
     comments: number;
     mediaUrls?: string[];
     mediaType?: string;
+    clubName?: string;
+    clubBadge?: string;
   }) => React.ReactNode;
 }
 

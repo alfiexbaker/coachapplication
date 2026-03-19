@@ -11,7 +11,8 @@ import { router } from 'expo-router';
 
 import { apiClient } from '@/services/api-client';
 import { followService } from '@/services/follow-service';
-import { socialFeedService } from '@/services/social-feed-service';
+import { onTyped, ServiceEvents } from '@/services/event-bus';
+import { socialFeedService, type AggregatedFeedPost } from '@/services/social-feed-service';
 import { discoverService } from '@/services/discover-service';
 import type { SessionOffering, ClubFeedPost, CoachProfile } from '@/constants/types';
 import { useAuth } from '@/hooks/use-auth';
@@ -29,6 +30,8 @@ export interface NormalizedPost {
   comments: number;
   mediaUrls?: string[];
   mediaType?: string;
+  clubName?: string;
+  clubBadge?: string;
 }
 
 export interface ProfileCompletionCheck {
@@ -91,7 +94,7 @@ export interface UseCoachProfileResult {
   };
 }
 
-function normalizePost(post: ClubFeedPost): NormalizedPost {
+function normalizePost(post: ClubFeedPost & { clubName?: string; clubBadge?: string }): NormalizedPost {
   return {
     id: post.id,
     content: post.body,
@@ -100,6 +103,8 @@ function normalizePost(post: ClubFeedPost): NormalizedPost {
     comments: post.commentCount ?? 0,
     mediaUrls: post.imageUrl ? [post.imageUrl] : undefined,
     mediaType: post.imageUrl ? 'photo' : undefined,
+    clubName: post.clubName,
+    clubBadge: post.clubBadge,
   };
 }
 
@@ -198,12 +203,12 @@ export function useCoachProfile(): UseCoachProfileResult {
     setProfileError(null);
     setProfileLoading(true);
     try {
-      let activeCoach = coach ?? buildFallbackCoach(currentUser);
+      let activeCoach = buildFallbackCoach(currentUser);
       const coachesResult = await discoverService.getAllCoaches();
       if (coachesResult.success && coachesResult.data.length > 0) {
         activeCoach =
           coachesResult.data.find((candidate) => candidate.id === currentUser?.id) ??
-          coachesResult.data[0];
+          activeCoach;
       }
       setCoach(activeCoach);
 
@@ -234,7 +239,7 @@ export function useCoachProfile(): UseCoachProfileResult {
     } finally {
       setProfileLoading(false);
     }
-  }, [currentUser, coach]);
+  }, [currentUser]);
 
   useEffect(() => {
     loadProfileData();
@@ -244,7 +249,7 @@ export function useCoachProfile(): UseCoachProfileResult {
   const loadFeedPosts = useCallback(() => {
     setFeedLoading(true);
     try {
-      const posts = socialFeedService.getPersonalFeed(resolvedCoach.id);
+      const posts = socialFeedService.getFollowingFeed([resolvedCoach.id], 'all') as AggregatedFeedPost[];
       setFeedPosts(posts.map(normalizePost));
     } catch (error) {
       logger.error('Failed to load feed posts', error);
@@ -256,6 +261,15 @@ export function useCoachProfile(): UseCoachProfileResult {
   useEffect(() => {
     loadFeedPosts();
   }, [loadFeedPosts]);
+
+  useEffect(() => {
+    const unsub = onTyped(ServiceEvents.COACH_POST_CREATED, ({ coachId }) => {
+      if (coachId === resolvedCoach.id) {
+        loadFeedPosts();
+      }
+    });
+    return unsub;
+  }, [loadFeedPosts, resolvedCoach.id]);
 
   // ── Connection toggle ──
   const handleFollowToggle = useCallback(async () => {

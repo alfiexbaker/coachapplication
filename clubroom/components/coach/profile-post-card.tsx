@@ -6,7 +6,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { Clickable } from '@/components/primitives/clickable';
 import { ThemedText } from '@/components/themed-text';
-import { Radii, Spacing, Typography } from '@/constants/theme';
+import { Radii, Spacing, Typography, withAlpha } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
 import { Row } from '@/components/primitives';
 
@@ -26,6 +26,8 @@ export interface ProfilePostCardProps {
   coachName: string;
   /** Coach avatar URL */
   coachAvatar?: string;
+  /** Club or profile context label for the post */
+  contextLabel?: string;
   onLikePress?: (postId: string) => void;
   onCommentPress?: (postId: string) => void;
   onSharePress?: (postId: string) => void;
@@ -37,18 +39,52 @@ function ProfilePostCardInner({
   post,
   coachName,
   coachAvatar,
+  contextLabel,
   onLikePress,
   onCommentPress,
   onSharePress,
 }: ProfilePostCardProps) {
   const { colors: palette } = useTheme();
+  const initials = coachName
+    .split(/\s+/)
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((part) => part[0]?.toUpperCase() ?? '')
+    .join('') || 'UP';
 
   return (
     <SurfaceCard style={styles.postCard}>
       <Row style={styles.postHeader}>
-        <Image source={{ uri: coachAvatar }} style={styles.postAvatar} />
+        {coachAvatar ? (
+          <Image source={{ uri: coachAvatar }} style={styles.postAvatar} />
+        ) : (
+          <View
+            style={[
+              styles.postAvatarFallback,
+              { backgroundColor: withAlpha(palette.tint, 0.12) },
+            ]}
+          >
+            <ThemedText style={[styles.postAvatarFallbackText, { color: palette.tint }]}>
+              {initials}
+            </ThemedText>
+          </View>
+        )}
         <View style={styles.postHeaderText}>
-          <ThemedText type="subtitle">{coachName}</ThemedText>
+          <Row align="center" gap="xs" wrap>
+            <ThemedText type="subtitle">{coachName}</ThemedText>
+            {contextLabel ? (
+              <View
+                style={[
+                  styles.contextPill,
+                  { backgroundColor: withAlpha(palette.tint, 0.08) },
+                ]}
+              >
+                <ThemedText style={[styles.contextPillText, { color: palette.tint }]}>
+                  {contextLabel}
+                </ThemedText>
+              </View>
+            ) : null}
+          </Row>
           <ThemedText style={styles.postDate}>
             {new Date(post.createdAt).toLocaleDateString('en-GB', {
               month: 'short',
@@ -136,9 +172,28 @@ const styles = StyleSheet.create({
     height: 40,
     borderRadius: Radii.full,
   },
+  postAvatarFallback: {
+    width: 40,
+    height: 40,
+    borderRadius: Radii.full,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  postAvatarFallbackText: {
+    ...Typography.bodySmallSemiBold,
+  },
   postHeaderText: {
     flex: 1,
     gap: Spacing.micro,
+  },
+  contextPill: {
+    paddingHorizontal: Spacing.xxs,
+    paddingVertical: Spacing.micro,
+    borderRadius: Radii.sm,
+  },
+  contextPillText: {
+    ...Typography.micro,
+    fontWeight: '600',
   },
   postDate: {
     ...Typography.caption,

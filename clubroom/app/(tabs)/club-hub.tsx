@@ -185,8 +185,8 @@ const FeedEmptyState = memo(function FeedEmptyState({
       <Ionicons name="newspaper-outline" size={48} color={colors.muted} />
       <ThemedText style={{ color: colors.muted, textAlign: 'center' }}>
         {feedFilter === 'all'
-          ? 'No posts yet. Be the first to share!'
-          : `No ${feedFilter} posts yet.`}
+          ? 'No updates yet.'
+          : `No ${feedFilter} updates.`}
       </ThemedText>
       {canCreatePosts && feedFilter === 'all' && (
         <Clickable
