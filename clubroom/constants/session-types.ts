@@ -1,7 +1,7 @@
 /**
  * Session Types
  *
- * Session management, session invites, counter-offers, availability,
+ * Session management, session invites, availability,
  * group sessions, recurring bookings, waitlist, booking summaries,
  * and bilateral interaction types.
  */
@@ -483,74 +483,6 @@ export interface InviteRsvpResponse {
   childName?: string;
   status: 'going' | 'maybe' | 'cant_go';
   respondedAt: string;
-}
-
-// ============================================================================
-// COUNTER-OFFER NEGOTIATION SYSTEM
-// ============================================================================
-
-export type CounterOfferStatus = 'PENDING' | 'ACCEPTED' | 'REJECTED' | 'EXPIRED';
-
-export type CounterOfferProposerRole = 'PARENT' | 'COACH';
-
-export interface CounterOffer {
-  id: string;
-  bookingId: string;
-  proposedBy: CounterOfferProposerRole;
-  proposerId: string;
-  originalTime: TimeSlot;
-  proposedTime: TimeSlot;
-  status: CounterOfferStatus;
-  message?: string;
-  rejectionReason?: string;
-  createdAt: string;
-  respondedAt?: string;
-  expiresAt: string;
-}
-
-// Reschedule proposal types
-export type RescheduleProposalStatus = 'pending' | 'accepted' | 'declined' | 'countered' | 'withdrawn' | 'expired';
-
-export interface RescheduleProposalRecord {
-  id: string;
-  bookingId: string;
-  initiatedBy: 'coach' | 'parent';
-  initiatorId: string;
-  respondentId: string;
-  coachId: string;
-  originalDateTime: string;
-  proposedDateTime: string;
-  proposedLocation?: string;
-  reason: string;
-  durationMinutes: number;
-  status: RescheduleProposalStatus;
-  counterDateTime?: string;
-  declineReason?: string;
-  responseNote?: string;
-  createdAt: string;
-  respondedAt?: string;
-  expiresAt: string;
-}
-
-export interface NegotiationHistory {
-  id: string;
-  bookingId: string;
-  coachId: string;
-  parentId: string;
-  athleteId: string;
-  offers: CounterOffer[];
-  originalTime: TimeSlot;
-  finalTime?: TimeSlot;
-  status: 'IN_PROGRESS' | 'RESOLVED' | 'CANCELLED';
-  createdAt: string;
-  resolvedAt?: string;
-}
-
-export interface CounterOfferNotification {
-  type: 'COUNTER_OFFER_RECEIVED' | 'COUNTER_OFFER_ACCEPTED' | 'COUNTER_OFFER_REJECTED' | 'COUNTER_OFFER_EXPIRED';
-  counterOfferId: string;
-  bookingId: string;
-  proposedTime: TimeSlot;
 }
 
 // ============================================================================

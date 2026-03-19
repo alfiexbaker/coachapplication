@@ -23,7 +23,7 @@ Admin-specific reality is still fundamentally unchanged from 2026-03-03:
 At runtime, Clubroom is a multi-role app with broad product coverage and mock/local persistence:
 - 183 route files under `app/`
 - 133 service files under `services/`
-- 146 centralized storage keys in `constants/storage-keys.ts`
+- 156 centralized storage keys in `constants/storage-keys.ts`
 - Primary persistence via `apiClient` + AsyncStorage keys
 
 Core functional areas currently implemented:
@@ -48,7 +48,7 @@ Important note:
 
 High-value operational datasets already exist in storage keys:
 - user/account/auth: `USERS`, `AUTH_USER`, `AUTH_TOKEN`, `AUTH_TOKENS`
-- booking/ops: `BOOKINGS`, `SESSION_OFFERINGS`, `SESSION_INVITES`, `COUNTER_OFFERS`, `NEGOTIATIONS`
+- booking/ops: `BOOKINGS`, `SESSION_OFFERINGS`, `SESSION_INVITES`
 - trust/safety: `REPORTS`, `PROBLEM_REPORTS`, `CONCERNS`, `BLOCKED_USERS`, `VERIFICATION`
 - child safety: `EMERGENCY_INFO`, `FAMILY_MEMBERS`, `CHILDREN_PROFILES`, `COACH_OBSERVATIONS`
 - financial: `INVOICES`, `EARNINGS`, `PAYOUT_METHODS`, wallet/transactions

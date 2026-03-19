@@ -193,8 +193,6 @@ async function loadSeedHealthSnapshot(): Promise<Result<SeedHealthSnapshot, Serv
       problemReports,
       recurring,
       invoices,
-      counterOffers,
-      negotiations,
       goals,
       sessionNotes,
       badgeAwards,
@@ -227,8 +225,6 @@ async function loadSeedHealthSnapshot(): Promise<Result<SeedHealthSnapshot, Serv
       apiClient.get<unknown[]>(STORAGE_KEYS.PROBLEM_REPORTS, []),
       apiClient.get<unknown[]>(STORAGE_KEYS.RECURRING_BOOKINGS, []),
       apiClient.get<unknown[]>(STORAGE_KEYS.INVOICES, []),
-      apiClient.get<unknown[]>(STORAGE_KEYS.COUNTER_OFFERS, []),
-      apiClient.get<unknown[]>(STORAGE_KEYS.NEGOTIATIONS, []),
       apiClient.get<unknown[]>(STORAGE_KEYS.GOALS, []),
       apiClient.get<unknown[]>(STORAGE_KEYS.SESSION_NOTES, []),
       apiClient.get<unknown[]>(STORAGE_KEYS.BADGE_AWARDS, []),
@@ -284,11 +280,9 @@ async function loadSeedHealthSnapshot(): Promise<Result<SeedHealthSnapshot, Serv
         { label: 'Concerns', count: concerns.length },
         { label: 'Reports', count: reports.length + problemReports.length },
       ]),
-      buildSection('revenue', 'Revenue & Negotiation', [
+      buildSection('revenue', 'Revenue & Billing', [
         { label: 'Recurring bookings', count: recurring.length },
         { label: 'Invoices', count: invoices.length },
-        { label: 'Counter offers', count: counterOffers.length },
-        { label: 'Negotiations', count: negotiations.length },
       ]),
       buildSection('development', 'Development & Progress', [
         { label: 'Goals', count: goals.length },

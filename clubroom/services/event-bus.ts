@@ -116,12 +116,6 @@ export const ServiceEvents = {
   BOOKING_CANCELLED: 'booking:cancelled',
   BOOKING_CONFIRMED: 'booking:confirmed',
 
-  // Reschedule events
-  RESCHEDULE_PROPOSED: 'reschedule:proposed',
-  RESCHEDULE_ACCEPTED: 'reschedule:accepted',
-  RESCHEDULE_DECLINED: 'reschedule:declined',
-  RESCHEDULE_COUNTERED: 'reschedule:countered',
-
   // Series events (multi-week bookings)
   SERIES_CREATED: 'series:created',
   SERIES_UPDATED: 'series:updated',
@@ -194,11 +188,6 @@ export const ServiceEvents = {
   WAITLIST_JOINED: 'waitlist:joined',
   WAITLIST_LEFT: 'waitlist:left',
   WAITLIST_PROMOTED: 'waitlist:promoted',
-
-  // Counter-offer events
-  COUNTER_OFFER_CREATED: 'counter_offer:created',
-  COUNTER_OFFER_ACCEPTED: 'counter_offer:accepted',
-  COUNTER_OFFER_REJECTED: 'counter_offer:rejected',
 
   // Recurring booking events
   RECURRING_CREATED: 'recurring:created',
@@ -377,34 +366,6 @@ export interface EventPayloads {
     coachName?: string;
     athleteName?: string;
     scheduledAt?: string;
-  };
-
-  // Reschedule events
-  [ServiceEvents.RESCHEDULE_PROPOSED]: {
-    proposalId: string;
-    bookingId: string;
-    initiatedBy: 'coach' | 'parent';
-    coachId: string;
-    originalDateTime: string;
-    proposedDateTime: string;
-  };
-  [ServiceEvents.RESCHEDULE_ACCEPTED]: {
-    proposalId: string;
-    bookingId: string;
-    coachId: string;
-    newDateTime: string;
-  };
-  [ServiceEvents.RESCHEDULE_DECLINED]: {
-    proposalId: string;
-    bookingId: string;
-    coachId: string;
-    reason?: string;
-  };
-  [ServiceEvents.RESCHEDULE_COUNTERED]: {
-    proposalId: string;
-    bookingId: string;
-    coachId: string;
-    counterDateTime: string;
   };
 
   // Series events (multi-week bookings)
@@ -693,27 +654,6 @@ export interface EventPayloads {
     userId: string;
     position: number;
     autoBook: boolean;
-  };
-
-  // Counter-offer events
-  [ServiceEvents.COUNTER_OFFER_CREATED]: {
-    offerId: string;
-    bookingId: string;
-    proposedBy: string;
-    proposerId: string;
-    proposerName: string;
-    expiresAt: string;
-  };
-  [ServiceEvents.COUNTER_OFFER_ACCEPTED]: {
-    offerId: string;
-    bookingId: string;
-    respondedAt: string;
-  };
-  [ServiceEvents.COUNTER_OFFER_REJECTED]: {
-    offerId: string;
-    bookingId: string;
-    respondedAt: string;
-    reason?: string;
   };
 
   // Recurring booking events

@@ -21,7 +21,6 @@ Keep the app in pre-REST mock mode while making it feel live:
   - section coverage seed (only when missing for current user):
     - recurring bookings
     - invoices
-    - counter-offers
     - progress data for linked athletes
   - warm notification injection if inbox is empty
 - activity pulses:
@@ -40,7 +39,6 @@ Keep the app in pre-REST mock mode while making it feel live:
   - relational bookings/session offers/invites
   - recurring booking coverage for current user path
   - invoice coverage for current user path
-  - counter-offer negotiation coverage
 - Development & Analytics:
   - progress seed generation for linked athlete IDs
 - Trust, Safety & Operations:

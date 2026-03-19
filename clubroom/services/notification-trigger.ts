@@ -374,23 +374,6 @@ export const notificationTriggers = {
     });
   },
 
-  // --- Reschedule ---
-  rescheduleRequested(
-    coachName: string,
-    originalDate: string,
-    newDate: string,
-    recipientId: string,
-  ) {
-    return triggerNotification({
-      type: 'reschedule_request',
-      recipientRole: 'parent',
-      recipientId,
-      title: 'Reschedule Request',
-      body: `Coach ${coachName} wants to move your session from ${originalDate} to ${newDate}`,
-      deepLink: '/bookings',
-    });
-  },
-
   // --- Waitlist ---
   slotFreed(coachName: string, dateTime: string, recipientId: string) {
     return triggerNotification({

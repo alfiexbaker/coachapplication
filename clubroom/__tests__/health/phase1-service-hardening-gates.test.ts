@@ -12,7 +12,6 @@ const PHASE1_TARGET_FILES = new Set([
   'services/messaging-service.ts',
   'services/scheduling-rules-service.ts',
   'services/waitlist-service.ts',
-  'services/counter-offer-service.ts',
   'services/safety-service.ts',
   'services/recurring-booking-service.ts',
   'services/cancellation-service.ts',

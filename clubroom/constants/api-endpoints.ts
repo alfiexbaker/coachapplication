@@ -278,9 +278,6 @@ export const Endpoints = {
   scheduling: {
     cancellationPolicies: () => `/api/scheduling/cancellation-policies`,
     cancellationRecords: () => `/api/scheduling/cancellation-records`,
-    counterOffers: () => `/api/scheduling/counter-offers`,
-    counterOfferDetail: (id: string) => `/api/scheduling/counter-offers/${id}`,
-    negotiations: () => `/api/scheduling/negotiations`,
     waitlist: () => `/api/scheduling/waitlist`,
   },
 

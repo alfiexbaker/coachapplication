@@ -7,7 +7,6 @@ import { favouriteService } from '../../services/favourite-service';
 import { recurringBookingService } from '../../services/recurring-booking-service';
 import { verificationService } from '../../services/verification-service';
 import { cancellationService } from '../../services/cancellation-service';
-import { counterOfferService } from '../../services/counter-offer-service';
 import { bookingService } from '../../services/booking-service';
 import { apiClient } from '../../services/api-client';
 import { STORAGE_KEYS } from '../../constants/storage-keys';
@@ -21,8 +20,6 @@ const RESET_KEYS = [
   STORAGE_KEYS.VERIFICATION,
   STORAGE_KEYS.CANCELLATION_RECORDS,
   STORAGE_KEYS.NO_SHOW_COUNTS,
-  STORAGE_KEYS.COUNTER_OFFERS,
-  STORAGE_KEYS.NEGOTIATIONS,
 ];
 
 async function resetStorage(): Promise<void> {
@@ -193,39 +190,4 @@ test('cancellationService.cancelBooking emits CANCELLATION_RECORDED', async () =
   assert.strictEqual(emitted?.cancellationId, recordResult.success ? recordResult.data.id : '');
   assert.strictEqual(emitted?.bookingId, bookingId);
   assert.strictEqual(emitted?.cancelledBy, 'parent');
-});
-
-test('counterOfferService.createCounterOffer emits COUNTER_OFFER_CREATED', async () => {
-  let emitted: EventPayloads[typeof ServiceEvents.COUNTER_OFFER_CREATED] | undefined;
-  const unsub = eventBus.on<EventPayloads[typeof ServiceEvents.COUNTER_OFFER_CREATED]>(
-    ServiceEvents.COUNTER_OFFER_CREATED,
-    (payload) => {
-      emitted = payload;
-    },
-  );
-
-  const offerResult = await counterOfferService.createCounterOffer({
-    bookingId: 'booking_counter_1',
-    proposedBy: 'PARENT',
-    proposerId: 'parent_counter_1',
-    proposerName: 'Counter Parent',
-    originalTime: {
-      date: '2026-02-12',
-      startTime: '10:00',
-      endTime: '11:00',
-      location: 'Pitch 2',
-    },
-    proposedTime: {
-      date: '2026-02-13',
-      startTime: '11:00',
-      endTime: '12:00',
-      location: 'Pitch 2',
-    },
-  });
-  assert.strictEqual(offerResult.success, true);
-  unsub();
-
-  assert.strictEqual(emitted?.offerId, offerResult.success ? offerResult.data.id : '');
-  assert.strictEqual(emitted?.bookingId, offerResult.success ? offerResult.data.bookingId : '');
-  assert.strictEqual(emitted?.proposerId, offerResult.success ? offerResult.data.proposerId : '');
 });

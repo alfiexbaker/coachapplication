@@ -1,7 +1,7 @@
 /**
  * Notification Type Constants
  *
- * All 44 notification types used across the app.
+ * All notification types used across the app.
  * Each type maps to a specific user action or system event.
  */
 
@@ -23,7 +23,6 @@ export const NOTIFICATION_TYPES = {
   ROSTER_ADDED: 'roster_added',
   NO_SHOW_MARKED: 'no_show_marked',
   BOOKING_REQUEST: 'booking_request',
-  RESCHEDULE_REQUEST: 'reschedule_request',
   SLOT_FREED: 'slot_freed',
   REVIEW_REPLY: 'review_reply',
   GOAL_COMPLETED: 'goal_completed',
@@ -60,7 +59,6 @@ export const NOTIFICATION_CATEGORY_MAP: Record<NotificationTypeValue, string> = 
   [NOTIFICATION_TYPES.BOOKING_CONFIRMED]: 'booking',
   [NOTIFICATION_TYPES.BOOKING_CANCELLED]: 'booking',
   [NOTIFICATION_TYPES.BOOKING_REQUEST]: 'booking',
-  [NOTIFICATION_TYPES.RESCHEDULE_REQUEST]: 'booking',
   [NOTIFICATION_TYPES.INVITE_RECEIVED]: 'booking',
   [NOTIFICATION_TYPES.RSVP_REQUEST]: 'booking',
   [NOTIFICATION_TYPES.SESSION_REMINDER_24H]: 'reminder',

@@ -50,6 +50,7 @@ Clubs manage staff, squads, visibility, and operating relationships.
 - The biggest trust seam still not finished is production identity:
   - API auth is still scaffold-first and seed-backed
   - family medical, safeguarding incident creation, direct booking creation, and booking cancel/reopen flows now use `/v1` in non-mock mode
+  - booking changes are intentionally `cancel` or `reopen`; the old counter-offer negotiation path has been removed
   - delegated booking creation, wider booking reads/change flows, and broader trust/ops workflows are still not backend-authoritative by default
 
 ## Product Spines

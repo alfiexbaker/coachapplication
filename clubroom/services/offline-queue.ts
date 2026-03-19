@@ -88,7 +88,6 @@ function parsePathForEntity(path: string): { storageKey: string; entityId: strin
     'availability-overrides': STORAGE_KEYS.AVAILABILITY_OVERRIDES,
     'blocked-dates': STORAGE_KEYS.BLOCKED_DATES,
     'session-templates': STORAGE_KEYS.SESSION_TEMPLATES,
-    'counter-offers': STORAGE_KEYS.COUNTER_OFFERS,
   };
 
   const storageKey = storageKeyMap[collection];

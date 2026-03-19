@@ -28,9 +28,6 @@ export const STORAGE_KEYS = {
   /** Auto-generated bookings from recurring patterns */
   GENERATED_BOOKINGS: 'clubroom.generated_bookings',
 
-  /** Reschedule proposals for bookings */
-  RESCHEDULE_PROPOSALS: 'clubroom.reschedule_proposals',
-
   /** Session offerings/slots available for booking */
   SESSION_OFFERINGS: 'session_offerings',
 
@@ -67,12 +64,6 @@ export const STORAGE_KEYS = {
 
   /** Waitlist entries for fully booked sessions */
   WAITLIST: 'clubroom.waitlist',
-
-  /** Counter offers from coaches */
-  COUNTER_OFFERS: 'counter_offers',
-
-  /** Ongoing booking negotiations */
-  NEGOTIATIONS: 'negotiations',
 
   // ============================================================================
   // ROSTER DOMAIN

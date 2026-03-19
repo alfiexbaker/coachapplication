@@ -4,7 +4,6 @@ import { STORAGE_KEYS } from '@/constants/storage-keys';
 import type { UserRole } from '@/constants/user-types';
 import { apiClient } from '@/services/api-client';
 import { ensureCoachSessionsSeeded } from '@/services/coach-session-seed-service';
-import { counterOfferService } from '@/services/counter-offer-service';
 import { invoiceService } from '@/services/invoice-service';
 import { messagingService } from '@/services/messaging-service';
 import { notificationStore } from '@/services/notification/notification-store';
@@ -323,7 +322,6 @@ class PreApiLiveModeService {
     const coverageResults = await Promise.allSettled([
       this.ensureRecurringCoverage(context),
       this.ensureInvoiceCoverage(context),
-      this.ensureCounterOfferCoverage(context),
       this.ensureProgressCoverage(context),
     ]);
 
@@ -426,51 +424,6 @@ class PreApiLiveModeService {
     });
   }
 
-  private async ensureCounterOfferCoverage(context: LiveModeUserContext): Promise<void> {
-    const actionableResult = await counterOfferService.getActionableOffers(context.userId);
-    if (actionableResult.success && actionableResult.data.length > 0) return;
-
-    const booking = await this.pickRelevantBooking(context);
-    if (!booking?.id || !booking.coachId) return;
-
-    const proposedBy = context.role === 'COACH' ? 'PARENT' : 'COACH';
-    const proposerId = proposedBy === 'COACH' ? booking.coachId : booking.bookedById || context.userId;
-    if (!proposerId) return;
-
-    const start = new Date(booking.scheduledAt || Date.now());
-    const durationMinutes = booking.duration ?? 60;
-    const originalEnd = new Date(start.getTime() + durationMinutes * 60_000);
-    const proposedStart = new Date(start.getTime() + 24 * 60 * 60 * 1000);
-    const proposedEnd = new Date(proposedStart.getTime() + durationMinutes * 60_000);
-
-    const result = await counterOfferService.createCounterOffer({
-      bookingId: booking.id,
-      proposedBy,
-      proposerId,
-      proposerName: proposedBy === 'COACH' ? 'Coach Live' : 'Parent Live',
-      originalTime: {
-        date: toISODate(start),
-        startTime: toTimeHHMM(start),
-        endTime: toTimeHHMM(originalEnd),
-        location: booking.location,
-      },
-      proposedTime: {
-        date: toISODate(proposedStart),
-        startTime: toTimeHHMM(proposedStart),
-        endTime: toTimeHHMM(proposedEnd),
-        location: booking.location,
-      },
-      message: 'Auto-seeded schedule adjustment for pre-API live mode.',
-    });
-
-    if (!result.success) {
-      logger.warn('pre_api_live_counter_offer_seed_failed', {
-        userId: context.userId,
-        bookingId: booking.id,
-      });
-    }
-  }
-
   private async ensureProgressCoverage(context: LiveModeUserContext): Promise<void> {
     const [users, bookings] = await Promise.all([
       apiClient.get<User[]>(STORAGE_KEYS.USERS, []),
@@ -566,10 +519,6 @@ function toTimeHHMM(date: Date): string {
   const hours = String(date.getHours()).padStart(2, '0');
   const minutes = String(date.getMinutes()).padStart(2, '0');
   return `${hours}:${minutes}`;
-}
-
-function toISODate(date: Date): string {
-  return date.toISOString().slice(0, 10);
 }
 
 export const preApiLiveModeService = new PreApiLiveModeService();
