@@ -21,6 +21,7 @@ import {
   getOfferCapacityDisplay,
   getProgramOwnershipDisplay,
 } from '@/utils/session-offer-display';
+import { mapGroupSessionToClubActivity } from '@/utils/club-activity-projections';
 
 interface GroupSessionDetailsProps {
   session: GroupSession;
@@ -48,6 +49,9 @@ export const GroupSessionDetails = memo(function GroupSessionDetails({
     organizationLabel: clubLabel,
     coachLabel: coachName,
     deliveredByLabel: coachName,
+  });
+  const activityShape = mapGroupSessionToClubActivity(session, new Date(), {
+    allowPastFallback: true,
   });
   // S-39: Non-participants see only area name, not full address
   const locationLabel = isRegistered
@@ -118,6 +122,18 @@ export const GroupSessionDetails = memo(function GroupSessionDetails({
           <ThemedText style={[Typography.bodySmall, { color: colors.muted }]}>
             {offerDisplay.summary}
           </ThemedText>
+          {activityShape && (
+            <Row gap="xs" align="center">
+              <Ionicons
+                name={activityShape.allowsExternalRegistration ? 'globe-outline' : 'shield-outline'}
+                size={16}
+                color={colors.muted}
+              />
+              <ThemedText style={{ color: colors.muted }}>
+                {activityShape.accessLabel}. {activityShape.participationLabel}.
+              </ThemedText>
+            </Row>
+          )}
           <Row gap="xs" align="center">
             <Ionicons name="people-outline" size={16} color={colors.muted} />
             <ThemedText style={{ color: colors.muted }}>

@@ -65,12 +65,15 @@ Purpose: identify the service entrypoints that are safe to build on and call out
 
 - `services/event/index.ts`
 - Use for CRUD, RSVP, attendance, and display concerns
+- Club-facing schedule UI should project event records into `ClubActivity` instead of inventing another event-card-only view model
 
 ### Group sessions
 
 - `services/group-session/index.ts`
 - Use for group session CRUD, scheduling, registration, and display
 - `services/group-session/session-registration-service.ts` is the current `/v1/group-sessions/:id/register` bridge in non-mock mode
+- Club-facing schedule UI should project group sessions into `ClubActivity`
+  - a club-linked `OPEN` session means mixed-access training: club members first-class, outsiders allowed
 
 ### Notifications
 

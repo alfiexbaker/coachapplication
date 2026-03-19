@@ -13,7 +13,7 @@ import { Row } from '@/components/primitives';
 export interface ClubStatsRowProps {
   memberCount: number;
   squadCount: number;
-  sessionCount: number;
+  activityCount: number;
   inviteCount: number;
   canManageMembers: boolean;
   showMembersSection: boolean;
@@ -25,7 +25,7 @@ export interface ClubStatsRowProps {
 export const ClubStatsRow = memo(function ClubStatsRow({
   memberCount,
   squadCount,
-  sessionCount,
+  activityCount,
   inviteCount,
   canManageMembers,
   showMembersSection,
@@ -63,9 +63,9 @@ export const ClubStatsRow = memo(function ClubStatsRow({
       <View style={[styles.statDivider, { backgroundColor: palette.border }]} />
       <View style={styles.statItem}>
         <ThemedText type="title" style={{ ...Typography.heading }}>
-          {sessionCount}
+          {activityCount}
         </ThemedText>
-        <ThemedText style={{ ...Typography.caption, color: palette.muted }}>Sessions</ThemedText>
+        <ThemedText style={{ ...Typography.caption, color: palette.muted }}>Activities</ThemedText>
       </View>
       <View style={[styles.statDivider, { backgroundColor: palette.border }]} />
       <View style={styles.statItem}>

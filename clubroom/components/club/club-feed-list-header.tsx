@@ -10,9 +10,9 @@ import { StyleSheet, View } from 'react-native';
 
 import { ClubHeader, ClubStatsRow } from '@/components/club/ClubHeader';
 import { ClubAdminActions } from '@/components/club/club-admin-actions';
+import { ClubActivitiesPanel } from '@/components/club/ClubActivitiesPanel';
 import { ClubFeedFilters } from '@/components/club/club-feed-filters';
 import { MembersPanel } from '@/components/club/MembersPanel';
-import { SessionsPanel } from '@/components/club/SessionsPanel';
 import { MatchesPanel } from '@/components/club/MatchesPanel';
 import { TeamsPanel } from '@/components/club/TeamsPanel';
 import { UpcomingEventsCarousel } from '@/components/club/upcoming-events-carousel';
@@ -44,7 +44,7 @@ export const ClubFeedListHeader = memo(function ClubFeedListHeader({
       <ClubStatsRow
         memberCount={hub.members.length || hub.club!.memberCount}
         squadCount={hub.squads.length}
-        sessionCount={hub.trainingSessions.length}
+        activityCount={hub.clubActivities.length}
         inviteCount={hub.invites.length}
         canManageMembers={hub.canRemoveMembers}
         showMembersSection={hub.showMembersSection}
@@ -57,11 +57,15 @@ export const ClubFeedListHeader = memo(function ClubFeedListHeader({
         clubId={hub.membership?.clubId}
       />
       <MatchesPanel matches={hub.upcomingMatches} isCoach={hub.isCoach} />
-      <SessionsPanel sessions={hub.trainingSessions} isCoach={hub.isCoach} />
+      <ClubActivitiesPanel activities={hub.clubActivities} isCoach={hub.isCoach} />
 
-      {hub.upcomingInvites.length > 0 && (
+      {hub.pendingSessionInvites.length > 0 && (
         <View style={styles.carouselSection}>
-          <UpcomingEventsCarousel invites={hub.upcomingInvites} onPress={hub.handleInvitePress} />
+          <UpcomingEventsCarousel
+            title="Pending Session Invites"
+            invites={hub.pendingSessionInvites}
+            onPress={hub.handleInvitePress}
+          />
         </View>
       )}
 

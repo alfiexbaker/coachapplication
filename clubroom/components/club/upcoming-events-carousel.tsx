@@ -21,6 +21,7 @@ import { AccessibleListCell } from '@/components/ui/list-accessibility';
 interface UpcomingEventsCarouselProps {
   invites: SessionInvite[];
   onPress: (inviteId: string) => void;
+  title?: string;
 }
 
 const CARD_WIDTH = 280;
@@ -94,7 +95,11 @@ const EventCard = memo(function EventCardComponent({
 
 const Separator = () => <View style={styles.separator} />;
 
-function UpcomingEventsCarouselComponent({ invites, onPress }: UpcomingEventsCarouselProps) {
+function UpcomingEventsCarouselComponent({
+  invites,
+  onPress,
+  title = 'Upcoming Events',
+}: UpcomingEventsCarouselProps) {
   const { colors: palette } = useTheme();
 
   const renderItem = useCallback(
@@ -110,7 +115,7 @@ function UpcomingEventsCarouselComponent({ invites, onPress }: UpcomingEventsCar
     <View style={styles.container}>
       <View style={styles.header}>
         <ThemedText type="heading" style={{ color: palette.text }}>
-          Upcoming Events
+          {title}
         </ThemedText>
       </View>
       <FlatList

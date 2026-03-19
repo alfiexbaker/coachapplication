@@ -4,30 +4,34 @@ Date: 2026-03-19
 
 ## What Was Just Done
 
-1. Added backend booking read authority for both list and detail flows.
-2. Added `GET /v1/bookings/:bookingId` in `apps/api/src/modules/booking/routes.ts` and repository support in `apps/api/src/repositories/p0/booking-repository.ts`.
-3. Extended `services/booking/booking-authority-service.ts` with `/v1` booking list/detail reads.
-4. Rewired `services/booking/booking-crud-service.ts` so `list()` and `getBooking()` are API-first in non-mock mode, then mirror the authoritative record back into local storage.
-5. Updated the runtime docs to reflect that the local booking store is now a mirror for read paths, not the authority.
+1. Introduced a first-class `ClubActivity` read model in `constants/club-activity-types.ts` and `utils/club-activity-projections.ts`.
+2. Reframed club-facing schedule surfaces so `ClubEvent` and club-linked `GroupSession` records are shown as one linked club activity list.
+3. Added `components/club/ClubActivitiesPanel.tsx` and rewired both `hooks/use-club-hub.ts` and `hooks/use-club-detail.ts` to use unified club activities.
+4. Added `groupSessionService.getClubActivitySessions()` so camps, clinics, trials, open sessions, and training can all participate in the same club-facing schedule model.
+5. Updated training access language in the session creation and group-session detail flows so `club only`, `squad only`, and `club + outside athletes` are explicit behaviors rather than hidden invite-type trivia.
+6. Updated the architecture docs to compare the old split model with the new club activity model.
 
 ## Verification Run In This Step
 
 - `npm run typecheck` -> PASS
 - `npm run test:compile` -> PASS
-- `npm --prefix apps/api run test` -> PASS (`31/31`)
-- `node --require ./scripts/test-register.js --test .tmp-tests/__tests__/services/booking/booking-crud-service.test.js .tmp-tests/__tests__/bookings/booking-service.test.js` -> PASS (`40/40`)
+- `node --require ./scripts/test-register.js --test .tmp-tests/__tests__/utils/club-activity-projections.test.js .tmp-tests/__tests__/services/group-session/session-scheduling-service.test.js` -> PASS (`13/13`)
 - `git diff --check` -> PASS
 
 ## Current State
 
-- The booking lifecycle is now intentionally `create`, `cancel`, and `reopen`.
-- Counter-offer negotiation and invite countering are no longer supported booking-change workflows in the runtime product surface.
-- Booking reads are now API-first in non-mock mode through `/v1/bookings` and `/v1/bookings/:bookingId`.
-- Local booking storage still exists, but only as a compatibility mirror for app surfaces that have not been rewritten yet.
-- The remaining booking-authority seam is the broader session-invite app model and invite-mediated booking flows.
+- Club pages no longer have to treat events and training as unrelated sections.
+- `ClubActivity` is now the canonical read model for club-facing schedule UI.
+- The meaningful distinction is now:
+  - informational event
+  - private club training
+  - private squad training
+  - club-linked training that also admits outsiders
+- Pending session invites remain a separate personal workflow and are now labelled honestly instead of being presented as club events.
+- The underlying source records are still split between `ClubEvent` and `GroupSession`; creation flows are still specialized even though the club-facing read model is unified.
 - The worktree is expected to contain transient untracked audit artifacts under `docs/audits/`.
 
 ## Next Exact Action
 
-1. Align the broader session-invite surface to backend data instead of keeping a separate app-first read model.
-2. After that, decide whether invite-mediated booking create/change flows should widen backend authz or be narrowed out of the product.
+1. Keep pushing `API-01`: align the broader session-invite read and acceptance model to backend authority.
+2. After that, decide whether club activity creation should stay as separate event and training flows or move behind a first-class backend `ClubActivity` contract.

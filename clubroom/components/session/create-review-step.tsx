@@ -202,13 +202,17 @@ export const CreateReviewStep = memo(function CreateReviewStep({
   const visibilityNote = useMemo(() => {
     switch (inviteType) {
       case 'OPEN':
-        return 'Your session will be visible to all athletes once published.';
+        return postingAs === 'club'
+          ? 'This club activity stays visible to your club and can admit outside athletes too.'
+          : 'This session will be visible when families browse available sessions.';
       case 'CLOSED':
-        return 'Only invited athletes can see this session. You can add more later from Bookings.';
+        return postingAs === 'club'
+          ? 'This stays private to invited athletes and families. It will not open outside the club unless you republish it differently.'
+          : 'Only invited athletes can see this session. You can add more later from Bookings.';
       case 'SQUAD_ONLY':
-        return 'Only squad members will be able to see this session.';
+        return 'This is private squad training. Other club members and outside athletes will not see it.';
     }
-  }, [inviteType]);
+  }, [inviteType, postingAs]);
   const handleOpenMap = () => {
     void openLocationInMaps({ location, coordinates: locationCoordinates }).then((opened) => {
       if (!opened) {

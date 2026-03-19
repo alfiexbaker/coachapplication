@@ -39,6 +39,10 @@ Purpose: give a fast, human-readable overview of the core entities and how they 
 
 ## Booking Spine
 
+- `ClubActivity`
+  - club-facing schedule read model
+  - projects `ClubEvent` and `GroupSession` into one linked activity surface
+  - lets the product express “presentation”, “private squad training”, and “club training open to outsiders” without inventing separate UI worlds
 - `CoachingOffering`
   - what is being sold
 - `AvailabilityTemplate` and `AvailabilityOverride`
@@ -94,6 +98,11 @@ When adding or changing a core entity:
 2. update the service facade or repository boundary
 3. update any route or permission assumptions
 4. update the relevant deep source doc if the relationship meaning changed
+
+Extra rule for club-facing schedule work:
+
+- start from `ClubActivity` for read surfaces
+- treat RSVP, registration, and booking as participation behaviors on that activity, not as separate top-level club products
 
 ## Validation Notes
 

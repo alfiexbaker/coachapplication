@@ -76,6 +76,8 @@ export const groupSessionService = {
 
   getClubTrainingSessions:
     sessionSchedulingService.getClubTrainingSessions.bind(sessionSchedulingService),
+  getClubActivitySessions:
+    sessionSchedulingService.getClubActivitySessions.bind(sessionSchedulingService),
   getSquadTrainingSessions:
     sessionSchedulingService.getSquadTrainingSessions.bind(sessionSchedulingService),
   getChildTrainingSessions:

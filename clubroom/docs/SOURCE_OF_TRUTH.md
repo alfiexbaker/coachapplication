@@ -1,6 +1,6 @@
 # Clubroom - Single Source of Truth
 
-Last updated: 2026-03-18
+Last updated: 2026-03-19
 Project: football coaching marketplace plus family development tracker
 Status: live-featured Expo app with a real Fastify API alongside it; backend cutover and auth alignment are still in progress
 
@@ -54,6 +54,9 @@ Clubs manage staff, squads, visibility, and operating relationships.
   - booking changes are intentionally `cancel` or `reopen`; the old counter-offer and invite counter workflow has been removed from the runtime product surface
   - coach scheduling rules no longer advertise a separate reschedule policy; bookings now change by cancellation and rebooking/reopening instead of negotiation
   - the remaining delegated booking seam is the broader session-invite acceptance/read model plus the wider invite-mediated change flows, which are still not backend-authoritative by default
+- Club-facing schedule surfaces now use a `ClubActivity` read model to link `ClubEvent` and `GroupSession`
+  - club-linked open group sessions are treated as mixed-access training, not as a separate public product world
+  - informational events and training still have separate source records and creation flows, but club users now see one linked activity schedule instead of two unrelated sections
 
 ## Product Spines
 
@@ -88,6 +91,7 @@ Club:
 - Current invite and family entrypoints are:
   - `services/invite/index.ts`
   - `services/family/index.ts`
+- Club-facing activity UI should start from `ClubActivity` projections, then route into event or training detail as needed.
 
 ## What Is Real Versus Transitional
 
@@ -100,6 +104,7 @@ Real enough to build on:
 Still transitional:
 - auth and session contract between app and API
 - authoritative backend ownership for the broader session-invite model, booking read/change flows, and broader trust/ops data
+- `ClubActivity` is currently a read model, not a backend-owned entity
 - observability across app plus API
 - some local audit scripts that depend on missing shell tooling
 
@@ -122,6 +127,7 @@ Use these deep docs selectively:
 - `docs/architecture/runtime-modes.md`
 - `docs/architecture/service-ownership-map.md`
 - `docs/architecture/entity-relationship-map.md`
+- `docs/architecture/club-activity-model.md`
 - `docs/architecture/club-relationship-rules.md`
 - `docs/trust/auth-and-permission-boundaries.md`
 - `docs/ui/loading-error-empty-state-matrix.md`

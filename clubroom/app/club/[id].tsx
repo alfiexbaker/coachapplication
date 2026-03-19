@@ -8,10 +8,10 @@ import type { ReactNode } from 'react';
 import { Clickable } from '@/components/primitives/clickable';
 import { ThemedText } from '@/components/themed-text';
 import { ClubHeader } from '@/components/club/ClubHeader';
+import { ClubActivitiesPanel } from '@/components/club/ClubActivitiesPanel';
 import { FeedPost } from '@/components/club/FeedPost';
 import { MembersPanel } from '@/components/club/MembersPanel';
 import { ClubDetailStats } from '@/components/club/club-detail-stats';
-import { EventCard } from '@/components/event/event-card';
 import { RemovalConfirmationModal } from '@/components/roster/removal-confirmation-modal';
 import { LoadingState, EmptyState, ErrorState } from '@/components/ui/screen-states';
 import { Row } from '@/components/primitives/row';
@@ -39,10 +39,9 @@ export default function ClubDetailScreen() {
     feed,
     feedFilter,
     setFeedFilter,
-    sessions,
+    clubActivities,
     squads,
     invites,
-    upcomingEvents,
     refreshing,
     members,
     showMembersSection,
@@ -154,7 +153,7 @@ export default function ClubDetailScreen() {
           <ClubDetailStats
             memberCount={members.length || club.memberCount}
             squadCount={squads.length}
-            sessionCount={sessions.length}
+            activityCount={clubActivities.length}
             inviteCount={invites.length}
             canExpand={canRemoveMembers}
             isExpanded={showMembersSection}
@@ -171,31 +170,12 @@ export default function ClubDetailScreen() {
             />
           )}
 
-          {upcomingEvents.length > 0 && (
-            <View style={styles.eventsSection}>
-              <Row justify="space-between" align="center" style={{ marginBottom: Spacing.xs }}>
-                <Row gap="xs" align="center">
-                  <Ionicons name="calendar" size={20} color={colors.tint} />
-                  <ThemedText type="defaultSemiBold" style={Typography.subheading}>
-                    Upcoming Events
-                  </ThemedText>
-                </Row>
-                <Clickable onPress={() => router.push(Routes.EVENTS)} hitSlop={10}>
-                  <ThemedText style={[Typography.bodySmallSemiBold, { color: colors.tint }]}>
-                    See All
-                  </ThemedText>
-                </Clickable>
-              </Row>
-              {upcomingEvents.slice(0, 2).map((event) => (
-                <EventCard
-                  key={event.id}
-                  event={event}
-                  compact
-                  onPress={() => router.push(Routes.event(event.id))}
-                />
-              ))}
-            </View>
-          )}
+          <ClubActivitiesPanel
+            activities={clubActivities}
+            isCoach={!!canManagePosts}
+            maxItems={4}
+            showCreateActions={false}
+          />
 
           {canCreatePosts && (
             <Row gap="sm" style={{ paddingHorizontal: Spacing.md, paddingTop: Spacing.md }}>
@@ -331,7 +311,6 @@ const styles = StyleSheet.create({
   topBarSpacer: {
     width: 22,
   },
-  eventsSection: { paddingHorizontal: Spacing.md, paddingTop: Spacing.md, gap: Spacing.sm },
   actionBtn: { paddingVertical: Spacing.sm, borderRadius: Radii.md },
   filterTab: {
     paddingHorizontal: Spacing.md,

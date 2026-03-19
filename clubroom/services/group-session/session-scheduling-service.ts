@@ -1,7 +1,7 @@
 /**
  * Session Scheduling Service
  *
- * Handles training session queries by club, squad, and child.
+ * Handles training and club-activity session queries by club, squad, and child.
  * Supports recurring pattern utilities and next-date lookups.
  *
  * API Integration Notes:
@@ -22,6 +22,20 @@ const _logger = createLogger('SessionSchedulingService');
 
 // Day of week labels
 const DAY_LABELS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+const ACTIVE_CLUB_SESSION_STATUSES: GroupSession['status'][] = ['PUBLISHED', 'FULL'];
+
+function getUpcomingScheduleEntry(session: GroupSession): GroupSessionSchedule | null {
+  const today = toDateStr(new Date());
+  return session.schedule.find((entry) => entry.date >= today) || null;
+}
+
+function sortSessionsByUpcomingDate(sessions: GroupSession[]): GroupSession[] {
+  return sessions.sort((left, right) => {
+    const leftDate = getUpcomingScheduleEntry(left)?.date || '';
+    const rightDate = getUpcomingScheduleEntry(right)?.date || '';
+    return leftDate.localeCompare(rightDate);
+  });
+}
 
 // ============================================================================
 // SCHEDULING SERVICE
@@ -34,19 +48,37 @@ export const sessionSchedulingService = {
   async getClubTrainingSessions(clubId: string): Promise<GroupSession[]> {
     if (USE_MOCK) {
       const sessionsCache = await loadSessions();
-      return sessionsCache
-        .filter(
-          (s) => s.clubId === clubId && s.sessionType === 'TRAINING' && s.status === 'PUBLISHED',
-        )
-        .sort((a, b) => {
-          const aDate = a.schedule[0]?.date || '';
-          const bDate = b.schedule[0]?.date || '';
-          return aDate.localeCompare(bDate);
-        });
+      return sortSessionsByUpcomingDate(
+        sessionsCache.filter(
+          (session) =>
+            session.clubId === clubId &&
+            session.sessionType === 'TRAINING' &&
+            ACTIVE_CLUB_SESSION_STATUSES.includes(session.status) &&
+            Boolean(getUpcomingScheduleEntry(session)),
+        ),
+      );
     }
 
     const response = await fetch(`/api/clubs/${clubId}/training-sessions`);
     return response.json();
+  },
+
+  /**
+   * Get all upcoming club-linked group sessions that behave like training activities.
+   *
+   * This intentionally includes camps, clinics, trials, and open sessions because
+   * the club-facing activity model treats them as variants of one training domain.
+   */
+  async getClubActivitySessions(clubId: string): Promise<GroupSession[]> {
+    const sessionsCache = await loadSessions();
+    return sortSessionsByUpcomingDate(
+      sessionsCache.filter(
+        (session) =>
+          session.clubId === clubId &&
+          ACTIVE_CLUB_SESSION_STATUSES.includes(session.status) &&
+          Boolean(getUpcomingScheduleEntry(session)),
+      ),
+    );
   },
 
   /**
@@ -55,15 +87,15 @@ export const sessionSchedulingService = {
   async getSquadTrainingSessions(squadId: string): Promise<GroupSession[]> {
     if (USE_MOCK) {
       const sessionsCache = await loadSessions();
-      return sessionsCache
-        .filter(
-          (s) => s.squadId === squadId && s.sessionType === 'TRAINING' && s.status === 'PUBLISHED',
-        )
-        .sort((a, b) => {
-          const aDate = a.schedule[0]?.date || '';
-          const bDate = b.schedule[0]?.date || '';
-          return aDate.localeCompare(bDate);
-        });
+      return sortSessionsByUpcomingDate(
+        sessionsCache.filter(
+          (session) =>
+            session.squadId === squadId &&
+            session.sessionType === 'TRAINING' &&
+            ACTIVE_CLUB_SESSION_STATUSES.includes(session.status) &&
+            Boolean(getUpcomingScheduleEntry(session)),
+        ),
+      );
     }
 
     const response = await fetch(`/api/squads/${squadId}/training-sessions`);
@@ -82,18 +114,15 @@ export const sessionSchedulingService = {
         .filter((r) => r.athleteId === childId && r.status !== 'CANCELLED')
         .map((r) => r.sessionId);
 
-      return sessionsCache
-        .filter(
-          (s) =>
-            registeredSessionIds.includes(s.id) &&
-            s.sessionType === 'TRAINING' &&
-            s.status === 'PUBLISHED',
-        )
-        .sort((a, b) => {
-          const aDate = a.schedule[0]?.date || '';
-          const bDate = b.schedule[0]?.date || '';
-          return aDate.localeCompare(bDate);
-        });
+      return sortSessionsByUpcomingDate(
+        sessionsCache.filter(
+          (session) =>
+            registeredSessionIds.includes(session.id) &&
+            session.sessionType === 'TRAINING' &&
+            ACTIVE_CLUB_SESSION_STATUSES.includes(session.status) &&
+            Boolean(getUpcomingScheduleEntry(session)),
+        ),
+      );
     }
 
     const response = await fetch(`/api/athletes/${childId}/training-sessions`);
@@ -119,7 +148,6 @@ export const sessionSchedulingService = {
    * Get next upcoming date for a training session
    */
   getNextTrainingDate(session: GroupSession): GroupSessionSchedule | null {
-    const today = toDateStr(new Date());
-    return session.schedule.find((s) => s.date >= today) || null;
+    return getUpcomingScheduleEntry(session);
   },
 };

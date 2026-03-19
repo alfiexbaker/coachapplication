@@ -3,7 +3,7 @@
  *
  * Extracted from club-hub.tsx to keep the screen file under 250 lines.
  * Handles: membership resolution, feed loading/filtering, member CRUD,
- * training sessions, matches, invites, and event bus subscriptions.
+ * club activities, matches, invites, and event bus subscriptions.
  */
 
 import { useEffect, useMemo, useState, useCallback, useRef } from 'react';
@@ -15,6 +15,8 @@ import { useAuth } from '@/hooks/use-auth';
 import { useToast } from '@/components/ui/toast';
 import type {
   Club,
+  ClubActivity,
+  ClubEvent,
   ClubFeedPost,
   ClubInvite,
   ClubMembership,
@@ -30,6 +32,7 @@ import {
   type MemberRemovalReason,
   type ClubMemberRemovalRecord,
 } from '@/services/club-service';
+import { eventService } from '@/services/event-service';
 import { groupSessionService } from '@/services/group-session-service';
 import { matchService } from '@/services/match-service';
 import { squadService } from '@/services/squad-service';
@@ -37,6 +40,7 @@ import { socialFeedService } from '@/services/social-feed-service';
 import { onTyped, ServiceEvents } from '@/services/event-bus';
 import { inviteService as sessionInviteService } from '@/services/invite';
 import { createLogger } from '@/utils/logger';
+import { buildClubActivities } from '@/utils/club-activity-projections';
 import { uiFeedback } from '@/services/ui-feedback';
 import { parseOrganizationRole } from '@/contracts/club-governance';
 
@@ -78,9 +82,11 @@ export interface ClubHubState {
   feedFilter: FeedFilter;
   squads: ClubSquad[];
   invites: ClubInvite[];
-  trainingSessions: GroupSession[];
+  clubActivities: ClubActivity[];
+  clubActivitySessions: GroupSession[];
+  clubEvents: ClubEvent[];
   upcomingMatches: Match[];
-  upcomingInvites: SessionInvite[];
+  pendingSessionInvites: SessionInvite[];
 
   // Loading / error
   initialLoading: boolean;
@@ -155,9 +161,10 @@ export function useClubHub(): ClubHubState {
   const [feedFilter, setFeedFilter] = useState<FeedFilter>('all');
   const [squads, setSquads] = useState<ClubSquad[]>([]);
   const [invites, setInvites] = useState<ClubInvite[]>([]);
-  const [trainingSessions, setTrainingSessions] = useState<GroupSession[]>([]);
+  const [clubActivitySessions, setClubActivitySessions] = useState<GroupSession[]>([]);
+  const [clubEvents, setClubEvents] = useState<ClubEvent[]>([]);
   const [upcomingMatches, setUpcomingMatches] = useState<Match[]>([]);
-  const [upcomingInvites, setUpcomingInvites] = useState<SessionInvite[]>([]);
+  const [pendingSessionInvites, setPendingSessionInvites] = useState<SessionInvite[]>([]);
 
   // ─── Loading / error ───────────────────────────────────────────
   const [initialLoading, setInitialLoading] = useState(true);
@@ -183,6 +190,10 @@ export function useClubHub(): ClubHubState {
   const canCreatePosts = isTeamStaffRole;
   const canRemoveMembers = !!(membership && clubService.canRemoveMembers(membership.role));
   const isCoach = isTeamStaffRole || (!membership && userIsCoachAccount);
+  const clubActivities = useMemo(
+    () => buildClubActivities({ events: clubEvents, sessions: clubActivitySessions }),
+    [clubEvents, clubActivitySessions],
+  );
 
   // ─── Data loaders ──────────────────────────────────────────────
   const loadClubMeta = useCallback(async () => {
@@ -225,14 +236,24 @@ export function useClubHub(): ClubHubState {
     }
   }, [membership?.clubId]);
 
-  const loadTrainingSessions = useCallback(async () => {
-    if (membership?.clubId) {
-      try {
-        const sessions = await groupSessionService.getClubTrainingSessions(membership.clubId);
-        setTrainingSessions(sessions);
-      } catch (error) {
-        logger.error('Failed to load training sessions:', error);
-      }
+  const loadClubActivities = useCallback(async () => {
+    if (!membership?.clubId) {
+      setClubActivitySessions([]);
+      setClubEvents([]);
+      return;
+    }
+
+    try {
+      const [sessions, events] = await Promise.all([
+        groupSessionService.getClubActivitySessions(membership.clubId),
+        eventService.getUpcomingEvents(membership.clubId),
+      ]);
+      setClubActivitySessions(sessions);
+      setClubEvents(events);
+    } catch (error) {
+      logger.error('Failed to load club activities:', error);
+      setClubActivitySessions([]);
+      setClubEvents([]);
     }
   }, [membership?.clubId]);
 
@@ -247,8 +268,11 @@ export function useClubHub(): ClubHubState {
     }
   }, [membership?.clubId]);
 
-  const loadUpcomingInvites = useCallback(async () => {
-    if (!currentUser) return;
+  const loadPendingSessionInvites = useCallback(async () => {
+    if (!currentUser) {
+      setPendingSessionInvites([]);
+      return;
+    }
     try {
       const allInvites = await sessionInviteService.getCoachInvites(currentUser.id);
       const now = new Date();
@@ -260,9 +284,9 @@ export function useClubHub(): ClubHubState {
         const slotDate = new Date(firstSlot.date + 'T00:00:00');
         return slotDate >= now && slotDate <= sevenDaysFromNow;
       });
-      setUpcomingInvites(upcoming);
+      setPendingSessionInvites(upcoming);
     } catch (error) {
-      logger.error('Failed to load upcoming invites:', error);
+      logger.error('Failed to load pending session invites:', error);
     }
   }, [currentUser]);
 
@@ -279,9 +303,9 @@ export function useClubHub(): ClubHubState {
         const results = await Promise.allSettled([
           loadClubMeta(),
           loadMembers(),
-          loadTrainingSessions(),
+          loadClubActivities(),
           loadUpcomingMatches(),
-          loadUpcomingInvites(),
+          loadPendingSessionInvites(),
         ]);
         loadFeed();
         const failures = results.filter((r) => r.status === 'rejected');
@@ -301,11 +325,11 @@ export function useClubHub(): ClubHubState {
     },
     [
       loadClubMeta,
+      loadClubActivities,
       loadFeed,
       loadMembers,
-      loadTrainingSessions,
       loadUpcomingMatches,
-      loadUpcomingInvites,
+      loadPendingSessionInvites,
     ],
   );
 
@@ -339,13 +363,13 @@ export function useClubHub(): ClubHubState {
 
   useEffect(() => {
     const unsubSessionPublished = onTyped(ServiceEvents.OPEN_SESSION_PUBLISHED, () => {
-      void loadTrainingSessions();
+      void loadClubActivities();
       loadFeed();
     });
     return () => {
       unsubSessionPublished();
     };
-  }, [loadTrainingSessions, loadFeed]);
+  }, [loadClubActivities, loadFeed]);
 
   useEffect(() => {
     if (!membership?.clubId) {
@@ -556,9 +580,11 @@ export function useClubHub(): ClubHubState {
     feedFilter,
     squads,
     invites,
-    trainingSessions,
+    clubActivities,
+    clubActivitySessions,
+    clubEvents,
     upcomingMatches,
-    upcomingInvites,
+    pendingSessionInvites,
     initialLoading,
     refreshing,
     loadError,

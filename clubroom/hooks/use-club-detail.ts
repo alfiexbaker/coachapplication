@@ -1,6 +1,6 @@
 /**
  * useClubDetail — All state, data loading, and handlers for the ClubDetailScreen.
- * Manages club data, feed, members, events, squads, invites, and member removal flow.
+ * Manages club data, feed, members, club activities, squads, invites, and member removal flow.
  */
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Share } from 'react-native';
@@ -11,20 +11,21 @@ import { useToast } from '@/components/ui/toast';
 import { createLogger } from '@/utils/logger';
 import type {
   Club,
+  ClubActivity,
+  ClubEvent,
   ClubFeedPost,
   ClubMembership,
   ClubSquad,
-  SessionOffering,
+  GroupSession,
   ClubInvite,
-  ClubEvent,
 } from '@/constants/types';
 import { clubService, type ClubMember, type MemberRemovalReason } from '@/services/club-service';
 import { eventService } from '@/services/event-service';
+import { groupSessionService } from '@/services/group-session-service';
 import { squadService } from '@/services/squad-service';
 import { socialFeedService } from '@/services/social-feed-service';
-import { apiClient } from '@/services/api-client';
-import { STORAGE_KEYS } from '@/constants/storage-keys';
 import { onTyped, ServiceEvents } from '@/services/event-bus';
+import { buildClubActivities } from '@/utils/club-activity-projections';
 import { uiFeedback } from '@/services/ui-feedback';
 
 const logger = createLogger('ClubDetail');
@@ -79,10 +80,10 @@ export function useClubDetail(clubId: string | undefined) {
   const [membership, setMembership] = useState<ClubMembership | undefined>();
   const [feed, setFeed] = useState<ClubFeedPost[]>([]);
   const [feedFilter, setFeedFilter] = useState<FeedFilter>('all');
-  const [sessions, setSessions] = useState<SessionOffering[]>([]);
+  const [clubActivitySessions, setClubActivitySessions] = useState<GroupSession[]>([]);
   const [squads, setSquads] = useState<ClubSquad[]>([]);
   const [invites, setInvites] = useState<ClubInvite[]>([]);
-  const [upcomingEvents, setUpcomingEvents] = useState<ClubEvent[]>([]);
+  const [clubEvents, setClubEvents] = useState<ClubEvent[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
 
@@ -96,13 +97,18 @@ export function useClubDetail(clubId: string | undefined) {
     membership && ['OWNER', 'HEAD_COACH', 'ADMIN', 'COACH'].includes(membership.role);
   const canCreatePosts = !!membership;
   const canRemoveMembers = membership && clubService.canRemoveMembers(membership.role);
+  const clubActivities = useMemo<ClubActivity[]>(
+    () => buildClubActivities({ events: clubEvents, sessions: clubActivitySessions }),
+    [clubEvents, clubActivitySessions],
+  );
 
   const loadClubData = useCallback(async () => {
     setLoading(true);
     if (!clubId) {
       setClub(undefined);
       setMembership(undefined);
-      setSessions([]);
+      setClubActivitySessions([]);
+      setClubEvents([]);
       setSquads([]);
       setInvites([]);
       setLoading(false);
@@ -119,12 +125,7 @@ export function useClubDetail(clubId: string | undefined) {
         setMembership(undefined);
       }
 
-      const [offerings, clubSquads] = await Promise.all([
-        apiClient.get<SessionOffering[]>(STORAGE_KEYS.SESSION_OFFERINGS, []),
-        squadService.getSquads(clubId),
-      ]);
-
-      setSessions(offerings.filter((offering) => offering.clubId === clubId));
+      const [clubSquads] = await Promise.all([squadService.getSquads(clubId)]);
       setSquads(clubSquads);
       setInvites(buildClubInvites(clubData));
     } catch (error) {
@@ -152,13 +153,24 @@ export function useClubDetail(clubId: string | undefined) {
     }
   }, [clubId]);
 
-  const loadEvents = useCallback(async () => {
-    if (!clubId) return;
+  const loadClubActivities = useCallback(async () => {
+    if (!clubId) {
+      setClubActivitySessions([]);
+      setClubEvents([]);
+      return;
+    }
+
     try {
-      const events = await eventService.getUpcomingEvents(clubId);
-      setUpcomingEvents(events);
+      const [sessions, events] = await Promise.all([
+        groupSessionService.getClubActivitySessions(clubId),
+        eventService.getUpcomingEvents(clubId),
+      ]);
+      setClubActivitySessions(sessions);
+      setClubEvents(events);
     } catch (error) {
-      logger.error('Failed to load events', error);
+      logger.error('Failed to load club activities', error);
+      setClubActivitySessions([]);
+      setClubEvents([]);
     }
   }, [clubId]);
 
@@ -168,8 +180,8 @@ export function useClubDetail(clubId: string | undefined) {
   useEffect(() => {
     loadFeed();
     void loadMembers();
-    void loadEvents();
-  }, [loadFeed, loadMembers, loadEvents]);
+    void loadClubActivities();
+  }, [loadFeed, loadMembers, loadClubActivities]);
 
   useEffect(() => {
     const unsub = onTyped(ServiceEvents.CLUB_MEMBER_LEFT, (payload) => {
@@ -178,13 +190,21 @@ export function useClubDetail(clubId: string | undefined) {
     return unsub;
   }, [clubId, loadMembers]);
 
+  useEffect(() => {
+    const unsub = onTyped(ServiceEvents.OPEN_SESSION_PUBLISHED, () => {
+      void loadClubActivities();
+      loadFeed();
+    });
+    return unsub;
+  }, [loadClubActivities, loadFeed]);
+
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
     await loadClubData();
     loadFeed();
-    await Promise.all([loadMembers(), loadEvents()]);
+    await Promise.all([loadMembers(), loadClubActivities()]);
     setRefreshing(false);
-  }, [loadClubData, loadFeed, loadMembers, loadEvents]);
+  }, [loadClubData, loadFeed, loadMembers, loadClubActivities]);
 
   const handlePinToggle = useCallback(
     (postId: string) => {
@@ -324,10 +344,11 @@ export function useClubDetail(clubId: string | undefined) {
     feed,
     feedFilter,
     setFeedFilter,
-    sessions,
+    clubActivities,
+    clubActivitySessions,
+    clubEvents,
     squads,
     invites,
-    upcomingEvents,
     loading,
     refreshing,
     members,

@@ -146,6 +146,18 @@ export type {
 } from './club-types';
 
 // ============================================================================
+// CLUB ACTIVITY TYPES
+// ============================================================================
+export type {
+  ClubActivity,
+  ClubActivityAccessScope,
+  ClubActivityKind,
+  ClubActivityParticipationMode,
+  ClubActivitySource,
+  ClubActivityStatus,
+} from './club-activity-types';
+
+// ============================================================================
 // SESSION TYPES
 // ============================================================================
 export type {

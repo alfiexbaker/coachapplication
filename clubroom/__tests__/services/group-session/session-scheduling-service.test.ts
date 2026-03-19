@@ -18,6 +18,13 @@ describe('sessionSchedulingService', () => {
     });
   });
 
+  describe('getClubActivitySessions', () => {
+    test('returns array of club-linked group sessions', async () => {
+      const sessions = await sessionSchedulingService.getClubActivitySessions('club_1');
+      assert.ok(Array.isArray(sessions));
+    });
+  });
+
   describe('getSquadTrainingSessions', () => {
     test('returns array of training sessions', async () => {
       const sessions = await sessionSchedulingService.getSquadTrainingSessions('squad_1');
