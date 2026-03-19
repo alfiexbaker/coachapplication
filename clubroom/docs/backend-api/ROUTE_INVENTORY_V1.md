@@ -62,6 +62,8 @@ Status legend:
 | `/v1/clubs` | `GET/POST` | `planned` | `Club*` | authenticated / `club_admin` create | `app/(tabs)/club-hub.tsx` |
 | `/v1/clubs/:clubId/memberships` | `GET/POST/PATCH` | `planned` | `ClubMembership*` | `club_admin` | club/admin UIs |
 | `/v1/clubs/:clubId/squads` | `GET/POST/PATCH` | `planned` | `Squad*` | `club_admin` or owner coach | `app/squads/*` |
+| `/v1/clubs/:clubId/schedule` | `GET` | `planned` | `ClubScheduleResponse` | club-scoped visibility via membership, assignment, public visibility, or linked participant access | `app/club/[id].tsx`, `app/(tabs)/club-hub.tsx`, future `/schedule` route |
+| `/v1/clubs/:clubId/schedule/:activityId` | `GET` | `planned` | `ClubActivityDetailResponse` | same as schedule list plus item-level visibility gates | future club schedule detail shell |
 | `/v1/coaches/me/verifications/:type/documents` | `POST` | `planned` | `UploadVerificationDocument*` | coach self | `app/verification/*` |
 
 ## Booking / Group Sessions / Invites / Events

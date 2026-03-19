@@ -480,6 +480,131 @@ Current limitation:
 - this is acceptable at storage level for now
 - it is not acceptable at product-language level
 
+### How this should fit the `/v1` API
+
+`Schedule` should be a first-party read model served by Clubroom, not a direct view over third-party systems.
+
+That means:
+
+- the app should talk to Clubroom `/v1`, not directly to Stripe, calendar vendors, messaging vendors, or football-data vendors
+- `/v1/clubs/:clubId/schedule` should become the canonical list read for club-facing schedule
+- `/v1/clubs/:clubId/schedule/:activityId` should become the canonical detail read for the shared schedule item
+- write flows can remain subtype-specific at first
+  - events stay event-shaped
+  - training stays group-session-shaped
+  - matches stay match-shaped
+- `ClubActivity` should carry:
+  - `sourceKind`
+  - `sourceId`
+  - `clubId`
+  - `squadId?`
+  - participation summary
+  - commerce summary
+  - `externalRefs` for payment, calendar, media, or football-data links
+
+The important boundary:
+
+- third parties can power delivery, enrichment, or settlement
+- Clubroom must still own the football graph and the user-visible contract
+
+### What Clubroom must own outright
+
+These are core product truth and should stay first-party:
+
+- club graph
+  - clubs, squads, memberships, assignment, governance, delegation
+- schedule graph
+  - `ClubActivity`, source mapping, filters, visibility, ordering, schedule detail
+- participation truth
+  - RSVP, registration, availability, lineup, attendance, waitlist, reminder eligibility
+- commerce truth
+  - who is selling, who is paying, what the user bought, what activity it belongs to
+- marketplace proof
+  - reviews, results, progress-linked proof, trust markers
+- trust-sensitive data
+  - family, medical, consent, safeguarding, invite authority, audit log
+- home ranking and personalization
+  - followed graph, relevance ranking, club and squad storyline
+
+If any of these live primarily in a vendor, Clubroom turns into a thin shell instead of a durable product.
+
+### What we should piggyback on
+
+Clubroom should use managed providers where the problem is infrastructure, not product differentiation.
+
+- payments and payouts
+  - use [Stripe Connect](https://docs.stripe.com/connect) behind `/v1`
+  - good fit for coach payouts, club-owned commerce, and platform settlement
+  - Clubroom should still own offer, booking, activity, invoice, and refund semantics
+- push delivery
+  - use [OneSignal React Native SDK](https://documentation.onesignal.com/docs/en/react-native-sdk-setup) or equivalent behind a notification domain
+  - Clubroom should still own notification preferences, trigger rules, and activity links
+- transactional email
+  - use [Resend API](https://resend.com/docs/api-reference/) or equivalent behind `/v1/notifications`
+  - keep templates, audit state, and support ownership in Clubroom
+- SMS and WhatsApp reminders
+  - use [Twilio Messaging](https://www.twilio.com/docs/messaging) if launch channels require it
+  - note: US delivery adds A2P and toll-free verification overhead, so this is not "free"
+- calendar export and sync
+  - use [Google Calendar API](https://developers.google.com/calendar/api/guides/overview) and [Apple EventKit](https://developer.apple.com/documentation/eventkit/ekeventstore)
+  - this should be export or sync, not the system of record
+- video ingestion and playback prep
+  - use [Mux Direct Uploads](https://www.mux.com/docs/guides/upload-files-directly) or signed object uploads such as [Amazon S3 presigned URLs](https://docs.aws.amazon.com/AmazonS3/latest/userguide/using-presigned-url.html)
+  - Clubroom should still own who can see the media, what activity it belongs to, and what recap it supports
+- public football data enrichment
+  - use [football-data.org](https://www.football-data.org/docs/v2/index.html) for launch-grade fixtures and standings if coverage is sufficient
+  - move to a richer provider only if home and match surfaces require more depth than it gives
+- identity proofing and B2B login
+  - an external IdP such as [Auth0 Organizations](https://auth0.com/docs/manage-users/organizations) can help with login and organization-aware sessions
+  - Clubroom should still own club roles, assignment, grants, and resource-level authz
+
+### Where piggybacking is smart versus dangerous
+
+Smart:
+
+- settlement
+- message delivery
+- calendar export
+- media upload/transcode
+- public football-data enrichment
+- login infrastructure
+
+Dangerous:
+
+- club permissions
+- attendance and selection truth
+- schedule identity
+- invite and booking authority
+- reviews and proof
+- family and safeguarding records
+- home ranking and club storyline
+
+### Launch integration shape
+
+For first launch, the clean integration split is:
+
+- build first-party:
+  - `Schedule`
+  - event workspace
+  - booking and invite authority
+  - reviews and proof
+  - progress and recap links
+  - club and football home ranking
+- piggyback behind `/v1`:
+  - Stripe for payment settlement
+  - OneSignal for push delivery
+  - Resend for email
+  - optional Twilio for SMS reminders
+  - calendar export to Apple and Google
+  - football-data provider for public fixtures and standings
+
+Do not make the launch depend on:
+
+- third-party community software
+- third-party org/permission logic
+- a vendor-owned schedule model
+- external chat as the backbone of club operations
+
 ## 3. Split the product cleanly by intent
 
 The product should feel intentional:
