@@ -91,7 +91,32 @@ export const ParentValueSummary = memo(function ParentValueSummary({
   return (
     <SurfaceCard style={styles.card}>
       <Column gap="sm">
-        <ThemedText style={styles.title}>{monthTitle ? `${monthTitle} Summary` : 'This Month'}</ThemedText>
+        <Row align="center" justify="between" gap="xs" wrap>
+          <ThemedText style={styles.title}>
+            {monthTitle ? `${monthTitle} Summary` : 'This Month'}
+          </ThemedText>
+          {onShare ? (
+            <Clickable
+              style={[
+                styles.headerAction,
+                {
+                  backgroundColor: withAlpha(colors.success, 0.1),
+                  borderColor: withAlpha(colors.success, 0.25),
+                },
+              ]}
+              onPress={onShare}
+              accessibilityLabel="Share progress report"
+              accessibilityRole="button"
+            >
+              <Row align="center" justify="center" gap="xxs">
+                <Ionicons name="share-outline" size={14} color={colors.success} />
+                <ThemedText style={[styles.headerActionText, { color: colors.success }]}>
+                  Share
+                </ThemedText>
+              </Row>
+            </Clickable>
+          ) : null}
+        </Row>
 
         {photoUris.length > 0 ? (
           <ScrollView
@@ -158,24 +183,6 @@ export const ParentValueSummary = memo(function ParentValueSummary({
           </>
         ) : null}
 
-        {onShare ? (
-          <Row gap="xs">
-            <Clickable
-              style={[styles.actionButton, { backgroundColor: withAlpha(colors.success, 0.1), borderColor: withAlpha(colors.success, 0.25) }]}
-              onPress={onShare}
-              accessibilityLabel="Share progress report"
-              accessibilityRole="button"
-            >
-              <Row align="center" justify="center" gap="xxs">
-                <Ionicons name="share-outline" size={16} color={colors.success} />
-                <ThemedText style={[styles.actionButtonText, { color: colors.success }]}>
-                  Share
-                </ThemedText>
-              </Row>
-            </Clickable>
-          </Row>
-        ) : null}
-
         {showHighlights ? (
           <>
             <View style={[styles.divider, { backgroundColor: withAlpha(colors.border, 0.9) }]} />
@@ -222,6 +229,18 @@ const styles = StyleSheet.create({
   },
   title: {
     ...Typography.subheading,
+    flexShrink: 1,
+  },
+  headerAction: {
+    minHeight: 32,
+    borderRadius: Radii.pill,
+    borderWidth: 1,
+    justifyContent: 'center',
+    paddingHorizontal: Spacing.xs,
+  },
+  headerActionText: {
+    ...Typography.caption,
+    fontWeight: '600',
   },
   photoStrip: {
     gap: Spacing.xs,
@@ -273,17 +292,5 @@ const styles = StyleSheet.create({
   },
   highlightsFooter: {
     ...Typography.bodySmallSemiBold,
-  },
-  actionButton: {
-    flex: 1,
-    minHeight: 36,
-    borderRadius: Radii.sm,
-    borderWidth: 1,
-    justifyContent: 'center',
-    paddingHorizontal: Spacing.xs,
-  },
-  actionButtonText: {
-    ...Typography.caption,
-    fontWeight: '600',
   },
 });

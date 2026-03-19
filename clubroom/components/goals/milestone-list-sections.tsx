@@ -21,7 +21,7 @@ import Animated, {
 
 import { ThemedText } from '@/components/themed-text';
 import { Clickable } from '@/components/primitives/clickable';
-import { Spacing, Radii } from '@/constants/theme';
+import { Spacing, Radii, withAlpha } from '@/constants/theme';
 import type { GoalMilestone } from '@/constants/types';
 import { useTheme } from '@/hooks/useTheme';
 import { scaleFont } from '@/utils/scale';
@@ -102,8 +102,14 @@ export const MilestoneItem = memo(function MilestoneItem({
         accessibilityState={{ selected: milestone.isCompleted, disabled: !editable || loading }}
       >
         {showCelebrate ? (
-          <View style={styles.celebrateBubble} pointerEvents="none">
-            <ThemedText style={styles.celebrateEmoji}>🎉</ThemedText>
+          <View
+            style={[
+              styles.celebrateBubble,
+              { backgroundColor: withAlpha(palette.success, 0.12) },
+            ]}
+            pointerEvents="none"
+          >
+            <Ionicons name="sparkles-outline" size={14} color={palette.success} />
           </View>
         ) : null}
         <View
@@ -234,9 +240,11 @@ const styles = StyleSheet.create({
     top: -6,
     right: Spacing.sm,
     zIndex: 2,
-  },
-  celebrateEmoji: {
-    fontSize: scaleFont(18),
+    width: 22,
+    height: 22,
+    borderRadius: Radii.pill,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   compactContainer: {
     gap: Spacing.xxs,

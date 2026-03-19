@@ -82,7 +82,7 @@ class NotificationSenderService {
       type: 'booking',
       notificationType: 'BOOKING_RECEIVED',
       title: 'New Booking',
-      body: `📅 New booking from ${params.parentName} for ${params.childName} on ${params.date}`,
+      body: `New booking from ${params.parentName} for ${params.childName} on ${params.date}`,
       recipientId: params.coachId,
       recipientRole: 'coach',
       deepLink: `/bookings/${params.bookingId}`,
@@ -105,8 +105,8 @@ class NotificationSenderService {
   }): Promise<Result<void, ServiceError>> {
     const body =
       params.childName && params.isMultiChild
-        ? `❌ ${params.parentName} cancelled ${params.childName}'s booking for ${params.date}`
-        : `❌ ${params.parentName} cancelled booking for ${params.date}`;
+        ? `${params.parentName} cancelled ${params.childName}'s booking for ${params.date}`
+        : `${params.parentName} cancelled booking for ${params.date}`;
     return this.send({
       id: `notif_cancel_${Date.now()}`,
       type: 'booking',
@@ -132,7 +132,7 @@ class NotificationSenderService {
       type: 'booking',
       notificationType: 'SESSION_INVITE_RESPONSE',
       title: 'Invite Accepted',
-      body: `✅ ${params.parentName} accepted session invite for ${params.childName}`,
+      body: `${params.parentName} accepted session invite for ${params.childName}`,
       recipientId: params.coachId,
       recipientRole: 'coach',
       deepLink: `/session-invites/${params.inviteId}`,
@@ -152,8 +152,8 @@ class NotificationSenderService {
     inviteId: string;
   }): Promise<Result<void, ServiceError>> {
     const body = params.childName
-      ? `❌ ${params.parentName} declined session invite for ${params.childName}`
-      : `❌ ${params.parentName} declined session invite`;
+      ? `${params.parentName} declined session invite for ${params.childName}`
+      : `${params.parentName} declined session invite`;
     return this.send({
       id: `notif_invite_decline_${Date.now()}`,
       type: 'booking',
@@ -178,7 +178,7 @@ class NotificationSenderService {
       type: 'message',
       notificationType: 'MESSAGE_RECEIVED',
       title: 'New Message',
-      body: `💬 New message from ${params.parentName}`,
+      body: `New message from ${params.parentName}`,
       recipientId: params.coachId,
       recipientRole: 'coach',
       deepLink: `/chat/${params.threadId}`,
@@ -198,7 +198,7 @@ class NotificationSenderService {
       type: 'review',
       notificationType: 'REVIEW_RECEIVED',
       title: 'New Review',
-      body: `⭐ ${params.parentName} left a ${params.rating}-star review`,
+      body: `${params.parentName} left a ${params.rating}-star review`,
       recipientId: params.coachId,
       recipientRole: 'coach',
       deepLink: `/review/${params.reviewId}`,
@@ -221,7 +221,7 @@ class NotificationSenderService {
       type: 'reminder',
       notificationType: 'SESSION_REMINDER',
       title: 'Session Reminder',
-      body: `⏰ Session with ${params.athleteName} in 1 hour`,
+      body: `Session with ${params.athleteName} in 1 hour`,
       recipientId: params.coachId,
       recipientRole: 'coach',
       deepLink: `/bookings/${params.bookingId}`,
@@ -277,8 +277,8 @@ class NotificationSenderService {
   }): Promise<Result<void, ServiceError>> {
     const body =
       params.childName && params.isMultiChild
-        ? `✅ ${params.childName}'s booking confirmed with Coach ${params.coachName} for ${params.date}`
-        : `✅ Booking confirmed with Coach ${params.coachName} for ${params.date}`;
+        ? `${params.childName}'s booking confirmed with Coach ${params.coachName} for ${params.date}`
+        : `Booking confirmed with Coach ${params.coachName} for ${params.date}`;
     return this.send({
       id: `notif_confirm_${Date.now()}`,
       type: 'booking',
@@ -330,7 +330,7 @@ class NotificationSenderService {
       type: 'booking',
       notificationType: 'SESSION_INVITE',
       title: 'Session Invite',
-      body: `📩 Coach ${params.coachName} invited ${params.childName} to a session`,
+      body: `Coach ${params.coachName} invited ${params.childName} to a session`,
       recipientId: params.parentId,
       recipientRole: 'parent',
       deepLink: `/session-invites/${params.inviteId}`,
@@ -355,7 +355,7 @@ class NotificationSenderService {
       type: 'badge',
       notificationType: 'BADGE_AWARDED',
       title: 'Badge Earned',
-      body: `🏅 ${params.childName} earned ${params.badgeName} from Coach ${params.coachName}`,
+      body: `${params.childName} earned ${params.badgeName} from Coach ${params.coachName}`,
       badgeTitle: params.badgeName,
       athleteName: params.childName,
       badgeAwardId: params.badgeAwardId,
@@ -383,7 +383,7 @@ class NotificationSenderService {
       type: 'review',
       notificationType: 'REVIEW_RECEIVED',
       title: 'Session Feedback',
-      body: `📝 Coach ${params.coachName} added feedback for ${params.childName}'s session`,
+      body: `Coach ${params.coachName} added feedback for ${params.childName}'s session`,
       recipientId: params.parentId,
       recipientRole: 'parent',
       deepLink: `/bookings/${params.bookingId}`,
@@ -406,7 +406,7 @@ class NotificationSenderService {
       type: 'message',
       notificationType: 'MESSAGE_RECEIVED',
       title: 'New Message',
-      body: `💬 New message from Coach ${params.coachName}`,
+      body: `New message from Coach ${params.coachName}`,
       recipientId: params.parentId,
       recipientRole: 'parent',
       deepLink: `/chat/${params.threadId}`,
@@ -426,7 +426,7 @@ class NotificationSenderService {
       type: 'reminder',
       notificationType: 'SESSION_REMINDER',
       title: 'Session Reminder',
-      body: `⏰ ${params.childName}'s session with Coach ${params.coachName} in 1 hour`,
+      body: `${params.childName}'s session with Coach ${params.coachName} in 1 hour`,
       recipientId: params.parentId,
       recipientRole: 'parent',
       deepLink: `/bookings/${params.bookingId}`,
@@ -450,7 +450,7 @@ class NotificationSenderService {
       type: 'message',
       notificationType: 'MESSAGE_RECEIVED',
       title: 'Club Update',
-      body: `📢 New post in ${params.clubName}`,
+      body: `New post in ${params.clubName}`,
       recipientId: params.parentId,
       recipientRole: 'parent',
       deepLink: `/club-hub`,

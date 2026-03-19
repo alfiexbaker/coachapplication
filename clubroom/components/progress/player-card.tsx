@@ -28,32 +28,38 @@ import { isDemoMode } from '@/utils/demo-mode';
 interface TierConfig {
   gradient: [string, string];
   accent: string;
+  overlay: string;
 }
 
 interface PlayerCardProps {
   data: PlayerCardData;
 }
 
-const TIER_CONFIG: Record<CardTier, TierConfig> = {
+export const PLAYER_CARD_TIER_CONFIG: Record<CardTier, TierConfig> = {
   bronze: {
-    gradient: ['#3D1C00', '#B87333'],
-    accent: '#B87333',
+    gradient: ['#101A2E', '#2A425B'],
+    accent: '#C9904E',
+    overlay: '#08101D',
   },
   silver: {
-    gradient: ['#1C1C24', '#7A7A88'],
-    accent: '#7A7A88',
+    gradient: ['#0F1A2E', '#32475D'],
+    accent: '#A5B4C3',
+    overlay: '#08101D',
   },
   gold: {
-    gradient: ['#3D2600', '#D4A420'],
-    accent: '#D4A420',
+    gradient: ['#111B30', '#2D445F'],
+    accent: '#D9B160',
+    overlay: '#08111D',
   },
   platinum: {
-    gradient: ['#1A1A2E', '#4A90D9'],
-    accent: '#4A90D9',
+    gradient: ['#0D1930', '#245071'],
+    accent: '#69ABE4',
+    overlay: '#07101C',
   },
   diamond: {
-    gradient: ['#0F0F23', '#E040FB'],
-    accent: '#E040FB',
+    gradient: ['#0E192C', '#20556A'],
+    accent: '#78D5DB',
+    overlay: '#06101A',
   },
 };
 
@@ -74,7 +80,7 @@ export const PlayerCard = memo(function PlayerCard({ data }: PlayerCardProps) {
   const isFlippingRef = useRef(false);
   const compact = viewportWidth <= 375;
 
-  const tierConfig = TIER_CONFIG[data.tier];
+  const tierConfig = PLAYER_CARD_TIER_CONFIG[data.tier];
 
   const gradientUri = useMemo(
     () => buildLinearGradientUri(tierConfig.gradient, Radii.xl),
@@ -212,6 +218,9 @@ export const PlayerCard = memo(function PlayerCard({ data }: PlayerCardProps) {
               style={[
                 styles.cardFrame,
                 compact ? styles.cardFrameCompact : styles.cardFrameRegular,
+                {
+                  borderColor: withAlpha(tierConfig.accent, scheme === 'dark' ? 0.28 : 0.16),
+                },
               ]}
             >
               <Image source={{ uri: gradientUri }} style={StyleSheet.absoluteFill} contentFit="cover" />
@@ -231,7 +240,7 @@ export const PlayerCard = memo(function PlayerCard({ data }: PlayerCardProps) {
                 pointerEvents="none"
                 style={[
                   styles.innerBorder,
-                  { borderColor: withAlpha(tierConfig.accent, 0.12) },
+                  { borderColor: withAlpha('#FFFFFF', 0.08) },
                 ]}
               />
 
@@ -240,6 +249,7 @@ export const PlayerCard = memo(function PlayerCard({ data }: PlayerCardProps) {
                   data={data}
                   tier={data.tier}
                   tierAccent={tierConfig.accent}
+                  tierOverlay={tierConfig.overlay}
                   compact={compact}
                 />
                 {demoMode ? (
@@ -250,7 +260,12 @@ export const PlayerCard = memo(function PlayerCard({ data }: PlayerCardProps) {
               </AnimatedView>
 
               <AnimatedView style={[styles.face, styles.backFace, backStyle]}>
-                <PlayerCardBack data={data} tierAccent={tierConfig.accent} compact={compact} />
+                <PlayerCardBack
+                  data={data}
+                  tierAccent={tierConfig.accent}
+                  tierOverlay={tierConfig.overlay}
+                  compact={compact}
+                />
               </AnimatedView>
             </View>
           </Clickable>
@@ -277,7 +292,6 @@ const styles = StyleSheet.create({
     borderRadius: Radii.xl,
     overflow: 'hidden',
     borderWidth: 1,
-    borderColor: withAlpha('#FFFFFF', 0.24),
   },
   cardFrameCompact: {
     minHeight: 300,

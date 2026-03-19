@@ -134,38 +134,49 @@ export const ChildBadgeCard = memo(function ChildBadgeCard({
       <Row
         align="center"
         justify="space-between"
+        wrap
         style={[styles.footer, { borderTopColor: colors.border }]}
       >
-        <Row gap="xs" align="center">
+        <Row gap="xs" align="center" style={styles.footerMeta}>
           <Ionicons name="person" size={14} color={colors.icon} />
           <ThemedText style={[Typography.small, { color: colors.muted }]}>
             Awarded by Coach {award.coachId || 'Coach'}
           </ThemedText>
         </Row>
-        <ThemedText style={[Typography.caption, { color: colors.muted }]}>
-          {formatDate(award.awardedAt)}
-        </ThemedText>
-      </Row>
-
-      {/* Share */}
-      {!award.shared ? (
-        <Clickable
-          onPress={handleShare}
-          style={[styles.shareButton, { backgroundColor: colors.tint }]}
-        >
-          <Ionicons name="share-social" size={16} color={colors.onPrimary} />
-          <ThemedText style={[Typography.bodySmallSemiBold, { color: colors.onPrimary }]}>
-            Share to Feed
+        <Row gap="xs" align="center" wrap style={styles.footerActions}>
+          <ThemedText style={[Typography.caption, { color: colors.muted }]}>
+            {formatDate(award.awardedAt)}
           </ThemedText>
-        </Clickable>
-      ) : (
-        <Row style={[styles.sharedIndicator, { backgroundColor: withAlpha(colors.success, 0.09) }]}>
-          <Ionicons name="checkmark-circle" size={14} color={colors.success} />
-          <ThemedText style={[Typography.smallSemiBold, { color: colors.success }]}>
-            Shared to feed
-          </ThemedText>
+          {!award.shared ? (
+            <Clickable
+              onPress={handleShare}
+              style={[
+                styles.inlineShareButton,
+                {
+                  backgroundColor: withAlpha(colors.tint, 0.1),
+                  borderColor: withAlpha(colors.tint, 0.24),
+                },
+              ]}
+              accessibilityLabel="Share badge to updates"
+              accessibilityRole="button"
+            >
+              <Row align="center" justify="center" gap="xxs">
+                <Ionicons name="share-outline" size={14} color={colors.tint} />
+                <ThemedText style={[Typography.caption, styles.inlineShareText, { color: colors.tint }]}>
+                  Share to Updates
+                </ThemedText>
+              </Row>
+            </Clickable>
+          ) : (
+            <Row style={[styles.sharedIndicator, { backgroundColor: withAlpha(colors.success, 0.09) }]}>
+              <Ionicons name="checkmark-circle" size={14} color={colors.success} />
+              <ThemedText style={[Typography.smallSemiBold, { color: colors.success }]}>
+                Shared to updates
+              </ThemedText>
+            </Row>
+          )}
         </Row>
-      )}
+      </Row>
     </SurfaceCard>
   );
 });
@@ -193,19 +204,31 @@ const styles = StyleSheet.create({
     borderRadius: Radii.sm,
   },
   noteSection: { padding: Spacing.sm, borderRadius: Radii.md, borderWidth: 1, gap: Spacing.xs },
-  footer: { paddingTop: Spacing.sm, borderTopWidth: 1 },
-  shareButton: {
+  footer: { paddingTop: Spacing.sm, borderTopWidth: 1, gap: Spacing.sm },
+  footerMeta: {
+    flexShrink: 1,
+  },
+  footerActions: {
+    justifyContent: 'flex-end',
+    flexShrink: 1,
+  },
+  inlineShareButton: {
     alignItems: 'center',
     justifyContent: 'center',
-    gap: Spacing.xs,
-    paddingVertical: Spacing.sm,
-    borderRadius: Radii.md,
+    minHeight: 32,
+    paddingHorizontal: Spacing.xs,
+    borderRadius: Radii.pill,
+    borderWidth: 1,
+  },
+  inlineShareText: {
+    fontWeight: '600',
   },
   sharedIndicator: {
     alignItems: 'center',
     justifyContent: 'center',
-    gap: Spacing.xs,
-    paddingVertical: Spacing.sm,
-    borderRadius: Radii.md,
+    gap: Spacing.xxs,
+    paddingHorizontal: Spacing.xs,
+    minHeight: 32,
+    borderRadius: Radii.pill,
   },
 });

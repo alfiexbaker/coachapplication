@@ -15,6 +15,7 @@ import { StreakVisual } from './streak-visual';
 interface PlayerCardBackProps {
   data: PlayerCardData;
   tierAccent: string;
+  tierOverlay: string;
   compact?: boolean;
 }
 
@@ -39,6 +40,7 @@ function nextStreakMilestone(currentWeeks: number): number {
 export const PlayerCardBack = memo(function PlayerCardBack({
   data,
   tierAccent,
+  tierOverlay,
   compact = false,
 }: PlayerCardBackProps) {
   const { colors } = useTheme();
@@ -55,8 +57,8 @@ export const PlayerCardBack = memo(function PlayerCardBack({
   );
   const textColor = colors.onPrimary;
   const softText = withAlpha(textColor, 0.86);
-  const statBackground = withAlpha(textColor, 0.18);
-  const infoBackground = withAlpha(textColor, 0.1);
+  const statBackground = withAlpha(textColor, 0.14);
+  const infoBackground = withAlpha(textColor, 0.08);
   const statRows: { id: string; icon: keyof typeof Ionicons.glyphMap; label: string; value: string }[][] = [
     [
       { id: 'sessions', icon: 'calendar-outline', label: 'Sessions', value: String(data.totalSessions) },
@@ -74,7 +76,12 @@ export const PlayerCardBack = memo(function PlayerCardBack({
         <Image source={{ uri: data.latestPhotoUri }} style={StyleSheet.absoluteFill} blurRadius={20} />
       ) : null}
 
-      <View style={[styles.overlay, { backgroundColor: withAlpha(tierAccent, compact ? 0.72 : 0.68) }]} />
+      <View
+        style={[
+          styles.overlay,
+          { backgroundColor: withAlpha(tierOverlay, compact ? 0.84 : 0.8) },
+        ]}
+      />
 
       <Column flex style={[styles.content, compact ? styles.contentCompact : undefined]} gap="sm">
         <Column gap="micro">
@@ -146,7 +153,7 @@ export const PlayerCardBack = memo(function PlayerCardBack({
           </Column>
         ) : null}
 
-        <View style={[styles.streakPanel, { backgroundColor: withAlpha(tierAccent, 0.2) }]}>
+        <View style={[styles.streakPanel, { backgroundColor: withAlpha(tierAccent, 0.14) }]}>
           <StreakVisual currentWeeks={data.streakWeeks} nextMilestone={nextMilestone} />
         </View>
 

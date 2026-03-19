@@ -22,6 +22,7 @@ interface PlayerCardFrontProps {
   data: PlayerCardData;
   tier: CardTier;
   tierAccent: string;
+  tierOverlay: string;
   compact?: boolean;
 }
 
@@ -81,6 +82,7 @@ export const PlayerCardFront = memo(function PlayerCardFront({
   data,
   tier,
   tierAccent,
+  tierOverlay,
   compact = false,
 }: PlayerCardFrontProps) {
   const { colors } = useTheme();
@@ -88,8 +90,8 @@ export const PlayerCardFront = memo(function PlayerCardFront({
   const initials = useMemo(() => getInitials(data.name), [data.name]);
   const textColor = colors.onPrimary;
   const softText = withAlpha(textColor, 0.86);
-  const badgeBackground = withAlpha(textColor, 0.2);
-  const photoOverlayOpacity = data.latestPhotoUri ? (compact ? 0.72 : 0.68) : 0.18;
+  const badgeBackground = withAlpha(tierAccent, 0.18);
+  const photoOverlayOpacity = data.latestPhotoUri ? (compact ? 0.84 : 0.8) : 0.22;
   const shimmerX = useSharedValue(-160);
   const shimmerEnabled = tier === 'gold' || tier === 'platinum' || tier === 'diamond';
 
@@ -125,7 +127,7 @@ export const PlayerCardFront = memo(function PlayerCardFront({
         <Image source={{ uri: data.latestPhotoUri }} style={StyleSheet.absoluteFill} blurRadius={20} />
       ) : null}
 
-      <View style={[styles.overlay, { backgroundColor: withAlpha(tierAccent, photoOverlayOpacity) }]} />
+      <View style={[styles.overlay, { backgroundColor: withAlpha(tierOverlay, photoOverlayOpacity) }]} />
       {shimmerEnabled ? (
         <Animated.View pointerEvents="none" style={[styles.shimmer, shimmerStyle]} />
       ) : null}
@@ -182,7 +184,7 @@ export const PlayerCardFront = memo(function PlayerCardFront({
                 height: avatarSize,
                 borderRadius: avatarSize / 2,
                 backgroundColor: withAlpha(textColor, 0.12),
-                borderColor: withAlpha(tierAccent, 0.7),
+                borderColor: withAlpha(tierAccent, 0.4),
               },
             ]}
           >
@@ -237,7 +239,7 @@ export const PlayerCardFront = memo(function PlayerCardFront({
             {
               backgroundColor: withAlpha(textColor, 0.12),
               borderWidth: 1,
-              borderColor: withAlpha(textColor, 0.18),
+              borderColor: withAlpha(tierAccent, 0.2),
             },
           ]}
         >

@@ -131,110 +131,119 @@ export const BadgeDetailModal = memo(function BadgeDetailModal({
         <Animated.View style={[styles.captureWrap, panelStyle]}>
           <View ref={captureRef} collapsable={false} style={styles.captureInner}>
             <SurfaceCard style={styles.card}>
-            <Column gap="sm">
-              <Row align="center" justify="between">
-                <ThemedText style={styles.headerTitle}>Badge Details</ThemedText>
-                <Clickable
-                  style={styles.closeButton}
-                  onPress={onClose}
-                  accessibilityLabel="Close badge details"
-                  accessibilityRole="button"
-                >
-                  <Ionicons name="close" size={18} color={colors.muted} />
-                </Clickable>
-              </Row>
-
-              <Animated.View style={heroStyle}>
-                <Column
-                  gap="xxs"
-                  align="center"
-                  style={[
-                    styles.heroWrap,
-                    {
-                      borderColor: withAlpha(accent, 0.32),
-                      backgroundColor: panelBackground,
-                    },
-                  ]}
-                >
-                  <Row
-                    align="center"
-                    justify="center"
-                    style={[styles.heroIconWrap, { backgroundColor: withAlpha(accent, 0.2) }]}
-                  >
-                    <Ionicons
-                      name={badge.isUnlocked ? 'ribbon' : 'lock-closed'}
-                      size={24}
-                      color={badge.isUnlocked ? accent : colors.muted}
-                    />
-                  </Row>
-                  <ThemedText style={styles.title}>{badge.label}</ThemedText>
-                  <ThemedText style={[styles.subtitle, { color: colors.muted }]}>{subtitle}</ThemedText>
-                </Column>
-              </Animated.View>
-
-              <View style={[styles.divider, { backgroundColor: withAlpha(colors.border, 0.8) }]} />
-
-              {badge.isUnlocked ? (
-                <Column gap="xxs">
-                  <ThemedText style={styles.body}>Awarded to {athleteLabel}</ThemedText>
-                  <ThemedText style={[styles.body, { color: colors.muted }]}>
-                    Awarded by {badge.awardedBy ?? 'Coach'}
-                  </ThemedText>
-                  <ThemedText style={[styles.body, { color: colors.muted }]}>{earnedDate}</ThemedText>
-                  {badge.description ? (
-                    <ThemedText style={[styles.body, { color: colors.muted }]}>
-                      {badge.description}
-                    </ThemedText>
-                  ) : null}
-                </Column>
-              ) : (
-                <Column gap="xxs">
-                  <ThemedText style={styles.body}>How to earn</ThemedText>
-                  <ThemedText style={[styles.body, { color: colors.muted }]}>
-                    {badge.progressLabel}
-                  </ThemedText>
-
-                  <Column gap="micro">
-                    <ThemedText style={[styles.metaLabel, { color: colors.muted }]}>
-                      Progress {progress}%
-                    </ThemedText>
-                    <View style={[styles.progressTrack, { backgroundColor: withAlpha(colors.border, 0.35) }]}>
-                      <View
+              <Column gap="sm">
+                <Row align="center" justify="between">
+                  <ThemedText style={styles.headerTitle}>Badge Details</ThemedText>
+                  <Row align="center" gap="xs">
+                    {badge.isUnlocked ? (
+                      <Clickable
                         style={[
-                          styles.progressFill,
-                          { width: `${progress}%`, backgroundColor: accent },
+                          styles.headerAction,
+                          {
+                            backgroundColor: withAlpha(accent, 0.12),
+                            borderColor: withAlpha(accent, 0.24),
+                          },
                         ]}
-                      />
-                    </View>
-                  </Column>
-                </Column>
-              )}
-
-              <View style={[styles.divider, { backgroundColor: withAlpha(colors.border, 0.8) }]} />
-
-              <Column gap="xxs">
-                <ThemedText style={[styles.body, { color: colors.muted }]}>
-                  Worth: {badge.pointValue} points
-                </ThemedText>
-                <ThemedText style={[styles.body, { color: colors.muted }]}>
-                  Rarity: {rarity}% of athletes
-                </ThemedText>
-              </Column>
-
-              {badge.isUnlocked ? (
-                <Clickable
-                  style={[styles.shareButton, { backgroundColor: withAlpha(accent, 0.14) }]}
-                  onPress={handleShare}
-                  accessibilityLabel="Share badge"
-                  accessibilityRole="button"
-                >
-                  <Row align="center" justify="center" gap="xxs">
-                    <Ionicons name="share-social-outline" size={16} color={accent} />
-                    <ThemedText style={[styles.shareText, { color: accent }]}>Share Badge</ThemedText>
+                        onPress={handleShare}
+                        accessibilityLabel="Share badge"
+                        accessibilityRole="button"
+                      >
+                        <Row align="center" justify="center" gap="xxs">
+                          <Ionicons name="share-social-outline" size={14} color={accent} />
+                          <ThemedText style={[styles.headerActionText, { color: accent }]}>
+                            Share
+                          </ThemedText>
+                        </Row>
+                      </Clickable>
+                    ) : null}
+                    <Clickable
+                      style={styles.closeButton}
+                      onPress={onClose}
+                      accessibilityLabel="Close badge details"
+                      accessibilityRole="button"
+                    >
+                      <Ionicons name="close" size={18} color={colors.muted} />
+                    </Clickable>
                   </Row>
-                </Clickable>
-              ) : null}
-            </Column>
+                </Row>
+
+                <Animated.View style={heroStyle}>
+                  <Column
+                    gap="xxs"
+                    align="center"
+                    style={[
+                      styles.heroWrap,
+                      {
+                        borderColor: withAlpha(accent, 0.32),
+                        backgroundColor: panelBackground,
+                      },
+                    ]}
+                  >
+                    <Row
+                      align="center"
+                      justify="center"
+                      style={[styles.heroIconWrap, { backgroundColor: withAlpha(accent, 0.2) }]}
+                    >
+                      <Ionicons
+                        name={badge.isUnlocked ? 'ribbon' : 'lock-closed'}
+                        size={24}
+                        color={badge.isUnlocked ? accent : colors.muted}
+                      />
+                    </Row>
+                    <ThemedText style={styles.title}>{badge.label}</ThemedText>
+                    <ThemedText style={[styles.subtitle, { color: colors.muted }]}>{subtitle}</ThemedText>
+                  </Column>
+                </Animated.View>
+
+                <View style={[styles.divider, { backgroundColor: withAlpha(colors.border, 0.8) }]} />
+
+                {badge.isUnlocked ? (
+                  <Column gap="xxs">
+                    <ThemedText style={styles.body}>Awarded to {athleteLabel}</ThemedText>
+                    <ThemedText style={[styles.body, { color: colors.muted }]}>
+                      Awarded by {badge.awardedBy ?? 'Coach'}
+                    </ThemedText>
+                    <ThemedText style={[styles.body, { color: colors.muted }]}>{earnedDate}</ThemedText>
+                    {badge.description ? (
+                      <ThemedText style={[styles.body, { color: colors.muted }]}>
+                        {badge.description}
+                      </ThemedText>
+                    ) : null}
+                  </Column>
+                ) : (
+                  <Column gap="xxs">
+                    <ThemedText style={styles.body}>How to earn</ThemedText>
+                    <ThemedText style={[styles.body, { color: colors.muted }]}>
+                      {badge.progressLabel}
+                    </ThemedText>
+
+                    <Column gap="micro">
+                      <ThemedText style={[styles.metaLabel, { color: colors.muted }]}>
+                        Progress {progress}%
+                      </ThemedText>
+                      <View style={[styles.progressTrack, { backgroundColor: withAlpha(colors.border, 0.35) }]}>
+                        <View
+                          style={[
+                            styles.progressFill,
+                            { width: `${progress}%`, backgroundColor: accent },
+                          ]}
+                        />
+                      </View>
+                    </Column>
+                  </Column>
+                )}
+
+                <View style={[styles.divider, { backgroundColor: withAlpha(colors.border, 0.8) }]} />
+
+                <Column gap="xxs">
+                  <ThemedText style={[styles.body, { color: colors.muted }]}>
+                    Worth: {badge.pointValue} points
+                  </ThemedText>
+                  <ThemedText style={[styles.body, { color: colors.muted }]}>
+                    Rarity: {rarity}% of athletes
+                  </ThemedText>
+                </Column>
+              </Column>
             </SurfaceCard>
           </View>
         </Animated.View>
@@ -261,6 +270,17 @@ const styles = StyleSheet.create({
   },
   headerTitle: {
     ...Typography.bodySemiBold,
+  },
+  headerAction: {
+    minHeight: 32,
+    borderRadius: Radii.pill,
+    borderWidth: 1,
+    justifyContent: 'center',
+    paddingHorizontal: Spacing.xs,
+  },
+  headerActionText: {
+    ...Typography.caption,
+    fontWeight: '600',
   },
   closeButton: {
     width: 44,
@@ -306,14 +326,5 @@ const styles = StyleSheet.create({
   progressFill: {
     height: '100%',
     borderRadius: Radii.pill,
-  },
-  shareButton: {
-    minHeight: 44,
-    borderRadius: Radii.md,
-    justifyContent: 'center',
-    paddingHorizontal: Spacing.sm,
-  },
-  shareText: {
-    ...Typography.bodySmallSemiBold,
   },
 });

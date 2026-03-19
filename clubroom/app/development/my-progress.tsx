@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState, type ComponentRef } from 'react';
+import { useCallback, useEffect, useMemo, useRef, type ComponentRef } from 'react';
 import { RefreshControl, Share, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
@@ -15,6 +15,7 @@ import {
   CoachSaysCard,
   GoalsCompact,
   LevelUpCeremony,
+  PLAYER_CARD_TIER_CONFIG,
   PositionPentagon,
   PositionToggle,
   PlayerCard,
@@ -26,22 +27,13 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { Row } from '@/components/primitives/row';
 import { Spacing, Typography, withAlpha, Radii } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
-import type { CardTier } from '@/types/progress-types';
 import { useMyProgress } from '@/hooks/use-my-progress';
 import { useScrollAnimations, useSectionRevealStyle } from '@/hooks/use-scroll-animations';
 import { Routes } from '@/navigation/routes';
 import { onTyped, ServiceEvents } from '@/services/event-bus';
 import { progressTermlyReportService } from '@/services/progress/progress-termly-report-service';
-import { Clickable } from '@/components/primitives/clickable';
 import { uiFeedback } from '@/services/ui-feedback';
 
-const TIER_ACCENT: Record<CardTier, string> = {
-  bronze: '#B87333',
-  silver: '#7A7A88',
-  gold: '#D4A420',
-  platinum: '#4A90D9',
-  diamond: '#E040FB',
-};
 const DEFAULT_FEEDBACK_MEDIA_DIMENSION = 1080;
 
 export default function MyProgressScreen() {
@@ -143,6 +135,7 @@ export default function MyProgressScreen() {
   const isSelfSubject = Boolean(currentUser?.id && selectedAthleteId === currentUser.id);
   const showChildFocusCard = isParentContext && Boolean(selectedAthleteId);
   const pageTitle = isParentContext ? 'Progress' : 'My Progress';
+  const stageGlow = PLAYER_CARD_TIER_CONFIG[playerCard.tier].accent;
   const childFocusCard = showChildFocusCard ? (
     <View style={styles.childFocusWrap}>
       <View
@@ -509,7 +502,8 @@ export default function MyProgressScreen() {
           <View style={styles.cardStage}>
             <LinearGradient
               colors={[
-                withAlpha(TIER_ACCENT[playerCard.tier], scheme === 'dark' ? 0.10 : 0.06),
+                withAlpha(stageGlow, scheme === 'dark' ? 0.16 : 0.1),
+                withAlpha(stageGlow, scheme === 'dark' ? 0.05 : 0.03),
                 'transparent',
               ]}
               style={styles.cardStageGradient}
@@ -663,7 +657,7 @@ const styles = StyleSheet.create({
     top: 0,
     left: 0,
     right: 0,
-    height: 320,
+    height: 280,
   },
   pentagonCluster: {
     gap: Spacing.xs,

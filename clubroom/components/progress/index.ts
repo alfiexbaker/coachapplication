@@ -3,7 +3,7 @@ export { SkillLevelGrid } from './skill-level-grid';
 export { SessionFeedbackCard, FeedbackList } from './session-feedback-card';
 export { ProgressDashboard, ParentProgressSummary } from './progress-dashboard';
 export { PlayerCardPlaceholder } from './player-card-placeholder';
-export { PlayerCard } from './player-card';
+export { PlayerCard, PLAYER_CARD_TIER_CONFIG } from './player-card';
 export { PlayerCardFront } from './player-card-front';
 export { PlayerCardBack } from './player-card-back';
 export { LevelUpCeremony, type LevelUpCeremonyRef } from './level-up-ceremony';
