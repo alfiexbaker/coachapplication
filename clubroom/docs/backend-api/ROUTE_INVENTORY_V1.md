@@ -88,9 +88,9 @@ Status legend:
 ## Trust / Safeguarding / Ops
 | Route | Method | Status | Contract(s) | AuthZ | UI anchors |
 |---|---|---|---|---|---|
-| `/v1/safeguarding/incidents` | `POST` | `scaffolded` | `CreateSafeguardingIncidentRequest`, `SafeguardingIncidentResponse` | coach/guardian scoped to athlete/booking context | `app/roster/[athleteId]/raise-concern.tsx`, `app/(tabs)/bookings/report-problem.tsx` |
-| `/v1/safeguarding/incidents/:incidentId` | `GET` | `scaffolded` | `SafeguardingIncidentResponse` | assignment/role-restricted safeguarding access | trust follow-up surfaces |
-| `/v1/safeguarding/incidents/:incidentId/actions` | `POST` | `scaffolded` | `CreateSafeguardingActionRequest`, `SafeguardingActionResponse` | safeguarding assignee/admin scope | operations tooling + incident review workflows |
+| `/v1/safeguarding/incidents` | `POST` | `scaffolded` | `CreateSafeguardingIncidentRequest`, `SafeguardingIncidentResponse` | coach/guardian scoped to athlete/booking context | `app/roster/[athleteId]/raise-concern.tsx`, `app/(tabs)/bookings/report-problem.tsx`, `services/trust/index.ts`, `services/concern-service.ts` |
+| `/v1/safeguarding/incidents/:incidentId` | `GET` | `scaffolded` | `SafeguardingIncidentResponse` | assignment/role-restricted safeguarding access | trust follow-up surfaces, `services/trust/index.ts` |
+| `/v1/safeguarding/incidents/:incidentId/actions` | `POST` | `scaffolded` | `CreateSafeguardingActionRequest`, `SafeguardingActionResponse` | safeguarding assignee/admin scope | operations tooling + incident review workflows, `services/trust/index.ts`, `services/concern-service.ts` |
 
 ## Progress / Media / Community / Trust Ops
 

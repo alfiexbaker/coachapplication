@@ -1,6 +1,6 @@
 # Clubroom - Single Source of Truth
 
-Last updated: 2026-03-11
+Last updated: 2026-03-18
 Project: football coaching marketplace plus family development tracker
 Status: live-featured Expo app with a real Fastify API alongside it; backend cutover and auth alignment are still in progress
 
@@ -17,10 +17,11 @@ If a statement here conflicts with an old audit or sprint note, trust this file 
 
 ## Current Verified Health
 
-Verified during this docs cleanup on 2026-03-11:
+Verified during recent `API-01` slices on 2026-03-18:
 - `npm run typecheck` -> PASS
+- `npm run test:compile` -> PASS
 - `npm --prefix apps/api run typecheck` -> PASS
-- `npm --prefix apps/api run test` -> PASS (`26/26`)
+- `npm --prefix apps/api run test` -> PASS (`29/29`)
 
 Not re-run in this pass:
 - full UI flow suites
@@ -48,7 +49,8 @@ Clubs manage staff, squads, visibility, and operating relationships.
   - bearer dev-session tokens are accepted by the API auth plugin
 - The biggest trust seam still not finished is production identity:
   - API auth is still scaffold-first and seed-backed
-  - sensitive family, medical, booking, and safeguarding flows are not yet backend-authoritative by default
+  - family medical and safeguarding incident creation now use `/v1` in non-mock mode
+  - booking authority and wider trust/ops workflows are still not backend-authoritative by default
 
 ## Product Spines
 
@@ -94,14 +96,14 @@ Real enough to build on:
 
 Still transitional:
 - auth and session contract between app and API
-- authoritative backend ownership for sensitive family, medical, booking, and trust data
+- authoritative backend ownership for booking and broader trust/ops data
 - observability across app plus API
 - some local audit scripts that depend on missing shell tooling
 
 ## Highest-Value Priorities
 
 1. Unify frontend auth and backend `/v1` authz.
-2. Make sensitive domains backend-authoritative instead of mock-first.
+2. Finish backend-authoritative cutover for the remaining sensitive domains, especially booking and trust/ops follow-through.
 3. Wire Sentry across Expo native, Expo web, and `apps/api`.
 4. Make repo-critical quality scripts honest when local tooling is missing.
 5. Keep docs thin and update them when runtime truth changes.

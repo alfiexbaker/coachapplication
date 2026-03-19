@@ -9,6 +9,7 @@ import { STORAGE_KEYS } from '@/constants/storage-keys';
 import { bookingService } from '@/services/booking-service';
 import { emitTyped, ServiceEvents } from '@/services/event-bus';
 import { socialFeedService } from '@/services/social-feed-service';
+import { safeguardingService } from '@/services/trust';
 
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
@@ -123,6 +124,27 @@ export default function ReportProblemScreen() {
     setSubmitting(true);
     try {
       const booking = bookingId ? await bookingService.getBooking(bookingId) : null;
+      let incidentId: string | undefined;
+
+      if (selectedCategory === 'safety' && !apiClient.isMockMode) {
+        const incidentResult = await safeguardingService.createIncident({
+          athleteId: booking?.athleteIds?.[0] ?? booking?.athleteId,
+          bookingId: bookingId || booking?.id,
+          category: 'booking_issue_safety',
+          severity: 'high',
+          summary: booking?.service || booking?.serviceType
+            ? `Safety concern reported for ${booking.service || booking.serviceType}`
+            : 'Safety concern reported from booking support flow',
+          details: description.trim(),
+        });
+
+        if (!incidentResult.success) {
+          uiFeedback.showToast(incidentResult.error.message, 'error');
+          return;
+        }
+
+        incidentId = incidentResult.data.id;
+      }
 
       // Save report to storage
       const reports = await apiClient.get<Record<string, unknown>[]>(
@@ -137,6 +159,7 @@ export default function ReportProblemScreen() {
         description: description.trim(),
         status: 'pending',
         createdAt: new Date().toISOString(),
+        ...(incidentId ? { incidentId } : {}),
       };
 
       reports.push(newReport);

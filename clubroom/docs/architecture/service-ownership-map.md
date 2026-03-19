@@ -34,6 +34,12 @@ Purpose: identify the service entrypoints that are safe to build on and call out
 - `familyHealthService` is the canonical path for athlete medical, emergency contacts, and consent records
 - Validation note: top-level `services/family-service.ts` is not present in the current repo
 
+### Trust and safeguarding
+
+- Validated entrypoint: `services/trust/index.ts`
+- Exposes `safeguardingService` for `/v1/safeguarding/*` incident create, read, and action flows
+- Coach concern and booking safety-report paths should build on this domain module in non-mock mode
+
 ### Invites
 
 - Validated entrypoint: `services/invite/index.ts`

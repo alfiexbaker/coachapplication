@@ -78,7 +78,7 @@ export abstract class BaseService<T extends BaseEntity> {
   /**
    * Invalidate the in-memory cache. Called after every write operation.
    */
-  private invalidateCache(): void {
+  protected invalidateCache(): void {
     this._cache = null;
     this._cacheTimestamp = 0;
   }
