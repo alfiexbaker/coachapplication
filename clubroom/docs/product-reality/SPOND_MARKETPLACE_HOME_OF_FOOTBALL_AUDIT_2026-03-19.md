@@ -62,6 +62,85 @@ In short:
 | Trust and authority | Backend-owned sensitive flows, clear authz, role integrity | Improved, but auth identity and invite seams remain | Partial |
 | Smoothness and reliability | Fast, stable, no confusing reload churn, honest states | Some slices improved, but still inconsistent | Partial to weak |
 
+## Feature-Level Build Matrix
+
+### Club OS features
+
+| Feature | Target behavior | Current state | Gap |
+|---|---|---|---|
+| Dedicated `Activities` center | one obvious place for event, training, and match operations | `Club Hub` and club page split the experience | Missing |
+| Unified activity calendar | one list and calendar across event, training, and match | `ClubActivity` only covers events and training reads | Partial |
+| Activity creation entrypoint | one entry with subtype branches for event, training, match, program | event and training creation are separate routes; match is separate again | Missing |
+| Audience targeting | club, squad, public, mixed, private all explicit | events and sessions both support parts of this | Partial |
+| Recurring activity series | series creation, editing, cancellations, and roll-forward | recurring exists more on training than event | Partial |
+| RSVP, registration, availability, selection | each activity subtype uses the right participation model | events use RSVP, sessions use registration, matches use availability | Strong domain pieces, weak unified experience |
+| Waitlist and promotion | full activities can waitlist and auto-promote | good for group sessions, weak for club events | Partial |
+| Reminders and nudges | organizers can remind non-responders or maybe responders | some event reminder behavior exists | Partial |
+| Activity thread | comments, updates, and organizer notes live with the activity | no event-native or match-native thread | Missing |
+| Activity files and attachments | agenda, waiver, map, lineup notes, recap media | no attached files model for activity ops | Missing |
+| Attendance and check-in | check-in, attendance status, and role-aware attendance view | events have attendance; sessions have roster and attendance; match attendance is thinner | Partial |
+| Attendance export and reporting | downloadable history and club-level reporting | not a first-class export/reporting surface | Missing |
+| Activity-linked payments | paid events, paid programs, and club charges tie back to the activity | event price exists, but collection and reconciliation are weak | Missing |
+| Volunteer and task management | assign setup, transport, kit, snack, duty roles | no activity tasking layer | Missing |
+| Match integration | matches appear and behave as activities in the same spine | match logic exists outside `ClubActivity` | Partial |
+| Recap workflow | every completed activity can produce a recap, media, and next steps | some updates and progress links exist, not unified | Partial |
+
+### Marketplace features
+
+| Feature | Target behavior | Current state | Gap |
+|---|---|---|---|
+| Coach storefront | high-trust profile with offers, proof, and conversion | exists, but conversion depth is still moderate | Partial |
+| Club storefront | club can present programs, staff, schedule, and identity as an offer surface | club pages exist but are feed-first and operationally muddy | Partial |
+| Offer catalog | 1:1, assessment, group, camp, clinic, recurring, program | several offer types exist across bookings and sessions | Partial |
+| Fast booking entry | minimal-friction path from profile or offer to booking | booking works, but some flows remain transitional | Partial |
+| Family-aware booking | book for self or child with correct trust and consent boundaries | strong and improving | Strong |
+| Rebook and repeat loop | easy rebook, reopen, enroll again, continue plan | cancel and reopen exist; rebook loop is still weak | Partial |
+| Program enrollment | long-lived offer with capacity, schedule, and payment truth | recurring and program concepts exist, but presentation is uneven | Partial |
+| Saved and followed graph | follow coach, save coach, follow club, receive relevant updates | present, but not yet a fully compelling conversion loop | Partial |
+| Trust markers | verification, club affiliation, identity, support ownership, policy clarity | improved, but auth and authority seams remain | Partial |
+| Review and proof layer | outcomes, testimonials, results, session proof, athlete improvement | pieces exist in progress and updates, but not as a marketplace proof system | Missing |
+| Pricing and payment clarity | transparent price, billing owner, cancellation, support path | improved in several slices, but not yet consistent end to end | Partial |
+| Club commerce | clubs can sell activity and programs, not only publish them | mixed-access training concept exists, but commerce is still thin | Partial |
+
+### Football Home features
+
+| Feature | Target behavior | Current state | Gap |
+|---|---|---|---|
+| Personalized football home | role-aware feed built from clubs, squads, coaches, athletes, and activities | `Updates` exists, but not a true football home | Missing |
+| Fixtures and results module | next fixtures, recent results, standings context where relevant | match data exists, but not a central home module | Partial |
+| Club storyline | club identity, featured updates, upcoming big activities, results rhythm | club pages exist, but they are not identity-first | Partial |
+| Squad storyline | one place for squad-specific activity, results, and media | squad identity is weak outside ops surfaces | Missing |
+| Coach insight layer | coaches publish meaningful football insight, not generic posts | updates exist but are not strongly productized this way | Partial |
+| Activity highlights | important upcoming or completed activities surface automatically | some feed linkage exists, but not a home ranking system | Missing |
+| Progress highlights | athlete growth and badges surface in a football context | development exists, but not tightly integrated into home | Partial |
+| Media rhythm | recap clips, photos, and match moments feel native | media exists in posts and progress, but not as a coherent football media layer | Partial |
+| Local football discovery | discover clubs, camps, coaches, and local activity nearby | coach discovery exists more than broader football discovery | Partial |
+| Return-frequency loops | users have reasons to open the app daily or weekly even without bookings | too dependent on operational need today | Missing |
+
+### Development features
+
+| Feature | Target behavior | Current state | Gap |
+|---|---|---|---|
+| Session completion workflow | every session produces meaningful feedback and follow-through | already strong | Strong |
+| Skills and progress tracking | football-specific progress over time | already strong | Strong |
+| Badge system | motivates and evidences development | already strong | Strong |
+| Health and recovery | injury and recovery context integrated into athlete view | already meaningful | Strong |
+| Video and media feedback | clips and annotations support coaching outcomes | present, but runtime video stack still has fragility | Partial |
+| Practice tasks and next-focus plans | post-session actions extend value beyond attendance | exists in pieces, not fully surfaced in mainstream UX | Partial |
+| Development-to-marketplace loop | progress converts into rebook, plan renewal, and program continuation | weakly connected today | Missing |
+
+### Trust and quality features
+
+| Feature | Target behavior | Current state | Gap |
+|---|---|---|---|
+| Production-grade auth | real identity and session model | still scaffold-first | Missing |
+| Backend-owned sensitive flows | bookings, invites, family, medical, safeguarding are authoritative | improved, but not complete | Partial |
+| Club-safe permissions | club roles and delegation hold across UI and API | strong direction, still follow-through work | Partial |
+| Auditability | sensitive actions are observable and reviewable | not yet complete across domains | Partial |
+| Observability | Expo plus API errors are traceable in production | Sentry not fully wired | Missing |
+| Performance discipline | heavy screens stay smooth and stable | uneven today | Partial |
+| Honest runtime states | no fake completion, no dead controls, no mock-looking defaults | improved, but not fully cleaned | Partial |
+
 ## What We Already Have That Matters
 
 These are real strengths and should be preserved, not rewritten away:
@@ -372,6 +451,149 @@ They do not yet define the product work needed to reach the north star.
 | `OBS-01` | required for release confidence and glitch tracking | does not itself make the app compelling |
 | `DX-01` | keeps validation honest | internal quality only |
 | `GOV-01` | protects club visibility and permissions | necessary for club ops, but not sufficient for product experience |
+
+## Detailed Sprint Payload
+
+This is the feature-level cut for each proposed sprint.
+
+### `FDN-01` Backend authority
+
+Ship:
+
+- backend-owned session-invite inbox and detail reads
+- backend-owned accept, decline, remind, and revoke flows for invites
+- backend-owned delegated booking mutations that still rely on local mirrors
+- role-safe authz checks for club-mediated booking and invite actions
+- audit-friendly event logging for sensitive booking and invite transitions
+
+### `FDN-02` Smoothness and observability
+
+Ship:
+
+- Sentry in Expo iOS, Expo web, and `apps/api`
+- a targeted audit of reload churn on club, profile, bookings, and progress screens
+- virtualization and pagination passes on the heaviest lists
+- media loading and caching review for image and video surfaces
+- a release checklist for "feels smooth" screens across coach, parent, athlete, and club
+
+### `ACT-01` Activities center
+
+Ship:
+
+- dedicated `Activities` route for club users
+- `ClubActivity` support for `Match`
+- activity list with filters for all, training, events, matches, upcoming, completed
+- activity calendar mode or date-grouped agenda mode
+- activity cards that show subtype, audience, participation mode, and payment state
+- club and squad scoped views instead of one mixed schedule card
+
+### `ACT-02` Event workspace
+
+Ship:
+
+- event overview tab with date, venue, audience, cost, reminders, and organizer actions
+- responses tab with filters and bulk reminder actions
+- discussion tab for comments and organizer updates
+- files tab for attachments
+- attendance tab with check-in and attendance history
+- recap action that publishes a linked update after completion
+
+### `ACT-03` Match activity integration
+
+Ship:
+
+- match cards inside the shared activity feed
+- match detail linked from the same activities surface
+- availability state visible from the activities list
+- lineup state and result state visible as activity status
+- match recap and result post creation
+- links from match completion into athlete progress and club updates
+
+### `ACT-04` Activity payments and reporting
+
+Ship:
+
+- event and program payment collection hooks
+- paid activity summary for organizers
+- waitlist and auto-promotion for paid and capped activities
+- attendance export by activity and by club
+- revenue and attendance summaries by activity type
+
+### `MKT-01` Storefront clarity
+
+Ship:
+
+- redesigned coach profile header with trust and booking proof
+- redesigned club profile header with programs, staff, and schedule context
+- clear separation between independent coach offers and club-owned offers
+- evidence blocks for reviews, outcomes, player development, and affiliations
+- cleaner conversion CTAs for book, save, follow, contact, and join
+
+### `MKT-02` Booking conversion and rebook
+
+Ship:
+
+- faster booking entry from coach and club offer surfaces
+- explicit next-best action after completed bookings
+- rebook, repeat this session, and join the next program instance
+- better post-cancel recovery than dead-end cancellation flows
+- program and package upsell prompts tied to real activity history
+
+### `MKT-03` Club commerce
+
+Ship:
+
+- club program pages
+- club camp and clinic offer pages
+- recurring mixed-access training offer pages
+- capacity, inclusion, and admission rule blocks
+- family checkout and confirmation flows for club-owned activity
+
+### `HOF-01` Personalized football home
+
+Ship:
+
+- role-aware home modules for clubs followed, coaches followed, upcoming activities, fixtures, and progress
+- featured card logic instead of raw chronological feed-first layout
+- upcoming football week view for parent, athlete, coach, and club roles
+- results and activity highlights on home, not buried in club detail
+
+### `HOF-02` Football media layer
+
+Ship:
+
+- activity-linked posts as first-class content
+- match result cards and recap posts
+- training recap cards
+- coach insight posts with football context
+- club and squad story modules built from activity and update data
+
+### `HOF-03` Local football identity
+
+Ship:
+
+- richer club branding and identity surfaces
+- squad pages with fixtures, results, and media
+- local discover modules for camps, clinics, trial days, and open training
+- football map or locality-aware discovery if the data quality supports it
+
+### `REL-01` Trust completion
+
+Ship:
+
+- production identity and session controls
+- consistent club-governance checks across API and app
+- auditable sensitive reads and overrides
+- explicit operator actions for safeguarding, medical, and family data access
+
+### `REL-02` Daily-use quality
+
+Ship:
+
+- performance budgets for heavy screens
+- screen-by-screen refresh policy cleanup
+- image and video failure-state cleanup
+- route-level and hook-level glitch audit with tracked owners
 
 ## Proposed sprint sequence
 
