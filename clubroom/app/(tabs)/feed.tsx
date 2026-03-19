@@ -145,10 +145,7 @@ export default function FeedScreen() {
         {clubs.length > 0 && (
           <View style={styles.clubsSection}>
             <ThemedText type="defaultSemiBold" style={styles.clubsHeading}>
-              Club feeds
-            </ThemedText>
-            <ThemedText style={[styles.clubsDescription, { color: colors.muted }]}>
-              Open a club to view its full club feed, members, and activity schedule.
+              Clubs
             </ThemedText>
             <ClubHubCard clubs={clubs} />
           </View>
@@ -170,7 +167,6 @@ export default function FeedScreen() {
   const header = (
     <ScreenHeader
       title="Updates"
-      subtitle="Club feeds and updates from people you follow"
       action={isCoach ? { icon: 'add', label: 'Update', onPress: handleCreatePost } : undefined}
     />
   );
@@ -260,9 +256,6 @@ const styles = StyleSheet.create({
   },
   clubsHeading: {
     marginBottom: Spacing.micro,
-  },
-  clubsDescription: {
-    marginBottom: Spacing.xs,
   },
   feedCardRow: {
     paddingHorizontal: Spacing.md,
