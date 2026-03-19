@@ -56,10 +56,13 @@ export function UserHomeScreen() {
   const hasChildReferences = (currentUser.children?.length ?? 0) > 0;
   const isNewParent = hasChildReferences && !hasChildProfiles && contextChildren.length === 0;
   const showChildCard = Boolean(selectedChild);
-  const walkthrough = buildPrimaryDemoWalkthrough({
-    user: currentUser,
-    hasChildProfiles,
-  });
+  const walkthrough =
+    hasChildProfiles || hasChildReferences
+      ? null
+      : buildPrimaryDemoWalkthrough({
+          user: currentUser,
+          hasChildProfiles,
+        });
   const profileName = isViewingSelfProfile
     ? currentUser.name || currentUser.fullName || 'You'
     : selectedChild?.name || 'Child';

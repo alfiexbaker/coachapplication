@@ -61,6 +61,37 @@ describe('clubFeedService', () => {
     assert.deepEqual(feed, []);
   });
 
+  it('returns followed personal posts but excludes club-only posts', () => {
+    const followedCoachId = 'coach1';
+    const clubId = 'club_lions';
+
+    const personalPost = clubFeedService.createCoachPost({
+      coachId: followedCoachId,
+      coachName: 'Coach Followed',
+      title: 'Personal update',
+      body: 'Visible to followers.',
+      feedType: 'PERSONAL',
+      clubId,
+    });
+    const clubOnlyPost = clubFeedService.createCoachPost({
+      coachId: followedCoachId,
+      coachName: 'Coach Followed',
+      title: 'Club update',
+      body: 'Only for the club feed.',
+      feedType: 'CLUB',
+      clubId,
+    });
+
+    assert.equal(personalPost.success, true);
+    assert.equal(clubOnlyPost.success, true);
+    if (!personalPost.success || !clubOnlyPost.success) return;
+
+    const feed = socialFeedService.getFollowingFeed([followedCoachId]);
+
+    assert.ok(feed.some((post) => post.id === personalPost.data.id));
+    assert.ok(!feed.some((post) => post.id === clubOnlyPost.data.id));
+  });
+
   it('persists commercial mode updates for live clubs', async () => {
     const clubId = 'club_lions';
     const original = await socialFeedService.getClub(clubId);

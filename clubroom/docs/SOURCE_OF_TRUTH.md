@@ -57,6 +57,10 @@ Clubs manage staff, squads, visibility, and operating relationships.
 - Club-facing schedule surfaces now use a `ClubActivity` read model to link `ClubEvent` and `GroupSession`
   - club-linked open group sessions are treated as mixed-access training, not as a separate public product world
   - informational events and training still have separate source records and creation flows, but club users now see one linked activity schedule instead of two unrelated sections
+- The user-facing `Updates` tab is the shared read surface for:
+  - followed personal posts
+  - club-linked updates
+  - club pills that open the full per-club feed on the club page
 
 ## Product Spines
 

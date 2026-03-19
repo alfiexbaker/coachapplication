@@ -579,13 +579,13 @@ function getPersonalFeedForCoachInternal(coachId: string): ClubFeedPost[] {
   );
 }
 
-function getFriendFeedInternal(friendIds: string[], filter?: FeedFilter): AggregatedFeedPost[] {
-  if (friendIds.length === 0) return [];
-  const friendSet = new Set(friendIds);
+function getFollowingFeedInternal(followingIds: string[], filter?: FeedFilter): AggregatedFeedPost[] {
+  if (followingIds.length === 0) return [];
+  const followingSet = new Set(followingIds);
   const posts = filterPostsByType(
     clubFeedStore.filter((post) => {
       if (!post.authorId) return false;
-      if (!friendSet.has(post.authorId)) return false;
+      if (!followingSet.has(post.authorId)) return false;
       return (post.feedType === 'PERSONAL' || post.feedType === 'BOTH') && post.postAs === 'self';
     }),
     filter,
@@ -1421,14 +1421,18 @@ class ClubFeedService {
     return posts;
   }
 
-  getFriendFeed(friendIds: string[], filter: FeedFilter = 'all'): AggregatedFeedPost[] {
-    const posts = getFriendFeedInternal(friendIds, filter === 'all' ? undefined : filter);
-    this.logger.info('friend_feed_fetched', {
-      friendCount: friendIds.length,
+  getFollowingFeed(followingIds: string[], filter: FeedFilter = 'all'): AggregatedFeedPost[] {
+    const posts = getFollowingFeedInternal(followingIds, filter === 'all' ? undefined : filter);
+    this.logger.info('following_feed_fetched', {
+      followingCount: followingIds.length,
       postCount: posts.length,
       filter,
     });
     return posts;
+  }
+
+  getFriendFeed(friendIds: string[], filter: FeedFilter = 'all'): AggregatedFeedPost[] {
+    return this.getFollowingFeed(friendIds, filter);
   }
 
   getCombinedFeedForParent(parentId: string, filter: FeedFilter = 'all'): AggregatedFeedPost[] {

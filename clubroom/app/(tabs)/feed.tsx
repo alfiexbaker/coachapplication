@@ -12,11 +12,13 @@ import { Routes } from '@/navigation/routes';
 
 import { PageContainer } from '@/components/primitives/page-container';
 import { ScreenHeader } from '@/components/primitives/screen-header';
+import { ThemedText } from '@/components/themed-text';
 import { LoadingState, ErrorState, EmptyState } from '@/components/ui/screen-states';
 import { Spacing } from '@/constants/theme';
 import { useAuth } from '@/hooks/use-auth';
 import { useScreen } from '@/hooks/use-screen';
 import { socialFeedService, type AggregatedFeedPost } from '@/services/social-feed-service';
+import { followService } from '@/services/follow-service';
 import { ServiceEvents } from '@/services/event-bus';
 import { ok, err, type Result, type ServiceError } from '@/types/result';
 import type { Club } from '@/constants/types';
@@ -31,6 +33,7 @@ import {
 import { useScrollToTopOnTabReselect } from '@/hooks/use-scroll-to-top-on-tab-reselect';
 import { AccessibleListCell } from '@/components/ui/list-accessibility';
 import { uiFeedback } from '@/services/ui-feedback';
+import { mergeUpdatesFeed } from '@/utils/updates-feed';
 
 interface FeedData {
   feed: AggregatedFeedPost[];
@@ -53,9 +56,12 @@ export default function FeedScreen() {
         if (!currentUser?.id) {
           return ok({ feed: [], clubs: [] });
         }
-        const feed = isCoach
+        const baseFeed = isCoach
           ? socialFeedService.getAggregatedFeed(currentUser.id, feedFilter)
           : socialFeedService.getCombinedFeedForParent(currentUser.id, feedFilter);
+        const followingIds = await followService.getFollowingIds(currentUser.id);
+        const followingFeed = socialFeedService.getFollowingFeed(followingIds, feedFilter);
+        const feed = mergeUpdatesFeed(baseFeed, followingFeed);
         const clubs = socialFeedService.getUserClubs(currentUser.id);
         return ok({ feed, clubs });
       } catch {
@@ -65,6 +71,7 @@ export default function FeedScreen() {
     deps: [currentUser?.id, feedFilter, isCoach],
     events: [ServiceEvents.CLUB_POST_CREATED, ServiceEvents.COACH_POST_CREATED],
     isEmpty: (d) => d.feed.length === 0 && d.clubs.length === 0,
+    refetchOnFocus: true,
   });
 
   const feed = useMemo(() => data?.feed ?? [], [data?.feed]);
@@ -137,6 +144,12 @@ export default function FeedScreen() {
       <View style={styles.feedHeader}>
         {clubs.length > 0 && (
           <View style={styles.clubsSection}>
+            <ThemedText type="defaultSemiBold" style={styles.clubsHeading}>
+              Club feeds
+            </ThemedText>
+            <ThemedText style={[styles.clubsDescription, { color: colors.muted }]}>
+              Open a club to view its full club feed, members, and activity schedule.
+            </ThemedText>
             <ClubHubCard clubs={clubs} />
           </View>
         )}
@@ -145,7 +158,7 @@ export default function FeedScreen() {
         )}
       </View>
     ),
-    [clubs, feed.length, feedFilter],
+    [clubs, colors.muted, feed.length, feedFilter],
   );
 
   const renderFeedEmpty = useCallback(
@@ -157,7 +170,7 @@ export default function FeedScreen() {
   const header = (
     <ScreenHeader
       title="Updates"
-      subtitle="Club notices and coach activity"
+      subtitle="Club feeds and updates from people you follow"
       action={isCoach ? { icon: 'add', label: 'Update', onPress: handleCreatePost } : undefined}
     />
   );
@@ -187,7 +200,7 @@ export default function FeedScreen() {
         <EmptyState
           icon="newspaper-outline"
           title="No updates yet"
-          message="Club notices, session updates, and coach activity will appear here once your clubs and bookings are active."
+          message="Club feeds, followed coaches' posts, and session updates will appear here once your clubs, follows, or bookings are active."
         />
       </PageContainer>
     );
@@ -243,6 +256,13 @@ const styles = StyleSheet.create({
   },
   clubsSection: {
     paddingHorizontal: Spacing.md,
+    gap: Spacing.xs,
+  },
+  clubsHeading: {
+    marginBottom: Spacing.micro,
+  },
+  clubsDescription: {
+    marginBottom: Spacing.xs,
   },
   feedCardRow: {
     paddingHorizontal: Spacing.md,

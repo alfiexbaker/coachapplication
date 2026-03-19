@@ -154,8 +154,8 @@ export const EmptyFeedNoClubs = memo(function EmptyFeedNoClubs({
       </ThemedText>
       <ThemedText style={[styles.emptyDescription, { color: palette.muted }]}>
         {isCoach
-          ? 'Join or create a club to publish matchday, session, and club updates.'
-          : 'Join a club or book with a coach to keep club notices and session updates in one place.'}
+          ? 'Join or create a club, or follow other coaches, to keep football updates in one place.'
+          : 'Join a club, follow a coach, or book a session to keep football updates in one place.'}
       </ThemedText>
       <Row gap="sm" style={styles.emptyStateActions}>
         <Clickable
