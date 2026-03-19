@@ -17,6 +17,7 @@ Its job is to answer:
 6. `ORG_IMPLEMENTATION_BLUEPRINT_2026-03-10.md`
 7. `OPEN_DECISIONS_2026-03-10.md`
 8. `progress.md`
+9. `SPOND_MARKETPLACE_HOME_OF_FOOTBALL_AUDIT_2026-03-19.md` when the task is target-state product positioning or long-range product planning
 
 Use the other files here only when the task is specifically about org hierarchy, commercial ownership, or user journeys.
 
