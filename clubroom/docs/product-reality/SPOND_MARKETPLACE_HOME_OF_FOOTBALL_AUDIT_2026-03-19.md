@@ -55,7 +55,7 @@ In short:
 
 | Pillar | Target Standard | Current Clubroom | Verdict |
 |---|---|---|---|
-| Club operating system | Activities, events, matches, attendance, reminders, comms, payments, reporting | Club activity read model exists, but event operations are shallow and fragmented | Partial |
+| Club operating system | Schedule, events, matches, attendance, reminders, comms, payments, reporting | Club activity read model exists, but event operations are shallow and fragmented | Partial |
 | Marketplace | Discovery, trust, booking, conversion, rebook, program sales, commercial clarity | Good foundation, but trust and conversion loops are still uneven | Partial |
 | Football home | Personalized football home, club identity, fixtures, results, creator/media return loops | Updates/feed exists, but no real football-home layer | Weak |
 | Development | Session follow-up, progress, badges, video, role-aware outcomes | Strongest differentiator already in repo | Strong |
@@ -68,7 +68,7 @@ In short:
 
 | Feature | Target behavior | Current state | Gap |
 |---|---|---|---|
-| Dedicated `Activities` center | one obvious place for event, training, and match operations | `Club Hub` and club page split the experience | Missing |
+| Dedicated `Schedule` surface | one obvious place for event, training, and match operations | `Club Hub` and club page split the experience | Missing |
 | Unified activity calendar | one list and calendar across event, training, and match | `ClubActivity` only covers events and training reads | Partial |
 | Activity creation entrypoint | one entry with subtype branches for event, training, match, program | event and training creation are separate routes; match is separate again | Missing |
 | Audience targeting | club, squad, public, mixed, private all explicit | events and sessions both support parts of this | Partial |
@@ -148,7 +148,7 @@ This is the smallest believable feature set for the first serious launch.
 
 #### Club OS
 
-- dedicated `Activities` center for club users
+- dedicated `Schedule` surface for club users
 - shared activity spine for event, training, and match
 - filters for event, training, match, upcoming, completed
 - event workspace with overview, responses, attendance, reminders, and recap
@@ -187,11 +187,11 @@ This is the smallest believable feature set for the first serious launch.
 - backend-owned sensitive booking and invite flows
 - club-safe permissions
 - Sentry and release observability
-- smoothness pass on home, activities, bookings, club, and profile
+- smoothness pass on home, schedule, bookings, club, and profile
 
 ### Important for launch if time allows
 
-- recurring activity series management
+- recurring schedule series management
 - event files and attachments
 - club program offer pages
 - coach insight posts as a structured content type
@@ -212,23 +212,23 @@ This is the actual implementation cut for first launch, in dependency order.
 
 | ID | Work | What ships | Depends on |
 |---|---|---|---|
-| `LAUNCH-01` | Activities center | dedicated `Activities` route, shared activity feed for event/training/match, core filters, agenda view, `ClubActivity` support for `Match` | `API-01`, `AUTH-02` |
+| `LAUNCH-01` | Club schedule | dedicated `Schedule` route, shared schedule feed for event/training/match, core filters, agenda view, `ClubActivity` support for `Match` | `API-01`, `AUTH-02` |
 | `LAUNCH-02` | Event workspace | event overview, responses, reminders, attendance, recap publishing, club-safe event management actions | `LAUNCH-01` |
 | `LAUNCH-03` | Reviews and proof | post-session review flow, storefront review blocks, proof modules tied to outcomes and progress | `API-01` |
 | `LAUNCH-04` | Storefront and booking conversion | stronger coach and club storefronts, clearer ownership, faster booking entry, rebook loop, pricing/support clarity | `LAUNCH-03` |
 | `LAUNCH-05` | Football home basics | role-aware home modules, fixtures/results, activity highlights, progress highlights, football-first ranking instead of generic feed-first layout | `LAUNCH-01` |
 | `LAUNCH-06` | Launch smoothness and release quality | Sentry, heavy-screen performance pass, glitch audit, media stability pass, refresh-policy cleanup on launch-critical surfaces | `OBS-01` |
 
-### `LAUNCH-01` Activities center
+### `LAUNCH-01` Club schedule
 
 Must ship:
 
-- `/activities` or equivalent primary route for club users
+- `/schedule` or equivalent primary route for club users
 - event, training, and match cards in one surface
 - filters for all, upcoming, completed, events, training, matches
 - date-grouped agenda mode
 - activity cards that show subtype, audience, participation mode, and cost
-- entry points from club page and club hub into the activities surface
+- entry points from club page and club hub into schedule
 
 ### `LAUNCH-02` Event workspace
 
@@ -277,7 +277,7 @@ Must ship:
 
 - role-aware home modules
 - fixtures and recent results module
-- upcoming activities module
+- upcoming schedule module
 - club and coach update highlights linked to football objects
 - progress highlight module for parent and athlete roles
 
@@ -286,7 +286,7 @@ Must ship:
 Must ship:
 
 - Sentry wired across Expo and API
-- club, activities, bookings, profile, and home screens reviewed for refresh churn
+- club, schedule, bookings, profile, and home screens reviewed for refresh churn
 - list virtualization on heavy launch-critical surfaces
 - image and video fallback cleanup
 - explicit pre-launch QA pass for coach, parent, athlete, and club routes
@@ -316,9 +316,9 @@ These are real strengths and should be preserved, not rewritten away:
 
 Current reality:
 
-- `Club Hub` is still a mixed staff screen, not a true activity center.
+- `Club Hub` is still a mixed staff screen, not a true schedule center.
 - non-staff users are redirected away from `Club Hub`.
-- the club page leads with updates, not activities.
+- the club page leads with updates, not schedule.
 - dedicated events exist, but they are not the obvious club operating entrypoint.
 - event list/create flows still rely on hardcoded default club ids in places.
 
@@ -485,7 +485,7 @@ Current limitation:
 The product should feel intentional:
 
 - `Home`: football home and personal relevance
-- `Activities`: what your clubs, squads, and coaches are doing
+- `Schedule`: what your clubs, squads, and coaches are doing
 - `Sessions` or `Bookings`: your commitments and commercial interactions
 - `Progress`: athlete development and post-session value
 
@@ -549,7 +549,7 @@ These should be reduced, hidden behind football context, or removed entirely:
 2. Generic community-group patterns
    - if a group is not a club, squad, staff circle, or private football cohort, it should not lead the product
 3. Feed-first club UX
-   - club pages and hub surfaces should not bury activities under updates
+   - club pages and hub surfaces should not bury schedule under updates
 4. Detached event routes with weak context
    - club events should not feel like a side app
 5. Hardcoded seed or default club assumptions
@@ -625,11 +625,11 @@ Ship:
 - media loading and caching review for image and video surfaces
 - a release checklist for "feels smooth" screens across coach, parent, athlete, and club
 
-### `ACT-01` Activities center
+### `ACT-01` Club schedule
 
 Ship:
 
-- dedicated `Activities` route for club users
+- dedicated `Schedule` route for club users
 - `ClubActivity` support for `Match`
 - activity list with filters for all, training, events, matches, upcoming, completed
 - activity calendar mode or date-grouped agenda mode
@@ -652,8 +652,8 @@ Ship:
 Ship:
 
 - match cards inside the shared activity feed
-- match detail linked from the same activities surface
-- availability state visible from the activities list
+- match detail linked from the same schedule surface
+- availability state visible from the schedule list
 - lineup state and result state visible as activity status
 - match recap and result post creation
 - links from match completion into athlete progress and club updates
@@ -702,10 +702,10 @@ Ship:
 
 Ship:
 
-- role-aware home modules for clubs followed, coaches followed, upcoming activities, fixtures, and progress
+- role-aware home modules for clubs followed, coaches followed, upcoming schedule, fixtures, and progress
 - featured card logic instead of raw chronological feed-first layout
 - upcoming football week view for parent, athlete, coach, and club roles
-- results and activity highlights on home, not buried in club detail
+- results and schedule highlights on home, not buried in club detail
 
 ### `HOF-02` Football media layer
 
@@ -787,16 +787,16 @@ Done when:
 
 ### Phase 1: Spond parity for football operations
 
-#### `ACT-01` Build a first-class Activities center
+#### `ACT-01` Build a first-class club schedule
 
 Goal:
 
-- make `Activities` the primary club operating surface
+- make `Schedule` the primary club operating surface
 
 Changes:
 
-- add a dedicated club activities route and entrypoint
-- stop burying activities under feed-first layouts
+- add a dedicated club schedule route and entrypoint
+- stop burying schedule under feed-first layouts
 - extend `ClubActivity` to include `Match`
 - give staff and members one coherent schedule surface
 
@@ -919,7 +919,7 @@ Goal:
 
 Changes:
 
-- personalized home based on followed clubs, squads, coaches, athletes, and upcoming activities
+- personalized home based on followed clubs, squads, coaches, athletes, and upcoming schedule
 - fixture/result modules
 - recap and progress highlights
 - role-aware football cards instead of generic feed blocks

@@ -18,7 +18,7 @@ It does not include later-stage nice-to-haves or non-launch ideas.
 
 ## Sprint Order
 
-1. `LAUNCH-01` Activities Center
+1. `LAUNCH-01` Club Schedule
 2. `LAUNCH-02` Event Workspace
 3. `LAUNCH-03` Reviews And Proof
 4. `LAUNCH-04` Storefront And Conversion
@@ -31,26 +31,32 @@ Foundation gates that must remain ahead of these:
 - `AUTH-02`
 - `OBS-01`
 
-## `LAUNCH-01` Activities Center
+## `LAUNCH-01` Club Schedule
 
 Objective:
 
-- make club activity the primary operating surface instead of a buried panel
+- make club schedule the primary operating surface instead of a buried panel
 
 Why this sprint exists:
 
-- the current product has events, training, and matches, but not one obvious activity center
+- the current product has events, training, and matches, but not one obvious schedule surface
 - this is the biggest product-shape gap against the launch goal
+
+Naming rule:
+
+- user-facing surface name: `Schedule`
+- scoped user-facing variants: `Club Schedule` and `Team Schedule`
+- internal shared model name remains `ClubActivity`
 
 In scope:
 
-- dedicated `Activities` route for club users
-- activity list showing event, training, and match in one shared surface
+- dedicated `Schedule` route for club users
+- schedule list showing event, training, and match in one shared surface
 - `ClubActivity` support for `Match`
 - filters for all, upcoming, completed, events, training, matches
 - agenda or date-grouped mode
-- clear activity cards with subtype, audience, participation mode, and cost
-- entry points from club page and club hub
+- clear schedule cards with subtype, audience, participation mode, and cost
+- entry points from club page and club hub into schedule
 
 Out of scope:
 
@@ -184,7 +190,7 @@ In scope:
 
 - role-aware home modules
 - fixtures and recent results module
-- upcoming activities module
+- upcoming schedule module
 - football-object-linked updates
 - progress highlight module for parent and athlete roles
 
@@ -217,7 +223,7 @@ Why this sprint exists:
 In scope:
 
 - Sentry wired across Expo and API
-- refresh-churn audit on home, activities, bookings, club, and profile
+- refresh-churn audit on home, schedule, bookings, club, and profile
 - virtualization and performance pass on heavy surfaces
 - image and video fallback cleanup
 - release QA matrix for coach, parent, athlete, and club roles
