@@ -74,6 +74,13 @@ export const bookingResponseSchema = z.object({
   cancelledAt: z.string().datetime().nullable().optional(),
 });
 
+export const bookingListResponseSchema = z.object({
+  bookings: z.array(bookingResponseSchema),
+  total: z.number().int().nonnegative(),
+  seedVersion: z.string().nullable().optional(),
+  requestId: z.string(),
+});
+
 export const inviteResponseResultSchema = z.object({
   inviteId: z.string().min(1),
   response: z.enum(['ACCEPTED', 'DECLINED']),
@@ -122,6 +129,7 @@ export type CreateBookingRequest = z.infer<typeof createBookingRequestSchema>;
 export type CancelBookingRequest = z.infer<typeof cancelBookingRequestSchema>;
 export type ReopenBookingRequest = z.infer<typeof reopenBookingRequestSchema>;
 export type BookingResponse = z.infer<typeof bookingResponseSchema>;
+export type BookingListResponse = z.infer<typeof bookingListResponseSchema>;
 export type InviteResponseRequest = z.infer<typeof inviteResponseRequestSchema>;
 export type InviteResponseResult = z.infer<typeof inviteResponseResultSchema>;
 export type RegisterGroupSessionRequest = z.infer<typeof registerGroupSessionRequestSchema>;

@@ -35,6 +35,11 @@ export interface CreateBookingParams {
   body: CreateBookingRequest;
 }
 
+export interface GetBookingParams {
+  authUserId: string;
+  bookingId: string;
+}
+
 export interface CancelBookingParams {
   authUserId: string;
   requestId: string;
@@ -56,6 +61,7 @@ export interface ListBookingsResult {
 
 export interface BookingRepository {
   listVisibleBookings(params: ListBookingsParams): Promise<ListBookingsResult>;
+  getVisibleBookingById(params: GetBookingParams): Promise<BookingResponse>;
   createBooking(params: CreateBookingParams): Promise<BookingResponse>;
   cancelBooking(params: CancelBookingParams): Promise<BookingResponse>;
   reopenBooking(params: ReopenBookingParams): Promise<BookingResponse>;
@@ -184,6 +190,35 @@ function mapSeedBookingsFromTables(
   });
 
   return visible.map((booking) => mapSeedBookingRow(tables, booking, participantRowsByBooking));
+}
+
+function getVisibleSeedBookingById(
+  tables: SeedTables,
+  authUserId: string,
+  bookingId: string,
+): BookingResponse {
+  const bookings = asRows(tables.bookings);
+  const participantRowsByBooking = getParticipantRowsByBooking(tables);
+  const athleteUserIdsByAthleteId = getAthleteUserIdsByAthleteId(tables);
+  const booking = bookings.find((row) => asString(row.id) === bookingId);
+
+  if (!booking) {
+    throw notFound('Booking not found', { bookingId });
+  }
+
+  if (
+    !canUserAccessSeedBooking(
+      tables,
+      booking,
+      authUserId,
+      participantRowsByBooking,
+      athleteUserIdsByAthleteId,
+    )
+  ) {
+    throw forbidden('Booking does not belong to authenticated user');
+  }
+
+  return mapSeedBookingRow(tables, booking, participantRowsByBooking);
 }
 
 function normalizeReopenStatus(status: string | undefined): BookingStatusCode {
@@ -345,6 +380,11 @@ class SeedBookingRepository implements BookingRepository {
       bookings: mapSeedBookingsFromTables(store.tables, params.authUserId, params.statusFilter),
       dataVersion: store.version,
     };
+  }
+
+  async getVisibleBookingById(params: GetBookingParams): Promise<BookingResponse> {
+    const store = getMarketplaceSeedStore();
+    return getVisibleSeedBookingById(store.tables, params.authUserId, params.bookingId);
   }
 
   async createBooking(params: CreateBookingParams): Promise<BookingResponse> {
@@ -561,6 +601,73 @@ class DbBookingRepository implements BookingRepository {
       bookings: rows,
       dataVersion: null,
     };
+  }
+
+  async getVisibleBookingById(params: GetBookingParams): Promise<BookingResponse> {
+    if (shouldUseDbFixtureFallback()) {
+      const store = getDbFixtureStore();
+      return getVisibleSeedBookingById(store.tables, params.authUserId, params.bookingId);
+    }
+
+    const prisma = getPrismaClientOrThrow();
+    const booking = await prisma.booking.findUnique({
+      where: { id: params.bookingId },
+      include: {
+        participants: {
+          include: {
+            athlete: {
+              select: { userId: true },
+            },
+          },
+        },
+        objectives: true,
+      },
+    });
+
+    if (!booking) {
+      throw notFound('Booking not found', { bookingId: params.bookingId });
+    }
+
+    const hasAccess =
+      booking.coachUserId === params.authUserId
+      || booking.bookedByUserId === params.authUserId
+      || booking.participants.some(
+        (participant) =>
+          participant.guardianUserId === params.authUserId
+          || participant.athlete.userId === params.authUserId,
+      );
+    if (!hasAccess) {
+      throw forbidden('Booking does not belong to authenticated user');
+    }
+
+    return normalizeForJson(
+      bookingResponseSchema.parse({
+        id: booking.id,
+        coachUserId: booking.coachUserId,
+        bookedByUserId: booking.bookedByUserId ?? undefined,
+        status: booking.status,
+        scheduledAt: booking.scheduledAt.toISOString(),
+        durationMinutes: booking.durationMinutes,
+        location: booking.location,
+        serviceType: booking.serviceType ?? undefined,
+        sessionTemplateId: null,
+        objectives: booking.objectives
+          .sort((a, b) => a.sortOrder - b.sortOrder)
+          .map((objective) => objective.objective),
+        notes: booking.notes ?? null,
+        priceMinor: booking.priceMinor ?? null,
+        currency: booking.currency,
+        participants: booking.participants.map((participant) => ({
+          athleteId: participant.athleteId,
+          guardianUserId: participant.guardianUserId ?? undefined,
+          status: participant.status as 'confirmed' | 'pending' | 'cancelled',
+        })),
+        version: Number(booking.version),
+        createdAt: booking.createdAt.toISOString(),
+        updatedAt: booking.updatedAt.toISOString(),
+        cancelledAt: booking.cancelledAt?.toISOString() ?? null,
+      }),
+    );
   }
 
   async createBooking(params: CreateBookingParams): Promise<BookingResponse> {

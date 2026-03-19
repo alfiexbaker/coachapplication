@@ -13,7 +13,9 @@ Status legend:
 | `/v1/health` | `GET` | `scaffolded` | contract in `@clubroom/shared-contracts` |
 | `/v1/ready` | `GET` | `scaffolded` | DB/storage checks still placeholders |
 | `/v1/meta/version` | `GET` | `scaffolded` | dev metadata only |
+| `/v1/bookings` | `GET` | `scaffolded` | visible booking list scaffold for coach, booked-by guardian, linked guardian, or athlete participant |
 | `/v1/bookings` | `POST` | `scaffolded` | direct booking create scaffold; app uses it in non-mock mode when actor matches `bookedByUserId` or is `club_admin` |
+| `/v1/bookings/:bookingId` | `GET` | `scaffolded` | booking detail scaffold with same visibility gate as list reads |
 | `/v1/bookings/:bookingId/cancel` | `POST` | `scaffolded` | booking cancellation scaffold with actor ownership enforcement and idempotent cancelled response |
 | `/v1/bookings/:bookingId/reopen` | `POST` | `scaffolded` | booking reopen scaffold restores the last active status for upcoming cancelled bookings |
 | `/v1/athletes/:athleteId/injuries` | `GET/POST` | `scaffolded` | in-memory scaffold for trust/health endpoint contract verification |
@@ -65,8 +67,9 @@ Status legend:
 ## Booking / Group Sessions / Invites / Events
 | Route | Method | Status | Contract(s) | AuthZ | UI anchors |
 |---|---|---|---|---|---|
+| `/v1/bookings` | `GET` | `scaffolded` | `BookingListResponse` | participants/guardian/coach | `app/(tabs)/bookings/index.tsx`, `hooks/use-bookings.ts`, `services/booking/booking-authority-service.ts` |
 | `/v1/bookings` | `POST` | `scaffolded` | `CreateBookingRequest`, `BookingResponse` | parent/athlete/coach acting as self, or `club_admin` | `app/book/[coachId]/*`, `components/ui/booking/*`, `services/booking/booking-authority-service.ts` |
-| `/v1/bookings/:bookingId` | `GET` | `planned` | `BookingResponse` | participants/guardian/coach | `app/(tabs)/bookings/[id].tsx` |
+| `/v1/bookings/:bookingId` | `GET` | `scaffolded` | `BookingResponse` | participants/guardian/coach | `app/(tabs)/bookings/[id].tsx`, `hooks/use-booking-detail.ts`, `services/booking/booking-authority-service.ts` |
 | `/v1/bookings/:bookingId` | `PATCH` | `planned` | `UpdateBookingRequest`, `BookingResponse` | scoped actors + version | booking detail + admin tools |
 | `/v1/bookings/:bookingId/cancel` | `POST` | `scaffolded` | `CancelBookingRequest`, `BookingResponse` | parent/athlete/coach tied to booking participants or delivery coach | `app/booking/[id]/cancel.tsx`, `hooks/use-booking-cancel.ts`, `services/booking/booking-authority-service.ts` |
 | `/v1/bookings/:bookingId/reopen` | `POST` | `scaffolded` | `ReopenBookingRequest`, `BookingResponse` | parent/athlete/coach tied to booking participants or delivery coach | `app/(tabs)/bookings/[id].tsx`, `hooks/use-booking-detail.ts`, `services/booking/booking-authority-service.ts` |

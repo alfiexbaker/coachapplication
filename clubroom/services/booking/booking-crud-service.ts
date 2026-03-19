@@ -187,6 +187,118 @@ class BookingCrudService {
     }
   }
 
+  private mergeAuthoritativeBooking(
+    apiBooking: {
+      id: string;
+      coachUserId: string;
+      bookedByUserId?: string;
+      status: Booking['status'];
+      scheduledAt: string;
+      durationMinutes: number;
+      location: string;
+      serviceType?: string;
+      sessionTemplateId?: string | null;
+      objectives: string[];
+      notes?: string | null;
+      priceMinor?: number | null;
+      createdAt: string;
+      updatedAt: string;
+      cancelledAt?: string | null;
+      participants: Array<{
+        athleteId: string;
+        guardianUserId?: string;
+        status: 'confirmed' | 'pending' | 'cancelled';
+      }>;
+    },
+    localBooking?: Booking,
+  ): Booking {
+    const athleteIds = apiBooking.participants.map((participant) => participant.athleteId);
+    const athleteId = localBooking?.athleteId ?? athleteIds[0];
+    const bookedById = localBooking?.bookedById ?? apiBooking.bookedByUserId;
+
+    return {
+      ...localBooking,
+      id: apiBooking.id,
+      coachId: localBooking?.coachId ?? apiBooking.coachUserId,
+      athleteIds: localBooking?.athleteIds?.length ? localBooking.athleteIds : athleteIds,
+      athleteId,
+      bookedById,
+      status: apiBooking.status,
+      scheduledAt: apiBooking.scheduledAt,
+      duration: apiBooking.durationMinutes,
+      location: apiBooking.location,
+      serviceType: apiBooking.serviceType ?? localBooking?.serviceType,
+      ...(apiBooking.sessionTemplateId ? { sessionTemplateId: apiBooking.sessionTemplateId } : {}),
+      objectives: apiBooking.objectives,
+      notes: apiBooking.notes ?? localBooking?.notes ?? '',
+      price:
+        typeof apiBooking.priceMinor === 'number'
+          ? apiBooking.priceMinor / 100
+          : localBooking?.price,
+      participants: apiBooking.participants.map((participant) => ({
+        id: participant.athleteId,
+        status: participant.status,
+      })),
+      createdAt: apiBooking.createdAt,
+      cancelledAt: apiBooking.cancelledAt ?? undefined,
+      cancelReason: apiBooking.cancelledAt ? localBooking?.cancelReason : undefined,
+      cancellationReason: apiBooking.cancelledAt ? localBooking?.cancellationReason : undefined,
+      cancelledBy: apiBooking.cancelledAt ? localBooking?.cancelledBy : undefined,
+      statusBeforeCancellation:
+        apiBooking.status === 'CANCELLED' ? localBooking?.statusBeforeCancellation : undefined,
+      service:
+        localBooking?.service
+        ?? apiBooking.serviceType
+        ?? 'Session',
+      isSharedSession: athleteIds.length > 1 || localBooking?.isSharedSession,
+    };
+  }
+
+  private async syncAuthoritativeBookings(
+    apiBookings: Array<{
+      id: string;
+      coachUserId: string;
+      bookedByUserId?: string;
+      status: Booking['status'];
+      scheduledAt: string;
+      durationMinutes: number;
+      location: string;
+      serviceType?: string;
+      sessionTemplateId?: string | null;
+      objectives: string[];
+      notes?: string | null;
+      priceMinor?: number | null;
+      createdAt: string;
+      updatedAt: string;
+      cancelledAt?: string | null;
+      participants: Array<{
+        athleteId: string;
+        guardianUserId?: string;
+        status: 'confirmed' | 'pending' | 'cancelled';
+      }>;
+    }>,
+  ): Promise<Booking[]> {
+    const localBookings = await this.loadFromStorage();
+    const localById = new Map(localBookings.map((booking) => [booking.id, booking]));
+    const authoritativeIds = new Set(apiBookings.map((booking) => booking.id));
+
+    const merged = apiBookings.map((booking) =>
+      this.mergeAuthoritativeBooking(booking, localById.get(booking.id)),
+    );
+
+    const localOnly = localBookings.filter((booking) => !authoritativeIds.has(booking.id));
+    const nextBookings = [...merged, ...localOnly];
+    const saveResult = await this.saveToStorage(nextBookings);
+    if (!saveResult.success) {
+      logger.warn('Failed to mirror authoritative bookings into local storage', {
+        error: saveResult.error.message,
+      });
+      return nextBookings;
+    }
+
+    return nextBookings;
+  }
+
   // ---------------------------------------------------------------------------
   // Draft methods
   // ---------------------------------------------------------------------------
@@ -209,6 +321,16 @@ class BookingCrudService {
 
   async list(): Promise<Booking[]> {
     try {
+      if (!apiClient.isMockMode) {
+        const apiResult = await bookingAuthorityService.listBookings();
+        if (apiResult.success) {
+          return this.syncAuthoritativeBookings(apiResult.data);
+        }
+        logger.warn('Falling back to local booking list after API read failure', {
+          error: apiResult.error.message,
+        });
+      }
+
       const cache = await this.getCache();
       return Array.from(cache.values());
     } catch (error) {
@@ -223,6 +345,30 @@ class BookingCrudService {
    */
   async getBooking(id: string): Promise<Booking | null> {
     try {
+      if (!apiClient.isMockMode) {
+        const apiResult = await bookingAuthorityService.getBooking(id);
+        if (apiResult.success) {
+          const [localBookings] = await Promise.all([this.loadFromStorage()]);
+          const localBooking = localBookings.find((entry) => entry.id === id);
+          const merged = this.mergeAuthoritativeBooking(apiResult.data, localBooking);
+          const otherBookings = localBookings.filter((entry) => entry.id !== id);
+          const saveResult = await this.saveToStorage([...otherBookings, merged]);
+          if (!saveResult.success) {
+            logger.warn('Failed to mirror authoritative booking into local storage', {
+              bookingId: id,
+              error: saveResult.error.message,
+            });
+          }
+          return merged;
+        }
+        if (apiResult.error.code !== 'NOT_FOUND') {
+          logger.warn('Falling back to local booking detail after API read failure', {
+            bookingId: id,
+            error: apiResult.error.message,
+          });
+        }
+      }
+
       const cache = await this.getCache();
       return cache.get(id) ?? null;
     } catch (error) {
@@ -237,8 +383,7 @@ class BookingCrudService {
    */
   async getById(id: string): Promise<Booking | undefined> {
     try {
-      const cache = await this.getCache();
-      return cache.get(id);
+      return (await this.getBooking(id)) ?? undefined;
     } catch (error) {
       logger.error('Failed to get booking by id', error);
       return undefined;

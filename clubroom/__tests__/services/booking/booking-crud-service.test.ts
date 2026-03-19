@@ -568,6 +568,80 @@ describe('BookingCrudService', () => {
       const bookings = await bookingCrudService.list();
       assert.equal(bookings.length, 1);
     });
+
+    it('should use API-first list in non-mock mode and keep local-only metadata', async () => {
+      const originalIsMockMode = Object.getOwnPropertyDescriptor(apiClient, 'isMockMode');
+      const originalListViaApi = bookingAuthorityService.listBookings;
+
+      Object.defineProperty(apiClient, 'isMockMode', {
+        configurable: true,
+        get: () => false,
+      });
+      await apiClient.set(STORAGE_KEYS.BOOKINGS, [
+        {
+          id: 'bok_api_read_1',
+          coachId: 'coach-api-read',
+          coachName: 'Readable Coach',
+          athleteIds: ['athlete-local-1'],
+          athleteNames: ['Readable Athlete'],
+          athleteId: 'athlete-local-1',
+          bookedById: 'parent-api-read',
+          bookedByName: 'Readable Parent',
+          scheduledAt: '2030-01-12T10:00:00.000Z',
+          status: 'CONFIRMED',
+          duration: 60,
+          location: 'Local Pitch',
+          service: 'Local display label',
+          serviceType: 'COACHING',
+          notes: 'local-only metadata',
+        },
+      ]);
+      bookingAuthorityService.listBookings = async () =>
+        ok([
+          {
+            id: 'bok_api_read_1',
+            coachUserId: 'usr_coach-api-read',
+            bookedByUserId: 'usr_parent-api-read',
+            status: 'CONFIRMED',
+            scheduledAt: '2030-01-12T10:30:00.000Z',
+            durationMinutes: 75,
+            location: 'Authoritative Pitch',
+            serviceType: 'COACHING',
+            objectives: ['Awareness'],
+            notes: 'authoritative notes',
+            priceMinor: 6700,
+            currency: 'GBP',
+            participants: [
+              {
+                athleteId: 'ath_athlete-local-1',
+                guardianUserId: 'usr_parent-api-read',
+                status: 'confirmed',
+              },
+            ],
+            version: 2,
+            createdAt: '2026-03-19T15:00:00.000Z',
+            updatedAt: '2026-03-19T15:30:00.000Z',
+            cancelledAt: null,
+          },
+        ]);
+
+      try {
+        const bookings = await bookingCrudService.list();
+        assert.equal(bookings.length, 1);
+        assert.equal(bookings[0]?.id, 'bok_api_read_1');
+        assert.equal(bookings[0]?.coachId, 'coach-api-read');
+        assert.equal(bookings[0]?.scheduledAt, '2030-01-12T10:30:00.000Z');
+        assert.equal(bookings[0]?.duration, 75);
+        assert.equal(bookings[0]?.location, 'Authoritative Pitch');
+        assert.equal(bookings[0]?.service, 'Local display label');
+        assert.deepEqual(bookings[0]?.objectives, ['Awareness']);
+      } finally {
+        bookingAuthorityService.listBookings = originalListViaApi;
+        if (originalIsMockMode) {
+          Object.defineProperty(apiClient, 'isMockMode', originalIsMockMode);
+        }
+      }
+    });
   });
 
   describe('getBooking', () => {
@@ -597,6 +671,82 @@ describe('BookingCrudService', () => {
     it('should return null for non-existent booking', async () => {
       const booking = await bookingCrudService.getBooking('fake-id-' + Math.random().toString(36).slice(2));
       assert.equal(booking, null);
+    });
+
+    it('should use API-first detail in non-mock mode and mirror the result', async () => {
+      const originalIsMockMode = Object.getOwnPropertyDescriptor(apiClient, 'isMockMode');
+      const originalGetViaApi = bookingAuthorityService.getBooking;
+
+      Object.defineProperty(apiClient, 'isMockMode', {
+        configurable: true,
+        get: () => false,
+      });
+      await apiClient.set(STORAGE_KEYS.BOOKINGS, [
+        {
+          id: 'bok_api_detail_1',
+          coachId: 'coach-api-detail',
+          coachName: 'Detail Coach',
+          athleteIds: ['athlete-local-detail'],
+          athleteNames: ['Detail Athlete'],
+          athleteId: 'athlete-local-detail',
+          bookedById: 'parent-api-detail',
+          bookedByName: 'Detail Parent',
+          scheduledAt: '2030-01-13T10:00:00.000Z',
+          status: 'CONFIRMED',
+          duration: 60,
+          location: 'Local Detail Pitch',
+          service: 'Saved label',
+          serviceType: 'COACHING',
+        },
+      ]);
+      bookingAuthorityService.getBooking = async () =>
+        ok({
+          id: 'bok_api_detail_1',
+          coachUserId: 'usr_coach-api-detail',
+          bookedByUserId: 'usr_parent-api-detail',
+          status: 'CANCELLED',
+          scheduledAt: '2030-01-13T11:15:00.000Z',
+          durationMinutes: 90,
+          location: 'Authoritative Detail Pitch',
+          serviceType: 'COACHING',
+          objectives: ['Positioning'],
+          notes: 'authoritative detail',
+          priceMinor: 9100,
+          currency: 'GBP',
+          participants: [
+            {
+              athleteId: 'ath_athlete-local-detail',
+              guardianUserId: 'usr_parent-api-detail',
+              status: 'confirmed',
+            },
+          ],
+          version: 4,
+          createdAt: '2026-03-19T15:00:00.000Z',
+          updatedAt: '2026-03-19T16:00:00.000Z',
+          cancelledAt: '2026-03-19T16:00:00.000Z',
+        });
+
+      try {
+        const booking = await bookingCrudService.getBooking('bok_api_detail_1');
+        assert.ok(booking);
+        assert.equal(booking?.status, 'CANCELLED');
+        assert.equal(booking?.coachId, 'coach-api-detail');
+        assert.equal(booking?.scheduledAt, '2030-01-13T11:15:00.000Z');
+        assert.equal(booking?.location, 'Authoritative Detail Pitch');
+        assert.equal(booking?.service, 'Saved label');
+
+        const mirrored = await apiClient.get<Array<{ id: string; status: string; location: string }>>(
+          STORAGE_KEYS.BOOKINGS,
+          [],
+        );
+        assert.equal(mirrored[0]?.status, 'CANCELLED');
+        assert.equal(mirrored[0]?.location, 'Authoritative Detail Pitch');
+      } finally {
+        bookingAuthorityService.getBooking = originalGetViaApi;
+        if (originalIsMockMode) {
+          Object.defineProperty(apiClient, 'isMockMode', originalIsMockMode);
+        }
+      }
     });
   });
 

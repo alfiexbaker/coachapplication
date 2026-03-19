@@ -39,6 +39,13 @@ interface ApiBookingResponse {
   cancelledAt?: string | null;
 }
 
+interface ApiBookingListResponse {
+  bookings: ApiBookingResponse[];
+  total: number;
+  seedVersion?: string | null;
+  requestId: string;
+}
+
 interface CreateApiBookingInput {
   coachId: string;
   athleteIds: string[];
@@ -99,6 +106,58 @@ async function resolveBookingAccessHeaders(): Promise<Result<Record<string, stri
 }
 
 class BookingAuthorityService {
+  async listBookings(
+    params: { status?: ApiBookingStatus } = {},
+  ): Promise<Result<ApiBookingResponse[], ServiceError>> {
+    const headersResult = await resolveBookingAccessHeaders();
+    if (!headersResult.success) {
+      return headersResult;
+    }
+
+    const search = new URLSearchParams();
+    if (params.status) {
+      search.set('status', params.status);
+    }
+    const path = search.size > 0 ? `/v1/bookings?${search.toString()}` : '/v1/bookings';
+
+    const result = await apiFetch<ApiBookingListResponse>(path, {
+      method: 'GET',
+      headers: headersResult.data,
+    });
+
+    if (!result.success) {
+      logger.error('Failed to list bookings via API', {
+        status: params.status ?? null,
+        error: result.error,
+      });
+      return err(result.error);
+    }
+
+    return ok(result.data.bookings);
+  }
+
+  async getBooking(bookingId: string): Promise<Result<ApiBookingResponse, ServiceError>> {
+    const headersResult = await resolveBookingAccessHeaders();
+    if (!headersResult.success) {
+      return headersResult;
+    }
+
+    const result = await apiFetch<ApiBookingResponse>(`/v1/bookings/${bookingId}`, {
+      method: 'GET',
+      headers: headersResult.data,
+    });
+
+    if (!result.success) {
+      logger.error('Failed to get booking via API', {
+        bookingId,
+        error: result.error,
+      });
+      return err(result.error);
+    }
+
+    return result;
+  }
+
   async createBooking(
     input: CreateApiBookingInput,
   ): Promise<Result<ApiBookingResponse, ServiceError>> {

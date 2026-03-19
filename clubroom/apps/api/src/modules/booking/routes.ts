@@ -211,6 +211,25 @@ const bookingRoutes: FastifyPluginAsync = async (app) => {
     });
   });
 
+  app.get('/bookings/:bookingId', async (request, reply) => {
+    const authUserId = request.auth?.userId;
+    if (!authUserId) {
+      throw forbidden('Authenticated user is required');
+    }
+
+    const bookingId = bookingIdSchema.parse(
+      (request.params as { bookingId?: string } | undefined)?.bookingId,
+    );
+
+    const repository = resolveBookingRepository();
+    const booking = await repository.getVisibleBookingById({
+      authUserId,
+      bookingId,
+    });
+
+    return reply.send(booking);
+  });
+
   app.post('/bookings', async (request, reply) => {
     const authUserId = request.auth?.userId;
     if (!authUserId) {

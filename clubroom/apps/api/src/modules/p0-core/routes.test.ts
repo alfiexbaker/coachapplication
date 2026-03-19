@@ -256,6 +256,20 @@ describe('p0 core routes', () => {
     const listedPayload = listed.json() as { bookings: Array<{ id: string }> };
     assert.equal(listedPayload.bookings.some((booking) => booking.id === created.id), true);
 
+    const detail = await app.inject({
+      method: 'GET',
+      url: `/v1/bookings/${created.id}`,
+      headers: {
+        'x-auth-user-id': bookedByUserId,
+        'x-auth-roles': rolesForUser(tables, bookedByUserId).join(',') || 'parent',
+        'x-acting-role': rolesForUser(tables, bookedByUserId)[0] ?? 'parent',
+      },
+    });
+    assert.equal(detail.statusCode, 200);
+    const detailPayload = detail.json() as { id: string; bookedByUserId?: string };
+    assert.equal(detailPayload.id, created.id);
+    assert.equal(detailPayload.bookedByUserId, bookedByUserId);
+
     const cancelled = await app.inject({
       method: 'POST',
       url: `/v1/bookings/${created.id}/cancel`,
@@ -379,6 +393,17 @@ describe('p0 core routes', () => {
       },
     });
     assert.equal(denied.statusCode, 403);
+
+    const deniedDetail = await app.inject({
+      method: 'GET',
+      url: `/v1/bookings/${created.id}`,
+      headers: {
+        'x-auth-user-id': outsiderUserId,
+        'x-auth-roles': rolesForUser(tables, outsiderUserId).join(',') || 'coach',
+        'x-acting-role': rolesForUser(tables, outsiderUserId)[0] ?? 'coach',
+      },
+    });
+    assert.equal(deniedDetail.statusCode, 403);
   });
 
   it('responds to invites and creates/updates event RSVPs', async () => {

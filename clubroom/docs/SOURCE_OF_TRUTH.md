@@ -50,9 +50,10 @@ Clubs manage staff, squads, visibility, and operating relationships.
 - The biggest trust seam still not finished is production identity:
   - API auth is still scaffold-first and seed-backed
   - family medical, safeguarding incident creation, direct booking creation, booking cancel/reopen, and group-session registration now use `/v1` in non-mock mode
+  - booking list/detail reads now also use `/v1/bookings` and `/v1/bookings/:bookingId` in non-mock mode, with local storage acting as a mirror instead of the authority
   - booking changes are intentionally `cancel` or `reopen`; the old counter-offer and invite counter workflow has been removed from the runtime product surface
   - coach scheduling rules no longer advertise a separate reschedule policy; bookings now change by cancellation and rebooking/reopening instead of negotiation
-  - the remaining delegated booking seam is the broader session-invite acceptance/read model plus wider booking reads/change flows, which are still not backend-authoritative by default
+  - the remaining delegated booking seam is the broader session-invite acceptance/read model plus the wider invite-mediated change flows, which are still not backend-authoritative by default
 
 ## Product Spines
 
