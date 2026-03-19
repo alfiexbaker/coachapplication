@@ -98,6 +98,7 @@ const ROLE_TAB_CONFIG: Record<UserRole | 'DEFAULT', RoleTabConfig> = {
   USER: {
     primary: [
       { name: 'index', title: 'Home', icon: 'house.fill', badge: 'notifications' },
+      { name: 'feed', title: 'Updates', icon: 'newspaper.fill' },
       { name: 'bookings', title: 'Sessions', icon: 'calendar.badge.clock' },
       {
         name: 'messages',
@@ -107,11 +108,12 @@ const ROLE_TAB_CONFIG: Record<UserRole | 'DEFAULT', RoleTabConfig> = {
       },
       { name: 'settings', title: 'Profile', icon: 'gearshape.fill' },
     ],
-    hidden: [...BASE_HIDDEN_ROUTES, 'club-hub', 'more', 'schedule', 'athletes', 'children', 'feed'],
+    hidden: [...BASE_HIDDEN_ROUTES, 'club-hub', 'more', 'schedule', 'athletes', 'children'],
   },
   PARENT: {
     primary: [
       { name: 'index', title: 'Home', icon: 'house.fill', badge: 'notifications' },
+      { name: 'feed', title: 'Updates', icon: 'newspaper.fill' },
       { name: 'bookings', title: 'Sessions', icon: 'calendar.badge.clock' },
       {
         name: 'messages',
@@ -121,7 +123,7 @@ const ROLE_TAB_CONFIG: Record<UserRole | 'DEFAULT', RoleTabConfig> = {
       },
       { name: 'settings', title: 'Profile', icon: 'gearshape.fill' },
     ],
-    hidden: [...BASE_HIDDEN_ROUTES, 'club-hub', 'more', 'schedule', 'athletes', 'children', 'feed'],
+    hidden: [...BASE_HIDDEN_ROUTES, 'club-hub', 'more', 'schedule', 'athletes', 'children'],
   },
   ADMIN: {
     primary: [

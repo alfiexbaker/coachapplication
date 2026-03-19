@@ -73,10 +73,10 @@ Coach:
 - manages availability, session setup, invites, delivery, roster, clubs, and earnings-facing flows
 
 Parent:
-- manages children, bookings, consent, medical and emergency information, progress visibility, and family spending
+- manages children, bookings, consent, medical and emergency information, progress visibility, family spending, and club or coach updates
 
 Athlete:
-- books for self, tracks goals, health, badges, journal entries, and progress
+- books for self, tracks goals, health, badges, journal entries, progress, and linked updates
 
 Club:
 - manages membership, staffing, squads, branded identity, role visibility, and delegated operating control

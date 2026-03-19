@@ -1,5 +1,6 @@
 import { STORAGE_KEYS, getUserKey } from '@/constants/storage-keys';
 import { apiClient } from '@/services/api-client';
+import { emitTyped, ServiceEvents } from '@/services/event-bus';
 import { createLogger } from '@/utils/logger';
 
 const logger = createLogger('BookingSelfSettingService');
@@ -25,6 +26,7 @@ class BookingSelfSettingService {
     try {
       const key = getUserKey(STORAGE_KEYS.ALLOW_BOOK_SELF, userId);
       await apiClient.set(key, enabled);
+      emitTyped(ServiceEvents.BOOKING_SELF_SETTING_CHANGED, { userId, enabled });
       return true;
     } catch (error) {
       logger.error('Failed to save allow-book-self setting', { userId, enabled, error });

@@ -144,6 +144,7 @@ export const ServiceEvents = {
   USER_CREATED: 'user:created',
   USER_UPDATED: 'user:updated',
   USER_PROFILE_CHANGED: 'user:profile_changed',
+  BOOKING_SELF_SETTING_CHANGED: 'user:booking_self_setting_changed',
   USER_DELETED: 'user:deleted',
   USER_LOGGED_IN: 'user:logged_in',
   USER_LOGGED_OUT: 'user:logged_out',
@@ -490,6 +491,10 @@ export interface EventPayloads {
   [ServiceEvents.USER_PROFILE_CHANGED]: {
     userId: string;
     changes: Record<string, unknown>;
+  };
+  [ServiceEvents.BOOKING_SELF_SETTING_CHANGED]: {
+    userId: string;
+    enabled: boolean;
   };
   [ServiceEvents.USER_DELETED]: {
     userId: string;

@@ -17,6 +17,7 @@ import { useAuth } from '@/hooks/use-auth';
 import { ok } from '@/types/result';
 import { useBookingFlow } from '@/context/booking-flow-context';
 import { bookingSelfSettingService } from '@/services/booking-self-setting-service';
+import { onTyped, ServiceEvents } from '@/services/event-bus';
 import { bookingStepAnalyticsService } from '@/services/booking/booking-step-analytics-service';
 import type { User } from '@/constants/app-types';
 import {
@@ -56,21 +57,41 @@ export default function DetailsScreen() {
     allowBookSelf: hasSelectableChildren ? allowBookSelf : true,
   });
 
+  const applyAllowBookSelf = useCallback(
+    (enabled: boolean) => {
+      setAllowBookSelf(enabled);
+    },
+    [],
+  );
+
   useEffect(() => {
     if (!currentUser?.id || !accountHasChildren) {
-      setAllowBookSelf(false);
+      applyAllowBookSelf(false);
       return;
     }
     let cancelled = false;
     void bookingSelfSettingService.isEnabled(currentUser.id).then((enabled) => {
       if (!cancelled) {
-        setAllowBookSelf(enabled);
+        applyAllowBookSelf(enabled);
       }
     });
     return () => {
       cancelled = true;
     };
-  }, [accountHasChildren, currentUser?.id]);
+  }, [accountHasChildren, applyAllowBookSelf, currentUser?.id]);
+
+  useEffect(() => {
+    if (!currentUser?.id) {
+      return;
+    }
+
+    return onTyped(ServiceEvents.BOOKING_SELF_SETTING_CHANGED, (payload) => {
+      if (payload.userId !== currentUser.id) {
+        return;
+      }
+      applyAllowBookSelf(payload.enabled);
+    });
+  }, [applyAllowBookSelf, currentUser?.id]);
 
   useEffect(() => {
     if ((!draft.locationOption && draft.locationText?.trim()) || lockPresetLocation) {

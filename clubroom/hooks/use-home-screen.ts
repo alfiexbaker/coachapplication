@@ -228,11 +228,35 @@ export function useHomeScreen() {
     [contextChildren, selectedChildId],
   );
   const isViewingSelfProfile = profileMode === 'self';
+
+  const applyBookSelfEnabled = useCallback(
+    (enabled: boolean) => {
+      setBookSelfEnabled(enabled);
+      logger.debug('Home self-book setting applied', {
+        currentUserId: currentUser?.id,
+        enabled,
+        hasChildProfiles,
+        selectedChildId,
+      });
+      if (!enabled && hasChildProfiles && profileMode === 'self') {
+        const fallbackChild = selectedChildId ?? fallbackChildId;
+        void setProfileScope({ mode: 'child', childId: fallbackChild });
+      }
+    },
+    [
+      currentUser?.id,
+      fallbackChildId,
+      hasChildProfiles,
+      profileMode,
+      selectedChildId,
+      setProfileScope,
+    ],
+  );
   const canSelfSwitchProfile = Boolean(hasChildProfiles && selectedChild && bookSelfEnabled);
 
   useEffect(() => {
     if (!currentUser?.id) {
-      setBookSelfEnabled(false);
+      applyBookSelfEnabled(false);
       logger.debug('Home self-book switch disabled: missing current user', {
         currentUserId: currentUser?.id,
       });
@@ -242,22 +266,25 @@ export function useHomeScreen() {
     let cancelled = false;
     void bookingSelfSettingService.isEnabled(currentUser.id).then((enabled) => {
       if (cancelled) return;
-      setBookSelfEnabled(enabled);
-      logger.debug('Home self-book setting loaded', {
-        currentUserId: currentUser.id,
-        enabled,
-        hasChildProfiles,
-        selectedChildId,
-      });
-      if (!enabled && hasChildProfiles && profileMode === 'self') {
-        const fallbackChild = selectedChildId ?? fallbackChildId;
-        void setProfileScope({ mode: 'child', childId: fallbackChild });
-      }
+      applyBookSelfEnabled(enabled);
     });
     return () => {
       cancelled = true;
     };
-  }, [currentUser?.id, fallbackChildId, hasChildProfiles, profileMode, selectedChildId, setProfileScope]);
+  }, [applyBookSelfEnabled, currentUser?.id]);
+
+  useEffect(() => {
+    if (!currentUser?.id) {
+      return;
+    }
+
+    return onTyped(ServiceEvents.BOOKING_SELF_SETTING_CHANGED, (payload) => {
+      if (payload.userId !== currentUser.id) {
+        return;
+      }
+      applyBookSelfEnabled(payload.enabled);
+    });
+  }, [applyBookSelfEnabled, currentUser?.id]);
 
   useEffect(() => {
     if (profileMode !== 'child') {
