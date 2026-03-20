@@ -27,6 +27,7 @@ type DisplayItem =
 type TimelineMediaItem = Extract<DisplayItem, { type: 'photo' | 'video' }>;
 
 const THUMB_SIZE = 80;
+const THUMB_SPACING = Spacing.xs;
 
 function sortByCapturedAtDesc<T extends { capturedAt: string }>(items: T[]): T[] {
   return [...items].sort(
@@ -213,6 +214,15 @@ export const MediaStrip = memo(function MediaStrip({
         keyExtractor={(item) => item.id}
         renderItem={renderItem}
         horizontal
+        removeClippedSubviews
+        initialNumToRender={Math.min(maxVisible, displayItems.length)}
+        maxToRenderPerBatch={maxVisible}
+        windowSize={3}
+        getItemLayout={(_, index) => ({
+          length: THUMB_SIZE + THUMB_SPACING,
+          offset: (THUMB_SIZE + THUMB_SPACING) * index,
+          index,
+        })}
         showsHorizontalScrollIndicator={false}
         contentContainerStyle={styles.list}
       />

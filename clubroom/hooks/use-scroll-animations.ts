@@ -1,4 +1,4 @@
-import { useCallback } from 'react';
+import { useCallback, useRef } from 'react';
 import type { LayoutChangeEvent } from 'react-native';
 import {
   Extrapolation,
@@ -26,6 +26,7 @@ export function useScrollAnimations(): ScrollAnimationController {
   const scrollY = useSharedValue(0);
   const viewportHeight = useSharedValue(1);
   const sectionOffsets = useSharedValue<Record<string, number>>({});
+  const layoutHandlerCache = useRef<Record<string, (event: LayoutChangeEvent) => void>>({});
 
   const onViewportLayout = useCallback(
     (event: LayoutChangeEvent) => {
@@ -35,11 +36,20 @@ export function useScrollAnimations(): ScrollAnimationController {
   );
 
   const createSectionLayoutHandler = useCallback(
-    (sectionKey: string) => (event: LayoutChangeEvent) => {
-      sectionOffsets.value = {
-        ...sectionOffsets.value,
-        [sectionKey]: event.nativeEvent.layout.y,
-      };
+    (sectionKey: string) => {
+      if (!layoutHandlerCache.current[sectionKey]) {
+        layoutHandlerCache.current[sectionKey] = (event: LayoutChangeEvent) => {
+          const nextY = event.nativeEvent.layout.y;
+          if (sectionOffsets.value[sectionKey] === nextY) {
+            return;
+          }
+          sectionOffsets.value = {
+            ...sectionOffsets.value,
+            [sectionKey]: nextY,
+          };
+        };
+      }
+      return layoutHandlerCache.current[sectionKey];
     },
     [sectionOffsets],
   );

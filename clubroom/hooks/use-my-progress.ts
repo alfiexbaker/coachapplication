@@ -488,8 +488,9 @@ export function useMyProgress() {
   const familyHighlights = useMemo(() => data?.familyHighlights ?? [], [data?.familyHighlights]);
   const homeworkCompletion = useMemo(() => data?.homeworkCompletion ?? {}, [data?.homeworkCompletion]);
   const attendanceDates = useMemo(() => data?.attendanceDates ?? [], [data?.attendanceDates]);
+  const sortedFeedback = useMemo(() => sortNewest(feedback), [feedback]);
 
-  const latestFeedback = useMemo(() => sortNewest(feedback)[0] ?? null, [feedback]);
+  const latestFeedback = sortedFeedback[0] ?? null;
   const primaryPosition = selectedChild?.profile?.primaryPosition ?? null;
   const initializedAthleteIdRef = useRef<string | null>(null);
   const [selectedPosition, setSelectedPosition] = useState<PositionRole>('MID');
@@ -654,11 +655,8 @@ export function useMyProgress() {
   }, [coachDirectoryById, latestFeedback?.coachId]);
 
   const latestHomeworkFeedback = useMemo(
-    () =>
-      sortNewest(
-        feedback.filter((entry) => entry.homework?.trim().length > 0),
-      )[0] ?? null,
-    [feedback],
+    () => sortedFeedback.find((entry) => entry.homework?.trim().length > 0) ?? null,
+    [sortedFeedback],
   );
   const homeworkCompleted = latestHomeworkFeedback
     ? Boolean(homeworkCompletion[latestHomeworkFeedback.id])

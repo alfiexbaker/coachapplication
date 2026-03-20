@@ -1,4 +1,4 @@
-import { memo } from 'react';
+import { memo, useMemo } from 'react';
 import { StyleSheet, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import Animated, { FadeInRight } from 'react-native-reanimated';
@@ -32,32 +32,40 @@ export const PastSessionsTimeline = memo(function PastSessionsTimeline({
   onOpenMediaGallery,
 }: PastSessionsTimelineProps) {
   const { colors } = useTheme();
-  const visibleSessions = sessions.slice(0, 6);
+  const visibleSessions = useMemo(() => sessions.slice(0, 6), [sessions]);
+  const deltaBySessionId = useMemo(() => {
+    const deltas: Record<string, PastSessionDelta | null> = {};
 
-  const buildDelta = (current: PastSession, previous: PastSession | undefined): PastSessionDelta | null => {
-    if (!previous) {
-      return null;
-    }
+    visibleSessions.forEach((current, index) => {
+      const previous = visibleSessions[index + 1];
+      if (!previous) {
+        deltas[current.sessionId] = null;
+        return;
+      }
 
-    const delta: PastSessionDelta = {};
-    if (current.performance > 0 && previous.performance > 0) {
-      delta.performance = current.performance - previous.performance;
-    }
-    if (current.effort > 0 && previous.effort > 0) {
-      delta.effort = current.effort - previous.effort;
-    }
-    if (current.corners && previous.corners) {
-      delta.technical = current.corners.technical - previous.corners.technical;
-      delta.physical = current.corners.physical - previous.corners.physical;
-      delta.psychological = current.corners.psychological - previous.corners.psychological;
-      delta.social = current.corners.social - previous.corners.social;
-    }
+      const delta: PastSessionDelta = {};
+      if (current.performance > 0 && previous.performance > 0) {
+        delta.performance = current.performance - previous.performance;
+      }
+      if (current.effort > 0 && previous.effort > 0) {
+        delta.effort = current.effort - previous.effort;
+      }
+      if (current.corners && previous.corners) {
+        delta.technical = current.corners.technical - previous.corners.technical;
+        delta.physical = current.corners.physical - previous.corners.physical;
+        delta.psychological = current.corners.psychological - previous.corners.psychological;
+        delta.social = current.corners.social - previous.corners.social;
+      }
 
-    const hasMeaningfulDelta = Object.values(delta).some(
-      (value) => typeof value === 'number' && value !== 0,
-    );
-    return hasMeaningfulDelta ? delta : null;
-  };
+      deltas[current.sessionId] = Object.values(delta).some(
+        (value) => typeof value === 'number' && value !== 0,
+      )
+        ? delta
+        : null;
+    });
+
+    return deltas;
+  }, [visibleSessions]);
 
   return (
     <SurfaceCard style={styles.card}>
@@ -113,7 +121,7 @@ export const PastSessionsTimeline = memo(function PastSessionsTimeline({
                       <View style={styles.sessionCardWrap}>
                         <SessionTimelineCard
                           session={session}
-                          deltaFromPrevious={buildDelta(session, visibleSessions[index + 1])}
+                          deltaFromPrevious={deltaBySessionId[session.sessionId] ?? null}
                           onOpenMediaGallery={onOpenMediaGallery}
                         />
                         {index < visibleSessions.length - 1 ? (
