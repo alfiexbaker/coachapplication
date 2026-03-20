@@ -25,6 +25,12 @@ export interface DemoRoleEntry {
   initialRoute?: Href;
 }
 
+export interface DemoCredentialRow {
+  username: string;
+  password: string;
+  role: string;
+}
+
 interface RoleEntryDefinition {
   id: string;
   title: string;
@@ -122,4 +128,38 @@ export function buildDemoRoleEntries(users: DemoRoleUser[]): DemoRoleEntry[] {
   }
 
   return entries;
+}
+
+export function buildDemoCredentialRows(users: DemoRoleUser[]): DemoCredentialRow[] {
+  const rows: DemoCredentialRow[] = [];
+  const seen = new Set<string>();
+
+  const pushUser = (user: DemoRoleUser | undefined) => {
+    if (!user || seen.has(user.username)) {
+      return;
+    }
+
+    seen.add(user.username);
+    rows.push({
+      username: user.username,
+      password: user.password,
+      role: user.role,
+    });
+  };
+
+  for (const definition of ROLE_ENTRY_DEFINITIONS) {
+    const exactMatch = definition.usernames
+      .map((username) => users.find((user) => user.username.toLowerCase() === username.toLowerCase()))
+      .find(Boolean);
+    pushUser(exactMatch ?? users.find(definition.match));
+  }
+
+  for (const user of users) {
+    if (rows.length >= 4) {
+      break;
+    }
+    pushUser(user);
+  }
+
+  return rows.slice(0, 4);
 }

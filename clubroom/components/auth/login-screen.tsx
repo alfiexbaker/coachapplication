@@ -27,10 +27,11 @@ import Animated, {
 
 import { Ionicons } from '@expo/vector-icons';
 import { ThemedText } from '@/components/themed-text';
+import { api as apiConfig } from '@/constants/config';
 import { Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
 import { useAuth } from '@/hooks/use-auth';
-import { buildDemoRoleEntries } from '@/utils/demo-role-entry';
+import { buildDemoCredentialRows, buildDemoRoleEntries } from '@/utils/demo-role-entry';
 import { DemoRoleEntryCard } from './login-screen-sections';
 
 // ─── Types ──────────────────────────────────────────────────────────────────
@@ -112,8 +113,8 @@ export default function LoginScreen() {
       setPassword(entry.password);
       setSubmitting(true);
       try {
-        await login(entry.username, entry.password);
-        if (entry.initialRoute) {
+        const success = await login(entry.username, entry.password);
+        if (success && entry.initialRoute) {
           router.replace(entry.initialRoute as never);
         }
       } finally {
@@ -126,7 +127,11 @@ export default function LoginScreen() {
   const isDesktop = screenWidth >= 980;
   const canSubmit = username.trim().length > 0 && password.trim().length > 0 && !submitting;
   const demoRoleEntries = buildDemoRoleEntries(availableUsers);
+  const demoCredentialRows = buildDemoCredentialRows(availableUsers);
   const showRoleEntry = __DEV__ || availableUsers.length > 0;
+  const loginHint = apiConfig.useMock
+    ? 'e.g. coach1 or user1'
+    : 'e.g. coach1 or amelia.shaw@clubroom.demo';
   const lazyFallback = (
     <View style={[styles.lazyFallback, { backgroundColor: palette.surface }]}>
       <ThemedText style={[styles.hint, { color: palette.muted }]}>Loading...</ThemedText>
@@ -221,7 +226,7 @@ export default function LoginScreen() {
                 ]}
                 value={username}
                 onChangeText={handleUsernameChange}
-                placeholder="e.g. coach1 or amelia.shaw@clubroom.demo"
+                placeholder={loginHint}
                 placeholderTextColor={withAlpha(palette.text, 0.35)}
                 autoCapitalize="none"
                 autoCorrect={false}
@@ -273,7 +278,9 @@ export default function LoginScreen() {
               </View>
             ) : (
               <ThemedText style={[styles.hint, { color: palette.muted }]}>
-                Dev auth accepts either the seeded username or the seeded email.
+                {apiConfig.useMock
+                  ? 'Mock mode accepts the seeded username for the active story.'
+                  : 'API mode accepts the seeded username or the seeded email.'}
               </ThemedText>
             )}
 
@@ -347,7 +354,7 @@ export default function LoginScreen() {
                 </Pressable>
 
                 {showDemo &&
-                  availableUsers.slice(0, 4).map((user) => (
+                  demoCredentialRows.map((user) => (
                     <Pressable
                       key={user.username}
                       onPress={() => handleDemoSelect(user)}

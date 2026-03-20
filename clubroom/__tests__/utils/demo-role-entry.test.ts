@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 
-import { buildDemoRoleEntries } from '../../utils/demo-role-entry';
+import { buildDemoCredentialRows, buildDemoRoleEntries } from '../../utils/demo-role-entry';
 
 test('buildDemoRoleEntries returns stable seeded stories for owner, coach, parent, athlete, and admin', () => {
   const entries = buildDemoRoleEntries([
@@ -88,4 +88,48 @@ test('buildDemoRoleEntries falls back to semantic matching when preferred userna
   assert.equal(entries.find((entry) => entry.id === 'family_parent')?.username, 'family_alt');
   assert.equal(entries.find((entry) => entry.id === 'athlete_progress')?.username, 'athlete_alt');
   assert.equal(entries.find((entry) => entry.id === 'admin_ops')?.username, 'admin_alt');
+});
+
+test('buildDemoCredentialRows prefers one representative login per seeded story', () => {
+  const rows = buildDemoCredentialRows([
+    {
+      username: 'coach1',
+      password: 'coach',
+      role: 'COACH',
+      name: 'Coach One',
+    },
+    {
+      username: 'coach2',
+      password: 'coach',
+      role: 'COACH',
+      name: 'Coach Two',
+    },
+    {
+      username: 'parent1',
+      password: 'user',
+      role: 'USER',
+      name: 'Parent One',
+      hasChildren: true,
+      children: [{ id: 'child_1' }],
+    },
+    {
+      username: 'user1',
+      password: 'user',
+      role: 'USER',
+      name: 'Athlete One',
+      children: [],
+    },
+    {
+      username: 'admin1',
+      password: 'admin',
+      role: 'ADMIN',
+      name: 'Admin One',
+      isSystemAdmin: true,
+    },
+  ]);
+
+  assert.deepEqual(
+    rows.map((row) => row.username),
+    ['coach1', 'parent1', 'user1', 'admin1'],
+  );
 });

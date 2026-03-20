@@ -109,7 +109,7 @@ export const DemoAccountsCard = memo(function DemoAccountsCard({
       <ThemedText style={[styles.credentialsSubtitle, { color: palette.muted }]}>
         Tap any row to autofill login.
       </ThemedText>
-      {users.slice(0, 4).map((user, index, arr) => (
+      {users.map((user, index, arr) => (
         <Clickable
           key={user.username}
           onPress={() => onSelectUser?.(user)}
