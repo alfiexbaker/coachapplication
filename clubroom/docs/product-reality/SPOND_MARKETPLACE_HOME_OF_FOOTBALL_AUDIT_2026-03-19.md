@@ -605,6 +605,48 @@ Do not make the launch depend on:
 - a vendor-owned schedule model
 - external chat as the backbone of club operations
 
+### Match source strategy
+
+Match data should be manual-first in Clubroom, with optional club connections on top.
+
+That means:
+
+- every club can create and manage matches directly in Clubroom without any external integration
+- fixtures, venue, opponent, squad, availability, lineup, result, and recap must all work first-party
+- optional connectors should enrich or import match data, not define whether match operations work at all
+
+Why this is the right default:
+
+- official FA product surfaces clearly exist for grassroots operations
+  - `Matchday`
+  - `Full-Time`
+- official FA docs show admin-only embed feeds and internal integration workflows
+  - admin embed feeds: [FA Full-Time feeds](https://grassrootstechnology.thefa.com/support/solutions/articles/48001158072-embedding-league-tables-fixtures-tables-full-time-feeds-)
+  - internal system integration: [Competition Portal to Full-Time integration](https://grassrootstechnology.thefa.com/support/solutions/articles/48000555993-step-by-step-process-for-integration)
+- inference:
+  - these sources show official operations products, not a public external developer API that Clubroom should rely on for launch
+  - the admin-only feed restriction explicitly exists to reduce scraping and unlicensed data pulling
+
+So the Clubroom rule should be:
+
+- never make club match operations depend on a public FA API being available
+- if a club has an external competition source, let them connect it as an optional import or sync source
+- imported matches still become first-party Clubroom match records after normalization
+
+Recommended connection ladder:
+
+1. manual entry
+2. CSV import
+3. league or governing-body feed import where license and technical access are real
+4. deeper sync only after a club proves it needs it
+
+Import safety rules:
+
+- every imported fixture should land with source metadata
+- club admins should be able to confirm, remap, or override opponent, venue, kickoff, and squad
+- results and lineup truth should remain editable in Clubroom when league reality requires local correction
+- imported records should never bypass club permissions or schedule visibility rules
+
 ## 3. Split the product cleanly by intent
 
 The product should feel intentional:
