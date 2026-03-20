@@ -24,6 +24,7 @@ import { buildLinearGradientUri } from '@/components/primitives/surface-card-uti
 import { PlayerCardBack } from './player-card-back';
 import { PlayerCardFront } from './player-card-front';
 import { isDemoMode } from '@/utils/demo-mode';
+import { buildPlayerCardPalette } from './player-card-palette';
 
 interface TierConfig {
   gradient: [string, string];
@@ -81,6 +82,15 @@ export const PlayerCard = memo(function PlayerCard({ data }: PlayerCardProps) {
   const compact = viewportWidth <= 375;
 
   const tierConfig = PLAYER_CARD_TIER_CONFIG[data.tier];
+  const cardPalette = useMemo(
+    () =>
+      buildPlayerCardPalette({
+        gradient: tierConfig.gradient,
+        accent: tierConfig.accent,
+        overlay: tierConfig.overlay,
+      }),
+    [tierConfig.accent, tierConfig.gradient, tierConfig.overlay],
+  );
 
   const gradientUri = useMemo(
     () => buildLinearGradientUri(tierConfig.gradient, Radii.xl),
@@ -219,7 +229,7 @@ export const PlayerCard = memo(function PlayerCard({ data }: PlayerCardProps) {
                 styles.cardFrame,
                 compact ? styles.cardFrameCompact : styles.cardFrameRegular,
                 {
-                  borderColor: withAlpha(tierConfig.accent, scheme === 'dark' ? 0.28 : 0.16),
+                  borderColor: cardPalette.frameBorder,
                 },
               ]}
             >
@@ -229,18 +239,19 @@ export const PlayerCard = memo(function PlayerCard({ data }: PlayerCardProps) {
                 style={[
                   StyleSheet.absoluteFill,
                   {
-                    backgroundColor: scheme === 'dark'
-                      ? withAlpha('#000000', 0.35)
-                      : withAlpha(colors.text, compact ? 0.1 : 0.07),
+                    backgroundColor: cardPalette.overlay,
                   },
                 ]}
               />
-              <AnimatedView pointerEvents="none" style={[styles.sheen, sheenStyle]} />
+              <AnimatedView
+                pointerEvents="none"
+                style={[styles.sheen, { backgroundColor: cardPalette.sheen }, sheenStyle]}
+              />
               <View
                 pointerEvents="none"
                 style={[
                   styles.innerBorder,
-                  { borderColor: withAlpha('#FFFFFF', 0.08) },
+                  { borderColor: cardPalette.innerBorder },
                 ]}
               />
 
@@ -248,8 +259,7 @@ export const PlayerCard = memo(function PlayerCard({ data }: PlayerCardProps) {
                 <PlayerCardFront
                   data={data}
                   tier={data.tier}
-                  tierAccent={tierConfig.accent}
-                  tierOverlay={tierConfig.overlay}
+                  palette={cardPalette}
                   compact={compact}
                 />
                 {demoMode ? (
@@ -262,8 +272,7 @@ export const PlayerCard = memo(function PlayerCard({ data }: PlayerCardProps) {
               <AnimatedView style={[styles.face, styles.backFace, backStyle]}>
                 <PlayerCardBack
                   data={data}
-                  tierAccent={tierConfig.accent}
-                  tierOverlay={tierConfig.overlay}
+                  palette={cardPalette}
                   compact={compact}
                 />
               </AnimatedView>
@@ -312,7 +321,7 @@ const styles = StyleSheet.create({
     top: -20,
     bottom: -20,
     width: 96,
-    backgroundColor: withAlpha('#FFFFFF', 0.26),
+    backgroundColor: '#FFFFFF',
     borderRadius: Radii.pill,
   },
   innerBorder: {

@@ -15,14 +15,13 @@ import { Column } from '@/components/primitives/column';
 import { Row } from '@/components/primitives/row';
 import { ThemedText } from '@/components/themed-text';
 import { Radii, Spacing, Typography, withAlpha } from '@/constants/theme';
-import { useTheme } from '@/hooks/useTheme';
 import type { CardTier, PlayerCardData } from '@/types/progress-types';
+import type { PlayerCardPalette } from './player-card-palette';
 
 interface PlayerCardFrontProps {
   data: PlayerCardData;
   tier: CardTier;
-  tierAccent: string;
-  tierOverlay: string;
+  palette: PlayerCardPalette;
   compact?: boolean;
 }
 
@@ -81,17 +80,15 @@ function positionAbbrev(position: PlayerCardData['position']): string {
 export const PlayerCardFront = memo(function PlayerCardFront({
   data,
   tier,
-  tierAccent,
-  tierOverlay,
+  palette,
   compact = false,
 }: PlayerCardFrontProps) {
-  const { colors } = useTheme();
   const nameLines = useMemo(() => splitName(data.name), [data.name]);
   const initials = useMemo(() => getInitials(data.name), [data.name]);
-  const textColor = colors.onPrimary;
-  const softText = withAlpha(textColor, 0.86);
-  const badgeBackground = withAlpha(tierAccent, 0.18);
-  const photoOverlayOpacity = data.latestPhotoUri ? (compact ? 0.84 : 0.8) : 0.22;
+  const textColor = palette.text;
+  const softText = palette.softText;
+  const badgeBackground = palette.badgeBackground;
+  const faceOverlay = data.latestPhotoUri ? palette.mediaOverlayStrong : palette.mediaOverlaySoft;
   const shimmerX = useSharedValue(-160);
   const shimmerEnabled = tier === 'gold' || tier === 'platinum' || tier === 'diamond';
 
@@ -127,7 +124,7 @@ export const PlayerCardFront = memo(function PlayerCardFront({
         <Image source={{ uri: data.latestPhotoUri }} style={StyleSheet.absoluteFill} blurRadius={20} />
       ) : null}
 
-      <View style={[styles.overlay, { backgroundColor: withAlpha(tierOverlay, photoOverlayOpacity) }]} />
+      <View style={[styles.overlay, { backgroundColor: faceOverlay }]} />
       {shimmerEnabled ? (
         <Animated.View pointerEvents="none" style={[styles.shimmer, shimmerStyle]} />
       ) : null}
@@ -183,8 +180,8 @@ export const PlayerCardFront = memo(function PlayerCardFront({
                 width: avatarSize,
                 height: avatarSize,
                 borderRadius: avatarSize / 2,
-                backgroundColor: withAlpha(textColor, 0.12),
-                borderColor: withAlpha(tierAccent, 0.4),
+                backgroundColor: palette.avatarBackground,
+                borderColor: palette.avatarBorder,
               },
             ]}
           >
@@ -237,9 +234,9 @@ export const PlayerCardFront = memo(function PlayerCardFront({
             styles.statsBar,
             compact ? styles.statsBarCompact : undefined,
             {
-              backgroundColor: withAlpha(textColor, 0.12),
+              backgroundColor: palette.statPanelBackground,
               borderWidth: 1,
-              borderColor: withAlpha(tierAccent, 0.2),
+              borderColor: palette.statPanelBorder,
             },
           ]}
         >
@@ -255,7 +252,7 @@ export const PlayerCardFront = memo(function PlayerCardFront({
             ).map((stat, index) => (
               <Fragment key={stat.key}>
                 {index > 0 ? (
-                  <View style={[styles.statSeparator, { backgroundColor: withAlpha(textColor, 0.2) }]} />
+                  <View style={[styles.statSeparator, { backgroundColor: palette.statSeparator }]} />
                 ) : null}
                 <Column align="center" gap="micro" style={styles.statColumn}>
                   <ThemedText style={[styles.statAbbrev, { color: softText }]}>

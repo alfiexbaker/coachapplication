@@ -7,15 +7,14 @@ import { Column } from '@/components/primitives/column';
 import { Row } from '@/components/primitives/row';
 import { ThemedText } from '@/components/themed-text';
 import { Radii, Spacing, Typography, withAlpha } from '@/constants/theme';
-import { useTheme } from '@/hooks/useTheme';
 import type { PlayerCardData } from '@/types/progress-types';
 import { getSkillLabel } from './skill-level-helpers';
 import { StreakVisual } from './streak-visual';
+import type { PlayerCardPalette } from './player-card-palette';
 
 interface PlayerCardBackProps {
   data: PlayerCardData;
-  tierAccent: string;
-  tierOverlay: string;
+  palette: PlayerCardPalette;
   compact?: boolean;
 }
 
@@ -39,11 +38,9 @@ function nextStreakMilestone(currentWeeks: number): number {
 
 export const PlayerCardBack = memo(function PlayerCardBack({
   data,
-  tierAccent,
-  tierOverlay,
+  palette,
   compact = false,
 }: PlayerCardBackProps) {
-  const { colors } = useTheme();
   const improvedLabel = data.mostImproved
     ? `${data.mostImproved.name} +${data.mostImproved.changePercent}%`
     : null;
@@ -55,10 +52,11 @@ export const PlayerCardBack = memo(function PlayerCardBack({
     () => nextStreakMilestone(data.streakWeeks),
     [data.streakWeeks],
   );
-  const textColor = colors.onPrimary;
-  const softText = withAlpha(textColor, 0.86);
-  const statBackground = withAlpha(textColor, 0.14);
-  const infoBackground = withAlpha(textColor, 0.08);
+  const textColor = palette.text;
+  const softText = palette.softText;
+  const statBackground = palette.tileBackground;
+  const infoBackground = palette.infoBackground;
+  const faceOverlay = data.latestPhotoUri ? palette.mediaOverlayStrong : palette.mediaOverlaySoft;
   const statRows: { id: string; icon: keyof typeof Ionicons.glyphMap; label: string; value: string }[][] = [
     [
       { id: 'sessions', icon: 'calendar-outline', label: 'Sessions', value: String(data.totalSessions) },
@@ -79,7 +77,7 @@ export const PlayerCardBack = memo(function PlayerCardBack({
       <View
         style={[
           styles.overlay,
-          { backgroundColor: withAlpha(tierOverlay, compact ? 0.84 : 0.8) },
+          { backgroundColor: faceOverlay },
         ]}
       />
 
@@ -153,7 +151,7 @@ export const PlayerCardBack = memo(function PlayerCardBack({
           </Column>
         ) : null}
 
-        <View style={[styles.streakPanel, { backgroundColor: withAlpha(tierAccent, 0.14) }]}>
+        <View style={[styles.streakPanel, { backgroundColor: palette.streakBackground }]}>
           <StreakVisual currentWeeks={data.streakWeeks} nextMilestone={nextMilestone} />
         </View>
 
