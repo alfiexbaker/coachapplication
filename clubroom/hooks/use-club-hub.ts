@@ -81,7 +81,6 @@ export interface ClubHubState {
   clubActivities: ClubActivity[];
   clubActivitySessions: GroupSession[];
   clubEvents: ClubEvent[];
-  upcomingMatches: Match[];
   pendingSessionInvites: SessionInvite[];
 
   // Loading / error
@@ -159,7 +158,7 @@ export function useClubHub(): ClubHubState {
   const [invites, setInvites] = useState<ClubInvite[]>([]);
   const [clubActivitySessions, setClubActivitySessions] = useState<GroupSession[]>([]);
   const [clubEvents, setClubEvents] = useState<ClubEvent[]>([]);
-  const [upcomingMatches, setUpcomingMatches] = useState<Match[]>([]);
+  const [clubMatches, setClubMatches] = useState<Match[]>([]);
   const [pendingSessionInvites, setPendingSessionInvites] = useState<SessionInvite[]>([]);
 
   // ─── Loading / error ───────────────────────────────────────────
@@ -187,8 +186,8 @@ export function useClubHub(): ClubHubState {
   const canRemoveMembers = !!(membership && clubService.canRemoveMembers(membership.role));
   const isCoach = isTeamStaffRole || (!membership && userIsCoachAccount);
   const clubActivities = useMemo(
-    () => buildClubActivities({ events: clubEvents, sessions: clubActivitySessions }),
-    [clubEvents, clubActivitySessions],
+    () => buildClubActivities({ events: clubEvents, sessions: clubActivitySessions, matches: clubMatches }),
+    [clubEvents, clubActivitySessions, clubMatches],
   );
 
   // ─── Data loaders ──────────────────────────────────────────────
@@ -236,31 +235,24 @@ export function useClubHub(): ClubHubState {
     if (!membership?.clubId) {
       setClubActivitySessions([]);
       setClubEvents([]);
+      setClubMatches([]);
       return;
     }
 
     try {
-      const [sessions, events] = await Promise.all([
+      const [sessions, events, matches] = await Promise.all([
         groupSessionService.getClubActivitySessions(membership.clubId),
         eventService.getUpcomingEvents(membership.clubId),
+        matchService.getUpcomingMatches(membership.clubId),
       ]);
       setClubActivitySessions(sessions);
       setClubEvents(events);
+      setClubMatches(matches);
     } catch (error) {
       logger.error('Failed to load club activities:', error);
       setClubActivitySessions([]);
       setClubEvents([]);
-    }
-  }, [membership?.clubId]);
-
-  const loadUpcomingMatches = useCallback(async () => {
-    if (membership?.clubId) {
-      try {
-        const matches = await matchService.getUpcomingMatches(membership.clubId);
-        setUpcomingMatches(matches.slice(0, 3));
-      } catch (error) {
-        logger.error('Failed to load upcoming matches:', error);
-      }
+      setClubMatches([]);
     }
   }, [membership?.clubId]);
 
@@ -300,7 +292,6 @@ export function useClubHub(): ClubHubState {
           loadClubMeta(),
           loadMembers(),
           loadClubActivities(),
-          loadUpcomingMatches(),
           loadPendingSessionInvites(),
         ]);
         loadFeed();
@@ -324,7 +315,6 @@ export function useClubHub(): ClubHubState {
       loadClubActivities,
       loadFeed,
       loadMembers,
-      loadUpcomingMatches,
       loadPendingSessionInvites,
     ],
   );
@@ -579,7 +569,6 @@ export function useClubHub(): ClubHubState {
     clubActivities,
     clubActivitySessions,
     clubEvents,
-    upcomingMatches,
     pendingSessionInvites,
     initialLoading,
     refreshing,

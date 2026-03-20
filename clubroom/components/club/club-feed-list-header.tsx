@@ -13,9 +13,9 @@ import { ClubAdminActions } from '@/components/club/club-admin-actions';
 import { ClubActivitiesPanel } from '@/components/club/ClubActivitiesPanel';
 import { ClubFeedFilters } from '@/components/club/club-feed-filters';
 import { MembersPanel } from '@/components/club/MembersPanel';
-import { MatchesPanel } from '@/components/club/MatchesPanel';
 import { TeamsPanel } from '@/components/club/TeamsPanel';
 import { UpcomingEventsCarousel } from '@/components/club/upcoming-events-carousel';
+import { Routes } from '@/navigation/routes';
 import { Spacing } from '@/constants/theme';
 import type { ClubHubState } from '@/hooks/use-club-hub';
 
@@ -56,8 +56,12 @@ export const ClubFeedListHeader = memo(function ClubFeedListHeader({
         canManageTeams={hub.canManageTeams}
         clubId={hub.membership?.clubId}
       />
-      <MatchesPanel matches={hub.upcomingMatches} isCoach={hub.isCoach} />
-      <ClubActivitiesPanel activities={hub.clubActivities} isCoach={hub.isCoach} />
+      <ClubActivitiesPanel
+        activities={hub.clubActivities}
+        isCoach={hub.isCoach}
+        viewAllHref={hub.membership?.clubId ? Routes.clubSchedule(hub.membership.clubId) : undefined}
+        showCreateActions={false}
+      />
 
       {hub.pendingSessionInvites.length > 0 && (
         <View style={styles.carouselSection}>

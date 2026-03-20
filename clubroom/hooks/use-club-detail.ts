@@ -18,10 +18,12 @@ import type {
   ClubSquad,
   GroupSession,
   ClubInvite,
+  Match,
 } from '@/constants/types';
 import { clubService, type ClubMember, type MemberRemovalReason } from '@/services/club-service';
 import { eventService } from '@/services/event-service';
 import { groupSessionService } from '@/services/group-session-service';
+import { matchService } from '@/services/match-service';
 import { squadService } from '@/services/squad-service';
 import { socialFeedService } from '@/services/social-feed-service';
 import { onTyped, ServiceEvents } from '@/services/event-bus';
@@ -82,6 +84,7 @@ export function useClubDetail(clubId: string | undefined) {
   const [allFeed, setAllFeed] = useState<ClubFeedPost[]>([]);
   const [feedFilter, setFeedFilter] = useState<FeedFilter>('all');
   const [clubActivitySessions, setClubActivitySessions] = useState<GroupSession[]>([]);
+  const [clubMatches, setClubMatches] = useState<Match[]>([]);
   const [squads, setSquads] = useState<ClubSquad[]>([]);
   const [invites, setInvites] = useState<ClubInvite[]>([]);
   const [clubEvents, setClubEvents] = useState<ClubEvent[]>([]);
@@ -99,8 +102,8 @@ export function useClubDetail(clubId: string | undefined) {
   const canCreatePosts = !!membership;
   const canRemoveMembers = membership && clubService.canRemoveMembers(membership.role);
   const clubActivities = useMemo<ClubActivity[]>(
-    () => buildClubActivities({ events: clubEvents, sessions: clubActivitySessions }),
-    [clubEvents, clubActivitySessions],
+    () => buildClubActivities({ events: clubEvents, sessions: clubActivitySessions, matches: clubMatches }),
+    [clubEvents, clubActivitySessions, clubMatches],
   );
 
   const loadClubData = useCallback(async () => {
@@ -110,6 +113,7 @@ export function useClubDetail(clubId: string | undefined) {
       setMembership(undefined);
       setClubActivitySessions([]);
       setClubEvents([]);
+      setClubMatches([]);
       setSquads([]);
       setInvites([]);
       setLoading(false);
@@ -161,20 +165,24 @@ export function useClubDetail(clubId: string | undefined) {
     if (!clubId) {
       setClubActivitySessions([]);
       setClubEvents([]);
+      setClubMatches([]);
       return;
     }
 
     try {
-      const [sessions, events] = await Promise.all([
+      const [sessions, events, matches] = await Promise.all([
         groupSessionService.getClubActivitySessions(clubId),
         eventService.getUpcomingEvents(clubId),
+        matchService.getUpcomingMatches(clubId),
       ]);
       setClubActivitySessions(sessions);
       setClubEvents(events);
+      setClubMatches(matches);
     } catch (error) {
       logger.error('Failed to load club activities', error);
       setClubActivitySessions([]);
       setClubEvents([]);
+      setClubMatches([]);
     }
   }, [clubId]);
 

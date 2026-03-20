@@ -1,7 +1,7 @@
 # Club Activity Model
 
 Validated: 2026-03-19
-Purpose: define how club events and training should link together in Clubroom instead of behaving like separate product worlds.
+Purpose: define how club events, training, and matches should link together in Clubroom instead of behaving like separate product worlds.
 
 ## Product Rule
 
@@ -19,6 +19,7 @@ The participation behavior can vary:
 - `info only`
 - `RSVP`
 - `registration`
+- `availability`
 
 But the top-level concept exposed to club users is still `club activity`.
 
@@ -35,6 +36,9 @@ Today the source records are still split:
 - `Booking`
   - commitment record created from direct booking or session registration
   - not the top-level club schedule object
+- `Match`
+  - availability, lineup, and result first
+  - lives under `constants/event-types.ts` and `services/match-service.ts`
 
 There was already a weak link:
 
@@ -54,6 +58,7 @@ With these meanings:
 - `kind`
   - `informational`
   - `training`
+  - `match`
 - `accessScope`
   - `club`
   - `squad`
@@ -64,11 +69,13 @@ With these meanings:
   - `none`
   - `rsvp`
   - `registration`
+  - `availability`
 
 Interpretation rules:
 
 - `ClubEvent` remains the source for informational club events
 - `GroupSession` remains the source for training-shaped club activities
+- `Match` remains the source for fixtures and team selection workflows
 - a club-linked `GroupSession` with `inviteType='OPEN'` is treated as `mixed` access
   - that means “club training that can also admit outsiders”
 - a club-linked `GroupSession` with `inviteType='CLOSED'` is `club` access
@@ -80,12 +87,17 @@ This repo now has a first-class club activity read model in:
 
 - `constants/club-activity-types.ts`
 - `utils/club-activity-projections.ts`
+- `services/club-schedule-service.ts`
 
 And the club-facing surfaces now use that read model instead of pretending training and events are unrelated:
 
 - `components/club/ClubActivitiesPanel.tsx`
+- `components/club/ClubScheduleScreen.tsx`
 - `hooks/use-club-hub.ts`
 - `hooks/use-club-detail.ts`
+- `hooks/use-club-schedule.ts`
+- `app/club/[id]/schedule.tsx`
+- `app/club/squad/[id]/schedule.tsx`
 
 Important detail:
 
@@ -101,7 +113,8 @@ Still split today:
 
 - event creation still goes through `/events/create`
 - training creation still goes through `/group-sessions/create`
-- backend contracts do not yet expose a single `ClubActivity` entity
+- match creation still goes through `/matches/create`
+- backend contracts do not yet expose a single `ClubActivity` entity or backend-owned schedule list route
 
 That is acceptable for now because:
 
@@ -113,7 +126,7 @@ That is acceptable for now because:
 When adding new club-facing schedule UI:
 
 1. start from `ClubActivity`
-2. project from `ClubEvent` and `GroupSession`
-3. only drop to event-specific or session-specific detail after the user opens the item
+2. project from `ClubEvent`, `GroupSession`, and `Match`
+3. only drop to event-specific, session-specific, or match-specific detail after the user opens the item
 
 Do not create another parallel “activity card” model beside `ClubActivity` unless the domain meaning genuinely differs.

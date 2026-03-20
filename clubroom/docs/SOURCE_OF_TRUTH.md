@@ -59,8 +59,12 @@ Clubs manage staff, squads, visibility, and operating relationships.
   - coach scheduling rules no longer advertise a separate reschedule policy; bookings now change by cancellation and rebooking/reopening instead of negotiation
   - the remaining delegated booking seam is the broader session-invite acceptance/read model plus the wider invite-mediated change flows, which are still not backend-authoritative by default
 - Club-facing schedule surfaces now use a `ClubActivity` read model to link `ClubEvent` and `GroupSession`
+  - `ClubActivity` now also includes `Match`, so club and squad schedule routes can show events, training, and matches in one surface
   - club-linked open group sessions are treated as mixed-access training, not as a separate public product world
-  - informational events and training still have separate source records and creation flows, but club users now see one linked activity schedule instead of two unrelated sections
+  - informational events, training, and matches still have separate source records and creation flows, but club users now see one linked schedule instead of separate schedule worlds
+- Dedicated `Club Schedule` and `Team Schedule` routes now exist in the app.
+  - the canonical read seam is `services/club-schedule-service.ts`
+  - this sprint keeps the schedule read model app-owned while `/v1/clubs/:clubId/schedule` remains a planned backend authority route
 - The user-facing `Updates` tab is the shared read surface for:
   - followed personal posts
   - club-linked updates

@@ -70,8 +70,8 @@ Status legend:
 | `/v1/clubs/:clubId/invite-codes/:code` | `DELETE` | `scaffolded` | none | `manage_staff_and_invites` capability | `app/club/settings.tsx`, `hooks/use-club-settings.ts`, `services/club-authority-service.ts` |
 | `/v1/clubs/:clubId/memberships` | `GET/POST/PATCH` | `planned` | `ClubMembership*` | `club_admin` | club/admin UIs |
 | `/v1/clubs/:clubId/squads` | `GET/POST/PATCH` | `planned` | `Squad*` | `club_admin` or owner coach | `app/squads/*` |
-| `/v1/clubs/:clubId/schedule` | `GET` | `planned` | `ClubScheduleResponse` | club-scoped visibility via membership, assignment, public visibility, or linked participant access | `app/club/[id].tsx`, `app/(tabs)/club-hub.tsx`, future `/schedule` route |
-| `/v1/clubs/:clubId/schedule/:activityId` | `GET` | `planned` | `ClubActivityDetailResponse` | same as schedule list plus item-level visibility gates | future club schedule detail shell |
+| `/v1/clubs/:clubId/schedule` | `GET` | `planned` | `ClubScheduleResponse` | club-scoped visibility via membership, assignment, public visibility, or linked participant access | `app/club/[id].tsx`, `app/club/[id]/schedule.tsx`, `app/club/squad/[id]/schedule.tsx`, `services/club-schedule-service.ts` |
+| `/v1/clubs/:clubId/schedule/:activityId` | `GET` | `planned` | `ClubActivityDetailResponse` | same as schedule list plus item-level visibility gates | club and team schedule detail drill-ins |
 | `/v1/clubs/:clubId/integrations` | `GET/POST/PATCH` | `planned` | `ClubIntegration*` | `club_admin` | future club settings/integrations |
 | `/v1/clubs/:clubId/matches/import` | `POST` | `planned` | `ImportClubMatchesRequest`, `ImportClubMatchesResponse` | `club_admin` | future club schedule admin tools |
 | `/v1/coaches/me/verifications/:type/documents` | `POST` | `planned` | `UploadVerificationDocument*` | coach self | `app/verification/*` |

@@ -1,5 +1,5 @@
 import type { ClubActivity, ClubActivityAccessScope } from '@/constants/club-activity-types';
-import type { ClubEvent } from '@/constants/event-types';
+import type { ClubEvent, Match } from '@/constants/event-types';
 import type { GroupSession } from '@/constants/session-types';
 
 const DEFAULT_EVENT_TIME = '18:00';
@@ -7,6 +7,10 @@ const CLUB_ACTIVITY_PREFIX = 'club_activity:';
 
 interface MapGroupSessionOptions {
   allowPastFallback?: boolean;
+}
+
+interface BuildClubActivitiesOptions {
+  includePastSessions?: boolean;
 }
 
 function buildClubActivityId(source: ClubActivity['source'], entityId: string): string {
@@ -247,17 +251,71 @@ export function mapGroupSessionToClubActivity(
   };
 }
 
+function mapMatchStatus(match: Match): ClubActivity['status'] {
+  if (match.status === 'COMPLETED') return 'completed';
+  if (match.status === 'CANCELLED') return 'cancelled';
+  if (match.status === 'IN_PROGRESS') return 'in_progress';
+  return 'scheduled';
+}
+
+function mapMatchParticipationLabel(match: Match): ClubActivity['participationLabel'] {
+  if (match.status === 'COMPLETED' && match.result) {
+    return `Result ${match.result.home}-${match.result.away}`;
+  }
+  if (match.status === 'LINEUP_SET') {
+    return 'Lineup set';
+  }
+  if (match.status === 'IN_PROGRESS') {
+    return 'In progress';
+  }
+  return 'Availability & lineup';
+}
+
+export function mapMatchToClubActivity(match: Match): ClubActivity {
+  return {
+    id: buildClubActivityId('match', match.id),
+    source: 'match',
+    sourceEntityId: match.id,
+    clubId: match.clubId,
+    title: match.title,
+    description: match.notes,
+    startsAt: parseIso(match.date, match.kickoffTime),
+    status: mapMatchStatus(match),
+    kind: 'match',
+    typeLabel: `${formatTypeLabel(match.matchType)} Match`,
+    participationMode: 'availability',
+    participationLabel: mapMatchParticipationLabel(match),
+    accessScope: match.squadId ? 'squad' : 'club',
+    accessLabel: match.squadId ? 'Team' : 'Club',
+    audienceLabel: match.squadId ? 'Selected squad and families' : 'Club fixture group',
+    locationLabel: match.venue,
+    isVirtual: false,
+    squadId: match.squadId,
+    squadIds: match.squadId ? [match.squadId] : [],
+    allowsExternalRegistration: false,
+    opponent: match.opponent,
+    homeAwayLabel: match.isHome ? 'Home' : 'Away',
+    resultLabel: match.result ? `${match.result.home}-${match.result.away}` : undefined,
+  };
+}
+
 export function buildClubActivities(params: {
   events: ClubEvent[];
   sessions: GroupSession[];
+  matches?: Match[];
   now?: Date;
-}): ClubActivity[] {
+}, options: BuildClubActivitiesOptions = {}): ClubActivity[] {
   const now = params.now ?? new Date();
   const activities = [
     ...params.events.map(mapEventToClubActivity),
     ...params.sessions
-      .map((session) => mapGroupSessionToClubActivity(session, now, { allowPastFallback: false }))
+      .map((session) =>
+        mapGroupSessionToClubActivity(session, now, {
+          allowPastFallback: options.includePastSessions ?? false,
+        }),
+      )
       .filter((activity): activity is ClubActivity => activity !== null),
+    ...(params.matches ?? []).map(mapMatchToClubActivity),
   ];
 
   return activities.sort(

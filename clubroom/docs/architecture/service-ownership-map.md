@@ -83,6 +83,13 @@ Purpose: identify the service entrypoints that are safe to build on and call out
 - Club-facing schedule UI should project group sessions into `ClubActivity`
   - a club-linked `OPEN` session means mixed-access training: club members first-class, outsiders allowed
 
+### Club schedule
+
+- `services/club-schedule-service.ts`
+- Canonical read-model seam for `Club Schedule` and `Team Schedule`
+- Current rule: it projects events, group sessions, and matches into `ClubActivity`
+- Current limitation: schedule reads are still app-owned; `/v1/clubs/:clubId/schedule` remains the planned backend authority target
+
 ### Notifications
 
 - `services/notification/index.ts`

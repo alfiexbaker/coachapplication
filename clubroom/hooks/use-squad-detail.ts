@@ -194,6 +194,11 @@ export function useSquadDetail(squadId: string | undefined) {
     router.push(Routes.squadInvite(squadId || ''));
   }, [squadId]);
 
+  const handleOpenSchedule = useCallback(() => {
+    if (!squadId) return;
+    router.push(Routes.squadSchedule(squadId));
+  }, [squadId]);
+
   const cancelEdit = useCallback(() => {
     if (squad) setEditName(squad.name);
     setIsEditing(false);
@@ -226,5 +231,6 @@ export function useSquadDetail(squadId: string | undefined) {
     handleDeleteSquad,
     confirmDeleteSquad,
     handleInviteSquad,
+    handleOpenSchedule,
   };
 }

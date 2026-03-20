@@ -339,6 +339,11 @@ export const Routes = {
       pathname: '/club/[id]',
       params: { id },
     }) as Href,
+  clubSchedule: (id: string) =>
+    ({
+      pathname: '/club/[id]/schedule',
+      params: { id },
+    }) as Href,
   clubDashboard: (clubId: string) =>
     ({
       pathname: '/club/[clubId]/dashboard',
@@ -362,6 +367,11 @@ export const Routes = {
   clubSquad: (id: string) =>
     ({
       pathname: '/club/squad/[id]',
+      params: { id },
+    }) as Href,
+  squadSchedule: (id: string) =>
+    ({
+      pathname: '/club/squad/[id]/schedule',
       params: { id },
     }) as Href,
   CLUB_SQUAD_CREATE: '/club/squad/create' as Href,

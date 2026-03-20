@@ -13,6 +13,7 @@ interface SquadQuickActionsProps {
   openingGroupChat: boolean;
   onGroupChat: () => void;
   onInvite: () => void;
+  onSchedule: () => void;
 }
 
 export const SquadQuickActions = memo(function SquadQuickActions({
@@ -20,9 +21,24 @@ export const SquadQuickActions = memo(function SquadQuickActions({
   openingGroupChat,
   onGroupChat,
   onInvite,
+  onSchedule,
 }: SquadQuickActionsProps) {
   return (
     <View style={styles.container}>
+      <Clickable
+        style={[
+          styles.chatBtn,
+          { backgroundColor: withAlpha(colors.tint, 0.06), borderColor: colors.border },
+        ]}
+        onPress={onSchedule}
+      >
+        <Row align="center" justify="center" gap="sm">
+          <Ionicons name="calendar-outline" size={18} color={colors.tint} />
+          <ThemedText style={[Typography.bodySemiBold, { color: colors.tint }]}>
+            Team Schedule
+          </ThemedText>
+        </Row>
+      </Clickable>
       <Clickable
         style={[
           styles.chatBtn,

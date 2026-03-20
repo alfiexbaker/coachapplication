@@ -13,6 +13,7 @@ import type { ReactNode } from 'react';
 
 import { Clickable } from '@/components/primitives/clickable';
 import { PageHeader } from '@/components/primitives/page-header';
+import { Row } from '@/components/primitives/row';
 import { LoadingState, EmptyState } from '@/components/ui/screen-states';
 import { SquadInfoCard } from '@/components/squad/squad-info-card';
 import { SquadMembersCard } from '@/components/squad/squad-members-card';
@@ -53,6 +54,7 @@ export default function SquadDetailScreen() {
     handleDeleteSquad,
     confirmDeleteSquad,
     handleInviteSquad,
+    handleOpenSchedule,
   } = useSquadDetail(squadId);
   const renderShell = (content: ReactNode) => (
     <SafeAreaView
@@ -89,9 +91,14 @@ export default function SquadDetailScreen() {
         showBack
         centerTitle
         right={
-          <Clickable onPress={handleInviteSquad} hitSlop={8} accessibilityLabel="Invite squad">
-            <Ionicons name="paper-plane-outline" size={22} color={colors.tint} />
-          </Clickable>
+          <Row align="center" gap="sm">
+            <Clickable onPress={handleOpenSchedule} hitSlop={8} accessibilityLabel="Open team schedule">
+              <Ionicons name="calendar-outline" size={22} color={colors.tint} />
+            </Clickable>
+            <Clickable onPress={handleInviteSquad} hitSlop={8} accessibilityLabel="Invite squad">
+              <Ionicons name="paper-plane-outline" size={22} color={colors.tint} />
+            </Clickable>
+          </Row>
         }
       />
 
@@ -131,6 +138,7 @@ export default function SquadDetailScreen() {
             openingGroupChat={openingGroupChat}
             onGroupChat={handleGroupChat}
             onInvite={handleInviteSquad}
+            onSchedule={handleOpenSchedule}
           />
           <SquadDangerZone
             squadName={squad.name}

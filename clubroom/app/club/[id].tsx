@@ -219,6 +219,7 @@ export default function ClubDetailScreen() {
         isCoach={!!canManagePosts}
         maxItems={4}
         showCreateActions={false}
+        viewAllHref={Routes.clubSchedule(id)}
       />
 
       {showMembersSection && canRemoveMembers && (

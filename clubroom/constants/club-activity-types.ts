@@ -5,11 +5,11 @@
  * group sessions into one coherent schedule surface.
  */
 
-export type ClubActivitySource = 'club_event' | 'group_session';
+export type ClubActivitySource = 'club_event' | 'group_session' | 'match';
 
-export type ClubActivityKind = 'informational' | 'training';
+export type ClubActivityKind = 'informational' | 'training' | 'match';
 
-export type ClubActivityParticipationMode = 'none' | 'rsvp' | 'registration';
+export type ClubActivityParticipationMode = 'none' | 'rsvp' | 'registration' | 'availability';
 
 export type ClubActivityAccessScope =
   | 'club'
@@ -22,6 +22,7 @@ export type ClubActivityStatus =
   | 'draft'
   | 'scheduled'
   | 'full'
+  | 'in_progress'
   | 'cancelled'
   | 'completed';
 
@@ -49,4 +50,7 @@ export interface ClubActivity {
   squadId?: string;
   squadIds: string[];
   allowsExternalRegistration: boolean;
+  opponent?: string;
+  homeAwayLabel?: 'Home' | 'Away';
+  resultLabel?: string;
 }
