@@ -31,8 +31,8 @@ export const PositionToggle = memo(function PositionToggle({
       style={[
         styles.wrap,
         {
-          borderColor: withAlpha(colors.border, 0.5),
-          backgroundColor: withAlpha(colors.surface, 0.65),
+          borderColor: withAlpha(colors.border, 0.82),
+          backgroundColor: colors.surface,
         },
       ]}
     >
@@ -53,11 +53,11 @@ export const PositionToggle = memo(function PositionToggle({
                   styles.pill,
                   {
                     borderColor: active
-                      ? withAlpha(colors.tint, 0.65)
-                      : withAlpha(colors.border, 0.6),
+                      ? withAlpha(colors.tint, 0.42)
+                      : withAlpha(colors.border, 0.82),
                     backgroundColor: active
-                      ? withAlpha(colors.tint, 0.15)
-                      : 'transparent',
+                      ? withAlpha(colors.tint, 0.1)
+                      : colors.surfaceSecondary,
                   },
                 ]}
                 accessibilityRole="button"
@@ -89,10 +89,10 @@ export const PositionToggle = memo(function PositionToggle({
                       {
                         backgroundColor: active
                           ? withAlpha(colors.tint, 0.18)
-                          : withAlpha(colors.background, 0.58),
+                          : withAlpha(colors.border, 0.2),
                         borderColor: active
                           ? withAlpha(colors.tint, 0.35)
-                          : withAlpha(colors.border, 0.65),
+                          : withAlpha(colors.border, 0.82),
                       },
                     ]}
                   >

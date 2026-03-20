@@ -195,8 +195,8 @@ export const CoachSaysCard = memo(function CoachSaysCard({
             style={[
               styles.quotePanel,
               {
-                borderColor: withAlpha(colors.border, 0.72),
-                backgroundColor: withAlpha(colors.background, 0.56),
+                borderColor: withAlpha(colors.border, 0.82),
+                backgroundColor: colors.surfaceSecondary,
               },
             ]}
           >
@@ -243,8 +243,8 @@ export const CoachSaysCard = memo(function CoachSaysCard({
                 style={[
                   styles.contextChip,
                   {
-                    borderColor: withAlpha(colors.border, 0.7),
-                    backgroundColor: withAlpha(colors.background, 0.52),
+                    borderColor: withAlpha(colors.border, 0.78),
+                    backgroundColor: colors.surfaceSecondary,
                   },
                 ]}
               >
@@ -261,8 +261,8 @@ export const CoachSaysCard = memo(function CoachSaysCard({
                 style={[
                   styles.contextChip,
                   {
-                    borderColor: withAlpha(colors.border, 0.7),
-                    backgroundColor: withAlpha(colors.background, 0.52),
+                    borderColor: withAlpha(colors.border, 0.78),
+                    backgroundColor: colors.surfaceSecondary,
                   },
                 ]}
               >
@@ -321,7 +321,7 @@ export const CoachSaysCard = memo(function CoachSaysCard({
                               styles.skillRow,
                               {
                                 borderLeftColor: withAlpha(barColor, 0.55),
-                                backgroundColor: withAlpha(colors.background, 0.45),
+                                backgroundColor: colors.surfaceSecondary,
                               },
                             ]}
                             accessibilityLabel={`${entry.skill}: ${dots} out of 5${trend === 'improving' ? ', improving' : ''}`}

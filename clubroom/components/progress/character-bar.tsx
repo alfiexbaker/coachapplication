@@ -25,8 +25,8 @@ export const CharacterBar = memo(function CharacterBar({ universalSkills }: Char
       style={[
         styles.card,
         {
-          borderColor: withAlpha(colors.border, 0.5),
-          backgroundColor: withAlpha(colors.surface, 0.65),
+          borderColor: withAlpha(colors.border, 0.82),
+          backgroundColor: colors.surface,
         },
       ]}
     >
@@ -38,17 +38,17 @@ export const CharacterBar = memo(function CharacterBar({ universalSkills }: Char
             style={[
               styles.skillRow,
               index < universalSkills.length - 1
-                ? { borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: withAlpha(colors.border, 0.4) }
+                ? { borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: withAlpha(colors.border, 0.6) }
                 : undefined,
             ]}
           >
             <Row align="center" justify="between">
               <Row align="center" gap="xs" style={styles.skillLeft}>
-                <View style={[styles.iconWrap, { backgroundColor: withAlpha(colors.border, 0.38) }]}>
+                <View style={[styles.iconWrap, { backgroundColor: withAlpha(colors.tint, 0.08) }]}>
                   <Ionicons
                     name={(POSITION_SKILL_ICONS[entry.skill] as keyof typeof Ionicons.glyphMap) ?? 'ellipse-outline'}
                     size={14}
-                    color={withAlpha(colors.text, 0.78)}
+                    color={colors.tint}
                   />
                 </View>
                 <ThemedText style={styles.skillLabel}>

@@ -460,8 +460,8 @@ export default function MyProgressScreen() {
               style={[
                 styles.summaryLine,
                 {
-                  borderColor: withAlpha(colors.border, 0.65),
-                  backgroundColor: withAlpha(colors.surface, 0.78),
+                  borderColor: withAlpha(colors.border, 0.88),
+                  backgroundColor: colors.surface,
                 },
               ]}
             >
@@ -502,8 +502,8 @@ export default function MyProgressScreen() {
           <View style={styles.cardStage}>
             <LinearGradient
               colors={[
-                withAlpha(stageGlow, scheme === 'dark' ? 0.16 : 0.1),
-                withAlpha(stageGlow, scheme === 'dark' ? 0.05 : 0.03),
+                withAlpha(stageGlow, scheme === 'dark' ? 0.18 : 0.12),
+                withAlpha(stageGlow, scheme === 'dark' ? 0.07 : 0.04),
                 'transparent',
               ]}
               style={styles.cardStageGradient}
@@ -650,17 +650,17 @@ const styles = StyleSheet.create({
     marginHorizontal: -Spacing.md,
     paddingHorizontal: Spacing.md,
     paddingTop: Spacing.sm,
-    paddingBottom: Spacing.xs,
+    paddingBottom: Spacing.sm,
   },
   cardStageGradient: {
     position: 'absolute',
     top: 0,
     left: 0,
     right: 0,
-    height: 280,
+    height: 300,
   },
   pentagonCluster: {
-    gap: Spacing.xs,
+    gap: Spacing.sm,
   },
   sectionBreak: {
     height: Spacing.xs,

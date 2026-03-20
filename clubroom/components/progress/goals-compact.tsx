@@ -176,7 +176,13 @@ export const GoalsCompact = memo(function GoalsCompact({
         <Row align="center" justify="between">
           <ThemedText style={styles.title}>Goals</ThemedText>
           <Clickable
-            style={[styles.addButton, { backgroundColor: withAlpha(colors.tint, 0.1) }]}
+            style={[
+              styles.addButton,
+              {
+                backgroundColor: withAlpha(colors.tint, 0.1),
+                borderColor: withAlpha(colors.tint, 0.2),
+              },
+            ]}
             onPress={handleToggleCreate}
             accessibilityLabel="Add goal"
             accessibilityRole="button"
@@ -321,6 +327,7 @@ const styles = StyleSheet.create({
   addButton: {
     minHeight: 36,
     borderRadius: Radii.pill,
+    borderWidth: 1,
     justifyContent: 'center',
     paddingHorizontal: Spacing.sm,
   },

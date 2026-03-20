@@ -228,8 +228,8 @@ export const PositionPentagon = memo(function PositionPentagon({
       style={[
         styles.card,
         {
-          borderColor: withAlpha(colors.border, 0.65),
-          backgroundColor: withAlpha(colors.surface, 0.92),
+          borderColor: withAlpha(colors.border, 0.88),
+          backgroundColor: colors.surface,
         },
       ]}
     >
