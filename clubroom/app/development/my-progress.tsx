@@ -392,6 +392,18 @@ export default function MyProgressScreen() {
 
   if (!currentUser || status === 'empty' || !progress) {
     const isParentWithoutChildren = isParentContext && switcherChildren.length === 0;
+    const emptyTitle = isParentWithoutChildren ? 'No child linked yet' : 'No progress yet';
+    const emptyMessage = isParentWithoutChildren
+      ? 'Progress appears here once a child profile is linked to your family account.'
+      : isParentContext
+        ? 'Book and complete a session to start tracking progress here.'
+        : 'Complete sessions to start tracking progress here.';
+    const emptyActionLabel = isParentWithoutChildren
+      ? 'Open My Children'
+      : isParentContext
+        ? 'Book a Session'
+        : 'Find a Coach';
+
     return (
       <SafeAreaView
         style={[styles.container, { backgroundColor: colors.background }]}
@@ -402,24 +414,12 @@ export default function MyProgressScreen() {
         {childFocusCard}
         <EmptyState
           icon={isParentWithoutChildren ? 'people-outline' : 'analytics-outline'}
-          title={isParentWithoutChildren ? 'No children linked yet' : 'No progress yet'}
-          message={
-            isParentWithoutChildren
-              ? 'Add a child profile to start tracking progress and badges.'
-              : isParentContext
-                ? 'Book a session to start tracking progress.'
-                : 'Complete sessions to start tracking progress.'
-          }
-          actionLabel={
-            isParentWithoutChildren
-              ? 'Add Child'
-              : isParentContext
-                ? 'Book a Session'
-                : 'Find a Coach'
-          }
+          title={emptyTitle}
+          message={emptyMessage}
+          actionLabel={emptyActionLabel}
           onPressAction={() => {
             if (isParentWithoutChildren) {
-              router.push(Routes.MODAL_ADD_CHILD);
+              router.push(Routes.CHILDREN);
             } else if (isParentContext) {
               router.push(Routes.BOOK_COACH);
             } else {

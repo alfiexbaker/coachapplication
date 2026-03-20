@@ -145,6 +145,7 @@ export default function ResultsProgramScreen() {
     isCoachView,
     isParentView,
     hasMultipleChildren,
+    switcherChildren,
     selectedAthleteId,
     selectedAthleteName,
     loading,
@@ -986,11 +987,18 @@ export default function ResultsProgramScreen() {
 
   const emptyActionLabel = isCoachView
     ? 'Review session history'
-    : selectedAthleteId
+    : isParentView && switcherChildren.length === 0
+      ? 'Open My Children'
+      : selectedAthleteId
       ? 'View session history'
       : 'Find coach';
 
   const handleEmptyAction = useCallback(() => {
+    if (isParentView && switcherChildren.length === 0) {
+      router.push(Routes.CHILDREN);
+      return;
+    }
+
     if (isCoachView || selectedAthleteId) {
       router.push(
         Routes.developmentSessionHistory(
@@ -1005,7 +1013,7 @@ export default function ResultsProgramScreen() {
     }
 
     router.push(Routes.DISCOVER_MAP);
-  }, [isCoachView, selectedAthleteId]);
+  }, [isCoachView, isParentView, selectedAthleteId, switcherChildren.length]);
 
   const renderCoachQueueItem = useCallback(
     ({ item }: ListRenderItemInfo<CoachListItem>) => {
@@ -1148,12 +1156,26 @@ export default function ResultsProgramScreen() {
       {status === 'empty' ? (
         <View style={styles.emptyWrap}>
           <EmptyState
-            icon={isCoachView ? 'pulse-outline' : 'checkmark-done-outline'}
-            title={isCoachView ? 'No intervention queue yet' : 'No active session plan yet'}
+            icon={
+              isCoachView
+                ? 'pulse-outline'
+                : isParentView && switcherChildren.length === 0
+                  ? 'people-outline'
+                  : 'checkmark-done-outline'
+            }
+            title={
+              isCoachView
+                ? 'No intervention queue yet'
+                : isParentView && switcherChildren.length === 0
+                  ? 'No child linked yet'
+                  : 'No active session plan yet'
+            }
             message={
               isCoachView
                 ? 'Follow-up actions appear here after session feedback is captured.'
-                : 'Complete these before next session. Resolve overdue tasks first.'
+                : isParentView && switcherChildren.length === 0
+                  ? 'Results Program needs a linked child profile before it can show retrospective tasks and follow-up.'
+                  : 'Complete these before next session. Resolve overdue tasks first.'
             }
             actionLabel={emptyActionLabel}
             onPressAction={handleEmptyAction}
