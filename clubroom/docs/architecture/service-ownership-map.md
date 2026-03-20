@@ -73,6 +73,7 @@ Purpose: identify the service entrypoints that are safe to build on and call out
 
 - `services/event/index.ts`
 - Use for CRUD, RSVP, attendance, and display concerns
+- Current launch rule: the primary event route should build off one event workspace state, not split RSVP and attendance into separate primary flows
 - Club-facing schedule UI should project event records into `ClubActivity` instead of inventing another event-card-only view model
 
 ### Group sessions

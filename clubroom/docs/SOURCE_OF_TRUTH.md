@@ -65,6 +65,10 @@ Clubs manage staff, squads, visibility, and operating relationships.
 - Dedicated `Club Schedule` and `Team Schedule` routes now exist in the app.
   - the canonical read seam is `services/club-schedule-service.ts`
   - this sprint keeps the schedule read model app-owned while `/v1/clubs/:clubId/schedule` remains a planned backend authority route
+- Event detail is now a launch-grade event workspace instead of a brochure-only page.
+  - the main event route now loads overview, RSVP, response list, reminders, attendance/check-in, and organizer actions from one screen
+  - split RSVP and attendee routes still exist as secondary surfaces, but the main event route is the operational default
+  - post-event follow-through is currently handled as a club-update handoff, not a separate event-recap entity
 - The user-facing `Updates` tab is the shared read surface for:
   - followed personal posts
   - club-linked updates
