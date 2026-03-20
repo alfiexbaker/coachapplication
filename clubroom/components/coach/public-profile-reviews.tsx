@@ -9,6 +9,8 @@ import { useTheme } from '@/hooks/useTheme';
 import { renderStars } from '@/hooks/use-public-profile';
 import type { Coach, PublicReview } from '@/services/coach-service';
 import { Column, Row } from '@/components/primitives';
+import { CoachReviewProofSummary } from '@/components/coach/coach-review-proof-summary';
+import { formatReviewContext } from '@/utils/coach-review-proof';
 
 interface PublicProfileReviewsProps {
   coach: Coach;
@@ -37,6 +39,7 @@ export const PublicProfileReviews = memo(function PublicProfileReviews({
           {coach.reviewCount} review{coach.reviewCount !== 1 ? 's' : ''}
         </ThemedText>
       </SurfaceCard>
+      <CoachReviewProofSummary reviews={reviews} />
 
       {reviews.length > 0 ? (
         reviews.map((review, index) => {
@@ -56,14 +59,38 @@ export const PublicProfileReviews = memo(function PublicProfileReviews({
                     </ThemedText>
                   </View>
                   <Column flex>
-                    <ThemedText style={[Typography.bodySemiBold, { color: palette.text }]}>
-                      {review.reviewerName}
-                    </ThemedText>
+                    <Row align="center" gap="xs" wrap>
+                      <ThemedText style={[Typography.bodySemiBold, { color: palette.text }]}>
+                        {review.reviewerName}
+                      </ThemedText>
+                      {review.isVerifiedBooking ? (
+                        <View
+                          style={[
+                            styles.verifiedBadge,
+                            { backgroundColor: withAlpha(palette.success, 0.12) },
+                          ]}
+                        >
+                          <Ionicons
+                            name="shield-checkmark-outline"
+                            size={12}
+                            color={palette.success}
+                          />
+                          <ThemedText style={[styles.badgeText, { color: palette.success }]}>
+                            Verified booking
+                          </ThemedText>
+                        </View>
+                      ) : null}
+                    </Row>
                     <Row style={styles.starsRow}>
                       {reviewStars.map((s, i) => (
                         <Ionicons key={i} name={s.name} size={14} color={s.color} />
                       ))}
                     </Row>
+                    {formatReviewContext(review) ? (
+                      <ThemedText style={[styles.reviewContext, { color: palette.muted }]}>
+                        {formatReviewContext(review)}
+                      </ThemedText>
+                    ) : null}
                   </Column>
                   <ThemedText style={[Typography.caption, { color: palette.muted }]}>
                     {new Date(review.createdAt).toLocaleDateString('en-GB', {
@@ -78,17 +105,26 @@ export const PublicProfileReviews = memo(function PublicProfileReviews({
                     {review.comment}
                   </ThemedText>
                 ) : null}
-                {review.sessionType ? (
-                  <View
-                    style={[
-                      styles.sessionBadge,
-                      { backgroundColor: withAlpha(palette.tint, 0.06) },
-                    ]}
-                  >
-                    <ThemedText style={[Typography.caption, { color: palette.tint }]}>
-                      {review.sessionType}
-                    </ThemedText>
-                  </View>
+                {review.categories && Object.keys(review.categories).length > 0 ? (
+                  <Row gap="xs" wrap>
+                    {Object.entries(review.categories)
+                      .filter(([, value]) => value >= 4)
+                      .sort((left, right) => right[1] - left[1] || left[0].localeCompare(right[0]))
+                      .slice(0, 3)
+                      .map(([label, value]) => (
+                        <View
+                          key={label}
+                          style={[
+                            styles.sessionBadge,
+                            { backgroundColor: withAlpha(palette.tint, 0.06) },
+                          ]}
+                        >
+                          <ThemedText style={[Typography.caption, { color: palette.tint }]}>
+                            {label} {value}/5
+                          </ThemedText>
+                        </View>
+                      ))}
+                  </Row>
                 ) : null}
               </SurfaceCard>
             </Animated.View>
@@ -120,6 +156,16 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
+  verifiedBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.xxs,
+    paddingHorizontal: Spacing.xs,
+    paddingVertical: Spacing.xxs,
+    borderRadius: Radii.pill,
+  },
+  badgeText: { ...Typography.caption, fontWeight: '600' },
+  reviewContext: { ...Typography.caption },
   sessionBadge: {
     alignSelf: 'flex-start',
     paddingHorizontal: Spacing.xs,

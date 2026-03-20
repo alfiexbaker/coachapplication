@@ -27,10 +27,14 @@ interface RateCoachReviewRecord {
   parentName?: string;
   userId?: string;
   parentId?: string;
+  athleteId?: string;
+  athleteName?: string;
   rating: number;
   text?: string;
   content?: string;
   sessionType?: string;
+  bookingId?: string;
+  categories?: Record<string, number>;
   createdAt: string;
 }
 
@@ -79,9 +83,14 @@ export interface PublicReview {
   coachId: string;
   reviewerName: string;
   reviewerId?: string;
+  athleteId?: string;
+  athleteName?: string;
   rating: number;
   comment?: string;
   sessionType?: string;
+  bookingId?: string;
+  isVerifiedBooking?: boolean;
+  categories?: Record<string, number>;
   createdAt: string;
 }
 
@@ -173,10 +182,20 @@ const MOCK_REVIEWS: PublicReview[] = normalizeLegacyMockDates([
     coachId: 'coach-1',
     reviewerName: 'James P.',
     reviewerId: 'parent-1',
+    athleteId: 'athlete-1',
+    athleteName: 'Ethan',
     rating: 5,
     comment:
       'Marcus is fantastic with my son. His confidence on the ball has improved dramatically over the past 3 months. Highly recommend!',
     sessionType: '1-on-1 Session',
+    bookingId: 'booking-proof-1',
+    isVerifiedBooking: true,
+    categories: {
+      Communication: 5,
+      'Skill development': 5,
+      Punctuality: 4,
+      Value: 5,
+    },
     createdAt: '2024-01-10T14:00:00Z',
   },
   {
@@ -184,10 +203,20 @@ const MOCK_REVIEWS: PublicReview[] = normalizeLegacyMockDates([
     coachId: 'coach-1',
     reviewerName: 'Emily R.',
     reviewerId: 'parent-2',
+    athleteId: 'athlete-2',
+    athleteName: 'Mia',
     rating: 5,
     comment:
       'Professional, punctual, and great with kids. My daughter loves her sessions with Marcus.',
     sessionType: 'Group Session',
+    bookingId: 'booking-proof-2',
+    isVerifiedBooking: true,
+    categories: {
+      Communication: 5,
+      'Skill development': 4,
+      Punctuality: 5,
+      Value: 4,
+    },
     createdAt: '2024-01-05T10:00:00Z',
   },
   {
@@ -195,9 +224,19 @@ const MOCK_REVIEWS: PublicReview[] = normalizeLegacyMockDates([
     coachId: 'coach-1',
     reviewerName: 'David M.',
     reviewerId: 'parent-3',
+    athleteId: 'athlete-3',
+    athleteName: 'Noah',
     rating: 4,
     comment: 'Good coaching sessions. Would appreciate more feedback after each session.',
     sessionType: '1-on-1 Session',
+    bookingId: 'booking-proof-3',
+    isVerifiedBooking: true,
+    categories: {
+      Communication: 3,
+      'Skill development': 4,
+      Punctuality: 5,
+      Value: 4,
+    },
     createdAt: '2023-12-20T16:00:00Z',
   },
   {
@@ -207,6 +246,7 @@ const MOCK_REVIEWS: PublicReview[] = normalizeLegacyMockDates([
     reviewerId: 'parent-4',
     rating: 5,
     comment: 'Excellent coach! Really understands how to work with different skill levels.',
+    isVerifiedBooking: false,
     createdAt: '2023-12-15T11:00:00Z',
   },
   {
@@ -214,10 +254,20 @@ const MOCK_REVIEWS: PublicReview[] = normalizeLegacyMockDates([
     coachId: 'coach-2',
     reviewerName: 'Michael B.',
     reviewerId: 'parent-5',
+    athleteId: 'athlete-4',
+    athleteName: 'Ava',
     rating: 5,
     comment:
       'Sarah is an incredible coach. Her experience as a professional really shows in how she teaches.',
     sessionType: '1-on-1 Session',
+    bookingId: 'booking-proof-4',
+    isVerifiedBooking: true,
+    categories: {
+      Communication: 5,
+      'Skill development': 5,
+      Punctuality: 5,
+      Value: 4,
+    },
     createdAt: '2024-01-08T09:00:00Z',
   },
 ]);
@@ -235,9 +285,14 @@ function toPublicReview(review: RateCoachReviewRecord): PublicReview {
       review.userName?.trim() ||
       'Parent',
     reviewerId: review.userId || review.parentId,
+    athleteId: review.athleteId,
+    athleteName: review.athleteName,
     rating: review.rating,
     comment: review.text?.trim() || review.content?.trim(),
     sessionType: review.sessionType,
+    bookingId: review.bookingId,
+    isVerifiedBooking: Boolean(review.bookingId),
+    categories: review.categories,
     createdAt: review.createdAt,
   };
 }

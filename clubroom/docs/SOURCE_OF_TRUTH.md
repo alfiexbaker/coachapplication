@@ -69,6 +69,9 @@ Clubs manage staff, squads, visibility, and operating relationships.
   - the main event route now loads overview, RSVP, response list, reminders, attendance/check-in, and organizer actions from one screen
   - split RSVP and attendee routes still exist as secondary surfaces, but the main event route is the operational default
   - post-event follow-through is currently handled as a club-update handoff, not a separate event-recap entity
+- Coach storefront reviews now carry proof from real session history.
+  - booking-linked review submission stores athlete, session-type, booking, and category context through the shared review sync path
+  - coach review tabs now surface verified-booking markers and proof summary blocks instead of showing reviews as plain star comments
 - The user-facing `Updates` tab is the shared read surface for:
   - followed personal posts
   - club-linked updates

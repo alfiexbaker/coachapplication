@@ -5,6 +5,8 @@ export interface StoredCoachReview {
   id: string;
   coachId: string;
   coachName?: string;
+  athleteId?: string;
+  athleteName?: string;
   parentName?: string;
   userName?: string;
   userId?: string;
@@ -24,9 +26,14 @@ interface PublicCoachReviewRecord {
   coachId: string;
   reviewerName: string;
   reviewerId?: string;
+  athleteId?: string;
+  athleteName?: string;
   rating: number;
   comment?: string;
   sessionType?: string;
+  bookingId?: string;
+  isVerifiedBooking?: boolean;
+  categories?: Record<string, number>;
   createdAt: string;
 }
 
@@ -70,9 +77,14 @@ function toPublicReview(review: StoredCoachReview): PublicCoachReviewRecord {
     coachId: review.coachId,
     reviewerName,
     reviewerId,
+    athleteId: review.athleteId,
+    athleteName: review.athleteName,
     rating: review.rating,
     comment,
     sessionType: review.sessionType,
+    bookingId: review.bookingId,
+    isVerifiedBooking: Boolean(review.bookingId),
+    categories: review.categories,
     createdAt: review.createdAt,
   };
 }

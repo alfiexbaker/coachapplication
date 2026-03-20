@@ -53,6 +53,8 @@ interface BookingInfo {
   id: string;
   coachId: string;
   coachName: string;
+  athleteId?: string;
+  athleteName?: string;
   service: string;
   scheduledAt: string;
   status: Booking['status'];
@@ -95,6 +97,8 @@ export default function ReviewScreen() {
         id: found.id,
         coachId: found.coachId,
         coachName: found.coachName ?? 'Coach',
+        athleteId: found.athleteIds?.[0] ?? found.athleteId,
+        athleteName: found.athleteNames?.[0],
         service: found.service ?? 'Session',
         scheduledAt: found.scheduledAt,
         status: found.status,
@@ -174,6 +178,8 @@ export default function ReviewScreen() {
             bookingId,
             coachId: booking.coachId,
             coachName: booking.coachName,
+            athleteId: booking.athleteId,
+            athleteName: booking.athleteName,
             parentName: reviewerName,
             userName: reviewerName,
             userId: currentUser?.id,
@@ -182,6 +188,7 @@ export default function ReviewScreen() {
             text: payload.text,
             content: payload.text,
             categories: payload.categories,
+            sessionType: booking.service,
             createdAt: new Date().toISOString(),
             sessionDate: booking.scheduledAt ?? new Date().toISOString(),
           };
