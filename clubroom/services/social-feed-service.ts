@@ -882,6 +882,103 @@ class ClubFeedService {
     return getAllClubMembershipsForUser(userId).find((membership) => membership.clubId === clubId);
   }
 
+  async syncAuthorityClubs(
+    clubs: Array<Club & { memberships?: ClubMembership[] }>,
+  ): Promise<void> {
+    await this.ensureHydrated();
+
+    clubs.forEach((club) => {
+      const clubIndex = clubsStore.findIndex((candidate) => candidate.id === club.id);
+      if (clubIndex >= 0) {
+        clubsStore[clubIndex] = { ...clubsStore[clubIndex], ...club };
+      } else {
+        clubsStore.push(club);
+      }
+
+      if (club.memberships) {
+        membershipsStore = membershipsStore.filter((membership) => membership.clubId !== club.id);
+        membershipsStore.push(...club.memberships);
+      }
+
+      if (club.inviteCode) {
+        const fallbackInvite: ClubInvite = {
+          code: club.inviteCode,
+          clubId: club.id,
+          createdBy: club.ownerId,
+          role: 'MEMBER',
+          expiresAt: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString(),
+          remainingUses: 999,
+        };
+        clubInvitesStore = [
+          ...clubInvitesStore.filter(
+            (invite) => !(invite.clubId === club.id && invite.role === 'MEMBER'),
+          ),
+          fallbackInvite,
+        ];
+      }
+    });
+
+    await Promise.all([
+      this.persistClubs(),
+      this.persistMemberships(),
+      this.persistInviteCodes(),
+    ]);
+  }
+
+  async syncJoinedClub(
+    club: Club,
+    membership: ClubMembership,
+    inviteCodes: ClubInvite[] = [],
+  ): Promise<void> {
+    await this.ensureHydrated();
+
+    const clubIndex = clubsStore.findIndex((candidate) => candidate.id === club.id);
+    if (clubIndex >= 0) {
+      clubsStore[clubIndex] = { ...clubsStore[clubIndex], ...club };
+    } else {
+      clubsStore.push(club);
+    }
+
+    const membershipIndex = membershipsStore.findIndex(
+      (candidate) => candidate.clubId === membership.clubId && candidate.userId === membership.userId,
+    );
+    if (membershipIndex >= 0) {
+      membershipsStore[membershipIndex] = membership;
+    } else {
+      membershipsStore.push(membership);
+    }
+
+    if (inviteCodes.length > 0) {
+      clubInvitesStore = [
+        ...clubInvitesStore.filter((invite) => invite.clubId !== club.id),
+        ...inviteCodes,
+      ];
+    }
+
+    await Promise.all([
+      this.persistClubs(),
+      this.persistMemberships(),
+      this.persistInviteCodes(),
+    ]);
+  }
+
+  async syncInviteCodes(clubId: string, inviteCodes: ClubInvite[]): Promise<void> {
+    await this.ensureHydrated();
+    clubInvitesStore = [
+      ...clubInvitesStore.filter((invite) => invite.clubId !== clubId),
+      ...inviteCodes,
+    ];
+
+    const memberInvite = inviteCodes.find((invite) => invite.role === 'MEMBER');
+    if (memberInvite) {
+      clubsStore = clubsStore.map((club) =>
+        club.id === clubId ? { ...club, inviteCode: memberInvite.code } : club,
+      );
+    }
+
+    await Promise.all([this.persistClubs(), this.persistInviteCodes()]);
+  }
+
   joinClub(
     userId: string,
     inviteCode: string,

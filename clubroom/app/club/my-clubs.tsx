@@ -1,7 +1,7 @@
-import { useCallback, useMemo } from 'react';
+import { useCallback, useEffect, useMemo, useRef } from 'react';
 import { StyleSheet, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { router } from 'expo-router';
+import { router, useLocalSearchParams } from 'expo-router';
 
 import { Clickable } from '@/components/primitives/clickable';
 import { Row } from '@/components/primitives/row';
@@ -20,6 +20,7 @@ import { socialFeedService } from '@/services/social-feed-service';
 import type { ClubMembership } from '@/constants/types';
 import { ok } from '@/types/result';
 import { uiFeedback } from '@/services/ui-feedback';
+import { clubAuthorityService } from '@/services/club-authority-service';
 import {
   formatOrganizationRoleLabel,
   isClubStaffRole,
@@ -32,10 +33,6 @@ interface MyClubsData {
 }
 type UserClub = MyClubsData['clubs'][number];
 
-function mapUserRoleToClubRole(role: string | undefined): ClubMembership['role'] {
-  return parseOrganizationRole(role) ?? 'MEMBER';
-}
-
 function isStaffMembership(role: ClubMembership['role'] | undefined): boolean {
   return role ? isClubStaffRole(role) : false;
 }
@@ -43,11 +40,17 @@ function isStaffMembership(role: ClubMembership['role'] | undefined): boolean {
 export default function MyClubsScreen() {
   const { currentUser } = useAuth();
   const { showToast } = useToast();
+  const params = useLocalSearchParams<{ inviteCode?: string; inviteRole?: string }>();
   const isCoachAccount = currentUser?.role === 'COACH' || currentUser?.role === 'ADMIN';
+  const handledInviteRef = useRef<string | null>(null);
 
   const loadMyClubs = useCallback(async () => {
     if (!currentUser?.id) {
       return ok<MyClubsData>({ clubs: [], memberships: [] });
+    }
+    const authorityResult = await clubAuthorityService.listClubs();
+    if (authorityResult.success) {
+      return ok<MyClubsData>(authorityResult.data);
     }
     return ok<MyClubsData>({
       clubs: socialFeedService.getUserClubs(currentUser.id),
@@ -135,23 +138,44 @@ export default function MyClubsScreen() {
   );
 
   const handleJoin = useCallback(
-    (code: string) => {
+    async ({ code }: { code: string; role?: string }) => {
       if (!currentUser?.id) {
         uiFeedback.showToast('Please sign in to join a club.', 'error');
         return;
       }
-      const joinRole = mapUserRoleToClubRole(currentUser.role);
-      const result = socialFeedService.joinClub(currentUser.id, code, joinRole);
+      const result = await clubAuthorityService.joinWithCode(code);
       if (!result.success) {
         uiFeedback.showToast(result.error.message, 'error');
         return;
       }
 
-      showToast('Joined club successfully', 'success');
+      if (result.data.outcome === 'invite_pending') {
+        showToast(`Review the ${result.data.club.name} invite in Club Invites`, 'success');
+        router.push(Routes.COACH_INVITES);
+        return;
+      }
+
+      if (result.data.outcome === 'already_member') {
+        showToast(`You're already in ${result.data.club.name}`, 'success');
+      } else {
+        showToast(`Joined ${result.data.club.name}`, 'success');
+      }
       onRefresh();
     },
-    [currentUser, onRefresh, showToast],
+    [currentUser?.id, onRefresh, showToast],
   );
+
+  useEffect(() => {
+    if (!currentUser?.id || !params.inviteCode) {
+      return;
+    }
+    const normalizedCode = String(params.inviteCode).trim().toUpperCase();
+    if (!normalizedCode || handledInviteRef.current === normalizedCode) {
+      return;
+    }
+    handledInviteRef.current = normalizedCode;
+    void handleJoin({ code: normalizedCode, role: params.inviteRole });
+  }, [currentUser?.id, handleJoin, params.inviteCode, params.inviteRole]);
 
   if (status === 'loading') {
     return (

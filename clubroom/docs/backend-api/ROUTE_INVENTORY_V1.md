@@ -59,7 +59,15 @@ Status legend:
 | `/v1/coaches/me/availability/templates` | `GET/POST/PATCH` | `planned` | `AvailabilityTemplate*` | coach self | `app/(tabs)/availability.tsx`, `app/availability/*` |
 | `/v1/coaches/me/availability/overrides` | `GET/POST/PATCH` | `planned` | `AvailabilityOverride*` | coach self | `app/availability/calendar.tsx` |
 | `/v1/coaches/me/scheduling-rules` | `GET/PATCH` | `planned` | `SchedulingRules*` | coach self | `services/scheduling-rules-service.ts` consumers |
-| `/v1/clubs` | `GET/POST` | `planned` | `Club*` | authenticated / `club_admin` create | `app/(tabs)/club-hub.tsx` |
+| `/v1/clubs` | `GET` | `scaffolded` | `Club*` | authenticated | `app/(tabs)/club-hub.tsx`, `app/club/my-clubs.tsx`, `services/club-authority-service.ts` |
+| `/v1/clubs` | `POST` | `planned` | `Club*` | `club_admin` create | club creation flows |
+| `/v1/clubs/join/resolve` | `GET` | `scaffolded` | `ResolveClubJoinCodeResponse` | authenticated | join-link preview and code validation, `services/club-authority-service.ts` |
+| `/v1/clubs/join` | `POST` | `scaffolded` | `JoinClubRequest`, `JoinClubResponse` | authenticated; direct member join or pending staff invite based on invite-code role | `app/club/my-clubs.tsx`, `hooks/use-club-hub.ts`, `hooks/use-coach-invites.ts`, `services/club-authority-service.ts` |
+| `/v1/clubs/invites` | `GET` | `scaffolded` | `ClubInvitesResponse` | authenticated self | `app/coach-invites.tsx`, `hooks/use-coach-invites.ts`, `services/club-authority-service.ts` |
+| `/v1/clubs/invites/:inviteId/respond` | `POST` | `scaffolded` | `RespondToClubInviteRequest`, `RespondToClubInviteResponse` | pending invite target only | `app/coach-invites.tsx`, `hooks/use-coach-invites.ts`, `services/club-authority-service.ts` |
+| `/v1/clubs/:clubId/invite-codes` | `GET` | `scaffolded` | `ClubInviteCodesResponse` | club membership | `app/club/settings.tsx`, `hooks/use-club-settings.ts`, `services/club-authority-service.ts` |
+| `/v1/clubs/:clubId/invite-codes` | `POST` | `scaffolded` | `CreateClubInviteCodeRequest`, `ClubInviteCode` | `manage_staff_and_invites` capability | `app/club/settings.tsx`, `hooks/use-club-settings.ts`, `services/club-authority-service.ts` |
+| `/v1/clubs/:clubId/invite-codes/:code` | `DELETE` | `scaffolded` | none | `manage_staff_and_invites` capability | `app/club/settings.tsx`, `hooks/use-club-settings.ts`, `services/club-authority-service.ts` |
 | `/v1/clubs/:clubId/memberships` | `GET/POST/PATCH` | `planned` | `ClubMembership*` | `club_admin` | club/admin UIs |
 | `/v1/clubs/:clubId/squads` | `GET/POST/PATCH` | `planned` | `Squad*` | `club_admin` or owner coach | `app/squads/*` |
 | `/v1/clubs/:clubId/schedule` | `GET` | `planned` | `ClubScheduleResponse` | club-scoped visibility via membership, assignment, public visibility, or linked participant access | `app/club/[id].tsx`, `app/(tabs)/club-hub.tsx`, future `/schedule` route |

@@ -3,7 +3,7 @@
  * Manages pending club invites, accept/decline, and incoming code processing.
  */
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 
 import { router, useLocalSearchParams } from 'expo-router';
 import { Routes } from '@/navigation/routes';
@@ -17,6 +17,8 @@ import { err, ok, serviceError, type ServiceError } from '@/types/result';
 import type { ClubRole } from '@/constants/types';
 import { uiFeedback } from '@/services/ui-feedback';
 import { ORGANIZATION_ROLE_LABELS } from '@/contracts/club-governance';
+import { clubAuthorityService } from '@/services/club-authority-service';
+import { api } from '@/constants/config';
 
 const logger = createLogger('CoachInvitesScreen');
 
@@ -52,6 +54,7 @@ export function useCoachInvites() {
   }>();
 
   const [respondingTo, setRespondingTo] = useState<string | null>(null);
+  const handledIncomingCodeRef = useRef<string | null>(null);
 
   const loadInvites = useCallback(async () => {
     if (!currentUser) {
@@ -59,6 +62,28 @@ export function useCoachInvites() {
     }
 
     try {
+      if (!api.useMock) {
+        const result = await clubAuthorityService.listPendingInvites();
+        if (!result.success) {
+          return err(serviceError('UNKNOWN', result.error.message, result.error.details));
+        }
+
+        return ok<CoachInvitesData>({
+          invites: result.data.map((invite) => ({
+            id: invite.id,
+            inviteCode: invite.inviteCode,
+            clubId: invite.clubId,
+            clubName: invite.clubName,
+            clubBadge: invite.clubName.slice(0, 2).toUpperCase(),
+            role: invite.role,
+            invitedBy: invite.invitedByLabel,
+            invitedAt: invite.createdAt,
+            expiresAt: invite.expiresAt,
+            status: invite.status,
+          })),
+        });
+      }
+
       const stored = await apiClient.get<PendingClubInvite[]>(
         `${STORAGE_KEYS.PENDING_CLUB_INVITES}_${currentUser.id}`,
         [],
@@ -84,18 +109,32 @@ export function useCoachInvites() {
   useEffect(() => {
     const processIncomingInvite = async () => {
       if (params.code && params.clubId && params.clubName && currentUser) {
+        const normalizedCode = String(params.code).trim().toUpperCase();
+        if (!normalizedCode || handledIncomingCodeRef.current === normalizedCode) {
+          return;
+        }
+
         try {
+          handledIncomingCodeRef.current = normalizedCode;
+          if (!api.useMock) {
+            const joinResult = await clubAuthorityService.joinWithCode(normalizedCode);
+            if (joinResult.success) {
+              onRefresh();
+            }
+            return;
+          }
+
           const existing = await apiClient.get<PendingClubInvite[]>(
             `${STORAGE_KEYS.PENDING_CLUB_INVITES}_${currentUser.id}`,
             [],
           );
-          if (!existing.find((inv) => inv.inviteCode === params.code)) {
+          if (!existing.find((inv) => inv.inviteCode === normalizedCode)) {
             const knownClub = socialFeedService
               .getUserClubs(currentUser.id)
               .find((club) => club.id === params.clubId);
             const newInvite: PendingClubInvite = {
               id: `invite_${Date.now()}`,
-              inviteCode: params.code,
+              inviteCode: normalizedCode,
               clubId: params.clubId,
               clubName: params.clubName,
               clubBadge: knownClub?.badge || params.clubName.slice(0, 2).toUpperCase(),
@@ -122,6 +161,17 @@ export function useCoachInvites() {
       if (!currentUser) return;
       setRespondingTo(invite.id);
       try {
+        if (!api.useMock) {
+          const result = await clubAuthorityService.respondToInvite(invite.id, 'accepted');
+          if (!result.success) {
+            throw new Error(result.error.message);
+          }
+          uiFeedback.showToast(`You've joined ${invite.clubName} as ${ROLE_LABELS[invite.role]}.`);
+          router.push(Routes.club(invite.clubId));
+          onRefresh();
+          return;
+        }
+
         const allInvites = await apiClient.get<PendingClubInvite[]>(
           `${STORAGE_KEYS.PENDING_CLUB_INVITES}_${currentUser.id}`,
           [],
@@ -132,7 +182,7 @@ export function useCoachInvites() {
         await apiClient.set(`${STORAGE_KEYS.PENDING_CLUB_INVITES}_${currentUser.id}`, updated);
         logger.info('Accepted club invite', { clubId: invite.clubId, role: invite.role });
         uiFeedback.showToast(`You've joined ${invite.clubName} as ${ROLE_LABELS[invite.role]}.`);
-router.push(Routes.club(invite.clubId));
+        router.push(Routes.club(invite.clubId));
         onRefresh();
       } catch (error) {
         logger.error('Failed to accept invite', error);
@@ -157,6 +207,15 @@ router.push(Routes.club(invite.clubId));
             onPress: async () => {
               setRespondingTo(invite.id);
               try {
+                if (!api.useMock) {
+                  const result = await clubAuthorityService.respondToInvite(invite.id, 'declined');
+                  if (!result.success) {
+                    throw new Error(result.error.message);
+                  }
+                  onRefresh();
+                  return;
+                }
+
                 const allInvites = await apiClient.get<PendingClubInvite[]>(
                   `${STORAGE_KEYS.PENDING_CLUB_INVITES}_${currentUser?.id}`,
                   [],

@@ -51,6 +51,14 @@ Purpose: identify the service entrypoints that are safe to build on and call out
 - Validation note: the broader session-invite read/write model is still transitional and not fully aligned to `/v1`
 - Validation note: top-level `services/invite-service.ts` is not present in the current repo
 
+### Clubs and club join flows
+
+- `services/club-authority-service.ts`
+- Canonical `/v1` bridge for non-mock club listing, join-link resolution, join-by-code, pending club invite review, and invite-code management
+- Runtime rule: member invite codes join directly; staff invite codes create a pending invite for the target coach to review and accept
+- Compatibility rule: older club UIs may still read local club state, but that state should be mirrored from `clubAuthorityService` instead of being treated as the source of truth
+- `services/club-invite-link-service.ts` is the canonical helper for parsing and building club join links
+
 ### Scheduling rules and cancellation
 
 - `services/scheduling-rules-service.ts`

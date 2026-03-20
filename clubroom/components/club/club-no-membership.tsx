@@ -19,7 +19,7 @@ import { useTheme } from '@/hooks/useTheme';
 
 export interface ClubNoMembershipProps {
   isCoach: boolean;
-  onJoin: (code: string) => void;
+  onJoin: (input: { code: string; role?: string }) => void;
 }
 
 const COACH_BENEFITS = [

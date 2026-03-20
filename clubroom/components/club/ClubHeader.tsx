@@ -16,6 +16,7 @@ import { Row } from '@/components/primitives';
 import { Column } from '@/components/primitives/column';
 import { uiFeedback } from '@/services/ui-feedback';
 import { StatusBanner } from '@/components/ui/primitives/StatusBanner';
+import { buildClubInviteLink } from '@/services/club-invite-link-service';
 
 // ─── Re-exports ─────────────────────────────────────────────────────────────
 
@@ -96,8 +97,9 @@ export function ClubHeader({
   const handleShareInvite = useCallback(async () => {
     setShowMenu(false);
     try {
+      const link = buildClubInviteLink(club.inviteCode, 'MEMBER');
       await Share.share({
-        message: `Join ${club.name} on the app! Use invite code: ${club.inviteCode}`,
+        message: `Join ${club.name} on Clubroom.\n${link}\n\nInvite code: ${club.inviteCode}`,
         title: `Join ${club.name}`,
       });
     } catch {

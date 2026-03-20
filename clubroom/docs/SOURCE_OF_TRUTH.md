@@ -43,6 +43,10 @@ Clubs manage staff, squads, visibility, and operating relationships.
 - Shared governance and contract code exists in:
   - `contracts/club-governance.ts`
   - `packages/shared-contracts/src/club/`
+- Club join, invite-code management, pending staff invite review, and join-link resolution now use `/v1/clubs/*` in non-mock mode through `services/club-authority-service.ts`.
+  - the app still mirrors joined clubs and invite codes into local storage for compatibility with older club surfaces
+  - member join codes can join directly
+  - staff join codes create a pending invite that the target coach reviews in Club Invites
 - Auth transport is now aligned for local development:
   - frontend auth calls `/v1/auth/*`
   - backend runtime exposes matching `/v1/auth/*` routes

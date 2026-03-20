@@ -13,6 +13,8 @@ import { squadService } from '@/services/squad-service';
 import { socialFeedService } from '@/services/social-feed-service';
 import { onTyped, ServiceEvents } from '@/services/event-bus';
 import type { Club, ClubSquad, ClubRole, OrganizationCommercialMode } from '@/constants/types';
+import { clubAuthorityService } from '@/services/club-authority-service';
+import { buildClubInviteLink } from '@/services/club-invite-link-service';
 import { createLogger } from '@/utils/logger';
 import { uiFeedback } from '@/services/ui-feedback';
 import { canEditClubCommercialMode } from '@/utils/organization-commercial-mode';
@@ -150,12 +152,12 @@ export function useClubSettings() {
         squadService.getSquads(clubId),
         clubService.getMembers(clubId),
         clubService.getBranding(clubId),
-        socialFeedService.getInviteCodes(clubId),
+        clubAuthorityService.listInviteCodes(clubId),
       ]);
 
       setSquads(squadData);
       setMembers(memberData);
-      setInviteCodes(buildInviteCodes(clubData, inviteData));
+      setInviteCodes(buildInviteCodes(clubData, inviteData.success ? inviteData.data : []));
       setBrandingDraft(brandingData);
       logger.debug('ClubSettingsLoaded', { clubId, memberCount: memberData.length });
     } catch (error) {
@@ -200,7 +202,10 @@ export function useClubSettings() {
   const handleShareCode = useCallback(
     async (code: string, role: string) => {
       try {
-        await Share.share({ message: `Join ${club?.name} on ClubRoom! Use invite code: ${code}` });
+        const link = buildClubInviteLink(code, role as ClubRole);
+        await Share.share({
+          message: `Join ${club?.name} on Clubroom.\n${link}\n\nInvite code: ${code}`,
+        });
         logger.action('ShareInviteCode', { code, role });
       } catch (error) {
         logger.error('ShareFailed', error);
@@ -217,16 +222,16 @@ export function useClubSettings() {
       }
       if (!clubId || !currentUser?.id) return;
 
-      const result = await socialFeedService.generateInviteCode(clubId, currentUser.id, role);
+      const result = await clubAuthorityService.createInviteCode(clubId, role);
       if (!result.success) {
         showToast(result.error.message, 'error');
         return;
       }
 
-      const nextInvites = await socialFeedService.getInviteCodes(clubId);
+      const nextInvites = await clubAuthorityService.listInviteCodes(clubId);
       const updatedClub = (await socialFeedService.getClub(clubId)) ?? club;
       setClub(updatedClub);
-      setInviteCodes(buildInviteCodes(updatedClub, nextInvites));
+      setInviteCodes(buildInviteCodes(updatedClub, nextInvites.success ? nextInvites.data : [result.data]));
       showToast(`New ${ORGANIZATION_ROLE_LABELS[role]} invite code created`, 'success');
       logger.action('GenerateInviteCode', { role, code: result.data.code });
     },
@@ -400,15 +405,18 @@ export function useClubSettings() {
           style: 'destructive',
           onPress: async () => {
             if (!clubId) return;
-            const result = await socialFeedService.deleteInviteCode(clubId, code);
+            const result = await clubAuthorityService.deleteInviteCode(clubId, code);
             if (!result.success) {
               showToast(result.error.message, 'error');
               return;
             }
 
             const updatedClub = await socialFeedService.getClub(clubId);
+            const nextInviteCodes = await clubAuthorityService.listInviteCodes(clubId);
             setClub(updatedClub ?? club);
-            setInviteCodes(buildInviteCodes(updatedClub ?? club, result.data));
+            setInviteCodes(
+              buildInviteCodes(updatedClub ?? club, nextInviteCodes.success ? nextInviteCodes.data : []),
+            );
             showToast('Invite code deleted', 'success');
             logger.action('DeleteInviteCode', { code });
           },

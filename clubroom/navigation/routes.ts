@@ -316,6 +316,11 @@ export const Routes = {
       params,
     }) as Href,
   MY_CLUBS: '/club/my-clubs' as Href,
+  myClubs: (params?: { inviteCode?: string; inviteRole?: string }) =>
+    ({
+      pathname: '/club/my-clubs',
+      params: params ?? {},
+    }) as Href,
   CLUB_INVITE_MEMBERS: '/club/invite-members' as Href,
   clubInviteMembers: (params?: { clubId?: string }) =>
     ({

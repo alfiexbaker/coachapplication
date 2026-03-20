@@ -42,7 +42,7 @@ import { inviteService as sessionInviteService } from '@/services/invite';
 import { createLogger } from '@/utils/logger';
 import { buildClubActivities } from '@/utils/club-activity-projections';
 import { uiFeedback } from '@/services/ui-feedback';
-import { parseOrganizationRole } from '@/contracts/club-governance';
+import { clubAuthorityService } from '@/services/club-authority-service';
 
 const logger = createLogger('ClubHub');
 
@@ -55,10 +55,6 @@ export const FEED_FILTERS: { key: FeedFilter; label: string; icon: string }[] = 
   { key: 'video', label: 'Videos', icon: 'videocam-outline' },
   { key: 'event', label: 'Events', icon: 'calendar-outline' },
 ];
-
-const mapUserRoleToClubRole = (role: string | undefined): ClubRole => {
-  return parseOrganizationRole(role) ?? 'MEMBER';
-};
 
 function buildClubInvites(club: Club | undefined): ClubInvite[] {
   if (!club) return [];
@@ -435,43 +431,43 @@ export function useClubHub(): ClubHubState {
   }, []);
 
   const handleJoinWithCode = useCallback(
-    (code: string) => {
+    async (code: string) => {
       const trimmedCode = code.trim().toUpperCase();
       if (!trimmedCode) {
         uiFeedback.showToast('Paste the club code shared with you.');
         return;
       }
-      const targetClub = knownClubs.find(
-        (candidate) => candidate.inviteCode.toUpperCase() === trimmedCode,
-      );
-      if (!targetClub) {
-        uiFeedback.showToast('Check the code or request a new one from the club admin.', 'error');
-        return;
-      }
 
       const userIsCoach = currentUser?.role === 'COACH' || currentUser?.role === 'ADMIN';
       if (userIsCoach) {
-        router.push(
-          Routes.coachInvitesWith({
-            code: targetClub.inviteCode,
-            clubId: targetClub.id,
-            clubName: targetClub.name,
-            role: 'COACH',
-          }),
-        );
+        const joinResult = await clubAuthorityService.joinWithCode(trimmedCode);
+        if (!joinResult.success) {
+          uiFeedback.showToast(joinResult.error.message, 'error');
+          return;
+        }
+        if (joinResult.data.outcome === 'invite_pending') {
+          router.push(Routes.COACH_INVITES);
+          uiFeedback.showToast(`Review the ${joinResult.data.club.name} invite in Club Invites`);
+          return;
+        }
+        if (joinResult.data.membership) {
+          setMembership(joinResult.data.membership);
+        }
+        setClub(joinResult.data.club);
         return;
       }
 
-      const role = mapUserRoleToClubRole(currentUser?.role);
-      const joinResult = socialFeedService.joinClub(currentUser?.id || 'guest', targetClub.inviteCode, role);
+      const joinResult = await clubAuthorityService.joinWithCode(trimmedCode);
       if (!joinResult.success) {
         uiFeedback.showToast(joinResult.error.message, 'error');
         return;
       }
 
-      setMembership(joinResult.data);
-      setClub(targetClub);
-      uiFeedback.showToast(`You are now part of ${targetClub.name}`);
+      if (joinResult.data.membership) {
+        setMembership(joinResult.data.membership);
+      }
+      setClub(joinResult.data.club);
+      uiFeedback.showToast(`You are now part of ${joinResult.data.club.name}`);
     },
     [currentUser, knownClubs],
   );
@@ -481,7 +477,7 @@ export function useClubHub(): ClubHubState {
     const normalizedCode = routeInviteCode.trim().toUpperCase();
     if (!normalizedCode || handledRouteInviteCodeRef.current === normalizedCode) return;
     handledRouteInviteCodeRef.current = normalizedCode;
-    handleJoinWithCode(normalizedCode);
+    void handleJoinWithCode(normalizedCode);
   }, [routeInviteCode, membership, currentUser?.id, knownClubs.length, handleJoinWithCode]);
 
   const handleLeaveClub = useCallback(() => {

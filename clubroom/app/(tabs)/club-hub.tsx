@@ -84,7 +84,12 @@ export default function ClubHubScreen() {
   if (!hub.membership) {
     return (
       <PageContainer header={<ScreenHeader {...HEADER_PROPS} />} gap={0} horizontalSpacing={0}>
-        <ClubNoMembership isCoach={hub.isCoach} onJoin={hub.handleJoinWithCode} />
+        <ClubNoMembership
+          isCoach={hub.isCoach}
+          onJoin={({ code }) => {
+            void hub.handleJoinWithCode(code);
+          }}
+        />
       </PageContainer>
     );
   }

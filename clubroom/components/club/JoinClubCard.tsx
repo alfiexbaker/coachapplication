@@ -12,10 +12,11 @@ import { Radii, Spacing, Typography, withAlpha } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
 import { Row } from '@/components/primitives';
 import { Column } from '@/components/primitives/column';
+import { parseClubInviteInput } from '@/services/club-invite-link-service';
 
 export interface JoinClubCardProps {
   isCoach: boolean;
-  onJoin: (code: string) => void;
+  onJoin: (input: { code: string; role?: string }) => void;
   onCreate?: (name: string) => void;
 }
 
@@ -23,19 +24,26 @@ export function JoinClubCard({ isCoach, onJoin, onCreate }: JoinClubCardProps) {
   const { colors: palette } = useTheme();
   const [joinCode, setJoinCode] = useState('');
   const normalizedCode = joinCode.trim().toUpperCase();
+  const parsedInput = parseClubInviteInput(joinCode);
   const codeError =
-    normalizedCode.length === 0
+    joinCode.trim().length === 0
       ? null
-      : normalizedCode.length < 4
+      : !parsedInput?.code
+        ? 'Paste a valid invite code or link'
+        : parsedInput.code.length < 4
         ? 'Code is too short'
         : null;
-  const canJoin = normalizedCode.length >= 4 && !codeError;
+  const canJoin = Boolean(parsedInput?.code && parsedInput.code.length >= 4 && !codeError);
 
   const handleCreateClub = () => {
     router.push(Routes.CLUB_CREATE);
   };
 
   const handleCodeChange = (value: string) => {
+    if (value.includes('://') || value.includes('inviteCode=')) {
+      setJoinCode(value.trim());
+      return;
+    }
     setJoinCode(value.replace(/[^A-Za-z0-9-]/g, '').toUpperCase());
   };
 
@@ -59,7 +67,7 @@ export function JoinClubCard({ isCoach, onJoin, onCreate }: JoinClubCardProps) {
 
       <Row style={styles.joinForm}>
         <TextInput
-          placeholder="Enter invite code (e.g. LIONS-CLUB)"
+          placeholder="Paste invite code or link"
           placeholderTextColor={palette.muted}
           value={joinCode}
           onChangeText={handleCodeChange}
@@ -76,7 +84,7 @@ export function JoinClubCard({ isCoach, onJoin, onCreate }: JoinClubCardProps) {
         />
         <Clickable
           style={[styles.primaryButton, { backgroundColor: canJoin ? palette.tint : palette.border }]}
-          onPress={() => onJoin(normalizedCode)}
+          onPress={() => parsedInput && onJoin(parsedInput)}
           disabled={!canJoin}
         >
           <ThemedText style={[styles.primaryButtonText, { color: palette.onPrimary }]}>
@@ -85,7 +93,7 @@ export function JoinClubCard({ isCoach, onJoin, onCreate }: JoinClubCardProps) {
         </Clickable>
       </Row>
       <ThemedText style={[Typography.caption, { color: codeError ? palette.error : palette.muted }]}>
-        {codeError ?? 'Ask your coach for the club invite code'}
+        {codeError ?? 'Ask your club for an invite code or join link'}
       </ThemedText>
 
       {isCoach && (

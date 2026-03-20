@@ -3,6 +3,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { after, beforeEach, describe, it } from 'node:test';
 import { buildApp } from '../../app.js';
+import { resetCoachClubRouteStateForTests } from '../coach-club/routes.js';
 import { resetDbFixtureStoreForTests } from '../../lib/db-fixture-store.js';
 import { resetMarketplaceSeedStoreForTests } from '../../lib/marketplace-seed-store.js';
 
@@ -46,6 +47,7 @@ describe('p0 core routes', () => {
   beforeEach(() => {
     resetMarketplaceSeedStoreForTests();
     resetDbFixtureStoreForTests();
+    resetCoachClubRouteStateForTests();
   });
 
   after(async () => {
@@ -189,6 +191,7 @@ describe('p0 core routes', () => {
     const clubsPayload = clubs.json() as {
       clubs: Array<{
         id?: string;
+        inviteCode?: string | null;
         viewerMembership?: { userId?: string; role?: string } | null;
         viewerGovernance: { role: string | null; canManageAssignments: boolean };
       }>;
@@ -204,6 +207,190 @@ describe('p0 core routes', () => {
     if (visibleClub?.viewerMembership?.role === 'coach') {
       assert.equal(visibleClub.viewerGovernance.role, 'COACH');
     }
+    assert.equal(typeof visibleClub?.inviteCode, 'string');
+  });
+
+  it('resolves join codes and joins members directly through /v1/clubs/join', async () => {
+    const tables = loadTables();
+    const memberUserIds = asRows(tables.userRoleMemberships)
+      .filter((row) => asString(row.role) === 'member')
+      .map((row) => asString(row.userId))
+      .filter((userId): userId is string => Boolean(userId));
+    const clubMemberUserIds = new Set(
+      asRows(tables.clubMemberships)
+        .map((row) => asString(row.userId))
+        .filter((userId): userId is string => Boolean(userId)),
+    );
+    const standaloneMemberId = memberUserIds.find((userId) => !clubMemberUserIds.has(userId));
+    assert.ok(standaloneMemberId, 'expected standalone member for direct join');
+
+    const seededCoach = asRows(tables.coachProfiles)[0];
+    const coachUserId = asString(seededCoach.userId) as string;
+    const clubsRes = await app.inject({
+      method: 'GET',
+      url: '/v1/clubs',
+      headers: {
+        'x-auth-user-id': coachUserId,
+        'x-auth-roles': rolesForUser(tables, coachUserId).join(',') || 'coach',
+        'x-acting-role': 'coach',
+      },
+    });
+    const clubsPayload = clubsRes.json() as {
+      clubs: Array<{ id: string; inviteCode: string }>;
+    };
+    const inviteCode = clubsPayload.clubs[0]?.inviteCode;
+    assert.ok(inviteCode, 'expected primary club invite code');
+
+    const resolveRes = await app.inject({
+      method: 'GET',
+      url: `/v1/clubs/join/resolve?code=${encodeURIComponent(inviteCode)}`,
+      headers: {
+        'x-auth-user-id': standaloneMemberId as string,
+        'x-auth-roles': rolesForUser(tables, standaloneMemberId as string).join(',') || 'member',
+        'x-acting-role': 'member',
+      },
+    });
+    assert.equal(resolveRes.statusCode, 200);
+    const resolvePayload = resolveRes.json() as {
+      preview: { joinFlow: string; role: string; alreadyMember: boolean };
+    };
+    assert.equal(resolvePayload.preview.joinFlow, 'direct_join');
+    assert.equal(resolvePayload.preview.role, 'MEMBER');
+    assert.equal(resolvePayload.preview.alreadyMember, false);
+
+    const joinRes = await app.inject({
+      method: 'POST',
+      url: '/v1/clubs/join',
+      headers: {
+        'x-auth-user-id': standaloneMemberId as string,
+        'x-auth-roles': rolesForUser(tables, standaloneMemberId as string).join(',') || 'member',
+        'x-acting-role': 'member',
+      },
+      payload: { code: inviteCode },
+    });
+    assert.equal(joinRes.statusCode, 201);
+    const joinPayload = joinRes.json() as {
+      outcome: string;
+      membership: { role: string; clubId: string; userId: string };
+    };
+    assert.equal(joinPayload.outcome, 'joined');
+    assert.equal(joinPayload.membership.role, 'MEMBER');
+    assert.equal(joinPayload.membership.userId, standaloneMemberId);
+
+    const joinedClubs = await app.inject({
+      method: 'GET',
+      url: '/v1/clubs',
+      headers: {
+        'x-auth-user-id': standaloneMemberId as string,
+        'x-auth-roles': rolesForUser(tables, standaloneMemberId as string).join(',') || 'member',
+        'x-acting-role': 'member',
+      },
+    });
+    const joinedPayload = joinedClubs.json() as { total: number };
+    assert.equal(joinedPayload.total >= 1, true);
+  });
+
+  it('creates pending staff invites from coach links and accepts them via inbox', async () => {
+    const tables = loadTables();
+    const clubAdminMembership = asRows(tables.clubMemberships).find(
+      (row) => asString(row.role) === 'club_admin',
+    );
+    assert.ok(clubAdminMembership, 'expected club admin membership');
+    const coachUserId = asString(clubAdminMembership.userId) as string;
+    const clubsRes = await app.inject({
+      method: 'GET',
+      url: '/v1/clubs',
+      headers: {
+        'x-auth-user-id': coachUserId,
+        'x-auth-roles': rolesForUser(tables, coachUserId).join(',') || 'club_admin',
+        'x-acting-role': 'club_admin',
+      },
+    });
+    const clubsPayload = clubsRes.json() as {
+      clubs: Array<{ id: string }>;
+    };
+    const clubId = clubsPayload.clubs[0]?.id;
+    assert.ok(clubId, 'expected visible club id');
+
+    const createInviteRes = await app.inject({
+      method: 'POST',
+      url: `/v1/clubs/${clubId}/invite-codes`,
+      headers: {
+        'x-auth-user-id': coachUserId,
+        'x-auth-roles': rolesForUser(tables, coachUserId).join(',') || 'club_admin',
+        'x-acting-role': 'club_admin',
+      },
+      payload: { role: 'COACH' },
+    });
+    assert.equal(createInviteRes.statusCode, 201);
+    const createInvitePayload = createInviteRes.json() as { inviteCode: { code: string } };
+    const coachCode = createInvitePayload.inviteCode.code;
+
+    const existingClubUserIds = new Set(
+      asRows(tables.clubMemberships)
+        .filter((row) => asString(row.clubId) === clubId)
+        .map((row) => asString(row.userId))
+        .filter((userId): userId is string => Boolean(userId)),
+    );
+    const otherCoachUserId = asRows(tables.coachProfiles)
+      .map((row) => asString(row.userId))
+      .filter((userId): userId is string => Boolean(userId))
+      .find((userId) => userId !== coachUserId && !existingClubUserIds.has(userId));
+    assert.ok(otherCoachUserId, 'expected second coach');
+    const targetCoachUserId = otherCoachUserId as string;
+
+    const joinRes = await app.inject({
+      method: 'POST',
+      url: '/v1/clubs/join',
+      headers: {
+        'x-auth-user-id': targetCoachUserId,
+        'x-auth-roles': rolesForUser(tables, targetCoachUserId).join(',') || 'coach',
+        'x-acting-role': 'coach',
+      },
+      payload: { code: coachCode },
+    });
+    assert.equal(joinRes.statusCode, 202);
+    const joinPayload = joinRes.json() as {
+      outcome: string;
+      invite: { id: string; status: string; role: string };
+    };
+    assert.equal(joinPayload.outcome, 'invite_pending');
+    assert.equal(joinPayload.invite.status, 'pending');
+    assert.equal(joinPayload.invite.role, 'COACH');
+
+    const inboxRes = await app.inject({
+      method: 'GET',
+      url: '/v1/clubs/invites',
+      headers: {
+        'x-auth-user-id': otherCoachUserId,
+        'x-auth-roles': rolesForUser(tables, otherCoachUserId).join(',') || 'coach',
+        'x-acting-role': 'coach',
+      },
+    });
+    assert.equal(inboxRes.statusCode, 200);
+    const inboxPayload = inboxRes.json() as {
+      invites: Array<{ id: string; clubId: string }>;
+    };
+    assert.equal(inboxPayload.invites.length >= 1, true);
+
+    const respondRes = await app.inject({
+      method: 'POST',
+      url: `/v1/clubs/invites/${inboxPayload.invites[0]?.id}/respond`,
+      headers: {
+        'x-auth-user-id': otherCoachUserId,
+        'x-auth-roles': rolesForUser(tables, otherCoachUserId).join(',') || 'coach',
+        'x-acting-role': 'coach',
+      },
+      payload: { response: 'accepted' },
+    });
+    assert.equal(respondRes.statusCode, 200);
+    const respondPayload = respondRes.json() as {
+      membership: { role: string; clubId: string; userId: string } | null;
+      invite: { status: string };
+    };
+    assert.equal(respondPayload.invite.status, 'accepted');
+    assert.equal(respondPayload.membership?.role, 'COACH');
+    assert.equal(respondPayload.membership?.userId, otherCoachUserId);
   });
 
   it('creates, cancels, reopens, and lists bookings for the booked-by user', async () => {
