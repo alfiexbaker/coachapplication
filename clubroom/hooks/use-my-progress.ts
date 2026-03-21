@@ -72,6 +72,14 @@ interface HomeworkCompletionRecord {
   proofType: 'photo' | 'video';
 }
 
+interface ProgressSubjectOption {
+  id: string;
+  name: string;
+  initials: string;
+  colorCode?: string;
+  kind: 'self' | 'child';
+}
+
 interface MyProgressData {
   progress: AthleteProgress | null;
   feedback: SessionFeedback[];
@@ -209,6 +217,18 @@ export function useMyProgress() {
   const { athleteId: athleteIdParam } = useLocalSearchParams<{ athleteId?: string | string[] }>();
 
   const isParentContext = Boolean(currentUser?.role === 'PARENT' || contextChildren.length > 0);
+  const selfSubjectOption = useMemo<ProgressSubjectOption | null>(() => {
+    if (!currentUser?.id) {
+      return null;
+    }
+    const displayName = currentUser.fullName || currentUser.name || 'Me';
+    return {
+      id: currentUser.id,
+      name: displayName,
+      initials: 'ME',
+      kind: 'self',
+    };
+  }, [currentUser?.fullName, currentUser?.id, currentUser?.name]);
   const switcherChildren = useMemo<SwitcherChild[]>(
     () =>
       contextChildren.map((child) => ({
@@ -219,6 +239,20 @@ export function useMyProgress() {
       })),
     [contextChildren],
   );
+  const subjectOptions = useMemo<ProgressSubjectOption[]>(() => {
+    const childOptions: ProgressSubjectOption[] = contextChildren.map((child) => ({
+      id: child.id,
+      name: child.name,
+      initials: child.initials,
+      colorCode: child.colorCode,
+      kind: 'child',
+    }));
+
+    if (!selfSubjectOption || !isParentContext) {
+      return childOptions;
+    }
+    return [selfSubjectOption, ...childOptions];
+  }, [contextChildren, isParentContext, selfSubjectOption]);
   const hasMultipleChildren = isParentContext && switcherChildren.length > 1;
 
   const explicitAthleteId = useMemo(() => {
@@ -614,20 +648,39 @@ export function useMyProgress() {
     [isParentContext, setActiveChildId, setProfileScope],
   );
 
+  const handleSelectSubject = useCallback(
+    (subjectId: string) => {
+      const nextSubject = subjectOptions.find((option) => option.id === subjectId);
+      if (!nextSubject) {
+        return;
+      }
+      if (nextSubject.kind === 'self') {
+        void setProfileScope({ mode: 'self' });
+        return;
+      }
+      void setActiveChildId(nextSubject.id);
+      void setProfileScope({ mode: 'child', childId: nextSubject.id });
+    },
+    [setActiveChildId, setProfileScope, subjectOptions],
+  );
+
   const handleSelectNextChild = useCallback(() => {
-    if (!hasMultipleChildren) {
+    if (subjectOptions.length <= 1 || !selectedAthleteId) {
       return;
     }
 
-    const currentIndex = switcherChildren.findIndex((child) => child.id === selectedAthleteId);
-    const nextIndex = currentIndex >= 0 ? (currentIndex + 1) % switcherChildren.length : 0;
-    const nextChildId = switcherChildren[nextIndex]?.id ?? switcherChildren[0]?.id;
-    if (!nextChildId) {
+    const currentIndex = subjectOptions.findIndex((option) => option.id === selectedAthleteId);
+    const nextSubject = subjectOptions[(currentIndex + 1) % subjectOptions.length];
+    if (!nextSubject) {
       return;
     }
-    void setActiveChildId(nextChildId);
-    void setProfileScope({ mode: 'child', childId: nextChildId });
-  }, [hasMultipleChildren, selectedAthleteId, setActiveChildId, setProfileScope, switcherChildren]);
+    if (nextSubject.kind === 'self') {
+      void setProfileScope({ mode: 'self' });
+      return;
+    }
+    void setActiveChildId(nextSubject.id);
+    void setProfileScope({ mode: 'child', childId: nextSubject.id });
+  }, [selectedAthleteId, setActiveChildId, setProfileScope, subjectOptions]);
 
   const latestCoachBadge = useMemo<CoachBadgeData | null>(() => {
     if (!latestFeedback?.coachId) {
@@ -750,10 +803,12 @@ export function useMyProgress() {
     isParentContext,
     hasMultipleChildren,
     switcherChildren,
+    subjectOptions,
     selectedAthleteId,
     selectedAthleteName,
     activeChildId: contextActiveChildId,
     handleSelectChild,
+    handleSelectSubject,
     handleSelectNextChild,
     generateTermlyReport,
     handleRefresh: onRefresh,
@@ -795,10 +850,12 @@ export function useMyProgress() {
     isParentContext: boolean;
     hasMultipleChildren: boolean;
     switcherChildren: SwitcherChild[];
+    subjectOptions: ProgressSubjectOption[];
     selectedAthleteId: string | null;
     selectedAthleteName: string;
     activeChildId: string | null;
     handleSelectChild: (childId: string) => void;
+    handleSelectSubject: (subjectId: string) => void;
     handleSelectNextChild: () => void;
     generateTermlyReport: () => Promise<Result<TermlyProgressReport, ServiceError>>;
     handleRefresh: () => void;

@@ -5,6 +5,7 @@ import { router } from 'expo-router';
 import Animated from 'react-native-reanimated';
 import { Ionicons } from '@expo/vector-icons';
 import { PageHeader } from '@/components/primitives/page-header';
+import { Clickable } from '@/components/primitives/clickable';
 import { LoadingState, ErrorState, EmptyState } from '@/components/ui/screen-states';
 import { CelebrationOverlay, type CelebrationOverlayRef } from '@/components/celebration-overlay';
 import { ThemedText } from '@/components/themed-text';
@@ -83,8 +84,10 @@ export default function MyProgressScreen() {
     familyHighlights,
     isParentContext,
     switcherChildren,
+    subjectOptions,
     selectedAthleteId,
     selectedAthleteName,
+    handleSelectNextChild,
     handleRefresh,
     generateTermlyReport,
     retry,
@@ -136,6 +139,14 @@ export default function MyProgressScreen() {
   const showChildFocusCard = isParentContext && Boolean(selectedAthleteId);
   const pageTitle = isParentContext ? 'Progress' : 'My Progress';
   const stageGlow = PLAYER_CARD_TIER_CONFIG[playerCard.tier].accent;
+  const nextSubjectLabel = useMemo(() => {
+    if (!selectedAthleteId || subjectOptions.length <= 1) {
+      return null;
+    }
+    const currentIndex = subjectOptions.findIndex((option) => option.id === selectedAthleteId);
+    const nextOption = subjectOptions[(currentIndex + 1) % subjectOptions.length];
+    return nextOption?.name ?? null;
+  }, [selectedAthleteId, subjectOptions]);
   const childFocusCard = showChildFocusCard ? (
     <View style={styles.childFocusWrap}>
       <View
@@ -147,7 +158,7 @@ export default function MyProgressScreen() {
           },
         ]}
       >
-        <Row align="center" justify="space-between">
+        <Row align="center" justify="space-between" gap="sm">
           <Row align="center" gap="xs">
             <Ionicons name="person-circle-outline" size={18} color={colors.tint} />
             {!isSelfSubject ? (
@@ -155,6 +166,26 @@ export default function MyProgressScreen() {
             ) : null}
             <ThemedText style={styles.childName}>{selectedAthleteName}</ThemedText>
           </Row>
+          {subjectOptions.length > 1 ? (
+            <Clickable
+              onPress={handleSelectNextChild}
+              accessibilityLabel="Switch progress subject"
+              style={[
+                styles.switchSubjectButton,
+                {
+                  backgroundColor: withAlpha(colors.tint, 0.08),
+                  borderColor: withAlpha(colors.tint, 0.16),
+                },
+              ]}
+            >
+              <Row align="center" gap="xxs">
+                <Ionicons name="swap-horizontal-outline" size={15} color={colors.tint} />
+                <ThemedText style={[styles.switchSubjectText, { color: colors.tint }]}>
+                  {nextSubjectLabel ? `Switch to ${nextSubjectLabel}` : 'Switch'}
+                </ThemedText>
+              </Row>
+            </Clickable>
+          ) : null}
         </Row>
       </View>
     </View>
@@ -639,6 +670,16 @@ const styles = StyleSheet.create({
   },
   childName: {
     ...Typography.bodySmallSemiBold,
+  },
+  switchSubjectButton: {
+    borderWidth: 1,
+    borderRadius: Radii.pill,
+    paddingVertical: Spacing.xxs,
+    paddingHorizontal: Spacing.sm,
+  },
+  switchSubjectText: {
+    ...Typography.caption,
+    fontWeight: '700',
   },
   content: {
     padding: Spacing.md,
