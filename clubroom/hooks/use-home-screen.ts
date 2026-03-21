@@ -137,6 +137,7 @@ export function useHomeScreen() {
     profileSubjectId,
     setProfileScope,
     isMultiChild,
+    loading: childContextLoading,
   } = useChildContext();
 
   const [refreshing, setRefreshing] = useState(false);
@@ -147,6 +148,7 @@ export function useHomeScreen() {
   const [upcomingBookings, setUpcomingBookings] = useState<Booking[]>([]);
   const [stats, setStats] = useState({ sessions: 0, badges: 0, level: 1 });
   const [bookSelfEnabled, setBookSelfEnabled] = useState(false);
+  const [bookSelfSettingLoaded, setBookSelfSettingLoaded] = useState(false);
   const [streakInfo, setStreakInfo] = useState<{
     currentStreak: number;
     nextMilestone: number;
@@ -181,6 +183,9 @@ export function useHomeScreen() {
   }, [fallbackChildId]);
 
   useEffect(() => {
+    if (childContextLoading) {
+      return;
+    }
     if (!fallbackChildId) {
       return;
     }
@@ -193,6 +198,7 @@ export function useHomeScreen() {
       void contextSetActiveChildId(fallbackChildId);
     }
   }, [
+    childContextLoading,
     contextActiveChildId,
     contextChildren,
     contextSetActiveChildId,
@@ -232,6 +238,7 @@ export function useHomeScreen() {
   const applyBookSelfEnabled = useCallback(
     (enabled: boolean) => {
       setBookSelfEnabled(enabled);
+      setBookSelfSettingLoaded(true);
       logger.debug('Home self-book setting applied', {
         currentUserId: currentUser?.id,
         enabled,
@@ -252,18 +259,19 @@ export function useHomeScreen() {
       setProfileScope,
     ],
   );
-  const canSelfSwitchProfile = Boolean(hasChildProfiles && selectedChild && bookSelfEnabled);
+  const canSelfSwitchProfile = Boolean(
+    !childContextLoading && bookSelfSettingLoaded && hasChildProfiles && selectedChild && bookSelfEnabled,
+  );
 
   useEffect(() => {
     if (!currentUser?.id) {
-      applyBookSelfEnabled(false);
-      logger.debug('Home self-book switch disabled: missing current user', {
-        currentUserId: currentUser?.id,
-      });
+      setBookSelfEnabled(false);
+      setBookSelfSettingLoaded(false);
       return;
     }
 
     let cancelled = false;
+    setBookSelfSettingLoaded(false);
     void bookingSelfSettingService.isEnabled(currentUser.id).then((enabled) => {
       if (cancelled) return;
       applyBookSelfEnabled(enabled);
@@ -287,6 +295,9 @@ export function useHomeScreen() {
   }, [applyBookSelfEnabled, currentUser?.id]);
 
   useEffect(() => {
+    if (childContextLoading) {
+      return;
+    }
     if (profileMode !== 'child') {
       return;
     }
@@ -295,9 +306,12 @@ export function useHomeScreen() {
       return;
     }
     void setProfileScope({ mode: 'child', childId: fallbackChild });
-  }, [fallbackChildId, profileMode, profileSubjectId, selectedChildId, setProfileScope]);
+  }, [childContextLoading, fallbackChildId, profileMode, profileSubjectId, selectedChildId, setProfileScope]);
 
   useEffect(() => {
+    if (childContextLoading || !bookSelfSettingLoaded) {
+      return;
+    }
     if (hasChildProfiles && !canSelfSwitchProfile && isViewingSelfProfile) {
       logger.debug('Home self profile reset because switching is unavailable', {
         canSelfSwitchProfile,
@@ -310,7 +324,9 @@ export function useHomeScreen() {
     }
   }, [
     bookSelfEnabled,
+    bookSelfSettingLoaded,
     canSelfSwitchProfile,
+    childContextLoading,
     fallbackChildId,
     hasChildProfiles,
     isViewingSelfProfile,
@@ -350,6 +366,7 @@ export function useHomeScreen() {
       selectedChildId,
       selectedChildName: selectedChild?.name,
       bookSelfEnabled,
+      bookSelfSettingLoaded,
       canSelfSwitchProfile,
       isViewingSelfProfile,
       profileMode,
@@ -357,7 +374,9 @@ export function useHomeScreen() {
     });
   }, [
     bookSelfEnabled,
+    bookSelfSettingLoaded,
     canSelfSwitchProfile,
+    childContextLoading,
     currentUser?.id,
     hasChildProfiles,
     isViewingSelfProfile,
