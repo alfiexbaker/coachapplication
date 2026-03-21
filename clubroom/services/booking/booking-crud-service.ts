@@ -72,6 +72,7 @@ function canUseApiBookingCreate(
 
 export type BookingDraft = {
   entrySource?: string;
+  targetLocked?: boolean;
   sessionType?: string;
   sessionTypeLabel?: string;
   sessionOfferingId?: string;

@@ -81,6 +81,34 @@ function getAthleteUserIdsByAthleteId(tables: SeedTables): Map<string, string | 
   );
 }
 
+function assertSeedBookingAthleteAccess(
+  tables: SeedTables,
+  authUserId: string,
+  athleteIds: string[],
+): void {
+  const athleteUserIdsByAthleteId = getAthleteUserIdsByAthleteId(tables);
+  const guardianLinks = asRows(tables.guardianChildLinks);
+
+  for (const athleteId of athleteIds) {
+    const athleteUserId = athleteUserIdsByAthleteId.get(athleteId);
+    if (athleteUserId === authUserId) {
+      continue;
+    }
+
+    const linkedGuardian = guardianLinks.some(
+      (row) =>
+        asString(row.athleteId) === athleteId && asString(row.guardianUserId) === authUserId,
+    );
+    if (linkedGuardian) {
+      continue;
+    }
+
+    throw forbidden('Authenticated user cannot create bookings for this athlete', {
+      athleteId,
+    });
+  }
+}
+
 function getParticipantRowsByBooking(tables: SeedTables): Map<string, SeedRow[]> {
   const participants = asRows(tables.bookingParticipants);
   const participantRowsByBooking = new Map<string, SeedRow[]>();
@@ -265,6 +293,8 @@ export function createBookingInSeedTables(params: {
   const guardianChildLinks = asRows(tables.guardianChildLinks);
   const now = isoNow();
   const bookingId = newId('bok');
+
+  assertSeedBookingAthleteAccess(tables, authUserId, body.athleteIds);
 
   bookings.push({
     id: bookingId,
@@ -693,6 +723,35 @@ class DbBookingRepository implements BookingRepository {
         },
       },
     });
+    const athleteRows = await prisma.athlete.findMany({
+      where: {
+        id: {
+          in: body.athleteIds,
+        },
+      },
+      select: {
+        id: true,
+        userId: true,
+      },
+    });
+    const athleteUserIdByAthleteId = new Map(athleteRows.map((row) => [row.id, row.userId ?? undefined]));
+    for (const athleteId of body.athleteIds) {
+      const athleteUserId = athleteUserIdByAthleteId.get(athleteId);
+      if (athleteUserId === params.authUserId) {
+        continue;
+      }
+
+      const linkedGuardian = guardianLinks.some(
+        (row) => row.athleteId === athleteId && row.guardianUserId === params.authUserId,
+      );
+      if (linkedGuardian) {
+        continue;
+      }
+
+      throw forbidden('Authenticated user cannot create bookings for this athlete', {
+        athleteId,
+      });
+    }
     const guardianByAthlete = new Map(guardianLinks.map((row) => [row.athleteId, row.guardianUserId]));
 
     await prisma.booking.create({

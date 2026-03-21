@@ -80,7 +80,7 @@ Status legend:
 | Route | Method | Status | Contract(s) | AuthZ | UI anchors |
 |---|---|---|---|---|---|
 | `/v1/bookings` | `GET` | `scaffolded` | `BookingListResponse` | participants/guardian/coach | `app/(tabs)/bookings/index.tsx`, `hooks/use-bookings.ts`, `services/booking/booking-authority-service.ts` |
-| `/v1/bookings` | `POST` | `scaffolded` | `CreateBookingRequest`, `BookingResponse` | parent/athlete/coach acting as self, or `club_admin` | `app/book/[coachId]/*`, `components/ui/booking/*`, `services/booking/booking-authority-service.ts` |
+| `/v1/bookings` | `POST` | `scaffolded` | `CreateBookingRequest`, `BookingResponse` | parent for linked athlete only, athlete for self only, or `club_admin` override | `app/book/[coachId]/*`, `components/ui/booking/*`, `services/booking/booking-authority-service.ts` |
 | `/v1/bookings/:bookingId` | `GET` | `scaffolded` | `BookingResponse` | participants/guardian/coach | `app/(tabs)/bookings/[id].tsx`, `hooks/use-booking-detail.ts`, `services/booking/booking-authority-service.ts` |
 | `/v1/bookings/:bookingId` | `PATCH` | `planned` | `UpdateBookingRequest`, `BookingResponse` | scoped actors + version | booking detail + admin tools |
 | `/v1/bookings/:bookingId/cancel` | `POST` | `scaffolded` | `CancelBookingRequest`, `BookingResponse` | parent/athlete/coach tied to booking participants or delivery coach | `app/booking/[id]/cancel.tsx`, `hooks/use-booking-cancel.ts`, `services/booking/booking-authority-service.ts` |

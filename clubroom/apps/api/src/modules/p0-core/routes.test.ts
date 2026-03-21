@@ -593,6 +593,51 @@ describe('p0 core routes', () => {
     assert.equal(deniedDetail.statusCode, 403);
   });
 
+  it('denies booking creation for an athlete not linked to the authenticated parent', async () => {
+    const tables = loadTables();
+    const guardianLink = asRows(tables.guardianChildLinks)[0];
+    assert.ok(guardianLink, 'expected seeded guardian-child link');
+    const bookedByUserId = asString(guardianLink.guardianUserId) as string;
+    const linkedAthleteIds = new Set(
+      asRows(tables.guardianChildLinks)
+        .filter((row) => asString(row.guardianUserId) === bookedByUserId)
+        .map((row) => asString(row.athleteId))
+        .filter((athleteId): athleteId is string => Boolean(athleteId)),
+    );
+    const unrelatedAthlete = asRows(tables.athletes).find((row) => {
+      const athleteId = asString(row.id);
+      return Boolean(athleteId && !linkedAthleteIds.has(athleteId));
+    });
+    assert.ok(unrelatedAthlete, 'expected an athlete outside the parent scope');
+    const unrelatedAthleteId = asString(unrelatedAthlete?.id) as string;
+    const coachOffering = asRows(tables.coachingOfferings)[0];
+    assert.ok(coachOffering, 'expected seeded coaching offering');
+    const coachUserId = asString(coachOffering.coachUserId) as string;
+
+    const create = await app.inject({
+      method: 'POST',
+      url: '/v1/bookings',
+      headers: {
+        'x-auth-user-id': bookedByUserId,
+        'x-auth-roles': rolesForUser(tables, bookedByUserId).join(',') || 'parent',
+        'x-acting-role': rolesForUser(tables, bookedByUserId)[0] ?? 'parent',
+      },
+      payload: {
+        coachUserId,
+        athleteIds: [unrelatedAthleteId],
+        bookedByUserId,
+        scheduledAt: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
+        durationMinutes: 60,
+        location: 'Authz Test Pitch',
+        serviceType: 'one_to_one',
+        objectives: ['Decision making'],
+        currency: 'GBP',
+      },
+    });
+
+    assert.equal(create.statusCode, 403);
+  });
+
   it('responds to invites and creates/updates event RSVPs', async () => {
     const tables = loadTables();
     const target = asRows(tables.inviteTargets).find((row) => asString(row.status) === 'PENDING')

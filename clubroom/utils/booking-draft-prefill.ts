@@ -132,6 +132,7 @@ export function buildBookingDraftPatchFromOffering({
 }): Partial<BookingDraft> {
   const patch: Partial<BookingDraft> = {
     entrySource,
+    targetLocked: Boolean(child),
     coachId,
     sessionOfferingId: offering.id,
     sessionSource: offering.source ?? 'direct',

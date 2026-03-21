@@ -218,6 +218,7 @@ export default function SessionTypeScreen() {
     updateDraft({
       childId: preselectedChild.id,
       athleteName: preselectedChild.name,
+      targetLocked: true,
     });
   }, [
     draft.athleteName,

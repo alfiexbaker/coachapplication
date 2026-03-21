@@ -198,7 +198,11 @@ export default function BookCoachEntryScreen() {
             accountIdsMatch(draft.coachId as string, coachId);
           if (hasHydratedDraftOffering) {
             if (preselectedChild && !draft.childId) {
-              updateDraft({ childId: preselectedChild.id, athleteName: preselectedChild.name });
+              updateDraft({
+                childId: preselectedChild.id,
+                athleteName: preselectedChild.name,
+                targetLocked: true,
+              });
             }
             const parsedWeeks = Number.parseInt(weeks ?? '1', 10);
             const useMultiWeekFlow =
@@ -246,7 +250,7 @@ export default function BookCoachEntryScreen() {
         });
         const isSameOffering = previousOfferingId === matchedOffering.id;
         const nextPatch = !isSameOffering && !patch.childId
-          ? { ...patch, childId: undefined, athleteName: undefined }
+          ? { ...patch, childId: undefined, athleteName: undefined, targetLocked: false }
           : patch;
         updateDraft(nextPatch);
 

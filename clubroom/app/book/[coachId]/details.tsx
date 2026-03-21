@@ -51,6 +51,7 @@ export default function DetailsScreen() {
     accountChildRefCount: currentUser?.children?.length ?? 0,
   });
   const hasSelectableChildren = children.length > 0;
+  const isTargetLocked = Boolean(draft.targetLocked && draft.childId);
   const canSelectSelf = canBookForSelf({
     contextChildCount: hasSelectableChildren ? children.length : 0,
     accountChildRefCount: hasSelectableChildren ? (currentUser?.children?.length ?? 0) : 0,
@@ -126,8 +127,14 @@ export default function DetailsScreen() {
       dateOfBirth: currentUser.dateOfBirth || '',
     };
 
-    return canSelectSelf ? [selfTarget, ...childOptions] : childOptions;
-  }, [canSelectSelf, childOptions, currentUser]);
+    const unlockedTargets = canSelectSelf ? [selfTarget, ...childOptions] : childOptions;
+    if (!isTargetLocked || !draft.childId) {
+      return unlockedTargets;
+    }
+
+    const lockedTarget = unlockedTargets.find((target) => target.id === draft.childId);
+    return lockedTarget ? [lockedTarget] : unlockedTargets;
+  }, [canSelectSelf, childOptions, currentUser, draft.childId, isTargetLocked]);
 
   // Auto-select a target when the draft has none:
   // - single child: default to child
@@ -176,6 +183,10 @@ export default function DetailsScreen() {
         return;
       }
 
+      if (isTargetLocked && targetId !== draft.childId) {
+        return;
+      }
+
       if (targetId === currentUser.id && canSelectSelf) {
         updateDraft({
           childId: currentUser.id,
@@ -187,7 +198,7 @@ export default function DetailsScreen() {
       const child = children.find((c) => c.id === targetId);
       updateDraft({ childId: targetId, athleteName: child?.name });
     },
-    [canSelectSelf, children, currentUser, updateDraft],
+    [canSelectSelf, children, currentUser, draft.childId, isTargetLocked, updateDraft],
   );
   const handleBack = useCallback(() => {
     void bookingStepAnalyticsService.track({
@@ -371,7 +382,7 @@ export default function DetailsScreen() {
             childOptions={bookingTargets}
             selectedChildId={draft.childId}
             onSelectChild={handleSelectChild}
-            autoSelected={!isMultiChild && bookingTargets.length === 1}
+            autoSelected={isTargetLocked || (!isMultiChild && bookingTargets.length === 1)}
           />
         )}
         {hasSelectableChildren && accountChildCount > 0 && !allowBookSelf && (
@@ -396,7 +407,7 @@ export default function DetailsScreen() {
             </Clickable>
           </View>
         )}
-        {currentUser && (
+        {currentUser && !isTargetLocked && (
           <Clickable
             onPress={() => router.push(Routes.MODAL_ADD_CHILD)}
             style={[
