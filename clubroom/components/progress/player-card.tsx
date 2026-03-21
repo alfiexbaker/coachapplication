@@ -81,7 +81,7 @@ export const PlayerCard = memo(function PlayerCard({ data }: PlayerCardProps) {
   const isFlippingRef = useRef(false);
   const compact = viewportWidth <= 375;
 
-  const tierConfig = PLAYER_CARD_TIER_CONFIG[data.tier];
+  const tierConfig = PLAYER_CARD_TIER_CONFIG[data.tier] ?? PLAYER_CARD_TIER_CONFIG.bronze;
   const cardPalette = useMemo(
     () =>
       buildPlayerCardPalette({

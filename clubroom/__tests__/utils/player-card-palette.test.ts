@@ -31,3 +31,15 @@ test('player card palette selects light foreground for dark tier backgrounds', (
 
   assert.equal(palette.text, '#F8FAFC');
 });
+
+test('player card palette falls back safely when a tier color is missing', () => {
+  const palette = buildPlayerCardPalette({
+    gradient: ['#101A2E', undefined as unknown as string],
+    accent: undefined as unknown as string,
+    overlay: undefined as unknown as string,
+  });
+
+  assert.ok(/^#/.test(palette.text));
+  assert.match(palette.badgeBackground, /^rgba\(/);
+  assert.match(palette.overlay, /^rgba\(/);
+});

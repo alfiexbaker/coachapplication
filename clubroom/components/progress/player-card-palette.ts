@@ -30,6 +30,10 @@ export interface PlayerCardPalette {
 }
 
 function hexToRgb(hex: string): Rgb | null {
+  if (typeof hex !== 'string') {
+    return null;
+  }
+
   const normalized = hex.replace('#', '').trim();
   if (!/^[0-9a-fA-F]{6}$/.test(normalized)) {
     return null;
@@ -102,8 +106,14 @@ export function buildPlayerCardPalette({
   accent: string;
   overlay: string;
 }): PlayerCardPalette {
-  const base = averageGradient(gradient);
-  const blendedBackground = mixHex(base, overlay, 0.56);
+  const safeGradient: [string, string] = [
+    hexToRgb(gradient?.[0]) ? gradient[0] : '#101A2E',
+    hexToRgb(gradient?.[1]) ? gradient[1] : '#2A425B',
+  ];
+  const safeAccent = hexToRgb(accent) ? accent : '#C9904E';
+  const safeOverlay = hexToRgb(overlay) ? overlay : '#08101D';
+  const base = averageGradient(safeGradient);
+  const blendedBackground = mixHex(base, safeOverlay, 0.56);
   const text = pickReadableText(blendedBackground);
   const isLightText = text === LIGHT_TEXT;
   const glassMix = isLightText ? '#FFFFFF' : '#0F172A';
@@ -111,19 +121,19 @@ export function buildPlayerCardPalette({
   return {
     text,
     softText: withAlpha(text, isLightText ? 0.86 : 0.76),
-    badgeBackground: withAlpha(accent, isLightText ? 0.2 : 0.14),
+    badgeBackground: withAlpha(safeAccent, isLightText ? 0.2 : 0.14),
     avatarBackground: withAlpha(glassMix, isLightText ? 0.12 : 0.08),
-    avatarBorder: withAlpha(accent, isLightText ? 0.42 : 0.3),
+    avatarBorder: withAlpha(safeAccent, isLightText ? 0.42 : 0.3),
     statPanelBackground: withAlpha(glassMix, isLightText ? 0.14 : 0.08),
-    statPanelBorder: withAlpha(accent, isLightText ? 0.24 : 0.18),
+    statPanelBorder: withAlpha(safeAccent, isLightText ? 0.24 : 0.18),
     statSeparator: withAlpha(text, isLightText ? 0.22 : 0.16),
     tileBackground: withAlpha(glassMix, isLightText ? 0.14 : 0.08),
     infoBackground: withAlpha(glassMix, isLightText ? 0.1 : 0.06),
-    streakBackground: withAlpha(accent, isLightText ? 0.16 : 0.12),
-    frameBorder: withAlpha(accent, isLightText ? 0.24 : 0.16),
-    overlay: withAlpha(overlay, isLightText ? 0.72 : 0.16),
-    mediaOverlayStrong: withAlpha(overlay, isLightText ? 0.82 : 0.22),
-    mediaOverlaySoft: withAlpha(overlay, isLightText ? 0.32 : 0.08),
+    streakBackground: withAlpha(safeAccent, isLightText ? 0.16 : 0.12),
+    frameBorder: withAlpha(safeAccent, isLightText ? 0.24 : 0.16),
+    overlay: withAlpha(safeOverlay, isLightText ? 0.72 : 0.16),
+    mediaOverlayStrong: withAlpha(safeOverlay, isLightText ? 0.82 : 0.22),
+    mediaOverlaySoft: withAlpha(safeOverlay, isLightText ? 0.32 : 0.08),
     innerBorder: withAlpha(glassMix, isLightText ? 0.12 : 0.08),
     sheen: withAlpha('#FFFFFF', isLightText ? 0.24 : 0.12),
   };
@@ -136,6 +146,11 @@ export function getPlayerCardTextContrast({
   gradient: [string, string];
   overlay: string;
 }): number {
-  const background = mixHex(averageGradient(gradient), overlay, 0.56);
+  const safeGradient: [string, string] = [
+    hexToRgb(gradient?.[0]) ? gradient[0] : '#101A2E',
+    hexToRgb(gradient?.[1]) ? gradient[1] : '#2A425B',
+  ];
+  const safeOverlay = hexToRgb(overlay) ? overlay : '#08101D';
+  const background = mixHex(averageGradient(safeGradient), safeOverlay, 0.56);
   return contrastRatio(pickReadableText(background), background);
 }

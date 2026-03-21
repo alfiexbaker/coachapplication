@@ -230,9 +230,25 @@ export const Shadows = {
   },
 } as const;
 
+function normalizeHexColor(input: string | undefined | null, fallback = ink): string {
+  if (typeof input !== 'string') {
+    return fallback;
+  }
+
+  const trimmed = input.trim();
+  if (/^#[0-9a-fA-F]{6}$/.test(trimmed)) {
+    return trimmed;
+  }
+  if (/^#[0-9a-fA-F]{3}$/.test(trimmed)) {
+    const [, r, g, b] = trimmed;
+    return `#${r}${r}${g}${g}${b}${b}`;
+  }
+  return fallback;
+}
+
 // Color utility — use instead of hardcoded rgba() or hex+opacity hacks
-export function withAlpha(hexColor: string, opacity: number): string {
-  const hex = hexColor.replace('#', '');
+export function withAlpha(hexColor: string | undefined | null, opacity: number): string {
+  const hex = normalizeHexColor(hexColor).replace('#', '');
   const r = parseInt(hex.substring(0, 2), 16);
   const g = parseInt(hex.substring(2, 4), 16);
   const b = parseInt(hex.substring(4, 6), 16);
