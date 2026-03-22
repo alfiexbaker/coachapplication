@@ -25,7 +25,10 @@ import { useChildContext } from '@/hooks/use-child-context';
 import { injuryService } from '@/services/injury-service';
 import { Routes } from '@/navigation/routes';
 import {
+  buildProfileScopePayload,
   buildProfileSubjectOptions,
+  findProfileSubject,
+  getNextProfileSubject,
   resolveProfileSubjectId,
 } from '@/utils/profile-subject';
 import { scaleFont } from '@/utils/scale';
@@ -41,7 +44,7 @@ export default function LogInjuryScreen() {
   const { colors: palette } = useScreen<null>({ load: async () => ok(null), isEmpty: () => false });
   const { currentUser } = useAuth();
   const { childId: childIdParam } = useLocalSearchParams<{ childId?: string | string[] }>();
-  const { children, profileMode, profileSubjectId } = useChildContext();
+  const { children, profileMode, profileSubjectId, setProfileScope } = useChildContext();
 
   const [loading, setLoading] = useState(false);
 
@@ -67,24 +70,35 @@ export default function LogInjuryScreen() {
     [currentUser?.id, profileMode, profileSubjectId, requestedChildId, subjectOptions],
   );
 
-  const selectedChildId = useMemo(
-    () => (selectedSubjectId && children.some((child) => child.id === selectedSubjectId) ? selectedSubjectId : null),
-    [children, selectedSubjectId],
+  const selectedSubject = useMemo(
+    () => findProfileSubject(selectedSubjectId, subjectOptions),
+    [selectedSubjectId, subjectOptions],
   );
-
-  const selectedChild = useMemo(
-    () => children.find((child) => child.id === selectedChildId) ?? null,
-    [children, selectedChildId],
-  );
-  const selectedSubjectKind: 'self' | 'child' = selectedChildId ? 'child' : 'self';
+  const selectedChildId = selectedSubject?.kind === 'child' ? selectedSubject.id : null;
+  const selectedSubjectKind: 'self' | 'child' = selectedSubject?.kind ?? 'self';
   const selectedSubjectName =
-    selectedChild?.name ?? currentUser?.fullName ?? currentUser?.name ?? 'User';
+    selectedSubject?.name ?? currentUser?.fullName ?? currentUser?.name ?? 'User';
+  const nextSubjectLabel = useMemo(() => {
+    const nextSubject = getNextProfileSubject(selectedSubjectId, subjectOptions);
+    return nextSubject?.name ?? null;
+  }, [selectedSubjectId, subjectOptions]);
   const userId = selectedSubjectId;
   const userName = selectedSubjectName;
-  const handleEditSelectedChild = useCallback(() => {
-    if (!selectedChildId) return;
-    router.push(Routes.modalEditChildProfile(selectedChildId));
-  }, [selectedChildId]);
+  const handleEditSelectedSubject = useCallback(() => {
+    if (!selectedSubject) return;
+    if (selectedSubject.kind === 'child') {
+      router.push(Routes.modalEditChildProfile(selectedSubject.id));
+      return;
+    }
+    router.push(Routes.EDIT_PROFILE);
+  }, [selectedSubject]);
+  const handleSelectNextSubject = useCallback(() => {
+    const nextSubject = getNextProfileSubject(selectedSubjectId, subjectOptions);
+    if (!nextSubject) {
+      return;
+    }
+    void setProfileScope(buildProfileScopePayload(nextSubject));
+  }, [selectedSubjectId, setProfileScope, subjectOptions]);
 
   const handleSubmit = useCallback(
     async (data: LogInjuryInput) => {
@@ -149,10 +163,10 @@ export default function LogInjuryScreen() {
                 ) : null}
                 <ThemedText style={styles.kidName}>{selectedSubjectName}</ThemedText>
               </Row>
-              {selectedSubjectKind === 'child' ? (
-                <Row align="center" gap="xs">
+              <Row align="center" gap="xs">
+                {subjectOptions.length > 1 ? (
                   <Clickable
-                    onPress={handleEditSelectedChild}
+                    onPress={handleSelectNextSubject}
                     style={[
                       styles.editKidButton,
                       {
@@ -160,7 +174,27 @@ export default function LogInjuryScreen() {
                         backgroundColor: withAlpha(palette.tint, 0.08),
                       },
                     ]}
-                    accessibilityLabel="Edit selected kid profile"
+                    accessibilityLabel="Switch injury subject"
+                  >
+                    <Row align="center" gap="xxs">
+                      <Ionicons name="swap-horizontal-outline" size={14} color={palette.tint} />
+                      <ThemedText style={[styles.editKidText, { color: palette.tint }]}>
+                        {nextSubjectLabel ? `Switch to ${nextSubjectLabel}` : 'Switch'}
+                      </ThemedText>
+                    </Row>
+                  </Clickable>
+                ) : null}
+                <Row align="center" gap="xs">
+                  <Clickable
+                    onPress={handleEditSelectedSubject}
+                    style={[
+                      styles.editKidButton,
+                      {
+                        borderColor: palette.border,
+                        backgroundColor: withAlpha(palette.tint, 0.08),
+                      },
+                    ]}
+                    accessibilityLabel="Edit selected profile"
                   >
                     <Row align="center" gap="xxs">
                       <Ionicons name="create-outline" size={14} color={palette.tint} />
@@ -168,7 +202,7 @@ export default function LogInjuryScreen() {
                     </Row>
                   </Clickable>
                 </Row>
-              ) : null}
+              </Row>
             </Row>
           </View>
         )}
