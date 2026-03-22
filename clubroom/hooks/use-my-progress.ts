@@ -40,6 +40,12 @@ import { createLogger } from '@/utils/logger';
 import { preApiLive } from '@/constants/config';
 import type { BadgeAward } from '@/constants/types';
 import { err, ok, serviceError, type Result, type ServiceError } from '@/types/result';
+import {
+  buildProfileScopePayload,
+  buildProfileSubjectOptions,
+  getNextProfileSubject,
+  type ProfileSubjectOption,
+} from '@/utils/profile-subject';
 import type { PastSession, PlayerCardData, PositionRole, SessionMedia } from '@/types/progress-types';
 import type { SwitcherChild } from '@/components/family/child-switcher';
 import type { CoachDirectoryEntry } from '@/constants/relational-demo-seeds';
@@ -70,14 +76,6 @@ interface HomeworkCompletionRecord {
   completedAt: string;
   proofUri: string;
   proofType: 'photo' | 'video';
-}
-
-interface ProgressSubjectOption {
-  id: string;
-  name: string;
-  initials: string;
-  colorCode?: string;
-  kind: 'self' | 'child';
 }
 
 interface MyProgressData {
@@ -217,18 +215,6 @@ export function useMyProgress() {
   const { athleteId: athleteIdParam } = useLocalSearchParams<{ athleteId?: string | string[] }>();
 
   const isParentContext = Boolean(currentUser?.role === 'PARENT' || contextChildren.length > 0);
-  const selfSubjectOption = useMemo<ProgressSubjectOption | null>(() => {
-    if (!currentUser?.id) {
-      return null;
-    }
-    const displayName = currentUser.fullName || currentUser.name || 'Me';
-    return {
-      id: currentUser.id,
-      name: displayName,
-      initials: 'ME',
-      kind: 'self',
-    };
-  }, [currentUser?.fullName, currentUser?.id, currentUser?.name]);
   const switcherChildren = useMemo<SwitcherChild[]>(
     () =>
       contextChildren.map((child) => ({
@@ -239,20 +225,10 @@ export function useMyProgress() {
       })),
     [contextChildren],
   );
-  const subjectOptions = useMemo<ProgressSubjectOption[]>(() => {
-    const childOptions: ProgressSubjectOption[] = contextChildren.map((child) => ({
-      id: child.id,
-      name: child.name,
-      initials: child.initials,
-      colorCode: child.colorCode,
-      kind: 'child',
-    }));
-
-    if (!selfSubjectOption || !isParentContext) {
-      return childOptions;
-    }
-    return [selfSubjectOption, ...childOptions];
-  }, [contextChildren, isParentContext, selfSubjectOption]);
+  const subjectOptions = useMemo<ProfileSubjectOption[]>(
+    () => buildProfileSubjectOptions({ currentUser, children: contextChildren, includeSelf: isParentContext }),
+    [contextChildren, currentUser, isParentContext],
+  );
   const hasMultipleChildren = isParentContext && switcherChildren.length > 1;
 
   const explicitAthleteId = useMemo(() => {
@@ -654,32 +630,23 @@ export function useMyProgress() {
       if (!nextSubject) {
         return;
       }
-      if (nextSubject.kind === 'self') {
-        void setProfileScope({ mode: 'self' });
-        return;
+      if (nextSubject.kind === 'child') {
+        void setActiveChildId(nextSubject.id);
       }
-      void setActiveChildId(nextSubject.id);
-      void setProfileScope({ mode: 'child', childId: nextSubject.id });
+      void setProfileScope(buildProfileScopePayload(nextSubject));
     },
     [setActiveChildId, setProfileScope, subjectOptions],
   );
 
   const handleSelectNextChild = useCallback(() => {
-    if (subjectOptions.length <= 1 || !selectedAthleteId) {
-      return;
-    }
-
-    const currentIndex = subjectOptions.findIndex((option) => option.id === selectedAthleteId);
-    const nextSubject = subjectOptions[(currentIndex + 1) % subjectOptions.length];
+    const nextSubject = getNextProfileSubject(selectedAthleteId, subjectOptions);
     if (!nextSubject) {
       return;
     }
-    if (nextSubject.kind === 'self') {
-      void setProfileScope({ mode: 'self' });
-      return;
+    if (nextSubject.kind === 'child') {
+      void setActiveChildId(nextSubject.id);
     }
-    void setActiveChildId(nextSubject.id);
-    void setProfileScope({ mode: 'child', childId: nextSubject.id });
+    void setProfileScope(buildProfileScopePayload(nextSubject));
   }, [selectedAthleteId, setActiveChildId, setProfileScope, subjectOptions]);
 
   const latestCoachBadge = useMemo<CoachBadgeData | null>(() => {
@@ -850,7 +817,7 @@ export function useMyProgress() {
     isParentContext: boolean;
     hasMultipleChildren: boolean;
     switcherChildren: SwitcherChild[];
-    subjectOptions: ProgressSubjectOption[];
+    subjectOptions: ProfileSubjectOption[];
     selectedAthleteId: string | null;
     selectedAthleteName: string;
     activeChildId: string | null;

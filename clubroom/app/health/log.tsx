@@ -24,6 +24,10 @@ import { useAuth } from '@/hooks/use-auth';
 import { useChildContext } from '@/hooks/use-child-context';
 import { injuryService } from '@/services/injury-service';
 import { Routes } from '@/navigation/routes';
+import {
+  buildProfileSubjectOptions,
+  resolveProfileSubjectId,
+} from '@/utils/profile-subject';
 import { scaleFont } from '@/utils/scale';
 import { createLogger } from '@/utils/logger';
 import { ok } from '@/types/result';
@@ -46,26 +50,22 @@ export default function LogInjuryScreen() {
     [childIdParam],
   );
 
-  const selectedSubjectId = useMemo(() => {
-    if (requestedChildId && children.some((child) => child.id === requestedChildId)) {
-      return requestedChildId;
-    }
-    if (profileMode === 'self' && currentUser?.id) {
-      return currentUser.id;
-    }
-    if (
-      profileMode === 'child' &&
-      profileSubjectId &&
-      children.some((child) => child.id === profileSubjectId)
-    ) {
-      return profileSubjectId;
-    }
-    if (profileSubjectId && children.some((child) => child.id === profileSubjectId)) {
-      return profileSubjectId;
-    }
-    if (children.length > 0) return children[0]?.id ?? null;
-    return currentUser?.id ?? null;
-  }, [children, currentUser?.id, profileMode, profileSubjectId, requestedChildId]);
+  const subjectOptions = useMemo(
+    () => buildProfileSubjectOptions({ currentUser, children }),
+    [children, currentUser],
+  );
+
+  const selectedSubjectId = useMemo(
+    () =>
+      resolveProfileSubjectId({
+        explicitSubjectId: requestedChildId,
+        currentUserId: currentUser?.id,
+        profileMode,
+        profileSubjectId,
+        subjectOptions,
+      }),
+    [currentUser?.id, profileMode, profileSubjectId, requestedChildId, subjectOptions],
+  );
 
   const selectedChildId = useMemo(
     () => (selectedSubjectId && children.some((child) => child.id === selectedSubjectId) ? selectedSubjectId : null),

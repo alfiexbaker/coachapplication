@@ -14,6 +14,10 @@ import { useAuth } from '@/hooks/use-auth';
 import { useChildContext } from '@/hooks/use-child-context';
 import { useScreen, type ScreenStatus } from '@/hooks/use-screen';
 import { injuryService } from '@/services/injury-service';
+import {
+  buildProfileSubjectOptions,
+  resolveProfileSubjectId,
+} from '@/utils/profile-subject';
 import type { Injury } from '@/constants/types';
 import { createLogger } from '@/utils/logger';
 import { err, ok, serviceError, type ServiceError } from '@/types/result';
@@ -34,27 +38,22 @@ export function useHealthHub() {
     return Array.isArray(raw) ? raw[0] ?? null : raw;
   }, [childIdParam, subjectIdParam]);
 
-  const selectedSubjectId = useMemo(() => {
-    const isValidSubject = (value: string | null | undefined): value is string => {
-      if (!value) return false;
-      if (currentUser?.id && value === currentUser.id) return true;
-      return children.some((child) => child.id === value);
-    };
+  const subjectOptions = useMemo(
+    () => buildProfileSubjectOptions({ currentUser, children }),
+    [children, currentUser],
+  );
 
-    if (isValidSubject(explicitSubjectId)) {
-      return explicitSubjectId;
-    }
-    if (profileMode === 'self' && currentUser?.id) {
-      return currentUser.id;
-    }
-    if (isValidSubject(profileSubjectId)) {
-      return profileSubjectId;
-    }
-    if (children.length > 0) {
-      return children[0].id;
-    }
-    return currentUser?.id ?? null;
-  }, [children, currentUser?.id, explicitSubjectId, profileMode, profileSubjectId]);
+  const selectedSubjectId = useMemo(
+    () =>
+      resolveProfileSubjectId({
+        explicitSubjectId,
+        currentUserId: currentUser?.id,
+        profileMode,
+        profileSubjectId,
+        subjectOptions,
+      }),
+    [currentUser?.id, explicitSubjectId, profileMode, profileSubjectId, subjectOptions],
+  );
 
   const selectedChildId = useMemo(
     () => (children.some((child) => child.id === selectedSubjectId) ? selectedSubjectId : null),

@@ -12,6 +12,14 @@ import { useChildContext } from '@/hooks/use-child-context';
 import { useScreen, type ScreenStatus } from '@/hooks/use-screen';
 import { injuryService } from '@/services/injury-service';
 import { createLogger } from '@/utils/logger';
+import {
+  buildProfileScopePayload,
+  buildProfileSubjectOptions,
+  findProfileSubject,
+  getNextProfileSubject,
+  resolveProfileSubjectId,
+  type ProfileSubjectOption,
+} from '@/utils/profile-subject';
 import type { Injury, InjuryStatus } from '@/constants/types';
 import { err, ok, serviceError, type ServiceError } from '@/types/result';
 import { uiFeedback } from '@/services/ui-feedback';
@@ -19,14 +27,6 @@ import { uiFeedback } from '@/services/ui-feedback';
 const logger = createLogger('InjuryHistoryScreen');
 
 export type StatusFilter = InjuryStatus | 'ALL';
-
-type SubjectOption = {
-  id: string;
-  name: string;
-  initials: string;
-  colorCode?: string;
-  kind: 'self' | 'child';
-};
 
 export function useInjuries() {
   const { currentUser } = useAuth();
@@ -37,31 +37,10 @@ export function useInjuries() {
   }>();
 
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('ALL');
-  const selfOption = useMemo<SubjectOption | null>(() => {
-    if (!currentUser?.id) return null;
-    const displayName = currentUser.fullName || currentUser.name || 'Myself';
-    return {
-      id: currentUser.id,
-      name: displayName,
-      initials: 'ME',
-      kind: 'self',
-    };
-  }, [currentUser?.fullName, currentUser?.id, currentUser?.name]);
-
-  const subjectOptions = useMemo<SubjectOption[]>(() => {
-    const childOptions: SubjectOption[] = children.map((child) => ({
-      id: child.id,
-      name: child.name,
-      initials: child.initials,
-      colorCode: child.colorCode,
-      kind: 'child',
-    }));
-
-    if (!selfOption) {
-      return childOptions;
-    }
-    return [selfOption, ...childOptions];
-  }, [children, selfOption]);
+  const subjectOptions = useMemo<ProfileSubjectOption[]>(
+    () => buildProfileSubjectOptions({ currentUser, children }),
+    [children, currentUser],
+  );
 
   const explicitSubjectId = useMemo(() => {
     const raw = subjectIdParam ?? childIdParam;
@@ -69,26 +48,20 @@ export function useInjuries() {
     return Array.isArray(raw) ? raw[0] ?? null : raw;
   }, [childIdParam, subjectIdParam]);
 
-  const selectedSubjectId = useMemo(() => {
-    const isValid = (value: string | null | undefined): value is string => {
-      if (!value) return false;
-      return subjectOptions.some((option) => option.id === value);
-    };
-
-    if (isValid(explicitSubjectId)) {
-      return explicitSubjectId;
-    }
-    if (profileMode === 'self' && currentUser?.id && isValid(currentUser.id)) {
-      return currentUser.id;
-    }
-    if (isValid(profileSubjectId)) {
-      return profileSubjectId;
-    }
-    return subjectOptions[0]?.id ?? null;
-  }, [currentUser?.id, explicitSubjectId, profileMode, profileSubjectId, subjectOptions]);
+  const selectedSubjectId = useMemo(
+    () =>
+      resolveProfileSubjectId({
+        explicitSubjectId,
+        currentUserId: currentUser?.id,
+        profileMode,
+        profileSubjectId,
+        subjectOptions,
+      }),
+    [currentUser?.id, explicitSubjectId, profileMode, profileSubjectId, subjectOptions],
+  );
 
   const selectedSubject = useMemo(
-    () => subjectOptions.find((option) => option.id === selectedSubjectId) ?? null,
+    () => findProfileSubject(selectedSubjectId, subjectOptions),
     [selectedSubjectId, subjectOptions],
   );
 
@@ -158,25 +131,15 @@ export function useInjuries() {
     (nextSubjectId: string) => {
       const nextOption = subjectOptions.find((option) => option.id === nextSubjectId);
       if (!nextOption) return;
-      void setProfileScope(
-        nextOption.kind === 'self'
-          ? { mode: 'self' }
-          : { mode: 'child', childId: nextOption.id },
-      );
+      void setProfileScope(buildProfileScopePayload(nextOption));
     },
     [setProfileScope, subjectOptions],
   );
 
   const handleSelectNextSubject = useCallback(() => {
-    if (subjectOptions.length <= 1 || !selectedSubjectId) return;
-    const currentIndex = subjectOptions.findIndex((option) => option.id === selectedSubjectId);
-    const nextOption = subjectOptions[(currentIndex + 1) % subjectOptions.length];
+    const nextOption = getNextProfileSubject(selectedSubjectId, subjectOptions);
     if (nextOption) {
-      void setProfileScope(
-        nextOption.kind === 'self'
-          ? { mode: 'self' }
-          : { mode: 'child', childId: nextOption.id },
-      );
+      void setProfileScope(buildProfileScopePayload(nextOption));
     }
   }, [selectedSubjectId, setProfileScope, subjectOptions]);
 
@@ -279,14 +242,14 @@ export function useInjuries() {
     handleLogInjury: () => void;
     openInjuries: Injury[];
     healedInjuries: Injury[];
-    subjectOptions: SubjectOption[];
+    subjectOptions: ProfileSubjectOption[];
     selectedSubjectId: string | undefined;
     selectedSubjectName: string | null;
     selectedSubjectKind: 'self' | 'child' | null;
     handleSelectSubject: (subjectId: string) => void;
     handleSelectNextSubject: () => void;
     handleEditSelectedSubject: () => void;
-    kidOptions: SubjectOption[];
+    kidOptions: ProfileSubjectOption[];
     selectedChildId: string | undefined;
     selectedChildName: string | null;
     showKidSelector: boolean;
