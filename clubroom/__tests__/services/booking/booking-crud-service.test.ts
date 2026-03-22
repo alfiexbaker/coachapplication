@@ -386,6 +386,7 @@ describe('BookingCrudService', () => {
 
     it('should allow linked-session bookings outside coach hours', async () => {
       const coachId = 'coach-linked-hours';
+      const futureScheduledAt = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
       await apiClient.set(STORAGE_KEYS.SESSION_OFFERINGS, [
         makeSessionOffering({
           id: 'offering_linked_hours',
@@ -393,6 +394,7 @@ describe('BookingCrudService', () => {
           title: 'Linked Session',
           source: 'direct',
           sourceEntityId: 'offering_linked_hours',
+          scheduledAt: futureScheduledAt,
         }),
       ]);
 
@@ -403,7 +405,7 @@ describe('BookingCrudService', () => {
         athleteNames: ['Athlete Linked'],
         bookedById: 'parent-linked-hours',
         bookedByName: 'Parent Linked',
-        scheduledAt: '2026-01-01T03:00:00.000Z',
+        scheduledAt: futureScheduledAt,
         duration: 60,
         location: 'Pitch 1',
         service: 'Linked Session',
@@ -413,6 +415,41 @@ describe('BookingCrudService', () => {
       });
 
       assert.equal(result.success, true);
+    });
+
+    it('should reject linked-session bookings for sessions in the past', async () => {
+      const coachId = 'coach-linked-past';
+      await apiClient.set(STORAGE_KEYS.SESSION_OFFERINGS, [
+        makeSessionOffering({
+          id: 'offering_linked_past',
+          coachId,
+          title: 'Past Session',
+          source: 'direct',
+          sourceEntityId: 'offering_linked_past',
+          scheduledAt: new Date(Date.now() - 60 * 60 * 1000).toISOString(),
+        }),
+      ]);
+
+      const result = await bookingCrudService.createBooking({
+        coachId,
+        coachName: 'Coach Past',
+        athleteIds: ['athlete-linked-past'],
+        athleteNames: ['Athlete Past'],
+        bookedById: 'parent-linked-past',
+        bookedByName: 'Parent Past',
+        scheduledAt: new Date(Date.now() - 60 * 60 * 1000).toISOString(),
+        duration: 60,
+        location: 'Pitch 2',
+        service: 'Past Session',
+        serviceType: 'GROUP',
+        sessionSource: 'direct',
+        sessionSourceEntityId: 'offering_linked_past',
+      });
+
+      assert.equal(result.success, false);
+      if (result.success) return;
+      assert.equal(result.error.code, 'VALIDATION');
+      assert.equal(result.error.message, 'Only upcoming sessions can accept new bookings.');
     });
 
     it('should reject ad-hoc bookings outside coach hours', async () => {
@@ -439,6 +476,7 @@ describe('BookingCrudService', () => {
     it('should block duplicate athlete booking on same linked session', async () => {
       const coachId = 'coach-linked-duplicate';
       const sessionEntityId = 'offering_linked_duplicate';
+      const futureScheduledAt = new Date(Date.now() + 48 * 60 * 60 * 1000).toISOString();
       await apiClient.set(STORAGE_KEYS.SESSION_OFFERINGS, [
         makeSessionOffering({
           id: sessionEntityId,
@@ -446,6 +484,7 @@ describe('BookingCrudService', () => {
           title: 'Linked Duplicate Session',
           source: 'direct',
           sourceEntityId: sessionEntityId,
+          scheduledAt: futureScheduledAt,
         }),
       ]);
 
@@ -456,7 +495,7 @@ describe('BookingCrudService', () => {
         athleteNames: ['Athlete Dup'],
         bookedById: 'parent-dup',
         bookedByName: 'Parent Dup',
-        scheduledAt: '2026-01-02T03:00:00.000Z',
+        scheduledAt: futureScheduledAt,
         duration: 60,
         location: 'Pitch 3',
         service: 'Linked Session',
@@ -473,7 +512,7 @@ describe('BookingCrudService', () => {
         athleteNames: ['Athlete Dup'],
         bookedById: 'parent-dup',
         bookedByName: 'Parent Dup',
-        scheduledAt: '2026-01-02T03:00:00.000Z',
+        scheduledAt: futureScheduledAt,
         duration: 60,
         location: 'Pitch 3',
         service: 'Linked Session',
@@ -491,6 +530,7 @@ describe('BookingCrudService', () => {
     it('should block linked-session bookings when capacity is exceeded', async () => {
       const coachId = 'coach-linked-capacity';
       const sessionEntityId = 'offering_linked_capacity';
+      const futureScheduledAt = new Date(Date.now() + 72 * 60 * 60 * 1000).toISOString();
       await apiClient.set(STORAGE_KEYS.SESSION_OFFERINGS, [
         makeSessionOffering({
           id: sessionEntityId,
@@ -499,6 +539,7 @@ describe('BookingCrudService', () => {
           source: 'direct',
           sourceEntityId: sessionEntityId,
           maxParticipants: 1,
+          scheduledAt: futureScheduledAt,
         }),
       ]);
 
@@ -509,7 +550,7 @@ describe('BookingCrudService', () => {
         athleteNames: ['Athlete Cap 1'],
         bookedById: 'parent-cap',
         bookedByName: 'Parent Cap',
-        scheduledAt: '2026-01-03T03:00:00.000Z',
+        scheduledAt: futureScheduledAt,
         duration: 60,
         location: 'Pitch 4',
         service: 'Linked Session',
@@ -526,7 +567,7 @@ describe('BookingCrudService', () => {
         athleteNames: ['Athlete Cap 2'],
         bookedById: 'parent-cap',
         bookedByName: 'Parent Cap',
-        scheduledAt: '2026-01-03T03:00:00.000Z',
+        scheduledAt: futureScheduledAt,
         duration: 60,
         location: 'Pitch 4',
         service: 'Linked Session',

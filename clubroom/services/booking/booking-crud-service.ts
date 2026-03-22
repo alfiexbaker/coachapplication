@@ -851,6 +851,11 @@ class BookingCrudService {
       return err(validationError('Scheduled date/time is required'));
     }
 
+    const scheduledTime = new Date(scheduledAt).getTime();
+    if (!Number.isFinite(scheduledTime)) {
+      return err(validationError('Scheduled date/time is invalid'));
+    }
+
     // Check if coach/booker have blocked each other
     const blockedResult = await blockService.getBlockStatus(bookedById, coachId);
     if (blockedResult.success && blockedResult.data.blocked) {
@@ -885,6 +890,17 @@ class BookingCrudService {
 
     const existingBookings = await this.loadFromStorage();
     if (linkedSessionEntityId) {
+      if (scheduledTime <= Date.now()) {
+        logger.debug('Booking validation path', {
+          validation_path: validationPath,
+          sessionSource: sessionSource ?? null,
+          sessionSourceEntityId: linkedSessionEntityId,
+          actingAs: actingAs ?? 'self',
+          failure_code: 'linked_session_in_past',
+        });
+        return err(validationError('Only upcoming sessions can accept new bookings.'));
+      }
+
       const duplicateAthleteIds = this.getDuplicateLinkedSessionAthleteIds(
         existingBookings,
         linkedSessionEntityId,

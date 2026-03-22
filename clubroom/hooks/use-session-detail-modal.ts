@@ -116,6 +116,19 @@ function getUpcomingInstances(offering: SessionOffering, count: number = 8): Dat
   return instances;
 }
 
+function getNextBookableSessionStart(offering: SessionOffering): Date | null {
+  if (offering.isRecurring) {
+    return getUpcomingInstances(offering, 1)[0] ?? null;
+  }
+
+  const scheduledAt = new Date(offering.scheduledAt);
+  if (Number.isNaN(scheduledAt.getTime())) {
+    return null;
+  }
+
+  return scheduledAt;
+}
+
 export function useSessionDetailModal(
   visible: boolean,
   offering: SessionOffering | null,
@@ -308,6 +321,16 @@ export function useSessionDetailModal(
     if (!offering) return [];
     return getUpcomingInstances(offering, 8);
   }, [offering]);
+  const nextBookableSessionStart = useMemo(() => {
+    if (!offering) return null;
+    return getNextBookableSessionStart(offering);
+  }, [offering]);
+  const isSessionInPast = useMemo(() => {
+    if (!nextBookableSessionStart) {
+      return true;
+    }
+    return nextBookableSessionStart.getTime() <= Date.now();
+  }, [nextBookableSessionStart]);
 
   const isCoach = currentUser?.role === 'COACH';
   const isMyOffering = offering?.coachId === currentUser?.id;
@@ -549,7 +572,8 @@ export function useSessionDetailModal(
     }
     return children.filter((child) => !registeredChildIdSet.has(child.id));
   }, [children, isRegistered, registeredChildIdSet]);
-  const canAddAnotherChild = isRegistered && bookableChildren.length > 0 && !isFull;
+  const canAddAnotherChild =
+    isRegistered && bookableChildren.length > 0 && !isFull && !isSessionInPast;
   const hasMultipleKids = children.length > 1;
   useEffect(() => {
     if (!visible || !offering) return;
@@ -558,6 +582,8 @@ export function useSessionDetailModal(
       offeringStatus: offering.status,
       isRegistered,
       isFull,
+      isSessionInPast,
+      nextBookableSessionStart: nextBookableSessionStart?.toISOString() ?? null,
       canAddAnotherChild,
       hasMultipleKids,
       childCount: children.length,
@@ -577,8 +603,10 @@ export function useSessionDetailModal(
     confirmedActorRegistrations,
     hasMultipleKids,
     isFull,
+    isSessionInPast,
     isRegistered,
     linkedBookingAthleteIds,
+    nextBookableSessionStart,
     offering,
     registeredChildIdSet,
     selectedChildIds,
@@ -1103,6 +1131,14 @@ export function useSessionDetailModal(
       actorIds: Array.from(actorIdSet),
     });
     if (!offering || !currentUser) return;
+    if (isSessionInPast) {
+      logger.debug('Handle book blocked - session already started or completed', {
+        offeringId: offering.id,
+        nextBookableSessionStart: nextBookableSessionStart?.toISOString() ?? null,
+      });
+      uiFeedback.showToast('This session has already started or finished, so family changes are closed.');
+      return;
+    }
     if (isFull) {
       logger.debug('Handle book blocked - session is full', { offeringId: offering.id });
       uiFeedback.showToast('This session is currently full.');
@@ -1198,7 +1234,9 @@ export function useSessionDetailModal(
     hasMultipleKids,
     isRegistered,
     isFull,
+    isSessionInPast,
     linkedBookingAthleteIds,
+    nextBookableSessionStart,
     offering,
     onClose,
     selectedChildIds,
@@ -1252,6 +1290,7 @@ export function useSessionDetailModal(
     savingOffPlatform,
     isFull,
     isRegistered,
+    isSessionInPast,
     canAddAnotherChild,
     children,
     bookableChildren,

@@ -20,6 +20,7 @@ interface Child {
 
 interface SessionBookingOptionsProps {
   isRegistered: boolean;
+  isSessionInPast: boolean;
   canAddAnotherChild: boolean;
   isRecurring: boolean;
   hasMultipleKids: boolean;
@@ -33,6 +34,7 @@ interface SessionBookingOptionsProps {
 
 function SessionBookingOptionsInner({
   isRegistered,
+  isSessionInPast,
   canAddAnotherChild,
   isRecurring,
   hasMultipleKids,
@@ -46,7 +48,14 @@ function SessionBookingOptionsInner({
   const { colors: palette } = useTheme();
 
   const shouldShowChildSelector =
-    childOptions.length > 0 && (hasMultipleKids || !isRegistered || canAddAnotherChild);
+    !isSessionInPast && childOptions.length > 0 && (hasMultipleKids || !isRegistered || canAddAnotherChild);
+  const canCancelBooking = isRegistered && !isSessionInPast;
+  const bookingStateTitle = isSessionInPast ? 'Session complete' : 'Registered for this session';
+  const bookingStateBody = isSessionInPast
+    ? 'This session has already started or finished, so you cannot add children or change this booking.'
+    : canAddAnotherChild
+      ? 'You can add another child from your family below.'
+      : 'Your family is already registered for this session.';
 
   return (
     <>
@@ -56,44 +65,41 @@ function SessionBookingOptionsInner({
             <Ionicons name="checkmark-circle" size={24} color={palette.success} />
             <View style={styles.registeredInfo}>
               <ThemedText style={[styles.registeredText, { color: palette.success }]}>
-                Registered for this session
+                {bookingStateTitle}
               </ThemedText>
-              {canAddAnotherChild ? (
-                <ThemedText style={[styles.registeredSubtext, { color: palette.muted }]}>
-                  You can add another child from your family below.
-                </ThemedText>
-              ) : null}
+              <ThemedText style={[styles.registeredSubtext, { color: palette.muted }]}>
+                {bookingStateBody}
+              </ThemedText>
             </View>
           </Row>
+          {canCancelBooking ? (
+            <Clickable
+              style={[
+                styles.inlineActionButton,
+                {
+                  borderColor: withAlpha(palette.error, 0.35),
+                  backgroundColor: withAlpha(palette.error, 0.08),
+                },
+              ]}
+              onPress={onCancelBooking}
+              accessibilityRole="button"
+              accessibilityLabel="Cancel booking"
+            >
+              <Row align="center" justify="center" gap="xxs">
+                <Ionicons name="close-circle-outline" size={14} color={palette.error} />
+                <ThemedText style={[styles.inlineActionText, { color: palette.error }]}>
+                  Cancel this booking
+                </ThemedText>
+              </Row>
+            </Clickable>
+          ) : null}
         </SurfaceCard>
-      )}
-
-      {isRegistered && (
-        <Clickable
-          style={[
-            styles.cancelBookingButton,
-            {
-              borderColor: withAlpha(palette.error, 0.35),
-              backgroundColor: withAlpha(palette.error, 0.08),
-            },
-          ]}
-          onPress={onCancelBooking}
-          accessibilityRole="button"
-          accessibilityLabel="Cancel booking"
-        >
-          <Row align="center" justify="center" gap="xxs">
-            <Ionicons name="close-circle-outline" size={14} color={palette.error} />
-            <ThemedText style={[styles.cancelBookingText, { color: palette.error }]}>
-              Cancel this booking
-            </ThemedText>
-          </Row>
-        </Clickable>
       )}
 
       {shouldShowChildSelector && (
         <SurfaceCard style={styles.card}>
           <ThemedText type="subtitle">
-            {isRegistered && canAddAnotherChild ? 'Add another child:' : 'Book for:'}
+            {isRegistered && canAddAnotherChild ? 'Add a child to this booking' : 'Book for'}
           </ThemedText>
           {childOptions.map((child) => (
             <Clickable
@@ -181,8 +187,8 @@ const styles = StyleSheet.create({
     fontSize: scaleFont(13),
     lineHeight: scaleFont(18),
   },
-  cancelBookingButton: {
-    marginBottom: Spacing.sm,
+  inlineActionButton: {
+    marginTop: Spacing.sm,
     borderWidth: 1,
     borderRadius: Radii.md,
     minHeight: 42,
@@ -190,5 +196,5 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
-  cancelBookingText: { fontSize: scaleFont(14), fontWeight: '600' },
+  inlineActionText: { fontSize: scaleFont(14), fontWeight: '600' },
 });

@@ -57,6 +57,7 @@ export function SessionDetailModal({
     savingOffPlatform,
     isFull,
     isRegistered,
+    isSessionInPast,
     children,
     bookableChildren,
     hasMultipleKids,
@@ -268,6 +269,7 @@ export function SessionDetailModal({
           {!isCoach && (
             <SessionBookingOptions
               isRegistered={isRegistered}
+              isSessionInPast={isSessionInPast}
               canAddAnotherChild={canAddAnotherChild}
               isRecurring={offering.isRecurring ?? false}
               hasMultipleKids={hasMultipleKids}
@@ -282,7 +284,7 @@ export function SessionDetailModal({
         </ScrollView>
 
         {/* Continue Booking footer */}
-        {!isCoach && (!isRegistered || canAddAnotherChild) && (
+        {!isCoach && !isSessionInPast && (!isRegistered || canAddAnotherChild) && (
           <View
             style={[styles.footer, { borderTopColor: palette.border, ...Shadows[scheme].card }]}
           >
