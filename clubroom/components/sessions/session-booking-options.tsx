@@ -22,6 +22,7 @@ interface SessionBookingOptionsProps {
   isRegistered: boolean;
   isSessionInPast: boolean;
   canAddAnotherChild: boolean;
+  canLeaveReview: boolean;
   isRecurring: boolean;
   hasMultipleKids: boolean;
   childOptions: Child[];
@@ -30,12 +31,14 @@ interface SessionBookingOptionsProps {
   weeksToBook: number;
   onSetWeeks: (weeks: number) => void;
   onCancelBooking: () => void;
+  onLeaveReview: () => void;
 }
 
 function SessionBookingOptionsInner({
   isRegistered,
   isSessionInPast,
   canAddAnotherChild,
+  canLeaveReview,
   isRecurring,
   hasMultipleKids,
   childOptions,
@@ -44,6 +47,7 @@ function SessionBookingOptionsInner({
   weeksToBook,
   onSetWeeks,
   onCancelBooking,
+  onLeaveReview,
 }: SessionBookingOptionsProps) {
   const { colors: palette } = useTheme();
 
@@ -89,6 +93,27 @@ function SessionBookingOptionsInner({
                 <Ionicons name="close-circle-outline" size={14} color={palette.error} />
                 <ThemedText style={[styles.inlineActionText, { color: palette.error }]}>
                   Cancel this booking
+                </ThemedText>
+              </Row>
+            </Clickable>
+          ) : null}
+          {isSessionInPast && canLeaveReview ? (
+            <Clickable
+              style={[
+                styles.inlineActionButton,
+                {
+                  borderColor: withAlpha(palette.tint, 0.28),
+                  backgroundColor: withAlpha(palette.tint, 0.1),
+                },
+              ]}
+              onPress={onLeaveReview}
+              accessibilityRole="button"
+              accessibilityLabel="Leave a review"
+            >
+              <Row align="center" justify="center" gap="xxs">
+                <Ionicons name="star-outline" size={14} color={palette.tint} />
+                <ThemedText style={[styles.inlineActionText, { color: palette.tint }]}>
+                  Leave a review
                 </ThemedText>
               </Row>
             </Clickable>

@@ -58,6 +58,7 @@ export function SessionDetailModal({
     isFull,
     isRegistered,
     isSessionInPast,
+    primaryLinkedBookingId,
     children,
     bookableChildren,
     hasMultipleKids,
@@ -73,6 +74,7 @@ export function SessionDetailModal({
     upcomingInstances,
     handleCancelInstance,
     handleCancelBooking,
+    handleOpenReview,
     handleEndSeries,
     handleReassignOwnership,
     handleAdjustOffPlatform,
@@ -271,6 +273,7 @@ export function SessionDetailModal({
               isRegistered={isRegistered}
               isSessionInPast={isSessionInPast}
               canAddAnotherChild={canAddAnotherChild}
+              canLeaveReview={Boolean(primaryLinkedBookingId)}
               isRecurring={offering.isRecurring ?? false}
               hasMultipleKids={hasMultipleKids}
               childOptions={bookableChildren}
@@ -279,6 +282,7 @@ export function SessionDetailModal({
               weeksToBook={weeksToBook}
               onSetWeeks={setWeeksToBook}
               onCancelBooking={handleCancelBooking}
+              onLeaveReview={handleOpenReview}
             />
           )}
         </ScrollView>
