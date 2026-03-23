@@ -14,7 +14,6 @@ interface GroupManageTabProps {
   currentRole: GroupMemberRole;
   isCoach: boolean;
   isAdmin: boolean;
-  onOpenManageHub: () => void;
   onManageMembers: () => void;
   onInviteToSession: () => void;
   onInviteMembers: () => void;
@@ -35,7 +34,6 @@ function GroupManageTabInner({
   currentRole,
   isCoach,
   isAdmin,
-  onOpenManageHub,
   onManageMembers,
   onInviteToSession,
   onInviteMembers,
@@ -44,17 +42,6 @@ function GroupManageTabInner({
   const { colors: palette } = useTheme();
 
   const actions: ManageAction[] = [];
-
-  if (isCoach || isAdmin) {
-    actions.push({
-      id: 'manage-hub',
-      title: 'Manage Hub',
-      description: 'Open coach operations and session controls.',
-      icon: 'construct-outline',
-      color: palette.warning,
-      onPress: onOpenManageHub,
-    });
-  }
 
   if (isAdmin) {
     actions.push({
@@ -70,27 +57,30 @@ function GroupManageTabInner({
   if (isCoach) {
     actions.push({
       id: 'invite-session',
-      title: 'Invite to Session',
-      description: 'Send session invites to athletes, squads, or groups.',
+      title: 'Session Invites',
+      description: 'Send or review session invites for this group.',
       icon: 'paper-plane-outline',
       color: palette.success,
       onPress: onInviteToSession,
     });
   }
 
-  if (group.type === 'CLUB' || group.clubId) {
+  if (isAdmin && (group.type === 'CLUB' || group.clubId)) {
     actions.push({
       id: 'invite-members',
       title: 'Invite Members',
-      description: 'Add parents, players, and staff to the club.',
+      description: 'Send join links to families, players, and staff.',
       icon: 'person-add-outline',
       color: palette.warning,
       onPress: onInviteMembers,
     });
+  }
+
+  if (group.type === 'CLUB' || group.clubId) {
     actions.push({
       id: 'open-club',
-      title: 'Open Club Hub',
-      description: 'Jump into club operations, settings, branding, and members.',
+      title: 'Club Settings',
+      description: 'Open the club workspace for broader operations changes.',
       icon: 'shield-outline',
       color: palette.icon,
       onPress: onOpenClub,

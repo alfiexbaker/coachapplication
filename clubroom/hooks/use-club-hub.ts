@@ -46,15 +46,26 @@ import { clubAuthorityService } from '@/services/club-authority-service';
 
 const logger = createLogger('ClubHub');
 
-export type FeedFilter = 'all' | 'announcement' | 'photo' | 'video' | 'event';
+export type FeedFilter = 'all' | 'posts' | 'event' | 'achievement';
 
 export const FEED_FILTERS: { key: FeedFilter; label: string; icon: string }[] = [
   { key: 'all', label: 'All', icon: 'grid-outline' },
-  { key: 'announcement', label: 'Announcements', icon: 'megaphone-outline' },
-  { key: 'photo', label: 'Photos', icon: 'images-outline' },
-  { key: 'video', label: 'Videos', icon: 'videocam-outline' },
+  { key: 'posts', label: 'Posts', icon: 'reader-outline' },
   { key: 'event', label: 'Events', icon: 'calendar-outline' },
+  { key: 'achievement', label: 'Achievements', icon: 'ribbon-outline' },
 ];
+
+function filterClubFeedPosts(posts: ClubFeedPost[], filter: FeedFilter): ClubFeedPost[] {
+  if (filter === 'all') {
+    return posts;
+  }
+
+  if (filter === 'posts') {
+    return posts.filter((post) => post.postType !== 'event' && post.postType !== 'achievement');
+  }
+
+  return posts.filter((post) => post.postType === filter);
+}
 
 function buildClubInvites(club: Club | undefined): ClubInvite[] {
   if (!club) return [];
@@ -213,8 +224,8 @@ export function useClubHub(): ClubHubState {
 
   const loadFeed = useCallback(() => {
     if (membership?.clubId) {
-      const posts = socialFeedService.getFeed(membership.clubId, feedFilter);
-      setFeed(posts);
+      const allPosts = socialFeedService.getFeed(membership.clubId, 'all');
+      setFeed(filterClubFeedPosts(allPosts, feedFilter));
     } else {
       setFeed([]);
     }
@@ -372,10 +383,9 @@ export function useClubHub(): ClubHubState {
     const allPosts = socialFeedService.getFeed(membership.clubId, 'all');
     return {
       all: allPosts.length,
-      announcement: allPosts.filter((p) => p.postType === 'announcement').length,
-      photo: allPosts.filter((p) => p.postType === 'photo').length,
-      video: allPosts.filter((p) => p.postType === 'video').length,
+      posts: allPosts.filter((p) => p.postType !== 'event' && p.postType !== 'achievement').length,
       event: allPosts.filter((p) => p.postType === 'event').length,
+      achievement: allPosts.filter((p) => p.postType === 'achievement').length,
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps -- feed triggers recomputation when posts are modified
   }, [membership?.clubId, feed]);

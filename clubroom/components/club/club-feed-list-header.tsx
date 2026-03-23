@@ -1,7 +1,7 @@
 /**
  * ClubFeedListHeader — Composed header rendered above the feed FlatList.
  *
- * Assembles ClubHeader, AdminActions, StatsRow, panels, carousel,
+ * Assembles ClubHeader, AdminActions, StatsRow, panels,
  * members section, and feed filters into a single ListHeaderComponent.
  */
 
@@ -14,7 +14,6 @@ import { ClubActivitiesPanel } from '@/components/club/ClubActivitiesPanel';
 import { ClubFeedFilters } from '@/components/club/club-feed-filters';
 import { MembersPanel } from '@/components/club/MembersPanel';
 import { TeamsPanel } from '@/components/club/TeamsPanel';
-import { UpcomingEventsCarousel } from '@/components/club/upcoming-events-carousel';
 import { Routes } from '@/navigation/routes';
 import { Spacing } from '@/constants/theme';
 import type { ClubHubState } from '@/hooks/use-club-hub';
@@ -41,11 +40,20 @@ export const ClubFeedListHeader = memo(function ClubFeedListHeader({
 
       {hub.canRemoveMembers && <ClubAdminActions clubId={hub.membership!.clubId} />}
 
+      <ClubActivitiesPanel
+        activities={hub.clubActivities}
+        pendingInvites={hub.pendingSessionInvites}
+        isCoach={hub.isCoach}
+        onInvitePress={hub.handleInvitePress}
+        viewAllHref={hub.membership?.clubId ? Routes.clubSchedule(hub.membership.clubId) : undefined}
+        showCreateActions={false}
+      />
+
       <ClubStatsRow
         memberCount={hub.members.length || hub.club!.memberCount}
         squadCount={hub.squads.length}
         activityCount={hub.clubActivities.length}
-        inviteCount={hub.invites.length}
+        updateCount={hub.filterCounts.all ?? hub.feed.length}
         canManageMembers={hub.canRemoveMembers}
         showMembersSection={hub.showMembersSection}
         onToggleMembersSection={onToggleMembers}
@@ -56,22 +64,6 @@ export const ClubFeedListHeader = memo(function ClubFeedListHeader({
         canManageTeams={hub.canManageTeams}
         clubId={hub.membership?.clubId}
       />
-      <ClubActivitiesPanel
-        activities={hub.clubActivities}
-        isCoach={hub.isCoach}
-        viewAllHref={hub.membership?.clubId ? Routes.clubSchedule(hub.membership.clubId) : undefined}
-        showCreateActions={false}
-      />
-
-      {hub.pendingSessionInvites.length > 0 && (
-        <View style={styles.carouselSection}>
-          <UpcomingEventsCarousel
-            title="Pending Session Invites"
-            invites={hub.pendingSessionInvites}
-            onPress={hub.handleInvitePress}
-          />
-        </View>
-      )}
 
       {hub.showMembersSection && hub.canRemoveMembers && (
         <MembersPanel
@@ -97,5 +89,4 @@ const styles = StyleSheet.create({
     paddingTop: Spacing.xs,
     paddingBottom: Spacing.sm,
   },
-  carouselSection: { paddingVertical: Spacing.sm },
 });

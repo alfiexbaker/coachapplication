@@ -191,9 +191,6 @@ export default function GroupChatScreen() {
     router.push(Routes.clubHub({ clubId: group.clubId }));
   }, [group?.clubId]);
 
-  const handleOpenManageHub = useCallback(() => {
-    router.push(group?.clubId ? Routes.manage({ clubId: group.clubId }) : Routes.MANAGE);
-  }, [group?.clubId]);
   const renderStateShell = (content: ReactNode) => (
     <SafeAreaView style={[styles.container, { backgroundColor: palette.background }]}>
       {content}
@@ -292,7 +289,6 @@ export default function GroupChatScreen() {
           currentRole={currentRole}
           isCoach={currentUser?.role === 'COACH'}
           isAdmin={isAdmin}
-          onOpenManageHub={handleOpenManageHub}
           onManageMembers={() => setShowMembersModal(true)}
           onInviteToSession={handleOpenSessionInvite}
           onInviteMembers={handleOpenClubInvite}

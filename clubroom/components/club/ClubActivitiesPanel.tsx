@@ -10,10 +10,11 @@ import { Column } from '@/components/primitives/column';
 import { Row } from '@/components/primitives/row';
 import { ThemedText } from '@/components/themed-text';
 import { Radii, Spacing, Typography } from '@/constants/theme';
-import type { ClubActivity } from '@/constants/types';
+import type { ClubActivity, SessionInvite } from '@/constants/types';
 import { useTheme } from '@/hooks/useTheme';
 import { Routes } from '@/navigation/routes';
 import { ClubScheduleActivityCard } from './ClubScheduleActivityCard';
+import { getSessionInviteCoachName } from '@/utils/session-invite-display';
 
 function defaultActivityPress(activity: ClubActivity) {
   if (activity.source === 'match') {
@@ -27,25 +28,65 @@ function defaultActivityPress(activity: ClubActivity) {
   router.push(Routes.event(activity.sourceEntityId));
 }
 
+function defaultInvitePress(inviteId: string) {
+  router.push(Routes.sessionInvite(inviteId));
+}
+
+function getInviteStartsAt(invite: SessionInvite): string {
+  const firstSlot = invite.selectedSlot ?? invite.proposedSlots[0];
+  if (!firstSlot) {
+    return invite.createdAt;
+  }
+  return `${firstSlot.date}T${firstSlot.startTime}:00`;
+}
+
 export interface ClubActivitiesPanelProps {
   activities: ClubActivity[];
+  pendingInvites?: SessionInvite[];
   isCoach: boolean;
   maxItems?: number;
   onActivityPress?: (activity: ClubActivity) => void;
+  onInvitePress?: (inviteId: string) => void;
   showCreateActions?: boolean;
   viewAllHref?: Href;
 }
 
 export const ClubActivitiesPanel = memo(function ClubActivitiesPanel({
   activities,
+  pendingInvites = [],
   isCoach,
   maxItems = 5,
   onActivityPress,
+  onInvitePress,
   showCreateActions = true,
   viewAllHref,
 }: ClubActivitiesPanelProps) {
   const { colors } = useTheme();
-  const visibleActivities = useMemo(() => activities.slice(0, maxItems), [activities, maxItems]);
+  const visibleEntries = useMemo(() => {
+    const publishedSessionIds = new Set(
+      activities
+        .filter((activity) => activity.source === 'group_session')
+        .map((activity) => activity.sourceEntityId),
+    );
+    const inviteEntries = pendingInvites
+      .filter((invite) => !invite.existingSessionId || !publishedSessionIds.has(invite.existingSessionId))
+      .map((invite) => ({
+        kind: 'invite' as const,
+        id: `invite-${invite.id}`,
+        startsAt: getInviteStartsAt(invite),
+        invite,
+      }));
+    const activityEntries = activities.map((activity) => ({
+      kind: 'activity' as const,
+      id: activity.id,
+      startsAt: activity.startsAt,
+      activity,
+    }));
+
+    return [...activityEntries, ...inviteEntries]
+      .sort((left, right) => new Date(left.startsAt).getTime() - new Date(right.startsAt).getTime())
+      .slice(0, maxItems);
+  }, [activities, maxItems, pendingInvites]);
 
   return (
     <SurfaceCard style={styles.card}>
@@ -94,7 +135,7 @@ export const ClubActivitiesPanel = memo(function ClubActivitiesPanel({
         )}
       </Row>
 
-      {visibleActivities.length === 0 ? (
+      {visibleEntries.length === 0 ? (
         <View style={styles.emptyState}>
           <Ionicons name="calendar-clear-outline" size={28} color={colors.muted} />
           <ThemedText style={[Typography.small, { color: colors.muted, textAlign: 'center' }]}>
@@ -103,16 +144,59 @@ export const ClubActivitiesPanel = memo(function ClubActivitiesPanel({
         </View>
       ) : (
         <Column gap="sm">
-          {visibleActivities.map((activity) => (
-            <ClubScheduleActivityCard
-              key={activity.id}
-              activity={activity}
-              compact
-              onPress={() =>
-                onActivityPress ? onActivityPress(activity) : defaultActivityPress(activity)
-              }
-            />
-          ))}
+          {visibleEntries.map((entry) => {
+            if (entry.kind === 'activity') {
+              return (
+                <ClubScheduleActivityCard
+                  key={entry.id}
+                  activity={entry.activity}
+                  compact
+                  onPress={() =>
+                    onActivityPress
+                      ? onActivityPress(entry.activity)
+                      : defaultActivityPress(entry.activity)
+                  }
+                />
+              );
+            }
+
+            return (
+              <Clickable
+                key={entry.id}
+                onPress={() =>
+                  onInvitePress ? onInvitePress(entry.invite.id) : defaultInvitePress(entry.invite.id)
+                }
+                style={[styles.inviteRow, { borderColor: colors.border }]}
+                accessibilityLabel={`Open invite for ${entry.invite.sessionType}`}
+              >
+                <View style={styles.inviteCopy}>
+                  <Row align="center" gap="xs">
+                    <View style={[styles.inviteBadge, { backgroundColor: colors.tint }]}>
+                      <ThemedText style={[styles.inviteBadgeText, { color: colors.onPrimary }]}>
+                        Invite
+                      </ThemedText>
+                    </View>
+                    <ThemedText type="defaultSemiBold" numberOfLines={1}>
+                      {entry.invite.sessionType}
+                    </ThemedText>
+                  </Row>
+                  <ThemedText
+                    style={[styles.inviteMeta, { color: colors.muted }]}
+                    numberOfLines={1}
+                  >
+                    {new Date(entry.startsAt).toLocaleDateString('en-GB', {
+                      weekday: 'short',
+                      day: 'numeric',
+                      month: 'short',
+                    })}{' '}
+                    · {entry.invite.proposedSlots[0]?.startTime ?? 'Time TBC'} ·{' '}
+                    {getSessionInviteCoachName(entry.invite)}
+                  </ThemedText>
+                </View>
+                <Ionicons name="chevron-forward" size={18} color={colors.muted} />
+              </Clickable>
+            );
+          })}
         </Column>
       )}
     </SurfaceCard>
@@ -144,5 +228,29 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: Spacing.sm,
     paddingVertical: Spacing.md,
+  },
+  inviteRow: {
+    borderWidth: 1,
+    borderRadius: Radii.md,
+    padding: Spacing.sm,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.sm,
+  },
+  inviteCopy: {
+    flex: 1,
+    gap: Spacing.xxs,
+  },
+  inviteBadge: {
+    borderRadius: Radii.pill,
+    paddingHorizontal: Spacing.xs,
+    paddingVertical: Spacing.micro,
+  },
+  inviteBadgeText: {
+    ...Typography.caption,
+    fontWeight: '700',
+  },
+  inviteMeta: {
+    ...Typography.caption,
   },
 });

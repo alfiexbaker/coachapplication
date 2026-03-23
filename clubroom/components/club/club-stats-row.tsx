@@ -14,7 +14,7 @@ export interface ClubStatsRowProps {
   memberCount: number;
   squadCount: number;
   activityCount: number;
-  inviteCount: number;
+  updateCount: number;
   canManageMembers: boolean;
   showMembersSection: boolean;
   onToggleMembersSection: () => void;
@@ -26,7 +26,7 @@ export const ClubStatsRow = memo(function ClubStatsRow({
   memberCount,
   squadCount,
   activityCount,
-  inviteCount,
+  updateCount,
   canManageMembers,
   showMembersSection,
   onToggleMembersSection,
@@ -70,9 +70,9 @@ export const ClubStatsRow = memo(function ClubStatsRow({
       <View style={[styles.statDivider, { backgroundColor: palette.border }]} />
       <View style={styles.statItem}>
         <ThemedText type="title" style={{ ...Typography.heading }}>
-          {inviteCount}
+          {updateCount}
         </ThemedText>
-        <ThemedText style={{ ...Typography.caption, color: palette.muted }}>Invites</ThemedText>
+        <ThemedText style={{ ...Typography.caption, color: palette.muted }}>Updates</ThemedText>
       </View>
     </Row>
   );
