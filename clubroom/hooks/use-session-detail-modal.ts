@@ -587,6 +587,7 @@ export function useSessionDetailModal(
     [primaryLinkedBooking],
   );
   const canLeaveReview = primaryLinkedBooking?.status === 'COMPLETED';
+  const canOpenBookingDetail = Boolean(primaryLinkedBookingId);
   const isSessionInPast = useMemo(() => {
     const effectiveSessionEnd = linkedBookingSessionEnd ?? offeringSessionEnd;
     if (effectiveSessionEnd) {
@@ -1330,6 +1331,44 @@ export function useSessionDetailModal(
     router.push(Routes.review(primaryLinkedBookingId));
   }, [onClose, primaryLinkedBookingId]);
 
+  const handleOpenBookingDetail = useCallback(() => {
+    if (!primaryLinkedBookingId) {
+      uiFeedback.showToast('We could not find the booking for this session.', 'warning');
+      return;
+    }
+    onClose();
+    router.push(Routes.booking(primaryLinkedBookingId, { returnTo: Routes.BOOKINGS as string }));
+  }, [onClose, primaryLinkedBookingId]);
+
+  const handleMessageCoach = useCallback(() => {
+    if (!offering?.coachId) {
+      uiFeedback.showToast('We could not find the coach for this session.', 'warning');
+      return;
+    }
+    onClose();
+    router.push(Routes.messagesWith({ coachId: offering.coachId }));
+  }, [offering?.coachId, onClose]);
+
+  const handleReportProblem = useCallback(() => {
+    if (!primaryLinkedBookingId) {
+      uiFeedback.showToast('Open the booking first once it is linked, then report the issue there.', 'warning');
+      return;
+    }
+    onClose();
+    router.push(Routes.bookingsReportProblem({ bookingId: primaryLinkedBookingId }));
+  }, [onClose, primaryLinkedBookingId]);
+
+  const handleBookAgain = useCallback(() => {
+    if (!offering?.coachId) return;
+    onClose();
+    router.push(
+      Routes.bookCoach(offering.coachId, {
+        source: 'session_detail_modal',
+        offeringId: offering.isRecurring ? offering.id : undefined,
+      }),
+    );
+  }, [offering, onClose]);
+
   const formatSchedule = useCallback(() => {
     if (!offering) return '';
     if (offering.isRecurring && offering.dayOfWeek !== undefined && offering.timeOfDay) {
@@ -1379,6 +1418,7 @@ export function useSessionDetailModal(
     isSessionInPast,
     canAddAnotherChild,
     canLeaveReview,
+    canOpenBookingDetail,
     postSessionMessage,
     primaryLinkedBookingId,
     children,
@@ -1387,6 +1427,10 @@ export function useSessionDetailModal(
     handleCancelInstance,
     handleCancelBooking,
     handleOpenReview,
+    handleOpenBookingDetail,
+    handleMessageCoach,
+    handleReportProblem,
+    handleBookAgain,
     handleEndSeries,
     handleReassignOwnership,
     handleAdjustOffPlatform,

@@ -59,6 +59,7 @@ export function SessionDetailModal({
     isRegistered,
     isSessionInPast,
     canLeaveReview,
+    canOpenBookingDetail,
     postSessionMessage,
     children,
     bookableChildren,
@@ -76,6 +77,10 @@ export function SessionDetailModal({
     handleCancelInstance,
     handleCancelBooking,
     handleOpenReview,
+    handleOpenBookingDetail,
+    handleMessageCoach,
+    handleReportProblem,
+    handleBookAgain,
     handleEndSeries,
     handleReassignOwnership,
     handleAdjustOffPlatform,
@@ -90,6 +95,8 @@ export function SessionDetailModal({
   const invitedAthleteCount = offering.invitedAthleteIds?.length ?? 0;
   const showAttendeeList = offering.sessionType === 'group' && (isMyOffering || isRegistered);
   const showOwnershipSection = isCoach || canManageOffering;
+  const needsBookingSelection = bookableChildren.length > 0 && selectedChildIds.length === 0;
+  const bookingFooterDisabled = isFull || needsBookingSelection;
 
   return (
     <Modal
@@ -275,6 +282,7 @@ export function SessionDetailModal({
               isSessionInPast={isSessionInPast}
               canAddAnotherChild={canAddAnotherChild}
               canLeaveReview={canLeaveReview}
+              canOpenBookingDetail={canOpenBookingDetail}
               postSessionMessage={postSessionMessage}
               isRecurring={offering.isRecurring ?? false}
               hasMultipleKids={hasMultipleKids}
@@ -285,6 +293,10 @@ export function SessionDetailModal({
               onSetWeeks={setWeeksToBook}
               onCancelBooking={handleCancelBooking}
               onLeaveReview={handleOpenReview}
+              onOpenBookingDetail={handleOpenBookingDetail}
+              onMessageCoach={handleMessageCoach}
+              onReportProblem={handleReportProblem}
+              onBookAgain={handleBookAgain}
             />
           )}
         </ScrollView>
@@ -296,22 +308,29 @@ export function SessionDetailModal({
           >
             <Clickable
               onPress={handleBook}
-              disabled={isFull}
+              disabled={bookingFooterDisabled}
               style={[
                 styles.bookButton,
-                { backgroundColor: isFull ? palette.muted : palette.tint, ...Shadows[scheme].card },
+                {
+                  backgroundColor: bookingFooterDisabled ? palette.muted : palette.tint,
+                  ...Shadows[scheme].card,
+                },
               ]}
             >
               <ThemedText style={[styles.bookButtonText, { color: palette.onPrimary }]}>
                 {isFull
                   ? 'Session Full'
+                  : needsBookingSelection
+                    ? "Choose who's attending"
                   : isRegistered && canAddAnotherChild
                     ? selectedChildIds.length > 1
-                      ? `Add ${selectedChildIds.length} children`
-                      : 'Add another child'
+                      ? `Add ${selectedChildIds.length} family members`
+                      : 'Add family member'
                     : selectedChildIds.length > 1
-                      ? `Continue (${selectedChildIds.length} children)`
-                      : 'Continue Booking'}
+                      ? `Continue (${selectedChildIds.length} attending)`
+                      : bookableChildren.length === 0
+                        ? 'Book this session'
+                        : 'Continue to booking'}
               </ThemedText>
             </Clickable>
           </View>
