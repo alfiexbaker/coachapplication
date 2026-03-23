@@ -11,6 +11,7 @@ import { SessionTypeSelector } from '@/components/ui/booking/session-type-select
 import { Clickable } from '@/components/primitives/clickable';
 import { ThemedText } from '@/components/themed-text';
 import { ErrorState } from '@/components/ui/screen-states';
+import { EmptyState } from '@/components/ui/empty-state';
 import { Radii, Spacing, withAlpha } from '@/constants/theme';
 import { useScreen } from '@/hooks/use-screen';
 import { err, ok, serviceError } from '@/types/result';
@@ -175,6 +176,7 @@ export default function SessionTypeScreen() {
   });
 
   const resolvedOfferings = useMemo(() => offerings ?? [], [offerings]);
+  const hasOfferings = resolvedOfferings.length > 0;
   const selectedOffering = useMemo(
     () => resolvedOfferings.find((offering) => offering.id === draft.sessionOfferingId),
     [resolvedOfferings, draft.sessionOfferingId],
@@ -361,17 +363,39 @@ export default function SessionTypeScreen() {
       <ScrollView contentContainerStyle={styles.content}>
         <BookingWizardHeader
           title="Book a session"
-          subtitle="Pick what this coach offers"
+          subtitle={
+            hasOfferings
+              ? 'Pick what this coach offers'
+              : 'No live sessions are published for this coach right now'
+          }
           step={1}
           onBack={handleBack}
         />
 
-        <SessionTypeSelector
-          selected={draft.sessionOfferingId}
-          onSelect={handleSelectOffering}
-          options={offeringOptions}
-          loading={status === 'loading'}
-        />
+        {hasOfferings ? (
+          <SessionTypeSelector
+            selected={draft.sessionOfferingId}
+            onSelect={handleSelectOffering}
+            options={offeringOptions}
+            loading={status === 'loading'}
+          />
+        ) : status !== 'loading' ? (
+          <View
+            style={[
+              styles.emptyStateWrap,
+              {
+                borderColor: palette.border,
+                backgroundColor: withAlpha(palette.tint, 0.05),
+              },
+            ]}
+          >
+            <EmptyState
+              context="sessions"
+              title="No live sessions right now"
+              message="This coach does not have a published slot you can book yet. Message them for availability or browse other coaches."
+            />
+          </View>
+        ) : null}
 
         {status === 'error' ? (
           <ErrorState
@@ -452,36 +476,63 @@ export default function SessionTypeScreen() {
         <Clickable
           onPress={handleMessageCoach}
           style={[
-            styles.secondaryCta,
+            hasOfferings ? styles.secondaryCta : styles.cta,
             {
-              backgroundColor: withAlpha(palette.tint, 0.06),
-              borderColor: withAlpha(palette.tint, 0.35),
+              backgroundColor: hasOfferings ? withAlpha(palette.tint, 0.06) : palette.tint,
+              borderColor: hasOfferings ? withAlpha(palette.tint, 0.35) : palette.tint,
             },
           ]}
           accessibilityLabel="Message coach"
         >
           <Row justify="center" align="center" gap="sm">
-            <Ionicons name="chatbubble-ellipses-outline" size={18} color={palette.tint} />
-            <ThemedText style={{ color: palette.tint, fontWeight: '700' }}>
+            <Ionicons
+              name="chatbubble-ellipses-outline"
+              size={18}
+              color={hasOfferings ? palette.tint : palette.onPrimary}
+            />
+            <ThemedText
+              style={{ color: hasOfferings ? palette.tint : palette.onPrimary, fontWeight: '700' }}
+            >
               Message coach
             </ThemedText>
           </Row>
         </Clickable>
-        <Clickable
-          onPress={handleContinue}
-          style={[
-            styles.cta,
-            { backgroundColor: canContinue ? palette.tint : withAlpha(palette.tint, 0.4) },
-          ]}
-          disabled={!canContinue}
-        >
-          <Row justify="center" align="center" gap="sm">
-            <Ionicons name="arrow-forward" size={18} color={palette.onPrimary} />
-            <ThemedText style={{ color: palette.onPrimary, fontWeight: '700' }}>
-              Continue
-            </ThemedText>
-          </Row>
-        </Clickable>
+        {hasOfferings ? (
+          <Clickable
+            onPress={handleContinue}
+            style={[
+              styles.cta,
+              { backgroundColor: canContinue ? palette.tint : withAlpha(palette.tint, 0.4) },
+            ]}
+            disabled={!canContinue}
+          >
+            <Row justify="center" align="center" gap="sm">
+              <Ionicons name="arrow-forward" size={18} color={palette.onPrimary} />
+              <ThemedText style={{ color: palette.onPrimary, fontWeight: '700' }}>
+                Continue
+              </ThemedText>
+            </Row>
+          </Clickable>
+        ) : (
+          <Clickable
+            onPress={() => router.push(Routes.DISCOVER_MAP)}
+            style={[
+              styles.secondaryCta,
+              {
+                backgroundColor: withAlpha(palette.tint, 0.06),
+                borderColor: withAlpha(palette.tint, 0.35),
+              },
+            ]}
+            accessibilityLabel="Browse other coaches"
+          >
+            <Row justify="center" align="center" gap="sm">
+              <Ionicons name="search-outline" size={18} color={palette.tint} />
+              <ThemedText style={{ color: palette.tint, fontWeight: '700' }}>
+                Browse coaches
+              </ThemedText>
+            </Row>
+          </Clickable>
+        )}
       </View>
     </SafeAreaView>
   );
@@ -498,6 +549,11 @@ const styles = StyleSheet.create({
   },
   input: { borderWidth: 1.5, borderRadius: Radii.md, padding: Spacing.md },
   footer: { padding: Spacing.lg, borderTopWidth: 1, gap: Spacing.sm },
+  emptyStateWrap: {
+    borderWidth: 1,
+    borderRadius: Radii.lg,
+    paddingVertical: Spacing.md,
+  },
   secondaryCta: {
     padding: Spacing.md,
     borderRadius: Radii.button,

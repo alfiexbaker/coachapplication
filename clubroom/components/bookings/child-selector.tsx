@@ -22,6 +22,7 @@ export function ChildSelector({
   autoSelected,
 }: ChildSelectorProps) {
   const { colors: palette } = useTheme();
+  const resolveTargetLabel = (name: string) => (name.trim().toLowerCase() === 'me' ? 'you' : name);
 
   // If only one child (auto-selected), show simple banner
   if (autoSelected && childOptions.length === 1) {
@@ -38,7 +39,7 @@ export function ChildSelector({
       >
         <Ionicons name="person" size={16} color={palette.tint} />
         <ThemedText style={[styles.bannerText, { color: palette.tint }]}>
-          Session for {child.name}
+          Booking for {resolveTargetLabel(child.name)}
         </ThemedText>
         <Ionicons name="checkmark-circle" size={16} color={palette.tint} />
       </Row>
@@ -48,7 +49,7 @@ export function ChildSelector({
   // Multiple children - show minimal selector
   return (
     <View style={styles.container}>
-      <ThemedText style={[styles.label, { color: palette.muted }]}>ATHLETE</ThemedText>
+      <ThemedText style={[styles.label, { color: palette.muted }]}>WHO IS THIS FOR?</ThemedText>
       <Row style={styles.options}>
         {childOptions.map((child) => {
           const isSelected = child.id === selectedChildId;

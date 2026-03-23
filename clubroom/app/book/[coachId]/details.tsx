@@ -120,7 +120,7 @@ export default function DetailsScreen() {
 
     const selfTarget: User = {
       id: currentUser.id,
-      name: 'Myself',
+      name: 'Me',
       email: '',
       role: 'USER' as const,
       postcode: '',
