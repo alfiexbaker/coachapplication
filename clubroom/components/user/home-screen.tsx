@@ -51,23 +51,24 @@ export function UserHomeScreen() {
     contextChildren,
   } = useHomeScreen();
 
-  if (!currentUser) return null;
-
   const nextSession = upcomingBookings[0];
-  const hasChildReferences = (currentUser.children?.length ?? 0) > 0;
+  const hasChildReferences = (currentUser?.children?.length ?? 0) > 0;
   const isNewParent = hasChildReferences && !hasChildProfiles && contextChildren.length === 0;
   const showChildCard = Boolean(selectedChild);
   const walkthrough =
-    hasChildProfiles || hasChildReferences
+    !currentUser || hasChildProfiles || hasChildReferences
       ? null
       : buildPrimaryDemoWalkthrough({
           user: currentUser,
           hasChildProfiles,
         });
   const { walkthrough: visibleWalkthrough, dismissWalkthrough } = useDemoWalkthroughVisibility(
-    currentUser.id,
+    currentUser?.id,
     walkthrough,
   );
+
+  if (!currentUser) return null;
+
   const profileName = isViewingSelfProfile
     ? currentUser.name || currentUser.fullName || 'You'
     : selectedChild?.name || 'Child';

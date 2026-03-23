@@ -30,6 +30,11 @@ export function CoachDevelopmentScreen() {
     athleteDirectory,
     logger,
   } = useCoachDevelopment();
+  const walkthrough = buildPrimaryDemoWalkthrough({ user: currentUser });
+  const { walkthrough: visibleWalkthrough, dismissWalkthrough } = useDemoWalkthroughVisibility(
+    currentUser?.id,
+    walkthrough,
+  );
 
   if (!currentUser) return null;
 
@@ -40,12 +45,6 @@ export function CoachDevelopmentScreen() {
       </PageContainer>
     );
   }
-
-  const walkthrough = buildPrimaryDemoWalkthrough({ user: currentUser });
-  const { walkthrough: visibleWalkthrough, dismissWalkthrough } = useDemoWalkthroughVisibility(
-    currentUser.id,
-    walkthrough,
-  );
 
   return (
     <PageContainer
