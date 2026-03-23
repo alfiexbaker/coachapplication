@@ -1,7 +1,7 @@
 /**
  * Add Child Flow
  *
- * Multi-step wizard: Basic Info → Special Needs → Medical → Emergency → Consents.
+ * Multi-step wizard: Child Details → Support Needs → Safety Essentials.
  * All state/logic in useAddChild hook with pre-built step props.
  */
 
@@ -15,10 +15,7 @@ import { Button } from '@/components/primitives/button';
 import { PageHeader } from '@/components/primitives/page-header';
 import { AddChildBasicStep } from '@/components/family/add-child-basic-step';
 import { AddChildMedicalStep } from '@/components/family/add-child-medical-step';
-import {
-  AddChildEmergencyStep,
-  AddChildConsentsStep,
-} from '@/components/family/add-child-emergency-step';
+import { AddChildEmergencyStep } from '@/components/family/add-child-emergency-step';
 import { Row } from '@/components/primitives/row';
 import { Radii, Spacing, Typography } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
@@ -38,12 +35,8 @@ export default function AddChildScreen() {
         return <AddChildBasicStep {...c.basicProps} />;
       case 'special_needs':
         return <AddChildMedicalStep variant="special_needs" {...c.medicalProps} />;
-      case 'medical':
-        return <AddChildMedicalStep variant="medical" {...c.medicalProps} />;
-      case 'emergency':
-        return <AddChildEmergencyStep {...c.emergencyProps} />;
-      case 'consents':
-        return <AddChildConsentsStep {...c.consentsProps} />;
+      case 'safety':
+        return <AddChildEmergencyStep {...c.safetyProps} />;
     }
   };
 

@@ -1,6 +1,6 @@
 /**
  * Hook for the Add Child wizard.
- * Manages all step state, validation, navigation, and save.
+ * Manages a condensed 3-step flow: child details, conditional support, and safety essentials.
  */
 
 import { useState, useCallback, useMemo, useEffect, useRef } from 'react';
@@ -21,19 +21,25 @@ import { apiClient } from '@/services/api-client';
 import { STORAGE_KEYS } from '@/constants/storage-keys';
 import { uiFeedback } from '@/services/ui-feedback';
 
-export type Step = 'basic' | 'special_needs' | 'medical' | 'emergency' | 'consents';
+export type Step = 'basic' | 'special_needs' | 'safety';
 
-export const STEPS: Step[] = ['basic', 'special_needs', 'medical', 'emergency', 'consents'];
+export const STEPS: Step[] = ['basic', 'special_needs', 'safety'];
 
 export const STEP_TITLES: Record<Step, string> = {
-  basic: 'Basic Information',
-  special_needs: 'Special Needs & Disabilities',
-  medical: 'Medical Information',
-  emergency: 'Emergency Contacts',
-  consents: 'Permissions & Consents',
+  basic: 'Child Details',
+  special_needs: 'Support Needs',
+  safety: 'Safety Essentials',
 };
 
 const ADD_CHILD_DRAFT_MAX_AGE_MS = 7 * 24 * 60 * 60 * 1000;
+
+function normalizeDraftStep(step: string | undefined): Step {
+  if (step === 'special_needs') return 'special_needs';
+  if (step === 'safety' || step === 'medical' || step === 'emergency' || step === 'consents') {
+    return 'safety';
+  }
+  return 'basic';
+}
 
 type AddChildDraft = {
   version: 1;
@@ -59,6 +65,7 @@ type AddChildDraft = {
   commPrefs: string[];
   triggers: string[];
   calmingStrategies: string[];
+  hasMedicalDetails: boolean | null;
   snCategory: SpecialNeed['category'] | null;
   snName: string;
   snDescription: string;
@@ -90,7 +97,7 @@ export function useAddChild() {
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [validationMessage, setValidationMessage] = useState<string | null>(null);
 
-  // Step 1: Basic Info
+  // Step 1: Child details
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
   const [nickname, setNickname] = useState('');
@@ -100,7 +107,7 @@ export function useAddChild() {
   const [primaryPosition, setPrimaryPosition] = useState<PositionRole | null>(null);
   const [photoUri, setPhotoUri] = useState<string | null>(null);
 
-  // Step 2: Special Needs
+  // Step 2: Conditional support profile
   const [hasSpecialNeeds, setHasSpecialNeeds] = useState<boolean | null>(null);
   const [disabilities, setDisabilities] = useState<Disability[]>([]);
   const [specialNeeds, setSpecialNeeds] = useState<SpecialNeed[]>([]);
@@ -124,7 +131,8 @@ export function useAddChild() {
   const [snAccommodations, setSnAccommodations] = useState<string[]>([]);
   const [snParentHints, setSnParentHints] = useState('');
 
-  // Step 3: Medical
+  // Step 3: Safety essentials
+  const [hasMedicalDetails, setHasMedicalDetails] = useState<boolean | null>(null);
   const [allergies, setAllergies] = useState<string[]>([]);
   const [allergyInput, setAllergyInput] = useState('');
   const [medicalConditions, setMedicalConditions] = useState<string[]>([]);
@@ -132,14 +140,14 @@ export function useAddChild() {
   const [medications, setMedications] = useState<string[]>([]);
   const [medicationInput, setMedicationInput] = useState('');
 
-  // Step 4: Emergency
+  // Safety contact details
   const [emergencyName, setEmergencyName] = useState('');
   const [emergencyPhone, setEmergencyPhone] = useState('');
   const [emergencyRelation, setEmergencyRelation] = useState('');
   const [secondaryName, setSecondaryName] = useState('');
   const [secondaryPhone, setSecondaryPhone] = useState('');
 
-  // Step 5: Consents
+  // Stored defaults for downstream safeguarding/media flows.
   const [photoConsent, setPhotoConsent] = useState(true);
   const [videoConsent, setVideoConsent] = useState(true);
   const [socialMediaConsent, setSocialMediaConsent] = useState(false);
@@ -180,6 +188,7 @@ export function useAddChild() {
       commPrefs,
       triggers,
       calmingStrategies,
+      hasMedicalDetails,
       snCategory,
       snName,
       snDescription,
@@ -224,6 +233,7 @@ export function useAddChild() {
       commPrefs,
       triggers,
       calmingStrategies,
+      hasMedicalDetails,
       snCategory,
       snName,
       snDescription,
@@ -250,7 +260,7 @@ export function useAddChild() {
 
   const applyDraft = useCallback((draft: AddChildDraft) => {
     hydratingDraftRef.current = true;
-    setCurrentStep(draft.currentStep);
+    setCurrentStep(normalizeDraftStep(draft.currentStep));
     setFirstName(draft.firstName);
     setLastName(draft.lastName);
     setNickname(draft.nickname);
@@ -271,6 +281,14 @@ export function useAddChild() {
     setCommPrefs(draft.commPrefs);
     setTriggers(draft.triggers);
     setCalmingStrategies(draft.calmingStrategies);
+    setHasMedicalDetails(
+      draft.hasMedicalDetails ??
+        (draft.allergies.length > 0 ||
+        draft.medicalConditions.length > 0 ||
+        draft.medications.length > 0
+          ? true
+          : null),
+    );
     setSnCategory(draft.snCategory);
     setSnName(draft.snName);
     setSnDescription(draft.snDescription);
@@ -368,8 +386,12 @@ export function useAddChild() {
           specialNeeds.length ||
           communicationNotes.trim() ||
           behavioralNotes.trim() ||
+          hasMedicalDetails !== null ||
+          allergyInput.trim() ||
           allergies.length ||
+          conditionInput.trim() ||
           medicalConditions.length ||
+          medicationInput.trim() ||
           medications.length ||
           emergencyName.trim() ||
           emergencyPhone.trim() ||
@@ -390,8 +412,12 @@ export function useAddChild() {
       specialNeeds.length,
       communicationNotes,
       behavioralNotes,
+      hasMedicalDetails,
+      allergyInput,
       allergies.length,
+      conditionInput,
       medicalConditions.length,
+      medicationInput,
       medications.length,
       emergencyName,
       emergencyPhone,
@@ -505,6 +531,67 @@ export function useAddChild() {
     setSpecialNeeds((p) => p.filter((sn) => sn.id !== id));
   }, []);
 
+  const handleSpecialNeedsChange = useCallback((value: boolean) => {
+    setHasSpecialNeeds(value);
+    if (value) {
+      return;
+    }
+
+    setDisabilities([]);
+    setSpecialNeeds([]);
+    setSelectedDisabilityType(null);
+    setDisabilityDescription('');
+    setCommunicationNotes('');
+    setBehavioralNotes('');
+    setDiagnosisDate('');
+    setSupportRequired('');
+    setCommPrefs([]);
+    setTriggers([]);
+    setCalmingStrategies([]);
+    setSnCategory(null);
+    setSnName('');
+    setSnDescription('');
+    setSnSeverity(undefined);
+    setSnAccommodations([]);
+    setSnParentHints('');
+  }, []);
+
+  const handleMedicalDetailsChange = useCallback((value: boolean) => {
+    setHasMedicalDetails(value);
+    if (value) {
+      return;
+    }
+
+    setAllergies([]);
+    setAllergyInput('');
+    setMedicalConditions([]);
+    setConditionInput('');
+    setMedications([]);
+    setMedicationInput('');
+  }, []);
+
+  const resolvedAllergies = useMemo(
+    () =>
+      allergyInput.trim() && !allergies.includes(allergyInput.trim())
+        ? [...allergies, allergyInput.trim()]
+        : allergies,
+    [allergies, allergyInput],
+  );
+  const resolvedMedicalConditions = useMemo(
+    () =>
+      conditionInput.trim() && !medicalConditions.includes(conditionInput.trim())
+        ? [...medicalConditions, conditionInput.trim()]
+        : medicalConditions,
+    [medicalConditions, conditionInput],
+  );
+  const resolvedMedications = useMemo(
+    () =>
+      medicationInput.trim() && !medications.includes(medicationInput.trim())
+        ? [...medications, medicationInput.trim()]
+        : medications,
+    [medications, medicationInput],
+  );
+
   const validateStep = useCallback((): boolean => {
     switch (currentStep) {
       case 'basic': {
@@ -533,14 +620,12 @@ export function useAddChild() {
       }
       case 'special_needs':
         if (hasSpecialNeeds === null) {
-          setValidationMessage(
-            'Please indicate if your child has any special needs or disabilities.',
-          );
+          setValidationMessage('Please indicate whether your child needs coaching adjustments.');
           return false;
         }
         setValidationMessage(null);
         return true;
-      case 'emergency': {
+      case 'safety': {
         const errors: string[] = [];
         if (!emergencyName.trim()) errors.push('Emergency contact name is required');
         if (!emergencyPhone.trim()) {
@@ -554,6 +639,17 @@ export function useAddChild() {
           }
         }
         if (!emergencyRelation.trim()) errors.push('Emergency contact relationship is required');
+        if (hasMedicalDetails === null) {
+          errors.push('Please tell us whether coaches need any medical details for sessions');
+        }
+        if (
+          hasMedicalDetails === true &&
+          resolvedAllergies.length === 0 &&
+          resolvedMedicalConditions.length === 0 &&
+          resolvedMedications.length === 0
+        ) {
+          errors.push('Add at least one allergy, condition, or medication, or choose No');
+        }
         // Validate secondary phone if provided
         if (secondaryPhone.trim()) {
           const cleaned = secondaryPhone.replace(/\s/g, '');
@@ -581,10 +677,14 @@ export function useAddChild() {
     relationship,
     dateOfBirth,
     hasSpecialNeeds,
+    hasMedicalDetails,
     emergencyName,
     emergencyPhone,
     emergencyRelation,
     secondaryPhone,
+    resolvedAllergies.length,
+    resolvedMedicalConditions.length,
+    resolvedMedications.length,
   ]);
 
   const goNext = useCallback(() => {
@@ -616,9 +716,9 @@ export function useAddChild() {
         photoUrl: photoUri || undefined,
         disabilities,
         specialNeeds,
-        allergies,
-        medicalConditions,
-        medications,
+        allergies: resolvedAllergies,
+        medicalConditions: resolvedMedicalConditions,
+        medications: resolvedMedications,
         communicationNotes: communicationNotes.trim() || undefined,
         behavioralNotes: behavioralNotes.trim() || undefined,
         emergencyContactName: emergencyName.trim(),
@@ -660,9 +760,9 @@ export function useAddChild() {
     photoUri,
     disabilities,
     specialNeeds,
-    allergies,
-    medicalConditions,
-    medications,
+    resolvedAllergies,
+    resolvedMedicalConditions,
+    resolvedMedications,
     communicationNotes,
     behavioralNotes,
     emergencyName,
@@ -737,7 +837,7 @@ export function useAddChild() {
       snAccommodations,
       snParentHints,
       // Callbacks
-      onHasSpecialNeedsChange: setHasSpecialNeeds,
+      onHasSpecialNeedsChange: handleSpecialNeedsChange,
       onDisabilitiesChange: setDisabilities,
       onSelectedDisabilityTypeChange: setSelectedDisabilityType,
       onDisabilityDescriptionChange: setDisabilityDescription,
@@ -794,6 +894,7 @@ export function useAddChild() {
       snSeverity,
       snAccommodations,
       snParentHints,
+      handleSpecialNeedsChange,
       allergies,
       allergyInput,
       medicalConditions,
@@ -809,34 +910,59 @@ export function useAddChild() {
     ],
   );
 
-  const emergencyProps = useMemo(
+  const safetyProps = useMemo(
     () => ({
+      firstName,
       emergencyName,
       emergencyPhone,
       emergencyRelation,
       secondaryName,
       secondaryPhone,
+      hasMedicalDetails,
+      allergies,
+      allergyInput,
+      medicalConditions,
+      conditionInput,
+      medications,
+      medicationInput,
+      emergencyTreatmentConsent,
       onEmergencyNameChange: setEmergencyName,
       onEmergencyPhoneChange: setEmergencyPhone,
       onEmergencyRelationChange: setEmergencyRelation,
       onSecondaryNameChange: setSecondaryName,
       onSecondaryPhoneChange: setSecondaryPhone,
-    }),
-    [emergencyName, emergencyPhone, emergencyRelation, secondaryName, secondaryPhone],
-  );
-
-  const consentsProps = useMemo(
-    () => ({
-      photoConsent,
-      videoConsent,
-      socialMediaConsent,
-      emergencyTreatmentConsent,
-      onPhotoConsentChange: setPhotoConsent,
-      onVideoConsentChange: setVideoConsent,
-      onSocialMediaConsentChange: setSocialMediaConsent,
+      onHasMedicalDetailsChange: handleMedicalDetailsChange,
+      onAllergiesChange: setAllergies,
+      onAllergyInputChange: setAllergyInput,
+      onAddAllergy: addAllergy,
+      onMedicalConditionsChange: setMedicalConditions,
+      onConditionInputChange: setConditionInput,
+      onAddCondition: addCondition,
+      onMedicationsChange: setMedications,
+      onMedicationInputChange: setMedicationInput,
+      onAddMedication: addMedication,
       onEmergencyTreatmentConsentChange: setEmergencyTreatmentConsent,
     }),
-    [photoConsent, videoConsent, socialMediaConsent, emergencyTreatmentConsent],
+    [
+      firstName,
+      emergencyName,
+      emergencyPhone,
+      emergencyRelation,
+      secondaryName,
+      secondaryPhone,
+      hasMedicalDetails,
+      allergies,
+      allergyInput,
+      medicalConditions,
+      conditionInput,
+      medications,
+      medicationInput,
+      emergencyTreatmentConsent,
+      handleMedicalDetailsChange,
+      addAllergy,
+      addCondition,
+      addMedication,
+    ],
   );
 
   return {
@@ -853,7 +979,6 @@ export function useAddChild() {
     clearValidationMessage,
     basicProps,
     medicalProps,
-    emergencyProps,
-    consentsProps,
+    safetyProps,
   };
 }

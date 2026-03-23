@@ -12,7 +12,6 @@ import {
   NameFieldsRow,
   DateOfBirthField,
   OptionChipGrid,
-  PositionOptionGrid,
   styles,
 } from './add-child-basic-step-sections';
 
@@ -48,7 +47,6 @@ function AddChildBasicStepInner({
   dateOfBirth,
   gender,
   relationship,
-  primaryPosition,
   photoUri,
   showDatePicker,
   onFirstNameChange,
@@ -57,7 +55,6 @@ function AddChildBasicStepInner({
   onDateOfBirthChange,
   onGenderChange,
   onRelationshipChange,
-  onPrimaryPositionChange,
   onPickImage,
   onShowDatePicker,
 }: AddChildBasicStepProps) {
@@ -99,12 +96,6 @@ function AddChildBasicStepInner({
         options={RELATIONSHIPS}
         selected={relationship}
         onSelect={onRelationshipChange}
-        palette={palette}
-      />
-
-      <PositionOptionGrid
-        selected={primaryPosition}
-        onSelect={onPrimaryPositionChange}
         palette={palette}
       />
     </View>

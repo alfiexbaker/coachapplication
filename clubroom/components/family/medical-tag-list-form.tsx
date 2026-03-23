@@ -26,6 +26,7 @@ interface MedicalTagListFormProps {
   onMedicationInputChange: (value: string) => void;
   onAddMedication: () => void;
   palette: ThemeColors;
+  showInfoCard?: boolean;
 }
 
 function TagInputSection({
@@ -114,15 +115,18 @@ export const MedicalTagListForm = React.memo(function MedicalTagListForm({
   onMedicationInputChange,
   onAddMedication,
   palette,
+  showInfoCard = true,
 }: MedicalTagListFormProps) {
   return (
     <View style={styles.stepContent}>
-      <SurfaceCard style={styles.infoCard}>
-        <Ionicons name="medkit-outline" size={24} color={palette.warning} />
-        <ThemedText style={[styles.infoText, { color: palette.muted }]}>
-          Medical information is critical for your child&apos;s safety during sessions.
-        </ThemedText>
-      </SurfaceCard>
+      {showInfoCard ? (
+        <SurfaceCard style={styles.infoCard}>
+          <Ionicons name="medkit-outline" size={24} color={palette.warning} />
+          <ThemedText style={[styles.infoText, { color: palette.muted }]}>
+            Medical information is critical for your child&apos;s safety during sessions.
+          </ThemedText>
+        </SurfaceCard>
+      ) : null}
 
       <TagInputSection
         label="Allergies"
