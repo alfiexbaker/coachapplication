@@ -16,6 +16,7 @@ import { STORAGE_KEYS } from '@/constants/storage-keys';
 import { notificationTriggers } from '../notification-trigger';
 import { notificationService } from '../notification-service';
 import { userService } from '../user-service';
+import { emitTyped, ServiceEvents } from '../event-bus';
 import { createLogger } from '@/utils/logger';
 import { toDateStr } from '@/utils/format';
 import { type Result, type ServiceError, ok, err, notFound, serviceError } from '@/types/result';
@@ -245,12 +246,14 @@ export const eventRsvpService = {
    * Submit or update an RSVP (enhanced version with full tracking)
    */
   async submitRSVP(input: SubmitRSVPInput): Promise<EventRSVP> {
+    let previousStatus: RSVPStatus | null = null;
     if (USE_MOCK && input.status === 'GOING') {
       const eventsCache = await loadEvents();
       const event = eventsCache.find((candidate) => candidate.id === input.eventId);
       if (event?.maxAttendees) {
         rsvpsCache = await loadRSVPs();
         const existing = rsvpsCache.find((r) => r.eventId === input.eventId && r.userId === input.userId);
+        previousStatus = existing?.status ?? null;
         const existingGuests = existing?.status === 'GOING' ? existing.guestCount ?? 0 : 0;
         const existingSelf = existing?.status === 'GOING' ? 1 : 0;
         const requestedGuests = input.guestCount ?? 0;
@@ -280,6 +283,9 @@ export const eventRsvpService = {
       const existingIndex = rsvpsCache.findIndex(
         (r) => r.eventId === input.eventId && r.userId === input.userId,
       );
+      if (existingIndex >= 0) {
+        previousStatus = rsvpsCache[existingIndex]?.status ?? null;
+      }
 
       if (existingIndex >= 0) {
         // Update existing RSVP
@@ -313,6 +319,14 @@ export const eventRsvpService = {
         await saveEvents(eventsCache);
       }
 
+      emitTyped(ServiceEvents.EVENT_RSVP_UPDATED, {
+        eventId: input.eventId,
+        rsvpId: rsvp.id,
+        userId: input.userId,
+        previousStatus,
+        newStatus: rsvp.status,
+      });
+
       return rsvp;
     }
 
@@ -321,7 +335,15 @@ export const eventRsvpService = {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(rsvp),
     });
-    return response.json();
+    const savedRsvp = await response.json();
+    emitTyped(ServiceEvents.EVENT_RSVP_UPDATED, {
+      eventId: input.eventId,
+      rsvpId: savedRsvp.id ?? rsvp.id,
+      userId: input.userId,
+      previousStatus,
+      newStatus: input.status,
+    });
+    return savedRsvp;
   },
 
   /**
@@ -336,6 +358,7 @@ export const eventRsvpService = {
       rsvpsCache = await loadRSVPs();
       const rsvp = rsvpsCache.find((r) => r.id === rsvpId);
       if (!rsvp) return err(notFound('RSVP', rsvpId));
+      const previousStatus = rsvp.status;
 
       rsvp.status = status;
       if (guestCount !== undefined) {
@@ -359,6 +382,14 @@ export const eventRsvpService = {
         }
       }
 
+      emitTyped(ServiceEvents.EVENT_RSVP_UPDATED, {
+        eventId: rsvp.eventId,
+        rsvpId: rsvp.id,
+        userId: rsvp.userId,
+        previousStatus,
+        newStatus: status,
+      });
+
       return ok(rsvp);
     }
 
@@ -367,7 +398,15 @@ export const eventRsvpService = {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ status, guestCount }),
     });
-    return ok(await response.json());
+    const updatedRsvp = await response.json();
+    emitTyped(ServiceEvents.EVENT_RSVP_UPDATED, {
+      eventId: updatedRsvp.eventId,
+      rsvpId: updatedRsvp.id ?? rsvpId,
+      userId: updatedRsvp.userId,
+      previousStatus: null,
+      newStatus: status,
+    });
+    return ok(updatedRsvp);
   },
 
   /**

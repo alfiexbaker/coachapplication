@@ -15,6 +15,7 @@ import { inviteService as sessionInviteService } from '@/services/invite';
 import { ensureRelationalDemoSeeded } from '@/services/relational-demo-seed-service';
 import { ServiceEvents } from '@/services/event-bus';
 import { apiClient } from '@/services/api-client';
+import { socialFeedService } from '@/services/social-feed-service';
 import { STORAGE_KEYS } from '@/constants/storage-keys';
 import { useAuth } from '@/hooks/use-auth';
 import { useChildContext } from '@/hooks/use-child-context';
@@ -65,6 +66,48 @@ const DEFAULT_DEMO_CLUB_ID = 'club_lions';
 function isOffPlatformAudienceLabel(label: string): boolean {
   const normalized = label.trim().toLowerCase();
   return normalized.includes('off-platform') || normalized.includes('off platform');
+}
+
+function collectRelevantClubIds({
+  currentUserId,
+  childClubIds,
+  baseOfferings,
+  bookings,
+}: {
+  currentUserId?: string;
+  childClubIds: string[];
+  baseOfferings: SessionOffering[];
+  bookings: Awaited<ReturnType<typeof bookingService.list>>;
+}): Set<string> {
+  const clubIds = new Set<string>();
+
+  if (currentUserId) {
+    socialFeedService.getUserClubs(currentUserId).forEach((club) => {
+      clubIds.add(club.id);
+    });
+  }
+
+  for (const childClubId of childClubIds) {
+    clubIds.add(childClubId);
+  }
+
+  for (const offering of baseOfferings) {
+    if (offering.clubId) {
+      clubIds.add(offering.clubId);
+    }
+  }
+
+  for (const booking of bookings) {
+    if (booking.clubId) {
+      clubIds.add(booking.clubId);
+    }
+  }
+
+  if (clubIds.size === 0) {
+    clubIds.add(DEFAULT_DEMO_CLUB_ID);
+  }
+
+  return clubIds;
 }
 
 export interface UseBookingsResult {
@@ -243,21 +286,6 @@ export function useBookings(): UseBookingsResult {
         apiClient.get<GroupRegistration[]>(STORAGE_KEYS.GROUP_REGISTRATIONS, []),
       ]);
 
-      const clubIds = new Set<string>();
-      for (const offering of baseOfferings) {
-        if (offering.clubId) {
-          clubIds.add(offering.clubId);
-        }
-      }
-      for (const booking of bookings) {
-        if (booking.clubId) {
-          clubIds.add(booking.clubId);
-        }
-      }
-      if (clubIds.size === 0) {
-        clubIds.add(DEFAULT_DEMO_CLUB_ID);
-      }
-
       const viewerIds = new Set<string>();
       if (currentUser?.id) {
         viewerIds.add(currentUser.id);
@@ -280,6 +308,12 @@ export function useBookings(): UseBookingsResult {
           childClubIds.add(clubId);
         }
       }
+      const clubIds = collectRelevantClubIds({
+        currentUserId: currentUser?.id,
+        childClubIds: Array.from(childClubIds),
+        baseOfferings,
+        bookings,
+      });
 
       const clubEventsResults = await Promise.all(
         Array.from(clubIds).map(async (clubId) => {
@@ -405,6 +439,7 @@ export function useBookings(): UseBookingsResult {
       ServiceEvents.BOOKING_CONFIRMED,
       ServiceEvents.INVITE_ACCEPTED,
       ServiceEvents.INVITE_BOOKING_FAILED,
+      ServiceEvents.EVENT_RSVP_UPDATED,
     ],
     isEmpty: (value) =>
       value.sessionBookings.length === 0 &&

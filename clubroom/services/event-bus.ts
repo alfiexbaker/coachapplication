@@ -139,6 +139,7 @@ export const ServiceEvents = {
   // RSVP events
   RSVP_RESPONDED: 'rsvp:responded',
   RSVP_DEADLINE_PASSED: 'rsvp:deadline_passed',
+  EVENT_RSVP_UPDATED: 'event:rsvp:updated',
 
   // User events
   USER_CREATED: 'user:created',
@@ -476,6 +477,13 @@ export interface EventPayloads {
   [ServiceEvents.RSVP_DEADLINE_PASSED]: {
     sessionId: string;
     pendingCount: number;
+  };
+  [ServiceEvents.EVENT_RSVP_UPDATED]: {
+    eventId: string;
+    rsvpId: string;
+    userId: string;
+    previousStatus: 'GOING' | 'MAYBE' | 'NOT_GOING' | null;
+    newStatus: 'GOING' | 'MAYBE' | 'NOT_GOING';
   };
 
   // User events

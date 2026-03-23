@@ -17,6 +17,7 @@ import { Column } from '@/components/primitives/column';
 import { Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
 import { useHomeScreen } from '@/hooks/use-home-screen';
+import { useDemoWalkthroughVisibility } from '@/hooks/use-demo-walkthrough-visibility';
 import { Routes } from '@/navigation/routes';
 import { DemoWalkthroughCard } from '@/components/ui/demo-walkthrough-card';
 import { buildPrimaryDemoWalkthrough } from '@/utils/demo-walkthrough';
@@ -63,6 +64,10 @@ export function UserHomeScreen() {
           user: currentUser,
           hasChildProfiles,
         });
+  const { walkthrough: visibleWalkthrough, dismissWalkthrough } = useDemoWalkthroughVisibility(
+    currentUser.id,
+    walkthrough,
+  );
   const profileName = isViewingSelfProfile
     ? currentUser.name || currentUser.fullName || 'You'
     : selectedChild?.name || 'Child';
@@ -189,10 +194,11 @@ export function UserHomeScreen() {
           </SurfaceCard>
         ) : null}
 
-        {walkthrough ? (
+        {visibleWalkthrough ? (
           <DemoWalkthroughCard
-            walkthrough={walkthrough}
+            walkthrough={visibleWalkthrough}
             onPressStep={(step) => router.push(step.route)}
+            onDismiss={dismissWalkthrough}
           />
         ) : null}
 

@@ -12,6 +12,7 @@ import { DemoWalkthroughCard } from '@/components/ui/demo-walkthrough-card';
 import { Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
 import { useClubDashboard } from '@/hooks/use-club-dashboard';
+import { useDemoWalkthroughVisibility } from '@/hooks/use-demo-walkthrough-visibility';
 import { Routes } from '@/navigation/routes';
 import { buildOwnerDemoWalkthrough } from '@/utils/demo-walkthrough';
 import type {
@@ -237,6 +238,10 @@ export default function DashboardScreen() {
   const { clubId, dashboard, status, error, retry, refreshing, onRefresh, navigateTo } =
     useClubDashboard();
   const walkthrough = buildOwnerDemoWalkthrough(clubId);
+  const { walkthrough: visibleWalkthrough, dismissWalkthrough } = useDemoWalkthroughVisibility(
+    dashboard?.viewerMembership.userId,
+    walkthrough,
+  );
 
   if (status === 'loading') {
     return (
@@ -281,10 +286,13 @@ export default function DashboardScreen() {
       onRefresh={onRefresh}
       gap={Spacing.md}
     >
-      <DemoWalkthroughCard
-        walkthrough={walkthrough}
-        onPressStep={(step) => navigateTo(step.route)}
-      />
+      {visibleWalkthrough ? (
+        <DemoWalkthroughCard
+          walkthrough={visibleWalkthrough}
+          onPressStep={(step) => navigateTo(step.route)}
+          onDismiss={dismissWalkthrough}
+        />
+      ) : null}
       <SnapshotCopy summary={dashboard.summary} />
 
       <View style={styles.metricGrid}>

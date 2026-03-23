@@ -8,6 +8,7 @@ import { Spacing, Typography } from '@/constants/theme';
 import { hasChildren } from '@/utils/user-helpers';
 import { useTheme } from '@/hooks/useTheme';
 import { useAuth } from '@/hooks/use-auth';
+import { useDemoWalkthroughVisibility } from '@/hooks/use-demo-walkthrough-visibility';
 import { Row } from '@/components/primitives';
 import { router } from 'expo-router';
 import { DemoWalkthroughCard } from '@/components/ui/demo-walkthrough-card';
@@ -17,6 +18,10 @@ export function AdminUsersScreen() {
   const { colors: palette } = useTheme();
   const { availableUsers, currentUser } = useAuth();
   const walkthrough = buildPrimaryDemoWalkthrough({ user: currentUser });
+  const { walkthrough: visibleWalkthrough, dismissWalkthrough } = useDemoWalkthroughVisibility(
+    currentUser?.id,
+    walkthrough,
+  );
 
   const userCounts = {
     coaches: availableUsers.filter((user) => user.role === 'COACH').length,
@@ -65,10 +70,11 @@ export function AdminUsersScreen() {
           </SurfaceCard>
         </Row>
 
-        {walkthrough ? (
+        {visibleWalkthrough ? (
           <DemoWalkthroughCard
-            walkthrough={walkthrough}
+            walkthrough={visibleWalkthrough}
             onPressStep={(step) => router.push(step.route)}
+            onDismiss={dismissWalkthrough}
           />
         ) : null}
       </ScrollView>

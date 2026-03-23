@@ -8,6 +8,7 @@ import { PageHeader } from '@/components/primitives/page-header';
 import { NotificationBell } from '@/components/ui/notification-bell';
 import { DemoWalkthroughCard } from '@/components/ui/demo-walkthrough-card';
 import { Spacing } from '@/constants/theme';
+import { useDemoWalkthroughVisibility } from '@/hooks/use-demo-walkthrough-visibility';
 import { router } from 'expo-router';
 
 import { useCoachDevelopment } from '@/hooks/use-coach-development';
@@ -41,6 +42,10 @@ export function CoachDevelopmentScreen() {
   }
 
   const walkthrough = buildPrimaryDemoWalkthrough({ user: currentUser });
+  const { walkthrough: visibleWalkthrough, dismissWalkthrough } = useDemoWalkthroughVisibility(
+    currentUser.id,
+    walkthrough,
+  );
 
   return (
     <PageContainer
@@ -53,10 +58,11 @@ export function CoachDevelopmentScreen() {
         />
       }
     >
-      {walkthrough ? (
+      {visibleWalkthrough ? (
         <DemoWalkthroughCard
-          walkthrough={walkthrough}
+          walkthrough={visibleWalkthrough}
           onPressStep={(step) => router.push(step.route)}
+          onDismiss={dismissWalkthrough}
         />
       ) : null}
       <QuickActions />

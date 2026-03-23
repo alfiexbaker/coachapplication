@@ -12,9 +12,14 @@ import type { DemoWalkthrough } from '@/utils/demo-walkthrough';
 interface DemoWalkthroughCardProps {
   walkthrough: DemoWalkthrough;
   onPressStep: (step: DemoWalkthrough['steps'][number]) => void;
+  onDismiss?: () => void;
 }
 
-export function DemoWalkthroughCard({ walkthrough, onPressStep }: DemoWalkthroughCardProps) {
+export function DemoWalkthroughCard({
+  walkthrough,
+  onPressStep,
+  onDismiss,
+}: DemoWalkthroughCardProps) {
   const { colors } = useTheme();
 
   return (
@@ -29,6 +34,15 @@ export function DemoWalkthroughCard({ walkthrough, onPressStep }: DemoWalkthroug
             {walkthrough.subtitle}
           </ThemedText>
         </View>
+        {onDismiss ? (
+          <Clickable
+            onPress={onDismiss}
+            accessibilityLabel={`Dismiss ${walkthrough.title}`}
+            style={styles.dismissButton}
+          >
+            <Ionicons name="close" size={18} color={colors.muted} />
+          </Clickable>
+        ) : null}
       </Row>
 
       <View style={styles.steps}>
@@ -78,6 +92,12 @@ const styles = StyleSheet.create({
   copy: {
     flex: 1,
     gap: Spacing.micro,
+  },
+  dismissButton: {
+    width: 32,
+    height: 32,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   title: {
     ...Typography.bodySemiBold,

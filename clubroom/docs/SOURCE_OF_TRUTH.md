@@ -1,6 +1,6 @@
 # Clubroom - Single Source of Truth
 
-Last updated: 2026-03-19
+Last updated: 2026-03-23
 Project: football coaching marketplace plus family development tracker
 Status: live-featured Expo app with a real Fastify API alongside it; backend cutover and auth alignment are still in progress
 
@@ -76,8 +76,14 @@ Clubs manage staff, squads, visibility, and operating relationships.
   - followed personal posts
   - club-linked updates
   - club pills that open the full per-club feed on the club page
+- Club detail pages now separate commitments from content more aggressively.
+  - `Schedule` is the chronological commitment surface for club activities and pending invites
+  - `Updates` is filtered down to posts, events, and achievements instead of acting as a second schedule or invite inbox
 - Personal profile pages now expose a user's own update history instead of relying only on the shared `Updates` tab.
-- Club detail pages now lead with the club update feed, with schedule and member-management support surfaces following underneath.
+- Club detail pages now lead with club header and schedule context, with the update feed and member-management support surfaces following underneath.
+- Demo walkthrough cards are now first-view hints instead of persistent dashboard furniture.
+  - visibility is tracked per user and walkthrough surface in app storage
+  - users can dismiss the card immediately if they do not need the guided path
 
 ## Product Spines
 
