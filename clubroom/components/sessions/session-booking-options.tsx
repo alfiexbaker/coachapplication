@@ -23,6 +23,7 @@ interface SessionBookingOptionsProps {
   isSessionInPast: boolean;
   canAddAnotherChild: boolean;
   canLeaveReview: boolean;
+  postSessionMessage?: string | null;
   isRecurring: boolean;
   hasMultipleKids: boolean;
   childOptions: Child[];
@@ -39,6 +40,7 @@ function SessionBookingOptionsInner({
   isSessionInPast,
   canAddAnotherChild,
   canLeaveReview,
+  postSessionMessage,
   isRecurring,
   hasMultipleKids,
   childOptions,
@@ -54,9 +56,13 @@ function SessionBookingOptionsInner({
   const shouldShowChildSelector =
     !isSessionInPast && childOptions.length > 0 && (hasMultipleKids || !isRegistered || canAddAnotherChild);
   const canCancelBooking = isRegistered && !isSessionInPast;
-  const bookingStateTitle = isSessionInPast ? 'Session complete' : 'Registered for this session';
+  const bookingStateTitle = isSessionInPast
+    ? canLeaveReview
+      ? 'Session complete'
+      : 'Session finished'
+    : 'Registered for this session';
   const bookingStateBody = isSessionInPast
-    ? 'This session has already started or finished, so you cannot add children or change this booking.'
+    ? postSessionMessage || 'This session has already started or finished, so family changes are closed.'
     : canAddAnotherChild
       ? 'You can add another child from your family below.'
       : 'Your family is already registered for this session.';
@@ -154,7 +160,7 @@ function SessionBookingOptionsInner({
         </SurfaceCard>
       )}
 
-      {isRecurring && (
+      {isRecurring && !isSessionInPast && (
         <SurfaceCard style={styles.card}>
           <ThemedText type="subtitle">Book for how many weeks?</ThemedText>
           <Row gap={10} style={styles.weeksSelector}>

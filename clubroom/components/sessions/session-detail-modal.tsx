@@ -58,7 +58,8 @@ export function SessionDetailModal({
     isFull,
     isRegistered,
     isSessionInPast,
-    primaryLinkedBookingId,
+    canLeaveReview,
+    postSessionMessage,
     children,
     bookableChildren,
     hasMultipleKids,
@@ -273,7 +274,8 @@ export function SessionDetailModal({
               isRegistered={isRegistered}
               isSessionInPast={isSessionInPast}
               canAddAnotherChild={canAddAnotherChild}
-              canLeaveReview={Boolean(primaryLinkedBookingId)}
+              canLeaveReview={canLeaveReview}
+              postSessionMessage={postSessionMessage}
               isRecurring={offering.isRecurring ?? false}
               hasMultipleKids={hasMultipleKids}
               childOptions={bookableChildren}

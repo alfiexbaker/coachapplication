@@ -14,7 +14,7 @@ import { bookingService } from '@/services/booking-service';
 import { notificationService } from '@/services/notification-service';
 import { emitTyped, ServiceEvents } from '@/services/event-bus';
 import { STORAGE_KEYS } from '@/constants/storage-keys';
-import type { User } from '@/constants/app-types';
+import type { Booking, User } from '@/constants/app-types';
 import type {
   AcademyMembership,
   SessionOffering,
@@ -49,6 +49,13 @@ interface OwnershipAssigneeOption {
   id: string;
   label: string;
   role: AcademyMembership['role'];
+}
+
+interface LinkedBookingMatch {
+  id: string;
+  scheduledAt: string;
+  duration?: number;
+  status: Booking['status'];
 }
 
 export interface SessionOwnershipTimelineEntry {
@@ -129,6 +136,22 @@ function getNextBookableSessionStart(offering: SessionOffering): Date | null {
   return scheduledAt;
 }
 
+function getSessionEndFromOffering(offering: SessionOffering | null): Date | null {
+  if (!offering) return null;
+  const scheduledAt = new Date(offering.scheduledAt);
+  if (Number.isNaN(scheduledAt.getTime())) return null;
+  const durationMinutes = Math.max(1, offering.duration ?? 60);
+  return new Date(scheduledAt.getTime() + durationMinutes * 60 * 1000);
+}
+
+function getSessionEndFromBooking(booking: LinkedBookingMatch | null): Date | null {
+  if (!booking) return null;
+  const scheduledAt = new Date(booking.scheduledAt);
+  if (Number.isNaN(scheduledAt.getTime())) return null;
+  const durationMinutes = Math.max(1, booking.duration ?? 60);
+  return new Date(scheduledAt.getTime() + durationMinutes * 60 * 1000);
+}
+
 export function useSessionDetailModal(
   visible: boolean,
   offering: SessionOffering | null,
@@ -140,7 +163,7 @@ export function useSessionDetailModal(
   const { children: contextChildren } = useChildContext();
   const [selectedChildIds, setSelectedChildIds] = useState<string[]>([]);
   const [linkedBookingAthleteIds, setLinkedBookingAthleteIds] = useState<string[]>([]);
-  const [linkedBookingIds, setLinkedBookingIds] = useState<string[]>([]);
+  const [linkedBookings, setLinkedBookings] = useState<LinkedBookingMatch[]>([]);
   const [weeksToBook, setWeeksToBook] = useState(1);
   const [sessionAwards, setSessionAwards] = useState<BadgeAward[]>([]);
   const [userNameMap, setUserNameMap] = useState<Record<string, string>>({});
@@ -322,16 +345,11 @@ export function useSessionDetailModal(
     if (!offering) return [];
     return getUpcomingInstances(offering, 8);
   }, [offering]);
+  const offeringSessionEnd = useMemo(() => getSessionEndFromOffering(offering), [offering]);
   const nextBookableSessionStart = useMemo(() => {
     if (!offering) return null;
     return getNextBookableSessionStart(offering);
   }, [offering]);
-  const isSessionInPast = useMemo(() => {
-    if (!nextBookableSessionStart) {
-      return true;
-    }
-    return nextBookableSessionStart.getTime() <= Date.now();
-  }, [nextBookableSessionStart]);
 
   const isCoach = currentUser?.role === 'COACH';
   const isMyOffering = offering?.coachId === currentUser?.id;
@@ -395,7 +413,7 @@ export function useSessionDetailModal(
   useEffect(() => {
     if (!visible || !offering) {
       setLinkedBookingAthleteIds([]);
-      setLinkedBookingIds([]);
+      setLinkedBookings([]);
       return;
     }
 
@@ -421,7 +439,7 @@ export function useSessionDetailModal(
         if (cancelled) return;
 
         const matchedAthleteIds = new Set<string>();
-        const matchedBookingIds = new Set<string>();
+        const matchedBookings: LinkedBookingMatch[] = [];
         const matchedBookingDetails: {
           bookingId: string;
           status: string;
@@ -452,7 +470,6 @@ export function useSessionDetailModal(
             continue;
           }
           linkedBookingCount += 1;
-          matchedBookingIds.add(booking.id);
 
           const bookingAthleteIds = new Set<string>();
           if (booking.athleteId) {
@@ -473,6 +490,12 @@ export function useSessionDetailModal(
             if (booking.bookedById) {
               matchedAthleteIds.add(booking.bookedById);
             }
+            matchedBookings.push({
+              id: booking.id,
+              scheduledAt: booking.scheduledAt,
+              duration: booking.duration,
+              status: booking.status,
+            });
             matchedBookingDetails.push({
               bookingId: booking.id,
               status: booking.status,
@@ -490,6 +513,12 @@ export function useSessionDetailModal(
           for (const athleteId of bookingAthleteIds) {
             matchedAthleteIds.add(athleteId);
           }
+          matchedBookings.push({
+            id: booking.id,
+            scheduledAt: booking.scheduledAt,
+            duration: booking.duration,
+            status: booking.status,
+          });
           matchedBookingDetails.push({
             bookingId: booking.id,
             status: booking.status,
@@ -504,7 +533,16 @@ export function useSessionDetailModal(
         }
 
         setLinkedBookingAthleteIds(Array.from(matchedAthleteIds));
-        setLinkedBookingIds(Array.from(matchedBookingIds));
+        setLinkedBookings(
+          matchedBookings.sort((left, right) => {
+            const offeringTimestamp = new Date(offering.scheduledAt).getTime();
+            const leftTimestamp = new Date(left.scheduledAt).getTime();
+            const rightTimestamp = new Date(right.scheduledAt).getTime();
+            const leftDistance = Math.abs(leftTimestamp - offeringTimestamp);
+            const rightDistance = Math.abs(rightTimestamp - offeringTimestamp);
+            return leftDistance - rightDistance;
+          }),
+        );
         logger.debug('Linked bookings resolved for session modal', {
           offeringId: offering.id,
           directEntityIds: Array.from(directEntityIds),
@@ -520,7 +558,7 @@ export function useSessionDetailModal(
       } catch {
         if (!cancelled) {
           setLinkedBookingAthleteIds([]);
-          setLinkedBookingIds([]);
+          setLinkedBookings([]);
         }
         logger.warn('Failed to resolve linked bookings for session modal', {
           offeringId: offering.id,
@@ -542,7 +580,33 @@ export function useSessionDetailModal(
     () => new Set(linkedBookingAthleteIds),
     [linkedBookingAthleteIds],
   );
-  const primaryLinkedBookingId = linkedBookingIds[0] ?? null;
+  const primaryLinkedBooking = linkedBookings[0] ?? null;
+  const primaryLinkedBookingId = primaryLinkedBooking?.id ?? null;
+  const linkedBookingSessionEnd = useMemo(
+    () => getSessionEndFromBooking(primaryLinkedBooking),
+    [primaryLinkedBooking],
+  );
+  const canLeaveReview = primaryLinkedBooking?.status === 'COMPLETED';
+  const isSessionInPast = useMemo(() => {
+    const effectiveSessionEnd = linkedBookingSessionEnd ?? offeringSessionEnd;
+    if (effectiveSessionEnd) {
+      return effectiveSessionEnd.getTime() <= Date.now();
+    }
+    if (!nextBookableSessionStart) {
+      return true;
+    }
+    return nextBookableSessionStart.getTime() <= Date.now();
+  }, [linkedBookingSessionEnd, nextBookableSessionStart, offeringSessionEnd]);
+  const postSessionMessage = useMemo(() => {
+    if (!isSessionInPast) return null;
+    if (canLeaveReview) {
+      return 'This booking is complete. You can leave a review below.';
+    }
+    if (primaryLinkedBookingId) {
+      return 'This session has finished. Reviews unlock once the coach marks the booking as completed.';
+    }
+    return 'This session has already started or finished, so family changes are closed.';
+  }, [canLeaveReview, isSessionInPast, primaryLinkedBookingId]);
   const confirmedActorRegistrations = useMemo(
     () =>
       offering?.registrations.filter(
@@ -590,6 +654,8 @@ export function useSessionDetailModal(
       isRegistered,
       isFull,
       isSessionInPast,
+      linkedBookingSessionEnd: linkedBookingSessionEnd?.toISOString() ?? null,
+      offeringSessionEnd: offeringSessionEnd?.toISOString() ?? null,
       nextBookableSessionStart: nextBookableSessionStart?.toISOString() ?? null,
       canAddAnotherChild,
       hasMultipleKids,
@@ -613,7 +679,9 @@ export function useSessionDetailModal(
     isSessionInPast,
     isRegistered,
     linkedBookingAthleteIds,
+    linkedBookingSessionEnd,
     nextBookableSessionStart,
+    offeringSessionEnd,
     offering,
     registeredChildIdSet,
     selectedChildIds,
@@ -1142,6 +1210,7 @@ export function useSessionDetailModal(
       logger.debug('Handle book blocked - session already started or completed', {
         offeringId: offering.id,
         nextBookableSessionStart: nextBookableSessionStart?.toISOString() ?? null,
+        linkedBookingSessionEnd: linkedBookingSessionEnd?.toISOString() ?? null,
       });
       uiFeedback.showToast('This session has already started or finished, so family changes are closed.');
       return;
@@ -1244,6 +1313,7 @@ export function useSessionDetailModal(
     isSessionInPast,
     linkedBookingAthleteIds,
     nextBookableSessionStart,
+    linkedBookingSessionEnd,
     offering,
     onClose,
     selectedChildIds,
@@ -1308,6 +1378,8 @@ export function useSessionDetailModal(
     isRegistered,
     isSessionInPast,
     canAddAnotherChild,
+    canLeaveReview,
+    postSessionMessage,
     primaryLinkedBookingId,
     children,
     bookableChildren,
