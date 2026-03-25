@@ -164,6 +164,7 @@ class NotificationStore {
       }
       const updated = currentResult.data.map((n) => ({ ...n, read: true }));
       await apiClient.set(STORAGE_KEYS.NOTIFICATIONS, updated);
+      emitTyped(ServiceEvents.NOTIFICATION_READ, { notificationId: '*' });
       return ok(updated);
     } catch (error) {
       logger.error('Failed to mark all notifications as read', error);
@@ -186,6 +187,7 @@ class NotificationStore {
         n.id === id ? { ...n, read: true, handled: true } : n,
       );
       await apiClient.set(STORAGE_KEYS.NOTIFICATIONS, updated);
+      emitTyped(ServiceEvents.NOTIFICATION_READ, { notificationId: id });
       return ok(updated.find((n) => n.id === id));
     } catch (error) {
       logger.error('Failed to mark notification as handled', { id, error });
@@ -220,6 +222,7 @@ class NotificationStore {
   async clearAll(): Promise<Result<void, ServiceError>> {
     try {
       await apiClient.set(STORAGE_KEYS.NOTIFICATIONS, []);
+      emitTyped(ServiceEvents.NOTIFICATION_DISMISSED, { notificationId: '*' });
       return ok(undefined);
     } catch (error) {
       logger.error('Failed to clear notifications', error);

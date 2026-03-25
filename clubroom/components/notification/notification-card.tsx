@@ -60,8 +60,8 @@ export function NotificationCard({
   showTypeIndicator = true,
 }: {
   item: ExtendedNotificationItem;
-  onPress?: () => void;
-  onMarkRead?: () => void;
+  onPress?: () => void | Promise<void>;
+  onMarkRead?: () => void | Promise<void>;
   onMute?: () => void;
   onDelete?: () => void;
   onShare?: () => void;
@@ -81,9 +81,10 @@ export function NotificationCard({
 
   const handlePress = useCallback(async () => {
     if (onPress) {
-      onPress();
+      await onPress();
+    } else if (onMarkRead) {
+      await onMarkRead();
     }
-    onMarkRead?.();
 
     // Navigate to deep link if available
     if (item.deepLink) {

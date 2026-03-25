@@ -1,12 +1,16 @@
 import { useCallback, useEffect, useState } from 'react';
 import { ScreenStatus, useScreen } from '@/hooks/use-screen';
 import { notificationService, ExtendedNotificationItem } from '@/services/notification-service';
-import { ServiceEvents } from '@/services/event-bus';
+import { onTyped, ServiceEvents } from '@/services/event-bus';
 import { err, ok, serviceError } from '@/types/result';
 import { createLogger } from '@/utils/logger';
 import type { NotificationType } from '@/constants/types';
 import { useToast } from '@/components/ui/toast';
 import { useAuth } from '@/hooks/use-auth';
+import {
+  buildNotificationBadgeState,
+  type NotificationBadgeState,
+} from '@/services/notification/notification-attention';
 
 export type NotificationFilter =
   | 'all'
@@ -42,6 +46,12 @@ interface UseNotificationsResult {
 }
 
 const logger = createLogger('useNotifications');
+const EMPTY_BADGE_STATE: NotificationBadgeState = {
+  actionableCount: 0,
+  passiveUnreadCount: 0,
+  label: undefined,
+  variant: 'none',
+};
 
 interface NotificationScreenData {
   notifications: ExtendedNotificationItem[];
@@ -240,40 +250,55 @@ export function useNotifications(options: UseNotificationsOptions = {}): UseNoti
 }
 
 /**
- * Lightweight hook for just the unread count (for tab bar badge)
+ * Lightweight hook for the attention-based notification badge.
  */
-export function useNotificationCount(): number {
-  const [count, setCount] = useState(0);
+export function useNotificationBadgeState(): NotificationBadgeState {
+  const [badgeState, setBadgeState] = useState<NotificationBadgeState>(EMPTY_BADGE_STATE);
   const { currentUser } = useAuth();
 
-  const fetchCount = useCallback(async () => {
-    const unreadCountResult = await notificationService.getUnreadCount(currentUser?.id);
-    if (!unreadCountResult.success) {
-      logger.error('Failed to fetch notification count', { error: unreadCountResult.error });
+  const fetchBadgeState = useCallback(async () => {
+    const listResult = await notificationService.list();
+    if (!listResult.success) {
+      logger.error('Failed to fetch notification badge state', { error: listResult.error });
       return;
     }
 
-    setCount(unreadCountResult.data);
+    setBadgeState(buildNotificationBadgeState(listResult.data, currentUser?.id));
   }, [currentUser?.id]);
 
   useEffect(() => {
-    fetchCount();
+    void fetchBadgeState();
 
-    // Subscribe to new notifications
     const unsubscribe = notificationService.subscribe(() => {
-      fetchCount();
+      void fetchBadgeState();
+    });
+    const unsubscribeRead = onTyped(ServiceEvents.NOTIFICATION_READ, () => {
+      void fetchBadgeState();
+    });
+    const unsubscribeDismissed = onTyped(ServiceEvents.NOTIFICATION_DISMISSED, () => {
+      void fetchBadgeState();
     });
 
-    // Auto-refresh every 30 seconds
-    const interval = setInterval(fetchCount, 30000);
+    const interval = setInterval(() => {
+      void fetchBadgeState();
+    }, 30000);
 
     return () => {
       unsubscribe();
+      unsubscribeRead();
+      unsubscribeDismissed();
       clearInterval(interval);
     };
-  }, [fetchCount]);
+  }, [fetchBadgeState]);
 
-  return count;
+  return badgeState;
+}
+
+/**
+ * Backwards-compatible count hook for surfaces that only need the actionable total.
+ */
+export function useNotificationCount(): number {
+  return useNotificationBadgeState().actionableCount;
 }
 
 /**

@@ -447,8 +447,8 @@ class NotificationSenderService {
   }): Promise<Result<void, ServiceError>> {
     return this.send({
       id: `notif_post_${Date.now()}`,
-      type: 'message',
-      notificationType: 'MESSAGE_RECEIVED',
+      type: 'community',
+      notificationType: 'CLUB_UPDATE',
       title: 'Club Update',
       body: `New post in ${params.clubName}`,
       recipientId: params.parentId,

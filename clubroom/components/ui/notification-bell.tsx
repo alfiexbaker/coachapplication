@@ -10,7 +10,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { Routes } from '@/navigation/routes';
 import { Radii, Spacing, Typography } from '@/constants/theme';
-import { useNotificationCount } from '@/hooks/use-notifications';
+import { useNotificationBadgeState } from '@/hooks/use-notifications';
 import { Clickable } from '@/components/primitives/clickable';
 import { ThemedText } from '@/components/themed-text';
 import { useTheme } from '@/hooks/useTheme';
@@ -23,7 +23,7 @@ interface NotificationBellProps {
 export function NotificationBell({ size = 24, color }: NotificationBellProps) {
   const { colors: palette } = useTheme();
   const router = useRouter();
-  const unreadCount = useNotificationCount();
+  const badgeState = useNotificationBadgeState();
 
   const iconColor = color || palette.text;
 
@@ -35,14 +35,22 @@ export function NotificationBell({ size = 24, color }: NotificationBellProps) {
     <Clickable onPress={handlePress} accessibilityLabel="Open notifications">
       <View style={styles.container}>
         <Ionicons name="notifications-outline" size={size} color={iconColor} />
-        {unreadCount > 0 && (
+        {badgeState.variant === 'count' && badgeState.label ? (
           <View
             style={[styles.badge, { backgroundColor: palette.error, borderColor: palette.surface }]}
           >
             <ThemedText style={[styles.badgeText, { color: palette.onError }]}>
-              {unreadCount > 99 ? '99+' : unreadCount}
+              {badgeState.label}
             </ThemedText>
           </View>
+        ) : null}
+        {badgeState.variant === 'dot' && (
+          <View
+            style={[
+              styles.dot,
+              { backgroundColor: palette.error, borderColor: palette.surface },
+            ]}
+          />
         )}
       </View>
     </Clickable>
@@ -70,4 +78,13 @@ const styles = StyleSheet.create({
     borderWidth: 1,
   },
   badgeText: { fontSize: Typography.micro.fontSize, fontWeight: '700', lineHeight: 11, letterSpacing: -0.1 },
+  dot: {
+    position: 'absolute',
+    top: Spacing.xs - 1,
+    right: Spacing.xs - 1,
+    width: 10,
+    height: 10,
+    borderRadius: Radii.pill,
+    borderWidth: 1,
+  },
 });

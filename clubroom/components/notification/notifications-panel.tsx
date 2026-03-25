@@ -105,7 +105,10 @@ export function NotificationsPanel({
 
   const handleNotificationPress = useCallback(
     async (id: string) => {
-      await markAsRead(id);
+      const result = await notificationService.markHandled(id);
+      if (!result.success) {
+        await markAsRead(id);
+      }
     },
     [markAsRead],
   );

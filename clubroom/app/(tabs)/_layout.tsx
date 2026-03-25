@@ -10,7 +10,7 @@ import { RouteAccessGate } from '@/components/auth/route-access-gate';
 import { Typography, Spacing, Shadows, Radii } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
 import { useAuth, type UserRole } from '@/hooks/use-auth';
-import { useNotificationCount } from '@/hooks/use-notifications';
+import { useNotificationBadgeState } from '@/hooks/use-notifications';
 import { messagingService } from '@/services/messaging-service';
 import { onTyped, ServiceEvents } from '@/services/event-bus';
 import { useToast } from '@/components/ui/toast';
@@ -162,7 +162,7 @@ export default function TabLayout() {
   const segments = useSegments();
   const navigation = useNavigation();
   const insets = useSafeAreaInsets();
-  const notificationCount = useNotificationCount();
+  const notificationBadge = useNotificationBadgeState();
   const [messageCount, setMessageCount] = useState(0);
   const lastRestrictedRouteRef = useRef<string | null>(null);
   const messageCountRefreshTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -334,9 +334,16 @@ export default function TabLayout() {
 
   const getBadgeCount = (badgeType?: BadgeType): number | string | undefined => {
     if (!badgeType) return undefined;
-    const count = badgeType === 'messages' ? messageCount : notificationCount;
-    if (count <= 0) return undefined;
-    return count > 99 ? '99+' : count;
+    if (badgeType === 'messages') {
+      if (messageCount <= 0) return undefined;
+      return messageCount > 99 ? '99+' : messageCount;
+    }
+
+    if (notificationBadge.variant !== 'count') {
+      return undefined;
+    }
+
+    return notificationBadge.label;
   };
 
   const handleTabReselectPress = useCallback(

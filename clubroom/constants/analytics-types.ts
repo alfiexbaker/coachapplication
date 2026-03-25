@@ -14,6 +14,7 @@ export type NotificationType =
   | 'BOOKING_HANDOFF'
   | 'BOOKING_CONFIRMED'
   | 'BOOKING_CANCELLED'
+  | 'CLUB_UPDATE'
   | 'SUPPORT_UPDATE'
   | 'SESSION_REMINDER'
   | 'MESSAGE_RECEIVED'
@@ -112,6 +113,7 @@ export const NOTIFICATION_TYPE_CATEGORIES: Record<NotificationType, Notification
   BOOKING_HANDOFF: 'BOOKINGS',
   BOOKING_CONFIRMED: 'BOOKINGS',
   BOOKING_CANCELLED: 'BOOKINGS',
+  CLUB_UPDATE: 'SOCIAL',
   SUPPORT_UPDATE: 'MESSAGES',
   SESSION_REMINDER: 'REMINDERS',
   MESSAGE_RECEIVED: 'MESSAGES',
@@ -154,7 +156,7 @@ export const NOTIFICATION_CATEGORIES: NotificationCategoryConfig[] = [
   { id: 'BADGES', label: 'Achievements', description: 'Badges and goal completions', icon: 'trophy' },
   { id: 'PAYMENTS', label: 'Payments', description: 'Payment confirmations and issues', icon: 'card' },
   { id: 'REMINDERS', label: 'Reminders', description: 'Upcoming session reminders', icon: 'alarm' },
-  { id: 'SOCIAL', label: 'Social', description: 'Followers and connection requests', icon: 'people' },
+  { id: 'SOCIAL', label: 'Social & Club', description: 'Followers, club updates, and connection requests', icon: 'people' },
   { id: 'MATCHES', label: 'Matches', description: 'Match invites and updates', icon: 'football' },
 ];
 
