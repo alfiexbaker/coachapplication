@@ -309,6 +309,16 @@ class BookingCrudService {
   }
 
   updateDraft(patch: Partial<BookingDraft>) {
+    const patchKeys = Object.keys(patch) as Array<keyof BookingDraft>;
+    if (patchKeys.length === 0) {
+      return;
+    }
+
+    const hasChanges = patchKeys.some((key) => !Object.is(this.draft[key], patch[key]));
+    if (!hasChanges) {
+      return;
+    }
+
     this.draft = { ...this.draft, ...patch };
   }
 

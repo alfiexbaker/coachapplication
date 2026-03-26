@@ -362,7 +362,7 @@ export default function ReviewScreen() {
       >
         <BookingWizardHeader
           title="Review booking"
-          subtitle="Confirm details and payment arrangement"
+          subtitle="Check details"
           step={4}
           onBack={handleBack}
         />

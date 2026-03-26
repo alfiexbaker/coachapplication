@@ -66,6 +66,15 @@ describe('BookingCrudService', () => {
       assert.equal(draft.duration, 60);
     });
 
+    it('should preserve draft reference when patch data is unchanged', () => {
+      bookingCrudService.updateDraft({ sessionType: '1-on-1', duration: 60 });
+      const initialDraft = bookingCrudService.getDraft();
+
+      bookingCrudService.updateDraft({ sessionType: '1-on-1' });
+
+      assert.equal(bookingCrudService.getDraft(), initialDraft);
+    });
+
     it('should reset draft to empty', () => {
       bookingCrudService.updateDraft({ sessionType: '1-on-1', duration: 60 });
       bookingCrudService.resetDraft();

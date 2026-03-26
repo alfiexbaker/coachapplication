@@ -29,10 +29,6 @@ import { bookingStepAnalyticsService } from '@/services/booking/booking-step-ana
 import type { AvailabilitySlot } from '@/constants/types';
 import { useRequiredParam } from '@/hooks/use-required-param';
 import { BOOKING_LOCATION_OPTIONS } from '@/constants/booking-flow';
-import { apiClient } from '@/services/api-client';
-import { STORAGE_KEYS } from '@/constants/storage-keys';
-import type { SessionOffering } from '@/constants/session-types';
-import { getFixedScheduleFromOffering } from '@/utils/booking-draft-prefill';
 import { hasAccountChildren } from '@/utils/booking-self-capability';
 
 const logger = createLogger('ScheduleScreen');
@@ -48,38 +44,7 @@ export default function ScheduleScreen() {
     contextChildCount: children.length,
     accountChildRefCount: currentUser?.children?.length ?? 0,
   });
-
-  const selectedOffering = useScreen<SessionOffering | null>({
-    load: async () => {
-      if (!draft.sessionOfferingId) {
-        return ok<SessionOffering | null>(null);
-      }
-      const offerings = await apiClient.get<SessionOffering[]>(STORAGE_KEYS.SESSION_OFFERINGS, []);
-      return ok(offerings.find((offering) => offering.id === draft.sessionOfferingId) ?? null);
-    },
-    deps: [draft.sessionOfferingId],
-    isEmpty: () => false,
-    refetchOnFocus: true,
-  }).data;
-  const fixedOfferingSchedule = useMemo(
-    () => (selectedOffering ? getFixedScheduleFromOffering(selectedOffering) : null),
-    [selectedOffering],
-  );
-  const normalizedEntrySource = draft.entrySource?.trim().toLowerCase() ?? '';
-  const scheduleLockedFromDraft = Boolean(
-    (normalizedEntrySource.startsWith('discover') ||
-      normalizedEntrySource.startsWith('session_detail_modal') ||
-      normalizedEntrySource.startsWith('favourites')) &&
-      draft.sessionOfferingId &&
-      draft.date &&
-      draft.slot,
-  );
-  const scheduleLockedFromOffering = Boolean(
-    fixedOfferingSchedule &&
-      draft.date === fixedOfferingSchedule.date &&
-      draft.slot === fixedOfferingSchedule.slot,
-  );
-  const scheduleLocked = scheduleLockedFromOffering || scheduleLockedFromDraft;
+  const scheduleLocked = Boolean(draft.sessionOfferingId && draft.date && draft.slot);
 
   // Calculate date range (next 14 days)
   const dateRange = useMemo(() => {
@@ -98,6 +63,9 @@ export default function ScheduleScreen() {
     if (!coachId) {
       return ok([]);
     }
+    if (scheduleLocked) {
+      return ok([]);
+    }
     try {
       const duration = draft.duration || 60;
       const slots = await availabilityService.getAvailableSlots(
@@ -113,7 +81,7 @@ export default function ScheduleScreen() {
         serviceError('UNKNOWN', 'Unable to load available times. Please try again.', loadError),
       );
     }
-  }, [coachId, dateRange.startDate, dateRange.endDate, draft.duration]);
+  }, [coachId, dateRange.endDate, dateRange.startDate, draft.duration, scheduleLocked]);
 
   const {
     data,
@@ -266,13 +234,6 @@ export default function ScheduleScreen() {
       ),
     });
 
-  if (status === 'loading') {
-    return renderWizardState({
-      subtitle: 'Loading availability...',
-      content: <LoadingState variant="calendar" />,
-    });
-  }
-
   if (!coachIdParam.valid) {
     return renderShell({
       content: (
@@ -290,7 +251,7 @@ export default function ScheduleScreen() {
         <ScrollView contentContainerStyle={styles.content}>
           <BookingWizardHeader
             title="Choose date & time"
-            subtitle="Time locked from selected session listing"
+            subtitle="Selected time"
             step={2}
             onBack={handleBack}
           />
@@ -305,7 +266,7 @@ export default function ScheduleScreen() {
           >
             <Ionicons name="lock-closed-outline" size={22} color={palette.tint} />
             <Column flex gap="micro">
-              <ThemedText style={styles.placeholderTitle}>This listing has a fixed schedule</ThemedText>
+              <ThemedText style={styles.placeholderTitle}>Time fixed</ThemedText>
               <ThemedText style={[styles.placeholderText, { color: palette.muted }]}>
                 {formatDate(draft.date)} at {draft.slot}
               </ThemedText>
@@ -340,9 +301,16 @@ export default function ScheduleScreen() {
     });
   }
 
+  if (status === 'loading') {
+    return renderWizardState({
+      subtitle: 'Loading times',
+      content: <LoadingState variant="calendar" />,
+    });
+  }
+
   if (status === 'error') {
     return renderWizardState({
-      subtitle: 'Something went wrong',
+      subtitle: 'Unable to load times',
       content: (
         <ErrorState
           message={error?.message ?? 'Unable to load available times. Please try again.'}
@@ -363,7 +331,7 @@ export default function ScheduleScreen() {
         >
           <BookingWizardHeader
             title="Choose date & time"
-            subtitle="No availability in the next 2 weeks"
+            subtitle="No open times"
             step={2}
             onBack={handleBack}
           />
@@ -378,7 +346,7 @@ export default function ScheduleScreen() {
                 No slots available
               </ThemedText>
               <ThemedText style={[styles.emptyMessage, { color: palette.muted }]}>
-                {`This coach hasn't opened any slots for the next two weeks. You can check back later or reach out directly.`}
+                No open times in the next two weeks.
               </ThemedText>
             </Column>
 
@@ -423,8 +391,8 @@ export default function ScheduleScreen() {
           title="Choose date & time"
           subtitle={
             draft.sessionTypeLabel
-              ? `Only available ${draft.sessionTypeLabel.toLowerCase()} slots are shown`
-              : 'Only available slots are shown'
+              ? `${draft.sessionTypeLabel} times only`
+              : 'Open times only'
           }
           step={2}
           onBack={handleBack}
@@ -446,11 +414,11 @@ export default function ScheduleScreen() {
                 },
               ]}
             >
-              <Ionicons name="calendar-outline" size={22} color={palette.tint} />
+              <Ionicons name="calendar-outline" size={20} color={palette.tint} />
               <Column flex gap="micro">
-                <ThemedText style={styles.placeholderTitle}>Select a date to view times</ThemedText>
+                <ThemedText style={styles.placeholderTitle}>Pick a date</ThemedText>
                 <ThemedText style={[styles.placeholderText, { color: palette.muted }]}>
-                  Tap an available date in the calendar to load time slots.
+                  Then choose an open time.
                 </ThemedText>
               </Column>
             </View>

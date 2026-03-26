@@ -545,33 +545,33 @@ export default function SessionTypeScreen() {
   const listSummary =
     status === 'success'
       ? activeFilter === 'all'
-        ? `${resolvedOfferings.length} live offerings from this coach`
-        : `${filteredOfferings.length} ${selectedFilter.label.toLowerCase()} available now`
-      : 'Loading coach offerings';
+        ? `${resolvedOfferings.length} live`
+        : `${filteredOfferings.length} ${selectedFilter.label.toLowerCase()} live`
+      : 'Loading';
   const footerPrompt =
     status === 'loading'
       ? {
-          title: 'Loading live sessions',
-          message: "Fetching this coach's current offerings.",
+          title: 'Loading sessions',
+          message: 'Checking live offerings.',
         }
       : status === 'error'
         ? {
-            title: 'Session list unavailable',
-            message: 'Retry above or message the coach directly.',
+            title: 'Sessions unavailable',
+            message: 'Retry or message the coach.',
           }
         : visibleSessionCount === 0
           ? {
               title: `No ${selectedFilter.label.toLowerCase()} live`,
-              message: 'Change format or message the coach for availability.',
+              message: 'Try another format.',
             }
           : visibleSessionCount === 1
             ? {
-                title: 'Select a live session to continue',
-                message: 'One coach offering is ready above.',
+                title: 'Select a session',
+                message: '1 session available.',
               }
             : {
-                title: 'Select a live session to continue',
-                message: `${visibleSessionCount} coach offerings are ready above.`,
+                title: 'Select a session',
+                message: `${visibleSessionCount} sessions available.`,
               };
 
   return (
@@ -587,7 +587,7 @@ export default function SessionTypeScreen() {
       >
         <BookingWizardHeader
           title="Choose a session"
-          subtitle="Pick from this coach's live offerings before you continue."
+          subtitle="Select one live session."
           step={1}
           onBack={handleBack}
         />

@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useMemo, useState } from 'react';
+import React, { createContext, useCallback, useContext, useMemo, useState } from 'react';
 import { bookingService, BookingDraft } from '@/services/booking-service';
 
 interface BookingFlowContextValue {
@@ -13,25 +13,36 @@ const BookingFlowContext = createContext<BookingFlowContextValue | undefined>(un
 export function BookingFlowProvider({ children }: { children: React.ReactNode }) {
   const [draft, setDraft] = useState<BookingDraft>(bookingService.getDraft());
 
-  const updateDraft = (patch: Partial<BookingDraft>) => {
+  const updateDraft = useCallback((patch: Partial<BookingDraft>) => {
+    const currentDraft = bookingService.getDraft();
     bookingService.updateDraft(patch);
+    const nextDraft = bookingService.getDraft();
+
+    if (nextDraft === currentDraft) {
+      return;
+    }
+
+    setDraft(nextDraft);
+  }, []);
+
+  const reset = useCallback(() => {
+    bookingService.resetDraft();
     setDraft(bookingService.getDraft());
-  };
+  }, []);
+
+  const save = useCallback(async () => {
+    await bookingService.createFromDraft();
+    setDraft(bookingService.getDraft());
+  }, []);
 
   const value = useMemo(
     () => ({
       draft,
       updateDraft,
-      reset: () => {
-        bookingService.resetDraft();
-        setDraft(bookingService.getDraft());
-      },
-      save: async () => {
-        await bookingService.createFromDraft();
-        setDraft(bookingService.getDraft());
-      },
+      reset,
+      save,
     }),
-    [draft]
+    [draft, reset, save, updateDraft],
   );
 
   return <BookingFlowContext.Provider value={value}>{children}</BookingFlowContext.Provider>;

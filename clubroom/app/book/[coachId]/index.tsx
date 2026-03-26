@@ -1,8 +1,4 @@
-import { useEffect } from 'react';
-import { useLocalSearchParams, router } from 'expo-router';
-import { SafeAreaView } from 'react-native-safe-area-context';
-
-import { LoadingState } from '@/components/ui/screen-states';
+import { Redirect, useLocalSearchParams } from 'expo-router';
 import { Routes } from '@/navigation/routes';
 
 export default function BookCoachEntryScreen() {
@@ -14,25 +10,18 @@ export default function BookCoachEntryScreen() {
     weeks?: string;
   }>();
 
-  useEffect(() => {
-    if (!coachId) {
-      router.replace(Routes.BOOK_COACH);
-      return;
-    }
+  if (!coachId) {
+    return <Redirect href={Routes.BOOK_COACH} />;
+  }
 
-    router.replace(
-      Routes.bookSessionType(coachId, {
+  return (
+    <Redirect
+      href={Routes.bookSessionType(coachId, {
         offeringId,
         source,
         childId,
         weeks,
-      }),
-    );
-  }, [childId, coachId, offeringId, source, weeks]);
-
-  return (
-    <SafeAreaView style={{ flex: 1 }} edges={['top', 'bottom']}>
-      <LoadingState variant="detail" />
-    </SafeAreaView>
+      })}
+    />
   );
 }

@@ -11,10 +11,9 @@ import { Clickable } from '@/components/primitives/clickable';
 import { ThemedText } from '@/components/themed-text';
 import { ChildSelector } from '@/components/bookings/child-selector';
 import { Radii, Spacing, withAlpha } from '@/constants/theme';
-import { useScreen } from '@/hooks/use-screen';
 import { useChildContext } from '@/hooks/use-child-context';
 import { useAuth } from '@/hooks/use-auth';
-import { ok } from '@/types/result';
+import { useTheme } from '@/hooks/useTheme';
 import { useBookingFlow } from '@/context/booking-flow-context';
 import { bookingSelfSettingService } from '@/services/booking-self-setting-service';
 import { onTyped, ServiceEvents } from '@/services/event-bus';
@@ -33,7 +32,7 @@ import {
 export default function DetailsScreen() {
   const { coachId } = useLocalSearchParams<{ coachId: string }>();
   const { draft, updateDraft } = useBookingFlow();
-  const { colors: palette } = useScreen<null>({ load: async () => ok(null), isEmpty: () => false });
+  const { colors: palette } = useTheme();
   const { children, isMultiChild } = useChildContext();
   const { currentUser } = useAuth();
   const [allowBookSelf, setAllowBookSelf] = useState(false);
@@ -280,7 +279,7 @@ export default function DetailsScreen() {
       <ScrollView contentContainerStyle={styles.content}>
         <BookingWizardHeader
           title="Add details"
-          subtitle="Tell your coach what you need"
+          subtitle="Booking details"
           step={3}
           onBack={handleBack}
         />
@@ -304,7 +303,7 @@ export default function DetailsScreen() {
                 </ThemedText>
               </Row>
               <ThemedText style={{ color: palette.muted }}>
-                Venue locked from this session listing.
+                Venue fixed by session.
               </ThemedText>
             </View>
           ) : (
