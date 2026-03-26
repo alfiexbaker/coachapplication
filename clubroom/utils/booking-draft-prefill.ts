@@ -8,7 +8,9 @@ export interface BookingPrefillChild {
   name: string;
 }
 
-export function mapOfferingToDraftType(type: SessionOffering['sessionType']): NonNullable<BookingDraft['sessionType']> {
+export function mapOfferingToDraftType(
+  type: SessionOffering['sessionType'],
+): NonNullable<BookingDraft['sessionType']> {
   return type === 'group' ? 'small-group' : '1-to-1';
 }
 
@@ -45,7 +47,9 @@ function getNextRecurringScheduleFromOffering(
 ): { date: string; slot: string } | null {
   const { hours, minutes } = parseOfferingTimeParts(offering);
   const targetDay =
-    typeof offering.dayOfWeek === 'number' ? offering.dayOfWeek : new Date(offering.scheduledAt).getDay();
+    typeof offering.dayOfWeek === 'number'
+      ? offering.dayOfWeek
+      : new Date(offering.scheduledAt).getDay();
   if (!Number.isFinite(targetDay)) {
     return null;
   }
@@ -147,6 +151,7 @@ export function buildBookingDraftPatchFromOffering({
     locationText: offering.location,
     clubId: offering.clubId,
     actingAs: offering.actingAs,
+    commercialMode: offering.commercialMode,
     ownerCoachId: offering.ownerCoachId,
     assigneeCoachId: offering.assigneeCoachId,
     createdByUserId: offering.createdByUserId,

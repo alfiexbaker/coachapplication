@@ -1,60 +1,52 @@
-import { useCallback, useEffect, useMemo } from 'react';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import { ScrollView, StyleSheet, TextInput, View } from 'react-native';
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import { RefreshControl, ScrollView, StyleSheet, TextInput, View } from 'react-native';
 import { useLocalSearchParams, router } from 'expo-router';
-import { Routes } from '@/navigation/routes';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 
-import { Row } from '@/components/primitives/row';
-import { BookingWizardHeader } from '@/components/ui/booking/booking-wizard';
-import { SessionTypeSelector } from '@/components/ui/booking/session-type-selector';
+import { SurfaceCard } from '@/components/primitives/surface-card';
 import { Clickable } from '@/components/primitives/clickable';
+import { Row } from '@/components/primitives/row';
 import { ThemedText } from '@/components/themed-text';
-import { ErrorState } from '@/components/ui/screen-states';
-import { EmptyState } from '@/components/ui/empty-state';
-import { Radii, Spacing, withAlpha } from '@/constants/theme';
-import { useScreen } from '@/hooks/use-screen';
-import { err, ok, serviceError } from '@/types/result';
-import { useBookingFlow } from '@/context/booking-flow-context';
-import { apiClient } from '@/services/api-client';
-import { bookingStepAnalyticsService } from '@/services/booking/booking-step-analytics-service';
+import { BookingWizardHeader } from '@/components/ui/booking/booking-wizard';
+import {
+  SessionTypeSelector,
+  type SessionTypeFilterOption,
+} from '@/components/ui/booking/session-type-selector';
+import { EmptyState, ErrorState } from '@/components/ui/screen-states';
+import { Radii, Spacing, Typography, withAlpha } from '@/constants/theme';
 import { STORAGE_KEYS } from '@/constants/storage-keys';
 import type { SessionOffering } from '@/constants/session-types';
-import { getSessionOfferingHeadcount } from '@/utils/session-offering-capacity';
-import { accountIdsMatch } from '@/utils/account-id';
+import { useBookingFlow } from '@/context/booking-flow-context';
+import { useAuth } from '@/hooks/use-auth';
+import { useChildContext } from '@/hooks/use-child-context';
+import { useScreen } from '@/hooks/use-screen';
+import { Routes } from '@/navigation/routes';
+import { apiClient } from '@/services/api-client';
+import { bookingStepAnalyticsService } from '@/services/booking/booking-step-analytics-service';
 import {
   buildBookingDraftPatchFromOffering,
   getOfferingDuration,
+  type BookingPrefillChild,
 } from '@/utils/booking-draft-prefill';
-import { useChildContext } from '@/hooks/use-child-context';
-import { useAuth } from '@/hooks/use-auth';
+import {
+  buildSessionOfferingCategories,
+  filterSessionOfferingsByCategory,
+  getSessionOfferingCategoryId,
+  getSessionOfferingCategoryLabel,
+  sortSessionOfferingsForBooking,
+} from '@/utils/session-offering-booking';
+import { getSessionOfferingHeadcount } from '@/utils/session-offering-capacity';
+import { accountIdsMatch } from '@/utils/account-id';
 import { hasAccountChildren } from '@/utils/booking-self-capability';
-
-function formatOfferingCategory(offering: SessionOffering): string {
-  if (offering.sessionType === '1on1') {
-    return '1-to-1 Training';
-  }
-  if (offering.maxParticipants <= 6) {
-    return 'Small Group Training';
-  }
-  return 'Group Training';
-}
+import { err, ok, serviceError } from '@/types/result';
 
 function formatCapacityLabel(offering: SessionOffering): string {
   return offering.sessionType === '1on1' ? '1 athlete' : `up to ${offering.maxParticipants}`;
 }
 
-function formatAgeBand(offering: SessionOffering): string | null {
-  if (typeof offering.ageMin === 'number' && typeof offering.ageMax === 'number') {
-    return `Ages ${offering.ageMin}-${offering.ageMax}`;
-  }
-  if (typeof offering.ageMin === 'number') {
-    return `Ages ${offering.ageMin}+`;
-  }
-  if (typeof offering.ageMax === 'number') {
-    return `Ages up to ${offering.ageMax}`;
-  }
-  return null;
+function formatCurrencyValue(value: number): string {
+  return Number.isInteger(value) ? `£${value}` : `£${value.toFixed(2)}`;
 }
 
 function formatOfferingLocation(offering: SessionOffering): string {
@@ -64,46 +56,59 @@ function formatOfferingLocation(offering: SessionOffering): string {
   return offering.location;
 }
 
-function sortOfferings(offerings: SessionOffering[]): SessionOffering[] {
-  return [...offerings].sort((a, b) => {
-    const typeOrderA = a.sessionType === '1on1' ? 0 : 1;
-    const typeOrderB = b.sessionType === '1on1' ? 0 : 1;
-    if (typeOrderA !== typeOrderB) return typeOrderA - typeOrderB;
-    const priceA = a.price ?? 0;
-    const priceB = b.price ?? 0;
-    if (priceA !== priceB) return priceA - priceB;
-    return a.title.localeCompare(b.title);
+function formatOfferingPrice(offering: SessionOffering): string {
+  if (typeof offering.price === 'number' && offering.price > 0) {
+    return formatCurrencyValue(offering.price);
+  }
+  return 'Free';
+}
+
+function formatOfferingSchedule(offering: SessionOffering): string {
+  if (offering.isRecurring && offering.dayOfWeek !== undefined && offering.timeOfDay) {
+    const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+    return `Every ${days[offering.dayOfWeek]} at ${offering.timeOfDay}`;
+  }
+
+  const date = new Date(offering.scheduledAt);
+  if (!Number.isFinite(date.getTime())) {
+    return 'Schedule confirmed after selection';
+  }
+
+  return date.toLocaleDateString('en-GB', {
+    weekday: 'short',
+    day: 'numeric',
+    month: 'short',
+    hour: 'numeric',
+    minute: '2-digit',
   });
 }
 
-function dedupeOfferings(offerings: SessionOffering[], preferredOfferingId?: string): SessionOffering[] {
-  const bySignature = new Map<string, SessionOffering>();
-  for (const offering of offerings) {
-    const signature = [
-      offering.title.trim().toLowerCase(),
-      offering.sessionType,
-      getOfferingDuration(offering),
-      offering.price ?? 0,
-      offering.maxParticipants,
-    ].join('|');
-    const existing = bySignature.get(signature);
-    if (!existing) {
-      bySignature.set(signature, offering);
-      continue;
-    }
-
-    if (preferredOfferingId && offering.id === preferredOfferingId) {
-      bySignature.set(signature, offering);
-      continue;
-    }
-
-    const existingTime = new Date(existing.scheduledAt).getTime();
-    const currentTime = new Date(offering.scheduledAt).getTime();
-    if (Number.isFinite(currentTime) && (!Number.isFinite(existingTime) || currentTime < existingTime)) {
-      bySignature.set(signature, offering);
-    }
-  }
-  return sortOfferings(Array.from(bySignature.values()));
+function buildOfferingResetPatch({ coachId, source }: { coachId: string; source?: string }) {
+  return {
+    coachId,
+    entrySource: source,
+    sessionOfferingId: undefined,
+    sessionSource: undefined,
+    sessionSourceEntityId: undefined,
+    sessionTemplateId: undefined,
+    participants: undefined,
+    duration: undefined,
+    date: undefined,
+    slot: undefined,
+    locationOption: undefined,
+    locationText: undefined,
+    price: undefined,
+    totalPrice: undefined,
+    sessionType: undefined,
+    sessionTypeLabel: undefined,
+    clubId: undefined,
+    actingAs: undefined,
+    commercialMode: undefined,
+    ownerCoachId: undefined,
+    assigneeCoachId: undefined,
+    createdByUserId: undefined,
+    createdByRole: undefined,
+  } as const;
 }
 
 export default function SessionTypeScreen() {
@@ -114,28 +119,78 @@ export default function SessionTypeScreen() {
     weeks?: string;
     source?: string;
   }>();
-  const { children } = useChildContext();
   const { currentUser } = useAuth();
+  const { children, activeChildId, loading: childContextLoading } = useChildContext();
   const { draft, updateDraft } = useBookingFlow();
+  const [activeFilter, setActiveFilter] = useState('all');
+
   const accountHasChildren = hasAccountChildren({
     contextChildCount: children.length,
     accountChildRefCount: currentUser?.children?.length ?? 0,
   });
-  const preselectedChild = useMemo(() => {
-    if (!childId) return null;
-    if (currentUser?.id && childId === currentUser.id) {
+
+  const preselectedChild = useMemo<BookingPrefillChild | null>(() => {
+    if (childId) {
+      if (currentUser?.id && childId === currentUser.id) {
+        return {
+          id: currentUser.id,
+          name: currentUser.name || currentUser.fullName || 'Athlete',
+        };
+      }
+
+      if (childContextLoading) {
+        return null;
+      }
+
+      const matchedChild = children.find((child) => child.id === childId);
+      if (matchedChild) {
+        return {
+          id: matchedChild.id,
+          name: matchedChild.name,
+        };
+      }
+      return null;
+    }
+
+    if (childContextLoading) {
+      return null;
+    }
+
+    if (activeChildId) {
+      const activeChild = children.find((child) => child.id === activeChildId);
+      if (activeChild) {
+        return {
+          id: activeChild.id,
+          name: activeChild.name,
+        };
+      }
+    }
+
+    if (children.length === 1) {
+      return {
+        id: children[0].id,
+        name: children[0].name,
+      };
+    }
+
+    if (children.length === 0 && currentUser?.id) {
       return {
         id: currentUser.id,
         name: currentUser.name || currentUser.fullName || 'Athlete',
       };
     }
-    const matchedChild = children.find((child) => child.id === childId);
-    if (!matchedChild) return null;
-    return {
-      id: matchedChild.id,
-      name: matchedChild.name,
-    };
-  }, [childId, children, currentUser?.fullName, currentUser?.id, currentUser?.name]);
+
+    return null;
+  }, [
+    activeChildId,
+    childContextLoading,
+    childId,
+    children,
+    currentUser?.fullName,
+    currentUser?.id,
+    currentUser?.name,
+  ]);
+
   const loadOfferings = useCallback(async () => {
     if (!coachId) {
       return err(serviceError('VALIDATION', 'Coach information is missing for booking.'));
@@ -156,97 +211,231 @@ export default function SessionTypeScreen() {
         return headcount < offering.maxParticipants;
       });
 
-      return ok(dedupeOfferings(coachOfferings, offeringId));
+      return ok(sortSessionOfferingsForBooking(coachOfferings));
     } catch (loadError) {
       return err(serviceError('UNKNOWN', 'Failed to load coach offerings.', loadError));
     }
-  }, [coachId, offeringId]);
+  }, [coachId]);
 
   const {
     data: offerings,
     status,
     error,
     retry,
+    refreshing,
+    onRefresh,
     colors: palette,
   } = useScreen<SessionOffering[]>({
     load: loadOfferings,
-    deps: [loadOfferings],
-    isEmpty: () => false,
+    deps: [coachId],
+    isEmpty: (value) => value.length === 0,
     refetchOnFocus: true,
   });
 
   const resolvedOfferings = useMemo(() => offerings ?? [], [offerings]);
-  const hasOfferings = resolvedOfferings.length > 0;
   const selectedOffering = useMemo(
-    () => resolvedOfferings.find((offering) => offering.id === draft.sessionOfferingId),
+    () => resolvedOfferings.find((offering) => offering.id === draft.sessionOfferingId) ?? null,
     [resolvedOfferings, draft.sessionOfferingId],
   );
 
+  const filters = useMemo<SessionTypeFilterOption[]>(
+    () => [
+      { id: 'all', label: 'All Sessions', count: resolvedOfferings.length },
+      ...buildSessionOfferingCategories(resolvedOfferings).map((category) => ({
+        id: category.id,
+        label: category.label,
+        count: category.count,
+      })),
+    ],
+    [resolvedOfferings],
+  );
+
+  const filteredOfferings = useMemo(
+    () => filterSessionOfferingsByCategory(resolvedOfferings, activeFilter),
+    [activeFilter, resolvedOfferings],
+  );
+
+  const selectedFilter = useMemo(
+    () => filters.find((filter) => filter.id === activeFilter) ?? filters[0],
+    [activeFilter, filters],
+  );
+
+  const categoryCount = Math.max(filters.length - 1, 0);
+  const startingPrice = useMemo(() => {
+    const prices = resolvedOfferings
+      .map((offering) => offering.price)
+      .filter((price): price is number => typeof price === 'number' && price > 0);
+    if (prices.length === 0) {
+      return null;
+    }
+    return Math.min(...prices);
+  }, [resolvedOfferings]);
+
+  const requestedWeeks = useMemo(() => {
+    const parsed = Number.parseInt(weeks ?? '', 10);
+    return Number.isFinite(parsed) && parsed > 1 ? parsed : 1;
+  }, [weeks]);
+
+  const clearOfferingSelection = useCallback(() => {
+    if (!coachId) {
+      return;
+    }
+
+    const hasOfferingDraftState = Boolean(
+      draft.sessionOfferingId ||
+      draft.sessionSource ||
+      draft.sessionSourceEntityId ||
+      draft.sessionTemplateId ||
+      draft.participants ||
+      draft.duration ||
+      draft.date ||
+      draft.slot ||
+      draft.locationOption ||
+      draft.locationText ||
+      draft.price ||
+      draft.totalPrice ||
+      draft.sessionType ||
+      draft.sessionTypeLabel ||
+      draft.clubId ||
+      draft.actingAs ||
+      draft.commercialMode ||
+      draft.ownerCoachId ||
+      draft.assigneeCoachId ||
+      draft.createdByUserId ||
+      draft.createdByRole ||
+      draft.coachId !== coachId ||
+      draft.entrySource !== source,
+    );
+
+    if (!hasOfferingDraftState) {
+      return;
+    }
+
+    updateDraft(buildOfferingResetPatch({ coachId, source }));
+  }, [
+    coachId,
+    draft.actingAs,
+    draft.assigneeCoachId,
+    draft.clubId,
+    draft.coachId,
+    draft.commercialMode,
+    draft.createdByRole,
+    draft.createdByUserId,
+    draft.date,
+    draft.duration,
+    draft.entrySource,
+    draft.locationOption,
+    draft.locationText,
+    draft.ownerCoachId,
+    draft.participants,
+    draft.price,
+    draft.sessionOfferingId,
+    draft.sessionSource,
+    draft.sessionSourceEntityId,
+    draft.sessionTemplateId,
+    draft.sessionType,
+    draft.sessionTypeLabel,
+    draft.slot,
+    draft.totalPrice,
+    source,
+    updateDraft,
+  ]);
+
   useEffect(() => {
-    if (!coachId || resolvedOfferings.length === 0) return;
-    const currentlySelected = resolvedOfferings.find(
+    if (!filters.some((filter) => filter.id === activeFilter)) {
+      setActiveFilter('all');
+    }
+  }, [activeFilter, filters]);
+
+  useEffect(() => {
+    if (!preselectedChild) {
+      return;
+    }
+
+    if (
+      draft.childId === preselectedChild.id &&
+      draft.athleteName === preselectedChild.name &&
+      draft.targetLocked
+    ) {
+      return;
+    }
+
+    updateDraft({
+      childId: preselectedChild.id,
+      athleteName: preselectedChild.name,
+      targetLocked: true,
+    });
+  }, [draft.athleteName, draft.childId, draft.targetLocked, preselectedChild, updateDraft]);
+
+  useEffect(() => {
+    if (!coachId) {
+      return;
+    }
+
+    if (status === 'empty') {
+      clearOfferingSelection();
+      return;
+    }
+
+    if (status !== 'success') {
+      return;
+    }
+
+    const currentSelection = resolvedOfferings.find(
       (offering) => offering.id === draft.sessionOfferingId,
     );
-    if (currentlySelected) return;
+    if (currentSelection) {
+      return;
+    }
 
-    const preferred =
+    const preferredOffering =
       (offeringId ? resolvedOfferings.find((offering) => offering.id === offeringId) : undefined) ??
-      resolvedOfferings[0];
-    if (!preferred) return;
+      (resolvedOfferings.length === 1 ? resolvedOfferings[0] : undefined);
 
-    updateDraft(
-      buildBookingDraftPatchFromOffering({
-        coachId,
-        offering: preferred,
-        child: preselectedChild,
-        entrySource: source,
-      }),
-    );
+    if (preferredOffering) {
+      updateDraft(
+        buildBookingDraftPatchFromOffering({
+          coachId,
+          offering: preferredOffering,
+          child: preselectedChild,
+          entrySource: source,
+        }),
+      );
+      return;
+    }
+
+    clearOfferingSelection();
   }, [
+    clearOfferingSelection,
     coachId,
     draft.sessionOfferingId,
     offeringId,
     preselectedChild,
     resolvedOfferings,
     source,
+    status,
     updateDraft,
   ]);
 
   useEffect(() => {
-    if (!preselectedChild) return;
-    if (draft.childId === preselectedChild.id && draft.athleteName === preselectedChild.name) {
+    if (!selectedOffering || activeFilter === 'all') {
       return;
     }
-    updateDraft({
-      childId: preselectedChild.id,
-      athleteName: preselectedChild.name,
-      targetLocked: true,
-    });
-  }, [
-    draft.athleteName,
-    draft.childId,
-    preselectedChild,
-    updateDraft,
-  ]);
 
-  const offeringOptions = useMemo(
-    () =>
-      resolvedOfferings.map((offering) => ({
-        id: offering.id,
-        title: offering.title,
-        priceText: offering.price && offering.price > 0 ? `£${offering.price}` : 'Free',
-        categoryLabel: formatOfferingCategory(offering),
-        description: offering.description || formatOfferingCategory(offering),
-        detailText: `${getOfferingDuration(offering)} mins · ${formatCapacityLabel(offering)}`,
-        metaText: [formatOfferingLocation(offering), formatAgeBand(offering)].filter(Boolean).join(' · '),
-      })),
-    [resolvedOfferings],
-  );
+    if (getSessionOfferingCategoryId(selectedOffering) === activeFilter) {
+      return;
+    }
+
+    clearOfferingSelection();
+  }, [activeFilter, clearOfferingSelection, selectedOffering]);
 
   const handleSelectOffering = useCallback(
-    (offeringId: string) => {
-      const offering = resolvedOfferings.find((item) => item.id === offeringId);
-      if (!offering || !coachId) return;
+    (selectedOfferingId: string) => {
+      const offering = resolvedOfferings.find((item) => item.id === selectedOfferingId);
+      if (!offering || !coachId) {
+        return;
+      }
+
       updateDraft(
         buildBookingDraftPatchFromOffering({
           coachId,
@@ -259,15 +448,24 @@ export default function SessionTypeScreen() {
     [coachId, preselectedChild, resolvedOfferings, source, updateDraft],
   );
 
+  const handleFilterChange = useCallback(
+    (nextFilter: string) => {
+      if (nextFilter === activeFilter) {
+        return;
+      }
+
+      setActiveFilter(nextFilter);
+    },
+    [activeFilter],
+  );
+
   const handleMessageCoach = useCallback(() => {
-    if (!coachId) return;
+    if (!coachId) {
+      return;
+    }
     router.push(Routes.messagesWith({ coachId }));
   }, [coachId]);
 
-  const requestedWeeks = useMemo(() => {
-    const parsed = Number.parseInt(weeks ?? '', 10);
-    return Number.isFinite(parsed) && parsed > 1 ? parsed : 1;
-  }, [weeks]);
   const handleBack = useCallback(() => {
     void bookingStepAnalyticsService.track({
       step: 'type',
@@ -281,7 +479,7 @@ export default function SessionTypeScreen() {
       draft,
     });
     router.back();
-  }, [accountHasChildren, source, currentUser?.role, currentUser?.id, draft]);
+  }, [accountHasChildren, currentUser?.id, currentUser?.role, draft, source]);
 
   const handleContinue = useCallback(() => {
     if (!coachId) {
@@ -299,7 +497,7 @@ export default function SessionTypeScreen() {
       return;
     }
 
-    if (!draft.sessionOfferingId) {
+    if (!draft.sessionOfferingId || !selectedOffering) {
       void bookingStepAnalyticsService.track({
         step: 'type',
         status: 'validation_fail',
@@ -325,7 +523,7 @@ export default function SessionTypeScreen() {
       draft,
     });
 
-    if (selectedOffering?.isRecurring && requestedWeeks > 1) {
+    if (selectedOffering.isRecurring && requestedWeeks > 1) {
       router.push(Routes.bookMultiWeek(coachId));
       return;
     }
@@ -339,47 +537,129 @@ export default function SessionTypeScreen() {
     }
     router.push(Routes.bookReview(coachId));
   }, [
-    coachId,
-    draft.childId,
-    draft.date,
-    draft.sessionOfferingId,
-    draft.slot,
-    requestedWeeks,
-    selectedOffering?.isRecurring,
-    source,
-    currentUser?.role,
-    currentUser?.id,
     accountHasChildren,
+    coachId,
+    currentUser?.id,
+    currentUser?.role,
+    draft,
+    requestedWeeks,
+    selectedOffering,
+    source,
   ]);
 
-  const canContinue = Boolean(coachId && draft.sessionOfferingId);
-  const fixedDuration = selectedOffering ? getOfferingDuration(selectedOffering) : undefined;
+  const canContinue = Boolean(coachId && selectedOffering);
+  const listSummary =
+    status === 'success'
+      ? activeFilter === 'all'
+        ? `${resolvedOfferings.length} live sessions from this coach`
+        : `${filteredOfferings.length} ${selectedFilter.label.toLowerCase()} live right now`
+      : 'Loading coach offerings';
 
   return (
     <SafeAreaView
       style={[styles.safeArea, { backgroundColor: palette.background }]}
       edges={['top', 'bottom']}
     >
-      <ScrollView contentContainerStyle={styles.content}>
+      <ScrollView
+        contentContainerStyle={styles.content}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={palette.tint} />
+        }
+      >
         <BookingWizardHeader
-          title="Book a session"
-          subtitle={
-            hasOfferings
-              ? 'Pick what this coach offers'
-              : 'No live sessions are published for this coach right now'
-          }
+          title="Choose a session"
+          subtitle="See every live session this coach currently offers before you continue."
           step={1}
           onBack={handleBack}
         />
 
-        {hasOfferings ? (
-          <SessionTypeSelector
-            selected={draft.sessionOfferingId}
-            onSelect={handleSelectOffering}
-            options={offeringOptions}
-            loading={status === 'loading'}
+        <SurfaceCard style={styles.heroCard} tactile={false}>
+          <ThemedText style={[styles.eyebrow, { color: palette.muted }]}>
+            Coach offerings
+          </ThemedText>
+          <ThemedText type="title">All live sessions</ThemedText>
+          <ThemedText style={[styles.heroBody, { color: palette.muted }]}>
+            Browse everything active, then narrow it by category when you need a faster pass.
+          </ThemedText>
+
+          {resolvedOfferings.length > 0 ? (
+            <Row wrap gap="xs">
+              <View style={[styles.metricChip, { backgroundColor: withAlpha(palette.tint, 0.08) }]}>
+                <Ionicons name="albums-outline" size={14} color={palette.tint} />
+                <ThemedText style={[styles.metricText, { color: palette.tint }]}>
+                  {resolvedOfferings.length} live
+                </ThemedText>
+              </View>
+              <View
+                style={[styles.metricChip, { backgroundColor: withAlpha(palette.success, 0.12) }]}
+              >
+                <Ionicons name="grid-outline" size={14} color={palette.success} />
+                <ThemedText style={[styles.metricText, { color: palette.success }]}>
+                  {categoryCount} format{categoryCount === 1 ? '' : 's'}
+                </ThemedText>
+              </View>
+              {startingPrice !== null ? (
+                <View
+                  style={[styles.metricChip, { backgroundColor: withAlpha(palette.warning, 0.14) }]}
+                >
+                  <Ionicons name="cash-outline" size={14} color={palette.warning} />
+                  <ThemedText style={[styles.metricText, { color: palette.warning }]}>
+                    From {formatCurrencyValue(startingPrice)}
+                  </ThemedText>
+                </View>
+              ) : null}
+            </Row>
+          ) : null}
+        </SurfaceCard>
+
+        {selectedOffering ? (
+          <SurfaceCard
+            style={[
+              styles.selectedSummaryCard,
+              {
+                borderColor: withAlpha(palette.tint, 0.28),
+                backgroundColor: withAlpha(palette.tint, 0.06),
+              },
+            ]}
+            tactile={false}
+          >
+            <Row align="center" justify="between" gap="sm">
+              <View style={styles.selectedSummaryCopy}>
+                <ThemedText style={[styles.eyebrow, { color: palette.tint }]}>
+                  Selected session
+                </ThemedText>
+                <ThemedText type="defaultSemiBold">{selectedOffering.title}</ThemedText>
+                <ThemedText style={[styles.selectedSummaryMeta, { color: palette.muted }]}>
+                  {getSessionOfferingCategoryLabel(selectedOffering)} ·{' '}
+                  {getOfferingDuration(selectedOffering)} mins ·{' '}
+                  {formatOfferingPrice(selectedOffering)}
+                </ThemedText>
+                <ThemedText style={[styles.selectedSummaryMeta, { color: palette.muted }]}>
+                  {formatOfferingSchedule(selectedOffering)} ·{' '}
+                  {formatCapacityLabel(selectedOffering)}
+                </ThemedText>
+                <ThemedText style={[styles.selectedSummaryMeta, { color: palette.muted }]}>
+                  {formatOfferingLocation(selectedOffering)}
+                </ThemedText>
+              </View>
+              <Ionicons name="checkmark-circle" size={22} color={palette.tint} />
+            </Row>
+          </SurfaceCard>
+        ) : null}
+
+        <View style={styles.sectionHeader}>
+          <ThemedText type="defaultSemiBold">Live sessions</ThemedText>
+          <ThemedText style={[styles.sectionHint, { color: palette.muted }]}>
+            {listSummary}
+          </ThemedText>
+        </View>
+
+        {status === 'error' ? (
+          <ErrorState
+            message={error?.message ?? 'Could not load coach offerings.'}
+            onRetry={retry}
           />
-        ) : status !== 'loading' ? (
+        ) : status === 'empty' ? (
           <View
             style={[
               styles.emptyStateWrap,
@@ -392,66 +672,28 @@ export default function SessionTypeScreen() {
             <EmptyState
               context="sessions"
               title="No live sessions right now"
-              message="This coach does not have a published slot you can book yet. Message them for availability or browse other coaches."
+              message="This coach has not published a bookable session yet. Message them for availability or browse other coaches."
             />
           </View>
-        ) : null}
-
-        {status === 'error' ? (
-          <ErrorState
-            message={error?.message ?? 'Could not load coach offerings.'}
-            onRetry={retry}
+        ) : (
+          <SessionTypeSelector
+            activeFilter={activeFilter}
+            filters={filters}
+            loading={status === 'loading'}
+            offerings={filteredOfferings}
+            onChangeFilter={handleFilterChange}
+            onResetFilter={() => setActiveFilter('all')}
+            onSelect={handleSelectOffering}
+            selected={draft.sessionOfferingId}
           />
-        ) : null}
+        )}
 
-        {fixedDuration ? (
-          <View style={{ gap: Spacing.sm }}>
-            <ThemedText type="defaultSemiBold">Duration</ThemedText>
-            <View
-              style={[
-                styles.fixedDurationCard,
-                {
-                  borderColor: withAlpha(palette.tint, 0.25),
-                  backgroundColor: withAlpha(palette.tint, 0.07),
-                },
-              ]}
-            >
-              <Row align="center" gap="xs">
-                <Ionicons name="time-outline" size={16} color={palette.tint} />
-                <ThemedText style={{ color: palette.tint }}>
-                  {fixedDuration} mins (set by offering)
-                </ThemedText>
-              </Row>
-            </View>
-          </View>
-        ) : null}
-
-        {selectedOffering ? (
-          <View style={{ gap: Spacing.sm }}>
-            <ThemedText type="defaultSemiBold">Preset location</ThemedText>
-            <View
-              style={[
-                styles.fixedDurationCard,
-                {
-                  borderColor: withAlpha(palette.tint, 0.25),
-                  backgroundColor: withAlpha(palette.tint, 0.07),
-                },
-              ]}
-            >
-              <Row align="center" gap="xs">
-                <Ionicons name="location-outline" size={16} color={palette.tint} />
-                <ThemedText style={{ color: palette.tint }}>
-                  {formatOfferingLocation(selectedOffering)}
-                </ThemedText>
-              </Row>
-            </View>
-          </View>
-        ) : null}
-
-        {selectedOffering && selectedOffering.sessionType === 'group' ? (
-          <View style={{ gap: Spacing.sm }}>
-            <ThemedText type="defaultSemiBold">
-              Participants (max {selectedOffering.maxParticipants})
+        {selectedOffering?.sessionType === 'group' ? (
+          <SurfaceCard style={styles.groupCard} tactile={false}>
+            <ThemedText type="defaultSemiBold">How many athletes?</ThemedText>
+            <ThemedText style={[styles.groupHint, { color: palette.muted }]}>
+              This session allows {formatCapacityLabel(selectedOffering)}. Adjust the booking size
+              if needed.
             </ThemedText>
             <TextInput
               placeholder={String(selectedOffering.maxParticipants)}
@@ -469,17 +711,17 @@ export default function SessionTypeScreen() {
                 updateDraft({ participants: clamped });
               }}
             />
-          </View>
+          </SurfaceCard>
         ) : null}
       </ScrollView>
       <View style={[styles.footer, { borderTopColor: palette.border }]}>
         <Clickable
           onPress={handleMessageCoach}
           style={[
-            hasOfferings ? styles.secondaryCta : styles.cta,
+            canContinue ? styles.secondaryCta : styles.cta,
             {
-              backgroundColor: hasOfferings ? withAlpha(palette.tint, 0.06) : palette.tint,
-              borderColor: hasOfferings ? withAlpha(palette.tint, 0.35) : palette.tint,
+              backgroundColor: canContinue ? withAlpha(palette.tint, 0.06) : palette.tint,
+              borderColor: canContinue ? withAlpha(palette.tint, 0.35) : palette.tint,
             },
           ]}
           accessibilityLabel="Message coach"
@@ -488,16 +730,19 @@ export default function SessionTypeScreen() {
             <Ionicons
               name="chatbubble-ellipses-outline"
               size={18}
-              color={hasOfferings ? palette.tint : palette.onPrimary}
+              color={canContinue ? palette.tint : palette.onPrimary}
             />
             <ThemedText
-              style={{ color: hasOfferings ? palette.tint : palette.onPrimary, fontWeight: '700' }}
+              style={{
+                color: canContinue ? palette.tint : palette.onPrimary,
+                fontWeight: '700',
+              }}
             >
               Message coach
             </ThemedText>
           </Row>
         </Clickable>
-        {hasOfferings ? (
+        {status !== 'empty' ? (
           <Clickable
             onPress={handleContinue}
             style={[
@@ -539,25 +784,84 @@ export default function SessionTypeScreen() {
 }
 
 const styles = StyleSheet.create({
-  safeArea: { flex: 1 },
-  content: { padding: Spacing.lg, gap: Spacing.lg },
-  fixedDurationCard: {
-    borderRadius: Radii.md,
-    borderWidth: 1,
-    paddingHorizontal: Spacing.sm,
-    paddingVertical: Spacing.sm,
+  safeArea: {
+    flex: 1,
   },
-  input: { borderWidth: 1.5, borderRadius: Radii.md, padding: Spacing.md },
-  footer: { padding: Spacing.lg, borderTopWidth: 1, gap: Spacing.sm },
+  content: {
+    padding: Spacing.lg,
+    gap: Spacing.lg,
+  },
+  heroCard: {
+    gap: Spacing.sm,
+    padding: Spacing.md,
+  },
+  eyebrow: {
+    ...Typography.caption,
+    fontWeight: '700',
+    letterSpacing: 0.3,
+    textTransform: 'uppercase',
+  },
+  heroBody: {
+    ...Typography.bodySmall,
+  },
+  metricChip: {
+    minHeight: 34,
+    borderRadius: Radii.pill,
+    paddingHorizontal: Spacing.sm,
+    paddingVertical: Spacing.xxs,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.xxs,
+  },
+  metricText: {
+    ...Typography.caption,
+    fontWeight: '700',
+  },
+  selectedSummaryCard: {
+    padding: Spacing.md,
+  },
+  selectedSummaryCopy: {
+    flex: 1,
+    gap: Spacing.xxs,
+  },
+  selectedSummaryMeta: {
+    ...Typography.bodySmall,
+  },
+  sectionHeader: {
+    gap: Spacing.xxs,
+  },
+  sectionHint: {
+    ...Typography.bodySmall,
+  },
   emptyStateWrap: {
     borderWidth: 1,
     borderRadius: Radii.lg,
     paddingVertical: Spacing.md,
+  },
+  groupCard: {
+    gap: Spacing.sm,
+    padding: Spacing.md,
+  },
+  groupHint: {
+    ...Typography.bodySmall,
+  },
+  input: {
+    borderWidth: 1.5,
+    borderRadius: Radii.md,
+    padding: Spacing.md,
+  },
+  footer: {
+    padding: Spacing.lg,
+    borderTopWidth: 1,
+    gap: Spacing.sm,
   },
   secondaryCta: {
     padding: Spacing.md,
     borderRadius: Radii.button,
     borderWidth: 1.5,
   },
-  cta: { padding: Spacing.md, borderRadius: Radii.button },
+  cta: {
+    padding: Spacing.md,
+    borderRadius: Radii.button,
+  },
 });

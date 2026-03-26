@@ -32,6 +32,8 @@ interface SessionOfferingCardProps {
   onPress?: () => void;
   showCoach?: boolean;
   showCapacity?: boolean;
+  selected?: boolean;
+  selectionMode?: 'navigation' | 'select';
 }
 
 export function SessionOfferingCard({
@@ -39,6 +41,8 @@ export function SessionOfferingCard({
   onPress,
   showCoach = false,
   showCapacity = true,
+  selected = false,
+  selectionMode = 'navigation',
 }: SessionOfferingCardProps) {
   const { colors: palette } = useTheme();
   const { currentUser } = useAuth();
@@ -62,9 +66,7 @@ export function SessionOfferingCard({
   const isFull = isSessionOfferingFull(offering);
   const capacityText = `${totalParticipants}/${offering.maxParticipants}`;
   const priceLabel =
-    offering.price !== undefined && offering.price > 0
-      ? `£${offering.price.toFixed(2)}`
-      : null;
+    offering.price !== undefined && offering.price > 0 ? `£${offering.price.toFixed(2)}` : null;
   const viewerAudienceText = offering.viewerAthleteNames?.length
     ? offering.viewerAthleteNames.length <= 2
       ? offering.viewerAthleteNames.join(', ')
@@ -97,8 +99,26 @@ export function SessionOfferingCard({
     });
   };
 
+  const trailingIconName =
+    selectionMode === 'select'
+      ? selected
+        ? 'checkmark-circle'
+        : 'ellipse-outline'
+      : 'chevron-forward';
+
   return (
-    <SurfaceCard style={styles.card} onPress={onPress}>
+    <SurfaceCard
+      style={[
+        styles.card,
+        selected
+          ? {
+              borderColor: palette.tint,
+              backgroundColor: withAlpha(palette.tint, 0.06),
+            }
+          : undefined,
+      ]}
+      onPress={onPress}
+    >
       <Row align="center" gap="sm" style={styles.row}>
         <View style={[styles.avatar, { backgroundColor: withAlpha(palette.tint, 0.12) }]}>
           <Ionicons
@@ -117,7 +137,9 @@ export function SessionOfferingCard({
           </Row>
 
           {ownershipLabel && (
-            <View style={[styles.ownershipBadge, { backgroundColor: withAlpha(palette.info, 0.1) }]}>
+            <View
+              style={[styles.ownershipBadge, { backgroundColor: withAlpha(palette.info, 0.1) }]}
+            >
               <ThemedText style={[styles.ownershipText, { color: palette.info }]}>
                 {ownershipLabel}
               </ThemedText>
@@ -237,7 +259,11 @@ export function SessionOfferingCard({
               {priceLabel}
             </ThemedText>
           ) : null}
-          <Ionicons name="chevron-forward" size={18} color={palette.muted} />
+          <Ionicons
+            name={trailingIconName}
+            size={selectionMode === 'select' ? 22 : 18}
+            color={selected ? palette.tint : palette.muted}
+          />
         </View>
       </Row>
     </SurfaceCard>

@@ -1,129 +1,257 @@
-import { View, StyleSheet } from 'react-native';
+import { ScrollView, StyleSheet, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+
+import { SessionOfferingCard } from '@/components/sessions/session-offering-card';
+import { SurfaceCard } from '@/components/primitives/surface-card';
 import { Clickable } from '@/components/primitives/clickable';
 import { Row } from '@/components/primitives/row';
+import { Skeleton } from '@/components/ui/skeleton';
 import { ThemedText } from '@/components/themed-text';
-import { Radii, Spacing, withAlpha } from '@/constants/theme';
+import { Radii, Spacing, Typography, withAlpha } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
+import type { SessionOffering } from '@/constants/session-types';
 
-export interface SessionTypeOption {
+export interface SessionTypeFilterOption {
   id: string;
-  title: string;
-  priceText: string;
-  description: string;
-  detailText?: string;
-  categoryLabel?: string;
-  metaText?: string;
+  label: string;
+  count: number;
+}
+
+interface SessionTypeSelectorProps {
+  activeFilter: string;
+  filters: SessionTypeFilterOption[];
+  loading?: boolean;
+  offerings: SessionOffering[];
+  onChangeFilter: (id: string) => void;
+  onResetFilter?: () => void;
+  onSelect: (id: string) => void;
+  selected?: string | null;
 }
 
 export function SessionTypeSelector({
-  selected,
-  onSelect,
-  options,
+  activeFilter,
+  filters,
   loading,
-}: {
-  selected?: string | null;
-  onSelect: (id: string) => void;
-  options: SessionTypeOption[];
-  loading?: boolean;
-}) {
+  offerings,
+  onChangeFilter,
+  onResetFilter,
+  onSelect,
+  selected,
+}: SessionTypeSelectorProps) {
   const { colors: palette } = useTheme();
+  const activeFilterLabel =
+    filters.find((filter) => filter.id === activeFilter)?.label ?? 'All Sessions';
 
   if (loading) {
     return (
-      <View style={styles.list}>
-        <Row align="center" gap="xs" style={[styles.emptyCard, { borderColor: palette.border, backgroundColor: palette.surface }]}>
-          <Ionicons name="time-outline" size={18} color={palette.muted} />
-          <ThemedText style={{ color: palette.muted }}>Loading coach offerings...</ThemedText>
-        </Row>
-      </View>
-    );
-  }
-
-  if (options.length === 0) {
-    return (
-      <View style={styles.list}>
-        <Row align="center" gap="xs" style={[styles.emptyCard, { borderColor: palette.border, backgroundColor: palette.surface }]}>
-          <Ionicons name="alert-circle-outline" size={18} color={palette.muted} />
-          <ThemedText style={{ color: palette.muted }}>
-            This coach has no bookable session types set up yet.
-          </ThemedText>
-        </Row>
+      <View style={styles.catalog}>
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.filterScrollContent}
+        >
+          {Array.from({ length: 4 }).map((_, index) => (
+            <Skeleton key={index} width={110} height={38} radius={Radii.pill} />
+          ))}
+        </ScrollView>
+        <View style={styles.list}>
+          {Array.from({ length: 3 }).map((_, index) => (
+            <SurfaceCard key={index} loading style={styles.loadingCard} tactile={false}>
+              <View style={styles.loadingCardContent}>
+                <Row align="center" gap="sm">
+                  <Skeleton width={40} height={40} radius={Radii.full} />
+                  <View style={styles.loadingCardCopy}>
+                    <Skeleton width="58%" height={16} />
+                    <Skeleton width="34%" height={12} />
+                  </View>
+                </Row>
+                <Skeleton width="86%" height={12} />
+                <Skeleton width="72%" height={12} />
+              </View>
+            </SurfaceCard>
+          ))}
+        </View>
       </View>
     );
   }
 
   return (
-    <View style={styles.list}>
-      {options.map((opt, index) => {
-        const previousCategory = index > 0 ? options[index - 1]?.categoryLabel : undefined;
-        const showCategoryLabel =
-          Boolean(opt.categoryLabel) && opt.categoryLabel !== previousCategory;
-        const active = selected === opt.id;
-        return (
-          <View key={opt.id} style={styles.optionGroup}>
-            {showCategoryLabel ? (
-              <ThemedText style={[styles.categoryLabel, { color: palette.muted }]}>
-                {opt.categoryLabel}
-              </ThemedText>
-            ) : null}
+    <View style={styles.catalog}>
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        contentContainerStyle={styles.filterScrollContent}
+      >
+        {filters.map((filter) => {
+          const active = filter.id === activeFilter;
+          return (
             <Clickable
+              key={filter.id}
+              onPress={() => onChangeFilter(filter.id)}
               style={[
-                styles.card,
+                styles.filterChip,
                 {
                   borderColor: active ? palette.tint : palette.border,
-                  backgroundColor: active ? withAlpha(palette.tint, 0.06) : palette.surface,
+                  backgroundColor: active ? withAlpha(palette.tint, 0.08) : palette.surface,
                 },
               ]}
-              onPress={() => onSelect(opt.id)}
+              accessibilityLabel={`${filter.label}, ${filter.count} sessions`}
             >
-              <Row justify="between" align="center">
-                <ThemedText type="defaultSemiBold">{opt.title}</ThemedText>
-                <ThemedText style={{ color: palette.muted }}>{opt.priceText}</ThemedText>
-              </Row>
-              <ThemedText style={{ color: palette.muted }}>{opt.description}</ThemedText>
-              {opt.detailText ? (
-                <ThemedText style={{ color: palette.muted }}>{opt.detailText}</ThemedText>
-              ) : null}
-              {opt.metaText ? (
-                <Row align="center" gap="xs" style={styles.metaRow}>
-                  <Ionicons name="location-outline" size={14} color={palette.muted} />
-                  <ThemedText style={{ color: palette.muted }}>{opt.metaText}</ThemedText>
-                </Row>
-              ) : null}
+              <ThemedText
+                style={[styles.filterChipText, { color: active ? palette.tint : palette.text }]}
+              >
+                {filter.label}
+              </ThemedText>
+              <View
+                style={[
+                  styles.filterCount,
+                  {
+                    backgroundColor: active ? palette.tint : withAlpha(palette.muted, 0.18),
+                  },
+                ]}
+              >
+                <ThemedText
+                  style={[
+                    styles.filterCountText,
+                    { color: active ? palette.onPrimary : palette.muted },
+                  ]}
+                >
+                  {filter.count}
+                </ThemedText>
+              </View>
             </Clickable>
-          </View>
-        );
-      })}
+          );
+        })}
+      </ScrollView>
+
+      {offerings.length === 0 ? (
+        <SurfaceCard style={styles.emptyCard} tactile={false}>
+          <Row align="center" gap="sm" style={styles.emptyRow}>
+            <View style={[styles.emptyIcon, { backgroundColor: withAlpha(palette.tint, 0.12) }]}>
+              <Ionicons name="albums-outline" size={18} color={palette.tint} />
+            </View>
+            <View style={styles.emptyCopy}>
+              <ThemedText type="defaultSemiBold">
+                No {activeFilterLabel.toLowerCase()} live right now
+              </ThemedText>
+              <ThemedText style={[styles.emptyText, { color: palette.muted }]}>
+                Try another category or switch back to all sessions.
+              </ThemedText>
+            </View>
+          </Row>
+          {activeFilter !== 'all' && onResetFilter ? (
+            <Clickable
+              onPress={onResetFilter}
+              style={[
+                styles.resetChip,
+                {
+                  borderColor: withAlpha(palette.tint, 0.28),
+                  backgroundColor: withAlpha(palette.tint, 0.05),
+                },
+              ]}
+            >
+              <Row align="center" justify="center" gap="xs">
+                <Ionicons name="grid-outline" size={16} color={palette.tint} />
+                <ThemedText style={[styles.resetChipText, { color: palette.tint }]}>
+                  View all sessions
+                </ThemedText>
+              </Row>
+            </Clickable>
+          ) : null}
+        </SurfaceCard>
+      ) : (
+        <View style={styles.list}>
+          {offerings.map((offering) => (
+            <SessionOfferingCard
+              key={offering.id}
+              offering={offering}
+              onPress={() => onSelect(offering.id)}
+              selected={selected === offering.id}
+              selectionMode="select"
+              showCapacity
+            />
+          ))}
+        </View>
+      )}
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  list: {
+  catalog: {
+    gap: Spacing.md,
+  },
+  filterScrollContent: {
+    gap: Spacing.xs,
+    paddingRight: Spacing.md,
+  },
+  filterChip: {
+    minHeight: 38,
+    borderRadius: Radii.pill,
+    borderWidth: 1,
+    paddingHorizontal: Spacing.sm,
+    paddingVertical: Spacing.xxs,
+    flexDirection: 'row',
+    alignItems: 'center',
     gap: Spacing.xs,
   },
-  card: {
-    padding: Spacing.sm,
-    borderRadius: Radii.lg,
-    borderWidth: 1.5,
-    gap: Spacing.xs / 2,
+  filterChipText: {
+    ...Typography.bodySmallSemiBold,
   },
-  optionGroup: {
-    gap: Spacing.xs / 2,
+  filterCount: {
+    minWidth: 24,
+    paddingHorizontal: Spacing.xxs,
+    paddingVertical: Spacing.micro,
+    borderRadius: Radii.pill,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
-  categoryLabel: {
-    fontSize: 12,
+  filterCountText: {
+    ...Typography.caption,
     fontWeight: '700',
-    letterSpacing: 0.2,
-    textTransform: 'uppercase',
   },
-  metaRow: {
-    marginTop: 2,
+  list: {
+    gap: Spacing.sm,
+  },
+  loadingCard: {
+    padding: Spacing.sm,
+  },
+  loadingCardContent: {
+    gap: Spacing.sm,
+  },
+  loadingCardCopy: {
+    flex: 1,
+    gap: Spacing.xs,
   },
   emptyCard: {
     padding: Spacing.md,
-    borderRadius: Radii.lg,
+    gap: Spacing.md,
+  },
+  emptyRow: {
+    alignItems: 'flex-start',
+  },
+  emptyIcon: {
+    width: 40,
+    height: 40,
+    borderRadius: Radii.full,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  emptyCopy: {
+    flex: 1,
+    gap: Spacing.xxs,
+  },
+  emptyText: {
+    ...Typography.bodySmall,
+  },
+  resetChip: {
+    minHeight: 42,
+    borderRadius: Radii.button,
     borderWidth: 1,
+    paddingHorizontal: Spacing.sm,
+    paddingVertical: Spacing.xs,
+  },
+  resetChipText: {
+    ...Typography.bodySmallSemiBold,
   },
 });

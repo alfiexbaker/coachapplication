@@ -25,6 +25,7 @@ const offering: SessionOffering = {
   createdByUserId: 'coach_1',
   createdByRole: 'COACH',
   actingAs: 'self',
+  commercialMode: 'COACH_OWNED',
 };
 
 test('buildBookingDraftPatchFromOffering locks the booking target when a child is preselected', () => {
@@ -41,6 +42,7 @@ test('buildBookingDraftPatchFromOffering locks the booking target when a child i
   assert.equal(patch.targetLocked, true);
   assert.equal(patch.childId, 'athlete_1');
   assert.equal(patch.athleteName, 'Alex Barton');
+  assert.equal(patch.commercialMode, 'COACH_OWNED');
 });
 
 test('buildBookingDraftPatchFromOffering leaves the booking target unlocked when no child is preselected', () => {
