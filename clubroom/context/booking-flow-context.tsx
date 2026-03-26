@@ -50,8 +50,23 @@ export function BookingFlowProvider({ children }: { children: React.ReactNode })
 
 export function useBookingFlow() {
   const ctx = useContext(BookingFlowContext);
-  if (!ctx) {
-    throw new Error('useBookingFlow must be used inside BookingFlowProvider');
+
+  if (ctx) {
+    return ctx;
   }
-  return ctx;
+
+  // Some discover and modal surfaces can render outside the booking provider tree.
+  // Fall back to the booking service directly so those entry points don't crash.
+  return {
+    draft: bookingService.getDraft(),
+    updateDraft: (patch: Partial<BookingDraft>) => {
+      bookingService.updateDraft(patch);
+    },
+    reset: () => {
+      bookingService.resetDraft();
+    },
+    save: async () => {
+      await bookingService.createFromDraft();
+    },
+  };
 }
