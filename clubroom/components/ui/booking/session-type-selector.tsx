@@ -92,13 +92,17 @@ export function SessionTypeSelector({
                 styles.filterChip,
                 {
                   borderColor: active ? palette.tint : palette.border,
-                  backgroundColor: active ? withAlpha(palette.tint, 0.08) : palette.surface,
+                  backgroundColor: active ? palette.tint : palette.surface,
                 },
               ]}
               accessibilityLabel={`${filter.label}, ${filter.count} sessions`}
+              accessibilityState={{ selected: active }}
             >
               <ThemedText
-                style={[styles.filterChipText, { color: active ? palette.tint : palette.text }]}
+                style={[
+                  styles.filterChipText,
+                  { color: active ? palette.onPrimary : palette.text },
+                ]}
               >
                 {filter.label}
               </ThemedText>
@@ -106,7 +110,9 @@ export function SessionTypeSelector({
                 style={[
                   styles.filterCount,
                   {
-                    backgroundColor: active ? palette.tint : withAlpha(palette.muted, 0.18),
+                    backgroundColor: active
+                      ? withAlpha(palette.onPrimary, 0.16)
+                      : withAlpha(palette.muted, 0.18),
                   },
                 ]}
               >
@@ -184,12 +190,13 @@ const styles = StyleSheet.create({
   filterScrollContent: {
     gap: Spacing.xs,
     paddingRight: Spacing.md,
+    paddingVertical: Spacing.micro,
   },
   filterChip: {
-    minHeight: 38,
+    minHeight: 40,
     borderRadius: Radii.pill,
     borderWidth: 1,
-    paddingHorizontal: Spacing.sm,
+    paddingHorizontal: 12,
     paddingVertical: Spacing.xxs,
     flexDirection: 'row',
     alignItems: 'center',

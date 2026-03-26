@@ -105,6 +105,7 @@ export function SessionOfferingCard({
         ? 'checkmark-circle'
         : 'ellipse-outline'
       : 'chevron-forward';
+  const trailingIconColor = selected ? palette.tint : palette.muted;
 
   return (
     <SurfaceCard
@@ -255,15 +256,34 @@ export function SessionOfferingCard({
 
         <View style={styles.trailing}>
           {priceLabel ? (
-            <ThemedText style={styles.price} numberOfLines={1}>
+            <ThemedText
+              style={[styles.price, selected ? { color: palette.tint } : undefined]}
+              numberOfLines={1}
+            >
               {priceLabel}
             </ThemedText>
           ) : null}
-          <Ionicons
-            name={trailingIconName}
-            size={selectionMode === 'select' ? 22 : 18}
-            color={selected ? palette.tint : palette.muted}
-          />
+          <View
+            style={[
+              styles.trailingIcon,
+              selectionMode === 'select'
+                ? {
+                    borderColor: selected
+                      ? withAlpha(palette.tint, 0.28)
+                      : withAlpha(palette.border, 0.9),
+                    backgroundColor: selected
+                      ? withAlpha(palette.tint, 0.08)
+                      : withAlpha(palette.muted, 0.05),
+                  }
+                : undefined,
+            ]}
+          >
+            <Ionicons
+              name={trailingIconName}
+              size={selectionMode === 'select' ? 22 : 18}
+              color={trailingIconColor}
+            />
+          </View>
         </View>
       </Row>
     </SurfaceCard>
@@ -337,6 +357,13 @@ const styles = StyleSheet.create({
     minWidth: 74,
     gap: Spacing.xxs,
     flexShrink: 0,
+  },
+  trailingIcon: {
+    width: 30,
+    height: 30,
+    borderRadius: Radii.full,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   price: {
     ...Typography.subheading,

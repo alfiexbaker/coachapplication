@@ -26,14 +26,12 @@ import { apiClient } from '@/services/api-client';
 import { bookingStepAnalyticsService } from '@/services/booking/booking-step-analytics-service';
 import {
   buildBookingDraftPatchFromOffering,
-  getOfferingDuration,
   type BookingPrefillChild,
 } from '@/utils/booking-draft-prefill';
 import {
   buildSessionOfferingCategories,
   filterSessionOfferingsByCategory,
   getSessionOfferingCategoryId,
-  getSessionOfferingCategoryLabel,
   sortSessionOfferingsForBooking,
 } from '@/utils/session-offering-booking';
 import { getSessionOfferingHeadcount } from '@/utils/session-offering-capacity';
@@ -47,13 +45,6 @@ function formatCapacityLabel(offering: SessionOffering): string {
 
 function formatCurrencyValue(value: number): string {
   return Number.isInteger(value) ? `£${value}` : `£${value.toFixed(2)}`;
-}
-
-function formatOfferingLocation(offering: SessionOffering): string {
-  if (offering.venueName) {
-    return `${offering.venueName} · ${offering.location}`;
-  }
-  return offering.location;
 }
 
 function formatOfferingPrice(offering: SessionOffering): string {
@@ -548,12 +539,40 @@ export default function SessionTypeScreen() {
   ]);
 
   const canContinue = Boolean(coachId && selectedOffering);
+  const visibleSessionCount =
+    activeFilter === 'all' ? resolvedOfferings.length : filteredOfferings.length;
+  const catalogTitle = activeFilter === 'all' ? 'All sessions' : selectedFilter.label;
   const listSummary =
     status === 'success'
       ? activeFilter === 'all'
-        ? `${resolvedOfferings.length} live sessions from this coach`
-        : `${filteredOfferings.length} ${selectedFilter.label.toLowerCase()} live right now`
+        ? `${resolvedOfferings.length} live offerings from this coach`
+        : `${filteredOfferings.length} ${selectedFilter.label.toLowerCase()} available now`
       : 'Loading coach offerings';
+  const footerPrompt =
+    status === 'loading'
+      ? {
+          title: 'Loading live sessions',
+          message: "Fetching this coach's current offerings.",
+        }
+      : status === 'error'
+        ? {
+            title: 'Session list unavailable',
+            message: 'Retry above or message the coach directly.',
+          }
+        : visibleSessionCount === 0
+          ? {
+              title: `No ${selectedFilter.label.toLowerCase()} live`,
+              message: 'Change format or message the coach for availability.',
+            }
+          : visibleSessionCount === 1
+            ? {
+                title: 'Select a live session to continue',
+                message: 'One coach offering is ready above.',
+              }
+            : {
+                title: 'Select a live session to continue',
+                message: `${visibleSessionCount} coach offerings are ready above.`,
+              };
 
   return (
     <SafeAreaView
@@ -568,41 +587,43 @@ export default function SessionTypeScreen() {
       >
         <BookingWizardHeader
           title="Choose a session"
-          subtitle="See every live session this coach currently offers before you continue."
+          subtitle="Pick from this coach's live offerings before you continue."
           step={1}
           onBack={handleBack}
         />
 
-        <SurfaceCard style={styles.heroCard} tactile={false}>
-          <ThemedText style={[styles.eyebrow, { color: palette.muted }]}>
-            Coach offerings
-          </ThemedText>
-          <ThemedText type="title">All live sessions</ThemedText>
-          <ThemedText style={[styles.heroBody, { color: palette.muted }]}>
-            Browse everything active, then narrow it by category when you need a faster pass.
-          </ThemedText>
-
-          {resolvedOfferings.length > 0 ? (
-            <Row wrap gap="xs">
-              <View style={[styles.metricChip, { backgroundColor: withAlpha(palette.tint, 0.08) }]}>
-                <Ionicons name="albums-outline" size={14} color={palette.tint} />
+        <View style={styles.catalogHeader}>
+          <View style={styles.catalogHeaderCopy}>
+            <ThemedText style={[styles.eyebrow, { color: palette.muted }]}>
+              Coach offerings
+            </ThemedText>
+            <ThemedText type="title">{catalogTitle}</ThemedText>
+            <ThemedText style={[styles.catalogHint, { color: palette.muted }]}>
+              {listSummary}
+            </ThemedText>
+          </View>
+          {status === 'success' && resolvedOfferings.length > 0 ? (
+            <Row wrap gap="xs" style={styles.catalogMetrics}>
+              <View
+                style={[styles.metricChip, { backgroundColor: withAlpha(palette.tint, 0.08) }]}
+              >
                 <ThemedText style={[styles.metricText, { color: palette.tint }]}>
                   {resolvedOfferings.length} live
                 </ThemedText>
               </View>
-              <View
-                style={[styles.metricChip, { backgroundColor: withAlpha(palette.success, 0.12) }]}
-              >
-                <Ionicons name="grid-outline" size={14} color={palette.success} />
-                <ThemedText style={[styles.metricText, { color: palette.success }]}>
-                  {categoryCount} format{categoryCount === 1 ? '' : 's'}
-                </ThemedText>
-              </View>
+              {categoryCount > 0 ? (
+                <View
+                  style={[styles.metricChip, { backgroundColor: withAlpha(palette.success, 0.12) }]}
+                >
+                  <ThemedText style={[styles.metricText, { color: palette.success }]}>
+                    {categoryCount} format{categoryCount === 1 ? '' : 's'}
+                  </ThemedText>
+                </View>
+              ) : null}
               {startingPrice !== null ? (
                 <View
                   style={[styles.metricChip, { backgroundColor: withAlpha(palette.warning, 0.14) }]}
                 >
-                  <Ionicons name="cash-outline" size={14} color={palette.warning} />
                   <ThemedText style={[styles.metricText, { color: palette.warning }]}>
                     From {formatCurrencyValue(startingPrice)}
                   </ThemedText>
@@ -610,48 +631,6 @@ export default function SessionTypeScreen() {
               ) : null}
             </Row>
           ) : null}
-        </SurfaceCard>
-
-        {selectedOffering ? (
-          <SurfaceCard
-            style={[
-              styles.selectedSummaryCard,
-              {
-                borderColor: withAlpha(palette.tint, 0.28),
-                backgroundColor: withAlpha(palette.tint, 0.06),
-              },
-            ]}
-            tactile={false}
-          >
-            <Row align="center" justify="between" gap="sm">
-              <View style={styles.selectedSummaryCopy}>
-                <ThemedText style={[styles.eyebrow, { color: palette.tint }]}>
-                  Selected session
-                </ThemedText>
-                <ThemedText type="defaultSemiBold">{selectedOffering.title}</ThemedText>
-                <ThemedText style={[styles.selectedSummaryMeta, { color: palette.muted }]}>
-                  {getSessionOfferingCategoryLabel(selectedOffering)} ·{' '}
-                  {getOfferingDuration(selectedOffering)} mins ·{' '}
-                  {formatOfferingPrice(selectedOffering)}
-                </ThemedText>
-                <ThemedText style={[styles.selectedSummaryMeta, { color: palette.muted }]}>
-                  {formatOfferingSchedule(selectedOffering)} ·{' '}
-                  {formatCapacityLabel(selectedOffering)}
-                </ThemedText>
-                <ThemedText style={[styles.selectedSummaryMeta, { color: palette.muted }]}>
-                  {formatOfferingLocation(selectedOffering)}
-                </ThemedText>
-              </View>
-              <Ionicons name="checkmark-circle" size={22} color={palette.tint} />
-            </Row>
-          </SurfaceCard>
-        ) : null}
-
-        <View style={styles.sectionHeader}>
-          <ThemedText type="defaultSemiBold">Live sessions</ThemedText>
-          <ThemedText style={[styles.sectionHint, { color: palette.muted }]}>
-            {listSummary}
-          </ThemedText>
         </View>
 
         {status === 'error' ? (
@@ -715,68 +694,143 @@ export default function SessionTypeScreen() {
         ) : null}
       </ScrollView>
       <View style={[styles.footer, { borderTopColor: palette.border }]}>
-        <Clickable
-          onPress={handleMessageCoach}
-          style={[
-            canContinue ? styles.secondaryCta : styles.cta,
-            {
-              backgroundColor: canContinue ? withAlpha(palette.tint, 0.06) : palette.tint,
-              borderColor: canContinue ? withAlpha(palette.tint, 0.35) : palette.tint,
-            },
-          ]}
-          accessibilityLabel="Message coach"
-        >
-          <Row justify="center" align="center" gap="sm">
-            <Ionicons
-              name="chatbubble-ellipses-outline"
-              size={18}
-              color={canContinue ? palette.tint : palette.onPrimary}
-            />
-            <ThemedText
-              style={{
-                color: canContinue ? palette.tint : palette.onPrimary,
-                fontWeight: '700',
-              }}
+        {status === 'empty' ? (
+          <>
+            <Clickable
+              onPress={() => router.push(Routes.DISCOVER_MAP)}
+              style={[
+                styles.cta,
+                {
+                  backgroundColor: palette.tint,
+                },
+              ]}
+              accessibilityLabel="Browse other coaches"
             >
-              Message coach
-            </ThemedText>
-          </Row>
-        </Clickable>
-        {status !== 'empty' ? (
-          <Clickable
-            onPress={handleContinue}
-            style={[
-              styles.cta,
-              { backgroundColor: canContinue ? palette.tint : withAlpha(palette.tint, 0.4) },
-            ]}
-            disabled={!canContinue}
-          >
-            <Row justify="center" align="center" gap="sm">
-              <Ionicons name="arrow-forward" size={18} color={palette.onPrimary} />
-              <ThemedText style={{ color: palette.onPrimary, fontWeight: '700' }}>
-                Continue
+              <Row justify="center" align="center" gap="sm">
+                <Ionicons name="search-outline" size={18} color={palette.onPrimary} />
+                <ThemedText style={{ color: palette.onPrimary, fontWeight: '700' }}>
+                  Browse coaches
+                </ThemedText>
+              </Row>
+            </Clickable>
+            <Clickable
+              onPress={handleMessageCoach}
+              style={[
+                styles.inlineAction,
+                {
+                  borderColor: withAlpha(palette.tint, 0.18),
+                },
+              ]}
+              accessibilityLabel="Message coach"
+            >
+              <Row justify="center" align="center" gap="xs">
+                <Ionicons name="chatbubble-ellipses-outline" size={16} color={palette.tint} />
+                <ThemedText style={[styles.inlineActionText, { color: palette.tint }]}>
+                  Message coach instead
+                </ThemedText>
+              </Row>
+            </Clickable>
+          </>
+        ) : canContinue && selectedOffering ? (
+          <>
+            <View
+              style={[
+                styles.selectionTray,
+                {
+                  borderColor: withAlpha(palette.tint, 0.2),
+                  backgroundColor: withAlpha(palette.tint, 0.05),
+                },
+              ]}
+            >
+              <View style={styles.selectionTrayCopy}>
+                <ThemedText style={[styles.eyebrow, { color: palette.tint }]}>Selected</ThemedText>
+                <ThemedText type="defaultSemiBold" numberOfLines={1}>
+                  {selectedOffering.title}
+                </ThemedText>
+                <ThemedText
+                  style={[styles.selectionTrayMeta, { color: palette.muted }]}
+                  numberOfLines={1}
+                >
+                  {formatOfferingSchedule(selectedOffering)} · {formatCapacityLabel(selectedOffering)}
+                </ThemedText>
+              </View>
+              <ThemedText style={styles.selectionTrayPrice}>
+                {formatOfferingPrice(selectedOffering)}
               </ThemedText>
-            </Row>
-          </Clickable>
+            </View>
+            <Clickable
+              onPress={handleContinue}
+              style={[
+                styles.cta,
+                { backgroundColor: canContinue ? palette.tint : withAlpha(palette.tint, 0.4) },
+              ]}
+              disabled={!canContinue}
+            >
+              <Row justify="center" align="center" gap="sm">
+                <Ionicons name="arrow-forward" size={18} color={palette.onPrimary} />
+                <ThemedText style={{ color: palette.onPrimary, fontWeight: '700' }}>
+                  Continue
+                </ThemedText>
+              </Row>
+            </Clickable>
+            <Clickable
+              onPress={handleMessageCoach}
+              style={[
+                styles.inlineAction,
+                {
+                  borderColor: withAlpha(palette.tint, 0.18),
+                },
+              ]}
+              accessibilityLabel="Message coach"
+            >
+              <Row justify="center" align="center" gap="xs">
+                <Ionicons name="chatbubble-ellipses-outline" size={16} color={palette.tint} />
+                <ThemedText style={[styles.inlineActionText, { color: palette.tint }]}>
+                  Need a different time? Message coach
+                </ThemedText>
+              </Row>
+            </Clickable>
+          </>
         ) : (
-          <Clickable
-            onPress={() => router.push(Routes.DISCOVER_MAP)}
-            style={[
-              styles.secondaryCta,
-              {
-                backgroundColor: withAlpha(palette.tint, 0.06),
-                borderColor: withAlpha(palette.tint, 0.35),
-              },
-            ]}
-            accessibilityLabel="Browse other coaches"
-          >
-            <Row justify="center" align="center" gap="sm">
-              <Ionicons name="search-outline" size={18} color={palette.tint} />
-              <ThemedText style={{ color: palette.tint, fontWeight: '700' }}>
-                Browse coaches
-              </ThemedText>
-            </Row>
-          </Clickable>
+          <>
+            <View
+              style={[
+                styles.selectionPrompt,
+                {
+                  borderColor: palette.border,
+                  backgroundColor: withAlpha(palette.muted, 0.05),
+                },
+              ]}
+            >
+              <View style={[styles.promptIcon, { backgroundColor: withAlpha(palette.tint, 0.08) }]}>
+                <Ionicons name="albums-outline" size={16} color={palette.tint} />
+              </View>
+              <View style={styles.selectionPromptCopy}>
+                <ThemedText type="defaultSemiBold">{footerPrompt.title}</ThemedText>
+                <ThemedText style={[styles.selectionPromptText, { color: palette.muted }]}>
+                  {footerPrompt.message}
+                </ThemedText>
+              </View>
+            </View>
+            <Clickable
+              onPress={handleMessageCoach}
+              style={[
+                styles.secondaryCta,
+                {
+                  backgroundColor: withAlpha(palette.tint, 0.06),
+                  borderColor: withAlpha(palette.tint, 0.35),
+                },
+              ]}
+              accessibilityLabel="Message coach"
+            >
+              <Row justify="center" align="center" gap="sm">
+                <Ionicons name="chatbubble-ellipses-outline" size={18} color={palette.tint} />
+                <ThemedText style={{ color: palette.tint, fontWeight: '700' }}>
+                  Message coach
+                </ThemedText>
+              </Row>
+            </Clickable>
+          </>
         )}
       </View>
     </SafeAreaView>
@@ -791,23 +845,28 @@ const styles = StyleSheet.create({
     padding: Spacing.lg,
     gap: Spacing.lg,
   },
-  heroCard: {
-    gap: Spacing.sm,
-    padding: Spacing.md,
-  },
   eyebrow: {
     ...Typography.caption,
     fontWeight: '700',
     letterSpacing: 0.3,
     textTransform: 'uppercase',
   },
-  heroBody: {
+  catalogHeader: {
+    gap: Spacing.sm,
+  },
+  catalogHeaderCopy: {
+    gap: Spacing.xxs,
+  },
+  catalogHint: {
     ...Typography.bodySmall,
   },
+  catalogMetrics: {
+    rowGap: Spacing.xs,
+  },
   metricChip: {
-    minHeight: 34,
+    minHeight: 30,
     borderRadius: Radii.pill,
-    paddingHorizontal: Spacing.sm,
+    paddingHorizontal: 12,
     paddingVertical: Spacing.xxs,
     flexDirection: 'row',
     alignItems: 'center',
@@ -816,22 +875,6 @@ const styles = StyleSheet.create({
   metricText: {
     ...Typography.caption,
     fontWeight: '700',
-  },
-  selectedSummaryCard: {
-    padding: Spacing.md,
-  },
-  selectedSummaryCopy: {
-    flex: 1,
-    gap: Spacing.xxs,
-  },
-  selectedSummaryMeta: {
-    ...Typography.bodySmall,
-  },
-  sectionHeader: {
-    gap: Spacing.xxs,
-  },
-  sectionHint: {
-    ...Typography.bodySmall,
   },
   emptyStateWrap: {
     borderWidth: 1,
@@ -855,6 +898,47 @@ const styles = StyleSheet.create({
     borderTopWidth: 1,
     gap: Spacing.sm,
   },
+  selectionTray: {
+    borderWidth: 1,
+    borderRadius: Radii.card,
+    padding: Spacing.md,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.sm,
+  },
+  selectionTrayCopy: {
+    flex: 1,
+    gap: Spacing.micro,
+  },
+  selectionTrayMeta: {
+    ...Typography.bodySmall,
+  },
+  selectionTrayPrice: {
+    ...Typography.heading,
+    fontWeight: '700',
+  },
+  selectionPrompt: {
+    borderWidth: 1,
+    borderRadius: Radii.card,
+    padding: Spacing.md,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.sm,
+  },
+  promptIcon: {
+    width: 36,
+    height: 36,
+    borderRadius: Radii.full,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  selectionPromptCopy: {
+    flex: 1,
+    gap: Spacing.micro,
+  },
+  selectionPromptText: {
+    ...Typography.bodySmall,
+  },
   secondaryCta: {
     padding: Spacing.md,
     borderRadius: Radii.button,
@@ -863,5 +947,13 @@ const styles = StyleSheet.create({
   cta: {
     padding: Spacing.md,
     borderRadius: Radii.button,
+  },
+  inlineAction: {
+    paddingVertical: Spacing.sm,
+    borderRadius: Radii.button,
+    borderWidth: 1,
+  },
+  inlineActionText: {
+    ...Typography.bodySmallSemiBold,
   },
 });
