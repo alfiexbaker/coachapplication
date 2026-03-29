@@ -26,12 +26,14 @@ import { apiClient } from '@/services/api-client';
 import { bookingStepAnalyticsService } from '@/services/booking/booking-step-analytics-service';
 import {
   buildBookingDraftPatchFromOffering,
+  type BookingPrefillChild,
+} from '@/utils/booking-draft-prefill';
+import {
   buildSessionOfferingCategories,
   filterSessionOfferingsByCategory,
   getSessionOfferingCategoryId,
   sortSessionOfferingsForBooking,
-  type BookingPrefillChild,
-} from '@/utils/booking-draft-prefill';
+} from '@/utils/session-offering-booking';
 import { getSessionOfferingHeadcount } from '@/utils/session-offering-capacity';
 import { accountIdsMatch } from '@/utils/account-id';
 import { hasAccountChildren } from '@/utils/booking-self-capability';

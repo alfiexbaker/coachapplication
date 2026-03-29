@@ -5,6 +5,7 @@ import type { SessionOffering } from '../../constants/session-types';
 import {
   buildSessionOfferingCategories,
   filterSessionOfferingsByCategory,
+  getFixedScheduleFromOffering,
   getSessionOfferingCategoryLabel,
   sortSessionOfferingsForBooking,
 } from '../../utils/session-offering-booking';
@@ -131,4 +132,23 @@ test('getSessionOfferingCategoryLabel returns the short filter label used in the
     ),
     'Pairs',
   );
+});
+
+test('getFixedScheduleFromOffering returns the next bookable recurring slot for catalog sorting', () => {
+  const recurring = buildOffering({
+    id: 'weekly-lab',
+    title: 'Weekly Lab',
+    sessionType: 'group',
+    maxParticipants: 6,
+    isRecurring: true,
+    recurrenceType: 'weekly',
+    dayOfWeek: 5,
+    timeOfDay: '18:30',
+    scheduledAt: '2026-03-01T18:30:00.000Z',
+  });
+
+  const fixedSchedule = getFixedScheduleFromOffering(recurring);
+
+  assert.ok(fixedSchedule);
+  assert.equal(fixedSchedule?.slot, '18:30');
 });

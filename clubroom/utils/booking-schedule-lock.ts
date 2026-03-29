@@ -1,6 +1,6 @@
 import type { SessionOffering } from '@/constants/session-types';
 import type { BookingDraft } from '@/services/booking-service';
-import { getFixedScheduleFromOffering } from '@/utils/booking-draft-prefill';
+import { getFixedScheduleFromOffering } from '@/utils/session-offering-booking';
 
 interface BookingScheduleLockParams {
   draft: Pick<BookingDraft, 'entrySource' | 'sessionOfferingId' | 'date' | 'slot'>;
