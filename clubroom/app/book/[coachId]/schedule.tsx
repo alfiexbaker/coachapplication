@@ -30,6 +30,10 @@ import type { AvailabilitySlot } from '@/constants/types';
 import { useRequiredParam } from '@/hooks/use-required-param';
 import { BOOKING_LOCATION_OPTIONS } from '@/constants/booking-flow';
 import { hasAccountChildren } from '@/utils/booking-self-capability';
+import { apiClient } from '@/services/api-client';
+import { STORAGE_KEYS } from '@/constants/storage-keys';
+import type { SessionOffering } from '@/constants/session-types';
+import { isBookingScheduleLocked } from '@/utils/booking-schedule-lock';
 
 const logger = createLogger('ScheduleScreen');
 
@@ -44,7 +48,26 @@ export default function ScheduleScreen() {
     contextChildCount: children.length,
     accountChildRefCount: currentUser?.children?.length ?? 0,
   });
-  const scheduleLocked = Boolean(draft.sessionOfferingId && draft.date && draft.slot);
+
+  const {
+    data: selectedOffering,
+    status: selectedOfferingStatus,
+  } = useScreen<SessionOffering | null>({
+    load: async () => {
+      if (!draft.sessionOfferingId) {
+        return ok<SessionOffering | null>(null);
+      }
+      const offerings = await apiClient.get<SessionOffering[]>(STORAGE_KEYS.SESSION_OFFERINGS, []);
+      return ok(offerings.find((offering) => offering.id === draft.sessionOfferingId) ?? null);
+    },
+    deps: [draft.sessionOfferingId],
+    isEmpty: () => false,
+    refetchOnFocus: true,
+  });
+  const scheduleLocked = isBookingScheduleLocked({
+    draft,
+    offering: selectedOffering,
+  });
 
   // Calculate date range (next 14 days)
   const dateRange = useMemo(() => {
@@ -61,6 +84,9 @@ export default function ScheduleScreen() {
   // Fetch availability for the date range
   const loadAvailability = useCallback(async () => {
     if (!coachId) {
+      return ok([]);
+    }
+    if (draft.sessionOfferingId && selectedOfferingStatus === 'loading') {
       return ok([]);
     }
     if (scheduleLocked) {
@@ -81,7 +107,15 @@ export default function ScheduleScreen() {
         serviceError('UNKNOWN', 'Unable to load available times. Please try again.', loadError),
       );
     }
-  }, [coachId, dateRange.endDate, dateRange.startDate, draft.duration, scheduleLocked]);
+  }, [
+    coachId,
+    dateRange.endDate,
+    dateRange.startDate,
+    draft.duration,
+    draft.sessionOfferingId,
+    scheduleLocked,
+    selectedOfferingStatus,
+  ]);
 
   const {
     data,
@@ -242,6 +276,13 @@ export default function ScheduleScreen() {
           onRetry={() => router.back()}
         />
       ),
+    });
+  }
+
+  if (draft.sessionOfferingId && selectedOfferingStatus === 'loading') {
+    return renderWizardState({
+      subtitle: 'Loading times',
+      content: <LoadingState variant="calendar" />,
     });
   }
 
