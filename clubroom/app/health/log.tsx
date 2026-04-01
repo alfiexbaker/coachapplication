@@ -44,7 +44,8 @@ export default function LogInjuryScreen() {
   const { colors: palette } = useScreen<null>({ load: async () => ok(null), isEmpty: () => false });
   const { currentUser } = useAuth();
   const { childId: childIdParam } = useLocalSearchParams<{ childId?: string | string[] }>();
-  const { children, profileMode, profileSubjectId, setProfileScope } = useChildContext();
+  const { children, profileMode, profileSubjectId, setProfileScope, canSelectSelfProfile } =
+    useChildContext();
 
   const [loading, setLoading] = useState(false);
 
@@ -54,8 +55,13 @@ export default function LogInjuryScreen() {
   );
 
   const subjectOptions = useMemo(
-    () => buildProfileSubjectOptions({ currentUser, children }),
-    [children, currentUser],
+    () =>
+      buildProfileSubjectOptions({
+        currentUser,
+        children,
+        includeSelf: children.length === 0 || canSelectSelfProfile,
+      }),
+    [canSelectSelfProfile, children, currentUser],
   );
 
   const selectedSubjectId = useMemo(

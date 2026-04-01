@@ -30,7 +30,7 @@ export function useHealthHub() {
     subjectId?: string | string[];
     childId?: string | string[];
   }>();
-  const { children, profileMode, profileSubjectId } = useChildContext();
+  const { children, profileMode, profileSubjectId, canSelectSelfProfile } = useChildContext();
 
   const explicitSubjectId = useMemo(() => {
     const raw = subjectIdParam ?? childIdParam;
@@ -39,8 +39,13 @@ export function useHealthHub() {
   }, [childIdParam, subjectIdParam]);
 
   const subjectOptions = useMemo(
-    () => buildProfileSubjectOptions({ currentUser, children }),
-    [children, currentUser],
+    () =>
+      buildProfileSubjectOptions({
+        currentUser,
+        children,
+        includeSelf: children.length === 0 || canSelectSelfProfile,
+      }),
+    [canSelectSelfProfile, children, currentUser],
   );
 
   const selectedSubjectId = useMemo(

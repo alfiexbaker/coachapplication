@@ -30,7 +30,8 @@ export type StatusFilter = InjuryStatus | 'ALL';
 
 export function useInjuries() {
   const { currentUser } = useAuth();
-  const { children, profileMode, profileSubjectId, setProfileScope } = useChildContext();
+  const { children, profileMode, profileSubjectId, setProfileScope, canSelectSelfProfile } =
+    useChildContext();
   const { subjectId: subjectIdParam, childId: childIdParam } = useLocalSearchParams<{
     subjectId?: string | string[];
     childId?: string | string[];
@@ -38,8 +39,13 @@ export function useInjuries() {
 
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('ALL');
   const subjectOptions = useMemo<ProfileSubjectOption[]>(
-    () => buildProfileSubjectOptions({ currentUser, children }),
-    [children, currentUser],
+    () =>
+      buildProfileSubjectOptions({
+        currentUser,
+        children,
+        includeSelf: children.length === 0 || canSelectSelfProfile,
+      }),
+    [canSelectSelfProfile, children, currentUser],
   );
 
   const explicitSubjectId = useMemo(() => {

@@ -44,6 +44,7 @@ app-example
 # Screenshots (reference only, not code)
 screenshots/
 /.ui-shots/
+.playwright-cli/
 
 # generated native folders
 /ios

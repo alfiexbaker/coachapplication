@@ -79,6 +79,12 @@ export interface ChildContextValue {
   /** Resolved profile subject id for the current profile mode. */
   profileSubjectId: string | null;
 
+  /** True when the current account is allowed to select the parent/self profile in family flows. */
+  canSelectSelfProfile: boolean;
+
+  /** True once self-profile selection capability has been resolved for the current user. */
+  selfProfileSelectionLoaded: boolean;
+
   /**
    * Set profile scope for downstream screens.
    * - mode=self resolves to current user

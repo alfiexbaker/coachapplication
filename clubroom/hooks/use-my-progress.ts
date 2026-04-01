@@ -211,6 +211,7 @@ export function useMyProgress() {
     profileMode,
     profileSubjectId,
     setProfileScope,
+    canSelectSelfProfile,
   } = useChildContext();
   const { athleteId: athleteIdParam } = useLocalSearchParams<{ athleteId?: string | string[] }>();
 
@@ -226,8 +227,13 @@ export function useMyProgress() {
     [contextChildren],
   );
   const subjectOptions = useMemo<ProfileSubjectOption[]>(
-    () => buildProfileSubjectOptions({ currentUser, children: contextChildren, includeSelf: isParentContext }),
-    [contextChildren, currentUser, isParentContext],
+    () =>
+      buildProfileSubjectOptions({
+        currentUser,
+        children: contextChildren,
+        includeSelf: !isParentContext || canSelectSelfProfile,
+      }),
+    [canSelectSelfProfile, contextChildren, currentUser, isParentContext],
   );
   const hasMultipleChildren = isParentContext && switcherChildren.length > 1;
 

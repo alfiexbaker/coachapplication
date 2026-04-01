@@ -20,6 +20,7 @@ import {
 } from 'react';
 import { useAuth } from '@/hooks/use-auth';
 import { apiClient } from '@/services/api-client';
+import { bookingSelfSettingService } from '@/services/booking-self-setting-service';
 import { childService, type ChildProfile } from '@/services/child-service';
 import { onTyped, ServiceEvents } from '@/services/event-bus';
 import { STORAGE_KEYS } from '@/constants/storage-keys';
@@ -234,6 +235,8 @@ export function ChildProvider({ children: reactChildren }: ChildProviderProps) {
   const [activeChildId, setActiveChildIdState] = useState<string | null>(null);
   const [profileModeState, setProfileModeState] = useState<'self' | 'child'>('child');
   const [profileChildIdState, setProfileChildIdState] = useState<string | null>(null);
+  const [selfProfileSelectionEnabled, setSelfProfileSelectionEnabled] = useState(false);
+  const [selfProfileSelectionLoaded, setSelfProfileSelectionLoaded] = useState(false);
   const [loading, setLoading] = useState(true);
   const mountedRef = useRef(true);
 
@@ -305,11 +308,51 @@ export function ChildProvider({ children: reactChildren }: ChildProviderProps) {
     if (!userId) {
       setProfileModeState('child');
       setProfileChildIdState(null);
+      setSelfProfileSelectionEnabled(false);
+      setSelfProfileSelectionLoaded(false);
       return;
     }
     // App-session scoped profile mode should reset when account changes.
     setProfileModeState('child');
     setProfileChildIdState(null);
+    setSelfProfileSelectionEnabled(false);
+    setSelfProfileSelectionLoaded(false);
+  }, [userId]);
+
+  useEffect(() => {
+    if (!userId) {
+      return;
+    }
+
+    let cancelled = false;
+    setSelfProfileSelectionEnabled(false);
+    setSelfProfileSelectionLoaded(false);
+
+    void bookingSelfSettingService.isEnabled(userId).then((enabled) => {
+      if (cancelled || !mountedRef.current) {
+        return;
+      }
+      setSelfProfileSelectionEnabled(enabled);
+      setSelfProfileSelectionLoaded(true);
+    });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [userId]);
+
+  useEffect(() => {
+    if (!userId) {
+      return;
+    }
+
+    return onTyped(ServiceEvents.BOOKING_SELF_SETTING_CHANGED, (payload) => {
+      if (payload.userId !== userId || !mountedRef.current) {
+        return;
+      }
+      setSelfProfileSelectionEnabled(payload.enabled);
+      setSelfProfileSelectionLoaded(true);
+    });
   }, [userId]);
 
   // Subscribe to profile changes (create/update/delete)
@@ -392,6 +435,8 @@ export function ChildProvider({ children: reactChildren }: ChildProviderProps) {
     [childInfos],
   );
 
+  const canSelectSelfProfile = childInfos.length === 0 || selfProfileSelectionEnabled;
+
   const activeChild = useMemo(
     () => (activeChildId ? childByIdMap.get(activeChildId) ?? null : null),
     [activeChildId, childByIdMap],
@@ -402,8 +447,21 @@ export function ChildProvider({ children: reactChildren }: ChildProviderProps) {
   const profileResolution = useMemo(() => {
     const validProfileChildId = resolveValidChildId(profileChildIdState);
     const validActiveChildId = resolveValidChildId(activeChildId);
+    const selfProfileAllowed = childInfos.length === 0 || selfProfileSelectionEnabled;
 
     if (profileModeState === 'self') {
+      if (!selfProfileAllowed) {
+        const fallbackChildId =
+          validProfileChildId ?? validActiveChildId ?? childInfos[0]?.id ?? null;
+        if (fallbackChildId) {
+          return {
+            mode: 'child' as const,
+            subjectId: fallbackChildId,
+            fallbackReason: 'self_profile_disabled_fallback_child',
+          };
+        }
+      }
+
       if (userId) {
         return {
           mode: 'self' as const,
@@ -451,7 +509,15 @@ export function ChildProvider({ children: reactChildren }: ChildProviderProps) {
       subjectId: null,
       fallbackReason: 'missing_user_context',
     };
-  }, [activeChildId, childInfos, profileChildIdState, profileModeState, resolveValidChildId, userId]);
+  }, [
+    activeChildId,
+    childInfos,
+    profileChildIdState,
+    profileModeState,
+    resolveValidChildId,
+    selfProfileSelectionEnabled,
+    userId,
+  ]);
 
   const setProfileScope = useCallback(
     async (next: { mode: 'self' | 'child'; childId?: string | null }) => {
@@ -459,8 +525,33 @@ export function ChildProvider({ children: reactChildren }: ChildProviderProps) {
       let nextMode: 'self' | 'child' = next.mode;
       let subjectId: string | null = null;
       let fallbackReason: string | null = null;
+      const selfProfileAllowed = childInfos.length === 0 || selfProfileSelectionEnabled;
 
       if (next.mode === 'self') {
+        if (!selfProfileAllowed) {
+          const fallbackChildId =
+            resolveValidChildId(next.childId) ??
+            resolveValidChildId(profileChildIdState) ??
+            resolveValidChildId(activeChildId) ??
+            childInfos[0]?.id ??
+            null;
+          if (fallbackChildId) {
+            nextMode = 'child';
+            subjectId = fallbackChildId;
+            fallbackReason = 'self_profile_disabled_fallback_child';
+            setProfileModeState('child');
+            setProfileChildIdState(fallbackChildId);
+            if (activeChildId !== fallbackChildId) {
+              await setActiveChildId(fallbackChildId);
+            }
+            logger.debug('Blocked self profile scope update because self selection is disabled', {
+              requestedChildId: next.childId ?? null,
+              fallbackChildId,
+            });
+            return;
+          }
+        }
+
         if (userId) {
           setProfileModeState('self');
           if (next.childId) {
@@ -536,6 +627,7 @@ export function ChildProvider({ children: reactChildren }: ChildProviderProps) {
       profileChildIdState,
       profileModeState,
       resolveValidChildId,
+      selfProfileSelectionEnabled,
       setActiveChildId,
       userId,
     ],
@@ -574,6 +666,8 @@ export function ChildProvider({ children: reactChildren }: ChildProviderProps) {
       setActiveChildId,
       profileMode: profileResolution.mode,
       profileSubjectId: profileResolution.subjectId,
+      canSelectSelfProfile,
+      selfProfileSelectionLoaded,
       setProfileScope,
       isMultiChild,
       isParent: isParentUser || childInfos.length > 0,
@@ -590,6 +684,8 @@ export function ChildProvider({ children: reactChildren }: ChildProviderProps) {
       setActiveChildId,
       profileResolution.mode,
       profileResolution.subjectId,
+      canSelectSelfProfile,
+      selfProfileSelectionLoaded,
       setProfileScope,
       isMultiChild,
       isParentUser,

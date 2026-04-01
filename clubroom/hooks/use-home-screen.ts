@@ -8,7 +8,6 @@ import { badgeService } from '@/services/badge-service';
 import { socialFeedService } from '@/services/social-feed-service';
 import { progressService } from '@/services/progress-service';
 import { bookingService } from '@/services/booking-service';
-import { bookingSelfSettingService } from '@/services/booking-self-setting-service';
 import { ensureProgressDemoSeeded } from '@/services/progress/progress-demo-seed-lazy-service';
 import { ensureRelationalDemoSeeded } from '@/services/relational-demo-seed-service';
 import { onTyped, ServiceEvents } from '@/services/event-bus';
@@ -137,6 +136,8 @@ export function useHomeScreen() {
     profileSubjectId,
     setProfileScope,
     isMultiChild,
+    canSelectSelfProfile,
+    selfProfileSelectionLoaded,
     loading: childContextLoading,
   } = useChildContext();
 
@@ -147,8 +148,6 @@ export function useHomeScreen() {
   const [clubs, setClubs] = useState<Club[]>([]);
   const [upcomingBookings, setUpcomingBookings] = useState<Booking[]>([]);
   const [stats, setStats] = useState({ sessions: 0, badges: 0, level: 1 });
-  const [bookSelfEnabled, setBookSelfEnabled] = useState(false);
-  const [bookSelfSettingLoaded, setBookSelfSettingLoaded] = useState(false);
   const [streakInfo, setStreakInfo] = useState<{
     currentStreak: number;
     nextMilestone: number;
@@ -234,65 +233,13 @@ export function useHomeScreen() {
     [contextChildren, selectedChildId],
   );
   const isViewingSelfProfile = profileMode === 'self';
-
-  const applyBookSelfEnabled = useCallback(
-    (enabled: boolean) => {
-      setBookSelfEnabled(enabled);
-      setBookSelfSettingLoaded(true);
-      logger.debug('Home self-book setting applied', {
-        currentUserId: currentUser?.id,
-        enabled,
-        hasChildProfiles,
-        selectedChildId,
-      });
-      if (!enabled && hasChildProfiles && profileMode === 'self') {
-        const fallbackChild = selectedChildId ?? fallbackChildId;
-        void setProfileScope({ mode: 'child', childId: fallbackChild });
-      }
-    },
-    [
-      currentUser?.id,
-      fallbackChildId,
-      hasChildProfiles,
-      profileMode,
-      selectedChildId,
-      setProfileScope,
-    ],
-  );
   const canSelfSwitchProfile = Boolean(
-    !childContextLoading && bookSelfSettingLoaded && hasChildProfiles && selectedChild && bookSelfEnabled,
+    !childContextLoading
+      && selfProfileSelectionLoaded
+      && hasChildProfiles
+      && selectedChild
+      && canSelectSelfProfile,
   );
-
-  useEffect(() => {
-    if (!currentUser?.id) {
-      setBookSelfEnabled(false);
-      setBookSelfSettingLoaded(false);
-      return;
-    }
-
-    let cancelled = false;
-    setBookSelfSettingLoaded(false);
-    void bookingSelfSettingService.isEnabled(currentUser.id).then((enabled) => {
-      if (cancelled) return;
-      applyBookSelfEnabled(enabled);
-    });
-    return () => {
-      cancelled = true;
-    };
-  }, [applyBookSelfEnabled, currentUser?.id]);
-
-  useEffect(() => {
-    if (!currentUser?.id) {
-      return;
-    }
-
-    return onTyped(ServiceEvents.BOOKING_SELF_SETTING_CHANGED, (payload) => {
-      if (payload.userId !== currentUser.id) {
-        return;
-      }
-      applyBookSelfEnabled(payload.enabled);
-    });
-  }, [applyBookSelfEnabled, currentUser?.id]);
 
   useEffect(() => {
     if (childContextLoading) {
@@ -308,32 +255,6 @@ export function useHomeScreen() {
     void setProfileScope({ mode: 'child', childId: fallbackChild });
   }, [childContextLoading, fallbackChildId, profileMode, profileSubjectId, selectedChildId, setProfileScope]);
 
-  useEffect(() => {
-    if (childContextLoading || !bookSelfSettingLoaded) {
-      return;
-    }
-    if (hasChildProfiles && !canSelfSwitchProfile && isViewingSelfProfile) {
-      logger.debug('Home self profile reset because switching is unavailable', {
-        canSelfSwitchProfile,
-        isViewingSelfProfile,
-        bookSelfEnabled,
-        selectedChildId,
-      });
-      const fallbackChild = selectedChildId ?? fallbackChildId;
-      void setProfileScope({ mode: 'child', childId: fallbackChild });
-    }
-  }, [
-    bookSelfEnabled,
-    bookSelfSettingLoaded,
-    canSelfSwitchProfile,
-    childContextLoading,
-    fallbackChildId,
-    hasChildProfiles,
-    isViewingSelfProfile,
-    selectedChildId,
-    setProfileScope,
-  ]);
-
   const handleToggleSelfChildProfile = useCallback(() => {
     if (!canSelfSwitchProfile) return;
     const nextMode: 'self' | 'child' = isViewingSelfProfile ? 'child' : 'self';
@@ -342,7 +263,7 @@ export function useHomeScreen() {
       nextMode,
       selectedChildId,
       selectedChildName: selectedChild?.name,
-      bookSelfEnabled,
+      canSelectSelfProfile,
     });
     if (nextMode === 'self') {
       void setProfileScope({ mode: 'self' });
@@ -350,7 +271,7 @@ export function useHomeScreen() {
     }
     void setProfileScope({ mode: 'child', childId: selectedChildId ?? fallbackChildId });
   }, [
-    bookSelfEnabled,
+    canSelectSelfProfile,
     canSelfSwitchProfile,
     fallbackChildId,
     isViewingSelfProfile,
@@ -365,16 +286,15 @@ export function useHomeScreen() {
       hasChildProfiles,
       selectedChildId,
       selectedChildName: selectedChild?.name,
-      bookSelfEnabled,
-      bookSelfSettingLoaded,
+      canSelectSelfProfile,
+      selfProfileSelectionLoaded,
       canSelfSwitchProfile,
       isViewingSelfProfile,
       profileMode,
       profileSubjectId,
     });
   }, [
-    bookSelfEnabled,
-    bookSelfSettingLoaded,
+    canSelectSelfProfile,
     canSelfSwitchProfile,
     childContextLoading,
     currentUser?.id,
@@ -384,6 +304,7 @@ export function useHomeScreen() {
     profileSubjectId,
     selectedChild?.name,
     selectedChildId,
+    selfProfileSelectionLoaded,
   ]);
 
   const athleteId = profileSubjectId || selectedChildId || fallbackChildId || currentUser?.id;
