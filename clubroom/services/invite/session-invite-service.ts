@@ -11,10 +11,10 @@
  * 4. COACH: Gets notification of response -> Booking created if accepted
  *
  * API Integration Notes:
- * - POST /api/session-invites - Create invite
- * - GET /api/session-invites?coachId=X - Coach's sent invites
- * - GET /api/session-invites?parentId=X - Parent's received invites
- * - PATCH /api/session-invites/:id/respond - Accept/decline
+ * - GET /v1/invites?coachUserId=X - Coach's sent invites
+ * - GET /v1/invites?parentUserId=X - Parent's received invites
+ * - GET /v1/invites/:inviteId - Invite detail
+ * - POST /v1/invites/:inviteId/respond - Accept/decline
  * - WebSocket event: session_invite_received
  */
 
@@ -43,6 +43,7 @@ import { accountIdsMatch } from '@/utils/account-id';
 import type { Result, ServiceError } from '@/types/result';
 import { ok, err, serviceError, storageError } from '@/types/result';
 import { emitTyped, ServiceEvents } from '@/services/event-bus';
+import { sessionInviteAuthorityService } from './session-invite-authority-service';
 
 const logger = createLogger('SessionInviteService');
 
@@ -708,12 +709,7 @@ export const sessionInviteService = {
       return ok(invitesCache[index]);
     }
 
-    const response = await fetch(`/api/session-invites/${input.inviteId}/respond`, {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(input),
-    });
-    return ok(await response.json());
+    return sessionInviteAuthorityService.respondToInvite(input);
   },
 
   /**
@@ -828,8 +824,16 @@ export const sessionInviteService = {
       return invitesCache.filter((inv) => accountIdsMatch(inv.coachId, coachId));
     }
 
-    const response = await fetch(`/api/session-invites?coachId=${coachId}`);
-    return response.json();
+    const result = await sessionInviteAuthorityService.getCoachInvites(coachId);
+    if (!result.success) {
+      logger.error('Failed to load coach invites via API', {
+        coachId,
+        error: result.error,
+      });
+      return [];
+    }
+
+    return result.data;
   },
 
   /**
@@ -844,8 +848,16 @@ export const sessionInviteService = {
       );
     }
 
-    const response = await fetch(`/api/session-invites?parentId=${parentId}`);
-    return response.json();
+    const result = await sessionInviteAuthorityService.getParentInvites(parentId);
+    if (!result.success) {
+      logger.error('Failed to load parent invites via API', {
+        parentId,
+        error: result.error,
+      });
+      return [];
+    }
+
+    return result.data;
   },
 
   /**
@@ -888,9 +900,16 @@ export const sessionInviteService = {
       return invitesCache.find((inv) => inv.id === inviteId) || null;
     }
 
-    const response = await fetch(`/api/session-invites/${inviteId}`);
-    if (!response.ok) return null;
-    return response.json();
+    const result = await sessionInviteAuthorityService.getInvite(inviteId);
+    if (!result.success) {
+      logger.error('Failed to load invite detail via API', {
+        inviteId,
+        error: result.error,
+      });
+      return null;
+    }
+
+    return result.data;
   },
 
   /**

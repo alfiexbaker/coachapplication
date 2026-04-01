@@ -4,29 +4,27 @@ Date: 2026-04-01
 
 ## What Was Just Done
 
-1. Brought the stale sprint handoff back in line with the real repo history after the March 19 gap.
-2. Landed the March 23-29 booking and launch-support slices that were missing from the written handoff:
-   - session detail now closes past-booking actions correctly and links into post-session review
-   - club detail separates `Schedule` from `Updates`, and home/schedule surfaces now show event commitments while gating walkthrough hints more honestly
-   - family add-child intake is shorter, notifications use attention-based badges, and the booking flow now shows coach offerings earlier, reduces wizard flicker, restores offering-aware schedule locking, and runs through one provider boundary
-3. Centralized self-versus-child profile eligibility in `hooks/use-child-context.tsx` so Home, Health, Injuries, and Progress all read the same allow-self capability.
-4. Fixed a cross-account leakage risk by resetting self-profile capability immediately when the signed-in account changes instead of waiting for async settings reload.
-5. Added focused subject-option coverage and ignored generated `.playwright-cli/` local artifacts.
+1. Added scaffolded backend read authority for session invites with `GET /v1/invites` and `GET /v1/invites/:inviteId` in `apps/api/src/modules/booking/routes.ts`.
+2. Extended `POST /v1/invites/:inviteId/respond` to return an invite snapshot alongside booking and registration metadata so the app can stay on one `/v1` authority path after responding.
+3. Added `services/invite/session-invite-authority-service.ts` and switched the non-mock session-invite list, detail, and respond paths in `services/invite/session-invite-service.ts` away from the dead legacy `/api/session-invites/*` endpoints.
+4. Added API coverage for session-invite list/detail visibility and for the richer invite-response payload in `apps/api/src/modules/p0-core/routes.test.ts`.
+5. Synced the sprint queue and canonical route/runtime docs so they now describe session-invite reads as `/v1`-backed and narrow the remaining seam to the unfinished invite write actions.
 
 ## Verification Run In This Step
 
 - `npm run typecheck` -> PASS
 - `npm run test:compile` -> PASS
-- `node --require ./scripts/test-register.js --test .tmp-tests/__tests__/utils/profile-subject.test.js .tmp-tests/__tests__/services/booking-self-setting-service.test.js .tmp-tests/__tests__/child-context/reconcile-children.test.js` -> PASS (`34/34`)
+- `npm --prefix apps/api run typecheck` -> PASS
+- `npm --prefix apps/api run test` -> PASS (`35/35`)
 
 ## Current State
 
-- The booking wizard is materially cleaner than the old handoff suggests: coach offerings are surfaced earlier, offering catalog helpers are separated from draft prefill, schedule locking respects the chosen offering again, and the wizard no longer owns duplicate self-book setting logic on Home.
-- The latest local profile-scope slice is committed; the worktree is no longer carrying that unfinished self/child eligibility drift.
-- The active backend gap is no longer broad family/medical CRUD. Those areas already have substantial `/v1` coverage. The remaining high-risk booking seam is the session-invite inbox/detail/acceptance and the wider invite-mediated booking-change path.
-- Production identity is still scaffold-first. Dev bearer sessions work locally, but real session controls and backend authz integration are still not finished.
+- In non-mock mode, the app now loads session-invite inbox and detail from `/v1/invites` and `/v1/invites/:inviteId`.
+- Accept and decline now stay on the `/v1/invites/:inviteId/respond` path end-to-end instead of calling the removed legacy `/api/session-invites/:id/respond` endpoint.
+- The remaining session-invite gap is no longer read/detail/acceptance. It is the unfinished write surface around create, cancel, remind, dismiss, and the wider invite-mediated booking-change flow.
+- Production identity is still scaffold-first. The `/v1` path is more honest now, but real session lifecycle controls and non-seed authz are still unfinished.
 
 ## Next Exact Action
 
-1. Continue `API-01` at the session-invite seam.
-2. Start with read and action authority for `app/session-invites/index.tsx` and `app/session-invites/[id].tsx`, then move the remaining accept/change behavior behind `/v1`.
+1. Continue `API-01` with session-invite write authority.
+2. Add `/v1` routes and frontend cutover for cancel/remind/dismiss first, then decide whether invite creation should stay in the booking module or move behind a dedicated invite authority route.

@@ -22,6 +22,10 @@ type SeedRow = Record<string, unknown>;
 const asRows = (value: unknown): SeedRow[] => (Array.isArray(value) ? (value as SeedRow[]) : []);
 const asString = (value: unknown): string | undefined => (typeof value === 'string' ? value : undefined);
 const asNumber = (value: unknown): number | undefined => (typeof value === 'number' ? value : undefined);
+const asStringArray = (value: unknown): string[] =>
+  Array.isArray(value) ? value.filter((entry): entry is string => typeof entry === 'string') : [];
+const asObject = (value: unknown): SeedRow | undefined =>
+  value && typeof value === 'object' && !Array.isArray(value) ? (value as SeedRow) : undefined;
 const isoNow = () => new Date().toISOString();
 const newId = (prefix: string) => `${prefix}_${crypto.randomUUID()}`;
 
@@ -33,6 +37,11 @@ const eventRsvpRequestSchema = z.object({
 
 const groupSessionQuerySchema = z.object({
   status: z.string().optional(),
+});
+
+const invitesQuerySchema = z.object({
+  coachUserId: z.string().optional(),
+  parentUserId: z.string().optional(),
 });
 
 function isClubAdminAuth(auth: { roles?: string[]; actingRole?: string } | undefined): boolean {
@@ -87,6 +96,138 @@ function getScheduleWindow(session: SeedRow): { startsAt: string; durationMinute
   return {
     startsAt: startsAt ?? isoNow(),
     durationMinutes,
+  };
+}
+
+function humanizeSessionValue(value: string | undefined, fallback: string): string {
+  if (!value) {
+    return fallback;
+  }
+
+  return value
+    .split(/[_-]/)
+    .filter(Boolean)
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+    .join(' ');
+}
+
+function mapSessionInviteAudienceType(session: SeedRow | undefined): 'OPEN' | 'CLOSED' | 'SQUAD_ONLY' | undefined {
+  const inviteType = asString(session?.inviteType)?.toLowerCase();
+  if (inviteType === 'squad') {
+    return 'SQUAD_ONLY';
+  }
+  if (inviteType === 'closed') {
+    return 'CLOSED';
+  }
+  if (inviteType === 'open') {
+    return 'OPEN';
+  }
+  return undefined;
+}
+
+function buildInviteProposedSlots(session: SeedRow | undefined): Array<{
+  date: string;
+  startTime: string;
+  endTime: string;
+  location?: string;
+}> {
+  const location = asString(session?.location);
+
+  return asRows(session?.scheduleJson)
+    .map((entry) => {
+      const startsAt = asString(entry.startsAt);
+      const endsAt = asString(entry.endsAt);
+      if (!startsAt || !endsAt) {
+        return null;
+      }
+
+      const start = new Date(startsAt);
+      const end = new Date(endsAt);
+      if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime())) {
+        return null;
+      }
+
+      return {
+        date: start.toISOString().slice(0, 10),
+        startTime: start.toISOString().slice(11, 16),
+        endTime: end.toISOString().slice(11, 16),
+        ...(location ? { location } : {}),
+      };
+    })
+    .filter((slot): slot is {
+      date: string;
+      startTime: string;
+      endTime: string;
+      location?: string;
+    } => Boolean(slot));
+}
+
+function buildSessionInviteView(params: {
+  tables: SeedTables;
+  invite: SeedRow;
+  targets: SeedRow[];
+}) {
+  const { tables, invite, targets } = params;
+  const primaryTarget = targets[0];
+  const inviteId = asString(invite.id) ?? '';
+  const linkedSession = asRows(tables.groupSessions).find(
+    (row) => asString(row.id) === asString(invite.groupSessionId),
+  );
+  const clubId = asString(invite.clubId) ?? asString(linkedSession?.clubId);
+  const club = asRows(tables.clubs).find((row) => asString(row.id) === clubId);
+  const focusParts = asStringArray(linkedSession?.focusJson);
+  const proposedSlots = buildInviteProposedSlots(linkedSession);
+  const durationMinutes = linkedSession ? getScheduleWindow(linkedSession).durationMinutes : 60;
+  const selectedSlotPayload = asObject(primaryTarget?.responsePayloadJson)?.selectedSlot;
+  const selectedSlot = asObject(selectedSlotPayload);
+  const athleteIds = Array.from(
+    new Set(
+      targets
+        .map((target) => asString(target.targetAthleteId))
+        .filter((athleteId): athleteId is string => Boolean(athleteId)),
+    ),
+  );
+  const metadata = asObject(invite.metadataJson);
+  const squadId = asString(linkedSession?.squadId) ?? asString(metadata?.squadId);
+  const targetStatus = asString(primaryTarget?.status) ?? asString(invite.status) ?? 'PENDING';
+
+  return {
+    id: inviteId,
+    coachId: asString(invite.senderUserId) ?? '',
+    ...(asString(club?.name) ? { clubName: asString(club?.name) } : {}),
+    ...(mapSessionInviteAudienceType(linkedSession)
+      ? { inviteType: mapSessionInviteAudienceType(linkedSession) }
+      : {}),
+    ...(squadId ? { squadIds: [squadId] } : {}),
+    athleteIds,
+    parentId: asString(primaryTarget?.targetUserId) ?? '',
+    proposedSlots,
+    sessionType: humanizeSessionValue(
+      asString(linkedSession?.sessionType) ?? asString(invite.inviteType),
+      'Session',
+    ),
+    focus: focusParts.length > 0 ? focusParts.join(', ') : asString(invite.message) ?? 'Session',
+    notes: asString(invite.message) ?? asString(linkedSession?.description) ?? null,
+    ...(typeof asNumber(linkedSession?.pricePerParticipantMinor) === 'number'
+      ? { price: (asNumber(linkedSession?.pricePerParticipantMinor) ?? 0) / 100 }
+      : {}),
+    duration: durationMinutes,
+    status: targetStatus,
+    expiresAt: asString(invite.expiresAt) ?? isoNow(),
+    createdAt: asString(invite.createdAt) ?? isoNow(),
+    ...(asString(primaryTarget?.respondedAt) ? { respondedAt: asString(primaryTarget?.respondedAt) } : {}),
+    ...(selectedSlot
+      ? {
+          selectedSlot: {
+            date: asString(selectedSlot.date) ?? '',
+            startTime: asString(selectedSlot.startTime) ?? '',
+            endTime: asString(selectedSlot.endTime) ?? '',
+            ...(asString(selectedSlot.location) ? { location: asString(selectedSlot.location) } : {}),
+          },
+        }
+      : {}),
+    ...(asString(invite.groupSessionId) ? { existingSessionId: asString(invite.groupSessionId) } : {}),
+    ...(asString(invite.bookingId) ? { bookingId: asString(invite.bookingId) } : {}),
   };
 }
 
@@ -434,6 +575,132 @@ const bookingRoutes: FastifyPluginAsync = async (app) => {
     });
   });
 
+  app.get('/invites', async (request, reply) => {
+    const authUserId = request.auth?.userId;
+    if (!authUserId) {
+      throw forbidden('Authenticated user is required');
+    }
+
+    const query = invitesQuerySchema.parse(request.query ?? {});
+    const requestedCoachUserId = asString(query.coachUserId);
+    const requestedParentUserId = asString(query.parentUserId);
+    if (!requestedCoachUserId && !requestedParentUserId) {
+      throw badRequest('coachUserId or parentUserId is required');
+    }
+    if (requestedCoachUserId && requestedParentUserId) {
+      throw badRequest('coachUserId and parentUserId cannot be combined');
+    }
+
+    const isClubAdmin = isClubAdminAuth(request.auth);
+    const store = getMarketplaceSeedStore();
+    const invites = asRows(store.tables.invites);
+    const targets = asRows(store.tables.inviteTargets);
+
+    if (requestedCoachUserId) {
+      if (!isClubAdmin && requestedCoachUserId !== authUserId) {
+        throw forbidden('coachUserId must match authenticated user');
+      }
+
+      const rows = invites
+        .filter((invite) => asString(invite.senderUserId) === requestedCoachUserId)
+        .map((invite) => {
+          const inviteId = asString(invite.id);
+          const inviteTargets = targets.filter((target) => asString(target.inviteId) === inviteId);
+          return buildSessionInviteView({
+            tables: store.tables,
+            invite,
+            targets: inviteTargets,
+          });
+        })
+        .filter((invite) => invite.id)
+        .sort((a, b) => Date.parse(b.createdAt) - Date.parse(a.createdAt));
+
+      return reply.send({
+        invites: rows,
+        total: rows.length,
+        seedVersion: store.version,
+        requestId: request.requestId,
+      });
+    }
+
+    if (!isClubAdmin && requestedParentUserId !== authUserId) {
+      throw forbidden('parentUserId must match authenticated user');
+    }
+
+    const targetsByInviteId = new Map<string, SeedRow[]>();
+    for (const target of targets) {
+      if (asString(target.targetUserId) !== requestedParentUserId) {
+        continue;
+      }
+      const inviteId = asString(target.inviteId);
+      if (!inviteId) {
+        continue;
+      }
+      const existing = targetsByInviteId.get(inviteId) ?? [];
+      existing.push(target);
+      targetsByInviteId.set(inviteId, existing);
+    }
+
+    const rows = Array.from(targetsByInviteId.entries())
+      .map(([inviteId, inviteTargets]) => {
+        const invite = invites.find((row) => asString(row.id) === inviteId);
+        if (!invite) {
+          return null;
+        }
+        return buildSessionInviteView({
+          tables: store.tables,
+          invite,
+          targets: inviteTargets,
+        });
+      })
+      .filter((invite): invite is NonNullable<typeof invite> => Boolean(invite))
+      .sort((a, b) => Date.parse(b.createdAt) - Date.parse(a.createdAt));
+
+    return reply.send({
+      invites: rows,
+      total: rows.length,
+      seedVersion: store.version,
+      requestId: request.requestId,
+    });
+  });
+
+  app.get('/invites/:inviteId', async (request, reply) => {
+    const authUserId = request.auth?.userId;
+    if (!authUserId) {
+      throw forbidden('Authenticated user is required');
+    }
+
+    const inviteId = asString((request.params as { inviteId?: string } | undefined)?.inviteId);
+    if (!inviteId) {
+      throw notFound('Invite id is required');
+    }
+
+    const store = getMarketplaceSeedStore();
+    const invites = asRows(store.tables.invites);
+    const targets = asRows(store.tables.inviteTargets);
+    const invite = invites.find((row) => asString(row.id) === inviteId);
+    if (!invite) {
+      throw notFound('Invite not found', { inviteId });
+    }
+
+    const inviteTargets = targets.filter((row) => asString(row.inviteId) === inviteId);
+    const isOwner = asString(invite.senderUserId) === authUserId;
+    const visibleTargets = inviteTargets.filter((row) => asString(row.targetUserId) === authUserId);
+    if (!isOwner && visibleTargets.length === 0) {
+      throw forbidden('Invite does not belong to authenticated user');
+    }
+
+    return reply.send({
+      invite: buildSessionInviteView({
+        tables: store.tables,
+        invite,
+        targets: isOwner ? inviteTargets : visibleTargets,
+      }),
+      seedVersion: store.version,
+      requestId: request.requestId,
+    });
+  });
+
   app.post('/invites/:inviteId/respond', async (request, reply) => {
     const authUserId = request.auth?.userId;
     if (!authUserId) {
@@ -505,12 +772,18 @@ const bookingRoutes: FastifyPluginAsync = async (app) => {
     invite.updatedAt = now;
 
     return reply.send({
+      invite: buildSessionInviteView({
+        tables: store.tables,
+        invite,
+        targets: [target],
+      }),
       inviteId,
       response: body.response,
       status: asString(invite.status) ?? body.response,
       targetStatus: asString(target.status) ?? body.response,
       respondedAt: now,
       selectedSlot: body.selectedSlot,
+      bookingId: asString(invite.bookingId) ?? booking?.id ?? null,
       registrationId,
       registrationStatus,
       booking,

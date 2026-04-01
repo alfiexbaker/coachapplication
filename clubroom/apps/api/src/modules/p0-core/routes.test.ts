@@ -638,6 +638,88 @@ describe('p0 core routes', () => {
     assert.equal(create.statusCode, 403);
   });
 
+  it('lists and reads visible session invites for coach and parent users', async () => {
+    const tables = loadTables();
+    const pendingTarget = asRows(tables.inviteTargets).find((row) => asString(row.status) === 'PENDING')
+      ?? asRows(tables.inviteTargets)[0];
+    assert.ok(pendingTarget, 'expected seeded invite target');
+    const inviteId = asString(pendingTarget.inviteId) as string;
+    const parentUserId = asString(pendingTarget.targetUserId) as string;
+    const invite = asRows(tables.invites).find((row) => asString(row.id) === inviteId);
+    assert.ok(invite, 'expected seeded invite row');
+    const coachUserId = asString(invite?.senderUserId) as string;
+
+    const parentList = await app.inject({
+      method: 'GET',
+      url: `/v1/invites?parentUserId=${encodeURIComponent(parentUserId)}`,
+      headers: {
+        'x-auth-user-id': parentUserId,
+        'x-auth-roles': rolesForUser(tables, parentUserId).join(',') || 'parent',
+        'x-acting-role': rolesForUser(tables, parentUserId)[0] ?? 'parent',
+      },
+    });
+    assert.equal(parentList.statusCode, 200);
+    const parentListPayload = parentList.json() as {
+      invites: Array<{ id: string; parentId: string; athleteIds: string[] }>;
+    };
+    const parentInvite = parentListPayload.invites.find((row) => row.id === inviteId);
+    assert.ok(parentInvite, 'expected invite in parent list');
+    assert.equal(parentInvite?.parentId, parentUserId);
+    assert.equal((parentInvite?.athleteIds.length ?? 0) >= 1, true);
+
+    const coachList = await app.inject({
+      method: 'GET',
+      url: `/v1/invites?coachUserId=${encodeURIComponent(coachUserId)}`,
+      headers: {
+        'x-auth-user-id': coachUserId,
+        'x-auth-roles': rolesForUser(tables, coachUserId).join(',') || 'coach',
+        'x-acting-role': rolesForUser(tables, coachUserId)[0] ?? 'coach',
+      },
+    });
+    assert.equal(coachList.statusCode, 200);
+    const coachListPayload = coachList.json() as {
+      invites: Array<{ id: string; coachId: string; proposedSlots: Array<{ date: string }> }>;
+    };
+    const coachInvite = coachListPayload.invites.find((row) => row.id === inviteId);
+    assert.ok(coachInvite, 'expected invite in coach list');
+    assert.equal(coachInvite?.coachId, coachUserId);
+    assert.equal((coachInvite?.proposedSlots.length ?? 0) >= 1, true);
+
+    const parentDetail = await app.inject({
+      method: 'GET',
+      url: `/v1/invites/${inviteId}`,
+      headers: {
+        'x-auth-user-id': parentUserId,
+        'x-auth-roles': rolesForUser(tables, parentUserId).join(',') || 'parent',
+        'x-acting-role': rolesForUser(tables, parentUserId)[0] ?? 'parent',
+      },
+    });
+    assert.equal(parentDetail.statusCode, 200);
+    const parentDetailPayload = parentDetail.json() as {
+      invite: { id: string; parentId: string; coachId: string };
+    };
+    assert.equal(parentDetailPayload.invite.id, inviteId);
+    assert.equal(parentDetailPayload.invite.parentId, parentUserId);
+    assert.equal(parentDetailPayload.invite.coachId, coachUserId);
+
+    const outsiderUserId = asRows(tables.coachProfiles)
+      .map((row) => asString(row.userId))
+      .filter((userId): userId is string => Boolean(userId))
+      .find((userId) => userId !== coachUserId && userId !== parentUserId);
+    assert.ok(outsiderUserId, 'expected unrelated coach');
+
+    const forbiddenDetail = await app.inject({
+      method: 'GET',
+      url: `/v1/invites/${inviteId}`,
+      headers: {
+        'x-auth-user-id': outsiderUserId,
+        'x-auth-roles': rolesForUser(tables, outsiderUserId as string).join(',') || 'coach',
+        'x-acting-role': rolesForUser(tables, outsiderUserId as string)[0] ?? 'coach',
+      },
+    });
+    assert.equal(forbiddenDetail.statusCode, 403);
+  });
+
   it('responds to invites and creates/updates event RSVPs', async () => {
     const tables = loadTables();
     const target = asRows(tables.inviteTargets).find((row) => asString(row.status) === 'PENDING')
@@ -660,18 +742,25 @@ describe('p0 core routes', () => {
     });
     assert.equal(inviteResponse.statusCode, 200);
     const invitePayload = inviteResponse.json() as {
+      invite: { id: string; status: string; parentId: string };
       status: string;
+      bookingId?: string | null;
       registrationId?: string | null;
       registrationStatus?: string | null;
       booking?: { id: string; status: string } | null;
     };
     assert.equal(invitePayload.status, 'ACCEPTED');
+    assert.equal(invitePayload.invite.id, inviteId);
+    assert.equal(invitePayload.invite.parentId, targetUserId);
+    assert.equal(invitePayload.invite.status, 'ACCEPTED');
     assert.equal(typeof invitePayload.registrationId, 'string');
     assert.ok(['REGISTERED', 'WAITLISTED'].includes(invitePayload.registrationStatus ?? ''));
     if (invitePayload.registrationStatus === 'REGISTERED' && invitePayload.booking) {
       assert.match(invitePayload.booking?.id ?? '', /^bok_/);
+      assert.equal(invitePayload.bookingId, invitePayload.booking.id);
     } else if (invitePayload.registrationStatus === 'WAITLISTED') {
       assert.equal(invitePayload.booking ?? null, null);
+      assert.equal(invitePayload.bookingId ?? null, null);
     }
 
     const memberClubMembership = asRows(tables.clubMemberships)[0];
