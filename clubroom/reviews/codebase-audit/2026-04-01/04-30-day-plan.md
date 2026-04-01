@@ -12,13 +12,14 @@ This plan follows the current live execution order in `docs/newsprints/sprints/B
 - Evidence for priority: `docs/newsprints/sprints/BACKLOG.md`, `apps/api/src/plugins/auth-placeholder.ts`, `apps/api/src/modules/auth/routes.ts`.
 - Can wait: auth UI polish, profile niceties, extra onboarding.
 
-## Week 2: Fix Trust And Booking Authority
+## Week 2: Fix Trust, Booking Authority, And Observability
 
 - Ship: Move trust-sensitive child medical/emergency data off `services/child-service.ts` and into the `/v1/athletes/*` family-health path used by `services/family/family-health-service.ts`.
 - Ship: Remove or proxy the medical/emergency fields in `app/(modal)/edit-child-profile.tsx`.
 - Ship: Make every booking create path backend-authoritative, including guardian/delegated flows.
-- Evidence for priority: `services/child-service.ts`, `app/(modal)/edit-child-profile.tsx`, `services/booking/booking-crud-service.ts`, `apps/api/src/modules/booking/routes.ts`.
-- Can wait: broader child-profile cosmetic cleanup, non-sensitive profile enhancements.
+- Ship: `OBS-01` Sentry across Expo native, Expo web, and `apps/api` in parallel with these risky authority cutovers.
+- Evidence for priority: `services/child-service.ts`, `app/(modal)/edit-child-profile.tsx`, `services/booking/booking-crud-service.ts`, `apps/api/src/modules/booking/routes.ts`, `app.config.ts`, `constants/config.ts`.
+- Can wait: broader child-profile cosmetic cleanup, non-sensitive profile enhancements, storefront polish.
 
 ## Week 3: Make Schedule And Event Workspace Real
 
@@ -28,9 +29,8 @@ This plan follows the current live execution order in `docs/newsprints/sprints/B
 - Evidence for priority: `docs/newsprints/sprints/BACKLOG.md`, `services/club-schedule-service.ts`, `hooks/use-event-detail.ts`, `app/events/[id].tsx`.
 - Can wait: calendar polish, extended community extras, non-critical event embellishments.
 
-## Week 4: Add Observability And Narrow Conversion
+## Week 4: Narrow Conversion
 
-- Ship: `OBS-01` Sentry across Expo native, Expo web, and `apps/api`.
 - Ship: One honest launch storefront path: public coach profile, authoritative offerings, backend-validated review proof, and a real rebook loop.
 - Ship: Decide whether club profile is in scope as public conversion or only as a member ops surface; cut the losing branch for this month.
 - Evidence for priority: `docs/newsprints/sprints/BACKLOG.md`, `app.config.ts`, `constants/config.ts`, `app/coach/[id].tsx`, `hooks/use-coach-detail.ts`, `services/coach-service.ts`, `services/review-service.ts`.
