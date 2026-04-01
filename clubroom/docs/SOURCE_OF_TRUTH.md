@@ -171,6 +171,9 @@ Old sprint packs, dated audit dumps, and duplicate planning stacks were intentio
 Do not resurrect them by adding new references to:
 - deleted `docs/audits/*`
 - deleted old sprint folders
+- deleted `docs/product-reality/progress.md`
+- deleted `docs/product-reality/sprints/*`
 - deleted one-off audit markdown files at repo root
 
 Keep the doc set small and current.
+Transient review output should live under `reviews/`, not `docs/`.

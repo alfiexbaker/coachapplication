@@ -116,7 +116,7 @@ Reason:
 
 ### Needs Refresh Or Demotion
 
-- `docs/newsprints/*` and `docs/product-reality/*` both act like active queues; keep `newsprints` as engineering execution and use this file for product-shape cleanup
+- the removed `docs/product-reality/progress.md` and `docs/product-reality/sprints/*` queue had drifted from current repo truth; `docs/newsprints/*` is the only active execution queue and this file remains the product-shape cleanup reference
 - generated `docs/audits/*` output from scripts should be treated as transient artifacts, not canonical planning docs
 
 ## Sprint Shape

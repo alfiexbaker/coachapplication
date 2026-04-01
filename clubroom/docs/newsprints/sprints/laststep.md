@@ -4,26 +4,25 @@ Date: 2026-04-01
 
 ## What Was Just Done
 
-1. Persisted bearer dev sessions in `apps/api/src/lib/dev-auth.ts` so login/register/refresh now issue tokens backed by real `authSessions` and `userDevices` rows instead of pure stateless token payloads.
-2. Updated `apps/api/src/plugins/auth-placeholder.ts` so revoked or invalid bearer sessions stop authenticating instead of silently falling back to scaffold-header auth.
-3. Added self-service session lifecycle routes in `apps/api/src/modules/identity/routes.ts` and `apps/api/src/repositories/p0/identity-repository.ts` for `/v1/me/sessions`, `/v1/me/sessions/revoke-all`, and `/v1/me/sessions/:sessionId/revoke`.
-4. Wired `/v1/auth/logout` and `/v1/auth/revoke` to real dev-session revocation, then added auth and identity coverage in `apps/api/src/modules/auth/routes.test.ts`, `apps/api/src/modules/p0-core/routes.test.ts`, and `apps/api/src/modules/p0-core/dual-mode-smoke.test.ts`.
-5. Synced the canonical runtime/auth docs so session lifecycle is now described as scaffolded reality, while production identity remains explicitly incomplete.
+1. Removed the duplicate product-reality execution queue by deleting `docs/product-reality/progress.md` and `docs/product-reality/sprints/*`, keeping `docs/newsprints/sprints/*` as the only live implementation tracker.
+2. Deleted the redundant `docs/newsprints/sprints/README.md` so the sprint workspace stays minimal and does not repeat `docs/newsprints/README.md`.
+3. Updated `docs/product-reality/README.md`, `docs/product-reality/value-shape/MASTER.md`, and `docs/SOURCE_OF_TRUTH.md` so retained analysis docs no longer claim active queue ownership.
+4. Added `docs/CODEBASE_FEATURE_AUDIT_PROMPT.md` plus `reviews/README.md` so a fresh AI can audit the current repo and write reviewable outputs into `reviews/codebase-audit/2026-04-01/`.
+5. Left the remaining dated analysis docs in place because they still serve as source material; only the clearly duplicated execution docs were removed.
 
 ## Verification Run In This Step
 
-- `npm run typecheck` -> PASS
-- `npm run test:compile` -> PASS
-- `npm --prefix apps/api run typecheck` -> PASS
-- `npm --prefix apps/api run test` -> PASS (`39/39`)
+- `rg -n "docs/product-reality/progress.md|docs/product-reality/sprints/" docs CODEX.md CHATGPT.md README.md . -g '!node_modules'` -> PASS after doc updates (remaining mentions are explanatory, not active queue instructions)
+- `git diff --check` -> PASS
 
 ## Current State
 
-- Dev-session bearer tokens now correspond to mutable backend session rows, so logout, explicit revoke, and `/v1/me/sessions*` session management reflect real runtime state in the scaffold environment.
-- The session-invite seam remains closed from the previous slice; the next trust-sensitive gap is no longer invite transport, it is replacing the temporary dev-session/auth-placeholder model itself.
-- The repo still does not have production JWT validation or non-seed identity. Session lifecycle is better, but the auth stack is still explicitly scaffold-first.
+- `docs/newsprints/sprints/BACKLOG.md` and `docs/newsprints/sprints/laststep.md` are the only live execution trackers.
+- `docs/product-reality/README.md` is now analysis-only and points back to `docs/newsprints/*` for active work.
+- A fresh AI can now use `docs/CODEBASE_FEATURE_AUDIT_PROMPT.md` and put non-canonical review outputs under `reviews/codebase-audit/2026-04-01/`.
+- Product/runtime truth is otherwise unchanged from the auth and invite slices: `/v1` invite authority is closed, dev-session lifecycle exists, and production identity remains the main unfinished trust seam.
 
 ## Next Exact Action
 
-1. Continue `AUTH-02` by replacing the temporary auth-placeholder path with production JWT validation and non-seed session checks.
-2. After that backend replacement plan is clear, wire the frontend settings/security surface to `/v1/me/sessions*` instead of adding UI on top of the temporary scaffold.
+1. Run `docs/CODEBASE_FEATURE_AUDIT_PROMPT.md` with a fresh AI and review the files it writes under `reviews/codebase-audit/2026-04-01/`.
+2. Convert accepted findings into `docs/newsprints/sprints/BACKLOG.md`, then continue `AUTH-02` and `OBS-01` as the month-critical execution lane.
