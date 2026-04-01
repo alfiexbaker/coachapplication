@@ -173,7 +173,7 @@ describe('p0 core routes', () => {
       retainedSessionId: string | null;
     };
     assert.equal(revokeAllPayload.revokedCount >= 1, true);
-    assert.equal(revokeAllPayload.retainedSessionId, 'ses_dev_scaffold');
+    assert.equal(revokeAllPayload.retainedSessionId, 'ses_test_header_override');
   });
 
   it('exposes runtime backend mode in /v1/meta/version', async () => {

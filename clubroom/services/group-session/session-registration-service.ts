@@ -13,6 +13,13 @@
  */
 
 import { authService } from '../auth-service';
+import {
+  buildApiAuthHeaders,
+  deriveApiActingRole,
+  resolveSignedInApiUser,
+  toApiAthleteId,
+  toApiUserId,
+} from '../api-auth-context';
 import { apiClient, apiFetch } from '../api-client';
 import { api } from '@/constants/config';
 import { STORAGE_KEYS } from '@/constants/storage-keys';
@@ -48,44 +55,14 @@ interface ApiGroupRegistrationResponse {
   requestId: string;
 }
 
-function toApiUserId(userId: string): string {
-  return userId.startsWith('usr_') ? userId : `usr_${userId.replace(/^ath_/, '')}`;
-}
-
-function toApiAthleteId(athleteId: string): string {
-  return athleteId.startsWith('ath_') ? athleteId : `ath_${athleteId.replace(/^usr_/, '')}`;
-}
-
-function deriveActingRole(
-  user: Awaited<ReturnType<typeof authService.getCurrentUser>>,
-): ActingRole {
-  if (user?.roles?.includes('club_admin')) {
-    return 'club_admin';
-  }
-  if (user?.accountType === 'COACH') {
-    return 'coach';
-  }
-  if (user?.accountType === 'PARENT') {
-    return 'parent';
-  }
-  return 'athlete';
-}
-
 async function resolveRegistrationAccessHeaders(): Promise<Result<Record<string, string>, ServiceError>> {
-  const currentUser = await authService.getCurrentUser();
-  if (!currentUser?.id) {
-    return err(serviceError('UNAUTHORIZED', 'Sign in to register for sessions.'));
+  const currentUserResult = await resolveSignedInApiUser('Sign in to register for sessions.');
+  if (!currentUserResult.success) {
+    return currentUserResult;
   }
 
-  const actingRole = deriveActingRole(currentUser);
-  const roles = new Set(currentUser.roles ?? []);
-  roles.add(actingRole);
-
-  return ok({
-    'x-auth-user-id': toApiUserId(currentUser.id),
-    'x-auth-roles': Array.from(roles).join(','),
-    'x-acting-role': actingRole,
-  });
+  const actingRole = deriveApiActingRole(currentUserResult.data) as ActingRole;
+  return ok(buildApiAuthHeaders({ actingRole }));
 }
 
 // ============================================================================

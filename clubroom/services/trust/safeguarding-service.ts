@@ -1,5 +1,10 @@
-import { authService } from '@/services/auth-service';
 import { apiFetch } from '@/services/api-client';
+import {
+  buildApiAuthHeaders,
+  deriveApiActingRole,
+  resolveSignedInApiUser,
+  toApiAthleteId,
+} from '@/services/api-auth-context';
 import { createLogger } from '@/utils/logger';
 import { err, ok, serviceError, type Result, type ServiceError } from '@/types/result';
 
@@ -60,58 +65,27 @@ export interface SafeguardingIncident {
   actions: SafeguardingAction[];
 }
 
-function toApiUserId(userId: string): string {
-  return userId.startsWith('usr_') ? userId : `usr_${userId.replace(/^ath_/, '')}`;
-}
-
-function toApiAthleteId(athleteId: string): string {
-  return athleteId.startsWith('ath_') ? athleteId : `ath_${athleteId.replace(/^usr_/, '')}`;
-}
-
-function deriveActingRole(
-  user: Awaited<ReturnType<typeof authService.getCurrentUser>>,
-): ActingRole {
-  if (user?.roles?.includes('club_admin')) {
-    return 'club_admin';
-  }
-  if (user?.accountType === 'COACH') {
-    return 'coach';
-  }
-  if (user?.accountType === 'PARENT') {
-    return 'parent';
-  }
-  return 'athlete';
-}
-
 async function resolveSafeguardingAccess(
   athleteId?: string,
 ): Promise<
   Result<{ apiAthleteId?: string; headers: Record<string, string> }, ServiceError>
 > {
-  const currentUser = await authService.getCurrentUser();
-  if (!currentUser?.id) {
-    return err(serviceError('UNAUTHORIZED', 'Sign in to manage safeguarding incidents.'));
+  const currentUserResult = await resolveSignedInApiUser(
+    'Sign in to manage safeguarding incidents.',
+  );
+  if (!currentUserResult.success) {
+    return currentUserResult;
   }
 
-  const actingRole = deriveActingRole(currentUser);
-  const roles = new Set(currentUser.roles ?? []);
-  roles.add(actingRole);
-
-  const headers: Record<string, string> = {
-    'x-auth-user-id': toApiUserId(currentUser.id),
-    'x-auth-roles': Array.from(roles).join(','),
-    'x-acting-role': actingRole,
-  };
-
+  const currentUser = currentUserResult.data;
+  const actingRole = deriveApiActingRole(currentUser) as ActingRole;
   const apiAthleteId = athleteId ? toApiAthleteId(athleteId) : undefined;
-  if (apiAthleteId && actingRole === 'coach') {
-    headers['x-coach-athlete-ids'] = apiAthleteId;
-    if (currentUser.isVerified) {
-      headers['x-coach-verified'] = '1';
-    }
-  } else if (apiAthleteId && actingRole === 'parent') {
-    headers['x-guardian-athlete-ids'] = apiAthleteId;
-  }
+  const headers = buildApiAuthHeaders({
+    actingRole,
+    coachAthleteIds: apiAthleteId && actingRole === 'coach' ? [apiAthleteId] : undefined,
+    guardianAthleteIds: apiAthleteId && actingRole === 'parent' ? [apiAthleteId] : undefined,
+    coachVerified: actingRole === 'coach' && currentUser.isVerified,
+  });
 
   return ok({ apiAthleteId, headers });
 }

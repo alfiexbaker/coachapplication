@@ -17,6 +17,7 @@
 
 import { apiClient } from './api-client';
 import { apiFetch } from './api-client';
+import { buildApiAuthHeaders, deriveApiActingRole, toApiAthleteId } from './api-auth-context';
 import { authService } from './auth-service';
 import { createLogger } from '@/utils/logger';
 import type {
@@ -114,41 +115,25 @@ const BODY_PART_VALUES: readonly BodyPart[] = [
 ];
 const BODY_PART_SET = new Set<string>(BODY_PART_VALUES);
 
-function toApiUserId(userId: string): string {
-  return userId.startsWith('usr_') ? userId : `usr_${userId}`;
-}
-
-function toApiAthleteId(userId: string): string {
-  const unprefixed = userId.replace(/^usr_/, '').replace(/^ath_/, '');
-  return `ath_${unprefixed}`;
-}
-
 function fromApiAthleteId(athleteId: string): string {
   return athleteId.replace(/^ath_/, '');
 }
 
 async function buildApiActorHeaders(targetUserId: string): Promise<Record<string, string>> {
   const currentUser = await authService.getCurrentUser().catch(() => null);
-  const accountType = currentUser?.accountType ?? 'ATHLETE';
-  const actingRole = accountType.toLowerCase();
-  const actorUserId = toApiUserId(currentUser?.id ?? targetUserId);
+  if (!currentUser?.id) {
+    return {};
+  }
+
+  const actingRole = deriveApiActingRole(currentUser);
   const targetAthleteId = toApiAthleteId(targetUserId);
 
-  const headers: Record<string, string> = {
-    'x-auth-user-id': actorUserId,
-    'x-auth-roles': actingRole,
-    'x-acting-role': actingRole,
-  };
-
-  if (actingRole === 'coach') {
-    headers['x-coach-athlete-ids'] = targetAthleteId;
-    headers['x-coach-verified'] = '1';
-  }
-  if (actingRole === 'parent') {
-    headers['x-guardian-athlete-ids'] = targetAthleteId;
-  }
-
-  return headers;
+  return buildApiAuthHeaders({
+    actingRole,
+    coachAthleteIds: actingRole === 'coach' ? [targetAthleteId] : undefined,
+    guardianAthleteIds: actingRole === 'parent' ? [targetAthleteId] : undefined,
+    coachVerified: actingRole === 'coach' && currentUser.isVerified,
+  });
 }
 
 function toUiBodyPart(apiType: string): BodyPart {
@@ -956,14 +941,15 @@ async function getAthleteInjuries(athleteId: string): Promise<Injury[]> {
     try {
       const apiAthleteId = toApiAthleteId(athleteId);
       const currentUser = await authService.getCurrentUser().catch(() => null);
-      const coachUserId = currentUser?.id ?? 'coach1';
-      const headers: Record<string, string> = {
-        'x-auth-user-id': toApiUserId(coachUserId),
-        'x-auth-roles': 'coach',
-        'x-acting-role': 'coach',
-        'x-coach-athlete-ids': apiAthleteId,
-        'x-coach-verified': '1',
-      };
+      const actingRole = deriveApiActingRole(currentUser);
+      const headers = currentUser?.id
+        ? buildApiAuthHeaders({
+            actingRole,
+            coachAthleteIds: actingRole === 'coach' ? [apiAthleteId] : undefined,
+            guardianAthleteIds: actingRole === 'parent' ? [apiAthleteId] : undefined,
+            coachVerified: actingRole === 'coach' && currentUser.isVerified,
+          })
+        : {};
       const result = await apiFetch<ApiInjuriesResponse>(`/athletes/${apiAthleteId}/injuries`, {
         method: 'GET',
         headers,

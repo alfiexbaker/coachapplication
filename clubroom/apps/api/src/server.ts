@@ -2,7 +2,7 @@ import { buildApp } from './app.js';
 import { env } from '@clubroom/config';
 
 async function main() {
-  const app = buildApp();
+  const app = buildApp({ allowTestAuthHeaders: false });
 
   try {
     await app.listen({

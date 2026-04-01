@@ -214,4 +214,46 @@ describe('auth routes', () => {
     });
     assert.equal(refreshAfterRevoke.statusCode, 401);
   });
+
+  it('rejects scaffold auth headers when runtime header override is disabled', async () => {
+    const runtimeApp = buildApp({ allowTestAuthHeaders: false });
+
+    try {
+      const headerOnlyMe = await runtimeApp.inject({
+        method: 'GET',
+        url: '/v1/auth/me',
+        headers: {
+          'x-auth-user-id': 'usr_coach1',
+          'x-auth-roles': 'coach',
+          'x-acting-role': 'coach',
+        },
+      });
+      assert.equal(headerOnlyMe.statusCode, 403);
+
+      const login = await runtimeApp.inject({
+        method: 'POST',
+        url: '/v1/auth/login',
+        payload: {
+          email: 'amelia.shaw@clubroom.demo',
+          password: 'coach',
+        },
+      });
+      assert.equal(login.statusCode, 200);
+      const loginPayload = login.json() as {
+        tokens: { accessToken: string };
+      };
+
+      const bearerMe = await runtimeApp.inject({
+        method: 'GET',
+        url: '/v1/auth/me',
+        headers: {
+          authorization: `Bearer ${loginPayload.tokens.accessToken}`,
+          'x-acting-role': 'coach',
+        },
+      });
+      assert.equal(bearerMe.statusCode, 200);
+    } finally {
+      await runtimeApp.close();
+    }
+  });
 });

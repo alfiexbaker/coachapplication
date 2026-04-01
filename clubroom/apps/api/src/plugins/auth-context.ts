@@ -2,12 +2,17 @@ import fp from 'fastify-plugin';
 import type { FastifyPluginAsync } from 'fastify';
 import { resolveDevSessionFromBearerToken } from '../lib/dev-auth.js';
 
+interface AuthContextPluginOptions {
+  allowHeaderOverride?: boolean;
+}
+
 /**
- * Temporary auth context plugin for scaffolding.
- * Replace with Auth0 JWT validation + local session checks in Sprint 01.
+ * Runtime auth context for dev-session bearer tokens.
+ * Header-based auth override is restricted to explicit test harness usage.
  */
-const authPlaceholderPlugin: FastifyPluginAsync = async (app) => {
+const authContextPlugin: FastifyPluginAsync<AuthContextPluginOptions> = async (app, options) => {
   app.decorateRequest('auth', undefined);
+  const allowHeaderOverride = options.allowHeaderOverride === true;
 
   const parseCsvHeader = (value: unknown): string[] => {
     const raw = Array.isArray(value) ? value.join(',') : typeof value === 'string' ? value : '';
@@ -24,30 +29,43 @@ const authPlaceholderPlugin: FastifyPluginAsync = async (app) => {
     return /^usr_[A-Za-z0-9-]+$/.test(value) ? value : null;
   };
 
+  const resolveActingRole = (roles: string[], value: unknown): string | undefined => {
+    if (typeof value !== 'string') {
+      return roles[0];
+    }
+
+    const requestedRole = value.trim();
+    if (!requestedRole) {
+      return roles[0];
+    }
+
+    return roles.includes(requestedRole) ? requestedRole : roles[0];
+  };
+
   app.addHook('preHandler', async (request) => {
-    const actingRole =
-      typeof request.headers['x-acting-role'] === 'string'
-        ? request.headers['x-acting-role']
-        : undefined;
     const authorizationHeader =
       typeof request.headers.authorization === 'string' ? request.headers.authorization : '';
     const bearerToken = authorizationHeader.startsWith('Bearer ')
       ? authorizationHeader.slice('Bearer '.length).trim()
       : '';
-    const bearerSession = bearerToken ? resolveDevSessionFromBearerToken(bearerToken) : null;
 
-    if (bearerSession) {
+    if (bearerToken) {
+      const bearerSession = resolveDevSessionFromBearerToken(bearerToken);
+      if (!bearerSession) {
+        request.auth = undefined;
+        return;
+      }
+
       request.auth = {
         userId: bearerSession.userId,
         roles: bearerSession.roles,
-        actingRole:
-          actingRole && bearerSession.roles.includes(actingRole) ? actingRole : bearerSession.roles[0],
+        actingRole: resolveActingRole(bearerSession.roles, request.headers['x-acting-role']),
         sessionId: bearerSession.sessionId,
       };
       return;
     }
 
-    if (bearerToken) {
+    if (!allowHeaderOverride) {
       request.auth = undefined;
       return;
     }
@@ -55,14 +73,18 @@ const authPlaceholderPlugin: FastifyPluginAsync = async (app) => {
     const headerUserId = validUserId(request.headers['x-auth-user-id']);
     const headerRoles = parseCsvHeader(request.headers['x-auth-roles']);
 
-    // Dev-only scaffold context. Do not keep this in production.
+    if (!headerUserId || headerRoles.length === 0) {
+      request.auth = undefined;
+      return;
+    }
+
     request.auth = {
-      userId: headerUserId ?? 'usr_dev-scaffold',
-      roles: headerRoles.length > 0 ? headerRoles : ['coach', 'parent', 'athlete', 'club_admin'],
-      actingRole,
-      sessionId: 'ses_dev_scaffold',
+      userId: headerUserId,
+      roles: headerRoles,
+      actingRole: resolveActingRole(headerRoles, request.headers['x-acting-role']),
+      sessionId: 'ses_test_header_override',
     };
   });
 };
 
-export default fp(authPlaceholderPlugin, { name: 'auth-placeholder' });
+export default fp(authContextPlugin, { name: 'auth-context' });

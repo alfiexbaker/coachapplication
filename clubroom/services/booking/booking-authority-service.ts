@@ -1,5 +1,11 @@
-import { authService } from '@/services/auth-service';
 import { apiFetch } from '@/services/api-client';
+import {
+  buildApiAuthHeaders,
+  deriveApiActingRole,
+  resolveSignedInApiUser,
+  toApiAthleteId,
+  toApiUserId,
+} from '@/services/api-auth-context';
 import { createLogger } from '@/utils/logger';
 import { err, ok, serviceError, type Result, type ServiceError } from '@/types/result';
 
@@ -60,49 +66,19 @@ interface CreateApiBookingInput {
   totalPrice?: number;
 }
 
-function toApiUserId(userId: string): string {
-  return userId.startsWith('usr_') ? userId : `usr_${userId.replace(/^ath_/, '')}`;
-}
-
-function toApiAthleteId(athleteId: string): string {
-  return athleteId.startsWith('ath_') ? athleteId : `ath_${athleteId.replace(/^usr_/, '')}`;
-}
-
 function toApiScheduledAt(scheduledAt: string): string {
   const parsed = new Date(scheduledAt);
   return Number.isNaN(parsed.getTime()) ? scheduledAt : parsed.toISOString();
 }
 
-function deriveActingRole(
-  user: Awaited<ReturnType<typeof authService.getCurrentUser>>,
-): ActingRole {
-  if (user?.roles?.includes('club_admin')) {
-    return 'club_admin';
-  }
-  if (user?.accountType === 'COACH') {
-    return 'coach';
-  }
-  if (user?.accountType === 'PARENT') {
-    return 'parent';
-  }
-  return 'athlete';
-}
-
 async function resolveBookingAccessHeaders(): Promise<Result<Record<string, string>, ServiceError>> {
-  const currentUser = await authService.getCurrentUser();
-  if (!currentUser?.id) {
-    return err(serviceError('UNAUTHORIZED', 'Sign in to manage bookings.'));
+  const currentUserResult = await resolveSignedInApiUser('Sign in to manage bookings.');
+  if (!currentUserResult.success) {
+    return currentUserResult;
   }
 
-  const actingRole = deriveActingRole(currentUser);
-  const roles = new Set(currentUser.roles ?? []);
-  roles.add(actingRole);
-
-  return ok({
-    'x-auth-user-id': toApiUserId(currentUser.id),
-    'x-auth-roles': Array.from(roles).join(','),
-    'x-acting-role': actingRole,
-  });
+  const actingRole = deriveApiActingRole(currentUserResult.data) as ActingRole;
+  return ok(buildApiAuthHeaders({ actingRole }));
 }
 
 class BookingAuthorityService {
