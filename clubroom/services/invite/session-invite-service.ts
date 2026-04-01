@@ -11,9 +11,13 @@
  * 4. COACH: Gets notification of response -> Booking created if accepted
  *
  * API Integration Notes:
+ * - POST /v1/invites - Create invite
  * - GET /v1/invites?coachUserId=X - Coach's sent invites
  * - GET /v1/invites?parentUserId=X - Parent's received invites
  * - GET /v1/invites/:inviteId - Invite detail
+ * - DELETE /v1/invites/:inviteId - Cancel invite
+ * - POST /v1/invites/:inviteId/remind - Reminder
+ * - POST /v1/invites/:inviteId/dismiss - Dismiss from parent inbox
  * - POST /v1/invites/:inviteId/respond - Accept/decline
  * - WebSocket event: session_invite_received
  */
@@ -48,6 +52,17 @@ import { sessionInviteAuthorityService } from './session-invite-authority-servic
 const logger = createLogger('SessionInviteService');
 
 const USE_MOCK = api.useMock;
+
+function isServiceError(value: unknown): value is ServiceError {
+  return Boolean(
+    value
+    && typeof value === 'object'
+    && 'code' in value
+    && typeof (value as { code?: unknown }).code === 'string'
+    && 'message' in value
+    && typeof (value as { message?: unknown }).message === 'string',
+  );
+}
 
 // ============================================================================
 // TYPE DEFINITIONS
@@ -382,8 +397,23 @@ export const sessionInviteService = {
       }
     }
 
-    const invite = await this._createSingleInvite(input);
-    return ok(invite);
+    try {
+      const invite = await this._createSingleInvite(input);
+      return ok(invite);
+    } catch (error) {
+      if (isServiceError(error)) {
+        return err(error);
+      }
+
+      const message = error instanceof Error ? error.message : 'Failed to create invite';
+      logger.error('Failed to create invite', {
+        coachId: input.coachId,
+        parentId: input.parentId,
+        athleteIds: input.athleteIds,
+        error,
+      });
+      return err(serviceError('UNKNOWN', message, error));
+    }
   },
 
   /**
@@ -522,12 +552,12 @@ export const sessionInviteService = {
       return newInvite;
     }
 
-    const response = await fetch('/api/session-invites', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(newInvite),
-    });
-    return response.json();
+    const result = await sessionInviteAuthorityService.createInvite(input);
+    if (!result.success) {
+      throw result.error;
+    }
+
+    return result.data;
   },
 
   /**
@@ -728,9 +758,14 @@ export const sessionInviteService = {
       return;
     }
 
-    await fetch(`/api/session-invites/${inviteId}`, {
-      method: 'DELETE',
-    });
+    const result = await sessionInviteAuthorityService.cancelInvite(inviteId);
+    if (!result.success) {
+      logger.error('Failed to cancel invite via API', {
+        inviteId,
+        error: result.error,
+      });
+      throw result.error;
+    }
   },
 
   /**
@@ -784,10 +819,7 @@ export const sessionInviteService = {
       return ok(undefined);
     }
 
-    await fetch(`/api/session-invites/${inviteId}/remind`, {
-      method: 'POST',
-    });
-    return ok(undefined);
+    return sessionInviteAuthorityService.sendInviteReminder(inviteId);
   },
 
   /**
@@ -806,9 +838,14 @@ export const sessionInviteService = {
       return;
     }
 
-    await fetch(`/api/session-invites/${inviteId}/dismiss`, {
-      method: 'POST',
-    });
+    const result = await sessionInviteAuthorityService.dismissInvite(inviteId);
+    if (!result.success) {
+      logger.error('Failed to dismiss invite via API', {
+        inviteId,
+        error: result.error,
+      });
+      throw result.error;
+    }
   },
 
   // ==========================================================================
@@ -887,8 +924,15 @@ export const sessionInviteService = {
       return invitesCache;
     }
 
-    const response = await fetch('/api/session-invites');
-    return response.json();
+    const result = await sessionInviteAuthorityService.getInviteHistory();
+    if (!result.success) {
+      logger.error('Failed to load invite history via API', {
+        error: result.error,
+      });
+      return [];
+    }
+
+    return result.data;
   },
 
   /**
@@ -937,8 +981,16 @@ export const sessionInviteService = {
           !inv.dismissed,
       );
     }
-    const response = await fetch('/api/session-invites?inviteType=OPEN');
-    return response.json();
+
+    const result = await sessionInviteAuthorityService.getOpenInvites();
+    if (!result.success) {
+      logger.error('Failed to load open invites via API', {
+        error: result.error,
+      });
+      return [];
+    }
+
+    return result.data;
   },
 
   /**
@@ -952,8 +1004,17 @@ export const sessionInviteService = {
           inv.inviteType === 'CLOSED' && accountIdsMatch(inv.parentId, parentId) && !inv.dismissed,
       );
     }
-    const response = await fetch(`/api/session-invites?inviteType=CLOSED&parentId=${parentId}`);
-    return response.json();
+
+    const result = await sessionInviteAuthorityService.getClosedInvitesForParent(parentId);
+    if (!result.success) {
+      logger.error('Failed to load closed invites via API', {
+        parentId,
+        error: result.error,
+      });
+      return [];
+    }
+
+    return result.data;
   },
 
   /**
@@ -974,10 +1035,21 @@ export const sessionInviteService = {
         return false;
       });
     }
-    const response = await fetch(
-      `/api/session-invites?inviteType=SQUAD_ONLY&parentId=${parentId}&squadIds=${memberSquadIds.join(',')}`,
+
+    const result = await sessionInviteAuthorityService.getSquadOnlyInvitesForParent(
+      parentId,
+      memberSquadIds,
     );
-    return response.json();
+    if (!result.success) {
+      logger.error('Failed to load squad-only invites via API', {
+        parentId,
+        memberSquadIds,
+        error: result.error,
+      });
+      return [];
+    }
+
+    return result.data;
   },
 
   /**
@@ -1005,10 +1077,21 @@ export const sessionInviteService = {
         return false;
       });
     }
-    const response = await fetch(
-      `/api/session-invites/available?parentId=${parentId}&squadIds=${memberSquadIds.join(',')}`,
+
+    const result = await sessionInviteAuthorityService.getAvailableInvitesForParent(
+      parentId,
+      memberSquadIds,
     );
-    return response.json();
+    if (!result.success) {
+      logger.error('Failed to load available invites via API', {
+        parentId,
+        memberSquadIds,
+        error: result.error,
+      });
+      return [];
+    }
+
+    return result.data;
   },
 
   /**

@@ -55,10 +55,11 @@ Clubs manage staff, squads, visibility, and operating relationships.
   - API auth is still scaffold-first and seed-backed
   - family medical, safeguarding incident creation, direct booking creation, booking cancel/reopen, and group-session registration now use `/v1` in non-mock mode
   - booking list/detail reads now also use `/v1/bookings` and `/v1/bookings/:bookingId` in non-mock mode, with local storage acting as a mirror instead of the authority
-  - session-invite inbox/detail/acceptance now use `/v1/invites`, `/v1/invites/:inviteId`, and `/v1/invites/:inviteId/respond` in non-mock mode through `services/invite/session-invite-authority-service.ts`
+  - session-invite create/list/detail/respond/cancel/remind/dismiss now use `/v1/invites*` in non-mock mode through `services/invite/session-invite-authority-service.ts`
+  - direct invite acceptance now creates bookings through the `/v1` invite path instead of falling back to removed legacy `/api/session-invites/*` behavior
   - booking changes are intentionally `cancel` or `reopen`; the old counter-offer and invite counter workflow has been removed from the runtime product surface
   - coach scheduling rules no longer advertise a separate reschedule policy; bookings now change by cancellation and rebooking/reopening instead of negotiation
-  - the remaining delegated booking seam is session-invite creation/cancel/remind/dismiss plus the wider invite-mediated booking-change flows, which are still not backend-authoritative by default
+  - the main trust/auth gap is now session lifecycle and production identity, not the session-invite transport seam
 - Club-facing schedule surfaces now use a `ClubActivity` read model to link `ClubEvent` and `GroupSession`
   - `ClubActivity` now also includes `Match`, so club and squad schedule routes can show events, training, and matches in one surface
   - club-linked open group sessions are treated as mixed-access training, not as a separate public product world
@@ -131,7 +132,7 @@ Real enough to build on:
 
 Still transitional:
 - auth and session contract between app and API
-- authoritative backend ownership for the remaining session-invite write model, invite-mediated booking-change flows, and broader trust/ops data
+- authoritative backend ownership for production identity, broader trust/ops data, and the still-removed historical invite counter/change negotiation model
 - `ClubActivity` is currently a read model, not a backend-owned entity
 - observability across app plus API
 - some local audit scripts that depend on missing shell tooling
@@ -139,7 +140,7 @@ Still transitional:
 ## Highest-Value Priorities
 
 1. Unify frontend auth and backend `/v1` authz.
-2. Finish backend-authoritative cutover for the remaining sensitive domains, especially session-invite writes, invite-mediated booking-change flows, and trust/ops follow-through.
+2. Finish backend-authoritative cutover for production identity/session controls and trust/ops follow-through.
 3. Wire Sentry across Expo native, Expo web, and `apps/api`.
 4. Make repo-critical quality scripts honest when local tooling is missing.
 5. Keep docs thin and update them when runtime truth changes.

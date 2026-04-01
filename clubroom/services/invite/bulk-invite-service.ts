@@ -7,8 +7,6 @@
  * - Invite selected squad members
  */
 
-import { api } from '@/constants/config';
-import { generateId } from '@/utils/generate-id';
 import { type Result, type ServiceError, ok, err, notFound, validationError } from '@/types/result';
 import type {
   SessionInvite,
@@ -28,24 +26,18 @@ import { createLogger } from '@/utils/logger';
 
 import {
   sessionInviteService,
-  loadFromStorage,
-  saveToStorage,
   getInvitesCache,
-  setInvitesCache,
   type CreateInviteInput,
 } from './session-invite-service';
+import { sessionInviteAuthorityService } from './session-invite-authority-service';
 
 import {
   squadInviteService,
   loadSquadSessionInvites,
   saveSquadSessionInvites,
-  getSquadSessionInvitesCache,
-  setSquadSessionInvitesCache,
 } from './squad-invite-service';
 
 const logger = createLogger('BulkInviteService');
-
-const USE_MOCK = api.useMock;
 
 async function resolveUserName(userId: string, fallback: string): Promise<string> {
   const userResult = await userService.getUserById(userId);
@@ -133,66 +125,46 @@ export const bulkInviteService = {
     const successful: SessionInvite[] = [];
     const failed: { input: CreateInviteInput; error: string }[] = [];
 
-    if (USE_MOCK) {
-      let invitesCache = await loadFromStorage();
-
-      for (const input of inputs) {
-        try {
-          const expiresAt = new Date();
-          expiresAt.setDate(expiresAt.getDate() + (input.expiresInDays || 7));
-
-          const newInvite: SessionInvite = {
-            id: generateId('inv'),
-            coachId: input.coachId,
-            clubName: input.clubName,
-            athleteIds: input.athleteIds,
-            parentId: input.parentId,
-            proposedSlots: input.proposedSlots,
-            sessionType: input.sessionType,
-            focus: input.focus,
-            notes: input.notes,
-            price: input.price,
-            status: 'PENDING',
-            expiresAt: expiresAt.toISOString(),
-            createdAt: new Date().toISOString(),
-            groupId,
-          };
-
-          invitesCache.push(newInvite);
-          successful.push(newInvite);
-        } catch (error) {
-          failed.push({
-            input,
-            error: error instanceof Error ? error.message : 'Unknown error',
-          });
-        }
+    for (const input of inputs) {
+      try {
+        const invite = await sessionInviteService._createSingleInvite({
+          ...input,
+          groupId: input.groupId ?? groupId,
+        });
+        successful.push(invite);
+      } catch (error) {
+        failed.push({
+          input,
+          error: error instanceof Error ? error.message : 'Unknown error',
+        });
       }
-
-      await saveToStorage(invitesCache);
-      setInvitesCache(invitesCache);
-      return { successful, failed, groupId };
     }
 
-    // API call for bulk creation
-    const response = await fetch('/api/session-invites/bulk', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ invites: inputs, groupId }),
-    });
-    return response.json();
+    return { successful, failed, groupId };
   },
 
   /**
    * Get all invites that are part of a group send
    */
   async getGroupInvites(groupId: string): Promise<SessionInvite[]> {
-    if (USE_MOCK) {
-      const invitesCache = await loadFromStorage();
-      return invitesCache.filter((inv) => inv.groupId === groupId);
+    const invitesCache = getInvitesCache();
+    if (invitesCache.length > 0) {
+      const localMatches = invitesCache.filter((inv) => inv.groupId === groupId);
+      if (localMatches.length > 0) {
+        return localMatches;
+      }
     }
 
-    const response = await fetch(`/api/session-invites?groupId=${groupId}`);
-    return response.json();
+    const result = await sessionInviteAuthorityService.getGroupInvites(groupId);
+    if (!result.success) {
+      logger.error('Failed to load group invites via API', {
+        groupId,
+        error: result.error,
+      });
+      return [];
+    }
+
+    return result.data;
   },
 
   /**
@@ -393,63 +365,61 @@ export const bulkInviteService = {
       parentMap.set(m.parentId, [...existing, m]);
     });
 
-    if (USE_MOCK) {
-      // Create invites for each parent
-      for (const [parentId, athletes] of parentMap.entries()) {
-        try {
-          const athleteIds = athletes.map((a) => a.athleteId);
-          const [athleteNames, parentName] = await Promise.all([
-            resolveAthleteNames(athleteIds),
-            resolveUserName(parentId, 'Parent'),
-          ]);
+    // Create invites for each parent
+    for (const [parentId, athletes] of parentMap.entries()) {
+      try {
+        const athleteIds = athletes.map((a) => a.athleteId);
+        const [athleteNames, parentName] = await Promise.all([
+          resolveAthleteNames(athleteIds),
+          resolveUserName(parentId, 'Parent'),
+        ]);
 
-          const invite = await sessionInviteService._createSingleInvite({
-            coachId: input.coachId,
-            coachName: input.coachName,
-            coachPhotoUrl: input.coachPhotoUrl,
-            clubName: input.clubName || squad.name,
-            athleteIds,
-            athleteNames,
-            parentId,
-            parentName,
-            proposedSlots: input.proposedSlots,
-            sessionType: input.sessionType,
-            focus: input.focus,
-            notes: input.notes ? `[${squad.name}] ${input.notes}` : `Squad Training: ${squad.name}`,
-            price: input.price,
-            expiresInDays: input.expiresInDays ?? 7,
-            groupId,
-          });
+        const invite = await sessionInviteService._createSingleInvite({
+          coachId: input.coachId,
+          coachName: input.coachName,
+          coachPhotoUrl: input.coachPhotoUrl,
+          clubName: input.clubName || squad.name,
+          athleteIds,
+          athleteNames,
+          parentId,
+          parentName,
+          proposedSlots: input.proposedSlots,
+          sessionType: input.sessionType,
+          focus: input.focus,
+          notes: input.notes ? `[${squad.name}] ${input.notes}` : `Squad Training: ${squad.name}`,
+          price: input.price,
+          expiresInDays: input.expiresInDays ?? 7,
+          groupId,
+        });
 
-          // Mark all athletes for this parent as sent
-          athletes.forEach((athlete) => {
-            invitedMembers.push({
-              memberId: athlete.id,
-              athleteId: athlete.athleteId,
-              parentId: athlete.parentId,
-              inviteId: invite.id,
-              status: 'SENT',
-            });
-            sent++;
+        // Mark all athletes for this parent as sent
+        athletes.forEach((athlete) => {
+          invitedMembers.push({
+            memberId: athlete.id,
+            athleteId: athlete.athleteId,
+            parentId: athlete.parentId,
+            inviteId: invite.id,
+            status: 'SENT',
           });
-        } catch (error) {
-          // Mark all athletes for this parent as failed
-          athletes.forEach((athlete) => {
-            invitedMembers.push({
-              memberId: athlete.id,
-              athleteId: athlete.athleteId,
-              parentId: athlete.parentId,
-              status: 'FAILED',
-              failureReason: error instanceof Error ? error.message : 'Unknown error',
-            });
-            errors.push({
-              memberId: athlete.id,
-              error: error instanceof Error ? error.message : 'Unknown error',
-              code: 'UNKNOWN',
-            });
-            failed++;
+          sent++;
+        });
+      } catch (error) {
+        // Mark all athletes for this parent as failed
+        athletes.forEach((athlete) => {
+          invitedMembers.push({
+            memberId: athlete.id,
+            athleteId: athlete.athleteId,
+            parentId: athlete.parentId,
+            status: 'FAILED',
+            failureReason: error instanceof Error ? error.message : 'Unknown error',
           });
-        }
+          errors.push({
+            memberId: athlete.id,
+            error: error instanceof Error ? error.message : 'Unknown error',
+            code: 'UNKNOWN',
+          });
+          failed++;
+        });
       }
     }
 
@@ -560,60 +530,58 @@ export const bulkInviteService = {
       parentMap.set(m.parentId, [...existing, m]);
     });
 
-    if (USE_MOCK) {
-      for (const [parentId, athletes] of parentMap.entries()) {
-        try {
-          const athleteIds = athletes.map((a) => a.athleteId);
-          const [athleteNames, parentName] = await Promise.all([
-            resolveAthleteNames(athleteIds),
-            resolveUserName(parentId, 'Parent'),
-          ]);
+    for (const [parentId, athletes] of parentMap.entries()) {
+      try {
+        const athleteIds = athletes.map((a) => a.athleteId);
+        const [athleteNames, parentName] = await Promise.all([
+          resolveAthleteNames(athleteIds),
+          resolveUserName(parentId, 'Parent'),
+        ]);
 
-          const invite = await sessionInviteService._createSingleInvite({
-            coachId: input.coachId,
-            coachName: input.coachName,
-            coachPhotoUrl: input.coachPhotoUrl,
-            clubName: input.clubName,
-            athleteIds,
-            athleteNames,
-            parentId,
-            parentName,
-            proposedSlots: input.proposedSlots,
-            sessionType: input.sessionType,
-            focus: input.focus,
-            notes: input.notes,
-            price: input.price,
-            expiresInDays: input.expiresInDays ?? 7,
-            groupId,
-          });
+        const invite = await sessionInviteService._createSingleInvite({
+          coachId: input.coachId,
+          coachName: input.coachName,
+          coachPhotoUrl: input.coachPhotoUrl,
+          clubName: input.clubName,
+          athleteIds,
+          athleteNames,
+          parentId,
+          parentName,
+          proposedSlots: input.proposedSlots,
+          sessionType: input.sessionType,
+          focus: input.focus,
+          notes: input.notes,
+          price: input.price,
+          expiresInDays: input.expiresInDays ?? 7,
+          groupId,
+        });
 
-          athletes.forEach((athlete) => {
-            invitedMembers.push({
-              memberId: athlete.id,
-              athleteId: athlete.athleteId,
-              parentId: athlete.parentId,
-              inviteId: invite.id,
-              status: 'SENT',
-            });
-            sent++;
+        athletes.forEach((athlete) => {
+          invitedMembers.push({
+            memberId: athlete.id,
+            athleteId: athlete.athleteId,
+            parentId: athlete.parentId,
+            inviteId: invite.id,
+            status: 'SENT',
           });
-        } catch (error) {
-          athletes.forEach((athlete) => {
-            invitedMembers.push({
-              memberId: athlete.id,
-              athleteId: athlete.athleteId,
-              parentId: athlete.parentId,
-              status: 'FAILED',
-              failureReason: error instanceof Error ? error.message : 'Unknown error',
-            });
-            errors.push({
-              memberId: athlete.id,
-              error: error instanceof Error ? error.message : 'Unknown error',
-              code: 'UNKNOWN',
-            });
-            failed++;
+          sent++;
+        });
+      } catch (error) {
+        athletes.forEach((athlete) => {
+          invitedMembers.push({
+            memberId: athlete.id,
+            athleteId: athlete.athleteId,
+            parentId: athlete.parentId,
+            status: 'FAILED',
+            failureReason: error instanceof Error ? error.message : 'Unknown error',
           });
-        }
+          errors.push({
+            memberId: athlete.id,
+            error: error instanceof Error ? error.message : 'Unknown error',
+            code: 'UNKNOWN',
+          });
+          failed++;
+        });
       }
     }
 

@@ -6,8 +6,8 @@ Rule: active and current work only.
 | ID | Work | Spine(s) | Status | Source |
 |---|---|---|---|---|
 | AUTH-01 | Unify frontend auth calls with the real `/v1` backend contract and remove `/api/auth/*` drift | Trust/Safety/Ops + Development | DONE | `docs/SOURCE_OF_TRUTH.md`, `CHATGPT.md`, `docs/trust/auth-and-permission-boundaries.md` |
-| API-01 | Finish the remaining backend-authoritative booking seam: session-invite create/cancel/remind/dismiss and invite-mediated booking changes under `/v1` | Trust/Safety/Ops + Booking/Revenue | NOW | `docs/SOURCE_OF_TRUTH.md`, `docs/backend-api/ROUTE_INVENTORY_V1.md`, `docs/backend-api/AUTHZ_AUDIT_AND_SECURITY.md`, `app/session-invites/index.tsx`, `app/session-invites/[id].tsx` |
-| AUTH-02 | Replace seed-backed dev auth with production identity, session controls, and backend authz integration | Trust/Safety/Ops + Development | OPEN | `docs/SOURCE_OF_TRUTH.md`, `docs/trust/auth-and-permission-boundaries.md`, `apps/api/src/plugins/auth-placeholder.ts` |
+| API-01 | Close the session-invite `/v1` authority seam for create/manage/respond flows and direct invite booking creation | Trust/Safety/Ops + Booking/Revenue | DONE | `docs/SOURCE_OF_TRUTH.md`, `docs/backend-api/ROUTE_INVENTORY_V1.md`, `app/session-invites/index.tsx`, `app/session-invites/[id].tsx` |
+| AUTH-02 | Replace seed-backed dev auth with production identity, session controls, and backend authz integration | Trust/Safety/Ops + Development | NOW | `docs/SOURCE_OF_TRUTH.md`, `docs/trust/auth-and-permission-boundaries.md`, `apps/api/src/plugins/auth-placeholder.ts` |
 | OBS-01 | Wire Sentry across Expo native, Expo web, and `apps/api` with release tagging and source maps | Development + Trust/Safety/Ops | OPEN | `docs/SOURCE_OF_TRUTH.md`, `docs/backend-api/README.md` |
 | DX-01 | Fix repo-critical audit and lint scripts so missing shell tooling cannot produce false green signals | Development | OPEN | `docs/product-reality/PRODUCT_REALITY_AUDIT_2026-03-10.md` |
 | GOV-01 | Keep club governance as the shared authority for UI and API authorization decisions | Booking/Revenue + Trust/Safety/Ops | OPEN | `contracts/club-governance.ts`, `docs/architecture/club-relationship-rules.md` |
@@ -20,14 +20,13 @@ Rule: active and current work only.
 
 ## Execution Order
 
-1. `API-01`
-2. `AUTH-02`
-3. `OBS-01`
-4. `LAUNCH-01`
-5. `LAUNCH-02`
-6. `LAUNCH-03`
-7. `LAUNCH-04`
-8. `LAUNCH-05`
-9. `LAUNCH-06`
-10. `DX-01`
-11. `GOV-01` as follow-through on the first three items and launch items
+1. `AUTH-02`
+2. `OBS-01`
+3. `LAUNCH-01`
+4. `LAUNCH-02`
+5. `LAUNCH-03`
+6. `LAUNCH-04`
+7. `LAUNCH-05`
+8. `LAUNCH-06`
+9. `DX-01`
+10. `GOV-01` as follow-through on the first two items and launch items

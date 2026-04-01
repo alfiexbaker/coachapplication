@@ -89,8 +89,12 @@ Status legend:
 | `/v1/group-sessions` | `POST` | `planned` | `GroupSession*` | coach create | `app/group-sessions/create.tsx` |
 | `/v1/group-sessions/:id/register` | `POST` | `scaffolded` | `RegisterGroupSessionRequest`, `RegisterGroupSessionResponse` | athlete self, guardian of athlete, or `club_admin` acting on behalf | `hooks/use-group-session.ts`, `services/group-session/session-registration-service.ts` |
 | `/v1/group-sessions/:id/waitlist` | `POST` | `planned` | `JoinWaitlistRequest` | parent/athlete | group session detail + waitlist banner |
+| `/v1/invites` | `POST` | `scaffolded` | scaffold session-invite create payload + invite snapshot | owner coach self or `club_admin` acting on behalf | `app/sessions/create.tsx`, `hooks/use-create-invite.ts`, `hooks/use-create-session.ts`, `services/invite/session-invite-authority-service.ts` |
 | `/v1/invites` | `GET` | `scaffolded` | scaffold session-invite list response | owner coach sent view or invite target received view for authenticated self | `app/session-invites/index.tsx`, `services/invite/session-invite-authority-service.ts` |
 | `/v1/invites/:inviteId` | `GET` | `scaffolded` | scaffold session-invite detail response | owner coach or invite target only | `app/session-invites/[id].tsx`, `services/invite/session-invite-authority-service.ts` |
+| `/v1/invites/:inviteId` | `DELETE` | `scaffolded` | none | owner coach or `club_admin` | `app/session-invites/index.tsx`, `app/session-invites/[id].tsx`, `services/invite/session-invite-authority-service.ts` |
+| `/v1/invites/:inviteId/remind` | `POST` | `scaffolded` | none | owner coach or `club_admin` | `app/session-invites/[id].tsx`, `services/invite/session-invite-authority-service.ts` |
+| `/v1/invites/:inviteId/dismiss` | `POST` | `scaffolded` | none | invite target only | `app/session-invites/index.tsx`, `services/invite/session-invite-authority-service.ts` |
 | `/v1/invites/:inviteId/respond` | `POST` | `scaffolded` | `InviteResponseRequest`, `InviteResponseResult` plus scaffold invite snapshot | invite target only | `app/session-invites/*`, `services/invite/session-invite-authority-service.ts` |
 | `/v1/events/:eventId/rsvp` | `POST` | `scaffolded` | `EventRsvpRequest` | event audience member | `hooks/use-event-rsvp.ts` |
 
