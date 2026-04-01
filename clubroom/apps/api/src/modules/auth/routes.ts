@@ -5,6 +5,7 @@ import {
   getDevSessionUser,
   refreshDevSession,
   registerDevSessionUser,
+  revokeDevSession,
   updateDevSessionUser,
 } from '../../lib/dev-auth.js';
 import { forbidden } from '../../lib/http-errors.js';
@@ -113,12 +114,29 @@ const authRoutes: FastifyPluginAsync = async (app) => {
     });
   });
 
-  app.post('/auth/logout', async (_request, reply) => {
+  app.post('/auth/logout', async (request, reply) => {
+    if (request.auth?.sessionId) {
+      revokeDevSession({
+        sessionId: request.auth.sessionId,
+        userId: request.auth.userId,
+        reason: 'logout',
+      });
+    }
+
     return reply.status(204).send();
   });
 
   app.post('/auth/revoke', async (request, reply) => {
-    revokeSchema.parse(request.body ?? {});
+    const body = revokeSchema.parse(request.body ?? {});
+    if (request.auth?.sessionId || body.refreshToken) {
+      revokeDevSession({
+        sessionId: request.auth?.sessionId,
+        refreshToken: body.refreshToken,
+        userId: request.auth?.userId,
+        reason: 'self_revoke',
+      });
+    }
+
     return reply.status(204).send();
   });
 

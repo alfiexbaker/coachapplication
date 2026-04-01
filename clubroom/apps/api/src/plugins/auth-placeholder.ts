@@ -47,6 +47,11 @@ const authPlaceholderPlugin: FastifyPluginAsync = async (app) => {
       return;
     }
 
+    if (bearerToken) {
+      request.auth = undefined;
+      return;
+    }
+
     const headerUserId = validUserId(request.headers['x-auth-user-id']);
     const headerRoles = parseCsvHeader(request.headers['x-auth-roles']);
 

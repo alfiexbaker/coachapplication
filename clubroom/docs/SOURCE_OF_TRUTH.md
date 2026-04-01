@@ -1,6 +1,6 @@
 # Clubroom - Single Source of Truth
 
-Last updated: 2026-03-23
+Last updated: 2026-04-01
 Project: football coaching marketplace plus family development tracker
 Status: live-featured Expo app with a real Fastify API alongside it; backend cutover and auth alignment are still in progress
 
@@ -17,11 +17,11 @@ If a statement here conflicts with an old audit or sprint note, trust this file 
 
 ## Current Verified Health
 
-Verified during recent `API-01` slices on 2026-03-19:
+Verified during recent `API-01` + `AUTH-02` slices on 2026-04-01:
 - `npm run typecheck` -> PASS
 - `npm run test:compile` -> PASS
 - `npm --prefix apps/api run typecheck` -> PASS
-- `npm --prefix apps/api run test` -> PASS (`31/31`)
+- `npm --prefix apps/api run test` -> PASS (`39/39`)
 
 Not re-run in this pass:
 - full UI flow suites
@@ -50,16 +50,17 @@ Clubs manage staff, squads, visibility, and operating relationships.
 - Auth transport is now aligned for local development:
   - frontend auth calls `/v1/auth/*`
   - backend runtime exposes matching `/v1/auth/*` routes
-  - bearer dev-session tokens are accepted by the API auth plugin
+  - bearer dev-session tokens are persisted, accepted, and revoked by the temporary API auth plugin
 - The biggest trust seam still not finished is production identity:
   - API auth is still scaffold-first and seed-backed
+  - `/v1/me`, `/v1/me/sessions`, `/v1/me/sessions/revoke-all`, and `/v1/me/sessions/:sessionId/revoke` now exist for dev-session-backed session lifecycle checks and self-service session revocation
   - family medical, safeguarding incident creation, direct booking creation, booking cancel/reopen, and group-session registration now use `/v1` in non-mock mode
   - booking list/detail reads now also use `/v1/bookings` and `/v1/bookings/:bookingId` in non-mock mode, with local storage acting as a mirror instead of the authority
   - session-invite create/list/detail/respond/cancel/remind/dismiss now use `/v1/invites*` in non-mock mode through `services/invite/session-invite-authority-service.ts`
   - direct invite acceptance now creates bookings through the `/v1` invite path instead of falling back to removed legacy `/api/session-invites/*` behavior
   - booking changes are intentionally `cancel` or `reopen`; the old counter-offer and invite counter workflow has been removed from the runtime product surface
   - coach scheduling rules no longer advertise a separate reschedule policy; bookings now change by cancellation and rebooking/reopening instead of negotiation
-  - the main trust/auth gap is now session lifecycle and production identity, not the session-invite transport seam
+  - the main trust/auth gap is now replacing the temporary dev-session/auth-placeholder model with production JWT validation, non-seed session state, and broader backend authz coverage
 - Club-facing schedule surfaces now use a `ClubActivity` read model to link `ClubEvent` and `GroupSession`
   - `ClubActivity` now also includes `Match`, so club and squad schedule routes can show events, training, and matches in one surface
   - club-linked open group sessions are treated as mixed-access training, not as a separate public product world
@@ -140,7 +141,7 @@ Still transitional:
 ## Highest-Value Priorities
 
 1. Unify frontend auth and backend `/v1` authz.
-2. Finish backend-authoritative cutover for production identity/session controls and trust/ops follow-through.
+2. Replace the temporary dev-session/auth-placeholder model with production identity and broader backend authz follow-through.
 3. Wire Sentry across Expo native, Expo web, and `apps/api`.
 4. Make repo-critical quality scripts honest when local tooling is missing.
 5. Keep docs thin and update them when runtime truth changes.

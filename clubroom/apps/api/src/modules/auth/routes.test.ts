@@ -147,4 +147,71 @@ describe('auth routes', () => {
     assert.equal(patchPayload.user.postcode, 'SW1A 1AA');
     assert.equal(patchPayload.user.onboardingComplete, true);
   });
+
+  it('revokes bearer sessions on logout and explicit revoke', async () => {
+    const login = await app.inject({
+      method: 'POST',
+      url: '/v1/auth/login',
+      payload: {
+        email: 'amelia.shaw@clubroom.demo',
+        password: 'coach',
+      },
+    });
+    assert.equal(login.statusCode, 200);
+    const loginPayload = login.json() as {
+      tokens: { accessToken: string; refreshToken: string };
+    };
+
+    const logout = await app.inject({
+      method: 'POST',
+      url: '/v1/auth/logout',
+      headers: {
+        authorization: `Bearer ${loginPayload.tokens.accessToken}`,
+      },
+    });
+    assert.equal(logout.statusCode, 204);
+
+    const meAfterLogout = await app.inject({
+      method: 'GET',
+      url: '/v1/auth/me',
+      headers: {
+        authorization: `Bearer ${loginPayload.tokens.accessToken}`,
+      },
+    });
+    assert.equal(meAfterLogout.statusCode, 403);
+
+    const secondLogin = await app.inject({
+      method: 'POST',
+      url: '/v1/auth/login',
+      payload: {
+        email: 'amelia.shaw@clubroom.demo',
+        password: 'coach',
+      },
+    });
+    assert.equal(secondLogin.statusCode, 200);
+    const secondLoginPayload = secondLogin.json() as {
+      tokens: { accessToken: string; refreshToken: string };
+    };
+
+    const revoke = await app.inject({
+      method: 'POST',
+      url: '/v1/auth/revoke',
+      headers: {
+        authorization: `Bearer ${secondLoginPayload.tokens.accessToken}`,
+      },
+      payload: {
+        refreshToken: secondLoginPayload.tokens.refreshToken,
+      },
+    });
+    assert.equal(revoke.statusCode, 204);
+
+    const refreshAfterRevoke = await app.inject({
+      method: 'POST',
+      url: '/v1/auth/refresh',
+      payload: {
+        refreshToken: secondLoginPayload.tokens.refreshToken,
+      },
+    });
+    assert.equal(refreshAfterRevoke.statusCode, 401);
+  });
 });

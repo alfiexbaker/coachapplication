@@ -202,4 +202,55 @@ describe('p0 dual-mode smoke', () => {
       resetDbFixtureStoreForTests();
     }
   });
+
+  it('keeps /v1/me/sessions response shape identical in seed and db modes', async () => {
+    const tables = loadTables();
+    const authSession = asRows(tables.authSessions)[0];
+    assert.ok(authSession, 'expected seeded auth session');
+    const userId = asString(authSession.userId) as string;
+    const role = rolesForUser(tables, userId)[0] ?? 'parent';
+
+    const originalBackend = env.API_DATA_BACKEND;
+    try {
+      env.API_DATA_BACKEND = 'seed';
+      const seedRes = await app.inject({
+        method: 'GET',
+        url: '/v1/me/sessions',
+        headers: {
+          'x-auth-user-id': userId,
+          'x-auth-roles': rolesForUser(tables, userId).join(','),
+          'x-acting-role': role,
+        },
+      });
+      assert.equal(seedRes.statusCode, 200);
+      const seedPayload = seedRes.json() as Record<string, unknown>;
+
+      env.API_DATA_BACKEND = 'db';
+      const dbRes = await app.inject({
+        method: 'GET',
+        url: '/v1/me/sessions',
+        headers: {
+          'x-auth-user-id': userId,
+          'x-auth-roles': rolesForUser(tables, userId).join(','),
+          'x-acting-role': role,
+        },
+      });
+      assert.equal(dbRes.statusCode, 200);
+      const dbPayload = dbRes.json() as Record<string, unknown>;
+
+      assert.deepEqual(keySet(seedPayload), keySet(dbPayload));
+      assert.deepEqual(
+        keySet((seedPayload.sessions as Record<string, unknown>[])[0] ?? {}),
+        keySet((dbPayload.sessions as Record<string, unknown>[])[0] ?? {}),
+      );
+      assert.deepEqual(
+        keySet(((seedPayload.sessions as Record<string, unknown>[])[0]?.device as Record<string, unknown>) ?? {}),
+        keySet(((dbPayload.sessions as Record<string, unknown>[])[0]?.device as Record<string, unknown>) ?? {}),
+      );
+    } finally {
+      env.API_DATA_BACKEND = originalBackend;
+      resetMarketplaceSeedStoreForTests();
+      resetDbFixtureStoreForTests();
+    }
+  });
 });

@@ -22,6 +22,72 @@ const identityRoutes: FastifyPluginAsync = async (app) => {
       requestId: request.requestId,
     });
   });
+
+  app.get('/me/sessions', async (request, reply) => {
+    const authUserId = request.auth?.userId;
+    if (!authUserId) {
+      throw forbidden('Authenticated user is required');
+    }
+
+    const repository = resolveIdentityRepository();
+    const sessions = await repository.listSessions(authUserId, request.auth?.sessionId ?? null);
+
+    return reply.send({
+      sessions: sessions.sessions,
+      total: sessions.sessions.length,
+      seedVersion: sessions.dataVersion,
+      requestId: request.requestId,
+    });
+  });
+
+  app.post('/me/sessions/revoke-all', async (request, reply) => {
+    const authUserId = request.auth?.userId;
+    if (!authUserId) {
+      throw forbidden('Authenticated user is required');
+    }
+
+    const repository = resolveIdentityRepository();
+    const result = await repository.revokeAllSessions(authUserId, {
+      excludeSessionId: request.auth?.sessionId ?? null,
+    });
+
+    return reply.send({
+      revokedSessionIds: result.revokedSessionIds,
+      revokedCount: result.revokedCount,
+      retainedSessionId: result.retainedSessionId,
+      seedVersion: result.dataVersion,
+      requestId: request.requestId,
+    });
+  });
+
+  app.post('/me/sessions/:sessionId/revoke', async (request, reply) => {
+    const authUserId = request.auth?.userId;
+    if (!authUserId) {
+      throw forbidden('Authenticated user is required');
+    }
+
+    const sessionId =
+      typeof (request.params as { sessionId?: string } | undefined)?.sessionId === 'string'
+        ? (request.params as { sessionId?: string }).sessionId
+        : null;
+    if (!sessionId) {
+      throw forbidden('Session id is required');
+    }
+
+    const repository = resolveIdentityRepository();
+    const result = await repository.revokeSession(
+      authUserId,
+      sessionId,
+      request.auth?.sessionId ?? null,
+    );
+
+    return reply.send({
+      session: result.session,
+      currentSessionRevoked: result.currentSessionRevoked,
+      seedVersion: result.dataVersion,
+      requestId: request.requestId,
+    });
+  });
 };
 
 export default identityRoutes;

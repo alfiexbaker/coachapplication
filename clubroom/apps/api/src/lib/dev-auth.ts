@@ -166,6 +166,8 @@ function createSessionTokens(userId: string, roles: string[], sessionId = newId(
     accessToken: encodeToken({ kind: 'access', userId, roles, sessionId, exp: accessExp }),
     refreshToken: encodeToken({ kind: 'refresh', userId, roles, sessionId, exp: refreshExp }),
     expiresAt: accessExp,
+    accessExp,
+    refreshExp,
     sessionId,
   };
 }
@@ -188,6 +190,151 @@ function findUserProfileRow(tables: SeedTables, userId: string): SeedRow | undef
 
 function findCoachProfileRow(tables: SeedTables, userId: string): SeedRow | undefined {
   return asRows(tables.coachProfiles).find((row) => asString(row.userId) === userId);
+}
+
+function findAuthSessionRow(tables: SeedTables, sessionId: string): SeedRow | undefined {
+  return asRows(tables.authSessions).find((row) => asString(row.id) === sessionId);
+}
+
+function findUserDeviceRow(tables: SeedTables, deviceId: string | undefined): SeedRow | undefined {
+  if (!deviceId) {
+    return undefined;
+  }
+
+  return asRows(tables.userDevices).find((row) => asString(row.id) === deviceId);
+}
+
+function isSessionActive(
+  tables: SeedTables,
+  session: SeedRow | undefined,
+  expectedUserId?: string,
+): session is SeedRow {
+  if (!session) {
+    return false;
+  }
+  if (expectedUserId && asString(session.userId) !== expectedUserId) {
+    return false;
+  }
+  if (asString(session.revokedAt)) {
+    return false;
+  }
+
+  const expiresAt = asString(session.expiresAt);
+  if (expiresAt && Date.parse(expiresAt) <= Date.now()) {
+    return false;
+  }
+
+  const device = findUserDeviceRow(tables, asString(session.userDeviceId));
+  if (device && asString(device.revokedAt)) {
+    return false;
+  }
+
+  return true;
+}
+
+function touchPersistedSession(tables: SeedTables, session: SeedRow): void {
+  const now = isoNow();
+  session.lastSeenAt = now;
+  session.updatedAt = now;
+
+  const device = findUserDeviceRow(tables, asString(session.userDeviceId));
+  if (device) {
+    device.lastSeenAt = now;
+    device.updatedAt = now;
+  }
+}
+
+function persistDevSessionRecord(params: {
+  tables: SeedTables;
+  userId: string;
+  sessionId: string;
+  refreshExp: number;
+  userAgent?: string;
+}): SeedRow {
+  const { tables, userId, sessionId, refreshExp, userAgent = 'ClubroomDevAuth/1.0' } = params;
+  const sessions = asRows(tables.authSessions);
+  const devices = asRows(tables.userDevices);
+  const now = isoNow();
+  const expiresAt = new Date(refreshExp).toISOString();
+  let session = findAuthSessionRow(tables, sessionId);
+
+  if (!session) {
+    const user = asRows(tables.users).find((row) => asString(row.id) === userId);
+    const userName = asString(user?.name)?.trim() || 'Clubroom';
+    const deviceId = newId('udv');
+    const deviceRow: SeedRow = {
+      id: deviceId,
+      userId,
+      platform: 'dev',
+      deviceLabel: `${userName} dev session`,
+      pushToken: null,
+      lastSeenAt: now,
+      revokedAt: null,
+      createdAt: now,
+      updatedAt: now,
+    };
+    devices.push(deviceRow);
+
+    session = {
+      id: sessionId,
+      userId,
+      userDeviceId: deviceId,
+      jwtId: newId('jwt'),
+      refreshTokenId: newId('rfr'),
+      issuedAt: now,
+      expiresAt,
+      lastSeenAt: now,
+      ipHash: newId('iph'),
+      userAgent,
+      revokedAt: null,
+      revokeReason: null,
+      createdAt: now,
+      updatedAt: now,
+    };
+    sessions.push(session);
+    return session;
+  }
+
+  session.jwtId = newId('jwt');
+  session.refreshTokenId = newId('rfr');
+  session.expiresAt = expiresAt;
+  session.lastSeenAt = now;
+  session.userAgent = userAgent;
+  session.revokedAt = null;
+  session.revokeReason = null;
+  session.updatedAt = now;
+
+  const device = findUserDeviceRow(tables, asString(session.userDeviceId));
+  if (device) {
+    device.lastSeenAt = now;
+    device.updatedAt = now;
+  }
+
+  return session;
+}
+
+function revokePersistedSession(params: {
+  tables: SeedTables;
+  sessionId: string;
+  userId?: string;
+  reason: string;
+}): SeedRow {
+  const session = findAuthSessionRow(params.tables, params.sessionId);
+  if (!session) {
+    throw unauthorized('Session not found');
+  }
+  if (params.userId && asString(session.userId) !== params.userId) {
+    throw unauthorized('Session does not belong to authenticated user');
+  }
+
+  if (!asString(session.revokedAt)) {
+    const now = isoNow();
+    session.revokedAt = now;
+    session.revokeReason = params.reason;
+    session.updatedAt = now;
+  }
+
+  return session;
 }
 
 function normalizeChildRelationshipType(value: unknown): 'PARENT_CHILD' | 'GUARDIAN' {
@@ -279,6 +426,13 @@ export function resolveDevSessionFromBearerToken(token: string): DevSessionConte
     return null;
   }
 
+  const store = getMarketplaceSeedStore();
+  const session = findAuthSessionRow(store.tables, decoded.sessionId);
+  if (!isSessionActive(store.tables, session, decoded.userId)) {
+    return null;
+  }
+  touchPersistedSession(store.tables, session);
+
   return {
     userId: decoded.userId,
     roles: decoded.roles,
@@ -309,6 +463,12 @@ export function createDevSessionByEmail(email: string, password: string): DevAut
   }
 
   const tokens = createSessionTokens(userId, roles);
+  persistDevSessionRecord({
+    tables: store.tables,
+    userId,
+    sessionId: tokens.sessionId,
+    refreshExp: tokens.refreshExp,
+  });
   return {
     user: buildApiUserProfile(store.tables, userId),
     tokens: {
@@ -325,11 +485,98 @@ export function refreshDevSession(refreshToken: string) {
     throw unauthorized('Invalid refresh token');
   }
 
-  const tokens = createSessionTokens(decoded.userId, decoded.roles, decoded.sessionId);
+  const store = getMarketplaceSeedStore();
+  const session = findAuthSessionRow(store.tables, decoded.sessionId);
+  if (!isSessionActive(store.tables, session, decoded.userId)) {
+    throw unauthorized('Session expired. Please log in again.');
+  }
+
+  const roles = findRoleRows(store.tables, decoded.userId);
+  const tokens = createSessionTokens(
+    decoded.userId,
+    roles.length > 0 ? roles : decoded.roles,
+    decoded.sessionId,
+  );
+  persistDevSessionRecord({
+    tables: store.tables,
+    userId: decoded.userId,
+    sessionId: decoded.sessionId,
+    refreshExp: tokens.refreshExp,
+  });
   return {
     accessToken: tokens.accessToken,
     refreshToken: tokens.refreshToken,
     expiresAt: tokens.expiresAt,
+  };
+}
+
+export function revokeDevSession(params: {
+  sessionId?: string;
+  refreshToken?: string;
+  userId?: string;
+  reason?: string;
+}) {
+  const store = getMarketplaceSeedStore();
+  let sessionId = params.sessionId;
+
+  if (!sessionId && params.refreshToken) {
+    const decoded = decodeToken(params.refreshToken);
+    if (!decoded || decoded.kind !== 'refresh') {
+      throw unauthorized('Invalid refresh token');
+    }
+    sessionId = decoded.sessionId;
+  }
+
+  if (!sessionId) {
+    throw badRequest('Session id or refresh token is required');
+  }
+
+  const session = revokePersistedSession({
+    tables: store.tables,
+    sessionId,
+    userId: params.userId,
+    reason: params.reason ?? 'self_revoke',
+  });
+
+  return {
+    sessionId,
+    revokedAt: asString(session.revokedAt) ?? isoNow(),
+  };
+}
+
+export function revokeAllDevSessionsForUser(
+  userId: string,
+  options: {
+    excludeSessionId?: string | null;
+    reason?: string;
+  } = {},
+) {
+  const store = getMarketplaceSeedStore();
+  const sessions = asRows(store.tables.authSessions);
+  const now = isoNow();
+  const revokedSessionIds: string[] = [];
+
+  for (const session of sessions) {
+    const sessionId = asString(session.id);
+    if (!sessionId || asString(session.userId) !== userId) {
+      continue;
+    }
+    if (options.excludeSessionId && sessionId === options.excludeSessionId) {
+      continue;
+    }
+    if (asString(session.revokedAt)) {
+      continue;
+    }
+
+    session.revokedAt = now;
+    session.revokeReason = options.reason ?? 'revoke_all';
+    session.updatedAt = now;
+    revokedSessionIds.push(sessionId);
+  }
+
+  return {
+    revokedSessionIds,
+    retainedSessionId: options.excludeSessionId ?? null,
   };
 }
 
@@ -512,6 +759,12 @@ export function registerDevSessionUser(input: {
   }
 
   const tokens = createSessionTokens(userId, [role]);
+  persistDevSessionRecord({
+    tables,
+    userId,
+    sessionId: tokens.sessionId,
+    refreshExp: tokens.refreshExp,
+  });
   return {
     user: buildApiUserProfile(tables, userId),
     tokens: {

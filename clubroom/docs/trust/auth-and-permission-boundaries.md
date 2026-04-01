@@ -1,6 +1,6 @@
 # Auth And Permission Boundaries
 
-Validated: 2026-03-11
+Validated: 2026-04-01
 Purpose: state what is enforced today, what is design truth, and where auth and permission work is still incomplete.
 
 ## Canonical Sources
@@ -36,7 +36,7 @@ Current backend authorization has two layers:
 Validated reality:
 
 - the backend auth plugin is explicitly marked temporary
-- it builds auth context from dev headers and defaults
+- it still accepts scaffold headers, but bearer dev-session tokens now map to persisted `authSessions` rows and can be revoked
 - this is not production authentication
 
 ## What Is Real Today
@@ -44,6 +44,8 @@ Validated reality:
 - Frontend role-aware navigation and redirects exist
 - Backend test coverage exists for several authz-sensitive routes
 - Trust and medical access rules are partially modeled in backend authz helpers
+- `/v1/me/sessions`, `/v1/me/sessions/revoke-all`, and `/v1/me/sessions/:sessionId/revoke` now exist for scaffolded self-session visibility and revocation
+- `/v1/auth/logout` and `/v1/auth/revoke` now revoke the current dev session instead of acting as no-ops
 
 ## What Is Still Design Truth, Not Full Runtime Truth
 
@@ -72,5 +74,5 @@ Validated reality:
 ## Validation Notes
 
 - The frontend auth client now calls `/v1/auth/*`.
-- The backend app exposes matching `/v1/auth/*` routes and accepts bearer dev-session tokens.
-- This closes the transport mismatch, but it does not mean production identity, session revocation, or backend authorization are complete.
+- The backend app exposes matching `/v1/auth/*` routes, persists bearer dev sessions, and now supports scaffolded self-session revocation via `/v1/me/sessions*`.
+- This closes the transport mismatch and the dev-session lifecycle gap, but it does not mean production identity or backend authorization are complete.

@@ -30,10 +30,10 @@ Status legend:
 ## Identity / Sessions / Auth
 | Route | Method | Status | Contract(s) | AuthZ | UI anchors |
 |---|---|---|---|---|---|
-| `/v1/me` | `GET` | `planned` | `MeResponse` | authenticated self | settings/account screens |
-| `/v1/me/sessions` | `GET` | `planned` | `SessionListResponse` | authenticated self | settings/security |
-| `/v1/me/sessions/revoke-all` | `POST` | `planned` | `RevokeAllSessionsRequest/Response` | self | settings/security |
-| `/v1/me/sessions/:sessionId/revoke` | `POST` | `planned` | `RevokeSessionRequest/Response` | self | settings/security |
+| `/v1/me` | `GET` | `scaffolded` | `MeResponse` | authenticated self | settings/account screens |
+| `/v1/me/sessions` | `GET` | `scaffolded` | scaffold session-list response | authenticated self | settings/security |
+| `/v1/me/sessions/revoke-all` | `POST` | `scaffolded` | scaffold revoke-all response | self | settings/security |
+| `/v1/me/sessions/:sessionId/revoke` | `POST` | `scaffolded` | scaffold revoke-session response | self | settings/security |
 
 ## Family / Athlete / Consent / Medical
 | Route | Method | Status | Contract(s) | AuthZ | UI anchors |

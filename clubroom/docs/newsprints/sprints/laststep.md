@@ -4,27 +4,26 @@ Date: 2026-04-01
 
 ## What Was Just Done
 
-1. Completed the scaffolded `/v1/invites` write surface in `apps/api/src/modules/booking/routes.ts` with create, cancel, remind, and dismiss routes alongside the existing list/detail/respond handlers.
-2. Extended `POST /v1/invites/:inviteId/respond` so direct invites now create bookings on acceptance instead of depending on the removed legacy `/api/session-invites/*` flow.
-3. Expanded `services/invite/session-invite-authority-service.ts` and cut the non-mock invite service paths in `services/invite/session-invite-service.ts` fully over to `/v1/invites*` for create/list/detail/respond/cancel/remind/dismiss plus the remaining filter helpers.
-4. Fixed the older bulk/squad invite helpers in `services/invite/bulk-invite-service.ts` so non-mock invite creation now goes through the same `_createSingleInvite -> /v1/invites` path instead of skipping real sends.
-5. Added API coverage for the end-to-end direct-invite write path in `apps/api/src/modules/p0-core/routes.test.ts` and synced the runtime docs to mark the session-invite transport seam as closed.
+1. Persisted bearer dev sessions in `apps/api/src/lib/dev-auth.ts` so login/register/refresh now issue tokens backed by real `authSessions` and `userDevices` rows instead of pure stateless token payloads.
+2. Updated `apps/api/src/plugins/auth-placeholder.ts` so revoked or invalid bearer sessions stop authenticating instead of silently falling back to scaffold-header auth.
+3. Added self-service session lifecycle routes in `apps/api/src/modules/identity/routes.ts` and `apps/api/src/repositories/p0/identity-repository.ts` for `/v1/me/sessions`, `/v1/me/sessions/revoke-all`, and `/v1/me/sessions/:sessionId/revoke`.
+4. Wired `/v1/auth/logout` and `/v1/auth/revoke` to real dev-session revocation, then added auth and identity coverage in `apps/api/src/modules/auth/routes.test.ts`, `apps/api/src/modules/p0-core/routes.test.ts`, and `apps/api/src/modules/p0-core/dual-mode-smoke.test.ts`.
+5. Synced the canonical runtime/auth docs so session lifecycle is now described as scaffolded reality, while production identity remains explicitly incomplete.
 
 ## Verification Run In This Step
 
 - `npm run typecheck` -> PASS
 - `npm run test:compile` -> PASS
 - `npm --prefix apps/api run typecheck` -> PASS
-- `npm --prefix apps/api run test` -> PASS (`36/36`)
+- `npm --prefix apps/api run test` -> PASS (`39/39`)
 
 ## Current State
 
-- In non-mock mode, session invites are now `/v1`-backed end to end for create, list, detail, respond, cancel, remind, and dismiss.
-- Direct invite acceptance now creates a real booking through the `/v1` invite flow instead of depending on deleted legacy session-invite endpoints.
-- The old session-invite transport seam is closed for current runtime flows, including the bulk/squad helper paths that reuse `_createSingleInvite`.
-- Production identity is still scaffold-first. The remaining trust-sensitive gap is session lifecycle and backend auth beyond the temporary dev-session plugin.
+- Dev-session bearer tokens now correspond to mutable backend session rows, so logout, explicit revoke, and `/v1/me/sessions*` session management reflect real runtime state in the scaffold environment.
+- The session-invite seam remains closed from the previous slice; the next trust-sensitive gap is no longer invite transport, it is replacing the temporary dev-session/auth-placeholder model itself.
+- The repo still does not have production JWT validation or non-seed identity. Session lifecycle is better, but the auth stack is still explicitly scaffold-first.
 
 ## Next Exact Action
 
-1. Continue `AUTH-02` with `/v1/me/sessions`, session revoke routes, and real session-state checks in the temporary auth plugin.
-2. Keep the frontend settings/security surface unwired for now; wire it only after the backend session lifecycle responses exist and are tested.
+1. Continue `AUTH-02` by replacing the temporary auth-placeholder path with production JWT validation and non-seed session checks.
+2. After that backend replacement plan is clear, wire the frontend settings/security surface to `/v1/me/sessions*` instead of adding UI on top of the temporary scaffold.
