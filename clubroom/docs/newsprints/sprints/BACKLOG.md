@@ -8,6 +8,8 @@ Rule: active and current work only.
 | AUTH-01 | Unify frontend auth calls with the real `/v1` backend contract and remove `/api/auth/*` drift | Trust/Safety/Ops + Development | DONE | `docs/SOURCE_OF_TRUTH.md`, `CHATGPT.md`, `docs/trust/auth-and-permission-boundaries.md` |
 | API-01 | Close the session-invite `/v1` authority seam for create/manage/respond flows and direct invite booking creation | Trust/Safety/Ops + Booking/Revenue | DONE | `docs/SOURCE_OF_TRUTH.md`, `docs/backend-api/ROUTE_INVENTORY_V1.md`, `app/session-invites/index.tsx`, `app/session-invites/[id].tsx` |
 | AUTH-02 | Replace the temporary dev-session/auth-placeholder stack with production identity and broader backend authz integration; `/v1/me/sessions*` now covers the scaffolded session lifecycle slice | Trust/Safety/Ops + Development | NOW | `docs/SOURCE_OF_TRUTH.md`, `docs/trust/auth-and-permission-boundaries.md`, `apps/api/src/plugins/auth-placeholder.ts` |
+| TRUST-01 | Collapse trust-sensitive child medical and emergency ownership into `/v1/athletes/*` and remove legacy child-profile writes for those fields | Trust/Safety/Ops + Development | OPEN | `services/child-service.ts`, `app/(modal)/edit-child-profile.tsx`, `services/family/family-health-service.ts` |
+| BOOK-01 | Close delegated booking-create authority so guardian and delegated flows cannot fall back to local-only booking writes | Booking/Revenue + Trust/Safety/Ops | OPEN | `services/booking/booking-crud-service.ts`, `apps/api/src/modules/booking/routes.ts`, `services/invite/session-invite-service.ts` |
 | OBS-01 | Wire Sentry across Expo native, Expo web, and `apps/api` with release tagging and source maps | Development + Trust/Safety/Ops | OPEN | `docs/SOURCE_OF_TRUTH.md`, `docs/backend-api/README.md` |
 | DX-01 | Fix repo-critical audit and lint scripts so missing shell tooling cannot produce false green signals | Development | OPEN | `docs/product-reality/PRODUCT_REALITY_AUDIT_2026-03-10.md` |
 | GOV-01 | Keep club governance as the shared authority for UI and API authorization decisions | Booking/Revenue + Trust/Safety/Ops | OPEN | `contracts/club-governance.ts`, `docs/architecture/club-relationship-rules.md` |
@@ -21,12 +23,14 @@ Rule: active and current work only.
 ## Execution Order
 
 1. `AUTH-02`
-2. `OBS-01`
-3. `LAUNCH-01`
-4. `LAUNCH-02`
-5. `LAUNCH-03`
-6. `LAUNCH-04`
-7. `LAUNCH-05`
-8. `LAUNCH-06`
-9. `DX-01`
-10. `GOV-01` as follow-through on the first two items and launch items
+2. `TRUST-01`
+3. `BOOK-01`
+4. `OBS-01` in parallel with `TRUST-01` and `BOOK-01` once `AUTH-02` is underway
+5. `LAUNCH-01`
+6. `LAUNCH-02`
+7. `LAUNCH-03`
+8. `LAUNCH-04`
+9. `LAUNCH-06`
+10. `LAUNCH-05` only if the earlier launch-critical seams land cleanly
+11. `DX-01`
+12. `GOV-01` as follow-through on the authority and launch items

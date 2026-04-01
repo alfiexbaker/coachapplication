@@ -1,6 +1,6 @@
 # First Launch Sprint Plan
 
-Updated: 2026-03-19
+Updated: 2026-04-01
 Purpose: convert the first-launch product cut into executable sprint slices inside the canonical sprint workspace.
 
 ## Launch Goal
@@ -29,7 +29,23 @@ Foundation gates that must remain ahead of these:
 
 - `API-01`
 - `AUTH-02`
+- `TRUST-01`
+- `BOOK-01`
 - `OBS-01`
+
+## Month-One Execution Sequence
+
+This is the current 30-day cut for a functional app, not the full wish list.
+
+1. Week 1: `AUTH-02`
+2. Week 2: `TRUST-01`, `BOOK-01`, and `OBS-01` in parallel where ownership allows
+3. Week 3: `LAUNCH-01` and `LAUNCH-02`
+4. Week 4: `LAUNCH-03` and `LAUNCH-04`
+
+Deferred unless the earlier seams land cleanly:
+
+- `LAUNCH-06`
+- `LAUNCH-05`
 
 ## `LAUNCH-01` Club Schedule
 
@@ -90,7 +106,7 @@ In scope:
 - event overview section with audience, cost, reminders, and organizer actions
 - responses view with filters
 - reminder actions for pending or maybe responders
-- attendance and check-in view
+- attendance and check-in view backed by `/v1`, not legacy relative `/api/events/*` calls
 - recap action after the event completes
 - clear role-aware publish/cancel/manage controls
 
@@ -124,7 +140,7 @@ In scope:
 
 - structured post-session review capture
 - review display on coach storefronts
-- proof blocks tied to outcomes, progress, or verified session history
+- proof blocks tied to outcomes, progress, or backend-verified session history
 - clear handling for club-owned versus coach-owned proof where relevant
 
 Out of scope:
@@ -159,6 +175,7 @@ In scope:
 - explicit independent versus club-owned relationship language
 - faster booking entry
 - rebook and repeat-session path
+- authoritative offerings and go-live state instead of local `session_offerings` and simulated toggles
 - clearer pricing, cancellation, and support ownership
 
 Out of scope:
@@ -222,7 +239,7 @@ Why this sprint exists:
 
 In scope:
 
-- Sentry wired across Expo and API
+- assumes `OBS-01` is already landed
 - refresh-churn audit on home, schedule, bookings, club, and profile
 - virtualization and performance pass on heavy surfaces
 - image and video fallback cleanup
