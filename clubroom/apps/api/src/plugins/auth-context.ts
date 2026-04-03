@@ -1,13 +1,13 @@
 import fp from 'fastify-plugin';
 import type { FastifyPluginAsync } from 'fastify';
-import { resolveDevSessionFromBearerToken } from '../lib/dev-auth.js';
+import { resolveAuthContextFromBearerToken } from '../lib/auth-runtime.js';
 
 interface AuthContextPluginOptions {
   allowHeaderOverride?: boolean;
 }
 
 /**
- * Runtime auth context for dev-session bearer tokens.
+ * Runtime auth context for JWT bearer tokens.
  * Header-based auth override is restricted to explicit test harness usage.
  */
 const authContextPlugin: FastifyPluginAsync<AuthContextPluginOptions> = async (app, options) => {
@@ -50,7 +50,7 @@ const authContextPlugin: FastifyPluginAsync<AuthContextPluginOptions> = async (a
       : '';
 
     if (bearerToken) {
-      const bearerSession = resolveDevSessionFromBearerToken(bearerToken);
+      const bearerSession = await resolveAuthContextFromBearerToken(bearerToken);
       if (!bearerSession) {
         request.auth = undefined;
         return;

@@ -1,5 +1,6 @@
 import fs from 'node:fs/promises';
 import path from 'node:path';
+import crypto from 'node:crypto';
 import { fileURLToPath } from 'node:url';
 import { PrismaClient } from '@prisma/client';
 
@@ -20,6 +21,23 @@ const asBoolean = (value, fallback = false) => (typeof value === 'boolean' ? val
 const asArray = (value) => (Array.isArray(value) ? value : []);
 const toDate = (value) => (typeof value === 'string' ? new Date(value) : null);
 const toBigInt = (value, fallback = 1) => BigInt(asNumber(value, fallback));
+const randomHex = (size = 16) => crypto.randomBytes(size).toString('hex');
+
+function hashPassword(password) {
+  const salt = randomHex(16);
+  const derived = crypto.scryptSync(password, salt, 64).toString('hex');
+  return `scrypt$${salt}$${derived}`;
+}
+
+function passwordForRoles(roles) {
+  if (roles.includes('club_admin') || roles.includes('security_admin')) {
+    return 'admin';
+  }
+  if (roles.includes('coach')) {
+    return 'coach';
+  }
+  return 'user';
+}
 
 async function main() {
   const raw = await fs.readFile(datasetPath, 'utf8');
@@ -27,6 +45,7 @@ async function main() {
   const tables = dataset.tables ?? {};
 
   await prisma.$transaction(async (tx) => {
+    await tx.passwordCredential.deleteMany();
     await tx.bookingStatusEvent.deleteMany();
     await tx.bookingObjective.deleteMany();
     await tx.bookingParticipant.deleteMany();
@@ -51,6 +70,9 @@ async function main() {
       locale: asString(row.locale) ?? null,
       timeZone: asString(row.timeZone) ?? null,
       accountStatus: asString(row.accountStatus) ?? 'active',
+      isVerified: asBoolean(row.isVerified, false),
+      isLive: typeof row.isLive === 'boolean' ? row.isLive : null,
+      onboardingComplete: asBoolean(row.onboardingComplete, false),
       tokenEpoch: asNumber(row.tokenEpoch, 0),
       createdAt: toDate(row.createdAt) ?? new Date(),
       updatedAt: toDate(row.updatedAt) ?? new Date(),
@@ -63,9 +85,18 @@ async function main() {
     const userProfiles = asRows(tables.userProfiles).map((row) => ({
       userId: row.userId,
       bio: asString(row.bio) ?? null,
+      addressLine: asString(row.addressLine) ?? null,
+      city: asString(row.city) ?? null,
       postcode: asString(row.postcode) ?? null,
+      country: asString(row.country) ?? null,
       dateOfBirth: toDate(row.dateOfBirth),
       phoneE164: asString(row.phoneE164) ?? null,
+      skillLevel: asString(row.skillLevel) ?? null,
+      position: asString(row.position) ?? null,
+      sport: asString(row.sport) ?? null,
+      goals: asArray(row.goals).map((value) => String(value)),
+      isOrganization: typeof row.isOrganization === 'boolean' ? row.isOrganization : null,
+      organizationName: asString(row.organizationName) ?? null,
       createdAt: toDate(row.createdAt) ?? new Date(),
       updatedAt: toDate(row.updatedAt) ?? new Date(),
     }));
@@ -86,6 +117,23 @@ async function main() {
     }));
     if (roleMemberships.length > 0) {
       await tx.userRoleMembership.createMany({ data: roleMemberships });
+    }
+
+    const rolesByUserId = new Map();
+    for (const membership of roleMemberships) {
+      const existing = rolesByUserId.get(membership.userId) ?? [];
+      existing.push(String(membership.role));
+      rolesByUserId.set(membership.userId, existing);
+    }
+
+    const passwordCredentials = users
+      .filter((user) => typeof user.email === 'string' && user.email.length > 0)
+      .map((user) => ({
+        userId: user.id,
+        passwordHash: hashPassword(passwordForRoles(rolesByUserId.get(user.id) ?? [])),
+      }));
+    if (passwordCredentials.length > 0) {
+      await tx.passwordCredential.createMany({ data: passwordCredentials });
     }
 
     const families = asRows(tables.families).map((row) => ({

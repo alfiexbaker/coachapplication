@@ -1,13 +1,17 @@
 import assert from 'node:assert/strict';
 import { after, beforeEach, describe, it } from 'node:test';
 import { buildApp } from '../../app.js';
+import { resetAuthRuntimeForTests } from '../../lib/auth-runtime.js';
 import { resetMarketplaceSeedStoreForTests } from '../../lib/marketplace-seed-store.js';
 import { resetDbFixtureStoreForTests } from '../../lib/db-fixture-store.js';
+
+const JWT_PATTERN = /^[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+$/;
 
 describe('auth routes', () => {
   const app = buildApp();
 
   beforeEach(() => {
+    resetAuthRuntimeForTests();
     resetMarketplaceSeedStoreForTests();
     resetDbFixtureStoreForTests();
   });
@@ -35,8 +39,8 @@ describe('auth routes', () => {
     assert.equal(payload.user.accountType, 'COACH');
     assert.equal(payload.user.appRole, 'COACH');
     assert.equal(payload.user.roles.includes('coach'), true);
-    assert.match(payload.tokens.accessToken, /^clubroom_dev_/);
-    assert.match(payload.tokens.refreshToken, /^clubroom_dev_/);
+    assert.match(payload.tokens.accessToken, JWT_PATTERN);
+    assert.match(payload.tokens.refreshToken, JWT_PATTERN);
 
     const me = await app.inject({
       method: 'GET',
@@ -51,7 +55,7 @@ describe('auth routes', () => {
     assert.equal(mePayload.user.firstName, 'Amelia');
   });
 
-  it('refreshes a dev session and keeps the session usable', async () => {
+  it('refreshes a JWT session and keeps the session usable', async () => {
     const login = await app.inject({
       method: 'POST',
       url: '/v1/auth/login',
@@ -75,8 +79,8 @@ describe('auth routes', () => {
     const refreshPayload = refresh.json() as {
       tokens: { accessToken: string; refreshToken: string };
     };
-    assert.match(refreshPayload.tokens.accessToken, /^clubroom_dev_/);
-    assert.match(refreshPayload.tokens.refreshToken, /^clubroom_dev_/);
+    assert.match(refreshPayload.tokens.accessToken, JWT_PATTERN);
+    assert.match(refreshPayload.tokens.refreshToken, JWT_PATTERN);
 
     const me = await app.inject({
       method: 'GET',

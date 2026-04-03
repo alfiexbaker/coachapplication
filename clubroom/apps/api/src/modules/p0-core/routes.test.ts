@@ -3,6 +3,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { after, beforeEach, describe, it } from 'node:test';
 import { buildApp } from '../../app.js';
+import { resetAuthRuntimeForTests } from '../../lib/auth-runtime.js';
 import { resetCoachClubRouteStateForTests } from '../coach-club/routes.js';
 import { resetDbFixtureStoreForTests } from '../../lib/db-fixture-store.js';
 import { resetMarketplaceSeedStoreForTests } from '../../lib/marketplace-seed-store.js';
@@ -55,6 +56,7 @@ describe('p0 core routes', () => {
   const app = buildApp();
 
   beforeEach(() => {
+    resetAuthRuntimeForTests();
     resetMarketplaceSeedStoreForTests();
     resetDbFixtureStoreForTests();
     resetCoachClubRouteStateForTests();
@@ -95,15 +97,17 @@ describe('p0 core routes', () => {
 
   it('lists and revokes auth sessions for the authenticated user', async () => {
     const tables = loadTables();
-    const authSession = asRows(tables.authSessions)[0];
-    assert.ok(authSession, 'expected seeded auth session');
-    const userId = asString(authSession.userId) as string;
+    const roleMembership = asRows(tables.userRoleMemberships).find(
+      (row) => asString(row.role) === 'parent',
+    );
+    assert.ok(roleMembership, 'expected seeded parent role membership');
+    const userId = asString(roleMembership.userId) as string;
     const roles = rolesForUser(tables, userId);
     const user = asRows(tables.users).find((row) => asString(row.id) === userId);
     assert.ok(user, 'expected seeded user for auth session');
     const email = asString(user?.email) as string;
 
-    const login = await app.inject({
+    const firstLogin = await app.inject({
       method: 'POST',
       url: '/v1/auth/login',
       payload: {
@@ -111,14 +115,26 @@ describe('p0 core routes', () => {
         password: passwordForRoles(roles),
       },
     });
-    assert.equal(login.statusCode, 200);
+    assert.equal(firstLogin.statusCode, 200);
+
+    const secondLogin = await app.inject({
+      method: 'POST',
+      url: '/v1/auth/login',
+      payload: {
+        email,
+        password: passwordForRoles(roles),
+      },
+    });
+    assert.equal(secondLogin.statusCode, 200);
+    const secondLoginPayload = secondLogin.json() as {
+      tokens: { accessToken: string };
+    };
 
     const list = await app.inject({
       method: 'GET',
       url: '/v1/me/sessions',
       headers: {
-        'x-auth-user-id': userId,
-        'x-auth-roles': roles.join(','),
+        authorization: `Bearer ${secondLoginPayload.tokens.accessToken}`,
         'x-acting-role': roles[0] ?? 'parent',
       },
     });
@@ -133,18 +149,18 @@ describe('p0 core routes', () => {
       }>;
       total: number;
     };
-    assert.equal(listPayload.total >= 2, true);
-    const seededSession = listPayload.sessions.find((session) => session.id === asString(authSession.id));
-    assert.ok(seededSession, 'expected seeded session in list');
-    assert.equal(typeof seededSession?.current, 'boolean');
-    assert.equal(typeof seededSession?.issuedAt, 'string');
+    assert.equal(listPayload.total, 2);
+    const currentSession = listPayload.sessions.find((session) => session.current);
+    assert.ok(currentSession, 'expected current session in list');
+    const olderSession = listPayload.sessions.find((session) => !session.current);
+    assert.ok(olderSession, 'expected non-current session in list');
+    assert.equal(typeof olderSession?.issuedAt, 'string');
 
     const revokeSingle = await app.inject({
       method: 'POST',
-      url: `/v1/me/sessions/${encodeURIComponent(asString(authSession.id) as string)}/revoke`,
+      url: `/v1/me/sessions/${encodeURIComponent(olderSession!.id)}/revoke`,
       headers: {
-        'x-auth-user-id': userId,
-        'x-auth-roles': roles.join(','),
+        authorization: `Bearer ${secondLoginPayload.tokens.accessToken}`,
         'x-acting-role': roles[0] ?? 'parent',
       },
     });
@@ -153,16 +169,43 @@ describe('p0 core routes', () => {
       session: { id: string; revokedAt: string | null };
       currentSessionRevoked: boolean;
     };
-    assert.equal(revokeSinglePayload.session.id, asString(authSession.id));
+    assert.equal(revokeSinglePayload.session.id, olderSession!.id);
     assert.equal(typeof revokeSinglePayload.session.revokedAt, 'string');
     assert.equal(revokeSinglePayload.currentSessionRevoked, false);
+
+    const thirdLogin = await app.inject({
+      method: 'POST',
+      url: '/v1/auth/login',
+      payload: {
+        email,
+        password: passwordForRoles(roles),
+      },
+    });
+    assert.equal(thirdLogin.statusCode, 200);
+    const thirdLoginPayload = thirdLogin.json() as {
+      tokens: { accessToken: string };
+    };
+
+    const currentList = await app.inject({
+      method: 'GET',
+      url: '/v1/me/sessions',
+      headers: {
+        authorization: `Bearer ${thirdLoginPayload.tokens.accessToken}`,
+        'x-acting-role': roles[0] ?? 'parent',
+      },
+    });
+    assert.equal(currentList.statusCode, 200);
+    const currentListPayload = currentList.json() as {
+      sessions: Array<{ id: string; current: boolean }>;
+    };
+    const currentRuntimeSession = currentListPayload.sessions.find((session) => session.current);
+    assert.ok(currentRuntimeSession, 'expected current runtime session');
 
     const revokeAll = await app.inject({
       method: 'POST',
       url: '/v1/me/sessions/revoke-all',
       headers: {
-        'x-auth-user-id': userId,
-        'x-auth-roles': roles.join(','),
+        authorization: `Bearer ${thirdLoginPayload.tokens.accessToken}`,
         'x-acting-role': roles[0] ?? 'parent',
       },
     });
@@ -173,7 +216,7 @@ describe('p0 core routes', () => {
       retainedSessionId: string | null;
     };
     assert.equal(revokeAllPayload.revokedCount >= 1, true);
-    assert.equal(revokeAllPayload.retainedSessionId, 'ses_test_header_override');
+    assert.equal(revokeAllPayload.retainedSessionId, currentRuntimeSession!.id);
   });
 
   it('exposes runtime backend mode in /v1/meta/version', async () => {

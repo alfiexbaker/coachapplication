@@ -1,6 +1,6 @@
 # Runtime Modes
 
-Validated: 2026-04-02
+Validated: 2026-04-03
 Purpose: describe the app's actual runtime modes and the current integration seams between the Expo app and the API package.
 
 ## Canonical Sources
@@ -70,14 +70,16 @@ Current validated runtime state:
 - `services/auth-service.ts` derives its API origin from that config and calls `/v1/auth/*`
 - `packages/config/src/env.ts` defaults the API server to port `4000`
 - `apps/api/src/app.ts` registers `/v1/*` route modules, including auth
-- `apps/api/src/plugins/auth-context.ts` resolves bearer dev-session tokens at runtime, while header auth override is limited to the API test harness
+- `apps/api/src/plugins/auth-context.ts` verifies bearer JWTs at runtime, while header auth override is limited to the API test harness
+- `apps/api/src/lib/auth-runtime.ts` owns JWT issuance, refresh rotation, and runtime session revocation for `/v1/auth/*` and `/v1/me/sessions*`
 
 Implication:
 
 - The auth transport seam is now contract-aligned for local development.
 - Runtime `/v1` auth no longer accepts client-supplied identity headers in the app/server path.
+- Runtime `/v1` auth is no longer using the temporary dev-session token model.
 - Mock mode plus pre-API live mode is still the stable default for non-auth app flows.
-- Backend `/v1` routes are real, but production auth and broader endpoint migration still need follow-through before the API becomes the default app runtime.
+- Backend `/v1` routes are real, but broader endpoint migration and authz follow-through still need work before the API becomes the default app runtime.
 
 ## Safe Working Rules
 

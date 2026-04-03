@@ -1,4 +1,9 @@
 import type { FastifyPluginAsync } from 'fastify';
+import {
+  listAuthSessions,
+  revokeAllAuthSessionsForUser,
+  revokeAuthSessionForUser,
+} from '../../lib/auth-runtime.js';
 import { forbidden } from '../../lib/http-errors.js';
 import { resolveIdentityRepository } from '../../repositories/p0/identity-repository.js';
 
@@ -29,13 +34,12 @@ const identityRoutes: FastifyPluginAsync = async (app) => {
       throw forbidden('Authenticated user is required');
     }
 
-    const repository = resolveIdentityRepository();
-    const sessions = await repository.listSessions(authUserId, request.auth?.sessionId ?? null);
+    const sessions = await listAuthSessions(authUserId, request.auth?.sessionId ?? null);
 
     return reply.send({
-      sessions: sessions.sessions,
-      total: sessions.sessions.length,
-      seedVersion: sessions.dataVersion,
+      sessions,
+      total: sessions.length,
+      seedVersion: null,
       requestId: request.requestId,
     });
   });
@@ -46,16 +50,13 @@ const identityRoutes: FastifyPluginAsync = async (app) => {
       throw forbidden('Authenticated user is required');
     }
 
-    const repository = resolveIdentityRepository();
-    const result = await repository.revokeAllSessions(authUserId, {
-      excludeSessionId: request.auth?.sessionId ?? null,
-    });
+    const result = await revokeAllAuthSessionsForUser(authUserId, request.auth?.sessionId ?? null);
 
     return reply.send({
       revokedSessionIds: result.revokedSessionIds,
       revokedCount: result.revokedCount,
       retainedSessionId: result.retainedSessionId,
-      seedVersion: result.dataVersion,
+      seedVersion: null,
       requestId: request.requestId,
     });
   });
@@ -74,8 +75,7 @@ const identityRoutes: FastifyPluginAsync = async (app) => {
       throw forbidden('Session id is required');
     }
 
-    const repository = resolveIdentityRepository();
-    const result = await repository.revokeSession(
+    const result = await revokeAuthSessionForUser(
       authUserId,
       sessionId,
       request.auth?.sessionId ?? null,
@@ -84,7 +84,7 @@ const identityRoutes: FastifyPluginAsync = async (app) => {
     return reply.send({
       session: result.session,
       currentSessionRevoked: result.currentSessionRevoked,
-      seedVersion: result.dataVersion,
+      seedVersion: null,
       requestId: request.requestId,
     });
   });

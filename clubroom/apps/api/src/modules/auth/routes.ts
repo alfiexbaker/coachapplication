@@ -1,15 +1,15 @@
 import type { FastifyPluginAsync } from 'fastify';
 import { z } from 'zod';
 import {
-  createDevSessionByEmail,
-  getDevSessionUser,
-  refreshDevSession,
-  registerDevSessionUser,
-  revokeDevSession,
-  updateDevSessionUser,
-} from '../../lib/dev-auth.js';
+  checkEmailAvailable,
+  createSessionByEmail,
+  getAuthUserProfile,
+  refreshAuthSession,
+  registerAuthUser,
+  revokeAuthSession,
+  updateAuthUserProfile,
+} from '../../lib/auth-runtime.js';
 import { forbidden } from '../../lib/http-errors.js';
-import { getMarketplaceSeedStore } from '../../lib/marketplace-seed-store.js';
 
 const loginRequestSchema = z.object({
   email: z.string().trim().email(),
@@ -87,7 +87,11 @@ const revokeSchema = z.object({
 const authRoutes: FastifyPluginAsync = async (app) => {
   app.post('/auth/login', async (request, reply) => {
     const body = loginRequestSchema.parse(request.body);
-    const result = createDevSessionByEmail(body.email, body.password);
+    const result = await createSessionByEmail(
+      body.email,
+      body.password,
+      request.headers['user-agent'],
+    );
     return reply.send({
       user: result.user,
       tokens: result.tokens,
@@ -97,7 +101,7 @@ const authRoutes: FastifyPluginAsync = async (app) => {
 
   app.post('/auth/register', async (request, reply) => {
     const body = registerRequestSchema.parse(request.body);
-    const result = registerDevSessionUser(body);
+    const result = await registerAuthUser(body, request.headers['user-agent']);
     return reply.status(201).send({
       user: result.user,
       tokens: result.tokens,
@@ -107,7 +111,7 @@ const authRoutes: FastifyPluginAsync = async (app) => {
 
   app.post('/auth/refresh', async (request, reply) => {
     const body = refreshRequestSchema.parse(request.body);
-    const tokens = refreshDevSession(body.refreshToken);
+    const tokens = await refreshAuthSession(body.refreshToken, request.headers['user-agent']);
     return reply.send({
       tokens,
       requestId: request.requestId,
@@ -116,7 +120,7 @@ const authRoutes: FastifyPluginAsync = async (app) => {
 
   app.post('/auth/logout', async (request, reply) => {
     if (request.auth?.sessionId) {
-      revokeDevSession({
+      await revokeAuthSession({
         sessionId: request.auth.sessionId,
         userId: request.auth.userId,
         reason: 'logout',
@@ -129,7 +133,7 @@ const authRoutes: FastifyPluginAsync = async (app) => {
   app.post('/auth/revoke', async (request, reply) => {
     const body = revokeSchema.parse(request.body ?? {});
     if (request.auth?.sessionId || body.refreshToken) {
-      revokeDevSession({
+      await revokeAuthSession({
         sessionId: request.auth?.sessionId,
         refreshToken: body.refreshToken,
         userId: request.auth?.userId,
@@ -147,7 +151,7 @@ const authRoutes: FastifyPluginAsync = async (app) => {
     }
 
     return reply.send({
-      user: getDevSessionUser(authUserId),
+      user: await getAuthUserProfile(authUserId),
       requestId: request.requestId,
     });
   });
@@ -159,7 +163,7 @@ const authRoutes: FastifyPluginAsync = async (app) => {
     }
 
     const updates = mePatchSchema.parse(request.body ?? {});
-    const user = updateDevSessionUser(authUserId, updates);
+    const user = await updateAuthUserProfile(authUserId, updates);
     return reply.send({
       user,
       requestId: request.requestId,
@@ -183,7 +187,7 @@ const authRoutes: FastifyPluginAsync = async (app) => {
     }
 
     verifyEmailSchema.parse(request.body);
-    const user = updateDevSessionUser(authUserId, { isVerified: true });
+    const user = await updateAuthUserProfile(authUserId, { isVerified: true });
     return reply.send({
       user,
       requestId: request.requestId,
@@ -192,14 +196,9 @@ const authRoutes: FastifyPluginAsync = async (app) => {
 
   app.get('/auth/check-email', async (request, reply) => {
     const query = checkEmailQuerySchema.parse(request.query ?? {});
-    const store = getMarketplaceSeedStore();
-    const exists = (store.tables.users ?? []).some((row) => {
-      const candidate = typeof row?.email === 'string' ? row.email : '';
-      return candidate.toLowerCase() === query.email.toLowerCase();
-    });
 
     return reply.send({
-      available: !exists,
+      available: await checkEmailAvailable(query.email),
       requestId: request.requestId,
     });
   });

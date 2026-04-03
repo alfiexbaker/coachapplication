@@ -4,6 +4,7 @@ import path from 'node:path';
 import { after, beforeEach, describe, it } from 'node:test';
 import { env } from '@clubroom/config';
 import { buildApp } from '../../app.js';
+import { resetAuthRuntimeForTests } from '../../lib/auth-runtime.js';
 import { resetDbFixtureStoreForTests } from '../../lib/db-fixture-store.js';
 import { resetMarketplaceSeedStoreForTests } from '../../lib/marketplace-seed-store.js';
 
@@ -48,6 +49,7 @@ describe('p0 dual-mode smoke', () => {
   const app = buildApp();
 
   beforeEach(() => {
+    resetAuthRuntimeForTests();
     resetMarketplaceSeedStoreForTests();
     resetDbFixtureStoreForTests();
   });
@@ -205,20 +207,35 @@ describe('p0 dual-mode smoke', () => {
 
   it('keeps /v1/me/sessions response shape identical in seed and db modes', async () => {
     const tables = loadTables();
-    const authSession = asRows(tables.authSessions)[0];
-    assert.ok(authSession, 'expected seeded auth session');
-    const userId = asString(authSession.userId) as string;
+    const roleMembership = asRows(tables.userRoleMemberships).find(
+      (row) => asString(row.role) === 'parent',
+    );
+    assert.ok(roleMembership, 'expected seeded parent role membership');
+    const userId = asString(roleMembership.userId) as string;
     const role = rolesForUser(tables, userId)[0] ?? 'parent';
+    const user = asRows(tables.users).find((row) => asString(row.id) === userId);
+    assert.ok(user, 'expected seeded user');
+    const email = asString(user.email) as string;
 
     const originalBackend = env.API_DATA_BACKEND;
     try {
       env.API_DATA_BACKEND = 'seed';
+      const seedLogin = await app.inject({
+        method: 'POST',
+        url: '/v1/auth/login',
+        payload: {
+          email,
+          password: 'user',
+        },
+      });
+      assert.equal(seedLogin.statusCode, 200);
+      const seedLoginPayload = seedLogin.json() as { tokens: { accessToken: string } };
+
       const seedRes = await app.inject({
         method: 'GET',
         url: '/v1/me/sessions',
         headers: {
-          'x-auth-user-id': userId,
-          'x-auth-roles': rolesForUser(tables, userId).join(','),
+          authorization: `Bearer ${seedLoginPayload.tokens.accessToken}`,
           'x-acting-role': role,
         },
       });
@@ -226,12 +243,23 @@ describe('p0 dual-mode smoke', () => {
       const seedPayload = seedRes.json() as Record<string, unknown>;
 
       env.API_DATA_BACKEND = 'db';
+      resetAuthRuntimeForTests();
+      const dbLogin = await app.inject({
+        method: 'POST',
+        url: '/v1/auth/login',
+        payload: {
+          email,
+          password: 'user',
+        },
+      });
+      assert.equal(dbLogin.statusCode, 200);
+      const dbLoginPayload = dbLogin.json() as { tokens: { accessToken: string } };
+
       const dbRes = await app.inject({
         method: 'GET',
         url: '/v1/me/sessions',
         headers: {
-          'x-auth-user-id': userId,
-          'x-auth-roles': rolesForUser(tables, userId).join(','),
+          authorization: `Bearer ${dbLoginPayload.tokens.accessToken}`,
           'x-acting-role': role,
         },
       });

@@ -21,6 +21,9 @@ const envSchema = z.object({
 
   AUTH0_ISSUER_URL: z.string().url().optional(),
   AUTH0_AUDIENCE: z.string().optional(),
+  API_JWT_SECRET: z.string().min(16).optional(),
+  API_JWT_ISSUER: z.string().url().optional(),
+  API_JWT_AUDIENCE: z.string().optional(),
 
   S3_ENDPOINT: z.string().url().optional(),
   S3_BUCKET_PRIVATE: z.string().optional(),

@@ -1,8 +1,8 @@
 # Clubroom - Single Source of Truth
 
-Last updated: 2026-04-02
+Last updated: 2026-04-03
 Project: football coaching marketplace plus family development tracker
-Status: live-featured Expo app with a real Fastify API alongside it; backend cutover and auth alignment are still in progress
+Status: live-featured Expo app with a real Fastify API alongside it; backend cutover is still in progress, and runtime `/v1` auth is now JWT-backed
 
 ## What This File Is For
 
@@ -17,15 +17,13 @@ If a statement here conflicts with an old audit or sprint note, trust this file 
 
 ## Current Verified Health
 
-Verified during recent `AUTH-02` follow-through on 2026-04-02:
+Verified during recent `AUTH-02` completion on 2026-04-03:
 - `npm run typecheck` -> PASS
 - `npm run test:compile` -> PASS
 - `npm --prefix apps/api run typecheck` -> PASS
 - `npm --prefix apps/api run test` -> PASS (`40/40`)
-
-Not re-run in this pass:
-- full UI flow suites
-- UI audit scripts that depend on local tool availability
+- `npm run ui:flows:run` -> BLOCKED (`react-native-worklets@0.5.1` is incompatible with installed `react-native-reanimated@4.2.2`, so Expo web returned HTTP 500 during flow preflight)
+- UI audit scripts that depend on local tool availability -> NOT RUN
 
 ## Product In One Paragraph
 
@@ -47,22 +45,22 @@ Clubs manage staff, squads, visibility, and operating relationships.
   - the app still mirrors joined clubs and invite codes into local storage for compatibility with older club surfaces
   - member join codes can join directly
   - staff join codes create a pending invite that the target coach reviews in Club Invites
-- Auth transport is now aligned for local development:
+- Auth transport is now aligned for the real `/v1` runtime path:
   - frontend auth calls `/v1/auth/*`
   - backend runtime exposes matching `/v1/auth/*` routes
-  - bearer dev-session tokens are persisted, accepted, and revoked by the temporary API auth-context plugin
+  - backend auth now issues and validates signed JWT access/refresh tokens
+  - runtime session revocation and `/v1/me/sessions*` are backed by the auth runtime instead of the marketplace seed dataset
   - runtime `/v1` auth no longer falls back to `x-auth-user-id` or `x-auth-roles`; that override is test-only
-- The biggest trust seam still not finished is production identity:
-  - API auth is now bearer-first for runtime requests, but it is still dev-session and seed-backed
+- The biggest trust seams still not finished are broader authz coverage, trust-sensitive ownership cleanup, and launch observability:
   - app `/v1` authority services now rely on bearer auth plus `x-acting-role` and scope headers instead of client-supplied identity headers
-  - `/v1/me`, `/v1/me/sessions`, `/v1/me/sessions/revoke-all`, and `/v1/me/sessions/:sessionId/revoke` now exist for dev-session-backed session lifecycle checks and self-service session revocation
+  - `/v1/auth/login`, `/v1/auth/register`, `/v1/auth/refresh`, `/v1/auth/logout`, `/v1/auth/revoke`, `/v1/auth/me`, and `/v1/me/sessions*` now run on the JWT/session runtime
   - family medical, safeguarding incident creation, direct booking creation, booking cancel/reopen, and group-session registration now use `/v1` in non-mock mode
   - booking list/detail reads now also use `/v1/bookings` and `/v1/bookings/:bookingId` in non-mock mode, with local storage acting as a mirror instead of the authority
   - session-invite create/list/detail/respond/cancel/remind/dismiss now use `/v1/invites*` in non-mock mode through `services/invite/session-invite-authority-service.ts`
   - direct invite acceptance now creates bookings through the `/v1` invite path instead of falling back to removed legacy `/api/session-invites/*` behavior
   - booking changes are intentionally `cancel` or `reopen`; the old counter-offer and invite counter workflow has been removed from the runtime product surface
   - coach scheduling rules no longer advertise a separate reschedule policy; bookings now change by cancellation and rebooking/reopening instead of negotiation
-  - the main trust/auth gap is now replacing the temporary dev-session/auth-context model with production JWT validation, non-seed session state, and broader backend authz coverage
+  - the main auth follow-through now moves on from runtime identity to broader backend authz coverage, trust-sensitive route ownership, and observability
 - Club-facing schedule surfaces now use a `ClubActivity` read model to link `ClubEvent` and `GroupSession`
   - `ClubActivity` now also includes `Match`, so club and squad schedule routes can show events, training, and matches in one surface
   - club-linked open group sessions are treated as mixed-access training, not as a separate public product world
@@ -134,16 +132,15 @@ Real enough to build on:
 - testable Fastify API runtime
 
 Still transitional:
-- auth and session contract between app and API
-- authoritative backend ownership for production identity, broader trust/ops data, and the still-removed historical invite counter/change negotiation model
+- authoritative backend ownership for broader trust/ops data and the still-removed historical invite counter/change negotiation model
 - `ClubActivity` is currently a read model, not a backend-owned entity
 - observability across app plus API
 - some local audit scripts that depend on missing shell tooling
 
 ## Highest-Value Priorities
 
-1. Unify frontend auth and backend `/v1` authz.
-2. Replace the temporary dev-session/auth-context model with production identity and broader backend authz follow-through.
+1. Expand backend authz coverage for the sensitive `/v1` routes now that runtime JWT/session auth is in place.
+2. Close trust-sensitive family and booking authority seams.
 3. Wire Sentry across Expo native, Expo web, and `apps/api`.
 4. Make repo-critical quality scripts honest when local tooling is missing.
 5. Keep docs thin and update them when runtime truth changes.

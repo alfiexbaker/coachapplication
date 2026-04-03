@@ -30,6 +30,14 @@ Status legend:
 ## Identity / Sessions / Auth
 | Route | Method | Status | Contract(s) | AuthZ | UI anchors |
 |---|---|---|---|---|---|
+| `/v1/auth/login` | `POST` | `scaffolded` | scaffold login response | public; email/password credential check | auth/login screens via `services/auth-service.ts` |
+| `/v1/auth/register` | `POST` | `scaffolded` | scaffold register response | public; creates account plus session | onboarding/auth screens via `services/auth-service.ts` |
+| `/v1/auth/refresh` | `POST` | `scaffolded` | scaffold token refresh response | refresh token only | app token refresh path via `services/auth-service.ts`, `services/api-client.ts` |
+| `/v1/auth/logout` | `POST` | `scaffolded` | none | authenticated self; revokes current session | settings/logout flows via `services/auth-service.ts` |
+| `/v1/auth/revoke` | `POST` | `scaffolded` | none | authenticated self or refresh-token self revoke | security/session management via `services/auth-service.ts` |
+| `/v1/auth/me` | `GET/PATCH` | `scaffolded` | scaffold auth profile response | authenticated self | auth bootstrap + profile/onboarding flows via `services/auth-service.ts` |
+| `/v1/auth/verify-email` | `POST` | `scaffolded` | scaffold verify-email response | authenticated self | auth verification flow via `services/auth-service.ts` |
+| `/v1/auth/check-email` | `GET` | `scaffolded` | scaffold email-availability response | public | signup/email validation via `services/auth-service.ts` |
 | `/v1/me` | `GET` | `scaffolded` | `MeResponse` | authenticated self | settings/account screens |
 | `/v1/me/sessions` | `GET` | `scaffolded` | scaffold session-list response | authenticated self | settings/security |
 | `/v1/me/sessions/revoke-all` | `POST` | `scaffolded` | scaffold revoke-all response | self | settings/security |

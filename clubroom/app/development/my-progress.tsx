@@ -1,5 +1,5 @@
-import { useCallback, useEffect, useMemo, useRef, type ComponentRef } from 'react';
-import { RefreshControl, Share, StyleSheet, View } from 'react-native';
+import { useCallback, useEffect, useMemo, useRef } from 'react';
+import { RefreshControl, ScrollView, Share, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 import Animated from 'react-native-reanimated';
@@ -40,7 +40,7 @@ const DEFAULT_FEEDBACK_MEDIA_DIMENSION = 1080;
 export default function MyProgressScreen() {
   const { colors, scheme } = useTheme();
   const celebrationRef = useRef<CelebrationOverlayRef>(null);
-  const scrollRef = useRef<ComponentRef<typeof Animated.ScrollView>>(null);
+  const scrollRef = useRef<ScrollView>(null);
   const levelUpRef = useRef<LevelUpCeremonyRef>(null);
   const scrollAnimations = useScrollAnimations();
 

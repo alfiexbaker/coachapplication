@@ -15,7 +15,8 @@ The goal is to keep backend work traceable to:
 - A real Fastify API exists under `apps/api`.
 - The Expo app still supports mock and pre-API live modes.
 - Shared contracts and governance sources already exist in the monorepo.
-- The biggest unresolved integration seam is auth and session alignment between frontend and API.
+- Frontend and backend auth are now aligned on `/v1/auth/*` with JWT/session runtime handling in `apps/api`.
+- The biggest unresolved seams are broader route-level authz coverage, trust-sensitive authority cleanup, and observability.
 
 ## Working Assumptions
 
