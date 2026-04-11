@@ -28,7 +28,6 @@ import { blockService, getBlockActionMessage } from '@/services/block-service';
 import { progressAttendanceService } from '@/services/progress/progress-attendance-service';
 import { authService } from '@/services/auth-service';
 import { getSessionOfferingHeadcount } from '@/utils/session-offering-capacity';
-import { normalizeAccountId } from '@/utils/account-id';
 import { bookingAuthorityService } from './booking-authority-service';
 import {
   type Result,
@@ -37,6 +36,7 @@ import {
   err,
   conflictError,
   notFound,
+  serviceError,
   validationError,
   storageError,
 } from '@/types/result';
@@ -50,25 +50,6 @@ const ENFORCE_DBS_SAFEGUARDING_GATE =
 
 /** Maximum age (ms) before cache is considered stale. */
 const CACHE_MAX_AGE = 30_000;
-
-function normalizeBookingActorId(id: string): string {
-  return normalizeAccountId(id.replace(/^usr_/, '').replace(/^ath_/, ''));
-}
-
-function canUseApiBookingCreate(
-  currentUser: Awaited<ReturnType<typeof authService.getCurrentUser>>,
-  bookedById: string,
-): boolean {
-  if (!currentUser?.id) {
-    return false;
-  }
-
-  if (currentUser.roles?.includes('club_admin')) {
-    return true;
-  }
-
-  return normalizeBookingActorId(currentUser.id) === normalizeBookingActorId(bookedById);
-}
 
 export type BookingDraft = {
   entrySource?: string;
@@ -247,10 +228,7 @@ class BookingCrudService {
       cancelledBy: apiBooking.cancelledAt ? localBooking?.cancelledBy : undefined,
       statusBeforeCancellation:
         apiBooking.status === 'CANCELLED' ? localBooking?.statusBeforeCancellation : undefined,
-      service:
-        localBooking?.service
-        ?? apiBooking.serviceType
-        ?? 'Session',
+      service: localBooking?.service ?? apiBooking.serviceType ?? 'Session',
       isSharedSession: athleteIds.length > 1 || localBooking?.isSharedSession,
     };
   }
@@ -425,7 +403,8 @@ class BookingCrudService {
     }
 
     if (previous.status !== 'COMPLETED' && updated.status === 'COMPLETED') {
-      const ingestionResult = await progressAttendanceService.upsertCompletedBookingSessions(updated);
+      const ingestionResult =
+        await progressAttendanceService.upsertCompletedBookingSessions(updated);
       if (!ingestionResult.success) {
         logger.error('Failed to ingest completed booking after status transition', {
           bookingId: updated.id,
@@ -485,7 +464,10 @@ class BookingCrudService {
     }
 
     const sessionStart = new Date(booking.scheduledAt).getTime();
-    if (!options?.allowPastBooking && (!Number.isFinite(sessionStart) || sessionStart <= Date.now())) {
+    if (
+      !options?.allowPastBooking &&
+      (!Number.isFinite(sessionStart) || sessionStart <= Date.now())
+    ) {
       logger.warn('Cancellation blocked for past booking', { bookingId: id, cancelledBy });
       return undefined;
     }
@@ -595,7 +577,10 @@ class BookingCrudService {
     }
 
     const sessionStart = new Date(booking.scheduledAt).getTime();
-    if (!options?.allowPastBooking && (!Number.isFinite(sessionStart) || sessionStart <= Date.now())) {
+    if (
+      !options?.allowPastBooking &&
+      (!Number.isFinite(sessionStart) || sessionStart <= Date.now())
+    ) {
       logger.warn('Reopen blocked for past booking', { bookingId: id, reopenedBy });
       return undefined;
     }
@@ -744,8 +729,8 @@ class BookingCrudService {
   private getBookingAthleteIds(booking: Booking): string[] {
     return Array.from(
       new Set(
-        [booking.athleteId, ...(booking.athleteIds ?? [])].filter(
-          (value): value is string => Boolean(value && value.trim().length > 0),
+        [booking.athleteId, ...(booking.athleteIds ?? [])].filter((value): value is string =>
+          Boolean(value && value.trim().length > 0),
         ),
       ),
     );
@@ -809,7 +794,9 @@ class BookingCrudService {
       }
     }
 
-    const additionalAthletes = params.athleteIds.filter((athleteId) => !linkedAthleteIds.has(athleteId)).length;
+    const additionalAthletes = params.athleteIds.filter(
+      (athleteId) => !linkedAthleteIds.has(athleteId),
+    ).length;
     const projectedHeadcount =
       Math.max(getSessionOfferingHeadcount(offering), linkedAthleteIds.size) + additionalAthletes;
     if (projectedHeadcount > offering.maxParticipants) {
@@ -969,69 +956,63 @@ class BookingCrudService {
     const totalPrice = basePrice * athleteIds.length;
     const isSharedSession = athleteIds.length > 1;
     const createdAt = new Date().toISOString();
-    let authoritativeCreate:
-      | {
-          id: string;
-          status: Booking['status'];
-          scheduledAt: string;
-          createdAt: string;
-          serviceType?: string;
-          sessionTemplateId?: string | null;
-          objectives: string[];
-          notes?: string | null;
-          priceMinor?: number | null;
-        }
-      | null = null;
+    let authoritativeCreate: {
+      id: string;
+      status: Booking['status'];
+      scheduledAt: string;
+      createdAt: string;
+      serviceType?: string;
+      sessionTemplateId?: string | null;
+      objectives: string[];
+      notes?: string | null;
+      priceMinor?: number | null;
+    } | null = null;
 
     if (!apiClient.isMockMode) {
       const currentUser = await authService.getCurrentUser();
-      if (canUseApiBookingCreate(currentUser, bookedById)) {
-        const createViaApiResult = await bookingAuthorityService.createBooking({
-          coachId,
-          athleteIds,
-          bookedById,
-          scheduledAt,
-          duration,
-          location,
-          serviceType,
-          ...(sessionTemplateId ? { sessionTemplateId } : {}),
-          objectives: objectives || [],
-          notes,
-          totalPrice,
-        });
+      if (!currentUser?.id) {
+        return err(serviceError('UNAUTHORIZED', 'Sign in to create bookings.'));
+      }
 
-        if (!createViaApiResult.success) {
-          logger.error('Failed to create booking via API', {
-            coachId,
-            bookedById,
-            athleteIds,
-            error: createViaApiResult.error.message,
-          });
-          return err(createViaApiResult.error);
-        }
+      const createViaApiResult = await bookingAuthorityService.createBooking({
+        coachId,
+        athleteIds,
+        bookedById,
+        scheduledAt,
+        duration,
+        location,
+        serviceType,
+        ...(sessionTemplateId ? { sessionTemplateId } : {}),
+        objectives: objectives || [],
+        notes,
+        totalPrice,
+      });
 
-        authoritativeCreate = {
-          id: createViaApiResult.data.id,
-          status: createViaApiResult.data.status,
-          scheduledAt: createViaApiResult.data.scheduledAt,
-          createdAt: createViaApiResult.data.createdAt,
-          serviceType: createViaApiResult.data.serviceType,
-          sessionTemplateId: createViaApiResult.data.sessionTemplateId,
-          objectives: createViaApiResult.data.objectives,
-          notes: createViaApiResult.data.notes,
-          priceMinor: createViaApiResult.data.priceMinor,
-        };
-      } else {
-        logger.debug('Skipping API booking create for delegated actor', {
+      if (!createViaApiResult.success) {
+        logger.error('Failed to create booking via API', {
           coachId,
           bookedById,
           athleteIds,
-          currentUserId: currentUser?.id ?? null,
+          currentUserId: currentUser.id,
           actingAs: actingAs ?? 'self',
           createdByUserId: createdByUserId ?? null,
           createdByRole: createdByRole ?? null,
+          error: createViaApiResult.error.message,
         });
+        return err(createViaApiResult.error);
       }
+
+      authoritativeCreate = {
+        id: createViaApiResult.data.id,
+        status: createViaApiResult.data.status,
+        scheduledAt: createViaApiResult.data.scheduledAt,
+        createdAt: createViaApiResult.data.createdAt,
+        serviceType: createViaApiResult.data.serviceType,
+        sessionTemplateId: createViaApiResult.data.sessionTemplateId,
+        objectives: createViaApiResult.data.objectives,
+        notes: createViaApiResult.data.notes,
+        priceMinor: createViaApiResult.data.priceMinor,
+      };
     }
 
     // Create the booking
@@ -1184,7 +1165,9 @@ class BookingCrudService {
 
     const scheduledAt = `${draft.date || toDateStr(new Date())}T${draft.slot || '10:00'}:00`;
     const athleteIds = draft.childIds || [draft.athleteId];
-    const athleteNames = draft.athleteName ? athleteIds.map(() => draft.athleteName as string) : ['Athlete'];
+    const athleteNames = draft.athleteName
+      ? athleteIds.map(() => draft.athleteName as string)
+      : ['Athlete'];
     const bookedById = draft.createdByUserId || draft.athleteId;
 
     if (!bookedById) {

@@ -17,7 +17,7 @@ Purpose: identify the service entrypoints that are safe to build on and call out
 - `services/booking/index.ts` -> booking CRUD, status, search, analytics
 - `services/booking/booking-authority-service.ts` -> canonical `/v1` booking bridge for non-mock read plus create/cancel/reopen slices
 - Booking creation rule: use `bookingService.createBooking()`
-  - Current rule: direct create goes API-first only when the signed-in actor is the real `bookedBy` user or a `club_admin`; the remaining wider invite-mediated create model is still transitional until backend authz widens
+  - Current create rule: non-mock booking creation is fail-closed through `/v1/bookings`; local storage now mirrors successful authoritative writes instead of acting as a delegated fallback
   - Current read rule: `bookingService.list()` and `bookingService.getBooking()` are API-first in non-mock mode, then mirror authoritative records into local storage so older UI surfaces still read one shape
 
 ### Progress and development

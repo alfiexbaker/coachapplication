@@ -3,137 +3,147 @@
 This is the initial endpoint inventory for the Clubroom backend. It is intentionally broader than the first coded scaffold and should be implemented sprint-by-sprint.
 
 Status legend:
+
 - `scaffolded`: route exists in `apps/api`
 - `planned`: contract + authz + data model defined, implementation pending
 - `deferred`: intentionally after phase 1 or later sprint
 
 ## Current Scaffolded Routes
-| Route | Method | Status | Notes |
-|---|---|---|---|
-| `/v1/health` | `GET` | `scaffolded` | contract in `@clubroom/shared-contracts` |
-| `/v1/ready` | `GET` | `scaffolded` | DB/storage checks still placeholders |
-| `/v1/meta/version` | `GET` | `scaffolded` | dev metadata only |
-| `/v1/bookings` | `GET` | `scaffolded` | visible booking list scaffold for coach, booked-by guardian, linked guardian, or athlete participant |
-| `/v1/bookings` | `POST` | `scaffolded` | direct booking create scaffold; app uses it in non-mock mode when actor matches `bookedByUserId` or is `club_admin` |
-| `/v1/bookings/:bookingId` | `GET` | `scaffolded` | booking detail scaffold with same visibility gate as list reads |
-| `/v1/bookings/:bookingId/cancel` | `POST` | `scaffolded` | booking cancellation scaffold with actor ownership enforcement and idempotent cancelled response |
-| `/v1/bookings/:bookingId/reopen` | `POST` | `scaffolded` | booking reopen scaffold restores the last active status for upcoming cancelled bookings |
-| `/v1/athletes/:athleteId/injuries` | `GET/POST` | `scaffolded` | in-memory scaffold for trust/health endpoint contract verification |
-| `/v1/injuries/:injuryId` | `PATCH` | `scaffolded` | injury status/notes update scaffold |
-| `/v1/athletes/:athleteId/medical` | `GET/PATCH` | `scaffolded` | medical profile scaffold with doctor, insurance, restriction, and notes fields |
-| `/v1/athletes/:athleteId/emergency-contacts` | `GET/PATCH` | `scaffolded` | emergency contacts scaffold with stable contact IDs, primary contact, and pickup flags |
-| `/v1/athletes/:athleteId/consents` | `GET/PUT` | `scaffolded` | consent record scaffold covering photo, video, social, and emergency treatment flags |
-| `/v1/safeguarding/incidents` | `POST` | `scaffolded` | concern ingestion scaffold with incident tracking |
-| `/v1/safeguarding/incidents/:incidentId` | `GET` | `scaffolded` | incident detail scaffold |
-| `/v1/safeguarding/incidents/:incidentId/actions` | `POST` | `scaffolded` | incident action append + status transition scaffold |
+
+| Route                                            | Method      | Status       | Notes                                                                                                                    |
+| ------------------------------------------------ | ----------- | ------------ | ------------------------------------------------------------------------------------------------------------------------ |
+| `/v1/health`                                     | `GET`       | `scaffolded` | contract in `@clubroom/shared-contracts`                                                                                 |
+| `/v1/ready`                                      | `GET`       | `scaffolded` | DB/storage checks still placeholders                                                                                     |
+| `/v1/meta/version`                               | `GET`       | `scaffolded` | dev metadata only                                                                                                        |
+| `/v1/bookings`                                   | `GET`       | `scaffolded` | visible booking list scaffold for coach, booked-by guardian, linked guardian, or athlete participant                     |
+| `/v1/bookings`                                   | `POST`      | `scaffolded` | direct booking create scaffold; app now treats it as the only non-mock create path and mirrors successful writes locally |
+| `/v1/bookings/:bookingId`                        | `GET`       | `scaffolded` | booking detail scaffold with same visibility gate as list reads                                                          |
+| `/v1/bookings/:bookingId/cancel`                 | `POST`      | `scaffolded` | booking cancellation scaffold with actor ownership enforcement and idempotent cancelled response                         |
+| `/v1/bookings/:bookingId/reopen`                 | `POST`      | `scaffolded` | booking reopen scaffold restores the last active status for upcoming cancelled bookings                                  |
+| `/v1/athletes/:athleteId/injuries`               | `GET/POST`  | `scaffolded` | in-memory scaffold for trust/health endpoint contract verification                                                       |
+| `/v1/injuries/:injuryId`                         | `PATCH`     | `scaffolded` | injury status/notes update scaffold                                                                                      |
+| `/v1/athletes/:athleteId/medical`                | `GET/PATCH` | `scaffolded` | medical profile scaffold with doctor, insurance, restriction, and notes fields                                           |
+| `/v1/athletes/:athleteId/emergency-contacts`     | `GET/PATCH` | `scaffolded` | emergency contacts scaffold with stable contact IDs, primary contact, and pickup flags                                   |
+| `/v1/athletes/:athleteId/consents`               | `GET/PUT`   | `scaffolded` | consent record scaffold covering photo, video, social, and emergency treatment flags                                     |
+| `/v1/safeguarding/incidents`                     | `POST`      | `scaffolded` | concern ingestion scaffold with incident tracking                                                                        |
+| `/v1/safeguarding/incidents/:incidentId`         | `GET`       | `scaffolded` | incident detail scaffold                                                                                                 |
+| `/v1/safeguarding/incidents/:incidentId/actions` | `POST`      | `scaffolded` | incident action append + status transition scaffold                                                                      |
 
 ## Identity / Sessions / Auth
-| Route | Method | Status | Contract(s) | AuthZ | UI anchors |
-|---|---|---|---|---|---|
-| `/v1/auth/login` | `POST` | `scaffolded` | scaffold login response | public; email/password credential check | auth/login screens via `services/auth-service.ts` |
-| `/v1/auth/register` | `POST` | `scaffolded` | scaffold register response | public; creates account plus session | onboarding/auth screens via `services/auth-service.ts` |
-| `/v1/auth/refresh` | `POST` | `scaffolded` | scaffold token refresh response | refresh token only | app token refresh path via `services/auth-service.ts`, `services/api-client.ts` |
-| `/v1/auth/logout` | `POST` | `scaffolded` | none | authenticated self; revokes current session | settings/logout flows via `services/auth-service.ts` |
-| `/v1/auth/revoke` | `POST` | `scaffolded` | none | authenticated self or refresh-token self revoke | security/session management via `services/auth-service.ts` |
-| `/v1/auth/me` | `GET/PATCH` | `scaffolded` | scaffold auth profile response | authenticated self | auth bootstrap + profile/onboarding flows via `services/auth-service.ts` |
-| `/v1/auth/verify-email` | `POST` | `scaffolded` | scaffold verify-email response | authenticated self | auth verification flow via `services/auth-service.ts` |
-| `/v1/auth/check-email` | `GET` | `scaffolded` | scaffold email-availability response | public | signup/email validation via `services/auth-service.ts` |
-| `/v1/me` | `GET` | `scaffolded` | `MeResponse` | authenticated self | settings/account screens |
-| `/v1/me/sessions` | `GET` | `scaffolded` | scaffold session-list response | authenticated self | settings/security |
-| `/v1/me/sessions/revoke-all` | `POST` | `scaffolded` | scaffold revoke-all response | self | settings/security |
-| `/v1/me/sessions/:sessionId/revoke` | `POST` | `scaffolded` | scaffold revoke-session response | self | settings/security |
+
+| Route                               | Method      | Status       | Contract(s)                          | AuthZ                                           | UI anchors                                                                      |
+| ----------------------------------- | ----------- | ------------ | ------------------------------------ | ----------------------------------------------- | ------------------------------------------------------------------------------- |
+| `/v1/auth/login`                    | `POST`      | `scaffolded` | scaffold login response              | public; email/password credential check         | auth/login screens via `services/auth-service.ts`                               |
+| `/v1/auth/register`                 | `POST`      | `scaffolded` | scaffold register response           | public; creates account plus session            | onboarding/auth screens via `services/auth-service.ts`                          |
+| `/v1/auth/refresh`                  | `POST`      | `scaffolded` | scaffold token refresh response      | refresh token only                              | app token refresh path via `services/auth-service.ts`, `services/api-client.ts` |
+| `/v1/auth/logout`                   | `POST`      | `scaffolded` | none                                 | authenticated self; revokes current session     | settings/logout flows via `services/auth-service.ts`                            |
+| `/v1/auth/revoke`                   | `POST`      | `scaffolded` | none                                 | authenticated self or refresh-token self revoke | security/session management via `services/auth-service.ts`                      |
+| `/v1/auth/me`                       | `GET/PATCH` | `scaffolded` | scaffold auth profile response       | authenticated self                              | auth bootstrap + profile/onboarding flows via `services/auth-service.ts`        |
+| `/v1/auth/verify-email`             | `POST`      | `scaffolded` | scaffold verify-email response       | authenticated self                              | auth verification flow via `services/auth-service.ts`                           |
+| `/v1/auth/check-email`              | `GET`       | `scaffolded` | scaffold email-availability response | public                                          | signup/email validation via `services/auth-service.ts`                          |
+| `/v1/me`                            | `GET`       | `scaffolded` | `MeResponse`                         | authenticated self                              | settings/account screens                                                        |
+| `/v1/me/sessions`                   | `GET`       | `scaffolded` | scaffold session-list response       | authenticated self                              | settings/security                                                               |
+| `/v1/me/sessions/revoke-all`        | `POST`      | `scaffolded` | scaffold revoke-all response         | self                                            | settings/security                                                               |
+| `/v1/me/sessions/:sessionId/revoke` | `POST`      | `scaffolded` | scaffold revoke-session response     | self                                            | settings/security                                                               |
 
 ## Family / Athlete / Consent / Medical
-| Route | Method | Status | Contract(s) | AuthZ | UI anchors |
-|---|---|---|---|---|---|
-| `/v1/families/:familyId` | `GET` | `planned` | `FamilyResponse` | guardian membership | `app/family/index.tsx` |
-| `/v1/families/:familyId/guardians` | `POST` | `planned` | `CreateGuardianInviteRequest` | family admin guardian | `app/family/sharing.tsx` |
-| `/v1/athletes` | `POST` | `planned` | `CreateAthleteRequest` | parent/guardian | `app/(modal)/add-child.tsx` |
-| `/v1/athletes/:athleteId` | `PATCH` | `planned` | `UpdateAthleteRequest` | guardian / athlete self (policy) | `app/(modal)/edit-child-profile.tsx` |
-| `/v1/athletes/:athleteId/medical` | `GET` | `scaffolded` | `MedicalRecordResponse` | guardian + verified coach (scoped) | `app/child/[id]/medical.tsx`, `services/family/family-health-service.ts` |
-| `/v1/athletes/:athleteId/medical` | `PATCH` | `scaffolded` | `UpdateMedicalRecordRequest` | guardian | `app/child/[id]/medical.tsx`, `services/family/family-health-service.ts` |
-| `/v1/athletes/:athleteId/emergency-contacts` | `GET` | `scaffolded` | `EmergencyContactsResponse` | guardian + gated coach | `app/child/[id]/emergency.tsx`, `services/family/family-health-service.ts` |
-| `/v1/athletes/:athleteId/emergency-contacts` | `PATCH` | `scaffolded` | `UpdateEmergencyContactsRequest` | guardian | `app/child/[id]/emergency.tsx`, `services/family/family-health-service.ts` |
-| `/v1/athletes/:athleteId/injuries` | `GET/POST` | `scaffolded` | `InjuriesResponse`, `CreateInjuryRequest` | athlete self / guardian / scoped coach | `app/health/index.tsx`, `app/health/injuries.tsx` |
-| `/v1/injuries/:injuryId` | `PATCH` | `scaffolded` | `UpdateInjuryRequest` | athlete self / guardian / scoped coach | `app/health/[id].tsx` |
-| `/v1/athletes/:athleteId/consents` | `GET` | `scaffolded` | `ConsentsResponse` | guardian + verified coach (scoped) | `app/child/[id]/medical.tsx`, `services/family/family-health-service.ts` |
-| `/v1/athletes/:athleteId/consents` | `PUT` | `scaffolded` | `UpsertConsentsRequest`, `ConsentsResponse` | guardian | family/child consent UIs, `services/family/family-health-service.ts` |
+
+| Route                                        | Method     | Status       | Contract(s)                                 | AuthZ                                  | UI anchors                                                                 |
+| -------------------------------------------- | ---------- | ------------ | ------------------------------------------- | -------------------------------------- | -------------------------------------------------------------------------- |
+| `/v1/families/:familyId`                     | `GET`      | `planned`    | `FamilyResponse`                            | guardian membership                    | `app/family/index.tsx`                                                     |
+| `/v1/families/:familyId/guardians`           | `POST`     | `planned`    | `CreateGuardianInviteRequest`               | family admin guardian                  | `app/family/sharing.tsx`                                                   |
+| `/v1/athletes`                               | `POST`     | `planned`    | `CreateAthleteRequest`                      | parent/guardian                        | `app/(modal)/add-child.tsx`                                                |
+| `/v1/athletes/:athleteId`                    | `PATCH`    | `planned`    | `UpdateAthleteRequest`                      | guardian / athlete self (policy)       | `app/(modal)/edit-child-profile.tsx`                                       |
+| `/v1/athletes/:athleteId/medical`            | `GET`      | `scaffolded` | `MedicalRecordResponse`                     | guardian + verified coach (scoped)     | `app/child/[id]/medical.tsx`, `services/family/family-health-service.ts`   |
+| `/v1/athletes/:athleteId/medical`            | `PATCH`    | `scaffolded` | `UpdateMedicalRecordRequest`                | guardian                               | `app/child/[id]/medical.tsx`, `services/family/family-health-service.ts`   |
+| `/v1/athletes/:athleteId/emergency-contacts` | `GET`      | `scaffolded` | `EmergencyContactsResponse`                 | guardian + gated coach                 | `app/child/[id]/emergency.tsx`, `services/family/family-health-service.ts` |
+| `/v1/athletes/:athleteId/emergency-contacts` | `PATCH`    | `scaffolded` | `UpdateEmergencyContactsRequest`            | guardian                               | `app/child/[id]/emergency.tsx`, `services/family/family-health-service.ts` |
+| `/v1/athletes/:athleteId/injuries`           | `GET/POST` | `scaffolded` | `InjuriesResponse`, `CreateInjuryRequest`   | athlete self / guardian / scoped coach | `app/health/index.tsx`, `app/health/injuries.tsx`                          |
+| `/v1/injuries/:injuryId`                     | `PATCH`    | `scaffolded` | `UpdateInjuryRequest`                       | athlete self / guardian / scoped coach | `app/health/[id].tsx`                                                      |
+| `/v1/athletes/:athleteId/consents`           | `GET`      | `scaffolded` | `ConsentsResponse`                          | guardian + verified coach (scoped)     | `app/child/[id]/medical.tsx`, `services/family/family-health-service.ts`   |
+| `/v1/athletes/:athleteId/consents`           | `PUT`      | `scaffolded` | `UpsertConsentsRequest`, `ConsentsResponse` | guardian                               | family/child consent UIs, `services/family/family-health-service.ts`       |
 
 ## Coach / Clubs / Scheduling / Verification
-| Route | Method | Status | Contract(s) | AuthZ | UI anchors |
-|---|---|---|---|---|---|
-| `/v1/coaches/me/profile` | `GET/PATCH` | `planned` | `CoachProfile*` | coach self | `app/(tabs)/coach-profile.tsx` |
-| `/v1/coaches/me/offerings` | `GET/POST/PATCH` | `planned` | `Offering*` | coach self | session create + booking setup |
-| `/v1/coaches/me/availability/templates` | `GET/POST/PATCH` | `planned` | `AvailabilityTemplate*` | coach self | `app/(tabs)/availability.tsx`, `app/availability/*` |
-| `/v1/coaches/me/availability/overrides` | `GET/POST/PATCH` | `planned` | `AvailabilityOverride*` | coach self | `app/availability/calendar.tsx` |
-| `/v1/coaches/me/scheduling-rules` | `GET/PATCH` | `planned` | `SchedulingRules*` | coach self | `services/scheduling-rules-service.ts` consumers |
-| `/v1/clubs` | `GET` | `scaffolded` | `Club*` | authenticated | `app/(tabs)/club-hub.tsx`, `app/club/my-clubs.tsx`, `services/club-authority-service.ts` |
-| `/v1/clubs` | `POST` | `planned` | `Club*` | `club_admin` create | club creation flows |
-| `/v1/clubs/join/resolve` | `GET` | `scaffolded` | `ResolveClubJoinCodeResponse` | authenticated | join-link preview and code validation, `services/club-authority-service.ts` |
-| `/v1/clubs/join` | `POST` | `scaffolded` | `JoinClubRequest`, `JoinClubResponse` | authenticated; direct member join or pending staff invite based on invite-code role | `app/club/my-clubs.tsx`, `hooks/use-club-hub.ts`, `hooks/use-coach-invites.ts`, `services/club-authority-service.ts` |
-| `/v1/clubs/invites` | `GET` | `scaffolded` | `ClubInvitesResponse` | authenticated self | `app/coach-invites.tsx`, `hooks/use-coach-invites.ts`, `services/club-authority-service.ts` |
-| `/v1/clubs/invites/:inviteId/respond` | `POST` | `scaffolded` | `RespondToClubInviteRequest`, `RespondToClubInviteResponse` | pending invite target only | `app/coach-invites.tsx`, `hooks/use-coach-invites.ts`, `services/club-authority-service.ts` |
-| `/v1/clubs/:clubId/invite-codes` | `GET` | `scaffolded` | `ClubInviteCodesResponse` | club membership | `app/club/settings.tsx`, `hooks/use-club-settings.ts`, `services/club-authority-service.ts` |
-| `/v1/clubs/:clubId/invite-codes` | `POST` | `scaffolded` | `CreateClubInviteCodeRequest`, `ClubInviteCode` | `manage_staff_and_invites` capability | `app/club/settings.tsx`, `hooks/use-club-settings.ts`, `services/club-authority-service.ts` |
-| `/v1/clubs/:clubId/invite-codes/:code` | `DELETE` | `scaffolded` | none | `manage_staff_and_invites` capability | `app/club/settings.tsx`, `hooks/use-club-settings.ts`, `services/club-authority-service.ts` |
-| `/v1/clubs/:clubId/memberships` | `GET/POST/PATCH` | `planned` | `ClubMembership*` | `club_admin` | club/admin UIs |
-| `/v1/clubs/:clubId/squads` | `GET/POST/PATCH` | `planned` | `Squad*` | `club_admin` or owner coach | `app/squads/*` |
-| `/v1/clubs/:clubId/schedule` | `GET` | `planned` | `ClubScheduleResponse` | club-scoped visibility via membership, assignment, public visibility, or linked participant access | `app/club/[id].tsx`, `app/club/[id]/schedule.tsx`, `app/club/squad/[id]/schedule.tsx`, `services/club-schedule-service.ts` |
-| `/v1/clubs/:clubId/schedule/:activityId` | `GET` | `planned` | `ClubActivityDetailResponse` | same as schedule list plus item-level visibility gates | club and team schedule detail drill-ins |
-| `/v1/clubs/:clubId/integrations` | `GET/POST/PATCH` | `planned` | `ClubIntegration*` | `club_admin` | future club settings/integrations |
-| `/v1/clubs/:clubId/matches/import` | `POST` | `planned` | `ImportClubMatchesRequest`, `ImportClubMatchesResponse` | `club_admin` | future club schedule admin tools |
-| `/v1/coaches/me/verifications/:type/documents` | `POST` | `planned` | `UploadVerificationDocument*` | coach self | `app/verification/*` |
+
+| Route                                          | Method           | Status       | Contract(s)                                                 | AuthZ                                                                                              | UI anchors                                                                                                                 |
+| ---------------------------------------------- | ---------------- | ------------ | ----------------------------------------------------------- | -------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------- |
+| `/v1/coaches/me/profile`                       | `GET/PATCH`      | `planned`    | `CoachProfile*`                                             | coach self                                                                                         | `app/(tabs)/coach-profile.tsx`                                                                                             |
+| `/v1/coaches/me/offerings`                     | `GET/POST/PATCH` | `planned`    | `Offering*`                                                 | coach self                                                                                         | session create + booking setup                                                                                             |
+| `/v1/coaches/me/availability/templates`        | `GET/POST/PATCH` | `planned`    | `AvailabilityTemplate*`                                     | coach self                                                                                         | `app/(tabs)/availability.tsx`, `app/availability/*`                                                                        |
+| `/v1/coaches/me/availability/overrides`        | `GET/POST/PATCH` | `planned`    | `AvailabilityOverride*`                                     | coach self                                                                                         | `app/availability/calendar.tsx`                                                                                            |
+| `/v1/coaches/me/scheduling-rules`              | `GET/PATCH`      | `planned`    | `SchedulingRules*`                                          | coach self                                                                                         | `services/scheduling-rules-service.ts` consumers                                                                           |
+| `/v1/clubs`                                    | `GET`            | `scaffolded` | `Club*`                                                     | authenticated                                                                                      | `app/(tabs)/club-hub.tsx`, `app/club/my-clubs.tsx`, `services/club-authority-service.ts`                                   |
+| `/v1/clubs`                                    | `POST`           | `planned`    | `Club*`                                                     | `club_admin` create                                                                                | club creation flows                                                                                                        |
+| `/v1/clubs/join/resolve`                       | `GET`            | `scaffolded` | `ResolveClubJoinCodeResponse`                               | authenticated                                                                                      | join-link preview and code validation, `services/club-authority-service.ts`                                                |
+| `/v1/clubs/join`                               | `POST`           | `scaffolded` | `JoinClubRequest`, `JoinClubResponse`                       | authenticated; direct member join or pending staff invite based on invite-code role                | `app/club/my-clubs.tsx`, `hooks/use-club-hub.ts`, `hooks/use-coach-invites.ts`, `services/club-authority-service.ts`       |
+| `/v1/clubs/invites`                            | `GET`            | `scaffolded` | `ClubInvitesResponse`                                       | authenticated self                                                                                 | `app/coach-invites.tsx`, `hooks/use-coach-invites.ts`, `services/club-authority-service.ts`                                |
+| `/v1/clubs/invites/:inviteId/respond`          | `POST`           | `scaffolded` | `RespondToClubInviteRequest`, `RespondToClubInviteResponse` | pending invite target only                                                                         | `app/coach-invites.tsx`, `hooks/use-coach-invites.ts`, `services/club-authority-service.ts`                                |
+| `/v1/clubs/:clubId/invite-codes`               | `GET`            | `scaffolded` | `ClubInviteCodesResponse`                                   | club membership                                                                                    | `app/club/settings.tsx`, `hooks/use-club-settings.ts`, `services/club-authority-service.ts`                                |
+| `/v1/clubs/:clubId/invite-codes`               | `POST`           | `scaffolded` | `CreateClubInviteCodeRequest`, `ClubInviteCode`             | `manage_staff_and_invites` capability                                                              | `app/club/settings.tsx`, `hooks/use-club-settings.ts`, `services/club-authority-service.ts`                                |
+| `/v1/clubs/:clubId/invite-codes/:code`         | `DELETE`         | `scaffolded` | none                                                        | `manage_staff_and_invites` capability                                                              | `app/club/settings.tsx`, `hooks/use-club-settings.ts`, `services/club-authority-service.ts`                                |
+| `/v1/clubs/:clubId/memberships`                | `GET/POST/PATCH` | `planned`    | `ClubMembership*`                                           | `club_admin`                                                                                       | club/admin UIs                                                                                                             |
+| `/v1/clubs/:clubId/squads`                     | `GET/POST/PATCH` | `planned`    | `Squad*`                                                    | `club_admin` or owner coach                                                                        | `app/squads/*`                                                                                                             |
+| `/v1/clubs/:clubId/schedule`                   | `GET`            | `planned`    | `ClubScheduleResponse`                                      | club-scoped visibility via membership, assignment, public visibility, or linked participant access | `app/club/[id].tsx`, `app/club/[id]/schedule.tsx`, `app/club/squad/[id]/schedule.tsx`, `services/club-schedule-service.ts` |
+| `/v1/clubs/:clubId/schedule/:activityId`       | `GET`            | `planned`    | `ClubActivityDetailResponse`                                | same as schedule list plus item-level visibility gates                                             | club and team schedule detail drill-ins                                                                                    |
+| `/v1/clubs/:clubId/integrations`               | `GET/POST/PATCH` | `planned`    | `ClubIntegration*`                                          | `club_admin`                                                                                       | future club settings/integrations                                                                                          |
+| `/v1/clubs/:clubId/matches/import`             | `POST`           | `planned`    | `ImportClubMatchesRequest`, `ImportClubMatchesResponse`     | `club_admin`                                                                                       | future club schedule admin tools                                                                                           |
+| `/v1/coaches/me/verifications/:type/documents` | `POST`           | `planned`    | `UploadVerificationDocument*`                               | coach self                                                                                         | `app/verification/*`                                                                                                       |
 
 ## Booking / Group Sessions / Invites / Events
-| Route | Method | Status | Contract(s) | AuthZ | UI anchors |
-|---|---|---|---|---|---|
-| `/v1/bookings` | `GET` | `scaffolded` | `BookingListResponse` | participants/guardian/coach | `app/(tabs)/bookings/index.tsx`, `hooks/use-bookings.ts`, `services/booking/booking-authority-service.ts` |
-| `/v1/bookings` | `POST` | `scaffolded` | `CreateBookingRequest`, `BookingResponse` | parent for linked athlete only, athlete for self only, or `club_admin` override | `app/book/[coachId]/*`, `components/ui/booking/*`, `services/booking/booking-authority-service.ts` |
-| `/v1/bookings/:bookingId` | `GET` | `scaffolded` | `BookingResponse` | participants/guardian/coach | `app/(tabs)/bookings/[id].tsx`, `hooks/use-booking-detail.ts`, `services/booking/booking-authority-service.ts` |
-| `/v1/bookings/:bookingId` | `PATCH` | `planned` | `UpdateBookingRequest`, `BookingResponse` | scoped actors + version | booking detail + admin tools |
-| `/v1/bookings/:bookingId/cancel` | `POST` | `scaffolded` | `CancelBookingRequest`, `BookingResponse` | parent/athlete/coach tied to booking participants or delivery coach | `app/booking/[id]/cancel.tsx`, `hooks/use-booking-cancel.ts`, `services/booking/booking-authority-service.ts` |
-| `/v1/bookings/:bookingId/reopen` | `POST` | `scaffolded` | `ReopenBookingRequest`, `BookingResponse` | parent/athlete/coach tied to booking participants or delivery coach | `app/(tabs)/bookings/[id].tsx`, `hooks/use-booking-detail.ts`, `services/booking/booking-authority-service.ts` |
-| `/v1/group-sessions` | `GET` | `scaffolded` | `GroupSession*` | read visibility for coach, participant guardian/athlete, invited target, or `club_admin` | `app/group-sessions/index.tsx`, `hooks/use-group-sessions.ts` |
-| `/v1/group-sessions` | `POST` | `planned` | `GroupSession*` | coach create | `app/group-sessions/create.tsx` |
-| `/v1/group-sessions/:id/register` | `POST` | `scaffolded` | `RegisterGroupSessionRequest`, `RegisterGroupSessionResponse` | athlete self, guardian of athlete, or `club_admin` acting on behalf | `hooks/use-group-session.ts`, `services/group-session/session-registration-service.ts` |
-| `/v1/group-sessions/:id/waitlist` | `POST` | `planned` | `JoinWaitlistRequest` | parent/athlete | group session detail + waitlist banner |
-| `/v1/invites` | `POST` | `scaffolded` | scaffold session-invite create payload + invite snapshot | owner coach self or `club_admin` acting on behalf | `app/sessions/create.tsx`, `hooks/use-create-invite.ts`, `hooks/use-create-session.ts`, `services/invite/session-invite-authority-service.ts` |
-| `/v1/invites` | `GET` | `scaffolded` | scaffold session-invite list response | owner coach sent view or invite target received view for authenticated self | `app/session-invites/index.tsx`, `services/invite/session-invite-authority-service.ts` |
-| `/v1/invites/:inviteId` | `GET` | `scaffolded` | scaffold session-invite detail response | owner coach or invite target only | `app/session-invites/[id].tsx`, `services/invite/session-invite-authority-service.ts` |
-| `/v1/invites/:inviteId` | `DELETE` | `scaffolded` | none | owner coach or `club_admin` | `app/session-invites/index.tsx`, `app/session-invites/[id].tsx`, `services/invite/session-invite-authority-service.ts` |
-| `/v1/invites/:inviteId/remind` | `POST` | `scaffolded` | none | owner coach or `club_admin` | `app/session-invites/[id].tsx`, `services/invite/session-invite-authority-service.ts` |
-| `/v1/invites/:inviteId/dismiss` | `POST` | `scaffolded` | none | invite target only | `app/session-invites/index.tsx`, `services/invite/session-invite-authority-service.ts` |
-| `/v1/invites/:inviteId/respond` | `POST` | `scaffolded` | `InviteResponseRequest`, `InviteResponseResult` plus scaffold invite snapshot | invite target only | `app/session-invites/*`, `services/invite/session-invite-authority-service.ts` |
-| `/v1/events/:eventId/rsvp` | `POST` | `scaffolded` | `EventRsvpRequest` | event audience member | `hooks/use-event-rsvp.ts` |
+
+| Route                             | Method   | Status       | Contract(s)                                                                   | AuthZ                                                                                                           | UI anchors                                                                                                                                    |
+| --------------------------------- | -------- | ------------ | ----------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------- |
+| `/v1/bookings`                    | `GET`    | `scaffolded` | `BookingListResponse`                                                         | participants/guardian/coach                                                                                     | `app/(tabs)/bookings/index.tsx`, `hooks/use-bookings.ts`, `services/booking/booking-authority-service.ts`                                     |
+| `/v1/bookings`                    | `POST`   | `scaffolded` | `CreateBookingRequest`, `BookingResponse`                                     | actor must pass repository athlete-relationship authz; app no longer falls back to local-only create on 4xx/5xx | `app/book/[coachId]/*`, `components/ui/booking/*`, `services/booking/booking-authority-service.ts`                                            |
+| `/v1/bookings/:bookingId`         | `GET`    | `scaffolded` | `BookingResponse`                                                             | participants/guardian/coach                                                                                     | `app/(tabs)/bookings/[id].tsx`, `hooks/use-booking-detail.ts`, `services/booking/booking-authority-service.ts`                                |
+| `/v1/bookings/:bookingId`         | `PATCH`  | `planned`    | `UpdateBookingRequest`, `BookingResponse`                                     | scoped actors + version                                                                                         | booking detail + admin tools                                                                                                                  |
+| `/v1/bookings/:bookingId/cancel`  | `POST`   | `scaffolded` | `CancelBookingRequest`, `BookingResponse`                                     | parent/athlete/coach tied to booking participants or delivery coach                                             | `app/booking/[id]/cancel.tsx`, `hooks/use-booking-cancel.ts`, `services/booking/booking-authority-service.ts`                                 |
+| `/v1/bookings/:bookingId/reopen`  | `POST`   | `scaffolded` | `ReopenBookingRequest`, `BookingResponse`                                     | parent/athlete/coach tied to booking participants or delivery coach                                             | `app/(tabs)/bookings/[id].tsx`, `hooks/use-booking-detail.ts`, `services/booking/booking-authority-service.ts`                                |
+| `/v1/group-sessions`              | `GET`    | `scaffolded` | `GroupSession*`                                                               | read visibility for coach, participant guardian/athlete, invited target, or `club_admin`                        | `app/group-sessions/index.tsx`, `hooks/use-group-sessions.ts`                                                                                 |
+| `/v1/group-sessions`              | `POST`   | `planned`    | `GroupSession*`                                                               | coach create                                                                                                    | `app/group-sessions/create.tsx`                                                                                                               |
+| `/v1/group-sessions/:id/register` | `POST`   | `scaffolded` | `RegisterGroupSessionRequest`, `RegisterGroupSessionResponse`                 | athlete self, guardian of athlete, or `club_admin` acting on behalf                                             | `hooks/use-group-session.ts`, `services/group-session/session-registration-service.ts`                                                        |
+| `/v1/group-sessions/:id/waitlist` | `POST`   | `planned`    | `JoinWaitlistRequest`                                                         | parent/athlete                                                                                                  | group session detail + waitlist banner                                                                                                        |
+| `/v1/invites`                     | `POST`   | `scaffolded` | scaffold session-invite create payload + invite snapshot                      | owner coach self or `club_admin` acting on behalf                                                               | `app/sessions/create.tsx`, `hooks/use-create-invite.ts`, `hooks/use-create-session.ts`, `services/invite/session-invite-authority-service.ts` |
+| `/v1/invites`                     | `GET`    | `scaffolded` | scaffold session-invite list response                                         | owner coach sent view or invite target received view for authenticated self                                     | `app/session-invites/index.tsx`, `services/invite/session-invite-authority-service.ts`                                                        |
+| `/v1/invites/:inviteId`           | `GET`    | `scaffolded` | scaffold session-invite detail response                                       | owner coach or invite target only                                                                               | `app/session-invites/[id].tsx`, `services/invite/session-invite-authority-service.ts`                                                         |
+| `/v1/invites/:inviteId`           | `DELETE` | `scaffolded` | none                                                                          | owner coach or `club_admin`                                                                                     | `app/session-invites/index.tsx`, `app/session-invites/[id].tsx`, `services/invite/session-invite-authority-service.ts`                        |
+| `/v1/invites/:inviteId/remind`    | `POST`   | `scaffolded` | none                                                                          | owner coach or `club_admin`                                                                                     | `app/session-invites/[id].tsx`, `services/invite/session-invite-authority-service.ts`                                                         |
+| `/v1/invites/:inviteId/dismiss`   | `POST`   | `scaffolded` | none                                                                          | invite target only                                                                                              | `app/session-invites/index.tsx`, `services/invite/session-invite-authority-service.ts`                                                        |
+| `/v1/invites/:inviteId/respond`   | `POST`   | `scaffolded` | `InviteResponseRequest`, `InviteResponseResult` plus scaffold invite snapshot | invite target only                                                                                              | `app/session-invites/*`, `services/invite/session-invite-authority-service.ts`                                                                |
+| `/v1/events/:eventId/rsvp`        | `POST`   | `scaffolded` | `EventRsvpRequest`                                                            | event audience member                                                                                           | `hooks/use-event-rsvp.ts`                                                                                                                     |
 
 ## Revenue / Reconciler
-| Route | Method | Status | Contract(s) | AuthZ | UI anchors |
-|---|---|---|---|---|---|
-| `/v1/invoices/:invoiceId` | `GET` | `planned` | `InvoiceResponse` | owner coach / payer / delegated finance | `components/invoices/*` |
-| `/v1/coaches/me/invoices` | `GET` | `planned` | `InvoiceListResponse` | coach self | `app/(tabs)/earnings.tsx`, analytics revenue |
-| `/v1/invoices/generate` | `POST` | `planned` | `GenerateInvoiceRequest` | coach/self service flow | `services/invoice-service.ts` replacement path |
-| `/v1/invoices/:invoiceId/mark-paid` | `POST` | `planned` | `InvoiceTransitionRequest` | coach/delegated finance | reconciler UI |
-| `/v1/invoices/:invoiceId/mark-unpaid` | `POST` | `planned` | `InvoiceTransitionRequest` | coach/delegated finance | reconciler UI |
-| `/v1/invoices/:invoiceId/write-off` | `POST` | `planned` | `InvoiceTransitionRequest` | coach/delegated finance | reconciler UI |
-| `/v1/invoices/:invoiceId/restore` | `POST` | `planned` | `InvoiceTransitionRequest` | coach/delegated finance | reconciler UI |
-| `/v1/invoices/:invoiceId/reminders` | `POST` | `planned` | `SendInvoiceReminderRequest` | coach/delegated finance | reminder templates |
+
+| Route                                 | Method | Status    | Contract(s)                  | AuthZ                                   | UI anchors                                     |
+| ------------------------------------- | ------ | --------- | ---------------------------- | --------------------------------------- | ---------------------------------------------- |
+| `/v1/invoices/:invoiceId`             | `GET`  | `planned` | `InvoiceResponse`            | owner coach / payer / delegated finance | `components/invoices/*`                        |
+| `/v1/coaches/me/invoices`             | `GET`  | `planned` | `InvoiceListResponse`        | coach self                              | `app/(tabs)/earnings.tsx`, analytics revenue   |
+| `/v1/invoices/generate`               | `POST` | `planned` | `GenerateInvoiceRequest`     | coach/self service flow                 | `services/invoice-service.ts` replacement path |
+| `/v1/invoices/:invoiceId/mark-paid`   | `POST` | `planned` | `InvoiceTransitionRequest`   | coach/delegated finance                 | reconciler UI                                  |
+| `/v1/invoices/:invoiceId/mark-unpaid` | `POST` | `planned` | `InvoiceTransitionRequest`   | coach/delegated finance                 | reconciler UI                                  |
+| `/v1/invoices/:invoiceId/write-off`   | `POST` | `planned` | `InvoiceTransitionRequest`   | coach/delegated finance                 | reconciler UI                                  |
+| `/v1/invoices/:invoiceId/restore`     | `POST` | `planned` | `InvoiceTransitionRequest`   | coach/delegated finance                 | reconciler UI                                  |
+| `/v1/invoices/:invoiceId/reminders`   | `POST` | `planned` | `SendInvoiceReminderRequest` | coach/delegated finance                 | reminder templates                             |
 
 ## Trust / Safeguarding / Ops
-| Route | Method | Status | Contract(s) | AuthZ | UI anchors |
-|---|---|---|---|---|---|
-| `/v1/safeguarding/incidents` | `POST` | `scaffolded` | `CreateSafeguardingIncidentRequest`, `SafeguardingIncidentResponse` | coach/guardian scoped to athlete/booking context | `app/roster/[athleteId]/raise-concern.tsx`, `app/(tabs)/bookings/report-problem.tsx`, `services/trust/index.ts`, `services/concern-service.ts` |
-| `/v1/safeguarding/incidents/:incidentId` | `GET` | `scaffolded` | `SafeguardingIncidentResponse` | assignment/role-restricted safeguarding access | trust follow-up surfaces, `services/trust/index.ts` |
-| `/v1/safeguarding/incidents/:incidentId/actions` | `POST` | `scaffolded` | `CreateSafeguardingActionRequest`, `SafeguardingActionResponse` | safeguarding assignee/admin scope | operations tooling + incident review workflows, `services/trust/index.ts`, `services/concern-service.ts` |
+
+| Route                                            | Method | Status       | Contract(s)                                                         | AuthZ                                            | UI anchors                                                                                                                                     |
+| ------------------------------------------------ | ------ | ------------ | ------------------------------------------------------------------- | ------------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------- |
+| `/v1/safeguarding/incidents`                     | `POST` | `scaffolded` | `CreateSafeguardingIncidentRequest`, `SafeguardingIncidentResponse` | coach/guardian scoped to athlete/booking context | `app/roster/[athleteId]/raise-concern.tsx`, `app/(tabs)/bookings/report-problem.tsx`, `services/trust/index.ts`, `services/concern-service.ts` |
+| `/v1/safeguarding/incidents/:incidentId`         | `GET`  | `scaffolded` | `SafeguardingIncidentResponse`                                      | assignment/role-restricted safeguarding access   | trust follow-up surfaces, `services/trust/index.ts`                                                                                            |
+| `/v1/safeguarding/incidents/:incidentId/actions` | `POST` | `scaffolded` | `CreateSafeguardingActionRequest`, `SafeguardingActionResponse`     | safeguarding assignee/admin scope                | operations tooling + incident review workflows, `services/trust/index.ts`, `services/concern-service.ts`                                       |
 
 ## Progress / Media / Community / Trust Ops
 
 Keep this file as the core `/v1` inventory index.
 When these modules expand, add route rows here and update:
+
 - `docs/backend-api/UI_API_BILATERAL_ALIGNMENT.md`
 - `docs/backend-api/AUTHZ_AUDIT_AND_SECURITY.md`
 - `docs/backend-api/API_CONTRACTS_ERRORS_AND_HANDLERS.md`
 
 ## Inventory Rules
+
 - Every row must eventually include:
   - shared contract name(s)
   - authz rule summary (role + grants + safety gates)

@@ -12,16 +12,24 @@ type SeedRow = Record<string, unknown>;
 type SeedTables = Record<string, SeedRow[]>;
 
 const asRows = (value: unknown): SeedRow[] => (Array.isArray(value) ? (value as SeedRow[]) : []);
-const asString = (value: unknown): string | undefined => (typeof value === 'string' ? value : undefined);
-const asNumber = (value: unknown): number | undefined => (typeof value === 'number' ? value : undefined);
+const asString = (value: unknown): string | undefined =>
+  typeof value === 'string' ? value : undefined;
+const asNumber = (value: unknown): number | undefined =>
+  typeof value === 'number' ? value : undefined;
 
 function resolveDatasetPath(): string {
-  const primary = path.resolve(process.cwd(), 'docs/backend-api/test-data/marketplace/linked-dataset.json');
+  const primary = path.resolve(
+    process.cwd(),
+    'docs/backend-api/test-data/marketplace/linked-dataset.json',
+  );
   if (fs.existsSync(primary)) {
     return primary;
   }
 
-  const fallback = path.resolve(process.cwd(), '../../docs/backend-api/test-data/marketplace/linked-dataset.json');
+  const fallback = path.resolve(
+    process.cwd(),
+    '../../docs/backend-api/test-data/marketplace/linked-dataset.json',
+  );
   if (fs.existsSync(fallback)) {
     return fallback;
   }
@@ -577,7 +585,10 @@ describe('p0 core routes', () => {
     });
     assert.equal(listed.statusCode, 200);
     const listedPayload = listed.json() as { bookings: Array<{ id: string }> };
-    assert.equal(listedPayload.bookings.some((booking) => booking.id === created.id), true);
+    assert.equal(
+      listedPayload.bookings.some((booking) => booking.id === created.id),
+      true,
+    );
 
     const detail = await app.inject({
       method: 'GET',
@@ -664,6 +675,47 @@ describe('p0 core routes', () => {
       payload: {},
     });
     assert.equal(reopenedAgain.statusCode, 400);
+  });
+
+  it('allows a guardian to create a booking for a linked athlete when bookedByUserId differs from the authenticated parent', async () => {
+    const tables = loadTables();
+    const guardianLink = asRows(tables.guardianChildLinks)[0];
+    assert.ok(guardianLink, 'expected seeded guardian-child link');
+    const parentUserId = asString(guardianLink.guardianUserId) as string;
+    const athleteId = asString(guardianLink.athleteId) as string;
+    const athlete = asRows(tables.athletes).find((row) => asString(row.id) === athleteId);
+    assert.ok(athlete, 'expected seeded athlete for guardian-child link');
+    const athleteUserId = asString(athlete?.userId) as string;
+    const coachOffering = asRows(tables.coachingOfferings)[0];
+    assert.ok(coachOffering, 'expected seeded coaching offering');
+    const coachUserId = asString(coachOffering.coachUserId) as string;
+
+    const create = await app.inject({
+      method: 'POST',
+      url: '/v1/bookings',
+      headers: {
+        'x-auth-user-id': parentUserId,
+        'x-auth-roles': rolesForUser(tables, parentUserId).join(',') || 'parent',
+        'x-acting-role': rolesForUser(tables, parentUserId)[0] ?? 'parent',
+      },
+      payload: {
+        coachUserId,
+        athleteIds: [athleteId],
+        bookedByUserId: athleteUserId,
+        scheduledAt: new Date(Date.now() + 72 * 60 * 60 * 1000).toISOString(),
+        durationMinutes: 60,
+        location: 'Delegated Booking Test Pitch',
+        serviceType: 'one_to_one',
+        objectives: ['Decision making'],
+        priceMinor: 3800,
+        currency: 'GBP',
+      },
+    });
+
+    assert.equal(create.statusCode, 201);
+    const created = create.json() as { id: string; bookedByUserId?: string };
+    assert.match(created.id, /^bok_/);
+    assert.equal(created.bookedByUserId, athleteUserId);
   });
 
   it('denies booking cancellation for an unrelated actor', async () => {
@@ -776,8 +828,9 @@ describe('p0 core routes', () => {
 
   it('lists and reads visible session invites for coach and parent users', async () => {
     const tables = loadTables();
-    const pendingTarget = asRows(tables.inviteTargets).find((row) => asString(row.status) === 'PENDING')
-      ?? asRows(tables.inviteTargets)[0];
+    const pendingTarget =
+      asRows(tables.inviteTargets).find((row) => asString(row.status) === 'PENDING') ??
+      asRows(tables.inviteTargets)[0];
     assert.ok(pendingTarget, 'expected seeded invite target');
     const inviteId = asString(pendingTarget.inviteId) as string;
     const parentUserId = asString(pendingTarget.targetUserId) as string;
@@ -875,33 +928,40 @@ describe('p0 core routes', () => {
       location: 'Direct Invite Pitch',
     };
 
-    const createInvite = async (focus: string, groupId?: string) => app.inject({
-      method: 'POST',
-      url: '/v1/invites',
-      headers: {
-        'x-auth-user-id': coachUserId,
-        'x-auth-roles': rolesForUser(tables, coachUserId).join(',') || 'coach',
-        'x-acting-role': rolesForUser(tables, coachUserId)[0] ?? 'coach',
-      },
-      payload: {
-        coachUserId,
-        athleteIds: [athleteId],
-        parentUserId,
-        proposedSlots: [proposedSlot],
-        sessionType: '1:1 Coaching',
-        focus,
-        notes: `${focus} session`,
-        inviteType: 'CLOSED',
-        priceMinor: 3500,
-        durationMinutes: 60,
-        ...(groupId ? { groupId } : {}),
-      },
-    });
+    const createInvite = async (focus: string, groupId?: string) =>
+      app.inject({
+        method: 'POST',
+        url: '/v1/invites',
+        headers: {
+          'x-auth-user-id': coachUserId,
+          'x-auth-roles': rolesForUser(tables, coachUserId).join(',') || 'coach',
+          'x-acting-role': rolesForUser(tables, coachUserId)[0] ?? 'coach',
+        },
+        payload: {
+          coachUserId,
+          athleteIds: [athleteId],
+          parentUserId,
+          proposedSlots: [proposedSlot],
+          sessionType: '1:1 Coaching',
+          focus,
+          notes: `${focus} session`,
+          inviteType: 'CLOSED',
+          priceMinor: 3500,
+          durationMinutes: 60,
+          ...(groupId ? { groupId } : {}),
+        },
+      });
 
     const pendingCreate = await createInvite('First Touch', 'grp_direct_test');
     assert.equal(pendingCreate.statusCode, 201);
     const pendingPayload = pendingCreate.json() as {
-      invite: { id: string; sessionType: string; focus: string; groupId?: string; parentId: string };
+      invite: {
+        id: string;
+        sessionType: string;
+        focus: string;
+        groupId?: string;
+        parentId: string;
+      };
     };
     assert.equal(pendingPayload.invite.sessionType, '1:1 Coaching');
     assert.equal(pendingPayload.invite.focus, 'First Touch');
@@ -1042,8 +1102,9 @@ describe('p0 core routes', () => {
 
   it('responds to invites and creates/updates event RSVPs', async () => {
     const tables = loadTables();
-    const target = asRows(tables.inviteTargets).find((row) => asString(row.status) === 'PENDING')
-      ?? asRows(tables.inviteTargets)[0];
+    const target =
+      asRows(tables.inviteTargets).find((row) => asString(row.status) === 'PENDING') ??
+      asRows(tables.inviteTargets)[0];
     assert.ok(target, 'expected seeded invite target');
     const inviteId = asString(target.inviteId) as string;
     const targetUserId = asString(target.targetUserId) as string;
@@ -1137,9 +1198,9 @@ describe('p0 core routes', () => {
         const maxParticipants = asNumber(session.maxParticipants) ?? 0;
         const alreadyRegistered = registrations.some(
           (row) =>
-            asString(row.groupSessionId) === sessionId
-            && asString(row.athleteId) === athleteId
-            && asString(row.status) !== 'CANCELLED',
+            asString(row.groupSessionId) === sessionId &&
+            asString(row.athleteId) === athleteId &&
+            asString(row.status) !== 'CANCELLED',
         );
 
         if (sessionId && currentParticipants < maxParticipants && !alreadyRegistered) {
