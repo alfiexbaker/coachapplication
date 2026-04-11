@@ -77,4 +77,6 @@ Validated reality:
 - The frontend auth client now calls `/v1/auth/*`.
 - The backend app exposes matching `/v1/auth/*` routes, issues/validates JWTs, and now supports self-session revocation via `/v1/me/sessions*`.
 - Runtime `/v1` auth no longer falls back to `x-auth-*` identity headers outside the API test harness.
+- Child medical, emergency-contact, and consent writes no longer persist through `services/child-service.ts`; those records now flow through `services/safety-service.ts` -> `services/family/family-health-service.ts` -> `/v1/athletes/*`.
+- The parent edit-child-profile modal now treats medical, emergency, and consent changes as protected health flows and routes users to the dedicated child health screens instead of writing those fields into the child profile object.
 - This closes the transport mismatch, the runtime scaffold-header fallback, and the temporary dev-session model, but broader backend authorization coverage is still incomplete.

@@ -1,5 +1,5 @@
 import { useRef } from 'react';
-import { ScrollView, StyleSheet, Switch, TextInput, View } from 'react-native';
+import { ScrollView, StyleSheet, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import type { ReactNode } from 'react';
 
@@ -9,7 +9,6 @@ import { Button } from '@/components/primitives/button';
 import { ThemedText } from '@/components/themed-text';
 import { Row } from '@/components/primitives/row';
 import { Clickable } from '@/components/primitives/clickable';
-import { MedicalTagInput } from '@/components/child/medical-tag-input';
 import { LoadingState, ErrorState } from '@/components/ui/screen-states';
 import { Radii, Spacing, Typography, withAlpha } from '@/constants/theme';
 import { POSITION_OPTIONS_WITH_ROTATE } from '@/constants/position-skills';
@@ -67,7 +66,10 @@ export default function EditChildProfileModal() {
 
   if (c.status === 'error' || !c.child) {
     return renderStateShell(
-      <ErrorState message={c.error?.message ?? 'Failed to load child profile.'} onRetry={c.retry} />,
+      <ErrorState
+        message={c.error?.message ?? 'Failed to load child profile.'}
+        onRetry={c.retry}
+      />,
     );
   }
 
@@ -91,15 +93,21 @@ export default function EditChildProfileModal() {
 
           <View style={styles.field}>
             <ThemedText style={styles.label}>First Name</ThemedText>
-            <TextInput style={inputStyle} value={c.firstName} onChangeText={c.setFirstName}
-            maxLength={50}
-          />
+            <TextInput
+              style={inputStyle}
+              value={c.firstName}
+              onChangeText={c.setFirstName}
+              maxLength={50}
+            />
           </View>
           <View style={styles.field}>
             <ThemedText style={styles.label}>Last Name</ThemedText>
-            <TextInput style={inputStyle} value={c.lastName} onChangeText={c.setLastName}
-            maxLength={50}
-          />
+            <TextInput
+              style={inputStyle}
+              value={c.lastName}
+              onChangeText={c.setLastName}
+              maxLength={50}
+            />
           </View>
           <View style={styles.field}>
             <ThemedText style={styles.label}>Nickname</ThemedText>
@@ -109,9 +117,8 @@ export default function EditChildProfileModal() {
               onChangeText={c.setNickname}
               placeholder="Optional"
               placeholderTextColor={palette.muted}
-
-            maxLength={50}
-          />
+              maxLength={50}
+            />
           </View>
           <View style={styles.field}>
             <ThemedText style={styles.label}>Date of Birth</ThemedText>
@@ -121,9 +128,8 @@ export default function EditChildProfileModal() {
               onChangeText={c.setDateOfBirth}
               placeholder="YYYY-MM-DD"
               placeholderTextColor={palette.muted}
-
-            maxLength={100}
-          />
+              maxLength={100}
+            />
           </View>
 
           <View style={styles.field}>
@@ -132,13 +138,13 @@ export default function EditChildProfileModal() {
               {c.genderOptions.map((option) => {
                 const active = c.gender === option;
                 return (
-                <Clickable
-                  key={option}
-                  onPress={() => c.setGender(option)}
-                  accessibilityLabel={`Select gender ${GENDER_LABEL[option] ?? option}`}
-                  accessibilityRole="button"
-                  accessibilityState={{ selected: active }}
-                  style={[
+                  <Clickable
+                    key={option}
+                    onPress={() => c.setGender(option)}
+                    accessibilityLabel={`Select gender ${GENDER_LABEL[option] ?? option}`}
+                    accessibilityRole="button"
+                    accessibilityState={{ selected: active }}
+                    style={[
                       styles.optionPill,
                       {
                         borderColor: active ? palette.tint : palette.border,
@@ -146,7 +152,9 @@ export default function EditChildProfileModal() {
                       },
                     ]}
                   >
-                    <ThemedText style={[styles.optionText, { color: active ? palette.tint : palette.text }]}>
+                    <ThemedText
+                      style={[styles.optionText, { color: active ? palette.tint : palette.text }]}
+                    >
                       {GENDER_LABEL[option]}
                     </ThemedText>
                   </Clickable>
@@ -172,7 +180,9 @@ export default function EditChildProfileModal() {
                       },
                     ]}
                   >
-                    <ThemedText style={[styles.optionText, { color: active ? palette.tint : palette.text }]}>
+                    <ThemedText
+                      style={[styles.optionText, { color: active ? palette.tint : palette.text }]}
+                    >
                       {RELATIONSHIP_LABEL[option]}
                     </ThemedText>
                   </Clickable>
@@ -201,7 +211,9 @@ export default function EditChildProfileModal() {
                     accessibilityLabel={`Set primary position to ${option.label}`}
                     accessibilityState={{ selected: active }}
                   >
-                    <ThemedText style={[styles.optionText, { color: active ? palette.tint : palette.text }]}>
+                    <ThemedText
+                      style={[styles.optionText, { color: active ? palette.tint : palette.text }]}
+                    >
                       {positionDisplayLabel(option.key)}
                     </ThemedText>
                   </Clickable>
@@ -212,88 +224,17 @@ export default function EditChildProfileModal() {
         </SurfaceCard>
 
         <SurfaceCard style={styles.section}>
-          <ThemedText type="defaultSemiBold">Medical Information</ThemedText>
-          <MedicalTagInput
-            label="Allergies"
-            placeholder="e.g. Peanuts"
-            items={c.allergies}
-            onAdd={c.addAllergy}
-            onRemove={c.removeAllergy}
-          />
-          <MedicalTagInput
-            label="Medical Conditions"
-            placeholder="e.g. Asthma"
-            items={c.medicalConditions}
-            onAdd={c.addMedicalCondition}
-            onRemove={c.removeMedicalCondition}
-          />
-          <MedicalTagInput
-            label="Medications"
-            placeholder="e.g. Inhaler"
-            items={c.medications}
-            onAdd={c.addMedication}
-            onRemove={c.removeMedication}
-          />
-        </SurfaceCard>
-
-        <SurfaceCard style={styles.section}>
-          <ThemedText type="defaultSemiBold">Emergency Contacts</ThemedText>
-          <View style={styles.field}>
-            <ThemedText style={styles.label}>Primary Contact Name</ThemedText>
-            <TextInput
-              style={inputStyle}
-              value={c.emergencyContactName}
-              onChangeText={c.setEmergencyContactName}
-
-            maxLength={50}
-          />
-          </View>
-          <View style={styles.field}>
-            <ThemedText style={styles.label}>Primary Contact Phone</ThemedText>
-            <TextInput
-              style={inputStyle}
-              value={c.emergencyContactPhone}
-              onChangeText={c.setEmergencyContactPhone}
-              keyboardType="phone-pad"
-
-            maxLength={20}
-          />
-          </View>
-          <View style={styles.field}>
-            <ThemedText style={styles.label}>Primary Contact Relation</ThemedText>
-            <TextInput
-              style={inputStyle}
-              value={c.emergencyContactRelation}
-              onChangeText={c.setEmergencyContactRelation}
-
-            maxLength={100}
-          />
-          </View>
-          <View style={styles.field}>
-            <ThemedText style={styles.label}>Secondary Contact Name</ThemedText>
-            <TextInput
-              style={inputStyle}
-              value={c.secondaryEmergencyName}
-              onChangeText={c.setSecondaryEmergencyName}
-              placeholder="Optional"
-              placeholderTextColor={palette.muted}
-
-            maxLength={50}
-          />
-          </View>
-          <View style={styles.field}>
-            <ThemedText style={styles.label}>Secondary Contact Phone</ThemedText>
-            <TextInput
-              style={inputStyle}
-              value={c.secondaryEmergencyPhone}
-              onChangeText={c.setSecondaryEmergencyPhone}
-              keyboardType="phone-pad"
-              placeholder="Optional"
-              placeholderTextColor={palette.muted}
-
-            maxLength={20}
-          />
-          </View>
+          <ThemedText type="defaultSemiBold">Health & Safety</ThemedText>
+          <ThemedText style={[styles.helperText, { color: palette.muted }]}>
+            Medical records, emergency contacts, and consent choices are managed in the protected
+            child health area.
+          </ThemedText>
+          <Button onPress={c.openMedicalInfo} variant="secondary">
+            Manage Medical Information
+          </Button>
+          <Button onPress={c.openEmergencyContacts} variant="secondary">
+            Manage Emergency Contacts
+          </Button>
         </SurfaceCard>
 
         <SurfaceCard style={styles.section}>
@@ -305,9 +246,8 @@ export default function EditChildProfileModal() {
               value={c.communicationNotes}
               onChangeText={c.setCommunicationNotes}
               multiline
-
-            maxLength={500}
-          />
+              maxLength={500}
+            />
           </View>
           <View style={styles.field}>
             <ThemedText style={styles.label}>Behavioral Notes</ThemedText>
@@ -316,30 +256,9 @@ export default function EditChildProfileModal() {
               value={c.behavioralNotes}
               onChangeText={c.setBehavioralNotes}
               multiline
-
-            maxLength={500}
-          />
+              maxLength={500}
+            />
           </View>
-        </SurfaceCard>
-
-        <SurfaceCard style={styles.section}>
-          <ThemedText type="defaultSemiBold">Consents</ThemedText>
-          <Row justify="between" align="center" style={styles.consentRow}>
-            <ThemedText style={styles.label}>Photo Consent</ThemedText>
-            <Switch value={c.photoConsent} onValueChange={c.setPhotoConsent} />
-          </Row>
-          <Row justify="between" align="center" style={styles.consentRow}>
-            <ThemedText style={styles.label}>Video Consent</ThemedText>
-            <Switch value={c.videoConsent} onValueChange={c.setVideoConsent} />
-          </Row>
-          <Row justify="between" align="center" style={styles.consentRow}>
-            <ThemedText style={styles.label}>Social Media Consent</ThemedText>
-            <Switch value={c.socialMediaConsent} onValueChange={c.setSocialMediaConsent} />
-          </Row>
-          <Row justify="between" align="center" style={styles.consentRow}>
-            <ThemedText style={styles.label}>Emergency Treatment Consent</ThemedText>
-            <Switch value={c.emergencyTreatmentConsent} onValueChange={c.setEmergencyTreatmentConsent} />
-          </Row>
         </SurfaceCard>
       </ScrollView>
 
@@ -367,6 +286,9 @@ const styles = StyleSheet.create({
     minHeight: 88,
     textAlignVertical: 'top',
   },
+  helperText: {
+    ...Typography.bodySmall,
+  },
   optionPill: {
     borderWidth: 1,
     borderRadius: Radii.pill,
@@ -375,9 +297,6 @@ const styles = StyleSheet.create({
   },
   optionText: {
     ...Typography.caption,
-  },
-  consentRow: {
-    minHeight: 44,
   },
   footer: {
     padding: Spacing.lg,

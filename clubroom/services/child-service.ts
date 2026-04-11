@@ -9,6 +9,7 @@
  */
 
 import { apiClient } from './api-client';
+import { safetyService } from './safety-service';
 import { api } from '@/constants/config';
 import { createLogger } from '@/utils/logger';
 import { type Result, type ServiceError, ok, err, notFound, storageError } from '@/types/result';
@@ -16,6 +17,13 @@ import { emitTyped, ServiceEvents } from './event-bus';
 import type { PositionRole } from '@/types/progress-types';
 import { normalizeLegacyMockDates } from '@/utils/mock-date-normalizer';
 import type { User } from '@/constants/app-types';
+import type {
+  Consent,
+  ConsentType,
+  EmergencyContact,
+  EmergencyInfo,
+  MedicalInfo,
+} from '@/constants/types';
 import { accountIdsMatch } from '@/utils/account-id';
 
 import { STORAGE_KEYS } from '@/constants/storage-keys';
@@ -125,6 +133,318 @@ export interface CreateChildInput {
   videoConsent?: boolean;
   socialMediaConsent?: boolean;
   emergencyTreatmentConsent?: boolean;
+}
+
+const CONSENT_TYPES: ConsentType[] = ['PHOTO', 'VIDEO', 'SOCIAL_MEDIA', 'EMERGENCY_TREATMENT'];
+
+function createDefaultConsents(): Consent[] {
+  return [
+    { type: 'PHOTO', granted: true, grantedBy: 'Parent/Guardian' },
+    { type: 'VIDEO', granted: true, grantedBy: 'Parent/Guardian' },
+    { type: 'SOCIAL_MEDIA', granted: false, grantedBy: '' },
+    { type: 'EMERGENCY_TREATMENT', granted: true, grantedBy: 'Parent/Guardian' },
+  ];
+}
+
+function createClearedTrustSensitiveFields(): Pick<
+  ChildProfile,
+  | 'allergies'
+  | 'medicalConditions'
+  | 'medications'
+  | 'emergencyContactName'
+  | 'emergencyContactPhone'
+  | 'emergencyContactRelation'
+  | 'secondaryEmergencyName'
+  | 'secondaryEmergencyPhone'
+  | 'photoConsent'
+  | 'videoConsent'
+  | 'socialMediaConsent'
+  | 'emergencyTreatmentConsent'
+> {
+  return {
+    allergies: [],
+    medicalConditions: [],
+    medications: [],
+    emergencyContactName: '',
+    emergencyContactPhone: '',
+    emergencyContactRelation: '',
+    secondaryEmergencyName: undefined,
+    secondaryEmergencyPhone: undefined,
+    photoConsent: true,
+    videoConsent: true,
+    socialMediaConsent: false,
+    emergencyTreatmentConsent: true,
+  };
+}
+
+function sanitizeChildProfile(child: ChildProfile): ChildProfile {
+  return {
+    ...child,
+    ...createClearedTrustSensitiveFields(),
+  };
+}
+
+function createDefaultEmergencyInfo(athleteId: string): EmergencyInfo {
+  return {
+    athleteId,
+    contacts: [],
+    medical: {
+      conditions: [],
+      allergies: [],
+      medications: [],
+      restrictions: [],
+    },
+    consents: createDefaultConsents(),
+    updatedAt: new Date().toISOString(),
+  };
+}
+
+function hasLegacyTrustSensitiveData(child: ChildProfile): boolean {
+  return (
+    child.allergies.length > 0 ||
+    child.medicalConditions.length > 0 ||
+    child.medications.length > 0 ||
+    child.emergencyContactName.trim().length > 0 ||
+    child.emergencyContactPhone.trim().length > 0 ||
+    child.emergencyContactRelation.trim().length > 0 ||
+    (child.secondaryEmergencyName?.trim().length ?? 0) > 0 ||
+    (child.secondaryEmergencyPhone?.trim().length ?? 0) > 0
+  );
+}
+
+function buildMedicalRecord(input: Partial<CreateChildInput>, fallback: MedicalInfo): MedicalInfo {
+  return {
+    conditions:
+      'medicalConditions' in input ? [...(input.medicalConditions ?? [])] : fallback.conditions,
+    allergies: 'allergies' in input ? [...(input.allergies ?? [])] : fallback.allergies,
+    medications: 'medications' in input ? [...(input.medications ?? [])] : fallback.medications,
+    restrictions: fallback.restrictions,
+    doctorName: fallback.doctorName,
+    doctorPhone: fallback.doctorPhone,
+    insuranceProvider: fallback.insuranceProvider,
+    insuranceNumber: fallback.insuranceNumber,
+    notes: fallback.notes,
+  };
+}
+
+function buildConsentRecord(
+  type: ConsentType,
+  granted: boolean,
+  existing: Consent | undefined,
+): Consent {
+  return {
+    type,
+    granted,
+    grantedBy: granted ? existing?.grantedBy || 'Parent/Guardian' : '',
+    grantedAt: granted
+      ? existing?.granted === granted
+        ? existing.grantedAt
+        : new Date().toISOString()
+      : undefined,
+    expiryAt: existing?.expiryAt,
+  };
+}
+
+function buildConsents(input: Partial<CreateChildInput>, fallback: Consent[]): Consent[] {
+  const existingByType = new Map(fallback.map((consent) => [consent.type, consent]));
+
+  const consentFlags: Record<ConsentType, boolean> = {
+    PHOTO:
+      'photoConsent' in input
+        ? (input.photoConsent ?? true)
+        : (existingByType.get('PHOTO')?.granted ?? true),
+    VIDEO:
+      'videoConsent' in input
+        ? (input.videoConsent ?? true)
+        : (existingByType.get('VIDEO')?.granted ?? true),
+    SOCIAL_MEDIA:
+      'socialMediaConsent' in input
+        ? (input.socialMediaConsent ?? false)
+        : (existingByType.get('SOCIAL_MEDIA')?.granted ?? false),
+    EMERGENCY_TREATMENT:
+      'emergencyTreatmentConsent' in input
+        ? (input.emergencyTreatmentConsent ?? true)
+        : (existingByType.get('EMERGENCY_TREATMENT')?.granted ?? true),
+  };
+
+  return CONSENT_TYPES.map((type) =>
+    buildConsentRecord(type, consentFlags[type], existingByType.get(type)),
+  );
+}
+
+function buildEmergencyContacts(
+  input: Partial<CreateChildInput>,
+  fallback: EmergencyContact[],
+): EmergencyContact[] {
+  const primaryExisting = fallback.find((contact) => contact.isPrimary) ?? fallback[0];
+  const secondaryExisting = fallback.find((contact) => contact.id !== primaryExisting?.id);
+
+  const primaryName =
+    'emergencyContactName' in input
+      ? (input.emergencyContactName?.trim() ?? '')
+      : (primaryExisting?.name ?? '');
+  const primaryPhone =
+    'emergencyContactPhone' in input
+      ? (input.emergencyContactPhone?.trim() ?? '')
+      : (primaryExisting?.phone ?? '');
+  const primaryRelationship =
+    'emergencyContactRelation' in input
+      ? (input.emergencyContactRelation?.trim() ?? '')
+      : (primaryExisting?.relationship ?? '');
+
+  const nextContacts: EmergencyContact[] = [];
+
+  if (primaryName && primaryPhone && primaryRelationship) {
+    nextContacts.push({
+      id: primaryExisting?.id ?? `emc_primary_${Date.now()}`,
+      name: primaryName,
+      phone: primaryPhone,
+      relationship: primaryRelationship,
+      email: primaryExisting?.email,
+      isPrimary: true,
+      canPickup: primaryExisting?.canPickup ?? true,
+    });
+  }
+
+  const secondaryTouched = 'secondaryEmergencyName' in input || 'secondaryEmergencyPhone' in input;
+
+  if (secondaryTouched) {
+    const secondaryName = input.secondaryEmergencyName?.trim() ?? '';
+    const secondaryPhone = input.secondaryEmergencyPhone?.trim() ?? '';
+    if (secondaryName && secondaryPhone) {
+      nextContacts.push({
+        id: secondaryExisting?.id ?? `emc_secondary_${Date.now()}`,
+        name: secondaryName,
+        phone: secondaryPhone,
+        relationship: secondaryExisting?.relationship ?? 'Emergency contact',
+        email: secondaryExisting?.email,
+        isPrimary: false,
+        canPickup: secondaryExisting?.canPickup ?? true,
+      });
+    }
+  } else if (secondaryExisting) {
+    nextContacts.push(secondaryExisting);
+  }
+
+  return nextContacts;
+}
+
+async function syncTrustSensitiveChildData(
+  childId: string,
+  input: Partial<CreateChildInput>,
+): Promise<Result<EmergencyInfo, ServiceError> | null> {
+  const touchesTrustData =
+    'allergies' in input ||
+    'medicalConditions' in input ||
+    'medications' in input ||
+    'emergencyContactName' in input ||
+    'emergencyContactPhone' in input ||
+    'emergencyContactRelation' in input ||
+    'secondaryEmergencyName' in input ||
+    'secondaryEmergencyPhone' in input ||
+    'photoConsent' in input ||
+    'videoConsent' in input ||
+    'socialMediaConsent' in input ||
+    'emergencyTreatmentConsent' in input;
+
+  if (!touchesTrustData) {
+    return null;
+  }
+
+  const currentInfoResult = await safetyService.getEmergencyInfo(childId);
+  const currentInfo = currentInfoResult.success
+    ? currentInfoResult.data
+    : createDefaultEmergencyInfo(childId);
+
+  return safetyService.updateEmergencyInfo(childId, {
+    medical: buildMedicalRecord(input, currentInfo.medical),
+    contacts: buildEmergencyContacts(input, currentInfo.contacts),
+    consents: buildConsents(input, currentInfo.consents),
+  });
+}
+
+function applyEmergencyInfoToChild(child: ChildProfile, info: EmergencyInfo): ChildProfile {
+  const primaryContact = info.contacts.find((contact) => contact.isPrimary) ?? info.contacts[0];
+  const secondaryContact = info.contacts.find((contact) => contact.id !== primaryContact?.id);
+  const consentsByType = new Map(info.consents.map((consent) => [consent.type, consent.granted]));
+
+  return {
+    ...sanitizeChildProfile(child),
+    allergies: info.medical.allergies,
+    medicalConditions: info.medical.conditions,
+    medications: info.medical.medications,
+    emergencyContactName: primaryContact?.name ?? '',
+    emergencyContactPhone: primaryContact?.phone ?? '',
+    emergencyContactRelation: primaryContact?.relationship ?? '',
+    secondaryEmergencyName: secondaryContact?.name ?? undefined,
+    secondaryEmergencyPhone: secondaryContact?.phone ?? undefined,
+    photoConsent: consentsByType.get('PHOTO') ?? true,
+    videoConsent: consentsByType.get('VIDEO') ?? true,
+    socialMediaConsent: consentsByType.get('SOCIAL_MEDIA') ?? false,
+    emergencyTreatmentConsent: consentsByType.get('EMERGENCY_TREATMENT') ?? true,
+  };
+}
+
+async function hydrateChildTrustData(child: ChildProfile): Promise<ChildProfile> {
+  const result = await safetyService.getEmergencyInfo(child.id);
+  if (!result.success) {
+    logger.warn('Failed to hydrate child trust data from safety service', {
+      childId: child.id,
+      error: result.error.message,
+    });
+    return sanitizeChildProfile(child);
+  }
+
+  return applyEmergencyInfoToChild(child, result.data);
+}
+
+async function migrateLegacyTrustData(children: ChildProfile[]): Promise<ChildProfile[]> {
+  const nextChildren = [...children];
+  let mutated = false;
+
+  for (let index = 0; index < nextChildren.length; index += 1) {
+    const child = nextChildren[index];
+    if (!hasLegacyTrustSensitiveData(child)) {
+      continue;
+    }
+
+    const result = await syncTrustSensitiveChildData(child.id, {
+      allergies: child.allergies,
+      medicalConditions: child.medicalConditions,
+      medications: child.medications,
+      emergencyContactName: child.emergencyContactName,
+      emergencyContactPhone: child.emergencyContactPhone,
+      emergencyContactRelation: child.emergencyContactRelation,
+      secondaryEmergencyName: child.secondaryEmergencyName,
+      secondaryEmergencyPhone: child.secondaryEmergencyPhone,
+      photoConsent: child.photoConsent,
+      videoConsent: child.videoConsent,
+      socialMediaConsent: child.socialMediaConsent,
+      emergencyTreatmentConsent: child.emergencyTreatmentConsent,
+    });
+
+    if (!result || !result.success) {
+      logger.warn('Failed to migrate legacy child trust data', {
+        childId: child.id,
+        error: result?.success === false ? result.error.message : 'unknown',
+      });
+      continue;
+    }
+
+    nextChildren[index] = sanitizeChildProfile(child);
+    mutated = true;
+  }
+
+  if (mutated) {
+    const saveResult = await saveToStorage(nextChildren);
+    if (!saveResult.success) {
+      logger.warn('Failed to persist migrated child trust data cleanup', {
+        error: saveResult.error.message,
+      });
+    }
+  }
+
+  return nextChildren;
 }
 
 // ============================================================================
@@ -288,12 +608,12 @@ async function loadFromStorage(): Promise<ChildProfile[]> {
   try {
     const stored = await apiClient.get<ChildProfile[] | null>(STORAGE_KEYS.CHILDREN_PROFILES, null);
     if (stored) {
-      return stored;
+      return migrateLegacyTrustData(stored);
     }
   } catch (error) {
     logger.error('Failed to load from storage', error);
   }
-  return childrenCache;
+  return migrateLegacyTrustData(childrenCache);
 }
 
 async function saveToStorage(data: ChildProfile[]): Promise<Result<void, ServiceError>> {
@@ -363,6 +683,27 @@ async function removeGeneratedChildUserRecord(childId: string): Promise<void> {
   }
 }
 
+async function removeChildTrustData(childId: string): Promise<void> {
+  if (!apiClient.isMockMode) {
+    return;
+  }
+
+  try {
+    const emergencyInfo = await apiClient.get<Record<string, EmergencyInfo>>(
+      STORAGE_KEYS.EMERGENCY_INFO,
+      {},
+    );
+    if (childId in emergencyInfo) {
+      delete emergencyInfo[childId];
+      await apiClient.set(STORAGE_KEYS.EMERGENCY_INFO, emergencyInfo);
+    }
+
+    await apiClient.remove(`${STORAGE_KEYS.AUDIT_LOG_PREFIX}${childId}`).catch(() => {});
+  } catch (error) {
+    logger.warn('Failed to remove child trust data', { childId, error });
+  }
+}
+
 // ============================================================================
 // UTILITY FUNCTIONS
 // ============================================================================
@@ -394,11 +735,13 @@ export const childService = {
   async getChildren(parentId: string): Promise<ChildProfile[]> {
     if (USE_MOCK) {
       childrenCache = await loadFromStorage();
-      return childrenCache.filter((c) => c.parentId === parentId);
+      const matchingChildren = childrenCache.filter((c) => c.parentId === parentId);
+      return Promise.all(matchingChildren.map((child) => hydrateChildTrustData(child)));
     }
 
     const response = await fetch(`/api/children?parentId=${parentId}`);
-    return response.json();
+    const children = (await response.json()) as ChildProfile[];
+    return Promise.all(children.map((child) => hydrateChildTrustData(child)));
   },
 
   /**
@@ -407,11 +750,13 @@ export const childService = {
   async getChild(childId: string): Promise<ChildProfile | null> {
     if (USE_MOCK) {
       childrenCache = await loadFromStorage();
-      return childrenCache.find((c) => c.id === childId) || null;
+      const child = childrenCache.find((c) => c.id === childId) || null;
+      return child ? hydrateChildTrustData(child) : null;
     }
 
     const response = await fetch(`/api/children/${childId}`);
-    return response.json();
+    const child = (await response.json()) as ChildProfile | null;
+    return child ? hydrateChildTrustData(child) : null;
   },
 
   /**
@@ -434,39 +779,52 @@ export const childService = {
       specialNeeds: input.specialNeeds || [],
       hasSpecialNeeds:
         (input.disabilities?.length || 0) > 0 || (input.specialNeeds?.length || 0) > 0,
-      allergies: input.allergies || [],
-      medicalConditions: input.medicalConditions || [],
-      medications: input.medications || [],
       communicationNotes: input.communicationNotes,
       behavioralNotes: input.behavioralNotes,
-      emergencyContactName: input.emergencyContactName,
-      emergencyContactPhone: input.emergencyContactPhone,
-      emergencyContactRelation: input.emergencyContactRelation,
-      secondaryEmergencyName: input.secondaryEmergencyName,
-      secondaryEmergencyPhone: input.secondaryEmergencyPhone,
-      photoConsent: input.photoConsent ?? true,
-      videoConsent: input.videoConsent ?? true,
-      socialMediaConsent: input.socialMediaConsent ?? false,
-      emergencyTreatmentConsent: input.emergencyTreatmentConsent ?? true,
+      ...createClearedTrustSensitiveFields(),
       createdAt: now,
       updatedAt: now,
     };
+
+    const trustResult = await syncTrustSensitiveChildData(newChild.id, input);
+    if (trustResult && !trustResult.success) {
+      throw new Error(trustResult.error.message);
+    }
 
     if (USE_MOCK) {
       childrenCache = await loadFromStorage();
       childrenCache.push(newChild);
       await saveToStorage(childrenCache);
       await upsertChildUserRecord(newChild);
-      emitTyped(ServiceEvents.CHILD_PROFILES_UPDATED, { parentId, action: 'created', childId: newChild.id });
-      return newChild;
+      emitTyped(ServiceEvents.CHILD_PROFILES_UPDATED, {
+        parentId,
+        action: 'created',
+        childId: newChild.id,
+      });
+      return hydrateChildTrustData(newChild);
     }
 
     const response = await fetch('/api/children', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ parentId, ...input }),
+      body: JSON.stringify({
+        parentId,
+        firstName: input.firstName,
+        lastName: input.lastName,
+        nickname: input.nickname,
+        dateOfBirth: input.dateOfBirth,
+        gender: input.gender,
+        relationship: input.relationship,
+        primaryPosition: input.primaryPosition,
+        photoUrl: input.photoUrl,
+        disabilities: input.disabilities,
+        specialNeeds: input.specialNeeds,
+        communicationNotes: input.communicationNotes,
+        behavioralNotes: input.behavioralNotes,
+      }),
     });
-    return response.json();
+    const child = (await response.json()) as ChildProfile;
+    return hydrateChildTrustData(child);
   },
 
   /**
@@ -476,6 +834,22 @@ export const childService = {
     childId: string,
     updates: Partial<CreateChildInput>,
   ): Promise<Result<ChildProfile, ServiceError>> {
+    const {
+      allergies: _allergies,
+      medicalConditions: _medicalConditions,
+      medications: _medications,
+      emergencyContactName: _emergencyContactName,
+      emergencyContactPhone: _emergencyContactPhone,
+      emergencyContactRelation: _emergencyContactRelation,
+      secondaryEmergencyName: _secondaryEmergencyName,
+      secondaryEmergencyPhone: _secondaryEmergencyPhone,
+      photoConsent: _photoConsent,
+      videoConsent: _videoConsent,
+      socialMediaConsent: _socialMediaConsent,
+      emergencyTreatmentConsent: _emergencyTreatmentConsent,
+      ...profileUpdates
+    } = updates;
+
     if (USE_MOCK) {
       childrenCache = await loadFromStorage();
       const index = childrenCache.findIndex((c) => c.id === childId);
@@ -483,20 +857,30 @@ export const childService = {
         return err(notFound('Child', childId));
       }
 
+      const trustResult = await syncTrustSensitiveChildData(childId, updates);
+      if (trustResult && !trustResult.success) {
+        return err(trustResult.error);
+      }
+
       childrenCache[index] = {
         ...childrenCache[index],
-        ...updates,
+        ...profileUpdates,
         hasSpecialNeeds:
           (updates.disabilities?.length || childrenCache[index].disabilities.length) > 0 ||
           (updates.specialNeeds?.length || childrenCache[index].specialNeeds.length) > 0,
+        ...createClearedTrustSensitiveFields(),
         updatedAt: new Date().toISOString(),
       };
 
       await saveToStorage(childrenCache);
       await upsertChildUserRecord(childrenCache[index]);
 
-      const updatedFields = Object.keys(updates);
-      emitTyped(ServiceEvents.CHILD_PROFILES_UPDATED, { parentId: childrenCache[index].parentId, action: 'updated', childId });
+      const updatedFields = Object.keys(profileUpdates);
+      emitTyped(ServiceEvents.CHILD_PROFILES_UPDATED, {
+        parentId: childrenCache[index].parentId,
+        action: 'updated',
+        childId,
+      });
       emitTyped(ServiceEvents.CHILD_PROFILE_UPDATED, {
         childId,
         parentId: childrenCache[index].parentId,
@@ -504,27 +888,16 @@ export const childService = {
         timestamp: childrenCache[index].updatedAt,
       });
 
-      // Emit specific event for critical medical/emergency fields
-      const criticalFields = ['allergies', 'medicalConditions', 'medications', 'emergencyContactName', 'emergencyContactPhone', 'secondaryEmergencyName', 'secondaryEmergencyPhone'];
-      const criticalChanged = updatedFields.filter((f) => criticalFields.includes(f));
-      if (criticalChanged.length > 0) {
-        emitTyped(ServiceEvents.CHILD_MEDICAL_INFO_UPDATED, {
-          childId,
-          updatedFields: criticalChanged,
-          timestamp: childrenCache[index].updatedAt,
-        });
-        logger.warn('Critical medical/emergency information updated', { childId, fields: criticalChanged });
-      }
-
-      return ok(childrenCache[index]);
+      return ok(await hydrateChildTrustData(childrenCache[index]));
     }
 
     const response = await fetch(`/api/children/${childId}`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(updates),
+      body: JSON.stringify(profileUpdates),
     });
-    return ok(await response.json());
+    const child = (await response.json()) as ChildProfile;
+    return ok(await hydrateChildTrustData(child));
   },
 
   /**
@@ -537,8 +910,13 @@ export const childService = {
       childrenCache = childrenCache.filter((c) => c.id !== childId);
       await saveToStorage(childrenCache);
       await removeGeneratedChildUserRecord(childId);
+      await removeChildTrustData(childId);
       if (deletedChild) {
-        emitTyped(ServiceEvents.CHILD_PROFILES_UPDATED, { parentId: deletedChild.parentId, action: 'deleted', childId });
+        emitTyped(ServiceEvents.CHILD_PROFILES_UPDATED, {
+          parentId: deletedChild.parentId,
+          action: 'deleted',
+          childId,
+        });
       }
       return;
     }
@@ -567,7 +945,11 @@ export const childService = {
       disabilities: [...child.disabilities, newDisability],
     });
     if (result.success) {
-      emitTyped(ServiceEvents.CHILD_SEN_UPDATED, { childId, parentId: child.parentId, section: 'disabilities' });
+      emitTyped(ServiceEvents.CHILD_SEN_UPDATED, {
+        childId,
+        parentId: child.parentId,
+        section: 'disabilities',
+      });
     }
     return result;
   },
@@ -586,7 +968,11 @@ export const childService = {
       disabilities: child.disabilities.filter((d) => d.id !== disabilityId),
     });
     if (result.success) {
-      emitTyped(ServiceEvents.CHILD_SEN_UPDATED, { childId, parentId: child.parentId, section: 'disabilities' });
+      emitTyped(ServiceEvents.CHILD_SEN_UPDATED, {
+        childId,
+        parentId: child.parentId,
+        section: 'disabilities',
+      });
     }
     return result;
   },
@@ -610,7 +996,11 @@ export const childService = {
       specialNeeds: [...child.specialNeeds, newSpecialNeed],
     });
     if (result.success) {
-      emitTyped(ServiceEvents.CHILD_SEN_UPDATED, { childId, parentId: child.parentId, section: 'specialNeeds' });
+      emitTyped(ServiceEvents.CHILD_SEN_UPDATED, {
+        childId,
+        parentId: child.parentId,
+        section: 'specialNeeds',
+      });
     }
     return result;
   },
@@ -629,7 +1019,11 @@ export const childService = {
       specialNeeds: child.specialNeeds.filter((sn) => sn.id !== specialNeedId),
     });
     if (result.success) {
-      emitTyped(ServiceEvents.CHILD_SEN_UPDATED, { childId, parentId: child.parentId, section: 'specialNeeds' });
+      emitTyped(ServiceEvents.CHILD_SEN_UPDATED, {
+        childId,
+        parentId: child.parentId,
+        section: 'specialNeeds',
+      });
     }
     return result;
   },
@@ -712,20 +1106,21 @@ export const childService = {
   async getChildByName(firstName: string, lastName: string): Promise<ChildProfile | null> {
     if (USE_MOCK) {
       childrenCache = await loadFromStorage();
-      return (
+      const child =
         childrenCache.find(
           (c) =>
             c.firstName.toLowerCase() === firstName.toLowerCase() &&
             c.lastName.toLowerCase() === lastName.toLowerCase(),
-        ) || null
-      );
+        ) || null;
+      return child ? hydrateChildTrustData(child) : null;
     }
 
     const response = await fetch(
       `/api/children/by-name?firstName=${encodeURIComponent(firstName)}&lastName=${encodeURIComponent(lastName)}`,
     );
     if (!response.ok) return null;
-    return response.json();
+    const child = (await response.json()) as ChildProfile | null;
+    return child ? hydrateChildTrustData(child) : null;
   },
 
   /**

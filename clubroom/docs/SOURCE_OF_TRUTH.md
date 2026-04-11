@@ -8,6 +8,7 @@ Status: live-featured Expo app with a real Fastify API alongside it; backend cut
 
 This is the top-level reality doc.
 It should answer:
+
 - what the product is
 - what runtime state the repo is really in
 - which docs still matter
@@ -18,6 +19,7 @@ If a statement here conflicts with an old audit or sprint note, trust this file 
 ## Current Verified Health
 
 Verified during recent `AUTH-02` completion on 2026-04-03:
+
 - `npm run typecheck` -> PASS
 - `npm run test:compile` -> PASS
 - `npm --prefix apps/api run typecheck` -> PASS
@@ -51,10 +53,11 @@ Clubs manage staff, squads, visibility, and operating relationships.
   - backend auth now issues and validates signed JWT access/refresh tokens
   - runtime session revocation and `/v1/me/sessions*` are backed by the auth runtime instead of the marketplace seed dataset
   - runtime `/v1` auth no longer falls back to `x-auth-user-id` or `x-auth-roles`; that override is test-only
-- The biggest trust seams still not finished are broader authz coverage, trust-sensitive ownership cleanup, and launch observability:
+- The biggest trust seams still not finished are broader authz coverage, delegated booking-create authority cleanup, and launch observability:
   - app `/v1` authority services now rely on bearer auth plus `x-acting-role` and scope headers instead of client-supplied identity headers
   - `/v1/auth/login`, `/v1/auth/register`, `/v1/auth/refresh`, `/v1/auth/logout`, `/v1/auth/revoke`, `/v1/auth/me`, and `/v1/me/sessions*` now run on the JWT/session runtime
   - family medical, safeguarding incident creation, direct booking creation, booking cancel/reopen, and group-session registration now use `/v1` in non-mock mode
+  - child medical, emergency contacts, and consent records now live behind `/v1/athletes/*`; `services/child-service.ts` no longer persists those fields locally and the edit-child-profile flow routes parents into the protected child health screens instead
   - booking list/detail reads now also use `/v1/bookings` and `/v1/bookings/:bookingId` in non-mock mode, with local storage acting as a mirror instead of the authority
   - session-invite create/list/detail/respond/cancel/remind/dismiss now use `/v1/invites*` in non-mock mode through `services/invite/session-invite-authority-service.ts`
   - direct invite acceptance now creates bookings through the `/v1` invite path instead of falling back to removed legacy `/api/session-invites/*` behavior
@@ -100,15 +103,19 @@ Use these spines to classify work and avoid building duplicate flows.
 ## Role Truth
 
 Coach:
+
 - manages availability, session setup, invites, delivery, roster, clubs, and earnings-facing flows
 
 Parent:
+
 - manages children, bookings, consent, medical and emergency information, progress visibility, family spending, and club or coach updates
 
 Athlete:
+
 - books for self, tracks goals, health, badges, journal entries, progress, and linked updates
 
 Club:
+
 - manages membership, staffing, squads, branded identity, role visibility, and delegated operating control
 
 ## Architecture Truth
@@ -126,12 +133,14 @@ Club:
 ## What Is Real Versus Transitional
 
 Real enough to build on:
+
 - large role-based Expo surface
 - consolidated service layer
 - shared club governance contract
 - testable Fastify API runtime
 
 Still transitional:
+
 - authoritative backend ownership for broader trust/ops data and the still-removed historical invite counter/change negotiation model
 - `ClubActivity` is currently a read model, not a backend-owned entity
 - observability across app plus API
@@ -148,11 +157,13 @@ Still transitional:
 ## Canonical Docs
 
 Read in this order:
+
 1. `docs/START_HERE.md`
 2. `docs/KNOWLEDGE_SPINE.md`
 3. One deep doc that matches the task
 
 Use these deep docs selectively:
+
 - `docs/architecture/runtime-modes.md`
 - `docs/architecture/service-ownership-map.md`
 - `docs/architecture/entity-relationship-map.md`
@@ -168,6 +179,7 @@ Use these deep docs selectively:
 
 Old sprint packs, dated audit dumps, and duplicate planning stacks were intentionally deleted.
 Do not resurrect them by adding new references to:
+
 - deleted `docs/audits/*`
 - deleted old sprint folders
 - deleted `docs/product-reality/progress.md`
