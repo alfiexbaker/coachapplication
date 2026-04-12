@@ -26,6 +26,16 @@ Read order at task start:
 - Reuse existing contracts, services, hooks, and components before creating new ones.
 - Keep diffs scoped. Remove dead code when you touch it.
 - Capture tradeoffs and verification in the commit message.
+- For any multi-step or non-trivial task, stop before editing and send a concrete preflight with:
+  - Goal
+  - Context
+  - Constraints
+  - Exact plan
+  - Quality bar
+  - Regression plan
+- End that preflight with an explicit permission gate:
+  - `Proceed with this plan?`
+- Do not start implementation until the user approves, unless the user explicitly says to skip approval and just run.
 
 ## 3) Architecture Standards
 
@@ -79,6 +89,37 @@ Read order at task start:
    - side effects
    - failure states
    - duplication
+
+Required preflight shape before multi-step implementation:
+- Goal:
+  - one sentence on the intended outcome
+- Context:
+  - exact files, services, routes, and runtime truths being relied on
+  - current seam, bug, or inconsistency expected to be fixed
+- Constraints:
+  - what scope will not be crossed
+  - what existing boundaries must stay intact
+  - what code should be deleted instead of left behind if replaced
+- Exact plan:
+  - ordered implementation steps
+  - exact files expected to change
+  - exact validations expected to run
+  - expected commit message shape for the slice
+- Quality bar:
+  - single source of truth, not duplicated logic
+  - smallest correct change, not broad refactor
+  - no new trust-sensitive mock-first behavior
+  - delete stale branches/helpers/files when replacement fully covers them
+  - keep naming and service boundaries aligned with the repo
+- Regression plan:
+  - exact commands to run
+  - exact user flows to verify if UI is touched
+  - exact diff risks to review
+
+Required progress behavior during implementation:
+- Send short progress updates while reading, patching, validating, and fixing regressions.
+- Call out when a planned deletion happens.
+- If validation fails, explain the failure seam and the smallest follow-up fix before continuing.
 
 ## 6) Verification Gates
 
@@ -136,6 +177,7 @@ Never:
 - Constraints: architecture or UI rules that must not be broken
 - Acceptance criteria: observable pass conditions
 - Verification: required commands or user flows
+- Permission gate: `Proceed with this plan?`
 
 Example:
 - Objective: "Unify booking cancellation authority between UI and API."
