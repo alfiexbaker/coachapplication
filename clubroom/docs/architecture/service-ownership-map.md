@@ -62,10 +62,19 @@ Purpose: identify the service entrypoints that are safe to build on and call out
 - Compatibility rule: older club UIs may still read local club state, but that state should be mirrored from `clubAuthorityService` instead of being treated as the source of truth
 - `services/club-invite-link-service.ts` is the canonical helper for parsing and building club join links
 
+### Coach availability
+
+- `services/availability-service.ts`
+- Canonical availability surface for templates, overrides, slot generation, and coach schedule reads
+- Non-mock signed-in coach self-manage path uses `/v1/coaches/me/availability/templates` and `/v1/coaches/me/availability/overrides`
+- Public booking and non-self coach reads still use the existing local projection until the broader availability read seam is backend-owned
+
 ### Scheduling rules and cancellation
 
 - `services/scheduling-rules-service.ts`
 - Canonical scheduling plus cancellation-policy surface
+- Non-mock signed-in coach self-manage path uses `GET/PATCH /v1/coaches/me/scheduling-rules`
+- Non-self coach reads still fall back to local projection until invoice and booking policy authority is fully backend-owned
 
 ### Community
 

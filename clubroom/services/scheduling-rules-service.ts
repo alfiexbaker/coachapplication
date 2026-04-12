@@ -15,7 +15,8 @@
  * before cancelling so I can make an informed decision."
  */
 
-import { apiClient } from './api-client';
+import { apiClient, apiFetch } from './api-client';
+import { isSignedInCoachSelf } from './coach-self-api-support';
 import type {
   CoachSchedulingRules,
   CancellationPolicy,
@@ -211,9 +212,37 @@ interface BookingValidation {
   warningMessage?: string;
 }
 
+interface ApiCoachSchedulingRulesResponse {
+  rules: CoachSchedulingRules;
+  cancellationPolicy: CancellationPolicy | null;
+}
+
 class SchedulingRulesService {
   private rulesCache: Map<string, CoachSchedulingRules> = new Map();
   private policiesCache: CancellationPolicy[] | null = null;
+
+  private async getAuthoritativeRulesResponse(
+    coachId: string,
+  ): Promise<ApiCoachSchedulingRulesResponse | null> {
+    if (!(await isSignedInCoachSelf(coachId))) {
+      return null;
+    }
+
+    const result = await apiFetch<ApiCoachSchedulingRulesResponse>('/v1/coaches/me/scheduling-rules', {
+      method: 'GET',
+    });
+    if (result.success) {
+      this.rulesCache.set(coachId, result.data.rules);
+      this.policiesCache = result.data.cancellationPolicy ? [result.data.cancellationPolicy] : [];
+      return result.data;
+    }
+
+    logger.error('Failed to load authoritative coach scheduling rules', {
+      coachId,
+      error: result.error.message,
+    });
+    return null;
+  }
 
   private buildTierDescription(
     tier: RefundTier,
@@ -296,6 +325,11 @@ class SchedulingRulesService {
    * Get scheduling rules for a coach
    */
   private async getCoachRulesValue(coachId: string): Promise<CoachSchedulingRules> {
+    const authoritative = await this.getAuthoritativeRulesResponse(coachId);
+    if (authoritative) {
+      return authoritative.rules;
+    }
+
     // Check cache first
     if (this.rulesCache.has(coachId)) {
       return this.rulesCache.get(coachId)!;
@@ -346,6 +380,27 @@ class SchedulingRulesService {
     updates: Partial<CoachSchedulingRules>,
   ): Promise<Result<CoachSchedulingRules, ServiceError>> {
     try {
+      if (await isSignedInCoachSelf(coachId)) {
+        const result = await apiFetch<ApiCoachSchedulingRulesResponse>('/v1/coaches/me/scheduling-rules', {
+          method: 'PATCH',
+          body: JSON.stringify({
+            minimumAdvanceBookingHours: updates.minimumAdvanceBookingHours,
+            maxAdvanceBookingDays: updates.maxAdvanceBookingDays,
+            bufferMinutesDefault: updates.bufferMinutesDefault,
+            maxConcurrentDefault: updates.maxConcurrentDefault,
+            allowSameDayBookings: updates.allowSameDayBookings,
+          }),
+        });
+        if (result.success) {
+          this.rulesCache.set(coachId, result.data.rules);
+          if (result.data.cancellationPolicy) {
+            this.policiesCache = [result.data.cancellationPolicy];
+          }
+          return ok(result.data.rules);
+        }
+        return err(result.error);
+      }
+
       const allRules = await this.loadAllRules();
       const existingIndex = allRules.findIndex((r) => r.coachId === coachId);
 
@@ -543,6 +598,11 @@ class SchedulingRulesService {
     coachId: string,
   ): Promise<Result<CancellationPolicy | null, ServiceError>> {
     try {
+      const authoritative = await this.getAuthoritativeRulesResponse(coachId);
+      if (authoritative) {
+        return ok(authoritative.cancellationPolicy);
+      }
+
       const policies = await this.loadPoliciesValue();
       return ok(policies.find((p) => p.coachId === coachId) || null);
     } catch (error) {
@@ -573,9 +633,6 @@ class SchedulingRulesService {
     customTiers?: RefundTier[],
   ): Promise<Result<CancellationPolicy, ServiceError>> {
     try {
-      const policies = await this.loadPoliciesValue();
-      const existingIndex = policies.findIndex((p) => p.coachId === coachId);
-
       const now = new Date().toISOString();
       let template = POLICY_TEMPLATES[templateKey] || POLICY_TEMPLATES.standard;
 
@@ -588,6 +645,46 @@ class SchedulingRulesService {
           tiers: sanitizedCustomTiers,
         };
       }
+
+      if (await isSignedInCoachSelf(coachId)) {
+        const current = await this.getCancellationPolicy(coachId);
+        if (!current.success) {
+          return err(current.error);
+        }
+
+        const existingPolicy = current.data;
+        const policyPayload: CancellationPolicy = {
+          id: existingPolicy?.id ?? `policy_${Date.now()}`,
+          coachId,
+          ...template,
+          createdAt: existingPolicy?.createdAt ?? now,
+          updatedAt: now,
+        };
+
+        const result = await apiFetch<ApiCoachSchedulingRulesResponse>('/v1/coaches/me/scheduling-rules', {
+          method: 'PATCH',
+          body: JSON.stringify({
+            cancellationPolicy: {
+              name: policyPayload.name,
+              description: policyPayload.description,
+              tiers: policyPayload.tiers,
+              minimumNoticeHours: policyPayload.minimumNoticeHours,
+              allowCancellations: policyPayload.allowCancellations,
+              isDefault: policyPayload.isDefault,
+            },
+          }),
+        });
+        if (!result.success) {
+          return err(result.error);
+        }
+        const savedPolicy = result.data.cancellationPolicy ?? policyPayload;
+        this.rulesCache.set(coachId, result.data.rules);
+        this.policiesCache = [savedPolicy];
+        return ok(savedPolicy);
+      }
+
+      const policies = await this.loadPoliciesValue();
+      const existingIndex = policies.findIndex((p) => p.coachId === coachId);
 
       const policy: CancellationPolicy = {
         id: existingIndex >= 0 ? policies[existingIndex].id : `policy_${Date.now()}`,

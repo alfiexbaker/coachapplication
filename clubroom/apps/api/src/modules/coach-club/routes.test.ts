@@ -49,6 +49,13 @@ function authHeaders(tables: SeedTables, userId: string, preferredRole?: string)
   };
 }
 
+function getSeededCoachUserId(tables: SeedTables): string {
+  const rulesRow = asRows(tables.schedulingRules)[0];
+  const coachUserId = asString(rulesRow?.coachUserId);
+  assert.ok(coachUserId, 'expected seeded coach user id');
+  return coachUserId;
+}
+
 describe('coach-club routes', () => {
   const app = buildApp();
 
@@ -150,5 +157,208 @@ describe('coach-club routes', () => {
       headers: authHeaders(tables, asString(privilegedAdmin.id) as string, 'security_admin'),
     });
     assert.equal(res.statusCode, 200);
+  });
+
+  it('lets a coach manage self availability templates via v1 routes', async () => {
+    const tables = loadTables();
+    const coachUserId = getSeededCoachUserId(tables);
+    const headers = authHeaders(tables, coachUserId, 'coach');
+
+    const list = await app.inject({
+      method: 'GET',
+      url: '/v1/coaches/me/availability/templates',
+      headers,
+    });
+    assert.equal(list.statusCode, 200);
+    const initialPayload = list.json() as { templates: Array<{ coachId: string }> };
+    assert.equal(initialPayload.templates.length > 0, true);
+    assert.equal(initialPayload.templates.every((template) => template.coachId === coachUserId), true);
+
+    const created = await app.inject({
+      method: 'POST',
+      url: '/v1/coaches/me/availability/templates',
+      headers,
+      payload: {
+        coachId: coachUserId,
+        dayOfWeek: 5,
+        startTime: '18:00',
+        endTime: '20:00',
+        isRecurring: true,
+        maxConcurrent: 3,
+        bufferMinutes: 10,
+        location: 'Test Dome',
+      },
+    });
+    assert.equal(created.statusCode, 201);
+    const createdTemplate = created.json() as {
+      id: string;
+      coachId: string;
+      dayOfWeek: number;
+      maxConcurrent: number;
+      location?: string;
+    };
+    assert.equal(createdTemplate.coachId, coachUserId);
+    assert.equal(createdTemplate.dayOfWeek, 5);
+    assert.equal(createdTemplate.maxConcurrent, 3);
+    assert.equal(createdTemplate.location, 'Test Dome');
+
+    const updated = await app.inject({
+      method: 'PATCH',
+      url: `/v1/coaches/me/availability/templates/${createdTemplate.id}`,
+      headers,
+      payload: {
+        coachId: coachUserId,
+        dayOfWeek: 5,
+        startTime: '18:30',
+        endTime: '20:30',
+        isRecurring: true,
+        maxConcurrent: 1,
+        bufferMinutes: 20,
+        location: 'Updated Dome',
+      },
+    });
+    assert.equal(updated.statusCode, 200);
+    const updatedTemplate = updated.json() as { id: string; maxConcurrent: number; location?: string };
+    assert.equal(updatedTemplate.id, createdTemplate.id);
+    assert.equal(updatedTemplate.maxConcurrent, 1);
+    assert.equal(updatedTemplate.location, 'Updated Dome');
+
+    const deleted = await app.inject({
+      method: 'DELETE',
+      url: `/v1/coaches/me/availability/templates/${createdTemplate.id}`,
+      headers,
+    });
+    assert.equal(deleted.statusCode, 204);
+
+    const afterDelete = await app.inject({
+      method: 'GET',
+      url: '/v1/coaches/me/availability/templates',
+      headers,
+    });
+    const finalPayload = afterDelete.json() as { templates: Array<{ id: string }> };
+    assert.equal(finalPayload.templates.some((template) => template.id === createdTemplate.id), false);
+  });
+
+  it('lets a coach manage self availability overrides with date filtering', async () => {
+    const tables = loadTables();
+    const coachUserId = getSeededCoachUserId(tables);
+    const headers = authHeaders(tables, coachUserId, 'coach');
+
+    const list = await app.inject({
+      method: 'GET',
+      url: '/v1/coaches/me/availability/overrides?start=2026-03-01&end=2026-03-31',
+      headers,
+    });
+    assert.equal(list.statusCode, 200);
+    const initialPayload = list.json() as { overrides: Array<{ coachId: string; date: string }> };
+    assert.equal(initialPayload.overrides.every((override) => override.coachId === coachUserId), true);
+    assert.equal(initialPayload.overrides.every((override) => override.date >= '2026-03-01' && override.date <= '2026-03-31'), true);
+
+    const created = await app.inject({
+      method: 'POST',
+      url: '/v1/coaches/me/availability/overrides',
+      headers,
+      payload: {
+        coachId: coachUserId,
+        date: '2026-03-20',
+        isBlocked: false,
+        reason: 'Extra session window',
+        customSlots: [
+          {
+            date: '2026-03-20',
+            startTime: '09:00',
+            endTime: '10:30',
+            location: 'Training Annex',
+          },
+        ],
+      },
+    });
+    assert.equal(created.statusCode, 201);
+    const createdOverride = created.json() as { id: string; date: string; customSlots?: Array<{ startTime: string }> };
+    assert.equal(createdOverride.date, '2026-03-20');
+    assert.equal(createdOverride.customSlots?.[0]?.startTime, '09:00');
+
+    const deleted = await app.inject({
+      method: 'DELETE',
+      url: `/v1/coaches/me/availability/overrides/${createdOverride.id}`,
+      headers,
+    });
+    assert.equal(deleted.statusCode, 204);
+  });
+
+  it('lets a coach update self scheduling rules and cancellation policy via v1 routes', async () => {
+    const tables = loadTables();
+    const coachUserId = getSeededCoachUserId(tables);
+    const headers = authHeaders(tables, coachUserId, 'coach');
+
+    const existing = await app.inject({
+      method: 'GET',
+      url: '/v1/coaches/me/scheduling-rules',
+      headers,
+    });
+    assert.equal(existing.statusCode, 200);
+    const existingPayload = existing.json() as {
+      rules: { coachId: string; minimumAdvanceBookingHours: number };
+      cancellationPolicy: { tiers: Array<{ hoursBeforeSession: number }> } | null;
+    };
+    assert.equal(existingPayload.rules.coachId, coachUserId);
+    assert.equal(existingPayload.rules.minimumAdvanceBookingHours > 0, true);
+    assert.equal((existingPayload.cancellationPolicy?.tiers.length ?? 0) > 0, true);
+
+    const updated = await app.inject({
+      method: 'PATCH',
+      url: '/v1/coaches/me/scheduling-rules',
+      headers,
+      payload: {
+        minimumAdvanceBookingHours: 36,
+        maxAdvanceBookingDays: 45,
+        bufferMinutesDefault: 20,
+        maxConcurrentDefault: 2,
+        allowSameDayBookings: false,
+        cancellationPolicy: {
+          name: 'Coach custom',
+          description: 'Custom policy',
+          minimumNoticeHours: 6,
+          allowCancellations: true,
+          isDefault: false,
+          tiers: [
+            { hoursBeforeSession: 24, refundPercentage: 100, description: 'Full refund' },
+            { hoursBeforeSession: 6, refundPercentage: 50, description: 'Half refund' },
+            { hoursBeforeSession: 0, refundPercentage: 0, description: 'No refund' },
+          ],
+        },
+      },
+    });
+    assert.equal(updated.statusCode, 200);
+    const updatedPayload = updated.json() as {
+      rules: {
+        minimumAdvanceBookingHours: number;
+        maxAdvanceBookingDays: number;
+        bufferMinutesDefault: number;
+        maxConcurrentDefault: number;
+        allowSameDayBookings: boolean;
+      };
+      cancellationPolicy: {
+        name: string;
+        tiers: Array<{ hoursBeforeSession: number; refundPercentage: number }>;
+      } | null;
+    };
+    assert.equal(updatedPayload.rules.minimumAdvanceBookingHours, 36);
+    assert.equal(updatedPayload.rules.maxAdvanceBookingDays, 45);
+    assert.equal(updatedPayload.rules.bufferMinutesDefault, 20);
+    assert.equal(updatedPayload.rules.maxConcurrentDefault, 2);
+    assert.equal(updatedPayload.rules.allowSameDayBookings, false);
+    assert.equal(updatedPayload.cancellationPolicy?.name, 'Coach custom');
+    assert.deepEqual(
+      updatedPayload.cancellationPolicy?.tiers.map((tier) => ({
+        hoursBeforeSession: tier.hoursBeforeSession,
+        refundPercentage: tier.refundPercentage,
+      })),
+      [
+        { hoursBeforeSession: 24, refundPercentage: 100 },
+        { hoursBeforeSession: 6, refundPercentage: 50 },
+        { hoursBeforeSession: 0, refundPercentage: 0 },
+      ],
+    );
   });
 });
