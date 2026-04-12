@@ -1,4 +1,6 @@
+import './instrument.js';
 import { buildApp } from './app.js';
+import { captureException, flush } from '@sentry/node';
 import { env } from '@clubroom/config';
 
 async function main() {
@@ -11,6 +13,10 @@ async function main() {
     });
   } catch (error) {
     app.log.error(error, 'Failed to start server');
+    if (error instanceof Error) {
+      captureException(error);
+      await flush(2000);
+    }
     process.exit(1);
   }
 }

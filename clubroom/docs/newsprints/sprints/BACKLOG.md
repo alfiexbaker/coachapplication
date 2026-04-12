@@ -1,6 +1,6 @@
 # Sprint Backlog
 
-Updated: 2026-04-03
+Updated: 2026-04-12
 Rule: active and current work only.
 
 | ID        | Work                                                                                                                                                                                                                                                                             | Spine(s)                                 | Status | Source                                                                                                                               |
@@ -10,7 +10,7 @@ Rule: active and current work only.
 | AUTH-02   | Replace the temporary dev-session/auth-context stack with production identity and broader backend authz integration; runtime `/v1` now validates JWT bearer auth, no longer accepts scaffold identity headers, and `/v1/me/sessions*` covers the runtime session lifecycle slice | Trust/Safety/Ops + Development           | DONE   | `docs/SOURCE_OF_TRUTH.md`, `docs/trust/auth-and-permission-boundaries.md`, `apps/api/src/plugins/auth-context.ts`                    |
 | TRUST-01  | Collapse trust-sensitive child medical and emergency ownership into `/v1/athletes/*` and remove legacy child-profile writes for those fields                                                                                                                                     | Trust/Safety/Ops + Development           | DONE   | `services/child-service.ts`, `app/(modal)/edit-child-profile.tsx`, `services/family/family-health-service.ts`                        |
 | BOOK-01   | Close delegated booking-create authority so guardian and delegated flows cannot fall back to local-only booking writes                                                                                                                                                           | Booking/Revenue + Trust/Safety/Ops       | DONE   | `services/booking/booking-crud-service.ts`, `apps/api/src/modules/booking/routes.ts`, `services/invite/session-invite-service.ts`    |
-| OBS-01    | Wire Sentry across Expo native, Expo web, and `apps/api` with release tagging and source maps                                                                                                                                                                                    | Development + Trust/Safety/Ops           | OPEN   | `docs/SOURCE_OF_TRUTH.md`, `docs/backend-api/README.md`                                                                              |
+| OBS-01    | Wire Sentry across Expo native, Expo web, and `apps/api` with release tagging and source maps                                                                                                                                                                                    | Development + Trust/Safety/Ops           | DONE   | `docs/SOURCE_OF_TRUTH.md`, `docs/backend-api/README.md`, `app.config.ts`, `apps/api/src/instrument.ts`                             |
 | DX-01     | Fix repo-critical audit and lint scripts so missing shell tooling cannot produce false green signals                                                                                                                                                                             | Development                              | OPEN   | `docs/product-reality/PRODUCT_REALITY_AUDIT_2026-03-10.md`                                                                           |
 | GOV-01    | Keep club governance as the shared authority for UI and API authorization decisions                                                                                                                                                                                              | Booking/Revenue + Trust/Safety/Ops       | OPEN   | `contracts/club-governance.ts`, `docs/architecture/club-relationship-rules.md`                                                       |
 | LAUNCH-01 | Build a first-class `Schedule` surface that unifies event, training, and match reads for club users                                                                                                                                                                              | Community/Growth + Booking/Revenue       | OPEN   | `docs/newsprints/sprints/LAUNCH_PLAN.md`, `docs/architecture/club-activity-model.md`                                                 |
@@ -22,12 +22,11 @@ Rule: active and current work only.
 
 ## Execution Order
 
-1. `OBS-01`
-2. `LAUNCH-01`
-3. `LAUNCH-02`
-4. `LAUNCH-03`
-5. `LAUNCH-04`
-6. `LAUNCH-06`
-7. `LAUNCH-05` only if the earlier launch-critical seams land cleanly
-8. `DX-01`
-9. `GOV-01` as follow-through on the authority and launch items
+1. `LAUNCH-01`
+2. `LAUNCH-02`
+3. `LAUNCH-03`
+4. `LAUNCH-04`
+5. `LAUNCH-06`
+6. `LAUNCH-05` only if the earlier launch-critical seams land cleanly
+7. `DX-01`
+8. `GOV-01` as follow-through on the authority and launch items

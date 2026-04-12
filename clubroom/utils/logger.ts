@@ -9,7 +9,7 @@
  * - Navigation event tracking
  * - Error tracking with stack traces
  * - Performance timing
- * - Remote logging support (production)
+ * - Sentry-backed remote logging support in configured non-dev builds
  *
  * Configuration:
  *   Log level and console output are controlled via constants/config.ts
@@ -19,6 +19,11 @@
  */
 
 import { logging, type LogLevel as ConfigLogLevel } from '@/constants/config';
+import {
+  addSentryBreadcrumb,
+  captureSentryException,
+  captureSentryMessage,
+} from '@/services/observability/sentry-service';
 
 export type LogLevel = 'debug' | 'info' | 'warn' | 'error' | 'success' | 'event';
 
@@ -48,17 +53,14 @@ interface LogContext {
   [key: string]: unknown;
 }
 
-interface RemoteLogPayload {
-  level: LogLevel;
-  message: string;
-  timestamp: string;
-  context: LogContext;
-  data?: unknown;
-}
-
-// Remote log queue for batching
-const remoteLogQueue: RemoteLogPayload[] = [];
-let remoteFlushTimeout: ReturnType<typeof setTimeout> | null = null;
+const BREADCRUMB_LEVELS: Record<Exclude<LogLevel, 'error'>, 'debug' | 'info' | 'warning' | 'log'> =
+  {
+    debug: 'debug',
+    info: 'info',
+    warn: 'warning',
+    success: 'info',
+    event: 'log',
+  };
 
 class Logger {
   private context: LogContext = {};
@@ -127,54 +129,44 @@ class Logger {
   }
 
   /**
-   * Send log to remote service (batched)
+   * Send log to Sentry when remote logging is enabled.
    */
   private sendRemote(level: LogLevel, message: string, data?: unknown): void {
     if (!this.remoteEnabled) return;
 
-    remoteLogQueue.push({
-      level,
-      message,
-      timestamp: new Date().toISOString(),
+    const contexts = {
+      logger: {
+        context: { ...this.context },
+        data,
+      },
+    };
+
+    if (level === 'error') {
+      const payload =
+        data && typeof data === 'object' && 'error' in data
+          ? (data as { error?: unknown; metadata?: unknown })
+          : undefined;
+      const error =
+        payload?.error instanceof Error ? payload.error : data instanceof Error ? data : undefined;
+
+      if (error) {
+        captureSentryException(error, {
+          tags: {
+            logger_message: message,
+          },
+          contexts,
+        });
+        return;
+      }
+
+      captureSentryMessage(message, 'error', { contexts });
+      return;
+    }
+
+    addSentryBreadcrumb(BREADCRUMB_LEVELS[level], message, {
       context: { ...this.context },
       data,
     });
-
-    // Batch flush every 5 seconds or when queue reaches 50
-    if (remoteLogQueue.length >= 50) {
-      this.flushRemoteLogs();
-    } else if (!remoteFlushTimeout) {
-      remoteFlushTimeout = setTimeout(() => this.flushRemoteLogs(), 5000);
-    }
-  }
-
-  /**
-   * Flush remote log queue
-   */
-  private flushRemoteLogs(): void {
-    if (remoteFlushTimeout) {
-      clearTimeout(remoteFlushTimeout);
-      remoteFlushTimeout = null;
-    }
-
-    if (remoteLogQueue.length === 0) return;
-
-    // Logs are currently queued but not sent. The commented out code below
-    // would send these to a remote logging endpoint when implemented.
-    // const logs = [...remoteLogQueue];
-    remoteLogQueue.length = 0;
-
-    // TODO: Replace with actual remote logging endpoint
-    // fetch('/api/logs', {
-    //   method: 'POST',
-    //   headers: { 'Content-Type': 'application/json' },
-    //   body: JSON.stringify({ logs }),
-    // }).catch(() => {
-    //   // Re-queue failed logs (with limit to prevent memory issues)
-    //   if (remoteLogQueue.length < 200) {
-    //     remoteLogQueue.push(...logs);
-    //   }
-    // });
   }
 
   /**
@@ -213,7 +205,7 @@ class Logger {
   /**
    * Log an error with stack trace
    */
-  error(message: string, error?: Error | unknown): void {
+  error(message: string, error?: Error | unknown, metadata?: unknown): void {
     if (!this.shouldLog('error')) return;
     if (this.consoleEnabled) {
       console.error(this.format('error', message));
@@ -225,8 +217,23 @@ class Logger {
           console.error('Error data:', error);
         }
       }
+      if (metadata !== undefined) {
+        console.error('Metadata:', metadata);
+      }
     }
-    this.sendRemote('error', message, error instanceof Error ? { message: error.message, stack: error.stack } : error);
+
+    if (error instanceof Error) {
+      this.sendRemote('error', message, {
+        error,
+        metadata,
+      });
+      return;
+    }
+
+    this.sendRemote('error', message, {
+      error,
+      metadata,
+    });
   }
 
   /**

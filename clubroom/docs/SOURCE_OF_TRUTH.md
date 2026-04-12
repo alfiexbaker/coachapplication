@@ -1,6 +1,6 @@
 # Clubroom - Single Source of Truth
 
-Last updated: 2026-04-03
+Last updated: 2026-04-12
 Project: football coaching marketplace plus family development tracker
 Status: live-featured Expo app with a real Fastify API alongside it; backend cutover is still in progress, and runtime `/v1` auth is now JWT-backed
 
@@ -18,13 +18,15 @@ If a statement here conflicts with an old audit or sprint note, trust this file 
 
 ## Current Verified Health
 
-Verified during recent `AUTH-02` completion on 2026-04-03:
+Verified during `OBS-01` completion on 2026-04-12:
 
 - `npm run typecheck` -> PASS
 - `npm run test:compile` -> PASS
 - `npm --prefix apps/api run typecheck` -> PASS
-- `npm --prefix apps/api run test` -> PASS (`40/40`)
-- `npm run ui:flows:run` -> BLOCKED (`react-native-worklets@0.5.1` is incompatible with installed `react-native-reanimated@4.2.2`, so Expo web returned HTTP 500 during flow preflight)
+- `npm --prefix apps/api run test` -> PASS (`41/41`)
+- `npm run export:web` -> PASS
+- `npm run ui:flows:preflight` -> PASS
+- `npm run ui:flows:run` -> PASS on fail threshold (`85/85` flows `ok`, `0` high, `4` medium)
 - UI audit scripts that depend on local tool availability -> NOT RUN
 
 ## Product In One Paragraph
@@ -53,7 +55,7 @@ Clubs manage staff, squads, visibility, and operating relationships.
   - backend auth now issues and validates signed JWT access/refresh tokens
   - runtime session revocation and `/v1/me/sessions*` are backed by the auth runtime instead of the marketplace seed dataset
   - runtime `/v1` auth no longer falls back to `x-auth-user-id` or `x-auth-roles`; that override is test-only
-- The biggest trust seams still not finished are broader authz coverage and launch observability:
+- The biggest trust seams still not finished are broader authz coverage and remaining launch polish:
   - app `/v1` authority services now rely on bearer auth plus `x-acting-role` and scope headers instead of client-supplied identity headers
   - `/v1/auth/login`, `/v1/auth/register`, `/v1/auth/refresh`, `/v1/auth/logout`, `/v1/auth/revoke`, `/v1/auth/me`, and `/v1/me/sessions*` now run on the JWT/session runtime
   - family medical, safeguarding incident creation, direct booking creation, booking cancel/reopen, and group-session registration now use `/v1` in non-mock mode
@@ -64,7 +66,8 @@ Clubs manage staff, squads, visibility, and operating relationships.
   - direct invite acceptance now creates bookings through the `/v1` invite path instead of falling back to removed legacy `/api/session-invites/*` behavior
   - booking changes are intentionally `cancel` or `reopen`; the old counter-offer and invite counter workflow has been removed from the runtime product surface
   - coach scheduling rules no longer advertise a separate reschedule policy; bookings now change by cancellation and rebooking/reopening instead of negotiation
-  - the main auth follow-through now moves on from runtime identity to broader backend authz coverage, trust-sensitive route ownership, and observability
+  - Expo native/web and `apps/api` now emit to Sentry with shared release/environment tags, Expo web source maps via `npm run export:web`, and API source maps via `npm --prefix apps/api run build:release`
+  - the main auth follow-through now moves on from runtime identity to broader backend authz coverage, trust-sensitive route ownership, and launch-grade UI cleanup
 - Club-facing schedule surfaces now use a `ClubActivity` read model to link `ClubEvent` and `GroupSession`
   - `ClubActivity` now also includes `Match`, so club and squad schedule routes can show events, training, and matches in one surface
   - club-linked open group sessions are treated as mixed-access training, not as a separate public product world
@@ -144,14 +147,14 @@ Still transitional:
 
 - authoritative backend ownership for broader trust/ops data and the still-removed historical invite counter/change negotiation model
 - `ClubActivity` is currently a read model, not a backend-owned entity
-- observability across app plus API
+- some web surfaces still emit medium-severity UI warnings in the full flow suite
 - some local audit scripts that depend on missing shell tooling
 
 ## Highest-Value Priorities
 
 1. Expand backend authz coverage for the sensitive `/v1` routes now that runtime JWT/session auth is in place.
-2. Close trust-sensitive family and booking authority seams.
-3. Wire Sentry across Expo native, Expo web, and `apps/api`.
+2. Build the unified launch-grade club schedule surface.
+3. Turn club events into real operational workspaces.
 4. Make repo-critical quality scripts honest when local tooling is missing.
 5. Keep docs thin and update them when runtime truth changes.
 

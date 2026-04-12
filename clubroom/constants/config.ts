@@ -41,13 +41,20 @@ const getNumber = (key: string, defaultValue: number = 0): number => {
   return isNaN(parsed) ? defaultValue : parsed;
 };
 
+const getFloat = (key: string, defaultValue: number = 0): number => {
+  const value = getEnv(key);
+  if (value === '') return defaultValue;
+  const parsed = parseFloat(value);
+  return isNaN(parsed) ? defaultValue : parsed;
+};
+
 // -----------------------------------------------------------------------------
 // Environment Detection
 // -----------------------------------------------------------------------------
 
 export type Environment = 'development' | 'staging' | 'production';
 
-const env = (getEnv('ENV', 'development') as Environment);
+export const env = (getEnv('ENV', 'development') as Environment);
 
 export const isDevelopment = env === 'development';
 export const isStaging = env === 'staging';
@@ -137,6 +144,10 @@ export const analytics = {
   provider: getEnv('ANALYTICS_PROVIDER', 'segment') as 'segment' | 'amplitude' | 'mixpanel',
   segmentWriteKey: getEnv('SEGMENT_WRITE_KEY'),
   sentryDsn: getEnv('SENTRY_DSN'),
+  sentryEnabled: getEnv('SENTRY_DSN').trim().length > 0,
+  sentryEnvironment: getEnv('SENTRY_ENVIRONMENT', env),
+  sentryRelease: getEnv('SENTRY_RELEASE', `clubroom@1.0.0+${env}`),
+  sentryTracesSampleRate: getFloat('SENTRY_TRACES_SAMPLE_RATE', isDevelopment ? 1 : 0.1),
 } as const;
 
 // -----------------------------------------------------------------------------
@@ -148,7 +159,7 @@ export type LogLevel = 'debug' | 'info' | 'warn' | 'error';
 export const logging = {
   level: getEnv('LOG_LEVEL', isDevelopment ? 'debug' : 'warn') as LogLevel,
   enableConsole: isDevelopment,
-  enableRemote: isProduction,
+  enableRemote: analytics.sentryEnabled && !isDevelopment,
 } as const;
 
 // -----------------------------------------------------------------------------

@@ -9,8 +9,25 @@
 
 import { ExpoConfig, ConfigContext } from 'expo/config';
 
+function parseFloatEnv(value: string | undefined, defaultValue: number): number {
+  const parsed = Number.parseFloat(value ?? '');
+  return Number.isFinite(parsed) ? parsed : defaultValue;
+}
+
+function compactObject<T extends Record<string, unknown>>(value: T): Partial<T> {
+  return Object.fromEntries(
+    Object.entries(value).filter(([, entry]) => entry !== undefined),
+  ) as Partial<T>;
+}
+
 export default ({ config }: ConfigContext): ExpoConfig => {
   const env = process.env.EXPO_PUBLIC_ENV || 'development';
+  const sentryEnvironment = process.env.SENTRY_ENVIRONMENT || env;
+  const sentryRelease = process.env.SENTRY_RELEASE || `clubroom@1.0.0+${env}`;
+  const sentryTracesSampleRate = parseFloatEnv(
+    process.env.EXPO_PUBLIC_SENTRY_TRACES_SAMPLE_RATE ?? process.env.SENTRY_TRACES_SAMPLE_RATE,
+    env === 'development' ? 1 : 0.1,
+  );
 
   return {
     ...config,
@@ -68,6 +85,20 @@ export default ({ config }: ConfigContext): ExpoConfig => {
           microphonePermission: 'Allow Clubroom to record training videos with audio',
         },
       ],
+      [
+        '@sentry/react-native/expo',
+        compactObject({
+          organization: process.env.SENTRY_ORG,
+          project: process.env.SENTRY_PROJECT,
+          url: process.env.SENTRY_URL,
+          options: compactObject({
+            dsn: process.env.EXPO_PUBLIC_SENTRY_DSN,
+            environment: sentryEnvironment,
+            release: sentryRelease,
+            tracesSampleRate: sentryTracesSampleRate,
+          }),
+        }),
+      ],
     ],
 
     experiments: {
@@ -106,6 +137,9 @@ export default ({ config }: ConfigContext): ExpoConfig => {
       // Analytics
       analyticsEnabled: process.env.EXPO_PUBLIC_ANALYTICS_ENABLED === 'true',
       sentryDsn: process.env.EXPO_PUBLIC_SENTRY_DSN,
+      sentryEnvironment,
+      sentryRelease,
+      sentryTracesSampleRate,
 
       // Router config
       router: {},

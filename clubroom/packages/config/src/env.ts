@@ -35,6 +35,12 @@ const envSchema = z.object({
     .string()
     .default('docs/backend-api/test-data/marketplace'),
 
+  SENTRY_URL: z.string().url().default('https://sentry.io/'),
+  SENTRY_DSN: z.string().url().optional(),
+  SENTRY_ENVIRONMENT: z.string().default(process.env.NODE_ENV ?? 'development'),
+  SENTRY_RELEASE: z.string().default('clubroom-api@development'),
+  SENTRY_TRACES_SAMPLE_RATE: z.coerce.number().min(0).max(1).default(0.1),
+
   LOG_LEVEL: z.enum(['fatal', 'error', 'warn', 'info', 'debug', 'trace']).default('info'),
 });
 

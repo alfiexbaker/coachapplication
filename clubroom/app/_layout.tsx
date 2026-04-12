@@ -32,6 +32,11 @@ import { useTokenExpiryAlert } from '@/hooks/use-token-expiry-alert';
 import { notificationStore } from '@/services/notification';
 import { preApiLiveModeService } from '@/services/pre-api-live-mode-service';
 import { BookingFlowProvider } from '@/context/booking-flow-context';
+import {
+  markSentryAppLoaded,
+  setSentryUser,
+  wrapRootWithSentry,
+} from '@/services/observability/sentry-service';
 
 // Lazy-load expo-notifications for deep linking
 let Notifications: typeof import('expo-notifications') | null = null;
@@ -52,7 +57,7 @@ export const unstable_settings = {
 
 function RootNavigation() {
   const { scheme: colorScheme } = useTheme();
-  const { isAuthenticated, currentUser } = useAuth();
+  const { isAuthenticated, isLoading, currentUser } = useAuth();
   const notificationResponseSubscription = useRef<{ remove: () => void } | null>(null);
   useTokenExpiryAlert();
 
@@ -108,6 +113,37 @@ function RootNavigation() {
     currentUser?.fullName,
     currentUser?.name,
     currentUser?.username,
+  ]);
+
+  useEffect(() => {
+    if (isLoading) {
+      return;
+    }
+
+    markSentryAppLoaded();
+  }, [isLoading]);
+
+  useEffect(() => {
+    if (!isAuthenticated || !currentUser) {
+      setSentryUser(null);
+      return;
+    }
+
+    setSentryUser({
+      id: currentUser.id,
+      email: currentUser.email,
+      username: currentUser.username,
+      name: currentUser.fullName || currentUser.name || currentUser.username,
+      role: currentUser.role,
+    });
+  }, [
+    currentUser?.email,
+    currentUser?.fullName,
+    currentUser?.id,
+    currentUser?.name,
+    currentUser?.role,
+    currentUser?.username,
+    isAuthenticated,
   ]);
 
   // Deep linking: handle notification taps and initial launch tap.
@@ -188,7 +224,7 @@ function RootNavigation() {
   );
 }
 
-export default function RootLayout() {
+function RootLayout() {
   logger.info('App initializing');
 
   return (
@@ -205,3 +241,5 @@ export default function RootLayout() {
     </GestureHandlerRootView>
   );
 }
+
+export default wrapRootWithSentry(RootLayout);

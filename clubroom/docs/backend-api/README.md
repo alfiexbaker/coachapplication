@@ -16,7 +16,8 @@ The goal is to keep backend work traceable to:
 - The Expo app still supports mock and pre-API live modes.
 - Shared contracts and governance sources already exist in the monorepo.
 - Frontend and backend auth are now aligned on `/v1/auth/*` with JWT/session runtime handling in `apps/api`.
-- The biggest unresolved seams are broader route-level authz coverage, trust-sensitive authority cleanup, and observability.
+- Sentry is now wired across Expo native, Expo web, and `apps/api`, with release tagging plus sourcemap export/upload paths in the repo.
+- The biggest unresolved seams are broader route-level authz coverage, trust-sensitive authority cleanup, and remaining launch-quality follow-through.
 
 ## Working Assumptions
 

@@ -1,5 +1,6 @@
 import fp from 'fastify-plugin';
 import type { FastifyPluginAsync } from 'fastify';
+import { setContext, setTag, setUser } from '@sentry/node';
 import { resolveAuthContextFromBearerToken } from '../lib/auth-runtime.js';
 
 interface AuthContextPluginOptions {
@@ -53,6 +54,11 @@ const authContextPlugin: FastifyPluginAsync<AuthContextPluginOptions> = async (a
       const bearerSession = await resolveAuthContextFromBearerToken(bearerToken);
       if (!bearerSession) {
         request.auth = undefined;
+        setUser(null);
+        setTag('acting_role', 'anonymous');
+        setContext('auth', {
+          authenticated: false,
+        });
         return;
       }
 
@@ -62,11 +68,25 @@ const authContextPlugin: FastifyPluginAsync<AuthContextPluginOptions> = async (a
         actingRole: resolveActingRole(bearerSession.roles, request.headers['x-acting-role']),
         sessionId: bearerSession.sessionId,
       };
+      setUser({
+        id: bearerSession.userId,
+      });
+      setTag('acting_role', request.auth.actingRole ?? bearerSession.roles[0] ?? 'unknown');
+      setContext('auth', {
+        roles: bearerSession.roles,
+        sessionId: bearerSession.sessionId,
+        userId: bearerSession.userId,
+      });
       return;
     }
 
     if (!allowHeaderOverride) {
       request.auth = undefined;
+      setUser(null);
+      setTag('acting_role', 'anonymous');
+      setContext('auth', {
+        authenticated: false,
+      });
       return;
     }
 
@@ -75,6 +95,11 @@ const authContextPlugin: FastifyPluginAsync<AuthContextPluginOptions> = async (a
 
     if (!headerUserId || headerRoles.length === 0) {
       request.auth = undefined;
+      setUser(null);
+      setTag('acting_role', 'anonymous');
+      setContext('auth', {
+        authenticated: false,
+      });
       return;
     }
 
@@ -84,6 +109,15 @@ const authContextPlugin: FastifyPluginAsync<AuthContextPluginOptions> = async (a
       actingRole: resolveActingRole(headerRoles, request.headers['x-acting-role']),
       sessionId: 'ses_test_header_override',
     };
+    setUser({
+      id: headerUserId,
+    });
+    setTag('acting_role', request.auth.actingRole ?? headerRoles[0] ?? 'unknown');
+    setContext('auth', {
+      roles: headerRoles,
+      sessionId: 'ses_test_header_override',
+      userId: headerUserId,
+    });
   });
 };
 
