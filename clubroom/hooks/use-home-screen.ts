@@ -5,6 +5,7 @@ import { useState, useCallback, useEffect, useMemo } from 'react';
 import { useAuth } from '@/hooks/use-auth';
 import { useChildContext } from '@/hooks/use-child-context';
 import { badgeService } from '@/services/badge-service';
+import { clubService, type MatchResult } from '@/services/club-service';
 import { socialFeedService } from '@/services/social-feed-service';
 import { progressService } from '@/services/progress-service';
 import { bookingService } from '@/services/booking-service';
@@ -12,7 +13,7 @@ import { ensureProgressDemoSeeded } from '@/services/progress/progress-demo-seed
 import { ensureRelationalDemoSeeded } from '@/services/relational-demo-seed-service';
 import { onTyped, ServiceEvents } from '@/services/event-bus';
 import { createLogger } from '@/utils/logger';
-import type { BadgeAward, Club } from '@/constants/types';
+import type { BadgeAward, Club, ClubFeedPost } from '@/constants/types';
 import type { Booking } from '@/constants/app-types';
 import type { ChildInfo } from '@/types/child-context';
 import type { FamilyBookingRow, FamilyBookingChild } from '@/types/family-booking';
@@ -25,6 +26,21 @@ export const formatDate = formatShortDateWithYear;
 interface HomeSeedTarget {
   athleteId: string;
   athleteName: string;
+}
+
+export interface HomeResult extends MatchResult {
+  clubId: string;
+  clubName: string;
+}
+
+export interface HomeClubHighlight {
+  id: string;
+  clubId: string;
+  clubName: string;
+  title: string;
+  body: string;
+  createdAt: string;
+  postType?: ClubFeedPost['postType'];
 }
 
 interface BuildHomeSeedTargetsInput {
@@ -146,6 +162,8 @@ export function useHomeScreen() {
   const [error, setError] = useState<string | null>(null);
   const [recentBadges, setRecentBadges] = useState<BadgeAward[]>([]);
   const [clubs, setClubs] = useState<Club[]>([]);
+  const [recentResults, setRecentResults] = useState<HomeResult[]>([]);
+  const [clubHighlights, setClubHighlights] = useState<HomeClubHighlight[]>([]);
   const [upcomingBookings, setUpcomingBookings] = useState<Booking[]>([]);
   const [stats, setStats] = useState({ sessions: 0, badges: 0, level: 1 });
   const [streakInfo, setStreakInfo] = useState<{
@@ -346,6 +364,46 @@ export function useHomeScreen() {
       setRecentBadges(badges.slice(0, 3));
       const userClubs = socialFeedService.getUserClubs(currentUser?.id || '');
       setClubs(userClubs);
+      const primaryClub = userClubs[0];
+      if (primaryClub) {
+        const [results, highlights] = await Promise.allSettled([
+          clubService.getRecentResults(primaryClub.id, 3),
+          Promise.resolve(socialFeedService.getFeed(primaryClub.id, 'all')),
+        ]);
+        setRecentResults(
+          results.status === 'fulfilled'
+            ? results.value.map((result) => ({
+                ...result,
+                clubId: primaryClub.id,
+                clubName: primaryClub.name,
+              }))
+            : [],
+        );
+
+        const feed = highlights.status === 'fulfilled' ? highlights.value : [];
+        const preferredHighlights = feed.filter(
+          (post) =>
+            post.postType !== 'match' &&
+            post.postType !== 'session' &&
+            post.postType !== 'session_announcement',
+        );
+        setClubHighlights(
+          (preferredHighlights.length > 0 ? preferredHighlights : feed)
+            .slice(0, 3)
+            .map((post) => ({
+              id: post.id,
+              clubId: primaryClub.id,
+              clubName: primaryClub.name,
+              title: post.title,
+              body: post.body,
+              createdAt: post.createdAt,
+              postType: post.postType,
+            })),
+        );
+      } else {
+        setRecentResults([]);
+        setClubHighlights([]);
+      }
       const viewerRole =
         hasChildProfiles && profileMode === 'child' ? 'parent' : 'athlete';
       const progress = await progressService.getAthleteProgress(athleteId, viewerRole);
@@ -402,6 +460,8 @@ export function useHomeScreen() {
     } catch (err) {
       logger.error('Failed to load home data', err);
       setError('Failed to load data. Pull down to refresh.');
+      setRecentResults([]);
+      setClubHighlights([]);
       setUpcomingBookings([]);
     } finally {
       setLoading(false);
@@ -435,6 +495,8 @@ export function useHomeScreen() {
     error,
     recentBadges,
     clubs,
+    recentResults,
+    clubHighlights,
     stats,
     streakInfo,
     isViewingSelfProfile,

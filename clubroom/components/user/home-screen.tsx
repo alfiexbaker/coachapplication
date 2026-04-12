@@ -28,6 +28,8 @@ import {
   NextSessionCard,
   RecentBadgesSection,
   MyClubsSection,
+  RecentResultsSection,
+  ClubHighlightsSection,
 } from './home-screen-sections';
 
 export function UserHomeScreen() {
@@ -39,6 +41,8 @@ export function UserHomeScreen() {
     error,
     recentBadges,
     clubs,
+    recentResults,
+    clubHighlights,
     stats,
     streakInfo,
     selectedChild,
@@ -207,6 +211,8 @@ export function UserHomeScreen() {
         {streakInfo && <StreakCard streakInfo={streakInfo} />}
         <QuickActionsGrid />
         <NextSessionCard booking={nextSession} />
+        <RecentResultsSection results={recentResults} />
+        <ClubHighlightsSection highlights={clubHighlights} />
         <RecentBadgesSection badges={recentBadges} />
         <MyClubsSection clubs={clubs} />
       </ScrollView>

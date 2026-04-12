@@ -16,6 +16,7 @@ import { ThemedText } from '@/components/themed-text';
 import { Radii, Spacing, Typography, withAlpha } from '@/constants/theme';
 import type { BadgeAward, Club } from '@/constants/types';
 import { formatDate } from '@/hooks/use-home-screen';
+import type { HomeClubHighlight, HomeResult } from '@/hooks/use-home-screen';
 import { useTheme } from '@/hooks/useTheme';
 import { getBookingClubOwnershipContext } from '@/utils/booking-display';
 import { formatTime } from '@/utils/format';
@@ -464,6 +465,113 @@ export const MyClubsSection = memo(function MyClubsSection({ clubs }: { clubs: C
   );
 });
 
+export const RecentResultsSection = memo(function RecentResultsSection({
+  results,
+}: {
+  results: HomeResult[];
+}) {
+  const { colors: palette } = useTheme();
+  if (results.length === 0) return null;
+  return (
+    <View style={styles.section}>
+      <Row justify="space-between" align="center">
+        <ThemedText type="defaultSemiBold" style={styles.sectionTitle}>
+          Recent Results
+        </ThemedText>
+        <Clickable onPress={() => router.push(Routes.club(results[0].clubId))}>
+          <ThemedText style={{ ...Typography.small, color: palette.tint }}>Open Club</ThemedText>
+        </Clickable>
+      </Row>
+      {results.map((result) => (
+        <SurfaceCard
+          key={result.id}
+          style={styles.resultCard}
+          onPress={() => router.push(Routes.club(result.clubId))}
+        >
+          <Column flex gap="micro">
+            <ThemedText type="defaultSemiBold" numberOfLines={1}>
+              {result.clubName} vs {result.opponent}
+            </ThemedText>
+            <ThemedText style={[styles.resultMeta, { color: palette.muted }]} numberOfLines={1}>
+              {result.squad} · {formatDate(result.date)}
+            </ThemedText>
+          </Column>
+          <Column gap="micro" style={styles.resultScoreBlock}>
+            <ThemedText type="defaultSemiBold" style={styles.resultScore}>
+              {result.scoreHome}-{result.scoreAway}
+            </ThemedText>
+            <ThemedText
+              style={[
+                styles.resultOutcome,
+                {
+                  color:
+                    result.outcome === 'W'
+                      ? palette.success
+                      : result.outcome === 'L'
+                        ? palette.error
+                        : palette.warning,
+                },
+              ]}
+            >
+              {result.outcome}
+            </ThemedText>
+          </Column>
+        </SurfaceCard>
+      ))}
+    </View>
+  );
+});
+
+export const ClubHighlightsSection = memo(function ClubHighlightsSection({
+  highlights,
+}: {
+  highlights: HomeClubHighlight[];
+}) {
+  const { colors: palette } = useTheme();
+  if (highlights.length === 0) return null;
+  return (
+    <View style={styles.section}>
+      <Row justify="space-between" align="center">
+        <ThemedText type="defaultSemiBold" style={styles.sectionTitle}>
+          Club Highlights
+        </ThemedText>
+        <Clickable onPress={() => router.push(Routes.club(highlights[0].clubId))}>
+          <ThemedText style={{ ...Typography.small, color: palette.tint }}>View Club</ThemedText>
+        </Clickable>
+      </Row>
+      {highlights.map((highlight) => (
+        <SurfaceCard
+          key={highlight.id}
+          style={styles.highlightCard}
+          onPress={() => router.push(Routes.club(highlight.clubId))}
+        >
+          <Column gap="xs">
+            <Row align="center" gap="xs">
+              <View
+                style={[
+                  styles.highlightIcon,
+                  { backgroundColor: withAlpha(palette.tint, 0.08) },
+                ]}
+              >
+                <Ionicons name="newspaper-outline" size={14} color={palette.tint} />
+              </View>
+              <ThemedText style={[styles.highlightMeta, { color: palette.muted }]} numberOfLines={1}>
+                {highlight.clubName} · {formatDate(highlight.createdAt)}
+              </ThemedText>
+            </Row>
+            <ThemedText type="defaultSemiBold" numberOfLines={1}>
+              {highlight.title}
+            </ThemedText>
+            <ThemedText style={[styles.highlightBody, { color: palette.muted }]} numberOfLines={2}>
+              {highlight.body}
+            </ThemedText>
+          </Column>
+        </SurfaceCard>
+      ))}
+    </View>
+  );
+});
+
 const styles = StyleSheet.create({
   statsRow: {
     paddingVertical: Spacing.sm,
@@ -647,4 +755,42 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   clubBadgeText: { ...Typography.subheading },
+  resultCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.sm,
+    padding: Spacing.md,
+  },
+  resultMeta: {
+    ...Typography.caption,
+  },
+  resultScoreBlock: {
+    alignItems: 'flex-end',
+    minWidth: 48,
+  },
+  resultScore: {
+    ...Typography.subheading,
+  },
+  resultOutcome: {
+    ...Typography.caption,
+    fontWeight: '700',
+  },
+  highlightCard: {
+    padding: Spacing.md,
+  },
+  highlightIcon: {
+    width: 28,
+    height: 28,
+    borderRadius: Radii.xl,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  highlightMeta: {
+    ...Typography.caption,
+    flex: 1,
+  },
+  highlightBody: {
+    ...Typography.small,
+    lineHeight: Typography.caption.lineHeight,
+  },
 });

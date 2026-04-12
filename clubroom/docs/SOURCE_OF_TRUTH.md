@@ -89,6 +89,9 @@ Clubs manage staff, squads, visibility, and operating relationships.
   - followed personal posts
   - club-linked updates
   - club pills that open the full per-club feed on the club page
+- athlete and parent home now add two compact football-first modules on top of the existing stats/next-session spine:
+  - recent match results from the user's primary club
+  - recent club highlights from that club feed
 - Club detail pages now separate commitments from content more aggressively.
   - `Schedule` is the chronological commitment surface for club activities and pending invites
   - `Updates` is filtered down to posts, events, and achievements instead of acting as a second schedule or invite inbox
@@ -156,8 +159,7 @@ Still transitional:
 
 ## Highest-Value Priorities
 
-1. Add the football-first repeat-use home layer.
-2. Keep docs thin and update them when runtime truth changes.
+1. Keep docs thin and update them when runtime truth changes.
 
 ## Canonical Docs
 

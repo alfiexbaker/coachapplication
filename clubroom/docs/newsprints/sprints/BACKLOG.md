@@ -20,18 +20,17 @@ Parts of those umbrellas already landed in runtime truth; the remaining work is 
 | AUTHZ-03 | Centralized the remaining privileged-admin and staff-invite authz checks in the API so `/v1` no longer drifts per route.            | Trust/Safety/Ops + Development     | DONE   |
 | COMMERCE-01 | Switched coach-profile offerings and go-live state onto backend-owned `/v1` routes so the core storefront state is no longer local-only. | Booking/Revenue + Community/Growth | DONE   |
 | RELEASE-01 | Removed brittle shell assumptions from the validated UI audit path and hardened the launch-adjacent club dashboard/results read path. | Development + Trust/Safety/Ops | DONE   |
+| HOME-01 | Added compact football-first home modules for primary-club results and club highlights on the existing athlete/parent home surface. | Community/Growth + Development/Analytics | DONE   |
 
 ## Open Queue
 
-| ID         | Exactly what it does                                                                                                                                           | Spine(s)                                 | Status | Source                                                                                             |
-| ---------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------- | ------ | -------------------------------------------------------------------------------------------------- |
-| HOME-01    | Build the football-first home layer with role-aware modules for fixtures/results, upcoming activity, club highlights, and progress highlights once launch-critical surfaces are stable. | Community/Growth + Development/Analytics | OPEN   | `docs/SOURCE_OF_TRUTH.md`, `app/(tabs)/index.tsx`, `app/(tabs)/feed.tsx`                           |
+No active sprint remains from this recut queue.
 
 ## Execution Order
 
-1. `HOME-01`
+Recut from current runtime truth before starting a new sprint.
 
 ## Sprint Intent
 
 - `RELEASE-01`: make launch surfaces stable and make the quality scripts honest.
-- `HOME-01`: add the football-first repeat-use layer after the launch-critical product is solid.
+- Queue complete. Recut from current runtime truth before adding new sprint labels.
