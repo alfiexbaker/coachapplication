@@ -9,7 +9,8 @@ import { useState, useEffect, useCallback } from 'react';
 
 import { router } from 'expo-router';
 
-import { apiClient } from '@/services/api-client';
+import { authService } from '@/services/auth-service';
+import { apiFetch, apiClient } from '@/services/api-client';
 import { followService } from '@/services/follow-service';
 import { onTyped, ServiceEvents } from '@/services/event-bus';
 import { socialFeedService, type AggregatedFeedPost } from '@/services/social-feed-service';
@@ -21,6 +22,25 @@ import { createLogger } from '@/utils/logger';
 import { uiFeedback } from '@/services/ui-feedback';
 
 const logger = createLogger('CoachProfile');
+
+interface ApiCoachOffering {
+  id: string;
+  coachUserId: string;
+  title: string;
+  description?: string;
+  serviceType?: string;
+  capacity?: number;
+  defaultLocation?: string;
+  durationMinutes?: number;
+  priceMinor?: number;
+  active?: boolean;
+  createdAt: string;
+  updatedAt?: string;
+}
+
+interface ApiCoachOfferingsResponse {
+  offerings: ApiCoachOffering[];
+}
 
 export interface NormalizedPost {
   id: string;
@@ -167,6 +187,33 @@ function buildFallbackCoach(currentUser: ReturnType<typeof useAuth>['currentUser
   };
 }
 
+function mapApiCoachOfferingToSessionOffering(
+  offering: ApiCoachOffering,
+  coachId: string,
+  scheduledAt: string,
+): SessionOffering {
+  return {
+    id: offering.id,
+    source: 'direct',
+    sourceEntityId: offering.id,
+    coachId,
+    title: offering.title,
+    description: offering.description,
+    sessionType: offering.serviceType === 'group' ? 'group' : '1on1',
+    maxParticipants: Math.max(1, offering.capacity ?? 1),
+    location: offering.defaultLocation || 'Location confirmed after booking',
+    scheduledAt,
+    isRecurring: false,
+    recurrenceType: 'none',
+    status: offering.active === false ? 'cancelled' : 'active',
+    registrations: [],
+    createdAt: offering.createdAt,
+    updatedAt: offering.updatedAt,
+    duration: offering.durationMinutes ?? 60,
+    price: typeof offering.priceMinor === 'number' ? offering.priceMinor / 100 : undefined,
+  };
+}
+
 export function useCoachProfile(): UseCoachProfileResult {
   const { currentUser, logout } = useAuth();
   const [coach, setCoach] = useState<CoachProfile | null>(null);
@@ -198,6 +245,33 @@ export function useCoachProfile(): UseCoachProfileResult {
   const profileCompletion = getProfileCompletion(resolvedCoach);
   const canGoLive = profileCompletion.percentage >= 80;
 
+  const loadCoachOfferings = useCallback(
+    async (activeCoach: CoachProfile) => {
+      if (apiClient.isMockMode) {
+        const offerings = await apiClient.get<SessionOffering[]>('session_offerings', []);
+        setSessionOfferings(
+          offerings.filter((offering) => offering.coachId === activeCoach.id && offering.status === 'active'),
+        );
+        return;
+      }
+
+      const result = await apiFetch<ApiCoachOfferingsResponse>('/v1/coaches/me/offerings', {
+        method: 'GET',
+      });
+      if (!result.success) {
+        throw new Error(result.error.message);
+      }
+
+      const scheduledAt = activeCoach.nextAvailability || new Date().toISOString();
+      setSessionOfferings(
+        result.data.offerings
+          .filter((offering) => offering.active !== false)
+          .map((offering) => mapApiCoachOfferingToSessionOffering(offering, activeCoach.id, scheduledAt)),
+      );
+    },
+    [],
+  );
+
   // ── Load all profile data ──
   const loadProfileData = useCallback(async () => {
     setProfileError(null);
@@ -222,12 +296,7 @@ export function useCoachProfile(): UseCoachProfileResult {
           setIsFollowing(following);
           setFollowerCount(count);
         })(),
-        (async () => {
-          const offerings = await apiClient.get<SessionOffering[]>('session_offerings', []);
-          setSessionOfferings(
-            offerings.filter((o) => o.coachId === activeCoach.id && o.status === 'active'),
-          );
-        })(),
+        loadCoachOfferings(activeCoach),
       ]);
       const failures = results.filter((r) => r.status === 'rejected');
       if (failures.length > 0) {
@@ -239,7 +308,11 @@ export function useCoachProfile(): UseCoachProfileResult {
     } finally {
       setProfileLoading(false);
     }
-  }, [currentUser]);
+  }, [currentUser, loadCoachOfferings]);
+
+  useEffect(() => {
+    setIsLive(currentUser?.isLive ?? false);
+  }, [currentUser?.isLive]);
 
   useEffect(() => {
     loadProfileData();
@@ -310,10 +383,15 @@ export function useCoachProfile(): UseCoachProfileResult {
       }
       setLiveLoading(true);
       try {
-        await new Promise((resolve) => setTimeout(resolve, 500));
-        setIsLive(value);
+        const result = await authService.updateProfile({ isLive: value });
+        if (!result.success) {
+          throw new Error(result.error.message);
+        }
+        setIsLive(result.data.user.isLive ?? value);
         if (value) {
           uiFeedback.showToast('Athletes can now discover and book sessions with you.', 'success');
+        } else {
+          uiFeedback.showToast('Your profile is now offline.', 'success');
         }
       } catch (error) {
         logger.error('Failed to update live status:', error);
@@ -333,11 +411,8 @@ export function useCoachProfile(): UseCoachProfileResult {
 
   // ── Refresh offerings ──
   const refreshOfferings = useCallback(async () => {
-    const offerings = await apiClient.get<SessionOffering[]>('session_offerings', []);
-    setSessionOfferings(
-      offerings.filter((o) => o.coachId === resolvedCoach.id && o.status === 'active'),
-    );
-  }, [resolvedCoach.id]);
+    await loadCoachOfferings(resolvedCoach);
+  }, [loadCoachOfferings, resolvedCoach]);
 
   // ── Navigation handlers ──
   const handleComposePress = useCallback(() => {

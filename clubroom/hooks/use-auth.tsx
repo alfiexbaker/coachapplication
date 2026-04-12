@@ -22,6 +22,7 @@ import { STORAGE_KEYS } from '@/constants/storage-keys';
 import { generateId } from '@/utils/generate-id';
 import { createLogger } from '@/utils/logger';
 import { api as apiConfig } from '@/constants/config';
+import { onTyped, ServiceEvents } from '@/services/event-bus';
 
 const logger = createLogger('useAuth');
 
@@ -836,6 +837,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       mounted = false;
     };
   }, [registeredUsers]);
+
+  useEffect(() => {
+    return onTyped(ServiceEvents.USER_PROFILE_CHANGED, ({ userId, changes }) => {
+      setCurrentUser((existing) => {
+        if (!existing || existing.id !== userId) {
+          return existing;
+        }
+
+        return {
+          ...existing,
+          ...(changes as Partial<DemoUser>),
+        };
+      });
+    });
+  }, []);
 
   const login = useCallback(
     async (username: string, password: string) => {

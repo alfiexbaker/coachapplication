@@ -60,6 +60,7 @@ Clubs manage staff, squads, visibility, and operating relationships.
   - `/v1/auth/login`, `/v1/auth/register`, `/v1/auth/refresh`, `/v1/auth/logout`, `/v1/auth/revoke`, `/v1/auth/me`, and `/v1/me/sessions*` now run on the JWT/session runtime
   - family medical, safeguarding incident creation, direct booking creation, booking cancel/reopen, and group-session registration now use `/v1` in non-mock mode
   - shared backend authz now decides the remaining privileged-admin/staff-link checks for `/v1/clubs*`, `/v1/families/:familyId`, `/v1/invoices*`, `/v1/access-grants`, `/v1/admin/retention-runs`, and the invite/group-session booking routes instead of route-local role drift
+  - coach profile in non-mock mode now reads its own offerings from `/v1/coaches/me/offerings` and writes go-live state through `PATCH /v1/auth/me` instead of local-only toggles
   - child medical, emergency contacts, and consent records now live behind `/v1/athletes/*`; `services/child-service.ts` no longer persists those fields locally and the edit-child-profile flow routes parents into the protected child health screens instead
   - delegated booking create no longer falls back to local-only persistence in non-mock mode; `/v1/bookings` now decides whether the actor is allowed, and local storage only mirrors successful authoritative writes
   - booking list/detail reads now also use `/v1/bookings` and `/v1/bookings/:bookingId` in non-mock mode, with local storage acting as a mirror instead of the authority
@@ -153,10 +154,9 @@ Still transitional:
 
 ## Highest-Value Priorities
 
-1. Make coach and club offers authoritative and easier to buy.
-2. Harden launch surfaces and make repo-critical quality scripts honest when local tooling is missing.
-3. Add the football-first repeat-use home layer.
-4. Keep docs thin and update them when runtime truth changes.
+1. Harden launch surfaces and make repo-critical quality scripts honest when local tooling is missing.
+2. Add the football-first repeat-use home layer.
+3. Keep docs thin and update them when runtime truth changes.
 
 ## Canonical Docs
 

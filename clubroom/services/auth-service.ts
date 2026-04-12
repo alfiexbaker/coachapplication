@@ -578,6 +578,10 @@ export const authService = {
       const { password, ...userWithoutPassword } = updatedUser;
       await apiClient.set(STORAGE_KEYS.AUTH_USER, userWithoutPassword);
       currentUser = userWithoutPassword;
+      emitTyped(ServiceEvents.USER_PROFILE_CHANGED, {
+        userId: currentUser.id,
+        changes: updates,
+      });
       logger.info('Profile updated', { userId: currentUser.id });
       return ok({ user: userWithoutPassword });
     }
@@ -595,6 +599,10 @@ export const authService = {
 
     await apiClient.set(STORAGE_KEYS.AUTH_USER, result.data.user);
     currentUser = result.data.user;
+    emitTyped(ServiceEvents.USER_PROFILE_CHANGED, {
+      userId: currentUser.id,
+      changes: updates,
+    });
     return ok({ user: result.data.user });
   },
 
