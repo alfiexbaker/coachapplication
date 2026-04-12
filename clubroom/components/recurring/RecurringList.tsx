@@ -25,7 +25,6 @@ interface RecurringListProps {
   onPause?: (id: string, reason?: string) => Promise<void>;
   onResume?: (id: string) => Promise<void>;
   onCancel?: (id: string, reason?: string) => Promise<void>;
-  onCardPress?: (recurring: RecurringBooking) => void;
   onCreatePress?: () => void;
   emptyTitle?: string;
   emptyMessage?: string;
@@ -40,7 +39,6 @@ export function RecurringList({
   onPause,
   onResume,
   onCancel,
-  onCardPress,
   onCreatePress,
   emptyTitle = 'No Recurring Bookings',
   emptyMessage = "You don't have any recurring bookings yet. Subscribe to a weekly or monthly session slot to get started.",
@@ -86,11 +84,10 @@ export function RecurringList({
         onPause={onPause}
         onResume={onResume}
         onCancel={onCancel}
-        onPress={onCardPress}
         loading={loading}
       />
     ),
-    [onPause, onResume, onCancel, onCardPress, loading],
+    [onPause, onResume, onCancel, loading],
   );
 
   const renderEmpty = useCallback(() => {

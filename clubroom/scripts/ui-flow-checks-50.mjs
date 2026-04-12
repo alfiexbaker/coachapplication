@@ -157,7 +157,7 @@ const flows = [
     role: 'coach',
     title: 'Coach opens management hub',
     path: '/manage',
-    expectPath: '/manage',
+    expectPath: '/club/club_lions/dashboard',
   },
   {
     id: 'coach_manage_bookings',

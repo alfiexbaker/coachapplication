@@ -28,7 +28,6 @@ interface RecurringCardProps {
   onPause?: (id: string, reason?: string) => Promise<void>;
   onResume?: (id: string) => Promise<void>;
   onCancel?: (id: string, reason?: string) => Promise<void>;
-  onPress?: (recurring: RecurringBooking) => void;
   loading?: boolean;
 }
 
@@ -37,7 +36,6 @@ export const RecurringCard = memo(function RecurringCard({
   onPause,
   onResume,
   onCancel,
-  onPress,
   loading = false,
 }: RecurringCardProps) {
   const { colors: palette } = useTheme();
@@ -92,8 +90,6 @@ export const RecurringCard = memo(function RecurringCard({
     })();
   }, [onResume, recurring, coachName]);
 
-  const handleCardPress = useCallback(() => onPress?.(recurring), [onPress, recurring]);
-
   const startDateLabel = new Date(recurring.startDate).toLocaleDateString(undefined, {
     month: 'short',
     day: 'numeric',
@@ -105,7 +101,6 @@ export const RecurringCard = memo(function RecurringCard({
     <>
       <SurfaceCard
         style={styles.card}
-        onPress={handleCardPress}
         loading={loading || actionLoading}
         outlineGradient={
           recurring.status === 'ACTIVE' ? [statusColor, withAlpha(statusColor, 0.4)] : undefined

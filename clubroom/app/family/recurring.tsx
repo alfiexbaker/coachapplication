@@ -29,7 +29,6 @@ export default function FamilyRecurringScreen() {
     handlePause,
     handleResume,
     handleCancel,
-    handleCardPress,
     handleCreatePlan,
   } = useFamilyRecurring();
 
@@ -139,12 +138,6 @@ export default function FamilyRecurringScreen() {
           onPause={handlePause}
           onResume={handleResume}
           onCancel={handleCancel}
-          onCardPress={(recurring) => {
-            const plan = plans.find((entry) => entry.recurring.id === recurring.id);
-            if (plan) {
-              handleCardPress(plan);
-            }
-          }}
           onCreatePress={handleCreatePlan}
           emptyTitle="No recurring plans"
           emptyMessage="Start a recurring plan when you want the same session on the calendar every week."

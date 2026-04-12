@@ -79,11 +79,6 @@ export function useFamilyRecurring() {
     [runAndRefresh],
   );
 
-  const handleCardPress = useCallback((plan: FamilyRecurringPlanSummary) => {
-    if (!plan.nextBookingId) return;
-    router.push(Routes.booking(plan.nextBookingId, { returnTo: Routes.FAMILY_RECURRING as string }));
-  }, []);
-
   const handleCreatePlan = useCallback(() => {
     router.push(Routes.BOOKINGS_SUBSCRIBE);
   }, []);
@@ -99,7 +94,6 @@ export function useFamilyRecurring() {
     handlePause,
     handleResume,
     handleCancel,
-    handleCardPress,
     handleCreatePlan,
   };
 }

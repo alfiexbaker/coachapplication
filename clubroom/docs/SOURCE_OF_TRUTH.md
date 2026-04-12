@@ -26,7 +26,7 @@ Verified during `OBS-01` completion on 2026-04-12:
 - `npm --prefix apps/api run test` -> PASS (`41/41`)
 - `npm run export:web` -> PASS
 - `npm run ui:flows:preflight` -> PASS
-- `npm run ui:flows:run` -> PASS on fail threshold (`85/85` flows `ok`, `0` high, `4` medium)
+- `npm run ui:flows:run` -> PASS (`85/85` flows `ok`, `0` high, `0` medium)
 - UI audit scripts that depend on local tool availability -> NOT RUN
 
 ## Product In One Paragraph
@@ -147,7 +147,7 @@ Still transitional:
 
 - authoritative backend ownership for broader trust/ops data and the still-removed historical invite counter/change negotiation model
 - `ClubActivity` is currently a read model, not a backend-owned entity
-- some web surfaces still emit medium-severity UI warnings in the full flow suite
+- the full web UI flow suite is currently clean on the checked role coverage
 - some local audit scripts that depend on missing shell tooling
 
 ## Highest-Value Priorities

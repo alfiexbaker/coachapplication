@@ -18,14 +18,14 @@ Date: 2026-04-12
 - `npm --prefix apps/api run test` -> PASS (`41/41`)
 - `npm run export:web` -> PASS
 - `npm run ui:flows:preflight` -> PASS
-- `npm run ui:flows:run` -> PASS on fail threshold (`85/85` ok, `0` high, `4` medium)
+- `npm run ui:flows:run` -> PASS (`85/85` ok, `0` high, `0` medium)
 
 ## Current State
 
 - `AUTH-02`, `TRUST-01`, `BOOK-01`, and `OBS-01` are complete in code.
 - Expo native/web and `apps/api` now share release-aware Sentry instrumentation and repo-native sourcemap paths.
 - The old Expo web `react-native-worklets` crash is no longer blocking validation.
-- Full UI flow coverage now runs again; the current residual findings are medium-only and live in existing UI surfaces, not in the observability seam.
+- Full UI flow coverage now runs cleanly with no high- or medium-severity findings in the checked suite.
 
 ## Next Exact Action
 
