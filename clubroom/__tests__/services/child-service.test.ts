@@ -217,26 +217,6 @@ describe('childService', () => {
   });
 
   // ---------------------------------------------------------------------------
-  // getChildByName
-  // ---------------------------------------------------------------------------
-  describe('getChildByName', () => {
-    test('finds child by first and last name', async () => {
-      const fn = `Unique_${rid()}`;
-      const ln = `Name_${rid()}`;
-      await childService.createChild(`p_${rid()}`, makeChildInput({ firstName: fn, lastName: ln }));
-
-      const found = await childService.getChildByName(fn, ln);
-      assert.ok(found);
-      assert.equal(found!.firstName, fn);
-    });
-
-    test('returns null for unknown name', async () => {
-      const result = await childService.getChildByName('Nobody', 'Exists');
-      assert.equal(result, null);
-    });
-  });
-
-  // ---------------------------------------------------------------------------
   // getCoachSummary
   // ---------------------------------------------------------------------------
   describe('getCoachSummary', () => {

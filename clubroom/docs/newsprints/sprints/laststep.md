@@ -4,23 +4,25 @@ Date: 2026-04-12
 
 ## What Was Just Done
 
-1. Finished `SCHEDULE-API-01` by adding `GET /v1/clubs/:clubId/schedule` in the API and projecting club events plus group sessions into the club-facing activity list.
-2. Switched non-mock `services/club-schedule-service.ts` to read club schedules from the new `/v1` route instead of assembling them directly in the app.
-3. Added route coverage for member access, non-member denial, and privileged-admin access.
-4. Synced the canonical runtime and API docs so the route is no longer described as only planned.
+1. Finished `FAMILY-API-01` by adding scaffolded `GET/POST/PATCH/DELETE /v1/athletes*` support and extending `GET /v1/families/:familyId` so non-mock child profile CRUD runs through the `/v1` family seam.
+2. Switched non-mock `services/child-service.ts` off dead `/api/children*` paths and onto `/v1/families/:familyId` plus `/v1/athletes*`, including the live child-delete flow and coach-readable athlete detail lookup.
+3. Switched non-mock `services/family/family-member-service.ts` to derive family members, calendar, spending, and overview from authoritative child plus booking reads instead of local family storage.
+4. Added route coverage for create, update, delete, outsider denial, and route-state reset so the family seam is testable without cross-test drift.
+5. Synced the canonical runtime, service-ownership, route-inventory, and sprint backlog docs.
 
 ## Verification Run In This Step
 
 - `npm --prefix apps/api run typecheck` -> PASS
-- `npm --prefix apps/api run test` -> PASS (`46/46`)
+- `npm --prefix apps/api run test` -> PASS (`50/50`)
+- `npm run typecheck` -> PASS
 
 ## Current State
 
-- `SCHEDULE-API-01` is complete in code.
-- Dedicated club schedule list reads are now backend-authoritative in non-mock mode.
-- Club activity detail authority is still not backend-owned.
-- The next queue is now recut around the remaining authority gaps instead of old umbrella sprint labels.
+- `FAMILY-API-01` is complete in code.
+- Non-mock family account and child profile authority now use `/v1/families/:familyId` and `/v1/athletes*` instead of local-only family storage or dead `/api/children*` paths.
+- Child health authority remains on the existing `/v1/athletes/*` trust routes.
+- The next remaining runtime authority gap is coach self-serve ops.
 
 ## Next Exact Action
 
-1. Start `FAMILY-API-01`: move family member/account authority onto `/v1/families/:familyId`, `/v1/athletes`, and `/v1/athletes/:athleteId`.
+1. Start `COACH-OPS-01`: move coach self-serve profile, availability, and scheduling rules onto `/v1/coaches/me/*`.

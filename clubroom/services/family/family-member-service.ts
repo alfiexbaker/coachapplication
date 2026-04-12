@@ -23,6 +23,10 @@ import {
   type ChildProgressSummary,
 } from '@/constants/types';
 import { normalizeLegacyMockDates } from '@/utils/mock-date-normalizer';
+import { childService, type ChildProfile } from '@/services/child-service';
+import { bookingService } from '@/services/booking';
+import type { Booking } from '@/constants/app-types';
+import { mapChildProfileToFamilyMember } from './family-api-support';
 
 const logger = createLogger('FamilyMemberService');
 const USE_MOCK = api.useMock;
@@ -223,11 +227,89 @@ const MOCK_FAMILY_BOOKINGS: FamilyCalendarEvent[] = normalizeLegacyMockDates([
   },
 ]);
 
+function mapBookingStatusToFamilyStatus(status: Booking['status']): FamilyCalendarEvent['status'] {
+  if (status === 'COMPLETED') return 'COMPLETED';
+  if (status === 'CANCELLED') return 'CANCELLED';
+  if (status === 'CONFIRMED' || status === 'AWAITING_COMPLETION') return 'CONFIRMED';
+  return 'PENDING';
+}
+
+function buildFamilyCalendarEvents(
+  bookings: Booking[],
+  children: ChildProfile[],
+): FamilyCalendarEvent[] {
+  const childById = new Map(children.map((child) => [child.id, child] as const));
+  const childColorById = new Map(
+    children.map((child, index) => [child.id, CHILD_COLORS[index % CHILD_COLORS.length] ?? CHILD_COLORS[0]] as const),
+  );
+  const events: FamilyCalendarEvent[] = [];
+
+  for (const booking of bookings) {
+    const participantIds = getBookingParticipantIds(booking);
+    for (const childId of participantIds) {
+      if (!childById.has(childId)) {
+        continue;
+      }
+
+      const start = booking.start ?? booking.scheduledAt;
+      const startDate = new Date(start);
+      const durationMinutes = booking.duration ?? 60;
+      const end = booking.start && booking.scheduledAt
+        ? booking.start
+        : new Date(startDate.getTime() + durationMinutes * 60_000).toISOString();
+
+      events.push({
+        id: booking.id,
+        childId,
+        colorCode: childColorById.get(childId) ?? CHILD_COLORS[0],
+        title: booking.service ?? booking.serviceType ?? 'Session',
+        description: booking.notes,
+        start,
+        end,
+        location: booking.location,
+        coachId: booking.coachId,
+        sessionType: booking.serviceType,
+        status: mapBookingStatusToFamilyStatus(booking.status),
+        price: booking.price,
+      });
+    }
+  }
+
+  return events.sort((left, right) => new Date(left.start).getTime() - new Date(right.start).getTime());
+}
+
+function getBookingParticipantIds(booking: Booking): string[] {
+  if (booking.athleteIds?.length) {
+    return booking.athleteIds;
+  }
+  return booking.athleteId ? [booking.athleteId] : [];
+}
+
 // ============================================================================
 // SERVICE CLASS
 // ============================================================================
 
 class FamilyMemberService {
+  private async getAuthoritativeFamilySnapshot(parentId: string): Promise<{
+    children: ChildProfile[];
+    members: FamilyMember[];
+    bookings: FamilyCalendarEvent[];
+  }> {
+    const children = await childService.getChildren(parentId);
+    const members = children.map((child, index) =>
+      mapChildProfileToFamilyMember(child, CHILD_COLORS[index % CHILD_COLORS.length]),
+    );
+    const childIds = new Set(children.map((child) => child.id));
+    const bookings = buildFamilyCalendarEvents(
+      (await bookingService.list()).filter((booking) =>
+        getBookingParticipantIds(booking).some((id) => childIds.has(id)),
+      ),
+      children,
+    );
+
+    return { children, members, bookings };
+  }
+
   // ==========================================================================
   // STORAGE HELPERS
   // ==========================================================================
@@ -236,7 +318,7 @@ class FamilyMemberService {
     if (USE_MOCK) {
       return apiClient.get<FamilyMember[]>(STORAGE_KEYS.FAMILY_MEMBERS, MOCK_FAMILY_MEMBERS);
     }
-    return apiClient.get<FamilyMember[]>(STORAGE_KEYS.FAMILY_MEMBERS, []);
+    return [];
   }
 
   private async saveMembers(members: FamilyMember[]): Promise<void> {
@@ -250,7 +332,7 @@ class FamilyMemberService {
         MOCK_FAMILY_BOOKINGS,
       );
     }
-    return apiClient.get<FamilyCalendarEvent[]>(STORAGE_KEYS.FAMILY_BOOKINGS, []);
+    return [];
   }
 
   private async saveBookings(bookings: FamilyCalendarEvent[]): Promise<void> {
@@ -266,6 +348,15 @@ class FamilyMemberService {
    */
   async getFamilyMembers(parentId: string): Promise<FamilyMember[]> {
     try {
+      if (!USE_MOCK) {
+        const children = await childService.getChildren(parentId);
+        const members = children.map((child, index) =>
+          mapChildProfileToFamilyMember(child, CHILD_COLORS[index % CHILD_COLORS.length]),
+        );
+        logger.info('family_members_retrieved', { parentId, count: members.length, source: 'api' });
+        return members;
+      }
+
       const members = await this.loadMembers();
       logger.info('family_members_retrieved', { parentId, count: members.length });
       return members;
@@ -279,6 +370,11 @@ class FamilyMemberService {
    * Get a single family member by ID.
    */
   async getFamilyMember(childId: string): Promise<FamilyMember | null> {
+    if (!USE_MOCK) {
+      const child = await childService.getChild(childId);
+      return child ? mapChildProfileToFamilyMember(child, CHILD_COLORS[0]) : null;
+    }
+
     const members = await this.loadMembers();
     return members.find((m) => m.id === childId) || null;
   }
@@ -288,6 +384,14 @@ class FamilyMemberService {
    */
   async getById(childId: string): Promise<Result<FamilyMember, ServiceError>> {
     try {
+      if (!USE_MOCK) {
+        const member = await this.getFamilyMember(childId);
+        if (!member) {
+          return err(notFound('FamilyMember', childId));
+        }
+        return ok(member);
+      }
+
       const members = await this.loadMembers();
       const member = members.find((m) => m.id === childId);
       if (!member) {
@@ -307,6 +411,20 @@ class FamilyMemberService {
     parentId: string,
     member: Omit<FamilyMember, 'id' | 'colorCode' | 'addedAt' | 'isActive'>,
   ): Promise<FamilyMember> {
+    if (!USE_MOCK) {
+      const child = await childService.createChild(parentId, {
+        firstName: member.name.trim().split(/\s+/)[0] || member.name,
+        lastName: member.name.trim().split(/\s+/).slice(1).join(' ') || member.name,
+        dateOfBirth: member.dateOfBirth,
+        gender: 'PREFER_NOT_TO_SAY',
+        relationship: member.relationship.toUpperCase() as 'SON' | 'DAUGHTER' | 'WARD' | 'OTHER',
+        emergencyContactName: '',
+        emergencyContactPhone: '',
+        emergencyContactRelation: '',
+      });
+      return mapChildProfileToFamilyMember(child, CHILD_COLORS[0]);
+    }
+
     const members = await this.loadMembers();
     const colorIndex = members.length % CHILD_COLORS.length;
 
@@ -353,6 +471,27 @@ class FamilyMemberService {
     childId: string,
     updates: Partial<FamilyMember>,
   ): Promise<FamilyMember | null> {
+    if (!USE_MOCK) {
+      const current = await childService.getChild(childId);
+      if (!current) {
+        return null;
+      }
+
+      const [firstName, ...rest] = (updates.name ?? `${current.firstName} ${current.lastName}`).trim().split(/\s+/);
+      const result = await childService.updateChild(childId, {
+        firstName: firstName || current.firstName,
+        lastName: rest.join(' ') || current.lastName,
+        dateOfBirth: updates.dateOfBirth ?? current.dateOfBirth,
+        relationship: (updates.relationship?.toUpperCase() as 'SON' | 'DAUGHTER' | 'WARD' | 'OTHER' | undefined)
+          ?? current.relationship,
+        photoUrl: updates.avatar ?? current.photoUrl,
+      });
+      if (!result.success) {
+        return null;
+      }
+      return mapChildProfileToFamilyMember(result.data, CHILD_COLORS[0]);
+    }
+
     const members = await this.loadMembers();
     const index = members.findIndex((m) => m.id === childId);
 
@@ -390,6 +529,17 @@ class FamilyMemberService {
    * Remove a family member (soft delete).
    */
   async remove(childId: string): Promise<boolean> {
+    if (!USE_MOCK) {
+      const child = await childService.getChild(childId);
+      if (!child) {
+        return false;
+      }
+
+      await childService.deleteChild(childId);
+      logger.info('family_member_removed', { childId });
+      return true;
+    }
+
     const members = await this.loadMembers();
     const index = members.findIndex((m) => m.id === childId);
 
@@ -422,6 +572,13 @@ class FamilyMemberService {
    */
   async getFamilyBookings(parentId: string): Promise<FamilyCalendarEvent[]> {
     try {
+      if (!USE_MOCK) {
+        const { bookings } = await this.getAuthoritativeFamilySnapshot(parentId);
+        const familyBookings = bookings.sort((a, b) => new Date(b.start).getTime() - new Date(a.start).getTime());
+        logger.info('family_bookings_retrieved', { parentId, count: familyBookings.length, source: 'api' });
+        return familyBookings;
+      }
+
       const bookings = await this.loadBookings();
       const sortedBookings = bookings.sort(
         (a, b) => new Date(b.start).getTime() - new Date(a.start).getTime(),
@@ -438,6 +595,20 @@ class FamilyMemberService {
    * Get bookings for a specific child.
    */
   async getChildBookings(childId: string): Promise<FamilyCalendarEvent[]> {
+    if (!USE_MOCK) {
+      const child = await childService.getChild(childId);
+      if (!child) {
+        return [];
+      }
+      const bookings = await bookingService.list();
+      return buildFamilyCalendarEvents(
+        bookings.filter((booking) =>
+          (booking.athleteIds ?? (booking.athleteId ? [booking.athleteId] : [])).includes(childId),
+        ),
+        [child],
+      ).sort((a, b) => new Date(b.start).getTime() - new Date(a.start).getTime());
+    }
+
     const bookings = await this.loadBookings();
     return bookings
       .filter((b) => b.childId === childId)
@@ -456,7 +627,9 @@ class FamilyMemberService {
     dateRange: FamilyDateRange,
   ): Promise<FamilyCalendarEvent[]> {
     try {
-      const bookings = await this.loadBookings();
+      const bookings = USE_MOCK
+        ? await this.loadBookings()
+        : (await this.getAuthoritativeFamilySnapshot(parentId)).bookings;
       const startDate = new Date(dateRange.startDate).getTime();
       const endDate = new Date(dateRange.endDate).getTime();
 
@@ -487,7 +660,9 @@ class FamilyMemberService {
    */
   async getUpcomingForFamily(parentId: string, limit: number = 10): Promise<FamilyCalendarEvent[]> {
     try {
-      const bookings = await this.loadBookings();
+      const bookings = USE_MOCK
+        ? await this.loadBookings()
+        : (await this.getAuthoritativeFamilySnapshot(parentId)).bookings;
       const now = new Date().getTime();
 
       const upcomingBookings = bookings
@@ -542,8 +717,9 @@ class FamilyMemberService {
    */
   async getFamilySpending(parentId: string): Promise<FamilySpending[]> {
     try {
-      const members = await this.loadMembers();
-      const bookings = await this.loadBookings();
+      const { members, bookings } = USE_MOCK
+        ? { members: await this.loadMembers(), bookings: await this.loadBookings() }
+        : await this.getAuthoritativeFamilySnapshot(parentId);
 
       const spendingByChild: FamilySpending[] = members.map((member) => {
         const childBookings = bookings.filter(
@@ -737,8 +913,9 @@ class FamilyMemberService {
    */
   async getFamilyOverview(parentId: string): Promise<FamilyOverview> {
     try {
-      const members = await this.getFamilyMembers(parentId);
-      const bookings = await this.loadBookings();
+      const { members, bookings } = USE_MOCK
+        ? { members: await this.getFamilyMembers(parentId), bookings: await this.loadBookings() }
+        : await this.getAuthoritativeFamilySnapshot(parentId);
       const now = new Date();
 
       // Calculate upcoming sessions

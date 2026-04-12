@@ -9,6 +9,7 @@
  */
 
 import { apiClient } from './api-client';
+import { apiFetch } from './api-client';
 import { safetyService } from './safety-service';
 import { api } from '@/constants/config';
 import { createLogger } from '@/utils/logger';
@@ -25,12 +26,21 @@ import type {
   MedicalInfo,
 } from '@/constants/types';
 import { accountIdsMatch } from '@/utils/account-id';
+import {
+  mapApiFamilyAthleteToChildProfile,
+  resolveFamilyAuthorityContext,
+  type ApiFamilyAthlete,
+} from '@/services/family/family-api-support';
 
 import { STORAGE_KEYS } from '@/constants/storage-keys';
 
 const logger = createLogger('ChildService');
 
 const USE_MOCK = api.useMock;
+
+interface ApiFamilyResponse {
+  athletes: ApiFamilyAthlete[];
+}
 
 // ============================================================================
 // TYPE DEFINITIONS
@@ -724,6 +734,23 @@ function calculateAge(dateOfBirth?: string): number | null {
   return age;
 }
 
+function toApiAthletePayload(input: Partial<CreateChildInput>): Record<string, unknown> {
+  return {
+    ...(input.firstName !== undefined ? { firstName: input.firstName } : {}),
+    ...(input.lastName !== undefined ? { lastName: input.lastName } : {}),
+    ...(input.nickname !== undefined ? { nickname: input.nickname } : {}),
+    ...(input.dateOfBirth !== undefined ? { dateOfBirth: input.dateOfBirth } : {}),
+    ...(input.gender !== undefined ? { gender: input.gender } : {}),
+    ...(input.relationship !== undefined ? { relationship: input.relationship } : {}),
+    ...(input.primaryPosition !== undefined ? { primaryPosition: input.primaryPosition } : {}),
+    ...(input.photoUrl !== undefined ? { photoUrl: input.photoUrl } : {}),
+    ...(input.disabilities !== undefined ? { disabilities: input.disabilities } : {}),
+    ...(input.specialNeeds !== undefined ? { specialNeeds: input.specialNeeds } : {}),
+    ...(input.communicationNotes !== undefined ? { communicationNotes: input.communicationNotes } : {}),
+    ...(input.behavioralNotes !== undefined ? { behavioralNotes: input.behavioralNotes } : {}),
+  };
+}
+
 // ============================================================================
 // SERVICE METHODS
 // ============================================================================
@@ -739,8 +766,23 @@ export const childService = {
       return Promise.all(matchingChildren.map((child) => hydrateChildTrustData(child)));
     }
 
-    const response = await fetch(`/api/children?parentId=${parentId}`);
-    const children = (await response.json()) as ChildProfile[];
+    const contextResult = await resolveFamilyAuthorityContext('Sign in to view child profiles.');
+    if (!contextResult.success) {
+      logger.error('Failed to resolve family authority context', { parentId, error: contextResult.error.message });
+      return [];
+    }
+
+    const familyResult = await apiFetch<ApiFamilyResponse>(`/v1/families/${contextResult.data.familyId}`, {
+      method: 'GET',
+    });
+    if (!familyResult.success) {
+      logger.error('Failed to load children via API', { parentId, error: familyResult.error.message });
+      return [];
+    }
+
+    const children = familyResult.data.athletes.map((athlete) =>
+      mapApiFamilyAthleteToChildProfile(athlete, contextResult.data.parentId),
+    );
     return Promise.all(children.map((child) => hydrateChildTrustData(child)));
   },
 
@@ -754,9 +796,20 @@ export const childService = {
       return child ? hydrateChildTrustData(child) : null;
     }
 
-    const response = await fetch(`/api/children/${childId}`);
-    const child = (await response.json()) as ChildProfile | null;
-    return child ? hydrateChildTrustData(child) : null;
+    const athleteResult = await apiFetch<ApiFamilyAthlete>(`/v1/athletes/${childId}`, {
+      method: 'GET',
+    });
+    if (!athleteResult.success) {
+      logger.error('Failed to load child via athlete detail route', {
+        childId,
+        error: athleteResult.error.message,
+      });
+      return null;
+    }
+
+    return hydrateChildTrustData(
+      mapApiFamilyAthleteToChildProfile(athleteResult.data, athleteResult.data.parentId ?? ''),
+    );
   },
 
   /**
@@ -786,12 +839,12 @@ export const childService = {
       updatedAt: now,
     };
 
-    const trustResult = await syncTrustSensitiveChildData(newChild.id, input);
-    if (trustResult && !trustResult.success) {
-      throw new Error(trustResult.error.message);
-    }
-
     if (USE_MOCK) {
+      const trustResult = await syncTrustSensitiveChildData(newChild.id, input);
+      if (trustResult && !trustResult.success) {
+        throw new Error(trustResult.error.message);
+      }
+
       childrenCache = await loadFromStorage();
       childrenCache.push(newChild);
       await saveToStorage(childrenCache);
@@ -804,26 +857,33 @@ export const childService = {
       return hydrateChildTrustData(newChild);
     }
 
-    const response = await fetch('/api/children', {
+    const contextResult = await resolveFamilyAuthorityContext('Sign in to add a child profile.');
+    if (!contextResult.success) {
+      throw new Error(contextResult.error.message);
+    }
+
+    const createResult = await apiFetch<ApiFamilyAthlete>('/v1/athletes', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        parentId,
-        firstName: input.firstName,
-        lastName: input.lastName,
-        nickname: input.nickname,
-        dateOfBirth: input.dateOfBirth,
-        gender: input.gender,
-        relationship: input.relationship,
-        primaryPosition: input.primaryPosition,
-        photoUrl: input.photoUrl,
-        disabilities: input.disabilities,
-        specialNeeds: input.specialNeeds,
-        communicationNotes: input.communicationNotes,
-        behavioralNotes: input.behavioralNotes,
+        familyId: contextResult.data.familyId,
+        ...toApiAthletePayload(input),
       }),
     });
-    const child = (await response.json()) as ChildProfile;
+    if (!createResult.success) {
+      throw new Error(createResult.error.message);
+    }
+
+    const trustResult = await syncTrustSensitiveChildData(createResult.data.id, input);
+    if (trustResult && !trustResult.success) {
+      throw new Error(trustResult.error.message);
+    }
+
+    const child = mapApiFamilyAthleteToChildProfile(createResult.data, parentId);
+    emitTyped(ServiceEvents.CHILD_PROFILES_UPDATED, {
+      parentId,
+      action: 'created',
+      childId: child.id,
+    });
     return hydrateChildTrustData(child);
   },
 
@@ -891,13 +951,41 @@ export const childService = {
       return ok(await hydrateChildTrustData(childrenCache[index]));
     }
 
-    const response = await fetch(`/api/children/${childId}`, {
+    const existingChild = await this.getChild(childId);
+    if (!existingChild) {
+      return err(notFound('Child', childId));
+    }
+
+    const updateResult = await apiFetch<ApiFamilyAthlete>(`/v1/athletes/${childId}`, {
       method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(profileUpdates),
+      body: JSON.stringify(toApiAthletePayload(profileUpdates)),
     });
-    const child = (await response.json()) as ChildProfile;
-    return ok(await hydrateChildTrustData(child));
+    if (!updateResult.success) {
+      return err(updateResult.error);
+    }
+
+    const trustResult = await syncTrustSensitiveChildData(childId, updates);
+    if (trustResult && !trustResult.success) {
+      return err(trustResult.error);
+    }
+
+    emitTyped(ServiceEvents.CHILD_PROFILES_UPDATED, {
+      parentId: existingChild.parentId,
+      action: 'updated',
+      childId,
+    });
+    emitTyped(ServiceEvents.CHILD_PROFILE_UPDATED, {
+      childId,
+      parentId: existingChild.parentId,
+      updatedFields: Object.keys(profileUpdates),
+      timestamp: new Date().toISOString(),
+    });
+
+    return ok(
+      await hydrateChildTrustData(
+        mapApiFamilyAthleteToChildProfile(updateResult.data, existingChild.parentId),
+      ),
+    );
   },
 
   /**
@@ -921,8 +1009,23 @@ export const childService = {
       return;
     }
 
-    await fetch(`/api/children/${childId}`, {
+    const existingChild = await this.getChild(childId);
+    if (!existingChild) {
+      return;
+    }
+
+    const deleteResult = await apiFetch<void>(`/v1/athletes/${childId}`, {
       method: 'DELETE',
+    });
+    if (!deleteResult.success) {
+      throw new Error(deleteResult.error.message);
+    }
+
+    await removeChildTrustData(childId);
+    emitTyped(ServiceEvents.CHILD_PROFILES_UPDATED, {
+      parentId: existingChild.parentId,
+      action: 'deleted',
+      childId,
     });
   },
 
@@ -1097,30 +1200,6 @@ export const childService = {
   async getChildrenWithSpecialNeeds(parentId: string): Promise<ChildProfile[]> {
     const children = await this.getChildren(parentId);
     return children.filter((c) => c.hasSpecialNeeds);
-  },
-
-  /**
-   * Find a child by name (for coach athlete lookup)
-   * This allows coaches to see special needs info for athletes
-   */
-  async getChildByName(firstName: string, lastName: string): Promise<ChildProfile | null> {
-    if (USE_MOCK) {
-      childrenCache = await loadFromStorage();
-      const child =
-        childrenCache.find(
-          (c) =>
-            c.firstName.toLowerCase() === firstName.toLowerCase() &&
-            c.lastName.toLowerCase() === lastName.toLowerCase(),
-        ) || null;
-      return child ? hydrateChildTrustData(child) : null;
-    }
-
-    const response = await fetch(
-      `/api/children/by-name?firstName=${encodeURIComponent(firstName)}&lastName=${encodeURIComponent(lastName)}`,
-    );
-    if (!response.ok) return null;
-    const child = (await response.json()) as ChildProfile | null;
-    return child ? hydrateChildTrustData(child) : null;
   },
 
   /**

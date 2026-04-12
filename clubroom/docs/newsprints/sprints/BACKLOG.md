@@ -21,26 +21,24 @@ Parts of those umbrellas already landed in runtime truth; the remaining work is 
 | COMMERCE-01 | Switched coach-profile offerings and go-live state onto backend-owned `/v1` routes so the core storefront state is no longer local-only. | Booking/Revenue + Community/Growth | DONE   |
 | RELEASE-01 | Removed brittle shell assumptions from the validated UI audit path and hardened the launch-adjacent club dashboard/results read path. | Development + Trust/Safety/Ops | DONE   |
 | HOME-01 | Added compact football-first home modules for primary-club results and club highlights on the existing athlete/parent home surface. | Community/Growth + Development/Analytics | DONE   |
+| FAMILY-API-01 | Moved non-mock child profile CRUD and family dashboard/account reads onto `/v1/families/:familyId` and `/v1/athletes*`, replacing the remaining local-only family authority path. | Trust/Safety/Ops + Development | DONE |
 
 ## Open Queue
 
 | ID | Exactly what it does | Spine(s) | Status |
 | --- | --- | --- | --- |
-| FAMILY-API-01 | Moves family member/account authority onto `/v1/families/:familyId`, `/v1/athletes`, and `/v1/athletes/:athleteId`, replacing the remaining local-only child CRUD and family dashboard source in non-mock mode. | Trust/Safety/Ops + Development | NEXT |
-| COACH-OPS-01 | Moves coach self-serve profile, availability, and scheduling rules onto `/v1/coaches/me/*`, replacing the remaining `/api/coaches/*/availability` drift and local-only coach ops persistence. | Booking/Revenue + Development | QUEUED |
+| COACH-OPS-01 | Moves coach self-serve profile, availability, and scheduling rules onto `/v1/coaches/me/*`, replacing the remaining `/api/coaches/*/availability` drift and local-only coach ops persistence. | Booking/Revenue + Development | NEXT |
 | REVENUE-API-01 | Makes invoice list/detail/status flows backend-authoritative through `/v1/invoices*` and removes the remaining local-only invoice store fallback. | Booking/Revenue + Trust/Safety/Ops | QUEUED |
 | SCHEDULE-API-02 | Adds backend-owned club activity detail on `/v1/clubs/:clubId/schedule/:activityId` so schedule drill-ins stop depending on app-side source-specific lookup. | Community/Growth + Development | QUEUED |
 
 ## Execution Order
 
-1. `FAMILY-API-01`
-2. `COACH-OPS-01`
-3. `REVENUE-API-01`
-4. `SCHEDULE-API-02`
+1. `COACH-OPS-01`
+2. `REVENUE-API-01`
+3. `SCHEDULE-API-02`
 
 ## Sprint Intent
 
-- `FAMILY-API-01`: close the remaining local-only family member authority gap.
 - `COACH-OPS-01`: close coach runtime drift between app-owned availability/profile state and `/v1`.
 - `REVENUE-API-01`: make invoice and earnings operations authoritative instead of synthetic.
 - `SCHEDULE-API-02`: finish the club schedule authority seam at the item-detail layer.

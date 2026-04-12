@@ -136,10 +136,7 @@ export function useAthleteDevelopment(athleteId: string) {
     if (!athlete) return;
     const loadChildProfile = async () => {
       try {
-        const nameParts = athlete.name.split(' ');
-        const firstName = nameParts[0];
-        const lastName = nameParts.slice(1).join(' ');
-        const profile = await childService.getChildByName(firstName, lastName);
+        const profile = await childService.getChild(athleteId);
         if (profile) {
           setChildProfile(profile);
           logger.debug('Child profile loaded', {

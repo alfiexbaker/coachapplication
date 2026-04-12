@@ -1,12 +1,224 @@
 import assert from 'node:assert/strict';
-import { after, describe, it } from 'node:test';
+import fs from 'node:fs';
+import path from 'node:path';
+import { after, beforeEach, describe, it } from 'node:test';
 import { buildApp } from '../../app.js';
+import { resetMarketplaceSeedStoreForTests } from '../../lib/marketplace-seed-store.js';
+import { resetFamilyAthleteRouteStateForTests } from './routes.js';
+
+type SeedRow = Record<string, unknown>;
+type SeedTables = Record<string, SeedRow[]>;
+
+const asRows = (value: unknown): SeedRow[] => (Array.isArray(value) ? (value as SeedRow[]) : []);
+const asString = (value: unknown): string | undefined => (typeof value === 'string' ? value : undefined);
+
+function resolveDatasetPath(): string {
+  const primary = path.resolve(process.cwd(), 'docs/backend-api/test-data/marketplace/linked-dataset.json');
+  if (fs.existsSync(primary)) {
+    return primary;
+  }
+
+  const fallback = path.resolve(process.cwd(), '../../docs/backend-api/test-data/marketplace/linked-dataset.json');
+  if (fs.existsSync(fallback)) {
+    return fallback;
+  }
+
+  throw new Error('Unable to locate linked marketplace dataset for API tests');
+}
+
+function loadTables(): SeedTables {
+  const raw = fs.readFileSync(resolveDatasetPath(), 'utf8');
+  const parsed = JSON.parse(raw) as { tables: SeedTables };
+  return parsed.tables;
+}
+
+function rolesForUser(tables: SeedTables, userId: string): string[] {
+  return asRows(tables.userRoleMemberships)
+    .filter((row) => asString(row.userId) === userId)
+    .map((row) => asString(row.role))
+    .filter((role): role is string => Boolean(role));
+}
 
 describe('family-athlete routes', () => {
   const app = buildApp();
 
+  beforeEach(() => {
+    resetMarketplaceSeedStoreForTests();
+    resetFamilyAthleteRouteStateForTests();
+  });
+
   after(async () => {
     await app.close();
+  });
+
+  it('creates and updates athletes for an authenticated family member', async () => {
+    const tables = loadTables();
+    const familyMembership = asRows(tables.familyMemberships)[0];
+    assert.ok(familyMembership, 'expected seeded family membership');
+
+    const familyId = asString(familyMembership.familyId) as string;
+    const parentUserId = asString(familyMembership.userId) as string;
+    const headers = {
+      'x-auth-user-id': parentUserId,
+      'x-auth-roles': rolesForUser(tables, parentUserId).join(',') || 'parent',
+      'x-acting-role': rolesForUser(tables, parentUserId)[0] ?? 'parent',
+    };
+
+    const create = await app.inject({
+      method: 'POST',
+      url: '/v1/athletes',
+      headers,
+      payload: {
+        familyId,
+        firstName: 'New',
+        lastName: 'Player',
+        relationship: 'SON',
+        gender: 'MALE',
+        communicationNotes: 'Needs short instructions',
+      },
+    });
+    assert.equal(create.statusCode, 201);
+    const created = create.json() as { athleteId: string; firstName: string; communicationNotes: string | null };
+    assert.match(created.athleteId, /^ath_/);
+    assert.equal(created.firstName, 'New');
+    assert.equal(created.communicationNotes, 'Needs short instructions');
+
+    const update = await app.inject({
+      method: 'PATCH',
+      url: `/v1/athletes/${created.athleteId}`,
+      headers,
+      payload: {
+        nickname: 'NP',
+        behavioralNotes: 'Settles better with early warmups',
+      },
+    });
+    assert.equal(update.statusCode, 200);
+    const updated = update.json() as { athleteId: string; nickname: string | null; behavioralNotes: string | null };
+    assert.equal(updated.athleteId, created.athleteId);
+    assert.equal(updated.nickname, 'NP');
+    assert.equal(updated.behavioralNotes, 'Settles better with early warmups');
+
+    const detail = await app.inject({
+      method: 'GET',
+      url: `/v1/athletes/${created.athleteId}`,
+      headers,
+    });
+    assert.equal(detail.statusCode, 200);
+    const detailPayload = detail.json() as { id: string; nickname: string | null };
+    assert.equal(detailPayload.id, created.athleteId);
+    assert.equal(detailPayload.nickname, 'NP');
+
+    const family = await app.inject({
+      method: 'GET',
+      url: `/v1/families/${familyId}`,
+      headers,
+    });
+    assert.equal(family.statusCode, 200);
+    const familyPayload = family.json() as {
+      athletes: Array<{ id: string; nickname: string | null; behavioralNotes: string | null }>;
+    };
+    const createdAthlete = familyPayload.athletes.find((athlete) => athlete.id === created.athleteId);
+    assert.ok(createdAthlete, 'expected created athlete in family aggregate');
+    assert.equal(createdAthlete?.nickname, 'NP');
+    assert.equal(createdAthlete?.behavioralNotes, 'Settles better with early warmups');
+  });
+
+  it('denies athlete create for users outside the family', async () => {
+    const tables = loadTables();
+    const familyMembership = asRows(tables.familyMemberships)[0];
+    assert.ok(familyMembership, 'expected seeded family membership');
+
+    const familyId = asString(familyMembership.familyId) as string;
+    const outsider = asRows(tables.users).find((row) => {
+      const userId = asString(row.id);
+      if (!userId) {
+        return false;
+      }
+      return !asRows(tables.familyMemberships).some(
+        (membership) => asString(membership.familyId) === familyId && asString(membership.userId) === userId,
+      );
+    });
+    assert.ok(outsider, 'expected outsider');
+
+    const denied = await app.inject({
+      method: 'POST',
+      url: '/v1/athletes',
+      headers: {
+        'x-auth-user-id': asString(outsider.id) as string,
+        'x-auth-roles': rolesForUser(tables, asString(outsider.id) as string).join(',') || 'coach',
+        'x-acting-role': rolesForUser(tables, asString(outsider.id) as string)[0] ?? 'coach',
+      },
+      payload: {
+        familyId,
+        firstName: 'Blocked',
+        lastName: 'User',
+      },
+    });
+    assert.equal(denied.statusCode, 403);
+  });
+
+  it('deletes athletes for an authenticated family member', async () => {
+    const tables = loadTables();
+    const familyMembership = asRows(tables.familyMemberships)[0];
+    assert.ok(familyMembership, 'expected seeded family membership');
+
+    const familyId = asString(familyMembership.familyId) as string;
+    const parentUserId = asString(familyMembership.userId) as string;
+    const headers = {
+      'x-auth-user-id': parentUserId,
+      'x-auth-roles': rolesForUser(tables, parentUserId).join(',') || 'parent',
+      'x-acting-role': rolesForUser(tables, parentUserId)[0] ?? 'parent',
+    };
+
+    const create = await app.inject({
+      method: 'POST',
+      url: '/v1/athletes',
+      headers,
+      payload: {
+        familyId,
+        firstName: 'Delete',
+        lastName: 'Me',
+      },
+    });
+    assert.equal(create.statusCode, 201);
+    const created = create.json() as { athleteId: string };
+
+    const remove = await app.inject({
+      method: 'DELETE',
+      url: `/v1/athletes/${created.athleteId}`,
+      headers,
+    });
+    assert.equal(remove.statusCode, 204);
+
+    const family = await app.inject({
+      method: 'GET',
+      url: `/v1/families/${familyId}`,
+      headers,
+    });
+    assert.equal(family.statusCode, 200);
+    const familyPayload = family.json() as { athletes: Array<{ id: string }> };
+    assert.equal(
+      familyPayload.athletes.some((athlete) => athlete.id === created.athleteId),
+      false,
+    );
+  });
+
+  it('allows a verified assigned coach to read athlete detail', async () => {
+    const detail = await app.inject({
+      method: 'GET',
+      url: '/v1/athletes/ath_user1',
+      headers: {
+        'x-auth-user-id': 'usr_coach1',
+        'x-auth-roles': 'coach',
+        'x-acting-role': 'coach',
+        'x-coach-verified': 'true',
+      },
+    });
+
+    assert.equal(detail.statusCode, 200);
+    const payload = detail.json() as { id: string; firstName: string };
+    assert.equal(payload.id, 'ath_user1');
+    assert.equal(typeof payload.firstName, 'string');
   });
 
   it('creates, lists, and updates injuries', async () => {

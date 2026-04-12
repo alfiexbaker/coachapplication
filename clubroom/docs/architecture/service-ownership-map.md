@@ -36,7 +36,8 @@ Purpose: identify the service entrypoints that are safe to build on and call out
 - Exposes `familyService`, `familyMemberService`, `familyHealthService`, `familyRelationshipService`, `familyPermissionService`
 - `familyHealthService` is the canonical path for athlete medical, emergency contacts, and consent records
 - `services/safety-service.ts` is the read/write runtime facade that routes those trust-sensitive records to `familyHealthService` in non-mock mode and to the mock emergency store in mock mode
-- `services/child-service.ts` is now profile-only for identity, SEN/support notes, and child context; it no longer owns medical, emergency-contact, or consent persistence
+- `services/child-service.ts` is now the canonical child-profile bridge for non-mock `/v1/families/:familyId` and `/v1/athletes*` reads/writes; it no longer owns medical, emergency-contact, or consent persistence
+- `services/family/family-member-service.ts` no longer treats local family member/calendar/spending storage as authoritative outside mock mode; it derives those family dashboard views from `childService` plus authoritative booking reads
 - Validation note: top-level `services/family-service.ts` is not present in the current repo
 
 ### Trust and safeguarding

@@ -32,10 +32,7 @@ export function useSpecialNeeds() {
       }
 
       const loadedAthlete = athleteResult.data;
-      const nameParts = loadedAthlete.name.split(' ');
-      const firstName = nameParts[0];
-      const lastName = nameParts.slice(1).join(' ');
-      const profile = await childService.getChildByName(firstName, lastName);
+      const profile = await childService.getChild(athleteId);
       return ok<SpecialNeedsData>({
         athlete: loadedAthlete,
         childProfile: profile,
