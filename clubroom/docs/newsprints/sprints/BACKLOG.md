@@ -3,30 +3,40 @@
 Updated: 2026-04-12
 Rule: active and current work only.
 
-| ID        | Work                                                                                                                                                                                                                                                                             | Spine(s)                                 | Status | Source                                                                                                                               |
-| --------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------- | ------ | ------------------------------------------------------------------------------------------------------------------------------------ |
-| AUTH-01   | Unify frontend auth calls with the real `/v1` backend contract and remove `/api/auth/*` drift                                                                                                                                                                                    | Trust/Safety/Ops + Development           | DONE   | `docs/SOURCE_OF_TRUTH.md`, `CHATGPT.md`, `docs/trust/auth-and-permission-boundaries.md`                                              |
-| API-01    | Close the session-invite `/v1` authority seam for create/manage/respond flows and direct invite booking creation                                                                                                                                                                 | Trust/Safety/Ops + Booking/Revenue       | DONE   | `docs/SOURCE_OF_TRUTH.md`, `docs/backend-api/ROUTE_INVENTORY_V1.md`, `app/session-invites/index.tsx`, `app/session-invites/[id].tsx` |
-| AUTH-02   | Replace the temporary dev-session/auth-context stack with production identity and broader backend authz integration; runtime `/v1` now validates JWT bearer auth, no longer accepts scaffold identity headers, and `/v1/me/sessions*` covers the runtime session lifecycle slice | Trust/Safety/Ops + Development           | DONE   | `docs/SOURCE_OF_TRUTH.md`, `docs/trust/auth-and-permission-boundaries.md`, `apps/api/src/plugins/auth-context.ts`                    |
-| TRUST-01  | Collapse trust-sensitive child medical and emergency ownership into `/v1/athletes/*` and remove legacy child-profile writes for those fields                                                                                                                                     | Trust/Safety/Ops + Development           | DONE   | `services/child-service.ts`, `app/(modal)/edit-child-profile.tsx`, `services/family/family-health-service.ts`                        |
-| BOOK-01   | Close delegated booking-create authority so guardian and delegated flows cannot fall back to local-only booking writes                                                                                                                                                           | Booking/Revenue + Trust/Safety/Ops       | DONE   | `services/booking/booking-crud-service.ts`, `apps/api/src/modules/booking/routes.ts`, `services/invite/session-invite-service.ts`    |
-| OBS-01    | Wire Sentry across Expo native, Expo web, and `apps/api` with release tagging and source maps                                                                                                                                                                                    | Development + Trust/Safety/Ops           | DONE   | `docs/SOURCE_OF_TRUTH.md`, `docs/backend-api/README.md`, `app.config.ts`, `apps/api/src/instrument.ts`                             |
-| DX-01     | Fix repo-critical audit and lint scripts so missing shell tooling cannot produce false green signals                                                                                                                                                                             | Development                              | OPEN   | `docs/product-reality/PRODUCT_REALITY_AUDIT_2026-03-10.md`                                                                           |
-| GOV-01    | Keep club governance as the shared authority for UI and API authorization decisions                                                                                                                                                                                              | Booking/Revenue + Trust/Safety/Ops       | OPEN   | `contracts/club-governance.ts`, `docs/architecture/club-relationship-rules.md`                                                       |
-| LAUNCH-01 | Build a first-class `Schedule` surface that unifies event, training, and match reads for club users                                                                                                                                                                              | Community/Growth + Booking/Revenue       | OPEN   | `docs/newsprints/sprints/LAUNCH_PLAN.md`, `docs/architecture/club-activity-model.md`                                                 |
-| LAUNCH-02 | Turn club events into real workspaces with responses, reminders, attendance, and recap publishing                                                                                                                                                                                | Community/Growth + Booking/Revenue       | OPEN   | `docs/newsprints/sprints/LAUNCH_PLAN.md`, `app/events/[id].tsx`, `services/event/index.ts`                                           |
-| LAUNCH-03 | Add reviews and proof as a first-launch marketplace trust layer                                                                                                                                                                                                                  | Booking/Revenue + Development/Analytics  | OPEN   | `docs/newsprints/sprints/LAUNCH_PLAN.md`, `docs/SOURCE_OF_TRUTH.md`                                                                  |
-| LAUNCH-04 | Tighten coach and club storefront conversion, ownership clarity, and rebook flows                                                                                                                                                                                                | Booking/Revenue + Community/Growth       | OPEN   | `docs/newsprints/sprints/LAUNCH_PLAN.md`, `app/(tabs)/coach-profile.tsx`, `app/club/[id].tsx`                                        |
-| LAUNCH-05 | Build the first football-home layer with fixtures, results, activity highlights, and progress highlights                                                                                                                                                                         | Community/Growth + Development/Analytics | OPEN   | `docs/newsprints/sprints/LAUNCH_PLAN.md`, `app/(tabs)/index.tsx`, `app/(tabs)/feed.tsx`                                              |
-| LAUNCH-06 | Run a launch-critical smoothness pass across home, schedule, bookings, club, and profile surfaces                                                                                                                                                                                | Development + Trust/Safety/Ops           | OPEN   | `docs/newsprints/sprints/LAUNCH_PLAN.md`, `docs/SOURCE_OF_TRUTH.md`                                                                  |
+The old `LAUNCH-*`, `DX-01`, and `GOV-01` labels are retired as active sprint IDs.
+Parts of those umbrellas already landed in runtime truth; the remaining work is recut below into smaller real sprints.
+
+## Recently Completed
+
+| ID       | Exactly what it did                                                                                                                   | Spine(s)                           | Status |
+| -------- | ------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------- | ------ |
+| AUTH-01  | Moved frontend auth onto the real `/v1/auth/*` contract and removed `/api/auth/*` drift.                                             | Trust/Safety/Ops + Development     | DONE   |
+| API-01   | Made session-invite create/manage/respond flows use `/v1` and closed the direct-invite booking seam.                                 | Trust/Safety/Ops + Booking/Revenue | DONE   |
+| AUTH-02  | Replaced dev-session runtime auth with signed JWT auth, runtime sessions, and bearer-first `/v1` auth context.                       | Trust/Safety/Ops + Development     | DONE   |
+| TRUST-01 | Moved child medical and emergency ownership to `/v1/athletes/*` and removed legacy child-profile writes for those fields.            | Trust/Safety/Ops + Development     | DONE   |
+| BOOK-01  | Removed delegated booking-create fallback writes so non-mock booking creation now depends on backend authority.                       | Booking/Revenue + Trust/Safety/Ops | DONE   |
+| OBS-01   | Wired Sentry across Expo native/web and `apps/api`, fixed the web blocker, and restored full flow-suite coverage.                    | Development + Trust/Safety/Ops     | DONE   |
+| UI-01    | Cleared the remaining full-suite UI warnings by removing nested-button patterns and stale route expectations.                         | Development                        | DONE   |
+
+## Open Queue
+
+| ID         | Exactly what it does                                                                                                                                           | Spine(s)                                 | Status | Source                                                                                             |
+| ---------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------- | ------ | -------------------------------------------------------------------------------------------------- |
+| AUTHZ-03   | Extend backend authz across the remaining sensitive `/v1` routes, use shared club governance on both app and API, and remove remaining client-side authority fallbacks. | Trust/Safety/Ops + Development           | OPEN   | `docs/SOURCE_OF_TRUTH.md`, `docs/trust/auth-and-permission-boundaries.md`, `contracts/club-governance.ts` |
+| COMMERCE-01| Make coach and club offers authoritative and easier to buy: real go-live state, ownership clarity, pricing/cancellation/support clarity, faster booking entry, and rebook/repeat-session paths. | Booking/Revenue + Community/Growth       | OPEN   | `docs/SOURCE_OF_TRUTH.md`, `app/(tabs)/coach-profile.tsx`, `app/club/[id].tsx`, `services/booking/*` |
+| RELEASE-01 | Run the launch-quality pass on home, schedule, bookings, club, and profile: fix refresh churn and heavy-surface perf, clean media fallbacks, and make repo-critical audit/lint scripts fail honestly when tooling is missing. | Development + Trust/Safety/Ops           | OPEN   | `docs/SOURCE_OF_TRUTH.md`, `docs/product-reality/PRODUCT_REALITY_AUDIT_2026-03-10.md`             |
+| HOME-01    | Build the football-first home layer with role-aware modules for fixtures/results, upcoming activity, club highlights, and progress highlights once launch-critical surfaces are stable. | Community/Growth + Development/Analytics | OPEN   | `docs/SOURCE_OF_TRUTH.md`, `app/(tabs)/index.tsx`, `app/(tabs)/feed.tsx`                           |
 
 ## Execution Order
 
-1. `LAUNCH-01`
-2. `LAUNCH-02`
-3. `LAUNCH-03`
-4. `LAUNCH-04`
-5. `LAUNCH-06`
-6. `LAUNCH-05` only if the earlier launch-critical seams land cleanly
-7. `DX-01`
-8. `GOV-01` as follow-through on the authority and launch items
+1. `AUTHZ-03`
+2. `COMMERCE-01`
+3. `RELEASE-01`
+4. `HOME-01`
+
+## Sprint Intent
+
+- `AUTHZ-03`: make the backend decide the remaining sensitive access rules instead of trusting app-side checks.
+- `COMMERCE-01`: make storefronts and offers feel real, clear, and bookable.
+- `RELEASE-01`: make launch surfaces stable and make the quality scripts honest.
+- `HOME-01`: add the football-first repeat-use layer after the launch-critical product is solid.

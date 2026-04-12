@@ -26,7 +26,8 @@ Date: 2026-04-12
 - Expo native/web and `apps/api` now share release-aware Sentry instrumentation and repo-native sourcemap paths.
 - The old Expo web `react-native-worklets` crash is no longer blocking validation.
 - Full UI flow coverage now runs cleanly with no high- or medium-severity findings in the checked suite.
+- The sprint backlog is now recut around real unfinished seams instead of the older `LAUNCH-*` umbrella labels.
 
 ## Next Exact Action
 
-1. Start `LAUNCH-01`: unify the club schedule surface around the `ClubActivity` read model and keep the backend authority plan aligned with the current app routes.
+1. Start `AUTHZ-03`: extend backend authz coverage across the remaining sensitive `/v1` routes and remove the last client-side authority fallbacks.
