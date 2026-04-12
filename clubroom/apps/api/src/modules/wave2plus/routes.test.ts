@@ -156,10 +156,16 @@ describe('wave2+ routes', () => {
     });
     assert.equal(ok.statusCode, 200);
     const okPayload = ok.json() as {
+      invoice: { id: string; coachId: string; userId: string; total: number; status: string };
       lineItems: unknown[];
       events: unknown[];
       paymentInstructionTemplates: unknown[];
     };
+    assert.equal(okPayload.invoice.id, invoiceId);
+    assert.equal(okPayload.invoice.coachId, coachUserId);
+    assert.equal(okPayload.invoice.userId, payerUserId);
+    assert.equal(typeof okPayload.invoice.total, 'number');
+    assert.equal(okPayload.invoice.status, asString(invoice.status));
     assert.equal(okPayload.lineItems.length >= 1, true);
     assert.equal(okPayload.events.length >= 1, true);
     assert.equal(okPayload.paymentInstructionTemplates.length >= 1, true);
@@ -180,6 +186,48 @@ describe('wave2+ routes', () => {
       headers: authHeaders(tables, asString(outsider.id) as string),
     });
     assert.equal(denied.statusCode, 403);
+  });
+
+  it('lists accessible invoices with filters in app invoice shape', async () => {
+    const tables = loadTables();
+    const sentInvoice = asRows(tables.invoices).find((row) => asString(row.status) === 'SENT');
+    assert.ok(sentInvoice, 'expected seeded SENT invoice');
+    const coachUserId = asString(sentInvoice.coachUserId) as string;
+    const bookingId = asString(sentInvoice.bookingId) as string;
+
+    const list = await app.inject({
+      method: 'GET',
+      url: `/v1/invoices?status=SENT&coachId=${coachUserId}`,
+      headers: authHeaders(tables, coachUserId, 'coach'),
+    });
+    assert.equal(list.statusCode, 200);
+
+    const payload = list.json() as {
+      total: number;
+      invoices: Array<{
+        id: string;
+        coachId: string;
+        userId: string;
+        bookingId: string;
+        total: number;
+        status: string;
+      }>;
+    };
+    assert.equal(payload.total >= 1, true);
+    assert.equal(payload.invoices.every((invoice) => invoice.coachId === coachUserId), true);
+    assert.equal(payload.invoices.every((invoice) => invoice.status === 'SENT'), true);
+    assert.equal(payload.invoices.every((invoice) => typeof invoice.total === 'number'), true);
+    assert.equal(payload.invoices.every((invoice) => Boolean(invoice.userId)), true);
+
+    const bookingLookup = await app.inject({
+      method: 'GET',
+      url: `/v1/invoices?bookingId=${bookingId}`,
+      headers: authHeaders(tables, coachUserId, 'coach'),
+    });
+    assert.equal(bookingLookup.statusCode, 200);
+    const bookingPayload = bookingLookup.json() as { invoices: Array<{ bookingId: string }> };
+    assert.equal(bookingPayload.invoices.length, 1);
+    assert.equal(bookingPayload.invoices[0]?.bookingId, bookingId);
   });
 
   it('simulates invoice payment and enforces payer/admin authz', async () => {
@@ -302,6 +350,91 @@ describe('wave2+ routes', () => {
       },
     });
     assert.equal(pay.statusCode, 200);
+  });
+
+  it('lets a coach reconcile invoice status transitions through v1 routes', async () => {
+    const tables = loadTables();
+    const sentInvoice = asRows(tables.invoices).find((row) => asString(row.status) === 'SENT');
+    assert.ok(sentInvoice, 'expected seeded SENT invoice');
+    const invoiceId = asString(sentInvoice.id) as string;
+    const coachUserId = asString(sentInvoice.coachUserId) as string;
+    const payerUserId = asString(sentInvoice.payerUserId) as string;
+
+    const denied = await app.inject({
+      method: 'POST',
+      url: `/v1/invoices/${invoiceId}/mark-paid`,
+      headers: authHeaders(tables, payerUserId, 'parent'),
+    });
+    assert.equal(denied.statusCode, 403);
+
+    const markPaid = await app.inject({
+      method: 'POST',
+      url: `/v1/invoices/${invoiceId}/mark-paid`,
+      headers: authHeaders(tables, coachUserId, 'coach'),
+    });
+    assert.equal(markPaid.statusCode, 200);
+    const markPaidPayload = markPaid.json() as { invoice: { status: string; paidAt?: string } };
+    assert.equal(markPaidPayload.invoice.status, 'PAID');
+    assert.equal(Boolean(markPaidPayload.invoice.paidAt), true);
+
+    const markUnpaid = await app.inject({
+      method: 'POST',
+      url: `/v1/invoices/${invoiceId}/mark-unpaid`,
+      headers: authHeaders(tables, coachUserId, 'coach'),
+    });
+    assert.equal(markUnpaid.statusCode, 200);
+    const markUnpaidPayload = markUnpaid.json() as { invoice: { status: string } };
+    assert.equal(markUnpaidPayload.invoice.status, 'SENT');
+
+    const writeOff = await app.inject({
+      method: 'POST',
+      url: `/v1/invoices/${invoiceId}/write-off`,
+      headers: authHeaders(tables, coachUserId, 'coach'),
+      payload: { reason: 'Coach waived payment' },
+    });
+    assert.equal(writeOff.statusCode, 200);
+    const writeOffPayload = writeOff.json() as { invoice: { status: string; voidReason?: string } };
+    assert.equal(writeOffPayload.invoice.status, 'WRITTEN_OFF');
+    assert.equal(writeOffPayload.invoice.voidReason, 'Coach waived payment');
+
+    const restore = await app.inject({
+      method: 'POST',
+      url: `/v1/invoices/${invoiceId}/restore`,
+      headers: authHeaders(tables, coachUserId, 'coach'),
+    });
+    assert.equal(restore.statusCode, 200);
+    const restorePayload = restore.json() as { invoice: { status: string } };
+    assert.equal(restorePayload.invoice.status, 'SENT');
+
+    const voided = await app.inject({
+      method: 'POST',
+      url: `/v1/invoices/${invoiceId}/void`,
+      headers: authHeaders(tables, coachUserId, 'coach'),
+      payload: { reason: 'Session cancelled by coach' },
+    });
+    assert.equal(voided.statusCode, 200);
+    const voidPayload = voided.json() as { invoice: { status: string; voidReason?: string; voidedAt?: string } };
+    assert.equal(voidPayload.invoice.status, 'VOID');
+    assert.equal(voidPayload.invoice.voidReason, 'Session cancelled by coach');
+    assert.equal(Boolean(voidPayload.invoice.voidedAt), true);
+
+    const detail = await app.inject({
+      method: 'GET',
+      url: `/v1/invoices/${invoiceId}`,
+      headers: authHeaders(tables, coachUserId, 'coach'),
+    });
+    assert.equal(detail.statusCode, 200);
+    const detailPayload = detail.json() as {
+      invoice: { status: string };
+      events: Array<{ eventType?: string }>;
+      reconcilerEntry: { state?: string } | null;
+    };
+    assert.equal(detailPayload.invoice.status, 'VOID');
+    assert.equal(detailPayload.reconcilerEntry?.state, 'VOID');
+    assert.equal(detailPayload.events.some((event) => event.eventType === 'MARKED_UNPAID'), true);
+    assert.equal(detailPayload.events.some((event) => event.eventType === 'WRITTEN_OFF'), true);
+    assert.equal(detailPayload.events.some((event) => event.eventType === 'RESTORED'), true);
+    assert.equal(detailPayload.events.some((event) => event.eventType === 'VOIDED'), true);
   });
 
   it('serves progress-goals-badges for related guardian and blocks unrelated users', async () => {

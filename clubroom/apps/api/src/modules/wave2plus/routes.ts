@@ -12,6 +12,21 @@ const asString = (value: unknown): string | undefined => (typeof value === 'stri
 const asNumber = (value: unknown): number | undefined => (typeof value === 'number' ? value : undefined);
 const nowIso = () => new Date().toISOString();
 const newId = (prefix: string) => `${prefix}_${crypto.randomUUID()}`;
+const INVOICE_STATUSES = ['DRAFT', 'SENT', 'PAID', 'VOID', 'WRITTEN_OFF'] as const;
+
+type InvoiceStatus = (typeof INVOICE_STATUSES)[number];
+
+const invoiceListQuerySchema = z.object({
+  status: z.string().trim().optional(),
+  coachId: z.string().trim().optional(),
+  bookingId: z.string().trim().optional(),
+  dateFrom: z.string().trim().optional(),
+  dateTo: z.string().trim().optional(),
+});
+
+const invoiceTransitionRequestSchema = z.object({
+  reason: z.string().trim().max(400).optional(),
+});
 
 const uploadInitRequestSchema = z.object({
   kind: z.enum(['VIDEO', 'IMAGE', 'DOCUMENT']).default('VIDEO'),
@@ -28,7 +43,225 @@ const invoicePaymentRequestSchema = z.object({
   metadata: z.record(z.unknown()).optional(),
 });
 
+function getActiveRows(rows: SeedRow[]): SeedRow[] {
+  return rows.filter((row) => row.deletedAt == null);
+}
+
+function moneyFromMinor(value: unknown): number {
+  return Math.round((Number(value ?? 0) / 100) * 100) / 100;
+}
+
+function formatSessionType(value: string | undefined): string | undefined {
+  if (!value) {
+    return undefined;
+  }
+  switch (value) {
+    case 'one_to_one':
+      return '1-on-1 Training';
+    case 'group':
+      return 'Group Session';
+    default:
+      return value
+        .split('_')
+        .filter(Boolean)
+        .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+        .join(' ');
+  }
+}
+
+function toInvoiceStatus(value: unknown): InvoiceStatus {
+  const status = asString(value)?.toUpperCase();
+  if (status && INVOICE_STATUSES.includes(status as InvoiceStatus)) {
+    return status as InvoiceStatus;
+  }
+  return 'SENT';
+}
+
+function findUserEmail(users: SeedRow[], userId: string | undefined): string | undefined {
+  if (!userId) {
+    return undefined;
+  }
+  const user = users.find((row) => asString(row.id) === userId);
+  return asString(user?.email);
+}
+
+function mapInvoice(row: SeedRow, users: SeedRow[]) {
+  const payerUserId = asString(row.payerUserId) ?? '';
+  return {
+    id: asString(row.id) ?? '',
+    invoiceNumber: asString(row.invoiceNumber) ?? '',
+    userId: payerUserId,
+    bookingId: asString(row.bookingId) ?? '',
+    coachId: asString(row.coachUserId) ?? '',
+    athleteId: asString(row.athleteId),
+    sessionDate: asString(row.sessionDate) ?? nowIso(),
+    sessionType: formatSessionType(asString(row.sessionType)),
+    sessionLocation: asString(row.sessionLocation),
+    sessionDuration: asNumber(row.sessionDurationMinutes),
+    amount: moneyFromMinor(row.subtotalMinor),
+    tax: moneyFromMinor(row.taxMinor),
+    taxRate: asNumber(row.taxRatePercent) ?? 0,
+    total: moneyFromMinor(row.totalMinor),
+    currency: asString(row.currency) ?? 'GBP',
+    status: toInvoiceStatus(row.status),
+    createdAt: asString(row.createdAt) ?? nowIso(),
+    updatedAt: asString(row.updatedAt),
+    sentAt: asString(row.sentAt),
+    sentTo: findUserEmail(users, payerUserId),
+    paidAt: asString(row.paidAt),
+    voidedAt: asString(row.voidedAt) ?? undefined,
+    voidReason: asString(row.voidReason) ?? undefined,
+    dueDate: asString(row.dueDate),
+    notes: asString(row.notes),
+    coachBusinessName: asString(row.coachBusinessName),
+    coachBusinessEmail: asString(row.coachBusinessEmail),
+    billingAddress: asString(row.billingAddress),
+  };
+}
+
+function canAccessInvoice(authUserId: string, isAdmin: boolean, invoice: SeedRow): boolean {
+  return (
+    isAdmin
+    || asString(invoice.coachUserId) === authUserId
+    || asString(invoice.payerUserId) === authUserId
+  );
+}
+
+function reconcileStateForInvoiceStatus(status: InvoiceStatus): string {
+  switch (status) {
+    case 'PAID':
+      return 'PAID';
+    case 'WRITTEN_OFF':
+      return 'WRITTEN_OFF';
+    case 'VOID':
+      return 'VOID';
+    case 'DRAFT':
+      return 'DRAFT';
+    case 'SENT':
+    default:
+      return 'OUTSTANDING';
+  }
+}
+
+function appendInvoiceEvent(params: {
+  invoiceEvents: SeedRow[];
+  invoiceId: string;
+  eventType: string;
+  actorUserId: string;
+  reason: string;
+  requestId: string;
+  occurredAt: string;
+  metadata?: Record<string, unknown>;
+}): void {
+  params.invoiceEvents.push({
+    id: newId('ine'),
+    invoiceId: params.invoiceId,
+    eventType: params.eventType,
+    actorUserId: params.actorUserId,
+    reason: params.reason,
+    metadataJson: params.metadata ?? {},
+    requestId: params.requestId,
+    occurredAt: params.occurredAt,
+  });
+}
+
+function updateReconcilerEntry(params: {
+  reconcilerEntries: SeedRow[];
+  invoice: SeedRow;
+  actorUserId: string;
+  nextStatus: InvoiceStatus;
+  note: string;
+  now: string;
+}): void {
+  const invoiceId = asString(params.invoice.id) ?? '';
+  const existing = params.reconcilerEntries.find((row) => asString(row.invoiceId) === invoiceId);
+  const nextState = reconcileStateForInvoiceStatus(params.nextStatus);
+
+  if (existing) {
+    existing.state = nextState;
+    existing.internalNote = params.note;
+    existing.updatedAt = params.now;
+    existing.updatedByUserId = params.actorUserId;
+    existing.version = (asNumber(existing.version) ?? 1) + 1;
+    return;
+  }
+
+  params.reconcilerEntries.push({
+    id: newId('rec'),
+    invoiceId,
+    coachUserId: asString(params.invoice.coachUserId),
+    state: nextState,
+    internalNote: params.note,
+    createdByUserId: params.actorUserId,
+    updatedByUserId: params.actorUserId,
+    version: 1,
+    createdAt: params.now,
+    updatedAt: params.now,
+  });
+}
+
+function matchesInvoiceFilters(
+  row: SeedRow,
+  query: z.infer<typeof invoiceListQuerySchema>,
+): boolean {
+  if (query.coachId && asString(row.coachUserId) !== query.coachId) {
+    return false;
+  }
+  if (query.bookingId && asString(row.bookingId) !== query.bookingId) {
+    return false;
+  }
+  if (query.status) {
+    const statuses = query.status
+      .split(',')
+      .map((value) => value.trim().toUpperCase())
+      .filter(Boolean);
+    if (statuses.length > 0 && !statuses.includes(toInvoiceStatus(row.status))) {
+      return false;
+    }
+  }
+
+  const sessionDate = Date.parse(asString(row.sessionDate) ?? '');
+  if (query.dateFrom) {
+    const fromDate = Date.parse(query.dateFrom);
+    if (Number.isFinite(fromDate) && (!Number.isFinite(sessionDate) || sessionDate < fromDate)) {
+      return false;
+    }
+  }
+  if (query.dateTo) {
+    const toDate = Date.parse(query.dateTo);
+    if (Number.isFinite(toDate) && (!Number.isFinite(sessionDate) || sessionDate > toDate)) {
+      return false;
+    }
+  }
+
+  return true;
+}
+
 const wave2PlusRoutes: FastifyPluginAsync = async (app) => {
+  app.get('/invoices', async (request, reply) => {
+    const authUserId = request.auth?.userId;
+    if (!authUserId) {
+      throw forbidden('Authenticated user is required');
+    }
+
+    const query = invoiceListQuerySchema.parse(request.query ?? {});
+    const store = getMarketplaceSeedStore();
+    const users = asRows(store.tables.users);
+    const isAdmin = isPrivilegedAdminAuth(request.auth);
+    const invoices = getActiveRows(asRows(store.tables.invoices))
+      .filter((row) => canAccessInvoice(authUserId, isAdmin, row))
+      .filter((row) => matchesInvoiceFilters(row, query))
+      .map((row) => mapInvoice(row, users))
+      .sort((left, right) => new Date(right.createdAt).getTime() - new Date(left.createdAt).getTime());
+
+    return reply.send({
+      invoices,
+      total: invoices.length,
+      seedVersion: store.version,
+      requestId: request.requestId,
+    });
+  });
+
   app.get('/invoices/:invoiceId', async (request, reply) => {
     const authUserId = request.auth?.userId;
     if (!authUserId) {
@@ -41,20 +274,17 @@ const wave2PlusRoutes: FastifyPluginAsync = async (app) => {
     }
 
     const store = getMarketplaceSeedStore();
-    const invoice = asRows(store.tables.invoices).find((row) => asString(row.id) === invoiceId);
+    const users = asRows(store.tables.users);
+    const invoice = getActiveRows(asRows(store.tables.invoices)).find((row) => asString(row.id) === invoiceId);
     if (!invoice) {
       throw notFound('Invoice not found', { invoiceId });
     }
     const isAdmin = isPrivilegedAdminAuth(request.auth);
-    const canAccess =
-      isAdmin
-      || asString(invoice.coachUserId) === authUserId
-      || asString(invoice.payerUserId) === authUserId;
-    if (!canAccess) {
+    if (!canAccessInvoice(authUserId, isAdmin, invoice)) {
       throw forbidden('Not allowed to access this invoice');
     }
 
-    const lineItems = asRows(store.tables.invoiceLineItems).filter(
+    const lineItems = getActiveRows(asRows(store.tables.invoiceLineItems)).filter(
       (row) => asString(row.invoiceId) === invoiceId,
     );
     const events = asRows(store.tables.invoiceEvents).filter((row) => asString(row.invoiceId) === invoiceId);
@@ -64,12 +294,12 @@ const wave2PlusRoutes: FastifyPluginAsync = async (app) => {
     const reminders = asRows(store.tables.paymentReminders).filter(
       (row) => asString(row.invoiceId) === invoiceId,
     );
-    const paymentInstructionTemplates = asRows(store.tables.paymentInstructionTemplates).filter(
+    const paymentInstructionTemplates = getActiveRows(asRows(store.tables.paymentInstructionTemplates)).filter(
       (row) => asString(row.coachUserId) === asString(invoice.coachUserId),
     );
 
     return reply.send({
-      invoice,
+      invoice: mapInvoice(invoice, users),
       lineItems,
       events,
       reconcilerEntry,
@@ -181,6 +411,317 @@ const wave2PlusRoutes: FastifyPluginAsync = async (app) => {
         processedAt: now,
         actorUserId: authUserId,
       },
+      seedVersion: store.version,
+      requestId: request.requestId,
+    });
+  });
+
+  app.post('/invoices/:invoiceId/mark-paid', async (request, reply) => {
+    const authUserId = request.auth?.userId;
+    if (!authUserId) {
+      throw forbidden('Authenticated user is required');
+    }
+
+    const invoiceId = asString((request.params as { invoiceId?: string }).invoiceId);
+    if (!invoiceId) {
+      throw notFound('Invoice id is required');
+    }
+
+    const body = invoiceTransitionRequestSchema.parse(request.body ?? {});
+    const store = getMarketplaceSeedStore();
+    const users = asRows(store.tables.users);
+    const invoices = getActiveRows(asRows(store.tables.invoices));
+    const invoice = invoices.find((row) => asString(row.id) === invoiceId);
+    if (!invoice) {
+      throw notFound('Invoice not found', { invoiceId });
+    }
+
+    const isAdmin = isPrivilegedAdminAuth(request.auth);
+    if (!isAdmin && asString(invoice.coachUserId) !== authUserId) {
+      throw forbidden('Not allowed to reconcile this invoice');
+    }
+    if (toInvoiceStatus(invoice.status) === 'VOID') {
+      throw badRequest('Voided invoices cannot be marked as paid', { invoiceId });
+    }
+    if (toInvoiceStatus(invoice.status) !== 'PAID') {
+      const invoiceEvents = asRows(store.tables.invoiceEvents);
+      const reconcilerEntries = asRows(store.tables.reconcilerEntries);
+      const now = nowIso();
+      invoice.status = 'PAID';
+      invoice.paidAt = now;
+      invoice.updatedAt = now;
+      invoice.updatedByUserId = authUserId;
+      invoice.version = (asNumber(invoice.version) ?? 1) + 1;
+      appendInvoiceEvent({
+        invoiceEvents,
+        invoiceId,
+        eventType: 'MARKED_PAID',
+        actorUserId: authUserId,
+        reason: body.reason ?? 'Marked paid in reconciler.',
+        requestId: request.requestId,
+        occurredAt: now,
+        metadata: { source: 'coach-reconciler' },
+      });
+      updateReconcilerEntry({
+        reconcilerEntries,
+        invoice,
+        actorUserId: authUserId,
+        nextStatus: 'PAID',
+        note: 'Marked paid via /v1/invoices/:invoiceId/mark-paid.',
+        now,
+      });
+    }
+
+    return reply.send({
+      invoice: mapInvoice(invoice, users),
+      seedVersion: store.version,
+      requestId: request.requestId,
+    });
+  });
+
+  app.post('/invoices/:invoiceId/mark-unpaid', async (request, reply) => {
+    const authUserId = request.auth?.userId;
+    if (!authUserId) {
+      throw forbidden('Authenticated user is required');
+    }
+
+    const invoiceId = asString((request.params as { invoiceId?: string }).invoiceId);
+    if (!invoiceId) {
+      throw notFound('Invoice id is required');
+    }
+
+    const body = invoiceTransitionRequestSchema.parse(request.body ?? {});
+    const store = getMarketplaceSeedStore();
+    const users = asRows(store.tables.users);
+    const invoice = getActiveRows(asRows(store.tables.invoices)).find((row) => asString(row.id) === invoiceId);
+    if (!invoice) {
+      throw notFound('Invoice not found', { invoiceId });
+    }
+
+    const isAdmin = isPrivilegedAdminAuth(request.auth);
+    if (!isAdmin && asString(invoice.coachUserId) !== authUserId) {
+      throw forbidden('Not allowed to reconcile this invoice');
+    }
+    if (toInvoiceStatus(invoice.status) !== 'PAID') {
+      throw badRequest('Only paid invoices can be moved back to unpaid', { invoiceId });
+    }
+
+    const invoiceEvents = asRows(store.tables.invoiceEvents);
+    const reconcilerEntries = asRows(store.tables.reconcilerEntries);
+    const now = nowIso();
+    invoice.status = 'SENT';
+    invoice.paidAt = null;
+    invoice.updatedAt = now;
+    invoice.updatedByUserId = authUserId;
+    invoice.version = (asNumber(invoice.version) ?? 1) + 1;
+    appendInvoiceEvent({
+      invoiceEvents,
+      invoiceId,
+      eventType: 'MARKED_UNPAID',
+      actorUserId: authUserId,
+      reason: body.reason ?? 'Moved back to unpaid in reconciler.',
+      requestId: request.requestId,
+      occurredAt: now,
+      metadata: { source: 'coach-reconciler' },
+    });
+    updateReconcilerEntry({
+      reconcilerEntries,
+      invoice,
+      actorUserId: authUserId,
+      nextStatus: 'SENT',
+      note: 'Moved back to unpaid via /v1/invoices/:invoiceId/mark-unpaid.',
+      now,
+    });
+
+    return reply.send({
+      invoice: mapInvoice(invoice, users),
+      seedVersion: store.version,
+      requestId: request.requestId,
+    });
+  });
+
+  app.post('/invoices/:invoiceId/write-off', async (request, reply) => {
+    const authUserId = request.auth?.userId;
+    if (!authUserId) {
+      throw forbidden('Authenticated user is required');
+    }
+
+    const invoiceId = asString((request.params as { invoiceId?: string }).invoiceId);
+    if (!invoiceId) {
+      throw notFound('Invoice id is required');
+    }
+
+    const body = invoiceTransitionRequestSchema.parse(request.body ?? {});
+    const store = getMarketplaceSeedStore();
+    const users = asRows(store.tables.users);
+    const invoice = getActiveRows(asRows(store.tables.invoices)).find((row) => asString(row.id) === invoiceId);
+    if (!invoice) {
+      throw notFound('Invoice not found', { invoiceId });
+    }
+
+    const isAdmin = isPrivilegedAdminAuth(request.auth);
+    if (!isAdmin && asString(invoice.coachUserId) !== authUserId) {
+      throw forbidden('Not allowed to reconcile this invoice');
+    }
+    if (toInvoiceStatus(invoice.status) === 'PAID' || toInvoiceStatus(invoice.status) === 'VOID') {
+      throw badRequest('Paid or void invoices cannot be written off', { invoiceId });
+    }
+
+    const invoiceEvents = asRows(store.tables.invoiceEvents);
+    const reconcilerEntries = asRows(store.tables.reconcilerEntries);
+    const now = nowIso();
+    invoice.status = 'WRITTEN_OFF';
+    invoice.paidAt = null;
+    invoice.voidReason = body.reason ?? 'Written off by coach';
+    invoice.updatedAt = now;
+    invoice.updatedByUserId = authUserId;
+    invoice.version = (asNumber(invoice.version) ?? 1) + 1;
+    appendInvoiceEvent({
+      invoiceEvents,
+      invoiceId,
+      eventType: 'WRITTEN_OFF',
+      actorUserId: authUserId,
+      reason: asString(invoice.voidReason) ?? 'Written off by coach',
+      requestId: request.requestId,
+      occurredAt: now,
+      metadata: { source: 'coach-reconciler' },
+    });
+    updateReconcilerEntry({
+      reconcilerEntries,
+      invoice,
+      actorUserId: authUserId,
+      nextStatus: 'WRITTEN_OFF',
+      note: 'Written off via /v1/invoices/:invoiceId/write-off.',
+      now,
+    });
+
+    return reply.send({
+      invoice: mapInvoice(invoice, users),
+      seedVersion: store.version,
+      requestId: request.requestId,
+    });
+  });
+
+  app.post('/invoices/:invoiceId/restore', async (request, reply) => {
+    const authUserId = request.auth?.userId;
+    if (!authUserId) {
+      throw forbidden('Authenticated user is required');
+    }
+
+    const invoiceId = asString((request.params as { invoiceId?: string }).invoiceId);
+    if (!invoiceId) {
+      throw notFound('Invoice id is required');
+    }
+
+    const body = invoiceTransitionRequestSchema.parse(request.body ?? {});
+    const store = getMarketplaceSeedStore();
+    const users = asRows(store.tables.users);
+    const invoice = getActiveRows(asRows(store.tables.invoices)).find((row) => asString(row.id) === invoiceId);
+    if (!invoice) {
+      throw notFound('Invoice not found', { invoiceId });
+    }
+
+    const isAdmin = isPrivilegedAdminAuth(request.auth);
+    if (!isAdmin && asString(invoice.coachUserId) !== authUserId) {
+      throw forbidden('Not allowed to reconcile this invoice');
+    }
+    if (toInvoiceStatus(invoice.status) !== 'WRITTEN_OFF') {
+      throw badRequest('Only written-off invoices can be restored', { invoiceId });
+    }
+
+    const invoiceEvents = asRows(store.tables.invoiceEvents);
+    const reconcilerEntries = asRows(store.tables.reconcilerEntries);
+    const now = nowIso();
+    invoice.status = 'SENT';
+    invoice.voidReason = null;
+    invoice.updatedAt = now;
+    invoice.updatedByUserId = authUserId;
+    invoice.version = (asNumber(invoice.version) ?? 1) + 1;
+    appendInvoiceEvent({
+      invoiceEvents,
+      invoiceId,
+      eventType: 'RESTORED',
+      actorUserId: authUserId,
+      reason: body.reason ?? 'Restored from write-off.',
+      requestId: request.requestId,
+      occurredAt: now,
+      metadata: { source: 'coach-reconciler' },
+    });
+    updateReconcilerEntry({
+      reconcilerEntries,
+      invoice,
+      actorUserId: authUserId,
+      nextStatus: 'SENT',
+      note: 'Restored via /v1/invoices/:invoiceId/restore.',
+      now,
+    });
+
+    return reply.send({
+      invoice: mapInvoice(invoice, users),
+      seedVersion: store.version,
+      requestId: request.requestId,
+    });
+  });
+
+  app.post('/invoices/:invoiceId/void', async (request, reply) => {
+    const authUserId = request.auth?.userId;
+    if (!authUserId) {
+      throw forbidden('Authenticated user is required');
+    }
+
+    const invoiceId = asString((request.params as { invoiceId?: string }).invoiceId);
+    if (!invoiceId) {
+      throw notFound('Invoice id is required');
+    }
+
+    const body = invoiceTransitionRequestSchema.parse(request.body ?? {});
+    const store = getMarketplaceSeedStore();
+    const users = asRows(store.tables.users);
+    const invoice = getActiveRows(asRows(store.tables.invoices)).find((row) => asString(row.id) === invoiceId);
+    if (!invoice) {
+      throw notFound('Invoice not found', { invoiceId });
+    }
+
+    const isAdmin = isPrivilegedAdminAuth(request.auth);
+    if (!isAdmin && asString(invoice.coachUserId) !== authUserId) {
+      throw forbidden('Not allowed to void this invoice');
+    }
+    if (toInvoiceStatus(invoice.status) === 'PAID') {
+      throw badRequest('Paid invoices cannot be voided', { invoiceId });
+    }
+    if (toInvoiceStatus(invoice.status) !== 'VOID') {
+      const invoiceEvents = asRows(store.tables.invoiceEvents);
+      const reconcilerEntries = asRows(store.tables.reconcilerEntries);
+      const now = nowIso();
+      invoice.status = 'VOID';
+      invoice.paidAt = null;
+      invoice.voidedAt = now;
+      invoice.voidReason = body.reason ?? 'Voided by coach';
+      invoice.updatedAt = now;
+      invoice.updatedByUserId = authUserId;
+      invoice.version = (asNumber(invoice.version) ?? 1) + 1;
+      appendInvoiceEvent({
+        invoiceEvents,
+        invoiceId,
+        eventType: 'VOIDED',
+        actorUserId: authUserId,
+        reason: asString(invoice.voidReason) ?? 'Voided by coach',
+        requestId: request.requestId,
+        occurredAt: now,
+        metadata: { source: 'coach-reconciler' },
+      });
+      updateReconcilerEntry({
+        reconcilerEntries,
+        invoice,
+        actorUserId: authUserId,
+        nextStatus: 'VOID',
+        note: 'Voided via /v1/invoices/:invoiceId/void.',
+        now,
+      });
+    }
+
+    return reply.send({
+      invoice: mapInvoice(invoice, users),
       seedVersion: store.version,
       requestId: request.requestId,
     });

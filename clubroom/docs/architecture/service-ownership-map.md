@@ -104,6 +104,14 @@ Purpose: identify the service entrypoints that are safe to build on and call out
 - Current non-mock rule: list reads now go through `/v1/clubs/:clubId/schedule`
 - Current limitation: mock mode still projects locally, and `/v1/clubs/:clubId/schedule/:activityId` remains planned
 
+### Invoices and reconciler
+
+- `services/invoice-service.ts`
+- Canonical invoice list/detail and reconciler-status surface
+- Non-mock authoritative path uses `GET /v1/invoices`, `GET /v1/invoices/:invoiceId`, and coach/admin transition routes under `/v1/invoices/:invoiceId/*`
+- Invoice summary is derived from the authoritative list payload, not a separate local invoice store
+- Current limitation: invoice generation and reminder/send flows are still not backend-owned, and off-platform offering reconciler items remain synthetic in-app until that model moves behind `/v1`
+
 ### Notifications
 
 - `services/notification/index.ts`

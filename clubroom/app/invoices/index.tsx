@@ -40,12 +40,10 @@ export default function InvoicesScreen() {
     }
 
     try {
-      const [invoicesData, summaryData] = await Promise.all([
-        filter.status || filter.dateFrom || filter.dateTo
-          ? invoiceService.getInvoicesFiltered(currentUser.id, filter)
-          : invoiceService.getUserInvoices(currentUser.id),
-        invoiceService.getInvoiceSummary(currentUser.id),
-      ]);
+      const invoicesData = filter.status || filter.dateFrom || filter.dateTo || filter.bookingId || filter.coachId
+        ? await invoiceService.getInvoicesFiltered(currentUser.id, filter)
+        : await invoiceService.getUserInvoices(currentUser.id);
+      const summaryData = invoiceService.summarizeInvoices(currentUser.id, invoicesData);
 
       return ok<{ invoices: Invoice[]; summary: InvoiceSummary | null }>({
         invoices: invoicesData,

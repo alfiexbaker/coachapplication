@@ -118,13 +118,16 @@ Status legend:
 
 | Route                                 | Method | Status    | Contract(s)                  | AuthZ                                   | UI anchors                                     |
 | ------------------------------------- | ------ | --------- | ---------------------------- | --------------------------------------- | ---------------------------------------------- |
-| `/v1/invoices/:invoiceId`             | `GET`  | `planned` | `InvoiceResponse`            | owner coach / payer / delegated finance | `components/invoices/*`                        |
+| `/v1/invoices`                        | `GET`  | `scaffolded` | `InvoiceListResponse`     | authenticated self; filtered to owner coach / payer unless privileged admin | `app/invoices/index.tsx`, `app/(tabs)/bookings/[id].tsx`, `services/invoice-service.ts` |
+| `/v1/invoices/:invoiceId`             | `GET`  | `scaffolded` | `InvoiceResponse`          | owner coach / payer / delegated finance | `components/invoices/*`, `hooks/use-invoice-detail.ts`, `services/invoice-service.ts` |
 | `/v1/coaches/me/invoices`             | `GET`  | `planned` | `InvoiceListResponse`        | coach self                              | `app/(tabs)/earnings.tsx`, analytics revenue   |
 | `/v1/invoices/generate`               | `POST` | `planned` | `GenerateInvoiceRequest`     | coach/self service flow                 | `services/invoice-service.ts` replacement path |
-| `/v1/invoices/:invoiceId/mark-paid`   | `POST` | `planned` | `InvoiceTransitionRequest`   | coach/delegated finance                 | reconciler UI                                  |
-| `/v1/invoices/:invoiceId/mark-unpaid` | `POST` | `planned` | `InvoiceTransitionRequest`   | coach/delegated finance                 | reconciler UI                                  |
-| `/v1/invoices/:invoiceId/write-off`   | `POST` | `planned` | `InvoiceTransitionRequest`   | coach/delegated finance                 | reconciler UI                                  |
-| `/v1/invoices/:invoiceId/restore`     | `POST` | `planned` | `InvoiceTransitionRequest`   | coach/delegated finance                 | reconciler UI                                  |
+| `/v1/invoices/:invoiceId/payments`    | `POST` | `scaffolded` | payment simulation payload | payer self or privileged admin          | payer payment simulation / seeded finance verification |
+| `/v1/invoices/:invoiceId/mark-paid`   | `POST` | `scaffolded` | `InvoiceTransitionRequest` | coach/delegated finance                 | reconciler UI, `hooks/use-session-payments.ts`, `components/invoices/mark-paid-button.tsx` |
+| `/v1/invoices/:invoiceId/mark-unpaid` | `POST` | `scaffolded` | `InvoiceTransitionRequest` | coach/delegated finance                 | reconciler UI                                  |
+| `/v1/invoices/:invoiceId/write-off`   | `POST` | `scaffolded` | `InvoiceTransitionRequest` | coach/delegated finance                 | reconciler UI                                  |
+| `/v1/invoices/:invoiceId/restore`     | `POST` | `scaffolded` | `InvoiceTransitionRequest` | coach/delegated finance                 | reconciler UI                                  |
+| `/v1/invoices/:invoiceId/void`        | `POST` | `scaffolded` | `InvoiceTransitionRequest` | coach/delegated finance                 | invoice detail + reconciler UI                 |
 | `/v1/invoices/:invoiceId/reminders`   | `POST` | `planned` | `SendInvoiceReminderRequest` | coach/delegated finance                 | reminder templates                             |
 
 ## Trust / Safeguarding / Ops

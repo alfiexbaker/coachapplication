@@ -10,7 +10,6 @@ import { Ionicons } from '@expo/vector-icons';
 
 import { Button } from '@/components/primitives/button';
 import { invoiceService } from '@/services/invoice-service';
-import { emitTyped, ServiceEvents } from '@/services/event-bus';
 import { useTheme } from '@/hooks/useTheme';
 import { uiFeedback } from '@/services/ui-feedback';
 
@@ -53,11 +52,6 @@ function MarkPaidButtonInner({ invoiceId, bookingId, onSuccess, variant = 'prima
 
               const result = await invoiceService.markAsPaid(targetInvoiceId);
               if (result) {
-                emitTyped(ServiceEvents.INVOICE_PAID, {
-                  invoiceId: targetInvoiceId,
-                  coachId: result.coachId,
-                  amount: result.amount,
-                });
                 onSuccess?.();
               } else {
                 uiFeedback.showToast('Failed to mark invoice as paid.', 'error');

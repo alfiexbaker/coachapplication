@@ -4,26 +4,26 @@ Date: 2026-04-12
 
 ## What Was Just Done
 
-1. Finished `COACH-OPS-01` by adding scaffolded `/v1/coaches/me/availability/templates`, `/v1/coaches/me/availability/overrides`, and `/v1/coaches/me/scheduling-rules` support in the coach-club API module.
-2. Switched non-mock signed-in coach self-manage availability writes and reads in `services/availability-service.ts` onto those `/v1/coaches/me/*` routes instead of `/api/coaches/*` drift.
-3. Switched non-mock signed-in coach self-manage scheduling rules and cancellation policy reads and writes in `services/scheduling-rules-service.ts` onto `/v1/coaches/me/scheduling-rules` instead of local-only persistence.
-4. Added focused route coverage for coach self-manage availability templates, overrides, and scheduling rules/cancellation policy mutations.
+1. Finished `REVENUE-API-01` by adding scaffolded invoice list and coach reconciler transition routes under `/v1/invoices*`, with the API now returning the app `Invoice` shape for list and detail reads.
+2. Switched non-mock `services/invoice-service.ts` onto authoritative `/v1/invoices*` reads and coach transition writes instead of local invoice storage.
+3. Removed the normal booking synthetic-invoice fallback from coach reconciler reads outside mock mode and stopped non-mock invoice upserts from treating local storage as authority.
+4. Added focused API coverage for invoice list filters and coach reconcile transitions, while preserving payer/admin payment simulation coverage.
 5. Synced the canonical runtime, service-ownership, route-inventory, and sprint backlog docs.
 
 ## Verification Run In This Step
 
 - `npm --prefix apps/api run typecheck` -> PASS
-- `npm --prefix apps/api run test` -> PASS (`53/53`)
+- `npm --prefix apps/api run test` -> PASS (`55/55`)
 - `npm run typecheck` -> PASS
 - `npm run test:compile` -> PASS
 
 ## Current State
 
-- `COACH-OPS-01` is complete in code.
-- Non-mock signed-in coach self-manage availability and scheduling rules now use `/v1/coaches/me/*` instead of `/api/coaches/*` drift or local-only coach ops persistence.
-- Public booking and non-self coach availability/policy reads still use the existing local projection by design; that broader read seam remains out of scope for this slice.
-- The next remaining runtime authority gap is invoice authority.
+- `REVENUE-API-01` is complete in code.
+- Non-mock invoice list/detail and coach reconciler status changes now use `/v1/invoices*` instead of local invoice storage.
+- Normal booking invoice rows are no longer synthesized locally outside mock mode; the remaining synthetic invoice seam is limited to off-platform offering reconciler items.
+- The next remaining runtime authority gap is club schedule item detail.
 
 ## Next Exact Action
 
-1. Start `REVENUE-API-01`: move invoice list/detail/status flows onto authoritative `/v1/invoices*` reads and writes, then remove the remaining local-only invoice authority path.
+1. Start `SCHEDULE-API-02`: add `/v1/clubs/:clubId/schedule/:activityId` and move schedule drill-in reads off app-side source-specific lookup.

@@ -10,6 +10,7 @@ import { useCallback, useMemo, useRef } from 'react';
 import { useAuth } from '@/hooks/use-auth';
 import { useScreen } from '@/hooks/use-screen';
 import { useToast } from '@/components/ui/toast';
+import { api } from '@/constants/config';
 import { bookingService } from '@/services/booking';
 import { invoiceService } from '@/services/invoice-service';
 import { rosterService } from '@/services/roster-service';
@@ -211,8 +212,7 @@ export function useSessionPayments() {
         const invoiceAmount = invoiceAmounts[index];
         let invoice = invoiceResults[index];
 
-        // TODO: Remove synthetic fallback when real API replaces AsyncStorage mock layer
-        if (!invoice && invoiceAmount > 0) {
+        if (!invoice && invoiceAmount > 0 && api.useMock) {
           invoice = {
             id: `inv_auto_${booking.id}`,
             invoiceNumber: `INV-AUTO-${booking.id}`,

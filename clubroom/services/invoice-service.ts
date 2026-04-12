@@ -9,9 +9,9 @@ import {
   InvoiceFilter,
   GenerateInvoiceParams,
 } from '@/constants/types';
-import { apiClient } from './api-client';
+import { apiClient, apiFetch } from './api-client';
 import { createLogger } from '@/utils/logger';
-import { type Result, type ServiceError, ok, err, notFound, validationError } from '@/types/result';
+import { type Result, type ServiceError, ok, err, notFound, serviceError, validationError } from '@/types/result';
 import { emitTyped, ServiceEvents } from './event-bus';
 import { generateInvoiceHtml } from './invoice-template';
 import { bookingService } from '@/services/booking';
@@ -272,11 +272,109 @@ export interface SendInvoiceResult {
   error?: string;
 }
 
+interface ApiInvoiceListResponse {
+  invoices: Invoice[];
+  total: number;
+}
+
+interface ApiInvoiceDetailResponse {
+  invoice: Invoice;
+}
+
 // ============================================================================
 // INVOICE SERVICE
 // ============================================================================
 
 class InvoiceService {
+  isUsingMockData(): boolean {
+    return USE_MOCK;
+  }
+
+  private buildInvoiceSummary(userId: string, invoices: Invoice[]): InvoiceSummary {
+    return {
+      userId,
+      totalInvoices: invoices.length,
+      paidCount: invoices.filter((inv) => inv.status === 'PAID').length,
+      pendingCount: invoices.filter((inv) => inv.status === 'SENT').length,
+      draftCount: invoices.filter((inv) => inv.status === 'DRAFT').length,
+      voidedCount: invoices.filter((inv) => inv.status === 'VOID').length,
+      totalAmount: invoices.reduce((sum, inv) => sum + inv.total, 0),
+      totalPaid: invoices
+        .filter((inv) => inv.status === 'PAID')
+        .reduce((sum, inv) => sum + inv.total, 0),
+      totalPending: invoices
+        .filter((inv) => inv.status === 'SENT')
+        .reduce((sum, inv) => sum + inv.total, 0),
+      currency: 'GBP',
+    };
+  }
+
+  summarizeInvoices(userId: string, invoices: Invoice[]): InvoiceSummary {
+    return this.buildInvoiceSummary(userId, invoices);
+  }
+
+  private async getAuthoritativeInvoices(filter?: InvoiceFilter): Promise<Invoice[]> {
+    const params = new URLSearchParams();
+    if (filter?.status) {
+      const statuses = Array.isArray(filter.status) ? filter.status : [filter.status];
+      if (statuses.length > 0) {
+        params.set('status', statuses.join(','));
+      }
+    }
+    if (filter?.coachId) {
+      params.set('coachId', filter.coachId);
+    }
+    if (filter?.bookingId) {
+      params.set('bookingId', filter.bookingId);
+    }
+    if (filter?.dateFrom) {
+      params.set('dateFrom', filter.dateFrom);
+    }
+    if (filter?.dateTo) {
+      params.set('dateTo', filter.dateTo);
+    }
+
+    const result = await apiFetch<ApiInvoiceListResponse>(
+      `/v1/invoices${params.size ? `?${params.toString()}` : ''}`,
+      { method: 'GET' },
+    );
+    if (!result.success) {
+      throw new Error(result.error.message);
+    }
+    return result.data.invoices;
+  }
+
+  private async getAuthoritativeInvoice(invoiceId: string): Promise<Invoice | null> {
+    const result = await apiFetch<ApiInvoiceDetailResponse>(`/v1/invoices/${invoiceId}`, {
+      method: 'GET',
+    });
+    if (result.success) {
+      return result.data.invoice;
+    }
+    if (result.error.code === 'NOT_FOUND') {
+      return null;
+    }
+    throw new Error(result.error.message);
+  }
+
+  private async runInvoiceTransition(
+    invoiceId: string,
+    path: string,
+    body?: Record<string, unknown>,
+  ): Promise<Invoice | null> {
+    const result = await apiFetch<ApiInvoiceDetailResponse>(path, {
+      method: 'POST',
+      body: body ? JSON.stringify(body) : undefined,
+    });
+    if (result.success) {
+      return result.data.invoice;
+    }
+    if (result.error.code === 'NOT_FOUND') {
+      return null;
+    }
+    throw new Error(result.error.message);
+  }
+
   // ==========================================================================
   // INVOICE RETRIEVAL
   // ==========================================================================
@@ -285,6 +383,11 @@ class InvoiceService {
    * Get all invoices for a user
    */
   async getUserInvoices(userId: string, limit?: number): Promise<Invoice[]> {
+    if (!USE_MOCK) {
+      const invoices = await this.getAuthoritativeInvoices();
+      return limit && limit > 0 ? invoices.slice(0, limit) : invoices;
+    }
+
     const allInvoices = await this.getAllInvoices();
     let userInvoices = allInvoices
       .filter((inv) => inv.userId === userId || inv.coachId === userId)
@@ -306,6 +409,11 @@ class InvoiceService {
     filter: InvoiceFilter,
     limit?: number,
   ): Promise<Invoice[]> {
+    if (!USE_MOCK) {
+      const invoices = await this.getAuthoritativeInvoices(filter);
+      return limit && limit > 0 ? invoices.slice(0, limit) : invoices;
+    }
+
     let invoices = await this.getUserInvoices(userId);
 
     // Filter by status
@@ -346,6 +454,18 @@ class InvoiceService {
    * Get a single invoice by ID
    */
   async getInvoiceById(invoiceId: string): Promise<Invoice | null> {
+    if (!USE_MOCK) {
+      const invoice = await this.getAuthoritativeInvoice(invoiceId);
+
+      if (invoice) {
+        logger.info('invoice_retrieved', { invoiceId });
+      } else {
+        logger.warn('invoice_not_found', { invoiceId });
+      }
+
+      return invoice;
+    }
+
     const allInvoices = await this.getAllInvoices();
     const invoice = allInvoices.find((inv) => inv.id === invoiceId);
 
@@ -362,6 +482,11 @@ class InvoiceService {
    * Get invoice by booking ID
    */
   async getInvoiceByBookingId(bookingId: string): Promise<Invoice | null> {
+    if (!USE_MOCK) {
+      const invoices = await this.getAuthoritativeInvoices({ bookingId });
+      return invoices[0] ?? null;
+    }
+
     const allInvoices = await this.getAllInvoices();
     return allInvoices.find((inv) => inv.bookingId === bookingId) || null;
   }
@@ -373,8 +498,7 @@ class InvoiceService {
     if (USE_MOCK) {
       return apiClient.get<Invoice[]>(STORAGE_KEY_INVOICES, MOCK_INVOICES);
     }
-    // TODO: API call when ready
-    return apiClient.get<Invoice[]>(STORAGE_KEY_INVOICES, []);
+    return [];
   }
 
   /**
@@ -389,6 +513,10 @@ class InvoiceService {
    * Used by hooks that create synthetic invoices from booking data.
    */
   async upsertInvoice(invoice: Invoice): Promise<void> {
+    if (!USE_MOCK) {
+      return;
+    }
+
     const invoices = await this.getAllInvoices();
     const exists = invoices.some((inv) => inv.id === invoice.id);
     if (!exists) {
@@ -406,6 +534,10 @@ class InvoiceService {
    * Generate a new invoice for a booking
    */
   async generateInvoice(params: GenerateInvoiceParams): Promise<Result<Invoice, ServiceError>> {
+    if (!USE_MOCK) {
+      return err(serviceError('UNKNOWN', 'Runtime invoice generation is not available in non-mock mode yet.'));
+    }
+
     const { bookingId, notes, dueDate, taxRate = DEFAULT_TAX_RATE } = params;
 
     // Check if invoice already exists for this booking
@@ -552,6 +684,10 @@ class InvoiceService {
    * Send invoice to email
    */
   async sendInvoice(invoiceId: string, email: string): Promise<SendInvoiceResult> {
+    if (!USE_MOCK) {
+      return { success: false, error: 'Runtime invoice sending is not available yet.' };
+    }
+
     const invoice = await this.getInvoiceById(invoiceId);
 
     if (!invoice) {
@@ -580,6 +716,18 @@ class InvoiceService {
    * Mark invoice as paid
    */
   async markAsPaid(invoiceId: string): Promise<Invoice | null> {
+    if (!USE_MOCK) {
+      const invoice = await this.runInvoiceTransition(invoiceId, `/v1/invoices/${invoiceId}/mark-paid`);
+      if (invoice) {
+        emitTyped(ServiceEvents.INVOICE_PAID, {
+          invoiceId,
+          coachId: invoice.coachId,
+          amount: invoice.total,
+        });
+      }
+      return invoice;
+    }
+
     const invoice = await this.getInvoiceById(invoiceId);
 
     if (!invoice) {
@@ -613,6 +761,18 @@ class InvoiceService {
    * Undo mark-as-paid — move invoice back to SENT (owed)
    */
   async markAsUnpaid(invoiceId: string): Promise<Invoice | null> {
+    if (!USE_MOCK) {
+      const invoice = await this.runInvoiceTransition(invoiceId, `/v1/invoices/${invoiceId}/mark-unpaid`);
+      if (invoice) {
+        emitTyped(ServiceEvents.INVOICE_RESTORED, {
+          invoiceId,
+          coachId: invoice.coachId,
+          amount: invoice.total,
+        });
+      }
+      return invoice;
+    }
+
     const invoice = await this.getInvoiceById(invoiceId);
 
     if (!invoice) {
@@ -646,6 +806,10 @@ class InvoiceService {
    * Void an invoice
    */
   async voidInvoice(invoiceId: string, reason?: string): Promise<Invoice | null> {
+    if (!USE_MOCK) {
+      return this.runInvoiceTransition(invoiceId, `/v1/invoices/${invoiceId}/void`, { reason });
+    }
+
     const invoice = await this.getInvoiceById(invoiceId);
 
     if (!invoice) {
@@ -672,6 +836,20 @@ class InvoiceService {
    * Write off an invoice (coach decides not to chase payment)
    */
   async writeOff(invoiceId: string, reason?: string): Promise<Invoice | null> {
+    if (!USE_MOCK) {
+      const invoice = await this.runInvoiceTransition(invoiceId, `/v1/invoices/${invoiceId}/write-off`, {
+        reason,
+      });
+      if (invoice) {
+        emitTyped(ServiceEvents.INVOICE_WRITTEN_OFF, {
+          invoiceId,
+          coachId: invoice.coachId,
+          amount: invoice.total,
+        });
+      }
+      return invoice;
+    }
+
     const invoice = await this.getInvoiceById(invoiceId);
 
     if (!invoice) {
@@ -705,6 +883,18 @@ class InvoiceService {
    * Restore a written-off invoice back to SENT status
    */
   async restoreFromWriteOff(invoiceId: string): Promise<Invoice | null> {
+    if (!USE_MOCK) {
+      const invoice = await this.runInvoiceTransition(invoiceId, `/v1/invoices/${invoiceId}/restore`);
+      if (invoice) {
+        emitTyped(ServiceEvents.INVOICE_RESTORED, {
+          invoiceId,
+          coachId: invoice.coachId,
+          amount: invoice.total,
+        });
+      }
+      return invoice;
+    }
+
     const invoice = await this.getInvoiceById(invoiceId);
 
     if (!invoice) {
@@ -841,23 +1031,7 @@ class InvoiceService {
    */
   async getInvoiceSummary(userId: string): Promise<InvoiceSummary> {
     const invoices = await this.getUserInvoices(userId);
-
-    const summary: InvoiceSummary = {
-      userId,
-      totalInvoices: invoices.length,
-      paidCount: invoices.filter((inv) => inv.status === 'PAID').length,
-      pendingCount: invoices.filter((inv) => inv.status === 'SENT').length,
-      draftCount: invoices.filter((inv) => inv.status === 'DRAFT').length,
-      voidedCount: invoices.filter((inv) => inv.status === 'VOID').length,
-      totalAmount: invoices.reduce((sum, inv) => sum + inv.total, 0),
-      totalPaid: invoices
-        .filter((inv) => inv.status === 'PAID')
-        .reduce((sum, inv) => sum + inv.total, 0),
-      totalPending: invoices
-        .filter((inv) => inv.status === 'SENT')
-        .reduce((sum, inv) => sum + inv.total, 0),
-      currency: 'GBP',
-    };
+    const summary = this.buildInvoiceSummary(userId, invoices);
 
     logger.info('invoice_summary_retrieved', summary);
     return summary;
@@ -904,6 +1078,9 @@ class InvoiceService {
    * Seed demo invoice data (for testing/demos)
    */
   async seedDemoData(): Promise<void> {
+    if (!USE_MOCK) {
+      return;
+    }
     await this.saveInvoices(MOCK_INVOICES);
     logger.info('demo_data_seeded', { invoiceCount: MOCK_INVOICES.length });
   }
@@ -912,6 +1089,9 @@ class InvoiceService {
    * Clear all invoice data (for testing)
    */
   async clearAllData(): Promise<void> {
+    if (!USE_MOCK) {
+      return;
+    }
     await apiClient.set(STORAGE_KEY_INVOICES, []);
     logger.info('invoice_data_cleared');
   }
