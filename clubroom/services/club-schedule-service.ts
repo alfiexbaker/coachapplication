@@ -1,4 +1,7 @@
+import { api } from '@/constants/config';
 import type { ClubActivity, ClubEvent, GroupSession, Match } from '@/constants/types';
+import { apiFetch } from '@/services/api-client';
+import { buildApiAuthHeaders, deriveApiActingRole, resolveSignedInApiUser } from '@/services/api-auth-context';
 import { eventService } from '@/services/event-service';
 import { matchService } from '@/services/match-service';
 import { squadService } from '@/services/squad-service';
@@ -8,6 +11,15 @@ import { buildClubActivities } from '@/utils/club-activity-projections';
 import { err, notFound, ok, serviceError, type Result, type ServiceError } from '@/types/result';
 
 const logger = createLogger('ClubScheduleService');
+const USE_MOCK = api.useMock;
+
+interface ApiClubScheduleResponse {
+  clubId: string;
+  activities: ClubActivity[];
+  total: number;
+  seedVersion?: string | null;
+  requestId: string;
+}
 
 function isVisibleClubEvent(event: ClubEvent): boolean {
   return event.status !== 'DRAFT';
@@ -35,7 +47,7 @@ function isRelevantSquadMatch(match: Match, squadId: string): boolean {
   return match.squadId === squadId;
 }
 
-async function loadClubScheduleData(
+async function loadMockClubScheduleData(
   clubId: string,
 ): Promise<{ events: ClubEvent[]; sessions: GroupSession[]; matches: Match[] }> {
   const [eventsResult, sessionsResult, matchesResult] = await Promise.allSettled([
@@ -69,10 +81,36 @@ async function loadClubScheduleData(
   return { events, sessions, matches };
 }
 
+async function resolveScheduleHeaders(): Promise<Result<Record<string, string>, ServiceError>> {
+  const currentUserResult = await resolveSignedInApiUser('Sign in to view club schedules.');
+  if (!currentUserResult.success) {
+    return currentUserResult;
+  }
+
+  return ok(buildApiAuthHeaders({ actingRole: deriveApiActingRole(currentUserResult.data, 'member') }));
+}
+
 class ClubScheduleService {
   async getClubSchedule(clubId: string): Promise<Result<ClubActivity[], ServiceError>> {
+    if (!USE_MOCK) {
+      const headersResult = await resolveScheduleHeaders();
+      if (!headersResult.success) {
+        return headersResult;
+      }
+
+      const result = await apiFetch<ApiClubScheduleResponse>(`/v1/clubs/${clubId}/schedule`, {
+        method: 'GET',
+        headers: headersResult.data,
+      });
+      if (!result.success) {
+        logger.error('Failed to load club schedule via API', { clubId, error: result.error });
+        return err(result.error);
+      }
+      return ok(result.data.activities);
+    }
+
     try {
-      const data = await loadClubScheduleData(clubId);
+      const data = await loadMockClubScheduleData(clubId);
       return ok(
         buildClubActivities(
           {
@@ -97,7 +135,23 @@ class ClubScheduleService {
         return err(notFound('Squad', squadId));
       }
 
-      const data = await loadClubScheduleData(squad.clubId);
+      if (!USE_MOCK) {
+        const scheduleResult = await this.getClubSchedule(squad.clubId);
+        if (!scheduleResult.success) {
+          return scheduleResult;
+        }
+
+        return ok(
+          scheduleResult.data.filter((activity) => {
+            if (activity.squadId) {
+              return activity.squadId === squadId;
+            }
+            return activity.squadIds.length === 0 || activity.squadIds.includes(squadId);
+          }),
+        );
+      }
+
+      const data = await loadMockClubScheduleData(squad.clubId);
       return ok(
         buildClubActivities(
           {

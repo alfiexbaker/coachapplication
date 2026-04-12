@@ -4,22 +4,22 @@ Date: 2026-04-12
 
 ## What Was Just Done
 
-1. Finished `HOME-01` by extending the athlete/parent home hook with primary-club recent results and club-highlight data.
-2. Added compact `Recent Results` and `Club Highlights` sections to the existing home screen instead of broadening the home-shell structure.
-3. Re-ran repo typecheck and the full UI flow suite against Expo web; all checked flows passed cleanly.
-4. Synced the canonical runtime and sprint docs to reflect the completed home-layer slice.
+1. Finished `SCHEDULE-API-01` by adding `GET /v1/clubs/:clubId/schedule` in the API and projecting club events plus group sessions into the club-facing activity list.
+2. Switched non-mock `services/club-schedule-service.ts` to read club schedules from the new `/v1` route instead of assembling them directly in the app.
+3. Added route coverage for member access, non-member denial, and privileged-admin access.
+4. Synced the canonical runtime and API docs so the route is no longer described as only planned.
 
 ## Verification Run In This Step
 
-- `npm run typecheck` -> PASS
-- `npm run ui:flows:run` -> PASS (`85/85`, `0` high, `0` medium)
+- `npm --prefix apps/api run typecheck` -> PASS
+- `npm --prefix apps/api run test` -> PASS (`46/46`)
 
 ## Current State
 
-- `AUTH-02`, `TRUST-01`, `BOOK-01`, `OBS-01`, and `AUTHZ-03` are complete in code.
-- Coach-profile commerce state now uses backend-owned offerings and go-live writes in non-mock mode instead of local-only placeholders.
-- The recut sprint queue is complete in code.
+- `SCHEDULE-API-01` is complete in code.
+- Dedicated club schedule list reads are now backend-authoritative in non-mock mode.
+- Club activity detail authority is still not backend-owned.
 
 ## Next Exact Action
 
-1. Recut the backlog from current runtime truth before starting a new sprint label.
+1. Recut the backlog from current runtime truth before starting the next sprint label.

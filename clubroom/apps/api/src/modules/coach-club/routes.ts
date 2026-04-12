@@ -8,6 +8,7 @@ import {
 import { canUseStaffInviteLinks, isPrivilegedAdminAuth } from '../../lib/authz.js';
 import { forbidden, notFound } from '../../lib/http-errors.js';
 import { getMarketplaceSeedStore } from '../../lib/marketplace-seed-store.js';
+import { buildClubScheduleActivities } from './schedule.js';
 
 type SeedRow = Record<string, unknown>;
 
@@ -167,6 +168,18 @@ function mapClubSummary(club: SeedRow, inviteCode: string) {
     visibility: asString(club.visibility),
     inviteCode,
   };
+}
+
+function canViewClubSchedule(params: {
+  club: SeedRow;
+  viewerMembership: SeedRow | null;
+  isPrivilegedAdmin: boolean;
+}): boolean {
+  if (params.isPrivilegedAdmin || params.viewerMembership) {
+    return true;
+  }
+
+  return asString(params.club.visibility) === 'public';
 }
 
 function getInviteCodeForRole(clubId: string, role: string): ClubInviteCodeRow | undefined {
@@ -351,6 +364,38 @@ const coachClubRoutes: FastifyPluginAsync = async (app) => {
     return reply.send({
       clubs: payload,
       total: payload.length,
+      seedVersion: store.version,
+      requestId: request.requestId,
+    });
+  });
+
+  app.get('/clubs/:clubId/schedule', async (request, reply) => {
+    const authUserId = requireAuthUserId(request.auth?.userId);
+    const clubId = asString((request.params as { clubId?: string }).clubId);
+    if (!clubId) {
+      throw notFound('Club not found');
+    }
+
+    const isPrivilegedAdmin = isPrivilegedAdminAuth(request.auth);
+    const store = getMarketplaceSeedStore();
+    const clubs = asRows(store.tables.clubs);
+    const clubMemberships = asRows(store.tables.clubMemberships);
+    const club = clubs.find((row) => asString(row.id) === clubId);
+    if (!club) {
+      throw notFound('Club not found');
+    }
+
+    const viewerMembership = getViewerMembership(clubMemberships, clubId, authUserId);
+    if (!canViewClubSchedule({ club, viewerMembership, isPrivilegedAdmin })) {
+      throw forbidden('You do not have permission to view this club schedule');
+    }
+
+    const activities = buildClubScheduleActivities(store.tables, clubId);
+
+    return reply.send({
+      clubId,
+      activities,
+      total: activities.length,
       seedVersion: store.version,
       requestId: request.requestId,
     });

@@ -91,7 +91,8 @@ Purpose: identify the service entrypoints that are safe to build on and call out
 - `services/club-schedule-service.ts`
 - Canonical read-model seam for `Club Schedule` and `Team Schedule`
 - Current rule: it projects events, group sessions, and matches into `ClubActivity`
-- Current limitation: schedule reads are still app-owned; `/v1/clubs/:clubId/schedule` remains the planned backend authority target
+- Current non-mock rule: list reads now go through `/v1/clubs/:clubId/schedule`
+- Current limitation: mock mode still projects locally, and `/v1/clubs/:clubId/schedule/:activityId` remains planned
 
 ### Notifications
 
