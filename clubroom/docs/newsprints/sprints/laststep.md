@@ -19,7 +19,8 @@ Date: 2026-04-12
 - `SCHEDULE-API-01` is complete in code.
 - Dedicated club schedule list reads are now backend-authoritative in non-mock mode.
 - Club activity detail authority is still not backend-owned.
+- The next queue is now recut around the remaining authority gaps instead of old umbrella sprint labels.
 
 ## Next Exact Action
 
-1. Recut the backlog from current runtime truth before starting the next sprint label.
+1. Start `FAMILY-API-01`: move family member/account authority onto `/v1/families/:familyId`, `/v1/athletes`, and `/v1/athletes/:athleteId`.
