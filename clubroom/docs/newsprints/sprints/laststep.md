@@ -4,30 +4,23 @@ Date: 2026-04-12
 
 ## What Was Just Done
 
-1. Finished `OBS-01` by wiring `@sentry/react-native` into the Expo app bootstrap, Expo config plugin, and Expo web Metro/export path; the app now has release/environment tags, user tagging, and Sentry-backed logger/error-boundary capture.
-2. Added API instrumentation in `apps/api/src/instrument.ts`, imported it ahead of server boot, tagged request/auth context in the Fastify plugins, and captured unhandled `500` errors into Sentry with API sourcemap support via `npm --prefix apps/api run build:release`.
-3. Fixed the Expo web blocker by upgrading `react-native-worklets` to `0.7.4`, then re-ran the web validation stack successfully.
-4. Removed the old fake remote-log batching path from `utils/logger.ts` instead of leaving dead placeholder code behind.
-5. Synced the canonical runtime, backend, and sprint docs to reflect the new observability reality.
+1. Finished `AUTHZ-03` by moving the remaining privileged admin and staff-invite decisions onto shared helpers in `apps/api/src/lib/authz.ts`.
+2. Replaced duplicated route-local role checks across `/v1/clubs*`, `/v1/families/:familyId`, booking invite/group-session routes, and `wave2plus` admin/invoice routes with shared backend authz helpers.
+3. Tightened the event RSVP membership check to require an active club membership unless the actor is a privileged admin.
+4. Added regression coverage proving `security_admin` can list clubs and use invoice admin paths.
+5. Synced the canonical trust/runtime docs and sprint backlog to reflect `AUTHZ-03` completion.
 
 ## Verification Run In This Step
 
-- `npm run typecheck` -> PASS
-- `npm run test:compile` -> PASS
 - `npm --prefix apps/api run typecheck` -> PASS
-- `npm --prefix apps/api run test` -> PASS (`41/41`)
-- `npm run export:web` -> PASS
-- `npm run ui:flows:preflight` -> PASS
-- `npm run ui:flows:run` -> PASS (`85/85` ok, `0` high, `0` medium)
+- `npm --prefix apps/api run test` -> PASS (`43/43`)
 
 ## Current State
 
-- `AUTH-02`, `TRUST-01`, `BOOK-01`, and `OBS-01` are complete in code.
-- Expo native/web and `apps/api` now share release-aware Sentry instrumentation and repo-native sourcemap paths.
-- The old Expo web `react-native-worklets` crash is no longer blocking validation.
-- Full UI flow coverage now runs cleanly with no high- or medium-severity findings in the checked suite.
-- The sprint backlog is now recut around real unfinished seams instead of the older `LAUNCH-*` umbrella labels.
+- `AUTH-02`, `TRUST-01`, `BOOK-01`, `OBS-01`, and `AUTHZ-03` are complete in code.
+- Privileged admin and staff invite access is now backend-owned for the current `/v1` trust/commercial routes instead of being split across route-local checks.
+- The sprint backlog is now recut around the remaining real seams: commerce authority, release hardening, and the football-first home layer.
 
 ## Next Exact Action
 
-1. Start `AUTHZ-03`: extend backend authz coverage across the remaining sensitive `/v1` routes and remove the last client-side authority fallbacks.
+1. Start `COMMERCE-01`: make coach and club offers authoritative and easier to buy, beginning with the real go-live state and authoritative coach offerings.

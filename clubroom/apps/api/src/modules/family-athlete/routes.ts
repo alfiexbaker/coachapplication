@@ -27,6 +27,7 @@ import {
   assertCanReadAthleteMedical,
   assertCanWriteAthleteHealth,
   assertCanWriteAthleteMedical,
+  isPrivilegedAdminAuth,
 } from '../../lib/authz.js';
 
 const injuriesByAthleteId = new Map<string, InjuryRecord[]>();
@@ -240,8 +241,7 @@ const familyAthleteRoutes: FastifyPluginAsync = async (app) => {
   app.get('/families/:familyId', async (request, reply) => {
     const familyId = familyIdSchema.parse((request.params as { familyId: string }).familyId);
     const authUserId = ensureAuthUserId(request.auth?.userId);
-    const isClubAdmin =
-      request.auth?.roles.includes('club_admin') || request.auth?.actingRole === 'club_admin';
+    const isClubAdmin = isPrivilegedAdminAuth(request.auth);
 
     const repository = resolveFamilyRepository();
     const aggregate = await repository.getFamilyAggregate(familyId, authUserId, isClubAdmin);

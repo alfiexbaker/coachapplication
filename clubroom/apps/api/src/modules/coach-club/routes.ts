@@ -5,6 +5,7 @@ import {
   getClubGovernanceSnapshot,
   parseOrganizationRole,
 } from '@clubroom/shared-contracts';
+import { canUseStaffInviteLinks, isPrivilegedAdminAuth } from '../../lib/authz.js';
 import { forbidden, notFound } from '../../lib/http-errors.js';
 import { getMarketplaceSeedStore } from '../../lib/marketplace-seed-store.js';
 
@@ -306,9 +307,7 @@ const coachClubRoutes: FastifyPluginAsync = async (app) => {
 
   app.get('/clubs', async (request, reply) => {
     const authUserId = requireAuthUserId(request.auth?.userId);
-
-    const isClubAdmin =
-      request.auth?.roles.includes('club_admin') || request.auth?.actingRole === 'club_admin';
+    const isPrivilegedAdmin = isPrivilegedAdminAuth(request.auth);
 
     const store = getMarketplaceSeedStore();
     const clubs = asRows(store.tables.clubs);
@@ -323,7 +322,7 @@ const coachClubRoutes: FastifyPluginAsync = async (app) => {
     );
 
     const visibleClubs = clubs.filter((club) => {
-      if (isClubAdmin) {
+      if (isPrivilegedAdmin) {
         return true;
       }
       const clubId = asString(club.id);
@@ -501,14 +500,7 @@ const coachClubRoutes: FastifyPluginAsync = async (app) => {
     }
 
     const isStaffInvite = inviteCode.role !== 'MEMBER';
-    const authRoles = new Set(request.auth?.roles ?? []);
-    const staffEligible =
-      authRoles.has('coach') || authRoles.has('admin') || authRoles.has('club_admin')
-      || request.auth?.actingRole === 'coach'
-      || request.auth?.actingRole === 'admin'
-      || request.auth?.actingRole === 'club_admin';
-
-    if (isStaffInvite && !staffEligible) {
+    if (isStaffInvite && !canUseStaffInviteLinks(request.auth)) {
       throw forbidden('Only coach or admin accounts can use staff invite links');
     }
 

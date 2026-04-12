@@ -1,6 +1,6 @@
 # Auth And Permission Boundaries
 
-Validated: 2026-04-03
+Validated: 2026-04-12
 Purpose: state what is enforced today, what is design truth, and where auth and permission work is still incomplete.
 
 ## Canonical Sources
@@ -48,12 +48,15 @@ Validated reality:
 - App `/v1` authority services now rely on bearer auth plus `x-acting-role` and scoped relationship headers instead of client-supplied identity headers
 - `/v1/auth/login`, `/v1/auth/register`, `/v1/auth/refresh`, `/v1/auth/logout`, `/v1/auth/revoke`, and `/v1/auth/me` now run on the JWT/session runtime
 - `/v1/me/sessions`, `/v1/me/sessions/revoke-all`, and `/v1/me/sessions/:sessionId/revoke` now expose the same runtime session registry used by bearer auth
+- Remaining club and trust-sensitive admin checks now centralize in `apps/api/src/lib/authz.ts` instead of being hand-coded per route
+- privileged admin access is currently `club_admin`, `admin`, or `security_admin`; staff invite-link eligibility is `coach` plus the privileged admin roles
+- `/v1/clubs`, `/v1/clubs/join`, `/v1/families/:familyId`, `/v1/invoices/*`, `/v1/access-grants`, `/v1/admin/retention-runs`, and the affected booking invite/group-session routes now use that shared backend role decision instead of local route drift
 
 ## What Is Still Design Truth, Not Full Runtime Truth
 
 - Auth0-backed JWT validation
 - full device metadata management across app and API
-- production-grade grant resolution and audit coverage for every sensitive route
+- production-grade grant resolution and audit coverage for every sensitive route beyond the current shared helper coverage
 
 ## Safe Interpretation For Agents
 
@@ -80,4 +83,4 @@ Validated reality:
 - Child medical, emergency-contact, and consent writes no longer persist through `services/child-service.ts`; those records now flow through `services/safety-service.ts` -> `services/family/family-health-service.ts` -> `/v1/athletes/*`.
 - The parent edit-child-profile modal now treats medical, emergency, and consent changes as protected health flows and routes users to the dedicated child health screens instead of writing those fields into the child profile object.
 - Booking creation in non-mock mode is now fail-closed through `/v1/bookings`; guardian or delegated requests either pass backend relationship authz or fail, instead of silently persisting a local-only booking.
-- This closes the transport mismatch, the runtime scaffold-header fallback, and the temporary dev-session model, but broader backend authorization coverage is still incomplete.
+- This closes the transport mismatch, the runtime scaffold-header fallback, the temporary dev-session model, and the remaining duplicated privileged-admin checks in the current `/v1` trust/commercial routes. Broader backend authorization coverage is still incomplete beyond these runtime-owned paths.

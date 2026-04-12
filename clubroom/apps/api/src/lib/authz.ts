@@ -1,9 +1,19 @@
 import type { FastifyRequest } from 'fastify';
 import { forbidden } from './http-errors.js';
 
-type ActingRole = 'coach' | 'parent' | 'athlete' | 'club_admin';
+type ActingRole = 'coach' | 'parent' | 'athlete' | 'club_admin' | 'admin' | 'security_admin';
+type GrantedRole = ActingRole | 'member';
 
-const validRoles = new Set<ActingRole>(['coach', 'parent', 'athlete', 'club_admin']);
+const validRoles = new Set<ActingRole>([
+  'coach',
+  'parent',
+  'athlete',
+  'club_admin',
+  'admin',
+  'security_admin',
+]);
+const privilegedAdminRoles: GrantedRole[] = ['club_admin', 'admin', 'security_admin'];
+const staffInviteRoles: GrantedRole[] = ['coach', 'club_admin', 'admin', 'security_admin'];
 
 const guardianLinksByUser: Record<string, string[]> = {
   usr_parent1: ['ath_user1', 'ath_user2'],
@@ -28,6 +38,47 @@ function getAuthOrThrow(request: FastifyRequest) {
     throw forbidden('Authentication context is required');
   }
   return request.auth;
+}
+
+function getGrantedRoles(auth: FastifyRequest['auth'] | undefined): Set<GrantedRole> {
+  const granted = new Set<GrantedRole>();
+
+  for (const role of auth?.roles ?? []) {
+    granted.add(role as GrantedRole);
+  }
+
+  if (auth?.actingRole) {
+    granted.add(auth.actingRole as GrantedRole);
+  }
+
+  return granted;
+}
+
+export function hasGrantedRole(
+  auth: FastifyRequest['auth'] | undefined,
+  role: GrantedRole,
+): boolean {
+  return getGrantedRoles(auth).has(role);
+}
+
+export function hasAnyGrantedRole(
+  auth: FastifyRequest['auth'] | undefined,
+  roles: GrantedRole[],
+): boolean {
+  const granted = getGrantedRoles(auth);
+  return roles.some((role) => granted.has(role));
+}
+
+export function isClubAdminAuth(auth: FastifyRequest['auth'] | undefined): boolean {
+  return hasGrantedRole(auth, 'club_admin');
+}
+
+export function isPrivilegedAdminAuth(auth: FastifyRequest['auth'] | undefined): boolean {
+  return hasAnyGrantedRole(auth, privilegedAdminRoles);
+}
+
+export function canUseStaffInviteLinks(auth: FastifyRequest['auth'] | undefined): boolean {
+  return hasAnyGrantedRole(auth, staffInviteRoles);
 }
 
 function getRoleOrThrow(request: FastifyRequest): ActingRole {
@@ -166,7 +217,7 @@ export function assertCanAccessSafeguardingIncident(
   if (auth.userId === incident.reportedByUserId) {
     return;
   }
-  if (role === 'club_admin') {
+  if (isPrivilegedAdminAuth(auth)) {
     return;
   }
   if (!incident.athleteId) {

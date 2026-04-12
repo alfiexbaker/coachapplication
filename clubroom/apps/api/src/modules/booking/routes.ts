@@ -15,6 +15,7 @@ import {
   resolveBookingRepository,
   type SeedTables,
 } from '../../repositories/p0/booking-repository.js';
+import { isPrivilegedAdminAuth } from '../../lib/authz.js';
 import { getMarketplaceSeedStore } from '../../lib/marketplace-seed-store.js';
 
 type SeedRow = Record<string, unknown>;
@@ -52,10 +53,6 @@ const invitesQuerySchema = z.object({
   inviteType: inviteAudienceTypeSchema.optional(),
   squadIds: z.string().optional(),
 });
-
-function isClubAdminAuth(auth: { roles?: string[]; actingRole?: string } | undefined): boolean {
-  return Boolean(auth?.roles?.includes('club_admin') || auth?.actingRole === 'club_admin');
-}
 
 function normalizeSessionStatusForCapacity(current: number, max: number): 'PUBLISHED' | 'FULL' {
   return current >= max ? 'FULL' : 'PUBLISHED';
@@ -626,8 +623,7 @@ const bookingRoutes: FastifyPluginAsync = async (app) => {
 
     const query = groupSessionQuerySchema.parse(request.query ?? {});
     const statusFilter = query.status?.toUpperCase();
-    const isClubAdmin =
-      request.auth?.roles.includes('club_admin') || request.auth?.actingRole === 'club_admin';
+    const isPrivilegedAdmin = isPrivilegedAdminAuth(request.auth);
 
     const store = getMarketplaceSeedStore();
     const sessions = asRows(store.tables.groupSessions);
@@ -651,7 +647,7 @@ const bookingRoutes: FastifyPluginAsync = async (app) => {
       if (statusFilter && asString(session.status)?.toUpperCase() !== statusFilter) {
         return false;
       }
-      if (isClubAdmin || asString(session.coachUserId) === authUserId) {
+      if (isPrivilegedAdmin || asString(session.coachUserId) === authUserId) {
         return true;
       }
 
@@ -711,8 +707,8 @@ const bookingRoutes: FastifyPluginAsync = async (app) => {
     }
 
     const body = registerGroupSessionRequestSchema.parse(request.body);
-    const isClubAdmin = isClubAdminAuth(request.auth);
-    if (!isClubAdmin && body.parentUserId && body.parentUserId !== authUserId) {
+    const isPrivilegedAdmin = isPrivilegedAdminAuth(request.auth);
+    if (!isPrivilegedAdmin && body.parentUserId && body.parentUserId !== authUserId) {
       throw forbidden('parentUserId must match authenticated user');
     }
 
@@ -729,7 +725,7 @@ const bookingRoutes: FastifyPluginAsync = async (app) => {
         tables: store.tables,
         authUserId,
         athleteId: body.athleteId,
-        isClubAdmin,
+        isClubAdmin: isPrivilegedAdmin,
       })
     ) {
       throw forbidden('Authenticated user cannot register this athlete');
@@ -786,13 +782,13 @@ const bookingRoutes: FastifyPluginAsync = async (app) => {
       throw badRequest('coachUserId and parentUserId cannot be combined');
     }
 
-    const isClubAdmin = isClubAdminAuth(request.auth);
+    const isPrivilegedAdmin = isPrivilegedAdminAuth(request.auth);
     const store = getMarketplaceSeedStore();
     const invites = asRows(store.tables.invites);
     const targets = asRows(store.tables.inviteTargets);
 
     if (requestedCoachUserId) {
-      if (!isClubAdmin && requestedCoachUserId !== authUserId) {
+      if (!isPrivilegedAdmin && requestedCoachUserId !== authUserId) {
         throw forbidden('coachUserId must match authenticated user');
       }
 
@@ -825,7 +821,7 @@ const bookingRoutes: FastifyPluginAsync = async (app) => {
       });
     }
 
-    if (requestedParentUserId && !isClubAdmin && requestedParentUserId !== authUserId) {
+    if (requestedParentUserId && !isPrivilegedAdmin && requestedParentUserId !== authUserId) {
       throw forbidden('parentUserId must match authenticated user');
     }
 
@@ -958,8 +954,8 @@ const bookingRoutes: FastifyPluginAsync = async (app) => {
     }
 
     const body = createInviteRequestSchema.parse(request.body ?? {});
-    const isClubAdmin = isClubAdminAuth(request.auth);
-    if (!isClubAdmin && body.coachUserId !== authUserId) {
+    const isPrivilegedAdmin = isPrivilegedAdminAuth(request.auth);
+    if (!isPrivilegedAdmin && body.coachUserId !== authUserId) {
       throw forbidden('coachUserId must match authenticated user');
     }
 
@@ -1124,9 +1120,9 @@ const bookingRoutes: FastifyPluginAsync = async (app) => {
       throw notFound('Invite not found', { inviteId });
     }
 
-    const isClubAdmin = isClubAdminAuth(request.auth);
+    const isPrivilegedAdmin = isPrivilegedAdminAuth(request.auth);
     const isOwner = asString(invite.senderUserId) === authUserId;
-    if (!isOwner && !isClubAdmin) {
+    if (!isOwner && !isPrivilegedAdmin) {
       throw forbidden('Invite does not belong to authenticated user');
     }
 
@@ -1165,9 +1161,9 @@ const bookingRoutes: FastifyPluginAsync = async (app) => {
       throw notFound('Invite not found', { inviteId });
     }
 
-    const isClubAdmin = isClubAdminAuth(request.auth);
+    const isPrivilegedAdmin = isPrivilegedAdminAuth(request.auth);
     const isOwner = asString(invite.senderUserId) === authUserId;
-    if (!isOwner && !isClubAdmin) {
+    if (!isOwner && !isPrivilegedAdmin) {
       throw forbidden('Invite does not belong to authenticated user');
     }
     if (asString(invite.revokedAt) || asString(invite.status) !== 'PENDING') {
@@ -1395,12 +1391,14 @@ const bookingRoutes: FastifyPluginAsync = async (app) => {
     }
 
     const eventClubId = asString(event.clubId);
-    const isClubAdmin =
-      request.auth?.roles.includes('club_admin') || request.auth?.actingRole === 'club_admin';
+    const isPrivilegedAdmin = isPrivilegedAdminAuth(request.auth);
     const hasClubMembership = memberships.some(
-      (row) => asString(row.clubId) === eventClubId && asString(row.userId) === authUserId,
+      (row) =>
+        asString(row.clubId) === eventClubId &&
+        asString(row.userId) === authUserId &&
+        row.active !== false,
     );
-    if (!isClubAdmin && !hasClubMembership) {
+    if (!isPrivilegedAdmin && !hasClubMembership) {
       throw forbidden('User is not a member of event club');
     }
 

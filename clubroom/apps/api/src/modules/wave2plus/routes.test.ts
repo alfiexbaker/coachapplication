@@ -274,6 +274,36 @@ describe('wave2+ routes', () => {
     assert.equal(idempotentPayload.invoiceStatus, 'PAID');
   });
 
+  it('allows security admins to access and pay invoices', async () => {
+    const tables = loadTables();
+    const securityAdminMembership = asRows(tables.userRoleMemberships).find(
+      (row) => asString(row.role) === 'security_admin',
+    );
+    assert.ok(securityAdminMembership, 'expected seeded security admin role membership');
+    const adminUserId = asString(securityAdminMembership.userId) as string;
+    const sentInvoice = asRows(tables.invoices).find((row) => asString(row.status) === 'SENT');
+    assert.ok(sentInvoice, 'expected seeded SENT invoice');
+    const invoiceId = asString(sentInvoice.id) as string;
+
+    const detail = await app.inject({
+      method: 'GET',
+      url: `/v1/invoices/${invoiceId}`,
+      headers: authHeaders(tables, adminUserId, 'security_admin'),
+    });
+    assert.equal(detail.statusCode, 200);
+
+    const pay = await app.inject({
+      method: 'POST',
+      url: `/v1/invoices/${invoiceId}/payments`,
+      headers: authHeaders(tables, adminUserId, 'security_admin'),
+      payload: {
+        method: 'bank_transfer',
+        idempotencyKey: 'security-admin-payment-test',
+      },
+    });
+    assert.equal(pay.statusCode, 200);
+  });
+
   it('serves progress-goals-badges for related guardian and blocks unrelated users', async () => {
     const tables = loadTables();
     const notedAthleteId = asString(asRows(tables.sessionNotes)[0]?.athleteId);

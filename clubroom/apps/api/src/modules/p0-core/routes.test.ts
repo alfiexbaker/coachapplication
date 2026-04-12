@@ -537,6 +537,29 @@ describe('p0 core routes', () => {
     assert.equal(respondPayload.membership?.userId, otherCoachUserId);
   });
 
+  it('allows security admins to view clubs without direct membership', async () => {
+    const tables = loadTables();
+    const securityAdminMembership = asRows(tables.userRoleMemberships).find(
+      (row) => asString(row.role) === 'security_admin',
+    );
+    assert.ok(securityAdminMembership, 'expected seeded security admin role membership');
+    const userId = asString(securityAdminMembership.userId) as string;
+
+    const res = await app.inject({
+      method: 'GET',
+      url: '/v1/clubs',
+      headers: {
+        'x-auth-user-id': userId,
+        'x-auth-roles': rolesForUser(tables, userId).join(',') || 'security_admin',
+        'x-acting-role': 'security_admin',
+      },
+    });
+    assert.equal(res.statusCode, 200);
+
+    const payload = res.json() as { clubs: Array<{ id: string }> };
+    assert.equal(payload.clubs.length >= 1, true);
+  });
+
   it('creates, cancels, reopens, and lists bookings for the booked-by user', async () => {
     const tables = loadTables();
     const guardianLink = asRows(tables.guardianChildLinks)[0];

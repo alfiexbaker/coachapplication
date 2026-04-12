@@ -3,7 +3,7 @@ import type { FastifyPluginAsync } from 'fastify';
 import { z } from 'zod';
 import { badRequest, forbidden, notFound } from '../../lib/http-errors.js';
 import { getMarketplaceSeedStore } from '../../lib/marketplace-seed-store.js';
-import { assertCanReadAthleteHealth } from '../../lib/authz.js';
+import { assertCanReadAthleteHealth, isPrivilegedAdminAuth } from '../../lib/authz.js';
 
 type SeedRow = Record<string, unknown>;
 
@@ -45,8 +45,7 @@ const wave2PlusRoutes: FastifyPluginAsync = async (app) => {
     if (!invoice) {
       throw notFound('Invoice not found', { invoiceId });
     }
-    const isAdmin =
-      request.auth?.roles.includes('club_admin') || request.auth?.roles.includes('security_admin');
+    const isAdmin = isPrivilegedAdminAuth(request.auth);
     const canAccess =
       isAdmin
       || asString(invoice.coachUserId) === authUserId
@@ -99,8 +98,7 @@ const wave2PlusRoutes: FastifyPluginAsync = async (app) => {
       throw notFound('Invoice not found', { invoiceId });
     }
 
-    const isAdmin =
-      request.auth?.roles.includes('club_admin') || request.auth?.roles.includes('security_admin');
+    const isAdmin = isPrivilegedAdminAuth(request.auth);
     const canPay = isAdmin || asString(invoice.payerUserId) === authUserId;
     if (!canPay) {
       throw forbidden('Not allowed to pay this invoice');
@@ -532,8 +530,7 @@ const wave2PlusRoutes: FastifyPluginAsync = async (app) => {
   });
 
   app.get('/access-grants', async (request, reply) => {
-    const isAdmin =
-      request.auth?.roles.includes('club_admin') || request.auth?.roles.includes('security_admin');
+    const isAdmin = isPrivilegedAdminAuth(request.auth);
     if (!isAdmin) {
       throw forbidden('Admin role required');
     }
@@ -561,7 +558,7 @@ const wave2PlusRoutes: FastifyPluginAsync = async (app) => {
   });
 
   app.get('/admin/retention-runs', async (request, reply) => {
-    const isAdmin = request.auth?.roles.includes('club_admin') || request.auth?.roles.includes('security_admin');
+    const isAdmin = isPrivilegedAdminAuth(request.auth);
     if (!isAdmin) {
       throw forbidden('Admin role required');
     }

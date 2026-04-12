@@ -55,10 +55,11 @@ Clubs manage staff, squads, visibility, and operating relationships.
   - backend auth now issues and validates signed JWT access/refresh tokens
   - runtime session revocation and `/v1/me/sessions*` are backed by the auth runtime instead of the marketplace seed dataset
   - runtime `/v1` auth no longer falls back to `x-auth-user-id` or `x-auth-roles`; that override is test-only
-- The biggest trust seams still not finished are broader authz coverage and remaining launch polish:
+- The biggest trust seams still not finished are deeper grant/audit coverage and remaining launch polish:
   - app `/v1` authority services now rely on bearer auth plus `x-acting-role` and scope headers instead of client-supplied identity headers
   - `/v1/auth/login`, `/v1/auth/register`, `/v1/auth/refresh`, `/v1/auth/logout`, `/v1/auth/revoke`, `/v1/auth/me`, and `/v1/me/sessions*` now run on the JWT/session runtime
   - family medical, safeguarding incident creation, direct booking creation, booking cancel/reopen, and group-session registration now use `/v1` in non-mock mode
+  - shared backend authz now decides the remaining privileged-admin/staff-link checks for `/v1/clubs*`, `/v1/families/:familyId`, `/v1/invoices*`, `/v1/access-grants`, `/v1/admin/retention-runs`, and the invite/group-session booking routes instead of route-local role drift
   - child medical, emergency contacts, and consent records now live behind `/v1/athletes/*`; `services/child-service.ts` no longer persists those fields locally and the edit-child-profile flow routes parents into the protected child health screens instead
   - delegated booking create no longer falls back to local-only persistence in non-mock mode; `/v1/bookings` now decides whether the actor is allowed, and local storage only mirrors successful authoritative writes
   - booking list/detail reads now also use `/v1/bookings` and `/v1/bookings/:bookingId` in non-mock mode, with local storage acting as a mirror instead of the authority
@@ -67,7 +68,7 @@ Clubs manage staff, squads, visibility, and operating relationships.
   - booking changes are intentionally `cancel` or `reopen`; the old counter-offer and invite counter workflow has been removed from the runtime product surface
   - coach scheduling rules no longer advertise a separate reschedule policy; bookings now change by cancellation and rebooking/reopening instead of negotiation
   - Expo native/web and `apps/api` now emit to Sentry with shared release/environment tags, Expo web source maps via `npm run export:web`, and API source maps via `npm --prefix apps/api run build:release`
-  - the main auth follow-through now moves on from runtime identity to broader backend authz coverage, trust-sensitive route ownership, and launch-grade UI cleanup
+  - the main auth follow-through now moves on from shared authz coverage to authoritative commerce surfaces, release hardening, and launch-grade UI cleanup
 - Club-facing schedule surfaces now use a `ClubActivity` read model to link `ClubEvent` and `GroupSession`
   - `ClubActivity` now also includes `Match`, so club and squad schedule routes can show events, training, and matches in one surface
   - club-linked open group sessions are treated as mixed-access training, not as a separate public product world
@@ -152,11 +153,10 @@ Still transitional:
 
 ## Highest-Value Priorities
 
-1. Expand backend authz coverage for the sensitive `/v1` routes now that runtime JWT/session auth is in place.
-2. Build the unified launch-grade club schedule surface.
-3. Turn club events into real operational workspaces.
-4. Make repo-critical quality scripts honest when local tooling is missing.
-5. Keep docs thin and update them when runtime truth changes.
+1. Make coach and club offers authoritative and easier to buy.
+2. Harden launch surfaces and make repo-critical quality scripts honest when local tooling is missing.
+3. Add the football-first repeat-use home layer.
+4. Keep docs thin and update them when runtime truth changes.
 
 ## Canonical Docs
 
