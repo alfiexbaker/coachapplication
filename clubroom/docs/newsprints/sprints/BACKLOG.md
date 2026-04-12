@@ -19,18 +19,17 @@ Parts of those umbrellas already landed in runtime truth; the remaining work is 
 | UI-01    | Cleared the remaining full-suite UI warnings by removing nested-button patterns and stale route expectations.                         | Development                        | DONE   |
 | AUTHZ-03 | Centralized the remaining privileged-admin and staff-invite authz checks in the API so `/v1` no longer drifts per route.            | Trust/Safety/Ops + Development     | DONE   |
 | COMMERCE-01 | Switched coach-profile offerings and go-live state onto backend-owned `/v1` routes so the core storefront state is no longer local-only. | Booking/Revenue + Community/Growth | DONE   |
+| RELEASE-01 | Removed brittle shell assumptions from the validated UI audit path and hardened the launch-adjacent club dashboard/results read path. | Development + Trust/Safety/Ops | DONE   |
 
 ## Open Queue
 
 | ID         | Exactly what it does                                                                                                                                           | Spine(s)                                 | Status | Source                                                                                             |
 | ---------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------- | ------ | -------------------------------------------------------------------------------------------------- |
-| RELEASE-01 | Run the launch-quality pass on home, schedule, bookings, club, and profile: fix refresh churn and heavy-surface perf, clean media fallbacks, and make repo-critical audit/lint scripts fail honestly when tooling is missing. | Development + Trust/Safety/Ops           | OPEN   | `docs/SOURCE_OF_TRUTH.md`, `docs/product-reality/PRODUCT_REALITY_AUDIT_2026-03-10.md`             |
 | HOME-01    | Build the football-first home layer with role-aware modules for fixtures/results, upcoming activity, club highlights, and progress highlights once launch-critical surfaces are stable. | Community/Growth + Development/Analytics | OPEN   | `docs/SOURCE_OF_TRUTH.md`, `app/(tabs)/index.tsx`, `app/(tabs)/feed.tsx`                           |
 
 ## Execution Order
 
-1. `RELEASE-01`
-2. `HOME-01`
+1. `HOME-01`
 
 ## Sprint Intent
 

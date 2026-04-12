@@ -15,7 +15,7 @@
  * - GET /api/clubs/:id/calendar - Get calendar events
  */
 
-import { apiClient } from './api-client';
+import { apiClient, apiFetch } from './api-client';
 import type { ClubRole, ClubMembership } from '@/constants/types';
 import {
   type Result,
@@ -50,6 +50,13 @@ const ROLE_COLORS: Record<ClubRole, string> = {
   ASSISTANT: '#D97706',
   MEMBER: '#6B7280',
 };
+
+function unwrapApiResult<T>(result: Result<T, ServiceError>): T {
+  if (!result.success) {
+    throw new Error(result.error.message);
+  }
+  return result.data;
+}
 
 // ============================================================================
 // BRANDING TYPES
@@ -934,8 +941,11 @@ export const clubService = {
       };
     }
 
-    const response = await fetch(`/api/clubs/${clubId}/dashboard-stats`);
-    return response.json();
+    return unwrapApiResult(
+      await apiFetch<DashboardStats>(`/api/clubs/${clubId}/dashboard-stats`, {
+        method: 'GET',
+      }),
+    );
   },
 
   /**
@@ -945,8 +955,11 @@ export const clubService = {
     if (USE_MOCK) {
       return MOCK_MATCH_RESULTS.slice(0, limit);
     }
-    const response = await fetch(`/api/clubs/${clubId}/results?limit=${limit}`);
-    return response.json();
+    return unwrapApiResult(
+      await apiFetch<MatchResult[]>(`/api/clubs/${clubId}/results?limit=${limit}`, {
+        method: 'GET',
+      }),
+    );
   },
 
   // ============================================================================

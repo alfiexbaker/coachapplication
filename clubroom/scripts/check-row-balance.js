@@ -1,12 +1,16 @@
 #!/usr/bin/env node
-const { execSync } = require('child_process');
-const fs = require('fs');
+const { readFileSync } = require('node:fs');
+const { resolve } = require('node:path');
 
-const files = execSync('grep -rl "import.*Row" components/ --include="*.tsx" 2>/dev/null', { encoding: 'utf8' }).trim().split('\n').filter(Boolean);
+const { listFiles } = require('./file-scan-utils');
+
+const files = listFiles(['components'], { extensions: ['.tsx'] }).filter((file) =>
+  /\bimport\s*{[^}]*\bRow\b[^}]*}\s*from\b/.test(readFileSync(resolve(file), 'utf8')),
+);
 const mismatches = [];
 
 for (const f of files) {
-  const content = fs.readFileSync(f, 'utf8');
+  const content = readFileSync(resolve(f), 'utf8');
   const opens = (content.match(/<Row\b/g) || []).length;
   const selfCloses = (content.match(/<Row\b[^>]*\/>/g) || []).length;
   const closes = (content.match(/<\/Row>/g) || []).length;
