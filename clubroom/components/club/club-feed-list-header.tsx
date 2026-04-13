@@ -44,6 +44,7 @@ export const ClubFeedListHeader = memo(function ClubFeedListHeader({
         activities={hub.clubActivities}
         pendingInvites={hub.pendingSessionInvites}
         isCoach={hub.isCoach}
+        clubId={hub.membership?.clubId}
         onInvitePress={hub.handleInvitePress}
         viewAllHref={hub.membership?.clubId ? Routes.clubSchedule(hub.membership.clubId) : undefined}
         showCreateActions={false}

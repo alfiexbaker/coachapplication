@@ -4,26 +4,26 @@ Date: 2026-04-12
 
 ## What Was Just Done
 
-1. Finished `REVENUE-API-01` by adding scaffolded invoice list and coach reconciler transition routes under `/v1/invoices*`, with the API now returning the app `Invoice` shape for list and detail reads.
-2. Switched non-mock `services/invoice-service.ts` onto authoritative `/v1/invoices*` reads and coach transition writes instead of local invoice storage.
-3. Removed the normal booking synthetic-invoice fallback from coach reconciler reads outside mock mode and stopped non-mock invoice upserts from treating local storage as authority.
-4. Added focused API coverage for invoice list filters and coach reconcile transitions, while preserving payer/admin payment simulation coverage.
+1. Finished `SCHEDULE-API-02` by adding `GET /v1/clubs/:clubId/schedule/:activityId` with the same access boundary as the club schedule list route.
+2. Extended `services/club-schedule-service.ts` so non-mock club activity reads now resolve through the new `/v1` detail route, while mock mode still projects locally.
+3. Added one canonical app route for club activities and a thin resolver screen that forwards into the existing event, session, or match detail screens from authoritative backend detail.
+4. Removed app-side source guessing from the club schedule surfaces so schedule cards no longer decide drill-ins directly from the raw list row.
 5. Synced the canonical runtime, service-ownership, route-inventory, and sprint backlog docs.
 
 ## Verification Run In This Step
 
 - `npm --prefix apps/api run typecheck` -> PASS
-- `npm --prefix apps/api run test` -> PASS (`55/55`)
+- `npm --prefix apps/api run test` -> PASS (`60/60`)
 - `npm run typecheck` -> PASS
 - `npm run test:compile` -> PASS
 
 ## Current State
 
-- `REVENUE-API-01` is complete in code.
-- Non-mock invoice list/detail and coach reconciler status changes now use `/v1/invoices*` instead of local invoice storage.
-- Normal booking invoice rows are no longer synthesized locally outside mock mode; the remaining synthetic invoice seam is limited to off-platform offering reconciler items.
-- The next remaining runtime authority gap is club schedule item detail.
+- `SCHEDULE-API-02` is complete in code.
+- Non-mock club schedule list and item reads now run through `/v1/clubs/:clubId/schedule*`.
+- Club and team schedule surfaces now deep-link through a canonical club activity route, and the resolver screen forwards to the existing event/session/match detail pages.
+- Mock mode still projects `ClubActivity` locally by design.
 
 ## Next Exact Action
 
-1. Start `SCHEDULE-API-02`: add `/v1/clubs/:clubId/schedule/:activityId` and move schedule drill-in reads off app-side source-specific lookup.
+1. Recut the backlog from current runtime truth before starting the next sprint label.

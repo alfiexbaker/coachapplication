@@ -80,8 +80,8 @@ Clubs manage staff, squads, visibility, and operating relationships.
   - informational events, training, and matches still have separate source records and creation flows, but club users now see one linked schedule instead of separate schedule worlds
 - Dedicated `Club Schedule` and `Team Schedule` routes now exist in the app.
   - the canonical read seam is `services/club-schedule-service.ts`
-  - non-mock schedule reads now use `GET /v1/clubs/:clubId/schedule`, while mock mode still projects the local `ClubActivity` read model
-  - item detail authority is still not backend-owned; `/v1/clubs/:clubId/schedule/:activityId` remains planned
+  - non-mock schedule list and item reads now use `GET /v1/clubs/:clubId/schedule` and `GET /v1/clubs/:clubId/schedule/:activityId`, while mock mode still projects the local `ClubActivity` read model
+  - schedule surfaces now deep-link through one canonical club activity route, which resolves against backend-owned detail before forwarding to the existing event, session, or match detail screen
 - Event detail is now a launch-grade event workspace instead of a brochure-only page.
   - the main event route now loads overview, RSVP, response list, reminders, attendance/check-in, and organizer actions from one screen
   - split RSVP and attendee routes still exist as secondary surfaces, but the main event route is the operational default

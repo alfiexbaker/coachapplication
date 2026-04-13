@@ -8,7 +8,7 @@ import {
 import { canUseStaffInviteLinks, isPrivilegedAdminAuth } from '../../lib/authz.js';
 import { forbidden, notFound } from '../../lib/http-errors.js';
 import { getMarketplaceSeedStore } from '../../lib/marketplace-seed-store.js';
-import { buildClubScheduleActivities } from './schedule.js';
+import { buildClubScheduleActivities, findClubScheduleActivity } from './schedule.js';
 
 type SeedRow = Record<string, unknown>;
 
@@ -326,6 +326,31 @@ function canViewClubSchedule(params: {
   }
 
   return asString(params.club.visibility) === 'public';
+}
+
+function requireClubScheduleAccess(params: {
+  clubId: string | undefined;
+  authUserId: string;
+  isPrivilegedAdmin: boolean;
+  store: ReturnType<typeof getMarketplaceSeedStore>;
+}) {
+  if (!params.clubId) {
+    throw notFound('Club not found');
+  }
+
+  const clubs = asRows(params.store.tables.clubs);
+  const clubMemberships = asRows(params.store.tables.clubMemberships);
+  const club = clubs.find((row) => asString(row.id) === params.clubId);
+  if (!club) {
+    throw notFound('Club not found');
+  }
+
+  const viewerMembership = getViewerMembership(clubMemberships, params.clubId, params.authUserId);
+  if (!canViewClubSchedule({ club, viewerMembership, isPrivilegedAdmin: params.isPrivilegedAdmin })) {
+    throw forbidden('You do not have permission to view this club schedule');
+  }
+
+  return { club, viewerMembership };
 }
 
 function getInviteCodeForRole(clubId: string, role: string): ClubInviteCodeRow | undefined {
@@ -845,30 +870,38 @@ const coachClubRoutes: FastifyPluginAsync = async (app) => {
   app.get('/clubs/:clubId/schedule', async (request, reply) => {
     const authUserId = requireAuthUserId(request.auth?.userId);
     const clubId = asString((request.params as { clubId?: string }).clubId);
-    if (!clubId) {
-      throw notFound('Club not found');
-    }
-
     const isPrivilegedAdmin = isPrivilegedAdminAuth(request.auth);
     const store = getMarketplaceSeedStore();
-    const clubs = asRows(store.tables.clubs);
-    const clubMemberships = asRows(store.tables.clubMemberships);
-    const club = clubs.find((row) => asString(row.id) === clubId);
-    if (!club) {
-      throw notFound('Club not found');
-    }
+    requireClubScheduleAccess({ clubId, authUserId, isPrivilegedAdmin, store });
+    const resolvedClubId = clubId as string;
 
-    const viewerMembership = getViewerMembership(clubMemberships, clubId, authUserId);
-    if (!canViewClubSchedule({ club, viewerMembership, isPrivilegedAdmin })) {
-      throw forbidden('You do not have permission to view this club schedule');
-    }
-
-    const activities = buildClubScheduleActivities(store.tables, clubId);
+    const activities = buildClubScheduleActivities(store.tables, resolvedClubId);
 
     return reply.send({
-      clubId,
+      clubId: resolvedClubId,
       activities,
       total: activities.length,
+      seedVersion: store.version,
+      requestId: request.requestId,
+    });
+  });
+
+  app.get('/clubs/:clubId/schedule/:activityId', async (request, reply) => {
+    const authUserId = requireAuthUserId(request.auth?.userId);
+    const { clubId, activityId } = request.params as { clubId?: string; activityId?: string };
+    const isPrivilegedAdmin = isPrivilegedAdminAuth(request.auth);
+    const store = getMarketplaceSeedStore();
+    requireClubScheduleAccess({ clubId, authUserId, isPrivilegedAdmin, store });
+    const resolvedClubId = clubId as string;
+
+    const activity = activityId ? findClubScheduleActivity(store.tables, resolvedClubId, activityId) : null;
+    if (!activity) {
+      throw notFound('Club activity not found', { clubId: resolvedClubId, activityId });
+    }
+
+    return reply.send({
+      clubId: resolvedClubId,
+      activity,
       seedVersion: store.version,
       requestId: request.requestId,
     });

@@ -21,6 +21,13 @@ interface ApiClubScheduleResponse {
   requestId: string;
 }
 
+interface ApiClubScheduleActivityResponse {
+  clubId: string;
+  activity: ClubActivity;
+  seedVersion?: string | null;
+  requestId: string;
+}
+
 function isVisibleClubEvent(event: ClubEvent): boolean {
   return event.status !== 'DRAFT';
 }
@@ -167,6 +174,37 @@ class ClubScheduleService {
       logger.error('Failed to load squad schedule', { squadId, error });
       return err(serviceError('UNKNOWN', 'Failed to load team schedule.', error));
     }
+  }
+
+  async getClubActivity(clubId: string, activityId: string): Promise<Result<ClubActivity, ServiceError>> {
+    if (!USE_MOCK) {
+      const headersResult = await resolveScheduleHeaders();
+      if (!headersResult.success) {
+        return headersResult;
+      }
+
+      const result = await apiFetch<ApiClubScheduleActivityResponse>(`/v1/clubs/${clubId}/schedule/${activityId}`, {
+        method: 'GET',
+        headers: headersResult.data,
+      });
+      if (!result.success) {
+        logger.error('Failed to load club activity via API', { clubId, activityId, error: result.error });
+        return err(result.error);
+      }
+      return ok(result.data.activity);
+    }
+
+    const scheduleResult = await this.getClubSchedule(clubId);
+    if (!scheduleResult.success) {
+      return scheduleResult;
+    }
+
+    const activity = scheduleResult.data.find((candidate) => candidate.id === activityId);
+    if (!activity) {
+      return err(notFound('Club activity', activityId));
+    }
+
+    return ok(activity);
   }
 }
 

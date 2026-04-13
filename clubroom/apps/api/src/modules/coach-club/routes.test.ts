@@ -3,6 +3,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { after, beforeEach, describe, it } from 'node:test';
 import { buildApp } from '../../app.js';
+import { getMarketplaceSeedStore } from '../../lib/marketplace-seed-store.js';
 import { resetMarketplaceSeedStoreForTests } from '../../lib/marketplace-seed-store.js';
 import { resetCoachClubRouteStateForTests } from './routes.js';
 
@@ -56,6 +57,18 @@ function getSeededCoachUserId(tables: SeedTables): string {
   return coachUserId;
 }
 
+function getSeededClubMembership(tables: SeedTables): { clubId: string; userId: string } {
+  const membership = asRows(tables.clubMemberships).find((row) => row.active !== false);
+  assert.ok(membership, 'expected seeded club membership');
+
+  const clubId = asString(membership.clubId);
+  const userId = asString(membership.userId);
+  assert.ok(clubId, 'expected club id');
+  assert.ok(userId, 'expected user id');
+
+  return { clubId, userId };
+}
+
 describe('coach-club routes', () => {
   const app = buildApp();
 
@@ -70,13 +83,7 @@ describe('coach-club routes', () => {
 
   it('returns a unified club schedule for an active member', async () => {
     const tables = loadTables();
-    const membership = asRows(tables.clubMemberships).find((row) => row.active !== false);
-    assert.ok(membership, 'expected seeded club membership');
-
-    const clubId = asString(membership.id ? membership.clubId : undefined) as string;
-    const userId = asString(membership.userId) as string;
-    assert.ok(clubId, 'expected club id');
-    assert.ok(userId, 'expected user id');
+    const { clubId, userId } = getSeededClubMembership(tables);
 
     const res = await app.inject({
       method: 'GET',
@@ -106,10 +113,7 @@ describe('coach-club routes', () => {
 
   it('denies club schedule access to non-members of a private club', async () => {
     const tables = loadTables();
-    const membership = asRows(tables.clubMemberships).find((row) => row.active !== false);
-    assert.ok(membership, 'expected seeded club membership');
-
-    const clubId = asString(membership.clubId) as string;
+    const { clubId } = getSeededClubMembership(tables);
     const outsider = asRows(tables.users).find((row) => {
       const userId = asString(row.id);
       if (!userId) {
@@ -134,10 +138,7 @@ describe('coach-club routes', () => {
 
   it('allows privileged admins to read club schedules without membership', async () => {
     const tables = loadTables();
-    const membership = asRows(tables.clubMemberships).find((row) => row.active !== false);
-    assert.ok(membership, 'expected seeded club membership');
-
-    const clubId = asString(membership.clubId) as string;
+    const { clubId } = getSeededClubMembership(tables);
     const privilegedAdmin = asRows(tables.users).find((row) => {
       const userId = asString(row.id);
       if (!userId) {
@@ -157,6 +158,157 @@ describe('coach-club routes', () => {
       headers: authHeaders(tables, asString(privilegedAdmin.id) as string, 'security_admin'),
     });
     assert.equal(res.statusCode, 200);
+  });
+
+  it('returns club event detail for an authorized member', async () => {
+    const tables = loadTables();
+    const { clubId, userId } = getSeededClubMembership(tables);
+
+    const list = await app.inject({
+      method: 'GET',
+      url: `/v1/clubs/${clubId}/schedule`,
+      headers: authHeaders(tables, userId),
+    });
+    assert.equal(list.statusCode, 200);
+
+    const activity = (list.json() as { activities: Array<{ id: string; source: string; sourceEntityId: string }> }).activities.find(
+      (candidate) => candidate.source === 'club_event',
+    );
+    assert.ok(activity, 'expected club event activity');
+
+    const detail = await app.inject({
+      method: 'GET',
+      url: `/v1/clubs/${clubId}/schedule/${activity.id}`,
+      headers: authHeaders(tables, userId),
+    });
+    assert.equal(detail.statusCode, 200);
+
+    const payload = detail.json() as {
+      clubId: string;
+      activity: { id: string; source: string; sourceEntityId: string };
+    };
+    assert.equal(payload.clubId, clubId);
+    assert.equal(payload.activity.id, activity.id);
+    assert.equal(payload.activity.source, 'club_event');
+    assert.equal(payload.activity.sourceEntityId, activity.sourceEntityId);
+  });
+
+  it('returns group session detail for an authorized member', async () => {
+    const tables = loadTables();
+    const { clubId, userId } = getSeededClubMembership(tables);
+
+    const list = await app.inject({
+      method: 'GET',
+      url: `/v1/clubs/${clubId}/schedule`,
+      headers: authHeaders(tables, userId),
+    });
+    assert.equal(list.statusCode, 200);
+
+    const activity = (list.json() as { activities: Array<{ id: string; source: string; sourceEntityId: string }> }).activities.find(
+      (candidate) => candidate.source === 'group_session',
+    );
+    assert.ok(activity, 'expected group session activity');
+
+    const detail = await app.inject({
+      method: 'GET',
+      url: `/v1/clubs/${clubId}/schedule/${activity.id}`,
+      headers: authHeaders(tables, userId),
+    });
+    assert.equal(detail.statusCode, 200);
+
+    const payload = detail.json() as {
+      clubId: string;
+      activity: { id: string; source: string; sourceEntityId: string };
+    };
+    assert.equal(payload.clubId, clubId);
+    assert.equal(payload.activity.id, activity.id);
+    assert.equal(payload.activity.source, 'group_session');
+    assert.equal(payload.activity.sourceEntityId, activity.sourceEntityId);
+  });
+
+  it('returns match detail for an authorized member when a match exists for the club', async () => {
+    const tables = loadTables();
+    const { clubId, userId } = getSeededClubMembership(tables);
+    const store = getMarketplaceSeedStore();
+    if (!Array.isArray(store.tables.matches)) {
+      store.tables.matches = [];
+    }
+
+    store.tables.matches.push({
+      id: 'match_test_club_schedule_detail',
+      clubId,
+      title: 'Sunday Fixture',
+      startsAt: '2026-04-20T10:00:00.000Z',
+      status: 'SCHEDULED',
+      matchType: 'league',
+      venue: 'Main Pitch',
+      opponent: 'Riverside FC',
+      isHome: true,
+    });
+
+    const detail = await app.inject({
+      method: 'GET',
+      url: `/v1/clubs/${clubId}/schedule/club_activity:match:match_test_club_schedule_detail`,
+      headers: authHeaders(tables, userId),
+    });
+    assert.equal(detail.statusCode, 200);
+
+    const payload = detail.json() as {
+      clubId: string;
+      activity: { id: string; source: string; sourceEntityId: string; title: string };
+    };
+    assert.equal(payload.clubId, clubId);
+    assert.equal(payload.activity.id, 'club_activity:match:match_test_club_schedule_detail');
+    assert.equal(payload.activity.source, 'match');
+    assert.equal(payload.activity.sourceEntityId, 'match_test_club_schedule_detail');
+    assert.equal(payload.activity.title, 'Sunday Fixture');
+  });
+
+  it('denies club activity detail to non-members of a private club', async () => {
+    const tables = loadTables();
+    const { clubId, userId } = getSeededClubMembership(tables);
+    const list = await app.inject({
+      method: 'GET',
+      url: `/v1/clubs/${clubId}/schedule`,
+      headers: authHeaders(tables, userId),
+    });
+    assert.equal(list.statusCode, 200);
+
+    const activity = (list.json() as { activities: Array<{ id: string }> }).activities[0];
+    assert.ok(activity, 'expected seeded activity');
+
+    const outsider = asRows(tables.users).find((row) => {
+      const outsiderUserId = asString(row.id);
+      if (!outsiderUserId) {
+        return false;
+      }
+
+      const roles = rolesForUser(tables, outsiderUserId);
+      const isMember = asRows(tables.clubMemberships).some(
+        (candidate) => asString(candidate.clubId) === clubId && asString(candidate.userId) === outsiderUserId && candidate.active !== false,
+      );
+      return !isMember && !roles.includes('club_admin') && !roles.includes('security_admin');
+    });
+    assert.ok(outsider, 'expected non-member outsider');
+
+    const denied = await app.inject({
+      method: 'GET',
+      url: `/v1/clubs/${clubId}/schedule/${activity.id}`,
+      headers: authHeaders(tables, asString(outsider.id) as string),
+    });
+    assert.equal(denied.statusCode, 403);
+  });
+
+  it('returns 404 for a stale club activity id', async () => {
+    const tables = loadTables();
+    const { clubId, userId } = getSeededClubMembership(tables);
+
+    const res = await app.inject({
+      method: 'GET',
+      url: `/v1/clubs/${clubId}/schedule/club_activity:club_event:missing`,
+      headers: authHeaders(tables, userId),
+    });
+    assert.equal(res.statusCode, 404);
   });
 
   it('lets a coach manage self availability templates via v1 routes', async () => {

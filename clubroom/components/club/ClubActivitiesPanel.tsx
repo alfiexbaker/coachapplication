@@ -16,16 +16,13 @@ import { Routes } from '@/navigation/routes';
 import { ClubScheduleActivityCard } from './ClubScheduleActivityCard';
 import { getSessionInviteCoachName } from '@/utils/session-invite-display';
 
-function defaultActivityPress(activity: ClubActivity) {
-  if (activity.source === 'match') {
-    router.push(Routes.match(activity.sourceEntityId));
+function defaultActivityPress(activity: ClubActivity, clubId?: string) {
+  const resolvedClubId = activity.clubId ?? clubId;
+  if (!resolvedClubId) {
     return;
   }
-  if (activity.source === 'group_session') {
-    router.push(Routes.groupSession(activity.sourceEntityId));
-    return;
-  }
-  router.push(Routes.event(activity.sourceEntityId));
+
+  router.push(Routes.clubActivity(resolvedClubId, activity.id));
 }
 
 function defaultInvitePress(inviteId: string) {
@@ -44,6 +41,7 @@ export interface ClubActivitiesPanelProps {
   activities: ClubActivity[];
   pendingInvites?: SessionInvite[];
   isCoach: boolean;
+  clubId?: string;
   maxItems?: number;
   onActivityPress?: (activity: ClubActivity) => void;
   onInvitePress?: (inviteId: string) => void;
@@ -55,6 +53,7 @@ export const ClubActivitiesPanel = memo(function ClubActivitiesPanel({
   activities,
   pendingInvites = [],
   isCoach,
+  clubId,
   maxItems = 5,
   onActivityPress,
   onInvitePress,
@@ -154,7 +153,7 @@ export const ClubActivitiesPanel = memo(function ClubActivitiesPanel({
                   onPress={() =>
                     onActivityPress
                       ? onActivityPress(entry.activity)
-                      : defaultActivityPress(entry.activity)
+                      : defaultActivityPress(entry.activity, clubId)
                   }
                 />
               );

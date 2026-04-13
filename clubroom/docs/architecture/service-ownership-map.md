@@ -101,8 +101,9 @@ Purpose: identify the service entrypoints that are safe to build on and call out
 - `services/club-schedule-service.ts`
 - Canonical read-model seam for `Club Schedule` and `Team Schedule`
 - Current rule: it projects events, group sessions, and matches into `ClubActivity`
-- Current non-mock rule: list reads now go through `/v1/clubs/:clubId/schedule`
-- Current limitation: mock mode still projects locally, and `/v1/clubs/:clubId/schedule/:activityId` remains planned
+- Current non-mock rule: list and item reads now go through `/v1/clubs/:clubId/schedule` and `/v1/clubs/:clubId/schedule/:activityId`
+- Current app rule: `Routes.clubActivity(...)` is the canonical activity entrypoint and resolves into the existing event/session/match detail screens
+- Current limitation: mock mode still projects locally
 
 ### Invoices and reconciler
 

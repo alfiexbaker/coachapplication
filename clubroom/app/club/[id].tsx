@@ -217,6 +217,7 @@ export default function ClubDetailScreen() {
       <ClubActivitiesPanel
         activities={clubActivities}
         isCoach={!!canManagePosts}
+        clubId={id}
         maxItems={4}
         showCreateActions={false}
         viewAllHref={Routes.clubSchedule(id)}

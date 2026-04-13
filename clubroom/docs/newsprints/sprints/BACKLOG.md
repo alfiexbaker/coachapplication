@@ -25,17 +25,16 @@ Parts of those umbrellas already landed in runtime truth; the remaining work is 
 | FAMILY-API-01 | Moved non-mock child profile CRUD and family dashboard/account reads onto `/v1/families/:familyId` and `/v1/athletes*`, replacing the remaining local-only family authority path. | Trust/Safety/Ops + Development | DONE |
 | COACH-OPS-01 | Moved coach self-serve availability and scheduling rules onto `/v1/coaches/me/*`, removing the remaining signed-in coach drift from `/api/coaches/*` and local-only persistence. | Booking/Revenue + Development | DONE |
 | REVENUE-API-01 | Moved non-mock invoice list/detail/reconciler status flows onto `/v1/invoices*`, removing the remaining local invoice authority path for normal booking invoices. | Booking/Revenue + Trust/Safety/Ops | DONE |
+| SCHEDULE-API-02 | Added backend-owned club activity detail on `/v1/clubs/:clubId/schedule/:activityId` and moved schedule drill-ins behind one canonical club activity route. | Community/Growth + Development | DONE |
 
 ## Open Queue
 
-| ID | Exactly what it does | Spine(s) | Status |
-| --- | --- | --- | --- |
-| SCHEDULE-API-02 | Adds backend-owned club activity detail on `/v1/clubs/:clubId/schedule/:activityId` so schedule drill-ins stop depending on app-side source-specific lookup. | Community/Growth + Development | NEXT |
+No active sprint queue. Recut from current runtime truth before starting the next slice.
 
 ## Execution Order
 
-1. `SCHEDULE-API-02`
+1. Recut backlog from current runtime truth.
 
 ## Sprint Intent
 
-- `SCHEDULE-API-02`: finish the club schedule authority seam at the item-detail layer.
+- Recut the next sprint queue from current runtime truth instead of carrying stale labels forward.

@@ -89,16 +89,13 @@ export function ClubScheduleScreen({ clubId, squadId, scope }: ClubScheduleScree
     router.replace(Routes.MY_CLUBS);
   };
 
-  const handleActivityPress = (activityId: string, source: string) => {
-    if (source === 'group_session') {
-      router.push(Routes.groupSession(activityId));
+  const handleActivityPress = (activityId: string, activityClubId?: string) => {
+    const resolvedClubId = activityClubId ?? clubId ?? schedule.squad?.clubId;
+    if (!resolvedClubId) {
       return;
     }
-    if (source === 'match') {
-      router.push(Routes.match(activityId));
-      return;
-    }
-    router.push(Routes.event(activityId));
+
+    router.push(Routes.clubActivity(resolvedClubId, activityId));
   };
 
   if (schedule.status === 'loading') {
@@ -246,7 +243,7 @@ export function ClubScheduleScreen({ clubId, squadId, scope }: ClubScheduleScree
                   <ClubScheduleActivityCard
                     key={activity.id}
                     activity={activity}
-                    onPress={() => handleActivityPress(activity.sourceEntityId, activity.source)}
+                    onPress={() => handleActivityPress(activity.id, activity.clubId)}
                   />
                 ))}
               </SurfaceCard>

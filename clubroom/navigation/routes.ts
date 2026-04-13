@@ -344,6 +344,11 @@ export const Routes = {
       pathname: '/club/[id]/schedule',
       params: { id },
     }) as Href,
+  clubActivity: (id: string, activityId: string) =>
+    ({
+      pathname: '/club/[id]/activity/[activityId]',
+      params: { id, activityId },
+    }) as Href,
   clubDashboard: (clubId: string) =>
     ({
       pathname: '/club/[clubId]/dashboard',

@@ -294,3 +294,44 @@ export function buildClubScheduleActivities(
     (left, right) => new Date(left.startsAt).getTime() - new Date(right.startsAt).getTime(),
   );
 }
+
+export function findClubScheduleActivity(
+  tables: Record<string, unknown>,
+  clubId: string,
+  activityId: string,
+  now: Date = new Date(),
+): ClubScheduleActivity | null {
+  const [prefix, source, sourceEntityId] = activityId.split(':');
+  if (prefix !== 'club_activity' || !source || !sourceEntityId) {
+    return null;
+  }
+
+  if (source === 'club_event') {
+    const event = asRows(tables.clubEvents).find(
+      (row) =>
+        asString(row.id) === sourceEntityId
+        && asString(row.clubId) === clubId
+        && asString(row.status) !== 'DRAFT',
+    );
+    return event ? mapEventActivity(event) : null;
+  }
+
+  if (source === 'group_session') {
+    const session = asRows(tables.groupSessions).find(
+      (row) =>
+        asString(row.id) === sourceEntityId
+        && asString(row.clubId) === clubId
+        && asString(row.status) !== 'DRAFT',
+    );
+    return session ? mapGroupSessionActivity(session, now) : null;
+  }
+
+  if (source === 'match') {
+    const match = asRows(tables.matches).find(
+      (row) => asString(row.id) === sourceEntityId && asString(row.clubId) === clubId,
+    );
+    return match ? mapMatchActivity(match) : null;
+  }
+
+  return null;
+}
