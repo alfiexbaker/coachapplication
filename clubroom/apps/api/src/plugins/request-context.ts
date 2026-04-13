@@ -11,6 +11,9 @@ declare module 'fastify' {
       roles: string[];
       actingRole?: string;
       sessionId?: string;
+      authProvider?: 'local' | 'oidc' | 'header_override';
+      subject?: string;
+      allowDebugTrustHeaders?: boolean;
     };
   }
 }

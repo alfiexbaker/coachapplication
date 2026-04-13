@@ -481,9 +481,43 @@ describe('wave2+ routes', () => {
     assert.equal(badgesPayload.badges.length >= 1, true);
     assert.equal(badgesPayload.badgeDefinitions.length >= 1, true);
 
-    const outsiderCoach = asRows(tables.coachProfiles).find(
-      (row) => asString(row.userId) !== guardianUserId,
-    );
+    const outsiderCoach = asRows(tables.coachProfiles).find((row) => {
+      const coachUserId = asString(row.userId);
+      if (!coachUserId || coachUserId === guardianUserId) {
+        return false;
+      }
+      const coachBookings = asRows(tables.bookings)
+        .filter((booking) => asString(booking.coachUserId) === coachUserId && !asString(booking.deletedAt))
+        .map((booking) => asString(booking.id))
+        .filter((bookingId): bookingId is string => Boolean(bookingId));
+      const hasBookingRelationship = asRows(tables.bookingParticipants).some(
+        (participant) =>
+          !asString(participant.deletedAt)
+          && asString(participant.athleteId) === athleteId
+          && coachBookings.includes(asString(participant.bookingId) ?? ''),
+      );
+      const coachSessions = asRows(tables.groupSessions)
+        .filter((session) => asString(session.coachUserId) === coachUserId && !asString(session.deletedAt))
+        .map((session) => asString(session.id))
+        .filter((sessionId): sessionId is string => Boolean(sessionId));
+      const hasGroupRelationship = asRows(tables.groupSessionRegistrations).some(
+        (registration) =>
+          !asString(registration.deletedAt)
+          && asString(registration.athleteId) === athleteId
+          && coachSessions.includes(asString(registration.groupSessionId) ?? ''),
+      );
+      const ownedSquads = asRows(tables.squads)
+        .filter((squad) => asString(squad.ownerCoachUserId) === coachUserId && !asString(squad.deletedAt))
+        .map((squad) => asString(squad.id))
+        .filter((squadId): squadId is string => Boolean(squadId));
+      const hasSquadRelationship = asRows(tables.squadMemberships).some(
+        (membership) =>
+          !asString(membership.deletedAt)
+          && asString(membership.athleteId) === athleteId
+          && ownedSquads.includes(asString(membership.squadId) ?? ''),
+      );
+      return !hasBookingRelationship && !hasGroupRelationship && !hasSquadRelationship;
+    });
     assert.ok(outsiderCoach, 'expected outsider coach');
     const denied = await app.inject({
       method: 'GET',

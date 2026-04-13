@@ -27,20 +27,19 @@ Parts of those umbrellas already landed in runtime truth; the remaining work is 
 | REVENUE-API-01 | Moved non-mock invoice list/detail/reconciler status flows onto `/v1/invoices*`, removing the remaining local invoice authority path for normal booking invoices. | Booking/Revenue + Trust/Safety/Ops | DONE |
 | SCHEDULE-API-02 | Added backend-owned club activity detail on `/v1/clubs/:clubId/schedule/:activityId` and moved schedule drill-ins behind one canonical club activity route. | Community/Growth + Development | DONE |
 | PROD-API-01 | Replaced the remaining in-memory family-athlete trust runtime with repository-backed profile, injury, medical, emergency-contact, and consent persistence, keeping only a narrow legacy `ath_user*` compatibility bridge for existing fixtures. | Trust/Safety/Ops + Development | DONE |
+| PROD-TRUST-01 | Added issuer-grade bearer validation, persisted audit/security event runtime, repository-backed safeguarding storage, and deny-by-default trust enforcement for current auth, family, safeguarding, and invoice trust seams. | Trust/Safety/Ops + Development | DONE |
 
 ## Open Queue
 
 | ID | Exactly what it does | Spine(s) | Status |
 | -- | -------------------- | -------- | ------ |
-| PROD-TRUST-01 | Replace local JWT-only assumptions with issuer-grade token validation, persisted audit/security events, and deny-by-default trust/commercial write enforcement. | Trust/Safety/Ops + Development | READY |
 | PROD-MONEY-01 | Replace invoice payment simulation with real provider-backed payments plus invoice generation and reminder flows. | Booking/Revenue + Trust/Safety/Ops | READY |
 | PROD-OPS-01 | Replace placeholder readiness checks with real dependency/env gates and add explicit release, migration, and rollback guardrails. | Trust/Safety/Ops + Development | READY |
 
 ## Execution Order
 
-1. `PROD-TRUST-01`
-2. `PROD-MONEY-01`
-3. `PROD-OPS-01`
+1. `PROD-MONEY-01`
+2. `PROD-OPS-01`
 
 ## Sprint Intent
 

@@ -14,6 +14,13 @@ This is not optional. RBAC alone is insufficient for Clubroom.
 - Clubroom API handles authorization (what they may do)
 - Clubroom API also handles audit trail, retention, and legal-hold-aware access rules
 
+## Current Runtime Alignment
+- `/v1` bearer auth now accepts both Clubroom-issued session JWTs and configured external OIDC/JWKS bearer tokens.
+- External bearer identities are mapped onto local users and granted roles before route authz runs.
+- Header-based identity override and trust-debug relationship headers are restricted to the explicit API test harness path.
+- `audit_events` and `security_events` now persist through the shared runtime for auth/session actions, sensitive reads and writes, deny paths, and internal errors on the current trust/commercial seams.
+- Safeguarding incidents and trust-access resolution now run through repositories instead of route-local in-memory state.
+
 ## Base Role Model (RBAC)
 Roles are stored in `user_roles` and may overlap for the same `user_id`.
 

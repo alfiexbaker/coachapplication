@@ -23,6 +23,7 @@ import {
   assertCanWriteAthleteMedical,
   isPrivilegedAdminAuth,
 } from '../../lib/authz.js';
+import { recordAuditEvent } from '../../lib/audit-runtime.js';
 import {
   decorateFamilyAthleteRecord,
   resolveFamilyAthleteRepository,
@@ -123,7 +124,7 @@ async function ensureCanReadAthleteProfile(
     return;
   }
 
-  assertCanReadAthleteHealth(request, athleteId);
+  await assertCanReadAthleteHealth(request, athleteId);
 }
 
 const ensureAuthUserId = (userId?: string) => {
@@ -143,6 +144,17 @@ const familyAthleteRoutes: FastifyPluginAsync = async (app) => {
 
     const repository = resolveFamilyRepository();
     const aggregate = await repository.getFamilyAggregate(familyId, authUserId, isClubAdmin);
+    await recordAuditEvent({
+      request,
+      action: 'family.read',
+      resourceType: 'family',
+      resourceId: familyId,
+      result: 'SUCCESS',
+      sensitiveRead: true,
+      metadata: {
+        athleteCount: aggregate.athletes.length,
+      },
+    });
 
     return reply.send({
       family: aggregate.family,
@@ -182,6 +194,16 @@ const familyAthleteRoutes: FastifyPluginAsync = async (app) => {
       },
       authUserId,
     );
+    await recordAuditEvent({
+      request,
+      action: 'athlete.create',
+      resourceType: 'athlete',
+      resourceId: athlete.id as string,
+      result: 'SUCCESS',
+      metadata: {
+        familyId: body.familyId,
+      },
+    });
 
     return reply.code(201).send({
       athleteId: athlete.id,
@@ -197,13 +219,21 @@ const familyAthleteRoutes: FastifyPluginAsync = async (app) => {
     if (familyId) {
       await ensureCanReadAthleteProfile(request, athleteId, familyId);
     } else {
-      assertCanReadAthleteHealth(request, athleteId);
+      await assertCanReadAthleteHealth(request, athleteId);
     }
 
     const athlete = await repository.getAthlete(athleteId);
     if (!athlete) {
       throw notFound('Athlete not found', { athleteId });
     }
+    await recordAuditEvent({
+      request,
+      action: 'athlete.read',
+      resourceType: 'athlete',
+      resourceId: athleteId,
+      result: 'SUCCESS',
+      sensitiveRead: true,
+    });
 
     return reply.send({
       athleteId,
@@ -247,6 +277,13 @@ const familyAthleteRoutes: FastifyPluginAsync = async (app) => {
     if (!athlete) {
       throw notFound('Athlete not found', { athleteId });
     }
+    await recordAuditEvent({
+      request,
+      action: 'athlete.update',
+      resourceType: 'athlete',
+      resourceId: athleteId,
+      result: 'SUCCESS',
+    });
 
     return reply.send({
       athleteId,
@@ -271,13 +308,20 @@ const familyAthleteRoutes: FastifyPluginAsync = async (app) => {
     if (!deleted) {
       throw notFound('Athlete not found', { athleteId });
     }
+    await recordAuditEvent({
+      request,
+      action: 'athlete.delete',
+      resourceType: 'athlete',
+      resourceId: athleteId,
+      result: 'SUCCESS',
+    });
 
     return reply.code(204).send();
   });
 
   app.get('/athletes/:athleteId/injuries', async (request, reply) => {
     const athleteId = athleteIdSchema.parse((request.params as { athleteId: string }).athleteId);
-    assertCanReadAthleteHealth(request, athleteId);
+    await assertCanReadAthleteHealth(request, athleteId);
 
     const repository = resolveFamilyAthleteRepository();
     const injuries = await repository.listInjuries(athleteId);
@@ -285,13 +329,24 @@ const familyAthleteRoutes: FastifyPluginAsync = async (app) => {
       athleteId,
       injuries,
     });
+    await recordAuditEvent({
+      request,
+      action: 'athlete_injury.read',
+      resourceType: 'athlete_injury',
+      resourceId: athleteId,
+      result: 'SUCCESS',
+      sensitiveRead: true,
+      metadata: {
+        count: injuries.length,
+      },
+    });
 
     return reply.send(payload);
   });
 
   app.post('/athletes/:athleteId/injuries', async (request, reply) => {
     const athleteId = athleteIdSchema.parse((request.params as { athleteId: string }).athleteId);
-    assertCanWriteAthleteHealth(request, athleteId);
+    await assertCanWriteAthleteHealth(request, athleteId);
     const body = createInjuryRequestSchema.parse(request.body);
     const createdByUserId = ensureAuthUserId(request.auth?.userId);
     const repository = resolveFamilyAthleteRepository();
@@ -308,6 +363,16 @@ const familyAthleteRoutes: FastifyPluginAsync = async (app) => {
       },
       createdByUserId,
     );
+    await recordAuditEvent({
+      request,
+      action: 'athlete_injury.create',
+      resourceType: 'athlete_injury',
+      resourceId: injury.id,
+      result: 'SUCCESS',
+      metadata: {
+        athleteId,
+      },
+    });
 
     return reply.status(201).send(injury);
   });
@@ -320,7 +385,7 @@ const familyAthleteRoutes: FastifyPluginAsync = async (app) => {
     if (!current) {
       throw notFound('Injury record not found', { injuryId });
     }
-    assertCanWriteAthleteHealth(request, current.athleteId);
+    await assertCanWriteAthleteHealth(request, current.athleteId);
 
     const updated = await repository.updateInjury(
       injuryId,
@@ -339,22 +404,40 @@ const familyAthleteRoutes: FastifyPluginAsync = async (app) => {
     if (!updated) {
       throw notFound('Injury record not found', { injuryId });
     }
+    await recordAuditEvent({
+      request,
+      action: 'athlete_injury.update',
+      resourceType: 'athlete_injury',
+      resourceId: injuryId,
+      result: 'SUCCESS',
+      metadata: {
+        athleteId: current.athleteId,
+      },
+    });
 
     return reply.send(updated);
   });
 
   app.get('/athletes/:athleteId/medical', async (request, reply) => {
     const athleteId = athleteIdSchema.parse((request.params as { athleteId: string }).athleteId);
-    assertCanReadAthleteMedical(request, athleteId);
+    await assertCanReadAthleteMedical(request, athleteId);
     const userId = ensureAuthUserId(request.auth?.userId);
     const repository = resolveFamilyAthleteRepository();
     const record = await repository.getMedical(athleteId, userId);
+    await recordAuditEvent({
+      request,
+      action: 'medical.read',
+      resourceType: 'child_medical_record',
+      resourceId: athleteId,
+      result: 'SUCCESS',
+      sensitiveRead: true,
+    });
     return reply.send(medicalRecordResponseSchema.parse(record));
   });
 
   app.patch('/athletes/:athleteId/medical', async (request, reply) => {
     const athleteId = athleteIdSchema.parse((request.params as { athleteId: string }).athleteId);
-    assertCanWriteAthleteMedical(request, athleteId);
+    await assertCanWriteAthleteMedical(request, athleteId);
     const body = updateMedicalRecordRequestSchema.parse(request.body);
     const userId = ensureAuthUserId(request.auth?.userId);
     const repository = resolveFamilyAthleteRepository();
@@ -375,22 +458,37 @@ const familyAthleteRoutes: FastifyPluginAsync = async (app) => {
       },
       userId,
     );
+    await recordAuditEvent({
+      request,
+      action: 'medical.update',
+      resourceType: 'child_medical_record',
+      resourceId: athleteId,
+      result: 'SUCCESS',
+    });
 
     return reply.send(medicalRecordResponseSchema.parse(updated));
   });
 
   app.get('/athletes/:athleteId/emergency-contacts', async (request, reply) => {
     const athleteId = athleteIdSchema.parse((request.params as { athleteId: string }).athleteId);
-    assertCanReadAthleteMedical(request, athleteId);
+    await assertCanReadAthleteMedical(request, athleteId);
     const userId = ensureAuthUserId(request.auth?.userId);
     const repository = resolveFamilyAthleteRepository();
     const record = await repository.getEmergencyContacts(athleteId, userId);
+    await recordAuditEvent({
+      request,
+      action: 'emergency_contacts.read',
+      resourceType: 'child_emergency_contact',
+      resourceId: athleteId,
+      result: 'SUCCESS',
+      sensitiveRead: true,
+    });
     return reply.send(emergencyContactsResponseSchema.parse(record));
   });
 
   app.patch('/athletes/:athleteId/emergency-contacts', async (request, reply) => {
     const athleteId = athleteIdSchema.parse((request.params as { athleteId: string }).athleteId);
-    assertCanWriteAthleteMedical(request, athleteId);
+    await assertCanWriteAthleteMedical(request, athleteId);
     const body = updateEmergencyContactsRequestSchema.parse(request.body);
     const userId = ensureAuthUserId(request.auth?.userId);
     const repository = resolveFamilyAthleteRepository();
@@ -400,22 +498,40 @@ const familyAthleteRoutes: FastifyPluginAsync = async (app) => {
       { contacts: body.contacts },
       userId,
     );
+    await recordAuditEvent({
+      request,
+      action: 'emergency_contacts.update',
+      resourceType: 'child_emergency_contact',
+      resourceId: athleteId,
+      result: 'SUCCESS',
+      metadata: {
+        count: body.contacts.length,
+      },
+    });
 
     return reply.send(emergencyContactsResponseSchema.parse(updated));
   });
 
   app.get('/athletes/:athleteId/consents', async (request, reply) => {
     const athleteId = athleteIdSchema.parse((request.params as { athleteId: string }).athleteId);
-    assertCanReadAthleteMedical(request, athleteId);
+    await assertCanReadAthleteMedical(request, athleteId);
     const userId = ensureAuthUserId(request.auth?.userId);
     const repository = resolveFamilyAthleteRepository();
     const record = await repository.getConsents(athleteId, userId);
+    await recordAuditEvent({
+      request,
+      action: 'consents.read',
+      resourceType: 'child_consent',
+      resourceId: athleteId,
+      result: 'SUCCESS',
+      sensitiveRead: true,
+    });
     return reply.send(consentsResponseSchema.parse(record));
   });
 
   app.put('/athletes/:athleteId/consents', async (request, reply) => {
     const athleteId = athleteIdSchema.parse((request.params as { athleteId: string }).athleteId);
-    assertCanWriteAthleteMedical(request, athleteId);
+    await assertCanWriteAthleteMedical(request, athleteId);
     const body = upsertConsentsRequestSchema.parse(request.body);
     const userId = ensureAuthUserId(request.auth?.userId);
     const repository = resolveFamilyAthleteRepository();
@@ -433,6 +549,16 @@ const familyAthleteRoutes: FastifyPluginAsync = async (app) => {
       },
       userId,
     );
+    await recordAuditEvent({
+      request,
+      action: 'consents.update',
+      resourceType: 'child_consent',
+      resourceId: athleteId,
+      result: 'SUCCESS',
+      metadata: {
+        count: body.consents.length,
+      },
+    });
 
     return reply.send(consentsResponseSchema.parse(updated));
   });

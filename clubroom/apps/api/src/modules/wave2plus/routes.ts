@@ -4,6 +4,8 @@ import { z } from 'zod';
 import { badRequest, forbidden, notFound } from '../../lib/http-errors.js';
 import { getMarketplaceSeedStore } from '../../lib/marketplace-seed-store.js';
 import { assertCanReadAthleteHealth, isPrivilegedAdminAuth } from '../../lib/authz.js';
+import { recordAuditEvent } from '../../lib/audit-runtime.js';
+import { resolveTrustAccessRepository } from '../../repositories/p0/trust-access-repository.js';
 
 type SeedRow = Record<string, unknown>;
 
@@ -253,6 +255,17 @@ const wave2PlusRoutes: FastifyPluginAsync = async (app) => {
       .filter((row) => matchesInvoiceFilters(row, query))
       .map((row) => mapInvoice(row, users))
       .sort((left, right) => new Date(right.createdAt).getTime() - new Date(left.createdAt).getTime());
+    await recordAuditEvent({
+      request,
+      action: 'invoice.list',
+      resourceType: 'invoice',
+      result: 'SUCCESS',
+      sensitiveRead: true,
+      metadata: {
+        total: invoices.length,
+        status: query.status ?? null,
+      },
+    });
 
     return reply.send({
       invoices,
@@ -297,6 +310,15 @@ const wave2PlusRoutes: FastifyPluginAsync = async (app) => {
     const paymentInstructionTemplates = getActiveRows(asRows(store.tables.paymentInstructionTemplates)).filter(
       (row) => asString(row.coachUserId) === asString(invoice.coachUserId),
     );
+    await recordAuditEvent({
+      request,
+      action: 'invoice.read',
+      resourceType: 'invoice',
+      resourceId: invoiceId,
+      subjectUserId: asString(invoice.payerUserId) ?? null,
+      result: 'SUCCESS',
+      sensitiveRead: true,
+    });
 
     return reply.send({
       invoice: mapInvoice(invoice, users),
@@ -399,6 +421,20 @@ const wave2PlusRoutes: FastifyPluginAsync = async (app) => {
       }
     }
 
+    await recordAuditEvent({
+      request,
+      action: 'invoice.payment',
+      resourceType: 'invoice',
+      resourceId: invoiceId,
+      subjectUserId: asString(invoice.payerUserId) ?? null,
+      result: 'SUCCESS',
+      metadata: {
+        alreadyPaid,
+        amountMinor,
+        method: body.method,
+      },
+    });
+
     return reply.send({
       invoiceId,
       paid: true,
@@ -472,6 +508,15 @@ const wave2PlusRoutes: FastifyPluginAsync = async (app) => {
       });
     }
 
+    await recordAuditEvent({
+      request,
+      action: 'invoice.mark_paid',
+      resourceType: 'invoice',
+      resourceId: invoiceId,
+      subjectUserId: asString(invoice.payerUserId) ?? null,
+      result: 'SUCCESS',
+    });
+
     return reply.send({
       invoice: mapInvoice(invoice, users),
       seedVersion: store.version,
@@ -531,6 +576,15 @@ const wave2PlusRoutes: FastifyPluginAsync = async (app) => {
       nextStatus: 'SENT',
       note: 'Moved back to unpaid via /v1/invoices/:invoiceId/mark-unpaid.',
       now,
+    });
+
+    await recordAuditEvent({
+      request,
+      action: 'invoice.mark_unpaid',
+      resourceType: 'invoice',
+      resourceId: invoiceId,
+      subjectUserId: asString(invoice.payerUserId) ?? null,
+      result: 'SUCCESS',
     });
 
     return reply.send({
@@ -595,6 +649,15 @@ const wave2PlusRoutes: FastifyPluginAsync = async (app) => {
       now,
     });
 
+    await recordAuditEvent({
+      request,
+      action: 'invoice.write_off',
+      resourceType: 'invoice',
+      resourceId: invoiceId,
+      subjectUserId: asString(invoice.payerUserId) ?? null,
+      result: 'SUCCESS',
+    });
+
     return reply.send({
       invoice: mapInvoice(invoice, users),
       seedVersion: store.version,
@@ -654,6 +717,15 @@ const wave2PlusRoutes: FastifyPluginAsync = async (app) => {
       nextStatus: 'SENT',
       note: 'Restored via /v1/invoices/:invoiceId/restore.',
       now,
+    });
+
+    await recordAuditEvent({
+      request,
+      action: 'invoice.restore',
+      resourceType: 'invoice',
+      resourceId: invoiceId,
+      subjectUserId: asString(invoice.payerUserId) ?? null,
+      result: 'SUCCESS',
     });
 
     return reply.send({
@@ -720,6 +792,15 @@ const wave2PlusRoutes: FastifyPluginAsync = async (app) => {
       });
     }
 
+    await recordAuditEvent({
+      request,
+      action: 'invoice.void',
+      resourceType: 'invoice',
+      resourceId: invoiceId,
+      subjectUserId: asString(invoice.payerUserId) ?? null,
+      result: 'SUCCESS',
+    });
+
     return reply.send({
       invoice: mapInvoice(invoice, users),
       seedVersion: store.version,
@@ -732,7 +813,7 @@ const wave2PlusRoutes: FastifyPluginAsync = async (app) => {
     if (!athleteId) {
       throw notFound('Athlete id is required');
     }
-    assertCanReadAthleteHealth(request, athleteId);
+    await assertCanReadAthleteHealth(request, athleteId);
 
     const store = getMarketplaceSeedStore();
     const sessionNotes = asRows(store.tables.sessionNotes).filter(
@@ -753,6 +834,15 @@ const wave2PlusRoutes: FastifyPluginAsync = async (app) => {
       skillDefinitionIds.has(asString(row.id) ?? ''),
     );
 
+    await recordAuditEvent({
+      request,
+      action: 'athlete_progress.read',
+      resourceType: 'athlete_progress',
+      resourceId: athleteId,
+      result: 'SUCCESS',
+      sensitiveRead: true,
+    });
+
     return reply.send({
       athleteId,
       sessionNotes,
@@ -769,13 +859,22 @@ const wave2PlusRoutes: FastifyPluginAsync = async (app) => {
     if (!athleteId) {
       throw notFound('Athlete id is required');
     }
-    assertCanReadAthleteHealth(request, athleteId);
+    await assertCanReadAthleteHealth(request, athleteId);
 
     const store = getMarketplaceSeedStore();
     const goals = asRows(store.tables.goals).filter((row) => asString(row.athleteId) === athleteId);
     const milestones = asRows(store.tables.goalMilestones).filter((row) =>
       goals.some((goal) => asString(goal.id) === asString(row.goalId)),
     );
+
+    await recordAuditEvent({
+      request,
+      action: 'athlete_goals.read',
+      resourceType: 'goal',
+      resourceId: athleteId,
+      result: 'SUCCESS',
+      sensitiveRead: true,
+    });
 
     return reply.send({
       athleteId,
@@ -791,7 +890,7 @@ const wave2PlusRoutes: FastifyPluginAsync = async (app) => {
     if (!athleteId) {
       throw notFound('Athlete id is required');
     }
-    assertCanReadAthleteHealth(request, athleteId);
+    await assertCanReadAthleteHealth(request, athleteId);
 
     const store = getMarketplaceSeedStore();
     const athleteBadges = asRows(store.tables.athleteBadges).filter(
@@ -805,6 +904,15 @@ const wave2PlusRoutes: FastifyPluginAsync = async (app) => {
     const badgeDefinitions = asRows(store.tables.badgeDefinitions).filter((row) =>
       badgeDefinitionIds.has(asString(row.id) ?? ''),
     );
+
+    await recordAuditEvent({
+      request,
+      action: 'athlete_badges.read',
+      resourceType: 'badge',
+      resourceId: athleteId,
+      result: 'SUCCESS',
+      sensitiveRead: true,
+    });
 
     return reply.send({
       athleteId,
@@ -1076,24 +1184,25 @@ const wave2PlusRoutes: FastifyPluginAsync = async (app) => {
       throw forbidden('Admin role required');
     }
 
-    const store = getMarketplaceSeedStore();
-    const grants = asRows(store.tables.accessGrants);
-    const scopes = asRows(store.tables.accessGrantScopes);
-    const auditEvents = asRows(store.tables.auditEvents);
-    const securityEvents = asRows(store.tables.securityEvents);
-    const retentionPolicies = asRows(store.tables.retentionPolicies);
-    const legalHolds = asRows(store.tables.legalHolds);
+    const overview = await resolveTrustAccessRepository().getTrustAdminOverview();
+    await recordAuditEvent({
+      request,
+      action: 'access_grants.read',
+      resourceType: 'access_grant',
+      result: 'SUCCESS',
+      sensitiveRead: true,
+      metadata: {
+        grantCount: overview.grants.length,
+      },
+    });
 
     return reply.send({
-      grants: grants.map((grant) => ({
-        ...grant,
-        scopes: scopes.filter((scope) => asString(scope.accessGrantId) === asString(grant.id)),
-      })),
-      auditEvents,
-      securityEvents,
-      retentionPolicies,
-      legalHolds,
-      seedVersion: store.version,
+      grants: overview.grants,
+      auditEvents: overview.auditEvents,
+      securityEvents: overview.securityEvents,
+      retentionPolicies: overview.retentionPolicies,
+      legalHolds: overview.legalHolds,
+      seedVersion: overview.dataVersion,
       requestId: request.requestId,
     });
   });
@@ -1105,6 +1214,13 @@ const wave2PlusRoutes: FastifyPluginAsync = async (app) => {
     }
 
     const store = getMarketplaceSeedStore();
+    await recordAuditEvent({
+      request,
+      action: 'retention_runs.read',
+      resourceType: 'retention_run',
+      result: 'SUCCESS',
+      sensitiveRead: true,
+    });
     return reply.send({
       runs: asRows(store.tables.retentionRuns),
       requestId: request.requestId,

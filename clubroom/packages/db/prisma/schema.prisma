@@ -1951,6 +1951,8 @@ model SafeguardingIncident {
   id                 String   @id
   clubId             String?
   athleteId          String?
+  bookingId          String?
+  category           String   @default("other")
   reportedByUserId   String
   assignedToUserId   String?
   status             SafeguardingIncidentStatus @default(OPEN)

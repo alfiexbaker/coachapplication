@@ -55,10 +55,14 @@ Clubs manage staff, squads, visibility, and operating relationships.
   - backend auth now issues and validates signed JWT access/refresh tokens
   - runtime session revocation and `/v1/me/sessions*` are backed by the auth runtime instead of the marketplace seed dataset
   - runtime `/v1` auth no longer falls back to `x-auth-user-id` or `x-auth-roles`; that override is test-only
-- The biggest trust seams still not finished are deeper grant/audit coverage and remaining launch polish:
+- The biggest production seams still not finished are broader grant coverage, real payment ownership, and release-readiness cutover:
   - app `/v1` authority services now rely on bearer auth plus `x-acting-role` and scope headers instead of client-supplied identity headers
   - `/v1/auth/login`, `/v1/auth/register`, `/v1/auth/refresh`, `/v1/auth/logout`, `/v1/auth/revoke`, `/v1/auth/me`, and `/v1/me/sessions*` now run on the JWT/session runtime
+  - bearer auth now accepts both Clubroom-issued session JWTs and configured external OIDC/JWKS bearer tokens that map onto local user and role state
+  - persisted audit and security events now record auth/session actions, sensitive reads and writes, deny paths, and internal errors across the current trust and commercial `/v1` seams
+  - shared backend authz now ignores forged relationship debug headers on bearer-authenticated requests; those headers only work through the explicit API test harness override path
   - family medical, safeguarding incident creation, direct booking creation, booking cancel/reopen, and group-session registration now use `/v1` in non-mock mode
+  - safeguarding incidents now persist through a repository-backed runtime path instead of route-local memory
   - shared backend authz now decides the remaining privileged-admin/staff-link checks for `/v1/clubs*`, `/v1/families/:familyId`, `/v1/invoices*`, `/v1/access-grants`, `/v1/admin/retention-runs`, and the invite/group-session booking routes instead of route-local role drift
   - coach profile in non-mock mode now reads its own offerings from `/v1/coaches/me/offerings` and writes go-live state through `PATCH /v1/auth/me` instead of local-only toggles
   - coach self-serve availability and scheduling rules in non-mock mode now use `/v1/coaches/me/availability/*` and `/v1/coaches/me/scheduling-rules`; `availabilityService` and `schedulingRulesService` no longer treat local storage as the authority for the signed-in coach path
@@ -74,7 +78,7 @@ Clubs manage staff, squads, visibility, and operating relationships.
   - booking changes are intentionally `cancel` or `reopen`; the old counter-offer and invite counter workflow has been removed from the runtime product surface
   - coach scheduling rules no longer advertise a separate reschedule policy; bookings now change by cancellation and rebooking/reopening instead of negotiation
   - Expo native/web and `apps/api` now emit to Sentry with shared release/environment tags, Expo web source maps via `npm run export:web`, and API source maps via `npm --prefix apps/api run build:release`
-  - the main auth follow-through now moves on from shared authz coverage to authoritative commerce surfaces, release hardening, and launch-grade UI cleanup
+  - the next production follow-through moves on from trust hardening to real payments and release readiness
 - Club-facing schedule surfaces now use a `ClubActivity` read model to link `ClubEvent` and `GroupSession`
   - `ClubActivity` now also includes `Match`, so club and squad schedule routes can show events, training, and matches in one surface
   - club-linked open group sessions are treated as mixed-access training, not as a separate public product world

@@ -2,6 +2,7 @@ import fp from 'fastify-plugin';
 import type { FastifyPluginAsync } from 'fastify';
 import { setContext, setTag, setUser } from '@sentry/node';
 import { resolveAuthContextFromBearerToken } from '../lib/auth-runtime.js';
+import { recordSecurityEvent } from '../lib/audit-runtime.js';
 
 interface AuthContextPluginOptions {
   allowHeaderOverride?: boolean;
@@ -53,6 +54,15 @@ const authContextPlugin: FastifyPluginAsync<AuthContextPluginOptions> = async (a
     if (bearerToken) {
       const bearerSession = await resolveAuthContextFromBearerToken(bearerToken);
       if (!bearerSession) {
+        await recordSecurityEvent({
+          request,
+          eventType: 'auth.bearer_rejected',
+          severity: 'medium',
+          message: 'Bearer token rejected during request auth resolution.',
+          metadata: {
+            transport: 'authorization_header',
+          },
+        });
         request.auth = undefined;
         setUser(null);
         setTag('acting_role', 'anonymous');
@@ -63,10 +73,13 @@ const authContextPlugin: FastifyPluginAsync<AuthContextPluginOptions> = async (a
       }
 
       request.auth = {
+        allowDebugTrustHeaders: false,
+        authProvider: bearerSession.provider,
         userId: bearerSession.userId,
         roles: bearerSession.roles,
         actingRole: resolveActingRole(bearerSession.roles, request.headers['x-acting-role']),
         sessionId: bearerSession.sessionId,
+        subject: bearerSession.subject,
       };
       setUser({
         id: bearerSession.userId,
@@ -104,10 +117,13 @@ const authContextPlugin: FastifyPluginAsync<AuthContextPluginOptions> = async (a
     }
 
     request.auth = {
+      allowDebugTrustHeaders: true,
+      authProvider: 'header_override',
       userId: headerUserId,
       roles: headerRoles,
       actingRole: resolveActingRole(headerRoles, request.headers['x-acting-role']),
       sessionId: 'ses_test_header_override',
+      subject: `clubroom|${headerUserId}`,
     };
     setUser({
       id: headerUserId,

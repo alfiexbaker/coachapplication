@@ -9,6 +9,7 @@ import {
   revokeAuthSession,
   updateAuthUserProfile,
 } from '../../lib/auth-runtime.js';
+import { recordAuditEvent } from '../../lib/audit-runtime.js';
 import { forbidden } from '../../lib/http-errors.js';
 
 const loginRequestSchema = z.object({
@@ -92,6 +93,14 @@ const authRoutes: FastifyPluginAsync = async (app) => {
       body.password,
       request.headers['user-agent'],
     );
+    await recordAuditEvent({
+      request,
+      action: 'auth.login',
+      resourceType: 'user',
+      resourceId: result.user.id,
+      subjectUserId: result.user.id,
+      result: 'SUCCESS',
+    });
     return reply.send({
       user: result.user,
       tokens: result.tokens,
@@ -102,6 +111,14 @@ const authRoutes: FastifyPluginAsync = async (app) => {
   app.post('/auth/register', async (request, reply) => {
     const body = registerRequestSchema.parse(request.body);
     const result = await registerAuthUser(body, request.headers['user-agent']);
+    await recordAuditEvent({
+      request,
+      action: 'auth.register',
+      resourceType: 'user',
+      resourceId: result.user.id,
+      subjectUserId: result.user.id,
+      result: 'SUCCESS',
+    });
     return reply.status(201).send({
       user: result.user,
       tokens: result.tokens,
@@ -112,6 +129,12 @@ const authRoutes: FastifyPluginAsync = async (app) => {
   app.post('/auth/refresh', async (request, reply) => {
     const body = refreshRequestSchema.parse(request.body);
     const tokens = await refreshAuthSession(body.refreshToken, request.headers['user-agent']);
+    await recordAuditEvent({
+      request,
+      action: 'auth.refresh',
+      resourceType: 'auth_session',
+      result: 'SUCCESS',
+    });
     return reply.send({
       tokens,
       requestId: request.requestId,
@@ -124,6 +147,14 @@ const authRoutes: FastifyPluginAsync = async (app) => {
         sessionId: request.auth.sessionId,
         userId: request.auth.userId,
         reason: 'logout',
+      });
+      await recordAuditEvent({
+        request,
+        action: 'auth.logout',
+        resourceType: 'auth_session',
+        resourceId: request.auth.sessionId,
+        subjectUserId: request.auth.userId,
+        result: 'SUCCESS',
       });
     }
 
@@ -138,6 +169,14 @@ const authRoutes: FastifyPluginAsync = async (app) => {
         refreshToken: body.refreshToken,
         userId: request.auth?.userId,
         reason: 'self_revoke',
+      });
+      await recordAuditEvent({
+        request,
+        action: 'auth.revoke',
+        resourceType: 'auth_session',
+        resourceId: request.auth?.sessionId ?? null,
+        subjectUserId: request.auth?.userId ?? null,
+        result: 'SUCCESS',
       });
     }
 
@@ -164,6 +203,14 @@ const authRoutes: FastifyPluginAsync = async (app) => {
 
     const updates = mePatchSchema.parse(request.body ?? {});
     const user = await updateAuthUserProfile(authUserId, updates);
+    await recordAuditEvent({
+      request,
+      action: 'auth.profile_update',
+      resourceType: 'user',
+      resourceId: authUserId,
+      subjectUserId: authUserId,
+      result: 'SUCCESS',
+    });
     return reply.send({
       user,
       requestId: request.requestId,
@@ -188,6 +235,14 @@ const authRoutes: FastifyPluginAsync = async (app) => {
 
     verifyEmailSchema.parse(request.body);
     const user = await updateAuthUserProfile(authUserId, { isVerified: true });
+    await recordAuditEvent({
+      request,
+      action: 'auth.verify_email',
+      resourceType: 'user',
+      resourceId: authUserId,
+      subjectUserId: authUserId,
+      result: 'SUCCESS',
+    });
     return reply.send({
       user,
       requestId: request.requestId,

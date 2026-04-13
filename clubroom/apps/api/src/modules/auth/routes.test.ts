@@ -1,11 +1,18 @@
 import assert from 'node:assert/strict';
+import crypto from 'node:crypto';
+import http from 'node:http';
 import { after, beforeEach, describe, it } from 'node:test';
+import { env } from '@clubroom/config';
 import { buildApp } from '../../app.js';
 import { resetAuthRuntimeForTests } from '../../lib/auth-runtime.js';
 import { resetMarketplaceSeedStoreForTests } from '../../lib/marketplace-seed-store.js';
 import { resetDbFixtureStoreForTests } from '../../lib/db-fixture-store.js';
 
 const JWT_PATTERN = /^[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+$/;
+
+function encodeBase64Url(value: Buffer | string): string {
+  return Buffer.from(value).toString('base64url');
+}
 
 describe('auth routes', () => {
   const app = buildApp();
@@ -258,6 +265,81 @@ describe('auth routes', () => {
       assert.equal(bearerMe.statusCode, 200);
     } finally {
       await runtimeApp.close();
+    }
+  });
+
+  it('accepts issuer-validated external bearer tokens for mapped local users', async () => {
+    const { privateKey, publicKey } = crypto.generateKeyPairSync('rsa', {
+      modulusLength: 2048,
+    });
+    const publicJwk = publicKey.export({ format: 'jwk' }) as Record<string, string>;
+    const jwksServer = http.createServer((req, res) => {
+      if (req.url !== '/.well-known/jwks.json') {
+        res.statusCode = 404;
+        res.end();
+        return;
+      }
+      res.setHeader('content-type', 'application/json');
+      res.end(JSON.stringify({
+        keys: [
+          {
+            ...publicJwk,
+            alg: 'RS256',
+            kid: 'test-key',
+            use: 'sig',
+          },
+        ],
+      }));
+    });
+
+    await new Promise<void>((resolve) => {
+      jwksServer.listen(0, '127.0.0.1', () => resolve());
+    });
+
+    const address = jwksServer.address();
+    assert.ok(address && typeof address === 'object');
+    const issuer = `http://127.0.0.1:${address.port}`;
+    const previousIssuer = env.AUTH0_ISSUER_URL;
+    const previousAudience = env.AUTH0_AUDIENCE;
+    env.AUTH0_ISSUER_URL = issuer;
+    env.AUTH0_AUDIENCE = 'clubroom-mobile';
+
+    try {
+      const nowSec = Math.floor(Date.now() / 1000);
+      const header = encodeBase64Url(JSON.stringify({
+        alg: 'RS256',
+        kid: 'test-key',
+        typ: 'JWT',
+      }));
+      const payload = encodeBase64Url(JSON.stringify({
+        aud: 'clubroom-mobile',
+        exp: nowSec + 300,
+        iat: nowSec,
+        iss: issuer,
+        sub: 'auth0|coach-amelia',
+      }));
+      const signedValue = `${header}.${payload}`;
+      const signature = crypto.sign('RSA-SHA256', Buffer.from(signedValue), privateKey);
+      const token = `${signedValue}.${signature.toString('base64url')}`;
+
+      const me = await app.inject({
+        method: 'GET',
+        url: '/v1/auth/me',
+        headers: {
+          authorization: `Bearer ${token}`,
+          'x-acting-role': 'coach',
+        },
+      });
+      assert.equal(me.statusCode, 200);
+      const payloadJson = me.json() as { user: { email: string; roles: string[] } };
+      assert.equal(payloadJson.user.email, 'amelia.shaw@clubroom.demo');
+      assert.equal(payloadJson.user.roles.includes('coach'), true);
+    } finally {
+      env.AUTH0_ISSUER_URL = previousIssuer;
+      env.AUTH0_AUDIENCE = previousAudience;
+      await new Promise<void>((resolve, reject) => {
+        jwksServer.close((error) => (error ? reject(error) : resolve()));
+      });
     }
   });
 });

@@ -83,9 +83,38 @@ interface AuthUserRecord {
 export interface AuthContext {
   exp: number;
   roles: string[];
-  sessionId: string;
+  sessionId?: string;
+  provider: 'local' | 'oidc';
   subject: string;
   userId: string;
+}
+
+interface ExternalJwtClaims {
+  aud: string | string[];
+  exp: number;
+  iat?: number;
+  iss: string;
+  sid?: string;
+  sub: string;
+}
+
+type VerifiedAccessToken =
+  | {
+      provider: 'local';
+      claims: JwtClaims;
+    }
+  | {
+      provider: 'oidc';
+      claims: ExternalJwtClaims;
+    };
+
+interface JwkKey {
+  alg?: string;
+  e?: string;
+  kid?: string;
+  kty?: string;
+  n?: string;
+  use?: string;
 }
 
 export interface AuthTokens {
@@ -263,8 +292,12 @@ function getJwtSecret(): Buffer {
   return Buffer.from(DEFAULT_DEV_JWT_SECRET, 'utf8');
 }
 
-function getJwtIssuer(): string {
-  return env.API_JWT_ISSUER ?? env.AUTH0_ISSUER_URL ?? 'https://api.clubroom.local';
+function getLocalJwtIssuer(): string {
+  return env.API_JWT_ISSUER ?? 'https://api.clubroom.local';
+}
+
+function getExternalJwtIssuer(): string | null {
+  return env.AUTH0_ISSUER_URL?.trim() || null;
 }
 
 function getJwtAudience(): string {
@@ -291,13 +324,58 @@ function parseJwtJson(segment: string): Record<string, unknown> {
   }
 }
 
+function parseJwtParts(token: string): [string, string, string] {
+  const parts = token.split('.');
+  if (parts.length !== 3) {
+    throw unauthorized('Invalid JWT structure');
+  }
+  return parts as [string, string, string];
+}
+
+let externalJwksCache: { issuer: string; keys: JwkKey[]; expiresAt: number } | null = null;
+
+function getJwksUrl(issuer: string): URL {
+  const normalizedIssuer = issuer.endsWith('/') ? issuer : `${issuer}/`;
+  return new URL('.well-known/jwks.json', normalizedIssuer);
+}
+
+async function fetchExternalJwkSet(issuer: string): Promise<JwkKey[]> {
+  const nowMs = Date.now();
+  if (externalJwksCache && externalJwksCache.issuer === issuer && externalJwksCache.expiresAt > nowMs) {
+    return externalJwksCache.keys;
+  }
+
+  const response = await fetch(getJwksUrl(issuer));
+  if (!response.ok) {
+    throw unauthorized('Unable to load external JWKS');
+  }
+
+  const payload = (await response.json()) as { keys?: unknown };
+  const keys = Array.isArray(payload.keys)
+    ? payload.keys.filter((candidate): candidate is JwkKey => Boolean(candidate && typeof candidate === 'object'))
+    : [];
+  if (keys.length === 0) {
+    throw unauthorized('External JWKS did not contain any keys');
+  }
+
+  const cacheControl = response.headers.get('cache-control') ?? '';
+  const maxAgeMatch = cacheControl.match(/max-age=(\d+)/);
+  const maxAgeSec = maxAgeMatch ? Number.parseInt(maxAgeMatch[1] ?? '300', 10) : 300;
+  externalJwksCache = {
+    issuer,
+    keys,
+    expiresAt: nowMs + maxAgeSec * 1000,
+  };
+  return keys;
+}
+
 function signJwt(params: Omit<JwtClaims, 'aud' | 'exp' | 'iat' | 'iss'> & { expiresInSec: number }): string {
   const nowSec = Math.floor(Date.now() / 1000);
   const payload: JwtClaims = {
     aud: getJwtAudience(),
     exp: nowSec + params.expiresInSec,
     iat: nowSec,
-    iss: getJwtIssuer(),
+    iss: getLocalJwtIssuer(),
     jti: params.jti,
     roles: params.roles,
     sid: params.sid,
@@ -323,13 +401,8 @@ function ensureStringClaim(value: unknown, label: string): string {
   return value;
 }
 
-function verifyJwt(token: string, expectedTokenUse: JwtTokenUse): JwtClaims {
-  const parts = token.split('.');
-  if (parts.length !== 3) {
-    throw unauthorized('Invalid JWT structure');
-  }
-
-  const [encodedHeader, encodedPayload, encodedSignature] = parts;
+function verifyLocalJwt(token: string, expectedTokenUse: JwtTokenUse): JwtClaims {
+  const [encodedHeader, encodedPayload, encodedSignature] = parseJwtParts(token);
   const header = parseJwtJson(encodedHeader);
   if (header.alg !== 'HS256' || header.typ !== 'JWT') {
     throw unauthorized('Unsupported JWT header');
@@ -366,7 +439,7 @@ function verifyJwt(token: string, expectedTokenUse: JwtTokenUse): JwtClaims {
     uid: ensureStringClaim(payload.uid, 'uid'),
   };
 
-  if (claims.iss !== getJwtIssuer()) {
+  if (claims.iss !== getLocalJwtIssuer()) {
     throw unauthorized('JWT issuer is invalid');
   }
   if (claims.aud !== getJwtAudience()) {
@@ -388,6 +461,117 @@ function verifyJwt(token: string, expectedTokenUse: JwtTokenUse): JwtClaims {
   }
 
   return claims;
+}
+
+function ensureBearerExternalClaim(value: unknown, label: string): string {
+  if (typeof value !== 'string' || !value.trim()) {
+    throw unauthorized(`JWT ${label} claim is required`);
+  }
+  return value.trim();
+}
+
+function ensureAudienceClaim(value: unknown): string | string[] {
+  if (typeof value === 'string' && value.trim()) {
+    return value.trim();
+  }
+  if (Array.isArray(value)) {
+    const audiences = value.map((entry) => String(entry).trim()).filter(Boolean);
+    if (audiences.length > 0) {
+      return audiences;
+    }
+  }
+  throw unauthorized('JWT aud claim is required');
+}
+
+function getSigningInput(token: string): { header: Record<string, unknown>; payload: Record<string, unknown>; signedValue: string; signature: Buffer } {
+  const [encodedHeader, encodedPayload, encodedSignature] = parseJwtParts(token);
+  return {
+    header: parseJwtJson(encodedHeader),
+    payload: parseJwtJson(encodedPayload),
+    signedValue: `${encodedHeader}.${encodedPayload}`,
+    signature: decodeBase64Url(encodedSignature),
+  };
+}
+
+async function verifyExternalAccessToken(token: string): Promise<ExternalJwtClaims> {
+  const issuer = getExternalJwtIssuer();
+  if (!issuer) {
+    throw unauthorized('External JWT issuer is not configured');
+  }
+
+  const { header, payload, signedValue, signature } = getSigningInput(token);
+  const algorithm = ensureStringClaim(header.alg, 'alg');
+  if (algorithm !== 'RS256') {
+    throw unauthorized('Unsupported external JWT algorithm');
+  }
+
+  const keyId = ensureStringClaim(header.kid, 'kid');
+  const jwks = await fetchExternalJwkSet(issuer);
+  const jwk = jwks.find((candidate) => candidate.kid === keyId);
+  if (!jwk || jwk.kty !== 'RSA' || !jwk.n || !jwk.e) {
+    throw unauthorized('Matching external JWKS key was not found');
+  }
+
+  const publicKey = crypto.createPublicKey({
+    format: 'jwk',
+    key: {
+      kty: jwk.kty,
+      n: jwk.n,
+      e: jwk.e,
+    },
+  });
+
+  const verified = crypto.verify('RSA-SHA256', Buffer.from(signedValue), publicKey, signature);
+  if (!verified) {
+    throw unauthorized('Invalid external JWT signature');
+  }
+
+  const claims: ExternalJwtClaims = {
+    aud: ensureAudienceClaim(payload.aud),
+    exp: typeof payload.exp === 'number' ? payload.exp : NaN,
+    iat: typeof payload.iat === 'number' ? payload.iat : undefined,
+    iss: ensureBearerExternalClaim(payload.iss, 'iss'),
+    sid: typeof payload.sid === 'string' && payload.sid.trim() ? payload.sid : undefined,
+    sub: ensureBearerExternalClaim(payload.sub, 'sub'),
+  };
+
+  if (claims.iss !== issuer) {
+    throw unauthorized('JWT issuer is invalid');
+  }
+
+  const expectedAudience = getJwtAudience();
+  const audiences = Array.isArray(claims.aud) ? claims.aud : [claims.aud];
+  if (!audiences.includes(expectedAudience)) {
+    throw unauthorized('JWT audience is invalid');
+  }
+  if (!Number.isFinite(claims.exp)) {
+    throw unauthorized('JWT expiry claim is invalid');
+  }
+
+  const nowSec = Math.floor(Date.now() / 1000);
+  if (typeof claims.iat === 'number' && claims.iat > nowSec + CLOCK_SKEW_SEC) {
+    throw unauthorized('JWT issued-at claim is invalid');
+  }
+  if (claims.exp <= nowSec - CLOCK_SKEW_SEC) {
+    throw unauthorized('JWT has expired');
+  }
+
+  return claims;
+}
+
+async function verifyAccessToken(token: string): Promise<VerifiedAccessToken> {
+  const { header, payload } = getSigningInput(token);
+  if (header.alg === 'HS256' && payload.iss === getLocalJwtIssuer()) {
+    return {
+      provider: 'local',
+      claims: verifyLocalJwt(token, 'access'),
+    };
+  }
+
+  return {
+    provider: 'oidc',
+    claims: await verifyExternalAccessToken(token),
+  };
 }
 
 function randomHex(bytes = 16): string {
@@ -578,6 +762,35 @@ async function loadAuthIdentityByUserId(userId: string): Promise<AuthIdentity | 
   const prisma = getPrismaClientOrThrow();
   const user = await prisma.user.findUnique({
     where: { id: userId },
+    include: {
+      roles: {
+        where: { revokedAt: null, active: true },
+      },
+    },
+  });
+  if (!user || !user.email) {
+    return null;
+  }
+
+  return {
+    authProviderSubject: user.authProviderSubject,
+    email: user.email,
+    id: user.id,
+    roles: user.roles.map((role) => role.role),
+    tokenEpoch: user.tokenEpoch,
+  };
+}
+
+async function loadAuthIdentityBySubject(subject: string): Promise<AuthIdentity | null> {
+  const tables = getActiveTables();
+  if (tables) {
+    const user = asRows(tables.users).find((row) => asString(row.authProviderSubject) === subject);
+    return user ? loadAuthIdentityFromTables(tables, user) : null;
+  }
+
+  const prisma = getPrismaClientOrThrow();
+  const user = await prisma.user.findFirst({
+    where: { authProviderSubject: subject },
     include: {
       roles: {
         where: { revokedAt: null, active: true },
@@ -1152,7 +1365,7 @@ function buildTokens(identity: AuthIdentity, session: SessionRecord): AuthTokens
     token_use: 'refresh',
     uid: identity.id,
   });
-  const accessClaims = verifyJwt(accessToken, 'access');
+  const accessClaims = verifyLocalJwt(accessToken, 'access');
 
   return {
     accessToken,
@@ -1162,9 +1375,25 @@ function buildTokens(identity: AuthIdentity, session: SessionRecord): AuthTokens
 }
 
 export async function resolveAuthContextFromBearerToken(token: string): Promise<AuthContext | null> {
-  let claims: JwtClaims;
+  let claims!: JwtClaims;
   try {
-    claims = verifyJwt(token, 'access');
+    const verified = await verifyAccessToken(token);
+    if (verified.provider === 'local') {
+      claims = verified.claims;
+    } else {
+      const identity = await loadAuthIdentityBySubject(verified.claims.sub);
+      if (!identity) {
+        return null;
+      }
+      return {
+        exp: verified.claims.exp,
+        provider: 'oidc',
+        roles: identity.roles,
+        sessionId: verified.claims.sid,
+        subject: identity.authProviderSubject,
+        userId: identity.id,
+      };
+    }
   } catch {
     return null;
   }
@@ -1188,6 +1417,7 @@ export async function resolveAuthContextFromBearerToken(token: string): Promise<
   await touchSessionRecord(session);
   return {
     exp: claims.exp,
+    provider: 'local',
     roles: identity.roles,
     sessionId: session.id,
     subject: claims.sub,
@@ -1437,7 +1667,7 @@ export async function refreshAuthSession(
   refreshToken: string,
   userAgent?: string,
 ): Promise<AuthTokens> {
-  const claims = verifyJwt(refreshToken, 'refresh');
+  const claims = verifyLocalJwt(refreshToken, 'refresh');
   const session = await getSessionRecordById(claims.sid);
   if (!isSessionActive(session, claims.uid)) {
     throw unauthorized('Session expired. Please log in again.');
@@ -1467,7 +1697,7 @@ export async function revokeAuthSession(params: {
   let sessionId = params.sessionId;
 
   if (!sessionId && params.refreshToken) {
-    const claims = verifyJwt(params.refreshToken, 'refresh');
+    const claims = verifyLocalJwt(params.refreshToken, 'refresh');
     const session = await getSessionRecordByRefreshTokenId(claims.jti);
     if (!session || session.id !== claims.sid) {
       throw unauthorized('Invalid refresh token');

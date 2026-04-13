@@ -4,6 +4,7 @@ import path from 'node:path';
 import { after, beforeEach, describe, it } from 'node:test';
 import { env } from '@clubroom/config';
 import { buildApp } from '../../app.js';
+import { resetAuthRuntimeForTests } from '../../lib/auth-runtime.js';
 import { resetDbFixtureStoreForTests } from '../../lib/db-fixture-store.js';
 import { resetMarketplaceSeedStoreForTests } from '../../lib/marketplace-seed-store.js';
 import { resetFamilyAthleteRouteStateForTests } from './routes.js';
@@ -45,6 +46,7 @@ describe('family-athlete routes', () => {
   const app = buildApp();
 
   beforeEach(() => {
+    resetAuthRuntimeForTests();
     resetMarketplaceSeedStoreForTests();
     resetDbFixtureStoreForTests();
     resetFamilyAthleteRouteStateForTests();
@@ -523,6 +525,33 @@ describe('family-athlete routes', () => {
       },
     });
     assert.equal(nonGuardianPatch.statusCode, 403);
+  });
+
+  it('ignores forged guardian trust headers on bearer-authenticated requests', async () => {
+    const login = await app.inject({
+      method: 'POST',
+      url: '/v1/auth/login',
+      payload: {
+        email: 'olivia.barton@clubroom.demo',
+        password: 'user',
+      },
+    });
+    assert.equal(login.statusCode, 200);
+    const loginPayload = login.json() as {
+      tokens: { accessToken: string };
+    };
+
+    const medical = await app.inject({
+      method: 'GET',
+      url: '/v1/athletes/ath_user3/medical',
+      headers: {
+        authorization: `Bearer ${loginPayload.tokens.accessToken}`,
+        'x-acting-role': 'parent',
+        'x-guardian-athlete-ids': 'ath_user3',
+      },
+    });
+
+    assert.equal(medical.statusCode, 403);
   });
 
   it('group roster injury logging requires verified assigned coach', async () => {
