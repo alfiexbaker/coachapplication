@@ -1,4 +1,3 @@
-import crypto from 'node:crypto';
 import type { FastifyPluginAsync, FastifyRequest } from 'fastify';
 import { z } from 'zod';
 import {
@@ -10,19 +9,13 @@ import {
   familyIdSchema,
   injuryIdSchema,
   injuriesResponseSchema,
-  injuryRecordSchema,
   medicalRecordResponseSchema,
-  upsertConsentsRequestSchema,
   updateEmergencyContactsRequestSchema,
   updateInjuryRequestSchema,
   updateMedicalRecordRequestSchema,
-  type ConsentsResponse,
-  type EmergencyContactsResponse,
-  type InjuryRecord,
-  type MedicalRecordResponse,
+  upsertConsentsRequestSchema,
 } from '@clubroom/shared-contracts';
 import { forbidden, notFound } from '../../lib/http-errors.js';
-import { resolveFamilyRepository } from '../../repositories/p0/family-repository.js';
 import {
   assertCanReadAthleteHealth,
   assertCanReadAthleteMedical,
@@ -30,26 +23,18 @@ import {
   assertCanWriteAthleteMedical,
   isPrivilegedAdminAuth,
 } from '../../lib/authz.js';
-import { getMarketplaceSeedStore } from '../../lib/marketplace-seed-store.js';
-
-const injuriesByAthleteId = new Map<string, InjuryRecord[]>();
-const injuriesById = new Map<string, InjuryRecord>();
-const medicalByAthleteId = new Map<string, MedicalRecordResponse>();
-const emergencyContactsByAthleteId = new Map<string, EmergencyContactsResponse>();
-const consentsByAthleteId = new Map<string, ConsentsResponse>();
-const athleteProfilesByAthleteId = new Map<string, AthleteProfileState>();
-
-export function resetFamilyAthleteRouteStateForTests(): void {
-  athleteProfilesByAthleteId.clear();
-}
+import {
+  decorateFamilyAthleteRecord,
+  resolveFamilyAthleteRepository,
+} from '../../repositories/p0/family-athlete-repository.js';
+import { resolveFamilyRepository } from '../../repositories/p0/family-repository.js';
 
 type SeedRow = Record<string, unknown>;
-
 type Gender = 'MALE' | 'FEMALE' | 'OTHER' | 'PREFER_NOT_TO_SAY';
 type Relationship = 'SON' | 'DAUGHTER' | 'WARD' | 'GRANDCHILD' | 'OTHER';
 
 interface DisabilityRecord {
-  id: string;
+  id?: string;
   type: string;
   diagnosisDate?: string;
   description?: string;
@@ -60,7 +45,7 @@ interface DisabilityRecord {
 }
 
 interface SpecialNeedRecord {
-  id: string;
+  id?: string;
   category: 'PHYSICAL' | 'LEARNING' | 'SENSORY' | 'BEHAVIORAL' | 'MEDICAL' | 'OTHER';
   name: string;
   description?: string;
@@ -69,36 +54,7 @@ interface SpecialNeedRecord {
   parentHints?: string;
 }
 
-interface AthleteProfileState {
-  athleteId: string;
-  familyId: string;
-  parentId: string;
-  firstName: string;
-  lastName: string;
-  nickname?: string;
-  dateOfBirth?: string;
-  gender: Gender;
-  relationship: Relationship;
-  primaryPosition?: string | null;
-  photoUrl?: string;
-  disabilities: DisabilityRecord[];
-  specialNeeds: SpecialNeedRecord[];
-  communicationNotes?: string;
-  behavioralNotes?: string;
-  createdAt: string;
-  updatedAt: string;
-}
-
-const asRows = (value: unknown): SeedRow[] => (Array.isArray(value) ? (value as SeedRow[]) : []);
 const asString = (value: unknown): string | undefined => (typeof value === 'string' ? value : undefined);
-
-function removeRowsWhere(rows: SeedRow[], predicate: (row: SeedRow) => boolean): void {
-  for (let index = rows.length - 1; index >= 0; index -= 1) {
-    if (predicate(rows[index])) {
-      rows.splice(index, 1);
-    }
-  }
-}
 
 const disabilitySchema = z.object({
   id: z.string().optional(),
@@ -139,328 +95,35 @@ const createAthleteRequestSchema = z.object({
 
 const updateAthleteRequestSchema = createAthleteRequestSchema.omit({ familyId: true }).partial();
 
-const isoNow = () => new Date().toISOString();
-const newId = (prefix: string) => `${prefix}_${crypto.randomUUID()}`;
-
-const seedNow = isoNow();
-const seededInjuries: InjuryRecord[] = [
-  injuryRecordSchema.parse({
-    id: 'inj_seed-user1-ankle',
-    athleteId: 'ath_user1',
-    title: 'Left ankle strain',
-    type: 'LEFT_ANKLE',
-    severity: 'medium',
-    status: 'recovering',
-    reportedAt: '2026-02-24T10:00:00.000Z',
-    expectedRecoveryDate: '2026-03-10T00:00:00.000Z',
-    resolvedAt: null,
-    notes: 'Injury logged from group roster flow test fixture.',
-    createdByUserId: 'usr_coach1',
-    createdAt: '2026-02-24T10:00:00.000Z',
-    updatedAt: '2026-02-27T09:00:00.000Z',
-  }),
-  injuryRecordSchema.parse({
-    id: 'inj_seed-user2-knee',
-    athleteId: 'ath_user2',
-    title: 'Right knee impact',
-    type: 'RIGHT_KNEE',
-    severity: 'high',
-    status: 'active',
-    reportedAt: '2026-02-28T16:30:00.000Z',
-    expectedRecoveryDate: '2026-03-18T00:00:00.000Z',
-    resolvedAt: null,
-    notes: 'Fixture injury for health dashboard and detail testing.',
-    createdByUserId: 'usr_parent1',
-    createdAt: '2026-02-28T16:30:00.000Z',
-    updatedAt: '2026-02-28T16:30:00.000Z',
-  }),
-];
-
-for (const injury of seededInjuries) {
-  injuriesById.set(injury.id, injury);
-  const list = injuriesByAthleteId.get(injury.athleteId) ?? [];
-  list.push(injury);
-  injuriesByAthleteId.set(injury.athleteId, list);
+function resolveParentIdFromAthlete(athlete: Record<string, unknown>): string | null {
+  const guardians = Array.isArray(athlete.guardians) ? (athlete.guardians as SeedRow[]) : [];
+  const primary = guardians.find((row) => row.isPrimary === true);
+  return asString(primary?.guardianUserId) ?? asString(guardians[0]?.guardianUserId) ?? null;
 }
 
-medicalByAthleteId.set(
-  'ath_user1',
-  medicalRecordResponseSchema.parse({
-    athleteId: 'ath_user1',
-    conditions: ['asthma'],
-    allergies: ['nuts'],
-    medications: ['inhaler'],
-    restrictions: ['Carry inhaler pitch-side'],
-    doctorName: 'Dr. Patel',
-    doctorPhone: '+442071234567',
-    insuranceProvider: 'Bupa',
-    insuranceNumber: 'BUPA-12345',
-    emergencyNotes: 'Carry inhaler on match days.',
-    senNotes: null,
-    updatedAt: seedNow,
-    updatedByUserId: 'usr_parent1',
-  }),
-);
-
-emergencyContactsByAthleteId.set(
-  'ath_user1',
-  emergencyContactsResponseSchema.parse({
-    athleteId: 'ath_user1',
-    contacts: [
-      {
-        id: 'emc_seed-parent1',
-        name: 'Chris Barton',
-        relationship: 'parent',
-        phone: '+447700900100',
-        email: 'chris.barton@email.com',
-        isPrimary: true,
-        canPickup: true,
-      },
-    ],
-    updatedAt: seedNow,
-    updatedByUserId: 'usr_parent1',
-  }),
-);
-
-consentsByAthleteId.set(
-  'ath_user1',
-  consentsResponseSchema.parse({
-    athleteId: 'ath_user1',
-    consents: [
-      {
-        type: 'PHOTO',
-        granted: true,
-        grantedAt: '2026-02-20T10:00:00.000Z',
-        grantedBy: 'Chris Barton',
-        expiryAt: '2027-02-01T00:00:00.000Z',
-      },
-      {
-        type: 'VIDEO',
-        granted: true,
-        grantedAt: '2026-02-20T10:00:00.000Z',
-        grantedBy: 'Chris Barton',
-        expiryAt: '2027-02-01T00:00:00.000Z',
-      },
-      {
-        type: 'SOCIAL_MEDIA',
-        granted: false,
-        grantedBy: '',
-      },
-      {
-        type: 'EMERGENCY_TREATMENT',
-        granted: true,
-        grantedAt: '2026-02-20T10:00:00.000Z',
-        grantedBy: 'Chris Barton',
-        expiryAt: '2027-02-01T00:00:00.000Z',
-      },
-    ],
-    updatedAt: seedNow,
-    updatedByUserId: 'usr_parent1',
-  }),
-);
-
-function splitDisplayName(displayName: string | undefined): { firstName: string; lastName: string } {
-  const trimmed = displayName?.trim() ?? '';
-  if (!trimmed) {
-    return { firstName: 'Young', lastName: 'Athlete' };
-  }
-
-  const parts = trimmed.split(/\s+/);
-  return {
-    firstName: parts[0] ?? 'Young',
-    lastName: parts.slice(1).join(' ') || parts[0] || 'Athlete',
-  };
+function decorateAthlete(athlete: Record<string, unknown>): Record<string, unknown> {
+  return decorateFamilyAthleteRecord(athlete, resolveParentIdFromAthlete(athlete));
 }
 
-function ensureSeedFamilyWriteAccess(familyId: string, authUserId: string): void {
-  if (hasSeedFamilyMembership(familyId, authUserId)) {
-    return;
-  }
-
-  throw forbidden('Not allowed to manage this family');
-}
-
-function hasSeedFamilyMembership(familyId: string, authUserId: string): boolean {
-  const store = getMarketplaceSeedStore();
-  const memberships = asRows(store.tables.familyMemberships);
-  return memberships.some(
-    (row) =>
-      asString(row.familyId) === familyId
-      && asString(row.userId) === authUserId
-      && !asString(row.deletedAt),
-  );
-}
-
-function ensureCanReadAthleteProfile(
+async function ensureCanReadAthleteProfile(
   request: FastifyRequest,
   athleteId: string,
   familyId: string,
-): void {
+): Promise<void> {
   const authUserId = request.auth?.userId;
   if (!authUserId) {
     throw forbidden('Authenticated user is required');
   }
-  if (isPrivilegedAdminAuth(request.auth) || hasSeedFamilyMembership(familyId, authUserId)) {
+  if (isPrivilegedAdminAuth(request.auth)) {
+    return;
+  }
+
+  const repository = resolveFamilyAthleteRepository();
+  if (await repository.hasFamilyMembership(familyId, authUserId)) {
     return;
   }
 
   assertCanReadAthleteHealth(request, athleteId);
-}
-
-function resolveAthleteFamilyId(athleteId: string): string | null {
-  for (const profile of athleteProfilesByAthleteId.values()) {
-    if (profile.athleteId === athleteId) {
-      return profile.familyId;
-    }
-  }
-
-  const store = getMarketplaceSeedStore();
-  const links = asRows(store.tables.guardianChildLinks);
-  return asString(links.find((row) => asString(row.athleteId) === athleteId)?.familyId) ?? null;
-}
-
-function resolveParentIdForAthlete(athlete: SeedRow, familyId: string): string {
-  const existing = athleteProfilesByAthleteId.get(asString(athlete.id) ?? '');
-  if (existing?.parentId) {
-    return existing.parentId;
-  }
-
-  const guardian = Array.isArray(athlete.guardians)
-    ? (athlete.guardians as SeedRow[]).find((row) => asString(row.guardianUserId))
-    : null;
-  if (guardian) {
-    return asString(guardian.guardianUserId) ?? '';
-  }
-
-  const store = getMarketplaceSeedStore();
-  const family = asRows(store.tables.families).find((row) => asString(row.id) === familyId);
-  return asString(family?.primaryGuardianUserId) ?? '';
-}
-
-function profileStateFromAthleteRow(athlete: SeedRow, familyId: string): AthleteProfileState {
-  const athleteId = asString(athlete.id) ?? '';
-  const existing = athleteProfilesByAthleteId.get(athleteId);
-  if (existing) {
-    return existing;
-  }
-
-  const name = splitDisplayName(asString(athlete.displayName));
-  const nextState: AthleteProfileState = {
-    athleteId,
-    familyId,
-    parentId: resolveParentIdForAthlete(athlete, familyId),
-    firstName: name.firstName,
-    lastName: name.lastName,
-    nickname: undefined,
-    dateOfBirth: asString(athlete.dateOfBirth),
-    gender: 'PREFER_NOT_TO_SAY',
-    relationship: 'OTHER',
-    primaryPosition: null,
-    photoUrl: asString(athlete.avatarUrl),
-    disabilities: [],
-    specialNeeds: [],
-    communicationNotes: undefined,
-    behavioralNotes: undefined,
-    createdAt: asString(athlete.createdAt) ?? isoNow(),
-    updatedAt: asString(athlete.updatedAt) ?? asString(athlete.createdAt) ?? isoNow(),
-  };
-  athleteProfilesByAthleteId.set(athleteId, nextState);
-  return nextState;
-}
-
-function decorateFamilyAthlete(athlete: SeedRow, familyId: string): SeedRow {
-  const state = profileStateFromAthleteRow(athlete, familyId);
-  return {
-    ...athlete,
-    parentId: state.parentId,
-    firstName: state.firstName,
-    lastName: state.lastName,
-    nickname: state.nickname ?? null,
-    gender: state.gender,
-    relationship: state.relationship,
-    primaryPosition: state.primaryPosition ?? null,
-    photoUrl: state.photoUrl ?? null,
-    disabilities: state.disabilities,
-    specialNeeds: state.specialNeeds,
-    hasSpecialNeeds: state.disabilities.length > 0 || state.specialNeeds.length > 0,
-    communicationNotes: state.communicationNotes ?? null,
-    behavioralNotes: state.behavioralNotes ?? null,
-  };
-}
-
-function buildAthleteProfileState(
-  athleteId: string,
-  familyId: string,
-  parentId: string,
-  input: z.infer<typeof createAthleteRequestSchema> | z.infer<typeof updateAthleteRequestSchema>,
-  previous?: AthleteProfileState,
-): AthleteProfileState {
-  return {
-    athleteId,
-    familyId,
-    parentId,
-    firstName: input.firstName?.trim() ?? previous?.firstName ?? 'Young',
-    lastName: input.lastName?.trim() ?? previous?.lastName ?? 'Athlete',
-    nickname: input.nickname?.trim() || previous?.nickname,
-    dateOfBirth: input.dateOfBirth?.trim() || previous?.dateOfBirth,
-    gender: input.gender ?? previous?.gender ?? 'PREFER_NOT_TO_SAY',
-    relationship: input.relationship ?? previous?.relationship ?? 'OTHER',
-    primaryPosition:
-      input.primaryPosition !== undefined ? input.primaryPosition : (previous?.primaryPosition ?? null),
-    photoUrl: input.photoUrl?.trim() || previous?.photoUrl,
-    disabilities: input.disabilities?.map((entry) => ({
-      ...entry,
-      id: entry.id ?? newId('dis'),
-    })) ?? previous?.disabilities ?? [],
-    specialNeeds: input.specialNeeds?.map((entry) => ({
-      ...entry,
-      id: entry.id ?? newId('sn'),
-    })) ?? previous?.specialNeeds ?? [],
-    communicationNotes:
-      input.communicationNotes !== undefined
-        ? (input.communicationNotes.trim() || undefined)
-        : previous?.communicationNotes,
-    behavioralNotes:
-      input.behavioralNotes !== undefined
-        ? (input.behavioralNotes.trim() || undefined)
-        : previous?.behavioralNotes,
-    createdAt: previous?.createdAt ?? isoNow(),
-    updatedAt: isoNow(),
-  };
-}
-
-function appendCreatedAthletes(familyId: string, athletes: SeedRow[]): SeedRow[] {
-  const existingIds = new Set(athletes.map((athlete) => asString(athlete.id)).filter(Boolean));
-  const extras = Array.from(athleteProfilesByAthleteId.values())
-    .filter((profile) => profile.familyId === familyId && !existingIds.has(profile.athleteId))
-    .map<SeedRow>((profile) => ({
-      id: profile.athleteId,
-      userId: null,
-      displayName: `${profile.firstName} ${profile.lastName}`.trim(),
-      dateOfBirth: profile.dateOfBirth ?? null,
-      avatarUrl: profile.photoUrl ?? null,
-      createdAt: profile.createdAt,
-      updatedAt: profile.updatedAt,
-      status: 'active',
-      parentId: profile.parentId,
-      firstName: profile.firstName,
-      lastName: profile.lastName,
-      nickname: profile.nickname ?? null,
-      gender: profile.gender,
-      relationship: profile.relationship,
-      primaryPosition: profile.primaryPosition ?? null,
-      photoUrl: profile.photoUrl ?? null,
-      disabilities: profile.disabilities,
-      specialNeeds: profile.specialNeeds,
-      hasSpecialNeeds: profile.disabilities.length > 0 || profile.specialNeeds.length > 0,
-      communicationNotes: profile.communicationNotes ?? null,
-      behavioralNotes: profile.behavioralNotes ?? null,
-      guardians: [],
-      senTags: [],
-      consents: [],
-    }));
-
-  return athletes.concat(extras);
 }
 
 const ensureAuthUserId = (userId?: string) => {
@@ -470,79 +133,7 @@ const ensureAuthUserId = (userId?: string) => {
   return userId;
 };
 
-const defaultMedicalRecord = (athleteId: string, userId: string): MedicalRecordResponse =>
-  medicalRecordResponseSchema.parse({
-    athleteId,
-    conditions: [],
-    allergies: [],
-    medications: [],
-    restrictions: [],
-    doctorName: null,
-    doctorPhone: null,
-    insuranceProvider: null,
-    insuranceNumber: null,
-    emergencyNotes: null,
-    senNotes: null,
-    updatedAt: isoNow(),
-    updatedByUserId: userId,
-  });
-
-const defaultEmergencyContacts = (athleteId: string, userId: string): EmergencyContactsResponse =>
-  emergencyContactsResponseSchema.parse({
-    athleteId,
-    contacts: [],
-    updatedAt: isoNow(),
-    updatedByUserId: userId,
-  });
-
-const defaultConsents = (athleteId: string, userId: string): ConsentsResponse =>
-  consentsResponseSchema.parse({
-    athleteId,
-    consents: consentTypeSchema.options.map((type) => ({
-      type,
-      granted: false,
-      grantedBy: '',
-    })),
-    updatedAt: isoNow(),
-    updatedByUserId: userId,
-  });
-
-function normalizeEmergencyContacts(
-  contacts: Array<{
-    id?: string;
-    name: string;
-    relationship: string;
-    phone: string;
-    email?: string;
-    isPrimary?: boolean;
-    canPickup?: boolean;
-  }>,
-) {
-  const normalized = contacts.map((contact, index) => ({
-    ...contact,
-    id: contact.id ?? newId('emc'),
-    isPrimary: contact.isPrimary ?? index === 0,
-    canPickup: contact.canPickup ?? false,
-  }));
-
-  const primaryCount = normalized.filter((contact) => contact.isPrimary).length;
-  if (normalized.length > 0 && primaryCount === 0) {
-    normalized[0] = { ...normalized[0], isPrimary: true };
-  }
-
-  if (primaryCount > 1) {
-    let foundPrimary = false;
-    for (let index = 0; index < normalized.length; index += 1) {
-      if (normalized[index].isPrimary && !foundPrimary) {
-        foundPrimary = true;
-        continue;
-      }
-      normalized[index] = { ...normalized[index], isPrimary: false };
-    }
-  }
-
-  return normalized;
-}
+export function resetFamilyAthleteRouteStateForTests(): void {}
 
 const familyAthleteRoutes: FastifyPluginAsync = async (app) => {
   app.get('/families/:familyId', async (request, reply) => {
@@ -556,10 +147,9 @@ const familyAthleteRoutes: FastifyPluginAsync = async (app) => {
     return reply.send({
       family: aggregate.family,
       memberships: aggregate.memberships,
-      athletes: appendCreatedAthletes(
-        familyId,
-        aggregate.athletes.map((athlete) => decorateFamilyAthlete(athlete, familyId)),
-      ),
+      athletes: aggregate.athletes
+        .filter((athlete) => !asString(athlete.deletedAt))
+        .map((athlete) => decorateAthlete(athlete)),
       seedVersion: aggregate.dataVersion,
       requestId: request.requestId,
     });
@@ -568,142 +158,56 @@ const familyAthleteRoutes: FastifyPluginAsync = async (app) => {
   app.post('/athletes', async (request, reply) => {
     const authUserId = ensureAuthUserId(request.auth?.userId);
     const body = createAthleteRequestSchema.parse(request.body);
-    ensureSeedFamilyWriteAccess(body.familyId, authUserId);
+    const repository = resolveFamilyAthleteRepository();
 
-    const athleteId = newId('ath');
-    const now = isoNow();
-    const profile = buildAthleteProfileState(athleteId, body.familyId, authUserId, body);
-    athleteProfilesByAthleteId.set(athleteId, profile);
-
-    const store = getMarketplaceSeedStore();
-    const athletes = asRows(store.tables.athletes);
-    const guardianLinks = asRows(store.tables.guardianChildLinks);
-    const childSenTags = asRows(store.tables.childSenTags);
-
-    athletes.push({
-      id: athleteId,
-      userId: null,
-      displayName: `${profile.firstName} ${profile.lastName}`.trim(),
-      dateOfBirth: profile.dateOfBirth ?? null,
-      avatarUrl: profile.photoUrl ?? null,
-      status: 'active',
-      createdAt: now,
-      updatedAt: now,
-      createdByUserId: authUserId,
-      updatedByUserId: authUserId,
-      version: 1,
-      deletedAt: null,
-      deletedByUserId: null,
-    });
-    guardianLinks.push({
-      id: newId('gcl'),
-      familyId: body.familyId,
-      guardianUserId: authUserId,
-      athleteId,
-      relationshipType: body.relationship.toLowerCase(),
-      isPrimary: true,
-      createdByUserId: authUserId,
-      updatedByUserId: authUserId,
-      createdAt: now,
-      updatedAt: now,
-      version: 1,
-      deletedAt: null,
-      deletedByUserId: null,
-    });
-    for (const need of profile.specialNeeds) {
-      childSenTags.push({
-        id: newId('sen'),
-        athleteId,
-        tag: need.name,
-        priority: 2,
-        isCritical: need.severity === 'SEVERE',
-        createdByUserId: authUserId,
-        updatedByUserId: authUserId,
-        createdAt: now,
-        updatedAt: now,
-        version: 1,
-        deletedAt: null,
-        deletedByUserId: null,
-      });
+    if (!(await repository.hasFamilyMembership(body.familyId, authUserId))) {
+      throw forbidden('Not allowed to manage this family');
     }
 
+    const athlete = await repository.createAthlete(
+      {
+        familyId: body.familyId,
+        firstName: body.firstName,
+        lastName: body.lastName,
+        nickname: body.nickname,
+        dateOfBirth: body.dateOfBirth,
+        gender: body.gender as Gender,
+        relationship: body.relationship as Relationship,
+        primaryPosition: body.primaryPosition,
+        photoUrl: body.photoUrl,
+        disabilities: body.disabilities as DisabilityRecord[] | undefined,
+        specialNeeds: body.specialNeeds as SpecialNeedRecord[] | undefined,
+        communicationNotes: body.communicationNotes,
+        behavioralNotes: body.behavioralNotes,
+      },
+      authUserId,
+    );
+
     return reply.code(201).send({
-      athleteId,
-      ...decorateFamilyAthlete(
-        {
-          id: athleteId,
-          userId: null,
-          displayName: `${profile.firstName} ${profile.lastName}`.trim(),
-          dateOfBirth: profile.dateOfBirth ?? null,
-          avatarUrl: profile.photoUrl ?? null,
-          createdAt: profile.createdAt,
-          updatedAt: profile.updatedAt,
-          status: 'active',
-          guardians: [],
-          senTags: [],
-          consents: [],
-        },
-        body.familyId,
-      ),
+      athleteId: athlete.id,
+      ...athlete,
     });
   });
 
   app.get('/athletes/:athleteId', async (request, reply) => {
     const athleteId = athleteIdSchema.parse((request.params as { athleteId: string }).athleteId);
-    const familyId = resolveAthleteFamilyId(athleteId);
+    const repository = resolveFamilyAthleteRepository();
+    const familyId = await repository.resolveAthleteFamilyId(athleteId);
+
     if (familyId) {
-      ensureCanReadAthleteProfile(request, athleteId, familyId);
+      await ensureCanReadAthleteProfile(request, athleteId, familyId);
     } else {
       assertCanReadAthleteHealth(request, athleteId);
     }
 
-    const store = getMarketplaceSeedStore();
-    const athletes = asRows(store.tables.athletes);
-    const athlete = athletes.find((row) => asString(row.id) === athleteId);
-    const profile = athleteProfilesByAthleteId.get(athleteId);
-    if (!athlete && !profile && !familyId) {
-      return reply.send({
-        athleteId,
-        ...decorateFamilyAthlete(
-          {
-            id: athleteId,
-            userId: null,
-            displayName: 'Young Athlete',
-            dateOfBirth: null,
-            avatarUrl: null,
-            createdAt: isoNow(),
-            updatedAt: isoNow(),
-            status: 'active',
-            guardians: [],
-            senTags: [],
-            consents: [],
-          },
-          'fam_scaffold',
-        ),
-      });
-    }
-    if (!athlete && !profile) {
+    const athlete = await repository.getAthlete(athleteId);
+    if (!athlete) {
       throw notFound('Athlete not found', { athleteId });
     }
 
     return reply.send({
       athleteId,
-      ...decorateFamilyAthlete(
-        athlete ?? {
-          id: athleteId,
-          userId: null,
-          displayName: `${profile?.firstName ?? 'Young'} ${profile?.lastName ?? 'Athlete'}`.trim(),
-          dateOfBirth: profile?.dateOfBirth ?? null,
-          avatarUrl: profile?.photoUrl ?? null,
-          createdAt: profile?.createdAt ?? isoNow(),
-          updatedAt: profile?.updatedAt ?? isoNow(),
-          status: 'active',
-          guardians: [],
-          senTags: [],
-          consents: [],
-        },
-        familyId ?? 'fam_scaffold',
-      ),
+      ...athlete,
     });
   });
 
@@ -711,87 +215,62 @@ const familyAthleteRoutes: FastifyPluginAsync = async (app) => {
     const authUserId = ensureAuthUserId(request.auth?.userId);
     const athleteId = athleteIdSchema.parse((request.params as { athleteId: string }).athleteId);
     const body = updateAthleteRequestSchema.parse(request.body);
-    const familyId = resolveAthleteFamilyId(athleteId);
+    const repository = resolveFamilyAthleteRepository();
+    const familyId = await repository.resolveAthleteFamilyId(athleteId);
+
     if (!familyId) {
       throw notFound('Athlete not found', { athleteId });
     }
-    ensureSeedFamilyWriteAccess(familyId, authUserId);
-
-    const store = getMarketplaceSeedStore();
-    const athletes = asRows(store.tables.athletes);
-    const athlete = athletes.find((row) => asString(row.id) === athleteId);
-    const previous = athleteProfilesByAthleteId.get(athleteId) ?? (
-      athlete ? profileStateFromAthleteRow(athlete, familyId) : undefined
-    );
-    if (!previous) {
-      throw notFound('Athlete not found', { athleteId });
+    if (!(await repository.hasFamilyMembership(familyId, authUserId))) {
+      throw forbidden('Not allowed to manage this family');
     }
 
-    const nextProfile = buildAthleteProfileState(athleteId, familyId, previous.parentId, body, previous);
-    athleteProfilesByAthleteId.set(athleteId, nextProfile);
+    const athlete = await repository.updateAthlete(
+      athleteId,
+      {
+        firstName: body.firstName,
+        lastName: body.lastName,
+        nickname: body.nickname,
+        dateOfBirth: body.dateOfBirth,
+        gender: body.gender as Gender | undefined,
+        relationship: body.relationship as Relationship | undefined,
+        primaryPosition: body.primaryPosition,
+        photoUrl: body.photoUrl,
+        disabilities: body.disabilities as DisabilityRecord[] | undefined,
+        specialNeeds: body.specialNeeds as SpecialNeedRecord[] | undefined,
+        communicationNotes: body.communicationNotes,
+        behavioralNotes: body.behavioralNotes,
+      },
+      authUserId,
+    );
 
-    if (athlete) {
-      athlete.displayName = `${nextProfile.firstName} ${nextProfile.lastName}`.trim();
-      athlete.dateOfBirth = nextProfile.dateOfBirth ?? null;
-      athlete.avatarUrl = nextProfile.photoUrl ?? null;
-      athlete.updatedAt = nextProfile.updatedAt;
-      athlete.updatedByUserId = authUserId;
-      athlete.version = Number(athlete.version ?? 1) + 1;
+    if (!athlete) {
+      throw notFound('Athlete not found', { athleteId });
     }
 
     return reply.send({
       athleteId,
-      ...decorateFamilyAthlete(
-        athlete ?? {
-          id: athleteId,
-          userId: null,
-          displayName: `${nextProfile.firstName} ${nextProfile.lastName}`.trim(),
-          dateOfBirth: nextProfile.dateOfBirth ?? null,
-          avatarUrl: nextProfile.photoUrl ?? null,
-          createdAt: nextProfile.createdAt,
-          updatedAt: nextProfile.updatedAt,
-          status: 'active',
-          guardians: [],
-          senTags: [],
-          consents: [],
-        },
-        familyId,
-      ),
+      ...athlete,
     });
   });
 
   app.delete('/athletes/:athleteId', async (request, reply) => {
     const authUserId = ensureAuthUserId(request.auth?.userId);
     const athleteId = athleteIdSchema.parse((request.params as { athleteId: string }).athleteId);
-    const familyId = resolveAthleteFamilyId(athleteId);
+    const repository = resolveFamilyAthleteRepository();
+    const familyId = await repository.resolveAthleteFamilyId(athleteId);
+
     if (!familyId) {
       throw notFound('Athlete not found', { athleteId });
     }
-    ensureSeedFamilyWriteAccess(familyId, authUserId);
+    if (!(await repository.hasFamilyMembership(familyId, authUserId))) {
+      throw forbidden('Not allowed to manage this family');
+    }
 
-    const store = getMarketplaceSeedStore();
-    const athletes = asRows(store.tables.athletes);
-    const guardianLinks = asRows(store.tables.guardianChildLinks);
-    const childSenTags = asRows(store.tables.childSenTags);
-    const hadAthleteProfile = athleteProfilesByAthleteId.delete(athleteId);
-    const hadSeedAthlete = athletes.some((row) => asString(row.id) === athleteId);
-
-    if (!hadAthleteProfile && !hadSeedAthlete) {
+    const deleted = await repository.deleteAthlete(athleteId, authUserId);
+    if (!deleted) {
       throw notFound('Athlete not found', { athleteId });
     }
-
-    removeRowsWhere(athletes, (row) => asString(row.id) === athleteId);
-    removeRowsWhere(guardianLinks, (row) => asString(row.athleteId) === athleteId);
-    removeRowsWhere(childSenTags, (row) => asString(row.athleteId) === athleteId);
-
-    const injuries = injuriesByAthleteId.get(athleteId) ?? [];
-    for (const injury of injuries) {
-      injuriesById.delete(injury.id);
-    }
-    injuriesByAthleteId.delete(athleteId);
-    medicalByAthleteId.delete(athleteId);
-    emergencyContactsByAthleteId.delete(athleteId);
-    consentsByAthleteId.delete(athleteId);
 
     return reply.code(204).send();
   });
@@ -799,8 +278,9 @@ const familyAthleteRoutes: FastifyPluginAsync = async (app) => {
   app.get('/athletes/:athleteId/injuries', async (request, reply) => {
     const athleteId = athleteIdSchema.parse((request.params as { athleteId: string }).athleteId);
     assertCanReadAthleteHealth(request, athleteId);
-    const injuries = injuriesByAthleteId.get(athleteId) ?? [];
 
+    const repository = resolveFamilyAthleteRepository();
+    const injuries = await repository.listInjuries(athleteId);
     const payload = injuriesResponseSchema.parse({
       athleteId,
       injuries,
@@ -814,28 +294,20 @@ const familyAthleteRoutes: FastifyPluginAsync = async (app) => {
     assertCanWriteAthleteHealth(request, athleteId);
     const body = createInjuryRequestSchema.parse(request.body);
     const createdByUserId = ensureAuthUserId(request.auth?.userId);
-    const now = isoNow();
+    const repository = resolveFamilyAthleteRepository();
 
-    const injury = injuryRecordSchema.parse({
-      id: newId('inj'),
+    const injury = await repository.createInjury(
       athleteId,
-      title: body.title,
-      type: body.type,
-      severity: body.severity,
-      status: 'active',
-      reportedAt: body.reportedAt ?? now,
-      expectedRecoveryDate: body.expectedRecoveryDate ?? null,
-      resolvedAt: null,
-      notes: body.notes ?? null,
+      {
+        title: body.title,
+        type: body.type,
+        severity: body.severity,
+        reportedAt: body.reportedAt,
+        expectedRecoveryDate: body.expectedRecoveryDate,
+        notes: body.notes ?? null,
+      },
       createdByUserId,
-      createdAt: now,
-      updatedAt: now,
-    });
-
-    const existing = injuriesByAthleteId.get(athleteId) ?? [];
-    existing.unshift(injury);
-    injuriesByAthleteId.set(athleteId, existing);
-    injuriesById.set(injury.id, injury);
+    );
 
     return reply.status(201).send(injury);
   });
@@ -843,34 +315,29 @@ const familyAthleteRoutes: FastifyPluginAsync = async (app) => {
   app.patch('/injuries/:injuryId', async (request, reply) => {
     const injuryId = injuryIdSchema.parse((request.params as { injuryId: string }).injuryId);
     const body = updateInjuryRequestSchema.parse(request.body);
-
-    const current = injuriesById.get(injuryId);
+    const repository = resolveFamilyAthleteRepository();
+    const current = await repository.getInjury(injuryId);
     if (!current) {
       throw notFound('Injury record not found', { injuryId });
     }
     assertCanWriteAthleteHealth(request, current.athleteId);
 
-    const nextStatus = body.status ?? current.status;
-    const now = isoNow();
-    const updated = injuryRecordSchema.parse({
-      ...current,
-      ...body,
-      status: nextStatus,
-      resolvedAt:
-        body.resolvedAt !== undefined
-          ? body.resolvedAt
-          : nextStatus === 'resolved'
-            ? current.resolvedAt ?? now
-            : current.resolvedAt,
-      updatedAt: now,
-    });
+    const updated = await repository.updateInjury(
+      injuryId,
+      {
+        title: body.title,
+        type: body.type,
+        severity: body.severity,
+        status: body.status,
+        expectedRecoveryDate: body.expectedRecoveryDate,
+        resolvedAt: body.resolvedAt,
+        notes: body.notes ?? null,
+      },
+      ensureAuthUserId(request.auth?.userId),
+    );
 
-    injuriesById.set(injuryId, updated);
-    const athleteInjuries = injuriesByAthleteId.get(updated.athleteId) ?? [];
-    const idx = athleteInjuries.findIndex((item) => item.id === injuryId);
-    if (idx >= 0) {
-      athleteInjuries[idx] = updated;
-      injuriesByAthleteId.set(updated.athleteId, athleteInjuries);
+    if (!updated) {
+      throw notFound('Injury record not found', { injuryId });
     }
 
     return reply.send(updated);
@@ -880,11 +347,9 @@ const familyAthleteRoutes: FastifyPluginAsync = async (app) => {
     const athleteId = athleteIdSchema.parse((request.params as { athleteId: string }).athleteId);
     assertCanReadAthleteMedical(request, athleteId);
     const userId = ensureAuthUserId(request.auth?.userId);
-    const record = medicalByAthleteId.get(athleteId) ?? defaultMedicalRecord(athleteId, userId);
-    if (!medicalByAthleteId.has(athleteId)) {
-      medicalByAthleteId.set(athleteId, record);
-    }
-    return reply.send(record);
+    const repository = resolveFamilyAthleteRepository();
+    const record = await repository.getMedical(athleteId, userId);
+    return reply.send(medicalRecordResponseSchema.parse(record));
   });
 
   app.patch('/athletes/:athleteId/medical', async (request, reply) => {
@@ -892,36 +357,35 @@ const familyAthleteRoutes: FastifyPluginAsync = async (app) => {
     assertCanWriteAthleteMedical(request, athleteId);
     const body = updateMedicalRecordRequestSchema.parse(request.body);
     const userId = ensureAuthUserId(request.auth?.userId);
-    const current = medicalByAthleteId.get(athleteId) ?? defaultMedicalRecord(athleteId, userId);
-    const updated = medicalRecordResponseSchema.parse({
-      ...current,
-      ...body,
-      restrictions: body.restrictions !== undefined ? body.restrictions : current.restrictions,
-      doctorName: body.doctorName !== undefined ? body.doctorName : current.doctorName,
-      doctorPhone: body.doctorPhone !== undefined ? body.doctorPhone : current.doctorPhone,
-      insuranceProvider:
-        body.insuranceProvider !== undefined ? body.insuranceProvider : current.insuranceProvider,
-      insuranceNumber:
-        body.insuranceNumber !== undefined ? body.insuranceNumber : current.insuranceNumber,
-      emergencyNotes: body.emergencyNotes !== undefined ? body.emergencyNotes : current.emergencyNotes,
-      senNotes: body.senNotes !== undefined ? body.senNotes : current.senNotes,
-      updatedAt: isoNow(),
-      updatedByUserId: userId,
-    });
-    medicalByAthleteId.set(athleteId, updated);
-    return reply.send(updated);
+    const repository = resolveFamilyAthleteRepository();
+
+    const updated = await repository.upsertMedical(
+      athleteId,
+      {
+        conditions: body.conditions,
+        allergies: body.allergies,
+        medications: body.medications,
+        restrictions: body.restrictions,
+        doctorName: body.doctorName,
+        doctorPhone: body.doctorPhone,
+        insuranceProvider: body.insuranceProvider,
+        insuranceNumber: body.insuranceNumber,
+        emergencyNotes: body.emergencyNotes,
+        senNotes: body.senNotes,
+      },
+      userId,
+    );
+
+    return reply.send(medicalRecordResponseSchema.parse(updated));
   });
 
   app.get('/athletes/:athleteId/emergency-contacts', async (request, reply) => {
     const athleteId = athleteIdSchema.parse((request.params as { athleteId: string }).athleteId);
     assertCanReadAthleteMedical(request, athleteId);
     const userId = ensureAuthUserId(request.auth?.userId);
-    const record =
-      emergencyContactsByAthleteId.get(athleteId) ?? defaultEmergencyContacts(athleteId, userId);
-    if (!emergencyContactsByAthleteId.has(athleteId)) {
-      emergencyContactsByAthleteId.set(athleteId, record);
-    }
-    return reply.send(record);
+    const repository = resolveFamilyAthleteRepository();
+    const record = await repository.getEmergencyContacts(athleteId, userId);
+    return reply.send(emergencyContactsResponseSchema.parse(record));
   });
 
   app.patch('/athletes/:athleteId/emergency-contacts', async (request, reply) => {
@@ -929,27 +393,24 @@ const familyAthleteRoutes: FastifyPluginAsync = async (app) => {
     assertCanWriteAthleteMedical(request, athleteId);
     const body = updateEmergencyContactsRequestSchema.parse(request.body);
     const userId = ensureAuthUserId(request.auth?.userId);
+    const repository = resolveFamilyAthleteRepository();
 
-    const updated = emergencyContactsResponseSchema.parse({
+    const updated = await repository.replaceEmergencyContacts(
       athleteId,
-      contacts: normalizeEmergencyContacts(body.contacts),
-      updatedAt: isoNow(),
-      updatedByUserId: userId,
-    });
+      { contacts: body.contacts },
+      userId,
+    );
 
-    emergencyContactsByAthleteId.set(athleteId, updated);
-    return reply.send(updated);
+    return reply.send(emergencyContactsResponseSchema.parse(updated));
   });
 
   app.get('/athletes/:athleteId/consents', async (request, reply) => {
     const athleteId = athleteIdSchema.parse((request.params as { athleteId: string }).athleteId);
     assertCanReadAthleteMedical(request, athleteId);
     const userId = ensureAuthUserId(request.auth?.userId);
-    const record = consentsByAthleteId.get(athleteId) ?? defaultConsents(athleteId, userId);
-    if (!consentsByAthleteId.has(athleteId)) {
-      consentsByAthleteId.set(athleteId, record);
-    }
-    return reply.send(record);
+    const repository = resolveFamilyAthleteRepository();
+    const record = await repository.getConsents(athleteId, userId);
+    return reply.send(consentsResponseSchema.parse(record));
   });
 
   app.put('/athletes/:athleteId/consents', async (request, reply) => {
@@ -957,20 +418,23 @@ const familyAthleteRoutes: FastifyPluginAsync = async (app) => {
     assertCanWriteAthleteMedical(request, athleteId);
     const body = upsertConsentsRequestSchema.parse(request.body);
     const userId = ensureAuthUserId(request.auth?.userId);
-    const byType = new Map(body.consents.map((consent) => [consent.type, consent]));
+    const repository = resolveFamilyAthleteRepository();
 
-    const updated = consentsResponseSchema.parse({
+    const updated = await repository.replaceConsents(
       athleteId,
-      consents: consentTypeSchema.options.map((type) => {
-        const next = byType.get(type);
-        return next ?? { type, granted: false, grantedBy: '' };
-      }),
-      updatedAt: isoNow(),
-      updatedByUserId: userId,
-    });
+      {
+        consents: body.consents.map((consent) => ({
+          type: consent.type as (typeof consentTypeSchema.options)[number],
+          granted: consent.granted,
+          grantedAt: consent.grantedAt,
+          grantedBy: consent.grantedBy,
+          expiryAt: consent.expiryAt,
+        })),
+      },
+      userId,
+    );
 
-    consentsByAthleteId.set(athleteId, updated);
-    return reply.send(updated);
+    return reply.send(consentsResponseSchema.parse(updated));
   });
 };
 

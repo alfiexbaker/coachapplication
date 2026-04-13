@@ -2,7 +2,9 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import path from 'node:path';
 import { after, beforeEach, describe, it } from 'node:test';
+import { env } from '@clubroom/config';
 import { buildApp } from '../../app.js';
+import { resetDbFixtureStoreForTests } from '../../lib/db-fixture-store.js';
 import { resetMarketplaceSeedStoreForTests } from '../../lib/marketplace-seed-store.js';
 import { resetFamilyAthleteRouteStateForTests } from './routes.js';
 
@@ -44,6 +46,7 @@ describe('family-athlete routes', () => {
 
   beforeEach(() => {
     resetMarketplaceSeedStoreForTests();
+    resetDbFixtureStoreForTests();
     resetFamilyAthleteRouteStateForTests();
   });
 
@@ -157,6 +160,66 @@ describe('family-athlete routes', () => {
     assert.equal(denied.statusCode, 403);
   });
 
+  it('persists athlete profile writes through the db fixture backend', async () => {
+    const tables = loadTables();
+    const familyMembership = asRows(tables.familyMemberships)[0];
+    assert.ok(familyMembership, 'expected seeded family membership');
+
+    const familyId = asString(familyMembership.familyId) as string;
+    const parentUserId = asString(familyMembership.userId) as string;
+    const headers = {
+      'x-auth-user-id': parentUserId,
+      'x-auth-roles': rolesForUser(tables, parentUserId).join(',') || 'parent',
+      'x-acting-role': rolesForUser(tables, parentUserId)[0] ?? 'parent',
+    };
+
+    const originalBackend = env.API_DATA_BACKEND;
+    try {
+      env.API_DATA_BACKEND = 'db';
+
+      const create = await app.inject({
+        method: 'POST',
+        url: '/v1/athletes',
+        headers,
+        payload: {
+          familyId,
+          firstName: 'Db',
+          lastName: 'Mode',
+          relationship: 'DAUGHTER',
+          specialNeeds: [
+            {
+              category: 'LEARNING',
+              name: 'Needs visual prompts',
+              severity: 'MODERATE',
+            },
+          ],
+        },
+      });
+      assert.equal(create.statusCode, 201);
+      const created = create.json() as { athleteId: string };
+
+      const detail = await app.inject({
+        method: 'GET',
+        url: `/v1/athletes/${created.athleteId}`,
+        headers,
+      });
+      assert.equal(detail.statusCode, 200);
+      const payload = detail.json() as {
+        athleteId: string;
+        firstName: string;
+        relationship: string;
+        specialNeeds: Array<{ name: string }>;
+      };
+      assert.equal(payload.athleteId, created.athleteId);
+      assert.equal(payload.firstName, 'Db');
+      assert.equal(payload.relationship, 'DAUGHTER');
+      assert.equal(payload.specialNeeds[0]?.name, 'Needs visual prompts');
+    } finally {
+      env.API_DATA_BACKEND = originalBackend;
+      resetDbFixtureStoreForTests();
+    }
+  });
+
   it('deletes athletes for an authenticated family member', async () => {
     const tables = loadTables();
     const familyMembership = asRows(tables.familyMemberships)[0];
@@ -211,6 +274,7 @@ describe('family-athlete routes', () => {
         'x-auth-user-id': 'usr_coach1',
         'x-auth-roles': 'coach',
         'x-acting-role': 'coach',
+        'x-coach-athlete-ids': 'ath_user1',
         'x-coach-verified': 'true',
       },
     });

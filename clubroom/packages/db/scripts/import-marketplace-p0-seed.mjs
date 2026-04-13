@@ -22,6 +22,17 @@ const asArray = (value) => (Array.isArray(value) ? value : []);
 const toDate = (value) => (typeof value === 'string' ? new Date(value) : null);
 const toBigInt = (value, fallback = 1) => BigInt(asNumber(value, fallback));
 const randomHex = (size = 16) => crypto.randomBytes(size).toString('hex');
+const splitDisplayName = (value) => {
+  const trimmed = asString(value)?.trim() ?? '';
+  if (!trimmed) {
+    return { firstName: null, lastName: null };
+  }
+  const parts = trimmed.split(/\s+/);
+  return {
+    firstName: parts[0] ?? null,
+    lastName: parts.slice(1).join(' ') || parts[0] || null,
+  };
+};
 
 function hashPassword(password) {
   const salt = randomHex(16);
@@ -50,7 +61,10 @@ async function main() {
     await tx.bookingObjective.deleteMany();
     await tx.bookingParticipant.deleteMany();
     await tx.booking.deleteMany();
+    await tx.athleteInjury.deleteMany();
     await tx.childConsent.deleteMany();
+    await tx.childMedicalRecord.deleteMany();
+    await tx.childEmergencyContact.deleteMany();
     await tx.childSenTag.deleteMany();
     await tx.guardianChildLink.deleteMany();
     await tx.athlete.deleteMany();
@@ -172,12 +186,28 @@ async function main() {
       await tx.familyMembership.createMany({ data: familyMemberships });
     }
 
-    const athletes = asRows(tables.athletes).map((row) => ({
+    const athletes = asRows(tables.athletes).map((row) => {
+      const splitName = splitDisplayName(row.displayName);
+      return ({
       id: row.id,
       userId: asString(row.userId) ?? null,
       displayName: asString(row.displayName) ?? 'Athlete',
+      firstName: asString(row.firstName) ?? splitName.firstName,
+      lastName: asString(row.lastName) ?? splitName.lastName,
+      nickname: asString(row.nickname) ?? null,
       dateOfBirth: toDate(row.dateOfBirth),
+      gender: asString(row.gender) ?? null,
+      relationshipLabel: asString(row.relationshipLabel) ?? null,
+      primaryPosition: asString(row.primaryPosition) ?? null,
       avatarUrl: asString(row.avatarUrl) ?? null,
+      communicationNotes: asString(row.communicationNotes) ?? null,
+      behavioralNotes: asString(row.behavioralNotes) ?? null,
+      disabilitiesJson: Array.isArray(row.disabilitiesJson)
+        ? row.disabilitiesJson
+        : (Array.isArray(row.disabilities) ? row.disabilities : []),
+      specialNeedsJson: Array.isArray(row.specialNeedsJson)
+        ? row.specialNeedsJson
+        : (Array.isArray(row.specialNeeds) ? row.specialNeeds : []),
       status: asString(row.status) ?? 'active',
       createdByUserId: asString(row.createdByUserId) ?? '',
       updatedByUserId: asString(row.updatedByUserId) ?? '',
@@ -186,7 +216,8 @@ async function main() {
       updatedAt: toDate(row.updatedAt) ?? new Date(),
       deletedAt: toDate(row.deletedAt),
       deletedByUserId: asString(row.deletedByUserId) ?? null,
-    }));
+      });
+    });
     if (athletes.length > 0) {
       await tx.athlete.createMany({ data: athletes });
     }
@@ -226,6 +257,54 @@ async function main() {
     }));
     if (senTags.length > 0) {
       await tx.childSenTag.createMany({ data: senTags });
+    }
+
+    const emergencyContacts = asRows(tables.childEmergencyContacts).map((row) => ({
+      id: row.id,
+      athleteId: row.athleteId,
+      name: asString(row.name) ?? '',
+      relationshipLabel: asString(row.relationshipLabel) ?? '',
+      phoneE164: asString(row.phoneE164) ?? '',
+      email: asString(row.email) ?? null,
+      isPrimary: asBoolean(row.isPrimary, false),
+      canPickup: asBoolean(row.canPickup, false),
+      createdByUserId: asString(row.createdByUserId) ?? '',
+      updatedByUserId: asString(row.updatedByUserId) ?? '',
+      version: toBigInt(row.version, 1),
+      createdAt: toDate(row.createdAt) ?? new Date(),
+      updatedAt: toDate(row.updatedAt) ?? new Date(),
+      deletedAt: toDate(row.deletedAt),
+      deletedByUserId: asString(row.deletedByUserId) ?? null,
+    }));
+    if (emergencyContacts.length > 0) {
+      await tx.childEmergencyContact.createMany({ data: emergencyContacts });
+    }
+
+    const medicalRecords = asRows(tables.childMedicalRecords).map((row) => ({
+      id: row.id,
+      athleteId: row.athleteId,
+      conditions: asArray(row.conditions).map((value) => String(value)),
+      allergies: asArray(row.allergies).map((value) => String(value)),
+      medications: asArray(row.medications).map((value) => String(value)),
+      restrictions: asArray(row.restrictions).map((value) => String(value)),
+      notesEncrypted: asString(row.notesEncrypted) ?? null,
+      doctorName: asString(row.doctorName) ?? null,
+      doctorPhoneE164: asString(row.doctorPhoneE164) ?? null,
+      insuranceProvider: asString(row.insuranceProvider) ?? null,
+      insuranceNumber: asString(row.insuranceNumber) ?? null,
+      emergencyNotes: asString(row.emergencyNotes) ?? null,
+      senNotes: asString(row.senNotes) ?? null,
+      effectiveFrom: toDate(row.effectiveFrom) ?? new Date(),
+      effectiveTo: toDate(row.effectiveTo),
+      isCurrent: asBoolean(row.isCurrent, true),
+      createdByUserId: asString(row.createdByUserId) ?? '',
+      updatedByUserId: asString(row.updatedByUserId) ?? '',
+      version: toBigInt(row.version, 1),
+      createdAt: toDate(row.createdAt) ?? new Date(),
+      updatedAt: toDate(row.updatedAt) ?? new Date(),
+    }));
+    if (medicalRecords.length > 0) {
+      await tx.childMedicalRecord.createMany({ data: medicalRecords });
     }
 
     const consents = asRows(tables.childConsents).map((row) => ({

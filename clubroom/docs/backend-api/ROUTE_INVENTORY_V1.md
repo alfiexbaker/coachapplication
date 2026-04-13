@@ -4,6 +4,7 @@ This is the initial endpoint inventory for the Clubroom backend. It is intention
 
 Status legend:
 
+- `implemented`: route exists in `apps/api` and now uses a runtime-backed repository/persistence path
 - `scaffolded`: route exists in `apps/api`
 - `planned`: contract + authz + data model defined, implementation pending
 - `deferred`: intentionally after phase 1 or later sprint
@@ -20,11 +21,11 @@ Status legend:
 | `/v1/bookings/:bookingId`                        | `GET`       | `scaffolded` | booking detail scaffold with same visibility gate as list reads                                                          |
 | `/v1/bookings/:bookingId/cancel`                 | `POST`      | `scaffolded` | booking cancellation scaffold with actor ownership enforcement and idempotent cancelled response                         |
 | `/v1/bookings/:bookingId/reopen`                 | `POST`      | `scaffolded` | booking reopen scaffold restores the last active status for upcoming cancelled bookings                                  |
-| `/v1/athletes/:athleteId/injuries`               | `GET/POST`  | `scaffolded` | in-memory scaffold for trust/health endpoint contract verification                                                       |
-| `/v1/injuries/:injuryId`                         | `PATCH`     | `scaffolded` | injury status/notes update scaffold                                                                                      |
-| `/v1/athletes/:athleteId/medical`                | `GET/PATCH` | `scaffolded` | medical profile scaffold with doctor, insurance, restriction, and notes fields                                           |
-| `/v1/athletes/:athleteId/emergency-contacts`     | `GET/PATCH` | `scaffolded` | emergency contacts scaffold with stable contact IDs, primary contact, and pickup flags                                   |
-| `/v1/athletes/:athleteId/consents`               | `GET/PUT`   | `scaffolded` | consent record scaffold covering photo, video, social, and emergency treatment flags                                     |
+| `/v1/athletes/:athleteId/injuries`               | `GET/POST`  | `implemented` | repository-backed injury records; db mode persists through Prisma and seed/db-fixture mode mirrors the same contract     |
+| `/v1/injuries/:injuryId`                         | `PATCH`     | `implemented` | repository-backed injury status/notes update with the same scoped actor gates                                            |
+| `/v1/athletes/:athleteId/medical`                | `GET/PATCH` | `implemented` | repository-backed medical profile with doctor, insurance, restriction, emergency-note, and SEN-note fields               |
+| `/v1/athletes/:athleteId/emergency-contacts`     | `GET/PATCH` | `implemented` | repository-backed emergency contacts with stable contact IDs, primary contact, and pickup flags                          |
+| `/v1/athletes/:athleteId/consents`               | `GET/PUT`   | `implemented` | repository-backed consent records covering photo, video, social, and emergency treatment flags                           |
 | `/v1/safeguarding/incidents`                     | `POST`      | `scaffolded` | concern ingestion scaffold with incident tracking                                                                        |
 | `/v1/safeguarding/incidents/:incidentId`         | `GET`       | `scaffolded` | incident detail scaffold                                                                                                 |
 | `/v1/safeguarding/incidents/:incidentId/actions` | `POST`      | `scaffolded` | incident action append + status transition scaffold                                                                      |
@@ -50,20 +51,20 @@ Status legend:
 
 | Route                                        | Method     | Status       | Contract(s)                                 | AuthZ                                  | UI anchors                                                                 |
 | -------------------------------------------- | ---------- | ------------ | ------------------------------------------- | -------------------------------------- | -------------------------------------------------------------------------- |
-| `/v1/families/:familyId`                     | `GET`      | `scaffolded` | `FamilyResponse`                            | guardian membership                    | `app/family/index.tsx`, `services/child-service.ts`, `services/family/family-member-service.ts` |
+| `/v1/families/:familyId`                     | `GET`      | `implemented` | `FamilyResponse`                            | guardian membership                    | `app/family/index.tsx`, `services/child-service.ts`, `services/family/family-member-service.ts` |
 | `/v1/families/:familyId/guardians`           | `POST`     | `planned`    | `CreateGuardianInviteRequest`               | family admin guardian                  | `app/family/sharing.tsx`                                                   |
-| `/v1/athletes`                               | `POST`     | `scaffolded` | `CreateAthleteRequest`                      | parent/guardian                        | `app/(modal)/add-child.tsx`, `services/child-service.ts`                   |
-| `/v1/athletes/:athleteId`                    | `GET`      | `scaffolded` | athlete profile scaffold                    | family membership, athlete self, or verified assigned coach | `services/child-service.ts`, coach special-needs/development screens |
-| `/v1/athletes/:athleteId`                    | `PATCH`    | `scaffolded` | `UpdateAthleteRequest`                      | guardian ownership                      | `app/(modal)/edit-child-profile.tsx`, `services/child-service.ts`          |
-| `/v1/athletes/:athleteId`                    | `DELETE`   | `scaffolded` | none                                        | guardian ownership                      | `hooks/use-children-hub.ts`, `services/child-service.ts`                   |
-| `/v1/athletes/:athleteId/medical`            | `GET`      | `scaffolded` | `MedicalRecordResponse`                     | guardian + verified coach (scoped)     | `app/child/[id]/medical.tsx`, `services/family/family-health-service.ts`   |
-| `/v1/athletes/:athleteId/medical`            | `PATCH`    | `scaffolded` | `UpdateMedicalRecordRequest`                | guardian                               | `app/child/[id]/medical.tsx`, `services/family/family-health-service.ts`   |
-| `/v1/athletes/:athleteId/emergency-contacts` | `GET`      | `scaffolded` | `EmergencyContactsResponse`                 | guardian + gated coach                 | `app/child/[id]/emergency.tsx`, `services/family/family-health-service.ts` |
-| `/v1/athletes/:athleteId/emergency-contacts` | `PATCH`    | `scaffolded` | `UpdateEmergencyContactsRequest`            | guardian                               | `app/child/[id]/emergency.tsx`, `services/family/family-health-service.ts` |
-| `/v1/athletes/:athleteId/injuries`           | `GET/POST` | `scaffolded` | `InjuriesResponse`, `CreateInjuryRequest`   | athlete self / guardian / scoped coach | `app/health/index.tsx`, `app/health/injuries.tsx`                          |
-| `/v1/injuries/:injuryId`                     | `PATCH`    | `scaffolded` | `UpdateInjuryRequest`                       | athlete self / guardian / scoped coach | `app/health/[id].tsx`                                                      |
-| `/v1/athletes/:athleteId/consents`           | `GET`      | `scaffolded` | `ConsentsResponse`                          | guardian + verified coach (scoped)     | `app/child/[id]/medical.tsx`, `services/family/family-health-service.ts`   |
-| `/v1/athletes/:athleteId/consents`           | `PUT`      | `scaffolded` | `UpsertConsentsRequest`, `ConsentsResponse` | guardian                               | family/child consent UIs, `services/family/family-health-service.ts`       |
+| `/v1/athletes`                               | `POST`     | `implemented` | `CreateAthleteRequest`                      | parent/guardian                        | `app/(modal)/add-child.tsx`, `services/child-service.ts`                   |
+| `/v1/athletes/:athleteId`                    | `GET`      | `implemented` | athlete profile response plus legacy `athleteId` alias | family membership, athlete self, or verified assigned coach | `services/child-service.ts`, coach special-needs/development screens |
+| `/v1/athletes/:athleteId`                    | `PATCH`    | `implemented` | `UpdateAthleteRequest`                      | guardian ownership                      | `app/(modal)/edit-child-profile.tsx`, `services/child-service.ts`          |
+| `/v1/athletes/:athleteId`                    | `DELETE`   | `implemented` | none                                        | guardian ownership                      | `hooks/use-children-hub.ts`, `services/child-service.ts`                   |
+| `/v1/athletes/:athleteId/medical`            | `GET`      | `implemented` | `MedicalRecordResponse`                     | guardian + verified coach (scoped)     | `app/child/[id]/medical.tsx`, `services/family/family-health-service.ts`   |
+| `/v1/athletes/:athleteId/medical`            | `PATCH`    | `implemented` | `UpdateMedicalRecordRequest`                | guardian                               | `app/child/[id]/medical.tsx`, `services/family/family-health-service.ts`   |
+| `/v1/athletes/:athleteId/emergency-contacts` | `GET`      | `implemented` | `EmergencyContactsResponse`                 | guardian + gated coach                 | `app/child/[id]/emergency.tsx`, `services/family/family-health-service.ts` |
+| `/v1/athletes/:athleteId/emergency-contacts` | `PATCH`    | `implemented` | `UpdateEmergencyContactsRequest`            | guardian                               | `app/child/[id]/emergency.tsx`, `services/family/family-health-service.ts` |
+| `/v1/athletes/:athleteId/injuries`           | `GET/POST` | `implemented` | `InjuriesResponse`, `CreateInjuryRequest`   | athlete self / guardian / scoped coach | `app/health/index.tsx`, `app/health/injuries.tsx`                          |
+| `/v1/injuries/:injuryId`                     | `PATCH`    | `implemented` | `UpdateInjuryRequest`                       | athlete self / guardian / scoped coach | `app/health/[id].tsx`                                                      |
+| `/v1/athletes/:athleteId/consents`           | `GET`      | `implemented` | `ConsentsResponse`                          | guardian + verified coach (scoped)     | `app/child/[id]/medical.tsx`, `services/family/family-health-service.ts`   |
+| `/v1/athletes/:athleteId/consents`           | `PUT`      | `implemented` | `UpsertConsentsRequest`, `ConsentsResponse` | guardian                               | family/child consent UIs, `services/family/family-health-service.ts`       |
 
 ## Coach / Clubs / Scheduling / Verification
 

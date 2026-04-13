@@ -29,13 +29,13 @@ function fromTables(
   isClubAdmin: boolean,
   dataVersion: string | null,
 ): FamilyAggregate {
-  const families = asRows(tables.families);
-  const memberships = asRows(tables.familyMemberships);
-  const athletes = asRows(tables.athletes);
-  const guardianChildLinks = asRows(tables.guardianChildLinks);
-  const childSenTags = asRows(tables.childSenTags);
+  const families = asRows(tables.families).filter((row) => !asString(row.deletedAt));
+  const memberships = asRows(tables.familyMemberships).filter((row) => !asString(row.deletedAt));
+  const athletes = asRows(tables.athletes).filter((row) => !asString(row.deletedAt));
+  const guardianChildLinks = asRows(tables.guardianChildLinks).filter((row) => !asString(row.deletedAt));
+  const childSenTags = asRows(tables.childSenTags).filter((row) => !asString(row.deletedAt));
   const childConsents = asRows(tables.childConsents);
-  const users = asRows(tables.users);
+  const users = asRows(tables.users).filter((row) => !asString(row.deletedAt));
 
   const family = families.find((row) => asString(row.id) === familyId);
   if (!family) {
@@ -117,7 +117,7 @@ class DbFamilyRepository implements FamilyRepository {
     }
 
     const familyMemberships = await prisma.familyMembership.findMany({
-      where: { familyId },
+      where: { familyId, deletedAt: null },
     });
     const canAccess = isClubAdmin || familyMemberships.some((row) => row.userId === authUserId);
     if (!canAccess) {
@@ -133,7 +133,7 @@ class DbFamilyRepository implements FamilyRepository {
         },
       }),
       prisma.guardianChildLink.findMany({
-        where: { familyId },
+        where: { familyId, deletedAt: null },
       }),
     ]);
 
@@ -142,11 +142,13 @@ class DbFamilyRepository implements FamilyRepository {
       prisma.athlete.findMany({
         where: {
           id: { in: athleteIds },
+          deletedAt: null,
         },
       }),
       prisma.childSenTag.findMany({
         where: {
           athleteId: { in: athleteIds },
+          deletedAt: null,
         },
       }),
       prisma.childConsent.findMany({

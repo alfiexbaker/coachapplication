@@ -408,8 +408,18 @@ model Athlete {
   id                 String   @id
   userId             String?  @unique // linked user if athlete self-manages account
   displayName        String
+  firstName          String?
+  lastName           String?
+  nickname           String?
   dateOfBirth        DateTime?
+  gender             String?
+  relationshipLabel  String?
+  primaryPosition    String?
   avatarUrl          String?
+  communicationNotes String?
+  behavioralNotes    String?
+  disabilitiesJson   Json?
+  specialNeedsJson   Json?
   status             String   @default("active")
   createdByUserId    String
   updatedByUserId    String
@@ -421,6 +431,7 @@ model Athlete {
 
   linkedUser         User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
   guardianLinks      GuardianChildLink[]
+  injuries           AthleteInjury[]
   emergencyContacts  ChildEmergencyContact[]
   medicalRecords     ChildMedicalRecord[]
   senTags            ChildSenTag[]
@@ -497,6 +508,8 @@ model ChildMedicalRecord {
   doctorPhoneE164    String?
   insuranceProvider  String?
   insuranceNumber    String?
+  emergencyNotes     String?
+  senNotes           String?
   effectiveFrom      DateTime @default(now())
   effectiveTo        DateTime?
   isCurrent          Boolean  @default(true)
@@ -509,6 +522,31 @@ model ChildMedicalRecord {
   athlete            Athlete   @relation(fields: [athleteId], references: [id], onDelete: Restrict)
 
   @@index([athleteId, isCurrent])
+}
+
+model AthleteInjury {
+  id                   String   @id
+  athleteId            String
+  title                String
+  type                 String
+  severity             String
+  status               String
+  reportedAt           DateTime
+  expectedRecoveryDate DateTime?
+  resolvedAt           DateTime?
+  notes                String?
+  createdByUserId      String
+  updatedByUserId      String
+  version              BigInt   @default(1)
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
+  deletedAt            DateTime?
+  deletedByUserId      String?
+
+  athlete              Athlete  @relation(fields: [athleteId], references: [id], onDelete: Restrict)
+
+  @@index([athleteId, status])
+  @@index([reportedAt])
 }
 
 model ChildSenTag {
