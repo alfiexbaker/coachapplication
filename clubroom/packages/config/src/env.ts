@@ -34,6 +34,12 @@ const envSchema = z.object({
   API_MARKETPLACE_SEED_OUTPUT_DIR: z
     .string()
     .default('docs/backend-api/test-data/marketplace'),
+  API_PAYMENT_PROVIDER: z.enum(['simulated', 'stripe']).default('simulated'),
+  API_PAYMENT_SIMULATION_SECRET: z
+    .string()
+    .min(16)
+    .default('clubroom-simulated-payments-dev-secret'),
+  API_PAYMENT_ALLOWED_RETURN_ORIGINS: z.string().optional(),
 
   SENTRY_URL: z.string().url().default('https://sentry.io/'),
   SENTRY_DSN: z.string().url().optional(),

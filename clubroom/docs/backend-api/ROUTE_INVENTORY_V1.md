@@ -122,14 +122,16 @@ Status legend:
 | `/v1/invoices`                        | `GET`  | `scaffolded` | `InvoiceListResponse`     | authenticated self; filtered to owner coach / payer unless privileged admin | `app/invoices/index.tsx`, `app/(tabs)/bookings/[id].tsx`, `services/invoice-service.ts` |
 | `/v1/invoices/:invoiceId`             | `GET`  | `scaffolded` | `InvoiceResponse`          | owner coach / payer / delegated finance | `components/invoices/*`, `hooks/use-invoice-detail.ts`, `services/invoice-service.ts` |
 | `/v1/coaches/me/invoices`             | `GET`  | `planned` | `InvoiceListResponse`        | coach self                              | `app/(tabs)/earnings.tsx`, analytics revenue   |
-| `/v1/invoices/generate`               | `POST` | `planned` | `GenerateInvoiceRequest`     | coach/self service flow                 | `services/invoice-service.ts` replacement path |
-| `/v1/invoices/:invoiceId/payments`    | `POST` | `scaffolded` | payment simulation payload | payer self or privileged admin          | payer payment simulation / seeded finance verification |
+| `/v1/invoices/generate`               | `POST` | `implemented` | `GenerateInvoiceRequest`     | coach/self service flow                 | `services/invoice-service.ts`, coach invoice generation |
+| `/v1/invoices/:invoiceId/payments`    | `POST` | `implemented` | `CreateInvoicePaymentSessionRequest` | payer self or privileged admin | hosted payer checkout/session creation from invoice detail |
 | `/v1/invoices/:invoiceId/mark-paid`   | `POST` | `scaffolded` | `InvoiceTransitionRequest` | coach/delegated finance                 | reconciler UI, `hooks/use-session-payments.ts`, `components/invoices/mark-paid-button.tsx` |
 | `/v1/invoices/:invoiceId/mark-unpaid` | `POST` | `scaffolded` | `InvoiceTransitionRequest` | coach/delegated finance                 | reconciler UI                                  |
 | `/v1/invoices/:invoiceId/write-off`   | `POST` | `scaffolded` | `InvoiceTransitionRequest` | coach/delegated finance                 | reconciler UI                                  |
 | `/v1/invoices/:invoiceId/restore`     | `POST` | `scaffolded` | `InvoiceTransitionRequest` | coach/delegated finance                 | reconciler UI                                  |
 | `/v1/invoices/:invoiceId/void`        | `POST` | `scaffolded` | `InvoiceTransitionRequest` | coach/delegated finance                 | invoice detail + reconciler UI                 |
-| `/v1/invoices/:invoiceId/reminders`   | `POST` | `planned` | `SendInvoiceReminderRequest` | coach/delegated finance                 | reminder templates                             |
+| `/v1/invoices/:invoiceId/reminders`   | `POST` | `implemented` | `SendInvoiceReminderRequest` | coach/delegated finance                 | invoice detail send/reminder flow              |
+| `/v1/payment-attempts/:attemptId/hosted` | `GET` | `implemented` | hosted HTML payment page  | signed attempt token                    | external hosted payer payment surface          |
+| `/v1/payment-attempts/:attemptId/simulated-complete` | `POST` | `implemented` | `SimulatedPaymentCompleteRequest` | signed attempt token | backend-owned simulated provider confirmation path |
 
 ## Trust / Safeguarding / Ops
 

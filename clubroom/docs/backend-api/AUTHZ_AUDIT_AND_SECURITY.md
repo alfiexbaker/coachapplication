@@ -150,6 +150,7 @@ Examples:
 ### S4-S5: Authorization and audit
 - authz checks in service layer and repository filters
 - audit logs for child/safeguarding/payment/invoice actions (plus sensitive reads)
+- payer payment state must be backend-confirmed; app callbacks or hosted return URLs must never mark invoices paid directly
 
 ### S6-S7: Abuse and write safety
 - rate limiting by IP + user + endpoint class

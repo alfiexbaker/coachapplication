@@ -117,6 +117,19 @@ export default function InvoiceDetailScreen() {
                 </Row>
               </Clickable>
             )}
+            {c.canPay && (
+              <Clickable
+                style={[styles.actionButton, { backgroundColor: palette.tint }]}
+                onPress={c.handlePayInvoice}
+              >
+                <Row align="center" gap="xs">
+                  <Ionicons name="card-outline" size={18} color={palette.onPrimary} />
+                  <ThemedText style={[styles.actionText, { color: palette.onPrimary }]}>
+                    Pay Now
+                  </ThemedText>
+                </Row>
+              </Clickable>
+            )}
             {c.canVoid && c.isCoach && (
               <Clickable
                 style={[styles.voidButton, { borderColor: palette.error }]}

@@ -2,7 +2,19 @@ import crypto from 'node:crypto';
 import type { FastifyPluginAsync } from 'fastify';
 import { z } from 'zod';
 import { badRequest, forbidden, notFound } from '../../lib/http-errors.js';
+import {
+  completeSimulatedInvoicePayment,
+  createInvoicePaymentSession,
+  createInvoiceReminder,
+  generateInvoiceForBooking,
+  getBookingInvoiceContext,
+  getHostedPaymentPageData,
+  getInvoiceDetail,
+  getInvoiceRow,
+  listAccessibleInvoices,
+} from '../../lib/invoice-runtime.js';
 import { getMarketplaceSeedStore } from '../../lib/marketplace-seed-store.js';
+import { verifySimulatedPaymentToken } from '../../lib/payment-provider.js';
 import { assertCanReadAthleteHealth, isPrivilegedAdminAuth } from '../../lib/authz.js';
 import { recordAuditEvent } from '../../lib/audit-runtime.js';
 import { resolveTrustAccessRepository } from '../../repositories/p0/trust-access-repository.js';
@@ -41,8 +53,25 @@ const uploadInitRequestSchema = z.object({
 const invoicePaymentRequestSchema = z.object({
   amountMinor: z.number().int().positive().optional(),
   method: z.enum(['bank_transfer', 'card']).default('bank_transfer'),
-  idempotencyKey: z.string().trim().min(8).max(120).optional(),
-  metadata: z.record(z.unknown()).optional(),
+  idempotencyKey: z.string().trim().min(8).max(120),
+  returnUrl: z.string().trim().url().optional(),
+  cancelUrl: z.string().trim().url().optional(),
+});
+
+const generateInvoiceRequestSchema = z.object({
+  bookingId: z.string().trim().min(1),
+  notes: z.string().trim().max(1000).optional(),
+  dueDate: z.string().trim().datetime().optional(),
+  taxRate: z.number().int().min(0).max(100).optional(),
+});
+
+const invoiceReminderRequestSchema = z.object({
+  recipientEmail: z.string().trim().email().optional(),
+  message: z.string().trim().max(2000).optional(),
+});
+
+const simulatedCompleteRequestSchema = z.object({
+  token: z.string().trim().min(20),
 });
 
 function getActiveRows(rows: SeedRow[]): SeedRow[] {
@@ -77,6 +106,95 @@ function toInvoiceStatus(value: unknown): InvoiceStatus {
     return status as InvoiceStatus;
   }
   return 'SENT';
+}
+
+function escapeHtml(value: string): string {
+  return value
+    .replaceAll('&', '&amp;')
+    .replaceAll('<', '&lt;')
+    .replaceAll('>', '&gt;')
+    .replaceAll('"', '&quot;')
+    .replaceAll("'", '&#39;');
+}
+
+function renderHostedPaymentPage(params: {
+  invoiceNumber: string;
+  amountMinor: number;
+  currency: string;
+  completeUrl: string;
+  token: string;
+  returnUrl?: string | null;
+  cancelUrl?: string | null;
+}): string {
+  const formattedAmount = `£${(params.amountMinor / 100).toFixed(2)} ${params.currency}`;
+  const safeReturnUrl = params.returnUrl ? escapeHtml(params.returnUrl) : '';
+  const safeCancelUrl = params.cancelUrl ? escapeHtml(params.cancelUrl) : '';
+  return `<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Clubroom Payment</title>
+    <style>
+      :root { color-scheme: light; }
+      body { margin: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: #f5f1e8; color: #1a1f1d; }
+      main { max-width: 420px; margin: 0 auto; min-height: 100vh; display: grid; place-items: center; padding: 24px; }
+      section { width: 100%; background: #fffaf2; border: 1px solid #d9cfbb; border-radius: 24px; padding: 24px; box-shadow: 0 14px 40px rgba(26, 31, 29, 0.08); }
+      h1 { margin: 0 0 8px; font-size: 28px; line-height: 1.1; }
+      p { margin: 0; color: #5a645d; }
+      dl { margin: 24px 0; display: grid; gap: 12px; }
+      dt { font-size: 12px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: #6c766e; }
+      dd { margin: 4px 0 0; font-size: 18px; font-weight: 600; color: #1a1f1d; }
+      form { display: grid; gap: 12px; margin-top: 24px; }
+      button, a { appearance: none; border: 0; border-radius: 14px; padding: 14px 16px; font-size: 16px; font-weight: 700; text-align: center; text-decoration: none; cursor: pointer; }
+      button { background: #0a7f5a; color: white; }
+      a.secondary { background: #ece4d2; color: #1a1f1d; }
+      small { display: block; margin-top: 16px; color: #6c766e; line-height: 1.4; }
+    </style>
+  </head>
+  <body>
+    <main>
+      <section>
+        <p>Hosted payment session</p>
+        <h1>${escapeHtml(params.invoiceNumber)}</h1>
+        <dl>
+          <div>
+            <dt>Amount</dt>
+            <dd>${escapeHtml(formattedAmount)}</dd>
+          </div>
+          <div>
+            <dt>Mode</dt>
+            <dd>Simulated secure checkout</dd>
+          </div>
+        </dl>
+        <form id="payment-form">
+          <button type="submit">Complete simulated payment</button>
+          ${safeCancelUrl ? `<a class="secondary" href="${safeCancelUrl}">Cancel and return</a>` : ''}
+        </form>
+        <small>
+          This is the temporary hosted payment boundary. The app never marks an invoice paid directly.
+          In production, this page is replaced by the real provider checkout.
+          ${safeReturnUrl ? ` After success you can return to <strong>${safeReturnUrl}</strong>.` : ''}
+        </small>
+      </section>
+    </main>
+    <script>
+      const form = document.getElementById('payment-form');
+      form.addEventListener('submit', async (event) => {
+        event.preventDefault();
+        const response = await fetch(${JSON.stringify(params.completeUrl)}, {
+          method: 'POST',
+          headers: { 'content-type': 'application/json', 'accept': 'text/html' },
+          body: JSON.stringify({ token: ${JSON.stringify(params.token)} }),
+        });
+        const html = await response.text();
+        document.open();
+        document.write(html);
+        document.close();
+      });
+    </script>
+  </body>
+</html>`;
 }
 
 function findUserEmail(users: SeedRow[], userId: string | undefined): string | undefined {
@@ -247,14 +365,8 @@ const wave2PlusRoutes: FastifyPluginAsync = async (app) => {
     }
 
     const query = invoiceListQuerySchema.parse(request.query ?? {});
-    const store = getMarketplaceSeedStore();
-    const users = asRows(store.tables.users);
     const isAdmin = isPrivilegedAdminAuth(request.auth);
-    const invoices = getActiveRows(asRows(store.tables.invoices))
-      .filter((row) => canAccessInvoice(authUserId, isAdmin, row))
-      .filter((row) => matchesInvoiceFilters(row, query))
-      .map((row) => mapInvoice(row, users))
-      .sort((left, right) => new Date(right.createdAt).getTime() - new Date(left.createdAt).getTime());
+    const invoices = await listAccessibleInvoices(authUserId, isAdmin, query);
     await recordAuditEvent({
       request,
       action: 'invoice.list',
@@ -270,7 +382,6 @@ const wave2PlusRoutes: FastifyPluginAsync = async (app) => {
     return reply.send({
       invoices,
       total: invoices.length,
-      seedVersion: store.version,
       requestId: request.requestId,
     });
   });
@@ -286,48 +397,86 @@ const wave2PlusRoutes: FastifyPluginAsync = async (app) => {
       throw notFound('Invoice id is required');
     }
 
-    const store = getMarketplaceSeedStore();
-    const users = asRows(store.tables.users);
-    const invoice = getActiveRows(asRows(store.tables.invoices)).find((row) => asString(row.id) === invoiceId);
-    if (!invoice) {
+    const detail = await getInvoiceDetail(invoiceId);
+    if (!detail) {
       throw notFound('Invoice not found', { invoiceId });
     }
     const isAdmin = isPrivilegedAdminAuth(request.auth);
-    if (!canAccessInvoice(authUserId, isAdmin, invoice)) {
+    const canAccess = isAdmin
+      || asString(detail.invoice.coachId) === authUserId
+      || asString(detail.invoice.userId) === authUserId;
+    if (!canAccess) {
       throw forbidden('Not allowed to access this invoice');
     }
 
-    const lineItems = getActiveRows(asRows(store.tables.invoiceLineItems)).filter(
-      (row) => asString(row.invoiceId) === invoiceId,
-    );
-    const events = asRows(store.tables.invoiceEvents).filter((row) => asString(row.invoiceId) === invoiceId);
-    const reconcilerEntry = asRows(store.tables.reconcilerEntries).find(
-      (row) => asString(row.invoiceId) === invoiceId,
-    ) ?? null;
-    const reminders = asRows(store.tables.paymentReminders).filter(
-      (row) => asString(row.invoiceId) === invoiceId,
-    );
-    const paymentInstructionTemplates = getActiveRows(asRows(store.tables.paymentInstructionTemplates)).filter(
-      (row) => asString(row.coachUserId) === asString(invoice.coachUserId),
-    );
     await recordAuditEvent({
       request,
       action: 'invoice.read',
       resourceType: 'invoice',
       resourceId: invoiceId,
-      subjectUserId: asString(invoice.payerUserId) ?? null,
+      subjectUserId: asString(detail.invoice.userId) ?? null,
       result: 'SUCCESS',
       sensitiveRead: true,
     });
 
     return reply.send({
-      invoice: mapInvoice(invoice, users),
-      lineItems,
-      events,
-      reconcilerEntry,
-      reminders,
-      paymentInstructionTemplates,
-      seedVersion: store.version,
+      invoice: detail.invoice,
+      lineItems: detail.lineItems,
+      events: detail.events,
+      reconcilerEntry: detail.reconcilerEntry,
+      reminders: detail.reminders,
+      paymentInstructionTemplates: detail.paymentInstructionTemplates,
+      paymentAttempts: detail.paymentAttempts,
+      requestId: request.requestId,
+    });
+  });
+
+  app.post('/invoices/generate', async (request, reply) => {
+    const authUserId = request.auth?.userId;
+    if (!authUserId) {
+      throw forbidden('Authenticated user is required');
+    }
+
+    const body = generateInvoiceRequestSchema.parse(request.body ?? {});
+    const booking = await getBookingInvoiceContext(body.bookingId);
+    if (!booking) {
+      throw notFound('Booking not found', { bookingId: body.bookingId });
+    }
+    const isAdmin = isPrivilegedAdminAuth(request.auth);
+    if (!isAdmin && booking.coachUserId !== authUserId) {
+      throw forbidden('Not allowed to generate an invoice for this booking');
+    }
+
+    const generated = await generateInvoiceForBooking({
+      bookingId: body.bookingId,
+      actorUserId: authUserId,
+      notes: body.notes,
+      dueDate: body.dueDate,
+      taxRatePercent: body.taxRate,
+    });
+    const detail = await getInvoiceDetail(asString(generated.invoice.id) ?? '');
+    if (!detail) {
+      throw notFound('Generated invoice not found', { bookingId: body.bookingId });
+    }
+
+    await recordAuditEvent({
+      request,
+      action: 'invoice.generate',
+      resourceType: 'invoice',
+      resourceId: asString(generated.invoice.id) ?? null,
+      subjectUserId: asString(detail.invoice.userId) ?? null,
+      result: 'SUCCESS',
+      metadata: {
+        bookingId: body.bookingId,
+        created: generated.created,
+      },
+    });
+
+    reply.code(generated.created ? 201 : 200);
+    return reply.send({
+      invoice: detail.invoice,
+      lineItems: detail.lineItems,
+      events: detail.events,
       requestId: request.requestId,
     });
   });
@@ -342,19 +491,17 @@ const wave2PlusRoutes: FastifyPluginAsync = async (app) => {
     if (!invoiceId) {
       throw notFound('Invoice id is required');
     }
-    const body = invoicePaymentRequestSchema.parse(request.body);
-
-    const store = getMarketplaceSeedStore();
-    const invoice = asRows(store.tables.invoices).find((row) => asString(row.id) === invoiceId);
+    const invoice = await getInvoiceRow(invoiceId);
     if (!invoice) {
       throw notFound('Invoice not found', { invoiceId });
     }
 
     const isAdmin = isPrivilegedAdminAuth(request.auth);
-    const canPay = isAdmin || asString(invoice.payerUserId) === authUserId;
+    const canPay = isAdmin || asString(invoice.payerUserId) === authUserId || asString(invoice.userId) === authUserId;
     if (!canPay) {
       throw forbidden('Not allowed to pay this invoice');
     }
+    const body = invoicePaymentRequestSchema.parse(request.body);
 
     const totalMinor = asNumber(invoice.totalMinor);
     if (!totalMinor || totalMinor <= 0) {
@@ -369,85 +516,176 @@ const wave2PlusRoutes: FastifyPluginAsync = async (app) => {
       });
     }
 
-    const invoiceEvents = asRows(store.tables.invoiceEvents);
-    const reconcilerEntries = asRows(store.tables.reconcilerEntries);
-    const now = nowIso();
-    const alreadyPaid = asString(invoice.status) === 'PAID';
-
-    if (!alreadyPaid) {
-      invoice.status = 'PAID';
-      invoice.paidAt = now;
-      invoice.updatedAt = now;
-      invoice.updatedByUserId = authUserId;
-      invoice.version = (asNumber(invoice.version) ?? 1) + 1;
-
-      invoiceEvents.push({
-        id: newId('ine'),
-        invoiceId,
-        eventType: 'MARKED_PAID',
-        actorUserId: authUserId,
-        reason: 'Payment simulated via API runtime endpoint.',
-        metadataJson: {
-          source: 'api-runtime',
-          method: body.method,
-          amountMinor,
-          idempotencyKey: body.idempotencyKey ?? null,
-          ...(body.metadata ? { metadata: body.metadata } : {}),
-        },
-        requestId: request.requestId,
-        occurredAt: now,
-      });
-
-      const reconcilerEntry = reconcilerEntries.find((row) => asString(row.invoiceId) === invoiceId);
-      if (reconcilerEntry) {
-        reconcilerEntry.state = 'PAID';
-        reconcilerEntry.updatedAt = now;
-        reconcilerEntry.updatedByUserId = authUserId;
-        reconcilerEntry.version = (asNumber(reconcilerEntry.version) ?? 1) + 1;
-        reconcilerEntry.internalNote = 'Marked paid via /v1/invoices/:invoiceId/payments.';
-      } else {
-        reconcilerEntries.push({
-          id: newId('rec'),
-          invoiceId,
-          coachUserId: asString(invoice.coachUserId),
-          state: 'PAID',
-          internalNote: 'Created by payment simulation endpoint.',
-          createdByUserId: authUserId,
-          updatedByUserId: authUserId,
-          version: 1,
-          createdAt: now,
-          updatedAt: now,
-        });
-      }
-    }
+    const paymentSession = await createInvoicePaymentSession({
+      invoiceId,
+      actorUserId: authUserId,
+      idempotencyKey: body.idempotencyKey,
+      returnUrl: body.returnUrl,
+      cancelUrl: body.cancelUrl,
+    });
 
     await recordAuditEvent({
       request,
-      action: 'invoice.payment',
+      action: 'invoice.payment_session_create',
       resourceType: 'invoice',
       resourceId: invoiceId,
       subjectUserId: asString(invoice.payerUserId) ?? null,
       result: 'SUCCESS',
       metadata: {
-        alreadyPaid,
+        reused: paymentSession.reused,
         amountMinor,
         method: body.method,
+        attemptId: asString(paymentSession.attempt.id) ?? null,
+        provider: paymentSession.hostedSession.provider,
       },
     });
 
+    reply.code(paymentSession.reused ? 200 : 201);
     return reply.send({
       invoiceId,
-      paid: true,
-      alreadyPaid,
-      invoiceStatus: asString(invoice.status) ?? 'PAID',
-      payment: {
+      invoiceStatus: asString(paymentSession.invoice.status) ?? 'SENT',
+      paymentSession: {
+        attemptId: asString(paymentSession.attempt.id) ?? '',
+        provider: paymentSession.hostedSession.provider,
+        status: paymentSession.hostedSession.status,
         amountMinor,
-        currency: asString(invoice.currency) ?? 'GBP',
-        method: body.method,
-        processedAt: now,
-        actorUserId: authUserId,
+        currency: asString(paymentSession.invoice.currency) ?? 'GBP',
+        expiresAt: paymentSession.hostedSession.expiresAt,
+        nextAction: paymentSession.hostedSession.nextAction,
       },
-      seedVersion: store.version,
+      requestId: request.requestId,
+    });
+  });
+
+  app.post('/invoices/:invoiceId/reminders', async (request, reply) => {
+    const authUserId = request.auth?.userId;
+    if (!authUserId) {
+      throw forbidden('Authenticated user is required');
+    }
+
+    const invoiceId = asString((request.params as { invoiceId?: string }).invoiceId);
+    if (!invoiceId) {
+      throw notFound('Invoice id is required');
+    }
+    const body = invoiceReminderRequestSchema.parse(request.body ?? {});
+    const invoice = await getInvoiceRow(invoiceId);
+    if (!invoice) {
+      throw notFound('Invoice not found', { invoiceId });
+    }
+
+    const isAdmin = isPrivilegedAdminAuth(request.auth);
+    if (!isAdmin && asString(invoice.coachUserId) !== authUserId && asString(invoice.coachId) !== authUserId) {
+      throw forbidden('Not allowed to send reminders for this invoice');
+    }
+
+    const reminder = await createInvoiceReminder({
+      invoiceId,
+      actorUserId: authUserId,
+      recipientEmail: body.recipientEmail,
+      message: body.message,
+    });
+
+    await recordAuditEvent({
+      request,
+      action: 'invoice.reminder',
+      resourceType: 'invoice',
+      resourceId: invoiceId,
+      subjectUserId: asString(reminder.invoice.payerUserId) ?? asString(reminder.invoice.userId) ?? null,
+      result: 'SUCCESS',
+      metadata: {
+        sentAt: reminder.sentAt,
+      },
+    });
+
+    const detail = await getInvoiceDetail(invoiceId);
+    return reply.send({
+      invoice: detail?.invoice ?? reminder.invoice,
+      reminder: reminder.reminder,
+      sentAt: reminder.sentAt,
+      requestId: request.requestId,
+    });
+  });
+
+  app.get('/payment-attempts/:attemptId/hosted', async (request, reply) => {
+    const attemptId = asString((request.params as { attemptId?: string }).attemptId);
+    const token = typeof (request.query as { token?: unknown } | undefined)?.token === 'string'
+      ? (request.query as { token: string }).token
+      : '';
+    if (!attemptId || !token) {
+      throw badRequest('Payment attempt token is required');
+    }
+
+    const page = await getHostedPaymentPageData(attemptId, token);
+    const completeUrl = `/v1/payment-attempts/${attemptId}/simulated-complete`;
+    reply.type('text/html; charset=utf-8');
+    return reply.send(renderHostedPaymentPage({
+      invoiceNumber: asString(page.invoice.invoiceNumber) ?? attemptId,
+      amountMinor: asNumber(page.attempt.amountMinor) ?? 0,
+      currency: asString(page.attempt.currency) ?? 'GBP',
+      completeUrl,
+      token: page.token,
+      returnUrl: page.returnUrl,
+      cancelUrl: page.cancelUrl,
+    }));
+  });
+
+  app.post('/payment-attempts/:attemptId/simulated-complete', async (request, reply) => {
+    const attemptId = asString((request.params as { attemptId?: string }).attemptId);
+    if (!attemptId) {
+      throw badRequest('Payment attempt id is required');
+    }
+
+    const body = simulatedCompleteRequestSchema.parse(request.body ?? {});
+    const completed = await completeSimulatedInvoicePayment({
+      attemptId,
+      token: body.token,
+    });
+
+    await recordAuditEvent({
+      request,
+      action: 'invoice.payment_confirm',
+      resourceType: 'invoice',
+      resourceId: asString(completed.invoice.id) ?? null,
+      subjectUserId: asString(completed.invoice.payerUserId) ?? asString(completed.invoice.userId) ?? null,
+      result: 'SUCCESS',
+      metadata: {
+        attemptId,
+        alreadyCompleted: completed.alreadyCompleted,
+      },
+    });
+
+    const acceptsHtml = typeof request.headers.accept === 'string' && request.headers.accept.includes('text/html');
+    if (acceptsHtml) {
+      const payload = verifySimulatedPaymentToken(body.token);
+      const returnUrl = payload.returnUrl ? escapeHtml(payload.returnUrl) : '';
+      reply.type('text/html; charset=utf-8');
+      return reply.send(`<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Payment complete</title>
+    <style>
+      body { margin: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: #f5f1e8; color: #1a1f1d; display: grid; place-items: center; min-height: 100vh; padding: 24px; }
+      section { max-width: 420px; background: #fffaf2; border: 1px solid #d9cfbb; border-radius: 24px; padding: 24px; text-align: center; }
+      a { display: inline-block; margin-top: 16px; padding: 14px 16px; border-radius: 14px; background: #0a7f5a; color: white; text-decoration: none; font-weight: 700; }
+    </style>
+  </head>
+  <body>
+    <section>
+      <h1>Payment confirmed</h1>
+      <p>The invoice is now marked as paid in Clubroom.</p>
+      ${returnUrl ? `<a href="${returnUrl}">Return to Clubroom</a>` : ''}
+    </section>
+  </body>
+</html>`);
+    }
+
+    return reply.send({
+      invoiceId: asString(completed.invoice.id) ?? null,
+      invoiceStatus: asString(completed.invoice.status) ?? 'PAID',
+      attemptId,
+      alreadyCompleted: completed.alreadyCompleted,
       requestId: request.requestId,
     });
   });

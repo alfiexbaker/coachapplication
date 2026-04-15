@@ -199,6 +199,30 @@ export interface PaymentReminder {
   description: string;
 }
 
+export type InvoicePaymentAttemptStatus =
+  | 'PENDING'
+  | 'ACTION_REQUIRED'
+  | 'COMPLETED'
+  | 'FAILED'
+  | 'EXPIRED'
+  | 'CANCELED';
+
+export interface InvoicePaymentNextAction {
+  type: 'open_url' | 'none';
+  url?: string;
+  method?: 'GET';
+}
+
+export interface InvoicePaymentSession {
+  attemptId: string;
+  provider: 'simulated' | 'stripe';
+  status: InvoicePaymentAttemptStatus;
+  amountMinor: number;
+  currency: string;
+  expiresAt?: string;
+  nextAction: InvoicePaymentNextAction;
+}
+
 // ============================================================================
 // PACKAGES & PRICING
 // ============================================================================

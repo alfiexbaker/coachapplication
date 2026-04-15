@@ -109,9 +109,10 @@ Purpose: identify the service entrypoints that are safe to build on and call out
 
 - `services/invoice-service.ts`
 - Canonical invoice list/detail and reconciler-status surface
-- Non-mock authoritative path uses `GET /v1/invoices`, `GET /v1/invoices/:invoiceId`, and coach/admin transition routes under `/v1/invoices/:invoiceId/*`
+- Non-mock authoritative path uses `GET /v1/invoices`, `GET /v1/invoices/:invoiceId`, `POST /v1/invoices/generate`, `POST /v1/invoices/:invoiceId/reminders`, and invoice/payment transition routes under `/v1/invoices/:invoiceId/*`
 - Invoice summary is derived from the authoritative list payload, not a separate local invoice store
-- Current limitation: invoice generation and reminder/send flows are still not backend-owned, and off-platform offering reconciler items remain synthetic in-app until that model moves behind `/v1`
+- Current payer-payment rule: the app only opens a hosted payment session from `/v1/invoices/:invoiceId/payments`; paid state is confirmed by the backend payment-attempt runtime, not by the app
+- Current limitation: the hosted provider is still simulated by design, and off-platform offering reconciler items remain synthetic in-app until that model moves behind `/v1`
 
 ### Notifications
 

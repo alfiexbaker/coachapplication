@@ -4,6 +4,8 @@
  */
 
 import { useCallback, useState } from 'react';
+import { Linking } from 'react-native';
+import * as ExpoLinking from 'expo-linking';
 
 import { useLocalSearchParams, router } from 'expo-router';
 import { useAuth } from '@/hooks/use-auth';
@@ -119,14 +121,43 @@ export function useInvoiceDetail() {
     );
   }, [invoice, onRefresh]);
 
+  const handlePayInvoice = useCallback(async () => {
+    if (!invoice) return;
+    setActionLoading(true);
+    try {
+      const returnUrl = ExpoLinking.createURL(`invoices/${invoice.id}`);
+      const paymentSession = await invoiceService.createPaymentSession(invoice.id, {
+        returnUrl,
+        cancelUrl: returnUrl,
+      });
+      const checkoutUrl = paymentSession?.nextAction.url;
+      if (!checkoutUrl) {
+        uiFeedback.showToast('Secure payment is not available for this invoice.', 'error');
+        return;
+      }
+      const canOpen = await Linking.canOpenURL(checkoutUrl);
+      if (!canOpen) {
+        uiFeedback.showToast('Could not open the secure payment page.', 'error');
+        return;
+      }
+      await Linking.openURL(checkoutUrl);
+      uiFeedback.showToast('Opening secure payment page…', 'success');
+    } catch {
+      uiFeedback.showToast('Could not start payment. Please try again.', 'error');
+    } finally {
+      setActionLoading(false);
+    }
+  }, [invoice]);
+
   const goBack = useCallback(() => router.back(), []);
   const openSendModal = useCallback(() => setShowSendModal(true), []);
   const closeSendModal = useCallback(() => setShowSendModal(false), []);
 
   const isCoach = currentUser?.role === 'COACH' || currentUser?.id === invoice?.coachId;
-  const canSend = invoice?.status === 'DRAFT' && isCoach;
+  const canSend = Boolean(invoice && isCoach && (invoice.status === 'DRAFT' || (invoice.status === 'SENT' && !invoice.sentAt)));
   const canMarkPaid = (invoice?.status === 'SENT' || invoice?.status === 'DRAFT') && isCoach;
   const canVoid = invoice?.status !== 'VOID' && invoice?.status !== 'PAID';
+  const canPay = Boolean(invoice && !isCoach && currentUser?.id === invoice.userId && invoice.status === 'SENT');
 
   return {
     invoice: invoice ?? null,
@@ -143,10 +174,12 @@ export function useInvoiceDetail() {
     canSend,
     canMarkPaid,
     canVoid,
+    canPay,
     setSendEmail,
     handleSendInvoice,
     handleMarkPaid,
     handleVoidInvoice,
+    handlePayInvoice,
     goBack,
     openSendModal,
     closeSendModal,

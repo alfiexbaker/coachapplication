@@ -5,6 +5,7 @@ import { after, beforeEach, describe, it } from 'node:test';
 import { env } from '@clubroom/config';
 import { buildApp } from '../../app.js';
 import { resetDbFixtureStoreForTests } from '../../lib/db-fixture-store.js';
+import { getMarketplaceSeedStore } from '../../lib/marketplace-seed-store.js';
 import { resetMarketplaceSeedStoreForTests } from '../../lib/marketplace-seed-store.js';
 
 type SeedRow = Record<string, unknown>;
@@ -13,6 +14,8 @@ type SeedTables = Record<string, SeedRow[]>;
 const asRows = (value: unknown): SeedRow[] => (Array.isArray(value) ? (value as SeedRow[]) : []);
 const asString = (value: unknown): string | undefined => (typeof value === 'string' ? value : undefined);
 const asNumber = (value: unknown): number | undefined => (typeof value === 'number' ? value : undefined);
+const tokenFromHostedUrl = (value: string): string =>
+  new URL(value, 'http://clubroom.test').searchParams.get('token') ?? '';
 
 function resolveDatasetPath(): string {
   const primary = path.resolve(process.cwd(), 'docs/backend-api/test-data/marketplace/linked-dataset.json');
@@ -39,6 +42,30 @@ function rolesForUser(tables: SeedTables, userId: string): string[] {
     .filter((row) => asString(row.userId) === userId)
     .map((row) => asString(row.role))
     .filter((role): role is string => Boolean(role));
+}
+
+function findBillableBookingWithoutInvoice(tables: SeedTables): SeedRow | undefined {
+  const invoicedBookingIds = new Set(
+    asRows(tables.invoices)
+      .map((row) => asString(row.bookingId))
+      .filter((bookingId): bookingId is string => Boolean(bookingId)),
+  );
+
+  return asRows(tables.bookings).find((row) => {
+    const bookingId = asString(row.id);
+    if (!bookingId || invoicedBookingIds.has(bookingId) || asString(row.deletedAt)) {
+      return false;
+    }
+    if ((asNumber(row.priceMinor) ?? 0) <= 0) {
+      return false;
+    }
+    return asRows(tables.bookingParticipants).some(
+      (participant) =>
+        asString(participant.bookingId) === bookingId
+        && !asString(participant.deletedAt)
+        && Boolean(asString(participant.athleteId)),
+    );
+  });
 }
 
 function authHeaders(
@@ -230,7 +257,7 @@ describe('wave2+ routes', () => {
     assert.equal(bookingPayload.invoices[0]?.bookingId, bookingId);
   });
 
-  it('simulates invoice payment and enforces payer/admin authz', async () => {
+  it('creates a hosted invoice payment session and only marks paid after backend confirmation', async () => {
     const tables = loadTables();
     const sentInvoice = asRows(tables.invoices).find((row) => asString(row.status) === 'SENT');
     assert.ok(sentInvoice, 'expected seeded SENT invoice');
@@ -254,6 +281,7 @@ describe('wave2+ routes', () => {
       headers: authHeaders(tables, asString(outsider.id) as string),
       payload: {
         method: 'bank_transfer',
+        idempotencyKey: 'unauthorized-payment-attempt',
       },
     });
     assert.equal(denied.statusCode, 403);
@@ -269,7 +297,7 @@ describe('wave2+ routes', () => {
     });
     assert.equal(invalidAmount.statusCode, 400);
 
-    const paid = await app.inject({
+    const sessionCreated = await app.inject({
       method: 'POST',
       url: `/v1/invoices/${invoiceId}/payments`,
       headers: authHeaders(tables, payerUserId, 'parent'),
@@ -278,15 +306,66 @@ describe('wave2+ routes', () => {
         idempotencyKey: 'seed-payment-test-key',
       },
     });
-    assert.equal(paid.statusCode, 200);
-    const paidPayload = paid.json() as {
-      alreadyPaid: boolean;
+    assert.equal(sessionCreated.statusCode, 201);
+    const sessionPayload = sessionCreated.json() as {
       invoiceStatus: string;
-      payment: { amountMinor: number };
+      paymentSession: {
+        attemptId: string;
+        status: string;
+        amountMinor: number;
+        nextAction: { type: string; url?: string };
+      };
     };
-    assert.equal(paidPayload.alreadyPaid, false);
-    assert.equal(paidPayload.invoiceStatus, 'PAID');
-    assert.equal(paidPayload.payment.amountMinor, totalMinor);
+    assert.equal(sessionPayload.invoiceStatus, 'SENT');
+    assert.equal(sessionPayload.paymentSession.status, 'ACTION_REQUIRED');
+    assert.equal(sessionPayload.paymentSession.amountMinor, totalMinor);
+    assert.equal(sessionPayload.paymentSession.nextAction.type, 'open_url');
+    assert.equal(Boolean(sessionPayload.paymentSession.attemptId), true);
+    assert.equal(
+      sessionPayload.paymentSession.nextAction.url?.includes(
+        `/v1/payment-attempts/${sessionPayload.paymentSession.attemptId}/hosted`,
+      ),
+      true,
+    );
+
+    const invoiceBeforeComplete = await app.inject({
+      method: 'GET',
+      url: `/v1/invoices/${invoiceId}`,
+      headers: authHeaders(tables, payerUserId, 'parent'),
+    });
+    assert.equal(invoiceBeforeComplete.statusCode, 200);
+    const invoiceBeforePayload = invoiceBeforeComplete.json() as {
+      invoice: { status: string };
+      events: Array<{ eventType?: string; actorUserId?: string }>;
+      paymentAttempts: Array<{ id: string; status: string }>;
+    };
+    assert.equal(invoiceBeforePayload.invoice.status, 'SENT');
+    assert.equal(
+      invoiceBeforePayload.events.some(
+        (event) => event.eventType === 'PAYMENT_SESSION_CREATED' && event.actorUserId === payerUserId,
+      ),
+      true,
+    );
+    assert.equal(
+      invoiceBeforePayload.paymentAttempts.some(
+        (attempt) =>
+          attempt.id === sessionPayload.paymentSession.attemptId && attempt.status === 'ACTION_REQUIRED',
+      ),
+      true,
+    );
+
+    const token = tokenFromHostedUrl(sessionPayload.paymentSession.nextAction.url ?? '');
+    assert.equal(Boolean(token), true);
+
+    const completed = await app.inject({
+      method: 'POST',
+      url: `/v1/payment-attempts/${sessionPayload.paymentSession.attemptId}/simulated-complete`,
+      payload: { token },
+    });
+    assert.equal(completed.statusCode, 200);
+    const completedPayload = completed.json() as { invoiceStatus: string; alreadyCompleted: boolean };
+    assert.equal(completedPayload.invoiceStatus, 'PAID');
+    assert.equal(completedPayload.alreadyCompleted, false);
 
     const invoiceAfter = await app.inject({
       method: 'GET',
@@ -297,6 +376,7 @@ describe('wave2+ routes', () => {
     const invoiceAfterPayload = invoiceAfter.json() as {
       invoice: { status: string };
       events: Array<{ eventType?: string; actorUserId?: string }>;
+      paymentAttempts: Array<{ id: string; status: string; confirmedAt?: string | null }>;
       reconcilerEntry: { state?: string } | null;
     };
     assert.equal(invoiceAfterPayload.invoice.status, 'PAID');
@@ -306,23 +386,29 @@ describe('wave2+ routes', () => {
       ),
       true,
     );
+    assert.equal(
+      invoiceAfterPayload.paymentAttempts.some(
+        (attempt) =>
+          attempt.id === sessionPayload.paymentSession.attemptId
+          && attempt.status === 'COMPLETED'
+          && Boolean(attempt.confirmedAt),
+      ),
+      true,
+    );
     assert.equal(invoiceAfterPayload.reconcilerEntry?.state, 'PAID');
 
-    const idempotent = await app.inject({
+    const idempotentComplete = await app.inject({
       method: 'POST',
-      url: `/v1/invoices/${invoiceId}/payments`,
-      headers: authHeaders(tables, payerUserId, 'parent'),
-      payload: {
-        method: 'card',
-      },
+      url: `/v1/payment-attempts/${sessionPayload.paymentSession.attemptId}/simulated-complete`,
+      payload: { token },
     });
-    assert.equal(idempotent.statusCode, 200);
-    const idempotentPayload = idempotent.json() as { alreadyPaid: boolean; invoiceStatus: string };
-    assert.equal(idempotentPayload.alreadyPaid, true);
+    assert.equal(idempotentComplete.statusCode, 200);
+    const idempotentPayload = idempotentComplete.json() as { alreadyCompleted: boolean; invoiceStatus: string };
+    assert.equal(idempotentPayload.alreadyCompleted, true);
     assert.equal(idempotentPayload.invoiceStatus, 'PAID');
   });
 
-  it('allows security admins to access and pay invoices', async () => {
+  it('allows security admins to create and confirm payer payment sessions', async () => {
     const tables = loadTables();
     const securityAdminMembership = asRows(tables.userRoleMemberships).find(
       (row) => asString(row.role) === 'security_admin',
@@ -349,7 +435,159 @@ describe('wave2+ routes', () => {
         idempotencyKey: 'security-admin-payment-test',
       },
     });
-    assert.equal(pay.statusCode, 200);
+    assert.equal(pay.statusCode, 201);
+    const payPayload = pay.json() as {
+      invoiceStatus: string;
+      paymentSession: { attemptId: string; nextAction: { url?: string } };
+    };
+    assert.equal(payPayload.invoiceStatus, 'SENT');
+
+    const token = tokenFromHostedUrl(payPayload.paymentSession.nextAction.url ?? '');
+    assert.equal(Boolean(token), true);
+
+    const complete = await app.inject({
+      method: 'POST',
+      url: `/v1/payment-attempts/${payPayload.paymentSession.attemptId}/simulated-complete`,
+      payload: { token },
+    });
+    assert.equal(complete.statusCode, 200);
+    const completePayload = complete.json() as { invoiceStatus: string; alreadyCompleted: boolean };
+    assert.equal(completePayload.invoiceStatus, 'PAID');
+    assert.equal(completePayload.alreadyCompleted, false);
+  });
+
+  it('allowlists hosted payment return URLs for app deep links and rejects mismatches', async () => {
+    const tables = loadTables();
+    const sentInvoice = asRows(tables.invoices).find((row) => asString(row.status) === 'SENT');
+    assert.ok(sentInvoice, 'expected seeded SENT invoice');
+    const invoiceId = asString(sentInvoice.id) as string;
+    const payerUserId = asString(sentInvoice.payerUserId) as string;
+    const previousAllowlist = env.API_PAYMENT_ALLOWED_RETURN_ORIGINS;
+    env.API_PAYMENT_ALLOWED_RETURN_ORIGINS = 'clubroom://invoices,https://clubroom.app';
+
+    try {
+      const allowed = await app.inject({
+        method: 'POST',
+        url: `/v1/invoices/${invoiceId}/payments`,
+        headers: authHeaders(tables, payerUserId, 'parent'),
+        payload: {
+          method: 'card',
+          idempotencyKey: 'allowlisted-return-url-test',
+          returnUrl: `clubroom://invoices/${invoiceId}`,
+          cancelUrl: `clubroom://invoices/${invoiceId}`,
+        },
+      });
+      assert.equal(allowed.statusCode, 201);
+
+      const rejected = await app.inject({
+        method: 'POST',
+        url: `/v1/invoices/${invoiceId}/payments`,
+        headers: authHeaders(tables, payerUserId, 'parent'),
+        payload: {
+          method: 'card',
+          idempotencyKey: 'rejected-return-url-test',
+          returnUrl: `clubroom://settings/${invoiceId}`,
+          cancelUrl: `clubroom://settings/${invoiceId}`,
+        },
+      });
+      assert.equal(rejected.statusCode, 503);
+    } finally {
+      env.API_PAYMENT_ALLOWED_RETURN_ORIGINS = previousAllowlist;
+    }
+  });
+
+  it('generates missing invoices idempotently for billable bookings', async () => {
+    const tables = loadTables();
+    const booking = findBillableBookingWithoutInvoice(tables);
+    assert.ok(booking, 'expected billable booking without existing invoice');
+    const bookingId = asString(booking.id) as string;
+    const coachUserId = asString(booking.coachUserId) as string;
+
+    const created = await app.inject({
+      method: 'POST',
+      url: '/v1/invoices/generate',
+      headers: authHeaders(tables, coachUserId, 'coach'),
+      payload: {
+        bookingId,
+      },
+    });
+    assert.equal(created.statusCode, 201);
+    const createdPayload = created.json() as {
+      invoice: { id: string; bookingId: string; coachId: string; status: string };
+      lineItems: unknown[];
+      events: Array<{ eventType?: string }>;
+    };
+    assert.equal(createdPayload.invoice.bookingId, bookingId);
+    assert.equal(createdPayload.invoice.coachId, coachUserId);
+    assert.equal(createdPayload.invoice.status, 'SENT');
+    assert.equal(createdPayload.lineItems.length >= 1, true);
+    assert.equal(createdPayload.events.length >= 1, true);
+
+    const idempotent = await app.inject({
+      method: 'POST',
+      url: '/v1/invoices/generate',
+      headers: authHeaders(tables, coachUserId, 'coach'),
+      payload: {
+        bookingId,
+      },
+    });
+    assert.equal(idempotent.statusCode, 200);
+    const idempotentPayload = idempotent.json() as { invoice: { id: string; bookingId: string } };
+    assert.equal(idempotentPayload.invoice.id, createdPayload.invoice.id);
+    assert.equal(idempotentPayload.invoice.bookingId, bookingId);
+  });
+
+  it('queues reminders through the backend for authoritative invoices', async () => {
+    const tables = loadTables();
+    const sentInvoice = asRows(tables.invoices).find((row) => asString(row.status) === 'SENT');
+    assert.ok(sentInvoice, 'expected seeded SENT invoice');
+    const invoiceId = asString(sentInvoice.id) as string;
+    const coachUserId = asString(sentInvoice.coachUserId) as string;
+    const payerUserId = asString(sentInvoice.payerUserId) as string;
+
+    const denied = await app.inject({
+      method: 'POST',
+      url: `/v1/invoices/${invoiceId}/reminders`,
+      headers: authHeaders(tables, payerUserId, 'parent'),
+      payload: {
+        recipientEmail: 'payer@example.com',
+      },
+    });
+    assert.equal(denied.statusCode, 403);
+
+    const reminded = await app.inject({
+      method: 'POST',
+      url: `/v1/invoices/${invoiceId}/reminders`,
+      headers: authHeaders(tables, coachUserId, 'coach'),
+      payload: {
+        recipientEmail: 'payer@example.com',
+        message: 'Please pay through the secure hosted payment page.',
+      },
+    });
+    assert.equal(reminded.statusCode, 200);
+    const remindedPayload = reminded.json() as {
+      invoice: { id: string; status: string; sentAt?: string };
+      reminder: { deliveryStatus?: string; channel?: string };
+      sentAt: string;
+    };
+    assert.equal(remindedPayload.invoice.id, invoiceId);
+    assert.equal(remindedPayload.invoice.status, 'SENT');
+    assert.equal(remindedPayload.reminder.deliveryStatus, 'queued');
+    assert.equal(remindedPayload.reminder.channel, 'email');
+    assert.equal(Boolean(remindedPayload.sentAt), true);
+
+    const detail = await app.inject({
+      method: 'GET',
+      url: `/v1/invoices/${invoiceId}`,
+      headers: authHeaders(tables, coachUserId, 'coach'),
+    });
+    assert.equal(detail.statusCode, 200);
+    const detailPayload = detail.json() as {
+      invoice: { status: string };
+      events: Array<{ eventType?: string }>;
+    };
+    assert.equal(detailPayload.invoice.status, 'SENT');
+    assert.equal(detailPayload.events.some((event) => event.eventType === 'REMINDER_SENT'), true);
   });
 
   it('lets a coach reconcile invoice status transitions through v1 routes', async () => {

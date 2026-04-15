@@ -104,12 +104,22 @@ enum InvoiceStatus {
 enum InvoiceEventType {
   GENERATED
   SENT
+  PAYMENT_SESSION_CREATED
   MARKED_PAID
   MARKED_UNPAID
   WRITTEN_OFF
   RESTORED
   VOIDED
   REMINDER_SENT
+}
+
+enum PaymentAttemptStatus {
+  PENDING
+  ACTION_REQUIRED
+  COMPLETED
+  FAILED
+  EXPIRED
+  CANCELED
 }
 
 enum ConsentType {
@@ -1245,6 +1255,7 @@ model Invoice {
   events             InvoiceEvent[]
   reconcilerEntries  ReconcilerEntry[]
   reminders          PaymentReminder[]
+  paymentAttempts    PaymentAttempt[]
 
   @@index([coachUserId, status])
   @@index([payerUserId])
@@ -1336,6 +1347,33 @@ model PaymentReminder {
 
   @@index([invoiceId, sentAt])
   @@index([recipientUserId])
+}
+
+model PaymentAttempt {
+  id                 String   @id
+  invoiceId          String
+  actorUserId        String
+  provider           String
+  providerSessionId  String?  @unique
+  idempotencyKey     String?
+  status             PaymentAttemptStatus @default(PENDING)
+  amountMinor        Int
+  currency           String   @default("GBP")
+  expiresAt          DateTime?
+  confirmedAt        DateTime?
+  failedAt           DateTime?
+  canceledAt         DateTime?
+  failureCode        String?
+  failureReason      String?
+  metadataJson       Json?
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+
+  invoice            Invoice  @relation(fields: [invoiceId], references: [id], onDelete: Restrict)
+
+  @@unique([invoiceId, idempotencyKey])
+  @@index([invoiceId, status])
+  @@index([provider, providerSessionId])
 }
 
 // -----------------------------------------------------------------------------

@@ -8,6 +8,7 @@ import {
   InvoiceSummary,
   InvoiceFilter,
   GenerateInvoiceParams,
+  InvoicePaymentSession,
 } from '@/constants/types';
 import { apiClient, apiFetch } from './api-client';
 import { createLogger } from '@/utils/logger';
@@ -281,6 +282,26 @@ interface ApiInvoiceDetailResponse {
   invoice: Invoice;
 }
 
+interface ApiInvoiceGenerateResponse {
+  invoice: Invoice;
+}
+
+interface ApiInvoiceReminderResponse {
+  invoice: Invoice;
+  sentAt: string;
+}
+
+interface ApiInvoicePaymentSessionResponse {
+  invoiceId: string;
+  invoiceStatus: InvoiceStatus;
+  paymentSession: InvoicePaymentSession;
+}
+
+interface CreateInvoicePaymentSessionOptions {
+  returnUrl?: string;
+  cancelUrl?: string;
+}
+
 // ============================================================================
 // INVOICE SERVICE
 // ============================================================================
@@ -373,6 +394,16 @@ class InvoiceService {
       return null;
     }
     throw new Error(result.error.message);
+  }
+
+  private resolveHostedActionUrl(url: string | undefined): string | undefined {
+    if (!url) {
+      return undefined;
+    }
+    if (/^https?:\/\//i.test(url)) {
+      return url;
+    }
+    return `${api.baseUrl}${url.startsWith('/') ? url : `/${url}`}`;
   }
 
   // ==========================================================================
@@ -535,7 +566,19 @@ class InvoiceService {
    */
   async generateInvoice(params: GenerateInvoiceParams): Promise<Result<Invoice, ServiceError>> {
     if (!USE_MOCK) {
-      return err(serviceError('UNKNOWN', 'Runtime invoice generation is not available in non-mock mode yet.'));
+      const result = await apiFetch<ApiInvoiceGenerateResponse>('/v1/invoices/generate', {
+        method: 'POST',
+        body: JSON.stringify({
+          bookingId: params.bookingId,
+          notes: params.notes,
+          dueDate: params.dueDate,
+          taxRate: params.taxRate,
+        }),
+      });
+      if (!result.success) {
+        return err(serviceError(result.error.code, result.error.message));
+      }
+      return ok(result.data.invoice);
     }
 
     const { bookingId, notes, dueDate, taxRate = DEFAULT_TAX_RATE } = params;
@@ -685,7 +728,19 @@ class InvoiceService {
    */
   async sendInvoice(invoiceId: string, email: string): Promise<SendInvoiceResult> {
     if (!USE_MOCK) {
-      return { success: false, error: 'Runtime invoice sending is not available yet.' };
+      const result = await apiFetch<ApiInvoiceReminderResponse>(`/v1/invoices/${invoiceId}/reminders`, {
+        method: 'POST',
+        body: JSON.stringify({
+          recipientEmail: email,
+        }),
+      });
+      if (!result.success) {
+        return { success: false, error: result.error.message };
+      }
+      return {
+        success: true,
+        sentAt: result.data.sentAt,
+      };
     }
 
     const invoice = await this.getInvoiceById(invoiceId);
@@ -710,6 +765,40 @@ class InvoiceService {
 
     logger.info('invoice_sent', { invoiceId, email });
     return { success: true, sentAt };
+  }
+
+  async createPaymentSession(
+    invoiceId: string,
+    options?: CreateInvoicePaymentSessionOptions,
+  ): Promise<InvoicePaymentSession | null> {
+    if (USE_MOCK) {
+      return null;
+    }
+
+    const result = await apiFetch<ApiInvoicePaymentSessionResponse>(`/v1/invoices/${invoiceId}/payments`, {
+      method: 'POST',
+      body: JSON.stringify({
+        method: 'card',
+        idempotencyKey: apiClient.generateId('pay'),
+        returnUrl: options?.returnUrl,
+        cancelUrl: options?.cancelUrl,
+      }),
+    });
+    if (!result.success) {
+      if (result.error.code === 'NOT_FOUND') {
+        return null;
+      }
+      throw new Error(result.error.message);
+    }
+
+    const paymentSession = result.data.paymentSession;
+    return {
+      ...paymentSession,
+      nextAction: {
+        ...paymentSession.nextAction,
+        url: this.resolveHostedActionUrl(paymentSession.nextAction.url),
+      },
+    };
   }
 
   /**

@@ -55,7 +55,7 @@ Clubs manage staff, squads, visibility, and operating relationships.
   - backend auth now issues and validates signed JWT access/refresh tokens
   - runtime session revocation and `/v1/me/sessions*` are backed by the auth runtime instead of the marketplace seed dataset
   - runtime `/v1` auth no longer falls back to `x-auth-user-id` or `x-auth-roles`; that override is test-only
-- The biggest production seams still not finished are broader grant coverage, real payment ownership, and release-readiness cutover:
+- The biggest production seams still not finished are broader grant coverage, live payment-provider cutover, and release-readiness cutover:
   - app `/v1` authority services now rely on bearer auth plus `x-acting-role` and scope headers instead of client-supplied identity headers
   - `/v1/auth/login`, `/v1/auth/register`, `/v1/auth/refresh`, `/v1/auth/logout`, `/v1/auth/revoke`, `/v1/auth/me`, and `/v1/me/sessions*` now run on the JWT/session runtime
   - bearer auth now accepts both Clubroom-issued session JWTs and configured external OIDC/JWKS bearer tokens that map onto local user and role state
@@ -67,6 +67,9 @@ Clubs manage staff, squads, visibility, and operating relationships.
   - coach profile in non-mock mode now reads its own offerings from `/v1/coaches/me/offerings` and writes go-live state through `PATCH /v1/auth/me` instead of local-only toggles
   - coach self-serve availability and scheduling rules in non-mock mode now use `/v1/coaches/me/availability/*` and `/v1/coaches/me/scheduling-rules`; `availabilityService` and `schedulingRulesService` no longer treat local storage as the authority for the signed-in coach path
   - invoice list/detail/reconciler status flows in non-mock mode now use `/v1/invoices*`; `invoiceService` no longer treats local invoice storage as the authority outside mock mode, and the normal booking synthetic-invoice fallback has been removed from coach reconciler reads
+  - invoice generation and reminder/send flows in non-mock mode now use `POST /v1/invoices/generate` and `POST /v1/invoices/:invoiceId/reminders`; invoice creation is idempotent by booking, and reminder delivery is queued and audited by the backend
+  - payer invoice payment in non-mock mode now creates a backend-owned hosted payment attempt through `POST /v1/invoices/:invoiceId/payments`; the app opens a hosted URL, but invoices only move to `PAID` after backend confirmation through the payment-attempt runtime
+  - the current hosted payment provider is simulated by design, behind a provider boundary that is shaped for later Stripe cutover without changing the app contract
   - club dashboard and recent-results reads now use the shared API client path instead of release-fragile raw relative fetches
   - family member/account authority in non-mock mode now runs through `GET /v1/families/:familyId` plus `POST/PATCH/DELETE /v1/athletes*`; `services/child-service.ts` and `services/family/family-member-service.ts` no longer treat local child/family stores as the source of truth outside mock mode
   - child profile, injury, medical, emergency-contact, and consent records now live behind `/v1/athletes/*`; the API now persists those surfaces through repository-backed storage instead of route-local memory, while a narrow `ath_user*` compatibility bridge remains only for legacy seed/auth fixtures
@@ -78,7 +81,7 @@ Clubs manage staff, squads, visibility, and operating relationships.
   - booking changes are intentionally `cancel` or `reopen`; the old counter-offer and invite counter workflow has been removed from the runtime product surface
   - coach scheduling rules no longer advertise a separate reschedule policy; bookings now change by cancellation and rebooking/reopening instead of negotiation
   - Expo native/web and `apps/api` now emit to Sentry with shared release/environment tags, Expo web source maps via `npm run export:web`, and API source maps via `npm --prefix apps/api run build:release`
-  - the next production follow-through moves on from trust hardening to real payments and release readiness
+  - the next production follow-through moves on from money hardening to release readiness and live provider cutover
 - Club-facing schedule surfaces now use a `ClubActivity` read model to link `ClubEvent` and `GroupSession`
   - `ClubActivity` now also includes `Match`, so club and squad schedule routes can show events, training, and matches in one surface
   - club-linked open group sessions are treated as mixed-access training, not as a separate public product world
