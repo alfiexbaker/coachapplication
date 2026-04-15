@@ -2,8 +2,10 @@ import './instrument.js';
 import { buildApp } from './app.js';
 import { captureException, flush } from '@sentry/node';
 import { env } from '@clubroom/config';
+import { assertProductionStartupReady } from './lib/ops-runtime.js';
 
 async function main() {
+  assertProductionStartupReady(env);
   const app = buildApp({ allowTestAuthHeaders: false });
 
   try {

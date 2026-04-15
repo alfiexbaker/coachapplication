@@ -1,5 +1,8 @@
 import { z } from 'zod';
 
+export const DEFAULT_API_PAYMENT_SIMULATION_SECRET = 'clubroom-simulated-payments-dev-secret';
+export const DEFAULT_SENTRY_RELEASE = 'clubroom-api@development';
+
 const boolish = z.preprocess((value) => {
   if (value === undefined || value === null || value === '') return undefined;
   if (typeof value === 'boolean') return value;
@@ -28,6 +31,8 @@ const envSchema = z.object({
   S3_ENDPOINT: z.string().url().optional(),
   S3_BUCKET_PRIVATE: z.string().optional(),
   S3_REGION: z.string().optional(),
+  S3_ACCESS_KEY_ID: z.string().optional(),
+  S3_SECRET_ACCESS_KEY: z.string().optional(),
 
   API_MARKETPLACE_SEED_ENABLED: boolish.default(false),
   API_DATA_BACKEND: z.enum(['seed', 'db']).default('seed'),
@@ -38,13 +43,13 @@ const envSchema = z.object({
   API_PAYMENT_SIMULATION_SECRET: z
     .string()
     .min(16)
-    .default('clubroom-simulated-payments-dev-secret'),
+    .default(DEFAULT_API_PAYMENT_SIMULATION_SECRET),
   API_PAYMENT_ALLOWED_RETURN_ORIGINS: z.string().optional(),
 
   SENTRY_URL: z.string().url().default('https://sentry.io/'),
   SENTRY_DSN: z.string().url().optional(),
   SENTRY_ENVIRONMENT: z.string().default(process.env.NODE_ENV ?? 'development'),
-  SENTRY_RELEASE: z.string().default('clubroom-api@development'),
+  SENTRY_RELEASE: z.string().default(DEFAULT_SENTRY_RELEASE),
   SENTRY_TRACES_SAMPLE_RATE: z.coerce.number().min(0).max(1).default(0.1),
 
   LOG_LEVEL: z.enum(['fatal', 'error', 'warn', 'info', 'debug', 'trace']).default('info'),

@@ -57,11 +57,19 @@ The goal is to keep backend work traceable to:
 
 - `npm --prefix apps/api run typecheck`
 - `npm --prefix apps/api run test`
+- `npm --prefix apps/api run release:preflight`
 - `npm run typecheck`
 - `npm run audit:architecture`
 - role-specific UI flow runs when the API change affects user flows
 
 If a script is blocked by missing local tooling, record that honestly.
+
+## Release Guardrails
+
+- `npm --prefix apps/api run release:preflight` is the production gate for API release builds.
+- It uses the same runtime checks as `/v1/ready`, then adds release-only blockers such as missing Prisma migrations.
+- The current guardrail is intentionally red until the placeholder object-storage upload runtime is replaced and Prisma migrations exist for the db-backed path.
+- Rollback rule: keep the previous API artifact and release identifier available, and treat any post-deploy non-ready `/v1/ready` response as a rollback signal before attempting manual data repair.
 
 ## How To Keep This Pack Updated
 

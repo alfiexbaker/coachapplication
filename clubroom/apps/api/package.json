@@ -7,7 +7,8 @@
     "dev": "tsx watch src/server.ts",
     "start": "node dist/server.js",
     "build": "tsc -p tsconfig.json",
-    "build:release": "npm run build && npm run sentry:sourcemaps",
+    "release:preflight": "tsx ./scripts/release-preflight.ts",
+    "build:release": "npm run release:preflight && npm run build && npm run sentry:sourcemaps",
     "sentry:sourcemaps": "node ./scripts/upload-sourcemaps.mjs",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "test": "tsx --test src/modules/**/*.test.ts"

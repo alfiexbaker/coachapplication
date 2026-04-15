@@ -29,16 +29,17 @@ Parts of those umbrellas already landed in runtime truth; the remaining work is 
 | PROD-API-01 | Replaced the remaining in-memory family-athlete trust runtime with repository-backed profile, injury, medical, emergency-contact, and consent persistence, keeping only a narrow legacy `ath_user*` compatibility bridge for existing fixtures. | Trust/Safety/Ops + Development | DONE |
 | PROD-TRUST-01 | Added issuer-grade bearer validation, persisted audit/security event runtime, repository-backed safeguarding storage, and deny-by-default trust enforcement for current auth, family, safeguarding, and invoice trust seams. | Trust/Safety/Ops + Development | DONE |
 | PROD-MONEY-01 | Added backend-owned invoice generation, reminder/send, and hosted simulated payment attempts so non-mock invoices no longer rely on client-confirmed paid state and are ready for later live-provider cutover. | Booking/Revenue + Trust/Safety/Ops | DONE |
+| PROD-OPS-01 | Replaced placeholder readiness with real config/database/object-storage reporting, added production startup validation, and gated release builds with explicit migration and rollback guardrails. | Trust/Safety/Ops + Development | DONE |
 
 ## Open Queue
 
 | ID | Exactly what it does | Spine(s) | Status |
 | -- | -------------------- | -------- | ------ |
-| PROD-OPS-01 | Replace placeholder readiness checks with real dependency/env gates and add explicit release, migration, and rollback guardrails. | Trust/Safety/Ops + Development | READY |
+| _None_ | Backlog recut required from current runtime truth. | n/a | n/a |
 
 ## Execution Order
 
-1. `PROD-OPS-01`
+1. Recut the backlog from current runtime truth.
 
 ## Sprint Intent
 

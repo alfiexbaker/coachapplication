@@ -9,12 +9,12 @@ Status legend:
 - `planned`: contract + authz + data model defined, implementation pending
 - `deferred`: intentionally after phase 1 or later sprint
 
-## Current Scaffolded Routes
+## Current Core Routes
 
 | Route                                            | Method      | Status       | Notes                                                                                                                    |
 | ------------------------------------------------ | ----------- | ------------ | ------------------------------------------------------------------------------------------------------------------------ |
 | `/v1/health`                                     | `GET`       | `scaffolded` | contract in `@clubroom/shared-contracts`                                                                                 |
-| `/v1/ready`                                      | `GET`       | `scaffolded` | DB/storage checks still placeholders                                                                                     |
+| `/v1/ready`                                      | `GET`       | `implemented` | returns real config/database/object-storage readiness and responds `503` until blocking issues are cleared               |
 | `/v1/meta/version`                               | `GET`       | `scaffolded` | dev metadata only                                                                                                        |
 | `/v1/bookings`                                   | `GET`       | `scaffolded` | visible booking list scaffold for coach, booked-by guardian, linked guardian, or athlete participant                     |
 | `/v1/bookings`                                   | `POST`      | `scaffolded` | direct booking create scaffold; app now treats it as the only non-mock create path and mirrors successful writes locally |
