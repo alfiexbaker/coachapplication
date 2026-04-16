@@ -4,7 +4,7 @@ import path from 'node:path';
 import { after, beforeEach, describe, it } from 'node:test';
 import { env } from '@clubroom/config';
 import { buildApp } from '../../app.js';
-import { resetDbFixtureStoreForTests } from '../../lib/db-fixture-store.js';
+import { getDbFixtureStore, resetDbFixtureStoreForTests } from '../../lib/db-fixture-store.js';
 import { getMarketplaceSeedStore } from '../../lib/marketplace-seed-store.js';
 import { resetMarketplaceSeedStoreForTests } from '../../lib/marketplace-seed-store.js';
 
@@ -792,9 +792,10 @@ describe('wave2+ routes', () => {
       },
     });
     assert.equal(uploadInit.statusCode, 201);
-    const uploadPayload = uploadInit.json() as { uploadSessionId: string; mediaObjectId: string };
+    const uploadPayload = uploadInit.json() as { uploadSessionId: string; mediaObjectId: string; uploadUrl: string };
     assert.match(uploadPayload.uploadSessionId, /^ups_/);
     assert.match(uploadPayload.mediaObjectId, /^med_/);
+    assert.match(uploadPayload.uploadUrl, /^https:\/\/uploads\.clubroom\.local\//);
 
     const videoId = asString(asRows(tables.videos)[0]?.id) as string;
     const video = await app.inject({
@@ -851,6 +852,126 @@ describe('wave2+ routes', () => {
     };
     assert.equal(notificationsPayload.notifications.length >= 1, true);
     assert.equal(Boolean(notificationsPayload.preferences), true);
+  });
+
+  it('creates signed upload targets through the db-backed runtime', async () => {
+    const tables = loadTables();
+    const drillAuthorId = asString(asRows(tables.drills)[0]?.authorUserId) as string;
+    const previousBackend = env.API_DATA_BACKEND;
+    const previousEndpoint = env.S3_ENDPOINT;
+    const previousBucket = env.S3_BUCKET_PRIVATE;
+    const previousRegion = env.S3_REGION;
+    const previousAccessKey = env.S3_ACCESS_KEY_ID;
+    const previousSecret = env.S3_SECRET_ACCESS_KEY;
+
+    env.API_DATA_BACKEND = 'db';
+    env.S3_ENDPOINT = 'https://storage.clubroom.test';
+    env.S3_BUCKET_PRIVATE = 'clubroom-private';
+    env.S3_REGION = 'eu-west-2';
+    env.S3_ACCESS_KEY_ID = 'clubroom-access';
+    env.S3_SECRET_ACCESS_KEY = 'clubroom-secret';
+
+    try {
+      const uploadInit = await app.inject({
+        method: 'POST',
+        url: '/v1/uploads/init',
+        headers: authHeaders(tables, drillAuthorId, 'coach'),
+        payload: {
+          kind: 'VIDEO',
+          contentType: 'video/mp4',
+          fileName: '../session-demo.mp4',
+          sizeBytes: 1_200_000,
+          metadata: { source: 'db-fixture' },
+        },
+      });
+
+      assert.equal(uploadInit.statusCode, 201);
+      const payload = uploadInit.json() as {
+        uploadSessionId: string;
+        mediaObjectId: string;
+        uploadMethod: string;
+        uploadUrl: string;
+        uploadHeaders: Record<string, string>;
+        storageKey: string;
+      };
+      assert.equal(payload.uploadMethod, 'PUT');
+      assert.match(payload.uploadSessionId, /^ups_/);
+      assert.match(payload.mediaObjectId, /^med_/);
+      assert.equal(payload.uploadHeaders['content-type'], 'video/mp4');
+
+      const uploadUrl = new URL(payload.uploadUrl);
+      assert.equal(uploadUrl.origin, 'https://storage.clubroom.test');
+      assert.equal(uploadUrl.pathname.startsWith('/clubroom-private/uploads/'), true);
+      assert.equal(uploadUrl.searchParams.get('X-Amz-Algorithm'), 'AWS4-HMAC-SHA256');
+      assert.equal(Boolean(uploadUrl.searchParams.get('X-Amz-Signature')), true);
+      assert.equal(payload.storageKey.includes('../'), false);
+
+      const fixtureTables = getDbFixtureStore().tables;
+      const uploadSession = asRows(fixtureTables.uploadSessions).find((row) => asString(row.id) === payload.uploadSessionId);
+      const mediaObject = asRows(fixtureTables.mediaObjects).find((row) => asString(row.id) === payload.mediaObjectId);
+      assert.ok(uploadSession);
+      assert.ok(mediaObject);
+      assert.equal(asString(mediaObject?.status), 'PENDING_UPLOAD');
+    } finally {
+      env.API_DATA_BACKEND = previousBackend;
+      env.S3_ENDPOINT = previousEndpoint;
+      env.S3_BUCKET_PRIVATE = previousBucket;
+      env.S3_REGION = previousRegion;
+      env.S3_ACCESS_KEY_ID = previousAccessKey;
+      env.S3_SECRET_ACCESS_KEY = previousSecret;
+      resetDbFixtureStoreForTests();
+    }
+  });
+
+  it('returns 503 for db-backed uploads when object storage config is missing', async () => {
+    const tables = loadTables();
+    const drillAuthorId = asString(asRows(tables.drills)[0]?.authorUserId) as string;
+    const previousBackend = env.API_DATA_BACKEND;
+    const previousEndpoint = env.S3_ENDPOINT;
+    const previousBucket = env.S3_BUCKET_PRIVATE;
+    const previousRegion = env.S3_REGION;
+    const previousAccessKey = env.S3_ACCESS_KEY_ID;
+    const previousSecret = env.S3_SECRET_ACCESS_KEY;
+
+    env.API_DATA_BACKEND = 'db';
+    env.S3_ENDPOINT = undefined;
+    env.S3_BUCKET_PRIVATE = undefined;
+    env.S3_REGION = undefined;
+    env.S3_ACCESS_KEY_ID = undefined;
+    env.S3_SECRET_ACCESS_KEY = undefined;
+
+    try {
+      const uploadInit = await app.inject({
+        method: 'POST',
+        url: '/v1/uploads/init',
+        headers: authHeaders(tables, drillAuthorId, 'coach'),
+        payload: {
+          kind: 'VIDEO',
+          contentType: 'video/mp4',
+          fileName: 'session-demo.mp4',
+          sizeBytes: 1_200_000,
+        },
+      });
+
+      assert.equal(uploadInit.statusCode, 503);
+      const payload = uploadInit.json() as { code: string; details?: { missing?: string[] } };
+      assert.equal(payload.code, 'SERVICE_UNAVAILABLE');
+      assert.deepEqual(payload.details?.missing, [
+        'S3_ENDPOINT',
+        'S3_BUCKET_PRIVATE',
+        'S3_REGION',
+        'S3_ACCESS_KEY_ID',
+        'S3_SECRET_ACCESS_KEY',
+      ]);
+    } finally {
+      env.API_DATA_BACKEND = previousBackend;
+      env.S3_ENDPOINT = previousEndpoint;
+      env.S3_BUCKET_PRIVATE = previousBucket;
+      env.S3_REGION = previousRegion;
+      env.S3_ACCESS_KEY_ID = previousAccessKey;
+      env.S3_SECRET_ACCESS_KEY = previousSecret;
+      resetDbFixtureStoreForTests();
+    }
   });
 
   it('enforces admin access for trust-ops listings and returns data deletion requests', async () => {

@@ -13,11 +13,13 @@ import {
   getInvoiceRow,
   listAccessibleInvoices,
 } from '../../lib/invoice-runtime.js';
+import { getApiDataBackend } from '../../lib/data-backend.js';
 import { getMarketplaceSeedStore } from '../../lib/marketplace-seed-store.js';
 import { verifySimulatedPaymentToken } from '../../lib/payment-provider.js';
 import { assertCanReadAthleteHealth, isPrivilegedAdminAuth } from '../../lib/authz.js';
 import { recordAuditEvent } from '../../lib/audit-runtime.js';
 import { resolveTrustAccessRepository } from '../../repositories/p0/trust-access-repository.js';
+import { createUploadInit } from '../../lib/storage-runtime.js';
 
 type SeedRow = Record<string, unknown>;
 
@@ -1199,6 +1201,22 @@ const wave2PlusRoutes: FastifyPluginAsync = async (app) => {
     }
 
     const body = uploadInitRequestSchema.parse(request.body);
+
+    if (getApiDataBackend() === 'db') {
+      const initialized = await createUploadInit({
+        requesterUserId: authUserId,
+        kind: body.kind,
+        contentType: body.contentType,
+        fileName: body.fileName,
+        sizeBytes: body.sizeBytes,
+        metadata: body.metadata,
+      });
+      return reply.status(201).send({
+        ...initialized,
+        requestId: request.requestId,
+      });
+    }
+
     const store = getMarketplaceSeedStore();
     const uploadSessions = asRows(store.tables.uploadSessions);
     const malwareScanResults = asRows(store.tables.malwareScanResults);

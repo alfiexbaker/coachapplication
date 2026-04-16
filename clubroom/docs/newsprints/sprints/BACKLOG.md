@@ -1,6 +1,6 @@
 # Sprint Backlog
 
-Updated: 2026-04-12
+Updated: 2026-04-16
 Rule: active and current work only.
 
 The old `LAUNCH-*`, `DX-01`, and `GOV-01` labels are retired as active sprint IDs.
@@ -30,16 +30,17 @@ Parts of those umbrellas already landed in runtime truth; the remaining work is 
 | PROD-TRUST-01 | Added issuer-grade bearer validation, persisted audit/security event runtime, repository-backed safeguarding storage, and deny-by-default trust enforcement for current auth, family, safeguarding, and invoice trust seams. | Trust/Safety/Ops + Development | DONE |
 | PROD-MONEY-01 | Added backend-owned invoice generation, reminder/send, and hosted simulated payment attempts so non-mock invoices no longer rely on client-confirmed paid state and are ready for later live-provider cutover. | Booking/Revenue + Trust/Safety/Ops | DONE |
 | PROD-OPS-01 | Replaced placeholder readiness with real config/database/object-storage reporting, added production startup validation, and gated release builds with explicit migration and rollback guardrails. | Trust/Safety/Ops + Development | DONE |
+| PROD-STORAGE-01 | Replaced the db-backed placeholder upload runtime with signed private-bucket upload init, persisted `MediaObject`/`UploadSession` records, and moved object-storage readiness onto real config blockers. | Trust/Safety/Ops + Development | DONE |
 
 ## Open Queue
 
 | ID | Exactly what it does | Spine(s) | Status |
 | -- | -------------------- | -------- | ------ |
-| _None_ | Backlog recut required from current runtime truth. | n/a | n/a |
+| PROD-DB-01 | Switch the API release path off the seed backend by checking in Prisma migrations, tightening db cutover rules, and making Prisma-backed runtime the intended production backend. | Trust/Safety/Ops + Development | READY |
 
 ## Execution Order
 
-1. Recut the backlog from current runtime truth.
+1. `PROD-DB-01`
 
 ## Sprint Intent
 

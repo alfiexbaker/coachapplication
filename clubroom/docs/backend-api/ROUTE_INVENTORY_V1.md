@@ -143,6 +143,10 @@ Status legend:
 
 ## Progress / Media / Community / Trust Ops
 
+| Route              | Method | Status        | Contract(s)         | AuthZ                               | UI anchors                                                                                                                          |
+| ------------------ | ------ | ------------- | ------------------- | ----------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------- |
+| `/v1/uploads/init` | `POST` | `implemented` | scaffold upload-init payload | authenticated uploader; db mode requires signed private object-storage config | media/video/verification upload entrypoints via `apps/api/src/modules/wave2plus/routes.ts`; db mode persists `MediaObject` and `UploadSession`, seed mode keeps the placeholder URL |
+
 Keep this file as the core `/v1` inventory index.
 When these modules expand, add route rows here and update:
 

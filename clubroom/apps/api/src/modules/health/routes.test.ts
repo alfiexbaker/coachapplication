@@ -49,7 +49,7 @@ describe('health routes', () => {
     assert.equal(payload.checks.database, 'down');
     assert.equal(payload.checks.objectStorage, 'down');
     assert(payload.issues.some((issue) => issue.code === 'DATABASE_BACKEND_SEED'));
-    assert(payload.issues.some((issue) => issue.code === 'OBJECT_STORAGE_RUNTIME_PLACEHOLDER'));
+    assert(payload.issues.some((issue) => issue.code === 'OBJECT_STORAGE_ENV_MISSING'));
 
     await app.close();
   });
@@ -78,7 +78,6 @@ describe('health routes', () => {
     });
 
     const codes = issues.map((issue) => issue.code);
-    assert(codes.includes('OBJECT_STORAGE_RUNTIME_PLACEHOLDER'));
     assert(codes.includes('PRISMA_MIGRATIONS_MISSING'));
   });
 });

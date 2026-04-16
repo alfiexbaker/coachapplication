@@ -8,6 +8,7 @@ import {
   type AppEnv,
 } from '@clubroom/config';
 import { getPrismaClientOrThrow } from './prisma-runtime.js';
+import { getObjectStorageBlockers } from './storage-runtime.js';
 
 export type OpsCheckName = 'api' | 'config' | 'database' | 'objectStorage';
 export type OpsCheckStatus = 'ok' | 'degraded' | 'down';
@@ -233,25 +234,17 @@ async function defaultDatabaseProbe(): Promise<void> {
 
 function getObjectStorageIssues(currentEnv: AppEnv = env): OpsIssue[] {
   const issues: OpsIssue[] = [];
-
-  pushIssue(
-    issues,
-    'objectStorage',
-    'down',
-    'OBJECT_STORAGE_RUNTIME_PLACEHOLDER',
-    'Uploads still return placeholder hosted URLs instead of signed object-storage targets.',
-    'Replace the scaffold upload runtime with signed storage URLs before production release.',
-  );
-
-  const missingKeys = [
-    ['S3_ENDPOINT', currentEnv.S3_ENDPOINT],
-    ['S3_BUCKET_PRIVATE', currentEnv.S3_BUCKET_PRIVATE],
-    ['S3_REGION', currentEnv.S3_REGION],
-    ['S3_ACCESS_KEY_ID', currentEnv.S3_ACCESS_KEY_ID],
-    ['S3_SECRET_ACCESS_KEY', currentEnv.S3_SECRET_ACCESS_KEY],
-  ]
-    .filter(([, value]) => !hasRequiredValue(value))
-    .map(([key]) => key);
+  const missingKeys = currentEnv === env
+    ? getObjectStorageBlockers()
+    : [
+      ['S3_ENDPOINT', currentEnv.S3_ENDPOINT],
+      ['S3_BUCKET_PRIVATE', currentEnv.S3_BUCKET_PRIVATE],
+      ['S3_REGION', currentEnv.S3_REGION],
+      ['S3_ACCESS_KEY_ID', currentEnv.S3_ACCESS_KEY_ID],
+      ['S3_SECRET_ACCESS_KEY', currentEnv.S3_SECRET_ACCESS_KEY],
+    ]
+      .filter(([, value]) => !hasRequiredValue(value))
+      .map(([key]) => key);
 
   if (missingKeys.length > 0) {
     pushIssue(

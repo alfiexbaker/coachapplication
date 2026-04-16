@@ -1,32 +1,31 @@
 # Last Step Handoff
 
-Date: 2026-04-12
+Date: 2026-04-16
 
 ## What Was Just Done
 
-1. Finished `PROD-OPS-01` by adding a shared ops runtime in `apps/api/src/lib/ops-runtime.ts` for production startup validation, readiness reporting, and release guardrails.
-2. Replaced placeholder `/v1/ready` behavior in `apps/api/src/modules/health/routes.ts`; the route now returns real `config`, `database`, and `objectStorage` status plus `503` whenever the runtime is not actually ready.
-3. Tightened production env parsing in `packages/config/src/env.ts` and wired fail-fast production startup validation through `apps/api/src/server.ts`.
-4. Added `npm --prefix apps/api run release:preflight` in `apps/api/package.json`, backed by `apps/api/scripts/release-preflight.ts`, so release builds now fail honestly on config, migration, and storage/runtime blockers.
-5. Added readiness and release-guardrail coverage in `apps/api/src/modules/health/routes.test.ts`, then synced the canonical runtime, backend, route-inventory, and sprint docs.
+1. Finished `PROD-STORAGE-01` by adding `apps/api/src/lib/storage-runtime.ts` as the db-backed upload authority for signed private-bucket upload init.
+2. Replaced the db-mode placeholder path in `apps/api/src/modules/wave2plus/routes.ts`; `POST /v1/uploads/init` now persists `MediaObject` and `UploadSession` records, sanitizes storage keys, and returns signed `PUT` upload targets when `API_DATA_BACKEND=db`.
+3. Moved object-storage readiness in `apps/api/src/lib/ops-runtime.ts` off the permanent placeholder failure and onto real S3 config blockers.
+4. Added focused upload coverage in `apps/api/src/modules/wave2plus/routes.test.ts` for signed db-backed uploads and honest `503` behavior when storage env is missing.
+5. Synced the canonical runtime, backend, route-inventory, and sprint docs so the repo no longer claims object storage is still placeholder-only.
 
 ## Verification Run In This Step
 
 - `npm --prefix apps/api run typecheck` -> PASS
-- `npm --prefix apps/api run test` -> PASS (`69/69`)
-- `npm --prefix apps/api run release:preflight` -> FAILS HONESTLY in the current local runtime because the API is still on the seed backend locally and object-storage release guardrails are intentionally red
+- `npm --prefix apps/api run test` -> PASS (`71/71`)
+- `npm --prefix apps/api run release:preflight` -> FAILS HONESTLY in the current local runtime because the API is still on the seed backend locally and S3 env is not configured
 - `npm run typecheck` -> PASS
 - `npm run test:compile` -> PASS
 - `git diff --check` -> PASS
 
 ## Current State
 
-- `PROD-OPS-01` is complete in code.
-- `/v1/ready` is now an honest release signal instead of a placeholder heartbeat.
-- Production startup now blocks silent auth/payment misconfiguration.
-- Release builds now have a real preflight gate.
-- The release gate is still intentionally red until the placeholder upload/object-storage runtime is replaced and Prisma migration guardrails are backed by checked-in migrations.
+- `PROD-STORAGE-01` is complete in code.
+- Db-backed upload init now issues signed private-bucket targets instead of placeholder URLs.
+- `/v1/ready` and release preflight now fail on real storage config gaps, not a permanent placeholder flag.
+- The release gate is still intentionally red until the API stops releasing on the seed backend and checked-in Prisma migrations exist for the db-backed path.
 
 ## Next Exact Action
 
-1. Recut the backlog from current runtime truth before starting the next production slice.
+1. Start `PROD-DB-01`.
