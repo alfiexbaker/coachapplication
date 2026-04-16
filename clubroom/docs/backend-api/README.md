@@ -17,7 +17,7 @@ The goal is to keep backend work traceable to:
 - Shared contracts and governance sources already exist in the monorepo.
 - Frontend and backend auth are now aligned on `/v1/auth/*` with JWT/session runtime handling in `apps/api`.
 - Sentry is now wired across Expo native, Expo web, and `apps/api`, with release tagging plus sourcemap export/upload paths in the repo.
-- The biggest unresolved seams are broader route-level grant coverage, live payment-provider cutover, and db-backed release cutover.
+- The biggest unresolved seams are broader route-level grant coverage, live payment-provider cutover, and the remaining seed-only route migration required for full db-backed release cutover.
 
 ## Working Assumptions
 
@@ -68,7 +68,8 @@ If a script is blocked by missing local tooling, record that honestly.
 
 - `npm --prefix apps/api run release:preflight` is the production gate for API release builds.
 - It uses the same runtime checks as `/v1/ready`, then adds release-only blockers such as missing Prisma migrations.
-- The current guardrail is intentionally red until the API releases on the db backend with checked-in Prisma migrations and production object-storage env configured.
+- `packages/db/prisma/migrations` is now checked in, and release preflight now runs under production semantics instead of development defaults.
+- The current guardrail is intentionally red until production env, db connectivity, and object-storage config are present, and the remaining seed-only production routes are migrated or retired.
 - Rollback rule: keep the previous API artifact and release identifier available, and treat any post-deploy non-ready `/v1/ready` response as a rollback signal before attempting manual data repair.
 
 ## How To Keep This Pack Updated

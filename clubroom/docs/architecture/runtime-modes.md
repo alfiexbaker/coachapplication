@@ -1,6 +1,6 @@
 # Runtime Modes
 
-Validated: 2026-04-12
+Validated: 2026-04-16
 Purpose: describe the app's actual runtime modes and the current integration seams between the Expo app and the API package.
 
 ## Canonical Sources
@@ -69,6 +69,7 @@ Current validated runtime state:
 - `constants/config.ts` defaults `api.baseUrl` to `http://localhost:4000`
 - `services/auth-service.ts` derives its API origin from that config and calls `/v1/auth/*`
 - `packages/config/src/env.ts` defaults the API server to port `4000`
+- `packages/config/src/env.ts` now defaults `API_DATA_BACKEND` to `db` only when `NODE_ENV=production`; dev/test still default to `seed` unless overridden
 - `apps/api/src/app.ts` registers `/v1/*` route modules, including auth
 - `apps/api/src/plugins/auth-context.ts` verifies bearer JWTs at runtime, while header auth override is limited to the API test harness
 - `apps/api/src/lib/auth-runtime.ts` owns JWT issuance, refresh rotation, and runtime session revocation for `/v1/auth/*` and `/v1/me/sessions*`
@@ -84,7 +85,7 @@ Implication:
 - Backend `/v1` routes are real, but broader endpoint migration and authz follow-through still need work before the API becomes the default app runtime.
 - Production server startup now fails fast on blocking config mistakes instead of booting with silent auth/payment misconfiguration.
 - `/v1/ready` no longer returns placeholder `unknown` checks; it reports real `ready`, `degraded`, or `down` status and returns `503` when the runtime is not release-ready.
-- Release preflight is now honest about current blockers: Prisma migration guardrails and the still-placeholder object-storage upload runtime keep the release gate red until those seams are finished.
+- Release preflight now runs under production semantics with checked-in Prisma migrations. The remaining blockers are real production env/db/storage requirements plus any still-unmigrated seed-only routes.
 
 ## Safe Working Rules
 

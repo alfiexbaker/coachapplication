@@ -2,6 +2,7 @@ import { z } from 'zod';
 
 export const DEFAULT_API_PAYMENT_SIMULATION_SECRET = 'clubroom-simulated-payments-dev-secret';
 export const DEFAULT_SENTRY_RELEASE = 'clubroom-api@development';
+const DEFAULT_API_DATA_BACKEND = process.env.NODE_ENV === 'production' ? 'db' : 'seed';
 
 const boolish = z.preprocess((value) => {
   if (value === undefined || value === null || value === '') return undefined;
@@ -35,7 +36,7 @@ const envSchema = z.object({
   S3_SECRET_ACCESS_KEY: z.string().optional(),
 
   API_MARKETPLACE_SEED_ENABLED: boolish.default(false),
-  API_DATA_BACKEND: z.enum(['seed', 'db']).default('seed'),
+  API_DATA_BACKEND: z.enum(['seed', 'db']).default(DEFAULT_API_DATA_BACKEND),
   API_MARKETPLACE_SEED_OUTPUT_DIR: z
     .string()
     .default('docs/backend-api/test-data/marketplace'),

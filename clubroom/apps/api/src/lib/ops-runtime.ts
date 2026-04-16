@@ -1,4 +1,4 @@
-import { access } from 'node:fs/promises';
+import { access, readdir } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import {
@@ -28,8 +28,9 @@ interface ReleaseGuardrailOptions {
 }
 
 const apiRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..');
-const repoRoot = path.resolve(apiRoot, '..', '..', '..');
+const repoRoot = path.resolve(apiRoot, '..', '..');
 const prismaMigrationsDir = path.join(repoRoot, 'packages', 'db', 'prisma', 'migrations');
+const prismaMigrationLockFile = path.join(prismaMigrationsDir, 'migration_lock.toml');
 
 function pushIssue(
   issues: OpsIssue[],
@@ -377,8 +378,23 @@ async function detectPrismaMigrations(defaultValue: boolean): Promise<boolean> {
   }
 
   try {
-    await access(prismaMigrationsDir);
-    return true;
+    await access(prismaMigrationLockFile);
+    const entries = await readdir(prismaMigrationsDir, { withFileTypes: true });
+    const migrationDirs = entries.filter((entry) => entry.isDirectory());
+    if (migrationDirs.length === 0) {
+      return false;
+    }
+
+    for (const migrationDir of migrationDirs) {
+      try {
+        await access(path.join(prismaMigrationsDir, migrationDir.name, 'migration.sql'));
+        return true;
+      } catch {
+        continue;
+      }
+    }
+
+    return false;
   } catch {
     return false;
   }

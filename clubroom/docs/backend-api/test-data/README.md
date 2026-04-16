@@ -41,7 +41,7 @@ Examples:
 - Seed runtime on: `API_DATA_BACKEND=seed`
 - Seed runtime off (DB cutover mode): `API_DATA_BACKEND=db`
 
-When `API_DATA_BACKEND=db`, seed-backed `/v1` endpoints return `503 SERVICE_UNAVAILABLE` until database-backed repositories are wired.
+When `API_DATA_BACKEND=db`, seed-only `/v1` endpoints return `503 SERVICE_UNAVAILABLE`. Core auth, family, booking, invoice, trust, schedule, and upload seams already have db-backed runtime paths; the remaining seed-only routes need separate migration or retirement before full db-backed production cutover.
 
 ## Commands
 From repo root:

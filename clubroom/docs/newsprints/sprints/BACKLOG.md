@@ -31,16 +31,17 @@ Parts of those umbrellas already landed in runtime truth; the remaining work is 
 | PROD-MONEY-01 | Added backend-owned invoice generation, reminder/send, and hosted simulated payment attempts so non-mock invoices no longer rely on client-confirmed paid state and are ready for later live-provider cutover. | Booking/Revenue + Trust/Safety/Ops | DONE |
 | PROD-OPS-01 | Replaced placeholder readiness with real config/database/object-storage reporting, added production startup validation, and gated release builds with explicit migration and rollback guardrails. | Trust/Safety/Ops + Development | DONE |
 | PROD-STORAGE-01 | Replaced the db-backed placeholder upload runtime with signed private-bucket upload init, persisted `MediaObject`/`UploadSession` records, and moved object-storage readiness onto real config blockers. | Trust/Safety/Ops + Development | DONE |
+| PROD-DB-01A | Checked in the Prisma migration baseline, made release preflight run under production semantics, and encoded db as the intended production backend without breaking dev/test seed fallback. | Trust/Safety/Ops + Development | DONE |
 
 ## Open Queue
 
 | ID | Exactly what it does | Spine(s) | Status |
 | -- | -------------------- | -------- | ------ |
-| PROD-DB-01 | Switch the API release path off the seed backend by checking in Prisma migrations, tightening db cutover rules, and making Prisma-backed runtime the intended production backend. | Trust/Safety/Ops + Development | READY |
+| PROD-DB-01B | Migrate or retire the remaining seed-only club, group-session, and community/media routes so production db mode no longer 503s on active surfaces. | Trust/Safety/Ops + Development | READY |
 
 ## Execution Order
 
-1. `PROD-DB-01`
+1. `PROD-DB-01B`
 
 ## Sprint Intent
 

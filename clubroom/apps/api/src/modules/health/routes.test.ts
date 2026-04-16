@@ -80,4 +80,13 @@ describe('health routes', () => {
     const codes = issues.map((issue) => issue.code);
     assert(codes.includes('PRISMA_MIGRATIONS_MISSING'));
   });
+
+  it('passes release guardrails when production env, storage config, and checked-in migrations exist', async () => {
+    const issues = await getReleaseGuardrailIssues(makeProductionEnv(), {
+      hasPrismaMigrations: true,
+      probeDatabase: async () => {},
+    });
+
+    assert.deepEqual(issues, []);
+  });
 });

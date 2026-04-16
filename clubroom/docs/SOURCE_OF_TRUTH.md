@@ -55,7 +55,7 @@ Clubs manage staff, squads, visibility, and operating relationships.
   - backend auth now issues and validates signed JWT access/refresh tokens
   - runtime session revocation and `/v1/me/sessions*` are backed by the auth runtime instead of the marketplace seed dataset
   - runtime `/v1` auth no longer falls back to `x-auth-user-id` or `x-auth-roles`; that override is test-only
-- The biggest production seams still not finished are broader grant coverage, live payment-provider cutover, and full db-backed release cutover:
+- The biggest production seams still not finished are broader grant coverage, live payment-provider cutover, and the remaining seed-only route migration needed for full db-backed release cutover:
   - app `/v1` authority services now rely on bearer auth plus `x-acting-role` and scope headers instead of client-supplied identity headers
   - `/v1/auth/login`, `/v1/auth/register`, `/v1/auth/refresh`, `/v1/auth/logout`, `/v1/auth/revoke`, `/v1/auth/me`, and `/v1/me/sessions*` now run on the JWT/session runtime
   - bearer auth now accepts both Clubroom-issued session JWTs and configured external OIDC/JWKS bearer tokens that map onto local user and role state
@@ -71,9 +71,10 @@ Clubs manage staff, squads, visibility, and operating relationships.
   - payer invoice payment in non-mock mode now creates a backend-owned hosted payment attempt through `POST /v1/invoices/:invoiceId/payments`; the app opens a hosted URL, but invoices only move to `PAID` after backend confirmation through the payment-attempt runtime
   - the current hosted payment provider is simulated by design, behind a provider boundary that is shaped for later Stripe cutover without changing the app contract
   - `apps/api/src/lib/ops-runtime.ts` now owns production startup validation and `/v1/ready`; the readiness route returns real `ready`, `degraded`, or `down` status with `503` on non-ready runtime state instead of placeholder `unknown` checks
-  - `npm --prefix apps/api run release:preflight` now gates release builds with the same runtime checks plus explicit migration guardrails, so release safety fails honestly instead of silently assuming DB/storage readiness
+  - `npm --prefix apps/api run release:preflight` now runs under production semantics and gates release builds with the same runtime checks plus explicit migration guardrails, so release safety fails honestly instead of silently assuming DB/storage readiness
+  - checked-in Prisma baseline migrations now exist under `packages/db/prisma/migrations`, and production env parsing defaults the API data backend to `db` unless explicitly overridden
   - db-backed `POST /v1/uploads/init` now persists `MediaObject` and `UploadSession` records and returns signed private-bucket `PUT` targets; seed mode keeps the placeholder upload URL only as a non-production compatibility path
-  - the current release gate is intentionally still red until the API releases on the db backend with checked-in Prisma migrations and production object-storage env configured
+  - the current release gate is intentionally still red until production env, db connectivity, and object-storage config are present, and the remaining seed-only production route seams are migrated or retired
   - club dashboard and recent-results reads now use the shared API client path instead of release-fragile raw relative fetches
   - family member/account authority in non-mock mode now runs through `GET /v1/families/:familyId` plus `POST/PATCH/DELETE /v1/athletes*`; `services/child-service.ts` and `services/family/family-member-service.ts` no longer treat local child/family stores as the source of truth outside mock mode
   - child profile, injury, medical, emergency-contact, and consent records now live behind `/v1/athletes/*`; the API now persists those surfaces through repository-backed storage instead of route-local memory, while a narrow `ath_user*` compatibility bridge remains only for legacy seed/auth fixtures
