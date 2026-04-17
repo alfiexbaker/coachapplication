@@ -11,6 +11,10 @@ import {
   resetClubAuthorityRepositoryForTests,
   resolveClubAuthorityRepository,
 } from '../../repositories/p0/club-authority-repository.js';
+import {
+  parseAvailabilitySlotQuery,
+  resolveCoachAvailabilitySlots,
+} from './availability.js';
 import { buildClubScheduleActivities, findClubScheduleActivity } from './schedule.js';
 
 type SeedRow = Record<string, unknown>;
@@ -648,6 +652,35 @@ const coachClubRoutes: FastifyPluginAsync = async (app) => {
       type: requestedType,
       items: documents,
       total: documents.length,
+      seedVersion: store.version,
+      requestId: request.requestId,
+    });
+  });
+
+  app.get('/coaches/:coachId/availability/slots', async (request, reply) => {
+    requireAuthUserId(request.auth?.userId);
+    const coachUserId = asString((request.params as { coachId?: string }).coachId);
+    if (!coachUserId) {
+      throw notFound('Coach not found');
+    }
+
+    const query = parseAvailabilitySlotQuery(request.query as Record<string, unknown>);
+    const store = getMarketplaceSeedStore();
+    const slots = resolveCoachAvailabilitySlots({
+      tables: store.tables,
+      coachUserId,
+      startDate: query.startDate,
+      endDate: query.endDate,
+      durationMinutes: query.durationMinutes,
+      sessionTemplateId: query.sessionTemplateId,
+      excludePendingInvites: query.excludePendingInvites,
+      applySchedulingRules: query.applySchedulingRules,
+    });
+
+    return reply.send({
+      coachId: coachUserId,
+      slots,
+      total: slots.length,
       seedVersion: store.version,
       requestId: request.requestId,
     });

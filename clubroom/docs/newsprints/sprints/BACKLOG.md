@@ -33,16 +33,17 @@ Parts of those umbrellas already landed in runtime truth; the remaining work is 
 | PROD-STORAGE-01 | Replaced the db-backed placeholder upload runtime with signed private-bucket upload init, persisted `MediaObject`/`UploadSession` records, and moved object-storage readiness onto real config blockers. | Trust/Safety/Ops + Development | DONE |
 | PROD-DB-01A | Checked in the Prisma migration baseline, made release preflight run under production semantics, and encoded db as the intended production backend without breaking dev/test seed fallback. | Trust/Safety/Ops + Development | DONE |
 | PROD-DB-01B1 | Moved active club authority `/v1/clubs*` routes onto repository-backed db/fixture persistence, added first-class club invite-code storage, and extended the db seed import with the club graph needed for production db mode. | Trust/Safety/Ops + Development | DONE |
+| PROD-DB-01B2A | Moved non-mock booking and invite slot reads onto `GET /v1/coaches/:coachId/availability/slots` and made booking create, invite create, and direct-invite accept share one backend availability resolver instead of trusting client-side slot math. | Trust/Safety/Ops + Development | DONE |
 
 ## Open Queue
 
 | ID | Exactly what it does | Spine(s) | Status |
 | -- | -------------------- | -------- | ------ |
-| PROD-DB-01B2 | Migrate or retire the remaining active seed-backed coach-self, club-schedule, group-session, and community/media routes so production db mode no longer depends on marketplace seed tables for live user surfaces. | Trust/Safety/Ops + Development | READY |
+| PROD-DB-01B2B | Migrate or retire the remaining active seed-backed coach-self, group-session, and community/media routes so production db mode no longer depends on marketplace seed tables for the remaining live user surfaces. | Trust/Safety/Ops + Development | READY |
 
 ## Execution Order
 
-1. `PROD-DB-01B2`
+1. `PROD-DB-01B2B`
 
 ## Sprint Intent
 

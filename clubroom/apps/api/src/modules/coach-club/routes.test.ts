@@ -13,6 +13,12 @@ type SeedTables = Record<string, SeedRow[]>;
 const asRows = (value: unknown): SeedRow[] => (Array.isArray(value) ? (value as SeedRow[]) : []);
 const asString = (value: unknown): string | undefined => (typeof value === 'string' ? value : undefined);
 
+function addDaysIso(days: number): string {
+  const date = new Date();
+  date.setUTCDate(date.getUTCDate() + days);
+  return date.toISOString().slice(0, 10);
+}
+
 function resolveDatasetPath(): string {
   const primary = path.resolve(process.cwd(), 'docs/backend-api/test-data/marketplace/linked-dataset.json');
   if (fs.existsSync(primary)) {
@@ -158,6 +164,190 @@ describe('coach-club routes', () => {
       headers: authHeaders(tables, asString(privilegedAdmin.id) as string, 'security_admin'),
     });
     assert.equal(res.statusCode, 200);
+  });
+
+  it('returns authoritative coach availability slots and can exclude pending invite holds', async () => {
+    const tables = loadTables();
+    const coachUserId = getSeededCoachUserId(tables);
+    const viewerUserId = asString(asRows(tables.guardianChildLinks)[0]?.guardianUserId) ?? coachUserId;
+    const targetDate = addDaysIso(10);
+    const targetDayOfWeek = new Date(`${targetDate}T00:00:00.000Z`).getUTCDay();
+    const store = getMarketplaceSeedStore();
+
+    if (!Array.isArray(store.tables.availabilityTemplates)) {
+      store.tables.availabilityTemplates = [];
+    }
+    if (!Array.isArray(store.tables.bookings)) {
+      store.tables.bookings = [];
+    }
+    if (!Array.isArray(store.tables.invites)) {
+      store.tables.invites = [];
+    }
+    if (!Array.isArray(store.tables.inviteTargets)) {
+      store.tables.inviteTargets = [];
+    }
+
+    store.tables.availabilityTemplates.push({
+      id: 'avt_authority_test',
+      coachUserId,
+      dayOfWeek: targetDayOfWeek,
+      startTimeLocal: '17:00',
+      endTimeLocal: '19:15',
+      maxConcurrent: 1,
+      bufferMinutes: 15,
+      active: true,
+      location: 'Authority Pitch',
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+      createdByUserId: coachUserId,
+      updatedByUserId: coachUserId,
+      version: 1,
+      deletedAt: null,
+      deletedByUserId: null,
+    });
+    store.tables.bookings.push({
+      id: 'bok_authority_test',
+      coachUserId,
+      bookedByUserId: viewerUserId,
+      status: 'CONFIRMED',
+      scheduledAt: `${targetDate}T17:00:00.000Z`,
+      durationMinutes: 60,
+      location: 'Authority Pitch',
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+      createdByUserId: viewerUserId,
+      updatedByUserId: viewerUserId,
+      version: 1,
+      deletedAt: null,
+      deletedByUserId: null,
+    });
+    store.tables.invites.push({
+      id: 'inv_authority_test',
+      senderUserId: coachUserId,
+      inviteType: 'session_invite',
+      status: 'PENDING',
+      expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
+      metadataJson: {
+        proposedSlots: [
+          {
+            date: targetDate,
+            startTime: '18:15',
+            endTime: '19:15',
+          },
+        ],
+      },
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+      revokedAt: null,
+    });
+    store.tables.inviteTargets.push({
+      id: 'ivt_authority_test',
+      inviteId: 'inv_authority_test',
+      targetUserId: viewerUserId,
+      status: 'PENDING',
+      responsePayloadJson: null,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    });
+
+    const listed = await app.inject({
+      method: 'GET',
+      url: `/v1/coaches/${coachUserId}/availability/slots?start=${targetDate}&end=${targetDate}&durationMinutes=60`,
+      headers: authHeaders(tables, viewerUserId),
+    });
+    assert.equal(listed.statusCode, 200);
+    const listedPayload = listed.json() as {
+      slots: Array<{ date: string; startTime: string; isAvailable: boolean; bookedCount: number; location?: string }>;
+    };
+    const bookedSlot = listedPayload.slots.find((slot) => slot.date === targetDate && slot.startTime === '17:00');
+    const heldSlot = listedPayload.slots.find((slot) => slot.date === targetDate && slot.startTime === '18:15');
+    assert.ok(bookedSlot, 'expected booked availability slot');
+    assert.ok(heldSlot, 'expected held availability slot');
+    assert.equal(bookedSlot.isAvailable, false);
+    assert.equal(bookedSlot.bookedCount >= 1, true);
+    assert.equal(heldSlot.isAvailable, true);
+    assert.equal(heldSlot.location, 'Authority Pitch');
+
+    const heldExcluded = await app.inject({
+      method: 'GET',
+      url: `/v1/coaches/${coachUserId}/availability/slots?start=${targetDate}&end=${targetDate}&durationMinutes=60&excludePendingInvites=true`,
+      headers: authHeaders(tables, viewerUserId),
+    });
+    assert.equal(heldExcluded.statusCode, 200);
+    const heldExcludedPayload = heldExcluded.json() as {
+      slots: Array<{ date: string; startTime: string; isAvailable: boolean }>;
+    };
+    const heldSlotAfterExclusion = heldExcludedPayload.slots.find(
+      (slot) => slot.date === targetDate && slot.startTime === '18:15',
+    );
+    assert.ok(heldSlotAfterExclusion, 'expected held slot in exclusion response');
+    assert.equal(heldSlotAfterExclusion.isAvailable, false);
+  });
+
+  it('applies scheduling-rule filtering only when requested on bookable slot reads', async () => {
+    const tables = loadTables();
+    const coachUserId = getSeededCoachUserId(tables);
+    const viewerUserId = asString(asRows(tables.guardianChildLinks)[0]?.guardianUserId) ?? coachUserId;
+    const targetDate = addDaysIso(5);
+    const targetDayOfWeek = new Date(`${targetDate}T00:00:00.000Z`).getUTCDay();
+    const store = getMarketplaceSeedStore();
+
+    if (!Array.isArray(store.tables.availabilityTemplates)) {
+      store.tables.availabilityTemplates = [];
+    }
+
+    const schedulingRule = asRows(store.tables.schedulingRules).find(
+      (row) => asString(row.coachUserId) === coachUserId,
+    );
+    assert.ok(schedulingRule, 'expected scheduling rule row');
+    schedulingRule.minimumAdvanceBookingHours = 999;
+
+    store.tables.availabilityTemplates.push({
+      id: 'avt_rules_filter_test',
+      coachUserId,
+      dayOfWeek: targetDayOfWeek,
+      startTimeLocal: '10:00',
+      endTimeLocal: '11:00',
+      maxConcurrent: 1,
+      bufferMinutes: 0,
+      active: true,
+      location: 'Rules Pitch',
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+      createdByUserId: coachUserId,
+      updatedByUserId: coachUserId,
+      version: 1,
+      deletedAt: null,
+      deletedByUserId: null,
+    });
+
+    const raw = await app.inject({
+      method: 'GET',
+      url: `/v1/coaches/${coachUserId}/availability/slots?start=${targetDate}&end=${targetDate}&durationMinutes=60`,
+      headers: authHeaders(tables, viewerUserId),
+    });
+    assert.equal(raw.statusCode, 200);
+    const rawPayload = raw.json() as {
+      slots: Array<{ date: string; startTime: string }>;
+    };
+    assert.equal(
+      rawPayload.slots.some((slot) => slot.date === targetDate && slot.startTime === '10:00'),
+      true,
+    );
+
+    const filtered = await app.inject({
+      method: 'GET',
+      url: `/v1/coaches/${coachUserId}/availability/slots?start=${targetDate}&end=${targetDate}&durationMinutes=60&applySchedulingRules=true`,
+      headers: authHeaders(tables, viewerUserId),
+    });
+    assert.equal(filtered.statusCode, 200);
+    const filteredPayload = filtered.json() as {
+      slots: Array<{ date: string; startTime: string }>;
+    };
+    assert.equal(
+      filteredPayload.slots.some((slot) => slot.date === targetDate && slot.startTime === '10:00'),
+      false,
+    );
   });
 
   it('returns club event detail for an authorized member', async () => {

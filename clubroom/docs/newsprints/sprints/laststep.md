@@ -4,30 +4,29 @@ Date: 2026-04-16
 
 ## What Was Just Done
 
-1. Moved the active club authority `/v1/clubs*` routes onto `apps/api/src/repositories/p0/club-authority-repository.ts`, so db mode no longer depends on route-local invite state or direct marketplace seed-store handling for club list, joins, invite inbox, or invite codes.
-2. Removed the route-local invite globals and helper drift from `apps/api/src/modules/coach-club/routes.ts`, leaving the route module thin and pushing club authority decisions into one repository seam.
-3. Added first-class `ClubInviteCode` persistence in `packages/db/prisma/schema.prisma` plus the checked-in migration `packages/db/prisma/migrations/20260416160000_club_invite_codes`.
-4. Extended `packages/db/scripts/import-marketplace-p0-seed.mjs` so db seed import now carries clubs, club memberships, squads, and deterministic default invite codes instead of leaving production db mode without a club graph.
-5. Added db-fixture regression coverage for the club authority flow in `apps/api/src/modules/p0-core/routes.test.ts`, proving the active `/v1/clubs*` surface still works after the repository cutover.
+1. Added `apps/api/src/modules/coach-club/availability.ts` so coach slot resolution now lives in one backend seam instead of being recomputed separately by booking and invite flows.
+2. Added `GET /v1/coaches/:coachId/availability/slots` in `apps/api/src/modules/coach-club/routes.ts`, exposing authoritative non-mock bookable slot reads from the API.
+3. Updated `apps/api/src/modules/booking/routes.ts` so direct booking create, direct invite create, and direct invite accept all re-validate slots against the same backend availability resolver before writing.
+4. Updated `services/availability-service.ts` so non-mock booking and invite surfaces read `/v1/coaches/:coachId/availability/slots`, while the coach self calendar still reads raw availability without bookability filtering.
+5. Added regressions in `apps/api/src/modules/coach-club/routes.test.ts` and `apps/api/src/modules/p0-core/routes.test.ts` covering invite holds, duplicate slot reuse, duplicate booking attempts, and scheduling-rule filtering.
 
 ## Verification Run In This Step
 
-- `npm --prefix packages/db run prisma:generate` -> PASS
+- `npx tsx --test apps/api/src/modules/coach-club/routes.test.ts` -> PASS
+- `npx tsx --test apps/api/src/modules/p0-core/routes.test.ts` -> PASS
 - `npm --prefix apps/api run typecheck` -> PASS
-- `node --check packages/db/scripts/import-marketplace-p0-seed.mjs` -> PASS
-- `npx tsx --test apps/api/src/modules/coach-club/routes.test.ts` -> PASS (`11/11`)
-- `npx tsx --test apps/api/src/modules/p0-core/routes.test.ts` -> PASS (`17/17`)
-- `npm --prefix apps/api run test` -> PASS (`73/73`)
+- `npm --prefix apps/api run test` -> PASS (`77/77`)
 - `npm run typecheck` -> PASS
 - `npm run test:compile` -> PASS
 - `git diff --check` -> PASS
 
 ## Current State
 
-- Active club authority in db mode is now repository-backed instead of route-local or seed-store-owned.
-- Production db import now seeds the club graph needed for the active `/v1/clubs*` runtime surface.
-- The remaining db cutover risk is now narrower: coach-self, club-schedule, group-session, and community/media surfaces still carry seed-backed runtime drift.
+- Non-mock slot authority for booking and direct invites now sits behind one backend resolver instead of client storage math.
+- Booking and invite writes now fail closed when a slot is outside the coach window, already booked, or still held by a pending invite.
+- The coach self availability calendar still shows raw availability rather than hiding slots behind booking-policy filters.
+- The remaining db cutover risk is narrower again: coach-self profile/offerings persistence, group-session authority, and community/media surfaces still carry seed-backed runtime drift.
 
 ## Next Exact Action
 
-1. Start `PROD-DB-01B2`.
+1. Start `PROD-DB-01B2B`.

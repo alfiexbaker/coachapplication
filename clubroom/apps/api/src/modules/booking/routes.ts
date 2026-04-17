@@ -17,6 +17,10 @@ import {
 } from '../../repositories/p0/booking-repository.js';
 import { isPrivilegedAdminAuth } from '../../lib/authz.js';
 import { getMarketplaceSeedStore } from '../../lib/marketplace-seed-store.js';
+import {
+  assertCoachAvailabilitySlotOpen,
+  slotToScheduledAt,
+} from '../coach-club/availability.js';
 
 type SeedRow = Record<string, unknown>;
 
@@ -256,11 +260,15 @@ function calculateSlotDurationMinutes(slot: {
   return duration > 0 ? duration : undefined;
 }
 
-function toInviteScheduledAt(slot: { date: string; startTime: string }): string {
-  const parsed = new Date(`${slot.date}T${slot.startTime}:00.000Z`);
-  return Number.isNaN(parsed.getTime())
-    ? `${slot.date}T${slot.startTime}:00.000Z`
-    : parsed.toISOString();
+function areMatchingInviteSlots(
+  left: { date: string; startTime: string; endTime: string },
+  right: { date: string; startTime: string; endTime: string },
+): boolean {
+  return (
+    left.date === right.date &&
+    left.startTime === right.startTime &&
+    left.endTime === right.endTime
+  );
 }
 
 function isInviteDismissed(target: SeedRow | undefined): boolean {
@@ -562,6 +570,14 @@ const bookingRoutes: FastifyPluginAsync = async (app) => {
     }
 
     const body = createBookingRequestSchema.parse(request.body);
+    const store = getMarketplaceSeedStore();
+    assertCoachAvailabilitySlotOpen({
+      tables: store.tables,
+      coachUserId: body.coachUserId,
+      scheduledAt: body.scheduledAt,
+      durationMinutes: body.durationMinutes,
+      applySchedulingRules: true,
+    });
     const repository = resolveBookingRepository();
     const response = await repository.createBooking({
       authUserId,
@@ -998,6 +1014,31 @@ const bookingRoutes: FastifyPluginAsync = async (app) => {
       };
     });
 
+    const seenSlots = new Set<string>();
+    for (const slot of body.proposedSlots) {
+      const slotKey = `${slot.date}_${slot.startTime}_${slot.endTime}`;
+      if (seenSlots.has(slotKey)) {
+        throw badRequest('proposedSlots must not contain duplicate slots');
+      }
+      seenSlots.add(slotKey);
+    }
+
+    if (!linkedGroupSession) {
+      for (const slot of body.proposedSlots) {
+        const durationMinutes =
+          calculateSlotDurationMinutes(slot) ?? body.durationMinutes ?? 60;
+        assertCoachAvailabilitySlotOpen({
+          tables: store.tables,
+          coachUserId: body.coachUserId,
+          scheduledAt: slotToScheduledAt(slot),
+          durationMinutes,
+          sessionTemplateId: body.sessionTemplateId ?? undefined,
+          excludePendingInvites: true,
+          applySchedulingRules: true,
+        });
+      }
+    }
+
     const inviteId = newId('inv');
     const inviteRow: SeedRow = {
       id: inviteId,
@@ -1305,9 +1346,23 @@ const bookingRoutes: FastifyPluginAsync = async (app) => {
         if (!selectedSlot) {
           throw badRequest('A selected slot is required to accept an invite');
         }
+        const proposedSlots = buildInviteProposedSlotsFromMetadata(metadata);
+        if (
+          proposedSlots.length > 0 &&
+          !proposedSlots.some((candidate) => areMatchingInviteSlots(candidate, selectedSlot))
+        ) {
+          throw badRequest('Selected slot must match one of the invite proposed slots');
+        }
 
         const durationMinutes =
           calculateSlotDurationMinutes(selectedSlot) ?? asNumber(metadata?.durationMinutes) ?? 60;
+        assertCoachAvailabilitySlotOpen({
+          tables: store.tables,
+          coachUserId: asString(invite.senderUserId) ?? '',
+          scheduledAt: slotToScheduledAt(selectedSlot),
+          durationMinutes,
+          applySchedulingRules: true,
+        });
         booking = createBookingInSeedTables({
           tables: store.tables,
           authUserId,
@@ -1316,7 +1371,7 @@ const bookingRoutes: FastifyPluginAsync = async (app) => {
             coachUserId: asString(invite.senderUserId),
             athleteIds,
             bookedByUserId: authUserId,
-            scheduledAt: toInviteScheduledAt(selectedSlot),
+            scheduledAt: slotToScheduledAt(selectedSlot),
             durationMinutes,
             location: asString(selectedSlot.location) ?? 'Coach preferred location',
             serviceType: asString(metadata?.sessionType) ?? 'Session',

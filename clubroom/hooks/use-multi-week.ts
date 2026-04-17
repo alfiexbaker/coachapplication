@@ -79,6 +79,7 @@ export function useMultiWeek() {
         toDateStr(today),
         toDateStr(endDate),
         sessionDuration,
+        { applySchedulingRules: true },
       );
 
       const weekMap = new Map<string, WeekRow>();

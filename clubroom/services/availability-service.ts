@@ -208,6 +208,44 @@ interface ApiAvailabilityOverridesResponse {
   overrides: AvailabilityOverride[];
 }
 
+interface ApiAvailabilitySlotsResponse {
+  slots: AvailabilitySlot[];
+}
+
+async function loadAuthoritativeAvailabilitySlots(params: {
+  coachId: string;
+  startDate: string;
+  endDate: string;
+  durationMinutes: number;
+  sessionTemplateId?: string;
+  excludePendingInvites?: boolean;
+  applySchedulingRules?: boolean;
+}): Promise<AvailabilitySlot[]> {
+  const searchParams = new URLSearchParams({
+    start: params.startDate,
+    end: params.endDate,
+    durationMinutes: String(params.durationMinutes),
+  });
+  if (params.sessionTemplateId) {
+    searchParams.set('sessionTemplateId', params.sessionTemplateId);
+  }
+  if (params.excludePendingInvites) {
+    searchParams.set('excludePendingInvites', 'true');
+  }
+  if (params.applySchedulingRules) {
+    searchParams.set('applySchedulingRules', 'true');
+  }
+
+  const result = await apiFetch<ApiAvailabilitySlotsResponse>(
+    `/v1/coaches/${params.coachId}/availability/slots?${searchParams.toString()}`,
+    { method: 'GET' },
+  );
+  if (!result.success) {
+    throw new Error(result.error.message);
+  }
+  return result.data.slots;
+}
+
 async function loadTemplates(): Promise<AvailabilityTemplate[]> {
   try {
     const stored = await apiClient.get<AvailabilityTemplate[] | null>(
@@ -621,7 +659,20 @@ export const availabilityService = {
     startDate: string,
     endDate: string,
     sessionDurationMinutes: number = 60,
+    options?: {
+      applySchedulingRules?: boolean;
+    },
   ): Promise<AvailabilitySlot[]> {
+    if (!USE_MOCK) {
+      return loadAuthoritativeAvailabilitySlots({
+        coachId,
+        startDate,
+        endDate,
+        durationMinutes: sessionDurationMinutes,
+        applySchedulingRules: options?.applySchedulingRules,
+      });
+    }
+
     const templates = await this.getTemplates(coachId);
     const overrides = await this.getOverrides(coachId, startDate, endDate);
 
@@ -832,6 +883,19 @@ export const availabilityService = {
       if (template) {
         duration = template.duration;
       }
+    }
+
+    if (!USE_MOCK) {
+      const slots = await loadAuthoritativeAvailabilitySlots({
+        coachId,
+        startDate,
+        endDate,
+        durationMinutes: duration,
+        sessionTemplateId,
+        excludePendingInvites: true,
+        applySchedulingRules: true,
+      });
+      return slots.filter((slot) => slot.isAvailable);
     }
 
     // Get all available slots

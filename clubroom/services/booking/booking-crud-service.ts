@@ -703,6 +703,7 @@ class BookingCrudService {
         date,
         date,
         durationMinutes,
+        { applySchedulingRules: true },
       );
 
       // Find matching slot

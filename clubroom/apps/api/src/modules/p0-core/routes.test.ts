@@ -7,7 +7,10 @@ import { buildApp } from '../../app.js';
 import { resetAuthRuntimeForTests } from '../../lib/auth-runtime.js';
 import { resetCoachClubRouteStateForTests } from '../coach-club/routes.js';
 import { resetDbFixtureStoreForTests } from '../../lib/db-fixture-store.js';
-import { resetMarketplaceSeedStoreForTests } from '../../lib/marketplace-seed-store.js';
+import {
+  getMarketplaceSeedStore,
+  resetMarketplaceSeedStoreForTests,
+} from '../../lib/marketplace-seed-store.js';
 
 type SeedRow = Record<string, unknown>;
 type SeedTables = Record<string, SeedRow[]>;
@@ -59,6 +62,61 @@ function passwordForRoles(roles: string[]): string {
     return 'coach';
   }
   return 'user';
+}
+
+function addDaysIso(days: number): string {
+  const date = new Date();
+  date.setUTCDate(date.getUTCDate() + days);
+  return date.toISOString().slice(0, 10);
+}
+
+async function getFirstAvailableSlot(params: {
+  app: ReturnType<typeof buildApp>;
+  tables: SeedTables;
+  authUserId: string;
+  coachUserId: string;
+  durationMinutes?: number;
+  excludePendingInvites?: boolean;
+  requireMaxBookings?: number;
+}): Promise<{ date: string; startTime: string; endTime: string; location?: string; maxBookings: number }> {
+  const durationMinutes = params.durationMinutes ?? 60;
+  const searchParams = new URLSearchParams({
+    start: addDaysIso(1),
+    end: addDaysIso(21),
+    durationMinutes: String(durationMinutes),
+    applySchedulingRules: 'true',
+  });
+  if (params.excludePendingInvites) {
+    searchParams.set('excludePendingInvites', 'true');
+  }
+
+  const res = await params.app.inject({
+    method: 'GET',
+    url: `/v1/coaches/${params.coachUserId}/availability/slots?${searchParams.toString()}`,
+    headers: {
+      'x-auth-user-id': params.authUserId,
+      'x-auth-roles': rolesForUser(params.tables, params.authUserId).join(','),
+      'x-acting-role': rolesForUser(params.tables, params.authUserId)[0] ?? 'parent',
+    },
+  });
+  assert.equal(res.statusCode, 200);
+
+  const payload = res.json() as {
+    slots: Array<{
+      date: string;
+      startTime: string;
+      endTime: string;
+      isAvailable: boolean;
+      location?: string;
+      maxBookings: number;
+    }>;
+  };
+  const slot = payload.slots.find((candidate) =>
+    candidate.isAvailable &&
+    (params.requireMaxBookings === undefined || candidate.maxBookings === params.requireMaxBookings),
+  );
+  assert.ok(slot, 'expected an available coach slot');
+  return slot;
 }
 
 describe('p0 core routes', () => {
@@ -713,6 +771,13 @@ describe('p0 core routes', () => {
     const coachOffering = asRows(tables.coachingOfferings)[0];
     assert.ok(coachOffering, 'expected seeded coaching offering');
     const coachUserId = asString(coachOffering.coachUserId) as string;
+    const availableSlot = await getFirstAvailableSlot({
+      app,
+      tables,
+      authUserId: bookedByUserId,
+      coachUserId,
+      requireMaxBookings: 1,
+    });
 
     const create = await app.inject({
       method: 'POST',
@@ -726,9 +791,9 @@ describe('p0 core routes', () => {
         coachUserId,
         athleteIds: [athleteId],
         bookedByUserId,
-        scheduledAt: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
+        scheduledAt: `${availableSlot.date}T${availableSlot.startTime}:00.000Z`,
         durationMinutes: 60,
-        location: 'Integration Test Pitch',
+        location: availableSlot.location ?? 'Integration Test Pitch',
         serviceType: 'one_to_one',
         objectives: ['Decision making'],
         notes: 'Created from p0 endpoint test',
@@ -856,6 +921,12 @@ describe('p0 core routes', () => {
     const coachOffering = asRows(tables.coachingOfferings)[0];
     assert.ok(coachOffering, 'expected seeded coaching offering');
     const coachUserId = asString(coachOffering.coachUserId) as string;
+    const availableSlot = await getFirstAvailableSlot({
+      app,
+      tables,
+      authUserId: parentUserId,
+      coachUserId,
+    });
 
     const create = await app.inject({
       method: 'POST',
@@ -869,9 +940,9 @@ describe('p0 core routes', () => {
         coachUserId,
         athleteIds: [athleteId],
         bookedByUserId: athleteUserId,
-        scheduledAt: new Date(Date.now() + 72 * 60 * 60 * 1000).toISOString(),
+        scheduledAt: `${availableSlot.date}T${availableSlot.startTime}:00.000Z`,
         durationMinutes: 60,
-        location: 'Delegated Booking Test Pitch',
+        location: availableSlot.location ?? 'Delegated Booking Test Pitch',
         serviceType: 'one_to_one',
         objectives: ['Decision making'],
         priceMinor: 3800,
@@ -883,6 +954,77 @@ describe('p0 core routes', () => {
     const created = create.json() as { id: string; bookedByUserId?: string };
     assert.match(created.id, /^bok_/);
     assert.equal(created.bookedByUserId, athleteUserId);
+  });
+
+  it('rejects a direct booking when the selected slot has already been taken', async () => {
+    const tables = loadTables();
+    const guardianLink = asRows(tables.guardianChildLinks)[0];
+    assert.ok(guardianLink, 'expected seeded guardian-child link');
+    const bookedByUserId = asString(guardianLink.guardianUserId) as string;
+    const athleteId = asString(guardianLink.athleteId) as string;
+    const coachOffering = asRows(tables.coachingOfferings)[0];
+    assert.ok(coachOffering, 'expected seeded coaching offering');
+    const coachUserId = asString(coachOffering.coachUserId) as string;
+    const store = getMarketplaceSeedStore();
+    const date = addDaysIso(9);
+    const dayOfWeek = new Date(`${date}T00:00:00.000Z`).getUTCDay();
+    if (!Array.isArray(store.tables.availabilityTemplates)) {
+      store.tables.availabilityTemplates = [];
+    }
+    store.tables.availabilityTemplates.push({
+      id: 'avt_booking_conflict_test',
+      coachUserId,
+      dayOfWeek,
+      startTimeLocal: '05:00',
+      endTimeLocal: '06:15',
+      maxConcurrent: 1,
+      bufferMinutes: 15,
+      active: true,
+      location: 'Conflict Test Pitch',
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+      createdByUserId: coachUserId,
+      updatedByUserId: coachUserId,
+      version: 1,
+      deletedAt: null,
+      deletedByUserId: null,
+    });
+    const bookingPayload = {
+      coachUserId,
+      athleteIds: [athleteId],
+      bookedByUserId,
+      scheduledAt: `${date}T05:00:00.000Z`,
+      durationMinutes: 60,
+      location: 'Conflict Test Pitch',
+      serviceType: 'one_to_one',
+      objectives: ['First touch'],
+      priceMinor: 4200,
+      currency: 'GBP',
+    };
+
+    const first = await app.inject({
+      method: 'POST',
+      url: '/v1/bookings',
+      headers: {
+        'x-auth-user-id': bookedByUserId,
+        'x-auth-roles': rolesForUser(tables, bookedByUserId).join(',') || 'parent',
+        'x-acting-role': rolesForUser(tables, bookedByUserId)[0] ?? 'parent',
+      },
+      payload: bookingPayload,
+    });
+    assert.equal(first.statusCode, 201);
+
+    const second = await app.inject({
+      method: 'POST',
+      url: '/v1/bookings',
+      headers: {
+        'x-auth-user-id': bookedByUserId,
+        'x-auth-roles': rolesForUser(tables, bookedByUserId).join(',') || 'parent',
+        'x-acting-role': rolesForUser(tables, bookedByUserId)[0] ?? 'parent',
+      },
+      payload: bookingPayload,
+    });
+    assert.equal(second.statusCode, 400);
   });
 
   it('denies booking cancellation for an unrelated actor', async () => {
@@ -899,6 +1041,12 @@ describe('p0 core routes', () => {
     );
     assert.ok(outsiderCoach, 'expected a different seeded coach');
     const outsiderUserId = asString(outsiderCoach.userId) as string;
+    const availableSlot = await getFirstAvailableSlot({
+      app,
+      tables,
+      authUserId: bookedByUserId,
+      coachUserId,
+    });
 
     const create = await app.inject({
       method: 'POST',
@@ -912,9 +1060,9 @@ describe('p0 core routes', () => {
         coachUserId,
         athleteIds: [athleteId],
         bookedByUserId,
-        scheduledAt: new Date(Date.now() + 48 * 60 * 60 * 1000).toISOString(),
+        scheduledAt: `${availableSlot.date}T${availableSlot.startTime}:00.000Z`,
         durationMinutes: 60,
-        location: 'Cancellation Authz Test Pitch',
+        location: availableSlot.location ?? 'Cancellation Authz Test Pitch',
         serviceType: 'one_to_one',
         objectives: ['First touch'],
       },
@@ -968,6 +1116,12 @@ describe('p0 core routes', () => {
     const coachOffering = asRows(tables.coachingOfferings)[0];
     assert.ok(coachOffering, 'expected seeded coaching offering');
     const coachUserId = asString(coachOffering.coachUserId) as string;
+    const availableSlot = await getFirstAvailableSlot({
+      app,
+      tables,
+      authUserId: bookedByUserId,
+      coachUserId,
+    });
 
     const create = await app.inject({
       method: 'POST',
@@ -981,9 +1135,9 @@ describe('p0 core routes', () => {
         coachUserId,
         athleteIds: [unrelatedAthleteId],
         bookedByUserId,
-        scheduledAt: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
+        scheduledAt: `${availableSlot.date}T${availableSlot.startTime}:00.000Z`,
         durationMinutes: 60,
-        location: 'Authz Test Pitch',
+        location: availableSlot.location ?? 'Authz Test Pitch',
         serviceType: 'one_to_one',
         objectives: ['Decision making'],
         currency: 'GBP',
@@ -1088,14 +1242,12 @@ describe('p0 core routes', () => {
     assert.ok(guardianLink, 'expected guardian-child link');
     const parentUserId = asString(guardianLink?.guardianUserId) as string;
     const athleteId = asString(guardianLink?.athleteId) as string;
-    const proposedSlot = {
-      date: '2026-04-15',
-      startTime: '17:00',
-      endTime: '18:00',
-      location: 'Direct Invite Pitch',
-    };
 
-    const createInvite = async (focus: string, groupId?: string) =>
+    const createInvite = async (
+      focus: string,
+      proposedSlot: { date: string; startTime: string; endTime: string; location?: string },
+      groupId?: string,
+    ) =>
       app.inject({
         method: 'POST',
         url: '/v1/invites',
@@ -1119,7 +1271,15 @@ describe('p0 core routes', () => {
         },
       });
 
-    const pendingCreate = await createInvite('First Touch', 'grp_direct_test');
+    const firstSlot = await getFirstAvailableSlot({
+      app,
+      tables,
+      authUserId: coachUserId,
+      coachUserId,
+      excludePendingInvites: true,
+    });
+
+    const pendingCreate = await createInvite('First Touch', firstSlot, 'grp_direct_test');
     assert.equal(pendingCreate.statusCode, 201);
     const pendingPayload = pendingCreate.json() as {
       invite: {
@@ -1193,7 +1353,15 @@ describe('p0 core routes', () => {
       false,
     );
 
-    const acceptedCreate = await createInvite('Finishing');
+    const acceptedSlot = await getFirstAvailableSlot({
+      app,
+      tables,
+      authUserId: coachUserId,
+      coachUserId,
+      excludePendingInvites: true,
+    });
+
+    const acceptedCreate = await createInvite('Finishing', acceptedSlot);
     assert.equal(acceptedCreate.statusCode, 201);
     const acceptedPayload = acceptedCreate.json() as {
       invite: { id: string };
@@ -1209,7 +1377,7 @@ describe('p0 core routes', () => {
       },
       payload: {
         response: 'ACCEPTED',
-        selectedSlot: proposedSlot,
+        selectedSlot: acceptedSlot,
       },
     });
     assert.equal(acceptInvite.statusCode, 200);
@@ -1234,7 +1402,15 @@ describe('p0 core routes', () => {
     });
     assert.equal(createdBooking.statusCode, 200);
 
-    const cancelledCreate = await createInvite('Passing');
+    const cancelledSlot = await getFirstAvailableSlot({
+      app,
+      tables,
+      authUserId: coachUserId,
+      coachUserId,
+      excludePendingInvites: true,
+    });
+
+    const cancelledCreate = await createInvite('Passing', cancelledSlot);
     assert.equal(cancelledCreate.statusCode, 201);
     const cancelledPayload = cancelledCreate.json() as {
       invite: { id: string };
@@ -1265,6 +1441,62 @@ describe('p0 core routes', () => {
       invite: { status: string };
     };
     assert.equal(cancelledDetailPayload.invite.status, 'EXPIRED');
+  });
+
+  it('rejects a direct session invite that reuses a still-held pending slot', async () => {
+    const tables = loadTables();
+    const coachProfile = asRows(tables.coachProfiles)[0];
+    assert.ok(coachProfile, 'expected seeded coach profile');
+    const coachUserId = asString(coachProfile.userId) as string;
+    const guardianLink = asRows(tables.guardianChildLinks).find(
+      (row) => asString(row.guardianUserId) && asString(row.guardianUserId) !== coachUserId,
+    );
+    assert.ok(guardianLink, 'expected guardian-child link');
+    const parentUserId = asString(guardianLink?.guardianUserId) as string;
+    const athleteId = asString(guardianLink?.athleteId) as string;
+    const proposedSlot = await getFirstAvailableSlot({
+      app,
+      tables,
+      authUserId: coachUserId,
+      coachUserId,
+      excludePendingInvites: true,
+    });
+    const payload = {
+      coachUserId,
+      athleteIds: [athleteId],
+      parentUserId,
+      proposedSlots: [proposedSlot],
+      sessionType: '1:1 Coaching',
+      focus: 'Ball mastery',
+      notes: 'Ball mastery session',
+      inviteType: 'CLOSED',
+      priceMinor: 3500,
+      durationMinutes: 60,
+    };
+
+    const first = await app.inject({
+      method: 'POST',
+      url: '/v1/invites',
+      headers: {
+        'x-auth-user-id': coachUserId,
+        'x-auth-roles': rolesForUser(tables, coachUserId).join(',') || 'coach',
+        'x-acting-role': rolesForUser(tables, coachUserId)[0] ?? 'coach',
+      },
+      payload,
+    });
+    assert.equal(first.statusCode, 201);
+
+    const second = await app.inject({
+      method: 'POST',
+      url: '/v1/invites',
+      headers: {
+        'x-auth-user-id': coachUserId,
+        'x-auth-roles': rolesForUser(tables, coachUserId).join(',') || 'coach',
+        'x-acting-role': rolesForUser(tables, coachUserId)[0] ?? 'coach',
+      },
+      payload,
+    });
+    assert.equal(second.statusCode, 400);
   });
 
   it('responds to invites and creates/updates event RSVPs', async () => {

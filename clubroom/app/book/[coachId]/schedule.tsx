@@ -99,6 +99,7 @@ export default function ScheduleScreen() {
         dateRange.startDate,
         dateRange.endDate,
         duration,
+        { applySchedulingRules: true },
       );
       return ok(slots);
     } catch (loadError) {
