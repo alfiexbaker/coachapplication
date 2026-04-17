@@ -86,13 +86,15 @@ Clubs manage staff, squads, visibility, and operating relationships.
   - `services/child-service.ts` no longer persists child profile or health records locally outside mock mode, and the edit-child-profile flow routes parents into the protected child health screens instead
   - delegated booking create no longer falls back to local-only persistence in non-mock mode; `/v1/bookings` now decides whether the actor is allowed, and local storage only mirrors successful authoritative writes
   - booking list/detail reads now also use `/v1/bookings` and `/v1/bookings/:bookingId` in non-mock mode, with local storage acting as a mirror instead of the authority
+  - group-session list/detail/create/publish/cancel/register/roster/attendance flows in non-mock mode now run through `/v1/group-sessions*` and `/v1/group-session-registrations*`; the group-session services no longer depend on removed `/api/group-sessions*`, `/api/registrations*`, or training-session fan-out paths
+  - Prisma seed import now carries the group-session graph (`GroupSession`, `GroupSessionRegistration`, `WaitlistEntry`, `Invite`, `InviteTarget`, `AttendanceRecord`) so production `db` mode keeps session discovery, roster, attendance, and invite-linked session flows populated after import
   - session-invite create/list/detail/respond/cancel/remind/dismiss now use `/v1/invites*` in non-mock mode through `services/invite/session-invite-authority-service.ts`
   - direct invite acceptance now creates bookings through the `/v1` invite path instead of falling back to removed legacy `/api/session-invites/*` behavior
   - `/v1/bookings` create, `/v1/invites` create, and direct-invite accept now validate chosen slots against the same backend availability resolver instead of trusting client-side slot math
   - booking changes are intentionally `cancel` or `reopen`; the old counter-offer and invite counter workflow has been removed from the runtime product surface
   - coach scheduling rules no longer advertise a separate reschedule policy; bookings now change by cancellation and rebooking/reopening instead of negotiation
   - Expo native/web and `apps/api` now emit to Sentry with shared release/environment tags, Expo web source maps via `npm run export:web`, and API source maps via `npm --prefix apps/api run build:release`
-  - the next production follow-through moves on from coach-self cutover to the remaining group-session and community/media route migration, then to live provider cutover and the remaining release blockers surfaced by `/v1/ready`
+  - the next production follow-through is now narrower again: finish the remaining community/media route migration, then move to live provider cutover and the remaining release blockers surfaced by `/v1/ready`
 - Club-facing schedule surfaces now use a `ClubActivity` read model to link `ClubEvent` and `GroupSession`
   - `ClubActivity` now also includes `Match`, so club and squad schedule routes can show events, training, and matches in one surface
   - club-linked open group sessions are treated as mixed-access training, not as a separate public product world

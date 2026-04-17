@@ -5,10 +5,10 @@
  * Manages session persistence and the shared mock data layer.
  *
  * API Integration Notes:
- * - POST /api/group-sessions - Create session
- * - GET /api/group-sessions/:id - Get session details
- * - GET /api/group-sessions?coachId=X - Coach's sessions
- * - PATCH /api/group-sessions/:id/publish - Publish session
+ * - POST /v1/group-sessions - Create session
+ * - GET /v1/group-sessions/:id - Get session details
+ * - GET /v1/group-sessions?coachUserId=X - Coach's sessions
+ * - PATCH /v1/group-sessions/:id/publish - Publish session
  */
 
 import { apiClient } from '../api-client';
@@ -20,6 +20,7 @@ import { bulkInviteService } from '../invite/bulk-invite-service';
 import { rsvpService } from '../rsvp-service';
 import { emitTyped, ServiceEvents } from '../event-bus';
 import { userService } from '../user-service';
+import { groupSessionAuthorityService } from './group-session-authority-service';
 import { createLogger } from '@/utils/logger';
 import { toDateStr } from '@/utils/format';
 import { type Result, type ServiceError, ok, err, notFound } from '@/types/result';
@@ -510,8 +511,15 @@ export const sessionCrudService = {
         });
     }
 
-    const response = await fetch(`/api/group-sessions?coachId=${coachId}`);
-    return response.json();
+    const result = await groupSessionAuthorityService.listSessions({ coachUserId: coachId });
+    if (!result.success) {
+      throw new Error(result.error.message);
+    }
+    return result.data.sort((a, b) => {
+      const aDate = a.schedule[0]?.date || '';
+      const bDate = b.schedule[0]?.date || '';
+      return aDate.localeCompare(bDate);
+    });
   },
 
   /**
@@ -544,13 +552,19 @@ export const sessionCrudService = {
       });
     }
 
-    const params = new URLSearchParams();
-    if (filters?.postcode) params.append('near', filters.postcode);
-    if (filters?.sessionType) params.append('type', filters.sessionType);
-    if (filters?.skillLevel) params.append('level', filters.skillLevel);
-
-    const response = await fetch(`/api/group-sessions?${params.toString()}`);
-    return response.json();
+    const result = await groupSessionAuthorityService.listSessions({
+      discover: true,
+      ...(filters?.sessionType ? { sessionType: filters.sessionType } : {}),
+      ...(filters?.skillLevel ? { skillLevel: filters.skillLevel } : {}),
+    });
+    if (!result.success) {
+      throw new Error(result.error.message);
+    }
+    return result.data.sort((a, b) => {
+      const aDate = a.schedule[0]?.date || '';
+      const bDate = b.schedule[0]?.date || '';
+      return aDate.localeCompare(bDate);
+    });
   },
 
   /**
@@ -562,9 +576,14 @@ export const sessionCrudService = {
       return sessionsCache.find((s) => s.id === sessionId) || null;
     }
 
-    const response = await fetch(`/api/group-sessions/${sessionId}`);
-    if (!response.ok) return null;
-    return response.json();
+    const result = await groupSessionAuthorityService.getSession(sessionId);
+    if (!result.success) {
+      if (result.error.code === 'NOT_FOUND') {
+        return null;
+      }
+      throw new Error(result.error.message);
+    }
+    return result.data;
   },
 
   /**
@@ -645,12 +664,38 @@ export const sessionCrudService = {
       return newSession;
     }
 
-    const response = await fetch('/api/group-sessions', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(newSession),
+    const result = await groupSessionAuthorityService.createSession({
+      coachId: newSession.coachId,
+      ...(newSession.clubId ? { clubId: newSession.clubId } : {}),
+      ...(newSession.squadId ? { squadId: newSession.squadId } : {}),
+      title: newSession.title,
+      description: newSession.description,
+      sessionType: newSession.sessionType,
+      schedule: newSession.schedule,
+      maxParticipants: newSession.maxParticipants,
+      pricePerParticipant: newSession.pricePerParticipant,
+      currency: newSession.currency,
+      ...(typeof newSession.ageMin === 'number' ? { ageMin: newSession.ageMin } : {}),
+      ...(typeof newSession.ageMax === 'number' ? { ageMax: newSession.ageMax } : {}),
+      ...(newSession.skillLevel ? { skillLevel: newSession.skillLevel } : {}),
+      location: newSession.location,
+      ...(typeof newSession.isVirtual === 'boolean' ? { isVirtual: newSession.isVirtual } : {}),
+      ...(newSession.focus && newSession.focus.length > 0 ? { focus: newSession.focus } : {}),
+      ...(newSession.equipment && newSession.equipment.length > 0
+        ? { equipment: newSession.equipment }
+        : {}),
+      ...(typeof newSession.waitlistEnabled === 'boolean'
+        ? { waitlistEnabled: newSession.waitlistEnabled }
+        : {}),
+      ...(newSession.inviteType ? { inviteType: newSession.inviteType } : {}),
+      ...(newSession.registrationDeadline
+        ? { registrationDeadline: newSession.registrationDeadline }
+        : {}),
     });
-    return response.json();
+    if (!result.success) {
+      throw new Error(result.error.message);
+    }
+    return result.data;
   },
 
   /**
@@ -743,10 +788,11 @@ export const sessionCrudService = {
       return ok(session);
     }
 
-    const response = await fetch(`/api/group-sessions/${sessionId}/publish`, {
-      method: 'PATCH',
-    });
-    return ok(await response.json());
+    const result = await groupSessionAuthorityService.publishSession(sessionId);
+    if (!result.success) {
+      return err(result.error);
+    }
+    return ok(result.data);
   },
 
   /**
@@ -773,9 +819,10 @@ export const sessionCrudService = {
       return ok(session);
     }
 
-    const response = await fetch(`/api/group-sessions/${sessionId}/cancel`, {
-      method: 'PATCH',
-    });
-    return ok(await response.json());
+    const result = await groupSessionAuthorityService.cancelSession(sessionId);
+    if (!result.success) {
+      return err(result.error);
+    }
+    return ok(result.data);
   },
 };

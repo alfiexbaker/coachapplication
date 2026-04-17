@@ -5,9 +5,9 @@
  * Supports recurring pattern utilities and next-date lookups.
  *
  * API Integration Notes:
- * - GET /api/clubs/:id/training-sessions - Club training sessions
- * - GET /api/squads/:id/training-sessions - Squad training sessions
- * - GET /api/athletes/:id/training-sessions - Child training sessions
+ * - GET /v1/group-sessions?clubId=X - Club training sessions
+ * - GET /v1/group-sessions?squadId=X - Squad training sessions
+ * - GET /v1/group-sessions?athleteId=X - Child training sessions
  */
 
 import { api } from '@/constants/config';
@@ -16,6 +16,7 @@ import { toDateStr } from '@/utils/format';
 import type { GroupSession, GroupSessionSchedule, RecurringPattern } from '@/constants/types';
 import { loadSessions } from './session-crud-service';
 import { loadRegistrations } from './session-registration-service';
+import { groupSessionAuthorityService } from './group-session-authority-service';
 
 const USE_MOCK = api.useMock;
 const _logger = createLogger('SessionSchedulingService');
@@ -23,6 +24,10 @@ const _logger = createLogger('SessionSchedulingService');
 // Day of week labels
 const DAY_LABELS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
 const ACTIVE_CLUB_SESSION_STATUSES: GroupSession['status'][] = ['PUBLISHED', 'FULL'];
+
+function isTrainingSession(session: GroupSession): boolean {
+  return session.sessionType === 'TRAINING' || session.sessionType === 'TEAM_TRAINING';
+}
 
 function getUpcomingScheduleEntry(session: GroupSession): GroupSessionSchedule | null {
   const today = toDateStr(new Date());
@@ -59,8 +64,18 @@ export const sessionSchedulingService = {
       );
     }
 
-    const response = await fetch(`/api/clubs/${clubId}/training-sessions`);
-    return response.json();
+    const result = await groupSessionAuthorityService.listSessions({ clubId });
+    if (!result.success) {
+      throw new Error(result.error.message);
+    }
+    return sortSessionsByUpcomingDate(
+      result.data.filter(
+        (session) =>
+          isTrainingSession(session) &&
+          ACTIVE_CLUB_SESSION_STATUSES.includes(session.status) &&
+          Boolean(getUpcomingScheduleEntry(session)),
+      ),
+    );
   },
 
   /**
@@ -70,11 +85,25 @@ export const sessionSchedulingService = {
    * the club-facing activity model treats them as variants of one training domain.
    */
   async getClubActivitySessions(clubId: string): Promise<GroupSession[]> {
-    const sessionsCache = await loadSessions();
+    if (USE_MOCK) {
+      const sessionsCache = await loadSessions();
+      return sortSessionsByUpcomingDate(
+        sessionsCache.filter(
+          (session) =>
+            session.clubId === clubId &&
+            ACTIVE_CLUB_SESSION_STATUSES.includes(session.status) &&
+            Boolean(getUpcomingScheduleEntry(session)),
+        ),
+      );
+    }
+
+    const result = await groupSessionAuthorityService.listSessions({ clubId });
+    if (!result.success) {
+      throw new Error(result.error.message);
+    }
     return sortSessionsByUpcomingDate(
-      sessionsCache.filter(
+      result.data.filter(
         (session) =>
-          session.clubId === clubId &&
           ACTIVE_CLUB_SESSION_STATUSES.includes(session.status) &&
           Boolean(getUpcomingScheduleEntry(session)),
       ),
@@ -98,8 +127,18 @@ export const sessionSchedulingService = {
       );
     }
 
-    const response = await fetch(`/api/squads/${squadId}/training-sessions`);
-    return response.json();
+    const result = await groupSessionAuthorityService.listSessions({ squadId });
+    if (!result.success) {
+      throw new Error(result.error.message);
+    }
+    return sortSessionsByUpcomingDate(
+      result.data.filter(
+        (session) =>
+          isTrainingSession(session) &&
+          ACTIVE_CLUB_SESSION_STATUSES.includes(session.status) &&
+          Boolean(getUpcomingScheduleEntry(session)),
+      ),
+    );
   },
 
   /**
@@ -125,8 +164,18 @@ export const sessionSchedulingService = {
       );
     }
 
-    const response = await fetch(`/api/athletes/${childId}/training-sessions`);
-    return response.json();
+    const result = await groupSessionAuthorityService.listSessions({ athleteId: childId });
+    if (!result.success) {
+      throw new Error(result.error.message);
+    }
+    return sortSessionsByUpcomingDate(
+      result.data.filter(
+        (session) =>
+          isTrainingSession(session) &&
+          ACTIVE_CLUB_SESSION_STATUSES.includes(session.status) &&
+          Boolean(getUpcomingScheduleEntry(session)),
+      ),
+    );
   },
 
   /**

@@ -6,21 +6,13 @@
  *
  * API Integration Notes:
  * - POST /v1/group-sessions/:id/register - Register athlete in non-mock mode
- * - POST /api/group-sessions/:id/waitlist - Join waitlist
- * - DELETE /api/registrations/:id - Cancel registration
- * - GET /api/group-sessions/:id/roster - Get participants
- * - PATCH /api/registrations/:id/attendance - Mark attendance
+ * - DELETE /v1/group-session-registrations/:id - Cancel registration
+ * - GET /v1/group-sessions/:id/roster - Get participants
+ * - PATCH /v1/group-session-registrations/:id/attendance - Mark attendance
+ * - GET /v1/group-session-registrations?athleteIds=... - List athlete registrations
  */
 
-import { authService } from '../auth-service';
-import {
-  buildApiAuthHeaders,
-  deriveApiActingRole,
-  resolveSignedInApiUser,
-  toApiAthleteId,
-  toApiUserId,
-} from '../api-auth-context';
-import { apiClient, apiFetch } from '../api-client';
+import { apiClient } from '../api-client';
 import { api } from '@/constants/config';
 import { STORAGE_KEYS } from '@/constants/storage-keys';
 import { notificationTriggers } from '../notification-trigger';
@@ -31,39 +23,10 @@ import { bookingCrudService } from '../booking';
 import { userService } from '../user-service';
 import type { GroupSession, GroupRegistration } from '@/constants/types';
 import { loadSessions, saveSessions } from './session-crud-service';
+import { groupSessionAuthorityService } from './group-session-authority-service';
 
 const USE_MOCK = api.useMock;
 const logger = createLogger('SessionRegistrationService');
-
-type ActingRole = 'coach' | 'parent' | 'athlete' | 'club_admin';
-
-interface ApiGroupRegistrationResponse {
-  registration: {
-    id: string;
-    sessionId: string;
-    athleteId: string;
-    parentUserId: string;
-    status: GroupRegistration['status'];
-    registeredAt: string;
-    paidAt?: string | null;
-    notes?: string | null;
-  };
-  booking?: {
-    id: string;
-  } | null;
-  sessionStatus: GroupSession['status'] | string;
-  requestId: string;
-}
-
-async function resolveRegistrationAccessHeaders(): Promise<Result<Record<string, string>, ServiceError>> {
-  const currentUserResult = await resolveSignedInApiUser('Sign in to register for sessions.');
-  if (!currentUserResult.success) {
-    return currentUserResult;
-  }
-
-  const actingRole = deriveApiActingRole(currentUserResult.data) as ActingRole;
-  return ok(buildApiAuthHeaders({ actingRole }));
-}
 
 // ============================================================================
 // MOCK REGISTRATION DATA
@@ -709,22 +672,11 @@ export const sessionRegistrationService = {
       });
     }
 
-    const headersResult = await resolveRegistrationAccessHeaders();
-    if (!headersResult.success) {
-      return headersResult;
-    }
-
-    const result = await apiFetch<ApiGroupRegistrationResponse>(
-      `/v1/group-sessions/${sessionId}/register`,
-      {
-        method: 'POST',
-        headers: headersResult.data,
-        body: JSON.stringify({
-          athleteId: toApiAthleteId(athleteId),
-          parentUserId: toApiUserId(parentId),
-        }),
-      },
-    );
+    const result = await groupSessionAuthorityService.register({
+      sessionId,
+      athleteId,
+      parentUserId: parentId,
+    });
     if (!result.success) {
       logger.error('Failed to register group session via API', {
         sessionId,
@@ -735,7 +687,7 @@ export const sessionRegistrationService = {
       return err(result.error);
     }
 
-    const authoritative = result.data.registration;
+    const authoritative = result.data;
     const mirroredRegistration: GroupRegistration = {
       id: authoritative.id,
       sessionId,
@@ -836,7 +788,10 @@ export const sessionRegistrationService = {
       return ok(undefined);
     }
 
-    await fetch(`/api/registrations/${registrationId}`, { method: 'DELETE' });
+    const result = await groupSessionAuthorityService.cancelRegistration(registrationId);
+    if (!result.success) {
+      return err(result.error);
+    }
     return ok(undefined);
   },
 
@@ -856,8 +811,11 @@ export const sessionRegistrationService = {
         });
     }
 
-    const response = await fetch(`/api/group-sessions/${sessionId}/roster`);
-    return response.json();
+    const result = await groupSessionAuthorityService.listRoster(sessionId);
+    if (!result.success) {
+      throw new Error(result.error.message);
+    }
+    return result.data;
   },
 
   /**
@@ -889,12 +847,15 @@ export const sessionRegistrationService = {
       return ok(registration);
     }
 
-    const response = await fetch(`/api/registrations/${registrationId}/attendance`, {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ date, attended }),
+    const result = await groupSessionAuthorityService.markAttendance({
+      registrationId,
+      date,
+      attended,
     });
-    return ok(await response.json());
+    if (!result.success) {
+      return err(result.error);
+    }
+    return ok(result.data);
   },
 
   /**
@@ -937,8 +898,10 @@ export const sessionRegistrationService = {
       );
     }
 
-    const ids = Array.from(athleteIds).join(',');
-    const response = await fetch(`/api/registrations?athleteIds=${encodeURIComponent(ids)}`);
-    return response.json();
+    const result = await groupSessionAuthorityService.getRegistrationsForAthletes(athleteIds);
+    if (!result.success) {
+      throw new Error(result.error.message);
+    }
+    return result.data;
   },
 };

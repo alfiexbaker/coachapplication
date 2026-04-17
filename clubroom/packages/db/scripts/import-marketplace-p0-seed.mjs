@@ -80,6 +80,12 @@ async function main() {
     await tx.coachingOffering.deleteMany();
     await tx.coachLocation.deleteMany();
     await tx.coachProfile.deleteMany();
+    await tx.inviteTarget.deleteMany();
+    await tx.invite.deleteMany();
+    await tx.attendanceRecord.deleteMany();
+    await tx.waitlistEntry.deleteMany();
+    await tx.groupSessionRegistration.deleteMany();
+    await tx.groupSession.deleteMany();
     await tx.bookingStatusEvent.deleteMany();
     await tx.bookingObjective.deleteMany();
     await tx.bookingParticipant.deleteMany();
@@ -586,6 +592,142 @@ async function main() {
     }));
     if (consents.length > 0) {
       await tx.childConsent.createMany({ data: consents });
+    }
+
+    const groupSessions = asRows(tables.groupSessions).map((row) => ({
+      id: row.id,
+      coachUserId: row.coachUserId,
+      clubId: asString(row.clubId) ?? null,
+      squadId: asString(row.squadId) ?? null,
+      recurringSeriesId: asString(row.recurringSeriesId) ?? null,
+      title: asString(row.title) ?? 'Group session',
+      description: asString(row.description) ?? null,
+      sessionType: asString(row.sessionType) ?? 'group_training',
+      maxParticipants: asNumber(row.maxParticipants, 0),
+      currentParticipants: asNumber(row.currentParticipants, 0),
+      waitlistEnabled: asBoolean(row.waitlistEnabled, true),
+      waitlistCount: asNumber(row.waitlistCount, 0),
+      pricePerParticipantMinor:
+        typeof row.pricePerParticipantMinor === 'number' ? row.pricePerParticipantMinor : null,
+      currency: asString(row.currency) ?? 'GBP',
+      ageMin: typeof row.ageMin === 'number' ? row.ageMin : null,
+      ageMax: typeof row.ageMax === 'number' ? row.ageMax : null,
+      skillLevel: asString(row.skillLevel) ?? null,
+      location: asString(row.location) ?? null,
+      isVirtual: asBoolean(row.isVirtual, false),
+      status: asString(row.status) ?? 'DRAFT',
+      registrationDeadlineAt: toDate(row.registrationDeadlineAt),
+      inviteType: asString(row.inviteType) ?? null,
+      scheduleJson: row.scheduleJson ?? [],
+      focusJson: row.focusJson ?? [],
+      equipmentJson: row.equipmentJson ?? [],
+      createdByUserId: asString(row.createdByUserId) ?? asString(row.coachUserId) ?? '',
+      updatedByUserId: asString(row.updatedByUserId) ?? asString(row.coachUserId) ?? '',
+      version: toBigInt(row.version, 1),
+      createdAt: toDate(row.createdAt) ?? new Date(),
+      updatedAt: toDate(row.updatedAt) ?? new Date(),
+      deletedAt: toDate(row.deletedAt),
+      deletedByUserId: asString(row.deletedByUserId) ?? null,
+    }));
+    if (groupSessions.length > 0) {
+      await tx.groupSession.createMany({ data: groupSessions });
+    }
+
+    const groupSessionRegistrations = asRows(tables.groupSessionRegistrations).map((row) => ({
+      id: row.id,
+      groupSessionId: row.groupSessionId,
+      athleteId: row.athleteId,
+      parentUserId: asString(row.parentUserId) ?? null,
+      status: asString(row.status) ?? 'REGISTERED',
+      paidAt: toDate(row.paidAt),
+      notes: asString(row.notes) ?? null,
+      createdByUserId: asString(row.createdByUserId) ?? asString(row.parentUserId) ?? '',
+      updatedByUserId: asString(row.updatedByUserId) ?? asString(row.parentUserId) ?? '',
+      version: toBigInt(row.version, 1),
+      registeredAt: toDate(row.registeredAt) ?? new Date(),
+      updatedAt: toDate(row.updatedAt) ?? new Date(),
+      deletedAt: toDate(row.deletedAt),
+      deletedByUserId: asString(row.deletedByUserId) ?? null,
+    }));
+    if (groupSessionRegistrations.length > 0) {
+      await tx.groupSessionRegistration.createMany({ data: groupSessionRegistrations });
+    }
+
+    const waitlistEntries = asRows(tables.waitlistEntries).map((row) => ({
+      id: row.id,
+      groupSessionId: row.groupSessionId,
+      athleteId: asString(row.athleteId) ?? null,
+      userId: asString(row.userId) ?? null,
+      coachUserId: asString(row.coachUserId) ?? null,
+      position: asNumber(row.position, 1),
+      autoBook: asBoolean(row.autoBook, false),
+      status: asString(row.status) ?? 'WAITING',
+      notes: asString(row.notes) ?? null,
+      notifiedAt: toDate(row.notifiedAt),
+      expiresAt: toDate(row.expiresAt),
+      bookingId: asString(row.bookingId) ?? null,
+      userResponse: asString(row.userResponse) ?? null,
+      userRespondedAt: toDate(row.userRespondedAt),
+      createdAt: toDate(row.createdAt) ?? new Date(),
+      updatedAt: toDate(row.updatedAt) ?? new Date(),
+      deletedAt: toDate(row.deletedAt),
+    }));
+    if (waitlistEntries.length > 0) {
+      await tx.waitlistEntry.createMany({ data: waitlistEntries });
+    }
+
+    const invites = asRows(tables.invites).map((row) => ({
+      id: row.id,
+      inviteType: asString(row.inviteType) ?? 'session_invite',
+      senderUserId: asString(row.senderUserId) ?? '',
+      clubId: asString(row.clubId) ?? null,
+      groupSessionId: asString(row.groupSessionId) ?? null,
+      bookingId: asString(row.bookingId) ?? null,
+      eventId: asString(row.eventId) ?? null,
+      status: asString(row.status) ?? 'PENDING',
+      message: asString(row.message) ?? null,
+      expiresAt: toDate(row.expiresAt),
+      metadataJson: row.metadataJson ?? null,
+      createdAt: toDate(row.createdAt) ?? new Date(),
+      updatedAt: toDate(row.updatedAt) ?? new Date(),
+      revokedAt: toDate(row.revokedAt),
+    }));
+    if (invites.length > 0) {
+      await tx.invite.createMany({ data: invites });
+    }
+
+    const inviteTargets = asRows(tables.inviteTargets).map((row) => ({
+      id: row.id,
+      inviteId: row.inviteId,
+      targetUserId: asString(row.targetUserId) ?? null,
+      targetAthleteId: asString(row.targetAthleteId) ?? null,
+      targetFamilyId: asString(row.targetFamilyId) ?? null,
+      status: asString(row.status) ?? 'PENDING',
+      respondedAt: toDate(row.respondedAt),
+      responsePayloadJson: row.responsePayloadJson ?? null,
+      createdAt: toDate(row.createdAt) ?? new Date(),
+      updatedAt: toDate(row.updatedAt) ?? new Date(),
+    }));
+    if (inviteTargets.length > 0) {
+      await tx.inviteTarget.createMany({ data: inviteTargets });
+    }
+
+    const attendanceRecords = asRows(tables.attendanceRecords).map((row) => ({
+      id: row.id,
+      bookingId: asString(row.bookingId) ?? null,
+      groupSessionId: asString(row.groupSessionId) ?? null,
+      athleteId: row.athleteId,
+      status: asString(row.status) ?? 'ATTENDED',
+      notes: asString(row.notes) ?? null,
+      effortRating: typeof row.effortRating === 'number' ? row.effortRating : null,
+      focusAreasJson: row.focusAreasJson ?? null,
+      recordedByUserId: asString(row.recordedByUserId) ?? '',
+      recordedAt: toDate(row.recordedAt) ?? new Date(),
+      createdAt: toDate(row.createdAt) ?? new Date(),
+      updatedAt: toDate(row.updatedAt) ?? new Date(),
+    }));
+    if (attendanceRecords.length > 0) {
+      await tx.attendanceRecord.createMany({ data: attendanceRecords });
     }
 
     const bookings = asRows(tables.bookings).map((row) => ({

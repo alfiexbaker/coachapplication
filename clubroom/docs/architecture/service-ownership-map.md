@@ -95,7 +95,8 @@ Purpose: identify the service entrypoints that are safe to build on and call out
 
 - `services/group-session/index.ts`
 - Use for group session CRUD, scheduling, registration, and display
-- `services/group-session/session-registration-service.ts` is the current `/v1/group-sessions/:id/register` bridge in non-mock mode
+- `services/group-session/group-session-authority-service.ts`
+- Current non-mock authority seam for group session list/detail/create/publish/cancel/register/roster/attendance reads and writes
 - Club-facing schedule UI should project group sessions into `ClubActivity`
   - a club-linked `OPEN` session means mixed-access training: club members first-class, outsiders allowed
 

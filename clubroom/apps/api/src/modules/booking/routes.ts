@@ -15,6 +15,7 @@ import {
   resolveBookingRepository,
   type SeedTables,
 } from '../../repositories/p0/booking-repository.js';
+import { resolveGroupSessionRepository } from '../../repositories/p0/group-session-repository.js';
 import { isPrivilegedAdminAuth } from '../../lib/authz.js';
 import { getMarketplaceSeedStore } from '../../lib/marketplace-seed-store.js';
 import {
@@ -46,9 +47,54 @@ const eventRsvpRequestSchema = z.object({
 
 const groupSessionQuerySchema = z.object({
   status: z.string().optional(),
+  coachUserId: z.string().optional(),
+  clubId: z.string().optional(),
+  squadId: z.string().optional(),
+  athleteId: z.string().optional(),
+  sessionType: z.string().optional(),
+  skillLevel: z.string().optional(),
+  discover: z.coerce.boolean().optional(),
+});
+
+const groupSessionScheduleEntrySchema = z.object({
+  date: z.string().trim().min(1),
+  startTime: z.string().trim().min(1),
+  endTime: z.string().trim().min(1),
 });
 
 const inviteAudienceTypeSchema = z.enum(['OPEN', 'CLOSED', 'SQUAD_ONLY']);
+
+const createGroupSessionRequestSchema = z.object({
+  coachId: z.string().trim().min(1),
+  clubId: z.string().trim().min(1).optional(),
+  squadId: z.string().trim().min(1).optional(),
+  title: z.string().trim().min(1).max(160),
+  description: z.string().trim().max(4000).optional(),
+  sessionType: z.enum(['CAMP', 'CLINIC', 'TEAM_TRAINING', 'OPEN_SESSION', 'TRIAL', 'TRAINING']),
+  schedule: z.array(groupSessionScheduleEntrySchema).min(1),
+  maxParticipants: z.number().int().min(1).max(500),
+  pricePerParticipant: z.number().min(0).optional(),
+  currency: z.string().trim().length(3).optional(),
+  ageMin: z.number().int().min(0).max(99).optional(),
+  ageMax: z.number().int().min(0).max(99).optional(),
+  skillLevel: z.enum(['BEGINNER', 'INTERMEDIATE', 'ADVANCED', 'ALL']).optional(),
+  location: z.string().trim().min(1).max(200).optional(),
+  isVirtual: z.boolean().optional(),
+  focus: z.array(z.string().trim().min(1)).optional(),
+  equipment: z.array(z.string().trim().min(1)).optional(),
+  waitlistEnabled: z.boolean().optional(),
+  inviteType: inviteAudienceTypeSchema.optional(),
+  registrationDeadline: z.string().datetime().optional(),
+});
+
+const markGroupSessionAttendanceRequestSchema = z.object({
+  date: z.string().trim().min(1),
+  attended: z.boolean(),
+});
+
+const groupSessionRegistrationsQuerySchema = z.object({
+  athleteIds: z.string().optional(),
+});
 
 const invitesQuerySchema = z.object({
   coachUserId: z.string().optional(),
@@ -57,37 +103,6 @@ const invitesQuerySchema = z.object({
   inviteType: inviteAudienceTypeSchema.optional(),
   squadIds: z.string().optional(),
 });
-
-function normalizeSessionStatusForCapacity(current: number, max: number): 'PUBLISHED' | 'FULL' {
-  return current >= max ? 'FULL' : 'PUBLISHED';
-}
-
-function resolveAthleteUserId(sessionTables: SeedTables, athleteId: string): string | null {
-  const athlete = asRows(sessionTables.athletes).find((row) => asString(row.id) === athleteId);
-  return asString(athlete?.userId) ?? null;
-}
-
-function canRegisterAthlete(params: {
-  tables: SeedTables;
-  authUserId: string;
-  athleteId: string;
-  isClubAdmin: boolean;
-}): boolean {
-  if (params.isClubAdmin) {
-    return true;
-  }
-
-  const athleteUserId = resolveAthleteUserId(params.tables, params.athleteId);
-  if (athleteUserId === params.authUserId) {
-    return true;
-  }
-
-  return asRows(params.tables.guardianChildLinks).some(
-    (row) =>
-      asString(row.athleteId) === params.athleteId &&
-      asString(row.guardianUserId) === params.authUserId,
-  );
-}
 
 function getScheduleWindow(session: SeedRow): { startsAt: string; durationMinutes: number } {
   const schedule = asRows(session.scheduleJson);
@@ -423,105 +438,6 @@ const createInviteRequestSchema = z.object({
   currency: z.string().trim().length(3).optional(),
 });
 
-function registerAthleteInSeedGroupSession(params: {
-  tables: SeedTables;
-  session: SeedRow;
-  athleteId: string;
-  authUserId: string;
-  bookedByUserId: string;
-  requestId: string;
-  note: string;
-}) {
-  const { tables, session, athleteId, authUserId, bookedByUserId, requestId, note } = params;
-  const registrations = asRows(tables.groupSessionRegistrations);
-  const sessionId = asString(session.id);
-  if (!sessionId) {
-    throw notFound('Group session is missing an id');
-  }
-
-  const activeRegistration = registrations.find(
-    (row) =>
-      asString(row.groupSessionId) === sessionId &&
-      asString(row.athleteId) === athleteId &&
-      asString(row.status) !== 'CANCELLED',
-  );
-
-  if (activeRegistration) {
-    return {
-      registration: activeRegistration,
-      booking: null,
-    };
-  }
-
-  const currentParticipants = asNumber(session.currentParticipants) ?? 0;
-  const maxParticipants = asNumber(session.maxParticipants) ?? 0;
-  const waitlistEnabled = Boolean(session.waitlistEnabled);
-  const isFull = maxParticipants > 0 && currentParticipants >= maxParticipants;
-
-  if (isFull && !waitlistEnabled) {
-    throw badRequest('Group session is full');
-  }
-
-  const now = isoNow();
-  const status = isFull ? 'WAITLISTED' : 'REGISTERED';
-  const registration: SeedRow = {
-    id: newId('gsr'),
-    groupSessionId: sessionId,
-    athleteId,
-    parentUserId: bookedByUserId,
-    status,
-    paidAt: isFull ? null : now,
-    notes: note,
-    createdByUserId: authUserId,
-    updatedByUserId: authUserId,
-    version: 1,
-    registeredAt: now,
-    updatedAt: now,
-    deletedAt: null,
-    deletedByUserId: null,
-  };
-  registrations.push(registration);
-
-  let booking = null;
-  if (isFull) {
-    session.waitlistCount = (asNumber(session.waitlistCount) ?? 0) + 1;
-  } else {
-    const updatedParticipants = currentParticipants + 1;
-    session.currentParticipants = updatedParticipants;
-    session.status = normalizeSessionStatusForCapacity(updatedParticipants, maxParticipants);
-    const { startsAt, durationMinutes } = getScheduleWindow(session);
-    booking = createBookingInSeedTables({
-      tables,
-      authUserId,
-      requestId,
-      body: createBookingRequestSchema.parse({
-        coachUserId: asString(session.coachUserId),
-        athleteIds: [athleteId],
-        bookedByUserId,
-        scheduledAt: startsAt,
-        durationMinutes,
-        location: asString(session.location) ?? 'Club training ground',
-        serviceType: asString(session.sessionType) ?? 'group_session',
-        objectives: asRows(session.focusJson)
-          .map((value) => asString(value))
-          .filter((value): value is string => Boolean(value)),
-        notes: note,
-        priceMinor: asNumber(session.pricePerParticipantMinor) ?? 0,
-        currency: asString(session.currency) ?? 'GBP',
-      }),
-      bookingRowOverrides: {
-        groupSessionId: sessionId,
-        clubId: asString(session.clubId) ?? null,
-      },
-    });
-  }
-
-  return {
-    registration,
-    booking,
-  };
-}
-
 const bookingRoutes: FastifyPluginAsync = async (app) => {
   app.get('/bookings', async (request, reply) => {
     const authUserId = request.auth?.userId;
@@ -638,75 +554,116 @@ const bookingRoutes: FastifyPluginAsync = async (app) => {
     }
 
     const query = groupSessionQuerySchema.parse(request.query ?? {});
-    const statusFilter = query.status?.toUpperCase();
     const isPrivilegedAdmin = isPrivilegedAdminAuth(request.auth);
-
-    const store = getMarketplaceSeedStore();
-    const sessions = asRows(store.tables.groupSessions);
-    const registrations = asRows(store.tables.groupSessionRegistrations);
-    const inviteTargets = asRows(store.tables.inviteTargets);
-    const invites = asRows(store.tables.invites);
-    const athletes = asRows(store.tables.athletes);
-
-    const athleteUserIdsByAthleteId = new Map(
-      athletes
-        .map((row) => [asString(row.id), asString(row.userId)] as const)
-        .filter(([id]) => Boolean(id))
-        .map(([id, userId]) => [id as string, userId]),
-    );
-
-    const visible = sessions.filter((session) => {
-      const sessionId = asString(session.id);
-      if (!sessionId) {
-        return false;
-      }
-      if (statusFilter && asString(session.status)?.toUpperCase() !== statusFilter) {
-        return false;
-      }
-      if (isPrivilegedAdmin || asString(session.coachUserId) === authUserId) {
-        return true;
-      }
-
-      const hasRegistration = registrations.some((row) => {
-        if (asString(row.groupSessionId) !== sessionId) {
-          return false;
-        }
-        if (asString(row.parentUserId) === authUserId) {
-          return true;
-        }
-        const athleteId = asString(row.athleteId);
-        return Boolean(athleteId && athleteUserIdsByAthleteId.get(athleteId) === authUserId);
-      });
-      if (hasRegistration) {
-        return true;
-      }
-
-      const sessionInviteIds = invites
-        .filter((row) => asString(row.groupSessionId) === sessionId)
-        .map((row) => asString(row.id))
-        .filter((id): id is string => Boolean(id));
-      return inviteTargets.some(
-        (target) =>
-          sessionInviteIds.includes(asString(target.inviteId) ?? '') &&
-          asString(target.targetUserId) === authUserId,
-      );
-    });
-
-    const rows = visible.map((session) => {
-      const sessionId = asString(session.id);
-      const sessionRegistrations = registrations.filter(
-        (row) => asString(row.groupSessionId) === sessionId,
-      );
-      return {
-        ...session,
-        registrations: sessionRegistrations,
-      };
+    const repository = resolveGroupSessionRepository();
+    const result = await repository.listVisibleSessions({
+      authUserId,
+      isPrivilegedAdmin,
+      statusFilter: query.status?.toUpperCase(),
+      coachUserId: asString(query.coachUserId),
+      clubId: asString(query.clubId),
+      squadId: asString(query.squadId),
+      athleteId: asString(query.athleteId),
+      sessionType: asString(query.sessionType),
+      skillLevel: asString(query.skillLevel),
+      discover: query.discover,
     });
 
     return reply.send({
-      groupSessions: rows,
-      total: rows.length,
-      seedVersion: store.version,
+      groupSessions: result.sessions,
+      total: result.sessions.length,
+      seedVersion: result.dataVersion,
+      requestId: request.requestId,
+    });
+  });
+
+  app.get('/group-sessions/:sessionId', async (request, reply) => {
+    const authUserId = request.auth?.userId;
+    if (!authUserId) {
+      throw forbidden('Authenticated user is required');
+    }
+
+    const sessionId = asString((request.params as { sessionId?: string } | undefined)?.sessionId);
+    if (!sessionId) {
+      throw notFound('Group session id is required');
+    }
+
+    const result = await resolveGroupSessionRepository().getVisibleSessionById({
+      authUserId,
+      isPrivilegedAdmin: isPrivilegedAdminAuth(request.auth),
+      sessionId,
+    });
+
+    return reply.send({
+      groupSession: result.session,
+      seedVersion: result.dataVersion,
+      requestId: request.requestId,
+    });
+  });
+
+  app.post('/group-sessions', async (request, reply) => {
+    const authUserId = request.auth?.userId;
+    if (!authUserId) {
+      throw forbidden('Authenticated user is required');
+    }
+
+    const result = await resolveGroupSessionRepository().createSession({
+      authUserId,
+      isPrivilegedAdmin: isPrivilegedAdminAuth(request.auth),
+      body: createGroupSessionRequestSchema.parse(request.body ?? {}),
+    });
+
+    return reply.status(201).send({
+      groupSession: result.session,
+      seedVersion: result.dataVersion,
+      requestId: request.requestId,
+    });
+  });
+
+  app.patch('/group-sessions/:sessionId/publish', async (request, reply) => {
+    const authUserId = request.auth?.userId;
+    if (!authUserId) {
+      throw forbidden('Authenticated user is required');
+    }
+
+    const sessionId = asString((request.params as { sessionId?: string } | undefined)?.sessionId);
+    if (!sessionId) {
+      throw notFound('Group session id is required');
+    }
+
+    const result = await resolveGroupSessionRepository().publishSession({
+      authUserId,
+      isPrivilegedAdmin: isPrivilegedAdminAuth(request.auth),
+      sessionId,
+    });
+
+    return reply.send({
+      groupSession: result.session,
+      seedVersion: result.dataVersion,
+      requestId: request.requestId,
+    });
+  });
+
+  app.patch('/group-sessions/:sessionId/cancel', async (request, reply) => {
+    const authUserId = request.auth?.userId;
+    if (!authUserId) {
+      throw forbidden('Authenticated user is required');
+    }
+
+    const sessionId = asString((request.params as { sessionId?: string } | undefined)?.sessionId);
+    if (!sessionId) {
+      throw notFound('Group session id is required');
+    }
+
+    const result = await resolveGroupSessionRepository().cancelSession({
+      authUserId,
+      isPrivilegedAdmin: isPrivilegedAdminAuth(request.auth),
+      sessionId,
+    });
+
+    return reply.send({
+      groupSession: result.session,
+      seedVersion: result.dataVersion,
       requestId: request.requestId,
     });
   });
@@ -727,49 +684,133 @@ const bookingRoutes: FastifyPluginAsync = async (app) => {
     if (!isPrivilegedAdmin && body.parentUserId && body.parentUserId !== authUserId) {
       throw forbidden('parentUserId must match authenticated user');
     }
-
-    const store = getMarketplaceSeedStore();
-    const session = asRows(store.tables.groupSessions).find(
-      (row) => asString(row.id) === sessionId,
-    );
-    if (!session) {
-      throw notFound('Group session not found', { sessionId });
-    }
-
-    if (
-      !canRegisterAthlete({
-        tables: store.tables,
-        authUserId,
-        athleteId: body.athleteId,
-        isClubAdmin: isPrivilegedAdmin,
-      })
-    ) {
-      throw forbidden('Authenticated user cannot register this athlete');
-    }
-
-    const result = registerAthleteInSeedGroupSession({
-      tables: store.tables,
-      session,
-      athleteId: body.athleteId,
+    const result = await resolveGroupSessionRepository().registerAthlete({
       authUserId,
-      bookedByUserId: body.parentUserId ?? authUserId,
+      isPrivilegedAdmin,
       requestId: request.requestId,
+      sessionId,
+      athleteId: body.athleteId,
+      bookedByUserId: body.parentUserId ?? authUserId,
       note: 'Registered via /v1/group-sessions/:sessionId/register',
     });
 
     return reply.send({
       registration: {
-        id: asString(result.registration.id),
-        sessionId,
-        athleteId: asString(result.registration.athleteId),
-        parentUserId: asString(result.registration.parentUserId),
-        status: asString(result.registration.status),
-        registeredAt: asString(result.registration.registeredAt),
-        paidAt: asString(result.registration.paidAt) ?? null,
-        notes: asString(result.registration.notes) ?? null,
+        id: result.registration.id,
+        sessionId: result.registration.sessionId,
+        athleteId: result.registration.athleteId,
+        parentUserId: result.registration.parentId,
+        status: result.registration.status,
+        registeredAt: result.registration.registeredAt,
+        paidAt: result.registration.paidAt ?? null,
+        notes: result.registration.notes ?? null,
       },
       booking: result.booking,
-      sessionStatus: asString(session.status) ?? 'PUBLISHED',
+      sessionStatus: result.sessionStatus,
+      seedVersion: result.dataVersion,
+      requestId: request.requestId,
+    });
+  });
+
+  app.get('/group-sessions/:sessionId/roster', async (request, reply) => {
+    const authUserId = request.auth?.userId;
+    if (!authUserId) {
+      throw forbidden('Authenticated user is required');
+    }
+
+    const sessionId = asString((request.params as { sessionId?: string } | undefined)?.sessionId);
+    if (!sessionId) {
+      throw notFound('Group session id is required');
+    }
+
+    const result = await resolveGroupSessionRepository().listSessionRoster({
+      authUserId,
+      isPrivilegedAdmin: isPrivilegedAdminAuth(request.auth),
+      sessionId,
+    });
+
+    return reply.send({
+      session: result.session,
+      registrations: result.registrations,
+      total: result.registrations.length,
+      seedVersion: result.dataVersion,
+      requestId: request.requestId,
+    });
+  });
+
+  app.delete('/group-session-registrations/:registrationId', async (request, reply) => {
+    const authUserId = request.auth?.userId;
+    if (!authUserId) {
+      throw forbidden('Authenticated user is required');
+    }
+
+    const registrationId = asString(
+      (request.params as { registrationId?: string } | undefined)?.registrationId,
+    );
+    if (!registrationId) {
+      throw notFound('Registration id is required');
+    }
+
+    await resolveGroupSessionRepository().cancelRegistration({
+      authUserId,
+      isPrivilegedAdmin: isPrivilegedAdminAuth(request.auth),
+      registrationId,
+    });
+
+    return reply.status(204).send();
+  });
+
+  app.patch('/group-session-registrations/:registrationId/attendance', async (request, reply) => {
+    const authUserId = request.auth?.userId;
+    if (!authUserId) {
+      throw forbidden('Authenticated user is required');
+    }
+
+    const registrationId = asString(
+      (request.params as { registrationId?: string } | undefined)?.registrationId,
+    );
+    if (!registrationId) {
+      throw notFound('Registration id is required');
+    }
+
+    const body = markGroupSessionAttendanceRequestSchema.parse(request.body ?? {});
+    const result = await resolveGroupSessionRepository().markAttendance({
+      authUserId,
+      isPrivilegedAdmin: isPrivilegedAdminAuth(request.auth),
+      registrationId,
+      date: body.date,
+      attended: body.attended,
+    });
+
+    return reply.send({
+      registration: result.registration,
+      seedVersion: result.dataVersion,
+      requestId: request.requestId,
+    });
+  });
+
+  app.get('/group-session-registrations', async (request, reply) => {
+    const authUserId = request.auth?.userId;
+    if (!authUserId) {
+      throw forbidden('Authenticated user is required');
+    }
+
+    const query = groupSessionRegistrationsQuerySchema.parse(request.query ?? {});
+    const athleteIds = splitCsvQueryValue(asString(query.athleteIds));
+    if (athleteIds.length === 0) {
+      throw badRequest('athleteIds is required');
+    }
+
+    const result = await resolveGroupSessionRepository().listRegistrationsForAthleteIds({
+      authUserId,
+      isPrivilegedAdmin: isPrivilegedAdminAuth(request.auth),
+      athleteIds,
+    });
+
+    return reply.send({
+      registrations: result.registrations,
+      total: result.registrations.length,
+      seedVersion: result.dataVersion,
       requestId: request.requestId,
     });
   });
@@ -976,6 +1017,7 @@ const bookingRoutes: FastifyPluginAsync = async (app) => {
     }
 
     const store = getMarketplaceSeedStore();
+    const groupSessionRepository = resolveGroupSessionRepository();
     const users = asRows(store.tables.users);
     const coachExists = users.some((row) => asString(row.id) === body.coachUserId);
     if (!coachExists) {
@@ -993,10 +1035,8 @@ const bookingRoutes: FastifyPluginAsync = async (app) => {
 
     const guardianLinks = asRows(store.tables.guardianChildLinks);
     const linkedGroupSession = body.existingSessionId
-      ? asRows(store.tables.groupSessions).find(
-          (row) => asString(row.id) === body.existingSessionId,
-        )
-      : undefined;
+      ? await groupSessionRepository.findSessionById(body.existingSessionId)
+      : null;
 
     const targetsToCreate = body.athleteIds.map((athleteId) => {
       const guardianLink = guardianLinks.find(
@@ -1043,7 +1083,7 @@ const bookingRoutes: FastifyPluginAsync = async (app) => {
     const inviteRow: SeedRow = {
       id: inviteId,
       senderUserId: body.coachUserId,
-      clubId: asString(linkedGroupSession?.clubId) ?? null,
+      clubId: linkedGroupSession?.clubId ?? null,
       eventId: null,
       groupSessionId: linkedGroupSession ? body.existingSessionId : null,
       bookingId: null,
@@ -1293,16 +1333,14 @@ const bookingRoutes: FastifyPluginAsync = async (app) => {
 
     const now = isoNow();
     let registrationId: string | null = null;
-    let registrationStatus: 'REGISTERED' | 'WAITLISTED' | null = null;
+    let registrationStatus: 'REGISTERED' | 'WAITLISTED' | 'CANCELLED' | 'ATTENDED' | 'NO_SHOW' | null = null;
     let booking = null;
     const groupSessionId = asString(invite.groupSessionId);
     const metadata = asObject(invite.metadataJson);
     if (body.response === 'ACCEPTED') {
       if (groupSessionId) {
-        const session = asRows(store.tables.groupSessions).find(
-          (row) => asString(row.id) === groupSessionId,
-        );
-        if (!session) {
+        const linkedSession = await resolveGroupSessionRepository().findSessionById(groupSessionId);
+        if (!linkedSession) {
           throw notFound('Linked group session not found', { groupSessionId });
         }
 
@@ -1312,23 +1350,19 @@ const bookingRoutes: FastifyPluginAsync = async (app) => {
             continue;
           }
 
-          const registrationResult = registerAthleteInSeedGroupSession({
-            tables: store.tables,
-            session,
-            athleteId: targetAthleteId,
+          const registrationResult = await resolveGroupSessionRepository().registerAthlete({
             authUserId,
-            bookedByUserId: authUserId,
+            isPrivilegedAdmin: isPrivilegedAdminAuth(request.auth),
             requestId: request.requestId,
+            sessionId: groupSessionId,
+            athleteId: targetAthleteId,
+            bookedByUserId: authUserId,
             note: 'Accepted via /v1/invites/:inviteId/respond',
           });
 
           if (!registrationId) {
-            registrationId = asString(registrationResult.registration.id) ?? null;
-            registrationStatus =
-              (asString(registrationResult.registration.status) as
-                | 'REGISTERED'
-                | 'WAITLISTED'
-                | undefined) ?? null;
+            registrationId = registrationResult.registration.id;
+            registrationStatus = registrationResult.registration.status;
           }
           booking = booking ?? registrationResult.booking;
         }
