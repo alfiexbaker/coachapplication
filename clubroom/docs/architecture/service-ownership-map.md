@@ -67,6 +67,7 @@ Purpose: identify the service entrypoints that are safe to build on and call out
 - `services/availability-service.ts`
 - Canonical availability surface for templates, overrides, slot generation, and coach schedule reads
 - Non-mock signed-in coach self-manage path uses `/v1/coaches/me/availability/templates` and `/v1/coaches/me/availability/overrides`
+- `db` mode now resolves those coach-self availability routes through a shared repository instead of route-local marketplace seed tables
 - Non-mock booking and invite slot reads now use `GET /v1/coaches/:coachId/availability/slots`
 - Runtime rule: booking and invite surfaces request bookable slots with scheduling-rule and pending-hold filtering; the coach self calendar still reads raw availability
 
@@ -75,6 +76,7 @@ Purpose: identify the service entrypoints that are safe to build on and call out
 - `services/scheduling-rules-service.ts`
 - Canonical scheduling plus cancellation-policy surface
 - Non-mock signed-in coach self-manage path uses `GET/PATCH /v1/coaches/me/scheduling-rules`
+- `db` mode now resolves those coach-self scheduling routes through the same repository seam as profile, offerings, and availability
 - Non-self coach reads still fall back to local projection until invoice and booking policy authority is fully backend-owned
 
 ### Community

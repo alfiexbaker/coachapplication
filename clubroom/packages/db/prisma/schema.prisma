@@ -677,6 +677,8 @@ model AvailabilityTemplate {
   endTimeLocal       String
   location           String?
   maxConcurrent      Int?
+  bufferMinutes      Int?
+  sessionTemplateId  String?
   active             Boolean  @default(true)
   createdByUserId    String
   updatedByUserId    String
@@ -697,8 +699,13 @@ model AvailabilityOverride {
   overrideDate       DateTime
   startTimeLocal     String?
   endTimeLocal       String?
+  location           String?
+  active             Boolean  @default(true)
   isBlocked          Boolean  @default(false)
   reason             String?
+  repeatUntil        DateTime?
+  repeatDayOfWeek    Int?
+  repeatGroupId      String?
   createdByUserId    String
   updatedByUserId    String
   version            BigInt   @default(1)
@@ -731,12 +738,14 @@ model CancellationPolicyRule {
   id                 String   @id
   coachUserId        String
   name               String
+  description        String?
   noticeHoursMin     Int
   refundPercent      Int?
   feeMinor           Int?
   currency           String   @default("GBP")
   appliesToNoShow    Boolean  @default(false)
   sortOrder          Int      @default(0)
+  isDefault          Boolean  @default(false)
   active             Boolean  @default(true)
   createdByUserId    String
   updatedByUserId    String

@@ -68,6 +68,8 @@ Clubs manage staff, squads, visibility, and operating relationships.
   - shared backend authz now decides the remaining privileged-admin/staff-link checks for `/v1/clubs*`, `/v1/families/:familyId`, `/v1/invoices*`, `/v1/access-grants`, `/v1/admin/retention-runs`, and the invite/group-session booking routes instead of route-local role drift
   - coach profile in non-mock mode now reads its own offerings from `/v1/coaches/me/offerings` and writes go-live state through `PATCH /v1/auth/me` instead of local-only toggles
   - coach self-serve availability and scheduling rules in non-mock mode now use `/v1/coaches/me/availability/*` and `/v1/coaches/me/scheduling-rules`; `availabilityService` and `schedulingRulesService` no longer treat local storage as the authority for the signed-in coach path
+  - coach self profile, offerings, availability templates/overrides, and scheduling rules now resolve through a shared coach-self repository in `db` mode instead of route-local marketplace seed-table reads and writes
+  - Prisma release import now carries the coach-self graph (`CoachProfile`, `CoachLocation`, `CoachingOffering`, `AvailabilityTemplate`, `AvailabilityOverride`, `SchedulingRule`, `CancellationPolicyRule`) so production `db` mode no longer ships an empty coach scheduling workspace after seed import
   - non-mock booking and invite slot reads now use `GET /v1/coaches/:coachId/availability/slots`; booking and invite surfaces request bookable slots with scheduling-rule and pending-hold filtering, while the coach self calendar still reads raw availability
   - invoice list/detail/reconciler status flows in non-mock mode now use `/v1/invoices*`; `invoiceService` no longer treats local invoice storage as the authority outside mock mode, and the normal booking synthetic-invoice fallback has been removed from coach reconciler reads
   - invoice generation and reminder/send flows in non-mock mode now use `POST /v1/invoices/generate` and `POST /v1/invoices/:invoiceId/reminders`; invoice creation is idempotent by booking, and reminder delivery is queued and audited by the backend
@@ -90,7 +92,7 @@ Clubs manage staff, squads, visibility, and operating relationships.
   - booking changes are intentionally `cancel` or `reopen`; the old counter-offer and invite counter workflow has been removed from the runtime product surface
   - coach scheduling rules no longer advertise a separate reschedule policy; bookings now change by cancellation and rebooking/reopening instead of negotiation
   - Expo native/web and `apps/api` now emit to Sentry with shared release/environment tags, Expo web source maps via `npm run export:web`, and API source maps via `npm --prefix apps/api run build:release`
-  - the next production follow-through moves on from ops hardening to live provider cutover and the remaining release blockers surfaced by `/v1/ready`
+  - the next production follow-through moves on from coach-self cutover to the remaining group-session and community/media route migration, then to live provider cutover and the remaining release blockers surfaced by `/v1/ready`
 - Club-facing schedule surfaces now use a `ClubActivity` read model to link `ClubEvent` and `GroupSession`
   - `ClubActivity` now also includes `Match`, so club and squad schedule routes can show events, training, and matches in one surface
   - club-linked open group sessions are treated as mixed-access training, not as a separate public product world

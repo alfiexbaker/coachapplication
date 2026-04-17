@@ -2,7 +2,9 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import path from 'node:path';
 import { after, beforeEach, describe, it } from 'node:test';
+import { env } from '@clubroom/config';
 import { buildApp } from '../../app.js';
+import { getDbFixtureStore, resetDbFixtureStoreForTests } from '../../lib/db-fixture-store.js';
 import { getMarketplaceSeedStore } from '../../lib/marketplace-seed-store.js';
 import { resetMarketplaceSeedStoreForTests } from '../../lib/marketplace-seed-store.js';
 import { resetCoachClubRouteStateForTests } from './routes.js';
@@ -80,6 +82,7 @@ describe('coach-club routes', () => {
 
   beforeEach(() => {
     resetMarketplaceSeedStoreForTests();
+    resetDbFixtureStoreForTests();
     resetCoachClubRouteStateForTests();
   });
 
@@ -348,6 +351,135 @@ describe('coach-club routes', () => {
       filteredPayload.slots.some((slot) => slot.date === targetDate && slot.startTime === '10:00'),
       false,
     );
+  });
+
+  it('keeps coach self profile, availability, and scheduling writes working in db fixture mode', async () => {
+    const previousBackend = env.API_DATA_BACKEND;
+    env.API_DATA_BACKEND = 'db';
+
+    try {
+      const tables = loadTables();
+      const coachUserId = getSeededCoachUserId(tables);
+
+      const profile = await app.inject({
+        method: 'GET',
+        url: '/v1/coaches/me/profile',
+        headers: authHeaders(tables, coachUserId, 'coach'),
+      });
+      assert.equal(profile.statusCode, 200);
+      const profilePayload = profile.json() as {
+        locations: unknown[];
+        availabilityTemplates: unknown[];
+      };
+      assert.equal(profilePayload.locations.length >= 1, true);
+      assert.equal(profilePayload.availabilityTemplates.length >= 1, true);
+
+      const offerings = await app.inject({
+        method: 'GET',
+        url: '/v1/coaches/me/offerings',
+        headers: authHeaders(tables, coachUserId, 'coach'),
+      });
+      assert.equal(offerings.statusCode, 200);
+      assert.equal((offerings.json() as { total: number }).total >= 1, true);
+
+      const templateCreate = await app.inject({
+        method: 'POST',
+        url: '/v1/coaches/me/availability/templates',
+        headers: authHeaders(tables, coachUserId, 'coach'),
+        payload: {
+          dayOfWeek: 2,
+          startTime: '10:00',
+          endTime: '12:00',
+          maxConcurrent: 2,
+          bufferMinutes: 20,
+          location: 'DB Fixture Dome',
+        },
+      });
+      assert.equal(templateCreate.statusCode, 201);
+      const createdTemplate = templateCreate.json() as {
+        id: string;
+        bufferMinutes: number;
+        location?: string;
+      };
+      assert.equal(createdTemplate.bufferMinutes, 20);
+      assert.equal(createdTemplate.location, 'DB Fixture Dome');
+
+      const overrideDate = addDaysIso(20);
+      const overrideCreate = await app.inject({
+        method: 'POST',
+        url: '/v1/coaches/me/availability/overrides',
+        headers: authHeaders(tables, coachUserId, 'coach'),
+        payload: {
+          date: overrideDate,
+          isBlocked: false,
+          customSlots: [{ startTime: '13:00', endTime: '14:00', location: 'Indoor 3G' }],
+          repeatUntil: addDaysIso(27),
+          repeatDayOfWeek: new Date(`${overrideDate}T00:00:00.000Z`).getUTCDay(),
+          repeatGroupId: 'grp_fixture_override',
+        },
+      });
+      assert.equal(overrideCreate.statusCode, 201);
+      const createdOverride = overrideCreate.json() as {
+        id: string;
+        customSlots?: Array<{ location?: string }>;
+        repeatGroupId?: string;
+      };
+      assert.equal(createdOverride.customSlots?.[0]?.location, 'Indoor 3G');
+      assert.equal(createdOverride.repeatGroupId, 'grp_fixture_override');
+
+      const rulesPatch = await app.inject({
+        method: 'PATCH',
+        url: '/v1/coaches/me/scheduling-rules',
+        headers: authHeaders(tables, coachUserId, 'coach'),
+        payload: {
+          minimumAdvanceBookingHours: 48,
+          bufferMinutesDefault: 30,
+          allowSameDayBookings: false,
+          cancellationPolicy: {
+            name: 'Fixture policy',
+            description: 'DB fixture policy',
+            tiers: [
+              { hoursBeforeSession: 24, refundPercentage: 100, description: 'Full refund' },
+              { hoursBeforeSession: 0, refundPercentage: 0, description: 'No refund' },
+            ],
+            minimumNoticeHours: 0,
+            allowCancellations: true,
+            isDefault: false,
+          },
+        },
+      });
+      assert.equal(rulesPatch.statusCode, 200);
+      const rulesPayload = rulesPatch.json() as {
+        rules: { minimumAdvanceBookingHours: number; bufferMinutesDefault: number };
+        cancellationPolicy: { name: string; tiers: unknown[] } | null;
+      };
+      assert.equal(rulesPayload.rules.minimumAdvanceBookingHours, 48);
+      assert.equal(rulesPayload.rules.bufferMinutesDefault, 30);
+      assert.equal(rulesPayload.cancellationPolicy?.name, 'Fixture policy');
+      assert.equal(rulesPayload.cancellationPolicy?.tiers.length, 2);
+
+      const fixtureTables = getDbFixtureStore().tables;
+      const storedTemplate = asRows(fixtureTables.availabilityTemplates).find(
+        (row) => asString(row.id) === createdTemplate.id,
+      );
+      const storedOverride = asRows(fixtureTables.availabilityOverrides).find(
+        (row) => asString(row.id) === createdOverride.id,
+      );
+      const storedRules = asRows(fixtureTables.schedulingRules).find(
+        (row) => asString(row.coachUserId) === coachUserId,
+      );
+      assert.ok(storedTemplate, 'expected template persisted in db fixture store');
+      assert.ok(storedOverride, 'expected override persisted in db fixture store');
+      assert.ok(storedRules, 'expected scheduling rules persisted in db fixture store');
+      assert.equal(Number(storedTemplate?.bufferMinutes), 20);
+      assert.equal(asString(storedOverride?.repeatGroupId), 'grp_fixture_override');
+      assert.equal(Number(storedRules?.minimumAdvanceBookingHours), 48);
+    } finally {
+      env.API_DATA_BACKEND = previousBackend;
+      resetMarketplaceSeedStoreForTests();
+      resetDbFixtureStoreForTests();
+      resetCoachClubRouteStateForTests();
+    }
   });
 
   it('returns club event detail for an authorized member', async () => {

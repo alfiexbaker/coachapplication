@@ -73,6 +73,13 @@ async function main() {
     await tx.clubMembership.deleteMany();
     await tx.club.deleteMany();
     await tx.passwordCredential.deleteMany();
+    await tx.cancellationPolicyRule.deleteMany();
+    await tx.schedulingRule.deleteMany();
+    await tx.availabilityOverride.deleteMany();
+    await tx.availabilityTemplate.deleteMany();
+    await tx.coachingOffering.deleteMany();
+    await tx.coachLocation.deleteMany();
+    await tx.coachProfile.deleteMany();
     await tx.bookingStatusEvent.deleteMany();
     await tx.bookingObjective.deleteMany();
     await tx.bookingParticipant.deleteMany();
@@ -256,6 +263,155 @@ async function main() {
     });
     if (clubInviteCodes.length > 0) {
       await tx.clubInviteCode.createMany({ data: clubInviteCodes });
+    }
+
+    const coachProfiles = asRows(tables.coachProfiles).map((row) => ({
+      userId: row.userId,
+      bio: asString(row.bio) ?? null,
+      yearsExperience: typeof row.yearsExperience === 'number' ? row.yearsExperience : null,
+      sessionRateMinor: typeof row.sessionRateMinor === 'number' ? row.sessionRateMinor : null,
+      currency: asString(row.currency) ?? 'GBP',
+      dbsChecked: typeof row.dbsChecked === 'boolean' ? row.dbsChecked : null,
+      specialties: asArray(row.specialties).map((value) => String(value)),
+      qualifications: asArray(row.qualifications).map((value) => String(value)),
+      createdAt: toDate(row.createdAt) ?? new Date(),
+      updatedAt: toDate(row.updatedAt) ?? new Date(),
+      deletedAt: toDate(row.deletedAt),
+    }));
+    if (coachProfiles.length > 0) {
+      await tx.coachProfile.createMany({ data: coachProfiles });
+    }
+
+    const coachLocations = asRows(tables.coachLocations).map((row) => ({
+      id: row.id,
+      coachUserId: row.coachUserId,
+      label: asString(row.label) ?? 'Coach location',
+      addressText: asString(row.addressText) ?? null,
+      latLngJson: row.latLngJson ?? null,
+      isDefault: asBoolean(row.isDefault, false),
+      createdByUserId: asString(row.createdByUserId) ?? asString(row.coachUserId) ?? '',
+      updatedByUserId: asString(row.updatedByUserId) ?? asString(row.coachUserId) ?? '',
+      version: toBigInt(row.version, 1),
+      createdAt: toDate(row.createdAt) ?? new Date(),
+      updatedAt: toDate(row.updatedAt) ?? new Date(),
+      deletedAt: toDate(row.deletedAt),
+      deletedByUserId: asString(row.deletedByUserId) ?? null,
+    }));
+    if (coachLocations.length > 0) {
+      await tx.coachLocation.createMany({ data: coachLocations });
+    }
+
+    const coachingOfferings = asRows(tables.coachingOfferings).map((row) => ({
+      id: row.id,
+      coachUserId: row.coachUserId,
+      title: asString(row.title) ?? 'Coaching session',
+      serviceType: asString(row.serviceType) ?? 'one_to_one',
+      durationMinutes: asNumber(row.durationMinutes, 60),
+      capacity: asNumber(row.capacity, 1),
+      priceMinor: asNumber(row.priceMinor, 0),
+      currency: asString(row.currency) ?? 'GBP',
+      description: asString(row.description) ?? null,
+      defaultLocation: asString(row.defaultLocation) ?? null,
+      active: asBoolean(row.active, true),
+      createdByUserId: asString(row.createdByUserId) ?? asString(row.coachUserId) ?? '',
+      updatedByUserId: asString(row.updatedByUserId) ?? asString(row.coachUserId) ?? '',
+      version: toBigInt(row.version, 1),
+      createdAt: toDate(row.createdAt) ?? new Date(),
+      updatedAt: toDate(row.updatedAt) ?? new Date(),
+      deletedAt: toDate(row.deletedAt),
+      deletedByUserId: asString(row.deletedByUserId) ?? null,
+    }));
+    if (coachingOfferings.length > 0) {
+      await tx.coachingOffering.createMany({ data: coachingOfferings });
+    }
+
+    const availabilityTemplates = asRows(tables.availabilityTemplates).map((row) => ({
+      id: row.id,
+      coachUserId: row.coachUserId,
+      dayOfWeek: asNumber(row.dayOfWeek, 0),
+      startTimeLocal: asString(row.startTimeLocal) ?? '00:00',
+      endTimeLocal: asString(row.endTimeLocal) ?? '00:00',
+      location: asString(row.location) ?? null,
+      maxConcurrent: typeof row.maxConcurrent === 'number' ? row.maxConcurrent : null,
+      bufferMinutes: typeof row.bufferMinutes === 'number' ? row.bufferMinutes : null,
+      sessionTemplateId: asString(row.sessionTemplateId) ?? null,
+      active: asBoolean(row.active, true),
+      createdByUserId: asString(row.createdByUserId) ?? asString(row.coachUserId) ?? '',
+      updatedByUserId: asString(row.updatedByUserId) ?? asString(row.coachUserId) ?? '',
+      version: toBigInt(row.version, 1),
+      createdAt: toDate(row.createdAt) ?? new Date(),
+      updatedAt: toDate(row.updatedAt) ?? new Date(),
+      deletedAt: toDate(row.deletedAt),
+      deletedByUserId: asString(row.deletedByUserId) ?? null,
+    }));
+    if (availabilityTemplates.length > 0) {
+      await tx.availabilityTemplate.createMany({ data: availabilityTemplates });
+    }
+
+    const availabilityOverrides = asRows(tables.availabilityOverrides).map((row) => ({
+      id: row.id,
+      coachUserId: row.coachUserId,
+      overrideDate: toDate(row.overrideDate) ?? new Date(),
+      startTimeLocal: asString(row.startTimeLocal) ?? null,
+      endTimeLocal: asString(row.endTimeLocal) ?? null,
+      location: asString(row.location) ?? null,
+      active: asBoolean(row.active, true),
+      isBlocked: asBoolean(row.isBlocked, false),
+      reason: asString(row.reason) ?? null,
+      repeatUntil: toDate(row.repeatUntil),
+      repeatDayOfWeek: typeof row.repeatDayOfWeek === 'number' ? row.repeatDayOfWeek : null,
+      repeatGroupId: asString(row.repeatGroupId) ?? null,
+      createdByUserId: asString(row.createdByUserId) ?? asString(row.coachUserId) ?? '',
+      updatedByUserId: asString(row.updatedByUserId) ?? asString(row.coachUserId) ?? '',
+      version: toBigInt(row.version, 1),
+      createdAt: toDate(row.createdAt) ?? new Date(),
+      updatedAt: toDate(row.updatedAt) ?? new Date(),
+      deletedAt: toDate(row.deletedAt),
+      deletedByUserId: asString(row.deletedByUserId) ?? null,
+    }));
+    if (availabilityOverrides.length > 0) {
+      await tx.availabilityOverride.createMany({ data: availabilityOverrides });
+    }
+
+    const schedulingRules = asRows(tables.schedulingRules).map((row) => ({
+      coachUserId: row.coachUserId,
+      minimumAdvanceBookingHours: asNumber(row.minimumAdvanceBookingHours, 24),
+      maxAdvanceBookingDays: asNumber(row.maxAdvanceBookingDays, 60),
+      bufferMinutesDefault: asNumber(row.bufferMinutesDefault, 15),
+      maxConcurrentDefault: asNumber(row.maxConcurrentDefault, 1),
+      allowSameDayBookings: asBoolean(row.allowSameDayBookings, false),
+      confirmationMode: asString(row.confirmationMode) ?? 'manual',
+      cancellationPolicyId: asString(row.cancellationPolicyId) ?? null,
+      createdAt: toDate(row.createdAt) ?? new Date(),
+      updatedAt: toDate(row.updatedAt) ?? new Date(),
+    }));
+    if (schedulingRules.length > 0) {
+      await tx.schedulingRule.createMany({ data: schedulingRules });
+    }
+
+    const cancellationPolicyRules = asRows(tables.cancellationPolicyRules).map((row) => ({
+      id: row.id,
+      coachUserId: row.coachUserId,
+      name: asString(row.name) ?? 'Cancellation policy',
+      description: asString(row.description) ?? null,
+      noticeHoursMin: asNumber(row.noticeHoursMin, 0),
+      refundPercent: typeof row.refundPercent === 'number' ? row.refundPercent : null,
+      feeMinor: typeof row.feeMinor === 'number' ? row.feeMinor : null,
+      currency: asString(row.currency) ?? 'GBP',
+      appliesToNoShow: asBoolean(row.appliesToNoShow, false),
+      sortOrder: asNumber(row.sortOrder, 0),
+      isDefault: asBoolean(row.isDefault, false),
+      active: asBoolean(row.active, true),
+      createdByUserId: asString(row.createdByUserId) ?? asString(row.coachUserId) ?? '',
+      updatedByUserId: asString(row.updatedByUserId) ?? asString(row.coachUserId) ?? '',
+      version: toBigInt(row.version, 1),
+      createdAt: toDate(row.createdAt) ?? new Date(),
+      updatedAt: toDate(row.updatedAt) ?? new Date(),
+      deletedAt: toDate(row.deletedAt),
+      deletedByUserId: asString(row.deletedByUserId) ?? null,
+    }));
+    if (cancellationPolicyRules.length > 0) {
+      await tx.cancellationPolicyRule.createMany({ data: cancellationPolicyRules });
     }
 
     const families = asRows(tables.families).map((row) => ({
