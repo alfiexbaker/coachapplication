@@ -765,6 +765,7 @@ model Club {
   deletedByUserId    String?
 
   memberships        ClubMembership[]
+  inviteCodes        ClubInviteCode[]
   squads             Squad[]
   events             ClubEvent[]
 }
@@ -788,6 +789,26 @@ model ClubMembership {
 
   @@unique([clubId, userId])
   @@index([userId, active])
+}
+
+model ClubInviteCode {
+  id                 String   @id
+  clubId             String
+  code               String   @unique
+  role               String
+  remainingUses      Int
+  expiresAt          DateTime
+  createdByUserId    String
+  updatedByUserId    String
+  version            BigInt   @default(1)
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+  deletedAt          DateTime?
+  deletedByUserId    String?
+
+  club               Club     @relation(fields: [clubId], references: [id], onDelete: Restrict)
+
+  @@index([clubId, role, deletedAt])
 }
 
 model Squad {

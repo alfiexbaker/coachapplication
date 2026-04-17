@@ -33,6 +33,18 @@ const splitDisplayName = (value) => {
     lastName: parts.slice(1).join(' ') || parts[0] || null,
   };
 };
+const buildCodePrefix = (clubName) => {
+  const normalized = String(clubName ?? '').replace(/[^A-Za-z0-9]/g, '').toUpperCase();
+  return normalized.slice(0, 5) || 'CLUB';
+};
+const buildInviteCode = (clubName, role) => {
+  const suffix = role === 'MEMBER' ? 'JOIN' : String(role).replace(/[^A-Za-z]/g, '').slice(0, 4) || 'TEAM';
+  return `${buildCodePrefix(clubName)}-${suffix}`;
+};
+const buildDefaultInviteCode = (clubName, role, clubId) => {
+  const clubSuffix = String(clubId ?? '').replace(/[^A-Za-z0-9]/g, '').slice(-4).toUpperCase() || 'CLUB';
+  return `${buildInviteCode(clubName, role)}-${clubSuffix}`;
+};
 
 function hashPassword(password) {
   const salt = randomHex(16);
@@ -56,6 +68,10 @@ async function main() {
   const tables = dataset.tables ?? {};
 
   await prisma.$transaction(async (tx) => {
+    await tx.clubInviteCode.deleteMany();
+    await tx.squad.deleteMany();
+    await tx.clubMembership.deleteMany();
+    await tx.club.deleteMany();
     await tx.passwordCredential.deleteMany();
     await tx.bookingStatusEvent.deleteMany();
     await tx.bookingObjective.deleteMany();
@@ -148,6 +164,98 @@ async function main() {
       }));
     if (passwordCredentials.length > 0) {
       await tx.passwordCredential.createMany({ data: passwordCredentials });
+    }
+
+    const clubs = asRows(tables.clubs).map((row) => ({
+      id: row.id,
+      name: asString(row.name) ?? 'Club',
+      slug: asString(row.slug) ?? null,
+      visibility: asString(row.visibility) ?? 'private',
+      createdByUserId: asString(row.createdByUserId) ?? '',
+      updatedByUserId: asString(row.updatedByUserId) ?? asString(row.createdByUserId) ?? '',
+      version: toBigInt(row.version, 1),
+      createdAt: toDate(row.createdAt) ?? new Date(),
+      updatedAt: toDate(row.updatedAt) ?? new Date(),
+      deletedAt: toDate(row.deletedAt),
+      deletedByUserId: asString(row.deletedByUserId) ?? null,
+    }));
+    if (clubs.length > 0) {
+      await tx.club.createMany({ data: clubs });
+    }
+
+    const clubMemberships = asRows(tables.clubMemberships).map((row) => ({
+      id: row.id,
+      clubId: row.clubId,
+      userId: row.userId,
+      role: asString(row.role) ?? 'member',
+      active: asBoolean(row.active, true),
+      createdByUserId: asString(row.createdByUserId) ?? asString(row.userId) ?? '',
+      updatedByUserId: asString(row.updatedByUserId) ?? asString(row.userId) ?? '',
+      version: toBigInt(row.version, 1),
+      createdAt: toDate(row.createdAt) ?? new Date(),
+      updatedAt: toDate(row.updatedAt) ?? new Date(),
+      deletedAt: toDate(row.deletedAt),
+      deletedByUserId: asString(row.deletedByUserId) ?? null,
+    }));
+    if (clubMemberships.length > 0) {
+      await tx.clubMembership.createMany({ data: clubMemberships });
+    }
+
+    const squads = asRows(tables.squads).map((row) => ({
+      id: row.id,
+      clubId: row.clubId,
+      ownerCoachUserId: asString(row.ownerCoachUserId) ?? null,
+      name: asString(row.name) ?? 'Squad',
+      ageBandLabel: asString(row.ageBandLabel) ?? null,
+      createdByUserId: asString(row.createdByUserId) ?? '',
+      updatedByUserId: asString(row.updatedByUserId) ?? asString(row.createdByUserId) ?? '',
+      version: toBigInt(row.version, 1),
+      createdAt: toDate(row.createdAt) ?? new Date(),
+      updatedAt: toDate(row.updatedAt) ?? new Date(),
+      deletedAt: toDate(row.deletedAt),
+      deletedByUserId: asString(row.deletedByUserId) ?? null,
+    }));
+    if (squads.length > 0) {
+      await tx.squad.createMany({ data: squads });
+    }
+
+    const clubInviteCodes = clubs.flatMap((club) => {
+      const createdAt = club.createdAt ?? new Date();
+      return [
+        {
+          id: `cinv_${crypto.randomUUID()}`,
+          clubId: club.id,
+          code: buildDefaultInviteCode(club.name, 'MEMBER', club.id),
+          role: 'MEMBER',
+          remainingUses: 999,
+          expiresAt: new Date(createdAt.getTime() + 365 * 24 * 60 * 60 * 1000),
+          createdByUserId: club.createdByUserId,
+          updatedByUserId: club.createdByUserId,
+          version: 1n,
+          createdAt,
+          updatedAt: createdAt,
+          deletedAt: null,
+          deletedByUserId: null,
+        },
+        {
+          id: `cinv_${crypto.randomUUID()}`,
+          clubId: club.id,
+          code: buildDefaultInviteCode(club.name, 'COACH', club.id),
+          role: 'COACH',
+          remainingUses: 25,
+          expiresAt: new Date(createdAt.getTime() + 30 * 24 * 60 * 60 * 1000),
+          createdByUserId: club.createdByUserId,
+          updatedByUserId: club.createdByUserId,
+          version: 1n,
+          createdAt,
+          updatedAt: createdAt,
+          deletedAt: null,
+          deletedByUserId: null,
+        },
+      ];
+    });
+    if (clubInviteCodes.length > 0) {
+      await tx.clubInviteCode.createMany({ data: clubInviteCodes });
     }
 
     const families = asRows(tables.families).map((row) => ({
@@ -408,6 +516,7 @@ async function main() {
   const summary = {
     version: dataset.version,
     users: asRows(tables.users).length,
+    clubs: asRows(tables.clubs).length,
     families: asRows(tables.families).length,
     athletes: asRows(tables.athletes).length,
     bookings: asRows(tables.bookings).length,
@@ -416,7 +525,7 @@ async function main() {
   console.log('[p0-seed-import] import=ok');
   console.log(`[p0-seed-import] version=${summary.version}`);
   console.log(
-    `[p0-seed-import] users=${summary.users} families=${summary.families} athletes=${summary.athletes} bookings=${summary.bookings}`,
+    `[p0-seed-import] users=${summary.users} clubs=${summary.clubs} families=${summary.families} athletes=${summary.athletes} bookings=${summary.bookings}`,
   );
 }
 

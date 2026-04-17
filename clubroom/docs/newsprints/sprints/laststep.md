@@ -4,30 +4,30 @@ Date: 2026-04-16
 
 ## What Was Just Done
 
-1. Finished the first `PROD-DB-01` slice by checking in a Prisma baseline migration under `packages/db/prisma/migrations/20260416143000_initial_release_baseline`.
-2. Tightened `apps/api/src/lib/ops-runtime.ts` so release preflight verifies a real migration structure instead of only checking for a directory.
-3. Changed `apps/api/package.json` so `npm --prefix apps/api run release:preflight` now runs under production semantics, and `packages/config/src/env.ts` now defaults `API_DATA_BACKEND` to `db` only in production.
-4. Added release-guardrail coverage in `apps/api/src/modules/health/routes.test.ts` proving checked-in migrations clear the migration blocker.
-5. Synced the canonical runtime, backend, runtime-mode, test-data, and sprint docs without pretending the remaining seed-only route drift is already fixed.
+1. Moved the active club authority `/v1/clubs*` routes onto `apps/api/src/repositories/p0/club-authority-repository.ts`, so db mode no longer depends on route-local invite state or direct marketplace seed-store handling for club list, joins, invite inbox, or invite codes.
+2. Removed the route-local invite globals and helper drift from `apps/api/src/modules/coach-club/routes.ts`, leaving the route module thin and pushing club authority decisions into one repository seam.
+3. Added first-class `ClubInviteCode` persistence in `packages/db/prisma/schema.prisma` plus the checked-in migration `packages/db/prisma/migrations/20260416160000_club_invite_codes`.
+4. Extended `packages/db/scripts/import-marketplace-p0-seed.mjs` so db seed import now carries clubs, club memberships, squads, and deterministic default invite codes instead of leaving production db mode without a club graph.
+5. Added db-fixture regression coverage for the club authority flow in `apps/api/src/modules/p0-core/routes.test.ts`, proving the active `/v1/clubs*` surface still works after the repository cutover.
 
 ## Verification Run In This Step
 
-- `DATABASE_URL=postgresql://clubroom:clubroom@localhost:5432/clubroom npm --prefix packages/db run prisma:validate` -> PASS
+- `npm --prefix packages/db run prisma:generate` -> PASS
 - `npm --prefix apps/api run typecheck` -> PASS
-- `npx tsx --test apps/api/src/modules/health/routes.test.ts` -> PASS (`4/4`)
-- `npm --prefix apps/api run test` -> PASS (`72/72`)
-- `npm --prefix apps/api run release:preflight` -> FAILS HONESTLY in the current local runtime on real production blockers: missing prod env, missing db connectivity, and missing object-storage config
+- `node --check packages/db/scripts/import-marketplace-p0-seed.mjs` -> PASS
+- `npx tsx --test apps/api/src/modules/coach-club/routes.test.ts` -> PASS (`11/11`)
+- `npx tsx --test apps/api/src/modules/p0-core/routes.test.ts` -> PASS (`17/17`)
+- `npm --prefix apps/api run test` -> PASS (`73/73`)
 - `npm run typecheck` -> PASS
 - `npm run test:compile` -> PASS
 - `git diff --check` -> PASS
 
 ## Current State
 
-- The baseline Prisma migration and lock file are now checked in.
-- Release preflight now evaluates production defaults instead of dev defaults, so hidden production config gaps surface immediately.
-- Production db intent is now encoded in config defaults and release scripts.
-- The full db-backed cutover is still not complete: some seed-only routes will still 503 in db mode until they are migrated or explicitly retired.
+- Active club authority in db mode is now repository-backed instead of route-local or seed-store-owned.
+- Production db import now seeds the club graph needed for the active `/v1/clubs*` runtime surface.
+- The remaining db cutover risk is now narrower: coach-self, club-schedule, group-session, and community/media surfaces still carry seed-backed runtime drift.
 
 ## Next Exact Action
 
-1. Start `PROD-DB-01B`.
+1. Start `PROD-DB-01B2`.

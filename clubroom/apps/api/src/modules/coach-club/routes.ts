@@ -1,41 +1,19 @@
 import { randomUUID } from 'node:crypto';
 import type { FastifyPluginAsync } from 'fastify';
 import {
-  canUseClubCapability,
   getClubGovernanceSnapshot,
   parseOrganizationRole,
 } from '@clubroom/shared-contracts';
 import { canUseStaffInviteLinks, isPrivilegedAdminAuth } from '../../lib/authz.js';
 import { forbidden, notFound } from '../../lib/http-errors.js';
 import { getMarketplaceSeedStore } from '../../lib/marketplace-seed-store.js';
+import {
+  resetClubAuthorityRepositoryForTests,
+  resolveClubAuthorityRepository,
+} from '../../repositories/p0/club-authority-repository.js';
 import { buildClubScheduleActivities, findClubScheduleActivity } from './schedule.js';
 
 type SeedRow = Record<string, unknown>;
-
-interface ClubInviteCodeRow {
-  id: string;
-  clubId: string;
-  code: string;
-  role: string;
-  createdByUserId: string;
-  createdAt: string;
-  expiresAt: string;
-  remainingUses: number;
-}
-
-interface PendingClubInviteRow {
-  id: string;
-  clubId: string;
-  targetUserId: string;
-  inviteCode: string;
-  role: string;
-  invitedByUserId: string;
-  invitedByLabel: string;
-  status: 'pending' | 'accepted' | 'declined';
-  createdAt: string;
-  expiresAt: string;
-  respondedAt?: string | null;
-}
 
 interface RefundTier {
   hoursBeforeSession: number;
@@ -63,87 +41,13 @@ interface SchedulingRulesPatchBody {
 
 const asRows = (value: unknown): SeedRow[] => (Array.isArray(value) ? (value as SeedRow[]) : []);
 const asString = (value: unknown): string | undefined => (typeof value === 'string' ? value : undefined);
-const isTruthy = <T>(value: T | null | undefined): value is T => value !== null && value !== undefined;
-
-let inviteCodesStore: ClubInviteCodeRow[] | null = null;
-let pendingClubInvitesStore: PendingClubInviteRow[] = [];
 
 export function resetCoachClubRouteStateForTests(): void {
-  inviteCodesStore = null;
-  pendingClubInvitesStore = [];
-}
-
-function normalizeInviteCode(code: string): string {
-  return code.trim().toUpperCase();
-}
-
-function toStoreRole(role: string): string {
-  if (role === 'ADMIN') {
-    return 'club_admin';
-  }
-  return role.toLowerCase();
+  resetClubAuthorityRepositoryForTests();
 }
 
 function toContractRole(role: string | undefined): string {
   return parseOrganizationRole(role) ?? 'MEMBER';
-}
-
-function buildCodePrefix(clubName: string): string {
-  const normalized = clubName.replace(/[^A-Za-z0-9]/g, '').toUpperCase();
-  return normalized.slice(0, 5) || 'CLUB';
-}
-
-function buildInviteCode(clubName: string, role: string): string {
-  const suffix = role === 'MEMBER' ? 'JOIN' : role.replace(/[^A-Za-z]/g, '').slice(0, 4) || 'TEAM';
-  return `${buildCodePrefix(clubName)}-${suffix}`;
-}
-
-function addDaysIso(days: number): string {
-  return new Date(Date.now() + days * 24 * 60 * 60 * 1000).toISOString();
-}
-
-function ensureInviteCodesStore(): ClubInviteCodeRow[] {
-  if (inviteCodesStore) {
-    return inviteCodesStore;
-  }
-
-  const store = getMarketplaceSeedStore();
-  const clubs = asRows(store.tables.clubs);
-
-  inviteCodesStore = clubs.flatMap((club) => {
-    const clubId = asString(club.id);
-    const clubName = asString(club.name);
-    const createdByUserId = asString(club.createdByUserId);
-    if (!clubId || !clubName || !createdByUserId) {
-      return [];
-    }
-
-    const createdAt = asString(club.createdAt) ?? new Date().toISOString();
-    return [
-      {
-        id: `cinv_${randomUUID()}`,
-        clubId,
-        code: buildInviteCode(clubName, 'MEMBER'),
-        role: 'MEMBER',
-        createdByUserId,
-        createdAt,
-        expiresAt: addDaysIso(365),
-        remainingUses: 999,
-      },
-      {
-        id: `cinv_${randomUUID()}`,
-        clubId,
-        code: buildInviteCode(clubName, 'COACH'),
-        role: 'COACH',
-        createdByUserId,
-        createdAt,
-        expiresAt: addDaysIso(30),
-        remainingUses: 25,
-      },
-    ];
-  });
-
-  return inviteCodesStore;
 }
 
 function getActiveMemberships(clubMemberships: SeedRow[]): SeedRow[] {
@@ -287,35 +191,6 @@ function findOwnedOverride(rows: SeedRow[], coachUserId: string, overrideId: str
   ) ?? null;
 }
 
-function requireManageInvites(membershipRole: string | undefined): void {
-  const viewerRole = parseOrganizationRole(membershipRole);
-  if (!viewerRole || !canUseClubCapability(viewerRole, 'manage_staff_and_invites')) {
-    throw forbidden('You do not have permission to manage club invites');
-  }
-}
-
-function mapMembershipSummary(row: SeedRow) {
-  return {
-    id: asString(row.id) ?? '',
-    clubId: asString(row.clubId) ?? '',
-    userId: asString(row.userId) ?? '',
-    role: toContractRole(asString(row.role)),
-    active: row.active !== false,
-    createdAt: asString(row.createdAt) ?? new Date().toISOString(),
-    updatedAt: asString(row.updatedAt) ?? asString(row.createdAt) ?? new Date().toISOString(),
-  };
-}
-
-function mapClubSummary(club: SeedRow, inviteCode: string) {
-  return {
-    id: asString(club.id) ?? '',
-    name: asString(club.name) ?? 'Club',
-    slug: asString(club.slug),
-    visibility: asString(club.visibility),
-    inviteCode,
-  };
-}
-
 function canViewClubSchedule(params: {
   club: SeedRow;
   viewerMembership: SeedRow | null;
@@ -351,44 +226,6 @@ function requireClubScheduleAccess(params: {
   }
 
   return { club, viewerMembership };
-}
-
-function getInviteCodeForRole(clubId: string, role: string): ClubInviteCodeRow | undefined {
-  return ensureInviteCodesStore().find(
-    (invite) =>
-      invite.clubId === clubId
-      && invite.role === role
-      && invite.remainingUses > 0
-      && new Date(invite.expiresAt).getTime() > Date.now(),
-  );
-}
-
-function getInviteByCode(code: string): ClubInviteCodeRow | undefined {
-  const normalized = normalizeInviteCode(code);
-  return ensureInviteCodesStore().find(
-    (invite) =>
-      normalizeInviteCode(invite.code) === normalized
-      && invite.remainingUses > 0
-      && new Date(invite.expiresAt).getTime() > Date.now(),
-  );
-}
-
-function createMembership(clubId: string, userId: string, role: string, createdByUserId: string): SeedRow {
-  const now = new Date().toISOString();
-  return {
-    id: `cmb_${randomUUID()}`,
-    clubId,
-    userId,
-    role: toStoreRole(role),
-    active: true,
-    createdAt: now,
-    updatedAt: now,
-    createdByUserId,
-    updatedByUserId: createdByUserId,
-    version: 1,
-    deletedAt: null,
-    deletedByUserId: null,
-  };
 }
 
 const coachClubRoutes: FastifyPluginAsync = async (app) => {
@@ -819,50 +656,16 @@ const coachClubRoutes: FastifyPluginAsync = async (app) => {
   app.get('/clubs', async (request, reply) => {
     const authUserId = requireAuthUserId(request.auth?.userId);
     const isPrivilegedAdmin = isPrivilegedAdminAuth(request.auth);
-
-    const store = getMarketplaceSeedStore();
-    const clubs = asRows(store.tables.clubs);
-    const clubMemberships = asRows(store.tables.clubMemberships);
-    const squads = asRows(store.tables.squads);
-
-    const allowedClubIds = new Set(
-      getActiveMemberships(clubMemberships)
-        .filter((row) => asString(row.userId) === authUserId)
-        .map((row) => asString(row.clubId))
-        .filter(isTruthy),
-    );
-
-    const visibleClubs = clubs.filter((club) => {
-      if (isPrivilegedAdmin) {
-        return true;
-      }
-      const clubId = asString(club.id);
-      return Boolean(clubId && allowedClubIds.has(clubId));
-    });
-
-    const payload = visibleClubs.map((club) => {
-      const clubId = asString(club.id);
-      const memberships = getActiveMemberships(clubMemberships).filter(
-        (row) => asString(row.clubId) === clubId,
-      );
-      const clubSquads = squads.filter((row) => asString(row.clubId) === clubId);
-      const viewerMembership = memberships.find((row) => asString(row.userId) === authUserId) ?? null;
-      const viewerRole = parseOrganizationRole(asString(viewerMembership?.role));
-      const primaryInviteCode = getInviteCodeForRole(clubId ?? '', 'MEMBER');
-      return {
-        ...club,
-        inviteCode: primaryInviteCode?.code ?? null,
-        memberships,
-        viewerMembership,
-        viewerGovernance: getClubGovernanceSnapshot(viewerRole),
-        squads: clubSquads,
-      };
-    });
+    const repository = resolveClubAuthorityRepository();
+    const clubs = await repository.listVisibleClubs({ authUserId, isPrivilegedAdmin });
+    const payload = clubs.map((club) => ({
+      ...club,
+      viewerGovernance: getClubGovernanceSnapshot(parseOrganizationRole(club.viewerMembership?.role)),
+    }));
 
     return reply.send({
       clubs: payload,
       total: payload.length,
-      seedVersion: store.version,
       requestId: request.requestId,
     });
   });
@@ -913,14 +716,11 @@ const coachClubRoutes: FastifyPluginAsync = async (app) => {
     if (!clubId) {
       throw notFound('Club not found');
     }
-
-    const store = getMarketplaceSeedStore();
-    const clubMemberships = asRows(store.tables.clubMemberships);
-    const viewerMembership = getViewerMembership(clubMemberships, clubId, authUserId);
-    requireManageInvites(asString(viewerMembership?.role));
+    const repository = resolveClubAuthorityRepository();
+    const inviteCodes = await repository.listInviteCodes({ clubId, authUserId });
 
     return reply.send({
-      inviteCodes: ensureInviteCodesStore().filter((invite) => invite.clubId === clubId),
+      inviteCodes,
       requestId: request.requestId,
     });
   });
@@ -932,35 +732,8 @@ const coachClubRoutes: FastifyPluginAsync = async (app) => {
     if (!clubId) {
       throw notFound('Club not found');
     }
-
-    const store = getMarketplaceSeedStore();
-    const clubs = asRows(store.tables.clubs);
-    const clubMemberships = asRows(store.tables.clubMemberships);
-    const club = clubs.find((row) => asString(row.id) === clubId);
-    if (!club) {
-      throw notFound('Club not found');
-    }
-
-    const viewerMembership = getViewerMembership(clubMemberships, clubId, authUserId);
-    requireManageInvites(asString(viewerMembership?.role));
-
-    const inviteCode: ClubInviteCodeRow = {
-      id: `cinv_${randomUUID()}`,
-      clubId,
-      code: `${buildInviteCode(asString(club.name) ?? 'Club', role)}-${randomUUID().slice(0, 4).toUpperCase()}`,
-      role,
-      createdByUserId: authUserId,
-      createdAt: new Date().toISOString(),
-      expiresAt: addDaysIso(role === 'MEMBER' ? 365 : 30),
-      remainingUses: role === 'MEMBER' ? 999 : 25,
-    };
-
-    inviteCodesStore = [
-      ...ensureInviteCodesStore().filter(
-        (invite) => !(invite.clubId === clubId && invite.role === role && role !== 'MEMBER'),
-      ),
-      inviteCode,
-    ];
+    const repository = resolveClubAuthorityRepository();
+    const inviteCode = await repository.createInviteCode({ clubId, authUserId, role });
 
     return reply.code(201).send({
       inviteCode,
@@ -972,160 +745,48 @@ const coachClubRoutes: FastifyPluginAsync = async (app) => {
     const authUserId = requireAuthUserId(request.auth?.userId);
     const params = request.params as { clubId?: string; code?: string };
     const clubId = asString(params.clubId);
-    const code = normalizeInviteCode(asString(params.code) ?? '');
+    const code = asString(params.code) ?? '';
     if (!clubId || !code) {
       throw notFound('Invite code not found');
     }
-
-    const store = getMarketplaceSeedStore();
-    const clubMemberships = asRows(store.tables.clubMemberships);
-    const viewerMembership = getViewerMembership(clubMemberships, clubId, authUserId);
-    requireManageInvites(asString(viewerMembership?.role));
-
-    inviteCodesStore = ensureInviteCodesStore().filter(
-      (invite) => !(invite.clubId === clubId && normalizeInviteCode(invite.code) === code),
-    );
+    const repository = resolveClubAuthorityRepository();
+    await repository.deleteInviteCode({ clubId, authUserId, code });
 
     return reply.code(204).send();
   });
 
   app.get('/clubs/join/resolve', async (request, reply) => {
     const authUserId = requireAuthUserId(request.auth?.userId);
-    const code = normalizeInviteCode(asString((request.query as { code?: string }).code) ?? '');
-    const inviteCode = getInviteByCode(code);
-    if (!inviteCode) {
-      throw notFound('Invite code not found');
-    }
-
-    const store = getMarketplaceSeedStore();
-    const clubs = asRows(store.tables.clubs);
-    const clubMemberships = asRows(store.tables.clubMemberships);
-    const club = clubs.find((row) => asString(row.id) === inviteCode.clubId);
-    if (!club) {
-      throw notFound('Club not found');
-    }
-
-    const existingMembership = getViewerMembership(clubMemberships, inviteCode.clubId, authUserId);
+    const code = asString((request.query as { code?: string }).code) ?? '';
+    const repository = resolveClubAuthorityRepository();
+    const preview = await repository.resolveJoinCode({ authUserId, code });
 
     return reply.send({
-      preview: {
-        clubId: inviteCode.clubId,
-        clubName: asString(club.name) ?? 'Club',
-        clubSlug: asString(club.slug),
-        visibility: asString(club.visibility),
-        inviteCode: inviteCode.code,
-        role: inviteCode.role,
-        joinFlow: inviteCode.role === 'MEMBER' ? 'direct_join' : 'invite_review',
-        expiresAt: inviteCode.expiresAt,
-        alreadyMember: Boolean(existingMembership),
-      },
+      preview,
       requestId: request.requestId,
     });
   });
 
   app.post('/clubs/join', async (request, reply) => {
     const authUserId = requireAuthUserId(request.auth?.userId);
-    const code = normalizeInviteCode(asString((request.body as { code?: string }).code) ?? '');
-    const inviteCode = getInviteByCode(code);
-    if (!inviteCode) {
-      throw notFound('Invite code not found');
-    }
+    const code = asString((request.body as { code?: string }).code) ?? '';
+    const repository = resolveClubAuthorityRepository();
+    const result = await repository.joinWithCode({
+      authUserId,
+      code,
+      actingAuthCanUseStaffLinks: canUseStaffInviteLinks(request.auth),
+    });
 
-    const store = getMarketplaceSeedStore();
-    const clubs = asRows(store.tables.clubs);
-    const clubMemberships = asRows(store.tables.clubMemberships);
-    const club = clubs.find((row) => asString(row.id) === inviteCode.clubId);
-    if (!club) {
-      throw notFound('Club not found');
-    }
-
-    const existingMembership = getViewerMembership(clubMemberships, inviteCode.clubId, authUserId);
-    if (existingMembership) {
-      return reply.send({
-        outcome: 'already_member',
-        club: mapClubSummary(club, inviteCode.code),
-        membership: mapMembershipSummary(existingMembership),
-        invite: null,
-        requestId: request.requestId,
-      });
-    }
-
-    const isStaffInvite = inviteCode.role !== 'MEMBER';
-    if (isStaffInvite && !canUseStaffInviteLinks(request.auth)) {
-      throw forbidden('Only coach or admin accounts can use staff invite links');
-    }
-
-    if (!isStaffInvite) {
-      const membership = createMembership(inviteCode.clubId, authUserId, inviteCode.role, inviteCode.createdByUserId);
-      clubMemberships.push(membership);
-      inviteCode.remainingUses = Math.max(0, inviteCode.remainingUses - 1);
-
-      return reply.code(201).send({
-        outcome: 'joined',
-        club: mapClubSummary(club, inviteCode.code),
-        membership: mapMembershipSummary(membership),
-        invite: null,
-        requestId: request.requestId,
-      });
-    }
-
-    const existingPending = pendingClubInvitesStore.find(
-      (invite) =>
-        invite.clubId === inviteCode.clubId
-        && invite.targetUserId === authUserId
-        && invite.role === inviteCode.role
-        && invite.status === 'pending',
-    );
-
-    const pendingInvite =
-      existingPending
-      ?? {
-        id: `cpi_${randomUUID()}`,
-        clubId: inviteCode.clubId,
-        targetUserId: authUserId,
-        inviteCode: inviteCode.code,
-        role: inviteCode.role,
-        invitedByUserId: inviteCode.createdByUserId,
-        invitedByLabel: 'Club staff',
-        status: 'pending' as const,
-        createdAt: new Date().toISOString(),
-        expiresAt: inviteCode.expiresAt,
-        respondedAt: null,
-      };
-
-    if (!existingPending) {
-      pendingClubInvitesStore.push(pendingInvite);
-    }
-
-    return reply.code(202).send({
-      outcome: 'invite_pending',
-      club: mapClubSummary(club, inviteCode.code),
-      membership: null,
-      invite: {
-        ...pendingInvite,
-        clubName: asString(club.name) ?? 'Club',
-      },
+    return reply.code(result.outcome === 'invite_pending' ? 202 : result.outcome === 'joined' ? 201 : 200).send({
+      ...result,
       requestId: request.requestId,
     });
   });
 
   app.get('/clubs/invites', async (request, reply) => {
     const authUserId = requireAuthUserId(request.auth?.userId);
-    const store = getMarketplaceSeedStore();
-    const clubs = asRows(store.tables.clubs);
-
-    const invites = pendingClubInvitesStore
-      .filter(
-        (invite) =>
-          invite.targetUserId === authUserId
-          && invite.status === 'pending'
-          && new Date(invite.expiresAt).getTime() > Date.now(),
-      )
-      .map((invite) => ({
-        ...invite,
-        clubName:
-          asString(clubs.find((club) => asString(club.id) === invite.clubId)?.name) ?? 'Club',
-      }));
+    const repository = resolveClubAuthorityRepository();
+    const invites = await repository.listPendingInvites({ authUserId });
 
     return reply.send({
       invites,
@@ -1140,36 +801,11 @@ const coachClubRoutes: FastifyPluginAsync = async (app) => {
     if (!inviteId || (response !== 'accepted' && response !== 'declined')) {
       throw notFound('Club invite not found');
     }
-
-    const store = getMarketplaceSeedStore();
-    const clubs = asRows(store.tables.clubs);
-    const clubMemberships = asRows(store.tables.clubMemberships);
-    const invite = pendingClubInvitesStore.find((row) => row.id === inviteId && row.targetUserId === authUserId);
-    if (!invite) {
-      throw notFound('Club invite not found');
-    }
-
-    const club = clubs.find((row) => asString(row.id) === invite.clubId);
-    if (!club) {
-      throw notFound('Club not found');
-    }
-
-    invite.status = response;
-    invite.respondedAt = new Date().toISOString();
-
-    let membership: SeedRow | null = getViewerMembership(clubMemberships, invite.clubId, authUserId);
-    if (response === 'accepted' && !membership) {
-      membership = createMembership(invite.clubId, authUserId, invite.role, invite.invitedByUserId);
-      clubMemberships.push(membership);
-    }
+    const repository = resolveClubAuthorityRepository();
+    const result = await repository.respondToInvite({ authUserId, inviteId, response });
 
     return reply.send({
-      invite: {
-        ...invite,
-        clubName: asString(club.name) ?? 'Club',
-      },
-      membership: membership ? mapMembershipSummary(membership) : null,
-      club: mapClubSummary(club, invite.inviteCode),
+      ...result,
       requestId: request.requestId,
     });
   });

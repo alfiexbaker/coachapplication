@@ -49,6 +49,8 @@ Clubs manage staff, squads, visibility, and operating relationships.
   - the app still mirrors joined clubs and invite codes into local storage for compatibility with older club surfaces
   - member join codes can join directly
   - staff join codes create a pending invite that the target coach reviews in Club Invites
+  - db mode now resolves those club authority routes through repository-backed club, membership, invite-code, and pending-invite persistence instead of the marketplace seed store
+  - the db seed import now carries clubs, club memberships, squads, and default club invite codes so production db mode has a real club graph on first import
 - Auth transport is now aligned for the real `/v1` runtime path:
   - frontend auth calls `/v1/auth/*`
   - backend runtime exposes matching `/v1/auth/*` routes

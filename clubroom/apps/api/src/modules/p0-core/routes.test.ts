@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import path from 'node:path';
 import { after, beforeEach, describe, it } from 'node:test';
+import { env } from '@clubroom/config';
 import { buildApp } from '../../app.js';
 import { resetAuthRuntimeForTests } from '../../lib/auth-runtime.js';
 import { resetCoachClubRouteStateForTests } from '../coach-club/routes.js';
@@ -418,7 +419,7 @@ describe('p0 core routes', () => {
       membership: { role: string; clubId: string; userId: string };
     };
     assert.equal(joinPayload.outcome, 'joined');
-    assert.equal(joinPayload.membership.role, 'MEMBER');
+    assert.equal(joinPayload.membership.role, 'member');
     assert.equal(joinPayload.membership.userId, standaloneMemberId);
 
     const joinedClubs = await app.inject({
@@ -533,8 +534,151 @@ describe('p0 core routes', () => {
       invite: { status: string };
     };
     assert.equal(respondPayload.invite.status, 'accepted');
-    assert.equal(respondPayload.membership?.role, 'COACH');
+    assert.equal(respondPayload.membership?.role, 'coach');
     assert.equal(respondPayload.membership?.userId, otherCoachUserId);
+  });
+
+  it('keeps the club authority flow working in db fixture mode', async () => {
+    const previousBackend = env.API_DATA_BACKEND;
+    env.API_DATA_BACKEND = 'db';
+
+    try {
+      const tables = loadTables();
+      const memberUserIds = asRows(tables.userRoleMemberships)
+        .filter((row) => asString(row.role) === 'member')
+        .map((row) => asString(row.userId))
+        .filter((userId): userId is string => Boolean(userId));
+
+      const clubAdminMembership = asRows(tables.clubMemberships).find(
+        (row) => asString(row.role) === 'club_admin',
+      );
+      assert.ok(clubAdminMembership, 'expected seeded club admin membership');
+      const adminUserId = asString(clubAdminMembership.userId) as string;
+
+      const clubsRes = await app.inject({
+        method: 'GET',
+        url: '/v1/clubs',
+        headers: {
+          'x-auth-user-id': adminUserId,
+          'x-auth-roles': rolesForUser(tables, adminUserId).join(',') || 'club_admin',
+          'x-acting-role': 'club_admin',
+        },
+      });
+      assert.equal(clubsRes.statusCode, 200);
+      const clubsPayload = clubsRes.json() as {
+        clubs: Array<{ id: string; inviteCode: string }>;
+      };
+      const clubId = clubsPayload.clubs[0]?.id;
+      const inviteCode = clubsPayload.clubs[0]?.inviteCode;
+      assert.ok(clubId, 'expected db-mode club id');
+      assert.ok(inviteCode, 'expected db-mode member invite code');
+
+      const existingClubUserIds = new Set(
+        asRows(tables.clubMemberships)
+          .filter((row) => asString(row.clubId) === clubId)
+          .map((row) => asString(row.userId))
+          .filter((userId): userId is string => Boolean(userId)),
+      );
+      const standaloneMemberId = memberUserIds.find((userId) => !existingClubUserIds.has(userId));
+      assert.ok(standaloneMemberId, 'expected standalone member for db-mode club join');
+
+      const resolveRes = await app.inject({
+        method: 'GET',
+        url: `/v1/clubs/join/resolve?code=${encodeURIComponent(inviteCode)}`,
+        headers: {
+          'x-auth-user-id': standaloneMemberId as string,
+          'x-auth-roles': rolesForUser(tables, standaloneMemberId as string).join(',') || 'member',
+          'x-acting-role': 'member',
+        },
+      });
+      assert.equal(resolveRes.statusCode, 200);
+      assert.equal((resolveRes.json() as { preview: { joinFlow: string } }).preview.joinFlow, 'direct_join');
+
+      const joinRes = await app.inject({
+        method: 'POST',
+        url: '/v1/clubs/join',
+        headers: {
+          'x-auth-user-id': standaloneMemberId as string,
+          'x-auth-roles': rolesForUser(tables, standaloneMemberId as string).join(',') || 'member',
+          'x-acting-role': 'member',
+        },
+        payload: { code: inviteCode },
+      });
+      assert.equal(joinRes.statusCode, 201);
+      const joinPayload = joinRes.json() as { outcome: string; membership: { userId: string; role: string } };
+      assert.equal(joinPayload.outcome, 'joined');
+      assert.equal(joinPayload.membership.userId, standaloneMemberId);
+      assert.equal(joinPayload.membership.role, 'member');
+
+      const createCoachCodeRes = await app.inject({
+        method: 'POST',
+        url: `/v1/clubs/${clubId}/invite-codes`,
+        headers: {
+          'x-auth-user-id': adminUserId,
+          'x-auth-roles': rolesForUser(tables, adminUserId).join(',') || 'club_admin',
+          'x-acting-role': 'club_admin',
+        },
+        payload: { role: 'COACH' },
+      });
+      assert.equal(createCoachCodeRes.statusCode, 201);
+      const coachCode = (createCoachCodeRes.json() as { inviteCode: { code: string } }).inviteCode.code;
+
+      const targetCoachUserId = asRows(tables.coachProfiles)
+        .map((row) => asString(row.userId))
+        .filter((userId): userId is string => Boolean(userId))
+        .find((userId) => userId !== adminUserId && !existingClubUserIds.has(userId));
+      assert.ok(targetCoachUserId, 'expected second coach for db-mode invite flow');
+
+      const staffJoinRes = await app.inject({
+        method: 'POST',
+        url: '/v1/clubs/join',
+        headers: {
+          'x-auth-user-id': targetCoachUserId as string,
+          'x-auth-roles': rolesForUser(tables, targetCoachUserId as string).join(',') || 'coach',
+          'x-acting-role': 'coach',
+        },
+        payload: { code: coachCode },
+      });
+      assert.equal(staffJoinRes.statusCode, 202);
+      const pendingInviteId = (staffJoinRes.json() as { invite: { id: string } }).invite.id;
+
+      const inboxRes = await app.inject({
+        method: 'GET',
+        url: '/v1/clubs/invites',
+        headers: {
+          'x-auth-user-id': targetCoachUserId as string,
+          'x-auth-roles': rolesForUser(tables, targetCoachUserId as string).join(',') || 'coach',
+          'x-acting-role': 'coach',
+        },
+      });
+      assert.equal(inboxRes.statusCode, 200);
+      const inboxPayload = inboxRes.json() as { invites: Array<{ id: string; clubId: string }> };
+      assert.equal(inboxPayload.invites.some((invite) => invite.id === pendingInviteId && invite.clubId === clubId), true);
+
+      const respondRes = await app.inject({
+        method: 'POST',
+        url: `/v1/clubs/invites/${pendingInviteId}/respond`,
+        headers: {
+          'x-auth-user-id': targetCoachUserId as string,
+          'x-auth-roles': rolesForUser(tables, targetCoachUserId as string).join(',') || 'coach',
+          'x-acting-role': 'coach',
+        },
+        payload: { response: 'accepted' },
+      });
+      assert.equal(respondRes.statusCode, 200);
+      const respondPayload = respondRes.json() as {
+        invite: { status: string };
+        membership: { role: string; userId: string } | null;
+      };
+      assert.equal(respondPayload.invite.status, 'accepted');
+      assert.equal(respondPayload.membership?.role, 'coach');
+      assert.equal(respondPayload.membership?.userId, targetCoachUserId);
+    } finally {
+      env.API_DATA_BACKEND = previousBackend;
+      resetMarketplaceSeedStoreForTests();
+      resetDbFixtureStoreForTests();
+      resetCoachClubRouteStateForTests();
+    }
   });
 
   it('allows security admins to view clubs without direct membership', async () => {
