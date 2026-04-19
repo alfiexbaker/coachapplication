@@ -68,6 +68,20 @@ function findBillableBookingWithoutInvoice(tables: SeedTables): SeedRow | undefi
   });
 }
 
+function findUnprivilegedUserId(tables: SeedTables, excludedUserIds: Set<string>): string {
+  const userId = asRows(tables.users)
+    .map((row) => asString(row.id))
+    .find((candidateUserId): candidateUserId is string => {
+      if (!candidateUserId || excludedUserIds.has(candidateUserId)) {
+        return false;
+      }
+      const roles = rolesForUser(tables, candidateUserId);
+      return !roles.includes('club_admin') && !roles.includes('security_admin');
+    });
+  assert.ok(userId, 'expected non-admin outsider user');
+  return userId;
+}
+
 function authHeaders(
   tables: SeedTables,
   userId: string,
@@ -797,11 +811,13 @@ describe('wave2+ routes', () => {
     assert.match(uploadPayload.mediaObjectId, /^med_/);
     assert.match(uploadPayload.uploadUrl, /^https:\/\/uploads\.clubroom\.local\//);
 
-    const videoId = asString(asRows(tables.videos)[0]?.id) as string;
+    const videoRow = asRows(tables.videos)[0];
+    const videoId = asString(videoRow?.id) as string;
+    const videoReaderUserId = asString(videoRow?.coachUserId) as string;
     const video = await app.inject({
       method: 'GET',
       url: `/v1/videos/${videoId}`,
-      headers: authHeaders(tables, drillAuthorId, 'coach'),
+      headers: authHeaders(tables, videoReaderUserId, 'coach'),
     });
     assert.equal(video.statusCode, 200);
     const videoPayload = video.json() as { annotations: unknown[] };
@@ -852,6 +868,113 @@ describe('wave2+ routes', () => {
     };
     assert.equal(notificationsPayload.notifications.length >= 1, true);
     assert.equal(Boolean(notificationsPayload.preferences), true);
+  });
+
+  it('uses the db fixture repository seam for active community and media reads in db mode', async () => {
+    const previousBackend = env.API_DATA_BACKEND;
+    env.API_DATA_BACKEND = 'db';
+
+    try {
+      const tables = getDbFixtureStore().tables;
+      const videoRow = asRows(tables.videos)[0];
+      const videoId = asString(videoRow?.id) as string;
+      const videoReaderUserId = asString(videoRow?.coachUserId) as string;
+      const communityUserId = asString(asRows(tables.communityGroupMemberships)[0]?.userId) as string;
+      const groupId = asString(asRows(tables.communityGroups)[0]?.id) as string;
+      const messagingUserId = asString(asRows(tables.messageParticipants)[0]?.userId) as string;
+      const notificationUserId = asString(asRows(tables.notifications)[0]?.userId) as string;
+
+      const [video, groups, posts, threads, notifications] = await Promise.all([
+        app.inject({
+          method: 'GET',
+          url: `/v1/videos/${videoId}`,
+          headers: authHeaders(tables, videoReaderUserId, 'coach'),
+        }),
+        app.inject({
+          method: 'GET',
+          url: '/v1/community-groups',
+          headers: authHeaders(tables, communityUserId),
+        }),
+        app.inject({
+          method: 'GET',
+          url: `/v1/posts?communityGroupId=${groupId}`,
+          headers: authHeaders(tables, communityUserId),
+        }),
+        app.inject({
+          method: 'GET',
+          url: '/v1/message-threads',
+          headers: authHeaders(tables, messagingUserId),
+        }),
+        app.inject({
+          method: 'GET',
+          url: '/v1/me/notifications',
+          headers: authHeaders(tables, notificationUserId),
+        }),
+      ]);
+
+      assert.equal(video.statusCode, 200);
+      assert.equal(groups.statusCode, 200);
+      assert.equal(posts.statusCode, 200);
+      assert.equal(threads.statusCode, 200);
+      assert.equal(notifications.statusCode, 200);
+    } finally {
+      env.API_DATA_BACKEND = previousBackend;
+      resetDbFixtureStoreForTests();
+    }
+  });
+
+  it('denies outsider access to unrelated video detail', async () => {
+    const tables = loadTables();
+    const video = asRows(tables.videos).find((row) => Boolean(asString(row.id)) && Boolean(asString(row.athleteId)));
+    assert.ok(video, 'expected seeded video with athlete relationship');
+    const athleteId = asString(video.athleteId) as string;
+    const athleteUserId = asString(
+      asRows(tables.athletes).find((row) => asString(row.id) === athleteId && !asString(row.deletedAt))?.userId,
+    );
+    const relatedUserIds = new Set(
+      [
+        asString(video.coachUserId),
+        asString(video.createdByUserId),
+        asString(video.updatedByUserId),
+        athleteUserId,
+        ...asRows(tables.guardianChildLinks)
+          .filter((row) => asString(row.athleteId) === athleteId && !asString(row.deletedAt))
+          .map((row) => asString(row.guardianUserId)),
+      ].filter((userId): userId is string => Boolean(userId)),
+    );
+    const outsiderUserId = findUnprivilegedUserId(tables, relatedUserIds);
+
+    const denied = await app.inject({
+      method: 'GET',
+      url: `/v1/videos/${asString(video.id)}`,
+      headers: authHeaders(tables, outsiderUserId),
+    });
+    assert.equal(denied.statusCode, 403);
+  });
+
+  it('denies outsider access to private community group posts', async () => {
+    const tables = loadTables();
+    const group = asRows(tables.communityGroups)[0];
+    assert.ok(group, 'expected seeded community group');
+    const groupId = asString(group.id) as string;
+    const memberUserIds = new Set(
+      asRows(tables.communityGroupMemberships)
+        .filter(
+          (row) =>
+            asString(row.communityGroupId) === groupId
+            && !asString(row.deletedAt)
+            && asString(row.userId),
+        )
+        .map((row) => asString(row.userId) as string),
+    );
+    const outsiderUserId = findUnprivilegedUserId(tables, memberUserIds);
+
+    const denied = await app.inject({
+      method: 'GET',
+      url: `/v1/posts?communityGroupId=${groupId}`,
+      headers: authHeaders(tables, outsiderUserId),
+    });
+    assert.equal(denied.statusCode, 403);
   });
 
   it('creates signed upload targets through the db-backed runtime', async () => {

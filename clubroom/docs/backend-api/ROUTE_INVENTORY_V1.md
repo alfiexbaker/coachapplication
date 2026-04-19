@@ -153,9 +153,14 @@ Status legend:
 
 ## Progress / Media / Community / Trust Ops
 
-| Route              | Method | Status        | Contract(s)         | AuthZ                               | UI anchors                                                                                                                          |
-| ------------------ | ------ | ------------- | ------------------- | ----------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------- |
-| `/v1/uploads/init` | `POST` | `implemented` | scaffold upload-init payload | authenticated uploader; db mode requires signed private object-storage config | media/video/verification upload entrypoints via `apps/api/src/modules/wave2plus/routes.ts`; db mode persists `MediaObject` and `UploadSession`, seed mode keeps the placeholder URL |
+| Route                  | Method | Status        | Contract(s)                 | AuthZ                                                                 | UI anchors                                                                                                                                      |
+| ---------------------- | ------ | ------------- | --------------------------- | --------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------- |
+| `/v1/uploads/init`     | `POST` | `implemented` | scaffold upload-init payload | authenticated uploader; db mode requires signed private object-storage config | media/video/verification upload entrypoints via `apps/api/src/modules/wave2plus/routes.ts`; db mode persists `MediaObject` and `UploadSession`, seed mode keeps the placeholder URL |
+| `/v1/videos/:videoId`  | `GET`  | `implemented` | scaffold video detail payload | privileged admin, delivery coach, athlete self, or linked guardian    | `hooks/use-video-detail.ts`, `components/video/*`, `services/video-service.ts`                                                                |
+| `/v1/community-groups` | `GET`  | `implemented` | scaffold community-group list | authenticated member of each returned group                           | community group hubs and parent chat surfaces; current backend owner is `apps/api/src/repositories/p0/community-media-repository.ts`           |
+| `/v1/posts`            | `GET`  | `implemented` | scaffold post list payload   | authenticated author, readable club member, or readable group member; `communityGroupId` filters fail closed for outsiders | club/community feeds and post surfaces; current backend owner is `apps/api/src/repositories/p0/community-media-repository.ts`                  |
+| `/v1/message-threads`  | `GET`  | `implemented` | scaffold message-thread list | authenticated participant only                                        | chat/message surfaces; current backend owner is `apps/api/src/repositories/p0/community-media-repository.ts`                                    |
+| `/v1/me/notifications` | `GET`  | `implemented` | scaffold notification list   | authenticated self                                                    | notifications inbox/toasts/preferences surfaces; current backend owner is `apps/api/src/repositories/p0/community-media-repository.ts`          |
 
 Keep this file as the core `/v1` inventory index.
 When these modules expand, add route rows here and update:

@@ -19,6 +19,7 @@ import { verifySimulatedPaymentToken } from '../../lib/payment-provider.js';
 import { assertCanReadAthleteHealth, isPrivilegedAdminAuth } from '../../lib/authz.js';
 import { recordAuditEvent } from '../../lib/audit-runtime.js';
 import { resolveTrustAccessRepository } from '../../repositories/p0/trust-access-repository.js';
+import { resolveCommunityMediaRepository } from '../../repositories/p0/community-media-repository.js';
 import { createUploadInit } from '../../lib/storage-runtime.js';
 
 type SeedRow = Record<string, unknown>;
@@ -1291,23 +1292,26 @@ const wave2PlusRoutes: FastifyPluginAsync = async (app) => {
   });
 
   app.get('/videos/:videoId', async (request, reply) => {
+    const authUserId = request.auth?.userId;
+    if (!authUserId) {
+      throw forbidden('Authenticated user is required');
+    }
+
     const videoId = asString((request.params as { videoId?: string }).videoId);
     if (!videoId) {
       throw notFound('Video id is required');
     }
 
-    const store = getMarketplaceSeedStore();
-    const videos = asRows(store.tables.videos);
-    const annotations = asRows(store.tables.videoAnnotations);
-    const video = videos.find((row) => asString(row.id) === videoId);
-    if (!video) {
-      throw notFound('Video not found', { videoId });
-    }
+    const result = await resolveCommunityMediaRepository().getVideoDetail({
+      authUserId,
+      isPrivilegedAdmin: isPrivilegedAdminAuth(request.auth),
+      videoId,
+    });
 
     return reply.send({
-      video,
-      annotations: annotations.filter((row) => asString(row.videoId) === videoId),
-      seedVersion: store.version,
+      video: result.video,
+      annotations: result.annotations,
+      seedVersion: result.dataVersion,
       requestId: request.requestId,
     });
   });
@@ -1318,49 +1322,34 @@ const wave2PlusRoutes: FastifyPluginAsync = async (app) => {
       throw forbidden('Authenticated user is required');
     }
 
-    const store = getMarketplaceSeedStore();
-    const groups = asRows(store.tables.communityGroups);
-    const memberships = asRows(store.tables.communityGroupMemberships);
-    const myMemberships = memberships.filter((row) => asString(row.userId) === authUserId);
-    const groupIds = new Set(
-      myMemberships.map((row) => asString(row.communityGroupId)).filter((id): id is string => Boolean(id)),
-    );
+    const result = await resolveCommunityMediaRepository().listCommunityGroups({
+      authUserId,
+      isPrivilegedAdmin: isPrivilegedAdminAuth(request.auth),
+    });
 
     return reply.send({
-      groups: groups
-        .filter((row) => groupIds.has(asString(row.id) ?? ''))
-        .map((group) => ({
-          ...group,
-          memberships: memberships.filter(
-            (row) => asString(row.communityGroupId) === asString(group.id),
-          ),
-        })),
-      seedVersion: store.version,
+      groups: result.groups,
+      seedVersion: result.dataVersion,
       requestId: request.requestId,
     });
   });
 
   app.get('/posts', async (request, reply) => {
-    const store = getMarketplaceSeedStore();
-    const posts = asRows(store.tables.posts);
-    const comments = asRows(store.tables.postComments);
-    const reactions = asRows(store.tables.postReactions);
-    const groupId = asString((request.query as { communityGroupId?: string } | undefined)?.communityGroupId);
+    const authUserId = request.auth?.userId;
+    if (!authUserId) {
+      throw forbidden('Authenticated user is required');
+    }
 
-    const filtered = groupId
-      ? posts.filter((row) => asString(row.communityGroupId) === groupId)
-      : posts;
+    const groupId = asString((request.query as { communityGroupId?: string } | undefined)?.communityGroupId);
+    const result = await resolveCommunityMediaRepository().listPosts({
+      authUserId,
+      isPrivilegedAdmin: isPrivilegedAdminAuth(request.auth),
+      communityGroupId: groupId,
+    });
 
     return reply.send({
-      posts: filtered.map((post) => {
-        const postId = asString(post.id);
-        return {
-          ...post,
-          comments: comments.filter((row) => asString(row.postId) === postId),
-          reactions: reactions.filter((row) => asString(row.postId) === postId),
-        };
-      }),
-      seedVersion: store.version,
+      posts: result.posts,
+      seedVersion: result.dataVersion,
       requestId: request.requestId,
     });
   });
@@ -1371,34 +1360,14 @@ const wave2PlusRoutes: FastifyPluginAsync = async (app) => {
       throw forbidden('Authenticated user is required');
     }
 
-    const store = getMarketplaceSeedStore();
-    const threads = asRows(store.tables.messageThreads);
-    const participants = asRows(store.tables.messageParticipants);
-    const messages = asRows(store.tables.messages);
-    const receipts = asRows(store.tables.messageReceipts);
-    const myThreadIds = new Set(
-      participants
-        .filter((row) => asString(row.userId) === authUserId)
-        .map((row) => asString(row.messageThreadId))
-        .filter((id): id is string => Boolean(id)),
-    );
+    const result = await resolveCommunityMediaRepository().listMessageThreads({
+      authUserId,
+      isPrivilegedAdmin: isPrivilegedAdminAuth(request.auth),
+    });
 
     return reply.send({
-      threads: threads
-        .filter((thread) => myThreadIds.has(asString(thread.id) ?? ''))
-        .map((thread) => {
-          const threadId = asString(thread.id);
-          const threadMessages = messages.filter((row) => asString(row.messageThreadId) === threadId);
-          return {
-            ...thread,
-            participants: participants.filter((row) => asString(row.messageThreadId) === threadId),
-            messages: threadMessages.map((message) => ({
-              ...message,
-              receipts: receipts.filter((row) => asString(row.messageId) === asString(message.id)),
-            })),
-          };
-        }),
-      seedVersion: store.version,
+      threads: result.threads,
+      seedVersion: result.dataVersion,
       requestId: request.requestId,
     });
   });
@@ -1409,27 +1378,18 @@ const wave2PlusRoutes: FastifyPluginAsync = async (app) => {
       throw forbidden('Authenticated user is required');
     }
 
-    const store = getMarketplaceSeedStore();
-    const notifications = asRows(store.tables.notifications).filter(
-      (row) => asString(row.userId) === authUserId,
-    );
-    const notificationPreferences = asRows(store.tables.notificationPreferences).find(
-      (row) => asString(row.userId) === authUserId,
-    ) ?? null;
-    const mutedSources = asRows(store.tables.mutedSources).filter(
-      (row) => asString(row.userId) === authUserId,
-    );
-    const quietHours = asRows(store.tables.quietHours).find(
-      (row) => asString(row.userId) === authUserId,
-    ) ?? null;
+    const result = await resolveCommunityMediaRepository().listNotifications({
+      authUserId,
+      isPrivilegedAdmin: isPrivilegedAdminAuth(request.auth),
+    });
 
     return reply.send({
-      notifications,
-      preferences: notificationPreferences,
-      mutedSources,
-      quietHours,
-      unreadCount: notifications.filter((row) => asString(row.status) !== 'READ').length,
-      seedVersion: store.version,
+      notifications: result.notifications,
+      preferences: result.preferences,
+      mutedSources: result.mutedSources,
+      quietHours: result.quietHours,
+      unreadCount: result.unreadCount,
+      seedVersion: result.dataVersion,
       requestId: request.requestId,
     });
   });

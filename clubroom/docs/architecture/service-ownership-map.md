@@ -29,6 +29,8 @@ Purpose: identify the service entrypoints that are safe to build on and call out
 
 - `services/video-service.ts`
 - Covers videos and annotations in one service surface
+- Backend video detail now has a db-aware authority route at `GET /v1/videos/:videoId`
+- Current limitation: `services/video-service.ts` still uses legacy `/api/videos*` and local compatibility storage outside mock mode; that app cutover is the next production seam
 
 ### Family and guardian access
 
@@ -83,6 +85,8 @@ Purpose: identify the service entrypoints that are safe to build on and call out
 
 - `services/community/index.ts`
 - Avoid creating new parallel community data access paths
+- Backend community/media reads now have db-aware authority routes at `GET /v1/community-groups`, `GET /v1/posts`, and `GET /v1/message-threads`
+- Current limitation: `community-group-service.ts` and `community-messaging-service.ts` still rely on local compatibility storage and have not been cut over to those `/v1` routes yet
 
 ### Events
 
@@ -122,6 +126,8 @@ Purpose: identify the service entrypoints that are safe to build on and call out
 
 - `services/notification/index.ts`
 - Notification primitives live under the domain module even though root compatibility files also exist
+- Backend notification reads now have a db-aware authority route at `GET /v1/me/notifications`
+- Current limitation: root notification services still read/write the local notification store outside mock mode
 
 ### Analytics
 

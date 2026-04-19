@@ -68,6 +68,21 @@ async function main() {
   const tables = dataset.tables ?? {};
 
   await prisma.$transaction(async (tx) => {
+    await tx.messageReceipt.deleteMany();
+    await tx.message.deleteMany();
+    await tx.messageParticipant.deleteMany();
+    await tx.messageThread.deleteMany();
+    await tx.postReaction.deleteMany();
+    await tx.postComment.deleteMany();
+    await tx.post.deleteMany();
+    await tx.communityGroupMembership.deleteMany();
+    await tx.communityGroup.deleteMany();
+    await tx.quietHours.deleteMany();
+    await tx.mutedSource.deleteMany();
+    await tx.notificationPreference.deleteMany();
+    await tx.notification.deleteMany();
+    await tx.videoAnnotation.deleteMany();
+    await tx.video.deleteMany();
     await tx.clubInviteCode.deleteMany();
     await tx.squad.deleteMany();
     await tx.clubMembership.deleteMany();
@@ -509,6 +524,311 @@ async function main() {
     }));
     if (guardianLinks.length > 0) {
       await tx.guardianChildLink.createMany({ data: guardianLinks });
+    }
+
+    const mediaObjects = asRows(tables.mediaObjects).map((row) => ({
+      id: row.id,
+      ownerUserId: asString(row.ownerUserId) ?? null,
+      kind: asString(row.kind) ?? 'VIDEO',
+      status: asString(row.status) ?? 'AVAILABLE',
+      storageKey: asString(row.storageKey) ?? '',
+      bucketName: asString(row.bucketName) ?? 'clubroom-private',
+      contentType: asString(row.contentType) ?? 'application/octet-stream',
+      sizeBytes: BigInt(asNumber(row.sizeBytes, 0)),
+      sha256Hex: asString(row.sha256Hex) ?? null,
+      originalFileName: asString(row.originalFileName) ?? null,
+      widthPx: typeof row.widthPx === 'number' ? row.widthPx : null,
+      heightPx: typeof row.heightPx === 'number' ? row.heightPx : null,
+      durationMs: typeof row.durationMs === 'number' ? row.durationMs : null,
+      visibilityScope: asString(row.visibilityScope) ?? 'private',
+      consentRequired: asBoolean(row.consentRequired, false),
+      metadataJson: row.metadataJson ?? null,
+      createdByUserId: asString(row.createdByUserId) ?? asString(row.ownerUserId) ?? '',
+      updatedByUserId: asString(row.updatedByUserId) ?? asString(row.ownerUserId) ?? '',
+      version: toBigInt(row.version, 1),
+      createdAt: toDate(row.createdAt) ?? new Date(),
+      updatedAt: toDate(row.updatedAt) ?? new Date(),
+      deletedAt: toDate(row.deletedAt),
+      deletedByUserId: asString(row.deletedByUserId) ?? null,
+    }));
+    if (mediaObjects.length > 0) {
+      await tx.mediaObject.createMany({ data: mediaObjects, skipDuplicates: true });
+    }
+
+    const uploadSessions = asRows(tables.uploadSessions).map((row) => ({
+      id: row.id,
+      requesterUserId: asString(row.requesterUserId) ?? '',
+      mediaObjectId: asString(row.mediaObjectId) ?? null,
+      targetResourceType: asString(row.targetResourceType) ?? null,
+      targetResourceId: asString(row.targetResourceId) ?? null,
+      expectedContentType: asString(row.expectedContentType) ?? null,
+      expectedMaxBytes:
+        typeof row.expectedMaxBytes === 'number' ? BigInt(row.expectedMaxBytes) : null,
+      status: asString(row.status) ?? 'COMPLETED',
+      uploadUrlExpiresAt: toDate(row.uploadUrlExpiresAt) ?? new Date(),
+      completedAt: toDate(row.completedAt),
+      metadataJson: row.metadataJson ?? null,
+      createdAt: toDate(row.createdAt) ?? new Date(),
+      updatedAt: toDate(row.updatedAt) ?? new Date(),
+    }));
+    if (uploadSessions.length > 0) {
+      await tx.uploadSession.createMany({ data: uploadSessions, skipDuplicates: true });
+    }
+
+    const malwareScanResults = asRows(tables.malwareScanResults).map((row) => ({
+      id: row.id,
+      mediaObjectId: asString(row.mediaObjectId) ?? '',
+      verdict: asString(row.verdict) ?? 'CLEAN',
+      scanner: asString(row.scanner) ?? null,
+      detailsJson: row.detailsJson ?? null,
+      scannedAt: toDate(row.scannedAt),
+      createdAt: toDate(row.createdAt) ?? new Date(),
+    }));
+    if (malwareScanResults.length > 0) {
+      await tx.malwareScanResult.createMany({ data: malwareScanResults, skipDuplicates: true });
+    }
+
+    const videos = asRows(tables.videos).map((row) => ({
+      id: row.id,
+      mediaObjectId: row.mediaObjectId,
+      athleteId: asString(row.athleteId) ?? null,
+      coachUserId: asString(row.coachUserId) ?? null,
+      title: asString(row.title) ?? null,
+      description: asString(row.description) ?? null,
+      sourceContextType: asString(row.sourceContextType) ?? null,
+      sourceContextId: asString(row.sourceContextId) ?? null,
+      createdByUserId: asString(row.createdByUserId) ?? '',
+      updatedByUserId: asString(row.updatedByUserId) ?? asString(row.createdByUserId) ?? '',
+      version: toBigInt(row.version, 1),
+      createdAt: toDate(row.createdAt) ?? new Date(),
+      updatedAt: toDate(row.updatedAt) ?? new Date(),
+      deletedAt: toDate(row.deletedAt),
+    }));
+    if (videos.length > 0) {
+      await tx.video.createMany({ data: videos });
+    }
+
+    const videoAnnotations = asRows(tables.videoAnnotations).map((row) => ({
+      id: row.id,
+      videoId: row.videoId,
+      authorUserId: asString(row.authorUserId) ?? '',
+      timestampMs: asNumber(row.timestampMs, 0),
+      text: asString(row.text) ?? '',
+      color: asString(row.color) ?? null,
+      createdByUserId: asString(row.createdByUserId) ?? asString(row.authorUserId) ?? '',
+      updatedByUserId: asString(row.updatedByUserId) ?? asString(row.authorUserId) ?? '',
+      version: toBigInt(row.version, 1),
+      createdAt: toDate(row.createdAt) ?? new Date(),
+      updatedAt: toDate(row.updatedAt) ?? new Date(),
+      deletedAt: toDate(row.deletedAt),
+    }));
+    if (videoAnnotations.length > 0) {
+      await tx.videoAnnotation.createMany({ data: videoAnnotations });
+    }
+
+    const communityGroups = asRows(tables.communityGroups).map((row) => ({
+      id: row.id,
+      clubId: asString(row.clubId) ?? null,
+      ownerUserId: asString(row.ownerUserId) ?? '',
+      name: asString(row.name) ?? 'Community Group',
+      description: asString(row.description) ?? null,
+      visibility: asString(row.visibility) ?? 'PRIVATE',
+      createdByUserId: asString(row.createdByUserId) ?? asString(row.ownerUserId) ?? '',
+      updatedByUserId: asString(row.updatedByUserId) ?? asString(row.ownerUserId) ?? '',
+      version: toBigInt(row.version, 1),
+      createdAt: toDate(row.createdAt) ?? new Date(),
+      updatedAt: toDate(row.updatedAt) ?? new Date(),
+      deletedAt: toDate(row.deletedAt),
+      deletedByUserId: asString(row.deletedByUserId) ?? null,
+    }));
+    if (communityGroups.length > 0) {
+      await tx.communityGroup.createMany({ data: communityGroups });
+    }
+
+    const communityGroupMemberships = asRows(tables.communityGroupMemberships).map((row) => ({
+      id: row.id,
+      communityGroupId: row.communityGroupId,
+      userId: row.userId,
+      role: asString(row.role) ?? 'member',
+      active: asBoolean(row.active, true),
+      createdByUserId: asString(row.createdByUserId) ?? asString(row.userId) ?? '',
+      updatedByUserId: asString(row.updatedByUserId) ?? asString(row.userId) ?? '',
+      version: toBigInt(row.version, 1),
+      createdAt: toDate(row.createdAt) ?? new Date(),
+      updatedAt: toDate(row.updatedAt) ?? new Date(),
+      deletedAt: toDate(row.deletedAt),
+    }));
+    if (communityGroupMemberships.length > 0) {
+      await tx.communityGroupMembership.createMany({ data: communityGroupMemberships });
+    }
+
+    const posts = asRows(tables.posts).map((row) => ({
+      id: row.id,
+      authorUserId: asString(row.authorUserId) ?? '',
+      clubId: asString(row.clubId) ?? null,
+      communityGroupId: asString(row.communityGroupId) ?? null,
+      visibility: asString(row.visibility) ?? 'PRIVATE',
+      content: asString(row.content) ?? '',
+      attachmentsJson: row.attachmentsJson ?? [],
+      commentsCount: asNumber(row.commentsCount, 0),
+      reactionsCount: asNumber(row.reactionsCount, 0),
+      createdByUserId: asString(row.createdByUserId) ?? asString(row.authorUserId) ?? '',
+      updatedByUserId: asString(row.updatedByUserId) ?? asString(row.authorUserId) ?? '',
+      version: toBigInt(row.version, 1),
+      createdAt: toDate(row.createdAt) ?? new Date(),
+      updatedAt: toDate(row.updatedAt) ?? new Date(),
+      deletedAt: toDate(row.deletedAt),
+      deletedByUserId: asString(row.deletedByUserId) ?? null,
+    }));
+    if (posts.length > 0) {
+      await tx.post.createMany({ data: posts });
+    }
+
+    const postComments = asRows(tables.postComments).map((row) => ({
+      id: row.id,
+      postId: row.postId,
+      authorUserId: asString(row.authorUserId) ?? '',
+      parentCommentId: asString(row.parentCommentId) ?? null,
+      content: asString(row.content) ?? '',
+      isDeleted: asBoolean(row.isDeleted, false),
+      deletedAt: toDate(row.deletedAt),
+      createdAt: toDate(row.createdAt) ?? new Date(),
+      updatedAt: toDate(row.updatedAt) ?? new Date(),
+    }));
+    if (postComments.length > 0) {
+      await tx.postComment.createMany({ data: postComments });
+    }
+
+    const postReactions = asRows(tables.postReactions).map((row) => ({
+      id: row.id,
+      postId: row.postId,
+      userId: row.userId,
+      reaction: asString(row.reaction) ?? 'LIKE',
+      createdAt: toDate(row.createdAt) ?? new Date(),
+    }));
+    if (postReactions.length > 0) {
+      await tx.postReaction.createMany({ data: postReactions });
+    }
+
+    const messageThreads = asRows(tables.messageThreads).map((row) => ({
+      id: row.id,
+      threadType: asString(row.threadType) ?? 'GROUP',
+      clubId: asString(row.clubId) ?? null,
+      communityGroupId: asString(row.communityGroupId) ?? null,
+      groupSessionId: asString(row.groupSessionId) ?? null,
+      bookingId: asString(row.bookingId) ?? null,
+      title: asString(row.title) ?? null,
+      lastMessageAt: toDate(row.lastMessageAt),
+      createdByUserId: asString(row.createdByUserId) ?? '',
+      updatedByUserId: asString(row.updatedByUserId) ?? asString(row.createdByUserId) ?? '',
+      version: toBigInt(row.version, 1),
+      createdAt: toDate(row.createdAt) ?? new Date(),
+      updatedAt: toDate(row.updatedAt) ?? new Date(),
+      deletedAt: toDate(row.deletedAt),
+    }));
+    if (messageThreads.length > 0) {
+      await tx.messageThread.createMany({ data: messageThreads });
+    }
+
+    const messageParticipants = asRows(tables.messageParticipants).map((row) => ({
+      id: row.id,
+      messageThreadId: row.messageThreadId,
+      userId: row.userId,
+      role: asString(row.role) ?? null,
+      lastReadAt: toDate(row.lastReadAt),
+      muted: asBoolean(row.muted, false),
+      joinedAt: toDate(row.joinedAt) ?? new Date(),
+      leftAt: toDate(row.leftAt),
+    }));
+    if (messageParticipants.length > 0) {
+      await tx.messageParticipant.createMany({ data: messageParticipants });
+    }
+
+    const messages = asRows(tables.messages).map((row) => ({
+      id: row.id,
+      messageThreadId: row.messageThreadId,
+      senderUserId: asString(row.senderUserId) ?? '',
+      content: asString(row.content) ?? '',
+      attachmentsJson: row.attachmentsJson ?? [],
+      editedAt: toDate(row.editedAt),
+      deletedAt: toDate(row.deletedAt),
+      createdAt: toDate(row.createdAt) ?? new Date(),
+      updatedAt: toDate(row.updatedAt) ?? new Date(),
+    }));
+    if (messages.length > 0) {
+      await tx.message.createMany({ data: messages });
+    }
+
+    const messageReceipts = asRows(tables.messageReceipts).map((row) => ({
+      id: row.id,
+      messageId: row.messageId,
+      userId: row.userId,
+      deliveredAt: toDate(row.deliveredAt),
+      readAt: toDate(row.readAt),
+      createdAt: toDate(row.createdAt) ?? new Date(),
+      updatedAt: toDate(row.updatedAt) ?? new Date(),
+    }));
+    if (messageReceipts.length > 0) {
+      await tx.messageReceipt.createMany({ data: messageReceipts });
+    }
+
+    const notifications = asRows(tables.notifications).map((row) => ({
+      id: row.id,
+      userId: row.userId,
+      type: asString(row.type) ?? 'WELCOME',
+      title: asString(row.title) ?? 'Notification',
+      body: asString(row.body) ?? null,
+      status: asString(row.status) ?? 'UNREAD',
+      sourceType: asString(row.sourceType) ?? null,
+      sourceId: asString(row.sourceId) ?? null,
+      deepLink: asString(row.deepLink) ?? null,
+      metadataJson: row.metadataJson ?? null,
+      createdAt: toDate(row.createdAt) ?? new Date(),
+      updatedAt: toDate(row.updatedAt) ?? new Date(),
+      readAt: toDate(row.readAt),
+      dismissedAt: toDate(row.dismissedAt),
+    }));
+    if (notifications.length > 0) {
+      await tx.notification.createMany({ data: notifications });
+    }
+
+    const notificationPreferences = asRows(tables.notificationPreferences).map((row) => ({
+      userId: row.userId,
+      pushEnabled: asBoolean(row.pushEnabled, true),
+      emailEnabled: asBoolean(row.emailEnabled, true),
+      smsEnabled: asBoolean(row.smsEnabled, false),
+      settingsJson: row.settingsJson ?? null,
+      createdAt: toDate(row.createdAt) ?? new Date(),
+      updatedAt: toDate(row.updatedAt) ?? new Date(),
+    }));
+    if (notificationPreferences.length > 0) {
+      await tx.notificationPreference.createMany({ data: notificationPreferences });
+    }
+
+    const mutedSources = asRows(tables.mutedSources).map((row) => ({
+      id: row.id,
+      userId: row.userId,
+      sourceType: asString(row.sourceType) ?? 'thread',
+      sourceId: asString(row.sourceId) ?? '',
+      reason: asString(row.reason) ?? null,
+      mutedAt: toDate(row.mutedAt) ?? new Date(),
+      unmutedAt: toDate(row.unmutedAt),
+    }));
+    if (mutedSources.length > 0) {
+      await tx.mutedSource.createMany({ data: mutedSources });
+    }
+
+    const quietHours = asRows(tables.quietHours).map((row) => ({
+      userId: row.userId,
+      enabled: asBoolean(row.enabled, false),
+      startTimeLocal: asString(row.startTimeLocal) ?? null,
+      endTimeLocal: asString(row.endTimeLocal) ?? null,
+      timeZone: asString(row.timeZone) ?? null,
+      createdAt: toDate(row.createdAt) ?? new Date(),
+      updatedAt: toDate(row.updatedAt) ?? new Date(),
+    }));
+    if (quietHours.length > 0) {
+      await tx.quietHours.createMany({ data: quietHours });
     }
 
     const senTags = asRows(tables.childSenTags).map((row) => ({
