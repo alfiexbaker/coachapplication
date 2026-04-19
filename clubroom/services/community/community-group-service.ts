@@ -33,8 +33,12 @@ import { emitTyped, ServiceEvents } from '../event-bus';
 import { userService } from '../user-service';
 import { accountIdsMatch } from '@/utils/account-id';
 import { normalizeLegacyMockDates } from '@/utils/mock-date-normalizer';
+import { api } from '@/constants/config';
+import { communityMediaAuthorityService } from '../community-media-authority-service';
+import { getLocalOverlayValue, setLocalOverlayValue } from '../local-overlay-store';
 
 const logger = createLogger('CommunityGroupService');
+const USE_MOCK = api.useMock;
 
 async function resolveMemberName(parentId: string, fallback = 'Member'): Promise<string> {
   const userResult = await userService.getUserById(parentId);
@@ -73,6 +77,66 @@ function outranks(a: GroupMemberRole, b: GroupMemberRole): boolean {
  */
 function isAdminRole(role: GroupMemberRole): boolean {
   return ADMIN_ROLES.includes(role);
+}
+
+function sortMembers(members: GroupMember[]): GroupMember[] {
+  return [...members].sort((left, right) =>
+    `${left.parentId}:${left.role}:${left.joinedAt}`.localeCompare(
+      `${right.parentId}:${right.role}:${right.joinedAt}`,
+    ),
+  );
+}
+
+function sameMembers(left: GroupMember[], right: GroupMember[]): boolean {
+  return JSON.stringify(sortMembers(left)) === JSON.stringify(sortMembers(right));
+}
+
+function mergeGroupRecord(authoritative: ParentGroup, overlay: ParentGroup): ParentGroup {
+  return {
+    ...authoritative,
+    members: overlay.members.length > 0 ? overlay.members : authoritative.members,
+    updatedAt: overlay.updatedAt || authoritative.updatedAt,
+    lastMessageAt: overlay.lastMessageAt ?? authoritative.lastMessageAt,
+    lastMessagePreview: overlay.lastMessagePreview ?? authoritative.lastMessagePreview,
+    unreadCount: overlay.unreadCount ?? authoritative.unreadCount,
+    isPublic: overlay.isPublic,
+    maxMembers: overlay.maxMembers ?? authoritative.maxMembers,
+  };
+}
+
+function mergeGroupLists(authoritative: ParentGroup[], overlay: ParentGroup[]): ParentGroup[] {
+  const authoritativeById = new Map(authoritative.map((group) => [group.id, group] as const));
+  const merged = authoritative.map((group) => {
+    const localOverride = overlay.find((candidate) => candidate.id === group.id);
+    return localOverride ? mergeGroupRecord(group, localOverride) : group;
+  });
+
+  return [
+    ...merged,
+    ...overlay.filter((group) => !authoritativeById.has(group.id)),
+  ];
+}
+
+function buildGroupOverlays(groups: ParentGroup[], authoritativeGroups: ParentGroup[]): ParentGroup[] {
+  const authoritativeById = new Map(authoritativeGroups.map((group) => [group.id, group] as const));
+
+  return groups.flatMap((group) => {
+    const authoritative = authoritativeById.get(group.id);
+    if (!authoritative) {
+      return [group];
+    }
+
+    const hasDiff =
+      !sameMembers(group.members, authoritative.members) ||
+      group.updatedAt !== authoritative.updatedAt ||
+      group.lastMessageAt !== authoritative.lastMessageAt ||
+      group.lastMessagePreview !== authoritative.lastMessagePreview ||
+      (group.unreadCount ?? 0) !== (authoritative.unreadCount ?? 0) ||
+      group.isPublic !== authoritative.isPublic ||
+      (group.maxMembers ?? null) !== (authoritative.maxMembers ?? null);
+
+    return hasDiff ? [mergeGroupRecord(authoritative, group)] : [];
+  });
 }
 
 // ============================================================================
@@ -180,15 +244,34 @@ const mockGroups: ParentGroup[] = normalizeLegacyMockDates([
 class CommunityGroupService {
   private inMemoryGroups: ParentGroup[] = [...mockGroups];
 
+  private async loadPersistedGroups(): Promise<ParentGroup[]> {
+    return getLocalOverlayValue<ParentGroup[]>(STORAGE_KEYS.PARENT_GROUPS, []);
+  }
+
   /**
    * Get all groups (internal helper for cross-service access)
    */
   async getAllGroups(): Promise<Result<ParentGroup[], ServiceError>> {
     try {
-      const persisted = await apiClient.get<ParentGroup[]>(STORAGE_KEYS.PARENT_GROUPS, []);
+      if (!USE_MOCK) {
+        const [authoritativeResult, persisted] = await Promise.all([
+          communityMediaAuthorityService.listGroups(),
+          this.loadPersistedGroups(),
+        ]);
+        if (!authoritativeResult.success) {
+          return authoritativeResult;
+        }
+
+        this.inMemoryGroups = mergeGroupLists(authoritativeResult.data, persisted);
+        logger.info('all_groups_retrieved', { count: this.inMemoryGroups.length, source: 'api' });
+        return ok(this.inMemoryGroups);
+      }
+
+      const persisted = await this.loadPersistedGroups();
       if (persisted.length > 0) {
         this.inMemoryGroups = persisted;
       }
+
       logger.info('all_groups_retrieved', { count: this.inMemoryGroups.length });
       return ok(this.inMemoryGroups);
     } catch (error) {
@@ -1026,7 +1109,24 @@ class CommunityGroupService {
    * Persist groups to storage
    */
   async persistGroups(): Promise<void> {
-    await apiClient.set(STORAGE_KEYS.PARENT_GROUPS, this.inMemoryGroups);
+    if (USE_MOCK) {
+      await setLocalOverlayValue(STORAGE_KEYS.PARENT_GROUPS, this.inMemoryGroups);
+      return;
+    }
+
+    const authoritativeResult = await communityMediaAuthorityService.listGroups();
+    if (!authoritativeResult.success) {
+      logger.warn('Persisting community group overlays without authority diff', {
+        error: authoritativeResult.error.message,
+      });
+      await setLocalOverlayValue(STORAGE_KEYS.PARENT_GROUPS, this.inMemoryGroups);
+      return;
+    }
+
+    await setLocalOverlayValue(
+      STORAGE_KEYS.PARENT_GROUPS,
+      buildGroupOverlays(this.inMemoryGroups, authoritativeResult.data),
+    );
   }
 }
 

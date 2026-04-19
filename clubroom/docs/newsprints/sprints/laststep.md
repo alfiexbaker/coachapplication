@@ -4,27 +4,24 @@ Date: 2026-04-17
 
 ## What Was Just Done
 
-1. Added `apps/api/src/repositories/p0/community-media-repository.ts` so `/v1/videos/:videoId`, `/v1/community-groups`, `/v1/posts`, `/v1/message-threads`, and `/v1/me/notifications` now share one db-aware authority seam instead of keeping route-local seed reads.
-2. Moved those handlers in `apps/api/src/modules/wave2plus/routes.ts` onto the repository and tightened them to fail closed for unauthenticated or unrelated callers.
-3. Extended `packages/db/scripts/import-marketplace-p0-seed.mjs` so production db import now carries the community/media graph (`MediaObject`, `UploadSession`, `MalwareScanResult`, `Video`, `VideoAnnotation`, `CommunityGroup`, `CommunityGroupMembership`, `Post`, `PostComment`, `PostReaction`, `MessageThread`, `MessageParticipant`, `Message`, `MessageReceipt`, `Notification`, `NotificationPreference`, `MutedSource`, `QuietHours`) instead of leaving those live `/v1` reads seed-only after cutover.
-4. Added focused route coverage in `apps/api/src/modules/wave2plus/routes.test.ts` for db-fixture fallback plus outsider-denied video and community-post access.
+1. Added `services/community-media-authority-service.ts` as the shared non-mock `/v1` read bridge for community groups, message threads/messages, notifications, and notification preferences.
+2. Moved `services/community/community-group-service.ts`, `services/community/community-messaging-service.ts`, `services/messaging-service.ts`, `services/notification/notification-store.ts`, and `services/notification/notification-preferences.ts` onto that authority path for non-mock reads.
+3. Replaced the accidental non-mock `/api/*` compatibility writes for those overlays with a dedicated local AsyncStorage bridge in `services/local-overlay-store.ts`, so local state is now only an overlay for unsupported writes instead of a second authority path.
+4. Added explicit local overlay keys for message thread summaries and deleted-message tombstones in `constants/storage-keys.ts`.
+5. Synced runtime docs so the backlog now reflects the narrower remaining seam: video delivery and signed media reads.
 
 ## Verification Run In This Step
 
-- `npm --prefix apps/api run typecheck` -> PASS
-- `npm --prefix apps/api run test` -> PASS (`85/85`)
-- `npx tsx --test apps/api/src/modules/wave2plus/routes.test.ts` -> PASS (`20/20`)
-- `node --check packages/db/scripts/import-marketplace-p0-seed.mjs` -> PASS
 - `npm run typecheck` -> PASS
 - `npm run test:compile` -> PASS
 - `git diff --check` -> PASS
 
 ## Current State
 
-- Active community/media `/v1` reads no longer depend on route-local marketplace seed-table logic in `db` mode.
-- Production db import now includes the media/community graph needed for video detail, community groups, posts, threads, and notifications after cutover.
-- The remaining production risk in this area has moved up the stack: app community, video, messaging, and notification services still use local compatibility storage or legacy `/api/*` paths outside mock mode.
+- Community group, group-message, direct-message, notification inbox, and notification-preference reads are now API-first in non-mock mode through the db-aware `/v1` routes.
+- Local storage in those domains is now a compatibility overlay for unsupported writes, not the source of truth.
+- The remaining active community/media production seam is video detail delivery: `video-service.ts` still depends on legacy `/api/videos*` because `/v1/videos/:videoId` does not yet return a signed/playable asset URL.
 
 ## Next Exact Action
 
-1. Start `PROD-CUTOVER-01` to move active community/media app reads onto the now-authoritative `/v1` routes and delete non-mock local authority where it is replaced.
+1. Start `PROD-CUTOVER-02` to add signed/playable media delivery to `/v1/videos/:videoId` and move `video-service.ts` off legacy `/api/videos*` plus local compatibility storage in non-mock mode.

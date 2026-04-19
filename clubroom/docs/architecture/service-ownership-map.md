@@ -1,6 +1,6 @@
 # Service Ownership Map
 
-Validated: 2026-03-18
+Validated: 2026-04-17
 Purpose: identify the service entrypoints that are safe to build on and call out legacy or split surfaces that still exist on disk.
 
 ## Canonical Rules
@@ -30,7 +30,7 @@ Purpose: identify the service entrypoints that are safe to build on and call out
 - `services/video-service.ts`
 - Covers videos and annotations in one service surface
 - Backend video detail now has a db-aware authority route at `GET /v1/videos/:videoId`
-- Current limitation: `services/video-service.ts` still uses legacy `/api/videos*` and local compatibility storage outside mock mode; that app cutover is the next production seam
+- Current limitation: `services/video-service.ts` still uses legacy `/api/videos*` and local compatibility storage outside mock mode because the current route does not yet return a signed/playable asset URL; that media-delivery cutover is the next production seam
 
 ### Family and guardian access
 
@@ -85,8 +85,10 @@ Purpose: identify the service entrypoints that are safe to build on and call out
 
 - `services/community/index.ts`
 - Avoid creating new parallel community data access paths
+- `services/community-media-authority-service.ts`
+- Canonical `/v1` bridge for non-mock community groups, message threads/messages, and notification preference reads
 - Backend community/media reads now have db-aware authority routes at `GET /v1/community-groups`, `GET /v1/posts`, and `GET /v1/message-threads`
-- Current limitation: `community-group-service.ts` and `community-messaging-service.ts` still rely on local compatibility storage and have not been cut over to those `/v1` routes yet
+- `community-group-service.ts` and `community-messaging-service.ts` now read from those `/v1` routes in non-mock mode and keep local AsyncStorage overlays only for unsupported writes like local group edits and message send/read simulation
 
 ### Events
 
@@ -127,7 +129,7 @@ Purpose: identify the service entrypoints that are safe to build on and call out
 - `services/notification/index.ts`
 - Notification primitives live under the domain module even though root compatibility files also exist
 - Backend notification reads now have a db-aware authority route at `GET /v1/me/notifications`
-- Current limitation: root notification services still read/write the local notification store outside mock mode
+- Root notification services now read from `GET /v1/me/notifications` in non-mock mode and keep local AsyncStorage overlays only for unsupported write actions until backend notification mutation routes exist
 
 ### Analytics
 

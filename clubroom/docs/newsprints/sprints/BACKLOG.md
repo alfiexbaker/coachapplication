@@ -7,12 +7,12 @@ Rule: active work only. Completed sprint rows are intentionally removed.
 
 | ID | Exactly what it does | Spine(s) | Status |
 | -- | -------------------- | -------- | ------ |
-| PROD-CUTOVER-01 | Move active community/media app reads off local compatibility storage and onto the now-authoritative `/v1` routes; delete non-mock local authority where the backend fully replaces it. | Trust/Safety/Ops + Development | READY |
+| PROD-CUTOVER-02 | Add signed/playable media delivery to `/v1/videos/:videoId` and move `video-service.ts` off legacy `/api/videos*` plus local compatibility storage in non-mock mode. | Trust/Safety/Ops + Development | READY |
 
 ## Execution Order
 
-1. `PROD-CUTOVER-01`
+1. `PROD-CUTOVER-02`
 
 ## Sprint Intent
 
-- Finish app-side production cutover on top of the db-backed `/v1` seams before introducing new feature sprint labels.
+- Finish the last active community/media cutover seam before introducing new feature sprint labels.

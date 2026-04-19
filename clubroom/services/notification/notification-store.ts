@@ -5,15 +5,22 @@
  * Single responsibility: notification data management.
  */
 
-import { apiClient } from '../api-client';
 import { createLogger } from '@/utils/logger';
 import { emitTyped, ServiceEvents } from '../event-bus';
 import type { NotificationItem } from '@/constants/types';
 import { STORAGE_KEYS } from '@/constants/storage-keys';
 import { type Result, type ServiceError, ok, err, storageError } from '@/types/result';
 import { resolveDeepLink } from '@/utils/deep-link';
+import { api } from '@/constants/config';
+import {
+  communityMediaAuthorityService,
+  mergeById,
+  type AuthorityNotificationItem,
+} from '../community-media-authority-service';
+import { getLocalOverlayValue, setLocalOverlayValue } from '../local-overlay-store';
 
 const logger = createLogger('NotificationStore');
+const USE_MOCK = api.useMock;
 
 /**
  * Extended notification with additional metadata.
@@ -26,6 +33,7 @@ export interface ExtendedNotificationItem extends NotificationItem {
   expiresAt?: string;
   data?: Record<string, string>;
   notificationType?: string;
+  dismissed?: boolean;
 }
 
 /**
@@ -36,12 +44,52 @@ type NotificationListener = (notification: ExtendedNotificationItem) => void;
 class NotificationStore {
   private listeners: NotificationListener[] = [];
 
+  private async loadLocalOverlays(): Promise<ExtendedNotificationItem[]> {
+    return getLocalOverlayValue<ExtendedNotificationItem[]>(STORAGE_KEYS.NOTIFICATIONS, []);
+  }
+
+  private async saveLocalOverlays(items: ExtendedNotificationItem[]): Promise<void> {
+    await setLocalOverlayValue(STORAGE_KEYS.NOTIFICATIONS, items);
+  }
+
+  private async listAuthoritative(): Promise<Result<AuthorityNotificationItem[], ServiceError>> {
+    return communityMediaAuthorityService.listNotifications();
+  }
+
+  private upsertOverlay(
+    overlays: ExtendedNotificationItem[],
+    nextItem: ExtendedNotificationItem,
+  ): ExtendedNotificationItem[] {
+    const next = overlays.filter((item) => item.id !== nextItem.id);
+    next.unshift(nextItem);
+    return next;
+  }
+
   /**
    * Get all notifications.
    */
   async list(): Promise<Result<ExtendedNotificationItem[], ServiceError>> {
     try {
-      return ok(await apiClient.get<ExtendedNotificationItem[]>(STORAGE_KEYS.NOTIFICATIONS, []));
+      if (!USE_MOCK) {
+        const [authoritativeResult, overlays] = await Promise.all([
+          this.listAuthoritative(),
+          this.loadLocalOverlays(),
+        ]);
+        if (!authoritativeResult.success) {
+          return authoritativeResult;
+        }
+
+        return ok(
+          mergeById(authoritativeResult.data, overlays)
+            .filter((item) => !item.dismissed)
+            .sort(
+              (left, right) =>
+                new Date(right.createdAt || 0).getTime() - new Date(left.createdAt || 0).getTime(),
+            ),
+        );
+      }
+
+      return ok(await this.loadLocalOverlays());
     } catch (error) {
       logger.error('Failed to list notifications', error);
       return err(storageError('Failed to load notifications'));
@@ -50,7 +98,7 @@ class NotificationStore {
 
   async migrateRouteAliases(): Promise<Result<number, ServiceError>> {
     try {
-      const alreadyMigrated = await apiClient.get<boolean>(
+      const alreadyMigrated = await getLocalOverlayValue<boolean>(
         STORAGE_KEYS.NOTIFICATION_ROUTE_ALIAS_MIGRATION_V1,
         false,
       );
@@ -58,18 +106,15 @@ class NotificationStore {
         return ok(0);
       }
 
-      const currentResult = await this.list();
-      if (!currentResult.success) {
-        return currentResult;
-      }
+      const currentItems = await this.loadLocalOverlays();
 
       let changed = 0;
-      const updated = currentResult.data.map((notification) => {
+      const updated = currentItems.map((notification) => {
         if (!notification.deepLink) {
           return notification;
         }
         const resolved = resolveDeepLink(notification.deepLink);
-        if (!resolved || resolved === notification.deepLink) {
+        if (!resolved || typeof resolved !== 'string' || resolved === notification.deepLink) {
           return notification;
         }
         changed += 1;
@@ -77,11 +122,11 @@ class NotificationStore {
       });
 
       if (changed > 0) {
-        await apiClient.set(STORAGE_KEYS.NOTIFICATIONS, updated);
+        await this.saveLocalOverlays(updated);
         logger.info('Migrated notification deep links to current routes', { changed });
       }
 
-      await apiClient.set(STORAGE_KEYS.NOTIFICATION_ROUTE_ALIAS_MIGRATION_V1, true);
+      await setLocalOverlayValue(STORAGE_KEYS.NOTIFICATION_ROUTE_ALIAS_MIGRATION_V1, true);
       return ok(changed);
     } catch (error) {
       logger.error('Failed to migrate notification route aliases', error);
@@ -102,12 +147,9 @@ class NotificationStore {
         read: notification.read ?? false,
       };
 
-      const currentResult = await this.list();
-      if (!currentResult.success) {
-        return currentResult;
-      }
-      const updated = [fullNotification, ...currentResult.data];
-      await apiClient.set(STORAGE_KEYS.NOTIFICATIONS, updated);
+      const overlays = await this.loadLocalOverlays();
+      const updated = this.upsertOverlay(overlays, fullNotification);
+      await this.saveLocalOverlays(updated);
 
       // Notify in-app listeners for toasts
       this.notifyListeners(fullNotification);
@@ -125,7 +167,7 @@ class NotificationStore {
         recipientId: notification.recipientId,
       });
 
-      return ok(updated);
+      return this.list();
     } catch (error) {
       logger.error('Failed to create notification', { notification, error });
       return err(storageError('Failed to create notification'));
@@ -137,16 +179,20 @@ class NotificationStore {
    */
   async markAsRead(id: string): Promise<Result<ExtendedNotificationItem[], ServiceError>> {
     try {
-      const currentResult = await this.list();
+      const [currentResult, overlays] = await Promise.all([this.list(), this.loadLocalOverlays()]);
       if (!currentResult.success) {
         return currentResult;
       }
-      const updated = currentResult.data.map((n) => (n.id === id ? { ...n, read: true } : n));
-      await apiClient.set(STORAGE_KEYS.NOTIFICATIONS, updated);
+      const existing = currentResult.data.find((item) => item.id === id);
+      if (!existing) {
+        return ok(currentResult.data);
+      }
+
+      await this.saveLocalOverlays(this.upsertOverlay(overlays, { ...existing, read: true }));
 
       emitTyped(ServiceEvents.NOTIFICATION_READ, { notificationId: id });
 
-      return ok(updated);
+      return this.list();
     } catch (error) {
       logger.error('Failed to mark notification as read', { id, error });
       return err(storageError('Failed to update notification'));
@@ -158,14 +204,18 @@ class NotificationStore {
    */
   async markAllAsRead(): Promise<Result<ExtendedNotificationItem[], ServiceError>> {
     try {
-      const currentResult = await this.list();
+      const [currentResult, overlays] = await Promise.all([this.list(), this.loadLocalOverlays()]);
       if (!currentResult.success) {
         return currentResult;
       }
-      const updated = currentResult.data.map((n) => ({ ...n, read: true }));
-      await apiClient.set(STORAGE_KEYS.NOTIFICATIONS, updated);
+
+      const updatedOverlays = currentResult.data.reduce(
+        (items, notification) => this.upsertOverlay(items, { ...notification, read: true }),
+        overlays,
+      );
+      await this.saveLocalOverlays(updatedOverlays);
       emitTyped(ServiceEvents.NOTIFICATION_READ, { notificationId: '*' });
-      return ok(updated);
+      return this.list();
     } catch (error) {
       logger.error('Failed to mark all notifications as read', error);
       return err(storageError('Failed to update notifications'));
@@ -179,16 +229,20 @@ class NotificationStore {
     id: string,
   ): Promise<Result<ExtendedNotificationItem | undefined, ServiceError>> {
     try {
-      const currentResult = await this.list();
+      const [currentResult, overlays] = await Promise.all([this.list(), this.loadLocalOverlays()]);
       if (!currentResult.success) {
         return currentResult;
       }
-      const updated = currentResult.data.map((n) =>
-        n.id === id ? { ...n, read: true, handled: true } : n,
+      const existing = currentResult.data.find((item) => item.id === id);
+      if (!existing) {
+        return ok(undefined);
+      }
+
+      await this.saveLocalOverlays(
+        this.upsertOverlay(overlays, { ...existing, read: true, handled: true }),
       );
-      await apiClient.set(STORAGE_KEYS.NOTIFICATIONS, updated);
       emitTyped(ServiceEvents.NOTIFICATION_READ, { notificationId: id });
-      return ok(updated.find((n) => n.id === id));
+      return ok({ ...existing, read: true, handled: true });
     } catch (error) {
       logger.error('Failed to mark notification as handled', { id, error });
       return err(storageError('Failed to update notification'));
@@ -200,16 +254,22 @@ class NotificationStore {
    */
   async dismiss(id: string): Promise<Result<ExtendedNotificationItem[], ServiceError>> {
     try {
-      const currentResult = await this.list();
+      const [currentResult, overlays] = await Promise.all([this.list(), this.loadLocalOverlays()]);
       if (!currentResult.success) {
         return currentResult;
       }
-      const updated = currentResult.data.filter((n) => n.id !== id);
-      await apiClient.set(STORAGE_KEYS.NOTIFICATIONS, updated);
+      const existing = currentResult.data.find((item) => item.id === id);
+      if (!existing) {
+        return ok(currentResult.data);
+      }
+
+      await this.saveLocalOverlays(
+        this.upsertOverlay(overlays, { ...existing, dismissed: true }),
+      );
 
       emitTyped(ServiceEvents.NOTIFICATION_DISMISSED, { notificationId: id });
 
-      return ok(updated);
+      return this.list();
     } catch (error) {
       logger.error('Failed to dismiss notification', { id, error });
       return err(storageError('Failed to dismiss notification'));
@@ -221,7 +281,21 @@ class NotificationStore {
    */
   async clearAll(): Promise<Result<void, ServiceError>> {
     try {
-      await apiClient.set(STORAGE_KEYS.NOTIFICATIONS, []);
+      if (!USE_MOCK) {
+        const [currentResult, overlays] = await Promise.all([this.list(), this.loadLocalOverlays()]);
+        if (!currentResult.success) {
+          return currentResult;
+        }
+
+        const nextOverlays = currentResult.data.reduce(
+          (items, notification) =>
+            this.upsertOverlay(items, { ...notification, dismissed: true }),
+          overlays,
+        );
+        await this.saveLocalOverlays(nextOverlays);
+      } else {
+        await this.saveLocalOverlays([]);
+      }
       emitTyped(ServiceEvents.NOTIFICATION_DISMISSED, { notificationId: '*' });
       return ok(undefined);
     } catch (error) {

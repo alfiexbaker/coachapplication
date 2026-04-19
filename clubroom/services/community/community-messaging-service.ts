@@ -9,17 +9,20 @@
  * - Group metadata (lastMessageAt, unreadCount) is updated on message events
  */
 
-import { ParentGroup, GroupMessage, ChatAttachment } from '@/constants/types';
+import { GroupMessage, ChatAttachment } from '@/constants/types';
 import { generateId } from '@/utils/generate-id';
-import { apiClient } from '../api-client';
 import { type Result, type ServiceError, ok, err, storageError, unauthorized } from '@/types/result';
 import { STORAGE_KEYS } from '@/constants/storage-keys';
 import { createLogger } from '@/utils/logger';
 import { communityGroupService } from './community-group-service';
 import { accountIdsMatch } from '@/utils/account-id';
 import { normalizeLegacyMockDates } from '@/utils/mock-date-normalizer';
+import { api } from '@/constants/config';
+import { communityMediaAuthorityService, mergeById } from '../community-media-authority-service';
+import { getLocalOverlayValue, setLocalOverlayValue } from '../local-overlay-store';
 
 const logger = createLogger('CommunityMessagingService');
+const USE_MOCK = api.useMock;
 
 // Mock data for initial state
 const mockMessages: Record<string, GroupMessage[]> = normalizeLegacyMockDates({
@@ -57,15 +60,34 @@ const mockMessages: Record<string, GroupMessage[]> = normalizeLegacyMockDates({
 class CommunityMessagingService {
   private inMemoryMessages: Record<string, GroupMessage[]> = { ...mockMessages };
 
+  private async loadPersistedMessages(): Promise<Record<string, GroupMessage[]>> {
+    return getLocalOverlayValue<Record<string, GroupMessage[]>>(STORAGE_KEYS.GROUP_MESSAGES, {});
+  }
+
   /**
    * Get messages for a group
    */
   async getGroupMessages(groupId: string): Promise<Result<GroupMessage[], ServiceError>> {
     try {
-      const persisted = await apiClient.get<Record<string, GroupMessage[]>>(
-        STORAGE_KEYS.GROUP_MESSAGES,
-        {},
-      );
+      if (!USE_MOCK) {
+        const [authoritativeResult, persisted] = await Promise.all([
+          communityMediaAuthorityService.listGroupMessages(groupId),
+          this.loadPersistedMessages(),
+        ]);
+        if (!authoritativeResult.success) {
+          return authoritativeResult;
+        }
+
+        const overlayMessages = persisted[groupId] || [];
+        const messages = mergeById(authoritativeResult.data, overlayMessages);
+        return ok(
+          messages.sort(
+            (a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime(),
+          ),
+        );
+      }
+
+      const persisted = await this.loadPersistedMessages();
       const messages = persisted[groupId] || this.inMemoryMessages[groupId] || [];
 
       return ok(
@@ -114,15 +136,17 @@ class CommunityMessagingService {
         attachments,
       };
 
-      const persisted = await apiClient.get<Record<string, GroupMessage[]>>(
-        STORAGE_KEYS.GROUP_MESSAGES,
-        {},
-      );
-      const currentMessages = persisted[groupId] || this.inMemoryMessages[groupId] || [];
+      const persisted = await this.loadPersistedMessages();
+      const currentMessagesResult = await this.getGroupMessages(groupId);
+      if (!currentMessagesResult.success) {
+        return currentMessagesResult;
+      }
+
+      const currentMessages = currentMessagesResult.data;
       persisted[groupId] = [...currentMessages, newMessage];
 
       this.inMemoryMessages[groupId] = persisted[groupId];
-      await apiClient.set(STORAGE_KEYS.GROUP_MESSAGES, persisted);
+      await setLocalOverlayValue(STORAGE_KEYS.GROUP_MESSAGES, persisted);
 
       // Update group's last message info
       const allGroupsResult = await communityGroupService.getAllGroups();
@@ -151,11 +175,13 @@ class CommunityMessagingService {
    */
   async markMessagesRead(groupId: string, parentId: string): Promise<Result<void, ServiceError>> {
     try {
-      const persisted = await apiClient.get<Record<string, GroupMessage[]>>(
-        STORAGE_KEYS.GROUP_MESSAGES,
-        {},
-      );
-      const messages = persisted[groupId] || this.inMemoryMessages[groupId] || [];
+      const persisted = await this.loadPersistedMessages();
+      const messagesResult = await this.getGroupMessages(groupId);
+      if (!messagesResult.success) {
+        return messagesResult;
+      }
+
+      const messages = messagesResult.data;
 
       const updated = messages.map((msg) => {
         if (!msg.readBy.some((readerId) => accountIdsMatch(readerId, parentId))) {
@@ -166,7 +192,7 @@ class CommunityMessagingService {
 
       persisted[groupId] = updated;
       this.inMemoryMessages[groupId] = updated;
-      await apiClient.set(STORAGE_KEYS.GROUP_MESSAGES, persisted);
+      await setLocalOverlayValue(STORAGE_KEYS.GROUP_MESSAGES, persisted);
 
       // Clear unread count for this group
       const allGroupsResult = await communityGroupService.getAllGroups();
@@ -190,17 +216,19 @@ class CommunityMessagingService {
     messageId: string,
     status: GroupMessage['status'],
   ): Promise<void> {
-    const persisted = await apiClient.get<Record<string, GroupMessage[]>>(
-      STORAGE_KEYS.GROUP_MESSAGES,
-      {},
-    );
-    const messages = persisted[groupId] || this.inMemoryMessages[groupId] || [];
+    const persisted = await this.loadPersistedMessages();
+    const currentMessagesResult = await this.getGroupMessages(groupId);
+    if (!currentMessagesResult.success) {
+      return;
+    }
+
+    const messages = currentMessagesResult.data;
 
     const updated = messages.map((msg) => (msg.id === messageId ? { ...msg, status } : msg));
 
     persisted[groupId] = updated;
     this.inMemoryMessages[groupId] = updated;
-    await apiClient.set(STORAGE_KEYS.GROUP_MESSAGES, persisted);
+    await setLocalOverlayValue(STORAGE_KEYS.GROUP_MESSAGES, persisted);
   }
 }
 

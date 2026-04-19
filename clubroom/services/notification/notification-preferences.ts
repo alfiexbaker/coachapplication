@@ -5,7 +5,6 @@
  * Single responsibility: notification settings management.
  */
 
-import { apiClient } from '../api-client';
 import { createLogger } from '@/utils/logger';
 import type {
   EnhancedNotificationPreferences,
@@ -16,8 +15,12 @@ import type {
 } from '@/constants/types';
 import { STORAGE_KEYS } from '@/constants/storage-keys';
 import { type Result, type ServiceError, ok, err, storageError } from '@/types/result';
+import { api } from '@/constants/config';
+import { communityMediaAuthorityService } from '../community-media-authority-service';
+import { getLocalOverlayValue, setLocalOverlayValue } from '../local-overlay-store';
 
 const logger = createLogger('NotificationPreferences');
+const USE_MOCK = api.useMock;
 
 class NotificationPreferencesService {
   /**
@@ -47,7 +50,7 @@ class NotificationPreferencesService {
    * Load all preferences from storage.
    */
   private async loadAllPreferences(): Promise<EnhancedNotificationPreferences[]> {
-    return apiClient.get<EnhancedNotificationPreferences[]>(
+    return getLocalOverlayValue<EnhancedNotificationPreferences[]>(
       STORAGE_KEYS.NOTIFICATION_PREFERENCES,
       [],
     );
@@ -69,13 +72,49 @@ class NotificationPreferencesService {
       all.push(prefs);
     }
 
-    await apiClient.set(STORAGE_KEYS.NOTIFICATION_PREFERENCES, all);
+    await setLocalOverlayValue(STORAGE_KEYS.NOTIFICATION_PREFERENCES, all);
   }
 
   /**
    * Load preferences for a user.
    */
   private async getPreferencesValue(userId: string): Promise<EnhancedNotificationPreferences> {
+    if (!USE_MOCK) {
+      const [authoritativeResult, all] = await Promise.all([
+        communityMediaAuthorityService.getNotificationPreferences(),
+        this.loadAllPreferences(),
+      ]);
+      if (!authoritativeResult.success) {
+        throw new Error(authoritativeResult.error.message);
+      }
+
+      const overlay = all.find((prefs) => prefs.userId === userId);
+      if (!overlay) {
+        return authoritativeResult.data;
+      }
+
+      return {
+        ...authoritativeResult.data,
+        ...overlay,
+        userId,
+        channels: {
+          ...authoritativeResult.data.channels,
+          ...overlay.channels,
+        },
+        quietHours: {
+          ...authoritativeResult.data.quietHours,
+          ...overlay.quietHours,
+        },
+        typePreferences: {
+          ...authoritativeResult.data.typePreferences,
+          ...overlay.typePreferences,
+        },
+        mutedCoaches: overlay.mutedCoaches,
+        createdAt: authoritativeResult.data.createdAt,
+        updatedAt: overlay.updatedAt || authoritativeResult.data.updatedAt,
+      };
+    }
+
     const all = await this.loadAllPreferences();
     const existing = all.find((p) => p.userId === userId);
 

@@ -1,6 +1,6 @@
 # Clubroom - Single Source of Truth
 
-Last updated: 2026-04-16
+Last updated: 2026-04-17
 Project: football coaching marketplace plus family development tracker
 Status: live-featured Expo app with a real Fastify API alongside it; backend cutover is still in progress, and runtime `/v1` auth is now JWT-backed
 
@@ -79,7 +79,7 @@ Clubs manage staff, squads, visibility, and operating relationships.
   - `npm --prefix apps/api run release:preflight` now runs under production semantics and gates release builds with the same runtime checks plus explicit migration guardrails, so release safety fails honestly instead of silently assuming DB/storage readiness
   - checked-in Prisma baseline migrations now exist under `packages/db/prisma/migrations`, and production env parsing defaults the API data backend to `db` unless explicitly overridden
   - db-backed `POST /v1/uploads/init` now persists `MediaObject` and `UploadSession` records and returns signed private-bucket `PUT` targets; seed mode keeps the placeholder upload URL only as a non-production compatibility path
-  - the current release gate is intentionally still red until production env, db connectivity, and object-storage config are present, and the remaining non-mock community/media app authority is cut over from local compatibility storage onto the now-authoritative `/v1` routes
+  - the current release gate is intentionally still red until production env, db connectivity, and object-storage config are present, and the remaining community/media app cutover is narrowed to video delivery and signed media reads
   - club dashboard and recent-results reads now use the shared API client path instead of release-fragile raw relative fetches
   - family member/account authority in non-mock mode now runs through `GET /v1/families/:familyId` plus `POST/PATCH/DELETE /v1/athletes*`; `services/child-service.ts` and `services/family/family-member-service.ts` no longer treat local child/family stores as the source of truth outside mock mode
   - child profile, injury, medical, emergency-contact, and consent records now live behind `/v1/athletes/*`; the API now persists those surfaces through repository-backed storage instead of route-local memory, while a narrow `ath_user*` compatibility bridge remains only for legacy seed/auth fixtures
@@ -90,13 +90,14 @@ Clubs manage staff, squads, visibility, and operating relationships.
   - Prisma seed import now carries the group-session graph (`GroupSession`, `GroupSessionRegistration`, `WaitlistEntry`, `Invite`, `InviteTarget`, `AttendanceRecord`) so production `db` mode keeps session discovery, roster, attendance, and invite-linked session flows populated after import
   - `/v1/videos/:videoId`, `/v1/community-groups`, `/v1/posts`, `/v1/message-threads`, and `/v1/me/notifications` now resolve through one shared community/media repository in both seed and `db` modes instead of route-local marketplace seed-table reads
   - Prisma seed import now carries the community/media graph (`MediaObject`, `UploadSession`, `MalwareScanResult`, `Video`, `VideoAnnotation`, `CommunityGroup`, `CommunityGroupMembership`, `Post`, `PostComment`, `PostReaction`, `MessageThread`, `MessageParticipant`, `Message`, `MessageReceipt`, `Notification`, `NotificationPreference`, `MutedSource`, `QuietHours`) so those active `/v1` reads stay populated after db cutover
+  - `community-group-service.ts`, `community-messaging-service.ts`, `messaging-service.ts`, and the root notification services now read from the db-aware `/v1` community/media routes in non-mock mode; local storage in those domains is now only a compatibility overlay for unsupported writes, not the authority path
   - session-invite create/list/detail/respond/cancel/remind/dismiss now use `/v1/invites*` in non-mock mode through `services/invite/session-invite-authority-service.ts`
   - direct invite acceptance now creates bookings through the `/v1` invite path instead of falling back to removed legacy `/api/session-invites/*` behavior
   - `/v1/bookings` create, `/v1/invites` create, and direct-invite accept now validate chosen slots against the same backend availability resolver instead of trusting client-side slot math
   - booking changes are intentionally `cancel` or `reopen`; the old counter-offer and invite counter workflow has been removed from the runtime product surface
   - coach scheduling rules no longer advertise a separate reschedule policy; bookings now change by cancellation and rebooking/reopening instead of negotiation
   - Expo native/web and `apps/api` now emit to Sentry with shared release/environment tags, Expo web source maps via `npm run export:web`, and API source maps via `npm --prefix apps/api run build:release`
-  - the next production follow-through is now narrower again: move community/media app reads off local compatibility storage and onto the `/v1` routes that are now db-aware, then continue with live provider cutover and the remaining release blockers surfaced by `/v1/ready`
+  - the next production follow-through is now narrower again: add signed media delivery to `/v1/videos/:videoId` and move `video-service.ts` off legacy `/api/videos*`, then continue with live provider cutover and the remaining release blockers surfaced by `/v1/ready`
 - Club-facing schedule surfaces now use a `ClubActivity` read model to link `ClubEvent` and `GroupSession`
   - `ClubActivity` now also includes `Match`, so club and squad schedule routes can show events, training, and matches in one surface
   - club-linked open group sessions are treated as mixed-access training, not as a separate public product world

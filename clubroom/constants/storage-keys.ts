@@ -184,6 +184,10 @@ export const STORAGE_KEYS = {
 
   /** Direct messages between users */
   MESSAGES: 'clubroom.messages',
+  /** Local thread summary overrides for unsupported non-mock messaging writes */
+  MESSAGE_THREADS: 'clubroom.message_threads',
+  /** Local tombstones for deleted messages until backend delete routes exist */
+  MESSAGE_DELETED_IDS: 'clubroom.message_deleted_ids',
 
   // ============================================================================
   // FINANCIAL DOMAIN
