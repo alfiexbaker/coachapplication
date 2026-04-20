@@ -15,7 +15,6 @@ import type {
   ParentGroup,
 } from '@/constants/types';
 import { authService } from '@/services/auth-service';
-import { bookingService } from '@/services/booking-service';
 import { apiFetch } from '@/services/api-client';
 import {
   buildApiAuthHeaders,
@@ -382,6 +381,7 @@ function mapGroupMessages(messages: ApiMessage[]): GroupMessage[] {
 }
 
 async function loadBookingsById(): Promise<Map<string, Booking>> {
+  const { bookingService } = await import('@/services/booking-service');
   const bookings = await bookingService.list();
   return new Map(bookings.map((booking) => [booking.id, booking] as const));
 }
