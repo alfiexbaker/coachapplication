@@ -54,6 +54,16 @@ Source of truth:
 - If the app already has data for the surface, keep rendering that data while a refresh runs instead of replacing it with a blank placeholder.
 - Do not mix unrelated loading styles in one viewport, such as skeleton cards plus a random spinner that implies a different structure.
 
+## Premium Failure Conditions
+
+- Fail the surface if it shows a full-screen skeleton after the user already saw loaded data there once.
+- Fail the surface if a segmented or tabbed switch shows empty space, white flash, or a cold reset.
+- Fail the surface if the loading state uses generic bars but the loaded UI is actually a mixed card, chip, hero, or timeline composition.
+- Fail the surface if the placeholder is denser or sparser than the final UI and therefore lies about what is coming.
+- Fail the surface if pull-to-refresh or focus refresh destroys stable chrome that could have stayed on screen.
+- Fail the surface if the shimmer, entry animation, or placeholder count is heavy enough to harm scroll performance.
+- Fail the surface if a long-list experience uses `ScrollView` without a deliberate reason grounded in low item count or non-feed structure.
+
 ## Existing Screen Wrappers
 
 - `AnalyticsScreenState`
@@ -84,6 +94,16 @@ Source of truth:
 5. Prefer section-level placeholders over whole-screen loading whenever the header, chrome, or other loaded sections can stay stable.
 6. For segmented or tabbed surfaces, keep previously loaded panes warm or preserve their last loaded data; switching tabs should not blank the whole page.
 7. A skeleton should reuse the same spacing, density, and container rules as the loaded component family wherever practical.
+8. Do not ship “premium” claims on a surface until it passes the failure conditions above.
+
+## Build Conditions
+
+1. First-load only: whole-screen skeletons are allowed only when no truthful prior data exists.
+2. Truthful geometry: skeleton height, spacing, grouping, and visual hierarchy must map to the loaded surface.
+3. Stable chrome: headers, segment controls, tabs, and already-loaded sections stay mounted during refresh whenever possible.
+4. Warm navigation: revisiting a screen or tab should reveal retained content first and refresh second.
+5. Cheap motion: loading motion must be lightweight enough that scrolling still feels immediate.
+6. No fallback slop: if a surface needs a custom loading recipe, a generic `list` or `detail` variant is not good enough.
 
 ## Validation Notes
 

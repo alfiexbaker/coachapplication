@@ -34,3 +34,4 @@ Date: 2026-04-20
 
 - Queue priority changed after an app-wide loading and perceived-performance planning pass.
 - The next release rehearsal should happen after the loading overhaul slices so UI-flow validation reflects launch-grade state transitions rather than transitional skeleton behavior.
+- The loading queue has been tightened again with premium failure conditions; the next implementation slice should treat any warm-navigation blanking or generic placeholder drift as a defect, not polish debt.
