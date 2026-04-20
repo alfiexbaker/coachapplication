@@ -75,6 +75,7 @@ Current validated runtime state:
 - `apps/api/src/lib/auth-runtime.ts` owns JWT issuance, refresh rotation, and runtime session revocation for `/v1/auth/*` and `/v1/me/sessions*`
 - `apps/api/src/lib/ops-runtime.ts` now owns production startup validation plus `/v1/ready` readiness evaluation for config, database, and object-storage state
 - `npm --prefix apps/api run release:preflight` now uses the same ops runtime to fail release builds when production guardrails are not met
+- Expo app config now defaults `web.output` to `single` for normal dev startup, and `npm run export:web` opts into `static` with `EXPO_WEB_OUTPUT=static`; local `expo start` no longer needs the static renderer unless explicitly requested
 
 Implication:
 

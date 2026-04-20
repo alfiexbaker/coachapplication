@@ -22,6 +22,7 @@ function compactObject<T extends Record<string, unknown>>(value: T): Partial<T> 
 
 export default ({ config }: ConfigContext): ExpoConfig => {
   const env = process.env.EXPO_PUBLIC_ENV || 'development';
+  const webOutput = getWebOutput(process.env.EXPO_WEB_OUTPUT);
   const sentryEnvironment = process.env.SENTRY_ENVIRONMENT || env;
   const sentryRelease = process.env.SENTRY_RELEASE || `clubroom@1.0.0+${env}`;
   const sentryTracesSampleRate = parseFloatEnv(
@@ -60,7 +61,7 @@ export default ({ config }: ConfigContext): ExpoConfig => {
     },
 
     web: {
-      output: 'static',
+      output: webOutput,
       favicon: './assets/images/favicon.png',
     },
 
@@ -179,5 +180,15 @@ function getBundleId(env: string): string {
       return 'com.coachapptrial.clubroom.staging';
     default:
       return 'com.coachapptrial.clubroom.dev';
+  }
+}
+
+function getWebOutput(value: string | undefined): 'single' | 'static' | 'server' {
+  switch (value) {
+    case 'static':
+    case 'server':
+      return value;
+    default:
+      return 'single';
   }
 }
