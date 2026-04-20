@@ -26,4 +26,11 @@ Date: 2026-04-17
 
 ## Next Exact Action
 
-1. Start `PROD-VERIFY-01` to rehearse the db-backed production path end to end (`release:preflight`, web export, UI flows, and critical non-mock journeys), fix any surfaced code drift, and reduce the remaining blockers to real env/provisioning gaps.
+1. Start `UI-LOAD-01` to build the shared loading foundation: unify the skeleton primitives, extend `useScreen` for retained-data refresh behavior, and codify the rule that lazy placeholders must match the real surface they represent.
+
+## Priority Note
+
+Date: 2026-04-20
+
+- Queue priority changed after an app-wide loading and perceived-performance planning pass.
+- The next release rehearsal should happen after the loading overhaul slices so UI-flow validation reflects launch-grade state transitions rather than transitional skeleton behavior.
