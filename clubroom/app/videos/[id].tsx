@@ -153,6 +153,7 @@ export default function VideoDetailScreen() {
               <VideoDetailActions
                 colors={colors}
                 visibility={video.visibility}
+                canToggleVisibility={video.athleteIds.length > 0}
                 onAddAnnotation={() => {
                   dismissAnnotationModal();
                   handleQuickAnnotation('HIGHLIGHT' as never);

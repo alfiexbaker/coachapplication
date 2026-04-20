@@ -12,6 +12,7 @@ import type { ThemeColors } from '@/hooks/useTheme';
 interface VideoDetailActionsProps {
   colors: ThemeColors;
   visibility: string;
+  canToggleVisibility?: boolean;
   onAddAnnotation: () => void;
   onToggleVisibility: () => void;
 }
@@ -19,6 +20,7 @@ interface VideoDetailActionsProps {
 export const VideoDetailActions = memo(function VideoDetailActions({
   colors,
   visibility,
+  canToggleVisibility = true,
   onAddAnnotation,
   onToggleVisibility,
 }: VideoDetailActionsProps) {
@@ -33,19 +35,21 @@ export const VideoDetailActions = memo(function VideoDetailActions({
           <Ionicons name="bookmark-outline" size={18} color={colors.tint} />
           <ThemedText style={{ color: colors.tint, fontWeight: '600' }}>Add Annotation</ThemedText>
         </Clickable>
-        <Clickable
-          onPress={onToggleVisibility}
-          style={[styles.actionButton, { borderColor: colors.border }]}
-        >
-          <Ionicons
-            name={visibility === 'PRIVATE' ? 'share-outline' : 'lock-closed-outline'}
-            size={18}
-            color={colors.text}
-          />
-          <ThemedText style={{ fontWeight: '600' }}>
-            {visibility === 'PRIVATE' ? 'Share' : 'Make Private'}
-          </ThemedText>
-        </Clickable>
+        {canToggleVisibility ? (
+          <Clickable
+            onPress={onToggleVisibility}
+            style={[styles.actionButton, { borderColor: colors.border }]}
+          >
+            <Ionicons
+              name={visibility === 'PRIVATE' ? 'share-outline' : 'lock-closed-outline'}
+              size={18}
+              color={colors.text}
+            />
+            <ThemedText style={{ fontWeight: '600' }}>
+              {visibility === 'PRIVATE' ? 'Share' : 'Make Private'}
+            </ThemedText>
+          </Clickable>
+        ) : null}
       </Row>
     </SurfaceCard>
   );

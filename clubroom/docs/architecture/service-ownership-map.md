@@ -29,8 +29,9 @@ Purpose: identify the service entrypoints that are safe to build on and call out
 
 - `services/video-service.ts`
 - Covers videos and annotations in one service surface
-- Backend video detail now has a db-aware authority route at `GET /v1/videos/:videoId`
-- Current limitation: `services/video-service.ts` still uses legacy `/api/videos*` and local compatibility storage outside mock mode because the current route does not yet return a signed/playable asset URL; that media-delivery cutover is the next production seam
+- Non-mock video runtime now uses `/v1/uploads/init` plus `/v1/videos*` for list/detail/create/share/delete and annotation flows
+- Playback URLs are signed server-side and short-lived; guardian access is explicit-share only
+- Mock mode still uses the local video store for development-only behavior
 
 ### Family and guardian access
 

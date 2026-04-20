@@ -27,6 +27,17 @@ export interface UploadInitResult {
   bucketName: string;
 }
 
+export interface SignedReadUrlInput {
+  bucketName?: string | null;
+  storageKey: string;
+  expiresInSeconds?: number;
+}
+
+export interface SignedReadUrlResult {
+  url: string;
+  expiresAt: string;
+}
+
 const FIFTEEN_MINUTES_SECONDS = 15 * 60;
 const asRows = (value: unknown): SeedRow[] => (Array.isArray(value) ? (value as SeedRow[]) : []);
 const nowIso = () => new Date().toISOString();
@@ -168,6 +179,42 @@ function createPresignedUploadUrl(params: {
     uploadHeaders: {
       'content-type': params.contentType,
     },
+  };
+}
+
+function createPresignedReadUrl(params: {
+  endpoint: URL;
+  bucketName: string;
+  region: string;
+  accessKeyId: string;
+  secretAccessKey: string;
+  storageKey: string;
+  expiresAt: Date;
+}): SignedReadUrlResult {
+  const { amzDate, dateStamp } = buildAmzDate(new Date());
+  const hostHeader = buildHostHeader(params.endpoint);
+  const canonicalUri = buildCanonicalUri(params.endpoint, params.bucketName, params.storageKey);
+  const expiresInSeconds = Math.max(1, Math.floor((params.expiresAt.getTime() - Date.now()) / 1000));
+  const credentialScope = `${dateStamp}/${params.region}/s3/aws4_request`;
+  const query = buildCanonicalQuery({
+    'X-Amz-Algorithm': 'AWS4-HMAC-SHA256',
+    'X-Amz-Credential': `${params.accessKeyId}/${credentialScope}`,
+    'X-Amz-Date': amzDate,
+    'X-Amz-Expires': String(expiresInSeconds),
+    'X-Amz-SignedHeaders': 'host',
+  });
+  const canonicalHeaders = `host:${hostHeader}\n`;
+  const canonicalRequest = ['GET', canonicalUri, query, canonicalHeaders, 'host', 'UNSIGNED-PAYLOAD'].join('\n');
+  const stringToSign = ['AWS4-HMAC-SHA256', amzDate, credentialScope, sha256Hex(canonicalRequest)].join('\n');
+  const kDate = hmac(`AWS4${params.secretAccessKey}`, dateStamp);
+  const kRegion = hmac(kDate, params.region);
+  const kService = hmac(kRegion, 's3');
+  const kSigning = hmac(kService, 'aws4_request');
+  const signature = crypto.createHmac('sha256', kSigning).update(stringToSign, 'utf8').digest('hex');
+
+  return {
+    url: `${params.endpoint.origin}${canonicalUri}?${query}&X-Amz-Signature=${signature}`,
+    expiresAt: params.expiresAt.toISOString(),
   };
 }
 
@@ -313,6 +360,21 @@ export async function createUploadInit(input: UploadInitInput): Promise<UploadIn
     storageKey,
     bucketName: storage.bucketName,
   };
+}
+
+export function createSignedReadUrl(input: SignedReadUrlInput): SignedReadUrlResult {
+  const storage = getRequiredStorageEnv();
+  const expiresAt = new Date(Date.now() + (input.expiresInSeconds ?? 5 * 60) * 1000);
+
+  return createPresignedReadUrl({
+    endpoint: storage.endpoint,
+    bucketName: input.bucketName?.trim() || storage.bucketName,
+    region: storage.region,
+    accessKeyId: storage.accessKeyId,
+    secretAccessKey: storage.secretAccessKey,
+    storageKey: input.storageKey,
+    expiresAt,
+  });
 }
 
 export function getObjectStorageBlockers(): string[] {

@@ -7,12 +7,12 @@ Rule: active work only. Completed sprint rows are intentionally removed.
 
 | ID | Exactly what it does | Spine(s) | Status |
 | -- | -------------------- | -------- | ------ |
-| PROD-CUTOVER-02 | Add signed/playable media delivery to `/v1/videos/:videoId` and move `video-service.ts` off legacy `/api/videos*` plus local compatibility storage in non-mock mode. | Trust/Safety/Ops + Development | READY |
+| PROD-VERIFY-01 | Rehearse the production db-backed runtime end to end: release preflight, web export, UI flows, and the remaining non-mock critical journeys; fix code-path drift and leave only real env/provisioning blockers. | Trust/Safety/Ops + Booking/Revenue + Development | READY |
 
 ## Execution Order
 
-1. `PROD-CUTOVER-02`
+1. `PROD-VERIFY-01`
 
 ## Sprint Intent
 
-- Finish the last active community/media cutover seam before introducing new feature sprint labels.
+- Prove the production-capable path behaves end to end, then reduce the remaining launch blockers to external env/provisioning work.

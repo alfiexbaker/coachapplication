@@ -8,9 +8,9 @@ import { Clickable } from '@/components/primitives/clickable';
 import { ThemedText } from '@/components/themed-text';
 import { Row } from '@/components/primitives/row';
 import { VideoUpload } from '@/components/video/video-upload';
-import { Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
+import { Spacing, Radii, Typography } from '@/constants/theme';
 import { useScreen } from '@/hooks/use-screen';
-import { useVideoUpload, VISIBILITY_OPTIONS } from '@/hooks/use-video-upload';
+import { useVideoUpload } from '@/hooks/use-video-upload';
 import { ok } from '@/types/result';
 
 export default function VideoUploadScreen() {
@@ -18,20 +18,19 @@ export default function VideoUploadScreen() {
   const {
     title,
     description,
-    visibility,
     uploading,
-    uploadProgress,
     canSubmit,
     setTitle,
     setDescription,
-    setVisibility,
     handleVideoSelected,
-    handleUploadProgress,
     handleSubmit,
   } = useVideoUpload();
 
   return (
-    <SafeAreaView style={[styles.safeArea, { backgroundColor: colors.background }]} edges={['top', 'bottom']}>
+    <SafeAreaView
+      style={[styles.safeArea, { backgroundColor: colors.background }]}
+      edges={['top', 'bottom']}
+    >
       <Row
         justify="space-between"
         align="center"
@@ -64,7 +63,6 @@ export default function VideoUploadScreen() {
           </ThemedText>
           <VideoUpload
             onUpload={handleVideoSelected}
-            onProgress={handleUploadProgress}
             maxDurationSeconds={600}
             maxFileSizeMB={500}
           />
@@ -82,9 +80,8 @@ export default function VideoUploadScreen() {
               placeholder="e.g., Dribbling Session — Week 4"
               placeholderTextColor={colors.muted}
               style={[styles.input, { borderColor: colors.border, backgroundColor: colors.card }]}
-
-            maxLength={100}
-          />
+              maxLength={100}
+            />
           </View>
           <View style={styles.fieldGroup}>
             <ThemedText style={styles.label}>Description</ThemedText>
@@ -101,73 +98,13 @@ export default function VideoUploadScreen() {
                 styles.textArea,
                 { borderColor: colors.border, backgroundColor: colors.card },
               ]}
-
-            maxLength={500}
-          />
+              maxLength={500}
+            />
           </View>
-        </SurfaceCard>
-
-        <SurfaceCard style={styles.section}>
-          <ThemedText type="subtitle" style={styles.sectionTitle}>
-            Visibility
+          <ThemedText style={[styles.helperText, { color: colors.muted }]}>
+            Uploads start private. Share from the video detail screen after processing.
           </ThemedText>
-          <View style={styles.visibilityOptions}>
-            {VISIBILITY_OPTIONS.map((option) => {
-              const isSelected = visibility === option.value;
-              return (
-                <Clickable
-                  key={option.value}
-                  onPress={() => setVisibility(option.value)}
-                  style={[
-                    styles.visibilityOption,
-                    {
-                      borderColor: isSelected ? colors.tint : colors.border,
-                      backgroundColor: isSelected ? withAlpha(colors.tint, 0.09) : colors.card,
-                    },
-                  ]}
-                >
-                  <Row align="center" gap="sm">
-                    <Ionicons
-                      name={option.icon as keyof typeof Ionicons.glyphMap}
-                      size={20}
-                      color={isSelected ? colors.tint : colors.muted}
-                    />
-                    <ThemedText
-                      style={[
-                        styles.visibilityLabel,
-                        { color: isSelected ? colors.tint : colors.foreground },
-                      ]}
-                    >
-                      {option.label}
-                    </ThemedText>
-                    {isSelected && (
-                      <Ionicons name="checkmark-circle" size={20} color={colors.tint} />
-                    )}
-                  </Row>
-                  <ThemedText style={[styles.visibilityDescription, { color: colors.muted }]}>
-                    {option.description}
-                  </ThemedText>
-                </Clickable>
-              );
-            })}
-          </View>
         </SurfaceCard>
-
-        {uploading && (
-          <SurfaceCard style={styles.section}>
-            <ThemedText style={styles.progressText}>
-              Uploading... {Math.round(uploadProgress * 100)}%
-            </ThemedText>
-            <View style={[styles.progressBar, { backgroundColor: colors.border }]}>
-              <View
-                style={[
-                  styles.progressFill,
-                  { backgroundColor: colors.tint, width: `${uploadProgress * 100}%` },
-                ]}
-              />
-            </View>
-          </SurfaceCard>
-        )}
       </ScrollView>
     </SafeAreaView>
   );
@@ -196,16 +133,5 @@ const styles = StyleSheet.create({
     ...Typography.subheading,
   },
   textArea: { minHeight: 100, paddingTop: Spacing.sm },
-  visibilityOptions: { gap: Spacing.sm },
-  visibilityOption: {
-    padding: Spacing.md,
-    borderRadius: Radii.md,
-    borderWidth: 1,
-    gap: Spacing.xs,
-  },
-  visibilityLabel: { fontWeight: '600', flex: 1 },
-  visibilityDescription: { ...Typography.small, marginLeft: 28 },
-  progressText: { textAlign: 'center', fontWeight: '600' },
-  progressBar: { height: 8, borderRadius: Radii.xs, overflow: 'hidden' },
-  progressFill: { height: '100%', borderRadius: Radii.xs },
+  helperText: { ...Typography.small },
 });

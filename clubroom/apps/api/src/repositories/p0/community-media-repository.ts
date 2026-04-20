@@ -23,18 +23,8 @@ export interface CommunityMediaAccessParams {
   isPrivilegedAdmin: boolean;
 }
 
-export interface VideoDetailParams extends CommunityMediaAccessParams {
-  videoId: string;
-}
-
 export interface PostListParams extends CommunityMediaAccessParams {
   communityGroupId?: string;
-}
-
-export interface VideoDetailResult {
-  video: SeedRow;
-  annotations: SeedRow[];
-  dataVersion: string | null;
 }
 
 export interface CommunityGroupListResult {
@@ -62,7 +52,6 @@ export interface NotificationListResult {
 }
 
 export interface CommunityMediaRepository {
-  getVideoDetail(params: VideoDetailParams): Promise<VideoDetailResult>;
   listCommunityGroups(params: CommunityMediaAccessParams): Promise<CommunityGroupListResult>;
   listPosts(params: PostListParams): Promise<PostListResult>;
   listMessageThreads(params: CommunityMediaAccessParams): Promise<MessageThreadListResult>;
@@ -95,65 +84,8 @@ function readableClubIdsForUser(tables: SeedTables, authUserId: string): Set<str
   );
 }
 
-function canReadSeedVideo(
-  tables: SeedTables,
-  authUserId: string,
-  isPrivilegedAdmin: boolean,
-  video: SeedRow,
-): boolean {
-  if (isPrivilegedAdmin) {
-    return true;
-  }
-
-  if (
-    asString(video.coachUserId) === authUserId
-    || asString(video.createdByUserId) === authUserId
-    || asString(video.updatedByUserId) === authUserId
-  ) {
-    return true;
-  }
-
-  const athleteId = asString(video.athleteId);
-  if (!athleteId) {
-    return false;
-  }
-
-  const athlete = asRows(tables.athletes).find(
-    (row) => asString(row.id) === athleteId && asString(row.deletedAt) == null,
-  );
-  if (asString(athlete?.userId) === authUserId) {
-    return true;
-  }
-
-  return asRows(tables.guardianChildLinks).some(
-    (row) =>
-      asString(row.deletedAt) == null
-      && asString(row.guardianUserId) === authUserId
-      && asString(row.athleteId) === athleteId,
-  );
-}
-
 class StoreCommunityMediaRepository implements CommunityMediaRepository {
   constructor(private readonly storeProvider: () => StoreProvider) {}
-
-  async getVideoDetail(params: VideoDetailParams): Promise<VideoDetailResult> {
-    const store = this.storeProvider();
-    const video = activeRows(asRows(store.tables.videos)).find((row) => asString(row.id) === params.videoId);
-    if (!video) {
-      throw notFound('Video not found', { videoId: params.videoId });
-    }
-    if (!canReadSeedVideo(store.tables, params.authUserId, params.isPrivilegedAdmin, video)) {
-      throw forbidden('Video does not belong to authenticated user', { videoId: params.videoId });
-    }
-
-    return {
-      video,
-      annotations: activeRows(asRows(store.tables.videoAnnotations)).filter(
-        (row) => asString(row.videoId) === params.videoId,
-      ),
-      dataVersion: store.version,
-    };
-  }
 
   async listCommunityGroups(params: CommunityMediaAccessParams): Promise<CommunityGroupListResult> {
     const store = this.storeProvider();
@@ -279,48 +211,6 @@ class StoreCommunityMediaRepository implements CommunityMediaRepository {
 class PrismaCommunityMediaRepository implements CommunityMediaRepository {
   private readonly fallback = new StoreCommunityMediaRepository(() => getDbFixtureStore());
 
-  private async canReadVideo(
-    authUserId: string,
-    isPrivilegedAdmin: boolean,
-    video: SeedRow,
-  ): Promise<boolean> {
-    if (isPrivilegedAdmin) {
-      return true;
-    }
-
-    if (
-      asString(video.coachUserId) === authUserId
-      || asString(video.createdByUserId) === authUserId
-      || asString(video.updatedByUserId) === authUserId
-    ) {
-      return true;
-    }
-
-    const athleteId = asString(video.athleteId);
-    if (!athleteId) {
-      return false;
-    }
-
-    const prisma = getPrismaClientOrThrow();
-    const athlete = await prisma.athlete.findUnique({
-      where: { id: athleteId },
-      select: { userId: true },
-    });
-    if (athlete?.userId === authUserId) {
-      return true;
-    }
-
-    const guardianLink = await prisma.guardianChildLink.findFirst({
-      where: {
-        athleteId,
-        guardianUserId: authUserId,
-        deletedAt: null,
-      },
-      select: { id: true },
-    });
-    return Boolean(guardianLink);
-  }
-
   private async getReadableCommunityGroupIds(authUserId: string): Promise<string[]> {
     const prisma = getPrismaClientOrThrow();
     const memberships = await prisma.communityGroupMembership.findMany({
@@ -345,41 +235,6 @@ class PrismaCommunityMediaRepository implements CommunityMediaRepository {
       select: { clubId: true },
     });
     return memberships.map((row) => row.clubId);
-  }
-
-  async getVideoDetail(params: VideoDetailParams): Promise<VideoDetailResult> {
-    if (shouldUseDbFixtureFallback()) {
-      return this.fallback.getVideoDetail(params);
-    }
-
-    const prisma = getPrismaClientOrThrow();
-    const video = normalizeAs<(SeedRow & { annotations: SeedRow[] }) | null>(
-      await prisma.video.findFirst({
-        where: {
-          id: params.videoId,
-          deletedAt: null,
-        },
-        include: {
-          annotations: {
-            where: { deletedAt: null },
-            orderBy: { timestampMs: 'asc' },
-          },
-        },
-      }),
-    );
-    if (!video) {
-      throw notFound('Video not found', { videoId: params.videoId });
-    }
-    if (!(await this.canReadVideo(params.authUserId, params.isPrivilegedAdmin, video))) {
-      throw forbidden('Video does not belong to authenticated user', { videoId: params.videoId });
-    }
-    const { annotations, ...videoDetail } = video;
-
-    return {
-      video: videoDetail,
-      annotations: asRows(annotations),
-      dataVersion: null,
-    };
   }
 
   async listCommunityGroups(params: CommunityMediaAccessParams): Promise<CommunityGroupListResult> {

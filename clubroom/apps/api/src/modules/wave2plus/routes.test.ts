@@ -98,6 +98,30 @@ function authHeaders(
   };
 }
 
+async function withStorageEnv(run: () => Promise<void>): Promise<void> {
+  const previousEndpoint = env.S3_ENDPOINT;
+  const previousBucket = env.S3_BUCKET_PRIVATE;
+  const previousRegion = env.S3_REGION;
+  const previousAccessKey = env.S3_ACCESS_KEY_ID;
+  const previousSecret = env.S3_SECRET_ACCESS_KEY;
+
+  env.S3_ENDPOINT = 'https://storage.clubroom.test';
+  env.S3_BUCKET_PRIVATE = 'clubroom-private';
+  env.S3_REGION = 'eu-west-2';
+  env.S3_ACCESS_KEY_ID = 'clubroom-access';
+  env.S3_SECRET_ACCESS_KEY = 'clubroom-secret';
+
+  try {
+    await run();
+  } finally {
+    env.S3_ENDPOINT = previousEndpoint;
+    env.S3_BUCKET_PRIVATE = previousBucket;
+    env.S3_REGION = previousRegion;
+    env.S3_ACCESS_KEY_ID = previousAccessKey;
+    env.S3_SECRET_ACCESS_KEY = previousSecret;
+  }
+}
+
 describe('wave2+ routes', () => {
   const app = buildApp();
 
@@ -780,94 +804,100 @@ describe('wave2+ routes', () => {
   });
 
   it('returns drills, uploads, video, community, messages, and notifications for seeded users', async () => {
-    const tables = loadTables();
+    await withStorageEnv(async () => {
+      const tables = loadTables();
 
-    const drillAuthorId = asString(asRows(tables.drills)[0]?.authorUserId) as string;
-    const drills = await app.inject({
-      method: 'GET',
-      url: `/v1/drills?coachUserId=${drillAuthorId}`,
-      headers: authHeaders(tables, drillAuthorId, 'coach'),
-    });
-    assert.equal(drills.statusCode, 200);
-    const drillsPayload = drills.json() as { drills: Array<{ assignments: unknown[] }>; total: number };
-    assert.equal(drillsPayload.total >= 1, true);
-    assert.equal(drillsPayload.drills[0]?.assignments.length >= 1, true);
+      const drillAuthorId = asString(asRows(tables.drills)[0]?.authorUserId) as string;
+      const drills = await app.inject({
+        method: 'GET',
+        url: `/v1/drills?coachUserId=${drillAuthorId}`,
+        headers: authHeaders(tables, drillAuthorId, 'coach'),
+      });
+      assert.equal(drills.statusCode, 200);
+      const drillsPayload = drills.json() as { drills: Array<{ assignments: unknown[] }>; total: number };
+      assert.equal(drillsPayload.total >= 1, true);
+      assert.equal(drillsPayload.drills[0]?.assignments.length >= 1, true);
 
-    const uploadInit = await app.inject({
-      method: 'POST',
-      url: '/v1/uploads/init',
-      headers: authHeaders(tables, drillAuthorId, 'coach'),
-      payload: {
-        kind: 'VIDEO',
-        contentType: 'video/mp4',
-        fileName: 'seed-demo.mp4',
-        sizeBytes: 1_200_000,
-        metadata: { source: 'test-suite' },
-      },
-    });
-    assert.equal(uploadInit.statusCode, 201);
-    const uploadPayload = uploadInit.json() as { uploadSessionId: string; mediaObjectId: string; uploadUrl: string };
-    assert.match(uploadPayload.uploadSessionId, /^ups_/);
-    assert.match(uploadPayload.mediaObjectId, /^med_/);
-    assert.match(uploadPayload.uploadUrl, /^https:\/\/uploads\.clubroom\.local\//);
+      const uploadInit = await app.inject({
+        method: 'POST',
+        url: '/v1/uploads/init',
+        headers: authHeaders(tables, drillAuthorId, 'coach'),
+        payload: {
+          kind: 'VIDEO',
+          contentType: 'video/mp4',
+          fileName: 'seed-demo.mp4',
+          sizeBytes: 1_200_000,
+          metadata: { source: 'test-suite' },
+        },
+      });
+      assert.equal(uploadInit.statusCode, 201);
+      const uploadPayload = uploadInit.json() as { uploadSessionId: string; mediaObjectId: string; uploadUrl: string };
+      assert.match(uploadPayload.uploadSessionId, /^ups_/);
+      assert.match(uploadPayload.mediaObjectId, /^med_/);
+      assert.match(uploadPayload.uploadUrl, /^https:\/\/uploads\.clubroom\.local\//);
 
-    const videoRow = asRows(tables.videos)[0];
-    const videoId = asString(videoRow?.id) as string;
-    const videoReaderUserId = asString(videoRow?.coachUserId) as string;
-    const video = await app.inject({
-      method: 'GET',
-      url: `/v1/videos/${videoId}`,
-      headers: authHeaders(tables, videoReaderUserId, 'coach'),
-    });
-    assert.equal(video.statusCode, 200);
-    const videoPayload = video.json() as { annotations: unknown[] };
-    assert.equal(videoPayload.annotations.length >= 1, true);
+      const videoRow = asRows(tables.videos)[0];
+      const videoId = asString(videoRow?.id) as string;
+      const videoReaderUserId = asString(videoRow?.coachUserId) as string;
+      const video = await app.inject({
+        method: 'GET',
+        url: `/v1/videos/${videoId}`,
+        headers: authHeaders(tables, videoReaderUserId, 'coach'),
+      });
+      assert.equal(video.statusCode, 200);
+      const videoPayload = video.json() as {
+        video: { annotations: unknown[]; playbackUrl: string; visibility: string };
+      };
+      assert.equal(videoPayload.video.annotations.length >= 1, true);
+      assert.equal(videoPayload.video.visibility, 'PRIVATE');
+      assert.match(videoPayload.video.playbackUrl, /^https:\/\/storage\.clubroom\.test\//);
 
-    const communityUserId = asString(asRows(tables.communityGroupMemberships)[0]?.userId) as string;
-    const communityGroups = await app.inject({
-      method: 'GET',
-      url: '/v1/community-groups',
-      headers: authHeaders(tables, communityUserId),
-    });
-    assert.equal(communityGroups.statusCode, 200);
-    const communityPayload = communityGroups.json() as { groups: Array<{ id: string }> };
-    assert.equal(communityPayload.groups.length >= 1, true);
+      const communityUserId = asString(asRows(tables.communityGroupMemberships)[0]?.userId) as string;
+      const communityGroups = await app.inject({
+        method: 'GET',
+        url: '/v1/community-groups',
+        headers: authHeaders(tables, communityUserId),
+      });
+      assert.equal(communityGroups.statusCode, 200);
+      const communityPayload = communityGroups.json() as { groups: Array<{ id: string }> };
+      assert.equal(communityPayload.groups.length >= 1, true);
 
-    const groupId = communityPayload.groups[0]?.id;
-    assert.ok(groupId, 'expected group id from community payload');
-    const posts = await app.inject({
-      method: 'GET',
-      url: `/v1/posts?communityGroupId=${groupId}`,
-      headers: authHeaders(tables, communityUserId),
-    });
-    assert.equal(posts.statusCode, 200);
-    const postsPayload = posts.json() as { posts: unknown[] };
-    assert.equal(postsPayload.posts.length >= 1, true);
+      const groupId = communityPayload.groups[0]?.id;
+      assert.ok(groupId, 'expected group id from community payload');
+      const posts = await app.inject({
+        method: 'GET',
+        url: `/v1/posts?communityGroupId=${groupId}`,
+        headers: authHeaders(tables, communityUserId),
+      });
+      assert.equal(posts.statusCode, 200);
+      const postsPayload = posts.json() as { posts: unknown[] };
+      assert.equal(postsPayload.posts.length >= 1, true);
 
-    const messagingUserId = asString(asRows(tables.messageParticipants)[0]?.userId) as string;
-    const threads = await app.inject({
-      method: 'GET',
-      url: '/v1/message-threads',
-      headers: authHeaders(tables, messagingUserId),
-    });
-    assert.equal(threads.statusCode, 200);
-    const threadsPayload = threads.json() as { threads: Array<{ messages: unknown[] }> };
-    assert.equal(threadsPayload.threads.length >= 1, true);
-    assert.equal(threadsPayload.threads[0]?.messages.length >= 1, true);
+      const messagingUserId = asString(asRows(tables.messageParticipants)[0]?.userId) as string;
+      const threads = await app.inject({
+        method: 'GET',
+        url: '/v1/message-threads',
+        headers: authHeaders(tables, messagingUserId),
+      });
+      assert.equal(threads.statusCode, 200);
+      const threadsPayload = threads.json() as { threads: Array<{ messages: unknown[] }> };
+      assert.equal(threadsPayload.threads.length >= 1, true);
+      assert.equal(threadsPayload.threads[0]?.messages.length >= 1, true);
 
-    const notificationUserId = asString(asRows(tables.notifications)[0]?.userId) as string;
-    const notifications = await app.inject({
-      method: 'GET',
-      url: '/v1/me/notifications',
-      headers: authHeaders(tables, notificationUserId),
+      const notificationUserId = asString(asRows(tables.notifications)[0]?.userId) as string;
+      const notifications = await app.inject({
+        method: 'GET',
+        url: '/v1/me/notifications',
+        headers: authHeaders(tables, notificationUserId),
+      });
+      assert.equal(notifications.statusCode, 200);
+      const notificationsPayload = notifications.json() as {
+        notifications: unknown[];
+        preferences: unknown;
+      };
+      assert.equal(notificationsPayload.notifications.length >= 1, true);
+      assert.equal(Boolean(notificationsPayload.preferences), true);
     });
-    assert.equal(notifications.statusCode, 200);
-    const notificationsPayload = notifications.json() as {
-      notifications: unknown[];
-      preferences: unknown;
-    };
-    assert.equal(notificationsPayload.notifications.length >= 1, true);
-    assert.equal(Boolean(notificationsPayload.preferences), true);
   });
 
   it('uses the db fixture repository seam for active community and media reads in db mode', async () => {
@@ -875,48 +905,50 @@ describe('wave2+ routes', () => {
     env.API_DATA_BACKEND = 'db';
 
     try {
-      const tables = getDbFixtureStore().tables;
-      const videoRow = asRows(tables.videos)[0];
-      const videoId = asString(videoRow?.id) as string;
-      const videoReaderUserId = asString(videoRow?.coachUserId) as string;
-      const communityUserId = asString(asRows(tables.communityGroupMemberships)[0]?.userId) as string;
-      const groupId = asString(asRows(tables.communityGroups)[0]?.id) as string;
-      const messagingUserId = asString(asRows(tables.messageParticipants)[0]?.userId) as string;
-      const notificationUserId = asString(asRows(tables.notifications)[0]?.userId) as string;
+      await withStorageEnv(async () => {
+        const tables = getDbFixtureStore().tables;
+        const videoRow = asRows(tables.videos)[0];
+        const videoId = asString(videoRow?.id) as string;
+        const videoReaderUserId = asString(videoRow?.coachUserId) as string;
+        const communityUserId = asString(asRows(tables.communityGroupMemberships)[0]?.userId) as string;
+        const groupId = asString(asRows(tables.communityGroups)[0]?.id) as string;
+        const messagingUserId = asString(asRows(tables.messageParticipants)[0]?.userId) as string;
+        const notificationUserId = asString(asRows(tables.notifications)[0]?.userId) as string;
 
-      const [video, groups, posts, threads, notifications] = await Promise.all([
-        app.inject({
-          method: 'GET',
-          url: `/v1/videos/${videoId}`,
-          headers: authHeaders(tables, videoReaderUserId, 'coach'),
-        }),
-        app.inject({
-          method: 'GET',
-          url: '/v1/community-groups',
-          headers: authHeaders(tables, communityUserId),
-        }),
-        app.inject({
-          method: 'GET',
-          url: `/v1/posts?communityGroupId=${groupId}`,
-          headers: authHeaders(tables, communityUserId),
-        }),
-        app.inject({
-          method: 'GET',
-          url: '/v1/message-threads',
-          headers: authHeaders(tables, messagingUserId),
-        }),
-        app.inject({
-          method: 'GET',
-          url: '/v1/me/notifications',
-          headers: authHeaders(tables, notificationUserId),
-        }),
-      ]);
+        const [video, groups, posts, threads, notifications] = await Promise.all([
+          app.inject({
+            method: 'GET',
+            url: `/v1/videos/${videoId}`,
+            headers: authHeaders(tables, videoReaderUserId, 'coach'),
+          }),
+          app.inject({
+            method: 'GET',
+            url: '/v1/community-groups',
+            headers: authHeaders(tables, communityUserId),
+          }),
+          app.inject({
+            method: 'GET',
+            url: `/v1/posts?communityGroupId=${groupId}`,
+            headers: authHeaders(tables, communityUserId),
+          }),
+          app.inject({
+            method: 'GET',
+            url: '/v1/message-threads',
+            headers: authHeaders(tables, messagingUserId),
+          }),
+          app.inject({
+            method: 'GET',
+            url: '/v1/me/notifications',
+            headers: authHeaders(tables, notificationUserId),
+          }),
+        ]);
 
-      assert.equal(video.statusCode, 200);
-      assert.equal(groups.statusCode, 200);
-      assert.equal(posts.statusCode, 200);
-      assert.equal(threads.statusCode, 200);
-      assert.equal(notifications.statusCode, 200);
+        assert.equal(video.statusCode, 200);
+        assert.equal(groups.statusCode, 200);
+        assert.equal(posts.statusCode, 200);
+        assert.equal(threads.statusCode, 200);
+        assert.equal(notifications.statusCode, 200);
+      });
     } finally {
       env.API_DATA_BACKEND = previousBackend;
       resetDbFixtureStoreForTests();
@@ -950,6 +982,50 @@ describe('wave2+ routes', () => {
       headers: authHeaders(tables, outsiderUserId),
     });
     assert.equal(denied.statusCode, 403);
+  });
+
+  it('keeps athlete family access closed until the coach explicitly shares a video', async () => {
+    await withStorageEnv(async () => {
+      const tables = loadTables();
+      const video = asRows(tables.videos).find((row) => Boolean(asString(row.id)) && Boolean(asString(row.athleteId)));
+      assert.ok(video, 'expected seeded video with athlete relationship');
+      const videoId = asString(video.id) as string;
+      const athleteId = asString(video.athleteId) as string;
+      const coachUserId = asString(video.coachUserId) as string;
+      const guardianUserId = asString(
+        asRows(tables.guardianChildLinks).find(
+          (row) => asString(row.athleteId) === athleteId && !asString(row.deletedAt),
+        )?.guardianUserId,
+      ) as string;
+      assert.ok(guardianUserId, 'expected guardian linked to seeded athlete');
+
+      const denied = await app.inject({
+        method: 'GET',
+        url: `/v1/videos/${videoId}`,
+        headers: authHeaders(tables, guardianUserId, 'parent'),
+      });
+      assert.equal(denied.statusCode, 403);
+
+      const shared = await app.inject({
+        method: 'PATCH',
+        url: `/v1/videos/${videoId}/share`,
+        headers: authHeaders(tables, coachUserId, 'coach'),
+        payload: {
+          visibility: 'SHARED',
+        },
+      });
+      assert.equal(shared.statusCode, 200);
+      const sharedPayload = shared.json() as { video: { sharedWithUserIds: string[]; visibility: string } };
+      assert.equal(sharedPayload.video.visibility, 'SHARED');
+      assert.equal(sharedPayload.video.sharedWithUserIds.includes(guardianUserId), true);
+
+      const allowed = await app.inject({
+        method: 'GET',
+        url: `/v1/videos/${videoId}`,
+        headers: authHeaders(tables, guardianUserId, 'parent'),
+      });
+      assert.equal(allowed.statusCode, 200);
+    });
   });
 
   it('denies outsider access to private community group posts', async () => {
@@ -1042,6 +1118,76 @@ describe('wave2+ routes', () => {
       env.S3_REGION = previousRegion;
       env.S3_ACCESS_KEY_ID = previousAccessKey;
       env.S3_SECRET_ACCESS_KEY = previousSecret;
+      resetDbFixtureStoreForTests();
+    }
+  });
+
+  it('creates db-backed videos and mutates annotations through `/v1/videos*`', async () => {
+    const tables = loadTables();
+    const coachUserId = asString(asRows(tables.drills)[0]?.authorUserId) as string;
+    const previousBackend = env.API_DATA_BACKEND;
+    env.API_DATA_BACKEND = 'db';
+
+    try {
+      await withStorageEnv(async () => {
+        const uploadInit = await app.inject({
+          method: 'POST',
+          url: '/v1/uploads/init',
+          headers: authHeaders(tables, coachUserId, 'coach'),
+          payload: {
+            kind: 'VIDEO',
+            contentType: 'video/mp4',
+            fileName: 'technical-review.mp4',
+            sizeBytes: 2_400_000,
+          },
+        });
+        assert.equal(uploadInit.statusCode, 201);
+        const uploadPayload = uploadInit.json() as { mediaObjectId: string };
+
+        const created = await app.inject({
+          method: 'POST',
+          url: '/v1/videos',
+          headers: authHeaders(tables, coachUserId, 'coach'),
+          payload: {
+            mediaObjectId: uploadPayload.mediaObjectId,
+            title: 'Technical Review',
+            description: 'Created in db mode',
+            durationSeconds: 92,
+          },
+        });
+        assert.equal(created.statusCode, 201);
+        const createdPayload = created.json() as { video: { id: string; title: string; uploadStatus: string } };
+        assert.equal(createdPayload.video.title, 'Technical Review');
+        assert.equal(createdPayload.video.uploadStatus, 'READY');
+
+        const annotation = await app.inject({
+          method: 'POST',
+          url: `/v1/videos/${createdPayload.video.id}/annotations`,
+          headers: authHeaders(tables, coachUserId, 'coach'),
+          payload: {
+            timestamp: 12,
+            label: 'Footwork',
+            note: 'Open up earlier',
+            type: 'TECHNIQUE',
+          },
+        });
+        assert.equal(annotation.statusCode, 201);
+        const annotationPayload = annotation.json() as { annotation: { label: string; note?: string; type: string } };
+        assert.equal(annotationPayload.annotation.label, 'Footwork');
+        assert.equal(annotationPayload.annotation.note, 'Open up earlier');
+        assert.equal(annotationPayload.annotation.type, 'TECHNIQUE');
+
+        const detail = await app.inject({
+          method: 'GET',
+          url: `/v1/videos/${createdPayload.video.id}`,
+          headers: authHeaders(tables, coachUserId, 'coach'),
+        });
+        assert.equal(detail.statusCode, 200);
+        const detailPayload = detail.json() as { video: { annotations: Array<{ label: string }> } };
+        assert.equal(detailPayload.video.annotations[0]?.label, 'Footwork');
+      });
+    } finally {
+      env.API_DATA_BACKEND = previousBackend;
       resetDbFixtureStoreForTests();
     }
   });

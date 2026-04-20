@@ -4,24 +4,26 @@ Date: 2026-04-17
 
 ## What Was Just Done
 
-1. Added `services/community-media-authority-service.ts` as the shared non-mock `/v1` read bridge for community groups, message threads/messages, notifications, and notification preferences.
-2. Moved `services/community/community-group-service.ts`, `services/community/community-messaging-service.ts`, `services/messaging-service.ts`, `services/notification/notification-store.ts`, and `services/notification/notification-preferences.ts` onto that authority path for non-mock reads.
-3. Replaced the accidental non-mock `/api/*` compatibility writes for those overlays with a dedicated local AsyncStorage bridge in `services/local-overlay-store.ts`, so local state is now only an overlay for unsupported writes instead of a second authority path.
-4. Added explicit local overlay keys for message thread summaries and deleted-message tombstones in `constants/storage-keys.ts`.
-5. Synced runtime docs so the backlog now reflects the narrower remaining seam: video delivery and signed media reads.
+1. Added a dedicated db-aware video authority repository at `apps/api/src/repositories/p0/video-authority-repository.ts` and moved `/v1/videos*` off the shared community/media repository.
+2. Extended `/v1/videos*` so non-mock video list/detail/create/update/share/delete and annotation flows now run through one backend authority path, with signed playback URLs and explicit-share guardian access.
+3. Extended Prisma/runtime video data with `Video.visibility`, `VideoShare`, and richer annotation fields, and updated the release seed import so db mode keeps those video relationships populated.
+4. Moved `services/video-service.ts` off legacy `/api/videos*` for non-mock reads and writes; uploads now use `/v1/uploads/init` plus `POST /v1/videos`, and the app shares deep links instead of signed media URLs.
+5. Removed fake upload progress plumbing and the dead upload visibility selector from the video upload flow, so the UI now only shows behavior the backend actually supports.
 
 ## Verification Run In This Step
 
 - `npm run typecheck` -> PASS
 - `npm run test:compile` -> PASS
+- `npm --prefix apps/api run typecheck` -> PASS
+- `npm --prefix apps/api run test` -> PASS (`87/87`)
 - `git diff --check` -> PASS
 
 ## Current State
 
-- Community group, group-message, direct-message, notification inbox, and notification-preference reads are now API-first in non-mock mode through the db-aware `/v1` routes.
-- Local storage in those domains is now a compatibility overlay for unsupported writes, not the source of truth.
-- The remaining active community/media production seam is video detail delivery: `video-service.ts` still depends on legacy `/api/videos*` because `/v1/videos/:videoId` does not yet return a signed/playable asset URL.
+- Community/media read cutover is complete for the active app surfaces: community groups, messaging, notifications, and videos are now API-first in non-mock mode.
+- Local storage in those domains is now either mock-only or a compatibility overlay, not the source of truth.
+- Remaining production blockers are now release-path validation and real env/provisioning dependencies, not another active app-to-API cutover seam.
 
 ## Next Exact Action
 
-1. Start `PROD-CUTOVER-02` to add signed/playable media delivery to `/v1/videos/:videoId` and move `video-service.ts` off legacy `/api/videos*` plus local compatibility storage in non-mock mode.
+1. Start `PROD-VERIFY-01` to rehearse the db-backed production path end to end (`release:preflight`, web export, UI flows, and critical non-mock journeys), fix any surfaced code drift, and reduce the remaining blockers to real env/provisioning gaps.

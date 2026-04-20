@@ -20,7 +20,8 @@ import { assertCanReadAthleteHealth, isPrivilegedAdminAuth } from '../../lib/aut
 import { recordAuditEvent } from '../../lib/audit-runtime.js';
 import { resolveTrustAccessRepository } from '../../repositories/p0/trust-access-repository.js';
 import { resolveCommunityMediaRepository } from '../../repositories/p0/community-media-repository.js';
-import { createUploadInit } from '../../lib/storage-runtime.js';
+import { resolveVideoAuthorityRepository } from '../../repositories/p0/video-authority-repository.js';
+import { createSignedReadUrl, createUploadInit } from '../../lib/storage-runtime.js';
 
 type SeedRow = Record<string, unknown>;
 
@@ -51,6 +52,46 @@ const uploadInitRequestSchema = z.object({
   fileName: z.string().min(1).max(260),
   sizeBytes: z.number().int().positive().max(2_000_000_000),
   metadata: z.record(z.unknown()).optional(),
+});
+
+const videoListQuerySchema = z
+  .object({
+    coachId: z.string().trim().min(1).optional(),
+    athleteId: z.string().trim().min(1).optional(),
+  })
+  .refine((value) => Boolean(value.coachId) !== Boolean(value.athleteId), {
+    message: 'Provide exactly one of coachId or athleteId',
+  });
+
+const videoCreateRequestSchema = z
+  .object({
+    mediaObjectId: z.string().trim().min(1),
+    athleteIds: z.array(z.string().trim().min(1)).max(1).default([]),
+    title: z.string().trim().max(120).optional(),
+    description: z.string().trim().max(1000).optional(),
+    sessionId: z.string().trim().min(1).optional(),
+    bookingId: z.string().trim().min(1).optional(),
+    durationSeconds: z.number().int().min(0).max(60 * 60).optional(),
+  })
+  .refine((value) => !(value.sessionId && value.bookingId), {
+    message: 'Provide either sessionId or bookingId, not both',
+  });
+
+const videoUpdateRequestSchema = z.object({
+  title: z.string().trim().max(120).optional(),
+  description: z.string().trim().max(1000).optional(),
+});
+
+const videoVisibilityRequestSchema = z.object({
+  visibility: z.enum(['PRIVATE', 'SHARED']),
+  recipientUserIds: z.array(z.string().trim().min(1)).max(20).optional(),
+});
+
+const videoAnnotationRequestSchema = z.object({
+  timestamp: z.number().int().min(0).max(60 * 60),
+  label: z.string().trim().min(1).max(120),
+  note: z.string().trim().max(500).optional(),
+  type: z.enum(['HIGHLIGHT', 'IMPROVEMENT', 'TECHNIQUE', 'GENERAL']),
 });
 
 const invoicePaymentRequestSchema = z.object({
@@ -248,6 +289,74 @@ function canAccessInvoice(authUserId: string, isAdmin: boolean, invoice: SeedRow
     || asString(invoice.coachUserId) === authUserId
     || asString(invoice.payerUserId) === authUserId
   );
+}
+
+function normalizeVideoUploadStatus(value: unknown): 'UPLOADING' | 'PROCESSING' | 'READY' | 'FAILED' {
+  switch (String(value ?? '').toUpperCase()) {
+    case 'PENDING_UPLOAD':
+      return 'UPLOADING';
+    case 'PENDING_SCAN':
+      return 'PROCESSING';
+    case 'FAILED':
+    case 'QUARANTINED':
+      return 'FAILED';
+    default:
+      return 'READY';
+  }
+}
+
+function normalizeVideoVisibility(value: unknown): 'PRIVATE' | 'SHARED' {
+  return String(value ?? '').toUpperCase() === 'SHARED' ? 'SHARED' : 'PRIVATE';
+}
+
+function mapVideoAnnotation(row: SeedRow) {
+  return {
+    id: asString(row.id) ?? '',
+    timestamp: Math.round((asNumber(row.timestampMs) ?? 0) / 1000),
+    label: asString(row.text) ?? '',
+    note: asString(row.note) ?? undefined,
+    type: (asString(row.annotationType) ?? 'GENERAL') as 'HIGHLIGHT' | 'IMPROVEMENT' | 'TECHNIQUE' | 'GENERAL',
+    createdBy: asString(row.authorUserId) ?? undefined,
+    createdAt: asString(row.createdAt) ?? undefined,
+    updatedAt: asString(row.updatedAt) ?? undefined,
+  };
+}
+
+function mapVideoRecord(bundle: {
+  video: SeedRow;
+  mediaObject: SeedRow;
+  annotations: SeedRow[];
+  shares: SeedRow[];
+}) {
+  const playback = createSignedReadUrl({
+    bucketName: asString(bundle.mediaObject.bucketName),
+    storageKey: asString(bundle.mediaObject.storageKey) ?? '',
+  });
+
+  return {
+    id: asString(bundle.video.id) ?? '',
+    coachUserId: asString(bundle.video.coachUserId) ?? undefined,
+    athleteId: asString(bundle.video.athleteId) ?? undefined,
+    title: asString(bundle.video.title) ?? '',
+    description: asString(bundle.video.description) ?? undefined,
+    visibility: normalizeVideoVisibility(bundle.video.visibility),
+    sharedWithUserIds: bundle.shares
+      .map((row) => asString(row.sharedWithUserId))
+      .filter((userId): userId is string => Boolean(userId)),
+    sourceContextType: asString(bundle.video.sourceContextType) ?? undefined,
+    sourceContextId: asString(bundle.video.sourceContextId) ?? undefined,
+    mediaObjectId: asString(bundle.video.mediaObjectId) ?? '',
+    uploadStatus: normalizeVideoUploadStatus(bundle.mediaObject.status),
+    playbackUrl: playback.url,
+    playbackExpiresAt: playback.expiresAt,
+    thumbnailUrl: playback.url,
+    durationMs: asNumber(bundle.mediaObject.durationMs) ?? 0,
+    fileSizeBytes: asNumber(bundle.mediaObject.sizeBytes) ?? 0,
+    contentType: asString(bundle.mediaObject.contentType) ?? 'video/mp4',
+    createdAt: asString(bundle.video.createdAt) ?? nowIso(),
+    updatedAt: asString(bundle.video.updatedAt) ?? undefined,
+    annotations: bundle.annotations.map(mapVideoAnnotation),
+  };
 }
 
 function reconcileStateForInvoiceStatus(status: InvoiceStatus): string {
@@ -1291,6 +1400,76 @@ const wave2PlusRoutes: FastifyPluginAsync = async (app) => {
     });
   });
 
+  app.get('/videos', async (request, reply) => {
+    const authUserId = request.auth?.userId;
+    if (!authUserId) {
+      throw forbidden('Authenticated user is required');
+    }
+
+    const query = videoListQuerySchema.parse(request.query ?? {});
+    const result = await resolveVideoAuthorityRepository().listVideos({
+      authUserId,
+      isPrivilegedAdmin: isPrivilegedAdminAuth(request.auth),
+      coachId: query.coachId,
+      athleteId: query.athleteId,
+    });
+
+    if (query.athleteId) {
+      await recordAuditEvent({
+        request,
+        action: 'video.list',
+        resourceType: 'video',
+        resourceId: query.athleteId,
+        result: 'SUCCESS',
+        sensitiveRead: true,
+      });
+    }
+
+    return reply.send({
+      videos: result.items.map(mapVideoRecord),
+      seedVersion: result.dataVersion,
+      requestId: request.requestId,
+    });
+  });
+
+  app.post('/videos', async (request, reply) => {
+    const authUserId = request.auth?.userId;
+    if (!authUserId) {
+      throw forbidden('Authenticated user is required');
+    }
+
+    const body = videoCreateRequestSchema.parse(request.body);
+    const result = await resolveVideoAuthorityRepository().createVideo({
+      authUserId,
+      isPrivilegedAdmin: isPrivilegedAdminAuth(request.auth),
+      mediaObjectId: body.mediaObjectId,
+      athleteId: body.athleteIds[0],
+      title: body.title,
+      description: body.description,
+      sourceContextType: body.bookingId ? 'booking' : body.sessionId ? 'session' : undefined,
+      sourceContextId: body.bookingId ?? body.sessionId,
+      durationMs: typeof body.durationSeconds === 'number' ? body.durationSeconds * 1000 : undefined,
+    });
+
+    await recordAuditEvent({
+      request,
+      action: 'video.create',
+      resourceType: 'video',
+      resourceId: asString(result.video.id) ?? undefined,
+      result: 'SUCCESS',
+      metadata: {
+        mediaObjectId: body.mediaObjectId,
+        athleteId: body.athleteIds[0] ?? null,
+      },
+    });
+
+    return reply.status(201).send({
+      video: mapVideoRecord(result),
+      seedVersion: result.dataVersion,
+      requestId: request.requestId,
+    });
+  });
+
   app.get('/videos/:videoId', async (request, reply) => {
     const authUserId = request.auth?.userId;
     if (!authUserId) {
@@ -1302,18 +1481,239 @@ const wave2PlusRoutes: FastifyPluginAsync = async (app) => {
       throw notFound('Video id is required');
     }
 
-    const result = await resolveCommunityMediaRepository().getVideoDetail({
+    const result = await resolveVideoAuthorityRepository().getVideoDetail({
       authUserId,
       isPrivilegedAdmin: isPrivilegedAdminAuth(request.auth),
       videoId,
     });
 
+    await recordAuditEvent({
+      request,
+      action: 'video.read',
+      resourceType: 'video',
+      resourceId: videoId,
+      result: 'SUCCESS',
+      sensitiveRead: true,
+    });
+
     return reply.send({
-      video: result.video,
-      annotations: result.annotations,
+      video: mapVideoRecord(result),
       seedVersion: result.dataVersion,
       requestId: request.requestId,
     });
+  });
+
+  app.patch('/videos/:videoId', async (request, reply) => {
+    const authUserId = request.auth?.userId;
+    if (!authUserId) {
+      throw forbidden('Authenticated user is required');
+    }
+
+    const videoId = asString((request.params as { videoId?: string }).videoId);
+    if (!videoId) {
+      throw notFound('Video id is required');
+    }
+
+    const body = videoUpdateRequestSchema.parse(request.body ?? {});
+    const result = await resolveVideoAuthorityRepository().updateVideo({
+      authUserId,
+      isPrivilegedAdmin: isPrivilegedAdminAuth(request.auth),
+      videoId,
+      title: body.title,
+      description: body.description,
+    });
+
+    await recordAuditEvent({
+      request,
+      action: 'video.update',
+      resourceType: 'video',
+      resourceId: videoId,
+      result: 'SUCCESS',
+    });
+
+    return reply.send({
+      video: mapVideoRecord(result),
+      seedVersion: result.dataVersion,
+      requestId: request.requestId,
+    });
+  });
+
+  app.patch('/videos/:videoId/share', async (request, reply) => {
+    const authUserId = request.auth?.userId;
+    if (!authUserId) {
+      throw forbidden('Authenticated user is required');
+    }
+
+    const videoId = asString((request.params as { videoId?: string }).videoId);
+    if (!videoId) {
+      throw notFound('Video id is required');
+    }
+
+    const body = videoVisibilityRequestSchema.parse(request.body ?? {});
+    const result = await resolveVideoAuthorityRepository().setVideoVisibility({
+      authUserId,
+      isPrivilegedAdmin: isPrivilegedAdminAuth(request.auth),
+      videoId,
+      visibility: body.visibility,
+      recipientUserIds: body.recipientUserIds,
+    });
+
+    await recordAuditEvent({
+      request,
+      action: 'video.visibility.update',
+      resourceType: 'video',
+      resourceId: videoId,
+      result: 'SUCCESS',
+      metadata: {
+        visibility: body.visibility,
+        sharedWithUserIds: mapVideoRecord(result).sharedWithUserIds,
+      },
+    });
+
+    return reply.send({
+      video: mapVideoRecord(result),
+      seedVersion: result.dataVersion,
+      requestId: request.requestId,
+    });
+  });
+
+  app.post('/videos/:videoId/annotations', async (request, reply) => {
+    const authUserId = request.auth?.userId;
+    if (!authUserId) {
+      throw forbidden('Authenticated user is required');
+    }
+
+    const videoId = asString((request.params as { videoId?: string }).videoId);
+    if (!videoId) {
+      throw notFound('Video id is required');
+    }
+
+    const body = videoAnnotationRequestSchema.parse(request.body ?? {});
+    const result = await resolveVideoAuthorityRepository().addVideoAnnotation({
+      authUserId,
+      isPrivilegedAdmin: isPrivilegedAdminAuth(request.auth),
+      videoId,
+      timestampMs: body.timestamp * 1000,
+      label: body.label,
+      note: body.note,
+      annotationType: body.type,
+    });
+
+    await recordAuditEvent({
+      request,
+      action: 'video.annotation.create',
+      resourceType: 'video_annotation',
+      resourceId: asString(result.annotation.id) ?? undefined,
+      result: 'SUCCESS',
+      metadata: { videoId },
+    });
+
+    return reply.status(201).send({
+      annotation: mapVideoAnnotation(result.annotation),
+      seedVersion: result.dataVersion,
+      requestId: request.requestId,
+    });
+  });
+
+  app.patch('/videos/:videoId/annotations/:annotationId', async (request, reply) => {
+    const authUserId = request.auth?.userId;
+    if (!authUserId) {
+      throw forbidden('Authenticated user is required');
+    }
+
+    const params = request.params as { videoId?: string; annotationId?: string };
+    const videoId = asString(params.videoId);
+    const annotationId = asString(params.annotationId);
+    if (!videoId || !annotationId) {
+      throw notFound('Video annotation id is required');
+    }
+
+    const body = videoAnnotationRequestSchema.parse(request.body ?? {});
+    const result = await resolveVideoAuthorityRepository().updateVideoAnnotation({
+      authUserId,
+      isPrivilegedAdmin: isPrivilegedAdminAuth(request.auth),
+      videoId,
+      annotationId,
+      timestampMs: body.timestamp * 1000,
+      label: body.label,
+      note: body.note,
+      annotationType: body.type,
+    });
+
+    await recordAuditEvent({
+      request,
+      action: 'video.annotation.update',
+      resourceType: 'video_annotation',
+      resourceId: annotationId,
+      result: 'SUCCESS',
+      metadata: { videoId },
+    });
+
+    return reply.send({
+      annotation: mapVideoAnnotation(result.annotation),
+      seedVersion: result.dataVersion,
+      requestId: request.requestId,
+    });
+  });
+
+  app.delete('/videos/:videoId/annotations/:annotationId', async (request, reply) => {
+    const authUserId = request.auth?.userId;
+    if (!authUserId) {
+      throw forbidden('Authenticated user is required');
+    }
+
+    const params = request.params as { videoId?: string; annotationId?: string };
+    const videoId = asString(params.videoId);
+    const annotationId = asString(params.annotationId);
+    if (!videoId || !annotationId) {
+      throw notFound('Video annotation id is required');
+    }
+
+    await resolveVideoAuthorityRepository().deleteVideoAnnotation({
+      authUserId,
+      isPrivilegedAdmin: isPrivilegedAdminAuth(request.auth),
+      videoId,
+      annotationId,
+    });
+
+    await recordAuditEvent({
+      request,
+      action: 'video.annotation.delete',
+      resourceType: 'video_annotation',
+      resourceId: annotationId,
+      result: 'SUCCESS',
+      metadata: { videoId },
+    });
+
+    return reply.status(204).send();
+  });
+
+  app.delete('/videos/:videoId', async (request, reply) => {
+    const authUserId = request.auth?.userId;
+    if (!authUserId) {
+      throw forbidden('Authenticated user is required');
+    }
+
+    const videoId = asString((request.params as { videoId?: string }).videoId);
+    if (!videoId) {
+      throw notFound('Video id is required');
+    }
+
+    await resolveVideoAuthorityRepository().deleteVideo({
+      authUserId,
+      isPrivilegedAdmin: isPrivilegedAdminAuth(request.auth),
+      videoId,
+    });
+
+    await recordAuditEvent({
+      request,
+      action: 'video.delete',
+      resourceType: 'video',
+      resourceId: videoId,
+      result: 'SUCCESS',
+    });
+
+    return reply.status(204).send();
   });
 
   app.get('/community-groups', async (request, reply) => {

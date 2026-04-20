@@ -2,7 +2,7 @@
  * Extracted sub-components for VideoUpload.
  *
  * VideoPickerCards — gallery/camera picker mode.
- * VideoPreviewCard — selected video preview with upload progress.
+ * VideoPreviewCard — selected video preview with confirm/clear actions.
  * RequirementsList — file size/duration/format requirements.
  */
 
@@ -10,7 +10,7 @@ import React, { memo } from 'react';
 import { View } from 'react-native';
 import { Image } from 'expo-image';
 import { Ionicons } from '@expo/vector-icons';
-import Animated, { FadeIn, useAnimatedStyle, type SharedValue } from 'react-native-reanimated';
+import Animated, { FadeIn } from 'react-native-reanimated';
 
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { Clickable } from '@/components/primitives/clickable';
@@ -95,31 +95,17 @@ export const VideoPickerCards = memo(function VideoPickerCards({
 
 interface VideoPreviewCardProps {
   video: SelectedVideo;
-  uploading: boolean;
-  uploadProgress: number;
-  progressWidth: SharedValue<number>;
   onClear: () => void;
   onUpload: () => void;
-  onCancelUpload?: () => void;
   palette: ThemeColors;
-  /** When false, upload button is disabled until consent is verified */
-  consentVerified?: boolean;
 }
 
 export const VideoPreviewCard = memo(function VideoPreviewCard({
   video,
-  uploading,
-  uploadProgress,
-  progressWidth,
   onClear,
   onUpload,
-  onCancelUpload,
   palette,
-  consentVerified = true,
 }: VideoPreviewCardProps) {
-  const progressStyle = useAnimatedStyle(() => ({
-    width: `${progressWidth.value}%`,
-  }));
   return (
     <Animated.View entering={FadeIn.duration(200)}>
       <SurfaceCard style={styles.previewCard}>
@@ -136,15 +122,13 @@ export const VideoPreviewCard = memo(function VideoPreviewCard({
             <Ionicons name="play-circle" size={48} color={palette.onPrimary} />
           </View>
 
-          {!uploading && (
-            <Clickable
-              accessibilityLabel="Close"
-              onPress={onClear}
-              style={[styles.clearButton, { backgroundColor: withAlpha(palette.text, 0.5) }]}
-            >
-              <Ionicons name="close" size={20} color={palette.onPrimary} />
-            </Clickable>
-          )}
+          <Clickable
+            accessibilityLabel="Close"
+            onPress={onClear}
+            style={[styles.clearButton, { backgroundColor: withAlpha(palette.text, 0.5) }]}
+          >
+            <Ionicons name="close" size={20} color={palette.onPrimary} />
+          </Clickable>
         </View>
 
         {/* Video Info */}
@@ -168,46 +152,16 @@ export const VideoPreviewCard = memo(function VideoPreviewCard({
           </Row>
         </View>
 
-        {/* Upload Progress */}
-        {uploading && (
-          <View style={styles.progressSection}>
-            <View style={[styles.progressBar, { backgroundColor: palette.border }]}>
-              <Animated.View
-                style={[styles.progressFill, { backgroundColor: palette.tint }, progressStyle]}
-              />
-            </View>
-            <ThemedText style={[styles.progressText, { color: palette.muted }]}>
-              Uploading... {uploadProgress}%
-            </ThemedText>
-            {onCancelUpload ? (
-              <Clickable
-                onPress={onCancelUpload}
-                style={[styles.cancelUploadButton, { borderColor: palette.border }]}
-                accessibilityLabel="Cancel upload"
-              >
-                <Ionicons name="close-circle-outline" size={16} color={palette.error} />
-                <ThemedText style={[styles.cancelUploadText, { color: palette.error }]}>
-                  Cancel upload
-                </ThemedText>
-              </Clickable>
-            ) : null}
-          </View>
-        )}
-
-        {/* Upload Button */}
-        {!uploading && (
-          <Clickable
-            onPress={onUpload}
-            style={[styles.uploadButton, { backgroundColor: consentVerified ? palette.tint : palette.border }]}
-            disabled={!consentVerified}
-            accessibilityLabel={consentVerified ? 'Upload Video' : 'Video consent required before upload'}
-          >
-            <Ionicons name="cloud-upload" size={20} color={palette.onPrimary} />
-            <ThemedText style={{ color: palette.onPrimary, fontWeight: '700' }}>
-              {consentVerified ? 'Upload Video' : 'Consent Required'}
-            </ThemedText>
-          </Clickable>
-        )}
+        <Clickable
+          onPress={onUpload}
+          style={[styles.uploadButton, { backgroundColor: palette.tint }]}
+          accessibilityLabel="Use selected video"
+        >
+          <Ionicons name="cloud-upload" size={20} color={palette.onPrimary} />
+          <ThemedText style={{ color: palette.onPrimary, fontWeight: '700' }}>
+            Use Video
+          </ThemedText>
+        </Clickable>
       </SurfaceCard>
     </Animated.View>
   );

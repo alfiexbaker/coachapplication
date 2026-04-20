@@ -1698,6 +1698,7 @@ model Video {
   coachUserId        String?
   title              String?
   description        String?
+  visibility         String   @default("PRIVATE")
   sourceContextType  String?
   sourceContextId    String?
   createdByUserId    String
@@ -1709,9 +1710,27 @@ model Video {
 
   mediaObject        MediaObject @relation(fields: [mediaObjectId], references: [id], onDelete: Restrict)
   annotations        VideoAnnotation[]
+  shares             VideoShare[]
 
   @@index([athleteId])
   @@index([coachUserId])
+}
+
+model VideoShare {
+  id                 String   @id
+  videoId            String
+  sharedWithUserId   String
+  createdByUserId    String
+  updatedByUserId    String
+  version            BigInt   @default(1)
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+  deletedAt          DateTime?
+
+  video              Video    @relation(fields: [videoId], references: [id], onDelete: Restrict)
+
+  @@unique([videoId, sharedWithUserId])
+  @@index([sharedWithUserId, deletedAt])
 }
 
 model VideoAnnotation {
@@ -1720,6 +1739,8 @@ model VideoAnnotation {
   authorUserId       String
   timestampMs        Int
   text               String
+  note               String?
+  annotationType     String   @default("GENERAL")
   color              String?
   createdByUserId    String
   updatedByUserId    String

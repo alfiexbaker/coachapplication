@@ -12,18 +12,19 @@
  * - Video sharing and visibility controls
  *
  * API Integration Notes:
- * - POST /api/videos/upload-url - Get signed upload URL (S3/GCS)
- * - POST /api/videos - Create video record after upload
- * - GET /api/videos?coachId=X - Coach's videos
- * - GET /api/videos?athleteId=X - Videos featuring athlete
- * - POST /api/videos/:id/annotations - Add annotation
- * - PATCH /api/videos/:id/annotations/:annotationId - Update annotation
- * - DELETE /api/videos/:id/annotations/:annotationId - Delete annotation
- * - GET /api/videos/:id/annotations/export - Export annotations
- * - PATCH /api/videos/:id/share - Update sharing
+ * - POST /v1/uploads/init - Initialize secure media upload
+ * - POST /v1/videos - Create authoritative video record after upload
+ * - GET /v1/videos?coachId=X - Coach-owned videos
+ * - GET /v1/videos?athleteId=X - Explicitly shared athlete videos
+ * - GET /v1/videos/:id - Signed playback detail
+ * - POST /v1/videos/:id/annotations - Add annotation
+ * - PATCH /v1/videos/:id/annotations/:annotationId - Update annotation
+ * - DELETE /v1/videos/:id/annotations/:annotationId - Delete annotation
+ * - PATCH /v1/videos/:id/share - Update sharing
  */
 
 import { apiClient } from './api-client';
+import { apiFetch } from './api-client';
 import { api } from '@/constants/config';
 import type {
   SessionVideo,
@@ -36,6 +37,8 @@ import { type Result, type ServiceError, ok, err, notFound, storageError } from 
 import { userService } from './user-service';
 import { createLogger } from '@/utils/logger';
 import { emitTyped, ServiceEvents } from './event-bus';
+import { Platform } from 'react-native';
+import * as FileSystem from 'expo-file-system/legacy';
 
 import { STORAGE_KEYS } from '@/constants/storage-keys';
 
@@ -215,12 +218,6 @@ export interface CreateVideoInput {
   tags?: string[];
 }
 
-export interface UploadProgress {
-  videoId: string;
-  progress: number; // 0-100
-  status: 'UPLOADING' | 'PROCESSING' | 'READY' | 'FAILED';
-}
-
 export interface CreateAnnotationInput {
   timestamp: number;
   label: string;
@@ -235,6 +232,159 @@ export interface UpdateAnnotationInput {
   type?: VideoAnnotationType;
 }
 
+interface ApiVideoAnnotation {
+  id: string;
+  timestamp?: number;
+  label?: string;
+  note?: string;
+  type?: VideoAnnotationType;
+  createdBy?: string;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+interface ApiVideoRecord {
+  id: string;
+  coachUserId?: string;
+  athleteId?: string;
+  title?: string;
+  description?: string;
+  visibility?: 'PRIVATE' | 'SHARED';
+  sharedWithUserIds?: string[];
+  sourceContextType?: string;
+  sourceContextId?: string;
+  mediaObjectId?: string;
+  uploadStatus?: 'UPLOADING' | 'PROCESSING' | 'READY' | 'FAILED';
+  playbackUrl?: string;
+  playbackExpiresAt?: string;
+  thumbnailUrl?: string;
+  durationMs?: number;
+  fileSizeBytes?: number;
+  contentType?: string;
+  createdAt?: string;
+  updatedAt?: string;
+  annotations?: ApiVideoAnnotation[];
+}
+
+interface ApiVideoListResponse {
+  videos: ApiVideoRecord[];
+}
+
+interface ApiVideoDetailResponse {
+  video: ApiVideoRecord;
+}
+
+interface ApiUploadInitResponse {
+  uploadSessionId: string;
+  mediaObjectId: string;
+  uploadUrl: string;
+  uploadHeaders?: Record<string, string>;
+}
+
+interface ApiAnnotationResponse {
+  annotation: ApiVideoAnnotation;
+}
+
+function requireApiResult<T>(result: Result<T, ServiceError>, fallbackMessage: string): T {
+  if (!result.success) {
+    throw new Error(result.error.message || fallbackMessage);
+  }
+  return result.data;
+}
+
+function mapApiAnnotation(annotation: ApiVideoAnnotation): VideoAnnotation {
+  return {
+    id: annotation.id,
+    timestamp: annotation.timestamp ?? 0,
+    label: annotation.label?.trim() || 'Annotation',
+    note: annotation.note?.trim() || undefined,
+    type: annotation.type ?? 'GENERAL',
+    createdBy: annotation.createdBy,
+    createdAt: annotation.createdAt,
+    updatedAt: annotation.updatedAt,
+  };
+}
+
+function mapApiVideo(video: ApiVideoRecord): SessionVideo {
+  const sourceContextType = video.sourceContextType?.toLowerCase();
+  return {
+    id: video.id,
+    sessionId: sourceContextType === 'session' ? video.sourceContextId : undefined,
+    bookingId: sourceContextType === 'booking' ? video.sourceContextId : undefined,
+    coachId: video.coachUserId || '',
+    athleteIds: video.athleteId ? [video.athleteId] : [],
+    title: video.title?.trim() || 'Video',
+    description: video.description?.trim() || undefined,
+    videoUrl: video.playbackUrl || '',
+    thumbnailUrl: video.thumbnailUrl || video.playbackUrl || '',
+    duration: Math.max(0, Math.round((video.durationMs ?? 0) / 1000)),
+    fileSize: Math.max(0, video.fileSizeBytes ?? 0),
+    annotations: (video.annotations ?? []).map(mapApiAnnotation).sort((left, right) => left.timestamp - right.timestamp),
+    visibility: video.visibility === 'SHARED' ? 'SHARED' : 'PRIVATE',
+    sharedWith: video.sharedWithUserIds ?? [],
+    createdAt: video.createdAt || new Date().toISOString(),
+    uploadStatus: video.uploadStatus ?? 'READY',
+    viewCount: 0,
+    tags: [],
+  };
+}
+
+function inferVideoContentType(value: string): string {
+  const normalized = value.toLowerCase();
+  if (normalized.endsWith('.mov')) {
+    return 'video/quicktime';
+  }
+  if (normalized.endsWith('.avi')) {
+    return 'video/x-msvideo';
+  }
+  if (normalized.endsWith('.m4v')) {
+    return 'video/x-m4v';
+  }
+  return 'video/mp4';
+}
+
+function buildUploadFileName(uri: string, title: string): string {
+  const candidate = uri.split('/').pop()?.trim();
+  if (candidate) {
+    return candidate;
+  }
+  const normalizedTitle = title
+    .trim()
+    .replace(/[^A-Za-z0-9._-]+/g, '-')
+    .replace(/-+/g, '-')
+    .replace(/^-|-$/g, '');
+  return `${normalizedTitle || 'video'}.mp4`;
+}
+
+async function uploadFileToSignedUrl(
+  fileUri: string,
+  uploadUrl: string,
+  uploadHeaders: Record<string, string> | undefined,
+): Promise<void> {
+  if (Platform.OS === 'web') {
+    const source = await fetch(fileUri);
+    const blob = await source.blob();
+    const response = await fetch(uploadUrl, {
+      method: 'PUT',
+      headers: uploadHeaders,
+      body: blob,
+    });
+    if (!response.ok) {
+      throw new Error(`Upload failed with status ${response.status}`);
+    }
+    return;
+  }
+
+  const response = await FileSystem.uploadAsync(uploadUrl, fileUri, {
+    httpMethod: 'PUT',
+    headers: uploadHeaders,
+    uploadType: FileSystem.FileSystemUploadType.BINARY_CONTENT,
+  });
+  if (response.status < 200 || response.status >= 300) {
+    throw new Error(`Upload failed with status ${response.status}`);
+  }
+}
+
 export const videoService = {
   /**
    * Get all videos for a coach
@@ -247,8 +397,9 @@ export const videoService = {
         .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
     }
 
-    const response = await fetch(`/api/videos?coachId=${coachId}`);
-    return response.json();
+    const query = new URLSearchParams({ coachId });
+    const result = await apiFetch<ApiVideoListResponse>(`/v1/videos?${query.toString()}`);
+    return requireApiResult(result, 'Failed to load coach videos').videos.map(mapApiVideo);
   },
 
   /**
@@ -266,8 +417,9 @@ export const videoService = {
         .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
     }
 
-    const response = await fetch(`/api/videos?athleteId=${athleteId}`);
-    return response.json();
+    const query = new URLSearchParams({ athleteId });
+    const result = await apiFetch<ApiVideoListResponse>(`/v1/videos?${query.toString()}`);
+    return requireApiResult(result, 'Failed to load athlete videos').videos.map(mapApiVideo);
   },
 
   /**
@@ -285,33 +437,11 @@ export const videoService = {
       return video || null;
     }
 
-    const response = await fetch(`/api/videos/${videoId}`);
-    if (!response.ok) return null;
-    return response.json();
-  },
-
-  /**
-   * Get signed upload URL (mock returns a fake URL)
-   */
-  async getUploadUrl(
-    fileName: string,
-    fileType: string,
-  ): Promise<{ uploadUrl: string; videoUrl: string }> {
-    if (USE_MOCK) {
-      // In mock mode, return fake URLs
-      const videoId = apiClient.generateId('vid');
-      return {
-        uploadUrl: `https://mock-upload.example.com/upload/${videoId}`,
-        videoUrl: `https://example.com/videos/${videoId}.mp4`,
-      };
+    const result = await apiFetch<ApiVideoDetailResponse>(`/v1/videos/${videoId}`);
+    if (!result.success) {
+      return null;
     }
-
-    const response = await fetch('/api/videos/upload-url', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ fileName, fileType }),
-    });
-    return response.json();
+    return mapApiVideo(result.data.video);
   },
 
   /**
@@ -352,12 +482,46 @@ export const videoService = {
       return newVideo;
     }
 
-    const response = await fetch('/api/videos', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(newVideo),
-    });
-    return response.json();
+    const fileName = buildUploadFileName(videoUrl, input.title);
+    const contentType = inferVideoContentType(fileName);
+    const uploadInit = requireApiResult(
+      await apiFetch<ApiUploadInitResponse>('/v1/uploads/init', {
+        method: 'POST',
+        body: JSON.stringify({
+          kind: 'VIDEO',
+          contentType,
+          fileName,
+          sizeBytes: Math.max(1, fileSize),
+          metadata: {
+            coachId: input.coachId,
+            athleteIds: input.athleteIds,
+            sessionId: input.sessionId,
+            bookingId: input.bookingId,
+          },
+        }),
+      }),
+      'Failed to initialize video upload',
+    );
+
+    await uploadFileToSignedUrl(videoUrl, uploadInit.uploadUrl, uploadInit.uploadHeaders);
+
+    const created = requireApiResult(
+      await apiFetch<ApiVideoDetailResponse>('/v1/videos', {
+        method: 'POST',
+        body: JSON.stringify({
+          mediaObjectId: uploadInit.mediaObjectId,
+          athleteIds: input.athleteIds,
+          title: input.title,
+          description: input.description,
+          sessionId: input.sessionId,
+          bookingId: input.bookingId,
+          durationSeconds: Math.max(0, Math.round(duration)),
+        }),
+      }),
+      'Failed to create video record',
+    );
+
+    return mapApiVideo(created.video);
   },
 
   /**
@@ -399,20 +563,16 @@ export const videoService = {
       throw new Error(`Video not found: ${videoId}`);
     }
 
-    const annotation: VideoAnnotation = {
-      id: apiClient.generateId('ann'),
-      timestamp,
-      label,
-      type,
-      note,
-    };
-
-    const response = await fetch(`/api/videos/${videoId}/annotations`, {
+    const result = await apiFetch<ApiAnnotationResponse>(`/v1/videos/${videoId}/annotations`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(annotation),
+      body: JSON.stringify({
+        timestamp,
+        label,
+        type,
+        note,
+      }),
     });
-    return response.json();
+    return mapApiAnnotation(requireApiResult(result, 'Failed to add video annotation').annotation);
   },
 
   /**
@@ -433,9 +593,12 @@ export const videoService = {
       return;
     }
 
-    await fetch(`/api/videos/${videoId}/annotations/${annotationId}`, {
-      method: 'DELETE',
-    });
+    requireApiResult(
+      await apiFetch<void>(`/v1/videos/${videoId}/annotations/${annotationId}`, {
+        method: 'DELETE',
+      }),
+      'Failed to remove video annotation',
+    );
     emitTyped(ServiceEvents.VIDEO_ANNOTATION_REMOVED, {
       videoId,
       annotationId,
@@ -461,12 +624,17 @@ export const videoService = {
       return err(notFound('Video', videoId));
     }
 
-    const response = await fetch(`/api/videos/${videoId}/share`, {
+    const result = await apiFetch<ApiVideoDetailResponse>(`/v1/videos/${videoId}/share`, {
       method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ parentIds }),
+      body: JSON.stringify({
+        visibility: 'SHARED',
+        recipientUserIds: parentIds.length > 0 ? parentIds : undefined,
+      }),
     });
-    return ok(await response.json());
+    if (!result.success) {
+      return err(result.error);
+    }
+    return ok(mapApiVideo(result.data.video));
   },
 
   /**
@@ -485,12 +653,14 @@ export const videoService = {
       return err(notFound('Video', videoId));
     }
 
-    const response = await fetch(`/api/videos/${videoId}/share`, {
+    const result = await apiFetch<ApiVideoDetailResponse>(`/v1/videos/${videoId}/share`, {
       method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ visibility: 'PRIVATE' }),
     });
-    return ok(await response.json());
+    if (!result.success) {
+      return err(result.error);
+    }
+    return ok(mapApiVideo(result.data.video));
   },
 
   /**
@@ -512,7 +682,10 @@ export const videoService = {
       return;
     }
 
-    await fetch(`/api/videos/${videoId}`, { method: 'DELETE' });
+    requireApiResult(
+      await apiFetch<void>(`/v1/videos/${videoId}`, { method: 'DELETE' }),
+      'Failed to delete video',
+    );
     emitTyped(ServiceEvents.VIDEO_DELETED, {
       videoId,
       coachId: '',
@@ -538,12 +711,17 @@ export const videoService = {
       return err(notFound('Video', videoId));
     }
 
-    const response = await fetch(`/api/videos/${videoId}`, {
+    const result = await apiFetch<ApiVideoDetailResponse>(`/v1/videos/${videoId}`, {
       method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(updates),
+      body: JSON.stringify({
+        title: updates.title,
+        description: updates.description,
+      }),
     });
-    return ok(await response.json());
+    if (!result.success) {
+      return err(result.error);
+    }
+    return ok(mapApiVideo(result.data.video));
   },
 
   /**
@@ -705,14 +883,20 @@ export const videoService = {
       return mutableVideo.annotations[mutableIndex];
     }
 
-    const response = await fetch(`/api/videos/${videoId}/annotations/${annotationId}`, {
+    const result = await apiFetch<ApiAnnotationResponse>(`/v1/videos/${videoId}/annotations/${annotationId}`, {
       method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ ...updates, timestamp: nextTimestamp, label: nextLabel }),
+      body: JSON.stringify({
+        timestamp: nextTimestamp,
+        label: nextLabel,
+        note: updates.note ?? existingAnnotation.note,
+        type: updates.type ?? existingAnnotation.type,
+      }),
     });
 
-    if (!response.ok) return null;
-    return response.json();
+    if (!result.success) {
+      return null;
+    }
+    return mapApiAnnotation(result.data.annotation);
   },
 
   /**

@@ -82,6 +82,7 @@ async function main() {
     await tx.notificationPreference.deleteMany();
     await tx.notification.deleteMany();
     await tx.videoAnnotation.deleteMany();
+    await tx.videoShare.deleteMany();
     await tx.video.deleteMany();
     await tx.clubInviteCode.deleteMany();
     await tx.squad.deleteMany();
@@ -595,6 +596,7 @@ async function main() {
       coachUserId: asString(row.coachUserId) ?? null,
       title: asString(row.title) ?? null,
       description: asString(row.description) ?? null,
+      visibility: asString(row.visibility) ?? 'PRIVATE',
       sourceContextType: asString(row.sourceContextType) ?? null,
       sourceContextId: asString(row.sourceContextId) ?? null,
       createdByUserId: asString(row.createdByUserId) ?? '',
@@ -608,12 +610,42 @@ async function main() {
       await tx.video.createMany({ data: videos });
     }
 
+    const videoShares = asRows(tables.videos).flatMap((row) => {
+      const videoId = asString(row.id);
+      const createdByUserId = asString(row.createdByUserId) ?? '';
+      const updatedByUserId = asString(row.updatedByUserId) ?? createdByUserId;
+      const sharedWith = asArray(row.sharedWith)
+        .map((value) => asString(value))
+        .filter((value) => Boolean(value));
+
+      if (!videoId || sharedWith.length === 0) {
+        return [];
+      }
+
+      return sharedWith.map((sharedWithUserId) => ({
+        id: `${videoId}:${sharedWithUserId}`,
+        videoId,
+        sharedWithUserId,
+        createdByUserId,
+        updatedByUserId,
+        version: toBigInt(row.version, 1),
+        createdAt: toDate(row.createdAt) ?? new Date(),
+        updatedAt: toDate(row.updatedAt) ?? new Date(),
+        deletedAt: toDate(row.deletedAt),
+      }));
+    });
+    if (videoShares.length > 0) {
+      await tx.videoShare.createMany({ data: videoShares });
+    }
+
     const videoAnnotations = asRows(tables.videoAnnotations).map((row) => ({
       id: row.id,
       videoId: row.videoId,
       authorUserId: asString(row.authorUserId) ?? '',
       timestampMs: asNumber(row.timestampMs, 0),
       text: asString(row.text) ?? '',
+      note: asString(row.note) ?? null,
+      annotationType: asString(row.annotationType) ?? 'GENERAL',
       color: asString(row.color) ?? null,
       createdByUserId: asString(row.createdByUserId) ?? asString(row.authorUserId) ?? '',
       updatedByUserId: asString(row.updatedByUserId) ?? asString(row.authorUserId) ?? '',

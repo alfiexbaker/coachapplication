@@ -53,32 +53,6 @@ export const styles = StyleSheet.create({
     gap: Spacing.xs,
   },
   metaText: { ...Typography.caption },
-  progressSection: {
-    paddingHorizontal: Spacing.md,
-    paddingBottom: Spacing.md,
-    gap: Spacing.xs,
-  },
-  progressBar: {
-    height: 6,
-    borderRadius: Radii.xs,
-    overflow: 'hidden',
-  },
-  progressFill: {
-    height: '100%',
-    borderRadius: Radii.xs,
-  },
-  progressText: { ...Typography.caption, textAlign: 'center' },
-  cancelUploadButton: {
-    alignSelf: 'center',
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.xs,
-    paddingHorizontal: Spacing.sm,
-    paddingVertical: Spacing.xs,
-    borderRadius: Radii.md,
-    borderWidth: 1,
-  },
-  cancelUploadText: { ...Typography.caption, fontWeight: '600' },
   uploadButton: {
     flexDirection: 'row',
     alignItems: 'center',

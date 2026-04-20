@@ -103,10 +103,11 @@ export function useVideoDetail(id: string | undefined) {
   const handleShare = useCallback(async () => {
     if (!video) return;
     try {
+      const shareUrl = `clubroom://videos/${video.id}`;
       await Share.share({
         title: video.title,
-        message: `Check out this training video: ${video.title}`,
-        url: video.videoUrl,
+        message: `Open this training video in Clubroom: ${shareUrl}`,
+        url: shareUrl,
       });
     } catch (error) {
       logger.error('Failed to share:', error);
@@ -117,8 +118,8 @@ export function useVideoDetail(id: string | undefined) {
     if (!video) return;
     try {
       if (video.visibility === 'PRIVATE') {
-        await videoService.shareVideo(video.id, ['parent_1']);
-        uiFeedback.showToast('Video has been shared with parents.');
+        await videoService.shareVideo(video.id, []);
+        uiFeedback.showToast('Video has been shared with the linked family.');
       } else {
         await videoService.makePrivate(video.id);
         uiFeedback.showToast('Video is now private.');
