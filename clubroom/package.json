@@ -46,6 +46,7 @@
     "audit:alerts": "node ./scripts/audit-alert-usage.js",
     "audit:ui": "node ./scripts/audit-ui.js",
     "audit:architecture": "node ./scripts/architecture-reachability-audit.js",
+    "audit:loading-routes": "node ./scripts/loading-route-coverage-audit.js",
     "gate:pre-api-placement": "node ./scripts/pre-api-placement-gate.js",
     "ui:flows:list": "node ./scripts/ui-flow-checks-50.mjs --list",
     "ui:flows:preflight": "node ./scripts/ui-flow-checks-50.mjs --preflight-only",

@@ -1,40 +1,36 @@
 # Last Step Handoff
 
-Date: 2026-04-17
+Date: 2026-04-22
 
 ## What Was Just Done
 
-1. Added a dedicated db-aware video authority repository at `apps/api/src/repositories/p0/video-authority-repository.ts` and moved `/v1/videos*` off the shared community/media repository.
-2. Extended `/v1/videos*` so non-mock video list/detail/create/update/share/delete and annotation flows now run through one backend authority path, with signed playback URLs and explicit-share guardian access.
-3. Extended Prisma/runtime video data with `Video.visibility`, `VideoShare`, and richer annotation fields, and updated the release seed import so db mode keeps those video relationships populated.
-4. Moved `services/video-service.ts` off legacy `/api/videos*` for non-mock reads and writes; uploads now use `/v1/uploads/init` plus `POST /v1/videos`, and the app shares deep links instead of signed media URLs.
-5. Removed fake upload progress plumbing and the dead upload visibility selector from the video upload flow, so the UI now only shows behavior the backend actually supports.
+1. Built the `UI-LOAD-01` foundation in shared code by extending `hooks/use-screen.ts` and `hooks/use-screen-core.ts` with explicit loading strategies, retained-truth refresh behavior, pending-state signals, and non-blocking retry/refresh failure handling.
+2. Rebuilt the shared loading primitives in `components/ui/skeleton.tsx`, `components/ui/screen-states-sections.tsx`, and `components/ui/screen-states.tsx` so the repo now has reusable feed, hero/detail, form, schedule, and tab-pane skeleton recipes plus section-level and submit-progress affordances.
+3. Added `navigation/loading-route-manifest.js` as the canonical route-classification source and `scripts/loading-route-coverage-audit.js` as the route-coverage gate; all `190` route files are now classified and hot paths carry explicit review-state and ship-blocker metadata.
+4. Updated the canonical loading doc and sprint queue so the foundation truth lives in `docs/ui/loading-error-empty-state-matrix.md`, `docs/newsprints/sprints/BACKLOG.md`, and this handoff.
 
 ## Verification Run In This Step
 
 - `npm run typecheck` -> PASS
 - `npm run test:compile` -> PASS
-- `npm --prefix apps/api run typecheck` -> PASS
-- `npm --prefix apps/api run test` -> PASS (`87/87`)
+- `node ./scripts/loading-route-coverage-audit.js` -> PASS (`190` routes classified, `0` static fallback routes)
 - `git diff --check` -> PASS
 
 ## Current State
 
-- Community/media read cutover is complete for the active app surfaces: community groups, messaging, notifications, and videos are now API-first in non-mock mode.
-- Local storage in those domains is now either mock-only or a compatibility overlay, not the source of truth.
-- Remaining production blockers are now release-path validation and real env/provisioning dependencies, not another active app-to-API cutover seam.
+- Warm-path blanking is now structurally harder in shared code: focus refresh, event refresh, pull-to-refresh, and retry can preserve previously truthful content instead of forcing a full-screen reset.
+- The shared loading system now exposes truthful section-skeleton and submit-progress primitives, but route families still need slice-by-slice migration off generic `LoadingState` usage.
+- Route-classification closure is complete; implementation closure is not. Later slices should update owned routes against the manifest instead of inventing new loading rules.
 
 ## Next Exact Action
 
-1. Start `UI-LOAD-01` to build the shared loading foundation: unify the skeleton primitives, extend `useScreen` for retained-data refresh behavior, and codify the rule that lazy placeholders must match the real surface they represent.
+1. Start `UI-LOAD-02` and migrate the commerce journey onto the new foundation: Bookings, Discover, booking funnel steps, booking detail/cancel, session invites, session completion/notes, and adjacent review flows should keep prior truth visible and replace generic list/detail loaders with surface-accurate section loading.
 
 ## Priority Note
 
-Date: 2026-04-20
+Date: 2026-04-22
 
-- Queue priority changed after an app-wide loading and perceived-performance planning pass.
-- The next release rehearsal should happen after the loading overhaul slices so UI-flow validation reflects launch-grade state transitions rather than transitional skeleton behavior.
-- The loading queue has been tightened again with premium failure conditions; the next implementation slice should treat any warm-navigation blanking or generic placeholder drift as a defect, not polish debt.
-- The route audit found `190` route files with `53` route-level files lacking explicit loading signals and `96` route-level `ScrollView`-only surfaces, so the loading program now requires explicit route classification before claiming full coverage.
-- The next implementation slice also needs to enforce transition integrity: no `click -> blank/flicker -> load -> show`; a stable shell, prior frame, or truthful placeholder must stay visible until resolved content is ready.
-- The plan now also needs an elite review method, not just stricter words: hot paths must define choreography, review states, and ship-blocking flicker conditions before implementation can honestly call the result premium.
+- The loading foundation is now closed, so the next slice should spend zero time redefining loading rules and all of its time applying them to the commerce journey.
+- `navigation/loading-route-manifest.js` is now the route owner map; later loading slices should update their owned route entries as behavior changes instead of editing prose only.
+- `scripts/loading-route-coverage-audit.js` is now the route-closure gate; if a route becomes async without a specific non-static rule, that is a defect.
+- Premium review remains unchanged: reject any commerce path that shows a blank intermediate frame, chrome jump, placeholder geometry drift, or loading treatment that adds scroll cost.

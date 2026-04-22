@@ -1,6 +1,6 @@
 # Loading Error Empty-State Matrix
 
-Validated: 2026-04-20
+Validated: 2026-04-22
 Purpose: define the default screen-state pattern so new screens stay consistent and agents know which primitives to reuse.
 
 ## Canonical Sources
@@ -11,6 +11,8 @@ Purpose: define the default screen-state pattern so new screens stay consistent 
 - `components/ui/skeleton.tsx`
 - `components/ui/empty-state.tsx`
 - `components/primitives/surface-card.tsx`
+- `navigation/loading-route-manifest.js`
+- `scripts/loading-route-coverage-audit.js`
 - `components/analytics/analytics-screen-state.tsx`
 - `components/settings/settings-screen-state.tsx`
 - `components/verification/verification-screen-state.tsx`
@@ -28,12 +30,19 @@ Default screen lifecycle:
 Source of truth:
 
 - `useScreen` derives and manages this state machine
+- `useScreen.loadingStrategy` declares whether a route is `warm-first`, `section-skeleton`, `submit-only`, or `cold-first`
+- `useScreen.pendingState`, `showLoadingState`, `showSectionSkeleton`, and `showSubmitProgress` expose whether the next load should block, preserve truth, or localize the placeholder
 - use `silentError` for failed background refresh without dropping already-loaded data
 
 ## Shared Primitives
 
 - `LoadingState`
-  - variants: `list`, `card`, `detail`, `form`, `calendar`
+  - variants: `list`, `feed`, `card`, `detail`, `hero`, `form`, `calendar`, `schedule`, `tab-pane`
+  - scopes: `screen`, `section`
+- `SectionSkeleton`
+  - keeps chrome stable while only the unresolved section skeletonizes
+- `SubmitProgressState`
+  - keeps the current form or action surface visible while work resolves
 - `ErrorState`
   - retry CTA
   - user-facing error code support
@@ -107,6 +116,10 @@ Source of truth:
     - no async loading contract is required
 - No async route is allowed to remain unclassified.
 - A route is not “covered by the sprint plan” unless its classification and owning sprint are both explicit.
+- Canonical route source:
+  - `navigation/loading-route-manifest.js`
+- Coverage gate:
+  - `node ./scripts/loading-route-coverage-audit.js`
 
 ## Elite Review Gate
 
@@ -128,6 +141,7 @@ Source of truth:
   - mismatched placeholder geometry
   - duplicated loading affordances
   - scroll hitch caused by the loading treatment itself
+- Hot-path review state and ship blockers now live in `navigation/loading-route-manifest.js` and are enforced by `scripts/loading-route-coverage-audit.js`.
 
 ## Existing Screen Wrappers
 
@@ -144,11 +158,12 @@ Source of truth:
 
 | Screen shape | Loading variant | Empty state | Error state |
 |---|---|---|---|
-| list or feed | `list` | contextual `EmptyState` with action when recovery exists | `ErrorState` with retry |
+| list or feed | `feed` or `list` | contextual `EmptyState` with action when recovery exists | `ErrorState` with retry |
 | dashboard or analytics cards | `card` | use explicit empty explanation, usually refresh or setup CTA | `ErrorState` with retry |
-| detail screen | `detail` | use only when "no object exists" is a real state | `ErrorState` with retry |
+| detail screen | `hero` or `detail` | use only when "no object exists" is a real state | `ErrorState` with retry |
 | form or wizard | `form` | usually no empty state; prefer inline guidance | `ErrorState` or inline field errors depending on scope |
-| calendar or schedule | `calendar` | empty CTA should explain next scheduling action | `ErrorState` with retry |
+| calendar or schedule | `schedule` or `calendar` | empty CTA should explain next scheduling action | `ErrorState` with retry |
+| segmented pane | `tab-pane` or `SectionSkeleton` | contextual empty panel | inline error or `ErrorState` depending on scope |
 
 ## Build Rules
 
@@ -178,6 +193,8 @@ Source of truth:
 ## Validation Notes
 
 - The shared primitives are real and reusable today.
+- Shared skeleton recipes now consolidate around `components/ui/skeleton.tsx`, `components/ui/screen-states-sections.tsx`, and `components/primitives/surface-card.tsx` rather than separate shimmer implementations.
+- Route classification and hot-path review closure now live in `navigation/loading-route-manifest.js`, with repo-level coverage enforced by `scripts/loading-route-coverage-audit.js`.
 - Domain-specific wrappers exist, but the repo still has drift between shared loading variants and bespoke per-screen placeholders.
 - New work should consolidate toward the shared primitives above instead of adding another custom loading pattern.
 - If you build a new wrapper, keep it thin and backed by the shared primitives above.

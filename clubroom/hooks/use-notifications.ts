@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
-import { ScreenStatus, useScreen } from '@/hooks/use-screen';
+import { useScreen, type ScreenStatus } from '@/hooks/use-screen';
 import { notificationService, ExtendedNotificationItem } from '@/services/notification-service';
 import { onTyped, ServiceEvents } from '@/services/event-bus';
 import { err, ok, serviceError } from '@/types/result';

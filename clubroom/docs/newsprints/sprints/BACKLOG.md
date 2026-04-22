@@ -1,13 +1,12 @@
 # Sprint Backlog
 
-Updated: 2026-04-20
+Updated: 2026-04-22
 Rule: active work only. Completed sprint rows are intentionally removed.
 
 ## Open Queue
 
 | ID | Exactly what it does | Spine(s) | Status |
 | -- | -------------------- | -------- | ------ |
-| UI-LOAD-01 | Build the hard loading contract and route-coverage gate: shared primitives, retained-data refresh behavior, premium fail conditions, and a mandatory classification for every route (`warm-first`, `section-skeleton`, `submit-only`, or `static`). | Booking, Availability and Revenue + Community and Growth + Development and Analytics | READY |
 | UI-LOAD-02 | Fix the commerce journey end to end: Bookings, Discover, booking funnel, booking detail/cancel, session invites, session completion/notes, and adjacent review flows must stop using generic or reset-heavy loading. | Booking, Availability and Revenue | READY |
 | UI-LOAD-03 | Rebuild social and communication surfaces for premium perceived speed: home, feed, coach updates, community, messages, and related post/detail flows need truthful section loading and warm revisits. | Community and Growth + Development and Analytics | READY |
 | UI-LOAD-04 | Make profile and roster detail surfaces behave like a serious product: coach, athlete, public profile, roster, compare, and other segmented panes stay warm and never blank on tab changes. | Development and Analytics + Booking, Availability and Revenue | READY |
@@ -19,15 +18,14 @@ Rule: active work only. Completed sprint rows are intentionally removed.
 
 ## Execution Order
 
-1. `UI-LOAD-01`
-2. `UI-LOAD-02`
-3. `UI-LOAD-03`
-4. `UI-LOAD-04`
-5. `UI-LOAD-05`
-6. `UI-LOAD-06`
-7. `UI-LOAD-07`
-8. `UI-LOAD-08`
-9. `PROD-VERIFY-01`
+1. `UI-LOAD-02`
+2. `UI-LOAD-03`
+3. `UI-LOAD-04`
+4. `UI-LOAD-05`
+5. `UI-LOAD-06`
+6. `UI-LOAD-07`
+7. `UI-LOAD-08`
+8. `PROD-VERIFY-01`
 
 ## Sprint Intent
 
@@ -57,7 +55,8 @@ Rule: active work only. Completed sprint rows are intentionally removed.
 
 - Current route inventory:
   - `190` route files under `app/`
-  - `53` routes with no explicit loading signal found at the route file level
+  - `190` routes now covered by `navigation/loading-route-manifest.js`
+  - `0` routes rely on the static fallback rule
   - `96` routes that use `ScrollView` without list virtualization at the route file level
   - `16` tabbed or segmented routes
   - `52` app/component files using `ActivityIndicator`
@@ -75,44 +74,11 @@ Rule: active work only. Completed sprint rows are intentionally removed.
     - what exact section may skeletonize
     - what would count as a ship-blocking flicker
 - Reality check:
-  - the previous sprint pack covered the hot surfaces, but it did not yet prove route-by-route closure for booking funnel, trust/family, development/training, or ops/settings families
-  - `UI-LOAD-01` must produce the classification and implementation gate before later slices can honestly claim full coverage
+  - the loading foundation now exists in shared code plus `navigation/loading-route-manifest.js`
+  - `scripts/loading-route-coverage-audit.js` is the route-closure gate that later slices inherit
+  - later slices still need to replace generic implementations on their owned routes; classification closure is done, route-family migration is not
 
 ## Sprint Notes
-
-### `UI-LOAD-01`
-
-- Need:
-  - Consolidate the current split between `components/ui/screen-states-sections.tsx`, `components/ui/skeleton.tsx`, and `components/primitives/surface-card.tsx`.
-  - Extend `hooks/use-screen.ts` and `hooks/use-screen-core.ts` so screens can keep previous data visible during focus refresh, event refresh, and retry paths.
-  - Define the non-negotiable fidelity rule: a placeholder must be a layout twin of the surface it replaces.
-  - Remove the ability for hot screens to hide behind a generic fallback when a screen-specific loading recipe is required.
-  - Create and enforce the route classification rule so every async route has an explicit loading strategy.
-- Touch first:
-  - `hooks/use-screen.ts`
-  - `hooks/use-screen-core.ts`
-  - `components/ui/screen-states.tsx`
-  - `components/ui/screen-states-sections.tsx`
-  - `components/ui/skeleton.tsx`
-  - `docs/ui/loading-error-empty-state-matrix.md`
-- Acceptance:
-  - Full-screen loading only happens on true first load with no prior data.
-  - Shared loading recipes exist for feed, card grid, detail hero, form, schedule, and tab-pane sections.
-  - Migrated screens can render stale data with a silent refresh path instead of dropping back to a blank loader.
-  - A screen cannot claim compliance unless its loading recipe and loaded recipe share the same container density and hierarchy.
-  - Every later sprint slice inherits a route list or route family list; no “catch-all later” language is allowed without named paths.
-  - The program defines and enforces visible transition rules so paths preserve a stable frame from click to resolved content.
-  - The program produces an elite review checklist for hot paths: cold open, warm revisit, background refresh, stressed-latency pass.
-- Hard fail if:
-  - Any hot-path surface still requires both `LoadingState` and a bespoke inline spinner to feel complete.
-  - The shared system cannot express section-level loading without blanking the whole screen.
-  - The route tree still contains async paths that are unclassified when `UI-LOAD-01` closes.
-  - The system still allows `click -> blank/flicker -> load -> show` on warmed paths.
-  - The foundation ships without a route manifest and review method strong enough to catch visible regressions.
-- Verify:
-  - `npm run typecheck`
-  - `npm run test:compile`
-  - `git diff --check`
 
 ### `UI-LOAD-02`
 

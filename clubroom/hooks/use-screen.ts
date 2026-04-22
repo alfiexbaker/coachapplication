@@ -24,17 +24,24 @@ import { Colors, type ThemeName } from '@/constants/theme';
 import type { ThemeColors } from '@/hooks/useTheme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import {
+  createIdlePendingState,
+  deriveScreenPendingState,
   deriveScreenStatus,
+  isTruthfulScreenStatus,
   normalizeUnknownError,
   runFocusRefetch,
+  shouldSurfaceBackgroundFailure,
+  type ScreenLoadingStrategy,
   type ScreenLoadMode,
+  type ScreenPendingState,
+  type ScreenStatus as CoreScreenStatus,
 } from '@/hooks/use-screen-core';
 import { withTimeout } from '@/utils/timeout';
 import { onTyped } from '@/services/event-bus';
 import type { EventPayloads } from '@/services/event-bus';
 import type { Result, ServiceError } from '@/types/result';
 
-export type ScreenStatus = 'loading' | 'error' | 'empty' | 'success';
+export type ScreenStatus = CoreScreenStatus;
 
 export interface UseScreenOptions<T> {
   /** Async function that returns a Result<T>. Called on mount and on refresh. */
@@ -49,6 +56,8 @@ export interface UseScreenOptions<T> {
   refetchOnFocus?: boolean;
   /** Timeout in ms for the load function. Default: 10000 (10s). */
   loadTimeoutMs?: number;
+  /** Declares whether refreshed content should preserve the current frame or block on load. */
+  loadingStrategy?: ScreenLoadingStrategy;
 }
 
 export interface UseScreenResult<T> {
@@ -62,16 +71,36 @@ export interface UseScreenResult<T> {
   retry: () => void;
   colors: ThemeColors;
   scheme: ThemeName;
+  hasResolvedOnce: boolean;
+  hasTruthfulFrame: boolean;
+  isPending: boolean;
+  pendingState: ScreenPendingState;
+  showLoadingState: boolean;
+  showSectionSkeleton: boolean;
+  showSubmitProgress: boolean;
+  loadingStrategy: ScreenLoadingStrategy;
 }
 
 export function useScreen<T>(options: UseScreenOptions<T>): UseScreenResult<T> {
-  const { load, deps = [], events = [], isEmpty, refetchOnFocus = false, loadTimeoutMs = 10_000 } = options;
+  const {
+    load,
+    deps = [],
+    events = [],
+    isEmpty,
+    refetchOnFocus = false,
+    loadTimeoutMs = 10_000,
+    loadingStrategy = 'cold-first',
+  } = options;
 
   const [data, setData] = useState<T | null>(null);
   const [status, setStatus] = useState<ScreenStatus>('loading');
   const [error, setError] = useState<ServiceError | null>(null);
   const [silentError, setSilentError] = useState<ServiceError | null>(null);
   const [refreshing, setRefreshing] = useState(false);
+  const [pendingState, setPendingState] = useState<ScreenPendingState>(
+    createIdlePendingState(loadingStrategy),
+  );
+  const [hasResolvedOnce, setHasResolvedOnce] = useState(false);
 
   // Theme
   const scheme: ThemeName = useColorScheme() ?? 'dark';
@@ -80,6 +109,12 @@ export function useScreen<T>(options: UseScreenOptions<T>): UseScreenResult<T> {
   // Track mounted state to avoid state updates after unmount
   const mountedRef = useRef(true);
   const hasLoadedOnceRef = useRef(false);
+  const statusRef = useRef<ScreenStatus>('loading');
+
+  useEffect(() => {
+    statusRef.current = status;
+  }, [status]);
+
   useEffect(() => {
     return () => {
       mountedRef.current = false;
@@ -87,9 +122,21 @@ export function useScreen<T>(options: UseScreenOptions<T>): UseScreenResult<T> {
   }, []);
 
   const fetchData = useCallback(async (mode: ScreenLoadMode = 'initial') => {
+    const currentStatus = statusRef.current;
+    const hasTruthfulFrame = isTruthfulScreenStatus(currentStatus);
+    const nextPendingState = deriveScreenPendingState({
+      hasTruthfulFrame,
+      mode,
+      strategy: loadingStrategy,
+    });
+
+    setPendingState(nextPendingState);
+
     if (mode === 'refresh') {
       setRefreshing(true);
-    } else if (mode === 'initial') {
+    }
+
+    if (nextPendingState.blocking) {
       setStatus('loading');
       setError(null);
     }
@@ -106,7 +153,14 @@ export function useScreen<T>(options: UseScreenOptions<T>): UseScreenResult<T> {
 
       // Timeout expired — treat as a network error
       if (!timeoutResult.success) {
-        if (mode === 'silent') {
+        if (
+          shouldSurfaceBackgroundFailure({
+            hasTruthfulFrame,
+            mode,
+            strategy: loadingStrategy,
+            pendingState: nextPendingState,
+          })
+        ) {
           setSilentError(timeoutResult.error);
         } else {
           setError(timeoutResult.error);
@@ -118,7 +172,14 @@ export function useScreen<T>(options: UseScreenOptions<T>): UseScreenResult<T> {
       const result = timeoutResult.data;
 
       if (!result.success) {
-        if (mode === 'silent') {
+        if (
+          shouldSurfaceBackgroundFailure({
+            hasTruthfulFrame,
+            mode,
+            strategy: loadingStrategy,
+            pendingState: nextPendingState,
+          })
+        ) {
           // Silent refetch failed — show silentError, keep existing data visible
           setSilentError(result.error);
         } else {
@@ -135,24 +196,36 @@ export function useScreen<T>(options: UseScreenOptions<T>): UseScreenResult<T> {
       setSilentError(null);
     } catch (loadError) {
       if (!mountedRef.current) return;
-      if (mode === 'silent') {
-        setSilentError(normalizeUnknownError(loadError));
+      const normalizedError = normalizeUnknownError(loadError);
+      if (
+        shouldSurfaceBackgroundFailure({
+          hasTruthfulFrame,
+          mode,
+          strategy: loadingStrategy,
+          pendingState: nextPendingState,
+        })
+      ) {
+        setSilentError(normalizedError);
       } else {
-        setError(normalizeUnknownError(loadError));
+        setError(normalizedError);
         setStatus('error');
       }
     } finally {
       if (mode === 'refresh' && mountedRef.current) {
         setRefreshing(false);
       }
+      if (mountedRef.current) {
+        setPendingState(createIdlePendingState(loadingStrategy));
+        setHasResolvedOnce(true);
+      }
       hasLoadedOnceRef.current = true;
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [...deps, loadTimeoutMs]);
+  }, [...deps, loadTimeoutMs, loadingStrategy]);
 
   // Initial load + deps change
   useEffect(() => {
-    void fetchData();
+    void fetchData(hasLoadedOnceRef.current ? 'dependency-change' : 'initial');
   }, [fetchData]);
 
   // Optional focus-triggered silent refetch (no loading spinner/status reset).
@@ -186,8 +259,29 @@ export function useScreen<T>(options: UseScreenOptions<T>): UseScreenResult<T> {
   }, [fetchData]);
 
   const retry = useCallback(() => {
-    void fetchData();
+    void fetchData('retry');
   }, [fetchData]);
 
-  return { data, status, error, silentError, refreshing, onRefresh, retry, colors, scheme };
+  const hasTruthfulFrame = isTruthfulScreenStatus(status);
+  const isPending = pendingState.mode !== null;
+
+  return {
+    data,
+    status,
+    error,
+    silentError,
+    refreshing,
+    onRefresh,
+    retry,
+    colors,
+    scheme,
+    hasResolvedOnce,
+    hasTruthfulFrame,
+    isPending,
+    pendingState,
+    showLoadingState: status === 'loading',
+    showSectionSkeleton: pendingState.shouldShowSectionSkeleton,
+    showSubmitProgress: pendingState.shouldShowSubmitProgress,
+    loadingStrategy,
+  };
 }

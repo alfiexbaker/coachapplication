@@ -11,7 +11,7 @@ import { useLocalSearchParams, router } from 'expo-router';
 import { Routes } from '@/navigation/routes';
 import { ChatThreadSummary } from '@/constants/types';
 import { useAuth } from '@/hooks/use-auth';
-import { ScreenStatus, useScreen } from '@/hooks/use-screen';
+import { useScreen, type ScreenStatus } from '@/hooks/use-screen';
 import { ServiceEvents } from '@/services/event-bus';
 import { messagingService } from '@/services/messaging-service';
 import { bookingService } from '@/services/booking-service';
