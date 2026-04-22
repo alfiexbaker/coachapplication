@@ -221,6 +221,7 @@ export default function SessionTypeScreen() {
     deps: [coachId],
     isEmpty: (value) => value.length === 0,
     refetchOnFocus: true,
+    loadingStrategy: 'section-skeleton',
   });
 
   const resolvedOfferings = useMemo(() => offerings ?? [], [offerings]);

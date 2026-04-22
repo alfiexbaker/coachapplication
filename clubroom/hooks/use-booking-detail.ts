@@ -5,7 +5,7 @@
  * Provides all action handlers (message, cancel, reopen, refund, report).
  */
 
-import { useCallback, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { router } from 'expo-router';
 import { Routes } from '@/navigation/routes';
 
@@ -26,6 +26,7 @@ import { progressService } from '@/services/progress-service';
 import { canCoachCompleteBooking } from '@/utils/booking-delivery';
 
 const logger = createLogger('useBookingDetail');
+const bookingDetailSnapshots = new Map<string, BookingSummary>();
 
 export type BookingDetailStatus = ScreenStatus;
 
@@ -183,9 +184,16 @@ export function useBookingDetail(id: string): BookingDetailResult {
     deps: [id],
     isEmpty: (value) => value === null,
     refetchOnFocus: true,
+    loadingStrategy: 'section-skeleton',
   });
 
-  const booking = data ?? undefined;
+  useEffect(() => {
+    if (data) {
+      bookingDetailSnapshots.set(id, data);
+    }
+  }, [data, id]);
+
+  const booking = data ?? bookingDetailSnapshots.get(id) ?? undefined;
   const bookingStartMs = booking ? new Date(booking.start).getTime() : Number.NaN;
   const isFutureBooking = Number.isFinite(bookingStartMs) ? bookingStartMs > Date.now() : false;
   const canCancelBooking =

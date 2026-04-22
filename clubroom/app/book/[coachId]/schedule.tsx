@@ -16,7 +16,7 @@ import { CalendarPicker } from '@/components/ui/booking/calendar-picker';
 import { TimeSlotPicker } from '@/components/ui/booking/time-slot-picker';
 import { Clickable } from '@/components/primitives/clickable';
 import { ThemedText } from '@/components/themed-text';
-import { ErrorState, LoadingState } from '@/components/ui/screen-states';
+import { ErrorState, SectionSkeleton } from '@/components/ui/screen-states';
 import { Radii, Shadows, Spacing, Typography, withAlpha } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
 import { useScreen } from '@/hooks/use-screen';
@@ -63,6 +63,7 @@ export default function ScheduleScreen() {
     deps: [draft.sessionOfferingId],
     isEmpty: () => false,
     refetchOnFocus: true,
+    loadingStrategy: 'section-skeleton',
   });
   const scheduleLocked = isBookingScheduleLocked({
     draft,
@@ -125,14 +126,22 @@ export default function ScheduleScreen() {
     refreshing,
     onRefresh,
     retry,
+    pendingState,
+    showSectionSkeleton,
     colors: palette,
   } = useScreen<AvailabilitySlot[]>({
     load: loadAvailability,
     deps: [loadAvailability],
     isEmpty: (slots) => !slots.some((slot) => slot.isAvailable),
     refetchOnFocus: true,
+    loadingStrategy: 'section-skeleton',
   });
   const allSlots = useMemo(() => data ?? [], [data]);
+  const shouldShowCalendarSkeleton =
+    !scheduleLocked &&
+    ((draft.sessionOfferingId && selectedOfferingStatus === 'loading') ||
+      (status === 'loading' && allSlots.length === 0) ||
+      (showSectionSkeleton && pendingState.mode === 'dependency-change'));
 
   // Group slots by date for the calendar picker
   const availabilityByDate = useMemo(() => {
@@ -280,13 +289,6 @@ export default function ScheduleScreen() {
     });
   }
 
-  if (draft.sessionOfferingId && selectedOfferingStatus === 'loading') {
-    return renderWizardState({
-      subtitle: 'Loading times',
-      content: <LoadingState variant="calendar" />,
-    });
-  }
-
   if (scheduleLocked && draft.date && draft.slot) {
     return renderShell({
       content: (
@@ -343,14 +345,7 @@ export default function ScheduleScreen() {
     });
   }
 
-  if (status === 'loading') {
-    return renderWizardState({
-      subtitle: 'Loading times',
-      content: <LoadingState variant="calendar" />,
-    });
-  }
-
-  if (status === 'error') {
+  if (status === 'error' && allSlots.length === 0) {
     return renderWizardState({
       subtitle: 'Unable to load times',
       content: (
@@ -439,44 +434,50 @@ export default function ScheduleScreen() {
           step={2}
           onBack={handleBack}
         />
-        <CalendarPicker
-          selectedDate={draft.date}
-          onSelect={handleDateSelect}
-          availabilityByDate={availabilityByDate}
-        />
-
-        <View style={{ gap: Spacing.sm }}>
-          {!draft.date && (
-            <View
-              style={[
-                styles.placeholderCard,
-                {
-                  backgroundColor: withAlpha(palette.tint, 0.04),
-                  borderColor: withAlpha(palette.tint, 0.12),
-                },
-              ]}
-            >
-              <Ionicons name="calendar-outline" size={20} color={palette.tint} />
-              <Column flex gap="micro">
-                <ThemedText style={styles.placeholderTitle}>Pick a date</ThemedText>
-                <ThemedText style={[styles.placeholderText, { color: palette.muted }]}>
-                  Then choose an open time.
-                </ThemedText>
-              </Column>
-            </View>
-          )}
-          <ThemedText style={styles.sectionTitle}>
-            Available slots{draft.date ? ` — ${formatDate(draft.date)}` : ''}
-          </ThemedText>
-          {draft.date ? (
-            <TimeSlotPicker
-              selectedSlot={draft.slot}
-              onSelect={handleSlotSelect}
-              slots={slotsForSelectedDate}
-              isLoading={false}
+        {shouldShowCalendarSkeleton ? (
+          <SectionSkeleton variant="calendar" titleWidth="34%" />
+        ) : (
+          <>
+            <CalendarPicker
+              selectedDate={draft.date}
+              onSelect={handleDateSelect}
+              availabilityByDate={availabilityByDate}
             />
-          ) : null}
-        </View>
+
+            <View style={{ gap: Spacing.sm }}>
+              {!draft.date && (
+                <View
+                  style={[
+                    styles.placeholderCard,
+                    {
+                      backgroundColor: withAlpha(palette.tint, 0.04),
+                      borderColor: withAlpha(palette.tint, 0.12),
+                    },
+                  ]}
+                >
+                  <Ionicons name="calendar-outline" size={20} color={palette.tint} />
+                  <Column flex gap="micro">
+                    <ThemedText style={styles.placeholderTitle}>Pick a date</ThemedText>
+                    <ThemedText style={[styles.placeholderText, { color: palette.muted }]}>
+                      Then choose an open time.
+                    </ThemedText>
+                  </Column>
+                </View>
+              )}
+              <ThemedText style={styles.sectionTitle}>
+                Available slots{draft.date ? ` — ${formatDate(draft.date)}` : ''}
+              </ThemedText>
+              {draft.date ? (
+                <TimeSlotPicker
+                  selectedSlot={draft.slot}
+                  onSelect={handleSlotSelect}
+                  slots={slotsForSelectedDate}
+                  isLoading={false}
+                />
+              ) : null}
+            </View>
+          </>
+        )}
       </ScrollView>
     ),
     footer: (

@@ -7,7 +7,6 @@ Rule: active work only. Completed sprint rows are intentionally removed.
 
 | ID | Exactly what it does | Spine(s) | Status |
 | -- | -------------------- | -------- | ------ |
-| UI-LOAD-02 | Fix the commerce journey end to end: Bookings, Discover, booking funnel, booking detail/cancel, session invites, session completion/notes, and adjacent review flows must stop using generic or reset-heavy loading. | Booking, Availability and Revenue | READY |
 | UI-LOAD-03 | Rebuild social and communication surfaces for premium perceived speed: home, feed, coach updates, community, messages, and related post/detail flows need truthful section loading and warm revisits. | Community and Growth + Development and Analytics | READY |
 | UI-LOAD-04 | Make profile and roster detail surfaces behave like a serious product: coach, athlete, public profile, roster, compare, and other segmented panes stay warm and never blank on tab changes. | Development and Analytics + Booking, Availability and Revenue | READY |
 | UI-LOAD-05 | Bring club, schedule, events, and calendar surfaces up to the same standard: no brochure skeletons, no cold resets, and no time-based screens loading like generic lists. | Community and Growth + Booking, Availability and Revenue | READY |
@@ -18,14 +17,13 @@ Rule: active work only. Completed sprint rows are intentionally removed.
 
 ## Execution Order
 
-1. `UI-LOAD-02`
-2. `UI-LOAD-03`
-3. `UI-LOAD-04`
-4. `UI-LOAD-05`
-5. `UI-LOAD-06`
-6. `UI-LOAD-07`
-7. `UI-LOAD-08`
-8. `PROD-VERIFY-01`
+1. `UI-LOAD-03`
+2. `UI-LOAD-04`
+3. `UI-LOAD-05`
+4. `UI-LOAD-06`
+5. `UI-LOAD-07`
+6. `UI-LOAD-08`
+7. `PROD-VERIFY-01`
 
 ## Sprint Intent
 
@@ -79,53 +77,6 @@ Rule: active work only. Completed sprint rows are intentionally removed.
   - later slices still need to replace generic implementations on their owned routes; classification closure is done, route-family migration is not
 
 ## Sprint Notes
-
-### `UI-LOAD-02`
-
-- Need:
-  - Move Bookings and Discover off generic `LoadingState variant="list"` when the real surface is multi-section and mixed-density.
-  - Ensure section-level placeholders use the same card families, chip rows, and list lengths that the loaded surface will use.
-  - Remove tab-switch and pull-to-refresh blanking for the Bookings stack.
-  - Treat these surfaces as premium retail surfaces: no fake density, no generic bars, no excuses.
-  - Cover the rest of the booking/session journey, not just the landing tab.
-- Touch first:
-  - `app/(tabs)/bookings/index.tsx`
-  - `app/book-coach.tsx`
-  - `app/book/[coachId]/index.tsx`
-  - `app/book/[coachId]/details.tsx`
-  - `app/book/[coachId]/schedule.tsx`
-  - `app/book/[coachId]/session-type.tsx`
-  - `app/book/[coachId]/review.tsx`
-  - `app/book/[coachId]/multi-week.tsx`
-  - `app/(tabs)/bookings/[id].tsx`
-  - `app/booking/[id]/cancel.tsx`
-  - `app/session-invites/[id].tsx`
-  - `app/session-invites/index.tsx`
-  - `app/session/[id]/rsvp.tsx`
-  - `app/session/[id]/complete.tsx`
-  - `app/session-notes/[bookingId].tsx`
-  - `app/review/[bookingId].tsx`
-  - `app/rate-coach.tsx`
-  - `components/bookings/discover-feed.tsx`
-  - `components/bookings/BookingsList.tsx`
-  - `hooks/use-bookings.ts`
-  - `hooks/use-bookings-discover.ts`
-- Acceptance:
-  - Returning to Bookings or Discover keeps prior content visible while refresh happens in the background.
-  - Discover placeholders mirror pending invites, week cards, coach cards, and group-session rows rather than generic lines.
-  - Loading becomes section-scoped where only part of the screen is pending.
-  - Pull-to-refresh does not destroy the visual structure or scroll feel of the loaded surface.
-- Hard fail if:
-  - Switching between `My Sessions` and `Discover` causes a full repaint or blank shell.
-  - Bookings shows a generic list skeleton while the real screen is a mixed filter-and-card composition.
-  - Any step in the book/session journey regresses to a dead spinner or blank route while moving between steps.
-  - The booking funnel feels acknowledged late after tap, even if the data eventually loads correctly.
-- Verify:
-  - `npm run typecheck`
-  - `npm run test:compile`
-  - `npm run ui:flows:parent-core`
-  - `npm run ui:flows:athlete-core`
-  - `git diff --check`
 
 ### `UI-LOAD-03`
 

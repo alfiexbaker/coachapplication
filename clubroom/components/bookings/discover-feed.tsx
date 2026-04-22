@@ -17,7 +17,7 @@ import {
   OpenSessionsSection,
 } from './discover-sections';
 import { ChildSwitcher, type SwitcherChild } from '@/components/family/child-switcher';
-import { LoadingState, ErrorState, EmptyState } from '@/components/ui/screen-states';
+import { ErrorState, EmptyState, SectionSkeleton } from '@/components/ui/screen-states';
 import { Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
 import { useChildContext } from '@/hooks/use-child-context';
@@ -63,11 +63,6 @@ export const DiscoverFeed = memo(function DiscoverFeed() {
     },
     [activeChildId, setActiveChildId],
   );
-
-  // --- Loading ---
-  if (loading) {
-    return <LoadingState variant="list" />;
-  }
 
   // --- Error ---
   if (error) {
@@ -126,28 +121,45 @@ export const DiscoverFeed = memo(function DiscoverFeed() {
       )}
 
       <Column gap="md">
-        {/* 1. Action Required — Pending Invites */}
-        <PendingInvitesSection
-          invites={pendingInvites}
-          onAccept={handleAcceptInvite}
-          onDecline={handleDeclineInvite}
-        />
+        {loading ? (
+          <>
+            <View style={styles.sectionShell}>
+              <SectionSkeleton variant="list" titleWidth="34%" />
+            </View>
+            <View style={styles.sectionShell}>
+              <SectionSkeleton variant="schedule" titleWidth="28%" />
+            </View>
+            <View style={styles.sectionShell}>
+              <SectionSkeleton variant="card" titleWidth="30%" />
+            </View>
+            <View style={styles.sectionShell}>
+              <SectionSkeleton variant="list" titleWidth="32%" />
+            </View>
+            <View style={styles.sectionShell}>
+              <SectionSkeleton variant="schedule" titleWidth="30%" />
+            </View>
+          </>
+        ) : (
+          <>
+            <PendingInvitesSection
+              invites={pendingInvites}
+              onAccept={handleAcceptInvite}
+              onDecline={handleDeclineInvite}
+            />
 
-        {/* 2. This Week */}
-        <ThisWeekSection offerings={thisWeekOfferings} onOfferingPress={handleOfferingPress} />
+            <ThisWeekSection offerings={thisWeekOfferings} onOfferingPress={handleOfferingPress} />
 
-        {/* 3. Your Coaches */}
-        <YourCoachesSection
-          coaches={familiarCoaches}
-          onCoachPress={handleCoachPress}
-          onFindCoachPress={handleFindCoachPress}
-        />
+            <YourCoachesSection
+              coaches={familiarCoaches}
+              onCoachPress={handleCoachPress}
+              onFindCoachPress={handleFindCoachPress}
+            />
 
-        {/* 4. Club Training */}
-        <ClubTrainingSection sessions={clubSessions} onSessionPress={handleGroupSessionPress} />
+            <ClubTrainingSection sessions={clubSessions} onSessionPress={handleGroupSessionPress} />
 
-        {/* 5. Open Sessions */}
-        <OpenSessionsSection offerings={openSessions} onOfferingPress={handleOfferingPress} />
+            <OpenSessionsSection offerings={openSessions} onOfferingPress={handleOfferingPress} />
+          </>
+        )}
       </Column>
     </ScrollView>
   );
@@ -163,5 +175,8 @@ const styles = StyleSheet.create({
   childSwitcher: {
     paddingHorizontal: Spacing.md,
     paddingVertical: Spacing.xs,
+  },
+  sectionShell: {
+    paddingHorizontal: Spacing.md,
   },
 });

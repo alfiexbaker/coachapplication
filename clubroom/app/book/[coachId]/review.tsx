@@ -15,7 +15,7 @@ import {
   PromoCodeCard,
 } from '@/components/ui/booking/review-payment-sections';
 import { CancellationPolicyCard } from '@/components/booking/cancellation-policy-card';
-import { EmptyState, ErrorState, LoadingState } from '@/components/ui/screen-states';
+import { EmptyState, ErrorState, SectionSkeleton } from '@/components/ui/screen-states';
 import { Radii, Spacing, Typography, withAlpha } from '@/constants/theme';
 import { useScreen } from '@/hooks/use-screen';
 import { err, ok, serviceError } from '@/types/result';
@@ -100,6 +100,7 @@ export default function ReviewScreen() {
     deps: [loadCoach],
     isEmpty: (reviewData) => reviewData === null,
     refetchOnFocus: true,
+    loadingStrategy: 'section-skeleton',
   });
   const coach = data?.coach ?? null;
   const cancellationPolicy = data?.cancellationPolicy ?? null;
@@ -307,18 +308,7 @@ export default function ReviewScreen() {
     updateDraft,
   ]);
 
-  if (status === 'loading') {
-    return (
-      <SafeAreaView
-        style={[styles.safeArea, { backgroundColor: palette.background }]}
-        edges={['top', 'bottom']}
-      >
-        <LoadingState variant="detail" />
-      </SafeAreaView>
-    );
-  }
-
-  if (status === 'error') {
+  if (status === 'error' && !coach) {
     return (
       <SafeAreaView
         style={[styles.safeArea, { backgroundColor: palette.background }]}
@@ -367,73 +357,82 @@ export default function ReviewScreen() {
           onBack={handleBack}
         />
 
-        <View style={[styles.card, { borderColor: palette.border }]}>
-          <SummaryRow label="Booked with" value={relationshipContext.bookedWithLabel} />
-          {relationshipContext.organizationLabel ? (
-            <SummaryRow label="Organization" value={relationshipContext.organizationLabel} />
-          ) : null}
-          {draft.actingAs === 'club' ? (
-            <SummaryRow
-              label="Delivered by"
-              value={relationshipContext.deliveredByLabel}
-            />
-          ) : null}
-          <SummaryRow label="Billing" value={relationshipContext.billingLabel} />
-          <SummaryRow label="Date" value={reviewDateLabel} />
-          <SummaryRow label="Time" value={reviewTimeLabel} />
-          <SummaryRow
-            label="Session"
-            value={draft.sessionTypeLabel || draft.sessionType || 'Select type'}
-          />
-          <SummaryRow label="Duration" value={`${draft.duration || 60} mins`} />
-          <SummaryRow label="Location" value={locationSummary} />
-          {selectedAthleteCount > 1 ? (
-            <SummaryRow label="Athletes" value={`${selectedAthleteCount} selected`} />
-          ) : draft.athleteName ? (
-            <SummaryRow label="Athlete" value={draft.athleteName} />
-          ) : null}
-        </View>
-
-        <PaymentMethodCard
-          colors={palette}
-          paymentMethod={relationshipContext.paymentSummary}
-        />
-
-        <PromoCodeCard
-          colors={palette}
-          promoCode={promoCode}
-          promoApplied={promoApplied}
-          promoError={promoError}
-          onPromoCodeChange={setPromoCode}
-          onApplyPromo={handleApplyPromo}
-          onRemovePromo={handleRemovePromo}
-        />
-
-        {coach && cancellationPolicy && (
+        {status === 'loading' && !coach ? (
           <>
-            <CancellationPolicyCard coachId={coach.id} policy={cancellationPolicy} />
-            <ThemedText style={[styles.policyNote, { color: palette.muted }]}>
-              By continuing, you agree to this cancellation policy and any applicable refund rules.
-            </ThemedText>
+            <SectionSkeleton variant="form" titleWidth="36%" />
+            <SectionSkeleton variant="card" titleWidth="28%" />
           </>
-        )}
+        ) : (
+          <>
+            <View style={[styles.card, { borderColor: palette.border }]}>
+              <SummaryRow label="Booked with" value={relationshipContext.bookedWithLabel} />
+              {relationshipContext.organizationLabel ? (
+                <SummaryRow label="Organization" value={relationshipContext.organizationLabel} />
+              ) : null}
+              {draft.actingAs === 'club' ? (
+                <SummaryRow
+                  label="Delivered by"
+                  value={relationshipContext.deliveredByLabel}
+                />
+              ) : null}
+              <SummaryRow label="Billing" value={relationshipContext.billingLabel} />
+              <SummaryRow label="Date" value={reviewDateLabel} />
+              <SummaryRow label="Time" value={reviewTimeLabel} />
+              <SummaryRow
+                label="Session"
+                value={draft.sessionTypeLabel || draft.sessionType || 'Select type'}
+              />
+              <SummaryRow label="Duration" value={`${draft.duration || 60} mins`} />
+              <SummaryRow label="Location" value={locationSummary} />
+              {selectedAthleteCount > 1 ? (
+                <SummaryRow label="Athletes" value={`${selectedAthleteCount} selected`} />
+              ) : draft.athleteName ? (
+                <SummaryRow label="Athlete" value={draft.athleteName} />
+              ) : null}
+            </View>
 
-        <BookingTotalsCard
-          colors={palette}
-          sessionPrice={sessionPrice}
-          promoDiscount={promoDiscount}
-          total={total}
-        />
-        {!hasRequiredDraft && (
-          <ThemedText style={[styles.rateNote, { color: palette.warning }]}>
-            Complete session type, schedule, and athlete details before confirmation.
-          </ThemedText>
-        )}
+            <PaymentMethodCard
+              colors={palette}
+              paymentMethod={relationshipContext.paymentSummary}
+            />
 
-        {coach?.minPrice && (
-          <ThemedText style={[styles.rateNote, { color: palette.muted }]}>
-            {coach.name}&apos;s rate: £{coach.minPrice}/hour
-          </ThemedText>
+            <PromoCodeCard
+              colors={palette}
+              promoCode={promoCode}
+              promoApplied={promoApplied}
+              promoError={promoError}
+              onPromoCodeChange={setPromoCode}
+              onApplyPromo={handleApplyPromo}
+              onRemovePromo={handleRemovePromo}
+            />
+
+            {coach && cancellationPolicy ? (
+              <>
+                <CancellationPolicyCard coachId={coach.id} policy={cancellationPolicy} />
+                <ThemedText style={[styles.policyNote, { color: palette.muted }]}>
+                  By continuing, you agree to this cancellation policy and any applicable refund rules.
+                </ThemedText>
+              </>
+            ) : null}
+
+            <BookingTotalsCard
+              colors={palette}
+              sessionPrice={sessionPrice}
+              promoDiscount={promoDiscount}
+              total={total}
+            />
+            {!hasRequiredDraft ? (
+              <ThemedText style={[styles.rateNote, { color: palette.warning }]}>
+                Complete session type, schedule, and athlete details before confirmation.
+              </ThemedText>
+            ) : null}
+
+            {coach?.minPrice ? (
+              <ThemedText style={[styles.rateNote, { color: palette.muted }]}>
+                {coach.name}&apos;s rate: £{coach.minPrice}/hour
+              </ThemedText>
+            ) : null}
+          </>
         )}
       </ScrollView>
       <View style={[styles.footer, { borderTopColor: palette.border }]}>

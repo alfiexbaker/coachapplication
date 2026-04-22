@@ -8,7 +8,7 @@ import { Clickable } from '@/components/primitives/clickable';
 import { Row } from '@/components/primitives/row';
 import { ThemedText } from '@/components/themed-text';
 import { PageHeader } from '@/components/primitives/page-header';
-import { LoadingState, ErrorState, EmptyState } from '@/components/ui/screen-states';
+import { ErrorState, EmptyState, SectionSkeleton } from '@/components/ui/screen-states';
 import { BookingsList } from '@/components/bookings/BookingsList';
 import { PendingInvitesSection } from '@/components/bookings/pending-invites-section';
 import { SessionDetailModal } from '@/components/sessions/session-detail-modal';
@@ -54,26 +54,7 @@ export default function BookingsScreen() {
 
   const headerRightAction = isCoachUser ? <NotificationBell size={20} /> : undefined;
   const isNonCoach = !isCoachUser;
-
-  // ─── Loading ───────────────────────────────────────────────────
-  if (loading) {
-    return (
-      <SafeAreaView
-        style={[styles.container, { backgroundColor: palette.background }]}
-        edges={['top', 'bottom']}
-      >
-        <PageHeader
-          title="Sessions"
-          subtitle={isCoachUser ? 'Manage your sessions' : 'Your upcoming sessions'}
-          rightAction={headerRightAction}
-        />
-        {isNonCoach && (
-          <SegmentControl activeTab={activeTab} onTabChange={setActiveTab} />
-        )}
-        <LoadingState variant="list" />
-      </SafeAreaView>
-    );
-  }
+  const showSessionEmptyState = !loading && overallVisibleItemCount === 0 && pendingInvitesList.length === 0;
 
   // ─── Error ─────────────────────────────────────────────────────
   if (error) {
@@ -114,7 +95,7 @@ export default function BookingsScreen() {
   }
 
   // ─── Empty (My Sessions tab) ──────────────────────────────────
-  if (overallVisibleItemCount === 0 && pendingInvitesList.length === 0) {
+  if (showSessionEmptyState) {
     const coachEmptyMessage =
       businessFilter === 'org'
         ? 'Your upcoming org-assigned sessions will appear here once the club books work to you.'
@@ -174,11 +155,19 @@ export default function BookingsScreen() {
       )}
 
       {isNonCoach && (
-        <PendingInvitesSection
-          invites={pendingInvitesList}
-          onAccept={handleAcceptInvite}
-          onDecline={handleDeclineInvite}
-        />
+        loading ? (
+          <SectionSkeleton
+            variant="list"
+            titleWidth="32%"
+            style={styles.pendingInvitesSkeleton}
+          />
+        ) : (
+          <PendingInvitesSection
+            invites={pendingInvitesList}
+            onAccept={handleAcceptInvite}
+            onDecline={handleDeclineInvite}
+          />
+        )
       )}
 
       <BookingsList
@@ -194,6 +183,7 @@ export default function BookingsScreen() {
         onCreateSessionPress={handleCreateSessionPress}
         refreshing={refreshing}
         onRefresh={onRefresh}
+        loading={loading}
       />
 
       <SessionDetailModal
@@ -336,6 +326,10 @@ const styles = StyleSheet.create({
   pillRow: {
     paddingHorizontal: Spacing.md,
     paddingBottom: Spacing.xs,
+  },
+  pendingInvitesSkeleton: {
+    paddingHorizontal: Spacing.md,
+    paddingBottom: Spacing.sm,
   },
   pill: {
     flex: 1,

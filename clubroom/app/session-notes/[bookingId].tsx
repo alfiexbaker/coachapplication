@@ -7,7 +7,7 @@ import { SessionNotesForm } from '@/components/session/session-notes-form';
 import { SessionNotesView } from '@/components/session/session-notes-view';
 import { Row } from '@/components/primitives/row';
 import { ThemedText } from '@/components/themed-text';
-import { LoadingState, ErrorState, EmptyState } from '@/components/ui/screen-states';
+import { SectionSkeleton, ErrorState, EmptyState } from '@/components/ui/screen-states';
 import { Spacing, Radii } from '@/constants/theme';
 import { useScreen } from '@/hooks/use-screen';
 import { Clickable } from '@/components/primitives/clickable';
@@ -69,7 +69,12 @@ export default function SessionNotesScreen() {
   );
 
   if (loading && !note) {
-    return renderShell(<LoadingState variant="form" />);
+    return renderShell(
+      <ScrollView contentContainerStyle={styles.content}>
+        <ThemedText type="title">{isCoach ? 'Session notes' : 'Coach notes'}</ThemedText>
+        <SectionSkeleton variant="form" titleWidth="34%" />
+      </ScrollView>,
+    );
   }
 
   if (error && !note) {

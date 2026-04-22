@@ -12,7 +12,13 @@ import { Clickable } from '@/components/primitives/clickable';
 import { Row } from '@/components/primitives/row';
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { ThemedText } from '@/components/themed-text';
-import { EmptyState, ErrorState, LoadingState } from '@/components/ui/screen-states';
+import { EmptyState, ErrorState } from '@/components/ui/screen-states';
+import {
+  Skeleton,
+  SkeletonCircle,
+  SkeletonPill,
+  SkeletonText,
+} from '@/components/ui/skeleton';
 import { Radii, Spacing, Typography, withAlpha } from '@/constants/theme';
 import { useScreen } from '@/hooks/use-screen';
 import { useTheme } from '@/hooks/useTheme';
@@ -35,6 +41,8 @@ interface FindCoachData {
   filterOptions: FilterOptions;
   totalCount: number;
 }
+
+let lastFindCoachSnapshot: FindCoachData | null = null;
 
 function formatNextAvailability(isoDate: string): string {
   const date = new Date(isoDate);
@@ -119,14 +127,24 @@ export default function BookCoachScreen() {
     deps: [loadResults],
     isEmpty: (value) => value.totalCount === 0,
     refetchOnFocus: true,
+    loadingStrategy: 'warm-first',
   });
 
-  const filterOptions = data?.filterOptions ?? null;
+  useEffect(() => {
+    if (data) {
+      lastFindCoachSnapshot = data;
+    }
+  }, [data]);
+
+  const resolvedData = data ?? lastFindCoachSnapshot;
+  const loading = status === 'loading' && resolvedData === null;
+  const loadError = status === 'error' && resolvedData === null ? error : null;
+  const filterOptions = resolvedData?.filterOptions ?? null;
   const activeFilterCount = discoverService.getActiveFilterCount(filters);
 
   const cards = useMemo(
-    () => (data?.results ?? []).map((result) => toCoachCardData(result.coach)),
-    [data?.results],
+    () => (resolvedData?.results ?? []).map((result) => toCoachCardData(result.coach)),
+    [resolvedData?.results],
   );
   const minSessionPrice = useMemo(
     () =>
@@ -182,30 +200,6 @@ export default function BookCoachScreen() {
       {content}
     </SafeAreaView>
   );
-
-  if (params.coachId) {
-    return renderShell(<LoadingState variant="detail" />);
-  }
-
-  if (status === 'loading') {
-    return renderShell(<LoadingState variant="list" />);
-  }
-
-  if (status === 'error') {
-    return renderShell(
-      <>
-        <View style={styles.headerContent}>
-          <ThemedText type="title" style={styles.title}>
-            Find a Coach
-          </ThemedText>
-          <ThemedText style={[styles.subtitle, { color: palette.muted }]}>
-            Search trusted coaches and book in minutes.
-          </ThemedText>
-        </View>
-        <ErrorState message={error?.message ?? 'Failed to load coaches.'} onRetry={retry} />
-      </>,
-    );
-  }
 
   const header = (
     <View style={styles.headerWrap}>
@@ -346,11 +340,35 @@ export default function BookCoachScreen() {
           totalResults={cards.length}
           activeFilterCount={activeFilterCount}
         />
+      ) : loading || params.coachId ? (
+        <Row style={styles.filterSkeletonRow} gap="xs">
+          <SkeletonPill width={96} height={34} />
+          <SkeletonPill width={124} height={34} />
+          <SkeletonPill width={88} height={34} />
+        </Row>
       ) : null}
     </View>
   );
 
-  if (status === 'empty') {
+  if (params.coachId) {
+    return renderShell(
+      <>
+        {header}
+        <CoachDiscoveryResultsSkeleton />
+      </>,
+    );
+  }
+
+  if (loadError) {
+    return renderShell(
+      <>
+        {header}
+        <ErrorState message={loadError.message ?? 'Failed to load coaches.'} onRetry={retry} />
+      </>,
+    );
+  }
+
+  if (!loading && status === 'empty') {
     return renderShell(
       <>
         {header}
@@ -384,24 +402,28 @@ export default function BookCoachScreen() {
         }
       >
         {header}
-        <View style={styles.results}>
-          {cards.map((coach, index) => (
-            <CoachCard
-              key={coach.id}
-              coach={coach}
-              variant="discovery"
-              index={index}
-              onPress={() => router.push(Routes.coach(coach.id))}
-              onBookNow={() =>
-                router.push(
-                  Routes.bookCoach(coach.id, {
-                    source: 'discover_search',
-                  }),
-                )
-              }
-            />
-          ))}
-        </View>
+        {loading ? (
+          <CoachDiscoveryResultsSkeleton />
+        ) : (
+          <View style={styles.results}>
+            {cards.map((coach, index) => (
+              <CoachCard
+                key={coach.id}
+                coach={coach}
+                variant="discovery"
+                index={index}
+                onPress={() => router.push(Routes.coach(coach.id))}
+                onBookNow={() =>
+                  router.push(
+                    Routes.bookCoach(coach.id, {
+                      source: 'discover_search',
+                    }),
+                  )
+                }
+              />
+            ))}
+          </View>
+        )}
       </ScrollView>
 
       {filterOptions ? (
@@ -415,6 +437,37 @@ export default function BookCoachScreen() {
         />
       ) : null}
     </>,
+  );
+}
+
+function CoachDiscoveryResultsSkeleton() {
+  return (
+    <View style={styles.results}>
+      {Array.from({ length: 3 }).map((_, index) => (
+        <SurfaceCard key={index} style={styles.resultSkeletonCard} tactile={false}>
+          <Row align="center" justify="between" style={styles.resultSkeletonHeader}>
+            <Row align="center" gap="sm">
+              <SkeletonCircle size={56} />
+              <View style={styles.resultSkeletonCopy}>
+                <SkeletonText lines={2} widths={['58%', '34%']} />
+              </View>
+            </Row>
+            <SkeletonPill width={68} height={28} />
+          </Row>
+          <SkeletonText lines={2} widths={['100%', '72%']} />
+          <Row gap="xs" wrap>
+            <SkeletonPill width={86} />
+            <SkeletonPill width={74} />
+            <SkeletonPill width={96} />
+          </Row>
+          <Skeleton height={118} radius={Radii.lg} />
+          <Row gap="sm">
+            <SkeletonPill width={102} height={40} />
+            <SkeletonPill width={138} height={40} />
+          </Row>
+        </SurfaceCard>
+      ))}
+    </View>
   );
 }
 
@@ -509,5 +562,18 @@ const styles = StyleSheet.create({
   results: {
     gap: Spacing.xs,
     paddingBottom: Spacing.md,
+  },
+  filterSkeletonRow: {
+    paddingHorizontal: Spacing.xs,
+  },
+  resultSkeletonCard: {
+    padding: Spacing.sm,
+    gap: Spacing.sm,
+  },
+  resultSkeletonHeader: {
+    alignItems: 'center',
+  },
+  resultSkeletonCopy: {
+    flex: 1,
   },
 });

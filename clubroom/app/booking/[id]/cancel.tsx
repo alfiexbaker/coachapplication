@@ -21,7 +21,7 @@ import { PageHeader } from '@/components/primitives/page-header';
 import { CancelRefundPreview } from '@/components/booking/cancel-refund-preview';
 import { CancelPolicyTiers } from '@/components/booking/cancel-policy-tiers';
 import { CancelReasonPicker } from '@/components/booking/cancel-reason-picker';
-import { EmptyState, ErrorState, LoadingState } from '@/components/ui/screen-states';
+import { EmptyState, ErrorState, SectionSkeleton } from '@/components/ui/screen-states';
 import { Radii, Spacing, Typography, withAlpha } from '@/constants/theme';
 import { useBookingCancel } from '@/hooks/use-booking-cancel';
 
@@ -47,16 +47,20 @@ export default function CancelBookingScreen() {
     </SafeAreaView>
   );
 
-  // Loading
-  if (cancel.status === 'loading') {
+  if (cancel.status === 'loading' && !cancel.sessionTime) {
     return renderScreen({
       title: 'Cancel Booking',
       onBackPress: () => router.back(),
-      content: <LoadingState variant="detail" />,
+      content: (
+        <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
+          <SectionSkeleton variant="detail" titleWidth="34%" />
+          <SectionSkeleton variant="form" titleWidth="28%" />
+        </ScrollView>
+      ),
     });
   }
 
-  if (cancel.status === 'error') {
+  if (cancel.status === 'error' && !cancel.sessionTime) {
     return renderScreen({
       title: 'Cancel Booking',
       onBackPress: () => router.back(),

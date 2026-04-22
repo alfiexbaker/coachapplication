@@ -18,7 +18,7 @@ import { createLogger } from '@/utils/logger';
 import { useScreen } from '@/hooks/use-screen';
 import { useAuth } from '@/hooks/use-auth';
 import { ok, err, serviceError } from '@/types/result';
-import { LoadingState, ErrorState, EmptyState } from '@/components/ui/screen-states';
+import { ErrorState, EmptyState, SectionSkeleton } from '@/components/ui/screen-states';
 import { Clickable } from '@/components/primitives/clickable';
 import { ThemedText } from '@/components/themed-text';
 import { Row } from '@/components/primitives';
@@ -44,7 +44,7 @@ import {
   inviteShareService,
 } from '@/services/invite';
 import { ServiceEvents } from '@/services/event-bus';
-import type { InviteRsvpResponse } from '@/constants/types';
+import type { InviteRsvpResponse, SessionInvite } from '@/constants/types';
 import {
   getSessionInviteAthleteNames,
   getSessionInviteCoachName,
@@ -54,6 +54,7 @@ import { formatInUserTimezone } from '@/utils/timezone';
 import { uiFeedback } from '@/services/ui-feedback';
 
 const logger = createLogger('SessionInviteDetailScreen');
+const inviteDetailSnapshots = new Map<string, SessionInvite>();
 
 export default function SessionInviteDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -61,7 +62,7 @@ export default function SessionInviteDetailScreen() {
   const { showToast } = useToast();
   const { isMultiChild, getChildById } = useChildContext();
   const {
-    data: invite,
+    data: loadedInvite,
     status,
     error,
     refreshing,
@@ -80,7 +81,16 @@ export default function SessionInviteDetailScreen() {
       ServiceEvents.INVITE_BOOKING_FAILED,
       ServiceEvents.INVITE_RSVP_RESPONDED,
     ],
+    refetchOnFocus: true,
+    loadingStrategy: 'section-skeleton',
   });
+  const invite = loadedInvite ?? (id ? inviteDetailSnapshots.get(id) ?? null : null);
+
+  useEffect(() => {
+    if (loadedInvite && id) {
+      inviteDetailSnapshots.set(id, loadedInvite);
+    }
+  }, [id, loadedInvite]);
 
   const [selectedSlot, setSelectedSlot] = useState<number | null>(null);
   const [showPaymentModal, setShowPaymentModal] = useState(false);
@@ -308,9 +318,23 @@ router.back();
     </SafeAreaView>
   );
 
-  if (status === 'loading')
-    return renderShell(<LoadingState variant="detail" />);
-  if (status === 'error')
+  if (status === 'loading' && !invite)
+    return renderShell(
+      <>
+        <Row gap="md" align="center" justify="between" paddingH="lg" paddingV="md">
+          <Clickable onPress={() => router.back()} hitSlop={8} accessibilityLabel="Go back">
+            <Ionicons name="arrow-back" size={24} color={colors.text} />
+          </Clickable>
+          <ThemedText type="title">Session Invite</ThemedText>
+          <Row gap="sm" align="center" />
+        </Row>
+        <ScrollView contentContainerStyle={s.scroll} showsVerticalScrollIndicator={false}>
+          <SectionSkeleton variant="hero" titleWidth="36%" />
+          <SectionSkeleton variant="list" titleWidth="28%" />
+        </ScrollView>
+      </>,
+    );
+  if (status === 'error' && !invite)
     return renderShell(<ErrorState message={error?.message ?? 'Failed to load invite'} onRetry={retry} />);
   if (status === 'empty' || !invite)
     return renderShell(

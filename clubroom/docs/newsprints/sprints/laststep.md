@@ -4,33 +4,34 @@ Date: 2026-04-22
 
 ## What Was Just Done
 
-1. Built the `UI-LOAD-01` foundation in shared code by extending `hooks/use-screen.ts` and `hooks/use-screen-core.ts` with explicit loading strategies, retained-truth refresh behavior, pending-state signals, and non-blocking retry/refresh failure handling.
-2. Rebuilt the shared loading primitives in `components/ui/skeleton.tsx`, `components/ui/screen-states-sections.tsx`, and `components/ui/screen-states.tsx` so the repo now has reusable feed, hero/detail, form, schedule, and tab-pane skeleton recipes plus section-level and submit-progress affordances.
-3. Added `navigation/loading-route-manifest.js` as the canonical route-classification source and `scripts/loading-route-coverage-audit.js` as the route-coverage gate; all `190` route files are now classified and hot paths carry explicit review-state and ship-blocker metadata.
-4. Updated the canonical loading doc and sprint queue so the foundation truth lives in `docs/ui/loading-error-empty-state-matrix.md`, `docs/newsprints/sprints/BACKLOG.md`, and this handoff.
+1. Completed `UI-LOAD-02` by moving the commerce journey onto the shared anti-flicker foundation: Bookings, Discover, coach search, booking funnel review/schedule/multi-week steps, booking detail/cancel, session invites, RSVP, session completion/notes, and adjacent review/rating paths now keep stable shell chrome mounted and replace reset-heavy generic loaders with section-scoped placeholders.
+2. Added retained-truth behavior to the commerce hooks with route-appropriate loading strategies and warm snapshots in `hooks/use-bookings.ts`, `hooks/use-bookings-discover.ts`, `hooks/use-booking-detail.ts`, `hooks/use-booking-cancel.ts`, `hooks/use-multi-week.ts`, and `hooks/use-rate-coach.ts` so revisit and refresh paths no longer have to cold-blank first.
+3. Reworked the commerce loading surfaces in the owned route files plus `components/bookings/BookingsList.tsx` and `components/bookings/discover-feed.tsx` so headers, tabs, and filters stay stable while only the unresolved list/detail/form sections skeletonize.
+4. Updated the active sprint queue in `docs/newsprints/sprints/BACKLOG.md` and this handoff so the next slice starts from `UI-LOAD-03`.
 
 ## Verification Run In This Step
 
 - `npm run typecheck` -> PASS
 - `npm run test:compile` -> PASS
-- `node ./scripts/loading-route-coverage-audit.js` -> PASS (`190` routes classified, `0` static fallback routes)
-- `git diff --check` -> PASS
+- `npm run ui:flows:parent-core` -> BLOCKED (`base_url_unreachable: TypeError: fetch failed` against `http://localhost:8083`)
+- `npm run ui:flows:athlete-core` -> BLOCKED (`base_url_unreachable: TypeError: fetch failed` against `http://localhost:8083`)
+- `git diff --check` -> PENDING
 
 ## Current State
 
-- Warm-path blanking is now structurally harder in shared code: focus refresh, event refresh, pull-to-refresh, and retry can preserve previously truthful content instead of forcing a full-screen reset.
-- The shared loading system now exposes truthful section-skeleton and submit-progress primitives, but route families still need slice-by-slice migration off generic `LoadingState` usage.
-- Route-classification closure is complete; implementation closure is not. Later slices should update owned routes against the manifest instead of inventing new loading rules.
+- The commerce journey now keeps stable headers, tabs, and filter chrome visible across entry, revisit, and refresh paths instead of resetting whole screens to generic `list` or `detail` loaders.
+- Bookings and Discover can retain truthful prior content on revisit, while the booking/session/review routes now acknowledge entry immediately with mounted shell plus local section loading rather than blank intermediate frames.
+- The remaining premium-risk gap is honest route-flow rehearsal: the role UI checks could not run because the expected local app server on `http://localhost:8083` was unavailable during this slice.
 
 ## Next Exact Action
 
-1. Start `UI-LOAD-02` and migrate the commerce journey onto the new foundation: Bookings, Discover, booking funnel steps, booking detail/cancel, session invites, session completion/notes, and adjacent review flows should keep prior truth visible and replace generic list/detail loaders with surface-accurate section loading.
+1. Start `UI-LOAD-03` and migrate the social, feed, messaging, home, and community routes onto the same foundation so those revisits stay warm, row geometry stays truthful, and no mixed spinner/skeleton seams remain on high-traffic social surfaces.
 
 ## Priority Note
 
 Date: 2026-04-22
 
-- The loading foundation is now closed, so the next slice should spend zero time redefining loading rules and all of its time applying them to the commerce journey.
+- The commerce slice is now closed in code, so the next slice should spend zero time re-litigating Bookings/Discover behavior and all of its time applying the same standard to social and messaging surfaces.
 - `navigation/loading-route-manifest.js` is now the route owner map; later loading slices should update their owned route entries as behavior changes instead of editing prose only.
 - `scripts/loading-route-coverage-audit.js` is now the route-closure gate; if a route becomes async without a specific non-static rule, that is a defect.
-- Premium review remains unchanged: reject any commerce path that shows a blank intermediate frame, chrome jump, placeholder geometry drift, or loading treatment that adds scroll cost.
+- Premium review remains unchanged: reject any social or messaging path that shows a blank intermediate frame, chrome jump, placeholder geometry drift, duplicated loading affordance, or loading treatment that adds scroll cost.

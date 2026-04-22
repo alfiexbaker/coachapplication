@@ -23,6 +23,7 @@ const logger = createLogger('MultiWeekScreen');
 
 export const WEEKS_TO_SHOW = 8;
 const DAY_NAMES = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+const multiWeekSnapshots = new Map<string, WeekRow[]>();
 
 export function useMultiWeek() {
   const { coachId, weeks: weeksParam } = useLocalSearchParams<{ coachId: string; weeks?: string }>();
@@ -38,6 +39,7 @@ export function useMultiWeek() {
   const sessionType = draft.sessionTypeLabel || draft.sessionType || 'Session';
   const sessionPrice = typeof draft.price === 'number' ? draft.price : 0;
   const sessionDuration = draft.duration ?? 60;
+  const snapshotKey = `${coachId}:${sessionDuration}`;
   const requestedWeeks = useMemo(() => {
     const parsed = Number.parseInt(weeksParam ?? '', 10);
     return Number.isFinite(parsed) && parsed > 0 ? parsed : 0;
@@ -123,8 +125,18 @@ export function useMultiWeek() {
     deps: [loadWeeks],
     isEmpty: (rows) => rows.length === 0,
     refetchOnFocus: true,
+    loadingStrategy: 'section-skeleton',
   });
-  const weekRows = useMemo(() => data ?? [], [data]);
+  useEffect(() => {
+    if (data) {
+      multiWeekSnapshots.set(snapshotKey, data);
+    }
+  }, [data, snapshotKey]);
+
+  const weekRows = useMemo(
+    () => data ?? multiWeekSnapshots.get(snapshotKey) ?? [],
+    [data, snapshotKey],
+  );
 
   useEffect(() => {
     if (weekRows.length === 0) {
@@ -239,7 +251,7 @@ router.back();
     onRefresh,
     retry,
     colors,
-    loading: status === 'loading',
+    loading: status === 'loading' && weekRows.length === 0,
     submitting,
     weeks: weekRows,
     selectedWeeks,

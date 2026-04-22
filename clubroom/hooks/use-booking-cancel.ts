@@ -3,7 +3,7 @@
  * Manages flow state, booking data loading, refund calculation, and cancellation handlers.
  */
 
-import { useState, useMemo, useCallback } from 'react';
+import { useState, useMemo, useCallback, useEffect } from 'react';
 
 import { router } from 'expo-router';
 import * as Haptics from 'expo-haptics';
@@ -19,6 +19,18 @@ import { err, ok, serviceError } from '@/types/result';
 import { uiFeedback } from '@/services/ui-feedback';
 
 const logger = createLogger('CancelBookingScreen');
+
+interface CancelLoadData {
+  bookingAmount: number;
+  sessionTime: Date;
+  coachName: string;
+  athleteName: string;
+  sessionTitle: string;
+  policy: CancellationPolicy | null;
+  refundCalc: RefundCalculation;
+}
+
+const cancelLoadSnapshots = new Map<string, CancelLoadData>();
 
 export type FlowStep = 'details';
 
@@ -104,16 +116,6 @@ export function useBookingCancel(id: string, mode?: string) {
     return true;
   }, [isCoach, reason]);
 
-  interface CancelLoadData {
-    bookingAmount: number;
-    sessionTime: Date;
-    coachName: string;
-    athleteName: string;
-    sessionTitle: string;
-    policy: CancellationPolicy | null;
-    refundCalc: RefundCalculation;
-  }
-
   const loadBookingDetails = useCallback(async () => {
     if (!id) {
       return err(serviceError('UNKNOWN', 'Missing booking id for cancellation.'));
@@ -171,15 +173,23 @@ export function useBookingCancel(id: string, mode?: string) {
       deps: [loadBookingDetails],
       isEmpty: (value) => value === null,
       refetchOnFocus: true,
+      loadingStrategy: 'section-skeleton',
     });
 
-  const bookingAmount = data?.bookingAmount ?? 0;
-  const sessionTime = data?.sessionTime ?? null;
-  const coachName = data?.coachName ?? '';
-  const athleteName = data?.athleteName ?? '';
-  const sessionTitle = data?.sessionTitle ?? '';
-  const policy = data?.policy ?? null;
-  const refundCalc = data?.refundCalc ?? null;
+  useEffect(() => {
+    if (data) {
+      cancelLoadSnapshots.set(id, data);
+    }
+  }, [data, id]);
+
+  const resolvedData = data ?? cancelLoadSnapshots.get(id) ?? null;
+  const bookingAmount = resolvedData?.bookingAmount ?? 0;
+  const sessionTime = resolvedData?.sessionTime ?? null;
+  const coachName = resolvedData?.coachName ?? '';
+  const athleteName = resolvedData?.athleteName ?? '';
+  const sessionTitle = resolvedData?.sessionTitle ?? '';
+  const policy = resolvedData?.policy ?? null;
+  const refundCalc = resolvedData?.refundCalc ?? null;
 
   const handleCancel = useCallback(async () => {
     if (!refundCalc) return;
@@ -263,7 +273,7 @@ router.back();
     setNote,
     notifyWaitlist,
     setNotifyWaitlist,
-    loading: status === 'loading',
+    loading: status === 'loading' && resolvedData === null,
     processing,
     bookingAmount,
     sessionTime,

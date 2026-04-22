@@ -17,7 +17,7 @@ import { Clickable } from '@/components/primitives/clickable';
 import { Button } from '@/components/primitives/button';
 import { MultiWeekPicker } from '@/components/bookings/multi-week-picker';
 import { MultiWeekConfirmation } from '@/components/bookings/multi-week-confirmation';
-import { EmptyState, ErrorState, LoadingState } from '@/components/ui/screen-states';
+import { EmptyState, ErrorState, SectionSkeleton } from '@/components/ui/screen-states';
 import { Spacing, Typography, Radii, withAlpha } from '@/constants/theme';
 import { useMultiWeek } from '@/hooks/use-multi-week';
 
@@ -32,31 +32,7 @@ export default function MultiWeekScreen() {
       {content}
     </SafeAreaView>
   );
-
-  if (c.status === 'loading') {
-    return renderShell(<LoadingState variant="list" />);
-  }
-
-  if (c.status === 'error') {
-    return renderShell(
-      <ErrorState
-        message={c.error?.message ?? 'Failed to load multi-week availability.'}
-        onRetry={c.retry}
-      />,
-    );
-  }
-
-  if (c.status === 'empty') {
-    return renderShell(
-      <EmptyState
-        icon="calendar-outline"
-        title="No multi-week slots found"
-        message="This coach has no suitable weekly slots right now. Pull to refresh or choose a single session booking."
-        actionLabel="Retry"
-        onPressAction={c.retry}
-      />,
-    );
-  }
+  const showWeekSkeleton = c.loading;
 
   return renderShell(
     <>
@@ -72,7 +48,20 @@ export default function MultiWeekScreen() {
         </View>
       </Row>
 
-      {c.showConfirmation ? (
+      {c.status === 'error' && c.weeks.length === 0 ? (
+        <ErrorState
+          message={c.error?.message ?? 'Failed to load multi-week availability.'}
+          onRetry={c.retry}
+        />
+      ) : c.status === 'empty' ? (
+        <EmptyState
+          icon="calendar-outline"
+          title="No multi-week slots found"
+          message="This coach has no suitable weekly slots right now. Pull to refresh or choose a single session booking."
+          actionLabel="Retry"
+          onPressAction={c.retry}
+        />
+      ) : c.showConfirmation ? (
         <ScrollView
           style={styles.scrollView}
           contentContainerStyle={styles.scrollContent}
@@ -115,27 +104,33 @@ export default function MultiWeekScreen() {
                 Select the weeks you want to book. Each session is at the same time and location.
               </ThemedText>
             </Row>
-            <MultiWeekPicker
-              weeks={c.weeks}
-              selectedWeeks={c.selectedWeeks}
-              onToggleWeek={c.handleToggleWeek}
-            />
+            {showWeekSkeleton ? (
+              <SectionSkeleton variant="schedule" titleWidth="36%" />
+            ) : (
+              <MultiWeekPicker
+                weeks={c.weeks}
+                selectedWeeks={c.selectedWeeks}
+                onToggleWeek={c.handleToggleWeek}
+              />
+            )}
           </ScrollView>
-          <View
-            style={[
-              styles.footer,
-              { borderTopColor: palette.border, backgroundColor: palette.surface },
-            ]}
-          >
-            <Button
-              variant="primary"
-              onPress={c.handleShowConfirmation}
-              disabled={c.selectedWeeks.size === 0}
-              style={styles.footerButton}
+          {!showWeekSkeleton ? (
+            <View
+              style={[
+                styles.footer,
+                { borderTopColor: palette.border, backgroundColor: palette.surface },
+              ]}
             >
-              {`Review ${c.selectedWeeks.size} Week${c.selectedWeeks.size !== 1 ? 's' : ''}`}
-            </Button>
-          </View>
+              <Button
+                variant="primary"
+                onPress={c.handleShowConfirmation}
+                disabled={c.selectedWeeks.size === 0}
+                style={styles.footerButton}
+              >
+                {`Review ${c.selectedWeeks.size} Week${c.selectedWeeks.size !== 1 ? 's' : ''}`}
+              </Button>
+            </View>
+          ) : null}
         </>
       )}
     </>,

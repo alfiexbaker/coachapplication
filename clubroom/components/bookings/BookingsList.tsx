@@ -3,11 +3,18 @@ import { AccessibleListCell } from '@/components/ui/list-accessibility';
 import { FlatList, View, StyleSheet, RefreshControl } from 'react-native';
 
 import { Clickable } from '@/components/primitives/clickable';
+import { SurfaceCard } from '@/components/primitives/surface-card';
 import { ThemedText } from '@/components/themed-text';
 import { UnifiedBookingCard } from '@/components/bookings/UnifiedBookingCard';
 import { SeriesBookingGroup } from '@/components/bookings/series-booking-group';
 import { SessionOfferingCard } from '@/components/sessions/session-offering-card';
 import { EmptyState } from '@/components/ui/empty-state';
+import {
+  Skeleton,
+  SkeletonCircle,
+  SkeletonPill,
+  SkeletonText,
+} from '@/components/ui/skeleton';
 import { Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
 import { BookingSummary, SessionOffering } from '@/constants/types';
 import { useTheme } from '@/hooks/useTheme';
@@ -31,6 +38,7 @@ export interface BookingsListProps {
   businessCounts?: Partial<Record<CoachBusinessFilter, number>>;
   refreshing?: boolean;
   onRefresh?: () => void;
+  loading?: boolean;
 }
 
 /** Union type for display items: either a regular item or a series group */
@@ -52,6 +60,7 @@ export function BookingsList({
   businessCounts,
   refreshing = false,
   onRefresh,
+  loading = false,
 }: BookingsListProps) {
   const { colors: palette } = useTheme();
 
@@ -191,7 +200,9 @@ export function BookingsList({
         />
       ) : null}
 
-      {hasItems ? (
+      {loading ? (
+        <BookingsListSkeleton showBusinessFilter={isCoach && Boolean(onBusinessFilterChange)} />
+      ) : hasItems ? (
         <FlatList
         CellRendererComponent={AccessibleListCell}
         accessibilityRole="list"
@@ -250,6 +261,46 @@ export function BookingsList({
   );
 }
 
+function BookingsListSkeleton({
+  showBusinessFilter,
+}: {
+  showBusinessFilter: boolean;
+}) {
+  return (
+    <View style={styles.loadingSection}>
+      {showBusinessFilter ? (
+        <Row style={styles.filterRow}>
+          <SkeletonPill width={88} height={32} />
+          <SkeletonPill width={104} height={32} />
+          <SkeletonPill width={124} height={32} />
+        </Row>
+      ) : null}
+
+      <View style={styles.loadingList}>
+        {Array.from({ length: 3 }).map((_, index) => (
+          <SurfaceCard key={index} style={styles.loadingCard} tactile={false}>
+            <View style={styles.loadingCardHeader}>
+              <Row align="center" gap="sm">
+                <SkeletonCircle size={44} />
+                <View style={styles.loadingCopy}>
+                  <SkeletonText lines={2} widths={['62%', '44%']} />
+                </View>
+              </Row>
+              <SkeletonPill width={78} height={26} />
+            </View>
+            <Skeleton height={76} radius={Radii.card} />
+            <Row gap="xs" wrap>
+              <SkeletonPill width={92} />
+              <SkeletonPill width={72} />
+              <SkeletonPill width={84} />
+            </Row>
+          </SurfaceCard>
+        ))}
+      </View>
+    </View>
+  );
+}
+
 function ListSeparator() {
   return <View style={styles.separator} />;
 }
@@ -270,6 +321,27 @@ const styles = StyleSheet.create({
     borderWidth: 1.5,
   },
   filterText: { ...Typography.bodySmallSemiBold },
+  loadingSection: {
+    gap: Spacing.sm,
+  },
+  loadingList: {
+    gap: Spacing.sm,
+    paddingHorizontal: Spacing.sm,
+    paddingBottom: Spacing.sm,
+  },
+  loadingCard: {
+    padding: Spacing.md,
+    gap: Spacing.sm,
+  },
+  loadingCardHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: Spacing.sm,
+  },
+  loadingCopy: {
+    flex: 1,
+  },
   list: {
     padding: Spacing.sm,
     paddingTop: 0,

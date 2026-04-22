@@ -7,7 +7,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { StatusBadge } from '@/components/ui/status-badge';
-import { EmptyState, ErrorState, LoadingState } from '@/components/ui/screen-states';
+import { EmptyState, ErrorState, SectionSkeleton } from '@/components/ui/screen-states';
 import { BookingCoachView } from '@/components/bookings/booking-coach-view';
 import { BookingDeliveryOutcomeCard } from '@/components/bookings/booking-delivery-outcome-card';
 import { BookingParentView } from '@/components/bookings/booking-parent-view';
@@ -244,10 +244,30 @@ export default function SessionDetailScreen() {
     router.push(Routes.developmentChildProgress(booking.clientId, { tab: 'feedback' }));
   }, [booking?.clientId]);
 
-  if (status === 'loading') {
+  if (status === 'loading' && !booking) {
     return (
       <SafeAreaView style={[styles.container, { backgroundColor: palette.background }]}>
-        <LoadingState variant="detail" />
+        <ScrollView
+          showsVerticalScrollIndicator={false}
+          contentContainerStyle={styles.scrollContent}
+        >
+          <ThemedView style={styles.headerSection}>
+            <Row gap="sm" align="center" style={styles.backRow}>
+              <Clickable
+                onPress={handleGoBack}
+                accessibilityLabel="Go back"
+                style={styles.backBtn}
+              >
+                <Ionicons name="chevron-back" size={24} color={palette.text} />
+              </Clickable>
+              <ThemedText type="title" style={styles.flex1} numberOfLines={1}>
+                Session
+              </ThemedText>
+            </Row>
+          </ThemedView>
+          <SectionSkeleton variant="hero" titleWidth="34%" />
+          <SectionSkeleton variant="list" titleWidth="28%" />
+        </ScrollView>
       </SafeAreaView>
     );
   }
@@ -266,7 +286,7 @@ export default function SessionDetailScreen() {
     );
   }
 
-  if (status === 'error') {
+  if (status === 'error' && !booking) {
     return (
       <SafeAreaView
         style={[styles.container, { backgroundColor: palette.background }]}

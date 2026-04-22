@@ -10,11 +10,18 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import type { ReactNode } from 'react';
 
 import { PageHeader } from '@/components/primitives/page-header';
+import { Row } from '@/components/primitives/row';
+import { SurfaceCard } from '@/components/primitives/surface-card';
 import { ThemedText } from '@/components/themed-text';
 import { CoachSelectList } from '@/components/review/coach-select-list';
 import { RatingForm } from '@/components/review/rating-form';
-import { LoadingState, ErrorState, EmptyState } from '@/components/ui/screen-states';
-import { Spacing, Typography } from '@/constants/theme';
+import { ErrorState, EmptyState } from '@/components/ui/screen-states';
+import {
+  SkeletonCircle,
+  SkeletonPill,
+  SkeletonText,
+} from '@/components/ui/skeleton';
+import { Spacing, Typography, Radii } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
 import { useRateCoach } from '@/hooks/use-rate-coach';
 
@@ -38,11 +45,7 @@ export default function RateCoachScreen() {
     );
 
   if (!c.selectedCoach) {
-    if (c.status === 'loading') {
-      return renderSelectCoachShell(<LoadingState variant="list" />);
-    }
-
-    if (c.status === 'error') {
+    if (c.error) {
       return renderSelectCoachShell(
         <ErrorState
           message={c.error?.message || 'Failed to load coaches to rate.'}
@@ -68,12 +71,16 @@ export default function RateCoachScreen() {
         <ThemedText style={[styles.subtitle, { color: palette.muted }]}>
           Select a coach you&apos;ve worked with
         </ThemedText>
-        <CoachSelectList
-          coaches={c.coaches}
-          onSelect={c.setSelectedCoach}
-          refreshing={c.refreshing}
-          onRefresh={c.onRefresh}
-        />
+        {c.loading ? (
+          <CoachSelectionSkeleton />
+        ) : (
+          <CoachSelectList
+            coaches={c.coaches}
+            onSelect={c.setSelectedCoach}
+            refreshing={c.refreshing}
+            onRefresh={c.onRefresh}
+          />
+        )}
       </>,
     );
   }
@@ -100,6 +107,24 @@ export default function RateCoachScreen() {
   );
 }
 
+function CoachSelectionSkeleton() {
+  return (
+    <View style={styles.selectionSkeleton}>
+      {Array.from({ length: 3 }).map((_, index) => (
+        <SurfaceCard key={index} style={styles.selectionSkeletonCard} tactile={false}>
+          <Row align="center" gap="md">
+            <SkeletonCircle size={52} />
+            <View style={styles.selectionSkeletonCopy}>
+              <SkeletonText lines={2} widths={['54%', '38%']} />
+            </View>
+            <SkeletonPill width={72} height={28} />
+          </Row>
+        </SurfaceCard>
+      ))}
+    </View>
+  );
+}
+
 const styles = StyleSheet.create({
   container: { flex: 1 },
   centerState: {
@@ -109,4 +134,15 @@ const styles = StyleSheet.create({
     paddingBottom: Spacing['2xl'],
   },
   subtitle: { paddingHorizontal: Spacing.lg, paddingBottom: Spacing.md, ...Typography.bodySmall },
+  selectionSkeleton: {
+    paddingHorizontal: Spacing.md,
+    gap: Spacing.sm,
+  },
+  selectionSkeletonCard: {
+    padding: Spacing.md,
+    borderRadius: Radii.card,
+  },
+  selectionSkeletonCopy: {
+    flex: 1,
+  },
 });

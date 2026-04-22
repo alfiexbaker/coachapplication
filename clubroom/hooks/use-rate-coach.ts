@@ -3,7 +3,7 @@
  * Manages coach list, selection, rating form, and review submission.
  */
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { router } from 'expo-router';
 import { apiClient } from '@/services/api-client';
 import { useAuth } from '@/hooks/use-auth';
@@ -55,6 +55,8 @@ export { FEEDBACK_CHIPS, RATING_LABELS };
 interface RateCoachData {
   coaches: CoachToRate[];
 }
+
+let lastRateCoachSnapshot: RateCoachData | null = null;
 
 export interface UseRateCoachResult {
   coaches: CoachToRate[];
@@ -158,9 +160,17 @@ export function useRateCoach() {
     deps: [currentUser?.id],
     isEmpty: (value) => value.coaches.length === 0,
     refetchOnFocus: true,
+    loadingStrategy: 'section-skeleton',
   });
 
-  const coaches = data?.coaches ?? [];
+  useEffect(() => {
+    if (data) {
+      lastRateCoachSnapshot = data;
+    }
+  }, [data]);
+
+  const resolvedData = data ?? lastRateCoachSnapshot;
+  const coaches = resolvedData?.coaches ?? [];
 
   const handleSubmitReview = useCallback(async () => {
     if (submitting) return;
@@ -224,8 +234,9 @@ router.back();
     reviewText,
     submitting,
     status,
-    error: status === 'error' ? (error as ServiceError | null) : null,
-    loading: status === 'loading',
+    error:
+      status === 'error' && resolvedData === null ? (error as ServiceError | null) : null,
+    loading: status === 'loading' && resolvedData === null,
     refreshing,
     onRefresh,
     retry,

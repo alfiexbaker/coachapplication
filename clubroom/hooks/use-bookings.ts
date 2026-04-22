@@ -446,6 +446,7 @@ export function useBookings(): UseBookingsResult {
       value.sessionOfferings.length === 0 &&
       value.pendingInvitesList.length === 0,
     refetchOnFocus: true,
+    loadingStrategy: 'warm-first',
   });
 
   useEffect(() => {
@@ -461,7 +462,7 @@ export function useBookings(): UseBookingsResult {
   const pendingInvites = pendingInvitesList.length;
   const loading = status === 'loading' && resolvedData === null;
   const error =
-    status === 'error'
+    status === 'error' && resolvedData === null
       ? (screenError?.message ?? 'Failed to load bookings. Pull down to refresh.')
       : null;
 

@@ -4,7 +4,7 @@ import { useRouter, Stack } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { ThemedText } from '@/components/themed-text';
-import { LoadingState, ErrorState } from '@/components/ui/screen-states';
+import { ErrorState, SectionSkeleton } from '@/components/ui/screen-states';
 import { Spacing, Typography, Radii } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
 import { useScreen } from '@/hooks/use-screen';
@@ -127,6 +127,7 @@ export default function RSVPScreen() {
     deps: [sessionId, rsvpId, currentUser?.id, isCoach],
     isEmpty: (value) => !value.sessionInfo,
     refetchOnFocus: true,
+    loadingStrategy: 'section-skeleton',
   });
 
   const rsvp = data?.rsvp ?? null;
@@ -176,7 +177,14 @@ if (router.canGoBack()) router.back();
   );
 
   if (status === 'loading') {
-    return renderScreen({ title: 'RSVP', content: <LoadingState variant="detail" /> });
+    return renderScreen({
+      title: 'RSVP',
+      content: (
+        <ScrollView style={styles.scrollView} contentContainerStyle={styles.scrollContent}>
+          <SectionSkeleton variant="detail" titleWidth="34%" />
+        </ScrollView>
+      ),
+    });
   }
 
   if (status === 'error') {

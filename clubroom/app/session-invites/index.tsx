@@ -1,4 +1,4 @@
-import { useState, useCallback, useMemo } from 'react';
+import { useState, useCallback, useEffect, useMemo } from 'react';
 import { ScrollView, RefreshControl, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
@@ -8,7 +8,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useScreen } from '@/hooks/use-screen';
 import { useAuth } from '@/hooks/use-auth';
 import { ok } from '@/types/result';
-import { LoadingState, ErrorState, EmptyState } from '@/components/ui/screen-states';
+import { ErrorState, EmptyState, SectionSkeleton } from '@/components/ui/screen-states';
 import { Clickable } from '@/components/primitives/clickable';
 import { ThemedText } from '@/components/themed-text';
 import { Row, Column } from '@/components/primitives';
@@ -29,6 +29,7 @@ import { uiFeedback } from '@/services/ui-feedback';
 
 type ViewMode = 'sent' | 'received';
 type FilterMode = 'all' | 'pending' | 'responded';
+const inviteListSnapshots: Partial<Record<ViewMode, SessionInvite[]>> = {};
 
 export default function SessionInvitesScreen() {
   const { currentUser } = useAuth();
@@ -55,19 +56,30 @@ export default function SessionInvitesScreen() {
     },
     deps: [currentUser?.id, mode],
     events: [ServiceEvents.INVITE_ACCEPTED, ServiceEvents.INVITE_BOOKING_FAILED],
+    isEmpty: (value) => value.length === 0,
+    refetchOnFocus: true,
+    loadingStrategy: 'warm-first',
   });
 
+  useEffect(() => {
+    if (invites) {
+      inviteListSnapshots[mode] = invites;
+    }
+  }, [invites, mode]);
+
+  const resolvedInvites = invites ?? inviteListSnapshots[mode] ?? [];
+  const loading = status === 'loading' && resolvedInvites.length === 0;
+  const screenError = status === 'error' && resolvedInvites.length === 0 ? error : null;
+
   const pendingCount = useMemo(() => {
-    if (!invites) return 0;
-    return invites.filter((i) => {
+    return resolvedInvites.filter((i) => {
       const isPending = i.status === 'PENDING';
       return isPending && new Date(i.expiresAt) > new Date();
     }).length;
-  }, [invites]);
+  }, [resolvedInvites]);
 
   const filteredInvites = useMemo(() => {
-    if (!invites) return [];
-    return invites.filter((invite) => {
+    return resolvedInvites.filter((invite) => {
       if (filter === 'all') return true;
       if (filter === 'pending') {
         return invite.status === 'PENDING' && new Date(invite.expiresAt) > new Date();
@@ -75,11 +87,11 @@ export default function SessionInvitesScreen() {
       if (filter === 'responded') return invite.status !== 'PENDING';
       return true;
     });
-  }, [invites, filter]);
+  }, [resolvedInvites, filter]);
 
   const showModeToggle = userIsCoach && userHasChildren;
   const showFilterChips =
-    (mode === 'received' || (!userIsCoach && userHasChildren)) && (invites?.length ?? 0) > 0;
+    (mode === 'received' || (!userIsCoach && userHasChildren)) && resolvedInvites.length > 0;
   const handleCreateInvite = useCallback(() => {
     router.push(Routes.SESSION_INVITES_CREATE);
   }, []);
@@ -174,34 +186,68 @@ export default function SessionInvitesScreen() {
       {content}
     </SafeAreaView>
   );
+  const header = (
+    <>
+      <Row gap="md" align="center" paddingH="lg" paddingV="md">
+        <Clickable onPress={() => router.back()} hitSlop={8} accessibilityLabel="Go back">
+          <Ionicons name="arrow-back" size={24} color={colors.text} />
+        </Clickable>
+        <Row gap="sm" align="center" style={styles.headerTitle}>
+          <ThemedText type="title">Session Invites</ThemedText>
+          {pendingCount > 0 ? (
+            <View style={[styles.badge, { backgroundColor: colors.error }]}>
+              <ThemedText style={[styles.badgeText, { color: colors.onPrimary }]}>
+                {pendingCount}
+              </ThemedText>
+            </View>
+          ) : null}
+        </Row>
+        {userIsCoach ? (
+          <Clickable
+            onPress={handleCreateInvite}
+            accessibilityLabel="Create new invite"
+            style={[styles.createButton, { backgroundColor: colors.tint }]}
+          >
+            <Ionicons name="add" size={20} color={colors.onPrimary} />
+          </Clickable>
+        ) : null}
+      </Row>
 
-  if (status === 'loading')
-    return renderShell(<LoadingState variant="list" />);
+      {showModeToggle ? <InviteModeToggle mode={mode} onChangeMode={handleChangeMode} /> : null}
+      {showFilterChips ? (
+        <InviteStatusFilter
+          filter={filter}
+          pendingCount={pendingCount}
+          onChangeFilter={handleChangeFilter}
+        />
+      ) : null}
+    </>
+  );
 
-  if (status === 'error')
-    return renderShell(<ErrorState message={error?.message ?? 'Failed to load invites'} onRetry={retry} />);
+  if (loading) {
+    return renderShell(
+      <>
+        {header}
+        <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
+          <SectionSkeleton variant="list" titleWidth="34%" />
+        </ScrollView>
+      </>,
+    );
+  }
+
+  if (screenError) {
+    return renderShell(
+      <>
+        {header}
+        <ErrorState message={screenError.message ?? 'Failed to load invites'} onRetry={retry} />
+      </>,
+    );
+  }
 
   if (status === 'empty')
     return renderShell(
       <>
-        <Row gap="md" align="center" paddingH="lg" paddingV="md">
-          <Clickable onPress={() => router.back()} hitSlop={8} accessibilityLabel="Go back">
-            <Ionicons name="arrow-back" size={24} color={colors.text} />
-          </Clickable>
-          <Row gap="sm" align="center" style={styles.headerTitle}>
-            <ThemedText type="title">Session Invites</ThemedText>
-          </Row>
-          {userIsCoach && (
-            <Clickable
-              onPress={handleCreateInvite}
-              accessibilityLabel="Create new invite"
-              style={[styles.createButton, { backgroundColor: colors.tint }]}
-            >
-              <Ionicons name="add" size={20} color={colors.onPrimary} />
-            </Clickable>
-          )}
-        </Row>
-        {showModeToggle && <InviteModeToggle mode={mode} onChangeMode={handleChangeMode} />}
+        {header}
         <EmptyState
           icon={mode === 'sent' ? 'paper-plane-outline' : 'mail-outline'}
           title={mode === 'sent' ? 'No invites sent' : 'No invites received'}
@@ -216,39 +262,7 @@ export default function SessionInvitesScreen() {
 
   return renderShell(
     <>
-      <Row gap="md" align="center" paddingH="lg" paddingV="md">
-        <Clickable onPress={() => router.back()} hitSlop={8} accessibilityLabel="Go back">
-          <Ionicons name="arrow-back" size={24} color={colors.text} />
-        </Clickable>
-        <Row gap="sm" align="center" style={styles.headerTitle}>
-          <ThemedText type="title">Session Invites</ThemedText>
-          {pendingCount > 0 && (
-            <View style={[styles.badge, { backgroundColor: colors.error }]}>
-              <ThemedText style={[styles.badgeText, { color: colors.onPrimary }]}>
-                {pendingCount}
-              </ThemedText>
-            </View>
-          )}
-        </Row>
-        {userIsCoach && (
-          <Clickable
-            onPress={handleCreateInvite}
-            accessibilityLabel="Create new invite"
-            style={[styles.createButton, { backgroundColor: colors.tint }]}
-          >
-            <Ionicons name="add" size={20} color={colors.onPrimary} />
-          </Clickable>
-        )}
-      </Row>
-
-      {showModeToggle && <InviteModeToggle mode={mode} onChangeMode={handleChangeMode} />}
-      {showFilterChips && (
-        <InviteStatusFilter
-          filter={filter}
-          pendingCount={pendingCount}
-          onChangeFilter={handleChangeFilter}
-        />
-      )}
+      {header}
 
       <ScrollView
         contentContainerStyle={styles.content}

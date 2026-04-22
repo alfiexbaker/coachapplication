@@ -5,7 +5,7 @@
  * and suggested coaches. Applies per-child filtering when activeChildId is set.
  */
 
-import { useCallback, useRef } from 'react';
+import { useCallback, useEffect, useRef } from 'react';
 import { router } from 'expo-router';
 import { Routes } from '@/navigation/routes';
 
@@ -54,6 +54,8 @@ interface DiscoverData {
   clubSessions: GroupSession[];
   openSessions: SessionOffering[];
 }
+
+let lastDiscoverSnapshot: DiscoverData | null = null;
 
 export interface UseBookingsDiscoverResult {
   pendingInvites: SessionInvite[];
@@ -298,16 +300,24 @@ export function useBookingsDiscover(): UseBookingsDiscoverResult {
       value.clubSessions.length === 0 &&
       value.openSessions.length === 0,
     refetchOnFocus: true,
+    loadingStrategy: 'warm-first',
   });
 
-  const pendingInvites = data?.pendingInvites ?? [];
-  const thisWeekOfferings = data?.thisWeekOfferings ?? [];
-  const familiarCoaches = data?.familiarCoaches ?? [];
-  const clubSessions = data?.clubSessions ?? [];
-  const openSessions = data?.openSessions ?? [];
-  const loading = status === 'loading' && data === null;
+  useEffect(() => {
+    if (data) {
+      lastDiscoverSnapshot = data;
+    }
+  }, [data]);
+
+  const resolvedData = data ?? lastDiscoverSnapshot;
+  const pendingInvites = resolvedData?.pendingInvites ?? [];
+  const thisWeekOfferings = resolvedData?.thisWeekOfferings ?? [];
+  const familiarCoaches = resolvedData?.familiarCoaches ?? [];
+  const clubSessions = resolvedData?.clubSessions ?? [];
+  const openSessions = resolvedData?.openSessions ?? [];
+  const loading = status === 'loading' && resolvedData === null;
   const error =
-    status === 'error'
+    status === 'error' && resolvedData === null
       ? (screenError?.message ?? 'Failed to load discover data. Pull down to refresh.')
       : null;
 

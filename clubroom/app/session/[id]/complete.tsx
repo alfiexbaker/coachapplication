@@ -25,7 +25,7 @@ import { Clickable } from '@/components/primitives/clickable';
 import { Row } from '@/components/primitives/row';
 import { ThemedText } from '@/components/themed-text';
 import { PageHeader } from '@/components/primitives/page-header';
-import { LoadingState, ErrorState } from '@/components/ui/screen-states';
+import { ErrorState, SectionSkeleton } from '@/components/ui/screen-states';
 import { Components, Spacing, Typography } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
 import { useSessionCompletion } from '@/hooks/use-session-completion';
@@ -337,7 +337,11 @@ export default function SessionCompleteScreen() {
   // ==========================================================================
 
   if (loading) {
-    return renderScreenShell(<LoadingState variant="form" />);
+    return renderScreenShell(
+      <ScrollView contentContainerStyle={styles.contentInner} showsVerticalScrollIndicator={false}>
+        <SectionSkeleton variant="form" titleWidth="34%" />
+      </ScrollView>,
+    );
   }
 
   if (error) {

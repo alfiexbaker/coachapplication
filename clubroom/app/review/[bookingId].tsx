@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useState, type ReactNode } from 'react';
+import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import {
   ScrollView,
@@ -25,7 +25,7 @@ import {
   ReviewSessionCard,
   ReviewSuccessState,
 } from '@/components/review/review-screen-sections';
-import { LoadingState, ErrorState, EmptyState } from '@/components/ui/screen-states';
+import { ErrorState, EmptyState, SectionSkeleton } from '@/components/ui/screen-states';
 import { useToast } from '@/components/ui/toast';
 import { STORAGE_KEYS } from '@/constants/storage-keys';
 import {
@@ -38,6 +38,7 @@ import { uiFeedback } from '@/services/ui-feedback';
 
 const logger = createLogger('ReviewScreen');
 let _reviewSubmitLock: Promise<void> = Promise.resolve();
+const reviewBookingSnapshots = new Map<string, BookingInfo>();
 
 function withReviewSubmitLock<T>(fn: () => Promise<T>): Promise<T> {
   let release!: () => void;
@@ -117,7 +118,7 @@ export default function ReviewScreen() {
   }, [bookingId, currentUser?.id]);
 
   const {
-    data: booking,
+    data: loadedBooking,
     status,
     error,
     refreshing,
@@ -128,7 +129,15 @@ export default function ReviewScreen() {
     deps: [bookingId, currentUser?.id],
     isEmpty: (value) => value === null,
     refetchOnFocus: true,
+    loadingStrategy: 'section-skeleton',
   });
+  const booking = loadedBooking ?? reviewBookingSnapshots.get(bookingId) ?? null;
+
+  useEffect(() => {
+    if (loadedBooking && bookingId) {
+      reviewBookingSnapshots.set(bookingId, loadedBooking);
+    }
+  }, [bookingId, loadedBooking]);
 
   const existingReview = booking?.existingReview;
   const reviewFromStorage = useMemo(
@@ -253,8 +262,15 @@ export default function ReviewScreen() {
     </SafeAreaView>
   );
 
-  if (status === 'loading') {
-    return renderShell(<LoadingState variant="detail" />);
+  if (status === 'loading' && !booking) {
+    return renderShell(
+      <>
+        <ReviewHeader colors={palette} submitted={false} onBack={() => router.back()} />
+        <ScrollView contentContainerStyle={styles.content}>
+          <SectionSkeleton variant="detail" titleWidth="34%" />
+        </ScrollView>
+      </>,
+    );
   }
 
   if (!bookingIdParam.valid) {
@@ -266,7 +282,7 @@ export default function ReviewScreen() {
     );
   }
 
-  if (status === 'error') {
+  if (status === 'error' && !booking) {
     return renderShell(
       <ErrorState
         message={error?.message || 'Failed to load booking review details.'}
