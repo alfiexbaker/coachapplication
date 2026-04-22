@@ -44,6 +44,15 @@ Rule: active work only. Completed sprint rows are intentionally removed.
 - If a feed-style surface still relies on a generic `ScrollView` without a strong reason, it is a failure.
 - If loading looks decorative instead of truthful, it is a failure.
 
+## Elite Plan Rules
+
+- The plan is not elite if it only names screens; it must define interaction choreography.
+- The plan is not elite if it lacks closure; every async route must belong to a named sprint or a documented exception.
+- The plan is not elite if it lacks measurement; hot paths need explicit review conditions, not taste-based approval.
+- The plan is not elite if it lets implementation hide behind “polish later”.
+- The plan is not elite if it optimizes shimmer aesthetics before stability, retention, and truthful hierarchy.
+- The plan is not elite unless it makes the cheap path harder than the correct path.
+
 ## Recursive Coverage Gate
 
 - Current route inventory:
@@ -60,6 +69,11 @@ Rule: active work only. Completed sprint rows are intentionally removed.
     - `static`: no async loading contract required
   - no async route is allowed to remain “implicitly handled”
   - every interactive async path must declare the visible transition sequence from click until resolved content is shown
+  - every hot path must also declare:
+    - whether prior data is retained
+    - what shell remains stable
+    - what exact section may skeletonize
+    - what would count as a ship-blocking flicker
 - Reality check:
   - the previous sprint pack covered the hot surfaces, but it did not yet prove route-by-route closure for booking funnel, trust/family, development/training, or ops/settings families
   - `UI-LOAD-01` must produce the classification and implementation gate before later slices can honestly claim full coverage
@@ -88,11 +102,13 @@ Rule: active work only. Completed sprint rows are intentionally removed.
   - A screen cannot claim compliance unless its loading recipe and loaded recipe share the same container density and hierarchy.
   - Every later sprint slice inherits a route list or route family list; no “catch-all later” language is allowed without named paths.
   - The program defines and enforces visible transition rules so paths preserve a stable frame from click to resolved content.
+  - The program produces an elite review checklist for hot paths: cold open, warm revisit, background refresh, stressed-latency pass.
 - Hard fail if:
   - Any hot-path surface still requires both `LoadingState` and a bespoke inline spinner to feel complete.
   - The shared system cannot express section-level loading without blanking the whole screen.
   - The route tree still contains async paths that are unclassified when `UI-LOAD-01` closes.
   - The system still allows `click -> blank/flicker -> load -> show` on warmed paths.
+  - The foundation ships without a route manifest and review method strong enough to catch visible regressions.
 - Verify:
   - `npm run typecheck`
   - `npm run test:compile`
@@ -137,6 +153,7 @@ Rule: active work only. Completed sprint rows are intentionally removed.
   - Switching between `My Sessions` and `Discover` causes a full repaint or blank shell.
   - Bookings shows a generic list skeleton while the real screen is a mixed filter-and-card composition.
   - Any step in the book/session journey regresses to a dead spinner or blank route while moving between steps.
+  - The booking funnel feels acknowledged late after tap, even if the data eventually loads correctly.
 - Verify:
   - `npm run typecheck`
   - `npm run test:compile`
@@ -168,6 +185,7 @@ Rule: active work only. Completed sprint rows are intentionally removed.
 - Hard fail if:
   - A feed row or chat/thread list still flashes empty before warmed data appears.
   - Social surfaces still combine row skeletons with random spinners in the same viewport.
+  - Feed interactions do not acknowledge tap immediately through stable context, pressed state, or retained frame.
 - Verify:
   - `npm run typecheck`
   - `npm run test:compile`
@@ -200,6 +218,7 @@ Rule: active work only. Completed sprint rows are intentionally removed.
 - Hard fail if:
   - A warmed profile or roster pane still reruns a cold full-screen loader.
   - Segmented surfaces still act like separate page navigations under the hood.
+  - Switching panes feels like waiting for a fetch instead of revealing already-owned UI.
 - Verify:
   - `npm run typecheck`
   - `npm run test:compile`
@@ -230,6 +249,7 @@ Rule: active work only. Completed sprint rows are intentionally removed.
 - Hard fail if:
   - Calendar or schedule surfaces still drop to generic bars while the final UI is date-structured.
   - Club or event detail refresh wipes out the header and action chrome.
+  - Time-based flows visibly jump or reshuffle before resolved content is ready.
 - Verify:
   - `npm run typecheck`
   - `npm run test:compile`
@@ -268,6 +288,7 @@ Rule: active work only. Completed sprint rows are intentionally removed.
 - Hard fail if:
   - Any trust-sensitive screen flashes blank after prior data was shown.
   - A medical or verification route still looks like a generic settings page during load.
+  - A trust-sensitive interaction gives the user no immediate acknowledgement after tap.
 - Verify:
   - `npm run typecheck`
   - `npm run test:compile`
@@ -299,6 +320,7 @@ Rule: active work only. Completed sprint rows are intentionally removed.
 - Hard fail if:
   - Training and development screens still feel like an afterthought compared with Bookings or Feed.
   - Upload/progress surfaces fake progress or use dead placeholders that do not match backend reality.
+  - Development flows still look structurally unstable under latency even when the data is technically correct.
 - Verify:
   - `npm run typecheck`
   - `npm run test:compile`
@@ -333,6 +355,7 @@ Rule: active work only. Completed sprint rows are intentionally removed.
 - Hard fail if:
   - A new or existing surface can still bypass the shared rules without an explicit documented exception.
   - The repo claims premium loading quality while any high-traffic or async route family still flashes blank between warm navigations.
+  - The final sweep cannot prove route-by-route transition ownership and review evidence for the hot paths.
 - Verify:
   - `npm run typecheck`
   - `npm run test:compile`

@@ -37,3 +37,4 @@ Date: 2026-04-20
 - The loading queue has been tightened again with premium failure conditions; the next implementation slice should treat any warm-navigation blanking or generic placeholder drift as a defect, not polish debt.
 - The route audit found `190` route files with `53` route-level files lacking explicit loading signals and `96` route-level `ScrollView`-only surfaces, so the loading program now requires explicit route classification before claiming full coverage.
 - The next implementation slice also needs to enforce transition integrity: no `click -> blank/flicker -> load -> show`; a stable shell, prior frame, or truthful placeholder must stay visible until resolved content is ready.
+- The plan now also needs an elite review method, not just stricter words: hot paths must define choreography, review states, and ship-blocking flicker conditions before implementation can honestly call the result premium.

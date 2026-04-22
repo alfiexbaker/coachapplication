@@ -70,6 +70,19 @@ Source of truth:
     - `open -> immediate truthful skeleton in final layout geometry -> show content`
 - If the transition visibly flashes white, collapses layout, or swaps through an empty intermediate frame, it fails.
 
+## Elite UX Standard
+
+- The user should feel that the app acknowledged the interaction immediately.
+- The user should never lose spatial context during loading.
+- The viewport should show one coherent loading language, not a mixture of unrelated spinners, bars, and half-loaded cards.
+- Chrome, hierarchy, and content priority should stay stable:
+  - keep header/tab/filter shell stable first
+  - keep prior truthful content second
+  - load the critical section third
+  - defer secondary sections last
+- If a screen cannot preserve prior content, its first-load placeholder must still look like the real screen on its best day, not a cheap approximation.
+- Premium means invisible waiting, not prettier waiting.
+
 ## Premium Failure Conditions
 
 - Fail the surface if it shows a full-screen skeleton after the user already saw loaded data there once.
@@ -94,6 +107,27 @@ Source of truth:
     - no async loading contract is required
 - No async route is allowed to remain unclassified.
 - A route is not “covered by the sprint plan” unless its classification and owning sprint are both explicit.
+
+## Elite Review Gate
+
+- Every hot path needs all of the following before it can be called elite:
+  - a declared route classification
+  - a declared transition sequence from interaction to resolved content
+  - a declared loading owner for each unresolved section
+  - a declared reason if the route is `cold-first` or `ScrollView`-based
+- Review the path in three states:
+  - cold open
+  - warm revisit
+  - background refresh after prior content exists
+- Review the path under at least:
+  - normal network/runtime conditions
+  - stressed conditions where latency is noticeable enough to expose bad choreography
+- Reject the path if a screen recording shows:
+  - blank intermediate frame
+  - header or tab jump
+  - mismatched placeholder geometry
+  - duplicated loading affordances
+  - scroll hitch caused by the loading treatment itself
 
 ## Existing Screen Wrappers
 
@@ -126,6 +160,7 @@ Source of truth:
 6. For segmented or tabbed surfaces, keep previously loaded panes warm or preserve their last loaded data; switching tabs should not blank the whole page.
 7. A skeleton should reuse the same spacing, density, and container rules as the loaded component family wherever practical.
 8. Do not ship “premium” claims on a surface until it passes the failure conditions above.
+9. Treat immediate visual acknowledgement as mandatory: the user should see either preserved truth, truthful placeholder, or action progress right after interaction.
 
 ## Build Conditions
 
@@ -137,6 +172,8 @@ Source of truth:
 6. No fallback slop: if a surface needs a custom loading recipe, a generic `list` or `detail` variant is not good enough.
 7. Route closure: every async route must have an owning sprint or an explicit documented exception before the loading program can be called complete.
 8. Transition integrity: every interactive path must preserve a stable visible state from click until resolved content is ready.
+9. Immediate response: every interaction must produce a visible acknowledgement on the same surface without waiting for the fetch to finish.
+10. Measurement before ego: if a path claims to be elite, it needs a route note, a video-reviewed pass, and an honest justification for any exception.
 
 ## Validation Notes
 
