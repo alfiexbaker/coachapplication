@@ -7,12 +7,14 @@ Rule: active work only. Completed sprint rows are intentionally removed.
 
 | ID | Exactly what it does | Spine(s) | Status |
 | -- | -------------------- | -------- | ------ |
-| UI-LOAD-01 | Build the hard loading contract and shared primitives: one loading architecture, retained-data refresh behavior, premium fail conditions, and zero tolerance for fake or generic placeholders on hot paths. | Booking, Availability and Revenue + Community and Growth + Development and Analytics | READY |
-| UI-LOAD-02 | Fix the biggest lie in the app first: Bookings and Discover must stop showing generic or reset-heavy loading states and must render truthful, section-specific placeholders that match the real cards and counts. | Booking, Availability and Revenue + Community and Growth | READY |
-| UI-LOAD-03 | Make segmented and tabbed detail surfaces behave like a serious product: profile, roster, and similar panes stay warm, preserve loaded data, and never blank the viewport on simple tab changes. | Development and Analytics + Booking, Availability and Revenue | READY |
-| UI-LOAD-04 | Rebuild feed-style surfaces for premium perceived speed: home, feed, coach updates, and community surfaces need virtualization, section retention, and loading that does not fight fast flicking. | Community and Growth + Development and Analytics | READY |
-| UI-LOAD-05 | Bring schedule, events, club, and calendar surfaces up to the same standard: no brochure skeletons, no cold resets, no slow mixed scroll stacks pretending to be fine. | Community and Growth + Booking, Availability and Revenue | OPEN |
-| UI-LOAD-06 | Sweep the remaining bespoke loaders, wire enforcement into docs and audits, and fail any surface that still uses loading behavior that looks improvised or cheap. | Development and Analytics + Trust, Safety and Operations | OPEN |
+| UI-LOAD-01 | Build the hard loading contract and route-coverage gate: shared primitives, retained-data refresh behavior, premium fail conditions, and a mandatory classification for every route (`warm-first`, `section-skeleton`, `submit-only`, or `static`). | Booking, Availability and Revenue + Community and Growth + Development and Analytics | READY |
+| UI-LOAD-02 | Fix the commerce journey end to end: Bookings, Discover, booking funnel, booking detail/cancel, session invites, session completion/notes, and adjacent review flows must stop using generic or reset-heavy loading. | Booking, Availability and Revenue | READY |
+| UI-LOAD-03 | Rebuild social and communication surfaces for premium perceived speed: home, feed, coach updates, community, messages, and related post/detail flows need truthful section loading and warm revisits. | Community and Growth + Development and Analytics | READY |
+| UI-LOAD-04 | Make profile and roster detail surfaces behave like a serious product: coach, athlete, public profile, roster, compare, and other segmented panes stay warm and never blank on tab changes. | Development and Analytics + Booking, Availability and Revenue | READY |
+| UI-LOAD-05 | Bring club, schedule, events, and calendar surfaces up to the same standard: no brochure skeletons, no cold resets, and no time-based screens loading like generic lists. | Community and Growth + Booking, Availability and Revenue | READY |
+| UI-LOAD-06 | Fix trust-sensitive and family surfaces: family, child, health, emergency, medical, verification, and related safeguarding-adjacent paths need strict, truthful, non-chaotic loading behavior. | Trust, Safety and Operations + Development and Analytics | READY |
+| UI-LOAD-07 | Bring development and training surfaces to the same bar: drills, goals, badges, results program, progress loop, media gallery, videos, group sessions, matches, and athlete development paths must stop feeling second-class. | Development and Analytics + Community and Growth | OPEN |
+| UI-LOAD-08 | Sweep ops, settings, finance, admin, and enforcement: availability, settings, invoices, payments, earnings, club setup/admin, manage, and remaining async routes must be classified and upgraded or explicitly marked static. | Trust, Safety and Operations + Booking, Availability and Revenue + Development and Analytics | OPEN |
 | PROD-VERIFY-01 | Rehearse the production db-backed runtime end to end: release preflight, web export, UI flows, and the remaining non-mock critical journeys; fix code-path drift and leave only real env/provisioning blockers. | Trust/Safety/Ops + Booking/Revenue + Development | READY |
 
 ## Execution Order
@@ -23,7 +25,9 @@ Rule: active work only. Completed sprint rows are intentionally removed.
 4. `UI-LOAD-04`
 5. `UI-LOAD-05`
 6. `UI-LOAD-06`
-7. `PROD-VERIFY-01`
+7. `UI-LOAD-07`
+8. `UI-LOAD-08`
+9. `PROD-VERIFY-01`
 
 ## Sprint Intent
 
@@ -39,6 +43,25 @@ Rule: active work only. Completed sprint rows are intentionally removed.
 - If a feed-style surface still relies on a generic `ScrollView` without a strong reason, it is a failure.
 - If loading looks decorative instead of truthful, it is a failure.
 
+## Recursive Coverage Gate
+
+- Current route inventory:
+  - `190` route files under `app/`
+  - `53` routes with no explicit loading signal found at the route file level
+  - `96` routes that use `ScrollView` without list virtualization at the route file level
+  - `16` tabbed or segmented routes
+  - `52` app/component files using `ActivityIndicator`
+- Closure rule:
+  - every route must be explicitly classified as one of:
+    - `warm-first`: existing data stays visible while refresh happens
+    - `section-skeleton`: only the unresolved section uses a truthful placeholder
+    - `submit-only`: no entry skeleton; only action-progress/loading affordance is needed
+    - `static`: no async loading contract required
+  - no async route is allowed to remain “implicitly handled”
+- Reality check:
+  - the previous sprint pack covered the hot surfaces, but it did not yet prove route-by-route closure for booking funnel, trust/family, development/training, or ops/settings families
+  - `UI-LOAD-01` must produce the classification and implementation gate before later slices can honestly claim full coverage
+
 ## Sprint Notes
 
 ### `UI-LOAD-01`
@@ -48,20 +71,24 @@ Rule: active work only. Completed sprint rows are intentionally removed.
   - Extend `hooks/use-screen.ts` and `hooks/use-screen-core.ts` so screens can keep previous data visible during focus refresh, event refresh, and retry paths.
   - Define the non-negotiable fidelity rule: a placeholder must be a layout twin of the surface it replaces.
   - Remove the ability for hot screens to hide behind a generic fallback when a screen-specific loading recipe is required.
+  - Create and enforce the route classification rule so every async route has an explicit loading strategy.
 - Touch first:
   - `hooks/use-screen.ts`
   - `hooks/use-screen-core.ts`
   - `components/ui/screen-states.tsx`
   - `components/ui/screen-states-sections.tsx`
   - `components/ui/skeleton.tsx`
+  - `docs/ui/loading-error-empty-state-matrix.md`
 - Acceptance:
   - Full-screen loading only happens on true first load with no prior data.
   - Shared loading recipes exist for feed, card grid, detail hero, form, schedule, and tab-pane sections.
   - Migrated screens can render stale data with a silent refresh path instead of dropping back to a blank loader.
   - A screen cannot claim compliance unless its loading recipe and loaded recipe share the same container density and hierarchy.
+  - Every later sprint slice inherits a route list or route family list; no “catch-all later” language is allowed without named paths.
 - Hard fail if:
   - Any hot-path surface still requires both `LoadingState` and a bespoke inline spinner to feel complete.
   - The shared system cannot express section-level loading without blanking the whole screen.
+  - The route tree still contains async paths that are unclassified when `UI-LOAD-01` closes.
 - Verify:
   - `npm run typecheck`
   - `npm run test:compile`
@@ -74,8 +101,25 @@ Rule: active work only. Completed sprint rows are intentionally removed.
   - Ensure section-level placeholders use the same card families, chip rows, and list lengths that the loaded surface will use.
   - Remove tab-switch and pull-to-refresh blanking for the Bookings stack.
   - Treat these surfaces as premium retail surfaces: no fake density, no generic bars, no excuses.
+  - Cover the rest of the booking/session journey, not just the landing tab.
 - Touch first:
   - `app/(tabs)/bookings/index.tsx`
+  - `app/book-coach.tsx`
+  - `app/book/[coachId]/index.tsx`
+  - `app/book/[coachId]/details.tsx`
+  - `app/book/[coachId]/schedule.tsx`
+  - `app/book/[coachId]/session-type.tsx`
+  - `app/book/[coachId]/review.tsx`
+  - `app/book/[coachId]/multi-week.tsx`
+  - `app/(tabs)/bookings/[id].tsx`
+  - `app/booking/[id]/cancel.tsx`
+  - `app/session-invites/[id].tsx`
+  - `app/session-invites/index.tsx`
+  - `app/session/[id]/rsvp.tsx`
+  - `app/session/[id]/complete.tsx`
+  - `app/session-notes/[bookingId].tsx`
+  - `app/review/[bookingId].tsx`
+  - `app/rate-coach.tsx`
   - `components/bookings/discover-feed.tsx`
   - `components/bookings/BookingsList.tsx`
   - `hooks/use-bookings.ts`
@@ -88,6 +132,7 @@ Rule: active work only. Completed sprint rows are intentionally removed.
 - Hard fail if:
   - Switching between `My Sessions` and `Discover` causes a full repaint or blank shell.
   - Bookings shows a generic list skeleton while the real screen is a mixed filter-and-card composition.
+  - Any step in the book/session journey regresses to a dead spinner or blank route while moving between steps.
 - Verify:
   - `npm run typecheck`
   - `npm run test:compile`
@@ -98,57 +143,64 @@ Rule: active work only. Completed sprint rows are intentionally removed.
 ### `UI-LOAD-03`
 
 - Need:
-  - Stop segmented and profile tabs from cold-remounting and showing blank panes when the user already visited them.
-  - Make tab placeholders reflect the active pane only and reuse the same geometry as the eventual cards or lists.
-  - Remove bespoke loading state in tab content that bypasses `useScreen`.
-  - Preserve the illusion of immediacy: tab changes should feel like revealing already-owned UI, not navigating to another app.
+  - Rebuild social, home, and messaging surfaces so revisits feel immediate and feed rows load truthfully.
+  - Remove giant top-level resets from feed-like experiences.
+  - Replace decorative placeholders with row-accurate section loading.
 - Touch first:
-  - `app/(tabs)/coach-profile.tsx`
-  - `components/coach/profile-tabs.tsx`
-  - `components/coach/profile-tab-posts.tsx`
-  - `hooks/use-coach-profile.ts`
-  - `app/roster/[athleteId]/index.tsx`
-  - `components/athlete/athlete-sessions.tsx`
-- Acceptance:
-  - Coach and athlete tab switches preserve already-loaded panes.
-  - Tab content uses pane-specific placeholder geometry, not a generic full-screen detail loader.
-  - Ad hoc loading state in those surfaces is replaced or wrapped by the shared loading contract.
-  - Tab-local refresh does not blank sibling panes or reset the parent shell.
-- Hard fail if:
-  - Changing tabs flashes empty space before content appears.
-  - A tab that has already loaded still reruns a full-screen skeleton on a simple revisit.
-- Verify:
-  - `npm run typecheck`
-  - `npm run test:compile`
-  - `npm run ui:flows:coach-core`
-  - `npm run ui:flows:athlete-core`
-  - `git diff --check`
-
-### `UI-LOAD-04`
-
-- Need:
-  - Audit high-traffic lists and mixed `ScrollView` surfaces for virtualization, mount cost, and per-row animation overhead.
-  - Convert obvious list bottlenecks to tuned `FlatList` surfaces before introducing new list tech.
-  - Keep fast flicking smooth by reducing expensive loading effects and redundant re-renders in long lists.
-  - Fix the surfaces that users feel most often, not the ones that are easiest to patch.
-- Touch first:
+  - `app/(tabs)/index.tsx`
   - `app/(tabs)/feed.tsx`
+  - `app/(tabs)/messages.tsx`
+  - `app/community/index.tsx`
+  - `app/community/[groupId].tsx`
+  - `app/(modal)/post-detail.tsx`
+  - `app/(modal)/create-post.tsx`
+  - `app/(modal)/create-club-post.tsx`
   - `components/user/home-screen.tsx`
-  - `app/(tabs)/coach-profile.tsx`
-  - `components/community/*`
-  - `components/bookings/discover-sections.tsx`
+  - `components/coach/profile-tab-posts.tsx`
 - Acceptance:
-  - Feed-style surfaces keep scroll smooth under fast flicking and do not show expensive placeholder churn while cells enter view.
-  - Section placeholders are recycled or lightweight enough that they do not become the new performance problem.
-  - Home, feed, and coach/community update surfaces share one consistent loading language.
+  - Feed and messaging surfaces preserve visible content during refresh.
+  - Post, thread, and community list placeholders map to the loaded row or card shapes.
+  - Home/feed/community/messages share one coherent loading language instead of mixed generic variants and spinners.
 - Hard fail if:
-  - Long lists still use entry animations or heavyweight shimmer patterns that visibly fight scroll.
-  - A feed row skeleton does not match the loaded row spacing and media ratios.
+  - A feed row or chat/thread list still flashes empty before warmed data appears.
+  - Social surfaces still combine row skeletons with random spinners in the same viewport.
 - Verify:
   - `npm run typecheck`
   - `npm run test:compile`
   - `npm run ui:flows:coach-core`
   - `npm run ui:flows:parent-core`
+  - `git diff --check`
+
+### `UI-LOAD-04`
+
+- Need:
+  - Make segmented and comparison-heavy detail surfaces preserve loaded panes and act warm.
+  - Fix profile, roster, athlete detail, compare, and similar route families where tab switches or detail refreshes still feel cold.
+- Touch first:
+  - `app/(tabs)/coach-profile.tsx`
+  - `app/(tabs)/athletes.tsx`
+  - `app/roster/index.tsx`
+  - `app/roster/[athleteId]/index.tsx`
+  - `app/development/child-progress/[childId].tsx`
+  - `app/compare/index.tsx`
+  - `app/compare/[ids].tsx`
+  - `app/coach/[id].tsx`
+  - `app/coach/[coachId]/public.tsx`
+  - `app/profile/[userId].tsx`
+  - `components/coach/profile-tabs.tsx`
+  - `components/athlete/athlete-sessions.tsx`
+- Acceptance:
+  - Tab switches preserve pane state and do not blank the viewport.
+  - Detail screens keep stable hero and chrome while secondary panes refresh.
+  - Comparison and athlete-detail paths use pane-specific placeholders instead of generic detail loaders.
+- Hard fail if:
+  - A warmed profile or roster pane still reruns a cold full-screen loader.
+  - Segmented surfaces still act like separate page navigations under the hood.
+- Verify:
+  - `npm run typecheck`
+  - `npm run test:compile`
+  - `npm run ui:flows:coach-core`
+  - `npm run ui:flows:athlete-core`
   - `git diff --check`
 
 ### `UI-LOAD-05`
@@ -163,6 +215,10 @@ Rule: active work only. Completed sprint rows are intentionally removed.
   - `app/events/[id].tsx`
   - `app/club/[id].tsx`
   - `app/club/[clubId]/calendar.tsx`
+  - `app/(tabs)/schedule.tsx`
+  - `app/club/[id]/schedule.tsx`
+  - `app/club/squad/[id]/schedule.tsx`
+  - `app/club/training-schedule.tsx`
 - Acceptance:
   - Schedule and event placeholders reflect the real time-grid, card, or agenda structure that loads afterward.
   - Club and event surfaces preserve headers and already-loaded sections during refresh.
@@ -180,20 +236,99 @@ Rule: active work only. Completed sprint rows are intentionally removed.
 ### `UI-LOAD-06`
 
 - Need:
-  - Sweep remaining bespoke loaders and wrappers that still drift from the shared fidelity contract.
-  - Align docs and lightweight audits with the new loading expectations so regressions are easier to spot.
-  - Prepare the app for a more honest `PROD-VERIFY-01` run with launch-grade perceived performance.
+  - Fix trust-sensitive and family surfaces where loading mistakes are especially costly to user confidence.
+  - Remove cold resets and generic placeholders from medical, emergency, family, child, and verification surfaces.
+  - Keep these surfaces calm, truthful, and low-chaos even when data is partial or refreshing.
 - Touch first:
-  - Remaining screens found by loader audit
+  - `app/family/index.tsx`
+  - `app/family/calendar.tsx`
+  - `app/family/recurring.tsx`
+  - `app/family/sharing.tsx`
+  - `app/family/spending.tsx`
+  - `app/child/[id]/medical.tsx`
+  - `app/child/[id]/emergency.tsx`
+  - `app/roster/[athleteId]/health.tsx`
+  - `app/roster/[athleteId]/emergency.tsx`
+  - `app/health/index.tsx`
+  - `app/health/[id].tsx`
+  - `app/health/injuries.tsx`
+  - `app/verification/index.tsx`
+  - `app/verification/background.tsx`
+  - `app/verification/credentials.tsx`
+  - `app/verification/id.tsx`
+  - `app/verification/insurance.tsx`
+- Acceptance:
+  - Trust/family surfaces use stable shells and truthful section loading instead of abrupt full resets.
+  - Verification and medical flows avoid mixed, noisy loading affordances.
+  - These surfaces feel reliable and calm, not theatrical.
+- Hard fail if:
+  - Any trust-sensitive screen flashes blank after prior data was shown.
+  - A medical or verification route still looks like a generic settings page during load.
+- Verify:
+  - `npm run typecheck`
+  - `npm run test:compile`
+  - `npm run ui:flows:parent-core`
+  - `npm run ui:flows:trust-core`
+  - `git diff --check`
+
+### `UI-LOAD-07`
+
+- Need:
+  - Bring development and training surfaces to the same premium bar.
+  - Remove second-class loading from drills, goals, badges, results program, progress loop, media, video, group session, and match flows.
+- Touch first:
+  - `app/drills/*`
+  - `app/goals/*`
+  - `app/badges/index.tsx`
+  - `app/children/badges/[childId].tsx`
+  - `app/development/*`
+  - `app/results-program.tsx`
+  - `app/videos/[id].tsx`
+  - `app/videos/upload.tsx`
+  - `app/group-sessions/*`
+  - `app/matches/*`
+  - `app/athlete/journal.tsx`
+- Acceptance:
+  - Development and training surfaces no longer rely on generic list/detail placeholders where the real UI is richer.
+  - Results, drill, media, and progression surfaces feel as intentional as commerce and social surfaces.
+  - Video and media flows distinguish between entry loading, upload progress, and post-load state truthfully.
+- Hard fail if:
+  - Training and development screens still feel like an afterthought compared with Bookings or Feed.
+  - Upload/progress surfaces fake progress or use dead placeholders that do not match backend reality.
+- Verify:
+  - `npm run typecheck`
+  - `npm run test:compile`
+  - `npm run ui:flows:athlete-core`
+  - `npm run ui:flows:coach-core`
+  - `git diff --check`
+
+### `UI-LOAD-08`
+
+- Need:
+  - Sweep ops, settings, finance, admin, and the remaining async surfaces so route coverage is actually closed.
+  - Upgrade or explicitly classify availability, settings, invoices, payments, earnings, manage, club admin, and remaining form-heavy routes.
+  - Wire enforcement into docs and audits so regressions are easier to spot.
+- Touch first:
+  - `app/(tabs)/availability.tsx`
+  - `app/(tabs)/earnings.tsx`
+  - `app/earnings.tsx`
+  - `app/invoices/*`
+  - `app/payments/index.tsx`
+  - `app/settings/*`
+  - `app/manage/*`
+  - `app/(tabs)/admin/*`
+  - `app/club/create.tsx`
+  - `app/club/settings.tsx`
+  - `app/club/setup-complete.tsx`
   - `docs/ui/loading-error-empty-state-matrix.md`
   - any relevant UI audit script that can honestly enforce the new rules
 - Acceptance:
   - Shared loading rules are the default path across the active surfaces.
-  - Remaining exceptions are explicitly documented and narrow.
-  - The next production rehearsal runs against the intended loading UX, not transitional placeholders.
+  - Remaining exceptions are explicitly documented and truly static or submit-only.
+  - The route tree is closed: no async route remains unclassified at the end of this slice.
 - Hard fail if:
   - A new or existing surface can still bypass the shared rules without an explicit documented exception.
-  - The repo claims premium loading quality while any high-traffic screen still flashes blank between warm navigations.
+  - The repo claims premium loading quality while any high-traffic or async route family still flashes blank between warm navigations.
 - Verify:
   - `npm run typecheck`
   - `npm run test:compile`

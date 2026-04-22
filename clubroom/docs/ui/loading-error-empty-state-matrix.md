@@ -64,6 +64,20 @@ Source of truth:
 - Fail the surface if the shimmer, entry animation, or placeholder count is heavy enough to harm scroll performance.
 - Fail the surface if a long-list experience uses `ScrollView` without a deliberate reason grounded in low item count or non-feed structure.
 
+## Route Classification Rule
+
+- Every route must be explicitly classified as one of:
+  - `warm-first`
+    - already-loaded data stays visible while refresh happens
+  - `section-skeleton`
+    - only unresolved sections render truthful placeholders
+  - `submit-only`
+    - no entry skeleton; only action progress/loading affordances are needed
+  - `static`
+    - no async loading contract is required
+- No async route is allowed to remain unclassified.
+- A route is not “covered by the sprint plan” unless its classification and owning sprint are both explicit.
+
 ## Existing Screen Wrappers
 
 - `AnalyticsScreenState`
@@ -104,6 +118,7 @@ Source of truth:
 4. Warm navigation: revisiting a screen or tab should reveal retained content first and refresh second.
 5. Cheap motion: loading motion must be lightweight enough that scrolling still feels immediate.
 6. No fallback slop: if a surface needs a custom loading recipe, a generic `list` or `detail` variant is not good enough.
+7. Route closure: every async route must have an owning sprint or an explicit documented exception before the loading program can be called complete.
 
 ## Validation Notes
 
