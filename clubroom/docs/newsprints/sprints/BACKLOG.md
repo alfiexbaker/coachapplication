@@ -39,6 +39,7 @@ Rule: active work only. Completed sprint rows are intentionally removed.
 - If a surface has loaded once, dropping the whole screen back to a blank skeleton is a failure.
 - If a placeholder does not match the loaded layout family, it is a failure.
 - If a tab switch causes a visible white flash, empty pane, or full reset, it is a failure.
+- If a click path goes `click -> blank/flicker -> load -> show`, it is a failure.
 - If a long list stutters because the loading treatment is too heavy, it is a failure.
 - If a feed-style surface still relies on a generic `ScrollView` without a strong reason, it is a failure.
 - If loading looks decorative instead of truthful, it is a failure.
@@ -58,6 +59,7 @@ Rule: active work only. Completed sprint rows are intentionally removed.
     - `submit-only`: no entry skeleton; only action-progress/loading affordance is needed
     - `static`: no async loading contract required
   - no async route is allowed to remain “implicitly handled”
+  - every interactive async path must declare the visible transition sequence from click until resolved content is shown
 - Reality check:
   - the previous sprint pack covered the hot surfaces, but it did not yet prove route-by-route closure for booking funnel, trust/family, development/training, or ops/settings families
   - `UI-LOAD-01` must produce the classification and implementation gate before later slices can honestly claim full coverage
@@ -85,10 +87,12 @@ Rule: active work only. Completed sprint rows are intentionally removed.
   - Migrated screens can render stale data with a silent refresh path instead of dropping back to a blank loader.
   - A screen cannot claim compliance unless its loading recipe and loaded recipe share the same container density and hierarchy.
   - Every later sprint slice inherits a route list or route family list; no “catch-all later” language is allowed without named paths.
+  - The program defines and enforces visible transition rules so paths preserve a stable frame from click to resolved content.
 - Hard fail if:
   - Any hot-path surface still requires both `LoadingState` and a bespoke inline spinner to feel complete.
   - The shared system cannot express section-level loading without blanking the whole screen.
   - The route tree still contains async paths that are unclassified when `UI-LOAD-01` closes.
+  - The system still allows `click -> blank/flicker -> load -> show` on warmed paths.
 - Verify:
   - `npm run typecheck`
   - `npm run test:compile`

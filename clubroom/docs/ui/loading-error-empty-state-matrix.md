@@ -54,10 +54,27 @@ Source of truth:
 - If the app already has data for the surface, keep rendering that data while a refresh runs instead of replacing it with a blank placeholder.
 - Do not mix unrelated loading styles in one viewport, such as skeleton cards plus a random spinner that implies a different structure.
 
+## Anti-Flicker Transition Rule
+
+- Never ship this sequence:
+  - `click -> blank/flicker -> load -> show`
+- Default route transition rules:
+  - `warm-first`
+    - `click -> keep stable current frame or prior data -> show local loading affordance -> swap in refreshed content when ready`
+  - `section-skeleton`
+    - `click -> keep stable shell/header/chrome -> reveal truthful section placeholder only where data is missing -> fill section when ready`
+  - `submit-only`
+    - `click -> keep current form/screen visible -> show button/action progress -> resolve success or inline error`
+  - `cold-first`
+    - allowed only when there is no truthful prior frame to preserve
+    - `open -> immediate truthful skeleton in final layout geometry -> show content`
+- If the transition visibly flashes white, collapses layout, or swaps through an empty intermediate frame, it fails.
+
 ## Premium Failure Conditions
 
 - Fail the surface if it shows a full-screen skeleton after the user already saw loaded data there once.
 - Fail the surface if a segmented or tabbed switch shows empty space, white flash, or a cold reset.
+- Fail the surface if a click path goes through `blank/flicker -> load -> show` instead of keeping a stable shell or truthful placeholder visible.
 - Fail the surface if the loading state uses generic bars but the loaded UI is actually a mixed card, chip, hero, or timeline composition.
 - Fail the surface if the placeholder is denser or sparser than the final UI and therefore lies about what is coming.
 - Fail the surface if pull-to-refresh or focus refresh destroys stable chrome that could have stayed on screen.
@@ -119,6 +136,7 @@ Source of truth:
 5. Cheap motion: loading motion must be lightweight enough that scrolling still feels immediate.
 6. No fallback slop: if a surface needs a custom loading recipe, a generic `list` or `detail` variant is not good enough.
 7. Route closure: every async route must have an owning sprint or an explicit documented exception before the loading program can be called complete.
+8. Transition integrity: every interactive path must preserve a stable visible state from click until resolved content is ready.
 
 ## Validation Notes
 

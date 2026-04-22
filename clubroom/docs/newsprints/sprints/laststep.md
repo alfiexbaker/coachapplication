@@ -36,3 +36,4 @@ Date: 2026-04-20
 - The next release rehearsal should happen after the loading overhaul slices so UI-flow validation reflects launch-grade state transitions rather than transitional skeleton behavior.
 - The loading queue has been tightened again with premium failure conditions; the next implementation slice should treat any warm-navigation blanking or generic placeholder drift as a defect, not polish debt.
 - The route audit found `190` route files with `53` route-level files lacking explicit loading signals and `96` route-level `ScrollView`-only surfaces, so the loading program now requires explicit route classification before claiming full coverage.
+- The next implementation slice also needs to enforce transition integrity: no `click -> blank/flicker -> load -> show`; a stable shell, prior frame, or truthful placeholder must stay visible until resolved content is ready.
