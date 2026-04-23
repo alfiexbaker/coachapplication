@@ -13,15 +13,15 @@ Date: 2026-04-23
 
 - `npm run typecheck` -> PASS
 - `npm run test:compile` -> PASS
-- `npm run ui:flows:coach-core` -> BLOCKED (`base_url_unreachable: TypeError: fetch failed` against `http://localhost:8083`)
-- `npm run ui:flows:parent-core` -> BLOCKED (`base_url_unreachable: TypeError: fetch failed` against `http://localhost:8083`)
+- `npm run ui:flows:coach-core` -> PASS (`11/11`, `0` high, `0` medium)
+- `npm run ui:flows:parent-core` -> PASS (`12/12`, `0` high, `0` medium)
 - `git diff --check` -> PASS
 
 ## Current State
 
 - Home and community now honor the anti-flicker contract more strictly: home commits profile switches as one page frame instead of letting chrome outrun data, and group detail no longer shows stale manage affordances while the next group is unresolved.
 - The shared screen-state foundation now supports keyed retained frames, so later slices can preserve or hydrate the requested truthful frame instead of guessing based on any visible success state.
-- The remaining premium-risk gap is still honest live rehearsal: the role UI checks could not run because the expected local app server on `http://localhost:8083` was unavailable during this step.
+- The previously blocked live role rehearsals now run clean against Expo web on `http://localhost:8083`, so the next slice can start from a green validation baseline instead of an environment excuse.
 
 ## Next Exact Action
 
