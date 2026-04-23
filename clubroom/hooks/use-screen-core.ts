@@ -27,6 +27,7 @@ export interface FocusRefetchOptions {
 
 export interface ScreenPendingStateOptions {
   hasTruthfulFrame: boolean;
+  hasRequestedTruthfulFrame?: boolean;
   mode: ScreenLoadMode;
   strategy: ScreenLoadingStrategy;
 }
@@ -83,10 +84,13 @@ export function deriveScreenPendingState(
 ): ScreenPendingState {
   const preservesVisibleState = shouldPreserveVisibleState(options);
   const blocking = options.mode !== 'silent' && !preservesVisibleState;
+  const hasRequestedTruthfulFrame =
+    options.hasRequestedTruthfulFrame ?? options.hasTruthfulFrame;
   const shouldShowSectionSkeleton =
     options.strategy === 'section-skeleton' &&
     options.mode !== 'silent' &&
-    !blocking;
+    !blocking &&
+    !hasRequestedTruthfulFrame;
   const shouldShowSubmitProgress =
     options.strategy === 'submit-only' &&
     options.mode !== 'silent' &&

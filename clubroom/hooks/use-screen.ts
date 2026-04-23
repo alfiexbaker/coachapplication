@@ -42,6 +42,12 @@ import type { EventPayloads } from '@/services/event-bus';
 import type { Result, ServiceError } from '@/types/result';
 
 export type ScreenStatus = CoreScreenStatus;
+type TruthfulScreenStatus = Extract<ScreenStatus, 'empty' | 'success'>;
+
+interface ScreenSnapshot<T> {
+  data: T;
+  status: TruthfulScreenStatus;
+}
 
 export interface UseScreenOptions<T> {
   /** Async function that returns a Result<T>. Called on mount and on refresh. */
@@ -58,6 +64,8 @@ export interface UseScreenOptions<T> {
   loadTimeoutMs?: number;
   /** Declares whether refreshed content should preserve the current frame or block on load. */
   loadingStrategy?: ScreenLoadingStrategy;
+  /** Logical identity for the requested data so warmed routes can hydrate the right truthful frame. */
+  dataKey?: string | null;
 }
 
 export interface UseScreenResult<T> {
@@ -79,6 +87,9 @@ export interface UseScreenResult<T> {
   showSectionSkeleton: boolean;
   showSubmitProgress: boolean;
   loadingStrategy: ScreenLoadingStrategy;
+  requestedDataKey: string | null;
+  resolvedDataKey: string | null;
+  hasRequestedTruthfulFrame: boolean;
 }
 
 export function useScreen<T>(options: UseScreenOptions<T>): UseScreenResult<T> {
@@ -90,6 +101,7 @@ export function useScreen<T>(options: UseScreenOptions<T>): UseScreenResult<T> {
     refetchOnFocus = false,
     loadTimeoutMs = 10_000,
     loadingStrategy = 'cold-first',
+    dataKey = null,
   } = options;
 
   const [data, setData] = useState<T | null>(null);
@@ -101,6 +113,7 @@ export function useScreen<T>(options: UseScreenOptions<T>): UseScreenResult<T> {
     createIdlePendingState(loadingStrategy),
   );
   const [hasResolvedOnce, setHasResolvedOnce] = useState(false);
+  const [resolvedDataKey, setResolvedDataKey] = useState<string | null>(null);
 
   // Theme
   const scheme: ThemeName = useColorScheme() ?? 'dark';
@@ -110,10 +123,16 @@ export function useScreen<T>(options: UseScreenOptions<T>): UseScreenResult<T> {
   const mountedRef = useRef(true);
   const hasLoadedOnceRef = useRef(false);
   const statusRef = useRef<ScreenStatus>('loading');
+  const resolvedDataKeyRef = useRef<string | null>(null);
+  const snapshotCacheRef = useRef<Map<string, ScreenSnapshot<T>>>(new Map());
 
   useEffect(() => {
     statusRef.current = status;
   }, [status]);
+
+  useEffect(() => {
+    resolvedDataKeyRef.current = resolvedDataKey;
+  }, [resolvedDataKey]);
 
   useEffect(() => {
     return () => {
@@ -123,9 +142,30 @@ export function useScreen<T>(options: UseScreenOptions<T>): UseScreenResult<T> {
 
   const fetchData = useCallback(async (mode: ScreenLoadMode = 'initial') => {
     const currentStatus = statusRef.current;
-    const hasTruthfulFrame = isTruthfulScreenStatus(currentStatus);
+    const requestedDataKey = dataKey ?? null;
+    const cachedSnapshot =
+      requestedDataKey !== null ? snapshotCacheRef.current.get(requestedDataKey) ?? null : null;
+    const hasVisibleTruthfulFrame = isTruthfulScreenStatus(currentStatus) || cachedSnapshot !== null;
+    const hasRequestedTruthfulFrame =
+      requestedDataKey === null ||
+      resolvedDataKeyRef.current === requestedDataKey ||
+      cachedSnapshot !== null;
+
+    if (cachedSnapshot) {
+      setData(cachedSnapshot.data);
+      setStatus(cachedSnapshot.status);
+      setError(null);
+      setSilentError(null);
+      if (resolvedDataKeyRef.current !== requestedDataKey) {
+        resolvedDataKeyRef.current = requestedDataKey;
+        setResolvedDataKey(requestedDataKey);
+      }
+      setHasResolvedOnce(true);
+    }
+
     const nextPendingState = deriveScreenPendingState({
-      hasTruthfulFrame,
+      hasTruthfulFrame: hasVisibleTruthfulFrame,
+      hasRequestedTruthfulFrame,
       mode,
       strategy: loadingStrategy,
     });
@@ -155,7 +195,8 @@ export function useScreen<T>(options: UseScreenOptions<T>): UseScreenResult<T> {
       if (!timeoutResult.success) {
         if (
           shouldSurfaceBackgroundFailure({
-            hasTruthfulFrame,
+            hasTruthfulFrame: hasVisibleTruthfulFrame,
+            hasRequestedTruthfulFrame,
             mode,
             strategy: loadingStrategy,
             pendingState: nextPendingState,
@@ -174,7 +215,8 @@ export function useScreen<T>(options: UseScreenOptions<T>): UseScreenResult<T> {
       if (!result.success) {
         if (
           shouldSurfaceBackgroundFailure({
-            hasTruthfulFrame,
+            hasTruthfulFrame: hasVisibleTruthfulFrame,
+            hasRequestedTruthfulFrame,
             mode,
             strategy: loadingStrategy,
             pendingState: nextPendingState,
@@ -190,16 +232,31 @@ export function useScreen<T>(options: UseScreenOptions<T>): UseScreenResult<T> {
       }
 
       const resultData = result.data;
+      const nextStatus = deriveScreenStatus(resultData, isEmpty);
       setData(resultData);
-      setStatus(deriveScreenStatus(resultData, isEmpty));
+      setStatus(nextStatus);
       setError(null);
       setSilentError(null);
+      if (requestedDataKey !== null) {
+        snapshotCacheRef.current.set(requestedDataKey, {
+          data: resultData,
+          status: nextStatus,
+        });
+        if (resolvedDataKeyRef.current !== requestedDataKey) {
+          resolvedDataKeyRef.current = requestedDataKey;
+          setResolvedDataKey(requestedDataKey);
+        }
+      } else if (resolvedDataKeyRef.current !== null) {
+        resolvedDataKeyRef.current = null;
+        setResolvedDataKey(null);
+      }
     } catch (loadError) {
       if (!mountedRef.current) return;
       const normalizedError = normalizeUnknownError(loadError);
       if (
         shouldSurfaceBackgroundFailure({
-          hasTruthfulFrame,
+          hasTruthfulFrame: hasVisibleTruthfulFrame,
+          hasRequestedTruthfulFrame,
           mode,
           strategy: loadingStrategy,
           pendingState: nextPendingState,
@@ -221,7 +278,7 @@ export function useScreen<T>(options: UseScreenOptions<T>): UseScreenResult<T> {
       hasLoadedOnceRef.current = true;
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [...deps, loadTimeoutMs, loadingStrategy]);
+  }, [...deps, dataKey, loadTimeoutMs, loadingStrategy]);
 
   // Initial load + deps change
   useEffect(() => {
@@ -263,6 +320,9 @@ export function useScreen<T>(options: UseScreenOptions<T>): UseScreenResult<T> {
   }, [fetchData]);
 
   const hasTruthfulFrame = isTruthfulScreenStatus(status);
+  const requestedDataKey = dataKey ?? null;
+  const hasRequestedTruthfulFrame =
+    requestedDataKey === null || resolvedDataKey === requestedDataKey;
   const isPending = pendingState.mode !== null;
 
   return {
@@ -283,5 +343,8 @@ export function useScreen<T>(options: UseScreenOptions<T>): UseScreenResult<T> {
     showSectionSkeleton: pendingState.shouldShowSectionSkeleton,
     showSubmitProgress: pendingState.shouldShowSubmitProgress,
     loadingStrategy,
+    requestedDataKey,
+    resolvedDataKey,
+    hasRequestedTruthfulFrame,
   };
 }

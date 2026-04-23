@@ -31,6 +31,7 @@ Source of truth:
 
 - `useScreen` derives and manages this state machine
 - `useScreen.loadingStrategy` declares whether a route is `warm-first`, `section-skeleton`, `submit-only`, or `cold-first`
+- `useScreen.dataKey`, `requestedDataKey`, `resolvedDataKey`, and `hasRequestedTruthfulFrame` distinguish a visible truthful frame from the requested truthful frame
 - `useScreen.pendingState`, `showLoadingState`, `showSectionSkeleton`, and `showSubmitProgress` expose whether the next load should block, preserve truth, or localize the placeholder
 - use `silentError` for failed background refresh without dropping already-loaded data
 
@@ -70,8 +71,10 @@ Source of truth:
 - Default route transition rules:
   - `warm-first`
     - `click -> keep stable current frame or prior data -> show local loading affordance -> swap in refreshed content when ready`
+    - if the requested dependency frame is not ready yet, keep the committed frame mounted and acknowledge the transition inline until the next frame can commit atomically
   - `section-skeleton`
     - `click -> keep stable shell/header/chrome -> reveal truthful section placeholder only where data is missing -> fill section when ready`
+    - if the requested frame is already cached and visible, do not regress back to a dependency-change skeleton
   - `submit-only`
     - `click -> keep current form/screen visible -> show button/action progress -> resolve success or inline error`
   - `cold-first`
@@ -195,6 +198,7 @@ Source of truth:
 - The shared primitives are real and reusable today.
 - Social and communication hot paths now use retained-frame loading recipes in code: home, feed, messages, community, post detail, and post composers keep shell chrome stable and use inline progress or section-matched placeholders instead of full resets or spinner-only seams.
 - Shared skeleton recipes now consolidate around `components/ui/skeleton.tsx`, `components/ui/screen-states-sections.tsx`, and `components/primitives/surface-card.tsx` rather than separate shimmer implementations.
+- Shared keyed retained-frame support now lives in `useScreen`, so warmed routes can hydrate a truthful cached frame for the requested `dataKey`, and section-skeleton routes only skeletonize when the requested frame is still unresolved.
 - Route classification and hot-path review closure now live in `navigation/loading-route-manifest.js`, with repo-level coverage enforced by `scripts/loading-route-coverage-audit.js`.
 - Domain-specific wrappers exist, but the repo still has drift between shared loading variants and bespoke per-screen placeholders.
 - New work should consolidate toward the shared primitives above instead of adding another custom loading pattern.

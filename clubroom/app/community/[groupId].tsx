@@ -175,6 +175,7 @@ export default function GroupChatScreen() {
     pendingState,
     showLoadingState,
     showSectionSkeleton,
+    hasRequestedTruthfulFrame,
     isPending,
   } = useScreen<GroupChatData>({
     load: loadData,
@@ -183,11 +184,15 @@ export default function GroupChatScreen() {
     isEmpty: (value) => value.group === null,
     refetchOnFocus: true,
     loadingStrategy: 'section-skeleton',
+    dataKey: groupId ?? null,
   });
 
   const group = data?.group ?? null;
   const messages = data?.messages ?? [];
-  const isGroupChangePending = showSectionSkeleton && pendingState.mode === 'dependency-change';
+  const isGroupChangePending =
+    showSectionSkeleton &&
+    pendingState.mode === 'dependency-change' &&
+    !hasRequestedTruthfulFrame;
   const shouldShowGroupSkeleton = showLoadingState || isGroupChangePending;
 
   const handleSend = useCallback(async () => {
@@ -315,7 +320,7 @@ export default function GroupChatScreen() {
     return renderMainShell(
       <GroupChatSkeleton
         borderColor={palette.border}
-        showManageChrome={pendingState.mode === 'dependency-change' && canAccessManage}
+        showManageChrome={false}
       />,
     );
   }

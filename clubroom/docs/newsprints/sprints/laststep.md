@@ -1,13 +1,13 @@
 # Last Step Handoff
 
-Date: 2026-04-22
+Date: 2026-04-23
 
 ## What Was Just Done
 
-1. Completed `UI-LOAD-03` by moving the social, home, messaging, and community hot paths onto the shared anti-flicker loading system: `app/(tabs)/index.tsx`, `app/(tabs)/feed.tsx`, `app/(tabs)/messages.tsx`, `app/community/index.tsx`, `app/community/[groupId].tsx`, `app/(modal)/post-detail.tsx`, `app/(modal)/create-post.tsx`, `app/(modal)/create-club-post.tsx`, `components/user/home-screen.tsx`, `components/coach/profile-tab-posts.tsx`, `hooks/use-home-screen.ts`, `hooks/use-messages.ts`, `hooks/use-community-hub.ts`, and `hooks/use-post-detail.ts` now keep stable shell chrome mounted and stop falling back to generic reset-heavy loading.
-2. Added warm-first route adoption for feed, messages, and community hub plus section-scoped loading for group detail and post detail so revisits preserve truthful frames, only unresolved sections skeletonize, and submit-only composer flows acknowledge work inline instead of with dead spinners.
-3. Tightened the home-screen data path so profile-context changes now commit as one coherent frame instead of leaking partially swapped sections during load, and the loading matrix plus sprint queue now reflect that the social slice is closed.
-4. Updated the active sprint queue in `docs/newsprints/sprints/BACKLOG.md` and this handoff so the next slice starts from `UI-LOAD-04`.
+1. Hardened the shared loading foundation in `hooks/use-screen.ts` and `hooks/use-screen-core.ts` so routes can retain truthful snapshots by logical `dataKey`, distinguish the requested frame from the currently visible frame, and avoid showing dependency-change section skeletons when the requested frame is already cached.
+2. Rebuilt the home/profile hot path in `hooks/use-home-screen.ts` and `components/user/home-screen.tsx` around a single keyed page frame. Home now keeps one committed profile frame mounted, acknowledges profile switches inline, swaps to the next frame atomically when ready, and reverts global profile context if a retained-frame switch fails instead of leaving the UI and context out of sync.
+3. Fixed `app/community/[groupId].tsx` so group dependency changes no longer leak stale manage authority in the pending skeleton. Group detail now uses the shared requested-frame check and only skeletonizes when the next group frame is genuinely unresolved.
+4. Updated `docs/ui/loading-error-empty-state-matrix.md` and this handoff so the canonical loading contract reflects the requested-vs-visible frame distinction before `UI-LOAD-04` starts.
 
 ## Verification Run In This Step
 
@@ -19,9 +19,9 @@ Date: 2026-04-22
 
 ## Current State
 
-- Feed, messages, community, home, post detail, and coach-post composer surfaces now use a consistent retained-frame loading language: no generic full-screen list resets on warmed paths, no mixed spinner-plus-skeleton viewports, and no redirect blank between composer entry and club-post handoff.
-- Home now preserves shell truth while profile-specific sections resolve, feed and messages keep stable tab chrome visible during revisit/refresh, and post/community detail routes skeletonize only the unresolved thread/chat section instead of wiping the whole screen.
-- The remaining premium-risk gap is still honest route-flow rehearsal: the role UI checks could not run because the expected local app server on `http://localhost:8083` was unavailable during this slice.
+- Home and community now honor the anti-flicker contract more strictly: home commits profile switches as one page frame instead of letting chrome outrun data, and group detail no longer shows stale manage affordances while the next group is unresolved.
+- The shared screen-state foundation now supports keyed retained frames, so later slices can preserve or hydrate the requested truthful frame instead of guessing based on any visible success state.
+- The remaining premium-risk gap is still honest live rehearsal: the role UI checks could not run because the expected local app server on `http://localhost:8083` was unavailable during this step.
 
 ## Next Exact Action
 

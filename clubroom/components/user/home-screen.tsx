@@ -225,7 +225,6 @@ export function UserHomeScreen() {
     currentUser,
     refreshing,
     loading,
-    showSectionSkeleton,
     error,
     recentBadges,
     clubs,
@@ -241,6 +240,9 @@ export function UserHomeScreen() {
     upcomingBookings,
     hasChildProfiles,
     contextChildren,
+    isProfileTransitionPending,
+    profileTransitionLabel,
+    disableContentInteraction,
   } = useHomeScreen();
 
   const nextSession = upcomingBookings[0];
@@ -261,17 +263,7 @@ export function UserHomeScreen() {
 
   if (!currentUser) return null;
 
-  const showHomeDataSkeleton = loading || showSectionSkeleton;
-  const showOptionalSections = showSectionSkeleton;
-  const showStreakSkeleton = loading ? false : Boolean(streakInfo);
-  const showRecentResultsSkeleton =
-    loading ? false : recentResults.length > 0;
-  const showClubHighlightsSkeleton =
-    loading ? false : clubHighlights.length > 0;
-  const showRecentBadgesSkeleton =
-    loading ? false : recentBadges.length > 0;
-  const showClubsSkeleton =
-    loading ? false : clubs.length > 0;
+  const showHomeDataSkeleton = loading;
   const profileName = isViewingSelfProfile
     ? currentUser.name || currentUser.fullName || 'You'
     : selectedChild?.name || 'Child';
@@ -331,11 +323,14 @@ export function UserHomeScreen() {
                 <Clickable
                   onPress={handleToggleSelfChildProfile}
                   accessibilityLabel="Switch between your profile and active child"
+                  disabled={isProfileTransitionPending}
                   style={[styles.addChildMiniButton, { backgroundColor: withAlpha(palette.tint, 0.08) }]}
                 >
                   <Ionicons name="swap-horizontal-outline" size={16} color={palette.tint} />
                   <ThemedText style={[styles.addChildMiniLabel, { color: palette.tint }]}>
-                    {isViewingSelfProfile
+                    {isProfileTransitionPending
+                      ? profileTransitionLabel
+                      : isViewingSelfProfile
                       ? `Switch to ${selectedChild.name}`
                       : `Switch to ${(currentUser.name || currentUser.fullName || 'You').split(' ')[0]}`}
                   </ThemedText>
@@ -400,27 +395,36 @@ export function UserHomeScreen() {
           />
         ) : null}
 
-        {showHomeDataSkeleton ? (
-          <HomeDataSkeleton
-            showProgress={showSectionSkeleton}
-            showStreak={showOptionalSections && showStreakSkeleton}
-            showRecentResults={showOptionalSections && showRecentResultsSkeleton}
-            showClubHighlights={showOptionalSections && showClubHighlightsSkeleton}
-            showRecentBadges={showOptionalSections && showRecentBadgesSkeleton}
-            showClubs={showOptionalSections && showClubsSkeleton}
-          />
-        ) : (
-          <>
-            <StatsRow stats={stats} />
-            {streakInfo && <StreakCard streakInfo={streakInfo} />}
-            <QuickActionsGrid />
-            <NextSessionCard booking={nextSession} />
-            <RecentResultsSection results={recentResults} />
-            <ClubHighlightsSection highlights={clubHighlights} />
-            <RecentBadgesSection badges={recentBadges} />
-            <MyClubsSection clubs={clubs} />
-          </>
-        )}
+        {isProfileTransitionPending ? (
+          <SubmitProgressState label={profileTransitionLabel} style={styles.progressState} />
+        ) : null}
+
+        <View
+          style={[styles.dataStage, disableContentInteraction ? styles.dataStagePending : null]}
+          pointerEvents={disableContentInteraction ? 'none' : 'auto'}
+        >
+          {showHomeDataSkeleton ? (
+            <HomeDataSkeleton
+              showProgress={false}
+              showStreak={false}
+              showRecentResults={false}
+              showClubHighlights={false}
+              showRecentBadges={false}
+              showClubs={false}
+            />
+          ) : (
+            <>
+              <StatsRow stats={stats} />
+              {streakInfo && <StreakCard streakInfo={streakInfo} />}
+              <QuickActionsGrid />
+              <NextSessionCard booking={nextSession} />
+              <RecentResultsSection results={recentResults} />
+              <ClubHighlightsSection highlights={clubHighlights} />
+              <RecentBadgesSection badges={recentBadges} />
+              <MyClubsSection clubs={clubs} />
+            </>
+          )}
+        </View>
       </ScrollView>
     </SafeAreaView>
   );
@@ -492,6 +496,12 @@ const styles = StyleSheet.create({
   },
   flex: {
     flex: 1,
+  },
+  dataStage: {
+    gap: Spacing.sm,
+  },
+  dataStagePending: {
+    opacity: 0.88,
   },
   progressState: {
     marginBottom: Spacing.xs,

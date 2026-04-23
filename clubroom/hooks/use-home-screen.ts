@@ -1,7 +1,7 @@
 /**
  * useHomeScreen — Data loading and state for the athlete/parent home screen.
  */
-import { useState, useCallback, useEffect, useMemo, useRef } from 'react';
+import { useState, useCallback, useEffect, useMemo } from 'react';
 import { useAuth } from '@/hooks/use-auth';
 import { useChildContext } from '@/hooks/use-child-context';
 import { badgeService } from '@/services/badge-service';
@@ -12,6 +12,8 @@ import { bookingService } from '@/services/booking-service';
 import { ensureProgressDemoSeeded } from '@/services/progress/progress-demo-seed-lazy-service';
 import { ensureRelationalDemoSeeded } from '@/services/relational-demo-seed-service';
 import { onTyped, ServiceEvents } from '@/services/event-bus';
+import { useScreen } from '@/hooks/use-screen';
+import { err, ok, serviceError } from '@/types/result';
 import { createLogger } from '@/utils/logger';
 import type { BadgeAward, Club, ClubFeedPost } from '@/constants/types';
 import type { Booking } from '@/constants/app-types';
@@ -41,6 +43,38 @@ export interface HomeClubHighlight {
   body: string;
   createdAt: string;
   postType?: ClubFeedPost['postType'];
+}
+
+export interface HomeStats {
+  sessions: number;
+  badges: number;
+  level: number;
+}
+
+export interface HomeStreakInfo {
+  currentStreak: number;
+  nextMilestone: number;
+  daysToNextMilestone: number;
+  streakLabel: string;
+}
+
+interface HomeProfileFrame {
+  dataKey: string;
+  mode: 'self' | 'child';
+  subjectId: string | null;
+  selectedChildId: string | null;
+  selectedChild: ChildInfo | null;
+}
+
+interface HomeFrameData {
+  profile: HomeProfileFrame;
+  recentBadges: BadgeAward[];
+  clubs: Club[];
+  recentResults: HomeResult[];
+  clubHighlights: HomeClubHighlight[];
+  upcomingBookings: Booking[];
+  stats: HomeStats;
+  streakInfo: HomeStreakInfo | null;
 }
 
 interface BuildHomeSeedTargetsInput {
@@ -142,6 +176,19 @@ export function deduplicateBookings(
   return rows;
 }
 
+function createEmptyHomeFrame(profile: HomeProfileFrame): HomeFrameData {
+  return {
+    profile,
+    recentBadges: [],
+    clubs: [],
+    recentResults: [],
+    clubHighlights: [],
+    upcomingBookings: [],
+    stats: { sessions: 0, badges: 0, level: 1 },
+    streakInfo: null,
+  };
+}
+
 export function useHomeScreen() {
   const { currentUser } = useAuth();
   const {
@@ -156,25 +203,6 @@ export function useHomeScreen() {
     selfProfileSelectionLoaded,
     loading: childContextLoading,
   } = useChildContext();
-
-  const [refreshing, setRefreshing] = useState(false);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [recentBadges, setRecentBadges] = useState<BadgeAward[]>([]);
-  const [clubs, setClubs] = useState<Club[]>([]);
-  const [recentResults, setRecentResults] = useState<HomeResult[]>([]);
-  const [clubHighlights, setClubHighlights] = useState<HomeClubHighlight[]>([]);
-  const [upcomingBookings, setUpcomingBookings] = useState<Booking[]>([]);
-  const [stats, setStats] = useState({ sessions: 0, badges: 0, level: 1 });
-  const [streakInfo, setStreakInfo] = useState<{
-    currentStreak: number;
-    nextMilestone: number;
-    daysToNextMilestone: number;
-    streakLabel: string;
-  } | null>(null);
-  const [resolvedProfileDataKey, setResolvedProfileDataKey] = useState<string | null>(null);
-  const resolvedProfileDataKeyRef = useRef<string | null>(null);
-  const requestIdRef = useRef(0);
 
   const fallbackChildId = contextChildren[0]?.id ?? null;
   const hasChildProfiles = contextChildren.length > 0;
@@ -254,6 +282,18 @@ export function useHomeScreen() {
     [contextChildren, selectedChildId],
   );
   const isViewingSelfProfile = profileMode === 'self';
+  const contextChildrenSignature = useMemo(
+    () =>
+      contextChildren
+        .map(
+          (child) =>
+            `${child.id}:${child.name ?? ''}:${child.age ?? ''}:${child.avatarUrl ?? ''}:${child.colorCode ?? ''}`,
+        )
+        .join('|'),
+    [contextChildren],
+  );
+  const currentUserName = currentUser?.name || currentUser?.fullName || 'Athlete';
+  const currentUserSignature = `${currentUser?.id ?? 'anon'}:${currentUser?.role ?? 'guest'}:${currentUserName}`;
   const canSelfSwitchProfile = Boolean(
     !childContextLoading
       && selfProfileSelectionLoaded
@@ -328,17 +368,53 @@ export function useHomeScreen() {
     selfProfileSelectionLoaded,
   ]);
 
-  const athleteId = profileSubjectId || selectedChildId || fallbackChildId || currentUser?.id;
+  const requestedProfileChildId =
+    profileMode === 'child'
+      ? profileSubjectId && contextChildren.some((child) => child.id === profileSubjectId)
+        ? profileSubjectId
+        : selectedChildId ?? fallbackChildId
+      : selectedChildId ?? fallbackChildId;
+  const requestedSelectedChild = useMemo(
+    () => contextChildren.find((child) => child.id === requestedProfileChildId) ?? null,
+    [contextChildren, requestedProfileChildId],
+  );
+  const athleteId = profileMode === 'self'
+    ? currentUser?.id ?? null
+    : requestedProfileChildId ?? currentUser?.id ?? null;
   const profileDataKey = `${athleteId ?? 'none'}:${profileMode}:${profileSubjectId ?? 'none'}:${currentUser?.id ?? 'anon'}`;
-
-  const loadData = useCallback(async () => {
-    if (!athleteId) return;
-    const requestId = ++requestIdRef.current;
-    const isInitialLoad = resolvedProfileDataKeyRef.current === null;
-
-    setError(null);
-    if (isInitialLoad) {
-      setLoading(true);
+  const requestedProfileFrame = useMemo<HomeProfileFrame>(
+    () => ({
+      dataKey: profileDataKey,
+      mode: profileMode,
+      subjectId: profileSubjectId ?? null,
+      selectedChildId: requestedProfileChildId ?? null,
+      selectedChild: requestedSelectedChild ? { ...requestedSelectedChild } : null,
+    }),
+    [profileDataKey, profileMode, profileSubjectId, requestedProfileChildId, requestedSelectedChild],
+  );
+  const homeSeedTargets = useMemo(
+    () =>
+      buildHomeSeedTargets({
+        hasChildProfiles,
+        selectedChildId,
+        fallbackChildId,
+        contextChildren,
+        currentUserId: currentUser?.id,
+        currentUserName: currentUserName,
+      }),
+    [
+      contextChildren,
+      contextChildrenSignature,
+      currentUser?.id,
+      currentUserName,
+      fallbackChildId,
+      hasChildProfiles,
+      selectedChildId,
+    ],
+  );
+  const loadHomeFrame = useCallback(async () => {
+    if (!athleteId) {
+      return ok(createEmptyHomeFrame(requestedProfileFrame));
     }
 
     try {
@@ -346,16 +422,7 @@ export function useHomeScreen() {
         try {
           await ensureRelationalDemoSeeded();
 
-          const seedTargets = buildHomeSeedTargets({
-            hasChildProfiles,
-            selectedChildId,
-            fallbackChildId,
-            contextChildren,
-            currentUserId: currentUser?.id,
-            currentUserName: currentUser?.name || currentUser?.fullName,
-          });
-
-          for (const target of seedTargets) {
+          for (const target of homeSeedTargets) {
             const seedResult = await ensureProgressDemoSeeded(
               target.athleteId,
               target.athleteName,
@@ -430,23 +497,13 @@ export function useHomeScreen() {
         const role = hasChildProfiles ? 'parent' : 'athlete';
         const bookings = await bookingService.getBookingsForUser(currentUser.id, role);
         const now = Date.now();
-        const profileChildId =
-          profileMode === 'child' &&
-          profileSubjectId &&
-          contextChildren.some((child) => child.id === profileSubjectId)
-            ? profileSubjectId
-            : null;
-        const selectedFamilyChildId =
-          hasChildProfiles && profileMode === 'child'
-            ? profileChildId ?? selectedChildId ?? fallbackChildId
-            : null;
         const selfAthleteId = currentUser.id;
 
         nextUpcomingBookings = bookings
           .filter((booking) => {
             const isFuture = new Date(booking.scheduledAt).getTime() > now;
             const isConfirmed = booking.status === 'CONFIRMED';
-            if (hasChildProfiles && isViewingSelfProfile) {
+            if (hasChildProfiles && profileMode === 'self') {
               return (
                 isFuture &&
                 isConfirmed &&
@@ -454,92 +511,143 @@ export function useHomeScreen() {
                   booking.athleteIds?.includes(selfAthleteId))
               );
             }
-            if (!selectedFamilyChildId) {
+            if (!requestedProfileChildId) {
               return isFuture && isConfirmed;
             }
             return (
               isFuture &&
               isConfirmed &&
-              (booking.athleteId === selectedFamilyChildId ||
-                booking.athleteIds?.includes(selectedFamilyChildId))
+              (booking.athleteId === requestedProfileChildId ||
+                booking.athleteIds?.includes(requestedProfileChildId))
             );
           })
           .sort((a, b) => new Date(a.scheduledAt).getTime() - new Date(b.scheduledAt).getTime());
       }
 
-      if (requestId !== requestIdRef.current) {
-        return;
-      }
-
-      setRecentBadges(nextRecentBadges);
-      setClubs(userClubs);
-      setRecentResults(nextRecentResults);
-      setClubHighlights(nextClubHighlights);
-      setStats(nextStats);
-      setStreakInfo(nextStreakInfo);
-      setUpcomingBookings(nextUpcomingBookings);
-      resolvedProfileDataKeyRef.current = profileDataKey;
-      setResolvedProfileDataKey(profileDataKey);
-    } catch (err) {
-      if (requestId !== requestIdRef.current) {
-        return;
-      }
-      logger.error('Failed to load home data', err);
-      setError('Failed to load data. Pull down to refresh.');
-    } finally {
-      if (requestId === requestIdRef.current) {
-        setLoading(false);
-      }
+      return ok<HomeFrameData>({
+        profile: requestedProfileFrame,
+        recentBadges: nextRecentBadges,
+        clubs: userClubs,
+        recentResults: nextRecentResults,
+        clubHighlights: nextClubHighlights,
+        upcomingBookings: nextUpcomingBookings,
+        stats: nextStats,
+        streakInfo: nextStreakInfo,
+      });
+    } catch (loadError) {
+      logger.error('Failed to load home data', loadError);
+      return err(
+        serviceError('UNKNOWN', 'Failed to load data. Pull down to refresh.', loadError),
+      );
     }
   }, [
     athleteId,
-    contextChildren,
-    currentUser,
-    fallbackChildId,
+    currentUser?.id,
+    currentUser?.role,
     hasChildProfiles,
-    isViewingSelfProfile,
-    profileDataKey,
+    homeSeedTargets,
+    profileMode,
+    requestedProfileChildId,
+    requestedProfileFrame,
+  ]);
+  const {
+    data,
+    error,
+    silentError,
+    status,
+    refreshing,
+    pendingState,
+    isPending,
+    onRefresh,
+    showLoadingState,
+    hasRequestedTruthfulFrame,
+  } = useScreen<HomeFrameData>({
+    load: loadHomeFrame,
+    deps: [profileDataKey, currentUserSignature, contextChildrenSignature],
+    isEmpty: () => false,
+    refetchOnFocus: true,
+    loadingStrategy: 'warm-first',
+    dataKey: profileDataKey,
+  });
+  const visibleFrame = data ?? createEmptyHomeFrame(requestedProfileFrame);
+  const visibleProfile = visibleFrame.profile;
+  const requestedProfileName =
+    requestedProfileFrame.mode === 'self'
+      ? currentUser?.name || currentUser?.fullName || 'You'
+      : requestedProfileFrame.selectedChild?.name || 'Child';
+  const errorMessage = error?.message ?? silentError?.message ?? null;
+  const isProfileTransitionPending =
+    isPending &&
+    pendingState.mode === 'dependency-change' &&
+    !hasRequestedTruthfulFrame &&
+    status !== 'loading';
+  const disableContentInteraction = isProfileTransitionPending;
+
+  useEffect(() => {
+    if (!silentError || hasRequestedTruthfulFrame || !data) {
+      return;
+    }
+
+    const committedProfile = data.profile;
+    if (committedProfile.mode === 'self') {
+      if (profileMode !== 'self') {
+        void setProfileScope({ mode: 'self' });
+      }
+      return;
+    }
+
+    const committedChildId = committedProfile.selectedChildId ?? fallbackChildId;
+    if (!committedChildId) {
+      return;
+    }
+
+    if (selectedChildId !== committedChildId) {
+      setSelectedChildIdLocal(committedChildId);
+    }
+    if (contextActiveChildId !== committedChildId) {
+      void contextSetActiveChildId(committedChildId);
+    }
+    if (profileMode !== 'child' || profileSubjectId !== committedChildId) {
+      void setProfileScope({ mode: 'child', childId: committedChildId });
+    }
+  }, [
+    contextActiveChildId,
+    contextSetActiveChildId,
+    data,
+    fallbackChildId,
+    hasRequestedTruthfulFrame,
     profileMode,
     profileSubjectId,
     selectedChildId,
+    setProfileScope,
+    silentError,
   ]);
-
-  useEffect(() => {
-    loadData();
-  }, [loadData]);
-
-  const onRefresh = useCallback(async () => {
-    setRefreshing(true);
-    await loadData();
-    setRefreshing(false);
-  }, [loadData]);
 
   return {
     currentUser,
     refreshing,
-    loading,
-    showSectionSkeleton:
-      !loading &&
-      resolvedProfileDataKey !== null &&
-      resolvedProfileDataKey !== profileDataKey,
-    error,
-    recentBadges,
-    clubs,
-    recentResults,
-    clubHighlights,
-    stats,
-    streakInfo,
-    isViewingSelfProfile,
+    loading: showLoadingState,
+    error: errorMessage,
+    recentBadges: visibleFrame.recentBadges,
+    clubs: visibleFrame.clubs,
+    recentResults: visibleFrame.recentResults,
+    clubHighlights: visibleFrame.clubHighlights,
+    stats: visibleFrame.stats,
+    streakInfo: visibleFrame.streakInfo,
+    isViewingSelfProfile: visibleProfile.mode === 'self',
     canSelfSwitchProfile,
     selectedChildId,
-    selectedChild,
+    selectedChild: visibleProfile.selectedChild,
     setSelectedChildId,
     handleSelectNextChild,
     handleToggleSelfChildProfile,
     onRefresh,
-    upcomingBookings,
+    upcomingBookings: visibleFrame.upcomingBookings,
     isMultiChild,
     hasChildProfiles,
     contextChildren,
+    isProfileTransitionPending,
+    profileTransitionLabel: `Switching to ${requestedProfileName}`,
+    disableContentInteraction,
   };
 }
