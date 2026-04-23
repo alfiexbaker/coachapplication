@@ -39,7 +39,13 @@ interface GroupChatData {
   messages: GroupMessage[];
 }
 
-function GroupChatSkeleton({ borderColor }: { borderColor: string }) {
+function GroupChatSkeleton({
+  borderColor,
+  showManageChrome,
+}: {
+  borderColor: string;
+  showManageChrome: boolean;
+}) {
   return (
     <>
       <Row style={[styles.loadingHeader, { borderBottomColor: borderColor }]}>
@@ -52,31 +58,58 @@ function GroupChatSkeleton({ borderColor }: { borderColor: string }) {
       </Row>
 
       <View style={styles.loadingBody}>
-        <Row gap="xs" style={styles.loadingTabBar}>
-          <SkeletonPill width={72} accessibilityLabel="Loading chat tab" />
-          <SkeletonPill width={84} accessibilityLabel="Loading manage tab" />
-        </Row>
+        {showManageChrome ? (
+          <>
+            <Row gap="xs" style={styles.loadingTabBar}>
+              <SkeletonPill width={72} accessibilityLabel="Loading chat tab" />
+              <SkeletonPill width={84} accessibilityLabel="Loading manage tab" />
+            </Row>
 
-        <SurfaceCard style={styles.loadingSummaryCard}>
-          <SkeletonCluster gap={Spacing.sm} accessibilityLabel="Loading group summary">
-            <Skeleton width="32%" height={16} accessibilityLabel="Loading group summary heading" />
-            <SkeletonText
-              lines={3}
-              widths={['100%', '84%', '66%']}
-              accessibilityLabel="Loading group summary copy"
-            />
-          </SkeletonCluster>
-        </SurfaceCard>
+            <SurfaceCard style={styles.loadingSummaryCard}>
+              <SkeletonCluster gap={Spacing.sm} accessibilityLabel="Loading group summary">
+                <Skeleton width="32%" height={16} accessibilityLabel="Loading group summary heading" />
+                <SkeletonText
+                  lines={3}
+                  widths={['100%', '84%', '66%']}
+                  accessibilityLabel="Loading group summary copy"
+                />
+              </SkeletonCluster>
+            </SurfaceCard>
+          </>
+        ) : null}
 
         {Array.from({ length: 4 }).map((_, index) => (
-          <Row key={index} style={styles.loadingMessageRow}>
-            <SkeletonCircle size={36} accessibilityLabel={`Loading group avatar ${index + 1}`} />
-            <View style={styles.loadingMessageBubble}>
-              <SkeletonText
-                lines={3}
-                widths={['34%', '100%', '72%']}
-                accessibilityLabel={`Loading group message ${index + 1}`}
-              />
+          <Row
+            key={index}
+            style={[
+              styles.loadingMessageRow,
+              index % 3 === 2 ? styles.loadingOwnMessageRow : styles.loadingOtherMessageRow,
+            ]}
+          >
+            {index % 3 === 2 ? null : (
+              <SkeletonCircle size={36} accessibilityLabel={`Loading group avatar ${index + 1}`} />
+            )}
+            <View
+              style={[
+                styles.loadingMessageBubble,
+                index % 3 === 2
+                  ? styles.loadingOwnMessageBubble
+                  : styles.loadingOtherMessageBubble,
+              ]}
+            >
+              {index % 3 === 2 ? (
+                <SkeletonText
+                  lines={2}
+                  widths={['68%', '100%']}
+                  accessibilityLabel={`Loading own group message ${index + 1}`}
+                />
+              ) : (
+                <SkeletonText
+                  lines={3}
+                  widths={['34%', '100%', '72%']}
+                  accessibilityLabel={`Loading group message ${index + 1}`}
+                />
+              )}
             </View>
           </Row>
         ))}
@@ -279,7 +312,12 @@ export default function GroupChatScreen() {
   );
 
   if (shouldShowGroupSkeleton) {
-    return renderMainShell(<GroupChatSkeleton borderColor={palette.border} />);
+    return renderMainShell(
+      <GroupChatSkeleton
+        borderColor={palette.border}
+        showManageChrome={pendingState.mode === 'dependency-change' && canAccessManage}
+      />,
+    );
   }
 
   if (status === 'error') {
@@ -441,11 +479,24 @@ const styles = StyleSheet.create({
     alignItems: 'flex-start',
     gap: Spacing.sm,
   },
+  loadingOtherMessageRow: {
+    alignSelf: 'flex-start',
+  },
+  loadingOwnMessageRow: {
+    alignSelf: 'flex-end',
+  },
   loadingMessageBubble: {
-    flex: 1,
     borderRadius: Radii.card,
     paddingVertical: Spacing.sm,
     paddingHorizontal: Spacing.sm,
+  },
+  loadingOtherMessageBubble: {
+    flex: 1,
+    maxWidth: '82%',
+  },
+  loadingOwnMessageBubble: {
+    maxWidth: '70%',
+    minWidth: '44%',
   },
   loadingComposer: {
     marginTop: 'auto',

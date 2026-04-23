@@ -10,7 +10,14 @@ import { Clickable } from '@/components/primitives/clickable';
 import { ThemedText } from '@/components/themed-text';
 import { Spacing, Radii, Typography } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
-import { LoadingState, SubmitProgressState } from '@/components/ui/screen-states';
+import { SubmitProgressState } from '@/components/ui/screen-states';
+import {
+  Skeleton,
+  SkeletonCircle,
+  SkeletonCluster,
+  SkeletonPill,
+  SkeletonText,
+} from '@/components/ui/skeleton';
 
 interface PostData {
   id: string;
@@ -31,6 +38,48 @@ interface ProfileTabPostsProps {
   feedLoading?: boolean;
   onComposePress?: () => void;
   renderPostCard: (post: PostData) => React.ReactNode;
+}
+
+function ProfilePostSkeleton({
+  showMedia,
+  showContext,
+}: {
+  showMedia: boolean;
+  showContext: boolean;
+}) {
+  return (
+    <SurfaceCard style={styles.skeletonCard}>
+      <View style={styles.skeletonHeader}>
+        <SkeletonCircle size={40} accessibilityLabel="Loading profile post avatar" />
+        <View style={styles.skeletonHeaderCopy}>
+          <View style={styles.skeletonTitleRow}>
+            <Skeleton width="34%" height={16} accessibilityLabel="Loading coach name" />
+            {showContext ? (
+              <SkeletonPill width={72} height={18} accessibilityLabel="Loading post context" />
+            ) : null}
+          </View>
+          <Skeleton width="28%" height={11} accessibilityLabel="Loading post date" />
+        </View>
+      </View>
+
+      <SkeletonText
+        lines={3}
+        widths={['100%', '92%', '68%']}
+        lineHeight={14}
+        accessibilityLabel="Loading profile post copy"
+      />
+
+      {showMedia ? (
+        <Skeleton height={200} radius={Radii.md} accessibilityLabel="Loading profile post media" />
+      ) : null}
+
+      <View style={styles.skeletonActions}>
+        <SkeletonPill width={56} accessibilityLabel="Loading likes" />
+        <SkeletonPill width={64} accessibilityLabel="Loading comments" />
+        <SkeletonPill width={52} accessibilityLabel="Loading share action" />
+      </View>
+    </SurfaceCard>
+  );
 }
 
 function ProfileTabPostsInner({
@@ -61,7 +110,10 @@ function ProfileTabPostsInner({
         <SubmitProgressState label="Refreshing posts" style={styles.pendingState} />
       ) : null}
       {feedLoading && !hasFeedPosts ? (
-        <LoadingState variant="feed" scope="section" style={styles.feedLoadingContainer} />
+        <View style={styles.feedLoadingContainer}>
+          <ProfilePostSkeleton showMedia={true} showContext={true} />
+          <ProfilePostSkeleton showMedia={false} showContext={false} />
+        </View>
       ) : hasFeedPosts ? (
         (feedPosts ?? []).map((post) => <View key={post.id}>{renderPostCard(post)}</View>)
       ) : (
@@ -103,8 +155,29 @@ const styles = StyleSheet.create({
     gap: Spacing.sm,
   },
   createPostText: { ...Typography.body, opacity: 0.6 },
-  feedLoadingContainer: { paddingVertical: Spacing.sm },
+  feedLoadingContainer: { gap: Spacing.md, paddingVertical: Spacing.sm },
   pendingState: { marginBottom: Spacing.sm },
+  skeletonCard: {
+    gap: Spacing.md,
+  },
+  skeletonHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.sm,
+  },
+  skeletonHeaderCopy: {
+    flex: 1,
+    gap: Spacing.xxs,
+  },
+  skeletonTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.xs,
+  },
+  skeletonActions: {
+    flexDirection: 'row',
+    gap: Spacing.sm,
+  },
   emptyState: { paddingVertical: Spacing.xl, alignItems: 'center', gap: Spacing.xs },
   emptyStateText: { ...Typography.body, opacity: 0.6 },
   emptyStateCta: {

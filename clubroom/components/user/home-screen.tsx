@@ -42,8 +42,18 @@ import {
 
 function HomeDataSkeleton({
   showProgress,
+  showStreak,
+  showRecentResults,
+  showClubHighlights,
+  showRecentBadges,
+  showClubs,
 }: {
   showProgress: boolean;
+  showStreak: boolean;
+  showRecentResults: boolean;
+  showClubHighlights: boolean;
+  showRecentBadges: boolean;
+  showClubs: boolean;
 }) {
   const { colors: palette } = useTheme();
 
@@ -69,20 +79,22 @@ function HomeDataSkeleton({
         </Row>
       </SurfaceCard>
 
-      <SurfaceCard style={[styles.skeletonCard, styles.skeletonStreakCard]}>
-        <Row align="center" gap="sm">
-          <SkeletonCircle size={40} accessibilityLabel="Loading streak icon" />
-          <View style={styles.flex}>
-            <Skeleton width="30%" height={18} accessibilityLabel="Loading streak value" />
-            <SkeletonText
-              lines={2}
-              widths={['54%', '68%']}
-              accessibilityLabel="Loading streak detail"
-            />
-          </View>
-          <Skeleton width={18} height={18} accessibilityLabel="Loading streak navigation" />
-        </Row>
-      </SurfaceCard>
+      {showStreak ? (
+        <SurfaceCard style={[styles.skeletonCard, styles.skeletonStreakCard]}>
+          <Row align="center" gap="sm">
+            <SkeletonCircle size={40} accessibilityLabel="Loading streak icon" />
+            <View style={styles.flex}>
+              <Skeleton width="30%" height={18} accessibilityLabel="Loading streak value" />
+              <SkeletonText
+                lines={2}
+                widths={['54%', '68%']}
+                accessibilityLabel="Loading streak detail"
+              />
+            </View>
+            <Skeleton width={18} height={18} accessibilityLabel="Loading streak navigation" />
+          </Row>
+        </SurfaceCard>
+      ) : null}
 
       <QuickActionsGrid />
 
@@ -101,37 +113,100 @@ function HomeDataSkeleton({
         </Row>
       </SurfaceCard>
 
-      <SurfaceCard style={styles.skeletonCard}>
-        <SkeletonCluster gap={Spacing.sm} accessibilityLabel="Loading recent activity">
-          <Skeleton width="34%" height={16} accessibilityLabel="Loading activity heading" />
-          <SkeletonText
-            lines={3}
-            widths={['100%', '88%', '64%']}
-            accessibilityLabel="Loading activity rows"
-          />
-          <Row gap="xs">
-            <SkeletonPill width={84} accessibilityLabel="Loading activity chip one" />
-            <SkeletonPill width={72} accessibilityLabel="Loading activity chip two" />
-          </Row>
-        </SkeletonCluster>
-      </SurfaceCard>
+      {showRecentResults ? (
+        <SurfaceCard style={styles.skeletonCard}>
+          <SkeletonCluster gap={Spacing.sm} accessibilityLabel="Loading recent results">
+            <View style={styles.skeletonSectionHeader}>
+              <Skeleton width="34%" height={16} accessibilityLabel="Loading recent results heading" />
+              <Skeleton width={64} height={12} accessibilityLabel="Loading recent results action" />
+            </View>
+            {Array.from({ length: 2 }).map((_, index) => (
+              <Row key={index} align="center" gap="sm">
+                <View style={styles.flex}>
+                  <Skeleton width="62%" height={14} accessibilityLabel={`Loading result title ${index + 1}`} />
+                  <Skeleton width="54%" height={11} accessibilityLabel={`Loading result meta ${index + 1}`} />
+                </View>
+                <View style={styles.skeletonScoreBlock}>
+                  <Skeleton width={42} height={16} accessibilityLabel={`Loading result score ${index + 1}`} />
+                  <Skeleton width={14} height={11} accessibilityLabel={`Loading result outcome ${index + 1}`} />
+                </View>
+              </Row>
+            ))}
+          </SkeletonCluster>
+        </SurfaceCard>
+      ) : null}
 
-      <SurfaceCard style={styles.skeletonCard}>
-        <Row align="center" gap="sm" style={styles.skeletonListRow}>
-          <SkeletonCircle size={40} accessibilityLabel="Loading club avatar one" />
-          <View style={styles.flex}>
-            <Skeleton width="42%" height={14} accessibilityLabel="Loading club name one" />
-            <Skeleton width="64%" height={11} accessibilityLabel="Loading club detail one" />
-          </View>
-        </Row>
-        <Row align="center" gap="sm" style={styles.skeletonListRow}>
-          <SkeletonCircle size={40} accessibilityLabel="Loading club avatar two" />
-          <View style={styles.flex}>
-            <Skeleton width="38%" height={14} accessibilityLabel="Loading club name two" />
-            <Skeleton width="58%" height={11} accessibilityLabel="Loading club detail two" />
-          </View>
-        </Row>
-      </SurfaceCard>
+      {showClubHighlights ? (
+        <SurfaceCard style={styles.skeletonCard}>
+          <SkeletonCluster gap={Spacing.sm} accessibilityLabel="Loading club highlights">
+            <View style={styles.skeletonSectionHeader}>
+              <Skeleton width="30%" height={16} accessibilityLabel="Loading club highlights heading" />
+              <Skeleton width={60} height={12} accessibilityLabel="Loading club highlights action" />
+            </View>
+            {Array.from({ length: 2 }).map((_, index) => (
+              <View key={index} style={styles.skeletonHighlightCard}>
+                <Row align="center" gap="xs">
+                  <SkeletonCircle size={20} accessibilityLabel={`Loading highlight icon ${index + 1}`} />
+                  <Skeleton width="48%" height={11} accessibilityLabel={`Loading highlight meta ${index + 1}`} />
+                </Row>
+                <Skeleton width="56%" height={14} accessibilityLabel={`Loading highlight title ${index + 1}`} />
+                <SkeletonText
+                  lines={2}
+                  widths={['100%', '74%']}
+                  accessibilityLabel={`Loading highlight body ${index + 1}`}
+                />
+              </View>
+            ))}
+          </SkeletonCluster>
+        </SurfaceCard>
+      ) : null}
+
+      {showRecentBadges ? (
+        <SurfaceCard style={styles.skeletonCard}>
+          <SkeletonCluster gap={Spacing.sm} accessibilityLabel="Loading recent badges">
+            <View style={styles.skeletonSectionHeader}>
+              <Skeleton width="28%" height={16} accessibilityLabel="Loading badges heading" />
+              <Skeleton width={52} height={12} accessibilityLabel="Loading badges action" />
+            </View>
+            <Row gap="sm">
+              {Array.from({ length: 2 }).map((_, index) => (
+                <View key={index} style={styles.skeletonBadgeCard}>
+                  <SkeletonCircle size={34} accessibilityLabel={`Loading badge icon ${index + 1}`} />
+                  <Skeleton width="82%" height={12} accessibilityLabel={`Loading badge title ${index + 1}`} />
+                  <SkeletonPill width={58} height={18} accessibilityLabel={`Loading badge tag ${index + 1}`} />
+                </View>
+              ))}
+            </Row>
+          </SkeletonCluster>
+        </SurfaceCard>
+      ) : null}
+
+      {showClubs ? (
+        <SurfaceCard style={styles.skeletonCard}>
+          <SkeletonCluster gap={Spacing.sm} accessibilityLabel="Loading clubs">
+            <View style={styles.skeletonSectionHeader}>
+              <Skeleton width="22%" height={16} accessibilityLabel="Loading clubs heading" />
+              <Skeleton width={52} height={12} accessibilityLabel="Loading clubs action" />
+            </View>
+            <Row align="center" gap="sm" style={styles.skeletonListRow}>
+              <SkeletonCircle size={40} accessibilityLabel="Loading club avatar one" />
+              <View style={styles.flex}>
+                <Skeleton width="42%" height={14} accessibilityLabel="Loading club name one" />
+                <Skeleton width="64%" height={11} accessibilityLabel="Loading club detail one" />
+              </View>
+              <Skeleton width={16} height={16} accessibilityLabel="Loading club navigation one" />
+            </Row>
+            <Row align="center" gap="sm" style={styles.skeletonListRow}>
+              <SkeletonCircle size={40} accessibilityLabel="Loading club avatar two" />
+              <View style={styles.flex}>
+                <Skeleton width="38%" height={14} accessibilityLabel="Loading club name two" />
+                <Skeleton width="58%" height={11} accessibilityLabel="Loading club detail two" />
+              </View>
+              <Skeleton width={16} height={16} accessibilityLabel="Loading club navigation two" />
+            </Row>
+          </SkeletonCluster>
+        </SurfaceCard>
+      ) : null}
 
       {showProgress ? (
         <View style={[styles.skeletonHint, { backgroundColor: palette.surfaceSecondary }]}>
@@ -187,6 +262,16 @@ export function UserHomeScreen() {
   if (!currentUser) return null;
 
   const showHomeDataSkeleton = loading || showSectionSkeleton;
+  const showOptionalSections = showSectionSkeleton;
+  const showStreakSkeleton = loading ? false : Boolean(streakInfo);
+  const showRecentResultsSkeleton =
+    loading ? false : recentResults.length > 0;
+  const showClubHighlightsSkeleton =
+    loading ? false : clubHighlights.length > 0;
+  const showRecentBadgesSkeleton =
+    loading ? false : recentBadges.length > 0;
+  const showClubsSkeleton =
+    loading ? false : clubs.length > 0;
   const profileName = isViewingSelfProfile
     ? currentUser.name || currentUser.fullName || 'You'
     : selectedChild?.name || 'Child';
@@ -316,7 +401,14 @@ export function UserHomeScreen() {
         ) : null}
 
         {showHomeDataSkeleton ? (
-          <HomeDataSkeleton showProgress={showSectionSkeleton} />
+          <HomeDataSkeleton
+            showProgress={showSectionSkeleton}
+            showStreak={showOptionalSections && showStreakSkeleton}
+            showRecentResults={showOptionalSections && showRecentResultsSkeleton}
+            showClubHighlights={showOptionalSections && showClubHighlightsSkeleton}
+            showRecentBadges={showOptionalSections && showRecentBadgesSkeleton}
+            showClubs={showOptionalSections && showClubsSkeleton}
+          />
         ) : (
           <>
             <StatsRow stats={stats} />
@@ -427,6 +519,26 @@ const styles = StyleSheet.create({
   },
   skeletonListRow: {
     minWidth: 0,
+  },
+  skeletonSectionHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: Spacing.sm,
+  },
+  skeletonScoreBlock: {
+    alignItems: 'flex-end',
+    gap: Spacing.xxs,
+  },
+  skeletonHighlightCard: {
+    gap: Spacing.xs,
+  },
+  skeletonBadgeCard: {
+    flex: 1,
+    alignItems: 'center',
+    gap: Spacing.xs,
+    borderRadius: Radii.lg,
+    paddingVertical: Spacing.sm,
   },
   skeletonHint: {
     borderRadius: Radii.pill,
