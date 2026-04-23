@@ -14,7 +14,6 @@ import {
   ScrollView,
   KeyboardAvoidingView,
   Platform,
-  ActivityIndicator,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -37,6 +36,7 @@ import { useTheme } from '@/hooks/useTheme';
 import { useCreateClubPost } from '@/hooks/use-create-club-post';
 import { useFocusTrap } from '@/hooks/use-focus-trap';
 import { VideoPlayer } from '@/components/drills/VideoPlayer';
+import { SubmitProgressState } from '@/components/ui/screen-states';
 
 export default function CreateClubPostScreen() {
   const { colors: palette, scheme } = useTheme();
@@ -78,15 +78,15 @@ export default function CreateClubPostScreen() {
             },
           ]}
         >
-          {p.isPosting ? (
-            <ActivityIndicator size="small" color={palette.onPrimary} />
-          ) : (
-            <ThemedText style={[styles.postButtonText, { color: palette.onPrimary }]}>
-              Post
-            </ThemedText>
-          )}
+          <ThemedText style={[styles.postButtonText, { color: palette.onPrimary }]}>
+            {p.isPosting ? 'Posting' : 'Post'}
+          </ThemedText>
         </Clickable>
       </Row>
+
+      {p.isPosting ? (
+        <SubmitProgressState label="Publishing club post" style={styles.submitState} />
+      ) : null}
 
       <KeyboardAvoidingView
         style={{ flex: 1 }}
@@ -291,6 +291,10 @@ const styles = StyleSheet.create({
   postButtonText: { ...Typography.bodySmallSemiBold, textAlign: 'center' },
   scrollView: { flex: 1 },
   scrollContent: { paddingBottom: Spacing.xl },
+  submitState: {
+    marginHorizontal: Spacing.md,
+    marginTop: Spacing.sm,
+  },
   clubIndicator: {
     alignItems: 'center',
     gap: Spacing.sm,

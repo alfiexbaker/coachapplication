@@ -5,7 +5,7 @@
  * All state/logic lives in useCommunityHub.
  */
 
-import { StyleSheet, ScrollView, RefreshControl, Modal } from 'react-native';
+import { StyleSheet, ScrollView, RefreshControl, Modal, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -17,9 +17,46 @@ import { Row } from '@/components/primitives/row';
 import { ThemedText } from '@/components/themed-text';
 import { Spacing, Radii, Typography } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
-import { LoadingState, ErrorState, EmptyState } from '@/components/ui/screen-states';
+import {
+  ErrorState,
+  EmptyState,
+  SubmitProgressState,
+} from '@/components/ui/screen-states';
 import { useCommunityHub } from '@/hooks/use-community-hub';
 import { scaleFont } from '@/utils/scale';
+import { Skeleton, SkeletonCircle, SkeletonCluster, SkeletonPill, SkeletonText } from '@/components/ui/skeleton';
+import { SurfaceCard } from '@/components/primitives/surface-card';
+
+function CommunityHubSkeleton() {
+  return (
+    <SkeletonCluster gap={Spacing.sm} style={styles.loadingState} accessibilityLabel="Loading groups">
+      <SurfaceCard style={styles.loadingIntroCard}>
+        <Skeleton width="32%" height={16} accessibilityLabel="Loading groups heading" />
+        <SkeletonText
+          lines={2}
+          widths={['100%', '82%']}
+          accessibilityLabel="Loading groups intro"
+        />
+      </SurfaceCard>
+      {Array.from({ length: 3 }).map((_, index) => (
+        <SurfaceCard key={index} style={styles.loadingGroupCard}>
+          <Row align="center" gap="sm">
+            <SkeletonCircle size={48} accessibilityLabel={`Loading group avatar ${index + 1}`} />
+            <View style={styles.loadingGroupCopy}>
+              <Skeleton width="44%" height={16} accessibilityLabel={`Loading group name ${index + 1}`} />
+              <SkeletonText
+                lines={2}
+                widths={['72%', '56%']}
+                accessibilityLabel={`Loading group meta ${index + 1}`}
+              />
+            </View>
+            <SkeletonPill width={64} accessibilityLabel={`Loading group action ${index + 1}`} />
+          </Row>
+        </SurfaceCard>
+      ))}
+    </SkeletonCluster>
+  );
+}
 
 export default function CommunityHubScreen() {
   const { colors: palette } = useTheme();
@@ -56,25 +93,35 @@ export default function CommunityHubScreen() {
         showsVerticalScrollIndicator={false}
         refreshControl={<RefreshControl refreshing={c.refreshing} onRefresh={c.onRefresh} />}
       >
-        {c.status === 'loading' ? (
-          <LoadingState variant="list" />
+        {c.showLoadingState ? (
+          <CommunityHubSkeleton />
         ) : c.status === 'error' ? (
           <ErrorState message={c.error?.message || 'Failed to load groups.'} onRetry={c.retry} />
         ) : c.status === 'empty' ? (
-          <EmptyState
-            icon="chatbubbles-outline"
-            title="No groups yet"
-            message="Private squad, club, and session groups appear here when they are relevant. Create one only when you need a focused coordination thread."
-            actionLabel="Create Group"
-            onPressAction={() => c.setShowCreateModal(true)}
-          />
+          <>
+            {c.isPending ? (
+              <SubmitProgressState label="Refreshing groups" style={styles.pendingState} />
+            ) : null}
+            <EmptyState
+              icon="chatbubbles-outline"
+              title="No groups yet"
+              message="Private squad, club, and session groups appear here when they are relevant. Create one only when you need a focused coordination thread."
+              actionLabel="Create Group"
+              onPressAction={() => c.setShowCreateModal(true)}
+            />
+          </>
         ) : (
-          <CommunityTabContent
-            loading={false}
-            myGroups={c.myGroups}
-            onCreateGroup={() => c.setShowCreateModal(true)}
-            onGroupPress={c.handleGroupPress}
-          />
+          <>
+            {c.isPending ? (
+              <SubmitProgressState label="Refreshing groups" style={styles.pendingState} />
+            ) : null}
+            <CommunityTabContent
+              loading={false}
+              myGroups={c.myGroups}
+              onCreateGroup={() => c.setShowCreateModal(true)}
+              onGroupPress={c.handleGroupPress}
+            />
+          </>
         )}
       </ScrollView>
 
@@ -124,6 +171,26 @@ const styles = StyleSheet.create({
   },
   scrollView: { flex: 1 },
   scrollContent: { flexGrow: 1 },
+  loadingState: {
+    paddingHorizontal: Spacing.lg,
+    paddingTop: Spacing.sm,
+    paddingBottom: Spacing.xl,
+  },
+  loadingIntroCard: {
+    gap: Spacing.sm,
+  },
+  loadingGroupCard: {
+    gap: Spacing.sm,
+  },
+  loadingGroupCopy: {
+    flex: 1,
+    minWidth: 0,
+    gap: Spacing.xs,
+  },
+  pendingState: {
+    marginHorizontal: Spacing.lg,
+    marginTop: Spacing.sm,
+  },
   modalContainer: { flex: 1 },
   modalHeader: {
     alignItems: 'center',

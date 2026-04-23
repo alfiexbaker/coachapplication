@@ -13,7 +13,7 @@ import { router } from 'expo-router';
 
 import { Clickable } from '@/components/primitives/clickable';
 import { ThemedText } from '@/components/themed-text';
-import { LoadingState, ErrorState } from '@/components/ui/screen-states';
+import { ErrorState, SubmitProgressState } from '@/components/ui/screen-states';
 import { CommentCard } from '@/components/social/comment-card';
 import { CommentInput } from '@/components/social/comment-input';
 import { PostDetailCard } from '@/components/social/post-detail-card';
@@ -24,6 +24,26 @@ import { usePostDetail } from '@/hooks/use-post-detail';
 import type { FlatItem } from '@/hooks/use-post-detail';
 import { useFocusTrap } from '@/hooks/use-focus-trap';
 import { AccessibleListCell } from '@/components/ui/list-accessibility';
+import { Skeleton, SkeletonCircle, SkeletonCluster, SkeletonText } from '@/components/ui/skeleton';
+
+function CommentListSkeleton() {
+  return (
+    <SkeletonCluster gap={Spacing.sm} style={styles.commentsSkeleton} accessibilityLabel="Loading comments">
+      {Array.from({ length: 4 }).map((_, index) => (
+        <Row key={index} align="flex-start" gap="xs">
+          <SkeletonCircle size={32} accessibilityLabel={`Loading comment avatar ${index + 1}`} />
+          <View style={styles.commentSkeletonBubble}>
+            <SkeletonText
+              lines={3}
+              widths={['32%', '100%', '74%']}
+              accessibilityLabel={`Loading comment ${index + 1}`}
+            />
+          </View>
+        </Row>
+      ))}
+    </SkeletonCluster>
+  );
+}
 
 export default function PostDetailScreen() {
   const { colors: palette } = useTheme();
@@ -46,6 +66,9 @@ export default function PostDetailScreen() {
   );
 
   const keyExtractor = useCallback((item: FlatItem) => item.data.id, []);
+  const shouldShowCommentSkeleton =
+    p.status === 'loading' ||
+    (p.showSectionSkeleton && p.pendingState.mode === 'dependency-change');
 
   if (!p.post) {
     return (
@@ -89,25 +112,30 @@ export default function PostDetailScreen() {
   }
 
   const ListHeader = (
-    <PostDetailCard
-      authorName={p.postAuthorName}
-      initials={p.initials}
-      title={p.postTitle}
-      content={p.postContent}
-      createdAt={p.postCreatedAt}
-      imageUrl={p.postImageUrl}
-      videoUrl={p.postVideoUrl}
-      liked={p.liked}
-      likeCount={p.likeCount}
-      commentCount={p.totalCommentCount}
-      onLike={p.handleLikePost}
-    />
+    <>
+      <PostDetailCard
+        authorName={p.postAuthorName}
+        initials={p.initials}
+        title={p.postTitle}
+        content={p.postContent}
+        createdAt={p.postCreatedAt}
+        imageUrl={p.postImageUrl}
+        videoUrl={p.postVideoUrl}
+        liked={p.liked}
+        likeCount={p.likeCount}
+        commentCount={p.totalCommentCount}
+        onLike={p.handleLikePost}
+      />
+      {p.isPending && !shouldShowCommentSkeleton ? (
+        <SubmitProgressState label="Refreshing comments" style={styles.pendingState} />
+      ) : null}
+    </>
   );
 
   const ListEmpty =
-    p.status === 'loading' ? (
+    shouldShowCommentSkeleton ? (
       <View style={styles.loadingContainer}>
-        <LoadingState variant="list" />
+        <CommentListSkeleton />
       </View>
     ) : p.status === 'error' ? (
       <View style={styles.errorContainer}>
@@ -160,7 +188,7 @@ export default function PostDetailScreen() {
         <FlatList<FlatItem>
         CellRendererComponent={AccessibleListCell}
         accessibilityRole="list"
-          data={p.flatItems}
+          data={shouldShowCommentSkeleton ? [] : p.flatItems}
           renderItem={renderComment}
           keyExtractor={keyExtractor}
           ListHeaderComponent={ListHeader}
@@ -200,8 +228,16 @@ const styles = StyleSheet.create({
   headerSpacer: { width: 44 },
   listContent: { paddingBottom: Spacing.sm },
   loadingContainer: { paddingVertical: Spacing.lg },
+  pendingState: { marginHorizontal: Spacing.sm, marginBottom: Spacing.sm },
   errorContainer: { padding: Spacing.sm },
   emptyContainer: { paddingVertical: Spacing.lg, alignItems: 'center', gap: Spacing.xs },
+  commentsSkeleton: { paddingHorizontal: Spacing.sm },
+  commentSkeletonBubble: {
+    flex: 1,
+    borderRadius: 18,
+    paddingVertical: Spacing.xs,
+    paddingHorizontal: Spacing.xs,
+  },
   emptyTitle: { ...Typography.heading },
   emptySubtitle: { ...Typography.bodySmall, textAlign: 'center' },
 });

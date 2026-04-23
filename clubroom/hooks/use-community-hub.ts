@@ -27,6 +27,8 @@ export interface UseCommunityHubResult {
   myGroups: ParentGroup[];
   status: ScreenStatus;
   loading: boolean;
+  showLoadingState: boolean;
+  isPending: boolean;
   error: ServiceError | null;
   refreshing: boolean;
   showCreateModal: boolean;
@@ -62,12 +64,22 @@ export function useCommunityHub(): UseCommunityHubResult {
     }
   }, [parentId]);
 
-  const { data, status, error, refreshing, onRefresh, retry } = useScreen<CommunityHubData>({
+  const {
+    data,
+    status,
+    showLoadingState,
+    isPending,
+    error,
+    refreshing,
+    onRefresh,
+    retry,
+  } = useScreen<CommunityHubData>({
     load: loadData,
     deps: [parentId],
     events: [ServiceEvents.GROUP_MEMBER_JOINED, ServiceEvents.GROUP_MEMBER_ROLE_CHANGED],
     isEmpty: (value) => value.myGroups.length === 0,
     refetchOnFocus: true,
+    loadingStrategy: 'warm-first',
   });
 
   const myGroups = data?.myGroups ?? [];
@@ -110,6 +122,8 @@ export function useCommunityHub(): UseCommunityHubResult {
     myGroups,
     status,
     loading,
+    showLoadingState,
+    isPending,
     error,
     refreshing,
     showCreateModal,

@@ -20,7 +20,7 @@ export default function IndexScreen() {
     </SafeAreaView>
   );
 
-  if (isLoading) {
+  if (isLoading && !currentUser) {
     return renderShell(<LoadingState variant="detail" />);
   }
 

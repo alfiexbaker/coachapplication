@@ -7,7 +7,6 @@ import {
   ScrollView,
   KeyboardAvoidingView,
   Platform,
-  ActivityIndicator,
 } from 'react-native';
 import { Clickable } from '@/components/primitives/clickable';
 import { Ionicons } from '@expo/vector-icons';
@@ -20,6 +19,7 @@ import { useTheme } from '@/hooks/useTheme';
 import { POST_TYPES } from '@/hooks/use-create-post';
 import type { ClubPostType } from '@/constants/types';
 import { VideoPlayer } from '@/components/drills/VideoPlayer';
+import { SubmitProgressState } from '@/components/ui/screen-states';
 
 interface CreatePostFormProps {
   title: string;
@@ -100,15 +100,15 @@ export const CreatePostForm = memo(function CreatePostForm({
             },
           ]}
         >
-          {isPosting ? (
-            <ActivityIndicator size="small" color={palette.onPrimary} />
-          ) : (
-            <ThemedText style={[styles.postButtonText, { color: palette.onPrimary }]}>
-              Post
-            </ThemedText>
-          )}
+          <ThemedText style={[styles.postButtonText, { color: palette.onPrimary }]}>
+            {isPosting ? 'Posting' : 'Post'}
+          </ThemedText>
         </Clickable>
       </Row>
+
+      {isPosting ? (
+        <SubmitProgressState label="Publishing post" style={styles.submitState} />
+      ) : null}
 
       <KeyboardAvoidingView
         style={{ flex: 1 }}
@@ -337,6 +337,10 @@ const styles = StyleSheet.create({
   postButtonText: { ...Typography.bodySmallSemiBold, textAlign: 'center' },
   scrollView: { flex: 1 },
   scrollContent: { paddingBottom: Spacing.xl },
+  submitState: {
+    marginHorizontal: Spacing.md,
+    marginTop: Spacing.sm,
+  },
   personalIndicator: {
     padding: Spacing.md,
     marginHorizontal: Spacing.md,

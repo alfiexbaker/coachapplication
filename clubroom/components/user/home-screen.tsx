@@ -2,7 +2,7 @@
  * UserHomeScreen — Composition root.
  * Athlete/parent home: stats, streak, quick actions, next session, badges, clubs.
  */
-import { View, StyleSheet, ScrollView, RefreshControl, ActivityIndicator } from 'react-native';
+import { View, StyleSheet, ScrollView, RefreshControl } from 'react-native';
 import { router } from 'expo-router';
 import { Row } from '@/components/primitives/row';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -20,6 +20,14 @@ import { useHomeScreen } from '@/hooks/use-home-screen';
 import { useDemoWalkthroughVisibility } from '@/hooks/use-demo-walkthrough-visibility';
 import { Routes } from '@/navigation/routes';
 import { DemoWalkthroughCard } from '@/components/ui/demo-walkthrough-card';
+import { SubmitProgressState } from '@/components/ui/screen-states';
+import {
+  Skeleton,
+  SkeletonCircle,
+  SkeletonCluster,
+  SkeletonPill,
+  SkeletonText,
+} from '@/components/ui/skeleton';
 import { buildPrimaryDemoWalkthrough } from '@/utils/demo-walkthrough';
 import {
   StatsRow,
@@ -32,12 +40,117 @@ import {
   ClubHighlightsSection,
 } from './home-screen-sections';
 
+function HomeDataSkeleton({
+  showProgress,
+}: {
+  showProgress: boolean;
+}) {
+  const { colors: palette } = useTheme();
+
+  return (
+    <SkeletonCluster gap={Spacing.sm} style={styles.skeletonStack} accessibilityLabel="Loading home sections">
+      {showProgress ? (
+        <SubmitProgressState label="Switching profile" style={styles.progressState} />
+      ) : null}
+
+      <SurfaceCard style={[styles.skeletonCard, styles.skeletonStatsCard]}>
+        <Row align="center" justify="space-between" gap="sm">
+          {Array.from({ length: 3 }).map((_, index) => (
+            <View key={index} style={styles.skeletonStatItem}>
+              <Row align="center" gap="xs">
+                <SkeletonCircle size={36} accessibilityLabel={`Loading stat icon ${index + 1}`} />
+                <View style={styles.skeletonStatText}>
+                  <Skeleton width={40} height={18} accessibilityLabel={`Loading stat value ${index + 1}`} />
+                  <Skeleton width={52} height={11} accessibilityLabel={`Loading stat label ${index + 1}`} />
+                </View>
+              </Row>
+            </View>
+          ))}
+        </Row>
+      </SurfaceCard>
+
+      <SurfaceCard style={[styles.skeletonCard, styles.skeletonStreakCard]}>
+        <Row align="center" gap="sm">
+          <SkeletonCircle size={40} accessibilityLabel="Loading streak icon" />
+          <View style={styles.flex}>
+            <Skeleton width="30%" height={18} accessibilityLabel="Loading streak value" />
+            <SkeletonText
+              lines={2}
+              widths={['54%', '68%']}
+              accessibilityLabel="Loading streak detail"
+            />
+          </View>
+          <Skeleton width={18} height={18} accessibilityLabel="Loading streak navigation" />
+        </Row>
+      </SurfaceCard>
+
+      <QuickActionsGrid />
+
+      <SurfaceCard style={[styles.skeletonCard, styles.skeletonSessionCard]}>
+        <Row align="center" gap="sm">
+          <SkeletonCircle size={44} accessibilityLabel="Loading next session icon" />
+          <View style={styles.flex}>
+            <Skeleton width="28%" height={12} accessibilityLabel="Loading session label" />
+            <SkeletonText
+              lines={3}
+              widths={['56%', '46%', '68%']}
+              accessibilityLabel="Loading next session"
+            />
+          </View>
+          <Skeleton width={16} height={16} accessibilityLabel="Loading session navigation" />
+        </Row>
+      </SurfaceCard>
+
+      <SurfaceCard style={styles.skeletonCard}>
+        <SkeletonCluster gap={Spacing.sm} accessibilityLabel="Loading recent activity">
+          <Skeleton width="34%" height={16} accessibilityLabel="Loading activity heading" />
+          <SkeletonText
+            lines={3}
+            widths={['100%', '88%', '64%']}
+            accessibilityLabel="Loading activity rows"
+          />
+          <Row gap="xs">
+            <SkeletonPill width={84} accessibilityLabel="Loading activity chip one" />
+            <SkeletonPill width={72} accessibilityLabel="Loading activity chip two" />
+          </Row>
+        </SkeletonCluster>
+      </SurfaceCard>
+
+      <SurfaceCard style={styles.skeletonCard}>
+        <Row align="center" gap="sm" style={styles.skeletonListRow}>
+          <SkeletonCircle size={40} accessibilityLabel="Loading club avatar one" />
+          <View style={styles.flex}>
+            <Skeleton width="42%" height={14} accessibilityLabel="Loading club name one" />
+            <Skeleton width="64%" height={11} accessibilityLabel="Loading club detail one" />
+          </View>
+        </Row>
+        <Row align="center" gap="sm" style={styles.skeletonListRow}>
+          <SkeletonCircle size={40} accessibilityLabel="Loading club avatar two" />
+          <View style={styles.flex}>
+            <Skeleton width="38%" height={14} accessibilityLabel="Loading club name two" />
+            <Skeleton width="58%" height={11} accessibilityLabel="Loading club detail two" />
+          </View>
+        </Row>
+      </SurfaceCard>
+
+      {showProgress ? (
+        <View style={[styles.skeletonHint, { backgroundColor: palette.surfaceSecondary }]}>
+          <ThemedText style={[styles.skeletonHintText, { color: palette.muted }]}>
+            Keeping the current shell stable while the next home frame resolves.
+          </ThemedText>
+        </View>
+      ) : null}
+    </SkeletonCluster>
+  );
+}
+
 export function UserHomeScreen() {
   const { colors: palette } = useTheme();
   const {
     currentUser,
     refreshing,
     loading,
+    showSectionSkeleton,
     error,
     recentBadges,
     clubs,
@@ -73,6 +186,7 @@ export function UserHomeScreen() {
 
   if (!currentUser) return null;
 
+  const showHomeDataSkeleton = loading || showSectionSkeleton;
   const profileName = isViewingSelfProfile
     ? currentUser.name || currentUser.fullName || 'You'
     : selectedChild?.name || 'Child';
@@ -146,12 +260,6 @@ export function UserHomeScreen() {
           </SurfaceCard>
         ) : null}
 
-        {loading && (
-          <View style={styles.loadingContainer}>
-            <ActivityIndicator size="large" color={palette.tint} />
-          </View>
-        )}
-
         {error && !loading && (
           <Row
             align="center"
@@ -207,14 +315,20 @@ export function UserHomeScreen() {
           />
         ) : null}
 
-        <StatsRow stats={stats} />
-        {streakInfo && <StreakCard streakInfo={streakInfo} />}
-        <QuickActionsGrid />
-        <NextSessionCard booking={nextSession} />
-        <RecentResultsSection results={recentResults} />
-        <ClubHighlightsSection highlights={clubHighlights} />
-        <RecentBadgesSection badges={recentBadges} />
-        <MyClubsSection clubs={clubs} />
+        {showHomeDataSkeleton ? (
+          <HomeDataSkeleton showProgress={showSectionSkeleton} />
+        ) : (
+          <>
+            <StatsRow stats={stats} />
+            {streakInfo && <StreakCard streakInfo={streakInfo} />}
+            <QuickActionsGrid />
+            <NextSessionCard booking={nextSession} />
+            <RecentResultsSection results={recentResults} />
+            <ClubHighlightsSection highlights={clubHighlights} />
+            <RecentBadgesSection badges={recentBadges} />
+            <MyClubsSection clubs={clubs} />
+          </>
+        )}
       </ScrollView>
     </SafeAreaView>
   );
@@ -233,7 +347,6 @@ const styles = StyleSheet.create({
   headerCopy: { flex: 1, minWidth: 0, gap: Spacing.xs },
   title: { ...Typography.display, letterSpacing: -0.6 },
   subtitle: { ...Typography.bodySmall, fontWeight: '500' },
-  loadingContainer: { padding: Spacing['2xl'], alignItems: 'center', justifyContent: 'center' },
   errorContainer: { padding: Spacing.md, borderRadius: Radii.md, borderWidth: 1 },
   errorText: { ...Typography.bodySmall, flex: 1 },
   onboardingCard: {
@@ -284,5 +397,43 @@ const styles = StyleSheet.create({
   addChildMiniLabel: {
     ...Typography.caption,
     fontWeight: '600',
+  },
+  flex: {
+    flex: 1,
+  },
+  progressState: {
+    marginBottom: Spacing.xs,
+  },
+  skeletonStack: {
+    paddingBottom: Spacing.xs,
+  },
+  skeletonCard: {
+    gap: Spacing.sm,
+  },
+  skeletonStatsCard: {
+    paddingVertical: Spacing.sm,
+  },
+  skeletonStatItem: {
+    flex: 1,
+  },
+  skeletonStatText: {
+    gap: Spacing.xxs,
+  },
+  skeletonSessionCard: {
+    paddingVertical: Spacing.md,
+  },
+  skeletonStreakCard: {
+    paddingVertical: Spacing.sm,
+  },
+  skeletonListRow: {
+    minWidth: 0,
+  },
+  skeletonHint: {
+    borderRadius: Radii.pill,
+    paddingHorizontal: Spacing.sm,
+    paddingVertical: Spacing.xs,
+  },
+  skeletonHintText: {
+    ...Typography.caption,
   },
 });

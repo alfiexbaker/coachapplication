@@ -12,7 +12,8 @@ import { router } from 'expo-router';
 
 import { ThemedText } from '@/components/themed-text';
 import { CreatePostForm } from '@/components/social/create-post-form';
-import { LoadingState } from '@/components/ui/screen-states';
+import { SubmitProgressState } from '@/components/ui/screen-states';
+import { SurfaceCard } from '@/components/primitives/surface-card';
 import { Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
 import { useCreatePost } from '@/hooks/use-create-post';
@@ -36,11 +37,13 @@ export default function CreatePostScreen() {
         style={[styles.container, { backgroundColor: palette.background }]}
         edges={['top', 'bottom']}
       >
-        <View style={styles.loading}>
-          <View style={styles.loadingState}>
-            <LoadingState variant="card" />
-          </View>
-          <ThemedText style={{ color: palette.muted, marginTop: Spacing.sm }}>Loading...</ThemedText>
+        <View style={styles.redirectContainer}>
+          <SurfaceCard style={styles.redirectCard}>
+            <SubmitProgressState label="Opening club composer" />
+            <ThemedText style={[styles.redirectCopy, { color: palette.muted }]}>
+              Keeping this composer mounted until your club post flow is ready.
+            </ThemedText>
+          </SurfaceCard>
         </View>
       </SafeAreaView>
     );
@@ -84,6 +87,7 @@ export default function CreatePostScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
-  loading: { flex: 1, justifyContent: 'center', alignItems: 'center' },
-  loadingState: { width: '100%', maxWidth: 320, height: 96 },
+  redirectContainer: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: Spacing.md },
+  redirectCard: { width: '100%', maxWidth: 360, gap: Spacing.sm, paddingVertical: Spacing.lg },
+  redirectCopy: { textAlign: 'center' },
 });

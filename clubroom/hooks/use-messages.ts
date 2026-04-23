@@ -28,6 +28,8 @@ export interface UseMessagesResult {
   groupFilter: GroupFilter;
   setGroupFilter: (filter: GroupFilter) => void;
   status: ScreenStatus;
+  showLoadingState: boolean;
+  isPending: boolean;
   error: ServiceError | null;
   retry: () => void;
   refreshing: boolean;
@@ -50,6 +52,8 @@ export function useMessages(): UseMessagesResult {
   const {
     data: threads,
     status,
+    showLoadingState,
+    isPending,
     error,
     refreshing,
     onRefresh,
@@ -62,6 +66,7 @@ export function useMessages(): UseMessagesResult {
       ServiceEvents.MESSAGE_EDITED,
     ],
     refetchOnFocus: true,
+    loadingStrategy: 'warm-first',
   });
   const threadList = threads ?? [];
 
@@ -143,6 +148,8 @@ export function useMessages(): UseMessagesResult {
     groupFilter,
     setGroupFilter,
     status,
+    showLoadingState,
+    isPending,
     error,
     retry,
     refreshing,

@@ -1,7 +1,7 @@
 /**
  * useHomeScreen — Data loading and state for the athlete/parent home screen.
  */
-import { useState, useCallback, useEffect, useMemo } from 'react';
+import { useState, useCallback, useEffect, useMemo, useRef } from 'react';
 import { useAuth } from '@/hooks/use-auth';
 import { useChildContext } from '@/hooks/use-child-context';
 import { badgeService } from '@/services/badge-service';
@@ -172,6 +172,9 @@ export function useHomeScreen() {
     daysToNextMilestone: number;
     streakLabel: string;
   } | null>(null);
+  const [resolvedProfileDataKey, setResolvedProfileDataKey] = useState<string | null>(null);
+  const resolvedProfileDataKeyRef = useRef<string | null>(null);
+  const requestIdRef = useRef(0);
 
   const fallbackChildId = contextChildren[0]?.id ?? null;
   const hasChildProfiles = contextChildren.length > 0;
@@ -326,10 +329,18 @@ export function useHomeScreen() {
   ]);
 
   const athleteId = profileSubjectId || selectedChildId || fallbackChildId || currentUser?.id;
+  const profileDataKey = `${athleteId ?? 'none'}:${profileMode}:${profileSubjectId ?? 'none'}:${currentUser?.id ?? 'anon'}`;
 
   const loadData = useCallback(async () => {
     if (!athleteId) return;
+    const requestId = ++requestIdRef.current;
+    const isInitialLoad = resolvedProfileDataKeyRef.current === null;
+
     setError(null);
+    if (isInitialLoad) {
+      setLoading(true);
+    }
+
     try {
       if (currentUser?.role !== 'COACH') {
         try {
@@ -345,7 +356,10 @@ export function useHomeScreen() {
           });
 
           for (const target of seedTargets) {
-            const seedResult = await ensureProgressDemoSeeded(target.athleteId, target.athleteName);
+            const seedResult = await ensureProgressDemoSeeded(
+              target.athleteId,
+              target.athleteName,
+            );
             if (!seedResult.success) {
               logger.warn('home_progress_seed_failed', {
                 athleteId: target.athleteId,
@@ -361,24 +375,26 @@ export function useHomeScreen() {
       }
 
       const badges = await badgeService.listAwardsForAthlete(athleteId);
-      setRecentBadges(badges.slice(0, 3));
+      const nextRecentBadges = badges.slice(0, 3);
       const userClubs = socialFeedService.getUserClubs(currentUser?.id || '');
-      setClubs(userClubs);
       const primaryClub = userClubs[0];
+      let nextRecentResults: HomeResult[] = [];
+      let nextClubHighlights: HomeClubHighlight[] = [];
+
       if (primaryClub) {
         const [results, highlights] = await Promise.allSettled([
           clubService.getRecentResults(primaryClub.id, 3),
           Promise.resolve(socialFeedService.getFeed(primaryClub.id, 'all')),
         ]);
-        setRecentResults(
+
+        nextRecentResults =
           results.status === 'fulfilled'
             ? results.value.map((result) => ({
                 ...result,
                 clubId: primaryClub.id,
                 clubName: primaryClub.name,
               }))
-            : [],
-        );
+            : [];
 
         const feed = highlights.status === 'fulfilled' ? highlights.value : [];
         const preferredHighlights = feed.filter(
@@ -387,34 +403,29 @@ export function useHomeScreen() {
             post.postType !== 'session' &&
             post.postType !== 'session_announcement',
         );
-        setClubHighlights(
-          (preferredHighlights.length > 0 ? preferredHighlights : feed)
-            .slice(0, 3)
-            .map((post) => ({
-              id: post.id,
-              clubId: primaryClub.id,
-              clubName: primaryClub.name,
-              title: post.title,
-              body: post.body,
-              createdAt: post.createdAt,
-              postType: post.postType,
-            })),
-        );
-      } else {
-        setRecentResults([]);
-        setClubHighlights([]);
+        nextClubHighlights = (preferredHighlights.length > 0 ? preferredHighlights : feed)
+          .slice(0, 3)
+          .map((post) => ({
+            id: post.id,
+            clubId: primaryClub.id,
+            clubName: primaryClub.name,
+            title: post.title,
+            body: post.body,
+            createdAt: post.createdAt,
+            postType: post.postType,
+          }));
       }
-      const viewerRole =
-        hasChildProfiles && profileMode === 'child' ? 'parent' : 'athlete';
+
+      const viewerRole = hasChildProfiles && profileMode === 'child' ? 'parent' : 'athlete';
       const progress = await progressService.getAthleteProgress(athleteId, viewerRole);
-      setStats({
+      const nextStats = {
         sessions: progress.totalSessions,
         badges: progress.totalBadges,
         level: progress.currentLevel.level,
-      });
-      const streak = await badgeService.getStreakInfo(athleteId);
-      setStreakInfo(streak);
+      };
+      const nextStreakInfo = await badgeService.getStreakInfo(athleteId);
 
+      let nextUpcomingBookings: Booking[] = [];
       if (currentUser?.id) {
         const role = hasChildProfiles ? 'parent' : 'athlete';
         const bookings = await bookingService.getBookingsForUser(currentUser.id, role);
@@ -430,7 +441,8 @@ export function useHomeScreen() {
             ? profileChildId ?? selectedChildId ?? fallbackChildId
             : null;
         const selfAthleteId = currentUser.id;
-        const filteredBookings = bookings
+
+        nextUpcomingBookings = bookings
           .filter((booking) => {
             const isFuture = new Date(booking.scheduledAt).getTime() > now;
             const isConfirmed = booking.status === 'CONFIRMED';
@@ -453,18 +465,31 @@ export function useHomeScreen() {
             );
           })
           .sort((a, b) => new Date(a.scheduledAt).getTime() - new Date(b.scheduledAt).getTime());
-        setUpcomingBookings(filteredBookings);
-      } else {
-        setUpcomingBookings([]);
       }
+
+      if (requestId !== requestIdRef.current) {
+        return;
+      }
+
+      setRecentBadges(nextRecentBadges);
+      setClubs(userClubs);
+      setRecentResults(nextRecentResults);
+      setClubHighlights(nextClubHighlights);
+      setStats(nextStats);
+      setStreakInfo(nextStreakInfo);
+      setUpcomingBookings(nextUpcomingBookings);
+      resolvedProfileDataKeyRef.current = profileDataKey;
+      setResolvedProfileDataKey(profileDataKey);
     } catch (err) {
+      if (requestId !== requestIdRef.current) {
+        return;
+      }
       logger.error('Failed to load home data', err);
       setError('Failed to load data. Pull down to refresh.');
-      setRecentResults([]);
-      setClubHighlights([]);
-      setUpcomingBookings([]);
     } finally {
-      setLoading(false);
+      if (requestId === requestIdRef.current) {
+        setLoading(false);
+      }
     }
   }, [
     athleteId,
@@ -473,6 +498,7 @@ export function useHomeScreen() {
     fallbackChildId,
     hasChildProfiles,
     isViewingSelfProfile,
+    profileDataKey,
     profileMode,
     profileSubjectId,
     selectedChildId,
@@ -492,6 +518,10 @@ export function useHomeScreen() {
     currentUser,
     refreshing,
     loading,
+    showSectionSkeleton:
+      !loading &&
+      resolvedProfileDataKey !== null &&
+      resolvedProfileDataKey !== profileDataKey,
     error,
     recentBadges,
     clubs,

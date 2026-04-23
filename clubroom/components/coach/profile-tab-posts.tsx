@@ -2,7 +2,7 @@
  * ProfileTabPosts — updates tab content for coach profile.
  */
 import React from 'react';
-import { View, ActivityIndicator, StyleSheet } from 'react-native';
+import { View, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
 import { SurfaceCard } from '@/components/primitives/surface-card';
@@ -10,6 +10,7 @@ import { Clickable } from '@/components/primitives/clickable';
 import { ThemedText } from '@/components/themed-text';
 import { Spacing, Radii, Typography } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
+import { LoadingState, SubmitProgressState } from '@/components/ui/screen-states';
 
 interface PostData {
   id: string;
@@ -41,6 +42,7 @@ function ProfileTabPostsInner({
   renderPostCard,
 }: ProfileTabPostsProps) {
   const { colors: palette } = useTheme();
+  const hasFeedPosts = Boolean(feedPosts && feedPosts.length > 0);
 
   return (
     <>
@@ -55,31 +57,13 @@ function ProfileTabPostsInner({
           </ThemedText>
         </Clickable>
       )}
-      {feedLoading ? (
-        <View style={styles.feedLoadingContainer}>
-          <SurfaceCard style={styles.skeletonCard}>
-            <View
-              style={[styles.skeletonLine, { width: '60%', backgroundColor: palette.border }]}
-            />
-            <View
-              style={[styles.skeletonLine, { width: '100%', backgroundColor: palette.border }]}
-            />
-            <View
-              style={[styles.skeletonLine, { width: '80%', backgroundColor: palette.border }]}
-            />
-          </SurfaceCard>
-          <SurfaceCard style={styles.skeletonCard}>
-            <View
-              style={[styles.skeletonLine, { width: '50%', backgroundColor: palette.border }]}
-            />
-            <View
-              style={[styles.skeletonLine, { width: '90%', backgroundColor: palette.border }]}
-            />
-          </SurfaceCard>
-          <ActivityIndicator size="small" color={palette.tint} style={{ marginTop: Spacing.md }} />
-        </View>
-      ) : feedPosts && feedPosts.length > 0 ? (
-        feedPosts.map((post) => <View key={post.id}>{renderPostCard(post)}</View>)
+      {feedLoading && hasFeedPosts ? (
+        <SubmitProgressState label="Refreshing posts" style={styles.pendingState} />
+      ) : null}
+      {feedLoading && !hasFeedPosts ? (
+        <LoadingState variant="feed" scope="section" style={styles.feedLoadingContainer} />
+      ) : hasFeedPosts ? (
+        (feedPosts ?? []).map((post) => <View key={post.id}>{renderPostCard(post)}</View>)
       ) : (
         <SurfaceCard style={styles.emptyState}>
           <Ionicons
@@ -119,9 +103,8 @@ const styles = StyleSheet.create({
     gap: Spacing.sm,
   },
   createPostText: { ...Typography.body, opacity: 0.6 },
-  feedLoadingContainer: { gap: Spacing.md, paddingVertical: Spacing.sm },
-  skeletonCard: { gap: Spacing.sm, paddingVertical: Spacing.lg },
-  skeletonLine: { height: 12, borderRadius: Radii.sm, opacity: 0.4 },
+  feedLoadingContainer: { paddingVertical: Spacing.sm },
+  pendingState: { marginBottom: Spacing.sm },
   emptyState: { paddingVertical: Spacing.xl, alignItems: 'center', gap: Spacing.xs },
   emptyStateText: { ...Typography.body, opacity: 0.6 },
   emptyStateCta: {

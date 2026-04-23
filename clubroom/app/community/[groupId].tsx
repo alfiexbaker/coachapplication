@@ -1,5 +1,5 @@
 import { useState, useCallback } from 'react';
-import { StyleSheet } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useLocalSearchParams, router } from 'expo-router';
 import type { ReactNode } from 'react';
@@ -9,7 +9,11 @@ import { GroupManageTab } from '@/components/community/group-manage-tab';
 import { GroupMembersModal } from '@/components/community/group-members-modal';
 import { GroupRolePicker } from '@/components/community/group-role-picker';
 import { GroupChatHeader } from '@/components/community/group-chat-header-sections';
-import { LoadingState, ErrorState, EmptyState } from '@/components/ui/screen-states';
+import {
+  ErrorState,
+  EmptyState,
+  SubmitProgressState,
+} from '@/components/ui/screen-states';
 import type { ParentGroup, GroupMessage, GroupMember, GroupMemberRole } from '@/constants/types';
 import { Clickable } from '@/components/primitives/clickable';
 import { Row } from '@/components/primitives/row';
@@ -25,12 +29,69 @@ import { ServiceEvents } from '@/services/event-bus';
 import { createLogger } from '@/utils/logger';
 import { Routes } from '@/navigation/routes';
 import { uiFeedback } from '@/services/ui-feedback';
+import { Skeleton, SkeletonCircle, SkeletonCluster, SkeletonPill, SkeletonText } from '@/components/ui/skeleton';
+import { SurfaceCard } from '@/components/primitives/surface-card';
 
 const logger = createLogger('GroupChatScreen');
 
 interface GroupChatData {
   group: ParentGroup | null;
   messages: GroupMessage[];
+}
+
+function GroupChatSkeleton({ borderColor }: { borderColor: string }) {
+  return (
+    <>
+      <Row style={[styles.loadingHeader, { borderBottomColor: borderColor }]}>
+        <Skeleton width={24} height={24} accessibilityLabel="Loading back button" />
+        <View style={styles.loadingHeaderCopy}>
+          <Skeleton width="40%" height={18} accessibilityLabel="Loading group name" />
+          <Skeleton width="76%" height={12} accessibilityLabel="Loading group members" />
+        </View>
+        <SkeletonCircle size={28} accessibilityLabel="Loading group action" />
+      </Row>
+
+      <View style={styles.loadingBody}>
+        <Row gap="xs" style={styles.loadingTabBar}>
+          <SkeletonPill width={72} accessibilityLabel="Loading chat tab" />
+          <SkeletonPill width={84} accessibilityLabel="Loading manage tab" />
+        </Row>
+
+        <SurfaceCard style={styles.loadingSummaryCard}>
+          <SkeletonCluster gap={Spacing.sm} accessibilityLabel="Loading group summary">
+            <Skeleton width="32%" height={16} accessibilityLabel="Loading group summary heading" />
+            <SkeletonText
+              lines={3}
+              widths={['100%', '84%', '66%']}
+              accessibilityLabel="Loading group summary copy"
+            />
+          </SkeletonCluster>
+        </SurfaceCard>
+
+        {Array.from({ length: 4 }).map((_, index) => (
+          <Row key={index} style={styles.loadingMessageRow}>
+            <SkeletonCircle size={36} accessibilityLabel={`Loading group avatar ${index + 1}`} />
+            <View style={styles.loadingMessageBubble}>
+              <SkeletonText
+                lines={3}
+                widths={['34%', '100%', '72%']}
+                accessibilityLabel={`Loading group message ${index + 1}`}
+              />
+            </View>
+          </Row>
+        ))}
+
+        <SurfaceCard style={styles.loadingComposer}>
+          <Row align="center" gap="sm">
+            <View style={styles.flex}>
+              <Skeleton height={44} radius={Radii.pill} accessibilityLabel="Loading message composer" />
+            </View>
+            <SkeletonCircle size={44} accessibilityLabel="Loading send button" />
+          </Row>
+        </SurfaceCard>
+      </View>
+    </>
+  );
 }
 
 export default function GroupChatScreen() {
@@ -73,16 +134,28 @@ export default function GroupChatScreen() {
     }
   }, [groupId, parentId]);
 
-  const { data, status, error, onRefresh, retry } = useScreen<GroupChatData>({
+  const {
+    data,
+    status,
+    error,
+    retry,
+    pendingState,
+    showLoadingState,
+    showSectionSkeleton,
+    isPending,
+  } = useScreen<GroupChatData>({
     load: loadData,
     deps: [groupId, parentId],
     events: [ServiceEvents.GROUP_MEMBER_JOINED, ServiceEvents.GROUP_MEMBER_ROLE_CHANGED],
     isEmpty: (value) => value.group === null,
     refetchOnFocus: true,
+    loadingStrategy: 'section-skeleton',
   });
 
   const group = data?.group ?? null;
   const messages = data?.messages ?? [];
+  const isGroupChangePending = showSectionSkeleton && pendingState.mode === 'dependency-change';
+  const shouldShowGroupSkeleton = showLoadingState || isGroupChangePending;
 
   const handleSend = useCallback(async () => {
     if (!inputValue.trim() || !groupId || sending) return;
@@ -102,7 +175,7 @@ export default function GroupChatScreen() {
         setInputValue(messageText);
         return;
       }
-      onRefresh();
+      retry();
     } catch (sendError) {
       logger.error('Failed to send message:', sendError);
       uiFeedback.showToast('Could not send your message. Please try again.', 'error');
@@ -110,7 +183,7 @@ export default function GroupChatScreen() {
     } finally {
       setSending(false);
     }
-  }, [groupId, inputValue, sending, parentId, parentName, onRefresh]);
+  }, [groupId, inputValue, sending, parentId, parentName, retry]);
 
   const handleLeaveGroup = useCallback(() => {
     uiFeedback.alert('Leave Group', 'Are you sure you want to leave this group?', [
@@ -170,12 +243,12 @@ export default function GroupChatScreen() {
         }
         setShowRolePickerModal(false);
         setSelectedMember(null);
-        onRefresh();
+        retry();
       } catch (changeError) {
         uiFeedback.showToast(String(changeError), 'error');
       }
     },
-    [selectedMember, groupId, parentId, onRefresh],
+    [selectedMember, groupId, parentId, retry],
   );
 
   const handleOpenSessionInvite = useCallback(() => {
@@ -205,8 +278,8 @@ export default function GroupChatScreen() {
     </SafeAreaView>
   );
 
-  if (status === 'loading') {
-    return renderStateShell(<LoadingState variant="detail" />);
+  if (shouldShowGroupSkeleton) {
+    return renderMainShell(<GroupChatSkeleton borderColor={palette.border} />);
   }
 
   if (status === 'error') {
@@ -237,6 +310,10 @@ export default function GroupChatScreen() {
         onInfoOrMembersPress={() => setShowMembersModal(true)}
         onLeavePress={handleLeaveGroup}
       />
+
+      {isPending ? (
+        <SubmitProgressState label="Refreshing group" style={styles.pendingState} />
+      ) : null}
 
       {canAccessManage ? (
         <Row style={[styles.tabBar, { borderBottomColor: palette.border }]}>
@@ -332,6 +409,50 @@ export default function GroupChatScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+  },
+  flex: {
+    flex: 1,
+  },
+  loadingHeader: {
+    alignItems: 'center',
+    gap: Spacing.sm,
+    paddingHorizontal: Spacing.lg,
+    paddingVertical: Spacing.md,
+    borderBottomWidth: 1,
+  },
+  loadingHeaderCopy: {
+    flex: 1,
+    gap: Spacing.xs,
+  },
+  loadingBody: {
+    flex: 1,
+    gap: Spacing.sm,
+    paddingHorizontal: Spacing.lg,
+    paddingTop: Spacing.sm,
+    paddingBottom: Spacing.lg,
+  },
+  loadingTabBar: {
+    paddingBottom: Spacing.xs,
+  },
+  loadingSummaryCard: {
+    gap: Spacing.sm,
+  },
+  loadingMessageRow: {
+    alignItems: 'flex-start',
+    gap: Spacing.sm,
+  },
+  loadingMessageBubble: {
+    flex: 1,
+    borderRadius: Radii.card,
+    paddingVertical: Spacing.sm,
+    paddingHorizontal: Spacing.sm,
+  },
+  loadingComposer: {
+    marginTop: 'auto',
+  },
+  pendingState: {
+    marginHorizontal: Spacing.lg,
+    marginTop: Spacing.sm,
   },
   tabBar: {
     alignItems: 'center',

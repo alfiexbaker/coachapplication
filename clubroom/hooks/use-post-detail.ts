@@ -8,7 +8,7 @@ import { Platform } from 'react-native';
 import { useLocalSearchParams } from 'expo-router';
 import * as Haptics from 'expo-haptics';
 import { useAuth } from '@/hooks/use-auth';
-import { useScreen, type ScreenStatus } from '@/hooks/use-screen';
+import { useScreen, type ScreenStatus, type UseScreenResult } from '@/hooks/use-screen';
 import { commentService } from '@/services/comment-service';
 import { socialFeedService } from '@/services/social-feed-service';
 import { createLogger } from '@/utils/logger';
@@ -140,6 +140,9 @@ export function usePostDetail() {
   const {
     data,
     status,
+    pendingState,
+    showSectionSkeleton,
+    isPending,
     error: loadError,
     refreshing,
     onRefresh,
@@ -149,6 +152,7 @@ export function usePostDetail() {
     deps: [postId],
     isEmpty: (value) => value.length === 0,
     refetchOnFocus: true,
+    loadingStrategy: 'section-skeleton',
   });
 
   const threads = data ?? [];
@@ -267,6 +271,9 @@ export function usePostDetail() {
     flatItems,
     loading: status === 'loading',
     status,
+    pendingState,
+    showSectionSkeleton,
+    isPending,
     error,
     refreshing,
     onRefresh,
@@ -299,6 +306,9 @@ export function usePostDetail() {
     flatItems: FlatItem[];
     loading: boolean;
     status: ScreenStatus;
+    pendingState: UseScreenResult<CommentThread[]>['pendingState'];
+    showSectionSkeleton: boolean;
+    isPending: boolean;
     error: string | null;
     refreshing: boolean;
     onRefresh: () => void;

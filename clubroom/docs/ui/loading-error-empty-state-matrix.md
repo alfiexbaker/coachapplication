@@ -193,6 +193,7 @@ Source of truth:
 ## Validation Notes
 
 - The shared primitives are real and reusable today.
+- Social and communication hot paths now use retained-frame loading recipes in code: home, feed, messages, community, post detail, and post composers keep shell chrome stable and use inline progress or section-matched placeholders instead of full resets or spinner-only seams.
 - Shared skeleton recipes now consolidate around `components/ui/skeleton.tsx`, `components/ui/screen-states-sections.tsx`, and `components/primitives/surface-card.tsx` rather than separate shimmer implementations.
 - Route classification and hot-path review closure now live in `navigation/loading-route-manifest.js`, with repo-level coverage enforced by `scripts/loading-route-coverage-audit.js`.
 - Domain-specific wrappers exist, but the repo still has drift between shared loading variants and bespoke per-screen placeholders.

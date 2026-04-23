@@ -7,7 +7,6 @@ Rule: active work only. Completed sprint rows are intentionally removed.
 
 | ID | Exactly what it does | Spine(s) | Status |
 | -- | -------------------- | -------- | ------ |
-| UI-LOAD-03 | Rebuild social and communication surfaces for premium perceived speed: home, feed, coach updates, community, messages, and related post/detail flows need truthful section loading and warm revisits. | Community and Growth + Development and Analytics | READY |
 | UI-LOAD-04 | Make profile and roster detail surfaces behave like a serious product: coach, athlete, public profile, roster, compare, and other segmented panes stay warm and never blank on tab changes. | Development and Analytics + Booking, Availability and Revenue | READY |
 | UI-LOAD-05 | Bring club, schedule, events, and calendar surfaces up to the same standard: no brochure skeletons, no cold resets, and no time-based screens loading like generic lists. | Community and Growth + Booking, Availability and Revenue | READY |
 | UI-LOAD-06 | Fix trust-sensitive and family surfaces: family, child, health, emergency, medical, verification, and related safeguarding-adjacent paths need strict, truthful, non-chaotic loading behavior. | Trust, Safety and Operations + Development and Analytics | READY |
@@ -17,13 +16,12 @@ Rule: active work only. Completed sprint rows are intentionally removed.
 
 ## Execution Order
 
-1. `UI-LOAD-03`
-2. `UI-LOAD-04`
-3. `UI-LOAD-05`
-4. `UI-LOAD-06`
-5. `UI-LOAD-07`
-6. `UI-LOAD-08`
-7. `PROD-VERIFY-01`
+1. `UI-LOAD-04`
+2. `UI-LOAD-05`
+3. `UI-LOAD-06`
+4. `UI-LOAD-07`
+5. `UI-LOAD-08`
+6. `PROD-VERIFY-01`
 
 ## Sprint Intent
 
@@ -77,38 +75,6 @@ Rule: active work only. Completed sprint rows are intentionally removed.
   - later slices still need to replace generic implementations on their owned routes; classification closure is done, route-family migration is not
 
 ## Sprint Notes
-
-### `UI-LOAD-03`
-
-- Need:
-  - Rebuild social, home, and messaging surfaces so revisits feel immediate and feed rows load truthfully.
-  - Remove giant top-level resets from feed-like experiences.
-  - Replace decorative placeholders with row-accurate section loading.
-- Touch first:
-  - `app/(tabs)/index.tsx`
-  - `app/(tabs)/feed.tsx`
-  - `app/(tabs)/messages.tsx`
-  - `app/community/index.tsx`
-  - `app/community/[groupId].tsx`
-  - `app/(modal)/post-detail.tsx`
-  - `app/(modal)/create-post.tsx`
-  - `app/(modal)/create-club-post.tsx`
-  - `components/user/home-screen.tsx`
-  - `components/coach/profile-tab-posts.tsx`
-- Acceptance:
-  - Feed and messaging surfaces preserve visible content during refresh.
-  - Post, thread, and community list placeholders map to the loaded row or card shapes.
-  - Home/feed/community/messages share one coherent loading language instead of mixed generic variants and spinners.
-- Hard fail if:
-  - A feed row or chat/thread list still flashes empty before warmed data appears.
-  - Social surfaces still combine row skeletons with random spinners in the same viewport.
-  - Feed interactions do not acknowledge tap immediately through stable context, pressed state, or retained frame.
-- Verify:
-  - `npm run typecheck`
-  - `npm run test:compile`
-  - `npm run ui:flows:coach-core`
-  - `npm run ui:flows:parent-core`
-  - `git diff --check`
 
 ### `UI-LOAD-04`
 

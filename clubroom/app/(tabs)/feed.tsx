@@ -13,7 +13,12 @@ import { Routes } from '@/navigation/routes';
 import { PageContainer } from '@/components/primitives/page-container';
 import { ScreenHeader } from '@/components/primitives/screen-header';
 import { ThemedText } from '@/components/themed-text';
-import { LoadingState, ErrorState, EmptyState } from '@/components/ui/screen-states';
+import {
+  LoadingState,
+  ErrorState,
+  EmptyState,
+  SubmitProgressState,
+} from '@/components/ui/screen-states';
 import { Spacing } from '@/constants/theme';
 import { useAuth } from '@/hooks/use-auth';
 import { useScreen } from '@/hooks/use-screen';
@@ -50,7 +55,17 @@ export default function FeedScreen() {
 
   const isCoach = currentUser?.role === 'COACH' || currentUser?.role === 'ADMIN';
 
-  const { data, status, error, refreshing, onRefresh, retry, colors } = useScreen<FeedData>({
+  const {
+    data,
+    status,
+    error,
+    refreshing,
+    onRefresh,
+    retry,
+    colors,
+    showLoadingState,
+    isPending,
+  } = useScreen<FeedData>({
     load: async (): Promise<Result<FeedData, ServiceError>> => {
       try {
         if (!currentUser?.id) {
@@ -72,6 +87,7 @@ export default function FeedScreen() {
     events: [ServiceEvents.CLUB_POST_CREATED, ServiceEvents.COACH_POST_CREATED],
     isEmpty: (d) => d.feed.length === 0 && d.clubs.length === 0,
     refetchOnFocus: true,
+    loadingStrategy: 'warm-first',
   });
 
   const feed = useMemo(() => data?.feed ?? [], [data?.feed]);
@@ -153,9 +169,15 @@ export default function FeedScreen() {
         {(feed.length > 0 || clubs.length > 0) && (
           <FeedFilters activeFilter={feedFilter} onFilterChange={setFeedFilter} />
         )}
+        {isPending ? (
+          <SubmitProgressState
+            label={feedFilter === 'all' ? 'Refreshing updates' : 'Updating results'}
+            style={styles.pendingState}
+          />
+        ) : null}
       </View>
     ),
-    [clubs, colors.muted, feed.length, feedFilter],
+    [clubs, feed.length, feedFilter, isPending],
   );
 
   const renderFeedEmpty = useCallback(
@@ -172,10 +194,10 @@ export default function FeedScreen() {
   );
 
   // ─── Loading ───────────────────────────────────────────────────
-  if (status === 'loading') {
+  if (showLoadingState) {
     return (
       <PageContainer header={header} scrollable={false} gap={0} horizontalSpacing={0}>
-        <LoadingState variant="list" />
+        <LoadingState variant="feed" />
       </PageContainer>
     );
   }
@@ -193,11 +215,16 @@ export default function FeedScreen() {
   if (status === 'empty') {
     return (
       <PageContainer header={header} scrollable={false} gap={0} horizontalSpacing={0}>
-        <EmptyState
-          icon="newspaper-outline"
-          title="No updates yet"
-          message="Club feeds, followed coaches' posts, and session updates will appear here once your clubs, follows, or bookings are active."
-        />
+        <>
+          {isPending ? (
+            <SubmitProgressState label="Refreshing updates" style={styles.pendingState} />
+          ) : null}
+          <EmptyState
+            icon="newspaper-outline"
+            title="No updates yet"
+            message="Club feeds, followed coaches' posts, and session updates will appear here once your clubs, follows, or bookings are active."
+          />
+        </>
       </PageContainer>
     );
   }
@@ -249,6 +276,9 @@ const styles = StyleSheet.create({
     paddingTop: Spacing.xs,
     paddingBottom: Spacing.sm,
     gap: Spacing.sm,
+  },
+  pendingState: {
+    marginHorizontal: Spacing.md,
   },
   clubsSection: {
     paddingHorizontal: Spacing.md,
