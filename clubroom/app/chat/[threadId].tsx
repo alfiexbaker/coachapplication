@@ -13,7 +13,8 @@ import {
   ChatSafetyBanner,
   ChatScreenHeader,
 } from '@/components/messaging/chat-screen-sections';
-import { EmptyState, ErrorState, LoadingState } from '@/components/ui/screen-states';
+import { ChatScreenLoadingState } from '@/components/messaging/messaging-loading-states';
+import { EmptyState, ErrorState, SubmitProgressState } from '@/components/ui/screen-states';
 import { Spacing } from '@/constants/theme';
 import { useScreen } from '@/hooks/use-screen';
 import { useAuth } from '@/hooks/use-auth';
@@ -24,6 +25,7 @@ import { messagingService } from '@/services/messaging-service';
 import { ChatMessage, ChatThreadSummary } from '@/constants/types';
 import { combineResults, err, ok, validationError } from '@/types/result';
 import { uiFeedback } from '@/services/ui-feedback';
+import { getMessageThreadPreview, primeMessageThreadPreview } from '@/utils/message-thread-preview-cache';
 
 type ChatScreenData = {
   thread: ChatThreadSummary | null;
@@ -38,6 +40,7 @@ export default function ChatScreen() {
   const [postingAs, setPostingAs] = useState<string | undefined>();
   const [typingUsers, setTypingUsers] = useState<Record<string, string>>({});
   const clearedThreadsRef = useRef<Set<string>>(new Set());
+  const previewThread = getMessageThreadPreview(threadId);
 
   const loadChat = useCallback(async () => {
     if (!threadId) {
@@ -64,6 +67,8 @@ export default function ChatScreen() {
     onRefresh,
     retry,
     colors: palette,
+    showLoadingState,
+    isPending,
   } = useScreen<ChatScreenData>({
     load: loadChat,
     deps: [threadId],
@@ -74,10 +79,17 @@ export default function ChatScreen() {
     ],
     isEmpty: (chatData) => chatData.thread === null,
     refetchOnFocus: true,
+    loadingStrategy: 'warm-first',
+    dataKey: threadId ?? null,
   });
 
   const thread = data?.thread ?? null;
   const messages = data?.messages ?? [];
+
+  useEffect(() => {
+    if (!thread) return;
+    primeMessageThreadPreview(thread);
+  }, [thread]);
 
   useEffect(() => {
     const postingAsOptions = thread?.postingAsOptions ?? [];
@@ -240,8 +252,8 @@ export default function ChatScreen() {
     </SafeAreaView>
   );
 
-  if (status === 'loading') {
-    return renderShell(<LoadingState variant="detail" />);
+  if (showLoadingState) {
+    return renderShell(<ChatScreenLoadingState previewThread={previewThread} />);
   }
 
   if (status === 'error') {
@@ -283,6 +295,9 @@ export default function ChatScreen() {
         postingAs={postingAs}
         onSelect={setPostingAs}
       />
+      {isPending ? (
+        <SubmitProgressState label="Syncing conversation" style={styles.pendingState} />
+      ) : null}
       <ScrollView
         contentContainerStyle={styles.chatContent}
         refreshControl={
@@ -330,5 +345,9 @@ const styles = StyleSheet.create({
     paddingBottom: Spacing.md,
     paddingTop: Spacing.md,
     borderTopWidth: 1,
+  },
+  pendingState: {
+    marginHorizontal: Spacing.lg,
+    marginTop: Spacing.sm,
   },
 });

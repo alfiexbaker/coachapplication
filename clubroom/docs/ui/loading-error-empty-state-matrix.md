@@ -196,7 +196,8 @@ Source of truth:
 ## Validation Notes
 
 - The shared primitives are real and reusable today.
-- Social and communication hot paths now use retained-frame loading recipes in code: home, feed, messages, community, post detail, and post composers keep shell chrome stable and use inline progress or section-matched placeholders instead of full resets or spinner-only seams.
+- Social and communication hot paths now use retained-frame loading recipes in code: home, feed, messages, chat thread detail, community, post detail, and post composers keep shell chrome stable and use inline progress or section-matched placeholders instead of full resets or spinner-only seams.
+- Chat thread entry now seeds the next route with in-memory thread preview data from the tapped row, so the chat header and group chrome can stay truthful while only the transcript/composer skeletonize on cold open.
 - Shared skeleton recipes now consolidate around `components/ui/skeleton.tsx`, `components/ui/screen-states-sections.tsx`, and `components/primitives/surface-card.tsx` rather than separate shimmer implementations.
 - Shared keyed retained-frame support now lives in `useScreen`, so warmed routes can hydrate a truthful cached frame for the requested `dataKey`, and section-skeleton routes only skeletonize when the requested frame is still unresolved.
 - Profile, roster, compare, and coach detail routes now use retained pane mounting plus section-level progress treatment, and coach/public profile offering sections now render real live offerings instead of fake session lists or verbose explainer copy.

@@ -16,6 +16,7 @@ import { ServiceEvents } from '@/services/event-bus';
 import { messagingService } from '@/services/messaging-service';
 import { bookingService } from '@/services/booking-service';
 import type { ServiceError } from '@/types/result';
+import { primeMessageThreadPreview } from '@/utils/message-thread-preview-cache';
 
 export type ViewMode = 'direct' | 'groups';
 export type GroupFilter = 'all' | 'club' | 'squad' | 'class';
@@ -37,7 +38,7 @@ export interface UseMessagesResult {
   directThreads: ChatThreadSummary[];
   groupThreads: ChatThreadSummary[];
   isCoach: boolean;
-  handleThreadPress: (threadId: string) => void;
+  handleThreadPress: (thread: ChatThreadSummary) => void;
 }
 
 export function useMessages(): UseMessagesResult {
@@ -86,6 +87,7 @@ export function useMessages(): UseMessagesResult {
         thread.id.toLowerCase().includes(params.coachId!.toLowerCase()),
       );
       if (idHintMatch) {
+        primeMessageThreadPreview(idHintMatch);
         router.push(Routes.chat(idHintMatch.id));
         return;
       }
@@ -98,6 +100,7 @@ export function useMessages(): UseMessagesResult {
       );
       const bookingMatch = directThreads.find((thread) => coachBookingIds.has(thread.bookingId));
       if (bookingMatch) {
+        primeMessageThreadPreview(bookingMatch);
         router.push(Routes.chat(bookingMatch.id));
         return;
       }
@@ -136,8 +139,9 @@ export function useMessages(): UseMessagesResult {
     [filteredThreads, groupFilter],
   );
 
-  const handleThreadPress = useCallback((threadId: string) => {
-    router.push(Routes.chat(threadId));
+  const handleThreadPress = useCallback((thread: ChatThreadSummary) => {
+    primeMessageThreadPreview(thread);
+    router.push(Routes.chat(thread.id));
   }, []);
 
   return {

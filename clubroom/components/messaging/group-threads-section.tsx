@@ -30,7 +30,7 @@ interface GroupThreadsSectionProps {
   groupFilter: GroupFilter;
   onGroupFilterChange: (filter: GroupFilter) => void;
   isCoach: boolean;
-  onThreadPress: (threadId: string) => void;
+  onThreadPress: (thread: ChatThreadSummary) => void;
 }
 
 export const GroupThreadsSection = memo(function GroupThreadsSection({
@@ -82,7 +82,7 @@ export const GroupThreadsSection = memo(function GroupThreadsSection({
             key={thread.id}
             thread={thread}
             index={index}
-            onPress={() => onThreadPress(thread.id)}
+            onPress={() => onThreadPress(thread)}
           />
         ))
       )}

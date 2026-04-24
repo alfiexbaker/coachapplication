@@ -13,37 +13,8 @@ import { ConversationRow } from '@/components/messaging/conversation-row';
 import { MessagesSearchBar } from '@/components/messaging/messages-search-bar';
 import { MessagesViewToggle } from '@/components/messaging/messages-view-toggle';
 import { GroupThreadsSection } from '@/components/messaging/group-threads-section';
+import { MessagesScreenLoadingState } from '@/components/messaging/messaging-loading-states';
 import { useScrollToTopOnTabReselect } from '@/hooks/use-scroll-to-top-on-tab-reselect';
-import { Skeleton, SkeletonCircle, SkeletonCluster, SkeletonPill, SkeletonText } from '@/components/ui/skeleton';
-
-function MessagesScreenSkeleton() {
-  return (
-    <SkeletonCluster gap={16} style={styles.loadingShell} accessibilityLabel="Loading conversations">
-      <View style={styles.loadingSearch}>
-        <Skeleton height={48} radius={24} accessibilityLabel="Loading message search" />
-      </View>
-      <View style={styles.loadingToggleRow}>
-        <SkeletonPill width={82} accessibilityLabel="Loading direct tab" />
-        <SkeletonPill width={90} accessibilityLabel="Loading groups tab" />
-      </View>
-      <View style={styles.loadingList}>
-        {Array.from({ length: 5 }).map((_, index) => (
-          <View key={index} style={styles.loadingRow}>
-            <SkeletonCircle size={48} accessibilityLabel={`Loading conversation avatar ${index + 1}`} />
-            <View style={styles.loadingRowText}>
-              <SkeletonText
-                lines={3}
-                widths={['52%', '34%', '78%']}
-                accessibilityLabel={`Loading conversation row ${index + 1}`}
-              />
-            </View>
-            <Skeleton width={36} height={12} accessibilityLabel={`Loading conversation date ${index + 1}`} />
-          </View>
-        ))}
-      </View>
-    </SkeletonCluster>
-  );
-}
 
 export default function MessagesScreen() {
   const { colors: palette } = useTheme();
@@ -83,7 +54,7 @@ export default function MessagesScreen() {
   );
 
   if (showLoadingState) {
-    return renderState(<MessagesScreenSkeleton />);
+    return renderState(<MessagesScreenLoadingState />);
   }
 
   if (status === 'error') {
@@ -150,7 +121,7 @@ export default function MessagesScreen() {
               key={thread.id}
               thread={thread}
               index={index}
-              onPress={() => handleThreadPress(thread.id)}
+              onPress={() => handleThreadPress(thread)}
             />
           ))
         )}
@@ -164,30 +135,6 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   scrollView: {
-    flex: 1,
-  },
-  loadingShell: {
-    flex: 1,
-    paddingHorizontal: 24,
-    paddingTop: 16,
-  },
-  loadingSearch: {
-    marginBottom: 4,
-  },
-  loadingToggleRow: {
-    flexDirection: 'row',
-    gap: 8,
-  },
-  loadingList: {
-    gap: 20,
-    paddingTop: 8,
-  },
-  loadingRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 16,
-  },
-  loadingRowText: {
     flex: 1,
   },
   pendingState: {
