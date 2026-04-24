@@ -4,34 +4,35 @@ Date: 2026-04-23
 
 ## What Was Just Done
 
-1. Hardened the shared loading foundation in `hooks/use-screen.ts` and `hooks/use-screen-core.ts` so routes can retain truthful snapshots by logical `dataKey`, distinguish the requested frame from the currently visible frame, and avoid showing dependency-change section skeletons when the requested frame is already cached.
-2. Rebuilt the home/profile hot path in `hooks/use-home-screen.ts` and `components/user/home-screen.tsx` around a single keyed page frame. Home now keeps one committed profile frame mounted, acknowledges profile switches inline, swaps to the next frame atomically when ready, and reverts global profile context if a retained-frame switch fails instead of leaving the UI and context out of sync.
-3. Fixed `app/community/[groupId].tsx` so group dependency changes no longer leak stale manage authority in the pending skeleton. Group detail now uses the shared requested-frame check and only skeletonizes when the next group frame is genuinely unresolved.
-4. Updated `docs/ui/loading-error-empty-state-matrix.md` and this handoff so the canonical loading contract reflects the requested-vs-visible frame distinction before `UI-LOAD-04` starts.
+1. Closed `UI-LOAD-04` across the profile/roster/detail family. The coach, public coach, roster detail, compare, user profile, athletes list, roster list, and child progress routes now use the shared route strategies instead of raw `status === 'loading'` resets.
+2. Added shared retained pane support in `components/ui/retained-tab-panels.tsx`, then applied it to profile/detail tab surfaces so pane switches stop remounting whole sections and stop acting like mini page navigations.
+3. Reworked coach-facing value surfaces away from verbose explainer cards and fake session content. `app/coach/[id].tsx`, `app/coach/[coachId]/public.tsx`, `components/coach/coach-detail-*`, `components/coach/public-profile-*`, `hooks/use-coach-detail.ts`, `hooks/use-public-profile.ts`, and `utils/coach-profile-offerings.ts` now surface real offerings, club/event access, and next-availability signals as product value instead of placeholder copy.
+4. Upgraded roster and compare loading so revisit/refresh paths stay warm: `app/(tabs)/athletes.tsx`, `app/roster/index.tsx`, `app/roster/[athleteId]/index.tsx`, `components/athlete/athlete-sessions.tsx`, `components/compare/ComparisonTable.tsx`, `hooks/use-athlete-detail.ts`, and related hooks now keep shell chrome stable and localize loading to the active section.
+5. Updated `docs/ui/loading-error-empty-state-matrix.md`, `docs/newsprints/sprints/BACKLOG.md`, and this handoff so the next slice starts from the real runtime state.
 
 ## Verification Run In This Step
 
 - `npm run typecheck` -> PASS
 - `npm run test:compile` -> PASS
 - `npm run ui:flows:coach-core` -> PASS (`11/11`, `0` high, `0` medium)
-- `npm run ui:flows:parent-core` -> PASS (`12/12`, `0` high, `0` medium)
+- `npm run ui:flows:athlete-core` -> PASS (`11/11`, `0` high, `0` medium)
 - `git diff --check` -> PASS
 
 ## Current State
 
-- Home and community now honor the anti-flicker contract more strictly: home commits profile switches as one page frame instead of letting chrome outrun data, and group detail no longer shows stale manage affordances while the next group is unresolved.
-- The shared screen-state foundation now supports keyed retained frames, so later slices can preserve or hydrate the requested truthful frame instead of guessing based on any visible success state.
-- The previously blocked live role rehearsals now run clean against Expo web on `http://localhost:8083`, so the next slice can start from a green validation baseline instead of an environment excuse.
+- Profile and roster detail surfaces now keep their pane chrome mounted, use retained tab content, and acknowledge refresh locally instead of blanking the viewport.
+- Coach/public coach surfaces now show real live offerings plus club/event access signals, so the product value is visible before the user books and the loading treatment matches the final structure.
+- Compare and user profile surfaces no longer rely on dead spinner-style intermediate states; they now use the shared retained/skeleton primitives.
 
 ## Next Exact Action
 
-1. Start `UI-LOAD-04` and warm the profile, roster, compare, and segmented detail surfaces so tab and pane switches stop blanking, hero chrome stays mounted during refresh, and pane-specific placeholders replace generic detail loaders.
+1. Start `UI-LOAD-05` and bring club, schedule, event, and calendar surfaces up to the same standard, with time-structured placeholders, stable headers/action chrome, and no generic loading bars on schedule/event detail.
 
 ## Priority Note
 
 Date: 2026-04-22
 
-- The social slice is now closed in code, so the next slice should spend zero time reworking feed/messages/community loading and all of its time applying the same standard to profile, roster, compare, and segmented detail panes.
+- `UI-LOAD-04` is closed in code and validation, so the next slice should spend zero time reworking profile/roster/detail loading and all of its time upgrading the club, schedule, event, and calendar family.
 - `navigation/loading-route-manifest.js` remains the route owner map; later loading slices should update their owned route entries as behavior changes instead of editing prose only.
 - `scripts/loading-route-coverage-audit.js` remains the route-closure gate; if a route becomes async without a specific non-static rule, that is a defect.
-- Premium review remains unchanged: reject any profile or roster path that shows a blank intermediate frame, pane jump, mismatched placeholder geometry, duplicated loading affordance, or a loading treatment that adds scroll cost.
+- Premium review remains unchanged: reject any schedule, event, or club path that shows a blank intermediate frame, header jump, mismatched placeholder geometry, duplicated loading affordance, or a loading treatment that adds scroll cost.

@@ -20,6 +20,7 @@ import type { RosterEntry, FootballObjective } from '@/constants/types';
 import { createLogger } from '@/utils/logger';
 import { getRosterAthleteName } from '@/utils/roster-display';
 import { uiFeedback } from '@/services/ui-feedback';
+import type { ScreenPendingState } from '@/hooks/use-screen-core';
 
 const logger = createLogger('AthleteProfile');
 
@@ -41,7 +42,19 @@ export function useAthleteDetail(athleteId: string) {
   const [showTagsModal, setShowTagsModal] = useState(false);
   const [newTag, setNewTag] = useState('');
 
-  const { data, status, error, refreshing, onRefresh, retry } = useScreen<AthleteProfileData>({
+  const {
+    data,
+    status,
+    error,
+    refreshing,
+    onRefresh,
+    retry,
+    pendingState,
+    showLoadingState,
+    showSectionSkeleton,
+    hasTruthfulFrame,
+    hasRequestedTruthfulFrame,
+  } = useScreen<AthleteProfileData>({
     load: async (): Promise<Result<AthleteProfileData, ServiceError>> => {
       try {
         const entry = await rosterService.getRosterEntry(coachId, athleteId);
@@ -69,6 +82,8 @@ export function useAthleteDetail(athleteId: string) {
     deps: [coachId, athleteId],
     events: [ServiceEvents.BOOKING_CREATED, ServiceEvents.CONCERN_RAISED],
     isEmpty: (d) => !d.entry,
+    loadingStrategy: 'section-skeleton',
+    dataKey: athleteId ?? null,
   });
 
   const handleUpdateStatus = useCallback(
@@ -203,6 +218,11 @@ export function useAthleteDetail(athleteId: string) {
     refreshing,
     onRefresh,
     retry,
+    pendingState,
+    showLoadingState,
+    showSectionSkeleton,
+    hasTruthfulFrame,
+    hasRequestedTruthfulFrame,
     handleUpdateStatus,
     handleUpdateFocus,
     handleAddNote,
@@ -214,5 +234,38 @@ export function useAthleteDetail(athleteId: string) {
     handleRaiseConcern,
     handleBlockFamily,
     handleRemove,
+  } satisfies {
+    coachId: string;
+    activeTab: TabId;
+    setActiveTab: (tab: TabId) => void;
+    showStatusModal: boolean;
+    openStatusModal: () => void;
+    closeStatusModal: () => void;
+    showTagsModal: boolean;
+    closeTagsModal: () => void;
+    newTag: string;
+    setNewTag: (value: string) => void;
+    data: AthleteProfileData | null;
+    status: ReturnType<typeof useScreen<AthleteProfileData>>['status'];
+    error: ServiceError | null;
+    refreshing: boolean;
+    onRefresh: () => void;
+    retry: () => void;
+    pendingState: ScreenPendingState;
+    showLoadingState: boolean;
+    showSectionSkeleton: boolean;
+    hasTruthfulFrame: boolean;
+    hasRequestedTruthfulFrame: boolean;
+    handleUpdateStatus: (newStatus: RosterEntry['status']) => Promise<void>;
+    handleUpdateFocus: (focus: FootballObjective) => Promise<void>;
+    handleAddNote: (content: string) => Promise<void>;
+    handleDeleteNote: (noteId: string) => Promise<void>;
+    handleTagRemove: (tag: string) => Promise<void>;
+    handleTagAdd: () => void;
+    handleAddTagSubmit: () => Promise<void>;
+    handleOpenHealth: () => void;
+    handleRaiseConcern: () => void;
+    handleBlockFamily: () => Promise<void>;
+    handleRemove: () => void;
   };
 }

@@ -15,6 +15,7 @@ import type { BadgeAward } from '@/constants/types';
 import { err, ok, serviceError, type ServiceError } from '@/types/result';
 import type { SwitcherChild } from '@/components/family/child-switcher';
 import { useRequiredParam } from '@/hooks/use-required-param';
+import type { ScreenPendingState } from '@/hooks/use-screen-core';
 
 const logger = createLogger('ChildProgressScreen');
 
@@ -151,11 +152,25 @@ export function useChildProgress() {
     }
   }, [effectiveChildId, contextChildren]);
 
-  const { data, status, error, refreshing, onRefresh, retry } = useScreen<ChildProgressData>({
+  const {
+    data,
+    status,
+    error,
+    refreshing,
+    onRefresh,
+    retry,
+    pendingState,
+    showLoadingState,
+    showSectionSkeleton,
+    hasTruthfulFrame,
+    hasRequestedTruthfulFrame,
+  } = useScreen<ChildProgressData>({
     load: loadData,
     deps: [effectiveChildId],
     isEmpty: (value) => !value.child,
     refetchOnFocus: true,
+    loadingStrategy: 'section-skeleton',
+    dataKey: effectiveChildId ?? null,
   });
 
   const child = data?.child;
@@ -195,6 +210,11 @@ export function useChildProgress() {
     refreshing,
     onRefresh,
     retry,
+    pendingState,
+    showLoadingState,
+    showSectionSkeleton,
+    hasTruthfulFrame,
+    hasRequestedTruthfulFrame,
     child,
     childProfile,
     progress,
@@ -207,8 +227,36 @@ export function useChildProgress() {
     // Child switcher
     switcherChildren,
     selectedChildId: effectiveChildId,
-    activeChildId: contextActiveChildId,
+    activeChildId: contextActiveChildId ?? undefined,
     handleSelectChild,
     isParent,
+  } satisfies {
+    loading: boolean;
+    status: ReturnType<typeof useScreen<ChildProgressData>>['status'];
+    error: ServiceError | null;
+    refreshing: boolean;
+    onRefresh: () => void;
+    retry: () => void;
+    pendingState: ScreenPendingState;
+    showLoadingState: boolean;
+    showSectionSkeleton: boolean;
+    hasTruthfulFrame: boolean;
+    hasRequestedTruthfulFrame: boolean;
+    child: { id: string; name: string } | undefined;
+    childProfile: ChildProfile | null;
+    progress: AthleteProgress | null;
+    feedback: SessionFeedback[];
+    badges: BadgeAward[];
+    activeTab: ProgressTab;
+    setActiveTab: (tab: ProgressTab) => void;
+    handleRefresh: () => void;
+    getTrendInfo: (
+      palette: { success: string; error: string; muted: string },
+    ) => { icon: string; color: string; label: string };
+    switcherChildren: SwitcherChild[];
+    selectedChildId: string | undefined;
+    activeChildId: string | undefined;
+    handleSelectChild: (childId: string) => void;
+    isParent: boolean;
   };
 }

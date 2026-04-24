@@ -6,15 +6,18 @@
  */
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { ScrollView, StyleSheet, View, ActivityIndicator } from 'react-native';
+import { ScrollView, StyleSheet, View } from 'react-native';
 import { router } from 'expo-router';
 import { Routes } from '@/navigation/routes';
 
 import { ThemedText } from '@/components/themed-text';
+import { LoadingState, ErrorState } from '@/components/ui/screen-states';
 import { Spacing, Typography } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
 import { comparisonService } from '@/services/comparison-service';
 import type { CoachComparison, ComparisonCriteria } from '@/constants/types';
+import { useScreen } from '@/hooks/use-screen';
+import { err, ok } from '@/types/result';
 import { CoachColumn } from './CoachColumn';
 
 interface ComparisonTableProps {
@@ -24,39 +27,38 @@ interface ComparisonTableProps {
 
 export function ComparisonTable({ coachIds, onCoachRemoved }: ComparisonTableProps) {
   const { colors: palette } = useTheme();
-
-  const [coaches, setCoaches] = useState<CoachComparison[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-
-  const loadComparisonData = useCallback(async () => {
-    setIsLoading(true);
-    setError(null);
-    let data: CoachComparison[] = [];
-    if (coachIds && coachIds.length > 0) {
-      const comparisonResult = await comparisonService.getComparisonData(coachIds);
-      if (!comparisonResult.success) {
-        setError(comparisonResult.error.message);
-        setIsLoading(false);
-        return;
-      }
-      data = comparisonResult.data;
-    } else {
-      const stateResult = await comparisonService.getComparisonState();
-      if (!stateResult.success) {
-        setError(stateResult.error.message);
-        setIsLoading(false);
-        return;
-      }
-      data = stateResult.data.coaches;
-    }
-    setCoaches(data);
-    setIsLoading(false);
-  }, [coachIds]);
+  const [removedCoachIds, setRemovedCoachIds] = useState<string[]>([]);
+  const coachIdsKey = coachIds?.join(',') ?? 'selected';
 
   useEffect(() => {
-    void loadComparisonData();
-  }, [loadComparisonData]);
+    setRemovedCoachIds([]);
+  }, [coachIdsKey]);
+
+  const {
+    data,
+    status,
+    error,
+    retry,
+    showLoadingState,
+  } = useScreen<CoachComparison[]>({
+    load: async () => {
+      if (coachIds && coachIds.length > 0) {
+        const comparisonResult = await comparisonService.getComparisonData(coachIds);
+        return comparisonResult.success ? ok(comparisonResult.data) : err(comparisonResult.error);
+      }
+
+      const stateResult = await comparisonService.getComparisonState();
+      return stateResult.success ? ok(stateResult.data.coaches) : err(stateResult.error);
+    },
+    deps: [coachIdsKey],
+    isEmpty: (value) => value.length === 0,
+    loadingStrategy: 'section-skeleton',
+    dataKey: coachIdsKey,
+  });
+  const coaches = useMemo(
+    () => (data ?? []).filter((coach) => !removedCoachIds.includes(coach.coachId)),
+    [data, removedCoachIds],
+  );
 
   const bestValues = useMemo((): Record<ComparisonCriteria, string | null> => {
     return {
@@ -71,10 +73,9 @@ export function ComparisonTable({ coachIds, onCoachRemoved }: ComparisonTablePro
     async (coachId: string) => {
       const removeResult = await comparisonService.removeFromComparison(coachId);
       if (!removeResult.success) {
-        setError(removeResult.error.message);
         return;
       }
-      setCoaches((prev) => prev.filter((c) => c.coachId !== coachId));
+      setRemovedCoachIds((current) => [...current, coachId]);
       onCoachRemoved?.(coachId);
     },
     [onCoachRemoved],
@@ -88,26 +89,19 @@ export function ComparisonTable({ coachIds, onCoachRemoved }: ComparisonTablePro
     );
   }, []);
 
-  if (isLoading) {
+  if (showLoadingState) {
     return (
-      <View style={[styles.centered, { backgroundColor: palette.background }]}>
-        <ActivityIndicator size="large" color={palette.tint} />
-        <ThemedText style={[styles.loadingText, { color: palette.muted }]}>
-          Loading comparison...
-        </ThemedText>
-      </View>
+      <LoadingState variant="card" scope="section" style={styles.loadingState} />
     );
   }
 
-  if (error) {
+  if (status === 'error') {
     return (
-      <View style={[styles.centered, { backgroundColor: palette.background }]}>
-        <ThemedText style={[styles.errorText, { color: palette.error }]}>{error}</ThemedText>
-      </View>
+      <ErrorState message={error?.message ?? 'Failed to load comparison.'} onRetry={retry} />
     );
   }
 
-  if (coaches.length === 0) {
+  if (status === 'empty' || coaches.length === 0) {
     return (
       <View style={[styles.centered, { backgroundColor: palette.background }]}>
         <ThemedText type="subtitle">No coaches to compare</ThemedText>
@@ -152,7 +146,8 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     padding: Spacing.lg,
   },
-  loadingText: { ...Typography.bodySmall, marginTop: Spacing.sm },
-  errorText: { ...Typography.bodySmall, textAlign: 'center' },
+  loadingState: {
+    padding: Spacing.md,
+  },
   emptyHint: { ...Typography.bodySmall, textAlign: 'center', marginTop: Spacing.xs },
 });

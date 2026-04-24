@@ -8,7 +8,6 @@ import { Image } from 'expo-image';
 
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { ThemedText } from '@/components/themed-text';
-import { SessionOfferingCard } from '@/components/sessions/session-offering-card';
 import { Spacing, Typography } from '@/constants/theme';
 import type {
   SessionOffering,
@@ -21,6 +20,9 @@ import type {
 import { ProfileTabPosts } from './profile-tab-posts';
 import { ProfileTabAbout } from './profile-tab-about';
 import { Row } from '@/components/primitives';
+import { RetainedTabPanels } from '@/components/ui/retained-tab-panels';
+import { CoachOfferingsShowcase } from './coach-offerings-showcase';
+import { summarizeCoachOfferings } from '@/utils/coach-profile-offerings';
 
 // Re-export TabBar and types from their dedicated file
 export { ProfileTabBar, type TabType, type ProfileTabsProps } from './profile-tab-bar';
@@ -40,6 +42,13 @@ export interface ProfileTabContentProps {
     certifications?: CoachCertification[];
     achievements?: string[];
     languages?: CoachLanguage[];
+    priceRange?: {
+      min: number;
+      max: number;
+      unitLabel: string;
+    };
+    sessionRate?: number;
+    nextAvailability?: string;
     footballFocuses: string[];
     posts?: {
       id: string;
@@ -94,60 +103,73 @@ function ProfileTabContentInner({
   onOfferingPress,
   renderPostCard,
 }: ProfileTabContentProps) {
+  const offeringSummary = summarizeCoachOfferings(sessionOfferings);
+  const minPrice = coach.priceRange?.min ?? coach.sessionRate ?? 0;
+  const maxPrice = coach.priceRange?.max;
+
   return (
     <View style={styles.tabContent}>
-      {activeTab === 'posts' && (
-        <ProfileTabPosts
-          coachName={coach.fullName}
-          userRole={userRole}
-          feedPosts={feedPosts ?? coach.posts}
-          feedLoading={feedLoading}
-          onComposePress={onComposePress}
-          renderPostCard={renderPostCard}
-        />
-      )}
-
-      {activeTab === 'about' && <ProfileTabAbout coach={coach} userRole={userRole} />}
-
-      {activeTab === 'photos' && (
-        <Row style={styles.photosGrid}>
-          {coach.photoGallery && coach.photoGallery.length > 0 ? (
-            coach.photoGallery.map((url, index) => (
-              <Image key={index} source={{ uri: url }} style={styles.gridPhoto} />
-            ))
-          ) : (
-            <SurfaceCard style={styles.emptyState}>
-              <ThemedText style={styles.emptyStateText}>No photos yet</ThemedText>
-            </SurfaceCard>
-          )}
-        </Row>
-      )}
-
-      {activeTab === 'sessions' && (
-        <>
-          {sessionOfferings.length > 0 ? (
-            sessionOfferings.map((offering) => (
-              <SessionOfferingCard
-                key={offering.id}
-                offering={offering}
-                showCoach={false}
-                showCapacity={true}
-                onPress={() => onOfferingPress(offering)}
+      <RetainedTabPanels
+        activeTab={activeTab}
+        panels={[
+          {
+            id: 'posts',
+            content: (
+              <ProfileTabPosts
+                coachName={coach.fullName}
+                userRole={userRole}
+                feedPosts={feedPosts ?? coach.posts}
+                feedLoading={feedLoading}
+                onComposePress={onComposePress}
+                renderPostCard={renderPostCard}
               />
-            ))
-          ) : (
-            <SurfaceCard style={styles.emptyState}>
-              <ThemedText style={styles.emptyStateText}>No active sessions available</ThemedText>
-            </SurfaceCard>
-          )}
-        </>
-      )}
-
-      {activeTab === 'reviews' && (
-        <SurfaceCard style={styles.emptyState}>
-          <ThemedText style={styles.emptyStateText}>No reviews yet</ThemedText>
-        </SurfaceCard>
-      )}
+            ),
+          },
+          {
+            id: 'about',
+            content: <ProfileTabAbout coach={coach} userRole={userRole} />,
+          },
+          {
+            id: 'photos',
+            content: (
+              <Row style={styles.photosGrid}>
+                {coach.photoGallery && coach.photoGallery.length > 0 ? (
+                  coach.photoGallery.map((url, index) => (
+                    <Image key={index} source={{ uri: url }} style={styles.gridPhoto} />
+                  ))
+                ) : (
+                  <SurfaceCard style={styles.emptyState}>
+                    <ThemedText style={styles.emptyStateText}>No photos yet</ThemedText>
+                  </SurfaceCard>
+                )}
+              </Row>
+            ),
+          },
+          {
+            id: 'sessions',
+            content: (
+              <CoachOfferingsShowcase
+                minPrice={minPrice}
+                maxPrice={maxPrice}
+                nextAvailable={coach.nextAvailability}
+                sessionOfferings={sessionOfferings}
+                offeringSummary={offeringSummary}
+                onOfferingPress={onOfferingPress}
+                emptyTitle="No live sessions yet"
+                emptyMessage="Create or publish a session so athletes can see the real formats and availability you offer."
+              />
+            ),
+          },
+          {
+            id: 'reviews',
+            content: (
+              <SurfaceCard style={styles.emptyState}>
+                <ThemedText style={styles.emptyStateText}>No reviews yet</ThemedText>
+              </SurfaceCard>
+            ),
+          },
+        ]}
+      />
     </View>
   );
 }

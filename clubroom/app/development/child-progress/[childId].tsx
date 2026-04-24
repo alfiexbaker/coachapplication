@@ -28,7 +28,12 @@ import { useScreen } from '@/hooks/use-screen';
 import { ok } from '@/types/result';
 import { useChildProgress, PROGRESS_TABS } from '@/hooks/use-child-progress';
 import { formatShortDateWithYear } from '@/utils/format';
-import { LoadingState, ErrorState, EmptyState } from '@/components/ui/screen-states';
+import {
+  LoadingState,
+  ErrorState,
+  EmptyState,
+  SubmitProgressState,
+} from '@/components/ui/screen-states';
 import { Routes } from '@/navigation/routes';
 import type { FootballSkill } from '@/types/progress-types';
 import { useRequiredParam } from '@/hooks/use-required-param';
@@ -37,10 +42,10 @@ export default function ChildProgressScreen() {
   const childIdParam = useRequiredParam('childId');
   const { colors } = useScreen<null>({ load: async () => ok(null), isEmpty: () => false });
   const {
-    loading,
     status,
     error,
     refreshing,
+    showLoadingState,
     child,
     childProfile,
     progress,
@@ -97,7 +102,7 @@ export default function ChildProgressScreen() {
     });
   }
 
-  if (loading) {
+  if (showLoadingState) {
     return renderShell({
       header: progressHeader,
       showSwitcher: true,
@@ -207,6 +212,9 @@ export default function ChildProgressScreen() {
           ))}
         </ScrollView>
       </View>
+      {refreshing ? (
+        <SubmitProgressState label="Refreshing progress" style={styles.pendingState} />
+      ) : null}
 
       <ScrollView
         contentContainerStyle={styles.content}
@@ -479,6 +487,10 @@ const styles = StyleSheet.create({
   tabBar: { borderBottomWidth: 1 },
   tabContent: { paddingHorizontal: Spacing.md, gap: Spacing.sm },
   tab: { paddingVertical: Spacing.sm, paddingHorizontal: Spacing.sm, marginBottom: -1 },
+  pendingState: {
+    marginHorizontal: Spacing.md,
+    marginTop: Spacing.sm,
+  },
   content: { padding: Spacing.md, gap: Spacing.lg, paddingBottom: Spacing['2xl'] },
   tabSection: { gap: Spacing.sm },
   sectionHeader: { gap: Spacing.xxs, marginBottom: Spacing.sm },

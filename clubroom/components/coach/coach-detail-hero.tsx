@@ -11,6 +11,8 @@ import { SCREEN_WIDTH, COVER_HEIGHT } from '@/hooks/use-coach-detail';
 import type { Coach } from '@/services/coach-service';
 import { renderStars } from '@/components/coach/coach-detail-reviews';
 import { Row } from '@/components/primitives';
+import type { CoachOfferingSummary } from '@/utils/coach-profile-offerings';
+import { formatCoachAvailabilityLabel } from '@/utils/coach-profile-offerings';
 
 interface CoachDetailHeroProps {
   coach: Coach;
@@ -22,6 +24,7 @@ interface CoachDetailHeroProps {
   followIconName: keyof typeof Ionicons.glyphMap;
   contactLabel: string;
   profileSummary: string;
+  offeringSummary: CoachOfferingSummary;
   isBlocked: boolean;
   onFollow: () => void | Promise<void>;
   onMessage: () => void;
@@ -37,6 +40,7 @@ export const CoachDetailHero = memo(function CoachDetailHero({
   followIconName,
   contactLabel,
   profileSummary,
+  offeringSummary,
   isBlocked,
   onFollow,
   onMessage,
@@ -44,6 +48,22 @@ export const CoachDetailHero = memo(function CoachDetailHero({
   const { colors: palette } = useTheme();
   const isMutedFollowButton = isFollowing || !canFollowAction;
   const followTextColor = isMutedFollowButton ? palette.text : palette.onPrimary;
+  const availabilityLabel = formatCoachAvailabilityLabel(
+    offeringSummary.nextOffering?.scheduledAt ?? coach.nextAvailable,
+  );
+  const accessLabel =
+    offeringSummary.clubOfferingsCount > 0 || offeringSummary.eventOfferingsCount > 0
+      ? [
+          offeringSummary.clubOfferingsCount > 0
+            ? `${offeringSummary.clubOfferingsCount} club`
+            : null,
+          offeringSummary.eventOfferingsCount > 0
+            ? `${offeringSummary.eventOfferingsCount} event`
+            : null,
+        ]
+          .filter(Boolean)
+          .join(' · ')
+      : `${Math.max(offeringSummary.directOfferingsCount, 1)} direct options`;
 
   return (
     <>
@@ -136,6 +156,20 @@ export const CoachDetailHero = memo(function CoachDetailHero({
         <ThemedText style={[styles.summaryText, { color: palette.muted }]}>
           {profileSummary}
         </ThemedText>
+        <Row style={styles.signalRow}>
+          <View
+            style={[styles.signalCard, { backgroundColor: withAlpha(palette.tint, 0.08) }]}
+          >
+            <ThemedText style={[styles.signalLabel, { color: palette.muted }]}>Next slot</ThemedText>
+            <ThemedText style={styles.signalValue}>{availabilityLabel}</ThemedText>
+          </View>
+          <View
+            style={[styles.signalCard, { backgroundColor: withAlpha(palette.info, 0.08) }]}
+          >
+            <ThemedText style={[styles.signalLabel, { color: palette.muted }]}>Access</ThemedText>
+            <ThemedText style={styles.signalValue}>{accessLabel}</ThemedText>
+          </View>
+        </Row>
         {!isOwnProfile && (
           <Row style={styles.actionButtons}>
             <Clickable
@@ -228,6 +262,22 @@ const styles = StyleSheet.create({
   starsRow: { gap: Spacing.micro },
   actionButtons: { gap: Spacing.sm, marginTop: Spacing.sm },
   summaryText: { ...Typography.bodySmall },
+  signalRow: {
+    gap: Spacing.sm,
+  },
+  signalCard: {
+    flex: 1,
+    borderRadius: Radii.lg,
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.sm,
+    gap: Spacing.xxs,
+  },
+  signalLabel: {
+    ...Typography.caption,
+  },
+  signalValue: {
+    ...Typography.bodySemiBold,
+  },
   followButton: {
     flex: 1,
     alignItems: 'center',

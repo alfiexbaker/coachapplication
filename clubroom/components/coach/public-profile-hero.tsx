@@ -10,6 +10,8 @@ import { useTheme } from '@/hooks/useTheme';
 import { renderStars, COVER_HEIGHT, AVATAR_SIZE } from '@/hooks/use-public-profile';
 import type { Coach } from '@/services/coach-service';
 import { Row } from '@/components/primitives';
+import type { CoachOfferingSummary } from '@/utils/coach-profile-offerings';
+import { formatCoachAvailabilityLabel } from '@/utils/coach-profile-offerings';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
@@ -18,6 +20,7 @@ interface PublicProfileHeroProps {
   onShare: () => void;
   onBook: () => void;
   onMessage: () => void;
+  offeringSummary: CoachOfferingSummary;
   isBlocked?: boolean;
 }
 
@@ -26,10 +29,29 @@ export const PublicProfileHero = memo(function PublicProfileHero({
   onShare,
   onBook,
   onMessage,
+  offeringSummary,
   isBlocked = false,
 }: PublicProfileHeroProps) {
   const { colors: palette } = useTheme();
   const stars = renderStars(coach.rating, palette.rating);
+  const availabilityLabel = formatCoachAvailabilityLabel(
+    offeringSummary.nextOffering?.scheduledAt ?? coach.nextAvailable,
+  );
+  const accessLabel =
+    offeringSummary.clubOfferingsCount > 0 || offeringSummary.eventOfferingsCount > 0
+      ? [
+          offeringSummary.clubOfferingsCount > 0
+            ? `${offeringSummary.clubOfferingsCount} club`
+            : null,
+          offeringSummary.eventOfferingsCount > 0
+            ? `${offeringSummary.eventOfferingsCount} event`
+            : null,
+        ]
+          .filter(Boolean)
+          .join(' · ')
+      : offeringSummary.publicOfferingsCount > 0
+        ? `${offeringSummary.publicOfferingsCount} public sessions`
+        : 'Private booking first';
 
   return (
     <>
@@ -139,10 +161,20 @@ export const PublicProfileHero = memo(function PublicProfileHero({
             ))}
           </Row>
         ) : null}
-        <ThemedText style={[Typography.bodySmall, { color: palette.muted }]}>
-          Business profile first: review fit, request contact if you need to confirm details, then
-          book when ready.
-        </ThemedText>
+        <Row style={styles.signalRow}>
+          <View
+            style={[styles.signalCard, { backgroundColor: withAlpha(palette.tint, 0.08) }]}
+          >
+            <ThemedText style={[styles.signalLabel, { color: palette.muted }]}>Next slot</ThemedText>
+            <ThemedText style={styles.signalValue}>{availabilityLabel}</ThemedText>
+          </View>
+          <View
+            style={[styles.signalCard, { backgroundColor: withAlpha(palette.info, 0.08) }]}
+          >
+            <ThemedText style={[styles.signalLabel, { color: palette.muted }]}>Access</ThemedText>
+            <ThemedText style={styles.signalValue}>{accessLabel}</ThemedText>
+          </View>
+        </Row>
         <Row style={styles.ctaRow}>
           <Clickable
             onPress={onBook}
@@ -230,6 +262,20 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing.xs,
     paddingVertical: Spacing.xs / 2,
     borderRadius: Radii.pill,
+  },
+  signalRow: { gap: Spacing.sm, marginTop: Spacing.xs },
+  signalCard: {
+    flex: 1,
+    borderRadius: Radii.lg,
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.sm,
+    gap: Spacing.xxs,
+  },
+  signalLabel: {
+    ...Typography.caption,
+  },
+  signalValue: {
+    ...Typography.bodySemiBold,
   },
   ctaRow: { gap: Spacing.sm, marginTop: Spacing.sm },
   bookButton: {

@@ -50,6 +50,9 @@ export function useAthletesScreen() {
       ServiceEvents.CONCERN_RAISED,
     ],
     isEmpty: (d) => d.roster.length === 0,
+    refetchOnFocus: true,
+    loadingStrategy: 'warm-first',
+    dataKey: coachId,
   });
 
   const roster = screen.data?.roster || [];

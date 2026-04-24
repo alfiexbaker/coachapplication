@@ -10,12 +10,20 @@ import { Routes } from '@/navigation/routes';
 import { useAuth } from '@/hooks/use-auth';
 import { useScreen, type ScreenStatus } from '@/hooks/use-screen';
 import { coachService, type Coach, type PublicReview } from '@/services/coach-service';
+import { apiClient } from '@/services/api-client';
 import { followService } from '@/services/follow-service';
 import { blockService } from '@/services/block-service';
 import { createLogger } from '@/utils/logger';
 import { combineResults, err, ok, serviceError, type ServiceError } from '@/types/result';
 import { uiFeedback } from '@/services/ui-feedback';
 import { getCoachRelationshipDisplay, type CoachConnectionState } from '@/utils/coach-conversion';
+import { STORAGE_KEYS } from '@/constants/storage-keys';
+import type { SessionOffering } from '@/constants/types';
+import {
+  getCoachProfileOfferings,
+  summarizeCoachOfferings,
+} from '@/utils/coach-profile-offerings';
+import type { ScreenPendingState } from '@/hooks/use-screen-core';
 
 const logger = createLogger('CoachProfileScreen');
 
@@ -33,6 +41,7 @@ export const COVER_HEIGHT = 180;
 interface CoachDetailData {
   coach: Coach | null;
   reviews: PublicReview[];
+  sessionOfferings: SessionOffering[];
 }
 
 export function useCoachDetail(coachId: string | undefined) {
@@ -93,19 +102,22 @@ export function useCoachDetail(coachId: string | undefined) {
       return ok<CoachDetailData>({
         coach: null,
         reviews: [],
+        sessionOfferings: [],
       });
     }
 
     try {
-      const [coachResult, reviewsResult] = await Promise.all([
+      const [coachResult, reviewsResult, storedOfferings] = await Promise.all([
         coachService.getCoach(coachId),
         coachService.getCoachReviews(coachId),
+        apiClient.get<SessionOffering[]>(STORAGE_KEYS.SESSION_OFFERINGS, []),
       ]);
 
       if (!coachResult.success && coachResult.error.code === 'NOT_FOUND') {
         return ok<CoachDetailData>({
           coach: null,
           reviews: [],
+          sessionOfferings: [],
         });
       }
 
@@ -116,22 +128,45 @@ export function useCoachDetail(coachId: string | undefined) {
       }
 
       const [coach, reviews] = combined.data;
-      return ok<CoachDetailData>({ coach, reviews });
+      return ok<CoachDetailData>({
+        coach,
+        reviews,
+        sessionOfferings: getCoachProfileOfferings(storedOfferings, coachId),
+      });
     } catch (loadError) {
       logger.error('Failed to load coach detail', loadError);
       return err(serviceError('UNKNOWN', 'Failed to load coach profile.', loadError));
     }
   }, [coachId]);
 
-  const { data, status, error, refreshing, onRefresh, retry } = useScreen<CoachDetailData>({
+  const {
+    data,
+    status,
+    error,
+    refreshing,
+    onRefresh,
+    retry,
+    pendingState,
+    showLoadingState,
+    showSectionSkeleton,
+    hasTruthfulFrame,
+    hasRequestedTruthfulFrame,
+  } = useScreen<CoachDetailData>({
     load: loadCoach,
     deps: [coachId],
     isEmpty: (value) => value.coach === null,
     refetchOnFocus: true,
+    loadingStrategy: 'section-skeleton',
+    dataKey: coachId ?? null,
   });
 
   const coach = data?.coach ?? null;
   const reviews = data?.reviews ?? [];
+  const sessionOfferings = data?.sessionOfferings ?? [];
+  const offeringSummary = useMemo(
+    () => summarizeCoachOfferings(sessionOfferings),
+    [sessionOfferings],
+  );
   const canFollowAction = useMemo(
     () =>
       !followLoading &&
@@ -203,6 +238,21 @@ export function useCoachDetail(coachId: string | undefined) {
     }
     router.push(Routes.bookCoach(coachId!));
   }, [coachId, isBlocked]);
+  const handleOfferingPress = useCallback(
+    (offering: SessionOffering) => {
+      if (isBlocked) {
+        uiFeedback.showToast('Booking is unavailable while this coach is blocked.', 'error');
+        return;
+      }
+      router.push(
+        Routes.bookCoach(coachId!, {
+          offeringId: offering.id,
+          source: offering.source === 'event' ? 'event_profile' : 'coach_profile',
+        }),
+      );
+    },
+    [coachId, isBlocked],
+  );
   const handleMessage = useCallback(() => {
     if (isBlocked) {
       uiFeedback.showToast('Contact is unavailable while this coach is blocked.', 'error');
@@ -242,12 +292,19 @@ export function useCoachDetail(coachId: string | undefined) {
   return {
     coach,
     reviews,
+    sessionOfferings,
+    offeringSummary,
     loading: status === 'loading',
     status,
     error: status === 'error' ? (error as ServiceError | null) : null,
     refreshing,
     onRefresh,
     retry,
+    pendingState,
+    showLoadingState,
+    showSectionSkeleton,
+    hasTruthfulFrame,
+    hasRequestedTruthfulFrame,
     activeTab,
     setActiveTab,
     isFollowing,
@@ -260,17 +317,25 @@ export function useCoachDetail(coachId: string | undefined) {
     handleRefresh,
     handleFollow,
     handleBook,
+    handleOfferingPress,
     handleMessage,
     handleBlock,
   } satisfies {
     coach: Coach | null;
     reviews: PublicReview[];
+    sessionOfferings: SessionOffering[];
+    offeringSummary: ReturnType<typeof summarizeCoachOfferings>;
     loading: boolean;
     status: ScreenStatus;
     error: ServiceError | null;
     refreshing: boolean;
     onRefresh: () => void;
     retry: () => void;
+    pendingState: ScreenPendingState;
+    showLoadingState: boolean;
+    showSectionSkeleton: boolean;
+    hasTruthfulFrame: boolean;
+    hasRequestedTruthfulFrame: boolean;
     activeTab: CoachTabId;
     setActiveTab: (tab: CoachTabId) => void;
     isFollowing: boolean;
@@ -283,6 +348,7 @@ export function useCoachDetail(coachId: string | undefined) {
     handleRefresh: () => void;
     handleFollow: () => Promise<void>;
     handleBook: () => void;
+    handleOfferingPress: (offering: SessionOffering) => void;
     handleMessage: () => void;
     handleBlock: () => Promise<void>;
   };

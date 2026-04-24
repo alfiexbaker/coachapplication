@@ -17,6 +17,7 @@ import { Clickable } from '@/components/primitives/clickable';
 import { ThemedText } from '@/components/themed-text';
 import { Row } from '@/components/primitives/row';
 import { Column } from '@/components/primitives/column';
+import { Skeleton, SkeletonPill, SkeletonText } from '@/components/ui/skeleton';
 import { Routes } from '@/navigation/routes';
 import { Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
@@ -98,6 +99,38 @@ export const SessionItem = React.memo(function SessionItem({ session, isPast }: 
         </Row>
       </SurfaceCard>
     </Clickable>
+  );
+});
+
+export const SessionItemSkeleton = React.memo(function SessionItemSkeleton({
+  showNeedsNotesBadge = false,
+}: {
+  showNeedsNotesBadge?: boolean;
+}) {
+  return (
+    <SurfaceCard style={styles.sessionCard}>
+      <Row gap="sm" align="center">
+        <Skeleton width={48} height={48} radius={Radii.md} accessibilityLabel="Loading session date" />
+
+        <Column gap="micro" style={styles.flex1}>
+          <Row gap="xs" align="center">
+            <Skeleton width="42%" height={16} accessibilityLabel="Loading session title" />
+            {showNeedsNotesBadge ? (
+              <SkeletonPill width={72} height={18} accessibilityLabel="Loading session badge" />
+            ) : null}
+          </Row>
+          <Skeleton width="34%" height={12} accessibilityLabel="Loading session time" />
+          <SkeletonText
+            lines={1}
+            widths={['68%']}
+            lineHeight={12}
+            accessibilityLabel="Loading session note preview"
+          />
+        </Column>
+
+        <Skeleton width={18} height={18} radius={Radii.xs} accessibilityLabel="Loading session action" />
+      </Row>
+    </SurfaceCard>
   );
 });
 

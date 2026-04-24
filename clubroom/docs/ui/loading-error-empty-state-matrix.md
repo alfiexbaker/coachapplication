@@ -199,6 +199,7 @@ Source of truth:
 - Social and communication hot paths now use retained-frame loading recipes in code: home, feed, messages, community, post detail, and post composers keep shell chrome stable and use inline progress or section-matched placeholders instead of full resets or spinner-only seams.
 - Shared skeleton recipes now consolidate around `components/ui/skeleton.tsx`, `components/ui/screen-states-sections.tsx`, and `components/primitives/surface-card.tsx` rather than separate shimmer implementations.
 - Shared keyed retained-frame support now lives in `useScreen`, so warmed routes can hydrate a truthful cached frame for the requested `dataKey`, and section-skeleton routes only skeletonize when the requested frame is still unresolved.
+- Profile, roster, compare, and coach detail routes now use retained pane mounting plus section-level progress treatment, and coach/public profile offering sections now render real live offerings instead of fake session lists or verbose explainer copy.
 - Route classification and hot-path review closure now live in `navigation/loading-route-manifest.js`, with repo-level coverage enforced by `scripts/loading-route-coverage-audit.js`.
 - Domain-specific wrappers exist, but the repo still has drift between shared loading variants and bespoke per-screen placeholders.
 - New work should consolidate toward the shared primitives above instead of adding another custom loading pattern.

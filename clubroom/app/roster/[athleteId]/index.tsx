@@ -17,7 +17,14 @@ import { Ionicons } from '@expo/vector-icons';
 
 import { Clickable } from '@/components/primitives/clickable';
 import { Row } from '@/components/primitives/row';
-import { LoadingState, ErrorState, EmptyState } from '@/components/ui/screen-states';
+import {
+  LoadingState,
+  ErrorState,
+  EmptyState,
+  SectionSkeleton,
+  SubmitProgressState,
+} from '@/components/ui/screen-states';
+import { RetainedTabPanels } from '@/components/ui/retained-tab-panels';
 import { AthleteHero } from '@/components/athlete/athlete-hero';
 import { AthleteQuickActions } from '@/components/athlete/athlete-quick-actions';
 import { AthleteOverview } from '@/components/athlete/athlete-overview';
@@ -48,7 +55,11 @@ export default function AthleteProfileScreen() {
     data,
     status,
     error,
+    refreshing,
     retry,
+    showLoadingState,
+    showSectionSkeleton,
+    hasRequestedTruthfulFrame,
     handleUpdateStatus,
     handleUpdateFocus,
     handleAddNote,
@@ -71,7 +82,7 @@ export default function AthleteProfileScreen() {
   );
 
   // --- 4 visual states ---
-  if (status === 'loading') {
+  if (showLoadingState) {
     return renderShell(<LoadingState variant="detail" />);
   }
 
@@ -92,34 +103,7 @@ export default function AthleteProfileScreen() {
   }
 
   const { entry, emergencyData, childData } = data;
-
-  const renderTabContent = () => {
-    switch (activeTab) {
-      case 'overview':
-        return (
-          <AthleteOverview
-            athlete={entry}
-            emergencyData={emergencyData}
-            childData={childData}
-            onTagRemove={handleTagRemove}
-            onTagAdd={handleTagAdd}
-          />
-        );
-      case 'sessions':
-        return <AthleteSessions athlete={entry} coachId={coachId} />;
-      case 'progress':
-        return <AthleteProgress athlete={entry} coachId={coachId} />;
-      case 'notes':
-        return (
-          <AthleteNotesTab
-            athlete={entry}
-            onAddNote={handleAddNote}
-            onDeleteNote={handleDeleteNote}
-            onUpdateFocus={handleUpdateFocus}
-          />
-        );
-    }
-  };
+  const showPendingPaneSkeleton = showSectionSkeleton && !hasRequestedTruthfulFrame;
 
   return renderShell(
     <>
@@ -147,7 +131,60 @@ export default function AthleteProfileScreen() {
           onRemove={handleRemove}
         />
         <AthleteTabBar activeTab={activeTab} onTabPress={setActiveTab} />
-        <View style={styles.tabContent}>{renderTabContent()}</View>
+        {refreshing ? (
+          <SubmitProgressState label="Refreshing athlete" style={styles.pendingState} />
+        ) : null}
+        <View style={styles.tabContent}>
+          {showPendingPaneSkeleton ? (
+            <SectionSkeleton
+              variant={
+                activeTab === 'sessions'
+                  ? 'list'
+                  : activeTab === 'progress'
+                    ? 'card'
+                    : 'tab-pane'
+              }
+              titleWidth="34%"
+            />
+          ) : (
+            <RetainedTabPanels
+              activeTab={activeTab}
+              panels={[
+                {
+                  id: 'overview',
+                  content: (
+                    <AthleteOverview
+                      athlete={entry}
+                      emergencyData={emergencyData}
+                      childData={childData}
+                      onTagRemove={handleTagRemove}
+                      onTagAdd={handleTagAdd}
+                    />
+                  ),
+                },
+                {
+                  id: 'sessions',
+                  content: <AthleteSessions athlete={entry} coachId={coachId} />,
+                },
+                {
+                  id: 'progress',
+                  content: <AthleteProgress athlete={entry} coachId={coachId} />,
+                },
+                {
+                  id: 'notes',
+                  content: (
+                    <AthleteNotesTab
+                      athlete={entry}
+                      onAddNote={handleAddNote}
+                      onDeleteNote={handleDeleteNote}
+                      onUpdateFocus={handleUpdateFocus}
+                    />
+                  ),
+                },
+              ]}
+            />
+          )}
+        </View>
       </ScrollView>
 
       <AthleteStatusModal
@@ -181,5 +218,8 @@ const styles = StyleSheet.create({
   },
   tabContent: {
     minHeight: 200,
+  },
+  pendingState: {
+    marginTop: Spacing.sm,
   },
 });

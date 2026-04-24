@@ -10,7 +10,12 @@ import { Routes } from '@/navigation/routes';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { ScreenHeader } from '@/components/primitives/screen-header';
-import { LoadingState, ErrorState, EmptyState } from '@/components/ui/screen-states';
+import {
+  LoadingState,
+  ErrorState,
+  EmptyState,
+  SubmitProgressState,
+} from '@/components/ui/screen-states';
 import { Spacing } from '@/constants/theme';
 import type { RosterEntry } from '@/constants/types';
 import { useAthletesScreen } from '@/hooks/use-athletes-screen';
@@ -25,6 +30,7 @@ export default function AthletesScreen() {
   const {
     colors,
     status,
+    showLoadingState,
     error,
     refreshing,
     onRefresh,
@@ -60,20 +66,25 @@ export default function AthletesScreen() {
 
   const listHeader = useCallback(
     () => (
-      <AthletesListHeader
-        colors={colors}
-        roster={roster}
-        searchQuery={searchQuery}
-        onSearchChange={setSearchQuery}
-        onClearSearch={() => setSearchQuery('')}
-        filter={filter}
-        onFilterChange={setFilter}
-      />
+      <>
+        {refreshing ? (
+          <SubmitProgressState label="Refreshing athletes" style={styles.pendingState} />
+        ) : null}
+        <AthletesListHeader
+          colors={colors}
+          roster={roster}
+          searchQuery={searchQuery}
+          onSearchChange={setSearchQuery}
+          onClearSearch={() => setSearchQuery('')}
+          filter={filter}
+          onFilterChange={setFilter}
+        />
+      </>
     ),
-    [colors, roster, searchQuery, setSearchQuery, filter, setFilter],
+    [colors, filter, refreshing, roster, searchQuery, setFilter, setSearchQuery],
   );
 
-  if (status === 'loading') {
+  if (showLoadingState) {
     return renderState(<LoadingState variant="list" />);
   }
 
@@ -132,5 +143,9 @@ const styles = StyleSheet.create({
   },
   listContent: {
     paddingBottom: Spacing.xl,
+  },
+  pendingState: {
+    paddingHorizontal: Spacing.lg,
+    paddingTop: Spacing.md,
   },
 });

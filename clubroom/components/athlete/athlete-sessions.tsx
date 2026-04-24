@@ -4,7 +4,7 @@
  * Shows upcoming sessions list + past sessions list with notes preview.
  */
 
-import React, { useMemo, useState, useEffect } from 'react';
+import React, { useMemo, useCallback } from 'react';
 import { View, StyleSheet } from 'react-native';
 import { router } from 'expo-router';
 import Animated, { FadeInDown } from 'react-native-reanimated';
@@ -19,12 +19,15 @@ import { Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
 import { Routes } from '@/navigation/routes';
 import { bookingService } from '@/services/booking-service';
+import { ServiceEvents } from '@/services/event-bus';
 import { createLogger } from '@/utils/logger';
 import type { RosterEntry } from '@/constants/types';
 import type { Booking } from '@/constants/app-types';
 import { getRosterAthleteName } from '@/utils/roster-display';
+import { useScreen } from '@/hooks/use-screen';
+import { err, ok, serviceError, type Result, type ServiceError } from '@/types/result';
 
-import { SessionItem } from './athlete-sessions-sections';
+import { SessionItem, SessionItemSkeleton } from './athlete-sessions-sections';
 
 const logger = createLogger('AthleteSessions');
 
@@ -44,27 +47,30 @@ interface AthleteSessionsProps {
 function AthleteSessionsInner({ athlete, coachId }: AthleteSessionsProps) {
   const { colors } = useTheme();
   const athleteName = getRosterAthleteName(athlete);
-  const [sessions, setSessions] = useState<Booking[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-
-  useEffect(() => {
-    async function load() {
-      setLoading(true);
-      setError(null);
+  const {
+    data: sessionsData,
+    status,
+    error,
+    retry,
+    showLoadingState,
+    showSectionSkeleton,
+  } = useScreen<Booking[]>({
+    load: async (): Promise<Result<Booking[], ServiceError>> => {
       try {
         const allBookings = await bookingService.getBookingsForUser(coachId, 'coach');
-        const athleteSessions = allBookings.filter((b) => b.athleteId === athlete.athleteId);
-        setSessions(athleteSessions);
+        return ok(allBookings.filter((booking) => booking.athleteId === athlete.athleteId));
       } catch (loadError) {
         logger.error('Failed to load sessions for athlete', loadError);
-        setError('Failed to load sessions');
-      } finally {
-        setLoading(false);
+        return err(serviceError('UNKNOWN', 'Failed to load sessions.', loadError));
       }
-    }
-    void load();
-  }, [coachId, athlete.athleteId]);
+    },
+    deps: [coachId, athlete.athleteId],
+    events: [ServiceEvents.BOOKING_CREATED, ServiceEvents.BOOKING_CANCELLED],
+    isEmpty: (value) => value.length === 0,
+    loadingStrategy: 'section-skeleton',
+    dataKey: athlete.athleteId,
+  });
+  const sessions = sessionsData ?? [];
 
   const { upcoming, past } = useMemo(() => {
     const now = Date.now();
@@ -85,40 +91,38 @@ function AthleteSessionsInner({ athlete, coachId }: AthleteSessionsProps) {
     return { upcoming: up, past: pa };
   }, [sessions]);
 
-  if (loading) {
-    return (
+  const renderSectionSkeleton = useCallback(
+    (variant: 'upcoming' | 'past') => (
       <Column gap="sm" style={styles.container}>
-        {[1, 2, 3].map((i) => (
-          <View key={i} style={[styles.skeleton, { backgroundColor: colors.surfaceSecondary }]} />
-        ))}
+        <ThemedText type="defaultSemiBold" style={styles.sectionTitle}>
+          {variant === 'upcoming' ? 'Upcoming' : 'Past'}
+        </ThemedText>
+        <SessionItemSkeleton showNeedsNotesBadge={variant === 'past'} />
+        <SessionItemSkeleton showNeedsNotesBadge={variant === 'past'} />
+      </Column>
+    ),
+    [],
+  );
+
+  if (showLoadingState) {
+    return (
+      <Column gap="lg" style={styles.container}>
+        {renderSectionSkeleton('upcoming')}
+        {renderSectionSkeleton('past')}
       </Column>
     );
   }
 
-  if (error) {
+  if (status === 'error') {
     return (
       <ErrorState
-        message={error}
-        onRetry={() => {
-          setLoading(true);
-          setError(null);
-          void (async () => {
-            try {
-              const allBookings = await bookingService.getBookingsForUser(coachId, 'coach');
-              setSessions(allBookings.filter((b) => b.athleteId === athlete.athleteId));
-            } catch (retryError) {
-              logger.error('Retry failed', retryError);
-              setError('Failed to load sessions');
-            } finally {
-              setLoading(false);
-            }
-          })();
-        }}
+        message={error?.message ?? 'Failed to load sessions.'}
+        onRetry={retry}
       />
     );
   }
 
-  if (sessions.length === 0) {
+  if (status === 'empty' || sessions.length === 0) {
     return (
       <EmptyState
         icon="calendar-outline"
@@ -132,6 +136,8 @@ function AthleteSessionsInner({ athlete, coachId }: AthleteSessionsProps) {
 
   return (
     <Column gap="lg" style={styles.container}>
+      {showSectionSkeleton && upcoming.length === 0 ? renderSectionSkeleton('upcoming') : null}
+
       {/* Upcoming */}
       {upcoming.length > 0 && (
         <Animated.View entering={FadeInDown.springify()}>
@@ -145,6 +151,8 @@ function AthleteSessionsInner({ athlete, coachId }: AthleteSessionsProps) {
           </Column>
         </Animated.View>
       )}
+
+      {showSectionSkeleton && past.length === 0 ? renderSectionSkeleton('past') : null}
 
       {/* Past */}
       {past.length > 0 && (
@@ -227,9 +235,5 @@ const styles = StyleSheet.create({
   },
   viewAllText: {
     ...Typography.bodySmallSemiBold,
-  },
-  skeleton: {
-    height: 72,
-    borderRadius: Radii.md,
   },
 });

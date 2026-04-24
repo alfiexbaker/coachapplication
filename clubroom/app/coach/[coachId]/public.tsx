@@ -21,7 +21,14 @@ import { PublicProfileAbout } from '@/components/coach/public-profile-about';
 import { PublicProfileSpecialties } from '@/components/coach/public-profile-specialties';
 import { PublicProfileCredentials } from '@/components/coach/public-profile-credentials';
 import { PublicProfileReviews } from '@/components/coach/public-profile-reviews';
-import { LoadingState, ErrorState, EmptyState } from '@/components/ui/screen-states';
+import {
+  LoadingState,
+  ErrorState,
+  EmptyState,
+  SectionSkeleton,
+  SubmitProgressState,
+} from '@/components/ui/screen-states';
+import { RetainedTabPanels } from '@/components/ui/retained-tab-panels';
 import { Spacing, Components, Typography } from '@/constants/theme';
 import { useScreen } from '@/hooks/use-screen';
 import { ok } from '@/types/result';
@@ -45,7 +52,7 @@ export default function PublicCoachProfileScreen() {
     </SafeAreaView>
   );
 
-  if (profile.status === 'loading') {
+  if (profile.showLoadingState) {
     return renderStateShell(<LoadingState variant="detail" />);
   }
 
@@ -72,6 +79,9 @@ export default function PublicCoachProfileScreen() {
     );
   }
 
+  const showPendingPaneSkeleton =
+    profile.showSectionSkeleton && !profile.hasRequestedTruthfulFrame;
+
   return renderMainShell(
     <>
       <ScrollView
@@ -89,6 +99,7 @@ export default function PublicCoachProfileScreen() {
           onShare={profile.openShareSheet}
           onBook={profile.handleBook}
           onMessage={profile.handleMessage}
+          offeringSummary={profile.offeringSummary}
           isBlocked={profile.isBlocked}
         />
 
@@ -136,16 +147,47 @@ export default function PublicCoachProfileScreen() {
         </ScrollView>
 
         {/* Tab Content */}
+        {profile.refreshing ? (
+          <SubmitProgressState label="Refreshing profile" style={styles.pendingState} />
+        ) : null}
+
         <View style={styles.tabContentContainer}>
-          {profile.activeTab === 'about' && <PublicProfileAbout coach={profile.coach} />}
-          {profile.activeTab === 'specialties' && (
-            <PublicProfileSpecialties coach={profile.coach} />
-          )}
-          {profile.activeTab === 'qualifications' && (
-            <PublicProfileCredentials coach={profile.coach} />
-          )}
-          {profile.activeTab === 'reviews' && (
-            <PublicProfileReviews coach={profile.coach} reviews={profile.reviews} />
+          {showPendingPaneSkeleton ? (
+            <SectionSkeleton
+              variant={
+                profile.activeTab === 'reviews' ? 'list' : profile.activeTab === 'about' ? 'schedule' : 'tab-pane'
+              }
+            />
+          ) : (
+            <RetainedTabPanels
+              activeTab={profile.activeTab}
+              panels={[
+                {
+                  id: 'about',
+                  content: (
+                    <PublicProfileAbout
+                      coach={profile.coach}
+                      sessionOfferings={profile.sessionOfferings}
+                      offeringSummary={profile.offeringSummary}
+                      onOfferingPress={profile.handleOfferingPress}
+                      onBook={profile.handleBook}
+                    />
+                  ),
+                },
+                {
+                  id: 'specialties',
+                  content: <PublicProfileSpecialties coach={profile.coach} />,
+                },
+                {
+                  id: 'qualifications',
+                  content: <PublicProfileCredentials coach={profile.coach} />,
+                },
+                {
+                  id: 'reviews',
+                  content: <PublicProfileReviews coach={profile.coach} reviews={profile.reviews} />,
+                },
+              ]}
+            />
           )}
         </View>
       </ScrollView>
@@ -174,5 +216,9 @@ const styles = StyleSheet.create({
   tabBar: { borderBottomWidth: 1, marginTop: Spacing.md },
   tabBarContent: { paddingHorizontal: Spacing.sm },
   tab: { paddingHorizontal: Spacing.sm, paddingVertical: Spacing.sm },
+  pendingState: {
+    marginHorizontal: Spacing.lg,
+    marginTop: Spacing.sm,
+  },
   tabContentContainer: { paddingBottom: Spacing['3xl'] },
 });

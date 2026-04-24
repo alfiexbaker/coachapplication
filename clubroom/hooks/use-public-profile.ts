@@ -7,6 +7,7 @@ import { useState, useCallback } from 'react';
 import { router } from 'expo-router';
 import { Routes } from '@/navigation/routes';
 import { coachService, type Coach, type PublicReview } from '@/services/coach-service';
+import { apiClient } from '@/services/api-client';
 import { Components } from '@/constants/theme';
 import type { Ionicons } from '@expo/vector-icons';
 import { useScreen, type ScreenStatus } from '@/hooks/use-screen';
@@ -15,6 +16,13 @@ import { createLogger } from '@/utils/logger';
 import { useAuth } from '@/hooks/use-auth';
 import { blockService } from '@/services/block-service';
 import { uiFeedback } from '@/services/ui-feedback';
+import { STORAGE_KEYS } from '@/constants/storage-keys';
+import type { SessionOffering } from '@/constants/types';
+import {
+  getCoachProfileOfferings,
+  summarizeCoachOfferings,
+} from '@/utils/coach-profile-offerings';
+import type { ScreenPendingState } from '@/hooks/use-screen-core';
 
 const logger = createLogger('PublicProfileScreen');
 
@@ -92,6 +100,7 @@ export const AVATAR_SIZE = Components.avatar.xl + 16; // 96
 interface PublicProfileData {
   coach: Coach | null;
   reviews: PublicReview[];
+  sessionOfferings: SessionOffering[];
 }
 
 export function usePublicProfile(coachId: string) {
@@ -104,19 +113,22 @@ export function usePublicProfile(coachId: string) {
       return ok<PublicProfileData>({
         coach: null,
         reviews: [],
+        sessionOfferings: [],
       });
     }
 
     try {
-      const [coachResult, reviewsResult] = await Promise.all([
+      const [coachResult, reviewsResult, storedOfferings] = await Promise.all([
         coachService.getCoach(coachId),
         coachService.getCoachReviews(coachId),
+        apiClient.get<SessionOffering[]>(STORAGE_KEYS.SESSION_OFFERINGS, []),
       ]);
 
       if (!coachResult.success && coachResult.error.code === 'NOT_FOUND') {
         return ok<PublicProfileData>({
           coach: null,
           reviews: [],
+          sessionOfferings: [],
         });
       }
 
@@ -127,22 +139,42 @@ export function usePublicProfile(coachId: string) {
       }
 
       const [coach, reviews] = combined.data;
-      return ok<PublicProfileData>({ coach, reviews });
+      return ok<PublicProfileData>({
+        coach,
+        reviews,
+        sessionOfferings: getCoachProfileOfferings(storedOfferings, coachId),
+      });
     } catch (loadError) {
       logger.error('Failed to load public profile', loadError);
       return err(serviceError('UNKNOWN', 'Failed to load public profile.', loadError));
     }
   }, [coachId]);
 
-  const { data, status, error, refreshing, onRefresh, retry } = useScreen<PublicProfileData>({
+  const {
+    data,
+    status,
+    error,
+    refreshing,
+    onRefresh,
+    retry,
+    pendingState,
+    showLoadingState,
+    showSectionSkeleton,
+    hasTruthfulFrame,
+    hasRequestedTruthfulFrame,
+  } = useScreen<PublicProfileData>({
     load: loadProfile,
     deps: [coachId],
     isEmpty: (value) => value.coach === null,
     refetchOnFocus: true,
+    loadingStrategy: 'section-skeleton',
+    dataKey: coachId || null,
   });
 
   const coach = data?.coach ?? null;
   const reviews = data?.reviews ?? [];
+  const sessionOfferings = data?.sessionOfferings ?? [];
+  const offeringSummary = summarizeCoachOfferings(sessionOfferings);
   const blockedStatus = useScreen<boolean>({
     load: async () => {
       if (!coachId || !currentUser?.id) {
@@ -162,6 +194,21 @@ export function usePublicProfile(coachId: string) {
     }
     router.push(Routes.bookCoach(coachId));
   }, [coachId, isBlocked]);
+  const handleOfferingPress = useCallback(
+    (offering: SessionOffering) => {
+      if (isBlocked) {
+        uiFeedback.showToast('Booking is unavailable while this coach is blocked.', 'error');
+        return;
+      }
+      router.push(
+        Routes.bookCoach(coachId, {
+          offeringId: offering.id,
+          source: offering.source === 'event' ? 'event_profile' : 'coach_profile',
+        }),
+      );
+    },
+    [coachId, isBlocked],
+  );
 
   const handleMessage = useCallback(() => {
     if (isBlocked) {
@@ -179,12 +226,19 @@ export function usePublicProfile(coachId: string) {
   return {
     coach,
     reviews,
+    sessionOfferings,
+    offeringSummary,
     loading: status === 'loading',
     status,
     error: status === 'error' ? (error as ServiceError | null) : null,
     refreshing,
     onRefresh,
     retry,
+    pendingState,
+    showLoadingState,
+    showSectionSkeleton,
+    hasTruthfulFrame,
+    hasRequestedTruthfulFrame,
     activeTab,
     setActiveTab,
     showShareSheet,
@@ -192,18 +246,26 @@ export function usePublicProfile(coachId: string) {
     closeShareSheet,
     handleRefresh: onRefresh,
     handleBook,
+    handleOfferingPress,
     handleMessage,
     profileUrl,
     isBlocked,
   } satisfies {
     coach: Coach | null;
     reviews: PublicReview[];
+    sessionOfferings: SessionOffering[];
+    offeringSummary: ReturnType<typeof summarizeCoachOfferings>;
     loading: boolean;
     status: ScreenStatus;
     error: ServiceError | null;
     refreshing: boolean;
     onRefresh: () => void;
     retry: () => void;
+    pendingState: ScreenPendingState;
+    showLoadingState: boolean;
+    showSectionSkeleton: boolean;
+    hasTruthfulFrame: boolean;
+    hasRequestedTruthfulFrame: boolean;
     activeTab: ProfileTabId;
     setActiveTab: (tab: ProfileTabId) => void;
     showShareSheet: boolean;
@@ -211,6 +273,7 @@ export function usePublicProfile(coachId: string) {
     closeShareSheet: () => void;
     handleRefresh: () => void;
     handleBook: () => void;
+    handleOfferingPress: (offering: SessionOffering) => void;
     handleMessage: () => void;
     profileUrl: string;
     isBlocked: boolean;

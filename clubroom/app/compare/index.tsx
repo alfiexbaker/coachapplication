@@ -5,7 +5,7 @@
  * Allows removing coaches and quick booking from the comparison.
  */
 
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useState } from 'react';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { StyleSheet, View } from 'react-native';
 import { router, Stack } from 'expo-router';
@@ -25,32 +25,29 @@ import { comparisonService } from '@/services/comparison-service';
 export default function CompareScreen() {
   const { colors: palette } = useScreen<null>({ load: async () => ok(null), isEmpty: () => false });
 
-  const [coachCount, setCoachCount] = useState(0);
   const [refreshKey, setRefreshKey] = useState(0);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-
-  useEffect(() => {
-    const loadCount = async () => {
-      setLoading(true);
-      setError(null);
-      try {
-        const countResult = await comparisonService.getComparisonCount();
-        if (!countResult.success) {
-          setError('Failed to load compared coaches.');
-          setCoachCount(0);
-          return;
-        }
-        setCoachCount(countResult.data);
-      } catch {
-        setError('Failed to load compared coaches.');
-        setCoachCount(0);
-      } finally {
-        setLoading(false);
-      }
-    };
-    void loadCount();
-  }, [refreshKey]);
+  const {
+    data: coachCountData,
+    status,
+    error,
+    retry,
+    showLoadingState,
+  } = useScreen<number>({
+    load: async () => {
+      const countResult = await comparisonService.getComparisonCount();
+      return countResult.success
+        ? ok(countResult.data)
+        : {
+            success: false,
+            error: countResult.error,
+          };
+    },
+    deps: [refreshKey],
+    isEmpty: () => false,
+    loadingStrategy: 'warm-first',
+    dataKey: 'compare-count',
+  });
+  const coachCount = coachCountData ?? 0;
 
   const handleCoachRemoved = useCallback(() => {
     setRefreshKey((k) => k + 1);
@@ -62,7 +59,6 @@ export default function CompareScreen() {
       return;
     }
     void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-    setCoachCount(0);
     setRefreshKey((k) => k + 1);
   }, []);
 
@@ -97,10 +93,13 @@ export default function CompareScreen() {
         style={[styles.container, { backgroundColor: palette.background }]}
         edges={['bottom']}
       >
-        {loading ? (
+        {showLoadingState ? (
           <LoadingState variant="detail" />
-        ) : error ? (
-          <ErrorState message={error} onRetry={() => setRefreshKey((k) => k + 1)} />
+        ) : status === 'error' ? (
+          <ErrorState
+            message={error?.message ?? 'Failed to load compared coaches.'}
+            onRetry={retry}
+          />
         ) : (
           <>
             {/* Status bar */}

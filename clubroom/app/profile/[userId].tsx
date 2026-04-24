@@ -10,7 +10,12 @@ import { Button } from '@/components/primitives/button';
 import { Row } from '@/components/primitives/row';
 import { Clickable } from '@/components/primitives/clickable';
 import { ThemedText } from '@/components/themed-text';
-import { EmptyState, ErrorState, LoadingState } from '@/components/ui/screen-states';
+import {
+  EmptyState,
+  ErrorState,
+  LoadingState,
+  SubmitProgressState,
+} from '@/components/ui/screen-states';
 import { Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
 import { useScreen } from '@/hooks/use-screen';
 import { userService } from '@/services/user-service';
@@ -32,7 +37,16 @@ export default function ProfileScreen() {
   const [incomingRequestId, setIncomingRequestId] = useState<string | null>(null);
   const [connectionActionLoading, setConnectionActionLoading] = useState(false);
 
-  const { data, status, error, retry, refreshing, onRefresh, colors } = useScreen<User | null>({
+  const {
+    data,
+    status,
+    error,
+    retry,
+    refreshing,
+    onRefresh,
+    colors,
+    showLoadingState,
+  } = useScreen<User | null>({
     load: async () => {
       if (!userId) {
         return err(serviceError('VALIDATION', 'Missing user id.'));
@@ -51,6 +65,8 @@ export default function ProfileScreen() {
     deps: [userId],
     isEmpty: (value) => value === null,
     refetchOnFocus: true,
+    loadingStrategy: 'section-skeleton',
+    dataKey: userId ?? null,
   });
   const {
     data: postsData,
@@ -59,6 +75,8 @@ export default function ProfileScreen() {
     refreshing: postsRefreshing,
     onRefresh: onRefreshPosts,
     retry: retryPosts,
+    showLoadingState: postsShowLoadingState,
+    showSectionSkeleton: postsShowSectionSkeleton,
   } = useScreen<AggregatedFeedPost[]>({
     load: async () => {
       if (!userId || !data?.id) {
@@ -70,6 +88,8 @@ export default function ProfileScreen() {
     deps: [userId, data?.id],
     events: [ServiceEvents.COACH_POST_CREATED],
     refetchOnFocus: true,
+    loadingStrategy: 'section-skeleton',
+    dataKey: userId ? `posts:${userId}` : null,
   });
   const renderShell = (content: ReactNode) => (
     <SafeAreaView
@@ -278,6 +298,9 @@ export default function ProfileScreen() {
             Updates
           </ThemedText>
         </View>
+        {postsRefreshing ? (
+          <SubmitProgressState label="Refreshing updates" style={styles.pendingState} />
+        ) : null}
       </>
     ),
     [
@@ -321,7 +344,7 @@ export default function ProfileScreen() {
     [data?.name, handleCommentPost, handleLikePost, handleSharePost],
   );
 
-  if (status === 'loading') {
+  if (showLoadingState) {
     return renderShell(<LoadingState variant="detail" />);
   }
 
@@ -358,8 +381,8 @@ export default function ProfileScreen() {
         keyExtractor={(item) => item.id}
         ListHeaderComponent={renderUpdatesHeader}
         ListEmptyComponent={
-          postsStatus === 'loading' ? (
-            <LoadingState variant="list" />
+          postsShowLoadingState || postsShowSectionSkeleton ? (
+            <LoadingState variant="feed" scope="section" style={styles.postsLoading} />
           ) : postsStatus === 'error' ? (
             <ErrorState
               message={postsError?.message ?? 'Failed to load updates.'}
@@ -446,8 +469,15 @@ const styles = StyleSheet.create({
   updatesTitle: {
     ...Typography.subheading,
   },
+  pendingState: {
+    marginTop: Spacing.sm,
+  },
   postItem: {
     paddingHorizontal: Spacing.lg,
     paddingBottom: Spacing.md,
+  },
+  postsLoading: {
+    paddingHorizontal: Spacing.lg,
+    paddingTop: Spacing.sm,
   },
 });

@@ -20,8 +20,15 @@ import { CoachDetailHero } from '@/components/coach/coach-detail-hero';
 import { CoachDetailAbout } from '@/components/coach/coach-detail-about';
 import { CoachDetailReviews } from '@/components/coach/coach-detail-reviews';
 import { CoachDetailSessions } from '@/components/coach/coach-detail-sessions';
-import { LoadingState, ErrorState, EmptyState } from '@/components/ui/screen-states';
-import { Spacing, Typography } from '@/constants/theme';
+import {
+  LoadingState,
+  ErrorState,
+  EmptyState,
+  SectionSkeleton,
+  SubmitProgressState,
+} from '@/components/ui/screen-states';
+import { RetainedTabPanels } from '@/components/ui/retained-tab-panels';
+import { Spacing, Typography, withAlpha } from '@/constants/theme';
 import { useScreen } from '@/hooks/use-screen';
 import { ok } from '@/types/result';
 import { useCoachDetail, COACH_TABS } from '@/hooks/use-coach-detail';
@@ -44,7 +51,7 @@ export default function CoachProfileScreen() {
     </SafeAreaView>
   );
 
-  if (p.status === 'loading') {
+  if (p.showLoadingState) {
     return renderStateShell(<LoadingState variant="detail" />);
   }
 
@@ -71,6 +78,8 @@ export default function CoachProfileScreen() {
     );
   }
 
+  const showPendingPaneSkeleton = p.showSectionSkeleton && !p.hasRequestedTruthfulFrame;
+
   return renderMainShell(
     <>
       <ScrollView
@@ -94,6 +103,7 @@ export default function CoachProfileScreen() {
           followIconName={p.relationshipDisplay.relationshipIcon as keyof typeof Ionicons.glyphMap}
           contactLabel={p.relationshipDisplay.contactLabel}
           profileSummary={p.relationshipDisplay.profileSummary}
+          offeringSummary={p.offeringSummary}
           isBlocked={p.isBlocked}
           onFollow={p.handleFollow}
           onMessage={p.handleMessage}
@@ -105,19 +115,30 @@ export default function CoachProfileScreen() {
               style={[
                 styles.businessCard,
                 {
-                  backgroundColor: palette.surface,
-                  borderColor: palette.border,
+                  backgroundColor: withAlpha(palette.tint, 0.05),
+                  borderColor: withAlpha(palette.tint, 0.14),
                 },
               ]}
             >
-              <ThemedText style={styles.businessTitle}>How this relationship works</ThemedText>
-              <ThemedText style={[styles.businessBody, { color: palette.muted }]}>
-                Review the profile first, connect if you want to keep this coach in your network,
-                message when you need to confirm fit or logistics, then move into booking.
-              </ThemedText>
+              <ThemedText style={styles.businessTitle}>Why people book here</ThemedText>
               <ThemedText style={[styles.businessBody, { color: palette.muted }]}>
                 {p.relationshipDisplay.contactDetail}
               </ThemedText>
+              <Row style={styles.valueRow}>
+                {(p.coach.footballFocuses ?? []).slice(0, 3).map((focus) => (
+                  <View
+                    key={focus}
+                    style={[
+                      styles.valuePill,
+                      { backgroundColor: withAlpha(palette.tint, 0.08) },
+                    ]}
+                  >
+                    <ThemedText style={[styles.valuePillText, { color: palette.tint }]}>
+                      {focus}
+                    </ThemedText>
+                  </View>
+                ))}
+              </Row>
             </View>
             <Button onPress={() => void p.handleBlock()} variant="outline">
               Block Coach
@@ -159,12 +180,40 @@ export default function CoachProfileScreen() {
           ))}
         </Row>
 
+        {p.refreshing ? (
+          <SubmitProgressState label="Refreshing coach" style={styles.pendingState} />
+        ) : null}
+
         {/* Tab Content */}
         <View style={styles.tabContentContainer}>
-          {p.activeTab === 'about' && <CoachDetailAbout coach={p.coach} />}
-          {p.activeTab === 'reviews' && <CoachDetailReviews coach={p.coach} reviews={p.reviews} />}
-          {p.activeTab === 'sessions' && (
-            <CoachDetailSessions coach={p.coach} onBook={p.handleBook} />
+          {showPendingPaneSkeleton ? (
+            <SectionSkeleton variant={p.activeTab === 'sessions' ? 'schedule' : 'tab-pane'} />
+          ) : (
+            <RetainedTabPanels
+              activeTab={p.activeTab}
+              panels={[
+                {
+                  id: 'about',
+                  content: <CoachDetailAbout coach={p.coach} />,
+                },
+                {
+                  id: 'reviews',
+                  content: <CoachDetailReviews coach={p.coach} reviews={p.reviews} />,
+                },
+                {
+                  id: 'sessions',
+                  content: (
+                    <CoachDetailSessions
+                      coach={p.coach}
+                      sessionOfferings={p.sessionOfferings}
+                      offeringSummary={p.offeringSummary}
+                      onBook={p.handleBook}
+                      onOfferingPress={p.handleOfferingPress}
+                    />
+                  ),
+                },
+              ]}
+            />
           )}
         </View>
       </ScrollView>
@@ -221,9 +270,26 @@ const styles = StyleSheet.create({
   businessBody: {
     ...Typography.bodySmall,
   },
+  valueRow: {
+    flexWrap: 'wrap',
+    gap: Spacing.xs,
+    marginTop: Spacing.xs,
+  },
+  valuePill: {
+    borderRadius: 999,
+    paddingHorizontal: Spacing.sm,
+    paddingVertical: Spacing.xxs,
+  },
+  valuePillText: {
+    ...Typography.caption,
+  },
   tabBar: { borderBottomWidth: 1, marginTop: Spacing.md },
   tab: { flex: 1, paddingVertical: Spacing.md },
-  tabContentContainer: { paddingBottom: Spacing.lg },
+  pendingState: {
+    marginHorizontal: Spacing.lg,
+    marginTop: Spacing.sm,
+  },
+  tabContentContainer: { paddingBottom: Spacing.lg, paddingTop: Spacing.sm },
   fixedFooter: {
     alignItems: 'center',
     gap: Spacing.md,

@@ -1,13 +1,12 @@
 # Sprint Backlog
 
-Updated: 2026-04-22
+Updated: 2026-04-23
 Rule: active work only. Completed sprint rows are intentionally removed.
 
 ## Open Queue
 
 | ID | Exactly what it does | Spine(s) | Status |
 | -- | -------------------- | -------- | ------ |
-| UI-LOAD-04 | Make profile and roster detail surfaces behave like a serious product: coach, athlete, public profile, roster, compare, and other segmented panes stay warm and never blank on tab changes. | Development and Analytics + Booking, Availability and Revenue | READY |
 | UI-LOAD-05 | Bring club, schedule, events, and calendar surfaces up to the same standard: no brochure skeletons, no cold resets, and no time-based screens loading like generic lists. | Community and Growth + Booking, Availability and Revenue | READY |
 | UI-LOAD-06 | Fix trust-sensitive and family surfaces: family, child, health, emergency, medical, verification, and related safeguarding-adjacent paths need strict, truthful, non-chaotic loading behavior. | Trust, Safety and Operations + Development and Analytics | READY |
 | UI-LOAD-07 | Bring development and training surfaces to the same bar: drills, goals, badges, results program, progress loop, media gallery, videos, group sessions, matches, and athlete development paths must stop feeling second-class. | Development and Analytics + Community and Growth | OPEN |
@@ -16,12 +15,11 @@ Rule: active work only. Completed sprint rows are intentionally removed.
 
 ## Execution Order
 
-1. `UI-LOAD-04`
-2. `UI-LOAD-05`
-3. `UI-LOAD-06`
-4. `UI-LOAD-07`
-5. `UI-LOAD-08`
-6. `PROD-VERIFY-01`
+1. `UI-LOAD-05`
+2. `UI-LOAD-06`
+3. `UI-LOAD-07`
+4. `UI-LOAD-08`
+5. `PROD-VERIFY-01`
 
 ## Sprint Intent
 
@@ -75,39 +73,6 @@ Rule: active work only. Completed sprint rows are intentionally removed.
   - later slices still need to replace generic implementations on their owned routes; classification closure is done, route-family migration is not
 
 ## Sprint Notes
-
-### `UI-LOAD-04`
-
-- Need:
-  - Make segmented and comparison-heavy detail surfaces preserve loaded panes and act warm.
-  - Fix profile, roster, athlete detail, compare, and similar route families where tab switches or detail refreshes still feel cold.
-- Touch first:
-  - `app/(tabs)/coach-profile.tsx`
-  - `app/(tabs)/athletes.tsx`
-  - `app/roster/index.tsx`
-  - `app/roster/[athleteId]/index.tsx`
-  - `app/development/child-progress/[childId].tsx`
-  - `app/compare/index.tsx`
-  - `app/compare/[ids].tsx`
-  - `app/coach/[id].tsx`
-  - `app/coach/[coachId]/public.tsx`
-  - `app/profile/[userId].tsx`
-  - `components/coach/profile-tabs.tsx`
-  - `components/athlete/athlete-sessions.tsx`
-- Acceptance:
-  - Tab switches preserve pane state and do not blank the viewport.
-  - Detail screens keep stable hero and chrome while secondary panes refresh.
-  - Comparison and athlete-detail paths use pane-specific placeholders instead of generic detail loaders.
-- Hard fail if:
-  - A warmed profile or roster pane still reruns a cold full-screen loader.
-  - Segmented surfaces still act like separate page navigations under the hood.
-  - Switching panes feels like waiting for a fetch instead of revealing already-owned UI.
-- Verify:
-  - `npm run typecheck`
-  - `npm run test:compile`
-  - `npm run ui:flows:coach-core`
-  - `npm run ui:flows:athlete-core`
-  - `git diff --check`
 
 ### `UI-LOAD-05`
 

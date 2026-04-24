@@ -8,7 +8,7 @@ import Animated, { FadeInDown } from 'react-native-reanimated';
 
 import { createLogger } from '@/utils/logger';
 import { EmptyState } from '@/components/ui/empty-state';
-import { LoadingState, ErrorState } from '@/components/ui/screen-states';
+import { LoadingState, ErrorState, SubmitProgressState } from '@/components/ui/screen-states';
 import { AthleteRow } from '@/components/roster/athlete-row';
 import { AthleteFilters } from '@/components/roster/athlete-filters';
 import {
@@ -55,7 +55,15 @@ export default function RosterScreen() {
     }
   }, [coachId, filters, searchQuery]);
 
-  const { data, status, error, refreshing, onRefresh, retry } = useScreen<{
+  const {
+    data,
+    status,
+    error,
+    refreshing,
+    onRefresh,
+    retry,
+    showLoadingState,
+  } = useScreen<{
     roster: RosterEntry[];
     stats: RosterStats | null;
     allTags: string[];
@@ -64,6 +72,8 @@ export default function RosterScreen() {
     deps: [coachId, filters, searchQuery],
     isEmpty: (value) => value.roster.length === 0,
     refetchOnFocus: true,
+    loadingStrategy: 'warm-first',
+    dataKey: `${coachId}:${searchQuery}:${JSON.stringify(filters)}`,
   });
 
   const roster = data?.roster ?? [];
@@ -90,7 +100,7 @@ export default function RosterScreen() {
     </SafeAreaView>
   );
 
-  if (status === 'loading') {
+  if (showLoadingState) {
     return renderShell(<LoadingState variant="list" />);
   }
 
@@ -109,6 +119,9 @@ export default function RosterScreen() {
         filters={filters}
         onToggleFilters={() => setShowFilters((value) => !value)}
       />
+      {refreshing ? (
+        <SubmitProgressState label="Refreshing roster" style={styles.pendingState} />
+      ) : null}
 
       {/* Filters */}
       {showFilters && (
@@ -163,5 +176,9 @@ const styles = StyleSheet.create({
   },
   separator: {
     height: Spacing.sm,
+  },
+  pendingState: {
+    marginHorizontal: Spacing.lg,
+    marginBottom: Spacing.sm,
   },
 });
