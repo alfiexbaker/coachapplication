@@ -63,7 +63,6 @@ These exist today in service logic, but are not consolidated into one staff cons
 - concern intake + auto-escalation + parent notification + report mirroring (`concern-service.ts`)
 - verification status updates, approvals (mock), expiry checks, expiring-soon signals (`verification-service.ts`)
 - emergency data access checks and per-athlete access logs (`safety-service.ts`)
-- data retention archive/restore and warning emissions (`data-retention-service.ts`)
 - club membership controls: remove, undo removal, ban, change role, squad assignment (`club-service.ts`)
 - academy staff controls: invite, join by code, role update, membership suspension (`academy-service.ts`)
 - account deletion request/cancel (self-service flow) (`use-account-settings.ts`)

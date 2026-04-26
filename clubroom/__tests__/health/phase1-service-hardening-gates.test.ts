@@ -17,7 +17,6 @@ const PHASE1_TARGET_FILES = new Set([
   'services/cancellation-service.ts',
   'services/academy-service.ts',
   'services/referral-service.ts',
-  'services/review-service.ts',
   'services/comparison-service.ts',
   'services/consent-service.ts',
   'services/verification-service.ts',

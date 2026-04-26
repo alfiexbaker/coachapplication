@@ -86,10 +86,8 @@ Examples:
 ### 5. Trust / Safety / Ops spine
 Examples:
 - `services/safety-service.ts`
-- `services/safety-audit-service.ts`
 - `services/verification-service.ts`
 - `services/consent-service.ts`
-- `services/data-retention-service.ts`
 - `app/verification/**`
 - `app/child/[id]/medical.tsx`, `app/child/[id]/emergency.tsx`
 

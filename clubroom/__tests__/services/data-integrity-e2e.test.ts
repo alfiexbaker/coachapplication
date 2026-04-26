@@ -16,7 +16,6 @@ import { progressFeedbackService } from '@/services/progress/progress-feedback-s
 import { progressAttendanceService } from '@/services/progress/progress-attendance-service';
 import { getSkillLabel, getSkillLevelLabel } from '@/components/progress/skill-level-helpers';
 import { getSkillLabel as radarGetSkillLabel, getSkillColor as radarGetSkillColor } from '@/components/analytics/skill-radar-helpers';
-import { getSkillLevelInfo, SKILL_LEVEL_COLORS } from '@/components/analytics/skill-progress-helpers';
 import { toFifaScore } from '@/utils/fifa-score';
 import type { SessionSkillRating, QuickRateInput } from '@/types/progress-types';
 import type { SessionAttendance } from '@/constants/session-types';
@@ -225,47 +224,12 @@ describe('data integrity: coach → storage → display', () => {
 
   // ─── ALL THREE label systems must agree ────────────────────────────────────
 
-  it('getSkillLevelInfo (0-100) agrees with radarGetSkillLabel and getSkillLabel', () => {
-    for (let storedLevel = 1; storedLevel <= 10; storedLevel++) {
-      const analytics = storedLevel * 10;
-      const fromHelpers = getSkillLabel(storedLevel);
-      const fromRadar = radarGetSkillLabel(analytics);
-      const fromProgressItem = getSkillLevelInfo(analytics).label;
-
-      assert.equal(
-        fromHelpers, fromRadar,
-        `Level ${storedLevel}: helpers="${fromHelpers}" vs radar="${fromRadar}"`,
-      );
-      assert.equal(
-        fromHelpers, fromProgressItem,
-        `Level ${storedLevel}: helpers="${fromHelpers}" vs progressItem="${fromProgressItem}"`,
-      );
-    }
-  });
-
-  it('getSkillLevelInfo color keys are all defined', () => {
-    // Verify no undefined colors at any level
-    for (let level = 0; level <= 100; level += 10) {
-      const info = getSkillLevelInfo(level);
-      assert.ok(info.color, `getSkillLevelInfo(${level}).color should be defined`);
-      assert.ok(info.color.startsWith('#'), `getSkillLevelInfo(${level}).color="${info.color}" should be hex`);
-    }
-  });
-
   it('radarGetSkillColor returns defined colors at every boundary', () => {
     for (let level = 0; level <= 100; level += 10) {
       const color = radarGetSkillColor(level);
       assert.ok(color, `radarGetSkillColor(${level}) should be defined`);
       assert.ok(color.startsWith('#'), `radarGetSkillColor(${level})="${color}" should be hex`);
     }
-  });
-
-  it('SKILL_LEVEL_COLORS has all 5 canonical color keys', () => {
-    assert.ok(SKILL_LEVEL_COLORS.developing);
-    assert.ok(SKILL_LEVEL_COLORS.good);
-    assert.ok(SKILL_LEVEL_COLORS.veryGood);
-    assert.ok(SKILL_LEVEL_COLORS.excellent);
-    assert.ok(SKILL_LEVEL_COLORS.exceptional);
   });
 
   // ─── Second session update: trend detection ────────────────────────────────
