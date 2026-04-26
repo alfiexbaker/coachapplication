@@ -187,7 +187,6 @@ Rule: active work only. Completed sprint rows are intentionally removed.
   - `app/(tabs)/earnings.tsx`
   - `app/earnings.tsx`
   - `app/invoices/*`
-  - `app/payments/index.tsx`
   - `app/settings/*`
   - `app/manage/*`
   - `app/(tabs)/admin/*`

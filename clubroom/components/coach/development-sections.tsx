@@ -50,8 +50,8 @@ function QuickActionsInner() {
     { icon: 'people' as const, label: 'Athletes', route: Routes.ATHLETES, color: palette.icon },
     {
       icon: 'construct-outline' as const,
-      label: 'Manage',
-      route: Routes.MANAGE,
+      label: 'Staffing',
+      route: Routes.MANAGE_BOOKINGS,
       color: palette.warning,
     },
   ];

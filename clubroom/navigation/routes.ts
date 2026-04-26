@@ -63,18 +63,12 @@ export const Routes = {
     }) as Href,
   EARNINGS: '/(tabs)/earnings' as Href,
   MESSAGES: '/(tabs)/messages' as Href,
-  MANAGE: '/manage' as Href,
   MANAGE_BOOKINGS: '/manage/bookings' as Href,
   MANAGE_HEAD_COACH: '/manage/head-coach' as Href,
   MORE: '/(tabs)/more' as Href,
   NOTIFICATIONS: '/(tabs)/notifications' as Href,
   ROSTER: '/(tabs)/roster' as Href,
   SCHEDULE: '/(tabs)/schedule' as Href,
-  manage: (params?: { clubId?: string }) =>
-    ({
-      pathname: '/manage',
-      params: params ?? {},
-    }) as Href,
   manageBookings: (params?: { clubId?: string }) =>
     ({
       pathname: '/manage/bookings',
@@ -616,7 +610,6 @@ export const Routes = {
     }) as Href,
 
   // ─── Payment ───────────────────────────────────────────────────
-  PAYMENTS: '/payments' as Href,
 
   // ─── Profile ──────────────────────────────────────────────────
   profile: (userId: string) =>

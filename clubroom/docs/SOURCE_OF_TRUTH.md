@@ -74,6 +74,7 @@ Clubs manage staff, squads, visibility, and operating relationships.
   - invoice list/detail/reconciler status flows in non-mock mode now use `/v1/invoices*`; `invoiceService` no longer treats local invoice storage as the authority outside mock mode, and the normal booking synthetic-invoice fallback has been removed from coach reconciler reads
   - invoice generation and reminder/send flows in non-mock mode now use `POST /v1/invoices/generate` and `POST /v1/invoices/:invoiceId/reminders`; invoice creation is idempotent by booking, and reminder delivery is queued and audited by the backend
   - payer invoice payment in non-mock mode now creates a backend-owned hosted payment attempt through `POST /v1/invoices/:invoiceId/payments`; the app opens a hosted URL, but invoices only move to `PAID` after backend confirmation through the payment-attempt runtime
+  - the standalone `/payments` route has been removed; coach and club money work now lives under earnings and invoice/reconciler surfaces instead of a separate redirect-only page
   - the current hosted payment provider is simulated by design, behind a provider boundary that is shaped for later Stripe cutover without changing the app contract
   - `apps/api/src/lib/ops-runtime.ts` now owns production startup validation and `/v1/ready`; the readiness route returns real `ready`, `degraded`, or `down` status with `503` on non-ready runtime state instead of placeholder `unknown` checks
   - `npm --prefix apps/api run release:preflight` now runs under production semantics and gates release builds with the same runtime checks plus explicit migration guardrails, so release safety fails honestly instead of silently assuming DB/storage readiness
@@ -98,6 +99,7 @@ Clubs manage staff, squads, visibility, and operating relationships.
   - `/v1/bookings` create, `/v1/invites` create, and direct-invite accept now validate chosen slots against the same backend availability resolver instead of trusting client-side slot math
   - booking changes are intentionally `cancel` or `reopen`; the old counter-offer and invite counter workflow has been removed from the runtime product surface
   - coach scheduling rules no longer advertise a separate reschedule policy; bookings now change by cancellation and rebooking/reopening instead of negotiation
+  - visible coach operations entry points no longer route through a generic `/manage` bridge screen; they now deep-link into staffing console, head-coach oversight, or club dashboard flows, while `/manage` remains only as a redirect for old links
   - Expo native/web and `apps/api` now emit to Sentry with shared release/environment tags, Expo web source maps via `npm run export:web`, and API source maps via `npm --prefix apps/api run build:release`
   - the next production follow-through is release rehearsal: run the app and API against the db-backed production path, clear any surfaced drift, and reduce the remaining blockers to real env/provisioning gaps plus the later live payment-provider cutover
 - Club-facing schedule surfaces now use a `ClubActivity` read model to link `ClubEvent` and `GroupSession`

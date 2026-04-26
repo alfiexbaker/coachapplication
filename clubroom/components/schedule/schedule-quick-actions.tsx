@@ -1,5 +1,5 @@
 /**
- * ScheduleQuickActions — Compact action pills: Create, Bookings, Manage.
+ * ScheduleQuickActions — Compact action pills: Create, Bookings, Staffing.
  * Sits above the day detail for quick access.
  */
 
@@ -23,7 +23,7 @@ export const ScheduleQuickActions = memo(function ScheduleQuickActions() {
     [],
   );
   const goBookings = useCallback(() => router.push(Routes.BOOKINGS), []);
-  const goManage = useCallback(() => router.push(Routes.MANAGE), []);
+  const goStaffing = useCallback(() => router.push(Routes.MANAGE_BOOKINGS), []);
 
   return (
     <Row gap="xs" style={styles.container}>
@@ -44,11 +44,11 @@ export const ScheduleQuickActions = memo(function ScheduleQuickActions() {
       </Clickable>
 
       <Clickable
-        onPress={goManage}
-        accessibilityLabel="Manage schedule"
+        onPress={goStaffing}
+        accessibilityLabel="Open staffing console"
         style={[styles.pill, { backgroundColor: withAlpha(colors.tint, 0.09) }]}
       >
-        <ThemedText style={[styles.pillText, { color: colors.tint }]}>Manage</ThemedText>
+        <ThemedText style={[styles.pillText, { color: colors.tint }]}>Staffing</ThemedText>
       </Clickable>
     </Row>
   );

@@ -303,7 +303,7 @@ Current surfaces:
 
 Files:
 
-- [app/payments/index.tsx](/Users/tubton/Desktop/coachapplication/clubroom/app/payments/index.tsx#L1)
+- standalone payments redirect removed; keep money entry points under earnings and invoices
 - [app/invoices/index.tsx](/Users/tubton/Desktop/coachapplication/clubroom/app/invoices/index.tsx#L1)
 - [app/earnings.tsx](/Users/tubton/Desktop/coachapplication/clubroom/app/earnings.tsx#L58)
 
@@ -445,7 +445,7 @@ Current surfaces:
 Files:
 
 - [app/club/[clubId]/dashboard.tsx](/Users/tubton/Desktop/coachapplication/clubroom/app/club/[clubId]/dashboard.tsx#L266)
-- [app/manage/index.tsx](/Users/tubton/Desktop/coachapplication/clubroom/app/manage/index.tsx#L27)
+- `app/manage/index.tsx`: reduced to a redirect; not a standalone operations home
 - [app/manage/bookings.tsx](/Users/tubton/Desktop/coachapplication/clubroom/app/manage/bookings.tsx#L37)
 - [app/manage/head-coach.tsx](/Users/tubton/Desktop/coachapplication/clubroom/app/manage/head-coach.tsx#L463)
 

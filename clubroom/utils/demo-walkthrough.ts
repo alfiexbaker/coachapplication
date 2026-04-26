@@ -88,11 +88,11 @@ export function buildPrimaryDemoWalkthrough(
           route: Routes.EARNINGS,
         },
         {
-          id: 'coach_manage',
-          title: 'Review operations surfaces',
+          id: 'coach_staffing',
+          title: 'Open staffing console',
           description:
-            'Jump into staffing and oversight tools when the coach also works inside a club.',
-          route: Routes.MANAGE,
+            'Jump straight into assignment and reassignment work instead of a generic operations bridge.',
+          route: Routes.MANAGE_BOOKINGS,
         },
       ],
     };
