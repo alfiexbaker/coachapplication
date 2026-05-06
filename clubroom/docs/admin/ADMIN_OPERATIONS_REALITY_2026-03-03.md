@@ -42,7 +42,7 @@ Implemented UI surfaces for admin/staff users are limited:
 
 Important note:
 - there is no full internal support/moderation/fraud console yet
-- route constants include `/admin/promo-codes` paths, but corresponding route files are missing
+- there is no dedicated promo-code or broader admin ops route tree beyond invite codes
 
 ## 3) Data Inventory Relevant To Admin Operations
 
@@ -92,7 +92,7 @@ P1 gaps:
 - no explicit staff role model (`support`, `moderator`, `risk`, `ops`, `security_admin`) in app runtime
 
 P2 gaps:
-- orphan route constants (`/admin/promo-codes`) without screens
+- no dedicated promo-code UI or broader admin ops surface beyond invite codes
 - no compliance export workflow for investigations
 - no staff tooling for cross-domain evidence bundle assembly
 

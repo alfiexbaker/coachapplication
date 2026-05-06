@@ -62,8 +62,6 @@ const ROUTES = [
   // Favourites & Manage
   { path: '/favourites', name: '39-favourites' },
   { path: '/manage', name: '40-manage' },
-  // Referrals
-  { path: '/referrals', name: '41-referrals' },
   // Settings sub-pages
   { path: '/settings/account', name: '42-settings-account' },
   { path: '/settings/appearance', name: '43-settings-appearance' },
@@ -73,21 +71,16 @@ const ROUTES = [
   { path: '/skills', name: '46-skills' },
   // Verification
   { path: '/verification', name: '47-verification' },
-  // Videos
-  { path: '/videos', name: '48-videos' },
   // Analytics
   { path: '/analytics/dashboard', name: '49-analytics' },
   // Session invites
   { path: '/session-invites', name: '50-session-invites' },
-  // Waitlist
-  { path: '/waitlist', name: '51-waitlist' },
   // Book coach
   { path: '/book-coach', name: '52-book-coach' },
   // Recurring bookings
   { path: '/bookings/recurring', name: '53-bookings-recurring' },
   // Availability
   { path: '/availability/calendar', name: '54-availability-calendar' },
-  { path: '/availability/scheduling-rules', name: '55-scheduling-rules' },
   // Chat
   { path: '/chat', name: '56-chat' },
   // Invites

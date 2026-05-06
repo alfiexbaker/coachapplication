@@ -126,44 +126,6 @@ export const Routes = {
       params: { postId },
     }) as Href,
 
-  // ─── Academy ───────────────────────────────────────────────────
-  ACADEMY_CREATE: '/academy/create' as Href,
-  ACADEMY_JOIN: '/academy/join' as Href,
-  academy: (id: string) =>
-    ({
-      pathname: '/academy/[id]',
-      params: { id },
-    }) as Href,
-  academyBranding: (id: string) =>
-    ({
-      pathname: '/academy/[id]/branding',
-      params: { id },
-    }) as Href,
-  academySettings: (id: string) =>
-    ({
-      pathname: '/academy/[id]/settings',
-      params: { id },
-    }) as Href,
-  academyStaff: (id: string) =>
-    ({
-      pathname: '/academy/[id]/staff',
-      params: { id },
-    }) as Href,
-  academyInvite: (id: string) =>
-    ({
-      pathname: '/academy/[id]/invite',
-      params: { id },
-    }) as Href,
-  academyStaffMember: (id: string, staffId: string) =>
-    ({
-      pathname: '/academy/[id]/staff/[staffId]',
-      params: { id, staffId },
-    }) as Href,
-
-  // ─── Admin ─────────────────────────────────────────────────────
-  ADMIN_PROMO_CODES: '/admin/promo-codes' as Href,
-  ADMIN_PROMO_CODES_CREATE: '/admin/promo-codes/create' as Href,
-
   // ─── Analytics ─────────────────────────────────────────────────
   ANALYTICS_DASHBOARD: '/analytics/dashboard' as Href,
   ANALYTICS_REVENUE: '/analytics/revenue' as Href,
@@ -183,7 +145,6 @@ export const Routes = {
   AVAILABILITY_ADD_TEMPLATE: '/availability/add-template' as Href,
   AVAILABILITY_BLOCK_DATE: '/availability/block-date' as Href,
   AVAILABILITY_CALENDAR: '/availability/calendar' as Href,
-  AVAILABILITY_SCHEDULING_RULES: '/availability/scheduling-rules' as Href,
 
   // ─── Badges ────────────────────────────────────────────────────
   BADGES_INDEX: '/badges' as Href,
@@ -194,24 +155,6 @@ export const Routes = {
     ({
       pathname: '/book/[coachId]',
       params: { coachId, ...(options ?? {}) },
-    }) as Href,
-  CONFIRM_BOOKING: '/confirm-booking' as Href,
-  confirmBookingWith: (params: {
-    coachId: string;
-    coachName: string;
-    slotId: string;
-    slotTitle: string;
-    slotFocus: string;
-    slotStart: string;
-    slotDuration: string;
-    price: string;
-    serviceType: string;
-    objectives: string;
-    athleteIds: string;
-  }) =>
-    ({
-      pathname: '/confirm-booking',
-      params,
     }) as Href,
   bookSessionType: (coachId: string, options?: BookingFlowEntryOptions) =>
     ({
@@ -493,7 +436,6 @@ export const Routes = {
   // ─── Discover ──────────────────────────────────────────────────
   DISCOVER_SESSIONS: '/discover-sessions' as Href,
   DISCOVER_MAP: '/discover/map' as Href,
-  DISCOVER_FILTERS: '/discover/filters' as Href,
 
   // ─── Drills ────────────────────────────────────────────────────
   DRILLS: '/drills' as Href,
@@ -588,10 +530,6 @@ export const Routes = {
   // ─── Invites ───────────────────────────────────────────────────
   INVITES: '/invites' as Href,
 
-  // ─── Bills ────────────────────────────────────────────────────
-  BILLS: '/bills' as Href,
-  BILLS_CREATE: '/bills/create' as Href,
-
   // ─── Invoices ──────────────────────────────────────────────────
   INVOICES: '/invoices' as Href,
   invoice: (id: string) =>
@@ -632,7 +570,6 @@ export const Routes = {
     }) as Href,
 
   // ─── Referrals ─────────────────────────────────────────────────
-  REFERRALS: '/referrals' as Href,
   REFERRALS_INVITE: '/referrals/invite' as Href,
 
   // ─── Roster ────────────────────────────────────────────────────
@@ -721,7 +658,6 @@ export const Routes = {
       params: { offeringId },
     }) as Href,
   SESSION_INVITES_GROUP: '/session-invites/group' as Href,
-  SESSION_INVITES_SQUAD: '/session-invites/squad' as Href,
   sessionInvite: (id: string) =>
     ({
       pathname: '/session-invites/[id]',
@@ -769,21 +705,12 @@ export const Routes = {
   VERIFICATION_INSURANCE: '/verification/insurance' as Href,
 
   // ─── Videos ────────────────────────────────────────────────────
-  VIDEOS: '/videos' as Href,
   VIDEOS_UPLOAD: '/videos/upload' as Href,
   video: (id: string) =>
     ({
       pathname: '/videos/[id]',
       params: { id },
     }) as Href,
-  videoAnnotate: (id: string) =>
-    ({
-      pathname: '/videos/annotate/[id]',
-      params: { id },
-    }) as Href,
-
-  // ─── Waitlist ──────────────────────────────────────────────────
-  WAITLIST: '/waitlist' as Href,
 
   // ─── Favourites ────────────────────────────────────────────────
   FAVOURITES: '/favourites' as Href,

@@ -23,7 +23,6 @@ const scenarios = [
       { story: 'rate-coach', path: '/rate-coach' },
       { story: 'my-progress', path: '/development/my-progress' },
       { story: 'availability-calendar', path: '/availability/calendar' },
-      { story: 'availability-rules', path: '/availability/scheduling-rules' },
       { story: 'discover-sessions', path: '/discover-sessions' },
       { story: 'group-sessions', path: '/group-sessions/index' },
       { story: 'session-invites', path: '/session-invites/index' },

@@ -171,15 +171,15 @@ Why it matters:
 
 Evidence:
 
-- `navigation/routes.ts` still defines `ACADEMY_CREATE`, `ACADEMY_JOIN`, and dynamic `academy(...)` route builders
 - there is no `app/academy/*` route tree
+- academy-specific services and storage still exist, so the org model remains split in code even without a shipped academy route tree
 - there is no first-class `ACADEMY_LEADER` role in runtime auth
 - current org behavior is effectively "club membership layered onto coach/admin accounts"
 
 Current reality:
 
-- the codebase partially models academy as a first-class concept
-- the shipped app does not
+- the codebase still partially models academy as a first-class concept
+- the shipped app does not expose that concept as a route tree
 
 #### 5. Account lifecycle semantics are still only partially honest
 
