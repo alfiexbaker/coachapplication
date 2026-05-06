@@ -35,7 +35,7 @@ Do not delete or demote:
 
 ## `PRUNE-01` Delete Obvious Non-Core Destinations
 
-Status: `READY`
+Status: `DONE`
 
 Objective:
 
@@ -68,9 +68,14 @@ Acceptance:
 - No route helper points to a deleted route.
 - Loading route audit passes.
 
+Completed:
+
+- Removed the route files, visible entrypoints, route helpers, route manifests, screenshots/UI-flow entries, dead services, route-private components/hooks, and tests for the deleted launch cuts.
+- Preserved `app/discover/map.tsx` and left the active progress-loop internals for `app/development/progress-loop.tsx` untouched.
+
 ## `PRUNE-02` Protect And Harden Discover Map
 
-Status: `READY_AFTER_PRUNE-01`
+Status: `READY`
 
 Objective:
 

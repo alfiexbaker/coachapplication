@@ -389,15 +389,6 @@ const loadingRouteManifest = Object.freeze([
     transition: 'Open favourites -> keep list visible -> refresh in place -> update rows without reset.',
   },
   {
-    pattern: 'app/referrals/invite.tsx',
-    strategy: 'submit-only',
-    owner: 'UI-LOAD-02',
-    stableShell: 'Referral form stays mounted.',
-    retains: 'Form state remains visible during submit and validation.',
-    pendingSurface: 'Action-level progress only.',
-    transition: 'Tap referral actions -> keep form visible -> show submit progress in place.',
-  },
-  {
     pattern: 'app/coach/invite.tsx',
     strategy: 'static',
     owner: 'UI-LOAD-02',
@@ -473,15 +464,6 @@ const loadingRouteManifest = Object.freeze([
     retains: 'Resolved roster context remains visible while pending consent sections load.',
     pendingSurface: 'Only unresolved consent sections may skeletonize.',
     transition: 'Open consents -> keep shell visible -> skeletonize pending section -> resolve in place.',
-  },
-  {
-    pattern: 'app/compare/**/*.tsx',
-    strategy: 'section-skeleton',
-    owner: 'UI-LOAD-04',
-    stableShell: 'Compare shell and selected athletes stay mounted.',
-    retains: 'Resolved comparison context remains visible while metrics load.',
-    pendingSurface: 'Only unresolved compare panes may skeletonize.',
-    transition: 'Open compare -> keep shell visible -> skeletonize pending pane -> resolve without reset.',
   },
   {
     pattern: 'app/coach/[id].tsx',
@@ -1186,15 +1168,6 @@ const loadingRouteManifest = Object.freeze([
     retains: 'Navigation chrome.',
     pendingSurface: 'None.',
     transition: 'Immediate redirect to the canonical settings route.',
-  },
-  {
-    pattern: 'app/results-program.tsx',
-    strategy: 'static',
-    owner: 'UI-LOAD-07',
-    stableShell: 'Static route shell or redirect.',
-    retains: 'Static content.',
-    pendingSurface: 'None.',
-    transition: 'Immediate static render.',
   },
   {
     pattern: 'app/**/*.tsx',

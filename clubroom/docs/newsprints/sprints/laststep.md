@@ -4,14 +4,13 @@ Date: 2026-05-06
 
 ## Latest Planning Update
 
-1. Added a full product feature triage board at `docs/product-reality/FEATURE_TRIAGE_BOARD_2026-05-06.md`.
-2. Added the pruning sprint track at `docs/newsprints/sprints/FEATURE_PRUNE_SPRINTS_2026-05-06.md`.
-3. Updated `docs/newsprints/sprints/BACKLOG.md` so product pruning runs before the remaining `UI-LOAD-*` work.
-4. Corrected the discovery decision: `app/discover/map.tsx` is a protected centerpiece and belongs in the launch core.
+1. Completed `PRUNE-01` by deleting the obvious non-core launch destinations and their route-private support code.
+2. Kept `app/discover/map.tsx` protected as a centerpiece for the next sprint.
+3. Updated `docs/newsprints/sprints/BACKLOG.md` so `PRUNE-02` is the next active pruning sprint.
 
 ## Next Exact Action
 
-1. Start `PRUNE-01`: delete family spending, referrals, compare, drill challenges, seed health, results-program, and retention analytics, while preserving Discover Map.
+1. Start `PRUNE-02`: protect and harden Discover Map as a core path from map result to coach/session detail to booking.
 
 ## Previous Handoff
 

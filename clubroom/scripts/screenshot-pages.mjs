@@ -41,11 +41,9 @@ const ROUTES = [
   // Drills
   { path: '/drills', name: '25-drills' },
   { path: '/drills/library', name: '26-drills-library' },
-  { path: '/drills/challenges', name: '27-drills-challenges' },
   // Family
   { path: '/family', name: '28-family' },
   { path: '/family/calendar', name: '29-family-calendar' },
-  { path: '/family/spending', name: '30-family-spending' },
   // Goals
   { path: '/goals', name: '31-goals' },
   // Group sessions

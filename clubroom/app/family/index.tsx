@@ -39,7 +39,7 @@ export default function FamilyOverviewScreen() {
     handleMemberPress,
     handleSessionPress,
     navigateToCalendar,
-    navigateToSpending,
+    navigateToRecurring,
   } = useFamilyDashboard();
   const handleBookSession = () => router.push(Routes.BOOK_COACH);
   const header = (
@@ -85,7 +85,7 @@ export default function FamilyOverviewScreen() {
       <Animated.View entering={FadeInDown.delay(50).springify()}>
         <FamilyQuickActions
           onCalendarPress={navigateToCalendar}
-          onSpendingPress={navigateToSpending}
+          onRecurringPress={navigateToRecurring}
         />
       </Animated.View>
 

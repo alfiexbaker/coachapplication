@@ -4,7 +4,7 @@
  * This module provides a clean API for family-related operations.
  * The original monolithic familyService is split into focused services:
  *
- * - familyMemberService: Child/member CRUD, bookings, calendar, spending, progress, overview
+ * - familyMemberService: Child/member CRUD, bookings, calendar, progress, overview
  * - familyHealthService: Child medical, emergency contacts, and consent records
  * - familyRelationshipService: Guardian management & invites
  * - familyPermissionService: Authorization checks and access control
@@ -64,12 +64,6 @@ export const familyService = {
   getFamilyCalendar: familyMemberService.getFamilyCalendar.bind(familyMemberService),
   getUpcomingForFamily: familyMemberService.getUpcomingForFamily.bind(familyMemberService),
   getEventsGroupedByDate: familyMemberService.getEventsGroupedByDate.bind(familyMemberService),
-
-  // ==========================================================================
-  // SPENDING (from familyMemberService)
-  // ==========================================================================
-  getFamilySpending: familyMemberService.getFamilySpending.bind(familyMemberService),
-  getFamilySpendingSummary: familyMemberService.getFamilySpendingSummary.bind(familyMemberService),
 
   // ==========================================================================
   // CHILD PROGRESS (from familyMemberService)

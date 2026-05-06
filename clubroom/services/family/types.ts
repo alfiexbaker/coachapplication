@@ -8,8 +8,6 @@
 // Re-export all family-related types from constants
 export {
   type FamilyMember,
-  type FamilySpending,
-  type FamilySpendingMonth,
   type FamilyCalendarEvent,
   type FamilyOverview,
   type FamilyDateRange,

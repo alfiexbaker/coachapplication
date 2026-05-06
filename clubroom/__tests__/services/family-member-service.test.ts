@@ -1,7 +1,7 @@
 /**
  * Family Member Service Tests
  *
- * Tests for family member CRUD, bookings, spending, and progress queries.
+ * Tests for family member CRUD, bookings, and progress queries.
  */
 
 import assert from 'node:assert/strict';
@@ -65,20 +65,6 @@ describe('familyMemberService', () => {
     test('returns array of bookings', async () => {
       const bookings = await familyMemberService.getFamilyBookings('parent_1');
       assert.ok(Array.isArray(bookings));
-    });
-  });
-
-  describe('getFamilySpending', () => {
-    test('returns array of spending records', async () => {
-      const spending = await familyMemberService.getFamilySpending('parent_1');
-      assert.ok(Array.isArray(spending));
-    });
-  });
-
-  describe('getFamilySpendingSummary', () => {
-    test('returns summary with totalSpent', async () => {
-      const summary = await familyMemberService.getFamilySpendingSummary('parent_1');
-      assert.equal(typeof summary.totalSpent, 'number');
     });
   });
 

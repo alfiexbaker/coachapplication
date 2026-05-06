@@ -50,7 +50,6 @@ export function FamilyCalendarScreen({
   } = useFamilyCalendar();
   const { isMultiChild, getChildById } = useChildContext();
   const handleBookSession = () => router.push(Routes.BOOK_COACH);
-  const handleViewSpending = () => router.push(Routes.FAMILY_SPENDING);
   const handleRecurringPlans = () => router.push(Routes.FAMILY_RECURRING);
   const header = (
     <PageHeader
@@ -186,20 +185,6 @@ export function FamilyCalendarScreen({
           </Clickable>
         </Row>
       </Animated.View>
-
-      <Animated.View entering={FadeInDown.delay(250).springify()}>
-        <Clickable
-          onPress={handleViewSpending}
-          style={[styles.fullWidthAction, { borderColor: palette.border }]}
-        >
-          <Row align="center" justify="center" gap="xs">
-            <Ionicons name="wallet-outline" size={20} color={palette.tint} />
-            <ThemedText style={[Typography.bodySemiBold, { color: palette.tint }]}>
-              View Spending
-            </ThemedText>
-          </Row>
-        </Clickable>
-      </Animated.View>
     </PageContainer>
   );
 }
@@ -219,11 +204,6 @@ const styles = StyleSheet.create({
   actionButton: { flex: 1, paddingVertical: Spacing.md, borderRadius: Radii.lg },
   actionButtonSecondary: {
     flex: 1,
-    paddingVertical: Spacing.md,
-    borderRadius: Radii.lg,
-    borderWidth: 1.5,
-  },
-  fullWidthAction: {
     paddingVertical: Spacing.md,
     borderRadius: Radii.lg,
     borderWidth: 1.5,

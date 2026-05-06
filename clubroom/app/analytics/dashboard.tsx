@@ -134,7 +134,6 @@ export default function AnalyticsDashboardScreen() {
               value={dashboard.retention.totalActiveClients}
               icon="people"
               iconColor={palette.tint}
-              onPress={analytics.navigateToRetention}
             />
             <AnalyticsStatCard
               label="Avg Rating"
@@ -166,7 +165,6 @@ export default function AnalyticsDashboardScreen() {
           <RetentionCard
             metrics={dashboard.retention}
             title="Client Retention"
-            onPress={analytics.navigateToRetention}
           />
           {dashboard.cancellations.totalCancellations > 0 && (
             <CancellationChart stats={dashboard.cancellations} title="Cancellations" />

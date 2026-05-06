@@ -42,7 +42,6 @@ export interface UseAnalyticsDashboardResult {
   handlePeriodChange: (period: CoachAnalyticsPeriod) => void;
   formatCurrency: (amount: number) => string;
   navigateToRevenue: () => void;
-  navigateToRetention: () => void;
 }
 
 export function useAnalyticsDashboard() {
@@ -88,7 +87,6 @@ export function useAnalyticsDashboard() {
   }, []);
 
   const navigateToRevenue = useCallback(() => router.push(Routes.ANALYTICS_REVENUE), [router]);
-  const navigateToRetention = useCallback(() => router.push(Routes.ANALYTICS_RETENTION), [router]);
 
   return {
     analytics,
@@ -103,6 +101,5 @@ export function useAnalyticsDashboard() {
     handlePeriodChange,
     formatCurrency,
     navigateToRevenue,
-    navigateToRetention,
   } satisfies UseAnalyticsDashboardResult;
 }

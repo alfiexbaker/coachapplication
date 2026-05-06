@@ -81,7 +81,6 @@ These surfaces currently dilute the core:
 
 - `components/user/home-screen.tsx`: generic stats, streaks, badges, walkthrough, and club filler
 - `app/family/index.tsx`: duplicated dashboard summaries before action
-- `app/family/spending.tsx`: chart-first and low-action
 - coach operations still need tighter prioritization, but the old `app/manage/index.tsx` bridge has now been reduced to a redirect instead of a standalone operations dashboard
 - the standalone `app/payments/index.tsx` redirect has been removed; money work now belongs in earnings and invoice/reconciler surfaces
 - `app/(tabs)/coach-profile.tsx` and `hooks/use-coach-profile.ts`: still belong below schedule, delivery, and earnings even after the language cleanup
@@ -131,7 +130,7 @@ Reason:
   - `Family Dashboard` is now explicitly framed as `Family Overview`
 - `VS-02` is now landed:
   - `Family Overview` is reduced to shortcuts, upcoming sessions, child progress entry, and trust context
-  - family spending is now framed as `Spending Records` instead of a chart-led finance destination
+  - standalone family spending has been removed; money context belongs in bookings, recurring plans, earnings, and invoice/reconciler surfaces
   - dead family summary components were removed with the screen change
   - owner dashboard now routes straight into staffing, oversight, session launch, and invite work without bouncing through `/manage`
   - `/manage` remains only as a coach/head-coach bridge when the app does not know which club context to open first
@@ -183,7 +182,7 @@ Progress in this slice:
 
 - removed family overview stats, recognition-first UI, and next-session spotlighting
 - reduced family overview to action-first family entry points
-- rewrote family spending into records plus child totals instead of charts and filters
+- removed standalone family spending instead of carrying a low-action chart or ledger destination
 - deleted the now-dead family chart and recognition components
 - merged owner manage entry into dashboard links while keeping `/manage` as a minimal coach/head-coach bridge
 
@@ -194,7 +193,7 @@ Objective:
 Scope:
 
 - reduce or remove family dashboard stats and recognition-first panels
-- demote family spending from chart destination to contextual ledger/support view
+- remove standalone family spending and keep money context inside bookings, recurring plans, earnings, and invoice/reconciler flows
 - merge `Manage` into owner dashboard actions instead of keeping a second ops home
 
 Acceptance:

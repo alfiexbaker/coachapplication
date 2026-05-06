@@ -270,12 +270,6 @@ const flows = [
     path: '/family/calendar',
   },
   {
-    id: 'parent_family_spending',
-    role: 'parent',
-    title: 'Parent opens family spending',
-    path: '/family/spending',
-  },
-  {
     id: 'parent_family_recurring',
     role: 'parent',
     title: 'Parent opens recurring plans',

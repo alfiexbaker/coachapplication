@@ -9,12 +9,12 @@ import { useTheme } from '@/hooks/useTheme';
 
 interface FamilyQuickActionsProps {
   onCalendarPress: () => void;
-  onSpendingPress: () => void;
+  onRecurringPress: () => void;
 }
 
 export const FamilyQuickActions = memo(function FamilyQuickActions({
   onCalendarPress,
-  onSpendingPress,
+  onRecurringPress,
 }: FamilyQuickActionsProps) {
   const { colors: palette } = useTheme();
 
@@ -37,16 +37,16 @@ export const FamilyQuickActions = memo(function FamilyQuickActions({
       </Clickable>
 
       <Clickable
-        onPress={onSpendingPress}
+        onPress={onRecurringPress}
         style={[styles.card, { backgroundColor: withAlpha(palette.success, 0.06) }]}
       >
         <View style={[styles.icon, { backgroundColor: palette.success }]}>
-          <Ionicons name="receipt-outline" size={24} color={palette.onPrimary} />
+          <Ionicons name="repeat-outline" size={24} color={palette.onPrimary} />
         </View>
         <View style={styles.text}>
-          <ThemedText type="defaultSemiBold">Spending Records</ThemedText>
+          <ThemedText type="defaultSemiBold">Recurring Plans</ThemedText>
           <ThemedText style={[Typography.small, { color: palette.muted }]}>
-            Review recent booked-session costs
+            Manage repeat session routines
           </ThemedText>
         </View>
         <Ionicons name="chevron-forward" size={20} color={palette.muted} />

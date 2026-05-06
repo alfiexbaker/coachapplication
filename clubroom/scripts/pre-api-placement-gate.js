@@ -91,31 +91,31 @@ const checks = [
   },
   {
     id: 'health_entrypoints_present',
-    description: 'Health route is reachable from key athlete/parent surfaces.',
+    description: 'Health route is reachable from current home and child progress surfaces.',
     pass: () => {
       const userHome = readFile('components/user/home-screen-sections.tsx');
-      const parentDiscover = readFile('components/parent/discover-screen.tsx');
       const childProgress = readFile('app/development/child-progress/[childId].tsx');
       return Boolean(
         userHome &&
-          parentDiscover &&
           childProgress &&
           userHome.includes('Routes.HEALTH') &&
-          parentDiscover.includes('Routes.HEALTH') &&
           childProgress.includes('Routes.HEALTH'),
       );
     },
   },
   {
     id: 'family_entrypoints_present',
-    description: 'Parent discover surface links to family dashboard/calendar/spending.',
+    description: 'Family entrypoints link dashboard, calendar, and recurring plans.',
     pass: () => {
-      const file = readFile('components/parent/discover-screen.tsx');
+      const dashboardHook = readFile('hooks/use-family-dashboard.ts');
+      const calendarScreen = readFile('components/family/family-calendar-screen.tsx');
       return Boolean(
-        file &&
-          file.includes('Routes.FAMILY') &&
-          file.includes('Routes.FAMILY_CALENDAR') &&
-          file.includes('Routes.FAMILY_SPENDING'),
+        dashboardHook &&
+          calendarScreen &&
+          dashboardHook.includes('Routes.FAMILY') &&
+          dashboardHook.includes('Routes.FAMILY_CALENDAR') &&
+          dashboardHook.includes('Routes.FAMILY_RECURRING') &&
+          calendarScreen.includes('Routes.FAMILY_RECURRING'),
       );
     },
   },

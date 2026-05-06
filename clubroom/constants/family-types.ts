@@ -150,43 +150,6 @@ export interface FamilyAccount {
 }
 
 /**
- * Spending summary for a child in the family
- */
-export interface FamilySpending {
-  /** ID of the child this spending relates to */
-  childId: string;
-  /** Name of the child for display purposes */
-  /** Color code for the child (for charts) */
-  colorCode: string;
-  /** Total amount spent on this child (in currency units) */
-  totalSpent: number;
-  /** Number of sessions booked */
-  sessionCount: number;
-  /** Date of the last session (ISO string) */
-  lastSession?: string;
-  /** Breakdown by month */
-  monthlyBreakdown?: FamilySpendingMonth[];
-  /** Average cost per session */
-  averagePerSession: number;
-  /** Spending trend compared to previous period */
-  trend?: 'up' | 'down' | 'stable';
-  /** Percentage change from previous period */
-  trendPercent?: number;
-}
-
-/**
- * Monthly spending breakdown
- */
-export interface FamilySpendingMonth {
-  /** Month in YYYY-MM format */
-  month: string;
-  /** Amount spent in this month */
-  amount: number;
-  /** Number of sessions in this month */
-  sessionCount: number;
-}
-
-/**
  * Family calendar event - represents a booking in the family calendar
  */
 export interface FamilyCalendarEvent {

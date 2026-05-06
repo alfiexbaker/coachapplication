@@ -179,7 +179,7 @@ Anything outside that bar needs to justify itself.
 
 ## Immediate Delete Candidates
 
-These are the clearest "AI-added or low-value" cuts:
+`PRUNE-01` deleted the clearest low-value launch cuts:
 
 1. `family/spending.tsx`
 2. `referrals/invite.tsx`
@@ -188,6 +188,9 @@ These are the clearest "AI-added or low-value" cuts:
 5. `development/seed-health.tsx`
 6. `results-program.tsx` and `development/results-program.tsx`
 7. `analytics/retention.tsx`
+
+Remaining delete candidates for later pruning:
+
 8. `athlete/journal.tsx` if athlete self-reflection is not a launch promise
 9. `settings/appearance.tsx` if theme customization is not a launch promise
 

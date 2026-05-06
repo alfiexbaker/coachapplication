@@ -7,8 +7,7 @@ Rule: active work only. Completed sprint rows are intentionally removed.
 
 | ID | Exactly what it does | Spine(s) | Status |
 | -- | -------------------- | -------- | ------ |
-| PRUNE-01 | Delete obvious non-core destinations before polishing them: family spending, referrals, compare, drill challenges, seed health, results-program, and retention analytics. Keep Discover Map protected. | Booking, Availability and Revenue + Development and Analytics + Community and Growth | READY |
-| PRUNE-02 | Protect and harden Discover Map as a centerpiece discovery path from map result to coach/session detail to booking. | Community and Growth + Booking, Availability and Revenue | READY_AFTER_PRUNE-01 |
+| PRUNE-02 | Protect and harden Discover Map as a centerpiece discovery path from map result to coach/session detail to booking. | Community and Growth + Booking, Availability and Revenue | READY |
 | PRUNE-03 | Merge duplicate family and ops destinations: family overview, legacy family/manage redirects, blocked dates, and availability-related duplication. | Trust, Safety and Operations + Booking, Availability and Revenue | OPEN |
 | PRUNE-04 | Narrow development and training to session-linked progress, coach assignments, feedback, proof, and family/athlete outcomes. | Development and Analytics | OPEN |
 | PRUNE-05 | Narrow community, updates, profiles, favourites, and reviews to professional coordination, trust, and booking conversion. | Community and Growth + Trust, Safety and Operations | OPEN |
@@ -22,18 +21,17 @@ Rule: active work only. Completed sprint rows are intentionally removed.
 
 ## Execution Order
 
-1. `PRUNE-01`
-2. `PRUNE-02`
-3. `PRUNE-03`
-4. `PRUNE-04`
-5. `PRUNE-05`
-6. `PRUNE-06`
-7. `PRUNE-VERIFY-01`
-8. `UI-LOAD-05`
-9. `UI-LOAD-06`
-10. `UI-LOAD-07`
-11. `UI-LOAD-08`
-12. `PROD-VERIFY-01`
+1. `PRUNE-02`
+2. `PRUNE-03`
+3. `PRUNE-04`
+4. `PRUNE-05`
+5. `PRUNE-06`
+6. `PRUNE-VERIFY-01`
+7. `UI-LOAD-05`
+8. `UI-LOAD-06`
+9. `UI-LOAD-07`
+10. `UI-LOAD-08`
+11. `PROD-VERIFY-01`
 
 ## Active Pruning Plan
 

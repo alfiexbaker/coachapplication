@@ -129,7 +129,6 @@ export const Routes = {
   // ─── Analytics ─────────────────────────────────────────────────
   ANALYTICS_DASHBOARD: '/analytics/dashboard' as Href,
   ANALYTICS_REVENUE: '/analytics/revenue' as Href,
-  ANALYTICS_RETENTION: '/analytics/retention' as Href,
   analyticsAthlete: (athleteId: string) =>
     ({
       pathname: '/analytics/[athleteId]',
@@ -359,14 +358,6 @@ export const Routes = {
       params: { groupId },
     }) as Href,
 
-  // ─── Compare ───────────────────────────────────────────────────
-  COMPARE: '/compare' as Href,
-  compareCoaches: (ids: string) =>
-    ({
-      pathname: '/compare/[ids]',
-      params: { ids },
-    }) as Href,
-
   // ─── Development ───────────────────────────────────────────────
   DEVELOPMENT_BADGES: '/development/badges' as Href,
   developmentBadgesHighlight: (badgeAwardId: string) =>
@@ -376,9 +367,6 @@ export const Routes = {
     }) as Href,
   DEVELOPMENT_MY_PROGRESS: '/development/my-progress' as Href,
   DEVELOPMENT_PROGRESS_LOOP: '/development/progress-loop' as Href,
-  DEVELOPMENT_RESULTS_PROGRAM: '/development/results-program' as Href,
-  DEVELOPMENT_SEED_HEALTH: '/development/seed-health' as Href,
-  RESULTS_PROGRAM: '/results-program' as Href,
   DEVELOPMENT_MEDIA_GALLERY: '/development/media-gallery' as Href,
   DEVELOPMENT_SESSION_HISTORY: '/development/session-history' as Href,
   developmentAthlete: (athleteId: string) =>
@@ -417,20 +405,10 @@ export const Routes = {
       pathname: '/development/progress-loop',
       params: params ?? {},
     }) as Href,
-  developmentResultsProgram: (params?: { athleteId?: string }) =>
-    ({
-      pathname: '/development/results-program',
-      params: params ?? {},
-    }) as Href,
   developmentMediaGallery: (params?: { athleteId?: string }) =>
     ({
       pathname: '/development/media-gallery',
       params: params ?? {},
-    }) as Href,
-  developmentSeedHealth: () =>
-    ({
-      pathname: '/development/seed-health',
-      params: {},
     }) as Href,
 
   // ─── Discover ──────────────────────────────────────────────────
@@ -442,8 +420,6 @@ export const Routes = {
   DRILLS_CREATE: '/drills/create' as Href,
   DRILLS_LIBRARY: '/drills/library' as Href,
   DRILLS_ASSIGN: '/drills/assign' as Href,
-  DRILLS_CHALLENGES: '/drills/challenges' as Href,
-  DRILLS_CREATE_CHALLENGE: '/drills/create-challenge' as Href,
   drill: (id: string) =>
     ({
       pathname: '/drills/[id]',
@@ -487,7 +463,6 @@ export const Routes = {
   FAMILY_CALENDAR: '/family/calendar' as Href,
   FAMILY_RECURRING: '/family/recurring' as Href,
   FAMILY_SHARING: '/family/sharing' as Href,
-  FAMILY_SPENDING: '/family/spending' as Href,
   familyRecurring: (params?: { recurringId?: string }) =>
     ({
       pathname: '/family/recurring',
@@ -568,9 +543,6 @@ export const Routes = {
       pathname: '/review/create',
       params: { bookingId, coachId },
     }) as Href,
-
-  // ─── Referrals ─────────────────────────────────────────────────
-  REFERRALS_INVITE: '/referrals/invite' as Href,
 
   // ─── Roster ────────────────────────────────────────────────────
   ROSTER_INDEX: '/roster' as Href,

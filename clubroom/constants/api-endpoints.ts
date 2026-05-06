@@ -179,11 +179,6 @@ export const Endpoints = {
     usage: (id: string) => `/api/promo-codes/${id}/usage`,
   },
 
-  referrals: {
-    codes: () => `/api/referrals/codes`,
-    list: () => `/api/referrals`,
-  },
-
   bills: {
     list: () => `/api/bills`,
     detail: (id: string) => `/api/bills/${id}`,

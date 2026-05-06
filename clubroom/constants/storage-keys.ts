@@ -225,12 +225,6 @@ export const STORAGE_KEYS = {
   /** Promo code usage tracking */
   PROMO_USAGE: 'clubroom.promo_usage',
 
-  /** Referral codes */
-  REFERRAL_CODES: 'clubroom.referral_codes',
-
-  /** Referral tracking data */
-  REFERRALS: 'clubroom.referrals',
-
   /** Coach bills and expenses */
   BILLS: 'clubroom.bills',
 
@@ -424,12 +418,6 @@ export const STORAGE_KEYS = {
   /** Match results and statistics */
   MATCHES: 'matches',
 
-  /** Video challenges for squads */
-  CHALLENGES: 'clubroom.challenges',
-
-  /** Challenge submissions from athletes */
-  CHALLENGE_SUBMISSIONS: 'clubroom.challenge_submissions',
-
   /** Session journal entries (private athlete notes) */
   SESSION_JOURNAL: 'clubroom.session_journal',
 
@@ -458,9 +446,6 @@ export const STORAGE_KEYS = {
 
   /** User verification status */
   VERIFICATION: 'clubroom.verification',
-
-  /** Coach comparison tool selections */
-  COMPARISON_SELECTED_COACHES: 'clubroom.comparison.selectedCoaches',
 
   /** Recent search queries in discover */
   DISCOVER_RECENT_SEARCHES: 'clubroom.discover.recentSearches',

@@ -150,7 +150,7 @@ Coach:
 
 Parent:
 
-- manages children, bookings, consent, medical and emergency information, progress visibility, family spending, and club or coach updates
+- manages children, bookings, consent, medical and emergency information, progress visibility, recurring plans, and club or coach updates
 
 Athlete:
 

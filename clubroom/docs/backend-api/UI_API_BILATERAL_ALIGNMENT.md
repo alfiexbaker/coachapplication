@@ -88,7 +88,7 @@ These are minimum flows that must be traced before backend cutover by spine.
 - messaging/chat threads + typing indicator
 - community groups (public/private)
 - notifications/mutes/quiet hours
-- referrals/invite codes
+- booking, club, and guardian invite codes
 
 ### Trust / Ops / Safeguarding
 - verification uploads/status

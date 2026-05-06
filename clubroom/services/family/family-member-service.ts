@@ -2,7 +2,7 @@
  * Family Member Service
  *
  * Handles CRUD operations for family members (children), bookings,
- * calendar, spending, progress, and overview.
+ * calendar, progress, and overview.
  *
  * Single responsibility: manage family member data and related operations.
  */
@@ -16,8 +16,6 @@ import { type Result, type ServiceError, ok, err, notFound, storageError } from 
 import {
   type FamilyMember,
   type FamilyCalendarEvent,
-  type FamilySpending,
-  type FamilySpendingMonth,
   type FamilyOverview,
   type FamilyDateRange,
   type ChildProgressSummary,
@@ -706,152 +704,6 @@ class FamilyMemberService {
     });
 
     return grouped;
-  }
-
-  // ==========================================================================
-  // SPENDING
-  // ==========================================================================
-
-  /**
-   * Get spending overview for all children.
-   */
-  async getFamilySpending(parentId: string): Promise<FamilySpending[]> {
-    try {
-      const { members, bookings } = USE_MOCK
-        ? { members: await this.loadMembers(), bookings: await this.loadBookings() }
-        : await this.getAuthoritativeFamilySnapshot(parentId);
-
-      const spendingByChild: FamilySpending[] = members.map((member) => {
-        const childBookings = bookings.filter(
-          (b) => b.childId === member.id && (b.status === 'COMPLETED' || b.status === 'CONFIRMED'),
-        );
-
-        const totalSpent = childBookings.reduce((sum, b) => sum + (b.price || 0), 0);
-        const sessionCount = childBookings.length;
-        const averagePerSession = sessionCount > 0 ? totalSpent / sessionCount : 0;
-
-        // Find last session
-        const completedBookings = childBookings
-          .filter((b) => b.status === 'COMPLETED')
-          .sort((a, b) => new Date(b.start).getTime() - new Date(a.start).getTime());
-        const lastSession = completedBookings[0]?.start;
-
-        // Calculate monthly breakdown
-        const monthlyBreakdown = this.calculateMonthlyBreakdown(childBookings);
-
-        // Calculate trend
-        const { trend, trendPercent } = this.calculateSpendingTrend(monthlyBreakdown);
-
-        return {
-          childId: member.id,
-          colorCode: member.colorCode,
-          totalSpent,
-          sessionCount,
-          lastSession,
-          monthlyBreakdown,
-          averagePerSession,
-          trend,
-          trendPercent,
-        };
-      });
-
-      logger.info('family_spending_retrieved', { parentId, childrenCount: spendingByChild.length });
-      return spendingByChild;
-    } catch (error) {
-      logger.error('get_family_spending_failed', { parentId, error });
-      return [];
-    }
-  }
-
-  /**
-   * Get total family spending summary.
-   */
-  async getFamilySpendingSummary(parentId: string): Promise<{
-    totalSpent: number;
-    thisMonth: number;
-    lastMonth: number;
-    currency: string;
-    trend: 'up' | 'down' | 'stable';
-    trendPercent: number;
-  }> {
-    const spending = await this.getFamilySpending(parentId);
-
-    const totalSpent = spending.reduce((sum, s) => sum + s.totalSpent, 0);
-
-    // Calculate this month's spending
-    const now = new Date();
-    const thisMonthKey = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
-    const lastMonthDate = new Date(now.getFullYear(), now.getMonth() - 1, 1);
-    const lastMonthKey = `${lastMonthDate.getFullYear()}-${String(lastMonthDate.getMonth() + 1).padStart(2, '0')}`;
-
-    let thisMonth = 0;
-    let lastMonth = 0;
-
-    spending.forEach((s) => {
-      s.monthlyBreakdown?.forEach((mb) => {
-        if (mb.month === thisMonthKey) {
-          thisMonth += mb.amount;
-        }
-        if (mb.month === lastMonthKey) {
-          lastMonth += mb.amount;
-        }
-      });
-    });
-
-    const trendPercent =
-      lastMonth > 0 ? Math.round(((thisMonth - lastMonth) / lastMonth) * 100) : 0;
-    const trend: 'up' | 'down' | 'stable' =
-      trendPercent > 5 ? 'up' : trendPercent < -5 ? 'down' : 'stable';
-
-    return {
-      totalSpent,
-      thisMonth,
-      lastMonth,
-      currency: 'GBP',
-      trend,
-      trendPercent: Math.abs(trendPercent),
-    };
-  }
-
-  private calculateMonthlyBreakdown(bookings: FamilyCalendarEvent[]): FamilySpendingMonth[] {
-    const monthlyMap = new Map<string, FamilySpendingMonth>();
-
-    bookings.forEach((booking) => {
-      const date = new Date(booking.start);
-      const monthKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
-
-      const existing = monthlyMap.get(monthKey) || {
-        month: monthKey,
-        amount: 0,
-        sessionCount: 0,
-      };
-
-      existing.amount += booking.price || 0;
-      existing.sessionCount += 1;
-      monthlyMap.set(monthKey, existing);
-    });
-
-    return Array.from(monthlyMap.values()).sort((a, b) => b.month.localeCompare(a.month));
-  }
-
-  private calculateSpendingTrend(monthlyBreakdown: FamilySpendingMonth[]): {
-    trend: 'up' | 'down' | 'stable';
-    trendPercent: number;
-  } {
-    if (monthlyBreakdown.length < 2) {
-      return { trend: 'stable', trendPercent: 0 };
-    }
-
-    const [current, previous] = monthlyBreakdown;
-    if (!previous || previous.amount === 0) {
-      return { trend: 'stable', trendPercent: 0 };
-    }
-
-    const percentChange = ((current.amount - previous.amount) / previous.amount) * 100;
-    const trend: 'up' | 'down' | 'stable' =
-      percentChange > 5 ? 'up' : percentChange < -5 ? 'down' : 'stable';
-
-    return { trend, trendPercent: Math.abs(Math.round(percentChange)) };
   }
 
   // ==========================================================================

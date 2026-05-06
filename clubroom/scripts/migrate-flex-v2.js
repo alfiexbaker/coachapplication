@@ -28,7 +28,6 @@ const BROKEN_FILES = [
   'coach/coach-card-services-sections.tsx',
   'coach/profile-header-sections.tsx',
   'coach/profile-quick-actions-sections.tsx',
-  'compare/CoachColumn-sections.tsx',
   'consent/ConsentCard.tsx',
   'development/dev-special-needs-card.tsx',
   'development/progress-timeline-sections.tsx',

@@ -63,8 +63,8 @@ export function useFamilyDashboard() {
     router.push(Routes.FAMILY_CALENDAR);
   }, []);
 
-  const navigateToSpending = useCallback(() => {
-    router.push(Routes.FAMILY_SPENDING);
+  const navigateToRecurring = useCallback(() => {
+    router.push(Routes.FAMILY_RECURRING);
   }, []);
 
   return {
@@ -79,6 +79,6 @@ export function useFamilyDashboard() {
     handleMemberPress,
     handleSessionPress,
     navigateToCalendar,
-    navigateToSpending,
+    navigateToRecurring,
   };
 }
