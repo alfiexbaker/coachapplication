@@ -125,7 +125,7 @@ Anything outside that bar needs to justify itself.
 | Reviews | Rate coach | `rate-coach.tsx` | USE | Review proof and marketplace trust. |
 | Reviews | Booking review | `review/[bookingId].tsx`, `review/create.tsx` | USE | Booking-linked proof. |
 | Discovery | Discover sessions | `discover-sessions.tsx` | NARROW | Keep only if it converts to booking, not browsing for its own sake. |
-| Discovery | Discover map | `discover/map.tsx` | POST-LAUNCH | Nice-to-have unless local search is critical. |
+| Discovery | Discover map | `discover/map.tsx` | USE | Centerpiece local coach/session discovery surface; keep and harden. |
 | Discovery | Compare coaches | `compare/index.tsx`, `compare/[ids].tsx` | DELETE | Likely AI-added marketplace gimmick; booking search/profile can carry comparison. |
 | Discovery | Favourites | `favourites/index.tsx` | NARROW | Keep only if it drives repeat booking. |
 | Referrals | Referral invite | `referrals/invite.tsx` | DELETE | Growth gimmick unless referral program is real. |
@@ -135,7 +135,7 @@ Anything outside that bar needs to justify itself.
 | Development | Session detail | `development/session/[sessionId].tsx` | USE | Delivery follow-up and proof. |
 | Development | Session history | `development/session-history.tsx` | USE | Useful if concise. |
 | Development | Progress loop | `development/progress-loop.tsx` | NARROW | Keep if it becomes simple and actionable. |
-| Development | Results program | `development/results-program.tsx`, `results-program.tsx`, `development/results-program.tsx` | DELETE | Product-fluffy unless tied to real coaching plans. |
+| Development | Results program | `development/results-program.tsx`, `results-program.tsx` | DELETE | Product-fluffy unless tied to real coaching plans. |
 | Development | Media gallery | `development/media-gallery.tsx` | NARROW | Keep only if video/session proof stays central. |
 | Development | Development badges | `development/badges.tsx`, `badges/index.tsx`, `(tabs)/badges.tsx` | NARROW | Badges can stay secondary, not primary product. |
 | Development | Athlete special needs | `development/athlete/[athleteId]/special-needs.tsx` | USE | Trust-sensitive coaching context. |
@@ -188,9 +188,8 @@ These are the clearest "AI-added or low-value" cuts:
 5. `development/seed-health.tsx`
 6. `results-program.tsx` and `development/results-program.tsx`
 7. `analytics/retention.tsx`
-8. `discover/map.tsx` if local map search is not a real launch promise
-9. `athlete/journal.tsx` if athlete self-reflection is not a launch promise
-10. `settings/appearance.tsx` if theme customization is not a launch promise
+8. `athlete/journal.tsx` if athlete self-reflection is not a launch promise
+9. `settings/appearance.tsx` if theme customization is not a launch promise
 
 ## Must Protect
 
@@ -204,6 +203,7 @@ Do not casually delete:
 - invoices, earnings, payment attempt flow
 - verification
 - club hub, club schedule, squads, staff/member flows
+- discover map and local search
 - sessions, group sessions, invites, attendance/session completion
 - messages and notifications
 

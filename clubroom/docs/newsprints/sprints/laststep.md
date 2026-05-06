@@ -1,6 +1,19 @@
 # Last Step Handoff
 
-Date: 2026-04-23
+Date: 2026-05-06
+
+## Latest Planning Update
+
+1. Added a full product feature triage board at `docs/product-reality/FEATURE_TRIAGE_BOARD_2026-05-06.md`.
+2. Added the pruning sprint track at `docs/newsprints/sprints/FEATURE_PRUNE_SPRINTS_2026-05-06.md`.
+3. Updated `docs/newsprints/sprints/BACKLOG.md` so product pruning runs before the remaining `UI-LOAD-*` work.
+4. Corrected the discovery decision: `app/discover/map.tsx` is a protected centerpiece and belongs in the launch core.
+
+## Next Exact Action
+
+1. Start `PRUNE-01`: delete family spending, referrals, compare, drill challenges, seed health, results-program, and retention analytics, while preserving Discover Map.
+
+## Previous Handoff
 
 ## What Was Just Done
 
@@ -24,7 +37,7 @@ Date: 2026-04-23
 - Coach/public coach surfaces now show real live offerings plus club/event access signals, so the product value is visible before the user books and the loading treatment matches the final structure.
 - Compare and user profile surfaces no longer rely on dead spinner-style intermediate states; they now use the shared retained/skeleton primitives.
 
-## Next Exact Action
+## Previous Next Exact Action
 
 1. Start `UI-LOAD-05` and bring club, schedule, event, and calendar surfaces up to the same standard, with time-structured placeholders, stable headers/action chrome, and no generic loading bars on schedule/event detail.
 

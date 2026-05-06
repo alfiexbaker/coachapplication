@@ -1,12 +1,19 @@
 # Sprint Backlog
 
-Updated: 2026-04-23
+Updated: 2026-05-06
 Rule: active work only. Completed sprint rows are intentionally removed.
 
 ## Open Queue
 
 | ID | Exactly what it does | Spine(s) | Status |
 | -- | -------------------- | -------- | ------ |
+| PRUNE-01 | Delete obvious non-core destinations before polishing them: family spending, referrals, compare, drill challenges, seed health, results-program, and retention analytics. Keep Discover Map protected. | Booking, Availability and Revenue + Development and Analytics + Community and Growth | READY |
+| PRUNE-02 | Protect and harden Discover Map as a centerpiece discovery path from map result to coach/session detail to booking. | Community and Growth + Booking, Availability and Revenue | READY_AFTER_PRUNE-01 |
+| PRUNE-03 | Merge duplicate family and ops destinations: family overview, legacy family/manage redirects, blocked dates, and availability-related duplication. | Trust, Safety and Operations + Booking, Availability and Revenue | OPEN |
+| PRUNE-04 | Narrow development and training to session-linked progress, coach assignments, feedback, proof, and family/athlete outcomes. | Development and Analytics | OPEN |
+| PRUNE-05 | Narrow community, updates, profiles, favourites, and reviews to professional coordination, trust, and booking conversion. | Community and Growth + Trust, Safety and Operations | OPEN |
+| PRUNE-06 | Hide or merge post-launch settings and analytics depth so nice-to-have surfaces do not block deployment. | Booking, Availability and Revenue + Development and Analytics + Trust, Safety and Operations | OPEN |
+| PRUNE-VERIFY-01 | Rehearse the reduced product: no deleted routes in navigation/docs/scripts/manifests, protected core intact, Discover Map validated as a centerpiece. | All spines | OPEN |
 | UI-LOAD-05 | Bring club, schedule, events, and calendar surfaces up to the same standard: no brochure skeletons, no cold resets, and no time-based screens loading like generic lists. | Community and Growth + Booking, Availability and Revenue | READY |
 | UI-LOAD-06 | Fix trust-sensitive and family surfaces: family, child, health, emergency, medical, verification, and related safeguarding-adjacent paths need strict, truthful, non-chaotic loading behavior. | Trust, Safety and Operations + Development and Analytics | READY |
 | UI-LOAD-07 | Bring development and training surfaces to the same bar: drills, goals, badges, results program, progress loop, media gallery, videos, group sessions, matches, and athlete development paths must stop feeling second-class. | Development and Analytics + Community and Growth | OPEN |
@@ -15,11 +22,31 @@ Rule: active work only. Completed sprint rows are intentionally removed.
 
 ## Execution Order
 
-1. `UI-LOAD-05`
-2. `UI-LOAD-06`
-3. `UI-LOAD-07`
-4. `UI-LOAD-08`
-5. `PROD-VERIFY-01`
+1. `PRUNE-01`
+2. `PRUNE-02`
+3. `PRUNE-03`
+4. `PRUNE-04`
+5. `PRUNE-05`
+6. `PRUNE-06`
+7. `PRUNE-VERIFY-01`
+8. `UI-LOAD-05`
+9. `UI-LOAD-06`
+10. `UI-LOAD-07`
+11. `UI-LOAD-08`
+12. `PROD-VERIFY-01`
+
+## Active Pruning Plan
+
+Source:
+
+- `docs/product-reality/FEATURE_TRIAGE_BOARD_2026-05-06.md`
+- `docs/newsprints/sprints/FEATURE_PRUNE_SPRINTS_2026-05-06.md`
+
+Decision:
+
+- Product pruning now runs before the remaining loading polish.
+- Do not spend `UI-LOAD-*` effort on routes classified as `DELETE`.
+- `discover/map.tsx` is protected and should be hardened as a central launch discovery path.
 
 ## Sprint Intent
 
@@ -116,7 +143,6 @@ Rule: active work only. Completed sprint rows are intentionally removed.
   - `app/family/calendar.tsx`
   - `app/family/recurring.tsx`
   - `app/family/sharing.tsx`
-  - `app/family/spending.tsx`
   - `app/child/[id]/medical.tsx`
   - `app/child/[id]/emergency.tsx`
   - `app/roster/[athleteId]/health.tsx`
@@ -148,14 +174,13 @@ Rule: active work only. Completed sprint rows are intentionally removed.
 
 - Need:
   - Bring development and training surfaces to the same premium bar.
-  - Remove second-class loading from drills, goals, badges, results program, progress loop, media, video, group session, and match flows.
+  - Remove second-class loading from the remaining drills, goals, badges, progress loop, media, video, group session, and match flows after `PRUNE-01` deletes non-core development routes.
 - Touch first:
-  - `app/drills/*`
+  - remaining `app/drills/*`
   - `app/goals/*`
   - `app/badges/index.tsx`
   - `app/children/badges/[childId].tsx`
-  - `app/development/*`
-  - `app/results-program.tsx`
+  - remaining `app/development/*`
   - `app/videos/[id].tsx`
   - `app/videos/upload.tsx`
   - `app/group-sessions/*`
