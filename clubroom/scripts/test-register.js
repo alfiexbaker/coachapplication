@@ -123,6 +123,23 @@ const MOCKS = {
       fetch: async () => ({ isConnected: true, isInternetReachable: true }),
     },
   },
+  '@sentry/react-native': {
+    __esModule: true,
+    init: () => {},
+    wrap: (component) => component,
+    appLoaded: () => {},
+    setUser: () => {},
+    setTag: () => {},
+    addBreadcrumb: () => {},
+    withScope: (callback) =>
+      callback({
+        setTag: () => {},
+        setContext: () => {},
+        setLevel: () => {},
+      }),
+    captureException: () => undefined,
+    captureMessage: () => undefined,
+  },
   'expo-linking': {
     openURL: async () => {},
     canOpenURL: async () => true,

@@ -414,6 +414,16 @@ export const Routes = {
   // ─── Discover ──────────────────────────────────────────────────
   DISCOVER_SESSIONS: '/discover-sessions' as Href,
   DISCOVER_MAP: '/discover/map' as Href,
+  discoverMap: (params?: { filters?: string }) =>
+    ({
+      pathname: '/discover/map',
+      params: params ?? {},
+    }) as Href,
+  bookCoachSearch: (params?: { filters?: string }) =>
+    ({
+      pathname: '/book-coach',
+      params: params ?? {},
+    }) as Href,
 
   // ─── Drills ────────────────────────────────────────────────────
   DRILLS: '/drills' as Href,

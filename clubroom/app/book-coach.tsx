@@ -182,10 +182,7 @@ export default function BookCoachScreen() {
   }, []);
 
   const handleOpenMap = useCallback(() => {
-    router.push({
-      pathname: '/discover/map',
-      params: { filters: JSON.stringify(filters) },
-    });
+    router.push(Routes.discoverMap({ filters: JSON.stringify(filters) }));
   }, [filters, router]);
 
   const locationLabel = useMemo(() => {
@@ -249,12 +246,12 @@ export default function BookCoachScreen() {
           ]}
           tactile={false}
         >
-          <ThemedText style={[styles.eyebrow, { color: palette.muted }]}>Discovery</ThemedText>
+          <ThemedText style={[styles.eyebrow, { color: palette.muted }]}>Map-first discovery</ThemedText>
           <ThemedText type="title" style={styles.title}>
-            Find a Coach
+            Find a Coach Nearby
           </ThemedText>
           <ThemedText style={[styles.subtitle, { color: palette.muted }]}>
-            High-trust coach matches around {locationLabel}.
+            Search trusted local coaches, then open the map to choose by distance, fit, and next bookable session.
           </ThemedText>
 
           <Row
@@ -298,7 +295,7 @@ export default function BookCoachScreen() {
               ]}
             >
               <ThemedText style={[styles.metricValue, { color: palette.tint }]}>
-                {data?.totalCount ?? 0}
+                {resolvedData?.totalCount ?? 0}
               </ThemedText>
               <ThemedText style={[styles.metricLabel, { color: palette.muted }]}>Available</ThemedText>
             </View>

@@ -3,7 +3,7 @@
  * Manages offerings data, search/filters, and routes selections into booking flow.
  */
 
-import { useState, useMemo, useCallback } from 'react';
+import { useState, useMemo, useCallback, useEffect } from 'react';
 import { router } from 'expo-router';
 import { Routes } from '@/navigation/routes';
 import { apiClient } from '@/services/api-client';
@@ -56,6 +56,8 @@ interface DiscoverSessionsData {
   offerings: SessionOffering[];
   pendingInvites: SessionInvite[];
 }
+
+let lastDiscoverSessionsSnapshot: DiscoverSessionsData | null = null;
 
 export interface UseDiscoverSessionsResult {
   loading: boolean;
@@ -214,11 +216,19 @@ export function useDiscoverSessions() {
     deps: [currentUser?.id],
     isEmpty: (value) => value.offerings.length === 0 && value.pendingInvites.length === 0,
     refetchOnFocus: true,
+    loadingStrategy: 'warm-first',
   });
 
-  const offerings = data?.offerings;
-  const pendingInvites = data?.pendingInvites ?? [];
-  const loading = status === 'loading' && !data;
+  useEffect(() => {
+    if (data) {
+      lastDiscoverSessionsSnapshot = data;
+    }
+  }, [data]);
+
+  const resolvedData = data ?? lastDiscoverSessionsSnapshot;
+  const offerings = resolvedData?.offerings;
+  const pendingInvites = resolvedData?.pendingInvites ?? [];
+  const loading = status === 'loading' && !resolvedData;
 
   const filteredOfferings = useMemo(() => {
     let filtered = offerings ?? [];

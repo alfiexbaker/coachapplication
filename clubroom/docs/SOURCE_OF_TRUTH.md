@@ -36,6 +36,7 @@ Coaches run availability, sessions, invites, delivery, and earnings workflows.
 Parents book for children and manage trust-sensitive data such as medical, consent, and emergency information.
 Athletes track progress, goals, health, and session follow-up.
 Clubs manage staff, squads, visibility, and operating relationships.
+Discover Map is the core local coach search surface: users should be able to find a nearby coach, review the profile, and enter booking without detouring through comparison or growth gimmicks.
 
 ## Runtime Truth
 

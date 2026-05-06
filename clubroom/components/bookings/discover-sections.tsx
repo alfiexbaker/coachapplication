@@ -144,7 +144,7 @@ export const YourCoachesSection = memo(function YourCoachesSection({
               >
                 <Ionicons name="add" size={24} color={palette.tint} />
               </View>
-              <ThemedText style={[styles.findMoreText, { color: palette.tint }]}>Find</ThemedText>
+              <ThemedText style={[styles.findMoreText, { color: palette.tint }]}>Map</ThemedText>
             </Column>
           </SurfaceCard>
         }

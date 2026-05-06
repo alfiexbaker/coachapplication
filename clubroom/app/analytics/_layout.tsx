@@ -21,7 +21,6 @@ export default function AnalyticsLayout() {
     >
       <Stack.Screen name="dashboard" />
       <Stack.Screen name="revenue" />
-      <Stack.Screen name="retention" />
     </Stack>
   );
 }

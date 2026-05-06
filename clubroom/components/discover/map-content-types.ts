@@ -22,6 +22,7 @@ export interface MapContentProps {
   onFilterChange: (next: CoachSearchFilters) => void;
   onToggleFilterModal: (show: boolean) => void;
   onCoachSelect: (id: string) => void;
+  onCoachProfile: (id: string) => void;
   onBookCoach: (id: string) => void;
   onBack: () => void;
   onToggleView: () => void;

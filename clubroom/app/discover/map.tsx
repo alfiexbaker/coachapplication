@@ -33,6 +33,7 @@ import type { CoachSearchFilters, SessionOffering } from '@/constants/types';
 
 const DEFAULT_LOCATION = { lat: 51.5074, lng: -0.1278, radiusKm: 10 };
 const logger = createLogger('DiscoverMapScreen');
+let lastMapSnapshot: MapScreenData | null = null;
 
 function selectPreferredOffering(
   offerings: SessionOffering[],
@@ -98,11 +99,22 @@ export default function MapScreen() {
     deps: [loadMapData],
     isEmpty: (value) => value.coaches.length === 0,
     refetchOnFocus: true,
+    loadingStrategy: 'section-skeleton',
   });
 
-  const coaches = data?.coaches ?? [];
-  const filterOptions = data?.filterOptions ?? null;
+  useEffect(() => {
+    if (data) {
+      lastMapSnapshot = data;
+    }
+  }, [data]);
+
+  const resolvedData = data ?? lastMapSnapshot;
+  const coaches = resolvedData?.coaches ?? [];
+  const filterOptions = resolvedData?.filterOptions ?? null;
   const activeFilterCount = discoverService.getActiveFilterCount(filters);
+  const coldLoading = status === 'loading' && resolvedData === null;
+  const blockingError = status === 'error' && resolvedData === null;
+  const blockingEmpty = status === 'empty' && resolvedData === null;
 
   // ── Handlers ──────────────────────────────────────────────────────────
   const handleSearch = useCallback(() => {
@@ -122,6 +134,13 @@ export default function MapScreen() {
   const handleCoachSelect = useCallback((coachId: string) => {
     setSelectedCoachId(coachId);
   }, []);
+
+  const handleCoachProfile = useCallback(
+    (coachId: string) => {
+      router.push(Routes.coach(coachId));
+    },
+    [router],
+  );
 
   const handleBookCoach = useCallback(
     (coachId: string) => {
@@ -153,14 +172,11 @@ export default function MapScreen() {
   );
 
   const handleToggleView = useCallback(() => {
-    router.replace({
-      pathname: Routes.BOOK_COACH,
-      params: { filters: JSON.stringify(filters) },
-    } as never);
+    router.replace(Routes.bookCoachSearch({ filters: JSON.stringify(filters) }));
   }, [filters, router]);
 
   // ── Non-success states ────────────────────────────────────────────────
-  if (status === 'loading') {
+  if (coldLoading) {
     return (
       <View style={[styles.container, { backgroundColor: palette.background }]}>
         <LoadingState variant="detail" />
@@ -168,7 +184,7 @@ export default function MapScreen() {
     );
   }
 
-  if (status === 'error') {
+  if (blockingError) {
     return (
       <View style={[styles.container, { backgroundColor: palette.background }]}>
         <ErrorState message={error?.message ?? 'Failed to load coaches.'} onRetry={retry} />
@@ -176,7 +192,7 @@ export default function MapScreen() {
     );
   }
 
-  if (status === 'empty') {
+  if (blockingEmpty) {
     return (
       <View style={[styles.container, { backgroundColor: palette.background }]}>
         <EmptyState
@@ -206,6 +222,7 @@ export default function MapScreen() {
       onFilterChange={handleFilterChange}
       onToggleFilterModal={setShowFilterModal}
       onCoachSelect={handleCoachSelect}
+      onCoachProfile={handleCoachProfile}
       onBookCoach={handleBookCoach}
       onBack={() => router.back()}
       onToggleView={handleToggleView}

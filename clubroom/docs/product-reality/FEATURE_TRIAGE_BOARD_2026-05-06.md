@@ -124,8 +124,8 @@ Anything outside that bar needs to justify itself.
 | Invoices | Invoice detail/payment | `invoices/[id].tsx` | USE | Revenue and payment trust. |
 | Reviews | Rate coach | `rate-coach.tsx` | USE | Review proof and marketplace trust. |
 | Reviews | Booking review | `review/[bookingId].tsx`, `review/create.tsx` | USE | Booking-linked proof. |
-| Discovery | Discover sessions | `discover-sessions.tsx` | NARROW | Keep only if it converts to booking, not browsing for its own sake. |
-| Discovery | Discover map | `discover/map.tsx` | USE | Centerpiece local coach/session discovery surface; keep and harden. |
+| Discovery | Discover sessions | `discover-sessions.tsx` | NARROW | Kept as a session list with visible map entry and booking conversion. |
+| Discovery | Discover map | `discover/map.tsx` | USE | `PRUNE-02` hardened this as the centerpiece local coach discovery surface. |
 | Discovery | Compare coaches | `compare/index.tsx`, `compare/[ids].tsx` | DELETE | Likely AI-added marketplace gimmick; booking search/profile can carry comparison. |
 | Discovery | Favourites | `favourites/index.tsx` | NARROW | Keep only if it drives repeat booking. |
 | Referrals | Referral invite | `referrals/invite.tsx` | DELETE | Growth gimmick unless referral program is real. |
@@ -206,7 +206,7 @@ Do not casually delete:
 - invoices, earnings, payment attempt flow
 - verification
 - club hub, club schedule, squads, staff/member flows
-- discover map and local search
+- discover map and local search as the centerpiece discovery-to-booking path
 - sessions, group sessions, invites, attendance/session completion
 - messages and notifications
 

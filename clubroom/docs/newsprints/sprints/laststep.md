@@ -4,22 +4,22 @@ Date: 2026-05-06
 
 ## Latest Planning Update
 
-1. Completed `PRUNE-01` by deleting the obvious non-core launch destinations and their route-private support code.
-2. Kept `app/discover/map.tsx` protected as a centerpiece for the next sprint.
-3. Updated `docs/newsprints/sprints/BACKLOG.md` so `PRUNE-02` is the next active pruning sprint.
+1. Completed `PRUNE-02` by making Discover Map a visible discovery-to-booking path from Bookings Discover, Discover Sessions, and map result cards.
+2. Kept the map shell stable through warm refresh and empty results, with inline location/GPS fallback messaging.
+3. Updated `docs/newsprints/sprints/BACKLOG.md` so `PRUNE-03` is the next active pruning sprint.
 
 ## Next Exact Action
 
-1. Start `PRUNE-02`: protect and harden Discover Map as a core path from map result to coach/session detail to booking.
+1. Start `PRUNE-03`: merge duplicate family and ops destinations, especially family overview, legacy family/manage redirects, blocked dates, and availability duplication.
 
 ## Previous Handoff
 
 ## What Was Just Done
 
-1. Closed `UI-LOAD-04` across the profile/roster/detail family. The coach, public coach, roster detail, compare, user profile, athletes list, roster list, and child progress routes now use the shared route strategies instead of raw `status === 'loading'` resets.
+1. Closed `UI-LOAD-04` across the profile/roster/detail family. The coach, public coach, roster detail, user profile, athletes list, roster list, and child progress routes now use the shared route strategies instead of raw `status === 'loading'` resets.
 2. Added shared retained pane support in `components/ui/retained-tab-panels.tsx`, then applied it to profile/detail tab surfaces so pane switches stop remounting whole sections and stop acting like mini page navigations.
 3. Reworked coach-facing value surfaces away from verbose explainer cards and fake session content. `app/coach/[id].tsx`, `app/coach/[coachId]/public.tsx`, `components/coach/coach-detail-*`, `components/coach/public-profile-*`, `hooks/use-coach-detail.ts`, `hooks/use-public-profile.ts`, and `utils/coach-profile-offerings.ts` now surface real offerings, club/event access, and next-availability signals as product value instead of placeholder copy.
-4. Upgraded roster and compare loading so revisit/refresh paths stay warm: `app/(tabs)/athletes.tsx`, `app/roster/index.tsx`, `app/roster/[athleteId]/index.tsx`, `components/athlete/athlete-sessions.tsx`, `components/compare/ComparisonTable.tsx`, `hooks/use-athlete-detail.ts`, and related hooks now keep shell chrome stable and localize loading to the active section.
+4. Upgraded roster loading so revisit/refresh paths stay warm: `app/(tabs)/athletes.tsx`, `app/roster/index.tsx`, `app/roster/[athleteId]/index.tsx`, `components/athlete/athlete-sessions.tsx`, `hooks/use-athlete-detail.ts`, and related hooks now keep shell chrome stable and localize loading to the active section.
 5. Updated `docs/ui/loading-error-empty-state-matrix.md`, `docs/newsprints/sprints/BACKLOG.md`, and this handoff so the next slice starts from the real runtime state.
 
 ## Verification Run In This Step
@@ -34,7 +34,7 @@ Date: 2026-05-06
 
 - Profile and roster detail surfaces now keep their pane chrome mounted, use retained tab content, and acknowledge refresh locally instead of blanking the viewport.
 - Coach/public coach surfaces now show real live offerings plus club/event access signals, so the product value is visible before the user books and the loading treatment matches the final structure.
-- Compare and user profile surfaces no longer rely on dead spinner-style intermediate states; they now use the shared retained/skeleton primitives.
+- User profile surfaces no longer rely on dead spinner-style intermediate states; they now use the shared retained/skeleton primitives.
 
 ## Previous Next Exact Action
 

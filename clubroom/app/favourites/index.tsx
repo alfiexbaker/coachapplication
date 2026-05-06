@@ -221,7 +221,7 @@ export default function FavouritesScreen() {
             <EmptyState
               icon="heart-outline"
               title="No Saved Coaches Yet"
-              message="Save coaches you want to compare, contact, or rebook. Use the heart on coach discovery and profile surfaces to keep your shortlist here."
+              message="Save coaches you may want to contact or rebook. Use the heart on map discovery and profile surfaces to keep your shortlist here."
               actionLabel="Discover Coaches"
               onPressAction={handleDiscoverCoaches}
             />

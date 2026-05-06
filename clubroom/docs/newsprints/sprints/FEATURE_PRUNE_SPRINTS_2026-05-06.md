@@ -75,7 +75,7 @@ Completed:
 
 ## `PRUNE-02` Protect And Harden Discover Map
 
-Status: `READY`
+Status: `DONE`
 
 Objective:
 
@@ -101,9 +101,16 @@ Acceptance:
 - Users can move from map result to coach/session detail to booking.
 - No deleted compare/referral/results-program paths remain as alternate discovery destinations.
 
+Completed:
+
+- Added explicit map entry points to Bookings Discover and Discover Sessions.
+- Kept map result frames stable during warm refresh and empty-result states.
+- Added profile and booking actions directly to map result cards.
+- Removed leftover comparison language from favourites and the stale deleted retention stack entry.
+
 ## `PRUNE-03` Merge Duplicate Family And Ops Surfaces
 
-Status: `OPEN`
+Status: `READY`
 
 Objective:
 

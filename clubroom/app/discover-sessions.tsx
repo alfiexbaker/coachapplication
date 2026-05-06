@@ -21,6 +21,7 @@ import { LoadingState, ErrorState, EmptyState } from '@/components/ui/screen-sta
 import { Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
 import { useDiscoverSessions, SKILL_FILTERS, TYPE_FILTERS } from '@/hooks/use-discover-sessions';
+import { Routes } from '@/navigation/routes';
 import type { FootballObjective } from '@/constants/types';
 import { AccessibleListCell } from '@/components/ui/list-accessibility';
 
@@ -31,9 +32,12 @@ export default function DiscoverSessionsScreen() {
   const header = (
     <PageHeader
       title="Discover Sessions"
-      subtitle="Find and book coaching sessions"
+      subtitle="Browse sessions, or open the map to find nearby coaches"
       showBack
       onBackPress={() => router.back()}
+      action="Map"
+      actionIcon="map-outline"
+      onActionPress={() => router.push(Routes.DISCOVER_MAP)}
     />
   );
   const renderShell = (content: ReactNode) => (

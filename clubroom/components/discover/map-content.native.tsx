@@ -238,11 +238,13 @@ const CoachSheetItem = memo(function CoachSheetItem({
   coach,
   selected,
   onPress,
+  onProfile,
   onBook,
 }: {
   coach: CoachProfile;
   selected: boolean;
   onPress: () => void;
+  onProfile: () => void;
   onBook: () => void;
 }) {
   const { colors: palette } = useTheme();
@@ -324,16 +326,29 @@ const CoachSheetItem = memo(function CoachSheetItem({
             </Row>
           ) : null}
 
-          {/* Book button */}
-          <Clickable
-            onPress={onBook}
-            style={[styles.bookBtn, { backgroundColor: palette.tint }]}
-            accessibilityLabel={`Book ${coach.fullName}`}
-          >
-            <ThemedText style={[styles.bookBtnText, { color: palette.onPrimary }]}>
-              Book session
-            </ThemedText>
-          </Clickable>
+          <Row gap="xs" style={styles.actionRow}>
+            <Clickable
+              onPress={onProfile}
+              style={[
+                styles.profileBtn,
+                { borderColor: palette.border, backgroundColor: palette.surface },
+              ]}
+              accessibilityLabel={`View ${coach.fullName} profile`}
+            >
+              <ThemedText style={[styles.profileBtnText, { color: palette.text }]}>
+                Profile
+              </ThemedText>
+            </Clickable>
+            <Clickable
+              onPress={onBook}
+              style={[styles.bookBtn, { backgroundColor: palette.tint }]}
+              accessibilityLabel={`Book ${coach.fullName}`}
+            >
+              <ThemedText style={[styles.bookBtnText, { color: palette.onPrimary }]}>
+                Book session
+              </ThemedText>
+            </Clickable>
+          </Row>
         </Column>
       </Row>
     </SurfaceCard>
@@ -373,6 +388,7 @@ export default function MapContent(props: MapContentProps) {
     onFilterChange,
     onToggleFilterModal,
     onCoachSelect,
+    onCoachProfile,
     onBookCoach,
     onBack,
     onToggleView,
@@ -407,7 +423,9 @@ export default function MapContent(props: MapContentProps) {
         lastSearchRegion.current = region;
         mapRef.current?.animateToRegion(region, 500);
       } catch {
-        // GPS unavailable — stay on London default
+        setLocationPermissionMessage(
+          'Could not read your current location. The map is showing the default launch area.',
+        );
       }
     })();
   }, []);
@@ -447,6 +465,7 @@ export default function MapContent(props: MapContentProps) {
         coach={item.coach}
         selected={item.coach.id === selectedCoachId}
         onPress={() => handleCoachSelect(item.coach.id)}
+        onProfile={() => onCoachProfile(item.coach.id)}
         onBook={() => handleBookCoach(item.coach.id)}
       />
     ),
@@ -617,6 +636,17 @@ export default function MapContent(props: MapContentProps) {
           renderItem={renderSheetCoachItem}
           contentContainerStyle={styles.sheetContent}
           ListHeaderComponent={<SheetHeader count={coaches.length} />}
+          ListEmptyComponent={
+            <SurfaceCard style={styles.emptyResultsCard}>
+              <Column align="center" gap="xs">
+                <Ionicons name="map-outline" size={28} color={palette.muted} />
+                <ThemedText type="defaultSemiBold">No coaches in this area</ThemedText>
+                <ThemedText style={[styles.emptyResultsText, { color: palette.muted }]}>
+                  Search this area again or adjust filters to expand the map results.
+                </ThemedText>
+              </Column>
+            </SurfaceCard>
+          }
           ItemSeparatorComponent={ListSeparator}
         />
       </BottomSheet>
@@ -829,9 +859,24 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
 
+  actionRow: {
+    marginTop: Spacing.xs,
+  },
+  profileBtn: {
+    flex: 0.45,
+    height: 36,
+    borderRadius: Radii.sm,
+    borderWidth: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  profileBtnText: {
+    ...Typography.bodySmallSemiBold,
+    fontWeight: '700',
+  },
   // ── Book button ───────────────────────────────────────────────────────
   bookBtn: {
-    marginTop: Spacing.xs,
+    flex: 1,
     height: 36,
     borderRadius: Radii.sm,
     alignItems: 'center',
@@ -840,5 +885,13 @@ const styles = StyleSheet.create({
   bookBtnText: {
     ...Typography.bodySmallSemiBold,
     fontWeight: '700',
+  },
+  emptyResultsCard: {
+    padding: Spacing.lg,
+    alignItems: 'center',
+  },
+  emptyResultsText: {
+    ...Typography.bodySmall,
+    textAlign: 'center',
   },
 });
