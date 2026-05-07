@@ -95,7 +95,6 @@ export const Routes = {
 
   // ─── Modals ────────────────────────────────────────────────────
   MODAL_ADD_CHILD: '/(modal)/add-child' as Href,
-  MODAL_CREATE_POST: '/(modal)/create-post' as Href,
   MODAL_CREATE_CLUB_POST: '/(modal)/create-club-post' as Href,
   modalCreateClubPost: (params?: {
     clubId?: string;
@@ -337,7 +336,6 @@ export const Routes = {
     }) as Href,
 
   // ─── Community ─────────────────────────────────────────────────
-  COMMUNITY: '/community' as Href,
   communityGroup: (groupId: string) =>
     ({
       pathname: '/community/[groupId]',
@@ -495,7 +493,6 @@ export const Routes = {
     }) as Href,
 
   // ─── Rate / Review ─────────────────────────────────────────────
-  RATE_COACH: '/rate-coach' as Href,
   review: (bookingId: string) =>
     ({
       pathname: '/review/[bookingId]',

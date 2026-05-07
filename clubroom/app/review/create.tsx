@@ -15,9 +15,5 @@ export default function ReviewCreateAliasScreen() {
     return renderShell(<Redirect href={`/review/${encodeURIComponent(bookingId)}${coachQuery}`} />);
   }
 
-  if (coachId) {
-    return renderShell(<Redirect href={`/rate-coach?coachId=${encodeURIComponent(coachId)}`} />);
-  }
-
   return renderShell(<Redirect href="/(tabs)/bookings" />);
 }

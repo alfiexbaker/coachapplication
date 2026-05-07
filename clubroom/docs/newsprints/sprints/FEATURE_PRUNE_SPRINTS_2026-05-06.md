@@ -199,7 +199,7 @@ Completed:
 
 ## `PRUNE-05` Narrow Community, Updates, Profiles, And Reviews
 
-Status: `READY`
+Status: `DONE`
 
 Objective:
 
@@ -233,9 +233,17 @@ Acceptance:
 - No feed/profile route feels like a social network clone.
 - Review and update surfaces support trust and conversion.
 
+Completed:
+
+- Removed the generic personal post composer and its route/helper/hook/component; updates creation now stays on the club/staff composer path.
+- Removed the generic `/rate-coach` chooser and its route/helper/hook/components; reviews now stay booking-linked through `review/[bookingId]`, with `review/create` acting only as a compatibility redirect when a booking is present.
+- Removed the standalone `/community` group directory/create surface and its orphan cards/forms/tests while preserving `/community/[groupId]` for squad/private operational coordination.
+- Removed deleted route entries from loading manifests, screenshot capture, UI story capture, and flow-check scripts.
+- Kept feed, post detail, club post creation, public profiles, coach profiles, favourites, and booking-linked review surfaces for trust, proof, and conversion follow-up.
+
 ## `PRUNE-06` Hide Or Merge Post-Launch Settings And Analytics
 
-Status: `OPEN`
+Status: `READY`
 
 Objective:
 

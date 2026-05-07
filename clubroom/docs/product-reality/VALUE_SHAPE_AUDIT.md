@@ -730,12 +730,13 @@ Current surfaces:
 Files:
 
 - [app/(tabs)/feed.tsx](/Users/tubton/Desktop/coachapplication/clubroom/app/(tabs)/feed.tsx#L65)
-- [app/community/index.tsx](/Users/tubton/Desktop/coachapplication/clubroom/app/community/index.tsx#L25)
+- [app/community/[groupId].tsx](/Users/tubton/Desktop/coachapplication/clubroom/app/community/[groupId].tsx#L1)
 
 Feature calls:
 
-- `DEMOTE`: feed
-- `CUT` or quarantine: community groups
+- `DEMOTE`: feed stays as an operational updates read surface
+- `CUT`: standalone community group directory/create hub
+- `KEEP`: private group detail for squad/team coordination
 
 Why:
 

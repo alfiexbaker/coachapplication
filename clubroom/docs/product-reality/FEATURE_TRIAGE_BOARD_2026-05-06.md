@@ -36,7 +36,7 @@ Anything outside that bar needs to justify itself.
 | Family | Add child | `(modal)/add-child.tsx` | USE | Core parent onboarding and booking prerequisite. |
 | Family | Edit child profile | `(modal)/edit-child-profile.tsx` | USE | Trust and family data maintenance. |
 | Family | Edit child SEN/special needs | `(modal)/edit-child-sen.tsx` | USE | Trust-sensitive child context. |
-| Social/update creation | Create personal post | `(modal)/create-post.tsx` | NARROW | Keep only if it supports coach/club updates; avoid generic social posting. |
+| Social/update creation | Create personal post | `(modal)/create-post.tsx` | DELETE | Removed in `PRUNE-05`; launch update creation stays on club/staff posts, not generic personal posting. |
 | Social/update creation | Create club post | `(modal)/create-club-post.tsx` | USE | Club communication is relevant. |
 | Club | Create squad modal | `(modal)/create-squad.tsx` | USE | Squad structure supports club operations. |
 | Updates | Post detail | `(modal)/post-detail.tsx` | NARROW | Keep if updates remain; remove social-style dead actions. |
@@ -122,7 +122,7 @@ Anything outside that bar needs to justify itself.
 | Matches | Match detail | `matches/[id].tsx` | NARROW | Keep only as club schedule detail support. |
 | Invoices | Invoice list | `invoices/index.tsx` | USE | Revenue and payment trust. |
 | Invoices | Invoice detail/payment | `invoices/[id].tsx` | USE | Revenue and payment trust. |
-| Reviews | Rate coach | `rate-coach.tsx` | USE | Review proof and marketplace trust. |
+| Reviews | Rate coach | `rate-coach.tsx` | DELETE | Removed in `PRUNE-05`; review proof now stays booking-linked through `review/[bookingId]`. |
 | Reviews | Booking review | `review/[bookingId].tsx`, `review/create.tsx` | USE | Booking-linked proof. |
 | Discovery | Discover sessions | `discover-sessions.tsx` | NARROW | Kept as a session list with visible map entry and booking conversion. |
 | Discovery | Discover map | `discover/map.tsx` | USE | `PRUNE-02` hardened this as the centerpiece local coach discovery surface. |
@@ -150,7 +150,7 @@ Anything outside that bar needs to justify itself.
 | Health | Health detail/log/injuries | `health/[id].tsx`, `health/log.tsx`, `health/injuries.tsx` | USE | Trust-sensitive, keep if guarded. |
 | Verification | Verification hub | `verification/index.tsx` | USE | Marketplace trust. |
 | Verification | ID/background/credentials/insurance | `verification/id.tsx`, `verification/background.tsx`, `verification/credentials.tsx`, `verification/insurance.tsx` | USE | Coach trust gates. |
-| Community | Private groups | `community/index.tsx`, `community/[groupId].tsx` | NARROW | Keep as club/team coordination only, not broad community. |
+| Community | Private groups | `community/index.tsx`, `community/[groupId].tsx` | NARROW | Standalone group directory/create hub removed in `PRUNE-05`; keep group detail for squad/team coordination. |
 | Media | Video upload/detail | `videos/upload.tsx`, `videos/[id].tsx` | NARROW | Keep if tied to session proof; avoid standalone video product. |
 | Profiles | Public user profile | `profile/[userId].tsx` | NARROW | Keep as identity/proof, avoid social profile sprawl. |
 | Invites | General invites | `invites.tsx` | USE | Operational acceptance/review inbox. |

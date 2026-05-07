@@ -1,6 +1,6 @@
 # Clubroom - Single Source of Truth
 
-Last updated: 2026-04-17
+Last updated: 2026-05-07
 Project: football coaching marketplace plus family development tracker
 Status: live-featured Expo app with a real Fastify API alongside it; backend cutover is still in progress, and runtime `/v1` auth is now JWT-backed
 
@@ -103,6 +103,7 @@ Discover Map is the core local coach search surface: users should be able to fin
   - visible coach operations entry points no longer route through a generic `/manage` bridge screen; they now deep-link into staffing console, head-coach oversight, or club dashboard flows, while `/manage` remains only as a redirect for old links
   - `/family` is now an action gateway into calendar, recurring plans, children, guardian sharing, and booking; blocked-date management lives in the availability block-date flow, not a standalone settings route
   - standalone goals, drills, skills, athlete journal, all-badges, badges tab, and child-badge galleries are removed from the launch route tree; development value now stays inside session-linked progress, coach feedback, media/video proof, session history, and development badges
+  - generic personal post creation, generic rate-coach selection, and the standalone community group directory/create hub are removed from the launch route tree; retained relationship surfaces now stay inside club updates, private squad/team groups, public proof profiles, favourites for repeat booking, and booking-linked reviews
   - Expo native/web and `apps/api` now emit to Sentry with shared release/environment tags, Expo web source maps via `npm run export:web`, and API source maps via `npm --prefix apps/api run build:release`
   - the next production follow-through is release rehearsal: run the app and API against the db-backed production path, clear any surfaced drift, and reduce the remaining blockers to real env/provisioning gaps plus the later live payment-provider cutover
 - Club-facing schedule surfaces now use a `ClubActivity` read model to link `ClubEvent` and `GroupSession`
@@ -120,10 +121,11 @@ Discover Map is the core local coach search surface: users should be able to fin
 - Coach storefront reviews now carry proof from real session history.
   - booking-linked review submission stores athlete, session-type, booking, and category context through the shared review sync path
   - coach review tabs now surface verified-booking markers and proof summary blocks instead of showing reviews as plain star comments
+- The generic `/rate-coach` chooser is no longer a launch route; users reach review creation from a booking/session context.
 - The user-facing `Updates` tab is the shared read surface for:
-  - followed personal posts
   - club-linked updates
   - club pills that open the full per-club feed on the club page
+- Generic personal post creation is no longer a launch route; update creation is retained through club/staff posting.
 - athlete and parent home now add two compact football-first modules on top of the existing stats/next-session spine:
   - recent match results from the user's primary club
   - recent club highlights from that club feed
@@ -157,7 +159,7 @@ Parent:
 
 Athlete:
 
-- books for self, tracks goals, health, badges, journal entries, progress, and linked updates
+- books for self and tracks health, session-linked progress, coach feedback, media/video proof, and linked updates
 
 Club:
 

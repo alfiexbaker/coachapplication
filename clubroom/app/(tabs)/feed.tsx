@@ -116,10 +116,6 @@ export default function FeedScreen() {
     router.push(Routes.modalPostDetail(postId));
   }, []);
 
-  const handleCreatePost = useCallback(() => {
-    router.push(Routes.MODAL_CREATE_POST);
-  }, []);
-
   const handleSharePost = useCallback(async (postId: string) => {
     const post = feedByIdRef.current.get(postId);
     if (!post) return;
@@ -186,12 +182,7 @@ export default function FeedScreen() {
   );
 
   const renderSeparator = useCallback(() => <View style={styles.feedItemSeparator} />, []);
-  const header = (
-    <ScreenHeader
-      title="Updates"
-      action={isCoach ? { icon: 'add', label: 'Update', onPress: handleCreatePost } : undefined}
-    />
-  );
+  const header = <ScreenHeader title="Updates" />;
 
   // ─── Loading ───────────────────────────────────────────────────
   if (showLoadingState) {

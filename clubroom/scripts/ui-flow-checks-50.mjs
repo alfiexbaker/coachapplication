@@ -250,8 +250,6 @@ const flows = [
     path: '/roster/user1/health',
     expectPath: '/roster/user1/health',
   },
-  { id: 'coach_rate', role: 'coach', title: 'Coach opens rate screen', path: '/rate-coach' },
-
   // Parent flows
   { id: 'parent_home', role: 'parent', title: 'Parent opens dashboard', path: '/' },
   { id: 'parent_children', role: 'parent', title: 'Parent opens children', path: '/children' },
@@ -293,7 +291,6 @@ const flows = [
     title: 'Parent opens child progress',
     path: '/development/child-progress/user1',
   },
-  { id: 'parent_rate', role: 'parent', title: 'Parent opens rate coach', path: '/rate-coach' },
   { id: 'parent_book_flow_start', role: 'parent', title: 'Parent opens book flow home', path: '/book/coach1' },
   {
     id: 'parent_book_flow_type',
@@ -358,7 +355,6 @@ const flows = [
     title: 'Athlete opens analytics view',
     path: '/analytics/user1',
   },
-  { id: 'athlete_rate', role: 'athlete', title: 'Athlete opens rate coach', path: '/rate-coach' },
   {
     id: 'athlete_discover_sessions',
     role: 'athlete',

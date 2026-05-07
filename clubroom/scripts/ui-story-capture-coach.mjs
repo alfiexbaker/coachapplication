@@ -10,7 +10,6 @@ const routes = [
   { story: 'coach-schedule', path: '/schedule' },
   { story: 'coach-athletes', path: '/athletes' },
   { story: 'coach-sessions-create', path: '/sessions/create' },
-  { story: 'coach-rate', path: '/rate-coach' },
   { story: 'coach-club-settings', path: '/club/settings' },
 ];
 

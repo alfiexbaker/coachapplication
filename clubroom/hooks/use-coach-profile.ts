@@ -105,7 +105,6 @@ export interface UseCoachProfileResult {
   handleGoLiveToggle: (value: boolean) => Promise<void>;
 
   // Actions
-  handleComposePress: () => void;
   handleSignOut: () => Promise<void>;
   renderPostCard: (post: NormalizedPost) => {
     post: NormalizedPost;
@@ -414,11 +413,6 @@ export function useCoachProfile(): UseCoachProfileResult {
     await loadCoachOfferings(resolvedCoach);
   }, [loadCoachOfferings, resolvedCoach]);
 
-  // ── Navigation handlers ──
-  const handleComposePress = useCallback(() => {
-    router.push(Routes.MODAL_CREATE_POST);
-  }, []);
-
   const handleSignOut = useCallback(async () => {
     await logout();
     router.replace(Routes.ROOT);
@@ -459,7 +453,6 @@ export function useCoachProfile(): UseCoachProfileResult {
     canGoLive,
     profileCompletion,
     handleGoLiveToggle,
-    handleComposePress,
     handleSignOut,
     renderPostCard,
   };

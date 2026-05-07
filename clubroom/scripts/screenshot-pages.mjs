@@ -36,7 +36,6 @@ const ROUTES = [
   { path: '/development/badges', name: '22-dev-badges' },
   { path: '/development/my-progress', name: '23-dev-my-progress' },
   // Community
-  { path: '/community', name: '24-community' },
   // Family
   { path: '/family', name: '28-family' },
   { path: '/family/calendar', name: '29-family-calendar' },

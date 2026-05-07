@@ -4,13 +4,13 @@ Date: 2026-05-07
 
 ## Latest Planning Update
 
-1. Completed `PRUNE-04` by removing standalone goals, drills, skills, athlete journal, all-badges, badges tab, and child-badges route clutter.
-2. Kept development centered on session-linked progress, coach feedback, video/media proof, session history, and development badges.
-3. Updated the active backlog so `PRUNE-05` is the next pruning sprint.
+1. Completed `PRUNE-05` by removing generic personal posting, generic rate-coach selection, and the standalone community group directory/create surface.
+2. Kept retained relationship surfaces tied to operational value: club updates, post detail, private group detail, public profiles, favourites, and booking-linked reviews.
+3. Updated the active backlog so `PRUNE-06` is the next pruning sprint.
 
 ## Next Exact Action
 
-1. Start `PRUNE-05`: narrow community, updates, profiles, favourites, and reviews to professional coordination, trust, and booking conversion.
+1. Start `PRUNE-06`: hide or merge post-launch settings and analytics depth so nice-to-have surfaces do not block deployment.
 
 ## Previous Handoff
 

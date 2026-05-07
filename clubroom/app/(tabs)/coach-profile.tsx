@@ -50,7 +50,6 @@ export default function CoachProfileScreen() {
     canGoLive,
     profileCompletion,
     handleGoLiveToggle,
-    handleComposePress,
     handleSignOut,
   } = useCoachProfile();
 
@@ -143,7 +142,6 @@ export default function CoachProfileScreen() {
             userRole={currentUser?.role}
             feedPosts={feedPosts}
             feedLoading={feedLoading}
-            onComposePress={handleComposePress}
             onOfferingPress={handleOfferingPress}
             renderPostCard={renderPostCard}
           />

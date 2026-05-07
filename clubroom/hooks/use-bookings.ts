@@ -135,7 +135,6 @@ export interface UseBookingsResult {
   setBusinessFilter: (filter: CoachBusinessFilter) => void;
 
   // Handlers
-  handleRateCoachPress: () => void;
   handleCalendarPress: () => void;
   handleSettingsPress: () => void;
   handleGroupSessionsPress: () => void;
@@ -634,11 +633,6 @@ export function useBookings(): UseBookingsResult {
   ]);
 
   // Navigation handlers
-  const handleRateCoachPress = useCallback(() => {
-    logger.press('RateCoachButton', { route: '/rate-coach' });
-    router.push(Routes.RATE_COACH);
-  }, []);
-
   const handleCalendarPress = useCallback(() => {
     logger.press('CalendarButton', { route: '/(tabs)/availability' });
     router.push(Routes.AVAILABILITY);
@@ -826,7 +820,6 @@ export function useBookings(): UseBookingsResult {
     selectedOffering,
     setTimeFilter,
     setBusinessFilter,
-    handleRateCoachPress,
     handleCalendarPress,
     handleSettingsPress,
     handleGroupSessionsPress,

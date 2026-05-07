@@ -145,15 +145,6 @@ const loadingRouteManifest = Object.freeze([
     ]),
   },
   {
-    pattern: 'app/community/index.tsx',
-    strategy: 'warm-first',
-    owner: 'UI-LOAD-03',
-    stableShell: 'Community header and list chrome stay mounted.',
-    retains: 'Loaded groups remain visible during refresh.',
-    pendingSurface: 'List-row or feed-card placeholders only where data is unresolved.',
-    transition: 'Open community list -> keep current frame -> refresh in place -> merge updated content.',
-  },
-  {
     pattern: 'app/community/**/*.tsx',
     strategy: 'section-skeleton',
     owner: 'UI-LOAD-03',
@@ -170,15 +161,6 @@ const loadingRouteManifest = Object.freeze([
     retains: 'Resolved post sections remain visible during follow-up refresh.',
     pendingSurface: 'Only unresolved post sections may skeletonize.',
     transition: 'Open post detail -> keep modal shell -> show truthful section placeholder -> hydrate content.',
-  },
-  {
-    pattern: 'app/(modal)/create-post.tsx',
-    strategy: 'submit-only',
-    owner: 'UI-LOAD-03',
-    stableShell: 'Compose modal and entered draft stay mounted.',
-    retains: 'Existing draft state remains visible while submission or lightweight prefill runs.',
-    pendingSurface: 'Action-level progress only; no full modal reset.',
-    transition: 'Tap create post -> keep draft visible -> show inline action progress -> resolve success or inline error.',
   },
   {
     pattern: 'app/(modal)/create-club-post.tsx',
@@ -358,15 +340,6 @@ const loadingRouteManifest = Object.freeze([
     retains: 'Resolved booking context remains visible while review sections load.',
     pendingSurface: 'Only unresolved review sections may skeletonize.',
     transition: 'Open review flow -> keep shell visible -> skeletonize missing section -> resolve in place.',
-  },
-  {
-    pattern: 'app/rate-coach.tsx',
-    strategy: 'section-skeleton',
-    owner: 'UI-LOAD-02',
-    stableShell: 'Rate coach shell stays mounted.',
-    retains: 'Resolved coach selection stays visible while rating details load.',
-    pendingSurface: 'Only unresolved sections may skeletonize.',
-    transition: 'Open rate coach -> keep shell visible -> skeletonize missing section -> hydrate in place.',
   },
   {
     pattern: 'app/coach-invites.tsx',
