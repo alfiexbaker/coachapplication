@@ -395,8 +395,8 @@ export const RecentBadgesSection = memo(function RecentBadgesSection({
         <ThemedText type="defaultSemiBold" style={styles.sectionTitle}>
           Recent Badges
         </ThemedText>
-        <Clickable onPress={() => router.push(Routes.BADGES_INDEX)}>
-          <ThemedText style={{ ...Typography.small, color: palette.tint }}>View All</ThemedText>
+        <Clickable onPress={() => router.push(Routes.DEVELOPMENT_MY_PROGRESS)}>
+          <ThemedText style={{ ...Typography.small, color: palette.tint }}>View Progress</ThemedText>
         </Clickable>
       </Row>
       <ScrollView

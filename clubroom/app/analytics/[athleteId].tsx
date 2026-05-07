@@ -221,11 +221,11 @@ export default function AthleteAnalyticsScreen() {
             <Row align="center" justify="space-between" style={{ marginBottom: Spacing.md }}>
               <ThemedText type="subtitle">Active Goals</ThemedText>
               <Clickable
-                onPress={() => router.push(Routes.analyticsAthleteGoals(athleteRouteId))}
+                onPress={() => router.push(Routes.developmentAthlete(athleteRouteId))}
                 style={{ paddingVertical: Spacing.xxs, paddingHorizontal: Spacing.xs }}
               >
                 <ThemedText style={[Typography.smallSemiBold, { color: colors.tint }]}>
-                  See all
+                  Development view
                 </ThemedText>
               </Clickable>
             </Row>

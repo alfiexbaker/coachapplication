@@ -390,14 +390,12 @@ Relationship framing:
 Current surfaces:
 
 - my progress
-- goals dashboard
 - session notes
 - session history and related development views
 
 Files:
 
 - [app/development/my-progress.tsx](/Users/tubton/Desktop/coachapplication/clubroom/app/development/my-progress.tsx#L1)
-- [app/goals/index.tsx](/Users/tubton/Desktop/coachapplication/clubroom/app/goals/index.tsx#L1)
 - [app/session-notes/[bookingId].tsx](/Users/tubton/Desktop/coachapplication/clubroom/app/session-notes/%5BbookingId%5D.tsx#L1)
 
 Primary feature home:

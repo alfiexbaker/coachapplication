@@ -9,7 +9,7 @@ let devices = null;
 const preflightProofPathByRole = {
   coach: '/schedule',
   parent: '/family',
-  athlete: '/goals',
+  athlete: '/development/my-progress',
 };
 
 const creds = {
@@ -60,9 +60,6 @@ const flows = [
     title: 'Coach opens development progress',
     path: '/development/my-progress',
   },
-  { id: 'coach_goals', role: 'coach', title: 'Coach opens goals', path: '/goals' },
-  { id: 'coach_badges', role: 'coach', title: 'Coach opens achievements', path: '/badges' },
-  { id: 'coach_skills', role: 'coach', title: 'Coach opens skill trees', path: '/skills' },
   {
     id: 'coach_discover_sessions',
     role: 'coach',
@@ -296,9 +293,6 @@ const flows = [
     title: 'Parent opens child progress',
     path: '/development/child-progress/user1',
   },
-  { id: 'parent_goals', role: 'parent', title: 'Parent opens goals', path: '/goals' },
-  { id: 'parent_skills', role: 'parent', title: 'Parent opens skills', path: '/skills' },
-  { id: 'parent_badges', role: 'parent', title: 'Parent opens achievements', path: '/badges' },
   { id: 'parent_rate', role: 'parent', title: 'Parent opens rate coach', path: '/rate-coach' },
   { id: 'parent_book_flow_start', role: 'parent', title: 'Parent opens book flow home', path: '/book/coach1' },
   {
@@ -358,9 +352,6 @@ const flows = [
     title: 'Athlete opens my progress',
     path: '/development/my-progress',
   },
-  { id: 'athlete_goals', role: 'athlete', title: 'Athlete opens goals', path: '/goals' },
-  { id: 'athlete_skills', role: 'athlete', title: 'Athlete opens skills', path: '/skills' },
-  { id: 'athlete_badges', role: 'athlete', title: 'Athlete opens achievements', path: '/badges' },
   {
     id: 'athlete_analytics',
     role: 'athlete',
@@ -383,13 +374,6 @@ const flows = [
     title: 'Athlete opens injury log',
     path: '/health/injuries',
     expectPath: '/health/injuries',
-  },
-  {
-    id: 'athlete_journal',
-    role: 'athlete',
-    title: 'Athlete opens journal',
-    path: '/athlete/journal',
-    expectPath: '/athlete/journal',
   },
   { id: 'athlete_chat_list', role: 'athlete', title: 'Athlete opens chat list', path: '/chat/index' },
 ];

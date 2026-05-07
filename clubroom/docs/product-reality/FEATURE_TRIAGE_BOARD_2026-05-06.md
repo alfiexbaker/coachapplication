@@ -76,7 +76,7 @@ Anything outside that bar needs to justify itself.
 | Family | Children tab | `(tabs)/children.tsx` | USE | Parent core. |
 | Family | Child emergency | `child/[id]/emergency.tsx` | USE | Trust-sensitive, core. |
 | Family | Child medical | `child/[id]/medical.tsx` | USE | Trust-sensitive, core. |
-| Family | Child badges | `children/badges/[childId].tsx` | NARROW | Keep only if badges stay in development loop. |
+| Family | Child badges | `children/badges/[childId].tsx` | DELETE | Standalone child badge gallery removed; child progress keeps badge context in the development loop. |
 | Family | Family overview | `family/index.tsx` | NARROW | Action gateway only, not dashboard clutter. |
 | Family | Family calendar | `family/calendar.tsx` | USE | Strong family operating surface. |
 | Family | Family recurring | `family/recurring.tsx` | USE | Useful for repeat bookings and family coordination. |
@@ -137,12 +137,12 @@ Anything outside that bar needs to justify itself.
 | Development | Progress loop | `development/progress-loop.tsx` | NARROW | Keep if it becomes simple and actionable. |
 | Development | Results program | `development/results-program.tsx`, `results-program.tsx` | DELETE | Product-fluffy unless tied to real coaching plans. |
 | Development | Media gallery | `development/media-gallery.tsx` | NARROW | Keep only if video/session proof stays central. |
-| Development | Development badges | `development/badges.tsx`, `badges/index.tsx`, `(tabs)/badges.tsx` | NARROW | Badges can stay secondary, not primary product. |
+| Development | Development badges | `development/badges.tsx`, `badges/index.tsx`, `(tabs)/badges.tsx` | NARROW | Keep `development/badges.tsx` for session-linked awards; standalone badge galleries removed. |
 | Development | Athlete special needs | `development/athlete/[athleteId]/special-needs.tsx` | USE | Trust-sensitive coaching context. |
 | Development | Seed health | `development/seed-health.tsx` | DELETE | Sounds like internal/dev helper, not product. |
-| Goals | Goals list/detail/create | `goals/index.tsx`, `goals/[id].tsx`, `goals/create.tsx` | NARROW | Keep only if linked to sessions/coaches, not generic self-improvement. |
-| Drills | Drill library | `drills/index.tsx`, `drills/library.tsx`, `drills/[id].tsx` | NARROW | Useful if tied to coach assignments. |
-| Drills | Drill create/assign | `drills/create.tsx`, `drills/assign.tsx` | NARROW | Keep for coaches only if assignment path is real. |
+| Goals | Goals list/detail/create | `goals/index.tsx`, `goals/[id].tsx`, `goals/create.tsx` | DELETE | Standalone goal app removed; concrete next work belongs inside session feedback/progress. |
+| Drills | Drill library | `drills/index.tsx`, `drills/library.tsx`, `drills/[id].tsx` | DELETE | Standalone drill library removed; practice follow-up remains service-backed inside progress. |
+| Drills | Drill create/assign | `drills/create.tsx`, `drills/assign.tsx` | DELETE | Standalone coach drill assignment UI removed from launch scope. |
 | Drills | Challenges | `drills/challenges.tsx`, `drills/create-challenge.tsx` | DELETE | Gamified niche surface; likely distraction. |
 | Skills | Skills list/detail | `skills/index.tsx`, `skills/[category].tsx` | NARROW | Keep if it supports session feedback and progress. |
 | Athlete | Athlete journal | `athlete/journal.tsx` | POST-LAUNCH | Personal journaling is not core launch. |
@@ -175,7 +175,7 @@ Anything outside that bar needs to justify itself.
 | Analytics | Coach analytics dashboard | `analytics/dashboard.tsx` | POST-LAUNCH | Do not block launch; can be hidden. |
 | Analytics | Revenue analytics | `analytics/revenue.tsx` | NARROW | Prefer earnings/invoices unless this is actionable. |
 | Analytics | Retention analytics | `analytics/retention.tsx` | DELETE | SaaS-style filler, not launch-critical. |
-| Analytics | Athlete analytics | `analytics/[athleteId].tsx`, `analytics/[athleteId]/goals.tsx` | NARROW | Merge into development/progress surfaces. |
+| Analytics | Athlete analytics | `analytics/[athleteId].tsx`, `analytics/[athleteId]/goals.tsx` | NARROW | Keep athlete analytics only if it complements development; analytics goals alias removed. |
 
 ## Immediate Delete Candidates
 

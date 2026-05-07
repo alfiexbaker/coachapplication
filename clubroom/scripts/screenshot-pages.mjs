@@ -25,7 +25,6 @@ const ROUTES = [
   { path: '/more', name: '12-more' },
   { path: '/settings', name: '13-settings' },
   { path: '/coach-profile', name: '14-coach-profile' },
-  { path: '/badges', name: '15-badges' },
   { path: '/children', name: '16-children' },
   { path: '/club-hub', name: '17-club-hub' },
   { path: '/availability', name: '18-availability' },
@@ -38,14 +37,9 @@ const ROUTES = [
   { path: '/development/my-progress', name: '23-dev-my-progress' },
   // Community
   { path: '/community', name: '24-community' },
-  // Drills
-  { path: '/drills', name: '25-drills' },
-  { path: '/drills/library', name: '26-drills-library' },
   // Family
   { path: '/family', name: '28-family' },
   { path: '/family/calendar', name: '29-family-calendar' },
-  // Goals
-  { path: '/goals', name: '31-goals' },
   // Group sessions
   { path: '/group-sessions', name: '32-group-sessions' },
   // Health
@@ -65,8 +59,6 @@ const ROUTES = [
   { path: '/settings/appearance', name: '43-settings-appearance' },
   { path: '/settings/notifications', name: '44-settings-notifications' },
   { path: '/settings/privacy', name: '45-settings-privacy' },
-  // Skills
-  { path: '/skills', name: '46-skills' },
   // Verification
   { path: '/verification', name: '47-verification' },
   // Analytics

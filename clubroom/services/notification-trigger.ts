@@ -93,15 +93,15 @@ export async function triggerNotification(action: NotifiableAction): Promise<Res
 // Call these from the relevant service after a write action.
 
 export const notificationTriggers = {
-  // --- Drill Service ---
+  // --- Session follow-up ---
   drillAssigned(coachName: string, drillName: string, athleteName: string, recipientId: string) {
     return triggerNotification({
       type: 'drill_assigned',
       recipientRole: 'parent',
       recipientId,
-      title: 'New Drill Assigned',
-      body: `Coach ${coachName} assigned a new drill: ${drillName}`,
-      deepLink: '/drills',
+      title: 'New Practice Follow-Up',
+      body: `Coach ${coachName} assigned follow-up work: ${drillName}`,
+      deepLink: '/development/my-progress',
     });
   },
 
@@ -110,9 +110,9 @@ export const notificationTriggers = {
       type: 'drill_completed',
       recipientRole: 'coach',
       recipientId,
-      title: 'Drill Completed',
+      title: 'Practice Completed',
       body: `${athleteName} completed ${drillName}`,
-      deepLink: '/drills',
+      deepLink: '/development/my-progress',
     });
   },
 
@@ -351,7 +351,7 @@ export const notificationTriggers = {
       recipientId,
       title: 'Badge Earned!',
       body: `${athleteName} earned "${badgeName}"`,
-      deepLink: '/badges',
+      deepLink: '/development/badges',
     });
   },
 

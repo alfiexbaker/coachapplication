@@ -81,6 +81,7 @@ These surfaces currently dilute the core:
 
 - `components/user/home-screen.tsx`: generic stats, streaks, badges, walkthrough, and club filler
 - family dashboard clutter has been removed; `app/family/index.tsx` is now only an action gateway into calendar, recurring plans, children, guardian sharing, and booking
+- standalone goals, drills, skills, athlete journal, all-badges, and child-badge galleries have been removed from the launch route tree; retained development now runs through session-linked progress, feedback, proof, and history
 - coach operations still need tighter prioritization, but the old `app/manage/index.tsx` bridge has now been reduced to a redirect instead of a standalone operations dashboard
 - the standalone `app/payments/index.tsx` redirect has been removed; money work now belongs in earnings and invoice/reconciler surfaces
 - `app/(tabs)/coach-profile.tsx` and `hooks/use-coach-profile.ts`: still belong below schedule, delivery, and earnings even after the language cleanup

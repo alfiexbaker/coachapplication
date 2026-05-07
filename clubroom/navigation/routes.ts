@@ -53,7 +53,6 @@ export const Routes = {
   COACH_PROFILE: '/(tabs)/coach-profile' as Href,
   EDIT_PROFILE: '/(tabs)/edit-profile' as Href,
   AVAILABILITY: '/(tabs)/availability' as Href,
-  BADGES: '/(tabs)/badges' as Href,
   CHILDREN: '/(tabs)/children' as Href,
   CLUB_HUB: '/(tabs)/club-hub' as Href,
   clubHub: (params?: { clubId?: string; inviteCode?: string }) =>
@@ -134,19 +133,12 @@ export const Routes = {
       pathname: '/analytics/[athleteId]',
       params: { athleteId },
     }) as Href,
-  analyticsAthleteGoals: (athleteId: string) =>
-    ({
-      pathname: '/analytics/[athleteId]/goals',
-      params: { athleteId },
-    }) as Href,
-
   // ─── Availability ──────────────────────────────────────────────
   AVAILABILITY_ADD_TEMPLATE: '/availability/add-template' as Href,
   AVAILABILITY_BLOCK_DATE: '/availability/block-date' as Href,
   AVAILABILITY_CALENDAR: '/availability/calendar' as Href,
 
   // ─── Badges ────────────────────────────────────────────────────
-  BADGES_INDEX: '/badges' as Href,
 
   // ─── Book ──────────────────────────────────────────────────────
   BOOK_COACH: '/book-coach' as Href,
@@ -237,12 +229,6 @@ export const Routes = {
       pathname: '/child/[id]/medical',
       params: { id },
     }) as Href,
-  childBadges: (childId: string) =>
-    ({
-      pathname: '/children/badges/[childId]',
-      params: { childId },
-    }) as Href,
-
   // ─── Club ──────────────────────────────────────────────────────
   CLUB_CREATE: '/club/create' as Href,
   CLUB_SETUP_COMPLETE: '/club/setup-complete' as Href,
@@ -425,30 +411,6 @@ export const Routes = {
       params: params ?? {},
     }) as Href,
 
-  // ─── Drills ────────────────────────────────────────────────────
-  DRILLS: '/drills' as Href,
-  DRILLS_CREATE: '/drills/create' as Href,
-  DRILLS_LIBRARY: '/drills/library' as Href,
-  DRILLS_ASSIGN: '/drills/assign' as Href,
-  drill: (id: string) =>
-    ({
-      pathname: '/drills/[id]',
-      params: { id },
-    }) as Href,
-  drillsAssignWith: (drillId: string) =>
-    ({
-      pathname: '/drills/assign',
-      params: { drillId },
-    }) as Href,
-
-  // ─── Athlete ──────────────────────────────────────────────────
-  ATHLETE_JOURNAL: '/athlete/journal' as Href,
-  athleteJournal: (params?: { athleteId?: string }) =>
-    ({
-      pathname: '/athlete/journal',
-      params: params ?? {},
-    }) as Href,
-
   // ─── Events ────────────────────────────────────────────────────
   EVENTS: '/events' as Href,
   EVENTS_CREATE: '/events/create' as Href,
@@ -477,15 +439,6 @@ export const Routes = {
     ({
       pathname: '/family/recurring',
       params: params ?? {},
-    }) as Href,
-
-  // ─── Goals ─────────────────────────────────────────────────────
-  GOALS: '/goals' as Href,
-  GOALS_CREATE: '/goals/create' as Href,
-  goal: (id: string) =>
-    ({
-      pathname: '/goals/[id]',
-      params: { id },
     }) as Href,
 
   // ─── Group Sessions ────────────────────────────────────────────
@@ -662,14 +615,6 @@ export const Routes = {
   SETTINGS_PRIVACY: '/settings/privacy' as Href,
   SETTINGS_PRIVACY_POLICY: '/settings/privacy-policy' as Href,
   SETTINGS_TERMS: '/settings/terms' as Href,
-
-  // ─── Skills ────────────────────────────────────────────────────
-  SKILLS: '/skills' as Href,
-  skillCategory: (category: string) =>
-    ({
-      pathname: '/skills/[category]',
-      params: { category },
-    }) as Href,
 
   // ─── Squads ────────────────────────────────────────────────────
   squadInvite: (id: string) =>

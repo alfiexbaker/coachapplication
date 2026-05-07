@@ -153,7 +153,7 @@ Completed:
 
 ## `PRUNE-04` Narrow Development And Training
 
-Status: `READY`
+Status: `DONE`
 
 Objective:
 
@@ -190,9 +190,16 @@ Acceptance:
 - Development feels like football coaching follow-through, not a generic habit app.
 - Routes that remain have clear links to bookings, sessions, coaches, or family progress.
 
+Completed:
+
+- Removed standalone goals, drills, skills, athlete journal, all-badges, badges tab, and child-badges routes.
+- Removed route-only goal, drill, and badge gallery components/hooks that no longer have a launch path.
+- Kept session-linked development surfaces: my progress, child/athlete progress, session detail, session history, media gallery, videos, and development badges.
+- Repointed badge/feedback notifications into the development spine and removed the legacy analytics-goals alias.
+
 ## `PRUNE-05` Narrow Community, Updates, Profiles, And Reviews
 
-Status: `OPEN`
+Status: `READY`
 
 Objective:
 

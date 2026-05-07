@@ -139,17 +139,17 @@ export function buildPrimaryDemoWalkthrough(
         route: Routes.BOOKINGS,
       },
       {
-        id: 'athlete_goals',
-        title: 'Review goals',
+        id: 'athlete_progress',
+        title: 'Review development progress',
         description:
-          'Check that current goals and progress entries tell a coherent training story.',
-        route: Routes.GOALS,
+          'Check that feedback, proof, and progress entries tell a coherent training story.',
+        route: Routes.DEVELOPMENT_MY_PROGRESS,
       },
       {
         id: 'athlete_badges',
-        title: 'Review badges and proof',
+        title: 'Review session awards',
         description: 'Confirm the development loop closes with visible progress and recognition.',
-        route: Routes.BADGES,
+        route: Routes.DEVELOPMENT_BADGES,
       },
     ],
   };

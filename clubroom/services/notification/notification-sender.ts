@@ -362,7 +362,7 @@ class NotificationSenderService {
       actionLabel: 'Share to profile',
       recipientId: params.parentId,
       recipientRole: 'parent',
-      deepLink: `/badges`,
+      deepLink: `/development/badges`,
       data: {
         badgeAwardId: params.badgeAwardId,
         childName: params.childName,

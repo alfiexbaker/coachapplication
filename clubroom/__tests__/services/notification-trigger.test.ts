@@ -164,7 +164,7 @@ describe('notification-trigger', () => {
   });
 
   // ---------------------------------------------------------------------------
-  // Pre-defined triggers — Drill
+  // Pre-defined triggers — Practice follow-up
   // ---------------------------------------------------------------------------
   describe('notificationTriggers.drill*', () => {
     test('drillAssigned creates parent notification', async () => {
@@ -180,7 +180,7 @@ describe('notification-trigger', () => {
         [],
       );
       const latest = notifications[notifications.length - 1];
-      assert.ok(latest.title.includes('Drill'));
+      assert.ok(latest.title.includes('Practice'));
       assert.ok(latest.body.includes('Coach Sarah'));
       assert.ok(latest.body.includes('Passing Drill'));
     });

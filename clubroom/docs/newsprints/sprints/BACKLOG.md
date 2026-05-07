@@ -7,8 +7,7 @@ Rule: active work only. Completed sprint rows are intentionally removed.
 
 | ID | Exactly what it does | Spine(s) | Status |
 | -- | -------------------- | -------- | ------ |
-| PRUNE-04 | Narrow development and training to session-linked progress, coach assignments, feedback, proof, and family/athlete outcomes. | Development and Analytics | READY |
-| PRUNE-05 | Narrow community, updates, profiles, favourites, and reviews to professional coordination, trust, and booking conversion. | Community and Growth + Trust, Safety and Operations | OPEN |
+| PRUNE-05 | Narrow community, updates, profiles, favourites, and reviews to professional coordination, trust, and booking conversion. | Community and Growth + Trust, Safety and Operations | READY |
 | PRUNE-06 | Hide or merge post-launch settings and analytics depth so nice-to-have surfaces do not block deployment. | Booking, Availability and Revenue + Development and Analytics + Trust, Safety and Operations | OPEN |
 | PRUNE-VERIFY-01 | Rehearse the reduced product: no deleted routes in navigation/docs/scripts/manifests, protected core intact, Discover Map validated as a centerpiece. | All spines | OPEN |
 | UI-LOAD-05 | Bring club, schedule, events, and calendar surfaces up to the same standard: no brochure skeletons, no cold resets, and no time-based screens loading like generic lists. | Community and Growth + Booking, Availability and Revenue | READY |
@@ -19,15 +18,14 @@ Rule: active work only. Completed sprint rows are intentionally removed.
 
 ## Execution Order
 
-1. `PRUNE-04`
-2. `PRUNE-05`
-3. `PRUNE-06`
-4. `PRUNE-VERIFY-01`
-5. `UI-LOAD-05`
-6. `UI-LOAD-06`
-7. `UI-LOAD-07`
-8. `UI-LOAD-08`
-9. `PROD-VERIFY-01`
+1. `PRUNE-05`
+2. `PRUNE-06`
+3. `PRUNE-VERIFY-01`
+4. `UI-LOAD-05`
+5. `UI-LOAD-06`
+6. `UI-LOAD-07`
+7. `UI-LOAD-08`
+8. `PROD-VERIFY-01`
 
 ## Active Pruning Plan
 
@@ -167,19 +165,14 @@ Decision:
 ### `UI-LOAD-07`
 
 - Need:
-  - Bring development and training surfaces to the same premium bar.
-  - Remove second-class loading from the remaining drills, goals, badges, progress loop, media, video, group session, and match flows after `PRUNE-01` deletes non-core development routes.
+  - Bring retained development and training surfaces to the same premium bar.
+  - Remove second-class loading from progress loop, media, video, group session, and match flows after pruning removed standalone goals, drills, skills, journal, and badge galleries.
 - Touch first:
-  - remaining `app/drills/*`
-  - `app/goals/*`
-  - `app/badges/index.tsx`
-  - `app/children/badges/[childId].tsx`
   - remaining `app/development/*`
   - `app/videos/[id].tsx`
   - `app/videos/upload.tsx`
   - `app/group-sessions/*`
   - `app/matches/*`
-  - `app/athlete/journal.tsx`
 - Acceptance:
   - Development and training surfaces no longer rely on generic list/detail placeholders where the real UI is richer.
   - Results, drill, media, and progression surfaces feel as intentional as commerce and social surfaces.

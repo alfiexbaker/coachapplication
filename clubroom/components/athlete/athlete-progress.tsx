@@ -6,13 +6,10 @@
 
 import React, { useMemo } from 'react';
 import { StyleSheet } from 'react-native';
-import { router } from 'expo-router';
-import { Routes } from '@/navigation/routes';
 import { Ionicons } from '@expo/vector-icons';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 
 import { SurfaceCard } from '@/components/primitives/surface-card';
-import { Clickable } from '@/components/primitives/clickable';
 import { ThemedText } from '@/components/themed-text';
 import { Row } from '@/components/primitives/row';
 import { Column } from '@/components/primitives/column';
@@ -105,12 +102,6 @@ function AthleteProgressInner({ athlete, coachId }: AthleteProgressProps) {
           <SurfaceCard style={styles.section}>
             <Row gap="sm" align="center" justify="between">
               <ThemedText type="defaultSemiBold">Goals</ThemedText>
-              <Clickable
-                onPress={() => router.push(Routes.GOALS_CREATE)}
-                accessibilityLabel="Create goal"
-              >
-                <Ionicons name="add-circle" size={22} color={colors.tint} />
-              </Clickable>
             </Row>
             <Column gap="sm">
               {goals.map((goal) => (

@@ -46,7 +46,7 @@ export default function ChildrenHubScreen() {
   const handleBadgeView = useCallback(
     (badge: Parameters<typeof handleViewBadge>[0]) => {
       handleViewBadge(badge);
-      router.push(Routes.childBadges(badge.athleteId));
+      router.push(Routes.developmentChildProgress(badge.athleteId, { tab: 'badges' }));
     },
     [handleViewBadge],
   );

@@ -4,13 +4,13 @@ Date: 2026-05-07
 
 ## Latest Planning Update
 
-1. Completed `PRUNE-03` by reducing `/family` to an action gateway instead of a duplicate family dashboard.
-2. Removed unused family dashboard-only code and the standalone settings blocked-dates route.
-3. Updated the active backlog so `PRUNE-04` is the next pruning sprint.
+1. Completed `PRUNE-04` by removing standalone goals, drills, skills, athlete journal, all-badges, badges tab, and child-badges route clutter.
+2. Kept development centered on session-linked progress, coach feedback, video/media proof, session history, and development badges.
+3. Updated the active backlog so `PRUNE-05` is the next pruning sprint.
 
 ## Next Exact Action
 
-1. Start `PRUNE-04`: narrow development and training to session-linked progress, coach assignments, feedback, proof, and family/athlete outcomes.
+1. Start `PRUNE-05`: narrow community, updates, profiles, favourites, and reviews to professional coordination, trust, and booking conversion.
 
 ## Previous Handoff
 

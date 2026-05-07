@@ -40,7 +40,6 @@ const scenarios = [
     routes: [
       { story: 'athlete-home', path: '/' },
       { story: 'athlete-progress', path: '/development/my-progress' },
-      { story: 'athlete-goals', path: '/goals' },
       { story: 'athlete-rate-coach', path: '/rate-coach' },
       { story: 'athlete-settings', path: '/settings' },
     ],

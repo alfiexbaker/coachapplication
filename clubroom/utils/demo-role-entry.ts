@@ -78,11 +78,11 @@ const ROLE_ENTRY_DEFINITIONS: RoleEntryDefinition[] = [
   {
     id: 'athlete_progress',
     title: 'Athlete Progress',
-    subtitle: 'Goals, badges, and development',
+    subtitle: 'Session feedback and development',
     description: 'Open the athlete-style path with seeded progress, feedback, and development context.',
     usernames: ['athlete1', 'user1'],
     roleLabel: 'ATHLETE',
-    initialRoute: Routes.GOALS,
+    initialRoute: Routes.DEVELOPMENT_MY_PROGRESS,
     match: (user) =>
       user.role === 'USER' &&
       !user.isSystemAdmin &&

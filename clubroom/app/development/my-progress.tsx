@@ -287,18 +287,6 @@ export default function MyProgressScreen() {
 
   const canOpenFeedbackHistory = Boolean(selectedAthleteId);
 
-  const handleViewAllGoals = useCallback(() => {
-    router.push(Routes.GOALS);
-  }, []);
-
-  const handleViewAllBadges = useCallback(() => {
-    if (isParentContext && selectedAthleteId) {
-      router.push(Routes.childBadges(selectedAthleteId));
-      return;
-    }
-    router.push(Routes.BADGES);
-  }, [isParentContext, selectedAthleteId]);
-
   // Build homework data for CoachSaysCard
   const homeworkData = useMemo(() => {
     if (!latestHomeworkFeedback) {
@@ -614,7 +602,6 @@ export default function MyProgressScreen() {
             actorId={currentUser.id}
             actorRole={currentUser.role}
             onRefresh={handleRefresh}
-            onViewAll={handleViewAllGoals}
           />
         </Animated.View>
 
@@ -625,7 +612,6 @@ export default function MyProgressScreen() {
           <BadgeWall
             badges={allBadges}
             athleteName={selectedAthleteName}
-            onViewFull={handleViewAllBadges}
           />
         </Animated.View>
 
