@@ -2,7 +2,7 @@
 /**
  * Sprint 8 Agent 3: flexDirection → Row/Column migration (v2)
  * Fixes the closing-tag bug from v1 by handling multi-line JSX opening tags.
- * Processes ONLY the 34 files that were restored after v1 broke them.
+ * Processes ONLY the restored files that still exist after feature pruning.
  */
 
 const fs = require('fs');
@@ -11,7 +11,7 @@ const path = require('path');
 const BASE = path.join(__dirname, '..', 'components');
 const stats = { files: 0, modified: 0, replacements: 0, errors: [] };
 
-// The 34 files restored from git that need reprocessing
+// Restored files from git that need reprocessing.
 const BROKEN_FILES = [
   'academy/academy-staff-card.tsx',
   'analytics/PeakHoursHeatmap.tsx',
@@ -36,10 +36,8 @@ const BROKEN_FILES = [
   'discover/booking-flow-stepper.tsx',
   'event/attendee-card-sections.tsx',
   'event/create-event-type-step.tsx',
-  'family/FamilyMemberCard.tsx',
   'family/family-calendar-sections.tsx',
   'family/medical-tag-list-form.tsx',
-  'family/upcoming-sessions-sections.tsx',
   'goals/CategoryBadge.tsx',
   'group/create-session-type-step.tsx',
   'health/injury-step-indicator.tsx',

@@ -149,7 +149,7 @@ export default function CoachingSettingsScreen() {
             <NavigationRow
               label="Blocked dates"
               value={blockedDateCount > 0 ? `${blockedDateCount}` : undefined}
-              onPress={() => router.push(Routes.SETTINGS_BLOCKED_DATES)}
+              onPress={() => router.push(Routes.AVAILABILITY_BLOCK_DATE)}
               icon="calendar-outline"
             />
             <Separator />

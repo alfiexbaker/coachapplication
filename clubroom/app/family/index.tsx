@@ -1,10 +1,3 @@
-/**
- * Family Overview Screen
- *
- * Secondary family gateway for parents: shortcuts to the live calendar,
- * child progress, and booked-session records.
- */
-
 import { View, StyleSheet } from 'react-native';
 import { router } from 'expo-router';
 import { Routes } from '@/navigation/routes';
@@ -17,121 +10,103 @@ import { Row } from '@/components/primitives/row';
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { Clickable } from '@/components/primitives/clickable';
 import { ThemedText } from '@/components/themed-text';
-import { FamilyMemberCard } from '@/components/family/FamilyMemberCard';
-import { UpcomingSessionsList } from '@/components/family/UpcomingSessionsList';
-import { FamilyQuickActions } from '@/components/family/family-quick-actions';
-import { EmptyState } from '@/components/ui/empty-state';
-import { LoadingState, ErrorState } from '@/components/ui/screen-states';
-import { Spacing, Typography } from '@/constants/theme';
+import { Spacing, Typography, withAlpha } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
-import { useFamilyDashboard } from '@/hooks/use-family-dashboard';
+
+const FAMILY_ACTIONS = [
+  {
+    id: 'calendar',
+    title: 'Family Calendar',
+    description: 'See upcoming sessions, coach ownership, and weekly commitments.',
+    icon: 'calendar-outline',
+    route: Routes.FAMILY_CALENDAR,
+  },
+  {
+    id: 'recurring',
+    title: 'Recurring Plans',
+    description: 'Manage repeat session routines and next booked sessions.',
+    icon: 'repeat-outline',
+    route: Routes.FAMILY_RECURRING,
+  },
+  {
+    id: 'children',
+    title: 'Children',
+    description: 'Update profiles, medical context, emergency details, and progress links.',
+    icon: 'people-outline',
+    route: Routes.CHILDREN,
+  },
+  {
+    id: 'sharing',
+    title: 'Guardian Sharing',
+    description: 'Invite guardians and keep family access controlled.',
+    icon: 'shield-checkmark-outline',
+    route: Routes.FAMILY_SHARING,
+  },
+] as const;
 
 export default function FamilyOverviewScreen() {
   const { colors: palette } = useTheme();
-  const {
-    status,
-    error,
-    refreshing,
-    onRefresh,
-    retry,
-    members,
-    upcomingSessions,
-    handleMemberPress,
-    handleSessionPress,
-    navigateToCalendar,
-    navigateToRecurring,
-  } = useFamilyDashboard();
   const handleBookSession = () => router.push(Routes.BOOK_COACH);
   const header = (
     <PageHeader
-      title="Family Overview"
-      subtitle="Jump into family work without another dashboard layer"
+      title="Family"
+      subtitle="Choose the family action you need"
       showBack
     />
   );
 
-  if (status === 'loading') {
-    return (
-      <PageContainer header={header}>
-        <LoadingState variant="detail" />
-      </PageContainer>
-    );
-  }
-
-  if (status === 'error') {
-    return (
-      <PageContainer header={header}>
-        <ErrorState message={error?.message || 'Failed to load family overview.'} onRetry={retry} />
-      </PageContainer>
-    );
-  }
-
-  if (status === 'empty') {
-    return (
-      <PageContainer header={header}>
-        <EmptyState
-          icon="people-outline"
-          title="No family data yet"
-          message="Add children to your account to track sessions, records, and development."
-          actionLabel="Find Coaches"
-          onPressAction={handleBookSession}
-        />
-      </PageContainer>
-    );
-  }
-
   return (
-    <PageContainer header={header} gap={Spacing.md} refreshing={refreshing} onRefresh={onRefresh}>
+    <PageContainer header={header} gap={Spacing.md}>
       <Animated.View entering={FadeInDown.delay(50).springify()}>
-        <FamilyQuickActions
-          onCalendarPress={navigateToCalendar}
-          onRecurringPress={navigateToRecurring}
-        />
-      </Animated.View>
-
-      <Animated.View entering={FadeInDown.delay(125).springify()}>
-        <View style={styles.section}>
-          <UpcomingSessionsList
-            sessions={upcomingSessions}
-            onSessionPress={handleSessionPress}
-            onViewAllPress={navigateToCalendar}
-            limit={3}
-            showHeader
-            title="Next Sessions"
-          />
-        </View>
-      </Animated.View>
-
-      <Animated.View entering={FadeInDown.delay(200).springify()}>
-        <View style={styles.section}>
-          <Row justify="between" align="center">
-            <ThemedText type="defaultSemiBold" style={Typography.bodySmall}>
-              Child Progress
-            </ThemedText>
-            <ThemedText style={[Typography.small, { color: palette.muted }]}>
-              {members.length} {members.length === 1 ? 'child' : 'children'}
-            </ThemedText>
-          </Row>
-          {members.length > 0 ? (
-            <View style={styles.membersList}>
-              {members.map((member, index) => (
-                <Animated.View
-                  key={member.id}
-                  entering={FadeInDown.delay(250 + index * 50).springify()}
-                >
-                  <FamilyMemberCard member={member} onPress={handleMemberPress} showStats={false} />
-                </Animated.View>
-              ))}
+        <SurfaceCard
+          style={[
+            styles.hero,
+            {
+              backgroundColor: withAlpha(palette.tint, 0.08),
+              borderColor: withAlpha(palette.tint, 0.22),
+            },
+          ]}
+          tactile={false}
+        >
+          <Row align="center" gap="sm">
+            <View style={[styles.heroIcon, { backgroundColor: palette.tint }]}>
+              <Ionicons name="calendar" size={22} color={palette.onPrimary} />
             </View>
-          ) : (
-            <EmptyState
-              icon="people-outline"
-              title="No children added"
-              message="Add children to your account to follow their development."
-            />
-          )}
-        </View>
+            <View style={styles.heroCopy}>
+              <ThemedText type="defaultSemiBold">Start with the live calendar</ThemedText>
+              <ThemedText style={[Typography.bodySmall, { color: palette.muted }]}>
+                Family work should lead to commitments, recurring routines, child trust details,
+                or guardian access, not another summary dashboard.
+              </ThemedText>
+            </View>
+          </Row>
+        </SurfaceCard>
       </Animated.View>
+
+      <View style={styles.actionGrid}>
+        {FAMILY_ACTIONS.map((action, index) => (
+          <Animated.View key={action.id} entering={FadeInDown.delay(100 + index * 45).springify()}>
+            <SurfaceCard
+              onPress={() => router.push(action.route)}
+              style={styles.actionCard}
+              accessibilityLabel={action.title}
+            >
+              <Row align="center" gap="sm">
+                <View style={[styles.actionIcon, { backgroundColor: withAlpha(palette.tint, 0.1) }]}>
+                  <Ionicons name={action.icon} size={20} color={palette.tint} />
+                </View>
+                <View style={styles.actionCopy}>
+                  <ThemedText type="defaultSemiBold">{action.title}</ThemedText>
+                  <ThemedText style={[Typography.small, { color: palette.muted }]}>
+                    {action.description}
+                  </ThemedText>
+                </View>
+                <Ionicons name="chevron-forward" size={18} color={palette.muted} />
+              </Row>
+            </SurfaceCard>
+          </Animated.View>
+        ))}
+      </View>
 
       <Animated.View entering={FadeInDown.delay(275).springify()}>
         <SurfaceCard style={styles.trustCard}>
@@ -165,8 +140,25 @@ export default function FamilyOverviewScreen() {
 }
 
 const styles = StyleSheet.create({
-  section: { gap: Spacing.sm },
-  membersList: { gap: Spacing.sm },
-  trustCard: { gap: Spacing.sm },
+  hero: { borderWidth: 1, padding: Spacing.md },
+  heroIcon: {
+    width: 46,
+    height: 46,
+    borderRadius: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  heroCopy: { flex: 1, gap: Spacing.xxs },
+  actionGrid: { gap: Spacing.sm },
+  actionCard: { padding: Spacing.md },
+  actionIcon: {
+    width: 42,
+    height: 42,
+    borderRadius: 14,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  actionCopy: { flex: 1, gap: Spacing.micro },
+  trustCard: { gap: Spacing.sm, padding: Spacing.md },
   ctaButton: { paddingVertical: Spacing.md, borderRadius: Spacing.sm },
 });

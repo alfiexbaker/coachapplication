@@ -17,13 +17,11 @@ import {
 
 import { useAuth } from '@/hooks/use-auth';
 import { useScreen, type ScreenStatus } from '@/hooks/use-screen';
+import { availabilityService } from '@/services/availability-service';
 import { schedulingRulesService } from '@/services/scheduling-rules-service';
 import { coachTravelService, type CoachTravelSettings } from '@/services/coach-travel-service';
-import { apiClient } from '@/services/api-client';
-import { STORAGE_KEYS } from '@/constants/storage-keys';
 import type { CoachSchedulingRules } from '@/constants/types';
 import { err, ok, type ServiceError } from '@/types/result';
-import type { BlockedDateRange } from '@/hooks/use-blocked-dates';
 
 export function useCoachingSettings() {
   const { currentUser } = useAuth();
@@ -78,10 +76,10 @@ export function useCoachingSettings() {
   useEffect(() => {
     if (!coachId) return;
     void (async () => {
-      const [travelResult, policyResult, blockedMap] = await Promise.all([
+      const [travelResult, policyResult, overrides] = await Promise.all([
         coachTravelService.getSettings(coachId),
         schedulingRulesService.getCancellationPolicy(coachId),
-        apiClient.get<Record<string, BlockedDateRange[]>>(STORAGE_KEYS.BLOCKED_DATES, {}),
+        availabilityService.getOverrides(coachId),
       ]);
 
       if (travelResult.success) {
@@ -92,7 +90,7 @@ export function useCoachingSettings() {
           schedulingRulesService.getCancellationPolicySummary(policyResult.data),
         );
       }
-      setBlockedDateCount((blockedMap[coachId] ?? []).length);
+      setBlockedDateCount(overrides.filter((override) => override.isBlocked).length);
     })();
   }, [coachId]);
 

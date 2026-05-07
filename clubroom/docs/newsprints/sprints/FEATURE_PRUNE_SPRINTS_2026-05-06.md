@@ -110,7 +110,7 @@ Completed:
 
 ## `PRUNE-03` Merge Duplicate Family And Ops Surfaces
 
-Status: `READY`
+Status: `DONE`
 
 Objective:
 
@@ -144,9 +144,16 @@ Acceptance:
 - Coach ops paths do not bounce through generic manage pages.
 - There is one clear place for blocked dates.
 
+Completed:
+
+- Reduced `/family` to a direct action gateway for calendar, recurring plans, children, guardian sharing, and booking.
+- Removed the unused family overview hook and dashboard-only family cards that duplicated stronger child/calendar surfaces.
+- Removed the standalone settings blocked-dates route and pointed coaching settings to the availability block-date flow.
+- Verified `/manage` remains compatibility-only routing instead of a generic coach operations dashboard.
+
 ## `PRUNE-04` Narrow Development And Training
 
-Status: `OPEN`
+Status: `READY`
 
 Objective:
 

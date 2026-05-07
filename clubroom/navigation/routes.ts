@@ -653,7 +653,6 @@ export const Routes = {
   SETTINGS_CALENDAR_SYNC: '/settings/calendar-sync' as Href,
   SETTINGS_CANCELLATION_POLICY: '/settings/cancellation-policy' as Href,
   SETTINGS_COACHING: '/settings/coaching' as Href,
-  SETTINGS_BLOCKED_DATES: '/settings/blocked-dates' as Href,
   SETTINGS_BLOCKED_USERS: '/settings/blocked-users' as Href,
   SETTINGS_HELP: '/settings/help' as Href,
   SETTINGS_SMART_SLOTS: '/settings/smart-slots' as Href,

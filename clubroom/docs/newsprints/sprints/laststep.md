@@ -1,16 +1,16 @@
 # Last Step Handoff
 
-Date: 2026-05-06
+Date: 2026-05-07
 
 ## Latest Planning Update
 
-1. Completed `PRUNE-02` by making Discover Map a visible discovery-to-booking path from Bookings Discover, Discover Sessions, and map result cards.
-2. Kept the map shell stable through warm refresh and empty results, with inline location/GPS fallback messaging.
-3. Updated `docs/newsprints/sprints/BACKLOG.md` so `PRUNE-03` is the next active pruning sprint.
+1. Completed `PRUNE-03` by reducing `/family` to an action gateway instead of a duplicate family dashboard.
+2. Removed unused family dashboard-only code and the standalone settings blocked-dates route.
+3. Updated the active backlog so `PRUNE-04` is the next pruning sprint.
 
 ## Next Exact Action
 
-1. Start `PRUNE-03`: merge duplicate family and ops destinations, especially family overview, legacy family/manage redirects, blocked dates, and availability duplication.
+1. Start `PRUNE-04`: narrow development and training to session-linked progress, coach assignments, feedback, proof, and family/athlete outcomes.
 
 ## Previous Handoff
 

@@ -101,6 +101,7 @@ Discover Map is the core local coach search surface: users should be able to fin
   - booking changes are intentionally `cancel` or `reopen`; the old counter-offer and invite counter workflow has been removed from the runtime product surface
   - coach scheduling rules no longer advertise a separate reschedule policy; bookings now change by cancellation and rebooking/reopening instead of negotiation
   - visible coach operations entry points no longer route through a generic `/manage` bridge screen; they now deep-link into staffing console, head-coach oversight, or club dashboard flows, while `/manage` remains only as a redirect for old links
+  - `/family` is now an action gateway into calendar, recurring plans, children, guardian sharing, and booking; blocked-date management lives in the availability block-date flow, not a standalone settings route
   - Expo native/web and `apps/api` now emit to Sentry with shared release/environment tags, Expo web source maps via `npm run export:web`, and API source maps via `npm --prefix apps/api run build:release`
   - the next production follow-through is release rehearsal: run the app and API against the db-backed production path, clear any surfaced drift, and reduce the remaining blockers to real env/provisioning gaps plus the later live payment-provider cutover
 - Club-facing schedule surfaces now use a `ClubActivity` read model to link `ClubEvent` and `GroupSession`

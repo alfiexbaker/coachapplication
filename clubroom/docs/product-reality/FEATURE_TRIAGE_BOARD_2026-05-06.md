@@ -163,7 +163,7 @@ Anything outside that bar needs to justify itself.
 | Settings | Calendar sync | `settings/calendar-sync.tsx` | USE | High value for scheduling if functional. |
 | Settings | Cancellation policy | `settings/cancellation-policy.tsx` | USE | Coach business rules. |
 | Settings | Coaching | `settings/coaching.tsx` | USE | Coach profile/settings. |
-| Settings | Blocked dates | `settings/blocked-dates.tsx` | MERGE | Should live with availability, not as standalone clutter. |
+| Settings | Blocked dates | `settings/blocked-dates.tsx` | DELETE | Standalone route removed; coaching settings now opens the availability block-date flow. |
 | Settings | Blocked users | `settings/blocked-users.tsx` | USE | Safety/trust. |
 | Settings | Help | `settings/help.tsx` | USE | Support handoff. |
 | Settings | Smart slots | `settings/smart-slots.tsx` | NARROW | Keep only if it maps to real scheduling rules. |
