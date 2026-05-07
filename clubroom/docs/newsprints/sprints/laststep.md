@@ -4,13 +4,13 @@ Date: 2026-05-07
 
 ## Latest Planning Update
 
-1. Completed `PRUNE-05` by removing generic personal posting, generic rate-coach selection, and the standalone community group directory/create surface.
-2. Kept retained relationship surfaces tied to operational value: club updates, post detail, private group detail, public profiles, favourites, and booking-linked reviews.
-3. Updated the active backlog so `PRUNE-06` is the next pruning sprint.
+1. Completed `PRUNE-06` by removing appearance/theme customization, smart-slot suggestions, and the separate analytics route tree from the launch route set.
+2. Kept retained settings tied to real operations: calendar sync, travel radius, cancellation policy, notifications, privacy, account, and trust/support settings.
+3. Updated the active backlog so `PRUNE-VERIFY-01` is the next pruning sprint.
 
 ## Next Exact Action
 
-1. Start `PRUNE-06`: hide or merge post-launch settings and analytics depth so nice-to-have surfaces do not block deployment.
+1. Start `PRUNE-VERIFY-01`: rehearse the reduced product and prove no deleted feature remains in navigation, docs, scripts, route manifest, or UI flow checks.
 
 ## Previous Handoff
 

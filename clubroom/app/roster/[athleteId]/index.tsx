@@ -113,9 +113,9 @@ export default function AthleteProfileScreen() {
         </Clickable>
         <View style={styles.flex1} />
         <Clickable
-          onPress={() => router.push(Routes.analyticsAthlete(entry.athleteId))}
+          onPress={() => router.push(Routes.developmentAthlete(entry.athleteId))}
           hitSlop={8}
-          accessibilityLabel="View analytics"
+          accessibilityLabel="View development"
         >
           <Ionicons name="stats-chart-outline" size={22} color={colors.text} />
         </Clickable>

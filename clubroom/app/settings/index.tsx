@@ -168,15 +168,6 @@ export default function SettingsHubScreen() {
             router.push(Routes.SETTINGS_CALENDAR_SYNC);
           }}
         />
-        <SettingsRow
-          icon="moon"
-          title="Appearance"
-          subtitle="Dark mode and display settings"
-          onPress={() => {
-            logger.press('AppearanceSettings');
-            router.push(Routes.SETTINGS_APPEARANCE);
-          }}
-        />
         {accountHasChildren && (
           <SettingsToggleRow
             icon="person"

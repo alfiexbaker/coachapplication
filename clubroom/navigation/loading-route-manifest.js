@@ -817,15 +817,6 @@ const loadingRouteManifest = Object.freeze([
     transition: 'Open match surface -> keep shell visible -> skeletonize pending section -> resolve in place.',
   },
   {
-    pattern: 'app/analytics/**/*.tsx',
-    strategy: 'section-skeleton',
-    owner: 'UI-LOAD-08',
-    stableShell: 'Analytics header and resolved cards stay mounted.',
-    retains: 'Resolved charts and cards remain visible while pending sections load.',
-    pendingSurface: 'Only unresolved analytics sections may skeletonize.',
-    transition: 'Open analytics -> keep shell stable -> skeletonize pending section -> resolve in place.',
-  },
-  {
     pattern: 'app/availability/**/*.tsx',
     strategy: 'section-skeleton',
     owner: 'UI-LOAD-08',

@@ -243,7 +243,7 @@ Completed:
 
 ## `PRUNE-06` Hide Or Merge Post-Launch Settings And Analytics
 
-Status: `READY`
+Status: `DONE`
 
 Objective:
 
@@ -272,9 +272,16 @@ Acceptance:
 - Settings support real operations, trust, and account control.
 - Analytics no longer creates a second product world.
 
+Completed:
+
+- Removed appearance/theme customization from launch settings.
+- Removed smart-slot suggestions because they were local booking heuristics, not backend scheduling-rule controls.
+- Removed the separate analytics route tree; coach-facing value now points to athlete development/roster, revenue work stays in earnings/invoices, and athlete detail analytics entry points route to the existing development athlete surface.
+- Kept calendar sync and travel radius because they support real scheduling and discovery operations.
+
 ## `PRUNE-VERIFY-01` Reduced Product Rehearsal
 
-Status: `OPEN`
+Status: `READY`
 
 Objective:
 

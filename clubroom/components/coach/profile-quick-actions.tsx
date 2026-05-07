@@ -61,11 +61,11 @@ function ProfileQuickActionsInner({
         </ThemedText>
 
         <QuickAccessItem
-          route={Routes.ANALYTICS_DASHBOARD}
-          icon="analytics"
+          route={Routes.ATHLETES}
+          icon="people"
           iconColor={palette.success}
-          title="Analytics & Development"
-          description="View athlete progress and session data"
+          title="Athlete Development"
+          description="Review roster progress and session follow-up"
           palette={palette}
         />
 

@@ -159,23 +159,23 @@ Anything outside that bar needs to justify itself.
 | Manage | Head coach console | `manage/head-coach.tsx` | USE | Club/staff operations. |
 | Settings | Settings hub | `settings/index.tsx` | USE | Required account control. |
 | Settings | Account | `settings/account.tsx` | USE | Required. |
-| Settings | Appearance | `settings/appearance.tsx` | POST-LAUNCH | Nice-to-have; not core. |
+| Settings | Appearance | `settings/appearance.tsx` | DELETE | Removed in `PRUNE-06`; theme customization is not a launch promise. |
 | Settings | Calendar sync | `settings/calendar-sync.tsx` | USE | High value for scheduling if functional. |
 | Settings | Cancellation policy | `settings/cancellation-policy.tsx` | USE | Coach business rules. |
 | Settings | Coaching | `settings/coaching.tsx` | USE | Coach profile/settings. |
 | Settings | Blocked dates | `settings/blocked-dates.tsx` | DELETE | Standalone route removed; coaching settings now opens the availability block-date flow. |
 | Settings | Blocked users | `settings/blocked-users.tsx` | USE | Safety/trust. |
 | Settings | Help | `settings/help.tsx` | USE | Support handoff. |
-| Settings | Smart slots | `settings/smart-slots.tsx` | NARROW | Keep only if it maps to real scheduling rules. |
+| Settings | Smart slots | `settings/smart-slots.tsx` | DELETE | Removed in `PRUNE-06`; local booking heuristics did not map to real scheduling-rule controls. |
 | Settings | Travel radius | `settings/travel-radius.tsx` | USE | Coach marketplace operations. |
 | Settings | Notifications | `settings/notifications/index.tsx`, `settings/notifications/preferences.tsx` | USE | Required communication control. |
 | Settings | Privacy | `settings/privacy.tsx` | USE | Trust. |
 | Settings | Privacy policy and terms | `settings/privacy-policy.tsx`, `settings/terms.tsx` | USE | Required legal/support surface. |
 | Squads | Squad invite | `squads/[id]/invite.tsx` | USE | Club/team operations. |
-| Analytics | Coach analytics dashboard | `analytics/dashboard.tsx` | POST-LAUNCH | Do not block launch; can be hidden. |
-| Analytics | Revenue analytics | `analytics/revenue.tsx` | NARROW | Prefer earnings/invoices unless this is actionable. |
+| Analytics | Coach analytics dashboard | `analytics/dashboard.tsx` | DELETE | Removed in `PRUNE-06`; coach value routes into roster/development instead. |
+| Analytics | Revenue analytics | `analytics/revenue.tsx` | DELETE | Removed in `PRUNE-06`; launch revenue work stays in earnings and invoices. |
 | Analytics | Retention analytics | `analytics/retention.tsx` | DELETE | SaaS-style filler, not launch-critical. |
-| Analytics | Athlete analytics | `analytics/[athleteId].tsx`, `analytics/[athleteId]/goals.tsx` | NARROW | Keep athlete analytics only if it complements development; analytics goals alias removed. |
+| Analytics | Athlete analytics | `analytics/[athleteId].tsx`, `analytics/[athleteId]/goals.tsx` | DELETE | Removed in `PRUNE-06`; athlete insight entry points now route to development athlete pages. |
 
 ## Immediate Delete Candidates
 
@@ -191,8 +191,7 @@ Anything outside that bar needs to justify itself.
 
 Remaining delete candidates for later pruning:
 
-8. `athlete/journal.tsx` if athlete self-reflection is not a launch promise
-9. `settings/appearance.tsx` if theme customization is not a launch promise
+- None from this dated list remain in the launch route tree.
 
 ## Must Protect
 

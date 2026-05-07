@@ -124,14 +124,6 @@ export const Routes = {
       params: { postId },
     }) as Href,
 
-  // ─── Analytics ─────────────────────────────────────────────────
-  ANALYTICS_DASHBOARD: '/analytics/dashboard' as Href,
-  ANALYTICS_REVENUE: '/analytics/revenue' as Href,
-  analyticsAthlete: (athleteId: string) =>
-    ({
-      pathname: '/analytics/[athleteId]',
-      params: { athleteId },
-    }) as Href,
   // ─── Availability ──────────────────────────────────────────────
   AVAILABILITY_ADD_TEMPLATE: '/availability/add-template' as Href,
   AVAILABILITY_BLOCK_DATE: '/availability/block-date' as Href,
@@ -599,13 +591,11 @@ export const Routes = {
   // ─── Settings ──────────────────────────────────────────────────
   SETTINGS_INDEX: '/settings' as Href,
   SETTINGS_ACCOUNT: '/settings/account' as Href,
-  SETTINGS_APPEARANCE: '/settings/appearance' as Href,
   SETTINGS_CALENDAR_SYNC: '/settings/calendar-sync' as Href,
   SETTINGS_CANCELLATION_POLICY: '/settings/cancellation-policy' as Href,
   SETTINGS_COACHING: '/settings/coaching' as Href,
   SETTINGS_BLOCKED_USERS: '/settings/blocked-users' as Href,
   SETTINGS_HELP: '/settings/help' as Href,
-  SETTINGS_SMART_SLOTS: '/settings/smart-slots' as Href,
   SETTINGS_TRAVEL_RADIUS: '/settings/travel-radius' as Href,
   SETTINGS_NOTIFICATIONS: '/settings/notifications' as Href,
   SETTINGS_NOTIFICATION_PREFERENCES: '/settings/notifications/preferences' as Href,

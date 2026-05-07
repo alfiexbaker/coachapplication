@@ -55,13 +55,10 @@ const ROUTES = [
   { path: '/manage', name: '40-manage' },
   // Settings sub-pages
   { path: '/settings/account', name: '42-settings-account' },
-  { path: '/settings/appearance', name: '43-settings-appearance' },
   { path: '/settings/notifications', name: '44-settings-notifications' },
   { path: '/settings/privacy', name: '45-settings-privacy' },
   // Verification
   { path: '/verification', name: '47-verification' },
-  // Analytics
-  { path: '/analytics/dashboard', name: '49-analytics' },
   // Session invites
   { path: '/session-invites', name: '50-session-invites' },
   // Book coach

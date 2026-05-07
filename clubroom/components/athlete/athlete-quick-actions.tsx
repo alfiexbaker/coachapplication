@@ -58,7 +58,7 @@ function AthleteQuickActionsInner({
         title: athleteName,
         options: [
           { id: 'health', label: 'View Health' },
-          { id: 'analytics', label: 'View Analytics' },
+          { id: 'development', label: 'View Development' },
           { id: 'concern', label: 'Raise Concern' },
           { id: 'block_family', label: 'Block Family Contact', destructive: true },
           { id: 'email_parent', label: 'Email Parent' },
@@ -71,8 +71,8 @@ function AthleteQuickActionsInner({
         onOpenHealth();
         return;
       }
-      if (selected === 'analytics') {
-        router.push(Routes.analyticsAthlete(athlete.athleteId));
+      if (selected === 'development') {
+        router.push(Routes.developmentAthlete(athlete.athleteId));
         return;
       }
       if (selected === 'concern') {

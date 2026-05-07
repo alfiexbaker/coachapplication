@@ -15,7 +15,6 @@ const ASYNC_INDICATORS = [
   /\bSectionSkeleton\b/,
   /\bSubmitProgressState\b/,
   /\bActivityIndicator\b/,
-  /\bAnalyticsScreenState\b/,
   /\bSettingsScreenState\b/,
   /\bVerificationScreenState\b/,
   /\bChildScreenState\b/,

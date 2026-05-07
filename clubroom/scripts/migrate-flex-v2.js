@@ -14,8 +14,6 @@ const stats = { files: 0, modified: 0, replacements: 0, errors: [] };
 // Restored files from git that need reprocessing.
 const BROKEN_FILES = [
   'academy/academy-staff-card.tsx',
-  'analytics/PeakHoursHeatmap.tsx',
-  'analytics/athlete-goal-card.tsx',
   'analytics/goal-progress.tsx',
   'analytics/mini-sparkline.tsx',
   'analytics/progress-chart.tsx',

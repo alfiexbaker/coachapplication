@@ -7,13 +7,11 @@ export default function SettingsLayout() {
       <Stack.Screen name="notifications" />
       <Stack.Screen name="privacy" />
       <Stack.Screen name="account" />
-      <Stack.Screen name="appearance" />
       <Stack.Screen name="calendar-sync" />
       <Stack.Screen name="help" />
       <Stack.Screen name="terms" />
       <Stack.Screen name="privacy-policy" />
       <Stack.Screen name="cancellation-policy" />
-      <Stack.Screen name="smart-slots" />
       <Stack.Screen name="travel-radius" />
     </Stack>
   );

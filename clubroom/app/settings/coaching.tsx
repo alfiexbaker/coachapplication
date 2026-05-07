@@ -152,12 +152,6 @@ export default function CoachingSettingsScreen() {
               onPress={() => router.push(Routes.AVAILABILITY_BLOCK_DATE)}
               icon="calendar-outline"
             />
-            <Separator />
-            <NavigationRow
-              label="Smart slot suggestions"
-              onPress={() => router.push(Routes.SETTINGS_SMART_SLOTS)}
-              icon="sparkles-outline"
-            />
           </View>
 
           <View style={styles.bottomSpacer} />

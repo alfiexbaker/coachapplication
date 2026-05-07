@@ -7,8 +7,7 @@ Rule: active work only. Completed sprint rows are intentionally removed.
 
 | ID | Exactly what it does | Spine(s) | Status |
 | -- | -------------------- | -------- | ------ |
-| PRUNE-06 | Hide or merge post-launch settings and analytics depth so nice-to-have surfaces do not block deployment. | Booking, Availability and Revenue + Development and Analytics + Trust, Safety and Operations | READY |
-| PRUNE-VERIFY-01 | Rehearse the reduced product: no deleted routes in navigation/docs/scripts/manifests, protected core intact, Discover Map validated as a centerpiece. | All spines | OPEN |
+| PRUNE-VERIFY-01 | Rehearse the reduced product: no deleted routes in navigation/docs/scripts/manifests, protected core intact, Discover Map validated as a centerpiece. | All spines | READY |
 | UI-LOAD-05 | Bring club, schedule, events, and calendar surfaces up to the same standard: no brochure skeletons, no cold resets, and no time-based screens loading like generic lists. | Community and Growth + Booking, Availability and Revenue | READY |
 | UI-LOAD-06 | Fix trust-sensitive and family surfaces: family, child, health, emergency, medical, verification, and related safeguarding-adjacent paths need strict, truthful, non-chaotic loading behavior. | Trust, Safety and Operations + Development and Analytics | READY |
 | UI-LOAD-07 | Bring development and training surfaces to the same bar: drills, goals, badges, results program, progress loop, media gallery, videos, group sessions, matches, and athlete development paths must stop feeling second-class. | Development and Analytics + Community and Growth | OPEN |
@@ -17,13 +16,12 @@ Rule: active work only. Completed sprint rows are intentionally removed.
 
 ## Execution Order
 
-1. `PRUNE-06`
-2. `PRUNE-VERIFY-01`
-3. `UI-LOAD-05`
-4. `UI-LOAD-06`
-5. `UI-LOAD-07`
-6. `UI-LOAD-08`
-7. `PROD-VERIFY-01`
+1. `PRUNE-VERIFY-01`
+2. `UI-LOAD-05`
+3. `UI-LOAD-06`
+4. `UI-LOAD-07`
+5. `UI-LOAD-08`
+6. `PROD-VERIFY-01`
 
 ## Active Pruning Plan
 
@@ -65,8 +63,8 @@ Decision:
 ## Recursive Coverage Gate
 
 - Current route inventory:
-  - `160` route files under `app/`
-  - `160` routes now covered by `navigation/loading-route-manifest.js`
+  - `154` route files under `app/`
+  - `154` routes now covered by `navigation/loading-route-manifest.js`
   - `0` routes rely on the static fallback rule
   - `96` routes that use `ScrollView` without list virtualization at the route file level
   - `16` tabbed or segmented routes
@@ -86,7 +84,7 @@ Decision:
     - what would count as a ship-blocking flicker
 - Reality check:
   - the loading foundation now exists in shared code plus `navigation/loading-route-manifest.js`
-  - latest loading coverage audit: `submit-only=4`, `section-skeleton=107`, `static=25`, `warm-first=24`
+  - latest loading coverage audit: `submit-only=4`, `section-skeleton=104`, `static=22`, `warm-first=24`
   - `scripts/loading-route-coverage-audit.js` is the route-closure gate that later slices inherit
   - later slices still need to replace generic implementations on their owned routes; classification closure is done, route-family migration is not
 
