@@ -1,5 +1,5 @@
 import { memo } from 'react';
-import { ActivityIndicator, View, StyleSheet } from 'react-native';
+import { View, StyleSheet } from 'react-native';
 
 import { ThemedText } from '@/components/themed-text';
 import { SurfaceCard } from '@/components/primitives/surface-card';
@@ -9,6 +9,7 @@ import { useTheme, type ThemeColors } from '@/hooks/useTheme';
 import { WEEKDAY_LABELS, formatDateKey } from '@/hooks/use-club-calendar';
 import type { CalendarEvent, CalendarEventType } from '@/services/club-service';
 import { Row } from '@/components/primitives';
+import { Skeleton } from '@/components/ui/skeleton';
 
 function getEventColor(type: CalendarEventType, colors: ThemeColors): string {
   switch (type) {
@@ -58,9 +59,28 @@ export const CalendarGrid = memo(function CalendarGrid({
       </Row>
 
       {loading ? (
-        <View style={styles.loading}>
-          <ActivityIndicator size="small" color={colors.tint} />
-        </View>
+        weeks.map((week, weekIdx) => (
+          <Row key={`loading-${weekIdx}`} style={styles.weekRow}>
+            {week.map((day, dayIdx) => (
+              <View key={`${weekIdx}-${dayIdx}`} style={styles.dayCell}>
+                {day === null ? null : (
+                  <>
+                    <Skeleton
+                      width={18}
+                      height={16}
+                      radius={Radii.xs}
+                      accessibilityLabel="Loading calendar day"
+                    />
+                    <Row style={styles.dotsRow}>
+                      <Skeleton width={5} height={5} radius={Radii.xs} />
+                      <Skeleton width={5} height={5} radius={Radii.xs} />
+                    </Row>
+                  </>
+                )}
+              </View>
+            ))}
+          </Row>
+        ))
       ) : (
         weeks.map((week, weekIdx) => (
           <Row key={weekIdx} style={styles.weekRow}>
@@ -134,7 +154,6 @@ const styles = StyleSheet.create({
   card: { paddingVertical: Spacing.xs, paddingHorizontal: Spacing.xs },
   weekRow: {},
   weekdayCell: { flex: 1, alignItems: 'center', paddingVertical: Spacing.xs / 2 },
-  loading: { paddingVertical: Spacing.xl, alignItems: 'center' },
   dayCell: {
     flex: 1,
     alignItems: 'center',

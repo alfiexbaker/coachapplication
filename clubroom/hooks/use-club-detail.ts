@@ -106,8 +106,10 @@ export function useClubDetail(clubId: string | undefined) {
     [clubEvents, clubActivitySessions, clubMatches],
   );
 
-  const loadClubData = useCallback(async () => {
-    setLoading(true);
+  const loadClubData = useCallback(async ({ showLoading = true }: { showLoading?: boolean } = {}) => {
+    if (showLoading) {
+      setLoading(true);
+    }
     if (!clubId) {
       setClub(undefined);
       setMembership(undefined);
@@ -116,7 +118,9 @@ export function useClubDetail(clubId: string | undefined) {
       setClubMatches([]);
       setSquads([]);
       setInvites([]);
-      setLoading(false);
+      if (showLoading) {
+        setLoading(false);
+      }
       return;
     }
 
@@ -136,7 +140,9 @@ export function useClubDetail(clubId: string | undefined) {
     } catch (error) {
       logger.error('Failed to load club detail', error);
     } finally {
-      setLoading(false);
+      if (showLoading) {
+        setLoading(false);
+      }
     }
   }, [clubId, knownClubs, currentUser?.id, userClubs]);
 
@@ -187,7 +193,7 @@ export function useClubDetail(clubId: string | undefined) {
   }, [clubId]);
 
   useEffect(() => {
-    void loadClubData();
+    void loadClubData({ showLoading: true });
   }, [loadClubData]);
   useEffect(() => {
     loadFeed();
@@ -212,10 +218,13 @@ export function useClubDetail(clubId: string | undefined) {
 
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
-    await loadClubData();
-    loadFeed();
-    await Promise.all([loadMembers(), loadClubActivities()]);
-    setRefreshing(false);
+    try {
+      await loadClubData({ showLoading: false });
+      loadFeed();
+      await Promise.all([loadMembers(), loadClubActivities()]);
+    } finally {
+      setRefreshing(false);
+    }
   }, [loadClubData, loadFeed, loadMembers, loadClubActivities]);
 
   const handlePinToggle = useCallback(

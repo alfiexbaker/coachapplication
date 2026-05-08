@@ -202,6 +202,7 @@ Source of truth:
 - Shared keyed retained-frame support now lives in `useScreen`, so warmed routes can hydrate a truthful cached frame for the requested `dataKey`, and section-skeleton routes only skeletonize when the requested frame is still unresolved.
 - Profile, roster, compare, and coach detail routes now use retained pane mounting plus section-level progress treatment, and coach/public profile offering sections now render real live offerings instead of fake session lists or verbose explainer copy.
 - Schedule, event, club schedule, club detail, and training schedule cold-load states now keep their header or action chrome visible and use schedule/card/detail-shaped placeholders instead of generic list placeholders.
+- Club detail pull-to-refresh preserves the already-loaded club workspace instead of re-entering the cold detail loader, and club calendar month/filter changes keep the header, squad filter, month navigation, and legend mounted while only the unresolved calendar grid skeletonizes.
 - Route classification and hot-path review closure now live in `navigation/loading-route-manifest.js`, with repo-level coverage enforced by `scripts/loading-route-coverage-audit.js`.
 - Domain-specific wrappers exist, but the repo still has drift between shared loading variants and bespoke per-screen placeholders.
 - New work should consolidate toward the shared primitives above instead of adding another custom loading pattern.

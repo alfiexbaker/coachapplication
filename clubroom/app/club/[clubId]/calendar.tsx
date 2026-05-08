@@ -31,6 +31,7 @@ export default function CalendarScreen() {
     status,
     error,
     refreshing,
+    showSectionSkeleton,
     onRefresh,
     retry,
     squads,
@@ -119,13 +120,13 @@ export default function CalendarScreen() {
         selectedDay={selectedDay}
         weeks={weeks}
         eventsByDate={eventsByDate}
-        loading={false}
+        loading={showSectionSkeleton}
         isToday={isToday}
         onSelectDay={setSelectedDay}
       />
 
       {/* Selected Day Events */}
-      {selectedDay !== null && (
+      {selectedDay !== null && !showSectionSkeleton && (
         <CalendarEventList
           year={year}
           month={month}
@@ -134,7 +135,7 @@ export default function CalendarScreen() {
         />
       )}
 
-      {Object.keys(eventsByDate).length === 0 && (
+      {Object.keys(eventsByDate).length === 0 && !showSectionSkeleton && (
         <EmptyState
           icon="calendar-outline"
           title="No calendar activity"

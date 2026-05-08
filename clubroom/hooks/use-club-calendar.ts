@@ -51,6 +51,7 @@ export interface UseClubCalendarResult {
   status: ScreenStatus;
   error: ServiceError | null;
   refreshing: boolean;
+  showSectionSkeleton: boolean;
   onRefresh: () => void;
   retry: () => void;
   squads: { id: string; name: string }[];
@@ -99,11 +100,22 @@ export function useClubCalendar(): UseClubCalendarResult {
     }
   }, [clubId, year, month, squadFilter]);
 
-  const { data, status, error, refreshing, onRefresh, retry } = useScreen<ClubCalendarData>({
+  const calendarDataKey = `${clubId ?? 'missing'}:${year}-${month}:${squadFilter ?? 'all'}`;
+  const {
+    data,
+    status,
+    error,
+    refreshing,
+    showSectionSkeleton,
+    onRefresh,
+    retry,
+  } = useScreen<ClubCalendarData>({
     load: loadCalendar,
     deps: [clubId, year, month, squadFilter],
     isEmpty: () => false,
     refetchOnFocus: true,
+    loadingStrategy: 'section-skeleton',
+    dataKey: calendarDataKey,
   });
 
   const events = data?.events ?? [];
@@ -171,6 +183,7 @@ export function useClubCalendar(): UseClubCalendarResult {
     status,
     error,
     refreshing,
+    showSectionSkeleton,
     onRefresh,
     retry,
     squads,
