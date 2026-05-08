@@ -406,14 +406,10 @@ const flowProfiles = {
     'athlete_home',
     'athlete_bookings',
     'athlete_progress',
-    'athlete_goals',
-    'athlete_skills',
-    'athlete_badges',
     'athlete_find_coach',
     'athlete_settings',
     'athlete_health',
     'athlete_health_injuries',
-    'athlete_journal',
   ],
   'trust-core': [
     'coach_raise_concern',
@@ -421,7 +417,6 @@ const flowProfiles = {
     'parent_child_emergency',
     'athlete_health',
     'athlete_health_injuries',
-    'athlete_journal',
   ],
   'pre-api-core': [
     'coach_home',
@@ -454,14 +449,10 @@ const flowProfiles = {
     'athlete_home',
     'athlete_bookings',
     'athlete_progress',
-    'athlete_goals',
-    'athlete_skills',
-    'athlete_badges',
     'athlete_find_coach',
     'athlete_settings',
     'athlete_health',
     'athlete_health_injuries',
-    'athlete_journal',
   ],
 };
 

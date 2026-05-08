@@ -1,16 +1,16 @@
 # Last Step Handoff
 
-Date: 2026-05-07
+Date: 2026-05-09
 
 ## Latest Planning Update
 
-1. Completed `PRUNE-06` by removing appearance/theme customization, smart-slot suggestions, and the separate analytics route tree from the launch route set.
-2. Kept retained settings tied to real operations: calendar sync, travel radius, cancellation policy, notifications, privacy, account, and trust/support settings.
-3. Updated the active backlog so `PRUNE-VERIFY-01` is the next pruning sprint.
+1. Completed `PRUNE-VERIFY-01` by proving deleted route files/helpers are gone, Discover Map remains protected, and the reduced product passes the core UI-flow profiles.
+2. Removed stale UI-flow profile references to deleted athlete goals, skills, badges-gallery, and journal routes.
+3. Updated the active backlog so `UI-LOAD-05` is the next sprint.
 
 ## Next Exact Action
 
-1. Start `PRUNE-VERIFY-01`: rehearse the reduced product and prove no deleted feature remains in navigation, docs, scripts, route manifest, or UI flow checks.
+1. Start `UI-LOAD-05`: upgrade club, schedule, events, and calendar loading behavior now that product pruning is complete.
 
 ## Previous Handoff
 

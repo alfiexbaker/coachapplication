@@ -281,7 +281,7 @@ Completed:
 
 ## `PRUNE-VERIFY-01` Reduced Product Rehearsal
 
-Status: `READY`
+Status: `DONE`
 
 Objective:
 
@@ -304,3 +304,11 @@ Acceptance:
 - Kept/narrowed features still cover the protected product core.
 - Discover Map is validated as a centerpiece discovery path.
 - Remaining launch work can return to `UI-LOAD-05` through `PROD-VERIFY-01`.
+
+Completed:
+
+- Verified deleted route files are absent from the app tree for the PRUNE-01 through PRUNE-06 route cuts.
+- Confirmed deleted route helpers and visible entry points are gone from active app/navigation/scripts, with only intentional historical docs describing the removals.
+- Confirmed Discover Map remains protected, routed, covered by the loading manifest, and linked from booking/discovery/home surfaces.
+- Removed stale UI-flow profile references to deleted athlete goals, skills, badges-gallery, and journal routes.
+- Revalidated the reduced product with typecheck, test compile, loading-route audit, UI preflight, and coach/parent/athlete core flow profiles.

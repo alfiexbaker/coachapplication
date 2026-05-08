@@ -1,13 +1,12 @@
 # Sprint Backlog
 
-Updated: 2026-05-07
+Updated: 2026-05-09
 Rule: active work only. Completed sprint rows are intentionally removed.
 
 ## Open Queue
 
 | ID | Exactly what it does | Spine(s) | Status |
 | -- | -------------------- | -------- | ------ |
-| PRUNE-VERIFY-01 | Rehearse the reduced product: no deleted routes in navigation/docs/scripts/manifests, protected core intact, Discover Map validated as a centerpiece. | All spines | READY |
 | UI-LOAD-05 | Bring club, schedule, events, and calendar surfaces up to the same standard: no brochure skeletons, no cold resets, and no time-based screens loading like generic lists. | Community and Growth + Booking, Availability and Revenue | READY |
 | UI-LOAD-06 | Fix trust-sensitive and family surfaces: family, child, health, emergency, medical, verification, and related safeguarding-adjacent paths need strict, truthful, non-chaotic loading behavior. | Trust, Safety and Operations + Development and Analytics | READY |
 | UI-LOAD-07 | Bring development and training surfaces to the same bar: drills, goals, badges, results program, progress loop, media gallery, videos, group sessions, matches, and athlete development paths must stop feeling second-class. | Development and Analytics + Community and Growth | OPEN |
@@ -16,12 +15,11 @@ Rule: active work only. Completed sprint rows are intentionally removed.
 
 ## Execution Order
 
-1. `PRUNE-VERIFY-01`
-2. `UI-LOAD-05`
-3. `UI-LOAD-06`
-4. `UI-LOAD-07`
-5. `UI-LOAD-08`
-6. `PROD-VERIFY-01`
+1. `UI-LOAD-05`
+2. `UI-LOAD-06`
+3. `UI-LOAD-07`
+4. `UI-LOAD-08`
+5. `PROD-VERIFY-01`
 
 ## Active Pruning Plan
 
