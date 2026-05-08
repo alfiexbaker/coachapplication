@@ -91,41 +91,56 @@ export default function EventDetailScreen() {
     </SafeAreaView>
   );
 
+  const renderHeader = (subtitle: string) => (
+    <PageHeader
+      title="Event"
+      subtitle={subtitle}
+      showBack
+      onBackPress={() => router.back()}
+      centerTitle
+      containerStyle={[styles.header, { borderBottomColor: palette.border }]}
+    />
+  );
+
   if (status === 'loading') {
     return renderShell(
       <>
-        <PageHeader
-          title="Event"
-          subtitle="Loading event workspace"
-          showBack
-          onBackPress={() => router.back()}
-          centerTitle
-          containerStyle={[styles.header, { borderBottomColor: palette.border }]}
-        />
+        {renderHeader('Loading event workspace')}
         <LoadingState variant="detail" />
       </>,
     );
   }
 
   if (!idParam.valid) {
-    return renderShell(<ErrorState message="Invalid event link." onRetry={() => router.back()} />);
+    return renderShell(
+      <>
+        {renderHeader('Invalid event link')}
+        <ErrorState message="Invalid event link." onRetry={() => router.back()} />
+      </>,
+    );
   }
 
   if (status === 'error') {
     return renderShell(
-      <ErrorState message={error?.message || 'Failed to load event details.'} onRetry={retry} />
+      <>
+        {renderHeader('Unable to load event')}
+        <ErrorState message={error?.message || 'Failed to load event details.'} onRetry={retry} />
+      </>,
     );
   }
 
   if (status === 'empty' || !event) {
     return renderShell(
-      <EmptyState
-        icon="calendar-outline"
-        title="Event not found"
-        message="This event no longer exists or you no longer have access to it."
-        actionLabel="Go Back"
-        onPressAction={() => router.back()}
-      />,
+      <>
+        {renderHeader('Event unavailable')}
+        <EmptyState
+          icon="calendar-outline"
+          title="Event not found"
+          message="This event no longer exists or you no longer have access to it."
+          actionLabel="Go Back"
+          onPressAction={() => router.back()}
+        />
+      </>,
     );
   }
 
