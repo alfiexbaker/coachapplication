@@ -92,7 +92,19 @@ export default function EventDetailScreen() {
   );
 
   if (status === 'loading') {
-    return renderShell(<LoadingState variant="detail" />);
+    return renderShell(
+      <>
+        <PageHeader
+          title="Event"
+          subtitle="Loading event workspace"
+          showBack
+          onBackPress={() => router.back()}
+          centerTitle
+          containerStyle={[styles.header, { borderBottomColor: palette.border }]}
+        />
+        <LoadingState variant="detail" />
+      </>,
+    );
   }
 
   if (!idParam.valid) {

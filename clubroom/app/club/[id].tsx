@@ -251,7 +251,7 @@ export default function ClubDetailScreen() {
       'Club',
       <>
         {renderTopBar('Club')}
-        <LoadingState variant="list" />
+        <LoadingState variant="detail" />
       </>,
     );
   }

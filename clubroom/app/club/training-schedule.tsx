@@ -156,7 +156,7 @@ export default function TrainingScheduleScreen() {
       {/* Content */}
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
         {loading ? (
-          <LoadingState variant="list" />
+          <LoadingState variant="schedule" />
         ) : filteredSessions.length === 0 ? (
           <EmptyState
             icon="football-outline"

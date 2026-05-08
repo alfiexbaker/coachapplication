@@ -102,7 +102,7 @@ export function ClubScheduleScreen({ clubId, squadId, scope }: ClubScheduleScree
     return (
       <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top', 'bottom']}>
         <PageHeader title={title} subtitle={subtitle} showBack onBackPress={handleBack} />
-        <LoadingState variant="list" />
+        <LoadingState variant="schedule" />
       </SafeAreaView>
     );
   }

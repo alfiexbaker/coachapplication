@@ -86,7 +86,7 @@ export default function EventsListScreen() {
   );
 
   if (status === 'loading') {
-    return renderShell(<LoadingState variant="list" />);
+    return renderShell(<LoadingState variant="card" />);
   }
 
   if (status === 'error') {

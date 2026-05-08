@@ -49,9 +49,29 @@ export default function ScheduleScreen() {
     </SafeAreaView>
   );
 
-  // Loading state
   if (schedule.loading) {
-    return renderShell(<LoadingState variant="calendar" />);
+    return renderShell(
+      <>
+        <ScreenHeader
+          title="Schedule"
+          subtitle="Your upcoming sessions"
+          rightElement={
+            <Clickable
+              onPress={schedule.handleOpenSettings}
+              accessibilityLabel="Booking rules"
+              style={[styles.settingsBtn, { backgroundColor: colors.surface }]}
+            >
+              <Ionicons name="settings-outline" size={22} color={colors.muted} />
+            </Clickable>
+          }
+        />
+        <ScheduleSegmentControl
+          segment={schedule.segment}
+          onSegmentChange={schedule.handleSegmentChange}
+        />
+        <LoadingState variant="schedule" />
+      </>,
+    );
   }
 
   // Error state
