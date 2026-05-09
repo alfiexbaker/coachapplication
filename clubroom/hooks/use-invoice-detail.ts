@@ -52,6 +52,8 @@ export function useInvoiceDetail() {
     deps: [id],
     isEmpty: (value) => value === null,
     refetchOnFocus: true,
+    loadingStrategy: 'section-skeleton',
+    dataKey: `invoice-detail:${id ?? 'missing'}`,
   });
 
   const handleSendInvoice = useCallback(async () => {

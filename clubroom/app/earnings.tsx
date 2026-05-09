@@ -449,15 +449,27 @@ export default function EarningsScreen() {
       >
         {content}
       </ScrollView>,
-    );
+  );
 
   if (status === 'loading') {
-    return renderShell(<LoadingState variant="detail" />);
+    return renderShell(
+      <>
+        <View style={styles.listHeader}>
+          <PageHeader title="Earnings" subtitle="Loading payment summary" showBack />
+        </View>
+        <LoadingState variant="detail" />
+      </>,
+    );
   }
 
   if (status === 'error') {
     return renderShell(
-      <ErrorState message={error?.message || 'Failed to load earnings.'} onRetry={retry} />,
+      <>
+        <View style={styles.listHeader}>
+          <PageHeader title="Earnings" subtitle="Payment summary unavailable" showBack />
+        </View>
+        <ErrorState message={error?.message || 'Failed to load earnings.'} onRetry={retry} />
+      </>,
     );
   }
 

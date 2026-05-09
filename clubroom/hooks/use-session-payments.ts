@@ -384,6 +384,9 @@ export function useSessionPayments() {
     load,
     deps: [coachId],
     isEmpty: (d) => d.unpaid.length === 0 && d.paid.length === 0 && d.writtenOff.length === 0,
+    refetchOnFocus: true,
+    loadingStrategy: 'section-skeleton',
+    dataKey: `session-payments:${coachId ?? 'none'}`,
     events: [
       ServiceEvents.INVOICE_PAID,
       ServiceEvents.INVOICE_WRITTEN_OFF,

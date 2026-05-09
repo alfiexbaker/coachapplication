@@ -70,6 +70,8 @@ export default function InvoicesScreen() {
     ],
     isEmpty: (value) => value.invoices.length === 0,
     refetchOnFocus: true,
+    loadingStrategy: 'section-skeleton',
+    dataKey: `invoices:${currentUser?.id ?? 'guest'}:${filter.status ?? 'all'}:${filter.dateFrom ?? 'none'}:${filter.dateTo ?? 'none'}:${filter.bookingId ?? 'none'}:${filter.coachId ?? 'none'}`,
   });
 
   const invoices = data?.invoices ?? [];
