@@ -183,6 +183,8 @@ export function useGroupRoster(sessionId: string | undefined) {
     deps: [sessionId],
     isEmpty: (value) => value.session === null,
     refetchOnFocus: true,
+    loadingStrategy: 'section-skeleton',
+    dataKey: sessionId ? `group-roster:${sessionId}` : 'group-roster:missing',
   });
 
   const session = data?.session ?? null;

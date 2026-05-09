@@ -27,11 +27,63 @@ export default function GroupSessionsScreen() {
   const { colors } = useTheme();
   const { sessions, status, error, refreshing, onRefresh, retry, filter, setFilter, isCoach, badgeMap, isSingleChild } =
     useGroupSessions();
+  const header = (
+    <Row gap="md" align="center" style={styles.header}>
+      <Clickable onPress={() => router.back()} hitSlop={8}>
+        <Ionicons name="arrow-back" size={24} color={colors.text} />
+      </Clickable>
+      <Column flex>
+        <ThemedText type="title">Group Sessions</ThemedText>
+        <ThemedText style={[Typography.small, { color: colors.muted, marginTop: Spacing.micro }]}>
+          Camps, clinics & open training
+        </ThemedText>
+      </Column>
+      {isCoach && (
+        <Clickable
+          accessibilityLabel="Create group session"
+          onPress={() => router.push(Routes.GROUP_SESSIONS_CREATE)}
+          style={[styles.createButton, { backgroundColor: colors.tint }]}
+        >
+          <Ionicons name="add" size={20} color={colors.onPrimary} />
+        </Clickable>
+      )}
+    </Row>
+  );
+  const filters = (
+    <ScrollView
+      horizontal
+      showsHorizontalScrollIndicator={false}
+      contentContainerStyle={styles.filtersContainer}
+      style={styles.filtersScroll}
+    >
+      {SESSION_FILTERS.map((f) => (
+        <Clickable
+          key={f.key}
+          onPress={() => setFilter(f.key)}
+          style={[
+            styles.filterChip,
+            { backgroundColor: filter === f.key ? colors.tint : colors.surface },
+          ]}
+        >
+          <ThemedText
+            style={[
+              Typography.smallSemiBold,
+              { color: filter === f.key ? colors.onPrimary : colors.text },
+            ]}
+          >
+            {f.label}
+          </ThemedText>
+        </Clickable>
+      ))}
+    </ScrollView>
+  );
   const renderShell = (content: ReactNode) => (
     <SafeAreaView
       style={[styles.container, { backgroundColor: colors.background }]}
       edges={['top', 'bottom']}
     >
+      {header}
+      {filters}
       {content}
     </SafeAreaView>
   );
@@ -48,54 +100,6 @@ export default function GroupSessionsScreen() {
 
   return renderShell(
     <>
-      <Row gap="md" align="center" style={styles.header}>
-        <Clickable onPress={() => router.back()} hitSlop={8}>
-          <Ionicons name="arrow-back" size={24} color={colors.text} />
-        </Clickable>
-        <Column flex>
-          <ThemedText type="title">Group Sessions</ThemedText>
-          <ThemedText style={[Typography.small, { color: colors.muted, marginTop: Spacing.micro }]}>
-            Camps, clinics & open training
-          </ThemedText>
-        </Column>
-        {isCoach && (
-          <Clickable
-            accessibilityLabel="Create group session"
-            onPress={() => router.push(Routes.GROUP_SESSIONS_CREATE)}
-            style={[styles.createButton, { backgroundColor: colors.tint }]}
-          >
-            <Ionicons name="add" size={20} color={colors.onPrimary} />
-          </Clickable>
-        )}
-      </Row>
-
-      <ScrollView
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        contentContainerStyle={styles.filtersContainer}
-        style={styles.filtersScroll}
-      >
-        {SESSION_FILTERS.map((f) => (
-          <Clickable
-            key={f.key}
-            onPress={() => setFilter(f.key)}
-            style={[
-              styles.filterChip,
-              { backgroundColor: filter === f.key ? colors.tint : colors.surface },
-            ]}
-          >
-            <ThemedText
-              style={[
-                Typography.smallSemiBold,
-                { color: filter === f.key ? colors.onPrimary : colors.text },
-              ]}
-            >
-              {f.label}
-            </ThemedText>
-          </Clickable>
-        ))}
-      </ScrollView>
-
       <ScrollView
         contentContainerStyle={styles.content}
         showsVerticalScrollIndicator={false}

@@ -74,6 +74,8 @@ export function useMatchDetail() {
     deps: [id],
     isEmpty: (value) => value.match === null,
     refetchOnFocus: true,
+    loadingStrategy: 'section-skeleton',
+    dataKey: id ? `match-detail:${id}` : 'match-detail:missing',
   });
 
   const match = data?.match ?? null;

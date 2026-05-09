@@ -158,6 +158,8 @@ export function useGroupSession() {
     ],
     isEmpty: (value) => value.session === null,
     refetchOnFocus: true,
+    loadingStrategy: 'section-skeleton',
+    dataKey: id ? `group-session:${id}` : 'group-session:missing',
   });
 
   const session = data?.session ?? null;

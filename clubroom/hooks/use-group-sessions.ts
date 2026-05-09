@@ -80,6 +80,8 @@ export function useGroupSessions() {
     load: loadSessions,
     isEmpty: (value) => value.sessions.length === 0,
     refetchOnFocus: true,
+    loadingStrategy: 'warm-first',
+    dataKey: isParent ? 'group-sessions:parent' : 'group-sessions:default',
   });
 
   const sessions = data?.sessions ?? [];

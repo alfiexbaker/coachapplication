@@ -72,6 +72,8 @@ export function useMatchesScreen() {
     deps: [filter],
     isEmpty: (value) => value.matches.length === 0,
     refetchOnFocus: true,
+    loadingStrategy: 'warm-first',
+    dataKey: `matches:${filter}`,
   });
 
   const matches = data?.matches ?? [];
