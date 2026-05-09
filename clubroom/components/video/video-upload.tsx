@@ -17,19 +17,21 @@ import { uiFeedback } from '@/services/ui-feedback';
 const logger = createLogger('VideoUpload');
 
 interface VideoUploadProps {
-  onUpload: (videoData: {
+  onSelect: (videoData: {
     uri: string;
     name: string;
     duration: number;
     fileSize: number;
     thumbnailUri?: string;
   }) => void;
+  disabled?: boolean;
   maxDurationSeconds?: number;
   maxFileSizeMB?: number;
 }
 
 export function VideoUpload({
-  onUpload,
+  onSelect,
+  disabled = false,
   maxDurationSeconds = 600,
   maxFileSizeMB = 500,
 }: VideoUploadProps) {
@@ -39,6 +41,7 @@ export function VideoUpload({
   const [permissionMessage, setPermissionMessage] = useState<string | null>(null);
 
   const pickVideo = async () => {
+    if (disabled) return;
     try {
       const result = await ImagePicker.launchImageLibraryAsync({
         mediaTypes: ImagePicker.MediaTypeOptions.Videos,
@@ -77,6 +80,7 @@ export function VideoUpload({
   };
 
   const recordVideo = async () => {
+    if (disabled) return;
     try {
       const permission = await ImagePicker.requestCameraPermissionsAsync();
       if (!permission.granted) {
@@ -110,11 +114,11 @@ export function VideoUpload({
     }
   };
 
-  const handleUpload = useCallback(async () => {
+  const handleSelectVideo = useCallback(async () => {
     if (!selectedVideo) return;
-    onUpload(selectedVideo);
+    onSelect(selectedVideo);
     setSelectedVideo(null);
-  }, [onUpload, selectedVideo]);
+  }, [onSelect, selectedVideo]);
 
   const clearSelection = useCallback(() => {
     setSelectedVideo(null);
@@ -123,13 +127,19 @@ export function VideoUpload({
   return (
     <View style={styles.container}>
       {!selectedVideo ? (
-        <VideoPickerCards onPickVideo={pickVideo} onRecordVideo={recordVideo} palette={palette} />
+        <VideoPickerCards
+          onPickVideo={pickVideo}
+          onRecordVideo={recordVideo}
+          palette={palette}
+          disabled={disabled}
+        />
       ) : (
         <VideoPreviewCard
           video={selectedVideo}
           onClear={clearSelection}
-          onUpload={handleUpload}
+          onUseVideo={handleSelectVideo}
           palette={palette}
+          disabled={disabled}
         />
       )}
       {permissionMessage ? (

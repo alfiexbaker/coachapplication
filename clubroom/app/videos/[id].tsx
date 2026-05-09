@@ -7,7 +7,6 @@ import type { ReactNode } from 'react';
 
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { Clickable } from '@/components/primitives/clickable';
-import { Column } from '@/components/primitives/column';
 import { PageHeader } from '@/components/primitives/page-header';
 import { Row } from '@/components/primitives/row';
 import { VideoPlayer, AnnotationTimeline } from '@/components/video/video-player';
@@ -46,6 +45,38 @@ export default function VideoDetailScreen() {
     dismissAnnotationModal,
     setCurrentTime,
   } = useVideoDetail(id);
+  const stateHeader = (
+    <PageHeader
+      title="Video"
+      showBack
+      backIcon="arrow-back"
+      onBackPress={() => router.back()}
+      centerTitle
+      containerStyle={styles.header}
+    />
+  );
+  const detailHeader = (
+    <PageHeader
+      title="Video"
+      showBack
+      backIcon="arrow-back"
+      onBackPress={() => router.back()}
+      centerTitle
+      containerStyle={styles.header}
+      right={
+        <Row align="center" gap="md">
+          <Clickable accessibilityLabel="Share video" onPress={handleShare} hitSlop={8}>
+            <Ionicons name="share-outline" size={22} color={colors.text} />
+          </Clickable>
+          {isOwner ? (
+            <Clickable accessibilityLabel="Delete video" onPress={handleDelete} hitSlop={8}>
+              <Ionicons name="trash-outline" size={22} color={colors.error} />
+            </Clickable>
+          ) : null}
+        </Row>
+      }
+    />
+  );
   const renderShell = ({
     header,
     content,
@@ -64,34 +95,28 @@ export default function VideoDetailScreen() {
 
   if (!idParam.valid) {
     return renderShell({
+      header: stateHeader,
       content: <ErrorState message="Invalid video link." onRetry={() => router.back()} />,
     });
   }
 
   if (loading) {
     return renderShell({
-      header: (
-        <PageHeader
-          title="Video"
-          showBack
-          backIcon="arrow-back"
-          onBackPress={() => router.back()}
-          centerTitle
-          containerStyle={styles.header}
-        />
-      ),
-      content: <LoadingState variant="detail" />,
+      header: stateHeader,
+      content: <LoadingState variant="hero" />,
     });
   }
 
   if (status === 'error') {
     return renderShell({
+      header: stateHeader,
       content: <ErrorState message={error?.message ?? 'Failed to load video.'} onRetry={retry} />,
     });
   }
 
   if (status === 'empty' || !video) {
     return renderShell({
+      header: stateHeader,
       content: (
         <EmptyState
           icon="videocam-outline"
@@ -103,27 +128,7 @@ export default function VideoDetailScreen() {
   }
 
   return renderShell({
-    header: (
-      <Row align="center" gap="md" style={styles.header}>
-        <Clickable onPress={() => router.back()} hitSlop={8}>
-          <Ionicons name="arrow-back" size={24} color={colors.text} />
-        </Clickable>
-        <Column flex />
-        <Clickable accessibilityLabel="Share video" onPress={handleShare} hitSlop={8}>
-          <Ionicons name="share-outline" size={22} color={colors.text} />
-        </Clickable>
-        {isOwner && (
-          <Clickable
-            accessibilityLabel="Delete video"
-            onPress={handleDelete}
-            hitSlop={8}
-            style={{ marginLeft: Spacing.md }}
-          >
-            <Ionicons name="trash-outline" size={22} color={colors.error} />
-          </Clickable>
-        )}
-      </Row>
-    ),
+    header: detailHeader,
     content: (
       <>
         <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>

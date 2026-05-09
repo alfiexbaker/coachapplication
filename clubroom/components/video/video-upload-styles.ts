@@ -53,7 +53,7 @@ export const styles = StyleSheet.create({
     gap: Spacing.xs,
   },
   metaText: { ...Typography.caption },
-  uploadButton: {
+  useButton: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
@@ -62,6 +62,9 @@ export const styles = StyleSheet.create({
     marginTop: 0,
     paddingVertical: Spacing.md,
     borderRadius: Radii.md,
+  },
+  disabled: {
+    opacity: 0.55,
   },
   requirements: {
     gap: Spacing.sm,

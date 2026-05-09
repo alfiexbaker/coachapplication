@@ -51,20 +51,25 @@ interface VideoPickerCardsProps {
   onPickVideo: () => void;
   onRecordVideo: () => void;
   palette: ThemeColors;
+  disabled?: boolean;
 }
 
 export const VideoPickerCards = memo(function VideoPickerCards({
   onPickVideo,
   onRecordVideo,
   palette,
+  disabled = false,
 }: VideoPickerCardsProps) {
   return (
     <Row gap="md">
       <Clickable
         onPress={onPickVideo}
+        disabled={disabled}
+        accessibilityState={{ disabled }}
         style={[
           styles.pickerCard,
           { backgroundColor: palette.surface, borderColor: palette.border },
+          disabled ? styles.disabled : undefined,
         ]}
       >
         <View style={[styles.pickerIcon, { backgroundColor: withAlpha(palette.tint, 0.09) }]}>
@@ -76,9 +81,12 @@ export const VideoPickerCards = memo(function VideoPickerCards({
 
       <Clickable
         onPress={onRecordVideo}
+        disabled={disabled}
+        accessibilityState={{ disabled }}
         style={[
           styles.pickerCard,
           { backgroundColor: palette.surface, borderColor: palette.border },
+          disabled ? styles.disabled : undefined,
         ]}
       >
         <View style={[styles.pickerIcon, { backgroundColor: withAlpha(palette.error, 0.09) }]}>
@@ -96,15 +104,17 @@ export const VideoPickerCards = memo(function VideoPickerCards({
 interface VideoPreviewCardProps {
   video: SelectedVideo;
   onClear: () => void;
-  onUpload: () => void;
+  onUseVideo: () => void;
   palette: ThemeColors;
+  disabled?: boolean;
 }
 
 export const VideoPreviewCard = memo(function VideoPreviewCard({
   video,
   onClear,
-  onUpload,
+  onUseVideo,
   palette,
+  disabled = false,
 }: VideoPreviewCardProps) {
   return (
     <Animated.View entering={FadeIn.duration(200)}>
@@ -125,6 +135,7 @@ export const VideoPreviewCard = memo(function VideoPreviewCard({
           <Clickable
             accessibilityLabel="Close"
             onPress={onClear}
+            disabled={disabled}
             style={[styles.clearButton, { backgroundColor: withAlpha(palette.text, 0.5) }]}
           >
             <Ionicons name="close" size={20} color={palette.onPrimary} />
@@ -153,11 +164,16 @@ export const VideoPreviewCard = memo(function VideoPreviewCard({
         </View>
 
         <Clickable
-          onPress={onUpload}
-          style={[styles.uploadButton, { backgroundColor: palette.tint }]}
+          onPress={onUseVideo}
+          disabled={disabled}
+          accessibilityState={{ disabled }}
+          style={[
+            styles.useButton,
+            { backgroundColor: disabled ? palette.border : palette.tint },
+          ]}
           accessibilityLabel="Use selected video"
         >
-          <Ionicons name="cloud-upload" size={20} color={palette.onPrimary} />
+          <Ionicons name="checkmark-circle" size={20} color={palette.onPrimary} />
           <ThemedText style={{ color: palette.onPrimary, fontWeight: '700' }}>
             Use Video
           </ThemedText>

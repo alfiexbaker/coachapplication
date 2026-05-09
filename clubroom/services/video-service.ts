@@ -218,6 +218,16 @@ export interface CreateVideoInput {
   tags?: string[];
 }
 
+export type VideoCreateStage =
+  | 'initializing-upload'
+  | 'uploading-file'
+  | 'creating-record'
+  | 'ready';
+
+export interface CreateVideoOptions {
+  onStageChange?: (stage: VideoCreateStage) => void;
+}
+
 export interface CreateAnnotationInput {
   timestamp: number;
   label: string;
@@ -453,7 +463,9 @@ export const videoService = {
     thumbnailUrl: string,
     duration: number,
     fileSize: number,
+    options: CreateVideoOptions = {},
   ): Promise<SessionVideo> {
+    const reportStage = options.onStageChange;
     const newVideo: SessionVideo = {
       id: apiClient.generateId('vid'),
       coachId: input.coachId,
@@ -476,14 +488,17 @@ export const videoService = {
     };
 
     if (USE_MOCK) {
+      reportStage?.('creating-record');
       videosCache = await loadFromStorage();
       videosCache.unshift(newVideo);
       await saveToStorage(videosCache);
+      reportStage?.('ready');
       return newVideo;
     }
 
     const fileName = buildUploadFileName(videoUrl, input.title);
     const contentType = inferVideoContentType(fileName);
+    reportStage?.('initializing-upload');
     const uploadInit = requireApiResult(
       await apiFetch<ApiUploadInitResponse>('/v1/uploads/init', {
         method: 'POST',
@@ -503,8 +518,10 @@ export const videoService = {
       'Failed to initialize video upload',
     );
 
+    reportStage?.('uploading-file');
     await uploadFileToSignedUrl(videoUrl, uploadInit.uploadUrl, uploadInit.uploadHeaders);
 
+    reportStage?.('creating-record');
     const created = requireApiResult(
       await apiFetch<ApiVideoDetailResponse>('/v1/videos', {
         method: 'POST',
@@ -521,7 +538,9 @@ export const videoService = {
       'Failed to create video record',
     );
 
-    return mapApiVideo(created.video);
+    const mappedVideo = mapApiVideo(created.video);
+    reportStage?.('ready');
+    return mappedVideo;
   },
 
   /**

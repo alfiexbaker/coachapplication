@@ -8,6 +8,9 @@ import { Clickable } from '@/components/primitives/clickable';
 import { ThemedText } from '@/components/themed-text';
 import { Row } from '@/components/primitives/row';
 import { VideoUpload } from '@/components/video/video-upload';
+import { formatDuration, formatFileSize } from '@/components/video/video-upload-sections';
+import { SubmitProgressState } from '@/components/ui/screen-states';
+import { StatusBanner } from '@/components/ui/primitives/StatusBanner';
 import { Spacing, Radii, Typography } from '@/constants/theme';
 import { useScreen } from '@/hooks/use-screen';
 import { useVideoUpload } from '@/hooks/use-video-upload';
@@ -16,12 +19,16 @@ import { ok } from '@/types/result';
 export default function VideoUploadScreen() {
   const { colors } = useScreen<null>({ load: async () => ok(null), isEmpty: () => false });
   const {
+    videoData,
     title,
     description,
-    uploading,
+    uploadStage,
+    uploadStatusMessage,
+    isUploading,
     canSubmit,
     setTitle,
     setDescription,
+    clearSelectedVideo,
     handleVideoSelected,
     handleSubmit,
   } = useVideoUpload();
@@ -51,21 +58,45 @@ export default function VideoUploadScreen() {
           <ThemedText
             style={[styles.submitText, { color: canSubmit ? colors.onPrimary : colors.muted }]}
           >
-            {uploading ? 'Uploading...' : 'Upload'}
+            {isUploading ? 'Uploading' : 'Upload'}
           </ThemedText>
         </Clickable>
       </Row>
 
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
+        {uploadStatusMessage ? (
+          <StatusBanner
+            variant={uploadStage === 'failed' ? 'error' : 'info'}
+            message={uploadStatusMessage}
+          />
+        ) : null}
+
         <SurfaceCard style={styles.section}>
           <ThemedText type="subtitle" style={styles.sectionTitle}>
             Select Video
           </ThemedText>
           <VideoUpload
-            onUpload={handleVideoSelected}
+            onSelect={handleVideoSelected}
+            disabled={isUploading}
             maxDurationSeconds={600}
             maxFileSizeMB={500}
           />
+          {videoData ? (
+            <StatusBanner
+              variant="success"
+              icon="checkmark-circle"
+              message={`${videoData.name} selected (${formatDuration(videoData.duration)}, ${formatFileSize(videoData.fileSize)}). It stays private on this device until upload completes.`}
+              action={
+                !isUploading
+                  ? {
+                      label: 'Remove',
+                      onPress: clearSelectedVideo,
+                      accessibilityLabel: 'Remove selected video',
+                    }
+                  : undefined
+              }
+            />
+          ) : null}
         </SurfaceCard>
 
         <SurfaceCard style={styles.section}>
@@ -77,9 +108,13 @@ export default function VideoUploadScreen() {
             <TextInput
               value={title}
               onChangeText={setTitle}
+              editable={!isUploading}
               placeholder="e.g., Dribbling Session — Week 4"
               placeholderTextColor={colors.muted}
-              style={[styles.input, { borderColor: colors.border, backgroundColor: colors.card }]}
+              style={[
+                styles.input,
+                { borderColor: colors.border, backgroundColor: colors.card, color: colors.text },
+              ]}
               maxLength={100}
             />
           </View>
@@ -88,6 +123,7 @@ export default function VideoUploadScreen() {
             <TextInput
               value={description}
               onChangeText={setDescription}
+              editable={!isUploading}
               placeholder="Add notes about what's covered in this video..."
               placeholderTextColor={colors.muted}
               multiline
@@ -96,11 +132,14 @@ export default function VideoUploadScreen() {
               style={[
                 styles.input,
                 styles.textArea,
-                { borderColor: colors.border, backgroundColor: colors.card },
+                { borderColor: colors.border, backgroundColor: colors.card, color: colors.text },
               ]}
               maxLength={500}
             />
           </View>
+          {isUploading ? (
+            <SubmitProgressState label={uploadStatusMessage ?? 'Uploading video...'} />
+          ) : null}
           <ThemedText style={[styles.helperText, { color: colors.muted }]}>
             Uploads start private. Share from the video detail screen after processing.
           </ThemedText>

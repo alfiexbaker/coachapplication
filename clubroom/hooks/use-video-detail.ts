@@ -5,16 +5,17 @@
  * Used by app/videos/[id].tsx
  */
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useCallback } from 'react';
 import { Share } from 'react-native';
 import { router } from 'expo-router';
 
 import { useAuth } from '@/hooks/use-auth';
+import { useScreen } from '@/hooks/use-screen';
 import { videoService } from '@/services/video-service';
 import type { SessionVideo, VideoAnnotation, VideoAnnotationType } from '@/constants/types';
 import { createLogger } from '@/utils/logger';
 import type { ScreenStatus } from '@/hooks/use-screen';
-import { serviceError, type ServiceError } from '@/types/result';
+import { err, ok, serviceError, type ServiceError } from '@/types/result';
 import { uiFeedback } from '@/services/ui-feedback';
 
 const logger = createLogger('useVideoDetail');
@@ -22,33 +23,33 @@ const logger = createLogger('useVideoDetail');
 export function useVideoDetail(id: string | undefined) {
   const { currentUser } = useAuth();
 
-  const [video, setVideo] = useState<SessionVideo | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<ServiceError | null>(null);
   const [currentTime, setCurrentTime] = useState(0);
   const [showAnnotationModal, setShowAnnotationModal] = useState(false);
 
-  const isOwner = video?.coachId === currentUser?.id;
-
   const loadVideo = useCallback(async () => {
-    if (!id) return;
-    setLoading(true);
-    setError(null);
+    if (!id) {
+      return err(serviceError('VALIDATION', 'Missing video id.'));
+    }
+
     try {
       const data = await videoService.getVideo(id);
-      setVideo(data);
+      return ok<SessionVideo | null>(data);
     } catch (loadError) {
       logger.error('Failed to load video:', loadError);
-      setVideo(null);
-      setError(serviceError('UNKNOWN', 'Failed to load video details.', loadError));
-    } finally {
-      setLoading(false);
+      return err(serviceError('UNKNOWN', 'Failed to load video details.', loadError));
     }
   }, [id]);
 
-  useEffect(() => {
-    loadVideo();
-  }, [loadVideo]);
+  const { data: video, status, error, onRefresh, retry } = useScreen<SessionVideo | null>({
+    load: loadVideo,
+    deps: [id],
+    isEmpty: (value) => !value,
+    refetchOnFocus: true,
+    loadingStrategy: 'section-skeleton',
+    dataKey: id ? `video-detail:${id}` : 'video-detail:missing',
+  });
+
+  const isOwner = video?.coachId === currentUser?.id;
 
   const handleTimeUpdate = useCallback((time: number) => {
     setCurrentTime(time);
@@ -95,9 +96,9 @@ export function useVideoDetail(id: string | undefined) {
         annotation.type,
         annotation.note?.trim() || undefined,
       );
-      await loadVideo();
+      onRefresh();
     },
-    [video, loadVideo],
+    [video, onRefresh],
   );
 
   const handleShare = useCallback(async () => {
@@ -124,11 +125,11 @@ export function useVideoDetail(id: string | undefined) {
         await videoService.makePrivate(video.id);
         uiFeedback.showToast('Video is now private.');
       }
-      await loadVideo();
+      onRefresh();
     } catch (error) {
       logger.error('Failed to toggle visibility:', error);
     }
-  }, [video, loadVideo]);
+  }, [video, onRefresh]);
 
   const handleDelete = useCallback(() => {
     if (!video) return;
@@ -157,18 +158,15 @@ export function useVideoDetail(id: string | undefined) {
     setShowAnnotationModal(false);
   }, []);
 
-  const status: ScreenStatus =
-    loading && !video ? 'loading' : error && !video ? 'error' : !video ? 'empty' : 'success';
-
   return {
     video,
-    loading,
-    status,
-    error,
+    loading: status === 'loading',
+    status: status as ScreenStatus,
+    error: status === 'error' ? (error as ServiceError | null) : null,
     currentTime,
     showAnnotationModal,
     isOwner,
-    retry: loadVideo,
+    retry,
     handleTimeUpdate,
     handleSeekToAnnotation,
     handleQuickAnnotation,

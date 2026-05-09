@@ -4,7 +4,7 @@ import { router } from 'expo-router';
 import { Routes } from '@/navigation/routes';
 
 import { useAuth } from '@/hooks/use-auth';
-import { videoService } from '@/services/video-service';
+import { videoService, type VideoCreateStage } from '@/services/video-service';
 import { createLogger } from '@/utils/logger';
 import { uiFeedback } from '@/services/ui-feedback';
 
@@ -18,14 +18,41 @@ export type VideoData = {
   thumbnailUri?: string;
 } | null;
 
+export type VideoUploadStage = 'idle' | VideoCreateStage | 'failed';
+
+const UPLOAD_STAGE_MESSAGES: Record<VideoUploadStage, string | null> = {
+  idle: null,
+  'initializing-upload': 'Preparing a private upload slot...',
+  'uploading-file': 'Uploading video to private storage...',
+  'creating-record': 'Creating the video record...',
+  ready: 'Video uploaded and ready.',
+  failed: 'Upload failed. The video was not saved.',
+};
+
+const IN_PROGRESS_STAGES = new Set<VideoUploadStage>([
+  'initializing-upload',
+  'uploading-file',
+  'creating-record',
+]);
+
 export function useVideoUpload() {
   const { currentUser } = useAuth();
   const [videoData, setVideoData] = useState<VideoData>(null);
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
-  const [uploading, setUploading] = useState(false);
+  const [uploadStage, setUploadStage] = useState<VideoUploadStage>('idle');
 
-  const handleVideoSelected = useCallback((data: VideoData) => setVideoData(data), []);
+  const isUploading = IN_PROGRESS_STAGES.has(uploadStage);
+
+  const handleVideoSelected = useCallback((data: VideoData) => {
+    setVideoData(data);
+    setUploadStage('idle');
+  }, []);
+
+  const clearSelectedVideo = useCallback(() => {
+    setVideoData(null);
+    setUploadStage('idle');
+  }, []);
 
   const handleSubmit = useCallback(async () => {
     if (!videoData) {
@@ -41,7 +68,7 @@ export function useVideoUpload() {
       return;
     }
 
-    setUploading(true);
+    setUploadStage('initializing-upload');
     try {
       const newVideo = await videoService.createVideo(
         {
@@ -56,28 +83,35 @@ export function useVideoUpload() {
         videoData.thumbnailUri || videoData.uri,
         videoData.duration,
         videoData.fileSize,
+        {
+          onStageChange: setUploadStage,
+        },
       );
       logger.info('Video uploaded successfully', { videoId: newVideo.id });
       uiFeedback.showToast('Video uploaded successfully!', 'success');
       router.replace(Routes.video(newVideo.id));
     } catch (error) {
       logger.error('Failed to upload video', error);
+      setUploadStage('failed');
       uiFeedback.showToast('There was an error uploading your video. Please try again.', 'error');
-    } finally {
-      setUploading(false);
     }
   }, [videoData, title, description, currentUser]);
 
-  const canSubmit = !!videoData && !!title.trim() && !uploading;
+  const canSubmit = !!videoData && !!title.trim() && !isUploading;
+  const uploadStatusMessage = UPLOAD_STAGE_MESSAGES[uploadStage];
 
   return {
     videoData,
     title,
     description,
-    uploading,
+    uploadStage,
+    uploadStatusMessage,
+    uploading: isUploading,
+    isUploading,
     canSubmit,
     setTitle,
     setDescription,
+    clearSelectedVideo,
     handleVideoSelected,
     handleSubmit,
   };
