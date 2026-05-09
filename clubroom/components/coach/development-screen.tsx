@@ -2,11 +2,11 @@
  * CoachDevelopmentScreen — Composition root.
  * Shows quick actions, sessions needing completion, attention athletes, recent sessions, badges shortcut.
  */
-import { ThemedText } from '@/components/themed-text';
 import { PageContainer } from '@/components/primitives/page-container';
 import { PageHeader } from '@/components/primitives/page-header';
 import { NotificationBell } from '@/components/ui/notification-bell';
 import { DemoWalkthroughCard } from '@/components/ui/demo-walkthrough-card';
+import { ErrorState, LoadingState } from '@/components/ui/screen-states';
 import { Spacing } from '@/constants/theme';
 import { useDemoWalkthroughVisibility } from '@/hooks/use-demo-walkthrough-visibility';
 import { router } from 'expo-router';
@@ -24,6 +24,11 @@ export function CoachDevelopmentScreen() {
   const {
     currentUser,
     loading,
+    status,
+    error,
+    refreshing,
+    onRefresh,
+    retry,
     awaitingCompletion,
     attentionAthletes,
     recentSessions,
@@ -38,10 +43,31 @@ export function CoachDevelopmentScreen() {
 
   if (!currentUser) return null;
 
+  const header = (
+    <PageHeader
+      title="Development"
+      subtitle="Track your athletes' progress"
+      rightAction={<NotificationBell size={20} />}
+    />
+  );
+
   if (loading) {
     return (
-      <PageContainer>
-        <ThemedText>Loading...</ThemedText>
+      <PageContainer gap={Spacing.md} header={header}>
+        <LoadingState variant="hero" />
+      </PageContainer>
+    );
+  }
+
+  if (status === 'error') {
+    return (
+      <PageContainer gap={Spacing.md} header={header}>
+        <ErrorState
+          title="Development unavailable"
+          message={error?.message ?? 'Unable to load development.'}
+          error={error ?? undefined}
+          onRetry={retry}
+        />
       </PageContainer>
     );
   }
@@ -49,13 +75,9 @@ export function CoachDevelopmentScreen() {
   return (
     <PageContainer
       gap={Spacing.md}
-      header={
-        <PageHeader
-          title="Development"
-          subtitle="Track your athletes' progress"
-          rightAction={<NotificationBell size={20} />}
-        />
-      }
+      header={header}
+      refreshing={refreshing}
+      onRefresh={onRefresh}
     >
       {visibleWalkthrough ? (
         <DemoWalkthroughCard

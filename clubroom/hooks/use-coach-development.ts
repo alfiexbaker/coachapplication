@@ -1,10 +1,10 @@
 /**
  * useCoachDevelopment — Data loading and computed values for the coach development screen.
  */
-import { useState, useMemo, useEffect, useCallback } from 'react';
-import { useFocusEffect } from 'expo-router';
+import { useMemo, useCallback } from 'react';
 
 import { useAuth } from '@/hooks/use-auth';
+import { useScreen, type ScreenStatus } from '@/hooks/use-screen';
 import { bookingService } from '@/services/booking-service';
 import { ensureCoachSessionsSeeded } from '@/services/coach-session-seed-service';
 import { userService } from '@/services/user-service';
@@ -12,6 +12,7 @@ import type { Session, Booking } from '@/constants/app-types';
 import type { User } from '@/constants/types';
 import { createLogger } from '@/utils/logger';
 import { getSessionAthleteName } from '@/utils/session-display';
+import { err, ok, serviceError, type ServiceError } from '@/types/result';
 
 const logger = createLogger('CoachDevelopmentScreen');
 
@@ -51,101 +52,81 @@ export interface AthleteRosterEntry extends AthleteWithSessions {
   prioritySessionId: string | null;
 }
 
+interface CoachDevelopmentData {
+  sessions: Session[];
+  athleteDirectory: Record<string, User>;
+  awaitingCompletion: Booking[];
+}
+
 // ---------------------------------------------------------------------------
 // Hook
 // ---------------------------------------------------------------------------
 
 export function useCoachDevelopment() {
   const { currentUser } = useAuth();
-  const [allSessions, setAllSessions] = useState<Session[]>([]);
-  const [athleteDirectory, setAthleteDirectory] = useState<Record<string, User>>({});
-  const [loading, setLoading] = useState(true);
-  const [awaitingCompletion, setAwaitingCompletion] = useState<Booking[]>([]);
 
-  const loadAwaitingCompletion = useCallback(async () => {
-    if (!currentUser?.id) return;
+  const loadDevelopment = useCallback(async () => {
+    if (!currentUser?.id) {
+      return ok<CoachDevelopmentData>({
+        sessions: [],
+        athleteDirectory: {},
+        awaitingCompletion: [],
+      });
+    }
+
     try {
-      const bookings = await bookingService.getAwaitingCompletion(currentUser.id);
-      setAwaitingCompletion(bookings);
+      const [storedSessions, awaitingCompletion] = await Promise.all([
+        ensureCoachSessionsSeeded(),
+        bookingService.getAwaitingCompletion(currentUser.id),
+      ]);
+      const coachSessions = storedSessions.filter((session) => session.coachId === currentUser.id);
+      const athleteIds = [
+        ...new Set(coachSessions.map((session) => session.athleteId).filter(Boolean)),
+      ];
+      const athleteResult = await userService.getUsersByIds(athleteIds);
+      const athleteDirectory: Record<string, User> = {};
+
+      if (athleteResult.success) {
+        athleteResult.data.forEach((athlete) => {
+          athleteDirectory[athlete.id] = athlete;
+        });
+      } else {
+        logger.error('Failed to resolve athlete profiles for sessions', {
+          coachId: currentUser.id,
+          error: athleteResult.error,
+        });
+      }
+
+      logger.debug('Coach development data loaded', {
+        coachId: currentUser.id,
+        sessionCount: coachSessions.length,
+        athleteCount: athleteIds.length,
+        awaitingCompletionCount: awaitingCompletion.length,
+      });
+
+      return ok<CoachDevelopmentData>({
+        sessions: coachSessions,
+        athleteDirectory,
+        awaitingCompletion,
+      });
     } catch (error) {
-      logger.error('Failed to load awaiting completion', error);
+      logger.error('Failed to load coach development', error);
+      return err(serviceError('UNKNOWN', 'Failed to load coach development.', error));
     }
   }, [currentUser?.id]);
 
-  useFocusEffect(
-    useCallback(() => {
-      if (currentUser?.id) loadAwaitingCompletion();
-    }, [currentUser?.id, loadAwaitingCompletion]),
-  );
+  const { data, status, error, refreshing, onRefresh, retry } = useScreen<CoachDevelopmentData>({
+    load: loadDevelopment,
+    deps: [currentUser?.id],
+    isEmpty: () => false,
+    refetchOnFocus: true,
+    loadingStrategy: 'section-skeleton',
+    dataKey: currentUser?.id ? `coach-development:${currentUser.id}` : 'coach-development:guest',
+  });
 
-  useEffect(() => {
-    let isMounted = true;
-
-    const loadSessions = async () => {
-      if (!currentUser?.id) {
-        if (isMounted) {
-          setAllSessions([]);
-          setAthleteDirectory({});
-          setLoading(false);
-        }
-        return;
-      }
-
-      try {
-        setLoading(true);
-        const storedSessions = await ensureCoachSessionsSeeded();
-        const coachSessions = storedSessions.filter(
-          (session) => session.coachId === currentUser.id,
-        );
-
-        const athleteIds = [
-          ...new Set(coachSessions.map((session) => session.athleteId).filter(Boolean)),
-        ];
-        const athleteResult = await userService.getUsersByIds(athleteIds);
-        const nextAthleteDirectory: Record<string, User> = {};
-
-        if (athleteResult.success) {
-          athleteResult.data.forEach((athlete) => {
-            nextAthleteDirectory[athlete.id] = athlete;
-          });
-        } else {
-          logger.error('Failed to resolve athlete profiles for sessions', {
-            coachId: currentUser.id,
-            error: athleteResult.error,
-          });
-        }
-
-        if (!isMounted) {
-          return;
-        }
-
-        setAthleteDirectory(nextAthleteDirectory);
-        setAllSessions(coachSessions);
-        logger.debug('Sessions loaded', {
-          coachId: currentUser.id,
-          sessionCount: coachSessions.length,
-          athleteCount: athleteIds.length,
-        });
-      } catch (error) {
-        logger.error('Failed to load sessions', error);
-        if (!isMounted) {
-          return;
-        }
-        setAllSessions([]);
-        setAthleteDirectory({});
-      } finally {
-        if (isMounted) {
-          setLoading(false);
-        }
-      }
-    };
-
-    loadSessions();
-
-    return () => {
-      isMounted = false;
-    };
-  }, [currentUser?.id]);
+  const allSessions = data?.sessions ?? [];
+  const athleteDirectory = data?.athleteDirectory ?? {};
+  const awaitingCompletion = data?.awaitingCompletion ?? [];
 
   const athletesWithSessions = useMemo(() => {
     if (!currentUser || allSessions.length === 0) return [];
@@ -229,7 +210,12 @@ export function useCoachDevelopment() {
 
   return {
     currentUser,
-    loading,
+    loading: status === 'loading',
+    status: status as ScreenStatus,
+    error: status === 'error' ? (error as ServiceError | null) : null,
+    refreshing,
+    onRefresh,
+    retry,
     awaitingCompletion,
     attentionAthletes,
     recentSessions,

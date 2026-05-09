@@ -8,7 +8,7 @@ import { Row } from '@/components/primitives/row';
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { Clickable } from '@/components/primitives/clickable';
 import { ThemedText } from '@/components/themed-text';
-import { LoadingState, EmptyState } from '@/components/ui/screen-states';
+import { LoadingState, EmptyState, ErrorState } from '@/components/ui/screen-states';
 import { DevAthleteHero } from '@/components/development/dev-athlete-hero';
 import { DevSpecialNeedsCard } from '@/components/development/dev-special-needs-card';
 import { DevProgressionCard } from '@/components/development/dev-progression-card';
@@ -34,6 +34,11 @@ export default function AthleteDetailScreen() {
     athlete,
     currentUser,
     loading,
+    status,
+    error,
+    refreshing,
+    onRefresh,
+    retry,
     sortedSessions,
     sessions,
     awards,
@@ -94,10 +99,11 @@ export default function AthleteDetailScreen() {
         return;
       }
       setEditingPosition(false);
+      onRefresh();
     } finally {
       setSavingPosition(false);
     }
-  }, [childProfile, positionDraft]);
+  }, [childProfile, onRefresh, positionDraft]);
 
   if (!athleteIdParam.valid) {
     return (
@@ -119,6 +125,19 @@ export default function AthleteDetailScreen() {
     );
   }
 
+  if (status === 'error') {
+    return (
+      <PageContainer edges={['top', 'bottom']} gap={Spacing.lg} header={header}>
+        <ErrorState
+          title="Athlete progress unavailable"
+          message={error?.message ?? 'Failed to load athlete progress.'}
+          error={error ?? undefined}
+          onRetry={retry}
+        />
+      </PageContainer>
+    );
+  }
+
   if (!athlete || !currentUser) {
     return (
       <PageContainer edges={['top', 'bottom']} gap={Spacing.lg} header={header}>
@@ -136,6 +155,8 @@ export default function AthleteDetailScreen() {
         edges={['top', 'bottom']}
         gap={Spacing.lg}
         header={header}
+        refreshing={refreshing}
+        onRefresh={onRefresh}
       >
         <DevAthleteHero
           athleteName={athlete.name}

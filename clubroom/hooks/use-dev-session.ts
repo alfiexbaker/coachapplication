@@ -6,7 +6,7 @@
  * (4 universal + 5 positional). Save computes fourCorners and records positionPlayed
  * — identical data quality to Quick Rate.
  */
-import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { Linking } from 'react-native';
 
 import { router } from 'expo-router';
@@ -16,6 +16,7 @@ import { getSkillsForPosition, getSkillsForPositions, SKILL_SUB_SKILLS } from '@
 import { UNIVERSAL_SKILLS, POSITION_SKILLS, POSITION_LABELS, deriveParentRatingsFromSubSkills } from '@/constants/position-skills';
 import type { FootballSkill, PositionRole, SessionSkillRating, SubSkillRating } from '@/types/progress-types';
 import { useAuth } from '@/hooks/use-auth';
+import { useScreen, type ScreenStatus } from '@/hooks/use-screen';
 import { createLogger } from '@/utils/logger';
 import { progressService } from '@/services/progress-service';
 import { progressFeedbackService } from '@/services/progress/progress-feedback-service';
@@ -29,6 +30,7 @@ import { STORAGE_KEYS } from '@/constants/storage-keys';
 import { buildFeedbackPrefillFromQuickRate } from '@/utils/feedback-prefill';
 import type { Session, BadgeAward } from '@/constants/types';
 import type { QuickRateInput } from '@/types/progress-types';
+import { err, ok, serviceError, type ServiceError } from '@/types/result';
 import { uiFeedback } from '@/services/ui-feedback';
 
 const logger = createLogger('SessionDetailScreen');
@@ -97,6 +99,44 @@ interface UseDevSessionParams {
   athleteId?: string;
 }
 
+interface DevSessionFormDefaults {
+  publicNotes: string;
+  rating: number;
+  effortRating: number;
+  selectedSkills: string[];
+  videoUrls: string[];
+  imageUrls: string[];
+}
+
+interface DevSessionData {
+  session: SessionRecord | null;
+  athlete: SessionAthlete | null;
+  positionsPlayed: PositionRole[];
+  positionLoaded: boolean;
+  previousRatings: Record<string, number>;
+  sessionBadges: BadgeAward[];
+  formDefaults: DevSessionFormDefaults;
+}
+
+function emptyDevSessionData(): DevSessionData {
+  return {
+    session: null,
+    athlete: null,
+    positionsPlayed: ['MID'],
+    positionLoaded: false,
+    previousRatings: {},
+    sessionBadges: [],
+    formDefaults: {
+      publicNotes: '',
+      rating: 3,
+      effortRating: 3,
+      selectedSkills: [],
+      videoUrls: [],
+      imageUrls: [],
+    },
+  };
+}
+
 export function useDevSession({
   sessionId,
   prefillFromQuickRate = false,
@@ -104,10 +144,8 @@ export function useDevSession({
 }: UseDevSessionParams) {
   const { currentUser } = useAuth();
 
-  const [session, setSession] = useState<SessionRecord | null>(null);
-  const [athlete, setAthlete] = useState<SessionAthlete | null>(null);
-  const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const hydratedFormKeyRef = useRef<string | null>(null);
 
   // Position state (multi-position)
   const [positionsPlayed, setPositionsPlayed] = useState<PositionRole[]>(['MID']);
@@ -148,183 +186,194 @@ export function useDevSession({
     ? (POSITION_LABELS[positionsPlayed[0]] ?? positionsPlayed[0])
     : positionsPlayed.map((p) => p).join(' + ');
 
-  useEffect(() => {
-    let isMounted = true;
+  const loadSessionData = useCallback(async () => {
+    if (!sessionId) {
+      return ok<DevSessionData>(emptyDevSessionData());
+    }
 
-    const loadSession = async () => {
-      if (!sessionId) {
-        if (isMounted) {
-          setSession(null);
-          setAthlete(null);
-          setLoading(false);
-        }
-        return;
+    try {
+      const sessions = await apiClient.get<SessionRecord[]>(STORAGE_KEYS.COACH_SESSIONS, []);
+      const foundSession = sessions.find((candidate) => candidate.id === sessionId) ?? null;
+
+      if (!foundSession) {
+        logger.warn('Session not found', { sessionId });
+        return ok<DevSessionData>(emptyDevSessionData());
       }
 
-      try {
-        setLoading(true);
-        const sessions = await apiClient.get<SessionRecord[]>(STORAGE_KEYS.COACH_SESSIONS, []);
-        const foundSession = sessions.find((candidate) => candidate.id === sessionId);
+      const targetAthleteId = athleteId || foundSession.athleteId;
+      let latestFeedback: Awaited<
+        ReturnType<typeof progressFeedbackService.getLatestForAthlete>
+      > | null = null;
+      let resolvedPositions: PositionRole[] = ['MID'];
+      let positionIsLoaded = false;
+      let resolvedPreviousRatings: Record<string, number> = {};
+      const formDefaults: DevSessionFormDefaults = {
+        publicNotes: foundSession.notes || '',
+        rating: foundSession.performanceRating || 3,
+        effortRating: foundSession.effortRating || 3,
+        selectedSkills: foundSession.skillsWorkedOn || [],
+        videoUrls: foundSession.videoUrls || [],
+        imageUrls: foundSession.imageUrls || [],
+      };
 
-        if (!foundSession) {
-          logger.warn('Session not found', { sessionId });
-          if (isMounted) {
-            setSession(null);
-            setAthlete(null);
-          }
-          return;
-        }
+      if (targetAthleteId) {
+        latestFeedback = await progressFeedbackService.getLatestForAthlete(targetAthleteId);
+        let resolvedPosition: PositionRole = 'MID';
 
-        if (isMounted) {
-          setSession(foundSession);
-          setPublicNotes(foundSession.notes || '');
-          setRating(foundSession.performanceRating || 3);
-          setEffortRating(foundSession.effortRating || 3);
-          setSelectedSkills(foundSession.skillsWorkedOn || []);
-          setVideoUrls(foundSession.videoUrls || []);
-          setImageUrls(foundSession.imageUrls || []);
-        }
-
-        const targetAthleteId = athleteId || foundSession.athleteId;
-
-        // ─── Load athlete position ────────────────────────────────────
-        if (targetAthleteId && isMounted) {
-          // Priority: latest feedback position > most played position > child profile > MID
-          const latestFeedback = await progressFeedbackService.getLatestForAthlete(targetAthleteId);
-          let resolvedPosition: PositionRole = 'MID';
-
-          // Multi-position: prefer positionsPlayed from latest feedback
-          if (latestFeedback?.positionsPlayed && latestFeedback.positionsPlayed.length > 0) {
-            resolvedPosition = latestFeedback.positionsPlayed[0];
-          } else if (latestFeedback?.positionPlayed) {
-            resolvedPosition = latestFeedback.positionPlayed;
+        if (latestFeedback?.positionsPlayed && latestFeedback.positionsPlayed.length > 0) {
+          resolvedPosition = latestFeedback.positionsPlayed[0];
+        } else if (latestFeedback?.positionPlayed) {
+          resolvedPosition = latestFeedback.positionPlayed;
+        } else {
+          const mostPlayedResult = await progressPositionService.getMostPlayedPosition(targetAthleteId);
+          if (mostPlayedResult.success && mostPlayedResult.data) {
+            resolvedPosition = mostPlayedResult.data;
           } else {
-            const mostPlayedResult = await progressPositionService.getMostPlayedPosition(targetAthleteId);
-            if (mostPlayedResult.success && mostPlayedResult.data) {
-              resolvedPosition = mostPlayedResult.data;
-            } else {
-              const childProfile = await childService.getChild(targetAthleteId);
-              if (childProfile?.primaryPosition) {
-                resolvedPosition = childProfile.primaryPosition;
-              }
-            }
-          }
-
-          const resolvedPositions: PositionRole[] =
-            latestFeedback?.positionsPlayed && latestFeedback.positionsPlayed.length > 0
-              ? latestFeedback.positionsPlayed
-              : [resolvedPosition];
-
-          if (isMounted) {
-            setPositionsPlayed(resolvedPositions);
-            setPositionLoaded(true);
-          }
-
-          // ─── Load previous skill levels (for trend indicators) ──────
-          const athleteSkills = await progressSkillsService.getAthleteSkillLevels(targetAthleteId);
-          if (athleteSkills && isMounted) {
-            const prev: Record<string, number> = {};
-            for (const [skillName, skillData] of Object.entries(athleteSkills.skills)) {
-              // Convert stored 1-10 level back to 1-5 rating for display
-              prev[skillName] = Math.max(1, Math.min(5, Math.ceil(skillData.level / 2)));
-            }
-            setPreviousRatings(prev);
-          }
-        }
-
-        // ─── Quick Rate prefill ───────────────────────────────────────
-        const shouldPrefillFromQuickRate = prefillFromQuickRate && Boolean(targetAthleteId);
-
-        if (shouldPrefillFromQuickRate && targetAthleteId) {
-          const sourceSessionId = foundSession.sourceSessionId;
-          let latestQuickRateFeedback = sourceSessionId
-            ? await progressFeedbackService.getLatestForAthlete(targetAthleteId, sourceSessionId)
-            : null;
-          if (!latestQuickRateFeedback) {
-            latestQuickRateFeedback = await progressFeedbackService.getLatestForAthlete(targetAthleteId);
-          }
-
-          if (latestQuickRateFeedback?.fourCorners) {
-            const quickRateInput: QuickRateInput = {
-              athleteId: targetAthleteId,
-              athleteName: latestQuickRateFeedback.athleteName,
-              sessionId: latestQuickRateFeedback.sessionId,
-              coachId: latestQuickRateFeedback.coachId,
-              technical: latestQuickRateFeedback.fourCorners.technical,
-              physical: latestQuickRateFeedback.fourCorners.physical,
-              psychological: latestQuickRateFeedback.fourCorners.psychological,
-              social: latestQuickRateFeedback.fourCorners.social,
-              effort: latestQuickRateFeedback.effortRating,
-              badgeId: latestQuickRateFeedback.badgeAwarded,
-            };
-            const prefill = buildFeedbackPrefillFromQuickRate(quickRateInput, {
-              attendeeCount: 1,
-            });
-
-            if (isMounted) {
-              setRating(prefill.performanceRating);
-              setEffortRating(prefill.effortRating);
-              if (!foundSession.notes) {
-                setPublicNotes(prefill.sessionSummary);
-              }
-            }
-          }
-
-          const mediaSessionId =
-            foundSession.sourceSessionId || latestQuickRateFeedback?.sessionId || foundSession.bookingId;
-          if (mediaSessionId) {
-            const mediaResult = await mediaService.getSessionMedia(mediaSessionId, targetAthleteId);
-            if (mediaResult.success && mediaResult.data && isMounted) {
-              setImageUrls(mediaResult.data.photos.map((photo) => photo.uri));
-              setVideoUrls(mediaResult.data.video ? [mediaResult.data.video.uri] : []);
+            const childProfile = await childService.getChild(targetAthleteId);
+            if (childProfile?.primaryPosition) {
+              resolvedPosition = childProfile.primaryPosition;
             }
           }
         }
 
-        // ─── Resolve athlete profile ──────────────────────────────────
-        const athleteResult = await userService.getUserById(foundSession.athleteId);
-        const resolvedAthlete = athleteResult.success
-          ? {
-              id: athleteResult.data.id,
-              name: athleteResult.data.name,
-              avatar: athleteResult.data.avatar,
-            }
-          : fallbackAthleteFromSession(foundSession);
-        if (!athleteResult.success) {
-          logger.error('Failed to resolve athlete profile for session', {
-            sessionId,
-            athleteId: foundSession.athleteId,
-            error: athleteResult.error,
-          });
-        }
+        resolvedPositions =
+          latestFeedback?.positionsPlayed && latestFeedback.positionsPlayed.length > 0
+            ? latestFeedback.positionsPlayed
+            : [resolvedPosition];
+        positionIsLoaded = true;
 
-        if (isMounted) {
-          setAthlete(resolvedAthlete);
-        }
-
-        const badges = await badgeService.listAwardsForSession(sessionId);
-        if (isMounted) {
-          setSessionBadges(badges);
-        }
-      } catch (error) {
-        logger.error('Failed to load session', error);
-        if (isMounted) {
-          setSession(null);
-          setAthlete(null);
-        }
-      } finally {
-        if (isMounted) {
-          setLoading(false);
+        const athleteSkills = await progressSkillsService.getAthleteSkillLevels(targetAthleteId);
+        if (athleteSkills) {
+          for (const [skillName, skillData] of Object.entries(athleteSkills.skills)) {
+            resolvedPreviousRatings[skillName] = Math.max(
+              1,
+              Math.min(5, Math.ceil(skillData.level / 2)),
+            );
+          }
         }
       }
-    };
 
-    loadSession();
+      if (prefillFromQuickRate && targetAthleteId) {
+        const sourceSessionId = foundSession.sourceSessionId;
+        let latestQuickRateFeedback = sourceSessionId
+          ? await progressFeedbackService.getLatestForAthlete(targetAthleteId, sourceSessionId)
+          : null;
+        if (!latestQuickRateFeedback) {
+          latestQuickRateFeedback =
+            latestFeedback ?? (await progressFeedbackService.getLatestForAthlete(targetAthleteId));
+        }
 
-    return () => {
-      isMounted = false;
-    };
+        if (latestQuickRateFeedback?.fourCorners) {
+          const quickRateInput: QuickRateInput = {
+            athleteId: targetAthleteId,
+            athleteName: latestQuickRateFeedback.athleteName,
+            sessionId: latestQuickRateFeedback.sessionId,
+            coachId: latestQuickRateFeedback.coachId,
+            technical: latestQuickRateFeedback.fourCorners.technical,
+            physical: latestQuickRateFeedback.fourCorners.physical,
+            psychological: latestQuickRateFeedback.fourCorners.psychological,
+            social: latestQuickRateFeedback.fourCorners.social,
+            effort: latestQuickRateFeedback.effortRating,
+            badgeId: latestQuickRateFeedback.badgeAwarded,
+          };
+          const prefill = buildFeedbackPrefillFromQuickRate(quickRateInput, {
+            attendeeCount: 1,
+          });
+
+          formDefaults.rating = prefill.performanceRating;
+          formDefaults.effortRating = prefill.effortRating;
+          if (!foundSession.notes) {
+            formDefaults.publicNotes = prefill.sessionSummary;
+          }
+        }
+
+        const mediaSessionId =
+          foundSession.sourceSessionId || latestQuickRateFeedback?.sessionId || foundSession.bookingId;
+        if (mediaSessionId) {
+          const mediaResult = await mediaService.getSessionMedia(mediaSessionId, targetAthleteId);
+          if (mediaResult.success && mediaResult.data) {
+            formDefaults.imageUrls = mediaResult.data.photos.map((photo) => photo.uri);
+            formDefaults.videoUrls = mediaResult.data.video ? [mediaResult.data.video.uri] : [];
+          }
+        }
+      }
+
+      const athleteResult = await userService.getUserById(foundSession.athleteId);
+      const resolvedAthlete = athleteResult.success
+        ? {
+            id: athleteResult.data.id,
+            name: athleteResult.data.name,
+            avatar: athleteResult.data.avatar,
+          }
+        : fallbackAthleteFromSession(foundSession);
+      if (!athleteResult.success) {
+        logger.error('Failed to resolve athlete profile for session', {
+          sessionId,
+          athleteId: foundSession.athleteId,
+          error: athleteResult.error,
+        });
+      }
+
+      const badges = await badgeService.listAwardsForSession(sessionId);
+
+      return ok<DevSessionData>({
+        session: foundSession,
+        athlete: resolvedAthlete,
+        positionsPlayed: resolvedPositions,
+        positionLoaded: positionIsLoaded,
+        previousRatings: resolvedPreviousRatings,
+        sessionBadges: badges,
+        formDefaults,
+      });
+    } catch (error) {
+      logger.error('Failed to load session', error);
+      return err(serviceError('UNKNOWN', 'Failed to load session feedback.', error));
+    }
   }, [athleteId, prefillFromQuickRate, sessionId]);
+
+  const { data, status, error, retry } = useScreen<DevSessionData>({
+    load: loadSessionData,
+    deps: [athleteId, prefillFromQuickRate, sessionId],
+    isEmpty: (value) => !value.session || !value.athlete,
+    refetchOnFocus: true,
+    loadingStrategy: 'section-skeleton',
+    dataKey: sessionId ? `dev-session:${sessionId}` : 'dev-session:missing',
+  });
+
+  const session = data?.session ?? null;
+  const athlete = data?.athlete ?? null;
+
+  useEffect(() => {
+    if (!data?.session) {
+      return;
+    }
+
+    setPositionLoaded(data.positionLoaded);
+    setPreviousRatings(data.previousRatings);
+    setSessionBadges(data.sessionBadges);
+
+    const hydrationKey = `${data.session.id}:${prefillFromQuickRate ? 'prefill' : 'plain'}:${
+      athleteId ?? ''
+    }`;
+    if (hydratedFormKeyRef.current === hydrationKey) {
+      return;
+    }
+
+    hydratedFormKeyRef.current = hydrationKey;
+    setPositionsPlayed(data.positionsPlayed);
+    setPublicNotes(data.formDefaults.publicNotes);
+    setRating(data.formDefaults.rating);
+    setEffortRating(data.formDefaults.effortRating);
+    setSelectedSkills(data.formDefaults.selectedSkills);
+    setVideoUrls(data.formDefaults.videoUrls);
+    setImageUrls(data.formDefaults.imageUrls);
+    setSkillRatings([]);
+    setSubSkillRatings([]);
+    setImprovements('');
+    setHomework('');
+    setPrivateNotes('');
+    setVisibility('parent');
+  }, [athleteId, data, prefillFromQuickRate]);
 
   // ─── Position toggle handler (multi-position) ──────────────────────────────
   const handlePositionToggle = useCallback(
@@ -413,7 +462,6 @@ export function useDevSession({
       }
 
       await apiClient.set(STORAGE_KEYS.COACH_SESSIONS, sessions);
-      setSession(updatedSession);
 
       // Record positions played (for position history tracking)
       for (const pos of positionsPlayed) {
@@ -485,7 +533,7 @@ export function useDevSession({
         fourCorners,
       });
       uiFeedback.showToast('Session notes saved. Parents can now see the feedback.', 'success');
-router.back();
+      router.back();
     } catch (error) {
       logger.error('Failed to save session', error);
       uiFeedback.showToast('Failed to save session. Please try again.', 'error');
@@ -651,7 +699,10 @@ router.back();
     session,
     athlete,
     currentUser,
-    loading,
+    loading: status === 'loading',
+    status: status as ScreenStatus,
+    error: status === 'error' ? (error as ServiceError | null) : null,
+    retry,
     saving,
     // Position (multi-position)
     positionPlayed,

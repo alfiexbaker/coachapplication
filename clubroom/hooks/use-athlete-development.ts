@@ -2,15 +2,17 @@
  * Hook for the athlete development detail screen.
  * Manages sessions, badges, progression, special needs, and badge award modal state.
  */
-import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useState, useCallback, useMemo } from 'react';
 import { ensureCoachSessionsSeeded } from '@/services/coach-session-seed-service';
 import { useAuth } from '@/hooks/use-auth';
+import { useScreen, type ScreenStatus } from '@/hooks/use-screen';
 import { createLogger } from '@/utils/logger';
 import { badgeService } from '@/services/badge-service';
 import { childService, type ChildProfile } from '@/services/child-service';
 import { userService } from '@/services/user-service';
 import type { Session, BadgeAward, BadgeCategory, User } from '@/constants/types';
 import type { ProgressionLevel } from '@/constants/progression';
+import { err, ok, serviceError, type ServiceError } from '@/types/result';
 
 const logger = createLogger('AthleteDetailScreen');
 
@@ -35,6 +37,14 @@ export interface LevelBadge {
   color: string;
 }
 
+interface AthleteDevelopmentData {
+  athlete: User | null;
+  sessions: Session[];
+  awards: BadgeAward[];
+  childProfile: ChildProfile | null;
+  progressionSummary: ProgressionSummary | null;
+}
+
 function formatDate(date: Date | string): string {
   const resolvedDate = typeof date === 'string' ? new Date(date) : date;
   return resolvedDate.toLocaleDateString('en-GB', {
@@ -47,110 +57,96 @@ function formatDate(date: Date | string): string {
 export function useAthleteDevelopment(athleteId: string) {
   const { currentUser } = useAuth();
 
-  const [athlete, setAthlete] = useState<User | null>(null);
-  const [sessions, setSessions] = useState<Session[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [awards, setAwards] = useState<BadgeAward[]>([]);
+  const [optimisticAwards, setOptimisticAwards] = useState<BadgeAward[]>([]);
   const [selectedSession, setSelectedSession] = useState<Session | null>(null);
   const [showBadgeModal, setShowBadgeModal] = useState(false);
-  const [childProfile, setChildProfile] = useState<ChildProfile | null>(null);
-  const [progressionSummary, setProgressionSummary] = useState<ProgressionSummary | null>(null);
 
-  // Load athlete profile
-  useEffect(() => {
-    let mounted = true;
+  const loadDevelopment = useCallback(async () => {
+    if (!athleteId) {
+      return err(serviceError('VALIDATION', 'Missing athlete id.'));
+    }
+    if (!currentUser?.id) {
+      return err(serviceError('VALIDATION', 'Missing user context.'));
+    }
 
-    const loadAthlete = async () => {
-      if (!athleteId) {
-        if (mounted) {
-          setAthlete(null);
-        }
-        return;
-      }
-
-      try {
-        const athleteResult = await userService.getUserById(athleteId);
-        if (!mounted) {
-          return;
-        }
-
-        if (athleteResult.success) {
-          setAthlete(athleteResult.data);
-        } else {
-          logger.error('Failed to load athlete profile', { athleteId, error: athleteResult.error });
-          setAthlete(null);
-        }
-      } catch (error) {
-        logger.error('Failed to load athlete profile', { athleteId, error });
-        if (mounted) {
-          setAthlete(null);
-        }
-      }
-    };
-
-    loadAthlete();
-
-    return () => {
-      mounted = false;
-    };
-  }, [athleteId]);
-
-  // Load sessions from AsyncStorage
-  useEffect(() => {
-    const loadSessions = async () => {
-      if (!currentUser) return;
-      try {
-        const asyncSessions = await ensureCoachSessionsSeeded();
-        const athleteAsyncSessions = asyncSessions.filter(
-          (s) => s.athleteId === athleteId && s.coachId === currentUser.id,
-        );
-        setSessions(athleteAsyncSessions);
-        logger.debug('Sessions loaded', {
-          asyncCount: athleteAsyncSessions.length,
-          total: athleteAsyncSessions.length,
-        });
-      } catch (error) {
-        logger.error('Failed to load sessions', error);
-        setSessions([]);
-      } finally {
-        setLoading(false);
-      }
-    };
-    loadSessions();
-  }, [athleteId, currentUser]);
-
-  // Load awards + progression summary
-  useEffect(() => {
-    if (!athleteId) return;
-    Promise.all([
-      badgeService.listAwardsForAthlete(athleteId),
-      badgeService.getProgressionSummary(athleteId),
-    ]).then(([awardsData, progression]) => {
-      setAwards(awardsData);
-      setProgressionSummary(progression);
-    });
-  }, [athleteId]);
-
-  // Load child profile for special needs
-  useEffect(() => {
-    if (!athlete) return;
-    const loadChildProfile = async () => {
-      try {
-        const profile = await childService.getChild(athleteId);
-        if (profile) {
-          setChildProfile(profile);
-          logger.debug('Child profile loaded', {
-            athleteId,
-            childId: profile.id,
-            hasSpecialNeeds: profile.hasSpecialNeeds,
+    try {
+      const athleteResult = await userService.getUserById(athleteId);
+      if (!athleteResult.success) {
+        logger.error('Failed to load athlete profile', { athleteId, error: athleteResult.error });
+        if (athleteResult.error.code === 'NOT_FOUND') {
+          return ok<AthleteDevelopmentData>({
+            athlete: null,
+            sessions: [],
+            awards: [],
+            childProfile: null,
+            progressionSummary: null,
           });
         }
-      } catch (error) {
-        logger.error('Failed to load child profile', error);
+        return err(athleteResult.error);
       }
-    };
-    loadChildProfile();
-  }, [athlete, athleteId]);
+
+      const [allSessions, awardsData, progression, childProfile] = await Promise.all([
+        ensureCoachSessionsSeeded(),
+        badgeService.listAwardsForAthlete(athleteId),
+        badgeService.getProgressionSummary(athleteId),
+        childService.getChild(athleteId),
+      ]);
+
+      const athleteSessions = allSessions.filter(
+        (session) => session.athleteId === athleteId && session.coachId === currentUser.id,
+      );
+
+      logger.debug('Development data loaded', {
+        athleteId,
+        sessionCount: athleteSessions.length,
+        badgeCount: awardsData.length,
+        hasChildProfile: Boolean(childProfile),
+      });
+
+      return ok<AthleteDevelopmentData>({
+        athlete: athleteResult.data,
+        sessions: athleteSessions,
+        awards: awardsData,
+        childProfile,
+        progressionSummary: progression,
+      });
+    } catch (error) {
+      logger.error('Failed to load athlete development', { athleteId, error });
+      return err(serviceError('UNKNOWN', 'Failed to load athlete progress.', error));
+    }
+  }, [athleteId, currentUser?.id]);
+
+  const { data, status, error, refreshing, onRefresh, retry } = useScreen<AthleteDevelopmentData>({
+    load: loadDevelopment,
+    deps: [athleteId, currentUser?.id],
+    isEmpty: (value) => !value.athlete,
+    refetchOnFocus: true,
+    loadingStrategy: 'section-skeleton',
+    dataKey:
+      athleteId && currentUser?.id
+        ? `athlete-development:${currentUser.id}:${athleteId}`
+        : 'athlete-development:missing',
+  });
+
+  const athlete = data?.athlete ?? null;
+  const sessions = data?.sessions ?? [];
+  const baseAwards = data?.awards ?? [];
+  const awards = useMemo(() => {
+    if (optimisticAwards.length === 0) {
+      return baseAwards;
+    }
+    const seen = new Set<string>();
+    return [...optimisticAwards, ...baseAwards].filter((award) => {
+      const key = award.id;
+      if (seen.has(key)) {
+        return false;
+      }
+      seen.add(key);
+      return true;
+    });
+  }, [baseAwards, optimisticAwards]);
+  const childProfile = data?.childProfile ?? null;
+  const progressionSummary = data?.progressionSummary ?? null;
 
   // Computed: progress trend
   const trend = useMemo(() => {
@@ -218,14 +214,23 @@ export function useAthleteDevelopment(athleteId: string) {
   }, []);
 
   // Handler: badge awarded
-  const handleOnAwarded = useCallback((award: BadgeAward) => {
-    setAwards((prev) => [award, ...prev]);
-  }, []);
+  const handleOnAwarded = useCallback(
+    (award: BadgeAward) => {
+      setOptimisticAwards((prev) => [award, ...prev.filter((item) => item.id !== award.id)]);
+      onRefresh();
+    },
+    [onRefresh],
+  );
 
   return {
     athlete,
     currentUser,
-    loading,
+    loading: status === 'loading',
+    status: status as ScreenStatus,
+    error: status === 'error' ? (error as ServiceError | null) : null,
+    refreshing,
+    onRefresh,
+    retry,
     sessions,
     sortedSessions,
     awards,

@@ -7,15 +7,13 @@ Rule: active work only. Completed sprint rows are intentionally removed.
 
 | ID | Exactly what it does | Spine(s) | Status |
 | -- | -------------------- | -------- | ------ |
-| UI-LOAD-07 | Bring development and training surfaces to the same bar: drills, goals, badges, results program, progress loop, media gallery, videos, group sessions, matches, and athlete development paths must stop feeling second-class. | Development and Analytics + Community and Growth | OPEN |
 | UI-LOAD-08 | Sweep ops, settings, finance, admin, and enforcement: availability, settings, invoices, payments, earnings, club setup/admin, manage, and remaining async routes must be classified and upgraded or explicitly marked static. | Trust, Safety and Operations + Booking, Availability and Revenue + Development and Analytics | OPEN |
 | PROD-VERIFY-01 | Rehearse the production db-backed runtime end to end: release preflight, web export, UI flows, and the remaining non-mock critical journeys; fix code-path drift and leave only real env/provisioning blockers. | Trust/Safety/Ops + Booking/Revenue + Development | READY |
 
 ## Execution Order
 
-1. `UI-LOAD-07`
-2. `UI-LOAD-08`
-3. `PROD-VERIFY-01`
+1. `UI-LOAD-08`
+2. `PROD-VERIFY-01`
 
 ## Active Pruning Plan
 
@@ -83,32 +81,6 @@ Decision:
   - later slices still need to replace generic implementations on their owned routes; classification closure is done, route-family migration is not
 
 ## Sprint Notes
-
-### `UI-LOAD-07`
-
-- Need:
-  - Bring retained development and training surfaces to the same premium bar.
-  - Remove second-class loading from progress loop, media, video, group session, and match flows after pruning removed standalone goals, drills, skills, journal, and badge galleries.
-- Touch first:
-  - remaining `app/development/*`
-  - `app/videos/[id].tsx`
-  - `app/videos/upload.tsx`
-  - `app/group-sessions/*`
-  - `app/matches/*`
-- Acceptance:
-  - Development and training surfaces no longer rely on generic list/detail placeholders where the real UI is richer.
-  - Results, drill, media, and progression surfaces feel as intentional as commerce and social surfaces.
-  - Video and media flows distinguish between entry loading, upload progress, and post-load state truthfully.
-- Hard fail if:
-  - Training and development screens still feel like an afterthought compared with Bookings or Feed.
-  - Upload/progress surfaces fake progress or use dead placeholders that do not match backend reality.
-  - Development flows still look structurally unstable under latency even when the data is technically correct.
-- Verify:
-  - `npm run typecheck`
-  - `npm run test:compile`
-  - `npm run ui:flows:athlete-core`
-  - `npm run ui:flows:coach-core`
-  - `git diff --check`
 
 ### `UI-LOAD-08`
 

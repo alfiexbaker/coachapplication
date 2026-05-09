@@ -6,7 +6,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { ThemedText } from '@/components/themed-text';
 import { Clickable } from '@/components/primitives/clickable';
 import { Row } from '@/components/primitives/row';
-import { LoadingState, EmptyState } from '@/components/ui/screen-states';
+import { LoadingState, EmptyState, ErrorState } from '@/components/ui/screen-states';
 import { PageHeader } from '@/components/primitives/page-header';
 import { DevSessionInfo } from '@/components/development/dev-session-info';
 import { DevSessionRatings } from '@/components/development/dev-session-ratings';
@@ -39,6 +39,9 @@ export default function SessionDetailScreen() {
     athlete,
     currentUser,
     loading,
+    status,
+    error,
+    retry,
     saving,
     publicNotes,
     setPublicNotes,
@@ -113,6 +116,17 @@ export default function SessionDetailScreen() {
 
   if (loading) {
     return renderStateShell(<LoadingState variant="form" />);
+  }
+
+  if (status === 'error') {
+    return renderStateShell(
+      <ErrorState
+        title="Session feedback unavailable"
+        message={error?.message ?? 'Failed to load session feedback.'}
+        error={error ?? undefined}
+        onRetry={retry}
+      />,
+    );
   }
 
   if (!session || !athlete || !currentUser) {

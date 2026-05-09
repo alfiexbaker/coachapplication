@@ -212,6 +212,7 @@ Source of truth:
 - Development progress, badges, session history, media gallery, and athlete development detail now start `UI-LOAD-07` with keyed section-skeleton loading and route-shaped placeholders instead of generic development loading frames.
 - Group session list/detail/roster and match list/detail reads now continue `UI-LOAD-07` with warm-first or keyed section-skeleton loading, and the group-session list keeps its header/filter chrome mounted during loading and error states.
 - Video upload and detail now close the media-proof part of `UI-LOAD-07`: upload uses explicit backend stages instead of fake progress, selected files are clearly local-only until upload completes, and video detail uses keyed section-skeleton loading with stable failure chrome.
+- `UI-LOAD-07` is now closed: coach development, athlete development detail, and session feedback no longer own manual `setLoading` state; they use the shared keyed screen-state machine, stable headers, retryable errors, and retained refresh behavior.
 - Route classification and hot-path review closure now live in `navigation/loading-route-manifest.js`, with repo-level coverage enforced by `scripts/loading-route-coverage-audit.js`.
 - Domain-specific wrappers exist, but the repo still has drift between shared loading variants and bespoke per-screen placeholders.
 - New work should consolidate toward the shared primitives above instead of adding another custom loading pattern.
