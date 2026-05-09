@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useMemo } from 'react';
 import { ScrollView, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router, useLocalSearchParams } from 'expo-router';
@@ -13,12 +13,14 @@ import { Row } from '@/components/primitives/row';
 import { LoadingState, ErrorState } from '@/components/ui/screen-states';
 import { Radii, Spacing, Typography, withAlpha } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
+import { useScreen } from '@/hooks/use-screen';
 import { Routes } from '@/navigation/routes';
 import { socialFeedService } from '@/services/social-feed-service';
 import { uiFeedback } from '@/services/ui-feedback';
 import { formatCommercialModeLabel } from '@/utils/organization-commercial-mode';
 import { formatOrganizationRoleLabel, parseOrganizationRole } from '@/contracts/club-governance';
 import type { Club } from '@/constants/types';
+import { err, ok, serviceError, type Result, type ServiceError } from '@/types/result';
 
 const NEXT_STEPS = [
   {
@@ -74,41 +76,31 @@ export default function ClubSetupCompleteScreen() {
   const inviteCode = typeof params.inviteCode === 'string' ? params.inviteCode : '';
   const inviteRole = typeof params.inviteRole === 'string' ? params.inviteRole : '';
 
-  const [club, setClub] = useState<Club | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-
-  useEffect(() => {
-    let cancelled = false;
-
+  const loadClub = useCallback(async (): Promise<Result<Club, ServiceError>> => {
     if (!clubId) {
-      setError('Missing club setup context.');
-      setLoading(false);
-      return;
+      return err(serviceError('VALIDATION', 'Missing club setup context.'));
     }
 
-    void socialFeedService
-      .getClub(clubId)
-      .then((nextClub) => {
-        if (cancelled) return;
-        setClub(nextClub ?? null);
-        setError(nextClub ? null : 'Club setup details could not be loaded.');
-      })
-      .catch(() => {
-        if (!cancelled) {
-          setError('Club setup details could not be loaded.');
-        }
-      })
-      .finally(() => {
-        if (!cancelled) {
-          setLoading(false);
-        }
-      });
-
-    return () => {
-      cancelled = true;
-    };
+    try {
+      const nextClub = await socialFeedService.getClub(clubId);
+      if (!nextClub) {
+        return err(serviceError('NOT_FOUND', 'Club setup details could not be loaded.'));
+      }
+      return ok(nextClub);
+    } catch (loadError) {
+      return err(
+        serviceError('UNKNOWN', 'Club setup details could not be loaded.', loadError),
+      );
+    }
   }, [clubId]);
+
+  const { data: club, status, error, retry } = useScreen<Club>({
+    load: loadClub,
+    deps: [clubId],
+    isEmpty: () => false,
+    loadingStrategy: 'section-skeleton',
+    dataKey: `club-setup-complete:${clubId || 'missing'}`,
+  });
 
   const firstStaffRoleLabel = useMemo(() => {
     const parsed = parseOrganizationRole(inviteRole);
@@ -120,18 +112,19 @@ export default function ClubSetupCompleteScreen() {
     uiFeedback.showToast('Invite code copied', 'success');
   };
 
-  if (loading) {
+  if (status === 'loading') {
     return (
       <SafeAreaView
         style={[styles.container, { backgroundColor: colors.background }]}
         edges={['top', 'bottom']}
       >
+        <PageHeader title="Club Setup" subtitle="Finalizing setup" showBack centerTitle />
         <LoadingState variant="detail" />
       </SafeAreaView>
     );
   }
 
-  if (error || !club) {
+  if (status === 'error' || !club) {
     return (
       <SafeAreaView
         style={[styles.container, { backgroundColor: colors.background }]}
@@ -139,8 +132,10 @@ export default function ClubSetupCompleteScreen() {
       >
         <PageHeader title="Club Setup" showBack centerTitle />
         <ErrorState
-          message={error ?? 'Club setup details could not be loaded.'}
-          onRetry={() => router.replace(Routes.MY_CLUBS)}
+          title="Club setup unavailable"
+          message={error?.message ?? 'Club setup details could not be loaded.'}
+          error={error ?? undefined}
+          onRetry={clubId ? retry : () => router.replace(Routes.MY_CLUBS)}
         />
       </SafeAreaView>
     );

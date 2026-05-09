@@ -7,11 +7,12 @@ import { router, useLocalSearchParams } from 'expo-router';
 import * as Clipboard from 'expo-clipboard';
 import { Routes } from '@/navigation/routes';
 import { useAuth } from '@/hooks/use-auth';
+import { useScreen } from '@/hooks/use-screen';
 import { useToast } from '@/components/ui/toast';
 import { clubService, type ClubBranding, type ClubMember } from '@/services/club-service';
 import { squadService } from '@/services/squad-service';
 import { socialFeedService } from '@/services/social-feed-service';
-import { onTyped, ServiceEvents } from '@/services/event-bus';
+import { ServiceEvents } from '@/services/event-bus';
 import type { Club, ClubSquad, ClubRole, OrganizationCommercialMode } from '@/constants/types';
 import { clubAuthorityService } from '@/services/club-authority-service';
 import { buildClubInviteLink } from '@/services/club-invite-link-service';
@@ -23,6 +24,7 @@ import {
   canManageClubMembers,
   compareOrganizationRoles,
 } from '@/contracts/club-governance';
+import { err, ok, serviceError, type Result, type ServiceError } from '@/types/result';
 
 const logger = createLogger('ClubSettings');
 
@@ -42,6 +44,22 @@ export interface InviteCodeItem {
   expiresAt: string;
   isPrimary?: boolean;
 }
+
+interface ClubSettingsData {
+  club: Club | null;
+  squads: ClubSquad[];
+  members: ClubMember[];
+  inviteCodes: InviteCodeItem[];
+  branding: ClubBranding | null;
+}
+
+const EMPTY_CLUB_SETTINGS_DATA: ClubSettingsData = {
+  club: null,
+  squads: [],
+  members: [],
+  inviteCodes: [],
+  branding: null,
+};
 
 export const SETTINGS_SECTIONS: { key: SettingsSection; icon: string; label: string }[] = [
   { key: 'details', icon: 'information-circle-outline', label: 'Details' },
@@ -108,17 +126,12 @@ export function useClubSettings() {
   const canManageClub = canManageClubMembers(membership?.role);
   const canEditCommercialMode = canEditClubCommercialMode(membership?.role);
 
-  const [club, setClub] = useState<Club | null>(null);
-  const [squads, setSquads] = useState<ClubSquad[]>([]);
-  const [members, setMembers] = useState<ClubMember[]>([]);
-  const [inviteCodes, setInviteCodes] = useState<InviteCodeItem[]>([]);
   const initialSection: SettingsSection = SETTINGS_SECTIONS.some(
     (section) => section.key === paramSection,
   )
     ? (paramSection as SettingsSection)
     : 'details';
   const [activeSection, setActiveSection] = useState<SettingsSection>(initialSection);
-  const [loading, setLoading] = useState(true);
   const [editName, setEditName] = useState('');
   const [editTagline, setEditTagline] = useState('');
   const [editCity, setEditCity] = useState('');
@@ -126,27 +139,16 @@ export function useClubSettings() {
   const [isSavingBranding, setIsSavingBranding] = useState(false);
   const [isSavingCommercialMode, setIsSavingCommercialMode] = useState(false);
 
-  const loadData = useCallback(async () => {
+  const loadData = useCallback(async (): Promise<Result<ClubSettingsData, ServiceError>> => {
     if (!clubId) {
-      setClub(null);
-      setSquads([]);
-      setMembers([]);
-      setInviteCodes([]);
-      setBrandingDraft(null);
-      setLoading(false);
-      return;
+      return ok(EMPTY_CLUB_SETTINGS_DATA);
     }
 
-    setLoading(true);
     try {
       const clubData =
         (await socialFeedService.getClub(clubId)) ??
         knownClubs.find((candidate) => candidate.id === clubId) ??
         null;
-      setClub(clubData);
-      setEditName(clubData?.name || '');
-      setEditTagline(clubData?.tagline || '');
-      setEditCity(clubData?.city || '');
 
       const [squadData, memberData, brandingData, inviteData] = await Promise.all([
         squadService.getSquads(clubId),
@@ -155,34 +157,44 @@ export function useClubSettings() {
         clubAuthorityService.listInviteCodes(clubId),
       ]);
 
-      setSquads(squadData);
-      setMembers(memberData);
-      setInviteCodes(buildInviteCodes(clubData, inviteData.success ? inviteData.data : []));
-      setBrandingDraft(brandingData);
       logger.debug('ClubSettingsLoaded', { clubId, memberCount: memberData.length });
+      return ok({
+        club: clubData,
+        squads: squadData,
+        members: memberData,
+        inviteCodes: buildInviteCodes(clubData, inviteData.success ? inviteData.data : []),
+        branding: brandingData,
+      });
     } catch (error) {
       logger.error('LoadSettingsFailed', error);
-    } finally {
-      setLoading(false);
+      return err(serviceError('UNKNOWN', 'Failed to load club settings.', error));
     }
   }, [clubId, knownClubs]);
 
+  const { data, status, error, refreshing, onRefresh, retry } = useScreen<ClubSettingsData>({
+    load: loadData,
+    deps: [clubId],
+    events: [ServiceEvents.CLUB_MEMBER_LEFT],
+    isEmpty: () => false,
+    loadingStrategy: 'section-skeleton',
+    dataKey: `club-settings:${clubId ?? 'none'}`,
+  });
+
+  const settingsData = data ?? EMPTY_CLUB_SETTINGS_DATA;
+  const { club, squads, members, inviteCodes } = settingsData;
+
   useEffect(() => {
-    loadData();
-  }, [loadData]);
+    setEditName(club?.name || '');
+    setEditTagline(club?.tagline || '');
+    setEditCity(club?.city || '');
+    setBrandingDraft(settingsData.branding);
+  }, [club?.city, club?.id, club?.name, club?.tagline, settingsData.branding]);
 
   useEffect(() => {
     if (SETTINGS_SECTIONS.some((section) => section.key === paramSection)) {
       setActiveSection(paramSection as SettingsSection);
     }
   }, [paramSection]);
-
-  useEffect(() => {
-    const unsub = onTyped(ServiceEvents.CLUB_MEMBER_LEFT, (payload) => {
-      if (payload.clubId === clubId) loadData();
-    });
-    return unsub;
-  }, [clubId, loadData]);
 
   useEffect(() => {
     if (!canManageClub && activeSection !== 'details' && activeSection !== 'branding') {
@@ -228,14 +240,11 @@ export function useClubSettings() {
         return;
       }
 
-      const nextInvites = await clubAuthorityService.listInviteCodes(clubId);
-      const updatedClub = (await socialFeedService.getClub(clubId)) ?? club;
-      setClub(updatedClub);
-      setInviteCodes(buildInviteCodes(updatedClub, nextInvites.success ? nextInvites.data : [result.data]));
+      onRefresh();
       showToast(`New ${ORGANIZATION_ROLE_LABELS[role]} invite code created`, 'success');
       logger.action('GenerateInviteCode', { role, code: result.data.code });
     },
-    [canManageClub, club, clubId, currentUser?.id, showToast],
+    [canManageClub, clubId, currentUser?.id, onRefresh, showToast],
   );
 
   const handleSaveDetails = useCallback(async () => {
@@ -253,10 +262,10 @@ export function useClubSettings() {
       showToast(result.error.message, 'error');
       return;
     }
-    setClub(result.data);
+    onRefresh();
     showToast('Club details saved', 'success');
     logger.action('SaveClubDetails', { name: editName, city: editCity });
-  }, [canManageClub, club, editCity, editName, editTagline, showToast]);
+  }, [canManageClub, club, editCity, editName, editTagline, onRefresh, showToast]);
 
   const handleUpdateCommercialMode = useCallback(
     async (nextMode: OrganizationCommercialMode) => {
@@ -296,14 +305,14 @@ export function useClubSettings() {
           return;
         }
 
-        setClub(result.data);
+        onRefresh();
         showToast('Commercial responsibility updated for new club bookings', 'success');
         logger.action('UpdateClubCommercialMode', { clubId: club.id, commercialMode: nextMode });
       } finally {
         setIsSavingCommercialMode(false);
       }
     },
-    [canEditCommercialMode, canManageClub, club, isSavingCommercialMode, showToast],
+    [canEditCommercialMode, canManageClub, club, isSavingCommercialMode, onRefresh, showToast],
   );
 
   const handleBrandingChange = useCallback((updates: Partial<ClubBranding>) => {
@@ -411,19 +420,14 @@ export function useClubSettings() {
               return;
             }
 
-            const updatedClub = await socialFeedService.getClub(clubId);
-            const nextInviteCodes = await clubAuthorityService.listInviteCodes(clubId);
-            setClub(updatedClub ?? club);
-            setInviteCodes(
-              buildInviteCodes(updatedClub ?? club, nextInviteCodes.success ? nextInviteCodes.data : []),
-            );
+            onRefresh();
             showToast('Invite code deleted', 'success');
             logger.action('DeleteInviteCode', { code });
           },
         },
       ]);
     },
-    [canManageClub, club, clubId, inviteCodes, showToast],
+    [canManageClub, clubId, inviteCodes, onRefresh, showToast],
   );
 
   return {
@@ -435,7 +439,12 @@ export function useClubSettings() {
     membership,
     canManageClub,
     canEditCommercialMode,
-    loading,
+    loading: status === 'loading',
+    status,
+    error: status === 'error' ? error : null,
+    refreshing,
+    retry,
+    handleRefresh: onRefresh,
     activeSection,
     setActiveSection,
     editName,

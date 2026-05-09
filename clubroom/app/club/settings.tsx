@@ -1,4 +1,4 @@
-import { ScrollView, StyleSheet, View, ViewStyle } from 'react-native';
+import { RefreshControl, ScrollView, StyleSheet, View, ViewStyle } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -10,7 +10,7 @@ import { Clickable } from '@/components/primitives/clickable';
 import { ThemedText } from '@/components/themed-text';
 import { Row } from '@/components/primitives/row';
 import { PageHeader } from '@/components/primitives/page-header';
-import { LoadingState, EmptyState } from '@/components/ui/screen-states';
+import { LoadingState, EmptyState, ErrorState } from '@/components/ui/screen-states';
 import { SettingsDetailsSection } from '@/components/club/settings-details-section';
 import { SettingsInvitesSection } from '@/components/club/settings-invites-section';
 import { SettingsSquadsSection } from '@/components/club/settings-squads-section';
@@ -35,6 +35,11 @@ export default function ClubSettingsScreen() {
     canManageClub,
     canEditCommercialMode,
     loading,
+    status,
+    error,
+    refreshing,
+    retry,
+    handleRefresh,
     activeSection,
     setActiveSection,
     editName,
@@ -73,7 +78,26 @@ export default function ClubSettingsScreen() {
   );
 
   if (loading) {
-    return renderShell(<LoadingState variant="form" />);
+    return renderShell(
+      <>
+        <PageHeader title="Club Settings" subtitle="Loading settings" showBack centerTitle />
+        <LoadingState variant="form" />
+      </>,
+    );
+  }
+
+  if (status === 'error') {
+    return renderShell(
+      <>
+        <PageHeader title="Club Settings" subtitle="Settings unavailable" showBack centerTitle />
+        <ErrorState
+          title="Club settings unavailable"
+          message={error?.message ?? 'Failed to load club settings.'}
+          error={error ?? undefined}
+          onRetry={retry}
+        />
+      </>,
+    );
   }
 
   if (!club) {
@@ -117,7 +141,17 @@ export default function ClubSettingsScreen() {
         ))}
       </Row>
 
-      <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
+      <ScrollView
+        contentContainerStyle={styles.content}
+        showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={handleRefresh}
+            tintColor={colors.tint}
+          />
+        }
+      >
         {!canManageClub && (
           <SurfaceCard style={[styles.readOnlyCard, { borderColor: colors.border }]}>
             <ThemedText style={Typography.smallSemiBold}>Read-only access</ThemedText>
